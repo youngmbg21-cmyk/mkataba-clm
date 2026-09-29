@@ -152,6 +152,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       const b = document.querySelector('.rl-unsent-go') || document.getElementById('nego-send-decisions');
       if (b) b.click();
     });
+    /* THE CHECK BEFORE SEND (29 Sep 2026): the reader presses Send in it. */
+    try { await cp.waitForSelector('#confirm-overlay #cf-ok', { timeout: 4000 });
+      await cp.evaluate(() => document.getElementById('cf-ok').click()); } catch (_){}
     await pause(2500);
 
     const queued = await own.evaluate(async () => {

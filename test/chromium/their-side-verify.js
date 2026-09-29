@@ -148,6 +148,12 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
       check('4f a suggestion goes into the wording and leaves the list', after.rows === 1 && after.fixed, JSON.stringify(after));
       await press(page, '#ce-railfoot [data-ce-act="save"]');
       await until(page, () => !document.querySelector('#ce-spell .sp-row'));
+      /* A SAVE ASKS WHY (Young, 29 Sep 2026) — see where-we-are-verify. Here
+         the reason is skipped; the question must have come up. */
+      const why = await until(page, () => !!document.getElementById('pd-input'), null, 4000);
+      check('4h the save asks for a reason', why);
+      await press(page, '#pd-cancel');
+      await until(page, () => !document.getElementById('pd-input'), null, 2000);
       await press(page, '#clause-editor [data-ce-act="close"]');
       await until(page, () => !document.getElementById('clause-editor'));
       const held = await until(page, () => !!document.querySelector('.rl-unsent-go'));

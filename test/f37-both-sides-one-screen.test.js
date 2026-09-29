@@ -406,7 +406,7 @@ describe('an action by one side shows up on the other', () => {
   test('progress and the resolved count move together on both sides', async () => {
     const o = await negotiated();
     let v = counterpartyView(o.c);
-    assert.match(v.$('#pt-nego-facts').textContent, /Resolved: 0 of 3/);
+    assert.match(v.$('.pw-jfacts').textContent, /Resolved: 0 of 3/);
     assert.match(o.ownerDoc().querySelector('#nego-progress').textContent, /0 of 3 resolved/);
 
     /* The owner answers every one of their asks. The bulk verb that used to do
@@ -422,7 +422,7 @@ describe('an action by one side shows up on the other', () => {
     }
     // the owner's page repainted itself; Erik's repaints from a fresh read of the link
     v = counterpartyView(o.c);
-    assert.match(v.$('#pt-nego-facts').textContent, /Resolved: 3 of 3/);
+    assert.match(v.$('.pw-jfacts').textContent, /Resolved: 3 of 3/);
     assert.match(o.ownerDoc().querySelector('#nego-progress').textContent, /3 of 3 resolved/);
   });
 
@@ -543,8 +543,11 @@ describe('Erik can answer the changes Wanjiru proposed', () => {
        a count printed twice; it keeps the one thing only it says. BOTH HALVES
        ARE STILL READ BEFORE ANYTHING IS SENT, which is this test's claim: the
        button says how many, and the wall says they have not gone. */
-    assert.match(v.$('#rl-banner').textContent, /until you press Send/i);
-    assert.doesNotMatch(v.$('#rl-banner').textContent, /nothing has reached/i);
+    /* ---- REVERSED 29 Sep 2026 (Young said yes: the "Your table" strip goes
+       on the ordinary live link) ---- The promise rides the Send all button's
+       hover and heads the check before Send; the strip stays only where it
+       says something nothing else does (no live link back, multi-party). */
+    assert.match(v.$('.rl-unsent-go').getAttribute('title') || '', /until you press Send/i);
     assert.equal(v.p.lastSent(), null, 'and nothing has actually been sent');
   });
 
@@ -810,7 +813,7 @@ describe('the durable link keeps showing current state', () => {
     p.open(sharePayloadFor(p, o.c));
     assert.equal(p.win.document.querySelectorAll('[data-nego-card]').length, 3,
       'three asks are live on his table');
-    assert.match(p.win.document.getElementById('pt-nego-facts').textContent, /Resolved: 0 of 3/);
+    assert.match(p.win.document.querySelector('.pw-jfacts').textContent, /Resolved: 0 of 3/);
 
     // Wanjiru answers everything, then the SAME link is refreshed in place
     /* The owner answers every one of their asks. The bulk verb that used to do
@@ -834,7 +837,7 @@ describe('the durable link keeps showing current state', () => {
     assert.ok([...liveNego(p.win).querySelectorAll('#rl-cp-body .rl-cp-who')]
       .some(t => /adopted/.test(t.textContent || '')),
       'the decisions are in the clause panel now');
-    assert.match(p.win.document.getElementById('pt-nego-facts').textContent, /Resolved: 3 of 3/);
+    assert.match(p.win.document.querySelector('.pw-jfacts').textContent, /Resolved: 3 of 3/);
   });
 
   test('a superseded copy is read-only, and says why', async () => {

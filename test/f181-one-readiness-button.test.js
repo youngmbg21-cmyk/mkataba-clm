@@ -164,7 +164,11 @@ describe('F181 — the header carries Ready to sign, beside Compare wording', ()
      deleted: the fact under test is still WHERE the control lives, and the
      answer has changed. It is not in the identity row and it does not wear the
      old class; it is a row inside the menu, which is where the owner put it. */
-  test('focus mode is back — inside the menu, not loose in the row', async () => {
+  /* ---- AND REVERSED AGAIN, 29 Sep 2026 (Young: focus mode "should not be
+     hidden") ---- It leaves the menu for the control row, beside the text
+     size, where the negotiation page keeps its own. Still not loose in the
+     identity row, and still not the old class. */
+  test('focus mode is a button on the control row, not a row in the menu', async () => {
     const o = await ownerProposed();
     const v = counterpartyView(o.c);
     const btn = v.$('#pt-focus');
@@ -172,8 +176,9 @@ describe('F181 — the header carries Ready to sign, beside Compare wording', ()
     assert.equal(v.$('.pt-focus-btn'), null,
       'and it did not come back wearing the class the old loose button had');
     const menu = v.$('#pt-more-menu');
-    assert.ok(menu && menu.contains(btn),
-      'it is a row in the overflow menu — the header row itself is unchanged');
+    assert.ok(!menu || !menu.contains(btn), 'it is no longer hidden in an overflow menu (the page has none since 29 Sep 2026)');
+    const row2 = v.$('.pw-id-row2');
+    assert.ok(row2 && row2.contains(btn), 'it sits on the control row, beside the text size');
     const row = v.$('.pw-id');
     assert.ok(!(row && [...row.children].some(el => el.id === 'pt-focus')),
       'nothing loose in the identity row, which is what 12 Aug was actually about');

@@ -196,6 +196,16 @@ function buildPortal(opts = {}) {
     const b64 = String(dataUrl || '').split(',')[1] || '';
     log.downloads.push({ fileName, mime, bytes: new Uint8Array(Buffer.from(b64, 'base64')) });
   };
+  /* THE CHECK BEFORE SEND (29 Sep 2026) is a confirmDialog titled "Send to …".
+     This stage's reader presses Send in it — every stage written before it
+     presses Send and then reads what was posted — and each showing is kept in
+     log.sendChecks so a test can read what the check listed. Every other
+     dialog is the real one. */
+  log.sendChecks = [];
+  const realConfirm = win.confirmDialog;
+  win.confirmDialog = o => (o && /^Send to /.test(String(o.title || '')))
+    ? (log.sendChecks.push(o), Promise.resolve(true))
+    : realConfirm(o);
 
   return {
     dom, win, log,

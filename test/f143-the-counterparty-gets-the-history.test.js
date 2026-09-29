@@ -185,7 +185,12 @@ describe('f143 — the export, and the colour fault it used to have', () => {
    complaint was about, and that both carry the shared one — which is the thing
    that actually drifted. The colour itself is measured in Chromium. */
 describe('the reading verbs are the same pair of buttons on both screens', () => {
-  const verbs = d => ['pt-hist', 'pt-compare'].map(id => d.getElementById(id)).filter(Boolean);
+  /* CLAIM NARROWED IN PLACE (Young picked "Where we are", 29 Sep 2026): on
+     the negotiate link #pt-hist is the History TAB, dressed as a tab, and the
+     one reading verb left is Compare wording. The signing screen still draws
+     both as buttons. A tab is not a verb, so it is not asked to wear one. */
+  const verbs = d => ['pt-hist', 'pt-compare'].map(id => d.getElementById(id))
+    .filter(b => b && !b.classList.contains('pw-tab'));
 
   function screenFor(purpose){
     const p = buildPortal();

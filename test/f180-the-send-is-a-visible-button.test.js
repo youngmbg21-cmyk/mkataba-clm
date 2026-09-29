@@ -122,8 +122,12 @@ describe('F180 — the counterparty\'s deal verbs are visible before any decisio
        itself. The sentence is not lost: the wall line the workbench draws for
        this same reader says it, and that wall is the one band this page is
        allowed to keep precisely so it is read BEFORE any decision. */
-    assert.match(v.$('#rl-banner').textContent, /stay on this page until you press Send/i,
-      'the reader is still told where decisions wait, before they make one');
+    /* ---- REVERSED 29 Sep 2026 (Young said yes: the "Your table" strip goes
+       on the ordinary live link) ---- The promise rides the Send all button's
+       hover and heads the check before Send; the strip stays only where it
+       says something nothing else does (no live link back, multi-party). */
+    assert.doesNotMatch(v.$('#rl-banner') ? v.$('#rl-banner').textContent : '', /Your table/i,
+      'no strip across the page on the ordinary link');
   });
 
   /* ---- CLAIM REVERSED IN PLACE, 15 Aug 2026 ----
@@ -176,10 +180,12 @@ describe('F180 — the counterparty\'s deal verbs are visible before any decisio
        THE CLAIM IS UNCHANGED: the reader must be told, on visible pixels, that
        their answer has not travelled. It is asked of the button above and of
        the promise below, and the wall is asked NOT to say it twice. */
-    assert.match(v.$('#rl-banner').textContent, /until you press Send/i,
-      'the wall keeps the promise that deciding is safe');
-    assert.doesNotMatch(v.$('#rl-banner').textContent, /nothing has reached/i,
-      'and no longer prints the Send button\'s own count a second time');
+    /* ---- REVERSED 29 Sep 2026 (Young said yes: the "Your table" strip goes
+       on the ordinary live link) ---- The promise rides the Send all button's
+       hover and heads the check before Send; the strip stays only where it
+       says something nothing else does (no live link back, multi-party). */
+    assert.match(send.getAttribute('title') || '', /until you press Send/i,
+      'the Send button\'s hover keeps the promise that deciding is safe');
   });
 
   /* THE ROLL CALL. The bug this file is named for was one verb losing its

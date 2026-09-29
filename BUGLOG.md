@@ -19923,3 +19923,8 @@ Noticed, not fixed
 - Noticed, not fixed: the Friction list's lens, selection and inner scroll are not brought back after a refresh (only the tab is).
 - Noticed, not fixed: keeps-your-place-verify still throws at the Templates wall (`#tpl-ov-cards`), identical before this change.
 - Noticed, not fixed: CLAUDE.md is 88 KB, over its own ~80 KB ceiling (86 KB before this change).
+
+## 29 Sep 2026 — Where we are on their page: noticed, not fixed
+- Noticed, not fixed: the share email still prints the link's end date as digits ("This link expires on 2026-10-12", js/core.js share email text); the owner-side share lists do too. Only the counterparty's pages were changed to words.
+- Noticed, not fixed: on our History tab a counterparty change can read "Why they asked: Written on the clause editor" — provenance showing as a reason; `NEGO_PROVENANCE_RE` only recognises "Copilot — …". Seen in the owner's screenshot of 29 Sep.
+- Noticed, not fixed: the counterparty's history (negoTimelineScreenHtml) is oldest first and prints ISO dates ("2026-09-29"), while our room's History tab is newest first with dates in words.

@@ -218,7 +218,10 @@ const symbol = page => page.evaluate(() => {
     ed.theirs && ed.right <= ed.colLeft && ed.colSeen, JSON.stringify({ right: ed.right, col: ed.colLeft, seen: ed.colSeen }));
   check('2b Discard changes and Save sit under the column', ed.footUnder
     && ed.footBtns.includes('Discard changes') && ed.footBtns.some(t => /^(Save|File)/.test(t)), ed.footBtns.join(','));
-  check('2c their header stands down; the wall line stays in view above the page', ed.head === 'none' && ed.wall,
+  /* REVERSED 29 Sep 2026 (Young said yes): the "Your table" strip is gone on
+       the ordinary live link; its promise rides the Send all hover and heads
+       the check before Send. What is measured now is that it is NOT there. */
+  check('2c their header stands down, and no strip stands above the page', ed.head === 'none' && !ed.wall,
     JSON.stringify({ head: ed.head, wall: ed.wall }));
   /* A clause with no marks opens ready to type (the editor's arrival rule,
      "nothing to hide"); what the owner asked is that it LOOKS clean. */
@@ -246,6 +249,11 @@ const symbol = page => page.evaluate(() => {
   await page.screenshot({ path: path.join(OUT, '03-symbol-hover.png') });
   await page.keyboard.press('Control+s');
   const tick = await until(page, () => !!document.querySelector('#clause-editor .ce-saved-tick'), null, 3000);
+  /* A SAVE ASKS WHY (Young, 29 Sep 2026); skipped here — see where-we-are-verify. */
+  if (await until(page, () => !!document.getElementById('pd-input'), null, 3000)){
+    await press(page, '#pd-cancel');
+    await until(page, () => !document.getElementById('pd-input'), null, 2000);
+  }
   await page.screenshot({ path: path.join(OUT, '04-saved-tick.png') });
   const saved = await page.evaluate(() => ({ dirty: clauseEditorDirty(),
     typed: document.getElementById('clause-editor').classList.contains('ce-typed'),
