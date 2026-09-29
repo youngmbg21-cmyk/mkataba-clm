@@ -19893,3 +19893,6 @@ Noticed, not fixed
 - Noticed, not fixed: docs/MAP-HISTORY.md had no EXPOSURE section before today; four-off-the-screenshots-verify section 4 still waits with fixed pause() calls.
 - Noticed, not fixed: white-band-and-tabs-verify is 17/21 and keeps-your-place-verify stops at the Templates wall (`#tpl-ov-cards` null) — both identical at ac2c7d5b.
 - Noticed, not fixed: CLAUDE.md is 86 KB, over its own ~80 KB ceiling (it was 84.7 KB before this change).
+## 28 Sep 2026 — Explorer: every view moves, Turning / Still
+
+- BUILT: Floors turns by itself like the Brain; Grid and Timeline sway gently; a Turning / Still button on the Explorer's view bar stops and starts it (the Brain page's own button). explorer-magnitude-verify 4a–4g.

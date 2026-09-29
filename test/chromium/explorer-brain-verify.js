@@ -114,7 +114,8 @@ const check = (name, pass, detail) => {
     }
     await page.dblclick('#ig-svg', { position: { x: 30, y: 30 } });
     const faced = await page.evaluate(() => ({ rotL: intel.cam.rotL, tiltL: intel.cam.tiltL, zoom: intel.cam.zoom }));
-    check('3d a double-click faces the view again', faced.rotL === 0 && faced.tiltL === 0 && faced.zoom === 1, JSON.stringify(faced));
+    /* the Floors turn by themselves too (28 Sep 2026), so a frame after facing it has drifted a hair */
+    check('3d a double-click faces the view again', Math.abs(faced.rotL) < 0.05 && faced.tiltL === 0 && faced.zoom === 1, JSON.stringify(faced));
     await page.click('[data-ig-zoom="in"]'); await page.click('[data-ig-zoom="in"]');
     const zv = await page.evaluate(() => ({ z: intel.cam.zoom, t: document.getElementById('ig-zv').textContent }));
     check('3e the zoom buttons zoom, and the readout says by how much', zv.z > 1.3 && zv.t === Math.round(zv.z * 100) + '%', JSON.stringify(zv));

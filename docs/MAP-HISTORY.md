@@ -24468,6 +24468,14 @@ THE MAGNITUDE. Two faults. (1) `INTEL_CAP` was 120 and silent: a 179-contract bo
 
 Checks: explorer-magnitude-verify (11 claims) — red at 47b48c1c on 1b, 1c, 1d, 2a–2d, 3b; 1a, 3a, 9a are the kept behaviour.
 
+## INSIGHTS — EXPLORER: EVERY VIEW MOVES, AND TURNING / STILL (Young, 28 Sep 2026)
+
+Young: *"Why are floor, grid and timeline not on a moving state at all times? Floor should be spinning just like brain and the others should be moving. Also add a turning/still button like in the brain page."*
+
+Only the Brain turned by itself (`igbStep`: `cam.view===0`). Now the Floors turn at the Brain's own rate (`IGB_TURN_RATE`, on `rotL`). Grid and Timeline carry words laid on the ground — a full turn would show the axis, the headings and the lane names backwards half the time — so they SWAY `IGB_SWAY` (0.32 rad) each way once every `IGB_SWAY_S` (24 s) round whatever angle the reader has set; the sway is display-only (`cam.sway`, added in the projection), paused while the reader holds or points at the map, and eases back to the set angle when stilled. Wiring already drifts through its physics and is left as it was. THE BUTTON is the Brain page's own (its mark and its two words, `int_turning` / `int_still` mirroring `brn_turning` / `brn_still`), on the Explorer's view bar between the zoom and Fold all; `cam.spin` is the one switch for every view, starts Still for a reader who asked for less motion (as the Brain page's `autoRot` does), and rides the refresh place with the camera. Two older checks had pinned an exact angle while the Floors stood still (explorer-brain-verify 3d, refresh-keeps-your-spot-verify 3b) — 3d now allows a frame's drift, 3b holds the map Still and also proves the choice comes back.
+
+Checks: explorer-magnitude-verify section 4 (4a–4g) — red at ac2c7d5b on 4a, 4c–4g; 4b (the Brain's own turn) is the kept behaviour.
+
 ## INSIGHTS — FOUR TABS REBUILT TO THE OWNER'S PICKS (28 Sep 2026)
 
 The owner asked for three "world class" designs each for Portfolio (and "kill the bottom 3 cards"), Negotiation Friction ("leave the copilot feature"), Obligations and Exposure ("significantly improve"), with Payment terms left alone. Three named options per tab were drawn full size on a design-options page; the owner picked by name — Overview, Clause Ledger, Reminder Line, Pattern Grid — and said build. Each was built in its own worktree and merged here.

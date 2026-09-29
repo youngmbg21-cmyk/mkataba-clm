@@ -2068,6 +2068,12 @@ const IGB_FACT_TONE={amber:'#F2B24C',ruby:'#F0726A',ink:'#E6F2EF',mute:'#8FB5AD'
 const IGB_FOLD_SMALL=3, IGB_FOLD_MANY=4;
 const IGB_ZOOM_MIN=.6, IGB_ZOOM_MAX=3.5, IGB_ZOOM_STEP=1.15;
 const IGB_TURN_RATE=.08;                       // radians a second, the brain's own slow turn
+/* THE FLAT VIEWS MOVE TOO (Young, 28 Sep 2026: "Floor should be spinning just
+   like brain and the others should be moving"). Floors turns at the brain's
+   rate. Grid and Timeline carry words laid on the ground, which a full turn
+   would show backwards half the time, so they SWAY: this far each way, once
+   in this many seconds, round whatever angle the reader has set. */
+const IGB_SWAY=.32, IGB_SWAY_S=24;
 const IGB_STEP_S=2.4, IGB_PULSE_S=.9;          // a walk-through: one contract every 2.4 s
 const IGB_LABEL_W=150;
 const IGB_SIZE_KEYS=['value','obligations','same'];
@@ -2109,7 +2115,7 @@ function igbReduced(){ try{ return !!(window.matchMedia&&window.matchMedia('(pre
 /* THE CAMERA IS THE SITTING'S, in memory: a regroup or a new answer keeps the
    view the reader chose and the way they turned it. Nothing stores it. */
 function igbCam(){
-  if(!intel.cam||!Array.isArray(intel.cam.w)||intel.cam.w.length!==IGB_NV) intel.cam={ view:0, w:[1,0,0,0,0], rot:-1.4, tiltOff:0, rotW:0, tiltW:0, rotL:0, tiltL:0, rotG:0, tiltG:0, rotT:0, tiltT:0, zoom:1 };
+  if(!intel.cam||!Array.isArray(intel.cam.w)||intel.cam.w.length!==IGB_NV) intel.cam={ view:0, w:[1,0,0,0,0], spin:!igbReduced(), rot:-1.4, tiltOff:0, rotW:0, tiltW:0, rotL:0, tiltL:0, rotG:0, tiltG:0, rotT:0, tiltT:0, zoom:1 };
   return intel.cam;
 }
 /* The brain's tissue: faint dots that make its shape and are never
@@ -2335,7 +2341,7 @@ function igbMix(n,w){
 /* THE PROJECTION — the Brain page's own: turn, tilt, a gentle perspective. */
 function igbProjector(G){
   const cam=igbCam(), w=cam.w;
-  const rot=igbDot(w,[cam.rot,cam.rotW,cam.rotL-.2,cam.rotG,cam.rotT]);
+  const rot=igbDot(w,[cam.rot,cam.rotW,cam.rotL-.2,cam.rotG+(cam.sway||0),cam.rotT+(cam.sway||0)]);
   const tilt=igbDot(w,[IGB_TILT[0]+cam.tiltOff,IGB_TILT[1]+cam.tiltW,IGB_TILT[2]+cam.tiltL,IGB_TILT[3]+cam.tiltG,IGB_TILT[4]+cam.tiltT]);
   /* the flat views fill the stage's width, the turning ones its height */
   const base=Math.max(1,Math.min(G.W,G.H))*.36, flat=Math.max(1,Math.min(G.W/3.6,G.H/2.1));
@@ -2355,7 +2361,12 @@ function igbStep(G,dt){
     if(n.kind==='hub'){ for(let i=0;i<3;i++){ n.hA[i]+=(n.hAt[i]-n.hA[i])*glide; n.hL[i]+=(n.hLt[i]-n.hL[i])*glide; }
       n.fold+=((n.folded?1:0)-n.fold)*fe; n.vis+=(1-n.vis)*ve; }
     else { for(let i=0;i<3;i++){ n.A[i]+=(n.At[i]-n.A[i])*glide; n.L[i]+=(n.Lt[i]-n.L[i])*glide; n.G[i]+=(n.Gt[i]-n.G[i])*glide; n.T[i]+=(n.Tt[i]-n.T[i])*glide; } n.r0+=(n.rT-n.r0)*Math.min(1,rm?1:dt*6); } });
-  if(!rm&&cam.view===0&&!G.turning&&!G.hover) cam.rot+=dt*IGB_TURN_RATE;
+  /* Turning / Still (the bar's own button, `cam.spin`; a reader who asked for
+     less motion starts Still). Holding or pointing at the map holds it. */
+  const spin=cam.spin==null?!rm:!!cam.spin;
+  if(spin&&!G.turning&&!G.hover){ if(cam.view===0) cam.rot+=dt*IGB_TURN_RATE; else if(cam.view===2) cam.rotL+=dt*IGB_TURN_RATE; else if(cam.view>=3) cam.swayT=(cam.swayT||0)+dt; }
+  const swayTo=spin&&cam.view>=3?IGB_SWAY*Math.sin((cam.swayT||0)*2*Math.PI/IGB_SWAY_S):0;
+  cam.sway=(cam.sway||0)+(swayTo-(cam.sway||0))*(rm?1:Math.min(1,dt*2));
   const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)); ['rot','rotW','rotL','rotG','rotT'].forEach(k=>{ cam[k]=wrap(cam[k]); });
   const wk=intel.walk;
   if(wk&&wk.playing){ wk.clock=Math.min(wk.ids.length*IGB_STEP_S+1, wk.clock+dt);
@@ -2538,6 +2549,15 @@ function igSetZoom(z){
   const el=document.getElementById('ig-zv'); if(el) el.textContent=Math.round(cam.zoom*100)+'%';
 }
 /* A double-click faces the view again: the turn, the tilt and the zoom. */
+/* TURNING / STILL — the Brain page's own button (its words and its mark),
+   on the Explorer's bar: one press stops or starts the motion of every view. */
+const IG_IC_TURN='<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><ellipse cx="8" cy="8" rx="6" ry="2.6"/><path d="M11.5 4.2l2 1.2-1.6 1.6"/></svg>';
+function igbSpinning(){ const c=igbCam(); return c.spin==null?!igbReduced():!!c.spin; }
+function igSpinLabel(){ return IG_IC_TURN+igEsc(i18t(igbSpinning()?'int_turning':'int_still')); }
+function igSetSpin(on){
+  igbCam().spin=!!on;
+  const b=document.getElementById('ig-spin'); if(b){ b.innerHTML=igSpinLabel(); b.setAttribute('aria-pressed',String(!!on)); }
+}
 function igFaceAgain(){
   const cam=igbCam();
   if(cam.view===0){ cam.rot=-1.4; cam.tiltOff=0; } else if(cam.view===1){ cam.rotW=0; cam.tiltW=0; } else if(cam.view===2){ cam.rotL=0; cam.tiltL=0; }
@@ -3129,6 +3149,7 @@ function renderIntel(){
         <div class="ig-viewbar" title="${igEsc(i18t('int_drag_nodes'))}">
           <div class="ig-seg" role="group" aria-label="${igEsc(i18t('int_view_label'))}">${IGB_VIEWS.map((v,i)=>`<button type="button" data-ig-view="${i}" aria-pressed="${igbCam().view===i}">${i18t(IGB_VIEW_WORD[v])}</button>`).join('')}</div>
           <div class="ig-seg"><button type="button" data-ig-zoom="out" aria-label="${igEsc(i18t('int_zoom_out'))}">${icon('minus','w-3.5 h-3.5')}</button><span id="ig-zv" class="ig-zv">${Math.round(igbCam().zoom*100)}%</span><button type="button" data-ig-zoom="in" aria-label="${igEsc(i18t('int_zoom_in'))}">${icon('plus','w-3.5 h-3.5')}</button></div>
+          <div class="ig-seg"><button type="button" id="ig-spin" aria-pressed="${igbSpinning()}">${igSpinLabel()}</button></div>
           <div class="ig-seg"><button type="button" id="ig-foldall">${i18t('int_fold_all')}</button></div>
         </div>
         <div id="ig-paper" class="ig-paper" hidden></div>
@@ -3206,6 +3227,7 @@ function renderIntel(){
   document.querySelectorAll('[data-ig-view]').forEach(b=>b.addEventListener('click',()=>igSetView(b.getAttribute('data-ig-view'))));
   document.querySelectorAll('[data-ig-zoom]').forEach(b=>b.addEventListener('click',()=>igSetZoom(igbCam().zoom*(b.getAttribute('data-ig-zoom')==='in'?IGB_ZOOM_STEP:1/IGB_ZOOM_STEP))));
   document.getElementById('ig-foldall')?.addEventListener('click',()=>igFoldAll());
+  document.getElementById('ig-spin')?.addEventListener('click',()=>igSetSpin(!igbSpinning()));
 
   // controls
   /* Leaving Copilot's grouping takes its row away (igPaintGroupSelect, on the rebuild). */
@@ -6047,7 +6069,7 @@ Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
-Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SWAY,IGB_SWAY_S,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
