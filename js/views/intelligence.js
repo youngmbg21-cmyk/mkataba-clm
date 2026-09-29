@@ -4714,8 +4714,16 @@ const OB_THEIRS='var(--st-amber-dot,#f59e0b)';
    it, or the colleague watching what they owe us — and one lane for nobody.
    A green window in a lane is when the reminder emails about a due date
    sitting there go out; a hollow dot will never be emailed about; overdue
-   sits left of the Today line. Six tiles under it carry today's other
-   readings, each a door.
+   sits left of the Today line. Six tiles carry today's other readings,
+   each a door.
+
+   IT FITS THE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026): the six
+   tiles lead as the Insights figure strip (.igx-figs), and the line is ONE
+   card that takes every pixel left (.igx-fit's second row). Its lanes share
+   that height (each lane grows, none shrinks below what it draws on its
+   own), and when there are more lanes than fit they scroll INSIDE the card
+   (#ob-rl-scroll, .igx-scroll) while the dates row stays put. The page
+   itself never scrolls on a desktop, and no empty band sits under the card.
 
    IT DRAWS AND COUNTS NOTHING. Every dot, window and figure is
    intelObligationsData's, and hollow/filled and the window are obReminderOf's
@@ -4811,6 +4819,8 @@ function intelObligationsHtml(){
       while(lv[k]!=null&&x-lv[k]<1.6) k++;
       lv[k]=x; return { dt, x, k };
     });
+    /* The lane's FLOOR: it grows to share the card's height (.ob-rl-grid is
+       a column), so the dots ride its middle rather than a fixed pixel. */
     const h=36+(Math.max(1,lv.length)-1)*13;
     const who=L.key==='more'?i18t('ob_rl_win_more')
       : (L.side==='ours'&&!L.owned)?i18t('ob_rl_owner_word'):L.name;
@@ -4818,18 +4828,18 @@ function intelObligationsHtml(){
       <div class="ob-rl-win" style="left:${pct(X(L.band.last))}%;width:${pct(X(L.band.first)-X(L.band.last))}%"
         title="${E(i18t(L.side==='ours'?'ob_rl_win_ours':'ob_rl_win_theirs',{ who, first:L.band.first, late:-L.band.last }))}"></div>`:'';
     const dots=pos.map(({dt,x,k})=>{
-      const top=h/2+(k%2?1:-1)*Math.ceil(k/2)*13;
+      const top=`calc(50% + ${(k%2?1:-1)*Math.ceil(k/2)*13}px)`;
       const say=dotSay(dt);
       return dt.key&&typeof window.obOpenContract==='function'
-        ? `<button type="button" class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}px"
+        ? `<button type="button" class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}"
             data-ob-rl-key="${E(dt.key)}" data-ob-rl-cid="${E(dt.cid)}" title="${E(say)}" aria-label="${E(say.replace(/\n/g,'. '))}"></button>`
-        : `<span class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}px" title="${E(say)}"></span>`;
+        : `<span class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}" title="${E(say)}"></span>`;
     }).join('');
     const tag=`${L.side}:${idx}`;
     const lbl=name;
     return `<div class="ob-rl-row">
       <span class="ob-rl-who${ruby?' is-ruby':''}"><span class="ob-rl-name">${E(name)}</span><small>${E(sub)}</small></span>
-      <div class="ob-rl-strip" style="height:${h}px">${band}
+      <div class="ob-rl-strip" style="min-height:${h}px">${band}
         <div class="ob-rl-brief" style="left:${pct(X(d.briefFloor))}%"></div>
         <div class="ob-rl-now" style="left:${pct(X(0))}%"></div>${dots}</div>
       <span class="ob-rl-n">${figHtml('lane:'+tag+':later',L.later.length,L.laterKeys,i18t('ob_rl_only_later',{ who:lbl }),
@@ -4859,7 +4869,7 @@ function intelObligationsHtml(){
       +lanes.map((L,i)=>laneHtml(L,i)).join('');
   };
   const sw=(bg,edge)=>`<span class="ob-rl-sw" style="background:${bg};box-shadow:inset 0 0 0 1px ${edge}"></span>`;
-  const line=`<section style="${OB_CARD};padding:13px 17px 6px">
+  const line=`<section class="igx-card ob-rl-card">
     <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('ob_rl_title')}</span>
       <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('ob_rl_hint')}</span></div>
     <div class="ob-rl-legend">
@@ -4868,7 +4878,7 @@ function intelObligationsHtml(){
       <span>${sw('var(--st-green-bg)','var(--st-green-dot)')}${i18t('ob_rl_key_window')}</span>
       <span>${sw('var(--st-ruby-bg)','var(--st-ruby-dot)')}${i18t('ob_rl_key_past')}</span>
     </div>
-    <div class="ob-rl-scroll scroll-thin" id="ob-rl-scroll"><div class="ob-rl-grid" role="group" aria-label="${E(i18t('ob_rl_aria'))}">
+    <div class="ob-rl-scroll igx-scroll scroll-thin" id="ob-rl-scroll"><div class="ob-rl-grid" role="group" aria-label="${E(i18t('ob_rl_aria'))}">
       <div class="ob-rl-row is-head"><span></span><div class="ob-rl-ticks">${tickHtml}</div>
         <span class="ob-rl-n">${i18t('ob_rl_col_later')}</span><span class="ob-rl-n">${i18t('ob_rl_col_nodate')}</span><span class="ob-rl-n">${i18t('ob_rl_col_open')}</span></div>
       ${groupHtml('ours','ob_rl_ours')}${groupHtml('theirs','ob_rl_theirs')}
@@ -4876,20 +4886,22 @@ function intelObligationsHtml(){
   </section>`;
 
   /* ---- the six tiles: today's other readings, each a door ---- */
+  /* THE INSIGHTS FIGURE TILE (.igx-fig), the same on every tab; the tone
+     colours the figure only, and a tile with a set behind it is a button. */
   const tile=(id,spec,title,value,sub,tone,tip)=>{
     const door=spec&&value?doorOf(id,spec):null;
-    const col=tone==='bad'?'var(--st-ruby-fg)':tone==='good'?'var(--st-green-fg)':tone==='warn'?'var(--st-amber-fg)':'var(--color-text)';
-    const inner=`<span class="ob-rl-tile-k">${E(title)}</span>
-      <span class="ob-rl-tile-n" style="color:${value?col:'var(--color-text)'}">${E(String(value))}</span>
-      <span class="ob-rl-tile-s">${E(sub)}</span>`;
+    const cls=value&&tone?` igx-${tone}`:'';
+    const inner=`<span class="igx-fig-t">${E(title)}</span>
+      <span class="igx-fig-n${cls}">${E(String(value))}</span>
+      <span class="igx-fig-s">${E(sub)}</span>`;
     return door
-      ? `<button type="button" class="ob-rl-tile" data-ob-rl-door="${door}" title="${E(tip||i18t('ob_rl_door'))}">${inner}</button>`
-      : `<div class="ob-rl-tile">${inner}</div>`;
+      ? `<button type="button" class="igx-fig" data-ob-rl-door="${door}" title="${E(tip||i18t('ob_rl_door'))}">${inner}</button>`
+      : `<div class="igx-fig">${inner}</div>`;
   };
   const known=d.ontime.on+d.ontime.late;
   const rep=[['monthly','ob_rl_t_rep_monthly'],['quarterly','ob_rl_t_rep_quarterly'],['annual','ob_rl_t_rep_annual']]
     .filter(([k])=>d.repeat[k]).map(([k,key])=>i18t(key,{ n:n(d.repeat[k]) })).join(' · ');
-  const tiles=`<div class="ob-rl-tiles">
+  const tiles=`<div class="igx-figs" style="--igx-n:6">
     ${tile('silent',{ kind:'obligations', keys:d.keys.silent, label:i18t('ob_rl_t_silent'), state:'open' },
       i18t('ob_rl_t_silent'), n(d.silent), i18t('ob_rl_t_silent_sub',{ open:n(d.open) }), 'bad', i18t('ob_rl_t_silent_tip'))}
     ${tile('late',{ kind:'obligations', keys:d.keys.overdue, label:i18t('ob_rl_t_late'), state:'open' },
@@ -4907,9 +4919,10 @@ function intelObligationsHtml(){
       i18t('ob_rl_t_rep'), n(d.repeatTotal), rep||i18t('ob_rl_t_rep_none'), 'warn', i18t('ob_rl_t_rep_tip'))}
   </div>`;
 
-  return `<div id="ig-ob" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:100%;margin:0 auto">
-    ${line}
+  /* The figures first, then the line in all the height that is left. */
+  return `<div id="ig-ob" class="igx-fit">
     ${tiles}
+    ${line}
   </div>`;
 }
 /* ONE LISTENER PER PAINT: #ig-oblig is rebuilt by every renderIntel, so the
