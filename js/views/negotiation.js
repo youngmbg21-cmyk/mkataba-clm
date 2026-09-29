@@ -16852,6 +16852,11 @@ const RL_NOTE_TICK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor"
    where something changed. */
 function rlNoteAskAfterFile(c, ch, opts = {}){
   if (!c || !ch) return Promise.resolve(null);
+  /* THEIR SEAT ASKS TOO (Young, 29 Sep 2026): on their page the question is
+     the change's own reason, held with it until Send — see portalAskReason. */
+  if (opts.side === 'counterparty')
+    return (rlOnTheirPage() && typeof window.portalAskReason === 'function')
+      ? window.portalAskReason(c, ch) : Promise.resolve(null);
   if ((opts.side || 'owner') !== 'owner') return Promise.resolve(null);
   if (!notesMayWrite(c, opts)) return Promise.resolve(null);
   if (typeof openChangeNoteDialog !== 'function') return Promise.resolve(null);

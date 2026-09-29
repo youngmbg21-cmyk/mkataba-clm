@@ -131,7 +131,9 @@ const VERBS = [
       footInHead: !!(head && foot && head.contains(foot)),
       compare: box(byId('pt-compare')),
       /* The reading switch, which shares the deal verbs' row since 23 Aug 2026. */
-      segs: box(document.querySelector('.pw-id .rl-readwrap')),
+      /* Its left end is the page's TABS since 29 Sep 2026 (Where we are ·
+         Redlines · History), where the one-choice reading switch stood. */
+      segs: box(document.querySelector('.pw-id .pw-tabs')),
       stepper: box(document.querySelector('.pw-id .rl-type-step')),
       /* What the request deleted, and what it must not have deleted. */
       nameBoxGone: !byId('nego-cp-name') && !document.querySelector('.pw-id .nego-who'),
@@ -147,8 +149,10 @@ const VERBS = [
       focusLoose: !!document.querySelector('.pt-focus-btn')
         || [...(document.querySelector('.pw-id') || { children: [] }).children]
              .some(el => el.id === 'pt-focus'),
-      focusInMenu: (() => { const b = byId('pt-focus'), m = byId('pt-more-menu');
-        return !!(b && m && m.contains(b)); })(),
+      /* REVERSED AGAIN 29 Sep 2026 (Young: focus mode "should not be
+         hidden"): a button on the control row, out of the menu. */
+      focusInMenu: (() => { const b = byId('pt-focus'), m = byId('pt-more-menu'), r = document.querySelector('.pw-id-row2');
+        return !!(b && m && !m.contains(b) && r && r.contains(b)); })(),
       /* THE WALL LINE STAYS — the one band this page is allowed, because they
          must read it before they answer anything. */
       wall: (() => { const w = document.querySelector('.rl-wall');
@@ -220,7 +224,7 @@ const VERBS = [
     `${m.readyPhraseCount} buttons say it`);
   check('no focus button loose in the header row — what 12 Aug removed stays removed',
     !m.focusLoose);
-  check('and focus mode is back where the owner asked for it: a row in the More menu',
+  check('and focus mode is where the owner asked for it: a button on the control row, not hidden in More',
     m.focusInMenu);
 
   /* ---- 6. THE HIDE ACTUALLY HIDES — the .ui-btn cascade trap ----

@@ -246,6 +246,11 @@ const symbol = page => page.evaluate(() => {
   await page.screenshot({ path: path.join(OUT, '03-symbol-hover.png') });
   await page.keyboard.press('Control+s');
   const tick = await until(page, () => !!document.querySelector('#clause-editor .ce-saved-tick'), null, 3000);
+  /* A SAVE ASKS WHY (Young, 29 Sep 2026); skipped here — see where-we-are-verify. */
+  if (await until(page, () => !!document.getElementById('pd-input'), null, 3000)){
+    await press(page, '#pd-cancel');
+    await until(page, () => !document.getElementById('pd-input'), null, 2000);
+  }
   await page.screenshot({ path: path.join(OUT, '04-saved-tick.png') });
   const saved = await page.evaluate(() => ({ dirty: clauseEditorDirty(),
     typed: document.getElementById('clause-editor').classList.contains('ce-typed'),

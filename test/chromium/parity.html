@@ -234,11 +234,17 @@ window.READY = (async () => {
     document.getElementById('app-shell').classList.remove('hidden');
     renderRedline();
   };
-  window.SHOW_COUNTERPARTY = function(){
+  /* THEIR PAGE HAS TABS (29 Sep 2026) and a first visit lands on "Where we
+     are". Every stage written before that measures the contract, so this
+     opens the Redlines tab unless a stage asks for the landing as it is
+     ({ tab:'landing' }) or for another tab by name. */
+  window.SHOW_COUNTERPARTY = function(o = {}){
     document.getElementById('content').innerHTML = '';
     const payload = buildSharePayload(c, { purpose: 'negotiate' });
     renderSharePortal(payload, { token: 'harness-token', share: {
-      recipientName: 'Amina Wanjiru', recipientEmail: 'amina@nordfrakt.se' } });
+      recipientName: 'Amina Wanjiru', recipientEmail: 'amina@nordfrakt.se',
+      ...(o.expiresAt ? { expiresAt: o.expiresAt } : {}) } });
+    if (o.tab !== 'landing' && window.portalSetTab) portalSetTab(o.tab || 'redlines');
   };
   SHOW_OWNER();
   return true;

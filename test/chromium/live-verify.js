@@ -76,7 +76,9 @@ const READ = () => {
   const out = {};
   for (const id of ['pt-hist', 'pt-compare']){
     const el = document.getElementById(id);
-    if (!el){ out[id] = null; continue; }
+    /* On the negotiate link #pt-hist is the History TAB since 29 Sep 2026
+       (Where we are); a tab is not a reading verb and is not measured as one. */
+    if (!el || el.classList.contains('pw-tab')){ out[id] = null; continue; }
     const cs = getComputedStyle(el);
     out[id] = { bg: cs.backgroundColor, color: cs.color, icon: !!el.querySelector('svg'),
       bd: cs.borderTopColor, bw: cs.borderTopWidth };
