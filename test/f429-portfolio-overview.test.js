@@ -178,13 +178,17 @@ describe('F429 (3) — Value by stage, and the stage crosses the page', () => {
     assert.equal(w.pfStageData().rows.map(r => r.k).join('|'), 'Draft|Under Review|Signed', 'its own axis is whole');
     assert.match(w.portfolioFrameHtml(), /data-pf-unfilter="stage"/, 'and the choice is a chip you can undo');
   });
-  test('the frame draws Where the value sits, Value by stage and the risk map on one row', () => {
+  /* RE-POINTED IN PLACE 29 Sep 2026 (Fit to Screen, owner-picked by name): the
+     three question cards no longer share one row — Value by stage sits beside
+     the renewal runway and Where the value sits beside the risk map. f434 pins
+     the grid itself; this keeps the claim that all three are drawn, in the
+     picture's reading order. */
+  test('the frame draws Value by stage, Where the value sits and the risk map, in the picture\'s order', () => {
     const w = world();
     const html = w.portfolioFrameHtml();
-    const row = (html.match(/<div class="pf-grid pf-ov2">[\s\S]*$/) || [''])[0];
-    const at = s => row.indexOf(s);
-    assert.ok(at('Where the value sits') > -1 && at('Value by stage') > at('Where the value sits')
-      && at('The risk map') > at('Value by stage'));
+    const at = s => html.indexOf(s);
+    assert.ok(at('Value by stage') > -1 && at('Where the value sits') > at('Value by stage')
+      && at('The risk map') > at('Where the value sits'));
   });
 });
 

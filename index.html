@@ -6561,41 +6561,86 @@
   @media (max-width:1439px){ .rp-stats{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));} }
   @media (max-width:1099px){ .rp-charts{grid-template-columns:minmax(0,1fr);} }
 
+  /* ════ INSIGHTS FITS THE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026) ════
+     "Help propose designs to make the pages fit with a page and for the cards to fit
+     together without cards being taller than other cards and not covering spaces fully."
+     ONE grammar for every Insights tab except Explorer (a canvas already edge to edge):
+       .igx-host  the tab's own scroller under the tab row (keeps each tab's id);
+       .igx-fit   exactly the host's height: a figure strip, then rows that share the rest
+                  (--igx-rows says how; default one row takes it all);
+       .igx-figs  the headline figures, the same tile on every tab (--igx-n across);
+       .igx-row   cards side by side, all the same height (--igx-cols says the split);
+       .igx-card  a card that fills its cell; .igx-fill grows a chart, .igx-scroll lets a
+                  long list scroll INSIDE the card instead of stretching the page.
+     Below 1080px wide, or on a window too short to read (the grid's min-height), the page
+     scrolls as a plain column instead of squeezing. Tone classes colour the FIGURE only. */
+  .igx-host{flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:12px 20px 16px}
+  .igx-fit{display:grid;gap:10px;height:100%;min-height:600px;grid-template-columns:minmax(0,1fr);
+    grid-template-rows:var(--igx-rows,auto minmax(0,1fr))}
+  .igx-row{display:grid;gap:10px;min-width:0;min-height:0;grid-template-columns:var(--igx-cols,minmax(0,1fr))}
+  .igx-card{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden;background:var(--color-surface);
+    border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 16px}
+  .igx-fill{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  .igx-scroll{flex:1 1 auto;min-height:0;overflow:auto}
+  .igx-figs{display:grid;gap:10px;min-width:0;grid-template-columns:repeat(var(--igx-n,4),minmax(0,1fr))}
+  .igx-fig{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;text-align:left;font:inherit;color:var(--color-text);
+    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:9px 14px}
+  button.igx-fig{cursor:pointer}
+  button.igx-fig:hover{border-color:var(--color-neutral-400)}
+  button.igx-fig:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+  .igx-fig-t{max-width:100%;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.08em;text-transform:uppercase;
+    color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .igx-fig-n{font-size:var(--t-page);font-weight:var(--w-title);line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .igx-fig-s{max-width:100%;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .igx-fig.is-hero{background:var(--brand-hero,var(--color-accent-700));border-color:transparent;color:#fff}
+  .igx-fig.is-hero .igx-fig-t,.igx-fig.is-hero .igx-fig-s{color:var(--brand-hero-sub,#bde7e1)}
+  .igx-fig .igx-warn{color:var(--st-amber-fg)}
+  .igx-fig .igx-bad{color:var(--st-ruby-fg)}
+  .igx-fig .igx-good{color:var(--st-green-fg)}
+  @media (max-width:1079px){
+    .igx-fit{height:auto;min-height:0;grid-template-rows:none}
+    .igx-row{grid-template-columns:minmax(0,1fr)}
+    .igx-figs{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .igx-card{overflow:visible}
+    .igx-scroll{overflow:visible}
+  }
   /* ---- INSIGHTS, NEGOTIATION FRICTION: THE CLAUSE LEDGER (owner-picked 28 Sep 2026) ----
      Replaces the brief's two-column split and its four KPI cards. Copilot's
      read keeps its own strip inside a card of its own; under it a strip of
      six figures, then one ranked list with a details panel beside it. Every
      value is a token; the figures are the page's own label-over-value grammar.
      A figure with a list behind it is a BUTTON onto that list and says so on
-     hover; one without (an average, a median of decisions) is a div. */
-  .igf-led-card{ background:var(--color-surface); border:1px solid var(--color-divider);
-    border-radius:var(--radius-lg); min-width:0; }
-  .igf-led-cop{ overflow:hidden; margin-bottom:var(--s-3); }
-  /* The read's own strip drew a rule under itself when it sat on top of the
-     report in one card; alone in its card that rule would double the edge. */
+     hover; one without (an average, a median of decisions) is a div.
+     FIT TO SCREEN (owner-picked 29 Sep 2026): the page wears the shared .igx-*
+     grammar above — cards, the figure tiles, the row and the inner scrollers
+     are the grammar's; what is left here is the ledger's own furniture. Three
+     rows: Copilot's read, the six figures, and the list (7 parts) beside its
+     panel (5 parts), both exactly the height that is left. */
+  /* Copilot's read is as tall as it is, up to two fifths of the page: a long
+     answer scrolls inside its own card rather than squeezing the ledger. */
+  .igx-fit.igf-led{ --igx-rows:fit-content(40%) auto minmax(0,1fr); }
+  #igf-ledger{ display:contents; }
+  .igf-led-grid{ --igx-cols:minmax(0,7fr) minmax(0,5fr); }
+  .igf-led-grid.is-solo{ --igx-cols:minmax(0,1fr); }
+  /* What stays put in a card keeps its own height: a clipped box (the panel's
+     figures) would otherwise be squeezed to nothing, since only the scroller
+     beside it is meant to give way. */
+  .igf-led-list > :not(.igx-scroll), .igf-led-detail > :not(.igx-scroll){ flex:none; }
+  /* Copilot's read keeps its own padding; the card is only its frame. The read's
+     own strip drew a rule under itself when it sat on top of the report in one
+     card; alone in its card that rule would double the edge. */
+  .igx-card.igf-led-cop{ padding:0; overflow:auto; }
   .igf-led-cop #igf-copilot{ border-bottom:0; }
+  /* The figure the list is showing (the amber one opens the waiting list and
+     is lit while it is shown). */
+  #ig-friction button.igx-fig.on{ background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface));
+    box-shadow:inset 0 -2px 0 var(--accent-fill); }
   .igf-led-lbl{ display:block; font-size:var(--t-micro); font-weight:var(--w-strong); letter-spacing:.08em;
     text-transform:uppercase; color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .igf-led-strip{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:1px; background:var(--color-divider);
-    border:1px solid var(--color-divider); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:var(--s-3); }
-  .igf-led-fig{ display:block; width:100%; min-width:0; background:var(--color-surface); border:0; padding:10px 14px;
-    text-align:left; font:inherit; color:inherit; position:relative; }
-  .igf-led-fig .igf-led-n{ display:block; font-size:var(--t-page); font-weight:var(--w-title); line-height:1.3;
-    letter-spacing:-.01em; font-variant-numeric:tabular-nums; color:var(--color-text); }
-  .igf-led-fig .igf-led-s{ display:block; font-size:var(--t-meta); color:var(--color-neutral-600);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  button.igf-led-fig{ cursor:pointer; }
-  button.igf-led-fig:hover{ background:var(--surface-2); }
-  button.igf-led-fig.on{ background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface));
-    box-shadow:inset 0 -2px 0 var(--accent-fill); }
-  button.igf-led-fig:focus-visible{ outline:2px solid var(--accent-solid); outline-offset:-2px; }
   .igf-led .is-amber{ color:var(--st-amber-fg); }
   .igf-led-cost{ color:var(--st-ruby-fg); font-weight:var(--w-strong); }
   .igf-led-gain{ color:var(--st-green-fg); font-weight:var(--w-strong); }
   .igf-led-zero{ color:var(--color-neutral-500); font-variant-numeric:tabular-nums; }
-  .igf-led-grid{ display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:var(--s-3); align-items:start; }
-  .igf-led-grid.is-solo{ grid-template-columns:minmax(0,1fr); }
-  .igf-led-list{ padding:var(--s-3) var(--s-4) var(--s-3); }
   .igf-led-ch{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; margin-bottom:var(--s-2); }
   .igf-led-ch > b{ font-size:var(--t-card); font-weight:var(--w-title); color:var(--color-text); }
   .igf-led-sub{ font-size:var(--t-meta); color:var(--color-neutral-600); min-width:0; }
@@ -6612,10 +6657,17 @@
   .reg-seg.igf-led-seg button.on .igf-led-cnt{ color:var(--color-neutral-600); }
   .igf-led-table td.igf-led-nw{ white-space:nowrap; }
   .igf-led-refon{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .igf-led-scroll{ overflow-x:auto; }
   .igf-led-table{ width:100%; border-collapse:collapse; font-size:var(--t-body); }
+  /* THE ROWS FILL THE CARD: the table is the scroller's height, so a short list
+     spreads its rows down the card instead of stopping with a blank third
+     under it — but no row grows past 80px, so three rows stay
+     three rows. A longer list keeps its 40px rows and scrolls inside the card,
+     the column heads staying at its top. */
+  .igf-led-list .igf-led-table{ height:min(100%, calc(var(--igf-rows,0) * 80px + 32px)); }
   .igf-led-table th{ text-align:left; font-size:var(--t-micro); font-weight:var(--w-strong); letter-spacing:.08em;
     text-transform:uppercase; color:var(--color-neutral-600); padding:6px 8px; border-bottom:1px solid var(--color-divider); white-space:nowrap; }
+  .igf-led-list .igf-led-table thead th{ position:sticky; top:0; z-index:1; background:var(--color-surface);
+    box-shadow:inset 0 -1px 0 var(--color-divider); }
   .igf-led-table td{ height:40px; padding:4px 8px; border-bottom:1px solid var(--color-divider); color:var(--color-text); vertical-align:middle; }
   .igf-led-table .r{ text-align:right; font-variant-numeric:tabular-nums; }
   .igf-led-table tbody tr{ cursor:pointer; }
@@ -6640,7 +6692,6 @@
   .igf-led-foot{ margin-top:var(--s-2); font-size:var(--t-meta); color:var(--color-neutral-600); line-height:1.5; }
   .igf-led-none{ font-size:var(--t-meta); color:var(--color-neutral-600); }
   .igf-led-none.is-list{ padding:var(--s-4) 0; }
-  .igf-led-detail{ padding:var(--s-3) var(--s-4) var(--s-4); position:sticky; top:0; }
   .igf-led-dh{ display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:6px 14px; }
   .igf-led-dh-t{ min-width:0; }
   .igf-led-dname{ margin:2px 0 0; font-size:var(--t-section); font-weight:var(--w-title); letter-spacing:-.01em; color:var(--color-text); }
@@ -6687,15 +6738,10 @@
     text-transform:uppercase; color:var(--color-neutral-600); padding:4px 6px; border-bottom:1px solid var(--color-divider); }
   .igf-led-bytable td{ padding:6px; border-bottom:1px solid var(--color-divider); color:var(--color-text); }
   .igf-led-bytable .r{ text-align:right; font-variant-numeric:tabular-nums; }
-  @media (max-width:1100px){ .igf-led-strip{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
-  /* The list and its panel stack where the two cannot both hold their columns:
-     measured, at 1100 the list lost its last column to a sideways scroll. */
-  @media (max-width:1279px){
-    .igf-led-grid{ grid-template-columns:minmax(0,1fr); }
-    .igf-led-detail{ position:static; }
-  }
+  /* Below the grammar's line the page is a plain column: a wide table may
+     still slide sideways inside its own card rather than widen the page. */
+  @media (max-width:1079px){ #ig-friction .igf-led-scroll{ overflow-x:auto; } }
   @media (max-width:720px){
-    .igf-led-strip{ grid-template-columns:repeat(2,minmax(0,1fr)); }
     .igf-led-dfigs{ grid-template-columns:minmax(0,1fr); }
     .igf-led-barcell{ min-width:130px; }
     .igf-led-barcell .igf-led-rsub{ display:none; }
@@ -7355,18 +7401,25 @@
      nobody — the SHAPE says it as well as the hue. Every colour is a status
      token, so the pair survives the dark theme and the navy workspace. The
      line needs 880px; below that it scrolls inside its own card, never the
-     page. */
+     page.
+     FIT TO SCREEN (29 Sep 2026): the card is an .igx-card in the second row
+     of .igx-fit and its scroller is an .igx-scroll. The grid is a column
+     that is at least the scroller's height, so the lanes share whatever the
+     card has (a lane never below its own drawn floor); past that the lanes
+     scroll inside the card and the dates row stays pinned at its top. */
   .ob-rl-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:var(--t-label);color:var(--color-neutral-600);align-items:center;margin:0 0 6px}
   .ob-rl-legend > span{display:inline-flex;align-items:center;gap:5px}
   .ob-rl-key{display:inline-block;width:10px;height:10px;border-radius:50%;box-sizing:border-box}
   .ob-rl-key.is-told{background:var(--st-green-dot)}
   .ob-rl-key.is-silent{background:var(--color-surface);border:2px solid var(--st-ruby-dot)}
   .ob-rl-sw{display:inline-block;width:14px;height:10px;border-radius:2px}
-  .ob-rl-scroll{overflow-x:auto}
-  .ob-rl-grid{min-width:880px}
+  .ob-rl-scroll{overflow-x:auto;display:flex;flex-direction:column}
+  .ob-rl-grid{min-width:880px;flex:1 0 auto;display:flex;flex-direction:column}
+  .ob-rl-grid > .ob-rl-row:not(.is-head){flex:1 0 auto}
   .ob-rl-row{display:grid;grid-template-columns:180px minmax(0,1fr) 58px 58px 48px;align-items:center;border-bottom:1px solid var(--color-divider)}
   .ob-rl-row:last-child{border-bottom:0}
-  .ob-rl-row.is-head{border-bottom-color:var(--color-neutral-300);font-size:var(--t-micro);color:var(--color-neutral-600);align-items:end}
+  .ob-rl-row.is-head{border-bottom-color:var(--color-neutral-300);font-size:var(--t-micro);color:var(--color-neutral-600);align-items:end;
+    position:sticky;top:0;z-index:2;background:var(--color-surface)}
   .ob-rl-row.is-head .ob-rl-n{padding-bottom:4px;color:var(--color-neutral-600);font-weight:var(--w-body)}
   .ob-rl-who{font-size:var(--t-label);font-weight:var(--w-strong);padding:6px 8px 6px 0;min-width:0;color:var(--color-text);line-height:1.35}
   .ob-rl-who.is-ruby .ob-rl-name{color:var(--st-ruby-fg)}
@@ -7376,11 +7429,11 @@
   .ob-rl-fig{font:inherit;background:none;border:0;padding:0;cursor:pointer;color:var(--accent-ink);font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
   .ob-rl-fig:hover{text-decoration:underline}
   .ob-rl-fig.is-ruby{color:var(--st-ruby-fg)}
-  .ob-rl-fig:focus-visible,.ob-rl-tile:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
+  .ob-rl-fig:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
   .ob-rl-group{font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);padding:12px 0 4px;border-bottom:1px solid var(--color-divider)}
   .ob-rl-group .ob-rl-fig{letter-spacing:inherit;color:inherit}
   .ob-rl-n.is-total .ob-rl-fig{color:var(--color-text)}
-  .ob-rl-strip{position:relative}
+  .ob-rl-strip{position:relative;align-self:stretch}
   .ob-rl-win{position:absolute;top:0;bottom:0;background:var(--st-green-bg)}
   .ob-rl-past{position:absolute;top:0;bottom:0;left:0;background:var(--st-ruby-bg);opacity:.6}
   .ob-rl-brief{position:absolute;top:0;bottom:0;border-left:1px dashed var(--color-neutral-400);pointer-events:none}
@@ -7393,15 +7446,6 @@
   .ob-rl-ticks{position:relative;height:30px}
   .ob-rl-ticks span{position:absolute;bottom:4px;transform:translateX(-50%);white-space:nowrap}
   .ob-rl-ticks span.is-now{color:var(--accent-ink);font-weight:var(--w-strong)}
-  .ob-rl-tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--s-3)}
-  @media (max-width:1100px){ .ob-rl-tiles{grid-template-columns:repeat(3,minmax(0,1fr))} }
-  .ob-rl-tile{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;text-align:left;font:inherit;color:var(--color-text);
-    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px 14px}
-  button.ob-rl-tile{cursor:pointer}
-  button.ob-rl-tile:hover{border-color:var(--color-neutral-400)}
-  .ob-rl-tile-k{font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)}
-  .ob-rl-tile-n{font-size:var(--t-display);font-weight:var(--w-title);line-height:1.2;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
-  .ob-rl-tile-s{font-size:var(--t-label);color:var(--color-neutral-600)}
   /* The Obligations list's chip for a set sent from Insights — the register's
      own "only" chip (#reg-only-chip), in its own clothes. */
   .obw-only{display:inline-flex;align-items:center;gap:7px;align-self:flex-end;font-size:var(--t-meta);font-weight:var(--w-strong);border-radius:var(--radius);
@@ -7584,29 +7628,28 @@
      theme all hold. The ramp is the ACCENT's four steps and never ruby — ruby
      on this page is the leading row's bar alone. At night the solid mint
      ramp would sit as four light chips, so it becomes a wash of the accent
-     (the .field rule's own answer), with the strongest step a solid fill. */
-  .exp-pg{container:exp-pg / inline-size}
-  .exp-pg-cols{display:grid;gap:10px;grid-template-columns:minmax(0,1fr) 320px;align-items:start}
-  @container exp-pg (max-width:1040px){ .exp-pg-cols{grid-template-columns:minmax(0,1fr)} }
-  .exp-pg-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px var(--s-4) 14px;min-width:0}
-  .exp-pg-head{display:flex;align-items:center;gap:6px var(--s-2);flex-wrap:wrap;margin-bottom:10px}
+     (the .field rule's own answer), with the strongest step a solid fill.
+     FIT TO SCREEN (owner-picked, 29 Sep 2026): the page's frame is the shared
+     grammar (.igx-fit, .igx-figs, .igx-row 8:4, .igx-card, .igx-fill,
+     .igx-scroll); the rules below dress only what sits inside the cards. The
+     grid's rows share the card's height (grid-template-rows in the renderer),
+     so a square is as tall as its row and the total beside it centres. */
+  .exp-pg-head{flex:none;display:flex;align-items:center;gap:6px var(--s-2);flex-wrap:wrap;margin-bottom:10px}
   .exp-pg-head h2{margin:0;font-family:var(--font-heading);font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)}
   .exp-pg-head-sub{font-size:var(--t-meta);color:var(--color-neutral-600)}
   .exp-pg-ctl{margin-left:auto;display:inline-flex;gap:var(--s-2);flex-wrap:wrap}
-  .exp-pg-facts{display:flex;flex-wrap:wrap;gap:6px 22px;align-items:baseline;margin:0 0 14px}
-  /* The headline figures and the side card's door are the product's own
-     text button (.ui-link); only the figure inside is dressed here. */
-  .exp-pg-fact{font-size:var(--t-meta);font-weight:var(--w-body)}
-  .exp-pg-fact b{font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text);font-variant-numeric:tabular-nums;margin-right:2px}
-  .exp-pg-fact.is-zero{display:inline-flex;align-items:baseline;gap:4px;color:var(--color-neutral-600)}
+  /* A headline tile that is not a door (a zero) keeps the figure's place in
+     the stood-down ink. The side card's door is the product's own text
+     button (.ui-link). */
+  .exp-pg-fig.is-zero .igx-fig-n{color:var(--color-neutral-500)}
   .exp-pg-scroll{overflow-x:auto;padding-bottom:2px}
-  .exp-pg-mx{display:grid;gap:2px;font-size:var(--t-meta);min-width:720px}
+  .exp-pg-mx{flex:1 0 auto;display:grid;gap:2px;font-size:var(--t-meta);min-width:720px}
   .exp-pg-hd{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600);text-align:center;align-self:end;padding:0 2px 4px;line-height:1.25;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .exp-pg-hd small{display:block;font-weight:var(--w-body);font-size:var(--t-micro)}
   .exp-pg-hd.is-tot{text-align:right}
   .exp-pg-rl{font-size:var(--t-meta);font-weight:var(--w-strong);align-self:stretch;display:flex;flex-direction:column;justify-content:center;padding:0 10px 0 7px;min-width:0;line-height:1.25}
   .exp-pg-rl small{display:block;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-micro);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .exp-pg-cell{height:40px;border-radius:2px;display:grid;place-items:center;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;border:0;padding:0;min-width:0}
+  .exp-pg-cell{align-self:stretch;min-height:0;border-radius:2px;display:grid;place-items:center;font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;border:0;padding:0;min-width:0}
   button.exp-pg-cell{cursor:pointer}
   button.exp-pg-cell:hover{outline:2px solid var(--color-accent-500);outline-offset:-2px}
   .exp-pg-cell.is-sel,.exp-pg-cell.is-sel:hover{outline:2px solid var(--color-text);outline-offset:-2px}
@@ -7622,22 +7665,22 @@
   html.dark .exp-r2{background:rgb(var(--color-accent-500-rgb)/.32);color:var(--color-accent-200)}
   html.dark .exp-r3{background:rgb(var(--color-accent-500-rgb)/.55);color:var(--color-text)}
   html.dark .exp-r4{background:var(--color-accent-400);color:var(--color-bg)}
-  .exp-pg-tot{font:inherit;font-size:var(--t-meta);text-align:right;font-variant-numeric:tabular-nums;align-self:center;padding:0 2px 0 8px;white-space:nowrap;border:0;background:none;color:var(--color-neutral-600);border-radius:2px}
+  .exp-pg-tot{font:inherit;font-size:var(--t-meta);text-align:right;font-variant-numeric:tabular-nums;align-self:stretch;display:flex;align-items:center;justify-content:flex-end;padding:0 2px 0 8px;white-space:nowrap;border:0;background:none;color:var(--color-neutral-600);border-radius:2px}
   .exp-pg-tot b{font-weight:var(--w-strong);color:var(--color-text)}
-  button.exp-pg-tot{cursor:pointer;height:40px}
+  button.exp-pg-tot{cursor:pointer}
   button.exp-pg-tot:hover{color:var(--accent-ink)}
   .exp-pg-tot.is-sel{outline:2px solid var(--color-text);outline-offset:-2px}
   .exp-pg-sep{grid-column:1/-1;height:1px;background:var(--color-divider);margin:6px 0}
-  .exp-pg-legend{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin-top:12px;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .exp-pg-legend{flex:none;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin-top:12px;font-size:var(--t-meta);color:var(--color-neutral-600)}
   .exp-pg-legend > span{display:inline-flex;align-items:center;gap:6px}
   .exp-pg-key{display:inline-block;width:10px;height:10px;border-radius:2px}
   .exp-pg-ramp{display:inline-flex;gap:2px}
   .exp-pg-ramp i{width:14px;height:10px;border-radius:2px}
-  .exp-pg-note{margin:8px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6}
-  .exp-pg-lbl{font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)}
-  .exp-pg-sel-t{font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text);margin-top:2px}
-  .exp-pg-sel-s{font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:8px}
-  .exp-pg-list{display:grid}
+  .exp-pg-note{flex:none;margin:8px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6}
+  .exp-pg-lbl{flex:none;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)}
+  .exp-pg-sel-t{flex:none;font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text);margin-top:2px}
+  .exp-pg-sel-s{flex:none;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:8px}
+  .exp-pg-list{display:grid;align-content:start}
   .exp-pg-li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px;align-items:baseline;padding:7px 0;border:0;border-top:1px solid var(--color-divider);background:none;font:inherit;text-align:left;cursor:pointer;color:var(--color-text);width:100%}
   .exp-pg-li:hover .exp-pg-who{color:var(--accent-ink)}
   .exp-pg-who{font-size:var(--t-meta);font-weight:var(--w-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -7645,7 +7688,7 @@
   .exp-pg-sub{font-size:var(--t-micro);color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .exp-pg-sub.is-r{text-align:right}
   .exp-pg-more{font-size:var(--t-micro);color:var(--color-neutral-600);padding-top:6px;border-top:1px solid var(--color-divider)}
-  .exp-pg-open{margin-top:8px}
+  .exp-pg-open{flex:none;align-self:flex-start;margin-top:8px}
   .exp-pg-empty{margin:0;font-size:var(--t-meta);color:var(--color-neutral-600)}
 
   /* inline editable fields (contract workspace) */
@@ -7659,6 +7702,25 @@
   html.dark .field:focus{background:var(--color-surface);}
   .field.field-date{min-width:140px;} .field.field-num{text-align:right;min-width:130px;}
   .field:disabled{color:var(--color-text);background:transparent;border-bottom:1.5px solid var(--color-divider);-webkit-text-fill-color:var(--color-text);opacity:1;cursor:default;font-weight:var(--w-strong);}
+
+  /* ---- INSIGHTS · PAYMENT TERMS FITS THE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026) ----
+     The tab's own additions to the shared .igx-* grammar, scoped to its host:
+     the square that keys a side's figure to the chart's bars, the unit after a
+     number, a figure's sub-line allowed to wrap (a sentence cut to an ellipsis
+     is a silent trim), the plot growing to fill its card, the table's head row
+     held at the top of the scroller it sits INSIDE, and the honest limit laid
+     on one row. Below 1080px the plot keeps its old 168px. */
+  #ig-pt-body .pt-sw{display:inline-block;width:9px;height:9px;border-radius:1px;margin-right:7px}
+  #ig-pt-body .pt-unit{font-size:var(--t-body);font-weight:var(--w-body)}
+  #ig-pt-body .igx-fig-s{white-space:normal}
+  #ig-pt-body .pt-plot{flex:1 1 96px;min-height:96px}
+  #ig-pt-body .pt-head{position:sticky;top:0;z-index:1;background:var(--color-surface)}
+  #ig-pt-body .pt-blind{display:grid;gap:6px 22px;align-items:start;
+    grid-template-columns:minmax(0,.7fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr)}
+  @media (max-width:1079px){
+    #ig-pt-body .pt-plot{flex-basis:168px}
+    #ig-pt-body .pt-blind{grid-template-columns:minmax(0,1fr)}
+  }
 
   /* map graph (folder view) */
   .mlink{stroke:var(--color-neutral-400);stroke-width:1.4;fill:none;opacity:.6;transition:stroke var(--dur-1),opacity var(--dur-1),stroke-width var(--dur-1);}

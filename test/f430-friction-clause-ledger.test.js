@@ -94,7 +94,9 @@ const setLens = (s, lens, sel) => { s.intel.frictionLedger = { lens, sel: Object
 describe('f430 (1) — Copilot\'s read is still first, and untouched', () => {
   test('the page opens on Copilot\'s strip, then the figures, then the ledger', () => {
     const html = stage(book()).intelFrictionHtml();
-    const cop = html.indexOf('id="igf-copilot"'), fig = html.indexOf('igf-led-strip'), list = html.indexOf('data-igf-list=');
+    /* RE-POINTED 29 Sep 2026 ("Fit to Screen"): the strip is the shared
+       grammar's .igx-figs now; the order is what this pins (f435 the rest). */
+    const cop = html.indexOf('id="igf-copilot"'), fig = html.indexOf('class="igx-figs"'), list = html.indexOf('data-igf-list=');
     assert.ok(cop >= 0 && fig > cop && list > fig, `order copilot ${cop} · strip ${fig} · list ${list}`);
   });
   test('[control] it is drawn by the same function, and its key, repaint and ask are the same three', () => {
@@ -113,7 +115,7 @@ describe('f430 (2) — a strip of six figures, doors only where a list stands be
   });
   test('the figures are the counted ones', () => {
     const html = stage(book()).intelFrictionHtml();
-    const fig = k => { const m = new RegExp('data-igf-fig="' + k + '"[^>]*>[\\s\\S]*?<span class="igf-led-n[^"]*">([^<]*)</span>').exec(html); return m && m[1]; };
+    const fig = k => { const m = new RegExp('data-igf-fig="' + k + '"[^>]*>[\\s\\S]*?<span class="igx-fig-n[^"]*">([^<]*)</span>').exec(html); return m && m[1]; };
     assert.equal(fig('deals'), '5', 'five negotiations — the contract with none is not one');
     assert.equal(fig('rounds'), '2.2', '(4+3+1+1+2)/5');
     assert.equal(fig('round1'), '67%', 'two of the three signed closed in round 1');
@@ -137,7 +139,7 @@ describe('f430 (2) — a strip of six figures, doors only where a list stands be
     const html = stage(quiet).intelFrictionHtml();
     for (const k of ['tosign', 'round1', 'open'])
       assert.ok(!new RegExp('data-igf-fig="' + k + '"[^>]*data-igf-go').test(html), k + ' has nothing behind it and is no door');
-    assert.match(html, /<div class="igf-led-fig" data-igf-fig="open"/, 'nothing refused: a figure, not a button');
+    assert.match(html, /<div class="igx-fig" data-igf-fig="open"/, 'nothing refused: a figure, not a button');
   });
 });
 

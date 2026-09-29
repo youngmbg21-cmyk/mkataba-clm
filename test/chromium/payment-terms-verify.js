@@ -319,28 +319,32 @@ const EXTRA = [
     /* REVERSED IN PLACE 2 Sep 2026: "This table should be the same height as
        the chart above it. If the list is long then it will have pages to click
        to." A paged box never grows a scrollbar, which is what lets the head row
-       be a plain sibling again. */
+       be a plain sibling again.
+       REVERSED AGAIN 29 Sep 2026 (owner-picked "Fit to Screen": "update fit to
+       screen where the graph is above the what is driving the gap card"). The
+       chart sits ABOVE the table, both full width, and the table's rows scroll
+       INSIDE its card under a head row that sticks inside the same scroller. */
     const box = await page.evaluate(() => {
-      const host = document.getElementById('ig-pt');
       const card = document.getElementById('ig-pt-table');
+      const chart = document.getElementById('ig-pt-chart');
       const rows = document.getElementById('ig-pt-rows');
-      const chart = host && Array.from(host.children).find(el => el.querySelector && el.querySelector('[role="img"]'));
-      const head = card && card.querySelector('div[style*="grid-template-columns"]');
+      const head = rows && rows.querySelector('.pt-head');
+      const R = el => el ? el.getBoundingClientRect() : null;
+      const c = R(chart), t = R(card);
       return {
-        cardH: card ? Math.round(card.getBoundingClientRect().height) : 0,
-        chartH: chart ? Math.round(chart.getBoundingClientRect().height) : 0,
+        chartAbove: !!(c && t && c.bottom <= t.top + 1),
+        widths: c && t ? [Math.round(c.width), Math.round(t.width)] : [],
         rowsOverflow: rows ? getComputedStyle(rows).overflowY : '',
-        headInRows: !!(rows && head && rows.contains(head)),
+        headInRows: !!(rows && head && rows.firstElementChild === head),
         headSticky: head ? getComputedStyle(head).position : '',
-        spill: rows ? rows.scrollHeight - rows.clientHeight : 0,
       };
     });
-    check('5i the card is exactly as tall as the chart above it',
-      box.cardH > 0 && Math.abs(box.cardH - box.chartH) <= 1,
-      `table ${box.cardH} · chart ${box.chartH}`);
-    check('5j it pages rather than scrolls, so the head row is a plain sibling',
-      box.rowsOverflow === 'hidden' && !box.headInRows && box.headSticky !== 'sticky' && box.spill <= 0,
-      `overflow ${box.rowsOverflow} · head in scroller ${box.headInRows} · spill ${box.spill}`);
+    check('5i the chart sits ABOVE the table, and both are full width',
+      box.chartAbove && box.widths.length === 2 && Math.abs(box.widths[0] - box.widths[1]) <= 1,
+      `above ${box.chartAbove} · widths ${box.widths.join(' / ')}`);
+    check('5j the rows scroll inside the card, under a head row that sticks inside the same scroller',
+      box.rowsOverflow === 'auto' && box.headInRows && box.headSticky === 'sticky',
+      `overflow ${box.rowsOverflow} · head in scroller ${box.headInRows} · ${box.headSticky}`);
 
     const target = tbl.rows[0] && tbl.rows[0].id;
     await page.click(`#ig-pt [data-pt-open="${target}"]`);
@@ -697,86 +701,131 @@ const EXTRA = [
       cleared.v === 'all' && cleared.gone, `${cleared.v} · off the bar ${cleared.gone}`);
     await page.screenshot({ path: path.join(OUT, '06-contracts-filter.png'), fullPage: true });
 
-    /* ─── 14 · A LONG LIST HAS PAGES (owner-asked 2 Sep 2026) ───
-       *"If the list is long then it will have pages to click to."* Seeded with
-       more contracts against you than one page can hold, then the pager is
-       DRIVEN — a pager that draws and pages nothing looks identical in the
-       markup. */
+    /* ─── 14 · A LONG LIST SCROLLS IN ITS CARD, AND NONE IS LEFT OUT ───
+       REVERSED IN PLACE 29 Sep 2026 (owner-picked "Fit to Screen"). This
+       section drove the 2 Sep pager ("If the list is long then it will have
+       pages to click to"). The rows scroll inside their card now, so the same
+       long book is asked the questions the pager answered: every row is there
+       in the reading's order, the list scrolls rather than spilling, the head
+       stays put while it scrolls, a cut starts again at the top, and the
+       figure tile over the page puts the whole list back. */
     await page.evaluate(() => {
       state.contracts = state.contracts.filter(c => !/^PG-/.test(c.id));
       for(let i = 1; i <= 14; i++) state.contracts.push({
         id:'PG-' + String(i).padStart(2, '0'), name:'PG ' + i, counterparty:'Pager Co ' + i,
         status:'Signed', value:1000000 + i, valueType:'fixed', folder:'sales',
         metadata:{ paymentTerms:(100 + i) + ' days', category:'customer', currency:'KES' } });
-      intel.tab = 'payterms'; intel.ptCut = { side:null, bucket:null }; intel.ptPage = 1;
+      intel.tab = 'payterms'; intel.ptCut = { side:null, bucket:null };
       setView('intel');
     });
-    await page.waitForTimeout(1200);
+    await page.waitForFunction(() => document.querySelectorAll('#ig-pt-rows [data-pt-open]').length > 10, null, { timeout: 8000 }).catch(() => {});
     const pg1 = await page.evaluate(() => {
-      const card = document.getElementById('ig-pt-table');
-      const host = document.getElementById('ig-pt');
-      const chart = host && Array.from(host.children).find(el => el.querySelector && el.querySelector('[role="img"]'));
+      const rowsEl = document.getElementById('ig-pt-rows');
       const rows = Array.from(document.querySelectorAll('#ig-pt-rows [data-pt-open]')).map(b => b.getAttribute('data-pt-open'));
-      const btns = Array.from(document.querySelectorAll('[data-pt-page]')).map(b => b.getAttribute('data-pt-page'));
       /* DEFENSIVE, like every other reading here: run against a build with no
          `against` list this must REPORT rather than throw. */
       const x = payTermsData();
       const ag = x.against || [];
-      return { rows, btns, total:ag.length, order:ag.map(r => r.id),
-               cardH: card ? Math.round(card.getBoundingClientRect().height) : 0,
-               chartH: chart ? Math.round(chart.getBoundingClientRect().height) : 0,
-               spill: (() => { const el = document.getElementById('ig-pt-rows');
-                 return el ? el.scrollHeight - el.clientHeight : -1; })() };
+      const card = document.getElementById('ig-pt-table');
+      const cr = card ? card.getBoundingClientRect() : null;
+      return { rows, total:ag.length, order:ag.map(r => r.id),
+               pagers: document.querySelectorAll('[data-pt-page]').length,
+               scrolls: !!rowsEl && getComputedStyle(rowsEl).overflowY === 'auto' && rowsEl.scrollHeight > rowsEl.clientHeight,
+               cardSpill: card ? card.scrollHeight - card.clientHeight : -1,
+               cardInView: !!cr && cr.bottom <= window.innerHeight + 1 };
     });
-    const size = pg1.rows.length;
-    const pages = Math.ceil(pg1.total / Math.max(1, size));
-    check('14a a long list is cut into pages', pg1.total > size && size >= 3 && pages > 1,
-      `${pg1.total} against you · ${size} a page · ${pages} pages`);
-    check('14b page one holds the first slice, in the reading\'s order',
-      JSON.stringify(pg1.rows) === JSON.stringify(pg1.order.slice(0, size)),
-      pg1.rows.join(','));
-    check('14c and the rows still fit the box the chart handed down',
-      pg1.spill <= 0 && Math.abs(pg1.cardH - pg1.chartH) <= 1,
-      `spill ${pg1.spill} · card ${pg1.cardH} vs chart ${pg1.chartH}`);
-    check('14d there is a button per page, and one for each end',
-      pg1.btns.includes('2') && pg1.btns.length >= pages + 2,
-      pg1.btns.join(' '));
+    check('14a a long list is drawn whole — no pager, no row left out',
+      pg1.total > 10 && pg1.rows.length === pg1.total && pg1.pagers === 0,
+      `${pg1.rows.length} drawn of ${pg1.total} against you · ${pg1.pagers} pager button(s)`);
+    check('14b in the reading\'s order', JSON.stringify(pg1.rows) === JSON.stringify(pg1.order), pg1.rows.slice(0, 6).join(','));
+    check('14c it scrolls inside its card rather than stretching the page',
+      pg1.scrolls && pg1.cardSpill <= 0 && pg1.cardInView,
+      `scrolls ${pg1.scrolls} · card spill ${pg1.cardSpill} · in view ${pg1.cardInView}`);
 
-    if (!pg1.btns.includes('2')) {
-      ['14e pressing a page number really turns the page',
-       '14f and the page says where you are',
-       '14g narrowing starts again at page one rather than stranding the reader']
-        .forEach(k => check(k, false, 'no pager to press'));
-    } else {
-    await page.click('[data-pt-page="2"]');
-    await page.waitForTimeout(700);
-    const pg2 = await page.evaluate(() => ({
-      rows: Array.from(document.querySelectorAll('#ig-pt-rows [data-pt-open]')).map(b => b.getAttribute('data-pt-open')),
-      note: (document.body.textContent.match(/page \d+ of \d+/i) || [''])[0],
-    }));
-    check('14e pressing a page number really turns the page',
-      JSON.stringify(pg2.rows) === JSON.stringify(pg1.order.slice(size, size * 2)) && pg2.rows.length > 0,
-      `${pg2.rows.join(',')} · wanted ${pg1.order.slice(size, size * 2).join(',')}`);
-    check('14f and the page says where you are', /page 2 of/i.test(pg2.note), pg2.note);
+    const held = await page.evaluate(() => {
+      const rowsEl = document.getElementById('ig-pt-rows');
+      if (!rowsEl) return null;
+      rowsEl.scrollTop = 200;
+      const head = rowsEl.querySelector('.pt-head');
+      const hr = head && head.getBoundingClientRect(), rr = rowsEl.getBoundingClientRect();
+      /* what is PAINTED at the head's own centre: the head, never a row under it */
+      const hit = hr ? document.elementFromPoint(hr.left + 20, hr.top + hr.height / 2) : null;
+      return { scrolled: rowsEl.scrollTop, headTop: hr ? Math.round(hr.top) : -1, rowsTop: Math.round(rr.top),
+               headPainted: !!(hit && head && head.contains(hit)) };
+    });
+    check('14d scrolled, the head row stays at the top of the list and is what is painted there',
+      !!held && held.scrolled > 0 && Math.abs(held.headTop - held.rowsTop) <= 1 && held.headPainted,
+      held && `scrolled ${held.scrolled} · head ${held.headTop} vs list ${held.rowsTop} · painted ${held.headPainted}`);
 
-    /* A CUT MUST NOT STRAND A READER ON A PAGE THAT NO LONGER EXISTS. */
-    await page.evaluate(() => {
-      const b = Array.from(document.querySelectorAll('[data-pt-side]')).find(x => !x.disabled && x.getAttribute('data-pt-side') === 'supplier');
+    const narrowBtn = await page.evaluate(() => {
+      const b = Array.from(document.querySelectorAll('[data-pt-side]')).find(x => !x.disabled && x.getAttribute('data-pt-side') === 'customer');
       if (b) b.click();
+      return !!b;
     });
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(400);
     const afterCut = await page.evaluate(() => ({
-      page: intel.ptPage,
+      top: (document.getElementById('ig-pt-rows') || {}).scrollTop,
       rows: document.querySelectorAll('#ig-pt-rows [data-pt-open]').length,
-      empty: /no contract/i.test((document.getElementById('ig-pt-table') || {}).textContent || ''),
     }));
-    check('14g narrowing starts again at page one rather than stranding the reader',
-      afterCut.page === 1 && (afterCut.rows > 0 || afterCut.empty),
-      `page ${afterCut.page} · ${afterCut.rows} rows`);
-    await page.evaluate(() => { const b = document.querySelector('[data-pt-clear]'); if (b) b.click(); });
-    await page.waitForTimeout(600);
+    check('14e a cut starts again at the top of the list rather than mid-way down',
+      narrowBtn && afterCut.top === 0 && afterCut.rows > 0, `pressed ${narrowBtn} · top ${afterCut.top} · ${afterCut.rows} rows`);
+
+    const door = await page.$('[data-pt-all]');
+    if (!door) {
+      check('14f the "driving the gap" figure puts the whole list back', false, 'no figure door');
+    } else {
+      await door.click();
+      await page.waitForTimeout(400);
+      const all = await page.evaluate(() => ({ rows: document.querySelectorAll('#ig-pt-rows [data-pt-open]').length,
+        cut: intel.ptCut && intel.ptCut.side, n: (document.querySelector('[data-pt-all] .igx-fig-n') || {}).textContent }));
+      check('14f the "driving the gap" figure puts the whole list back',
+        all.rows === pg1.total && !all.cut && Number(all.n) === pg1.total,
+        `${all.rows} rows · figure ${all.n} · cut ${all.cut}`);
     }
-    await page.screenshot({ path: path.join(OUT, '07-paged.png'), fullPage: true });
+    await page.screenshot({ path: path.join(OUT, '07-long-list.png'), fullPage: true });
+
+    /* ─── 15 · ONE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026) ───
+       Measured as paint at the owner's two monitor sizes: the tab does not
+       scroll, the cards reach the bottom with no empty band, nothing spills
+       except inside a list's own scroller, and below 1080px it stacks and the
+       page scrolls instead. */
+    const fitAt = async (w, hgt) => {
+      await page.setViewportSize({ width: w, height: hgt });
+      await page.evaluate(() => { intel.tab = 'payterms'; intel.ptCut = { side:null, bucket:null }; setView('intel'); });
+      await page.waitForFunction(() => !!document.querySelector('#ig-pt .igx-figs'), null, { timeout: 8000 }).catch(() => {});
+      await page.waitForTimeout(300);
+      return page.evaluate(() => {
+        const host = document.getElementById('ig-pt-body'), fit = document.getElementById('ig-pt');
+        if (!host || !fit) return null;
+        const hr = host.getBoundingClientRect(), pb = parseFloat(getComputedStyle(host).paddingBottom);
+        const kids = Array.from(fit.children);
+        const last = kids[kids.length - 1].getBoundingClientRect();
+        const ids = kids.map(k => k.id || k.className);
+        const spill = Array.from(fit.querySelectorAll('.igx-card, .igx-fig'))
+          .filter(el => el.scrollHeight > el.clientHeight + 1).map(el => el.id || el.className);
+        /* DEFENSIVE: a build without the two named cards REPORTS, never throws */
+        const ce = document.getElementById('ig-pt-chart'), te = document.getElementById('ig-pt-table');
+        const c = ce ? ce.getBoundingClientRect() : null, t = te ? te.getBoundingClientRect() : null;
+        return { scrolls: host.scrollHeight > host.clientHeight + 1, gap: Math.round(hr.bottom - pb - last.bottom),
+                 ids, spill, chartAbove: !!(c && t && c.bottom <= t.top + 1),
+                 sameLeft: !!(c && t && Math.abs(c.left - t.left) <= 1 && Math.abs(c.width - t.width) <= 1),
+                 chartH: c ? Math.round(c.height) : 0, tableH: t ? Math.round(t.height) : 0 };
+      });
+    };
+    for (const [w, hgt] of [[1440, 900], [1920, 1080]]) {
+      const f = await fitAt(w, hgt);
+      check(`15a ${w}x${hgt} the tab fits the screen and does not scroll`, f && !f.scrolls, f && JSON.stringify(f));
+      check(`15b ${w}x${hgt} the cards reach the bottom with no empty band`, f && Math.abs(f.gap) <= 1, f && `gap ${f.gap}px`);
+      check(`15c ${w}x${hgt} figures first, then the chart ABOVE the table, full width`,
+        f && /igx-figs/.test(f.ids[0]) && f.ids[1] === 'ig-pt-chart' && f.ids[2] === 'ig-pt-table' && f.chartAbove && f.sameLeft,
+        f && f.ids.join(' · '));
+      check(`15d ${w}x${hgt} nothing spills out of a card`, f && f.spill.length === 0, f && (f.spill.join(', ') || 'none'));
+      await page.screenshot({ path: path.join(OUT, `08-fit-${w}.png`) });
+    }
+    const nar = await fitAt(1000, 800);
+    check('15e below 1080px it stacks and the page scrolls instead', nar && nar.scrolls && nar.chartAbove,
+      nar && JSON.stringify({ scrolls: nar.scrolls, chartAbove: nar.chartAbove }));
+    await page.setViewportSize({ width: 1500, height: 1100 });
 
     check('no page errors', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

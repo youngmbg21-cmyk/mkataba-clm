@@ -91,11 +91,26 @@ const QUESTION = 'why do I have a big workload runway today?';
     await page.screenshot({ path: path.join(OUT, '01-portfolio.png'), fullPage: true });
 
     /* ================= 1. THE PANELS STILL DRAW ============================ */
+    /* RE-POINTED IN PLACE 29 Sep 2026 (Insights fits the screen, owner-picked
+       "Fit to Screen": "Exclude money held too, keep Copilot's answers"). The
+       workload runway, won and lost, money held back and promises still live
+       are no longer drawn on Portfolio; their counting and Copilot's door onto
+       it are untouched, and the renderer is kept with no caller. So the claim
+       that the chart and the data agree is asked of the RENDERER, drawn into a
+       stand-in box on this page, and the page itself is asked that it no
+       longer draws it. Everything from section 2 on is unchanged. */
     const drawn = await page.evaluate(() => {
       const d = window.pfWorkloadRunwayData();
-      /* By its own card, not by its aria text: two runways are drawn on this
-         page and the label a reader sees is translated. */
-      const card = Array.from(document.querySelectorAll('#content div'))
+      const frame = document.getElementById('ig-frame');
+      const onPage = !!frame && frame.textContent.includes(d.title);
+      const probe = document.createElement('div');
+      probe.id = 'pf-probe';
+      probe.style.width = '900px';
+      probe.innerHTML = window.pfWorkloadRunway();
+      document.getElementById('content').appendChild(probe);
+      /* By its own card, not by its aria text: the label a reader sees is
+         translated. */
+      const card = Array.from(probe.querySelectorAll('div'))
         .filter(el => (el.textContent || '').trim().indexOf(d.title) === 0 && el.querySelector('svg'))
         .sort((a, b) => (a.textContent || '').length - (b.textContent || '').length)[0];
       const runway = card ? card.querySelector('svg') : null;
@@ -103,14 +118,17 @@ const QUESTION = 'why do I have a big workload runway today?';
       const titles = runway ? Array.from(runway.querySelectorAll('title')).map(t => t.textContent) : [];
       const foot = card ? (card.textContent || '').replace(/\s+/g, ' ') : '';
       const bars = runway ? runway.querySelectorAll('rect').length : 0;
-      const text = document.getElementById('content').textContent.replace(/\s+/g, ' ');
-      return { there: !!runway, w: box ? Math.round(box.width) : 0, h: box ? Math.round(box.height) : 0,
+      const out = { onPage, there: !!runway, w: box ? Math.round(box.width) : 0, h: box ? Math.round(box.height) : 0,
         bars, titles, buckets: d.buckets.length, peakLabel: d.peak && d.peak.label,
         peakContracts: d.peak && d.peak.contracts, unplaced: d.excluded.couldNotPlace.count,
         pageSaysUnplaced: /could not be placed|no start|could not/i.test(foot) || /1 /.test(foot),
         foot: foot.slice(-160) };
+      probe.remove();
+      return out;
     });
-    check('the workload runway is on the page, with a real box',
+    check('the workload runway is no longer drawn on Portfolio (Fit to Screen)', !drawn.onPage,
+      drawn.onPage ? 'still on the page' : 'not on the page');
+    check('its renderer, kept with no caller, still draws it with a real box',
       drawn.there && drawn.w > 200 && drawn.h > 60, `${drawn.w}x${drawn.h}`);
     check('it draws one bar group per month it counted', drawn.buckets === 18,
       `${drawn.buckets} buckets, ${drawn.bars} rects`);
@@ -125,14 +143,14 @@ const QUESTION = 'why do I have a big workload runway today?';
       drawn.unplaced === 1 && drawn.pageSaysUnplaced, drawn.foot);
 
     const others = await page.evaluate(() => {
-      const t = document.getElementById('content').textContent.replace(/\s+/g, ' ');
+      const t = document.getElementById('ig-frame').textContent.replace(/\s+/g, ' ');
       const has = s => t.toLowerCase().includes(s.toLowerCase());
       return { held: has('held back') || has('retention'), promises: has('still live') || has('promise'),
         wonlost: has('won') && has('lost'), renewal: has('renewal'),
         panels: Object.keys(window.pfPanelsData()) };
     });
-    check('the other shaped panels are drawn beside it',
-      others.held && others.wonlost && others.renewal,
+    check('money held back and won and lost are not drawn either; the renewal runway is',
+      !others.held && !others.wonlost && others.renewal,
       `held=${others.held} wonlost=${others.wonlost} renewal=${others.renewal}`);
     check('and all five count themselves through one door',
       others.panels.length === 5, others.panels.join(', '));

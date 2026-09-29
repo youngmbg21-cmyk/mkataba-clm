@@ -26,6 +26,13 @@
    5  DOES EVERY DOOR LAND? A figure opens the Obligations list showing
       exactly what it counted; a dot opens its own obligation, picked.
 
+   8  DOES IT FIT THE SCREEN? (owner-picked "Fit to Screen", 29 Sep 2026)
+      At 1440x900 and 1920x1080 the tab does not scroll, the six tiles lead,
+      the line's card reaches the bottom with no empty band under it, and
+      nothing spills except inside the lanes' own scroller; with more lanes
+      than fit, the lanes scroll INSIDE the card and the dates row stays put;
+      below 1080px the page stacks and scrolls as a plain column.
+
    Screenshots go to test/chromium/shots/obligations-report/.
    Run: node test/chromium/obligations-report-verify.js */
 const fs = require('node:fs');
@@ -166,12 +173,14 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
       const host = document.getElementById('ig-oblig');
       const txt = el => (el ? (el.textContent || '').replace(/\s+/g, ' ').trim() : '');
       const tile = k => txt(host.querySelector(`[data-ob-rl-door="${k}"]`) ||
-        [...host.querySelectorAll('.ob-rl-tile')].find(t => t.getAttribute('data-ob-rl-door') === k));
+        [...host.querySelectorAll('.igx-fig')].find(t => t.getAttribute('data-ob-rl-door') === k));
       return {
         all: txt(host),
         silent: tile('silent'), late: tile('late'), ahead: tile('ahead'), cover: tile('cover'),
         sections: host.querySelectorAll('section').length,
-        tiles: host.querySelectorAll('.ob-rl-tile').length,
+        /* RE-POINTED 29 Sep 2026 ("Fit to Screen"): the six tiles are the
+           Insights figure strip's own tile now, .igx-fig. */
+        tiles: host.querySelectorAll('.igx-figs > .igx-fig').length,
         group: (host.querySelector('.ob-rl-grid') || {}).getAttribute ? host.querySelector('.ob-rl-grid').getAttribute('aria-label') : null,
         dots: [...host.querySelectorAll('.ob-rl-dot')].map(e => ({ hollow: e.classList.contains('is-silent'), label: e.getAttribute('aria-label') })),
       };
@@ -257,6 +266,77 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(OUT, 'report-1280.png'), fullPage: true });
+
+    /* ---- 8 · it fits the screen (owner-picked "Fit to Screen", 29 Sep 2026) ----
+       Measured where the reader looks: the tab's own scroller, the card's
+       bottom against the scroller's inner bottom, and every element outside
+       the lanes' scroller against the window. */
+    const fitRead = () => page.evaluate(() => {
+      const host = document.getElementById('ig-oblig');
+      const hr = host.getBoundingClientRect();
+      const inner = hr.bottom - parseFloat(getComputedStyle(host).paddingBottom);
+      const card = host.querySelector('section.igx-card');
+      const figs = [...host.querySelectorAll('.igx-figs > .igx-fig')].map(f => f.getBoundingClientRect());
+      const sc = document.getElementById('ob-rl-scroll');
+      const spill = [...host.querySelectorAll('*')].filter(e => !e.closest('#ob-rl-scroll')
+        && e.getBoundingClientRect().bottom > hr.bottom + 1).length;
+      return { scrolls: host.scrollHeight > host.clientHeight + 1,
+        gap: card ? Math.round(inner - card.getBoundingClientRect().bottom) : null,
+        figsFirst: figs.length === 6 && card && figs.every(r => r.bottom <= card.getBoundingClientRect().top),
+        oneHeight: figs.length === 6 && new Set(figs.map(r => Math.round(r.height))).size === 1,
+        spill, lanes: sc ? [sc.scrollHeight, sc.clientHeight] : null };
+    });
+    for (const [w, hgt] of [[1440, 900], [1920, 1080]]) {
+      await page.setViewportSize({ width: w, height: hgt });
+      await page.waitForTimeout(500);
+      const f = await fitRead();
+      check(`8a · ${w}x${hgt} · the tab does not scroll`, !f.scrolls, JSON.stringify(f));
+      check(`8b · ${w}x${hgt} · the six tiles lead, one height`, f.figsFirst && f.oneHeight);
+      check(`8c · ${w}x${hgt} · the card reaches the bottom, no empty band`, f.gap != null && Math.abs(f.gap) <= 1, f.gap);
+      check(`8d · ${w}x${hgt} · nothing spills outside the lanes' own scroller`, f.spill === 0, f.spill);
+      await page.screenshot({ path: path.join(OUT, `fit-${w}.png`) });
+    }
+    /* MORE LANES THAN FIT: fourteen more people carrying one promise each.
+       Their promises are taken off again before section 5 counts its doors. */
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.evaluate(() => {
+      const day = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+      const c = state.contracts[1];
+      window.__obKeep = c.obligations.slice();
+      for (let i = 0; i < 14; i++) c.obligations.push({ id: 'ob_more_' + i, desc: 'Extra duty ' + i, due: day(-20 + i * 9),
+        party: i < 8 ? 'ours' : 'theirs', assignee: 'Extra Person ' + i, status: 'open', recurring: 'none' });
+      renderIntel();
+    });
+    await page.waitForTimeout(500);
+    const many = await fitRead();
+    const pinned = await page.evaluate(() => {
+      const sc = document.getElementById('ob-rl-scroll');
+      const head = sc && sc.querySelector('.ob-rl-row.is-head');
+      if (!head) return null;
+      sc.scrollTop = sc.scrollHeight;
+      const hr = head.getBoundingClientRect();
+      const hit = document.elementFromPoint(hr.left + hr.width / 2, hr.top + hr.height / 2);
+      return { moved: sc.scrollTop, off: Math.round(hr.top - sc.getBoundingClientRect().top),
+        painted: !!(hit && hit.closest('.ob-rl-row.is-head')) };
+    });
+    check('8e · with more lanes than fit, the tab still does not scroll', !many.scrolls && many.spill === 0, JSON.stringify(many));
+    check('8f · the lanes scroll inside the card', !!many.lanes && many.lanes[0] > many.lanes[1] + 1, JSON.stringify(many.lanes));
+    check('8g · and the dates row stays at the top of them, painted', !!pinned && pinned.moved > 0 && Math.abs(pinned.off) <= 1 && pinned.painted,
+      JSON.stringify(pinned));
+    await page.screenshot({ path: path.join(OUT, 'fit-many-lanes-1440.png') });
+    await page.setViewportSize({ width: 1000, height: 800 });
+    await page.waitForTimeout(500);
+    const narrow = await page.evaluate(() => {
+      const host = document.getElementById('ig-oblig');
+      const figs = [...host.querySelectorAll('.igx-figs > .igx-fig')].map(f => Math.round(f.getBoundingClientRect().left));
+      return { scrolls: host.scrollHeight > host.clientHeight + 1, columns: new Set(figs).size,
+        bodySw: document.body.scrollWidth, bodyCw: document.body.clientWidth };
+    });
+    check('8h · at 1000px the page stacks and scrolls as a column, never sideways',
+      narrow.scrolls && narrow.columns === 2 && narrow.bodySw <= narrow.bodyCw + 1, JSON.stringify(narrow));
+    await page.evaluate(() => { state.contracts[1].obligations = window.__obKeep; renderIntel(); });
+    await page.waitForTimeout(300);
 
     /* ---- 5 · every figure and dot is a door, and lands where it says ----
        RE-POINTED 28 Sep 2026: the chase list this section opened went with the

@@ -595,7 +595,7 @@ window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilo
      this page: a stored one would land a reader on a narrowed table a week
      later with nothing on screen saying why. It cannot be quietly on — the
      table says what it is showing and carries the way back. */
-  ptCut:{ side:null, bucket:null }, ptPage:1,
+  ptCut:{ side:null, bucket:null },
   cliffDays:0 /*A-4: the renewal cliff's scrubber, days ahead of today; per sitting*/,
   busy:false, dockOpen:true,
   /* THE WIDEN BUTTON IS GONE (Young ruled 27 Sep 2026): "bring the divider
@@ -3044,7 +3044,7 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-frame" class="scroll-thin pf-scroll" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:var(--s-3) 20px var(--s-4)">${
+      <div id="ig-frame" class="scroll-thin pf-scroll igx-host">${
         (typeof portfolioFrameHtml==='function')?portfolioFrameHtml():''}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
@@ -3059,7 +3059,7 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-friction" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelFrictionHtml()}</div>
+      <div id="ig-friction" class="scroll-thin igx-host">${intelFrictionHtml()}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     document.getElementById('ig-friction-clear')?.addEventListener('click',()=>{ intel.frictionFilter=null; intelRepaint(); });
@@ -3088,7 +3088,7 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-oblig" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelObligationsHtml()}</div>
+      <div id="ig-oblig" class="scroll-thin igx-host">${intelObligationsHtml()}</div>
     </div>`;
     intelObligationsWire(document.getElementById('ig-oblig'));
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
@@ -3103,7 +3103,7 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-exp-body" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${exposureHtml()}</div>
+      <div id="ig-exp-body" class="scroll-thin igx-host">${exposureHtml()}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     exposureWire();
@@ -3118,11 +3118,10 @@ function renderIntel(){
     document.getElementById('content').innerHTML=`
     <div class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
       ${headerHtml}
-      <div id="ig-pt-body" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelPayTermsHtml()}</div>
+      <div id="ig-pt-body" class="scroll-thin igx-host">${intelPayTermsHtml()}</div>
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     ptWire();
-    ptFitTable();
     setActiveNav('intel');
     return;
   }
@@ -3579,6 +3578,11 @@ const _igfDoor=(attr,label,tip)=>`<button type="button" class="ui-link igf-led-d
 const _igfHead=(lbl,name,door)=>`<div class="igf-led-dh"><div class="igf-led-dh-t"><div class="igf-led-lbl">${lbl}</div><h3 class="igf-led-dname">${igEsc(name)}</h3></div>${door||''}</div>`;
 const _igfFigs=a=>`<div class="igf-led-dfigs">${a.map(([t,n,s,tone,tip])=>`<div title="${igEsc(tip||'')}"><div class="igf-led-lbl">${t}</div><div class="igf-led-dn${tone?' '+tone:''}">${n}</div><div class="igf-led-ds">${s}</div></div>`).join('')}</div>`;
 const _igfSec=(b,s,body)=>`<div class="igf-led-dsec"><div class="igf-led-dsh"><b>${b}</b>${s?`<span>${s}</span>`:''}</div>${body}</div>`;
+/* FIT TO SCREEN (owner-picked 29 Sep 2026): the panel is exactly as tall as the
+   list beside it. Its head, its figures and how the asks ended stay put; the
+   lists under them (refused and still open, who contested it, their
+   negotiations, the refusals by clause) scroll INSIDE the panel, never the page. */
+const _igfLong=body=>`<div class="igx-scroll igf-led-dscroll">${body}</div>`;
 /* How one side's asks on a clause ended, against the whole book's share — the
    book's figure is intelFrictionStats' own, so the tick and the strip's
    reading cannot disagree. */
@@ -3619,7 +3623,7 @@ function intelFrictionDetailHtml(st, lens, pick){
     const open=_igfSec(i18t('igf_led_sec_open'),'',
       c.openDeals.length?`<div class="igf-led-rows">${c.openDeals.map(d=>_igfNegoRow(d.id,_igfDealName(d.name,d.cp),i18t("igf_led_round_n",{n:d.round}),_igfChip(d.n,i18t('igf_led_open_n',{n:d.n})))).join('')}</div>`
         :`<div class="igf-led-none">${i18t('igf_led_open_none')}</div>`);
-    return _igfHead(i18t('igf_led_d_clause',{k,n:N}),c.label,door)+figs+asks+who+open;
+    return _igfHead(i18t('igf_led_d_clause',{k,n:N}),c.label,door)+figs+asks+_igfLong(open+who);
   }
   if(lens==='cps'){
     const p=row;
@@ -3649,7 +3653,7 @@ function intelFrictionDetailHtml(st, lens, pick){
         ?`<button type="button" class="igf-led-row is-bar" data-igf-clause="${igEsc(c.label)}" title="${igEsc(i18t('igf_led_clause_tip',{name:c.label}))}">${inner}</button>`
         :`<div class="igf-led-row is-bar is-static">${inner}</div>`;
     }).join('')}</div>`:`<div class="igf-led-none">${i18t('igf_led_cp_clauses_none')}</div>`);
-    return _igfHead(i18t('igf_led_d_cp',{k,n:N}),p.name,door)+figs+negs+cls;
+    return _igfHead(i18t('igf_led_d_cp',{k,n:N}),p.name,door)+figs+_igfLong(negs+cls);
   }
   const d=row;
   const door=_igfDoor(`data-igf-open="${igEsc(d.id)}"`,i18t('igf_led_door_nego'),i18t('igf_led_open_tip',{name:d.name}));
@@ -3659,20 +3663,20 @@ function intelFrictionDetailHtml(st, lens, pick){
     [i18t('igf_led_f_we_refused'),String(d.weRefusedTheirs),i18t('igf_led_s_theirs_proposed')]]);
   const by=_igfSec(i18t('igf_led_sec_byclause'),'',`<table class="igf-led-bytable"><thead><tr><th>${i18t('igf_led_th_clause')}</th><th class="r">${i18t('igf_led_f_they_refused')}</th><th class="r">${i18t('igf_led_f_we_refused')}</th></tr></thead><tbody>${
     d.byClause.map(x=>`<tr><td>${igEsc(x.label||i18t('igf_led_no_clause'))}</td><td class="r">${x.ours}</td><td class="r">${x.theirs}</td></tr>`).join('')}</tbody></table>`);
-  return _igfHead(i18t("igf_led_d_wait",{n:d.round}),_igfDealName(d.name,d.cp),door)+figs+by;
+  return _igfHead(i18t("igf_led_d_wait",{n:d.round}),_igfDealName(d.name,d.cp),door)+figs+_igfLong(by);
 }
 /* One figure in the strip. A figure with a list behind it is a BUTTON onto
    that list; a figure without one (an average, a median of decisions) is a
    div, and a zero is never a door. */
 function _igfFig(key, label, n, sub, o={}){
   const tag=o.go?'button':'div';
-  return `<${tag} class="igf-led-fig${o.on?' on':''}" data-igf-fig="${key}"${o.go?` type="button" data-igf-go="${o.go}"`:''} title="${igEsc(o.tip||'')}"><span class="igf-led-lbl">${label}</span><span class="igf-led-n${o.tone?' '+o.tone:''}">${n}</span><span class="igf-led-s">${sub}</span></${tag}>`;
+  return `<${tag} class="igx-fig${o.on?' on':''}" data-igf-fig="${key}"${o.go?` type="button" data-igf-go="${o.go}"`:''} title="${igEsc(o.tip||'')}"><span class="igx-fig-t">${label}</span><span class="igx-fig-n${o.tone?' '+o.tone:''}">${n}</span><span class="igx-fig-s">${sub}</span></${tag}>`;
 }
 function intelFrictionLedgerHtml(st){
   const led=st.ledger; const S=intelFrictionLedgerState(); const lens=S.lens;
   const signedN=led.signedN, signedAll=st.signed||0, r1=led.round1Ids.length;
   const openDeals=led.waiting.length;
-  const strip=`<div class="igf-led-strip">${[
+  const strip=`<div class="igx-figs" style="--igx-n:6">${[
     _igfFig('deals',i18t('igf_led_f_deals'),String(st.deals),
       st.openedThisMonth?i18t('igf_led_s_opened',{n:st.openedThisMonth}):i18t('igf_led_s_tracked'),
       {go:st.deals?'deals':null,tip:i18t('igf_led_tip_list',{n:st.deals})}),
@@ -3688,7 +3692,7 @@ function intelFrictionLedgerHtml(st){
       {go:r1?'round1':null,tip:r1?i18t('igf_led_tip_list',{n:r1}):''}),
     _igfFig('open',i18t('igf_led_f_open'),String(st.deadlocks),
       st.deadlocks?i18tn('igf_led_s_in_deals',openDeals):i18t('igf_led_s_nothing_waiting'),
-      {go:st.deadlocks?'wait':null,on:lens==='wait',tone:st.deadlocks?'is-amber':'',tip:st.deadlocks?i18t('igf_led_tip_open')+' '+i18t('igf_led_tip_wait'):i18t('igf_led_tip_open')})
+      {go:st.deadlocks?'wait':null,on:lens==='wait',tone:st.deadlocks?'igx-warn':'',tip:st.deadlocks?i18t('igf_led_tip_open')+' '+i18t('igf_led_tip_wait'):i18t('igf_led_tip_open')})
   ].join('')}</div>`;
   const pick=intelFrictionLedgerPick(led, lens);
   const lensBtn=(k,label,n)=>`<button type="button" data-igf-lens="${k}" class="${lens===k?'on':''}" aria-pressed="${lens===k}">${label}<span class="igf-led-cnt">${n}</span></button>`;
@@ -3726,13 +3730,15 @@ function intelFrictionLedgerHtml(st){
     if(led.waiting.length) foot=i18tn('igf_led_foot_wait',st.deadlocks,{deals:i18tn('igf_led_s_in_deals',led.waiting.length)});
     else empty=i18t('igf_led_empty_wait');
   }
-  const list=`<div class="igf-led-card igf-led-list">
+  /* The rows stretch to fill the card and scroll inside it when they do not
+     fit (--igf-rows lets the stylesheet cap how tall a row may grow). */
+  const list=`<div class="igx-card igf-led-list">
       <div class="igf-led-ch"><b>${i18t('igf_led_title')}</b><span class="igf-led-sub">${sub}</span>${seg}</div>
-      ${empty?`<div class="igf-led-none is-list">${empty}</div>`:`<div class="igf-led-scroll"><table class="igf-led-table" data-igf-list="${lens}"><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`}
+      ${empty?`<div class="igf-led-none is-list">${empty}</div>`:`<div class="igx-scroll igf-led-scroll"><table class="igf-led-table" data-igf-list="${lens}" style="--igf-rows:${rows.length}"><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`}
       ${foot?`<div class="igf-led-foot">${foot}</div>`:''}
     </div>`;
-  const detail=pick.row?`<div class="igf-led-card igf-led-detail" data-igf-detail="${lens}">${intelFrictionDetailHtml(st, lens, pick)}</div>`:'';
-  return strip+`<div class="igf-led-grid${detail?'':' is-solo'}">${list}${detail}</div>`;
+  const detail=pick.row?`<div class="igx-card igf-led-detail" data-igf-detail="${lens}">${intelFrictionDetailHtml(st, lens, pick)}</div>`:'';
+  return strip+`<div class="igx-row igf-led-grid${detail?'':' is-solo'}">${list}${detail}</div>`;
 }
 function intelFrictionHtml(){
   const f=intel.frictionFilter||null;
@@ -3743,9 +3749,12 @@ function intelFrictionHtml(){
   /* COPILOT'S READ LEADS, IN A CARD OF ITS OWN, AND IS NOT TOUCHED: the strip
      is intelFrictionCopilotHtml exactly as it was, keyed and repainted by the
      same three functions. The card is only its frame now that the report
-     under it is several cards rather than one. */
-  return `<div class="igf-led">
-    <div class="igf-led-card igf-led-cop">${intelFrictionCopilotHtml(st)}</div>
+     under it is several cards rather than one.
+     FIT TO SCREEN (owner-picked 29 Sep 2026): the page is one grid exactly the
+     tab's height — Copilot's read, the six figures, then the list beside its
+     panel sharing what is left (#igf-ledger lends its two children to it). */
+  return `<div class="igx-fit igf-led">
+    <div class="igx-card igf-led-cop">${intelFrictionCopilotHtml(st)}</div>
     <div id="igf-ledger">${intelFrictionLedgerHtml(st)}</div>
   </div>`;
 }
@@ -3754,7 +3763,14 @@ function intelFrictionHtml(){
    Focus goes back to the row that was pressed from the keyboard. */
 function intelFrictionLedgerRepaint(focusKey){
   const host=document.getElementById('igf-ledger'); if(!host) return;
+  /* The list scrolls inside its own card now, and a press on a row repaints
+     it: the same list comes back where the reader had it. A new lens is a
+     new list and starts at its top. */
+  const was=host.querySelector('[data-igf-list]');
+  const kept=was?{ lens:was.getAttribute('data-igf-list'), top:(was.closest('.igx-scroll')||{}).scrollTop||0 }:null;
   host.innerHTML=intelFrictionLedgerHtml(intelFrictionStats(intel.frictionFilter||null));
+  const now=kept&&kept.top?host.querySelector(`[data-igf-list="${kept.lens}"]`):null;
+  const sc=now&&now.closest('.igx-scroll'); if(sc) sc.scrollTop=kept.top;
   if(focusKey!=null){
     const r=[...host.querySelectorAll('[data-igf-row]')].find(x=>x.getAttribute('data-igf-row')===focusKey);
     if(r) r.focus();
@@ -4176,7 +4192,12 @@ function exposureData(){
    exposureCellData lists a square; the renderer only prints what they say. */
 const EXP_PG_BY = ['cat','stream','owner'];
 const EXP_PG_STEPS = 4;
-const EXP_PG_LIST = 8;
+/* How many of a square's contracts the side list draws. It SCROLLS inside
+   its card since Fit to Screen (29 Sep 2026), so it draws a long page of
+   them; past that the rest are counted and said ("and N more"), and the door
+   under the list opens every one in Contracts. Was 8 while the list grew the
+   page. */
+const EXP_PG_LIST = 50;
 /* Per sitting, in memory: which grouping, what a square shows, and which
    square is picked. `k:null` means "the lead" (or the at-least-one row when
    nothing leads); `g:null` means every group. */
@@ -4331,16 +4352,40 @@ function exposureHtml(){
   const byCtl = seg('data-exp-by', G.by, EXP_PG_BY.map(k=>[k, i18t('exp_pg_by_'+k)]), i18t('exp_pg_by_label'));
   const mCtl = G.money ? seg('data-exp-m', m, [['n', i18t('exp_pg_m_n')], ['v', i18t('exp_pg_m_v')]], i18t('exp_pg_m_label')) : '';
 
-  /* THE HEADLINE FIGURES — each a door, a zero never one. */
-  const fact = (x, words, attrs) => {
-    const body = `<b>${x.n}</b> ${e(words)}${(G.money && x.n) ? ' · ' + e(money(x.value)) : ''}${star(x)}`;
-    return x.n ? `<button type="button" class="ui-link exp-pg-fact" ${attrs}>${body}${chev}</button>`
-               : `<span class="exp-pg-fact is-zero">${body}</span>`;
+  /* ════ THE HEADLINE FIGURES — the shared tile (Fit to Screen, owner-picked
+     29 Sep 2026) ═══════════════════════════════════════════════════════
+     Four `.igx-fig` tiles in one strip, each a door and a zero never one:
+     the three this page always said (at least one · two or more · not read
+     closely enough) and the LEADING EXPOSURE, which is exposureData's own
+     `lead` — the first row of the ranking, by value where money is shown and
+     by count where it is not — its count and its money, named. IT IS NOT A
+     SCORE: nothing is added across the five, and the tile says which row
+     leads, never how bad anything is. It wears no tone: ruby on this page is
+     the lead's bar alone, and a coloured figure would be a verdict the
+     reading does not make. Its door picks the lead row, as a press on the
+     row's own total would. The full sentence rides the hover. */
+  const figS = (x, words) => (G.money && x.n) ? words + ' · ' + money(x.value) : words;
+  const fig = (x, t, s, tip, attrs) => {
+    const inner = `<span class="igx-fig-t">${e(t)}</span><span class="igx-fig-n">${x.n}</span><span class="igx-fig-s">${e(s)}${star(x)}</span>`;
+    return x.n ? `<button type="button" class="igx-fig exp-pg-fig" ${attrs} title="${e(tip)}">${inner}</button>`
+               : `<div class="igx-fig exp-pg-fig is-zero" title="${e(tip)}">${inner}</div>`;
   };
-  const facts = `<div class="exp-pg-facts">${
-    fact(G.any, i18tn('exp_pg_fact_any', G.any.n, { live:G.live }), 'data-exp-cell="any" data-exp-g="*"')}${
-    fact(G.two, i18tn('exp_pg_fact_two', G.two.n, {}), 'data-exp-go="two"')}${
-    fact(G.unread, i18t('exp_pg_fact_unread'), 'data-exp-cell="unread" data-exp-g="*"')}</div>`;
+  const leadRow = G.lead ? (G.rows.find(r=>r.k===G.lead) || null) : null;
+  const leadFig = leadRow
+    ? `<button type="button" class="igx-fig exp-pg-fig" data-exp-cell="${e(leadRow.k)}" data-exp-g="*" data-exp-lead="1" title="${
+        e(i18t(G.money ? 'exp_fit_lead_why_v' : 'exp_fit_lead_why_n'))}"><span class="igx-fig-t">${
+        e(i18t('exp_fit_lead_t'))}</span><span class="igx-fig-n">${leadRow.n}</span><span class="igx-fig-s">${
+        e(figS(leadRow, leadRow.title))}${star(leadRow)}</span></button>`
+    : `<div class="igx-fig exp-pg-fig is-zero" data-exp-lead="1"><span class="igx-fig-t">${
+        e(i18t('exp_fit_lead_t'))}</span><span class="igx-fig-n">—</span><span class="igx-fig-s">${e(i18t('exp_pg_nothing'))}</span></div>`;
+  const facts = `<div class="igx-figs exp-pg-figs" style="--igx-n:4">${
+    fig(G.any, i18t('exp_fit_any_t'), figS(G.any, i18t('exp_fit_any_s', { live:G.live })),
+      G.any.n + ' ' + i18tn('exp_pg_fact_any', G.any.n, { live:G.live }), 'data-exp-cell="any" data-exp-g="*"')}${
+    fig(G.two, i18t('exp_fit_two_t'), figS(G.two, i18t('exp_fit_two_s')),
+      G.two.n + ' ' + i18tn('exp_pg_fact_two', G.two.n, {}), 'data-exp-go="two"')}${
+    fig(G.unread, i18t('exp_fit_unread_t'), figS(G.unread, i18t('exp_fit_unread_s')),
+      G.unread.n + ' ' + i18t('exp_pg_fact_unread'), 'data-exp-cell="unread" data-exp-g="*"')}${
+    leadFig}</div>`;
 
   const picked = (k, g) => P.k===k && P.g===g;
   const cell = (r, col) => {
@@ -4354,7 +4399,7 @@ function exposureHtml(){
   const row = r => {
     const dead = !r.n;                       /* a zero row stands down */
     const ink = dead ? 'var(--color-neutral-500)' : 'var(--color-text)';
-    const tot = `<b>${r.n}</b>${(G.money && r.n) ? ' · ' + e(bare(r.value)) : ''}${star(r)}`;
+    const tot = `<span><b>${r.n}</b>${(G.money && r.n) ? ' · ' + e(bare(r.value)) : ''}${star(r)}</span>`;
     return `<span class="exp-pg-rl" data-exp-row="${e(r.k)}" style="${BAR(r.k)};color:${ink}" title="${e(r.title + ' — ' + r.sub)}">${e(r.title)}<small>${e(r.sub)}</small></span>${
       G.cols.map(col=>cell(r, col)).join('')}${
       r.n ? `<button type="button" class="exp-pg-tot${picked(r.k, null) ? ' is-sel' : ''}" data-exp-cell="${e(r.k)}" data-exp-g="*" aria-pressed="${picked(r.k, null)}">${tot}</button>`
@@ -4362,7 +4407,11 @@ function exposureHtml(){
   };
   const head = `<span></span>${G.cols.map(col=>`<span class="exp-pg-hd" title="${e(col.label)}">${e(col.label)}<small>${e(i18t('exp_pg_live', { n:col.n }))}</small></span>`).join('')}<span class="exp-pg-hd is-tot">${
     e(G.money ? i18t('exp_pg_all_money', { cur }) : i18t('exp_pg_all'))}</span>`;
-  const grid = `<div class="exp-pg-scroll" id="exp-pg-scroll"><div class="exp-pg-mx" style="grid-template-columns:minmax(190px,240px) repeat(${G.cols.length},minmax(60px,1fr)) 104px">${
+  /* THE ROWS SHARE THE CARD'S HEIGHT (Fit to Screen): the head row is its own
+     height, the five and the two under the rule split what is left equally,
+     and the rule keeps its own thin line — so no gap opens between rows and
+     no band of empty card is left under the grid. */
+  const grid = `<div class="igx-fill exp-pg-scroll" id="exp-pg-scroll"><div class="exp-pg-mx" style="grid-template-columns:minmax(190px,240px) repeat(${G.cols.length},minmax(60px,1fr)) 104px;grid-template-rows:auto repeat(${G.rows.length},minmax(var(--ctl-h-lg),1fr)) auto repeat(2,minmax(var(--ctl-h-lg),1fr))">${
     head}${G.rows.map(row).join('')}<span class="exp-pg-sep"></span>${row(G.any)}${row(G.unread)}</div></div>`;
   const legend = `<div class="exp-pg-legend">
       <span><span class="exp-pg-ramp"><i class="exp-r1"></i><i class="exp-r2"></i><i class="exp-r3"></i><i class="exp-r4"></i></span>${e(i18t(m==='v' ? 'exp_pg_ramp_v' : 'exp_pg_ramp_n'))}</span>
@@ -4375,33 +4424,40 @@ function exposureHtml(){
       e(i18tn('int_exp_fx_line', d.fxLeft, { n:d.fxLeft }))}</p>` : '';
 
   /* THE SQUARE'S CONTRACTS, beside the grid. Every name opens its contract;
-     the door under them opens the whole square in Contracts. */
-  const side = !S || !S.n ? `<aside class="exp-pg-card exp-pg-side"><p class="exp-pg-empty">${e(i18t('exp_pg_nothing'))}</p></aside>` : `
-    <aside class="exp-pg-card exp-pg-side" aria-live="polite">
+     the door under them opens the whole square in Contracts. The list
+     scrolls INSIDE the card (Fit to Screen), so the card is the grid's
+     height whatever the square holds, and the door stays at its foot. */
+  const side = !S || !S.n ? `<aside class="igx-card exp-pg-side"><p class="exp-pg-empty">${e(i18t('exp_pg_nothing'))}</p></aside>` : `
+    <aside class="igx-card exp-pg-side" aria-live="polite">
       <div class="exp-pg-lbl">${e(S.group == null ? i18t('exp_pg_every') : i18t('exp_pg_sel_in', { dim:S.dim, group:S.group }))}</div>
       <div class="exp-pg-sel-t">${e(S.title)}</div>
       <div class="exp-pg-sel-s">${e(nC(S.n))}${G.money ? ' · ' + e(money(S.value)) + star(S) + ' · ' + e(i18t('exp_pg_largest_first')) : ''}</div>
-      <div class="exp-pg-list">${S.items.slice(0, EXP_PG_LIST).map(it=>`
+      <div class="igx-scroll scroll-thin exp-pg-list" id="exp-pg-list">${S.items.slice(0, EXP_PG_LIST).map(it=>`
         <button type="button" class="exp-pg-li" data-exp-one="${e(it.id)}" title="${e(it.who ? it.who + ' — ' + it.name : it.name)}">
           <span class="exp-pg-who">${e(it.who || it.name || it.id)}</span>
           <span class="exp-pg-v">${G.money ? (it.left ? '<span style="color:var(--st-amber-fg)">*</span>' : e(money(it.value))) : ''}</span>
           <span class="exp-pg-sub">${e(it.name)}${it.read ? '' : ' · ' + e(i18t('exp_pg_not_read'))}</span>
           <span class="exp-pg-sub is-r">${it.carries > 1 ? e(i18t('exp_pg_of_five', { n:it.carries })) : ''}</span>
-        </button>`).join('')}</div>
-      ${S.items.length > EXP_PG_LIST ? `<div class="exp-pg-more">${e(i18t('exp_pg_more', { n:S.items.length - EXP_PG_LIST }))}</div>` : ''}
+        </button>`).join('')}${
+      S.items.length > EXP_PG_LIST ? `<div class="exp-pg-more">${e(i18t('exp_pg_more', { n:S.items.length - EXP_PG_LIST }))}</div>` : ''}</div>
       <button type="button" class="ui-link exp-pg-open" data-exp-open="1">${e(i18tn('exp_pg_open', S.n, { n:S.n }))}${chev}</button>
     </aside>`;
 
+  /* ════ FIT TO SCREEN (owner-picked by name, 29 Sep 2026) ══════════════
+     The shared grammar (.igx-*, index.html "INSIGHTS FITS THE SCREEN"): the
+     four figures in one strip, then ONE row — the grid's card (8 parts)
+     beside the list's card (4 parts), both exactly the height that is left.
+     The grid's rows grow to fill their card; the list scrolls inside its. */
   return `
-  <section class="exp-pg">
-    <div class="exp-pg-cols">
-      <div class="exp-pg-card exp-pg-main">
+  <section class="exp-pg igx-fit">
+    ${facts}
+    <div class="igx-row exp-pg-cols" style="--igx-cols:minmax(0,8fr) minmax(0,4fr)">
+      <div class="igx-card exp-pg-main">
         <div class="exp-pg-head">
           <h2>${e(i18t('exp_pg_head'))}</h2>
           <span class="exp-pg-head-sub">${e(i18t('exp_pg_head_sub'))}</span>
           <span class="exp-pg-ctl">${byCtl}${mCtl}</span>
         </div>
-        ${facts}
         ${grid}
         ${legend}${fxLine}
         <p class="exp-pg-note">${e(i18t('exp_pg_foot'))}</p>
@@ -4413,15 +4469,22 @@ function exposureHtml(){
 /* Set the grid's switches and paint the body again, keeping the reader's
    place — the body's own scroll and the grid's sideways scroll. */
 function exposureGridSet(patch){
+  const was = _expPg.k + '|' + _expPg.g;
   Object.assign(_expPg, patch || {});
   const host = document.getElementById('ig-exp-body');
   if(!host) return;
   const sx = document.getElementById('exp-pg-scroll');
-  const left = sx ? sx.scrollLeft : 0, top = host.scrollTop;
+  const left = sx ? sx.scrollLeft : 0, gTop = sx ? sx.scrollTop : 0, top = host.scrollTop;
+  /* The side list keeps its place while the same square stays picked (a
+     Value press); a new square starts its list at the top. */
+  const ls = document.getElementById('exp-pg-list');
+  const lTop = (ls && was === _expPg.k + '|' + _expPg.g) ? ls.scrollTop : 0;
   host.innerHTML = exposureHtml();
   host.scrollTop = top;
   const sx2 = document.getElementById('exp-pg-scroll');
-  if(sx2) sx2.scrollLeft = left;
+  if(sx2){ sx2.scrollLeft = left; sx2.scrollTop = gTop; }
+  const ls2 = document.getElementById('exp-pg-list');
+  if(ls2) ls2.scrollTop = lTop;
 }
 /* EVERY FIGURE IS A DOOR, and the door out is the one the rest of this page
    already uses: regShowOnly, the named-set filter, which SAYS on the Contracts
@@ -4714,8 +4777,16 @@ const OB_THEIRS='var(--st-amber-dot,#f59e0b)';
    it, or the colleague watching what they owe us — and one lane for nobody.
    A green window in a lane is when the reminder emails about a due date
    sitting there go out; a hollow dot will never be emailed about; overdue
-   sits left of the Today line. Six tiles under it carry today's other
-   readings, each a door.
+   sits left of the Today line. Six tiles carry today's other readings,
+   each a door.
+
+   IT FITS THE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026): the six
+   tiles lead as the Insights figure strip (.igx-figs), and the line is ONE
+   card that takes every pixel left (.igx-fit's second row). Its lanes share
+   that height (each lane grows, none shrinks below what it draws on its
+   own), and when there are more lanes than fit they scroll INSIDE the card
+   (#ob-rl-scroll, .igx-scroll) while the dates row stays put. The page
+   itself never scrolls on a desktop, and no empty band sits under the card.
 
    IT DRAWS AND COUNTS NOTHING. Every dot, window and figure is
    intelObligationsData's, and hollow/filled and the window are obReminderOf's
@@ -4811,6 +4882,8 @@ function intelObligationsHtml(){
       while(lv[k]!=null&&x-lv[k]<1.6) k++;
       lv[k]=x; return { dt, x, k };
     });
+    /* The lane's FLOOR: it grows to share the card's height (.ob-rl-grid is
+       a column), so the dots ride its middle rather than a fixed pixel. */
     const h=36+(Math.max(1,lv.length)-1)*13;
     const who=L.key==='more'?i18t('ob_rl_win_more')
       : (L.side==='ours'&&!L.owned)?i18t('ob_rl_owner_word'):L.name;
@@ -4818,18 +4891,18 @@ function intelObligationsHtml(){
       <div class="ob-rl-win" style="left:${pct(X(L.band.last))}%;width:${pct(X(L.band.first)-X(L.band.last))}%"
         title="${E(i18t(L.side==='ours'?'ob_rl_win_ours':'ob_rl_win_theirs',{ who, first:L.band.first, late:-L.band.last }))}"></div>`:'';
     const dots=pos.map(({dt,x,k})=>{
-      const top=h/2+(k%2?1:-1)*Math.ceil(k/2)*13;
+      const top=`calc(50% + ${(k%2?1:-1)*Math.ceil(k/2)*13}px)`;
       const say=dotSay(dt);
       return dt.key&&typeof window.obOpenContract==='function'
-        ? `<button type="button" class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}px"
+        ? `<button type="button" class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}"
             data-ob-rl-key="${E(dt.key)}" data-ob-rl-cid="${E(dt.cid)}" title="${E(say)}" aria-label="${E(say.replace(/\n/g,'. '))}"></button>`
-        : `<span class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}px" title="${E(say)}"></span>`;
+        : `<span class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}" title="${E(say)}"></span>`;
     }).join('');
     const tag=`${L.side}:${idx}`;
     const lbl=name;
     return `<div class="ob-rl-row">
       <span class="ob-rl-who${ruby?' is-ruby':''}"><span class="ob-rl-name">${E(name)}</span><small>${E(sub)}</small></span>
-      <div class="ob-rl-strip" style="height:${h}px">${band}
+      <div class="ob-rl-strip" style="min-height:${h}px">${band}
         <div class="ob-rl-brief" style="left:${pct(X(d.briefFloor))}%"></div>
         <div class="ob-rl-now" style="left:${pct(X(0))}%"></div>${dots}</div>
       <span class="ob-rl-n">${figHtml('lane:'+tag+':later',L.later.length,L.laterKeys,i18t('ob_rl_only_later',{ who:lbl }),
@@ -4859,7 +4932,7 @@ function intelObligationsHtml(){
       +lanes.map((L,i)=>laneHtml(L,i)).join('');
   };
   const sw=(bg,edge)=>`<span class="ob-rl-sw" style="background:${bg};box-shadow:inset 0 0 0 1px ${edge}"></span>`;
-  const line=`<section style="${OB_CARD};padding:13px 17px 6px">
+  const line=`<section class="igx-card ob-rl-card">
     <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('ob_rl_title')}</span>
       <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('ob_rl_hint')}</span></div>
     <div class="ob-rl-legend">
@@ -4868,7 +4941,7 @@ function intelObligationsHtml(){
       <span>${sw('var(--st-green-bg)','var(--st-green-dot)')}${i18t('ob_rl_key_window')}</span>
       <span>${sw('var(--st-ruby-bg)','var(--st-ruby-dot)')}${i18t('ob_rl_key_past')}</span>
     </div>
-    <div class="ob-rl-scroll scroll-thin" id="ob-rl-scroll"><div class="ob-rl-grid" role="group" aria-label="${E(i18t('ob_rl_aria'))}">
+    <div class="ob-rl-scroll igx-scroll scroll-thin" id="ob-rl-scroll"><div class="ob-rl-grid" role="group" aria-label="${E(i18t('ob_rl_aria'))}">
       <div class="ob-rl-row is-head"><span></span><div class="ob-rl-ticks">${tickHtml}</div>
         <span class="ob-rl-n">${i18t('ob_rl_col_later')}</span><span class="ob-rl-n">${i18t('ob_rl_col_nodate')}</span><span class="ob-rl-n">${i18t('ob_rl_col_open')}</span></div>
       ${groupHtml('ours','ob_rl_ours')}${groupHtml('theirs','ob_rl_theirs')}
@@ -4876,20 +4949,22 @@ function intelObligationsHtml(){
   </section>`;
 
   /* ---- the six tiles: today's other readings, each a door ---- */
+  /* THE INSIGHTS FIGURE TILE (.igx-fig), the same on every tab; the tone
+     colours the figure only, and a tile with a set behind it is a button. */
   const tile=(id,spec,title,value,sub,tone,tip)=>{
     const door=spec&&value?doorOf(id,spec):null;
-    const col=tone==='bad'?'var(--st-ruby-fg)':tone==='good'?'var(--st-green-fg)':tone==='warn'?'var(--st-amber-fg)':'var(--color-text)';
-    const inner=`<span class="ob-rl-tile-k">${E(title)}</span>
-      <span class="ob-rl-tile-n" style="color:${value?col:'var(--color-text)'}">${E(String(value))}</span>
-      <span class="ob-rl-tile-s">${E(sub)}</span>`;
+    const cls=value&&tone?` igx-${tone}`:'';
+    const inner=`<span class="igx-fig-t">${E(title)}</span>
+      <span class="igx-fig-n${cls}">${E(String(value))}</span>
+      <span class="igx-fig-s">${E(sub)}</span>`;
     return door
-      ? `<button type="button" class="ob-rl-tile" data-ob-rl-door="${door}" title="${E(tip||i18t('ob_rl_door'))}">${inner}</button>`
-      : `<div class="ob-rl-tile">${inner}</div>`;
+      ? `<button type="button" class="igx-fig" data-ob-rl-door="${door}" title="${E(tip||i18t('ob_rl_door'))}">${inner}</button>`
+      : `<div class="igx-fig">${inner}</div>`;
   };
   const known=d.ontime.on+d.ontime.late;
   const rep=[['monthly','ob_rl_t_rep_monthly'],['quarterly','ob_rl_t_rep_quarterly'],['annual','ob_rl_t_rep_annual']]
     .filter(([k])=>d.repeat[k]).map(([k,key])=>i18t(key,{ n:n(d.repeat[k]) })).join(' · ');
-  const tiles=`<div class="ob-rl-tiles">
+  const tiles=`<div class="igx-figs" style="--igx-n:6">
     ${tile('silent',{ kind:'obligations', keys:d.keys.silent, label:i18t('ob_rl_t_silent'), state:'open' },
       i18t('ob_rl_t_silent'), n(d.silent), i18t('ob_rl_t_silent_sub',{ open:n(d.open) }), 'bad', i18t('ob_rl_t_silent_tip'))}
     ${tile('late',{ kind:'obligations', keys:d.keys.overdue, label:i18t('ob_rl_t_late'), state:'open' },
@@ -4907,9 +4982,10 @@ function intelObligationsHtml(){
       i18t('ob_rl_t_rep'), n(d.repeatTotal), rep||i18t('ob_rl_t_rep_none'), 'warn', i18t('ob_rl_t_rep_tip'))}
   </div>`;
 
-  return `<div id="ig-ob" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:100%;margin:0 auto">
-    ${line}
+  /* The figures first, then the line in all the height that is left. */
+  return `<div id="ig-ob" class="igx-fit">
     ${tiles}
+    ${line}
   </div>`;
 }
 /* ONE LISTENER PER PAINT: #ig-oblig is rebuilt by every renderIntel, so the
@@ -4947,61 +5023,15 @@ function intelObligationsWire(host){
    the navy workspace, so the two stay tellable apart whichever brand is on.
    Every bar carries its figure, every legend spells its count, and the side is
    written in words on every exception row, so no reading rests on the hue. */
-/* ---- HOW MANY ROWS A PAGE HOLDS (owner-asked 2 Sep 2026) ----
-   *"This table should be the same height as the chart above it. If the list is
-   long then it will have pages to click to."*
-
-   MEASURED, NEVER TYPED. The height comes from the chart card itself, so the
-   two stay level whatever either of them grows, and the page size falls out of
-   the room that is left. rowsThatFit is deliberately NOT used: it measures from
-   an element's top to the SCROLLER's bottom — "fill the rest of the screen" —
-   and this box is bounded by the card above it instead.
-
-   A ZERO IS NOT AN ANSWER: a pane still laying out, or a page with no rows to
-   measure a row against, keeps the size it had. The standing rule. */
-const PT_PAGE_MIN = 3;
-let _ptPageSize = 6;
-function ptPagerHtml(page, pages){
-  if(pages <= 1) return '';
-  /* THE REGISTER'S OWN PAGER IS THE REFERENCE for the shape and the dress —
-     prev, the numbers with an ellipsis, next — so this product has one pager
-     vocabulary. It is written out rather than borrowed because regPager is
-     bound to the register's own state and attribute; a THIRD pager is the
-     point at which the builder should be lifted out. */
-  const btn = (label, to, off, on) => `<button ${off ? 'disabled' : ''} data-pt-page="${to}" style="min-width:30px;padding:4px 9px;font:inherit;font-size:var(--t-label);font-weight:${on ? 'var(--w-title)' : 'var(--w-body)'};border:1px solid ${on ? 'var(--accent-fill)' : 'var(--color-divider)'};background:${on ? 'var(--accent-fill)' : 'var(--color-surface)'};color:${on ? '#fff' : (off ? 'var(--color-neutral-400)' : 'var(--accent-ink-700)')};border-radius:var(--radius);cursor:${off ? 'default' : 'pointer'}">${label}</button>`;
-  const nums = []; const lo = Math.max(1, page - 2), hi = Math.min(pages, page + 2);
-  const gap = '<span style="padding:0 2px;color:var(--color-neutral-500)">…</span>';
-  if(lo > 1){ nums.push(btn('1', 1, false, page === 1)); if(lo > 2) nums.push(gap); }
-  for(let i = lo; i <= hi; i++) nums.push(btn(String(i), i, false, i === page));
-  if(hi < pages){ if(hi < pages - 1) nums.push(gap); nums.push(btn(String(pages), pages, false, page === pages)); }
-  return `<div style="display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;padding-top:9px;margin-top:auto">
-    ${btn('‹', page - 1, page <= 1, false)}${nums.join('')}${btn('›', page + 1, page >= pages, false)}
-    <span style="margin-left:6px;font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('reg_page_of', { p:page, n:pages })}</span></div>`;
-}
-function ptFitTable(){
-  const host = document.getElementById('ig-pt');
-  const card = document.getElementById('ig-pt-table');
-  const rows = document.getElementById('ig-pt-rows');
-  if(!host || !card || !rows) return;
-  /* The chart card is the one holding the plot — found rather than named, so
-     obCard keeps its own signature and the other tab's cards are untouched. */
-  const chart = Array.from(host.children).find(el => el.querySelector && el.querySelector('[role="img"]'));
-  const h = chart ? Math.round(chart.getBoundingClientRect().height) : 0;
-  if(h > 0) card.style.height = h + 'px';
-  const r0 = rows.querySelector('[data-pt-open]');
-  const rowH = r0 ? Math.round(r0.getBoundingClientRect().height) : 0;
-  const room = rows.clientHeight;
-  if(!(rowH > 0) || !(room > 0)) return;
-  const fit = Math.max(PT_PAGE_MIN, Math.floor(room / rowH));
-  if(fit !== _ptPageSize){ _ptPageSize = fit; ptRepaint(); return; }
-  /* Re-fit when the chart's own height moves — a window resize, the nav rail,
-     the reader's zoom. Armed per paint, because the element it watches is
-     replaced by every repaint. */
-  if(chart && !chart.dataset.ptObs && typeof ResizeObserver === 'function'){
-    chart.dataset.ptObs = '1';
-    try{ new ResizeObserver(() => ptFitTable()).observe(chart); }catch(e){}
-  }
-}
+/* ---- THE ROWS SCROLL INSIDE THEIR CARD (owner-picked "Fit to Screen", 29 Sep 2026) ----
+   REVERSES the 2 Sep pager ("the same height as the chart above it … pages to
+   click to"). The chart now sits ABOVE the table rather than beside it, both
+   full width, and the page is one screen: the table card takes the height the
+   grid hands it and its rows scroll inside it (.igx-scroll), the head row held
+   at the top of that scroller (sticky INSIDE it, so it stays exactly as wide as
+   the rows when a scrollbar appears — the lesson of 2 Sep). Nothing is paged,
+   so nothing is measured: ptFitTable, ptPagerHtml, PT_PAGE_MIN and
+   intel.ptPage are gone. Every row is drawn — a list is never trimmed. */
 
 /* ---- THE TAB'S OWN PRESSES (owner-asked 2 Sep 2026) ----
    Re-armed on every paint of the body, because a filter press REPLACES the
@@ -5019,7 +5049,6 @@ function ptRepaint(){
   host.innerHTML = intelPayTermsHtml();
   host.scrollTop = keep;
   ptWire();
-  ptFitTable();
 }
 function ptWire(){
   /* A row opens its contract — the friction tab's own verb, and the reason the
@@ -5031,7 +5060,6 @@ function ptWire(){
       const [side, bucket] = String(b.getAttribute('data-pt-bar') || '').split('|');
       const c = intel.ptCut || {};
       intel.ptCut = (c.side === side && c.bucket === bucket) ? { side:null, bucket:null } : { side, bucket };
-      intel.ptPage = 1;
       ptRepaint();
     }));
   document.querySelectorAll('[data-pt-side]').forEach(b =>
@@ -5039,13 +5067,25 @@ function ptWire(){
       const side = b.getAttribute('data-pt-side');
       const c = intel.ptCut || {};
       intel.ptCut = (c.side === side && !c.bucket) ? { side:null, bucket:null } : { side, bucket:null };
-      intel.ptPage = 1;
       ptRepaint();
     }));
   document.querySelectorAll('[data-pt-clear]').forEach(b =>
-    b.addEventListener('click', () => { intel.ptCut = { side:null, bucket:null }; intel.ptPage = 1; ptRepaint(); }));
-  document.querySelectorAll('[data-pt-page]').forEach(b =>
-    b.addEventListener('click', () => { intel.ptPage = Number(b.getAttribute('data-pt-page')) || 1; ptRepaint(); }));
+    b.addEventListener('click', () => { intel.ptCut = { side:null, bucket:null }; ptRepaint(); }));
+  /* THE FIGURE TILE IS THE TABLE'S OWN DOOR: it counts the table's own
+     population (`against`), so a press puts the whole of that list in front of
+     the reader — any cut cleared, the rows back at the top, the table brought
+     into view on a narrow window, and the first row holding the focus. */
+  document.querySelectorAll('[data-pt-all]').forEach(b =>
+    b.addEventListener('click', () => {
+      intel.ptCut = { side:null, bucket:null };
+      ptRepaint();
+      const rows = document.getElementById('ig-pt-rows');
+      const card = document.getElementById('ig-pt-table');
+      if(rows) rows.scrollTop = 0;
+      if(card && card.scrollIntoView) card.scrollIntoView({ block:'nearest' });
+      const first = rows && rows.querySelector('[data-pt-open]');
+      if(first) first.focus({ preventScroll:true });
+    }));
 }
 
 function intelPayTermsHtml(){
@@ -5059,41 +5099,55 @@ function intelPayTermsHtml(){
     <div style="max-width:560px;margin:var(--s-10) auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.6">
     <b style="color:var(--color-text)">${i18t('pt_empty')}</b><br/>${i18t('pt_empty_why')}</div></div>`;
 
-  /* ---- 1 · the two sides and the hole between them ---- */
-  const hero = (S, cls, kKey, subValue, subCount, tone) => `<div style="min-width:0">
-    <div style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);display:flex;align-items:center;gap:7px">
-      <span style="width:9px;height:9px;border-radius:1px;flex:none;background:${tone}"></span>${i18t(kKey)}</div>
+  /* ---- 1 · the two sides and the hole between them ----
+     FIT TO SCREEN (owner-picked 29 Sep 2026): the grammar's own figure tile
+     (.igx-fig), one strip across the top. The READINGS are unchanged — each
+     side's number is written in its side's own ink (the accent, the amber),
+     readable in both themes, beside the square in the exact colour of that
+     side's bars; the gap is amber only when it is against us. */
+  const hero = (S, kKey, subValue, subCount, tone, ink) => `<div class="igx-fig">
+    <span class="igx-fig-t"><span class="pt-sw" style="background:${tone}"></span>${i18t(kKey)}</span>
     ${S.avgDays == null
-      ? `<div style="${OB_NUM};font-size:30px;line-height:1.05;margin:4px 0 6px;color:var(--color-neutral-600)">—</div>
-         <p style="${OB_NOTE};margin:0">${i18t('pt_side_empty')}</p>`
-      : `<div style="${OB_NUM};font-size:34px;line-height:1.02;margin:2px 0 5px;color:${tone}">${n(S.avgDays)}<span style="font-size:15px;font-weight:var(--w-body);letter-spacing:0;margin-left:4px">${i18t('pt_days')}</span></div>
-         <p style="${OB_NOTE};margin:0">${i18t(S.basis === 'value' ? subValue : subCount, { n:n(S.n) })}</p>`}
+      ? `<span class="igx-fig-n" style="color:var(--color-neutral-600)">—</span>
+         <span class="igx-fig-s">${i18t('pt_side_empty')}</span>`
+      : `<span class="igx-fig-n" style="color:${ink}">${n(S.avgDays)} <span class="pt-unit">${i18t('pt_days')}</span></span>
+         <span class="igx-fig-s">${i18t(S.basis === 'value' ? subValue : subCount, { n:n(S.n) })}</span>`}
   </div>`;
 
   /* THE GAP ONLY MEANS SOMETHING WHEN BOTH SIDES CAN ANSWER, so with one of
      them empty it says so rather than printing a number worked out against
      nothing. Amber only when the gap is against us — a figure that is always
      coloured is one nobody reads. */
-  const gapTone = (d.gap != null && d.gap > 0) ? 'var(--st-amber-fg,#b45309)' : 'var(--color-text)';
   const gapSay = d.gap == null ? i18t('pt_gap_none')
     : d.gap > 0 ? i18t('pt_gap_fund')
     : d.gap < 0 ? i18t('pt_gap_ahead')
     : i18t('pt_gap_level');
-  const gapBlock = `<div style="min-width:0;padding-left:var(--s-4);border-left:1px solid var(--color-divider)">
-    <div style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:${d.gap != null && d.gap > 0 ? 'var(--st-amber-fg,#b45309)' : 'var(--color-neutral-600)'}">${i18t('pt_the_gap')}</div>
+  const gapFig = `<div class="igx-fig">
+    <span class="igx-fig-t">${i18t('pt_the_gap')}</span>
     ${d.gap == null
-      ? `<div style="${OB_NUM};font-size:30px;line-height:1.05;margin:4px 0 6px;color:var(--color-neutral-600)">—</div>`
-      : `<div style="${OB_NUM};font-size:34px;line-height:1.02;margin:2px 0 5px;color:${gapTone}">${n(Math.abs(d.gap))}<span style="font-size:15px;font-weight:var(--w-body);letter-spacing:0;margin-left:4px">${i18t('pt_days')}</span></div>`}
-    <p style="${OB_NOTE};margin:0">${gapSay}</p>
+      ? `<span class="igx-fig-n" style="color:var(--color-neutral-600)">—</span>`
+      : `<span class="igx-fig-n${d.gap > 0 ? ' igx-warn' : ''}">${n(Math.abs(d.gap))} <span class="pt-unit">${i18t('pt_days')}</span></span>`}
+    <span class="igx-fig-s">${gapSay}</span>
   </div>`;
 
-  const heroes = `<section style="${OB_CARD};padding:15px 17px">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:var(--s-3) 22px">
-      ${hero(d.customer, 'c', 'pt_we_wait', 'pt_wait_sub_value', 'pt_wait_sub_count', OB_OURS)}
-      ${hero(d.supplier, 's', 'pt_we_pay', 'pt_pay_sub_value', 'pt_pay_sub_count', OB_THEIRS)}
-      ${gapBlock}
-    </div>
-  </section>`;
+  /* THE FOURTH FIGURE IS THE TABLE'S OWN COUNT — `against`, the very number
+     on the table's "N driving" chip — so it adds no reading, and it is the
+     table's own door (ptWire, data-pt-all). NOT "over your standard": on the
+     supplier side over-standard and against-you are opposites (owner-ruled
+     2 Sep), and this count is the second. A zero is not a door. */
+  const nAgainst = (d.against || []).length;
+  const driveInner = `<span class="igx-fig-t">${i18t('pt_fit_drive_t')}</span>
+    <span class="igx-fig-n${nAgainst ? ' igx-warn' : ''}">${n(nAgainst)}</span>
+    <span class="igx-fig-s">${i18tn('pt_fit_drive_s', nAgainst, { n:n(nAgainst) })}</span>`;
+  const driveFig = nAgainst
+    ? `<button type="button" class="igx-fig" data-pt-all="1" title="${E(i18t('pt_show_all'))}">${driveInner}</button>`
+    : `<div class="igx-fig">${driveInner}</div>`;
+
+  const heroes = `<div class="igx-figs" style="--igx-n:4">
+    ${hero(d.customer, 'pt_we_wait', 'pt_wait_sub_value', 'pt_wait_sub_count', OB_OURS, 'var(--accent-ink)')}
+    ${hero(d.supplier, 'pt_we_pay', 'pt_pay_sub_value', 'pt_pay_sub_count', OB_THEIRS, 'var(--st-amber-fg,#b45309)')}
+    ${gapFig}${driveFig}
+  </div>`;
 
   /* ---- 2 · where the terms sit ---- */
   const GAP_PX = 14;
@@ -5179,30 +5233,38 @@ function intelPayTermsHtml(){
     : d.targets.customer != null ? i18t('pt_targets_in_only', { n:n(d.targets.customer) })
     : d.targets.supplier != null ? i18t('pt_targets_out_only', { n:n(d.targets.supplier) })
     : '';
-  const spread = obCard(i18t('pt_spread_title'), '',
-    `<p style="${OB_LEAD}">${i18t('pt_spread_q')}</p>
-     <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px">
+  /* FIT TO SCREEN (owner-picked 29 Sep 2026): the chart card fills its cell
+     of the grid, full width, ABOVE the table, and the PLOT grows to fill the
+     card (.pt-plot) instead of sitting at a typed 168px. The question moves up
+     beside the title and the legend to the right of it, so the height goes to
+     the bars. Bars, lines, captions and the notes are unchanged. */
+  const chartFoot = [targetNote,
+     (d.standardVaries && !targetNote) ? i18t('pt_standard_varies', { n:n(d.standard) }) : '',
+     d.noTerms.n ? i18tn('pt_no_terms', d.noTerms.n, { n:n(d.noTerms.n), total:n(d.bookN) }) : '',
+     d.noSide.n ? i18tn('pt_no_side', d.noSide.n, { n:n(d.noSide.n) }) : ''].filter(Boolean).join(' ');
+  const spread = `<section id="ig-pt-chart" class="igx-card">
+    <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('pt_spread_title')}</span>
+      <span style="min-width:0;font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('pt_spread_q')}</span>
+      <span style="display:flex;gap:20px;flex-wrap:wrap;margin-left:auto">
        ${[[d.customer, OB_OURS, 'pt_are_paid'], [d.supplier, OB_THEIRS, 'pt_we_pay']].map(([S, tone, k]) =>
          `<button type="button" ${S.n ? '' : 'disabled '}data-pt-side="${E(S.key)}" aria-pressed="${cutOf.side === S.key && !cutOf.bucket ? 'true' : 'false'}"
             style="display:flex;align-items:center;gap:8px;font:inherit;font-size:var(--t-meta);color:var(--color-neutral-700);border:0;background:none;padding:2px 4px;margin:-2px -4px;border-radius:var(--radius);cursor:${S.n ? 'pointer' : 'default'}${cutOf.side === S.key && !cutOf.bucket ? ';outline:2px solid var(--color-text);outline-offset:1px' : ''}">
             <span style="width:11px;height:11px;border-radius:1px;background:${tone}"></span>${i18t(k)} <b style="font-variant-numeric:tabular-nums">${n(S.n)}</b></button>`).join('')}
-     </div>
-     <div role="img" aria-label="${E(i18t('pt_spread_title') + '. ' + ariaSpread)}" style="position:relative;padding-top:24px">
-       <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;height:168px;align-items:end;position:relative;border-bottom:1px solid var(--color-divider)">
-         ${d.bucketKeys.map((k, i) => `<span style="display:flex;gap:5px;align-items:flex-end;justify-content:center;height:100%">${barFor(d.customer, OB_OURS, i)}${barFor(d.supplier, OB_THEIRS, i)}</span>`).join('')}
-         ${lines.map(L => `<span aria-hidden="true" style="position:absolute;top:-4px;bottom:0;left:${lineAt(L.si)};width:0;border-left:1px dashed ${L.ink};pointer-events:none"></span>`).join('')}
-       </div>
-       <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;padding-top:9px">
-         ${d.bucketKeys.map(k => `<span style="text-align:center;font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;color:var(--color-neutral-600)">${k}</span>`).join('')}
-       </div>
-       ${lines.map(L => `<div style="position:relative;height:17px;margin-top:2px"><span style="position:absolute;top:0;${capAt(L.si)};white-space:nowrap;font-size:var(--t-micro);font-weight:var(--w-title);color:${L.ink}">${i18t(L.key, { n:n(L.std) })}</span></div>`).join('')}
-     </div>`,
-    [targetNote,
-     (d.standardVaries && !targetNote) ? i18t('pt_standard_varies', { n:n(d.standard) }) : '',
-     d.noTerms.n ? i18tn('pt_no_terms', d.noTerms.n, { n:n(d.noTerms.n), total:n(d.bookN) }) : '',
-     d.noSide.n ? i18tn('pt_no_side', d.noSide.n, { n:n(d.noSide.n) }) : ''].filter(Boolean).join(' '));
+      </span></div>
+    <div role="img" class="igx-fill" aria-label="${E(i18t('pt_spread_title') + '. ' + ariaSpread)}" style="position:relative;padding-top:22px">
+      <div class="pt-plot" style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;align-items:end;position:relative;border-bottom:1px solid var(--color-divider)">
+        ${d.bucketKeys.map((k, i) => `<span style="display:flex;gap:5px;align-items:flex-end;justify-content:center;height:100%">${barFor(d.customer, OB_OURS, i)}${barFor(d.supplier, OB_THEIRS, i)}</span>`).join('')}
+        ${lines.map(L => `<span aria-hidden="true" style="position:absolute;top:-4px;bottom:0;left:${lineAt(L.si)};width:0;border-left:1px dashed ${L.ink};pointer-events:none"></span>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;padding-top:8px">
+        ${d.bucketKeys.map(k => `<span style="text-align:center;font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;color:var(--color-neutral-600)">${k}</span>`).join('')}
+      </div>
+      ${lines.map(L => `<div style="position:relative;height:17px;margin-top:2px"><span style="position:absolute;top:0;${capAt(L.si)};white-space:nowrap;font-size:var(--t-micro);font-weight:var(--w-title);color:${L.ink}">${i18t(L.key, { n:n(L.std) })}</span></div>`).join('')}
+    </div>
+    ${chartFoot ? `<div style="padding-top:8px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${chartFoot}</div>` : ''}
+  </section>`;
 
-  /* ---- 3 · ONE TABLE, PAGED, OF WHAT IS AGAINST YOU ----
+  /* ---- 3 · ONE TABLE, SCROLLING IN ITS CARD, OF WHAT IS AGAINST YOU ----
      *"make this one scrollable table with only 'What is driving the gap'"* (2
      Sep), then *"This table should be the same height as the chart above it.
      If the list is long then it will have pages to click to. This table should
@@ -5227,10 +5289,10 @@ function intelPayTermsHtml(){
      head and a body sharing one template string still drew columns 65px and
      37px wide.
 
-     AND PAGING IS WHAT LETS THE HEAD ROW BE A PLAIN SIBLING AGAIN. A scroller
-     grows a scrollbar and the head stops being the same width as the rows,
-     which is why it had to be sticky INSIDE it; a paged region is
-     `overflow:hidden` and never has one. */
+     THE ROWS SCROLL INSIDE THE CARD (Fit to Screen, 29 Sep 2026 — the 2 Sep
+     pager is reversed): the head row is sticky INSIDE the scroller, because a
+     sibling above it stops being the same width the moment the scroller grows
+     a scrollbar. Every row is drawn; nothing is paged or trimmed. */
   const PT_COLS = 'minmax(0,.7fr) minmax(0,1.7fr) minmax(0,1.2fr) minmax(0,.7fr) minmax(0,1.3fr) minmax(0,.8fr) minmax(0,.9fr)';
   const cut = cutOf;
   const inCut = r => (!cut.side || r.side === cut.side) && (!cut.bucket || r.bucket === cut.bucket);
@@ -5262,14 +5324,6 @@ function intelPayTermsHtml(){
          <button data-pt-clear="1" type="button" class="ui-link">${i18t('pt_show_all')}</button>
        </div>` : '';
 
-  /* PAGES, NOT A SCROLLBAR. The page size is MEASURED after the paint against
-     the height the chart above hands down (ptFitTable) rather than typed, so
-     the two cards stay level whatever either of them grows. The page is
-     clamped here: a cut can shorten the list under a reader who is on page 3. */
-  const pages = Math.max(1, Math.ceil(rows.length / _ptPageSize));
-  const page = Math.min(Math.max(1, intel.ptPage || 1), pages);
-  const shown = rows.slice((page - 1) * _ptPageSize, page * _ptPageSize);
-
   const rowHtml = r => `<button data-pt-open="${E(r.id)}" title="${E(r.name || r.ref || r.id)}"
       style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:8px 0;${RULE};font:inherit;cursor:pointer">
     ${cell(E(r.ref || r.id), 'font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink);font-weight:var(--w-title)')}
@@ -5281,32 +5335,40 @@ function intelPayTermsHtml(){
     <span style="${NUMCELL};color:var(--color-neutral-600)">${money(r.value) || '—'}</span>
   </button>`;
 
-  const body = shown.length ? shown.map(rowHtml).join('')
+  const body = rows.length ? rows.map(rowHtml).join('')
     : `<p style="${OB_LEAD};margin:14px 0 4px">${i18t(against.length ? 'pt_tbl_none' : 'pt_tbl_clear')}</p>`;
-  const drivers = `<section id="ig-pt-table" style="${OB_CARD}">
-    <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('pt_drive_title')}</span>${
+  const drivers = `<section id="ig-pt-table" class="igx-card">
+    <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('pt_drive_title')}</span>
+      <span style="flex:1 1 320px;min-width:0;font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t(d.gap != null && d.gap > 0 ? 'pt_drive_q' : 'pt_tbl_q')}</span>${
       against.length ? obFlag(i18t('pt_drive_flag', { n:n(against.length) }), 'var(--st-amber-bg)', 'var(--st-amber-fg,#b45309)') : ''}</div>
-    <p style="${OB_LEAD}">${i18t(d.gap != null && d.gap > 0 ? 'pt_drive_q' : 'pt_tbl_q')}</p>
     ${cutLine}
-    <div style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;padding-bottom:7px;${RULE}">${head}</div>
-    <div id="ig-pt-rows" style="flex:1 1 auto;min-height:0;overflow:hidden">${body}</div>
-    ${ptPagerHtml(page, pages)}
+    <div id="ig-pt-rows" class="igx-scroll scroll-thin">
+      <div class="pt-head" style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;padding-bottom:7px;${RULE}">${head}</div>
+      ${body}
+    </div>
   </section>`;
 
   /* ---- 4 · what this page cannot see ----
      The honest limit, and it is the most important thing on the tab: HaTi
      reads agreements, not your bank. Named so the page never looks as though
-     it is answering a question it cannot. */
-  const blind = `<section style="${OB_CARD};padding:15px 17px">
-    <div style="font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em;margin-bottom:10px">${i18t('pt_blind_title')}</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--s-3) 22px">
-      ${[[i18t('pt_blind_1'), i18t('pt_blind_1_why')], [i18t('pt_blind_2'), i18t('pt_blind_2_why')]]
-        .map(([t, w]) => `<div style="min-width:0"><div style="font-size:var(--t-meta);font-weight:var(--w-title);margin-bottom:3px">${E(t)}</div><p style="${OB_NOTE};margin:0">${w}</p></div>`).join('')}
-    </div>
-    <p style="${OB_NOTE};padding-top:11px;margin-top:11px;border-top:1px solid var(--color-divider)">${i18t('pt_method')}</p>
+     it is answering a question it cannot. FIT TO SCREEN keeps every word of it
+     and lays it on ONE row under the table (.pt-blind), so the page still ends
+     at the bottom of the screen. */
+  const blind = `<section id="ig-pt-blind" class="igx-card pt-blind">
+    <div style="font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em">${i18t('pt_blind_title')}</div>
+    ${[[i18t('pt_blind_1'), i18t('pt_blind_1_why')], [i18t('pt_blind_2'), i18t('pt_blind_2_why')]]
+      .map(([t, w]) => `<div style="min-width:0"><div style="font-size:var(--t-meta);font-weight:var(--w-title);margin-bottom:3px">${E(t)}</div><p style="${OB_NOTE};margin:0">${w}</p></div>`).join('')}
+    <p style="${OB_NOTE};margin:0">${i18t('pt_method')}</p>
   </section>`;
 
-  return `<div id="ig-pt" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:100%;margin:0 auto">
+  /* ONE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026: "update fit to
+     screen where the graph is above the what is driving the gap card"). The
+     shared grid (.igx-fit): the figures, then the chart (.85) ABOVE the table
+     (1.15), both full width, then the honest limit. The chart's row never
+     squeezes below its own drawing (min-content) — on a window too short for
+     that the page scrolls, the grammar's own floor — while the table's rows
+     scroll inside their card. */
+  return `<div id="ig-pt" class="igx-fit" style="--igx-rows:auto minmax(min-content,.85fr) minmax(0,1.15fr) auto">
     ${heroes}${spread}${drivers}${blind}
   </div>`;
 }
@@ -6077,7 +6139,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});

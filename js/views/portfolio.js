@@ -122,10 +122,17 @@ const PF_TITLE='font-size:var(--t-card);font-weight:var(--w-title);letter-spacin
 const PF_HINT='font-size:var(--t-label);color:var(--color-neutral-600)';
 const PF_SAY='font-size:var(--t-body);line-height:1.5;color:var(--color-text);margin:-4px 0 var(--s-3)';
 const PF_FOOT='margin-top:10px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)';
-const pfCard=(title,hint,body,foot,say)=>`<div class="pf-card" style="${PF_CARD}">
+/* ---- FIT TO SCREEN (owner-picked by name, 29 Sep 2026) ----
+   The card is the shared Insights card now (`.igx-card`, index.html's "INSIGHTS
+   FITS THE SCREEN" block): it fills its cell of the grid, and its BODY is the
+   growing part (`.igx-fill`), so a chart takes whatever height the row gives
+   it and the foot sits on the card's floor. PF_CARD is no longer the dressing
+   of anything drawn here; it is kept as the named quote f247 measures the
+   Obligations card against until that tab wears `.igx-card` as well. */
+const pfCard=(title,hint,body,foot,say)=>`<div class="pf-card igx-card">
   <div style="${PF_H}"><span style="${PF_TITLE}">${title}</span>${hint?`<span style="${PF_HINT}">${hint}</span>`:''}</div>
   ${say?`<div class="pf-say" style="${PF_SAY}">${say}</div>`:''}
-  <div style="flex:0 1 auto;min-height:0;display:flex;flex-direction:column">${body}</div>
+  <div class="igx-fill">${body}</div>
   ${foot?`<div style="${PF_FOOT}">${foot}</div>`:''}</div>`;
 /* A foot that is a ROW: the key at the left, the door at the right wall. */
 const pfFootRow = parts => `<div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center">${parts.filter(Boolean).join('')}</div>`;
@@ -161,7 +168,8 @@ function pfChipsHtml(){
   if(F.stage) chips.push({k:'stage', l:pfStageLabel(F.stage)});
   if(F.cp) chips.push({k:'cp', l:F.cp});
   if(!chips.length) return '';
-  return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+  /* A row of the page's grid of its own; the grid's gap is the space under it. */
+  return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
     <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('pf_focused_on')}</span>
     ${chips.map(c=>`<button data-pf-unfilter="${c.k}" type="button" style="display:inline-flex;align-items:center;gap:4px;border:0;border-radius:var(--radius);min-height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font:inherit;font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer;background:var(--color-accent);color:#fff">${pfEsc(c.l)}${icon('x','w-3 h-3')}</button>`).join('')}
     <button data-pf-clear type="button" class="ui-link">${i18t('reg_clear')}</button>
@@ -204,14 +212,18 @@ function pfSoonSay(d){
 }
 function pfFigures(){
   const d=pfHeadlineData();
+  /* THE SHARED FIGURE TILE (Fit to Screen, 29 Sep 2026): the same `.igx-fig`
+     every Insights tab draws its headline figures with — label, figure, one
+     line under it. The tone colours the FIGURE only; a tile with a list
+     behind it is a real <button>. */
   const tile=(key,k,v,sub,tone,ids,hero)=>{
     const door=pfDoor(key, ids, k);
     const tag=door?'button':'div';
-    const col=hero?'#fff':tone==='warn'?'var(--st-amber-fg)':tone==='bad'?'var(--st-ruby-fg)':'var(--color-text)';
-    return `<${tag} ${door?`type="button" data-pf-go="${key}" title="${pfEsc(pfDoorLabel(ids.length))}"`:''} class="pf-kpi${hero?' is-hero':''}" style="${PF_CARD};padding:10px 14px;gap:1px;text-align:left;font:inherit;${door?'cursor:pointer;':''}${hero?'background:var(--brand-hero,var(--color-accent-700));border-color:transparent;color:#fff':'color:var(--color-text)'}">
-    <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${k}</span>
-    <span style="display:block;font-family:var(--font-heading);font-size:22px;font-weight:var(--w-title);letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;color:${col}">${v}</span>
-    <span style="display:block;font-size:var(--t-label);color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${sub}</span></${tag}>`;
+    const toneCls=tone==='warn'?' igx-warn':tone==='bad'?' igx-bad':'';
+    return `<${tag} ${door?`type="button" data-pf-go="${key}" title="${pfEsc(pfDoorLabel(ids.length))}"`:''} class="igx-fig${hero?' is-hero':''}">
+    <span class="igx-fig-t">${k}</span>
+    <span class="igx-fig-n${toneCls}">${v}</span>
+    <span class="igx-fig-s">${sub}</span></${tag}>`;
   };
   const t=[];
   const heroLabel = d.money ? i18t('pf_contracted_value') : i18t('pf_contracts_live');
@@ -224,7 +236,7 @@ function pfFigures(){
     i18t('pf_no_decision_point'), '', d.auto.ids));
   if(d.past.contracts) t.push(tile('past', i18t('pf_ov_past'), String(d.past.contracts),
     d.money ? i18t('pf_ov_past_sub', {v:pfEsc(pfMoney(d.past.value))}) : i18t('pf_ov_past_sub_n'), 'bad', d.past.ids));
-  return `<div class="pf-figs" style="--pf-n:${t.length}">${t.join('')}</div>`;
+  return `<div class="igx-figs" style="--igx-n:${t.length}">${t.join('')}</div>`;
 }
 
 /* ------------------------------------------- 2. WHERE THE VALUE SITS ------- */
@@ -242,6 +254,15 @@ function pfCatData(){
   return { rows, total:rows.reduce((a,r)=>a+r.v,0), max:rows.length?rows[0].v:0, money:pfMoneyOk() };
 }
 const pfRowFigure = (d, r) => d.money ? pfEsc(pfMoney(r.v)) : String(r.n);
+/* The row list of a Portfolio card: it scrolls inside the card (`.igx-scroll`),
+   and from three rows it SPREADS down the card's height (`is-spread`) so the
+   rows share the cell the way the picture the owner picked draws them. Fewer
+   than three stay at the top — two rows pushed to opposite walls read as two
+   unrelated things. */
+const PF_SPREAD_MIN = 3;
+const pfHlClass = n => `pf-hl igx-scroll${n>=PF_SPREAD_MIN?' is-spread':''}`;
+/* The one fact a row list's foot still carries: the ranking is by count. */
+const pfValuesHiddenFoot = () => `<b>${i18t('pf_values_hidden')}</b> ${i18t('pf_ranked_by_count')}`;
 function pfWhereValueSits(){
   const d=pfCatData(), F=pfState();
   if(!d.rows.length) return pfCard(i18t('pf_where_value'), i18t('pf_ov_where_sub'),
@@ -255,10 +276,17 @@ function pfWhereValueSits(){
       <span class="pf-track"><span style="width:${Math.max(2,Math.round(r.v/max*100))}%"></span></span>
     </button>`;
   }).join('');
-  const foot = d.money
-    ? i18t('pf_ov_press_row')
-    : `<b>${i18t('pf_values_hidden')}</b> ${i18t('pf_ranked_by_count')}`;
-  return pfCard(i18t('pf_where_value'), i18t('pf_ov_where_sub'), `<div class="pf-hl">${rows}</div>`, foot);
+  /* THE FOOT SAYS ONLY WHAT THE ROWS CANNOT (Fit to Screen, 29 Sep 2026): that
+     values are hidden and the ranking is by count. "Press a row to focus the
+     page on it" is no longer printed — each row says it on its own hover
+     (`pf_ov_row_focus`), the picture the owner picked has no such line, and
+     its height is what lets a six-category book show whole on a laptop.
+     `pf_ov_press_row` is inert in both books.
+     A LIST THAT SCROLLS INSIDE ITS CARD: a long book of categories never
+     stretches the page; three or more rows share the card's height rather
+     than leaving its lower half empty (`pfHlClass`). */
+  const foot = d.money ? '' : pfValuesHiddenFoot();
+  return pfCard(i18t('pf_where_value'), i18t('pf_ov_where_sub'), `<div class="${pfHlClass(d.rows.length)}">${rows}</div>`, foot);
 }
 
 /* ---------------------------------------------- 3. VALUE BY STAGE ---------- */
@@ -279,18 +307,24 @@ function pfValueByStage(){
   const d=pfStageData(), F=pfState();
   if(!d.rows.length) return pfCard(i18t('pf_ov_stage'), i18t('pf_ov_stage_sub'),
     `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:10px 0">${i18t('pf_nothing_here')}</div>`,'');
-  const total=d.total||1;
+  const total=d.total||1, max=Math.max(...d.rows.map(r=>r.v), 1);
   const meter=`<div class="pf-meter" role="img" aria-label="${pfEsc(i18t('pf_ov_stage'))}">${d.rows.filter(r=>r.v>0).map(r=>
     `<i style="width:${r.v/total*100}%;background:${r.tone}" title="${pfEsc(r.label)}: ${pfRowFigure(d,r)} · ${pfN(r.n,'contracts')}"></i>`).join('')}</div>`;
   const rows=d.rows.map(r=>{
     const sel=F.stage===r.k, dim=!!F.stage&&!sel;
     return `<button type="button" data-pf-stage="${pfEsc(r.k)}" class="pf-hr${sel?' on':''}${dim?' dim':''}" title="${pfEsc(sel?i18t('pf_ov_row_again'):i18t('pf_ov_row_focus',{k:r.label}))}">
-      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.tone};margin-right:6px"></span><b style="font-weight:var(--w-title)">${pfEsc(r.label)}</b> <span style="color:var(--color-neutral-600)">· ${pfN(r.n,'contracts')}</span></span>
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.tone};margin-right:6px"></span><b style="font-weight:var(--w-title)">${pfEsc(r.label)}</b> <span style="color:var(--color-neutral-600)">· ${pfN(r.n,'contracts')} · ${pfShare(r.v,total)}</span></span>
       <span class="pf-hr-v">${pfRowFigure(d,r)}</span>
+      <span class="pf-track"><span style="width:${Math.max(2,Math.round(r.v/max*100))}%;background:${r.tone}"></span></span>
     </button>`;
   }).join('');
-  return pfCard(i18t('pf_ov_stage'), i18t('pf_ov_stage_sub'), meter+`<div class="pf-hl">${rows}</div>`,
-    d.money ? i18t('pf_ov_press_row') : `<b>${i18t('pf_values_hidden')}</b> ${i18t('pf_ranked_by_count')}`);
+  /* A SHARE BAR UNDER EACH STAGE (Fit to Screen, 29 Sep 2026, as in the
+     picture the owner picked): the stage's own dot colour, measured against
+     the largest stage the way Where the value sits measures its rows, with
+     the stage's share of the book beside its count. The meter above says the
+     whole; the bars let the rows fill the card rather than float in it. */
+  return pfCard(i18t('pf_ov_stage'), i18t('pf_ov_stage_sub'), meter+`<div class="${pfHlClass(d.rows.length)}">${rows}</div>`,
+    d.money ? '' : pfValuesHiddenFoot());
 }
 
 /* -------------------------------------------------- 4. THE RISK MAP -------- */
@@ -335,9 +369,15 @@ function pfRiskSay(d){
    before it is measured, so it draws at a stand-in width first and
    wirePortfolioFrame redraws it once the card is on screen (and when the card
    changes size). */
-const PF_RISK_H = 220, PF_RISK_W0 = 430;
-function pfRiskSvg(d, W){
-  W=Math.max(280, Math.round(W||PF_RISK_W0)); const H=PF_RISK_H;
+/* AND AT ITS CARD'S REAL HEIGHT where the page fits the screen (29 Sep 2026):
+   the map's box grows with its row (`#pf-risk-plot` is the card's growing
+   part), so it is drawn as tall as the box is — never shorter than
+   PF_RISK_H_MIN, the height its axis words still read at. Where the page is a
+   plain scrolling column the box has no height of its own and the map keeps
+   PF_RISK_H. */
+const PF_RISK_H = 220, PF_RISK_W0 = 430, PF_RISK_H_MIN = 140;
+function pfRiskSvg(d, W, Hin){
+  W=Math.max(280, Math.round(W||PF_RISK_W0)); const H=Math.max(PF_RISK_H_MIN, Math.round(Hin||PF_RISK_H));
   const F=pfState(), rs=d.pts;
   const L=66, R=16, T=12, B=30;
   const rmax=Math.max(4, ...rs.map(p=>p.r)), vmax=Math.max(...rs.map(p=>p.v), 1);
@@ -371,7 +411,7 @@ function pfRiskSvg(d, W){
     return `<text x="${(p.x+(right?10:-10)).toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${right?'start':'end'}" font-size="11" font-weight="600" fill="var(--color-text)" stroke="var(--color-surface)" stroke-width="3" paint-order="stroke">${pfEsc(nm)}</text>`;
   }).join('');
   const ax='font-size="11" fill="var(--color-neutral-600)"';
-  return `<svg class="pf-risk" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${pfEsc(i18t('pf_ov_risk_aria'))}" style="display:block;overflow:visible" data-w="${W}">
+  return `<svg class="pf-risk" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${pfEsc(i18t('pf_ov_risk_aria'))}" style="display:block;overflow:visible" data-w="${W}" data-h="${H}">
     <line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="var(--color-neutral-300)"/>
     <line x1="${L}" x2="${W-R}" y1="${y(vmax).toFixed(1)}" y2="${y(vmax).toFixed(1)}" stroke="var(--color-divider)" stroke-dasharray="3 3"/>
     <text x="${L-8}" y="${(y(vmax)+4).toFixed(1)}" text-anchor="end" ${ax}>${pfEsc(pfMoney(vmax))}</text>
@@ -412,49 +452,78 @@ function pfRiskMap(){
    deleted, which is how this product retires a sentence. */
 
 /* ------------------------------------------------------- the whole frame --- */
+/* THE PICTURE THE OWNER PICKED, as numbers (Fit to Screen, 29 Sep 2026): the
+   runway takes 8 parts of the top row and Value by stage 4; Where the value
+   sits and the risk map split the bottom row evenly; the top row is 1.1 to the
+   bottom row's 1. Without a runway Where the value sits takes the runway's
+   place and the risk map has the bottom row to itself (`whole`). f434 reads
+   these. The bottom row may grow past its share (`minmax(auto,…)`): the map's
+   box never shrinks under PF_RISK_H_MIN, so on a short laptop the row takes
+   the room the map needs and the page scrolls a little, instead of the map
+   drawing over its own key (laptops-verify, 1366 x 638). */
+const PF_FIT_COLS = { top:'minmax(0,8fr) minmax(0,4fr)', bottom:'minmax(0,6fr) minmax(0,6fr)',
+  whole:'minmax(0,1fr)' };
+const PF_FIT_ROWS = ['minmax(0,1.1fr)','minmax(auto,1fr)'];
 function portfolioFrameHtml(){
   _pfDoors = {};
   if(!pfLive().length) return `<div style="max-width:520px;margin:44px auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.65">
     <b style="color:var(--color-text)">${i18t('pf_empty_title')}</b><br/>${i18t('pf_ov_empty_body')}</div>`;
-  /* THE SHAPED FILL, added only where the shape is present. A row is skipped
-     outright rather than drawn empty — the panels themselves already refuse to
-     render when they have nothing to say, so an empty string here means there
-     was genuinely nothing, and a row of one card takes the full width. */
-  const hasProject = typeof wsHas!=='function' || wsHas('project');
+  /* ---- FIT TO SCREEN (owner-picked by name, 29 Sep 2026) ----
+     "Make the pages fit with a page and for the cards to fit together without
+     cards being taller than other cards and not covering spaces fully", then
+     "Exclude money held too, keep Copilot's answers."
+     The page is the shared Insights grid (`.igx-fit`, index.html): exactly the
+     tab's height, the four figures in one strip, then TWO rows of cards that
+     share what is left about 1.1 : 1 — the renewal runway (8 parts) beside
+     Value by stage (4), then Where the value sits (6) beside the risk map (6).
+     Every card fills its cell and every chart grows with it. Below 1080px wide
+     the grid is a plain scrolling column.
+     THE FOUR PROJECT CARDS ARE NOT DRAWN — the workload runway, won and lost,
+     money held back and promises still live. Their counting (`*Data`) and
+     their PF_PANEL_DATA entries are untouched, so Copilot answers about them
+     exactly as before; their renderers are kept with no caller.
+     WITHOUT A RENEWAL RUNWAY (a workspace that does only project work, or a
+     book with nothing ending in the next eighteen months) the page keeps its
+     shape: Where the value sits takes the runway's place beside Value by
+     stage, and the risk map — a wide picture that reads better wide — has the
+     bottom row to itself. (Three cards in one full-height row was tried and
+     measured: the row lists spread so far apart they read as unrelated.) */
   const hasStanding = typeof wsHas!=='function' || wsHas('standing');
-  const row = (cards, cls) => { const live=cards.filter(Boolean);
-    return live.length ? `<div class="pf-grid ${live.length>1?(cls||'pf-6-6'):''}">${live.join('')}</div>` : ''; };
-  const runway = hasProject ? pfWorkloadRunway() : '';
-  const wonlost = hasProject ? pfWonLost() : '';
-  const tail = hasProject ? [pfMoneyHeld(), pfPromisesLive()] : [];
   const renewal = hasStanding ? pfRenewalRunway() : '';
 
   /* THE PILE NOBODY CAN COUNT. Contracts filed before the category existed
      group under nothing, so they quietly fall out of every figure that groups.
      A number with no route to fixing it is a complaint; this one carries the
-     route. */
+     route. In the grid it is a row of its own (`auto`) above the figures; the
+     grid's gap is the space under it that its own margin used to give. */
   const uncounted = pfLive().filter(c=>!pfCategoryOf(c));
   const nudge = uncounted.length ? `
-    <div style="display:flex;gap:11px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px;padding:10px 13px;border-radius:var(--radius);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-size:var(--t-meta);line-height:1.55">
+    <div style="display:flex;gap:11px;align-items:flex-start;flex-wrap:wrap;padding:10px 13px;border-radius:var(--radius);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);color:var(--st-amber-fg);font-size:var(--t-meta);line-height:1.55">
       <span style="flex:1;min-width:220px"><b>${i18t('pf_uncounted_head',{n:uncounted.length})}</b> ${i18t('pf_uncounted_body')}</span>
       ${(typeof canEdit!=='function'||canEdit())?`<button data-pf-fixcats style="flex:none;display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);border:1px solid var(--btn-edge);background:none;color:inherit;border-radius:var(--radius);padding:0 var(--pad-ctl-x-sm);font:inherit;font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer">${i18t('pf_uncounted_fix')}</button>`:''}
     </div>` : '';
+  const chips = pfChipsHtml();
 
-  /* ---- THE OVERVIEW'S OWN RULES (28 Sep 2026) ----
-     Every value is a token or a whole pixel. The figures row takes its column
-     count from --pf-n, so a narrow window can set two columns by ORDER in this
-     sheet rather than by out-shouting an inline style. */
+  /* THE GRID'S ROWS, said where the rows are made: one `auto` row for each
+     line above the figures that is there, the figures, then the cards. */
+  const cards = renewal
+    ? [`<div class="igx-row" style="--igx-cols:${PF_FIT_COLS.top}">${renewal}${pfValueByStage()}</div>`,
+       `<div class="igx-row" style="--igx-cols:${PF_FIT_COLS.bottom}">${pfWhereValueSits()}${pfRiskMap()}</div>`]
+    : [`<div class="igx-row" style="--igx-cols:${PF_FIT_COLS.top}">${pfWhereValueSits()}${pfValueByStage()}</div>`,
+       `<div class="igx-row" style="--igx-cols:${PF_FIT_COLS.whole}">${pfRiskMap()}</div>`];
+  const rows = [nudge?'auto':'', chips?'auto':'', 'auto'].filter(Boolean).concat(PF_FIT_ROWS).join(' ');
+
+  /* ---- THE OVERVIEW'S OWN RULES (28 Sep 2026; the page's shape moved to the
+     shared `.igx-*` rules on 29 Sep) ----
+     Every value is a token or a whole pixel. What is here is the drawing
+     INSIDE a card; the page's shape is the shared grammar's. The rules that
+     only make sense on a page that fits the screen sit under the grammar's
+     own width line (1080px): there a chart's box takes the height its row
+     gives it (flex basis 0), and three or more rows spread down their card. */
   return `<style>
     .pf-ov{--pf-made:var(--color-accent-600)}
     html.dark .pf-ov{--pf-made:var(--color-accent-400)}
-    .pf-grid{display:grid;gap:10px;align-items:stretch;margin-bottom:10px}
-    .pf-6-6{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .pf-8-4{grid-template-columns:minmax(0,8fr) minmax(0,4fr)}
-    .pf-ov2{grid-template-columns:minmax(0,4fr) minmax(0,3fr) minmax(0,5fr)}
-    .pf-figs{display:grid;gap:10px;margin-bottom:10px;grid-template-columns:repeat(var(--pf-n,4),minmax(0,1fr))}
-    button.pf-kpi:hover{border-color:var(--color-accent-300)}
-    button.pf-kpi.is-hero:hover{filter:brightness(1.06)}
-    .pf-hl{display:grid;gap:2px}
+    .pf-hl{display:grid;gap:2px;align-content:start}
     .pf-hr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;align-items:baseline;width:100%;padding:6px 6px 8px;border:0;border-radius:var(--radius);background:none;text-align:left;font:inherit;font-size:var(--t-body);color:var(--color-text);cursor:pointer}
     .pf-hr:hover{background:var(--color-accent-50)}
     .pf-hr.on{background:var(--color-accent-100)}
@@ -462,11 +531,11 @@ function portfolioFrameHtml(){
     .pf-hr-v{font-family:var(--font-heading);font-weight:var(--w-title);font-variant-numeric:tabular-nums;white-space:nowrap}
     .pf-track{grid-column:1/-1;display:block;height:8px;border-radius:2px;background:var(--color-neutral-100);overflow:hidden}
     .pf-track>span{display:block;height:100%;border-radius:2px;background:var(--pf-made)}
-    .pf-meter{display:flex;gap:2px;height:12px;margin:2px 6px 10px;border-radius:2px;background:var(--color-neutral-100);overflow:hidden}
+    .pf-meter{flex:none;display:flex;gap:2px;height:12px;margin:2px 6px 10px;border-radius:2px;background:var(--color-neutral-100);overflow:hidden}
     .pf-meter i{display:block;height:100%}
     .pf-risk g[data-pf-cp]:hover circle,.pf-risk g[data-pf-cp]:focus-visible circle{stroke:var(--color-text)}
     .pf-risk g[data-pf-cp]:focus{outline:none}
-    .pf-run{display:grid;grid-template-columns:62px minmax(0,1fr);gap:0 6px}
+    .pf-run{display:grid;grid-template-columns:62px minmax(0,1fr);grid-template-rows:var(--pf-run-h,190px) auto;gap:0 6px}
     .pf-yax{position:relative;font-size:var(--t-micro);color:var(--color-neutral-600);text-align:right}
     .pf-yax span{position:absolute;right:0;transform:translateY(50%);white-space:nowrap;font-variant-numeric:tabular-nums}
     .pf-vbars{position:relative;display:grid;align-items:end;gap:4px;border-bottom:1px solid var(--color-neutral-300);padding:0 2px}
@@ -478,42 +547,27 @@ function portfolioFrameHtml(){
     .pf-vaxis{display:grid;gap:4px;padding:4px 2px 0;font-size:var(--t-micro);color:var(--color-neutral-600);text-align:center;white-space:nowrap}
     .pf-door{display:inline-flex;align-items:center;gap:4px;margin-left:auto;white-space:nowrap}
     .pf-say .pf-amber{color:var(--st-amber-fg);font-weight:var(--w-title)}
-    .pf-scroll [data-pf-open]:hover{background:var(--color-neutral-100)!important}
-    @media (max-width:1100px){
-      .pf-ov2{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .pf-ov2>:last-child{grid-column:1/-1}
-      .pf-figs{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .pf-6-6,.pf-8-4{grid-template-columns:minmax(0,1fr)}
+    @media (min-width:1080px){
+      #ig-frame .pf-run{flex:1 1 0;min-height:0;grid-template-rows:minmax(0,1fr) auto}
+      #ig-frame #pf-risk-plot{flex:1 1 0;min-height:${PF_RISK_H_MIN}px}
+      #ig-frame .igx-card:has(#pf-risk-plot){min-height:min-content}
+      #ig-frame .pf-hl.is-spread{display:flex;flex-direction:column;justify-content:space-between}
+      #ig-frame .pf-hl .pf-hr{padding:4px 6px 5px}
+      #ig-frame .pf-meter{height:22px}
     }
     @media (max-width:720px){
-      .pf-ov2{grid-template-columns:minmax(0,1fr)}
       .pf-run{grid-template-columns:48px minmax(0,1fr)}
       .pf-vbars,.pf-vaxis{gap:2px}
     }
   </style>
   ${''/* ---- THE PANELS FILL THE PAGE, LIKE NEGOTIATION FRICTION (owner-asked
-         25 Aug 2026: "the negotiation friction card keeps the same distance to
-         the edge of the nav panel when the nav panel is open or collapsed.
-         Portfolio card needs to do the same") ----
-         This capped at 1280 and CENTRED, so its distance from the nav was
-         whatever half the leftover happened to be — it moved whenever the
-         content area did, and on a wide monitor it sat 195px off the column.
-         Friction's own body is a plain div and hugs the page measure; that is
-         the tab the owner is pointing at, and this now matches it.
-         ---- THE OVERVIEW'S ORDER (28 Sep 2026) ----
-         The headline figures, then one card per question: the runways (what
-         ends, and whether anybody has decided), then where the value sits, by
-         stage, and the risk map. The work a project business gets sits in its
-         old places, in the same card. The three cards that closed the page and
-         the grey note under them are gone. */}
-  <div class="pf-ov">
+         25 Aug 2026) ---- the page hugs its host's padding on both sides, so
+         its distance from the nav never moves with the nav. */}
+  <div class="pf-ov igx-fit" style="--igx-rows:${rows}">
     ${nudge}
-    ${pfChipsHtml()}
+    ${chips}
     ${pfFigures()}
-    ${row([runway, wonlost],'pf-8-4')}
-    ${row([renewal])}
-    <div class="pf-grid pf-ov2">${pfWhereValueSits()}${pfValueByStage()}${pfRiskMap()}</div>
-    ${row(tail)}
+    ${cards.join('')}
   </div>`;
 }
 
@@ -547,9 +601,14 @@ function pfRiskFit(again){
   const draw=bind=>{
     if(!host.isConnected) return false;
     const w=Math.round(host.clientWidth||0);
-    const svg=host.querySelector('svg'); const drawn=svg?Number(svg.getAttribute('data-w'))||0:0;
-    if(w<50 || Math.abs(w-drawn)<=8) return false;
-    host.innerHTML=pfRiskSvg(pfRiskData(), w);
+    /* The box has a height of its own only where the grid gives it one (its
+       flex basis is 0 there, and only there — see the page's own rules). */
+    const grows=typeof getComputedStyle==='function' && getComputedStyle(host).flexBasis==='0px';
+    const h=grows ? Math.round(host.clientHeight||0) : PF_RISK_H;
+    const svg=host.querySelector('svg');
+    const drawn=svg?Number(svg.getAttribute('data-w'))||0:0, drawnH=svg?Number(svg.getAttribute('data-h'))||0:0;
+    if(w<50 || (Math.abs(w-drawn)<=8 && Math.abs(Math.max(PF_RISK_H_MIN,h)-drawnH)<=8)) return false;
+    host.innerHTML=pfRiskSvg(pfRiskData(), w, h);
     if(bind) pfBindCp(host, again);
     return true;
   };
@@ -667,7 +726,7 @@ Object.assign(window,{PF_SOON_DAYS,PF_MAX_ROWS,pfState,pfOpenContract,pfMarkFind
   pfPct,pfShare,pfCategoryOf,pfCatLabel,pfFindingsOf,pfRounds,pfFigures,pfWhereValueSits,pfRiskMap,
   portfolioFrameHtml,wirePortfolioFrame,
   PF_STAGE_ORDER,PF_FIND_TONE,pfHeadlineData,pfSoonSay,pfCatData,pfStageData,pfValueByStage,pfFindState,
-  pfRiskData,pfRiskSay,pfRiskSvg,pfGoDoor,pfRunSay});
+  pfRiskData,pfRiskSay,pfRiskSvg,pfGoDoor,pfRunSay,PF_FIT_COLS,PF_FIT_ROWS,pfHlClass});
 
 /* ============================================================================
    THE SHAPED FILL. Panels that appear only when a business has that shape of
@@ -883,6 +942,11 @@ function pfWorkloadRunwayData(){
       lostWork:{ note:'Declined work is excluded from this panel; it is counted in won_and_lost' } },
   };
 }
+/* NO CALLER ON THE PAGE since 29 Sep 2026 (Fit to Screen: the owner took the
+   four project cards off Portfolio). Kept, drawing exactly what it drew, with
+   pfWorkloadRunwayData and its PF_PANEL_DATA entry untouched — Copilot still
+   answers "why is my workload runway so big?" from them. The same holds for
+   pfMoneyHeld, pfPromisesLive and pfWonLost below. */
 function pfWorkloadRunway(){
   const d=pfWorkloadRunwayData();
   if(!d.drawn) return '';
@@ -957,6 +1021,7 @@ function pfMoneyHeldData(){
     excluded:{ note:'contracts with no retention percentage recorded, and Declined work, are not counted here' },
   };
 }
+/* NO CALLER ON THE PAGE since 29 Sep 2026 (see pfWorkloadRunway). */
 function pfMoneyHeld(){
   const d=pfMoneyHeldData();
   if(!d.drawn) return '';
@@ -1025,6 +1090,7 @@ function pfPromisesLiveData(){
       noPromiseRecorded:{ note:'contracts with no warranty months on record are not counted here at all' } },
   };
 }
+/* NO CALLER ON THE PAGE since 29 Sep 2026 (see pfWorkloadRunway). */
 function pfPromisesLive(){
   const d=pfPromisesLiveData();
   if(!d.drawn) return '';
@@ -1082,6 +1148,7 @@ function pfWonLostData(){
     excluded:{ note:'HaTi does not record WHY a piece of work was lost; the panel says so and so does this' },
   };
 }
+/* NO CALLER ON THE PAGE since 29 Sep 2026 (see pfWorkloadRunway). */
 function pfWonLost(){
   const d=pfWonLostData();
   if(!d.drawn) return '';
@@ -1242,13 +1309,18 @@ function pfRenewalRunway(){
       p.undecided?`<i style="height:${(p.undecided/top*100).toFixed(2)}%;background:var(--st-amber-dot)"></i>`:''}</${door?'button':'div'}>`;
   }).join('');
   const grid=`grid-template-columns:repeat(${N},minmax(0,1fr))`;
-  const body=`<div class="pf-run">
-    <div class="pf-yax" style="height:${H}px">${t.map(v=>`<span style="bottom:${(v/top*100).toFixed(2)}%">${fig(v)}</span>`).join('')}<span style="bottom:0">0</span></div>
-    <div style="min-width:0">
-      <div class="pf-vbars" role="group" aria-label="${pfEsc(i18t('pf_renewal_aria'))}" style="height:${H}px;${grid}">${
-        t.map(v=>`<div class="pf-gl" style="bottom:${(v/top*100).toFixed(2)}%"></div>`).join('')}${cols}</div>
-      <div class="pf-vaxis" style="${grid}">${per.map(p=>`<span>${p.offset%3===0?pfEsc(pfMonthLabel(p.offset)):''}</span>`).join('')}</div>
-    </div></div>`;
+  /* FOUR CELLS OF ONE GRID (Fit to Screen, 29 Sep 2026): the money axis and
+     the columns share the first row, the months sit under the columns in the
+     second. The first row is H tall on a scrolling page and takes the card's
+     spare height where the page fits the screen (the page's own rules), so
+     the bars grow with a bigger window instead of leaving the card empty. */
+  const body=`<div class="pf-run" style="--pf-run-h:${H}px">
+    <div class="pf-yax">${t.map(v=>`<span style="bottom:${(v/top*100).toFixed(2)}%">${fig(v)}</span>`).join('')}<span style="bottom:0">0</span></div>
+    <div class="pf-vbars" role="group" aria-label="${pfEsc(i18t('pf_renewal_aria'))}" style="${grid}">${
+      t.map(v=>`<div class="pf-gl" style="bottom:${(v/top*100).toFixed(2)}%"></div>`).join('')}${cols}</div>
+    <span></span>
+    <div class="pf-vaxis" style="${grid}">${per.map(p=>`<span>${p.offset%3===0?pfEsc(pfMonthLabel(p.offset)):''}</span>`).join('')}</div>
+  </div>`;
   const allIds=per.reduce((a,p)=>a.concat(p.ids||[]),[]);
   const door=pfDoor('run', allIds, i18t('pf_renewal_runway'));
   const openEnded=d.excluded.openEnded.count;
@@ -1273,9 +1345,12 @@ const PF_PANEL_DATA = {
   renewal_runway:  () => pfRenewalRunwayData(),
 };
 const PF_PANEL_NAMES = Object.keys(PF_PANEL_DATA);
-/* Which panels this workspace's own shape actually draws. A renewal runway on
-   a business that only does projects is a chart nobody is looking at, and an
-   answer about it would be an answer about a screen that is not there. */
+/* Which panels belong to this workspace's own shape. A renewal runway on a
+   business that only does projects is a reading nobody has asked for.
+   SINCE 29 SEP 2026 the four project panels are no longer DRAWN on Portfolio
+   (Fit to Screen; "keep Copilot's answers") — this list is what Copilot is
+   handed and what it may answer about, not what the page draws, and it is
+   unchanged on purpose. */
 function pfPanelsForShape(){
   const project = (typeof wsHas!=='function') || wsHas('project');
   const standing = (typeof wsHas!=='function') || wsHas('standing');
