@@ -166,7 +166,12 @@ describe('f385 (4) text buttons have one look', () => {
          door onto Contracts — they wear the one look; the unread line's own
          "Read them" button went with the table it sat under. */
       ['js/views/intelligence.js', /type="button" class="ui-link exp-pg-open" data-exp-open="1"/],
-      ['js/views/intelligence.js', /type="button" class="ui-link exp-pg-fact"/],
+      /* RE-POINTED 29 Sep 2026 (Fit to Screen, owner-picked by name): the
+         headline figures left the text-button look for the shared figure
+         tile every Insights tab wears (`.igx-fig`, f433; the Exposure layout
+         is f438). The claim here is still that each wears the ONE look of its
+         kind: a door tile is a real button in the shared tile's class. */
+      ['js/views/intelligence.js', /<button type="button" class="igx-fig exp-pg-fig"/],
       ['js/views/register.js', /id="reg-clear-filters" type="button" class="ui-link"/],
       ['js/views/settings.js', /data-sess-revoke="\$\{s\.id\}" type="button" class="ui-link ui-link-danger"/],
       ['js/views/contract.js', /id="sign-paper" type="button" class="ui-link"/],

@@ -4176,7 +4176,12 @@ function exposureData(){
    exposureCellData lists a square; the renderer only prints what they say. */
 const EXP_PG_BY = ['cat','stream','owner'];
 const EXP_PG_STEPS = 4;
-const EXP_PG_LIST = 8;
+/* How many of a square's contracts the side list draws. It SCROLLS inside
+   its card since Fit to Screen (29 Sep 2026), so it draws a long page of
+   them; past that the rest are counted and said ("and N more"), and the door
+   under the list opens every one in Contracts. Was 8 while the list grew the
+   page. */
+const EXP_PG_LIST = 50;
 /* Per sitting, in memory: which grouping, what a square shows, and which
    square is picked. `k:null` means "the lead" (or the at-least-one row when
    nothing leads); `g:null` means every group. */
@@ -4331,16 +4336,40 @@ function exposureHtml(){
   const byCtl = seg('data-exp-by', G.by, EXP_PG_BY.map(k=>[k, i18t('exp_pg_by_'+k)]), i18t('exp_pg_by_label'));
   const mCtl = G.money ? seg('data-exp-m', m, [['n', i18t('exp_pg_m_n')], ['v', i18t('exp_pg_m_v')]], i18t('exp_pg_m_label')) : '';
 
-  /* THE HEADLINE FIGURES — each a door, a zero never one. */
-  const fact = (x, words, attrs) => {
-    const body = `<b>${x.n}</b> ${e(words)}${(G.money && x.n) ? ' · ' + e(money(x.value)) : ''}${star(x)}`;
-    return x.n ? `<button type="button" class="ui-link exp-pg-fact" ${attrs}>${body}${chev}</button>`
-               : `<span class="exp-pg-fact is-zero">${body}</span>`;
+  /* ════ THE HEADLINE FIGURES — the shared tile (Fit to Screen, owner-picked
+     29 Sep 2026) ═══════════════════════════════════════════════════════
+     Four `.igx-fig` tiles in one strip, each a door and a zero never one:
+     the three this page always said (at least one · two or more · not read
+     closely enough) and the LEADING EXPOSURE, which is exposureData's own
+     `lead` — the first row of the ranking, by value where money is shown and
+     by count where it is not — its count and its money, named. IT IS NOT A
+     SCORE: nothing is added across the five, and the tile says which row
+     leads, never how bad anything is. It wears no tone: ruby on this page is
+     the lead's bar alone, and a coloured figure would be a verdict the
+     reading does not make. Its door picks the lead row, as a press on the
+     row's own total would. The full sentence rides the hover. */
+  const figS = (x, words) => (G.money && x.n) ? words + ' · ' + money(x.value) : words;
+  const fig = (x, t, s, tip, attrs) => {
+    const inner = `<span class="igx-fig-t">${e(t)}</span><span class="igx-fig-n">${x.n}</span><span class="igx-fig-s">${e(s)}${star(x)}</span>`;
+    return x.n ? `<button type="button" class="igx-fig exp-pg-fig" ${attrs} title="${e(tip)}">${inner}</button>`
+               : `<div class="igx-fig exp-pg-fig is-zero" title="${e(tip)}">${inner}</div>`;
   };
-  const facts = `<div class="exp-pg-facts">${
-    fact(G.any, i18tn('exp_pg_fact_any', G.any.n, { live:G.live }), 'data-exp-cell="any" data-exp-g="*"')}${
-    fact(G.two, i18tn('exp_pg_fact_two', G.two.n, {}), 'data-exp-go="two"')}${
-    fact(G.unread, i18t('exp_pg_fact_unread'), 'data-exp-cell="unread" data-exp-g="*"')}</div>`;
+  const leadRow = G.lead ? (G.rows.find(r=>r.k===G.lead) || null) : null;
+  const leadFig = leadRow
+    ? `<button type="button" class="igx-fig exp-pg-fig" data-exp-cell="${e(leadRow.k)}" data-exp-g="*" data-exp-lead="1" title="${
+        e(i18t(G.money ? 'exp_fit_lead_why_v' : 'exp_fit_lead_why_n'))}"><span class="igx-fig-t">${
+        e(i18t('exp_fit_lead_t'))}</span><span class="igx-fig-n">${leadRow.n}</span><span class="igx-fig-s">${
+        e(figS(leadRow, leadRow.title))}${star(leadRow)}</span></button>`
+    : `<div class="igx-fig exp-pg-fig is-zero" data-exp-lead="1"><span class="igx-fig-t">${
+        e(i18t('exp_fit_lead_t'))}</span><span class="igx-fig-n">—</span><span class="igx-fig-s">${e(i18t('exp_pg_nothing'))}</span></div>`;
+  const facts = `<div class="igx-figs exp-pg-figs" style="--igx-n:4">${
+    fig(G.any, i18t('exp_fit_any_t'), figS(G.any, i18t('exp_fit_any_s', { live:G.live })),
+      G.any.n + ' ' + i18tn('exp_pg_fact_any', G.any.n, { live:G.live }), 'data-exp-cell="any" data-exp-g="*"')}${
+    fig(G.two, i18t('exp_fit_two_t'), figS(G.two, i18t('exp_fit_two_s')),
+      G.two.n + ' ' + i18tn('exp_pg_fact_two', G.two.n, {}), 'data-exp-go="two"')}${
+    fig(G.unread, i18t('exp_fit_unread_t'), figS(G.unread, i18t('exp_fit_unread_s')),
+      G.unread.n + ' ' + i18t('exp_pg_fact_unread'), 'data-exp-cell="unread" data-exp-g="*"')}${
+    leadFig}</div>`;
 
   const picked = (k, g) => P.k===k && P.g===g;
   const cell = (r, col) => {
@@ -4354,7 +4383,7 @@ function exposureHtml(){
   const row = r => {
     const dead = !r.n;                       /* a zero row stands down */
     const ink = dead ? 'var(--color-neutral-500)' : 'var(--color-text)';
-    const tot = `<b>${r.n}</b>${(G.money && r.n) ? ' · ' + e(bare(r.value)) : ''}${star(r)}`;
+    const tot = `<span><b>${r.n}</b>${(G.money && r.n) ? ' · ' + e(bare(r.value)) : ''}${star(r)}</span>`;
     return `<span class="exp-pg-rl" data-exp-row="${e(r.k)}" style="${BAR(r.k)};color:${ink}" title="${e(r.title + ' — ' + r.sub)}">${e(r.title)}<small>${e(r.sub)}</small></span>${
       G.cols.map(col=>cell(r, col)).join('')}${
       r.n ? `<button type="button" class="exp-pg-tot${picked(r.k, null) ? ' is-sel' : ''}" data-exp-cell="${e(r.k)}" data-exp-g="*" aria-pressed="${picked(r.k, null)}">${tot}</button>`
@@ -4362,7 +4391,11 @@ function exposureHtml(){
   };
   const head = `<span></span>${G.cols.map(col=>`<span class="exp-pg-hd" title="${e(col.label)}">${e(col.label)}<small>${e(i18t('exp_pg_live', { n:col.n }))}</small></span>`).join('')}<span class="exp-pg-hd is-tot">${
     e(G.money ? i18t('exp_pg_all_money', { cur }) : i18t('exp_pg_all'))}</span>`;
-  const grid = `<div class="exp-pg-scroll" id="exp-pg-scroll"><div class="exp-pg-mx" style="grid-template-columns:minmax(190px,240px) repeat(${G.cols.length},minmax(60px,1fr)) 104px">${
+  /* THE ROWS SHARE THE CARD'S HEIGHT (Fit to Screen): the head row is its own
+     height, the five and the two under the rule split what is left equally,
+     and the rule keeps its own thin line — so no gap opens between rows and
+     no band of empty card is left under the grid. */
+  const grid = `<div class="igx-fill exp-pg-scroll" id="exp-pg-scroll"><div class="exp-pg-mx" style="grid-template-columns:minmax(190px,240px) repeat(${G.cols.length},minmax(60px,1fr)) 104px;grid-template-rows:auto repeat(${G.rows.length},minmax(var(--ctl-h-lg),1fr)) auto repeat(2,minmax(var(--ctl-h-lg),1fr))">${
     head}${G.rows.map(row).join('')}<span class="exp-pg-sep"></span>${row(G.any)}${row(G.unread)}</div></div>`;
   const legend = `<div class="exp-pg-legend">
       <span><span class="exp-pg-ramp"><i class="exp-r1"></i><i class="exp-r2"></i><i class="exp-r3"></i><i class="exp-r4"></i></span>${e(i18t(m==='v' ? 'exp_pg_ramp_v' : 'exp_pg_ramp_n'))}</span>
@@ -4375,33 +4408,40 @@ function exposureHtml(){
       e(i18tn('int_exp_fx_line', d.fxLeft, { n:d.fxLeft }))}</p>` : '';
 
   /* THE SQUARE'S CONTRACTS, beside the grid. Every name opens its contract;
-     the door under them opens the whole square in Contracts. */
-  const side = !S || !S.n ? `<aside class="exp-pg-card exp-pg-side"><p class="exp-pg-empty">${e(i18t('exp_pg_nothing'))}</p></aside>` : `
-    <aside class="exp-pg-card exp-pg-side" aria-live="polite">
+     the door under them opens the whole square in Contracts. The list
+     scrolls INSIDE the card (Fit to Screen), so the card is the grid's
+     height whatever the square holds, and the door stays at its foot. */
+  const side = !S || !S.n ? `<aside class="igx-card exp-pg-side"><p class="exp-pg-empty">${e(i18t('exp_pg_nothing'))}</p></aside>` : `
+    <aside class="igx-card exp-pg-side" aria-live="polite">
       <div class="exp-pg-lbl">${e(S.group == null ? i18t('exp_pg_every') : i18t('exp_pg_sel_in', { dim:S.dim, group:S.group }))}</div>
       <div class="exp-pg-sel-t">${e(S.title)}</div>
       <div class="exp-pg-sel-s">${e(nC(S.n))}${G.money ? ' · ' + e(money(S.value)) + star(S) + ' · ' + e(i18t('exp_pg_largest_first')) : ''}</div>
-      <div class="exp-pg-list">${S.items.slice(0, EXP_PG_LIST).map(it=>`
+      <div class="igx-scroll scroll-thin exp-pg-list" id="exp-pg-list">${S.items.slice(0, EXP_PG_LIST).map(it=>`
         <button type="button" class="exp-pg-li" data-exp-one="${e(it.id)}" title="${e(it.who ? it.who + ' — ' + it.name : it.name)}">
           <span class="exp-pg-who">${e(it.who || it.name || it.id)}</span>
           <span class="exp-pg-v">${G.money ? (it.left ? '<span style="color:var(--st-amber-fg)">*</span>' : e(money(it.value))) : ''}</span>
           <span class="exp-pg-sub">${e(it.name)}${it.read ? '' : ' · ' + e(i18t('exp_pg_not_read'))}</span>
           <span class="exp-pg-sub is-r">${it.carries > 1 ? e(i18t('exp_pg_of_five', { n:it.carries })) : ''}</span>
-        </button>`).join('')}</div>
-      ${S.items.length > EXP_PG_LIST ? `<div class="exp-pg-more">${e(i18t('exp_pg_more', { n:S.items.length - EXP_PG_LIST }))}</div>` : ''}
+        </button>`).join('')}${
+      S.items.length > EXP_PG_LIST ? `<div class="exp-pg-more">${e(i18t('exp_pg_more', { n:S.items.length - EXP_PG_LIST }))}</div>` : ''}</div>
       <button type="button" class="ui-link exp-pg-open" data-exp-open="1">${e(i18tn('exp_pg_open', S.n, { n:S.n }))}${chev}</button>
     </aside>`;
 
+  /* ════ FIT TO SCREEN (owner-picked by name, 29 Sep 2026) ══════════════
+     The shared grammar (.igx-*, index.html "INSIGHTS FITS THE SCREEN"): the
+     four figures in one strip, then ONE row — the grid's card (8 parts)
+     beside the list's card (4 parts), both exactly the height that is left.
+     The grid's rows grow to fill their card; the list scrolls inside its. */
   return `
-  <section class="exp-pg">
-    <div class="exp-pg-cols">
-      <div class="exp-pg-card exp-pg-main">
+  <section class="exp-pg igx-fit">
+    ${facts}
+    <div class="igx-row exp-pg-cols" style="--igx-cols:minmax(0,8fr) minmax(0,4fr)">
+      <div class="igx-card exp-pg-main">
         <div class="exp-pg-head">
           <h2>${e(i18t('exp_pg_head'))}</h2>
           <span class="exp-pg-head-sub">${e(i18t('exp_pg_head_sub'))}</span>
           <span class="exp-pg-ctl">${byCtl}${mCtl}</span>
         </div>
-        ${facts}
         ${grid}
         ${legend}${fxLine}
         <p class="exp-pg-note">${e(i18t('exp_pg_foot'))}</p>
@@ -4413,15 +4453,22 @@ function exposureHtml(){
 /* Set the grid's switches and paint the body again, keeping the reader's
    place — the body's own scroll and the grid's sideways scroll. */
 function exposureGridSet(patch){
+  const was = _expPg.k + '|' + _expPg.g;
   Object.assign(_expPg, patch || {});
   const host = document.getElementById('ig-exp-body');
   if(!host) return;
   const sx = document.getElementById('exp-pg-scroll');
-  const left = sx ? sx.scrollLeft : 0, top = host.scrollTop;
+  const left = sx ? sx.scrollLeft : 0, gTop = sx ? sx.scrollTop : 0, top = host.scrollTop;
+  /* The side list keeps its place while the same square stays picked (a
+     Value press); a new square starts its list at the top. */
+  const ls = document.getElementById('exp-pg-list');
+  const lTop = (ls && was === _expPg.k + '|' + _expPg.g) ? ls.scrollTop : 0;
   host.innerHTML = exposureHtml();
   host.scrollTop = top;
   const sx2 = document.getElementById('exp-pg-scroll');
-  if(sx2) sx2.scrollLeft = left;
+  if(sx2){ sx2.scrollLeft = left; sx2.scrollTop = gTop; }
+  const ls2 = document.getElementById('exp-pg-list');
+  if(ls2) ls2.scrollTop = lTop;
 }
 /* EVERY FIGURE IS A DOOR, and the door out is the one the rest of this page
    already uses: regShowOnly, the named-set filter, which SAYS on the Contracts
