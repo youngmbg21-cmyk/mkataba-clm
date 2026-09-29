@@ -13,7 +13,8 @@
      b  the grid reaches the bottom of the page — no empty band under it;
      c  every card in a row shares its neighbours' top and bottom edges;
      d  no card hides content it cannot show — a long list scrolls inside it;
-     e  the headline figures lead the tab, in the one shared tile.
+     e  the headline figures lead the tab, in the one shared tile (on
+        Friction, Copilot's read sits above them by the owner's ruling).
    And on a narrow window (1000 wide) the rows stack into one column, which is
    allowed to scroll.
 
@@ -41,7 +42,8 @@ const TABS = [['frame', 'ig-frame', 'Portfolio'], ['friction', 'ig-friction', 'N
   ['obligations', 'ig-oblig', 'Obligations'], ['payterms', 'ig-pt-body', 'Payment terms'],
   ['exposure', 'ig-exp-body', 'Exposure']];
 
-/* A realistic book, built in the page: every tab has something to draw.
+/* A realistic book, handed to the server at setup so the app's own load
+   brings it: every tab has something to draw.
    Dates are offsets from today, so the answer never depends on the day. */
 function seedBook() {
   const day = off => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + off);
@@ -82,7 +84,7 @@ function seedBook() {
       status: r() < 0.2 ? 'done' : 'open', recurring: 'none', completedAt: iso(-10) }));
     out.push(c);
   }
-  state.contracts = out;
+  return out;
 }
 
 async function measure(page, hostId) {
@@ -108,7 +110,7 @@ async function measure(page, hostId) {
       scrolls: host.scrollHeight > host.clientHeight + 1, over: host.scrollHeight - host.clientHeight,
       gap: Math.round((hr.bottom - padB) - fr.bottom),
       rows, clipped,
-      figsLead: !!figs && (first === figs || (first && first.contains(figs)) || fit.querySelectorAll('.igx-figs').length === 1 && figs.getBoundingClientRect().top <= Math.min(...[...fit.querySelectorAll('.igx-card')].map(c => c.getBoundingClientRect().top)) + 1),
+      figsLead: !!figs && (first === figs || (first && first.contains(figs)) || fit.querySelectorAll('.igx-figs').length === 1 && figs.getBoundingClientRect().top <= Math.min(...[...fit.querySelectorAll('.igx-card:not(.igf-led-cop)')].map(c => c.getBoundingClientRect().top)) + 1),
       tiles: figs ? figs.querySelectorAll('.igx-fig').length : 0,
     };
   }, hostId);
@@ -117,7 +119,7 @@ async function measure(page, hostId) {
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const h = await startHati({});
-  await seedWorkspace(h, { approvalRules: [] });
+  await seedWorkspace(h, { contracts: seedBook(), approvalRules: [] });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const errors = [];
   try {
@@ -129,10 +131,14 @@ async function measure(page, hostId) {
       await page.fill('#li-email', 'admin@example.co.ke');
       await page.fill('#li-pass', 'adminpassword1');
       await page.click('#li-go');
-      await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && typeof setView === 'function', null, { timeout: 15000 });
-      await page.evaluate(seedBook);
+      /* wait for the app's OWN first load of the book, or it lands after ours and replaces it */
+      await page.waitForFunction(() => window.state && Array.isArray(state.contracts) && state.contracts.length > 0 && typeof setView === 'function', null, { timeout: 15000 });
       for (const [tab, hostId, label] of TABS) {
-        await page.evaluate(t => { intel.tab = t; setView('intel'); }, tab);
+        /* The reader's own press on the tab row — a place kept from an earlier
+           visit must not decide which tab is measured. */
+        await page.evaluate(() => { if (state.view !== 'intel') setView('intel'); });
+        await page.waitForSelector(`[data-ig-tab="${tab}"]`, { timeout: 8000 }).catch(() => {});
+        await page.click(`[data-ig-tab="${tab}"]`).catch(() => {});
         await page.waitForFunction(id => !!document.getElementById(id), hostId, { timeout: 8000 }).catch(() => {});
         await page.waitForFunction(() => document.fonts ? document.fonts.status === 'loaded' : true, null, { timeout: 5000 }).catch(() => {});
         const m = await measure(page, hostId);

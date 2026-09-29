@@ -19908,3 +19908,18 @@ Noticed, not fixed
 ## 29 Sep 2026 — Explorer: Grid and Timeline turn fully; the head line moves onto the map
 
 - BUILT: Grid and Timeline now turn all the way round like Brain and Floors (the sway is gone). The "Grouped by…" line no longer takes a row of its own: it sits in the map's top-left corner and its space is the map's. explorer-magnitude-verify 4d, 4e, 5a, 5b.
+
+## 29 Sep 2026 — Insights fits the screen (owner-picked "Fit to Screen")
+
+- BUILT: one shared layout for Portfolio, Negotiation Friction, Obligations, Payment terms and Exposure — every tab fits one screen, cards in a row share their edges, long lists scroll inside their card. f433–f438, insights-fit-verify, friction-fits-the-screen-verify.
+- BUILT: Portfolio no longer draws the four project cards (workload runway, won and lost, money held, promises still live); Copilot still answers about them.
+- Noticed, not fixed: js/ai.js and Copilot's rulebook still describe those four as "a chart on Insights → Portfolio".
+- Noticed, not fixed: f247 pins the Obligations card's padding to Portfolio's `PF_CARD`, which now dresses nothing.
+- Noticed, not fixed: Portfolio prints categories as stored ("nda", "it", "works") via `pfCatLabel`, so case is mixed.
+- Noticed, not fixed: a risk-map name label can overlap a neighbouring dot.
+- Noticed, not fixed: on Obligations a tile's tone colours a "0" too ("Will reach nobody 0" is ruby); below 1080px the lane line keeps its 880px floor and scrolls sideways in its card.
+- Noticed, not fixed: on Exposure a picked row's total touches its selection outline.
+- Noticed, not fixed: on Payment terms the "customer" side word is hard to read in dark mode, "1 days" has no singular, and the bright amber as text is low-contrast; js/views/clauseeditor.js still names the removed `ptFitTable` in a comment; f267 (14) slices to a marker that no longer exists.
+- Noticed, not fixed: the Friction list's lens, selection and inner scroll are not brought back after a refresh (only the tab is).
+- Noticed, not fixed: keeps-your-place-verify still throws at the Templates wall (`#tpl-ov-cards`), identical before this change.
+- Noticed, not fixed: CLAUDE.md is 88 KB, over its own ~80 KB ceiling (86 KB before this change).
