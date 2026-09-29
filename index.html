@@ -6610,35 +6610,37 @@
      six figures, then one ranked list with a details panel beside it. Every
      value is a token; the figures are the page's own label-over-value grammar.
      A figure with a list behind it is a BUTTON onto that list and says so on
-     hover; one without (an average, a median of decisions) is a div. */
-  .igf-led-card{ background:var(--color-surface); border:1px solid var(--color-divider);
-    border-radius:var(--radius-lg); min-width:0; }
-  .igf-led-cop{ overflow:hidden; margin-bottom:var(--s-3); }
-  /* The read's own strip drew a rule under itself when it sat on top of the
-     report in one card; alone in its card that rule would double the edge. */
+     hover; one without (an average, a median of decisions) is a div.
+     FIT TO SCREEN (owner-picked 29 Sep 2026): the page wears the shared .igx-*
+     grammar above — cards, the figure tiles, the row and the inner scrollers
+     are the grammar's; what is left here is the ledger's own furniture. Three
+     rows: Copilot's read, the six figures, and the list (7 parts) beside its
+     panel (5 parts), both exactly the height that is left. */
+  /* Copilot's read is as tall as it is, up to two fifths of the page: a long
+     answer scrolls inside its own card rather than squeezing the ledger. */
+  .igx-fit.igf-led{ --igx-rows:fit-content(40%) auto minmax(0,1fr); }
+  #igf-ledger{ display:contents; }
+  .igf-led-grid{ --igx-cols:minmax(0,7fr) minmax(0,5fr); }
+  .igf-led-grid.is-solo{ --igx-cols:minmax(0,1fr); }
+  /* What stays put in a card keeps its own height: a clipped box (the panel's
+     figures) would otherwise be squeezed to nothing, since only the scroller
+     beside it is meant to give way. */
+  .igf-led-list > :not(.igx-scroll), .igf-led-detail > :not(.igx-scroll){ flex:none; }
+  /* Copilot's read keeps its own padding; the card is only its frame. The read's
+     own strip drew a rule under itself when it sat on top of the report in one
+     card; alone in its card that rule would double the edge. */
+  .igx-card.igf-led-cop{ padding:0; overflow:auto; }
   .igf-led-cop #igf-copilot{ border-bottom:0; }
+  /* The figure the list is showing (the amber one opens the waiting list and
+     is lit while it is shown). */
+  #ig-friction button.igx-fig.on{ background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface));
+    box-shadow:inset 0 -2px 0 var(--accent-fill); }
   .igf-led-lbl{ display:block; font-size:var(--t-micro); font-weight:var(--w-strong); letter-spacing:.08em;
     text-transform:uppercase; color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .igf-led-strip{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:1px; background:var(--color-divider);
-    border:1px solid var(--color-divider); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:var(--s-3); }
-  .igf-led-fig{ display:block; width:100%; min-width:0; background:var(--color-surface); border:0; padding:10px 14px;
-    text-align:left; font:inherit; color:inherit; position:relative; }
-  .igf-led-fig .igf-led-n{ display:block; font-size:var(--t-page); font-weight:var(--w-title); line-height:1.3;
-    letter-spacing:-.01em; font-variant-numeric:tabular-nums; color:var(--color-text); }
-  .igf-led-fig .igf-led-s{ display:block; font-size:var(--t-meta); color:var(--color-neutral-600);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  button.igf-led-fig{ cursor:pointer; }
-  button.igf-led-fig:hover{ background:var(--surface-2); }
-  button.igf-led-fig.on{ background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface));
-    box-shadow:inset 0 -2px 0 var(--accent-fill); }
-  button.igf-led-fig:focus-visible{ outline:2px solid var(--accent-solid); outline-offset:-2px; }
   .igf-led .is-amber{ color:var(--st-amber-fg); }
   .igf-led-cost{ color:var(--st-ruby-fg); font-weight:var(--w-strong); }
   .igf-led-gain{ color:var(--st-green-fg); font-weight:var(--w-strong); }
   .igf-led-zero{ color:var(--color-neutral-500); font-variant-numeric:tabular-nums; }
-  .igf-led-grid{ display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:var(--s-3); align-items:start; }
-  .igf-led-grid.is-solo{ grid-template-columns:minmax(0,1fr); }
-  .igf-led-list{ padding:var(--s-3) var(--s-4) var(--s-3); }
   .igf-led-ch{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; margin-bottom:var(--s-2); }
   .igf-led-ch > b{ font-size:var(--t-card); font-weight:var(--w-title); color:var(--color-text); }
   .igf-led-sub{ font-size:var(--t-meta); color:var(--color-neutral-600); min-width:0; }
@@ -6655,10 +6657,17 @@
   .reg-seg.igf-led-seg button.on .igf-led-cnt{ color:var(--color-neutral-600); }
   .igf-led-table td.igf-led-nw{ white-space:nowrap; }
   .igf-led-refon{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .igf-led-scroll{ overflow-x:auto; }
   .igf-led-table{ width:100%; border-collapse:collapse; font-size:var(--t-body); }
+  /* THE ROWS FILL THE CARD: the table is the scroller's height, so a short list
+     spreads its rows down the card instead of stopping with a blank third
+     under it — but no row grows past 80px, so three rows stay
+     three rows. A longer list keeps its 40px rows and scrolls inside the card,
+     the column heads staying at its top. */
+  .igf-led-list .igf-led-table{ height:min(100%, calc(var(--igf-rows,0) * 80px + 32px)); }
   .igf-led-table th{ text-align:left; font-size:var(--t-micro); font-weight:var(--w-strong); letter-spacing:.08em;
     text-transform:uppercase; color:var(--color-neutral-600); padding:6px 8px; border-bottom:1px solid var(--color-divider); white-space:nowrap; }
+  .igf-led-list .igf-led-table thead th{ position:sticky; top:0; z-index:1; background:var(--color-surface);
+    box-shadow:inset 0 -1px 0 var(--color-divider); }
   .igf-led-table td{ height:40px; padding:4px 8px; border-bottom:1px solid var(--color-divider); color:var(--color-text); vertical-align:middle; }
   .igf-led-table .r{ text-align:right; font-variant-numeric:tabular-nums; }
   .igf-led-table tbody tr{ cursor:pointer; }
@@ -6683,7 +6692,6 @@
   .igf-led-foot{ margin-top:var(--s-2); font-size:var(--t-meta); color:var(--color-neutral-600); line-height:1.5; }
   .igf-led-none{ font-size:var(--t-meta); color:var(--color-neutral-600); }
   .igf-led-none.is-list{ padding:var(--s-4) 0; }
-  .igf-led-detail{ padding:var(--s-3) var(--s-4) var(--s-4); position:sticky; top:0; }
   .igf-led-dh{ display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:6px 14px; }
   .igf-led-dh-t{ min-width:0; }
   .igf-led-dname{ margin:2px 0 0; font-size:var(--t-section); font-weight:var(--w-title); letter-spacing:-.01em; color:var(--color-text); }
@@ -6730,15 +6738,10 @@
     text-transform:uppercase; color:var(--color-neutral-600); padding:4px 6px; border-bottom:1px solid var(--color-divider); }
   .igf-led-bytable td{ padding:6px; border-bottom:1px solid var(--color-divider); color:var(--color-text); }
   .igf-led-bytable .r{ text-align:right; font-variant-numeric:tabular-nums; }
-  @media (max-width:1100px){ .igf-led-strip{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
-  /* The list and its panel stack where the two cannot both hold their columns:
-     measured, at 1100 the list lost its last column to a sideways scroll. */
-  @media (max-width:1279px){
-    .igf-led-grid{ grid-template-columns:minmax(0,1fr); }
-    .igf-led-detail{ position:static; }
-  }
+  /* Below the grammar's line the page is a plain column: a wide table may
+     still slide sideways inside its own card rather than widen the page. */
+  @media (max-width:1079px){ #ig-friction .igf-led-scroll{ overflow-x:auto; } }
   @media (max-width:720px){
-    .igf-led-strip{ grid-template-columns:repeat(2,minmax(0,1fr)); }
     .igf-led-dfigs{ grid-template-columns:minmax(0,1fr); }
     .igf-led-barcell{ min-width:130px; }
     .igf-led-barcell .igf-led-rsub{ display:none; }

@@ -3578,6 +3578,11 @@ const _igfDoor=(attr,label,tip)=>`<button type="button" class="ui-link igf-led-d
 const _igfHead=(lbl,name,door)=>`<div class="igf-led-dh"><div class="igf-led-dh-t"><div class="igf-led-lbl">${lbl}</div><h3 class="igf-led-dname">${igEsc(name)}</h3></div>${door||''}</div>`;
 const _igfFigs=a=>`<div class="igf-led-dfigs">${a.map(([t,n,s,tone,tip])=>`<div title="${igEsc(tip||'')}"><div class="igf-led-lbl">${t}</div><div class="igf-led-dn${tone?' '+tone:''}">${n}</div><div class="igf-led-ds">${s}</div></div>`).join('')}</div>`;
 const _igfSec=(b,s,body)=>`<div class="igf-led-dsec"><div class="igf-led-dsh"><b>${b}</b>${s?`<span>${s}</span>`:''}</div>${body}</div>`;
+/* FIT TO SCREEN (owner-picked 29 Sep 2026): the panel is exactly as tall as the
+   list beside it. Its head, its figures and how the asks ended stay put; the
+   lists under them (refused and still open, who contested it, their
+   negotiations, the refusals by clause) scroll INSIDE the panel, never the page. */
+const _igfLong=body=>`<div class="igx-scroll igf-led-dscroll">${body}</div>`;
 /* How one side's asks on a clause ended, against the whole book's share — the
    book's figure is intelFrictionStats' own, so the tick and the strip's
    reading cannot disagree. */
@@ -3618,7 +3623,7 @@ function intelFrictionDetailHtml(st, lens, pick){
     const open=_igfSec(i18t('igf_led_sec_open'),'',
       c.openDeals.length?`<div class="igf-led-rows">${c.openDeals.map(d=>_igfNegoRow(d.id,_igfDealName(d.name,d.cp),i18t("igf_led_round_n",{n:d.round}),_igfChip(d.n,i18t('igf_led_open_n',{n:d.n})))).join('')}</div>`
         :`<div class="igf-led-none">${i18t('igf_led_open_none')}</div>`);
-    return _igfHead(i18t('igf_led_d_clause',{k,n:N}),c.label,door)+figs+asks+who+open;
+    return _igfHead(i18t('igf_led_d_clause',{k,n:N}),c.label,door)+figs+asks+_igfLong(open+who);
   }
   if(lens==='cps'){
     const p=row;
@@ -3648,7 +3653,7 @@ function intelFrictionDetailHtml(st, lens, pick){
         ?`<button type="button" class="igf-led-row is-bar" data-igf-clause="${igEsc(c.label)}" title="${igEsc(i18t('igf_led_clause_tip',{name:c.label}))}">${inner}</button>`
         :`<div class="igf-led-row is-bar is-static">${inner}</div>`;
     }).join('')}</div>`:`<div class="igf-led-none">${i18t('igf_led_cp_clauses_none')}</div>`);
-    return _igfHead(i18t('igf_led_d_cp',{k,n:N}),p.name,door)+figs+negs+cls;
+    return _igfHead(i18t('igf_led_d_cp',{k,n:N}),p.name,door)+figs+_igfLong(negs+cls);
   }
   const d=row;
   const door=_igfDoor(`data-igf-open="${igEsc(d.id)}"`,i18t('igf_led_door_nego'),i18t('igf_led_open_tip',{name:d.name}));
@@ -3658,20 +3663,20 @@ function intelFrictionDetailHtml(st, lens, pick){
     [i18t('igf_led_f_we_refused'),String(d.weRefusedTheirs),i18t('igf_led_s_theirs_proposed')]]);
   const by=_igfSec(i18t('igf_led_sec_byclause'),'',`<table class="igf-led-bytable"><thead><tr><th>${i18t('igf_led_th_clause')}</th><th class="r">${i18t('igf_led_f_they_refused')}</th><th class="r">${i18t('igf_led_f_we_refused')}</th></tr></thead><tbody>${
     d.byClause.map(x=>`<tr><td>${igEsc(x.label||i18t('igf_led_no_clause'))}</td><td class="r">${x.ours}</td><td class="r">${x.theirs}</td></tr>`).join('')}</tbody></table>`);
-  return _igfHead(i18t("igf_led_d_wait",{n:d.round}),_igfDealName(d.name,d.cp),door)+figs+by;
+  return _igfHead(i18t("igf_led_d_wait",{n:d.round}),_igfDealName(d.name,d.cp),door)+figs+_igfLong(by);
 }
 /* One figure in the strip. A figure with a list behind it is a BUTTON onto
    that list; a figure without one (an average, a median of decisions) is a
    div, and a zero is never a door. */
 function _igfFig(key, label, n, sub, o={}){
   const tag=o.go?'button':'div';
-  return `<${tag} class="igf-led-fig${o.on?' on':''}" data-igf-fig="${key}"${o.go?` type="button" data-igf-go="${o.go}"`:''} title="${igEsc(o.tip||'')}"><span class="igf-led-lbl">${label}</span><span class="igf-led-n${o.tone?' '+o.tone:''}">${n}</span><span class="igf-led-s">${sub}</span></${tag}>`;
+  return `<${tag} class="igx-fig${o.on?' on':''}" data-igf-fig="${key}"${o.go?` type="button" data-igf-go="${o.go}"`:''} title="${igEsc(o.tip||'')}"><span class="igx-fig-t">${label}</span><span class="igx-fig-n${o.tone?' '+o.tone:''}">${n}</span><span class="igx-fig-s">${sub}</span></${tag}>`;
 }
 function intelFrictionLedgerHtml(st){
   const led=st.ledger; const S=intelFrictionLedgerState(); const lens=S.lens;
   const signedN=led.signedN, signedAll=st.signed||0, r1=led.round1Ids.length;
   const openDeals=led.waiting.length;
-  const strip=`<div class="igf-led-strip">${[
+  const strip=`<div class="igx-figs" style="--igx-n:6">${[
     _igfFig('deals',i18t('igf_led_f_deals'),String(st.deals),
       st.openedThisMonth?i18t('igf_led_s_opened',{n:st.openedThisMonth}):i18t('igf_led_s_tracked'),
       {go:st.deals?'deals':null,tip:i18t('igf_led_tip_list',{n:st.deals})}),
@@ -3687,7 +3692,7 @@ function intelFrictionLedgerHtml(st){
       {go:r1?'round1':null,tip:r1?i18t('igf_led_tip_list',{n:r1}):''}),
     _igfFig('open',i18t('igf_led_f_open'),String(st.deadlocks),
       st.deadlocks?i18tn('igf_led_s_in_deals',openDeals):i18t('igf_led_s_nothing_waiting'),
-      {go:st.deadlocks?'wait':null,on:lens==='wait',tone:st.deadlocks?'is-amber':'',tip:st.deadlocks?i18t('igf_led_tip_open')+' '+i18t('igf_led_tip_wait'):i18t('igf_led_tip_open')})
+      {go:st.deadlocks?'wait':null,on:lens==='wait',tone:st.deadlocks?'igx-warn':'',tip:st.deadlocks?i18t('igf_led_tip_open')+' '+i18t('igf_led_tip_wait'):i18t('igf_led_tip_open')})
   ].join('')}</div>`;
   const pick=intelFrictionLedgerPick(led, lens);
   const lensBtn=(k,label,n)=>`<button type="button" data-igf-lens="${k}" class="${lens===k?'on':''}" aria-pressed="${lens===k}">${label}<span class="igf-led-cnt">${n}</span></button>`;
@@ -3725,13 +3730,15 @@ function intelFrictionLedgerHtml(st){
     if(led.waiting.length) foot=i18tn('igf_led_foot_wait',st.deadlocks,{deals:i18tn('igf_led_s_in_deals',led.waiting.length)});
     else empty=i18t('igf_led_empty_wait');
   }
-  const list=`<div class="igf-led-card igf-led-list">
+  /* The rows stretch to fill the card and scroll inside it when they do not
+     fit (--igf-rows lets the stylesheet cap how tall a row may grow). */
+  const list=`<div class="igx-card igf-led-list">
       <div class="igf-led-ch"><b>${i18t('igf_led_title')}</b><span class="igf-led-sub">${sub}</span>${seg}</div>
-      ${empty?`<div class="igf-led-none is-list">${empty}</div>`:`<div class="igf-led-scroll"><table class="igf-led-table" data-igf-list="${lens}"><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`}
+      ${empty?`<div class="igf-led-none is-list">${empty}</div>`:`<div class="igx-scroll igf-led-scroll"><table class="igf-led-table" data-igf-list="${lens}" style="--igf-rows:${rows.length}"><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`}
       ${foot?`<div class="igf-led-foot">${foot}</div>`:''}
     </div>`;
-  const detail=pick.row?`<div class="igf-led-card igf-led-detail" data-igf-detail="${lens}">${intelFrictionDetailHtml(st, lens, pick)}</div>`:'';
-  return strip+`<div class="igf-led-grid${detail?'':' is-solo'}">${list}${detail}</div>`;
+  const detail=pick.row?`<div class="igx-card igf-led-detail" data-igf-detail="${lens}">${intelFrictionDetailHtml(st, lens, pick)}</div>`:'';
+  return strip+`<div class="igx-row igf-led-grid${detail?'':' is-solo'}">${list}${detail}</div>`;
 }
 function intelFrictionHtml(){
   const f=intel.frictionFilter||null;
@@ -3742,9 +3749,12 @@ function intelFrictionHtml(){
   /* COPILOT'S READ LEADS, IN A CARD OF ITS OWN, AND IS NOT TOUCHED: the strip
      is intelFrictionCopilotHtml exactly as it was, keyed and repainted by the
      same three functions. The card is only its frame now that the report
-     under it is several cards rather than one. */
-  return `<div class="igf-led">
-    <div class="igf-led-card igf-led-cop">${intelFrictionCopilotHtml(st)}</div>
+     under it is several cards rather than one.
+     FIT TO SCREEN (owner-picked 29 Sep 2026): the page is one grid exactly the
+     tab's height — Copilot's read, the six figures, then the list beside its
+     panel sharing what is left (#igf-ledger lends its two children to it). */
+  return `<div class="igx-fit igf-led">
+    <div class="igx-card igf-led-cop">${intelFrictionCopilotHtml(st)}</div>
     <div id="igf-ledger">${intelFrictionLedgerHtml(st)}</div>
   </div>`;
 }
@@ -3753,7 +3763,14 @@ function intelFrictionHtml(){
    Focus goes back to the row that was pressed from the keyboard. */
 function intelFrictionLedgerRepaint(focusKey){
   const host=document.getElementById('igf-ledger'); if(!host) return;
+  /* The list scrolls inside its own card now, and a press on a row repaints
+     it: the same list comes back where the reader had it. A new lens is a
+     new list and starts at its top. */
+  const was=host.querySelector('[data-igf-list]');
+  const kept=was?{ lens:was.getAttribute('data-igf-list'), top:(was.closest('.igx-scroll')||{}).scrollTop||0 }:null;
   host.innerHTML=intelFrictionLedgerHtml(intelFrictionStats(intel.frictionFilter||null));
+  const now=kept&&kept.top?host.querySelector(`[data-igf-list="${kept.lens}"]`):null;
+  const sc=now&&now.closest('.igx-scroll'); if(sc) sc.scrollTop=kept.top;
   if(focusKey!=null){
     const r=[...host.querySelectorAll('[data-igf-row]')].find(x=>x.getAttribute('data-igf-row')===focusKey);
     if(r) r.focus();

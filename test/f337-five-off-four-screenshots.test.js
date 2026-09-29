@@ -80,16 +80,21 @@ const ruleFor = (src, sel) => {
    readings are all still there. The whole-book acceptance moved beside the
    bars it is the ruler for (the clause panel's "Whole book" line). f430 pins
    the ledger itself. */
+/* RE-POINTED IN PLACE 29 Sep 2026 ("Fit to Screen", owner-picked): the strip
+   and each figure wear the shared Insights grammar's tile now (.igx-figs /
+   .igx-fig, one tile for every tab), so the rules these claims read are the
+   grammar's. What they pin is unchanged: a stylesheet rule, no verdict colour
+   on the cell, a door only where a list stands, the label first. */
 describe('f337 (1) — the friction figures (a strip of six since 28 Sep 2026)', () => {
   const figBody = () => fnBody(INTEL, 'intelFrictionLedgerHtml');
   test('the dress is a stylesheet rule, not another run of inline style', () => {
-    assert.ok(HTML.includes('.igf-led-strip{'), 'the strip is a rule');
-    assert.ok(HTML.includes('.igf-led-fig{'), 'and so is each figure');
-    assert.match(INTEL, /class="igf-led-fig/, 'the builder names the class');
-    assert.match(figBody(), /igf-led-strip/, 'and the strip');
+    assert.ok(HTML.includes('.igx-figs{'), 'the strip is a rule');
+    assert.ok(HTML.includes('.igx-fig{'), 'and so is each figure');
+    assert.match(INTEL, /class="igx-fig/, 'the builder names the class');
+    assert.match(figBody(), /igx-figs/, 'and the strip');
   });
   test('no verdict tone on the figure cells themselves', () => {
-    const cell = ruleFor(HTML, '.igf-led-fig{');
+    const cell = ruleFor(HTML, '.igx-fig{');
     assert.ok(cell.length > 0, 'the rule is there');
     assert.ok(!/ruby|amber|green/.test(cell),
       'no colour saying good or bad on a figure HaTi holds no target for');
@@ -116,7 +121,7 @@ describe('f337 (1) — the friction figures (a strip of six since 28 Sep 2026)',
   test('the label leads and the figure follows', () => {
     const at = INTEL.search(/function _igfFig\(/);
     const body = INTEL.slice(at, at + 600);
-    assert.ok(body.indexOf('igf-led-lbl') < body.indexOf('igf-led-n'),
+    assert.ok(body.indexOf('igx-fig-t') > 0 && body.indexOf('igx-fig-t') < body.indexOf('igx-fig-n'),
       'label above value — the tile\'s own order');
   });
 });

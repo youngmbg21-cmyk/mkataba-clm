@@ -126,15 +126,20 @@ const drive = async (page, fn, arg, fallback) => {
        white ground in a container with an edge and a corner, one ground across
        all of them (no verdict colour), the label leads — and a figure with NO
        list behind it (the average, the decision time) still promises no press. */
+    /* RE-POINTED IN PLACE 29 Sep 2026 ("Fit to Screen", owner-picked): the six
+       figures are the shared Insights grammar's tiles now (.igx-figs of
+       .igx-fig), and each TILE carries its own edge and corner where the old
+       strip drew one frame round all six. 1c asks it of every tile. */
     const fr = await drive(page, () => {
       const host = document.getElementById('ig-friction');
-      const strip = document.querySelector('.igf-led-strip');
-      const cards = Array.from(document.querySelectorAll('.igf-led-fig'));
+      const strip = document.querySelector('#ig-friction .igx-figs');
+      const cards = Array.from(document.querySelectorAll('#ig-friction .igx-figs > .igx-fig'));
       const box = el => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
         return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.x), y: Math.round(r.y),
           bg: cs.backgroundColor, key: el.getAttribute('data-igf-fig'),
-          tag: el.tagName, label: (el.querySelector('.igf-led-lbl') || {}).textContent,
-          n: (el.querySelector('.igf-led-n') || {}).textContent };
+          side: parseFloat(cs.borderLeftWidth) || 0, radius: parseFloat(cs.borderTopLeftRadius) || 0,
+          tag: el.tagName, label: (el.querySelector('.igx-fig-t') || {}).textContent,
+          n: (el.querySelector('.igx-fig-n') || {}).textContent };
       };
       const scs = strip ? getComputedStyle(strip) : null;
       return { drawn: !!host && host.getBoundingClientRect().height > 0,
@@ -146,9 +151,10 @@ const drive = async (page, fn, arg, fallback) => {
       fr.drawn === true && seeded.deals > 0, `${seeded.deals} deals, ${seeded.filed} changes filed`);
     check('1b every figure the page has is drawn in the strip — six of them', fr.n === 6, `${fr.n} figures`);
     const white = (fr.cards || []).filter(c => /rgb\(255, 255, 255\)/.test(c.bg));
-    check('1c every one sits on white, in a strip with an edge and a corner',
-      fr.n > 0 && white.length === fr.n && !!fr.strip && parseFloat(fr.strip.side) >= 1 && parseFloat(fr.strip.radius) >= 1,
-      `${white.length} of ${fr.n} white · ${JSON.stringify(fr.strip)}`);
+    const framed = (fr.cards || []).filter(c => c.side >= 1 && c.radius >= 1);
+    check('1c every one sits on white, a tile with its own edge and corner, in the strip',
+      fr.n > 0 && white.length === fr.n && framed.length === fr.n && !!fr.strip,
+      `${white.length} of ${fr.n} white · ${framed.length} framed`);
     /* `every` on an empty list is true, so each of these says FIGURES EXIST as
        well as what is true of them. */
     const tones = [...new Set((fr.cards || []).map(c => c.bg))];
