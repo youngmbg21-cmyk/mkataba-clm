@@ -6315,6 +6315,10 @@ const STRINGS = {
     co_h_popup: 'Your browser blocked the new tab. Allow pop-ups for HaTi and press again.',
     co_h_pack_failed: 'The pack could not be built.',
     pt_targets_out_only: 'Measured against your {n}-day target for money going out; money coming in falls back to the playbook standard for each contract type.',
+    /* Fit to Screen (29 Sep 2026): the fourth figure, the table's own count. */
+    pt_fit_drive_t: 'Driving the gap',
+    pt_fit_drive_s_one: 'contract on terms that work against you',
+    pt_fit_drive_s_other: 'contracts on terms that work against you',
     pt_method: 'Terms are read off the record of each contract — what Copilot found and a person confirmed — and measured against the standard already in your playbook. Contracts where no money passes are left out entirely.',
     kpi_payterms: 'Payment terms over standard',
     /* S7: "owed to us", never "receivable" — HaTi reads agreements, not a
@@ -16280,6 +16284,9 @@ const STRINGS = {
     co_h_popup: 'Din webbläsare blockerade den nya fliken. Tillåt popup-fönster för HaTi och tryck igen.',
     co_h_pack_failed: 'Paketet kunde inte byggas.',
     pt_targets_out_only: 'Mätt mot ert mål på {n} dagar för pengar ut; pengar in faller tillbaka på spelbokens norm för varje avtalstyp.',
+    pt_fit_drive_t: 'Driver gapet',
+    pt_fit_drive_s_one: 'avtal med villkor som arbetar mot er',
+    pt_fit_drive_s_other: 'avtal med villkor som arbetar mot er',
     pt_method: 'Villkoren läses av varje avtals eget underlag — det Copilot hittade och en människa bekräftade — och mäts mot normen som redan finns i er spelbok. Avtal där inga pengar passerar utelämnas helt.',
     kpi_payterms: 'Betalningsvillkor över norm',
     kpi_owed: 'Pengar vi har att fordra',

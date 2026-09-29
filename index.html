@@ -7700,6 +7700,25 @@
   .field.field-date{min-width:140px;} .field.field-num{text-align:right;min-width:130px;}
   .field:disabled{color:var(--color-text);background:transparent;border-bottom:1.5px solid var(--color-divider);-webkit-text-fill-color:var(--color-text);opacity:1;cursor:default;font-weight:var(--w-strong);}
 
+  /* ---- INSIGHTS · PAYMENT TERMS FITS THE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026) ----
+     The tab's own additions to the shared .igx-* grammar, scoped to its host:
+     the square that keys a side's figure to the chart's bars, the unit after a
+     number, a figure's sub-line allowed to wrap (a sentence cut to an ellipsis
+     is a silent trim), the plot growing to fill its card, the table's head row
+     held at the top of the scroller it sits INSIDE, and the honest limit laid
+     on one row. Below 1080px the plot keeps its old 168px. */
+  #ig-pt-body .pt-sw{display:inline-block;width:9px;height:9px;border-radius:1px;margin-right:7px}
+  #ig-pt-body .pt-unit{font-size:var(--t-body);font-weight:var(--w-body)}
+  #ig-pt-body .igx-fig-s{white-space:normal}
+  #ig-pt-body .pt-plot{flex:1 1 96px;min-height:96px}
+  #ig-pt-body .pt-head{position:sticky;top:0;z-index:1;background:var(--color-surface)}
+  #ig-pt-body .pt-blind{display:grid;gap:6px 22px;align-items:start;
+    grid-template-columns:minmax(0,.7fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr)}
+  @media (max-width:1079px){
+    #ig-pt-body .pt-plot{flex-basis:168px}
+    #ig-pt-body .pt-blind{grid-template-columns:minmax(0,1fr)}
+  }
+
   /* map graph (folder view) */
   .mlink{stroke:var(--color-neutral-400);stroke-width:1.4;fill:none;opacity:.6;transition:stroke var(--dur-1),opacity var(--dur-1),stroke-width var(--dur-1);}
   .mlink.hi{stroke:var(--color-accent);opacity:1;stroke-width:2.2;}

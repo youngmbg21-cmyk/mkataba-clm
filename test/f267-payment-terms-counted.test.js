@@ -681,7 +681,7 @@ describe('f267 (13) what is driving the gap', () => {
      owner ruled it should hold "contracts that put you at a disadvantage". The
      claim itself is unchanged — one reading, no counting, every row a door. */
   test('the ONE table reads the one reading, counts nothing, and every row is a door', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, SCROLLING IN ITS CARD'), INTEL.indexOf('4 · what this page cannot see'));
     assert.match(card, /const against = d\.against \|\| \[\]/, 'it reads the one population');
     assert.match(card, /against\.length/, 'and the head count is that reading\'s own length');
     assert.ok(!/\.reduce\(/.test(card), 'counting is not drawing');
@@ -803,7 +803,7 @@ describe('f267 (15) one table, and the facts are columns', () => {
   });
 
   test('the table draws all seven columns from ONE template', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, SCROLLING IN ITS CARD'), INTEL.indexOf('4 · what this page cannot see'));
     assert.match(card, /const PT_COLS =/, 'one column template');
     const uses = [...card.matchAll(/grid-template-columns:\$\{PT_COLS\}/g)];
     assert.equal(uses.length, 2, 'read by the head row and by the data row, and written out nowhere');
@@ -815,13 +815,18 @@ describe('f267 (15) one table, and the facts are columns', () => {
      height as the chart above it. If the list is long then it will have pages
      to click to." A paged region never grows a scrollbar, which is what lets
      the head row be a plain sibling again rather than sticky inside a
-     scroller. */
-  test('it PAGES inside a box the chart hands it, and never scrolls', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
-    assert.ok(!/overflow-y:auto|max-height:340px|position:sticky/.test(card),
-      'no scroller, no sticky head — the box is bounded by the card above it');
-    assert.match(card, /id="ig-pt-rows"[^>]*overflow:hidden/, 'the rows region clips rather than scrolls');
-    assert.match(card, /ptPagerHtml\(page, pages\)/);
+     scroller.
+     REVERSED AGAIN 29 Sep 2026 (owner-picked "Fit to Screen": "update fit to
+     screen where the graph is above the what is driving the gap card"). The
+     chart sits ABOVE the table now, the page is one screen, and the rows
+     scroll inside their card -- so the head row goes back INSIDE the scroller,
+     sticky, which is what the 2 Sep lesson says a scroller needs. The half of
+     this claim that never moved: every column is a fraction. f437 drives it. */
+  test('its rows scroll INSIDE the card, under a head row that sticks inside the same scroller', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, SCROLLING IN ITS CARD'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /<div id="ig-pt-rows" class="igx-scroll[^"]*">\s*<div class="pt-head"/,
+      'the rows region is the card\'s scroller and the head row is its first child');
+    assert.ok(!/ptPagerHtml|_ptPageSize|id="ig-pt-rows"[^>]*overflow:hidden/.test(card), 'no pager, and the rows region never clips');
     assert.ok(!/auto/.test(card.slice(card.indexOf('const PT_COLS'), card.indexOf('const cut'))),
       'every column is a fraction: `auto` sizes to content, so two grids sharing '
       + 'one template string would still draw different widths');
@@ -829,7 +834,7 @@ describe('f267 (15) one table, and the facts are columns', () => {
 });
 
 describe('f267 (16) the graph filters the table', () => {
-  const chart = INTEL.slice(INTEL.indexOf('2 · where the terms sit'), INTEL.indexOf('3 · ONE TABLE, PAGED'));
+  const chart = INTEL.slice(INTEL.indexOf('2 · where the terms sit'), INTEL.indexOf('3 · ONE TABLE, SCROLLING IN ITS CARD'));
 
   test('a bar is a real button, so it is reachable without a mouse', () => {
     assert.match(chart, /<button type="button" \$\{b\.n \? '' : 'disabled '\}data-pt-bar=/);
@@ -865,7 +870,7 @@ describe('f267 (16) the graph filters the table', () => {
   });
 
   test('a narrowed table SAYS so and carries the way back', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, SCROLLING IN ITS CARD'), INTEL.indexOf('4 · what this page cannot see'));
     assert.match(card, /pt_showing/);
     assert.match(card, /data-pt-clear/);
     assert.match(card, /pt_show_all/);
@@ -873,7 +878,7 @@ describe('f267 (16) the graph filters the table', () => {
   });
 
   test('a cut that matches nothing says so rather than drawing an empty box', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, SCROLLING IN ITS CARD'), INTEL.indexOf('4 · what this page cannot see'));
     assert.match(card, /pt_tbl_none/);
   });
 });
@@ -1029,13 +1034,13 @@ describe('f267 (18) at a disadvantage, read in each side\'s own direction', () =
   });
 
   test('the card names its population and the count is that reading\'s own length', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, SCROLLING IN ITS CARD'), INTEL.indexOf('4 · what this page cannot see'));
     assert.match(card, /pt_drive_flag', \{ n:n\(against\.length\) \}/);
     assert.ok(!/pt_exc_flag/.test(card), 'no flag counting something the table does not hold');
   });
 
   test('an empty card says which kind of empty it is', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, SCROLLING IN ITS CARD'), INTEL.indexOf('4 · what this page cannot see'));
     assert.match(card, /against\.length \? 'pt_tbl_none' : 'pt_tbl_clear'/,
       'a cut that matched nothing is a different fact from a book with nothing against you');
   });
@@ -1046,59 +1051,36 @@ describe('f267 (18) at a disadvantage, read in each side\'s own direction', () =
   });
 });
 
-describe('f267 (19) one box the chart hands down, and pages inside it', () => {
-  test('the height is MEASURED off the chart card, never typed', () => {
-    const fit = INTEL.slice(INTEL.indexOf('function ptFitTable()'), INTEL.indexOf("/* ---- THE TAB'S OWN PRESSES"));
-    assert.match(fit, /querySelector\('\[role="img"\]'\)/, 'the chart is found by its plot, not by a name');
-    assert.match(fit, /card\.style\.height = h \+ 'px'/);
-    assert.ok(!/height\s*=\s*['"]?\d{3}/.test(fit), 'no number is typed for it');
+/* REVERSED IN PLACE 29 Sep 2026 (owner-picked "Fit to Screen"). Section 19
+   pinned the 2 Sep pager: a box measured off the chart beside it (ptFitTable),
+   pages cut to fit it (ptPagerHtml, PT_PAGE_MIN, intel.ptPage). The chart now
+   sits ABOVE the table and the rows scroll inside their card, so nothing is
+   measured and nothing is paged. What the section was always protecting -- the
+   reader never loses a row and never lands on a page that is not there -- is
+   asked of the new shape: every row drawn, a cut starts at the top, and the
+   cut stays per sitting. f437 pins the layout; payment-terms-verify 14
+   measures it. */
+describe('f267 (19) the rows scroll in their card, and none is ever left out', () => {
+  test('nothing is measured or paged any more -- those names are gone', () => {
+    const src = INTEL.replace(/\/\*[\s\S]*?\*\//g, '');
+    ['ptFitTable', 'ptPagerHtml', 'PT_PAGE_MIN', '_ptPageSize', 'intel.ptPage', 'data-pt-page']
+      .forEach(k => assert.ok(!src.includes(k), k + ' is gone'));
   });
 
-  test('a zero is not an answer — a pane still laying out keeps the size it had', () => {
-    const fit = INTEL.slice(INTEL.indexOf('function ptFitTable()'), INTEL.indexOf("/* ---- THE TAB'S OWN PRESSES"));
-    assert.match(fit, /if\(!\(rowH > 0\) \|\| !\(room > 0\)\) return;/);
-    assert.match(fit, /if\(h > 0\)/);
+  test('every row of the population is drawn -- a list is never trimmed', () => {
+    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, SCROLLING IN ITS CARD'), INTEL.indexOf('4 · what this page cannot see'));
+    assert.match(card, /const body = rows\.length \? rows\.map\(rowHtml\)\.join\(''\)/);
+    assert.ok(!/rows\.slice\(/.test(card), 'no slice of the rows');
   });
 
-  test('the page size falls out of the room that is left, above a floor', () => {
-    const fit = INTEL.slice(INTEL.indexOf('function ptFitTable()'), INTEL.indexOf("/* ---- THE TAB'S OWN PRESSES"));
-    assert.match(fit, /Math\.max\(PT_PAGE_MIN, Math\.floor\(room \/ rowH\)\)/);
-    assert.match(INTEL, /const PT_PAGE_MIN = \d/);
+  test('a new cut starts at the top, because the markup is replaced', () => {
+    const rp = INTEL.slice(INTEL.indexOf('function ptRepaint()'), INTEL.indexOf('function ptWire()'));
+    assert.match(rp, /host\.innerHTML = intelPayTermsHtml\(\);/);
   });
 
-  test('it re-fits only when the answer changes, so it cannot loop', () => {
-    const fit = INTEL.slice(INTEL.indexOf('function ptFitTable()'), INTEL.indexOf("/* ---- THE TAB'S OWN PRESSES"));
-    assert.match(fit, /if\(fit !== _ptPageSize\)\{ _ptPageSize = fit; ptRepaint\(\); return; \}/);
-  });
-
-  test('and it follows the chart when the window moves', () => {
-    const fit = INTEL.slice(INTEL.indexOf('function ptFitTable()'), INTEL.indexOf("/* ---- THE TAB'S OWN PRESSES"));
-    assert.match(fit, /ResizeObserver/);
-    assert.match(fit, /chart\.dataset\.ptObs/, 'armed once per paint, because the element it watches is replaced');
-  });
-
-  test('the pager is the register\'s own shape, and draws nothing on one page', () => {
-    const pg = INTEL.slice(INTEL.indexOf('function ptPagerHtml'), INTEL.indexOf('function ptFitTable()'));
-    assert.match(pg, /if\(pages <= 1\) return '';/);
-    assert.match(pg, /data-pt-page=/);
-    assert.match(pg, /reg_page_of/, 'one wording for "page N of M", not a second');
-    assert.match(pg, /…/, 'numbers with an ellipsis, like the register');
-  });
-
-  test('the page is clamped, so a cut cannot strand a reader on page 3', () => {
-    const card = INTEL.slice(INTEL.indexOf('3 · ONE TABLE, PAGED'), INTEL.indexOf('4 · what this page cannot see'));
-    assert.match(card, /const page = Math\.min\(Math\.max\(1, intel\.ptPage \|\| 1\), pages\)/);
-  });
-
-  test('changing the cut starts at page one', () => {
-    const wire = INTEL.slice(INTEL.indexOf('function ptWire()'), INTEL.indexOf('function intelPayTermsHtml()'));
-    assert.equal([...wire.matchAll(/intel\.ptPage = 1;/g)].length, 3,
-      'both graph cuts and Show all');
-    assert.match(wire, /data-pt-page/, 'and the pager presses are wired');
-  });
-
-  test('the page is per sitting and in memory', () => {
-    assert.match(INTEL, /ptCut:\{ side:null, bucket:null \}, ptPage:1,/);
-    assert.ok(!/localStorage[^\n]*ptPage/.test(INTEL), 'nothing is stored');
+  test('the cut is per sitting and in memory', () => {
+    assert.match(INTEL, /ptCut:\{ side:null, bucket:null \},\n/);
+    assert.ok(!/localStorage[^\n]*ptCut/.test(INTEL), 'nothing is stored');
   });
 });
+

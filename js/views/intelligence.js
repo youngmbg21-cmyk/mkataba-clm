@@ -595,7 +595,7 @@ window.intel = { groupBy:'folder', groups:null /*{id:label} override from Copilo
      this page: a stored one would land a reader on a narrowed table a week
      later with nothing on screen saying why. It cannot be quietly on — the
      table says what it is showing and carries the way back. */
-  ptCut:{ side:null, bucket:null }, ptPage:1,
+  ptCut:{ side:null, bucket:null },
   cliffDays:0 /*A-4: the renewal cliff's scrubber, days ahead of today; per sitting*/,
   busy:false, dockOpen:true,
   /* THE WIDEN BUTTON IS GONE (Young ruled 27 Sep 2026): "bring the divider
@@ -3122,7 +3122,6 @@ function renderIntel(){
     </div>`;
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     ptWire();
-    ptFitTable();
     setActiveNav('intel');
     return;
   }
@@ -5007,61 +5006,15 @@ function intelObligationsWire(host){
    the navy workspace, so the two stay tellable apart whichever brand is on.
    Every bar carries its figure, every legend spells its count, and the side is
    written in words on every exception row, so no reading rests on the hue. */
-/* ---- HOW MANY ROWS A PAGE HOLDS (owner-asked 2 Sep 2026) ----
-   *"This table should be the same height as the chart above it. If the list is
-   long then it will have pages to click to."*
-
-   MEASURED, NEVER TYPED. The height comes from the chart card itself, so the
-   two stay level whatever either of them grows, and the page size falls out of
-   the room that is left. rowsThatFit is deliberately NOT used: it measures from
-   an element's top to the SCROLLER's bottom — "fill the rest of the screen" —
-   and this box is bounded by the card above it instead.
-
-   A ZERO IS NOT AN ANSWER: a pane still laying out, or a page with no rows to
-   measure a row against, keeps the size it had. The standing rule. */
-const PT_PAGE_MIN = 3;
-let _ptPageSize = 6;
-function ptPagerHtml(page, pages){
-  if(pages <= 1) return '';
-  /* THE REGISTER'S OWN PAGER IS THE REFERENCE for the shape and the dress —
-     prev, the numbers with an ellipsis, next — so this product has one pager
-     vocabulary. It is written out rather than borrowed because regPager is
-     bound to the register's own state and attribute; a THIRD pager is the
-     point at which the builder should be lifted out. */
-  const btn = (label, to, off, on) => `<button ${off ? 'disabled' : ''} data-pt-page="${to}" style="min-width:30px;padding:4px 9px;font:inherit;font-size:var(--t-label);font-weight:${on ? 'var(--w-title)' : 'var(--w-body)'};border:1px solid ${on ? 'var(--accent-fill)' : 'var(--color-divider)'};background:${on ? 'var(--accent-fill)' : 'var(--color-surface)'};color:${on ? '#fff' : (off ? 'var(--color-neutral-400)' : 'var(--accent-ink-700)')};border-radius:var(--radius);cursor:${off ? 'default' : 'pointer'}">${label}</button>`;
-  const nums = []; const lo = Math.max(1, page - 2), hi = Math.min(pages, page + 2);
-  const gap = '<span style="padding:0 2px;color:var(--color-neutral-500)">…</span>';
-  if(lo > 1){ nums.push(btn('1', 1, false, page === 1)); if(lo > 2) nums.push(gap); }
-  for(let i = lo; i <= hi; i++) nums.push(btn(String(i), i, false, i === page));
-  if(hi < pages){ if(hi < pages - 1) nums.push(gap); nums.push(btn(String(pages), pages, false, page === pages)); }
-  return `<div style="display:flex;align-items:center;justify-content:center;gap:5px;flex-wrap:wrap;padding-top:9px;margin-top:auto">
-    ${btn('‹', page - 1, page <= 1, false)}${nums.join('')}${btn('›', page + 1, page >= pages, false)}
-    <span style="margin-left:6px;font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('reg_page_of', { p:page, n:pages })}</span></div>`;
-}
-function ptFitTable(){
-  const host = document.getElementById('ig-pt');
-  const card = document.getElementById('ig-pt-table');
-  const rows = document.getElementById('ig-pt-rows');
-  if(!host || !card || !rows) return;
-  /* The chart card is the one holding the plot — found rather than named, so
-     obCard keeps its own signature and the other tab's cards are untouched. */
-  const chart = Array.from(host.children).find(el => el.querySelector && el.querySelector('[role="img"]'));
-  const h = chart ? Math.round(chart.getBoundingClientRect().height) : 0;
-  if(h > 0) card.style.height = h + 'px';
-  const r0 = rows.querySelector('[data-pt-open]');
-  const rowH = r0 ? Math.round(r0.getBoundingClientRect().height) : 0;
-  const room = rows.clientHeight;
-  if(!(rowH > 0) || !(room > 0)) return;
-  const fit = Math.max(PT_PAGE_MIN, Math.floor(room / rowH));
-  if(fit !== _ptPageSize){ _ptPageSize = fit; ptRepaint(); return; }
-  /* Re-fit when the chart's own height moves — a window resize, the nav rail,
-     the reader's zoom. Armed per paint, because the element it watches is
-     replaced by every repaint. */
-  if(chart && !chart.dataset.ptObs && typeof ResizeObserver === 'function'){
-    chart.dataset.ptObs = '1';
-    try{ new ResizeObserver(() => ptFitTable()).observe(chart); }catch(e){}
-  }
-}
+/* ---- THE ROWS SCROLL INSIDE THEIR CARD (owner-picked "Fit to Screen", 29 Sep 2026) ----
+   REVERSES the 2 Sep pager ("the same height as the chart above it … pages to
+   click to"). The chart now sits ABOVE the table rather than beside it, both
+   full width, and the page is one screen: the table card takes the height the
+   grid hands it and its rows scroll inside it (.igx-scroll), the head row held
+   at the top of that scroller (sticky INSIDE it, so it stays exactly as wide as
+   the rows when a scrollbar appears — the lesson of 2 Sep). Nothing is paged,
+   so nothing is measured: ptFitTable, ptPagerHtml, PT_PAGE_MIN and
+   intel.ptPage are gone. Every row is drawn — a list is never trimmed. */
 
 /* ---- THE TAB'S OWN PRESSES (owner-asked 2 Sep 2026) ----
    Re-armed on every paint of the body, because a filter press REPLACES the
@@ -5079,7 +5032,6 @@ function ptRepaint(){
   host.innerHTML = intelPayTermsHtml();
   host.scrollTop = keep;
   ptWire();
-  ptFitTable();
 }
 function ptWire(){
   /* A row opens its contract — the friction tab's own verb, and the reason the
@@ -5091,7 +5043,6 @@ function ptWire(){
       const [side, bucket] = String(b.getAttribute('data-pt-bar') || '').split('|');
       const c = intel.ptCut || {};
       intel.ptCut = (c.side === side && c.bucket === bucket) ? { side:null, bucket:null } : { side, bucket };
-      intel.ptPage = 1;
       ptRepaint();
     }));
   document.querySelectorAll('[data-pt-side]').forEach(b =>
@@ -5099,13 +5050,25 @@ function ptWire(){
       const side = b.getAttribute('data-pt-side');
       const c = intel.ptCut || {};
       intel.ptCut = (c.side === side && !c.bucket) ? { side:null, bucket:null } : { side, bucket:null };
-      intel.ptPage = 1;
       ptRepaint();
     }));
   document.querySelectorAll('[data-pt-clear]').forEach(b =>
-    b.addEventListener('click', () => { intel.ptCut = { side:null, bucket:null }; intel.ptPage = 1; ptRepaint(); }));
-  document.querySelectorAll('[data-pt-page]').forEach(b =>
-    b.addEventListener('click', () => { intel.ptPage = Number(b.getAttribute('data-pt-page')) || 1; ptRepaint(); }));
+    b.addEventListener('click', () => { intel.ptCut = { side:null, bucket:null }; ptRepaint(); }));
+  /* THE FIGURE TILE IS THE TABLE'S OWN DOOR: it counts the table's own
+     population (`against`), so a press puts the whole of that list in front of
+     the reader — any cut cleared, the rows back at the top, the table brought
+     into view on a narrow window, and the first row holding the focus. */
+  document.querySelectorAll('[data-pt-all]').forEach(b =>
+    b.addEventListener('click', () => {
+      intel.ptCut = { side:null, bucket:null };
+      ptRepaint();
+      const rows = document.getElementById('ig-pt-rows');
+      const card = document.getElementById('ig-pt-table');
+      if(rows) rows.scrollTop = 0;
+      if(card && card.scrollIntoView) card.scrollIntoView({ block:'nearest' });
+      const first = rows && rows.querySelector('[data-pt-open]');
+      if(first) first.focus({ preventScroll:true });
+    }));
 }
 
 function intelPayTermsHtml(){
@@ -5119,41 +5082,55 @@ function intelPayTermsHtml(){
     <div style="max-width:560px;margin:var(--s-10) auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.6">
     <b style="color:var(--color-text)">${i18t('pt_empty')}</b><br/>${i18t('pt_empty_why')}</div></div>`;
 
-  /* ---- 1 · the two sides and the hole between them ---- */
-  const hero = (S, cls, kKey, subValue, subCount, tone) => `<div style="min-width:0">
-    <div style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);display:flex;align-items:center;gap:7px">
-      <span style="width:9px;height:9px;border-radius:1px;flex:none;background:${tone}"></span>${i18t(kKey)}</div>
+  /* ---- 1 · the two sides and the hole between them ----
+     FIT TO SCREEN (owner-picked 29 Sep 2026): the grammar's own figure tile
+     (.igx-fig), one strip across the top. The READINGS are unchanged — each
+     side's number is written in its side's own ink (the accent, the amber),
+     readable in both themes, beside the square in the exact colour of that
+     side's bars; the gap is amber only when it is against us. */
+  const hero = (S, kKey, subValue, subCount, tone, ink) => `<div class="igx-fig">
+    <span class="igx-fig-t"><span class="pt-sw" style="background:${tone}"></span>${i18t(kKey)}</span>
     ${S.avgDays == null
-      ? `<div style="${OB_NUM};font-size:30px;line-height:1.05;margin:4px 0 6px;color:var(--color-neutral-600)">—</div>
-         <p style="${OB_NOTE};margin:0">${i18t('pt_side_empty')}</p>`
-      : `<div style="${OB_NUM};font-size:34px;line-height:1.02;margin:2px 0 5px;color:${tone}">${n(S.avgDays)}<span style="font-size:15px;font-weight:var(--w-body);letter-spacing:0;margin-left:4px">${i18t('pt_days')}</span></div>
-         <p style="${OB_NOTE};margin:0">${i18t(S.basis === 'value' ? subValue : subCount, { n:n(S.n) })}</p>`}
+      ? `<span class="igx-fig-n" style="color:var(--color-neutral-600)">—</span>
+         <span class="igx-fig-s">${i18t('pt_side_empty')}</span>`
+      : `<span class="igx-fig-n" style="color:${ink}">${n(S.avgDays)} <span class="pt-unit">${i18t('pt_days')}</span></span>
+         <span class="igx-fig-s">${i18t(S.basis === 'value' ? subValue : subCount, { n:n(S.n) })}</span>`}
   </div>`;
 
   /* THE GAP ONLY MEANS SOMETHING WHEN BOTH SIDES CAN ANSWER, so with one of
      them empty it says so rather than printing a number worked out against
      nothing. Amber only when the gap is against us — a figure that is always
      coloured is one nobody reads. */
-  const gapTone = (d.gap != null && d.gap > 0) ? 'var(--st-amber-fg,#b45309)' : 'var(--color-text)';
   const gapSay = d.gap == null ? i18t('pt_gap_none')
     : d.gap > 0 ? i18t('pt_gap_fund')
     : d.gap < 0 ? i18t('pt_gap_ahead')
     : i18t('pt_gap_level');
-  const gapBlock = `<div style="min-width:0;padding-left:var(--s-4);border-left:1px solid var(--color-divider)">
-    <div style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:${d.gap != null && d.gap > 0 ? 'var(--st-amber-fg,#b45309)' : 'var(--color-neutral-600)'}">${i18t('pt_the_gap')}</div>
+  const gapFig = `<div class="igx-fig">
+    <span class="igx-fig-t">${i18t('pt_the_gap')}</span>
     ${d.gap == null
-      ? `<div style="${OB_NUM};font-size:30px;line-height:1.05;margin:4px 0 6px;color:var(--color-neutral-600)">—</div>`
-      : `<div style="${OB_NUM};font-size:34px;line-height:1.02;margin:2px 0 5px;color:${gapTone}">${n(Math.abs(d.gap))}<span style="font-size:15px;font-weight:var(--w-body);letter-spacing:0;margin-left:4px">${i18t('pt_days')}</span></div>`}
-    <p style="${OB_NOTE};margin:0">${gapSay}</p>
+      ? `<span class="igx-fig-n" style="color:var(--color-neutral-600)">—</span>`
+      : `<span class="igx-fig-n${d.gap > 0 ? ' igx-warn' : ''}">${n(Math.abs(d.gap))} <span class="pt-unit">${i18t('pt_days')}</span></span>`}
+    <span class="igx-fig-s">${gapSay}</span>
   </div>`;
 
-  const heroes = `<section style="${OB_CARD};padding:15px 17px">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:var(--s-3) 22px">
-      ${hero(d.customer, 'c', 'pt_we_wait', 'pt_wait_sub_value', 'pt_wait_sub_count', OB_OURS)}
-      ${hero(d.supplier, 's', 'pt_we_pay', 'pt_pay_sub_value', 'pt_pay_sub_count', OB_THEIRS)}
-      ${gapBlock}
-    </div>
-  </section>`;
+  /* THE FOURTH FIGURE IS THE TABLE'S OWN COUNT — `against`, the very number
+     on the table's "N driving" chip — so it adds no reading, and it is the
+     table's own door (ptWire, data-pt-all). NOT "over your standard": on the
+     supplier side over-standard and against-you are opposites (owner-ruled
+     2 Sep), and this count is the second. A zero is not a door. */
+  const nAgainst = (d.against || []).length;
+  const driveInner = `<span class="igx-fig-t">${i18t('pt_fit_drive_t')}</span>
+    <span class="igx-fig-n${nAgainst ? ' igx-warn' : ''}">${n(nAgainst)}</span>
+    <span class="igx-fig-s">${i18tn('pt_fit_drive_s', nAgainst, { n:n(nAgainst) })}</span>`;
+  const driveFig = nAgainst
+    ? `<button type="button" class="igx-fig" data-pt-all="1" title="${E(i18t('pt_show_all'))}">${driveInner}</button>`
+    : `<div class="igx-fig">${driveInner}</div>`;
+
+  const heroes = `<div class="igx-figs" style="--igx-n:4">
+    ${hero(d.customer, 'pt_we_wait', 'pt_wait_sub_value', 'pt_wait_sub_count', OB_OURS, 'var(--accent-ink)')}
+    ${hero(d.supplier, 'pt_we_pay', 'pt_pay_sub_value', 'pt_pay_sub_count', OB_THEIRS, 'var(--st-amber-fg,#b45309)')}
+    ${gapFig}${driveFig}
+  </div>`;
 
   /* ---- 2 · where the terms sit ---- */
   const GAP_PX = 14;
@@ -5239,30 +5216,38 @@ function intelPayTermsHtml(){
     : d.targets.customer != null ? i18t('pt_targets_in_only', { n:n(d.targets.customer) })
     : d.targets.supplier != null ? i18t('pt_targets_out_only', { n:n(d.targets.supplier) })
     : '';
-  const spread = obCard(i18t('pt_spread_title'), '',
-    `<p style="${OB_LEAD}">${i18t('pt_spread_q')}</p>
-     <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px">
+  /* FIT TO SCREEN (owner-picked 29 Sep 2026): the chart card fills its cell
+     of the grid, full width, ABOVE the table, and the PLOT grows to fill the
+     card (.pt-plot) instead of sitting at a typed 168px. The question moves up
+     beside the title and the legend to the right of it, so the height goes to
+     the bars. Bars, lines, captions and the notes are unchanged. */
+  const chartFoot = [targetNote,
+     (d.standardVaries && !targetNote) ? i18t('pt_standard_varies', { n:n(d.standard) }) : '',
+     d.noTerms.n ? i18tn('pt_no_terms', d.noTerms.n, { n:n(d.noTerms.n), total:n(d.bookN) }) : '',
+     d.noSide.n ? i18tn('pt_no_side', d.noSide.n, { n:n(d.noSide.n) }) : ''].filter(Boolean).join(' ');
+  const spread = `<section id="ig-pt-chart" class="igx-card">
+    <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('pt_spread_title')}</span>
+      <span style="min-width:0;font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('pt_spread_q')}</span>
+      <span style="display:flex;gap:20px;flex-wrap:wrap;margin-left:auto">
        ${[[d.customer, OB_OURS, 'pt_are_paid'], [d.supplier, OB_THEIRS, 'pt_we_pay']].map(([S, tone, k]) =>
          `<button type="button" ${S.n ? '' : 'disabled '}data-pt-side="${E(S.key)}" aria-pressed="${cutOf.side === S.key && !cutOf.bucket ? 'true' : 'false'}"
             style="display:flex;align-items:center;gap:8px;font:inherit;font-size:var(--t-meta);color:var(--color-neutral-700);border:0;background:none;padding:2px 4px;margin:-2px -4px;border-radius:var(--radius);cursor:${S.n ? 'pointer' : 'default'}${cutOf.side === S.key && !cutOf.bucket ? ';outline:2px solid var(--color-text);outline-offset:1px' : ''}">
             <span style="width:11px;height:11px;border-radius:1px;background:${tone}"></span>${i18t(k)} <b style="font-variant-numeric:tabular-nums">${n(S.n)}</b></button>`).join('')}
-     </div>
-     <div role="img" aria-label="${E(i18t('pt_spread_title') + '. ' + ariaSpread)}" style="position:relative;padding-top:24px">
-       <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;height:168px;align-items:end;position:relative;border-bottom:1px solid var(--color-divider)">
-         ${d.bucketKeys.map((k, i) => `<span style="display:flex;gap:5px;align-items:flex-end;justify-content:center;height:100%">${barFor(d.customer, OB_OURS, i)}${barFor(d.supplier, OB_THEIRS, i)}</span>`).join('')}
-         ${lines.map(L => `<span aria-hidden="true" style="position:absolute;top:-4px;bottom:0;left:${lineAt(L.si)};width:0;border-left:1px dashed ${L.ink};pointer-events:none"></span>`).join('')}
-       </div>
-       <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;padding-top:9px">
-         ${d.bucketKeys.map(k => `<span style="text-align:center;font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;color:var(--color-neutral-600)">${k}</span>`).join('')}
-       </div>
-       ${lines.map(L => `<div style="position:relative;height:17px;margin-top:2px"><span style="position:absolute;top:0;${capAt(L.si)};white-space:nowrap;font-size:var(--t-micro);font-weight:var(--w-title);color:${L.ink}">${i18t(L.key, { n:n(L.std) })}</span></div>`).join('')}
-     </div>`,
-    [targetNote,
-     (d.standardVaries && !targetNote) ? i18t('pt_standard_varies', { n:n(d.standard) }) : '',
-     d.noTerms.n ? i18tn('pt_no_terms', d.noTerms.n, { n:n(d.noTerms.n), total:n(d.bookN) }) : '',
-     d.noSide.n ? i18tn('pt_no_side', d.noSide.n, { n:n(d.noSide.n) }) : ''].filter(Boolean).join(' '));
+      </span></div>
+    <div role="img" class="igx-fill" aria-label="${E(i18t('pt_spread_title') + '. ' + ariaSpread)}" style="position:relative;padding-top:22px">
+      <div class="pt-plot" style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;align-items:end;position:relative;border-bottom:1px solid var(--color-divider)">
+        ${d.bucketKeys.map((k, i) => `<span style="display:flex;gap:5px;align-items:flex-end;justify-content:center;height:100%">${barFor(d.customer, OB_OURS, i)}${barFor(d.supplier, OB_THEIRS, i)}</span>`).join('')}
+        ${lines.map(L => `<span aria-hidden="true" style="position:absolute;top:-4px;bottom:0;left:${lineAt(L.si)};width:0;border-left:1px dashed ${L.ink};pointer-events:none"></span>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:${GAP_PX}px;padding-top:8px">
+        ${d.bucketKeys.map(k => `<span style="text-align:center;font-family:var(--font-mono);font-size:var(--t-micro);font-variant-numeric:tabular-nums;color:var(--color-neutral-600)">${k}</span>`).join('')}
+      </div>
+      ${lines.map(L => `<div style="position:relative;height:17px;margin-top:2px"><span style="position:absolute;top:0;${capAt(L.si)};white-space:nowrap;font-size:var(--t-micro);font-weight:var(--w-title);color:${L.ink}">${i18t(L.key, { n:n(L.std) })}</span></div>`).join('')}
+    </div>
+    ${chartFoot ? `<div style="padding-top:8px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${chartFoot}</div>` : ''}
+  </section>`;
 
-  /* ---- 3 · ONE TABLE, PAGED, OF WHAT IS AGAINST YOU ----
+  /* ---- 3 · ONE TABLE, SCROLLING IN ITS CARD, OF WHAT IS AGAINST YOU ----
      *"make this one scrollable table with only 'What is driving the gap'"* (2
      Sep), then *"This table should be the same height as the chart above it.
      If the list is long then it will have pages to click to. This table should
@@ -5287,10 +5272,10 @@ function intelPayTermsHtml(){
      head and a body sharing one template string still drew columns 65px and
      37px wide.
 
-     AND PAGING IS WHAT LETS THE HEAD ROW BE A PLAIN SIBLING AGAIN. A scroller
-     grows a scrollbar and the head stops being the same width as the rows,
-     which is why it had to be sticky INSIDE it; a paged region is
-     `overflow:hidden` and never has one. */
+     THE ROWS SCROLL INSIDE THE CARD (Fit to Screen, 29 Sep 2026 — the 2 Sep
+     pager is reversed): the head row is sticky INSIDE the scroller, because a
+     sibling above it stops being the same width the moment the scroller grows
+     a scrollbar. Every row is drawn; nothing is paged or trimmed. */
   const PT_COLS = 'minmax(0,.7fr) minmax(0,1.7fr) minmax(0,1.2fr) minmax(0,.7fr) minmax(0,1.3fr) minmax(0,.8fr) minmax(0,.9fr)';
   const cut = cutOf;
   const inCut = r => (!cut.side || r.side === cut.side) && (!cut.bucket || r.bucket === cut.bucket);
@@ -5322,14 +5307,6 @@ function intelPayTermsHtml(){
          <button data-pt-clear="1" type="button" class="ui-link">${i18t('pt_show_all')}</button>
        </div>` : '';
 
-  /* PAGES, NOT A SCROLLBAR. The page size is MEASURED after the paint against
-     the height the chart above hands down (ptFitTable) rather than typed, so
-     the two cards stay level whatever either of them grows. The page is
-     clamped here: a cut can shorten the list under a reader who is on page 3. */
-  const pages = Math.max(1, Math.ceil(rows.length / _ptPageSize));
-  const page = Math.min(Math.max(1, intel.ptPage || 1), pages);
-  const shown = rows.slice((page - 1) * _ptPageSize, page * _ptPageSize);
-
   const rowHtml = r => `<button data-pt-open="${E(r.id)}" title="${E(r.name || r.ref || r.id)}"
       style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:8px 0;${RULE};font:inherit;cursor:pointer">
     ${cell(E(r.ref || r.id), 'font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink);font-weight:var(--w-title)')}
@@ -5341,32 +5318,40 @@ function intelPayTermsHtml(){
     <span style="${NUMCELL};color:var(--color-neutral-600)">${money(r.value) || '—'}</span>
   </button>`;
 
-  const body = shown.length ? shown.map(rowHtml).join('')
+  const body = rows.length ? rows.map(rowHtml).join('')
     : `<p style="${OB_LEAD};margin:14px 0 4px">${i18t(against.length ? 'pt_tbl_none' : 'pt_tbl_clear')}</p>`;
-  const drivers = `<section id="ig-pt-table" style="${OB_CARD}">
-    <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('pt_drive_title')}</span>${
+  const drivers = `<section id="ig-pt-table" class="igx-card">
+    <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('pt_drive_title')}</span>
+      <span style="flex:1 1 320px;min-width:0;font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t(d.gap != null && d.gap > 0 ? 'pt_drive_q' : 'pt_tbl_q')}</span>${
       against.length ? obFlag(i18t('pt_drive_flag', { n:n(against.length) }), 'var(--st-amber-bg)', 'var(--st-amber-fg,#b45309)') : ''}</div>
-    <p style="${OB_LEAD}">${i18t(d.gap != null && d.gap > 0 ? 'pt_drive_q' : 'pt_tbl_q')}</p>
     ${cutLine}
-    <div style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;padding-bottom:7px;${RULE}">${head}</div>
-    <div id="ig-pt-rows" style="flex:1 1 auto;min-height:0;overflow:hidden">${body}</div>
-    ${ptPagerHtml(page, pages)}
+    <div id="ig-pt-rows" class="igx-scroll scroll-thin">
+      <div class="pt-head" style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;padding-bottom:7px;${RULE}">${head}</div>
+      ${body}
+    </div>
   </section>`;
 
   /* ---- 4 · what this page cannot see ----
      The honest limit, and it is the most important thing on the tab: HaTi
      reads agreements, not your bank. Named so the page never looks as though
-     it is answering a question it cannot. */
-  const blind = `<section style="${OB_CARD};padding:15px 17px">
-    <div style="font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em;margin-bottom:10px">${i18t('pt_blind_title')}</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--s-3) 22px">
-      ${[[i18t('pt_blind_1'), i18t('pt_blind_1_why')], [i18t('pt_blind_2'), i18t('pt_blind_2_why')]]
-        .map(([t, w]) => `<div style="min-width:0"><div style="font-size:var(--t-meta);font-weight:var(--w-title);margin-bottom:3px">${E(t)}</div><p style="${OB_NOTE};margin:0">${w}</p></div>`).join('')}
-    </div>
-    <p style="${OB_NOTE};padding-top:11px;margin-top:11px;border-top:1px solid var(--color-divider)">${i18t('pt_method')}</p>
+     it is answering a question it cannot. FIT TO SCREEN keeps every word of it
+     and lays it on ONE row under the table (.pt-blind), so the page still ends
+     at the bottom of the screen. */
+  const blind = `<section id="ig-pt-blind" class="igx-card pt-blind">
+    <div style="font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em">${i18t('pt_blind_title')}</div>
+    ${[[i18t('pt_blind_1'), i18t('pt_blind_1_why')], [i18t('pt_blind_2'), i18t('pt_blind_2_why')]]
+      .map(([t, w]) => `<div style="min-width:0"><div style="font-size:var(--t-meta);font-weight:var(--w-title);margin-bottom:3px">${E(t)}</div><p style="${OB_NOTE};margin:0">${w}</p></div>`).join('')}
+    <p style="${OB_NOTE};margin:0">${i18t('pt_method')}</p>
   </section>`;
 
-  return `<div id="ig-pt" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:100%;margin:0 auto">
+  /* ONE SCREEN (owner-picked "Fit to Screen", 29 Sep 2026: "update fit to
+     screen where the graph is above the what is driving the gap card"). The
+     shared grid (.igx-fit): the figures, then the chart (.85) ABOVE the table
+     (1.15), both full width, then the honest limit. The chart's row never
+     squeezes below its own drawing (min-content) — on a window too short for
+     that the page scrolls, the grammar's own floor — while the table's rows
+     scroll inside their card. */
+  return `<div id="ig-pt" class="igx-fit" style="--igx-rows:auto minmax(min-content,.85fr) minmax(0,1.15fr) auto">
     ${heroes}${spread}${drivers}${blind}
   </div>`;
 }
@@ -6137,7 +6122,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
 }
 
 Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
-Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,ptFitTable,ptPagerHtml,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
+Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
