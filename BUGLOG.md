@@ -19897,3 +19897,10 @@ Noticed, not fixed
 
 - BUILT: Floors turns by itself like the Brain; Grid and Timeline sway gently; a Turning / Still button on the Explorer's view bar stops and starts it (the Brain page's own button). explorer-magnitude-verify 4a–4g.
 - Noticed, not fixed (29 Sep 2026): CI on main (2af16743) is red on seven browser files — settings-groups-verify (1d: 18 rows, not 17), clause-door-verify (6a, 12a–12c), runway-and-xray-verify, their-edit-page-verify, live-verify, clause-editor-verify, parity-verify. The Insights PR shows the identical seven and none of them is on Insights; reproduced locally on unmodified main for settings-groups and clause-door.
+
+## 29 Sep 2026 — Copilot's work opens a card without a stutter; the Brain door moves last
+
+- Built: the whole record is fetched on hover/focus and before the panel's first paint; a press waits up to 250ms; a brief-sized placeholder holds the brief's and memo's place; only changed sections are swapped when it lands. The Brain door now sits last in the side menu, under Settings & Rules.
+
+### Noticed, not fixed
+- CLAUDE.md is ~86.8 KB after today's merge from main (the file's own ceiling is about 80 KB); it needs the owner's next trim.

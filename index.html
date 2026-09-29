@@ -9558,6 +9558,11 @@
   .ag-p-agent{font-size:var(--t-label);color:var(--color-neutral-600);}
   .ag-p-body{display:flex;flex-direction:column;gap:12px;flex:1;}
   .ag-p-meta,.ag-p-note{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);}
+  /* THE BRIEF'S PLACE, HELD WHILE IT LOADS (29 Sep 2026) — a brief's own
+     height, still (no shimmer), so nothing below moves when it lands. */
+  .ag-skel{display:flex;flex-direction:column;gap:8px;min-height:118px;padding-top:2px;}
+  .ag-skel span{display:block;height:11px;border-radius:var(--radius);background:var(--surface-2);}
+  .ag-skel span.s{width:62%;}
   .ag-tally{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
   .ag-tally b{margin-right:4px;}
   .ag-tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--radius);font-size:var(--t-micro);font-weight:var(--w-strong);white-space:nowrap;}
@@ -10011,16 +10016,6 @@
       <div class="nav-section open" data-section="work">
         <div class="nav-section-head static" data-i18n="nav_grp_work">Work</div>
         <div class="nav-section-body">
-          <!-- THE BRAIN (Young ruled 27 Sep 2026: "Put it as a page before
-               home"). HaTi drawn as a network of neurons, its parts and links
-               read from the code itself (js/views/brain.js, js/brainmap.js,
-               GET /api/brain). A door with no count: it is a picture of the
-               platform, not work owed. Home stays the page HaTi opens on. -->
-          <button data-view="brain" class="nav-item" title="HaTi Brain — how the platform works, read from its own code" data-i18n-title="nav_brain_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-brain"/></svg>
-            <span style="flex:1;" data-i18n="nav_brain">Brain</span>
-          </button>
           <button data-view="dashboard" class="nav-item active" title="Home" data-i18n-title="nav_home_title">
             <span class="nav-rail"></span>
             <!-- A HOUSE, AND AT THE SAME 16px AS ITS NEIGHBOURS (22 Aug 2026).
@@ -10202,6 +10197,18 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cog"/></svg>
             <span style="flex:1;" data-i18n="nav_settings_rules">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
+          </button>
+          <!-- THE BRAIN (Young ruled 27 Sep 2026: "Put it as a page before
+               home"; MOVED 29 Sep 2026: "move the Brain tab in the nav panel
+               to be the last tab below team and settings"). HaTi drawn as a
+               network of neurons, its parts and links read from the code
+               itself (js/views/brain.js, js/brainmap.js, GET /api/brain). A
+               door with no count: it is a picture of the platform, not work
+               owed. Home stays the page HaTi opens on. -->
+          <button data-view="brain" class="nav-item" title="HaTi Brain — how the platform works, read from its own code" data-i18n-title="nav_brain_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-brain"/></svg>
+            <span style="flex:1;" data-i18n="nav_brain">Brain</span>
           </button>
         </div>
       </div>

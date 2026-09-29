@@ -1090,6 +1090,13 @@ function agWire(root){
     const rn = t.closest('[data-ag-runnow]');
     if (rn && !rn.disabled){ agRunNowPress(rn.getAttribute('data-ag-runnow')); return; }
   });
+  /* THE WHOLE RECORD IS ASKED FOR ON THE WAY TO THE PRESS (agWarmUp). */
+  const warm = ev => {
+    const op = ev.target && ev.target.closest ? ev.target.closest('[data-ag-open]') : null;
+    if (op) agWarmUp(op.getAttribute('data-ag-open'));
+  };
+  root.addEventListener('pointerover', warm);
+  root.addEventListener('focusin', warm);
   /* The arrow keys walk the agents list, as a list of five should. */
   root.addEventListener('keydown', ev => {
     const row = ev.target && ev.target.closest ? ev.target.closest('[data-ag-agent]') : null;
@@ -1183,6 +1190,29 @@ function agLoadWhole(c){
   return p;
 }
 const agLoading = c => !!(c && _agLoads.has(String(c.id)));
+/* ---- NO STUTTER ON OPENING A CARD (Young, 29 Sep 2026: "when i open one of
+   the new cards, it opens up without a brief and flashed like a stutter then
+   the brief appears") ----
+   The panel drew off the light row, THEN asked for the whole record, and when
+   it landed the whole body was redrawn: the brief popped in and everything
+   under it jumped. The "Loading…" line meant to cover the gap never drew,
+   because the fetch started after the first paint asked whether one was
+   running. Now:
+     · the fetch STARTS EARLY — when a pointer rests on a card or it takes
+       focus (agWarmUp), only for the kinds whose panel reads what only the
+       whole record carries (the brief, the renewal memo);
+     · a press WAITS up to AG_OPEN_WAIT_MS for it, so the panel usually opens
+       whole the first time;
+     · past that, the brief's place is held by a placeholder of a brief's size
+       (agSkelHtml), and when it lands only the sections that changed are
+       swapped (agPanelRefresh), so nothing around them moves. */
+const AG_NEEDS_WHOLE = new Set(['read', 'renewal']);
+const AG_OPEN_WAIT_MS = 250;
+function agWarmUp(key){
+  const it = agFind(key);
+  if (it && it.c && AG_NEEDS_WHOLE.has(it.kind)) agLoadWhole(it.c);
+}
+const agSkelHtml = () => `<div class="ag-skel" role="status" aria-busy="true" aria-label="${_agE(_agT('ct_loading_contract'))}"><span></span><span></span><span></span><span class="s"></span></div>`;
 
 function agPanelBody(it){
   if (it.kind === 'answer') return agAnswerBody(it);
@@ -1380,7 +1410,7 @@ function agMemoHtml(it){
       ${a.sentBack ? `<p class="ag-p-note">${_agE(_agT('ag_sent_back_by', { who: a.sentBack.by || '', note: a.sentBack.note || '' }))}</p>` : ''}
       ${(typeof canEdit === 'function' && !canEdit()) ? '' : agSendBackHtml('renew', '')}`);
   }
-  if (it.memo && agLoading(c)) return agSecHtml(_agT('ag_s_memo'), `<p class="ag-p-note">${_agE(_agT('ct_loading_contract'))}</p>`);
+  if (it.memo && agLoading(c)) return agSecHtml(_agT('ag_s_memo'), agSkelHtml());
   return `<p class="ag-p-note">${_agE(_agT(it.memo ? 'ag_renew_note_memo' : 'ag_renew_note'))}</p>`;
 }
 
@@ -1409,7 +1439,7 @@ function agReadBody(it){
    it is loading rather than drawing a brief that is not there. */
 function agBriefInner(c){
   const b = c && c._brief, d = b && b.data;
-  if (!d) return (c && c._hasBrief && agLoading(c)) ? `<p class="ag-p-note">${_agE(_agT('ct_loading_contract'))}</p>` : '';
+  if (!d) return (c && c._hasBrief && agLoading(c)) ? agSkelHtml() : '';
   const mark = s => (typeof briefMark === 'function') ? briefMark(String(s || '')) : _agE(s);
   const watch = (Array.isArray(d.watchouts) ? d.watchouts : []).filter(w => w && w.point);
   const shown = watch.slice(0, AG_WATCH_MAX);
@@ -1675,6 +1705,21 @@ function agOpenItem(key){
   const it = agFind(key);
   if (!it || typeof openSidePanel !== 'function') return;
   _agOpenKey = key;
+  /* THE RECORD, WHOLE (see agLoadWhole), asked for BEFORE the first paint so
+     the paint knows it is on its way. Where this panel reads what only the
+     whole record carries, the press waits a moment for it; every other panel
+     draws at once and fills in behind, the Inspector's own idiom. */
+  const load = agLoadWhole(it.c);
+  if (!load) return agDrawPanel(key);
+  if (!AG_NEEDS_WHOLE.has(it.kind)){ agDrawPanel(key); load.then(() => agPanelRefresh(key)); return; }
+  let drawn = false;
+  const draw = () => { if (drawn) return; drawn = true; if (_agOpenKey === key) agDrawPanel(key); };
+  const t = setTimeout(draw, AG_OPEN_WAIT_MS);
+  load.then(() => { if (!drawn){ clearTimeout(t); draw(); } else agPanelRefresh(key); });
+}
+function agDrawPanel(key){
+  const it = agFind(key);
+  if (!it || typeof openSidePanel !== 'function') return;
   const p = agCardParts(it);
   const title = it.c ? [p.kind, _agRef(it.c)].filter(Boolean).join(' · ') : p.kind;
   openSidePanel(`<div class="ag-panel" data-ag-panel="${_agE(key)}">
@@ -1696,20 +1741,27 @@ function agOpenItem(key){
     if (t.closest('[data-ag-sb-cancel]')){ if (box) box.hidden = true; return; }
     if (t.closest('[data-ag-sb-go]')) agSendBackPress(_agOpenKey || key, sb);
   });
-  /* THE RECORD, WHOLE (see agLoadWhole): the panel draws at once off the list
-     and fills in what only the whole record carries when it lands — the
-     Inspector's own idiom — repainting its own body and acts, and only while
-     it is still the panel that is open. */
-  const load = agLoadWhole(it.c);
-  if (load) load.then(() => agPanelRefresh(key));
 }
+/* WHAT LANDED IS SWAPPED IN PLACE: where the new body has the same sections as
+   the one on screen, only the sections whose markup changed are replaced, so
+   the reader's place and everything around the brief stay still. A body whose
+   shape changed is redrawn whole. */
 function agPanelRefresh(key){
   const panel = document.querySelector('[data-ag-panel]');
   if (!panel || panel.getAttribute('data-ag-panel') !== key) return;
   const it = agFind(key);
   if (!it) return;
-  const b = panel.querySelector('.ag-p-body'); if (b) b.innerHTML = agPanelBody(it);
-  const a = panel.querySelector('.ag-p-acts'); if (a) a.innerHTML = agPanelActs(it);
+  const b = panel.querySelector('.ag-p-body');
+  if (b){
+    const next = document.createElement('div');
+    next.innerHTML = agPanelBody(it);
+    const was = [...b.children], now = [...next.children];
+    if (was.length && was.length === now.length){
+      now.forEach((n, i) => { if (was[i].outerHTML !== n.outerHTML) was[i].replaceWith(n); });
+    } else b.innerHTML = next.innerHTML;
+  }
+  const a = panel.querySelector('.ag-p-acts');
+  if (a){ const html = agPanelActs(it); if (a.innerHTML !== html) a.innerHTML = html; }
 }
 async function agRunAct(key, act){
   const it = agFind(key);
@@ -1884,7 +1936,7 @@ async function agFreshLink(key){
 Object.assign(window, { AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
   agRoundItems, agRoundDone, agRenewItems, agRenewDone, agLateItems, agLateDone, agPaperItems, agPaperWorking, agPaperDone,
   agImportBatches, agImportItems, agImportDone, agImportWorking, agFind, agCardParts, agCardHtml, agPageHtml, agListHtml,
-  agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agRunAct, agPaintHead, agRepaint, renderAgentsPage,
+  agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agDrawPanel, agWarmUp, AG_NEEDS_WHOLE, AG_OPEN_WAIT_MS, agRunAct, agPaintHead, agRepaint, renderAgentsPage,
   agForName, agWhen, agFootHtml, agPanelTitle, agPanelHeadHtml, agLoadWhole, agChaseMail, agHowWentHtml, agMemoHtml,
   agBriefInner, agStandardsInner, agHeldInner, agPanelRefresh,
   agLinkItems, agLinkDone, agLinkHow, agLinkBody, agFreshLink, agSignTurnWords, agSentTo,

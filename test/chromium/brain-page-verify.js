@@ -44,8 +44,11 @@ const ok = (name, good, detail) => {
     const en = await page.$('.lang-btn[data-lang="en"]'); if (en) { await en.click(); await page.waitForTimeout(800); }
 
     /* ---- 1. the door, above Home ---- */
-    const doors = await page.evaluate(() => [...document.querySelectorAll('[data-section="work"] .nav-item')].map(b => b.getAttribute('data-view')));
-    ok('1a the Brain is the first Work door, directly above Home', doors[0] === 'brain' && doors[1] === 'dashboard', doors.join(' · '));
+    /* RE-POINTED 29 Sep 2026 (Young: "move the Brain tab in the nav panel to
+       be the last tab below team and settings"). */
+    const doors = await page.evaluate(() => [...document.querySelectorAll('#side-nav .nav-item[data-view]')].map(b => b.getAttribute('data-view')));
+    ok('1a the Brain is the last door in the menu, directly under Settings & Rules',
+      doors[doors.length - 1] === 'brain' && doors[doors.length - 2] === 'team' && doors[0] === 'dashboard', doors.join(' · '));
     const iconBox = await page.evaluate(() => { const u = document.querySelector('[data-view="brain"] use'); try { const b = u.getBBox(); return b.width * b.height; } catch (_) { return 0; } });
     ok('1b its symbol paints (the sprite has it)', iconBox > 20, 'box ' + Math.round(iconBox));
     ok('1c HaTi still opens on Home', await page.evaluate(() => state.view === 'dashboard'));

@@ -412,6 +412,80 @@ const ok = (name, good, detail) => {
       ok('10f the brief panel\'s own funnel loads a light record first, whatever door opened it (RED at faa8f95)',
         !!funnel && /supply agreement for packaging/.test(funnel), String(funnel).slice(0, 140));
       await page.evaluate(() => { try { closeModal(); } catch (_){} });
+
+      /* ---- 11. NO STUTTER ON OPENING A CARD (Young, 29 Sep 2026: "when i open
+         one of the new cards, it opens up without a brief and flashed like a
+         stutter then the brief appears") ----
+         The panel's FIRST PAINT is recorded the moment it enters the page. Fast
+         path: a pointer resting on the card starts the whole record's fetch, so
+         the panel opens with the brief already in it. Slow path (the record's
+         read held back 900ms): the brief's place is held by a placeholder, and
+         when it lands only the brief is swapped — the standards section beside
+         it is the same element before and after. RED at the parent: the first
+         paint carried neither the brief nor a placeholder, and the whole body
+         was replaced. */
+      const recordFirst = () => page.evaluate(() => {
+        window.__agFirst = null; window.__agStd = null;
+        const mo = new MutationObserver(() => {
+          const p = document.querySelector('[data-ag-panel]');
+          if (!p || window.__agFirst) return;
+          const b = p.querySelector('[data-ag-tile="brief"]'), sk = b && b.querySelector('.ag-skel');
+          window.__agFirst = { brief: !!b && /FY2026 external audit/.test(b.textContent), skel: !!sk,
+            skelH: sk ? Math.round(sk.getBoundingClientRect().height) : 0 };
+          window.__agStd = p.querySelector('[data-ag-tile="playbook"]');
+          mo.disconnect();
+        });
+        mo.observe(document.body, { childList: true, subtree: true });
+      });
+      const settleLoaded = id => page.waitForFunction(i => { const c = getContract(i); return !!(c && c._loaded); }, id, { timeout: 8000 }).catch(() => {});
+      /* FAST: hover, let the read land, then press. */
+      await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2000);
+      await page.evaluate(() => setView('agents')); await page.waitForTimeout(700);
+      await pick('paper');
+      const card = `#ag-main [data-ag-key="read:${fresh.a}"]`;
+      const light2 = await page.evaluate(id => { const c = getContract(id); return !!(c && c._light && !c._loaded); }, fresh.a);
+      ok('11 GATE — after a reload the card\'s contract is a light row again', light2);
+      if (await page.$(card)) {
+        await page.hover(card);
+        await settleLoaded(fresh.a);
+        ok('11a resting the pointer on a card fetches its whole record before any press',
+          await page.evaluate(id => !!(getContract(id) || {})._loaded, fresh.a));
+        await recordFirst();
+        await page.click(card);
+        await page.waitForSelector('[data-ag-panel]', { timeout: 5000 }).catch(() => {});
+        const f1 = await page.evaluate(() => window.__agFirst);
+        ok('11b the panel\'s FIRST paint already carries the brief — no half-drawn panel', !!f1 && f1.brief && !f1.skel, JSON.stringify(f1));
+        await page.evaluate(() => { try { closeModal(); } catch (_){} });
+      }
+      /* SLOW: the record's own read held back, so the wait runs out. */
+      await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(2000);
+      await page.route(u => new URL(u).pathname === '/api/contracts/' + fresh.a, async r => {
+        if (r.request().method() === 'GET') await new Promise(res => setTimeout(res, 900));
+        await r.continue();
+      });
+      await page.evaluate(() => setView('agents')); await page.waitForTimeout(700);
+      await pick('paper');
+      if (await page.$(card)) {
+        await recordFirst();
+        await page.click(card);
+        await page.waitForSelector('[data-ag-panel]', { timeout: 5000 }).catch(() => {});
+        const f2 = await page.evaluate(() => window.__agFirst);
+        ok('11c slow: the brief\'s place is held by a placeholder the size of a brief, never an empty gap',
+          !!f2 && f2.skel && !f2.brief && f2.skelH >= 100, JSON.stringify(f2));
+        await page.screenshot({ path: path.join(OUT, '11-placeholder.png') });
+        await page.waitForFunction(() => { const b = document.querySelector('[data-ag-panel] [data-ag-tile="brief"]'); return !!b && /FY2026 external audit/.test(b.textContent); }, null, { timeout: 8000 }).catch(() => {});
+        const after = await page.evaluate(() => {
+          const p = document.querySelector('[data-ag-panel]');
+          const b = p && p.querySelector('[data-ag-tile="brief"]');
+          return { brief: !!b && /FY2026 external audit/.test(b.textContent), skel: !!(b && b.querySelector('.ag-skel')),
+            sameStd: !!window.__agStd && window.__agStd === (p && p.querySelector('[data-ag-tile="playbook"]')) };
+        });
+        ok('11d when it lands the brief fills its place', after.brief && !after.skel, JSON.stringify(after));
+        ok('11e and only the brief is swapped — the standards section beside it is the very same element', after.sameStd, JSON.stringify(after));
+        await page.screenshot({ path: path.join(OUT, '11-landed.png') });
+        await page.evaluate(() => { try { closeModal(); } catch (_){} });
+      }
+      await page.unroute(u => new URL(u).pathname === '/api/contracts/' + fresh.a).catch(() => {});
     }
   } catch (e) {
     ok('the run finished', false, String(e && e.stack || e).slice(0, 400));

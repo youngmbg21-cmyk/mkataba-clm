@@ -83,11 +83,14 @@ describe('f400 (2) — the door', () => {
     assert.match(AI, /brain: 'the Brain'/, 'Copilot knows the page');
     assert.match(VIEW, /Object\.assign\(window, \{ renderBrainPage,/);
   });
-  test('2b it is the first Work door, directly before Home, and carries no count', () => {
-    const work = HTML.slice(HTML.indexOf('data-section="work"'), HTML.indexOf('data-section="work"') + 20000);
-    const doors = [...work.matchAll(/<button data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
-    assert.equal(doors[0], 'brain', doors.join(' · '));
-    assert.equal(doors[1], 'dashboard', 'Home follows it');
+  /* RE-POINTED 29 Sep 2026 (Young: "move the Brain tab in the nav panel to be
+     the last tab below team and settings"). */
+  test('2b it is the last door in the menu, directly after Settings & Rules, and carries no count', () => {
+    const nav = HTML.slice(HTML.indexOf('data-section="work"'), HTML.indexOf('</nav>', HTML.indexOf('data-section="work"')));
+    const doors = [...nav.matchAll(/<button data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
+    assert.equal(doors[doors.length - 1], 'brain', doors.join(' · '));
+    assert.equal(doors[doors.length - 2], 'team', 'Settings & Rules sits directly above it');
+    assert.equal(doors[0], 'dashboard', 'Home leads the menu again');
     const btn = HTML.slice(HTML.indexOf('data-view="brain"'), HTML.indexOf('</button>', HTML.indexOf('data-view="brain"')));
     assert.ok(!btn.includes('nav-count'), 'a picture of the platform owes nobody anything');
     assert.match(HTML, /<button data-view="dashboard" class="nav-item active"/, 'Home is still the page HaTi opens on');
