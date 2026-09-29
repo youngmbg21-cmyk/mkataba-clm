@@ -3064,19 +3064,11 @@ function renderIntel(){
       if(!Object.keys(intel.frictionFilter).length) intel.frictionFilter=null;
       intelRepaint();
     }));
-    /* The brief's own verbs (WO friction redesign): the clause link opens Our
-       standards; "See the six" unfolds the named deadlocks in place; any
-       counterparty — hero link or table row — filters the page to them; a
-       deadlock row opens its contract. */
-    document.querySelector('[data-igf-standards]')?.addEventListener('click',()=>setView('playbook'));
-    document.querySelector('[data-igf-deadlocks]')?.addEventListener('click',()=>{
-      document.getElementById('igf-deadlist')?.classList.toggle('hidden'); });
-    document.querySelectorAll('[data-igf-open]').forEach(b=>b.addEventListener('click',e=>{
-      e.stopPropagation(); openWorkspace(b.getAttribute('data-igf-open')); }));
-    document.querySelectorAll('[data-igf-cp]').forEach(el=>el.addEventListener('click',()=>{
-      intel.frictionFilter={...(intel.frictionFilter||{}), counterparty:el.getAttribute('data-igf-cp')};
-      intelRepaint();
-    }));
+    /* The ledger's own doors (Clause Ledger, 28 Sep 2026): a lens, a row, a
+       figure, Our standards, a negotiation, a counterparty to hold the page
+       to. ONE delegated listener on the scroller — the ledger repaints under
+       it on every press. Copilot's read keeps its own two ids, as before. */
+    intelFrictionWire(document.getElementById('ig-friction'));
     intelFrictionWireAI();
     setActiveNav('intel');
     return;
@@ -3092,6 +3084,7 @@ function renderIntel(){
       ${headerHtml}
       <div id="ig-oblig" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;background:var(--color-bg);padding:9px 20px 14px">${intelObligationsHtml()}</div>
     </div>`;
+    intelObligationsWire(document.getElementById('ig-oblig'));
     document.querySelectorAll('[data-ig-tab]').forEach(b=>b.addEventListener('click',()=>{ intel.tab=b.getAttribute('data-ig-tab'); renderIntel(); }));
     setActiveNav('intel');
     return;
@@ -3305,6 +3298,15 @@ function intelFrictionStats(filter){
   let deals=0, roundsSum=0, deadlocks=0, openedThisMonth=0;
   let oursAcc=0, oursRej=0, theirsAcc=0, theirsRej=0;
   let signed=0, signedRound1=0;
+  /* THE CLAUSE LEDGER'S READINGS (owner-picked 28 Sep 2026). Plain counts off
+     the same walk, collected BESIDE the old ones and never instead of them:
+     every field this function returned before still means what it meant, so
+     Copilot's snapshot, the health report and the Explorer's hub read on
+     unchanged. Nothing new calls a name that initialises a negotiation — the
+     walk below is the one it always was. */
+  const dealRows=[]; const dealIds=[]; const daysIds=[]; const round1Ids=[];
+  const clauseKey=lbl=>{ const k=_igClauseName(lbl||''); if(!k) return null;
+    const label=k.length>44?k.slice(0,44):k; return {label, kk:label.toLowerCase()}; };
   const monthKey=iso=>String(iso||'').slice(0,7);
   const thisMonth=monthKey(new Date().toISOString());
   for(const c of list){
@@ -3322,12 +3324,16 @@ function intelFrictionStats(filter){
     const cpKey=String(c.counterparty||'').trim()||'(no counterparty)';
     if(!cps.has(cpKey)) cps.set(cpKey,{name:cpKey,deals:0,rounds:0,acc:0,rej:0});
     const cp=cps.get(cpKey); cp.deals++; cp.rounds+=rounds;
+    const row={ id:c.id, name:String(c.name||c.id), cp:cpKey, round:rounds,
+      signed:false, days:null, declined:c.status==='Declined',
+      keys:new Set(), open:new Map() /* clause key → {label, ours, theirs}: refused and never withdrawn */ };
+    dealRows.push(row); dealIds.push(c.id);
     if(c.execution&&c.execution.at){
-      signed++;
-      if(((c.negotiation.rounds&&c.negotiation.rounds.length)||0)<=1) signedRound1++;
+      signed++; row.signed=true;
+      if(((c.negotiation.rounds&&c.negotiation.rounds.length)||0)<=1){ signedRound1++; round1Ids.push(c.id); }
       if(c.negotiation.startedAt){
         const d=(new Date(c.execution.at)-new Date(c.negotiation.startedAt))/86400000;
-        if(isFinite(d)&&d>=0) days.push(d);
+        if(isFinite(d)&&d>=0){ days.push(d); row.days=d; daysIds.push(c.id); }
       }
     }
     const labels=new Set();
@@ -3336,6 +3342,23 @@ function intelFrictionStats(filter){
       const k=_igClauseName(ch.clauseLabel||ch.headingText||'');
       if(k) labels.add(k.length>44?k.slice(0,44):k);
       const ours=ch.authorSide==='owner';
+      /* The ledger's per-clause counts: how each side's asks ended on this
+         clause, and what is refused and still open on it, deal by deal. The
+         same definitions as the book-wide figures beside them (a refusal is a
+         refusal whether or not it was later withdrawn; "still open" is one
+         that was not), so a clause's bar and the book's tick are one ruler. */
+      const ck=clauseKey(ch.clauseLabel||ch.headingText||'');
+      if(ck){
+        if(!per.has(ck.kk)) per.set(ck.kk,{label:ck.label,ids:new Set(),asks:{ours:{acc:0,rej:0},theirs:{acc:0,rej:0}}});
+        const pe=per.get(ck.kk); row.keys.add(ck.kk);
+        if(ch.status==='accepted') pe.asks[ours?'ours':'theirs'].acc++;
+        if(ch.status==='rejected') pe.asks[ours?'ours':'theirs'].rej++;
+      }
+      if(ch.status==='rejected'&&!ch.withdrawn){
+        const ok=ck?ck.kk:'';
+        if(!row.open.has(ok)) row.open.set(ok,{label:ck?ck.label:'',ours:0,theirs:0});
+        row.open.get(ok)[ours?'ours':'theirs']++;
+      }
       if(ch.status==='accepted'){ ours?oursAcc++:theirsAcc++; if(ours) cp.acc++; }
       if(ch.status==='rejected'){
         ours?oursRej++:theirsRej++; if(ours) cp.rej++;
@@ -3357,7 +3380,7 @@ function intelFrictionStats(filter){
          The LABEL is the report's own spelling of it, so whichever arrived
          first the row reads the same. */
       const kk=k.toLowerCase();
-      if(!per.has(kk)) per.set(kk,{label:k,ids:new Set()});
+      if(!per.has(kk)) per.set(kk,{label:k,ids:new Set(),asks:{ours:{acc:0,rej:0},theirs:{acc:0,rej:0}}});
       per.get(kk).ids.add(c.id);
     }
   }
@@ -3390,158 +3413,376 @@ function intelFrictionStats(filter){
     .map(cp=>({name:cp.name, deals:cp.deals, avgRounds:cp.rounds/cp.deals,
       acceptUs:(cp.acc+cp.rej)?cp.acc/(cp.acc+cp.rej):null}))
     .sort((a,b)=>b.avgRounds-a.avgRounds)[0]:null;
-  return { deals, openedThisMonth, avgRounds: deals?roundsSum/deals:0,
+  const out={ deals, openedThisMonth, avgRounds: deals?roundsSum/deals:0,
     avgDays: days.length?avg(days):null, medianDays: median(days),
     oursAcceptShare:(oursAcc+oursRej)?oursAcc/(oursAcc+oursRej):null,
     theirsAcceptShare:(theirsAcc+theirsRej)?theirsAcc/(theirsAcc+theirsRej):null,
     deadlocks, deadlockList, medianDecisionMs:median(decideMs),
     round1Share: signed?signedRound1/signed:null, signed,
     clauses: ranked, counterparties, slowest, insight };
+  out.ledger=intelFrictionLedgerData({ per, cps, dealRows, dealRounds, ranked, avg,
+    dealIds, daysIds, round1Ids, avgRounds:out.avgRounds, signedN:days.length });
+  return out;
 }
-/* THE FRICTION PAGE, AS A BRIEF (redesign to the approved comp).
+/* THE CLAUSE LEDGER, COUNTED (owner-picked 28 Sep 2026, "Clause Ledger").
+   intelFrictionStats walks the book once and hands its tallies here; this
+   shapes them into the three lists the page reads — clauses, counterparties,
+   and the negotiations waiting on a decision — and the facts each detail
+   prints. PLAIN COUNTS OFF THE TRACKED CHANGES, NO SCORE, and no drawing: the
+   renderer prints what this returns and works nothing out of its own.
+   THE CLAUSE LIST IS THE SAME EIGHT NAMES st.clauses CARRIES (the most
+   contested), ordered here by the extra rounds they cost — so Copilot's
+   snapshot, the health report and this page never disagree about which
+   clauses are on it. */
+function intelFrictionLedgerData(t){
+  const { per, cps, dealRows, dealRounds, ranked, avg } = t;
+  const byId=new Map(dealRows.map(r=>[r.id,r]));
+  const cpDeals=new Map(); for(const r of dealRows) cpDeals.set(r.cp,(cpDeals.get(r.cp)||0)+1);
+  const openSum=r=>{ let n=0; for(const o of r.open.values()) n+=o.ours+o.theirs; return n; };
+  const noAsks=()=>({ours:{acc:0,rej:0},theirs:{acc:0,rej:0}});
+  /* Waiting on a decision: every negotiation carrying a refused change nobody
+     withdrew — the population the "refused, still open" figure counts, named
+     in full rather than capped (deadlockList stops at twelve for the prompt). */
+  const waiting=dealRows.filter(r=>r.open.size).map(r=>{
+    let ours=0, theirs=0; for(const o of r.open.values()){ ours+=o.ours; theirs+=o.theirs; }
+    return { id:r.id, name:r.name, cp:r.cp, round:r.round, n:ours+theirs,
+      theyRefusedOurs:ours, weRefusedTheirs:theirs,
+      byClause:[...r.open.values()].map(o=>({label:o.label, ours:o.ours, theirs:o.theirs, n:o.ours+o.theirs}))
+        .sort((a,b)=>b.n-a.n) };
+  }).sort((a,b)=>b.n-a.n||b.round-a.round);
+  const clauses=ranked.map(cl=>{
+    const kk=cl.label.toLowerCase(); const e=per.get(kk)||{ids:new Set(),asks:noAsks()};
+    const withR=[], without=[];
+    for(const [id,r] of dealRounds) (e.ids.has(id)?withR:without).push(r);
+    const openDeals=dealRows.filter(r=>r.open.has(kk)).map(r=>{ const o=r.open.get(kk);
+      return { id:r.id, name:r.name, cp:r.cp, round:r.round, n:o.ours+o.theirs }; }).sort((a,b)=>b.n-a.n);
+    const byCp=new Map(); for(const id of e.ids){ const r=byId.get(id); if(r) byCp.set(r.cp,(byCp.get(r.cp)||0)+1); }
+    const by=[...byCp].map(([name,n])=>({name, n, of:cpDeals.get(name)||n}))
+      .sort((a,b)=>b.n/b.of-a.n/a.of||b.n-a.n||a.name.localeCompare(b.name));
+    return { label:cl.label, n:cl.n, share:cl.share, extra:cl.extra,
+      withAvg:withR.length?avg(withR):null, withoutAvg:without.length?avg(without):null,
+      ours:{...e.asks.ours}, theirs:{...e.asks.theirs},
+      open:openDeals.reduce((s,d)=>s+d.n,0), openDeals, by };
+  }).sort((a,b)=>(b.extra==null?-1e9:b.extra)-(a.extra==null?-1e9:a.extra)||b.n-a.n);
+  const listed=new Set(clauses.map(c=>c.label.toLowerCase()));
+  const outside=new Map();
+  for(const r of dealRows) for(const [kk,o] of r.open) if(!listed.has(kk)){
+    const w=outside.get(kk)||{label:o.label,n:0}; w.n+=o.ours+o.theirs; outside.set(kk,w); }
+  const allCps=[...cps.values()].map(cp=>{
+    const rows=dealRows.filter(r=>r.cp===cp.name);
+    const cls=new Map();
+    for(const r of rows) for(const kk of r.keys){ const e=per.get(kk); if(!e) continue;
+      cls.set(kk,{label:e.label, n:(cls.has(kk)?cls.get(kk).n:0)+1}); }
+    return { name:cp.name, deals:cp.deals, avgRounds:cp.deals?cp.rounds/cp.deals:0,
+      acceptUs:(cp.acc+cp.rej)?cp.acc/(cp.acc+cp.rej):null,
+      open:rows.reduce((s,r)=>s+openSum(r),0),
+      signedN:rows.filter(r=>r.signed).length,
+      negotiations:rows.map(r=>({ id:r.id, name:r.name, round:r.round, signed:r.signed,
+        declined:r.declined, days:r.days, open:openSum(r) }))
+        .sort((a,b)=>(a.signed-b.signed)||b.round-a.round),
+      clauses:[...cls.values()].sort((a,b)=>b.n-a.n||a.label.localeCompare(b.label)) };
+  });
+  /* The counterparty list reads as a PATTERN, so it is the parties with two or
+     more negotiations — one slow deal is an anecdote (the slowest-counterparty
+     rule this page has always had). A book with none of those shows them all. */
+  const two=allCps.filter(cp=>cp.deals>=2);
+  const cpPool=(two.length?two:allCps).sort((a,b)=>b.avgRounds-a.avgRounds||b.deals-a.deals);
+  return { clauses, waiting, counterparties:cpPool.slice(0,8),
+    cpsOne:two.length?allCps.length-two.length:0, cpsBeyond:Math.max(0,cpPool.length-8),
+    openOutside:[...outside.values()].sort((a,b)=>b.n-a.n),
+    dealIds:t.dealIds, signedIds:t.daysIds, round1Ids:t.round1Ids, signedN:t.signedN,
+    avgRounds:t.avgRounds };
+}
+/* THE FRICTION PAGE IS A CLAUSE LEDGER (owner-picked 28 Sep 2026, "Clause
+   Ledger", off the Insights design-options page; he said "build").
 
-   One panel, two columns. The LEFT answers "what is slowing you down" in
-   three sentences a reader can act on — the costliest clause, the refused
-   changes nobody withdrew, the slowest counterparty — each with its number
-   leading and one link that does the obvious thing. The RIGHT keeps the
-   evidence: the contested-clauses bars and the per-counterparty table,
-   click-to-filter. Colour is never alone: a teal bar means the clause costs
-   extra rounds and the +N figure beside it says how many (in red, a cost); a
-   grey bar with a green −N means fighting it actually shortens deals. */
+   REPLACES the 26 Aug brief — three written sentences on the left, the
+   contested-clause bars and the counterparty table on the right, four KPI
+   cards under the prose. Every fact that page carried stays: its figures are
+   the strip across the top, its costliest clause is the first row of the
+   clause list, its refused-and-open count is the amber figure, its slowest
+   counterparty is the first row of the counterparty list. What went is the
+   PROSE, which was hard-coded English and said three facts a reader then had
+   to go and find.
+
+   THE SHAPE: Copilot's read first and UNTOUCHED (the owner's one condition:
+   "leave the copilot feature"); a strip of six figures, every one that has a
+   list behind it a door onto that list; then ONE ranked list with a details
+   panel beside it. The list reads by Clauses · Counterparties · Waiting on a
+   decision; a press on a row fills the panel, and each panel carries the one
+   door to where you ACT — Our standards, the negotiation, or the page held to
+   a counterparty (the counterparty filter this page has always had).
+
+   COUNTING IS NOT DRAWING: every number below comes off intelFrictionStats(f)
+   and its .ledger (intelFrictionLedgerData). This function computes nothing
+   but percentages and the order of what it was handed. */
+const IGF_LED_LENSES=['clauses','cps','wait'];
+/* Which list and which row, per sitting and in memory — like every other cut
+   on this page. Keyed by the row's own identity (the clause's name, the
+   counterparty's, the contract's id), never by position, so a filter that
+   re-ranks the list keeps the reader on the thing they picked, and a row that
+   left the list falls back to the first one. */
+function intelFrictionLedgerState(){
+  if(!intel.frictionLedger||typeof intel.frictionLedger!=='object')
+    intel.frictionLedger={ lens:'clauses', sel:{ clauses:null, cps:null, wait:null } };
+  const s=intel.frictionLedger;
+  if(!IGF_LED_LENSES.includes(s.lens)) s.lens='clauses';
+  if(!s.sel||typeof s.sel!=='object') s.sel={ clauses:null, cps:null, wait:null };
+  return s;
+}
+const _igfLedKey={ clauses:x=>x.label, cps:x=>x.name, wait:x=>x.id };
+function intelFrictionLedgerRows(led, lens){
+  return lens==='cps'?led.counterparties:lens==='wait'?led.waiting:led.clauses;
+}
+/* The one reading of "which row is in hand": the stored key where that row is
+   still on the list, else the first. */
+function intelFrictionLedgerPick(led, lens){
+  const rows=intelFrictionLedgerRows(led, lens);
+  if(!rows.length) return { pos:-1, row:null, rows };
+  const want=intelFrictionLedgerState().sel[lens];
+  let pos=rows.findIndex(r=>_igfLedKey[lens](r)===want);
+  if(pos<0) pos=0;
+  return { pos, row:rows[pos], rows };
+}
+const _igfPc=v=>Math.round(v*100);
+/* A negotiation is named "<contract> — <counterparty>", unless the contract's
+   own name already says who it is with (a name typed "MSA — Naivas" would
+   otherwise read "MSA — Naivas — Naivas"). The party's first word counts as
+   saying so where it is a real word: "MSA — Naivas" is already about Naivas
+   Supermarkets. A display choice only; nothing is matched or counted by it. */
+const _igfDealName=(name,cp)=>{ const n=String(name||''), p=String(cp||'');
+  if(!p||p==='(no counterparty)') return n;
+  const low=n.toLowerCase(), first=p.split(/\s+/)[0]||'';
+  return (low.includes(p.toLowerCase())||(first.length>=4&&low.includes(first.toLowerCase())))?n:`${n} — ${p}`; };
+const _igfDays=d=>d==null?null:d<1?i18t('igf_led_under_day'):i18tn('igf_led_days',Math.round(d));
+const _igfSpan=ms=>{ if(ms==null) return null; const h=ms/3600000;
+  return h<1?i18t('igf_led_under_hour'):h<48?i18tn('igf_led_hours',Math.round(h)):i18tn('igf_led_days',Math.round(h/24)); };
+/* A count is a chip only where it is something; a zero is a quiet figure, and
+   never a door. */
+const _igfChip=(n,word)=>n?`<span class="igf-led-chip is-amber">${word||n}</span>`:`<span class="igf-led-zero">0</span>`;
+const _igfExtra=v=>v==null?`<span class="igf-led-zero" title="${igEsc(i18t('igf_led_tip_extra_none'))}">—</span>`
+  :v>0.05?`<b class="igf-led-cost">+${v.toFixed(1)}</b>`
+  :v<-0.05?`<b class="igf-led-gain">−${Math.abs(v).toFixed(1)}</b>`
+  :`<span class="igf-led-zero">${v<0?'−':'+'}${Math.abs(v).toFixed(1)}</span>`;
+const _igfDoor=(attr,label,tip)=>`<button type="button" class="ui-link igf-led-door" ${attr} title="${igEsc(tip||label)}">${igEsc(label)}${icon('chevR','w-3 h-3',2)}</button>`;
+const _igfHead=(lbl,name,door)=>`<div class="igf-led-dh"><div class="igf-led-dh-t"><div class="igf-led-lbl">${lbl}</div><h3 class="igf-led-dname">${igEsc(name)}</h3></div>${door||''}</div>`;
+const _igfFigs=a=>`<div class="igf-led-dfigs">${a.map(([t,n,s,tone,tip])=>`<div title="${igEsc(tip||'')}"><div class="igf-led-lbl">${t}</div><div class="igf-led-dn${tone?' '+tone:''}">${n}</div><div class="igf-led-ds">${s}</div></div>`).join('')}</div>`;
+const _igfSec=(b,s,body)=>`<div class="igf-led-dsec"><div class="igf-led-dsh"><b>${b}</b>${s?`<span>${s}</span>`:''}</div>${body}</div>`;
+/* How one side's asks on a clause ended, against the whole book's share — the
+   book's figure is intelFrictionStats' own, so the tick and the strip's
+   reading cannot disagree. */
+function _igfAskRow(label, a, book){
+  const n=a.acc+a.rej;
+  if(!n) return `<div class="igf-led-askrow"><span class="igf-led-askname">${label}</span><span class="igf-led-stack is-empty"></span><span class="igf-led-asksay">${i18t('igf_led_no_decided')}</span></div>`;
+  const p=_igfPc(a.acc/n);
+  const tick=book==null?'':`<em class="igf-led-tick" style="left:${_igfPc(book)}%"></em>`;
+  return `<div class="igf-led-askrow" title="${igEsc(i18t('igf_led_ask_tip',{a:a.acc,n,r:a.rej}))}"><span class="igf-led-askname">${label}</span><span class="igf-led-stack"><i class="igf-led-acc" style="width:${p}%"></i><i class="igf-led-ref" style="width:${100-p}%"></i>${tick}</span><span class="igf-led-asksay"><b>${p}%</b> ${i18t('igf_led_accepted_word')}</span></div>`;
+}
+function _igfNegoRow(id, name, sub, chip){
+  return `<button type="button" class="igf-led-row" data-igf-open="${igEsc(id)}" title="${igEsc(i18t('igf_led_open_tip',{name}))}"><span class="igf-led-rname">${igEsc(name)}${sub?` <span class="igf-led-rsub">· ${sub}</span>`:''}</span>${chip||'<span></span>'}</button>`;
+}
+function intelFrictionDetailHtml(st, lens, pick){
+  const led=st.ledger; const row=pick.row;
+  if(!row) return '';
+  const k=pick.pos+1, N=pick.rows.length;
+  const f=intel.frictionFilter||null;
+  if(lens==='clauses'){
+    const c=row;
+    const door=_igfDoor('data-igf-standards',i18t('igf_led_door_std'),i18t('igf_led_door_std_tip'));
+    const figs=_igfFigs([
+      [i18t('igf_led_th_contested'),_igfPc(c.share)+'%',i18t('igf_led_n_of_deals',{a:c.n,b:st.deals}),'',i18t('igf_led_tip_cont')],
+      [i18t('igf_led_th_extra'),c.extra==null?'—':`${c.extra<0?'−':'+'}${Math.abs(c.extra).toFixed(1)}`,
+        (c.withAvg!=null&&c.withoutAvg!=null)?i18t('igf_led_d_split',{w:c.withAvg.toFixed(1),wo:c.withoutAvg.toFixed(1)}):i18t('igf_led_d_split_none'),
+        c.extra!=null&&c.extra>0.05?'igf-led-cost':'',i18t('igf_led_tip_extra')],
+      [i18t('igf_led_f_open'),String(c.open),c.open?i18tn('igf_led_s_in_deals',c.openDeals.length):i18t('igf_led_s_nothing_waiting'),
+        c.open?'is-amber':'',i18t('igf_led_tip_open')]]);
+    const asks=_igfSec(i18t('igf_led_sec_asks'),i18t('igf_led_sec_asks_sub'),
+      _igfAskRow(i18t('igf_led_ours'),c.ours,st.oursAcceptShare)
+      +_igfAskRow(i18t('igf_led_theirs'),c.theirs,st.theirsAcceptShare)
+      +`<div class="igf-led-legend"><span><i class="igf-led-acc"></i>${i18t('igf_led_lg_acc')}</span><span><i class="igf-led-ref"></i>${i18t('igf_led_lg_ref')}</span>${
+        (st.oursAcceptShare!=null||st.theirsAcceptShare!=null)?`<span><i class="igf-led-lgtick"></i>${i18t('igf_led_lg_book',{o:st.oursAcceptShare!=null?_igfPc(st.oursAcceptShare)+'%':'—',t:st.theirsAcceptShare!=null?_igfPc(st.theirsAcceptShare)+'%':'—'})}</span>`:''}</div>`);
+    const shown=c.by.slice(0,5), more=c.by.length-shown.length;
+    const who=_igfSec(i18t('igf_led_sec_who'),i18t('igf_led_sec_who_sub'),
+      `<div class="igf-led-rows">${shown.map(p=>`<button type="button" class="igf-led-row is-bar" data-igf-cp="${igEsc(p.name)}" title="${igEsc(i18t('igf_led_hold_tip',{name:p.name}))}"><span class="igf-led-rname">${igEsc(p.name)}</span><span class="igf-led-track is-mini"><span style="width:${Math.round(p.n/p.of*100)}%"></span></span><span class="igf-led-rsub">${i18t('igf_led_n_of',{a:p.n,b:p.of})}</span></button>`).join('')}</div>`
+      +(more>0?`<div class="igf-led-foot">${i18tn('igf_led_who_more',more)}</div>`:''));
+    const open=_igfSec(i18t('igf_led_sec_open'),'',
+      c.openDeals.length?`<div class="igf-led-rows">${c.openDeals.map(d=>_igfNegoRow(d.id,_igfDealName(d.name,d.cp),i18t("igf_led_round_n",{n:d.round}),_igfChip(d.n,i18t('igf_led_open_n',{n:d.n})))).join('')}</div>`
+        :`<div class="igf-led-none">${i18t('igf_led_open_none')}</div>`);
+    return _igfHead(i18t('igf_led_d_clause',{k,n:N}),c.label,door)+figs+asks+who+open;
+  }
+  if(lens==='cps'){
+    const p=row;
+    const held=!!(f&&f.counterparty===p.name);
+    const door=held?'':_igfDoor(`data-igf-cp="${igEsc(p.name)}"`,i18t('igf_led_hold_tip',{name:p.name}),i18t('igf_led_hold_tip',{name:p.name}));
+    const openN=p.negotiations.filter(x=>!x.signed&&!x.declined).length;
+    const figs=_igfFigs([
+      [i18t('igf_led_f_deals'),String(p.deals),i18t('igf_led_s_signed_open',{s:p.signedN,o:openN})],
+      [i18t('igf_led_f_rounds'),p.avgRounds.toFixed(1),i18t('igf_led_s_against',{v:st.avgRounds.toFixed(1)}),p.avgRounds>=st.avgRounds+0.5?'is-amber':''],
+      [i18t('igf_led_th_accept'),p.acceptUs!=null?_igfPc(p.acceptUs)+'%':'—',
+        st.oursAcceptShare!=null?i18t('igf_led_s_against',{v:_igfPc(st.oursAcceptShare)+'%'}):i18t('igf_led_no_decided'),'',i18t('igf_led_tip_accept')]]);
+    const negs=_igfSec(i18t('igf_led_sec_theirs'),'',`<div class="igf-led-rows">${p.negotiations.map(x=>{
+      const sub=x.signed?(x.days!=null?i18t('igf_led_nego_signed',{r:x.round,d:_igfDays(x.days)}):i18t('igf_led_nego_signed_nod',{r:x.round}))
+        :x.declined?i18t('igf_led_nego_declined',{n:x.round}):i18t('igf_led_nego_open',{n:x.round});
+      /* A signed agreement says SIGNED first: that is the fact about it a
+         reader needs, and an open refusal on it is history, not a wait. */
+      const chip=x.signed?`<span class="igf-led-chip is-green">${i18t('igf_led_chip_signed')}</span>`
+        :x.open?`<span class="igf-led-chip is-amber">${i18t('igf_led_chip_refused_open',{n:x.open})}</span>`:'';
+      return _igfNegoRow(x.id,x.name,sub,chip);
+    }).join('')}</div>`);
+    const listed=new Set(led.clauses.map(c=>c.label.toLowerCase()));
+    const cls=_igfSec(i18t('igf_led_sec_cp_clauses'),'',p.clauses.length?`<div class="igf-led-rows">${p.clauses.map(c=>{
+      const inner=`<span class="igf-led-rname">${igEsc(c.label)}</span><span class="igf-led-track is-mini"><span style="width:${Math.round(c.n/p.deals*100)}%"></span></span><span class="igf-led-rsub">${i18t('igf_led_n_of',{a:c.n,b:p.deals})}</span>`;
+      /* A clause on the ledger's own list is a door back onto it; one that is
+         not (outside the eight most contested) is a line, never a dead press. */
+      return listed.has(c.label.toLowerCase())
+        ?`<button type="button" class="igf-led-row is-bar" data-igf-clause="${igEsc(c.label)}" title="${igEsc(i18t('igf_led_clause_tip',{name:c.label}))}">${inner}</button>`
+        :`<div class="igf-led-row is-bar is-static">${inner}</div>`;
+    }).join('')}</div>`:`<div class="igf-led-none">${i18t('igf_led_cp_clauses_none')}</div>`);
+    return _igfHead(i18t('igf_led_d_cp',{k,n:N}),p.name,door)+figs+negs+cls;
+  }
+  const d=row;
+  const door=_igfDoor(`data-igf-open="${igEsc(d.id)}"`,i18t('igf_led_door_nego'),i18t('igf_led_open_tip',{name:d.name}));
+  const figs=_igfFigs([
+    [i18t('igf_led_f_open'),String(d.n),i18t('igf_led_s_nobody_withdrew'),'is-amber',i18t('igf_led_tip_open')],
+    [i18t('igf_led_f_they_refused'),String(d.theyRefusedOurs),i18t('igf_led_s_ours_proposed')],
+    [i18t('igf_led_f_we_refused'),String(d.weRefusedTheirs),i18t('igf_led_s_theirs_proposed')]]);
+  const by=_igfSec(i18t('igf_led_sec_byclause'),'',`<table class="igf-led-bytable"><thead><tr><th>${i18t('igf_led_th_clause')}</th><th class="r">${i18t('igf_led_f_they_refused')}</th><th class="r">${i18t('igf_led_f_we_refused')}</th></tr></thead><tbody>${
+    d.byClause.map(x=>`<tr><td>${igEsc(x.label||i18t('igf_led_no_clause'))}</td><td class="r">${x.ours}</td><td class="r">${x.theirs}</td></tr>`).join('')}</tbody></table>`);
+  return _igfHead(i18t("igf_led_d_wait",{n:d.round}),_igfDealName(d.name,d.cp),door)+figs+by;
+}
+/* One figure in the strip. A figure with a list behind it is a BUTTON onto
+   that list; a figure without one (an average, a median of decisions) is a
+   div, and a zero is never a door. */
+function _igfFig(key, label, n, sub, o={}){
+  const tag=o.go?'button':'div';
+  return `<${tag} class="igf-led-fig${o.on?' on':''}" data-igf-fig="${key}"${o.go?` type="button" data-igf-go="${o.go}"`:''} title="${igEsc(o.tip||'')}"><span class="igf-led-lbl">${label}</span><span class="igf-led-n${o.tone?' '+o.tone:''}">${n}</span><span class="igf-led-s">${sub}</span></${tag}>`;
+}
+function intelFrictionLedgerHtml(st){
+  const led=st.ledger; const S=intelFrictionLedgerState(); const lens=S.lens;
+  const signedN=led.signedN, signedAll=st.signed||0, r1=led.round1Ids.length;
+  const openDeals=led.waiting.length;
+  const strip=`<div class="igf-led-strip">${[
+    _igfFig('deals',i18t('igf_led_f_deals'),String(st.deals),
+      st.openedThisMonth?i18t('igf_led_s_opened',{n:st.openedThisMonth}):i18t('igf_led_s_tracked'),
+      {go:st.deals?'deals':null,tip:i18t('igf_led_tip_list',{n:st.deals})}),
+    _igfFig('rounds',i18t('igf_led_f_rounds'),st.avgRounds.toFixed(1),i18t('igf_led_s_average')),
+    _igfFig('tosign',i18t('igf_led_f_tosign'),st.medianDays!=null?_igfDays(st.medianDays):'—',
+      signedN?i18t('igf_led_s_median_signed',{n:signedN}):i18t('igf_led_s_none_signed'),
+      {go:signedN?'signed':null,tip:signedN?i18t('igf_led_tip_list',{n:signedN}):''}),
+    _igfFig('decide',i18t('igf_led_f_decide'),st.medianDecisionMs!=null?_igfSpan(st.medianDecisionMs):'—',
+      st.medianDecisionMs!=null?i18t('igf_led_s_per_change'):i18t('igf_led_s_none_decided'),
+      {tip:i18t('igf_led_tip_decide')}),
+    _igfFig('round1',i18t('igf_led_f_round1'),st.round1Share!=null?_igfPc(st.round1Share)+'%':'—',
+      signedAll?i18t('igf_led_s_of_signed',{a:r1,b:signedAll}):i18t('igf_led_s_none_signed'),
+      {go:r1?'round1':null,tip:r1?i18t('igf_led_tip_list',{n:r1}):''}),
+    _igfFig('open',i18t('igf_led_f_open'),String(st.deadlocks),
+      st.deadlocks?i18tn('igf_led_s_in_deals',openDeals):i18t('igf_led_s_nothing_waiting'),
+      {go:st.deadlocks?'wait':null,on:lens==='wait',tone:st.deadlocks?'is-amber':'',tip:st.deadlocks?i18t('igf_led_tip_open')+' '+i18t('igf_led_tip_wait'):i18t('igf_led_tip_open')})
+  ].join('')}</div>`;
+  const pick=intelFrictionLedgerPick(led, lens);
+  const lensBtn=(k,label,n)=>`<button type="button" data-igf-lens="${k}" class="${lens===k?'on':''}" aria-pressed="${lens===k}">${label}<span class="igf-led-cnt">${n}</span></button>`;
+  const seg=`<span class="reg-seg igf-led-seg" role="group">${lensBtn('clauses',i18t('igf_led_lens_clauses'),led.clauses.length)}${lensBtn('cps',i18t('igf_led_lens_cps'),led.counterparties.length)}${lensBtn('wait',i18t('igf_led_lens_wait'),led.waiting.length)}</span>`;
+  const th=(t,o={})=>`<th${o.r?' class="r"':''}${o.tip?` title="${igEsc(o.tip)}"`:''}>${t}</th>`;
+  const tr=(pos,key,tip,cells)=>`<tr data-igf-row="${igEsc(key)}" tabindex="0" class="${pos===pick.pos?'is-sel':''}" aria-selected="${pos===pick.pos}" title="${igEsc(tip)}">${cells}</tr>`;
+  let sub, head, rows, foot='', empty='';
+  if(lens==='clauses'){
+    sub=i18tn('igf_led_sub_clauses',led.clauses.length);
+    head=th(i18t('igf_led_th_clause'))+th(i18t('igf_led_th_contested'),{tip:i18t('igf_led_tip_cont')})
+      +th(i18t('igf_led_th_extra'),{r:1,tip:i18t('igf_led_tip_extra')})+th(i18t('igf_led_f_open'),{r:1,tip:i18t('igf_led_tip_open')});
+    rows=led.clauses.map((c,pos)=>tr(pos,c.label,i18t('igf_led_tip_show',{name:c.label}),
+      `<td class="igf-led-name">${igEsc(c.label)}</td><td><div class="igf-led-barcell"><span class="igf-led-track"><span style="width:${Math.max(2,_igfPc(c.share))}%"></span></span><span class="igf-led-w">${_igfPc(c.share)}%</span><span class="igf-led-rsub">${i18t('igf_led_n_of',{a:c.n,b:st.deals})}</span></div></td><td class="r">${_igfExtra(c.extra)}</td><td class="r">${_igfChip(c.open)}</td>`));
+    const out=led.openOutside; const n=out.reduce((s,x)=>s+x.n,0);
+    /* Named where they have a name (the first three, the rest said as "…");
+       a refusal on a change that names no clause is counted and not named. */
+    const named=out.filter(x=>x.label);
+    if(n) foot=i18tn('igf_led_foot_outside',n,{names:named.length
+      ?': '+named.slice(0,3).map(x=>igEsc(x.label)).join(', ')+(named.length>3?' …':''):''});
+    if(!led.clauses.length) empty=i18t('igf_led_empty_clauses');
+  }else if(lens==='cps'){
+    sub=led.counterparties.some(p=>p.deals>=2)?i18t('igf_led_sub_cps_two'):i18t('igf_led_sub_cps_all');
+    const scale=Math.max(5,Math.ceil(Math.max(0,...led.counterparties.map(p=>p.avgRounds))));
+    head=th(i18t('igf_led_th_cp'))+th(i18t('igf_led_f_deals'),{r:1})+th(i18t('igf_led_f_rounds'),{tip:i18t('igf_led_foot_book',{v:st.avgRounds.toFixed(1)})})
+      +th(i18t('igf_led_th_accept'),{r:1,tip:i18t('igf_led_tip_accept')})+th(i18t('igf_led_f_open'),{r:1,tip:i18t('igf_led_tip_open')});
+    rows=led.counterparties.map((p,pos)=>tr(pos,p.name,i18t('igf_led_tip_show',{name:p.name}),
+      `<td class="igf-led-name">${igEsc(p.name)}</td><td class="r">${p.deals}</td><td><div class="igf-led-barcell"><span class="igf-led-track is-tick"><span style="width:${Math.round(p.avgRounds/scale*100)}%"></span><em class="igf-led-tick" style="left:${Math.round(st.avgRounds/scale*100)}%"></em></span><span class="igf-led-w">${p.avgRounds.toFixed(1)}</span></div></td><td class="r">${p.acceptUs!=null?_igfPc(p.acceptUs)+'%':'<span class="igf-led-zero">—</span>'}</td><td class="r">${_igfChip(p.open)}</td>`));
+    foot=[led.cpsOne?i18tn('igf_led_foot_cps_one',led.cpsOne):'', led.cpsBeyond?i18t('igf_led_foot_beyond',{n:led.cpsBeyond}):'',
+      i18t('igf_led_foot_book',{v:st.avgRounds.toFixed(1)})].filter(Boolean).join(' ');
+  }else{
+    sub=i18t('igf_led_sub_wait');
+    head=th(i18t('igf_led_th_nego'))+th(i18t('igf_led_th_round'),{r:1})+th(i18t('igf_led_th_refused_on'))+th(i18t('igf_led_f_open'),{r:1,tip:i18t('igf_led_tip_open')});
+    rows=led.waiting.map((d,pos)=>tr(pos,d.id,i18t('igf_led_tip_show',{name:d.name}),
+      `<td class="igf-led-nw"><div class="igf-led-name">${igEsc(d.name)}</div><div class="igf-led-rsub">${igEsc(d.cp)}</div></td><td class="r">${d.round}</td><td class="igf-led-rsub"><span class="igf-led-refon">${d.byClause.map(x=>igEsc(x.label||i18t('igf_led_no_clause'))).join(' · ')}</span></td><td class="r">${_igfChip(d.n)}</td>`));
+    if(led.waiting.length) foot=i18tn('igf_led_foot_wait',st.deadlocks,{deals:i18tn('igf_led_s_in_deals',led.waiting.length)});
+    else empty=i18t('igf_led_empty_wait');
+  }
+  const list=`<div class="igf-led-card igf-led-list">
+      <div class="igf-led-ch"><b>${i18t('igf_led_title')}</b><span class="igf-led-sub">${sub}</span>${seg}</div>
+      ${empty?`<div class="igf-led-none is-list">${empty}</div>`:`<div class="igf-led-scroll"><table class="igf-led-table" data-igf-list="${lens}"><thead><tr>${head}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`}
+      ${foot?`<div class="igf-led-foot">${foot}</div>`:''}
+    </div>`;
+  const detail=pick.row?`<div class="igf-led-card igf-led-detail" data-igf-detail="${lens}">${intelFrictionDetailHtml(st, lens, pick)}</div>`:'';
+  return strip+`<div class="igf-led-grid${detail?'':' is-solo'}">${list}${detail}</div>`;
+}
 function intelFrictionHtml(){
   const f=intel.frictionFilter||null;
   const st=intelFrictionStats(f);
-  const pct=v=>Math.round(v*100);
   if(!st.deals) return `<div style="max-width:960px;margin:0 auto">
     <div style="max-width:560px;margin:var(--s-10) auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.6">
     <b style="color:var(--color-text)">${f?i18t('int_nothing_matches'):i18t('int_no_negotiations')}</b><br/>${f?i18t('int_clear_filters'):i18t('int_once_contracts')}</div></div>`;
-  const hrs=ms=>{ if(ms==null) return null; const h=ms/3600000; return h<1?'&lt;1h':h<48?Math.round(h)+'h':Math.round(h/24)+'d'; };
-  const RULE='border-bottom:1px solid var(--color-divider)';
-  /* THE TEXT BUTTON'S ONE LOOK (the Compact ladder, 26 Sep 2026): accent,
-     medium, a real target, and a drawn arrow where the press goes somewhere. */
-  const LINK='display:inline-flex;align-items:center;gap:4px;min-height:var(--tap-min);margin-top:6px;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;background:none;border:0;padding:0;font-family:inherit';
-
-  /* ---- left: the three sentences ---- */
-  const top=st.clauses[0]||null;
-  const hero=(num,tone,body)=>`<div style="display:flex;gap:14px;padding:9px 0;${RULE}">
-    <div style="flex:none;min-width:62px;font-size:22px;font-weight:var(--w-title);letter-spacing:-.02em;line-height:1.1;font-variant-numeric:tabular-nums;color:${tone}">${num}</div>
-    <div style="min-width:0;font-size:var(--t-body);line-height:1.55;color:var(--color-neutral-800)">${body}</div>
+  /* COPILOT'S READ LEADS, IN A CARD OF ITS OWN, AND IS NOT TOUCHED: the strip
+     is intelFrictionCopilotHtml exactly as it was, keyed and repainted by the
+     same three functions. The card is only its frame now that the report
+     under it is several cards rather than one. */
+  return `<div class="igf-led">
+    <div class="igf-led-card igf-led-cop">${intelFrictionCopilotHtml(st)}</div>
+    <div id="igf-ledger">${intelFrictionLedgerHtml(st)}</div>
   </div>`;
-  const clauseHero=top?hero(pct(top.share)+'%','var(--color-text)',
-    `of negotiations get stuck on <b>${igEsc(top.label)}</b>${top.extra!=null&&top.extra>0
-      ?` — and when they do, the deal takes <b>${top.extra.toFixed(1)} more round${top.extra>=1.95?'s':''}</b>. It is the single change worth making to your standard paper.`
-      :` — contested more than any other clause${top.extra!=null&&top.extra<0?', though the fights there tend to settle quickly':''}.`}
-    <br><button data-igf-standards style="${LINK}">${i18t('int_open_clause_std')}${icon('chevR','w-3.5 h-3.5')}</button>`):'';
-  const dl=st.deadlockList;
-  const dealCount=new Set(dl.map(x=>x.id)).size;
-  const deadHero=hero(String(st.deadlocks), st.deadlocks?'var(--st-amber-fg,#b45309)':'var(--color-text)',
-    st.deadlocks
-      ?`change${st.deadlocks===1?' is':'s are'} <b>${i18t('int_refused_open')}</b> — nobody withdrew ${st.deadlocks===1?'it':'them'}, so ${dealCount===1?'one deal is':dealCount+' deals are'} waiting on a decision somebody has to make.
-        <br><button data-igf-deadlocks style="${LINK}">See the ${st.deadlocks<=12?['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'][st.deadlocks]:st.deadlocks}${icon('chevR','w-3.5 h-3.5')}</button>
-        <div id="igf-deadlist" class="hidden" style="margin-top:var(--s-2)">${dl.map(x=>`<button data-igf-open="${igEsc(x.id)}" style="display:flex;gap:var(--s-2);width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-meta);padding:var(--s-1) 0;color:var(--color-neutral-700)"><b style="color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">${igEsc(x.name)}</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.clause)}</span><span style="margin-left:auto;display:inline-flex;align-items:center;gap:4px;color:var(--accent-ink-700);font-weight:var(--w-label);white-space:nowrap">open${icon('chevR','w-3.5 h-3.5')}</span></button>`).join('')}</div>`
-      :`changes are refused and still open — every refusal on the book has been answered or withdrawn. Nothing is deadlocked.`);
-  const sl=st.slowest;
-  const slowHero=(sl&&st.counterparties.length>1)?hero(sl.avgRounds.toFixed(1),'var(--color-text)',
-    `rounds per deal with <b>${igEsc(sl.name)}</b>, against ${st.avgRounds.toFixed(1)} across the book — the slowest counterparty you negotiate with${sl.acceptUs!=null?`, and they accept <b>${pct(sl.acceptUs)}%</b> of what you ask`:''}.
-     ${f&&f.counterparty===sl.name?'':`<br><button data-igf-cp="${igEsc(sl.name)}" style="${LINK}">Filter the page to ${igEsc(sl.name)}${icon('chevR','w-3.5 h-3.5')}</button>`}`):'';
-  /* ---- THE FOUR FIGURES ARE KPI CARDS (Young ruled it 19 Sep 2026: "make
-     the highlighted KPIs to be KPI cards") ----
-     Same four readings, same four labels, same order — only the dress moved,
-     and it moved into a stylesheet rather than into more inline style, because
-     the whole point of the ask is that these look like the product's own KPI
-     cards and a second set of literals here could not follow .hm-tile the next
-     time it is retuned. The LABEL LEADS now, which is the tile's own order;
-     the reason for the edge colour and for these not being buttons is written
-     beside .igf-kpis in index.html. */
-  const mini=(n,t)=>`<div class="igf-kpi"><span class="igf-kpi-t">${t}</span><span class="igf-kpi-n">${n}</span></div>`;
-  const minis=`<div class="igf-kpis">
-    ${st.medianDays!=null?mini(st.medianDays<1?'&lt;1 day':Math.round(st.medianDays)+' days','median to signature'):''}
-    ${st.medianDecisionMs!=null?mini(hrs(st.medianDecisionMs),'median decision time'):''}
-    ${(st.oursAcceptShare!=null||st.theirsAcceptShare!=null)?mini(`${st.oursAcceptShare!=null?pct(st.oursAcceptShare)+'%':'—'} / ${st.theirsAcceptShare!=null?pct(st.theirsAcceptShare)+'%':'—'}`,'our asks / their asks accepted'):''}
-    ${st.round1Share!=null?mini(pct(st.round1Share)+'%','signed within round 1'):''}
-  </div>`;
-  /* THE READING COLUMN STOPS AT A READABLE MEASURE. With the card filling the
-     width (see below), these paragraphs ran ~130 characters a line on a wide
-     monitor — past the point where prose is comfortable. The CARD is full
-     width, as the owner asked; the SENTENCES are not. */
-  /* A READING MEASURE, DELIBERATELY NOT THE PLATFORM'S (29 Aug 2026). The
-     chrome fills the monitor now — --page-measure is `none` — and this column
-     is PROSE, capped for the same reason the contract sheet is: a line past
-     about 80 characters measurably slows reading down. Left as a literal
-     because it has exactly one consumer and a token with one reader is noise;
-     what it needs is the reason written beside it, which is this. */
-  const left=`<div style="padding:var(--s-3) 18px;min-width:0;max-width:78ch">
-    <div style="font-size:16px;font-weight:var(--w-title);letter-spacing:-.01em">${i18t('int_what_slowing')}</div>
-    <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${st.deals} negotiation${st.deals===1?'':'s'}${st.openedThisMonth?` · ${st.openedThisMonth} opened this month`:''} · ${st.avgRounds.toFixed(1)} rounds each on average</div>
-    ${clauseHero}${deadHero}${slowHero}
-    ${minis}
-  </div>`;
-
-  /* ---- right: the evidence ---- */
-  const extraTxt=cl=>cl.extra==null?`<span style="color:var(--color-neutral-500)">—</span>`
-    :cl.extra>0.05?`<span style="color:var(--st-ruby-fg,#b91c1c);font-weight:var(--w-title)">+${cl.extra.toFixed(1)}</span>`
-    :cl.extra<-0.05?`<span style="color:var(--st-green-fg,#047857);font-weight:var(--w-title)">−${Math.abs(cl.extra).toFixed(1)}</span>`
-    :`<span style="color:var(--color-neutral-500)">0.0</span>`;
-  const bars=st.clauses.map(cl=>`
-    <span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${igEsc(cl.label)}">${igEsc(cl.label)}</span>
-    <span style="position:relative;height:13px;border-radius:var(--radius);background:var(--color-neutral-100);min-width:0"><span style="position:absolute;inset:0 auto 0 0;width:${Math.max(2,pct(cl.share))}%;background:${cl.extra!=null&&cl.extra>0.05?'var(--accent-solid,var(--color-accent))':'var(--color-neutral-400)'};border-radius:var(--radius)"></span></span>
-    <span style="font-size:var(--t-meta);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;text-align:right">${pct(cl.share)}%</span>
-    <span style="font-size:var(--t-label);font-variant-numeric:tabular-nums;text-align:right">${extraTxt(cl)}</span>`).join('');
-  const cpRows=st.counterparties.map(cp=>{
-    const chip=cp.avgRounds>=st.avgRounds+0.5?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--st-amber-bg,#fef3c7);color:var(--st-amber-fg,#b45309)">slow</span>`
-      :cp.avgRounds<=Math.max(1,st.avgRounds-0.3)?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:var(--st-green-bg,#d1fae5);color:var(--st-green-fg,#047857)">smooth</span>`:'';
-    return `<tr data-igf-cp="${igEsc(cp.name)}" style="cursor:pointer" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 4%,transparent)'" onmouseout="this.style.background='none'">
-      <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-meta);font-weight:var(--w-strong)">${igEsc(cp.name)}</td>
-      <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${cp.deals}</td>
-      <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${cp.avgRounds.toFixed(1)}</td>
-      <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-meta);font-variant-numeric:tabular-nums">${cp.acceptUs!=null?pct(cp.acceptUs)+'%':'—'}</td>
-      <td style="padding:6px var(--s-2);${RULE}">${chip}</td></tr>`;
-  }).join('');
-  const th=t=>`<th style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:5px var(--s-2);${RULE}">${t}</th>`;
-  const right=`<div style="padding:var(--s-3) 18px;border-left:1px solid var(--color-divider);min-width:0">
-    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:var(--t-body);font-weight:var(--w-title)">${i18t('int_most_contested')}</span>
-      <span style="font-size:var(--t-label);color:var(--color-neutral-500);margin-left:auto;white-space:nowrap">% of ${st.deals} negotiation${st.deals===1?'':'s'} · extra rounds</span></div>
-    <div role="img" aria-label="${i18t('int_bar_chart_aria')}" style="display:grid;grid-template-columns:minmax(120px,170px) 1fr 40px 40px;gap:5px 9px;align-items:center;margin:var(--s-2) 0 var(--s-3)">${bars}</div>
-    <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:var(--t-body);font-weight:var(--w-title)">${i18t('int_friction_by_cp')}</span>
-      <span style="font-size:var(--t-label);color:var(--accent-ink-700);margin-left:auto;white-space:nowrap">${i18t('int_click_row_filter')}</span></div>
-    <div style="overflow-x:auto;margin-top:6px"><table style="border-collapse:collapse;width:100%"><tr>${th('Counterparty')}${th('Deals')}${th('Rounds')}${th('Accept us')}${th('')}</tr>${cpRows}</table></div>
-    <div style="font-size:var(--t-label);color:var(--st-amber-fg,#b45309);opacity:.85;margin-top:9px;line-height:1.55">Counted from the fingerprinted tracked changes in each negotiation's record. Ask the Copilot to probe any of these numbers — it carries the same figures.</div>
-  </div>`;
-
-  /* ---- HALF THE DEAD SPACE, AT EVERY WINDOW WIDTH ----
-     The brief was capped at 1120px and centred, so every pixel a wider screen
-     offered became empty gutter: 333px of nothing either side of it at 1860,
-     while the contested-clause bars — the whole point of the right-hand column
-     — were squeezed into what was left.
-
-     Not a bigger fixed cap, because a fixed cap is only ever right on the
-     screen it was chosen on. This takes HALF of whatever is empty, whatever
-     the width: if the gutter is g, the card grows by g and the gutter becomes
-     g/2. Written out, target width = (host + 1120)/2; 50% resolves against the
-     content box while the gutter is measured from the border box, so the
-     constant carries the host's own 20px side padding too — 1120/2 + 20 = 580.
-     max-width:100% keeps it honest on a window narrower than the old cap,
-     where there was no gutter to halve in the first place. */
-  /* ---- THE CARD FILLS ITS HOST, LIKE PORTFOLIO (owner-asked 24 Aug 2026:
-     "the space between the card and the edge in the negotiation friction tab
-     should be the same as the distance in the portfolio tab") ----
-     MEASURED before: 20px each side at 1280 and 1440 — already matching — then
-     58 at 1600, 138 at 1920 and 298 at 2560. This was the only screen in
-     Insights with a width rule of its own: capped once, given back half the
-     dead space later, and the owner is asking for the other half. The design
-     reference draws these panels full width with no gutter, so this is a
-     correction toward it. Measured after: 20px each side at every width.
-     AND THE PROSE IS HELD, which is why the cap existed. At full width on a
-     2560 monitor the left column's paragraphs ran about 130 characters a line.
-     The CARD fills the width as asked; the SENTENCES inside it stop at a
-     readable measure, and the bars and the counterparty table take the extra
-     room, which is where it is useful. */
-  return `<div>
-    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden">
-      ${intelFrictionCopilotHtml(st)}
-      <div class="igf-split" style="display:grid">${left}${right}</div>
-    </div>
-  </div>`;
+}
+/* A press on a lens or a row repaints the LEDGER alone — never the page, so
+   Copilot's read, its busy state and the reader's scroll stay where they are.
+   Focus goes back to the row that was pressed from the keyboard. */
+function intelFrictionLedgerRepaint(focusKey){
+  const host=document.getElementById('igf-ledger'); if(!host) return;
+  host.innerHTML=intelFrictionLedgerHtml(intelFrictionStats(intel.frictionFilter||null));
+  if(focusKey!=null){
+    const r=[...host.querySelectorAll('[data-igf-row]')].find(x=>x.getAttribute('data-igf-row')===focusKey);
+    if(r) r.focus();
+  }
+}
+/* EVERY DOOR ON THE PAGE, ONE DELEGATED LISTENER on the tab's own scroller,
+   bound once per element: the ledger is repainted under it on every press, so
+   a listener on a painted row would be dead after the first. */
+function intelFrictionWire(host){
+  if(!host||!host.dataset||!host.addEventListener||host.dataset.igfBound) return;
+  host.dataset.igfBound='1';
+  const S=()=>intelFrictionLedgerState();
+  const select=(row,fromKey)=>{ const s=S(); s.sel[s.lens]=row.getAttribute('data-igf-row');
+    intelFrictionLedgerRepaint(fromKey?s.sel[s.lens]:null); };
+  host.addEventListener('click',e=>{
+    const t=e.target;
+    const lens=t.closest('[data-igf-lens]'); if(lens){ S().lens=lens.getAttribute('data-igf-lens'); intelFrictionLedgerRepaint(); return; }
+    const go=t.closest('[data-igf-go]');
+    if(go){
+      const k=go.getAttribute('data-igf-go'); const st=intelFrictionStats(intel.frictionFilter||null); const led=st.ledger;
+      if(k==='wait'){ const s=S(); s.lens=s.lens==='wait'?'clauses':'wait'; intelFrictionLedgerRepaint(); return; }
+      const ids=k==='deals'?led.dealIds:k==='signed'?led.signedIds:k==='round1'?led.round1Ids:[];
+      const label=i18t(k==='deals'?'igf_led_list_deals':k==='signed'?'igf_led_list_signed':'igf_led_list_round1');
+      if(ids.length&&typeof regShowOnly==='function') regShowOnly(ids,label);
+      return;
+    }
+    const std=t.closest('[data-igf-standards]'); if(std){ setView('playbook'); return; }
+    const open=t.closest('[data-igf-open]'); if(open){ openWorkspace(open.getAttribute('data-igf-open')); return; }
+    const cp=t.closest('[data-igf-cp]');
+    if(cp){ intel.frictionFilter={...(intel.frictionFilter||{}), counterparty:cp.getAttribute('data-igf-cp')}; intelRepaint(); return; }
+    const cl=t.closest('[data-igf-clause]');
+    if(cl){ const s=S(); s.lens='clauses'; s.sel.clauses=cl.getAttribute('data-igf-clause'); intelFrictionLedgerRepaint(); return; }
+    const row=t.closest('[data-igf-row]'); if(row){ select(row,false); }
+  });
+  host.addEventListener('keydown',e=>{
+    if(e.key!=='Enter'&&e.key!==' ') return;
+    const row=e.target.closest&&e.target.closest('[data-igf-row]'); if(!row) return;
+    e.preventDefault(); select(row,true);
+  });
 }
 
 /* ---- COPILOT'S READ (hybrid layer over the counted brief) ----
@@ -3650,6 +3891,13 @@ async function intelFrictionAsk(){
   }
   if(state.view==='intel'&&intel.tab==='friction') intelFrictionRepaintAI();
 }
+/* The Clause Ledger's own names (28 Sep 2026), published here beside the code
+   rather than on the file's long list at its end — the other Insights tabs are
+   being rebuilt at the same time and one line everybody appends to is where
+   their work and this would collide. */
+Object.assign(window,{IGF_LED_LENSES,intelFrictionLedgerData,intelFrictionLedgerState,
+  intelFrictionLedgerRows,intelFrictionLedgerPick,intelFrictionDetailHtml,intelFrictionLedgerHtml,
+  intelFrictionLedgerRepaint,intelFrictionWire});
 
 
 /* ============================================================
@@ -3694,6 +3942,55 @@ const OB_HORIZON = 90;        // the forward window — the renewal card's own 9
    reached wherever either resolves. The two lines above are THEIR side. */
 const OB_LAST_OWNED = -4, OB_LAST_UNOWNED = -1, OB_BRIEF_FLOOR = -30;
 const OB_LAST_OURS = -1;
+/* And the FIRST milestone, the same on both sweeps: seven days before the
+   date (runReminders' `od === 7`, runOurPromises' MILESTONE key 7). */
+const OB_FIRST_DAYS = 7;
+
+/* ---- WILL A REMINDER REACH THE PERSON WHO OWES THIS, EVER AGAIN? ----
+   THE ONE PREDICATE (28 Sep 2026, the Reminder Line). The page's headline
+   count and the line's hollow dots and green windows all ask THIS, per
+   obligation, so the picture and the figure cannot come to disagree about
+   who is told — a second copy of the rule is how that starts.
+   No readable date and nothing fires at all. Nobody the mail resolves to and
+   nothing ever reaches a person who owes it — the one admin note on day 1 is
+   a note to a bystander, not a reminder to an owner. Past the last milestone
+   and every mail has already gone. Who the mail resolves to is the server's
+   own lookup, mirrored in js/obligations.js: obligationReminderTo (the
+   sweep's obligationRecipient) for the assignee and, on OUR side only,
+   obligationOwnerTo (runOurPromises' contractOwnerRecipient) after it.
+   `first`..`last` is the window, in days before the date, in which the person
+   is written to: 7 before to the day after on ours; theirs runs on to the
+   admins' day-four mail, which is what keeps it counted as reached until then.
+   Read through window because this module draws on stages where
+   js/obligations.js is not loaded; without it nobody resolves, which
+   over-reports silence rather than under-reporting it — the safe direction on
+   a page whose whole subject is what goes unsaid. */
+function obReminderOf(o, c){
+  const raw=String((o&&o.due)||'').trim();
+  const due=(typeof obligationDue==='function')?obligationDue(o):(raw||null);
+  const od=due?daysUntil(due):null;
+  const theirs=(typeof obligationIsTheirs==='function')?obligationIsTheirs(o):((o&&o.party)==='theirs');
+  const ours=!theirs;
+  const typed=String((o&&o.assignee)||'').trim();
+  const mem=(typed&&typeof window.obligationReminderTo==='function')?obligationReminderTo({ assignee:typed }):null;
+  const owner=(!mem&&ours&&typeof window.obligationOwnerTo==='function')?obligationOwnerTo(c):null;
+  const owned=!!mem, reach=owned||!!owner;
+  const last=ours?OB_LAST_OURS:OB_LAST_OWNED;
+  const bad=(due==null);
+  const spent=(due!=null&&od!=null&&od<(ours?OB_LAST_OURS:owned?OB_LAST_OWNED:OB_LAST_UNOWNED));
+  const quiet=bad||!reach||(od!=null&&od<last);
+  const why=[];
+  if(quiet){
+    if(bad) why.push(raw?'unreadable':'nodate');
+    if(!reach){ if(!typed) why.push('noowner'); else why.push('gone'); }
+    if(spent) why.push('spent');
+  }
+  const to=mem||owner;
+  return { due, raw, od, ours, typed, owned, reach,
+    memberId: mem&&mem.id!=null?String(mem.id):'', memberName: mem?String(mem.name||typed):'',
+    to: mem?'assignee':(owner?'owner':null), toName: to?String(to.name||''):'',
+    first:OB_FIRST_DAYS, last, spent, quiet, why };
+}
 
 /* ═══ THE EXPOSURE REGISTER (S10, 16 Sep 2026) ═══════════════════════════
    *"A risk score out of 100 — every competitor has one and none can explain
@@ -3840,110 +4137,322 @@ function exposureData(){
   return { rows, live:live.length, money, lead, fxLeft,
     unread:{ n:unread.length, ids:unread.map(c=>c.id), value:um.sum, left:um.left } };
 }
+/* ═══ THE PATTERN GRID (owner-picked by name, 28 Sep 2026) ═══════════════
+   The five exposures set against the company's OWN groupings — category,
+   value stream or owner, one switch — so a reader can see that "every supply
+   contract lets them change the price", which is a playbook change and not a
+   one-contract fix. Pressing a square lists its contracts beside the grid,
+   with the register's own door (regShowOnly) to open them.
+
+   EVERYTHING THE RANKED TABLE PROMISED STILL HOLDS, because the grid is drawn
+   OFF exposureData and never beside it: the same five readings, ranked the
+   same way (value where the reader is shown money, else count), the same one
+   lead, a zero row still stands down, the coverage reading is still counted
+   and still set apart from the five (under a rule, never among them), and
+   the fxMissing rule still leaves an unconvertible contract out of the money
+   and says so.
+
+   A SQUARE'S SHADE IS ITS OWN FIGURE AND NOTHING ELSE — the count, or the
+   value where the reader picks Value. It is NOT a blend of exposures, and the
+   rows are never added into one figure per group: a grid like this is easily
+   mistaken for a heat map of "how risky", and the one thing this page refuses
+   is a number a lawyer cannot derive. The "at least one" row counts each
+   contract ONCE; "two or more" is a plain fact about a contract, never a
+   ranking. The ramp is the ACCENT's, never ruby: ruby on this page is the
+   lead's bar alone.
+
+   COUNTING IS NOT DRAWING. exposureGridData groups and counts, and
+   exposureCellData lists a square; the renderer only prints what they say. */
+const EXP_PG_BY = ['cat','stream','owner'];
+const EXP_PG_STEPS = 4;
+const EXP_PG_LIST = 8;
+/* Per sitting, in memory: which grouping, what a square shows, and which
+   square is picked. `k:null` means "the lead" (or the at-least-one row when
+   nothing leads); `g:null` means every group. */
+const _expPg = { by:'cat', m:'n', k:null, g:null };
+
+/* One contract's money in the home currency — fxHome's answer, and the same
+   `!missing` test _expMoney makes, so a list item and a square can never
+   disagree about whether a contract is in the figure. */
+function _expOne(c){
+  if(typeof fxHome!=='function') return { v:Number((c&&c.value)||0), missing:false };
+  const h=fxHome(c);
+  return (h && h.missing) ? { v:null, missing:true } : { v:(h && h.v) || 0, missing:false };
+}
+/* WHICH GROUP A CONTRACT SITS IN. Each dimension is the product's own reading:
+   category is the record's closed list (metadata.category, labelled by
+   metaOptLabel, "No category yet" where absent — the register's own words);
+   value stream is c.folder named off FOLDERS, and a stream the reader cannot
+   open is NEVER named (visibleFolders); owner is contractOwnerName. An
+   absence is its own group, drawn last, rather than folded into another. */
+function _expGroupOf(c, by, seen){
+  if(by==='owner'){
+    const n=(typeof contractOwnerName==='function') ? contractOwnerName(c) : null;
+    return n ? { key:'o:'+n, label:String(n) } : { key:'', label:i18t('exp_pg_no_owner') };
+  }
+  if(by==='stream'){
+    const F=(typeof FOLDERS==='object' && FOLDERS) ? FOLDERS : {};
+    const id=c && c.folder;
+    if(!id || !F[id]) return { key:'', label:i18t('exp_pg_no_stream') };
+    if(seen && !seen.has(id)) return { key:'~', label:i18t('exp_pg_other_stream') };
+    return { key:'s:'+id, label:String(F[id].name||id) };
+  }
+  const k=(c && c.metadata && c.metadata.category) || '';
+  return k ? { key:'c:'+k, label:String((typeof metaOptLabel==='function') ? metaOptLabel(k) : k) }
+           : { key:'', label:i18t('reg_uncategorised') };
+}
+function exposureGridData(by, d){
+  by = EXP_PG_BY.indexOf(by) < 0 ? 'cat' : by;
+  d = d || exposureData();
+  const live = exposureLive();
+  const byId = new Map(live.map(c=>[c.id, c]));
+  const seen = (typeof visibleFolders==='function')
+    ? new Set((visibleFolders()||[]).map(f=>f && f.id)) : null;
+  const gOf = new Map(), groups = new Map();
+  for(const c of live){
+    const g=_expGroupOf(c, by, seen);
+    gOf.set(c.id, g.key);
+    if(!groups.has(g.key)) groups.set(g.key, { key:g.key, label:g.label, n:0 });
+    groups.get(g.key).n++;
+  }
+  /* Biggest group first, the absences last — the mock-up's order. */
+  const cols = Array.from(groups.values()).sort((a,b)=>
+    ((a.key===''||a.key==='~')?1:0) - ((b.key===''||b.key==='~')?1:0)
+    || b.n - a.n || a.label.localeCompare(b.label));
+  const money = d.money;
+  const pack = ids => {
+    const list = ids.map(id=>byId.get(id)).filter(Boolean);
+    const m = money ? _expMoney(list) : { sum:null, left:0 };
+    return { n:list.length, value:m.sum, left:m.left, ids:list.map(c=>c.id) };
+  };
+  const cellsOf = ids => {
+    const out = {};
+    cols.forEach(g=>{ out[g.key] = pack(ids.filter(id=>gOf.get(id)===g.key)); });
+    return out;
+  };
+  /* How many of the five each contract carries — a plain fact about the
+     contract, read for "two or more" and for the list's "3 of the five". */
+  const times = {};
+  d.rows.forEach(r=>r.ids.forEach(id=>{ times[id]=(times[id]||0)+1; }));
+  const anyIds = live.filter(c=>times[c.id]).map(c=>c.id);
+  const twoIds = live.filter(c=>(times[c.id]||0) > 1).map(c=>c.id);
+  const rows = d.rows.map(r=>({ k:r.k, title:r.title, sub:r.sub, n:r.n, value:r.value,
+    left:r.left, ids:r.ids, lead:d.lead===r.k, cells:cellsOf(r.ids) }));
+  /* THE SHADE: one ramp over the five rows' squares, in EXP_PG_STEPS steps of
+     the largest square — by count, and by value for the Value switch. A square
+     with contracts in it is never shaded as empty. */
+  let maxN = 0, maxV = 0;
+  rows.forEach(r=>cols.forEach(g=>{ const x=r.cells[g.key];
+    if(x.n > maxN) maxN = x.n; if((x.value||0) > maxV) maxV = x.value||0; }));
+  const step = (f, max, n) => !n ? 0
+    : (!(f > 0) || !(max > 0)) ? 1 : Math.min(EXP_PG_STEPS, Math.max(1, Math.ceil(f * EXP_PG_STEPS / max)));
+  rows.forEach(r=>cols.forEach(g=>{ const x=r.cells[g.key];
+    x.stepN = step(x.n, maxN, x.n); x.stepV = money ? step(x.value||0, maxV, x.n) : 0; }));
+  const any = Object.assign({ k:'any', title:i18t('exp_pg_any'), sub:i18t('exp_pg_any_sub') },
+    pack(anyIds), { cells:cellsOf(anyIds) });
+  const unread = Object.assign({ k:'unread', title:i18t('int_exp_unread'), sub:i18t('int_exp_unread_sub') },
+    pack(d.unread.ids), { cells:cellsOf(d.unread.ids) });
+  const two = Object.assign({ k:'two', title:i18t('exp_pg_two') }, pack(twoIds));
+  return { by, money, live:d.live, lead:d.lead, fxLeft:d.fxLeft, cols, rows, any, unread, two, times };
+}
+/* Which square is picked, checked against what the grid now holds: the
+   reader's pick where it still stands, else the lead, else "at least one". */
+function exposureGridPick(G){
+  const all = G.rows.concat([G.any, G.unread]);
+  let k = _expPg.k;
+  const r = all.find(x=>x.k===k);
+  if(!r || !r.n) k = G.lead || 'any';
+  let g = _expPg.g;
+  const row = all.find(x=>x.k===k);
+  if(g != null && (!G.cols.some(c=>c.key===g) || !row || !row.cells[g] || !row.cells[g].n)) g = null;
+  return { k, g };
+}
+/* One square's contracts, largest first where money is shown (else by name):
+   the list beside the grid and the door under it read this and nothing else. */
+function exposureCellData(G, k, g){
+  const row = G.rows.concat([G.any, G.unread, G.two]).find(r=>r.k===k) || null;
+  if(!row) return null;
+  const col = (g == null) ? null : (G.cols.find(c=>c.key===g) || null);
+  const pick = col ? row.cells[col.key] : { n:row.n, value:row.value, left:row.left, ids:row.ids };
+  const byId = new Map(exposureLive().map(c=>[c.id, c]));
+  const items = pick.ids.map(id=>byId.get(id)).filter(Boolean).map(c=>{
+    const h = G.money ? _expOne(c) : { v:null, missing:false };
+    return { id:c.id, who:String(c.counterparty||''), name:String(c.name||''),
+      value:h.v, left:h.missing, read:_expRead(c), carries:G.times[c.id]||0 };
+  });
+  items.sort((a,b)=> (G.money ? ((b.value||0) - (a.value||0)) : 0)
+    || a.who.localeCompare(b.who) || a.name.localeCompare(b.name));
+  const dim = i18t('exp_pg_by_' + G.by);
+  return { k:row.k, title:row.title, g:col ? col.key : null, group:col ? col.label : null, dim,
+    n:pick.n, value:pick.value, left:pick.left, ids:pick.ids, items };
+}
 /* THE RENDERER COMPUTES NOTHING — the page's own rule, so a figure can never
    differ between what is counted and what is drawn. */
 function exposureHtml(){
   const d = exposureData();
   const e = igEsc;
+  const G = exposureGridData(_expPg.by, d);
+  const P = exposureGridPick(G);
+  const S = exposureCellData(G, P.k, P.g);
+  const m = (G.money && _expPg.m==='v') ? 'v' : 'n';
   const money = n => { if(n==null) return ''; try{ return (typeof fmtMoneyShort==='function')?fmtMoneyShort(n):Number(n).toLocaleString(jxLocale()); }catch(_){ return String(n); } };
-  const L='font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:var(--w-title);text-align:left;padding:0 0 7px';
+  /* In a square the currency is said once, in the column head. */
+  const bare = n => money(n).replace(/^[^\d-]+/, '');
+  const cur = (typeof jxCurrency==='function') ? jxCurrency() : '';
+  const star = x => (G.money && x && x.left)
+    ? `<span title="${e(i18t('int_exp_left_out',{n:x.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body)"> *</span>` : '';
+  const nC = n => i18tn('exp_pg_n', n, { n });
+  /* A drawn arrow, never a typed one — `.ui-link > svg` sizes it. */
+  const chev = (typeof icon==='function') ? icon('chevR','',2) : '';
   /* ════ THE LEADING ROW CARRIES THE WEIGHT (Young, 19 Sep 2026) ════════
-     A 3px bar in the margin and the one figure drawn at the leading rung.
-     ONE TONE, AND IT IS RUBY — this product's own word for "this is against
-     you" (the friction brief's KPI cards say so in their own note). The work
-     order asked for ruby above a threshold and amber below it; THERE IS NO
-     SUCH THRESHOLD IN THIS PRODUCT, and inventing one here is the score
-     coming back through a side door, which this page exists to refuse. Said
-     out loud rather than quietly softened.
+     A 3px bar in the margin. ONE TONE, AND IT IS RUBY — this product's own
+     word for "this is against you". The work order asked for ruby above a
+     threshold and amber below it; THERE IS NO SUCH THRESHOLD IN THIS PRODUCT,
+     and inventing one here is the score coming back through a side door,
+     which this page exists to refuse.
 
      THE BAR IS RESERVED ON EVERY ROW, transparent where it does not draw —
-     the arrival strip's own lesson: a bar that appears only on one row would
-     shift that row's words 14px right of the rest. */
+     a bar that appears only on one row would shift that row's words. */
   const BAR = k => `border-left:3px solid ${d.lead===k?'var(--st-ruby-fg)':'transparent'}`;
+
+  const seg = (attr, now, opts, label) => `<div class="doc-read-seg" role="group" aria-label="${e(label)}">${
+    opts.map(([k,l])=>`<button type="button" ${attr}="${k}" aria-pressed="${now===k?'true':'false'}">${e(l)}</button>`).join('')}</div>`;
+  const byCtl = seg('data-exp-by', G.by, EXP_PG_BY.map(k=>[k, i18t('exp_pg_by_'+k)]), i18t('exp_pg_by_label'));
+  const mCtl = G.money ? seg('data-exp-m', m, [['n', i18t('exp_pg_m_n')], ['v', i18t('exp_pg_m_v')]], i18t('exp_pg_m_label')) : '';
+
+  /* THE HEADLINE FIGURES — each a door, a zero never one. */
+  const fact = (x, words, attrs) => {
+    const body = `<b>${x.n}</b> ${e(words)}${(G.money && x.n) ? ' · ' + e(money(x.value)) : ''}${star(x)}`;
+    return x.n ? `<button type="button" class="ui-link exp-pg-fact" ${attrs}>${body}${chev}</button>`
+               : `<span class="exp-pg-fact is-zero">${body}</span>`;
+  };
+  const facts = `<div class="exp-pg-facts">${
+    fact(G.any, i18tn('exp_pg_fact_any', G.any.n, { live:G.live }), 'data-exp-cell="any" data-exp-g="*"')}${
+    fact(G.two, i18tn('exp_pg_fact_two', G.two.n, {}), 'data-exp-go="two"')}${
+    fact(G.unread, i18t('exp_pg_fact_unread'), 'data-exp-cell="unread" data-exp-g="*"')}</div>`;
+
+  const picked = (k, g) => P.k===k && P.g===g;
+  const cell = (r, col) => {
+    const x = r.cells[col.key];
+    const tip = `${r.title} · ${col.label}: ${nC(x.n)}${(G.money && x.n) ? ' · ' + money(x.value) : ''}`;
+    if(!x.n) return `<span class="exp-pg-cell is-none" title="${e(r.title + ' · ' + col.label + ': ' + i18t('exp_pg_none'))}"></span>`;
+    const tone = r.k==='any' ? 'is-any' : r.k==='unread' ? 'is-cov' : ('exp-r' + (m==='v' ? x.stepV : x.stepN));
+    return `<button type="button" class="exp-pg-cell ${tone}${picked(r.k, col.key) ? ' is-sel' : ''}" data-exp-cell="${e(r.k)}" data-exp-g="${e(col.key)}" aria-pressed="${picked(r.k, col.key)}" title="${e(tip)}">${
+      m==='v' ? e(bare(x.value)) : x.n}</button>`;
+  };
   const row = r => {
     const dead = !r.n;                       /* a zero row stands down */
-    const lead = d.lead === r.k;
-    /* A ZERO ROW IS NOT HIDDEN. "No contract in the book has an uncapped
-       indemnity" is a fact worth reading, and hiding it would make the page
-       look like a list of everything that is wrong. It steps BACK instead:
-       the label shade, and no verb, because See all over nothing opens
-       nothing (which is what it already did). */
     const ink = dead ? 'var(--color-neutral-500)' : 'var(--color-text)';
-    return `
-    <tr style="border-top:1px solid var(--rule-faint)">
-      <td style="padding:13px 0 13px 11px;${BAR(r.k)}">
-        <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:${ink}">${e(r.title)}</div>
-        <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:2px">${e(r.sub)}</div>
-      </td>
-      <td style="padding:13px var(--s-3);text-align:right;font-size:var(--t-body);white-space:nowrap;color:${ink}">${r.n}</td>
-      <td data-exp-fig="${e(r.k)}" style="padding:13px var(--s-3);text-align:right;font-size:${
-        lead?'var(--t-section)':'var(--t-body)'};font-weight:var(--w-strong);white-space:nowrap;line-height:var(--lh-tight);color:${ink}">${d.money?e(money(r.value)):''}${
-        (d.money&&r.left)?`<span title="${e(i18t('int_exp_left_out',{n:r.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body);font-size:var(--t-body)"> *</span>`:''}</td>
-      <td style="padding:13px var(--s-3);font-size:var(--t-body);color:var(--color-neutral-700)">${
-        r.worst ? e(r.worst.who || r.worst.name || r.worst.ref || r.worst.id) : '&mdash;'}</td>
-      <td style="padding:13px 0;text-align:right;white-space:nowrap">${
-        r.n ? `<button data-exp-go="${e(r.k)}" type="button" class="ui-link">${
-          e(i18t('int_exp_see_all'))}</button>` : ''}</td>
-    </tr>`;
+    const tot = `<b>${r.n}</b>${(G.money && r.n) ? ' · ' + e(bare(r.value)) : ''}${star(r)}`;
+    return `<span class="exp-pg-rl" data-exp-row="${e(r.k)}" style="${BAR(r.k)};color:${ink}" title="${e(r.title + ' — ' + r.sub)}">${e(r.title)}<small>${e(r.sub)}</small></span>${
+      G.cols.map(col=>cell(r, col)).join('')}${
+      r.n ? `<button type="button" class="exp-pg-tot${picked(r.k, null) ? ' is-sel' : ''}" data-exp-cell="${e(r.k)}" data-exp-g="*" aria-pressed="${picked(r.k, null)}">${tot}</button>`
+          : `<span class="exp-pg-tot" style="color:${ink}">${tot}</span>`}`;
   };
-  /* ════ THE UNREAD ROW IS NOT AN EXPOSURE ══════════════════════
-     *Not read closely enough to say* is a statement about HaTi's OWN
-     coverage, never about the contracts — the reading above says so in its
-     own words ("it is the last row instead, which is the honest one") and
-     then drew it as a sixth exposure anyway, ranked among them and competing
-     with them for the eye. It is a line beneath the table now, with its one
-     door. The DATA is byte-identical: `d.unread` is unchanged and the door
-     still carries `data-exp-go="unread"`, so the wire needs no branch. */
-  const u = d.unread;
-  const coverage = `
-    <p style="margin:var(--s-3) 0 0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:var(--t-meta);line-height:1.6">
-      <span style="color:var(--color-text);font-weight:var(--w-strong)">${e(i18t('int_exp_unread'))}</span>
-      <span style="color:var(--color-neutral-600)">${e(i18t('int_exp_unread_sub'))}</span>
-      <span style="color:var(--color-text);font-weight:var(--w-strong);white-space:nowrap">${u.n}${
-        (d.money&&u.value!=null)?' · '+e(money(u.value)):''}${
-        (d.money&&u.left)?`<span title="${e(i18t('int_exp_left_out',{n:u.left}))}" style="color:var(--st-amber-fg);font-weight:var(--w-body)"> *</span>`:''}</span>${
-      u.n ? `<button data-exp-go="unread" type="button" class="ui-link">${
-        e(i18t('int_exp_read_them'))}</button>` : ''}
-    </p>`;
-  /* THE ASTERISK EARNS A WORD. It keeps its hover, and the page says once how
-     many contracts no figure above could carry. */
+  const head = `<span></span>${G.cols.map(col=>`<span class="exp-pg-hd" title="${e(col.label)}">${e(col.label)}<small>${e(i18t('exp_pg_live', { n:col.n }))}</small></span>`).join('')}<span class="exp-pg-hd is-tot">${
+    e(G.money ? i18t('exp_pg_all_money', { cur }) : i18t('exp_pg_all'))}</span>`;
+  const grid = `<div class="exp-pg-scroll" id="exp-pg-scroll"><div class="exp-pg-mx" style="grid-template-columns:minmax(190px,240px) repeat(${G.cols.length},minmax(60px,1fr)) 104px">${
+    head}${G.rows.map(row).join('')}<span class="exp-pg-sep"></span>${row(G.any)}${row(G.unread)}</div></div>`;
+  const legend = `<div class="exp-pg-legend">
+      <span><span class="exp-pg-ramp"><i class="exp-r1"></i><i class="exp-r2"></i><i class="exp-r3"></i><i class="exp-r4"></i></span>${e(i18t(m==='v' ? 'exp_pg_ramp_v' : 'exp_pg_ramp_n'))}</span>
+      <span><i class="exp-pg-key is-cov"></i>${e(i18t('int_exp_unread'))}</span>
+      <span><i class="exp-pg-key is-none"></i>${e(i18t('exp_pg_none'))}</span>
+    </div>`;
+  /* THE ASTERISK EARNS A WORD — once, for the whole page. */
   const fxLine = d.fxLeft ? `
-    <p style="margin:6px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6"><span style="color:var(--st-amber-fg)">*</span> ${
+    <p class="exp-pg-note"><span style="color:var(--st-amber-fg)">*</span> ${
       e(i18tn('int_exp_fx_line', d.fxLeft, { n:d.fxLeft }))}</p>` : '';
+
+  /* THE SQUARE'S CONTRACTS, beside the grid. Every name opens its contract;
+     the door under them opens the whole square in Contracts. */
+  const side = !S || !S.n ? `<aside class="exp-pg-card exp-pg-side"><p class="exp-pg-empty">${e(i18t('exp_pg_nothing'))}</p></aside>` : `
+    <aside class="exp-pg-card exp-pg-side" aria-live="polite">
+      <div class="exp-pg-lbl">${e(S.group == null ? i18t('exp_pg_every') : i18t('exp_pg_sel_in', { dim:S.dim, group:S.group }))}</div>
+      <div class="exp-pg-sel-t">${e(S.title)}</div>
+      <div class="exp-pg-sel-s">${e(nC(S.n))}${G.money ? ' · ' + e(money(S.value)) + star(S) + ' · ' + e(i18t('exp_pg_largest_first')) : ''}</div>
+      <div class="exp-pg-list">${S.items.slice(0, EXP_PG_LIST).map(it=>`
+        <button type="button" class="exp-pg-li" data-exp-one="${e(it.id)}" title="${e(it.who ? it.who + ' — ' + it.name : it.name)}">
+          <span class="exp-pg-who">${e(it.who || it.name || it.id)}</span>
+          <span class="exp-pg-v">${G.money ? (it.left ? '<span style="color:var(--st-amber-fg)">*</span>' : e(money(it.value))) : ''}</span>
+          <span class="exp-pg-sub">${e(it.name)}${it.read ? '' : ' · ' + e(i18t('exp_pg_not_read'))}</span>
+          <span class="exp-pg-sub is-r">${it.carries > 1 ? e(i18t('exp_pg_of_five', { n:it.carries })) : ''}</span>
+        </button>`).join('')}</div>
+      ${S.items.length > EXP_PG_LIST ? `<div class="exp-pg-more">${e(i18t('exp_pg_more', { n:S.items.length - EXP_PG_LIST }))}</div>` : ''}
+      <button type="button" class="ui-link exp-pg-open" data-exp-open="1">${e(i18tn('exp_pg_open', S.n, { n:S.n }))}${chev}</button>
+    </aside>`;
+
   return `
-  <section style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:20px var(--s-6) var(--s-4)">
-    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:var(--s-3)">
-      <h2 style="margin:0;font-family:var(--font-heading);font-size:var(--t-section);font-weight:var(--w-strong)">${e(i18t('int_exp_head'))}</h2>
-      <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${e(i18t('int_exp_head_sub'))}</span>
+  <section class="exp-pg">
+    <div class="exp-pg-cols">
+      <div class="exp-pg-card exp-pg-main">
+        <div class="exp-pg-head">
+          <h2>${e(i18t('exp_pg_head'))}</h2>
+          <span class="exp-pg-head-sub">${e(i18t('exp_pg_head_sub'))}</span>
+          <span class="exp-pg-ctl">${byCtl}${mCtl}</span>
+        </div>
+        ${facts}
+        ${grid}
+        ${legend}${fxLine}
+        <p class="exp-pg-note">${e(i18t('exp_pg_foot'))}</p>
+      </div>
+      ${side}
     </div>
-    <table style="width:100%;border-collapse:collapse">
-      <thead><tr>
-        <th style="${L};padding-left:14px">${e(i18t('int_exp_col_kind'))}</th>
-        <th style="${L};text-align:right;padding-right:var(--s-3)">${e(i18t('int_exp_col_n'))}</th>
-        <th style="${L};text-align:right;padding-right:var(--s-3)">${d.money?e(i18t('int_exp_col_value')):''}</th>
-        <th style="${L};padding-left:var(--s-3)">${e(i18t('int_exp_col_worst'))}</th>
-        <th style="${L}"></th>
-      </tr></thead>
-      <tbody>${d.rows.map(row).join('')}</tbody>
-    </table>
-    ${coverage}${fxLine}
-    <p style="margin:var(--s-3) 0 0;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.6">${e(i18t('int_exp_foot'))}</p>
   </section>`;
 }
-/* EVERY ROW IS A DOOR, and it is the door the rest of this page already uses:
-   regShowOnly, the named-set filter, which SAYS on the Contracts page what it
-   is narrowed to and carries the way back on the same chip. Nothing here is a
-   number you cannot open. */
+/* Set the grid's switches and paint the body again, keeping the reader's
+   place — the body's own scroll and the grid's sideways scroll. */
+function exposureGridSet(patch){
+  Object.assign(_expPg, patch || {});
+  const host = document.getElementById('ig-exp-body');
+  if(!host) return;
+  const sx = document.getElementById('exp-pg-scroll');
+  const left = sx ? sx.scrollLeft : 0, top = host.scrollTop;
+  host.innerHTML = exposureHtml();
+  host.scrollTop = top;
+  const sx2 = document.getElementById('exp-pg-scroll');
+  if(sx2) sx2.scrollLeft = left;
+}
+/* EVERY FIGURE IS A DOOR, and the door out is the one the rest of this page
+   already uses: regShowOnly, the named-set filter, which SAYS on the Contracts
+   page what it is narrowed to and carries the way back on the same chip. A
+   square's press only picks it; a name opens its contract. Delegated on the
+   body, bound ONCE, and every press re-reads the live figures. */
 function exposureWire(){
-  document.querySelectorAll('[data-exp-go]').forEach(b=>b.addEventListener('click',()=>{
-    const k=b.getAttribute('data-exp-go');
-    const d=exposureData();
-    const r=(k==='unread') ? { ids:d.unread.ids, title:i18t('int_exp_unread') }
-                           : (d.rows.find(x=>x.k===k)||null);
+  const host = document.getElementById('ig-exp-body');
+  if(!host || host.dataset.expWired) return;
+  host.dataset.expWired = '1';
+  host.addEventListener('click', ev=>{
+    const b = ev.target && ev.target.closest && ev.target.closest('[data-exp-by],[data-exp-m],[data-exp-cell],[data-exp-go],[data-exp-open],[data-exp-one]');
+    if(!b || !host.contains(b)) return;
+    if(b.hasAttribute('data-exp-by')) return exposureGridSet({ by:b.getAttribute('data-exp-by'), g:null });
+    if(b.hasAttribute('data-exp-m')) return exposureGridSet({ m:b.getAttribute('data-exp-m') });
+    if(b.hasAttribute('data-exp-cell')){
+      const g = b.getAttribute('data-exp-g');
+      return exposureGridSet({ k:b.getAttribute('data-exp-cell'), g:(g==='*' || g==null) ? null : g });
+    }
+    if(b.hasAttribute('data-exp-one')){
+      const id = b.getAttribute('data-exp-one');
+      if(id && typeof selectContract==='function') selectContract(id);
+      return;
+    }
+    const d = exposureData();
+    const G = exposureGridData(_expPg.by, d);
+    let r = null;
+    if(b.hasAttribute('data-exp-open')){
+      const P = exposureGridPick(G);
+      const S = exposureCellData(G, P.k, P.g);
+      r = S ? { ids:S.ids, title:S.group == null ? S.title : S.title + ' · ' + S.group } : null;
+    } else {
+      const k = b.getAttribute('data-exp-go');
+      r = (k==='unread') ? { ids:d.unread.ids, title:i18t('int_exp_unread') }
+        : (k==='two') ? { ids:G.two.ids, title:G.two.title }
+        : (d.rows.find(x=>x.k===k)||null);
+    }
     if(!r || !r.ids || !r.ids.length) return;
     if(typeof regShowOnly==='function') regShowOnly(r.ids, r.title);
-  }));
+  });
 }
+Object.assign(window,{EXP_PG_BY,EXP_PG_STEPS,EXP_PG_LIST,exposureGridData,exposureGridPick,exposureCellData,exposureGridSet});
 
 function intelObligationsData(){
   const S=(window.state&&Array.isArray(state.contracts))?state.contracts:[];
@@ -3951,49 +4460,26 @@ function intelObligationsData(){
      doing has no deliverables, and an archived record is filed, not live. */
   const live=S.filter(c=>c&&c.status!=='Declined'&&!c.archived);
 
-  /* WHO THE MAIL WOULD REACH, resolved exactly as the server's
-     obligationRecipient does: email first, then name, case-insensitively, and
-     only where the member has an address to write to. The whole roster is in
-     every browser already (the reviewer picker and the approval rules need
-     it), so this needs no route — but it must stay the SAME reading, or the
-     page and the sweep disagree about who gets told. */
-  /* ---- ONE READING, RE-POINTED 29 Aug 2026 (J-2.1) ----
-     This page worked the resolution out for itself when it was built, and the
-     Obligations tab then needed the same answer. Two answers to "will anybody
-     be told" is exactly how a page comes to contradict the sweep that sends
-     the mail, so it is `obligationReminderTo` in js/obligations.js now — the
-     same rule, in one place, asked by both. Read through window because this
-     module draws on stages where that file is not loaded; without it the
-     fallback below answers "nobody resolves", which over-reports silence
-     rather than under-reporting it, and that is the safe direction on a page
-     whose whole subject is what goes unsaid. */
-  const resolves=a=>{
-    if(typeof window.obligationReminderTo!=='function') return false;
-    return !!obligationReminderTo({ assignee:a });
-  };
-
-  /* THE CONTRACT'S OWNER, AS OUR PROMISES WRITES TO THEM: the stored id
-     first, the name second, a member with an address (the server's
-     contractOwnerRecipient). */
-  const ownerReaches=c=>{
-    const ow=c&&c.owner; if(!ow) return false;
-    let us=[]; try{ us=(typeof window.getUsers==='function')?(getUsers()||[]):[]; }catch(_){ us=[]; }
-    const hit=ow.id!=null?us.find(u=>u&&String(u.id)===String(ow.id)):null;
-    if(hit) return /.+@.+\..+/.test(String(hit.email||'').trim());
-    return resolves(ow.name||'');
-  };
-  const dueOf=o=>(typeof obligationDue==='function')?obligationDue(o):(((o&&o.due)||null));
+  /* WHO THE MAIL WOULD REACH, AND WHEN, IS obReminderOf's — above, beside
+     the sweep's own milestones. It was worked out inline here until the
+     Reminder Line (28 Sep 2026) drew the same answer as dots and windows:
+     one predicate, asked once per obligation, feeds both the counts and the
+     picture, so the two cannot disagree about who is told. */
   const stateOf=o=>(typeof obState==='function')?obState(o):((o&&o.status)==='done'?'done':'open');
-  const isTheirs=o=>(typeof obligationIsTheirs==='function')?obligationIsTheirs(o):((o&&o.party)==='theirs');
+  /* THE KEY EVERY DOOR NARROWS BY is the Obligations list's own (obKeyOf), so
+     a figure here opens exactly the rows it counted. Absent on a stage without
+     js/obligations.js, where there is no list to open either. */
+  const keyOf=(c,o,i)=>(typeof window.obKeyOf==='function')?obKeyOf(c.id,o,i):null;
 
   let total=0, open=0, done=0, overdue=0, silent=0, reasonSum=0;
   const why={ nodate:0, unreadable:0, noowner:0, gone:0, spent:0 };
   const ages=[0,0,0,0];                    // 1–4 · 5–30 · 31–90 · 90+ days overdue
-  const months=new Map();                  // 'YYYY-MM' → {ours, theirs}
-  const chase=new Map();                   // counterparty → what they owe us
-  const owners=new Map();                  // our side, by the person carrying it
   const repeat={ monthly:0, quarterly:0, annual:0 };
   let repeatTotal=0, ahead=0, aheadOurs=0, aheadTheirs=0;
+  /* THE SETS BEHIND EVERY FIGURE — the keys a door narrows the Obligations
+     list to, and the contract ids for the one figure that counts contracts. */
+  const keys={ silent:[], overdue:[], ahead:[], ontime:[], stopped:[], ours:[], theirs:[] };
+  const coverIds=[];
   /* J-2.2: the record carries `obligationsReadAt` now, stamped by the scan and
      by nothing else, so the contracts with nothing on file finally split — one
      read and genuinely clear, one nobody has ever opened. ABSENCE IS "NO
@@ -4008,19 +4494,38 @@ function intelObligationsData(){
      because an inferred date is a guess wearing a fact's clothes. */
   const ontime={ on:0, late:0, unknown:0 };
 
+  /* ---- THE LANES (the Reminder Line, owner-picked 28 Sep 2026) ----
+     One lane per person carrying an obligation — on OUR side the colleague
+     who owes it, on THEIRS the colleague watching it — and one for nobody.
+     A person is one lane however their name was typed: the lane is keyed on
+     the member the mail resolves to, and on the typed name only where
+     nobody resolves. */
+  const lanes={ ours:new Map(), theirs:new Map() };
+  const laneOf=(side,r)=>{
+    const k=r.memberId?'u:'+r.memberId:(r.typed?'n:'+r.typed.toLowerCase():'');
+    let L=lanes[side].get(k);
+    if(!L){
+      L={ key:k, side, name:r.owned?r.memberName:r.typed, named:!!r.typed, owned:r.owned,
+        n:0, dots:[], later:[], nodate:[], keys:[], viaOwner:0, unreached:0, first:r.first, last:r.last };
+      lanes[side].set(k,L);
+    }
+    return L;
+  };
+
   live.forEach(c=>{
     const list=(c.obligations||[]);
     if(list.length) cover.withOb++;
     else {
-      cover.none++;
+      cover.none++; coverIds.push(c.id);
       if(c.obligationsReadAt) cover.noneClear++; else cover.noneUnknown++;
       if(c.status==='Signed') cover.noneSigned++;
       else if(c.status==='Under Review') cover.noneReview++;
       else if(c.status==='Draft') cover.noneDraft++;
       else cover.noneOther++;
     }
-    list.forEach(o=>{
+    list.forEach((o,i)=>{
       total++;
+      const key=keyOf(c,o,i);
       if(stateOf(o)==='done'){
         done++;
         /* ON TIME, LATE, OR UNANSWERABLE — obligationOnTime is the one reading
@@ -4030,6 +4535,7 @@ function intelObligationsData(){
            completion date would be the fault this whole page exists to name. */
         const ot=(typeof window.obligationOnTime==='function')?obligationOnTime(o):null;
         if(ot===true) ontime.on++; else if(ot===false) ontime.late++; else ontime.unknown++;
+        if(ot!=null&&key) keys.ontime.push(key);
         /* MARKED REPEATING, AND SINCE J-2.2 IT REALLY DOES REPEAT — completing
            an instance opens the next one on the same cadence. The reading is
            unchanged and is what makes that safe: a commitment counts as
@@ -4040,100 +4546,102 @@ function intelObligationsData(){
         if(cad!=='none'&&Object.prototype.hasOwnProperty.call(repeat,cad)){
           const d=String((o&&o.desc)||'').trim().toLowerCase();
           const alive=list.some(x=>x!==o&&String((x&&x.desc)||'').trim().toLowerCase()===d&&stateOf(x)!=='done');
-          if(!alive){ repeat[cad]++; repeatTotal++; }
+          if(!alive){ repeat[cad]++; repeatTotal++; if(key) keys.stopped.push(key); }
         }
         return;
       }
       open++;
-      const raw=String((o&&o.due)||'').trim();
-      const due=dueOf(o);
-      const od=due?daysUntil(due):null;
-      const named=!!String((o&&o.assignee)||'').trim();
-      const owned=resolves(o&&o.assignee);
-
-      /* ---- WILL A REMINDER REACH THE PERSON WHO OWES THIS, EVER AGAIN? ----
-         No readable date and nothing fires at all. Nobody the mail resolves to
-         and nothing ever reaches a person who owes it — the one admin note on
-         day 1 is a note to a bystander, not a reminder to an owner. Past the
-         last milestone and every mail has already gone. */
-      const bad=(due==null);
-      const ours=!isTheirs(o);
-      const reach=owned||(ours&&ownerReaches(c));
-      const last=ours?OB_LAST_OURS:OB_LAST_OWNED;
-      const spent=(due!=null&&od!=null&&od<(ours?OB_LAST_OURS:owned?OB_LAST_OWNED:OB_LAST_UNOWNED));
-      const quiet=bad||!reach||(od!=null&&od<last);
-      if(quiet){
+      const r=obReminderOf(o,c);
+      const od=r.od, due=r.due;
+      if(r.quiet){
         silent++;
-        const r=[];
-        if(bad) r.push(raw?'unreadable':'nodate');
-        if(!reach){ if(!named) r.push('noowner'); else if(!owned) r.push('gone'); }
-        if(spent) r.push('spent');
-        r.forEach(k=>{ why[k]++; });
-        reasonSum+=r.length;
+        r.why.forEach(k=>{ why[k]++; });
+        reasonSum+=r.why.length;
+        if(key) keys.silent.push(key);
       }
 
       if(due!=null&&od!=null&&od<0){
         overdue++;
+        if(key) keys.overdue.push(key);
         const a=-od;
         if(a<=4) ages[0]++; else if(a<=30) ages[1]++; else if(a<=90) ages[2]++; else ages[3]++;
       }
 
       if(due!=null&&od!=null&&od>=0&&od<=OB_HORIZON){
         ahead++;
-        const k=due.slice(0,7);
-        const m=months.get(k)||{key:k,ours:0,theirs:0};
-        if(isTheirs(o)){ m.theirs++; aheadTheirs++; } else { m.ours++; aheadOurs++; }
-        months.set(k,m);
-        if(isTheirs(o)){
-          const cp=String((c&&c.counterparty)||'').trim()||'—';
-          const e=chase.get(cp)||{name:cp,n:0,soonest:null,what:[]};
-          e.n++;
-          if(!e.soonest||due<e.soonest) e.soonest=due;
-          if(e.what.length<2&&(o&&o.desc)) e.what.push(String(o.desc));
-          chase.set(cp,e);
-        }
+        if(key) keys.ahead.push(key);
+        if(r.ours) aheadOurs++; else aheadTheirs++;
       }
 
-      /* WHO IS CARRYING WHAT is OUR side only: we hold no staff list for the
-         counterparty and are not going to keep one, so "theirs" has no owner
-         to group by — which is exactly why the chase list above exists. */
-      if(!isTheirs(o)){
-        const nm=String((o&&o.assignee)||'').trim();
-        const e=owners.get(nm)||{name:nm,n:0,over:0,resolves:nm?owned:false};
-        e.n++;
-        if(od!=null&&od<0) e.over++;
-        owners.set(nm,e);
-      }
+      /* ---- ONTO ITS LANE, AS A DOT THE PREDICATE ALREADY DECIDED ----
+         `told` IS `!quiet` and nothing else: a hollow dot is exactly an
+         obligation the headline counts. Undated ones are listed, not drawn —
+         there is no day to put them on. Past the horizon they are counted on
+         the lane and drawn on no day either. */
+      const side=r.ours?'ours':'theirs';
+      if(key) keys[side].push(key);
+      const L=laneOf(side,r);
+      L.n++;
+      if(key) L.keys.push(key);
+      if(!r.reach) L.unreached++;
+      else if(r.to==='owner') L.viaOwner++;
+      const dot={ key, cid:c.id, desc:String((o&&o.desc)||''), cp:String((o&&o.counterparty)||c.counterparty||''),
+        contract:String(c.name||''), due, raw:r.raw, od, told:!r.quiet, why:r.why.slice(),
+        to:r.to, toName:r.toName, typed:r.typed, ours:r.ours };
+      if(due==null) L.nodate.push(dot);
+      else if(od>OB_HORIZON) L.later.push(dot);
+      else L.dots.push(dot);
     });
   });
 
-  /* THE UNASSIGNED PILE SORTS FIRST ON PURPOSE: it is the only row on that
-     panel nobody is being emailed about. Everyone else by load, heaviest
-     first, and a name that no longer resolves keeps its place with its own
-     mark rather than being folded into "nobody". */
-  const ownerRows=[...owners.values()].sort((a,b)=>
-    (a.name?1:0)-(b.name?1:0) || b.n-a.n || String(a.name).localeCompare(String(b.name)));
-  const chaseRows=[...chase.values()].sort((a,b)=>
-    String(a.soonest||'9999').localeCompare(String(b.soonest||'9999')) || b.n-a.n);
-  const monthRows=[...months.values()].sort((a,b)=>a.key.localeCompare(b.key));
+  /* ---- THE WINDOW A LANE DRAWS IS THE PREDICATE'S OWN ----
+     Drawn only where EVERY obligation on the lane reaches somebody: a lane of
+     one colleague the sweep can write to, or of promises whose contracts'
+     owners all can be — so a hollow dot never sits in a window claiming that
+     person is emailed about it. `first`/`last` came off obReminderOf. */
+  /* THE APPROVED DRAWING'S ORDER, in both groups: the colleagues the mail
+     can reach, then nobody's pile, then names the mail cannot reach — so the
+     lanes read from "told" down to "told nobody". Heaviest first inside each,
+     so the one person carrying too much is the first of them read. A cap is
+     a fact: past OB_ROWS+1 lanes the rest share ONE lane that says how many
+     people it holds, and every dot is still drawn. */
+  const rank=l=>l.owned?0:(!l.named?1:2);
+  const laneRows=side=>{
+    const all=[...lanes[side].values()].sort((a,b)=>
+      rank(a)-rank(b) || b.n-a.n || String(a.name).localeCompare(String(b.name)));
+    const cap=OB_ROWS+1;
+    let rows=all;
+    if(all.length>cap){
+      const rest=all.slice(cap-1);
+      const m={ key:'more', side, name:'', named:true, owned:rest.every(l=>l.owned), more:rest.length,
+        n:0, dots:[], later:[], nodate:[], keys:[], viaOwner:0, unreached:0, first:rest[0].first, last:rest[0].last };
+      rest.forEach(l=>{ m.n+=l.n; m.dots.push(...l.dots); m.later.push(...l.later); m.nodate.push(...l.nodate);
+        m.keys.push(...l.keys); m.viaOwner+=l.viaOwner; m.unreached+=l.unreached; });
+      rows=all.slice(0,cap-1).concat([m]);
+    }
+    return rows.map(l=>Object.assign(l,{
+      band:(l.n>0&&l.unreached===0)?{ first:l.first, last:l.last }:null,
+      laterKeys:l.later.map(d=>d.key).filter(Boolean),
+      nodateKeys:l.nodate.map(d=>d.key).filter(Boolean),
+    }));
+  };
 
   return {
     contracts:live.length, total, open, done, overdue,
     silent, why, reasonSum, silentOverlap:Math.max(0,reasonSum-silent),
     ages, pastBoth:ages[2]+ages[3],
-    ahead, aheadOurs, aheadTheirs, months:monthRows,
-    chase:chaseRows.slice(0,OB_ROWS),
-    chaseMore:Math.max(0,chaseRows.length-OB_ROWS),
-    chaseMoreN:chaseRows.slice(OB_ROWS).reduce((s,r)=>s+r.n,0),
-    owners:ownerRows.slice(0,OB_ROWS+1),
-    ownersMore:Math.max(0,ownerRows.length-(OB_ROWS+1)),
-    repeat, repeatTotal, cover,
-    /* SAID OUT LOUD, not guessed: neither of these is on the record today. */
-    ontime,
+    ahead, aheadOurs, aheadTheirs, horizon:OB_HORIZON,
+    repeat, repeatTotal, cover, coverIds,
+    ontime, keys,
+    lanes:{ ours:laneRows('ours'), theirs:laneRows('theirs') },
+    /* The line's own furniture, read off the sweep's milestones rather than
+       typed into the renderer: where the daily brief lets go, and where the
+       first mail goes out. */
+    briefFloor:OB_BRIEF_FLOOR, firstDays:OB_FIRST_DAYS,
     /* BOTH CLOSED 29 Aug 2026 (J-2.2). They were `false` and said so on the
        cards; the fields exist now, so the panels are real. What is still not
-       on the record — who owns a duty on THEIR side — is deliberate and stays
-       in the footer. */
+       on the record — who owns a duty on THEIR side — is deliberate, and the
+       lane for their side says so ("nobody on our side named"). */
     canSeeScan:true, canSeeCompletedOn:true,
   };
 }
@@ -4166,16 +4674,18 @@ const obFlag=(txt,bg,fg)=>`<span style="font-size:var(--t-figure);font-weight:va
    so the pair stays tellable apart whichever brand is on; a second accent-ish
    hue would collapse into the accent in one of them, which is the trap the
    calendar's own legend already paid for once.
-   On the AGE chart colour answers a different question — is anything still
-   being sent? — so the first two bars are amber and the last two ruby, and the
-   line under them says where the cut falls. Every bar carries its own figure
-   and every legend spells the count out, so no reading rests on the hue. */
+   The pair is the payment-terms tab's now: since the Reminder Line (28 Sep
+   2026) the obligations page's one colour question is "will anybody be
+   told" — green filled, ruby hollow — and the SHAPE (filled or hollow) says
+   it too, so no reading rests on the hue. */
 /* A MONTH IS A WORD, so it follows the reader's LANGUAGE and not the market's
    (langLocale), and it carries its whole YEAR — "Jan" on an axis beside a
    calendar showing next January is two surfaces that read as though they
    disagree. portfolio.js's pfMonthLabel says the same thing and cannot be
    borrowed: it takes an OFFSET from this month, and these keys are calendar
-   months off the obligations themselves. */
+   months off the obligations themselves.
+   NO CALLER SINCE THE REMINDER LINE (28 Sep 2026), which prints DAYS through
+   obDay; kept published because it is a correct reading f247 still pins. */
 function obMonthLabel(key){
   const m=/^(\d{4})-(\d{2})$/.exec(String(key||''));
   if(!m) return String(key||'');
@@ -4185,9 +4695,32 @@ function obMonthLabel(key){
 }
 const OB_OURS='var(--accent-solid,var(--color-accent))';
 const OB_THEIRS='var(--st-amber-dot,#f59e0b)';
-const OB_REACHED='var(--st-amber-dot,#f59e0b)';
-const OB_UNREACHED='var(--st-ruby-dot,#e11d48)';
 
+/* ════ THE REMINDER LINE (owner-picked by name, 28 Sep 2026) ════════════════
+   *"Reminder Line"* off three drawn options (Silence First · Reminder Line ·
+   Who Owes What), then "build". Every open obligation is a dot on the day it
+   falls due, in a lane for the person carrying it — our colleague who owes
+   it, or the colleague watching what they owe us — and one lane for nobody.
+   A green window in a lane is when the reminder emails about a due date
+   sitting there go out; a hollow dot will never be emailed about; overdue
+   sits left of the Today line. Six tiles under it carry today's other
+   readings, each a door.
+
+   IT DRAWS AND COUNTS NOTHING. Every dot, window and figure is
+   intelObligationsData's, and hollow/filled and the window are obReminderOf's
+   — the ONE predicate the headline count asks too.
+
+   THE DESIGNER'S NAMED LIMIT, KEPT: why a dot is silent is only in its hover.
+   The hover says it in plain words (the reason, never a code), and so does
+   the dot's own label for a reader who cannot hover.
+
+   EVERY DOT AND FIGURE IS A DOOR, AND A ZERO IS NOT ONE. A dot opens its
+   obligation in its own place (the contract's Obligations tab, that row
+   picked — obOpenContract). A figure opens the Obligations list showing
+   exactly the obligations it counted (obwGoFiltered's `only`, keyed the list's
+   own way, obKeyOf), and "Nothing recorded" opens those contracts on the
+   Contracts list (regShowOnly). The sets are the ones this paint drew. */
+const _obRlDoors=new Map();
 function intelObligationsHtml(){
   const d=intelObligationsData();
   const E=igEsc;
@@ -4196,245 +4729,192 @@ function intelObligationsHtml(){
     <div style="max-width:560px;margin:var(--s-10) auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.6">
     <b style="color:var(--color-text)">${i18t('int_ob_none')}</b><br/>${i18t('int_ob_none_why')}</div></div>`;
 
-  /* ---- the hero: what is quiet, and why ---- */
-  const RULE='border-bottom:1px solid var(--color-divider)';
-  const reasons=[
-    ['nodate',    i18t('int_ob_r_nodate'),     i18t('int_ob_r_nodate_why')],
-    ['noowner',   i18t('int_ob_r_noowner'),    i18t('int_ob_r_noowner_why')],
-    ['spent',     i18t('int_ob_r_spent'),      i18t('int_ob_r_spent_why')],
-    ['gone',      i18t('int_ob_r_gone'),       i18t('int_ob_r_gone_why')],
-    ['unreadable',i18t('int_ob_r_unreadable'), i18t('int_ob_r_unreadable_why')],
-  ].map(([k,label,why])=>({k,label,why,v:d.why[k]||0}))
-   .filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
-  const rmax=reasons.length?reasons[0].v:1;
-  const bar=(w,fill)=>`<span style="display:block;height:7px;margin-top:5px;border-radius:var(--radius);background:var(--color-neutral-100);overflow:hidden"><span style="display:block;height:100%;width:${Math.max(2,Math.round(w))}%;border-radius:var(--radius);background:${fill}"></span></span>`;
-  const reasonRows=reasons.map(r=>`<div style="display:grid;grid-template-columns:1fr 46px;gap:9px;align-items:center;padding:7px 0;${RULE}">
-    <span style="min-width:0"><span style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text)">${E(r.label)}</span>
-      <span style="font-size:var(--t-label);color:var(--color-neutral-600)"> — ${E(r.why)}</span>
-      ${bar(r.v/rmax*100, OB_UNREACHED)}</span>
-    <span style="text-align:right;font-size:var(--t-section);${OB_NUM}">${n(r.v)}</span></div>`).join('');
-  const heroShare=d.open?Math.round(d.silent/d.open*1000)/10:0;
-  const hero=`<section style="${OB_CARD};display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.35fr);gap:var(--s-3) 26px;padding:15px 17px">
-    <div style="min-width:0;max-width:46ch">
-      <div style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${i18t('int_ob_hero_k')}</div>
-      <div style="${OB_NUM};font-size:44px;line-height:1.02;margin:2px 0 6px;color:${d.silent?'var(--st-ruby-fg,#b91c1c)':'var(--color-text)'}">${n(d.silent)}</div>
-      <p style="font-size:var(--t-body);line-height:1.55;color:var(--color-neutral-800);margin:0">${
-        d.silent
-          ? i18t('int_ob_hero_say',{n:n(d.silent),total:n(d.open)})
-          : i18t('int_ob_hero_clear',{total:n(d.open)})}</p>
-      <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:8px;font-variant-numeric:tabular-nums">${
-        i18t('int_ob_hero_of',{pct:heroShare, open:n(d.open), contracts:n(d.contracts)})}</div>
+  /* ---- the doors: a set remembered under an id, pressed by the wire ---- */
+  _obRlDoors.clear();
+  const listDoor=typeof window.obwGoFiltered==='function';
+  const regDoor=typeof window.regShowOnly==='function';
+  const doorOf=(id,spec)=>{
+    const set=spec.kind==='contracts'?spec.ids:spec.keys;
+    if(!set||!set.length) return null;
+    if(spec.kind==='contracts'?!regDoor:!listDoor) return null;
+    _obRlDoors.set(id,spec);
+    return id;
+  };
+  /* A figure in a column: an em-dash for zero, a door otherwise. */
+  const figHtml=(id,v,keys,label,tip,ruby)=>{
+    if(!v) return '&mdash;';
+    const door=doorOf(id,{ kind:'obligations', keys, label, state:'open' });
+    return door
+      ? `<button type="button" class="ob-rl-fig${ruby?' is-ruby':''}" data-ob-rl-door="${door}" title="${E(tip)}">${n(v)}</button>`
+      : `<span title="${E(tip)}">${n(v)}</span>`;
+  };
+
+  /* ---- the line's scale: the report's own horizon either side of today ---- */
+  const H=d.horizon;
+  const X=off=>((Math.max(-H,Math.min(H,off))+H)/(2*H)*100);
+  /* A LOCAL day, like todayISO — never toISOString, which is UTC. */
+  const isoAt=off=>{ const t=new Date(); t.setHours(0,0,0,0); t.setDate(t.getDate()+off);
+    return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`; };
+  const dayWord=iso=>(typeof window.obDay==='function'&&obDay(iso))||(typeof regDotDate==='function'?regDotDate(iso):iso);
+  const pct=v=>Math.round(v*100)/100;
+
+  /* ---- a dot's hover: what it is, when, and who is told — or why nobody ---- */
+  const whyWords=dt=>dt.why.map(k=>
+      k==='nodate'?i18t('ob_rl_why_nodate')
+    : k==='unreadable'?i18t('ob_rl_why_unreadable',{ raw:dt.raw })
+    : k==='noowner'?i18t(dt.ours?'ob_rl_why_noowner_ours':'ob_rl_why_noowner_theirs')
+    : k==='gone'?i18t(dt.ours?'ob_rl_why_gone_ours':'ob_rl_why_gone_theirs',{ who:dt.typed })
+    : i18t('ob_rl_why_spent')).join('; ');
+  const dotSay=dt=>{
+    const head=[dt.desc, [dt.cp, dt.contract].filter(Boolean).join(' · ')].filter(Boolean).join(' — ');
+    const when=dt.od==null?i18t('ob_rl_dot_nodate')
+      : dt.od<0?i18tn('ob_rl_dot_late',-dt.od,{ date:dayWord(dt.due) })
+      : dt.od===0?i18t('ob_rl_dot_today')
+      : i18t('ob_rl_dot_due',{ date:dayWord(dt.due) });
+    const who=dt.told
+      ? i18t(dt.to==='owner'?'ob_rl_dot_to_owner':'ob_rl_dot_to',{ who:dt.toName })
+      : i18t('ob_rl_dot_silent',{ why:whyWords(dt) });
+    return `${head}\n${i18t(dt.ours?'ob_side_ours':'ob_side_theirs')} · ${when}\n${who}`;
+  };
+
+  /* ---- one lane ---- */
+  const ownerSays=L=>L.viaOwner===0?i18t('ob_rl_sub_owner_none')
+    : L.viaOwner===L.n?i18t('ob_rl_sub_owner_all')
+    : i18tn('ob_rl_sub_owner_some',L.viaOwner,{ n:n(L.viaOwner) });
+  const laneHtml=(L,idx)=>{
+    let name, sub, ruby=false;
+    if(L.key==='more'){ name=i18tn('ob_rl_more_people',L.more,{ n:n(L.more) }); sub=i18t('ob_rl_sub_more'); }
+    else if(!L.named){
+      name=i18t(L.side==='ours'?'ob_rl_nobody_ours':'ob_rl_nobody_theirs'); ruby=true;
+      sub=L.side==='ours'?ownerSays(L):i18t('ob_rl_sub_nobody_theirs');
+    } else {
+      name=L.side==='theirs'?i18t('ob_rl_chasing',{ who:L.name }):L.name;
+      ruby=!L.owned;
+      sub=L.owned?i18t('ob_rl_sub_member')
+        :i18t('ob_rl_sub_gone')+(L.side==='ours'&&L.viaOwner?' · '+ownerSays(L):'');
+    }
+    /* DOTS THAT WOULD TOUCH STACK, so two promises on one day are two dots. */
+    const lv=[];
+    const pos=L.dots.slice().sort((a,b)=>a.od-b.od).map(dt=>{
+      const x=X(dt.od); let k=0;
+      while(lv[k]!=null&&x-lv[k]<1.6) k++;
+      lv[k]=x; return { dt, x, k };
+    });
+    const h=36+(Math.max(1,lv.length)-1)*13;
+    const who=L.key==='more'?i18t('ob_rl_win_more')
+      : (L.side==='ours'&&!L.owned)?i18t('ob_rl_owner_word'):L.name;
+    const band=L.band?`<div class="ob-rl-past" style="width:${pct(X(L.band.last))}%" title="${E(i18t('ob_rl_past_tip'))}"></div>
+      <div class="ob-rl-win" style="left:${pct(X(L.band.last))}%;width:${pct(X(L.band.first)-X(L.band.last))}%"
+        title="${E(i18t(L.side==='ours'?'ob_rl_win_ours':'ob_rl_win_theirs',{ who, first:L.band.first, late:-L.band.last }))}"></div>`:'';
+    const dots=pos.map(({dt,x,k})=>{
+      const top=h/2+(k%2?1:-1)*Math.ceil(k/2)*13;
+      const say=dotSay(dt);
+      return dt.key&&typeof window.obOpenContract==='function'
+        ? `<button type="button" class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}px"
+            data-ob-rl-key="${E(dt.key)}" data-ob-rl-cid="${E(dt.cid)}" title="${E(say)}" aria-label="${E(say.replace(/\n/g,'. '))}"></button>`
+        : `<span class="ob-rl-dot ${dt.told?'is-told':'is-silent'}" style="left:${pct(x)}%;top:${top}px" title="${E(say)}"></span>`;
+    }).join('');
+    const tag=`${L.side}:${idx}`;
+    const lbl=name;
+    return `<div class="ob-rl-row">
+      <span class="ob-rl-who${ruby?' is-ruby':''}"><span class="ob-rl-name">${E(name)}</span><small>${E(sub)}</small></span>
+      <div class="ob-rl-strip" style="height:${h}px">${band}
+        <div class="ob-rl-brief" style="left:${pct(X(d.briefFloor))}%"></div>
+        <div class="ob-rl-now" style="left:${pct(X(0))}%"></div>${dots}</div>
+      <span class="ob-rl-n">${figHtml('lane:'+tag+':later',L.later.length,L.laterKeys,i18t('ob_rl_only_later',{ who:lbl }),
+          i18tn('ob_rl_later_tip',L.later.length,{ n:n(L.later.length), date:dayWord(isoAt(H)) }))}</span>
+      <span class="ob-rl-n">${figHtml('lane:'+tag+':nodate',L.nodate.length,L.nodateKeys,i18t('ob_rl_only_nodate',{ who:lbl }),
+          i18tn('ob_rl_nodate_tip',L.nodate.length,{ n:n(L.nodate.length) }),true)}</span>
+      <span class="ob-rl-n is-total">${figHtml('lane:'+tag+':open',L.n,L.keys,i18t('ob_rl_only_lane',{ who:lbl }),i18t('ob_rl_door'))}</span>
+    </div>`;
+  };
+
+  /* ---- the ruler: today, and the day the daily brief lets go ---- */
+  const ticks=[...new Set([-H,-2*H/3,-H/3,0,H/3,2*H/3,H,d.briefFloor].map(Math.round))].sort((a,b)=>a-b);
+  const tickHtml=ticks.map(off=>{
+    const words=off===0?i18t('ob_rl_today')
+      : off===d.briefFloor?i18t('ob_rl_brief_stops',{ date:dayWord(isoAt(off)) })
+      : dayWord(isoAt(off));
+    const edge=off===-H?'transform:none':off===H?'transform:translateX(-100%)':'';
+    return `<span class="${off===0?'is-now':''}" style="left:${pct(X(off))}%;${edge}"${
+      off===d.briefFloor?` title="${E(i18tn('ob_rl_brief_tip',-d.briefFloor,{ n:-d.briefFloor }))}"`:''}>${E(words)}</span>`;
+  }).join('');
+  const groupHtml=(side,keyWord)=>{
+    const lanes=d.lanes[side];
+    if(!lanes.length) return '';
+    const total=lanes.reduce((s,L)=>s+L.n,0);
+    return `<div class="ob-rl-group">${E(i18t(keyWord))} · ${
+      figHtml('group:'+side,total,d.keys[side],i18t(keyWord),i18t('ob_rl_door'))}</div>`
+      +lanes.map((L,i)=>laneHtml(L,i)).join('');
+  };
+  const sw=(bg,edge)=>`<span class="ob-rl-sw" style="background:${bg};box-shadow:inset 0 0 0 1px ${edge}"></span>`;
+  const line=`<section style="${OB_CARD};padding:13px 17px 6px">
+    <div style="${OB_H}"><span style="${OB_TITLE}">${i18t('ob_rl_title')}</span>
+      <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('ob_rl_hint')}</span></div>
+    <div class="ob-rl-legend">
+      <span><span class="ob-rl-key is-told"></span>${i18t('ob_rl_key_told')}</span>
+      <span><span class="ob-rl-key is-silent"></span>${i18t('ob_rl_key_silent')}</span>
+      <span>${sw('var(--st-green-bg)','var(--st-green-dot)')}${i18t('ob_rl_key_window')}</span>
+      <span>${sw('var(--st-ruby-bg)','var(--st-ruby-dot)')}${i18t('ob_rl_key_past')}</span>
     </div>
-    <div style="min-width:0">
-      ${reasons.length?`<div style="display:flex;align-items:baseline;gap:var(--s-2)">
-        <span style="font-size:var(--t-body);font-weight:var(--w-title)">${i18t('int_ob_why_each')}</span>
-        <span style="${OB_HINT}">${i18t('int_ob_open_word')}</span></div>
-      <div role="img" aria-label="${E(i18t('int_ob_why_aria')+' '+reasons.map(r=>`${r.label}: ${r.v}`).join('; '))}" style="margin-top:var(--s-2)">${reasonRows}</div>
-      ${d.silentOverlap?`<p style="${OB_NOTE}">${i18t('int_ob_overlap',{sum:n(d.reasonSum),n:n(d.silent),over:n(d.silentOverlap)})}</p>`:''}`
-      :`<p style="${OB_LEAD};margin:0">${i18t('int_ob_all_reachable')}</p>`}
-    </div>
+    <div class="ob-rl-scroll scroll-thin" id="ob-rl-scroll"><div class="ob-rl-grid" role="group" aria-label="${E(i18t('ob_rl_aria'))}">
+      <div class="ob-rl-row is-head"><span></span><div class="ob-rl-ticks">${tickHtml}</div>
+        <span class="ob-rl-n">${i18t('ob_rl_col_later')}</span><span class="ob-rl-n">${i18t('ob_rl_col_nodate')}</span><span class="ob-rl-n">${i18t('ob_rl_col_open')}</span></div>
+      ${groupHtml('ours','ob_rl_ours')}${groupHtml('theirs','ob_rl_theirs')}
+    </div></div>
   </section>`;
 
-  /* ---- 1 · coverage, and the unknown inside it ---- */
-  const covRows=[
-    [i18t('int_ob_cov_signed'), i18t('int_ob_cov_signed_why'), d.cover.noneSigned, 'var(--st-ruby-fg,#b91c1c)'],
-    [i18t('int_ob_cov_review'), i18t('int_ob_cov_review_why'), d.cover.noneReview, 'var(--st-amber-fg,#b45309)'],
-    [i18t('int_ob_cov_draft'),  i18t('int_ob_cov_draft_why'),  d.cover.noneDraft,  'var(--color-text)'],
-    [i18t('int_ob_cov_rest'),  i18t('int_ob_cov_rest_why'),  d.cover.noneOther,  'var(--color-text)'],
-  ].filter(r=>r[2]>0).map(([t,w,v,c])=>`<tr>
-    <td style="padding:6px 0;${RULE};font-size:var(--t-meta)"><b>${E(t)}</b><br><span style="font-size:var(--t-label);color:var(--color-neutral-600)">${E(w)}</span></td>
-    <td style="padding:6px 0;${RULE};text-align:right;font-size:var(--t-card);${OB_NUM};color:${c}">${n(v)}</td></tr>`).join('');
-  const covPct=d.contracts?Math.round(d.cover.withOb/d.contracts*100):0;
-  /* THE FLAG GOES WITH THE BLIND SPOT (J-2.2). It said "Blind spot" because
-     nothing on the record told a contract read and clear from one nobody had
-     opened; `obligationsReadAt` does, so the card reports rather than confesses.
-     It is a FUNCTION of canSeeScan rather than a deletion, because what the
-     flag says is true again the moment that flag is false. */
-  const coverage=obCard(i18t('int_ob_cov_title'),
-    d.canSeeScan?'':obFlag(i18t('int_ob_flag_blind'),'var(--st-amber-bg,#fef3c7)','var(--st-amber-fg,#b45309)'),
-    `<p style="${OB_LEAD}">${i18t('int_ob_cov_lead')}</p>
-     <div role="img" aria-label="${E(i18t('int_ob_cov_aria',{total:n(d.contracts),withOb:n(d.cover.withOb),none:n(d.cover.none)}))}"
-       style="display:flex;height:26px;border-radius:var(--radius);overflow:hidden;background:var(--color-neutral-100)">
-       ${d.cover.withOb?`<span style="width:${covPct}%;min-width:2px;background:${OB_OURS};color:#fff;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.cover.withOb)}</span>`:''}
-       ${d.cover.none?`<span style="flex:1;min-width:2px;background:${OB_THEIRS};color:#3B2A05;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.cover.none)}</span>`:''}
-     </div>
-     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;font-size:var(--t-label);color:var(--color-neutral-600)">
-       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_OURS};display:inline-block"></i>${i18t('int_ob_cov_key_on')}</span>
-       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_THEIRS};display:inline-block"></i>${i18t('int_ob_cov_key_none')}</span>
-     </div>
-     ${d.cover.none?`<p style="${OB_NOTE}">${d.canSeeScan
-        ? i18t('int_ob_cov_split_known',{n:n(d.cover.none),clear:n(d.cover.noneClear),never:n(d.cover.noneUnknown)})
-        : i18t('int_ob_cov_split',{n:n(d.cover.none)})}</p>
-     <table style="border-collapse:collapse;width:100%;margin-top:8px">${covRows}</table>`:''}`,
-    d.cover.noneSigned?i18t('int_ob_cov_foot',{n:n(d.cover.noneSigned)}):i18t('int_ob_cov_foot_clear'));
-
-  /* ---- 2 · how long overdue, against the sweep's own thresholds ---- */
-  const amax=Math.max(...d.ages,1);
-  const ageCols=[
-    [i18t('int_ob_age_1'), i18t('int_ob_age_1_sub'), d.ages[0], OB_REACHED],
-    [i18t('int_ob_age_2'), i18t('int_ob_age_2_sub'), d.ages[1], OB_REACHED],
-    [i18t('int_ob_age_3'), i18t('int_ob_age_3_sub'), d.ages[2], OB_UNREACHED],
-    [i18t('int_ob_age_4'), i18t('int_ob_age_4_sub'), d.ages[3], OB_UNREACHED],
-  ].map(([k,sub,v,c])=>`<div style="display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0">
-    <div style="height:96px;display:flex;align-items:flex-end;width:100%;max-width:52px">
-      <span style="display:block;width:100%;height:${Math.max(3,Math.round(v/amax*96))}px;border-radius:var(--radius);background:${v?c:'var(--color-neutral-100)'}"></span></div>
-    <div style="font-size:var(--t-section);${OB_NUM}">${n(v)}</div>
-    <div style="font-size:var(--t-label);font-weight:var(--w-strong);text-align:center;line-height:1.3">${E(k)}<br><span style="font-weight:var(--w-body);color:var(--color-neutral-600)">${E(sub)}</span></div>
-  </div>`).join('');
-  const ageing=obCard(i18t('int_ob_age_title'), `<span style="${OB_HINT}">${i18tn('int_ob_overdue',d.overdue,{n:n(d.overdue)})}</span>`,
-    d.overdue
-      ? `<p style="${OB_LEAD}">${i18t('int_ob_age_lead')}</p>
-         <div role="img" aria-label="${E(i18t('int_ob_age_aria',{a:d.ages[0],b:d.ages[1],c:d.ages[2],e:d.ages[3]}))}"
-           style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s-3);align-items:end">${ageCols}</div>
-         <div style="display:flex;flex-direction:column;gap:3px;margin-top:12px;padding-top:9px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-600)">
-           <span>${i18t('int_ob_age_mark4')}</span><span>${i18t('int_ob_age_mark30')}</span></div>`
-      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_age_clear')}</p>`,
-    d.pastBoth?i18t('int_ob_age_foot',{n:n(d.pastBoth)}):'');
-
-  /* ---- 3 · the next 90 days, ours against theirs ---- */
-  const mmax=Math.max(1,...d.months.map(m=>Math.max(m.ours,m.theirs)));
-  const monthCols=d.months.map(m=>{
-    const b=(v,fill)=>`<span style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:0">
-      <b style="font-size:var(--t-label);${OB_NUM};font-weight:var(--w-title)">${n(v)}</b>
-      <span style="display:block;width:100%;max-width:26px;height:${Math.max(3,Math.round(v/mmax*84))}px;border-radius:var(--radius);background:${v?fill:'var(--color-neutral-100)'}"></span></span>`;
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0">
-      <div style="display:flex;align-items:flex-end;gap:5px;height:100px;width:100%;justify-content:center">${b(m.ours,OB_OURS)}${b(m.theirs,OB_THEIRS)}</div>
-      <div style="font-size:var(--t-label);font-weight:var(--w-strong);white-space:nowrap">${E(obMonthLabel(m.key))}</div></div>`;
-  }).join('');
-  const chaseRows=d.chase.map(r=>`<tr>
-    <td style="padding:6px 0;${RULE};font-size:var(--t-meta);font-weight:var(--w-strong)">${E(r.name)}</td>
-    <td style="padding:6px var(--s-2);${RULE};font-size:var(--t-label);color:var(--color-neutral-600)">${E(r.what.join(', '))}</td>
-    <td style="padding:6px 0;${RULE};font-size:var(--t-meta);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap">${E((typeof regDotDate==='function'&&r.soonest)?regDotDate(r.soonest):(r.soonest||'—'))}</td>
-    <td style="padding:6px 0 6px var(--s-2);${RULE};font-size:var(--t-meta);text-align:right;${OB_NUM}">${n(r.n)}</td></tr>`).join('');
-  const ahead=obCard(i18t('int_ob_90_title'), `<span style="${OB_HINT}">${i18t('int_ob_90_hint',{n:n(d.ahead)})}</span>`,
-    d.ahead
-      ? `<p style="${OB_LEAD}">${i18t('int_ob_90_lead')}</p>
-         <div role="img" aria-label="${E(i18t('int_ob_90_aria',{ours:n(d.aheadOurs),theirs:n(d.aheadTheirs)}))}"
-           style="display:grid;grid-template-columns:repeat(${Math.max(1,d.months.length)},1fr);gap:var(--s-3);align-items:end">${monthCols}</div>
-         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font-size:var(--t-label);color:var(--color-neutral-600)">
-           <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_OURS};display:inline-block"></i>${i18t('int_ob_90_key_ours',{n:n(d.aheadOurs)})}</span>
-           <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OB_THEIRS};display:inline-block"></i>${i18t('int_ob_90_key_theirs',{n:n(d.aheadTheirs)})}</span>
-         </div>
-         ${d.chase.length?`<details style="margin-top:11px">
-           <summary style="cursor:pointer;font-size:var(--t-meta);font-weight:var(--w-title);color:var(--accent-ink-700)">${i18t('int_ob_90_chase',{n:n(d.aheadTheirs)})}</summary>
-           <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;margin-top:6px">
-             <tr>${[i18t('int_ob_90_th_cp'),i18t('int_ob_90_th_what'),i18t('int_ob_90_th_soon'),i18t('int_ob_90_th_n')]
-               .map((t,i)=>`<th style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:${i>1?'right':'left'};padding:4px 0 4px ${i?'var(--s-2)':'0'};${RULE}">${E(t)}</th>`).join('')}</tr>${chaseRows}
-             ${d.chaseMore?`<tr><td colspan="4" style="padding:6px 0;font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('int_ob_90_more',{cp:n(d.chaseMore),n:n(d.chaseMoreN)})}</td></tr>`:''}
-           </table></div></details>`:''}`
-      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_90_none')}</p>`,'');
-
-  /* ---- 4 · who is carrying what ---- */
-  const omax=Math.max(1,...d.owners.map(o=>o.n));
-  const ownerRows=d.owners.map(o=>{
-    const nobody=!o.name, lost=!!o.name&&!o.resolves;
-    const label=nobody
-      ? `<span style="color:var(--st-ruby-fg,#b91c1c);font-weight:var(--w-strong)">${i18t('int_ob_own_nobody')}</span> <span style="color:var(--color-neutral-600)">— ${i18t('int_ob_own_nobody_why')}</span>`
-      : `<span style="font-weight:var(--w-strong)">${E(o.name)}</span>${lost?` <span style="color:var(--st-ruby-fg,#b91c1c)">— ${i18t('int_ob_own_gone_why')}</span>`:''}${o.over?` <span style="color:var(--color-neutral-600)">— ${i18t('int_ob_own_over',{n:n(o.over)})}</span>`:''}`;
-    return `<div style="display:grid;grid-template-columns:1fr 46px;gap:9px;align-items:center;padding:7px 0;${RULE}">
-      <span style="min-width:0"><span style="font-size:var(--t-meta);color:var(--color-text)">${label}</span>
-        ${bar(o.n/omax*100, (nobody||lost)?OB_UNREACHED:OB_OURS)}</span>
-      <span style="text-align:right;font-size:var(--t-card);${OB_NUM}">${n(o.n)}</span></div>`;
-  }).join('');
-  const load=obCard(i18t('int_ob_own_title'), `<span style="${OB_HINT}">${i18t('int_ob_own_hint')}</span>`,
-    d.owners.length
-      ? `<p style="${OB_LEAD}">${i18t('int_ob_own_lead')}</p>
-         <div role="img" aria-label="${E(i18t('int_ob_own_aria')+' '+d.owners.map(o=>`${o.name||i18t('int_ob_own_nobody')}: ${o.n}`).join('; '))}">${ownerRows}</div>
-         ${d.ownersMore?`<p style="${OB_NOTE}">${i18t('int_ob_own_more',{n:n(d.ownersMore)})}</p>`:''}`
-      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_own_none')}</p>`,'');
-
-  /* ---- 5 · marked repeating, never repeated ---- */
-  const repRows=[
-    ['quarterly', i18t('int_ob_rep_quarterly')],
-    ['monthly',   i18t('int_ob_rep_monthly')],
-    ['annual',    i18t('int_ob_rep_annual')],
-  ].map(([k,label])=>({k,label,v:d.repeat[k]||0})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
-  const rpmax=repRows.length?repRows[0].v:1;
-  const repeating=obCard(i18t('int_ob_rep_title'),
-    d.repeatTotal?obFlag(i18t('int_ob_rep_flag',{n:n(d.repeatTotal)}),'var(--st-ruby-bg,#ffe4e6)','var(--st-ruby-fg,#b91c1c)'):'',
-    d.repeatTotal
-      ? `<p style="${OB_LEAD}">${i18t('int_ob_rep_lead')}</p>
-         <div role="img" aria-label="${E(i18t('int_ob_rep_aria')+' '+repRows.map(r=>`${r.label}: ${r.v}`).join('; '))}">${
-           repRows.map(r=>`<div style="display:grid;grid-template-columns:1fr 46px;gap:9px;align-items:center;padding:7px 0;${RULE}">
-             <span style="min-width:0"><span style="font-size:var(--t-meta);font-weight:var(--w-strong)">${E(r.label)}</span>
-               <span style="font-size:var(--t-label);color:var(--color-neutral-600)"> — ${i18t('int_ob_rep_why')}</span>
-               ${bar(r.v/rpmax*100, OB_THEIRS)}</span>
-             <span style="text-align:right;font-size:var(--t-card);${OB_NUM}">${n(r.v)}</span></div>`).join('')}</div>`
-      : `<p style="${OB_LEAD};margin:0">${i18t('int_ob_rep_none')}</p>`,
-    d.repeatTotal?i18t('int_ob_rep_foot'):'');
-
-  /* ---- 6 · the record this product does not keep ---- */
-  /* THE THIRD FLAG IS NEUTRAL AND THAT IS THE POINT. Amber says "look at this"
-     and ruby says "this is a loss"; this one says "the product does not keep
-     that field yet", which is neither. It also may not wear the accent —
-     --st-steel-* resolves to the workspace accent, and on this page the accent
-     already means OURS. */
-  /* ---- WERE THEY MET ON TIME (J-2.2) ----
-     This card was a confession: the record kept no completion date, so "done
-     on time" and "done three weeks late" were the same word on the same field.
-     It carries one now, and this counts ONLY the obligations that can answer.
-
-     THE UNCOUNTED ARE PRINTED, NOT HIDDEN. Every obligation ticked off before
-     that field existed has no date, and so does every one with no due date;
-     both are `unknown` and neither is guessed at. A rate quietly worked out
-     over the answerable half, with the rest dropped, is the silent-trim fault
-     this product refuses on money and on charts.
-
-     THE TWO COLOURS ARE THE PAGE'S OWN and are not the ours/theirs pair: on
-     time is the reached tone, late is the unreached one, which is the same
-     vocabulary the ageing chart beside it already uses. */
-  /* GREEN AND RUBY, NOT THE PAGE'S OTHER TWO PAIRS. Amber/ruby on the ageing
-     chart answers "is anything still being sent"; accent/amber answers "ours
-     or theirs". This card asks a third question — was it kept — and green for
-     kept is the product's own word for it, the same pair the Obligations tab's
-     own row dots use. A colour does one job per chart. */
-  const OT_ON='var(--st-green-dot,#10b981)', OT_LATE='var(--st-ruby-dot,#e11d48)';
-  const otAnswerable=d.ontime.on+d.ontime.late;
-  const otPct=otAnswerable?Math.round(d.ontime.on/otAnswerable*100):0;
-  const ontime=obCard(i18t('int_ob_time_title'),
-    d.canSeeCompletedOn?'':obFlag(i18t('int_ob_flag_field'),'var(--color-neutral-100)','var(--color-neutral-600)'),
-    `<p style="${OB_LEAD}">${i18t('int_ob_time_lead2')}</p>
-     ${otAnswerable?`
-     <div style="display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:9px">
-       <span style="${OB_NUM};font-size:34px">${otPct}%</span>
-       <span style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('int_ob_time_on')}</span>
-     </div>
-     <div role="img" aria-label="${E(i18t('int_ob_time_aria',{on:n(d.ontime.on),late:n(d.ontime.late)}))}"
-       style="display:flex;height:26px;border-radius:var(--radius);overflow:hidden;background:var(--color-neutral-100)">
-       ${d.ontime.on?`<span style="width:${otPct}%;min-width:2px;background:${OT_ON};color:#fff;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.ontime.on)}</span>`:''}
-       ${d.ontime.late?`<span style="flex:1;min-width:2px;background:${OT_LATE};color:#fff;font-size:var(--t-label);font-weight:var(--w-title);display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap">${n(d.ontime.late)}</span>`:''}
-     </div>
-     <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;font-size:var(--t-label);color:var(--color-neutral-600)">
-       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OT_ON};display:inline-block"></i>${i18t('int_ob_time_on')}</span>
-       <span style="display:inline-flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:var(--radius);background:${OT_LATE};display:inline-block"></i>${i18t('int_ob_time_late')}</span>
-     </div>`
-     :`<p style="${OB_NOTE};margin:0">${i18t('int_ob_time_none')}</p>`}
-     ${d.ontime.unknown?`<p style="${OB_NOTE}">${i18t('int_ob_time_unknown',{n:n(d.ontime.unknown)})}</p>`:''}`,'');
-
-  /* ---- the honest footer ---- */
-  const blind=`<section style="${OB_CARD};padding:15px 17px">
-    <div style="font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em;margin-bottom:10px">${i18t('int_ob_blind_title')}</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:var(--s-3) 22px">
-      ${''/* TWO OF THESE THREE CLOSED ON 29 Aug 2026 (J-2.2) and are drawn only
-             while they are still true — a report that goes on listing a blind
-             spot it can now see is one nobody trusts about the third. The
-             wording is KEPT, not deleted: it is right again the day either
-             field stops being written. */}
-      ${[...(d.canSeeScan?[]:[[i18t('int_ob_blind_1'),i18t('int_ob_blind_1_why')]]),
-         ...(d.canSeeCompletedOn?[]:[[i18t('int_ob_blind_2'),i18t('int_ob_blind_2_why')]]),
-         [i18t('int_ob_blind_3'),i18t('int_ob_blind_3_why')]]
-        .map(([t,w])=>`<div style="min-width:0"><div style="font-size:var(--t-meta);font-weight:var(--w-title);margin-bottom:3px">${E(t)}</div><p style="${OB_NOTE};margin:0">${w}</p></div>`).join('')}
-    </div>
-    <p style="${OB_NOTE};padding-top:11px;margin-top:11px;border-top:1px solid var(--color-divider)">${i18t('int_ob_method')}</p>
-  </section>`;
+  /* ---- the six tiles: today's other readings, each a door ---- */
+  const tile=(id,spec,title,value,sub,tone,tip)=>{
+    const door=spec&&value?doorOf(id,spec):null;
+    const col=tone==='bad'?'var(--st-ruby-fg)':tone==='good'?'var(--st-green-fg)':tone==='warn'?'var(--st-amber-fg)':'var(--color-text)';
+    const inner=`<span class="ob-rl-tile-k">${E(title)}</span>
+      <span class="ob-rl-tile-n" style="color:${value?col:'var(--color-text)'}">${E(String(value))}</span>
+      <span class="ob-rl-tile-s">${E(sub)}</span>`;
+    return door
+      ? `<button type="button" class="ob-rl-tile" data-ob-rl-door="${door}" title="${E(tip||i18t('ob_rl_door'))}">${inner}</button>`
+      : `<div class="ob-rl-tile">${inner}</div>`;
+  };
+  const known=d.ontime.on+d.ontime.late;
+  const rep=[['monthly','ob_rl_t_rep_monthly'],['quarterly','ob_rl_t_rep_quarterly'],['annual','ob_rl_t_rep_annual']]
+    .filter(([k])=>d.repeat[k]).map(([k,key])=>i18t(key,{ n:n(d.repeat[k]) })).join(' · ');
+  const tiles=`<div class="ob-rl-tiles">
+    ${tile('silent',{ kind:'obligations', keys:d.keys.silent, label:i18t('ob_rl_t_silent'), state:'open' },
+      i18t('ob_rl_t_silent'), n(d.silent), i18t('ob_rl_t_silent_sub',{ open:n(d.open) }), 'bad', i18t('ob_rl_t_silent_tip'))}
+    ${tile('late',{ kind:'obligations', keys:d.keys.overdue, label:i18t('ob_rl_t_late'), state:'open' },
+      i18t('ob_rl_t_late'), n(d.overdue), i18t('ob_rl_t_late_sub',{ n:n(d.pastBoth) }), 'bad')}
+    ${tile('ahead',{ kind:'obligations', keys:d.keys.ahead, label:i18t('ob_rl_t_ahead',{ days:H }), state:'open' },
+      i18t('ob_rl_t_ahead',{ days:H }), n(d.ahead), i18t('ob_rl_t_ahead_sub',{ ours:n(d.aheadOurs), theirs:n(d.aheadTheirs) }), '')}
+    ${tile('ontime',{ kind:'obligations', keys:d.keys.ontime, label:i18t('ob_rl_t_ontime'), state:'done' },
+      i18t('ob_rl_t_ontime'), known?Math.round(d.ontime.on/known*100)+'%':'—',
+      [known?i18t('ob_rl_t_ontime_sub',{ on:n(d.ontime.on), known:n(known) }):i18t('ob_rl_t_ontime_none'),
+       d.ontime.unknown?i18t('ob_rl_t_unknown',{ n:n(d.ontime.unknown) }):''].filter(Boolean).join(' · '),
+      known?'good':'', i18t('ob_rl_t_ontime_tip'))}
+    ${tile('cover',{ kind:'contracts', ids:d.coverIds, label:i18t('ob_rl_t_cover') },
+      i18t('ob_rl_t_cover'), n(d.cover.none), i18t('ob_rl_t_cover_sub',{ n:n(d.cover.noneSigned) }), 'warn', i18t('ob_rl_t_cover_tip'))}
+    ${tile('stopped',{ kind:'obligations', keys:d.keys.stopped, label:i18t('ob_rl_t_rep'), state:'done' },
+      i18t('ob_rl_t_rep'), n(d.repeatTotal), rep||i18t('ob_rl_t_rep_none'), 'warn', i18t('ob_rl_t_rep_tip'))}
+  </div>`;
 
   return `<div id="ig-ob" style="display:flex;flex-direction:column;gap:var(--s-3);max-width:100%;margin:0 auto">
-    ${hero}
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:var(--s-3);align-items:stretch">
-      ${coverage}${ageing}${ahead}${load}${repeating}${ontime}
-    </div>
-    ${blind}
+    ${line}
+    ${tiles}
   </div>`;
+}
+/* ONE LISTENER PER PAINT: #ig-oblig is rebuilt by every renderIntel, so the
+   element this binds to is new each time and nothing is bound twice. */
+function intelObligationsWire(host){
+  if(!host) return;
+  host.addEventListener('click',ev=>{
+    const dot=ev.target.closest&&ev.target.closest('[data-ob-rl-key]');
+    if(dot){ if(typeof window.obOpenContract==='function') obOpenContract(dot.getAttribute('data-ob-rl-cid'), dot.getAttribute('data-ob-rl-key')); return; }
+    const b=ev.target.closest&&ev.target.closest('[data-ob-rl-door]');
+    if(!b) return;
+    const s=_obRlDoors.get(b.getAttribute('data-ob-rl-door'));
+    if(!s) return;
+    if(s.kind==='contracts') regShowOnly(s.ids, s.label);
+    else obwGoFiltered({ state:s.state||'open', only:{ keys:s.keys.slice(), label:s.label } });
+  });
 }
 /* ════════════════════════════════════════════════════════════════════════
    THE PAYMENT TERMS TAB (owner-ruled 2 Sep 2026)
@@ -5590,3 +6070,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SE
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SWAY,IGB_SWAY_S,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+
+/* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
+   milestone, and the tab's press wiring. */
+Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});

@@ -287,7 +287,10 @@ describe('f253 (4) — "nobody owns this", and it is the server’s own reading'
   test('ONE READING — the Insights page asks the same function', () => {
     /* Two answers to "will anybody be told" is exactly how a page comes to
        contradict the sweep that sends the mail. */
-    assert.match(IG, /obligationReminderTo\(\{ assignee:a \}\)/,
+    /* RE-POINTED 28 Sep 2026: the question moved into obReminderOf, the one
+       predicate the Reminder Line and its counts share; it is still this
+       function that answers, only the argument's name changed. */
+    assert.match(IG, /obligationReminderTo\(\{ assignee:\w+ \}\)/,
       'the Insights obligations page asks it');
     assert.ok(!/byEmail\.add\(/.test(IG),
       'and keeps no private copy of the resolution');

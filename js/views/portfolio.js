@@ -22,25 +22,34 @@
    the same six panels ranked by NUMBER of contracts instead, and the page says
    so. Silently drawing empty bars for them would be worse than saying it.
 
-   TWO FILTERS CROSS THE WHOLE PAGE: a category and a counterparty. Each panel
-   is filtered by every dimension EXCEPT its own, so the control you clicked
-   keeps its full axis with your choice highlighted while everything else
-   narrows. That is what makes it a dashboard rather than a poster.
+   THREE FILTERS CROSS THE WHOLE PAGE: a category, a stage and a
+   counterparty. Each panel is filtered by every dimension EXCEPT its own, so
+   the control you clicked keeps its full axis with your choice highlighted
+   while everything else narrows. That is what makes it a dashboard rather than
+   a poster.
+
+   ---- THE OVERVIEW (Young ruled it 28 Sep 2026, by name, off the design
+   options page: "kill the bottom 3 cards", then "build") ----
+   Headline figures, then ONE CARD PER QUESTION, and every card opens with its
+   answer in one plain sentence, then the chart that proves it, then a door to
+   its list. WHAT WENT: "What this slice says" (pfReadout / pfSentences), "What
+   needs attention" (pfFindings, its pager and PF_FINDINGS_PAGE) and the grey
+   note under them (pf_honesty_note) — deleted, not stubbed, the way pfBiggest
+   went on 19 Sep. WHAT WAS SAVED FROM THEM: the contract past its end date is
+   a headline figure now, and the findings the attention card listed colour
+   the risk map instead of a score. WHAT CAME: Value by stage, plain counting
+   off the records, and the stage as a third filter. Their words are STALE ON
+   THE FACE, inert in both books. Copilot loses nothing: none of the three was
+   ever in PF_PANEL_DATA.
    ========================================================================= */
 
 const PF_MAX_ROWS = 8;          // the leaderboard shows the largest eight
-/* ---- TEN A PAGE, AND A WAY TO THE REST (owner-asked 26 Aug 2026) ----
-   It showed six and said "61 more here" in bold text with nothing behind it —
-   a count of work the reader could see and could not reach. Ten a page now,
-   with page buttons in the card and a scroller of its own, which is what the
-   owner asked for by name. PF_MAX_FINDINGS is retired with the cap it was. */
-const PF_FINDINGS_PAGE = 10;
 const PF_SOON_DAYS = 90;        // "ends soon" — the same window the register's quick filter uses
 
-/* Per sitting, in memory — like every other reading on this page. A page number
-   that outlived the sitting would open this card three pages down on a book the
-   reader has not looked at yet. */
-function pfState(){ if(!state.pf) state.pf={cat:null, cp:null, findPage:0}; return state.pf; }
+/* Per sitting, in memory — like every other reading on this page. A filter
+   that outlived the sitting would open this page narrowed with nothing on
+   screen saying why. */
+function pfState(){ if(!state.pf) state.pf={cat:null, cp:null, stage:null}; return state.pf; }
 const pfEsc = s => String(s==null?'':s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 
 /* The book this frame reads. Declined contracts are not live — the same rule
@@ -88,24 +97,68 @@ function pfRows(exclude){
   return pfLive().filter(c=>{
     if(exclude!=='cat' && F.cat!=null && pfCategoryOf(c)!==F.cat) return false;
     if(exclude!=='cp'  && F.cp  && (c.counterparty||'')!==F.cp) return false;
+    if(exclude!=='stage' && F.stage && (c.status||'')!==F.stage) return false;
     return true;
   });
 }
+/* A stage is the STORED status, printed through the list's own word and dot
+   (STATUS_META via statusLabel / hmStageTone), so a stage reads the same here,
+   in Contracts and on Home. Lifecycle order; anything else follows. */
+const PF_STAGE_ORDER = ['Draft','Under Review','Signed'];
+const pfStageLabel = k => (typeof statusLabel==='function') ? statusLabel(k) : k;
+const pfStageTone = k => (typeof window.hmStageTone==='function') ? hmStageTone(k)
+  : ((window.STATUS_META && STATUS_META[k] && STATUS_META[k].dot) || 'var(--st-gray-dot)');
 
 /* ---------------------------------------------------------------- chrome --- */
-const PF_CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:13px 15px;display:flex;flex-direction:column;min-width:0';
-const PF_H='display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:9px;flex-wrap:wrap';
-const PF_TITLE='font-size:var(--t-body);font-weight:var(--w-title);letter-spacing:-.01em';
+/* THE OVERVIEW CARD (28 Sep 2026): the name and what it answers on one line,
+   then — where the card has one — its ANSWER in one plain sentence, then the
+   chart, then the foot with the key and the door. The card is the platform's
+   (`--radius-lg`); the padding is the one f247 pins the obligations card to,
+   so the tabs beside this one sit at the same inset. Every shaped panel is
+   drawn through this too, which is what "dressed as Overview cards" means. */
+const PF_CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:13px 15px;display:flex;flex-direction:column;min-width:0';
+const PF_H='display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:10px;flex-wrap:wrap';
+const PF_TITLE='font-size:var(--t-card);font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text)';
 const PF_HINT='font-size:var(--t-label);color:var(--color-neutral-600)';
-const PF_FOOT='margin-top:auto;padding-top:10px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)';
-const pfCard=(title,hint,body,foot)=>`<div style="${PF_CARD}">
+const PF_SAY='font-size:var(--t-body);line-height:1.5;color:var(--color-text);margin:-4px 0 var(--s-3)';
+const PF_FOOT='margin-top:10px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)';
+const pfCard=(title,hint,body,foot,say)=>`<div class="pf-card" style="${PF_CARD}">
   <div style="${PF_H}"><span style="${PF_TITLE}">${title}</span>${hint?`<span style="${PF_HINT}">${hint}</span>`:''}</div>
-  <div style="flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center">${body}</div>
+  ${say?`<div class="pf-say" style="${PF_SAY}">${say}</div>`:''}
+  <div style="flex:0 1 auto;min-height:0;display:flex;flex-direction:column">${body}</div>
   ${foot?`<div style="${PF_FOOT}">${foot}</div>`:''}</div>`;
+/* A foot that is a ROW: the key at the left, the door at the right wall. */
+const pfFootRow = parts => `<div style="display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center">${parts.filter(Boolean).join('')}</div>`;
+/* A key swatch — a square for a bar, a disc for a dot, a ring for "not read". */
+const pfKey = (col, txt, shape) => `<span style="display:inline-flex;align-items:center;gap:5px">${
+  shape==='ring' ? '<i style="width:9px;height:9px;border-radius:50%;border:1.5px solid var(--color-neutral-400);box-sizing:border-box;display:inline-block"></i>'
+  : `<i style="width:${shape==='dot'?9:10}px;height:${shape==='dot'?9:10}px;border-radius:${shape==='dot'?'50%':'2px'};background:${col};display:inline-block"></i>`}${txt}</span>`;
+
+/* ---- EVERY FIGURE IS A DOOR ONTO THE LIST THAT MAKES IT ----
+   The ids each door opens are recorded while the page is DRAWN and read at
+   the PRESS, so the number on a door and the list behind it are one reading:
+   `regShowOnly` narrows Contracts to exactly those contracts, with a chip that
+   says so and carries the way back. A zero is not a door — nothing is recorded
+   for it and nothing is drawn as one. */
+let _pfDoors = {};
+function pfDoor(key, ids, label){
+  const list = (ids||[]).filter(Boolean);
+  if(!list.length) return false;
+  _pfDoors[key] = { ids:list, label:String(label||'') };
+  return true;
+}
+function pfGoDoor(key){
+  const d=_pfDoors[key];
+  if(!d || !d.ids.length) return false;
+  if(typeof window.regShowOnly==='function'){ regShowOnly(d.ids, d.label); return true; }
+  return false;
+}
+const pfDoorLabel = n => i18tn('pf_ov_door_title', n, {n});
 
 function pfChipsHtml(){
   const F=pfState(); const chips=[];
   if(F.cat!=null) chips.push({k:'cat', l:pfCatLabel(F.cat)});
+  if(F.stage) chips.push({k:'stage', l:pfStageLabel(F.stage)});
   if(F.cp) chips.push({k:'cp', l:F.cp});
   if(!chips.length) return '';
   return `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
@@ -115,153 +168,232 @@ function pfChipsHtml(){
   </div>`;
 }
 
-/* ---------------------------------------------- 1. WHAT IT IS WORTH -------- */
-/* Four figures. The first is always the book's value; the other three are the
-   first three candidates that have something to say, so a workspace with no
-   auto-renewals never sees a zero staring back at it. */
-function pfFigures(){
+/* ---------------------------------------------- 1. THE HEADLINE FIGURES ---- */
+/* The book's value, then three figures drawn only where they are not zero:
+   what ends within ninety days (and whether anybody has decided), what renews
+   itself, and what is PAST ITS END DATE — the one fact worth saving from the
+   two cards that went on 28 Sep. "Past its end date" is `contractExpired`, the
+   product's own derived stage (Signed, and its effective end date has gone),
+   so this tile and the Expired chip in Contracts cannot disagree.
+   COUNTING IS NOT DRAWING: pfHeadlineData counts, pfFigures draws. */
+function pfHeadlineData(){
   const rs=pfRows(null), all=pfLive(), F=pfState();
-  const focused = F.cat!=null || !!F.cp;
+  const focused = F.cat!=null || !!F.cp || !!F.stage;
   const soon=rs.filter(c=>{ const e=pfExpiry(c); if(!e) return false; const d=pfDaysTo(e); return d!=null&&d>=0&&d<=PF_SOON_DAYS; });
-  const flagged=rs.filter(c=>pfFindingsOf(c).length>0);
-  const awaiting=rs.filter(c=>{ const s=state.shareByContract&&state.shareByContract[c.id]; return !!s&&(s.state==='sent'||s.state==='opened'); });
+  const soonOpen=soon.filter(c=>!pfRenewalDecided(c));
   const auto=rs.filter(c=>(c.metadata&&c.metadata.renewalType)==='auto-renew');
-  const uncat=rs.filter(c=>!pfCategoryOf(c));
-
-  const cand=[];
-  if(soon.length) cand.push({k:i18t('pf_ends_soon'), v:pfMoney(pfSum(soon)),
-    d:`${pfN(soon.length,'contracts')} — ${i18t('pf_near_horizon')}`});
-  if(awaiting.length) cand.push({k:i18t('pf_out_with_them'), v:pfMoney(pfSum(awaiting)),
-    d:`${pfN(awaiting.length,'contracts')} ${i18t('pf_sent_not_back')}`});
-  if(auto.length) cand.push({k:i18t('pf_renews_itself'), v:String(auto.length),
-    d:i18t('pf_no_decision_point')});
-  if(flagged.length) cand.push({k:i18t('pf_carrying_finding'), v:String(flagged.length),
-    d:`${i18t('pf_of')} ${rs.length} ${i18t('pf_in_focus')}`});
-  if(uncat.length) cand.push({k:i18t('reg_uncategorised'), v:String(uncat.length),
-    d:i18t('pf_cannot_be_grouped')});
-  /* Nothing to say is itself worth one tile rather than a blank column. */
-  if(!cand.length) cand.push({k:i18t('pf_carrying_finding'), v:'0', d:i18t('pf_nothing_flagged')});
-
-  const tile=(k,v,d,hero)=>`<div style="${PF_CARD};padding:var(--s-3) 14px;gap:1px${hero?';background:var(--brand-hero,var(--color-accent-700));border-color:transparent;color:#fff':''}">
-    <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${k}</div>
-    <div style="font-family:var(--font-heading);font-size:22px;font-weight:var(--w-title);letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.2">${v}</div>
-    <div style="font-size:var(--t-label);color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${d}</div></div>`;
-
-  const heroLabel = pfMoneyOk() ? i18t('pf_contracted_value') : i18t('pf_contracts_live');
-  const heroValue = pfMoneyOk() ? pfMoney(pfSum(rs)) : String(rs.length);
-  const heroNote = focused
-    ? `${rs.length} ${i18t('pf_of')} ${all.length} ${i18t('pf_in_focus')}`
-    : pfN(all.length,'live');
-  return `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px" class="pf-figs">
-    ${tile(heroLabel, heroValue, heroNote, true)}
-    ${cand.slice(0,3).map(c=>tile(c.k,c.v,c.d,false)).join('')}</div>`;
+  const expired=(typeof window.contractExpired==='function') ? contractExpired
+    : (c=>{ if(!c||c.status!=='Signed') return false; const e=pfExpiry(c); const d=e?pfDaysTo(e):null; return d!=null&&d<0; });
+  const past=rs.filter(c=>expired(c));
+  const ids=cs=>cs.map(c=>c.id);
+  return { focused, all:all.length, money:pfMoneyOk(),
+    book:{ contracts:rs.length, value:pfSum(rs), ids:ids(rs) },
+    soon:{ contracts:soon.length, value:pfSum(soon), open:soonOpen.length, ids:ids(soon), days:PF_SOON_DAYS },
+    auto:{ contracts:auto.length, ids:ids(auto) },
+    past:{ contracts:past.length, value:pfSum(past), ids:ids(past) } };
+}
+/* "4 contracts · nothing filed on any" — the tile says whether anybody has
+   decided, which is the only reason a reader looks at what ends. */
+function pfSoonSay(d){
+  const n=d.soon.contracts, open=d.soon.open;
+  /* "it", "either", "any" — three words a count cannot pick through _one/_other. */
+  const tail = !open ? i18t('pf_ov_soon_decided')
+    : open===n ? i18t(n===1?'pf_ov_soon_none_it':n===2?'pf_ov_soon_none_either':'pf_ov_soon_none_any')
+    : i18t('pf_ov_soon_some_open', {n:open});
+  return `${pfN(n,'contracts')} · ${tail}`;
+}
+function pfFigures(){
+  const d=pfHeadlineData();
+  const tile=(key,k,v,sub,tone,ids,hero)=>{
+    const door=pfDoor(key, ids, k);
+    const tag=door?'button':'div';
+    const col=hero?'#fff':tone==='warn'?'var(--st-amber-fg)':tone==='bad'?'var(--st-ruby-fg)':'var(--color-text)';
+    return `<${tag} ${door?`type="button" data-pf-go="${key}" title="${pfEsc(pfDoorLabel(ids.length))}"`:''} class="pf-kpi${hero?' is-hero':''}" style="${PF_CARD};padding:10px 14px;gap:1px;text-align:left;font:inherit;${door?'cursor:pointer;':''}${hero?'background:var(--brand-hero,var(--color-accent-700));border-color:transparent;color:#fff':'color:var(--color-text)'}">
+    <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${k}</span>
+    <span style="display:block;font-family:var(--font-heading);font-size:22px;font-weight:var(--w-title);letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.25;color:${col}">${v}</span>
+    <span style="display:block;font-size:var(--t-label);color:${hero?'var(--brand-hero-sub,#bde7e1)':'var(--color-neutral-600)'}">${sub}</span></${tag}>`;
+  };
+  const t=[];
+  const heroLabel = d.money ? i18t('pf_contracted_value') : i18t('pf_contracts_live');
+  const heroValue = d.money ? pfMoney(d.book.value) : String(d.book.contracts);
+  const heroNote = d.focused ? i18tn('pf_ov_of_live', d.all, {n:d.book.contracts, m:d.all}) : pfN(d.all,'live');
+  t.push(tile('book', heroLabel, heroValue, heroNote, '', d.book.ids, true));
+  if(d.soon.contracts) t.push(tile('soon', i18t('pf_ends_soon'),
+    d.money ? pfMoney(d.soon.value) : String(d.soon.contracts), pfSoonSay(d), 'warn', d.soon.ids));
+  if(d.auto.contracts) t.push(tile('auto', i18t('pf_renews_itself'), String(d.auto.contracts),
+    i18t('pf_no_decision_point'), '', d.auto.ids));
+  if(d.past.contracts) t.push(tile('past', i18t('pf_ov_past'), String(d.past.contracts),
+    d.money ? i18t('pf_ov_past_sub', {v:pfEsc(pfMoney(d.past.value))}) : i18t('pf_ov_past_sub_n'), 'bad', d.past.ids));
+  return `<div class="pf-figs" style="--pf-n:${t.length}">${t.join('')}</div>`;
 }
 
 /* ------------------------------------------- 2. WHERE THE VALUE SITS ------- */
-function pfWhereValueSits(){
-  const rs=pfRows('cat'), F=pfState();
+/* A row is a FILTER, not a door: it focuses the whole page on its category
+   and the same press lets it go. The card keeps its whole axis (pfRows('cat'))
+   so the reader can always see what they are narrowed to and what else there
+   is. The row is the Overview's: name · count · share over a bar, value at the
+   right wall. */
+function pfCatData(){
+  const rs=pfRows('cat');
   const per=new Map();
   rs.forEach(c=>{ const k=pfCategoryOf(c);
-    const e=per.get(k)||{v:0,n:0}; e.v+=pfWeight(c); e.n++; per.set(k,e); });
-  const keys=[...per.keys()].sort((a,b)=>per.get(b).v-per.get(a).v);
-  if(!keys.length) return pfCard(i18t('pf_where_value'),'',
+    const e=per.get(k)||{k, v:0, n:0}; e.v+=pfWeight(c); e.n++; per.set(k,e); });
+  const rows=[...per.values()].sort((a,b)=>b.v-a.v);
+  return { rows, total:rows.reduce((a,r)=>a+r.v,0), max:rows.length?rows[0].v:0, money:pfMoneyOk() };
+}
+const pfRowFigure = (d, r) => d.money ? pfEsc(pfMoney(r.v)) : String(r.n);
+function pfWhereValueSits(){
+  const d=pfCatData(), F=pfState();
+  if(!d.rows.length) return pfCard(i18t('pf_where_value'), i18t('pf_ov_where_sub'),
     `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:10px 0">${i18t('pf_nothing_here')}</div>`,'');
-  const max=per.get(keys[0]).v||1, total=keys.reduce((a,k)=>a+per.get(k).v,0)||1;
-  const dense=keys.length>=4;
-  const rows=keys.map(k=>{
-    const e=per.get(k), sel=F.cat===k, dim=F.cat!=null&&!sel;
-    return `<button data-pf-cat="${pfEsc(k)}" style="display:grid;grid-template-columns:1fr 92px;gap:9px;align-items:center;width:100%;text-align:left;border:0;background:${sel?'color-mix(in srgb,var(--color-accent) 10%,transparent)':'none'};border-radius:var(--radius);cursor:pointer;font:inherit;padding:${dense?'6px':'8px 6px'};border-bottom:1px solid var(--color-divider);opacity:${dim?'.42':'1'}">
-      <span style="min-width:0">
-        <span style="font-size:${dense?'12px':'12.5px'};font-weight:var(--w-strong);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pfEsc(pfCatLabel(k))}</span>
-        <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${pfN(e.n,'contracts')} · ${pfShare(e.v,total)}</span>
-        <span style="display:block;height:${dense?'6px':'7px'};margin-top:5px;border-radius:var(--radius);background:var(--color-neutral-100);overflow:hidden">
-          <span style="display:block;height:100%;width:${Math.max(2,Math.round(e.v/max*100))}%;border-radius:var(--radius);background:var(--accent-solid,var(--color-accent))"></span></span>
-      </span>
-      <span style="text-align:right;font-family:var(--font-heading);font-size:${dense?'14px':'16px'};font-weight:var(--w-title);letter-spacing:-.02em;font-variant-numeric:tabular-nums">${pfMoneyOk()?pfEsc(pfMoney(e.v)):e.n}</span>
+  const max=d.max||1, total=d.total||1;
+  const rows=d.rows.map(r=>{
+    const sel=F.cat===r.k, dim=F.cat!=null&&!sel;
+    return `<button type="button" data-pf-cat="${pfEsc(r.k)}" class="pf-hr${sel?' on':''}${dim?' dim':''}" title="${pfEsc(sel?i18t('pf_ov_row_again'):i18t('pf_ov_row_focus',{k:pfCatLabel(r.k)}))}">
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><b style="font-weight:var(--w-title)">${pfEsc(pfCatLabel(r.k))}</b> <span style="color:var(--color-neutral-600)">· ${pfN(r.n,'contracts')} · ${pfShare(r.v,total)}</span></span>
+      <span class="pf-hr-v">${pfRowFigure(d,r)}</span>
+      <span class="pf-track"><span style="width:${Math.max(2,Math.round(r.v/max*100))}%"></span></span>
     </button>`;
   }).join('');
-  const foot = pfMoneyOk()
-    ? i18t('pf_where_foot')
+  const foot = d.money
+    ? i18t('pf_ov_press_row')
     : `<b>${i18t('pf_values_hidden')}</b> ${i18t('pf_ranked_by_count')}`;
-  return pfCard(i18t('pf_where_value'),'',`<div>${rows}</div>`,foot);
+  return pfCard(i18t('pf_where_value'), i18t('pf_ov_where_sub'), `<div class="pf-hl">${rows}</div>`, foot);
 }
 
-/* -------------------------------------------------- 3. THE RISK MAP -------- */
-/* Contracted value against how many negotiation rounds a contract took. The
-   left-hand edge is not "easy" — it is "nothing recorded yet", which is a
-   different and sometimes more interesting thing, and the axis says so. */
-function pfRiskMap(){
-  const rs=pfRows('cp').filter(c=>pfWeight(c)>0);
-  if(rs.length<2) return pfCard(i18t('pf_risk_map'), i18t('pf_risk_map_hint'),
-    `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-4) 0">${i18t('pf_need_two')}</div>`,'');
-  const F=pfState();
-  /* pl is wide enough for a full money label — "KES 97.75M" anchored at pl-8
-     ran off the left edge of the chart. And the axis is labelled with the
-     LARGEST CONTRACT, not with a padded scale maximum: headroom belongs in the
-     geometry, not on the axis, or the top gridline claims a value no contract
-     has. */
-  const W=560, H=rs.length<=6?214:rs.length<=12?252:290, pl=82, pb=38;
-  const vmax=Math.max(...rs.map(pfWeight))||1;
-  const rmax=Math.max(3, ...rs.map(pfRounds));
-  const pts=rs.map(c=>{
-    const risk=(typeof contractRisk==='function')?contractRisk(c):0;
-    const band=(typeof riskBand==='function')?riskBand(risk):'green';
-    return { c, band, risk,
-      x: pl + (pfRounds(c)/rmax)*(W-pl-18),
-      y: (H-pb) - (pfWeight(c)/vmax)*(H-pb-30) };
-  });
-  /* Labels are placed after every dot is drawn and nudged clear of both the
-     dots and each other — an SVG paints in document order, so a label declared
-     early is covered by any dot declared later however carefully it was put. */
-  const placed=[], labels=[], named=new Set();
-  const dots=pts.map(p=>{
-    const sel=F.cp===(p.c.counterparty||'');
-    const pal=(typeof riskPal==='function')?riskPal(p.risk):{dot:'var(--color-accent)'};
-    const name=(p.c.counterparty||p.c.name||'').slice(0,34);
-    /* one label per NAME. Two contracts with the same counterparty printed the
-       same name twice, a few pixels apart, which reads as a rendering fault. */
-    if((pfWeight(p.c)>=vmax*0.42 || sel) && !named.has(name)){
-      named.add(name);
-      const anchor = p.x>W*0.58 ? 'end':'start';
-      const w=name.length*5.4;
-      let ly=p.y+3.5, guard=0;
-      const lx = anchor==='end' ? p.x-12 : p.x+12;
-      const left = anchor==='end' ? lx-w : lx;
-      const hits=()=>placed.some(q=>Math.abs(q.y-ly)<11 && Math.abs(q.x-lx)<240)
-        || pts.some(q=>q!==p && Math.abs(q.y-(ly-3.5))<9 && q.x>left-8 && q.x<left+w+8);
-      while(guard++<14 && hits()) ly+=12;
-      placed.push({x:lx,y:ly});
-      labels.push(`<text x="${lx}" y="${ly}" text-anchor="${anchor}" font-size="10" font-weight="700" fill="var(--color-text)" stroke="var(--color-surface)" stroke-width="3" paint-order="stroke">${pfEsc(name)}</text>`);
-    }
-    /* ---- A DOT IS A FILTER, SO IT TAKES THE KEYBOARD ---- (25 Aug 2026)
-       Every dot narrows the whole Insights page to its counterparty, and the
-       only way to press one was a mouse. An SVG <g> takes a tab stop with an
-       explicit tabindex and role; the <title> above is already its accessible
-       name for a pointer, and aria-label is what a screen reader reads —
-       stated rather than left to the title, because a <title> inside <g> is
-       announced inconsistently across readers. */
-    const dotName = `${pfEsc(p.c.name)} — ${pfEsc(pfMoney(pfWeight(p.c)))} · ${pfN(pfRounds(p.c),'rounds')}`;
-    return `<g data-pf-cp="${pfEsc(p.c.counterparty||'')}" tabindex="0" role="button" aria-label="${dotName}" aria-pressed="${sel?'true':'false'}" style="cursor:pointer">
-      <title>${dotName}</title>
-      <circle cx="${p.x}" cy="${p.y}" r="${sel?9.5:7}" fill="${pal.dot}" stroke="var(--color-surface)" stroke-width="2"${F.cp&&!sel?' opacity=".35"':''}/></g>`;
+/* ---------------------------------------------- 3. VALUE BY STAGE ---------- */
+/* Added with the Overview (28 Sep 2026): plain counting off the records —
+   where the book is today, by the STORED stage. A row focuses the page on its
+   stage, exactly as a category row does; the card keeps its own axis. */
+function pfStageData(){
+  const rs=pfRows('stage');
+  const per=new Map();
+  rs.forEach(c=>{ const k=c.status||'';
+    const e=per.get(k)||{k, v:0, n:0}; e.v+=pfWeight(c); e.n++; per.set(k,e); });
+  const rank=k=>{ const i=PF_STAGE_ORDER.indexOf(k); return i<0?PF_STAGE_ORDER.length:i; };
+  const rows=[...per.values()].sort((a,b)=>rank(a.k)-rank(b.k) || b.v-a.v)
+    .map(r=>Object.assign(r,{ label:pfStageLabel(r.k), tone:pfStageTone(r.k) }));
+  return { rows, total:rows.reduce((a,r)=>a+r.v,0), money:pfMoneyOk() };
+}
+function pfValueByStage(){
+  const d=pfStageData(), F=pfState();
+  if(!d.rows.length) return pfCard(i18t('pf_ov_stage'), i18t('pf_ov_stage_sub'),
+    `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:10px 0">${i18t('pf_nothing_here')}</div>`,'');
+  const total=d.total||1;
+  const meter=`<div class="pf-meter" role="img" aria-label="${pfEsc(i18t('pf_ov_stage'))}">${d.rows.filter(r=>r.v>0).map(r=>
+    `<i style="width:${r.v/total*100}%;background:${r.tone}" title="${pfEsc(r.label)}: ${pfRowFigure(d,r)} · ${pfN(r.n,'contracts')}"></i>`).join('')}</div>`;
+  const rows=d.rows.map(r=>{
+    const sel=F.stage===r.k, dim=!!F.stage&&!sel;
+    return `<button type="button" data-pf-stage="${pfEsc(r.k)}" class="pf-hr${sel?' on':''}${dim?' dim':''}" title="${pfEsc(sel?i18t('pf_ov_row_again'):i18t('pf_ov_row_focus',{k:r.label}))}">
+      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${r.tone};margin-right:6px"></span><b style="font-weight:var(--w-title)">${pfEsc(r.label)}</b> <span style="color:var(--color-neutral-600)">· ${pfN(r.n,'contracts')}</span></span>
+      <span class="pf-hr-v">${pfRowFigure(d,r)}</span>
+    </button>`;
   }).join('');
-  const axis='font-size="9.5" fill="var(--color-neutral-600)"';
-  const body=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${pfEsc(i18t('pf_risk_map_aria'))}">
-    <g stroke="var(--color-divider)" stroke-width="1">
-      <line x1="${pl}" y1="${H-pb}" x2="${W-10}" y2="${H-pb}"/>
-      <line x1="${pl}" y1="14" x2="${pl}" y2="${H-pb}"/></g>
-    <text x="${pl-8}" y="${H-pb-(H-pb-30)+4}" text-anchor="end" ${axis}>${pfEsc(pfMoney(vmax))}</text>
-    <text x="${pl-8}" y="${H-pb+3}" text-anchor="end" ${axis}>0</text>
-    <text x="${pl}" y="${H-10}" ${axis}>${i18t('pf_no_rounds_yet')}</text>
-    <text x="${W-10}" y="${H-10}" text-anchor="end" ${axis}>${rmax} ${i18t('pf_rounds')} →</text>
-    ${dots}<g style="pointer-events:none">${labels.join('')}</g></svg>`;
-  const key=(col,txt)=>`<span style="display:inline-flex;align-items:center;gap:5px"><i style="width:9px;height:9px;border-radius:50%;background:${col};display:inline-block"></i>${txt}</span>`;
-  const foot=`<div style="display:flex;gap:13px;flex-wrap:wrap;align-items:center">
-    ${key('var(--st-ruby-dot)',i18t('pf_risk_high'))}
-    ${key('var(--st-amber-dot)',i18t('pf_risk_med'))}
-    ${key('var(--st-green-dot)',i18t('pf_risk_low'))}
-    <span style="margin-left:auto">${i18t('pf_click_a_dot')}</span></div>`;
-  return pfCard(i18t('pf_risk_map'), i18t('pf_risk_map_hint'), body, foot);
+  return pfCard(i18t('pf_ov_stage'), i18t('pf_ov_stage_sub'), meter+`<div class="pf-hl">${rows}</div>`,
+    d.money ? i18t('pf_ov_press_row') : `<b>${i18t('pf_values_hidden')}</b> ${i18t('pf_ranked_by_count')}`);
+}
+
+/* -------------------------------------------------- 4. THE RISK MAP -------- */
+/* Contracted value against how many negotiation rounds a contract took.
+   ---- COLOURED BY WHAT COPILOT FOUND, NEVER BY A SCORE (28 Sep 2026) ----
+   A dot is ruby where a HIGH finding is open, amber where findings are open,
+   green where the contract was read and nothing is open, and HOLLOW where it
+   has not been read yet — the risk scan's own record (`c.scan`, read through
+   openFindings, the reading "What needs attention" listed before it went).
+   An unread contract is not a safe one, which is why it is drawn as an
+   absence rather than in green. The old risk band (contractRisk / riskPal) is
+   no longer asked here.
+   A contract with no value cannot be placed on a value axis; it is COUNTED on
+   the card rather than silently left off. */
+function pfFindState(c){
+  if(!c || !c.scan) return null;
+  const f=pfFindingsOf(c);
+  if(!f.length) return 'none';
+  return f.some(x=>x && x.sev==='high') ? 'high' : 'some';
+}
+const PF_FIND_TONE = { high:'var(--st-ruby-dot)', some:'var(--st-amber-dot)', none:'var(--st-green-dot)' };
+const PF_FIND_WORD = { high:'pf_ov_find_high', some:'pf_ov_find_some', none:'pf_ov_find_none' };
+function pfRiskData(){
+  const all=pfRows('cp');
+  const on=all.filter(c=>pfWeight(c)>0);
+  const pts=on.map(c=>({ c, v:pfWeight(c), r:pfRounds(c), find:pfFindState(c) }));
+  const hi=pts.filter(p=>p.find==='high');
+  return { pts, off:all.length-on.length, money:pfMoneyOk(),
+    high:{ contracts:hi.length, value:hi.reduce((a,p)=>a+p.v,0) },
+    unread:pts.filter(p=>!p.find).length };
+}
+function pfRiskSay(d){
+  const a = d.high.contracts
+    ? i18tn('pf_ov_risk_high', d.high.contracts, { c:`<b>${pfN(d.high.contracts,'contracts')}</b>`,
+        v: d.money ? ` (${pfEsc(pfMoney(d.high.value))})` : '' })
+    : i18t('pf_ov_risk_no_high');
+  const b = d.unread ? i18t('pf_ov_risk_unread',{n:d.unread}) : i18t('pf_ov_risk_all_read');
+  return `${a}; ${b}.`;
+}
+/* DRAWN AT THE CARD'S REAL PIXEL WIDTH, so its words stay 11px on every
+   screen rather than scaling with a viewBox. The page is built as a string
+   before it is measured, so it draws at a stand-in width first and
+   wirePortfolioFrame redraws it once the card is on screen (and when the card
+   changes size). */
+const PF_RISK_H = 220, PF_RISK_W0 = 430;
+function pfRiskSvg(d, W){
+  W=Math.max(280, Math.round(W||PF_RISK_W0)); const H=PF_RISK_H;
+  const F=pfState(), rs=d.pts;
+  const L=66, R=16, T=12, B=30;
+  const rmax=Math.max(4, ...rs.map(p=>p.r)), vmax=Math.max(...rs.map(p=>p.v), 1);
+  const colW=(W-L-R)/(rmax+0.8), x=r=>L+colW*(r+0.4), y=v=>T+(1-v/vmax)*(H-T-B);
+  const byR={}; rs.forEach(p=>(byR[p.r]=byR[p.r]||[]).push(p));
+  const placed=[];
+  Object.keys(byR).forEach(k=>byR[k].sort((a,b)=>b.v-a.v).forEach((p,j)=>{
+    const off=(j%2?1:-1)*Math.min(colW*.3, 5+(j%3)*4);
+    placed.push(Object.assign({}, p, { x:x(p.r)+(j?off:0), y:y(p.v) })); }));
+  /* ONE LABEL PER NAME: two contracts with one counterparty printed the name
+     twice a few pixels apart, which reads as a rendering fault. */
+  const want=W<420?2:4, named=new Map();
+  placed.slice().sort((a,b)=>b.v-a.v).forEach(p=>{
+    const nm=String(p.c.counterparty||p.c.name||'').slice(0,34);
+    if(nm && !named.has(nm) && named.size<want) named.set(nm, p); });
+  const dots=placed.map(p=>{
+    const sel=F.cp===(p.c.counterparty||''), fade=!!F.cp&&!sel;
+    const tone=p.find?PF_FIND_TONE[p.find]:null;
+    const word=p.find?i18t(PF_FIND_WORD[p.find]):i18t('pf_ov_find_unread');
+    const dotName=`${pfEsc(p.c.name)} — ${pfEsc(p.c.counterparty||'')}: ${pfEsc(pfMoney(p.v))} · ${pfN(p.r,'rounds')}. ${word}.`;
+    return `<g data-pf-cp="${pfEsc(p.c.counterparty||'')}" tabindex="0" role="button" aria-label="${dotName}" aria-pressed="${sel?'true':'false'}" style="cursor:pointer"${fade?' opacity=".3"':''}>
+      <title>${dotName} ${pfEsc(i18t('pf_ov_dot_press',{cp:p.c.counterparty||''}))}</title>
+      <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${sel?8:6}" fill="${tone||'var(--color-surface)'}" stroke="${tone?'var(--color-surface)':'var(--color-neutral-400)'}" stroke-width="${tone?2:1.6}"/></g>`;
+  }).join('');
+  const taken=[];
+  const labels=[...named].map(([nm,p])=>({nm,p})).sort((a,b)=>a.p.y-b.p.y).map(({nm,p})=>{
+    const right=p.x<W-150, w=nm.length*6.4, x0=right?p.x+10:p.x-10-w;
+    let ly=p.y+4;
+    for(let k=0;k<12 && taken.some(q=>Math.abs(q.y-ly)<13 && x0<q.x+q.w+6 && q.x<x0+w+6);k++) ly+=13;
+    taken.push({x:x0,y:ly,w});
+    return `<text x="${(p.x+(right?10:-10)).toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="${right?'start':'end'}" font-size="11" font-weight="600" fill="var(--color-text)" stroke="var(--color-surface)" stroke-width="3" paint-order="stroke">${pfEsc(nm)}</text>`;
+  }).join('');
+  const ax='font-size="11" fill="var(--color-neutral-600)"';
+  return `<svg class="pf-risk" viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="${pfEsc(i18t('pf_ov_risk_aria'))}" style="display:block;overflow:visible" data-w="${W}">
+    <line x1="${L}" x2="${W-R}" y1="${H-B}" y2="${H-B}" stroke="var(--color-neutral-300)"/>
+    <line x1="${L}" x2="${W-R}" y1="${y(vmax).toFixed(1)}" y2="${y(vmax).toFixed(1)}" stroke="var(--color-divider)" stroke-dasharray="3 3"/>
+    <text x="${L-8}" y="${(y(vmax)+4).toFixed(1)}" text-anchor="end" ${ax}>${pfEsc(pfMoney(vmax))}</text>
+    <text x="${L-8}" y="${H-B+4}" text-anchor="end" ${ax}>0</text>
+    ${Array.from({length:rmax+1},(_,r)=>`<text x="${x(r).toFixed(1)}" y="${H-B+16}" text-anchor="middle" ${ax}>${r}</text>`).join('')}
+    <text x="${W-R}" y="${H-2}" text-anchor="end" ${ax}>${pfEsc(i18t('pf_ov_rounds_axis'))}</text>
+    ${dots}<g style="pointer-events:none">${labels}</g></svg>`;
+}
+function pfRiskMap(){
+  const d=pfRiskData();
+  const offLine = d.off ? `<span>${i18tn('pf_ov_risk_off', d.off, {n:d.off})}</span>` : '';
+  if(d.pts.length<2) return pfCard(i18t('pf_risk_map'), i18t('pf_ov_risk_sub'),
+    `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-4) 0">${i18t('pf_need_two')}</div>`,
+    offLine ? pfFootRow([offLine]) : '');
+  const key=pfFootRow([
+    pfKey(PF_FIND_TONE.high, i18t('pf_ov_find_high'), 'dot'),
+    pfKey(PF_FIND_TONE.some, i18t('pf_ov_find_some'), 'dot'),
+    pfKey(PF_FIND_TONE.none, i18t('pf_ov_find_none'), 'dot'),
+    `<span title="${pfEsc(i18t('pf_ov_find_unread_title'))}">${pfKey('', i18t('pf_ov_find_unread'), 'ring')}</span>`]);
+  return pfCard(i18t('pf_risk_map'), i18t('pf_ov_risk_sub'),
+    `<div id="pf-risk-plot" style="min-width:0">${pfRiskSvg(d, PF_RISK_W0)}</div>`,
+    key + (offLine ? `<div style="margin-top:4px">${offLine}</div>` : ''), pfRiskSay(d));
 }
 
 /* ---- 4. BIGGEST BY CONTRACTED VALUE IS GONE (Young ruled it 19 Sep 2026) ----
@@ -279,143 +411,11 @@ function pfRiskMap(){
    `pf_no_counterparty` are STALE ON THE FACE — inert in both books, never
    deleted, which is how this product retires a sentence. */
 
-/* ------------------------------------------- 5. WHAT THIS SLICE SAYS ------- */
-/* Sentences, computed. Not a model's summary — every one of these is arithmetic
-   over the contracts in focus, and only the ones that are true get written. */
-function pfSentences(){
-  const rs=pfRows(null), L=[];
-  if(!rs.length) return L;
-  const total=pfSum(rs)||1;
-  const B=s=>`<b>${s}</b>`;
-
-  const soon=rs.filter(c=>{ const e=pfExpiry(c); if(!e) return false; const d=pfDaysTo(e); return d!=null&&d>=0&&d<=PF_SOON_DAYS; });
-  if(soon.length){
-    const next=soon.slice().sort((a,b)=>String(pfExpiry(a)).localeCompare(String(pfExpiry(b))))[0];
-    L.push({tone:'warn', t:`${B(pfMoney(pfSum(soon)))} ${i18t('pf_s_ends_within')} ${PF_SOON_DAYS} ${i18t('pf_s_days')} — ${pfN(soon.length,'contracts')}, ${i18t('pf_s_nearest')} ${B(pfEsc(next.name))}.`});
-  }
-  const expired=rs.filter(c=>{ const e=pfExpiry(c); if(!e) return false; const d=pfDaysTo(e); return d!=null&&d<0; });
-  if(expired.length)
-    L.push({tone:'bad', t:`${B(pfN(expired.length,'contracts'))} ${i18tn('pf_s_past_term', expired.length, {n:expired.length})}`});
-
-  const auto=rs.filter(c=>(c.metadata&&c.metadata.renewalType)==='auto-renew');
-  if(auto.length)
-    L.push({tone:'warn', t:`${B(String(auto.length))} ${i18t('pf_s_renew_themselves')} — ${auto.slice(0,3).map(c=>pfEsc(c.counterparty||c.name)).join(', ')}${auto.length>3?' '+i18t('pf_s_and_more'):''}.`});
-
-  const flagged=rs.filter(c=>pfFindingsOf(c).length>0);
-  const high=flagged.filter(c=>pfFindingsOf(c).some(f=>f.sev==='high'));
-  if(high.length)
-    L.push({tone:'bad', t:`${B(String(high.length))} ${i18t('pf_s_carry_serious')} — ${high.slice(0,3).map(c=>pfEsc(c.name)).join(', ')}${high.length>3?' '+i18t('pf_s_and_more'):''}.`});
-
-  const uncat=rs.filter(c=>!pfCategoryOf(c));
-  if(uncat.length)
-    L.push({tone:'', t:`${B(String(uncat.length))} ${i18t('pf_s_uncategorised')} ${pfPct(uncat.length,rs.length)}% ${i18t('pf_s_of_the_book')}`});
-
-  const slow=rs.slice().sort((a,b)=>pfRounds(b)-pfRounds(a))[0];
-  if(slow && pfRounds(slow)>=2)
-    L.push({tone:'', t:`${i18t('pf_s_slowest')} ${B(pfEsc(slow.counterparty||slow.name))} ${i18t('pf_s_at')} ${B(pfN(pfRounds(slow),'rounds'))}.`});
-
-  const ranked=rs.slice().filter(c=>pfWeight(c)>0).sort((a,b)=>pfWeight(b)-pfWeight(a));
-  if(ranked.length){
-    L.push({tone:'', t:`${i18t('pf_s_largest_is')} ${B(pfEsc(ranked[0].name))} ${i18t('pf_s_at')} ${B(pfMoney(pfWeight(ranked[0])))} — ${pfPct(pfWeight(ranked[0]),total)}% ${i18t('pf_s_of_this_slice')}`});
-    if(ranked.length>=5){
-      const top3=ranked.slice(0,3).reduce((a,c)=>a+pfWeight(c),0);
-      const share=pfPct(top3,total);
-      L.push({tone:share>=60?'warn':'', t:`${i18t('pf_s_top_three')} ${B(share+'%')} ${i18t('pf_s_of_focus')}${share>=60?' — '+i18t('pf_s_would_be_felt'):', '+i18t('pf_s_no_single_name')}`});
-    }
-  }
-  return L;
-}
-function pfReadout(){
-  const rs=pfRows(null);
-  const L=pfSentences();
-  const dot=t=>t==='bad'?'var(--st-ruby-dot)':t==='warn'?'var(--st-amber-dot)':'var(--color-accent)';
-  const body = L.length
-    ? `<div style="display:flex;flex-direction:column;gap:var(--s-2)">${L.slice(0,6).map(l=>
-        `<div style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-body);line-height:1.6">
-          <span style="flex:none;width:6px;height:6px;border-radius:50%;margin-top:7px;background:${dot(l.tone)}"></span>
-          <span style="min-width:0">${l.t}</span></div>`).join('')}</div>`
-    : `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:10px 0">${i18t('pf_nothing_to_say')}</div>`;
-  return pfCard(i18t('pf_says'),
-    `${i18t('pf_recomputed_from')} ${pfN(rs.length,'contracts')} ${i18t('pf_in_focus')}`,
-    body, i18t('pf_says_foot'));
-}
-
-/* --------------------------------------- 6. WHAT NEEDS ATTENTION ----------- */
-const PF_SEV_RANK={high:0, med:1, low:2};
-function pfFindings(){
-  const rs=pfRows(null);
-  const items=[];
-  rs.forEach(c=>pfFindingsOf(c).forEach(f=>items.push({c, f})));
-  items.sort((a,b)=>(PF_SEV_RANK[a.f.sev]??3)-(PF_SEV_RANK[b.f.sev]??3) || pfWeight(b.c)-pfWeight(a.c));
-  const scanned=rs.filter(c=>!!c.scan).length;
-  if(!items.length){
-    const body=`<div style="font-size:var(--t-body);color:var(--color-neutral-600);padding:10px 0;line-height:1.6">${
-      scanned ? i18t('pf_clean_corner') : i18t('pf_none_reviewed')}</div>`;
-    return pfCard(i18t('pf_needs_attention'),'',body,
-      `${scanned} ${i18t('pf_of')} ${pfN(rs.length,'contracts')} ${i18t('pf_have_been_read')}`);
-  }
-  const tone=s=>s==='high'?{bg:'var(--st-ruby-bg)',fg:'var(--st-ruby-fg)'}
-    :s==='med'?{bg:'var(--st-amber-bg)',fg:'var(--st-amber-fg)'}
-    :{bg:'var(--color-neutral-100)',fg:'var(--color-neutral-700)'};
-  /* ---- THE PAGE IS CLAMPED ON THE WAY OUT, NOT WRITTEN BACK ----
-     The book shrinks under this card — a finding is dismissed, a filter is set —
-     and a stored page past the end would draw an empty card with no way off it.
-     Reading it clamped means the card always has rows; the stored number is left
-     alone, so widening the filter again puts the reader back where they were. */
-  const pages=Math.max(1, Math.ceil(items.length/PF_FINDINGS_PAGE));
-  const F=pfState();
-  const page=Math.min(Math.max(0, F.findPage|0), pages-1);
-  const shown=items.slice(page*PF_FINDINGS_PAGE, page*PF_FINDINGS_PAGE+PF_FINDINGS_PAGE);
-  /* ---- ITS OWN SCROLLER ---- Ten rows is taller than six, and this card sits
-     in a grid beside another: without a bound of its own it would stretch the
-     row and drag its neighbour with it. */
-  const body=`<div class="pf-find-scroll" style="display:flex;flex-direction:column;max-height:392px;overflow-y:auto">${shown.map(({c,f})=>{
-    const t=tone(f.sev);
-    /* THE FINDING'S OWN ID TRAVELS WITH THE PRESS. Without it the door can open
-       the contract and no more; with it the panel can open ON the row this card
-       was pointing at. */
-    return `<button data-pf-open="${pfEsc(c.id)}" data-pf-find="${pfEsc(f.id||'')}" style="display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;border:0;background:none;cursor:pointer;font:inherit;padding:var(--s-2) 2px;border-bottom:1px dashed var(--color-divider)">
-      <span style="flex:none;margin-top:2px;font-size:var(--t-label);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:${t.bg};color:${t.fg};text-transform:uppercase;letter-spacing:.04em">${pfEsc(f.sev||'low')}</span>
-      <span style="min-width:0;flex:1">
-        <b style="display:block;font-size:var(--t-meta);font-weight:var(--w-title)">${pfEsc(f.title||i18t('pf_a_finding'))}</b>
-        <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${pfEsc(c.name)}${pfWeight(c)>0?' · '+pfEsc(pfMoney(pfWeight(c))):''}</span></span>
-      <span style="flex:none;display:inline-flex;align-items:center;gap:2px;font-size:var(--t-meta);font-weight:var(--w-label);color:var(--accent-ink)">${i18t('pf_open_arrow')}${icon('chevR','w-3.5 h-3.5')}</span></button>`;
-  }).join('')}</div>`;
-  return pfCard(i18t('pf_needs_attention'), `${items.length} ${i18t('pf_open_findings')}`, body,
-    pfFindingsFoot(page, pages, items.length));
-}
-/* ---- THE FOOT IS THE WAY TO THE REST ----
-   ONE PAGE DRAWS NO CONTROLS AT ALL: a pager over a list that fits is furniture,
-   and this card carried a bold "61 more here" for exactly as long as it had no
-   way to reach them. The sentence about the ORDER stays either way, because it
-   is true of one page and of nine. */
-function pfFindingsFoot(page, pages, total){
-  const say=i18t('pf_findings_foot');
-  if(pages<2) return say;
-  const from=page*PF_FINDINGS_PAGE+1;
-  const to=Math.min(total, from+PF_FINDINGS_PAGE-1);
-  /* A press that cannot go anywhere is genuinely DISABLED rather than dimmed —
-     the browser refuses it and a keyboard reader is told, where an opacity is a
-     live control that happens to look faint. */
-  const step=(dir,label,off)=>`<button data-pf-find-page="${dir}" data-pf-page-now="${page}"${off?' disabled':''}
-    aria-label="${pfEsc(label)}" title="${pfEsc(label)}"
-    style="border:1px solid var(--field-line);background:var(--color-surface);color:var(--accent-ink);
-      border-radius:var(--radius);cursor:${off?'default':'pointer'};font:inherit;
-      font-size:var(--t-label);font-weight:var(--w-title);padding:2px 9px;${off?'opacity:.4;':''}">${
-    dir==='prev'?'&lsaquo;':'&rsaquo;'}</button>`;
-  return `<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-    <span style="flex:1;min-width:0">${say}</span>
-    <span style="flex:none;color:var(--color-neutral-600)">${
-      i18t('pf_findings_range',{from,to,total})}</span>
-    <span style="flex:none;display:flex;gap:5px">${
-      step('prev', i18t('pf_findings_prev'), page<=0)}${
-      step('next', i18t('pf_findings_next'), page>=pages-1)}</span></div>`;
-}
-
 /* ------------------------------------------------------- the whole frame --- */
 function portfolioFrameHtml(){
+  _pfDoors = {};
   if(!pfLive().length) return `<div style="max-width:520px;margin:44px auto;text-align:center;color:var(--color-neutral-600);font-size:var(--t-body);line-height:1.65">
-    <b style="color:var(--color-text)">${i18t('pf_empty_title')}</b><br/>${i18t('pf_empty_body')}</div>`;
+    <b style="color:var(--color-text)">${i18t('pf_empty_title')}</b><br/>${i18t('pf_ov_empty_body')}</div>`;
   /* THE SHAPED FILL, added only where the shape is present. A row is skipped
      outright rather than drawn empty — the panels themselves already refuse to
      render when they have nothing to say, so an empty string here means there
@@ -440,12 +440,56 @@ function portfolioFrameHtml(){
       ${(typeof canEdit!=='function'||canEdit())?`<button data-pf-fixcats style="flex:none;display:inline-flex;align-items:center;min-height:var(--ctl-h-sm);border:1px solid var(--btn-edge);background:none;color:inherit;border-radius:var(--radius);padding:0 var(--pad-ctl-x-sm);font:inherit;font-family:var(--font-heading);font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer">${i18t('pf_uncounted_fix')}</button>`:''}
     </div>` : '';
 
+  /* ---- THE OVERVIEW'S OWN RULES (28 Sep 2026) ----
+     Every value is a token or a whole pixel. The figures row takes its column
+     count from --pf-n, so a narrow window can set two columns by ORDER in this
+     sheet rather than by out-shouting an inline style. */
   return `<style>
+    .pf-ov{--pf-made:var(--color-accent-600)}
+    html.dark .pf-ov{--pf-made:var(--color-accent-400)}
     .pf-grid{display:grid;gap:10px;align-items:stretch;margin-bottom:10px}
-    .pf-6-6{grid-template-columns:1fr 1fr}
-    .pf-8-4{grid-template-columns:8fr 4fr}
-    @media (max-width:1080px){ .pf-6-6,.pf-8-4{grid-template-columns:1fr} .pf-figs{grid-template-columns:repeat(2,1fr)!important} }
-    .pf-scroll [data-pf-cat]:hover,.pf-scroll [data-pf-cp]:hover,.pf-scroll [data-pf-open]:hover{background:var(--color-neutral-100)!important}
+    .pf-6-6{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .pf-8-4{grid-template-columns:minmax(0,8fr) minmax(0,4fr)}
+    .pf-ov2{grid-template-columns:minmax(0,4fr) minmax(0,3fr) minmax(0,5fr)}
+    .pf-figs{display:grid;gap:10px;margin-bottom:10px;grid-template-columns:repeat(var(--pf-n,4),minmax(0,1fr))}
+    button.pf-kpi:hover{border-color:var(--color-accent-300)}
+    button.pf-kpi.is-hero:hover{filter:brightness(1.06)}
+    .pf-hl{display:grid;gap:2px}
+    .pf-hr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;align-items:baseline;width:100%;padding:6px 6px 8px;border:0;border-radius:var(--radius);background:none;text-align:left;font:inherit;font-size:var(--t-body);color:var(--color-text);cursor:pointer}
+    .pf-hr:hover{background:var(--color-accent-50)}
+    .pf-hr.on{background:var(--color-accent-100)}
+    .pf-hr.dim{opacity:.45}
+    .pf-hr-v{font-family:var(--font-heading);font-weight:var(--w-title);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .pf-track{grid-column:1/-1;display:block;height:8px;border-radius:2px;background:var(--color-neutral-100);overflow:hidden}
+    .pf-track>span{display:block;height:100%;border-radius:2px;background:var(--pf-made)}
+    .pf-meter{display:flex;gap:2px;height:12px;margin:2px 6px 10px;border-radius:2px;background:var(--color-neutral-100);overflow:hidden}
+    .pf-meter i{display:block;height:100%}
+    .pf-risk g[data-pf-cp]:hover circle,.pf-risk g[data-pf-cp]:focus-visible circle{stroke:var(--color-text)}
+    .pf-risk g[data-pf-cp]:focus{outline:none}
+    .pf-run{display:grid;grid-template-columns:62px minmax(0,1fr);gap:0 6px}
+    .pf-yax{position:relative;font-size:var(--t-micro);color:var(--color-neutral-600);text-align:right}
+    .pf-yax span{position:absolute;right:0;transform:translateY(50%);white-space:nowrap;font-variant-numeric:tabular-nums}
+    .pf-vbars{position:relative;display:grid;align-items:end;gap:4px;border-bottom:1px solid var(--color-neutral-300);padding:0 2px}
+    .pf-gl{position:absolute;left:0;right:0;border-top:1px dashed var(--color-divider);pointer-events:none;z-index:0}
+    .pf-col{position:relative;z-index:1;display:flex;flex-direction:column-reverse;gap:2px;height:100%;min-width:0;padding:0;border:0;background:none;font:inherit}
+    button.pf-col{cursor:pointer}
+    .pf-col i{display:block;border-radius:3px 3px 0 0;min-height:0}
+    button.pf-col:hover i{filter:brightness(.92)}
+    .pf-vaxis{display:grid;gap:4px;padding:4px 2px 0;font-size:var(--t-micro);color:var(--color-neutral-600);text-align:center;white-space:nowrap}
+    .pf-door{display:inline-flex;align-items:center;gap:4px;margin-left:auto;white-space:nowrap}
+    .pf-say .pf-amber{color:var(--st-amber-fg);font-weight:var(--w-title)}
+    .pf-scroll [data-pf-open]:hover{background:var(--color-neutral-100)!important}
+    @media (max-width:1100px){
+      .pf-ov2{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .pf-ov2>:last-child{grid-column:1/-1}
+      .pf-figs{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .pf-6-6,.pf-8-4{grid-template-columns:minmax(0,1fr)}
+    }
+    @media (max-width:720px){
+      .pf-ov2{grid-template-columns:minmax(0,1fr)}
+      .pf-run{grid-template-columns:48px minmax(0,1fr)}
+      .pf-vbars,.pf-vaxis{gap:2px}
+    }
   </style>
   ${''/* ---- THE PANELS FILL THE PAGE, LIKE NEGOTIATION FRICTION (owner-asked
          25 Aug 2026: "the negotiation friction card keeps the same distance to
@@ -456,22 +500,64 @@ function portfolioFrameHtml(){
          content area did, and on a wide monitor it sat 195px off the column.
          Friction's own body is a plain div and hugs the page measure; that is
          the tab the owner is pointing at, and this now matches it.
-         THE SENTENCES INSIDE ARE NOT AFFECTED: the reading columns that need a
-         measure carry their own, exactly as Friction's do — the CARD fills the
-         width, the prose does not. */}
-  <div>
+         ---- THE OVERVIEW'S ORDER (28 Sep 2026) ----
+         The headline figures, then one card per question: the runways (what
+         ends, and whether anybody has decided), then where the value sits, by
+         stage, and the risk map. The work a project business gets sits in its
+         old places, in the same card. The three cards that closed the page and
+         the grey note under them are gone. */}
+  <div class="pf-ov">
     ${nudge}
     ${pfChipsHtml()}
     ${pfFigures()}
     ${row([runway, wonlost],'pf-8-4')}
     ${row([renewal])}
-    <div class="pf-grid pf-6-6">${pfRiskMap()}${pfWhereValueSits()}</div>
+    <div class="pf-grid pf-ov2">${pfWhereValueSits()}${pfValueByStage()}${pfRiskMap()}</div>
     ${row(tail)}
-    <div class="pf-grid pf-6-6">${pfReadout()}${pfFindings()}</div>
-    <div style="margin-top:2px;padding:9px 13px;border-radius:var(--radius);background:var(--color-neutral-100);font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">
-      ${i18t('pf_honesty_note')}
-    </div>
   </div>`;
+}
+
+/* ---- A DOT IS A FILTER, SO IT TAKES THE KEYBOARD ---- (25 Aug 2026)
+   Every dot narrows the whole Insights page to its counterparty. ONE binder
+   for the click and the key, because the map is redrawn at its card's own
+   width after the page is wired, and a redrawn dot must answer exactly as the
+   first one did. The key DISPATCHES a click rather than calling .click(): an
+   SVG <g> is an SVGElement and HTMLElement.click() is not on its prototype. */
+function pfBindCp(root, again){
+  (root||document).querySelectorAll('[data-pf-cp]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const F=pfState(), k=el.getAttribute('data-pf-cp'); if(!k) return;
+      F.cp = F.cp===k ? null : k; if(typeof again==='function') again(); });
+    el.addEventListener('keydown',e=>{
+      if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
+      e.preventDefault();
+      el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+  });
+}
+/* THE MAP IS DRAWN AT ITS CARD'S REAL WIDTH. The first draw (inside the page
+   string) is at a stand-in width; this redraws it once the card is measured,
+   and again whenever the card changes size by more than a few pixels — never
+   on a size it already has, so the observer's own first call is a no-op. */
+let _pfRiskRO = null;
+function pfRiskFit(again){
+  if(_pfRiskRO){ try{ _pfRiskRO.disconnect(); }catch(_){} _pfRiskRO=null; }
+  const host=document.getElementById('pf-risk-plot');
+  if(!host) return;
+  const draw=bind=>{
+    if(!host.isConnected) return false;
+    const w=Math.round(host.clientWidth||0);
+    const svg=host.querySelector('svg'); const drawn=svg?Number(svg.getAttribute('data-w'))||0:0;
+    if(w<50 || Math.abs(w-drawn)<=8) return false;
+    host.innerHTML=pfRiskSvg(pfRiskData(), w);
+    if(bind) pfBindCp(host, again);
+    return true;
+  };
+  draw(false);
+  if(typeof ResizeObserver==='function'){
+    _pfRiskRO=new ResizeObserver(()=>{ draw(true); });
+    _pfRiskRO.observe(host);
+  }
 }
 
 /* Every control on the page, wired once. Clicking a thing you have already
@@ -480,25 +566,22 @@ function portfolioFrameHtml(){
 function wirePortfolioFrame(rerender){
   const F=pfState();
   /* THE ONE FUNNEL FOR THIS PAGE'S REPAINTS, so the reader's place is kept at
-     ONE place rather than at eleven presses — the pager, the category and
+     ONE place rather than at every press — the category, stage and
      counterparty filters, every un-filter chip and Clear all arrive here.
-     Wrapping the presses instead would be eleven places for the twelfth to be
-     forgotten. keepScroll is read through window: this file is loaded on
-     stages that do not carry the shell. */
+     keepScroll is read through window: this file is loaded on stages that do
+     not carry the shell. */
   const again=()=>{
     if(typeof rerender!=='function') return;
     if(typeof window!=='undefined' && typeof window.keepScroll==='function') keepScroll(rerender);
     else rerender();
   };
+  /* The map first, so the dots bound below are the ones on screen. */
+  pfRiskFit(again);
   /* ---- EVERY FILTER ON THIS PAGE TAKES THE KEYBOARD ---- (25 Aug 2026)
-     The rows, the bars and the risk-map dots all carried a click, a pointer
-     cursor and nothing else — so the whole of Insights' filtering was a mouse
-     feature. Wired ONCE here, beside the clicks, over the same selectors, and
-     it fires the element's own click rather than repeating what the click
-     does: two paths into one filter is how they come to disagree.
-     A <g> and a <tr> fire neither Enter nor Space by themselves, which is why
-     this is needed at all — a real <button> would not want it. */
-  const KEYABLE = '[data-pf-cat],[data-pf-cp],[data-pf-open],[data-pf-unfilter]';
+     A <tr> fires neither Enter nor Space by itself, which is why this is
+     needed at all — a real <button> would not want it. The dots have their own
+     binder (pfBindCp) and are not in this list, or a key would fire twice. */
+  const KEYABLE = '[data-pf-open],[data-pf-unfilter]';
   document.querySelectorAll(KEYABLE).forEach(el=>{
     if(el.tagName==='BUTTON') return;   // it already has its own key
     if(!el.hasAttribute('tabindex')) el.tabIndex=0;
@@ -506,47 +589,27 @@ function wirePortfolioFrame(rerender){
     el.addEventListener('keydown',e=>{
       if(e.key!=='Enter' && e.key!==' ' && e.key!=='Spacebar') return;
       e.preventDefault();
-      /* DISPATCH, DO NOT CALL .click(). An SVG <g> is an SVGElement, and
-         HTMLElement.click() is not on its prototype — the risk-map dots are
-         exactly the controls this exists for, so calling it there is a silent
-         no-op. Measured: the dot took focus, took Enter, and nothing happened.
-         A synthesised click bubbles to the same delegated handler the mouse
-         reaches, so there is still one path into the filter. */
       el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
     });
   });
   document.querySelectorAll('[data-pf-cat]').forEach(el=>el.addEventListener('click',()=>{
     const k=el.getAttribute('data-pf-cat'); F.cat = F.cat===k ? null : k; again(); }));
-  document.querySelectorAll('[data-pf-cp]').forEach(el=>el.addEventListener('click',()=>{
-    const k=el.getAttribute('data-pf-cp'); if(!k) return; F.cp = F.cp===k ? null : k; again(); }));
+  document.querySelectorAll('[data-pf-stage]').forEach(el=>el.addEventListener('click',()=>{
+    const k=el.getAttribute('data-pf-stage'); F.stage = F.stage===k ? null : k; again(); }));
+  pfBindCp(document, again);
   document.querySelectorAll('[data-pf-unfilter]').forEach(el=>el.addEventListener('click',()=>{
     F[el.getAttribute('data-pf-unfilter')]=null; again(); }));
-  document.querySelector('[data-pf-clear]')?.addEventListener('click',()=>{ F.cat=null; F.cp=null; again(); });
+  document.querySelector('[data-pf-clear]')?.addEventListener('click',()=>{ F.cat=null; F.cp=null; F.stage=null; again(); });
   document.querySelector('[data-pf-fixcats]')?.addEventListener('click',()=>{
     if(typeof runMetaBackfill==='function') runMetaBackfill({missingCategory:true});
   });
   document.querySelectorAll('[data-pf-open]').forEach(el=>el.addEventListener('click',()=>{
     pfOpenContract(el.getAttribute('data-pf-open'), el.getAttribute('data-pf-find')||''); }));
-  /* The pager is a CLASS OF PRESS, not two buttons — a third step added later
-     joins the same handler rather than needing its own. */
-  document.querySelectorAll('[data-pf-find-page]').forEach(el=>el.addEventListener('click',()=>{
-    const F=pfState();
-    /* FROM THE PAGE ON SCREEN (26 Sep 2026, the overnight clean-up): the card
-       draws the stored page CLAMPED to what the narrowed list holds, so after a
-       filter the stored number can sit past the end — and one ‹ press stepped
-       from THAT number and landed on the same clamped page, a press that did
-       nothing. The button carries the page it was drawn on. */
-    const now=Number(el.getAttribute('data-pf-page-now'));
-    const from=Number.isFinite(now)?now:(F.findPage|0);
-    F.findPage=Math.max(0,from+(el.getAttribute('data-pf-find-page')==='next'?1:-1));
-    /* THROUGH THE FUNNEL, LIKE EVERY OTHER PRESS ON THIS CARD (29 Aug 2026).
-       It called renderIntel() directly and so walked straight past again() —
-       which is why THIS was the button the owner reported: every filter beside
-       it went through the one place, and the pager did not. That is the whole
-       argument for a funnel written down as a defect: a rule at the funnel only
-       holds while everything actually arrives there. */
-    again();
-  }));
+  /* EVERY FIGURE IS A DOOR (28 Sep 2026): a tile, a month on the runway and
+     the runway's own door all open Contracts narrowed to the ids recorded when
+     they were drawn. A NAVIGATION, so it does not go through again(). */
+  document.querySelectorAll('[data-pf-go]').forEach(el=>el.addEventListener('click',()=>{
+    pfGoDoor(el.getAttribute('data-pf-go')); }));
 }
 
 /* ---------- OPEN LANDS ON THE FINDING, NOT MERELY ON THE CONTRACT ----------
@@ -600,9 +663,11 @@ function pfMarkFinding(findingId){
   else paint();
 }
 
-Object.assign(window,{PF_SOON_DAYS,PF_MAX_ROWS,PF_FINDINGS_PAGE,pfState,pfOpenContract,pfMarkFinding,pfFindingsFoot,pfLive,pfRows,pfSum,pfWeight,pfN,pfMoneyOk,
-  pfPct,pfShare,pfCategoryOf,pfCatLabel,pfFindingsOf,pfRounds,pfSentences,pfFigures,pfWhereValueSits,pfRiskMap,
-  pfReadout,pfFindings,portfolioFrameHtml,wirePortfolioFrame});
+Object.assign(window,{PF_SOON_DAYS,PF_MAX_ROWS,pfState,pfOpenContract,pfMarkFinding,pfLive,pfRows,pfSum,pfWeight,pfN,pfMoneyOk,
+  pfPct,pfShare,pfCategoryOf,pfCatLabel,pfFindingsOf,pfRounds,pfFigures,pfWhereValueSits,pfRiskMap,
+  portfolioFrameHtml,wirePortfolioFrame,
+  PF_STAGE_ORDER,PF_FIND_TONE,pfHeadlineData,pfSoonSay,pfCatData,pfStageData,pfValueByStage,pfFindState,
+  pfRiskData,pfRiskSay,pfRiskSvg,pfGoDoor,pfRunSay});
 
 /* ============================================================================
    THE SHAPED FILL. Panels that appear only when a business has that shape of
@@ -1063,7 +1128,12 @@ function pfRenewalDecided(c){
   return mine.some(o=>st(o)==='done');
 }
 const PF_RENEW_MONTHS = 18;
-function pfRenewalRunwayData(){
+/* `opts.ids` is the page's own ask: the drawn runway makes every month a door,
+   so it needs each month's ids. Copilot's copy (pfPanelData) is asked with no
+   options and carries no id lists — it rides with every message, and the
+   drivers already name the contracts behind a month. */
+function pfRenewalRunwayData(opts){
+  const withIds=!!(opts&&opts.ids);
   const rs=pfRows('month').filter(c=>!(typeof wsIsProject==='function'&&wsIsProject(c)));
   const N=PF_RENEW_MONTHS, buckets=[];
   const openEnded=rs.filter(c=>!_wsEnd(c));
@@ -1071,6 +1141,7 @@ function pfRenewalRunwayData(){
     const inM=rs.filter(c=>pfMonthOf(_wsEnd(c))===i);
     const dec=inM.filter(pfRenewalDecided), und=inM.filter(c=>!pfRenewalDecided(c));
     buckets.push({ offset:i, label:pfMonthLabel(i), contracts:inM.length,
+      ...(withIds?{ ids:inM.map(c=>c.id) }:{}),
       decided:pfSum(dec), undecided:pfSum(und), total:pfSum(inM),
       /* WHY THIS MONTH LOOKS THE WAY IT DOES. A renewal bucket is one of two
          things — a month somebody has dealt with, or a month nobody has — and
@@ -1104,7 +1175,15 @@ function pfRenewalRunwayData(){
     totals:{ contracts:rs.length-openEnded.length,
       nextSixMonths:buckets.slice(0,6).reduce((a,p)=>a+p.total,0),
       decided:buckets.reduce((a,p)=>a+p.decided,0),
-      undecided:buckets.reduce((a,p)=>a+p.undecided,0) },
+      undecided:buckets.reduce((a,p)=>a+p.undecided,0),
+      /* THE CARD'S ANSWER, counted here so the renderer counts nothing: what
+         ends in the next six months, across how many, and how much of it has
+         nothing filed — and how many end anywhere on the chart. */
+      sixMonths:{ value:buckets.slice(0,6).reduce((a,p)=>a+p.total,0),
+        contracts:buckets.slice(0,6).reduce((a,p)=>a+p.contracts,0),
+        undecided:buckets.slice(0,6).reduce((a,p)=>a+p.undecided,0),
+        undecidedContracts:buckets.slice(0,6).reduce((a,p)=>a+p.why.nothingFiledContracts,0) },
+      onTheChart:buckets.reduce((a,p)=>a+p.contracts,0) },
     excluded:{
       openEnded:{ count:openEnded.length, contracts:openEnded.slice(0,PF_DRIVERS).map(c=>pfWho(c,{contractValue:pfWeight(c)})),
         note:'no end date on record, so there is no month to draw them in' },
@@ -1113,41 +1192,72 @@ function pfRenewalRunwayData(){
       projectWork:{ note:'work with a start and an end is drawn on workload_runway instead' } },
   };
 }
+/* ---- THE RENEWAL RUNWAY IS AN OVERVIEW CARD (28 Sep 2026) ----
+   Its answer first ("KES 208M ends in the next six months across 8 contracts;
+   nothing is filed on any of it"), then eighteen month columns on a real axis,
+   then the key, what is not on the chart, and the door to the list. EVERY
+   MONTH WITH SOMETHING IN IT IS A DOOR onto exactly those contracts; an empty
+   month is a flat line and not a door. Drawn as HTML columns rather than an
+   SVG so each month is a real button with a key of its own. */
+const pfNiceStep = raw => { if(!(raw>0)) return 1;
+  const e=Math.pow(10, Math.floor(Math.log10(raw))), f=raw/e;
+  return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e; };
+function pfTicks(max){
+  const step=pfNiceStep((max||1)/3), t=[];
+  for(let v=step; v<=max*1.05; v+=step) t.push(v);
+  return { top:Math.max((max||1)*1.08, t.length?t[t.length-1]:step), t };
+}
+function pfRunSay(d){
+  const six=d.totals.sixMonths, money=d.money.visible;
+  if(!six.contracts) return i18t('pf_ov_run_nothing');
+  if(money){
+    const lead=i18t('pf_ov_run_six',{ v:`<b>${pfEsc(pfMoney(six.value))}</b>`, n:pfN(six.contracts,'contracts') });
+    if(!six.undecidedContracts) return `${lead}, ${i18t('pf_ov_run_all_decided')}.`;
+    const tail = six.undecidedContracts===six.contracts ? i18t('pf_ov_run_none_any')
+      : i18t('pf_ov_run_none_some',{ v:pfEsc(pfMoney(six.undecided)) });
+    return `${lead}; <span class="pf-amber">${tail}</span>.`;
+  }
+  const lead=i18tn('pf_ov_run_six_n', six.contracts, { c:`<b>${pfN(six.contracts,'contracts')}</b>` });
+  if(!six.undecidedContracts) return `${lead}, ${i18tn('pf_ov_run_all_decided_n', six.contracts)}.`;
+  const tail = six.undecidedContracts===six.contracts ? i18tn('pf_ov_run_none_any_n', six.contracts)
+    : i18t('pf_ov_run_none_some_n',{ n:six.undecidedContracts });
+  return `${lead}; <span class="pf-amber">${tail}</span>.`;
+}
 function pfRenewalRunway(){
-  const d=pfRenewalRunwayData();
+  const d=pfRenewalRunwayData({ ids:true });
   if(!d.drawn) return '';
-  const per=d.buckets, N=PF_RENEW_MONTHS;
-  const peak=d.peakTotal||1;
-  /* Wider viewBox than the workload chart because this one is drawn full
-     width: the height scales with the width, and 920 units across a 1700px
-     card made a 390px-tall chart that was mostly empty sky. */
-  const W=1400,H=230,px=70,pb=32,bw=(W-px-12)/N;
-  const bars=per.map(p=>{
-    const x=px+p.offset*bw+3, tot=p.total;
-    const hD=Math.round((H-pb-18)*p.decided/peak), hU=Math.round((H-pb-18)*p.undecided/peak);
-    let y=H-pb, g=`<g><title>${pfEsc(pfMonthLabel(p.offset))} — ${pfN(p.contracts,'contracts')} · ${pfEsc(pfMoney(tot))}</title>`;
-    if(tot===0) g+=`<rect x="${x}" y="${H-pb-3}" width="${bw-6}" height="3" rx="1.5" fill="var(--color-divider)"/>`;
-    else{
-      if(p.decided>0){ y-=hD; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hD,3)}" rx="3" fill="var(--accent-solid,var(--color-accent))"/>`; }
-      if(p.undecided>0){ y-=hU; g+=`<rect x="${x}" y="${y}" width="${bw-6}" height="${Math.max(hU,3)}" rx="3" fill="var(--st-amber-dot)"/>`; }
-    }
-    if(p.offset%3===0) g+=`<text x="${x+(bw-6)/2}" y="${H-pb+15}" text-anchor="middle" font-size="9.5" fill="var(--color-neutral-600)">${pfMonthLabel(p.offset)}</text>`;
-    return g+'</g>';
+  const per=d.buckets, N=PF_RENEW_MONTHS, H=190;
+  const { top, t }=pfTicks(d.peakTotal||1);
+  const fig=v=>pfEsc(pfMoney(v));
+  const cols=per.map(p=>{
+    const m=pfMonthLabel(p.offset);
+    if(!p.total) return `<div class="pf-col" title="${pfEsc(i18t('pf_ov_month_zero',{m}))}"><i style="height:2px;background:var(--color-neutral-300)"></i></div>`;
+    const door=pfDoor('m'+p.offset, p.ids, m);
+    const tip=(d.money.visible
+      ? i18tn('pf_ov_month_tip', p.contracts, { m, c:pfN(p.contracts,'contracts'), v:pfMoney(p.total), d:pfMoney(p.decided), u:pfMoney(p.undecided) })
+      : i18tn('pf_ov_month_tip_n', p.contracts, { m, c:pfN(p.contracts,'contracts'), d:p.why.decidedContracts, u:p.why.nothingFiledContracts }))
+      + (door ? ' '+pfDoorLabel(p.ids.length) : '');
+    return `<${door?'button type="button" data-pf-go="m'+p.offset+'"':'div'} class="pf-col" title="${pfEsc(tip)}" aria-label="${pfEsc(tip)}">${
+      p.decided?`<i style="height:${(p.decided/top*100).toFixed(2)}%;background:var(--pf-made)"></i>`:''}${
+      p.undecided?`<i style="height:${(p.undecided/top*100).toFixed(2)}%;background:var(--st-amber-dot)"></i>`:''}</${door?'button':'div'}>`;
   }).join('');
-  const half=d.totals.nextSixMonths;
+  const grid=`grid-template-columns:repeat(${N},minmax(0,1fr))`;
+  const body=`<div class="pf-run">
+    <div class="pf-yax" style="height:${H}px">${t.map(v=>`<span style="bottom:${(v/top*100).toFixed(2)}%">${fig(v)}</span>`).join('')}<span style="bottom:0">0</span></div>
+    <div style="min-width:0">
+      <div class="pf-vbars" role="group" aria-label="${pfEsc(i18t('pf_renewal_aria'))}" style="height:${H}px;${grid}">${
+        t.map(v=>`<div class="pf-gl" style="bottom:${(v/top*100).toFixed(2)}%"></div>`).join('')}${cols}</div>
+      <div class="pf-vaxis" style="${grid}">${per.map(p=>`<span>${p.offset%3===0?pfEsc(pfMonthLabel(p.offset)):''}</span>`).join('')}</div>
+    </div></div>`;
+  const allIds=per.reduce((a,p)=>a.concat(p.ids||[]),[]);
+  const door=pfDoor('run', allIds, i18t('pf_renewal_runway'));
   const openEnded=d.excluded.openEnded.count;
-  const body=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${pfEsc(i18t('pf_renewal_aria'))}">
-    <g stroke="var(--color-divider)" stroke-width="1"><line x1="${px}" y1="${H-pb}" x2="${W-8}" y2="${H-pb}"/></g>
-    <text x="${px-8}" y="22" text-anchor="end" font-size="9.5" fill="var(--color-neutral-600)">${pfEsc(pfMoney(peak))}</text>
-    <text x="${px-8}" y="${H-pb+3}" text-anchor="end" font-size="9.5" fill="var(--color-neutral-600)">0</text>
-    ${bars}</svg>`;
-  const key=(col,txt)=>`<span style="display:inline-flex;align-items:center;gap:5px"><i style="width:10px;height:10px;border-radius:var(--radius);background:${col};display:inline-block"></i>${txt}</span>`;
-  const foot=`<div style="display:flex;gap:13px;flex-wrap:wrap;align-items:center">
-    ${key('var(--accent-solid,var(--color-accent))',i18t('pf_decided'))}
-    ${key('var(--st-amber-dot)',i18t('pf_nothing_filed'))}
-    <span style="margin-left:auto">${i18t('pf_lands_six',{v:pfMoney(half)})}</span></div>
-    ${openEnded?`<div style="margin-top:5px">${i18t('pf_open_ended',{n:openEnded})}</div>`:''}`;
-  return pfCard(i18t('pf_renewal_runway'), i18t('pf_renewal_hint'), body, foot);
+  const foot=pfFootRow([
+    pfKey('var(--pf-made)', i18t('pf_decided')),
+    pfKey('var(--st-amber-dot)', i18t('pf_nothing_filed')),
+    openEnded ? `<span title="${pfEsc(i18t('pf_ov_run_no_end_title'))}">${i18tn('pf_ov_run_no_end', openEnded, {n:openEnded})}</span>` : '',
+    door ? `<button type="button" data-pf-go="run" class="ui-link pf-door" title="${pfEsc(pfDoorLabel(allIds.length))}">${i18t('pf_ov_all_in',{n:allIds.length})}${icon('chevR','w-3 h-3')}</button>` : '']);
+  return pfCard(i18t('pf_renewal_runway'), i18t('pf_ov_run_sub'), body, foot, pfRunSay(d));
 }
 
 /* ---- ONE DOOR TO THE PANELS' OWN FIGURES ----

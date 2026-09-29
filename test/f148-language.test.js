@@ -35,6 +35,9 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
+  /* The Exposure tab's Pattern Grid (28 Sep 2026): '{dim}: {group}' labels the
+     picked square ("Category: Supplier") and is only its placeholders. */
+  'exp_pg_sel_in',
   /* Explorer's legend (28 Sep 2026): "Status" is the same word in Swedish,
      now that the rows are a key and no longer say "click to filter". */
   'int_status_click',

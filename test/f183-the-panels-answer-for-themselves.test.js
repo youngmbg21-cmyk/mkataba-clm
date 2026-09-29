@@ -383,23 +383,24 @@ describe('F183 (7) — the findings card, and the door onto a finding', () => {
   const PF = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'portfolio.js'), 'utf8');
   const CODE = PF.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 
-  test('ten a page, and the old cap is retired with the dead-end it was', () => {
-    assert.match(CODE, /const PF_FINDINGS_PAGE = 10;/);
-    assert.ok(!/PF_MAX_FINDINGS/.test(CODE),
-      'the cap is gone, not left beside the pager for the next reader to choose from');
-    assert.ok(!/pf_more_here/.test(CODE),
-      'and so is the bold count that led nowhere');
+  /* ---- RE-POINTED IN PLACE 28 SEP 2026: THE CARD IS GONE ----
+     Young ruled the Overview by name ("kill the bottom 3 cards"): What needs
+     attention went with What this slice says and the grey note, so its pager,
+     its page size and its clamp went with it (f429 pins the whole ruling).
+     The two claims that pinned the pager now pin its ABSENCE, so a pager does
+     not come back without its card. The door below it STAYS — the money-held
+     and promises rows still press data-pf-open. */
+  test('the findings card, its ten-a-page pager and the old cap are all gone', () => {
+    assert.ok(!/PF_FINDINGS_PAGE/.test(CODE), 'the page size went with the card');
+    assert.ok(!/PF_MAX_FINDINGS/.test(CODE), 'and the cap before it stays gone');
+    assert.ok(!/pf_more_here/.test(CODE), 'and so is the bold count that led nowhere');
   });
 
-  test('the page is CLAMPED on the way out, never written back', () => {
-    /* The book shrinks under this card — a finding is dismissed, a filter is
-       set — and a stored page past the end would draw an empty card with no way
-       off it. Clamping on read means the card always has rows AND that widening
-       the filter again puts the reader back where they were. */
-    assert.match(CODE, /Math\.min\(Math\.max\(0, F\.findPage\|0\), pages-1\)/);
-    const paint = CODE.match(/function pfFindings\(\)[\s\S]*?\n}/)[0];
-    assert.ok(!/F\.findPage\s*=/.test(paint),
-      'drawing the card must not rewrite the reader\'s page');
+  test('nothing is left that stores or clamps a findings page', () => {
+    assert.ok(!/findPage/.test(CODE), 'no page number is stored for a card that is not drawn');
+    assert.ok(!/function pfFindings\(/.test(CODE), 'the card itself is deleted, not stubbed');
+    assert.ok(/data-pf-open/.test(CODE),
+      'CONTROL — the rows that still open a contract are on the page');
   });
 
   test('THE DOOR PRESSES THE PRODUCT\'S OWN DOORS, and grows no second one', () => {

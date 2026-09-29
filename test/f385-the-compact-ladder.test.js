@@ -161,7 +161,12 @@ describe('f385 (4) text buttons have one look', () => {
       ['js/core.js', /data-sh-revoke="\$\{s\.token\}" type="button" class="ui-link ui-link-danger"/],
       ['js/review.js', /id="rv-pick-all" class="ui-link"/],
       ['js/views/intelligence.js', /id="igf-ai-regen" type="button" class="ui-link"[^>]*>\$\{icon\('refresh'/],
-      ['js/views/intelligence.js', /data-exp-go="unread" type="button" class="ui-link"/],
+      /* RE-POINTED 28 Sep 2026: the Exposure tab is the PATTERN GRID (owner-picked
+         by name). Its text buttons are the headline figures and the side card's
+         door onto Contracts — they wear the one look; the unread line's own
+         "Read them" button went with the table it sat under. */
+      ['js/views/intelligence.js', /type="button" class="ui-link exp-pg-open" data-exp-open="1"/],
+      ['js/views/intelligence.js', /type="button" class="ui-link exp-pg-fact"/],
       ['js/views/register.js', /id="reg-clear-filters" type="button" class="ui-link"/],
       ['js/views/settings.js', /data-sess-revoke="\$\{s\.id\}" type="button" class="ui-link ui-link-danger"/],
       ['js/views/contract.js', /id="sign-paper" type="button" class="ui-link"/],

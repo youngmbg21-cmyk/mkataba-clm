@@ -487,15 +487,14 @@ const QUESTION = 'why do I have a big workload runway today?';
     });
     await page.waitForTimeout(700);
     const clauseRows = await page.evaluate(() => {
-      /* The bar block names itself with an aria-label, which is the one handle
-         on it that is not a style string. Its grid runs label · bar · % · +r,
-         so the LABEL is the first cell of every group of four. */
-      const grid = [...document.querySelectorAll('[role="img"]')]
-        .find(e => /most-contested/i.test(e.getAttribute('aria-label') || ''));
+      /* RE-POINTED IN PLACE 28 Sep 2026: the page is the Clause Ledger now
+         (owner-picked). The most-contested clauses are the rows of its clause
+         list — the same eight names intelFrictionStats ranks, read off the
+         PAINTED table, which is what this check was always about. */
+      const grid = document.querySelector('table[data-igf-list="clauses"]');
       if (!grid) return null;
-      const cells = [...grid.children]
-        .map(e => (e.textContent || '').replace(/\s+/g, ' ').trim());
-      return cells.filter((_, i) => i % 4 === 0).filter(Boolean);
+      return [...grid.querySelectorAll('tbody td.igf-led-name')]
+        .map(e => (e.textContent || '').replace(/\s+/g, ' ').trim()).filter(Boolean);
     });
     const shouty = (Array.isArray(clauseRows) ? clauseRows : []).filter(t => {
       const words = t.replace(/…/g, '').split(/\s+/)
