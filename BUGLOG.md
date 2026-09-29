@@ -19904,3 +19904,8 @@ Noticed, not fixed
 
 ### Noticed, not fixed
 - CLAUDE.md is ~86.8 KB after today's merge from main (the file's own ceiling is about 80 KB); it needs the owner's next trim.
+
+## 29 Sep 2026 — Sweden SAP consulting contract (a Word file, no code changed)
+
+### Noticed, not fixed
+- The no-Copilot upload reader (`heuristicExtract` value pattern) only reads KES / Kshs / USD / $ amounts, so an upload stating "SEK 4,800,000" leaves the value box empty when Copilot is off; a Swedish workspace has to type it in.
