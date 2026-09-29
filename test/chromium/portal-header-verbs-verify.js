@@ -152,7 +152,7 @@ const VERBS = [
       /* REVERSED AGAIN 29 Sep 2026 (Young: focus mode "should not be
          hidden"): a button on the control row, out of the menu. */
       focusInMenu: (() => { const b = byId('pt-focus'), m = byId('pt-more-menu'), r = document.querySelector('.pw-id-row2');
-        return !!(b && m && !m.contains(b) && r && r.contains(b)); })(),
+        return !!(b && (!m || !m.contains(b)) && r && r.contains(b)); })(),
       /* THE WALL LINE STAYS — the one band this page is allowed, because they
          must read it before they answer anything. */
       wall: (() => { const w = document.querySelector('.rl-wall');
@@ -240,12 +240,11 @@ const VERBS = [
       : m.hiddenDisplay);
 
   /* ---- 7. THE WALL LINE STAYS, and it is read before anything is pressed ---- */
-  check('the wall line is still on the page',
-    !!m.wall && /stay on this page until you press Send/i.test(m.wall.text),
-    m.wall ? m.wall.text.slice(0, 90) : 'absent');
-  check('and it is above the document, where it is read first',
-    !!m.wall && !!m.doc && m.wall.box.top <= m.doc.top,
-    m.wall && m.doc ? `wall top=${m.wall.box.top}, doc top=${m.doc.top}` : 'missing one');
+  /* REVERSED 29 Sep 2026 (Young said yes): the "Your table" strip is gone on
+       the ordinary live link; its promise rides the Send all hover and heads
+       the check before Send. What is measured now is that it is NOT there. */
+  check('no "Your table" strip on the ordinary link',
+    !m.wall || !/Your table/i.test(m.wall.text), m.wall ? m.wall.text.slice(0, 90) : 'absent');
 
   /* ---- 8. the gate is the engine's, and says so on the button ---- */
   check('Ready to sign is shut while the round is unanswered', m.readyDisabled === true,

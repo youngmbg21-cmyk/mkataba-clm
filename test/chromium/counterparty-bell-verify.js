@@ -236,9 +236,10 @@ const SEEN = `(el => { if (!el) return null;
         underHead: !!(w && head && w.getBoundingClientRect().top >= head.getBoundingClientRect().bottom - 2),
         firstInMount: !!(w && mount && mount.querySelector('.rl-wall') === w) };
     }, [SEEN]);
-    check('8 THE WALL LINE IS STILL DRAWN, UNFOLDED, under the header',
-      wall.box && wall.box.on && wall.underHead, wall.text);
-    check('8 and it is the first of its kind on the working area', wall.firstInMount);
+    /* REVERSED 29 Sep 2026 (Young said yes): the "Your table" strip is gone on
+       the ordinary live link; its promise rides the Send all hover and heads
+       the check before Send. What is measured now is that it is NOT there. */
+    check('8 no "Your table" strip on the ordinary link', !wall.text || !/Your table/i.test(wall.text), wall.text);
 
     /* ---- 9. NOTHING INTERNAL LEAKS ---- */
     const leak = await page.evaluate(() => {

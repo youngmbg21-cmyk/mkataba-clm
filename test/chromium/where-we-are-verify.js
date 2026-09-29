@@ -119,10 +119,13 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
   const nf = await page.evaluate(() => {
     const menu = document.getElementById('pt-more-menu');
     const notes = document.getElementById('pt-notes-door'), focus = document.getElementById('pt-focus');
-    return { notes: !!notes && !(menu && menu.contains(notes)), focus: !!focus && !(menu && menu.contains(focus)) };
+    return { notes: !!notes && !(menu && menu.contains(notes)), focus: !!focus && !(menu && menu.contains(focus)),
+      noMore: !document.getElementById('pt-more'),
+      copies: [...document.querySelectorAll('#pt-where-pane [data-pt-copy]')].map(b => b.dataset.ptCopy) };
   });
   check('4a Notes is a button beside the bell, not a row in More', nf.notes);
   check('4b Focus is a button on the control row, not a row in More', nf.focus);
+  check('4e More is gone; PDF and Word are on the Copies card', nf.noMore && nf.copies.includes('pdf'), JSON.stringify(nf.copies));
   await press(page, '#pt-notes-door');
   check('4c Notes opens the notes drawer', await until(page, () => (document.getElementById('pt-notes') || { classList: { contains: () => false } }).classList.contains('open')));
   await press(page, '#pt-notes-close');
@@ -174,6 +177,32 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     await press(page, '#clause-editor [data-ce-act="close"]');
     await until(page, () => !document.getElementById('clause-editor'));
   } else check('6b Save asks for a reason', false, 'the editor did not open');
+
+  /* ---- 9 · round two (Young: "implement all", 29 Sep 2026) ---- */
+  const turn = await page.evaluate(() => (document.getElementById('pt-turn') || {}).textContent || '');
+  check('9a whose turn it is sits beside the title', /With /.test(turn), turn);
+  const strip = await page.evaluate(() => /Your table/.test((document.querySelector('#pt-nego') || {}).textContent || ''));
+  check('9b the grey "Your table" strip is gone', !strip);
+  await press(page, '#pt-tab-signing');
+  const sg = await page.evaluate(() => { const p = document.getElementById('pt-sign-pane');
+    return p && !p.hidden ? { n: p.querySelectorAll('.ps-stage').length, turn: /Your turn/.test(p.textContent),
+      seen: (() => { const r = p.getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + 80); return !!e && p.contains(e); })() } : null; });
+  check('9c the Signing tab draws four stages, painted, and never "Your turn"', !!sg && sg.n === 4 && !sg.turn && sg.seen, JSON.stringify(sg));
+  await page.screenshot({ path: path.join(OUT, '05-signing-tab.png') });
+  await press(page, '#pt-tab-redlines');
+  await press(page, '#rl-changes-col [data-nego-accept]');
+  const sendAll = await until(page, () => !!document.querySelector('.rl-unsent-go'));
+  check('9d an answer makes Send all appear', sendAll);
+  if (sendAll){
+    await press(page, '.rl-unsent-go');
+    const asked = await until(page, () => /Send to /.test((document.getElementById('confirm-overlay') || {}).textContent || ''));
+    check('9e Send shows what leaves first', asked);
+    await page.screenshot({ path: path.join(OUT, '06-send-check.png') });
+    await press(page, '#cf-cancel');
+    await until(page, () => !document.getElementById('confirm-overlay'), null, 2000);
+    const still = await page.evaluate(() => !!document.querySelector('.rl-unsent-go'));
+    check('9f Keep working leaves the answer held', still);
+  }
 
   /* ---- 7 · a reload keeps the tab they left ---- */
   await press(page, '#pt-hist');

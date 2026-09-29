@@ -45,14 +45,14 @@ function theirPage(over = {}, share = {}, store = null) {
   payload.purpose = 'negotiate'; payload.purposeChosen = 'negotiate';
   p.win.renderSharePortal(payload, { token: 't', share: { recipientName: 'Erik Lindqvist', ...share } });
   const d = p.win.document;
-  return { p, win: p.win, d, payload, $: s => d.querySelector(s) };
+  return { p, win: p.win, d, payload, $: s => d.querySelector(s), log: p.log };
 }
 
 describe('f439 — the tabs', () => {
   test('Where we are · Redlines · History, on the control row', () => {
     const v = theirPage();
     const tabs = [...v.d.querySelectorAll('.pw-id-row2 .pw-tab')].map(b => b.id);
-    assert.deepEqual(tabs, ['pt-tab-where', 'pt-tab-redlines', 'pt-hist']);
+    assert.deepEqual(tabs, ['pt-tab-where', 'pt-tab-redlines', 'pt-hist', 'pt-tab-signing']);
   });
   test('a first visit lands on Where we are, with the contract laid out under it', () => {
     const v = theirPage();
@@ -76,13 +76,12 @@ describe('f439 — the tabs', () => {
 });
 
 describe('f439 — Notes and Focus are not hidden', () => {
-  test('both are buttons on the page and neither is a row in More', () => {
+  test('both are buttons on the page, and the More menu is gone', () => {
     const v = theirPage();
-    const menu = v.$('#pt-more-menu');
     assert.ok(v.$('.pw-id #pt-notes-door'), 'Notes beside the bell');
     assert.ok(v.$('.pw-id-row2 #pt-focus'), 'Focus beside the text size');
-    assert.ok(!menu.contains(v.$('#pt-notes-door')) && !menu.contains(v.$('#pt-focus')));
-    assert.ok(menu.querySelector('#pt-pdf'), 'More keeps the files');
+    assert.equal(v.$('#pt-more'), null, 'nothing was left in More, so there is no More');
+    assert.ok(v.$('#pt-where-pane [data-pt-copy="pdf"]'), 'the PDF is on the Copies card');
   });
 });
 
@@ -161,5 +160,81 @@ describe('f439 — a reason after every save, on their seat', () => {
     v.win.promptDialog = () => Promise.resolve(null);
     assert.equal(await v.win.portalAskReason({ id: 'MK-500' }, ch), null);
     assert.equal(heldWhy(store, 'CHG-9'), undefined);
+  });
+});
+
+/* ---- ROUND TWO (Young: "implement all", 29 Sep 2026) ---- */
+const tick = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); await new Promise(r => setImmediate(r)); };
+const press = async (v, sel) => { const el = v.$(sel); assert.ok(el, `${sel} is on their page`);
+  el.dispatchEvent(new v.win.Event('click', { bubbles: true })); await tick(); };
+
+describe('f439 — the Signing tab on a negotiation link', () => {
+  test('four stages, said as what comes next — never "Your turn"', async () => {
+    const v = theirPage();
+    await press(v, '#pt-tab-signing');
+    const pane = v.$('#pt-sign-pane');
+    assert.equal(pane.hidden, false);
+    assert.equal(pane.querySelectorAll('.ps-stage').length, 4);
+    assert.doesNotMatch(pane.textContent, /Your turn/, 'nothing can be signed on this link');
+    assert.match(pane.textContent, /Nothing can be signed on this link/);
+  });
+  test('its "Review what changed" opens the History tab', async () => {
+    const v = theirPage();
+    await press(v, '#pt-tab-signing');
+    await press(v, '#pt-sign-pane #pt-nego-open');
+    assert.equal(v.$('#pw-page').dataset.ptTab, 'history');
+  });
+});
+
+describe('f439 — whose turn it is, beside the title', () => {
+  test('work waiting on them reads "With you"', () => {
+    const v = theirPage();
+    assert.match(v.$('#pt-turn').textContent, /With you/);
+  });
+});
+
+describe('f439 — the grey "Your table" strip is gone on the ordinary link', () => {
+  test('no strip; the promise is on the Send all hover once something is held', async () => {
+    const v = theirPage();
+    assert.doesNotMatch((v.$('#rl-banner') || { textContent: '' }).textContent, /Your table/);
+    v.win.portalSetTab('redlines');
+    await press(v, '[data-nego-accept="CHG-001"]');
+    assert.match(v.$('.rl-unsent-go').getAttribute('title'), /until you press Send/);
+  });
+});
+
+describe('f439 — the check before Send', () => {
+  async function held(v, how) {
+    v.p.setResponderName('Erik Lindqvist');
+    v.win.portalSetTab('redlines');
+    if (how === 'reject') { v.win.promptDialog = async () => ''; await press(v, '[data-nego-reject="CHG-001"]'); }
+    else await press(v, '[data-nego-accept="CHG-001"]');
+  }
+  test('Send shows what leaves first, and says where a reason is missing', async () => {
+    const v = theirPage();
+    await held(v, 'reject');
+    await press(v, '.rl-unsent-go');
+    assert.equal(v.log.sendChecks.length, 1, 'the check came up');
+    assert.match(v.log.sendChecks[0].message, /Reject: .*no reason given/);
+    assert.ok(v.p.lastSent(), 'and Send in it sent');
+  });
+  test('Keep working sends nothing and keeps what is held', async () => {
+    const v = theirPage();
+    await held(v, 'accept');
+    v.win.confirmDialog = async () => false;
+    await press(v, '.rl-unsent-go');
+    assert.equal(v.p.lastSent(), null, 'nothing left');
+    assert.ok(v.$('.rl-unsent-go'), 'the answer is still held, still sendable');
+  });
+});
+
+describe('f439 — Reject already asks why, on their seat', () => {
+  test('pressing Reject asks for a reason before it is recorded', async () => {
+    const v = theirPage();
+    v.win.portalSetTab('redlines');
+    let asked = null;
+    v.win.promptDialog = async o => { asked = o; return 'Net-30 stands.'; };
+    await press(v, '[data-nego-reject="CHG-001"]');
+    assert.ok(asked, 'the reason is asked for');
   });
 });

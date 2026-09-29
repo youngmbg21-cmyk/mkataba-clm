@@ -176,7 +176,7 @@ describe('F181 — the header carries Ready to sign, beside Compare wording', ()
     assert.equal(v.$('.pt-focus-btn'), null,
       'and it did not come back wearing the class the old loose button had');
     const menu = v.$('#pt-more-menu');
-    assert.ok(menu && !menu.contains(btn), 'it is no longer hidden in the overflow menu');
+    assert.ok(!menu || !menu.contains(btn), 'it is no longer hidden in an overflow menu (the page has none since 29 Sep 2026)');
     const row2 = v.$('.pw-id-row2');
     assert.ok(row2 && row2.contains(btn), 'it sits on the control row, beside the text size');
     const row = v.$('.pw-id');

@@ -104,7 +104,12 @@ describe('F62 — an answer that has not gone is marked on the card', () => {
        time, so the wall was cut to the one thing only it says and the count
        stayed where the act is. THE CLAIM IS UNCHANGED: the page says in words
        what to do about an answer that has not gone. */
-    assert.match(page, /until you press Send/i,
+    /* ---- REVERSED 29 Sep 2026 (Young said yes: the "Your table" strip goes
+       on the ordinary live link) ---- The promise rides the Send all button's
+       hover and heads the check before Send; the strip stays only where it
+       says something nothing else does (no live link back, multi-party). */
+    const go = v.$('.rl-unsent-go');
+    assert.match((go && go.getAttribute('title')) || '', /until you press Send/i,
       'a badge alone tells you a state, not a next step');
     assert.match(page, /1 decision/i, 'and the count rides the act');
     assert.ok(v.$('#nego-send-decisions') || v.$('#pt-nego-send'), 'and Send is offered beside it');

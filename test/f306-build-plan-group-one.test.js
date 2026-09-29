@@ -255,7 +255,7 @@ describe('f306 (4) — the counterparty\'s wall is one line', () => {
      asserted file-wide would have called that a fault. */
   test('the wall no longer counts the held answers a second time', () => {
     const raw = read('js/views/portal.js');
-    const i = raw.indexOf('const banner = live');
+    const i = raw.indexOf('const banner =');
     const j = raw.indexOf('pt-nego-facts', i);
     assert.ok(i > 0 && j > i, 'the wall builder is where this file thinks it is');
     const wall = raw.slice(i, j);

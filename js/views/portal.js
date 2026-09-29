@@ -460,6 +460,7 @@ function portalMoreMenuHtml(){
    same week. */
 let _ptMoreWired=false;
 function wirePortalMore(c,p){
+  portalArmPageKeys();
   const btn=document.getElementById('pt-more'), menu=document.getElementById('pt-more-menu');
   if(!btn||!menu) return;
   const shut=()=>{ menu.classList.add('hidden'); btn.setAttribute('aria-expanded','false'); };
@@ -473,18 +474,24 @@ function wirePortalMore(c,p){
     /* Every row closes the menu before it acts. A print dialog or a download
        opening over a menu still standing is a menu the reader has to dismiss
        afterwards to see the page they just acted on. */
-    document.getElementById('pt-pdf')?.addEventListener('click',()=>{
-      shut();
-      if(window.exportPDF) exportPDF(c);
-      else if(window.toast) toast(i18t('po_export_unavailable'),'err');
-    });
-    document.getElementById('pt-word')?.addEventListener('click',()=>{
-      shut();
-      if(window.exportWordTracked)
-        exportWordTracked(c,{ side:'counterparty', author:portalResponderName()||(c&&c.counterparty)||'Counterparty' });
-      else if(window.toast) toast(i18t('po_export_unavailable'),'err');
-    });
+    document.getElementById('pt-pdf')?.addEventListener('click',()=>{ shut(); portalExportPdf(c); });
+    document.getElementById('pt-word')?.addEventListener('click',()=>{ shut(); portalExportWord(c); });
   }
+}
+/* The two files, ONE function each, pressed from the Copies card (and from
+   More, where that menu is drawn). */
+function portalExportPdf(c){
+  if(window.exportPDF) exportPDF(c);
+  else if(window.toast) toast(i18t('po_export_unavailable'),'err');
+}
+function portalExportWord(c){
+  if(window.exportWordTracked)
+    exportWordTracked(c,{ side:'counterparty', author:portalResponderName()||(c&&c.counterparty)||'Counterparty' });
+  else if(window.toast) toast(i18t('po_export_unavailable'),'err');
+}
+/* THE PAGE'S DOCUMENT-LEVEL KEYS AND PRESSES, armed once whether or not a
+   More menu is drawn (it is not, on the negotiation page, since 29 Sep 2026). */
+function portalArmPageKeys(){
   if(_ptMoreWired) return;
   _ptMoreWired=true;
   /* ---- THE WAY OUT OF FOCUS MODE, WIRED ONCE ON THE DOCUMENT ----
@@ -2184,7 +2191,10 @@ function wirePortalNotes(){
        always had.
 
    A stage that is settled wears a tick; the one in hand wears its number. */
-function portalBeforeSignStagesHtml(c, p){
+function portalBeforeSignStagesHtml(c, p, o={}){
+  /* o.negotiating: drawn on the NEGOTIATION link's Signing tab (Young, 29 Sep
+     2026), where nothing can be signed yet — so no "Your turn" line, and the
+     reading and the order are said as what comes next. */
   const src=(p&&p.contract)||{};
   const org=(p&&p.org)||i18t('pt_the_sender');
   const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
@@ -2204,13 +2214,13 @@ function portalBeforeSignStagesHtml(c, p){
   const people = order ? order.html : (sigs.length
       ? sigs.map(s=>`<p class="ps-who"><b>${esc(s.name)}</b>${s.title?` &middot; ${esc(s.title)}`:''}<span class="ps-when ok">${
           esc(i18t('po_stage_signed_at',{at:s.at&&window.fmtDT?fmtDT(s.at):(s.at||'')}))}</span></p>`).join('')
-      : `<p class="ps-line">${esc(i18t('po_stage_none_yet'))}</p>`)
-    + (executed ? '' : `<p class="ps-who"><b>${esc(i18t('po_stage_you'))}</b><span class="ps-when now">${esc(i18t('po_stage_your_turn'))}</span></p>`);
-  return stage(1, !open, i18t('po_stage_wording'),
+      : `<p class="ps-line">${esc(i18t(o.negotiating?'po_stage_order_later':'po_stage_none_yet',{org}))}</p>`)
+    + ((executed || o.negotiating) ? '' : `<p class="ps-who"><b>${esc(i18t('po_stage_you'))}</b><span class="ps-when now">${esc(i18t('po_stage_your_turn'))}</span></p>`);
+  return stage(1, !open, i18t(o.negotiating&&open?'po_stage_wording_agree':'po_stage_wording'),
       `<p class="ps-line">${wording}</p>${changes.length?`<button id="pt-nego-open" type="button" class="ui-link ps-door"
         title="${i18t('po_every_change_oldest')}">${i18t('po_review_what_changed')}</button>`:''}`)
-    + stage(2, executed, i18t('po_stage_read'), `<p class="ps-line">${esc(i18t('po_stage_read_line'))}</p>`)
-    + stage(3, executed || !!(order && order.done), i18t(order ? 'po_stage_order' : 'po_stage_people'), people);
+    + stage(2, executed, i18t('po_stage_read'), `<p class="ps-line">${esc(i18t(o.negotiating?'po_stage_read_later':'po_stage_read_line',{org}))}</p>`)
+    + stage(3, executed || !!(order && order.done), i18t((order || o.negotiating) ? 'po_stage_order' : 'po_stage_people'), people);
 }
 /* The signing order as their page draws it: one numbered step per row group,
    each person's name and capacity, the party they sign for, and where they
@@ -2371,8 +2381,7 @@ function wirePortalNego(c, p){
   const reachable=!!PORTAL_OPTS.token;
   const live=!portalReadOnly() && !signing;
   const org=(p&&p.org)||'the sender';
-  const prog=(window.negoProgress&&c)?negoProgress(c):{ done:0, total:0 };
-  const facts=`Round ${window.negoRound?negoRound(c):1} &middot; Resolved: ${prog.done} of ${prog.total}`;
+  const facts=portalNegoFacts(c);
   /* ---- ONE LINE, AND THE COUNT WHERE THE ACT IS ---- (owner-approved 13 Sep
      2026, group 1 of the build plan.)
 
@@ -2400,14 +2409,22 @@ function wirePortalNego(c, p){
      multi-party contract — so an ordinary counterparty's page is byte-
      identical. It is a clause on the wall line that already exists, never a
      second band. */
-  const banner = live
+  /* ---- THE "YOUR TABLE" STRIP IS GONE ON THE ORDINARY LINK (Young said
+     yes, 29 Sep 2026) ---- Its promise rides the Send all button's hover and
+     heads the check before Send; its round and resolved count are on Where we
+     are. It STAYS where it says something nothing else does: a copy with no
+     live link back (Send gives a code instead), a multi-party link (which
+     party they are), and every read-only reason below. */
+  const party=portalPartyLine();
+  const banner = (live && reachable && !party) ? ''
+    : live
     ? `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span><b>${i18t('po_your_table')}</b> ${
         reachable
         ? esc(i18t('po_wall_live'))
         /* THE PROMISE IS THE SAME; WHAT SEND DOES IS DIFFERENT, and the reader
            has to know that before they start rather than after they press it. */
         : esc(i18t('po_wall_no_channel'))
-      }${portalPartyLine()} <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
+      }${party} <span id="pt-nego-facts" style="opacity:.75">${facts}</span></span></div>`
     /* THE DELIVERY SENTENCE IS ON BOTH BRANCHES, and the read-only one is the
        branch that needs it MOST — which is why it is not an afterthought here.
        Measured: the moment the owner collects their round the negotiation can
@@ -3295,8 +3312,12 @@ function portalPaintAlerts(c, p){
   bell.hidden=!rows.length && !notices;
   const body=document.getElementById('pt-alerts-body');
   if(body) body.innerHTML=portalAlertsBodyHtml(rows, notices);
-  /* "Waiting on you" is these same rows: it moves when the bell moves. */
-  if(document.getElementById('pt-where-pane')){ _ptCtx={ c, p }; if(_ptTab==='where') portalPaintWhere(); }
+  /* "Waiting on you", and whose turn it is beside the title, are these same
+     rows: they move when the bell moves. */
+  const turn=document.getElementById('pt-turn');
+  if(turn) turn.innerHTML=portalTurnHtml();
+  if(document.getElementById('pt-where-pane')){ _ptCtx={ c, p };
+    if(_ptTab==='where') portalPaintWhere(); else if(_ptTab==='signing') portalPaintSignPane(); }
 }
 function wirePortalAlerts(c, p){
   portalPaintAlerts(c, p);
@@ -3562,7 +3583,7 @@ function portalWorkbenchStyle(){
    a decision, a note); otherwise wherever they left it. Decided once per
    sitting — a repaint or a poll never moves a reader who is looking at
    something. Kept per link in this browser only (hati.ptPlace.<token>). */
-const PT_TABS=['where','redlines','history'];
+const PT_TABS=['where','redlines','history','signing'];
 const PT_PLACE_KEY=t=>`hati.ptPlace.${t}`;
 let _ptTab='redlines';
 let _ptTabFor=null;          // the token the tab was decided for, this sitting
@@ -3583,7 +3604,8 @@ function portalTabsHtml(){
   return `<span class="pw-tabs" role="tablist" aria-label="${esc(i18t('po_tabs_label'))}">${
     tab('where','pt-tab-where',i18t('po_tab_where'))}${
     tab('redlines','pt-tab-redlines',i18t('po_tab_redlines'))}${
-    portalHasHistory()?tab('history','pt-hist',i18t('po_tab_history'),i18t('po_every_change_oldest')):''}</span>`;
+    portalHasHistory()?tab('history','pt-hist',i18t('po_tab_history'),i18t('po_every_change_oldest')):''}${
+    tab('signing','pt-tab-signing',i18t('po_tab_signing'))}</span>`;
 }
 /* Notes, beside the bell (it was a row in More). Same id, same delegated
    handler (wirePortalNotes), same drawer. */
@@ -3636,9 +3658,11 @@ function portalSetTab(k, o={}){
   page.querySelectorAll('.pw-tab[data-pt-tab]').forEach(b=>b.setAttribute('aria-selected', b.dataset.ptTab===k?'true':'false'));
   const nego=document.getElementById('pt-nego');
   if(nego) nego.inert = k!=='redlines';
-  const where=document.getElementById('pt-where-pane'), hist=document.getElementById('pt-hist-pane');
+  const where=document.getElementById('pt-where-pane'), hist=document.getElementById('pt-hist-pane'),
+    sign=document.getElementById('pt-sign-pane');
   if(where){ where.hidden = k!=='where'; if(k==='where') portalPaintWhere(); }
   if(hist){ hist.hidden = k!=='history'; if(k==='history') portalPaintHistoryPane(); }
+  if(sign){ sign.hidden = k!=='signing'; if(k==='signing') portalPaintSignPane(); }
   if(o.save!==false) portalPlaceSave();
 }
 function wirePortalTabs(c, p){
@@ -3664,9 +3688,33 @@ function wirePortalTabs(c, p){
       setTimeout(()=>{ try{ r.go(); }catch(_){} }, 0);
       return;
     }
-    if(t.closest('[data-pt-where-history]')){ portalSetTab('history'); return; }
-    if(t.closest('[data-pt-where-notes]')){ ev.preventDefault(); portalOpenNotes({}); }
+    if(t.closest('[data-pt-where-history]') || t.closest('#pt-sign-pane #pt-nego-open')){ portalSetTab('history'); return; }
+    if(t.closest('[data-pt-where-notes]')){ ev.preventDefault(); portalOpenNotes({}); return; }
+    const copy=t.closest('[data-pt-copy]');
+    if(copy && _ptCtx){ ev.preventDefault();
+      if(copy.dataset.ptCopy==='word') portalExportWord(_ptCtx.c); else portalExportPdf(_ptCtx.c); }
   });
+}
+/* ---- WHOSE TURN IT IS: ONE READING (Young said yes to the label, 29 Sep
+   2026) ---- Off the bell's rows: work owed by this reader ('answer', 'held',
+   'sign') makes it theirs; a closed page has no turn (its state word says why);
+   otherwise it is with the sender. Drawn beside the title and on Where we are. */
+/* THE ROUND AND WHAT IS RESOLVED, one reading: the wall line printed it and
+   the journey on Where we are prints it now. */
+function portalNegoFacts(c){
+  const prog=(window.negoProgress&&c)?negoProgress(c):{ done:0, total:0 };
+  return `Round ${window.negoRound?negoRound(c):1} &middot; Resolved: ${prog.done} of ${prog.total}`;
+}
+function portalTurn(rows){
+  const r=(rows||[]);
+  if(portalExecuted() || r.some(x=>x&&x.kind==='closed')) return null;
+  return r.some(x=>x&&(x.kind==='answer'||x.kind==='held'||x.kind==='sign')) ? 'you' : 'them';
+}
+function portalTurnHtml(){
+  const t=portalTurn(PT_ALERT_ROWS);
+  if(!t) return '';
+  const org=(PORTAL_OPTS.payload&&PORTAL_OPTS.payload.org)||i18t('pt_the_sender');
+  return `<span class="pw-turn is-${t}">${esc(t==='you'?i18t('po_turn_you'):i18t('po_turn_them',{ org }))}</span>`;
 }
 /* ---- THE JOURNEY, THE WORK, THE PERSON, THE LATEST ---- */
 function portalWhereHtml(c, p){
@@ -3675,26 +3723,26 @@ function portalWhereHtml(c, p){
   const rows=(PT_ALERT_ROWS||[]);
   const work=rows.filter(r=>r&&r.kind!=='closed');
   const closed=rows.find(r=>r&&r.kind==='closed');
-  const round=window.negoRound?negoRound(c):1;
-  const prog=(window.negoProgress&&c)?negoProgress(c):{ done:0, total:0 };
   const executed=portalExecuted();
   const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
   const open=changes.filter(x=>x.status==='pending'&&!x.withdrawn).length;
   const held=Object.keys(PORTAL_NEGO_DECISIONS).length+Object.keys(PORTAL_NEGO_PROPOSED).length;
   const agreed=executed || (changes.length>0 && !open && !held);
-  const yours=work.some(r=>r.kind==='answer'||r.kind==='held'||r.kind==='sign');
+  const t=portalTurn(rows);
   const turn = closed ? closed.text
     : executed ? i18t('po_step_signed')
-    : yours ? i18t('po_where_turn_you') : i18t('po_where_turn_them',{ org });
+    : t==='you' ? i18t('po_where_turn_you') : i18t('po_where_turn_them',{ org });
   const steps=[
     { head:i18t('po_step_shared'), sub:p&&p.at?portalDayWords(p.at):'', done:true },
-    { head:i18t('po_step_negotiating'), sub:`${i18t('po_where_round',{ n:round })}${prog.total?` · ${i18t('po_where_resolved',{ done:prog.done, total:prog.total })}`:''}`, done:agreed },
+    { head:i18t('po_step_negotiating'), facts:portalNegoFacts(c), done:agreed },
     { head:i18t('po_step_agreed'), sub:'', done:agreed },
     { head:i18t('po_step_signed'), sub:'', done:executed },
   ];
   const nowAt=steps.findIndex(s=>!s.done);
   const journey=`<ol class="pw-journey">${steps.map((s,i)=>`<li class="pw-jst${s.done?' is-done':''}${i===nowAt?' is-now':''}"${i===nowAt?' aria-current="step"':''}>
-      <span class="pw-jdot" aria-hidden="true"></span><b>${esc(s.head)}</b><span>${esc(s.sub || (s.done ? '' : i===nowAt ? i18t('po_step_now') : i18t('po_step_not_yet')))}</span></li>`).join('')}</ol>`;
+      <span class="pw-jdot" aria-hidden="true"></span><b>${esc(s.head)}</b>${s.facts
+        ? `<span class="pw-jfacts">${s.facts}</span>`
+        : `<span>${esc(s.sub || (s.done ? '' : i===nowAt ? i18t('po_step_now') : i18t('po_step_not_yet')))}</span>`}</li>`).join('')}</ol>`;
   const tone=r=>PT_ALERT_TONE[r.tone]||PT_ALERT_TONE.gray;
   const workHtml = work.length
     ? work.map(r=>{ const i=rows.indexOf(r);
@@ -3719,12 +3767,36 @@ function portalWhereHtml(c, p){
           <div class="pw-contact"><span class="pw-av" aria-hidden="true">${esc(initials||'·')}</span>
             <span><b>${esc(who)}</b><span>${esc(org)}</span>
             ${PORTAL_OPTS.token?`<button type="button" class="ui-link" data-pt-where-notes>${esc(i18t('po_where_write'))}</button>`:''}</span></div></section>
+        <section class="pw-card"><h3>${esc(i18t('po_where_copies'))}</h3><div class="pw-card-b">
+          <div class="pw-copy"><span><b>${esc(i18t('po_copy_clean'))}</b><span>${esc(i18t('po_copy_clean_sub'))}</span></span>
+            <button type="button" class="ui-btn pw-id-verb" data-pt-copy="pdf" title="${esc(i18t('po_pdf_title'))}">${icon('printer','w-3.5 h-3.5')}PDF</button></div>
+          ${(window.docxExportTracked&&window.redlineDocHtml)?`<div class="pw-copy"><span><b>${esc(i18t('po_copy_marked'))}</b><span>${esc(i18t('po_copy_marked_sub'))}</span></span>
+            <button type="button" class="ui-btn pw-id-verb" data-pt-copy="word" title="${esc(i18t('po_word_title'))}">${icon('file','w-3.5 h-3.5')}Word</button></div>`:''}
+        </div></section>
         ${lately.length?`<section class="pw-card"><h3>${esc(i18t('po_where_lately'))}</h3><div class="pw-card-b">${
           lately.map(e=>`<div class="pw-late"><span>${esc(e.at?portalDayWords(e.at):'')}</span><div>${esc(e.text||'')}</div></div>`).join('')}
           ${hasHist?`<button type="button" class="ui-link pw-late-all" data-pt-where-history>${esc(i18t('po_where_all_history'))}</button>`:''}</div></section>`:''}
       </div>
     </div>
   </div>`;
+}
+/* ---- THE SIGNING TAB ON A NEGOTIATION LINK ----
+   The signing page's own four stages (portalBeforeSignStagesHtml), said as
+   what comes next: nothing can be signed on this link, so the fourth stage
+   says where the signing will happen. */
+function portalSignPaneHtml(c, p){
+  const org=(p&&p.org)||i18t('pt_the_sender');
+  return `<div class="pw-sign"><section class="ps-side">
+    <h2 class="ps-h">${esc(i18t(portalExecuted()?'po_signed_head':'po_before_you_sign'))}</h2>
+    <ol class="ps-stages">${portalBeforeSignStagesHtml(c, p, { negotiating:true })}
+      <li class="ps-stage${portalExecuted()?' is-ok':''}"><span class="ps-ico" aria-hidden="true">${portalExecuted()?'&#10003;':'4'}</span><div class="ps-sb">
+        <h3 class="ps-st">${esc(i18t('po_stage_sign'))}</h3><p class="ps-line">${esc(i18t('po_stage_sign_later',{ org }))}</p></div></li></ol>
+  </section></div>`;
+}
+function portalPaintSignPane(){
+  const pane=document.getElementById('pt-sign-pane');
+  if(!pane||pane.hidden||!_ptCtx) return;
+  try{ pane.innerHTML=portalSignPaneHtml(_ptCtx.c, _ptCtx.p); }catch(_){ pane.innerHTML=''; }
 }
 function portalPaintWhere(){
   const pane=document.getElementById('pt-where-pane');
@@ -3807,7 +3879,9 @@ function portalTabsStyle(){
   if(document.getElementById('pw-tabs-style')) return;
   const el=document.createElement('style'); el.id='pw-tabs-style';
   el.textContent=`
-    .pw-tabs{display:inline-flex;align-items:stretch;gap:2px;flex:none;align-self:stretch;margin-bottom:-9px;}
+    .pw-tabs{display:inline-flex;align-items:stretch;gap:2px;flex:0 1 auto;min-width:0;max-width:100%;overflow-x:auto;
+      scrollbar-width:none;align-self:stretch;margin-bottom:-9px;}
+    .pw-tabs::-webkit-scrollbar{display:none;}
     .pw-tab{border:0;background:none;cursor:pointer;font:inherit;font-size:var(--t-card);font-weight:var(--w-label);
       color:var(--color-neutral-600);padding:4px 12px 8px;border-bottom:2px solid transparent;white-space:nowrap;}
     .pw-tab:hover{color:var(--color-text);}
@@ -3815,7 +3889,8 @@ function portalTabsStyle(){
     .pw-tab:focus-visible{outline:2px solid var(--accent-fill);outline-offset:-2px;}
     .pw-rl-only{display:inline-flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap;}
     .pw-page:not([data-pt-tab="redlines"]) .pw-rl-only,
-    .pw-page:not([data-pt-tab="redlines"]) .pw-notes{display:none;}
+    .pw-page:not([data-pt-tab="redlines"]) .pw-notes,
+    .pw-page:not([data-pt-tab="redlines"]) .rl-q-tab{display:none;}
     .pw-mount{position:relative;}
     .pw-mount>.pw-pane{position:absolute;inset:0;z-index:6;overflow:auto;background:var(--color-bg);}
     #pt-hist-pane .ht{max-width:880px;max-height:none;overflow:visible;margin:0 auto;background:var(--color-surface);
@@ -3848,11 +3923,22 @@ function portalTabsStyle(){
     .pw-contact .ui-link{align-self:flex-start;margin-top:4px;}
     .pw-av{width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:var(--t-label);
       font-weight:var(--w-strong);background:var(--color-accent-100);color:var(--accent-ink);}
+    .pw-copy{display:flex;align-items:center;gap:12px;padding:8px 6px;border-bottom:1px solid var(--rule-faint);}
+    .pw-copy:last-child{border-bottom:0;}
+    .pw-copy>span{flex:1;min-width:0;display:flex;flex-direction:column;font-size:var(--t-body);}
+    .pw-copy>span>span{font-size:var(--t-label);color:var(--color-neutral-600);}
+    .pw-sign{max-width:760px;margin:0 auto;padding:18px 4px 28px;}
+    .pw-sign .ps-side{position:static;max-height:none;}
+    .pw-turn{flex:none;align-self:center;font-size:var(--t-label);font-weight:var(--w-strong);border-radius:999px;
+      padding:1px 8px;white-space:nowrap;border:1px solid var(--color-divider);color:var(--color-neutral-700);background:var(--color-surface);}
+    .pw-turn.is-you{color:var(--st-amber-fg);background:var(--st-amber-bg);border-color:var(--st-amber-line);}
     .pw-late{padding:7px 6px;border-bottom:1px solid var(--rule-faint);font-size:var(--t-body);}
     .pw-late>span{display:block;font-size:var(--t-label);color:var(--color-neutral-600);}
     .pw-late-all{align-self:flex-start;margin:8px 6px 4px;}
     @media (max-width:760px){.pw-where-grid{grid-template-columns:minmax(0,1fr);}
-      .pw-journey{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:14px;}}`;
+      .pw-tab{padding-left:9px;padding-right:9px;}
+      .pw-journey{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:14px;}}
+    @media (max-width:480px){.pw-tab{font-size:var(--t-body);padding-left:7px;padding-right:7px;}}`;
   document.head.appendChild(el);
 }
 
@@ -3864,6 +3950,7 @@ function renderShareWorkbench(p, opts={}){
   portalLoadHeld();          // before the room is built — the room is built FROM these
   portalWorkbenchStyle();
   portalTabsStyle();
+  portalSignStyle();     // the Signing tab draws the signing page's stages
   portalVerbStyle();   // renderShareWorkbench is also reached directly, not only via renderSharePortal
   const root=document.getElementById('share-root');
   document.getElementById('app-shell').classList.add('hidden');
@@ -3942,7 +4029,7 @@ function renderShareWorkbench(p, opts={}){
     <section class="pw-id">
       <span class="pw-id-badge">HT</span>
       <span class="pw-id-main">
-        <span class="pw-id-titlerow"><h1>${esc(c.name||'Contract')}</h1>${portalStatusWordHtml(c)}</span>
+        <span class="pw-id-titlerow"><h1>${esc(c.name||'Contract')}</h1>${portalStatusWordHtml(c)}<span id="pt-turn"></span></span>
         <span class="pw-id-sub">${esc((window.contractRef?contractRef(c):c.id)||'')} &middot; ${esc(i18t('po_from_org',{org}))}
           &middot; shared by ${esc(p.sharedBy||org)}${opts.share&&opts.share.expiresAt
             ?` &middot; ${esc(i18t('po_link_open_until',{when:portalDayWords(opts.share.expiresAt)}))}`:''}</span>
@@ -3975,7 +4062,9 @@ function renderShareWorkbench(p, opts={}){
       ${''/* Their own overflow: a clean PDF, a Word file with the marks, and
              focus mode. See portalMoreMenuHtml for the six rows it deliberately
              does not carry. */}
-      ${portalMoreMenuHtml()}
+      ${''/* THE MORE MENU HAS NO CALLER (29 Sep 2026): Notes and Focus left it
+             for the page, and PDF and Word for the Copies card on Where we
+             are, so nothing was left in it. portalMoreMenuHtml is kept. */}
       ${''/* ---- AND EVERY DEAL VERB, WHERE THE NAME BOX USED TO BE ----
              Send / Ready to sign / Decline / Share a read-only copy. They were
              a strip across the page under this row until the owner asked for
@@ -4044,7 +4133,8 @@ function renderShareWorkbench(p, opts={}){
            nothing the reader holds on the Redlines tab is lost by looking at
            where things stand. See portalSetTab. */}
       <div class="pw-pane" id="pt-where-pane" role="tabpanel" aria-labelledby="pt-tab-where" hidden></div>
-      <div class="pw-pane" id="pt-hist-pane" role="tabpanel" aria-labelledby="pt-hist" hidden></div></div>
+      <div class="pw-pane" id="pt-hist-pane" role="tabpanel" aria-labelledby="pt-hist" hidden></div>
+      <div class="pw-pane" id="pt-sign-pane" role="tabpanel" aria-labelledby="pt-tab-signing" hidden></div></div>
   </div>
   ${''/* The panel is a LAYER over the page, rendered beside .pw-page rather
          than inside the workbench mount — the embed rebuilds that mount on
@@ -4614,6 +4704,41 @@ function renderSharePortal(p, opts={}){
   document.getElementById('pt-name')?.addEventListener('input',signWord);
   signWord();
 }
+/* What a Send carries, as lines a person reads, off the same three stores the
+   request is built from. Empty when nothing is held. */
+function portalSendLines(p){
+  const src=((p&&p.contract&&p.contract.changes)||[]);
+  const label=id=>{ const x=src.find(ch=>ch&&ch.id===id) || PORTAL_NEGO_PROPOSED[id] || {};
+    const l=String(x.clauseLabel||'');
+    return (l&&window.clauseNameShown?(clauseNameShown(l)||l):l) || id; };
+  const none=' — '+i18t('po_send_no_reason');
+  const out=[];
+  for(const id of Object.keys(PORTAL_NEGO_DECISIONS)){
+    const d=PORTAL_NEGO_DECISIONS[id]||{};
+    const verb=d.status==='accepted'?i18t('po_send_accept'):d.status==='rejected'?i18t('po_send_reject')
+      :d.status==='countered'?i18t('po_send_counter'):i18t('po_send_answer');
+    out.push(`${verb}: ${label(id)}${d.status==='rejected'&&!String(d.reply||'').trim()?none:''}`);
+  }
+  for(const id of Object.keys(PORTAL_NEGO_PROPOSED)){
+    const x=PORTAL_NEGO_PROPOSED[id]||{};
+    out.push(`${i18t('po_send_change')}: ${label(id)}${String(x.why||'').trim()?'':none}`);
+  }
+  for(const id of Object.keys(PORTAL_NEGO_WITHDRAWN)) out.push(`${i18t('po_send_withdraw')}: ${label(id)}`);
+  return out;
+}
+async function portalSendCheck(p, action){
+  const lines=portalSendLines(p);
+  if(!lines.length) return true;          // nothing held: the route's own answer stands
+  if(typeof window.confirmDialog!=='function') return true;
+  const org=(p&&p.org)||i18t('pt_the_sender');
+  return !!(await window.confirmDialog({
+    title: i18t('po_send_check_title',{ org }),
+    message: `${i18t(action==='ready'?'po_send_check_lead_ready':'po_send_check_lead',{ org })}\n\n${lines.map(l=>'• '+l).join('\n')}`,
+    multiline: true,
+    confirmLabel: i18tn('po_send_check_go', lines.length, { n:lines.length, org }),
+    cancelLabel: i18t('po_send_check_back'),
+  }));
+}
 async function portalRespond(p, action, extra){
   /* THE SAME REFUSAL THE SERVER MAKES, one layer earlier — the wall is on the
      server (POST /api/shares/:token/respond), and this is here so a reader who
@@ -4632,6 +4757,15 @@ async function portalRespond(p, action, extra){
   if(action==='sign' && p && p.signingOpen===false){
     toast(i18t('po_no_signers_toast',{org:(p&&p.org)||'the sender'}),'err');
     return;
+  }
+  /* ---- THE CHECK BEFORE SEND (Young, 29 Sep 2026) ----
+     Every Send on this page reaches here, so this is the one place the reader
+     is shown what is about to leave: each answer, each new change, each ask
+     taken back. A change or refusal with no reason is pointed out; it never
+     stops the Send. Cancelled, nothing leaves and nothing is cleared. */
+  if((action==='decisions'||action==='ready') && !(extra&&extra.checked)){
+    const go=await portalSendCheck(p, action);
+    if(!go) return;
   }
   const name=await portalEnsureResponderName(), title=fval('pt-title'), email=fval('pt-email');
   /* The comment box lives on the respond panel, which is on the page
@@ -5621,6 +5755,6 @@ async function refreshStats(){
     if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
-Object.assign(window,{portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

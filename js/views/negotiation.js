@@ -6057,8 +6057,11 @@ function rlUnsentSendHtml(c, opts = {}){
      them yet" — and ng_unsent_send_title is the hint this button already had,
      that every card keeps its own Send. Neither had another home, so the button
      carries the pair rather than choosing between them. */
+  /* ON THEIR SEAT THE HOVER ALSO CARRIES THE PAGE'S PROMISE (Young, 29 Sep
+     2026): the "Your table" strip that printed it is gone. */
+  const promise = side === 'counterparty' ? i18t('po_wall_live') + ' ' : '';
   return `<button type="button" class="rl-unsent-go" data-redline-proxy="${target}"
-    title="${_nea(i18t('ng_unsent_full', { n, who }) + ' ' + i18t('ng_unsent_send_title', { n, who }))}">${
+    title="${_nea(promise + i18t('ng_unsent_full', { n, who }) + ' ' + i18t('ng_unsent_send_title', { n, who }))}">${
       i18t('ng_unsent_send', { n })}</button>`;
 }
 
