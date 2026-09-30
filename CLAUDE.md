@@ -433,6 +433,7 @@ Tests: f133, f222, f272, f279, f295, f296, f314, f318, f372, prepare-redlines-ve
 ## THE AI'S READING RULES
 
 - `aiDocChars` (200,000) is the ONE ceiling for one contract on every route and client send; a cap marks the text and says so. An answer cut short (`truncated`) is not an empty one. `anthropicMessages` bounds the wait and retries ONCE only on a thrown connection, never on a status.
+- COPILOT READS EVERY CHANGE, WHOLE (Young, 30 Sep 2026): `copilotNegotiation` (server) and `negoCopilotRecord` (browser; f47 pins them alike) clip no field and cap no count; the one bound is the document ceiling over the list, newest first (`aiDocChars` / `NEGO_COPILOT_CHARS`), `changesOmitted` states a cut. `NEGO_COPILOT_CAP` is STALE. Tests: f47, copilot-reads-every-change-verify.
 - `AI_QUOTE_RULE`, `AI_REDLINE_RULE`. Commentary is not wording (`AI_MODEL_VOICE` / `AI_MODEL_INSTRUMENT`); the builder refuses a remark as wording (`tbCardWording`). A reading's answer is checked before it is filed (js/metaclean.js `metaUnleak`, at the route and on the way in). No brace reaches the page (`AI_TONE_RE` family in js/aimd.js; `{{blank}}` keeps its braces).
 - THE COPILOT AUDIT: money per contract with home-currency totals (`copilotMoneyOf`, `COPILOT_MONEY_KEYS` walled); archived off lists; `graphWhereHit` one predicate both hosts; paging and search bounded; tool-name sets equal on both hosts; `get_obligations`, `get_contract_history`.
 Tests: f53, f135, f229–f235, f305, f328, f367.

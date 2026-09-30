@@ -4339,7 +4339,9 @@ function negoCopilotContext(c){
     changes: negoChanges(c).filter(x => x.status !== 'superseded').map(ch => ({
       id: ch.id, clause: ch.clauseLabel || ch.clauseId, type: ch.changeType,
       status: ch.status, summary: ch.summary, author: ch.author,
-      currentWording: clip(ch.oldText, 1200), proposedWording: clip(ch.newText, 1200) })),
+      /* Whole, as this block's own comment always promised ("the changes
+         are sent in full") — the 1,200-character clip is gone (30 Sep 2026). */
+      currentWording: String(ch.oldText || ''), proposedWording: String(ch.newText || '') })),
     workingText: clip(negoResolvedText(c), NEGO_CTX_CHARS),
   };
 }
@@ -4357,7 +4359,13 @@ function negoCopilotContext(c){
    Every field is a READ of what the parties actually did. Nothing here is an
    opinion about the contract: Copilot reports the record and the judgement
    stays with the reader. */
-const NEGO_COPILOT_CAP = 60;
+/* ---- EVERY CHANGE, WHOLE (Young, 30 Sep 2026) ----
+   No clip on any field and no count cap: the ONE ceiling is the document's
+   own, the server's aiDocChars (whose default this mirrors, the same number
+   the extracted text keeps), measured over the list newest first; past it the
+   oldest stand down and changesOmitted says how many. The server's twin is
+   copilotNegotiation. */
+const NEGO_COPILOT_CHARS = () => Number(window.EXTRACT_MAX_CHARS) || 200000;
 function negoCopilotRecord(c){
   const n = c && c.negotiation;
   const live = Array.isArray(c && c.changes) ? c.changes.filter(x => x && x.status !== 'superseded') : [];
@@ -4372,11 +4380,20 @@ function negoCopilotRecord(c){
     id: x.id, round: x.roundN || null, clause: x.clauseLabel || x.clauseId || '',
     type: x.changeType || x.type || 'modify', status: x.status || 'pending',
     proposedBy: x.author || '', side: x.authorSide || '',
-    summary: clip(x.summary, 200),
+    summary: String(x.summary || ''),
     decidedBy: x.resolvedBy || null, decidedAt: x.resolvedAt || null,
-    reasonGiven: clip(x.reply || x.note || '', 300) || null,
-    currentWording: clip(x.oldText, 600), proposedWording: clip(x.newText, 600),
+    reasonGiven: String(x.reply || x.note || '') || null,
+    currentWording: String(x.oldText || ''), proposedWording: String(x.newText || ''),
   });
+  const ceiling = NEGO_COPILOT_CHARS();
+  const kept = [];
+  let used = 0;
+  for (const x of all.slice().reverse()){
+    const row = one(x);
+    const size = JSON.stringify(row).length;
+    if (kept.length && used + size > ceiling) break;
+    kept.push(row); used += size;
+  }
   const byStatus = k => all.filter(x => (x.status || 'pending') === k).length;
   const versions = Array.isArray(c.versions) ? c.versions : [];
   return {
@@ -4387,11 +4404,11 @@ function negoCopilotRecord(c){
     totalChanges: all.length,
     pending: byStatus('pending'), accepted: byStatus('accepted'), rejected: byStatus('rejected'),
     readyToSign: all.length > 0 && byStatus('pending') === 0,
-    /* Newest first, so a cap drops the oldest rather than the freshest — and
-       the count of what was dropped travels, so a truncated list can never be
+    /* Newest first, so the ceiling drops the oldest rather than the freshest —
+       and the count of what was dropped travels, so a cut list can never be
        mistaken for a complete one. */
-    changes: all.slice(-NEGO_COPILOT_CAP).reverse().map(one),
-    changesOmitted: Math.max(0, all.length - NEGO_COPILOT_CAP),
+    changes: kept,
+    changesOmitted: all.length - kept.length,
     versionCount: versions.length,
     versions: versions.slice(-20).reverse().map(v => ({ n: v.n, at: v.at || null,
       by: v.by || '', label: clip(v.label, 120) })),
@@ -5211,7 +5228,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoProgress, negoReadyToSign, negoOpenPoints,
   negoAlignment, negoAlignmentWhy, negoSigningBlockers, negoBlockerClauses, NG_BLOCK_CLAUSES, negoSignalReady, negoReadySignal, negoSideSigned,
   negoChangeSummary, negoCopilotContext, NEGO_CTX_CHARS,
-  negoCopilotRecord, NEGO_COPILOT_CAP,
+  negoCopilotRecord, NEGO_COPILOT_CHARS,
   negoVersionOptions, negoVersionChoices, negoVersionByKey, negoVersionRound,
   negoIsLivePair, negoCompareVersions,
   negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks,

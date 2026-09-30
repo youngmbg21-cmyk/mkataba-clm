@@ -19937,3 +19937,7 @@ Noticed, not fixed
 - BUILT: a question on the Explorer's open paper now carries the negotiation record (each clause's wording when the negotiation started, then every change whole, every status) after the wording; the hover counts it; a quote only in the record takes no pin (f440, explorer-paper-knows-what-changed-verify).
 - Noticed, not fixed: CLAUDE.md is 91 KB, over its own ~80 KB ceiling (90 KB before this change).
 - Noticed, not fixed: Copilot's `get_contract` tool (server `copilotNegotiation`) still clips each change's wording to 600 characters and keeps the newest 60 changes — every Copilot other than the Explorer's open paper still reads the negotiation that way.
+- FIXED (owner's ask before merging): Copilot's change list on both brains no longer clips wordings to 600 characters or cuts to 60 changes; the one bound is the document ceiling, and a cut is stated (f47, copilot-reads-every-change-verify).
+- Noticed, not fixed: the negotiation room's Copilot context (`negoCopilotContext`, sent as `ctx.negotiation`) is not read by either brain's system prompt — it travels and nothing uses it.
+- Noticed, not fixed: Copilot's change record fills `reasonGiven` from `reply || note`, and `note` can be a provenance label ("Copilot — Simplify"), not a reason; `negoReasonOf` is the one reading of a reason.
+- Noticed, not fixed: Copilot's change record leaves out a LIVE replaced (superseded) change but keeps replaced changes from closed rounds.

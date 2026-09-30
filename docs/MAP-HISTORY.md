@@ -24576,3 +24576,13 @@ A PIN IS LIT ON THE PAPER, so `igQuoteOnPaper` drops a quote found in the record
 THE SIX QUESTIONS: no new control, band or door — the existing ask box; the cost is visible where it was (the hover), re-counted at every ask because the paper redraws as changes are agreed (`igPaperCost`, `int_ask_contract_cost_changes` in both books).
 
 Checks: f440 (10; 9 red at the parent 2654ad5, one [wall]); explorer-paper-knows-what-changed-verify 10/10 on the real app (two changes filed through `negoEditClause`, one agreed; the paper carries only the agreed one; the provider received the record after the wording; the old wording quoted back took no pin); analyze-on-the-graph-verify 39/39 unchanged.
+
+## THE AI'S READING RULES — COPILOT READS EVERY CHANGE, WHOLE (Young, 30 Sep 2026)
+
+After "what changed rides the paper" the summary said: Copilot everywhere else still reads the shortened change list (600 characters a wording, the newest 60 changes), noted in the bug log rather than widening the job. Young: *"fix this first before you merge to main"*.
+
+WHERE IT WAS CUT, all three found: the server's `copilotNegotiation` (the `get_contract` tool on the server brain) and its browser twin `negoCopilotRecord` (the same tool on a workspace's own key) — summary clipped to 200, reason to 300, each wording to 600, newest 60 changes; and the negotiation room's `negoCopilotContext`, whose comment promised "the changes are sent in full" while clipping each wording to 1,200.
+
+WHAT CHANGED: no field of a change is clipped and no count is capped on either twin. The ONE bound is the document ceiling (`aiDocChars` on the server; `NEGO_COPILOT_CHARS` in the browser, mirroring its default through `EXTRACT_MAX_CHARS`), measured over the list's own characters, newest first — past it the OLDEST stand down and `changesOmitted` says how many (the system prompt already tells the model to say so). No new field, so f47's anti-drift field sets stand. `negoCopilotContext` sends each change's wording whole; its clause texts and working text keep their own caps (they are the wording, not the change list).
+
+Checks: f47 three new (red at the parent 47ae8f8, "60 of 75"), the old "capped at 60" test replaced; copilot-reads-every-change-verify 5/5 on the real app (70 changes, one 2,159-character wording, read off the provider's next request after the server ran get_contract) — at the parent "60 of 70, omitted 10" and the long wording missing.
