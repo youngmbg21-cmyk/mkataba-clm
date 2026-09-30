@@ -19932,3 +19932,6 @@ Noticed, not fixed
 ### 29 Sep 2026 — Insights: Meaning Edge, even Portfolio row, plain Exposure list
 - FIXED (my own regression from the same day): Portfolio's bottom row on a short laptop — the risk map's card grew alone, its neighbour stopped short. The floor is now the ROW's (`pfRiskRoom`).
 - BUILT: the Meaning Edge strip on every Insights figure tile; Exposure list names regular weight.
+
+## 30 Sep 2026 — the negotiator follows the signing: noticed, not fixed
+- Noticed, not fixed: on a counterparty link the state word beside the title comes from the payload's snapshot, so a negotiation link retired by signing can still read "In Review" after signing has started.
