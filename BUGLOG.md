@@ -19932,3 +19932,8 @@ Noticed, not fixed
 ### 29 Sep 2026 — Insights: Meaning Edge, even Portfolio row, plain Exposure list
 - FIXED (my own regression from the same day): Portfolio's bottom row on a short laptop — the risk map's card grew alone, its neighbour stopped short. The floor is now the ROW's (`pfRiskRoom`).
 - BUILT: the Meaning Edge strip on every Insights figure tile; Exposure list names regular weight.
+
+### 30 Sep 2026 — Explorer: what changed rides the open paper
+- BUILT: a question on the Explorer's open paper now carries the negotiation record (each clause's wording when the negotiation started, then every change whole, every status) after the wording; the hover counts it; a quote only in the record takes no pin (f440, explorer-paper-knows-what-changed-verify).
+- Noticed, not fixed: CLAUDE.md is 91 KB, over its own ~80 KB ceiling (90 KB before this change).
+- Noticed, not fixed: Copilot's `get_contract` tool (server `copilotNegotiation`) still clips each change's wording to 600 characters and keeps the newest 60 changes — every Copilot other than the Explorer's open paper still reads the negotiation that way.

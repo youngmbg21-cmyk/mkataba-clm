@@ -5747,11 +5747,98 @@ function openPartyModal(name){
    NO ROUTE, NO STORE, NO FIELD, NO WRITE: intel.paper lives for the sitting,
    the record is never touched (f392 greps this block for the funnel's names),
    and the wording travels only as the question's own message. */
-const IG_PAPER_RULE='Answer from THE WORDING below and from nothing else about this contract. In deliver_answer, cite this contract once per passage your answer rests on, with "quote" carrying that ONE continuous passage copied character for character from the wording — never joined, never paraphrased, at least a full clause or sentence. Where the answer rests on a duty (a payment, a notice, a delivery), quote the sentence that creates it. Name the article or clause each point comes from. If the wording says nothing on the point, say so and quote nothing.';
+const IG_PAPER_RULE='Answer from THE WORDING below (and THE NEGOTIATION RECORD after it, where one is sent) and from nothing else about this contract. In deliver_answer, cite this contract once per passage your answer rests on, with "quote" carrying that ONE continuous passage copied character for character from the wording — never joined, never paraphrased, at least a full clause or sentence. Where the answer rests on a duty (a payment, a notice, a delivery), quote the sentence that creates it. Name the article or clause each point comes from. If the wording says nothing on the point, say so and quote nothing.';
 const IG_QUOTE_LABEL_WORDS=7;
 function igPaperUp(){ return !!(intel.paper&&intel.paper.mode==='paper'&&getContract(intel.paper.id)); }
 function igPaperText(c){ return (typeof contractPlainText==='function')?contractPlainText(c):''; }
 function igPaperWords(c){ return igPaperText(c).split(/\s+/).filter(Boolean).length; }
+/* ---- WHAT CHANGED TRAVELS WITH THE PAPER (Young asked 30 Sep 2026: "I want
+   to be able to ask copilot in explorer page to summarize changes while the
+   paper is open ... with no limitations") ----
+   The paper is the agreed wording only, so a question about what changed had
+   nothing to answer from: the rule said "the wording and nothing else". The
+   negotiation's own record now rides the same message — for every clause a
+   change touched, its wording WHEN THE NEGOTIATION STARTED (the first round's
+   baseline; a closed round moves the live baseline, so the original is the
+   first round's copy), then every change on it oldest first, whole: who, when,
+   the status now, the proposed wording, the reason asked and the answer given.
+   Every status is sent (agreed, waiting, rejected, parked, replaced), each
+   saying whether it is on the paper. NOTHING IS CLIPPED OR COUNTED OUT here;
+   the one ceiling is the document's own (aiDocChars on the route), and a cut
+   there is a fact the answer states.
+   READ RAW, like the ladder: c.changes and c.negotiation.rounds, never
+   negoChanges/negoInit, which would create a negotiation to answer a read. */
+const IG_PAPER_CHANGES_RULE='THE NEGOTIATION RECORD after the wording is the story of this contract: for every clause a change touched, its wording when the negotiation started, then every change proposed on it, oldest first, with who proposed it, when, its status now and any reason given. THE WORDING is the paper as the reader sees it now and carries only the agreed changes. When asked what changed, answer from both, completely: every change in the record, never a sample. Say of each one whether it is agreed and on the paper, waiting for an answer, rejected, or replaced by a later proposal, and never present wording that is not agreed as if it were in the contract. Name each clause by its heading. Wording that is not on the paper (what a clause said before, or what was proposed and not agreed) is quoted inside the answer text and labelled as such, never as a citation: a citation quote comes from THE WORDING only, because it is lit on the paper.';
+const IG_CHANGE_SAYS={
+  accepted:'AGREED, on the paper now (unless a later agreed change on the same clause replaced it)',
+  pending:'WAITING FOR AN ANSWER, not on the paper',
+  rejected:'REJECTED, not on the paper',
+  countered:'PARKED under the counter-proposal {x}, not on the paper',
+  superseded:'REPLACED by the later proposal {x}, not on the paper',
+};
+function igPaperChanges(c){
+  const none={ text:'', count:0 };
+  if(!c) return none;
+  const n=(c.negotiation&&typeof c.negotiation==='object')?c.negotiation:null;
+  const rounds=(n&&Array.isArray(n.rounds))?n.rounds:[];
+  const all=[];
+  rounds.forEach(r=>((r&&Array.isArray(r.changes))?r.changes:[]).forEach(ch=>{ if(ch) all.push({ ch, round:ch.roundN||(r&&r.n)||null }); }));
+  (Array.isArray(c.changes)?c.changes:[]).forEach(ch=>{ if(ch) all.push({ ch, round:ch.roundN||(n&&n.round)||null }); });
+  if(!all.length) return none;
+  const flat=s=>String(s==null?'':s).replace(/\s+/g,' ').trim();
+  const say=s=>`"${flat(s)}"`;
+  const day=s=>String(s||'').slice(0,10);
+  /* The original: the first round's baseline, else the live one. */
+  const base=String((rounds[0]&&rounds[0].baselineBody)||(n&&n.baselineBody)||'');
+  let segs=[], front='';
+  try{ if(base&&typeof clauseSegment==='function') segs=clauseSegment(base)||[]; }catch(_){ segs=[]; }
+  try{ if(base&&typeof clauseFrontSplit==='function'&&typeof richToText==='function') front=richToText(clauseFrontSplit(base).front||''); }catch(_){ front=''; }
+  const isFront=id=>(typeof negoIsFrontId==='function')?negoIsFrontId(id):id==='front';
+  const shown=s=>(typeof clauseNameShown==='function')?clauseNameShown(s):flat(s);
+  const groups=new Map();
+  all.forEach(x=>{ const k=String(x.ch.clauseId||''); if(!groups.has(k)) groups.set(k,[]); groups.get(k).push(x); });
+  const us=(typeof contractParty==='function'&&contractParty(c))||window.FIRST_PARTY||'us';
+  const them=c.counterparty||'the other side';
+  const sideOf=s=>s==='owner'?`our side, ${us}`:s==='counterparty'?`their side, ${them}`:(s||'side not recorded');
+  const out=[`=== THE NEGOTIATION RECORD OF ${(window.contractRef?contractRef(c):c.id)} ===`,
+    `${all.length} proposed change${all.length===1?'':'s'} across ${groups.size} clause${groups.size===1?'':'s'}, oldest first. The negotiation is in round ${(n&&n.round)||1}.`];
+  groups.forEach((list,k)=>{
+    const seg=segs.find(s=>s&&s.clauseId===k);
+    const first=list[0].ch;
+    const label=isFront(k)?'The opening, before the first clause'
+      :shown(first.clauseLabel||(seg&&seg.headingText)||list.map(x=>x.ch.headingText).find(Boolean)||k);
+    out.push('', `--- ${label} ---`);
+    const orig=isFront(k)?front:(seg?[seg.headingText,seg.text].filter(Boolean).join(' '):'');
+    if(flat(orig)) out.push(`Wording when the negotiation started: ${say(orig)}`);
+    else if(list.every(x=>x.ch.changeType==='insertClause')) out.push('Not in the contract when the negotiation started: it was proposed as a new clause.');
+    else if(flat(first.oldText)) out.push(`Wording before the first change on it: ${say(first.oldText)}`);
+    list.forEach((x,i)=>{
+      const ch=x.ch;
+      const kind=ch.changeType==='insertClause'?'add a new clause':ch.changeType==='deleteClause'?'remove the clause':'change the wording';
+      out.push(`${i+1}. ${ch.id||'change'}${x.round?` (round ${x.round})`:''}: proposed to ${kind} by ${flat(ch.author)||'someone not recorded'} (${sideOf(ch.authorSide)})${day(ch.createdAt)?` on ${day(ch.createdAt)}`:''}.`);
+      let st=(IG_CHANGE_SAYS[ch.status]||flat(ch.status)||'status not recorded')
+        .replace('{x}',flat(ch.status==='countered'?ch.counteredBy:ch.supersededBy)||'that followed it');
+      if((ch.status==='accepted'||ch.status==='rejected')&&ch.resolvedBy) st+=`, decided by ${flat(ch.resolvedBy)}${day(ch.resolvedAt)?` on ${day(ch.resolvedAt)}`:''}`;
+      if(ch.withdrawn) st+=', and the side that asked has since let it go';
+      out.push(`   Status: ${st}.`);
+      if(ch.headingText) out.push(`   Heading proposed: ${say(ch.headingText)}`);
+      if(ch.formattingOnly) out.push('   Formatting only: no words changed.');
+      else if(ch.changeType!=='deleteClause'&&flat(ch.newText)) out.push(`   Proposed wording: ${say(ch.newText)}`);
+      if(ch.changeType==='deleteClause'&&flat(ch.oldText)) out.push(`   Wording it proposed to remove: ${say(ch.oldText)}`);
+      const why=(typeof negoReasonOf==='function')?negoReasonOf(ch):ch.why;
+      if(flat(why)) out.push(`   Why it was asked: ${say(why)}`);
+      if(flat(ch.reply)) out.push(`   Said with the decision: ${say(ch.reply)}`);
+    });
+  });
+  return { text:out.join('\n'), count:all.length };
+}
+/* What a question on the open paper sends, counted: the wording and, where
+   there is one, the record. The ask box's hover says it (Copilot's place: the
+   cost is visible before the press). */
+function igPaperCost(c){
+  const story=igPaperChanges(c);
+  return { words:igPaperWords(c)+(story.text?story.text.split(/\s+/).filter(Boolean).length:0), changes:story.count };
+}
 function igAskPlaceholder(){
   const c=igPaperUp()?getContract(intel.paper.id):null;
   return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');
@@ -5759,7 +5846,10 @@ function igAskPlaceholder(){
 function igAskCost(){
   const c=igPaperUp()?getContract(intel.paper.id):null;
   if(!c) return '';
-  return i18t('int_ask_contract_cost',{ref:(window.contractRef?contractRef(c):c.id), n:Number(intel.paper.words||0).toLocaleString()});
+  const k=Number(intel.paper.changes||0);
+  return k>0
+    ? i18t('int_ask_contract_cost_changes',{ref:(window.contractRef?contractRef(c):c.id), k:k.toLocaleString(), n:Number(intel.paper.words||0).toLocaleString()})
+    : i18t('int_ask_contract_cost',{ref:(window.contractRef?contractRef(c):c.id), n:Number(intel.paper.words||0).toLocaleString()});
 }
 /* The first door. A second Analyze on the same contract only puts the paper
    back up; on another contract it starts a fresh paper — the pins are the
@@ -5778,9 +5868,9 @@ async function igAnalyze(id){
     try{ await ensureFull(c); }catch(_){ /* the light row stands */ }
     const host=document.getElementById('ig-paper');
     if(host&&host.dataset.for===c.id) delete host.dataset.for;
-    if(intel.paper&&intel.paper.id===id) intel.paper.words=igPaperWords(c);
+    if(intel.paper&&intel.paper.id===id) Object.assign(intel.paper,igPaperCost(c));
   }
-  if(!intel.paper||intel.paper.id!==id) intel.paper={ id, mode:'paper', focus:false, pins:[], seq:0, on:null, words:igPaperWords(c) };
+  if(!intel.paper||intel.paper.id!==id) intel.paper={ id, mode:'paper', focus:false, pins:[], seq:0, on:null, ...igPaperCost(c) };
   else intel.paper.mode='paper';
   if(!intel.dockOpen){ intel.dockOpen=true; igSyncDockWidth(); }
   igPaintPaper(); renderIntelDock(); igPaintIds([id]);
@@ -5809,13 +5899,27 @@ function igPinAdd(turn,k,qq){
    quote that is not in the wording the model was shown, so every quote here
    is verbatim; the browser then finds it on the painted paper or marks the pin
    `lost` and says so on the chip's hover. Only this contract's citations count. */
+/* A pin is lit on the paper, so a passage that is only in the negotiation
+   record (what a clause used to say, what was proposed and not agreed) takes
+   no pin: the answer quotes it in its own words, labelled, and a chip for it
+   would point at words the paper does not carry. Dropped ONLY when it is found
+   in the record and not in the wording; a quote found in neither is left to
+   the pin's own "could not find it", as before. */
+function igQuoteOnPaper(c){
+  const story=igPaperChanges(c).text;
+  if(!story) return ()=>true;
+  const norm=s=>(typeof quoteNorm==='function')?quoteNorm(s):String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const paper=norm(igPaperText(c)), rec=norm(story);
+  return t=>{ const nt=norm(t); return !(rec.includes(nt)&&!paper.includes(nt)); };
+}
 function igPinsMint(c,res,turn){
   const p=intel.paper; if(!p||!c||p.id!==c.id) return;
   const m=intel.history[turn]; if(!m||m.role!=='assistant') return;
   const seen=new Set();
   const quotes=((res&&Array.isArray(res.citations))?res.citations:[])
     .filter(x=>x&&String(x.id)===String(c.id)&&typeof x.quote==='string'&&x.quote.trim().length>=12)
-    .map(x=>x.quote.trim()).filter(t=>{ if(seen.has(t)) return false; seen.add(t); return true; });
+    .map(x=>x.quote.trim()).filter(t=>{ if(seen.has(t)) return false; seen.add(t); return true; })
+    .filter(igQuoteOnPaper(c));
   m.paperId=c.id;
   /* The server's own notice ("one quoted excerpt could not be matched…") is
      already printed under the answer; the "nothing to show" line is for an
@@ -6124,7 +6228,13 @@ async function igPaperAsk(q){
      times over. */
   const msgs=intelChatMessages();
   const last=(msgs.length&&msgs[msgs.length-1].role==='user')?msgs.pop():{ role:'user', content:q };
-  msgs.push({ role:'user', content:`${last.content}\n\n${IG_PAPER_RULE}\n\n=== THE WORDING OF ${ref} (${c.name}) ===\n${wording}` });
+  /* The record rides AFTER the wording, under its own rule, only where a
+     negotiation has something in it; a contract with no changes sends exactly
+     what it sent before. The cost on the box is re-counted here, because the
+     paper redraws as changes are agreed. */
+  const story=igPaperChanges(c);
+  p.words=igPaperWords(c)+(story.text?story.text.split(/\s+/).filter(Boolean).length:0); p.changes=story.count;
+  msgs.push({ role:'user', content:`${last.content}\n\n${IG_PAPER_RULE}${story.text?`\n\n${IG_PAPER_CHANGES_RULE}`:''}\n\n=== THE WORDING OF ${ref} (${c.name}) ===\n${wording}${story.text?`\n\n${story.text}`:''}` });
   try{
     const res=await copilotAsk(msgs, { view:'intel', activeContractId:c.id, activeContractName:c.name, ...(c.contractNo?{activeContractNo:c.contractNo}:{}), wholeDoc:true }, null, IG_QUIET);
     intelPushChatResult(res);
@@ -6147,7 +6257,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
