@@ -102,20 +102,53 @@ describe('a fetched contract carries what happened to it', () => {
     assert.ok(r.changes.some(x => x.round == null || x.round === 2), 'and the live round is there too');
   });
 
-  test('newest first, capped, and it says when it capped', () => {
+  /* EVERY CHANGE, WHOLE (Young, 30 Sep 2026: "fix this first before you merge
+     to main"). The list was clipped to 600 characters a wording and the newest
+     60 changes; now nothing is clipped or counted out, and the ONE ceiling is
+     the document's own, measured over the list — past it the OLDEST stand down
+     and changesOmitted says how many. */
+  test('every change travels, newest first, and a long wording travels whole', () => {
     const { win } = buildWorld();
+    const long = 'The supplier shall keep every record. '.repeat(60).trim();
     const many = [];
     for (let i = 1; i <= 75; i++) many.push({ id: 'CHG-' + String(i).padStart(3, '0'),
       clauseLabel: 'Clause ' + i, changeType: 'modify', status: 'pending',
       author: 'Erik', authorSide: 'counterparty', summary: 'ask ' + i,
-      oldText: 'a', newText: 'b' });
+      oldText: i === 1 ? long : 'a', newText: 'b', reply: i === 1 ? long : null });
     const c = contract({ changes: many, negotiation: { round: 1, turn: 'owner', rounds: [] } });
     const r = win.negoCopilotRecord(c);
     assert.equal(r.totalChanges, 75, 'the TOTAL is always the truth');
-    assert.equal(r.changes.length, win.NEGO_COPILOT_CAP);
-    assert.equal(r.changesOmitted, 75 - win.NEGO_COPILOT_CAP,
-      'a truncated list must never be mistaken for a complete one');
-    assert.equal(r.changes[0].id, 'CHG-075', 'newest first — a cap should drop the oldest');
+    assert.equal(r.changes.length, 75, 'no count cap');
+    assert.equal(r.changesOmitted, 0);
+    assert.equal(r.changes[0].id, 'CHG-075', 'newest first');
+    assert.equal(r.changes[74].currentWording, long, 'no clip on the wording');
+    assert.equal(r.changes[74].reasonGiven, long, 'nor on the reason');
+  });
+
+  test('past the document ceiling the OLDEST stand down, and it says how many', () => {
+    const { win } = buildWorld();
+    const big = 'x'.repeat(30000);
+    const many = [];
+    for (let i = 1; i <= 10; i++) many.push({ id: 'CHG-' + String(i).padStart(3, '0'),
+      clauseLabel: 'Clause ' + i, changeType: 'modify', status: 'pending',
+      author: 'Erik', authorSide: 'counterparty', oldText: big, newText: big });
+    const c = contract({ changes: many, negotiation: { round: 1, turn: 'owner', rounds: [] } });
+    const r = win.negoCopilotRecord(c);
+    const size = JSON.stringify(r.changes).length;
+    assert.ok(r.changes.length > 0 && r.changes.length < 10, `cut at the ceiling, got ${r.changes.length}`);
+    assert.ok(size <= win.NEGO_COPILOT_CHARS() + 10, 'bounded by the one ceiling');
+    assert.equal(r.changesOmitted, 10 - r.changes.length, 'a cut list is never mistaken for a whole one');
+    assert.equal(r.changes[0].id, 'CHG-010', 'the freshest are kept');
+  });
+
+  test('the server twin has no clip and no count cap either — its one ceiling is aiDocChars', () => {
+    const block = SERVER.slice(SERVER.indexOf('function copilotNegotiation'),
+      SERVER.indexOf('// FTS search, then re-scope'));
+    const body = block.replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(body, /clip\(x\.(oldText|newText|summary|reply)/, 'no field of a change is clipped');
+    assert.doesNotMatch(body, /CAP\b/, 'no count cap');
+    assert.match(body, /aiDocChars\(\)/, 'the document ceiling is the one bound');
+    assert.match(body, /changesOmitted: all\.length - kept\.length/);
   });
 
   test('a contract with no negotiation says so rather than inventing one', () => {

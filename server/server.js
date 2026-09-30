@@ -8670,16 +8670,33 @@ function copilotNegotiation(c) {
   if (!n && !all.length) return { active: false, changes: [] };
 
   const clip = (s, k) => { const t = String(s || ''); return t.length > k ? t.slice(0, k) + '…' : t; };
+  /* ---- EVERY CHANGE, WHOLE (Young, 30 Sep 2026: "fix this first before
+     you merge to main") ----
+     This clipped each wording to 600 characters and kept the newest 60
+     changes, so a question about a long clause or a long negotiation was
+     answered from part of it. Now every field travels whole and every change
+     travels; the ONE ceiling is the document's own (aiDocChars), measured over
+     the list, newest first — past it the oldest stand down and changesOmitted
+     says how many, so a cut list is never mistaken for a whole one. The
+     browser's twin is negoCopilotRecord (f47 pins the two alike). */
   const one = x => ({
     id: x.id, round: x.roundN || null, clause: x.clauseLabel || x.clauseId || '',
     type: x.changeType || x.type || 'modify', status: x.status || 'pending',
     proposedBy: x.author || '', side: x.authorSide || '',
-    summary: clip(x.summary, 200),
+    summary: String(x.summary || ''),
     decidedBy: x.resolvedBy || null, decidedAt: x.resolvedAt || null,
-    reasonGiven: clip(x.reply || x.note || '', 300) || null,
-    currentWording: clip(x.oldText, 600), proposedWording: clip(x.newText, 600),
+    reasonGiven: String(x.reply || x.note || '') || null,
+    currentWording: String(x.oldText || ''), proposedWording: String(x.newText || ''),
   });
-  const CAP = 60;
+  const ceiling = aiDocChars();
+  const kept = [];
+  let used = 0;
+  for (const x of all.slice().reverse()) {
+    const row = one(x);
+    const size = JSON.stringify(row).length;
+    if (kept.length && used + size > ceiling) break;
+    kept.push(row); used += size;
+  }
   const byStatus = k => all.filter(x => (x.status || 'pending') === k).length;
   const versions = (Array.isArray(c.versions) ? c.versions : []);
   return {
@@ -8690,9 +8707,9 @@ function copilotNegotiation(c) {
     totalChanges: all.length,
     pending: byStatus('pending'), accepted: byStatus('accepted'), rejected: byStatus('rejected'),
     readyToSign: all.length > 0 && byStatus('pending') === 0,
-    /* Newest first, so a cap drops the oldest rather than the freshest. */
-    changes: all.slice(-CAP).reverse().map(one),
-    changesOmitted: Math.max(0, all.length - CAP),
+    /* Newest first, so the ceiling drops the oldest rather than the freshest. */
+    changes: kept,
+    changesOmitted: all.length - kept.length,
     versionCount: versions.length,
     versions: versions.slice(-20).reverse().map(v => ({ n: v.n, at: v.at || null,
       by: v.by || '', label: clip(v.label, 120) })),
