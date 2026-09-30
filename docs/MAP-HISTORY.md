@@ -24563,6 +24563,12 @@ THE MEANING EDGE: a 4px strip on top of every figure tile. It is read off the fi
 
 Checks: f433 (7), f434 (9), f437 (11), f438 (2d re-pointed, 9) — 8 of 61 red at the parent; insights-fit-verify f/g/h and the short-laptop pair — 21 of 80 red at the parent.
 
+## THE COUNTERPARTY'S PAGE — THE NEGOTIATOR FOLLOWS THE SIGNING (Young, 30 Sep 2026)
+
+Young asked why signing needs a new link, proposed signing on the negotiation link, then agreed "the negotiator is not always the signer" and kept separate signing links — asking instead for the small fix: the negotiation link is no longer shut out when signing starts.
+- MEASURED BEFORE: a sign link retires every earlier negotiation link (`shareRetiredBySigning`, reason 'signing-link-issued'); their page then drew a ruby "older copy" banner ("A newer version of this contract was sent to you … signing has to happen on the most recent link") and a wall line "This copy has been superseded — a newer link was sent to you" — untrue for a negotiator whose director got the signing link. The link carried no signing order (`shareSigningOrder` answered sign links only).
+- BUILT: `shareSigningOrder` also answers a negotiation link that signing retired — the same order, `you` found by the link's stored `recipient_email` against the route's (compared on the server, never sent), and `linkAt` (the day each of THEIR side's signing links went out; date only). A sign link's order is byte-for-byte what it was. The page reads `portalSigningStarted()`: the ruby banner does not draw; the three read-only sentences and the bell row say "signing has started" (the bell row is a door onto the Signing tab); the Signing tab's four stages say the wording was agreed on the day signing began (the payload's own count is a stale snapshot), each signer reads on their own link, the live order with "Signing link sent <day>", and "Your turn — sign on the signing link that was emailed to you" where the negotiator is a signer. Nothing can be signed on the negotiation link — the server's wall is unchanged. Where we are: Negotiating "Closed <day>", Wording agreed done, Signed "Under way", the door row listed; the news fingerprint includes the day signing began, so they land there.
+- Tests: f440 (8; 7 red at the parent). f113/f51 (a retired copy offers nothing) unchanged and green.
 ## INSIGHTS — WHAT CHANGED RIDES THE PAPER (Young, 30 Sep 2026)
 
 Young asked, in three steps: does the paper update as redlines are approved (yes — `negoResolve` rewrites `c.redlineText` through `negoCommitBody` at once; the Document tab and the Explorer paper both draw from it, and the background poller re-draws the page when the other side's answer lands); could Explorer's Copilot summarise the changes from the original paper to the current one; and then: *"I want to be able to ask copilot in explorer page to summarize changes while the paper is open. It should have answers related to the paper as I read it with no limitations."* Picked all three recommendations: the ORIGINAL is the wording when the negotiation started; the record rides EVERY question on the open paper; EVERY change is in it, each labelled.
@@ -24575,7 +24581,7 @@ A PIN IS LIT ON THE PAPER, so `igQuoteOnPaper` drops a quote found in the record
 
 THE SIX QUESTIONS: no new control, band or door — the existing ask box; the cost is visible where it was (the hover), re-counted at every ask because the paper redraws as changes are agreed (`igPaperCost`, `int_ask_contract_cost_changes` in both books).
 
-Checks: f440 (10; 9 red at the parent 2654ad5, one [wall]); explorer-paper-knows-what-changed-verify 10/10 on the real app (two changes filed through `negoEditClause`, one agreed; the paper carries only the agreed one; the provider received the record after the wording; the old wording quoted back took no pin); analyze-on-the-graph-verify 39/39 unchanged.
+Checks: f441 (10; 9 red at the parent 2654ad5, one [wall]); explorer-paper-knows-what-changed-verify 10/10 on the real app (two changes filed through `negoEditClause`, one agreed; the paper carries only the agreed one; the provider received the record after the wording; the old wording quoted back took no pin); analyze-on-the-graph-verify 39/39 unchanged.
 
 ## THE AI'S READING RULES — COPILOT READS EVERY CHANGE, WHOLE (Young, 30 Sep 2026)
 

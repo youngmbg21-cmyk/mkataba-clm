@@ -19941,3 +19941,6 @@ Noticed, not fixed
 - Noticed, not fixed: the negotiation room's Copilot context (`negoCopilotContext`, sent as `ctx.negotiation`) is not read by either brain's system prompt — it travels and nothing uses it.
 - Noticed, not fixed: Copilot's change record fills `reasonGiven` from `reply || note`, and `note` can be a provenance label ("Copilot — Simplify"), not a reason; `negoReasonOf` is the one reading of a reason.
 - Noticed, not fixed: Copilot's change record leaves out a LIVE replaced (superseded) change but keeps replaced changes from closed rounds.
+## 30 Sep 2026 — the negotiator follows the signing: noticed, not fixed
+- Noticed, not fixed: on a counterparty link the state word beside the title comes from the payload's snapshot, so a negotiation link retired by signing can still read "In Review" after signing has started.
+- Renumbered: the Explorer "what changed rides the paper" test is f441 (f440 was taken by the signing-link work merged the same day); the line above that says f440 means f441.

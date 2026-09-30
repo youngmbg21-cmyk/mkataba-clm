@@ -1,5 +1,5 @@
 /* ============================================================
-   F440 — THE EXPLORER'S PAPER KNOWS WHAT CHANGED (Young asked 30 Sep 2026:
+   F441 — THE EXPLORER'S PAPER KNOWS WHAT CHANGED (Young asked 30 Sep 2026:
    "I want to be able to ask copilot in explorer page to summarize changes
    while the paper is open. It should have answers related to the paper as I
    read it with no limitations." — and picked the three recommendations:
@@ -64,7 +64,7 @@ function world(list) {
   return w;
 }
 
-describe('f440 (1) the record is the whole negotiation, read raw', () => {
+describe('f441 (1) the record is the whole negotiation, read raw', () => {
   test('a contract with no negotiation has no record, and reading it creates none', () => {
     const c = { id: 'MK-1', name: 'x', fields: {} };
     const { win } = world([c]);
@@ -108,7 +108,7 @@ describe('f440 (1) the record is the whole negotiation, read raw', () => {
   });
 });
 
-describe('f440 (2) the question on the open paper carries it', () => {
+describe('f441 (2) the question on the open paper carries it', () => {
   function ask(c) {
     const w = world([c]); const { win } = w;
     const sent = [];
@@ -148,7 +148,7 @@ describe('f440 (2) the question on the open paper carries it', () => {
   });
 });
 
-describe('f440 (3) a pin lights only what is on the paper', () => {
+describe('f441 (3) a pin lights only what is on the paper', () => {
   test('a quote found only in the record takes no pin; one on the paper does', () => {
     const c = negotiated(); const { win } = world([c]);
     win.contractPlainText = () => '1. Payment The buyer pays within thirty days of invoice. 2. Term This agreement runs for one year.';
@@ -159,7 +159,7 @@ describe('f440 (3) a pin lights only what is on the paper', () => {
   });
 });
 
-describe('f440 (4) the words and the names', () => {
+describe('f441 (4) the words and the names', () => {
   test('the cost line is in both books, and every new name is published', () => {
     const fs = require('node:fs'); const path = require('node:path');
     const I18N = fs.readFileSync(path.join(__dirname, '..', 'js/i18n.js'), 'utf8');
