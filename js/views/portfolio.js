@@ -457,10 +457,11 @@ function pfRiskMap(){
    sits and the risk map split the bottom row evenly; the top row is 1.1 to the
    bottom row's 1. Without a runway Where the value sits takes the runway's
    place and the risk map has the bottom row to itself (`whole`). f434 reads
-   these. The bottom row may grow past its share (`minmax(auto,…)`): the map's
-   box never shrinks under PF_RISK_H_MIN, so on a short laptop the row takes
-   the room the map needs and the page scrolls a little, instead of the map
-   drawing over its own key (laptops-verify, 1366 x 638). */
+   these. The bottom row may grow past its share (`minmax(auto,…)`): on a
+   short laptop `pfRiskRoom` gives the WHOLE ROW the height the map needs, so
+   the map never draws over its own key and both cards in the row still end on
+   one line (the page scrolls a little instead). The first try put the floor
+   on the map's card alone, and its neighbour stopped short (owner, 29 Sep). */
 const PF_FIT_COLS = { top:'minmax(0,8fr) minmax(0,4fr)', bottom:'minmax(0,6fr) minmax(0,6fr)',
   whole:'minmax(0,1fr)' };
 const PF_FIT_ROWS = ['minmax(0,1.1fr)','minmax(auto,1fr)'];
@@ -549,8 +550,7 @@ function portfolioFrameHtml(){
     .pf-say .pf-amber{color:var(--st-amber-fg);font-weight:var(--w-title)}
     @media (min-width:1080px){
       #ig-frame .pf-run{flex:1 1 0;min-height:0;grid-template-rows:minmax(0,1fr) auto}
-      #ig-frame #pf-risk-plot{flex:1 1 0;min-height:${PF_RISK_H_MIN}px}
-      #ig-frame .igx-card:has(#pf-risk-plot){min-height:min-content}
+      #ig-frame #pf-risk-plot{flex:1 1 0;min-height:0}
       #ig-frame .pf-hl.is-spread{display:flex;flex-direction:column;justify-content:space-between}
       #ig-frame .pf-hl .pf-hr{padding:4px 6px 5px}
       #ig-frame .pf-meter{height:22px}
@@ -594,6 +594,20 @@ function pfBindCp(root, again){
    and again whenever the card changes size by more than a few pixels — never
    on a size it already has, so the observer's own first call is a no-op. */
 let _pfRiskRO = null;
+/* THE ROW MAKES ROOM FOR THE MAP. Where the grid gives the map's box its
+   height, the row the map sits in may never be shorter than the map's card
+   with a PF_RISK_H_MIN box: the card's own furniture (title, answer, key) is
+   measured, not guessed, since a wrapped line changes it. The floor is set on
+   the ROW, so every card in it stretches to the same bottom edge. Elsewhere
+   (a plain scrolling column) the row has no floor. Written only when it moves. */
+function pfRiskRoom(host, grows){
+  const row=host.closest('.igx-row'), card=host.closest('.igx-card');
+  if(!row || !card) return;
+  const want=grows
+    ? Math.ceil(card.getBoundingClientRect().height - host.clientHeight + PF_RISK_H_MIN) + 'px'
+    : '';
+  if(row.style.minHeight!==want) row.style.minHeight=want;
+}
 function pfRiskFit(again){
   if(_pfRiskRO){ try{ _pfRiskRO.disconnect(); }catch(_){} _pfRiskRO=null; }
   const host=document.getElementById('pf-risk-plot');
@@ -604,6 +618,7 @@ function pfRiskFit(again){
     /* The box has a height of its own only where the grid gives it one (its
        flex basis is 0 there, and only there — see the page's own rules). */
     const grows=typeof getComputedStyle==='function' && getComputedStyle(host).flexBasis==='0px';
+    pfRiskRoom(host, grows);
     const h=grows ? Math.round(host.clientHeight||0) : PF_RISK_H;
     const svg=host.querySelector('svg');
     const drawn=svg?Number(svg.getAttribute('data-w'))||0:0, drawnH=svg?Number(svg.getAttribute('data-h'))||0:0;
@@ -726,7 +741,7 @@ Object.assign(window,{PF_SOON_DAYS,PF_MAX_ROWS,pfState,pfOpenContract,pfMarkFind
   pfPct,pfShare,pfCategoryOf,pfCatLabel,pfFindingsOf,pfRounds,pfFigures,pfWhereValueSits,pfRiskMap,
   portfolioFrameHtml,wirePortfolioFrame,
   PF_STAGE_ORDER,PF_FIND_TONE,pfHeadlineData,pfSoonSay,pfCatData,pfStageData,pfValueByStage,pfFindState,
-  pfRiskData,pfRiskSay,pfRiskSvg,pfGoDoor,pfRunSay,PF_FIT_COLS,PF_FIT_ROWS,pfHlClass});
+  pfRiskData,pfRiskSay,pfRiskSvg,pfRiskRoom,pfGoDoor,pfRunSay,PF_FIT_COLS,PF_FIT_ROWS,pfHlClass});
 
 /* ============================================================================
    THE SHAPED FILL. Panels that appear only when a business has that shape of

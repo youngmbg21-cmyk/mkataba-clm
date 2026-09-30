@@ -170,8 +170,9 @@ describe('f385 (4) text buttons have one look', () => {
          headline figures left the text-button look for the shared figure
          tile every Insights tab wears (`.igx-fig`, f433; the Exposure layout
          is f438). The claim here is still that each wears the ONE look of its
-         kind: a door tile is a real button in the shared tile's class. */
-      ['js/views/intelligence.js', /<button type="button" class="igx-fig exp-pg-fig"/],
+         kind: a door tile is a real button in the shared tile's class (its
+         Meaning Edge class, 29 Sep 2026, may follow). */
+      ['js/views/intelligence.js', /<button type="button" class="igx-fig exp-pg-fig[ "]/],
       ['js/views/register.js', /id="reg-clear-filters" type="button" class="ui-link"/],
       ['js/views/settings.js', /data-sess-revoke="\$\{s\.id\}" type="button" class="ui-link ui-link-danger"/],
       ['js/views/contract.js', /id="sign-paper" type="button" class="ui-link"/],

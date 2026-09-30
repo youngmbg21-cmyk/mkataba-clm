@@ -4363,16 +4363,22 @@ function exposureHtml(){
      leads, never how bad anything is. It wears no tone: ruby on this page is
      the lead's bar alone, and a coloured figure would be a verdict the
      reading does not make. Its door picks the lead row, as a press on the
-     row's own total would. The full sentence rides the hover. */
+     row's own total would. The full sentence rides the hover.
+     THE MEANING EDGE (owner-picked 29 Sep 2026): the FIGURE stays untoned, and
+     each tile says what it asks of you in the strip on its top (`m`): carrying
+     an exposure is amber, not read closely enough is grey stripes (HaTi cannot
+     say), and the lead tile's strip is ruby — the SAME ruby as the lead row's
+     bar, the owner's reversal of "ruby is the bar alone": one exposure, one
+     red. A zero tile keeps the plain count's strip. */
   const figS = (x, words) => (G.money && x.n) ? words + ' · ' + money(x.value) : words;
-  const fig = (x, t, s, tip, attrs) => {
+  const fig = (x, t, s, tip, attrs, m) => {
     const inner = `<span class="igx-fig-t">${e(t)}</span><span class="igx-fig-n">${x.n}</span><span class="igx-fig-s">${e(s)}${star(x)}</span>`;
-    return x.n ? `<button type="button" class="igx-fig exp-pg-fig" ${attrs} title="${e(tip)}">${inner}</button>`
+    return x.n ? `<button type="button" class="igx-fig exp-pg-fig igx-m-${m}" ${attrs} title="${e(tip)}">${inner}</button>`
                : `<div class="igx-fig exp-pg-fig is-zero" title="${e(tip)}">${inner}</div>`;
   };
   const leadRow = G.lead ? (G.rows.find(r=>r.k===G.lead) || null) : null;
   const leadFig = leadRow
-    ? `<button type="button" class="igx-fig exp-pg-fig" data-exp-cell="${e(leadRow.k)}" data-exp-g="*" data-exp-lead="1" title="${
+    ? `<button type="button" class="igx-fig exp-pg-fig igx-m-ruby" data-exp-cell="${e(leadRow.k)}" data-exp-g="*" data-exp-lead="1" title="${
         e(i18t(G.money ? 'exp_fit_lead_why_v' : 'exp_fit_lead_why_n'))}"><span class="igx-fig-t">${
         e(i18t('exp_fit_lead_t'))}</span><span class="igx-fig-n">${leadRow.n}</span><span class="igx-fig-s">${
         e(figS(leadRow, leadRow.title))}${star(leadRow)}</span></button>`
@@ -4380,11 +4386,11 @@ function exposureHtml(){
         e(i18t('exp_fit_lead_t'))}</span><span class="igx-fig-n">—</span><span class="igx-fig-s">${e(i18t('exp_pg_nothing'))}</span></div>`;
   const facts = `<div class="igx-figs exp-pg-figs" style="--igx-n:4">${
     fig(G.any, i18t('exp_fit_any_t'), figS(G.any, i18t('exp_fit_any_s', { live:G.live })),
-      G.any.n + ' ' + i18tn('exp_pg_fact_any', G.any.n, { live:G.live }), 'data-exp-cell="any" data-exp-g="*"')}${
+      G.any.n + ' ' + i18tn('exp_pg_fact_any', G.any.n, { live:G.live }), 'data-exp-cell="any" data-exp-g="*"', 'amber')}${
     fig(G.two, i18t('exp_fit_two_t'), figS(G.two, i18t('exp_fit_two_s')),
-      G.two.n + ' ' + i18tn('exp_pg_fact_two', G.two.n, {}), 'data-exp-go="two"')}${
+      G.two.n + ' ' + i18tn('exp_pg_fact_two', G.two.n, {}), 'data-exp-go="two"', 'amber')}${
     fig(G.unread, i18t('exp_fit_unread_t'), figS(G.unread, i18t('exp_fit_unread_s')),
-      G.unread.n + ' ' + i18t('exp_pg_fact_unread'), 'data-exp-cell="unread" data-exp-g="*"')}${
+      G.unread.n + ' ' + i18t('exp_pg_fact_unread'), 'data-exp-cell="unread" data-exp-g="*"', 'gray')}${
     leadFig}</div>`;
 
   const picked = (k, g) => P.k===k && P.g===g;
@@ -5104,8 +5110,11 @@ function intelPayTermsHtml(){
      (.igx-fig), one strip across the top. The READINGS are unchanged — each
      side's number is written in its side's own ink (the accent, the amber),
      readable in both themes, beside the square in the exact colour of that
-     side's bars; the gap is amber only when it is against us. */
-  const hero = (S, kKey, subValue, subCount, tone, ink) => `<div class="igx-fig">
+     side's bars; the gap is amber only when it is against us.
+     THE MEANING EDGE (owner-picked 29 Sep 2026): a tile's top strip follows
+     its figure's tone; We pay wears its side's amber, the gap is green when we
+     are paid in first, and a side that cannot answer is grey stripes. */
+  const hero = (S, kKey, subValue, subCount, tone, ink, m) => `<div class="igx-fig${S.avgDays == null ? ' igx-m-gray' : m ? ' igx-m-' + m : ''}">
     <span class="igx-fig-t"><span class="pt-sw" style="background:${tone}"></span>${i18t(kKey)}</span>
     ${S.avgDays == null
       ? `<span class="igx-fig-n" style="color:var(--color-neutral-600)">—</span>
@@ -5122,7 +5131,7 @@ function intelPayTermsHtml(){
     : d.gap > 0 ? i18t('pt_gap_fund')
     : d.gap < 0 ? i18t('pt_gap_ahead')
     : i18t('pt_gap_level');
-  const gapFig = `<div class="igx-fig">
+  const gapFig = `<div class="igx-fig${d.gap == null ? ' igx-m-gray' : d.gap < 0 ? ' igx-m-green' : ''}">
     <span class="igx-fig-t">${i18t('pt_the_gap')}</span>
     ${d.gap == null
       ? `<span class="igx-fig-n" style="color:var(--color-neutral-600)">—</span>`
@@ -5145,7 +5154,7 @@ function intelPayTermsHtml(){
 
   const heroes = `<div class="igx-figs" style="--igx-n:4">
     ${hero(d.customer, 'pt_we_wait', 'pt_wait_sub_value', 'pt_wait_sub_count', OB_OURS, 'var(--accent-ink)')}
-    ${hero(d.supplier, 'pt_we_pay', 'pt_pay_sub_value', 'pt_pay_sub_count', OB_THEIRS, 'var(--st-amber-fg,#b45309)')}
+    ${hero(d.supplier, 'pt_we_pay', 'pt_pay_sub_value', 'pt_pay_sub_count', OB_THEIRS, 'var(--st-amber-fg,#b45309)', 'amber')}
     ${gapFig}${driveFig}
   </div>`;
 

@@ -6583,8 +6583,24 @@
   .igx-fill{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
   .igx-scroll{flex:1 1 auto;min-height:0;overflow:auto}
   .igx-figs{display:grid;gap:10px;min-width:0;grid-template-columns:repeat(var(--igx-n,4),minmax(0,1fr))}
-  .igx-fig{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;text-align:left;font:inherit;color:var(--color-text);
-    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:9px 14px}
+  .igx-fig{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;text-align:left;font:inherit;color:var(--color-text);
+    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:12px 14px 9px}
+  /* THE MEANING EDGE (owner-picked "Meaning Edge", 29 Sep 2026): a 4px strip on top of
+     every tile says what the number asks of you. It is READ OFF the figure's own tone,
+     so the strip and the number can never disagree: amber = needs attention soon,
+     ruby = late or at risk, green = on track, the brand's blue = a plain count. A tile
+     whose figure carries no tone by ruling says its meaning with a class instead
+     (.igx-m-*; grey stripes = HaTi cannot say). The same five mean the same on every tab. */
+  .igx-fig::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--igx-m,var(--color-accent-500));pointer-events:none}
+  .igx-fig:has(>.igx-fig-n.igx-warn){--igx-m:var(--st-amber-dot)}
+  .igx-fig:has(>.igx-fig-n.igx-bad){--igx-m:var(--st-ruby-dot)}
+  .igx-fig:has(>.igx-fig-n.igx-good){--igx-m:var(--st-green-dot)}
+  .igx-fig.igx-m-brand{--igx-m:var(--color-accent-500)}
+  .igx-fig.igx-m-amber{--igx-m:var(--st-amber-dot)}
+  .igx-fig.igx-m-ruby{--igx-m:var(--st-ruby-dot)}
+  .igx-fig.igx-m-green{--igx-m:var(--st-green-dot)}
+  .igx-fig.igx-m-gray{--igx-m:repeating-linear-gradient(135deg,var(--st-gray-dot) 0 5px,transparent 5px 9px)}
+  .igx-fig.is-hero{--igx-m:var(--color-accent-300)}
   button.igx-fig{cursor:pointer}
   button.igx-fig:hover{border-color:var(--color-neutral-400)}
   button.igx-fig:focus-visible{outline:2px solid var(--accent-ink);outline-offset:2px}
@@ -7683,8 +7699,8 @@
   .exp-pg-list{display:grid;align-content:start}
   .exp-pg-li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px;align-items:baseline;padding:7px 0;border:0;border-top:1px solid var(--color-divider);background:none;font:inherit;text-align:left;cursor:pointer;color:var(--color-text);width:100%}
   .exp-pg-li:hover .exp-pg-who{color:var(--accent-ink)}
-  .exp-pg-who{font-size:var(--t-meta);font-weight:var(--w-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .exp-pg-v{font-size:var(--t-meta);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .exp-pg-who{font-size:var(--t-meta);font-weight:var(--w-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .exp-pg-v{font-size:var(--t-meta);font-weight:var(--w-label);font-variant-numeric:tabular-nums;white-space:nowrap}
   .exp-pg-sub{font-size:var(--t-micro);color:var(--color-neutral-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .exp-pg-sub.is-r{text-align:right}
   .exp-pg-more{font-size:var(--t-micro);color:var(--color-neutral-600);padding-top:6px;border-top:1px solid var(--color-divider)}
