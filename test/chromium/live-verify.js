@@ -200,11 +200,22 @@ const READ = () => {
      which is the input that actually widens a box. */
   {
     const token = await mk('negotiate');
-    const ctx = await browser.newContext({ viewport: { width: 1400, height: 950 } });
+    /* RE-POINTED 30 Sep 2026: 900 wide, not 1400. From 1024 up the clause's
+       door is the clause EDITOR page (rlEditorTakesIt), and since 28 Sep their
+       paper draws no pencil at all (noPaperPencil — Edit at the top of their
+       page is the door). The editor that opens IN THE PANEL — the box whose
+       geometry these checks are about — lives on narrow windows, so that is
+       where they are measured. */
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 950 } });
     const page = await ctx.newPage();
     page.on('pageerror', e => errors.push(`editor: ${e.message}`));
     await page.goto(`${h.base}/#share=t:${token}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
+    /* Their page lands on "Where we are" on a first visit (29 Sep 2026), with
+       the workbench inert under it; a stage that works the contract opens the
+       Redlines tab, as parity.html's SHOW_COUNTERPARTY does (30 Sep 2026). */
+    await page.evaluate(() => { if (window.portalSetTab) portalSetTab('redlines'); });
+    await page.waitForTimeout(300);
 
     /* RE-POINTED 16 Aug 2026: the clause's Direct Edit retired with the tool
        row (no edits on the paper — all writing through the panel), so the
@@ -217,7 +228,15 @@ const READ = () => {
          column as well as the paper and "the last one" is a card rather than a
          clause. The pill is the paper's own door and is what this walk means. */
       const pill = document.querySelector('.rl-clause .rl-cp-pill');
-      if (!pill) return false; pill.click();
+      if (pill) pill.click();
+      else {
+        /* No pencil on their paper (above): the panel is opened by its own
+           act, on the first clause body it holds — the call every door ends in. */
+        const src = [...document.querySelectorAll('#rl-cp-body .rl-cp-src[data-rl-cp-for]')]
+          .find(x => x.getAttribute('data-rl-cp-for') !== 'front');
+        if (!src || !window.rlCpSetShown) return false;
+        rlCpSetShown(document, src.getAttribute('data-rl-cp-for'));
+      }
       return !!document.querySelector('.rl-cp-src.is-on');
     });
     await page.waitForTimeout(400);
@@ -416,11 +435,17 @@ const READ = () => {
       payload: { kind: 'hati-share', purpose: 'negotiate', org: 'Young', sharedBy: 'Young Mbagaya', contract: rich },
       recipient: { name: 'Juno Limited', email: 'juno@example.co.ke' }, channel: 'link', purpose: 'negotiate' } });
     const token = r.token || (r.link || '').split('share=')[1];
-    const ctx = await browser.newContext({ viewport: { width: 1400, height: 950 } });
+    /* 900 wide, for the reason the editor stage above gives (30 Sep 2026). */
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 950 } });
     const page = await ctx.newPage();
     page.on('pageerror', e => errors.push(`fmt: ${e.message}`));
     await page.goto(`${h.base}/#share=t:${token}`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(900);
+    /* Their page lands on "Where we are" on a first visit (29 Sep 2026), with
+       the workbench inert under it; a stage that works the contract opens the
+       Redlines tab, as parity.html's SHOW_COUNTERPARTY does (30 Sep 2026). */
+    await page.evaluate(() => { if (window.portalSetTab) portalSetTab('redlines'); });
+    await page.waitForTimeout(300);
 
     const opened = await page.evaluate(() => {
       /* The pill and the ＋, since 16 Aug 2026 — the clause's own Direct Edit
@@ -430,7 +455,13 @@ const READ = () => {
          column as well as the paper and "the last one" is a card rather than a
          clause. The pill is the paper's own door and is what this walk means. */
       const pill = document.querySelector('.rl-clause .rl-cp-pill');
-      if (!pill) return false; pill.click();
+      if (pill) pill.click();
+      else {
+        const src = [...document.querySelectorAll('#rl-cp-body .rl-cp-src[data-rl-cp-for]')]
+          .find(x => x.getAttribute('data-rl-cp-for') !== 'front');
+        if (!src || !window.rlCpSetShown) return false;
+        rlCpSetShown(document, src.getAttribute('data-rl-cp-for'));
+      }
       const plus = document.querySelector('.rl-cp-src.is-on [data-rl-cp-edit]');
       if (!plus) return false; plus.click();
       return true;
@@ -444,13 +475,22 @@ const READ = () => {
       document.querySelector('[data-nego-next]').click();
     });
     await page.waitForTimeout(900);
+    /* RE-POINTED 30 Sep 2026: the row no longer prints "Draft" on itself —
+       since the column's piles (RL_CARD_BANDS) the word is the PILE's heading,
+       "Your drafts, not yet sent". So the claim "it filed, as a draft" is read
+       as: a card with a CHG number, standing in the drafts pile (the last pile
+       heading before it in the column). */
     const filed = await page.evaluate(() => ({
       cards: [...document.querySelectorAll('[data-nego-card]')].map(e => e.textContent).join(''),
+      pile: (() => { const card = document.querySelector('[data-nego-card]'); if (!card) return null;
+        const marks = [...document.querySelectorAll('[data-rl-band], [data-nego-card]')];
+        let band = null; for (const el of marks){ if (el === card) return band; if (el.hasAttribute('data-rl-band')) band = el.getAttribute('data-rl-band'); }
+        return band; })(),
       chip: !!document.querySelector('.nego-note.fmt'),
       fmtBody: !!document.querySelector('.nego-fmt-only'),
     }));
     check('fmt: the formatting-only change FILED — a card is on the index',
-      /CHG-\d+/.test(filed.cards) && /Draft/.test(filed.cards), filed.cards ? filed.cards.slice(0, 60) : 'no card rendered');
+      /CHG-\d+/.test(filed.cards) && filed.pile === 'drafts', filed.cards ? `${filed.cards.slice(0, 60)} · pile ${filed.pile}` : 'no card rendered');
     check('fmt: the clause wears the formatting-only chip', filed.chip);
     check('fmt: the document shows the proposed markup, not an unmarked baseline', filed.fmtBody);
 
@@ -462,7 +502,16 @@ const READ = () => {
          clause. The pill is the paper's own door and is what this walk means. */
       const pills = [...document.querySelectorAll('.rl-clause .rl-cp-pill')];
       const pill = pills[pills.length - 1];
-      if (!pill) return null; pill.click();
+      if (pill) pill.click();
+      else {
+        /* No pencil on their paper since 28 Sep (see the editor stage): the
+           LAST clause body the panel holds, opened by its own act. */
+        const srcs = [...document.querySelectorAll('#rl-cp-body .rl-cp-src[data-rl-cp-for]')]
+          .filter(x => x.getAttribute('data-rl-cp-for') !== 'front');
+        const src = srcs[srcs.length - 1];
+        if (!src || !window.rlCpSetShown) return null;
+        rlCpSetShown(document, src.getAttribute('data-rl-cp-for'));
+      }
       await new Promise(r => setTimeout(r, 250));
       const b = document.querySelector('.rl-cp-src.is-on [data-rl-cp-edit]');
       if (!b) return null; b.click();
