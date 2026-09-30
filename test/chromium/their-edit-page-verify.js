@@ -211,7 +211,10 @@ const symbol = page => page.evaluate(() => {
       footBtns, head: getComputedStyle(document.querySelector('.pw-id')).display,
       wall: !!w && w.height > 0 && w.bottom <= r.top, typing: !!typing,
       symbolShown: [...pg.querySelectorAll('.rl-cp-pill-save')].some(b => getComputedStyle(b).visibility !== 'hidden'),
-      ring: [...pg.querySelectorAll('#ce-doc .rl-clause')].some(c => parseFloat(getComputedStyle(c).outlineWidth) > 0) };
+      /* A PAINTED ring: style none/hidden draws nothing whatever width the
+         browser reports — CI's Chromium reports the declared width (30 Sep 2026). */
+      ring: [...pg.querySelectorAll('#ce-doc .rl-clause')].some(c => { const cs = getComputedStyle(c);
+        return cs.outlineStyle !== 'none' && cs.outlineStyle !== 'hidden' && parseFloat(cs.outlineWidth) > 0; }) };
   });
   await page.screenshot({ path: path.join(OUT, '02-editing.png') });
   check('2a the editor opens on their page and stops short of their Redlines column',

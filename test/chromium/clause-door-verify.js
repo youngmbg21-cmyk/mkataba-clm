@@ -563,17 +563,27 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 
   /* ---- 6. THE COUNTERPARTY'S SEAT ---- */
+  await p.setViewportSize({ width: 900, height: 1000 });
   await p.evaluate(()=>window.SHOW_COUNTERPARTY()); await pause(900);
+  /* RE-POINTED 30 Sep 2026. Their paper draws NO pencil since 28 Sep
+     (noPaperPencil, Young's ruling: Edit at the top of their page is the
+     door), so "their page draws the door too" now reads: no pencil on their
+     paper, the panel still built in the shared panes, and a real press on a
+     row's own Open opens it — the listener armed at module load is the same.
+     Measured 900 wide: from 1024 up their row's Edit/Counter open the clause
+     EDITOR page (rlEditorTakesIt, both seats), and the Open is not drawn. */
   const cp = await p.evaluate(() => {
     const pills = [...document.querySelectorAll('.rl-clause .rl-cp-pill')];
     const panel = document.querySelector('#rl-cp');
+    const open = document.querySelector('#rl-changes-col [data-rl-cp-open]');
     return { pills: pills.length, panel: !!panel,
-      first: pills[0] ? pills[0].getAttribute('data-rl-cp-open') : null };
+      first: open ? open.getAttribute('data-rl-cp-open') : null };
   });
-  ck('6a their page draws the door too — the panel is built in the shared panes',
-     cp.pills > 0 && cp.panel, `${cp.pills} pills`);
+  ck('6a their paper draws no pencil (28 Sep ruling); the panel is still built in the shared panes, with a row\'s Open to reach it on a narrow window',
+     cp.pills === 0 && cp.panel && !!cp.first, `${cp.pills} pills · panel ${cp.panel} · open ${cp.first}`);
+  if (!cp.first) ck('6b (not reached: no row Open on their seat)', false, 'nothing to press');
   if (cp.first){
-    await p.click(`[data-rl-cp-open="${cp.first}"]`); await pause(600);
+    await p.click(`#rl-changes-col [data-rl-cp-open="${cp.first}"]`); await pause(600);
     const cpOpen = await p.evaluate(() => {
       const panel = document.querySelector('#rl-cp');
       const on = panel.querySelector('.rl-cp-src.is-on');
@@ -603,6 +613,11 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     await pause(500);
     await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
   }
+
+  /* Back to the page's own width: stage 6 ran narrow, where the row's Open
+     reaches the panel (from 1024 up its Edit/Counter open the editor page). */
+  await p.setViewportSize({ width: 1500, height: 1000 });
+  await p.evaluate(()=>window.SHOW_OWNER()); await pause(900);
 
   /* ---- 7. THE EDITING IS IN THE PANEL, DRIVEN FOR REAL ----
      Owner-asked, 16 Aug 2026: "Now build the editing inside the panel." The
@@ -915,6 +930,21 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      /* RE-POINTED 21 Sep 2026: the act reads "Send all · 1 not sent". */
      /(^|\D)1(\D|$)/.test(String(cpAfter.n||'').trim()) && cpAfter.cards === cpBefore.arrived + 1,
      `act "${cpAfter.n}", cards ${cpBefore.arrived} → ${cpAfter.cards}`);
+  /* A SAVE ON THEIR SEAT ASKS WHY (Young, 29 Sep 2026: rlNoteAskAfterFile →
+     portalAskReason). The edit above raised that question and nothing answered
+     it, so the dialog stood over the page for every stage after this one —
+     14b's pencil read "unreachable" because the dialog's scrim was the thing
+     under the pointer, and 16's presses and focus landed on it. A person
+     answers it; so does this (30 Sep 2026). */
+  const asked = await p.evaluate(() => {
+    const ov = document.getElementById('prompt-overlay');
+    const words = ov ? ov.innerText.replace(/\s+/g, ' ') : '';
+    const skip = ov && ov.querySelector('#pd-cancel'); if (skip) skip.click();
+    return words;
+  });
+  ck('8g …and the save asks them why, as their page does since 29 Sep — answered here with "Not now"',
+     /Why this change/i.test(asked), asked.slice(0, 80) || 'no question');
+  await p.waitForFunction(() => !document.getElementById('prompt-overlay'), null, { timeout: 3000 }).catch(() => {});
   await p.evaluate(()=>rlCpSetShown(document,null)); await pause(300);
 
   /* ---- 9. HOW THE PANEL READS, MEASURED (owner-asked 16 Aug 2026) ----
@@ -1202,6 +1232,10 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
      right and the pill jumped 17px left the moment anything landed on the
      clause. Both are measured here, on the same page, at three document
      sizes — the reader's type must not be able to pull them apart either. */
+  /* RE-POINTED 30 Sep 2026: measured on OUR seat. The stage above leaves
+     their page up, and their paper draws no pencil since 28 Sep
+     (noPaperPencil), so there was no pill there to measure. */
+  await p.evaluate(()=>window.SHOW_OWNER()); await pause(900);
   const rails = await p.evaluate(() => {
     const out = [];
     document.querySelectorAll('.redline-page .rl-doc .rl-clause').forEach(cl => {
@@ -1722,11 +1756,17 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       if (!b) return null;
       const r = b.getBoundingClientRect();
       return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
+        vis: getComputedStyle(b).visibility, save: b.classList.contains('rl-cp-pill-save'),
         elsewhere: document.querySelectorAll('#ce-doc [data-ce-pencil]').length - 1 };
     }, ceMoved.want);
     if (pen){
+      /* RE-POINTED 30 Sep 2026. Since 28 Sep the pencil that meant "done" IS
+         THE SAVE SYMBOL (icon 'save', rl-cp-pill-save), HIDDEN UNTIL THE FIRST
+         INPUT marks the page ce-typed — so with nothing written there is no
+         done to press, and a press where it sits leaves the reader typing. The
+         claim kept: one symbol, on the clause being typed in, nowhere else. */
       await p.mouse.click(pen.x, pen.y);
-      await pause(900);
+      await pause(600);
       const gone = await p.evaluate(() => {
         const box = document.querySelector('#ce-clausebody');
         const sec = box && box.closest('[data-clause]');
@@ -1734,9 +1774,9 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
           typing: !!(box && box.isContentEditable),
           pencils: document.querySelectorAll('#ce-doc [data-ce-pencil]').length };
       });
-      ck('16h THE PENCIL IS DRAWN ONLY WHILE TYPING AND MEANS DONE \u2014 pressed with nothing written, typing ends and it goes',
-         pen.elsewhere === 0 && gone.on === ceMoved.want && gone.typing === false && gone.pencils === 0,
-         `pencils elsewhere while typing ${pen.elsewhere} \u00b7 after: on ${gone.on} typing ${gone.typing} pencils ${gone.pencils}`);
+      ck('16h THE DONE MARK IS THE SAVE SYMBOL, ON THIS CLAUSE ONLY, OUT OF SIGHT UNTIL SOMETHING IS WRITTEN \u2014 so nothing written, nothing to end',
+         pen.elsewhere === 0 && pen.save && pen.vis === 'hidden' && gone.on === ceMoved.want && gone.typing === true && gone.pencils === 1,
+         `symbol elsewhere ${pen.elsewhere} \u00b7 save ${pen.save} \u00b7 ${pen.vis} \u00b7 after: on ${gone.on} typing ${gone.typing}`);
     } else {
       ck('16h THE PENCIL IS DRAWN ONLY WHILE TYPING AND MEANS DONE', false, 'no pencil on the clause being typed in');
     }

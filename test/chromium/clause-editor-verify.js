@@ -1723,8 +1723,13 @@ const dismissNote = async pg => {
   ck('17d NO LINE AT ALL round the clause being typed in',
      parseFloat(quiet.width) === 0 || quiet.style === 'none',
      `${quiet.style} ${quiet.width}`);
+  /* A LINE IS PAINTED ONLY WHEN ITS STYLE DRAWS ONE (30 Sep 2026). This read
+     the width alone, and the Chromium CI installs reports an outline's width
+     as declared even where its style is none ("none 3px" in the log) — no line
+     on the screen, a red check. 17d beside it already asked it both ways. */
+  const paintsLine = (style, width) => style !== 'none' && style !== 'hidden' && parseFloat(width) > 0;
   ck('17d2 and the two boxes draw none either',
-     parseFloat(quiet.bodyWidth) === 0 && parseFloat(quiet.headWidth) === 0,
+     !paintsLine(quiet.bodyOutline, quiet.bodyWidth) && !paintsLine(quiet.headOutline, quiet.headWidth),
      `wording ${quiet.bodyOutline} ${quiet.bodyWidth} · name ${quiet.headOutline} ${quiet.headWidth}`);
   /* ---- REVERSED IN PLACE 29 Aug 2026 (owner-asked, ringing it) ----
      This read "THE MARGIN BAR IS UNTOUCHED — the one signal still at full
@@ -3998,8 +4003,10 @@ const dismissNote = async pg => {
         const head = live.querySelector('.rl-clause-h');
         const box = document.getElementById('ce-clausebody');
         const w = box.getBoundingClientRect(), h = head ? head.getBoundingClientRect() : null;
+        /* The PAINTED width: none/hidden draw nothing whatever width the
+           browser reports (see 17d2, 30 Sep 2026). */
         const ring = el => { const cs = getComputedStyle(el);
-          return parseFloat(cs.outlineWidth) || 0; };
+          return (cs.outlineStyle === 'none' || cs.outlineStyle === 'hidden') ? 0 : (parseFloat(cs.outlineWidth) || 0); };
         return { headX: h ? Math.round(h.left * 10) / 10 : null, headY: h ? Math.round(h.top * 10) / 10 : null,
           /* THE WIDTH TOO, and it is the half that catches the real shift: the
              heading is left-aligned, so the reserve being released by a pencil
@@ -4080,7 +4087,8 @@ const dismissNote = async pg => {
         const head = live.querySelector('.rl-clause-h');
         const box = document.getElementById('ce-clausebody');
         const w = box.getBoundingClientRect(), h = head ? head.getBoundingClientRect() : null;
-        const ring = el => parseFloat(getComputedStyle(el).outlineWidth) || 0;
+        const ring = el => { const cs = getComputedStyle(el);  /* painted width, as above */
+          return (cs.outlineStyle === 'none' || cs.outlineStyle === 'hidden') ? 0 : (parseFloat(cs.outlineWidth) || 0); };
         const caret = caretAt();
         const done = live.querySelector('.rl-cp-pill-done');
         return { headX: h ? Math.round(h.left * 10) / 10 : null, headY: h ? Math.round(h.top * 10) / 10 : null,

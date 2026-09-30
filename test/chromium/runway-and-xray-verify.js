@@ -188,10 +188,16 @@ const check = (name, pass, detail) => {
         sheetLeft: +(cb.left - sc.left).toFixed(1), sheetW: Math.round(cb.width) };
     });
     const before = await ink();
-    const segsRest = await page.evaluate(() =>
-      [...document.querySelectorAll('[data-doc-read]')].map(b => b.textContent.trim()));
-    check('4a the switch has three positions, X-ray third',
-      segsRest.length === 3 && /x-?ray/i.test(segsRest[2]), JSON.stringify(segsRest));
+    /* RE-POINTED 30 Sep 2026: the switch was renamed on 27 Sep (01f8c87,
+       "Plain English and X-ray to Plain View and Risk View (both books)"), so
+       the third position no longer says "X-ray". Pinned to the label's own
+       key (xr_switch) rather than a word, so a later rename cannot turn this
+       red again while the X-ray still sits third. */
+    const segsRest = await page.evaluate(() => ({
+      segs: [...document.querySelectorAll('[data-doc-read]')].map(b => b.textContent.trim()),
+      xray: (typeof i18t === 'function' ? i18t('xr_switch') : '') }));
+    check('4a the switch has three positions, the X-ray (Risk View) third',
+      segsRest.segs.length === 3 && !!segsRest.xray && segsRest.segs[2] === segsRest.xray, JSON.stringify(segsRest));
 
     const pressedXray = await press('[data-doc-read="2"]', '4a2 there is an X-ray position to press');
     await page.waitForTimeout(900);

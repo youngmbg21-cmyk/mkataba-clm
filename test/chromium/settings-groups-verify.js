@@ -97,9 +97,21 @@ const PAINTED = (sel) => {
     check('1c. no group is a wall — the largest holds four rows',
       groups.length && Math.max(...groups.map(g => g.rows)) <= 4,
       'largest ' + Math.max(...groups.map(g => g.rows)));
-    check('1d. the seventeen are all still there, once each',
-      groups.reduce((n, g) => n + g.rows, 0) === 17,
-      groups.reduce((n, g) => n + g.rows, 0) + ' rows');
+    /* RE-POINTED 30 Sep 2026: this counted 17, and the Copilot agents panel
+       joined the Copilot group on 27 Sep (6300dfd, owner-asked), so it read 18.
+       Pinned to the RELATION instead of the number: every panel the platform
+       tab draws at all (SET_PANELS asked as stPanelKeys asks it) is drawn once, under a
+       group, and no key twice. */
+    const all = await page.evaluate(() => {
+      const keys = [...document.querySelectorAll('#st-list .st-grp .st-row')].map(r => r.getAttribute('data-st-panel'));
+      const P = window.SET_PANELS;
+      const want = P ? Object.keys(P).filter(k => P[k].tab === 'platform' && (!P[k].show || P[k].show())) : null;
+      return { keys, want };
+    });
+    check('1d. every platform panel is still there, once each',
+      !!all.want && all.want.length > 0 && all.keys.length === all.want.length
+        && new Set(all.keys).size === all.keys.length && all.want.every(k => all.keys.includes(k)),
+      `${all.keys.length} rows for ${all.want ? all.want.length : '?'} panels`);
     check('1e. exactly the two groups whose name needs one carry a caption',
       groups.filter(g => g.sub.length).length === 2,
       groups.filter(g => g.sub.length).map(g => g.name).join(' · ') || 'none');

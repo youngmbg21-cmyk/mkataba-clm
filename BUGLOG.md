@@ -19944,3 +19944,11 @@ Noticed, not fixed
 ## 30 Sep 2026 — the negotiator follows the signing: noticed, not fixed
 - Noticed, not fixed: on a counterparty link the state word beside the title comes from the payload's snapshot, so a negotiation link retired by signing can still read "In Review" after signing has started.
 - Renumbered: the Explorer "what changed rides the paper" test is f441 (f440 was taken by the signing-link work merged the same day); the line above that says f440 means f441.
+
+### 30 Sep 2026 — the red browser checks on main
+- FIXED: seven browser check files red on main (settings-groups, runway-and-xray, parity, live, clause-door, clause-editor, their-edit-page) — every one a check that had not followed a deliberate change or read an outline's width without its style; no product code changed.
+- Noticed, not fixed: about thirty other browser check files read an outline/border width without its style (e.g. plain-english-verify, blanks-panel-verify); they pass on CI today but would go red the same way if one measures an element whose style is none.
+- Noticed, not fixed: test/chromium/run-all.js KNOWN_RED lists 35 files expected to fail; none was part of this fix.
+- Correction to the line above: KNOWN_RED lists 34 files, not 35.
+- FIXED (same branch): agents-page-verify writes to the database while the server runs, with no busy timeout — "database is locked" on one CI run; it now waits (PRAGMA busy_timeout = 5000, as the server does).
+- Noticed, not fixed: agents-do-the-work-verify, four-inspectors-verify and no-link-to-sign-verify open the database the same way with no busy timeout; they pass today but can hit the same lock.

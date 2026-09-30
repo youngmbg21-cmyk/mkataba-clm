@@ -595,11 +595,18 @@ const CARD_EDIT = async () => {
      selector found nothing, and this check had been red on main since the door
      moved. What it is about is the PANEL'S TYPE ON BOTH SEATS, so it opens the
      panel by its own act, which is the same door both seats' controls press. */
+  /* RE-POINTED AGAIN 30 Sep 2026, the claim still unchanged: their paper
+     draws NO pencil since 28 Sep (noPaperPencil — Edit at the top of their
+     page is the door), so "find a pill" found nothing on their seat. The clause
+     is taken from the panel's own bodies (the ones rlCpSetShown opens), with
+     the pill kept as the first choice where one is still drawn. */
   const PANEL_TYPE = `(() => {
     const pill = document.querySelector('.rl-cp-pill[data-rl-cp-open], .rl-cp-pill[data-rl-cp-editor]');
-    if (!pill) return { err: 'no pill' };
-    const id = pill.getAttribute('data-rl-cp-open') || pill.getAttribute('data-rl-cp-editor');
-    if (window.rlCpSetShown) rlCpSetShown(document, id); else pill.click();
+    const src = document.querySelector('#rl-cp-body .rl-cp-src[data-rl-cp-for]');
+    const id = pill ? (pill.getAttribute('data-rl-cp-open') || pill.getAttribute('data-rl-cp-editor'))
+      : (src ? src.getAttribute('data-rl-cp-for') : null);
+    if (!id) return { err: 'no clause to open' };
+    if (window.rlCpSetShown) rlCpSetShown(document, id); else if (pill) pill.click();
     const panel = document.querySelector('.rl-cp');
     if (!panel) return { err: 'no panel' };
     const fz = sel => { const el = panel.querySelector(sel);
