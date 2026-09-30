@@ -360,6 +360,11 @@ const ok = (name, good, detail) => {
     ok('10 the stage: a contract read on arrival, and a second with only a brief', !!fresh, JSON.stringify(fresh));
     if (fresh) {
       const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+      /* THE SERVER IS STILL A WRITER (30 Sep 2026): this connection had no busy
+         timeout, so a write landing while the server held the lock (the
+         arrival read, a save) was refused at once — "database is locked" on
+         CI. It now waits for the lock, bounded, as the server's own writes do. */
+      db.exec('PRAGMA busy_timeout = 5000');
       const put = (id, overview) => db.prepare('INSERT OR REPLACE INTO briefs(contract_id,json,created_at) VALUES(?,?,?)').run(id, JSON.stringify({
         at: new Date().toISOString(), inputHash: 'x', data: { overview, watchouts: [{ point: 'Fees rise if the scope grows', why: 'There is no cap on extra work.' }], unusual: [] } }), new Date().toISOString());
       put(fresh.a, 'An engagement letter for the FY2026 external audit, billed in three parts.');

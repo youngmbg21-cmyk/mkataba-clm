@@ -19950,3 +19950,5 @@ Noticed, not fixed
 - Noticed, not fixed: about thirty other browser check files read an outline/border width without its style (e.g. plain-english-verify, blanks-panel-verify); they pass on CI today but would go red the same way if one measures an element whose style is none.
 - Noticed, not fixed: test/chromium/run-all.js KNOWN_RED lists 35 files expected to fail; none was part of this fix.
 - Correction to the line above: KNOWN_RED lists 34 files, not 35.
+- FIXED (same branch): agents-page-verify writes to the database while the server runs, with no busy timeout — "database is locked" on one CI run; it now waits (PRAGMA busy_timeout = 5000, as the server does).
+- Noticed, not fixed: agents-do-the-work-verify, four-inspectors-verify and no-link-to-sign-verify open the database the same way with no busy timeout; they pass today but can hit the same lock.
