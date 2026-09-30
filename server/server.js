@@ -13216,10 +13216,27 @@ function shareHandoverFact(contractId) {
    member id, no signature image, no row id. Read LIVE from the stored contract
    on every open, like `executed`, so a signature taken since the link went
    out shows here without a new link. Only a SIGN link carries it. */
+/* ---- AND THE NEGOTIATION LINK SIGNING RETIRED (Young, 30 Sep 2026) ----
+   "The negotiator is not always the signer": a signing link still goes to each
+   named signer, and it still retires the negotiation link it follows — but the
+   person who negotiated is no longer shut out of how it ends. Their link now
+   carries the same order, read live, so their Signing tab can follow it. Two
+   differences, both said here: which row is THEM is asked by the link's own
+   stored address against the route's (the address never leaves), and each of
+   their side's rows carries the day its signing link went out (`linkAt`) —
+   the date only. A sign link's order is unchanged. */
 function shareSigningOrder(s) {
-  if (!s || (s.purpose || '') !== 'sign') return null;
+  if (!s) return null;
+  const isSign = (s.purpose || '') === 'sign';
+  if (!isSign && !shareRetiredBySigning(s)) return null;
   const rt = signerRouteFor(s.contract_id);
   if (!rt) return null;
+  const mail = String(s.recipient_email || '').trim().toLowerCase();
+  const linkAt = id => {
+    const r = db.prepare(`SELECT created_at FROM shares WHERE contract_id=? AND signer_id=? AND purpose='sign'
+      AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1`).get(s.contract_id, String(id));
+    return r ? r.created_at : null;
+  };
   const parties = srvContractParties(rt.contract);
   const ours = parties.find(p => p.side === 'ours');
   const theirs = parties.filter(p => p.side !== 'ours');
@@ -13240,7 +13257,9 @@ function shareSigningOrder(s) {
       title: String(r.role || '') || null,
       signed: !!rt.signedRow(r),
       at: r.signed ? (r.at || null) : null,
-      you: !!s.signer_id && String(r.id) === String(s.signer_id),
+      you: isSign ? (!!s.signer_id && String(r.id) === String(s.signer_id))
+        : (!!mail && String(r.email || '').trim().toLowerCase() === mail),
+      ...(isSign ? {} : { linkAt: r.party === 'counterparty' ? linkAt(r.id) : null }),
     })),
   }));
 }

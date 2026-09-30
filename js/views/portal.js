@@ -812,6 +812,15 @@ function portalExecuted(){
    so nothing answered here can change them. The server refuses an answer too;
    this is the sentence that stops a reader writing one. */
 const portalHandedOver = () => !!(PORTAL_OPTS && PORTAL_OPTS.handover && PORTAL_OPTS.handover.live);
+/* ---- SIGNING HAS STARTED (Young, 30 Sep 2026) ----
+   A signing link retires the negotiation link it follows (the server's
+   shareRetiredBySigning). That is not "a newer copy was sent to you" — the
+   signing link may have gone to somebody else on their side — so this page
+   says what happened and follows the signing on its Signing tab. */
+function portalSigningStarted(){
+  const s=PORTAL_OPTS&&PORTAL_OPTS.superseded;
+  return (s && s.reason==='signing-link-issued') ? s : null;
+}
 const portalReadOnly = () => !!(PORTAL_OPTS.superseded||PORTAL_OPTS.responded||portalExecuted()||portalHandedOver());
 /* The deal is done, the link is answered, or the wording has moved on since it
    was sent. Any of the three means nothing on this page can be submitted, and
@@ -853,7 +862,7 @@ function portalClosedBanner(){
       </span>
     </div>`;
   const sup=PORTAL_OPTS.superseded;
-  if(!sup) return '';
+  if(!sup || portalSigningStarted()) return '';
   return `
     <div id="pt-superseded" style="display:flex;align-items:flex-start;gap:var(--s-3);border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-left:4px solid var(--st-ruby-dot);border-radius:var(--radius);padding:13px 17px;margin:0 0 18px;box-shadow:var(--shadow-sm)">
       <span style="flex:none;margin-top:1px;color:var(--st-ruby-fg);display:inline-flex">${icon('alert','w-4 h-4')}</span>
@@ -1880,6 +1889,7 @@ function portalNegoFootHtml(p){
   if(!live && PORTAL_FOOT_COMPACT) return '';
   if(!live) return `<span id="nego-readonly-why" style="font-size:var(--t-meta);color:var(--color-neutral-600)">${esc(
     portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
+    : portalSigningStarted() ? i18t('po_signing_started_ro')
     : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
     : PORTAL_OPTS.responded ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
     : 'This copy has no channel back — reply to the email you received, or ask the sender for a live link.')}</span>`;
@@ -2210,23 +2220,28 @@ function portalBeforeSignStagesHtml(c, p, o={}){
     : esc(i18tn('po_stage_wording_n',changes.length,{n:changes.length,
         how:(acc?i18t('po_stage_adopted',{n:acc}):'')+(rej?i18t('po_stage_not_taken',{n:rej}):'')}));
   const sigs=(Array.isArray(src.signatures)?src.signatures:[]).filter(s=>s&&s.name);
-  const order=portalSigningOrderHtml(executed);
+  const order=portalSigningOrderHtml(executed, o);
+  const started=!!(o.negotiating && portalSigningStarted());
   const people = order ? order.html : (sigs.length
       ? sigs.map(s=>`<p class="ps-who"><b>${esc(s.name)}</b>${s.title?` &middot; ${esc(s.title)}`:''}<span class="ps-when ok">${
           esc(i18t('po_stage_signed_at',{at:s.at&&window.fmtDT?fmtDT(s.at):(s.at||'')}))}</span></p>`).join('')
       : `<p class="ps-line">${esc(i18t(o.negotiating?'po_stage_order_later':'po_stage_none_yet',{org}))}</p>`)
     + ((executed || o.negotiating) ? '' : `<p class="ps-who"><b>${esc(i18t('po_stage_you'))}</b><span class="ps-when now">${esc(i18t('po_stage_your_turn'))}</span></p>`);
-  return stage(1, !open, i18t(o.negotiating&&open?'po_stage_wording_agree':'po_stage_wording'),
-      `<p class="ps-line">${wording}</p>${changes.length?`<button id="pt-nego-open" type="button" class="ui-link ps-door"
+  /* Once signing has started, this copy's own count is a snapshot from when it
+     was sent and may still show changes open; what is true is the day the
+     signing began. */
+  const wordingLine = started ? esc(i18t('po_stage_wording_agreed_on',{ when:portalDayWords(portalSigningStarted().at) })) : wording;
+  return stage(1, !open || started, i18t(o.negotiating&&open&&!started?'po_stage_wording_agree':'po_stage_wording'),
+      `<p class="ps-line">${wordingLine}</p>${changes.length?`<button id="pt-nego-open" type="button" class="ui-link ps-door"
         title="${i18t('po_every_change_oldest')}">${i18t('po_review_what_changed')}</button>`:''}`)
-    + stage(2, executed, i18t('po_stage_read'), `<p class="ps-line">${esc(i18t(o.negotiating?'po_stage_read_later':'po_stage_read_line',{org}))}</p>`)
+    + stage(2, executed, i18t('po_stage_read'), `<p class="ps-line">${esc(i18t(started?'po_stage_read_started':o.negotiating?'po_stage_read_later':'po_stage_read_line',{org}))}</p>`)
     + stage(3, executed || !!(order && order.done), i18t((order || o.negotiating) ? 'po_stage_order' : 'po_stage_people'), people);
 }
 /* The signing order as their page draws it: one numbered step per row group,
    each person's name and capacity, the party they sign for, and where they
    stand — signed (with the day), signing now, your turn, or waiting on the
    step before. Null where the link carries no order. */
-function portalSigningOrderHtml(executed){
+function portalSigningOrderHtml(executed, o={}){
   const steps=(PORTAL_OPTS&&Array.isArray(PORTAL_OPTS.signingOrder))?PORTAL_OPTS.signingOrder:null;
   if(!steps||!steps.length||!steps.some(st=>st&&Array.isArray(st.rows)&&st.rows.length)) return null;
   const nowIdx=executed?-1:steps.findIndex(st=>(st.rows||[]).some(r=>r&&!r.signed));
@@ -2234,11 +2249,15 @@ function portalSigningOrderHtml(executed){
     const where = r.signed
       ? `<span class="ps-when ok">${esc(i18t('po_stage_signed_at',{at:r.at&&window.fmtDT?fmtDT(r.at):(r.at||'')}))}</span>`
       : i===nowIdx
-      ? `<span class="ps-when now">${esc(i18t(r.you?'po_stage_your_turn':'po_stage_signing_now'))}</span>`
+      ? `<span class="ps-when now">${esc(i18t(r.you?(o.negotiating?'po_stage_your_turn_link':'po_stage_your_turn'):'po_stage_signing_now'))}</span>`
       : `<span class="ps-when">${esc(i18t('po_stage_waiting'))}</span>`;
+    /* On the negotiation link, their side's rows also say when the signing
+       link went out (the server sends the day, never the address). */
+    const sent=(o.negotiating && !r.signed && r.linkAt)
+      ? `<span class="ps-when">${esc(i18t('po_stage_link_sent',{ when:portalDayWords(r.linkAt) }))}</span>` : '';
     return `<p class="ps-who${r.you?' is-you':''}"><b>${esc(r.name||'')}</b>${r.title?` &middot; ${esc(r.title)}`:''}${
       r.you?` <span class="ps-you">${esc(i18t('po_stage_you_mark'))}</span>`:''}${
-      r.party?`<span class="ps-party">${esc(i18t('po_stage_for',{party:r.party}))}</span>`:''}${where}</p>`;
+      r.party?`<span class="ps-party">${esc(i18t('po_stage_for',{party:r.party}))}</span>`:''}${where}${sent}</p>`;
   };
   const html=`<ol class="ps-order">${steps.map((st,i)=>`<li class="ps-ostep${i===nowIdx?' is-now':''}"><span class="ps-on" aria-label="${
       esc(i18t('po_stage_step',{n:i+1}))}">${i+1}</span><div class="ps-orows">${(st.rows||[]).filter(Boolean).map(r=>row(r,i)).join('')}</div></li>`).join('')}</ol>`;
@@ -2436,6 +2455,7 @@ function wirePortalNego(c, p){
        whether their last answer arrived; the fact is theirs either way. */
     : `<div class="rl-wall" role="status"><span class="rl-wall-ic">&#128274;</span><span>${esc(
         portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
+        : portalSigningStarted() ? i18t('po_signing_started_ro')
         : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you.'
         : 'This copy is read-only.')}</span></div>`;
   redlineEmbed(host, c, {
@@ -2459,6 +2479,7 @@ function wirePortalNego(c, p){
         + 'The negotiation is closed on this link — ask ' + esc(org) + ' if something still needs to change.'
       : (!live
         ? (portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
+          : portalSigningStarted() ? i18t('po_signing_started_ro')
           : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
           : PORTAL_OPTS.responded ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
           /* NOT the no-channel case any more — that state is no longer read-only,
@@ -3105,6 +3126,8 @@ function portalAlerts(c, p){
      sealed contract is worse than no panel. Said plainly and nothing else. */
   const ex = portalExecuted();
   if (ex) return [{ kind:'closed', tone:'green', text:i18t('pa_executed'), go:null }];
+  if (portalSigningStarted()) return [{ kind:'closed', tone:'green', text:i18t('pa_signing_started'),
+    go: document.getElementById('pt-tab-signing') ? () => portalSetTab('signing') : null }];
   if (PORTAL_OPTS.superseded) return [{ kind:'closed', tone:'amber', text:i18t('pa_superseded'), go:null }];
   if (PORTAL_OPTS.responded) return [{ kind:'closed', tone:'gray', text:i18t('pa_answered'), go:null }];
 
@@ -3629,7 +3652,8 @@ function portalNewsSig(p){
     .map(x=>`${x.id}:${x.status||''}`).sort().join(',');
   const rounds=(src.negotiation&&Array.isArray(src.negotiation.rounds))?src.negotiation.rounds.length:0;
   const notes=(PORTAL_OPTS.messages||[]).filter(m=>m&&m.side!=='counterparty').length;
-  return `${ch}|${rounds}|${notes}`;
+  const sup=(PORTAL_OPTS.superseded&&PORTAL_OPTS.superseded.at)||'';
+  return `${ch}|${rounds}|${notes}|${sup}`;
 }
 function portalPlaceRead(){
   const t=PORTAL_OPTS&&PORTAL_OPTS.token; if(!t) return null;
@@ -3721,22 +3745,27 @@ function portalWhereHtml(c, p){
   const src=(p&&p.contract)||{};
   const org=(p&&p.org)||i18t('pt_the_sender');
   const rows=(PT_ALERT_ROWS||[]);
-  const work=rows.filter(r=>r&&r.kind!=='closed');
+  /* A closed page lists nothing — except where its one row is a door (signing
+     has started: it opens the Signing tab). */
+  const work=rows.filter(r=>r&&(r.kind!=='closed'||r.go));
   const closed=rows.find(r=>r&&r.kind==='closed');
   const executed=portalExecuted();
   const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
   const open=changes.filter(x=>x.status==='pending'&&!x.withdrawn).length;
   const held=Object.keys(PORTAL_NEGO_DECISIONS).length+Object.keys(PORTAL_NEGO_PROPOSED).length;
-  const agreed=executed || (changes.length>0 && !open && !held);
+  const started=portalSigningStarted();
+  const agreed=executed || !!started || (changes.length>0 && !open && !held);
   const t=portalTurn(rows);
-  const turn = closed ? closed.text
+  const turn = started ? i18t('po_where_turn_signing')
+    : closed ? closed.text
     : executed ? i18t('po_step_signed')
     : t==='you' ? i18t('po_where_turn_you') : i18t('po_where_turn_them',{ org });
   const steps=[
     { head:i18t('po_step_shared'), sub:p&&p.at?portalDayWords(p.at):'', done:true },
-    { head:i18t('po_step_negotiating'), facts:portalNegoFacts(c), done:agreed },
+    started ? { head:i18t('po_step_negotiating'), sub:i18t('po_step_closed_on',{ when:portalDayWords(started.at) }), done:true }
+      : { head:i18t('po_step_negotiating'), facts:portalNegoFacts(c), done:agreed },
     { head:i18t('po_step_agreed'), sub:'', done:agreed },
-    { head:i18t('po_step_signed'), sub:'', done:executed },
+    { head:i18t('po_step_signed'), sub:(started&&!executed)?i18t('po_step_signing_under_way'):'', done:executed },
   ];
   const nowAt=steps.findIndex(s=>!s.done);
   const journey=`<ol class="pw-journey">${steps.map((s,i)=>`<li class="pw-jst${s.done?' is-done':''}${i===nowAt?' is-now':''}"${i===nowAt?' aria-current="step"':''}>
@@ -3786,11 +3815,20 @@ function portalWhereHtml(c, p){
    says where the signing will happen. */
 function portalSignPaneHtml(c, p){
   const org=(p&&p.org)||i18t('pt_the_sender');
+  const started=portalSigningStarted();
+  const rows=(Array.isArray(PORTAL_OPTS.signingOrder)?PORTAL_OPTS.signingOrder:[]).flatMap(st=>(st&&st.rows)||[]);
+  const mine=rows.find(r=>r&&r.you);
+  const theirs=rows.filter(r=>r&&r.side==='theirs').map(r=>r.name).filter(Boolean);
+  const last = !started ? i18t('po_stage_sign_later',{ org })
+    : mine ? i18t(mine.signed?'po_stage_sign_done_you':'po_stage_sign_started_you',
+        { when: mine.linkAt ? portalDayWords(mine.linkAt) : portalDayWords(started.at) })
+    : theirs.length ? i18t('po_stage_sign_started_theirs',{ names: theirs.join(', ') })
+    : i18t('po_stage_sign_started_none',{ org });
   return `<div class="pw-sign"><section class="ps-side">
     <h2 class="ps-h">${esc(i18t(portalExecuted()?'po_signed_head':'po_before_you_sign'))}</h2>
     <ol class="ps-stages">${portalBeforeSignStagesHtml(c, p, { negotiating:true })}
       <li class="ps-stage${portalExecuted()?' is-ok':''}"><span class="ps-ico" aria-hidden="true">${portalExecuted()?'&#10003;':'4'}</span><div class="ps-sb">
-        <h3 class="ps-st">${esc(i18t('po_stage_sign'))}</h3><p class="ps-line">${esc(i18t('po_stage_sign_later',{ org }))}</p></div></li></ol>
+        <h3 class="ps-st">${esc(i18t('po_stage_sign'))}</h3><p class="ps-line">${esc(last)}</p></div></li></ol>
   </section></div>`;
 }
 function portalPaintSignPane(){
@@ -5755,6 +5793,6 @@ async function refreshStats(){
     if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
-Object.assign(window,{portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});
