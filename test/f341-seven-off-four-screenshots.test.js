@@ -321,16 +321,22 @@ describe('f341 (5) — two arrival tiles open the card that owns their reading',
        which is the card ABOUT the brief rather than the brief itself — the
        reader landed beside a heading and still had to find its Open button,
        which is precisely what the tile's arrow promises to have done. */
-    assert.match(b, /openCheckPanel\(c,'brief'\)/, 'the brief tile opens the brief panel');
+    /* RE-POINTED IN PLACE 1 Oct 2026 (owner-asked: a second press shuts the
+       brief): the tile presses briefPanelToggle, which opens the same panel
+       through openCheckPanel and shuts it on the next press. */
+    assert.match(b, /briefPanelToggle\(c\)/, 'the brief tile opens the brief panel');
     assert.ok(!/getElementById\('brief-card'\)/.test(b), 'and no longer merely scrolls to its card');
   });
 
   test('TWO DOORS, ONE ACT — the tile and the card\'s Open button make the same call', () => {
     const tile = fnBody(CONTRACT_CODE, 'paintKtTriage');
     const card = fnBody(CONTRACT_CODE, 'wireKtBriefCard') || CONTRACT_CODE;
-    assert.match(tile, /openCheckPanel\(c,'brief'\)/);
-    assert.match(card, /openCheckPanel\(c,'brief'\)/,
+    /* RE-POINTED IN PLACE 1 Oct 2026: the one act is now the toggle. */
+    assert.match(tile, /briefPanelToggle\(c\)/);
+    assert.match(card, /briefPanelToggle\(c\)/,
       'the card\'s own Open button is the act the tile borrows');
+    assert.match(fnBody(CONTRACT_CODE, 'briefPanelToggle'), /openCheckPanel\(c,'brief'\)/,
+      'and the toggle opens the very panel both always opened');
   });
 
   test('a door tile is dressed so it does not become a second kind of tile', () => {

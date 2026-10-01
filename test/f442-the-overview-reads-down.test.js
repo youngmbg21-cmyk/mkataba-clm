@@ -253,3 +253,70 @@ describe('f442 (6) every new key is in both books', () => {
       assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2, k + ' is in both books');
   });
 });
+
+/* ============================================================================
+   7 · THE BRIEF BUTTON IS COLOURED, AND IT OPENS AND SHUTS (owner-asked
+   1 Oct 2026: "make the brief button more visible by making it a colored
+   button. Also, when i press it once the brief appear but when i press it
+   again, the brief should disappear.")
+   ==========================================================================*/
+describe('f442 (7) the brief button is coloured, and a second press shuts the brief', () => {
+  test('both of its faces are the filled button', () => {
+    const b = strip(fnBody(CONTRACT, 'paintOvBriefBtn'));
+    assert.ok(/data-kt-brief="open" class="ui-btn ui-btn-sm ui-btn-primary"/.test(b), 'Read the brief is filled');
+    assert.ok(/data-kt-brief="run" class="ui-btn ui-btn-sm ui-btn-primary"/.test(b), 'and so is Write the brief');
+  });
+
+  test('it stays the ONE filled button at the head of the sheet', () => {
+    const top = strip(fnBody(CONTRACT, 'ktOverviewTermsHtml'));
+    const head = top.slice(top.indexOf('const top='), top.indexOf('const groups='));
+    assert.ok(head.length > 0, 'the head row was found');
+    assert.ok(!/ui-btn-primary|ui-btn-accent/.test(head), 'Edit and Fill beside it stay plain');
+  });
+
+  test('every door onto the brief is the one toggle', () => {
+    assert.ok(/briefPanelToggle\(c\)/.test(strip(fnBody(CONTRACT, 'wireKtBriefCard'))),
+      'the sheet\'s button and the card\'s button');
+    assert.ok(/briefPanelToggle\(c\)/.test(strip(fnBody(CONTRACT, 'paintKtTriage'))),
+      'and the strip\'s tile');
+  });
+
+  test('driven: a press opens it, the next press shuts it', () => {
+    const { win } = ovWorld();
+    const doc = win.document;
+    let opened = 0, closed = 0;
+    /* The panel itself is openSidePanel's; the stage stands in for it with the
+       same element the real one draws, so the toggle reads the real shape. */
+    win.openCheckPanel = (c, kind) => {
+      opened++;
+      doc.getElementById('modal-root').innerHTML =
+        `<aside id="side-panel" data-cid="${c.id}"><div id="${kind}-section"></div></aside>`;
+    };
+    win.closeModal = () => { closed++; doc.getElementById('modal-root').innerHTML = ''; };
+    if (!doc.getElementById('modal-root')) {
+      const r = doc.createElement('div'); r.id = 'modal-root'; doc.body.appendChild(r);
+    }
+    const c = supply();
+    assert.equal(win.briefPanelOpenFor(c), false, 'shut at rest');
+    assert.equal(win.briefPanelToggle(c), true);
+    assert.ok(win.briefPanelOpenFor(c) && opened === 1, 'the first press opens it');
+    assert.equal(win.briefPanelToggle(c), false);
+    assert.ok(!win.briefPanelOpenFor(c) && closed === 1, 'the second press shuts it');
+    assert.equal(win.briefPanelToggle(c), true);
+    assert.ok(win.briefPanelOpenFor(c) && opened === 2, 'and a third opens it again');
+  });
+
+  test('another panel, or another contract\'s brief, is not shut by it', () => {
+    const { win } = ovWorld();
+    const doc = win.document;
+    if (!doc.getElementById('modal-root')) {
+      const r = doc.createElement('div'); r.id = 'modal-root'; doc.body.appendChild(r);
+    }
+    doc.getElementById('modal-root').innerHTML =
+      '<aside id="side-panel" data-cid="MK-442"><div id="playbook-section"></div></aside>';
+    assert.equal(win.briefPanelOpenFor(supply()), false, 'the playbook panel is not the brief');
+    doc.getElementById('modal-root').innerHTML =
+      '<aside id="side-panel" data-cid="MK-OTHER"><div id="brief-section"></div></aside>';
+    assert.equal(win.briefPanelOpenFor(supply()), false, 'another contract\'s brief is not this one');
+  });
+});

@@ -5863,7 +5863,8 @@ function paintKtTriage(c){
        filling all stay openCheckPanel's. The door is drawn only where the
        brief was WRITTEN (doorFor asks `x.ok`), so it can never open on
        nothing. */
-    openCheckPanel(c,'brief');
+    /* And it shuts on a second press, like every door onto the brief. */
+    briefPanelToggle(c);
   }));
   const b=document.getElementById('kt-tri-done'); if(!b) return;
   b.addEventListener('click',()=>{
@@ -6104,9 +6105,12 @@ function paintOvBriefBtn(c){
   const slot=document.getElementById('kt-ov-brief'); if(!slot||!c) return;
   let v=null; try{ v=(typeof checkVerdict==='function')?checkVerdict(c,'brief'):null; }catch(_){}
   const may=(typeof canEdit==='function'?canEdit():true);
+  /* THE ONE FILLED BUTTON ON THE SHEET (owner-asked 1 Oct 2026: "make the
+     brief button more visible by making it a colored button"). Edit and Fill
+     beside it stay plain, so the area still has exactly one. */
   slot.innerHTML=v
-    ? `<button type="button" data-kt-brief="open" class="ui-btn ui-btn-sm">${esc(i18t('br_open'))}</button>`
-    : (may?`<button type="button" data-kt-brief="run" class="ui-btn ui-btn-sm" title="${
+    ? `<button type="button" data-kt-brief="open" class="ui-btn ui-btn-sm ui-btn-primary">${esc(i18t('br_open'))}</button>`
+    : (may?`<button type="button" data-kt-brief="run" class="ui-btn ui-btn-sm ui-btn-primary" title="${
         esc(i18t('sc_brief_title'))}">${esc(i18t('br_write'))}</button>`:'');
   try{ wireKtBriefCard(c,{ after:()=>paintOvBriefBtn(c) }); }catch(_){}
 }
@@ -7166,7 +7170,7 @@ function wireKtBriefCard(c,opts){
   list.forEach(b=>{ if(b.dataset.ktBriefBound) return; b.dataset.ktBriefBound='1'; b.addEventListener('click',async()=>{
     const {c,after}=b._ktBrief||{};
     if(!c) return;
-    if(b.getAttribute('data-kt-brief')==='open') return openCheckPanel(c,'brief');
+    if(b.getAttribute('data-kt-brief')==='open') return briefPanelToggle(c);
     if(!window.runContractBrief) return;
     if(b.disabled) return;
     const word=b.textContent;
@@ -8545,6 +8549,22 @@ function checksNoteHtml(c){
    Every finding in here offers "Go to the wording", which scrolls the document
    and flashes the clause — behind a centred, scrimmed modal that was a jump you
    could not watch. See openSidePanel in js/core.js. */
+/* ---- THE BRIEF'S DOOR OPENS AND SHUTS (owner-asked 1 Oct 2026: "when i press
+   it once the brief appear but when i press it again, the brief should
+   disappear") ----
+   One act behind every door onto the brief — the sheet's Read the brief, the
+   brief card's own button, the arrival strip's tile, the Before-you-sign row —
+   so they cannot disagree: a press while THIS contract's brief panel is up
+   closes it (closeModal, the panel's own ×), any other press opens it. */
+function briefPanelOpenFor(c){
+  const sp=document.getElementById('side-panel');
+  return !!(sp && sp.querySelector('#brief-section')
+    && (!sp.dataset.cid || sp.dataset.cid===String(c&&c.id)));
+}
+function briefPanelToggle(c){
+  if(briefPanelOpenFor(c)){ closeModal(); return false; }
+  openCheckPanel(c,'brief'); return true;
+}
 function openCheckPanel(c,kind){
   const id=kind==='playbook'?'playbook-section':kind==='oblig'?'obligations-section':kind==='brief'?'brief-section':'scan-section';
   const title=kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_risk_scan');
@@ -16626,7 +16646,7 @@ Object.assign(window,{PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paint
      Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
      with it: the same guard-and-miss is waiting for both. */
   wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
-  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_READ_GROUPS,ovSayOf,ovTimelineHtml,ovTimelineSettle,paintOvBriefBtn,ktFieldCell,ktOverviewTermsHtml,
+  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_READ_GROUPS,ovSayOf,ovTimelineHtml,ovTimelineSettle,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
   OV_DEAL_FIELDS,OV_ALSO_FIELDS,OV_KT_FIELDS,OV_DERIVED_FIELDS,ovMetaBoxHtml,ovMetaField,ovMetaLabel,
   OV_MARK_ALIAS,ovFieldMarkOf,ovFieldNoteHtml,ovSignMarks,
   /* THE PARTIES BLOCK. f232's net: every `window.foo` read must be a
