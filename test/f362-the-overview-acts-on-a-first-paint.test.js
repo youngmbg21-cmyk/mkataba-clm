@@ -68,7 +68,11 @@ describe('f362 (1) one writer for #kt-ov-terms', () => {
     assert.ok(a > 0, 'the stack was found');
     /* PAST the closing tag, not up to it — the regex below needs it. */
     const stack = CODE.slice(a, CODE.indexOf('</div>', CODE.indexOf('id="kt-side"')) + 6);
-    for (const id of ['kt-ov-lead', 'kt-ov-terms', 'kt-side']) {
+    /* RE-POINTED IN PLACE 1 Oct 2026: the lead slot went with Read Down (the
+       renewal question is drawn under the dates now), so the stack is terms ·
+       side. The claim — no host fills itself — is unchanged. */
+    assert.ok(!/id="kt-ov-lead"/.test(stack), 'the lead slot is gone');
+    for (const id of ['kt-ov-terms', 'kt-side']) {
       const m = stack.match(new RegExp('id="' + id + '"[^>]*>([\\s\\S]{0,80}?)<\\/div>'));
       assert.ok(m, id + ' is in the stack');
       assert.equal(m[1].trim(), '', id + ' fills itself');

@@ -121,16 +121,17 @@ Doc Lab is REMOVED — flag any doclab mention as stale. Line numbers drift: gre
 - "Waiting on them" must be true: `negoTheirCopy(c)` reads `_reach`, the SERVER'S `srvReach` (the respond route's own question: an open standing link, an unused one-time link not overtaken, a Word file that really left; never read-only/history/adviser), on the list, the record, the share list and every send's answer (`reachTake` the one writer, stripped on save both hosts); `negWhoseMove` asks `negoUnsentAsks` first. Which link is theirs: `standingShareFor` over `answerableNegotiation` (a link a signing link retired is skipped; the dialog's reuse too). Live catch-up: `refreshLiveShareQuietly`.
 Tests: f154–f159, f161, f162, f164, f186, f190, f17, f174, f412.
 
-## THE OVERVIEW — ONE PAGE OF NAMED SECTIONS (was "Key terms")
+## THE OVERVIEW — READ DOWN, ONE SHEET (was "Key terms")
 
 - `js/section.js` is the grammar (pure builder): name the group; a shut group still answers (summary in the head); open what is acted on; label above value, em-dash for silence (`sectionFieldHtml`). Fold is per sitting, in memory. `sectionWire(root, repaint)` — every section a pane draws must be named in its router. `.sec-*` is the only dressing. A second screen takes this grammar only on the owner's word (Templates book: yes).
-- The tab label is `tab_overview`; the KEY stays `'terms'`; `tab_key_terms` stays live (the phone). All hosts in the stack are SLOTS painted by `applyWsTabs` (`#kt-ov-lead`, `#kt-ov-terms` → `renderKeyTerms` wires it, `#kt-side`). `readTermsHtml` is a stub. `.terms-grid`, `#kt-resizer`, `ktFitSplit`, `ktWireSplit` are STALE.
+- READ DOWN (owner-picked 1 Oct 2026): the strip on top, then ONE sheet (`#kt-overview`), no folds (no section carries a `key`). Sheet head `.ov-top`: Read the brief (`paintOvBriefBtn`, the card's own `data-kt-brief` door) · ONE Edit (`data-ov-edit="all"`, both postures) · Fill. The deal is four groups (`OV_READ_GROUPS`; every field in exactly one); answer lines `ovSayOf` (money, dates; no model) via `sectionHtml({say})`; `ovTimelineHtml` + `ovTimelineSettle`; renewal drawn BARE under the dates (`data-bare`). Tests: f442.
+- The tab label is `tab_overview`; the KEY stays `'terms'`; `tab_key_terms` stays live (the phone). Two SLOTS painted by `applyWsTabs` (`#kt-ov-terms` → `renderKeyTerms` wires it, then `#kt-side`). `readTermsHtml` is a stub. `#kt-ov-lead`, the Also card, `ktDealSummary`/`ktRecordSummary`, `.terms-grid`, `#kt-resizer`, `ktFitSplit`, `ktWireSplit` are STALE.
 - The deal and the record are label-above-value grids with NO boxes at rest; `ktFactReads(c)` is the one reading; `ktFieldCell(c,k,edit)` draws a box in the value's own place when "Edit these details" is pressed (`ovEditing`). `OV_DEAL_FIELDS` on every contract; `OV_ALSO_FIELDS` card drawn only where `ktAlsoRecorded`. Typing over a reading wins. "Move to another stream" presses `ktStreamRowHtml`'s own row and survives signing.
 - What Copilot read is `ktReadingsRowsHtml` (five readings, borrowed, spends nothing). Contract type is free text on the record with English `picks` (`contractTypeKinds`, `metaPickOptions`) — English because it is a playbook matching key.
 - Before signing the grid marks fields that hold signing: `signFieldMarks(c)` translates `signReadiness` rows; a hold is a door (`focusKeyTerms`), a note is a sentence; drafts and sealed records draw nothing.
 - `focusKeyTerms(c, field)`: posture first, one paint, press the row, bounded wait (`KT_FOCUS_TRIES`), `_ktLanding`; `KT_FIELD_HOME` maps field → box.
 - Related agreements: `familyOrder`, `familyCheck` (no route, no write). Field labels are weight `--w-body`; answered values stay strong.
-Tests: f176, f178, f280, f325, f351, f352, f361, f362, overview-as-drawn-verify.
+Tests: f176, f178, f280, f325, f351, f352, f361, f362, f442, overview-as-drawn-verify.
 
 ## AN AMENDMENT IS WRITTEN HERE (js/family.js)
 

@@ -197,7 +197,7 @@ describe('F219 — the window, and the card it draws', () => {
     assert.match(run, /c\._renewalAdvice=r\.advice; c\._renewalAdviceError='';/,
       'arriving advice clears it');
     const rs = ai.slice(ai.indexOf('function renderRenewalSection'), ai.indexOf('function renderRenewalSection') + 1800);
-    assert.match(rs, /try\{ host\.innerHTML=renewalCardHtml\(c\); \}/,
+    assert.match(rs, /try\{ host\.innerHTML=renewalCardHtml\(c,\{bare\}\); \}/,
       'a draw failure never escapes this card');
     assert.match(rs, /rn_card_broken/, 'it says so, with a way forward');
     const ct = read('js/views/contract.js');
@@ -227,15 +227,26 @@ describe('F219 — the window, and the card it draws', () => {
       'the dialog gained a preselect and defaults exactly as before');
   });
 
-  test('the card is mounted on Key terms, above the family it belongs to', () => {
+  /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down, owner's yes): the renewal
+     question stopped leading the stack as a card of its own and became the end
+     of "Dates and renewal" — drawn under the dates it is worked out from, BARE,
+     and filled by the painter that writes that group. It still comes before
+     the family it belongs to, which is drawn further down the sheet. */
+  test('the card is mounted on the Overview, under the dates and above the family', () => {
     const ct = read('js/views/contract.js');
-    /* Sliced to the END of the function rather than to a fixed number of
-       characters: the claim is the ORDER of the two cards, and a comment added
-       above the markup must not be able to fail it (20 Aug 2026). */
-    const at = ct.indexOf('function renderKeyTermsSide');
-    const fn = ct.slice(at, ct.indexOf('\n}', at));
-    assert.ok(fn.indexOf('renewal-host') < fn.indexOf('family-section'), 'the question of the week leads');
-    assert.match(fn, /renderRenewalSection\(c\)/);
+    const strip = x => x.replace(/\/\*[\s\S]*?\*\//g, '');
+    const body = name => { const at = ct.indexOf('function ' + name + '(');
+      return strip(ct.slice(at, ct.indexOf('\n}', at))); };
+    const terms = body('ktOverviewTermsHtml');
+    assert.match(terms, /id="renewal-host" class="empty:hidden" data-bare="1"/,
+      'the host is drawn in the dates group, asking for no box');
+    assert.match(body('renderKeyTerms'), /renderRenewalSection\(c\)/,
+      'and the painter that wrote it fills it');
+    assert.match(body('renderKeyTermsSide'), /renderRenewalSection\(c\)/,
+      'the side still repaints it after its own acts');
+    assert.ok(!/renewal-host/.test(body('renderKeyTermsSide')),
+      'and no longer draws a second home for it');
+    assert.match(body('renderKeyTermsSide'), /family-section/, 'the family is the side\'s');
   });
 
   test('the feature is metered under its own name, and the words are in both languages', () => {

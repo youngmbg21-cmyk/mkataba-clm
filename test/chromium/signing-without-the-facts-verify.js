@@ -309,7 +309,8 @@ const readRow = page => page.evaluate(() => {
     });
     await page.screenshot({ path: path.join(OUT, '5-standard-overview.png') });
     check('5b the Overview\'s value reads as unanswered, not "Non-monetary"', valueCell === '—', valueCell);
-    await page.evaluate(() => { const b = [...document.querySelectorAll('[data-ov-edit]')].find(x => /deal/.test(x.getAttribute('data-ov-edit') || '')); if (b) b.click(); });
+    /* RE-POINTED IN PLACE 1 Oct 2026: the sheet's one Edit (Read Down). */
+    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
     await page.waitForTimeout(900);
     const box = await page.evaluate(() => { const v = document.querySelector('[data-kt="value"]'); const n = document.querySelector('[data-kt="nonmonetary"]');
       return { box: !!v, disabled: v ? v.disabled : null, ticked: n ? n.checked : null }; });

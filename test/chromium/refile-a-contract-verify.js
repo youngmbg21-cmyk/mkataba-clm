@@ -74,10 +74,8 @@ const openKeyTerms = async (page, id) => {
      are REFERENCE, so that group opens shut. Pressed, not toggled — this
      helper runs several times in one sitting and the fold is remembered, so a
      bare click would close it on the second call. */
-  await page.evaluate(() => {
-    const h = document.querySelector('[data-sec-toggle$=".record"]');
-    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
-  });
+  /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): nothing on the Overview
+     folds now, so The record is open as drawn and there is no head to press. */
   await page.waitForTimeout(700);
   /* ---- AND THE ROWS ARE BEHIND AN ACT NOW (17 Sep 2026) ----
      The record rests as the artifact's grid — twelve facts, label above value,
@@ -94,7 +92,8 @@ const openKeyTerms = async (page, id) => {
        the row already open and its read button hidden. On an executed contract
        only the move is drawn — `ed` is false there and filing is still an
        admin's housekeeping — so that is the fallback. */
-    const b = document.querySelector('[data-ov-edit$=".record"]')
+    /* The sheet's one Edit (Read Down) is the record's Edit now. */
+    const b = document.querySelector('[data-ov-edit="all"]')
       || document.querySelector('[data-ov-move-stream]');
     if (b) b.click();
   });

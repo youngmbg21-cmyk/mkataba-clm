@@ -112,7 +112,12 @@ function sectionFieldsHtml(fields){
      foot     one quiet line under the acts
      accent   'amber' | 'ruby' | … a 3px left bar, for a section carrying
               a decision. Home's rows already use this vocabulary.
-     flat     true where the section is a row and draws no card of its own */
+     flat     true where the section is a row and draws no card of its own
+     say      ONE SENTENCE UNDER THE HEAD that answers the section's question
+              (the Overview's Read Down, owner-picked 1 Oct 2026: "KES 18.4m,
+              paid 45 days from invoice" before the grid that holds it).
+              Markup, the caller's to escape. Drawn only while open, and only
+              where passed — every other screen's markup is unchanged. */
 function sectionHtml(o){
   const s = o || {};
   const canShut = !!(s.key && (s.body || s.acts));
@@ -126,7 +131,7 @@ function sectionHtml(o){
       chip}${canShut ? sectionChevronHtml(open) : ''}
   </div>`;
   const body = open
-    ? `${s.body || ''}${s.acts ? `<div class="sec-acts">${s.acts}</div>` : ''}${
+    ? `${s.say ? `<p class="sec-ans">${s.say}</p>` : ''}${s.body || ''}${s.acts ? `<div class="sec-acts">${s.acts}</div>` : ''}${
         s.foot ? `<p class="sec-foot">${s.foot}</p>` : ''}`
     : '';
   return `<section class="sec-box${s.flat ? ' is-flat' : ''}${s.accent ? ' has-accent' : ''}"${

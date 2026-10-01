@@ -19952,3 +19952,10 @@ Noticed, not fixed
 - Correction to the line above: KNOWN_RED lists 34 files, not 35.
 - FIXED (same branch): agents-page-verify writes to the database while the server runs, with no busy timeout — "database is locked" on one CI run; it now waits (PRAGMA busy_timeout = 5000, as the server does).
 - Noticed, not fixed: agents-do-the-work-verify, four-inspectors-verify and no-link-to-sign-verify open the database the same way with no busy timeout; they pass today but can hit the same lock.
+
+## 1 Oct 2026 — the Overview reads down: noticed, not fixed
+- Noticed, not fixed: CLAUDE.md is about 92 KB, over its own "keep it under about 80 KB" ceiling, before this change added half a kilobyte to THE OVERVIEW section.
+- Noticed, not fixed: the Overview's fold router (`sectionWire` in renderKeyTermsSide) and ktDocsSummary now have nothing to route or call — no section on the sheet carries a fold key since Read Down. Harmless; left for the owner's say on removing them.
+- Noticed, not fixed: signers-and-party-verify fails on unmodified main ("the picker offers a read-only link") — it is on KNOWN_RED.
+- Noticed, not fixed: share-recipient-verify and auto-triage-verify still try to press fold heads (`[data-sec-toggle$=".record"]`, `.copilot`) that no longer exist; both guard the press and pass.
+- Noticed, not fixed: f293 (the renewal cliff, 2 tests) and f322 3f (the requests clock median) fail on unmodified main today (1 Oct 2026) — both read the calendar; not touched by the Overview change.

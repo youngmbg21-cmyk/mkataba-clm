@@ -568,17 +568,23 @@ describe('f359 (10) the parties are a section of their own', () => {
     return at < 0 ? '' : CONTRACT.slice(at, CONTRACT.indexOf('\n}', at) + 2);
   };
 
+  /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down, owner-picked): the deal is
+     four groups now and the sheet ends on the record. The claim is the same —
+     the parties are their own section, read after the deal and before the
+     record — and so is the fault it guards: a body nobody can see. */
   test('it is in the stack, above The record', () => {
     const b = stack();
-    assert.ok(/return deal\+alsoSec\+parties\+record\+peopleSec/.test(b),
-      'the parties read between the deal and the record: ' + (b.match(/return deal[^;]*/) || [''])[0]);
+    assert.ok(/return top\+groups\+parties\+peopleSec\+record;/.test(b),
+      'the parties read between the deal and the record: ' + (b.match(/return top[^;]*/) || [''])[0]);
   });
 
   test('and it opens OPEN — the fault was a section that draws no body', () => {
+    /* On the sheet nothing folds: a section with no key cannot be shut, so its
+       body is always drawn. */
     const b = stack();
     const sec = b.slice(b.indexOf('const parties='), b.indexOf('const record='));
-    assert.ok(/key:pyK/.test(sec) && /open:true/.test(sec),
-      'the section is keyed and open: ' + sec.slice(0, 200));
+    assert.ok(sec.includes('sectionHtml({') && !/\bkey:/.test(sec),
+      'the section has no fold to shut: ' + sec.slice(0, 200));
   });
 
   /* THE FOLD DIES IF THE ROUTER DOES NOT NAME IT — this page has paid for
@@ -618,11 +624,13 @@ describe('f359 (10) the parties are a section of their own', () => {
     assert.ok(!/ktPartiesBlockHtml/.test(f), 'and the record does not draw the block');
   });
 
-  test('a shut section still answers — the summary names every party', () => {
+  /* REVERSED IN PLACE 1 Oct 2026 (Read Down): the summary was what the SHUT
+     section answered with. Nothing on the sheet shuts, and a head that also
+     summarised the open body under it would say the names twice. */
+  test('an open section does not repeat its body in its head', () => {
     const b = stack();
     const sec = b.slice(b.indexOf('const parties='), b.indexOf('const record='));
-    assert.ok(/summary: pyList\.map\(p=>p\.name\)/.test(sec),
-      'the fold gives the names back');
+    assert.ok(!/summary:/.test(sec), 'no summary on a section that cannot shut');
   });
 
   /* THE ONE THING THAT IS NOT MULTI-PARTY-ONLY, said out loud. Every other

@@ -97,11 +97,10 @@ const VISIBLE = `(el) => {
        IT IS BEHIND A SECTION HEAD NOW, and that is the point of the redesign —
        related agreements are reference, so they open shut. The press is real,
        and the card is measured after it. */
-    const openSec = async suffix => {
-      const h = await page.$(`[data-sec-toggle$=".${suffix}"]`);
-      if (h) { await h.click(); await new Promise(r => setTimeout(r, 400)); }
-      return !!h;
-    };
+    /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down, owner-picked): nothing on
+       the Overview folds any more, so there is no head to press — the section
+       is found by its own id and measured as it stands. */
+    const openSec = async suffix => !!(await page.$('#ov-' + suffix));
     const hadRelated = await openSec('related');
     check('Related agreements is a section on the Overview', hadRelated);
     const side = await page.evaluate(`(() => {
@@ -476,7 +475,9 @@ const VISIBLE = `(el) => {
       const R = el => { const r = el.getBoundingClientRect();
         return { top: Math.round(r.top), bottom: Math.round(r.bottom) }; };
       const kids = [...side.children].filter(k => k.getBoundingClientRect().height > 0);
-      const btn = document.querySelector('[data-kt-brief]');
+      /* The brief CARD's own button: the sheet's Read the brief (Read Down)
+         carries the same door at the top of the page and is not this card's. */
+      const btn = document.querySelector('#brief-card [data-kt-brief]');
       const brief = document.getElementById('brief-card');
       return {
         n: kids.length,
@@ -493,7 +494,8 @@ const VISIBLE = `(el) => {
       };
     });
     check('the Overview is over-full — the state this is about',
-      !!crowded && crowded.overFull === true && crowded.n >= 3,
+      /* Two hosts since Read Down (the terms and the side) — the lead slot went. */
+      !!crowded && crowded.overFull === true && crowded.n >= 2,
       crowded ? `${crowded.n} sections, over-full: ${crowded.overFull}` : 'no stack');
     check('NO CARD IS SQUEEZED BELOW ITS OWN CONTENT',
       !!crowded && crowded.crushed.length === 0,

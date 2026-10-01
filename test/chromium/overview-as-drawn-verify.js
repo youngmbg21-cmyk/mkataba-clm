@@ -56,20 +56,25 @@ const signIn = async (page, base, email, pass) => {
 /* Open a named section without TOGGLING it: this file opens the same section
    more than once in a sitting and the fold is remembered, so a bare click
    would shut it on the second call. */
-const openSec = async (page, suffix) => {
-  await page.evaluate(s => {
-    const h = document.querySelector(`[data-sec-toggle$="${s}"]`);
-    if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
-  }, suffix);
-  await page.waitForTimeout(600);
-};
+/* RE-POINTED IN PLACE 1 Oct 2026 (Read Down, owner-picked): NOTHING ON THE
+   SHEET FOLDS, so there is nothing to open — this only lets a paint settle.
+   Kept as a name so every stage below still says what it is about to read. */
+const openSec = async (page) => { await page.waitForTimeout(300); };
 
 /* WHAT IS PAINTED INSIDE A NAMED SECTION. Everything this file asserts is read
    off the rendered section, never off the source. */
+/* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): a section is found by its own
+   id, and The deal is the four groups it became — what it is, money, dates,
+   risks — read together, so every claim about "the deal card" is still asked
+   of every field that card carried. */
 const SEC = (suffix) => {
-  const head = document.querySelector(`[data-sec-toggle$="${suffix}"]`);
-  const box = head && head.closest('.sec-box');
-  if (!box) return null;
+  const IDS = { deal: ['ov-what', 'ov-money', 'ov-dates', 'ov-risk'], record: ['ov-record'],
+    copilot: ['ov-copilot'], parties: ['ov-parties'], people: ['ov-people'] };
+  const ids = IDS[String(suffix).replace(/^\./, '')] || [];
+  const boxes = ids.map(id => document.getElementById(id)).filter(Boolean);
+  if (!boxes.length) return null;
+  const all = sel => boxes.flatMap(b => [...b.querySelectorAll(sel)]);
+  const box = { querySelectorAll: sel => all(sel) };
   const cells = [...box.querySelectorAll('.sec-fields .sec-f')].map(f => ({
     label: (f.querySelector('.sec-f-l') || {}).textContent || '',
     value: ((f.querySelector('.sec-f-v') || {}).textContent || '').trim(),
@@ -144,12 +149,12 @@ const SEC = (suffix) => {
        this. It presses once and presses again, so the card is left resting
        and section 1 below measures what it always measured. */
     const firstPress = await page.evaluate(async () => {
-      const b = document.querySelector('[data-ov-edit$=".deal"]');
+      const b = document.querySelector('[data-ov-edit="all"]');
       if (!b) return { no: true, why: 'no edit act on this build' };
       const before = document.querySelectorAll('[data-ktm],[data-kt]').length;
       b.click(); await new Promise(z => setTimeout(z, 400));
       const after = document.querySelectorAll('[data-ktm],[data-kt]').length;
-      document.querySelector('[data-ov-edit$=".deal"]').click();
+      document.querySelector('[data-ov-edit="all"]').click();
       await new Promise(z => setTimeout(z, 400));
       return { before, after, rest: document.querySelectorAll('[data-ktm],[data-kt]').length };
     });
@@ -208,8 +213,16 @@ const SEC = (suffix) => {
 
     /* ============ 2. THE TWO ACTS THE ARTIFACT NAMES ============ */
     const actNames = rec.acts.map(a => a.text).join(' | ');
-    check('2a Edit these details is on it, as real pixels',
-      rec.acts.some(a => /edit these details/i.test(a.text) && a.w > 2 && a.h > 2), actNames);
+    /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down, owner's yes): ONE Edit for
+       the whole sheet, at its head, instead of one per card. */
+    const topEdit = await page.evaluate(() => {
+      const b = document.querySelector('#kt-overview .ov-top [data-ov-edit="all"]');
+      const r = b && b.getBoundingClientRect();
+      return b ? { text: (b.textContent || '').trim(), w: Math.round(r.width), h: Math.round(r.height) } : null;
+    });
+    check('2a Edit these details heads the sheet, as real pixels',
+      !!topEdit && /edit these details/i.test(topEdit.text) && topEdit.w > 2 && topEdit.h > 2,
+      JSON.stringify(topEdit) + ' · record acts: ' + actNames);
     check('2b Move to another stream is on it, as real pixels',
       rec.acts.some(a => /move to another stream/i.test(a.text) && a.w > 2 && a.h > 2), actNames);
 
@@ -229,14 +242,14 @@ const SEC = (suffix) => {
        timing out on a locator that will never arrive — this file is meant to
        be run against the commit before the fix, and a timeout there says
        nothing about the other checks. */
-    const hasEdit = await page.evaluate(() => !!document.querySelector('[data-ov-edit$=".deal"]'));
+    const hasEdit = await page.evaluate(() => !!document.querySelector('[data-ov-edit="all"]'));
     if (!hasEdit) {
       check('4a Edit these details brings the editable rows back', false, 'no such act on this build');
       check('4b and the grid gives up the fields the rows now carry', false, 'not reached');
       check('4c pressing it again puts the artifact\'s shape back', false, 'not reached');
       check('5a it opens the record and lands on the real stream picker', false, 'not reached');
     } else {
-    await page.click('[data-ov-edit$=".deal"]');
+    await page.click('[data-ov-edit="all"]');
     await page.waitForTimeout(800);
     const dealEd = await page.evaluate(SEC, '.deal');
     check('4a Edit these details brings the editable rows back', dealEd.boxes > 0,
@@ -253,7 +266,7 @@ const SEC = (suffix) => {
       if (seen[k]) { if (twice.indexOf(l.trim()) < 0) twice.push(l.trim()); } seen[k] = 1; });
     check('4b and no fact on it is printed twice', twice.length === 0,
       twice.length ? 'said twice: ' + twice.join(', ') : dealEd.labels.length + ' cells, none repeated');
-    await page.click('[data-ov-edit$=".deal"]');
+    await page.click('[data-ov-edit="all"]');
     await page.waitForTimeout(800);
     const dealBack = await page.evaluate(SEC, '.deal');
     check('4c pressing it again puts the artifact\'s shape back',
@@ -279,6 +292,20 @@ const SEC = (suffix) => {
        Measured on a REAL page, because whether a card is drawn at all is a
        question about painted pixels — a `return ''` and a card of em-dashes
        read identically in the markup a node check can see. */
+    /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): the occasional terms are
+       no longer a card of their own — each is a cell in the group it belongs
+       to, drawn by the same rule (only where answered). So "no card" is now
+       "no such cell anywhere on the sheet", measured as painted pixels, and
+       the gate empties the eight FIRST so 9a/9b read the fixed terms alone. */
+    const ALSO_KEYS = ['volumeRebate', 'rebateTiers', 'priceReview', 'rejectionWindowDays',
+      'exclusivity', 'retentionPct', 'retentionReleaseDays', 'warrantyMonths'];
+    await page.evaluate((keys) => {
+      const c = window.getContract(window.state.activeId);
+      c.metadata = c.metadata || {};
+      keys.forEach(k => { delete c.metadata[k]; });
+      window.renderKeyTerms(c);
+    }, ALSO_KEYS);
+    await page.waitForTimeout(500);
     await openSec(page, '.deal');
     const SUPPLY = ['Volume rebate', 'Rebate tiers', 'Price review', 'Rejection window', 'Exclusivity'];
     const dealNow = await page.evaluate(SEC, '.deal');
@@ -289,46 +316,17 @@ const SEC = (suffix) => {
     const gone = UNIVERSAL.filter(w => !dealNow.labels.some(l => l.trim().toLowerCase() === w.toLowerCase()));
     check('9b and the three nearly every agreement has are', gone.length === 0,
       gone.length ? 'missing: ' + gone.join(', ') : UNIVERSAL.join(' · '));
-    /* NOTHING RECORDED, NO CARD — asked as painted pixels, because a
-       `return ''` and a card full of em-dashes read the same in markup.
-       The card is OPENED before its fields are counted: a shut section draws
-       no body at all, so counting it shut would report zero either way. */
-    /* THE PRESS AND THE MEASUREMENT ARE TWO TRIPS. Opening a section repaints
-       the whole pane, so anything measured in the same breath is measured on a
-       node that has already been thrown away — which reported nought fields on
-       a card whose own head said one. */
-    const alsoOpen = async () => {
-      await page.evaluate(() => {
-        const h = [...document.querySelectorAll('[data-sec-toggle]')]
-          .find(x => /\.also$/.test(x.getAttribute('data-sec-toggle') || ''));
-        if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
-      });
-      await page.waitForTimeout(400);
-      return page.evaluate(() => {
-        const h = [...document.querySelectorAll('[data-sec-toggle]')]
-          .find(x => /\.also$/.test(x.getAttribute('data-sec-toggle') || ''));
-        if (!h) return { drawn: false, w: 0, fields: 0, dashes: 0, head: '' };
-        const box = h.closest('.sec-box'), r = box.getBoundingClientRect();
-        return { drawn: r.width > 2 && r.height > 2, w: Math.round(r.width),
-          fields: box.querySelectorAll('.sec-fields .sec-f').length,
-          dashes: box.querySelectorAll('.sec-f-v.is-none').length,
-          head: (h.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60) };
-      });
-    };
-    const alsoAt = alsoOpen;
-    /* THE GATE: empty the eight through the product's own painter first, so
-       "not drawn" is a measurement and not an accident of the seed. */
-    const ALSO_KEYS = ['volumeRebate', 'rebateTiers', 'priceReview', 'rejectionWindowDays',
-      'exclusivity', 'retentionPct', 'retentionReleaseDays', 'warrantyMonths'];
-    await page.evaluate((keys) => {
-      const c = window.getContract(window.state.activeId);
-      c.metadata = c.metadata || {};
-      keys.forEach(k => { delete c.metadata[k]; });
-      window.renderKeyTerms(c);
+    const alsoAt = () => page.evaluate((keys) => {
+      const labels = keys.map(k => String(window.ovMetaLabel(k) || '').trim().toLowerCase());
+      const cells = [...document.querySelectorAll('#kt-overview .sec-fields .sec-f')]
+        .filter(f => labels.includes(((f.querySelector('.sec-f-l') || {}).textContent || '').trim().toLowerCase()));
+      const r = cells[0] ? cells[0].getBoundingClientRect() : null;
+      return { drawn: !!r && r.width > 2 && r.height > 2, w: r ? Math.round(r.width) : 0,
+        fields: cells.length, dashes: cells.filter(f => f.querySelector('.sec-f-v.is-none')).length,
+        head: cells.map(f => (f.textContent || '').trim().replace(/\s+/g, ' ')).join(' | ').slice(0, 60) };
     }, ALSO_KEYS);
-    await page.waitForTimeout(500);
     const before = await alsoAt();
-    check('9c GATE/CONTROL — with nothing recorded there is no card at all', !before.drawn,
+    check('9c GATE/CONTROL — with nothing recorded no occasional term is drawn', !before.drawn,
       before.drawn ? 'drawn ' + before.w + 'px wide, ' + before.fields + ' fields' : 'not drawn');
     /* RECORD ONE, through the same painter. */
     await page.evaluate(() => {
@@ -338,27 +336,38 @@ const SEC = (suffix) => {
     });
     await page.waitForTimeout(500);
     const after = await alsoAt();
-    check('9d record one and the card appears', after.drawn, after.drawn ? after.head : 'still not drawn');
+    check('9d record one and it appears', after.drawn, after.drawn ? after.head : 'still not drawn');
     check('9e holding only the one that is answered', after.fields === 1,
       after.fields + ' field' + (after.fields === 1 ? '' : 's'));
     check('9f and it can never be a row of em-dashes', after.drawn && after.dashes === 0,
       after.dashes + ' unanswered fields drawn');
     /* EVERY FIELD CAN BE TYPED — counted against the card's own cells. */
-    await page.click('[data-ov-edit$=".deal"]');
+    /* THE SHEET'S ONE EDIT IS A TOGGLE OVER BOTH POSTURES (Read Down), and
+       Move to another stream (stage 5) left The record's on — so the first
+       press may be the one that closes it. Asked for its RESULT, as stage 14
+       does, then pressed until the sheet is back at rest. */
+    await page.click('[data-ov-edit="all"]');
     await page.waitForTimeout(800);
+    if (!await page.evaluate(() => !!document.querySelector('#kt-overview [data-ktm]'))) {
+      await page.click('[data-ov-edit="all"]');
+      await page.waitForTimeout(800);
+    }
     const ed = await page.evaluate(SEC, '.deal');
     /* One cell is DERIVED from the two dates beside it and is never a box. */
     check('9g every field on the card is a box bar the one worked out for you',
       ed.boxes >= ed.cells.length - 1, ed.boxes + ' boxes against ' + ed.cells.length + ' cells');
-    await page.click('[data-ov-edit$=".deal"]');
+    await page.click('[data-ov-edit="all"]');
     await page.waitForTimeout(600);
+    check('9h CONTROL — one more press puts the whole sheet back at rest',
+      await page.evaluate(() => !document.querySelector('#kt-overview [data-ktm], #kt-overview [data-kt]')),
+      'boxes left after the press');
 
     /* ═══ 10 · BEFORE SIGNING, THE CARD MARKS WHAT IS HOLDING IT ═══
        (Young ruled 21 Sep 2026.) Measured on a REAL page: whether a cell is
        painted amber, and whether the grid moves when a mark clears, are
        questions only a laid-out page can answer. */
     const cellAt = async (label) => page.evaluate((lab) => {
-      const f = [...document.querySelectorAll('#kt-deal-facts .sec-f')]
+      const f = [...document.querySelectorAll('#kt-overview :is(#ov-what,#ov-money,#ov-dates,#ov-risk) .sec-f')]
         .find(x => ((x.querySelector('.sec-f-l') || {}).textContent || '').trim().toLowerCase() === lab);
       if (!f) return null;
       const cs = getComputedStyle(f), r = f.getBoundingClientRect();
@@ -382,7 +391,8 @@ const SEC = (suffix) => {
       !!marked && !!marked.note && marked.tag === 'BUTTON' && marked.door,
       marked ? JSON.stringify({ note: marked.note, tag: marked.tag, door: marked.door }) : 'none');
     const headChip = await page.evaluate(() => {
-      const h = document.querySelector('[data-sec-toggle$=".deal"]');
+      /* The value is in Money, so Money's head counts it. */
+      const h = document.querySelector('#ov-money .sec-head');
       const chip = h && h.querySelector('.sec-chip');
       return chip ? (chip.textContent || '').trim() : '';
     });
@@ -395,7 +405,7 @@ const SEC = (suffix) => {
        the body face against a figure in the mono one, which really is two
        pixels and is nothing to do with the mark.) */
     const lineHeights = await page.evaluate(() => {
-      const ns = [...document.querySelectorAll('#kt-deal-facts .sec-f-n')];
+      const ns = [...document.querySelectorAll('#kt-overview :is(#ov-what,#ov-money,#ov-dates,#ov-risk) .sec-f-n')];
       const hold = ns.find(n => n.classList.contains('is-hold'));
       const plain = ns.find(n => !n.classList.contains('is-hold'));
       if (!hold || !plain) return null;
@@ -422,7 +432,7 @@ const SEC = (suffix) => {
     });
     await page.waitForTimeout(600);
     const asDraft = await page.evaluate(() =>
-      document.querySelectorAll('#kt-deal-facts .sec-f-n').length);
+      document.querySelectorAll('#kt-overview :is(#ov-what,#ov-money,#ov-dates,#ov-risk) .sec-f-n').length);
     check('10f CONTROL — a draft keeps its old shape to the byte', asDraft === 0,
       asDraft + ' reserved lines');
 
@@ -438,10 +448,8 @@ const SEC = (suffix) => {
     });
     await page.waitForTimeout(500);
     const pplHead = await page.evaluate(() => {
-      const h = [...document.querySelectorAll('[data-sec-toggle]')]
-        .find(x => /\.people$/.test(x.getAttribute('data-sec-toggle') || ''));
+      const h = document.querySelector('#ov-people .sec-head');
       if (!h) return null;
-      if (h.getAttribute('aria-expanded') !== 'true') h.click();
       return (h.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60);
     });
     await page.waitForTimeout(400);
@@ -496,8 +504,7 @@ const SEC = (suffix) => {
        should stay in black bold letters.") Measured as PAINTED WEIGHTS — the
        source reads a token either way. */
     const ty = await page.evaluate(() => {
-      const head = document.querySelector('[data-sec-toggle$="deal"]');
-      const box = head && head.closest('.sec-box');
+      const box = document.getElementById('ov-money');
       if (!box) return null;
       const f = box.querySelector('.sec-fields .sec-f');
       const answered = [...box.querySelectorAll('.sec-f-v')].find(v => !v.classList.contains('is-none'));
@@ -545,17 +552,19 @@ const SEC = (suffix) => {
     await page.click('#ws-tabs [data-ws-tab="terms"]');
     await page.waitForTimeout(1200);
     const py = await page.evaluate(() => {
-      const box = document.querySelector('[data-sec-toggle$=".parties"]');
-      const sec = box && box.closest('.sec-box');
+      const sec = document.getElementById('ov-parties');
+      const box = sec && sec.querySelector('.sec-head');
       const blk = document.querySelector('#kt-parties');
       const r = blk ? blk.getBoundingClientRect() : null;
-      const order = [...document.querySelectorAll('[data-sec-toggle]')]
-        .map(h => String(h.getAttribute('data-sec-toggle')).split('.').pop());
+      const order = [...document.querySelectorAll('#kt-overview .sec-box[id]')]
+        .map(x => String(x.id).replace(/^ov-/, ''));
       return {
         drawn: !!blk,
         /* PAINTED, not merely present: a rect is not a painted pixel. */
         painted: !!(blk && getComputedStyle(blk).display !== 'none' && r.height > 0 && r.width > 0),
-        open: box ? box.getAttribute('aria-expanded') : null,
+        /* NOTHING FOLDS (Read Down): open means a head with no fold control
+           and a body drawn under it. */
+        open: box ? String(!box.hasAttribute('data-sec-toggle') && !!sec.querySelector('#kt-parties')) : null,
         rows: blk ? blk.querySelectorAll('.py-row').length : 0,
         text: sec ? (sec.innerText || '').replace(/\s+/g, ' ') : '',
         add: !!document.querySelector('.sec-acts [data-py-add]'),
@@ -692,12 +701,10 @@ const SEC = (suffix) => {
        reported rather than fixed. It is fixed (section 0 above is the
        measurement), so the old sentence is gone rather than left standing as
        a false note. Shut and open is the product's own door, pressed twice. */
-    for (let i = 0; i < 2; i++) {
-      await page.evaluate(() => { const h = document.querySelector('[data-sec-toggle$=".deal"]');
-        if (h) h.click(); });
-      await page.waitForTimeout(400);
-    }
-    const hasDealEdit = await page.evaluate(() => !!document.querySelector('[data-ov-edit$=".deal"]'));
+    /* NOTHING FOLDS NOW (Read Down), so the repaint is the painter's own. */
+    await page.evaluate(x => { window.renderKeyTerms(state.contracts.find(y => y.id === x)); }, c.id);
+    await page.waitForTimeout(400);
+    const hasDealEdit = await page.evaluate(() => !!document.querySelector('[data-ov-edit="all"]'));
     if (!hasDealEdit) {
       ['14a it is a dropdown, not a text box', '14b it offers the product\'s own words',
         '14c an off-list reading is kept and leads', '14d pressing it opens HaTi\'s own list',
@@ -708,10 +715,10 @@ const SEC = (suffix) => {
     /* THE EDIT POSTURE IS A TOGGLE AND THIS FILE HAS PRESSED IT BEFORE, so the
        press is asked for its RESULT rather than assumed: a second press where
        the first turned it off. Measured, not counted. */
-    await page.click('[data-ov-edit$=".deal"]');
+    await page.click('[data-ov-edit="all"]');
     await page.waitForTimeout(900);
     if (!await page.evaluate(() => !!document.querySelector('[data-ktm]'))) {
-      await page.click('[data-ov-edit$=".deal"]');
+      await page.click('[data-ov-edit="all"]');
       await page.waitForTimeout(900);
     }
     const ct = await page.evaluate(() => {

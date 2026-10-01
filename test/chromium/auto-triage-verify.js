@@ -285,7 +285,10 @@ const SEED = t => {
       if (!e) return { drawn: false };
       const r = e.getBoundingClientRect();
       const pane = document.querySelector('[data-ws-pane="terms"]');
-      const kt = document.getElementById('kt-rows');
+      /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): the card the strip sits
+         above is the Overview's one sheet; #kt-rows is an empty marker in it
+         that paints nothing now, so it has no top to measure. */
+      const kt = document.getElementById('kt-overview');
       const ktTop = kt ? kt.getBoundingClientRect().top : -1;
       return { drawn: true, w: Math.round(r.width), h: Math.round(r.height),
         top: Math.round(r.top), ktTop: Math.round(ktTop),

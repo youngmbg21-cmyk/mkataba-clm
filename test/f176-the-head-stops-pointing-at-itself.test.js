@@ -289,7 +289,9 @@ describe('F176 — Key terms and the card beside it square off', () => {
        no such rule: its content is built in the same breath as its box. */
     assert.match(side[0], /id="family-section" class="kt-side-card empty:hidden"/,
       'the family shell draws nothing when it is empty');
-    assert.match(side[0], /id="renewal-host" class="empty:hidden"/,
+    /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): the renewal host is drawn
+       under the dates by ktOverviewTermsHtml now. It still hides when empty. */
+    assert.match(SRC, /id="renewal-host" class="empty:hidden" data-bare="1"/,
       'and so does the renewal host, which draws only inside its window');
   });
 

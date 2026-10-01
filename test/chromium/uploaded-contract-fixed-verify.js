@@ -234,18 +234,17 @@ const BODY =
     /* ===== 4. THE THREE OVERVIEW CARDS ===== */
     await page.evaluate(() => roomGoTab(getContract(state.activeId), 'terms'));
     await page.waitForTimeout(1200);
-    for (const nm of ['Who else', 'What Copilot', 'Parties']) {
-      await page.evaluate(n => {
-        const hd = [...document.querySelectorAll('[data-sec-toggle]')].find(e => e.textContent.includes(n));
-        if (hd && hd.getAttribute('aria-expanded') !== 'true') hd.click();
-      }, nm);
-      await page.waitForTimeout(700);
-    }
+    /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): nothing folds, so every
+       section is open as drawn — found by its head's words, not pressed. */
+    await page.waitForTimeout(700);
     const cards = await page.evaluate(() => {
       const box = n => [...document.querySelectorAll('.sec-box')].find(b => {
-        const t = b.querySelector('[data-sec-toggle]'); return t && t.textContent.includes(n); });
+        const t = b.querySelector('.sec-head'); return t && t.textContent.includes(n); });
       const out = {};
-      const who = box('Who else'), read = box('What Copilot'), parties = box('Parties'), deal = box('The deal');
+      /* "The other cards' buttons": The deal is four groups with no act of its
+         own now (its Edit heads the sheet), so the comparison is The record's
+         own act, which sits on the same inset every section's acts do. */
+      const who = box('Who else'), read = box('What Copilot'), parties = box('Parties'), deal = box('The record') || parties;
       const inset = (b, sel) => { const e = b && b.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().left - b.getBoundingClientRect().left) : null; };
       out.whoBtn = inset(who, 'button.ui-btn');
       out.whoText = inset(who, '.pt-none, .pt-row');

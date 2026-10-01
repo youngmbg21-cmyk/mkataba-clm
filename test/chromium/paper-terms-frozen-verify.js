@@ -70,15 +70,11 @@ const contract = (id, signed) => ({
       await page.waitForTimeout(1500);
       await page.click('#ws-tabs [data-ws-tab="terms"]');
       await page.waitForTimeout(1000);
-      await page.evaluate(() => {
-        const h = document.querySelector('[data-sec-toggle$=".record"]');
-        if (h && h.getAttribute('aria-expanded') !== 'true') h.click();
-      });
+      /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): nothing folds, and the
+         sheet has ONE Edit that turns both postures on together. */
       await page.waitForTimeout(500);
-      for (const s of ['.deal', '.record']){
-        const b = page.locator(`[data-ov-edit$="${s}"]`).first();
-        if (await b.count()){ await b.click(); await page.waitForTimeout(500); }
-      }
+      const b = page.locator('[data-ov-edit="all"]').first();
+      if (await b.count()){ await b.click(); await page.waitForTimeout(700); }
       return page.evaluate(printed => {
         const has = k => !!document.querySelector(`#kt-ov-terms [data-kt="${k}"]`);
         const why = [...document.querySelectorAll('#kt-ov-terms span[title]')].map(x => x.getAttribute('title'))

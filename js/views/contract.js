@@ -5020,9 +5020,9 @@ function applyWsTabs(c){
   });
   if(_wsTab==='history') roomPaintHistory(c);
   if(_wsTab==='oblig' && window.roomPaintObligations) roomPaintObligations(c);
-  /* ---- THE OVERVIEW'S THREE HOSTS ARE PAINTED HERE, ALL THREE ----
-     renderKeyTermsSide fills #kt-ov-lead and #kt-side; renderKeyTerms fills
-     #kt-ov-terms between them and WIRES it (see the slot's own note). The
+  /* ---- THE OVERVIEW'S TWO HOSTS ARE PAINTED HERE, BOTH ----
+     renderKeyTermsSide fills #kt-side; renderKeyTerms fills #kt-ov-terms
+     above it and WIRES it (the lead slot went with Read Down, 1 Oct 2026) (see the slot's own note). The
      standalone wireKtRows call is GONE, not merely moved: renderKeyTerms calls
      it itself, and wireKtRows adds a listener per row with no bound-once flag,
      so leaving both would put two handlers on every row. renderKeyTerms runs
@@ -5752,9 +5752,20 @@ function renderKeyTerms(c){
      them, so there is no second way in and nothing to keep in step. */
   host.querySelectorAll('[data-ov-edit]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-ov-edit');
-    ovSetEditing(k, !ovEditing(k));
+    /* `all` is the sheet's one Edit: both postures on, or both off. */
+    if(k==='all'){
+      const dk=OV_KEY(c,'deal'), rk=OV_KEY(c,'record');
+      const on=!(ovEditing(dk)||ovEditing(rk));
+      ovSetEditing(dk,on); ovSetEditing(rk,on);
+    } else ovSetEditing(k, !ovEditing(k));
     renderKeyTerms(c);
   }));
+  /* THE THREE THINGS THIS PAINT WROTE A SLOT FOR, filled where it was written:
+     the renewal question under the dates, the brief's button at the head of
+     the sheet, and the timeline's labels, which only the page can measure. */
+  try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(_){}
+  paintOvBriefBtn(c);
+  ovTimelineWatch(host);
   /* ---- PRESSING A MARKED FIELD IS THE SAME ACT AS `Fix on Overview` ----
      focusKeyTerms is the one door: it opens the right section, turns its rows
      on and lands the caret in the box. TWO PLACES, ONE ACT — the signing list
@@ -5956,6 +5967,149 @@ const OV_DEAL_FIELDS = ['contractType','value','paymentTerms','effDate','expiry'
   'liabilityCapped','indemnityCapped','confidentiality','assignment','category'];
 const OV_ALSO_FIELDS = ['volumeRebate','rebateTiers','priceReview','rejectionWindowDays',
   'exclusivity','retentionPct','retentionReleaseDays','warrantyMonths'];
+/* ---- READ DOWN: THE DEAL, ASKED AS FOUR QUESTIONS (owner-picked 1 Oct 2026) ----
+   *"something as a user I simply jump to the overview page and I have an
+   overview that guides me through the information in a seamless experience."*
+   The one deal card became four groups read top to bottom — what it is, what
+   it is worth, when it runs, what it exposes — on ONE sheet with no folds.
+   Every field of both lists above lands in EXACTLY ONE group (f442 sums
+   them), so nothing that was on the card left the page; the occasional terms
+   sit beside the fixed ones they belong with and keep their own rule (drawn
+   only where answered). What a field MEANS, reads or writes is unchanged:
+   each group is drawn by ktDealFactsHtml over its own slice. */
+const OV_READ_GROUPS = [
+  { key:'what',  title:'ov_g_what',  deal:['contractType','category'], also:[] },
+  { key:'money', title:'ov_g_money', deal:['value','paymentTerms'],
+    also:['volumeRebate','rebateTiers','priceReview','retentionPct','retentionReleaseDays'] },
+  { key:'dates', title:'ov_g_dates', deal:['effDate','expiry','term','renewalType','notice'], also:[] },
+  { key:'risk',  title:'ov_g_risk',  deal:['liabilityCapped','indemnityCapped','terminateForConvenience',
+    'confidentiality','assignment','governingLaw','disputes'],
+    also:['exclusivity','warrantyMonths','rejectionWindowDays'] },
+];
+/* A SENTENCE WITH FACTS IN IT. The translated words are escaped; the facts
+   (already-escaped readings, set bold) are put back in after, so a value can
+   never be read as markup and a sentence never loses its own words. */
+function ovSayWith(key,vars){
+  const names=Object.keys(vars||{}), marks={};
+  names.forEach((n,i)=>{ marks[n]='\u0001'+i+'\u0001'; });
+  let out=esc(i18t(key,marks));
+  names.forEach((n,i)=>{ out=out.split('\u0001'+i+'\u0001').join(vars[n]); });
+  return out;
+}
+function ovDay(iso){ try{ return (window.regDotDate?regDotDate(iso):String(iso||'')); }catch(_){ return String(iso||''); } }
+/* EACH GROUP'S ANSWER, BUILT FROM THE RECORD BY FIXED RULES. No model is
+   asked and nothing is guessed: a fact the record does not hold is simply not
+   in the sentence, and a group with nothing to say draws no sentence at all.
+   Money and dates only — the other groups' fields ARE the answer. */
+function ovSayOf(c,key){
+  try{
+    const R=ktFactReads(c), b=x=>`<b>${x}</b>`;
+    if(key==='money'){
+      if(typeof isMonetary==='function'&&!isMonetary(c)) return esc(i18t('ov_say_no_money'));
+      const pt=String(((c&&c.metadata)||{}).paymentTerms||'').trim();
+      const bits=[];
+      if(R.money) bits.push(ovSayWith('ov_say_worth',{v:b(R.money)}));
+      if(pt) bits.push(esc(i18t('ov_say_paid',{terms:pt})));
+      return bits.join(' ');
+    }
+    if(key==='dates'){
+      const bits=[];
+      if(R.effDate&&R.expiry) bits.push(ovSayWith('ov_say_runs',{from:b(R.effDate),to:b(R.expiry)}));
+      else if(R.expiry) bits.push(ovSayWith('ov_say_ends',{to:b(R.expiry)}));
+      else if(R.effDate) bits.push(ovSayWith('ov_say_started',{from:b(R.effDate)}));
+      const w=(typeof renewalWindow==='function')?renewalWindow(c):null;
+      if(w&&w.auto) bits.push(esc(i18t('ov_say_auto')));
+      /* Inside the window the renewal card right under the grid says the
+         date, with the way to answer it — so the sentence leaves it there. */
+      if(w&&w.notice>0&&!w.inWindow&&w.days>=0&&!w.predatesRecord)
+        bits.push(ovSayWith('ov_say_notice',{date:b(esc(ovDay(w.decideBy)))}));
+      return bits.join(' ');
+    }
+  }catch(_){}
+  return '';
+}
+/* THE CONTRACT'S LIFE AS ONE LINE: start, today, the last day to give notice,
+   the end — drawn to scale off the two dates on the record and the renewal
+   reading, and only where both dates exist and run forwards. A picture of
+   facts the grid below prints in full, so it is hidden from a screen reader. */
+function ovIsoDay(v){ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(v||'')); return m?Date.UTC(+m[1],+m[2]-1,+m[3]):null; }
+function ovTimelineHtml(c){
+  const effIso=c&&c.fields&&c.fields.effDate, endIso=c&&c.expiry;
+  const f=ovIsoDay(effIso), t=ovIsoDay(endIso);
+  if(f==null||t==null||t<=f) return '';
+  const pct=d=>Math.max(0,Math.min(100,(d-f)/(t-f)*100)).toFixed(2);
+  const pts=[{at:f,cls:'is-start',row:'dn',word:'ov_tl_start',iso:effIso},
+    {at:t,cls:'is-end',row:'dn',word:'ov_tl_end',iso:endIso}];
+  const todayIso=(typeof todayISO==='function')?todayISO():'';
+  const n=ovIsoDay(todayIso);
+  if(n!=null&&n>=f&&n<=t) pts.push({at:n,cls:'is-now',row:'up',word:'ov_tl_today',iso:todayIso});
+  let w=null; try{ w=(typeof renewalWindow==='function')?renewalWindow(c):null; }catch(_){}
+  const d=(w&&w.notice>0)?ovIsoDay(w.decideBy):null;
+  if(d!=null&&d>f&&d<t) pts.push({at:d,cls:'is-decide'+(w.missed?' is-missed':''),row:'up',word:'ov_tl_decide',iso:w.decideBy});
+  const done=n==null?'0':pct(Math.min(Math.max(n,f),t));
+  return `<div class="ov-tl" aria-hidden="true"><div class="ov-tl-bar"><i style="width:${done}%"></i></div>${
+    pts.map(p=>`<span class="ov-tl-pt ${p.cls}" style="left:${pct(p.at)}%"></span>`).join('')}${
+    pts.map(p=>`<span class="ov-tl-tx ${p.cls} is-${p.row}" data-row="${p.row}" style="left:${pct(p.at)}%"><b>${
+      esc(ovDay(p.iso))}</b> ${esc(i18t(p.word))}</span>`).join('')}</div>`;
+}
+/* NO TWO WORDS ON ONE SPOT. Measured after the paint, because only the page
+   knows how wide a date is in this language: a label that would touch one
+   already placed tries the other side of the line, and where both sides are
+   taken it steps back (its point stays; its date is a field below). The start
+   and the end are placed first, so they are never the ones that give way. */
+function ovTimelineSettle(el){
+  if(!el||!el.isConnected) return;
+  const box=el.getBoundingClientRect(); if(!box||!box.width) return;
+  const tx=[...el.querySelectorAll('.ov-tl-tx')];
+  tx.forEach(x=>{ const row=x.getAttribute('data-row')||'dn';
+    x.classList.remove('is-gone','is-al','is-ar','is-up','is-dn'); x.classList.add('is-'+row); });
+  tx.forEach(x=>{ if(x.classList.contains('is-start')||x.classList.contains('is-end')) return;
+    const r=x.getBoundingClientRect();
+    if(r.left<box.left) x.classList.add('is-al'); else if(r.right>box.right) x.classList.add('is-ar'); });
+  const placed={up:[],dn:[]};
+  const hit=(a,b)=>a.left<b.right+8&&b.left<a.right+8;
+  tx.forEach(x=>{
+    const row=x.classList.contains('is-up')?'up':'dn';
+    const r=x.getBoundingClientRect();
+    if(!placed[row].some(p=>hit(p,r))){ placed[row].push(r); return; }
+    const other=row==='up'?'dn':'up';
+    x.classList.remove('is-'+row); x.classList.add('is-'+other);
+    const r2=x.getBoundingClientRect();
+    if(!placed[other].some(p=>hit(p,r2))){ placed[other].push(r2); return; }
+    x.classList.add('is-gone');
+  });
+}
+/* Settled on paint and again whenever the line changes width (the pane shown
+   after a hidden paint, a window resized). One watcher, moved to each new
+   line, so a repaint never leaves an old one listening. */
+let _ovTlWatch=null;
+function ovTimelineWatch(host){
+  const el=host&&host.querySelector('.ov-tl');
+  if(_ovTlWatch){ try{ _ovTlWatch.disconnect(); }catch(_){} _ovTlWatch=null; }
+  if(!el) return;
+  ovTimelineSettle(el);
+  if(typeof ResizeObserver==='function'){
+    _ovTlWatch=new ResizeObserver(()=>ovTimelineSettle(el));
+    _ovTlWatch.observe(el);
+  }
+}
+/* "READ THE BRIEF" STARTS THE SHEET (owner-asked 1 Oct 2026: "add the Read
+   Brief button somewhere at the start of the card so that someone can click
+   in it and read the whole brief"). NOT A NEW ACT: it is the brief card's own
+   button — the same `data-kt-brief` door wireKtBriefCard binds, so it opens
+   the same panel the strip's tile and the card open, and where no brief is
+   written it is the card's own Write button, cost on the hover. A slot with
+   its own painter, because both painters of this pane change what it says. */
+function paintOvBriefBtn(c){
+  const slot=document.getElementById('kt-ov-brief'); if(!slot||!c) return;
+  let v=null; try{ v=(typeof checkVerdict==='function')?checkVerdict(c,'brief'):null; }catch(_){}
+  const may=(typeof canEdit==='function'?canEdit():true);
+  slot.innerHTML=v
+    ? `<button type="button" data-kt-brief="open" class="ui-btn ui-btn-sm">${esc(i18t('br_open'))}</button>`
+    : (may?`<button type="button" data-kt-brief="run" class="ui-btn ui-btn-sm" title="${
+        esc(i18t('sc_brief_title'))}">${esc(i18t('br_write'))}</button>`:'');
+  try{ wireKtBriefCard(c,{ after:()=>paintOvBriefBtn(c) }); }catch(_){}
+}
 /* WHICH KEYS HAVE A HOME OF THEIR OWN. These four are not metadata rows: they
    are written by wireKeyTerms' [data-kt] handler, which carries logic no
    generic box could (the value strips its own thousand separators, the notice
@@ -6116,8 +6270,15 @@ function ktDealFactsHtml(c,opts={}){
      answer them, and an amber wash round a field somebody is typing in is
      shouting about the work they are doing. */
   const marks=edit?null:(opts.marks!==undefined?opts.marks:ovSignMarks(c));
-  return sectionFieldsHtml(OV_DEAL_FIELDS
+  /* ---- ONE GRID PER QUESTION (Read Down, owner-picked 1 Oct 2026) ----
+     `keys` draws a slice of the fixed list (OV_READ_GROUPS says which) and
+     `also` adds the occasional terms that belong beside them, drawn by the very
+     rule ktAlsoFactsHtml keeps: only where answered, every one a box when
+     editing. Called with neither, this is the whole card it always was. */
+  const keys=Array.isArray(opts.keys)?opts.keys:OV_DEAL_FIELDS;
+  return sectionFieldsHtml(keys
     .map(k=>ktFieldCell(c,k,edit&&!OV_DERIVED_FIELDS.has(k),marks))
+    .concat(Array.isArray(opts.also)?ktAlsoCells(c,edit,opts.also):[])
     .filter(Boolean));
 }
 /* The marks for this contract, or null where nothing is waiting. js/signcheck.js
@@ -6143,11 +6304,18 @@ function ktAlsoFactsHtml(c,opts={}){
   /* AT REST ONLY THE ANSWERED ONES ARE DRAWN — that group may never be a row
      of em-dashes. In the deal's edit posture every one of them is a box, which
      is the only way a rebate can be typed onto a contract that has none. */
-  const keys=edit?OV_ALSO_FIELDS:ktAlsoRecorded(c);
   /* No field on this group is ever on the check's own list, so it takes no
      marks and no reserved line — a card that only exists when it has something
      to say does not need room for a sentence it cannot carry. */
-  return sectionFieldsHtml(keys.map(k=>ktFieldCell(c,k,edit)).filter(Boolean));
+  return sectionFieldsHtml(ktAlsoCells(c,edit,opts.keys).filter(Boolean));
+}
+/* THE ONE RULE FOR WHICH OCCASIONAL TERMS ARE DRAWN, shared by the grid above
+   and by each Read Down group that carries some of them: answered ones at
+   rest, every one in the edit posture, narrowed to `only` where given. */
+function ktAlsoCells(c,edit,only){
+  const keys=(edit?OV_ALSO_FIELDS:ktAlsoRecorded(c))
+    .filter(k=>!Array.isArray(only)||only.includes(k));
+  return keys.map(k=>ktFieldCell(c,k,!!edit));
 }
 /* WHAT HaTi FILES THIS AS -- the artifact's twelve, in its own order:
    reference, our party, counterparty, their email, value stream, template,
@@ -6680,31 +6848,9 @@ function ktDocsSummary(c){
   return [names.join(', ')+(more?' '+esc(more):''), tail?esc(tail):''].filter(Boolean).join(' &mdash; ');
 }
 
-/* THE SHUT SECTIONS STILL ANSWER — rule 2 of the grammar. Each summary is
-   built from the record, and where the record says nothing the summary is
-   empty, which is honest: a head that only repeats its own name will not
-   draw a chevron (sectionHtml refuses it). */
-function ktRecordSummary(c){
-  const F=(typeof window!=='undefined'&&window.FOLDERS)||{};
-  const bits=[];
-  const ours=String((c&&c.party)||(window.FIRST_PARTY)||'').trim();
-  const them=String((c&&c.counterparty)||'').trim();
-  if(ours&&them) bits.push(`${esc(ours)} &middot; ${esc(them)}`);
-  else if(them) bits.push(esc(them));
-  else if(ours) bits.push(esc(ours));
-  if(c&&c.folder&&F[c.folder]) bits.push(esc(F[c.folder].name));
-  return bits.join(' &middot; ');
-}
-function ktDealSummary(c){
-  const m=(c&&c.metadata)||{};
-  const bits=[];
-  if(typeof isMonetary==='function'&&isMonetary(c)&&Number(c.value)>0)
-    bits.push(esc(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)));
-  if(String(m.paymentTerms||'').trim()) bits.push(esc(String(m.paymentTerms).trim()));
-  const exp=String((c&&c.expiry)||m.expiryDate||'').trim();
-  if(exp&&window.regDotDate) bits.push(esc(regDotDate(exp)));
-  return bits.length?bits.join(' &middot; '):i18t('ov_deal_sum');
-}
+/* ktRecordSummary and ktDealSummary are GONE (Read Down, 1 Oct 2026): they
+   were what a SHUT section answered with, and nothing on the sheet folds now.
+   ktDocsSummary stays published with no caller on this pane. */
 
 /* THE TWO TERM SECTIONS, which are the part of the Overview this file paints
    and repaints. The renewal card above them and the family and brief cards
@@ -6722,8 +6868,6 @@ function ktOverviewTermsHtml(c,opts={}){
      refile-a-contract-verify caught the hour this card was redrawn. */
   const mayMove=(typeof mayReFile==='function')&&mayReFile()&&!PORTAL_MODE;
   const dealEd=ed&&ovEditing(dealK), recEd=(ed||mayMove)&&ovEditing(recK);
-  const editBtn=(k,on)=>ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="${esc(k)}">${
-    esc(on?i18t('ov_edit_done'):i18t('ov_edit_details'))}</button>`:'';
   const fill=(ed&&readable)
     ? `<button id="kt-fill" class="ui-btn ui-btn-sm" title="${
         i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} ${i18t('ct_fill_from_doc')}</button>`
@@ -6747,8 +6891,6 @@ function ktOverviewTermsHtml(c,opts={}){
      on The deal: press it and every field, fixed and occasional, is a box in
      one list. One act, one posture, one place — a second Edit on a card that
      appears and disappears would be a door that is sometimes there. */
-  const also=dealEd?'':ktAlsoFactsHtml(c);
-  const alsoN=dealEd?0:ktAlsoRecorded(c).length;
   /* ---- WHAT THE SIGNATURE IS WAITING ON, COUNTED ONCE (21 Sep 2026) ----
      ONE reading for the marks on the cells and for the count on the head, so
      the card and its own heading can never disagree. It rides the CHIP the
@@ -6759,23 +6901,33 @@ function ktOverviewTermsHtml(c,opts={}){
   const inSec=(sec)=>{ if(!marks) return 0; let n=0;
     for(const f in marks.fields){ const h=KT_FIELD_HOME[f];
       if(h&&h.sec===sec&&marks.fields[f].holds) n++; } return n; };
-  const dealHold=inSec('deal'), recHold=inSec('record');
+  const recHold=inSec('record');
+  /* A HOLD COUNTS ON THE GROUP THAT DRAWS ITS FIELD — the same marks, the
+     same homes (KT_FIELD_HOME), asked per slice instead of per card. */
+  const holdsIn=keys=>{ if(!marks) return 0; let n=0;
+    for(const f in marks.fields){ const h=KT_FIELD_HOME[f];
+      if(h&&h.sec==='deal'&&keys.includes(h.kt)&&marks.fields[f].holds) n++; } return n; };
   const holdChip=n=>n?{ text:i18tn('ov_hold_n',n,{n}), tone:'amber' }:null;
-  const deal=sectionHtml({
-    key:dealK, title:i18t('ov_deal'), open:true,
-    chip: ed?holdChip(dealHold):{ text:i18t('ct_confirmed'), tone:'green' },
-    summary: ktDealSummary(c),
-    body: '<div id="kt-rows"></div>'
-      + `<div id="kt-deal-facts">${ktDealFactsHtml(c,{edit:dealEd,marks})}</div>`
-      + (dealEd
-        ? `<p class="sec-foot" style="margin-top:var(--s-3)">${esc(i18t('ov_also_edit_lead'))}</p>`
-          + `<div id="kt-also-facts">${ktAlsoFactsHtml(c,{edit:true})}</div>`
-        : ''),
-    acts: editBtn(dealK,dealEd)+fill, foot: i18t('ov_deal_foot') });
-  const alsoSec=also?sectionHtml({
-    key:OV_KEY(c,'also'), title:i18t('ov_also'), open:false,
-    summary: i18tn('ov_also_n', alsoN, {n:alsoN}),
-    body: `<div id="kt-also-facts">${also}</div>` }):'';
+  /* ---- ONE EDIT FOR THE PAGE (owner's yes, 1 Oct 2026) ----
+     It was one per card. The postures stay two, keyed as they always were —
+     focusKeyTerms still turns on the one a field lives in — and this button
+     turns both on or both off. */
+  const anyEd=dealEd||recEd;
+  const top=`<div class="ov-top"><span id="kt-ov-brief" class="ov-top-brief"></span>
+    <span class="ov-top-note">${esc(i18t('ov_deal_foot'))}</span>
+    <span class="ov-top-acts">${ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="all">${
+      esc(anyEd?i18t('ov_edit_done'):i18t('ov_edit_details'))}</button>`:''}${fill}</span></div>`;
+  /* THE RENEWAL QUESTION IS PART OF "WHEN IT RUNS" (owner's yes, 1 Oct 2026):
+     its host sits under the dates it is worked out from and is drawn bare, so
+     it reads as the end of that group rather than a card of its own. Still
+     renderRenewalSection's, still empty outside the window. */
+  const groups=OV_READ_GROUPS.map(g=>sectionHtml({
+    id:'ov-'+g.key, title:i18t(g.title), say:ovSayOf(c,g.key),
+    chip: ed?holdChip(holdsIn(g.deal)):(g.key==='what'?{ text:i18t('ct_confirmed'), tone:'green' }:null),
+    body:(g.key==='what'?'<div id="kt-rows"></div>':'')
+      + (g.key==='dates'?ovTimelineHtml(c):'')
+      + ktDealFactsHtml(c,{edit:dealEd,marks,keys:g.deal,also:g.also})
+      + (g.key==='dates'?'<div id="renewal-host" class="empty:hidden" data-bare="1"></div>':'') })).join('');
   /* MOVE TO ANOTHER STREAM IS NOT A SECOND DOOR. The stream picker is
      ktStreamRowHtml's, with its admin guard, its 'Re-filed' audit line and its
      own repaint; this button opens the rows that hold it and puts the reader
@@ -6801,29 +6953,27 @@ function ktOverviewTermsHtml(c,opts={}){
      email among them — with the block out of that card nothing is printed
      twice on it, and a reader who folds this section still gets the names
      back from its summary. */
-  const pyK=OV_KEY(c,'parties');
   const pyLocked=(typeof signingLocked==='function')?!!signingLocked(c):false;
-  const pyList=(typeof contractParties==='function')?(()=>{ try{ return contractParties(c)||[]; }catch(_){ return []; } })():[];
   const pyBody=ktPartiesBlockHtml(c,{mayEdit:ed,bare:true});
   const pyAdd=(ed&&!pyLocked&&!PORTAL_MODE)
     ?`<button type="button" class="ui-btn ui-btn-sm" data-py-add="1">${
       esc(i18t('py_add'))}</button>`:'';
+  /* NO FOLD ON THE SHEET: every group is open and says what it holds, so a
+     head that also summarised its own body would say it twice. */
   const parties=pyBody?sectionHtml({
-    key:pyK, title:i18t('py_parties'), open:true,
+    id:'ov-parties', title:i18t('py_parties'),
     chip: pyLocked?{ text:i18t('py_locked'), tone:'gray' }:null,
-    summary: pyList.map(p=>p.name).filter(Boolean).join(' \u00b7 '),
     body:`<div id="kt-parties-host">${pyBody}</div>`,
     acts: pyAdd }):'';
   const record=sectionHtml({
-    key:recK, title:i18t('ov_record'), open:false,
+    id:'ov-record', title:i18t('ov_record'),
     chip: holdChip(recHold),
-    summary: ktRecordSummary(c),
     body: (recEd
         ? `<div id="kt-rows-record">${ktTermsRowsHtml(c,
             {editable:ed,only:['name','party','counterparty','cpEmail','cpRouteEmail','stream','template']})}</div>`
         : '<div id="kt-rows-record"></div>')
       + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd,marks,mayEdit:ed})}</div>`,
-    acts: editBtn(recK,recEd)+moveBtn });
+    acts: moveBtn });
   /* ---- THE SECOND DOOR ONTO WHO IS ON THIS CONTRACT (Young ruled 21 Sep
      2026: *"should you choose to skip this, there should be another door in
      the contract page"*) ----
@@ -6842,19 +6992,19 @@ function ktOverviewTermsHtml(c,opts={}){
      BORROWED from that same order, never a second opinion — and names the
      others rather than hiding them: two of the four may differ on purpose. */
   const addrs=(typeof contractAddressBook==='function')?contractAddressBook(c, c&&c._shareFetch):null;
-  const ppl=((typeof participantsOf==='function')?participantsOf(c):[])
-    .concat((typeof participantsAuto==='function')?participantsAuto(c):[]);
   const anySigner=(typeof participantSignerRows==='function')&&participantSignerRows(c).length>0;
   const peopleSec=people?sectionHtml({
-    key:OV_KEY(c,'people'), title:i18t('ppl_title'), open:false,
-    summary: ppl.length?i18tn('ppl_n',ppl.length,{n:ppl.length}):i18t('ppl_none'),
+    id:'ov-people', title:i18t('ppl_title'),
     /* THE BODY TAKES THE CARD'S OWN INSET (I, Young reported it 22 Sep 2026:
        the text and "+ Add someone" sat on the card's edge). sectionHtml leaves
        the inset to its caller, and this caller never gave one. */
     body:`<div class="sec-body"><div id="kt-people">${people}</div>${ovAddressBookHtml(addrs)}</div>`,
     acts: (ed&&anySigner)?`<button type="button" class="ui-btn ui-btn-sm" data-ov-signers="1">${
       esc(i18t('ppl_open_signers'))}</button>`:'' }):'';
-  return deal+alsoSec+parties+record+peopleSec;
+  /* READ DOWN'S ORDER: the sheet's own row of acts, the four questions,
+     then who is on it and how it is filed. The paperwork, the family and what
+     Copilot read follow in #kt-side. */
+  return top+groups+parties+peopleSec+record;
 }
 
 /* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----
@@ -7087,8 +7237,11 @@ function renderKeyTermsSide(c){
      own acts, so a section head above it would say Renewal twice. It leads the
      stack as itself. The other two ARE wrapped, and are drawn `bare` so the
      section head is the only place their name appears. */
-  const lead=document.getElementById('kt-ov-lead');
-  if(lead) lead.innerHTML=`<div id="renewal-host" class="empty:hidden"></div>`;
+  /* ---- THE RENEWAL HOST MOVED INTO "WHEN IT RUNS" (Read Down, 1 Oct 2026) ----
+     ktOverviewTermsHtml draws the renewal host under the dates now, and
+     renderKeyTerms fills it; the call below repaints
+     it where this column's own repaints need it (a brief written, a document
+     chased). The lead slot above the stack is gone. */
   /* ---- DOCUMENTS THEY MUST HOLD, BETWEEN THE RECORD AND THE FAMILY ----
      Drawn only where the contract requires one, exactly as the renewal card
      is: a section that says "no documents" every time you open an NDA is the
@@ -7097,16 +7250,14 @@ function renderKeyTermsSide(c){
      section to find. */
   const docs=(window.contractDocuments?contractDocuments(c):[]);
   const docsLapsed=(window.contractDocsLapsed?contractDocsLapsed(c):[]).length;
-  host.innerHTML=(docs.length?sectionHtml({ key:OV_KEY(c,'docs'), title:i18t('ov_docs'), open:false,
-      summary:ktDocsSummary(c),
+  /* NO FOLD ON THE SHEET (Read Down): each group opens on what it holds. */
+  host.innerHTML=(docs.length?sectionHtml({ id:'ov-docs', title:i18t('ov_docs'),
       chip:docsLapsed?{ text:i18tn('ov_doc_chip',docsLapsed,{n:docsLapsed}), tone:'ruby' }:null,
       body:ktDocsRowsHtml(c),
       acts:(typeof canEdit==='function'&&!canEdit())?'':`<button type="button" class="ui-btn ui-btn-sm" data-ov-doc-add>${esc(i18t('ov_doc_add'))}</button>` }):'')
-    +sectionHtml({ key:OV_KEY(c,'related'), title:i18t('ov_related'), open:false,
-      summary:i18t('ov_related_sum'),
+    +sectionHtml({ id:'ov-related', title:i18t('ov_related'),
       body:`<section id="family-section" class="kt-side-card empty:hidden"></section>` })
-    +sectionHtml({ key:OV_KEY(c,'copilot'), title:i18t('ov_copilot'), open:false,
-      summary:i18t('ov_copilot_sum'),
+    +sectionHtml({ id:'ov-copilot', title:i18t('ov_copilot'),
       /* THE TABLE FIRST, THE BRIEF'S OWN CARD UNDER IT. The table says which
          readings exist; the card is what one of them SAYS, and it carries the
          old Write the brief button, which is where the artifact puts it. */
@@ -7114,6 +7265,8 @@ function renderKeyTermsSide(c){
   try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(e){}
   try{ if(window.renderFamilySection) renderFamilySection(c,{bare:true}); }catch(e){}
   wireKtBriefCard(c);
+  /* And the sheet's own Read the brief, which says what the card now says. */
+  paintOvBriefBtn(c);
   /* THE HEADS ARE PRESSED HERE, and the repaint each one asks for is its own:
      the two term sections are renderKeyTerms', these two are this function's.
      Bound to the PANE, once (sectionWire's own dataset guard), so it survives
@@ -10560,11 +10713,6 @@ function renderWorkspace(){
              the stack now rather than cards beside it. ktFitSplit / ktWireSplit
              find no grid and stand down. */}
       <div class="ov-stack" id="kt-overview">
-        ${''/* The renewal question LEADS, and draws nothing outside its own
-               90-day window — renewalCardHtml returns '' there and the host
-               carries `empty:hidden`, so an ordinary contract opens on The
-               deal. Painted by renderKeyTermsSide. */}
-        <div id="kt-ov-lead" class="empty:hidden"></div>
         ${''/* ---- A SLOT, NOT THE SECTIONS THEMSELVES (Young reported it 22 Sep
                2026: the Edit button did nothing) ----
                This host interpolated `ktOverviewTermsHtml` here while the two
@@ -16478,7 +16626,7 @@ Object.assign(window,{PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paint
      Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
      with it: the same guard-and-miss is waiting for both. */
   wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
-  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoRecorded,ktFieldCell,ktOverviewTermsHtml,
+  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_READ_GROUPS,ovSayOf,ovTimelineHtml,ovTimelineSettle,paintOvBriefBtn,ktFieldCell,ktOverviewTermsHtml,
   OV_DEAL_FIELDS,OV_ALSO_FIELDS,OV_KT_FIELDS,OV_DERIVED_FIELDS,ovMetaBoxHtml,ovMetaField,ovMetaLabel,
   OV_MARK_ALIAS,ovFieldMarkOf,ovFieldNoteHtml,ovSignMarks,
   /* THE PARTIES BLOCK. f232's net: every `window.foo` read must be a

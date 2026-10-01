@@ -4441,7 +4441,15 @@ async function runRenewalAdvice(c,opts={}){
 }
 const RN_TONE={ renew:'green', renegotiate:'amber', lapse:'ruby', unclear:'steel' };
 let _rnChanging=null;   // the contract whose recorded decision is being re-asked, per sitting
-function renewalCardHtml(c){
+/* ---- THE CARD'S BOX, OR NONE (Read Down, 1 Oct 2026) ----
+   On the Overview the renewal question is the end of "Dates and renewal", not
+   a card of its own, so its host asks for it BARE (`data-bare`): the same
+   contents with the group's own inset and no border of their own. Every other
+   host gets the box it always had. */
+const RN_BOX='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px';
+const RN_BARE='padding:4px 16px 14px';
+function renewalCardHtml(c,opts){
+  const BOX=(opts&&opts.bare)?RN_BARE:RN_BOX;
   const w=(typeof renewalWindow==='function')?renewalWindow(c):null;
   if(!w||!w.inWindow) return '';
   const a=c._renewalAdvice&&c._renewalAdvice.data;
@@ -4582,7 +4590,7 @@ function renewalCardHtml(c){
     answer:i18t('rn_ans_'+c.renewalDecision.answer)||c.renewalDecision.answer,
     date:decWhen(c.renewalDecision.at)})):'';
   const settled=!!(dec&&!asking);
-  return `<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px">
+  return `<section id="renewal-section" class="kt-side-card" style="${BOX}">
     <div style="display:flex;flex-direction:row;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);flex:1">${i18t('rn_title')}</h6>
       ${settled
@@ -4652,9 +4660,10 @@ function renderRenewalSection(c){
      card. The dates half of this card is our own arithmetic and cannot fail;
      only the drawing of arrived advice realistically can. So a failure to draw
      says so, in the card, with the way forward on it — and never escapes. */
-  try{ host.innerHTML=renewalCardHtml(c); }
+  const bare=host.hasAttribute('data-bare');
+  try{ host.innerHTML=renewalCardHtml(c,{bare}); }
   catch(e){
-    host.innerHTML=`<section id="renewal-section" class="kt-side-card" style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius);padding:13px 15px">
+    host.innerHTML=`<section id="renewal-section" class="kt-side-card" style="${bare?RN_BARE:RN_BOX}">
       <h6 style="margin:0 0 6px;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${_aiEsc(i18t('rn_title'))}</h6>
       <p style="margin:0 0 9px;font-size:var(--t-meta);line-height:1.55;color:var(--st-amber-fg)">${_aiEsc(i18t('rn_card_broken'))}</p>
       <button class="ui-btn ui-btn-sm" data-rn-ask>${_aiEsc(i18t('rn_try_again'))}</button>
