@@ -15830,7 +15830,7 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
       ? i18t('ng_np_seen_you') : x.name).join(', ') }) : '';
   const acts = (ctx && ctx.acts) ? `<div class="rl-np-acts">
       ${(ctx.mayWrite && !PORTAL_MODE) ? `<button type="button" class="rl-np-act-b g rl-np-seen${iSaw ? ' is-on' : ''}" data-rl-np-seen="${_nea(key)}" data-on="${iSaw ? '0' : '1'}"
-        aria-pressed="${iSaw ? 'true' : 'false'}" title="${_nea(i18t(iSaw ? 'ng_np_seen_off_t' : 'ng_np_seen_on_t'))}">✓ ${i18t('ng_np_seen')}</button>` : ''}
+        aria-pressed="${iSaw ? 'true' : 'false'}" title="${_nea(i18t(iSaw ? 'ng_np_seen_off_t' : 'ng_np_seen_on_t'))}">${i18t('ng_np_seen')}</button>` : ''}
       ${seenWords ? `<span class="rl-np-seenby">${_ne(seenWords)}</span>` : ''}
       ${ctx.mayWrite ? `<button type="button" class="rl-np-act-b" data-rl-np-reply="${_nea(rootKey)}" data-rl-np-reply-under="${_nea(key)}">${i18t('ng_np_reply')}</button>` : ''}
       ${(ctx.mayWrite && root) ? `<button type="button" class="rl-np-act-b g" data-rl-np-done="${_nea(key)}" data-on="${m.done ? '0' : '1'}">${

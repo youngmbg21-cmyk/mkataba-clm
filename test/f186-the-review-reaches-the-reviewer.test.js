@@ -141,8 +141,13 @@ describe('f186 (A) — did the colleague actually get told', () => {
       'not the site root — the agreement, on the screen the ask is about');
     assert.ok(!/const appUrl = /.test(body), 'the front-door link is gone');
     /* ONE BUILDER, not two: the internal signer's mail had the identical fault
-       and both now go through contractUrl. */
-    assert.match(srv, /const contractUrl = \(req, contractId, tab\) =>/);
+       and both now go through contractUrl.
+       RE-POINTED BY NAME, 3 Oct 2026 — it pinned the PARAMETER LIST, and the
+       builder grew an optional `go` when the approval link learned to land on
+       the decision (f445). The claim here is that ONE builder exists and that
+       this route uses it, which a parameter list does not say and a name does.
+       THE SAME LESSON f178 PAID FOR, in its parameter-list costume. */
+    assert.match(srv, /const contractUrl = \(req, contractId, tab\b/);
     assert.match(srv, /const contractSignUrl = \(req, contractId\) => contractUrl\(req, contractId, 'sign'\);/);
     /* And the browser honours it on the far side of the sign-in wall. */
     const core = read('js/core.js');
