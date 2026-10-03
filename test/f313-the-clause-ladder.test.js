@@ -656,4 +656,29 @@ describe('f313 — the clause ladder', () => {
     w.win.rlBoardFilterSet('all');
   });
 
+  /* ONLY THE PARAGRAPH THE REDLINE TOUCHES (Young, 3 Oct 2026, over a board
+     drawing 19.2 and 19.3 untouched under a change to 19.1: "Only include the
+     clause or subclause in question as in the paragraph impacted by the
+     redline"). Red at the parent: the card drew the whole clause. */
+  test('(43) the board draws only the sub-clause a redline touches, on both sides', async () => {
+    const w = await buildWorld({ ladder: true, negotiationView: true });
+    const c = book();
+    const keep1 = '19.1 The Supplier shall keep records.';
+    const keep3 = '19.3 Each party shall notify the other promptly.';
+    const theirs = c.changes[3];
+    Object.assign(theirs, { clauseId: 'cl_19', clauseLabel: 'Clause 19 — Indemnities',
+      oldText: keep1 + '\n19.2 The cap is three (3) years.\n' + keep3,
+      newText: keep1 + '\n19.2 The cap is five (5) years.\n' + keep3,
+      ops: [{ op: 'keep', text: keep1 + '\n19.2 The cap is ' }, { op: 'del', text: 'three (3)' },
+        { op: 'ins', text: 'five (5)' }, { op: 'keep', text: ' years.\n' + keep3 }] });
+    w.win.rlBoardPickSet('cl_19');
+    const html = w.win.dealBoardHtml(c, 'owner');
+    w.win.rlBoardPickSet(null);
+    const card = html.slice(html.indexOf('<article class="db-card"'));
+    assert.match(card, /data-db-card="cl_19"/, 'the picked clause is on the card');
+    assert.match(card, /five \(5\)/, 'their redlined sub-clause is drawn');
+    assert.match(card, /19\.2 The cap is three \(3\) years\./, 'our side shows the same sub-clause as drafted');
+    assert.ok(!card.includes(keep1) && !card.includes(keep3), 'the sub-clauses nobody touched are not drawn');
+  });
+
 });
