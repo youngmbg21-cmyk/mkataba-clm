@@ -20039,3 +20039,27 @@ a worktree. Five failures, two piles.
 - **A ranked list has no net saying the ranking is a SET.** F381 (6) pins one
   adjacency, so an insertion anywhere else in `ALERT_KINDS` is unguarded. A
   claim over the whole order would have caught this in the first run.
+
+## 3 Oct 2026 — looking at the notes panel for a design question
+
+### Noticed, not fixed
+- **THE EXTERNAL ROOM IS ONE ROOM FOR EVERY OUTSIDE PARTY.** `negoNoteRoom` is
+  `m.visibility === 'shared' ? 'external' : 'internal'` — a boolean — and a note
+  carries NO party anywhere: `partyId` appears on no message in js/ or
+  server/server.js, so there is nothing for the payload to filter on. On a
+  two-party contract that is correct and always has been. From the moment a
+  contract has a second outside party (`partiesMulti`, built late Sept) a note
+  written for one outside party is served to every outside link holder. The
+  owner's own MK-411 reads `Jumenza LLC +1`, so it is live, not hypothetical.
+  This is a confidentiality question, not a layout one. Reported to the owner
+  in the design artifact of the same day; NOT fixed — it needs the owner's
+  ruling on whether three or more parties get one room each or also a joint
+  room, and that ruling is the design.
+- **The note acts row holds up to SEVEN controls in a 330px drawer** (Seen ·
+  Seen-by · Reply · Done/Reopen · Give · Delete · the given chip · done-by).
+  Four predate 3 Oct; THREE WERE ADDED BY THE 3 OCT RUN (f443/f444) without
+  measuring the row they were joining. `--shell-panel-w` is 330 / 365 / 400 and
+  the owner is on the narrowest rung. Proposed repair (verbs on one line, the
+  quiet facts on a second) is in the same artifact and is this run's own to
+  make; not made yet, because the owner has not picked an option and the repair
+  should land with whichever one they pick.
