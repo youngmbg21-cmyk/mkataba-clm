@@ -1216,63 +1216,113 @@ function igMoneyOf(n, unit){ let v=Number(String(n).replace(/[, ]/g,'')); if(!is
   const u=String(unit||'').toLowerCase(); if(/^(m|mn|million|millions|miljon|miljoner|mkr)$/.test(u)) v*=1e6; else if(/^(k|thousand|tusen)$/.test(u)) v*=1e3; else if(/^(bn|b|billion|miljard|miljarder)$/.test(u)) v*=1e9; return v; }
 function igHomeValue(c){ if(!c||(typeof isMonetary==='function'&&!isMonetary(c))||!(Number(c.value||0)>0)) return null;
   const h=(typeof fxHome==='function')?fxHome(c):{ v:Number(c.value||0), missing:false }; return h.missing?null:h.v; }
+/* THE READER'S WORDS, FOR BOTH SCREENS (the owner's review, 3 Oct 2026
+   evening: "Show me all Juno contracts" showed everything). Every condition
+   carries the FIELD it reads (conditions on one field are OR-ed — "Naivas
+   and Carrefour", "drafts and signed" — and fields are AND-ed) and the HIT,
+   the words in the question it was read from, so a reader can tell whether
+   anything in the question was left unread (igLeftover). A counterparty is
+   named by its whole name or by its first word — three letters or more and
+   not an everyday word — so "Juno" finds Juno Logistics Ltd and Juno Limited
+   both; the word is said back in the book's own spelling. The generic kind
+   "Contract" is never a condition, so "contracts" names nothing. */
+const IG_CP_STOP=new Set(('the and group limited ltd llc inc plc ab as oy kenya africa east west north south central new old royal modern global united national international general first second holdings company co corp corporation services service industries industry trading enterprises enterprise partners foundation association union bank').split(' '));
 function igConditions(text){
   let t=' '+_igNorm(text)+' '; const conds=[];
-  const add=(label,fn)=>conds.push({ label, fn });
+  const add=(label,fn,field,hit)=>conds.push({ label, fn, field:field||label, hit:hit||label });
+  const hit=re=>{ const m=t.match(re); return m?m[0].trim():null; };
   const moneyOk=(typeof canViewValues!=='function')||canViewValues();
+  const live=c=>c&&!c.archived&&c.status!=='Declined'&&(typeof isAgreement!=='function'||isAgreement(c));
   // signed in a year: read first, so "signed" is not also read as the stage
   const sy=t.match(/\b(?:signed|executed|signerade|undertecknade)\s+(?:in|during|under|i)?\s*(\d{4})\b/);
-  if(sy){ add('signed in '+sy[1], c=>{ const d=_gSignedDay(c); return !!d&&d.slice(0,4)===sy[1]; }); t=t.replace(sy[0],' '); }
+  if(sy){ add('signed in '+sy[1], c=>{ const d=_gSignedDay(c); return !!d&&d.slice(0,4)===sy[1]; }, 'signedYear', sy[0]); t=t.replace(sy[0],' '); }
   // stages
-  IG_STATUS_WORDS.forEach(([st,ws])=>{ if(ws.some(w=>t.includes(' '+w+' '))) add(igbStatusWord(st), c=>c.status===st); });
+  IG_STATUS_WORDS.forEach(([st,ws])=>{ const w=ws.find(w=>t.includes(' '+w+' ')); if(w) add(igbStatusWord(st), c=>c.status===st, 'status', w); });
   // money
   const mv=t.match(/(?:^|\s)(over|above|more than|greater than|at least|bigger than|larger than|över|mer än|minst|större än)\s*(?:sek|kes|usd|eur|kr)?\s*([\d][\d.,]*)\s*(m|mn|million|millions|k|thousand|bn|billion|miljoner|miljon|mkr|tusen|miljarder)?\b/);
-  if(mv&&moneyOk){ const v=igMoneyOf(mv[2],mv[3]); if(v!=null) add(mv[1]+' '+mv[2]+(mv[3]?mv[3]:''), c=>{ const h=igHomeValue(c); return h!=null&&h>=v; }); }
+  if(mv&&moneyOk){ const v=igMoneyOf(mv[2],mv[3]); if(v!=null) add(mv[1]+' '+mv[2]+(mv[3]?mv[3]:''), c=>{ const h=igHomeValue(c); return h!=null&&h>=v; }, 'valueAbove', mv[0]); }
   const lv=t.match(/\b(under|below|less than|smaller than|under|mindre än)\s*(?:sek|kes|usd|eur|kr)?\s*([\d][\d.,]*)\s*(m|mn|million|millions|k|thousand|bn|billion|miljoner|miljon|mkr|tusen|miljarder)?\b/);
-  if(lv&&moneyOk&&!/\b(days?|dagar)\b/.test(t.slice(t.indexOf(lv[0])+lv[0].length, t.indexOf(lv[0])+lv[0].length+8))){ const v=igMoneyOf(lv[2],lv[3]); if(v!=null) add(lv[1]+' '+lv[2]+(lv[3]?lv[3]:''), c=>{ const h=igHomeValue(c); return h!=null&&h<v; }); }
-  if(/ (?:no money|non-monetary|without value|utan värde) /.test(t)) add('non-monetary', c=>igHomeValue(c)==null);
-  // renewal / expiry windows
+  if(lv&&moneyOk&&!/\b(days?|dagar)\b/.test(t.slice(t.indexOf(lv[0])+lv[0].length, t.indexOf(lv[0])+lv[0].length+8))){ const v=igMoneyOf(lv[2],lv[3]); if(v!=null) add(lv[1]+' '+lv[2]+(lv[3]?lv[3]:''), c=>{ const h=igHomeValue(c); return h!=null&&h<v; }, 'valueBelow', lv[0]); }
+  { const h=hit(/ (?:no money|non-monetary|without value|utan värde) /); if(h) add('non-monetary', c=>igHomeValue(c)==null, 'money', h); }
+  // renewal / expiry windows — HOME'S OWN READING of an ending: a live
+  // agreement (not closed, not archived, not an amendment) whose effective
+  // end falls inside the window; a renewal is the decision date's
   const win=t.match(/\b(renew(?:ing|s|al|als)?|expir(?:e|es|ing|y)|end(?:ing|s)?|förnya(?:s|r)?|löper ut|går ut|upphör)\b[^0-9]*?\b(?:in|within|next|over the next|inom|kommande|de närmaste|nästa)\s*(?:the\s+)?(?:next\s+)?(\d+)?\s*(days?|weeks?|months?|quarters?|years?|dagar|dag|veckor|vecka|månader|månad|kvartal|år)\b/);
+  const endDays=c=>{ if(!live(c)) return null; const e=_gExpiryDay(c); return e?daysUntil(e):null; };
   if(win){ const n=Number(win[2]||1), d=Math.round(n*(IG_UNIT_DAYS[win[3]]||1)), renew=/renew|förny/.test(win[1]);
-    add(win[0].trim(), c=>{ const days=renew?graphDecisionOf(c).days:(()=>{ const e=_gExpiryDay(c); return e?daysUntil(e):null; })(); return days!=null&&days>=0&&days<=d; }); }
-  else if(/\b(renew(?:ing|s)?|expir(?:e|es|ing)|förnyas|löper ut)\b.*\b(this year|i år)\b/.test(t)){
-    const end=new Date(new Date().getFullYear(),11,31), d=Math.max(0,Math.ceil((end-Date.now())/864e5)), renew=/renew|förny/.test(t);
-    add(renew?'renewing this year':'expiring this year', c=>{ const days=renew?graphDecisionOf(c).days:(()=>{ const e=_gExpiryDay(c); return e?daysUntil(e):null; })(); return days!=null&&days>=0&&days<=d; }); }
-  if(/ (?:expired|already ended|utgångna|har gått ut) /.test(t)) add('expired', c=>{ const e=_gExpiryDay(c); const d=e?daysUntil(e):null; return d!=null&&d<0; });
+    add(win[0].trim(), c=>{ const days=renew?graphDecisionOf(c).days:endDays(c); return days!=null&&days>=0&&days<=d; }, renew?'renewWindow':'expiryWindow', win[0]); }
+  else { const ty=t.match(/\b(renew(?:ing|s)?|expir(?:e|es|ing)|end(?:ing|s)?|förnyas|löper ut|går ut)\b.*?\b(this year|i år)\b/);
+    if(ty){ const end=new Date(new Date().getFullYear(),11,31), d=Math.max(0,Math.ceil((end-Date.now())/864e5)), renew=/renew|förny/.test(ty[1]);
+      add(renew?'renewing this year':'expiring this year', c=>{ const days=renew?graphDecisionOf(c).days:endDays(c); return days!=null&&days>=0&&days<=d; }, renew?'renewWindow':'expiryWindow', ty[0]); } }
+  { const h=hit(/ (?:expired|already ended|past (?:their |its |the )?end date|utgångna|har gått ut) /);
+    if(h) add('expired', c=>(typeof contractExpired==='function')?(live(c)&&contractExpired(c)):(()=>{ const e=_gExpiryDay(c); const d=e?daysUntil(e):null; return d!=null&&d<0; })(), 'expired', h); }
   // the record's own flags
-  if(/ (?:overdue|late obligations|past due|försenade|förfallna) /.test(t)) add('overdue', c=>graphNodeFacts(c).overdue>0);
-  if(/ (?:waiting on us|our move|mine to answer|väntar på oss|vårt drag) /.test(t)) add('waiting on us', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='you'; }catch(_){ return false; } });
-  if(/ (?:waiting on them|their move|with the other side|väntar på dem|deras drag) /.test(t)) add('waiting on them', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='them'; }catch(_){ return false; } });
-  if(/ (?:not read|unread|never read|inte lästa|olästa|oläst) /.test(t)) add('not read yet', c=>graphNodeFacts(c).unread===true);
-  if(/ (?:off[- ]standard|departing|deviat\w*|avvik\w*) /.test(t)) add('off standard', c=>graphNodeFacts(c).offStandard>0);
-  if(/ (?:uncapped|no cap|without a cap|unlimited liability|obegränsat|utan tak|obegränsat ansvar) /.test(t)) add('liability uncapped', c=>groupLabelOf(c,'liability')==='Liability uncapped');
-  else if(/ (?:capped|with a cap|limited liability|begränsat ansvar|med tak) /.test(t)) add('liability capped', c=>groupLabelOf(c,'liability')==='Liability capped');
-  if(/ (?:no owner|nobody owns|unowned|utan ägare) /.test(t)) add('nobody owns', c=>groupLabelOf(c,'owner')==='Nobody owns this');
+  { const h=hit(/ (?:overdue|late obligations|past due|försenade|förfallna) /); if(h) add('overdue', c=>graphNodeFacts(c).overdue>0, 'overdue', h); }
+  { const h=hit(/ (?:waiting on us|our move|mine to answer|väntar på oss|vårt drag) /); if(h) add('waiting on us', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='you'; }catch(_){ return false; } }, 'move', h); }
+  { const h=hit(/ (?:waiting on them|their move|with the other side|väntar på dem|deras drag) /); if(h) add('waiting on them', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='them'; }catch(_){ return false; } }, 'move', h); }
+  { const h=hit(/ (?:not read|unread|never read|inte lästa|olästa|oläst) /); if(h) add('not read yet', c=>graphNodeFacts(c).unread===true, 'read', h); }
+  { const h=hit(/ (?:off[- ]standard|departing|deviat\w*|avvik\w*) /); if(h) add('off standard', c=>graphNodeFacts(c).offStandard>0, 'offStandard', h); }
+  { const u=hit(/ (?:uncapped|no cap|without a cap|unlimited liability|obegränsat|utan tak|obegränsat ansvar) /), k=u?null:hit(/ (?:capped|with a cap|limited liability|begränsat ansvar|med tak) /);
+    if(u) add('liability uncapped', c=>groupLabelOf(c,'liability')==='Liability uncapped', 'liability', u);
+    else if(k) add('liability capped', c=>groupLabelOf(c,'liability')==='Liability capped', 'liability', k); }
+  { const h=hit(/ (?:no owner|nobody owns|unowned|utan ägare) /); if(h) add('nobody owns', c=>groupLabelOf(c,'owner')==='Nobody owns this', 'owner', h); }
+  // which side of the table: the record's own category (paySide's reading)
+  if(typeof paySide==='function'){
+    const sp=hit(/ (?:suppliers?|vendors?|leverantör(?:er)?) /), cu=sp?null:hit(/ (?:customers?|clients?|kund(?:er)?) /);
+    if(sp) add(i18t('hb_lens_suppliers'), c=>paySide(c)==='supplier', 'side', sp);
+    else if(cu) add(i18t('hb_lens_customers'), c=>paySide(c)==='customer', 'side', cu); }
   // payment days
   const pd=t.match(/\b(?:pay(?:ing|s)?|payment)\b[^0-9]*?\b(later than|slower than|over|more than|longer than|beyond|above|within|under|less than|faster than)\s*(\d+)\s*(?:days?|dagar)/)
     ||t.match(/\b(over|more than|under|less than|within)\s*(\d+)\s*(?:days?|dagar)\s*(?:to pay|payment|att betala|betalning)/);
   if(pd&&typeof payDays==='function'){ const n=Number(pd[2]), slow=/later|slower|over|more|longer|beyond|above/.test(pd[1]);
-    add((slow?'paying later than ':'paying within ')+n+' days', c=>{ const d=payDays(c); return d!=null&&(slow?d>n:d<=n); }); }
+    add((slow?'paying later than ':'paying within ')+n+' days', c=>{ const d=payDays(c); return d!=null&&(slow?d>n:d<=n); }, 'payDays', pd[0]); }
   // governing law, by the laws the book holds
   const laws=[...new Set((state.contracts||[]).map(c=>groupLabelOf(c,'law')).filter(l=>l!=='Law not read'))];
   laws.forEach(l=>{ const w=_igNorm(l), adj={ kenya:'kenyan', sweden:'swedish', england:'english', 'england and wales':'english', uganda:'ugandan', tanzania:'tanzanian' }[w];
-    if(t.includes(' '+w+' law ')||t.includes(' law of '+w+' ')||(adj&&t.includes(' '+adj+' law '))||t.includes(' '+w+'n law ')) add(l+' law', c=>groupLabelOf(c,'law')===l); });
+    const h=[' '+w+' law ',' law of '+w+' ',adj?' '+adj+' law ':null,' '+w+'n law '].filter(Boolean).find(x=>t.includes(x));
+    if(h) add(l+' law', c=>groupLabelOf(c,'law')===l, 'law', h.trim()); });
   // value streams, types and counterparties by the names the book holds
   const fold=s=>_igNorm(s).replace(/&/g,'and');
   const FOLD=(typeof FOLDERS!=='undefined'&&FOLDERS)||{};
   Object.values(FOLD).forEach(f=>{ const n=fold(f.name), first=n.split(' ')[0];
-    if(first.length>=4&&(t.includes(' '+n+' ')||t.includes(' '+first+' '))) add(f.name, c=>FOLD[c.folder]&&FOLD[c.folder].name===f.name); });
+    const h=t.includes(' '+n+' ')?n:(first.length>=4&&t.includes(' '+first+' '))?first:null;
+    if(h) add(f.name, c=>FOLD[c.folder]&&FOLD[c.folder].name===f.name, 'folder', h); });
   const kindOf=c=>{ try{ return (typeof cKind==='function')?cKind(c):''; }catch(_){ return ''; } };
   const kinds=[...new Set((state.contracts||[]).map(kindOf).filter(Boolean))];
   kinds.forEach(k=>{ const n=_igNorm(k), pl=n.endsWith('s')?n:n+'s';
-    if(n.length>=3&&(t.includes(' '+n+' ')||t.includes(' '+pl+' '))) add(k, c=>kindOf(c)===k); });
+    if(n==='contract'||n==='agreement'||n.length<3) return;      // "contracts" names nothing
+    const h=t.includes(' '+n+' ')?n:t.includes(' '+pl+' ')?pl:null;
+    if(h) add(k, c=>kindOf(c)===k, 'kind', h); });
   const cps=[...new Set((state.contracts||[]).map(c=>c.counterparty).filter(Boolean))];
-  cps.forEach(p=>{ const n=_igNorm(p), first=n.split(' ')[0];
-    if(t.includes(' '+n+' ')||(first.length>=5&&!/^(the|and|group|limited|ltd|kenya|africa|east)$/.test(first)&&t.includes(' '+first+' '))) add(p, c=>c.counterparty===p); });
+  const named=new Set();
+  cps.forEach(p=>{ const n=_igNorm(p); if(n&&t.includes(' '+n+' ')){ named.add(p); add(p, c=>c.counterparty===p, 'counterparty', n); } });
+  const firstOf=p=>_igNorm(p).split(' ')[0].replace(/[^\p{L}\p{N}&'-]/gu,'');
+  const byWord={};
+  cps.forEach(p=>{ if(named.has(p)) return; const w=firstOf(p); if(w.length<3||IG_CP_STOP.has(w)||!t.includes(' '+w+' ')) return; (byWord[w]||(byWord[w]=[])).push(p); });
+  Object.keys(byWord).forEach(w=>{ const ps=byWord[w], word=String(ps[0]).trim().split(/\s+/)[0].replace(/[^\p{L}\p{N}&'-]/gu,'');
+    if(named.size&&[...named].some(p=>firstOf(p)===w)) return;      // the whole name already said it
+    /* one party answers to the word: its whole name; several: the word they share */
+    if(ps.length===1) add(ps[0], c=>c.counterparty===ps[0], 'counterparty', w);
+    else add(word, c=>firstOf(c.counterparty||'')===w, 'counterparty', w); });
   // one label never stands twice (a stream named twice by two words)
   const seen=new Set(); return conds.filter(x=>seen.has(x.label)?false:(seen.add(x.label),true));
 }
-function igIdsWhere(conds, base){ return (base||state.contracts||[]).filter(c=>conds.every(x=>{ try{ return x.fn(c); }catch(_){ return false; } })).map(c=>c.id); }
+/* What a question still says once every condition's own words and the
+   everyday filler are taken out: '' when the conditions were the whole of
+   it, else the words left — which are somebody else's to answer. */
+const IG_FILLER=/\b(?:show|shows|showing|me|us|all|the|a|an|our|my|your|their|its|contracts?|agreements?|deals?|ones?|obligations?|åtaganden?|list|find|give|get|see|please|which|what|who|that|those|these|have|has|had|are|is|were|was|be|in|of|with|for|and|or|to|do|does|did|we|any|every|from|just|only|now|still|currently|there|here|how|many|number|count|visa|alla|avtal|avtalen|vilka|vad|som|har|är|med|för|och|eller|mig|oss|bara|endast|hur|många|antal|lista|hitta)\b/g;
+function igLeftover(text, conds){
+  let t=' '+_igNorm(text)+' ';
+  (conds||[]).forEach(x=>{ const h=' '+_igNorm(x.hit||'')+' '; if(h.trim()) t=t.split(h).join(' '); });
+  return t.replace(IG_FILLER,' ').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+}
+/* AND across fields, OR within one: "Naivas and Carrefour" is either, "signed
+   Naivas contracts" is both. */
+function igIdsWhere(conds, base){
+  const groups={}; (conds||[]).forEach(x=>{ const f=x.field||x.label; (groups[f]||(groups[f]=[])).push(x); });
+  const gs=Object.values(groups);
+  return (base||state.contracts||[]).filter(c=>gs.every(g=>g.some(x=>{ try{ return x.fn(c); }catch(_){ return false; } }))).map(c=>c.id);
+}
 /* ---- THE TOP N: "top 10 by value", "the 3 biggest in each stream" ---- */
 const IG_TOP_BY={ value:c=>igHomeValue(c), payterms:c=>(typeof payDays==='function'?payDays(c):null), obligations:c=>((c.obligations)||[]).filter(o=>o&&!o.completedAt&&!o.done).length, renewal:c=>{ const d=graphDecisionOf(c).days; return d==null?null:-d; } };
 function igTopIds(n, by, per, base){
@@ -1393,6 +1443,11 @@ function igRecipeParse(qRaw){
   /* a fact named with no instruction ("payment terms", "by owner?") — ask */
   const bare=q.replace(/^(?:(?:show(?: me)?|the|our|my|contracts?|avtal(?:en)?|visa|by|efter)\s+)+/,'');
   const f=igFactFind(bare); if(f&&bare.length<=f.len+2) return { acts:[{ ask:f.key }], rest:'' };
+  /* CONDITIONS WITH NO VERB ("Juno contracts", "NDAs", "contracts expiring in
+     the next 6 months", "Carrefour drafts") narrow, when the conditions are
+     the whole of the question; a question word makes it a highlight. What
+     the conditions do not cover goes on to Copilot. */
+  { const cq=igConditions(q); if(cq.length&&!igLeftover(q,cq)) return { acts:[{ narrow:{ conds:cq, mode:/^(?:which|what|vilka|vad)\b/.test(q)?'highlight':'only' } }], rest:'' }; }
   if(unknown) return { acts:[{ unknownFact:String(unknown.text).trim(), role:unknown.role }], rest:q };
   return null;
 }
@@ -6320,7 +6375,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SE
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp});
-Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

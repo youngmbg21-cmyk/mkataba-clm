@@ -24792,3 +24792,46 @@ obligations; every list Copilot or the map answers with on the board side is
 drawn as the `ls` dig (`hbShowFound`, called from `intelAsk`, the list kept in
 `s.found`); a `storage` event from another tab drops this tab's cached board.
 Checks: home-board-verify 11a–d, 12a–b (all six red at 798b79c), f447 (3).
+
+## HOME AND EXPLORER — ONE READER FOR "WHICH CONTRACTS" (3 Oct 2026, late)
+
+Young, off a screenshot of the map with "juno · 25" lit over all 179: *"I
+asked for Juno contracts and it shows me all these contracts. Review the whole
+relationship between prompting and the mapping into the dashboards because the
+outputs give poor results. Find the limitations and fix them."*
+HOW IT WAS REVIEWED: a battery of 35 questions in the owner's own style
+(scratchpad battery.js) against a 180-contract book shaped like the live one
+(three companies sharing the word Juno), each run through the board's reader
+and the map's reader, before and after. THE LIMITATIONS FOUND:
+- The board and the map had two readers that disagreed: "Show me all expired
+  contracts" was 23 on the board (Home's own reading: a live agreement past
+  its end) and 46 on the map (anything with a past date, closed ones too);
+  "ends in the next 90 days" 38 against 46.
+- The map's reader took "contracts" as the KIND "Contract" (63 of 179 — the
+  18:23 screenshot's "Showing 63 of 179 · Contract") and needed five letters
+  of a counterparty's first word, so "Juno" (four) named nothing.
+- Conditions were AND-ed even on one field: "Naivas and Carrefour" found
+  nothing. Two readers each kept the half they knew: "signed Juno contracts"
+  was Juno on the board and signed on the map; "Juno contracts in procurement"
+  the same the other way round.
+- A condition sentence with no verb ("NDAs", "contracts expiring in the next 6
+  months", "contracts signed in 2026", "Carrefour drafts") went to Copilot
+  although the free reader had read all of it.
+- "end this year" was not an ending (only expire/renew were).
+- "Show these on the map" LIT the list over everything (the screenshot).
+- The board's name was said back lowercase ("juno"); "{what} is where most of
+  the risk sits" printed a clause name as a sentence.
+WHAT CHANGED: `igConditions` is the one reader (conditions carry `field` and
+`hit`; `igIdsWhere` ORs within a field and ANDs across; counterparties by
+whole name or first word ≥3 letters outside `IG_CP_STOP`, said back in the
+book's spelling, the whole name where one party answers; the generic kind is
+skipped; expired and ending windows use Home's live-agreement reading;
+suppliers/customers are a side condition). `igLeftover` measures what the
+conditions did not cover; when nothing, the map narrows locally and the board
+opens the `q:` dig, which re-reads the question on every paint. The board's
+`hbFindParty`/`hbPartyIds`/`fd:` are gone (the `fd:` key still opens as `q:`).
+`hbShowOnMap` narrows. A lens left on the map still narrows a later "top N"
+on the board — the map's own follow-up rule, left as it is.
+AFTER: every one of the 35 lands on both screens with the same count.
+Checks: f447 (3) "both screens" cases (red at 5d8d1a6), f427 (2) unchanged
+but for the single-party label, home-board-verify 11a–11a4.

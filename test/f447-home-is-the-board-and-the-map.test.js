@@ -135,8 +135,6 @@ describe('F447 (3) — the reader, without a model', () => {
     ['start over', { act: 'reset' }],
     ['remove the risk panel', { act: 'remove', kind: 'exp', lens: null }],
     /* 3 Oct 2026, the owner's own words off a screenshot */
-    ['Show me all Siginon contracts', { act: 'dig', key: 'fd:siginon' }],
-    ['contracts with Sendy', { act: 'dig', key: 'fd:sendy' }],
     ['Show me all expired contracts', { act: 'dig', key: 'f:past' }],
     ['Show me contracts that have expired', { act: 'dig', key: 'f:past' }],
     ['Show me agreements that are past due', { act: 'panel', kind: 'obl', lens: null }],
@@ -160,11 +158,67 @@ describe('F447 (3) — the reader, without a model', () => {
     assert.equal(sb.hbAsk('bring up MK-1'), null, 'so is a contract');
     assert.equal(sb.hbAsk('suppliers only'), null, 'and a lens');
   });
-  test('a name is read off the book, never guessed: everyday words and unknown names find nothing', () => {
-    const { sb } = world();
-    assert.equal(sb.hbFindParty('show me all Zanzibar contracts'), null);
-    assert.equal(sb.hbFindParty('show me all contracts'), null);
-    assert.deepEqual([...sb.hbPartyIds('siginon')], ['MK-1']);
+  /* ONE READER FOR BOTH SCREENS (the owner's review, 3 Oct 2026 evening:
+     "I asked for Juno contracts and it shows me all these contracts"): a
+     question about WHICH contracts is read by the map's own conditions
+     reader, so the board and the map can never disagree. Driven in the
+     Explorer harness with the board loaded into it. */
+  const { buildWorld } = require('./world');
+  function both(){
+    const w = buildWorld({ intelView: true }).win;
+    w.state = { contracts: book().map(c => ({ ...c, metadata: { ...(c.metadata || {}) } })), settings: {}, view: 'dashboard' };
+    w.FOLDERS = { proc: { id: 'proc', name: 'Procurement & Raw Materials' }, sales: { id: 'sales', name: 'Sales & Route-to-Market' } };
+    w.cKind = c => c.kind || 'Contract';
+    w.getContract = id => w.state.contracts.find(c => c.id === id) || null;
+    w.payDays = c => { const m = String((c.metadata && c.metadata.paymentTerms) || '').match(/(\d+)/); return m ? Number(m[1]) : null; };
+    w.paySide = c => ({ supplier: 'supplier', customer: 'customer' })[(c.metadata && c.metadata.category) || ''] || null;
+    w.contractExpired = c => c.status === 'Signed' && !!c.expiry && c.expiry < day(0);
+    w.currentUser = () => ({ id: 'u_test', name: 'Test User', role: 'legal' });
+    w.eval(read('js/views/homeboard.js'));
+    w.eval('intel.lenses=[]; intel.groups=null; intel.groupBy="folder"; intel.history=[];');
+    return w;
+  }
+  const bothCases = [
+    ['Show me all Siginon contracts', 'q:Show me all Siginon contracts', ['MK-1']],
+    ['contracts with Sendy', 'q:contracts with Sendy', ['MK-2']],
+    ['Siginon and Sendy', 'q:Siginon and Sendy', ['MK-1', 'MK-2']],
+    ['signed Siginon contracts', 'q:signed Siginon contracts', ['MK-1']],
+    ['Siginon drafts', 'q:Siginon drafts', []],
+    ['which contracts expire this year', 'q:which contracts expire this year', null],
+    ['suppliers paying later than 45 days', 'q:suppliers paying later than 45 days', []],
+    ['customers paying later than 45 days', 'q:customers paying later than 45 days', ['MK-2']],
+  ];
+  for (const [q, key, ids] of bothCases) test('both screens: ' + JSON.stringify(q), () => {
+    const w = both();
+    assert.deepEqual({ ...w.hbParse(q) }, { act: 'dig', key }, 'the board reads it as a list of exactly these');
+    const D = w.hbDigData(key, 'all');
+    assert.ok(D && D.kind === 'list');
+    const onMap = w.igIdsWhere(w.igConditions(q));
+    assert.deepEqual([...D.ids].sort(), [...onMap].sort(), 'the board\'s list IS the map\'s');
+    if (ids) assert.deepEqual([...D.ids].sort(), ids);
+    const parsed = w.igRecipeParse(q);
+    assert.ok(parsed && parsed.acts.some(a => a.narrow), 'the map narrows on it without Copilot');
+  });
+  test('a name is read off the book, never guessed; "contracts" names nothing; an everyday first word does not', () => {
+    const w = both();
+    assert.equal(w.igConditions('show me all Zanzibar contracts').length, 0);
+    assert.equal(w.igConditions('show me all contracts').length, 0);
+    assert.equal(w.hbParse('show me all Zanzibar contracts'), null, 'an unknown name goes on to Copilot');
+    w.state.contracts.push({ id: 'MK-9', name: 'x', counterparty: 'The Carton Company', status: 'Draft', value: 1, audit: [] });
+    assert.equal(w.igConditions('the contracts').length, 0, '"The" is not a counterparty');
+    assert.deepEqual([...w.igConditions('the carton company contracts').map(x => x.label)], ['The Carton Company']);
+  });
+  test('a single condition that is one of Your book\'s figures opens that figure\'s door; "overdue" the obligations panel', () => {
+    const w = both();
+    assert.deepEqual({ ...w.hbParse('show expired contracts') }, { act: 'dig', key: 'f:past' });
+    assert.deepEqual({ ...w.hbParse('what ends in the next 90 days') }, { act: 'dig', key: 'f:ending' });
+    assert.deepEqual({ ...w.hbParse('which contracts are overdue') }, { act: 'panel', kind: 'obl', lens: null });
+    assert.deepEqual({ ...w.hbParse('suppliers only') }, { act: 'lens', lens: 'suppliers' });
+  });
+  test('"Show these on the map" NARROWS the map to the list, never lights it over everything', () => {
+    const body = HB_SRC.slice(HB_SRC.indexOf('function hbShowOnMap'), HB_SRC.indexOf('\n}', HB_SRC.indexOf('function hbShowOnMap')));
+    assert.match(body, /addLens\(\{ ids: list,[\s\S]*action: 'filter' \}\)/);
+    assert.doesNotMatch(body, /action: 'highlight'/);
   });
   test('the reader never builds a pattern from the translated words (the house rule)', () => {
     const body = HB_SRC.slice(HB_SRC.indexOf('const HB_RX'), HB_SRC.indexOf('function hbParse'));

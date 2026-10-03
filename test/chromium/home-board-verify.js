@@ -52,6 +52,8 @@ const CONTRACTS = [
     metadata: { value: 6000000, currency: 'KES', category: 'supplier', paymentTerms: '45 days' } }),
   mk('MK-C1', 'Retail Listing West', 'Quickmart', 'sales', 30000000, 'Signed', { expiry: day(300),
     metadata: { value: 30000000, currency: 'KES', category: 'customer', paymentTerms: '60 days' } }),
+  mk('MK-J1', 'Juno Licence', 'Juno Ltd', 'proc', 4000000, 'Signed', { expiry: day(200) }),
+  mk('MK-J2', 'Juno Retail', 'Juno Fresh AB', 'sales', 2000000, 'Draft', {}),
   mk('MK-C2', 'Hotel Supply', 'Serena Group', 'sales', 9000000, 'Under Review',
     { metadata: { value: 9000000, currency: 'KES', category: 'customer' } }),
   ...FIXTURES,
@@ -226,11 +228,29 @@ const CONTRACTS = [
     await until(page, () => !!document.querySelector('#hb-board .hb-book'));
     const landsOn = async (q, test) => { await ask(page, q); return until(page, test, null, 10000); };
     ok('11a "Show me all Kenya Cartons contracts" lists that counterparty\'s contracts on the board', await landsOn('Show me all Kenya Cartons contracts', () =>
-      (hbS().path || []).slice(-1)[0] === 'fd:kenya cartons' && [...document.querySelectorAll('#hb-focus [data-hb-dig^="c:"]')].map(e => e.getAttribute('data-hb-dig')).join() === 'c:MK-S1'));
+      /^q:/.test((hbS().path || []).slice(-1)[0] || '') && [...document.querySelectorAll('#hb-focus [data-hb-dig^="c:"]')].map(e => e.getAttribute('data-hb-dig')).join() === 'c:MK-S1'
+      && /Kenya Cartons/.test((document.querySelector('#hb-focus .hb-ct') || {}).textContent || '')));
+    /* ONE READER FOR BOTH SCREENS (the owner's review): the same question
+       narrows the map to the same contracts, without Copilot, and "Show
+       these on the map" narrows rather than lights. */
+    await page.click('#hb-focus [data-hb-map]').catch(() => {});
+    ok('11a2 "Show these on the map" narrows the map to exactly those, not everything lit', await until(page, () => {
+      const a = intelActive(); return hbS().face === 'explorer' && !!a.ids && a.action === 'filter' && [...a.ids].join() === 'MK-S1'; }, null, 10000));
+    await page.evaluate(() => { intel.lenses = []; intel.history = []; });
+    await ask(page, 'Show me all Kenya Cartons contracts');
+    ok('11a3 asked on the map, the same words narrow the map to the same contracts, free', await until(page, () => {
+      const a = intelActive(); return !!a.ids && [...a.ids].join() === 'MK-S1' && !intel.busy; }, null, 10000));
+    await page.click('[data-hb-face="board"]'); await until(page, () => hbS().face === 'board' && !document.getElementById('hb-board').hidden);
+    await ask(page, 'show me the signed Juno contracts in procurement');
+    ok('11a4 conditions combine: a name, a stage and a stream are one list', await until(page, () =>
+      /^q:/.test((hbS().path || []).slice(-1)[0] || '') && [...document.querySelectorAll('#hb-focus [data-hb-dig^="c:"]')].map(e => e.getAttribute('data-hb-dig')).join() === 'c:MK-J1'));
     ok('11b "Show me all expired contracts" is past the end date, not ending soon', await landsOn('Show me all expired contracts', () =>
       (hbS().path || []).slice(-1)[0] === 'f:past' && !!document.querySelector('#hb-focus [data-hb-dig="c:MK-S2"]')));
     ok('11c "Show me agreements that are past due" puts the overdue obligations on the board', await landsOn('Show me agreements that are past due', () =>
       hbS().panels.some(p => p.kind === 'obl') && !!document.querySelector('#hb-board [data-hb-pid] .hb-ct')));
+    /* a lens left on the map narrows a "top N" to what is showing (the map's
+       own follow-up rule), so the map is cleared first */
+    await page.evaluate(() => { intel.lenses = intel.lenses.filter(l => l.hb); });
     ok('11d a list the map answers with is drawn on the board too', await landsOn('show the 3 largest contracts', () =>
       (hbS().path || []).slice(-1)[0] === 'ls' && document.querySelectorAll('#hb-focus [data-hb-dig^="c:"]').length === 3));
 
