@@ -308,6 +308,22 @@ const CONTRACTS = [
     await page.click('#hb-focus [data-hb-digbig]');
     await until(page, () => !document.querySelector('#hb-focus .hb-dig.is-big'));
 
+    /* ===== 14. THE COUNT FOLLOWS THE QUESTION (Young: "the top constant 6
+       cards should also change based on the results of the latest output") */
+    await page.click('[data-hb-crumb="-1"]').catch(() => {});
+    await until(page, () => !hbCountKey());
+    const whole = await page.evaluate(() => hbBookData('all', { whole: true }).figs.live.n);
+    await ask(page, 'Show me all Juno contracts');
+    const counted = await page.evaluate(() => { const d = hbBookData('all'); return { live: d.figs.live.n, set: hbDigData(hbCountKey(), 'all').ids.length, tile: (document.querySelector('#hb-book .hb-fig .hb-fig-n') || {}).textContent, sub: (document.querySelector('#hb-book .hb-cs') || {}).textContent, chip: (document.querySelector('.hb-counting .is-count') || {}).textContent }; });
+    ok('14a the six figures recount for the question\'s set, the tile says so, and the chip names it', counted.live < whole && counted.live <= counted.set && String(counted.tile).replace(/\D/g, '') === String(counted.live) && /Juno/.test(counted.sub) && /Juno/.test(counted.chip), JSON.stringify({ whole, ...counted }));
+    ok('14a2 the live line above the book names the set too', await page.evaluate(() => /Juno/i.test((document.querySelector('#hb-board .hb-note') || {}).textContent || '')));
+    await page.click('[data-hb-face="explorer"]');
+    ok('14b flipped to Explorer, the map is narrowed to the same set', await until(page, () => { const L = intel.lenses.find(l => l.id === 'hbcount'); return !!L && L.on && L.action === 'filter' && L.ids.length === hbDigData(hbCountKey(), 'all').ids.length; }));
+    await page.click('[data-hb-face="board"]');
+    await until(page, () => hbS().face === 'board' && !!document.querySelector('.hb-counting .is-count [data-hb-crumb="-1"]'));
+    await page.click('.hb-counting .is-count [data-hb-crumb="-1"]');
+    ok('14c the chip\'s × brings the whole book back', await until(page, w => !hbCountKey() && hbBookData('all').figs.live.n === w && !!document.querySelector('.hb-counting .is-all'), whole));
+
     /* ===== 12. TWO TABS, ONE BOARD =====
        Each tab used to keep its own copy and write it back whole on every
        paint, so a panel added in one tab vanished when another tab saved. */
