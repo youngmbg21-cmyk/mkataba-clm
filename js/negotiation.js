@@ -3874,6 +3874,50 @@ function negoNoteGive(c, host, m, to, due, user){
           (u && u.name) || 'somebody'} — the contract is unchanged`);
   return real;
 }
+/* ---- A TICK THAT SAYS "SEEN" (Young asked 3 Oct 2026) ----
+   `seen` is a list of {id, name, at} and is ABSENT until somebody ticks, so
+   every note already on file reads as seen by nobody and nothing migrates.
+
+   IT IS NEVER A DECISION, and two things follow from that. It writes NO
+   AUDIT LINE: a tick per reader per note would bury the trail that records
+   what was actually agreed, and "I have read it" is not a fact the record of
+   an agreement needs. And it never travels — like `given`, it is not on the
+   server's msgMeta allow-list, so the other side never learns how our side
+   reads its post. f444 pins both.
+
+   ONE ENTRY PER PERSON. Ticking twice is still one tick; the id answers
+   first and the name second, the order negoNoteAuthoredBy asks in. */
+function negoNoteSeenBy(m){
+  const list = (m && Array.isArray(m.seen)) ? m.seen : [];
+  return list.map(x => ({ id: (x && x.id) ? String(x.id) : null,
+    name: String((x && x.name) || '').trim(), at: String((x && x.at) || '') }))
+    .filter(x => x.name);
+}
+function negoNoteSeenByMe(m, user){
+  const u = user || (window.currentUser && window.currentUser()) || null;
+  if (!u) return false;
+  return negoNoteSeenBy(m).some(x => (x.id && u.id)
+    ? String(x.id) === String(u.id)
+    : String(x.name).toLowerCase() === String(u.name || '').trim().toLowerCase());
+}
+/* THE ONE WRITER of `seen`, on negoNoteDone's own shape: the note is found by
+   key on the REAL thread, so a caller holding a merged copy still marks the
+   record. Un-ticking takes out YOUR OWN entry and nobody else's. */
+function negoNoteSee(c, host, m, on, user){
+  const thread = negoNoteHome(c, host || null);
+  const key = negoNoteKey(m);
+  const real = thread.find(x => negoNoteKey(x) === key) || null;
+  if (!real) return null;
+  const u = user || (window.currentUser && window.currentUser()) || null;
+  if (!u || !String(u.name || '').trim()) return null;
+  const mine = x => (x && x.id && u.id) ? String(x.id) === String(u.id)
+    : String((x && x.name) || '').trim().toLowerCase() === String(u.name).trim().toLowerCase();
+  const list = Array.isArray(real.seen) ? real.seen.filter(x => !mine(x)) : [];
+  if (on) list.push({ id: u.id || null, name: String(u.name).trim(),
+    at: (window.nowISO ? window.nowISO() : new Date().toISOString()) });
+  if (list.length) real.seen = list; else delete real.seen;
+  return real;
+}
 /* Every note on this contract sitting with this reader and not yet done.
    READING MUST NOT WRITE: `negoNoteHome` creates `thread` as a side effect
    and `negoChanges` would create a negotiation, so neither is asked — this
@@ -5304,6 +5348,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoNoteAuthoredBy, negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
   negoNoteId, negoNoteKey, negoNoteAnchor, negoNoteQuote, negoNoteHomeFor, negoAnchorState, negoNoteDone, negoNoteThreads, NOTE_QUOTE_MAX,
   negoNoteGiven, negoNoteForMe, negoNoteGive, negoNotesForMe,
+  negoNoteSeenBy, negoNoteSeenByMe, negoNoteSee,
   negoNotesReadAt, negoNoteUnread, negoMarkNotesRead,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,

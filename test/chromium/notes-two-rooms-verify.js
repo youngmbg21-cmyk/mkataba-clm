@@ -308,6 +308,60 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       }
     }
 
+    /* ============================================================
+       A TICK THAT SAYS "SEEN" (Young asked 3 Oct 2026, idea 1)
+       ============================================================
+       f444 pins the model. Here: that the tick is really drawn on a note in
+       the drawer, that one press writes the record and says who, and that a
+       second press takes it back. */
+    const seen0 = await page.evaluate(() => {
+      const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+      openNotesPanel(c.id, null, { force: true });
+      return new Promise(r => setTimeout(() => r({
+        ticks: document.querySelectorAll('#context-panel [data-rl-np-seen]').length,
+        said: document.querySelectorAll('#context-panel .rl-np-seenby').length }), 600));
+    });
+    check('the Seen tick is drawn on the notes in the drawer',
+      seen0.ticks >= 1, 'ticks: ' + seen0.ticks);
+    check('and nothing claims anybody has read them yet',
+      seen0.said === 0, 'lines: ' + seen0.said);
+
+    if (seen0.ticks >= 1){
+      await page.evaluate(() => document.querySelector('#context-panel [data-rl-np-seen]').click());
+      await page.waitForTimeout(450);
+      const seen1 = await page.evaluate(() => {
+        const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+        const all = [...(c.thread || [])].concat(
+          ...(c.changes || []).map(ch => (ch && ch.thread) || []));
+        const n = all.find(m => m && Array.isArray(m.seen) && m.seen.length) || null;
+        const line = document.querySelector('#context-panel .rl-np-seenby');
+        const b = document.querySelector('#context-panel [data-rl-np-seen]');
+        return { stored: n ? n.seen.map(x => x.name) : null,
+          at: !!(n && n.seen[0] && n.seen[0].at),
+          line: line ? line.textContent.trim() : null,
+          pressed: b ? b.getAttribute('aria-pressed') : null,
+          lit: b ? b.classList.contains('is-on') : false };
+      });
+      check('one press records who read it, and when',
+        !!seen1.stored && seen1.stored.length === 1 && seen1.at, JSON.stringify(seen1.stored));
+      check('the note says so, and names you rather than your own name',
+        !!seen1.line && /Seen/.test(seen1.line) && /You/.test(seen1.line), seen1.line);
+      check('and the tick itself reads as pressed',
+        seen1.pressed === 'true' && seen1.lit, JSON.stringify({ p: seen1.pressed, lit: seen1.lit }));
+
+      await page.evaluate(() => document.querySelector('#context-panel [data-rl-np-seen]').click());
+      await page.waitForTimeout(450);
+      const seen2 = await page.evaluate(() => {
+        const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+        const all = [...(c.thread || [])].concat(
+          ...(c.changes || []).map(ch => (ch && ch.thread) || []));
+        return { any: all.some(m => m && m.seen),
+          line: !!document.querySelector('#context-panel .rl-np-seenby') };
+      });
+      check('a second press takes the tick back, from the record and the note',
+        !seen2.any && !seen2.line, JSON.stringify(seen2));
+    }
+
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await page.waitForTimeout(300);
     const btn = await page.evaluate(() => {

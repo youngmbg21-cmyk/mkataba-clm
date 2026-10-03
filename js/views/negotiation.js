@@ -15817,7 +15817,21 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
     ? (given.due ? i18t('ng_np_given_by', { who: given.name, day: given.due })
                  : i18t('ng_np_given', { who: given.name }))
     : '';
+  /* ---- A TICK THAT SAYS "SEEN" (Young asked 3 Oct 2026) ----
+     On EVERY note, not only the root: a reply is read too, and the whole
+     point is to answer "has anyone looked at this" without writing a word.
+     Who has ticked is said beside it, so the tick is never a count nobody can
+     read back. Our seat only — the field never reaches their page. */
+  const seenList = (!PORTAL_MODE && window.negoNoteSeenBy) ? negoNoteSeenBy(m) : [];
+  const iSaw = !!(!PORTAL_MODE && window.negoNoteSeenByMe && negoNoteSeenByMe(m));
+  const seenWords = seenList.length ? i18t('ng_np_seen_by', {
+    who: seenList.map(x => iSaw && window.currentUser && currentUser()
+      && String(x.name).toLowerCase() === String(currentUser().name || '').toLowerCase()
+      ? i18t('ng_np_seen_you') : x.name).join(', ') }) : '';
   const acts = (ctx && ctx.acts) ? `<div class="rl-np-acts">
+      ${(ctx.mayWrite && !PORTAL_MODE) ? `<button type="button" class="rl-np-act-b g rl-np-seen${iSaw ? ' is-on' : ''}" data-rl-np-seen="${_nea(key)}" data-on="${iSaw ? '0' : '1'}"
+        aria-pressed="${iSaw ? 'true' : 'false'}" title="${_nea(i18t(iSaw ? 'ng_np_seen_off_t' : 'ng_np_seen_on_t'))}">✓ ${i18t('ng_np_seen')}</button>` : ''}
+      ${seenWords ? `<span class="rl-np-seenby">${_ne(seenWords)}</span>` : ''}
       ${ctx.mayWrite ? `<button type="button" class="rl-np-act-b" data-rl-np-reply="${_nea(rootKey)}" data-rl-np-reply-under="${_nea(key)}">${i18t('ng_np_reply')}</button>` : ''}
       ${(ctx.mayWrite && root) ? `<button type="button" class="rl-np-act-b g" data-rl-np-done="${_nea(key)}" data-on="${m.done ? '0' : '1'}">${
         i18t(m.done ? 'ng_np_reopen' : 'ng_np_done')}</button>` : ''}
@@ -16735,6 +16749,19 @@ function rlNpWireActs(host, c, ch, opts = {}, repaint){
   host.querySelectorAll('[data-rl-np-give]').forEach(b => b.addEventListener('click', ev => {
     ev.preventDefault(); ev.stopPropagation();
     rlNpGivePick(c, homeOf(b), b.getAttribute('data-rl-np-give'), opts, side, again);
+  }));
+  /* THE TICK. Local and persisted, nothing sent: `seen` is not on the
+     server's message allow-list and must never be. */
+  host.querySelectorAll('[data-rl-np-seen]').forEach(b => b.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const key = b.getAttribute('data-rl-np-seen');
+    const on = b.getAttribute('data-on') === '1';
+    const home = homeOf(b);
+    const m = negoRoomNotes(c, home, null, opts, side).find(x => negoNoteKey(x) === String(key)) || null;
+    if (!m || !window.negoNoteSee) return;
+    negoNoteSee(c, home, m, on);
+    if (opts.persist !== false && window.persist) persist(c);
+    again();
   }));
   /* THE PIN'S OWN CONTROLS. A draft typed under the pin stays with the room
      it was typed in when the switch is pressed (the window's D-6 rule kept),

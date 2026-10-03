@@ -3198,6 +3198,14 @@ const STRINGS = {
     /* ---- A NOTE GIVEN TO A COLLEAGUE (Young asked 3 Oct 2026) ----
        The chip says who has it and, where one was set, the day — nothing
        about process, because the row it sits on is already the note. */
+    /* ---- A TICK THAT SAYS "SEEN" (Young asked 3 Oct 2026) ----
+       Never a decision, so never a sentence: the word, the names, and the
+       reason on the hover. */
+    ng_np_seen: 'Seen',
+    ng_np_seen_by: 'Seen — {who}',
+    ng_np_seen_you: 'You',
+    ng_np_seen_on_t: 'Say you have read this. It decides nothing.',
+    ng_np_seen_off_t: 'Take your tick back',
     ng_np_give: 'Give to…',
     ng_np_give_change: 'Change who has this, or take it back',
     ng_np_given: 'With {who}',
@@ -13573,6 +13581,11 @@ const STRINGS = {
     ng_np_done: 'Klar',
     ng_np_reopen: 'Öppna igen',
     ng_np_done_by: 'Klar · {who}',
+    ng_np_seen: 'Sedd',
+    ng_np_seen_by: 'Sedd — {who}',
+    ng_np_seen_you: 'Du',
+    ng_np_seen_on_t: 'Säg att du har läst den. Den avgör ingenting.',
+    ng_np_seen_off_t: 'Ta tillbaka din markering',
     ng_np_give: 'Ge till…',
     ng_np_give_change: 'Byt vem som har den, eller ta tillbaka den',
     ng_np_given: 'Hos {who}',

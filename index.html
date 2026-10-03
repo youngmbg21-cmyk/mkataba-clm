@@ -8027,6 +8027,12 @@
     background:var(--accent-wash,transparent);border:0;border-radius:var(--radius);padding:1px 6px;}
   button.rl-np-given{cursor:pointer;}
   button.rl-np-given:hover{text-decoration:underline;}
+  /* THE TICK reads as a quiet verb until it is yours, and then it is the
+     accent — the same shade the given chip takes, because both say the same
+     kind of thing: somebody has this in hand. Never amber: a note nobody has
+     read yet is not a fault. */
+  .rl-np-seen.is-on{color:var(--accent-ink);font-weight:var(--w-title);}
+  .rl-np-seenby{font-size:var(--t-micro);color:var(--color-neutral-600);}
   .rl-np-rbox{margin:6px 0 4px 12px;padding-left:9px;border-left:2px solid var(--color-accent);display:grid;gap:6px;}
   .rl-np-rbox.out{border-left-color:var(--st-amber-fg);}
   .rl-np-rin{width:100%;min-height:44px;border:1px solid var(--color-divider);
