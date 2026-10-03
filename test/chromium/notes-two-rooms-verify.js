@@ -226,6 +226,88 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
        at a missing symbol renders an empty box, with no error), that the press
        is not dead, and that the door is really DISABLED where pressing it would
        put a panel up behind the clause editor. */
+    /* ============================================================
+       GIVING A NOTE TO A COLLEAGUE (Young asked 3 Oct 2026, idea 16)
+       ============================================================
+       The node file (f443) pins the model and the wall. Three things only a
+       real browser can answer: that the button is drawn and is not a dead
+       press, that the dialog's own Give writes the record, and that the chip
+       it leaves behind is itself a door back into the picker. */
+    const giveSetup = await page.evaluate(async () => {
+      const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+      const who = (window.reviewCandidates ? reviewCandidates(c) : []) || [];
+      if (!who.length) return { ok: false, why: 'no colleague to give it to' };
+      negoPostComment(c, null, 'Does our insurance actually cover this?',
+        { side: 'owner', author: currentUser().name, visibility: 'internal' });
+      openNotesPanel(c.id, null, { force: true });
+      return new Promise(r => setTimeout(() => r({ ok: true, mate: who[0].name,
+        buttons: document.querySelectorAll('#context-panel [data-rl-np-give]').length }), 700));
+    });
+    check('the Give to… button is drawn on a note in the drawer',
+      giveSetup.ok && giveSetup.buttons >= 1, giveSetup.why || ('found ' + giveSetup.buttons));
+
+    if (giveSetup.ok && giveSetup.buttons >= 1){
+      /* DISPATCHED IN THE PAGE, not driven by the mouse: the drawer's own
+         sticky header sits over the note list, so Playwright scrolls the row
+         under it and the press lands on the header instead. The standing rule
+         in this codebase for exactly this. */
+      await page.evaluate(() => document.querySelector('#context-panel [data-rl-np-give]').click());
+      await page.waitForTimeout(350);
+      const dlg = await page.evaluate(() => ({
+        open: !!document.getElementById('npg-who'),
+        people: [...document.querySelectorAll('#npg-who option')].map(o => o.value),
+        hasDue: !!document.getElementById('npg-due') }));
+      check('pressing it opens the picker, with colleagues and an optional day',
+        dlg.open && dlg.people.length >= 1 && dlg.hasDue, JSON.stringify(dlg));
+
+      if (dlg.open){
+        await page.evaluate(() => { document.getElementById('npg-due').value = '2030-01-09'; });
+        await page.evaluate(() => document.getElementById('npg-go').click());
+        await page.waitForTimeout(500);
+        const after = await page.evaluate(() => {
+          const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+          /* A note lives on the CONTRACT's thread or on a change's, and the
+             drawer shows whichever it is pinned to — so the record is read
+             the way the product reads it, across both. */
+          const all = [...(c.thread || [])].concat(
+            ...(c.changes || []).map(ch => (ch && ch.thread) || []));
+          const n = all.find(m => m && m.given) || null;
+          const chip = document.querySelector('#context-panel .rl-np-given');
+          return { stored: n ? { name: n.given.name, due: n.given.due } : null,
+            chip: chip ? chip.textContent.trim() : null,
+            chipIsDoor: !!(chip && chip.tagName === 'BUTTON' && chip.hasAttribute('data-rl-np-give')),
+            ink: chip ? getComputedStyle(chip).color : null };
+        });
+        check('the record now says who has it, and by when',
+          !!after.stored && after.stored.name === giveSetup.mate && after.stored.due === '2030-01-09',
+          JSON.stringify(after.stored));
+        check('the chip on the note says the same thing',
+          !!after.chip && after.chip.includes(giveSetup.mate), after.chip);
+        /* THE CHIP IS THE DOOR BACK. Drawn as a span it would read as a label
+           and the only way to change who has the note would be gone. */
+        check('and the chip is itself a door back into the picker',
+          after.chipIsDoor, 'tag/attribute: ' + JSON.stringify(after.chipIsDoor));
+
+        await page.evaluate(() => document.querySelector('#context-panel .rl-np-given').click());
+        await page.waitForTimeout(350);
+        const back = await page.evaluate(() => !!document.getElementById('npg-off'));
+        check('which offers taking it back', back, String(back));
+        if (back){
+          await page.evaluate(() => document.getElementById('npg-off').click());
+          await page.waitForTimeout(450);
+          const gone = await page.evaluate(() => {
+            const c = (state.contracts || []).find(x => String(x.id) === String(state.activeId));
+            const all = [...(c.thread || [])].concat(
+              ...(c.changes || []).map(ch => (ch && ch.thread) || []));
+            return { any: all.some(m => m && m.given),
+              chip: !!document.querySelector('#context-panel .rl-np-given') };
+          });
+          check('taking it back clears the record and the chip',
+            !gone.any && !gone.chip, JSON.stringify(gone));
+        }
+      }
+    }
+
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await page.waitForTimeout(300);
     const btn = await page.evaluate(() => {

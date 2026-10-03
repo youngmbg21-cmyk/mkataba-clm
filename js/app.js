@@ -1702,6 +1702,13 @@ const ALERT_KINDS = [
      work owed. */
   { k:'link',        tone:'amber', ic:'&#128279;' },
   { k:'review-mine', tone:'amber', ic:'&#128100;' },
+  /* ---- A NOTE A COLLEAGUE GAVE YOU (3 Oct 2026) ----
+     Ranked beside the review for the same reason: both are a named colleague
+     waiting on this reader by name. Amber — work owed, not a fault. The bell's
+     own chat dot is a different thing and stays: it counts notes that NAME you
+     and remembers per browser; this counts notes somebody handed you, reads
+     the record, and clears when the note is marked done. */
+  { k:'note-mine',   tone:'amber', ic:'&#128221;' },
   { k:'desk-join',   tone:'amber', ic:'&#128101;' },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
   /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
@@ -1911,6 +1918,18 @@ function buildAlerts(){
       (st.waiting||[]).filter(rv=>!window.reviewMaySee||reviewMaySee(rv)).forEach(rv=>push('review-out',c,
         i18t('al_review_out',{who:rv.reviewer&&rv.reviewer.name}),
         ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); }));
+    });
+  }
+  /* 3b. Notes a colleague gave this reader. negoNotesForMe reads c.thread and
+         c.changes RAW — no negotiation is started by counting, which is the
+         fault the review rows above record paying for. One row per contract,
+         and the press is the drawer the note lives in. */
+  if(window.negoNotesForMe){
+    cs.forEach(c=>{
+      let mine=[]; try{ mine=negoNotesForMe(c)||[]; }catch(_){ mine=[]; }
+      if(!mine.length) return;
+      push('note-mine',c,i18tn('al_note_mine',mine.length,{n:mine.length,who:(mine[0].m&&mine[0].m.who)||''}),
+        ()=>{ if(window.openNotesPanel) openNotesPanel(c.id,null,{force:true}); });
     });
   }
   /* 4. Approvals sitting with this person — the dashboard's own queue, so the

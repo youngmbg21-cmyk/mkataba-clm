@@ -8017,6 +8017,16 @@
      nothing dressed it, so it read as a live button that did nothing. */
   .rl-np-act-b:disabled{opacity:.45;cursor:not-allowed;}
   .rl-np-doneby{font-size:var(--t-micro);color:var(--color-neutral-600);}
+  /* A NOTE GIVEN TO A COLLEAGUE wears the accent, not amber: it is work owed,
+     but it is owed by a named person who has been told, which is the settled
+     end of that scale. Amber on this row is reserved for what nobody has
+     picked up. It is a BUTTON (the door back into the picker) and a span on a
+     seat that may not write, so both faces are stated here and neither
+     borrows a control's edge. */
+  .rl-np-given{font-size:var(--t-micro);font-weight:var(--w-title);color:var(--accent-ink);
+    background:var(--accent-wash,transparent);border:0;border-radius:var(--radius);padding:1px 6px;}
+  button.rl-np-given{cursor:pointer;}
+  button.rl-np-given:hover{text-decoration:underline;}
   .rl-np-rbox{margin:6px 0 4px 12px;padding-left:9px;border-left:2px solid var(--color-accent);display:grid;gap:6px;}
   .rl-np-rbox.out{border-left-color:var(--st-amber-fg);}
   .rl-np-rin{width:100%;min-height:44px;border:1px solid var(--color-divider);
