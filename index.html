@@ -8017,6 +8017,22 @@
      nothing dressed it, so it read as a live button that did nothing. */
   .rl-np-act-b:disabled{opacity:.45;cursor:not-allowed;}
   .rl-np-doneby{font-size:var(--t-micro);color:var(--color-neutral-600);}
+  /* A NOTE GIVEN TO A COLLEAGUE wears the accent, not amber: it is work owed,
+     but it is owed by a named person who has been told, which is the settled
+     end of that scale. Amber on this row is reserved for what nobody has
+     picked up. It is a BUTTON (the door back into the picker) and a span on a
+     seat that may not write, so both faces are stated here and neither
+     borrows a control's edge. */
+  .rl-np-given{font-size:var(--t-micro);font-weight:var(--w-title);color:var(--accent-ink);
+    background:var(--accent-wash,transparent);border:0;border-radius:var(--radius);padding:1px 6px;}
+  button.rl-np-given{cursor:pointer;}
+  button.rl-np-given:hover{text-decoration:underline;}
+  /* THE TICK reads as a quiet verb until it is yours, and then it is the
+     accent — the same shade the given chip takes, because both say the same
+     kind of thing: somebody has this in hand. Never amber: a note nobody has
+     read yet is not a fault. */
+  .rl-np-seen.is-on{color:var(--accent-ink);font-weight:var(--w-title);}
+  .rl-np-seenby{font-size:var(--t-micro);color:var(--color-neutral-600);}
   .rl-np-rbox{margin:6px 0 4px 12px;padding-left:9px;border-left:2px solid var(--color-accent);display:grid;gap:6px;}
   .rl-np-rbox.out{border-left-color:var(--st-amber-fg);}
   .rl-np-rin{width:100%;min-height:44px;border:1px solid var(--color-divider);
@@ -9831,6 +9847,15 @@
   .sa-foot{display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-4);flex-wrap:wrap;}
   .sa-foot-note{flex:1 1 200px;font-size:var(--t-meta);color:var(--color-neutral-600);}
   .sa-card{background:var(--color-surface);border:1px solid var(--st-amber-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
+  /* A LANDING IS SEEN, NOT ANNOUNCED (3 Oct 2026). The approval email's link
+     lands on this card, and for a moment it is ringed so the reader's eye
+     finds it. It costs no layout — a ring is drawn outside the box — and it
+     takes itself off, so nothing permanent is added to a page that is already
+     carrying a decision. Reduced motion gets the ring without the fade. */
+  .sa-card.is-landed{outline:2px solid var(--accent-ink);outline-offset:3px;
+    animation:saLanded var(--dur-3,240ms) ease-out;}
+  @keyframes saLanded{from{outline-color:transparent;}to{outline-color:var(--accent-ink);}}
+  @media (prefers-reduced-motion: reduce){ .sa-card.is-landed{animation:none;} }
   .sa-card-h{display:flex;align-items:center;gap:var(--s-2);padding:11px 15px;border-bottom:1px solid var(--st-amber-line);}
   .sa-card-t{font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);}
   .sa-card-when{margin-left:auto;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}

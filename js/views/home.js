@@ -1481,7 +1481,7 @@ function hmDecisionItems(S, deskRows){
    owns is theirs to decide. The drawing is inspector.js's (insNeedsHtml).
    READING MUST NOT WRITE: every source reads, and a source a stage does not
    load says nothing rather than throwing. */
-const NEEDS_YOU_ORDER = ['quiet','review','join','sign','renewal'];
+const NEEDS_YOU_ORDER = ['quiet','review','note','join','sign','renewal'];
 function needsYouOf(c){
   if(!c || c.archived) return [];
   const me=(typeof currentUser==='function')?currentUser():null;
@@ -1495,6 +1495,16 @@ function needsYouOf(c){
     out.push({ kind:'review', urgent:hmReviewLate(rv), who:rv.by||'', n:(x.st&&x.st.total)||0, due:rv.due||null }); }));
   take(()=>(window.deskJoinInboxFor?deskJoinInboxFor(one, me):[]).forEach(x=>{ const r=x.req||{};
     out.push({ kind:'join', urgent:false, who:r.name||'', why:r.why||'', at:r.at||null }); }));
+  /* A NOTE A COLLEAGUE GAVE THIS READER (3 Oct 2026). Urgent once the day
+     they asked for has passed — the only thing on this list whose date was
+     typed by a person rather than worked out, so it is the only one that can
+     be wrong, and it stays a quiet row until it is actually late. */
+  take(()=>{ const mine=(window.negoNotesForMe?negoNotesForMe(c, me):[])||[];
+    if(!mine.length) return;
+    const today=(typeof todayISO==='function')?todayISO():'';
+    const due=mine.map(x=>(x.given&&x.given.due)||'').filter(Boolean).sort()[0]||null;
+    out.push({ kind:'note', urgent:!!(due&&today&&due<today), n:mine.length,
+      who:(mine[0].m&&mine[0].m.who)||'', due }); });
   take(()=>hmMySignings(one).forEach(x=>out.push({ kind:'sign', urgent:false, n:x.n||0 })));
   take(()=>{ const r=hmRenewalDue(c);
     if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))
@@ -1532,6 +1542,9 @@ function needsYouGo(kind, id){
      the checklist's Decide, Home's renewal row and the bell's renewal rows. */
   if(kind==='renewal' && window.roomReadOnArrival) try{ roomReadOnArrival(c.id); }catch(_){}
   openWorkspace(c.id);
+  /* A GIVEN NOTE IS ANSWERED IN THE DRAWER IT LIVES IN — the same door the
+     note's own count presses, so there is one way to reach a note. */
+  if(kind==='note'){ if(window.openNotesPanel) try{ openNotesPanel(c.id,null,{force:true}); }catch(_){} return true; }
   if(kind==='sign'){ if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
   if(kind==='renewal'){ if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} return true; }
   if(kind==='join'){ if(window.openDeskSheet) try{ openDeskSheet(c); }catch(_){} }

@@ -15804,11 +15804,42 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
   const delivered = !!(window.negoNoteDelivered && negoNoteDelivered(m));
   const hasReplies = !!(root && ctx && ctx.replyCount);
   const delWhy = delivered ? i18t('ng_note_sent') : hasReplies ? i18t('ng_np_delete_replies') : '';
+  /* ---- GIVEN TO A COLLEAGUE (Young asked 3 Oct 2026) ----
+     On the ROOT only, for Done's own reason: giving settles who answers the
+     thread, not one line of it. The chip IS the door back into the picker, so
+     a note that is already with somebody has one press to change or take back
+     rather than a second button sitting beside the first — and both carry
+     `data-rl-np-give`, read with querySelectorAll, so the two doors can never
+     drift apart. Never on the counterparty's seat: PORTAL_MODE has no
+     colleagues to offer and this field never reaches their page. */
+  const given = (root && !PORTAL_MODE && window.negoNoteGiven) ? negoNoteGiven(m) : null;
+  const giveWords = given
+    ? (given.due ? i18t('ng_np_given_by', { who: given.name, day: given.due })
+                 : i18t('ng_np_given', { who: given.name }))
+    : '';
+  /* ---- A TICK THAT SAYS "SEEN" (Young asked 3 Oct 2026) ----
+     On EVERY note, not only the root: a reply is read too, and the whole
+     point is to answer "has anyone looked at this" without writing a word.
+     Who has ticked is said beside it, so the tick is never a count nobody can
+     read back. Our seat only — the field never reaches their page. */
+  const seenList = (!PORTAL_MODE && window.negoNoteSeenBy) ? negoNoteSeenBy(m) : [];
+  const iSaw = !!(!PORTAL_MODE && window.negoNoteSeenByMe && negoNoteSeenByMe(m));
+  const seenWords = seenList.length ? i18t('ng_np_seen_by', {
+    who: seenList.map(x => iSaw && window.currentUser && currentUser()
+      && String(x.name).toLowerCase() === String(currentUser().name || '').toLowerCase()
+      ? i18t('ng_np_seen_you') : x.name).join(', ') }) : '';
   const acts = (ctx && ctx.acts) ? `<div class="rl-np-acts">
+      ${(ctx.mayWrite && !PORTAL_MODE) ? `<button type="button" class="rl-np-act-b g rl-np-seen${iSaw ? ' is-on' : ''}" data-rl-np-seen="${_nea(key)}" data-on="${iSaw ? '0' : '1'}"
+        aria-pressed="${iSaw ? 'true' : 'false'}" title="${_nea(i18t(iSaw ? 'ng_np_seen_off_t' : 'ng_np_seen_on_t'))}">${i18t('ng_np_seen')}</button>` : ''}
+      ${seenWords ? `<span class="rl-np-seenby">${_ne(seenWords)}</span>` : ''}
       ${ctx.mayWrite ? `<button type="button" class="rl-np-act-b" data-rl-np-reply="${_nea(rootKey)}" data-rl-np-reply-under="${_nea(key)}">${i18t('ng_np_reply')}</button>` : ''}
       ${(ctx.mayWrite && root) ? `<button type="button" class="rl-np-act-b g" data-rl-np-done="${_nea(key)}" data-on="${m.done ? '0' : '1'}">${
         i18t(m.done ? 'ng_np_reopen' : 'ng_np_done')}</button>` : ''}
+      ${(ctx.mayWrite && root && !PORTAL_MODE && !given) ? `<button type="button" class="rl-np-act-b g" data-rl-np-give="${_nea(key)}">${i18t('ng_np_give')}</button>` : ''}
       ${(ctx.mayWrite && authored) ? `<button type="button" class="rl-np-act-b g" data-rl-np-delete="${_nea(key)}"${delWhy ? ` disabled title="${_nea(delWhy)}"` : ''}>${i18t('ng_np_delete')}</button>` : ''}
+      ${given ? (ctx.mayWrite
+        ? `<button type="button" class="rl-np-given" data-rl-np-give="${_nea(key)}" title="${_nea(i18t('ng_np_give_change'))}">${_ne(giveWords)}</button>`
+        : `<span class="rl-np-given">${_ne(giveWords)}</span>`) : ''}
       ${(root && m.done) ? `<span class="rl-np-doneby">${_ne(i18t('ng_np_done_by', { who: (m.done && m.done.by) || '' }))}</span>` : ''}
     </div>` : '';
   const rbox = (ctx && ctx.replyOpen) ? rlNpReplyBoxHtml((ctx && ctx.replyRoot) || m, ctx) : '';
@@ -16712,6 +16743,26 @@ function rlNpWireActs(host, c, ch, opts = {}, repaint){
     ev.preventDefault(); ev.stopPropagation();
     _rlNpDoneOpen = !_rlNpDoneOpen; again();
   }));
+  /* TWO DOORS, ONE ACT (f295's lesson): the "Give to…" button and the chip a
+     given note wears both carry data-rl-np-give, and querySelectorAll arms
+     every one of them. A querySelector here would leave the chip dead. */
+  host.querySelectorAll('[data-rl-np-give]').forEach(b => b.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    rlNpGivePick(c, homeOf(b), b.getAttribute('data-rl-np-give'), opts, side, again);
+  }));
+  /* THE TICK. Local and persisted, nothing sent: `seen` is not on the
+     server's message allow-list and must never be. */
+  host.querySelectorAll('[data-rl-np-seen]').forEach(b => b.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const key = b.getAttribute('data-rl-np-seen');
+    const on = b.getAttribute('data-on') === '1';
+    const home = homeOf(b);
+    const m = negoRoomNotes(c, home, null, opts, side).find(x => negoNoteKey(x) === String(key)) || null;
+    if (!m || !window.negoNoteSee) return;
+    negoNoteSee(c, home, m, on);
+    if (opts.persist !== false && window.persist) persist(c);
+    again();
+  }));
   /* THE PIN'S OWN CONTROLS. A draft typed under the pin stays with the room
      it was typed in when the switch is pressed (the window's D-6 rule kept),
      and dropping a pin over a draft asks first. */
@@ -16770,6 +16821,65 @@ async function rlNpSetDone(c, home, key, on, opts = {}, side = 'owner'){
   }
   if (local && opts.persist !== false && window.persist) persist(c);
   return true;
+}
+/* ---- GIVING A NOTE TO A COLLEAGUE: the picker, then the one writer ----
+   NOTHING GOES OUT. `done` crosses to the channel because the server's
+   msgMeta names it; `given` is not on that allow-list and must never be, so
+   this writes the record and persists and makes no call at all. That is the
+   whole difference from rlNpSetDone above, and it is why the other side can
+   never learn who on our side was asked to answer them.
+
+   THE PEOPLE ARE THE ROOM'S OWN. negoTagPeople(c,'internal') is what the @
+   picker already offers — one roster, so a colleague who cannot be tagged
+   cannot be given a note either, and nobody outside the workspace is ever on
+   the list. Asked through window because it lives in js/negotiation.js and
+   answers [] where it is absent, which is the safe direction. */
+async function rlNpSetGiven(c, home, key, to, due, opts = {}, side = 'owner'){
+  const m = negoRoomNotes(c, home, null, opts, side).find(x => negoNoteKey(x) === String(key)) || null;
+  if (!m || !window.negoNoteGive) return false;
+  const real = negoNoteGive(c, home, m, to, due);
+  if (!real) return false;
+  if (opts.persist !== false && window.persist) persist(c);
+  if (window.toast) toast(to && to.name
+    ? i18t('ng_np_given_ok', { who: to.name }) : i18t('ng_np_given_back'), 'ok');
+  return true;
+}
+function rlNpGivePick(c, home, key, opts = {}, side = 'owner', again){
+  const m = negoRoomNotes(c, home, null, opts, side).find(x => negoNoteKey(x) === String(key)) || null;
+  if (!m) return;
+  const people = (window.negoTagPeople ? negoTagPeople(c, 'internal', opts) : []) || [];
+  if (!people.length){ if (window.toast) toast(i18t('ng_np_give_nobody'), 'warn'); return; }
+  const now = (window.negoNoteGiven && negoNoteGiven(m)) || null;
+  const today = (window.todayISO ? todayISO() : new Date().toISOString().slice(0, 10));
+  const sel = people.map(p => `<option value="${_nea(p.name)}"${
+    (now && now.name === p.name) ? ' selected' : ''}>${_ne(p.name)}</option>`).join('');
+  openModal(`
+    <div class="p-6">
+      <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ng_np_give_title')}</h3>
+      <p class="text-[12px] text-ink/60 mb-4">${_ne(String(m.text || '').slice(0, 140))}</p>
+      <label class="block mb-3"><span class="text-[11px] font-600 text-ink/70">${i18t('ng_np_give_who')}</span>
+        <select id="npg-who" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500">${sel}</select></label>
+      <label class="block mb-4"><span class="text-[11px] font-600 text-ink/70">${i18t('ng_np_give_when')}</span>
+        <input id="npg-due" type="date" min="${today}" value="${_nea((now && now.due) || '')}"
+          class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
+      <div class="flex justify-end gap-2">
+        ${now ? `<button id="npg-off" class="ui-btn">${i18t('ng_np_give_off')}</button>` : ''}
+        <button id="npg-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button id="npg-go" class="ui-btn ui-btn-primary">${i18t('ng_np_give_go')}</button>
+      </div>
+    </div>`, { maxWidth: DLG_W.s });
+  const shut = () => { closeModal(); if (typeof again === 'function') again(); };
+  document.getElementById('npg-cancel')?.addEventListener('click', closeModal);
+  document.getElementById('npg-off')?.addEventListener('click', async () => {
+    await rlNpSetGiven(c, home, key, null, '', opts, side); shut();
+  });
+  document.getElementById('npg-go')?.addEventListener('click', async () => {
+    const name = (document.getElementById('npg-who') || {}).value || '';
+    const due = (document.getElementById('npg-due') || {}).value || '';
+    const who = people.find(p => p.name === name) || null;
+    if (!who) return;
+    await rlNpSetGiven(c, home, key, who, due, opts, side); shut();
+  });
 }
 /* ---- THE VERB PUTS THE CARET IN THE BOX (round four, 11 Sep 2026: "when
    you click on any of the option on the drop down, the cursor should take you

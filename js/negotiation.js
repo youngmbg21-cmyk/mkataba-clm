@@ -3814,6 +3814,130 @@ function negoNoteDone(c, host, m, on, user){
       (u && u.name) || 'somebody'} — the contract is unchanged`);
   return real;
 }
+/* ---- A NOTE CAN BE GIVEN TO A COLLEAGUE (Young asked 3 Oct 2026) ----
+   `given` is {id, name, due} and is ABSENT on every note already on file, so
+   there is nothing to migrate and every older reading answers as it did.
+
+   IT NEVER TRAVELS, and that holds by NOT DOING something rather than by a
+   filter anyone could get wrong: an internal thread is not in the share
+   payload at all, and the server's `msgMeta` is an allow-list of exactly
+   id · replyTo · anchor · done — a field it does not name cannot cross, so
+   giving an EXTERNAL note to a colleague is safe too. The other side sees
+   their own note and learns nothing about who on our side was asked to
+   answer it. f442 pins that allow-list as the wall.
+
+   IT IS A RECORD, NOT A PERMISSION: who may open this contract is decided by
+   the stream and the seats, exactly as before. Giving somebody a note says
+   who is expected to answer it, and grants nothing. */
+function negoNoteGiven(m){
+  const g = m && m.given;
+  if (!g || typeof g !== 'object') return null;
+  const name = String(g.name || '').trim();
+  if (!name) return null;
+  const due = /^\d{4}-\d{2}-\d{2}$/.test(String(g.due || '')) ? String(g.due) : null;
+  return { id: String(g.id || '') || null, name, due };
+}
+/* Is this note sitting with this reader? Asked of the ID first and the name
+   second, the same order `negoNoteAuthoredBy` asks in and for its reason: the
+   id is exact, and the name survives an account being deleted. */
+function negoNoteForMe(m, user){
+  const g = negoNoteGiven(m);
+  if (!g) return false;
+  const u = user || (window.currentUser && window.currentUser()) || null;
+  if (!u) return false;
+  if (g.id && u.id) return String(g.id) === String(u.id);
+  return String(g.name || '').trim().toLowerCase() === String(u.name || '').trim().toLowerCase();
+}
+/* THE ONE WRITER OF `given`, built on negoNoteDone's own shape: `host` is the
+   change the note lives on or null for the contract's own thread, the note is
+   found by key on the REAL thread so a caller holding a merged copy still
+   marks the record, and an audit line is written either way. `to` is null to
+   take it back. */
+function negoNoteGive(c, host, m, to, due, user){
+  const thread = negoNoteHome(c, host || null);
+  const key = negoNoteKey(m);
+  const real = thread.find(x => negoNoteKey(x) === key) || null;
+  if (!real) return null;
+  const u = user || (window.currentUser && window.currentUser()) || null;
+  const name = String((to && to.name) || '').trim();
+  if (name){
+    real.given = { id: (to && to.id) ? String(to.id) : null, name };
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(due || ''))) real.given.due = String(due);
+  } else {
+    delete real.given;
+  }
+  if (window.logAudit) logAudit(c, 'Negotiation',
+    name
+      ? `Note on ${host ? '#' + host.id : 'the contract'} given to ${name}${
+          real.given.due ? ` for ${real.given.due}` : ''} by ${(u && u.name) || 'somebody'} — the contract is unchanged`
+      : `Note on ${host ? '#' + host.id : 'the contract'} taken back by ${
+          (u && u.name) || 'somebody'} — the contract is unchanged`);
+  return real;
+}
+/* ---- A TICK THAT SAYS "SEEN" (Young asked 3 Oct 2026) ----
+   `seen` is a list of {id, name, at} and is ABSENT until somebody ticks, so
+   every note already on file reads as seen by nobody and nothing migrates.
+
+   IT IS NEVER A DECISION, and two things follow from that. It writes NO
+   AUDIT LINE: a tick per reader per note would bury the trail that records
+   what was actually agreed, and "I have read it" is not a fact the record of
+   an agreement needs. And it never travels — like `given`, it is not on the
+   server's msgMeta allow-list, so the other side never learns how our side
+   reads its post. f444 pins both.
+
+   ONE ENTRY PER PERSON. Ticking twice is still one tick; the id answers
+   first and the name second, the order negoNoteAuthoredBy asks in. */
+function negoNoteSeenBy(m){
+  const list = (m && Array.isArray(m.seen)) ? m.seen : [];
+  return list.map(x => ({ id: (x && x.id) ? String(x.id) : null,
+    name: String((x && x.name) || '').trim(), at: String((x && x.at) || '') }))
+    .filter(x => x.name);
+}
+function negoNoteSeenByMe(m, user){
+  const u = user || (window.currentUser && window.currentUser()) || null;
+  if (!u) return false;
+  return negoNoteSeenBy(m).some(x => (x.id && u.id)
+    ? String(x.id) === String(u.id)
+    : String(x.name).toLowerCase() === String(u.name || '').trim().toLowerCase());
+}
+/* THE ONE WRITER of `seen`, on negoNoteDone's own shape: the note is found by
+   key on the REAL thread, so a caller holding a merged copy still marks the
+   record. Un-ticking takes out YOUR OWN entry and nobody else's. */
+function negoNoteSee(c, host, m, on, user){
+  const thread = negoNoteHome(c, host || null);
+  const key = negoNoteKey(m);
+  const real = thread.find(x => negoNoteKey(x) === key) || null;
+  if (!real) return null;
+  const u = user || (window.currentUser && window.currentUser()) || null;
+  if (!u || !String(u.name || '').trim()) return null;
+  const mine = x => (x && x.id && u.id) ? String(x.id) === String(u.id)
+    : String((x && x.name) || '').trim().toLowerCase() === String(u.name).trim().toLowerCase();
+  const list = Array.isArray(real.seen) ? real.seen.filter(x => !mine(x)) : [];
+  if (on) list.push({ id: u.id || null, name: String(u.name).trim(),
+    at: (window.nowISO ? window.nowISO() : new Date().toISOString()) });
+  if (list.length) real.seen = list; else delete real.seen;
+  return real;
+}
+/* Every note on this contract sitting with this reader and not yet done.
+   READING MUST NOT WRITE: `negoNoteHome` creates `thread` as a side effect
+   and `negoChanges` would create a negotiation, so neither is asked — this
+   walks `c.thread` and `c.changes` RAW, the way negoNeedsYouIds does, and a
+   contract nobody has written a note on simply answers []. */
+function negoNotesForMe(c, user){
+  if (!c) return [];
+  const u = user || (window.currentUser && window.currentUser()) || null;
+  if (!u) return [];
+  const out = [];
+  const walk = (list, host) => {
+    (Array.isArray(list) ? list : []).forEach(m => {
+      if (!m || m.done) return;
+      if (negoNoteForMe(m, u)) out.push({ m, host, given: negoNoteGiven(m) });
+    });
+  };
+  walk(c.thread, null);
+  (Array.isArray(c.changes) ? c.changes : []).forEach(ch => walk(ch && ch.thread, ch));
+  return out;
+}
 /* Roots and their replies, oldest first, replies under the note they answer.
    A reply whose parent is not on the list reads as a root, so nothing is
    ever hidden by a missing parent. */
@@ -5223,6 +5347,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoPostComment, negoTagPeople, negoMentionsIn, negoCommentIsStale, negoTopicFor, negoThreadOf, negoNoteHome, negoMergedThread, negoThreadUnread,
   negoNoteAuthoredBy, negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,
   negoNoteId, negoNoteKey, negoNoteAnchor, negoNoteQuote, negoNoteHomeFor, negoAnchorState, negoNoteDone, negoNoteThreads, NOTE_QUOTE_MAX,
+  negoNoteGiven, negoNoteForMe, negoNoteGive, negoNotesForMe,
+  negoNoteSeenBy, negoNoteSeenByMe, negoNoteSee,
   negoNotesReadAt, negoNoteUnread, negoMarkNotesRead,
   negoBuildBody, negoCleanBody, negoCleanText,
   negoProgress, negoReadyToSign, negoOpenPoints,

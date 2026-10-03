@@ -1703,6 +1703,16 @@ const ALERT_KINDS = [
   { k:'link',        tone:'amber', ic:'&#128279;' },
   { k:'review-mine', tone:'amber', ic:'&#128100;' },
   { k:'desk-join',   tone:'amber', ic:'&#128101;' },
+  /* ---- A NOTE A COLLEAGUE GAVE YOU (3 Oct 2026) ----
+     AFTER the join, not between it and the review: F381 (6) pins the join
+     IMMEDIATELY beside review-mine ("the join beside the other colleague
+     waiting") and a kind inserted between them breaks a relation somebody
+     ruled on. It sits here for the same reason both of those do — a named
+     colleague waiting on this reader by name. Amber: work owed, not a fault.
+     The bell's own chat dot is a different thing and stays: it counts notes
+     that NAME you and remembers per browser; this counts notes somebody
+     handed you, reads the record, and clears when the note is done. */
+  { k:'note-mine',   tone:'amber', ic:'&#128221;' },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
   /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
      A REGISTERED KIND, not a special case at the draw. It arrived as a warn
@@ -1911,6 +1921,18 @@ function buildAlerts(){
       (st.waiting||[]).filter(rv=>!window.reviewMaySee||reviewMaySee(rv)).forEach(rv=>push('review-out',c,
         i18t('al_review_out',{who:rv.reviewer&&rv.reviewer.name}),
         ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); }));
+    });
+  }
+  /* 3b. Notes a colleague gave this reader. negoNotesForMe reads c.thread and
+         c.changes RAW — no negotiation is started by counting, which is the
+         fault the review rows above record paying for. One row per contract,
+         and the press is the drawer the note lives in. */
+  if(window.negoNotesForMe){
+    cs.forEach(c=>{
+      let mine=[]; try{ mine=negoNotesForMe(c)||[]; }catch(_){ mine=[]; }
+      if(!mine.length) return;
+      push('note-mine',c,i18tn('al_note_mine',mine.length,{n:mine.length,who:(mine[0].m&&mine[0].m.who)||''}),
+        ()=>{ if(window.openNotesPanel) openNotesPanel(c.id,null,{force:true}); });
     });
   }
   /* 4. Approvals sitting with this person — the dashboard's own queue, so the

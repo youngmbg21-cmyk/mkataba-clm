@@ -19959,3 +19959,83 @@ Noticed, not fixed
 - Noticed, not fixed: signers-and-party-verify fails on unmodified main ("the picker offers a read-only link") — it is on KNOWN_RED.
 - Noticed, not fixed: share-recipient-verify and auto-triage-verify still try to press fold heads (`[data-sec-toggle$=".record"]`, `.copilot`) that no longer exist; both guard the press and pass.
 - Noticed, not fixed: f293 (the renewal cliff, 2 tests) and f322 3f (the requests clock median) fail on unmodified main today (1 Oct 2026) — both read the calendar; not touched by the Overview change.
+
+## 3 Oct 2026 — ideas 16, 1 and 3 from the teamwork review (Young: "Build idea number 16 and idea number 1. Finally build idea number 3.")
+
+Built: a note can be GIVEN to a colleague with an optional day (f443); a TICK
+that says "seen" on any note (f444); the approval email's link LANDS ON the
+decision rather than the tab that contains it (f445).
+
+The owner was asked one question before any code was written — whether the
+approval email should carry a one-time code so Approve works without signing
+in — and chose the plain link. So HaTi's standing rule that nothing secret
+goes in an inbox addressed to its own staff is UNCHANGED, and idea 3 became a
+destination rather than a credential. f445 (3) pins the absence.
+
+### Defects found on the way
+
+1. A WHOLE-OBJECT COMPARE FAILS ACROSS THE HARNESS'S REALM, twice (f443, f444).
+   `assert.deepStrictEqual` on a value built inside buildWorld's jsdom window
+   fails on the PROTOTYPE while printing two identical objects — the diff reads
+   actual and expected with the same keys and the same values, which is the
+   most misleading shape a failure can take. Both were my own test faults, not
+   the product's. Compare field by field, or a length.
+
+2. A REGEX FOR "code" MATCHES "encodeURIComponent" (f445). The claim "nothing
+   secret joined the link" was red against correct code. Word boundaries.
+
+3. PLAYWRIGHT CANNOT CLICK A NOTE IN THE DRAWER: the panel's own sticky header
+   intercepts the press after the row is scrolled under it, and the retry loop
+   then spends the full 30s timeout and aborts the file. Dispatched in the page
+   instead, which is this codebase's standing answer.
+
+### Noticed, not fixed
+
+- test/chromium/notes-two-rooms-verify.js IS RED ON MAIN — 32/34 — and is not
+  on run-all's KNOWN_RED list, so it reads as a regression when it is not.
+  PROVED by running the file in a worktree at unmodified origin/main: the same
+  two fail there. Its chat-door block is stale after the shell rebuild of
+  29–30 Sep, which moved the Chat door out of the shell bar into the contract's
+  acts row: "and it sits between Copilot and the bell" measures #cmd-ai and
+  #hdr-notify against a button that is no longer between them, and the
+  page.click('#hdr-chat') after it times out. The new sections added today were
+  placed ABOVE that block so they are reached and exercised.
+- The same file carries a THIRD failure that main never reaches, because the
+  click above aborts the run first: a page.evaluate in the chat-door section
+  throws "Cannot read properties of undefined (reading 'replace')". Same cause,
+  same stale block.
+- Six older sites call PORTAL_MODE() as a function behind a side guard while it
+  is a boolean — unchanged from the 14 Sep note, still not swept.
+
+## 3 Oct 2026 — the three builds' own nets (addendum to this run)
+
+The full suite was run against this branch and against unmodified origin/main in
+a worktree. Five failures, two piles.
+
+### Found and fixed — mine
+- **f385 (6) — a typed glyph in a live button.** The new "Seen" tick led with a
+  typed check mark. Its three neighbours on the same row are plain words; the
+  `is-on` class and `aria-pressed` already carry the state. Glyph removed.
+- **F381 (6) — a ranked relation broken by an insertion.** The bell's order pins
+  `desk-join` immediately beside `review-mine` ("the join beside the other
+  colleague waiting"). `note-mine` had been put between them. Moved after the
+  join; the reason is written beside the entry so the next reader does not
+  repeat it.
+- **f186 (A) — a net pinning a parameter list.** It asserted
+  `const contractUrl = (req, contractId, tab) =>` exactly, and the builder grew
+  an optional `go` for the approval link's landing. Re-pointed to the NAME. The
+  claim is that one builder exists and this route uses it, which a parameter
+  list does not say. The same lesson f178 paid for, in a new costume.
+
+### Noticed, not fixed
+- **f293 (2 subtests) is red at unmodified main** — "a contract lands in the
+  quarter its decision falls in" and "a crowded quarter is one well above the
+  average". Proved by running the file in a worktree at origin/main. Not in
+  KNOWN_RED. Left red; it was red before this session.
+- **test/chromium/notes-two-rooms-verify.js is red at unmodified main (32/34).**
+  Its chat-door block presses `#hdr-chat`, which the 29–30 Sep shell rebuild
+  moved. Proved in the same worktree. Not in KNOWN_RED. The two new sections
+  added for this run were placed ABOVE that block so they actually run.
+- **A ranked list has no net saying the ranking is a SET.** F381 (6) pins one
+  adjacency, so an insertion anywhere else in `ALERT_KINDS` is unguarded. A
+  claim over the whole order would have caught this in the first run.

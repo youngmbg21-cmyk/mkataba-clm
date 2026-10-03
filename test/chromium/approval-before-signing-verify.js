@@ -222,6 +222,52 @@ let H;
       card.there && /asks you to approve this before anyone signs it/.test(card.text) && /Price held/.test(card.text)
       && /You approve/.test(card.text) && card.approve && card.refuse, card.text.slice(0, 260));
     await shot(P.page, 'sa-06-decide');
+
+    /* ===== 4L · THE EMAIL'S LINK LANDS ON THE DECISION (3 Oct 2026) =====
+       f445 pins the link, the table and the walls. Only a browser can answer
+       the thing that matters: that the word on the hash really carries the
+       reader to the card with Approve on it, rather than to the tab that
+       contains it and a scroll of their own. The approver is sent back to
+       Home first so the landing has somewhere to travel from. */
+    await P.page.evaluate(() => { if (window.setView) setView('dashboard'); });
+    await P.page.waitForTimeout(500);
+    const landed = await P.page.evaluate(() => {
+      location.hash = '#contract=MK-A2&tab=sign&go=approval';
+      openFromHash();
+      return new Promise(r => setTimeout(() => {
+        const c = document.getElementById('sa-card');
+        if (!c) return r({ card: false });
+        const b = c.getBoundingClientRect();
+        r({ card: true, lit: c.classList.contains('is-landed'),
+          inView: b.top >= 0 && b.bottom <= (window.innerHeight || 0) + 2,
+          approve: !!c.querySelector('[data-sa-approve]'),
+          hash: location.hash });
+      }, 1400));
+    });
+    check('4L1 the link lands on the approval card itself, not just the tab',
+      landed.card && landed.inView, JSON.stringify(landed));
+    check('4L2 with Approve on it, one press away',
+      landed.card && landed.approve, String(landed.approve));
+    check('4L3 and the card is lit so the eye finds it',
+      landed.lit, String(landed.lit));
+    /* THE MARK TAKES ITSELF OFF. A permanent ring on a card that already
+       carries a decision is a band nobody asked for. */
+    await P.page.waitForTimeout(2600);
+    const unlit = await P.page.evaluate(() =>
+      !document.getElementById('sa-card')?.classList.contains('is-landed'));
+    check('4L4 and the light goes out by itself', unlit, String(unlit));
+    /* A WORD THE TABLE DOES NOT KNOW IS NOT ACTED ON — the room still opens. */
+    const junk = await P.page.evaluate(() => {
+      if (window.setView) setView('dashboard');
+      location.hash = '#contract=MK-A2&tab=sign&go=wander';
+      const ok = openFromHash();
+      return new Promise(r => setTimeout(() => r({ ok,
+        lit: !!document.getElementById('sa-card')?.classList.contains('is-landed'),
+        onRoom: !!document.getElementById('sa-card') }), 900));
+    });
+    check('4L5 an unknown word opens the room and lands on nothing',
+      junk.ok && junk.onRoom && !junk.lit, JSON.stringify(junk));
+
     if (card.refuse) {
       await P.page.click('[data-sa-refuse]');
       await P.page.waitForTimeout(400);
