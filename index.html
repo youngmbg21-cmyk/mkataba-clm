@@ -7898,6 +7898,22 @@
   .hb-ccol-v{font-size:var(--t-micro);color:var(--hb-mute);font-variant-numeric:tabular-nums;height:14px;white-space:nowrap}
   .hb-chart-note{margin:-4px 0 var(--s-3)}
   @keyframes hbGrowUp{from{transform:scaleY(0)}}
+  /* THE CHART FAMILY: SVG that scales to the room; every piece a door */
+  .hb-svg{display:block;width:100%;height:auto;margin-bottom:var(--s-3);font-family:inherit;overflow:visible}
+  .hb-svg text{user-select:none;pointer-events:none}
+  .hb-svg [data-hb-dig]{cursor:pointer;outline:none}
+  .hb-svg [data-hb-dig]:hover>path,.hb-svg [data-hb-dig]:hover>rect,.hb-svg [data-hb-dig]:hover>circle,.hb-svg [data-hb-dig]:focus-visible>path,.hb-svg [data-hb-dig]:focus-visible>rect,.hb-svg [data-hb-dig]:focus-visible>circle{stroke:var(--hb-ink);stroke-width:1.5;stroke-opacity:1}
+  .hb-svg .hb-sv-month:hover>text,.hb-svg .hb-sv-month:focus-visible>text,.hb-svg .hb-sv-lane:hover>text,.hb-svg .hb-sv-lane:focus-visible>text,.hb-svg .hb-sv-row:hover>text,.hb-svg .hb-sv-row:focus-visible>text{fill:var(--hb-glow)}
+  .hb-svg .hb-sv-month:hover>rect,.hb-svg .hb-sv-lane:hover>rect:first-child,.hb-svg .hb-sv-month:focus-visible>rect,.hb-svg .hb-sv-lane:focus-visible>rect:first-child{fill:rgba(var(--hb-ln),.08);stroke:none}
+  .hb-sv-slice path{transition:transform .15s;transform-origin:150px 50%}
+  .hb-sv-slice:hover path,.hb-sv-slice:focus-visible path{transform:scale(1.04)}
+  .hb-sv-ink{fill:var(--hb-ink)} .hb-sv-ink2{fill:var(--hb-ink-2)} .hb-sv-mute{fill:var(--hb-mute)} .hb-sv-glow{fill:var(--hb-glow)} .hb-sv-ruby{fill:var(--hb-ruby)} .hb-sv-amber{fill:var(--hb-amber)}
+  .hb-sv-track{fill:rgba(var(--hb-ln),.1)} .hb-sv-qtr{fill:rgba(var(--hb-ln),.035)} .hb-sv-grid{stroke:rgba(var(--hb-ln),.14)} .hb-sv-axis{stroke:rgba(var(--hb-ln),.3)}
+  .hb-sv-today{stroke:var(--hb-amber)} .hb-sv-today-pill{fill:var(--hb-amber)}
+  .hb-in{animation:hbIn .5s cubic-bezier(.22,.61,.36,1) both}
+  @keyframes hbIn{from{opacity:0}}
+  .hb-dig.is-big .hb-svg{max-height:72vh}
+  .hb-dig-big #ig-dock,.hb-dig-big #ig-resizer{display:none}
   .hb-dig.is-big .hb-cbar{height:52px;grid-template-columns:minmax(0,340px) minmax(0,1fr) minmax(120px,auto)}
   .hb-dig.is-big .hb-cbar-t,.hb-dig.is-big .hb-cbar-n,.hb-dig.is-big .hb-ccol-n,.hb-dig.is-big .hb-ccol-l{font-size:var(--t-section)}
   .hb-dig.is-big .hb-cbar-s,.hb-dig.is-big .hb-ccol-v{font-size:var(--t-meta)}
@@ -7973,7 +7989,7 @@
   .hb-presenting #ig-dock,.hb-presenting #ig-resizer,.hb-presenting .hb-counting,.hb-presenting .hb-scr,.hb-presenting #hero-draft,.hb-presenting #hb-present{display:none}
   .hb-presenting{height:100vh}
   @media (max-width:1180px){ .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-rows,.hb-grid,.hb-cgrid{grid-template-columns:minmax(0,1fr)} }
-  @media (prefers-reduced-motion:reduce){ .hb-card.is-new,.hb-card.is-new::before,.hb-bar-f,.hb-cbar-f,.hb-ccol-f,.hb-live i{animation:none} }
+  @media (prefers-reduced-motion:reduce){ .hb-card.is-new,.hb-card.is-new::before,.hb-bar-f,.hb-cbar-f,.hb-ccol-f,.hb-in,.hb-live i{animation:none} }
 
   /* ---- Insights → Exposure: THE PATTERN GRID (owner-picked, 28 Sep 2026) ----
      Every colour is a token, so the teal and navy workspaces and the night

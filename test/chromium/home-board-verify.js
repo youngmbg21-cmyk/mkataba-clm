@@ -263,13 +263,25 @@ const CONTRACTS = [
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
     await page.evaluate(() => { intel.lenses = intel.lenses.filter(l => l.hb); });
     await ask(page, 'Show me all Juno contracts');
-    ok('13a a list answer draws a chart first, no rows', await until(page, () =>
-      !!document.querySelector('#hb-focus .hb-chart-lead') && document.querySelectorAll('#hb-focus .hb-cbar').length >= 2 && !document.querySelector('#hb-focus .hb-rows')));
+    ok('13a a list answer draws a chart first, no rows — the Ring for a plain question, every slice a door', await until(page, () =>
+      !!document.querySelector('#hb-focus .hb-chart-lead') && document.querySelectorAll('#hb-focus .hb-svg.hb-ring [data-hb-dig^="qg:"]').length >= 2 && !document.querySelector('#hb-focus .hb-rows')));
+    /* THE CHART FAMILY (Young picked the recommendation, 4 Oct 2026): the
+       ring is painted and read by a keyboard; Bars is on the switch */
+    const ring = await page.evaluate(() => { const p = document.querySelector('#hb-focus .hb-ring [data-hb-dig] path'); const r = p.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + 2; const hit = document.elementFromPoint(cx, cy); return { w: Math.round(r.width), painted: getComputedStyle(p).fill !== 'none' && getComputedStyle(p).fill !== 'rgba(0, 0, 0, 0)', hit: !!(hit && hit.closest('.hb-ring')), title: (p.parentNode.querySelector('title') || {}).textContent || '' }; });
+    ok('13h the ring is painted on the page and every slice says what it is on hover', ring.w > 60 && ring.painted && ring.hit && /\d/.test(ring.title), JSON.stringify(ring));
+    await page.focus('#hb-focus .hb-ring [data-hb-dig^="qg:"]');
+    await page.keyboard.press('Enter');
+    ok('13i Enter on a focused slice digs one step deeper', await until(page, () => (hbS().path || []).length === 2 && /^qg:/.test((hbS().path || [])[1])));
+    await page.click('[data-hb-crumb="0"]').catch(() => {});
+    await until(page, () => (hbS().path || []).length === 1);
+    await page.click('#hb-focus [data-hb-digview="bars"]');
+    await until(page, () => document.querySelectorAll('#hb-focus .hb-cbar').length >= 2);
     /* the bar grows in over 0.7 s: asked for the state, bounded */
     await until(page, () => { const b = document.querySelector('#hb-focus .hb-cbar[data-hb-dig] .hb-cbar-f'); return !!b && b.getBoundingClientRect().width > 4; });
     const bar = await page.evaluate(() => { const b = document.querySelector('#hb-focus .hb-cbar[data-hb-dig]'); const r = b.getBoundingClientRect(); const f = b.querySelector('.hb-cbar-f').getBoundingClientRect();
       return { h: Math.round(r.height), filled: f.width > 4, painted: getComputedStyle(b.querySelector('.hb-cbar-f')).backgroundColor !== 'rgba(0, 0, 0, 0)', text: b.textContent.replace(/\s+/g, ' ').trim() }; });
-    ok('13b every bar is a painted button with its words and its number', bar.h >= 30 && bar.filled && bar.painted && /\d/.test(bar.text), JSON.stringify(bar));
+    ok('13b on the Bars switch every bar is a painted button with its words and its number', bar.h >= 30 && bar.filled && bar.painted && /\d/.test(bar.text), JSON.stringify(bar));
     const h0 = await page.evaluate(() => document.querySelector('#hb-focus .hb-dig').getBoundingClientRect().height);
     await page.click('#hb-focus [data-hb-digbig]');
     ok('13e expanded, the chart grows for the room', await until(page, h => !!document.querySelector('#hb-focus .hb-dig.is-big') && document.querySelector('#hb-focus .hb-dig').getBoundingClientRect().height > h + 40, h0));
@@ -278,18 +290,23 @@ const CONTRACTS = [
     await page.click('#hb-focus [data-hb-digview="list"]');
     ok('13c the switch shows the list the owner had', await until(page, () => document.querySelectorAll('#hb-focus .hb-rows [data-hb-dig^="c:"]').length >= 2 && !document.querySelector('#hb-focus .hb-chart-lead')));
     await page.click('#hb-focus [data-hb-digview="chart"]');
-    await until(page, () => !!document.querySelector('#hb-focus .hb-chart-lead'));
-    await page.click('#hb-focus .hb-cbar[data-hb-dig]');
-    ok('13d a bar digs one step deeper and the trail says so', await until(page, () =>
+    await until(page, () => !!document.querySelector('#hb-focus .hb-ring'));
+    await page.click('#hb-focus .hb-ring .hb-sv-row[data-hb-dig]');
+    ok('13d a legend row digs one step deeper and the trail says so', await until(page, () =>
       (hbS().path || []).length === 2 && /^qg:/.test((hbS().path || [])[1]) && document.querySelectorAll('#hb-focus .hb-trail button').length >= 2 && !!document.querySelector('#hb-focus .hb-chart-lead')));
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
     await ask(page, 'how many contracts have value between 2 million and 40 million?');
-    ok('13f a value range is answered free, as a chart by value, with the count in the panel', await until(page, () =>
-      /^q:/.test((hbS().path || []).slice(-1)[0] || '') && !!document.querySelector('#hb-focus .hb-chart-lead') && /between 2M and 40M/.test((intel.history.slice(-1)[0] || {}).text || '') && !intel.busy));
+    ok('13f a value range is answered free, as the Blocks sized by value, with the count in the panel', await until(page, () =>
+      /^q:/.test((hbS().path || []).slice(-1)[0] || '') && !!document.querySelector('#hb-focus .hb-blocks [data-hb-dig^="c:"]') && /between 2M and 40M/.test((intel.history.slice(-1)[0] || {}).text || '') && !intel.busy));
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
     await ask(page, 'which contracts end in the next 12 months');
-    ok('13g a date question is columns by month, each a door', await until(page, () =>
-      document.querySelectorAll('#hb-focus .hb-ccol[data-hb-dig^="qm:"]').length >= 1));
+    ok('13g a date question is the Timeline: today marked, each month with an ending a door, each pill a contract', await until(page, () =>
+      document.querySelectorAll('#hb-focus .hb-tl [data-hb-dig^="qm:"]').length >= 1 && document.querySelectorAll('#hb-focus .hb-tl [data-hb-dig^="c:"]').length >= 1 && !!document.querySelector('#hb-focus .hb-tl .hb-sv-today')));
+    const big = await page.evaluate(() => { const s = document.querySelector('#hb-focus .hb-svg'); return s ? s.getBoundingClientRect().width : 0; });
+    await page.click('#hb-focus [data-hb-digbig]');
+    ok('13j expanded, the timeline grows with the room', await until(page, w => { const s = document.querySelector('#hb-focus .hb-dig.is-big .hb-svg'); return !!s && s.getBoundingClientRect().width > w + 100; }, big));
+    await page.click('#hb-focus [data-hb-digbig]');
+    await until(page, () => !document.querySelector('#hb-focus .hb-dig.is-big'));
 
     /* ===== 12. TWO TABS, ONE BOARD =====
        Each tab used to keep its own copy and write it back whole on every

@@ -20124,3 +20124,7 @@ Three things, and only one of them was about width.
 - **f293 (the renewal cliff) is red on unmodified main today (3 Oct 2026):**
   two claims about which quarter a contract lands in fail at e290e2a too.
   Looks like a test whose answer depends on the day it runs.
+
+## Noticed, not fixed (4 Oct 2026, the chart family)
+- CLAUDE.md is 99 KB against its own "keep it under about 80 KB" line — it was 98 KB before this session's one-line HOME edit. A trim is the owner's call (each condensation was owner-approved); not touched.
+- theme-tokens-verify is 20 of 40 at unmodified main too (every `--light` page: "every colour unchanged"); the census is re-recorded only by someone owning a palette change, so it stands. Not this change's.
