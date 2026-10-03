@@ -5885,6 +5885,23 @@ function graphScreenSays(sc, sent, total) {
   if (Number(total) > Number(sent)) parts.push(`The list below is the first ${Number(sent)} of ${Number(total)} contracts — say so if the answer could depend on the rest.`);
   return parts.join(' ');
 }
+/* the picture the model named, in the board's own words — or nothing */
+const GRAPH_CHART_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list'];
+const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'valueBand'];
+const GRAPH_CHART_DATES = ['end', 'signed', 'start', 'created', 'decision'];
+const GRAPH_CHART_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds'];
+function graphChartClean(c) {
+  if (!c || typeof c !== 'object') return null;
+  const out = {};
+  if (GRAPH_CHART_PICS.includes(c.pic)) out.pic = c.pic;
+  if (GRAPH_CHART_MEASURES.includes(c.measure)) out.measure = c.measure;
+  if (c.trend === true) out.trend = true;
+  const unit = { month: 'm', quarter: 'q', year: 'y' }[c.split];
+  const group = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', valueBand: 'valueBand' }[c.split];
+  if (unit) out.split = { by: 'date', unit, date: GRAPH_CHART_DATES.includes(c.date) ? c.date : 'end' };
+  else if (group) out.split = { by: group };
+  return Object.keys(out).length ? out : null;
+}
 app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
@@ -5930,6 +5947,11 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
         timeBy: { type: 'string', enum: ['decision', 'expiry', 'signed', 'created'], description: 'The date the timeline view lays contracts along.' },
         view: { type: 'string', enum: ['brain', 'wiring', 'floors', 'grid', 'timeline'], description: 'The view to show, only when asked or implied (floors → floors, two facts against each other → grid, "over time" → timeline).' },
         top: { type: 'object', description: 'Keep only the top N, e.g. "top 10 by value", "3 biggest in each stream".', properties: { n: { type: 'number' }, by: { type: 'string', enum: ['value', 'payterms', 'obligations', 'renewal'] }, per: { type: 'string', enum: GRAPH_GROUP_KEYS } } },
+        /* THE BOARD'S RECIPE (4 Oct 2026): on Home's board an answer is drawn
+           as a chart; the model may say which picture the words asked for,
+           and HaTi still counts every figure. */
+        chart: { type: 'object', description: 'Fill ONLY when the request asks for a picture or a split of one: a pie/ring, bars, columns, blocks/treemap, bubbles, a list, a timeline, "by month/quarter/year", "by stream/stage/owner…", or a trend. HaTi draws it and counts it; never put numbers here.',
+          properties: { pic: { type: 'string', enum: GRAPH_CHART_PICS }, split: { type: 'string', enum: GRAPH_CHART_SPLITS }, date: { type: 'string', enum: GRAPH_CHART_DATES, description: 'For a split by month/quarter/year: which date (end = expiry, the default).' }, measure: { type: 'string', enum: GRAPH_CHART_MEASURES }, trend: { type: 'boolean', description: 'True when the request asks how something changes over time.' } } },
         ask: { type: 'array', description: 'When the request is unclear, up to three things it could mean, as {role, fact}; HaTi shows them as buttons and changes nothing else.', items: { type: 'object', properties: { role: { type: 'string', enum: ['group', 'floors', 'columns', 'colour', 'size', 'label', 'time'] }, fact: { type: 'string' } } } }
       },
       required: ['note']
@@ -5966,6 +5988,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
       kind: out.kind === 'wording' ? 'wording' : 'map',
       ...['floorsBy', 'columnsBy', 'colourBy', 'sizeBy', 'labelBy', 'timeBy', 'view'].reduce((o, k) => { if (typeof out[k] === 'string' && out[k]) o[k] = out[k].slice(0, 40); return o; }, {}),
       top: (out.top && typeof out.top === 'object' && Number(out.top.n) > 0) ? { n: Math.min(200, Math.round(Number(out.top.n))), by: String(out.top.by || 'value').slice(0, 20), per: out.top.per ? String(out.top.per).slice(0, 40) : null } : null,
+      chart: graphChartClean(out.chart),
       ask: Array.isArray(out.ask) ? out.ask.slice(0, 3).map(o => ({ role: String((o && o.role) || '').slice(0, 20), fact: String((o && o.fact) || '').slice(0, 40) })) : null,
       ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
@@ -14911,6 +14934,53 @@ app.delete('/api/home/gifts/:id', auth, (req, res) => {
   if (!g || String(g.from_id) !== String(req.user.id)) return res.status(404).json({ error: 'Not found' });
   db.prepare('DELETE FROM home_gifts WHERE id=?').run(g.id);
   res.json({ ok: true });
+});
+
+/* ---------- A MONTHLY PICTURE OF THE BOOK (Young, "Build it", 4 Oct 2026) ----------
+   "How many live contracts did we have each month?" cannot be worked out
+   backwards: a contract does not record how many others were live beside it.
+   So the server keeps ONE picture a month — taken the first time it runs in
+   that month — and the Home board draws a trend once there are six. A picture
+   is never rewritten and never invented for a month that has passed.
+   STREAM ACCESS IS THE WALL: the picture is kept per stream and the route adds
+   up only the streams this person may open (folderScopeFor), so a count never
+   reveals a contract they could not see; money obeys canViewValues. Live is
+   the board's own reading: not archived, not Declined. */
+db.exec(`CREATE TABLE IF NOT EXISTS book_snapshots (
+  month TEXT PRIMARY KEY, taken_at TEXT NOT NULL, by_folder TEXT NOT NULL DEFAULT '{}')`);
+const BOOK_SNAPSHOTS_SHOWN = 36;
+function bookSnapshotTake(now) {
+  const month = isoDay(now || new Date()).slice(0, 7);
+  if (db.prepare('SELECT 1 FROM book_snapshots WHERE month=?').get(month)) return false;
+  const rows = db.prepare('SELECT folder, status, value, json FROM contracts').all();
+  /* an empty book is not a picture: a new workspace waits for its contracts */
+  if (!rows.length) return false;
+  const byFolder = {};
+  for (const r of rows) {
+    let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) {}
+    if (c.archived || r.status === 'Declined') continue;
+    const f = String(r.folder || ''); const h = fxHome({ value: r.value, metadata: c.metadata });
+    const row = byFolder[f] || (byFolder[f] = { live: 0, value: 0 });
+    row.live++; row.value += h.missing ? 0 : (Number(h.v) || 0);
+  }
+  db.prepare('INSERT OR IGNORE INTO book_snapshots (month, taken_at, by_folder) VALUES (?,?,?)').run(month, new Date().toISOString(), JSON.stringify(byFolder));
+  return true;
+}
+function bookSnapshotTick() { try { bookSnapshotTake(); } catch (e) { console.warn('[book-snapshot]', e.message); } }
+setTimeout(bookSnapshotTick, 0);
+setInterval(bookSnapshotTick, 60 * 60 * 1000).unref?.();
+app.get('/api/book/snapshots', auth, (req, res) => {
+  bookSnapshotTick();   // this month's picture, if the hour has not taken it yet
+  const scope = folderScopeFor(req.user), money = canViewValues(req.user);
+  const rows = db.prepare('SELECT * FROM book_snapshots ORDER BY month DESC LIMIT ?').all(BOOK_SNAPSHOTS_SHOWN).reverse();
+  res.json({ snapshots: rows.map(r => {
+    let f = {}; try { f = JSON.parse(r.by_folder) || {}; } catch (_) {}
+    let live = 0, value = 0;
+    for (const [folder, x] of Object.entries(f)) { if (!inScope(scope, folder)) continue; live += Number(x.live) || 0; value += Number(x.value) || 0; }
+    const out = { month: r.month, takenAt: r.taken_at, live };
+    if (money) out.value = value;
+    return out;
+  }) });
 });
 
 /* ---------- password reset ---------- */

@@ -296,7 +296,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     await page.waitForTimeout(600);
     /* CHART FIRST (3 Oct 2026): the dig-in opens as a chart; the rows are on
        the List switch, which is where the reader counts them */
-    await page.click('#hb-focus [data-hb-digview="list"]').catch(() => {});
+    await page.click('#hb-focus [data-hb-rc="pic"]').catch(() => {});
+    await page.click('#hb-focus [data-hb-rset="pic:list"]').catch(() => {});
     await page.waitForTimeout(300);
     const listed = await page.evaluate(() => document.querySelectorAll('#hb-board .hb-dig .hb-rows [data-hb-dig^="c:"]').length);
     await page.click('#hb-board .hb-dig [data-hb-open]').catch(() => {});
