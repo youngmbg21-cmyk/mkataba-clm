@@ -13478,19 +13478,18 @@ function rlCardBodyHtml(c, ch, opts, side, st){
 function rlCardBodyNotesHtml(c, ch, opts = {}, side = 'owner'){
   if (!c || !ch) return '';
   const tabbed = side === 'owner';
-  const room = tabbed ? rlNpRoom() : 'external';
+  /* THE ROOM, RESOLVED AGAINST THIS CONTRACT: a stored 'external' or a party
+     that has left the record becomes the first outside party's room, by the
+     one reading all three surfaces ask. Their seat has no tabs and is handed
+     its own single room. */
+  const room = rlNpRoomNow(c, opts, tabbed ? 'owner' : side);
   const them = c.counterparty || i18t('ng_the_counterparty');
   const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
   const other = side === 'counterparty' ? us : them;
   const notes = negoRoomNotes(c, ch, room, opts, side);
   const n = negoNoteCounts(c, ch, opts, side);
-  const ext = room === 'external';
-  const tabs = tabbed ? `<div class="rl-np-tabs" role="tablist">
-      ${NOTE_ROOMS.map(r => `<button type="button" role="tab" class="rl-np-tab${
-        r === room ? ' on' : ''}" data-rl-np-room="${r}" aria-selected="${r === room}"
-        >${i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')} <i>(${
-        r === 'external' ? n.external : n.internal})</i></button>`).join('')}
-    </div>` : '';
+  const ext = negoRoomIsExternal(room);
+  const tabs = tabbed ? rlNpRoomsHtml(c, room, n, opts, side) : '';
   const who = ext ? i18t('ng_np_who_ext', { who: _ne(other) })
     : i18t('ng_np_who_int', { org: _ne(us), who: _ne(them) });
   const list = notes.length
@@ -15412,7 +15411,108 @@ function rlMayRedline(c, opts = {}){
    treats anything but 'shared' as internal, so a note filed by any older path
    lands in the internal room — the safe direction, unchanged. */
 const NOTE_ROOMS = ['internal', 'external'];
+/* ---- ONE BUILDER FOR THE ROOM ROW (Young ruled 3 Oct 2026) ----
+   THE CLOTHES FOLLOW THE BUILDER: this markup was written out THREE times —
+   the change's panel, the chat face and the embedded panel — and all three had
+   to be kept in step by hand. One builder, three callers, and a room added to
+   the model is drawn by all of them at once.
+   A chip per room, named after a real party rather than "External", because a
+   label has to say what is behind it. The count rides each chip, so nobody has
+   to open a room to find out whether it holds anything. */
+function rlNpRoomsHtml(c, room, counts, opts = {}, side = 'owner'){
+  const rooms = negoNoteRoomList(c, opts, side);
+  if (rooms.length < 2) return '';
+  const by = (counts && counts.byRoom) || {};
+  return `<div class="rl-np-tabs" role="tablist">
+      ${rooms.map(r => {
+        const n = by[r.key] || 0;
+        const nm = r.external
+          ? (r.name || i18t('ng_np_tab_ext'))
+          : (r.name ? i18t('ng_np_room_us', { org: r.name }) : i18t('ng_np_tab_int'));
+        return `<button type="button" role="tab" class="rl-np-tab${r.key === room ? ' on' : ''}${
+          r.external ? ' is-ext' : ''}" data-rl-np-room="${_nea(r.key)}"
+          aria-selected="${r.key === room}" title="${_nea(r.external
+            ? i18t('ng_np_room_t_ext', { who: r.name || '' })
+            : i18t('ng_np_room_t_int'))}"
+          >${_ne(nm)} <i>(${n})</i></button>`;
+      }).join('')}
+    </div>`;
+}
 const negoNoteRoom = m => (m && m.visibility === 'shared') ? 'external' : 'internal';
+/* ---- AND WHICH OUTSIDE PARTY IT IS FOR (Young ruled 3 Oct 2026) ----
+   `visibility` is the SIDE axis and keeps its exact meaning: does this note
+   leave the building. It cannot also answer WHICH outside party, and until now
+   nothing did — a note carried no party anywhere, so from the moment a
+   contract held a second outside party (partiesMulti, built late Sept) one
+   "external" note was served to every link holder. MEASURED on the owner's own
+   MK-411, which reads `Jumenza LLC +1`. That is a confidentiality fault, not a
+   layout one, and it is why this build exists.
+
+   NO MIGRATION, and the rule that makes that true is the SERVER'S OWN: a note
+   with no party named belongs to the FIRST outside party, which is exactly
+   what srvPartyOfShare already says about every link on file. So on a
+   two-party contract — every contract that existed before this — not one note
+   moves room.
+
+   READING MUST NOT WRITE: this walks contractParties, which reads the record
+   and builds fresh rows. Through window, because js/parties.js is not on every
+   stage, and an absent module answers null rather than throwing. */
+function negoNoteParty(c, m){
+  if (negoNoteRoom(m) !== 'external') return null;
+  const theirs = (window.partiesTheirs ? partiesTheirs(c) : []) || [];
+  if (!theirs.length) return null;
+  const want = String((m && m.partyId) || '').trim();
+  if (want){ const hit = theirs.find(p => String(p.id) === want); if (hit) return hit; }
+  /* A party named on the note that this contract no longer holds is NOT
+     quietly re-homed to somebody else — it stays where a party-less note goes,
+     which is the first outside party, and that is the same answer the server
+     gives a link whose party has gone. */
+  return theirs[0];
+}
+/* The room KEY a note sits in. 'internal' keeps its name and its spelling so
+   every older caller, every stored tab state and the contract tab's own
+   reading are untouched; an outside party's room is 'p:<id>'. */
+function negoNoteRoomKey(c, m){
+  const p = negoNoteParty(c, m);
+  return p ? ('p:' + p.id) : negoNoteRoom(m);
+}
+const negoRoomIsExternal = key => String(key || '').slice(0, 2) === 'p:' || key === 'external';
+/* The one normaliser for a room key that came from somewhere it could be
+   stale — a stored tab, a pin on file, a caller's argument. Anything that is
+   not an outside room is INTERNAL, which is the safe direction and the same
+   default negoPostComment applies to visibility. */
+const negoRoomKey = k => negoRoomIsExternal(k) ? String(k) : 'internal';
+const negoRoomPartyId = key => String(key || '').slice(0, 2) === 'p:' ? String(key).slice(2) : '';
+/* ---- THE ONE LIST OF ROOMS THIS SEAT MAY SEE ----
+   Our seat: our own team, then one room per outside party, in the record's own
+   order. Their seat: ONE room, theirs — which is what their page has always
+   drawn, and the reason it draws no tabs. Every room is named after a real
+   party rather than "External", so a label says what is behind it.
+   It never invents a room: a contract with no outside party on the record
+   still answers with the internal room, so a stage without js/parties.js
+   degrades to exactly what shipped before. */
+function negoNoteRoomList(c, opts = {}, side = 'owner'){
+  const theirs = (window.partiesTheirs ? partiesTheirs(c) : []) || [];
+  /* ---- THE SEAT IS THE CALLER'S, AND PORTAL_MODE IS NOT CONSULTED ----
+     This read `side === 'counterparty' || PORTAL_MODE`, and MEASURED in
+     clause-editor-verify that gave OUR OWN SEAT one room and no Internal tab:
+     the stage has PORTAL_MODE set, the panel had already decided `side` is
+     'owner' from its own opts, and the global quietly overruled it.
+     `side !== 'owner'` is EXACTLY the reading rlNotesPanelHtml's `tabbed`
+     already uses to decide whether to draw a room row at all — so the list and
+     the row cannot disagree about whose seat this is, which they just did. */
+  if (side !== 'owner'){
+    const mine = theirs.length ? theirs[0] : null;
+    return [{ key: mine ? ('p:' + mine.id) : 'external', name: mine ? mine.name : '',
+      external: true, partyId: mine ? String(mine.id) : '' }];
+  }
+  const us = (window.contractParty ? contractParty(c) : '') || '';
+  const rooms = [{ key: 'internal', name: us, external: false, partyId: '' }];
+  for (const p of theirs)
+    rooms.push({ key: 'p:' + p.id, name: p.name || '', external: true, partyId: String(p.id) });
+  if (theirs.length === 0) rooms.push({ key: 'external', name: '', external: true, partyId: '' });
+  return rooms;
+}
 /* The notes for ONE room, already through the side wall. rlMsgVisible is the
    existing per-message reading and is asked FIRST: a message this seat may not
    see is not in either room, and filtering by room before by seat would count
@@ -15424,7 +15524,14 @@ function negoRoomNotes(c, ch, room, opts = {}, side = 'owner'){
   const host = ch || c;
   const all = ((window.negoMergedThread ? negoMergedThread(c, ch, opts.messages) : (host && host.thread) || []) || [])
     .filter(m => rlMsgVisible(m, side));
-  return room ? all.filter(m => negoNoteRoom(m) === room) : all;
+  if (!room) return all;
+  /* 'external' still means EVERY outside room, because callers outside this
+     panel ask it that way (the Document tab's own reading does) and they mean
+     "everything that has left the building". A 'p:<id>' key is the narrower
+     question and is what the drawer asks. */
+  if (room === 'external' || room === 'internal')
+    return all.filter(m => negoNoteRoom(m) === room);
+  return all.filter(m => negoNoteRoomKey(c, m) === room);
 }
 /* What the tabs print, and what the change's own row prints. ONE arithmetic:
    a row that counted its own notes would be a second answer to a number the
@@ -15432,7 +15539,19 @@ function negoRoomNotes(c, ch, room, opts = {}, side = 'owner'){
 function negoNoteCounts(c, ch, opts = {}, side = 'owner'){
   const all = negoRoomNotes(c, ch, null, opts, side);
   const internal = all.filter(m => negoNoteRoom(m) === 'internal').length;
-  return { internal, external: all.length - internal, total: all.length };
+  /* `byRoom` is the per-room tally the chips print. internal/external/total
+     keep their exact meaning and their exact names, so the change's own row
+     and every older reader are untouched — this adds an answer, it does not
+     move one. Every room the seat may see gets a key, including the ones
+     holding nothing, so a chip never has to tell an absent count from a zero. */
+  const rooms = negoNoteRoomList(c, opts, side);
+  const byRoom = {};
+  for (const r of rooms) byRoom[r.key] = 0;
+  for (const m of all){
+    const k = negoNoteRoomKey(c, m);
+    byRoom[k] = (byRoom[k] || 0) + 1;
+  }
+  return { internal, external: all.length - internal, total: all.length, byRoom, rooms };
 }
 /* ---- WHO MAY WRITE, IN EITHER ROOM (owner-ruled 27 Aug 2026: "Any person
    that can edit the contract can send notes externally") ----
@@ -15524,6 +15643,12 @@ async function negoPostToChannel(c, ch, msg){
     topicLabel: ch
       ? `Change #${ch.id}${ch.clauseLabel ? ' · ' + _neClause(ch.clauseLabel) : ''}`
       : (window.i18t ? i18t('di_contract_generally') : 'The contract generally'),
+    /* WHICH ROOM IT IS FOR, off the note itself and not off whatever tab
+       happens to be showing — the note has already been filed by the time it
+       reaches the channel, so its own party is the honest answer and the two
+       copies cannot disagree. The server checks it against the record again;
+       this is the browser half of a wall whose other half is the wall. */
+    partyId: msg.partyId || undefined,
     body: msg.text, meta: negoNoteMeta(msg) });
   c._messages = (res && res.messages) || c._messages || [];
   return { ok: true, res };
@@ -15542,8 +15667,34 @@ function negoNoteMeta(msg){
    the quiet room is the one you land in, so reaching the other side is always
    a deliberate press. Keyed by nothing: one panel, one room at a time. */
 let _rlNpRoom = 'internal';
-const rlNpRoom = () => _rlNpRoom === 'external' ? 'external' : 'internal';
-function rlNpSetRoom(r){ _rlNpRoom = r === 'external' ? 'external' : 'internal'; }
+/* ---- AND A ROOM IS NOW A PARTY (Young ruled 3 Oct 2026) ----
+   The key may be 'internal' or 'p:<partyId>'; 'external' survives as what an
+   older stored value reads as, and is resolved to the FIRST outside party's
+   room by rlNpRoomNow — which takes the contract, because only the contract
+   knows who that is. The bare reading keeps its name and its "anything that is
+   not external is internal" shape so no older caller has to change.
+   INTERNAL IS STILL WHERE YOU LAND: the quiet room is the default and reaching
+   any outside party is always a deliberate press. */
+const rlNpRoom = () => _rlNpRoom;
+function rlNpSetRoom(r){
+  const k = String(r || '');
+  _rlNpRoom = negoRoomKey(k);
+}
+/* The room actually showing, resolved against THIS contract: a stored
+   'external' (or a party that has since left the record) becomes the first
+   outside party's room, which is the same fallback the note model and the
+   server both apply. One reading, asked by the chips, the list and the send,
+   so none of the three can be looking at a different room. */
+function rlNpRoomNow(c, opts = {}, side = 'owner'){
+  const rooms = negoNoteRoomList(c, opts, side);
+  /* The seat is the caller's here too — see negoNoteRoomList. */
+  if (side !== 'owner') return rooms[0] ? rooms[0].key : 'external';
+  const want = rlNpRoom();
+  if (rooms.some(r => r.key === want)) return want;
+  if (want === 'internal') return 'internal';
+  const ext = rooms.find(r => r.external);
+  return ext ? ext.key : 'internal';
+}
 
 /* ---------- NOTES ARE ONE SYSTEM: THE PIN, THE REPLY, AND DONE ----------
    (Young asked 11 Sep 2026: "whenever you want to comment, the comments / chat
@@ -15586,7 +15737,7 @@ function rlNotesPin(pin){
   const p = pin ? { ...pin } : null;
   if (p){
     p.drafts = p.drafts || { internal: '', external: '' };
-    p.room = p.room === 'external' ? 'external' : 'internal';
+    p.room = negoRoomKey(p.room);
     p.contractId = String(p.contractId || '');
     p.changeId = p.changeId ? String(p.changeId) : null;
     p.clauseId = p.clauseId ? String(p.clauseId) : '';
@@ -15777,7 +15928,7 @@ function rlNpTagMenuHtml(c, room, opts = {}){
 function rlNpNoteHtml(m, room, side, org, ctx = null){
   const t = String(m.text || '');
   const long = t.length > 220 || (t.match(/\n/g) || []).length >= 3;
-  const theirs = room === 'external' && m.side && m.side !== side;
+  const theirs = negoRoomIsExternal(room) && m.side && m.side !== side;
   const key = negoNoteKey(m);
   const c = ctx && ctx.c;
   const st = (m.anchor && c && window.negoAnchorState) ? negoAnchorState(c, m) : null;
@@ -15828,20 +15979,37 @@ function rlNpNoteHtml(m, room, side, org, ctx = null){
     who: seenList.map(x => iSaw && window.currentUser && currentUser()
       && String(x.name).toLowerCase() === String(currentUser().name || '').toLowerCase()
       ? i18t('ng_np_seen_you') : x.name).join(', ') }) : '';
+  /* ---- THE VERBS ARE ONE LINE, THE FACTS ARE ANOTHER (Young, 3 Oct 2026) ----
+     MEASURED on the owner's own iPad: this row carried SEVEN things in a 330px
+     drawer — Seen · Seen-by · Reply · Reopen · Delete · the given chip ·
+     Done-by — and wrapped into a stack of single words. Three of the seven
+     arrived that morning, with the give and seen builds, and nobody measured
+     the row they were joining.
+     The split is by KIND, not by count, so it keeps working however many are
+     drawn: a VERB is a thing you press and a FACT is a thing you read, and
+     they were competing for one line. The facts take the label shade under
+     them. NOTHING IS REMOVED and nothing moves to a hover — the pop-up diet's
+     own rule is that a fact a reader needs stays on the face.
+     The given chip is a fact that is ALSO a door (press it to change who has
+     it), so it sits on the facts line and keeps `data-rl-np-give`; the two
+     doors onto that act are still read with querySelectorAll. */
+  const factBits = [
+    seenWords ? `<span class="rl-np-seenby">${_ne(seenWords)}</span>` : '',
+    given ? (ctx && ctx.mayWrite
+      ? `<button type="button" class="rl-np-given" data-rl-np-give="${_nea(key)}" title="${_nea(i18t('ng_np_give_change'))}">${_ne(giveWords)}</button>`
+      : `<span class="rl-np-given">${_ne(giveWords)}</span>`) : '',
+    (root && m.done) ? `<span class="rl-np-doneby">${_ne(i18t('ng_np_done_by', { who: (m.done && m.done.by) || '' }))}</span>` : ''
+  ].filter(Boolean);
   const acts = (ctx && ctx.acts) ? `<div class="rl-np-acts">
-      ${(ctx.mayWrite && !PORTAL_MODE) ? `<button type="button" class="rl-np-act-b g rl-np-seen${iSaw ? ' is-on' : ''}" data-rl-np-seen="${_nea(key)}" data-on="${iSaw ? '0' : '1'}"
-        aria-pressed="${iSaw ? 'true' : 'false'}" title="${_nea(i18t(iSaw ? 'ng_np_seen_off_t' : 'ng_np_seen_on_t'))}">${i18t('ng_np_seen')}</button>` : ''}
-      ${seenWords ? `<span class="rl-np-seenby">${_ne(seenWords)}</span>` : ''}
       ${ctx.mayWrite ? `<button type="button" class="rl-np-act-b" data-rl-np-reply="${_nea(rootKey)}" data-rl-np-reply-under="${_nea(key)}">${i18t('ng_np_reply')}</button>` : ''}
       ${(ctx.mayWrite && root) ? `<button type="button" class="rl-np-act-b g" data-rl-np-done="${_nea(key)}" data-on="${m.done ? '0' : '1'}">${
         i18t(m.done ? 'ng_np_reopen' : 'ng_np_done')}</button>` : ''}
+      ${(ctx.mayWrite && !PORTAL_MODE) ? `<button type="button" class="rl-np-act-b g rl-np-seen${iSaw ? ' is-on' : ''}" data-rl-np-seen="${_nea(key)}" data-on="${iSaw ? '0' : '1'}"
+        aria-pressed="${iSaw ? 'true' : 'false'}" title="${_nea(i18t(iSaw ? 'ng_np_seen_off_t' : 'ng_np_seen_on_t'))}">${i18t('ng_np_seen')}</button>` : ''}
       ${(ctx.mayWrite && root && !PORTAL_MODE && !given) ? `<button type="button" class="rl-np-act-b g" data-rl-np-give="${_nea(key)}">${i18t('ng_np_give')}</button>` : ''}
       ${(ctx.mayWrite && authored) ? `<button type="button" class="rl-np-act-b g" data-rl-np-delete="${_nea(key)}"${delWhy ? ` disabled title="${_nea(delWhy)}"` : ''}>${i18t('ng_np_delete')}</button>` : ''}
-      ${given ? (ctx.mayWrite
-        ? `<button type="button" class="rl-np-given" data-rl-np-give="${_nea(key)}" title="${_nea(i18t('ng_np_give_change'))}">${_ne(giveWords)}</button>`
-        : `<span class="rl-np-given">${_ne(giveWords)}</span>`) : ''}
-      ${(root && m.done) ? `<span class="rl-np-doneby">${_ne(i18t('ng_np_done_by', { who: (m.done && m.done.by) || '' }))}</span>` : ''}
-    </div>` : '';
+    </div>${factBits.length ? `<div class="rl-np-facts">${
+      factBits.join('<span class="rl-np-fsep" aria-hidden="true">·</span>')}</div>` : ''}` : '';
   const rbox = (ctx && ctx.replyOpen) ? rlNpReplyBoxHtml((ctx && ctx.replyRoot) || m, ctx) : '';
   /* ---- AND WHETHER IT IS NEW TO THIS READER ---- (13 Sep 2026, group 5)
      A dot, on the note itself, where the reading happens — the bell counts
@@ -15881,7 +16049,7 @@ function rlNpReplyBoxHtml(root, ctx){
 function rlNpThreadHtml(c, ch, th, room, side, other, opts = {}){
   const mayWrite = notesMayWrite(c, opts);
   const key = negoNoteKey(th.root);
-  const ctx = { c, ch, acts: true, mayWrite, ext: room === 'external' };
+  const ctx = { c, ch, acts: true, mayWrite, ext: negoRoomIsExternal(room) };
   const under = k => _rlNpReplyTo === key && (_rlNpReplyUnder || key) === k;
   return `<div class="rl-np-thread${th.done ? ' is-done' : ''}" data-rl-np-home="${_nea(ch ? ch.id : '')}" data-rl-np-root="${_nea(key)}">
     ${rlNpNoteHtml(th.root, room, side, other, { ...ctx, root: true, rootKey: key, replyRoot: th.root, replyCount: th.replies.length, replyOpen: under(key) })}
@@ -15991,17 +16159,22 @@ function rlNpPinHtml(c, ch, opts, side){
      back to them is not a sentence (ng_np_pin_filed, ng_np_pin_revised
      STALE). Skip stays the way out of a filed pin. */
   const quote = p.quote || (p.filed && chOf ? rlNpChangeQuote(chOf) : '');
-  const ext = p.room === 'external';
+  const ext = negoRoomIsExternal(p.room);
   const tabbed = side === 'owner';
   const off = i18t(p.filed ? 'ng_note_skip' : 'ng_np_unpin');
   return `<div class="rl-np-pin${ext ? ' out' : ''}" data-rl-np-pin="${_nea(p.changeId || p.clauseId || '')}">
     <div class="l"><span class="ref">${_ne(ref)}</span>
       <button type="button" class="x" data-rl-np-unpin title="${_nea(off)}" aria-label="${_nea(off)}">${_ne(off)}</button></div>
     ${quote ? `<q>${_ne(quote)}</q>` : ''}
+    ${''/* THE PIN OFFERS THE SAME ROOMS THE CHIPS DO (3 Oct 2026). It built
+           its own two-button list, so once a room became a party the pin and
+           the chips would have been offering different places to put the same
+           note. One room list, read from the model. */}
     ${tabbed ? `<div class="rl-np-pinroom" role="group" aria-label="${_nea(i18t('ng_note_room_label'))}">${
-      ['internal', 'external'].map(r => `<button type="button" class="${r === p.room ? 'on' : ''}${r === 'external' ? ' ext' : ''}"
-        data-rl-np-pin-room="${r}" aria-pressed="${r === p.room ? 'true' : 'false'}">${
-        i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')}</button>`).join('')
+      negoNoteRoomList(c, opts, side).map(r => `<button type="button" class="${
+        r.key === p.room ? 'on' : ''}${r.external ? ' ext' : ''}"
+        data-rl-np-pin-room="${_nea(r.key)}" aria-pressed="${r.key === p.room ? 'true' : 'false'}">${
+        _ne(r.external ? (r.name || i18t('ng_np_tab_ext')) : i18t('ng_np_tab_int'))}</button>`).join('')
     }</div>` : ''}
   </div>`;
 }
@@ -16015,7 +16188,11 @@ function rlNotesPanelHtml(c, ch, opts = {}){
      payload and thrown away on the next paint, so an internal room there would
      be a box that accepts typing and loses it. One room, theirs. */
   const tabbed = side === 'owner';
-  const room = tabbed ? rlNpRoom() : 'external';
+  /* THE ROOM, RESOLVED AGAINST THIS CONTRACT: a stored 'external' or a party
+     that has left the record becomes the first outside party's room, by the
+     one reading all three surfaces ask. Their seat has no tabs and is handed
+     its own single room. */
+  const room = rlNpRoomNow(c, opts, tabbed ? 'owner' : side);
   const them = c.counterparty || i18t('ng_the_counterparty');
   const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
   /* From their chair the other side is US. */
@@ -16023,16 +16200,11 @@ function rlNotesPanelHtml(c, ch, opts = {}){
   const notes = negoRoomNotes(c, ch, room, opts, side);
   const n = negoNoteCounts(c, ch, opts, side);
   const mayWrite = notesMayWrite(c, opts);
-  const ext = room === 'external';
+  const ext = negoRoomIsExternal(room);
   const who = ext
     ? i18t('ng_np_who_ext', { who: _ne(other) })
     : i18t('ng_np_who_int', { org: _ne(us), who: _ne(them) });
-  const tabs = tabbed ? `<div class="rl-np-tabs" role="tablist">
-      ${NOTE_ROOMS.map(r => `<button type="button" role="tab" class="rl-np-tab${
-        r === room ? ' on' : ''}" data-rl-np-room="${r}" aria-selected="${r === room}"
-        >${i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')} <i>(${
-        r === 'external' ? n.external : n.internal})</i></button>`).join('')}
-    </div>` : '';
+  const tabs = tabbed ? rlNpRoomsHtml(c, room, n, opts, side) : '';
   const list = notes.length
     ? rlNpListHtml(c, ch, notes, room, side, other, opts)
     : `<div class="rl-np-empty">
@@ -16234,15 +16406,25 @@ function rlChatPanelHtml(c, opts = {}){
   /* THEIR SEAT HAS ONE ROOM AND NO TABS (11 Sep 2026, the same reading the
      per-change panel makes): their page keeps nothing private. */
   const tabbed = side === 'owner';
-  const room = tabbed ? rlNpRoom() : 'external';
+  /* THE ROOM, RESOLVED AGAINST THIS CONTRACT: a stored 'external' or a party
+     that has left the record becomes the first outside party's room, by the
+     one reading all three surfaces ask. Their seat has no tabs and is handed
+     its own single room. */
+  const room = rlNpRoomNow(c, opts, tabbed ? 'owner' : side);
   const them = c.counterparty || i18t('ng_the_counterparty');
   const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
   const other = side === 'counterparty' ? us : them;
-  const ext = room === 'external';
+  const ext = negoRoomIsExternal(room);
   const all = rlChatRows(c, opts);
-  const rows = all.filter(({ m }) => negoNoteRoom(m) === room);
-  const nInt = all.length - all.filter(({ m }) => negoNoteRoom(m) === 'external').length;
-  const nExt = all.length - nInt;
+  /* The chat face walks the whole book's notes rather than one change's, so it
+     does its own tally — but through the SAME room reading the model uses, and
+     into the same `byRoom` shape the chips take, so the two cannot disagree
+     about which room a note is in. Every room gets a key, including empty
+     ones, so a chip never has to tell an absent count from a zero. */
+  const rows = all.filter(({ m }) => negoNoteRoomKey(c, m) === room);
+  const byRoom = {};
+  for (const r of negoNoteRoomList(c, opts, side)) byRoom[r.key] = 0;
+  for (const { m } of all){ const k = negoNoteRoomKey(c, m); byRoom[k] = (byRoom[k] || 0) + 1; }
   const who = ext
     ? i18t('ng_np_who_ext', { who: _ne(other) })
     : i18t('ng_np_who_int', { org: _ne(us), who: _ne(them) });
@@ -16334,12 +16516,7 @@ function rlChatPanelHtml(c, opts = {}){
         <span class="s">${i18tn('ng_chat_n', all.length, { n: all.length })}</span>
       </span>
     </div>
-    ${tabbed ? `<div class="rl-np-tabs" role="tablist">
-      ${NOTE_ROOMS.map(r => `<button type="button" role="tab" class="rl-np-tab${
-        r === room ? ' on' : ''}" data-rl-np-room="${r}" aria-selected="${r === room}"
-        >${i18t(r === 'external' ? 'ng_np_tab_ext' : 'ng_np_tab_int')} <i>(${
-        r === 'external' ? nExt : nInt})</i></button>`).join('')}
-    </div>` : ''}
+    ${tabbed ? rlNpRoomsHtml(c, room, { byRoom: byRoom }, opts, side) : ''}
     ${''/* TABBED ON OUR SEAT: the tab row names the room and the line under
            it would be that fact twice. Their seat has no tabs, so the line is
            the one thing naming who reads it. */}
@@ -16508,8 +16685,19 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
   const text = String((box && box.value) || '').trim();
   if (!text){ if (box && box.focus) box.focus(); return false; }
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
-  const ext = room === 'external';
-  const them = c.counterparty || i18t('ng_the_counterparty');
+  const ext = negoRoomIsExternal(room);
+  /* WHO THE CONFIRMATION NAMES is the ROOM'S party, not the record's first
+     one: "Send this to Jumenza LLC?" has to be true of the room being posted
+     into, and on a contract with several outside parties c.counterparty names
+     only the first. Falls back to the record exactly as before where the room
+     names nobody, so a two-party contract reads byte for byte as it did. */
+  const roomParty = ext ? (() => {
+    const want = negoRoomPartyId(room);
+    const list = (window.partiesTheirs ? partiesTheirs(c) : []) || [];
+    const hit = want ? list.find(p => String(p.id) === want) : null;
+    return hit ? (hit.name || '') : '';
+  })() : '';
+  const them = roomParty || c.counterparty || i18t('ng_the_counterparty');
   const us = (window.contractParty ? contractParty(c) : null) || window.FIRST_PARTY || 'this workspace';
   const other = side === 'counterparty' ? us : them;
   /* WHERE IT LANDS: a reply on the thread it answers; a pinned note on the
@@ -16540,6 +16728,11 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
   }
   const msg = negoPostComment(c, home ? home.id : null, text, {
     side, author: opts.author, visibility: ext ? 'shared' : 'internal',
+    /* WHICH PARTY'S ROOM, straight off the key the reader is standing in.
+       The writer checks it against the record again and drops an id this
+       contract does not hold, so the chip and the stored note cannot disagree
+       about who a note is for. */
+    partyId: ext ? negoRoomPartyId(room) : '',
     anchor: (pin && pin.quote) ? { clauseId: pin.clauseId, quote: pin.quote } : undefined,
     replyTo: reply ? extra.replyTo : undefined });
   if (!msg) return false;
@@ -16553,14 +16746,28 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
      The retired window did exactly this ("Add note posts each non-empty draft
      to its own room"); the drawer used to flip the pin to the other room and
      wait, which is the pin the owner saw standing after Add note. */
-  let second = null;
+  /* ---- AND THERE MAY BE MORE THAN ONE OTHER ROOM NOW (3 Oct 2026) ----
+     With two rooms "the other" named exactly one; with a room per party it
+     names several, so this walks every room the drawer offers and takes each
+     non-empty draft. The behaviour for two rooms is byte for byte what it
+     was — one other room, one second post — and D-6's ruling is unchanged:
+     a draft typed in another room is neither thrown away nor left waiting. */
+  /* Seeded from the caller, because the tail below hands the remaining rooms
+     back into this same funnel: on that turn `extra.pin` is set, the block
+     below is skipped, and without this the third room's draft would be
+     dropped between the second post and the third. */
+  let more = Array.isArray(extra.more) ? extra.more.slice() : [];
   if (pin && !extra.pin){
-    const other = pin.room === 'external' ? 'internal' : 'external';
-    const held = String(pin.drafts[other] || '').trim();
+    const keys = negoNoteRoomList(c, opts, side).map(r => r.key);
+    for (const k of keys){
+      if (k === pin.room) continue;
+      const held = String(pin.drafts[k] || '').trim();
+      if (held) more.push({ room: k, text: held });
+    }
     pin.added = true;
-    pin.drafts[pin.room] = ''; pin.drafts[other] = '';
+    for (const k of keys) pin.drafts[k] = '';
+    pin.drafts[pin.room] = '';
     rlNotesUnpin('added');
-    if (held) second = { room: other, text: held };
   }
   if (reply){ _rlNpReplyTo = null; _rlNpReplyUnder = null; }
   /* SEEN IS KEYED BY CHANGE, so a note that belongs to no change marks nothing
@@ -16598,9 +16805,15 @@ async function rlNotesSend(host, c, ch, opts, room, extra = {}){
     toast((home ? i18t('ng_np_filed', { org: us, id: home.id })
       : i18t('ng_chat_filed', { org: us })) + atLine, 'ok');
   }
-  /* THE OTHER ROOM'S DRAFT, same words, same change, its own room and its own
-     confirmation — and it repaints the panel itself, so this half returns. */
-  if (second) return rlNotesSend(host, c, ch, opts, second.room, { box: { value: second.text }, pin });
+  /* THE OTHER ROOMS' DRAFTS, same words, same change, each its own room and
+     its own confirmation — and the call repaints the panel itself, so this
+     half returns. The remainder rides as `rest` so a third room's draft is
+     posted by the next turn of the same funnel rather than by a second one. */
+  if (more && more.length){
+    const [next, ...rest] = more;
+    return rlNotesSend(host, c, ch, opts, next.room,
+      { box: { value: next.text }, pin, more: rest });
+  }
   /* THE PAPER'S MARKS FOLLOW IN THE SAME BREATH (round four). */
   rlRepaintNoteMarks(c, opts);
   /* EACH SURFACE REPAINTS ITSELF. One send, two panels: the per-change panel
@@ -16775,7 +16988,7 @@ function rlNpWireActs(host, c, ch, opts = {}, repaint){
     const r = b.getAttribute('data-rl-np-pin-room');
     if (r === p.room) return;
     if (foot) p.drafts[p.room] = foot.value;
-    p.room = r === 'external' ? 'external' : 'internal';
+    p.room = negoRoomKey(r);
     rlNpSetRoom(p.room);
     again();
     const bx = host.querySelector('.rl-np-in'); if (bx && bx.focus) bx.focus();
@@ -20290,6 +20503,11 @@ if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml,
   rlPaperFootHtml,
   redlinePanesHtml, redlineThreads, redlineDocHtml, redlineChangeCardsHtml, rlCardNotesHtml, negoWhen,
   NOTE_ROOMS, negoNoteRoom, negoRoomNotes, negoNoteCounts, notesMayWrite,
+  negoNoteParty, negoNoteRoomKey, negoNoteRoomList, negoRoomIsExternal,
+  negoRoomPartyId, negoRoomKey, rlNpRoomsHtml, rlNpRoomNow,
+  /* Published so a browser check can read the column's resting width off the
+     page rather than typing 460 into a test — PIN THE RELATION. */
+  RL_RIGHT_W0,
   rlNoteDialogHtml, openChangeNoteDialog, rlNoteAskAfterFile,
   rlNotesPin, rlNotesUnpin, rlNotesPinned, rlNotesPanelClosed, rlNpPinFor, negoWhenFull, rlNpClauseLabel,
   rlNpThreadHtml, rlNpListHtml, rlNpPinHtml, rlChatThreads, rlNpWireActs, rlNpSetDone, rlNpShowFocused,

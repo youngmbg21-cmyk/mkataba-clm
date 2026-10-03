@@ -106,8 +106,14 @@ describe('f173 · the room is the destination, and it opens on Internal', () => 
       'and neither does the clause panel any more — the box has left it');
     const host = p.notes(p.theirs, 'internal');
     const tabs = [...host.querySelectorAll('[data-rl-np-room]')];
-    assert.deepEqual(tabs.map(t => t.getAttribute('data-rl-np-room')), ['internal', 'external'],
-      'the panel offers exactly two rooms');
+    /* RE-POINTED 3 Oct 2026 — the outside room's key is the party's own
+       ('p:<id>') now, so one note can say which of several outside parties it
+       is for. The claim is unchanged: this contract has ONE outside party, so
+       the panel offers exactly two rooms, ours first. PIN THE RELATION. */
+    const keys = tabs.map(t => t.getAttribute('data-rl-np-room'));
+    assert.equal(keys.length, 2, 'the panel offers exactly two rooms');
+    assert.equal(keys[0], 'internal', 'ours leads');
+    assert.notEqual(keys[1], 'internal', 'and the second is the outside party’s');
     assert.ok(tabs[0].classList.contains('on'), 'and opens on Internal');
     assert.equal(host.querySelector('.nego-visswitch'), null,
       'THE SWITCH IS GONE: there is nothing to set, so nothing to set wrongly');
@@ -140,7 +146,7 @@ describe('f173 · the room is the destination, and it opens on Internal', () => 
     const ext = p.notes(p.theirs, 'external');
     assert.equal(ext.querySelector('.rl-np-who'), null,
       'nor over the external one');
-    assert.ok(ext.querySelector('[data-rl-np-room="external"].on'));
+    assert.ok(ext.querySelector('[data-rl-np-room]:not([data-rl-np-room="internal"]).on'));
     assert.match(ext.querySelector('.rl-np-in').placeholder, new RegExp(p.c.counterparty, 'i'),
       'THE COUNTERPARTY IS STILL NAMED BEFORE YOU TYPE — in the box itself');
     assert.ok(ext.querySelector('.rl-np-foot').classList.contains('out'),

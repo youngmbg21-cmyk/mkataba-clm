@@ -20063,3 +20063,52 @@ a worktree. Five failures, two piles.
   quiet facts on a second) is in the same artifact and is this run's own to
   make; not made yet, because the owner has not picked an option and the repair
   should land with whichever one they pick.
+
+## 3 Oct 2026 — option 1 at 460: a room for every party
+
+Built on Young's "Build option 1 at 460", off the design round of the same day.
+Three things, and only one of them was about width.
+
+### Defects found and fixed
+- **THE EXTERNAL ROOM WAS ONE ROOM FOR EVERY OUTSIDE PARTY** (recorded as
+  "noticed, not fixed" earlier the same day; Young's pick of option 1 is the
+  ruling it was waiting on). A note carried no party anywhere, so once a
+  contract held a second outside party a note written for one was served to the
+  other. TWO leak paths, both closed: the channel (`share_messages`, walled on
+  the server by `srvMsgScope` + `contractMessages`) and the SHARE PAYLOAD
+  (`buildSharePayload`'s `thread`, which filtered on `visibility==='shared'`
+  alone). The second was found only by looking for it after the first.
+- **A note's acts row held up to SEVEN controls in a 330px drawer**, three of
+  them added by the 3 Oct morning run without measuring the row. Split by KIND:
+  verbs on one line, the quiet facts on another.
+
+### Defects this build introduced and fixed before it shipped
+- **THE MENTION ROSTER SERVED OUR COLLEAGUES INTO THE COUNTERPARTY'S PICKER.**
+  `negoTagPeople` asked `room === 'external'`, a LITERAL, and once a room was
+  keyed by its party that went false for every real outside room — so it fell
+  through to the internal branch. That roster is the WALL `negoPostComment`
+  resolves mentions against. Caught by f246 (11), the wall test written for
+  exactly this, on their own seat's rendering. Fixed to ask `room !== 'internal'`
+  and pinned as a regression in f446 (8). **The sweep that re-pointed the room
+  comparisons covered js/views/negotiation.js and not js/negotiation.js.**
+- **THE ROOM LIST SECOND-GUESSED THE SEAT THE CALLER PASSED.** It read
+  `side === 'counterparty' || PORTAL_MODE`, and on a stage with PORTAL_MODE set
+  that gave OUR OWN seat one room and no Internal tab. MEASURED in
+  clause-editor-verify, not reasoned out — two rounds of reasoning got it wrong.
+  `side !== 'owner'` is the reading `tabbed` already uses.
+- **THE PAYLOAD RESOLVED THE NOTE'S ABSENT PARTY TO THE ASKING LINK**, so a
+  party-less note reached every party's copy. Found by DRIVING the real builder
+  rather than by reading it; the server's own `contractMessages` had the shape
+  right all along.
+
+### Noticed, not fixed
+- **test/chromium/notes-two-rooms-verify.js has two checks red at main** (the
+  chat door's position in the shell bar, and the cascading page error after it).
+  Pre-existing, already recorded on 3 Oct; not in KNOWN_RED.
+- **clause-editor-verify 33h flakes on a busy machine** — already documented in
+  CLAUDE.md's standing lessons. It failed once here while the full suite ran
+  alongside it, and passed on its own.
+- **A test harness can silently disagree with the product about PORTAL_MODE.**
+  parity.html has it set while the panel it drives believes it is on our seat.
+  Nothing here depends on it any more, but a future reading that consults the
+  global rather than its caller's `side` will meet this again.

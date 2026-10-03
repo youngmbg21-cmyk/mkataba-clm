@@ -911,6 +911,13 @@ db.exec(`
    reads on ours exactly as one of ours does. Validated on the way in
    (msgMeta), absent on every row already on file. */
 addColumnIfMissing('share_messages', 'meta', 'TEXT');
+/* ---- AND WHICH OUTSIDE PARTY THE NOTE IS FOR (Young ruled 3 Oct 2026) ----
+   A COLUMN and not a `meta` key, for the reason `side` is a column: this is
+   who the row belongs to, it is what the read filters on, and every query that
+   counts what one side said has to be able to see it. NULL on every row on
+   file and NULL reads as the first outside party, which is what every link on
+   file is — so there is nothing to backfill. See contractMessages. */
+addColumnIfMissing('share_messages', 'party_id', 'TEXT');
 addColumnIfMissing('shares', 'contract_id', 'TEXT');
 addColumnIfMissing('shares', 'recipient_name', 'TEXT');
 addColumnIfMissing('shares', 'recipient_email', 'TEXT');
@@ -13460,7 +13467,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        snapshot: an answer written by the owner has to appear on the reader's
        page without waiting for the link to be reshared, or a reply is as slow
        as the formal round it replaces. */
-    messages: s.contract_id ? contractMessages(s.contract_id, shareIsAdvice(s) ? { adviserToken: s.token } : undefined) : [],
+    messages: s.contract_id ? contractMessages(s.contract_id, shareIsAdvice(s) ? { adviserToken: s.token } : srvMsgScope(s.contract_id, s)) : [],
     prior: s.durable ? priorCopyOfDurable(s) : priorCopySeenBy(s),
     superseded: s.durable ? shareRetiredBySigning(s) : shareSuperseded(s),
     /* THE DEAL IS DONE, read live rather than from the payload snapshot. The
@@ -13908,25 +13915,82 @@ const msgMetaRead = s => { if (!s) return null; try { return msgMeta(JSON.parse(
    'counterparty', because every query that counts what the OTHER SIDE said
    (`WHERE m.side = 'counterparty'`) must not count an adviser as them. */
 const MSG_SIDE_ADVISER = 'adviser';
+/* ---- WHICH ROOM A LINK READS (Young ruled 3 Oct 2026, with the rooms) ----
+   A note belongs to ONE outside party now, and this is the server's reading of
+   which party a given link is. It resolves the null case the same way
+   srvPartyOfShare does — the first outside party, which is what every link and
+   every note on file is — so nothing needs migrating and nothing moves room.
+   `firstPartyId` comes back beside it because the ROW's null has to be
+   resolved by the same rule before the two can be compared. */
+function srvMsgScope(contractId, shareRow) {
+  /* WHERE THE RECORD CANNOT BE READ, THE ANSWER IS THE NARROWEST ONE, never
+     `null` — a null here would reach contractMessages as "no party named",
+     which is how a signed-in colleague asks for EVERY room. An empty scope
+     instead matches only rows that name no party, which is exactly what a
+     contract with no parties on it carries. The safe direction is fewer rooms. */
+  const none = { partyId: '', firstPartyId: '' };
+  if (!contractId) return none;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
+  if (!row) return none;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return none; }
+  const list = srvContractParties(c).filter(p => p.side !== 'ours');
+  const first = list.length ? String(list[0].id) : '';
+  const p = srvPartyOfShare(c, shareRow);
+  return { partyId: p ? String(p.id) : first, firstPartyId: first };
+}
+/* A colleague DOES choose the room — that is what the chips are — so unlike a
+   link they may name one. It is still checked against the stored record rather
+   than taken on the body's word, and an id this contract does not hold reads
+   as none, which is the first outside party: the same answer every note on
+   file gets, never somebody else's room. */
+function srvPartyIdOn(contractId, want) {
+  const id = String(want || '').trim();
+  if (!contractId || !id) return null;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
+  if (!row) return null;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return null; }
+  const hit = srvContractParties(c).filter(p => p.side !== 'ours').find(p => String(p.id) === id);
+  return hit ? String(hit.id) : null;
+}
 function contractMessages(contractId, opts) {
   const o = opts || {};
+  /* THE PARTY WALL. A contract can hold several outside parties, each with
+     its own link, and before this every one of them was served the whole
+     table — so a note written for one was read by all. This is the same shape
+     as the adviser wall above it and for the same reason: THE SERVER IS THE
+     WALL, so the filter is here and not on a page.
+       · no partyId        — a signed-in colleague: every room.
+       · { partyId: 'x' }  — that party's link: that party's room only.
+     A row with no party is the FIRST outside party (every row on file), and
+     both sides of the comparison go through the same normalising, so the
+     migration is the rule rather than a backfill. */
+  const want = o.partyId == null ? null : String(o.partyId || '');
+  const first = String(o.firstPartyId || '');
+  const roomOf = pid => String(pid || first || '');
   return db.prepare(
-    `SELECT id, side, token, author, topic, topic_label AS topicLabel, body, at, meta
+    `SELECT id, side, token, party_id, author, topic, topic_label AS topicLabel, body, at, meta
        FROM share_messages WHERE contract_id=? ORDER BY id ASC LIMIT 500`).all(contractId)
     .filter(m => m.side !== MSG_SIDE_ADVISER ? true
       : (o.adviser === true ? true
         : (o.adviserToken ? String(m.token || '') === String(o.adviserToken) : false)))
-    .map(m => { const { token, ...rest } = m; return { ...rest, meta: msgMetaRead(m.meta) }; });
+    /* An adviser's own rows are theirs by token and are not a party's room, so
+       they are past this wall already — narrowing them by party as well would
+       hide an adviser's notes from the adviser who wrote them. */
+    .filter(m => want == null || m.side === MSG_SIDE_ADVISER || roomOf(m.party_id) === want)
+    .map(m => { const { token, party_id, ...rest } = m;
+      return { ...rest, partyId: party_id || null, meta: msgMetaRead(m.meta) }; });
 }
-function addMessage({ contractId, token, side, author, topic, topicLabel, body, meta }) {
+function addMessage({ contractId, token, side, author, topic, topicLabel, body, meta, partyId }) {
   const at = now();
   const clean = msgMeta(meta);
   const info = db.prepare(
-    `INSERT INTO share_messages (contract_id,token,side,author,topic,topic_label,body,at,meta)
-     VALUES (?,?,?,?,?,?,?,?,?)`).run(contractId, token || null, side, author,
+    `INSERT INTO share_messages (contract_id,token,side,author,topic,topic_label,body,at,meta,party_id)
+     VALUES (?,?,?,?,?,?,?,?,?,?)`).run(contractId, token || null, side, author,
       String(topic).slice(0, MSG_TOPIC_MAX), topicLabel ? String(topicLabel).slice(0, 400) : null,
-      String(body).slice(0, MSG_BODY_MAX), at, clean ? JSON.stringify(clean) : null);
-  return { id: info.lastInsertRowid, side, author, topic, topicLabel: topicLabel || null, body, at, meta: clean };
+      String(body).slice(0, MSG_BODY_MAX), at, clean ? JSON.stringify(clean) : null,
+      partyId ? String(partyId).slice(0, 40) : null);
+  return { id: info.lastInsertRowid, side, author, topic, topicLabel: topicLabel || null,
+    body, at, meta: clean, partyId: partyId ? String(partyId) : null };
 }
 /* ---- DONE IS A FACT ON THE ROW, AND EITHER SIDE MAY SET IT ----
    Marking a thread done (or open again) writes onto the channel copy so both
@@ -13963,12 +14027,19 @@ app.post('/api/shares/:token/messages', rlShare, (req, res) => {
      off (see contractMessages) and what keeps every "the other side spoke
      last" count honest. `advise` is the ONE reading of which link this is. */
   const adviser = shareIsAdvice(s);
+  /* THE PARTY IS THE LINK'S, NEVER THE BODY'S. The same rule the open-relay
+     guard applies to an address: a link cannot name a room it is not in, so
+     the one on the row is the one the stored share belongs to. An adviser's
+     row takes none — their wall is the token, and a party on it would hide
+     their own notes from them. */
+  const scope = adviser ? null : srvMsgScope(s.contract_id, s);
   const m = addMessage({ contractId: s.contract_id, token: s.token,
     side: adviser ? MSG_SIDE_ADVISER : 'counterparty',
+    partyId: scope ? scope.partyId : null,
     author, topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim(), meta: b.meta });
   notifyMessage(s, m);
   res.json({ ok: true, message: m,
-    messages: contractMessages(s.contract_id, adviser ? { adviserToken: s.token } : undefined) });
+    messages: contractMessages(s.contract_id, adviser ? { adviserToken: s.token } : srvMsgScope(s.contract_id, s)) });
 });
 
 /* Every point where the counterparty spoke last, across the whole portfolio.
@@ -14024,6 +14095,9 @@ app.post('/api/contracts/:id/messages', auth, editor, async (req, res) => {
   const m = addMessage({ contractId: req.params.id, token: null,
     side: viaWord ? 'counterparty' : 'owner',
     author: viaWord ? wordAuthor : req.user.name,
+    /* Which party's room this note is for. Checked against the record here as
+       well as in the browser, because the browser is cosmetics. */
+    partyId: srvPartyIdOn(req.params.id, b.partyId),
     topic: b.topic, topicLabel: b.topicLabel, body: b.body.trim(), meta: b.meta });
   const sent = await notifyCounterpartyMessage(req.params.id, m);
   res.json({ ok: true, message: m, messages: contractMessages(req.params.id, { adviser: true }),
@@ -14048,7 +14122,7 @@ app.patch('/api/shares/:token/messages/:mid', rlShare, (req, res) => {
   const by = String(b.author || s.recipient_name || 'Counterparty').trim();
   const m = setMessageDone(s.contract_id, req.params.mid, b.done !== false, by);
   if (!m) return res.status(404).json({ error: 'Message not found' });
-  res.json({ ok: true, message: m, messages: contractMessages(s.contract_id, shareIsAdvice(s) ? { adviserToken: s.token } : undefined) });
+  res.json({ ok: true, message: m, messages: contractMessages(s.contract_id, shareIsAdvice(s) ? { adviserToken: s.token } : srvMsgScope(s.contract_id, s)) });
 });
 
 /* ---------- A DISCUSSION MESSAGE IS NOT AN EMAIL ----------

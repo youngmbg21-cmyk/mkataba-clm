@@ -564,9 +564,16 @@ describe('f264 (8) — Chat is the whole contract’s conversation', () => {
     noteOf(p.w, p.c, p.ch, 'Sent across.', { visibility: 'shared' });
     const h = p.w.win.rlChatPanelHtml(p.c, { side: 'owner' });
     assert.match(h, /ng_np_tab_int|Internal/);
-    assert.match(h, /ng_np_tab_ext|External/,
+    /* RE-POINTED 3 Oct 2026 — the outside room is NAMED AFTER ITS PARTY now
+       ("Saw Sawa Ltd"), so matching the word "External" was asserting the old
+       label rather than the claim. The claim is that the chat face offers both
+       rooms, and that is what is read here: two chips, ours and theirs. */
+    const chips = h.match(/data-rl-np-room="[^"]*"/g) || [];
+    assert.equal(chips.length, 2,
       'this is where you READ, and a reader catching up wants the conversation '
       + 'in the order it happened rather than in two halves');
+    assert.ok(chips.some(k => /="internal"/.test(k)), 'ours');
+    assert.ok(chips.some(k => !/="internal"/.test(k)), 'and the outside party’s');
     assert.match(h, new RegExp(`data-rl-notes="${p.ch.id}"`),
       'and each row is a door onto that change’s own note');
   });

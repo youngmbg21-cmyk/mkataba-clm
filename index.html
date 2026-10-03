@@ -417,6 +417,18 @@
        that said "the values here are exactly what shipped before" was true
        until this change and is now this note instead. */
     --shell-panel-w:365px;
+    /* ---- AND THE NOTES FACE IS AS WIDE AS THE COLUMN IT COVERS ----
+       (Young ruled 3 Oct 2026: "increase the panel size to be as the natural
+       landing width of the redline panel".) 460 is NOT a new number: it is
+       RL_RIGHT_W0, the width the redlines column rests at and the width its
+       cards were approved at, so on the negotiate page the drawer lands on
+       that column exactly and the contract — which ends about 40px before it
+       begins at 1440 — keeps every pixel. MEASURED at 330: seven controls on
+       one note wrapped into a stack of single words.
+       Its own token, because this is the NOTES face alone; Activity and Alerts
+       are one scrolling list and are deliberately unchanged. See
+       #context-panel[data-face="notes"]. */
+    --shell-panel-notes-w:330px;
     /* THE PLATFORM FACE IS IBM PLEX SANS (owner-asked, 25 Aug 2026), replacing
        Inter, which carried it from 22 Aug and SAP's "72" before that. All four
        face tokens point at the one family — headings, body, figures and the
@@ -5083,6 +5095,14 @@
   @media (min-width:1800px){ :root{ --shell-panel-w:400px; } }
   /* -- laptop: trim it before anything has to be clipped -- */
   @media (max-width:1439px){ :root{ --shell-panel-w:330px; } }
+  /* -- THE NOTES FACE TOPS OUT AT THE REDLINE COLUMN'S OWN WIDTH --
+     TWO rungs, not three, and BP.laptop (1024) is the line because it is an
+     existing named rung of this product's — the same one clauseEditorFits
+     asks — rather than a number invented here. Below it a 460px drawer would
+     be nearly half the window and would stop reading as a panel; above it the
+     drawer is 34% at 1366 and 24% at 1920. The 88vw cap on the element still
+     holds underneath both. */
+  @media (min-width:1024px){ :root{ --shell-panel-notes-w:460px; } }
 
   /* -- THE SIDEBAR'S WIDTH IS NOT DECIDED HERE --
         An earlier version of this block collapsed the sidebar to an icon rail
@@ -7841,6 +7861,10 @@
     transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1);
   }
   #context-panel.open{transform:none;}
+  /* The notes face alone takes the wider token. (1,1,0) against the base
+     rule's (1,0,0), so it wins by WEIGHT and not by order or !important —
+     and a face with no rule of its own simply keeps --shell-panel-w. */
+  #context-panel[data-face="notes"]{ width:min(var(--shell-panel-notes-w,330px),88vw); }
   /* ---- AN ALERT ROW'S TONE, AND WHETHER IT IS NEWS (owner-asked 23 Aug 2026)
      Two classes, two facts. `al-good` is the TONE and lasts as long as the row:
      green ink on the title and a green edge down the left, so the one piece of
@@ -8008,6 +8032,17 @@
   .rl-np-thread .rl-np-note{border-bottom:0;}
   .rl-np-thread.is-done .rl-np-note p,.rl-np-thread.is-done .rl-np-top b{color:var(--color-neutral-600);}
   .rl-np-acts{display:flex;align-items:baseline;gap:12px;margin-top:6px;font-size:var(--t-label);}
+  /* ---- THE FACTS SIT UNDER THE VERBS (Young ruled 3 Oct 2026) ----
+     Not a second acts row: a line of things you READ, under the line of things
+     you PRESS. It still wraps — a note seen by six people has to go somewhere
+     — but with only facts on it, a wrap reads as a sentence running on rather
+     than as controls falling apart. The separator is drawn in CSS so no
+     as controls falling apart.
+     The separator is its OWN element and not a `::before` on each bit: one of
+     these bits is a button (the given chip), and a pseudo-element inside it
+     would put the dot inside the pressable area and underline it on hover. */
+  .rl-np-facts{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 8px;margin-top:3px;}
+  .rl-np-fsep{font-size:var(--t-micro);color:var(--color-neutral-400);}
   .rl-np-act-b{font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);
     color:var(--accent-ink);background:none;border:0;padding:0;cursor:pointer;}
   .rl-np-act-b.g{color:var(--color-neutral-600);}

@@ -2583,6 +2583,18 @@ function applyPanelLayout(){
   const show = !!(state.panelOpen && !panelSuppressed());
   panel.classList.toggle('open',show);
   panel.setAttribute('aria-hidden',show?'false':'true');
+  /* ---- THE PANEL SAYS WHICH FACE IT IS SHOWING (Young ruled 3 Oct 2026) ----
+     One element, three faces, and until now one width for all three — so the
+     notes face could not be widened without dragging Activity and Alerts with
+     it. The face is written here rather than at each door because BOTH doors
+     (openPanel and openNotesPanel) set the face and then call this, so a third
+     door added tomorrow inherits it. It is an ATTRIBUTE and not a class: the
+     width rule then scores (1,1,0) against the base rule's (1,0,0) and wins by
+     weight, so nothing needs !important — the fix-by-scope rule.
+     The precedent is already in this product: the notes face owns its own
+     LAYOUT for the same reason (see `pb-flow` in renderContextPanel), because
+     it is a list AND a box where the other two are one list. */
+  panel.dataset.face = panelFace();
   /* ---- NOTES DOES NOT DIM THE PAGE, AND THE OTHER TWO DO ----
      (owner-ruled 27 Aug 2026, following the clause panel's own rule: "do not
      shade the contract, it has to remain active".) A note is written while

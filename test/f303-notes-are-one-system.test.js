@@ -233,8 +233,15 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
     assert.match(pin.textContent, new RegExp(p.ch.id));
     assert.match(pin.querySelector('q').textContent, /forty-five \(45\) days/);
     const rooms = [...pin.querySelectorAll('[data-rl-np-pin-room]')];
-    assert.deepEqual(rooms.map(b => b.getAttribute('data-rl-np-pin-room') + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')),
-      ['internal*', 'external'], 'Internal lit at rest (D-6), External a press away');
+    /* RE-POINTED 3 Oct 2026 — the outside room's key is its party's now. The
+       claim is D-6's and is unchanged: two rooms, ours lit at rest, theirs one
+       press away. Read as a relation rather than as two literals. */
+    const keys = rooms.map(b => b.getAttribute('data-rl-np-pin-room'));
+    const lit = rooms.filter(b => b.getAttribute('aria-pressed') === 'true')
+      .map(b => b.getAttribute('data-rl-np-pin-room'));
+    assert.equal(keys.length, 2, 'one room for us, one for the outside party');
+    assert.deepEqual(lit, ['internal'], 'Internal lit at rest (D-6), theirs a press away');
+    assert.ok(keys.some(k => k !== 'internal'), 'and theirs is offered');
     assert.ok(p.host.querySelector('[data-rl-np-unpin]'), 'and a way to drop it');
   });
 
@@ -258,10 +265,15 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
     p.w.win.rlNoteFromSelection(p.c, { clauseId: p.cl7.clauseId, quote: 'indirect loss' }, { side: 'owner' });
     assert.equal(p.opened[0].chId, null, 'no change on clause 7: the contract’s own drawer');
     assert.match(p.host.querySelector('.rl-np-pin .ref').textContent, /Clause 7|Liability/);
-    p.host.querySelector('[data-rl-np-pin-room="external"]').click();
+    p.host.querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click();
     await tick();
-    assert.equal(p.w.win.rlNotesPinned().room, 'external');
-    assert.equal(p.w.win.rlNpRoom(), 'external', 'the drawer’s tab follows the pin');
+    /* RE-POINTED 3 Oct 2026 — an outside room's key is its party's ('p:<id>')
+       so a note can say which of several outside parties it is for. The claim
+       is that the press moved BOTH the pin and the drawer's tab into the same
+       outside room, which is read here as a relation rather than a literal. */
+    const pinned = p.w.win.rlNotesPinned().room;
+    assert.ok(p.w.win.negoRoomIsExternal(pinned), 'the pin moved to an outside room');
+    assert.equal(p.w.win.rlNpRoom(), pinned, 'the drawer’s tab follows the pin');
     assert.ok(p.host.querySelector('.rl-np-pin.out'), 'and the pin wears the crossing’s colour');
   });
 
@@ -399,7 +411,7 @@ describe('f303 (5) — three doors and the retired window', () => {
     await tick();
     const box = p.host.querySelector('.rl-np-in');
     box.value = 'For us.'; box.dispatchEvent(new p.w.win.Event('input', { bubbles: true }));
-    p.host.querySelector('[data-rl-np-pin-room="external"]').click(); await tick();
+    p.host.querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click(); await tick();
     assert.equal(p.host.querySelector('.rl-np-in').value, '', 'the other room starts empty');
     p.host.querySelector('[data-rl-np-pin-room="internal"]').click(); await tick();
     assert.equal(p.host.querySelector('.rl-np-in').value, 'For us.', 'and the first room kept its words');

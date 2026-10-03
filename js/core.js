@@ -4820,6 +4820,35 @@ function shareVersions(c, org){
 const SHARE_PURPOSE = p => (['sign','negotiate','view','history','advise'].includes(p) ? p : null);
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
+  /* ---- WHICH OUTSIDE PARTY'S ROOM THIS COPY MAY CARRY (3 Oct 2026) ----
+     One reading, used by the thread filter far below. It resolves a null the
+     way srvPartyOfShare and negoNoteParty both do — the first outside party —
+     so a link on file and a note on file agree without either being migrated,
+     and a contract with no parties on the record answers true to everything,
+     which is exactly what it carried before. Read through window with a guard:
+     js/parties.js is not on every stage, and an absent module must not start
+     hiding notes that have always travelled. */
+  const _shRooms=(()=>{
+    try{
+      if(typeof partiesTheirs!=='function') return null;
+      const them=partiesTheirs(c)||[];
+      if(!them.length) return null;
+      const first=String(them[0].id);
+      const want=String((opts&&opts.partyId)||'').trim();
+      const hit=want?them.find(p=>String(p.id)===want):null;
+      return { mine:String((hit||them[0]).id), first };
+    }catch(_){ return null; }
+  })();
+  /* BOTH SIDES RESOLVE BEFORE THEY ARE COMPARED, and the NOTE's absent party
+     resolves to the FIRST outside party — not to whichever link is asking.
+     Written the other way round first, and driving it showed a party-less note
+     reaching EVERY party's copy, because `want || mine` is trivially `mine`.
+     The server's contractMessages had the shape right; this is now the same
+     shape, which is the point of there being one rule. */
+  const _shThreadRoom=m=>{
+    if(!_shRooms) return true;
+    return (String((m&&m.partyId)||'').trim() || _shRooms.first)===_shRooms.mine;
+  };
   /* ---- ONE NAMED CONTACT, AND IT IS THE LEAD ----
      `sharedBy` is who the counterparty is told to reply to: the portal prints
      it on the header, on the response screen, on the signing screen and in the
@@ -4984,7 +5013,17 @@ function buildSharePayload(c, docHash, who, opts){
          missing filter cannot leak: what is never sent needs no hiding. The
          visibility field rides along so the reader's page can label the shared
          messages honestly. */
-      thread:Array.isArray(x.thread)?x.thread.filter(m=>m&&m.visibility==='shared')
+      /* ---- AND ONLY THIS LINK'S PARTY'S HALF OF THAT (3 Oct 2026) ----
+         The paragraph above is the same lesson one costume earlier: "shared"
+         was one room, so once a contract could hold several outside parties
+         (partiesMulti, late Sept) a note written for ONE of them rode this
+         payload to every other party's link. The channel had the identical
+         hole and is walled on the server; this copy is built in the browser,
+         per send, for a named recipient, so the wall has to be here as well.
+         `_shThreadRoom` resolves the link's party the way everything else
+         does — opts.partyId, else the first outside party, which is what every
+         link and every note on file is — so nothing on file moves room. */
+      thread:Array.isArray(x.thread)?x.thread.filter(m=>m&&m.visibility==='shared'&&_shThreadRoom(m))
         .map(m=>({ who:m.who, side:m.side, visibility:'shared', at:m.at, text:m.text, atHash:m.atHash||null })):[] }));
   /* An explicit purpose wins. Where the sender did not state one — a link made
      before purposes existed, or by a path that has no opinion — fall back to

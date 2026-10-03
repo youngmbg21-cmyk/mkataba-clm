@@ -96,14 +96,26 @@ function wide(win){ try{ win.innerWidth = 1440; }catch(_){} }
 /* ============================================================
    1 — THE PIN
    ============================================================ */
-describe('f304 (1) — the pin says Internal / External, carries no caption, and keeps its breaks', () => {
-  test('the switch says the tabs’ own two words, and a highlight pin has no caption', async () => {
+describe('f304 (1) — the pin names its rooms, carries no caption, and keeps its breaks', () => {
+  /* REVERSED IN PLACE 3 Oct 2026. Round two ruled that the switch says the
+     tabs' own two words, Internal and External. The second half of that is
+     reversed: an outside room is NAMED AFTER ITS PARTY, because a contract can
+     hold several and "External" cannot say which one a note is for.
+     THE RULING THAT SURVIVES, and the one actually worth holding, is that the
+     pin and the tabs read ONE room list — so it is that relation asserted here
+     rather than two literals. */
+  test('the switch names ours and the outside party, and a highlight pin has no caption', async () => {
     const p = await bench();
     p.win.rlNoteFromSelection(p.c, { clauseId: p.cl7.clauseId, quote: 'indirect loss' }, { side: 'owner' });
     const pin = p.host.querySelector('.rl-np-pin');
     assert.ok(pin, 'the pin is drawn');
     const rooms = [...pin.querySelectorAll('[data-rl-np-pin-room]')].map(b => b.textContent.trim());
-    same(rooms, [p.win.i18t('ng_np_tab_int'), p.win.i18t('ng_np_tab_ext')], 'the same words as the tabs');
+    const model = p.win.negoNoteRoomList(p.c, {}, 'owner');
+    assert.equal(rooms.length, 2, 'ours and the one outside party');
+    assert.equal(rooms[0], p.win.i18t('ng_np_tab_int'), 'ours keeps its word');
+    assert.equal(rooms[1], model[1].name, 'and theirs is the party, by name');
+    assert.ok(model[1].name && model[1].name !== p.win.i18t('ng_np_tab_ext'),
+      'a real name, not the old generic label');
     assert.equal(pin.querySelector('.lead'), null, 'no "Comment on these words" — no caption line at all (round three)');
     assert.ok(!/i18t\('ng_np_pin_on'\)|i18t\('ng_np_for_team'\)|i18t\('ng_np_for_them'/.test(VIEW),
       'the three old keys are called nowhere — stale, inert in both books');
@@ -149,7 +161,7 @@ describe('f304 (2) — Add note spends the pin, and the other room’s draft goe
     p.win.rlNoteFromSelection(p.c, { clauseId: p.cl6.clauseId, quote: 'forty-five (45) days' }, { side: 'owner' });
     await tick();
     type(p, p.host.querySelector('.rl-np-in'), 'For us: hold at forty-five.');
-    p.host.querySelector('[data-rl-np-pin-room="external"]').click(); await tick();
+    p.host.querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click(); await tick();
     type(p, p.host.querySelector('.rl-np-in'), 'Forty-five is our standard.');
     p.host.querySelector('[data-rl-np-pin-room="internal"]').click(); await tick();
     const before = p.ch.thread.length;

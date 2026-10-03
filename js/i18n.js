@@ -3156,6 +3156,13 @@ const STRINGS = {
        the list carries a visibility badge of its own any more. */
     ng_np_tab_int: 'Internal',
     ng_np_tab_ext: 'External',
+    /* ---- A ROOM IS NAMED AFTER A PARTY (Young ruled 3 Oct 2026) ----
+       `ng_np_tab_ext` stays LIVE as the fallback for a contract whose outside
+       party has no name on the record yet; every room that has one prints the
+       name itself, because a label has to say what is behind it. */
+    ng_np_room_us: '{org} — your team',
+    ng_np_room_t_int: 'Only your colleagues see this room',
+    ng_np_room_t_ext: 'Notes here go to {who}, and to nobody else',
     ng_np_who_int: 'Stays inside {org} — {who} never sees this tab',
     ng_np_who_ext: '{who} reads everything on this tab — the contract wording is unchanged',
     ng_np_oldest: 'Oldest first',
@@ -13546,6 +13553,9 @@ const STRINGS = {
     ng_note_less: 'Visa mindre',
     ng_np_tab_int: 'Internt',
     ng_np_tab_ext: 'Externt',
+    ng_np_room_us: '{org} — ditt team',
+    ng_np_room_t_int: 'Bara dina kollegor ser det här rummet',
+    ng_np_room_t_ext: 'Noteringar här går till {who}, och till ingen annan',
     ng_np_who_int: 'Stannar inom {org} — {who} ser aldrig den här fliken',
     ng_np_who_ext: '{who} läser allt på den här fliken — avtalstexten ändras inte',
     ng_np_oldest: 'Äldst först',
