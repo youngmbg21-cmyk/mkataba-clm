@@ -215,6 +215,72 @@ describe('F447 (3) — the reader, without a model', () => {
     assert.deepEqual({ ...w.hbParse('which contracts are overdue') }, { act: 'panel', kind: 'obl', lens: null });
     assert.deepEqual({ ...w.hbParse('suppliers only') }, { act: 'lens', lens: 'suppliers' });
   });
+  /* CHART FIRST (Young, 3 Oct 2026 evening: "the output should be in chart
+     format and then you can get an option to make it a list") */
+  test('a list answer is a chart first; the switch shows the rows; the choice is remembered per card', () => {
+    const w = both();
+    const key = 'q:Show me all Siginon contracts';
+    const D = w.hbDigData(key, 'all');
+    const html = w.hbDigBodyHtml(D, 'all');
+    assert.match(html, /hb-chart-lead/, 'the chart leads');
+    assert.doesNotMatch(html, /class="hb-rows"/, 'no rows at first');
+    assert.match(html, /data-hb-map=/, 'Show these on the map stays under the chart');
+    w.hbS().digView[key] = 'list';
+    const html2 = w.hbDigBodyHtml(D, 'all');
+    assert.match(html2, /class="hb-rows"/, 'the switch shows the rows');
+    assert.doesNotMatch(html2, /hb-chart-lead/);
+  });
+  test('the question\'s shape picks the chart: groups by stage, months for a date, value bars or bands for money', () => {
+    const w = both();
+    const by = q => (w.hbDigData('q:' + q, 'all').chart || {});
+    assert.deepEqual({ ...by('contracts with Sendy') }, { mode: 'groups', by: 'status' }, 'a company: by stage');
+    assert.deepEqual({ ...by('signed Siginon contracts') }, { mode: 'groups', by: 'folder' }, 'stage fixed: by stream');
+    assert.deepEqual({ ...by('which contracts expire this year') }, { mode: 'months' });
+    assert.deepEqual({ ...by('contracts between 2 million and 80 million') }, { mode: 'values' });
+    const html = w.hbChartHtml(w.hbDigData('q:contracts with Sendy', 'all'), w.state.contracts.filter(c => c.id === 'MK-2'));
+    assert.match(html, /data-hb-dig="qg:q:contracts with Sendy\u00a7status\u00a7Signed"/, 'a bar is a door one step deeper');
+    const big = w.state.contracts.concat(Array.from({ length: 20 }, (_, i) => ({ id: 'MK-B' + i, name: 'b' + i, counterparty: 'Siginon', status: 'Signed', value: (i + 1) * 1e6, audit: [] })));
+    w.state.contracts = big;
+    const bands = w.hbChartHtml({ key: 'q:x', chart: { mode: 'values' } }, big.filter(c => /^MK-B/.test(c.id)));
+    assert.match(bands, /data-hb-dig="qv:/, 'a big money set is bands, each a door');
+    assert.ok((bands.match(/class="hb-cbar"/g) || []).length <= 8, 'at most eight bands');
+  });
+  test('round bands: a step of 1, 2, 2.5 or 5 times a power of ten', () => {
+    const w = both();
+    const b = [...w.hbValueBands(500000, 18500000)].map(x => [x.lo, x.hi]);
+    assert.ok(b.length >= 4 && b.length <= 8, JSON.stringify(b));
+    assert.equal(b[0][0] % 1e6, 0, 'starts on a round number');
+    assert.ok(b[b.length - 1][1] >= 18500000, 'the last band reaches the top');
+  });
+  test('a value range is read free, in three spellings, and never as "over" or "under" as well', () => {
+    const w = both();
+    for (const q of ['contracts between 2 million and 80 million', 'contracts from 2M to 80M', 'contracts worth 2M–80M', 'how many contracts have value between 2million and 80 million?']){
+      const cq = w.igConditions(q);
+      assert.deepEqual([...cq.map(x => x.field)], ['valueBetween'], q);
+      assert.equal(cq[0].label, 'between 2M and 80M', q);
+      assert.deepEqual({ ...w.hbParse(q) }, { act: 'dig', key: 'q:' + q }, q + ' lands on the board');
+    }
+    /* the whole book, closed ones too — the map's own rule for a money condition */
+    assert.deepEqual([...w.igIdsWhere(w.igConditions('contracts between 8 million and 25 million'))].sort(), ['MK-1', 'MK-2', 'MK-5'], 'inclusive at both ends');
+  });
+  test('the same cut asked for again is ONE chip, whichever action asked for it', () => {
+    const w = both();
+    w.addLens({ label: 'Juno', ids: ['MK-1', 'MK-2'], action: 'highlight' });
+    w.addLens({ label: 'Juno', ids: ['MK-2', 'MK-1'], action: 'filter' });
+    assert.equal(w.intel.lenses.length, 1);
+    assert.equal(w.intel.lenses[0].action, 'filter', 'the action follows the latest ask');
+  });
+  test('the count is HaTi\'s, never the model\'s: a sentence stating a different count is not printed', () => {
+    const w = both();
+    w.intel.history = []; w.intel.lenses = [];
+    w.intelGraphApply('x', { visibleIds: ['MK-1', 'MK-2', 'MK-3'], action: 'highlight', note: 'three', answer: 'There are 16 contracts in this band, led by MK-1.' });
+    const said = w.intel.history[w.intel.history.length - 1].text;
+    assert.match(said, /3 of/, 'HaTi counts');
+    assert.doesNotMatch(said, /16 contracts/, 'the model\'s count is dropped');
+    w.intel.history = []; w.intel.lenses = [];
+    w.intelGraphApply('x', { visibleIds: ['MK-1', 'MK-2', 'MK-3'], action: 'highlight', note: 'three', answer: 'These 3 contracts are led by MK-1, the largest lease.' });
+    assert.match(w.intel.history[w.intel.history.length - 1].text, /led by MK-1/, 'a sentence that agrees is kept');
+  });
   test('"Show these on the map" NARROWS the map to the list, never lights it over everything', () => {
     const body = HB_SRC.slice(HB_SRC.indexOf('function hbShowOnMap'), HB_SRC.indexOf('\n}', HB_SRC.indexOf('function hbShowOnMap')));
     assert.match(body, /addLens\(\{ ids: list,[\s\S]*action: 'filter' \}\)/);

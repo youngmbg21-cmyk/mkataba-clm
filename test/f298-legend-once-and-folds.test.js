@@ -47,13 +47,21 @@ test('f298 (2) a second press turns a switched-off lens back on rather than stac
   assert.equal(win.eval('intel.lenses[0].on'), true);
 });
 
-test('f298 (3) CONTROL — a different cut is still a second lens: another label, another set, or another action', () => {
+test('f298 (3) CONTROL — a different cut is still a second lens: another label or another set; another ACTION is the same chip, re-aimed', () => {
   const win = world();
   win.addLens({ label: 'Drafting', ids: ['MK-1', 'MK-2'] });
   win.addLens({ label: 'Executed', ids: ['MK-3'] });
   win.addLens({ label: 'Drafting', ids: ['MK-1'] });
+  assert.equal(win.eval('intel.lenses.length'), 3);
+  /* REVERSED 3 Oct 2026: the owner saw "Juno · 25" twice in the dock when
+     "Show these on the map" narrowed the set Copilot had already lit. The same
+     cut asked for with the other action is ONE chip whose action follows the
+     latest ask. */
   win.addLens({ label: 'Drafting', ids: ['MK-1', 'MK-2'], action: 'highlight' });
-  assert.equal(win.eval('intel.lenses.length'), 4);
+  assert.equal(win.eval('intel.lenses.length'), 3, 'another action re-aims the chip, it does not twin it');
+  assert.equal(win.eval('intel.lenses[0].action'), 'highlight');
+  win.addLens({ label: 'Drafting', ids: ['MK-1', 'MK-2'] });
+  assert.equal(win.eval('intel.lenses[0].action'), 'filter', 'and back again');
 });
 
 test('f298 (4) the rule lives in addLens, the one funnel — and the legend is a KEY, not a door', () => {
