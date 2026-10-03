@@ -195,21 +195,38 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('on its Document tab, where the door in lives', out.tab === 'docs', out.tab);
     check('and the four tabs are back with it', out.tabs.length === 4, out.tabs.join(' | '));
 
-    /* ---- 7b. AND THE ROOM'S OWN BACK ARROW GOES TO CONTRACTS, NEVER BACK
-       INTO THE NEGOTIATION (owner-asked 17 Aug 2026: "it should always take
-       me to the contracts page… never the negotiations page which sometimes
-       it does"). This is exactly the journey that showed it: the room was
-       reached FROM the negotiation page, so the old "wherever you came from"
-       reading sent this press to the negotiations list. */
-    const roomBack = await page.evaluate(() => {
-      const b = document.getElementById('ws-back');
-      const title = b ? (b.getAttribute('title') || '') : '';
-      if (b) b.click();
-      return { title, view: state.view };
+    /* ---- 7b. AND THE ROOM HAS NO BACK ARROW AT ALL ----
+       REVERSED IN PLACE 4 Oct 2026 (Young: "In negotiations, back takes you to
+       document page. In contracts, there should be no back button").
+
+       This pinned the 17 August ruling — the room's arrow lands on Contracts,
+       never back into the negotiation — on exactly the journey that exposed
+       it, which is the journey this stage has just made. That ruling is
+       REPLACED rather than broken: there is no arrow on the room to send
+       anywhere, because the rail already carries Contracts and is already lit,
+       so the arrow was a second door onto a trip the shell makes for free.
+
+       THE CLAIM THAT MATTERS IS KEPT, and it is still asked on this same
+       journey: a reader who reached the room FROM a negotiation gets out to
+       the contracts page and not back into the negotiation. It is asked of
+       the door that does it now — the rail's own. */
+    const roomBar = await page.evaluate(() => {
+      const bar = document.getElementById('shell-title');
+      return { back: !!document.getElementById('ws-back'),
+        word: bar ? bar.textContent.trim() : '' };
     });
-    check('7b the room\'s back arrow lands on the Contracts page',
-      roomBack.view === 'register', roomBack.view);
-    check('7b and its label says so', /contracts/i.test(roomBack.title), roomBack.title);
+    check('7b the room carries no back arrow — the rail is the way back',
+      roomBar.back === false, `#ws-back present: ${roomBar.back}`);
+    check('7b and the bar names the section instead, without the contract after it',
+      roomBar.word.length > 0 && !roomBar.word.includes('·'), `"${roomBar.word}"`);
+    const railOut = await page.evaluate(() => {
+      const b = document.querySelector('#side-nav .nav-item[data-view="register"]')
+        || document.querySelector('.nav-item[data-view="register"]');
+      if (b) b.click();
+      return { had: !!b, view: state.view };
+    });
+    check('7b and the rail\'s own door lands on Contracts, never on the negotiation',
+      railOut.had === true && railOut.view === 'register', `${railOut.had} · ${railOut.view}`);
 
     /* ---- 8. THE DOOR OPENS THE LIST, FROM ANYWHERE ----
        REVERSED IN PLACE 24 Aug 2026 (WO-17, owner-asked: "when i click on the

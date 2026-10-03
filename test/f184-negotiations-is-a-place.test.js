@@ -957,8 +957,21 @@ describe('f184 — the negotiation card is the contract workspace\'s', () => {
       'the sign names its own destination, the negotiation\'s and the room\'s being two');
     assert.ok(!/i18t\(backC \? 'pg_workspace' : 'ct_back_register'\)/.test(CT),
       'and the word it used to print is not ink any more');
-    assert.match(CT, /\$\{backC \? ' data-back="contract"' : ''\}/,
-      'and the negotiation\'s lands on the room, which is where its way back already went');
+    /* ---- REVERSED IN PLACE 4 Oct 2026 (Young: "In negotiations, back takes
+       you to document page. In contracts, there should be no back button")
+       ----
+       This pinned the ternary that gave the button its destination on one head
+       and withheld it on the other. There is no second head to withhold it
+       from now: the ROOM draws no back button at all, because the rail already
+       carries Contracts and is already lit, so the arrow there was a second
+       door onto a journey the shell makes for free. THE CLAIM THAT SURVIVES is
+       the half this was really about — the button that IS drawn lands on the
+       contract, and it is the negotiate head that draws it. The room's half is
+       f449's, where the new ruling lives. */
+    assert.match(CT, /\$\{backC \? `<button id="ws-back"/,
+      'the arrow is the negotiate page\'s, and only its');
+    assert.match(CT, /data-back="contract"/,
+      'and it lands on the room, which is where its way back already went');
   });
   test('#ws-back is still ONE button, and the reference left the title line', () => {
     assert.equal((CT.match(/id="ws-back"/g) || []).length, 1,

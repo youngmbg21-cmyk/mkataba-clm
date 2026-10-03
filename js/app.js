@@ -426,23 +426,40 @@ function paintShellTitle(view){
    its own) then the contract, which IS #ws-back there because that page's way
    back lands on the room; the clause editor appends its clause as a third
    crumb (shellCrumbLayer) and takes it off again on close. */
+/* ---- THE BAR SAYS ONE THING (Young ruled 4 Oct 2026) ----
+   *"kill the wordings that come after Contract as they are redundant because
+   they are already below it in the page"* — and they were: the bar printed
+   "Contracts / MK-398 · Mutual Non-Disclosure Agreement" with the title in
+   large type and the reference in the quiet line thirty pixels underneath.
+   The reference and the name are said ONCE now, by the page.
+
+   WHAT IS LEFT ON EACH PAGE IS WHAT THE SHELL CANNOT ALREADY DO.
+     · The room: the word Contracts, as a LABEL — plain text, nothing to
+       press. The rail carries that journey and is already lit, so a button
+       here would be a second door (Young: "in contracts, there should be no
+       back button"). The word is nav_contracts, not ct_back_register: it has
+       stopped naming a destination and started naming where you are.
+     · The negotiate page: the arrow ALONE, which lands on the Document tab
+       (Young: "in negotiations, back takes you to document page") — the one
+       journey the rail cannot make, since its Negotiations door goes to the
+       list. The word it used to carry is the hover and the aria-label; the
+       Negotiations crumb beside it went with the rest of the wording.
+   #ws-back is unchanged: same id, same data-back, same handler, same
+   destination. What moved is which page draws it and what it wears. */
 function shellCrumbAdopt(c, backBtn){
   const el=document.getElementById('shell-title'); if(!el||!c) return false;
   const wb=!!(backBtn&&backBtn.getAttribute('data-back')==='contract');
-  const who=`${(window.contractRef?contractRef(c):c.id)} · ${(window.roomHeadTitle?roomHeadTitle(c):c.name)||''}`;
-  const sep=()=>{ const i=document.createElement('i'); i.className='crumb-sep'; i.setAttribute('aria-hidden','true'); i.textContent='/'; return i; };
-  const plain=t=>{ const s=document.createElement('span'); s.className='crumb-here'; s.textContent=t; s.title=t; return s; };
-  const word=(btn,t)=>{ let w=btn.querySelector('.crumb-word'); if(!w){ w=document.createElement('span'); w.className='crumb-word'; btn.appendChild(w); } w.textContent=t; btn.classList.add('in-crumb'); return btn; };
   el.innerHTML='';
   if(wb){
-    const list=document.createElement('button'); list.type='button'; list.className='crumb-door';
-    list.textContent=i18t('nav_negotiations'); list.title=i18t('ng_live_list');
-    list.addEventListener('click',()=>{ if(window.openNegotiations) openNegotiations({list:true}); else setView('redline'); });
-    el.appendChild(list); el.appendChild(sep());
-    el.appendChild(backBtn?word(backBtn,who):plain(who));
+    /* A WORD LEFT ON THE BUTTON FROM AN EARLIER PAINT would print beside the
+       sign, so the sign is cleared before it is hung. */
+    backBtn.querySelectorAll('.crumb-word').forEach(w=>w.remove());
+    backBtn.classList.add('in-crumb');
+    el.appendChild(backBtn);
   } else {
-    if(backBtn){ el.appendChild(word(backBtn,backBtn.getAttribute('data-crumb')||i18t('ct_back_register'))); el.appendChild(sep()); }
-    el.appendChild(plain(who));
+    const s=document.createElement('span'); s.className='crumb-here';
+    s.textContent=i18t('nav_contracts'); s.title=s.textContent;
+    el.appendChild(s);
   }
   el.classList.add('is-crumb');
   return true;

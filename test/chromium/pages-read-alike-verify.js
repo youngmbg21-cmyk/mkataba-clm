@@ -207,29 +207,38 @@ const SEED = async () => {
     check('1 and its crumb starts where the room\'s does',
       nego.crumbTop !== null && room.crumbTop !== null && Math.abs(nego.crumbTop - room.crumbTop) < 1,
       `negotiate ${nego.crumbTop} vs room ${room.crumbTop}`);
-    /* ---- REVERSED IN PLACE 15 Sep 2026 (Young: "there should be a back button
-       but in sign format not words") ----
-       This read the two crumbs' WORDS and required them to differ. The words
-       are gone: the way back is a sign now, and the destination it names is
-       the hover and the aria-label. THE CLAIM IS UNCHANGED — the two heads
-       still send the reader to two different places, and both still say so —
-       so it is asked of the label instead of the ink, which is also where a
-       screen reader was always reading it. AND IT IS ASKED AS A RELATION, not
-       as two typed words: the label is a whole sentence and it is translated,
-       so what is checkable is that both heads name a destination and that the
-       two destinations are NOT THE SAME — which is the whole of the claim,
-       and the half a wrong data-back would break. */
-    check('1 the crumb says which place the way back is',
-      !!(nego.backLabel || '').trim() && !!(room.backLabel || '').trim()
-        && nego.backLabel !== room.backLabel,
-      `negotiate "${nego.backLabel}" · room "${room.backLabel}"`);
-    /* RE-POINTED (21 Sep 2026): in the bar the way back is the crumb's own
-       WORD (Contracts / MK-… on the room, Negotiations / MK-… on the workbench),
-       which is how the reference draws it; the claim is that it is painted. */
-    check('1 and it is painted in the bar',
-      nego.backPainted === true && room.backPainted === true
+    /* ---- REVERSED IN PLACE 4 Oct 2026 (Young: "In negotiations, back takes
+       you to document page. In contracts, there should be no back button";
+       and "kill the wordings that come after Contract as they are redundant
+       because they are already below it in the page") ----
+       These two read the crumb as a thing BOTH pages carry: a way back that
+       names a destination, painted on each. That is no longer the shape. The
+       room has no way back in the bar at all — the rail carries Contracts and
+       is already lit, so the arrow there was a second door onto a journey the
+       shell makes for free. And the contract's reference and name have left
+       the bar on both pages, because the page under it prints them in 28px
+       type and in the quiet line thirty pixels below.
+
+       WHAT IS PINNED NOW is the ruling itself, and each half is a thing that
+       would break silently: the negotiate page still has a painted sign that
+       names where it goes (the 15 Sep ruling, which the bar quietly undid by
+       hiding the arrow), and the room has a word and no door. */
+    check('1 the negotiate page carries a painted sign that names its destination',
+      !!(nego.backLabel || '').trim() && nego.backPainted === true,
+      `label "${nego.backLabel}" · painted ${nego.backPainted}`);
+    check('1 and the room carries no way back in the bar at all',
+      room.backLabel === null && room.backPainted === false,
+      `room back ${room.backLabel} · painted ${room.backPainted}`);
+    /* THE WORDING AFTER THE SECTION IS GONE, on both. Asked of the contract's
+       own reference rather than of a typed string, so it keeps meaning on any
+       fixture and in any language. */
+    check('1 and neither bar repeats the contract the page is already naming',
+      !(room.crumb || '').includes(cid) && !(nego.crumb || '').includes(cid)
         && !(nego.crumb || '').trim().toLowerCase().includes('workspace'),
-      `painted nego ${nego.backPainted} · room ${room.backPainted} · crumb "${room.crumb}"`);
+      `room "${room.crumb}" · negotiate "${nego.crumb}" · ref ${cid}`);
+    check('1 the room still says which part of HaTi you are in',
+      (room.crumb || '').trim().length > 0,
+      `room crumb "${room.crumb}"`);
     check('1 the acts share the title\'s line, not a row of their own', nego.actsOnTitle === true, nego.dTop);
     check('1 and they end at its right edge', nego.gapRight !== null && nego.gapRight < 40, nego.gapRight);
     /* THE REPORTED NAME WAS LONG — the seeded book's longest is 21 characters

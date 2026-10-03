@@ -24911,3 +24911,102 @@ Cause: the count is the focus card's set (`hbCountKey` scans the trail for a `q:
 Fix: the press carries `keep` (`hbDig(key, deeper, keep)` from the click and the SVG keyboard press). While a count stands (`hbCountLabel` non-empty) and the key is not itself a question or an answer list, the trail is cut back to the count key and the press is added after it: Board › Juno › Live contracts. A typed question still starts afresh (hbAsk, the contract card and `hbShowFound` pass no `keep`). Two readings that still read the whole book under a count were brought in: a stage's "Open these" opens the counted list instead of every contract at that stage (`stage` is set only when nothing is counted), and a counterparty row (`cp:`) reads `hbCounted`.
 
 Tests: f448 (6) "a card pressed while counting Juno opens WITHIN Juno" (red at the parent: "f:live nests under the count"); home-board-verify 14d (asks "Show me all Juno contracts", presses Live contracts, the six stay on Juno, the trail names Juno). Photographed: 14d-card-within-the-count.png.
+
+## THE BAR SAYS ONE THING (Young ruled 4 October 2026)
+
+Young sent a photograph of a contract page with a box drawn by hand in the
+empty space to the left of the word Contracts, and wrote:
+
+> *"In contracts, the circled arrow next to contracts is missing in HATI but
+> please make sure it is included now both in the documents and negotiate page.
+> Also kill the the wordings that come after Contract as they are redundant
+> because they are already below it in the page. Please advise you understand
+> first. No coding"*
+
+**THE ARROW WAS NEVER MISSING.** It was ruled on 15 September — *"there should
+be a back button but in sign format not words"* — and built that day. Six days
+later the second pass of the redesign moved the crumb out of the page head and
+into the dark bar, and one line went in with it:
+
+```css
+#shell-title .room-crumb-back.in-crumb svg{display:none;}
+```
+
+So the sign survived only on `.room-crumb`, a row that hides itself the moment
+the bar takes its button (`.room-head .room-crumb:not(:has(.room-crumb-back))`)
+— which is to say nowhere a reader has ever seen it. Nineteen days of a ruling
+in force and invisible. Told this, Young did not restate the ask; he changed
+it, and improved it:
+
+> *"In negotiations, back takes you to document page. In contracts, there
+> should be no back button"*
+
+**WHY THAT IS THE BETTER ANSWER**, and it is his, not mine. A back button earns
+its place only where the rail cannot make the journey. On the contract room the
+rail already carries Contracts, lit, one press away — so an arrow there was a
+second door onto a trip the shell makes for free, which the One Door question
+refuses. On the negotiate page the rail's Negotiations door goes to the LIST,
+never back to the contract you were just inside, so the arrow is the only way
+out. One rule, two different answers, and it is the rail that decides.
+
+That REPLACES the 17 August ruling (*"when I am in the document page and click
+the back button it should always take me to the contracts page… It should never
+take me to the negotiations page which sometimes it does"*): there is no arrow
+on the room to land anywhere now. The claim that survives — a reader who
+reached the room from a negotiation gets out to Contracts and not back into the
+negotiation — is asked of the door that does it, the rail's own
+(negotiations-door-verify 7b).
+
+**THE WORDING WAS REDUNDANT, exactly as he said.** The bar printed
+`Contracts / MK-398 · Mutual Non-Disclosure Agreement` while the page under it
+printed the name in 28px type and the reference in the quiet line thirty pixels
+below. Both crumbs lost it. On the room the word left behind is
+`nav_contracts`, not `ct_back_register`: it has stopped naming a destination
+and started naming where you are, and in Swedish those are two different words
+(*Avtal* against *avtalslistan*). On the negotiate page the Negotiations door
+went with the rest of the wording — the rail carries that too.
+
+**THE TRAP, which is the whole reason f449 exists.** The room draws no button
+now, so `wireRoomHead`'s old fallback —
+
+```js
+const back=document.querySelector('.room-head #ws-back')||document.getElementById('ws-back');
+```
+
+— would answer with the NEGOTIATE page's button, still parked in `#shell-title`
+from the last visit. `shellCrumbAdopt` reads `data-back` off whatever it is
+handed, so the room would have worn another page's arrow, landing on another
+page's destination, on every second visit. Silent, second-visit-only, and
+invisible to a screenshot. The fallback now refuses anything the bar is
+holding.
+
+**MEASURED, not assumed.** The two heads' crumbs stopped starting at the same
+height the moment one became a sign and the other a word (pages-read-alike 1:
+negotiate 16 against room 14.4): the row took its tallest child's height and
+the 48px bar centred two different boxes at two different tops. Fixed by giving
+`#shell-title.is-crumb` a `min-height` of `--ctl-h-sm` so the row's box stops
+depending on what is in it — both read 12.5 after.
+
+**WHAT WAS RE-POINTED, and why each one was a reversal rather than a break.**
+f184 and f317 both pinned `${backC ? ' data-back="contract"' : ''}` — the
+ternary that gave one head the destination and withheld it from the other.
+There is no second head to withhold it from; both now pin that the button is
+the negotiate page's and lands on the contract. negotiations-door-verify 7b and
+nego-redesign-verify 1/1c pinned the room's arrow and the reference-as-word in
+the bar. nego-redesign 1c is the interesting one: it is a RESTORATION, because
+what it had been re-pointed to on 21 September was *"no arrow is drawn before
+it"* — the check had been taught to assert the very fault Young reported.
+
+**A SELF-INFLICTED ONE, recorded because it is the rule this codebase keeps
+re-learning.** f449's first run failed its own "one button" claim: the comment
+I had just written above the button quoted `id="ws-back"` verbatim, so the file
+declared the id twice as far as a regex could tell. Strip comments before
+sweeping source, or do not put the pattern in them.
+
+**Pre-existing and left red** (proved in a worktree at unmodified main):
+negotiations-door-verify's two "four tabs" checks (the room has five tabs now)
+and nego-redesign-verify 1's hairline measure.
+
+Tests: f449 (new, 17 claims, 6 of them red at the parent), f184, f317,
+pages-read-alike-verify 1, negotiations-door-verify 7b, nego-redesign-verify
+1/1c.

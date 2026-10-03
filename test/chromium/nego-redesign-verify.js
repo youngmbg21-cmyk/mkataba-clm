@@ -143,12 +143,20 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     check('1 the head carries the facts strip and its sub-line',
       !!head.facts && !!head.sub, `facts ${!!head.facts} · sub ${!!head.sub}`);
     check('1 the breadcrumb has stood down on this page', !head.crumb);
-    /* THE HALF THAT MATTERS. #ws-back is the only way off this page — it moved
-       into the name row as the reference and must still be a real, pressable
-       control, not a span. */
-    check('1 and the way back survived it — the reference IS the button',
-      !!head.back && head.back.on && /MK-/.test(head.back.text || ''),
-      head.back ? `${head.back.text} ${head.back.w}x${head.back.h}` : 'MISSING — the page has no exit');
+    /* THE HALF THAT MATTERS. #ws-back is the only way off this page and must
+       still be a real, pressable control, not a span.
+
+       REVERSED IN PLACE 4 Oct 2026 (Young: "kill the wordings that come after
+       Contract as they are redundant because they are already below it in the
+       page"). This asked for the reference to BE the button's word. The
+       reference has left the bar — this page prints it in the quiet line under
+       its own title, and the bar was printing it again a few pixels higher. So
+       the control is asked for as a control; that it is a painted sign rather
+       than a word is 1c's, right below. */
+    check('1 and the way back survived it — the sign IS the button',
+      !!head.back && head.back.on,
+      head.back ? `${head.back.text || '(no word, as ruled)'} ${head.back.w}x${head.back.h}`
+        : 'MISSING — the page has no exit');
     check('1 the title is a second door to the same place',
       !!head.title && head.title.on, head.title && head.title.text);
 
@@ -161,40 +169,47 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        that does not exist paints an EMPTY BOX in silence — no error, no
        warning, an arrow-shaped hole in the one control that leaves this page.
        So the arrow is measured by its own painted getBBox. */
-    /* REVERSED IN PLACE (21 Sep 2026, the redesign's second pass): the way
-       back is the bar's crumb — "Negotiations / MK-… · name" — a plain word
-       as the reference draws it, with NO underline and NO arrow. What stands
-       of the 1 Sep ask is the half that mattered: it is a real, pressable
-       control that names the reference. */
+    /* REVERSED IN PLACE 4 Oct 2026, and this one is a RESTORATION. The 1 Sep
+       ask was a word with an arrow before it. The 21 Sep pass moved the crumb
+       into the bar, printed the word there and switched the arrow OFF with one
+       line of CSS — which also switched off the 15 Sep ruling ("there should
+       be a back button but in sign format not words"), because the row where
+       the sign still lived hides itself the moment the bar takes its button.
+       Young, looking at the live page on 4 Oct: *"the circled arrow next to
+       contracts is missing in HATI"*. It was not missing. It was hidden.
+
+       So the three claims below now read: the arrow is PAINTED, it stands
+       alone with no word beside it, and the control still names where it
+       goes. The one thing that has never changed through four re-dressings is
+       that a reader must be able to leave this page and be told where to. */
     const door = await page.evaluate(() => {
       const b = document.querySelector('#shell-title #ws-back');
       if (!b) return { none: true };
-      const id = b.querySelector('.crumb-word'), arrow = null;
+      const word = b.querySelector('.crumb-word');
+      const arrow = b.querySelector('svg');
       let box = null;
       try { box = arrow && arrow.getBBox ? arrow.getBBox() : null; } catch (_){}
-      const ir = id && id.getBoundingClientRect();
       const ar = arrow && arrow.getBoundingClientRect();
-      const dot = b.querySelector('i');
-      const cs = id && getComputedStyle(id);
-      return { none: false, text: (id || {}).textContent,
-        line: cs && cs.textDecorationLine,
+      const br = b.getBoundingClientRect();
+      return { none: false,
+        word: word ? (word.textContent || '').trim() : null,
+        label: (b.getAttribute('aria-label') || '').trim(),
+        hidden: arrow ? getComputedStyle(arrow).display : null,
         painted: !!(box && box.width > 0 && box.height > 0),
-        before: !!(ar && ir && ar.right <= ir.left + 1),
-        onLine: !!(ar && ir && Math.abs((ar.top + ar.height / 2) - (ir.top + ir.height / 2)) <= 2),
-        dotLine: dot ? getComputedStyle(dot).textDecorationLine : null,
+        wide: !!(ar && ar.width > 6 && ar.height > 6),
+        inside: !!(ar && br && ar.left >= br.left - 1 && ar.right <= br.right + 1),
         btnLine: getComputedStyle(b).textDecorationLine };
     });
-    check('1c the reference is a plain word in the bar, not underlined', !door.none && !/underline/.test(door.line || '') && /MK-/.test(door.text || ''),
-      `${(door.text || '').trim()} — ${door.line}`);
-    check('1c and no arrow is drawn before it — the bar\'s crumb is the reference\'s own shape',
-      !door.none && !door.painted, door.none ? 'no door' : `painted ${door.painted}`);
-    /* THE UNDERLINE IS ON THE REFERENCE ALONE. The middot is punctuation
-       between the reference and the title, and a line running under it would
-       say the separator is part of the link. */
-    check('1c and the line stops at the reference — not under the arrow or the dot',
-      !door.none && !/underline/.test(door.dotLine || 'none')
-        && !/underline/.test(door.btnLine || 'none'),
-      `dot ${door.dotLine}, button ${door.btnLine}`);
+    check('1c the arrow is PAINTED in the bar, not switched off there',
+      !door.none && door.hidden !== 'none' && door.painted && door.wide,
+      door.none ? 'no door' : `display ${door.hidden} · painted ${door.painted} · wide ${door.wide}`);
+    check('1c and it stands alone — no word beside the sign',
+      !door.none && door.word === null, door.none ? 'no door' : `word ${JSON.stringify(door.word)}`);
+    /* A SIGN A READER CANNOT NAME IS A GUESS. The word is not lost; it stops
+       being ink and becomes the label a screen reader and the hover read. */
+    check('1c and it still says where it goes, to the keyboard and the reader',
+      !door.none && door.label.length > 0 && !/underline/.test(door.btnLine || 'none'),
+      door.none ? 'no door' : `"${door.label}" · ${door.btnLine}`);
 
     /* ---- 1b. FOUR ACTS, ONE FILLED, PLAYBOOK IN THE MENU ---- */
     const acts = await page.evaluate(() => {
