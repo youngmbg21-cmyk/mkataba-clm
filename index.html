@@ -10242,14 +10242,29 @@
      contract (shellCrumbAdopt, js/app.js). #ws-back is ADOPTED into it and
      re-dressed as a word: the id-weighted rules below outrank the circle it
      wears in the head (.room-crumb .room-crumb-back, two classes). */
-  #top-header #shell-title.is-crumb{display:flex;align-items:center;gap:8px;font-weight:var(--w-body);overflow:hidden;}
+  /* A STEADY LINE BOX, so the two pages' crumbs start at the same height
+     (pages-read-alike 1). The room's crumb is a word and the negotiate page's
+     is a sign, and the two boxes do not measure the same; without a height of
+     its own the row takes its tallest child's and the bar centres two
+     different heights at two different tops. */
+  #top-header #shell-title.is-crumb{display:flex;align-items:center;gap:8px;font-weight:var(--w-body);overflow:hidden;min-height:var(--ctl-h-sm);}
   #shell-title .crumb-sep{font-style:normal;color:var(--color-neutral-400);flex:none;}
   #shell-title .crumb-door,#shell-title .room-crumb-back.in-crumb{appearance:none;-webkit-appearance:none;background:none;border:0;padding:0;margin:0;
     font:inherit;font-size:var(--t-body);font-weight:var(--w-body);color:var(--color-neutral-600);cursor:pointer;
     width:auto;height:auto;border-radius:0;display:inline-flex;align-items:center;gap:0;white-space:nowrap;flex:none;}
-  #shell-title .room-crumb-back.in-crumb svg{display:none;}
+  /* ---- THE WAY BACK IS A SIGN IN THE BAR TOO (Young ruled 4 Oct 2026) ----
+     The 15 Sep ruling — *"there should be a back button but in sign format not
+     words"* — was built in the head, and the 21 Sep pass then moved the button
+     up here and hid its arrow, so the sign survived only on a row nobody sees.
+     The arrow is PAINTED here now and it stands ALONE: the word it carried is
+     the hover and the aria-label, which is where a screen reader was reading
+     it anyway. A sign underlined on hover reads as broken text, so the sign
+     takes the bar's own well instead and the underline is left to the words. */
+  #shell-title .room-crumb-back.in-crumb{padding:4px;margin:-4px;border-radius:var(--radius);}
+  #shell-title .room-crumb-back.in-crumb svg{display:block;width:15px;height:15px;}
   #shell-title .room-crumb-back.in-crumb::before{content:none;}
-  #shell-title .crumb-door:hover,#shell-title .room-crumb-back.in-crumb:hover{color:var(--color-text);text-decoration:underline;background:none;}
+  #shell-title .crumb-door:hover{color:var(--color-text);text-decoration:underline;background:none;}
+  #shell-title .room-crumb-back.in-crumb:hover{background:var(--bar-hover);text-decoration:none;}
   #shell-title .crumb-here{font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
   #shell-title .crumb-here.crumb-layer{font-weight:var(--w-strong);}
   /* The head's own crumb row stands down once the bar has taken its button;

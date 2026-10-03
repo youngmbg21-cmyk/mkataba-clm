@@ -9725,11 +9725,30 @@ function roomHeadHtml(c,opts={}){
            NOT A SECOND DOOR. The Six Questions refuse one, and this is the
            same door wearing a different face — the word is gone in the same
            breath the sign arrives. */}
+    ${''/* ---- AND THE CONTRACT PAGE HAS NO BACK BUTTON AT ALL (Young ruled 4
+           Oct 2026: *"In negotiations, back takes you to document page. In
+           contracts, there should be no back button"*) ----
+           This REPLACES the 17 Aug ruling that the room's arrow always lands
+           on the contracts page: there is no arrow on the room to land
+           anywhere. The rail already carries Contracts, lit, one press away —
+           so an arrow here was a second door onto a journey the shell makes
+           for free, which the One Door question refuses.
+
+           THE NEGOTIATE PAGE KEEPS ITS ARROW, because the rail cannot make
+           that journey: pressing Negotiations there goes to the LIST, never
+           back to the contract you were just inside. So the arrow is the only
+           way back, and it earns its place.
+
+           #ws-back IS STILL ONE BUTTON WITH ONE ID — it is now drawn on one
+           page instead of two, which is why this file still declares that id
+           exactly once and every handler, route and destination is
+           untouched. On the room the nav carries no .room-crumb-back, so
+           index.html's own rule folds the row away without being asked. */}
     <nav class="room-crumb" aria-label="Breadcrumb">
-      <button id="ws-back" type="button" class="room-crumb-back"${backC ? ' data-back="contract"' : ''}
-        data-crumb="${esc(backC?c.id:((_wr.view==='folder'&&_wr.folderId&&F[_wr.folderId])?F[_wr.folderId].name:i18t('ct_back_register')))}"
+      ${backC ? `<button id="ws-back" type="button" class="room-crumb-back" data-back="contract"
+        data-crumb="${esc(c.id)}"
         title="${esc(backTitle)}" aria-label="${esc(backTitle)}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><use href="#i-left"/></svg></button>
-      <i aria-hidden="true">/</i><span class="room-crumb-here">${esc((window.contractRef?contractRef(c):c.id))}</span>
+      <i aria-hidden="true">/</i>` : ''}<span class="room-crumb-here">${esc((window.contractRef?contractRef(c):c.id))}</span>
     </nav>
     <div class="room-id">
       <div class="room-name">
@@ -10222,7 +10241,16 @@ function wireRoomHead(c){
      comes FIRST in document order — so getElementById answered the old one on
      every repaint, the head's fresh button was never adopted and the crumb row
      stayed drawn under the bar. Measured on the negotiate page. */
-  const back=document.querySelector('.room-head #ws-back')||document.getElementById('ws-back');
+  /* NEVER THE BUTTON SITTING IN THE BAR (4 Oct 2026). The room draws no back
+     button of its own any more, so a plain getElementById here would answer
+     with the NEGOTIATE page's button, still parked in #shell-title from the
+     last visit — and shellCrumbAdopt would read its data-back and hang an
+     arrow on the room's bar that belongs to another page. The fallback is
+     kept for stages that draw the head without a .room-head wrapper; it just
+     refuses anything the bar is holding. */
+  const bar=document.getElementById('shell-title');
+  let back=document.querySelector('.room-head #ws-back');
+  if(!back){ const any=document.getElementById('ws-back'); if(any&&!(bar&&bar.contains(any))) back=any; }
   const goBack=()=>{
     if(back&&back.getAttribute('data-back')==='contract'){
       if(window.roomGoTab) roomGoTab(c,'docs');

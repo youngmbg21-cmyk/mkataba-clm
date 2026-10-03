@@ -201,11 +201,16 @@ describe('f317 (2) THE COMMENT NUMBER IS INSIDE THE PAGE, DARK ON LIGHT', () => 
 });
 
 describe('f317 (3) THE WAY BACK IS A SIGN, AND IT IS THE SAME DOOR', () => {
-  test('#ws-back is still ONE button with one id, one handler, two destinations', () => {
+  test('#ws-back is still ONE button with one id and one handler', () => {
     assert.equal((CONTRACT.match(/id="ws-back"/g) || []).length, 1,
-      'restyled, never replaced — the third time this control has changed face');
-    assert.match(CONTRACT, /\$\{backC \? ' data-back="contract"' : ''\}/,
-      'the negotiation still lands on the room, the room on the list');
+      'restyled, never replaced — the fourth time this control has changed face');
+    /* ---- REVERSED IN PLACE 4 Oct 2026 ("In contracts, there should be no
+       back button") ---- There are not two destinations any more, because
+       there is not a second button to send anywhere: the room draws none, the
+       rail being the way back there. The claim this file is for — one id, one
+       handler, never cloned — is untouched and is the line above. */
+    assert.match(CONTRACT, /\$\{backC \? `<button id="ws-back"/,
+      'drawn on the negotiate head alone, and still landing on the contract');
   });
 
   test('it carries the sign and no word', () => {
