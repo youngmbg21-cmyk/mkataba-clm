@@ -90,6 +90,7 @@ import './pdfrich.js';
 import './workshape.js';       // which shapes this business has, and what it calls a piece of work
 import './views/portfolio.js';    // the universal frame: six panels every business gets
 import './views/intelligence.js';
+import './views/homeboard.js';   // Home is the board and the map: the headline numbers, Copilot's prepared work, the answers to what is asked (3 Oct 2026)
 import './ai.js';
 import './views/settings.js';
 import './views/directory.js';    // People: the roster, read-only, for every role
@@ -1127,6 +1128,7 @@ const PLACE_PARTS={
   register:['regPlace','regPlacePut'],
   workspace:['roomPlace','roomPlacePut'], doc:['roomPlace','roomPlacePut'],
   intel:['intelPlace','intelPlacePut'],
+  dashboard:['hbPlace','hbPlacePut'],
   team:['settingsPlace','settingsPlacePut'],
   templates:['tplPlace','tplPlacePut'],
   calendar:['calPlace','calPlacePut'],
@@ -1751,6 +1753,12 @@ const ALERT_KINDS = [
      lapsed insurance policy is not work owed, it is cover that has stopped. */
   { k:'cert-lapsed', tone:'ruby',  ic:'&#128220;' },
   { k:'answer-stuck',tone:'amber', ic:'&#8635;' },
+  /* ---- A NUMBER YOU ASKED TO WATCH (3 Oct 2026, Home's board) ----
+     A line this reader drew themselves on one of Home's headline figures
+     ("tell me when overdue goes above 4"), said here when it is crossed and
+     never sent anywhere. Amber: worth a look, nobody else is waiting on it.
+     Ranked under the work somebody is owed and over what only waits. */
+  { k:'watch',       tone:'amber', ic:'&#128065;' },
   /* Waiting on somebody else, and last of all a date that moved by itself —
      neither is a thing this reader can clear this minute. */
   { k:'review-out',  tone:'gray',  ic:'&#8987;'  },
@@ -2136,6 +2144,12 @@ function buildAlerts(){
       push('email-off',null,i18t('home_email_not_setup'),
         ()=>{ if(window.openSettingsAt) openSettingsAt('build','outbox'); else setView('team'); });
     }
+  }catch(e){}
+  /* A NUMBER THIS READER ASKED TO WATCH, once its line is crossed (Home's
+     board, 3 Oct 2026). The rule and the reading are the board's own
+     (hbWatchAlerts); the press lands on that figure's dig-in. */
+  try{
+    if(typeof window.hbWatchAlerts==='function') hbWatchAlerts().forEach(w=>push('watch',null,w.text,w.go));
   }catch(e){}
   /* THE ORDER IS APPLIED ONCE, HERE — see ALERT_KINDS. Sorted at the end rather
      than by rearranging the sweeps above, because the sweeps are grouped by

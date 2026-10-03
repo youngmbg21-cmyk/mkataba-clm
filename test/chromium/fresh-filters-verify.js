@@ -107,14 +107,21 @@ function book(){
       const btn = document.querySelector('[data-hm-go="needsyou"]');
       return { ids: [...new Set(list.map(x => x.cid))].sort(),
         seeAll: !!btn, n: btn ? Number((/(\d+)/.exec(btn.textContent) || [])[1]) : null,
-        draftDoor: !!document.querySelector('#hm-map [data-hm-map="stage:Draft"]') };
+        draftDoor: !!document.querySelector('#hb-board .hb-stagekey [data-hb-dig="st:Draft"]') };
     });
     /* RE-POINTED 28 Sep 2026 (Young: "lets add just this part to the home
        page and discard the current 2 cards"): Home's decisions card and its
        See all are gone, so the stage asks only for the Map's door. */
     check('A0 the stage is set: a Drafting bar to press (control)', dd.draftDoor, JSON.stringify(dd));
 
-    if (dd.draftDoor) await page.click('#hm-map [data-hm-map="stage:Draft"]');
+    /* RE-POINTED 3 Oct 2026 (Young: Home is the board): a stage on Your book
+       digs in first, and the dig-in's "Open these" is the door onto Contracts. */
+    const openStage = async k => {
+      await page.click(`#hb-board .hb-stagekey [data-hb-dig="st:${k}"]`).catch(() => {});
+      await page.waitForSelector(`#hb-board .hb-dig [data-hb-stage="${k}"]`, { timeout: 5000 }).catch(() => {});
+      await page.click(`#hb-board .hb-dig [data-hb-stage="${k}"]`).catch(() => {});
+    };
+    if (dd.draftDoor) await openStage('Draft');
     await page.waitForTimeout(1100);
     const a1 = await onContracts();
     check('A1 the stage bar opens Contracts on Drafting (control — the first press works either way)',
@@ -146,10 +153,10 @@ function book(){
       `stream ${b0.type} · query "${b0.query}"`);
 
     await goHome();
-    const signedN = await page.evaluate(() => { const s = (window.hmMapData ? hmMapData() : { stages: [] }).stages.find(x => x.k === 'Signed');
+    const signedN = await page.evaluate(() => { const s = (window.hbBookData ? hbBookData('all') : { stages: [] }).stages.find(x => x.k === 'Signed');
       return s ? s.n : null; });
-    const hasSigned = await page.locator('#hm-map [data-hm-map="stage:Signed"]').count();
-    if (hasSigned) await page.click('#hm-map [data-hm-map="stage:Signed"]');
+    const hasSigned = await page.locator('#hb-board .hb-stagekey [data-hb-dig="st:Signed"]').count();
+    if (hasSigned) await openStage('Signed');
     await page.waitForTimeout(1100);
     const b1 = await onContracts();
     await page.screenshot({ path: path.join(OUT, '03-signed-from-the-map.png') });

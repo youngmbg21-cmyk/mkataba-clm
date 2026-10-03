@@ -60,12 +60,13 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     const tag = await page.evaluate(() => {
       const row = document.querySelector('[data-hm-agent-row="renew"]');
       if (!row) return null;
-      const t = row.querySelector('.hm-ag-ic');
+      /* RE-POINTED IN PLACE 3 Oct 2026: the row is the board's own now */
+      const t = row.querySelector('.hb-ag-ic, .hm-ag-ic');
       if (!t) return { drawn: false };
       const rr = row.getBoundingClientRect(), tr = t.getBoundingClientRect();
-      const head = row.querySelector('.hm-rb').getBoundingClientRect();
+      const head = row.querySelector('.hb-ag-b, .hm-rb').getBoundingClientRect();
       const cs = getComputedStyle(t);
-      return { drawn: true, name: (row.querySelector('.hm-rt') || {}).textContent,
+      return { drawn: true, name: (row.querySelector('.hb-ag-t, .hm-rt') || {}).textContent,
         atLeft: Math.round(tr.left - rr.left) <= 16 && tr.right <= head.left + 1,
         bg: cs.backgroundColor,
         sameLine: Math.abs((tr.top + tr.height / 2) - (head.top + head.height / 2)) < 12 };

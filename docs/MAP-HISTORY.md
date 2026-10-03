@@ -24672,3 +24672,83 @@ Young, of the notes panel: *"You can see how the notes panel looks like which is
 
 Tests: f446 (45 claims, **32 of 35 red at unmodified main**, and the three that pass are named controls). Its section 9 drives the real server with two outside parties and two links; at the parent it fails on `AND NOT THE OTHER PARTY'S`, which is the leak reproduced. notes-two-rooms-verify gained the pixels (the width as a RELATION to `RL_RIGHT_W0`, read off the page rather than typed; the paper ending before the drawer; the verbs on one line). Re-pointed in place: f173, f264 (8), f302 (1), f303, f304 (1), f333 (9g), f444 (5).
 
+
+## HOME — THE BOARD AND THE MAP (3 Oct 2026)
+
+Asked by Young over one sitting, against the "HaTi Live Board" artifact
+(a Minority-Report-style board built by asking). The owner's rulings, in order:
+Mission Control's layout; "this home page becomes your full insights page and
+explorer page", with a Board | Explorer switch on the same screen; Prepared by
+Copilot BELOW Your book, which can fold to one line or close; the screen's own
+Dark | Light, "separate process from the dark and light mode for the whole
+platform", landing on Dark, Light picked by name as "Frosted"; dig in on any
+number, bar or row with a trail; "bring up MK-106" gives a contract card;
+what moved, show these on the map, done while you were away, side by side,
+watch a number, give a panel to a colleague with a note, Present, a red
+pointer and a pen; "keep Insights for the detailed tabs, phone stays as is";
+the AI cost was asked and answered (the free reader runs first, a model only
+on what it cannot read); "Go ahead and build then merge to main."
+
+WHAT WAS BUILT. js/views/homeboard.js. Home reuses Explorer's page instead of
+drawing a second one (THE ONE DOOR): renderIntel takes `onHome`, swaps its head
+for Home's, and the board covers the map's stage the way Analyze Contract's
+paper does. The map is only built while the Explorer side is showing
+(`igMapUp`), so the board costs no animation frames. Insights' tab row lost
+Explorer; `intelGoTab('map')` and every old "intel.tab = 'map'" door now land on
+Home's Explorer side.
+
+DECISIONS MADE ON THE WAY, each a cost named:
+- The screen's Light block is LITERAL. It first borrowed platform tokens, which
+  flip with the platform's dark theme — a light board on a dark platform would
+  have printed light words on a light stage. Measured, then made literal.
+- `--s-5` does not exist; a declaration that names a missing token collapses
+  whole (the side-by-side columns lost their gap and the left column's counts
+  landed in the right one). f447 (8) now sweeps the board's sheet for missing
+  tokens.
+- The page attribute was first `data-hb-face`, which made every click on the
+  page match the Board | Explorer switch; renamed `data-hb-side`.
+- A "click any number, bar or row to dig in" line and a "—" chip on every
+  unmoved figure were drawn and then removed: the first is a tip (the band
+  rule), the second says nothing.
+- Pointer / Pen / Clear show only while presenting: outside Present they sat
+  over the panels' last row.
+- The gifts table keeps a panel's NAME (kind, lens, side by side) and a note,
+  never a figure; the receiver's Home counts it again inside their own reach.
+- Map canvas dots keep their dark-tuned colours on Light; only the stage, the
+  corner panels, the words and their halos change.
+
+THE OLD SECTION, verbatim:
+
+## HOME — THE MAP, PREPARED BY COPILOT
+
+- Desktop Home (owner-ruled 28 Sep 2026, "discard the current 2 cards"): greeting, the Map (`#hm-map`: `hmMapData` counts, `hmMapInnerHtml` draws; count at rest, value is the person's choice `hmMeasure`; stage colours are the list's own `STATUS_META` dots via `hmStageTone`), then ONE work card, Prepared by Copilot (`hmAgentsCardHtml`, `#hm-agents`): one row per agent with work ready, in `AG_KEYS` order, count and first item borrowed from `agentsData`/`agCardParts`; Review → `agSetSel(k)` + `setView('agents')`; nothing ready draws nothing. The KPI tiles and picker survive on the PHONE only. `js/runway.js` is dormant.
+- Every figure is a door onto the list that makes it; a zero is not a door. Door from another page lands on FRESH filters (`regGoFiltered`).
+- Off Home but kept published: the desk (js/desknight.js `deskItems`/`deskShown`/`deskDismiss`, read by Copilot's work; `deskRowHtml` has no caller) and `hmDecisionItems`/`HM_DD_ROWS` (the checklist, The Brain). `#hm-desk-rows`, `#hm-dd-rows`, `data-hm-go="needsyou"`, `desk_sec`, `home_needs_decision` on Home are STALE. `runRenewalPrep` / `runPlaybookPrep` run on the agents' clock (see COPILOT'S WORK).
+Tests: f3, f274, f275, f381, f382, f395, home-page-verify, home-prepared-by-copilot-verify, desk-comes-back-verify.
+
+FOUND BY THE BROWSER SWEEP, before the merge (same day):
+- On the Explorer side the board's reader answered "Which contracts renew
+  soon?" with a board panel. "Explorer as designed today" is the owner's
+  word, so on that side the reader answers only "back to the board" and
+  Present; everything else is the map's (analyze-on-the-graph 0a caught it).
+- Focus on Analyze Contract folds the page head by id; Home's head is
+  #hb-head, so igPaintPaper folds either.
+- The greeting was 14px and 7px under the bar; ONE HEADER TOP says every
+  page head takes Home's size, weight and top. It is 20px / --w-title at
+  --page-pad-t now, the date beside it as the old greeting had it.
+- The board's buttons were --ctl-h-sm; a row's Review is the ladder's
+  ordinary --ctl-h (button-consistency 2a).
+- A press that repaints the board dropped a keyboard reader to the top;
+  hbPaintBoard finds the pressed control again by its own data-hb-* key,
+  and a fresh dig-in takes focus on its first crumb (keyboard-reach 5, 11b).
+- A whole-book stage's "Open these" lands on Contracts filtered by that stage
+  (regGoFiltered), the old stage bar's door; a lens's stage is a named set.
+- Prepared by Copilot also draws when nothing is ready but something was done
+  while you were away.
+Re-pointed in place (each says so where it stands): home-page-verify,
+home-prepared-by-copilot, kpi-four, name-tag-horizon, five-images,
+keyboard-reach, laptops, fresh-filters, button-consistency, contracts-page 9a
+(leaves to the Calendar: Home paints #page-head white itself now),
+auto-triage 3c, runway-and-xray 3, explorer-verify 1–2, explorer-magnitude 5,
+analyze-on-the-graph 5, insights-panels 5, obligations-report 1, refresh 3b,
+f247, f267, f321.

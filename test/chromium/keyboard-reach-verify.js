@@ -125,40 +125,38 @@ async function tabAround(page, sel, n = 25) {
     await page.keyboard.press('Escape'); await pause(300);
   }
 
-  /* ---------- 5 · THE MAP'S SWITCH TAKES THE KEYBOARD ----------
-     RE-POINTED IN PLACE 24 Sep 2026 (Young, over "Executive Home Options":
-     the Map, then "Build it"). The KPI customizer this section held to a focus
-     trap LEFT HOME with the four tiles it chose; the phone keeps its own sheet.
-     The fault this section existed for is the same one in a new home: a
-     control whose press REBUILDS the card under it drops focus onto the body,
-     and a keyboard reader is thrown to the top of the page. The Count | Value
-     switch repaints the Map's inside on every press, so the claim is that the
-     pressed half still has focus afterwards — driven with Enter and Space,
-     never read off the markup. */
+  /* ---------- 5 · THE BOARD'S SWITCH TAKES THE KEYBOARD ----------
+     RE-POINTED IN PLACE 3 Oct 2026 (Young: Home is the board and the map).
+     The Map and its Count | Value switch left with the Map. The fault this
+     section exists for is the same one in a new home: a control whose press
+     REBUILDS what is under it drops focus onto the body, and a keyboard
+     reader is thrown to the top of the page. Board | Explorer redraws the
+     whole page on every press, so the claim is that the pressed half still
+     has focus afterwards — driven with Enter and Space, never read off the
+     markup. */
   await page.evaluate(() => setView('dashboard')); await pause(600);
-  const sw = await page.$('[data-hm-measure="value"]');
+  const sw = await page.$('[data-hb-face="explorer"]');
   if (sw) {
     await sw.focus();
-    await page.keyboard.press('Enter'); await pause(300);
+    await page.keyboard.press('Enter'); await pause(900);
     const v = await page.evaluate(() => {
       const a = document.activeElement;
-      return { at: a ? a.getAttribute('data-hm-measure') : null,
-               pressed: (document.querySelector('[data-hm-measure="value"]') || {}).getAttribute
-                 ? document.querySelector('[data-hm-measure="value"]').getAttribute('aria-pressed') : null };
+      return { at: a ? a.getAttribute('data-hb-face') : null,
+               pressed: (document.querySelector('[data-hb-face="explorer"]') || { getAttribute: () => null }).getAttribute('aria-selected') };
     });
-    check('Enter on the Map\'s switch really switches it', v.pressed === 'true', JSON.stringify(v));
+    check('Enter on Home\'s Board | Explorer switch really switches it', v.pressed === 'true', JSON.stringify(v));
     check('and focus stays on the half that was pressed, not the top of the page',
-      v.at === 'value', JSON.stringify(v));
+      v.at === 'explorer', JSON.stringify(v));
     await page.keyboard.press('Shift+Tab'); await pause(150);
-    await page.keyboard.press('Space'); await pause(300);
+    await page.keyboard.press('Space'); await pause(900);
     const c = await page.evaluate(() => {
       const a = document.activeElement;
-      return { at: a ? a.getAttribute('data-hm-measure') : null,
-               pressed: document.querySelector('[data-hm-measure="count"]').getAttribute('aria-pressed') };
+      return { at: a ? a.getAttribute('data-hb-face') : null,
+               pressed: document.querySelector('[data-hb-face="board"]').getAttribute('aria-selected') };
     });
-    check('and Shift+Tab then Space walks back to Count, focus kept again',
-      c.pressed === 'true' && c.at === 'count', JSON.stringify(c));
-  } else check('the Map\'s Count | Value switch is on the page', false, '[data-hm-measure] not found');
+    check('and Shift+Tab then Space walks back to Board, focus kept again',
+      c.pressed === 'true' && c.at === 'board', JSON.stringify(c));
+  } else check('Home\'s Board | Explorer switch is on the page', false, '[data-hb-face] not found');
 
   /* ---------- 6 · confirmDialog ---------- */
   {
@@ -323,34 +321,38 @@ async function tabAround(page, sel, n = 25) {
     check('and it takes the keyboard back on the redlined reading', back === false, String(back));
   }
 
-  /* ---------- 11b · EVERY DOOR ON THE MAP IS A BUTTON ----------
-     RE-POINTED IN PLACE 24 Sep 2026: the KPI row this section reordered with
-     Alt+Arrow LEFT HOME with the tiles (drag and its keyboard twin went with
-     the thing they moved). What replaces it is asked the way this file asks
-     everything: every figure on the Map that opens a list must be a real
-     button a keyboard reaches, carrying a name a screen reader can say — a
-     bare coloured block with a click handler is exactly what an audit finds —
-     and Enter on one must land where the click lands. */
+  /* ---------- 11b · EVERY DOOR ON YOUR BOOK IS A BUTTON ----------
+     RE-POINTED IN PLACE 3 Oct 2026 from the Map to Your book on the board.
+     Every figure that opens a list must be a real button a keyboard reaches,
+     carrying a name a screen reader can say — a bare coloured block with a
+     click handler is exactly what an audit finds — and Enter on one must
+     land where the click lands: the dig-in, with the keyboard on it, and
+     Enter on its "Open these" lands on the register narrowed to that list. */
   await page.evaluate(() => setView('dashboard')); await pause(700);
   {
-    const doors = await page.evaluate(() => [...document.querySelectorAll('#hm-map [data-hm-map]')].map(el => ({
+    const doors = await page.evaluate(() => [...document.querySelectorAll('#hb-book [data-hb-dig]')].map(el => ({
       tag: el.tagName.toLowerCase(), tab: el.tabIndex, off: !!el.disabled,
       name: (el.getAttribute('aria-label') || el.textContent || '').replace(/\s+/g, ' ').trim(),
-      door: el.getAttribute('data-hm-map') })));
+      door: el.getAttribute('data-hb-dig') })));
     const bad = doors.filter(d => d.tag !== 'button' || d.tab < 0 || d.off || !d.name);
-    check('every door on the Map is a button a keyboard reaches, with a name',
+    check('every door on Your book is a button a keyboard reaches, with a name',
       doors.length > 0 && bad.length === 0,
       bad.length ? JSON.stringify(bad.slice(0, 3)) : `${doors.length} doors`);
-    const col = await page.$('#hm-map .hm-map-col[data-hm-map]');
-    if (col) {
-      await col.focus();
-      await page.keyboard.press('Enter'); await pause(900);
+    const fig = await page.$('#hb-book .hb-fig-main[data-hb-dig="f:live"]');
+    if (fig) {
+      await fig.focus();
+      await page.keyboard.press('Enter'); await pause(600);
+      const dig = await page.evaluate(() => ({ open: !!document.querySelector('#hb-board .hb-dig'),
+        kept: !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('#hb-focus')) }));
+      check('and Enter on a figure opens its dig-in, with the keyboard on it', dig.open && dig.kept, JSON.stringify(dig));
+      const open = await page.$('#hb-board .hb-dig [data-hb-open]');
+      if (open) { await open.focus(); await page.keyboard.press('Enter'); await pause(900); }
       const landed = await page.evaluate(() => ({ view: state.view,
         only: (regState().only && regState().only.ids) ? regState().only.ids.length : 0 }));
-      check('and Enter on a month lands on the register, narrowed to that month',
+      check('and Enter on "Open these" lands on the register, narrowed to that list',
         landed.view === 'register' && landed.only > 0, JSON.stringify(landed));
       await page.evaluate(() => { regState().only = null; });
-    } else check('a month with something ending in it is on the Map', false, 'no live column');
+    } else check('a figure with something behind it is on Your book', false, 'no live figure');
   }
 
   /* ---------- 11c · INSIGHTS' FILTERS TAKE THE KEYBOARD ---------- */

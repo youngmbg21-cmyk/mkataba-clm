@@ -314,8 +314,11 @@ const check = (name, ok, detail) => {
     /* ============ 9. THE BAND DOES NOT LEAK TO OTHER PAGES ============ */
     /* #page-head is the SHELL's element and is painted from this view's own
        stylesheet, which is injected with the view's markup. That is only safe
-       if leaving really takes it away — so it is asked, not assumed. */
-    await page.evaluate(() => setView('dashboard'));
+       if leaving really takes it away — so it is asked, not assumed.
+       RE-POINTED 3 Oct 2026: Home is Explorer's page now and paints this
+       head white ITSELF (Insights' own rule), so the page left to is one that
+       paints nothing there — the Calendar. */
+    await page.evaluate(() => setView('calendar'));
     await page.waitForTimeout(1500);
     const left = await page.evaluate(() => {
       const e = document.querySelector('#page-head');

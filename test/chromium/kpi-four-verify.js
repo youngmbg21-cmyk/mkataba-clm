@@ -97,13 +97,14 @@ const PANEL = `(() => {
     const desk = await page.evaluate(() => ({
       tiles: document.querySelectorAll('#kpi-grid > *, .hm-tile').length,
       gear: !!document.getElementById('kpi-customize'),
-      map: !!document.getElementById('hm-map'),
+      /* RE-POINTED IN PLACE 3 Oct 2026: the board's Your book is the card now */
+      map: !!document.getElementById('hb-book'),
       cap: typeof KPI_MAX === 'number' ? KPI_MAX : null,
     }));
     await page.screenshot({ path: path.join(OUT, '01-desktop-map.png') });
     check('1 the desktop Home draws no tiles and no picker',
       desk.tiles === 0 && !desk.gear, `${desk.tiles} tiles · gear ${desk.gear}`);
-    check('1 the Map is drawn in their place', desk.map, desk.map ? 'drawn' : 'absent');
+    check('1 Your book is drawn in their place', desk.map, desk.map ? 'drawn' : 'absent');
     check('1 and the ceiling is still ONE published number the phone reads', desk.cap === 4, String(desk.cap));
 
     /* ================= 5. THE PHONE SAYS THE SAME THING =================== */

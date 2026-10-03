@@ -69,19 +69,21 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     await page.keyboard.press('Escape').catch(() => {});
     const en = await page.$('.lang-btn[data-lang="en"]'); if (en) { await en.click(); }
     await page.evaluate(() => { setView('dashboard'); });
-    await page.waitForSelector('#hm-map', { timeout: 10000 }).catch(() => {});
+    /* RE-POINTED IN PLACE 3 Oct 2026 (Young: Home is the board and the map):
+       the card sits under Your book on the board, and Review digs in first. */
+    await page.waitForSelector('#hb-book', { timeout: 10000 }).catch(() => {});
 
     /* ===== 1. THE OLD CARDS ARE GONE, THE NEW ONE IS DRAWN ===== */
     const shape = await page.evaluate(() => {
       const card = document.getElementById('hm-agents');
-      const map = document.getElementById('hm-map');
+      const map = document.getElementById('hb-book');
       return { card: !!card, desk: !!document.getElementById('hm-desk-rows'), dd: !!document.getElementById('hm-dd-rows'),
         needsyou: !!document.querySelector('[data-hm-go="needsyou"]'),
         below: !!(card && map && (map.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING)),
-        title: card ? card.querySelector('h2').textContent.trim() : '' };
+        title: card ? card.querySelector('.hb-ct').textContent.trim() : '' };
     });
     ok('1a "Prepared for you" and "Needs your decision" are not drawn', !shape.desk && !shape.dd && !shape.needsyou, JSON.stringify(shape));
-    ok('1b "Prepared by Copilot" is drawn, below the Map', shape.card && shape.below && shape.title === 'Prepared by Copilot', JSON.stringify(shape));
+    ok('1b "Prepared by Copilot" is drawn, below Your book', shape.card && shape.below && shape.title === 'Prepared by Copilot', JSON.stringify(shape));
     await page.screenshot({ path: path.join(OUT, '1-home.png'), fullPage: true });
 
     /* ===== 2. ONE ROW PER AGENT WITH WORK, EVERY NUMBER BORROWED ===== */
@@ -89,8 +91,8 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
       const D = agentsData();
       const want = AG_KEYS.filter(k => D.agents[k].ready.length).map(k => k + ':' + D.agents[k].ready.length);
       const got = [...document.querySelectorAll('[data-hm-agent-row]')].map(r => r.getAttribute('data-hm-agent-row') + ':'
-        + ((r.querySelector('.ag-pill') || {}).textContent || '').trim());
-      const sub = (document.querySelector('#hm-agents .hm-sec-sub') || {}).textContent || '';
+        + ((r.querySelector('.hb-pill') || {}).textContent || '').trim());
+      const sub = (document.querySelector('#hm-agents .hb-cs') || {}).textContent || '';
       const rail = ((document.querySelector('[data-count="agents"]') || {}).textContent || '').trim();
       return { want, got, sub, ready: D.ready, rail };
     });
@@ -104,13 +106,16 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     await page.locator('#hm-agents').screenshot({ path: path.join(OUT, '2-card.png') });
 
     /* ===== 3. REVIEW OPENS THAT AGENT ===== */
-    await page.click('[data-hm-agent="ours"]');
+    await page.click('[data-hm-agent-row="ours"] .hb-btn');
+    ok('3 Review digs in: the board lists that agent\'s work first', await page.waitForFunction(() =>
+      !!document.querySelector('#hb-board .hb-dig [data-hm-agent="ours"]'), null, { timeout: 8000 }).then(() => true, () => false));
+    await page.click('#hb-board .hb-dig [data-hm-agent="ours"]');
     await page.waitForFunction(() => state.view === 'agents' && !!document.querySelector('.ag-row.on'), null, { timeout: 8000 }).catch(() => {});
     const landed = await page.evaluate(() => ({ view: state.view, on: (document.querySelector('.ag-row.on') || { getAttribute: () => '' }).getAttribute('data-ag-agent') }));
-    ok('3a Review opens Copilot\'s work on that agent', landed.view === 'agents' && landed.on === 'ours', JSON.stringify(landed));
+    ok('3a and its button opens Copilot\'s work on that agent', landed.view === 'agents' && landed.on === 'ours', JSON.stringify(landed));
     await page.evaluate(() => setView('dashboard'));
     await page.waitForSelector('#hm-agents', { timeout: 8000 }).catch(() => {});
-    await page.click('#hm-agents .hm-cz[data-hm-agent=""]');
+    await page.click('#hm-agents [data-hm-agent=""]');
     await page.waitForFunction(() => state.view === 'agents', null, { timeout: 8000 }).catch(() => {});
     ok('3b the head\'s link opens Copilot\'s work', await page.evaluate(() => state.view === 'agents'));
 

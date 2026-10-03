@@ -1540,6 +1540,10 @@ const AI_INSIGHTS_TABS = { frame:'portfolio', friction:'negotiation-friction',
 function aiInsightsTab(){
   try{
     if(typeof intel!=='object' || !intel) return null;
+    /* THE MAP LIVES ON HOME since 3 Oct 2026: there the map is "on screen"
+       only while Home shows its Explorer side, and the board side is no
+       Insights tab at all — never the tab Insights was last left on. */
+    if(state.view==='dashboard') return (typeof igMapUp==='function' && igMapUp()) ? AI_INSIGHTS_TABS.map : null;
     return AI_INSIGHTS_TABS[intel.tab]||null;
   }catch(_){ return null; }
 }
@@ -1776,7 +1780,7 @@ function aiChatContext(){
      built by the graph's own functions and read by aiGraphSays / the server's
      graphSays as clamped FIELDS, never a sentence. */
   if(typeof graphCopilotContext==='function'){ try{ const g=graphCopilotContext(); if(g){ ctx.graph=ctx.graph||{}; Object.assign(ctx.graph,g); } }catch(_){} }
-  if(state.view==='intel'){
+  if(state.view==='intel'||(state.view==='dashboard'&&typeof igMapUp==='function'&&igMapUp())){
     /* A tab this map does not know is SAID NOTHING ABOUT. It used to fall back
        to 'portfolio', which made Copilot describe a chart the reader was not
        looking at — a wrong answer wearing a right one's clothes, and the

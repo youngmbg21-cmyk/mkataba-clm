@@ -80,7 +80,8 @@ const check = (name, pass, detail) => {
          decision", which LEFT HOME on the owner's word. What this CONTROL
          guards is that Home still draws its own card — the decisions card at
          the parent, the Map here — so it still passes on both. */
-      card: !!document.querySelector('#hm-map, #hm-dd-rows'),
+      /* and since 3 Oct 2026 the board's Your book (Young: Home is the board) */
+      card: !!document.querySelector('#hb-book, #hm-map, #hm-dd-rows'),
     }));
     check('2a (CONTROL) with nothing to plot the rail is not drawn', !rest.rail,
       'rail:' + rest.rail);
@@ -122,39 +123,41 @@ const check = (name, pass, detail) => {
        ninety days in the window's own count, and the quiet desk a row in the
        bell — the one screen it moved to, since nothing else in the product
        said it. Measured on the page, never read off the source. */
+    /* RE-POINTED IN PLACE 3 Oct 2026 (Young: Home is the board and the map):
+       the Map's month columns left Home with the Map. The dated work is on
+       the board now: every staged renewal inside ninety days is counted in
+       Your book's "Ending in 90 days", that figure is a door, and its dig-in
+       lists each one by name. */
     const rw = await page.evaluate(() => {
       const live = state.contracts.filter(c => c.status !== 'Declined' && !isArchived(c));
-      const d = window.hmMapData ? hmMapData() : null;
+      const d = window.hbBookData ? hbBookData('all') : null;
       const renewals = live.slice(0, 3).map(c => {
         let w = null; try { w = renewalWindow(c); } catch (_) { w = null; }
         if (!w || !w.expiry || !d) return { id: c.id, inForce: !!(w && w.expiry) };
-        const e = new Date(w.expiry + 'T00:00:00'), t = new Date(d.today + 'T00:00:00');
-        const i = (e.getFullYear() - t.getFullYear()) * 12 + (e.getMonth() - t.getMonth());
-        return { id: c.id, inForce: true, i, days: w.expiresDays,
-          counted: !!(d.months[i] && d.months[i].ids.includes(c.id)),
-          door: !!document.querySelector(`#hm-map [data-hm-map="month:${i}"]`),
-          inWin: d.win.ids.includes(c.id) };
+        return { id: c.id, inForce: true, days: w.expiresDays, counted: d.figs.ending.ids.includes(c.id) };
       });
       const q = live[3];
       const bell = (window.buildAlerts ? buildAlerts() : []).filter(a => a.kind === 'desk-quiet');
+      const fig = document.querySelector('#hb-book .hb-fig-main[data-hb-dig="f:ending"]');
       return {
         rail: !!document.querySelector('.hm-rw, .hm-rw-rail'),
         map: !!d, renewals,
-        winDoor: !!document.querySelector('#hm-map [data-hm-map="window"]'),
+        door: !!fig && !fig.disabled,
         quiet: q ? bell.some(a => a.id === q.id) : null,
         quietSub: q ? ((bell.find(a => a.id === q.id) || {}).sub || '') : '',
       };
     });
-    const ren = rw.renewals.filter(r => r.inForce);
+    const ren = rw.renewals.filter(r => r.inForce && r.days <= 90);
     check('3a the rail left Home with its card — dated work staged, and no rail drawn',
-      rw.map && !rw.rail, `map ${rw.map} · rail ${rw.rail}`);
-    check('3b every staged renewal is counted in the month its term ends',
-      ren.length > 0 && ren.every(r => r.counted), JSON.stringify(ren.map(r => [r.id, r.i, r.counted])));
-    check('3c and that month is a door onto the list',
-      ren.length > 0 && ren.every(r => r.door), JSON.stringify(ren.map(r => [r.id, r.door])));
-    check('3d the ones inside ninety days are in the window\'s own count, and it is a door',
-      ren.filter(r => r.days <= 90).every(r => r.inWin) && (ren.some(r => r.days <= 90) ? rw.winDoor : true),
-      JSON.stringify(ren.map(r => [r.id, r.days, r.inWin])) + ' · door ' + rw.winDoor);
+      rw.map && !rw.rail, `board ${rw.map} · rail ${rw.rail}`);
+    check('3b every staged renewal inside ninety days is counted in Your book\'s "Ending in 90 days"',
+      ren.length > 0 && ren.every(r => r.counted), JSON.stringify(ren.map(r => [r.id, r.days, r.counted])));
+    check('3c and that figure is a door', rw.door, 'door ' + rw.door);
+    if (rw.door) await page.click('#hb-book .hb-fig-main[data-hb-dig="f:ending"]');
+    await page.waitForTimeout(500);
+    const listed = await page.evaluate(() => [...document.querySelectorAll('#hb-board .hb-dig [data-hb-dig^="c:"]')].map(e => e.getAttribute('data-hb-dig').slice(2)));
+    check('3d its dig-in lists each one by name',
+      ren.length > 0 && ren.every(r => listed.includes(r.id)), JSON.stringify({ want: ren.map(r => r.id), listed }));
     check('3e the quiet desk the rail plotted is a row in the bell now',
       rw.quiet === true, 'in the bell: ' + rw.quiet);
     check('3f and the row leads with how long it has sat, as the card\'s tag did',
@@ -162,7 +165,7 @@ const check = (name, pass, detail) => {
     /* THE OWNER'S EXCLUSION, on the home page — asked of the card that is
        there now. */
     const homeBands = await page.evaluate(() => {
-      const card = document.getElementById('hm-map');
+      const card = document.getElementById('hb-book');
       if (!card) return -1;
       return card.parentElement.querySelectorAll('.hint,[class*="banner"],[class*="callout"]').length;
     });

@@ -65,18 +65,29 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { try { localStorage.removeItem('hati.v1.igDockW'); } catch (_) {} intel.tab = 'frame'; setView('intel'); });
     await page.waitForTimeout(1500);
 
-    /* ================= 1. THE NAME ========================================= */
+    /* ================= 1. THE NAME =========================================
+       RE-POINTED IN PLACE 3 Oct 2026 (Young: "keep Insights for the detailed
+       tabs"; Home is the board and the map): Explorer left the Insights row
+       for Home's Board | Explorer switch. The name is the switch's word now,
+       and the old key still reaches it (intelGoTab('map')). */
     const tabs = await page.evaluate(() => [...document.querySelectorAll('[data-ig-tab]')].map(b => ({ k: b.getAttribute('data-ig-tab'), t: b.textContent.trim() })));
-    const map = tabs.find(t => t.k === 'map');
-    check('1a the tab reads "Explorer"', map && map.t === 'Explorer', JSON.stringify(tabs.map(t => t.t)));
-    check('1b CONTROL — the tab keeps its key, so links and the stored tab are untouched', !!map && map.k === 'map');
+    check('1a Insights draws no Explorer tab any more', !tabs.some(t => t.k === 'map'), JSON.stringify(tabs.map(t => t.t)));
+    await page.evaluate(() => intelGoTab('map'));
+    await page.waitForTimeout(1600);
+    const face = await page.evaluate(() => ({ view: state.view, t: ((document.querySelector('[data-hb-face="explorer"]') || {}).textContent || '').trim(),
+      on: (document.querySelector('[data-hb-face="explorer"]') || { getAttribute: () => '' }).getAttribute('aria-selected') }));
+    check('1b CONTROL — the old key still lands on Explorer, on Home, and the switch reads "Explorer"',
+      face.view === 'dashboard' && face.t === 'Explorer' && face.on === 'true', JSON.stringify(face));
     check('1c and "Contract Graph" is nowhere on the page', !(await page.evaluate(() => /Contract Graph/i.test(document.getElementById('content').textContent))));
+    const toBoard = () => page.click('[data-hb-face="board"]');
+    const toMap = () => page.click('[data-hb-face="explorer"]');
 
     /* ================= 2. THE LEGEND IS CLOSED WHEN YOU ARRIVE ============= */
-    await page.click('[data-ig-tab="map"]');
+    await toBoard(); await page.waitForTimeout(700);
+    await toMap();
     await page.waitForTimeout(1600);
     const a1 = await legend();
-    check('2a arriving on Explorer from another tab: the legend is closed — its rows are not on screen, its head is, and it says so',
+    check('2a arriving on Explorer from the board: the legend is closed — its rows are not on screen, its head is, and it says so',
       a1 && !a1.rowShown && a1.head && a1.expanded === 'false', JSON.stringify(a1));
     await page.screenshot({ path: path.join(OUT, '01-arrived.png') });
     await page.click('#ig-legend [data-ig-legend-fold]');
@@ -87,7 +98,7 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => renderIntel());
     await page.waitForTimeout(1200);
     const a3 = await legend();
-    check('2c a repaint of the tab keeps the reader\'s choice (a repaint is not an arrival)', a3 && a3.rowShown, JSON.stringify(a3));
+    check('2c a repaint of the map keeps the reader\'s choice (a repaint is not an arrival)', a3 && a3.rowShown, JSON.stringify(a3));
     /* OPEN before leaving, by the reader's own press where it is not — or a
        build that only remembered the last press would pass 2d on a legend a
        press had already closed. */
@@ -100,11 +111,11 @@ const check = (name, pass, detail) => {
     const a4 = await legend();
     check('2d leave the page and come back: closed again', a4 && !a4.rowShown && a4.expanded === 'false', JSON.stringify(a4));
     await openIt(); await page.waitForTimeout(250);
-    await page.click('[data-ig-tab="frame"]'); await page.waitForTimeout(900);
-    await page.evaluate(() => { const b = document.querySelector('[data-ig-tab="map"]'); if (b) b.click(); });
+    await toBoard(); await page.waitForTimeout(900);
+    await toMap();
     await page.waitForTimeout(1600);
     const a5 = await legend();
-    check('2e and via another tab: closed again', a5 && !a5.rowShown, JSON.stringify(a5));
+    check('2e and via the board: closed again', a5 && !a5.rowShown, JSON.stringify(a5));
 
     /* ================= 2f. THE ASK BUTTON SITS IN ITS BOX =================
        Young reported it 27 Sep 2026: "the green ask button is now poorly

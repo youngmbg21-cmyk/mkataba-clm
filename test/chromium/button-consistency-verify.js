@@ -281,7 +281,8 @@ const HELPERS = `(() => {
         return { t: b.label(el), h: +r.height.toFixed(1), bg: cs.backgroundColor }; };
       const probe = document.createElement('div'); probe.style.height = 'var(--ctl-h)'; document.body.appendChild(probe);
       const ctl = +probe.getBoundingClientRect().height.toFixed(1); probe.remove();
-      const rev = [...document.querySelectorAll('[data-hm-agent-row] [data-hm-agent]')].filter(b.vis).map(m);
+      /* the board's rows since 3 Oct 2026: Review digs in (data-hb-dig) */
+      const rev = [...document.querySelectorAll('[data-hm-agent-row] [data-hm-agent], [data-hm-agent-row] .hb-btn')].filter(b.vis).map(m);
       return { rev, ctl, fill: b.bg('--accent-fill') }; });
     ok('2-stage Home\'s Prepared by Copilot card draws a row with its Review', !!staged && home.rev.length > 0,
       `${home.rev.length} Review buttons`);

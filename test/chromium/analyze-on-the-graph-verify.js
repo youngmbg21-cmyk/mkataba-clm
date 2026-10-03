@@ -329,7 +329,7 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     const before = await page.evaluate(() => document.getElementById('ig-gwrap').getBoundingClientRect().height);
     await page.click('#ig-strip [data-ig-focus]');
     await page.waitForTimeout(500);
-    const fo = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById('ig-head')).display,
+    const fo = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById('ig-head')||document.getElementById('hb-head')).display,
       cls: document.getElementById('ig-page').classList.contains('ig-focus'), h: document.getElementById('ig-gwrap').getBoundingClientRect().height,
       dock: !!document.getElementById('igd-input'), bar: !!document.getElementById('top-header') && getComputedStyle(document.getElementById('top-header')).display !== 'none',
       word: document.querySelector('#ig-strip [data-ig-focus]').textContent.trim() }));
@@ -338,7 +338,7 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     await page.screenshot({ path: path.join(OUT, '05-focus.png') });
     await page.keyboard.press('Escape');
     await page.waitForTimeout(400);
-    const fx = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById('ig-head')).display, cls: document.getElementById('ig-page').classList.contains('ig-focus') }));
+    const fx = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById('ig-head')||document.getElementById('hb-head')).display, cls: document.getElementById('ig-page').classList.contains('ig-focus') }));
     check('5b Escape puts the head back', fx.head !== 'none' && !fx.cls, JSON.stringify(fx));
 
     /* ================= 6. THE BIN ENDS IT ================================== */

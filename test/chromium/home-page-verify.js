@@ -145,14 +145,13 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     /* ================= 2. PURE WHITE, ASKED OF THE BROWSER =============== */
     /* Owner-asked in these words: "the white backgrounds have to be pure white
        with no shade of any kind". A near-white is the thing being refused, so
-       an exact match is the only check that means anything. */
+       an exact match is the only check that means anything.
+       RE-POINTED IN PLACE 3 Oct 2026 (Young: Home is the board and the map):
+       the board is the screen's own Dark or Light by the owner's ruling, so
+       its cards are not white surfaces; the column and the head row are. */
     const notWhite = await page.evaluate(() => {
       const bad = [];
-      /* RE-POINTED IN PLACE 21 Sep 2026: the rows are inside .hm-card now (the
-         reference's own card), so the card is the white surface and the list
-         inside it paints nothing of its own. The claim is unchanged — every
-         white surface on this page is exactly #ffffff. */
-      ['#side-nav', '.hm-tile', '.hm-card'].forEach(sel =>
+      ['#side-nav', '#hb-head'].forEach(sel =>
         document.querySelectorAll(sel).forEach(e => {
           const bg = getComputedStyle(e).backgroundColor;
           if (bg !== 'rgb(255, 255, 255)') bad.push(sel + ' → ' + bg);
@@ -162,91 +161,53 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     check('2 every white surface is exactly #ffffff, not a shade of one',
       notWhite.length === 0, notWhite.slice(0, 3).join(' | ') || 'all pure');
 
-    /* ================= 3. THE MAP TOOK THE TILES' PLACE =================
-       REVERSED IN PLACE 24 Sep 2026 (Young, over the drawing "Executive Home
-       Options": the Map picked by name, a Count · Value switch, then "instead
-       of needs your decision, delete it and replace with prepared for you",
-       then "Build it"). What stood here pinned four tiles you choose, one row
-       height and "Needs your decision" closing the page; every one of those
-       went with the tiles. The page is the greeting, the Map, and Prepared for
-       you when something is prepared. The retired banner and ring stay proved
-       absent as pixels. */
+    /* ================= 3. THE BOARD TOOK THE MAP'S PLACE =================
+       REVERSED IN PLACE 3 Oct 2026 (Young, over the "HaTi Live Board"
+       artifact: "this home page becomes your full insights page and explorer
+       page", Prepared by Copilot "below your book card", then "Go ahead and
+       build"). What stood here pinned the Map — its height, its twelve months,
+       its three facts and its Count · Value switch — and every one of those
+       went with it (the story is in docs/MAP-HISTORY.md). The page is the
+       board: Your book leads, Prepared by Copilot under it when something is
+       prepared. The retired banner, ring and tiles stay proved absent. */
     const shape = await page.evaluate(() => {
-      const map = document.getElementById('hm-map'), greet = document.querySelector('.hm-greet');
+      const book = document.getElementById('hb-book'), board = document.getElementById('hb-board');
       return {
-        sections: [...document.querySelectorAll('.hm-sec h2')].map(e => e.textContent.trim()),
-        title: i18t('home_map_title'), portfolio: i18t('home_portfolio_sec'), decide: i18t('home_needs_decision'),
+        cards: [...document.querySelectorAll('#hb-board > .hb-card > .hb-ch .hb-ct')].map(e => e.textContent.trim()),
+        book: i18t('hb_book'), agents: i18t('hm_ag_title'),
         tiles: document.querySelectorAll('.hm-tile').length,
         choose: !!document.getElementById('kpi-customize'),
-        mapW: map ? Math.round(map.getBoundingClientRect().width) : 0,
-        greetW: greet ? Math.round(greet.getBoundingClientRect().width) : -1,
+        map: !!document.getElementById('hm-map'),
+        bookW: book ? Math.round(book.getBoundingClientRect().width) : 0,
+        boardW: board ? Math.round(board.clientWidth - parseFloat(getComputedStyle(board).paddingLeft) - parseFloat(getComputedStyle(board).paddingRight)) : -1,
         banner: document.querySelectorAll('.hm-banner').length,
         ring: document.querySelectorAll('.hm-pipe-card, #hm-segs, #hm-ring-row').length,
       };
     });
-    /* HALF REVERSED IN PLACE 25 Sep 2026 (Young: "below prepared for you
-       card, add bring back the needs your attention card but only have 2
-       lines and nothing more"). The decisions card is BACK and closes the
-       page; the Portfolio row stays gone. */
-    /* REVERSED 28 Sep 2026 (Young: "lets add just this part to the home page
-       and discard the current 2 cards"): Prepared for you and Needs your
-       decision are off Home; the one card under the Map is Prepared by
-       Copilot, drawn only where an agent has work ready. */
-    const agentsTitle = await page.evaluate(() => i18t('hm_ag_title'));
-    check('3 the Map leads, Prepared by Copilot is the only card under it, and no Portfolio row is left',
-      shape.sections[0] === shape.title && !shape.sections.includes(shape.decide)
-        && !shape.sections.some(t => /Prepared for you/i.test(t))
-        && !shape.sections.includes(shape.portfolio) && shape.sections.length <= 2
-        && (shape.sections.length === 1 || shape.sections[1] === agentsTitle),
-      shape.sections.join(' · '));
-    check('3 no tiles and no "Choose tiles" — the Map took their place',
-      shape.tiles === 0 && !shape.choose, `${shape.tiles} tiles · choose ${shape.choose}`);
-    check('3 and the Map is the whole width of the page, like every Home card',
-      shape.mapW > 600 && Math.abs(shape.mapW - shape.greetW) <= 1, `map ${shape.mapW} · page ${shape.greetW}`);
+    check('3 Your book leads, Prepared by Copilot is the only card under it',
+      shape.cards[0] === shape.book && shape.cards.length <= 2
+        && (shape.cards.length === 1 || shape.cards[1] === shape.agents),
+      shape.cards.join(' · '));
+    check('3 no tiles, no "Choose tiles" and no Map — the board took their place',
+      shape.tiles === 0 && !shape.choose && !shape.map, `${shape.tiles} tiles · choose ${shape.choose} · map ${shape.map}`);
+    check('3 and Your book is the whole width of the board',
+      shape.bookW > 600 && Math.abs(shape.bookW - shape.boardW) <= 1, `book ${shape.bookW} · board ${shape.boardW}`);
     check('3 the hero banner and the pipeline ring are gone',
       shape.banner === 0 && shape.ring === 0, `banner ${shape.banner} · ring ${shape.ring}`);
 
-    /* ============ 3b. A QUARTER SHORTER (Young ruled 25 Sep 2026) ==========
-       "reduce the where your contracts stand card by 25% as it is dominating
-       the screen too much and taking over the whole screen." THE BASELINE IS
-       A MEASUREMENT, NOT A TARGET TYPED FROM NOWHERE: the parent drew the card
-       544.9px tall at every desktop width and 671.4 where the facts stack
-       under the charts (1100px), read off a real page before a line moved.
-       And the height may only come out of the AIR — every figure, door and
-       the switch are counted as still drawn, in the same breath. */
-    const PARENT_MAP_H = { desk: 544.9, stacked: 671.4 };
-    const tall = async () => page.evaluate(() => {
-      const m = document.getElementById('hm-map');
-      return { h: m ? +m.getBoundingClientRect().height.toFixed(1) : 0,
-        legend: m ? m.querySelectorAll('.hm-map-legend button').length : 0,
-        months: m ? m.querySelectorAll('.hm-map-col').length : 0,
-        facts: m ? m.querySelectorAll('.hm-map-fact').length : 0,
-        bar: m ? m.querySelectorAll('.hm-map-stages [data-hm-map^="stage:"]').length : 0,
-        sw: m ? m.querySelectorAll('[data-hm-measure]').length : 0 };
-    });
-    const t1440 = await tall();
-    await page.setViewportSize({ width: 1100, height: 800 });
-    await page.waitForTimeout(600);
-    const t1100 = await tall();
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.waitForTimeout(600);
-    check('3b the Map is a quarter shorter on a desktop screen',
-      t1440.h > 0 && t1440.h <= 0.75 * PARENT_MAP_H.desk,
-      `${t1440.h}px against ${PARENT_MAP_H.desk} — ${((1 - t1440.h / PARENT_MAP_H.desk) * 100).toFixed(1)}% less`);
-    check('3b and where the facts stack under the charts',
-      t1100.h > 0 && t1100.h <= 0.75 * PARENT_MAP_H.stacked,
-      `${t1100.h}px against ${PARENT_MAP_H.stacked} — ${((1 - t1100.h / PARENT_MAP_H.stacked) * 100).toFixed(1)}% less`);
-    /* [wall] — true at the parent too, by design: it is what the height may
-       NOT be bought with. */
-    check('3b (wall) and nothing on it went — three stages, twelve months, three facts, the switch',
-      t1440.legend === 3 && t1440.months === 12 && t1440.facts === 3 && t1440.bar >= 1 && t1440.sw === 2,
-      JSON.stringify(t1440));
+    /* 3b RETIRED 3 Oct 2026 with the Map whose height it measured. What it
+       guarded — that nothing the reader needs was cut to make room — is asked
+       of the board: six figures and three stages, all drawn. */
+    const drawn = await page.evaluate(() => ({ figs: document.querySelectorAll('#hb-book .hb-fig').length,
+      stages: document.querySelectorAll('#hb-book .hb-stagekey button').length }));
+    check('3b Your book draws all six figures and all three stages',
+      drawn.figs === 6 && drawn.stages === 3, JSON.stringify(drawn));
 
     /* ======= 3c. THE STAGES WEAR THE CONTRACTS LIST'S OWN COLOURS ========
        "The color code of the drafting, review and executed should match the
        color coding in the contracts list page." Measured on BOTH pages, the
        way a reader compares them: one contract is staged into each stage so
-       all three draw, the Map's bar and squares are read, then the Contracts
+       all three draw, the board's bar and squares are read, then the Contracts
        page is opened and its stage dots read, stage by stage. */
     const mapTones = await page.evaluate(() => {
       const live = state.contracts.filter(c => !c.archived && c.status !== 'Declined');
@@ -256,8 +217,8 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const bg = e => e ? getComputedStyle(e).backgroundColor : null;
       const out = {};
       for (const k of ['Draft', 'Under Review', 'Signed']) {
-        const seg = document.querySelector(`#hm-map .hm-map-stages [data-hm-map="stage:${k}"]`);
-        const leg = document.querySelector(`#hm-map .hm-map-legend [data-hm-map="stage:${k}"] .hm-map-sw`);
+        const seg = document.querySelector(`#hb-book .hb-stagebar [data-hb-dig="st:${k}"]`);
+        const leg = document.querySelector(`#hb-book .hb-stagekey [data-hb-dig="st:${k}"] i`);
         out[k] = { bar: bg(seg), square: bg(leg) };
       }
       return out;
@@ -278,21 +239,17 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
     await page.waitForTimeout(1000);
     const toneRows = ['Draft', 'Under Review', 'Signed'].map(k => ({ k, list: listTones[k] || null,
       bar: mapTones[k] && mapTones[k].bar, square: mapTones[k] && mapTones[k].square }));
-    check('3c each stage on the Map is the colour the Contracts list gives it — the bar and the square',
+    check('3c each stage on Your book is the colour the Contracts list gives it — the bar and the square',
       toneRows.every(r => r.list && r.bar === r.list && r.square === r.list),
       toneRows.map(r => `${r.k}: list ${r.list} · bar ${r.bar} · square ${r.square}`).join(' | '));
 
     /* ================= 4. THE FIGURES SIT ON ONE LINE ====================
-       RE-POINTED IN PLACE 24 Sep 2026: the tiles' figures are the Map's stage
-       figures now, and the same rule holds — three figures in a row sit on
-       one line. THE PICKER'S HALF IS REVERSED: the desktop picker left with
-       the tiles it chose, and the readings it offered are still offered by the
-       phone's own sheet, off the same catalogue — asked here so nothing a
-       person could choose yesterday is unreachable today. */
+       RE-POINTED IN PLACE 3 Oct 2026: the six figures of Your book. The
+       picker's half stands: the phone's sheet still offers the readings. */
     const tops = await page.evaluate(() =>
-      [...document.querySelectorAll('.hm-map-lv')].map(e => Math.round(e.getBoundingClientRect().top)));
-    check('4 the stage figures share one baseline',
-      tops.length === 3 && Math.max(...tops) - Math.min(...tops) <= 1, tops.join(' / '));
+      [...document.querySelectorAll('#hb-book .hb-fig .hb-fig-n')].map(e => Math.round(e.getBoundingClientRect().top)));
+    check('4 the six figures share one baseline',
+      tops.length === 6 && Math.max(...tops) - Math.min(...tops) <= 1, tops.join(' / '));
     const offered = await page.evaluate(() => (window.kpiCatalogOrder ? kpiCatalogOrder() : []));
     const want = ['lifecycle', 'compliance', 'importq', 'coverage'];
     check('4 the phone\'s picker still offers the four Portfolio readings',
@@ -300,56 +257,56 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       `missing ${want.filter(id => !offered.includes(id)).join(',') || 'none'}`);
 
     /* ================= 5. EVERY FIGURE IS A DOOR, AND A ZERO IS NOT ======
-       RE-POINTED IN PLACE 24 Sep 2026 to the Map's own figures. The rule is
-       unchanged: a figure with something behind it is a door with an arrow,
-       and a zero still draws — it is true — but refuses the press. */
-    const doors = await page.evaluate(() => [...document.querySelectorAll('.hm-map-fact')].map(e => ({
-      label: ((e.querySelector('.hm-map-fl') || {}).textContent || '').trim(),
-      n: ((e.querySelector('.hm-map-ff') || {}).textContent || '').trim(),
-      refused: !!e.disabled, arrow: !!e.querySelector('.hm-map-go'),
-      dest: e.getAttribute('data-hm-map') || '' })));
+       RE-POINTED IN PLACE 3 Oct 2026 to Your book. The rule is unchanged: a
+       figure with something behind it is a door, and a zero still draws — it
+       is true — but refuses the press. */
+    const doors = await page.evaluate(() => [...document.querySelectorAll('#hb-book .hb-fig-main, #hb-book .hb-stagekey button')].map(e => ({
+      label: (e.textContent || '').replace(/\s+/g, ' ').trim(),
+      zero: /^0\b|\b0$/.test((e.querySelector('.hb-fig-n, b') || {}).textContent || ''),
+      refused: !!e.disabled, dest: e.getAttribute('data-hb-dig') || '' })));
     const liveD = doors.filter(d => !d.refused), deadD = doors.filter(d => d.refused);
-    check('5 every side figure with something behind it carries a destination and an arrow',
-      liveD.every(d => d.dest && d.arrow), `${liveD.length} live: ` + liveD.map(d => d.label).join(', '));
-    check('5 a zero is refused and loses its arrow',
-      deadD.every(d => !d.arrow && !d.dest) && doors.length === 3,
-      `${deadD.length} refused: ` + deadD.map(d => `${d.label}=${d.n}`).join(', '));
+    check('5 every figure with something behind it is a door',
+      liveD.length > 0 && liveD.every(d => d.dest && !d.zero), `${liveD.length} live: ` + liveD.map(d => d.label).join(', '));
+    check('5 a zero is refused and goes nowhere',
+      deadD.every(d => !d.dest && d.zero) && doors.filter(d => d.zero).every(d => d.refused),
+      `${deadD.length} refused: ` + deadD.map(d => d.label).join(', '));
     check('5 and nothing on Home is a drag handle any more',
       (await page.evaluate(() => document.querySelectorAll('#content [draggable="true"]').length)) === 0);
 
     /* ================= 6. THE NUMBER AND THE LIST MUST MATCH ============= */
-    /* The whole rule in one press, on the Map: three contracts staged to end
-       in one month, the column says three, and the list it opens has three
-       rows in it. Worked out separately they drift, and then the card lies. */
+    /* The whole rule in one press, on Your book: three contracts staged to end
+       next month, "Ending in 90 days" says so, its dig-in lists them, and
+       "Open these" opens a Contracts list exactly as long.
+       RE-POINTED IN PLACE 3 Oct 2026 from the Map's month column. */
     const promised = await page.evaluate(() => {
       const day = (m, d) => { const t = new Date(); const x = new Date(t.getFullYear(), t.getMonth() + m, d);
         return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
       const live = state.contracts.filter(c => !c.archived && c.status !== 'Declined').slice(0, 3);
-      /* KEPT, AND PUT BACK AFTER THE PRESS. Four months out with thirty days'
-         notice is inside the renewal window, so these three would otherwise
-         put a renewal on the overnight desk and section 11's CONTROL — an
-         empty desk draws nothing — would be measuring this section's stage. */
       window.__s6 = live.map(c => ({ c, had: Object.fromEntries(['status', 'parentId', 'expiry', 'metadata']
         .map(k => [k, Object.prototype.hasOwnProperty.call(c, k) ? { v: c[k] } : null])) }));
-      live.forEach(c => { c.status = 'Signed'; c.parentId = null; c.expiry = day(4, 15);
+      live.forEach(c => { c.status = 'Signed'; c.parentId = null; c.expiry = day(1, 15);
         c.metadata = Object.assign({}, c.metadata, { expiryDate: c.expiry, noticePeriodDays: 30 }); });
       renderDashboard();
-      const col = document.querySelector('[data-hm-map="month:4"]');
-      if (!col) return null;
-      const n = hmMapData().months[4].n;
-      col.click();
-      return n;
+      const fig = document.querySelector('#hb-book .hb-fig-main[data-hb-dig="f:ending"]');
+      if (!fig) return null;
+      const n = hbBookData('all').figs.ending.n;
+      fig.click();
+      return { n, printed: Number(fig.querySelector('.hb-fig-n').textContent.replace(/\D/g, '')) };
     });
+    await page.waitForTimeout(600);
+    const listed = await page.evaluate(() => document.querySelectorAll('#hb-board .hb-dig .hb-rows [data-hb-dig^="c:"]').length);
+    await page.click('#hb-board .hb-dig [data-hb-open]').catch(() => {});
     await page.waitForTimeout(1500);
     const landed = await page.evaluate(() => ({
       view: state.view,
       rows: document.querySelectorAll('#reg-body tr[data-row], tr[data-row]').length,
     }));
-    check('6 pressing a month opens the register',
-      landed.view === 'register', landed.view);
-    check('6 and the list is exactly as long as the number promised',
-      promised != null && promised > 0 && landed.rows === promised,
-      `column said ${promised} · list shows ${landed.rows}`);
+    check('6 the figure, its dig-in and the list it opens all say the same number',
+      !!promised && promised.n >= 3 && promised.printed === promised.n && listed === promised.n,
+      `figure ${promised && promised.printed} · reading ${promised && promised.n} · dig-in ${listed}`);
+    check('6 "Open these" opens the register, exactly as long',
+      landed.view === 'register' && !!promised && landed.rows === promised.n,
+      `${landed.view} · list shows ${landed.rows}`);
     await page.screenshot({ path: path.join(OUT, '02-door-landed.png') });
     await page.evaluate(() => {
       (window.__s6 || []).forEach(({ c, had }) => Object.entries(had).forEach(([k, w]) => {
@@ -364,18 +321,21 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        own filters, and the seat stays set when the reader leaves. A stage door
        that reads the filters without putting the seat back writes the stage
        into the Negotiations seat's state and opens a Contracts list that never
-       heard of it — the fault regShowOnly and the shell's search box were both
-       fixed for. The number on the door is the whole book's, so the list it
-       opens must hold exactly that many. */
+       heard of it. RE-POINTED IN PLACE 3 Oct 2026: on the board a stage digs
+       in, and its "Open these" is the door onto Contracts on that stage. */
     await page.evaluate(() => { if (window.regSetScope) regSetScope('negotiations');
       const R = regState(); R.stage = 'all'; setView('dashboard'); });
     await page.waitForTimeout(900);
     const stageDoor = await page.evaluate(async () => {
-      const b = document.querySelector('#hm-map .hm-map-legend [data-hm-map^="stage:"]');
+      const b = document.querySelector('#hb-book .hb-stagekey [data-hb-dig^="st:"]');
       if (!b) return null;
-      const k = b.getAttribute('data-hm-map').split(':')[1];
-      const want = hmMapData().stages.find(s => s.k === k).n;
+      const k = b.getAttribute('data-hb-dig').split(':')[1];
+      const want = hbBookData('all').stages.find(s => s.k === k).n;
       b.click();
+      await new Promise(r => setTimeout(r, 400));
+      const open = document.querySelector(`#hb-board .hb-dig [data-hb-stage="${k}"]`);
+      if (!open) return { k, want, open: false };
+      open.click();
       await new Promise(r => setTimeout(r, 900));
       return { k, want, view: state.view, scope: window.regScope ? regScope() : null,
         stage: regState().stage, got: window.regFiltered ? regFiltered().length : -1 };
@@ -422,8 +382,9 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
       const b = document.querySelector('.hm-primary'), c = getComputedStyle(b);
       return { bg: c.backgroundColor, ink: c.color, edge: c.borderTopColor,
         page: getComputedStyle(document.body).backgroundColor,
-        /* RE-POINTED 24 Sep 2026: the tiles left; the Map is the card. */
-        tile: getComputedStyle(document.getElementById('hm-map')).backgroundColor };
+        /* RE-POINTED 3 Oct 2026: the head row is the platform's surface on
+           Home (the board below it is the screen's own Dark | Light). */
+        tile: getComputedStyle(document.getElementById('hb-head')).backgroundColor };
     });
     check('8 the one act on the page stays legible at night',
       ratio(dark.ink, dark.bg) >= 4.5, `ink ${ratio(dark.ink, dark.bg)}:1`);
@@ -431,44 +392,41 @@ const ratio = (a, b) => { const x = lum(a), y = lum(b);
        its fill and the claim is the fill against the page. */
     check('8 and its fill stands off the page',
       ratio(dark.bg, dark.page) >= 3, `fill ${ratio(dark.bg, dark.page)}:1`);
-    check('8 the Map takes the dark surface, not the light one',
+    check('8 the head row takes the dark surface, not the light one',
       dark.tile !== 'rgb(255, 255, 255)' && dark.tile !== dark.page, dark.tile);
     await page.screenshot({ path: path.join(OUT, '04-dark.png') });
     await page.click('#theme-btn');
     await page.waitForTimeout(1000);
 
-    /* ================= 9. THE MAP STACKS RATHER THAN CRUSHING =========== */
-    /* RE-POINTED IN PLACE 24 Sep 2026: the tile row became the Map's body —
-       the charts beside the three facts, and the facts under the charts below
-       1100px. What it has to prove is unchanged: nothing ever scrolls the
-       page sideways. */
+    /* ================= 9. THE BOARD NEVER SCROLLS SIDEWAYS ==============
+       RE-POINTED IN PLACE 3 Oct 2026 from the Map's body to the board: what
+       it has to prove is unchanged — nothing ever scrolls the page sideways,
+       and Your book keeps all six figures in reach at every width. */
     for (const w of [1280, 1100, 900]) {
       await page.setViewportSize({ width: w, height: 860 });
       await page.waitForTimeout(700);
-      const r = await page.evaluate(() => ({
-        cols: getComputedStyle(document.querySelector('.hm-map-body')).gridTemplateColumns.split(' ').length,
-        sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      }));
-      check(`9 ${w}: the Map fits and the page never scrolls sideways`,
-        !r.sideways && (w > 1100 ? r.cols === 2 : r.cols === 1), `${r.cols} columns`);
+      const r = await page.evaluate(() => {
+        const board = document.getElementById('hb-board'), br = board.getBoundingClientRect();
+        const figs = [...document.querySelectorAll('#hb-book .hb-fig')];
+        return { sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth || board.scrollWidth > board.clientWidth + 1,
+          inside: figs.length === 6 && figs.every(f => { const x = f.getBoundingClientRect(); return x.left >= br.left - 1 && x.right <= br.right + 1; }) };
+      });
+      check(`9 ${w}: the board fits and the page never scrolls sideways`, !r.sideways && r.inside, JSON.stringify(r));
     }
     await page.setViewportSize({ width: 1440, height: 900 });
 
-    /* ============ 10. NOTHING ON THE MAP IS CUT OFF =====================
-       RE-POINTED IN PLACE 24 Sep 2026. The claim this carried — one height
-       for every tile, and no tile clipping its content — is asked of the Map:
-       none of its figures or labels is cut off, at four real widths. The
-       clip check is still the half that earns its place: scrollHeight against
-       clientHeight is how a browser answers it, and nothing else can. */
+    /* ============ 10. NOTHING ON YOUR BOOK IS CUT OFF ====================
+       RE-POINTED IN PLACE 3 Oct 2026 from the Map. None of the figures or the
+       stage key has its content cut off, at four real widths. */
     for (const w of [1280, 1366, 1440, 1920]) {
       await page.setViewportSize({ width: w, height: 860 });
       await page.waitForTimeout(600);
-      const t = await page.evaluate(() => [...document.querySelectorAll('.hm-map-fact, .hm-map-legend button')].map(el => ({
+      const t = await page.evaluate(() => [...document.querySelectorAll('#hb-book .hb-fig-main, #hb-book .hb-stagekey button')].map(el => ({
         name: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30),
-        clipped: el.scrollHeight > el.clientHeight + 1,
+        clipped: el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1,
       })));
       const clipped = t.filter(x => x.clipped).map(x => x.name);
-      check(`10 ${w}: nothing on the Map has its content cut off`, t.length === 6 && clipped.length === 0,
+      check(`10 ${w}: nothing on Your book has its content cut off`, t.length === 9 && clipped.length === 0,
         clipped.length ? 'clipped: ' + clipped.join(', ') : `${t.length} figures clear`);
     }
     await page.setViewportSize({ width: 1440, height: 900 });
