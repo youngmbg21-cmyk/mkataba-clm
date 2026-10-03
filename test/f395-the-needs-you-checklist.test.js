@@ -111,7 +111,15 @@ describe('f395 (1) — one reading, and it is Home\'s', () => {
     assert.ok(/urgent:hmReviewLate\(x\.rv\)/.test(card), 'the card asks hmReviewLate');
     assert.ok(/urgent:x\.d<=HM_SOON_DAYS/.test(card), 'the card asks HM_SOON_DAYS');
     assert.ok(/hmReviewLate\(rv\)/.test(list) && /HM_SOON_DAYS/.test(list), 'the checklist asks both');
-    assert.ok(!/todayISO\(\)/.test(card), 'the card no longer carries its own copy of "today"');
+    /* ---- A THIRD RULE JOINED THE PAIR, 4 Oct 2026 (One list, one place) ----
+       A note a colleague handed you became a row on the book-wide list too, and
+       its lateness is a day comparison. It is hmNoteDue — ONE rule, both
+       askers — so the claim is unchanged and simply has one more name in it:
+       neither reading keeps its own copy of "today". */
+    assert.ok(/urgent:d\.late/.test(card) && /hmNoteDue\(mine\)/.test(card), 'the card asks hmNoteDue');
+    assert.ok(/hmNoteDue\(mine\)/.test(list), 'and so does the checklist');
+    assert.ok(!/todayISO\(\)/.test(card) && !/todayISO\(\)/.test(list),
+      'neither carries its own copy of "today"');
   });
   test('1c the dashboard\'s renewal decisions are built from hmRenewalDue — one question, not two', () => {
     const slices = code(fnOf(HOME, 'hmDashSlices'));

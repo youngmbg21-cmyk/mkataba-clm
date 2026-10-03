@@ -25010,3 +25010,74 @@ and nego-redesign-verify 1's hairline measure.
 Tests: f449 (new, 17 claims, 6 of them red at the parent), f184, f317,
 pages-read-alike-verify 1, negotiations-door-verify 7b, nego-redesign-verify
 1/1c.
+
+## ONE LIST, ONE PLACE (Young picked it by name, 4 October 2026)
+
+Idea 4 of the seventeen — one "waiting on you" page — with one change made in
+passing: *"Idea 4 but this should be included inside the newly built
+dashboard."* Asked to confirm before anything was built, he wrote: *"confirm
+that we are aligned that waiting on you will be in the home page dashboard and
+will have it as a suggestion prompt."*
+
+Three options were drawn, named for their ideas: **A card of its own**, **One
+list, one place**, **Top of the morning**. He picked the middle one.
+
+**WHY IT IS ONE CARD AND NOT A THIRD.** Nearly everything still to be built
+PRODUCES something that waits on you — a named guest's invitation, a
+colleague's held suggestion, a status page going stale. One list means each of
+those adds a row. Three lists mean each invents its own way of nagging, and
+somebody spends a week pulling them back together. So Prepared by Copilot
+became **Your work**, and the only difference between two rows is who raised
+them.
+
+**THE ONE THING I PUT BACK TO HIM BEFORE BUILDING.** "Suggestion prompt" could
+have meant Copilot writes the sentences. These are worked out from the record —
+free, instant, and they cannot say something the contract does not. Copilot
+sits in the same card offering to do the work and writes none of these words.
+home-one-list-verify 6a counts every generative route from the sign-in to the
+moment the card is painted and requires zero; it was failing at first for an
+honest reason that is worth keeping — opening a contract from the card starts
+Copilot reading it on arrival, which is a different feature paying for itself,
+so the count is snapshotted before anything is pressed.
+
+**THE FAULT THIS BUILD FOUND, and it was found by measuring rather than
+reasoning.** The first run of the stage reported an empty list on a book with a
+renewal plainly due in it. hmDecisionItems strikes a renewal out of its own
+list when the DESK card is already showing it, so one decision is not asked
+twice on one page — a correct rule written on 27 September, when Home drew
+both. The desk card left the desktop with the 24 September redesign and the
+board has never had it, so the subtraction was quietly deleting rows nothing
+else drew. The fix uses the parameter that already exists for saying "no desk
+here": `hmDecisionItems(null, [])`. The phone, which still draws both, calls it
+with neither argument and is untouched. The stage seeds TWO renewals on
+purpose, because with one it is impossible to tell an empty list from a
+subtracted one.
+
+**A ROW THE BOOK-WIDE LIST HAD NEVER BEEN TOLD ABOUT.** Giving a note to a
+colleague was built on 3 October and the side panel's checklist has carried it
+since that day; `hmDecisionItems` had not. So a note handed to you on Friday
+was findable only if you already knew which contract to open — exactly the
+fault one list exists to fix. Its lateness is the only date on either list a
+PERSON typed, so it is the only one that can be wrong, and the row stays quiet
+until it is actually late.
+
+**AND THAT TURNED A TEST RED, correctly.** f395 1b pins that lateness is one
+rule with two askers and that *"the card no longer carries its own copy of
+today"*. The note row needed a day comparison, so the card said `todayISO()`
+again. The claim was right and the build was wrong: `hmNoteDue` now holds the
+rule, both readings ask it, and the check is stronger than before — neither
+reading carries its own copy, and both are named.
+
+**A SELF-INFLICTED ONE.** The card drew nothing and the whole app failed to
+boot on `Unexpected identifier 'DESK'`: a paragraph added to the top of a
+comment block had been pasted AFTER its `*/`. Lint catches it in one second and
+had not been run since the edit before. Run lint after every edit, not after
+every few.
+
+**Left for the owner** (BUGLOG): a contract can appear twice on the card — once
+as a waiting row and again inside Copilot's own count for the same contract.
+They are different things and the sub-lines differ, but it reads as a repeat,
+and suppressing the Copilot row per contract would make its count lie.
+
+Tests: f450 (new, 26 claims, 20 red at the parent), home-one-list-verify (new,
+19 checks driven in a browser), f395 1b re-pointed in place.
