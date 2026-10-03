@@ -24703,7 +24703,7 @@ DECISIONS MADE ON THE WAY, each a cost named:
   have printed light words on a light stage. Measured, then made literal.
 - `--s-5` does not exist; a declaration that names a missing token collapses
   whole (the side-by-side columns lost their gap and the left column's counts
-  landed in the right one). f446 (8) now sweeps the board's sheet for missing
+  landed in the right one). f447 (8) now sweeps the board's sheet for missing
   tokens.
 - The page attribute was first `data-hb-face`, which made every click on the
   page match the Board | Explorer switch; renamed `data-hb-side`.

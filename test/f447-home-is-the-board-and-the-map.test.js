@@ -1,4 +1,4 @@
-/* F446 — HOME IS THE BOARD AND THE MAP (Young ruled 3 Oct 2026).
+/* F447 — HOME IS THE BOARD AND THE MAP (Young ruled 3 Oct 2026).
 
    Asked over one long sitting against the "HaTi Live Board" artifact: Home
    becomes a one-screen board built by asking, with a Board | Explorer switch
@@ -78,7 +78,7 @@ function world({ contracts = book(), today = day(0), stored = null } = {}) {
   return { sb, clock };
 }
 
-describe('F446 (1) — the six figures are Home\'s own readings', () => {
+describe('F447 (1) — the six figures are Home\'s own readings', () => {
   test('live, the ninety days and past the end date equal hmDashSlices', () => {
     const { sb } = world();
     const d = sb.hbBookData('all'), S = sb.hmDashSlices();
@@ -104,7 +104,7 @@ describe('F446 (1) — the six figures are Home\'s own readings', () => {
   });
 });
 
-describe('F446 (2) — the lens is paySide\'s reading', () => {
+describe('F447 (2) — the lens is paySide\'s reading', () => {
   test('suppliers counts only supplier contracts; the unsided are counted, not guessed', () => {
     const { sb } = world();
     const sup = sb.hbBookData('suppliers'), cus = sb.hbBookData('customers');
@@ -115,7 +115,7 @@ describe('F446 (2) — the lens is paySide\'s reading', () => {
   });
 });
 
-describe('F446 (3) — the reader, without a model', () => {
+describe('F447 (3) — the reader, without a model', () => {
   const cases = [
     ['bring up MK-1', { act: 'card', id: 'MK-1' }],
     ['what about mk-4?', { act: 'card', id: 'MK-4' }],
@@ -160,7 +160,7 @@ describe('F446 (3) — the reader, without a model', () => {
   });
 });
 
-describe('F446 (4) — what moved keeps one baseline a day', () => {
+describe('F447 (4) — what moved keeps one baseline a day', () => {
   test('the first paint of a new day makes yesterday\'s view the baseline; repaints keep it', () => {
     const { sb, clock } = world({ today: '2026-10-01' });
     assert.equal(sb.hbSeenTick(sb.hbBookData('all')), null, 'a first visit has nothing to compare with');
@@ -180,7 +180,7 @@ describe('F446 (4) — what moved keeps one baseline a day', () => {
   });
 });
 
-describe('F446 (5) — a watch is a bell row only while its line is crossed', () => {
+describe('F447 (5) — a watch is a bell row only while its line is crossed', () => {
   test('above and below, and nothing when the number is on the right side', () => {
     const { sb } = world();
     const s = sb.hbS();
@@ -195,7 +195,7 @@ describe('F446 (5) — a watch is a bell row only while its line is crossed', ()
   });
 });
 
-describe('F446 (6) — the board is the person\'s own record', () => {
+describe('F447 (6) — the board is the person\'s own record', () => {
   test('it survives a reload, and what this version does not know falls back', () => {
     const stored = JSON.stringify({ face: 'explorer', lens: 'nonsense', screen: 'light', prep: 'folded',
       panels: [{ id: 'p1', kind: 'obl' }, { id: 'p2', kind: 'bogus' }], watches: [{ k: 'live', dir: 'sideways', n: 1 }] });
@@ -215,7 +215,7 @@ describe('F446 (6) — the board is the person\'s own record', () => {
   });
 });
 
-describe('F446 (7) — the wiring', () => {
+describe('F447 (7) — the wiring', () => {
   test('desktop Home hands its paint to the board; the phone keeps its own Home', () => {
     const at = HOME.indexOf('function renderDashboard(');
     const body = HOME.slice(at, at + 1500);
@@ -246,7 +246,7 @@ describe('F446 (7) — the wiring', () => {
   });
 });
 
-describe('F446 (8) — the screen\'s own look', () => {
+describe('F447 (8) — the screen\'s own look', () => {
   const sheet = (() => { const a = CSS.indexOf('HOME IS THE BOARD AND THE MAP'); const b = CSS.indexOf('.hb-presenting{height:100vh}'); return CSS.slice(a, b); })();
   test('Light is literal: it does not borrow a token that flips with the platform\'s theme', () => {
     const m = /#ig-page\.hb-light,#hb-page\.hb-light\{([^}]*)\}/.exec(sheet);
@@ -263,7 +263,7 @@ describe('F446 (8) — the screen\'s own look', () => {
   });
 });
 
-describe('F446 (9) — every word in both books', () => {
+describe('F447 (9) — every word in both books', () => {
   test('each hb_ key the board prints is in English and Swedish', () => {
     const keys = new Set((HB_SRC.match(/'hb_[a-z0-9_]+'/g) || []).map(k => k.slice(1, -1)));
     const en = i18n.STRINGS ? i18n.STRINGS.en : null;
@@ -276,7 +276,7 @@ describe('F446 (9) — every word in both books', () => {
   });
 });
 
-describe('F446 (10) — a panel given to a colleague is a record, not a permission', () => {
+describe('F447 (10) — a panel given to a colleague is a record, not a permission', () => {
   let h, w;
   before(async () => {
     h = await startHati(); w = await seedWorkspace(h, { approvalRules: [] });

@@ -167,7 +167,7 @@ function hbOverdue(cs){
 /* THE SIX FIGURES AND THE STAGE BAR, for a lens. With the whole book this is
    Home's own reading (hmDashSlices counts the same predicates: live is not
    Declined, the ninety days are effectiveExpiry's across agreements, past is
-   contractExpired's) — f446 pins the two equal. */
+   contractExpired's) — f447 pins the two equal. */
 function hbBookData(lens){
   const cs = hbBook(lens || 'all');
   const live = cs.filter(c => c.status !== 'Declined');

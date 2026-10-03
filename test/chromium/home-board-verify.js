@@ -1,5 +1,5 @@
 /* HOME IS THE BOARD AND THE MAP — measured in a real browser (Young ruled
- * 3 Oct 2026; f446 pins the readings and the server's walls).
+ * 3 Oct 2026; f447 pins the readings and the server's walls).
  *
  * WHAT THIS DRIVES, where the user looks:
  *   1. Home lands on the board, Dark, six figures that are the book's own,

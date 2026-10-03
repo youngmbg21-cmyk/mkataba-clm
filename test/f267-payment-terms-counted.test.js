@@ -377,7 +377,7 @@ describe('f267 (8) the tab', () => {
        this test is for is WHERE PAYMENT TERMS SITS, and that is unchanged. */
     assert.equal(tabs.indexOf('payterms'), tabs.indexOf('obligations') + 1,
       'straight after Obligations');
-    /* the contract graph left Insights for Home on 3 Oct 2026 (f446) */
+    /* the contract graph left Insights for Home on 3 Oct 2026 (f447) */
     assert.ok(!tabs.includes('map'), 'the contract graph is not on this row any more');
     assert.equal(tabs[0], 'frame', 'the Portfolio frame still leads');
   });
