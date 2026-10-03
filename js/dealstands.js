@@ -277,6 +277,13 @@ function dsRoleWord(p){
 function standsHtml(c, opts = {}){
   const D = (opts.data) || dealStands(c);
   if (!D) return '';
+  /* A SURFACE MAY LEAVE OUT WHAT IT ALREADY SAYS BETTER, and only that. The
+     counterparty's page draws its own journey and its own Lately above this
+     sheet, in its own words and with more in them, so it asks for neither
+     here — two of each on one screen is the page answering one question
+     twice. Nothing else can be switched off: the parties, whose move, the
+     counts and the two lists are the page. */
+  const wantJourney = opts.journey !== false, wantLately = opts.lately !== false;
   const steps = D.steps.map(s => `<li class="ds-st${s.done ? ' is-done' : ''}${s.now ? ' is-now' : ''}"${s.now ? ' aria-current="step"' : ''}>
     <span class="ds-dot" aria-hidden="true"></span><b>${dsEsc(dsT('ds_step_' + s.key))}</b>
     <span>${dsEsc(s.now && s.key === 'negotiating'
@@ -309,13 +316,13 @@ function standsHtml(c, opts = {}){
       dsRoleWord(p) ? ' · ' + dsEsc(dsRoleWord(p)) : ''}</span>`).join('')}</div>
     <p class="ds-upd">${dsEsc(dsT('ds_built_from'))}${D.updatedAt ? ' · ' + dsEsc(dsT('ds_updated', { when: dsDay(D.updatedAt) })) : ''}</p>
     ${opts.head || ''}
-    <ol class="ds-j">${steps}</ol>
+    ${wantJourney ? `<ol class="ds-j">${steps}</ol>` : ''}
     <div class="ds-move">${facts.map(([k, v, warn]) => `<span><b>${dsEsc(k)}</b><span${warn ? ' class="ds-warn"' : ''}>${dsEsc(v)}</span></span>`).join('')}</div>
     <div class="ds-cols">
       <div><div class="ds-h">${dsEsc(dsT('ds_agreed'))}</div>${agreedList}</div>
       <div><div class="ds-h">${dsEsc(dsT('ds_still_open'))}</div>${points}</div>
     </div>
-    <div class="ds-h ds-h-late">${dsEsc(dsT('ds_lately'))}</div>${lately}
+    ${wantLately ? `<div class="ds-h ds-h-late">${dsEsc(dsT('ds_lately'))}</div>${lately}` : ''}
     <p class="ds-foot">${dsEsc(dsT('ds_never_shows'))}</p>
   </section>`;
 }

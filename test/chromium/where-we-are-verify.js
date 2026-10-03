@@ -120,12 +120,22 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     const menu = document.getElementById('pt-more-menu');
     const notes = document.getElementById('pt-notes-door'), focus = document.getElementById('pt-focus');
     return { notes: !!notes && !(menu && menu.contains(notes)), focus: !!focus && !(menu && menu.contains(focus)),
-      noMore: !document.getElementById('pt-more'),
-      copies: [...document.querySelectorAll('#pt-where-pane [data-pt-copy]')].map(b => b.dataset.ptCopy) };
+      more: !!document.getElementById('pt-more'),
+      inMore: [...document.querySelectorAll('#pt-more-menu [id^="pt-"]')].map(b => b.id),
+      copies: [...document.querySelectorAll('#pt-where-pane [data-pt-copy]')].map(b => b.dataset.ptCopy),
+      shared: !!document.querySelector('#pt-where-pane .pw-stands .ds-sheet') };
   });
   check('4a Notes is a button beside the bell, not a row in More', nf.notes);
   check('4b Focus is a button on the control row, not a row in More', nf.focus);
-  check('4e More is gone; PDF and Word are on the Copies card', nf.noMore && nf.copies.includes('pdf'), JSON.stringify(nf.copies));
+  /* REVERSED IN PLACE 4 Oct 2026 (Young: "delete the export button and keep
+     it under the more button as it is designed today"). More is back because
+     there is something in it again, and the page every party reads has the
+     column the Copies card was holding. Notes and Focus staying OUT of it is
+     what 4a and 4b are for and is untouched. */
+  check('4e the copies are in More, and not also a card on the page',
+    nf.more && nf.inMore.includes('pt-pdf') && nf.copies.length === 0,
+    JSON.stringify({ more: nf.more, inMore: nf.inMore, copies: nf.copies }));
+  check('4f and the page every party reads is drawn under the rule', nf.shared);
   await press(page, '#pt-notes-door');
   check('4c Notes opens the notes drawer', await until(page, () => (document.getElementById('pt-notes') || { classList: { contains: () => false } }).classList.contains('open')));
   await press(page, '#pt-notes-close');

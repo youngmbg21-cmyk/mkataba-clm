@@ -3796,17 +3796,47 @@ function portalWhereHtml(c, p){
           <div class="pw-contact"><span class="pw-av" aria-hidden="true">${esc(initials||'·')}</span>
             <span><b>${esc(who)}</b><span>${esc(org)}</span>
             ${PORTAL_OPTS.token?`<button type="button" class="ui-link" data-pt-where-notes>${esc(i18t('po_where_write'))}</button>`:''}</span></div></section>
-        <section class="pw-card"><h3>${esc(i18t('po_where_copies'))}</h3><div class="pw-card-b">
-          <div class="pw-copy"><span><b>${esc(i18t('po_copy_clean'))}</b><span>${esc(i18t('po_copy_clean_sub'))}</span></span>
-            <button type="button" class="ui-btn pw-id-verb" data-pt-copy="pdf" title="${esc(i18t('po_pdf_title'))}">${icon('printer','w-3.5 h-3.5')}PDF</button></div>
-          ${(window.docxExportTracked&&window.redlineDocHtml)?`<div class="pw-copy"><span><b>${esc(i18t('po_copy_marked'))}</b><span>${esc(i18t('po_copy_marked_sub'))}</span></span>
-            <button type="button" class="ui-btn pw-id-verb" data-pt-copy="word" title="${esc(i18t('po_word_title'))}">${icon('file','w-3.5 h-3.5')}Word</button></div>`:''}
-        </div></section>
+        ${''/* THE COPIES CARD HAS GONE INTO More (Young, 4 Oct 2026). Its two
+               buttons were the only things in this column that were not about
+               where the deal stands, and the shared page needs the room. The
+               act is unchanged and so are its handlers: data-pt-copy still
+               presses portalExportPdf and portalExportWord, from the menu
+               rows instead of from a card. */}
         ${lately.length?`<section class="pw-card"><h3>${esc(i18t('po_where_lately'))}</h3><div class="pw-card-b">${
           lately.map(e=>`<div class="pw-late"><span>${esc(e.at?portalDayWords(e.at):'')}</span><div>${esc(e.text||'')}</div></div>`).join('')}
           ${hasHist?`<button type="button" class="ui-link pw-late-all" data-pt-where-history>${esc(i18t('po_where_all_history'))}</button>`:''}</div></section>`:''}
       </div>
     </div>
+    ${''/* ---- AND UNDER THE RULE, THE PAGE EVERY PARTY READS (idea 15, 4 Oct
+           2026) ---- The two cards above know who is reading: what is waiting
+           on YOU, and who to talk to. Everything below does not, and could be
+           shown to anybody — it is the same sheet the owner's own tab draws
+           and the same one served at the public address, from one reading
+           (dealStands). That is the whole claim of the idea: not three
+           pictures that agree, one picture.
+
+           DRAWN ONLY WHERE THE MODULE IS. A stage without js/dealstands.js
+           shows the page exactly as it was rather than a hole. */}
+    ${''/* ---- AND UNDER THE RULE, WHAT EVERY PARTY CAN SEE (idea 15, 4 Oct
+           2026) ---- The two cards above know who is reading: what is waiting
+           on YOU, and who to talk to. What is under the rule does not, and
+           could be shown to anybody — it is the same reading (dealStands) the
+           owner's own tab draws and the public address serves.
+
+           WITHOUT THE JOURNEY AND WITHOUT LATELY, because this page already
+           draws both ABOVE, in its own words and with more in them: their
+           journey can say signing is under way on their link, and their Lately
+           carries the exact words that moved. Two journeys and two Lately
+           lists on one screen is the page answering one question twice, so the
+           richer one stays and the sheet leaves them out. What it adds is what
+           their page never had: every party named with what each one does,
+           whose move said as a party rather than as a seat, and the settled
+           and open points as lists.
+
+           DRAWN ONLY WHERE THE MODULE IS: a stage without js/dealstands.js
+           shows this page exactly as it was rather than a hole. */}
+    ${(typeof standsHtml==='function')?`<div class="pw-shrule"><span>${esc(i18t('po_shared_rule'))}</span></div>
+    <div class="pw-stands">${standsHtml(c,{ journey:false, lately:false })}</div>`:''}
   </div>`;
 }
 /* ---- THE SIGNING TAB ON A NEGOTIATION LINK ----
@@ -3934,6 +3964,12 @@ function portalTabsStyle(){
     #pt-hist-pane .ht{max-width:880px;max-height:none;overflow:visible;margin:0 auto;background:var(--color-surface);
       border:1px solid var(--color-divider);border-radius:var(--radius-lg);}
     .pw-where{max-width:1180px;margin:0 auto;padding:18px 4px 28px;display:flex;flex-direction:column;gap:18px;}
+    /* THE RULE, and the page under it. A quiet label rather than a band: it
+       names a region, it carries no act, and the reader's own choice is not
+       read back to them — the three tests the owner's band rule sets. */
+    .pw-shrule{display:flex;align-items:center;gap:12px;}
+    .pw-shrule::before,.pw-shrule::after{content:"";flex:1;height:1px;background:var(--color-divider);}
+    .pw-shrule span{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.11em;text-transform:uppercase;color:var(--accent-ink-700);}
     .pw-where-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
     .pw-where-head h2{margin:0;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);}
     .pw-where-head span{font-size:var(--t-body);color:var(--color-neutral-600);}
@@ -4092,6 +4128,23 @@ function renderShareWorkbench(p, opts={}){
              this is its own, wearing the same shape. See portalAlerts. */}
       ${portalBellHtml()}
       ${portalNotesDoorHtml()}
+      ${''/* ---- AND MORE COMES BACK, CARRYING THE COPIES (Young ruled 4 Oct
+             2026: "for space limitations, in the home page, you will have to
+             delete the export button and keep it under the more button as it
+             is designed today") ----
+             This REVERSES the 29 September decision that emptied it. That day
+             Notes and Focus moved out of More onto the page and PDF and Word
+             moved to a Copies card on Where we are, which left the menu with
+             nothing in it, so it was switched off rather than left as an empty
+             button. The argument then was sound and is no longer: nothing else
+             wanted that column in September, and the shared page wants it now.
+
+             NOTHING WAS WRITTEN FOR THIS. portalMoreMenuHtml has sat here in
+             full the whole time — the same Export heading, the same two rows,
+             the same wiring in wirePortalMore — with nobody calling it. This
+             is turning something back on, and it is how the owner's own
+             contract room has carried its copies all along. */}
+      ${portalMoreMenuHtml()}
       ${''/* The same reading control the owner's bench carries — the
              counterparty is the customer, and squinting at 11px wording is
              not a seat-relative fact. The stepper is the shared component

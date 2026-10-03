@@ -20149,3 +20149,9 @@ Three things, and only one of them was about width.
   sub-lines differ, but it reads as a repeat. Suppressing the Copilot row per
   contract would make its count lie, so this needs the owner's word on what
   should give. Left alone.
+
+## 4 Oct 2026 — Noticed, not fixed (while building idea 15)
+
+- portal-header-verbs-verify: "the Send is ON TOP OF THE REDLINE CARDS, in
+  their own column" reports "no band or no card to measure against". Already
+  red on unmodified main. Left alone.

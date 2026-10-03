@@ -25219,3 +25219,52 @@ same word in Swedish and the sentence under it IS translated.
 Tests: f451 (7) added — 8 claims on the walls, the address and the standalone
 page; status-link-verify (new, 17 checks driven end to end, including a
 stranger in a fresh browser with no account).
+
+## THEIR PAGE DRAWS IT TOO, AND THE COPIES GO BACK INTO MORE (idea 15, part three, 4 October 2026)
+
+The third surface. The owner has the tab, a stranger has the address, and the
+counterparty's own page now draws the same reading under a quiet rule.
+
+**WHAT IS ABOVE THE RULE KNOWS WHO IS READING; WHAT IS BELOW DOES NOT.** Their
+two cards — what is waiting on YOU, and who to talk to — are theirs alone and
+could never go on a public page. Everything under the rule is the same
+dealStands reading the owner's tab draws and the address serves.
+
+**AND THE COPIES WENT BACK INTO MORE**, which Young asked for in his own words:
+*"for space limitations, in the home page, you will have to delete the export
+button and keep it under the more button as it is designed today."* This
+REVERSES the 29 September decision that emptied that menu — Notes and Focus
+moved onto the page and the copies onto a Copies card, which left nothing in
+More, so it was switched off. The argument then was sound and is no longer:
+nothing else wanted that column in September, and the shared page wants it now.
+**Nothing was written for it**: portalMoreMenuHtml has sat there in full the
+whole time, same Export heading, same two rows, same wiring, with nobody
+calling it. This was turning something back on.
+
+**A JUDGEMENT I MADE AND THEN REVERSED, in the same hour.** The sheet drew its
+own journey and its own Lately, so their page had two of each. My first answer
+was to delete theirs and let the sheet carry both — which read well and lost
+something real: THEIR journey can say signing is under way on their link, and
+THEIR Lately carries the exact words that moved. f440's check caught the first
+loss by name ("Under way"). So theirs stay, and the sheet leaves both out on
+that surface alone. `standsHtml` takes `{journey:false, lately:false}` and
+nothing else can be switched off — the parties, whose move, the counts and the
+two lists ARE the page.
+
+That also made the rule's own label honest. It said *"The same page every party
+is reading"*, which stopped being true the moment one surface drew less of it.
+It says *"What every party can see"*.
+
+**AND ONE THING THE RULEBOOK CAUGHT.** The rule's label was
+`color:var(--color-accent-700)` — the raw accent ramp as text, which measures
+2.35:1 at night against AA's 4.5, and f238 sweeps every view file for exactly
+that. It is `--accent-ink-700`, the only accent token with a dark answer. The
+same fix went into the sheet's own eyebrow and the owner's line in index.html,
+which that sweep does not cover but the eye would have.
+
+Left red, pre-existing on main: portal-header-verbs-verify's "the Send is ON
+TOP OF THE REDLINE CARDS".
+
+Tests: where-we-are-verify 4e re-pointed and 4f added (the sheet is drawn under
+the rule); f439's More claim reversed in place — what it was really about,
+Notes and Focus being buttons rather than menu rows, is untouched.

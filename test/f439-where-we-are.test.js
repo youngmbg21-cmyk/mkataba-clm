@@ -76,12 +76,26 @@ describe('f439 — the tabs', () => {
 });
 
 describe('f439 — Notes and Focus are not hidden', () => {
-  test('both are buttons on the page, and the More menu is gone', () => {
+  /* ---- REVERSED IN PLACE 4 Oct 2026 (Young: "for space limitations, in the
+     home page, you will have to delete the export button and keep it under
+     the more button as it is designed today") ----
+     On 29 September Notes and Focus moved out of More onto the page and the
+     copies moved to a Copies card, which left the menu with nothing in it, so
+     it was switched off. The argument was sound and is no longer: nothing
+     else wanted that column in September, and the page every party reads
+     wants it now. More is back, carrying exactly what it always carried, and
+     it is how the owner's own contract room has done it all along.
+
+     WHAT THIS CHECK WAS REALLY ABOUT IS UNCHANGED and is the first two lines:
+     Notes and Focus are buttons on the page, not rows in a menu. */
+  test('Notes and Focus are buttons on the page, and the copies are in More', () => {
     const v = theirPage();
     assert.ok(v.$('.pw-id #pt-notes-door'), 'Notes beside the bell');
     assert.ok(v.$('.pw-id-row2 #pt-focus'), 'Focus beside the text size');
-    assert.equal(v.$('#pt-more'), null, 'nothing was left in More, so there is no More');
-    assert.ok(v.$('#pt-where-pane [data-pt-copy="pdf"]'), 'the PDF is on the Copies card');
+    assert.ok(v.$('#pt-more'), 'More is back, because there is something in it again');
+    assert.ok(v.$('#pt-menu #pt-pdf') || v.$('#pt-more-menu #pt-pdf'), 'the clean copy');
+    assert.equal(v.$('#pt-where-pane [data-pt-copy="pdf"]'), null,
+      'and it is not also a card on the page — one door onto one act');
   });
 });
 
