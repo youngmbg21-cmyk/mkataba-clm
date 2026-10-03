@@ -4600,7 +4600,14 @@ const ROOM_TABS=[
      commercial terms alone. The PHONE still draws `tab_key_terms` and its own
      one-column Key terms tab: it was left alone on purpose, and this is a
      desktop RENDERER, so nothing here reaches it. */
-  ['terms','tab_overview'],['docs','tab_document'],
+  ['terms','tab_overview'],
+  /* ---- WHERE WE ARE, SECOND (idea 15, built 4 Oct 2026) ----
+     The shared page the other parties read, drawn here too — one reading on
+     three surfaces, never three readings that happen to agree. It sits SECOND
+     and not first so that roomOpenOnTerms is untouched: a new draft still
+     lands on the Overview, and f170 still asks it of the same key. */
+  ['stands','tab_where_we_are'],
+  ['docs','tab_document'],
   ['sign','tab_signing'],
   ['oblig','tab_obligations',c=>{
     if(!c||!window.obligationTabState) return '';
@@ -4939,6 +4946,9 @@ function applyWsTabs(c){
     });
   };
   paint(_wsTab);
+  /* THE SHARED PAGE IS PAINTED ON ARRIVAL, never built with the room: what it
+     says moves every time a change is filed or answered. */
+  if(_wsTab==='stands') try{ paintStandsPane(c); }catch(_){}
   /* ---- THE DOCUMENT AND SIGNING TABS SHOW TWO COPIES OF ONE CONTRACT (Young
      ruled 25 Sep 2026) ---- one sheet pane, two builders: arriving on the
      other tab swaps the working copy for the signing copy, or back. A signed
@@ -10817,6 +10827,14 @@ function renderWorkspace(){
          press. -->
     <div data-ws-pane="oblig" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
       <div id="ws-obligations-pane" style="${CARD};align-self:start;max-width:var(--room-measure);width:100%;margin:0 auto"></div>
+    </div>
+
+    ${''/* WHERE WE ARE — the shared page, drawn from dealStands. A SLOT, not
+           markup: the reading moves whenever a change is filed or answered, so
+           it is painted by applyWsTabs on arrival rather than built once per
+           render (wire where you PAINT). */}
+    <div data-ws-pane="stands" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
+      <div id="ws-stands-pane" style="align-self:start;max-width:var(--room-measure);width:100%;margin:0 auto"></div>
     </div>
 
     <div data-ws-pane="history" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">

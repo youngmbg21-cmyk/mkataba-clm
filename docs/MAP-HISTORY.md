@@ -25081,3 +25081,73 @@ and suppressing the Copilot row per contract would make its count lie.
 
 Tests: f450 (new, 26 claims, 20 red at the parent), home-one-list-verify (new,
 19 checks driven in a browser), f395 1b re-pointed in place.
+
+## WHERE THE DEAL STANDS — THE OWNER'S OWN TAB (idea 15, part one, 4 October 2026)
+
+Young picked idea 15 after being shown five whole screens — what each side sees
+today, the shared page at its own link, and the same page on each side — and
+then said *"Build all your recommendations."*
+
+**THE RULE THE WHOLE IDEA STANDS ON is a subtraction.** Every other feature in
+this product adds something to a screen one side owns. This is a single page
+with no owner, read by people who are negotiating against each other. So a fact
+goes on it only if it can be shown to EVERY party; if it cannot be shown to one
+of them it is not on the page at all — not hidden for that reader, not greyed,
+not there. Anything else would need the page to know who is reading, and the
+whole value is that it does not.
+
+Each thing it rules out is a wall somewhere else that one careless line here
+would have walked through: the internal review the counterparty never learns
+happened; who on our side was asked to do what; any party's notes, walled into
+one named party's room eight hours earlier; money not put to every party;
+anything that reads as advice.
+
+**AND PEOPLE — including our own.** This is the subtraction that is not
+obvious. A change's author already travels to the counterparty, so naming them
+would have been defensible. But a third party that only signs has never been
+told who argues on our side, and this page is read by all of them at one
+address. So "Lately" says the SIDE and the act: *"Highland Corporate Ltd asked
+about 9. Liability Cap"*, never *"Elin accepted CHG-3"*. The browser stage
+seeds three names on purpose — an author, a reviewer and a word that appears
+nowhere else — and looks for each of them by name in what was painted.
+
+**NO SEAT WORD, which is the other half of the same rule.** "You" and "them"
+are the only words on a HaTi screen that mean different things to different
+readers. negWhoseMove answers in seats, so the reading turns the seat into a
+NAME before anything is drawn, and the stage greps the whole painted sheet for
+you/your/them/their/us/our and requires none.
+
+**READING MUST NOT WRITE, and here it is load-bearing.** negoChanges,
+negoProgress and negoRound all run negoInit, which CREATES a negotiation on a
+contract that has none — and this reading is asked for every contract with a
+status link, including imported signed paper that never negotiated. The server
+then freezes the wording it just invented, and every later save of that
+contract is refused. Everything reads the raw fields, and the stage proves it
+on a contract with no negotiation at all.
+
+**IT SPENDS NOTHING**, which is what lets the same page be served later to a
+stranger at a public address with no key, no budget and no wait. The stage
+counts every generative route while the tab is drawn and requires zero.
+
+**THE TAB WENT IN SECOND, not first,** so `roomOpenOnTerms` is untouched: a new
+draft still lands on the Overview and f170 still asks it of the same key. Three
+tests pinned the tab list by its exact shape and were re-pointed to what they
+were each really about — f148 to the six translated words, f184 to the ORDER
+the three original tabs stand in, f253 to Obligations sitting after Signing and
+before History. Each is now a relation rather than a list, so the next tab
+costs no edit.
+
+**ONE SELF-INFLICTED FAULT, and f232 caught it.** The pane was built with a
+`head` hook for the owner's own line about the link — who can see the page,
+copy the link, switch it off — and nothing fills it, because the link is part
+two. A hook nothing fills is a guard that is always false, which is the exact
+fault that check exists for. The hook came out; `opts.head` stays as the seam
+it will go through the day there is something true to put in it.
+
+**WHAT IS STILL TO COME** (part two): the public address itself, the `status`
+purpose on the send screen, the counterparty's page drawing the same sheet, and
+the export buttons moving off their landing page into More.
+
+Tests: f451 (new, 30 claims; the whole file is red at the parent, where
+js/dealstands.js does not exist), deal-stands-verify (new, 19 checks driven in
+a browser), f148 / f184 / f253 re-pointed in place.

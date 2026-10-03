@@ -78,7 +78,13 @@ describe('f253 (1) — a fifth tab, and one list behind it', () => {
     /* Array.from, because the stage is another realm and a foreign Array does
        not pass a strict deep-equal against one of ours. */
     const keys = Array.from(win.ROOM_TABS).map(t => t[0]);
-    assert.deepEqual(keys, ['terms', 'docs', 'sign', 'oblig', 'history'],
+    /* RE-POINTED IN PLACE 4 Oct 2026: Where we are joined the row second (idea
+       15, the one page every party reads). The claim here was never about the
+       length of the list — it is that Obligations sits AFTER Signing and
+       BEFORE History, which is the order a contract's life runs in. Asked as
+       that relation now, so the next tab costs no edit here. */
+    const ix = k => keys.indexOf(k);
+    assert.ok(ix('oblig') > ix('sign') && ix('oblig') < ix('history'),
       'the order a contract’s life runs in: what it says, who signs it, '
       + 'what it commits you to, then the record of all three');
   });

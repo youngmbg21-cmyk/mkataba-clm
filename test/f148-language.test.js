@@ -677,7 +677,7 @@ describe('f148 — the shared renderers follow the language in both shells', () 
       ['Draft', 'Under Review', 'Signed', 'Declined']);
   });
 
-  test('the room tab row — workspace view and phone (five tabs, both languages)', () => {
+  test('the room tab row — workspace view and phone (six tabs, both languages)', () => {
     /* REVERSED IN PLACE 29 Aug 2026: Obligations joined the row (J-2.1), after
        Signing and before History, which is the order a contract's life runs in.
        The claim is unchanged — every tab is translated and the row is read from
@@ -688,12 +688,17 @@ describe('f148 — the shared renderers follow the language in both shells', () 
        still 'terms' — the address the product routes on — and the phone still
        draws its own Key terms tab, which is why `tab_key_terms` is live in
        both books rather than stale. */
+    /* AND AGAIN 4 OCT 2026: Where we are joined the row, SECOND — the one
+       page every party to this deal reads, drawn here too. Second and not
+       first so roomOpenOnTerms is untouched and a new draft still lands on the
+       Overview. The claim is unchanged: every tab is translated and the row is
+       read from ONE list. */
     win.langSet('en', { repaint: false });
     assert.equal(strip(win.roomTabsHtml({}, 'docs')),
-      'Overview Document Signing Obligations History');
+      'Overview Where we are Document Signing Obligations History');
     win.langSet('sv', { repaint: false });
     assert.equal(strip(win.roomTabsHtml({}, 'docs')),
-      'Översikt Dokument Undertecknande Åtaganden Historik');
+      'Översikt Var vi är Dokument Undertecknande Åtaganden Historik');
     assert.ok(!strip(win.roomTabsHtml({}, 'docs')).includes('Förhandla'));
   });
 
