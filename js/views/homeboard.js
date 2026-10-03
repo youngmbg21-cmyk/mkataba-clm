@@ -387,11 +387,17 @@ function hbDigData(key, lens){
     const P = hbPanelData('fric', lens); const cl = P.clauses.find(x => x.label === a);
     return { key, kind: 'list', crumb: a, title: a, ids: cl ? cl.ids : [], n: cl ? cl.n : 0 };
   }
-  if (k === 'fd'){
-    const ids = hbPartyIds(a, lens);
-    const first = ids.length ? String((hbContract(ids[0]) || {}).counterparty || a) : a;
-    const name = ids.length && ids.every(id => String((hbContract(id) || {}).counterparty || '') === first) ? first : a;
-    return { key, kind: 'list', crumb: name, title: i18t('hb_found_party', { who: name }), ids, n: ids.length };
+  /* THE QUESTION ITSELF IS THE KEY: the map's reader is run again on every
+     paint, so the list is always today's (a refresh keeps the question, never
+     a stale list). 'fd:' is the day-old shape of the same door. */
+  if (k === 'q' || k === 'fd'){
+    if (typeof igConditions !== 'function') return null;
+    const cq = igConditions(a); if (!cq.length) return null;
+    const ids = igIdsWhere(cq, hbBook(lens));
+    const labels = cq.map(x => x.label);
+    const party = cq.length === 1 && cq[0].field === 'counterparty';
+    const title = party ? i18t('hb_found_party', { who: labels[0] }) : labels.join(' · ');
+    return { key, kind: 'list', crumb: labels.join(' · '), title, ids, n: ids.length };
   }
   /* THE LIST AN ANSWER CAME BACK WITH (Copilot's or the map's), drawn on the
      board so a question asked on the board always lands on the board */
@@ -503,7 +509,7 @@ const HB_RX = {
   renewWord: /renew|förny/i,
   bring:     /^(?:bring up|pull up|open|show me|look at|find|visa|öppna|ta fram|hitta)\s+(?:the\s+|avtalet\s+)?(?:contract\s+)?(.+?)\??$/i,
   fig: {
-    live:    /live contracts|\blive\b|levande avtal|aktiva avtal/i,
+    live:    /live contracts|\blive\b|how many (?:contracts|agreements)|number of (?:contracts|agreements)|levande avtal|aktiva avtal|hur många avtal/i,
     value:   /value under contract|total value|värde under avtal|totalt värde/i,
     ending:  /ending|end in 90|90 days|löper ut|90 dagar/i,
     past:    /past (their |the )?end|expired|efter slutdatum|utgångna|har löpt ut/i,
@@ -551,6 +557,24 @@ function hbParse(qRaw){
   if (HB_RX.map.test(s) && !HB_RX.showThese.test(s) && s.length < 40) return { act: 'face', face: 'explorer' };
   if (HB_RX.board.test(s) && s.length < 40) return { act: 'face', face: 'board' };
   if (HB_RX.present.test(s) && s.length < 40) return { act: 'present' };
+  /* WHICH CONTRACTS — THE MAP'S OWN READER (3 Oct 2026, the owner's review):
+     one reading for both screens. When the conditions are the whole of the
+     question, the board lists exactly those contracts; a single condition
+     that IS one of Your book's figures opens that figure's own door. */
+  if (typeof igConditions === 'function' && typeof igLeftover === 'function'){
+    const cq = igConditions(q);
+    if (cq.length && !igLeftover(q, cq)){
+      if (cq.length === 1){
+        const c0 = cq[0];
+        if (c0.field === 'expired') return { act: 'dig', key: 'f:past' };
+        if (c0.field === 'move' && c0.label === 'waiting on us') return { act: 'dig', key: 'f:us' };
+        if (c0.field === 'overdue') return { act: 'panel', kind: 'obl', lens: null };
+        if (c0.field === 'expiryWindow' && /\b90 (?:days|dagar)\b/.test(c0.hit || '')) return { act: 'dig', key: 'f:ending' };
+        if (c0.field === 'side') return { act: 'lens', lens: c0.fn({ metadata: { category: 'supplier' } }) ? 'suppliers' : 'customers' };
+      }
+      return { act: 'dig', key: 'q:' + q };
+    }
+  }
   const pastAsk = HB_RX.fig.past.test(s) && !HB_RX.renewWord.test(s);
   const kind = HB_RX.obl.test(s) ? 'obl' : HB_RX.fric.test(s) ? 'fric' : (HB_RX.ren.test(s) && !pastAsk) ? 'ren'
     : HB_RX.pay.test(s) ? 'pay' : HB_RX.exp.test(s) ? 'exp' : HB_RX.val.test(s) ? 'val' : null;
@@ -567,35 +591,7 @@ function hbParse(qRaw){
   if (cus && s.length < 40) return { act: 'lens', lens: 'customers' };
   const fig = HB_FIG_KEYS.find(f => HB_RX.fig[f].test(s));
   if (fig && s.length < 80) return { act: 'dig', key: 'f:' + fig };
-  /* a counterparty by name: "show me all Juno contracts", "contracts with Juno" */
-  const party = hbFindParty(q);
-  if (party) return { act: 'dig', key: 'fd:' + party };
   return null;
-}
-/* WHICH COUNTERPARTY A QUESTION NAMES, read off the book itself, never
-   guessed: a whole counterparty name in the words, else the first word of one
-   (≥ 3 letters, not an everyday word) standing alone in the question. The
-   answer is a lowercase term; the list is every contract whose counterparty
-   carries it as a whole word (hbPartyIds). */
-const HB_STOP = new Set(('show me all the our my your contracts contract agreements agreement deals deal with for and list find open what which who '
-  + 'are is that have has from live signed draft drafts review active expired ending overdue past due late value total suppliers customers '
-  + 'visa alla avtal med för och lista hitta öppna vilka som har från aktiva utgångna leverantörer kunder').split(/\s+/));
-const _hbWordRe = t => new RegExp('(^|[^\\p{L}\\p{N}])' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^\\p{L}\\p{N}])', 'iu');
-function hbFindParty(q){
-  const s = String(q || '').toLowerCase();
-  const parties = [...new Set(hbBook('all').map(c => String(c.counterparty || '').trim()).filter(Boolean))];
-  const whole = parties.filter(p => p.length >= 3 && _hbWordRe(p.toLowerCase()).test(s)).sort((a, b) => b.length - a.length);
-  if (whole.length) return whole[0].toLowerCase();
-  const words = new Set(s.split(/[^\p{L}\p{N}&'-]+/u).filter(w => w.length >= 3 && !HB_STOP.has(w)));
-  for (const p of parties){
-    const w = p.toLowerCase().split(/\s+/)[0].replace(/[^\p{L}\p{N}&'-]/gu, '');
-    if (w.length >= 3 && !HB_STOP.has(w) && words.has(w)) return w;
-  }
-  return null;
-}
-function hbPartyIds(term, lens){
-  const re = _hbWordRe(String(term || '').toLowerCase());
-  return hbBook(lens || 'all').filter(c => re.test(String(c.counterparty || ''))).map(c => c.id);
 }
 
 /* ============================================================
@@ -1097,7 +1093,10 @@ function hbLensOnMap(){
 function hbShowOnMap(ids, label){
   const list = String(ids || '').split(',').filter(Boolean);
   if (!list.length || !window.intel) return;
-  if (typeof addLens === 'function') addLens({ ids: list, label: label || i18tn('hb_n_contracts', list.length, { n: list.length }), action: 'highlight' });
+  /* NARROWED, not lit (the owner, 3 Oct 2026: "I asked for Juno contracts and
+     it shows me all these contracts"): the map shows these and nothing else;
+     the map's own "Show everything" brings the rest back. */
+  if (typeof addLens === 'function'){ intel.lenses = intel.lenses.filter(l => l.action !== 'filter' || l.hb); addLens({ ids: list, label: label || i18tn('hb_n_contracts', list.length, { n: list.length }), action: 'filter' }); }
   const s = hbS(); s.face = 'explorer'; hbSave();
   hbMount();
 }
@@ -1478,4 +1477,4 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbBoardHtml, hbWatchFormHtml, hbWatchFired, hbGiveFormHtml, hbPaintBoard, hbPaintHead, hbApplyScreen,
   hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
   hbAsk, hbFigSay, hbPanelSay, hbSuggestions, hbPlaceholder, hbWatchAlerts, hbGiftsFor, hbGiftsLoad, hbGive,
-  hbUngive, hbDropGift, hbToolsPaint, hbSetTool, hbInkClear, hbPresent, hbPlace, hbPlacePut, hbOnClick, hbOnSubmit, hbOnKey, hbHelloInner, hbFocusKey, hbFindParty, hbPartyIds, hbShowFound, HB_STOP });
+  hbUngive, hbDropGift, hbToolsPaint, hbSetTool, hbInkClear, hbPresent, hbPlace, hbPlacePut, hbOnClick, hbOnSubmit, hbOnKey, hbHelloInner, hbFocusKey, hbShowFound });
