@@ -888,8 +888,11 @@ function intelActive(){
    switched off, and otherwise changes nothing. */
 function addLens(l){
   const ids=[...(l.ids||[])], key=ids.slice().sort().join('|');
-  const same=intel.lenses.find(x=>x.action===(l.action||'filter') && x.label===(l.label||ids.length+' matches') && x.ids.slice().sort().join('|')===key);
-  if(same){ same.on=true; renderIntelDock(); return; }
+  /* the same cut asked for again, even with the other action, is ONE chip:
+     its action follows the latest ask (the owner saw the chip twice when
+     "Show these on the map" narrowed what Copilot had lit, 3 Oct 2026) */
+  const same=intel.lenses.find(x=>x.label===(l.label||ids.length+' matches') && x.ids.slice().sort().join('|')===key);
+  if(same){ same.on=true; same.action=l.action||'filter'; if(l.badges) same.badges=l.badges; renderIntelDock(); return; }
   intel.lenses.push({ id:'lens'+(intel.seq++), on:true, action:l.action||'filter',
     label:l.label||l.ids.length+' matches', ids:[...l.ids], badges:l.badges||null });
   renderIntelDock();
@@ -1239,10 +1242,19 @@ function igConditions(text){
   // stages
   IG_STATUS_WORDS.forEach(([st,ws])=>{ const w=ws.find(w=>t.includes(' '+w+' ')); if(w) add(igbStatusWord(st), c=>c.status===st, 'status', w); });
   // money
+  const inRange=/\b(?:between|mellan)\b/.test(t);
   const mv=t.match(/(?:^|\s)(over|above|more than|greater than|at least|bigger than|larger than|över|mer än|minst|större än)\s*(?:sek|kes|usd|eur|kr)?\s*([\d][\d.,]*)\s*(m|mn|million|millions|k|thousand|bn|billion|miljoner|miljon|mkr|tusen|miljarder)?\b/);
-  if(mv&&moneyOk){ const v=igMoneyOf(mv[2],mv[3]); if(v!=null) add(mv[1]+' '+mv[2]+(mv[3]?mv[3]:''), c=>{ const h=igHomeValue(c); return h!=null&&h>=v; }, 'valueAbove', mv[0]); }
+  if(mv&&moneyOk&&!inRange){ const v=igMoneyOf(mv[2],mv[3]); if(v!=null) add(mv[1]+' '+mv[2]+(mv[3]?mv[3]:''), c=>{ const h=igHomeValue(c); return h!=null&&h>=v; }, 'valueAbove', mv[0]); }
   const lv=t.match(/\b(under|below|less than|smaller than|under|mindre än)\s*(?:sek|kes|usd|eur|kr)?\s*([\d][\d.,]*)\s*(m|mn|million|millions|k|thousand|bn|billion|miljoner|miljon|mkr|tusen|miljarder)?\b/);
-  if(lv&&moneyOk&&!/\b(days?|dagar)\b/.test(t.slice(t.indexOf(lv[0])+lv[0].length, t.indexOf(lv[0])+lv[0].length+8))){ const v=igMoneyOf(lv[2],lv[3]); if(v!=null) add(lv[1]+' '+lv[2]+(lv[3]?lv[3]:''), c=>{ const h=igHomeValue(c); return h!=null&&h<v; }, 'valueBelow', lv[0]); }
+  if(lv&&moneyOk&&!inRange&&!/\b(days?|dagar)\b/.test(t.slice(t.indexOf(lv[0])+lv[0].length, t.indexOf(lv[0])+lv[0].length+8))){ const v=igMoneyOf(lv[2],lv[3]); if(v!=null) add(lv[1]+' '+lv[2]+(lv[3]?lv[3]:''), c=>{ const h=igHomeValue(c); return h!=null&&h<v; }, 'valueBelow', lv[0]); }
+  // a range: "between 2 million and 80 million", "from 2M to 80M", "2M–80M"
+  const U='(m|mn|million|millions|k|thousand|bn|billion|miljoner|miljon|mkr|tusen|miljarder)';
+  const bt=t.match(new RegExp('\\b(?:between|from|mellan|från)\\s*(?:sek|kes|usd|eur|kr)?\\s*([\\d][\\d.,]*)\\s*'+U+'?\\s*(?:and|to|och|till|-|–)\\s*(?:sek|kes|usd|eur|kr)?\\s*([\\d][\\d.,]*)\\s*'+U+'?(?![\\p{L}\\p{N}])','u'))
+    ||t.match(new RegExp('(?:^|\\s)([\\d][\\d.,]*)\\s*'+U+'?\\s*[-–]\\s*([\\d][\\d.,]*)\\s*'+U+'(?![\\p{L}\\p{N}])','u'));
+  if(bt&&moneyOk&&!/^\s*(?:days?|dagar)\b/.test(t.slice(t.indexOf(bt[0])+bt[0].length))){
+    const u2=bt[4]||bt[2]||'', u1=bt[2]||u2; const lo=igMoneyOf(bt[1],u1), hi=igMoneyOf(bt[3],u2);
+    if(lo!=null&&hi!=null&&hi>=lo){ const short=u=>/^(m|mn|million|millions|miljon|miljoner|mkr)$/.test(u)?'M':/^(k|thousand|tusen)$/.test(u)?'K':/^(bn|b|billion|miljard|miljarder)$/.test(u)?'B':'';
+      add('between '+bt[1]+short(u1)+' and '+bt[3]+short(u2), c=>{ const h=igHomeValue(c); return h!=null&&h>=lo&&h<=hi; }, 'valueBetween', bt[0]); } }
   { const h=hit(/ (?:no money|non-monetary|without value|utan värde) /); if(h) add('non-monetary', c=>igHomeValue(c)==null, 'money', h); }
   // renewal / expiry windows — HOME'S OWN READING of an ending: a live
   // agreement (not closed, not archived, not an amendment) whose effective
@@ -1310,7 +1322,7 @@ function igConditions(text){
 /* What a question still says once every condition's own words and the
    everyday filler are taken out: '' when the conditions were the whole of
    it, else the words left — which are somebody else's to answer. */
-const IG_FILLER=/\b(?:show|shows|showing|me|us|all|the|a|an|our|my|your|their|its|contracts?|agreements?|deals?|ones?|obligations?|åtaganden?|list|find|give|get|see|please|which|what|who|that|those|these|have|has|had|are|is|were|was|be|in|of|with|for|and|or|to|do|does|did|we|any|every|from|just|only|now|still|currently|there|here|how|many|number|count|visa|alla|avtal|avtalen|vilka|vad|som|har|är|med|för|och|eller|mig|oss|bara|endast|hur|många|antal|lista|hitta)\b/g;
+const IG_FILLER=/\b(?:show|shows|showing|me|us|all|the|a|an|our|my|your|their|its|contracts?|agreements?|deals?|ones?|obligations?|åtaganden?|value|valued|worth|värde|värda|list|find|give|get|see|please|which|what|who|that|those|these|have|has|had|are|is|were|was|be|in|of|with|for|and|or|to|do|does|did|we|any|every|from|just|only|now|still|currently|there|here|how|many|number|count|visa|alla|avtal|avtalen|vilka|vad|som|har|är|med|för|och|eller|mig|oss|bara|endast|hur|många|antal|lista|hitta)\b/g;
 function igLeftover(text, conds){
   let t=' '+_igNorm(text)+' ';
   (conds||[]).forEach(x=>{ const h=' '+_igNorm(x.hit||'')+' '; if(h.trim()) t=t.split(h).join(' '); });
@@ -1806,7 +1818,12 @@ function intelGraphApply(q, res, opts){
   if(opts.capped&&opts.capped.total>opts.capped.sent) parts.push(i18t('int_did_capped',{ n:opts.capped.sent, t:opts.capped.total }));
   roleSaid.forEach(x=>parts.push(x.replace(/\.$/,'')));
   let line=parts.map(igEsc).join(' · ');
-  const own=String(res.answer||'').trim();
+  /* THE COUNT IS HATI'S, NEVER THE MODEL'S (the owner's screenshot, 3 Oct
+     2026: the board showed 35 and the sentence said "16 contracts"): a
+     sentence that states a different number of contracts is not printed. */
+  const own0=String(res.answer||'').trim();
+  const saidN=own0.match(/\b(\d[\d,.\s]*)\s+(?:matching\s+|live\s+|such\s+)?(?:contracts?|agreements?|avtal)\b/i);
+  const own=(saidN&&ids&&Number(String(saidN[1]).replace(/[^\d]/g,''))!==ids.length)?'':own0;
   /* ---- COPILOT'S OWN SENTENCE IS FORMATTED, NOT PRINTED RAW (Young, 28 Sep
      2026: Explorer's answers showed "**" round bold words and ran a list into
      one line, where the side panel drew the same answer properly) ----

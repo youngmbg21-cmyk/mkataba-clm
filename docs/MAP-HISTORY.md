@@ -24835,3 +24835,31 @@ on the board — the map's own follow-up rule, left as it is.
 AFTER: every one of the 35 lands on both screens with the same count.
 Checks: f447 (3) "both screens" cases (red at 5d8d1a6), f427 (2) unchanged
 but for the single-party label, home-board-verify 11a–11a4.
+
+## HOME — CHART FIRST, ALWAYS (3 Oct 2026, evening)
+
+Young, off a screenshot of a list answer: *"For such a prompt, and most
+prompts where possible, since this is a dashboard, the output should be in
+chart format and then you can get an option to make it a list ... The charts
+should be quality enough for executive review which you can expand and present
+in a meeting."* Chosen on my advice: chart first for every list (one rule),
+value on the bars where the reader may see values, else count.
+WHAT WAS BUILT: `hbChartHtml` draws every list answer — the question's own
+shape picks the chart (a money question: the contracts by value, or value
+bands over a big set; a date question: columns by month, or by year past
+eighteen months; otherwise bars by the first of stage, stream, counterparty,
+type the question did not already fix). The lead line is the count and the
+total; every bar and column is a button one step deeper (`qg:` a group, `qm:`
+a month, `qv:` a band; the parent key rides whole, `HB_KEY_SEP`), so the trail
+reads Board › Juno › Executed. Chart | List on the card, remembered per card
+(`s.digView`); the expand button (`s.digBig`) grows rows, type and columns
+for a room; the chart is HTML, so a keyboard reads it and Present scales it.
+THE THREE ITEMS FROM THE SAME SCREENSHOT: the model wrote "16 contracts"
+where HaTi showed 35 — `intelGraphApply` drops a sentence that states a
+different count (the prompt says so too); the same cut appeared as two chips
+(Copilot's highlight, then "Show these on the map" as a filter) — `addLens`
+keeps one chip and lets its action follow the latest ask; a value range in
+words went to Copilot — `igConditions` reads "between 2 million and 80
+million", "from 2M to 80M", "2M–80M" as `valueBetween`, free.
+Checks: f447 (3) chart-first, bands, ranges, one chip, HaTi's count;
+home-board-verify 13a–13g.
