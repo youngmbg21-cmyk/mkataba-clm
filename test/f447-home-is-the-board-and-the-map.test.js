@@ -217,7 +217,7 @@ describe('F447 (3) — the reader, without a model', () => {
   });
   /* CHART FIRST (Young, 3 Oct 2026 evening: "the output should be in chart
      format and then you can get an option to make it a list") */
-  test('a list answer is a chart first; the switch shows the rows; the choice is remembered per card', () => {
+  test('a list answer is a chart first; the List picture shows the rows; the choice is remembered per card', () => {
     const w = both();
     const key = 'q:Show me all Siginon contracts';
     const D = w.hbDigData(key, 'all');
@@ -225,9 +225,10 @@ describe('F447 (3) — the reader, without a model', () => {
     assert.match(html, /hb-chart-lead/, 'the chart leads');
     assert.doesNotMatch(html, /class="hb-rows"/, 'no rows at first');
     assert.match(html, /data-hb-map=/, 'Show these on the map stays under the chart');
-    w.hbS().digView[key] = 'list';
+    w.hbRecipeSet(key, 'pic', 'list');
     const html2 = w.hbDigBodyHtml(D, 'all');
-    assert.match(html2, /class="hb-rows"/, 'the switch shows the rows');
+    assert.match(html2, /class="hb-rows"/, 'the List picture shows the rows');
+    assert.equal(w.hbS().recipe[key].pic, 'list', 'kept per card');
     assert.doesNotMatch(html2, /hb-chart-lead/);
   });
   test('the question\'s shape picks the chart: groups by stage, months for a date, value bars or bands for money', () => {
@@ -241,13 +242,13 @@ describe('F447 (3) — the reader, without a model', () => {
     assert.match(html, /data-hb-dig="qg:q:contracts with Sendy\u00a7status\u00a7Signed"/, 'a bar is a door one step deeper');
     const big = w.state.contracts.concat(Array.from({ length: 20 }, (_, i) => ({ id: 'MK-B' + i, name: 'b' + i, counterparty: 'Siginon', status: 'Signed', value: (i + 1) * 1e6, audit: [] })));
     w.state.contracts = big;
-    const bands = w.hbChartHtml({ key: 'q:x', chart: { mode: 'values' } }, big.filter(c => /^MK-B/.test(c.id)), 'bars');
-    assert.match(bands, /data-hb-dig="qv:/, 'a big money set on the Bars switch is bands, each a door');
+    const bands = w.hbChartHtml({ key: 'q:x', chart: { pic: 'bars', split: { by: 'valueBand' } } }, big.filter(c => /^MK-B/.test(c.id)));
+    assert.match(bands, /data-hb-dig="qv:/, 'a big money set split by value is bands, each a door');
     assert.ok((bands.match(/class="hb-cbar"/g) || []).length <= 8, 'at most eight bands');
   });
   /* THE CHART FAMILY (Young picked the recommendation, 4 Oct 2026: "the
      charts seem to only be in bar charts which can be very boring") */
-  test('the family: a plain question is the Ring, money the Blocks, a date the Timeline, attention the Bubbles; Bars stays on the switch', () => {
+  test('the family: a plain question is the Ring, money the Blocks, a date the Timeline, attention the Bubbles; Bars is a picture on the menu', () => {
     const w = both();
     const cs = w.state.contracts.slice();
     const ring = w.hbChartHtml({ key: 'q:a', chart: { mode: 'groups', by: 'status' }, fixed: [] }, cs, 'chart');
@@ -266,9 +267,10 @@ describe('F447 (3) — the reader, without a model', () => {
     const bub = w.hbChartHtml({ key: 'q:d', chart: { mode: 'attention' }, fixed: [] }, cs, 'chart');
     assert.match(bub, /class="hb-svg hb-bub"/);
     assert.match(bub, /<circle [^>]*\/>/); assert.match(bub, /data-hb-dig="c:MK-/);
-    const bars = w.hbChartHtml({ key: 'q:a', chart: { mode: 'groups', by: 'status' }, fixed: [] }, cs, 'bars');
-    assert.match(bars, /class="hb-cbar"/, 'Bars is the old chart, on the switch'); assert.doesNotMatch(bars, /hb-svg/);
-    assert.match(w.hbDigViewHtml('q:a'), /data-hb-digview="bars"/, 'the switch has three positions');
+    const bars = w.hbChartHtml({ key: 'q:a', chart: { pic: 'bars', split: { by: 'status' } }, fixed: [] }, cs);
+    assert.match(bars, /class="hb-cbar"/, 'Bars is the HTML bar chart'); assert.doesNotMatch(bars, /hb-svg/);
+    const D = { key: 'q:a', kind: 'list', crumb: 'a', chart: { mode: 'groups', by: 'status' }, fixed: [] };
+    assert.match(w.hbRecipeRowHtml(D, w.hbPlan(D)), /data-hb-rc="pic"/, 'the Picture dropdown is on the card');
     /* money hidden: Blocks and Bubbles cannot be drawn, the Ring stands in */
     w.canViewValues = () => false;
     assert.match(w.hbChartHtml({ key: 'q:b', chart: { mode: 'values' }, fixed: [] }, cs, 'chart'), /hb-ring/);

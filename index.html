@@ -7916,6 +7916,36 @@
   @keyframes hbIn{from{opacity:0}}
   .hb-dig.is-big .hb-svg{max-height:72vh}
   .hb-dig-big #ig-dock,.hb-dig-big #ig-resizer{display:none}
+  /* THE RECIPE ROW: four dropdowns and the trend switch under the card's title */
+  .hb-recipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid rgba(var(--hb-ln),.12)}
+  .hb-rwrap{position:relative;display:inline-flex}
+  .hb-rc{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 8px 0 9px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:var(--hb-fig);color:var(--hb-ink);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
+  .hb-rc i{font-style:normal;font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--hb-mute)}
+  .hb-rc.is-open{border-color:var(--hb-glow);box-shadow:0 0 0 1px var(--hb-glow) inset}
+  .hb-rc.is-still{cursor:default}
+  .hb-rc:focus-visible,.hb-tg:focus-visible,.hb-rmenu button:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px}
+  .hb-rmenu{position:absolute;top:calc(100% + 4px);left:0;z-index:20;min-width:260px;max-height:360px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid rgba(var(--hb-ln),.35);background:var(--hb-card);backdrop-filter:blur(var(--hb-blur));box-shadow:0 18px 40px -12px rgba(0,0,0,.6)}
+  .hb-rmenu button{display:flex;align-items:center;gap:10px;width:100%;padding:7px 9px;border:0;border-radius:var(--radius);background:none;color:var(--hb-ink);font:inherit;font-size:var(--t-body);text-align:left;cursor:pointer}
+  .hb-rmenu button:hover:not(:disabled){background:rgba(var(--hb-ln),.1)}
+  .hb-rmenu button[aria-checked="true"]{background:rgba(var(--hb-ln),.14)}
+  .hb-rmenu button b{margin-left:auto;color:var(--hb-glow);font-weight:var(--w-strong)}
+  .hb-rmenu button:disabled{color:var(--hb-mute);cursor:default}
+  .hb-rmenu button small{margin-left:auto;font-size:var(--t-micro);color:var(--hb-mute);white-space:nowrap}
+  .hb-tg{display:inline-flex;align-items:center;gap:7px;height:var(--ctl-h);padding:0 9px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:none;color:var(--hb-ink-2);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer}
+  .hb-tg:disabled{opacity:.55;cursor:default}
+  .hb-tg-sl{position:relative;width:24px;height:14px;border-radius:7px;background:rgba(var(--hb-ln),.25)}
+  .hb-tg-sl::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--hb-ink-2);transition:left .15s}
+  .hb-tg.is-on{color:var(--hb-ink);border-color:var(--hb-glow)} .hb-tg.is-on .hb-tg-sl{background:var(--hb-glow)} .hb-tg.is-on .hb-tg-sl::after{left:12px;background:var(--hb-on-glow)}
+  .hb-tr-say{margin:0 0 6px;font-size:var(--t-section);font-weight:var(--w-label);color:var(--hb-ink)}
+  .hb-sv-col{fill:var(--hb-glow)} .hb-sv-colpast{fill:rgba(var(--hb-ln),.42)} .hb-sv-coledge{fill:rgba(var(--hb-ln),.3)} .hb-sv-colq{fill:rgba(var(--hb-ln),.22)}
+  .hb-sv-colhollow{fill:none;stroke:var(--hb-mute);stroke-width:1.5;stroke-dasharray:3 3}
+  /* a column's press area lights softly; the box itself is never outlined */
+  .hb-svg .hb-sv-cbox:hover>rect,.hb-svg .hb-sv-cbox:focus-visible>rect{stroke:none;fill:rgba(var(--hb-ln),.06)}
+  .hb-svg .hb-sv-cbox:hover>path,.hb-svg .hb-sv-cbox:focus-visible>path{stroke:var(--hb-ink);stroke-width:1.5}
+  .hb-sv-trend{stroke:var(--hb-glow);fill:none} .hb-sv-trend-dot{fill:var(--hb-glow);stroke:var(--hb-fig);stroke-width:2}
+  .hb-snap-empty{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:18px;color:var(--hb-ink-2);font-size:var(--t-body);max-width:60ch}
+  .hb-snap-empty p{margin:0}
+  .hb-snap-instead{margin:-4px 0 var(--s-3)}
   .hb-dig.is-big .hb-cbar{height:52px;grid-template-columns:minmax(0,340px) minmax(0,1fr) minmax(120px,auto)}
   .hb-dig.is-big .hb-cbar-t,.hb-dig.is-big .hb-cbar-n,.hb-dig.is-big .hb-ccol-n,.hb-dig.is-big .hb-ccol-l{font-size:var(--t-section)}
   .hb-dig.is-big .hb-cbar-s,.hb-dig.is-big .hb-ccol-v{font-size:var(--t-meta)}

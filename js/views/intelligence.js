@@ -1620,7 +1620,7 @@ async function intelAsk(qRaw){
      came back from Copilot or the map is drawn on the board as well. */
   if(state.view==='dashboard' && typeof window.hbShowFound==='function'){
     const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&Array.isArray(x.listIds)&&x.listIds.length);
-    if(m){ try{ hbShowFound(m.listIds, m.listTitle||''); }catch(_){} }
+    if(m){ try{ hbShowFound(m.listIds, m.listTitle||'', m.listChart||null); }catch(_){} }
   }
 }
 
@@ -1835,7 +1835,7 @@ function intelGraphApply(q, res, opts){
   const ownHtml=own?(rich?aiRichText(own):igEsc(own)):'';
   if(!line) line=own?ownHtml:igEsc(res.note||'Done.');
   else if(graphSaysMore(own,res.note,parts[0])) line+=(rich?'':'<br>')+ownHtml;
-  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:res.note?String(res.note):null, choices:choices&&choices.length?choices:null });
+  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:res.note?String(res.note):null, listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
 
