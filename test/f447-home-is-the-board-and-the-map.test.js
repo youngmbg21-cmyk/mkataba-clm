@@ -241,9 +241,58 @@ describe('F447 (3) — the reader, without a model', () => {
     assert.match(html, /data-hb-dig="qg:q:contracts with Sendy\u00a7status\u00a7Signed"/, 'a bar is a door one step deeper');
     const big = w.state.contracts.concat(Array.from({ length: 20 }, (_, i) => ({ id: 'MK-B' + i, name: 'b' + i, counterparty: 'Siginon', status: 'Signed', value: (i + 1) * 1e6, audit: [] })));
     w.state.contracts = big;
-    const bands = w.hbChartHtml({ key: 'q:x', chart: { mode: 'values' } }, big.filter(c => /^MK-B/.test(c.id)));
-    assert.match(bands, /data-hb-dig="qv:/, 'a big money set is bands, each a door');
+    const bands = w.hbChartHtml({ key: 'q:x', chart: { mode: 'values' } }, big.filter(c => /^MK-B/.test(c.id)), 'bars');
+    assert.match(bands, /data-hb-dig="qv:/, 'a big money set on the Bars switch is bands, each a door');
     assert.ok((bands.match(/class="hb-cbar"/g) || []).length <= 8, 'at most eight bands');
+  });
+  /* THE CHART FAMILY (Young picked the recommendation, 4 Oct 2026: "the
+     charts seem to only be in bar charts which can be very boring") */
+  test('the family: a plain question is the Ring, money the Blocks, a date the Timeline, attention the Bubbles; Bars stays on the switch', () => {
+    const w = both();
+    const cs = w.state.contracts.slice();
+    const ring = w.hbChartHtml({ key: 'q:a', chart: { mode: 'groups', by: 'status' }, fixed: [] }, cs, 'chart');
+    assert.match(ring, /class="hb-svg hb-ring"/); assert.match(ring, /<path /);
+    assert.match(ring, /data-hb-dig="qg:q:a§status§Signed" tabindex="0" role="button"/, 'a slice is a door a keyboard reaches');
+    assert.match(ring, /<title>/, 'every piece says what it is on hover');
+    const blocks = w.hbChartHtml({ key: 'q:b', chart: { mode: 'values' }, fixed: [] }, cs, 'chart');
+    assert.match(blocks, /class="hb-svg hb-blocks"/);
+    assert.match(blocks, /data-hb-dig="c:MK-1"/, 'a tile is the contract');
+    assert.match(blocks, /data-hb-dig="qg:q:b§status§/, 'a block is the group');
+    const tl = w.hbChartHtml({ key: 'q:c', chart: { mode: 'months' }, fixed: [] }, cs, 'chart');
+    assert.match(tl, /class="hb-svg hb-tl"/);
+    assert.match(tl, /data-hb-dig="c:MK-/, 'a pill is the contract');
+    assert.match(tl, /data-hb-dig="qm:q:c§m§\d{4}-\d{2}"/, 'a month with an ending is a door');
+    assert.match(tl, /hb-sv-today/, 'today is marked');
+    const bub = w.hbChartHtml({ key: 'q:d', chart: { mode: 'attention' }, fixed: [] }, cs, 'chart');
+    assert.match(bub, /class="hb-svg hb-bub"/);
+    assert.match(bub, /<circle [^>]*\/>/); assert.match(bub, /data-hb-dig="c:MK-/);
+    const bars = w.hbChartHtml({ key: 'q:a', chart: { mode: 'groups', by: 'status' }, fixed: [] }, cs, 'bars');
+    assert.match(bars, /class="hb-cbar"/, 'Bars is the old chart, on the switch'); assert.doesNotMatch(bars, /hb-svg/);
+    assert.match(w.hbDigViewHtml('q:a'), /data-hb-digview="bars"/, 'the switch has three positions');
+    /* money hidden: Blocks and Bubbles cannot be drawn, the Ring stands in */
+    w.canViewValues = () => false;
+    assert.match(w.hbChartHtml({ key: 'q:b', chart: { mode: 'values' }, fixed: [] }, cs, 'chart'), /hb-ring/);
+    assert.match(w.hbChartHtml({ key: 'q:d', chart: { mode: 'attention' }, fixed: [] }, cs, 'chart'), /hb-ring/);
+    delete w.canViewValues;
+  });
+  test('the attention question: a condition about what needs a look picks the Bubbles', () => {
+    const w = both();
+    const by = q => (w.hbDigData('q:' + q, 'all').chart || {}).mode;
+    assert.equal(by('Siginon contracts waiting on us'), 'attention');
+    assert.equal(by('contracts where nobody owns them'), 'attention');
+    assert.equal(by('contracts with Sendy'), 'groups');
+  });
+  test('Enter on a focused piece digs, as a press would', () => {
+    const w = both();
+    const key = 'q:Show me all Siginon contracts';
+    w.hbS().path = [key]; w.hbS().panels = []; w.hbSave();
+    const doc = w.document;
+    doc.body.innerHTML = `<div id="hb-focus"><div class="hb-dig">${w.hbDigBodyHtml(w.hbDigData(key, 'all'), 'all')}</div></div>`;
+    const piece = doc.querySelector('.hb-svg [data-hb-dig^="qg:"]');
+    assert.ok(piece, 'a slice to press');
+    w.state.view = 'dashboard';
+    piece.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    assert.match(String((w.hbS().path || []).slice(-1)[0]), /^qg:/, 'the trail went one step deeper');
   });
   test('round bands: a step of 1, 2, 2.5 or 5 times a power of ten', () => {
     const w = both();

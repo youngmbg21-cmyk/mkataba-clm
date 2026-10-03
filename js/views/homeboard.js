@@ -110,7 +110,7 @@ function hbS(){
       .map(x => ({ name: String(x.name).slice(0, 60), kinds: x.kinds.filter(k => HB_KINDS[k]), lens: HB_LENSES.includes(x.lens) ? x.lens : 'all' }));
     s.seq = Number(v.seq) || s.panels.length;
     if (v.found && Array.isArray(v.found.ids)) s.found = { title: String(v.found.title || '').slice(0, 120), ids: v.found.ids.filter(x => typeof x === 'string').slice(0, 2000) };
-    if (v.digView && typeof v.digView === 'object') s.digView = Object.fromEntries(Object.entries(v.digView).filter(([k, m]) => typeof k === 'string' && (m === 'chart' || m === 'list')).slice(-30));
+    if (v.digView && typeof v.digView === 'object') s.digView = Object.fromEntries(Object.entries(v.digView).filter(([k, m]) => typeof k === 'string' && HB_CHART_VIEWS.includes(m)).slice(-30));
     s.digBig = !!v.digBig;
   }
   _hbS = s; _hbSUid = uid;
@@ -421,11 +421,11 @@ function hbDigData(key, lens){
     const labels = cq.map(x => x.label);
     const party = cq.length === 1 && cq[0].field === 'counterparty';
     const title = party ? i18t('hb_found_party', { who: labels[0] }) : labels.join(' · ');
-    /* the chart the question's shape asks for: a money question → the
-       contracts by value; a date question → the months; else the groups the
-       question did not already fix */
+    /* the chart the question's shape asks for: an attention question → the
+       bubbles; a money question → the blocks; a date question → the timeline;
+       else the ring over the groups the question did not already fix */
     const fields = cq.map(x => x.field);
-    const chart = fields.some(f => /^value/.test(f)) ? { mode: 'values' } : fields.some(f => /Window$|^expired$/.test(f)) ? { mode: 'months' } : { mode: 'groups', by: hbNextGroup(fields) };
+    const chart = fields.some(f => HB_ATTENTION_RE.test(f)) ? { mode: 'attention' } : fields.some(f => /^value/.test(f)) ? { mode: 'values' } : fields.some(f => /Window$|^expired$/.test(f)) ? { mode: 'months' } : { mode: 'groups', by: hbNextGroup(fields) };
     return { key, kind: 'list', crumb: labels.join(' · '), title, ids, n: ids.length, fixed: fields, chart };
   }
   /* THE LIST AN ANSWER CAME BACK WITH (Copilot's or the map's), drawn on the
@@ -848,14 +848,175 @@ function hbChartColsHtml(cols, money){
       <span class="hb-ccol-n">${c.n ? _hbN(c.n) : ''}</span><span class="hb-ccol-tr"><span class="hb-ccol-f" style="height:${pct.toFixed(1)}%"></span></span>
       <span class="hb-ccol-l">${_hbE(c.label)}</span><span class="hb-ccol-v">${money && c.n ? _hbE(_hbM(c.v)) : ''}</span></button>`; }).join('')}</div>`;
 }
-function hbChartHtml(D, cs){
-  const money = hbMoneyOk();
-  const plan = D.chart || { mode: 'groups', by: 'status' };
-  const mode = (plan.mode === 'values' && !money) ? 'groups' : plan.mode;
-  const total = money ? cs.reduce((a, c) => a + hbValueOfOne(c), 0) : null;
+/* ---------------- THE CHART FAMILY (Young picked the recommendation, 4 Oct 2026)
+   "the charts seem to only be in bar charts which can be very boring." The
+   question's shape picks the chart: a plain question the RING, a money
+   question the BLOCKS, a date question the TIMELINE, an attention question
+   the BUBBLES; Bars stays on the card's switch (Chart | Bars | List). Every
+   piece is a door one step deeper; the drawing is SVG, so it scales to the
+   room in Present and a keyboard walks it (Enter on a focused piece digs). */
+const HB_CHART_VIEWS = ['chart', 'bars', 'list'];
+const HB_RING_MAX = 7, HB_BLOCK_GROUPS = 6, HB_BLOCK_TILES = 9, HB_TL_MONTHS = 30, HB_TL_ROWS = 48, HB_TL_PACK = 24, HB_TL_SHORT = 2, HB_BUB_MAX = 150;
+const HB_ATTENTION_RE = /^(move|owner|overdue|not read yet|off standard|liability)/;
+const HB_HUES = ['#38CDB8', '#86B8EA', '#E0CB8F', '#C9A0E8', '#F0A58F', '#8FD39A', '#E8B4C8', '#9FB3C8'];
+const HB_TILE_INK = '#021011';
+function hbHueOf(field, g, i){ return (field === 'status' && typeof hmStageTone === 'function') ? hmStageTone(g) : HB_HUES[i % HB_HUES.length]; }
+function hbStartOf(c){
+  const d = c.effectiveDate || (c.fields && c.fields.effDate) || ((typeof contractSignedAt === 'function') ? contractSignedAt(c) : c.signedAt) || c.createdAt || null;
+  const s = d ? String(d).slice(0, 10) : '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
+function hbObOpen(c){ return (Array.isArray(c.obligations) ? c.obligations : []).filter(o => o && ((typeof obState === 'function') ? obState(o) : (o.status || 'open')) !== 'done').length; }
+function hbDaysTo(iso){ const t = new Date(hbToday() + 'T00:00:00'), d = new Date(iso + 'T00:00:00'); return Math.round((d - t) / 864e5); }
+function hbGroupsOf(cs, field, money){
+  const groups = {}; cs.forEach(c => { const g = hbGroupOf(c, field); (groups[g] || (groups[g] = [])).push(c); });
+  const rows = Object.keys(groups).map(g => { const list = groups[g]; const v = list.reduce((a, c) => a + hbValueOfOne(c), 0); return { g, label: hbGroupLabel(field, g), list, n: list.length, v }; });
+  if (field === 'status') rows.sort((a, b) => HB_STATUS_ORDER.indexOf(a.g) - HB_STATUS_ORDER.indexOf(b.g));
+  else rows.sort((a, b) => (money ? b.v - a.v : b.n - a.n) || a.label.localeCompare(b.label));
+  return rows;
+}
+function _hbSvgDoor(dig, title){ return `${dig ? `data-hb-dig="${_hbE(dig)}" tabindex="0" role="button"` : ''}><title>${_hbE(title)}</title`; }
+function hbRingSvg(D, cs, field, money){
+  const sayOf = (n, v) => money ? _hbM(v) + ' · ' + _hbN(n) : _hbN(n);
+  let rows = hbGroupsOf(cs, field, money);
+  if (rows.length > HB_RING_MAX){ const rest = rows.slice(HB_RING_MAX - 1); rows = rows.slice(0, HB_RING_MAX - 1).concat([{ g: null, label: i18t('hb_chart_more_groups', { n: _hbN(rest.length) }), list: rest.flatMap(r => r.list), n: rest.reduce((a, r) => a + r.n, 0), v: rest.reduce((a, r) => a + r.v, 0), rest: true }]); }
+  const whole = rows.reduce((a, r) => a + (money ? r.v : r.n), 0) || 1;
+  const rowH = 38, H = Math.max(300, 40 + rows.length * rowH + 16), W = 1000, R = 118, r = 84, cx = 150, cy = H / 2;
+  let a0 = -Math.PI / 2, slices = '', legend = '';
+  rows.forEach((g, i) => {
+    const share = (money ? g.v : g.n) / whole; const a1 = a0 + share * Math.PI * 2; const big = (a1 - a0) > Math.PI ? 1 : 0;
+    const p = (ang, rad) => [cx + rad * Math.cos(ang), cy + rad * Math.sin(ang)];
+    const gap = share < 0.999 ? 0.012 : 0; const g0 = a0 + gap, g1 = a1 - gap;
+    const [x0, y0] = p(g0, R), [x1, y1] = p(g1, R), [x2, y2] = p(g1, r), [x3, y3] = p(g0, r);
+    const hue = g.rest ? 'rgba(var(--hb-ln),.3)' : hbHueOf(field, g.g, i);
+    const title = g.label + ': ' + sayOf(g.n, g.v) + ' · ' + Math.round(share * 100) + '%';
+    const dig = g.rest ? '' : 'qg:' + D.key + HB_KEY_SEP + field + HB_KEY_SEP + g.g;
+    const d = share >= 0.999 ? `M${cx},${cy - R} A${R},${R} 0 1 1 ${cx - 0.01},${cy - R} L${cx - 0.01},${cy - r} A${r},${r} 0 1 0 ${cx},${cy - r} Z`
+      : `M${x0.toFixed(1)},${y0.toFixed(1)} A${R},${R} 0 ${big} 1 ${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${r},${r} 0 ${big} 0 ${x3.toFixed(1)},${y3.toFixed(1)} Z`;
+    slices += `<g class="hb-sv-slice hb-in" style="animation-delay:${i * 40}ms" ${_hbSvgDoor(dig, title)}><path d="${d}" style="fill:${hue}"/></g>`;
+    const y = 40 + i * rowH;
+    legend += `<g class="hb-sv-row hb-in" style="animation-delay:${i * 40}ms" transform="translate(360,${y})" ${_hbSvgDoor(dig, title)}>
+      <rect x="-8" y="-4" width="636" height="${rowH}" fill="transparent"/><rect x="0" y="2" width="10" height="10" rx="2" style="fill:${hue}"/>
+      <text x="20" y="12" font-size="14" font-weight="600" class="hb-sv-ink">${_hbE(g.label)}</text>
+      <text x="20" y="29" font-size="12" class="hb-sv-ink2">${_hbE(sayOf(g.n, g.v))} · ${Math.round(share * 100)}%</text>
+      <rect x="380" y="5" width="240" height="8" rx="4" class="hb-sv-track"/><rect x="380" y="5" width="${(240 * share).toFixed(1)}" height="8" rx="4" style="fill:${hue}" opacity=".9"/></g>`;
+    a0 = a1;
+  });
+  const total = cs.reduce((a, c) => a + hbValueOfOne(c), 0);
+  const centre = `<text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="44" font-weight="700" class="hb-sv-ink">${_hbN(cs.length)}</text>
+    <text x="${cx}" y="${cy + 16}" text-anchor="middle" font-size="13" class="hb-sv-ink2">${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}</text>
+    ${money ? `<text x="${cx}" y="${cy + 38}" text-anchor="middle" font-size="15" font-weight="600" class="hb-sv-glow">${_hbE(_hbM(total))}</text>` : ''}`;
+  return { body: `<svg class="hb-svg hb-ring" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(hbGroupWord(field))}">${slices}${centre}${legend}</svg>`, by: hbGroupWord(field), note: '' };
+}
+function hbBlocksSvg(D, cs, field, money){
+  let groups = hbGroupsOf(cs.filter(c => hbValueOfOne(c) > 0), field, true);
+  const unvalued = cs.length - groups.reduce((a, g) => a + g.n, 0);
+  if (!groups.length) return hbRingSvg(D, cs, field, money);
+  if (groups.length > HB_BLOCK_GROUPS){ const rest = groups.slice(HB_BLOCK_GROUPS - 1); groups = groups.slice(0, HB_BLOCK_GROUPS - 1).concat([{ g: null, label: i18t('hb_chart_more_groups', { n: _hbN(rest.length) }), list: rest.flatMap(r => r.list), n: rest.reduce((a, r) => a + r.n, 0), v: rest.reduce((a, r) => a + r.v, 0), rest: true }]); }
+  const whole = groups.reduce((a, g) => a + g.v, 0) || 1, vmax = Math.max(1, ...cs.map(hbValueOfOne));
+  const W = 1000, H = 330; let x = 0, out = '';
+  groups.forEach((g, gi) => {
+    const w = W * g.v / whole; const hue = g.rest ? '#9FB3C8' : hbHueOf(field, g.g, gi);
+    const title = g.label + ': ' + _hbM(g.v) + ' · ' + _hbN(g.n) + ' · ' + Math.round(g.v / whole * 100) + '%';
+    const dig = g.rest ? '' : 'qg:' + D.key + HB_KEY_SEP + field + HB_KEY_SEP + g.g;
+    out += `<g class="hb-sv-block hb-in" style="animation-delay:${gi * 40}ms" ${_hbSvgDoor(dig, title)}><rect x="${(x + 2).toFixed(1)}" y="2" width="${Math.max(0, w - 4).toFixed(1)}" height="${H - 4}" rx="6" style="fill:${hue};stroke:${hue}" fill-opacity=".16" stroke-opacity=".5"/>
+      ${w > 90 ? `<text x="${(x + 14).toFixed(1)}" y="26" font-size="12" font-weight="600" letter-spacing=".06em" style="fill:${hue}">${_hbE(String(g.label).toUpperCase().slice(0, Math.floor(w / 8)))}</text>
+      <text x="${(x + 14).toFixed(1)}" y="50" font-size="18" font-weight="700" class="hb-sv-ink">${_hbE(_hbM(g.v))}</text><text x="${(x + 14).toFixed(1)}" y="68" font-size="12" class="hb-sv-ink2">${_hbE(_hbN(g.n))} · ${Math.round(g.v / whole * 100)}%</text>` : ''}</g>`;
+    /* tiles: the biggest contracts as strips of rows sized by value; the rest one tile */
+    const sorted = g.list.slice().sort((a, b) => hbValueOfOne(b) - hbValueOfOne(a));
+    /* the biggest contracts are named tiles in rows the column is wide enough
+       for (never a sliver: a tile's width blends an equal share with its
+       value's); the rest is one band at the foot */
+    const top = 84, innerW = Math.max(0, w - 20), perRow = Math.max(1, Math.min(3, Math.floor(innerW / 80)));
+    const named = Math.min(HB_BLOCK_TILES, perRow * 3, sorted.length);
+    const tiles = sorted.slice(0, named).map(c => ({ c, v: hbValueOfOne(c) }));
+    const more = sorted.slice(named);
+    const rows = []; for (let i = 0; i < tiles.length; i += perRow) rows.push(tiles.slice(i, i + perRow));
+    if (more.length) rows.push([{ more: more.length, v: more.reduce((a, c) => a + hbValueOfOne(c), 0) }]);
+    const rowH = (H - top - 10) / Math.max(rows.length, 1);
+    let y = top; rows.forEach(r => { const sum = r.reduce((a, t) => a + t.v, 0) || 1; let tx = x + 10;
+      r.forEach(t => { const tw = r.length === 1 ? innerW : innerW * (0.15 + 0.85 * t.v / sum) / (0.15 * r.length + 0.85);
+        const ttl = t.more ? i18t('hb_chart_more', { n: _hbN(t.more) }) + ' · ' + _hbM(t.v) : hbRef(t.c) + ' · ' + String(t.c.name || '') + (t.c.counterparty ? ' · ' + t.c.counterparty : '') + ': ' + _hbM(t.v);
+        out += `<g class="hb-sv-tile hb-in" style="animation-delay:${gi * 40}ms" ${_hbSvgDoor(t.more ? dig : 'c:' + t.c.id, ttl)}><rect x="${(tx + 2).toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(0, tw - 4).toFixed(1)}" height="${Math.max(0, rowH - 6).toFixed(1)}" rx="4" style="fill:${hue}" fill-opacity="${t.more ? 0.3 : (0.5 + 0.45 * t.v / vmax).toFixed(2)}"/>
+          ${tw > 64 && rowH > 30 ? `<text x="${(tx + 10).toFixed(1)}" y="${(y + 17).toFixed(1)}" font-size="12" font-weight="600" fill="${HB_TILE_INK}">${_hbE(t.more ? '+' + _hbN(t.more) : hbRef(t.c))}</text>${rowH > 44 ? `<text x="${(tx + 10).toFixed(1)}" y="${(y + 33).toFixed(1)}" font-size="11" fill="${HB_TILE_INK}" opacity=".8">${_hbE(_hbM(t.v))}</text>` : ''}` : ''}</g>`;
+        tx += tw; });
+      y += rowH; });
+    x += w;
+  });
+  return { body: `<svg class="hb-svg hb-blocks" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(i18t('hb_by_blocks', { by: hbGroupWord(field) }))}">${out}</svg>`,
+    by: i18t('hb_by_blocks', { by: hbGroupWord(field) }), note: unvalued ? i18t('hb_chart_unvalued', { n: _hbN(unvalued) }) : '' };
+}
+function hbTimelineSvg(D, cs, money){
+  const today = hbToday(); const tY = Number(today.slice(0, 4)), tM = Number(today.slice(5, 7)) - 1;
+  const mIdx = iso => (Number(iso.slice(0, 4)) - tY) * 12 + (Number(iso.slice(5, 7)) - 1 - tM) + (Number(iso.slice(8, 10)) - 1) / 30;
+  const items = cs.map(c => ({ c, start: hbStartOf(c), end: hbEndOf(c), status: c.status || '' }));
+  const ends = items.map(i => i.end).filter(Boolean).map(mIdx), starts = items.map(i => i.start).filter(Boolean).map(mIdx);
+  let m0 = Math.floor(Math.min(-3, ...starts.map(s => Math.max(s, -12)))); let m1 = Math.ceil(Math.max(9, ...ends.map(e => Math.min(e, 30))));
+  if (m1 - m0 > HB_TL_MONTHS) m0 = m1 - HB_TL_MONTHS;
+  const months = m1 - m0; const W = 1000, L = 190, Rm = 16, axisY = 34, laneGap = 14;
+  const X = m => L + (W - L - Rm) * (Math.max(m0, Math.min(m1, m)) - m0) / months;
+  const keyOf = m => { const y = tY + Math.floor((tM + m) / 12), mo = ((tM + m) % 12 + 12) % 12; return y + '-' + String(mo + 1).padStart(2, '0'); };
+  const order = HB_STATUS_ORDER.concat([...new Set(items.map(i => i.status))].filter(s => !HB_STATUS_ORDER.includes(s)));
+  const lanes = order.map(s => ({ s, label: hbGroupLabel('status', s), list: items.filter(i => i.status === s) })).filter(l => l.list.length);
+  let out = '', lanesOut = '', y = axisY + 14;
+  const span = (it, short) => { const e = it.end ? mIdx(it.end) : null; let s = it.start ? mIdx(it.start) : (e != null ? e - 1 : 0); if (short && e != null) s = Math.max(s, e - HB_TL_SHORT); return [s, e != null ? e : s + 1.5]; };
+  /* pills pack into rows per lane; a crowded set keeps only the last months
+     of each pill so the lanes stay short, and past the cap the rest is said */
+  const pack = short => { const placed = []; let rowsUsed = 0, left = 0;
+    lanes.forEach(l => { l.list.sort((a, b) => span(a, short)[0] - span(b, short)[0]); const rows = [];
+      l.list.forEach(it => { const [s, e] = span(it, short); let ri = rows.findIndex(last => last + 0.35 < s);
+        if (ri < 0){ if (rowsUsed + rows.length + 1 > HB_TL_ROWS){ left++; return; } rows.push(e); ri = rows.length - 1; } else rows[ri] = e;
+        placed.push([l, ri, it, s, e]); });
+      l.n = rows.length; rowsUsed += rows.length; });
+    return { placed, rowsUsed, left }; };
+  let P = pack(false); if (P.left || P.rowsUsed > HB_TL_PACK) P = pack(true);
+  const placed = P.placed, left = P.left;
+  /* a crowded chart takes tighter rows and a smaller face; the word "past end" is a key drawn once */
+  const rowH = P.rowsUsed > HB_TL_PACK ? 16 : 20, fs = rowH > 16 ? 10.5 : 9, ty = rowH / 2 + 3.5; let anyPast = false;
+  const H = axisY + 14 + lanes.reduce((a, l) => a + l.n * rowH + laneGap, 0) + 36;
+  for (let i = 0; i < months; i++){ const m = m0 + i; const x = X(m), x2 = X(m + 1); const k = keyOf(m); const mo = ((tM + m) % 12 + 12) % 12;
+    const n = items.filter(it => it.end && it.end.slice(0, 7) === k).length;
+    out += `<rect x="${x.toFixed(1)}" y="${axisY}" width="${(x2 - x).toFixed(1)}" height="${H - axisY - 30}" class="${Math.floor(mo / 3) % 2 ? 'hb-sv-qtr' : ''}" fill="${Math.floor(mo / 3) % 2 ? '' : 'transparent'}"/>`;
+    if (mo % 3 === 0) out += `<line x1="${x.toFixed(1)}" y1="${axisY}" x2="${x.toFixed(1)}" y2="${H - 30}" class="hb-sv-grid"/>`;
+    const label = hbMonthLabel(k, false); const ttl = label + (n ? ': ' + i18tn('hb_tl_end_n', n, { n: _hbN(n) }) : '');
+    out += `<g class="hb-sv-month" ${_hbSvgDoor(n ? 'qm:' + D.key + HB_KEY_SEP + 'm' + HB_KEY_SEP + k : '', ttl)}><rect x="${x.toFixed(1)}" y="${axisY - 24}" width="${(x2 - x).toFixed(1)}" height="22" fill="transparent"/><text x="${(x + 4).toFixed(1)}" y="${axisY - 8}" font-size="11" class="hb-sv-ink2">${_hbE(label)}</text>
+      ${n ? `<text x="${((x + x2) / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="11" font-weight="600" class="hb-sv-ink2">${_hbE(i18tn('hb_tl_end_n', n, { n: _hbN(n) }))}</text>` : ''}</g>`; }
+  lanes.forEach(l => { const top = y; const lv = l.list.reduce((a, it) => a + hbValueOfOne(it.c), 0); const hue = hbHueOf('status', l.s, 0);
+    lanesOut += `<g class="hb-sv-lane" ${_hbSvgDoor('qg:' + D.key + HB_KEY_SEP + 'status' + HB_KEY_SEP + l.s, l.label + ': ' + (money ? _hbM(lv) + ' · ' : '') + _hbN(l.list.length))}><rect x="0" y="${top - 2}" width="${L - 10}" height="${l.n * rowH}" fill="transparent"/><rect x="4" y="${top - 2}" width="3" height="${l.n * rowH}" rx="1.5" style="fill:${hue}"/>
+      <text x="12" y="${top + 14}" font-size="13" font-weight="600" class="hb-sv-ink">${_hbE(l.label)}</text><text x="12" y="${top + 30}" font-size="11" class="hb-sv-ink2">${_hbE(_hbN(l.list.length))}${money ? ' · ' + _hbE(_hbM(lv)) : ''}</text></g>`;
+    placed.filter(p => p[0] === l).forEach(([, ri, it, s, e]) => { const yy = top + ri * rowH; const xs = X(s), past = it.end && it.end < today, xe = it.end ? X(e) : xs + 8; const fill = past ? 'var(--hb-ruby)' : hue;
+      const ttl = hbRef(it.c) + ' · ' + String(it.c.name || '') + (it.c.counterparty ? ' · ' + it.c.counterparty : '') + (money ? ': ' + _hbM(hbValueOfOne(it.c)) : '') + ' · ' + (it.end ? i18t('hb_tl_ends', { d: hbMonthLabel(it.end.slice(0, 7), false) }) : i18t('hb_c_no_end'));
+      if (past) anyPast = true;
+      if (it.end) out += `<g class="hb-sv-pill hb-in" style="animation-delay:${Math.min(ri, 12) * 40}ms" ${_hbSvgDoor('c:' + it.c.id, ttl)}><rect x="${xs.toFixed(1)}" y="${yy + 3}" width="${Math.max(6, xe - xs).toFixed(1)}" height="${rowH - 7}" rx="${rowH > 16 ? 6 : 4}" style="fill:${fill}" opacity=".9"/>${xe - xs > 120 ? `<text x="${(xs + 8).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" font-weight="600" fill="${HB_TILE_INK}">${_hbE(hbRef(it.c) + (it.c.counterparty ? ' · ' + it.c.counterparty : ''))}</text>` : xe - xs > 52 ? `<text x="${(xs + 7).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" font-weight="600" fill="${HB_TILE_INK}">${_hbE(hbRef(it.c))}</text>` : ''}</g>`;
+      else out += `<g class="hb-sv-pill hb-in" style="animation-delay:${Math.min(ri, 12) * 40}ms" ${_hbSvgDoor('c:' + it.c.id, ttl)}><rect x="${xs.toFixed(1)}" y="${yy + 2}" width="200" height="${rowH - 4}" fill="transparent"/><circle cx="${(xs + 4).toFixed(1)}" cy="${yy + rowH / 2 - 0.5}" r="${rowH > 16 ? 5 : 4}" style="fill:${fill}"/><line x1="${(xs + 12).toFixed(1)}" y1="${yy + rowH / 2 - 0.5}" x2="${(xs + 60).toFixed(1)}" y2="${yy + rowH / 2 - 0.5}" style="stroke:${fill}" stroke-dasharray="2 4"/><text x="${(xs + 66).toFixed(1)}" y="${(yy + ty).toFixed(1)}" font-size="${fs}" class="hb-sv-ink2">${_hbE(hbRef(it.c) + ' · ' + i18t('hb_c_no_end'))}</text></g>`; });
+    y += l.n * rowH + laneGap; });
+  const tx = X(mIdx(today));
+  if (anyPast) out += `<rect x="12" y="${H - 24}" width="10" height="10" rx="2" class="hb-sv-ruby"/><text x="27" y="${H - 15}" font-size="11" class="hb-sv-ink2">${_hbE(i18t('hb_tl_past'))}</text>`;
+  out += `<line x1="${tx.toFixed(1)}" y1="${axisY - 2}" x2="${tx.toFixed(1)}" y2="${H - 30}" class="hb-sv-today" stroke-width="1.5" stroke-dasharray="4 3"/><rect x="${(tx - 22).toFixed(1)}" y="${H - 28}" width="44" height="16" rx="8" class="hb-sv-today-pill"/><text x="${tx.toFixed(1)}" y="${H - 16}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${HB_TILE_INK}">${_hbE(i18t('hb_tl_today'))}</text>`;
+  return { body: `<svg class="hb-svg hb-tl" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(i18t('hb_by_timeline'))}"><line x1="${L}" y1="${axisY}" x2="${W - Rm}" y2="${axisY}" class="hb-sv-axis"/>${out}${lanesOut}</svg>`,
+    by: i18t('hb_by_timeline'), note: left ? i18t('hb_chart_more', { n: _hbN(left) }) : '' };
+}
+function hbBubblesSvg(D, cs){
+  const W = 1000, H = 360, L = 70, R = 30, T = 28, B = 46, xmin = -90, xmax = 450;
+  const vals = cs.map(hbValueOfOne); const bands = hbValueBands(0, Math.max(1, ...vals), 4); const ymax = bands[bands.length - 1].hi || 1;
+  const X = d => L + (W - L - R) * (d - xmin) / (xmax - xmin), Y = v => T + (H - T - B) * (1 - Math.min(ymax, v) / ymax);
+  let out = '';
+  [0, 90, 180, 270, 365].forEach(d => { out += `<line x1="${X(d).toFixed(1)}" y1="${T}" x2="${X(d).toFixed(1)}" y2="${H - B}" class="${d ? 'hb-sv-grid' : 'hb-sv-axis'}" ${d ? '' : 'stroke-dasharray="4 3"'}/><text x="${X(d).toFixed(1)}" y="${H - B + 18}" text-anchor="middle" font-size="11" class="hb-sv-ink2">${_hbE(d === 0 ? i18t('hb_tl_today') : d === 365 ? i18t('hb_bub_year') : i18t('hb_bub_days', { n: d }))}</text>`; });
+  bands.forEach(b => { if (!b.hi) return; out += `<line x1="${L}" y1="${Y(b.hi).toFixed(1)}" x2="${W - R}" y2="${Y(b.hi).toFixed(1)}" class="hb-sv-grid"/><text x="${L - 8}" y="${(Y(b.hi) + 4).toFixed(1)}" text-anchor="end" font-size="11" class="hb-sv-ink2">${_hbE(_hbM(b.hi))}</text>`; });
+  out += `<text x="${X(20).toFixed(1)}" y="${T + 14}" font-size="11" font-weight="600" letter-spacing=".06em" class="hb-sv-amber">${_hbE(i18t('hb_bub_soon').toUpperCase())}</text><text x="${X(300).toFixed(1)}" y="${T + 14}" font-size="11" font-weight="600" letter-spacing=".06em" class="hb-sv-mute">${_hbE(i18t('hb_bub_hand').toUpperCase())}</text><text x="${X(-85).toFixed(1)}" y="${T + 14}" font-size="11" font-weight="600" letter-spacing=".06em" class="hb-sv-ruby">${_hbE(i18t('hb_bub_past').toUpperCase())}</text>`;
+  const shown = cs.slice().sort((a, b) => hbValueOfOne(b) - hbValueOfOne(a)).slice(0, HB_BUB_MAX);
+  const named = new Set(shown.slice(0, 6).map(c => c.id));
+  shown.forEach((c, i) => { const end = hbEndOf(c); const days = end ? hbDaysTo(end) : xmax; const v = hbValueOfOne(c); const ob = hbObOpen(c);
+    const x = X(Math.max(xmin, Math.min(xmax, days))), y = Y(v), r = 7 + Math.min(6, ob) * 4;
+    const ttl = hbRef(c) + ' · ' + String(c.name || '') + (c.counterparty ? ' · ' + c.counterparty : '') + ': ' + _hbM(v) + ' · ' + (end ? i18t('hb_bub_days', { n: days }) : i18t('hb_c_no_end')) + ' · ' + i18tn('hb_bub_ob', ob, { n: ob });
+    out += `<g class="hb-sv-bub hb-in" style="animation-delay:${Math.min(i, 12) * 40}ms" ${_hbSvgDoor('c:' + c.id, ttl)}><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}" style="fill:${hbHueOf('status', c.status || '', 0)}" opacity=".78" stroke="${HB_TILE_INK}" stroke-width="1"/>${named.has(c.id) || (days < 90 && v >= ymax * 0.4) ? `<text x="${(x + r + 4).toFixed(1)}" y="${(y + 4).toFixed(1)}" font-size="11" font-weight="600" class="hb-sv-ink">${_hbE(hbRef(c))}</text>` : ''}</g>`; });
+  out += `<text x="${((L + W - R) / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="11" class="hb-sv-mute">${_hbE(i18t('hb_bub_x'))}</text><text transform="translate(14,${((T + H - B) / 2).toFixed(1)}) rotate(-90)" text-anchor="middle" font-size="11" class="hb-sv-mute">${_hbE(i18t('hb_bub_y'))}</text>`;
+  const stages = [...new Set(shown.map(c => c.status || ''))]; const key = stages.map((s, i) => `<g transform="translate(${W - R - 90 * stages.length + i * 90},${T - 12})"><circle cx="0" cy="-4" r="5" style="fill:${hbHueOf('status', s, 0)}"/><text x="10" y="0" font-size="11" class="hb-sv-ink2">${_hbE(hbGroupLabel('status', s))}</text></g>`).join('');
+  return { body: `<svg class="hb-svg hb-bub" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(i18t('hb_by_bubbles'))}">${out}${key}</svg>`, by: i18t('hb_by_bubbles'), note: cs.length > shown.length ? i18t('hb_chart_more', { n: _hbN(cs.length - shown.length) }) : '' };
+}
+function hbBarsFamily(D, cs, mode, field, money){
   const sayOf = (n, v) => money ? _hbM(v) + ' · ' + _hbN(n) : _hbN(n);
   let body = '', by = '', note = '';
-  if (!cs.length) return `<div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div>`;
   if (mode === 'values' && cs.length > HB_CHART_BARS){
     /* a big set by value is BANDS, each a door, so an executive sees the
        shape of the money before any name */
@@ -887,7 +1048,6 @@ function hbChartHtml(D, cs){
     body = hbChartColsHtml(cols, money);
     by = i18t(byYear ? 'hb_by_year' : 'hb_by_month');
   } else {
-    const field = plan.by || 'status';
     const groups = {}; cs.forEach(c => { const g = hbGroupOf(c, field); (groups[g] || (groups[g] = [])).push(c); });
     let rows = Object.keys(groups).map(g => { const list = groups[g]; const v = list.reduce((a, c) => a + hbValueOfOne(c), 0);
       return { g, label: hbGroupLabel(field, g), n: list.length, v, say: sayOf(list.length, v), dig: 'qg:' + D.key + HB_KEY_SEP + field + HB_KEY_SEP + g,
@@ -898,12 +1058,28 @@ function hbChartHtml(D, cs){
     body = hbChartBarsHtml(rows, money);
     by = hbGroupWord(field);
   }
-  return `<div class="hb-chart-lead"><b>${_hbN(cs.length)}</b> ${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}${money ? ` · <b>${_hbE(_hbM(total))}</b>` : ''}<span class="hb-chart-by">${_hbE(by)}</span></div>${body}${note ? `<div class="hb-quiet hb-chart-note">${_hbE(note)}</div>` : ''}`;
+  return { body, by, note };
 }
+function hbChartHtml(D, cs, view){
+  const money = hbMoneyOk();
+  const plan = D.chart || { mode: 'groups', by: 'status' };
+  const mode = ((plan.mode === 'values' || plan.mode === 'attention') && !money) ? 'groups' : plan.mode;
+  if (!cs.length) return `<div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div>`;
+  const total = money ? cs.reduce((a, c) => a + hbValueOfOne(c), 0) : null;
+  const field = plan.by || hbNextGroup(D.fixed || []);
+  let R;
+  if (view === 'bars') R = hbBarsFamily(D, cs, mode, field, money);
+  else if (mode === 'values') R = hbBlocksSvg(D, cs, field, money);
+  else if (mode === 'months') R = hbTimelineSvg(D, cs, money);
+  else if (mode === 'attention') R = hbBubblesSvg(D, cs);
+  else R = hbRingSvg(D, cs, field, money);
+  return `<div class="hb-chart-lead"><b>${_hbN(cs.length)}</b> ${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}${money ? ` · <b>${_hbE(_hbM(total))}</b>` : ''}<span class="hb-chart-by">${_hbE(R.by)}</span></div>${R.body}${R.note ? `<div class="hb-quiet hb-chart-note">${_hbE(R.note)}</div>` : ''}`;
+}
+function hbDigView(key){ const m = (hbS().digView || {})[key]; return HB_CHART_VIEWS.includes(m) ? m : 'chart'; }
 function hbDigViewHtml(key){
-  const mode = (hbS().digView || {})[key] === 'list' ? 'list' : 'chart';
+  const mode = hbDigView(key);
   const b = (m, w) => `<button type="button" role="tab" data-hb-digview="${m}" aria-selected="${mode === m}">${_hbE(i18t(w))}</button>`;
-  return `<div class="hb-seg hb-seg-sm" role="tablist" aria-label="${_hbE(i18t('hb_view_label'))}">${b('chart', 'hb_view_chart')}${b('list', 'hb_view_list')}</div>`;
+  return `<div class="hb-seg hb-seg-sm" role="tablist" aria-label="${_hbE(i18t('hb_view_label'))}">${b('chart', 'hb_view_chart')}${b('bars', 'hb_view_bars')}${b('list', 'hb_view_list')}</div>`;
 }
 function hbDigBodyHtml(D, lens){
   if (D.kind === 'list'){
@@ -912,7 +1088,8 @@ function hbDigBodyHtml(D, lens){
     const label = D.crumb || (D.word ? i18t(D.word) : '');
     const lead = fig ? `<div class="hb-say">${_hbE(i18tn('hb_say_' + fig, cs.length, { n: _hbN(cs.length) }))}</div>` : '';
     /* CHART FIRST, ALWAYS; the rows on the switch */
-    if ((hbS().digView || {})[D.key] !== 'list') return lead + hbChartHtml(D, cs) + (cs.length ? hbListFootHtml(cs, label, D.stage || null, i18tn('hb_all_counted', cs.length, { n: _hbN(cs.length) })) : '');
+    const view = hbDigView(D.key);
+    if (view !== 'list') return lead + hbChartHtml(D, cs, view) + (cs.length ? hbListFootHtml(cs, label, D.stage || null, i18tn('hb_all_counted', cs.length, { n: _hbN(cs.length) })) : '');
     return lead + hbListHtml(cs, fig, label, D.stage || null);
   }
   if (D.kind === 'obl') return `<div class="hb-say">${_hbE(i18tn('hb_say_overdue', D.n, { n: _hbN(D.n) }))}</div>${hbOblRowsHtml(D.rows)}
@@ -1143,6 +1320,11 @@ function hbPaintBoard(opts){
   const act = document.activeElement;
   const had = (act && host.contains(act)) ? hbFocusKey(act) : null;
   host.innerHTML = hbBoardHtml();
+  /* an expanded chart takes the room: the dock steps aside, as it does in
+     Present, and comes back on the same button */
+  const pg = hbPage();
+  if (pg){ const big = !!document.querySelector('#hb-focus .hb-dig.is-big');
+    if (pg.classList.contains('hb-dig-big') !== big){ pg.classList.toggle('hb-dig-big', big); if (typeof igFitSplit === 'function') setTimeout(() => { try { igFitSplit(); } catch (_){} }, 60); } }
   if (had){
     const dig = (opts && opts.jump === 'focus') ? document.querySelector('#hb-focus [data-hb-crumb]') : null;
     const back = dig || hbFocusFind(host, had);
@@ -1533,7 +1715,7 @@ function hbOnClick(e){
   if ((el = on('[data-hb-crumb]'))){ const s = hbS(), i = Number(el.getAttribute('data-hb-crumb'));
     s.path = i < 0 ? [] : (s.path || []).slice(0, i + 1); _hbFocusNew = i >= 0; _hbWatchForm = null; hbSave(); hbPaintBoard({ jump: i < 0 ? null : 'focus' }); return; }
   if ((el = on('[data-hb-digview]'))){ const s = hbS(), m = el.getAttribute('data-hb-digview'), key = (s.path || []).slice(-1)[0];
-    if (key && (m === 'chart' || m === 'list')){ s.digView = s.digView || {}; s.digView[key] = m; const ks = Object.keys(s.digView); if (ks.length > 30) delete s.digView[ks[0]]; hbSave(); hbPaintBoard(); } return; }
+    if (key && HB_CHART_VIEWS.includes(m)){ s.digView = s.digView || {}; s.digView[key] = m; const ks = Object.keys(s.digView); if (ks.length > 30) delete s.digView[ks[0]]; hbSave(); hbPaintBoard(); } return; }
   if (on('[data-hb-digbig]')){ const s = hbS(); s.digBig = !s.digBig; hbSave(); hbPaintBoard(); return; }
   if ((el = on('[data-hb-prep]'))){ const v = el.getAttribute('data-hb-prep'); if (HB_PREP.includes(v)){ hbS().prep = v; hbSave(); hbPaintBoard(); } return; }
   if ((el = on('[data-hb-watch-stop]'))){ const s = hbS(); s.watches.splice(Number(el.getAttribute('data-hb-watch-stop')), 1); hbSave(); hbAlertsChanged(); hbPaintBoard(); return; }
@@ -1600,7 +1782,14 @@ function hbOnPenDown(e){
 }
 function hbOnPenUp(){ if (!_hbStroke) return; if (_hbStroke.length > 1) _hbInk.push(_hbStroke); _hbStroke = null; hbInkDraw(); }
 function hbOnKey(e){
-  if (e.key !== 'Escape' || !window.state || state.view !== 'dashboard') return;
+  if (!window.state || state.view !== 'dashboard') return;
+  if (e.key === 'Enter' || e.key === ' '){
+    /* an SVG piece is not a button: Enter and Space press it as one would */
+    const el = e.target && e.target.closest ? e.target.closest('.hb-svg [data-hb-dig]') : null;
+    if (el){ e.preventDefault(); hbDig(el.getAttribute('data-hb-dig'), !!el.closest('.hb-dig')); }
+    return;
+  }
+  if (e.key !== 'Escape') return;
   if (document.querySelector('[data-top-overlay]')) return;
   const mr = document.getElementById('modal-root'); if (mr && mr.children.length) return;
   if (_hbTool){ _hbTool = ''; hbToolsPaint(); return; }
@@ -1635,4 +1824,5 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbBoardHtml, hbWatchFormHtml, hbWatchFired, hbGiveFormHtml, hbPaintBoard, hbPaintHead, hbApplyScreen,
   hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
   hbAsk, hbFigSay, hbPanelSay, hbSuggestions, hbPlaceholder, hbWatchAlerts, hbGiftsFor, hbGiftsLoad, hbGive,
-  hbUngive, hbDropGift, hbToolsPaint, hbSetTool, hbInkClear, hbPresent, hbPlace, hbPlacePut, hbOnClick, hbOnSubmit, hbOnKey, hbHelloInner, hbFocusKey, hbShowFound, HB_KEY_SEP, HB_CHART_BARS, HB_CHART_MONTHS, HB_GROUP_FIELDS, hbNextGroup, hbGroupOf, hbGroupLabel, hbGroupWord, hbMonthOf, hbMonthLabel, hbValueBands, hbChartHtml, hbChartBarsHtml, hbChartColsHtml, hbDigViewHtml, hbListFootHtml });
+  hbUngive, hbDropGift, hbToolsPaint, hbSetTool, hbInkClear, hbPresent, hbPlace, hbPlacePut, hbOnClick, hbOnSubmit, hbOnKey, hbHelloInner, hbFocusKey, hbShowFound, HB_KEY_SEP, HB_CHART_BARS, HB_CHART_MONTHS, HB_GROUP_FIELDS, hbNextGroup, hbGroupOf, hbGroupLabel, hbGroupWord, hbMonthOf, hbMonthLabel, hbValueBands, hbChartHtml, hbChartBarsHtml, hbChartColsHtml, hbDigViewHtml, hbListFootHtml,
+  HB_CHART_VIEWS, HB_ATTENTION_RE, HB_HUES, hbHueOf, hbStartOf, hbObOpen, hbGroupsOf, hbRingSvg, hbBlocksSvg, hbTimelineSvg, hbBubblesSvg, hbBarsFamily, hbDigView });
