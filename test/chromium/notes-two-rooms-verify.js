@@ -136,7 +136,13 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     check('and the panel is actually on screen', opened.onScreen);
     check('and the window is gone rather than standing over it', opened.dlgGone === true);
     check('the drawer says which of its three faces it is showing', /note/i.test(opened.title || ''), opened.title);
-    check('two rooms, and it opens on Internal', opened.rooms.length === 2 && /internal/i.test(opened.live || ''),
+    /* RE-POINTED 3 Oct 2026 — an outside room is NAMED AFTER ITS PARTY now, so
+       the lit room reads "<our org> — your team" rather than the word
+       "Internal". The claim is unchanged: two rooms, and it opens on ours.
+       Asked of the lit room's POSITION, which is the fact, rather than of a
+       word that is a label. */
+    check('two rooms, and it opens on ours', opened.rooms.length === 2
+      && (opened.rooms[0] || '').trim() === (opened.live || '').trim(),
       opened.rooms.join(' | ') + '  live=' + (opened.live || '').trim());
     check('with a box to type in', opened.box);
 
@@ -157,7 +163,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
 
     /* ---- 3. THE ROOMS REALLY HOLD DIFFERENT NOTES ---- */
     const roomA = await page.evaluate(() => document.querySelector('.rl-np-list').textContent.replace(/\s+/g, ' '));
-    await page.click('[data-rl-np-room="external"]');
+    await page.click('[data-rl-np-room]:not([data-rl-np-room="internal"])');
     await page.waitForTimeout(250);
     const roomB = await page.evaluate(() => ({
       text: document.querySelector('.rl-np-list').textContent.replace(/\s+/g, ' '),
@@ -185,7 +191,12 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     check('and the counterparty is still named where you type',
       !!roomB.cp && roomB.ph.toLowerCase().includes(roomB.cp.toLowerCase()),
       `${JSON.stringify(roomB.ph)} names ${JSON.stringify(roomB.cp)}`);
-    check('and the tab row says which room you are in', /external/i.test(roomB.live || ''), (roomB.live || '').trim());
+    /* RE-POINTED 3 Oct 2026 — the outside room is named after its party, so
+       this asks that the lit room MOVED off ours rather than that it says a
+       particular word. */
+    check('and the tab row says which room you are in',
+      !!(roomB.live || '').trim() && !/your team/i.test(roomB.live || ''),
+      (roomB.live || '').trim());
 
     /* ---- 4. A NOTE REALLY FILES, FROM THE ROOM YOU ARE STANDING IN ---- */
     await page.click('[data-rl-np-room="internal"]');
@@ -362,6 +373,85 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
         !seen2.any && !seen2.line, JSON.stringify(seen2));
     }
 
+    /* ============================================================
+       THE DRAWER IS THE REDLINE COLUMN'S OWN WIDTH, AND THE ROOMS ARE PARTIES
+       (Young ruled 3 Oct 2026: "Build option 1 at 460")
+       ============================================================
+       f446 pins the tokens and the model. THESE ARE PIXELS, measured on the
+       real page, because a width written in a stylesheet is not a width until
+       something draws it — and because the reason 460 is safe is a RELATION
+       between two painted boxes (the paper ends before the drawer begins),
+       which no source sweep can see. */
+    {
+      const w = await page.evaluate(() => {
+        const p = document.getElementById('context-panel');
+        if (!p) return { there: false };
+        const r = p.getBoundingClientRect();
+        return { there: true, face: p.dataset.face, w: Math.round(r.width),
+          left: Math.round(r.left), win: window.innerWidth };
+      });
+      check('the notes drawer is open and says which face it is',
+        w.there && w.face === 'notes', JSON.stringify(w));
+      /* THE RELATION, NOT THE NUMBER: the drawer is the width the redlines
+         column rests at. RL_RIGHT_W0 is read off the page's own module rather
+         than typed here, so a retune of the column moves this check with it. */
+      const col = await page.evaluate(() => window.RL_RIGHT_W0 || null);
+      if (col && w.win >= 1024)
+        check('and it is exactly the width the redlines column rests at',
+          w.w === col, `drawer ${w.w} · column ${col}`);
+      /* AND THE CONTRACT KEEPS EVERY PIXEL: the paper ends before the drawer
+         begins. This is the whole argument for 460 on this page. */
+      const paper = await page.evaluate(() => {
+        const el = document.querySelector('.rl-paper') || document.querySelector('.hati-doc');
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return { right: Math.round(r.right), w: Math.round(r.width) };
+      });
+      if (paper && w.win >= 1024)
+        check('and the contract ends before the drawer begins — it covers the cards, not the paper',
+          paper.right <= w.left, `paper right ${paper.right} · drawer left ${w.left}`);
+    }
+
+    /* THE ROOMS ARE NAMED AFTER PARTIES, and the acts row is two lines. */
+    {
+      const rooms = await page.evaluate(() => {
+        const row = document.querySelector('#context-panel .rl-np-tabs');
+        if (!row) return { there: false };
+        return { there: true,
+          keys: [...row.querySelectorAll('[data-rl-np-room]')]
+            .map(b => b.getAttribute('data-rl-np-room')),
+          words: [...row.querySelectorAll('[data-rl-np-room]')].map(b => b.textContent.trim()) };
+      });
+      check('the drawer offers a room per party, ours first',
+        rooms.there && rooms.keys.length >= 2 && rooms.keys[0] === 'internal',
+        JSON.stringify(rooms));
+      if (rooms.there)
+        check('and an outside room is named after its party, never "External"',
+          rooms.keys.slice(1).every(k => k !== 'internal'), JSON.stringify(rooms.keys));
+
+      /* THE ACTS ROW: verbs and facts are two painted lines, not one wrapped
+         one. Measured by their TOPS — the fault being fixed is that seven
+         controls on one line wrapped into a stack of single words. */
+      const rowsOf = await page.evaluate(() => {
+        const n = document.querySelector('#context-panel .rl-np-note');
+        if (!n) return { there: false };
+        const acts = n.querySelector('.rl-np-acts'), facts = n.querySelector('.rl-np-facts');
+        if (!acts) return { there: false };
+        const tops = [...acts.children].map(el => Math.round(el.getBoundingClientRect().top));
+        return { there: true, lines: new Set(tops).size, n: tops.length,
+          facts: !!facts,
+          factsBelow: facts ? Math.round(facts.getBoundingClientRect().top)
+            > Math.round(acts.getBoundingClientRect().top) : null };
+      });
+      if (rowsOf.there){
+        check('every verb sits on ONE line — no wrapping into a stack of single words',
+          rowsOf.lines === 1, JSON.stringify(rowsOf));
+        if (rowsOf.facts)
+          check('and the quiet facts sit on their own line under them',
+            rowsOf.factsBelow === true, JSON.stringify(rowsOf));
+      }
+    }
+
     await page.evaluate(() => { if (window.closeContextPanel) closeContextPanel(); });
     await page.waitForTimeout(300);
     const btn = await page.evaluate(() => {
@@ -473,7 +563,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
     check('THE BOX IS BACK — a note that belongs to no redline can be written here',
       chat.box === true);
     /* THE OTHER ROOM IS ONE PRESS, and it holds what the internal one does not. */
-    await page.click('#context-panel [data-rl-np-room="external"]');
+    await page.click('#context-panel [data-rl-np-room]:not([data-rl-np-room="internal"])');
     await page.waitForTimeout(300);
     const ext = await page.evaluate(() => ({
       text: (document.querySelector('.rl-chat') || {}).textContent || '',
@@ -723,7 +813,7 @@ const check = (n, p, d) => { R.push(!!p); console.log((p ? 'PASS' : 'FAIL') + ' 
       const atRest = lit();
       const box = () => panel().querySelector('.rl-np-in');
       box().value = 'For us: hold at ten.'; box().dispatchEvent(new Event('input', { bubbles: true }));
-      pin().querySelector('[data-rl-np-pin-room="external"]').click();
+      pin().querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click();
       await new Promise(r => setTimeout(r, 120));
       const extEmpty = box().value === '';
       box().value = 'Ten days is what your own order form says.'; box().dispatchEvent(new Event('input', { bubbles: true }));

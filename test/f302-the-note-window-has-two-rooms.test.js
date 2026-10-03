@@ -70,7 +70,16 @@ describe('f302 (1) — the control', () => {
     const pin = p.host.querySelector('.rl-np-pin');
     assert.ok(pin, 'the pin is up');
     const tabs = [...pin.querySelectorAll('[data-rl-np-pin-room]')];
-    assert.deepEqual(tabs.map(t => t.getAttribute('data-rl-np-pin-room')), ['internal', 'external']);
+    /* RE-POINTED 3 Oct 2026 — it pinned the two KEYS, and the outside room's
+       key is now the party's own ('p:<id>') so that a note can say which of
+       several outside parties it is for. The CLAIM is unchanged and is what is
+       asserted here: this contract has one outside party, so the pin offers
+       exactly two rooms, ours first and theirs second, with ours lit at rest.
+       PIN THE RELATION, NOT THE KEY. */
+    const keys = tabs.map(t => t.getAttribute('data-rl-np-pin-room'));
+    assert.equal(keys.length, 2, 'one room for us, one for the single outside party');
+    assert.equal(keys[0], 'internal', 'ours leads');
+    assert.notEqual(keys[1], 'internal', 'and the second is an outside room');
     assert.equal(pin.querySelector('[data-rl-np-pin-room="internal"]').getAttribute('aria-pressed'), 'true');
     assert.match(pin.querySelector('.ref').textContent, new RegExp(p.ch.id), 'and names the change');
   });
@@ -80,7 +89,7 @@ describe('f302 (1) — the control', () => {
     p.w.win.openChangeNoteDialog(p.c, p.ch, { filed: true, side: 'owner' });
     await tick();
     const ph1 = p.host.querySelector('.rl-np-in').getAttribute('placeholder');
-    p.host.querySelector('[data-rl-np-pin-room="external"]').click(); await tick();
+    p.host.querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click(); await tick();
     const ph2 = p.host.querySelector('.rl-np-in').getAttribute('placeholder');
     assert.notEqual(ph1, ph2);
     assert.match(ph2, /Saw Sawa Ltd/, 'the other side is named where you type');
@@ -110,7 +119,7 @@ describe('f302 (2) — one writer, the room\'s own answer', () => {
     p.w.win.negoPostToChannel = async () => { channel++; return { ok: true }; };
     const done = p.w.win.openChangeNoteDialog(p.c, p.ch, { filed: true, side: 'owner' });
     await tick();
-    p.host.querySelector('[data-rl-np-pin-room="external"]').click(); await tick();
+    p.host.querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click(); await tick();
     p.host.querySelector('.rl-np-in').value = 'Forty-five is our standard.';
     await send(p);
     assert.equal(await done, 'added');
@@ -164,12 +173,12 @@ describe('f302 (5) — two drafts, one drawer (D-6)', () => {
     const type = (t) => { const b = p.host.querySelector('.rl-np-in'); b.value = t;
       b.dispatchEvent(new p.w.win.Event('input', { bubbles: true })); };
     type('For the colleagues.');
-    p.host.querySelector('[data-rl-np-pin-room="external"]').click(); await tick();
+    p.host.querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click(); await tick();
     assert.equal(p.host.querySelector('.rl-np-in').value, '');
     type('For Saw Sawa.');
     p.host.querySelector('[data-rl-np-pin-room="internal"]').click(); await tick();
     assert.equal(p.host.querySelector('.rl-np-in').value, 'For the colleagues.');
-    p.host.querySelector('[data-rl-np-pin-room="external"]').click(); await tick();
+    p.host.querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click(); await tick();
     assert.equal(p.host.querySelector('.rl-np-in').value, 'For Saw Sawa.');
   });
 

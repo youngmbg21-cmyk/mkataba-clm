@@ -161,8 +161,16 @@ describe('f444 (5) on every note, and said out loud', () => {
   test('the tick is not gated on being a thread’s first note', () => {
     const i = VIEW.indexOf('function rlNpNoteHtml');
     const fn = VIEW.slice(i, VIEW.indexOf('\nfunction ', i + 10));
-    const tick = fn.slice(fn.indexOf('data-rl-np-seen') - 400, fn.indexOf('data-rl-np-seen'));
-    assert.doesNotMatch(tick, /&& root\b/,
+    /* RE-POINTED 3 Oct 2026 — it sliced 400 CHARACTERS BACKWARD from the
+       button's attribute, so it was really asserting "nothing root-gated is
+       drawn just above the tick". Re-ordering the row on 3 Oct put Done (which
+       IS root-gated, correctly) inside that window and this went red while the
+       claim it stands for stayed true.
+       PIN THE REGION, NOT A BYTE COUNT: the region is the tick's OWN guard,
+       and it is captured rather than guessed at. */
+    const m = /\$\{\(([^)]*)\) \? `<button[^`]*rl-np-seen/.exec(fn);
+    assert.ok(m, 'the tick is drawn by its own guarded expression');
+    assert.doesNotMatch(m[1], /\broot\b/,
       'Done is on the root because it settles a thread; a reply is read too');
   });
 

@@ -3361,7 +3361,17 @@ function negoPassageIsWhole(clauseText, passage){
    been told. */
 function negoTagPeople(c, room, opts = {}){
   if (!c) return [];
-  const ext = room === 'external';
+  /* ---- "IS THIS AN OUTSIDE ROOM" IS NOT A LITERAL (3 Oct 2026) ----
+     This read `room === 'external'`, and once an outside room was keyed by its
+     party ('p:<id>') that test went FALSE for every real external room — so
+     this roster, which is the WALL negoPostComment resolves mentions against,
+     served OUR COLLEAGUES into the counterparty's own picker. Caught by f246
+     (11), the wall test written for exactly this, on their seat's rendering.
+     INTERNAL IS THE ONLY ROOM THAT IS NOT OUTSIDE, so that is the question
+     asked — and the default for anything unrecognised is OUTSIDE, because
+     offering their people in our room is a smaller fault than offering our
+     colleagues in theirs. */
+  const ext = room !== 'internal';
   const seen = new Set();
   const out = [];
   const push = (id, name, email) => {
@@ -3384,9 +3394,29 @@ function negoTagPeople(c, room, opts = {}){
   }
   const plan = (typeof window !== 'undefined' && typeof window.signerPlan === 'function')
     ? (window.signerPlan(c) || []) : (c.signerPlan || []);
+  /* ---- AND ONE PARTY'S ROOM OFFERS ONLY THAT PARTY'S PEOPLE ----
+     (Young ruled 3 Oct 2026, with the rooms.) This list is a WALL, not a
+     convenience: negoPostComment resolves mentions against it, so whoever is
+     not on it cannot be tagged. Before the rooms it was one list for every
+     outside party at once, which on a multi-party contract would offer — and
+     file — the names of people at a DIFFERENT company.
+     `opts.partyId` is additive and absent on every older caller, which then
+     gets exactly the list it got before. The absent-means-first rule is the
+     signer row's own (see js/parties.js), not a second one invented here. */
+  const want = String((opts && opts.partyId) || '').trim();
+  const theirs = want && (typeof window !== 'undefined' && window.partiesTheirs)
+    ? (partiesTheirs(c) || []) : [];
+  const first = theirs.length ? String(theirs[0].id) : '';
+  const rowFits = row => !want || String(row.partyId || first) === want;
   for (const row of plan)
-    if (row && row.party === 'counterparty') push(row.id, row.name, row.email);
-  push(null, c.counterpartyName, c.counterpartyEmail);
+    if (row && row.party === 'counterparty' && rowFits(row)) push(row.id, row.name, row.email);
+  /* The party's own name and address where one is named, and the record's
+     counterparty fields only where it is the first outside party — those two
+     fields ARE the first party, as contractParties itself reads them. */
+  const party = want ? theirs.find(p => String(p.id) === want) : null;
+  if (party) push(null, party.name, party.email);
+  if (!want || !party || String(party.id) === first)
+    push(null, c.counterpartyName, c.counterpartyEmail);
   return out;
 }
 /* WHICH OF THOSE PEOPLE A PIECE OF TEXT ACTUALLY NAMES. Matched against the
@@ -3460,6 +3490,24 @@ function negoPostComment(c, id, text, opts = {}){
      the field, or passes something misspelt, keeps the note at home; the
      opposite default would publish a colleague's aside to the counterparty. */
   const visibility = opts.visibility === 'shared' ? 'shared' : 'internal';
+  /* ---- AND WHICH OUTSIDE PARTY IT IS FOR (Young ruled 3 Oct 2026) ----
+     Only ever on a SHARED note: on an internal one there is no outside party
+     in the question and a stored id would be a fact about nothing.
+     VALIDATED AGAINST THE RECORD, never taken on the caller's word — a party
+     this contract does not hold is dropped, and the note then reads as every
+     note on file does (the first outside party). The sign and the wall agree
+     because negoNoteParty applies that same fallback.
+     It is WRITTEN rather than left absent, because absent now means "nobody
+     said" and that is only the right answer for a note filed before rooms
+     existed. A new note knows its room, so it says so. */
+  let partyId = '';
+  if (visibility === 'shared'){
+    const want = String(opts.partyId || '').trim();
+    const theirs = (typeof window !== 'undefined' && window.partiesTheirs)
+      ? (partiesTheirs(c) || []) : [];
+    const hit = want ? theirs.find(p => String(p.id) === want) : null;
+    if (hit) partyId = String(hit.id);
+  }
   /* THE WRITER'S ID RIDES BESIDE THEIR NAME, and it is what lets the three
      acts below answer "is this yours" without matching on a name alone. The
      name still has to stay: it survives an account being deleted, which is the
@@ -3483,12 +3531,14 @@ function negoPostComment(c, id, text, opts = {}){
      `mentions` key, and none is written for a note that names nobody, so there
      is nothing to migrate and no reading anywhere answers differently. */
   const people = (typeof negoTagPeople === 'function')
-    ? negoTagPeople(c, visibility === 'shared' ? 'external' : 'internal', opts) : [];
+    ? negoTagPeople(c, visibility === 'shared' ? 'external' : 'internal',
+        partyId ? { ...opts, partyId } : opts) : [];
   const mentions = (typeof negoMentionsIn === 'function')
     ? negoMentionsIn(body, people) : [];
   const msg = { id: negoNoteId(), who, byId, side, visibility,
     at: (window.nowISO ? window.nowISO() : new Date().toISOString()),
     text: body.slice(0, 2000), atHash: (ch && ch.hash) || null };
+  if (partyId) msg.partyId = partyId;
   if (mentions.length) msg.mentions = mentions;
   /* ---- ONE SYSTEM (Young asked 11 Sep 2026): a note may be ANCHORED to
      exact words in a clause, and may be a REPLY to another note. Both are

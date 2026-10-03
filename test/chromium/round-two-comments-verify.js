@@ -121,7 +121,15 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     return { labels, lead: lead.trim(), twoLines: qRect ? qRect.height >= lineH * 1.8 : false, pinAfter: !!document.querySelector('#context-panel .rl-np-pin'), posted: (c.thread||[]).length - before,
       quote: ((c.thread||[]).slice(-1)[0] || {}).anchor && (c.thread||[]).slice(-1)[0].anchor.quote };
   });
-  ck('C1 the pin says Internal / External, the tabs’ own words', pin && JSON.stringify(pin.labels) === JSON.stringify(['Internal', 'External']), pin && JSON.stringify(pin.labels));
+  /* REVERSED IN PLACE 3 Oct 2026, with f304 (1). Round two ruled the pin says
+     the tabs' two words, Internal and External; the second half is gone,
+     because a contract can hold several outside parties and "External" cannot
+     say which one a note is for. What survives — and what is asked here — is
+     that ours keeps its word and theirs is a real party by name. */
+  ck('C1 the pin says ours, then the outside party by name',
+    pin && pin.labels.length === 2 && pin.labels[0] === 'Internal'
+      && pin.labels[1] && pin.labels[1] !== 'External',
+    pin && JSON.stringify(pin.labels));
   ck('C2 and carries no "Comment on these words" caption', pin && pin.lead === '', pin && JSON.stringify(pin.lead));
   ck('C3 a two-paragraph quote is printed on two lines', pin && pin.twoLines, pin && JSON.stringify(pin.twoLines));
   ck('C4 Add note posts the note on those words and the pin is gone', pin && pin.posted === 1 && !pin.pinAfter && /\n/.test(pin.quote || ''), JSON.stringify(pin));
@@ -267,7 +275,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     await new Promise(r => setTimeout(r, 200));
     const read = () => [...document.querySelectorAll('#context-panel .rl-np-pin [data-rl-np-pin-room]')].map(b => { const r = b.getBoundingClientRect(); return { w: Math.round(r.width * 10) / 10, on: b.getAttribute('aria-pressed') === 'true', room: b.getAttribute('data-rl-np-pin-room') }; });
     const a = read();
-    const ext = document.querySelector('#context-panel .rl-np-pin [data-rl-np-pin-room="external"]'); ext && ext.click();
+    const ext = document.querySelector('#context-panel .rl-np-pin [data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])'); ext && ext.click();
     await new Promise(r => setTimeout(r, 200));
     const b = read();
     return { a, b };

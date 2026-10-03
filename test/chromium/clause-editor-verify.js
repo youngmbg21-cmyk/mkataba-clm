@@ -3038,8 +3038,13 @@ const dismissNote = async pg => {
     ck('25d two ways on — Skip, and Add note — with the box under the pin',
        /skip|hoppa/i.test(dlg.skip || '') && /add|l\u00e4gg/i.test(dlg.go || '') && dlg.box === true,
        `${(dlg.skip || '').trim()} | ${(dlg.go || '').trim()}`);
+    /* RE-POINTED 3 Oct 2026 — an outside room's key is its party's ('p:<id>')
+       so a note can say which of several outside parties it is for. D-6's
+       claim is unchanged and is what is read: two rooms, ours lit at rest. */
     ck('25e the room is chosen on the pin, Internal lit at rest (D-6)',
-       JSON.stringify(dlg.rooms) === JSON.stringify(['internal*', 'external']), JSON.stringify(dlg.rooms));
+       dlg.rooms.length === 2 && dlg.rooms[0] === 'internal*'
+       && dlg.rooms[1] !== 'internal' && !/\*/.test(dlg.rooms[1]),
+       JSON.stringify(dlg.rooms));
 
     /* ---- IT WRITES A REAL NOTE ONTO THE CHANGE'S OWN THREAD ---- */
     await p.evaluate(() => {
@@ -3096,7 +3101,7 @@ const dismissNote = async pg => {
        switch moves the drawer's tab and tints the box. ---- */
     const ext25 = await p.evaluate(async () => {
       const panel = document.getElementById('context-panel');
-      panel.querySelector('[data-rl-np-pin-room="external"]').click();
+      panel.querySelector('[data-rl-np-pin-room]:not([data-rl-np-pin-room="internal"])').click();
       await new Promise(r => setTimeout(r, 150));
       const box = panel.querySelector('.rl-np-in');
       const foot = panel.querySelector('.rl-np-foot');
@@ -3104,8 +3109,12 @@ const dismissNote = async pg => {
         tinted: !!(foot && foot.classList.contains('out')),
         ph: box ? box.getAttribute('placeholder') : '' };
     });
-    ck('25i the pin\'s switch moves the drawer to External and the box wears the crossing',
-       /external|extern/i.test(ext25.tab || '') && ext25.tinted === true, `${(ext25.tab || '').trim()} · tinted ${ext25.tinted}`);
+    /* RE-POINTED 3 Oct 2026 — the outside room is named after its party, so the
+       lit tab says "Nordfrakt Logistik AB" rather than "External". The claim is
+       that the press MOVED the drawer off our own room and tinted the box. */
+    ck('25i the pin\'s switch moves the drawer to the outside room, and the box wears the crossing',
+       !!(ext25.tab || '').trim() && !/internal|intern/i.test(ext25.tab || '')
+       && ext25.tinted === true, `${(ext25.tab || '').trim()} · tinted ${ext25.tinted}`);
     await skipNote(p);
     await p.evaluate(() => rlCloseClauseEditor({}));
     await pause(300);

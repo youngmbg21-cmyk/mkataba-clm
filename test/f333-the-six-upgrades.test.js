@@ -445,8 +445,17 @@ describe('f333 (9) two clauses to an outside adviser', () => {
       if (/function contractMessages/.test(call)) continue;
       assert.ok(/adviser: true|adviserToken|shareIsAdvice|undefined\)|\)$/.test(call), call);
     }
-    /* THE COUNTERPARTY'S OWN LINK NAMES NO ADVISER TOKEN. */
-    assert.match(SRV, /contractMessages\(s\.contract_id, shareIsAdvice\(s\) \? \{ adviserToken: s\.token \} : undefined\)/);
+    /* THE COUNTERPARTY'S OWN LINK NAMES NO ADVISER TOKEN.
+       RE-POINTED 3 Oct 2026 — it pinned the whole ternary including its else
+       branch, and that branch now carries srvMsgScope (the party room a link
+       reads; see f446). The CLAIM is about the adviser wall and is unchanged:
+       an advice link names its token, and a counterparty's link names neither
+       a token nor `adviser: true`, so adviser rows are dropped for it. Asked
+       of each branch rather than of the literal text between them. */
+    const cp = SRV.match(/contractMessages\(s\.contract_id, shareIsAdvice\(s\) \? \{ adviserToken: s\.token \} : ([^)]*\)?)\)/);
+    assert.ok(cp, 'the counterparty link still reads through one ternary on shareIsAdvice');
+    assert.doesNotMatch(cp[1], /adviser/,
+      'and its else branch names no adviser token and claims no colleague');
     /* AND A COLLEAGUE SEES THEM: the owner asked the question. */
     assert.match(SRV, /contractMessages\(req\.params\.id, \{ adviser: true \}\)/);
     /* "THE OTHER SIDE SPOKE LAST" MUST NOT COUNT AN ADVISER AS THEM: the

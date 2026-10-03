@@ -20040,6 +20040,78 @@ a worktree. Five failures, two piles.
   adjacency, so an insertion anywhere else in `ALERT_KINDS` is unguarded. A
   claim over the whole order would have caught this in the first run.
 
+## 3 Oct 2026 — looking at the notes panel for a design question
+
+### Noticed, not fixed
+- **THE EXTERNAL ROOM IS ONE ROOM FOR EVERY OUTSIDE PARTY.** `negoNoteRoom` is
+  `m.visibility === 'shared' ? 'external' : 'internal'` — a boolean — and a note
+  carries NO party anywhere: `partyId` appears on no message in js/ or
+  server/server.js, so there is nothing for the payload to filter on. On a
+  two-party contract that is correct and always has been. From the moment a
+  contract has a second outside party (`partiesMulti`, built late Sept) a note
+  written for one outside party is served to every outside link holder. The
+  owner's own MK-411 reads `Jumenza LLC +1`, so it is live, not hypothetical.
+  This is a confidentiality question, not a layout one. Reported to the owner
+  in the design artifact of the same day; NOT fixed — it needs the owner's
+  ruling on whether three or more parties get one room each or also a joint
+  room, and that ruling is the design.
+- **The note acts row holds up to SEVEN controls in a 330px drawer** (Seen ·
+  Seen-by · Reply · Done/Reopen · Give · Delete · the given chip · done-by).
+  Four predate 3 Oct; THREE WERE ADDED BY THE 3 OCT RUN (f443/f444) without
+  measuring the row they were joining. `--shell-panel-w` is 330 / 365 / 400 and
+  the owner is on the narrowest rung. Proposed repair (verbs on one line, the
+  quiet facts on a second) is in the same artifact and is this run's own to
+  make; not made yet, because the owner has not picked an option and the repair
+  should land with whichever one they pick.
+
+## 3 Oct 2026 — option 1 at 460: a room for every party
+
+Built on Young's "Build option 1 at 460", off the design round of the same day.
+Three things, and only one of them was about width.
+
+### Defects found and fixed
+- **THE EXTERNAL ROOM WAS ONE ROOM FOR EVERY OUTSIDE PARTY** (recorded as
+  "noticed, not fixed" earlier the same day; Young's pick of option 1 is the
+  ruling it was waiting on). A note carried no party anywhere, so once a
+  contract held a second outside party a note written for one was served to the
+  other. TWO leak paths, both closed: the channel (`share_messages`, walled on
+  the server by `srvMsgScope` + `contractMessages`) and the SHARE PAYLOAD
+  (`buildSharePayload`'s `thread`, which filtered on `visibility==='shared'`
+  alone). The second was found only by looking for it after the first.
+- **A note's acts row held up to SEVEN controls in a 330px drawer**, three of
+  them added by the 3 Oct morning run without measuring the row. Split by KIND:
+  verbs on one line, the quiet facts on another.
+
+### Defects this build introduced and fixed before it shipped
+- **THE MENTION ROSTER SERVED OUR COLLEAGUES INTO THE COUNTERPARTY'S PICKER.**
+  `negoTagPeople` asked `room === 'external'`, a LITERAL, and once a room was
+  keyed by its party that went false for every real outside room — so it fell
+  through to the internal branch. That roster is the WALL `negoPostComment`
+  resolves mentions against. Caught by f246 (11), the wall test written for
+  exactly this, on their own seat's rendering. Fixed to ask `room !== 'internal'`
+  and pinned as a regression in f446 (8). **The sweep that re-pointed the room
+  comparisons covered js/views/negotiation.js and not js/negotiation.js.**
+- **THE ROOM LIST SECOND-GUESSED THE SEAT THE CALLER PASSED.** It read
+  `side === 'counterparty' || PORTAL_MODE`, and on a stage with PORTAL_MODE set
+  that gave OUR OWN seat one room and no Internal tab. MEASURED in
+  clause-editor-verify, not reasoned out — two rounds of reasoning got it wrong.
+  `side !== 'owner'` is the reading `tabbed` already uses.
+- **THE PAYLOAD RESOLVED THE NOTE'S ABSENT PARTY TO THE ASKING LINK**, so a
+  party-less note reached every party's copy. Found by DRIVING the real builder
+  rather than by reading it; the server's own `contractMessages` had the shape
+  right all along.
+
+### Noticed, not fixed
+- **test/chromium/notes-two-rooms-verify.js has two checks red at main** (the
+  chat door's position in the shell bar, and the cascading page error after it).
+  Pre-existing, already recorded on 3 Oct; not in KNOWN_RED.
+- **clause-editor-verify 33h flakes on a busy machine** — already documented in
+  CLAUDE.md's standing lessons. It failed once here while the full suite ran
+  alongside it, and passed on its own.
+- **A test harness can silently disagree with the product about PORTAL_MODE.**
+  parity.html has it set while the panel it drives believes it is on our seat.
+  Nothing here depends on it any more, but a future reading that consults the
+  global rather than its caller's `side` will meet this again.
 ## Noticed, not fixed (3 Oct 2026, building the Deal board inspector)
 
 - **A refresh with the Deal board open lands on the paper, not the board.**
