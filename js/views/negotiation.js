@@ -7674,10 +7674,27 @@ function rlPlaybookSecHtml(c, clauseId, side){
     : dash;
   const fb = (typeof window.ladderFallback === 'function') ? ladderFallback(topic) : null;
   const fbCell = fb ? (fb.figure != null ? fig(fb.figure, unit) : `<span title="${_nea(fb.text)}">${_ne(fb.text.length > 48 ? fb.text.slice(0, 47) + '…' : fb.text)}</span>`) : dash;
+  const prec = rlPrecedentSay(c, row);
+  return `<section class="rl-cp-sec rl-pb-sec">
+    <h5 class="rl-cp-h">${_ne(i18t('ng_pb_sec'))}${topic && topic.category ? ` · ${_ne(String(topic.category))}` : ''}</h5>
+    <div class="rl-pbook">
+      <span>${_ne(i18t('ng_pb_std'))}</span><b>${std}</b>
+      <span>${_ne(i18t('ng_pb_fb'))}</span><b>${fbCell}</b>
+      <span>${_ne(i18t('ng_pb_walk'))}</span><b>${dash}</b>
+      ${prec ? `<span>${_ne(i18t('ng_pb_prec'))}</span><span class="rl-pb-prec">${_ne(prec)}</span>` : ''}
+    </div>
+  </section>`;
+}
+/* WHAT THIS WORKSPACE HAS SETTLED BEFORE, as one sentence — the clause
+   panel's playbook section and the deal board both print it, so it is
+   written once (3 Oct 2026). Empty where there is nothing to say. */
+function rlPrecedentSay(c, row){
+  if (!row) return '';
+  const topic = row.topic;
   let prec = '';
   if (topic && typeof window.ladderSettledFigure === 'function'){
     const p = ladderSettledFigure(topic.key);
-    if (p) prec = i18t('ce_lc_prec_fig', { n: p.figure, unit: p.unit || unit, seen: p.seen, of: p.of });
+    if (p) prec = i18t('ce_lc_prec_fig', { n: p.figure, unit: p.unit || row.unit || '', seen: p.seen, of: p.of });
   }
   if (!prec){
     try{
@@ -7688,15 +7705,7 @@ function rlPlaybookSecHtml(c, clauseId, side){
       }
     }catch(_){ prec = ''; }
   }
-  return `<section class="rl-cp-sec rl-pb-sec">
-    <h5 class="rl-cp-h">${_ne(i18t('ng_pb_sec'))}${topic && topic.category ? ` · ${_ne(String(topic.category))}` : ''}</h5>
-    <div class="rl-pbook">
-      <span>${_ne(i18t('ng_pb_std'))}</span><b>${std}</b>
-      <span>${_ne(i18t('ng_pb_fb'))}</span><b>${fbCell}</b>
-      <span>${_ne(i18t('ng_pb_walk'))}</span><b>${dash}</b>
-      ${prec ? `<span>${_ne(i18t('ng_pb_prec'))}</span><span class="rl-pb-prec">${_ne(prec)}</span>` : ''}
-    </div>
-  </section>`;
+  return prec;
 }
 /* The scale: their last ask, our position and the agreed figure on one line,
    with the green span between the playbook's fallback and its standard. The
@@ -7826,94 +7835,294 @@ function rlBoardMemoText(c){
       i18t('ng_board_col_theirs').toLowerCase()} ${f(r.theirFig, r.unit)} / ${i18t('ng_board_col_gap').toLowerCase()} ${
       r.dist != null ? f(r.dist, r.unit) : (r.theirs ? i18t('ng_board_gap_words') : i18t('ng_board_gap_none'))} / ${r.state}`).join('\n');
 }
+/* ---- THE DEAL BOARD IS AN INSPECTOR (Young picked "Inspector", 3 Oct 2026:
+   "Build Inspector, no Accept/Counter/Reject, no walk-away") ----
+   The nine-column table cut every wording at 40 characters and the fallback
+   at 32, drew a Walk-away column that could only ever say "—", and counted
+   the moves without listing them, so the board the reader opened to see the
+   whole deal hid most of it. Now: a short list of every point argued on the
+   left, grouped by whose move it is, and the WHOLE of one point on the right —
+   the figures on the scale, their last ask and our position in full with their
+   marks, the playbook, every move in order, and why they asked.
+   - A press SELECTS; a second press on the selected row (or the card's own
+     button) OPENS the clause — the list inspector's own grammar
+     (js/views/inspector.js), so the board reads like every other list.
+   - Nothing is cut short. Wording is drawn by rlChangeWordingHtml, the ONE
+     "what this change proposed" builder, inside .rl-cp-src so it wears the
+     clause panel's own marks; the precedent line is rlPrecedentSay, the
+     panel's own sentence.
+   - NO WALK-AWAY (the owner, again, 3 Oct): the playbook holds none and HaTi
+     invents none, so there is no column for one.
+   - NO ACCEPT / COUNTER / REJECT (the owner, 3 Oct): those are the Redlines
+     column's acts and the board is not a second door onto them. Its only door
+     is the clause.
+   - The verdict is ARITHMETIC on the playbook's own figures (ladderWithin,
+     ladderFallback, the standard) and never a model's.
+   - Pick and filter are per sitting, in memory, and are forgotten with the
+     contract (rlPinFor), exactly as the board's own open flag is. */
+let _rlBoardPick = null;
+let _rlBoardFilter = 'all';
+const RL_BOARD_FILTERS = ['all', 'you', 'them', 'within', 'beyond', 'done'];
+function rlBoardPickSet(id){ _rlBoardPick = id == null ? null : String(id); }
+function rlBoardFilterSet(f){ _rlBoardFilter = RL_BOARD_FILTERS.includes(f) ? f : 'all'; }
+/* Which pile a row sits in. Our own unsent draft is OUR move — the old
+   board's fifth word — so it files under "Needs you". */
+function dealBoardGroupOf(c, r, side){
+  if (r.state === 'awaiting') return 'you';
+  if (r.state === 'with'){
+    const unsent = r.top && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.top, side);
+    return unsent ? 'you' : 'them';
+  }
+  return 'done';
+}
+/* WHERE THEIR LAST ASK SITS AGAINST YOUR PLAYBOOK, as arithmetic. `k` is the
+   tone: std · in (green) · out (ruby) · words · ours · none (quiet) · agreed ·
+   back. `fb` is answered so the counts and the verdict ask one reading. */
+function dealBoardVerdict(r){
+  const fb = (r.topic && typeof window.ladderFallback === 'function') ? ladderFallback(r.topic) : null;
+  const fbN = fb && fb.figure != null ? fb.figure : null;
+  const unit = r.unit || '';
+  const out = (k, key, vars) => ({ k, text: i18t(key, vars || {}), fbN,
+    within: (fbN != null && r.theirFig != null && typeof window.ladderWithin === 'function') ? ladderWithin(r.topic, r.theirFig, fbN) : null });
+  if (r.state === 'settled') return out('agreed', 'ng_board_v_agreed');
+  if (r.state === 'refused' || r.state === 'quiet') return out('back', 'ng_board_v_back');
+  if (!r.theirs) return out('ours', 'ng_board_v_ours');
+  if (r.theirFig == null) return out('words', 'ng_board_v_words');
+  const within = (bound) => typeof window.ladderWithin === 'function' ? ladderWithin(r.topic, r.theirFig, bound) : null;
+  if (r.standard && within(r.standard.value) === true) return out('std', 'ng_board_v_std');
+  if (fbN != null){
+    return within(fbN) === true ? out('in', 'ng_board_v_in')
+      : out('out', 'ng_board_v_out', { n: Math.abs(r.theirFig - fbN), unit });
+  }
+  if (r.standard) return out('out', 'ng_board_v_out_std', { n: Math.abs(r.theirFig - r.standard.value), unit });
+  return out('none', 'ng_board_v_noplay');
+}
 function dealBoardHtml(c, side){
   if (typeof window.ladderBoard !== 'function') return '';
   const rows = ladderBoard(c, side);
-  const dash = `<span class="db-none">&mdash;</span>`;
-  const open = rows.filter(r => r.state === 'awaiting' || r.state === 'with').length;
-  const fbOf = r => (r.topic && typeof window.ladderFallback === 'function') ? ladderFallback(r.topic) : null;
-  const within = rows.filter(r => { const fb = fbOf(r); return fb && fb.figure != null && r.theirFig != null
-    && typeof window.ladderWithin === 'function' && ladderWithin(r.topic, r.theirFig, fb.figure) === true; }).length;
-  const head = `<div class="db-sum"><b>${_ne(i18t('ng_board_head'))}</b>
-      <span>${_ne(i18tn('ng_board_open', open, { n: open }))}</span>
-      <span>${_ne(i18tn('ng_board_within', within, { n: within }))}</span>
-      <span>${_ne(i18t('ng_board_sorted_cap'))}</span><span class="sp"></span>
-      <button type="button" class="ui-btn" data-rl-board-memo title="${_nea(i18t('ng_board_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button></div>`;
+  const names = rlLegendNames(c, side);
+  const cp = names.them;
+  const memo = `<button type="button" class="ui-btn" data-rl-board-memo title="${_nea(i18t('ng_board_memo_title'))}">${_ne(i18t('ng_board_memo'))}</button>`;
   if (!rows.length){
-    return `<div class="db">${head}<p class="db-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
+    return `<div class="db"><div class="db-sum"><b>${_ne(i18t('ng_board_head'))}</b><span class="sp"></span>${memo}</div>
+      <p class="db-empty">${_ne(i18t('ng_board_empty'))}</p></div>`;
   }
-  /* Is this row's own top move an unsent draft of ours — the board's fifth
-     word, which the ladder's state does not carry. */
-  const unsentTop = r => r.state === 'with' && r.top && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.top, side);
+  const facts = rows.map(r => ({ r, g: dealBoardGroupOf(c, r, side), v: dealBoardVerdict(r) }));
+  const n = {
+    all: facts.length,
+    you: facts.filter(x => x.g === 'you').length,
+    them: facts.filter(x => x.g === 'them').length,
+    within: facts.filter(x => x.g !== 'done' && x.v.within === true).length,
+    beyond: facts.filter(x => x.g !== 'done' && x.v.within === false).length,
+    done: facts.filter(x => x.g === 'done').length
+  };
+  const f = (RL_BOARD_FILTERS.includes(_rlBoardFilter) && (_rlBoardFilter === 'all' || n[_rlBoardFilter])) ? _rlBoardFilter : 'all';
+  const passes = x => f === 'all' || (f === 'within' ? x.g !== 'done' && x.v.within === true
+    : f === 'beyond' ? x.g !== 'done' && x.v.within === false : x.g === f);
+  /* THE HEAD LINE'S NUMBERS ARE ITS FILTERS (it was a line of facts). A zero
+     is not a door: it is said, never pressed. */
+  const chip = (k, text) => n[k] || k === 'all'
+    ? `<button type="button" class="db-f${f === k ? ' on' : ''}" data-rl-board-f="${k}" aria-pressed="${f === k ? 'true' : 'false'}">${_ne(text)}</button>`
+    : `<span class="db-f is-zero">${_ne(text)}</span>`;
+  const head = `<div class="db-sum"><b>${_ne(i18t('ng_board_head'))}</b>
+      ${chip('all', i18tn('ng_board_f_all', n.all, { n: n.all }))}
+      ${chip('you', i18tn('ng_board_f_you', n.you, { n: n.you }))}
+      ${chip('them', i18tn('ng_board_f_them', n.them, { n: n.them, cp }))}
+      ${chip('within', i18tn('ng_board_within', n.within, { n: n.within }))}
+      ${chip('beyond', i18tn('ng_board_f_beyond', n.beyond, { n: n.beyond }))}
+      ${chip('done', i18tn('ng_board_f_done', n.done, { n: n.done }))}
+      <span class="sp"></span>${memo}</div>`;
   const move = r => {
+    const unsent = r.state === 'with' && r.top && typeof window.ladderUnsent === 'function' && ladderUnsent(c, r.top, side);
     const k = r.state === 'awaiting' ? ['you', i18t('ng_board_move_you')]
-      : r.state === 'with' ? (unsentTop(r) ? ['you', i18t('ng_board_move_draft')] : ['them', i18t('ng_board_move_them')])
+      : r.state === 'with' ? (unsent ? ['you', i18t('ng_board_move_draft')] : ['them', i18t('ng_board_move_them')])
       : r.state === 'settled' ? ['ok', i18t('ng_board_move_settled')]
       : r.state === 'refused' ? ['quiet', i18t('ng_board_move_refused')]
       : ['quiet', i18t('ng_board_move_none')];
     return `<span class="db-move db-move-${k[0]}">${_ne(k[1])}</span>`;
   };
-  const fig = (n, unit) => n == null ? dash : `${_ne(String(n))}${unit ? ` <i>${_ne(unit)}</i>` : ''}`;
-  const bar = r => {
+  const verdict = v => `<span class="db-vd db-vd-${v.k}"><i aria-hidden="true"></i>${_ne(v.text)}</span>`;
+  /* The list's small bar: the same object as the old board's Distance column,
+     their dot, ours and the fallback tick, drawn to one scale per row. */
+  const bar = (r, v) => {
     if (r.dist == null){
-      /* A wording argument still draws two dots, apart or together, so the
-         column reads as one object down the page; a clause with no ask
-         draws an empty track. */
-      const both = r.theirs ? (r.ours && r.ours.text !== r.theirs.text
-        ? `<b style="left:8%;width:84%"></b><i class="t" style="left:8%"></i><i class="y" style="left:92%"></i>`
-        : `<i class="t" style="left:50%"></i><i class="y" style="left:50%"></i>`) : '';
-      return `<span class="db-gap"><span class="db-bar">${both}</span><span class="db-gap-w">${_ne(
+      return `<span class="db-gap"><span class="db-gap-w">${_ne(
         r.state === 'settled' ? i18t('ng_board_gap_settled')
           : r.theirs ? i18t('ng_board_gap_words') : i18t('ng_board_gap_none'))}</span></span>`;
     }
-    const fb = fbOf(r);
-    const hi = Math.max(r.theirFig, r.ourFig, fb && fb.figure != null ? fb.figure : 0, r.standard ? r.standard.value : 0, 1);
-    const pct = v => Math.max(0, Math.min(100, (v / hi) * 100));
+    const hi = Math.max(r.theirFig, r.ourFig, v.fbN != null ? v.fbN : 0, r.standard ? r.standard.value : 0, 1);
+    const pct = x => Math.max(0, Math.min(100, (x / hi) * 100));
     const a = pct(r.theirFig), b = pct(r.ourFig);
     return `<span class="db-gap"><span class="db-bar" role="img" aria-label="${
       _nea(i18t('ng_board_gap_n', { n: r.dist, unit: r.unit || '' }))}"><b style="left:${
-      Math.min(a, b)}%;width:${Math.abs(a - b)}%"></b>${fb && fb.figure != null ? `<i class="s" style="left:${pct(fb.figure)}%"></i>` : ''}<i class="t" style="left:${a}%"></i><i class="y" style="left:${
-      b}%"></i></span><span class="db-gap-n">${r.dist ? `${_ne(String(r.dist))}${r.unit ? ` ${_ne(r.unit)}` : ''}` : _ne(i18t('ng_board_agreed_fig'))}</span></span>`;
+      Math.min(a, b)}%;width:${Math.abs(a - b)}%"></b>${v.fbN != null ? `<i class="s" style="left:${pct(v.fbN)}%"></i>` : ''}<i class="t" style="left:${a}%"></i><i class="y" style="left:${
+      b}%"></i></span><span class="db-gap-n">${r.dist ? _ne(i18t('ng_board_gap_n', { n: r.dist, unit: r.unit || '' })) : _ne(i18t('ng_board_agreed_fig'))}</span></span>`;
   };
-  const std = r => {
-    if (!r.standard) return dash;
-    const op = r.standard.op === '<=' ? '≤' : r.standard.op === '>=' ? '≥' : '';
-    return `${_ne(op)} ${_ne(String(r.standard.value))}${r.unit ? ` <i>${_ne(r.unit)}</i>` : ''}`;
-  };
-  const fbCell = r => { const fb = fbOf(r); if (!fb) return dash;
-    return fb.figure != null ? fig(fb.figure, r.unit) : `<span class="db-fbw" title="${_nea(fb.text)}">${_ne(fb.text.length > 32 ? fb.text.slice(0, 31) + '…' : fb.text)}</span>`; };
-  const walk = `<span class="db-none" title="${_nea(i18t('ng_pb_walk_none_title'))}">&mdash;</span>`;
-  const words = r => r.theirs ? _ne(String(r.theirs.summary || '').slice(0, 40)) : dash;
-  const body = rows.map(r => `<tr class="db-row" data-rl-board-go="${_ne(r.clauseId)}" tabindex="0" role="button"
-      title="${_nea(i18t('ng_board_go'))}">
-    <td class="db-c">${_ne(r.label || r.clauseId)}</td>
-    <td>${std(r)}</td>
-    <td>${fbCell(r)}</td>
-    <td>${walk}</td>
-    <td>${r.theirs ? (r.theirFig != null ? fig(r.theirFig, r.unit) : words(r)) : dash}</td>
-    <td>${r.ours ? (r.ourFig != null ? fig(r.ourFig, r.unit) : _ne(String(r.ours.summary || '').slice(0, 40)))
-      : r.ourFig != null ? `<span class="db-drafted" title="${_nea(i18t('ng_board_as_drafted_title'))}">${
-        fig(r.ourFig, r.unit)} <em>${_ne(i18t('ng_board_as_drafted'))}</em></span>`
-      : (r.theirs ? _ne(i18t('ng_board_not_answered')) : _ne(i18t('ng_board_as_drafted')))}</td>
-    <td>${bar(r)}</td>
-    <td class="db-n">${_ne(String(r.moves))}</td>
-    <td>${move(r)}</td>
-  </tr>`).join('');
+  const shown = facts.filter(passes);
+  const GROUPS = [['you', i18t('ng_board_g_you')], ['them', i18t('ng_board_g_them', { cp })], ['done', i18t('ng_board_g_done')]];
+  const pick = (shown.find(x => String(x.r.clauseId) === String(_rlBoardPick))
+    || shown.find(x => x.g === 'you') || shown.find(x => x.g === 'them') || shown[0] || {}).r || null;
+  const list = GROUPS.map(([g, label]) => {
+    const inG = shown.filter(x => x.g === g);
+    if (!inG.length) return '';
+    return `<div class="db-lg">${_ne(label)} <span class="db-lg-n">${inG.length}</span></div>` + inG.map(({ r, v }) => {
+      const on = pick && String(pick.clauseId) === String(r.clauseId);
+      return `<button type="button" class="db-irow${on ? ' is-on' : ''}" data-rl-board-pick="${_nea(r.clauseId)}"
+        aria-current="${on ? 'true' : 'false'}" title="${_nea(i18t('ng_board_pick_title'))}">
+        <span class="db-ir-top"><span class="db-ir-nm">${_ne(r.label || r.clauseId)}</span>${move(r)}</span>
+        <span class="db-ir-bar">${bar(r, v)}</span>
+        <span class="db-ir-vd">${verdict(v)}</span></button>`;
+    }).join('');
+  }).join('');
+  const pane = pick ? dealBoardCardHtml(c, pick, side, { move, verdict, v: (facts.find(x => x.r === pick) || {}).v || dealBoardVerdict(pick), names })
+    : `<p class="db-empty">${_ne(i18t('ng_board_f_none'))}</p>`;
   return `<div class="db">
     ${head}
-    <div class="db-wrap"><table class="db-t"><thead><tr>
-      <th>${_ne(i18t('ng_board_col_clause'))}</th>
-      <th>${_ne(i18t('ng_board_col_std'))}</th>
-      <th>${_ne(i18t('ng_board_col_fb'))}</th>
-      <th>${_ne(i18t('ng_board_col_walk'))}</th>
-      <th>${_ne(i18t('ng_board_col_theirs'))}</th>
-      <th>${_ne(i18t('ng_board_col_ours'))}</th>
-      <th>${_ne(i18t('ng_board_col_gap'))}</th>
-      <th>${_ne(i18t('ng_board_col_rungs'))}</th>
-      <th>${_ne(i18t('ng_board_col_move'))}</th>
-    </tr></thead><tbody>${body}</tbody></table></div>
-    <p class="db-foot">${_ne(i18t('ng_board_note'))}</p>
+    <div class="db-insp">
+      <nav class="db-list" id="db-list" aria-label="${_nea(i18t('ng_board_list_label'))}">${list}</nav>
+      <div class="db-pane" id="db-pane">${pane}<p class="db-foot">${_ne(i18t('ng_board_foot'))}</p></div>
+    </div>
   </div>`;
+}
+/* ONE POINT, WHOLE. Every piece is a reading the negotiate page already
+   draws somewhere — the scale (rlScaleHtml), the wording (rlChangeWordingHtml),
+   the precedent sentence (rlPrecedentSay), the note count (negoNoteCounts) —
+   so the board and the clause panel cannot disagree about a clause. */
+function dealBoardCardHtml(c, r, side, k){
+  const id = String(r.clauseId);
+  const unit = r.unit || '';
+  const words = html => `<div class="rl-cp-src db-words">${html}</div>`;
+  const when = at => (at && typeof negoWhenFull === 'function') ? negoWhenFull(at) : '';
+  const whoOf = rg => {
+    const mine = (rg.side === 'counterparty') === (side === 'counterparty');
+    return [mine ? k.names.us : k.names.them, rg.author, i18t('ng_rung_round', { n: rg.round }), when(rg.at)]
+      .filter(Boolean).map(x => _ne(String(x))).join(' · ');
+  };
+  const why = (ch, key) => {
+    const w = (ch && typeof window.negoReasonOf === 'function') ? negoReasonOf(ch) : (ch && ch.why) || '';
+    return w ? `<p class="db-why"><b>${_ne(i18t(key))}</b> ${_ne(String(w))}</p>` : '';
+  };
+  const unsent = rg => typeof window.ladderUnsent === 'function' && ladderUnsent(c, rg, side);
+  /* THEIRS: the last thing they asked for that is still a position. */
+  const theirs = r.theirs
+    ? `<p class="db-who">${whoOf(r.theirs)}</p>${words(rlChangeWordingHtml(r.theirs.ch, { side }))}${why(r.theirs.ch, 'ng_why_they_asked')}`
+    : `<p class="db-none-say">${_ne(i18t('ng_board_c_none_theirs'))}</p>`;
+  /* OURS: what this clause says on our side now — the agreed rung once one
+     is, our last standing move, else the wording before anybody moved. */
+  const base = (typeof window.ladderBaseText === 'function') ? ladderBaseText(r.rungs) : '';
+  const plain = t => words(`<p>${_ne(String(t || ''))}</p>`);
+  let oursHead = i18t('ng_board_c_ours'), ours;
+  if (r.state === 'settled' && r.accepted){
+    oursHead = i18t('ng_base_agreed');
+    ours = `<p class="db-who">${whoOf(r.accepted)}</p>${words(rlChangeWordingHtml(r.accepted.ch, { side }))}`;
+  } else if ((r.state === 'refused' || r.state === 'quiet') && !r.ours){
+    oursHead = i18t('ng_rung_agreed');
+    ours = plain(base);
+  } else if (r.ours){
+    ours = `<p class="db-who">${whoOf(r.ours)}${unsent(r.ours) ? ` · ${_ne(i18t('ng_rung_not_sent'))}` : ''}</p>${
+      words(rlChangeWordingHtml(r.ours.ch, { side }))}${why(r.ours.ch, 'ng_board_your_reason')}`;
+  } else {
+    ours = `<p class="db-who">${_ne(i18t('ng_board_as_drafted_words'))}</p>${plain(base)}`;
+  }
+  /* THE PLAYBOOK, IN FULL: the standard as the range states it, the fallback
+     as the library words it, and what this workspace has settled before. */
+  const fb = (r.topic && typeof window.ladderFallback === 'function') ? ladderFallback(r.topic) : null;
+  const std = r.standard
+    ? `<b>${_ne(r.standard.op === '<=' ? '≤' : r.standard.op === '>=' ? '≥' : '')} ${_ne(String(r.standard.value))}${unit ? ` ${_ne(unit)}` : ''}</b>${
+      r.standard.note ? `<span class="db-pb-note">${_ne(r.standard.note)}</span>` : ''}`
+    : `<span class="db-none">${_ne(i18t('ng_board_std_none'))}</span>`;
+  const fbCell = fb && (fb.figure != null || fb.text)
+    ? `${fb.figure != null ? `<b>${_ne(String(fb.figure))}${unit ? ` ${_ne(unit)}` : ''}</b>` : ''}${fb.text ? words(`<p>${_ne(fb.text)}</p>`) : ''}`
+    : `<span class="db-none">${_ne(i18t('ng_board_fb_none'))}</span>`;
+  const prec = rlPrecedentSay(c, r);
+  /* EVERY MOVE, oldest first, in the record's own words (`summary` is what the
+     funnel wrote at filing and what the card prints). */
+  const tag = rg => rg.withdrawn ? i18t('ng_rung_tag_withdrawn')
+    : rg.status === 'rejected' ? i18t('ng_rung_tag_refused')
+    : rg.status === 'accepted' ? i18t('ng_rung_tag_accepted')
+    : rg.status === 'superseded' ? i18t('ng_rung_tag_replaced')
+    : rg.status === 'countered' ? i18t('ng_rung_tag_countered')
+    : unsent(rg) ? i18t('ng_rung_tag_draft') : '';
+  const fig = rg => (r.topic && typeof window.ladderFigure === 'function') ? ladderFigure(r.topic, rg.text) : null;
+  const moves = r.rungs.map(rg => {
+    const mine = (rg.side === 'counterparty') === (side === 'counterparty');
+    const t = tag(rg), fn = fig(rg);
+    return `<li class="db-mv db-mv-${mine ? 'you' : 'them'}"><span class="db-mv-n">R${rg.n}</span><span class="db-mv-b">
+      <span class="db-mv-who">${whoOf(rg)}${t ? ` <span class="db-mv-tag">${_ne(t)}</span>` : ''}</span>
+      ${rg.summary ? `<span class="db-mv-what">${_ne(rg.summary)}</span>`
+        : fn != null ? `<span class="db-mv-what">${_ne(String(fn))}${unit ? ` ${_ne(unit)}` : ''}</span>` : ''}${
+      rg.say ? `<span class="db-mv-say">${_ne(String(rg.say))}</span>` : ''}</span></li>`;
+  }).join('');
+  const over = (typeof window.ladderOverflow === 'function') ? ladderOverflow(c, id) : 0;
+  let notes = 0;
+  r.rungs.forEach(rg => { try { notes += negoNoteCounts(c, rg.ch, {}, side).total; } catch (_){} });
+  const last = r.rungs[r.rungs.length - 1];
+  const scale = r.topic && typeof rlScaleHtml === 'function' ? rlScaleHtml(r) : '';
+  return `<article class="db-card" data-db-card="${_nea(id)}">
+    <header class="db-card-h"><h3 class="db-card-nm">${_ne(r.label || id)}</h3>${k.move(r)}${
+      last && last.at ? `<span class="db-card-when">${_ne(i18t('ng_board_last_move', { when: when(last.at) }))}</span>` : ''}
+      <span class="sp"></span>${k.verdict(k.v)}</header>
+    ${scale ? `<div class="db-card-scale">${scale}${r.dist != null ? `<p class="db-gapline">${_ne(i18t('ng_board_gap_n', { n: r.dist, unit }))}</p>` : ''}</div>` : ''}
+    <div class="db-two">
+      <section><h4 class="db-h4">${_ne(i18t('ng_board_c_theirs'))}</h4>${theirs}</section>
+      <section><h4 class="db-h4">${_ne(oursHead)}</h4>${ours}</section>
+    </div>
+    <section class="db-pb"><h4 class="db-h4">${_ne(i18t('ng_pb_sec'))}${r.topic && r.topic.category ? ` · ${_ne(String(r.topic.category))}` : ''}</h4>
+      <dl class="db-pb-grid">
+        <div><dt>${_ne(i18t('ng_pb_std'))}</dt><dd>${std}</dd></div>
+        <div><dt>${_ne(i18t('ng_pb_fb'))}</dt><dd>${fbCell}</dd></div>
+        <div><dt>${_ne(i18t('ng_board_col_prec'))}</dt><dd>${prec ? _ne(prec) : `<span class="db-none">${_ne(i18t('ng_board_prec_none'))}</span>`}</dd></div>
+      </dl></section>
+    <section class="db-moves-sec"><h4 class="db-h4">${_ne(i18tn('ng_board_c_moves', r.rungs.length, { n: r.rungs.length }))}</h4>
+      <ol class="db-moves-list">${moves}</ol>
+      ${over ? `<p class="db-none">${_ne(i18t('ng_ladder_capped', { n: over }))}</p>` : ''}</section>
+    <footer class="db-card-f"><span>${_ne(notes ? i18tn('ng_notes_n', notes, { n: notes }) : i18t('ng_notes_none'))}</span><span class="sp"></span>
+      <button type="button" class="ui-btn ui-btn-primary" data-rl-board-go="${_nea(id)}">${_ne(i18t('ng_board_go'))}</button></footer>
+  </article>`;
+}
+/* Repaint the board in place (a pick or a filter): the list keeps its scroll,
+   and a keyboard pick keeps its focus. */
+function rlBoardRepaint(focusPick){
+  if (typeof document === 'undefined') return;
+  const host = document.getElementById('rl-boardpage');
+  const c = rlLadderContract();
+  if (!host || !c) return;
+  const was = document.getElementById('db-list');
+  const keep = was ? was.scrollTop : 0;
+  host.innerHTML = dealBoardHtml(c, 'owner');
+  const now = document.getElementById('db-list');
+  if (now) now.scrollTop = keep;
+  if (focusPick){
+    const b = host.querySelector('.db-irow.is-on');
+    if (b){ b.focus({ preventScroll: true }); if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest' }); }
+  }
+}
+/* The board's one door: the clause, on the paper, with its ladder. */
+function rlBoardGoClause(gid){
+  rlBoardSet(false);
+  if (typeof renderRedline === 'function') renderRedline();
+  rlBoardPaintTitle();
+  const gscope = document.querySelector('.redline-page') || document;
+  if (typeof rlCpSetShown === 'function') rlCpSetShown(gscope, gid);
+  const gsec = document.querySelector(`.rl-clause[data-clause="${CSS.escape(String(gid))}"]`);
+  if (gsec && gsec.scrollIntoView) gsec.scrollIntoView({ block: 'center' });
+}
+/* Arrows move the pick, as on every list inspector. Delegated once on the
+   document, so a board painted any number of times is live. */
+if (typeof document !== 'undefined' && !document._rlBoardKeysWired){
+  document._rlBoardKeysWired = true;
+  document.addEventListener('keydown', ev => {
+    if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+    const row = ev.target && ev.target.closest ? ev.target.closest('[data-rl-board-pick]') : null;
+    if (!row) return;
+    const all = [...document.querySelectorAll('#db-list [data-rl-board-pick]')];
+    const at = all.indexOf(row);
+    const next = all[at + (ev.key === 'ArrowDown' ? 1 : -1)];
+    if (!next) return;
+    ev.preventDefault();
+    rlBoardPickSet(next.getAttribute('data-rl-board-pick'));
+    rlBoardRepaint(true);
+  });
 }
 /* OUR SEAT ONLY. The board reads our playbook and our precedent; it is not
    drawn on the counterparty's page and its door is not either. A PAGE since
@@ -11353,6 +11562,7 @@ function rlCardForgetPins(contractId){
      drawing nothing. */
   if (typeof rlClearReadAt === 'function') rlClearReadAt();
   _rlBoardOpen = false;
+  if (typeof rlBoardPickSet === 'function'){ rlBoardPickSet(null); rlBoardFilterSet('all'); }
   /* AND THE NOTES DRAWER DOES NOT STAY ON THE LAST CONTRACT (26 Sep 2026, the
      overnight clean-up): a note typed there was filed on the other contract,
      and in the External room sent to the other counterparty. */
@@ -19625,14 +19835,27 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
         const bgo = t.closest('[data-rl-board-go]');
         if (bgo){
           ev.preventDefault(); ev.stopPropagation();
-          const gid = bgo.getAttribute('data-rl-board-go');
-          rlBoardSet(false);
-          if (typeof renderRedline === 'function') renderRedline();
-          rlBoardPaintTitle();
-          const gscope = document.querySelector('.redline-page') || document;
-          if (typeof rlCpSetShown === 'function') rlCpSetShown(gscope, gid);
-          const gsec = document.querySelector(`.rl-clause[data-clause="${CSS.escape(String(gid))}"]`);
-          if (gsec && gsec.scrollIntoView) gsec.scrollIntoView({ block: 'center' });
+          rlBoardGoClause(bgo.getAttribute('data-rl-board-go'));
+          return;
+        }
+        /* THE INSPECTOR'S GRAMMAR (3 Oct 2026): a press selects, a second
+           press on the selected row opens the clause. */
+        const bpick = t.closest('[data-rl-board-pick]');
+        if (bpick){
+          ev.preventDefault(); ev.stopPropagation();
+          const pid = bpick.getAttribute('data-rl-board-pick');
+          if (bpick.getAttribute('aria-current') === 'true'){ rlBoardGoClause(pid); return; }
+          rlBoardPickSet(pid);
+          rlBoardRepaint(ev.detail === 0);
+          return;
+        }
+        const bf = t.closest('[data-rl-board-f]');
+        if (bf){
+          ev.preventDefault(); ev.stopPropagation();
+          const fk = bf.getAttribute('data-rl-board-f');
+          rlBoardFilterSet(fk === _rlBoardFilter ? 'all' : fk);
+          rlBoardPickSet(null);
+          rlBoardRepaint(false);
           return;
         }
         const memo = t.closest('[data-rl-board-memo]');
@@ -20318,6 +20541,7 @@ if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml,
   rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
   rlPlaybookSecHtml, rlScaleHtml, rlFigureSecHtml, rlNotesSecHtml, rlLadderTailHtml,
   rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard,
+  dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
   negoRichBody, negoFlatBody,

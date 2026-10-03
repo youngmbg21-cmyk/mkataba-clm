@@ -20039,3 +20039,16 @@ a worktree. Five failures, two piles.
 - **A ranked list has no net saying the ranking is a SET.** F381 (6) pins one
   adjacency, so an insertion anywhere else in `ALERT_KINDS` is unguarded. A
   claim over the whole order would have caught this in the first run.
+
+## Noticed, not fixed (3 Oct 2026, building the Deal board inspector)
+
+- **A refresh with the Deal board open lands on the paper, not the board.**
+  `_rlBoardOpen` (and now the board's pick and filter) is not part of
+  `rlPlace`, so "a refresh lands at the same spot" does not hold for it.
+- **The clause panel's "Your playbook" section still cuts fallback wording**
+  at 48 characters (`rlPlaybookSecHtml`) and still draws a Walk-away row
+  that can only say "—". The owner's "no walk-away" ruling was given for the
+  Deal board only.
+- **f293 (the renewal cliff) is red on unmodified main today (3 Oct 2026):**
+  two claims about which quarter a contract lands in fail at e290e2a too.
+  Looks like a test whose answer depends on the day it runs.
