@@ -86,14 +86,21 @@ describe('F184 (1) — Negotiate is a place and not a tab in the room', () => {
      among them, whatever else is — and the count is read off the list rather
      than typed, which is this rulebook's own rule: pin the relation, not the
      number, or the next tab costs a test edit for nothing. */
-  test('ROOM_TABS carries no Negotiate, and the room’s own four still lead it', () => {
+  test('ROOM_TABS carries no Negotiate, and the room’s own tabs are still in order', () => {
     const w = buildWorld({ contractView: true });
     /* join, not deepEqual: the world runs in its own realm, so its Array is not
        this realm's Array and a strict deep-equal fails on the constructor. */
     const keys = w.win.ROOM_TABS.map(t => t[0]);
     assert.ok(!keys.includes('redline'), 'Negotiate is a place, not a tab');
-    assert.equal(keys.slice(0, 3).join(','), 'terms,docs,sign',
-      'and the tabs that were always here are where they were');
+    /* RE-POINTED IN PLACE 4 Oct 2026: Where we are joined the row second, so
+       the three that were always here are no longer the first three. What the
+       claim was about is their ORDER relative to each other, which is
+       unchanged — and the Overview still leads, which is what roomOpenOnTerms
+       lands on. */
+    assert.equal(keys[0], 'terms', 'the Overview still leads, and the landing with it');
+    const ix = k => keys.indexOf(k);
+    assert.ok(ix('terms') < ix('docs') && ix('docs') < ix('sign') && ix('sign') < ix('history'),
+      'and the tabs that were always here are still in the order a contract\'s life runs in');
     assert.ok(keys.includes('history'), 'the trail is still one of them');
   });
 

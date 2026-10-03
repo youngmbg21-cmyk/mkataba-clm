@@ -9926,6 +9926,58 @@
   .m-ctab{color:var(--color-neutral-600);}
   .m-ctab.on{color:var(--color-text);}
 
+  /* ═══ WHERE THE DEAL STANDS (idea 15, 4 Oct 2026) ═══
+     The one page every party reads, drawn inside the application here and as
+     a standalone document by the server at the public link. IN HERE it wears
+     the product's own tokens; out there every value is a literal, because a
+     document served on its own carries no :root. The two DRAW alike and the
+     reading behind them is the same function. */
+  .ds-sheet{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);padding:var(--s-4) var(--s-5) var(--s-4);}
+  .ds-eyebrow{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.1em;text-transform:uppercase;color:var(--color-accent-700);}
+  .ds-h1{font-family:var(--font-heading);font-size:var(--t-page);font-weight:var(--w-strong);line-height:1.25;margin:5px 0 8px;}
+  .ds-parties{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px;}
+  .ds-pch{font-size:var(--t-meta);border:1px solid var(--color-divider);border-radius:999px;padding:1px 10px;color:var(--color-neutral-700);}
+  .ds-pch.is-ours{border-color:var(--color-accent-300);background:var(--color-accent-50);}
+  .ds-upd{font-size:var(--t-meta);color:var(--color-neutral-500);margin:0;}
+  /* THE OWNER'S OWN LINE, and the reason it is a LINE and not a strip: a new
+     band needs the owner's word first, and the head says the same thing for
+     less (Young's own rule, 26 Aug 2026). */
+  .ds-own{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:6px;}
+  .ds-own b{color:var(--color-accent-700);font-weight:var(--w-strong);}
+  .ds-own .sep{color:var(--color-neutral-400);}
+  .ds-j{list-style:none;display:flex;margin:18px 0 0;padding:0;}
+  .ds-j li{flex:1;position:relative;padding-right:12px;min-width:0;}
+  .ds-j li::after{content:"";position:absolute;left:13px;right:12px;top:5px;height:2px;background:var(--color-divider);}
+  .ds-j li:last-child::after{display:none;}
+  .ds-j li.is-done::after{background:var(--color-accent-600);}
+  .ds-dot{display:block;width:12px;height:12px;border-radius:50%;border:2px solid var(--color-neutral-300);
+    background:var(--color-surface);position:relative;z-index:1;box-sizing:border-box;}
+  .ds-j li.is-done .ds-dot{background:var(--color-accent-600);border-color:var(--color-accent-600);}
+  .ds-j li.is-now .ds-dot{border-color:var(--st-amber-fg);box-shadow:0 0 0 3px var(--st-amber-bg);}
+  .ds-j b{display:block;font-size:var(--t-body);font-weight:var(--w-strong);margin-top:8px;}
+  .ds-j li.is-now b{color:var(--st-amber-fg);}
+  .ds-j span{display:block;font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:1px;}
+  .ds-move{display:flex;flex-wrap:wrap;gap:26px;background:var(--surface-2);border:1px solid var(--color-divider);
+    border-radius:var(--radius);padding:11px 15px;margin:16px 0;}
+  .ds-move b{display:block;font-size:var(--t-micro);letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500);font-weight:var(--w-title);margin-bottom:2px;}
+  .ds-move > span > span{font-size:var(--t-card);font-weight:var(--w-label);}
+  .ds-move .ds-warn{color:var(--st-amber-fg);}
+  .ds-cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+  @media (max-width:760px){ .ds-cols{grid-template-columns:1fr;} .ds-j{flex-direction:column;gap:10px;} .ds-j li::after{display:none;} }
+  .ds-h{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin:0 0 6px;}
+  .ds-h-late{margin-top:18px;}
+  .ds-said{margin:0;font-size:var(--t-body);}
+  .ds-li{display:flex;gap:8px;font-size:var(--t-body);padding:5px 0;align-items:flex-start;border-bottom:1px solid var(--color-divider);}
+  .ds-li:last-child{border-bottom:none;}
+  .ds-li i{font-style:normal;display:block;color:var(--color-neutral-600);font-size:var(--t-meta);margin-top:2px;}
+  .ds-o{width:9px;height:9px;border-radius:50%;border:2px solid var(--st-amber-fg);flex:none;margin-top:5px;box-sizing:border-box;}
+  .ds-tick{flex:none;color:var(--color-accent-600);font-size:var(--t-meta);line-height:1.6;}
+  .ds-quiet{color:var(--color-neutral-500);}
+  .ds-late{display:flex;gap:12px;font-size:var(--t-meta);padding:4px 0;}
+  .ds-late > span{color:var(--color-neutral-500);flex:none;width:92px;}
+  .ds-foot{margin-top:18px;border-top:1px solid var(--color-divider);padding-top:11px;font-size:var(--t-micro);color:var(--color-neutral-500);line-height:1.6;}
+
   /* ═══ APPROVALS & SIGNING (20 Sep 2026, step 10) — the reference's table:
      mono refs, name over counterparty, a micro uppercase head, the late
      count in ruby, the verb at the right wall; the card at the card corner. */

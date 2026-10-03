@@ -297,6 +297,13 @@ Tests: f354, f355, f359, f369, signers-and-party-verify.
 - The ⋯ menu rows say what they do; the history is ONE trail, NEWEST FIRST on the tab only (`roomHistoryEvents` stays oldest first), day over time (`histWhen`), a ring and a line, `R1` round chip.
 Tests: f91, f148, f170, f184, f198, f241, f278, f301, f380, room-head-fold-verify, history-timeline-verify.
 
+## WHERE THE DEAL STANDS — ONE PAGE EVERY PARTY READS (js/dealstands.js, idea 15, 4 Oct 2026)
+
+- THE PAGE IS THE OVERLAP, NOT THE SUM: a fact is on it only if it can be shown to EVERY party — never the review, who on our side was asked, any party's notes, money not put to all, advice, or ANY PERSON'S NAME (a third party that only signs has never been told who argues on our side). NO SEAT WORD: whose move is a PARTY NAME (`dealStands`), never you/them.
+- `dealStands(c)` is the ONE reading (`dsLive`/`dsOpen` drop superseded and parked; `dsSettled`/`dsPoints` name CLAUSES not CHG ids; `dsLately` says the side and the act). Reads `c.changes`/`c.negotiation` RAW — `negoChanges`/`negoProgress`/`negoRound` run `negoInit` and would CREATE a negotiation on imported signed paper. Spends nothing: no route, no model, which is what lets it be served to a stranger.
+- `standsHtml(c,{head})` is the ONE in-app builder (`.ds-*`, room tab `stands` SECOND so `roomOpenOnTerms` is untouched; `paintStandsPane` paints the slot on arrival). A standalone copy at the public link carries literal values only. `opts.head` is the seam the owner's link line goes through — EMPTY until the link is built, because a hook nothing fills is a false guard (f232).
+Tests: f451, deal-stands-verify.
+
 ## THE DOCUMENT TAB, AND THE TWO COPIES (js/pages.js)
 
 - A clean read: `docFillable(c)` — a Draft keeps editable blanks; from Under Review, `readOnlyDocHtml`. `docBody` dispatches (upload → `uploadDocBody`, executed → `frozenDocBody`, stored wording → `redlineDocBody`, else template); two builders every body uses: `docPaperHeadHtml` and `rlPaperFootHtml`. `clauseFrontSplit` + `docPaperFrontHtml` give the Document tab the negotiate page's own head.

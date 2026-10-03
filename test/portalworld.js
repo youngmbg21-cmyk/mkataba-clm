@@ -38,6 +38,7 @@ const MODULES = [
   'js/docxwrite.js',
   'js/versioning.js',
   'js/discuss.js',
+  'js/dealstands.js',   // where the deal stands: one reading, three surfaces
   'js/negotiation.js',
   'js/section.js',
   'js/precedent.js', 'js/ladder.js',

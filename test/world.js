@@ -56,6 +56,7 @@ const MODULES = [
      byte-identical. Before the funnel, because a decision is recorded
      against a party. */
   'js/parties.js',
+  'js/dealstands.js',   // where the deal stands: one reading, three surfaces
   'js/docx.js',
   'js/docxwrite.js',
   'js/versioning.js',
