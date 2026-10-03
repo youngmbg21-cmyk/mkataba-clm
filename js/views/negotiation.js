@@ -7992,6 +7992,11 @@ function dealBoardCardHtml(c, r, side, k){
   const id = String(r.clauseId);
   const unit = r.unit || '';
   const words = html => `<div class="rl-cp-src db-words">${html}</div>`;
+  /* ONLY THE PARAGRAPHS THE REDLINE TOUCHES (Young, 3 Oct 2026: "Only include
+     the clause or subclause in question as in the paragraph impacted by the
+     redline"). `changedOnly` is the open card's own reading
+     (redlineShownBlocks), so the board and the card show the same paragraphs. */
+  const marked = ch => words(rlChangeWordingHtml(ch, { side, changedOnly: true }));
   const when = at => (at && typeof negoWhenFull === 'function') ? negoWhenFull(at) : '';
   const whoOf = rg => {
     const mine = (rg.side === 'counterparty') === (side === 'counterparty');
@@ -8005,22 +8010,32 @@ function dealBoardCardHtml(c, r, side, k){
   const unsent = rg => typeof window.ladderUnsent === 'function' && ladderUnsent(c, rg, side);
   /* THEIRS: the last thing they asked for that is still a position. */
   const theirs = r.theirs
-    ? `<p class="db-who">${whoOf(r.theirs)}</p>${words(rlChangeWordingHtml(r.theirs.ch, { side }))}${why(r.theirs.ch, 'ng_why_they_asked')}`
+    ? `<p class="db-who">${whoOf(r.theirs)}</p>${marked(r.theirs.ch)}${why(r.theirs.ch, 'ng_why_they_asked')}`
     : `<p class="db-none-say">${_ne(i18t('ng_board_c_none_theirs'))}</p>`;
   /* OURS: what this clause says on our side now — the agreed rung once one
      is, our last standing move, else the wording before anybody moved. */
   const base = (typeof window.ladderBaseText === 'function') ? ladderBaseText(r.rungs) : '';
-  const plain = t => words(`<p>${_ne(String(t || ''))}</p>`);
+  /* THE WORDING NOBODY ON OUR SIDE HAS MOVED, cut to the same paragraphs: the
+     ones the reference move touches, as they stood before it (the move's own
+     ops read without their insertions). Where no move says which paragraphs,
+     the whole wording is drawn rather than a guess. */
+  const plain = t => {
+    const ref = r.theirs || r.top || r.rungs[r.rungs.length - 1];
+    const blocks = (ref && ref.ch && typeof window.redlineShownBlocks === 'function')
+      ? redlineShownBlocks(rlChangeOps(ref.ch), { changedOnly: true }) : [];
+    const was = blocks.map(g => g.filter(o => o.op !== 'ins').map(o => o.text).join('')).filter(x => x.trim());
+    return words(was.length ? was.map(x => `<p>${_ne(x)}</p>`).join('') : `<p>${_ne(String(t || ''))}</p>`);
+  };
   let oursHead = i18t('ng_board_c_ours'), ours;
   if (r.state === 'settled' && r.accepted){
     oursHead = i18t('ng_base_agreed');
-    ours = `<p class="db-who">${whoOf(r.accepted)}</p>${words(rlChangeWordingHtml(r.accepted.ch, { side }))}`;
+    ours = `<p class="db-who">${whoOf(r.accepted)}</p>${marked(r.accepted.ch)}`;
   } else if ((r.state === 'refused' || r.state === 'quiet') && !r.ours){
     oursHead = i18t('ng_rung_agreed');
     ours = plain(base);
   } else if (r.ours){
     ours = `<p class="db-who">${whoOf(r.ours)}${unsent(r.ours) ? ` · ${_ne(i18t('ng_rung_not_sent'))}` : ''}</p>${
-      words(rlChangeWordingHtml(r.ours.ch, { side }))}${why(r.ours.ch, 'ng_board_your_reason')}`;
+      marked(r.ours.ch)}${why(r.ours.ch, 'ng_board_your_reason')}`;
   } else {
     ours = `<p class="db-who">${_ne(i18t('ng_board_as_drafted_words'))}</p>${plain(base)}`;
   }

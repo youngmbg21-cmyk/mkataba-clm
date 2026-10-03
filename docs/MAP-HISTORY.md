@@ -24639,3 +24639,11 @@ What was built:
 - Refused by the owner and absent: a Walk-away column; Accept · Counter · Reject on the board (the Redlines column's acts; the board is not a second door onto them).
 - `ng_board_note`, `ng_board_col_walk`, `ng_board_col_rungs`, `ng_board_col_fb`, `ng_board_col_clause`, `ng_board_col_std`, `ng_board_col_theirs`, `ng_board_col_ours`, `ng_board_col_gap`, `ng_board_col_move`, `ng_board_sorted_cap` and the `.db-t` family are STALE (keys kept inert in both books; `ng_board_col_prec` is live as the card's "Settled before").
 Tests: f313 (40)–(42) (red at the parent), ladder-verify 6b–6h and 20c re-pointed in place with the ruling beside them (6e now reaches the clause by the second press, on the clause the old first row opened, so stage 11's panel state is unchanged).
+
+## THE DEAL BOARD DRAWS ONLY THE PARAGRAPH THE REDLINE TOUCHES (Young, 3 Oct 2026)
+
+Young, over a live board on MK-400 clause 19 (Indemnities) where "Your position now" drew 19.2 and 19.3 untouched under a change to 19.1: *"Do not included the subclauses as you are adding irrelevant information. Only include the clause or subclause in question as in the paragraph impacted by the redline."*
+- Both marked wordings on the card (their last ask, our position, the agreed rung) pass `changedOnly: true` to `rlChangeWordingHtml` — the open card's own reading since 2 Sep (`redlineShownBlocks`), so the board and the card show the same paragraphs; a change that touches no paragraph still falls back to the whole (the existing rule).
+- The as-drafted wording (we have not moved) is cut to the paragraphs the reference move touches (their standing ask, else the top move, else the last rung), as they stood before it — the move's own ops read without their insertions. With no move to say which, the whole wording is drawn rather than a guess.
+- The playbook's fallback is the library's own clause and is still drawn whole.
+Tests: f313 (43) (red at the parent).
