@@ -20139,3 +20139,13 @@ Three things, and only one of them was about width.
 - nego-redesign-verify 1: "with a hairline under it and the band measure
   inside it" reports `box-shadow: none` on the negotiate head. Already red on
   unmodified main. Left alone.
+
+## 4 Oct 2026 — Noticed, not fixed (while building ONE LIST, ONE PLACE)
+
+- On Home's Your work card, a contract can appear twice: once as a waiting row
+  ("Renew or exit — Fleet Servicing") and again inside Copilot's own
+  "Renewals 2" row for the same contract. They are different things — one is a
+  decision you owe, the other is something Copilot has drafted for it — and the
+  sub-lines differ, but it reads as a repeat. Suppressing the Copilot row per
+  contract would make its count lie, so this needs the owner's word on what
+  should give. Left alone.

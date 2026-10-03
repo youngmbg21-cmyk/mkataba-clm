@@ -1343,6 +1343,19 @@ function hmRenewalDue(c){
 }
 /* A renewal decision inside this many days is urgent — ruby rather than
    amber. One number for Home's card and the side panel's checklist. */
+/* ---- A GIVEN NOTE IS LATE ONCE THE DAY ASKED FOR HAS PASSED ----
+   ONE RULE, TWO ASKERS, exactly as hmReviewLate and HM_SOON_DAYS are: the
+   book-wide list (hmDecisionItems) and the side panel's checklist
+   (needsYouOf) both ask this and neither keeps its own copy of "today". It is
+   the only date on either list a PERSON typed — every other one is worked out
+   — so it is the only one that can be wrong, and a note stays a quiet row
+   until it is actually late. The earliest day asked for leads, because that is
+   the one that falls due first. */
+function hmNoteDue(mine){
+  const due=(mine||[]).map(x=>(x.given&&x.given.due)||'').filter(Boolean).sort()[0]||null;
+  const today=(typeof todayISO==='function')?todayISO():'';
+  return { due, late:!!(due&&today&&due<today) };
+}
 const HM_SOON_DAYS = 30;
 /* A review past the day it was asked for by. TODAY IS THE READER'S OWN DAY
    (26 Sep 2026, the overnight clean-up): "overdue" was asked against the UTC
@@ -1417,6 +1430,32 @@ function hmDecisionItems(S, deskRows){
       tag:i18t('dk_stale_tag',{n:(window.deskWaitDays&&deskWaitDays(x.stale)!=null)?deskWaitDays(x.stale):x.stale.days}),   /* the checklist's own count (deskWaitDays) */
       verb:i18t('act_open'),
     })),
+    /* A NOTE A COLLEAGUE HANDED THIS READER (idea 16, built 3 Oct 2026; this
+       row added 4 Oct when Home became one list). The checklist beside a
+       contract has carried this since the day giving was built; the book-wide
+       list did not, so a note handed to you on Friday was findable only if you
+       already knew which contract to open — which is the whole fault one list
+       exists to fix.
+
+       READ RAW, and it is the BELL'S OWN WALK: negoNotesForMe reads c.thread
+       and c.changes directly, so counting starts no negotiation. In server
+       mode the list is light and carries neither, so this answers nothing
+       there rather than guessing — the same honest silence the bell keeps.
+
+       THE DAY IS THE ONLY TYPED ONE ON THIS CARD. Every other row's date is
+       worked out; a colleague typed this one, so it is the only one that can
+       be wrong, and the row stays quiet until it is actually late. */
+    ...(window.negoNotesForMe ? (cs||[]).map(c=>{
+      let mine=[]; try{ mine=negoNotesForMe(c, me)||[]; }catch(_){ mine=[]; }
+      if(!mine.length) return null;
+      const d=hmNoteDue(mine);
+      return { kind:'note', cid:c.id, urgent:d.late,
+        txt:esc(i18tn('al_note_mine',mine.length,{n:mine.length,who:(mine[0].m&&mine[0].m.who)||''}))
+          +' — '+strong(c.name),
+        meta:esc(c.counterparty||i18t('home_no_counterparty')),
+        tag:d.due?fmtDDay(String(d.due)):i18t('rv_home_open'),
+        verb:i18t('home_verb_answer') };
+    }).filter(Boolean) : []),
     /* SOMEBODY IS ASKING TO JOIN A NEGOTIATION YOU LEAD — one colleague
        waiting on one answer from this reader by name, the shape of every
        other row here. */
@@ -1501,10 +1540,9 @@ function needsYouOf(c){
      be wrong, and it stays a quiet row until it is actually late. */
   take(()=>{ const mine=(window.negoNotesForMe?negoNotesForMe(c, me):[])||[];
     if(!mine.length) return;
-    const today=(typeof todayISO==='function')?todayISO():'';
-    const due=mine.map(x=>(x.given&&x.given.due)||'').filter(Boolean).sort()[0]||null;
-    out.push({ kind:'note', urgent:!!(due&&today&&due<today), n:mine.length,
-      who:(mine[0].m&&mine[0].m.who)||'', due }); });
+    const d=hmNoteDue(mine);
+    out.push({ kind:'note', urgent:d.late, n:mine.length,
+      who:(mine[0].m&&mine[0].m.who)||'', due:d.due }); });
   take(()=>hmMySignings(one).forEach(x=>out.push({ kind:'sign', urgent:false, n:x.n||0 })));
   take(()=>{ const r=hmRenewalDue(c);
     if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))
@@ -1886,5 +1924,5 @@ function renderDashboard(){
   setActiveNav('dashboard');
 }
 
-Object.assign(window,{renderDashboard,hmAgentsCardHtml,hmDashSlices,hmDecisionItems,HM_DD_ROWS,hmRenewalDue,HM_SOON_DAYS,hmReviewLate,needsYouOf,NEEDS_YOU_ORDER,needsYouGo,hmStageTone,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
+Object.assign(window,{renderDashboard,hmAgentsCardHtml,hmDashSlices,hmDecisionItems,HM_DD_ROWS,hmRenewalDue,HM_SOON_DAYS,hmReviewLate,hmNoteDue,needsYouOf,NEEDS_YOU_ORDER,needsYouGo,hmStageTone,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
   KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});
