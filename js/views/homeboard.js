@@ -281,7 +281,7 @@ function hbAgentsData(sinceIso){
    and stage bar, every panel, and the map when you flip to it. The count is
    the focus card's own set — a question (q:) or the list an answer came back
    with (ls), and anything dug deeper beneath it — never the book's own doors
-   (a figure, a stage, a panel row), which dig without recounting. Closing the
+   (a figure, a stage, a panel row), which dig WITHIN the count (hbDig). Closing the
    dig-in, the chip's × or "all contracts" brings the whole book back. What
    moved and the watches stay on the whole book. */
 function hbRootKey(key){ let k = String(key || ''); while (/^(qg|qm|qv):/.test(k)) k = k.replace(/^(qg|qm|qv):/, '').split(HB_KEY_SEP)[0]; return k; }
@@ -408,7 +408,7 @@ function hbDigData(key, lens){
     /* the whole book's stage opens Contracts ON THAT STAGE (regGoFiltered), the
        door the old Home's stage bar was; a lens's stage is a named set */
     return { key, kind: 'list', crumb: s.word ? i18t(s.word) : a, title: s.word ? i18t(s.word) : a, ids: s.ids, n: s.n,
-      stage: (lens || 'all') === 'all' ? a : null, chart: { mode: 'groups', by: 'folder' }, fixed: ['status'] };
+      stage: (lens || 'all') === 'all' && !hbCountIds(lens) ? a : null, chart: { mode: 'groups', by: 'folder' }, fixed: ['status'] };
   }
   /* DIGGING INTO A CHART (3 Oct 2026): a bar is the parent's set narrowed to
      one group (qg), a column its set in one month (qm). The parent's key is
@@ -491,7 +491,7 @@ function hbDigData(key, lens){
       chart: F.chart && (F.chart.pic || F.chart.split || F.chart.measure) ? F.chart : { mode: 'groups', by: 'status' }, fixed: [] };
   }
   if (k === 'cp'){
-    const cs = hbBook(lens).filter(c => String(c.counterparty || '') === a);
+    const cs = hbCounted(lens).filter(c => String(c.counterparty || '') === a);
     return { key, kind: 'list', crumb: a, title: a, ids: cs.map(c => c.id), n: cs.length, chart: { mode: 'groups', by: 'status' }, fixed: ['counterparty'] };
   }
   if (k === 'mo'){
@@ -1968,9 +1968,20 @@ function hbShowOnMap(ids, label){
   if (!same && typeof addLens === 'function'){ intel.lenses = intel.lenses.filter(l => l.action !== 'filter' || l.hb); addLens({ ids: list, label: label || i18tn('hb_n_contracts', list.length, { n: list.length }), action: 'filter' }); }
   hbMount();
 }
-function hbDig(key, deeper){
+/* A BOOK DOOR PRESSED WHILE COUNTING OPENS WITHIN THE COUNT (Young, 4 Oct
+   2026: "when I press any one of the cards, the numbers return to the whole
+   list"): a figure, a stage or a panel row is drawn off the counted set, so
+   its press nests under the count — Board › Juno › Live contracts — instead
+   of starting a fresh trail that drops Juno. A typed question still starts
+   afresh (`keep` is the press's, never the asker's). */
+function hbDig(key, deeper, keep){
   const s = hbS();
-  s.path = deeper ? (s.path || []).concat(key).slice(-HB_PATH_MAX) : [key];
+  const path = s.path || [];
+  const ck = (keep && !deeper && !/^(q:|ls$)/.test(hbRootKey(key)) && hbCountLabel(s.lens)) ? hbCountKey() : null;
+  const at = ck ? path.lastIndexOf(ck) : -1;
+  s.path = deeper ? path.concat(key).slice(-HB_PATH_MAX)
+    : at >= 0 ? path.slice(0, at + 1).concat(key === ck ? [] : [key]).slice(-HB_PATH_MAX)
+    : [key];
   hbSave(); _hbFocusNew = true; _hbWatchForm = null;
   if (s.face !== 'board'){ s.face = 'board'; hbSave(); hbMount(); return; }
   hbPaintBoard({ jump: 'focus' });
@@ -2294,7 +2305,7 @@ function hbOnClick(e){
   if ((el = on('[data-hb-ai]'))){ if (typeof openAI === 'function') openAI(el.getAttribute('data-hb-ai')); return; }
   if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); const k = el.getAttribute('data-hm-agent');
     if (k && typeof agSetSel === 'function') agSetSel(k); setView('agents'); return; }
-  if ((el = on('[data-hb-dig]'))){ if (el.disabled) return; hbDig(el.getAttribute('data-hb-dig'), !!el.closest('.hb-dig')); return; }
+  if ((el = on('[data-hb-dig]'))){ if (el.disabled) return; hbDig(el.getAttribute('data-hb-dig'), !!el.closest('.hb-dig'), true); return; }
   if (on('#hero-draft')){ e.stopPropagation(); if (typeof openNewMenu === 'function') openNewMenu(on('#hero-draft')); else { const nb = document.getElementById('cmd-new'); if (nb) nb.click(); } }
 }
 function hbOnSubmit(e){
@@ -2339,7 +2350,7 @@ function hbOnKey(e){
   if (e.key === 'Enter' || e.key === ' '){
     /* an SVG piece is not a button: Enter and Space press it as one would */
     const el = e.target && e.target.closest ? e.target.closest('.hb-svg [data-hb-dig]') : null;
-    if (el){ e.preventDefault(); hbDig(el.getAttribute('data-hb-dig'), !!el.closest('.hb-dig')); }
+    if (el){ e.preventDefault(); hbDig(el.getAttribute('data-hb-dig'), !!el.closest('.hb-dig'), true); }
     return;
   }
   if (e.key !== 'Escape') return;

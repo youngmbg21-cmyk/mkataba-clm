@@ -20128,3 +20128,4 @@ Three things, and only one of them was about width.
 ## Noticed, not fixed (4 Oct 2026, the chart family)
 - CLAUDE.md is 99 KB against its own "keep it under about 80 KB" line — it was 98 KB before this session's one-line HOME edit. A trim is the owner's call (each condensation was owner-approved); not touched.
 - theme-tokens-verify is 20 of 40 at unmodified main too (every `--light` page: "every colour unchanged"); the census is re-recorded only by someone owning a palette change, so it stands. Not this change's.
+- Noticed, not fixed (4 Oct 2026): home-board-verify 7c/7d (the colleague's Home shows the given panel; the giver sees the seen tick) failed once in nine runs on a busy machine; 0 of 4 on main. Looks like a timing wait (10 s for the colleague's sign-in and gift load), not the board code.

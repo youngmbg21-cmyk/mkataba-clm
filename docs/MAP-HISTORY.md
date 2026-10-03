@@ -24901,3 +24901,13 @@ THE MONTHLY PICTURE. "How many live contracts did we have each month" is not on 
 COPILOT. The graph route's tool may return `chart` {pic, split, date, measure, trend}; `graphChartClean` keeps only the board's own words (never a number). On the board the typed words win and Copilot fills the parts they did not say (`hbFoundChart`).
 
 MEASURED AFTER: 18 of the 20 questions draw the picture asked for, free; the other two ("top 10 contracts by value as bars", "a bubble chart of what needs attention") go to Copilot and land in the picture their words named. Tests: f448 (the phrase book — 41 questions with their four parts, 7 that keep their old road — the dropdowns, the columns, the trend rules, the snapshot states and the stream wall, Copilot's chart), f447 updated to the Picture menu, home-board-verify 13b/13c/15a–15g, home-page-verify 6.
+
+## HOME — THE BOARD AND THE MAP: a card pressed while counting stays inside the count (4 Oct 2026)
+
+Young: *"When I am looking at Juno contracts the top 6 cards show the numbers as it should but when i press any one of the cards, the numbers return to the whole list of contracts in the platform."*
+
+Cause: the count is the focus card's set (`hbCountKey` scans the trail for a `q:`/`ls` root). A press on a Your-book figure, a stage bar or a panel row called `hbDig(key, false)`, which REPLACED the trail with `[key]` — so the question left the trail and the count with it; the six figures went back to the whole book and the list under the card was the whole book's.
+
+Fix: the press carries `keep` (`hbDig(key, deeper, keep)` from the click and the SVG keyboard press). While a count stands (`hbCountLabel` non-empty) and the key is not itself a question or an answer list, the trail is cut back to the count key and the press is added after it: Board › Juno › Live contracts. A typed question still starts afresh (hbAsk, the contract card and `hbShowFound` pass no `keep`). Two readings that still read the whole book under a count were brought in: a stage's "Open these" opens the counted list instead of every contract at that stage (`stage` is set only when nothing is counted), and a counterparty row (`cp:`) reads `hbCounted`.
+
+Tests: f448 (6) "a card pressed while counting Juno opens WITHIN Juno" (red at the parent: "f:live nests under the count"); home-board-verify 14d (asks "Show me all Juno contracts", presses Live contracts, the six stay on Juno, the trail names Juno). Photographed: 14d-card-within-the-count.png.
