@@ -19959,3 +19959,50 @@ Noticed, not fixed
 - Noticed, not fixed: signers-and-party-verify fails on unmodified main ("the picker offers a read-only link") — it is on KNOWN_RED.
 - Noticed, not fixed: share-recipient-verify and auto-triage-verify still try to press fold heads (`[data-sec-toggle$=".record"]`, `.copilot`) that no longer exist; both guard the press and pass.
 - Noticed, not fixed: f293 (the renewal cliff, 2 tests) and f322 3f (the requests clock median) fail on unmodified main today (1 Oct 2026) — both read the calendar; not touched by the Overview change.
+
+## 3 Oct 2026 — ideas 16, 1 and 3 from the teamwork review (Young: "Build idea number 16 and idea number 1. Finally build idea number 3.")
+
+Built: a note can be GIVEN to a colleague with an optional day (f443); a TICK
+that says "seen" on any note (f444); the approval email's link LANDS ON the
+decision rather than the tab that contains it (f445).
+
+The owner was asked one question before any code was written — whether the
+approval email should carry a one-time code so Approve works without signing
+in — and chose the plain link. So HaTi's standing rule that nothing secret
+goes in an inbox addressed to its own staff is UNCHANGED, and idea 3 became a
+destination rather than a credential. f445 (3) pins the absence.
+
+### Defects found on the way
+
+1. A WHOLE-OBJECT COMPARE FAILS ACROSS THE HARNESS'S REALM, twice (f443, f444).
+   `assert.deepStrictEqual` on a value built inside buildWorld's jsdom window
+   fails on the PROTOTYPE while printing two identical objects — the diff reads
+   actual and expected with the same keys and the same values, which is the
+   most misleading shape a failure can take. Both were my own test faults, not
+   the product's. Compare field by field, or a length.
+
+2. A REGEX FOR "code" MATCHES "encodeURIComponent" (f445). The claim "nothing
+   secret joined the link" was red against correct code. Word boundaries.
+
+3. PLAYWRIGHT CANNOT CLICK A NOTE IN THE DRAWER: the panel's own sticky header
+   intercepts the press after the row is scrolled under it, and the retry loop
+   then spends the full 30s timeout and aborts the file. Dispatched in the page
+   instead, which is this codebase's standing answer.
+
+### Noticed, not fixed
+
+- test/chromium/notes-two-rooms-verify.js IS RED ON MAIN — 32/34 — and is not
+  on run-all's KNOWN_RED list, so it reads as a regression when it is not.
+  PROVED by running the file in a worktree at unmodified origin/main: the same
+  two fail there. Its chat-door block is stale after the shell rebuild of
+  29–30 Sep, which moved the Chat door out of the shell bar into the contract's
+  acts row: "and it sits between Copilot and the bell" measures #cmd-ai and
+  #hdr-notify against a button that is no longer between them, and the
+  page.click('#hdr-chat') after it times out. The new sections added today were
+  placed ABOVE that block so they are reached and exercised.
+- The same file carries a THIRD failure that main never reaches, because the
+  click above aborts the run first: a page.evaluate in the chat-door section
+  throws "Cannot read properties of undefined (reading 'replace')". Same cause,
+  same stale block.
+- Six older sites call PORTAL_MODE() as a function behind a side guard while it
+  is a boolean — unchanged from the 14 Sep note, still not swept.
