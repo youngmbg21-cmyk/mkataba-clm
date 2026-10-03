@@ -20006,3 +20006,36 @@ destination rather than a credential. f445 (3) pins the absence.
   same stale block.
 - Six older sites call PORTAL_MODE() as a function behind a side guard while it
   is a boolean — unchanged from the 14 Sep note, still not swept.
+
+## 3 Oct 2026 — the three builds' own nets (addendum to this run)
+
+The full suite was run against this branch and against unmodified origin/main in
+a worktree. Five failures, two piles.
+
+### Found and fixed — mine
+- **f385 (6) — a typed glyph in a live button.** The new "Seen" tick led with a
+  typed check mark. Its three neighbours on the same row are plain words; the
+  `is-on` class and `aria-pressed` already carry the state. Glyph removed.
+- **F381 (6) — a ranked relation broken by an insertion.** The bell's order pins
+  `desk-join` immediately beside `review-mine` ("the join beside the other
+  colleague waiting"). `note-mine` had been put between them. Moved after the
+  join; the reason is written beside the entry so the next reader does not
+  repeat it.
+- **f186 (A) — a net pinning a parameter list.** It asserted
+  `const contractUrl = (req, contractId, tab) =>` exactly, and the builder grew
+  an optional `go` for the approval link's landing. Re-pointed to the NAME. The
+  claim is that one builder exists and this route uses it, which a parameter
+  list does not say. The same lesson f178 paid for, in a new costume.
+
+### Noticed, not fixed
+- **f293 (2 subtests) is red at unmodified main** — "a contract lands in the
+  quarter its decision falls in" and "a crowded quarter is one well above the
+  average". Proved by running the file in a worktree at origin/main. Not in
+  KNOWN_RED. Left red; it was red before this session.
+- **test/chromium/notes-two-rooms-verify.js is red at unmodified main (32/34).**
+  Its chat-door block presses `#hdr-chat`, which the 29–30 Sep shell rebuild
+  moved. Proved in the same worktree. Not in KNOWN_RED. The two new sections
+  added for this run were placed ABOVE that block so they actually run.
+- **A ranked list has no net saying the ranking is a SET.** F381 (6) pins one
+  adjacency, so an insertion anywhere else in `ALERT_KINDS` is unguarded. A
+  claim over the whole order would have caught this in the first run.
