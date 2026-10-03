@@ -20112,3 +20112,15 @@ Three things, and only one of them was about width.
   parity.html has it set while the panel it drives believes it is on our seat.
   Nothing here depends on it any more, but a future reading that consults the
   global rather than its caller's `side` will meet this again.
+## Noticed, not fixed (3 Oct 2026, building the Deal board inspector)
+
+- **A refresh with the Deal board open lands on the paper, not the board.**
+  `_rlBoardOpen` (and now the board's pick and filter) is not part of
+  `rlPlace`, so "a refresh lands at the same spot" does not hold for it.
+- **The clause panel's "Your playbook" section still cuts fallback wording**
+  at 48 characters (`rlPlaybookSecHtml`) and still draws a Walk-away row
+  that can only say "—". The owner's "no walk-away" ruling was given for the
+  Deal board only.
+- **f293 (the renewal cliff) is red on unmodified main today (3 Oct 2026):**
+  two claims about which quarter a contract lands in fail at e290e2a too.
+  Looks like a test whose answer depends on the day it runs.

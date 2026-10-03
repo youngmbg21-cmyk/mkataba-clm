@@ -600,4 +600,85 @@ describe('f313 — the clause ladder', () => {
     assert.ok(!/room-check[^\n]*!important/.test(css), 'and not with !important');
   });
 
+  /* ---------- THE DEAL BOARD AS AN INSPECTOR (Young picked it, 3 Oct 2026:
+     "Build Inspector, no Accept/Counter/Reject, no walk-away") ----------
+     The nine-column table cut wording at 40 characters and the fallback at 32,
+     drew a Walk-away column that could only say "—" and counted moves without
+     listing them. Red at the parent: the old board has no pick rows, cuts the
+     wording and carries the Walk-away column. */
+  test('(40) the board is a list of every point and the WHOLE of one point', async () => {
+    const w = await buildWorld({ ladder: true, negotiationView: true });
+    const c = book();
+    const long = 'The cap is eighteen (18) months of fees, save that the cap shall not apply to any breach of the confidentiality obligations in Clause 5.';
+    c.changes[2].newText = long;
+    const html = w.win.dealBoardHtml(c, 'owner');
+    const picks = html.match(/data-rl-board-pick="[^"]+"/g) || [];
+    assert.deepEqual(picks.map(x => x.split('"')[1]), ['cl_4', 'cl_5', 'cl_a'], 'one row per point argued, needs-you first');
+    assert.match(html, /<article class="db-card" data-db-card="cl_4">/, 'the first point that needs you is the one shown');
+    assert.ok(html.includes(long), 'our wording is drawn whole, never cut short');
+    assert.ok(html.includes('The cap is six (6) months of fees.'), 'their last ask is drawn whole');
+    assert.ok(!/…/.test(html), 'nothing on the board is cut off with an ellipsis');
+    assert.equal((html.match(/class="db-mv /g) || []).length, 3, 'every move on the clause is listed, not counted');
+    assert.match(html, /A full season\./, '…each with the reason the record carries for it');
+  });
+
+  test('(41) no walk-away and no Accept, Counter or Reject — the clause is its one door', async () => {
+    const w = await buildWorld({ ladder: true, negotiationView: true });
+    const html = w.win.dealBoardHtml(book(), 'owner');
+    assert.ok(!/walk-away/i.test(html), 'HaTi invents no walk-away and the board draws none');
+    assert.ok(!/data-nego-accept|data-nego-reject|data-rl-cp-editor-row|data-rl-send|data-rl-retract/.test(html),
+      'the Redlines column\'s acts are not on the board');
+    assert.match(html, /data-rl-board-go="cl_4"/, 'the card opens its clause');
+    const nego = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'negotiation.js'), 'utf8');
+    const press = nego.slice(nego.indexOf("const bpick = t.closest('[data-rl-board-pick]');"), nego.indexOf("const bf = t.closest('[data-rl-board-f]');"));
+    assert.match(press, /aria-current'\) === 'true'\)\{ rlBoardGoClause\(pid\)/, 'a second press on the shown row opens the clause');
+  });
+
+  test('(42) the verdict is arithmetic on the playbook\'s own figures, and the counts are its filters', async () => {
+    const w = await buildWorld({ ladder: true, negotiationView: true });
+    const topic = { key: 'liability', dir: 'lower-is-worse', unit: 'months', clause: 'x' };
+    w.win.ladderFallback = () => ({ text: 'eighteen (18) months', figure: 18 });
+    const v = (theirFig, std) => w.win.dealBoardVerdict({ state: 'awaiting', theirs: {}, theirFig, topic, unit: 'months',
+      standard: std == null ? null : { op: '>=', value: std } });
+    assert.equal(v(24, 24).k, 'std', 'at the standard');
+    assert.equal(v(20, 24).k, 'in', 'within the fallback');
+    const out = v(6, 24);
+    assert.equal(out.k, 'out');
+    assert.match(out.text, /12 months/, 'beyond by the distance to the fallback');
+    assert.equal(w.win.dealBoardVerdict({ state: 'settled' }).k, 'agreed');
+    assert.equal(w.win.dealBoardVerdict({ state: 'awaiting', theirs: {}, theirFig: null }).k, 'words');
+    w.win.rlBoardFilterSet('done');
+    const html = w.win.dealBoardHtml(book(), 'owner');
+    assert.deepEqual((html.match(/data-rl-board-pick="[^"]+"/g) || []).map(x => x.split('"')[1]), ['cl_a'], 'a filter narrows the list');
+    w.win.rlBoardFilterSet('them');
+    assert.equal((w.win.dealBoardHtml(book(), 'owner').match(/data-rl-board-pick=/g) || []).length, 3,
+      'a filter with nothing behind it is not pressable and falls back to everything');
+    w.win.rlBoardFilterSet('all');
+  });
+
+  /* ONLY THE PARAGRAPH THE REDLINE TOUCHES (Young, 3 Oct 2026, over a board
+     drawing 19.2 and 19.3 untouched under a change to 19.1: "Only include the
+     clause or subclause in question as in the paragraph impacted by the
+     redline"). Red at the parent: the card drew the whole clause. */
+  test('(43) the board draws only the sub-clause a redline touches, on both sides', async () => {
+    const w = await buildWorld({ ladder: true, negotiationView: true });
+    const c = book();
+    const keep1 = '19.1 The Supplier shall keep records.';
+    const keep3 = '19.3 Each party shall notify the other promptly.';
+    const theirs = c.changes[3];
+    Object.assign(theirs, { clauseId: 'cl_19', clauseLabel: 'Clause 19 — Indemnities',
+      oldText: keep1 + '\n19.2 The cap is three (3) years.\n' + keep3,
+      newText: keep1 + '\n19.2 The cap is five (5) years.\n' + keep3,
+      ops: [{ op: 'keep', text: keep1 + '\n19.2 The cap is ' }, { op: 'del', text: 'three (3)' },
+        { op: 'ins', text: 'five (5)' }, { op: 'keep', text: ' years.\n' + keep3 }] });
+    w.win.rlBoardPickSet('cl_19');
+    const html = w.win.dealBoardHtml(c, 'owner');
+    w.win.rlBoardPickSet(null);
+    const card = html.slice(html.indexOf('<article class="db-card"'));
+    assert.match(card, /data-db-card="cl_19"/, 'the picked clause is on the card');
+    assert.match(card, /five \(5\)/, 'their redlined sub-clause is drawn');
+    assert.match(card, /19\.2 The cap is three \(3\) years\./, 'our side shows the same sub-clause as drafted');
+    assert.ok(!card.includes(keep1) && !card.includes(keep3), 'the sub-clauses nobody touched are not drawn');
+  });
+
 });
