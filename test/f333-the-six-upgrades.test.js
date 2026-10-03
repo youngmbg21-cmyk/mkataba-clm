@@ -350,8 +350,13 @@ describe('f333 (9) two clauses to an outside adviser', () => {
   const SRV = read('server/server.js'), CORE = read('js/core.js'), ASL = read('js/adviserlink.js');
 
   test('9a a fifth purpose, on both hosts', () => {
-    assert.match(SRV, /const SHARE_PURPOSES = \['negotiate', 'sign', 'view', 'history', 'advise'\];/);
-    assert.match(CORE, /\['sign','negotiate','view','history','advise'\]\.includes\(p\)/);
+    /* RE-POINTED IN PLACE 4 Oct 2026: 'status' joined the list (idea 15), and
+       it is the one purpose whose link opens no copy of the contract at all.
+       The claim here is about the ADVISER purpose being on the list the server
+       validates against, so it is asked of that rather than of the whole
+       literal — which would cost an edit here for every later purpose. */
+    assert.match(SRV, /const SHARE_PURPOSES = \[[^\]]*'advise'[^\]]*\];/);
+    assert.match(CORE, /\[[^\]]*'advise'[^\]]*\]\.includes\(p\)/);
   });
 
   test('9b it is NOT read-only, and that is the point — a note is the whole product of it', () => {

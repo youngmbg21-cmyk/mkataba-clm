@@ -219,3 +219,89 @@ describe('f451 (6) — both books', () => {
       'a page read by every party at one address cannot say "your turn"');
   });
 });
+
+/* ============================================================
+   PART TWO — the public address, and the walls around it
+   ============================================================
+   A status link is the one purpose whose address does not open HaTi at all:
+   the server builds the page from the stored record on every open. So three
+   things have to be true at once, and each of them is a place a leak would
+   otherwise be invisible until a counterparty found it:
+     · the row behind the address holds no copy of the contract — only its id,
+       because the server has to know which contract the address is for;
+     · the route that serves every OTHER kind of link refuses this token
+       outright, rather than handing over the working payload;
+     · and the page itself is a standalone document, so every value in it is a
+       literal: a document served outside the application carries no :root. */
+describe('f451 (7) — the status link is not a copy of the contract', () => {
+  const SRV = read('server/server.js');
+  const CORE = read('js/core.js');
+  const srvCode = code(SRV);
+
+  test('status is a purpose both halves know', () => {
+    assert.match(srvCode, /const SHARE_PURPOSES = \[[^\]]*'status'\]/);
+    assert.match(code(CORE), /SHARE_PURPOSE = p => \(\[[^\]]*'status'\]/);
+  });
+
+  test('the browser builds the id and nothing more', () => {
+    const cc = code(CORE);
+    const from = cc.indexOf("purpose)==='status'");
+    const early = cc.slice(from, cc.indexOf('\n', cc.indexOf('contract:{ id:c.id }', from)));
+    assert.ok(from > 0, 'buildSharePayload stops early for a status link');
+    assert.match(early, /contract:\{ id:c\.id \}/,
+      'the id, so the server knows which contract the address is for');
+    for (const field of ['body', 'changes', 'thread', 'upload', 'fields'])
+      assert.ok(!early.includes(field + ':'), `${field} must not travel with a status link`);
+  });
+
+  test('and the server reduces a hand-built one to the same shape', () => {
+    assert.match(srvCode, /purp === 'status' && payload\.contract\) payload\.contract = \{ id: shareId \}/,
+      'the wall belongs to the route every path goes through, not to the browser');
+  });
+
+  test('the payload route refuses the token rather than serving it', () => {
+    assert.match(srvCode, /if \(shareIsStatus\(s\)\) return res\.status\(403\)/,
+      'without this it hands over the counterparty\'s whole working copy');
+  });
+
+  test('the page is served at its own address, and only for a status token', () => {
+    assert.match(srvCode, /app\.get\('\/deal\/:token'/);
+    /* The route's own body: it is served AFTER the Requests tracker, whose own
+       check evaluates the slice between its stage map and its route — so
+       nothing of this may sit between those two (f390 3b found that the hard
+       way). The end is this route's own closing brace. */
+    const from = srvCode.indexOf("app.get('/deal/:token'");
+    const route = srvCode.slice(from, srvCode.indexOf('\n});', from));
+    assert.match(route, /!shareIsStatus\(s\)\) return res\.status\(404\)/,
+      'a negotiation token at this address is not a status page');
+    assert.match(route, /s\.revoked_at\) return gone/, 'switched off is switched off, straight away');
+    assert.match(route, /shareExpired\(s\)\) return gone/);
+  });
+
+  test('the standalone page carries no var() and no :root', () => {
+    const page = SRV.slice(SRV.indexOf('function dealPageHtml'), SRV.indexOf("app.get('/deal/:token'"));
+    assert.ok(!/var\(--/.test(page), 'a document served outside the application has no stylesheet to read');
+    assert.ok(!/:root/.test(page));
+  });
+
+  test('and it takes no input — nothing to press, nothing to abuse', () => {
+    const page = SRV.slice(SRV.indexOf('function dealPageHtml'), SRV.indexOf("app.get('/deal/:token'"));
+    for (const tag of ['<form', '<input', '<button', '<script'])
+      assert.ok(!page.includes(tag), `${tag} on a page anybody holding the address can open`);
+  });
+
+  test('the server\'s reading keeps every rule the browser\'s keeps', () => {
+    /* THE WHOLE BLOCK, not the one function: the raw reads it is built out of
+       (srvDsLive and its siblings) sit above it and are as much part of the
+       reading as the function that calls them. */
+    const s = srvCode.slice(srvCode.indexOf("const DEAL_STEPS = ['shared'"), srvCode.indexOf('function signerRouteFor'));
+    /* ch.authorSide is the SIDE and is allowed; ch.author is the PERSON and is
+       not, and one is a prefix of the other — so this asks on a word boundary
+       rather than on a substring, which is how the first run of this check
+       failed on its own reading. */
+    for (const name of [/\bc\.review\b/, /\bc\.thread\b/, /\bresolvedBy\b/, /\bch\.author\b(?!Side)/])
+      assert.ok(!name.test(s), `${name} has no business in a page with no side`);
+    assert.match(s, /DEAL_STEPS\.map/, 'the same four steps');
+    assert.match(s, /status !== 'superseded' && x\.status !== 'countered'/, 'the same live set');
+  });
+});

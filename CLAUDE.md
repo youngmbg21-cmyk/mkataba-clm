@@ -302,7 +302,8 @@ Tests: f91, f148, f170, f184, f198, f241, f278, f301, f380, room-head-fold-verif
 - THE PAGE IS THE OVERLAP, NOT THE SUM: a fact is on it only if it can be shown to EVERY party — never the review, who on our side was asked, any party's notes, money not put to all, advice, or ANY PERSON'S NAME (a third party that only signs has never been told who argues on our side). NO SEAT WORD: whose move is a PARTY NAME (`dealStands`), never you/them.
 - `dealStands(c)` is the ONE reading (`dsLive`/`dsOpen` drop superseded and parked; `dsSettled`/`dsPoints` name CLAUSES not CHG ids; `dsLately` says the side and the act). Reads `c.changes`/`c.negotiation` RAW — `negoChanges`/`negoProgress`/`negoRound` run `negoInit` and would CREATE a negotiation on imported signed paper. Spends nothing: no route, no model, which is what lets it be served to a stranger.
 - `standsHtml(c,{head})` is the ONE in-app builder (`.ds-*`, room tab `stands` SECOND so `roomOpenOnTerms` is untouched; `paintStandsPane` paints the slot on arrival). A standalone copy at the public link carries literal values only. `opts.head` is the seam the owner's link line goes through — EMPTY until the link is built, because a hook nothing fills is a false guard (f232).
-Tests: f451, deal-stands-verify.
+- THE STATUS LINK is the ONE purpose whose address opens no application: `GET /deal/:token` serves a standalone page the server builds from the STORED record (`srvDealStands`, pinned alike to `dealStands` by status-link-verify 4d). Three walls: the browser sends `contract:{id}` ALONE, the server reduces a hand-built payload to the same shape, and `GET /api/shares/:token` refuses a status token 403. The owner's line (`standsOwnerHeadHtml`, painted after `dsLoadShares`) is a LINE in the head, never a strip; Copy link and Turn off are its two acts.
+Tests: f451, deal-stands-verify, status-link-verify.
 
 ## THE DOCUMENT TAB, AND THE TWO COPIES (js/pages.js)
 
