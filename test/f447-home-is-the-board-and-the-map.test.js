@@ -282,6 +282,63 @@ describe('F447 (3) — the reader, without a model', () => {
     assert.equal(by('contracts where nobody owns them'), 'attention');
     assert.equal(by('contracts with Sendy'), 'groups');
   });
+  /* THE COUNT FOLLOWS THE QUESTION (Young: "the top constant 6 cards should
+     also change based on the results of the latest output" → "Build it") */
+  test('the six figures count the question\'s set while it is open; the book\'s own doors never recount; closing brings the whole book back', () => {
+    const w = both();
+    const whole = w.hbBookData('all');
+    const key = 'q:Show me all Siginon contracts';
+    const set = w.hbDigData(key, 'all').ids;
+    w.hbS().path = [key]; w.hbSave();
+    assert.equal(w.hbCountKey(), key);
+    const d = w.hbBookData('all');
+    assert.deepEqual([...d.figs.live.ids].sort(), [...set].sort(), 'live counts the set');
+    assert.ok(d.figs.live.n < whole.figs.live.n, 'fewer than the whole book');
+    assert.equal(w.hbBookData('all', { whole: true }).figs.live.n, whole.figs.live.n, 'the whole book on request');
+    /* deeper beneath the question still counts */
+    w.hbS().path = [key, 'qg:' + key + '§status§Signed']; w.hbSave();
+    assert.equal(w.hbCountKey(), 'qg:' + key + '§status§Signed');
+    assert.ok(w.hbBookData('all').figs.live.ids.every(id => set.includes(id)));
+    /* a contract opened from the list keeps the list's count */
+    w.hbS().path = [key, 'c:MK-1']; w.hbSave();
+    assert.equal(w.hbCountKey(), key);
+    /* the book's own doors dig without recounting */
+    for (const p of [['f:live'], ['st:Signed'], ['f:live', 'qg:f:live§status§Signed'], ['cp:Siginon'], []]){
+      w.hbS().path = p; w.hbSave();
+      assert.equal(w.hbCountKey(), null, JSON.stringify(p));
+      assert.equal(w.hbBookData('all').figs.live.n, whole.figs.live.n, JSON.stringify(p));
+    }
+  });
+  test('the count reaches every panel and the map; what moved and the watches stay on the whole book', () => {
+    const w = both();
+    const key = 'q:contracts with Sendy';
+    const set = w.hbDigData(key, 'all').ids;
+    w.hbS().path = [key]; w.hbSave();
+    const P = w.hbPanelData('pay', 'all');
+    const ids = new Set(set);
+    P.sides.forEach(sd => sd.buckets.forEach(b => b.ids.forEach(id => assert.ok(ids.has(id), 'a panel counts only the set'))));
+    w.intel.lenses = []; w.hbLensOnMap();
+    const L = w.intel.lenses.find(l => l.id === 'hbcount');
+    assert.ok(L && L.hb && L.action === 'filter', 'the map narrows to the set as the board\'s own lens');
+    assert.deepEqual([...L.ids].sort(), [...set].sort());
+    w.hbS().path = []; w.hbSave(); w.hbLensOnMap();
+    assert.ok(!w.intel.lenses.find(l => l.id === 'hbcount'), 'and lets go when the dig-in closes');
+    const src = read('js/views/homeboard.js');
+    const watches = src.slice(src.indexOf('function hbWatchAlerts('), src.indexOf('function hbWatchAlerts(') + 400);
+    assert.match(watches, /hbBookData\('all', \{ whole: true \}\)/, 'a watch reads the whole book');
+    assert.match(src, /hbSeenTick\(hbBookData\('all', \{ whole: true \}\)\)/, 'the baseline is the whole book');
+    assert.match(src, /base && !hbCountKey\(\)\) \? hbMoved/, 'what moved draws nothing while counting a set');
+  });
+  test('the head\'s chip says what is counted, and its × closes the dig-in', () => {
+    const w = both();
+    assert.match(w.hbCountChipHtml(), /hb_lens_all|All contracts/);
+    w.hbS().path = ['q:contracts with Sendy']; w.hbSave();
+    const h = w.hbCountChipHtml();
+    assert.match(h, /is-count/); assert.match(h, /Sendy/); assert.match(h, /data-hb-crumb="-1"/);
+    assert.doesNotMatch(h, /is-all/, 'no "All contracts" beside a counted set');
+    w.hbS().lens = 'suppliers';
+    assert.match(w.hbCountChipHtml(), /data-hb-lens="all"/, 'the side lens keeps its own chip');
+  });
   test('Enter on a focused piece digs, as a press would', () => {
     const w = both();
     const key = 'q:Show me all Siginon contracts';

@@ -171,8 +171,8 @@ function hbOverdue(cs){
    Home's own reading (hmDashSlices counts the same predicates: live is not
    Declined, the ninety days are effectiveExpiry's across agreements, past is
    contractExpired's) — f447 pins the two equal. */
-function hbBookData(lens){
-  const cs = hbBook(lens || 'all');
+function hbBookData(lens, opts){
+  const cs = (opts && opts.whole) ? hbBook(lens || 'all') : hbCounted(lens || 'all');
   const live = cs.filter(c => c.status !== 'Declined');
   const money = hbMoneyOk();
   const agreements = (typeof agreementsIn === 'function') ? agreementsIn(cs) : cs;
@@ -271,10 +271,43 @@ function hbAgentsData(sinceIso){
   return { ready: D.ready || 0, rows, done };
 }
 
+/* ---------------- THE COUNT FOLLOWS THE QUESTION ----------------
+   Young, 3 Oct 2026: "the top constant 6 cards should also change based on
+   the results of the latest output" → "Build it" (4 Oct). Whatever the latest
+   question answered with is what the board counts: Your book's six figures
+   and stage bar, every panel, and the map when you flip to it. The count is
+   the focus card's own set — a question (q:) or the list an answer came back
+   with (ls), and anything dug deeper beneath it — never the book's own doors
+   (a figure, a stage, a panel row), which dig without recounting. Closing the
+   dig-in, the chip's × or "all contracts" brings the whole book back. What
+   moved and the watches stay on the whole book. */
+function hbRootKey(key){ let k = String(key || ''); while (/^(qg|qm|qv):/.test(k)) k = k.replace(/^(qg|qm|qv):/, '').split(HB_KEY_SEP)[0]; return k; }
+function hbCountKey(){
+  const path = hbS().path || [];
+  for (let i = path.length - 1; i >= 0; i--){ const r = hbRootKey(path[i]); if (r === 'ls' || /^q:/.test(r)) return path[i]; }
+  return null;
+}
+let _hbCounting = false;
+function hbCountIds(lens){
+  const key = hbCountKey(); if (!key || _hbCounting) return null;
+  _hbCounting = true;
+  try { const D = hbDigData(key, lens || 'all'); return (D && D.kind === 'list') ? new Set(D.ids) : null; }
+  finally { _hbCounting = false; }
+}
+function hbCounted(lens){ const ids = hbCountIds(lens); const cs = hbBook(lens); return ids ? cs.filter(c => ids.has(c.id)) : cs; }
+function hbCountLabel(lens){ const key = hbCountKey(); return key ? hbCrumbOf(key, lens || 'all') : ''; }
+function hbCountChipHtml(){
+  const s = hbS(); const ck = hbCountKey();
+  const count = ck ? `<span class="hb-lens-chip is-count">${_hbE(hbCountLabel(s.lens))}<button type="button" data-hb-crumb="-1" aria-label="${_hbE(i18t('hb_count_x'))}" title="${_hbE(i18t('hb_count_x'))}">${_hbX}</button></span>` : '';
+  const lens = s.lens === 'all' ? (ck ? '' : `<span class="hb-lens-chip is-all">${_hbE(i18t('hb_lens_all'))}</span>`)
+    : `<span class="hb-lens-chip">${_hbE(i18t('hb_lens_' + s.lens))}<button type="button" data-hb-lens="all" aria-label="${_hbE(i18t('hb_lens_x'))}" title="${_hbE(i18t('hb_lens_x'))}">${_hbX}</button></span>`;
+  return _hbE(i18t('hb_counting')) + ' ' + count + lens;
+}
+
 /* ---------------- the panels a question puts on the board ---------------- */
 function hbLensIds(lens){ return new Set(hbBook(lens).map(c => c.id)); }
 function hbPanelData(kind, lens){
-  const ids = hbLensIds(lens);
+  const ids = new Set(hbCounted(lens).map(c => c.id));
   const d = { kind, lens };
   if (kind === 'obl'){
     let open = [];
@@ -305,7 +338,7 @@ function hbPanelData(kind, lens){
     }).filter(x => x.n > 0).slice(0, 6);
     d.avgRounds = st ? st.avgRounds : null; d.avgDays = st ? st.avgDays : null; d.whole = lens === 'all';
   } else if (kind === 'ren'){
-    const cs = hbBook(lens).filter(c => c.status !== 'Declined');
+    const cs = hbCounted(lens).filter(c => c.status !== 'Declined');
     const rows = [];
     cs.forEach(c => {
       let w = null; try { w = (typeof renewalWindow === 'function') ? renewalWindow(c) : null; } catch (_){ w = null; }
@@ -324,7 +357,10 @@ function hbPanelData(kind, lens){
     try { P = (typeof payTermsData === 'function') ? payTermsData() : null; } catch (_){ P = null; }
     const want = lens === 'suppliers' ? ['supplier'] : lens === 'customers' ? ['customer'] : ['customer', 'supplier'];
     d.sides = want.map(k => {
-      const S = (P && P[k]) || { rows: [], over: [] };
+      const S0 = (P && P[k]) || { rows: [], over: [] };
+      /* the counted set: the side's rows narrowed, the average re-read off them (by value where it carries any, else plainly) */
+      const S = hbCountKey() ? { rows: S0.rows.filter(r => ids.has(r.id)), over: S0.over.filter(r => ids.has(r.id)), avgDays: null } : S0;
+      if (S !== S0 && S.rows.length){ const w = S.rows.reduce((a, r) => a + (r.value || 0), 0); S.avgDays = Math.round(w > 0 ? S.rows.reduce((a, r) => a + r.days * (r.value || 0), 0) / w : S.rows.reduce((a, r) => a + r.days, 0) / S.rows.length); }
       const buckets = (window.PAY_BUCKETS || []).map((b, i) => ({ i, label: b.k, ids: S.rows.filter(r => r.bucket === b.k).map(r => r.id) }));
       return { key: k, n: S.rows.length, avg: S.avgDays != null ? S.avgDays : null,
         std: (S.rows[0] && S.rows[0].standard) || null, over: S.over.length, overIds: S.over.map(r => r.id), buckets };
@@ -658,8 +694,6 @@ function hbHelloInner(){
 }
 function hbHeadHtml(groupSel){
   const s = hbS();
-  const lens = s.lens === 'all' ? `<span class="hb-lens-chip is-all">${_hbE(i18t('hb_lens_all'))}</span>`
-    : `<span class="hb-lens-chip">${_hbE(i18t('hb_lens_' + s.lens))}<button type="button" data-hb-lens="all" aria-label="${_hbE(i18t('hb_lens_x'))}" title="${_hbE(i18t('hb_lens_x'))}">${_hbX}</button></span>`;
   const face = f => `<button type="button" role="tab" data-hb-face="${f}" aria-selected="${s.face === f}">${_hbE(i18t('hb_face_' + f))}</button>`;
   const scr = m => `<button type="button" data-hb-screen="${m}" aria-pressed="${s.screen === m}">${_hbE(i18t('hb_screen_' + m))}</button>`;
   return `<style>#page-head{background:var(--color-surface)}</style>
@@ -668,7 +702,7 @@ function hbHeadHtml(groupSel){
     <div class="hb-seg" role="tablist" aria-label="${_hbE(i18t('hb_show'))}">${face('board')}${face('explorer')}</div>
     <span class="hb-grow"></span>
     <label class="hb-groupby" id="hb-groupby"${s.face === 'explorer' ? '' : ' hidden'}>${_hbE(i18t('hb_group_by'))} ${groupSel || ''}</label>
-    <span class="hb-counting">${_hbE(i18t('hb_counting'))} ${lens}</span>
+    <span class="hb-counting">${hbCountChipHtml()}</span>
     <button type="button" class="ui-btn ui-btn-sm" id="hb-present" title="${_hbE(i18t('hb_present_tip'))}">${_hbE(i18t('hb_present'))}</button>
     <div class="hb-seg hb-scr" role="group" aria-label="${_hbE(i18t('hb_screen_label'))}" title="${_hbE(i18t('hb_screen_tip'))}">${scr('dark')}${scr('light')}</div>
     <button id="hero-draft" class="hm-primary">${(typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5', 2) : '+'} ${_hbE(i18t('home_draft_new'))}</button>
@@ -707,7 +741,8 @@ function hbBookHtml(d, moved, since){
   const tot = d.stages.reduce((a, s) => a + s.n, 0);
   const bar = tot ? `<div class="hb-stagebar">${d.stages.map(s => s.n ? `<button type="button" style="flex-grow:${s.n};background:${_hbE(s.tone)}" data-hb-dig="st:${_hbE(s.k)}" title="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}" aria-label="${_hbE((s.word ? i18t(s.word) : s.k) + ': ' + i18tn('home_map_n_contracts', s.n, { n: _hbN(s.n) }))}"></button>` : '').join('')}</div>
     <div class="hb-stagekey">${d.stages.map(s => `<button type="button" ${s.n ? `data-hb-dig="st:${_hbE(s.k)}"` : 'disabled'}><i style="background:${_hbE(s.tone)}"></i>${_hbE(s.word ? i18t(s.word) : s.k)} <b>${_hbN(s.n)}</b></button>`).join('')}</div>` : '';
-  const sub = [i18t('hb_lens_' + d.lens), since ? i18t('hb_book_since', { when: hbDayWords(since) }) : ''].filter(Boolean).join(' · ');
+  const count = hbCountLabel(d.lens);
+  const sub = [count, (count && d.lens === 'all') ? '' : i18t('hb_lens_' + d.lens), since ? i18t('hb_book_since', { when: hbDayWords(since) }) : ''].filter(Boolean).join(' · ');
   const unsided = d.unsided ? `<div class="hb-quiet">${_hbE(i18tn('hb_unsided', d.unsided, { n: _hbN(d.unsided) }))}</div>` : '';
   return `<section class="hb-card hb-book" id="hb-book"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_book'))}</span><span class="hb-cs">${_hbE(sub)}</span>
     ${hbS().prep === 'closed' ? `<button type="button" class="hb-link" data-hb-prep="open" title="${_hbE(i18t('hb_prep_back'))}">${_hbE(i18t('hm_ag_title'))} <span class="hb-pill">${_hbN(hbAgentsData(null).ready)}</span></button>` : ''}</header>
@@ -1121,14 +1156,14 @@ function hbDigBodyHtml(D, lens){
   return '';
 }
 function hbWatchFormHtml(k){
-  const d = hbBookData('all'); const v = hbFigNumber(d, k);
+  const d = hbBookData('all', { whole: true }); const v = hbFigNumber(d, k);
   return `<form class="hb-inl" data-hb-watch-form="${k}">${_hbE(i18t('hb_watch_tell', { what: i18t('hb_f_' + k) }))}
     <select name="dir" aria-label="${_hbE(i18t('hb_watch_dir'))}"><option value="above">${_hbE(i18t('hb_watch_above'))}</option><option value="below">${_hbE(i18t('hb_watch_below'))}</option></select>
     <input type="number" name="n" value="${Math.round(v)}" min="0" aria-label="${_hbE(i18t('hb_watch_line'))}">
     <button type="submit" class="hb-btn is-primary">${_hbE(i18t('hb_watch_go'))}</button><button type="button" class="hb-btn" data-hb-watch-cancel>${_hbE(i18t('hb_cancel'))}</button>
     <span class="hb-quiet hb-wide">${_hbE(i18t('hb_watch_note'))}</span></form>`;
 }
-function hbWatchFired(w){ const v = hbFigNumber(hbBookData('all'), w.k); return w.dir === 'above' ? v > w.n : v < w.n; }
+function hbWatchFired(w){ const v = hbFigNumber(hbBookData('all', { whole: true }), w.k); return w.dir === 'above' ? v > w.n : v < w.n; }
 function hbFocusHtml(){
   const s = hbS(); const path = s.path || []; if (!path.length) return '';
   const D = hbDigData(path[path.length - 1], s.lens);
@@ -1274,14 +1309,14 @@ function hbPanelHtml(p, lens, gift){
 function hbBoardHtml(){
   const s = hbS();
   const d = hbBookData(s.lens);
-  const base = hbSeenTick(hbBookData('all'));
-  const moved = (s.lens === 'all' && base) ? hbMoved(d, base) : null;
+  const base = hbSeenTick(hbBookData('all', { whole: true }));
+  const moved = (s.lens === 'all' && base && !hbCountKey()) ? hbMoved(d, base) : null;
   const A = hbAgentsData(base && base.at);
   let time = ''; try { time = new Date().toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); } catch (_){}
   const gifts = hbGiftsFor();
   const panels = s.panels.slice().reverse().map(p => hbPanelHtml(p, s.lens, { sent: gifts.sent[p.id] || null })).join('');
   const received = gifts.received.map(g => hbPanelHtml({ id: 'gift:' + g.id, kind: g.kind, split: !!g.split, big: false }, HB_LENSES.includes(g.lens) ? g.lens : 'all', { from: g })).join('');
-  return `<div class="hb-note"><span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span>${_hbE(i18t('hb_counted', { time, lens: i18t('hb_lens_' + s.lens).toLowerCase() }))}</span></div>
+  return `<div class="hb-note"><span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span>${_hbE(i18t('hb_counted', { time, lens: (hbCountLabel(s.lens) ? [hbCountLabel(s.lens), s.lens === 'all' ? '' : i18t('hb_lens_' + s.lens).toLowerCase()].filter(Boolean).join(' · ') : i18t('hb_lens_' + s.lens).toLowerCase()) }))}</span></div>
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
     ${hbFocusHtml()}
@@ -1320,6 +1355,7 @@ function hbPaintBoard(opts){
   const act = document.activeElement;
   const had = (act && host.contains(act)) ? hbFocusKey(act) : null;
   host.innerHTML = hbBoardHtml();
+  hbPaintHead();
   /* an expanded chart takes the room: the dock steps aside, as it does in
      Present, and comes back on the same button */
   const pg = hbPage();
@@ -1346,8 +1382,7 @@ function hbPaintHead(){
   document.querySelectorAll('[data-hb-screen]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-hb-screen') === s.screen)));
   const gb = document.getElementById('hb-groupby'); if (gb) gb.hidden = s.face !== 'explorer';
   const chip = document.querySelector('.hb-counting');
-  if (chip) chip.innerHTML = _hbE(i18t('hb_counting')) + ' ' + (s.lens === 'all' ? `<span class="hb-lens-chip is-all">${_hbE(i18t('hb_lens_all'))}</span>`
-    : `<span class="hb-lens-chip">${_hbE(i18t('hb_lens_' + s.lens))}<button type="button" data-hb-lens="all" aria-label="${_hbE(i18t('hb_lens_x'))}" title="${_hbE(i18t('hb_lens_x'))}">${_hbX}</button></span>`);
+  if (chip){ const h = hbCountChipHtml(); if (chip.innerHTML !== h) chip.innerHTML = h; }
 }
 function hbApplyScreen(){
   const pg = hbPage(); if (!pg) return;
@@ -1404,7 +1439,7 @@ function hbSetFace(f){
   s.face = f; hbSave();
   /* turning to the map is an ARRIVAL, like pressing its tab on Insights was:
      the legend comes in closed (renderIntel's own rule for an arrival) */
-  if (f === 'explorer' && window.intel) intel.legendFolded = true;
+  if (f === 'explorer' && window.intel){ intel.legendFolded = true; hbLensOnMap(); }
   hbMount();
   /* the whole page is drawn again: the pressed half keeps the keyboard */
   if (kb){ const b = document.querySelector(`[data-hb-face="${f}"]`); if (b) try { b.focus({ preventScroll: true }); } catch (_){} }
@@ -1422,8 +1457,9 @@ function hbLensOnMap(){
   if (!window.intel || !Array.isArray(intel.lenses)) return;
   const lens = hbS().lens;
   intel.lenses = intel.lenses.filter(l => !l.hb);
-  if (lens === 'all') return;
-  intel.lenses.push({ id: 'hblens', hb: true, on: true, action: 'filter', label: i18t('hb_lens_' + lens), ids: hbBook(lens).map(c => c.id), badges: null });
+  if (lens !== 'all') intel.lenses.push({ id: 'hblens', hb: true, on: true, action: 'filter', label: i18t('hb_lens_' + lens), ids: hbBook(lens).map(c => c.id), badges: null });
+  const ids = hbCountIds(lens);
+  if (ids) intel.lenses.push({ id: 'hbcount', hb: true, on: true, action: 'filter', label: hbCountLabel(lens), ids: [...ids], badges: null });
 }
 /* SHOW THESE ON THE MAP: Explorer's own lens, lighting the set and dimming
    the rest, then the flip. A lens is added once (addLens' own rule). */
@@ -1433,8 +1469,11 @@ function hbShowOnMap(ids, label){
   /* NARROWED, not lit (the owner, 3 Oct 2026: "I asked for Juno contracts and
      it shows me all these contracts"): the map shows these and nothing else;
      the map's own "Show everything" brings the rest back. */
-  if (typeof addLens === 'function'){ intel.lenses = intel.lenses.filter(l => l.action !== 'filter' || l.hb); addLens({ ids: list, label: label || i18tn('hb_n_contracts', list.length, { n: list.length }), action: 'filter' }); }
   const s = hbS(); s.face = 'explorer'; hbSave();
+  hbLensOnMap();
+  /* the count already narrows the map to this very set: no second chip */
+  const same = intel.lenses.find(l => l.hb && l.id === 'hbcount' && l.ids.length === list.length && l.ids.every(id => list.includes(id)));
+  if (!same && typeof addLens === 'function'){ intel.lenses = intel.lenses.filter(l => l.action !== 'filter' || l.hb); addLens({ ids: list, label: label || i18tn('hb_n_contracts', list.length, { n: list.length }), action: 'filter' }); }
   hbMount();
 }
 function hbDig(key, deeper){
@@ -1494,7 +1533,7 @@ function hbAsk(q){
   if (r.act === 'watch'){
     if ((s.watches || []).length >= HB_WATCH_MAX) return say(_hbE(i18t('hb_watch_full', { n: HB_WATCH_MAX })), { noPaint: true });
     s.watches.push({ k: r.k, dir: r.dir, n: r.n }); hbSave(); hbAlertsChanged();
-    const now = hbFigNumber(hbBookData('all'), r.k);
+    const now = hbFigNumber(hbBookData('all', { whole: true }), r.k);
     return say(_hbE(i18t('hb_watch_said', { what: i18t('hb_f_' + r.k), dir: i18t('hb_watch_' + r.dir), n: r.n })) + ' ' + _hbE(hbWatchFired(s.watches[s.watches.length - 1]) ? i18t('hb_watch_said_now', { n: r.k === 'value' ? _hbM(now) : _hbN(now) }) : i18t('hb_watch_note')));
   }
   if (r.act === 'split'){
@@ -1581,7 +1620,7 @@ function hbShowFound(ids, title){
 function hbWatchAlerts(){
   let s; try { s = hbS(); } catch (_){ return []; }
   if (!s.watches || !s.watches.length) return [];
-  const d = hbBookData('all');
+  const d = hbBookData('all', { whole: true });
   return s.watches.filter(w => { const v = hbFigNumber(d, w.k); return w.dir === 'above' ? v > w.n : v < w.n; }).map(w => {
     const v = hbFigNumber(d, w.k);
     return { k: w.k, text: i18t('hb_watch_alert', { what: i18t('hb_f_' + w.k), now: w.k === 'value' ? _hbM(v) : _hbN(v), dir: i18t('hb_watch_' + w.dir), n: w.k === 'value' ? _hbM(w.n) : _hbN(w.n) }),
@@ -1825,4 +1864,5 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
   hbAsk, hbFigSay, hbPanelSay, hbSuggestions, hbPlaceholder, hbWatchAlerts, hbGiftsFor, hbGiftsLoad, hbGive,
   hbUngive, hbDropGift, hbToolsPaint, hbSetTool, hbInkClear, hbPresent, hbPlace, hbPlacePut, hbOnClick, hbOnSubmit, hbOnKey, hbHelloInner, hbFocusKey, hbShowFound, HB_KEY_SEP, HB_CHART_BARS, HB_CHART_MONTHS, HB_GROUP_FIELDS, hbNextGroup, hbGroupOf, hbGroupLabel, hbGroupWord, hbMonthOf, hbMonthLabel, hbValueBands, hbChartHtml, hbChartBarsHtml, hbChartColsHtml, hbDigViewHtml, hbListFootHtml,
-  HB_CHART_VIEWS, HB_ATTENTION_RE, HB_HUES, hbHueOf, hbStartOf, hbObOpen, hbGroupsOf, hbRingSvg, hbBlocksSvg, hbTimelineSvg, hbBubblesSvg, hbBarsFamily, hbDigView });
+  HB_CHART_VIEWS, HB_ATTENTION_RE, HB_HUES, hbHueOf, hbStartOf, hbObOpen, hbGroupsOf, hbRingSvg, hbBlocksSvg, hbTimelineSvg, hbBubblesSvg, hbBarsFamily, hbDigView,
+  hbRootKey, hbCountKey, hbCountIds, hbCounted, hbCountLabel, hbCountChipHtml });
