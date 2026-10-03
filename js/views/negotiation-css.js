@@ -5972,73 +5972,114 @@ function redlineLayoutCss(){
   .redline-page .rl-notes-row{display:flex;gap:10px;align-items:center;font-size:var(--t-meta);color:var(--color-neutral-600)}
   /* ---- THE DEAL BOARD PAGE (14 Sep 2026) ---- the grid steps aside for it */
   .redline-page.rl-board-on #rl-grid,.redline-page.rl-board-on .rl-turnwrap{display:none}
-  .redline-page .rl-boardpage{flex:1 1 auto;min-height:0;overflow:auto;padding:16px 24px 40px}
+  .redline-page .rl-boardpage{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden;padding:16px 24px 0}
   .redline-page .rl-boardseg.on{background:var(--accent-fill);color:#fff;font-weight:var(--w-title)}
-  .db-sum{display:flex;gap:18px;flex-wrap:wrap;font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 12px;align-items:center}
-  .db-sum b{color:var(--color-text);font-size:var(--t-card);font-weight:var(--w-strong)}
+  ${''/* ---- THE DEAL BOARD AS AN INSPECTOR (Young picked it, 3 Oct 2026) ----
+         A list of every point argued on the left, the whole of one point on
+         the right; each scrolls in its own column so the head line stays put.
+         Nothing is clipped: names wrap, wording is drawn whole. Below 1000px
+         the two stack and the page scrolls as one. */}
+  .db{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;font-size:var(--t-body)}
+  .db-sum{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .db-sum b{color:var(--color-text);font-size:var(--t-card);font-weight:var(--w-strong);margin-right:8px}
   .db-sum .sp{flex:1}
-  .db-t{background:var(--color-surface);border:1px solid var(--color-divider)}
-  .db-t th{padding:10px 12px}
-  .db-t td{padding:11px 12px}
-  .db-t td.db-n{text-align:right;font-variant-numeric:tabular-nums}
-  .db-gap{display:flex;align-items:center;gap:8px;min-width:180px}
-  .db-bar{flex:1;height:6px;background:var(--color-neutral-100);position:relative;margin:0 10px 0 4px;display:block;min-width:80px}
-  .db-bar i{position:absolute;top:-2px;width:10px;height:10px;border-radius:50%;transform:translateX(-50%)}
+  .db-f{height:var(--ctl-h);padding:0 12px;border:1px solid var(--btn-edge,var(--color-divider));border-radius:999px;
+    background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-meta);font-weight:500;
+    white-space:nowrap;display:inline-flex;align-items:center;cursor:pointer;font-variant-numeric:tabular-nums}
+  .db-f:hover{background:var(--nav-well)}
+  .db-f.on{border-color:var(--color-accent-600);background:var(--color-accent-100);color:var(--accent-ink)}
+  .db-f.is-zero{cursor:default;color:var(--color-neutral-500);border-color:var(--color-divider);background:transparent}
+  .db-insp{display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:16px;flex:1 1 auto;min-height:0}
+  .db-list{min-height:0;max-height:100%;overflow:auto;align-self:start;background:var(--color-surface);
+    border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  .db-pane{min-height:0;overflow:auto;padding:0 2px 32px}
+  .db-lg{position:sticky;top:0;z-index:1;display:flex;gap:6px;padding:8px 14px 6px;font-size:var(--t-label);
+    font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);
+    background:var(--color-neutral-100);border-bottom:1px solid var(--color-divider)}
+  .db-lg-n{font-variant-numeric:tabular-nums}
+  .db-irow{display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;font:inherit;color:var(--color-text);
+    background:var(--color-surface);border:0;border-bottom:1px solid var(--color-divider);border-left:3px solid transparent;
+    padding:10px 14px 10px 11px;cursor:pointer}
+  .db-irow:last-child{border-bottom:0}
+  .db-irow:hover{background:var(--nav-well)}
+  .db-irow.is-on{background:var(--color-accent-50);border-left-color:var(--color-accent-600)}
+  .db-irow:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px}
+  .db-ir-top{display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+  .db-ir-nm{font-weight:var(--w-title);font-size:var(--t-meta);min-width:0;overflow-wrap:anywhere}
+  .db-ir-top .db-move{font-size:var(--t-label);flex:none}
+  .db-vd{display:inline-flex;gap:6px;align-items:baseline;font-size:var(--t-label);font-weight:500}
+  .db-vd i{flex:none;width:8px;height:8px;border-radius:2px;background:currentColor;box-sizing:border-box}
+  .db-vd-std,.db-vd-in,.db-vd-agreed{color:var(--st-green-fg)}
+  .db-vd-std i{background:transparent;border:2px solid currentColor}
+  .db-vd-out{color:var(--st-ruby-fg)}
+  .db-vd-words{color:var(--st-steel-fg)}
+  .db-vd-ours,.db-vd-none,.db-vd-back{color:var(--color-neutral-600)}
+  .db-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg)}
+  .db-card-h{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--color-divider)}
+  .db-card-h .sp{flex:1}
+  .db-card-nm{margin:0;font-family:var(--font-heading);font-size:var(--t-card);font-weight:var(--w-strong)}
+  .db-card-when{font-size:var(--t-label);color:var(--color-neutral-600)}
+  .db-card-scale{padding:0 18px 12px;border-bottom:1px solid var(--color-divider)}
+  .db-gapline{margin:26px 0 0;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .db-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-bottom:1px solid var(--color-divider)}
+  .db-two>section{padding:14px 18px;min-width:0}
+  .db-two>section+section{border-left:1px solid var(--color-divider)}
+  .db-h4{margin:0 0 6px;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500)}
+  .db-who{margin:0 0 6px;font-size:var(--t-label);color:var(--color-neutral-600)}
+  .redline-page .db-words{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;color:var(--color-text)}
+  .redline-page .db-words p{margin:0 0 8px}
+  .redline-page .db-words>*:last-child{margin-bottom:0}
+  .db-why{margin:10px 0 0;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .db-why b{color:var(--color-text);font-weight:500}
+  .db-none-say{margin:0;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .db-pb{padding:14px 18px;border-bottom:1px solid var(--color-divider)}
+  .db-pb-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 20px;margin:0}
+  .db-pb-grid dt{font-size:var(--t-label);color:var(--color-neutral-500);margin:0 0 3px}
+  .db-pb-grid dd{margin:0;font-size:var(--t-meta)}
+  .db-pb-grid dd b{font-weight:var(--w-title)}
+  .redline-page .db-pb-grid .db-words{font-size:var(--t-meta);margin-top:4px}
+  .db-pb-note{display:block;color:var(--color-neutral-600);font-size:var(--t-label);margin-top:2px}
+  .db-moves-sec{padding:14px 18px}
+  .db-moves-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .db-mv{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;align-items:baseline}
+  .db-mv-n{font-family:var(--font-code);font-size:var(--t-label);font-weight:var(--w-title);padding:1px 6px;border-radius:var(--radius);text-align:center}
+  .db-mv-you .db-mv-n{background:var(--st-steel-bg);color:var(--accent-ink)}
+  .db-mv-them .db-mv-n{background:var(--st-amber-bg);color:var(--st-amber-fg)}
+  .db-mv-b{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .db-mv-who{font-size:var(--t-label);color:var(--color-neutral-600)}
+  .db-mv-tag{font-weight:var(--w-title);color:var(--color-text)}
+  .db-mv-what{font-size:var(--t-meta)}
+  .db-mv-say{font-size:var(--t-meta);color:var(--color-neutral-600);font-style:italic}
+  .db-card-f{display:flex;gap:10px;align-items:center;padding:10px 18px;border-top:1px solid var(--color-divider);font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .db-card-f .sp{flex:1}
+  .db-empty{font-size:var(--t-body);color:var(--color-neutral-600);margin:0}
+  .db-none{color:var(--color-neutral-500)}
+  .db-foot{font-size:var(--t-label);color:var(--color-neutral-600);margin:12px 2px 0;line-height:1.6}
+  ${''/* THE LIST'S SMALL BAR: their dot amber, yours the accent, the fallback a
+         tick and the ground between the two sides ruby — the page's own two
+         colours again, so a reader who has learned the marks has learned this. */}
+  .db-gap{display:flex;align-items:center;gap:8px;min-width:0}
+  .db-bar{position:relative;flex:1;height:6px;min-width:44px;background:var(--color-neutral-100);border-radius:1px;display:block}
+  .db-bar b{position:absolute;top:0;height:6px;background:var(--st-ruby-bg)}
+  .db-bar i{position:absolute;top:-2px;width:10px;height:10px;border-radius:50%;transform:translateX(-50%);font-style:normal}
   .db-bar i.t{background:var(--st-amber-dot)}
   .db-bar i.y{background:var(--color-accent-600)}
   .db-bar i.s{width:2px;height:12px;border-radius:0;top:-3px;background:var(--color-neutral-500)}
-  .db-bar b{position:absolute;top:0;height:6px;background:var(--st-ruby-bg)}
-  .db-gap-n,.db-gap-w{white-space:nowrap;color:var(--color-neutral-600);font-size:var(--t-meta)}
-  .db-move{font-weight:var(--w-title);white-space:nowrap}
-  .db-move-you{color:var(--st-amber-fg)}
-  .db-move-them{color:var(--accent-ink)}
-  .db-move-ok{color:var(--st-green-fg)}
-  .db-move-quiet{color:var(--color-neutral-600)}
-  .db-foot{font-size:var(--t-meta);color:var(--color-neutral-600);margin:12px 0 0;max-width:90ch}
-  .db-t td.db-c{white-space:normal;max-width:none;min-width:150px}
-  .db{font-size:var(--t-body)}
-  .db-h{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 4px}
-  .db-sub{font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 14px}
-  .db-empty{font-size:var(--t-body);color:var(--color-neutral-600);margin:0}
-  .db-wrap{overflow-x:auto}
-  .db-t{width:100%;border-collapse:collapse;font-size:var(--t-meta)}
-  .db-t th{font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.06em;
-    text-transform:uppercase;color:var(--color-neutral-500);text-align:left;
-    padding:8px;border-bottom:1px solid var(--color-divider);white-space:nowrap}
-  .db-t td{padding:9px 8px;border-bottom:1px solid var(--color-divider);vertical-align:middle;
-    font-variant-numeric:tabular-nums}
-  .db-t td i{font-style:normal;color:var(--color-neutral-500)}
-  .db-row{cursor:pointer}
-  .db-row:hover td{background:var(--nav-well)}
-  .db-row:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px}
-  .db-c{font-weight:var(--w-title);white-space:nowrap;max-width:22ch;overflow:hidden;text-overflow:ellipsis}
-  .db-n{text-align:right;color:var(--color-neutral-600)}
-  .db-none{color:var(--color-neutral-400)}
-  .db-seen{font-style:normal;font-size:var(--t-label);color:var(--color-neutral-500);margin-left:4px}
-  .db-moves{display:block;font-style:normal;font-weight:var(--w-body);font-size:var(--t-label);
-    color:var(--color-neutral-500);margin-top:1px}
-  .db-drafted{color:var(--color-neutral-600)}
-  .db-drafted em{font-style:normal;font-size:var(--t-label);color:var(--color-neutral-500)}
+  .db-gap-n{white-space:nowrap;color:var(--color-neutral-600);font-size:var(--t-label);font-variant-numeric:tabular-nums}
+  .db-gap-w{color:var(--color-neutral-500);font-size:var(--t-label)}
   .db-move{font-weight:var(--w-title);white-space:nowrap}
   .db-move-you{color:var(--st-amber-fg)}
   .db-move-them{color:var(--accent-ink)}
   .db-move-ok{color:var(--st-green-fg)}
   .db-move-quiet{color:var(--color-neutral-500)}
-  ${''/* THE BAR IS THE SAME OBJECT ON EVERY ROW: their last ask, your position,
-         and the ground between them. Their dot is amber and yours is the
-         accent — the page's own two colours again, so a reader who has learned
-         the marks has already learned this. */}
-  .db-gap{display:flex;align-items:center;gap:6px;min-width:110px}
-  .db-bar{position:relative;flex:1;height:6px;min-width:44px;background:var(--color-neutral-100);
-    border-radius:1px}
-  .db-bar b{position:absolute;top:0;height:6px;background:var(--st-ruby-bg)}
-  .db-bar i{position:absolute;top:-2px;width:10px;height:10px;border-radius:50%;
-    transform:translateX(-50%);font-style:normal}
-  .db-bar i.t{background:var(--st-amber-dot)}
-  .db-bar i.y{background:var(--color-accent-600)}
-  .db-gap-n{white-space:nowrap;color:var(--color-neutral-600);font-size:var(--t-label)}
-  .db-gap-w{color:var(--color-neutral-500);font-size:var(--t-label)}
-  .db-foot{font-size:var(--t-label);color:var(--color-neutral-600);margin:12px 0 0;line-height:1.6}
+  @media (max-width:1000px){
+    .redline-page .rl-boardpage{display:block;overflow:auto;padding-bottom:40px}
+    .db-insp{grid-template-columns:minmax(0,1fr)}
+    .db-list,.db-pane{overflow:visible;max-height:none}
+    .db-two{grid-template-columns:minmax(0,1fr)}
+    .db-two>section+section{border-left:0;border-top:1px solid var(--color-divider)}
+    .db-pb-grid{grid-template-columns:minmax(0,1fr)}
+  }
 
   ${''/* ================================================================
          THE ARTIFACT'S COLUMN — THE ROWS AND THEIR VERBS (Young, 21 Sep 2026:

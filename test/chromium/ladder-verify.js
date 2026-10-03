@@ -204,36 +204,59 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   const doors = await page.evaluate(() => document.querySelectorAll('[data-rl-board]').length);
   check('6a the board has its control-row door', doors >= 1, 'doors ' + doors);
   await page.click('.rl-boardseg'); await pause(450);
+  /* ---- THE BOARD IS AN INSPECTOR (Young picked it, 3 Oct 2026: "Build
+     Inspector, no Accept/Counter/Reject, no walk-away") ---- re-pointed in
+     place: the nine-column table is gone. A list of every point argued, and
+     the WHOLE of the one picked — nothing cut short. */
   const board = await page.evaluate(() => {
-    const t = document.querySelector('.db-t');
-    if (!t) return null;
-    const heads = Array.from(t.querySelectorAll('th')).map(h => h.textContent.trim());
-    const rows = Array.from(t.querySelectorAll('tbody tr')).map(r => ({
-      cells: Array.from(r.querySelectorAll('td')).map(td => td.textContent.replace(/\s+/g,' ').trim()),
-      go: r.getAttribute('data-rl-board-go'), bar: !!r.querySelector('.db-bar') }));
-    return { heads, rows, foot: (document.querySelector('.db-foot') || {}).textContent || '' };
+    const list = document.querySelector('#db-list');
+    if (!list) return null;
+    const rows = Array.from(list.querySelectorAll('[data-rl-board-pick]')).map(r => ({
+      name: (r.querySelector('.db-ir-nm') || {}).textContent || '', go: r.getAttribute('data-rl-board-pick'),
+      on: r.getAttribute('aria-current') === 'true', bar: !!r.querySelector('.db-bar') }));
+    const card = document.querySelector('.db-card');
+    return { rows, card: card ? card.getAttribute('data-db-card') : null,
+      words: Array.from(document.querySelectorAll('.db-card .db-words')).map(w => w.textContent.trim()),
+      foot: (document.querySelector('.db-foot') || {}).textContent || '',
+      text: (document.querySelector('.rl-boardpage') || {}).textContent || '',
+      acts: document.querySelectorAll('.rl-boardpage [data-nego-accept],.rl-boardpage [data-nego-reject],.rl-boardpage [data-rl-cp-editor-row]').length };
   });
-  check('6b the board draws a row per clause with a move', !!board && board.rows.length === 2, board && JSON.stringify(board.rows.map(r => r.cells[0])));
+  check('6b the board lists a row per clause with a move', !!board && board.rows.length === 2, board && JSON.stringify(board.rows.map(r => r.name)));
   check('6c the distance bar is drawn where the clause is a number', !!board && board.rows.some(r => r.bar));
   check('6d it says nothing on it is written by a model', !!board && /model/i.test(board.foot));
+  check('6g the picked point is drawn whole — no wording ends in "…", no walk-away, none of the column\'s acts',
+    !!board && !!board.card && board.words.length >= 2 && board.words.every(w => w && !/…$/.test(w))
+      && !/walk-away/i.test(board.text) && board.acts === 0, board && JSON.stringify({ card: board.card, words: board.words, acts: board.acts }));
   const fit = await page.evaluate(() => {
-    const t = document.querySelector('.db-t'); const w = document.querySelector('.db-wrap');
-    if (!t || !w) return null;
-    const last = t.querySelector('thead th:last-child');
-    return { cols: t.querySelectorAll('thead th').length,
-      lastRight: Math.round(last.getBoundingClientRect().right),
-      wrapRight: Math.round(w.getBoundingClientRect().right),
-      fits: last.getBoundingClientRect().right <= w.getBoundingClientRect().right + 1 };
+    const pg = document.querySelector('.rl-boardpage'); const card = document.querySelector('.db-card');
+    if (!pg || !card) return null;
+    const p = pg.getBoundingClientRect(), k = card.getBoundingClientRect();
+    return { cardRight: Math.round(k.right), pageRight: Math.round(p.right), fits: k.right <= p.right + 1,
+      sideways: pg.scrollWidth > pg.clientWidth + 1 };
   });
-  check('6f every column is on screen — nothing falls off the right', !!fit && fit.fits, JSON.stringify(fit));
+  check('6f the card is on screen — nothing falls off the right', !!fit && fit.fits && !fit.sideways, JSON.stringify(fit));
   await page.screenshot({ path: OUT + '/05-board.png' });
-  /* 6e a row is a door back onto its clause */
-  const goId = board && board.rows.find(r => r.go) && board.rows.find(r => r.go).go;
-  if (goId){ await page.click(`[data-rl-board-go="${goId}"]`); await pause(500); }
+  /* 6h a press SELECTS: the other row's point fills the card */
+  const other = board && board.rows.find(r => !r.on);
+  if (other){ await page.click(`[data-rl-board-pick="${other.go}"]`); await pause(300); }
+  const picked = await page.evaluate(() => ({ card: (document.querySelector('.db-card') || { getAttribute: () => null }).getAttribute('data-db-card'),
+    on: (document.querySelector('.db-irow.is-on') || { getAttribute: () => null }).getAttribute('data-rl-board-pick'),
+    still: !!document.querySelector('#db-list') }));
+  check('6h a press on a row selects it and the card follows', !!other && picked.still && picked.card === other.go && picked.on === other.go, JSON.stringify(picked));
+  /* 6e a second press on the shown row is the door back onto its clause.
+     Back to the point the board opened on first (the widest gap, which is the
+     clause the old table's first row opened), so the panel state the later
+     stages inherit is the one they always did. */
+  const first = board && board.rows.find(r => r.on);
+  const goId = first ? first.go : null;
+  if (goId){
+    await page.click(`[data-rl-board-pick="${goId}"]`); await pause(300);
+    await page.click(`[data-rl-board-pick="${goId}"]`); await pause(500);
+  }
   const landed = await page.evaluate(id => {
     const p = document.querySelector('#rl-cp');
     const body = p && p.querySelector(`.rl-cp-src[data-rl-cp-for="${CSS.escape(id)}"]`);
-    return { closed: !document.querySelector('.db-t'), open: !!(p && p.classList.contains('is-open')),
+    return { closed: !document.querySelector('#db-list'), open: !!(p && p.classList.contains('is-open')),
       onClause: !!(body && body.classList.contains('is-on')),
       /* ---- THE DOOR THE OWNER COULD NOT TRACE (Young, 15 Sep 2026: "still
          appears here and there but I cannot trace what is making it appear") ----
@@ -591,14 +614,18 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     const pg = document.querySelector('.rl-boardpage'); const grid = document.getElementById('rl-grid');
     const seg = document.querySelector('.rl-boardseg'); const title = document.getElementById('shell-title');
     return { page: !!pg && pg.getBoundingClientRect().height > 0, gridHidden: !!grid && getComputedStyle(grid).display === 'none',
-      lit: !!seg && seg.classList.contains('on'), cols: document.querySelectorAll('.db-t thead th').length,
+      lit: !!seg && seg.classList.contains('on'), list: !!document.querySelector('#db-list'), card: !!document.querySelector('.db-card'),
+      walk: /walk-away/i.test((pg || {}).textContent || ''),
       memo: !!document.querySelector('[data-rl-board-memo]'), noReadingLit: !document.querySelector('.rl-readwrap .rl-seg.on'),
       modal: (document.getElementById('modal-root') || { innerHTML: '' }).innerHTML.trim().length,
       title: title ? title.textContent.trim() : null, within: /within your fallback/.test((document.querySelector('.db-sum') || {}).textContent || '') };
   });
   check('20a the board is a PAGE in the working area, and the grid steps aside', board20.page && board20.gridHidden && board20.modal === 0, JSON.stringify(board20));
   check('20b its tab is lit and no reading is', board20.lit && board20.noReadingLit);
-  check('20c nine columns, the fallback and the walk-away among them, and Copy as memo', board20.cols === 9 && board20.memo && board20.within, JSON.stringify({ cols: board20.cols, memo: board20.memo }));
+  /* Re-pointed in place (Young, 3 Oct 2026: "Build Inspector … no walk-away"):
+     a list and a card where nine columns stood, and no walk-away. */
+  check('20c a list and a card, no walk-away, the fallback count and Copy as memo', board20.list && board20.card && !board20.walk && board20.memo && board20.within,
+    JSON.stringify({ list: board20.list, card: board20.card, walk: board20.walk, memo: board20.memo }));
   await page.evaluate(() => document.querySelector('.rl-readwrap [data-rl-read="marks"]').click()); await pause(500);
   const back20 = await page.evaluate(() => ({ page: !!document.querySelector('.rl-boardpage'), grid: getComputedStyle(document.getElementById('rl-grid')).display !== 'none', lit: !!document.querySelector('.rl-readwrap .rl-seg.on') }));
   check('20d pressing a reading puts the paper back', !back20.page && back20.grid && back20.lit, JSON.stringify(back20));
