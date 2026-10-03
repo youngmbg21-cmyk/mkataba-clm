@@ -2091,11 +2091,18 @@ const IGB_FACT_TONE={amber:'#F2B24C',ruby:'#F0726A',ink:'#E6F2EF',mute:'#8FB5AD'
 const IGB_FOLD_SMALL=3, IGB_FOLD_MANY=4;
 const IGB_ZOOM_MIN=.6, IGB_ZOOM_MAX=3.5, IGB_ZOOM_STEP=1.15;
 const IGB_TURN_RATE=.08;                       // radians a second, the brain's own slow turn
-const IGB_SPIN_KEY=['rot',null,'rotL','rotG','rotT'];   // which angle each view turns by itself (Wiring drifts instead)
+const IGB_SPIN_KEY=['rot',null,'rotL',null,null];   // which angle each view turns by itself (Wiring drifts; Grid and Timeline sway)
 /* THE FLAT VIEWS MOVE TOO (Young, 28 Sep 2026: "Floor should be spinning just
-   like brain and the others should be moving"), and turn ALL THE WAY ROUND
-   (29 Sep 2026: "Make grid and timeline spin fully too") — every view at the
-   brain's own rate. The sway they had for a day is gone. */
+   like brain and the others should be moving"). Brain and Floors turn all the
+   way round at the brain's own rate. GRID AND TIMELINE SWAY (Young, 4 Oct
+   2026, reversing 29 Sep's "spin fully": "the tables should not spin round,
+   they should just slowly swing down to the left and not far at all and down
+   to the right as well") — IGB_SWAY each way, once every IGB_SWAY_S, round
+   whatever angle the reader set. Display-only (`cam.sway`, added in the
+   projection), held while the reader holds or points at the map, and held
+   where it is when Still is pressed. A drag still turns them as far as the
+   hand takes them. */
+const IGB_SWAY=.12, IGB_SWAY_S=36;
 const IGB_STEP_S=2.4, IGB_PULSE_S=.9;          // a walk-through: one contract every 2.4 s
 const IGB_LABEL_W=150;
 const IGB_SIZE_KEYS=['value','obligations','same'];
@@ -2363,7 +2370,7 @@ function igbMix(n,w){
 /* THE PROJECTION — the Brain page's own: turn, tilt, a gentle perspective. */
 function igbProjector(G){
   const cam=igbCam(), w=cam.w;
-  const rot=igbDot(w,[cam.rot,cam.rotW,cam.rotL-.2,cam.rotG,cam.rotT]);
+  const rot=igbDot(w,[cam.rot,cam.rotW,cam.rotL-.2,cam.rotG+(cam.sway||0),cam.rotT+(cam.sway||0)]);
   const tilt=igbDot(w,[IGB_TILT[0]+cam.tiltOff,IGB_TILT[1]+cam.tiltW,IGB_TILT[2]+cam.tiltL,IGB_TILT[3]+cam.tiltG,IGB_TILT[4]+cam.tiltT]);
   /* the flat views fill the stage's width, the turning ones its height */
   const base=Math.max(1,Math.min(G.W,G.H))*.36, flat=Math.max(1,Math.min(G.W/3.6,G.H/2.1));
@@ -2386,7 +2393,10 @@ function igbStep(G,dt){
   /* Turning / Still (the bar's own button, `cam.spin`; a reader who asked for
      less motion starts Still). Holding or pointing at the map holds it. */
   const spin=cam.spin==null?!rm:!!cam.spin;
-  if(spin&&!G.turning&&!G.hover){ const k=IGB_SPIN_KEY[cam.view]; if(k) cam[k]+=dt*IGB_TURN_RATE; }
+  if(spin&&!G.turning&&!G.hover){ const k=IGB_SPIN_KEY[cam.view]; if(k) cam[k]+=dt*IGB_TURN_RATE; else if(cam.view>=3) cam.swayT=(cam.swayT||0)+dt; }
+  /* Still holds the swing where it is (a pressed Still is still at once) */
+  if(spin){ const swayTo=cam.view>=3?IGB_SWAY*Math.sin((cam.swayT||0)*2*Math.PI/IGB_SWAY_S):0;
+    cam.sway=(cam.sway||0)+(swayTo-(cam.sway||0))*(rm?1:Math.min(1,dt*2)); }
   const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)); ['rot','rotW','rotL','rotG','rotT'].forEach(k=>{ cam[k]=wrap(cam[k]); });
   const wk=intel.walk;
   if(wk&&wk.playing){ wk.clock=Math.min(wk.ids.length*IGB_STEP_S+1, wk.clock+dt);
@@ -6303,7 +6313,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SE
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp});
-Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

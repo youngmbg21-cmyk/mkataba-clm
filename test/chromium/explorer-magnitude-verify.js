@@ -176,10 +176,18 @@ const check = (name, pass, detail) => {
     const mB = await moves(0, 'rot'), mF = await moves(2, 'rotL'), mG = await moves(3, 'rotG'), mT = await moves(4, 'rotT');
     check('4b the Brain still turns by itself', mB.moved && mB.dot, JSON.stringify(mB));
     check('4c the Floors now turn by themselves, like the Brain', mF.moved && mF.dot, JSON.stringify(mF));
-    /* all the way round (29 Sep 2026: "Make grid and timeline spin fully too"): the same steady turn as the Brain, one way — not a sway that stops and comes back */
-    const sameTurn = m => m.moved && m.dot && Math.sign(m.b - m.a) === Math.sign(mB.b - mB.a) && Math.abs((m.b - m.a) / (mB.b - mB.a)) > 0.6 && Math.abs((m.b - m.a) / (mB.b - mB.a)) < 1.6;
-    check('4d the Grid turns by itself, all the way round at the Brain\'s own rate', sameTurn(mG), JSON.stringify(mG));
-    check('4e the Timeline turns by itself, all the way round at the Brain\'s own rate', sameTurn(mT), JSON.stringify(mT));
+    /* REVERSED IN PLACE 4 Oct 2026 (Young: "the tables should not spin round,
+       they should just slowly swing down to the left and not far at all and
+       down to the right as well"; 29 Sep's "spin fully" is gone). Grid and
+       Timeline SWAY: the angle the reader set does not move by itself, the
+       dots do, and the swing stays inside a small arc. */
+    const sw = await page.evaluate(() => ({ amp: window.IGB_SWAY, s: window.IGB_SWAY_S }));
+    const swings = m => !m.moved && m.dot;
+    check('4d the Grid swings by itself without turning round — its set angle stays, its dots move', swings(mG), JSON.stringify(mG));
+    check('4e the Timeline swings by itself without turning round', swings(mT), JSON.stringify(mT));
+    const arc = await page.evaluate(async () => { let max = 0; for (let i = 0; i < 12; i++) { max = Math.max(max, Math.abs(intel.cam.sway || 0)); await new Promise(r => setTimeout(r, 120)); } return { max: +max.toFixed(3) }; });
+    check('4d2 and not far at all: a small arc, slow, both ways round the set angle',
+      typeof sw.amp === 'number' && sw.amp > 0 && sw.amp <= 0.15 && sw.s >= 20 && arc.max <= sw.amp + 1e-6, JSON.stringify({ sw, arc }));
     if (!sp) { check('4f pressed, it says Still, and the Timeline and the Floors hold still', false, 'there is no Turning button'); check('4g pressed again, it says Turning and the Floors turn again', false, 'there is no Turning button'); }
     else {
     await page.click('#ig-spin');

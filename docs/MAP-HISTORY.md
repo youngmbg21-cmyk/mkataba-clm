@@ -24752,3 +24752,19 @@ keyboard-reach, laptops, fresh-filters, button-consistency, contracts-page 9a
 auto-triage 3c, runway-and-xray 3, explorer-verify 1–2, explorer-magnitude 5,
 analyze-on-the-graph 5, insights-panels 5, obligations-report 1, refresh 3b,
 f247, f267, f321.
+
+## EXPLORER DRAWS A BRAIN — GRID AND TIMELINE SWAY AGAIN (4 Oct 2026)
+
+Young: *"In both explorer pages, in the grid and timeline screen, the tables
+should not spin round, they should should just slowly swing down to the left
+and not far at all and down to the right as well."* This reverses 29 Sep's
+"Make grid and timeline spin fully too". Brain and Floors keep the full turn.
+Grid and Timeline sway `IGB_SWAY` (0.12 rad, smaller than the day-old 0.32 of
+28 Sep, "not far at all") each way once every `IGB_SWAY_S` (36 s, "slowly"),
+round whatever angle the reader set; `cam.sway` is added in the projection
+only, so the set angle never moves by itself. Pointing at or holding the map
+holds the swing; pressing Still holds it WHERE IT IS (the 28 Sep version eased
+back, which would move the map after Still was pressed). A drag still turns
+the tables as far as the hand takes them. There is one Explorer (Home's
+Explorer side, both screens), so one change covers both.
+Checks: explorer-magnitude-verify 4d, 4e, 4d2 — red at 8f209aa.
