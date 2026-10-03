@@ -9847,6 +9847,15 @@
   .sa-foot{display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-4);flex-wrap:wrap;}
   .sa-foot-note{flex:1 1 200px;font-size:var(--t-meta);color:var(--color-neutral-600);}
   .sa-card{background:var(--color-surface);border:1px solid var(--st-amber-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
+  /* A LANDING IS SEEN, NOT ANNOUNCED (3 Oct 2026). The approval email's link
+     lands on this card, and for a moment it is ringed so the reader's eye
+     finds it. It costs no layout — a ring is drawn outside the box — and it
+     takes itself off, so nothing permanent is added to a page that is already
+     carrying a decision. Reduced motion gets the ring without the fade. */
+  .sa-card.is-landed{outline:2px solid var(--accent-ink);outline-offset:3px;
+    animation:saLanded var(--dur-3,240ms) ease-out;}
+  @keyframes saLanded{from{outline-color:transparent;}to{outline-color:var(--accent-ink);}}
+  @media (prefers-reduced-motion: reduce){ .sa-card.is-landed{animation:none;} }
   .sa-card-h{display:flex;align-items:center;gap:var(--s-2);padding:11px 15px;border-bottom:1px solid var(--st-amber-line);}
   .sa-card-t{font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);}
   .sa-card-when{margin-left:auto;font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}

@@ -2276,10 +2276,23 @@ function startApp(){
 
    The hash is cleared once honoured: a refresh an hour later should reopen the
    contract wherever the reader left it, not jump them back to the signing step. */
+/* ---- WHERE A LINK LANDS, AND WHY IT IS NOT A SECOND DOOR (3 Oct 2026) ----
+   `go` names what the reader came to do. The owner was offered a one-time
+   code in the approval email, so Approve could be pressed from the inbox
+   without signing in, and chose the safer option: nothing secret goes in an
+   inbox. So the mail carries the plain app link it always did, and this is
+   the whole of what changed — it lands ON the decision instead of on the tab
+   that contains it. The press is still the in-app button, behind the same
+   sign-in and the same server guard; nothing here decides anything.
+   A NARROW LIST, like the tab beside it: a word this does not know is simply
+   not acted on, and the room opens where it always would. */
+const HASH_GO = { approval: { tab:'sign', sel:'#sa-card' } };
+const HASH_GO_WAIT = 120, HASH_GO_TRIES = 25, HASH_GO_LIT = 2400;
 function openFromHash(){
-  const m=String(location.hash||'').match(/^#contract=([^&]+)(?:&tab=([a-z]+))?$/i);
+  const m=String(location.hash||'').match(/^#contract=([^&]+)(?:&tab=([a-z]+))?(?:&go=([a-z]+))?$/i);
   if(!m) return false;
   const id=decodeURIComponent(m[1]), tab=String(m[2]||'').toLowerCase();
+  const go=HASH_GO[String(m[3]||'').toLowerCase()]||null;
   try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){ location.hash=''; }
   /* A link may carry the working reference or the contract number the file
      took when it was filed; both open the one file (26 Sep 2026). */
@@ -2303,6 +2316,25 @@ function openFromHash(){
      server (contractUrl), and this is the one place either is honoured. */
   if(tab && window.roomGoTab && ['terms','docs','sign','history','redline'].includes(tab)){
     try{ roomGoTab(c, tab); }catch(_){}
+  }
+  /* AFTER THE ROOM HAS PAINTED, and asked of the screen rather than assumed:
+     a reader whose decision is already made, or who is not the approver, has
+     no card to land on and simply arrives on the tab. Bounded, because the
+     Signing tab's own cards are built by two other modules and a reader who
+     never gets one must not leave a timer running for ever. */
+  if(go){
+    if(go.tab && window.roomGoTab && go.tab!==tab){ try{ roomGoTab(c, go.tab); }catch(_){} }
+    let tries=0;
+    const land=()=>{
+      const el=document.querySelector(go.sel);
+      if(!el){ if(++tries<HASH_GO_TRIES) setTimeout(land, HASH_GO_WAIT); return; }
+      try{ el.scrollIntoView({ block:'center' }); }catch(_){ }
+      /* A LANDING IS SEEN, NOT ANNOUNCED: the card is lit for a moment so the
+         reader's eye finds it, and the mark takes itself off. No band. */
+      el.classList.add('is-landed');
+      setTimeout(()=>el.classList.remove('is-landed'), HASH_GO_LIT);
+    };
+    setTimeout(land, HASH_GO_WAIT);
   }
   return true;
 }

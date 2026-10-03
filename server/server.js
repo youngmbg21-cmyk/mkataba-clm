@@ -11436,6 +11436,12 @@ function saMailTo(users, folder) {
 }
 async function saSendApprovalMail(req, c, r, kind, recipients, extra) {
   const cName = c.name || c.id;
+  /* TWO LINKS, BECAUSE THEY ARE TWO DIFFERENT ERRANDS (3 Oct 2026). Ask,
+     remind and escalate are sent to somebody who has a decision to make, so
+     they land ON it (`go=approval` → the card with Approve and Refuse on it).
+     The outcome notices go back to whoever ASKED, who has nothing to press —
+     landing them on a decision that is already made would be a dead end. */
+  const decideLink = contractUrl(req, c.id, 'sign', 'approval');
   const link = contractUrl(req, c.id, 'sign');
   let first = null, n = 0;
   for (const u of recipients) {
@@ -11447,15 +11453,15 @@ async function saSendApprovalMail(req, c, r, kind, recipients, extra) {
       subject = tFor(L, 'mail_sa_ask_subject', { name: cName, id: contractRef(c) });
       lines = [tFor(L, 'mail_sa_ask_line', { who: asker }), '', `${cName} (${contractRef(c)})`, saMailFacts(c, u),
         ...(r.note ? ['', tFor(L, 'mail_sa_note', { who: asker, note: r.note })] : []),
-        '', tFor(L, 'mail_sa_open'), link, '', tFor(L, 'mail_sa_rule')];
+        '', tFor(L, 'mail_sa_open'), decideLink, '', tFor(L, 'mail_sa_rule')];
     } else if (kind === 'remind') {
       subject = tFor(L, 'mail_sa_remind_subject', { name: cName });
       lines = [tFor(L, 'mail_sa_remind_line', { who: asker, date: String(r.askedAt || '').slice(0, 10) }), '',
-        `${cName} (${contractRef(c)})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
+        `${cName} (${contractRef(c)})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), decideLink];
     } else if (kind === 'escalate') {
       subject = tFor(L, 'mail_sa_esc_subject', { name: cName, n: extra && extra.days });
       lines = [tFor(L, 'mail_sa_esc_line', { who: asker, approver: r.approverName || 'an admin', n: extra && extra.days }), '',
-        `${cName} (${contractRef(c)})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), link];
+        `${cName} (${contractRef(c)})`, saMailFacts(c, u), '', tFor(L, 'mail_sa_open'), decideLink];
     } else if (r.status === 'approved') {
       subject = tFor(L, 'mail_sa_ok_subject', { name: cName });
       lines = [tFor(L, 'mail_sa_ok_line', { who: decider }), ...(r.decision ? ['', `“${r.decision}”`] : []), '', tFor(L, 'mail_at_open'), link];
@@ -12511,10 +12517,19 @@ function internalSignerRecipient(row) {
 /* Like shareUrl: APP_URL first, the request second, localhost last — and req
    may be NULL, because the reminder sweep runs on a timer with no request to
    read a host from. */
-const contractUrl = (req, contractId, tab) =>
+/* `go` NAMES WHAT THE READER CAME TO DO, and it is the whole of idea 3 (Young
+   ruled it 3 Oct 2026). The owner was offered a one-time code in the email so
+   Approve could be pressed without signing in, and chose the other option:
+   nothing secret ever goes in an inbox, so this stays the plain app link it
+   has always been. What it gains is a destination — the link lands on the
+   decision rather than on the tab that contains it, and the press is then the
+   same in-app button it always was, behind the same sign-in and the same
+   server guard. No second door onto deciding, and nothing to steal. */
+const contractUrl = (req, contractId, tab, go) =>
   (APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : `http://localhost:${PORT}`))
   + `/#contract=${encodeURIComponent(contractId)}`
-  + (tab ? `&tab=${encodeURIComponent(tab)}` : '');
+  + (tab ? `&tab=${encodeURIComponent(tab)}` : '')
+  + (go ? `&go=${encodeURIComponent(go)}` : '');
 const contractSignUrl = (req, contractId) => contractUrl(req, contractId, 'sign');
 /* ONE WORDING, BOTH TRIGGERS, BOTH LANGUAGES. The two mails this replaces said
    different things and only one of them was translated. */
