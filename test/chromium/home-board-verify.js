@@ -218,6 +218,41 @@ const CONTRACTS = [
     ok('10b an old door to Explorer lands on Home\'s Explorer side', await until(page, () =>
       state.view === 'dashboard' && hbS().face === 'explorer' && igMapUp(), null, 10000));
 
+    /* ===== 11. A QUESTION ASKED ON THE BOARD LANDS ON THE BOARD =====
+       Young, 3 Oct 2026, off a screenshot: "the dashboard is not responding to
+       my prompts although the explorer page does respond". A name, "expired",
+       "past due", and a list that came back from the map all draw on the board. */
+    await page.evaluate(() => { const s = hbS(); s.face = 'board'; s.panels = []; s.path = []; hbSave(); setView('dashboard'); });
+    await until(page, () => !!document.querySelector('#hb-board .hb-book'));
+    const landsOn = async (q, test) => { await ask(page, q); return until(page, test, null, 10000); };
+    ok('11a "Show me all Kenya Cartons contracts" lists that counterparty\'s contracts on the board', await landsOn('Show me all Kenya Cartons contracts', () =>
+      (hbS().path || []).slice(-1)[0] === 'fd:kenya cartons' && [...document.querySelectorAll('#hb-focus [data-hb-dig^="c:"]')].map(e => e.getAttribute('data-hb-dig')).join() === 'c:MK-S1'));
+    ok('11b "Show me all expired contracts" is past the end date, not ending soon', await landsOn('Show me all expired contracts', () =>
+      (hbS().path || []).slice(-1)[0] === 'f:past' && !!document.querySelector('#hb-focus [data-hb-dig="c:MK-S2"]')));
+    ok('11c "Show me agreements that are past due" puts the overdue obligations on the board', await landsOn('Show me agreements that are past due', () =>
+      hbS().panels.some(p => p.kind === 'obl') && !!document.querySelector('#hb-board [data-hb-pid] .hb-ct')));
+    ok('11d a list the map answers with is drawn on the board too', await landsOn('show the 3 largest contracts', () =>
+      (hbS().path || []).slice(-1)[0] === 'ls' && document.querySelectorAll('#hb-focus [data-hb-dig^="c:"]').length === 3));
+
+    /* ===== 12. TWO TABS, ONE BOARD =====
+       Each tab used to keep its own copy and write it back whole on every
+       paint, so a panel added in one tab vanished when another tab saved. */
+    const tab2 = await ctx.newPage();
+    tab2.on('pageerror', e => errs.push('tab2: ' + e.message));
+    await tab2.goto(h.base + '/', { waitUntil: 'networkidle' });
+    await until(tab2, () => window.state && state.contracts && state.contracts.length > 0, null, 15000);
+    await tab2.evaluate(() => setView('dashboard'));
+    await until(tab2, () => !!document.querySelector('#hb-board .hb-book'));
+    await ask(page, 'show negotiation friction');
+    await until(page, () => hbS().panels.some(p => p.kind === 'fric'));
+    ok('12a the other tab picks up the panel this tab added', await until(tab2, () => hbS().panels.some(p => p.kind === 'fric')));
+    await tab2.evaluate(() => hbPaintBoard());
+    await page.reload({ waitUntil: 'networkidle' });
+    await until(page, () => window.state && state.contracts && state.contracts.length > 0, null, 15000);
+    await page.evaluate(() => setView('dashboard'));
+    ok('12b and after the other tab saves, a reload still has it', await until(page, () => hbS().panels.some(p => p.kind === 'fric')));
+    await tab2.close();
+
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {
     ok('the run finished', false, String(e && e.stack || e).slice(0, 400));

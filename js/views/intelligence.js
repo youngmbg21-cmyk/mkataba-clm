@@ -1521,6 +1521,7 @@ async function intelAsk(qRaw){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push({role:'assistant', text:said}); renderIntelDock(); return; }
   }
+  const h0=intel.history.length;
   intel.history.push({role:'user', text:q});
   intel.busy=true; renderIntelDock(); updateIntelNote();
   try{
@@ -1548,6 +1549,12 @@ async function intelAsk(qRaw){
   }
   intel.busy=false;
   rebuildIntelGraph(); renderIntelDock();
+  /* ASKED ON HOME'S BOARD, ANSWERED ON THE BOARD (4 Oct 2026): a list that
+     came back from Copilot or the map is drawn on the board as well. */
+  if(state.view==='dashboard' && typeof window.hbShowFound==='function'){
+    const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&Array.isArray(x.listIds)&&x.listIds.length);
+    if(m){ try{ hbShowFound(m.listIds, m.listTitle||''); }catch(_){} }
+  }
 }
 
 /* ============================================================
