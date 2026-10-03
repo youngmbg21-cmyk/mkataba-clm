@@ -322,6 +322,18 @@ const CONTRACTS = [
     ok('14b flipped to Explorer, the map is narrowed to the same set', await until(page, () => { const L = intel.lenses.find(l => l.id === 'hbcount'); return !!L && L.on && L.action === 'filter' && L.ids.length === hbDigData(hbCountKey(), 'all').ids.length; }));
     await page.click('[data-hb-face="board"]');
     await until(page, () => hbS().face === 'board' && !!document.querySelector('.hb-counting .is-count [data-hb-crumb="-1"]'));
+    /* 14d (Young, 4 Oct 2026: "when I press any one of the cards, the numbers
+       return to the whole list") — a card pressed while counting opens within it */
+    const liveBtn = await page.$('#hb-book [data-hb-dig="f:live"]');
+    if (liveBtn) await liveBtn.click();
+    ok('14d a card pressed while counting Juno opens within Juno: the six stay, the trail names Juno, the list is Juno\'s', !!liveBtn && await until(page, n => {
+      const p = hbS().path || [], trail = (document.querySelector('#hb-focus .hb-crumbs, #hb-focus .hb-trail') || document.querySelector('#hb-focus') || {}).textContent || '';
+      return p.length === 2 && p[1] === 'f:live' && /^q:/.test(p[0]) && hbBookData('all').figs.live.n === n
+        && String((document.querySelector('#hb-book .hb-fig .hb-fig-n') || {}).textContent).replace(/\D/g, '') === String(n)
+        && /Juno/.test(trail) && hbDigData('f:live', 'all').ids.length === n && !!document.querySelector('.hb-counting .is-count');
+    }, counted.live), JSON.stringify(await page.evaluate(() => ({ path: hbS().path, live: hbBookData('all').figs.live.n }))));
+    await page.evaluate(() => Promise.race([Promise.all(document.getAnimations().filter(a => a.effect && a.effect.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, 2000))]));
+    await page.screenshot({ path: path.join(OUT, '14d-card-within-the-count.png') });
     await page.click('.hb-counting .is-count [data-hb-crumb="-1"]');
     ok('14c the chip\'s × brings the whole book back', await until(page, w => !hbCountKey() && hbBookData('all').figs.live.n === w && !!document.querySelector('.hb-counting .is-all'), whole));
 

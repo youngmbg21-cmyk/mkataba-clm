@@ -292,6 +292,27 @@ describe('F448 (6) — a chart of the whole book is not a count', () => {
     w.hbS().path = ['q:Show Juno contracts by month']; w.hbSave();
     assert.ok(w.hbBookData('all').figs.live.n < whole, 'a set is counted');
   });
+  test('a card pressed while counting Juno opens WITHIN Juno, and the six stay on Juno', () => {
+    const w = world();
+    const whole = w.hbBookData('all').figs.live.n;
+    w.hbS().path = ['q:Show me all Juno contracts']; w.hbSave();
+    const juno = w.hbBookData('all').figs.live.n;
+    assert.equal(juno, 3); assert.ok(juno < whole);
+    for (const key of ['f:live', 'st:Signed', 'cp:Juno Fresh AB', 'f:ending']){
+      try { w.hbDig(key, false, true); } catch (_){ /* the paint needs a page; the trail is what is asked */ }
+      assert.deepEqual([...w.hbS().path], ['q:Show me all Juno contracts', key], key + ' nests under the count');
+      assert.equal(w.hbBookData('all').figs.live.n, juno, key + ': the six stay on Juno');
+      const D = w.hbDigData(key, 'all');
+      assert.ok(D.ids.every(id => /^MK-[789]$/.test(id)), key + ': the list is Juno\'s only');
+    }
+    assert.equal(w.hbDigData('st:Signed', 'all').stage, null, 'Open these opens the counted list, never every Signed contract');
+    /* a typed question still starts afresh; with no count a press starts afresh too */
+    try { w.hbDig('q:Naivas contracts', false); } catch (_){}
+    assert.deepEqual([...w.hbS().path], ['q:Naivas contracts']);
+    w.hbS().path = []; w.hbSave();
+    try { w.hbDig('f:live', false, true); } catch (_){}
+    assert.deepEqual([...w.hbS().path], ['f:live']); assert.equal(w.hbBookData('all').figs.live.n, whole);
+  });
   test('every word the recipe prints is in both books', () => {
     const src = read('js/views/homeboard.js');
     const reg = src.slice(src.indexOf('/* ---------------- THE RECIPE'), src.indexOf('function hbDigBodyHtml('));
