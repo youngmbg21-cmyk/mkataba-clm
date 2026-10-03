@@ -324,13 +324,115 @@ function standsHtml(c, opts = {}){
 function paintStandsPane(c){
   const host = (typeof document !== 'undefined') && document.getElementById('ws-stands-pane');
   if (!host || !c) return;
-  /* NO OWNER'S LINE YET. The quiet line about who can see the page and how to
-     copy or switch off its link belongs with the link itself, and the link is
-     not built. A hook nothing fills is a guard that is always false — the
-     exact fault f232 exists to catch — so it goes in the day there is
-     something true to put in it. `opts.head` is the seam it goes through. */
-  host.innerHTML = standsHtml(c);
+  /* THE OWNER'S OWN LINE goes through opts.head. It is painted rather than
+     built: whether a status page is on is the server's answer and arrives
+     after the sheet, so the sheet draws at once and the line fills in behind
+     it (dsLoadShares). A page that waited on a fetch before saying anything
+     would say nothing at all on a slow morning. */
+  host.innerHTML = standsHtml(c, { head: standsOwnerHeadHtml(c) });
+  dsWireOwner();
+  dsLoadShares(c);
 }
 if (typeof window !== 'undefined') Object.assign(window, {
   standsHtml, paintStandsPane, dsEventText, dsRoleWord, dsDay, dsEsc,
+});
+
+/* ============================================================
+   THE OWNER'S OWN LINE — who can see this page, and the two acts
+   (idea 15, part two, 4 Oct 2026)
+   ============================================================
+   A LINE IN THE HEAD, NOT A STRIP ACROSS THE PAGE. It started as a strip in
+   the drawing Young approved, and his own rule refuses a new band without
+   being asked first — so it was redrawn as a quiet line under the title,
+   which says the same thing for less attention and needs no permission. The
+   SAP rule, applied to the smallest thing on the screen.
+
+   IT IS THE ONLY THING ON THIS PAGE NOBODY ELSE IS GIVEN. Everything below it
+   is word for word what the other parties read; this line is about the LINK
+   rather than about the deal, so it belongs to whoever owns the link.
+
+   IT IS PAINTED, NOT BUILT. Whether a status page is on is the server's
+   answer, and it arrives after the sheet. So the sheet draws at once and the
+   line fills in behind it — a page that waited on a fetch to say anything
+   would be a page that says nothing on a slow morning. */
+let _dsShares = Object.create(null);     /* per contract, this sitting only */
+function dsStatusShare(shares){
+  return (shares || []).find(s => s && s.purpose === 'status' && !s.revokedAt && !s.revoked_at) || null;
+}
+function dsStatusUrl(tok){
+  try { return location.origin + '/deal/' + tok; } catch (_){ return '/deal/' + tok; }
+}
+/* The parties a status page is readable by: every outside party on the
+   contract. It is one address, so naming them is naming the audience rather
+   than naming a recipient. */
+function dsAudience(c){
+  const them = dsPartyNames(c).filter(p => !p.ours).map(p => p.name).filter(Boolean);
+  return them.join(', ');
+}
+function standsOwnerHeadHtml(c){
+  const st = _dsShares[c && c.id];
+  if (st === undefined) return `<div class="ds-own" data-ds-own="loading"></div>`;
+  const live = dsStatusShare(st);
+  if (!live) return `<div class="ds-own" data-ds-own="off">
+    <span>${dsEsc(dsT('ds_link_off'))}</span><span class="sep" aria-hidden="true">·</span>
+    <button type="button" class="ui-link" data-ds-share>${dsEsc(dsT('ds_link_share'))}</button></div>`;
+  const who = dsAudience(c);
+  return `<div class="ds-own" data-ds-own="on">
+    <span>${dsEsc(dsT('ds_link_on'))} <b>${dsEsc(dsT('ds_link_on_word'))}</b>${who ? ' — ' + dsEsc(dsT('ds_link_seen_by', { who })) : ''}</span>
+    <span class="sep" aria-hidden="true">·</span>
+    <button type="button" class="ui-link" data-ds-copy="${dsEsc(dsStatusUrl(live.token))}">${dsEsc(dsT('ds_link_copy'))}</button>
+    <span class="sep" aria-hidden="true">·</span>
+    <button type="button" class="ui-link" data-ds-off="${dsEsc(live.token)}">${dsEsc(dsT('ds_link_off_act'))}</button></div>`;
+}
+/* Asked once per contract per sitting, and only while the tab is open. */
+async function dsLoadShares(c){
+  if (!c || _dsShares[c.id] !== undefined) return;
+  _dsShares[c.id] = null;
+  if (typeof window.contractShares !== 'function') return;
+  try { _dsShares[c.id] = await contractShares(c); } catch (_){ _dsShares[c.id] = null; }
+  const host = document.getElementById('ws-stands-pane');
+  const slot = host && host.querySelector('[data-ds-own]');
+  if (slot) slot.outerHTML = standsOwnerHeadHtml(c);
+}
+/* THE TWO ACTS, delegated once at module load so a repainted sheet keeps
+   them. Copying a link is a convenience; switching the page off is a promise
+   withdrawn, so it says so and then repaints. */
+function dsWireOwner(){
+  if (typeof document === 'undefined' || document._dsWired) return;
+  document._dsWired = true;
+  document.addEventListener('click', async e => {
+    const cp = e.target.closest && e.target.closest('[data-ds-copy]');
+    if (cp){
+      e.preventDefault();
+      const url = cp.getAttribute('data-ds-copy');
+      try { await navigator.clipboard.writeText(url); if (window.toast) toast(dsT('ds_link_copied'), 'ok'); }
+      catch (_){ if (window.toast) toast(url, 'warn'); }
+      return;
+    }
+    const off = e.target.closest && e.target.closest('[data-ds-off]');
+    if (off){
+      e.preventDefault();
+      const c = (window.getContract && window.state) ? getContract(state.activeId) : null;
+      if (!c) return;
+      /* A PROMISE WITHDRAWN IS A DECISION, so it is asked for rather than
+         taken on one press — the parties are reading this page right now. */
+      if (window.confirmDialog && !(await confirmDialog({ title: dsT('ds_off_title'),
+        message: dsT('ds_off_ask'), confirmLabel: dsT('ds_link_off_act'), danger: true }))) return;
+      try { await api('shares/' + off.getAttribute('data-ds-off') + '/revoke', 'POST', {}); }
+      catch (err){ if (window.toast) toast((err && err.message) || dsT('ds_off_failed'), 'err'); return; }
+      delete _dsShares[c.id];
+      if (window.toast) toast(dsT('ds_off_done'), 'ok');
+      paintStandsPane(c); dsLoadShares(c);
+      return;
+    }
+    const sh = e.target.closest && e.target.closest('[data-ds-share]');
+    if (sh){
+      e.preventDefault();
+      const c = (window.getContract && window.state) ? getContract(state.activeId) : null;
+      if (c && window.openShareModal) openShareModal(c, { purpose: 'status' });
+    }
+  });
+}
+if (typeof window !== 'undefined') Object.assign(window, {
+  standsOwnerHeadHtml, dsLoadShares, dsStatusShare, dsStatusUrl, dsAudience, dsWireOwner,
 });

@@ -677,9 +677,14 @@ addColumnIfMissing('shares', 'party_id', 'TEXT');
    purposes, a payload built by allow-list rather than copied, a notes system
    with rooms, and a server that already serves exactly what the row's purpose
    allows. */
-const SHARE_PURPOSES = ['negotiate', 'sign', 'view', 'history', 'advise'];
+/* 'status' (idea 15, 4 Oct 2026) is the ONE purpose whose link does not open
+   the application at all. It is served as a standalone page at /deal/:token —
+   no account, no payload, nothing to press — so every route that hands out a
+   contract's working copy must refuse it by name. See srvDealStands. */
+const SHARE_PURPOSES = ['negotiate', 'sign', 'view', 'history', 'advise', 'status'];
 const sharePurposeOf = s => String((s && s.purpose) || 'negotiate');
 const shareIsViewOnly = s => sharePurposeOf(s) === 'view';
+const shareIsStatus = s => sharePurposeOf(s) === 'status';
 /* A history link is the record and nothing else — no wording to act on, no
    signature to give. It belongs on the same side of this guard as a view link:
    both are passes to READ, and the four write routes below must refuse them
@@ -8313,6 +8318,109 @@ app.get('/track/:token', (req, res) => {
   res.type('html').send(trackPageHtml(r));
 });
 
+/* ---- AND THE PAGE ITSELF, served to anybody holding the address ----
+   NO `:root`, NO var(): this document is served on its own, outside the
+   application's stylesheet, so every value in it is a literal — the rule every
+   standalone document in this product follows.
+
+   IT IS READ-ONLY AND IT TAKES NO INPUT. No form, no press, no route that
+   writes. A page that cannot be acted on cannot be abused into acting.
+
+   AND IT IS WORTH NO MORE THAN THE ADDRESS. The reading behind it carries no
+   wording, no people, no money and nothing one party may not show another, so
+   a forwarded link gives away the state of a deal and not the deal. */
+const DEAL_WORDS = {
+  shared: 'Shared', negotiating: 'Negotiating', agreed: 'Agreed', signed: 'Signed',
+};
+function dealPageHtml(D, org) {
+  const e = s => String(s == null ? '' : s).replace(/[&<>"]/g, x => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[x]));
+  const day = d => { if (!d) return ''; try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (_) { return String(d).slice(0, 10); } };
+  const evText = x => x.kind === 'round' ? `Round ${x.round} closed`
+    : x.kind === 'signed' ? `${x.party || 'A party'} signed`
+      : x.kind === 'settled' ? `${x.clause} settled`
+        : x.kind === 'declined' ? `${x.clause} was turned down`
+          : `${x.party || 'A party'} asked about ${x.clause}`;
+  const role = p => [p.negotiates ? 'negotiates' : '', p.signs ? 'signs' : ''].filter(Boolean).join(' · ');
+  const step = (s, i) => `<td style="padding:0 10px 0 0;vertical-align:top;width:25%">
+    <div style="height:2px;background:${s.done ? '#0C5D55' : '#D9E0DE'};margin:5px 0 9px"></div>
+    <div style="font-size:14px;font-weight:700;color:${s.now ? '#8A5A00' : '#1B2A28'}">${e(DEAL_WORDS[s.key])}</div>
+    <div style="font-size:12px;color:#5F6D6B;margin-top:1px">${e(s.now && s.key === 'negotiating'
+      ? `Round ${D.round} · ${D.settled} of ${D.total} settled` : s.done ? '' : 'Not yet')}</div></td>`
+      + (i === 0 ? '' : '');
+  const fact = (k, v, warn) => `<td style="padding:0 26px 0 0;vertical-align:top">
+    <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8A9693;margin-bottom:2px">${e(k)}</div>
+    <div style="font-size:14px;font-weight:600;color:${warn ? '#8A5A00' : '#1B2A28'}">${e(v)}</div></td>`;
+  const li = (mark, a, b) => `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #F1F4F3;font-size:14px">
+    <span style="flex:none;color:${mark === 'o' ? '#E8B84B' : '#0C5D55'};line-height:1.5">${mark === 'o' ? '○' : '✓'}</span>
+    <span><b style="font-weight:600">${e(a)}</b>${b ? `<i style="font-style:normal;display:block;color:#5F6D6B;font-size:12.5px;margin-top:1px">${e(b)}</i>` : ''}</span></div>`;
+  const whose = D.executed ? 'Signed'
+    : D.move ? (D.move.days == null ? D.move.party
+      : `${D.move.party} — ${D.move.days === 1 ? 'since yesterday' : `for ${D.move.days} days`}`)
+      : 'Nobody — nothing is open';
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Where the deal stands</title></head>
+  <body style="margin:0;background:#EDF1F2;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">
+    <div style="background:#093733;color:#fff;padding:0 26px;height:46px;display:flex;align-items:center;gap:12px;font-size:12px">
+      <b style="font-size:15px">HaTi</b>
+      <span style="border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:1px 9px;font-size:10px;letter-spacing:.06em;text-transform:uppercase">Read only</span>
+      <span style="flex:1"></span>
+      <span>${D.updatedAt ? 'Last moved ' + e(day(D.updatedAt)) : ''}</span></div>
+    <div style="padding:22px 20px 40px">
+    <div style="background:#fff;border:1px solid #E2E7E5;max-width:880px;margin:0 auto;padding:22px 30px 20px;box-shadow:0 1px 3px rgba(27,42,40,.06)">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:#0C5D55">Where the deal stands</div>
+      <h1 style="font-size:20px;font-weight:700;line-height:1.25;margin:5px 0 8px">${e(D.name)} &mdash; ${e(D.ref)}</h1>
+      <div style="margin-bottom:5px">${D.parties.map(p => `<span style="display:inline-block;font-size:12px;border:1px solid ${p.ours ? '#B6D3CE' : '#D9E0DE'};background:${p.ours ? '#F1F7F6' : 'transparent'};border-radius:999px;padding:1px 10px;margin:0 6px 5px 0;color:#42504D"><b style="font-weight:700">${e(p.name)}</b>${role(p) ? ' · ' + e(role(p)) : ''}</span>`).join('')}</div>
+      <p style="font-size:12px;color:#8A9693;margin:0">Built from the record${org ? ' by ' + e(org) : ''}. No advice, no opinions, and the same for every party.</p>
+      <table style="width:100%;border-collapse:collapse;margin-top:18px"><tr>${D.steps.map(step).join('')}</tr></table>
+      <table style="border-collapse:collapse;background:#F5F7F6;border:1px solid #E7EBE9;margin:16px 0;width:100%"><tr style="vertical-align:top">
+        <td style="padding:11px 0 11px 15px"><table style="border-collapse:collapse"><tr style="vertical-align:top">
+          ${fact('Whose move', whose, !!D.move)}${fact('Open points', `${D.open} / ${D.total}`)}${fact('Round', String(D.round))}
+        </tr></table></td></tr></table>
+      <table style="width:100%;border-collapse:collapse"><tr style="vertical-align:top">
+        <td style="width:50%;padding-right:12px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Agreed</div>
+          ${D.settledPoints.length ? D.settledPoints.map(p => li('t', p.clause, '')).join('')
+            + (D.settled > D.settledPoints.length ? `<div style="font-size:13px;color:#8A9693;padding:5px 0">and ${D.settled - D.settledPoints.length} more</div>` : '')
+            : '<div style="font-size:14px;color:#8A9693;padding:5px 0">Nothing has been settled yet</div>'}</td>
+        <td style="width:50%;padding-left:12px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Still open</div>
+          ${D.points.length ? D.points.map(p => li('o', p.clause, p.with ? 'with ' + p.with : '')).join('')
+            : '<div style="font-size:14px;color:#8A9693;padding:5px 0">Nothing is open</div>'}</td>
+      </tr></table>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin:18px 0 6px">Lately</div>
+      ${D.lately.length ? D.lately.map(x => `<div style="display:flex;gap:12px;font-size:12.5px;padding:4px 0"><span style="color:#9AA6A3;flex:none;width:92px">${e(day(x.at))}</span><div>${e(evText(x))}</div></div>`).join('')
+        : '<div style="font-size:14px;color:#8A9693">Nothing has happened yet</div>'}
+      <p style="margin:18px 0 0;border-top:1px solid #EDF1F0;padding-top:11px;font-size:11px;color:#8A9693;line-height:1.6">This page shows the state of the deal and nothing else. It never shows what any side said privately, who inside a company was asked to look at something, any party&rsquo;s notes, or any figure that has not been put to every party. It is read-only, and whoever switched it on can switch it off.</p>
+    </div></div>
+  </body></html>`;
+}
+/* ---- THE ADDRESS ---- */
+app.get('/deal/:token', (req, res) => {
+  const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  const gone = m => res.status(410).type('html').send(
+    `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Where the deal stands</title>`
+    + `<body style="margin:0;background:#EDF1F2;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">`
+    + `<div style="max-width:560px;margin:0 auto;padding:60px 22px"><p style="font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B">HaTi</p>`
+    + `<p style="font-size:16px;line-height:1.6">${m}</p></div></body>`);
+  if (!s || !shareIsStatus(s)) return res.status(404).type('html').send(
+    `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><title>Where the deal stands</title>`
+    + `<body style="margin:0;background:#EDF1F2;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">`
+    + `<div style="max-width:560px;margin:0 auto;padding:60px 22px"><p style="font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B">HaTi</p>`
+    + `<p style="font-size:16px;line-height:1.6">There is no status page at this address.</p></div></body>`);
+  if (s.revoked_at) return gone('This status page was switched off by the company that shared it.');
+  if (shareExpired(s)) return gone('This status page has expired. Ask the company that shared it for a new link.');
+  const row = s.contract_id ? db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id) : null;
+  if (!row) return gone('This contract is no longer available.');
+  let c; try { c = JSON.parse(row.json); } catch (_) { return gone('This contract could not be read.'); }
+  let D = null; try { D = srvDealStands(c); } catch (_) { D = null; }
+  if (!D) return gone('This contract could not be read.');
+  let org = ''; try { org = ((getSetting('org') || {}).name) || ''; } catch (_) { org = ''; }
+  res.type('html').send(dealPageHtml(D, org));
+});
+
+
 /* ---------- the renewal adviser (W2-4, WORKORDER-gap-map.md) ----------
    At the 90-day mark HaTi has always sent an alarm. This turns the alarm
    into a recommendation: renew, renegotiate, or let it lapse — with the
@@ -12357,6 +12465,112 @@ function srvPartyOfShare(c, shareRow) {
   return list.length ? list[0] : null;
 }
 
+/* ============================================================
+   WHERE THE DEAL STANDS — the server's own copy of the reading
+   (idea 15, 4 Oct 2026)
+   ============================================================
+   The browser has dealStands (js/dealstands.js) and draws it on the owner's
+   tab. This is the same reading, written again here, because the public page
+   is served OUTSIDE the application — there is no account, no bundle and no
+   stylesheet, exactly as the Requests tracking page is served. Two surfaces
+   may draw differently; the READING may never differ, and f451 pins the two
+   against each other field by field.
+
+   EVERY RULE THE BROWSER'S COPY KEEPS, THIS ONE KEEPS. The page is the
+   overlap, not the sum: no person is named, no seat word is used, no review,
+   no note, no money. It reads the stored record raw and starts nothing. */
+const DEAL_STEPS = ['shared', 'negotiating', 'agreed', 'signed'];
+const DEAL_LATELY_MAX = 5, DEAL_POINTS_MAX = 8;
+const srvDsChanges = c => (Array.isArray(c && c.changes) ? c.changes.filter(Boolean) : []);
+const srvDsRounds = c => { const n = c && c.negotiation; return Array.isArray(n && n.rounds) ? n.rounds : []; };
+const srvDsLive = c => srvDsChanges(c).filter(x => x.status !== 'superseded' && x.status !== 'countered' && !x.withdrawn);
+const srvDsExecuted = c => !!(c && (c.status === 'Signed' || c.hash || (c.execution && c.execution.at)));
+function srvDsSince(c, side) {
+  const at = srvDsChanges(c).filter(x => x.authorSide === side)
+    .map(x => x.createdAt || x.at || '').filter(Boolean).sort().slice(-1)[0];
+  const t = at ? Date.parse(at) : NaN;
+  return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 864e5)) : null;
+}
+function srvDsClause(ch) { return String((ch && (ch.clauseLabel || ch.clauseId)) || ''); }
+function srvDealStands(c) {
+  if (!c) return null;
+  /* ---- OUR OWN ROW HAS A NAME EVEN WHERE THE PAPER DOES NOT GIVE IT ONE ----
+     srvContractParties builds our row out of c.party, which is the entity on
+     THIS agreement; a contract that never named one leaves it blank and the
+     row falls out of the list. The browser's reading falls back to
+     FIRST_PARTY — the workspace — so this one falls back to the same fact out
+     of the org record, or the two readings disagree about who the deal is
+     between. Measured: the public page drew one party and said "A party asked
+     about 9. Liability Cap" where the owner's tab said Highland. */
+  let ourName = '';
+  try { ourName = ((getSetting('org') || {}).name) || ''; } catch (_) { ourName = ''; }
+  const all = (srvContractParties(c) || []).map(p =>
+    (p && p.side === 'ours' && !String(p.name || '').trim()) ? { ...p, name: ourName } : p);
+  const parties = all.filter(p => p && p.name).map(p => ({
+    name: String(p.name), ours: p.side === 'ours',
+    negotiates: p.side === 'ours' || p.involvement === 'negotiate' || p.involvement === 'both',
+    signs: p.side === 'ours' || p.involvement === 'sign' || p.involvement === 'both' || !p.involvement,
+  }));
+  const us = parties.find(p => p.ours) || null, them = parties.find(p => !p.ours) || null;
+  const live = srvDsLive(c), open = live.filter(x => x.status === 'pending');
+  const executed = srvDsExecuted(c);
+  const started = (Array.isArray(c.signatures) ? c.signatures : []).length > 0;
+  const agreed = executed || started || (live.length > 0 && open.length === 0);
+  let move = null;
+  if (!executed && open.length) {
+    const theirs = open.filter(x => x.authorSide === 'owner').length;
+    const side = theirs >= (open.length - theirs) ? 'theirs' : 'ours';
+    const who = side === 'theirs' ? them : us;
+    move = { party: (who && who.name) || '', n: open.length,
+      days: srvDsSince(c, side === 'theirs' ? 'owner' : 'counterparty') };
+  }
+  const steps = DEAL_STEPS.map(k => ({ key: k,
+    done: k === 'shared' ? true : k === 'negotiating' ? agreed : k === 'agreed' ? agreed : executed }));
+  const nowAt = steps.findIndex(s => !s.done);
+  if (nowAt >= 0) steps[nowAt].now = true;
+  const seenO = new Set(), points = [];
+  for (const ch of open) {
+    const key = String(ch.clauseId || ch.id || '');
+    if (seenO.has(key)) continue;
+    seenO.add(key);
+    const holder = ch.authorSide === 'owner' ? them : us;
+    points.push({ clause: srvDsClause(ch), with: (holder && holder.name) || '', kind: ch.changeType || ch.kind || '' });
+    if (points.length >= DEAL_POINTS_MAX) break;
+  }
+  const seenS = new Set(), settledPoints = [];
+  for (const ch of live) {
+    if (ch.status === 'pending') continue;
+    const key = String(ch.clauseId || ch.id || '');
+    if (seenS.has(key)) continue;
+    seenS.add(key);
+    settledPoints.push({ clause: srvDsClause(ch), settled: ch.status === 'accepted' });
+    if (settledPoints.length >= DEAL_POINTS_MAX) break;
+  }
+  const nameOf = side => ((side === 'owner' ? us : them) || {}).name || '';
+  const ev = [];
+  for (const ch of srvDsChanges(c)) {
+    if (ch.status === 'superseded') continue;
+    const at = ch.createdAt || ch.at || '';
+    if (at) ev.push({ at, kind: 'asked', party: nameOf(ch.authorSide), clause: srvDsClause(ch) });
+    if ((ch.status === 'accepted' || ch.status === 'rejected') && (ch.resolvedAt || at))
+      ev.push({ at: ch.resolvedAt || at, kind: ch.status === 'accepted' ? 'settled' : 'declined',
+        party: nameOf(ch.authorSide === 'owner' ? 'counterparty' : 'owner'), clause: srvDsClause(ch) });
+  }
+  for (const r of srvDsRounds(c)) if (r && r.at) ev.push({ at: r.at, kind: 'round', party: '', round: r.n });
+  for (const s of (Array.isArray(c.signatures) ? c.signatures : [])) if (s && s.at)
+    ev.push({ at: s.at, kind: 'signed', party: s.party || s.name || '' });
+  const lately = ev.filter(x => x.at).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, DEAL_LATELY_MAX);
+  const neg = c.negotiation || null;
+  return {
+    ref: c.contractNo || c.id, name: String(c.name || ''),
+    parties, steps, move, agreed, executed,
+    round: Math.max(1, Number((neg && neg.round) || srvDsRounds(c).length + 1) || 1),
+    total: live.length, settled: live.length - open.length, open: open.length,
+    points, settledPoints, lately,
+    updatedAt: (lately[0] && lately[0].at) || c.updatedAt || c.lastAction || null,
+  };
+}
+
 function signerRouteFor(contractId) {
   if (!contractId) return null;
   const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
@@ -12803,6 +13017,15 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      document it serves would supersede the wrong links. */
   const purp = SHARE_PURPOSES.includes(payload.purpose) ? payload.purpose
     : SHARE_PURPOSES.includes(purpose) ? purpose : null;
+  /* ---- A STATUS LINK CARRIES NO CONTRACT AT ALL (idea 15, 4 Oct 2026) ----
+     Its page is built fresh from the stored record on every open, by a reading
+     that carries no wording, no people and nothing one party may not show
+     another. So the row behind the address holds no copy of the contract —
+     not a stripped one, NONE. The browser already sends none; this is the wall
+     that makes it true of a hand-built payload too, and it is the difference
+     between a forwarded link giving away the state of a deal and giving away
+     the deal. */
+  if (purp === 'status' && payload.contract) payload.contract = { id: shareId };
   /* ---- A SIGNING LINK IS NOT ISSUED BEFORE SIGNING HAS BEEN STARTED ----
      Owner's rule, 11 Aug 2026: naming the signers is what opens signing, and a
      link issued before that must not be able to carry a signature. The share
@@ -13341,6 +13564,15 @@ function contractExecution(contractId) {
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
+  /* ---- A STATUS LINK IS NOT A COPY OF THE CONTRACT (idea 15, 4 Oct 2026) ----
+     It is the one purpose that never opens the application: it is served as a
+     standalone page at /deal/:token, built from a reading that carries no
+     wording, no people and nothing one party may not show another. Without
+     this line it would be handed the counterparty's whole working payload —
+     the wording, the changes, the thread — by the route that serves every
+     other kind. The wall is here, where the payload is, not in the browser. */
+  if (shareIsStatus(s)) return res.status(403).json({
+    error: 'This is a status link. It opens a read-only page at /deal/' + req.params.token + ' and carries no copy of the contract.' });
   if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked' });
   if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired' });
   /* WP-1.6: a derived view link dies with its parent — checked live, on every

@@ -25151,3 +25151,71 @@ the export buttons moving off their landing page into More.
 Tests: f451 (new, 30 claims; the whole file is red at the parent, where
 js/dealstands.js does not exist), deal-stands-verify (new, 19 checks driven in
 a browser), f148 / f184 / f253 re-pointed in place.
+
+## THE STATUS LINK — ONE ADDRESS, EVERY PARTY (idea 15, part two, 4 October 2026)
+
+Part one built the reading and the owner's own tab. This is the address.
+
+**A STATUS LINK IS THE ONE PURPOSE WHOSE LINK DOES NOT OPEN HaTi.** Every
+other kind — negotiate, sign, view, history, advise — hands the holder a copy
+of the contract and opens the application around it. This one is a page the
+server builds from the stored record on every open: no account, nothing to
+press, and no copy of the contract anywhere behind it.
+
+**THREE WALLS, because one would not have been enough.**
+ 1. The browser stops building early: `buildSharePayload` returns the
+    contract's **id and nothing else** for a status purpose. Not a stripped
+    copy — the id, so the server knows which contract the address is for and
+    can check the sender may reach it.
+ 2. The server reduces a hand-built payload to that same shape, because a
+    payload is the thing under suspicion and the wall belongs to the route
+    every path goes through.
+ 3. `GET /api/shares/:token` — the route that serves every other kind —
+    refuses a status token outright with a 403 that names the right address.
+    Without that line it would hand over the counterparty's whole working
+    payload to anyone holding a link that was never meant to carry one.
+
+**IT IS ONE MORE ANSWER, NOT A NEW DOOR.** The send screen already asks what a
+link is for; `status` is a sixth answer on that control. The One Door question
+would have refused a button of its own, and the owner's own line about the
+link is a LINE in the head rather than a strip across the page — his rule
+refuses a new band without being asked, and the head says the same thing for
+less.
+
+**MEASURED, and three of the four faults were only visible by driving it.**
+ · The row behind the address had no `contract_id`, because the first version
+   of the server wall deleted `payload.contract` outright and the id is read
+   off it. The page answered *"This contract is no longer available"* and the
+   owner's tab said no page was shared. Keeping `{ id }` fixed all of it.
+ · The public page named ONE party and said *"A party asked about 9. Liability
+   Cap"*. `srvContractParties` builds our row out of `c.party` — the entity on
+   this agreement — and a contract that never named one leaves it blank, so
+   the row fell out of the list. The browser's reading falls back to the
+   workspace; this one now falls back to the same fact out of the org record,
+   or the two readings disagree about who the deal is between.
+ · f390 3b broke in a way that had nothing to do with it: that check slices the
+   server between `TRACK_STAGE` and the tracker's route and evaluates the
+   slice, and the new page had been written between them. It moved below the
+   tracker. A test that evaluates a slice of a file is a test that owns the
+   space between its two anchors.
+
+**THE TWO READINGS ARE PINNED AGAINST EACH OTHER** (status-link-verify 4d),
+the way copilotNegotiation and negoCopilotRecord are: the owner's tab and the
+public page are asked about the same contract and must agree on the round, the
+open and total, whose move, every open clause, every settled clause, every
+party and the live step. Two surfaces may draw differently; the reading may
+never differ.
+
+**A SELF-INFLICTED ONE worth recording**: f451's own check for "no person is
+named" passed `ch.author` to `includes`, which is a PREFIX of `ch.authorSide`
+— the side, which is allowed and is the whole mechanism. The check failed on
+the correct code. It asks on a word boundary now.
+
+Re-pointed in place: f333 9a and its sibling pinned the purpose list as a
+literal and now ask that `advise` is on it, so the next purpose costs no edit;
+f148 took `co_purpose_status_label` into SAME_IN_BOTH, because "Status" is the
+same word in Swedish and the sentence under it IS translated.
+
+Tests: f451 (7) added — 8 claims on the walls, the address and the standalone
+page; status-link-verify (new, 17 checks driven end to end, including a
+stranger in a fresh browser with no account).

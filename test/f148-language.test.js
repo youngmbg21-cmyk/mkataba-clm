@@ -44,6 +44,9 @@ const SAME_IN_BOTH = new Set([
   /* The view recipe (28 Sep 2026): two sentences that are only their
      placeholders. */
   'int_did_role', 'int_did_compare',
+  /* The status link (idea 15, 4 Oct 2026): "Status" is the same word in
+     Swedish, and the sentence under it IS translated. */
+  'co_purpose_status_label',
   /* The Brain (27 Sep 2026): "Zoom", "Copilot", "Hippocampus" and "Webhooks"
      are the same word in Swedish. */
   'brn_zoom_label', 'brn_r_ai', 'brn_rb_wall', 'brn_p_webhook',

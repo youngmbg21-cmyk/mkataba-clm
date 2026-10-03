@@ -4139,6 +4139,15 @@ const SHARE_PURPOSE_COPY={
     get blurb(){ return i18t('co_purpose_sign_sub'); }, get line(){ return i18t('co_purpose_sign_line'); } },
   view:{ get label(){ return i18t('co_purpose_view'); }, get title(){ return i18t('co_purpose_view_sub'); },
     get blurb(){ return i18t('co_purpose_view_blurb'); }, get line(){ return i18t('co_purpose_view_line'); } },
+  /* THE SIXTH (idea 15, 4 Oct 2026). A STATUS LINK IS NOT A COPY OF THE
+     CONTRACT: it opens a read-only page HaTi serves on its own, with no
+     account and no wording on it — the state of the deal and nothing else. It
+     is one more answer to the question this screen already asks rather than a
+     door of its own, which is what the One Door question demanded of it.
+     Getters like its five siblings; a literal here would freeze load-time
+     language, which is this file's own named trap. */
+  status:{ get label(){ return i18t('co_purpose_status_label'); }, get title(){ return i18t('co_purpose_status'); },
+    get blurb(){ return i18t('co_purpose_status_sub'); }, get line(){ return i18t('co_purpose_status_line'); } },
 };
 /* THE ONE-SCREEN ROW SAYS ONE LINE UNDER THE CHOSEN PURPOSE (the pop-up diet,
    owner-approved 13 Sep 2026): the promise about what the other side can DO,
@@ -4817,7 +4826,7 @@ function shareVersions(c, org){
 
    'view' and 'history' are both read-only passes, and both are enforced by the
    server rather than by the screen (shareIsReadOnly, server/server.js). */
-const SHARE_PURPOSE = p => (['sign','negotiate','view','history','advise'].includes(p) ? p : null);
+const SHARE_PURPOSE = p => (['sign','negotiate','view','history','advise','status'].includes(p) ? p : null);
 function buildSharePayload(c, docHash, who, opts){
   const org=(who&&who.org)||FIRST_PARTY;
   /* ---- WHICH OUTSIDE PARTY'S ROOM THIS COPY MAY CARRY (3 Oct 2026) ----
@@ -4864,6 +4873,18 @@ function buildSharePayload(c, docHash, who, opts){
 
      THE CONTRIBUTORS ARE STILL INTERNAL. One name travels because a deal has a
      contact; the roster does not, and neither does the fact that a desk exists. */
+  /* ---- A STATUS LINK CARRIES THE CONTRACT'S ID AND NOTHING ELSE (idea 15,
+     4 Oct 2026) ----
+     Its page is built fresh from the STORED record on every open, by a reading
+     that carries no wording, no people and nothing one party may not show
+     another. So this builder stops here: the id, so the server knows which
+     contract the address is for and can check the sender may reach it, and
+     not one field more. The server strips it to the same shape again, because
+     a hand-built payload is not this function's to trust. */
+  if((opts&&opts.purpose)==='status') return { v:1, kind:'hati-share', purpose:'status',
+    purposeChosen:'status', org:(who&&who.org)||FIRST_PARTY,
+    sharedBy:(who&&who.sharedBy)||((typeof currentUser==='function'&&currentUser())||{}).name||'',
+    at:new Date().toISOString(), contract:{ id:c.id } };
   const _deskLead=(window.deskIsOpen&&window.deskIsOpen(c)&&window.deskLead)?deskLead(c):null;
   const sharedBy=(who&&who.sharedBy)||(_deskLead&&_deskLead.name)||currentUser().name;
   const leadNotice=(window.deskAnnouncement)?deskAnnouncement(c):null;
