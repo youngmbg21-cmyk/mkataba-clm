@@ -24768,3 +24768,27 @@ back, which would move the map after Still was pressed). A drag still turns
 the tables as far as the hand takes them. There is one Explorer (Home's
 Explorer side, both screens), so one change covers both.
 Checks: explorer-magnitude-verify 4d, 4e, 4d2 — red at 8f209aa.
+
+## HOME — A QUESTION ASKED ON THE BOARD LANDS ON THE BOARD (3 Oct 2026, evening)
+
+Young, off an iPad screenshot of the live app: *"the dashboard is not
+responding to my prompts although the explorer page does respond"*. The
+questions were "Show me all Juno contracts", "Show me all expired contracts",
+"Show me contracts that have expired", "Show me agreements that are past due".
+WHAT WAS WRONG, measured in the browser:
+- The board's reader did not know counterparty names or "past due", so those
+  went on to Explorer's map reader and Copilot, which narrowed the MAP — hidden
+  behind the board. The dock answered; the board showed nothing.
+- "expired" matched the renewals panel ("ending in 90 days") because `ren`
+  reads `expir`; the past tense is past the end date.
+- The screenshot's board had no panel at all after two answered questions.
+  The likely cause, not proved from production: three HaTi tabs were open, and
+  each kept its own copy of the board and wrote it back whole on every paint,
+  so a panel added in one tab was overwritten by another tab's next save.
+WHAT CHANGED: `hbFindParty` (a whole counterparty name, else a first word that
+is not an everyday word, read off the book — never guessed) → the `fd:` dig;
+"expired" → `f:past` unless the question says renew; "past due" → overdue
+obligations; every list Copilot or the map answers with on the board side is
+drawn as the `ls` dig (`hbShowFound`, called from `intelAsk`, the list kept in
+`s.found`); a `storage` event from another tab drops this tab's cached board.
+Checks: home-board-verify 11a–d, 12a–b (all six red at 798b79c), f447 (3).

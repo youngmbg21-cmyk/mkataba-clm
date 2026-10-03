@@ -134,6 +134,13 @@ describe('F447 (3) — the reader, without a model', () => {
     ['present', { act: 'present' }],
     ['start over', { act: 'reset' }],
     ['remove the risk panel', { act: 'remove', kind: 'exp', lens: null }],
+    /* 3 Oct 2026, the owner's own words off a screenshot */
+    ['Show me all Siginon contracts', { act: 'dig', key: 'fd:siginon' }],
+    ['contracts with Sendy', { act: 'dig', key: 'fd:sendy' }],
+    ['Show me all expired contracts', { act: 'dig', key: 'f:past' }],
+    ['Show me contracts that have expired', { act: 'dig', key: 'f:past' }],
+    ['Show me agreements that are past due', { act: 'panel', kind: 'obl', lens: null }],
+    ['which contracts expire soon', { act: 'panel', kind: 'ren', lens: null }],
   ];
   for (const [q, want] of cases) test(JSON.stringify(q), () => {
     const { sb } = world();
@@ -152,6 +159,12 @@ describe('F447 (3) — the reader, without a model', () => {
     assert.equal(sb.hbAsk('Which contracts renew soon?'), null, 'a question about renewals is the map\'s');
     assert.equal(sb.hbAsk('bring up MK-1'), null, 'so is a contract');
     assert.equal(sb.hbAsk('suppliers only'), null, 'and a lens');
+  });
+  test('a name is read off the book, never guessed: everyday words and unknown names find nothing', () => {
+    const { sb } = world();
+    assert.equal(sb.hbFindParty('show me all Zanzibar contracts'), null);
+    assert.equal(sb.hbFindParty('show me all contracts'), null);
+    assert.deepEqual([...sb.hbPartyIds('siginon')], ['MK-1']);
   });
   test('the reader never builds a pattern from the translated words (the house rule)', () => {
     const body = HB_SRC.slice(HB_SRC.indexOf('const HB_RX'), HB_SRC.indexOf('function hbParse'));

@@ -83,7 +83,7 @@ function hbUid(){
 let _hbS = null, _hbSUid = null;
 function hbFresh(){
   return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: 'dark',
-    watches: [], seen: null, saved: [], seq: 0 };
+    watches: [], seen: null, saved: [], seq: 0, found: null };
 }
 /* The board as this person left it. Read once per sitting and per person; a
    value that does not parse, or a word this version does not know, falls
@@ -109,6 +109,7 @@ function hbS(){
     if (Array.isArray(v.saved)) s.saved = v.saved.filter(x => x && x.name && Array.isArray(x.kinds)).slice(-6)
       .map(x => ({ name: String(x.name).slice(0, 60), kinds: x.kinds.filter(k => HB_KINDS[k]), lens: HB_LENSES.includes(x.lens) ? x.lens : 'all' }));
     s.seq = Number(v.seq) || s.panels.length;
+    if (v.found && Array.isArray(v.found.ids)) s.found = { title: String(v.found.title || '').slice(0, 120), ids: v.found.ids.filter(x => typeof x === 'string').slice(0, 2000) };
   }
   _hbS = s; _hbSUid = uid;
   return s;
@@ -386,6 +387,19 @@ function hbDigData(key, lens){
     const P = hbPanelData('fric', lens); const cl = P.clauses.find(x => x.label === a);
     return { key, kind: 'list', crumb: a, title: a, ids: cl ? cl.ids : [], n: cl ? cl.n : 0 };
   }
+  if (k === 'fd'){
+    const ids = hbPartyIds(a, lens);
+    const first = ids.length ? String((hbContract(ids[0]) || {}).counterparty || a) : a;
+    const name = ids.length && ids.every(id => String((hbContract(id) || {}).counterparty || '') === first) ? first : a;
+    return { key, kind: 'list', crumb: name, title: i18t('hb_found_party', { who: name }), ids, n: ids.length };
+  }
+  /* THE LIST AN ANSWER CAME BACK WITH (Copilot's or the map's), drawn on the
+     board so a question asked on the board always lands on the board */
+  if (k === 'ls'){
+    const F = hbS().found; if (!F || !Array.isArray(F.ids)) return null;
+    const ids = F.ids.filter(id => hbContract(id));
+    return { key, kind: 'list', crumb: F.title || i18t('hb_found_list'), title: F.title || i18t('hb_found_list'), ids, n: ids.length };
+  }
   if (k === 'cp'){
     const cs = hbBook(lens).filter(c => String(c.counterparty || '') === a);
     return { key, kind: 'list', crumb: a, title: a, ids: cs.map(c => c.id), n: cs.length };
@@ -470,7 +484,7 @@ const HB_RX = {
   board:     /\b(the board|board|dashboard|back to the numbers|tavlan|översikten|tillbaka till siffrorna)\b/i,
   present:   /\b(present|presentation|full ?screen|meeting mode|presentera|helskärm|mötesläge)\b/i,
   save:      /(?:save|keep) (?:this|the|my) board as (.+)|spara (?:den här tavlan|tavlan) som (.+)/i,
-  obl:       /overdue|obligation|\bdut(y|ies)\b|\blate\b|promise|förfall|åtagande|\bsena?\b/i,
+  obl:       /overdue|past due|obligation|\bdut(y|ies)\b|\blate\b|promise|förfall|åtagande|\bsena?\b/i,
   fric:      /slow|friction|negotiat|delay|stuck|förhandl|trög|fastnat|friktion/i,
   ren:       /renew|expir|\bending\b|end date|förny|löper ut|slutdatum|upphör/i,
   pay:       /payment term|\bpay\b|days to pay|invoice|betalningsvillkor|\bbetal|faktur/i,
@@ -484,13 +498,16 @@ const HB_RX = {
   all:       /\b(all contracts|everything|show all|remove the (lens|filter)|alla avtal|visa alla)\b/i,
   remove:    /\b(remove|close|hide|drop|take off|ta bort|stäng|dölj)\b/i,
   open:      /^(?:open|öppna)\s+(.+)$/i,
+  /* "expired" is the PAST — past the end date — never "ending soon"; a
+     question that also says renew is a renewals question */
+  renewWord: /renew|förny/i,
   bring:     /^(?:bring up|pull up|open|show me|look at|find|visa|öppna|ta fram|hitta)\s+(?:the\s+|avtalet\s+)?(?:contract\s+)?(.+?)\??$/i,
   fig: {
     live:    /live contracts|\blive\b|levande avtal|aktiva avtal/i,
     value:   /value under contract|total value|värde under avtal|totalt värde/i,
     ending:  /ending|end in 90|90 days|löper ut|90 dagar/i,
     past:    /past (their |the )?end|expired|efter slutdatum|utgångna|har löpt ut/i,
-    overdue: /overdue|förfallna/i,
+    overdue: /overdue|past due|förfallna/i,
     us:      /waiting on us|our move|väntar på oss|vårt drag/i,
   },
 };
@@ -534,7 +551,8 @@ function hbParse(qRaw){
   if (HB_RX.map.test(s) && !HB_RX.showThese.test(s) && s.length < 40) return { act: 'face', face: 'explorer' };
   if (HB_RX.board.test(s) && s.length < 40) return { act: 'face', face: 'board' };
   if (HB_RX.present.test(s) && s.length < 40) return { act: 'present' };
-  const kind = HB_RX.obl.test(s) ? 'obl' : HB_RX.fric.test(s) ? 'fric' : HB_RX.ren.test(s) ? 'ren'
+  const pastAsk = HB_RX.fig.past.test(s) && !HB_RX.renewWord.test(s);
+  const kind = HB_RX.obl.test(s) ? 'obl' : HB_RX.fric.test(s) ? 'fric' : (HB_RX.ren.test(s) && !pastAsk) ? 'ren'
     : HB_RX.pay.test(s) ? 'pay' : HB_RX.exp.test(s) ? 'exp' : HB_RX.val.test(s) ? 'val' : null;
   const sup = HB_RX.suppliers.test(s), cus = HB_RX.customers.test(s);
   if (HB_RX.watch.test(s)){
@@ -548,8 +566,36 @@ function hbParse(qRaw){
   if (sup && s.length < 40) return { act: 'lens', lens: 'suppliers' };
   if (cus && s.length < 40) return { act: 'lens', lens: 'customers' };
   const fig = HB_FIG_KEYS.find(f => HB_RX.fig[f].test(s));
-  if (fig && s.length < 60) return { act: 'dig', key: 'f:' + fig };
+  if (fig && s.length < 80) return { act: 'dig', key: 'f:' + fig };
+  /* a counterparty by name: "show me all Juno contracts", "contracts with Juno" */
+  const party = hbFindParty(q);
+  if (party) return { act: 'dig', key: 'fd:' + party };
   return null;
+}
+/* WHICH COUNTERPARTY A QUESTION NAMES, read off the book itself, never
+   guessed: a whole counterparty name in the words, else the first word of one
+   (≥ 3 letters, not an everyday word) standing alone in the question. The
+   answer is a lowercase term; the list is every contract whose counterparty
+   carries it as a whole word (hbPartyIds). */
+const HB_STOP = new Set(('show me all the our my your contracts contract agreements agreement deals deal with for and list find open what which who '
+  + 'are is that have has from live signed draft drafts review active expired ending overdue past due late value total suppliers customers '
+  + 'visa alla avtal med för och lista hitta öppna vilka som har från aktiva utgångna leverantörer kunder').split(/\s+/));
+const _hbWordRe = t => new RegExp('(^|[^\\p{L}\\p{N}])' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^\\p{L}\\p{N}])', 'iu');
+function hbFindParty(q){
+  const s = String(q || '').toLowerCase();
+  const parties = [...new Set(hbBook('all').map(c => String(c.counterparty || '').trim()).filter(Boolean))];
+  const whole = parties.filter(p => p.length >= 3 && _hbWordRe(p.toLowerCase()).test(s)).sort((a, b) => b.length - a.length);
+  if (whole.length) return whole[0].toLowerCase();
+  const words = new Set(s.split(/[^\p{L}\p{N}&'-]+/u).filter(w => w.length >= 3 && !HB_STOP.has(w)));
+  for (const p of parties){
+    const w = p.toLowerCase().split(/\s+/)[0].replace(/[^\p{L}\p{N}&'-]/gu, '');
+    if (w.length >= 3 && !HB_STOP.has(w) && words.has(w)) return w;
+  }
+  return null;
+}
+function hbPartyIds(term, lens){
+  const re = _hbWordRe(String(term || '').toLowerCase());
+  return hbBook(lens || 'all').filter(c => re.test(String(c.counterparty || ''))).map(c => c.id);
 }
 
 /* ============================================================
@@ -1148,7 +1194,12 @@ function hbAsk(q){
     hbMount();
     return say(_hbE(i18t('hb_opened_said', { name: v.name })), { noPaint: true });
   }
-  if (r.act === 'dig'){ hbDig(r.key, false); return say(_hbE(hbFigSay(r.key.slice(2))), { noPaint: true }); }
+  if (r.act === 'dig'){
+    hbDig(r.key, false);
+    if (/^f:/.test(r.key)) return say(_hbE(hbFigSay(r.key.slice(2))), { noPaint: true });
+    const D = hbDigData(r.key, s.lens) || { n: 0, title: '' };
+    return say(_hbE(i18tn('hb_found_n', D.n, { n: _hbN(D.n), what: D.title || '' })), { noPaint: true });
+  }
   return null;
 }
 function hbFigSay(k){
@@ -1177,6 +1228,16 @@ function hbSuggestions(){
   return out.slice(0, 3);
 }
 function hbPlaceholder(){ return hbS().face === 'board' ? i18t('hb_ask_ph') : null; }
+
+/* An answer from Copilot or the map that came back as a LIST: shown on the
+   board as a dig-in, so a question asked on the board never lands only on
+   the map hidden behind it. Called by intelAsk; the board side only. */
+function hbShowFound(ids, title){
+  const s = hbS(); if (s.face !== 'board' || !Array.isArray(ids) || !ids.length) return false;
+  s.found = { title: String(title || '').slice(0, 120), ids: ids.filter(x => typeof x === 'string').slice(0, 2000) };
+  hbDig('ls', false);
+  return true;
+}
 
 /* ---------------- WATCH A NUMBER ----------------
    A rule this person set, read where the number is; it becomes a row in the
@@ -1397,6 +1458,14 @@ if (typeof document !== 'undefined' && !document._hbWired){
   document.addEventListener('pointerup', hbOnPenUp);
   document.addEventListener('pointercancel', hbOnPenUp);
   document.addEventListener('keydown', hbOnKey);
+  /* TWO TABS, ONE BOARD: another tab's save is read here rather than
+     overwritten by this tab's next save (each tab used to keep its own copy
+     and write it back whole, so a panel added in one tab could vanish). */
+  if (typeof window !== 'undefined') window.addEventListener('storage', e => {
+    if (!e || !e.key || e.key.indexOf(HB_LS) !== 0) return;
+    _hbS = null;
+    try { if (window.state && state.view === 'dashboard' && hbS().face === 'board') hbPaintBoard(); } catch (_){}
+  });
   document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && _hbPresenting) hbPresent(false); });
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
@@ -1409,4 +1478,4 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbBoardHtml, hbWatchFormHtml, hbWatchFired, hbGiveFormHtml, hbPaintBoard, hbPaintHead, hbApplyScreen,
   hbApplyFace, hbMount, hbAfterMount, hbRender, hbOpenExplorer, hbSetFace, hbSetLens, hbLensOnMap, hbShowOnMap, hbDig, hbAddPanel,
   hbAsk, hbFigSay, hbPanelSay, hbSuggestions, hbPlaceholder, hbWatchAlerts, hbGiftsFor, hbGiftsLoad, hbGive,
-  hbUngive, hbDropGift, hbToolsPaint, hbSetTool, hbInkClear, hbPresent, hbPlace, hbPlacePut, hbOnClick, hbOnSubmit, hbOnKey, hbHelloInner, hbFocusKey });
+  hbUngive, hbDropGift, hbToolsPaint, hbSetTool, hbInkClear, hbPresent, hbPlace, hbPlacePut, hbOnClick, hbOnSubmit, hbOnKey, hbHelloInner, hbFocusKey, hbFindParty, hbPartyIds, hbShowFound, HB_STOP });
