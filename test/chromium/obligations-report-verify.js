@@ -133,12 +133,14 @@ const apart = (a, b) => { const x = rgb(a), y = rgb(b);
        later tab is a test edit rather than a decision. */
     check('1a · obligations sits directly after friction on the row',
       keys.indexOf('obligations') === keys.indexOf('friction') + 1
-        && keys.indexOf('map') > keys.indexOf('obligations'), keys.join(','));
+        /* the contract graph left this row for Home on 3 Oct 2026; Payment
+           terms is the neighbour on the right now */
+        && keys.indexOf('payterms') > keys.indexOf('obligations'), keys.join(','));
     const ob = tabs.find(t => t.k === 'obligations');
     check('1b · the tab is painted, with its own word', ob && ob.w > 20 && /\w/.test(ob.t),
       ob ? `${ob.t} @${ob.x} w${ob.w}` : 'absent');
     check('1c · it is in reading order between its neighbours',
-      ob && ob.x > tabs.find(t => t.k === 'friction').x && ob.x < tabs.find(t => t.k === 'map').x);
+      ob && ob.x > tabs.find(t => t.k === 'friction').x && ob.x < tabs.find(t => t.k === 'payterms').x);
 
     await page.click('[data-ig-tab="obligations"]');
     await page.waitForTimeout(900);

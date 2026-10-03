@@ -118,8 +118,11 @@ describe('f247 · the tab is one list, read by the row AND the guard', () => {
     assert.ok(tabs.includes('obligations'), 'the tab is still on the row');
     assert.equal(tabs.indexOf('obligations'), tabs.indexOf('friction') + 1,
       'it reads after negotiation friction');
-    assert.ok(tabs.indexOf('map') > tabs.indexOf('obligations'),
-      'and the contract graph still reads last of all');
+    /* REVERSED IN PLACE 3 Oct 2026 (Young: Home is the board and the map;
+       "keep Insights for the detailed tabs"): the contract graph left this
+       row for Home's Board | Explorer switch, so it no longer reads last
+       here — it does not read here at all (f446 owns that ruling). */
+    assert.ok(!tabs.includes('map'), 'the contract graph lives on Home now');
     tabs.forEach(k => assert.ok(w.win.IG_TAB_LABEL[k],
       k + ' carries a label key, or the row draws a blank tab'));
   });
@@ -145,7 +148,8 @@ describe('f247 · the tab is one list, read by the row AND the guard', () => {
   });
 
   test('the tab has a home in renderIntel and its own scrolling body', () => {
-    assert.ok(/if\(intel\.tab==='obligations'\)\{/.test(IG_CODE));
+    /* the Insights page draws it; Home, which borrows this page for its map, does not (3 Oct 2026) */
+    assert.ok(/if\((?:!onHome&&)?intel\.tab==='obligations'\)\{/.test(IG_CODE));
     assert.ok(/id="ig-oblig"/.test(IG_CODE));
     assert.ok(/intelObligationsHtml\(\)/.test(IG_CODE));
   });

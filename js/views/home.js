@@ -1560,6 +1560,14 @@ function needsYouGo(kind, id){
 const HM_DD_ROWS = 2;
 
 function renderDashboard(){
+  /* ---- HOME IS THE BOARD AND THE MAP (Young ruled 3 Oct 2026) ----
+     On the desktop Home is drawn by js/views/homeboard.js on Explorer's own
+     page: the headline numbers, Prepared by Copilot under them, the answers
+     to what is asked, and the map one press away. THE PHONE STAYS AS IT IS
+     (the owner's word): it draws its own screens, so below the phone line the
+     page under them is the one this function always drew. */
+  const _phone=!!(window.mPhone && window.mAppActive && mPhone() && mAppActive());
+  if(typeof window.hbRender==='function' && !_phone){ hbRender(); return; }
   /* ---- HOME IS THE GREETING, THE MAP AND PREPARED FOR YOU (Young ruled
      24 Sep 2026) ----
      *"instead of needs your decision, delete it and replace with prepared for

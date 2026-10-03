@@ -196,7 +196,8 @@ const check = (name, pass, detail) => {
        Young, 29 Sep 2026, off a screenshot with the "Grouped by value stream"
        row ringed: "remove the space in the highlighted area and give it to the
        dark screen." */
-    const hl = await page.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(), head = r('ig-head'), st = r('ig-gwrap'), n = r('ig-note');
+    /* the head row is Home's own on the map's page since 3 Oct 2026 (#hb-head) */
+    const hl = await page.evaluate(() => { const r = id => document.getElementById(id).getBoundingClientRect(), head = (document.getElementById('ig-head') || document.getElementById('hb-head')).getBoundingClientRect(), st = r('ig-gwrap'), n = r('ig-note');
       const note = document.getElementById('ig-note'), b = note.querySelector('b');
       return { headBottom: Math.round(head.bottom), stageTop: Math.round(st.top), inStage: n.left >= st.left && n.top >= st.top && n.right <= st.right && n.bottom <= st.bottom, text: note.textContent.replace(/\s+/g, ' ').trim().slice(0, 60), boldCol: b ? getComputedStyle(b).color : null }; });
     check('5a the dark map starts straight under the tab row — the head line\'s row is the map\'s now', Math.abs(hl.stageTop - hl.headBottom) <= 1, JSON.stringify(hl));

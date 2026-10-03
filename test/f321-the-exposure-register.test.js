@@ -65,10 +65,14 @@ function book(){
 const rowOf = (d, k) => d.rows.find(r => r.k === k);
 
 describe('f321 (1) a sixth tab, and it is a name added in one place', () => {
-  test('1a IG_TABS and IG_TAB_LABEL hold the same six names', () => {
+  test('1a IG_TABS and IG_TAB_LABEL hold the same names', () => {
+    /* REVERSED IN PLACE 3 Oct 2026 (Young: Home is the board and the map,
+       "keep Insights for the detailed tabs"): the contract graph left this
+       row for Home (f446). Its LABEL stays, because Explorer still names its
+       own lists with it — so the labels are the row plus that one. */
     const w = world(book());
-    assert.deepEqual(w.IG_TABS, ['frame','friction','obligations','payterms','exposure','map']);
-    assert.deepEqual(Object.keys(w.IG_TAB_LABEL).sort(), w.IG_TABS.slice().sort());
+    assert.deepEqual([...w.IG_TABS], ['frame','friction','obligations','payterms','exposure']);
+    assert.deepEqual(Object.keys(w.IG_TAB_LABEL).sort(), w.IG_TABS.concat('map').sort());
   });
   test('1b the row and renderIntel\'s own guard read the same list', () => {
     assert.match(CODE, /IG_TABS\.indexOf\(intel\.tab\)<0/);

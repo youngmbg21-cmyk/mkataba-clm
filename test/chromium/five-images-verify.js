@@ -132,11 +132,13 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
       if (!card) return { drawn: false };
       const row = card.querySelector('[data-hm-agent-row="renew"]');
       if (!row) return { drawn: false };
-      const btn = row.querySelector('button[data-hm-agent]'), head = row.querySelector('.hm-rb');
+      /* RE-POINTED IN PLACE 3 Oct 2026: the row is the board's own (Young:
+         Home is the board); Review digs in, the head's link opens Copilot's work */
+      const btn = row.querySelector('button[data-hm-agent], .hb-btn'), head = row.querySelector('.hm-rb, .hb-ag-b');
       const rr = row.getBoundingClientRect(), ar = btn.getBoundingClientRect(), hr = head.getBoundingClientRect();
       return { drawn: true,
         verbs: [...row.querySelectorAll('button')].map(b => b.textContent.trim()),
-        door: (card.querySelector('.hm-cz') || {}).textContent,
+        door: (card.querySelector('.hm-cz, .hb-link[data-hm-agent]') || {}).textContent,
         sameLine: Math.abs((ar.top + ar.height / 2) - (hr.top + hr.height / 2)) < 10,
         rightOfText: ar.left >= hr.right - 1,
         gapToWall: Math.round(rr.right - ar.right),

@@ -14846,6 +14846,73 @@ app.put('/api/me/prefs', auth, (req, res) => {
   res.json({ ok: true, prefs });
 });
 
+/* ---------- A HOME PANEL GIVEN TO A COLLEAGUE (Young asked 3 Oct 2026) ----------
+   "Give to Brian with a note": the panel appears on the colleague's Home with
+   the note, and the giver sees when it has been opened.
+   A RECORD, NOT A PERMISSION. What is kept is the panel's NAME — one of six
+   kinds, a lens, side by side — and a note; NEVER A FIGURE. The colleague's
+   Home counts the panel again from what THIS SERVER sends them, which is
+   already scoped to the streams they may see (folderScopeFor), so a gift can
+   never show anybody a contract they could not already open.
+   THE ROUTE NEVER TAKES AN ADDRESS: `to` is a member id, looked up here.
+   Only the receiver says "seen" or puts it away; only the giver takes it back. */
+db.exec(`CREATE TABLE IF NOT EXISTS home_gifts (
+  id TEXT PRIMARY KEY, from_id TEXT NOT NULL, to_id TEXT NOT NULL, kind TEXT NOT NULL,
+  lens TEXT NOT NULL DEFAULT 'all', split INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '',
+  pid TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, seen_at TEXT, dismissed_at TEXT)`);
+const HOME_GIFT_KINDS = ['obl', 'fric', 'ren', 'pay', 'exp', 'val'];
+const HOME_GIFT_LENSES = ['all', 'suppliers', 'customers'];
+/* A PERSON'S HOME HOLDS AT MOST THIS MANY GIFTS STILL ON IT; one more is
+   refused in words, never dropped (a cap is a fact). */
+const HOME_GIFT_OPEN_MAX = 20;
+function homeGiftShape(g){
+  const who = id => { const u = db.prepare('SELECT name FROM users WHERE id=?').get(id); return u ? u.name : ''; };
+  return { id: g.id, kind: g.kind, lens: g.lens, split: !!g.split, note: g.note || '', pid: g.pid || '',
+    fromId: g.from_id, fromName: who(g.from_id), toId: g.to_id, toName: who(g.to_id),
+    at: g.created_at, seenAt: g.seen_at || null };
+}
+app.get('/api/home/gifts', auth, (req, res) => {
+  const received = db.prepare('SELECT * FROM home_gifts WHERE to_id=? AND dismissed_at IS NULL ORDER BY created_at DESC LIMIT ?').all(req.user.id, HOME_GIFT_OPEN_MAX);
+  const sent = db.prepare('SELECT * FROM home_gifts WHERE from_id=? ORDER BY created_at DESC LIMIT 100').all(req.user.id);
+  res.json({ received: received.map(homeGiftShape), sent: sent.map(homeGiftShape) });
+});
+app.post('/api/home/gifts', auth, (req, res) => {
+  const b = req.body || {};
+  if (b.email || b.address) return res.status(400).json({ error: 'Send the colleague’s id, not an address.' });
+  const to = clean(b.to);
+  const u = to ? db.prepare('SELECT id, name FROM users WHERE id=?').get(to) : null;
+  if (!u) return res.status(400).json({ error: 'That person is not a member of this workspace.' });
+  if (String(u.id) === String(req.user.id)) return res.status(400).json({ error: 'A panel is given to somebody else.' });
+  const kind = clean(b.kind);
+  if (!HOME_GIFT_KINDS.includes(kind)) return res.status(400).json({ error: 'kind must be one of: ' + HOME_GIFT_KINDS.join(', ') });
+  const lens = HOME_GIFT_LENSES.includes(clean(b.lens)) ? clean(b.lens) : 'all';
+  const open = db.prepare('SELECT COUNT(*) AS n FROM home_gifts WHERE to_id=? AND dismissed_at IS NULL').get(u.id).n;
+  if (open >= HOME_GIFT_OPEN_MAX) return res.status(409).json({ error: `${u.name} already has ${HOME_GIFT_OPEN_MAX} panels waiting on their Home. Ask them to clear some first.` });
+  const g = { id: 'g_' + rid(8), from_id: req.user.id, to_id: u.id, kind, lens, split: b.split ? 1 : 0,
+    note: clean(b.note).slice(0, 500), pid: clean(b.pid).slice(0, 40), created_at: new Date().toISOString() };
+  db.prepare('INSERT INTO home_gifts (id,from_id,to_id,kind,lens,split,note,pid,created_at) VALUES (?,?,?,?,?,?,?,?,?)')
+    .run(g.id, g.from_id, g.to_id, g.kind, g.lens, g.split, g.note, g.pid, g.created_at);
+  res.json({ ok: true, gift: homeGiftShape(g) });
+});
+app.post('/api/home/gifts/:id/seen', auth, (req, res) => {
+  const g = db.prepare('SELECT * FROM home_gifts WHERE id=?').get(req.params.id);
+  if (!g || String(g.to_id) !== String(req.user.id)) return res.status(404).json({ error: 'Not found' });
+  if (!g.seen_at) db.prepare('UPDATE home_gifts SET seen_at=? WHERE id=?').run(new Date().toISOString(), g.id);
+  res.json({ ok: true });
+});
+app.post('/api/home/gifts/:id/dismiss', auth, (req, res) => {
+  const g = db.prepare('SELECT * FROM home_gifts WHERE id=?').get(req.params.id);
+  if (!g || String(g.to_id) !== String(req.user.id)) return res.status(404).json({ error: 'Not found' });
+  db.prepare('UPDATE home_gifts SET dismissed_at=?, seen_at=COALESCE(seen_at, ?) WHERE id=?').run(new Date().toISOString(), new Date().toISOString(), g.id);
+  res.json({ ok: true });
+});
+app.delete('/api/home/gifts/:id', auth, (req, res) => {
+  const g = db.prepare('SELECT * FROM home_gifts WHERE id=?').get(req.params.id);
+  if (!g || String(g.from_id) !== String(req.user.id)) return res.status(404).json({ error: 'Not found' });
+  db.prepare('DELETE FROM home_gifts WHERE id=?').run(g.id);
+  res.json({ ok: true });
+});
+
 /* ---------- password reset ---------- */
 app.post('/api/password/reset-request', rlReset, async (req, res) => {
   const email = String((req.body || {}).email || '').toLowerCase();

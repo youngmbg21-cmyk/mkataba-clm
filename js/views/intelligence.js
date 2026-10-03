@@ -99,7 +99,23 @@ window.intelUI = { scanning:false, scannedAt:null };
    nothing anywhere saying why. A fifth surface is a name added here and
    nowhere else. LABELS ARE KEYS, never resolved strings: an object literal of
    translated text freezes whatever language was current at load. */
-const IG_TABS = ['frame','friction','obligations','payterms','exposure','map'];
+/* EXPLORER LEFT THIS ROW ON 3 OCT 2026 (Young ruled: "keep Insights for the
+   detailed tabs"): the map lives on Home, behind its Board | Explorer switch,
+   and a door here that still names 'map' is sent there (renderIntel,
+   intelGoTab). IG_TAB_LABEL keeps its word — the map's lists still say it. */
+const IG_TABS = ['frame','friction','obligations','payterms','exposure'];
+/* IS THE MAP ON THE SCREEN NOW? Since 3 Oct 2026 that means Home, showing
+   its Explorer side. Every guard that asked "Insights, on the map tab" asks
+   this instead, so the map's timers and its loop stop the moment it is
+   covered or left. */
+function igMapUp(){
+  if(!window.state) return false;
+  if(state.view==='intel'&&intel.tab==='map') return true;
+  return state.view==='dashboard' && typeof window.hbFace==='function' && hbFace()==='explorer' && !!document.getElementById('ig-svg');
+}
+/* Is Explorer's page (the stage and the Copilot panel) on the screen at all —
+   on Home that is both sides, the board covering the map or not. */
+function igPageUp(){ return !!(window.state && (state.view==='intel'||state.view==='dashboard') && document.getElementById('ig-row')); }
 const IG_TAB_LABEL = { frame:'pf_tab', friction:'int_negotiation_friction',
   obligations:'int_obligations', payterms:'pt_tab', exposure:'int_exposure',
   map:'int_contract_graph' };
@@ -679,7 +695,7 @@ function igFitSplit(){
 let _igSplitT=0;
 function igSplitSettle(){
   if(_igSplitT) clearTimeout(_igSplitT);
-  _igSplitT=setTimeout(()=>{ _igSplitT=0; if(state.view==='intel'&&intel.tab==='map') rebuildIntelGraph(); },280);
+  _igSplitT=setTimeout(()=>{ _igSplitT=0; if(igMapUp()) rebuildIntelGraph(); },280);
 }
 function igWireSplit(){
   const row=document.getElementById('ig-row'), dock=document.getElementById('ig-dock'), rez=document.getElementById('ig-resizer');
@@ -709,7 +725,7 @@ function igWireSplit(){
   });
   rez.addEventListener('dblclick',()=>{ _igDockSave(null); igFitSplit(); igSplitSettle(); });
   if(!window._igSplitResizeBound){ window._igSplitResizeBound=true;
-    window.addEventListener('resize',()=>{ if(state.view==='intel'&&intel.tab==='map'){ igFitSplit(); igNoteMeasure(); } }); }
+    window.addEventListener('resize',()=>{ if(igPageUp()){ igFitSplit(); if(igMapUp()) igNoteMeasure(); } }); }
 }
 window.IG = null;      // live graph model
 window.intelRAF = 0;   // animation token
@@ -1498,6 +1514,13 @@ async function intelMapLocal(q){
 async function intelAsk(qRaw){
   const q=(qRaw||'').trim();
   if(!q||intel.busy) return;
+  /* ON HOME THE BOARD'S FREE READER ANSWERS FIRST (3 Oct 2026): a figure, a
+     panel, a contract by its reference, the lens, the side of the screen.
+     What it does not understand goes on exactly as on the map. No spend. */
+  if(state.view==='dashboard' && typeof window.hbAsk==='function'){
+    let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
+    if(said){ intel.history.push({role:'user', text:q}); intel.history.push({role:'assistant', text:said}); renderIntelDock(); return; }
+  }
   intel.history.push({role:'user', text:q});
   intel.busy=true; renderIntelDock(); updateIntelNote();
   try{
@@ -2937,7 +2960,14 @@ function renderIntel(){
      button drew, the press registered, the page redrew the overview, and
      nothing anywhere said why. f247 asserts the row and the guard hold the
      same names in the same order. */
-  if(IG_TABS.indexOf(intel.tab)<0) intel.tab=IG_TABS[0];
+  /* ---- THE MAP IS DRAWN ON HOME (Young ruled 3 Oct 2026) ----
+     On Home this same page draws with Home's head row in place of the tabs,
+     the board laid over the stage (js/views/homeboard.js), and the map built
+     only while its side is showing. A door on Insights still naming the map
+     is sent to Home's Explorer side rather than drawing it here. */
+  const onHome = state.view==='dashboard' && typeof window.hbHeadHtml==='function';
+  if(!onHome && intel.tab==='map' && typeof window.hbOpenExplorer==='function'){ intel.tab=IG_TABS[0]; hbOpenExplorer(); return; }
+  if(!onHome && IG_TABS.indexOf(intel.tab)<0) intel.tab=IG_TABS[0];
   const groupOpts=GRAPH_GROUPINGS.map(g=>[g.k,g.label]);   // C-1: ONE list — the tool's enum mirrors it
   /* UNDERLINE TABS, not pills. Both controls in this strip read the same way:
      the live one is the one with the accent rule under it. The -1px bottom
@@ -2998,7 +3028,17 @@ function renderIntel(){
      for it. It is the register's own precedent, which paints the same element
      the same way for the same reason. */
   const headStyle=`<style>#page-head{background:var(--color-surface)}</style>`;
-  const headerHtml=headStyle+`
+  /* THE GROUP-BY SELECT, one builder for both heads that carry it — the map's
+     wiring asks for #ig-group by id wherever the map is drawn. */
+  const groupSel=`<span style="position:relative;display:inline-flex;align-items:center">
+          <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--st-steel-bg);color:var(--st-steel-fg);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:var(--radius);cursor:pointer;outline:none">
+            ${''/* Copilot's own grouping gets its row here too — see igPaintGroupSelect. */}
+            ${intel.groupBy==='custom'?`<option value="custom" selected>${graphGroupingWord('custom').replace(/^./,ch=>ch.toUpperCase())}</option>`:''}
+            ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
+          </select>
+          <span style="position:absolute;right:9px;pointer-events:none;color:var(--color-accent);font-size:var(--t-figure)">▼</span>
+        </span>`;
+  const headerHtml=onHome ? hbHeadHtml(groupSel) : headStyle+`
     <!-- No vertical padding: the tab buttons carry it themselves, so their
          underline lands on the strip's own hairline.
 
@@ -3027,17 +3067,10 @@ function renderIntel(){
       <span style="flex:1"></span>
       ${intel.tab==='friction'?frictionControls:''}
       ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
-        <span style="position:relative;display:inline-flex;align-items:center">
-          <select id="ig-group" style="appearance:none;-webkit-appearance:none;-moz-appearance:none;border:1.5px solid var(--color-accent);background:var(--st-steel-bg);color:var(--st-steel-fg);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-body);letter-spacing:0;text-transform:none;padding:5px 26px 5px 11px;border-radius:var(--radius);cursor:pointer;outline:none">
-            ${''/* Copilot's own grouping gets its row here too — see igPaintGroupSelect. */}
-            ${intel.groupBy==='custom'?`<option value="custom" selected>${graphGroupingWord('custom').replace(/^./,ch=>ch.toUpperCase())}</option>`:''}
-            ${groupOpts.map(([k,l])=>`<option value="${k}" ${intel.groupBy===k?'selected':''}>${l}</option>`).join('')}
-          </select>
-          <span style="position:absolute;right:9px;pointer-events:none;color:var(--color-accent);font-size:var(--t-figure)">▼</span>
-        </span>
+        ${groupSel}
       </label>`:''}
     </header>`;
-  if(intel.tab==='frame'){
+  if(!onHome&&intel.tab==='frame'){
     /* Same shell as the friction tab: header strip, then one scrolling body.
        The frame carries no header levers of its own — its controls are the
        panels themselves. */
@@ -3051,7 +3084,7 @@ function renderIntel(){
     if(typeof wirePortfolioFrame==='function') wirePortfolioFrame(renderIntel);
     return;
   }
-  if(intel.tab==='friction'){
+  if(!onHome&&intel.tab==='friction'){
     /* THE CONTROL TOWER — full width, no pinned Copilot. The dock stays on
        Explorer (the map tab), where its questions drive the map; here the levers
        are real controls on the page, and free-form probing goes through the
@@ -3079,7 +3112,7 @@ function renderIntel(){
     setActiveNav('intel');
     return;
   }
-  if(intel.tab==='obligations'){
+  if(!onHome&&intel.tab==='obligations'){
     /* THE SAME SHELL AS THE FRICTION TAB — header strip, then one scrolling
        body. This page carries no header levers of its own and that is
        deliberate: every number on it is a count of the whole live book, and a
@@ -3095,7 +3128,7 @@ function renderIntel(){
     setActiveNav('intel');
     return;
   }
-  if(intel.tab==='exposure'){
+  if(!onHome&&intel.tab==='exposure'){
     /* THE SAME SHELL as the two tabs above it — header strip, then one
        scrolling body, and no header levers of its own: every figure on it
        counts the whole live book, and a filter would put a narrowed number
@@ -3110,7 +3143,7 @@ function renderIntel(){
     setActiveNav('intel');
     return;
   }
-  if(intel.tab==='payterms'){
+  if(!onHome&&intel.tab==='payterms'){
     /* THE SAME SHELL AS THE OBLIGATIONS TAB — header strip, then one scrolling
        body, and no header levers of its own for the same reason: every figure
        on it counts the whole live book, and a filter would put a narrowed
@@ -3131,6 +3164,7 @@ function renderIntel(){
      repaint of this tab (a language change, the rail door pressed while here)
      replaces the map itself and keeps the reader's choice. */
   if(!document.getElementById('ig-svg')) intel.legendFolded=true;
+  const mapNow = !onHome || (typeof hbFace==='function' && hbFace()==='explorer');
   /* ANALYZE CONTRACT (26 Sep 2026): the left column is a strip over a stage.
      The strip (#ig-strip) is drawn only once a contract has been analyzed and
      carries the Graph | Paper switch; the stage (#ig-gwrap) holds the graph
@@ -3141,7 +3175,7 @@ function renderIntel(){
   <div id="ig-page" class="view-enter" style="height:var(--view-h);display:flex;flex-direction:column;min-height:0">
     ${headerHtml}
     <div id="ig-row" class="relative flex-1 min-h-0 bg-canvas flex" style="flex:1;min-height:0;display:flex;position:relative;background:var(--color-bg)">
-      <div class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative;display:flex;flex-direction:column">
+      <div ${onHome?'id="hb-col" ':''}class="relative flex-1 min-w-0" style="flex:1;min-width:0;position:relative;display:flex;flex-direction:column">
         <div id="ig-strip" class="ig-strip" hidden></div>
         <div id="ig-gwrap" class="ig-brain" style="flex:1;min-height:0;position:relative">
         <canvas id="ig-cv" aria-hidden="true"></canvas>
@@ -3164,6 +3198,9 @@ function renderIntel(){
         </div>
         <div id="ig-paper" class="ig-paper" hidden></div>
         </div>
+        ${onHome?`<div id="hb-board" class="hb-board scroll-thin"></div>
+          <div id="hb-tools" class="hb-tools"></div><canvas id="hb-ink" class="hb-ink" aria-hidden="true"></canvas>
+          <div id="hb-laser" class="hb-laser" hidden></div><div id="hb-laser-1" class="hb-laser is-trail" hidden></div><div id="hb-laser-2" class="hb-laser is-trail" hidden></div><div id="hb-laser-3" class="hb-laser is-trail" hidden></div>`:''}
       </div>
       <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);transition:width var(--dur-3) cubic-bezier(.22,.61,.36,1)"></aside>
       <div id="ig-resizer" class="ig-resizer" role="separator" aria-orientation="vertical" tabindex="0" aria-valuemin="${IG_DOCK_MIN}"
@@ -3173,10 +3210,10 @@ function renderIntel(){
 
   renderIntelDock();
   igWireSplit();
-  rebuildIntelGraph();
+  if(mapNow){ if(onHome) hbLensOnMap(); rebuildIntelGraph(); }
   igPaintPaper();
   // re-fit once layout settles so the fit uses the true viewport size
-  requestAnimationFrame(()=>{ if(state.view==='intel'&&IG) igFitView(); });
+  requestAnimationFrame(()=>{ if(igMapUp()&&IG) igFitView(); });
 
   /* ---- TURN, ZOOM, FACE AGAIN (the brain drawing, 28 Sep 2026) ----
      A drag anywhere on the stage — on a dot or a card too — turns the view
@@ -3250,10 +3287,11 @@ function renderIntel(){
      quarter of the frames — enough to keep its drift alive for the moment the
      reader turns to the wiring, and a third of each frame back on a big book. */
   let _igF=0;
-  (function loop(){ if(state.view!=='intel'||myRAF!==intelRAF||!IG) return;
+  (function loop(){ if(!igMapUp()||myRAF!==intelRAF||!IG) return;
     const cw=intel.cam&&intel.cam.w; if((cw&&cw[1]>.01)||(_igF++%4===0)) igTick();
     igRender(); requestAnimationFrame(loop); })();
-  setActiveNav('intel');
+  setActiveNav(onHome?'dashboard':'intel');
+  if(onHome) hbAfterMount();
 }
 
 /* ============================================================
@@ -5387,6 +5425,7 @@ function intelPayTermsHtml(){
    and a second door added later joins this function rather than repeating the
    two lines. An unknown key falls through to the page's own guard. */
 function intelGoTab(k){
+  if(k==='map' && typeof window.hbOpenExplorer==='function'){ hbOpenExplorer(); return; }
   if(IG_TABS.indexOf(k) >= 0) intel.tab = k;
   setView('intel');
 }
@@ -5397,7 +5436,7 @@ function igSyncDockWidth(){
   /* The divider's own pass: the width, and the handle shown or stood down. */
   if(document.getElementById('ig-row')) igFitSplit(); else dock.style.width=igDockWidth()+'px';
   // the canvas flexes — re-measure and re-settle once the width transition lands
-  setTimeout(()=>{ if(state.view==='intel') rebuildIntelGraph(); },280);
+  setTimeout(()=>{ if(igMapUp()) rebuildIntelGraph(); },280);
 }
 function igMiniCard(id, extra){
   const c=getContract(id); if(!c) return '';
@@ -5549,7 +5588,7 @@ function renderIntelDock(){
     ${(()=>{ const v=igViewsRead(); return v.length?`<div class="px-3.5 pb-1.5 shrink-0 flex flex-wrap items-center gap-1.5" data-ig-views><span class="text-[10.5px] uppercase tracking-wider text-ink/40">${i18t('int_saved_views')}</span>${v.slice(-4).reverse().map(x=>`<button type="button" data-ig-saved="${igEsc(x.name)}" title="${igEsc(x.name)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 px-2.5 py-1 text-brand-700 transition text-left" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.name)}</button>`).join('')}</div>`:''; })()}
     ${!intel.history.length?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5">
-      ${IG_SUGGESTIONS.slice(0,3).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
+      ${((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||IG_SUGGESTIONS.slice(0,3)).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
     </div>`:''}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
@@ -5841,6 +5880,7 @@ function igPaperCost(c){
 }
 function igAskPlaceholder(){
   const c=igPaperUp()?getContract(intel.paper.id):null;
+  if(!c && state.view==='dashboard' && typeof window.hbPlaceholder==='function'){ const h=hbPlaceholder(); if(h) return h; }
   return c?i18t('int_ask_contract',{ref:(window.contractRef?contractRef(c):c.id)}):i18t('int_ask_portfolio');
 }
 function igAskCost(){
@@ -6025,7 +6065,8 @@ function igPaintPaper(){
   /* WRITTEN ON THE ELEMENT: the head strip states display:flex inline, which
      no sheet rule can outrank, so Focus folds it where its own declaration
      lives and puts the markup's own value back — never !important. */
-  const head=document.getElementById('ig-head'); if(head) head.style.display=focus?'none':'flex';
+  /* on Home the head row is Home's own (#hb-head, 3 Oct 2026): Focus folds it the same way */
+  const head=document.getElementById('ig-head')||document.getElementById('hb-head'); if(head) head.style.display=focus?'none':'flex';
   if(!up){ host.hidden=true; return; }
   if(host.dataset.for!==c.id){ host.innerHTML=igPaperHtml(c); host.dataset.for=c.id; igPaperWire(host); }
   host.hidden=false;
@@ -6250,7 +6291,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape') return;
     const p=intel.paper; if(!p||!p.focus) return;
-    if(typeof state!=='undefined'&&state&&state.view!=='intel') return;
+    if(!igMapUp()) return;
     if(document.querySelector('[data-top-overlay]')) return;
     const mr=document.getElementById('modal-root'); if(mr&&mr.children.length) return;
     p.focus=false; igPaintPaper();
@@ -6261,6 +6302,7 @@ Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
+Object.assign(window,{igMapUp,igPageUp});
 Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first

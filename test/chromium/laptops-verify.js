@@ -162,28 +162,32 @@ const PROBE = () => {
     await page.evaluate(x => window.setView(x), 'dashboard');
     await page.waitForTimeout(500);
     const fill = await page.evaluate(() => {
-      const sc = document.getElementById('content-scroll');
-      const pg = document.querySelector('.hm-page');
+      /* RE-POINTED IN PLACE 3 Oct 2026 (Young: Home is the board and the
+         map): the board scrolls inside its own column, and its cards are
+         Your book and Prepared by Copilot. Same claims: nothing sideways,
+         the last card reachable, nothing cut off at this laptop's width. */
+      const sc = document.getElementById('hb-board');
+      const pg = document.getElementById('hb-book');
       if (!sc || !pg) return null;
       /* RE-POINTED IN PLACE 24 Sep 2026: the last thing on Home is Prepared
          for you when something is prepared, else the Map — the decisions
          list this used to find LEFT HOME with the tiles (owner-ruled). */
       /* RE-POINTED 28 Sep 2026: Prepared for you left Home; the last card is
          Prepared by Copilot when an agent has work ready, else the Map. */
-      const last = document.getElementById('hm-agents') || document.getElementById('hm-map');
-      const map = document.getElementById('hm-map');
+      const last = document.getElementById('hm-agents') || document.getElementById('hb-book');
+      const map = document.getElementById('hb-book');
       return {
-        sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth || sc.scrollWidth > sc.clientWidth + 1,
         /* The last thing on the page has to be reachable — inside the
            scrollable extent, not cut off below it. */
-        reachable: !last || Math.round(last.getBoundingClientRect().bottom)
-          <= Math.round(sc.getBoundingClientRect().top) + sc.scrollHeight + 2,
+        reachable: !last || Math.round(last.getBoundingClientRect().bottom - sc.getBoundingClientRect().top + sc.scrollTop)
+          <= sc.scrollHeight + 2,
         tiles: document.querySelectorAll('.hm-tile').length,
         map: !!map,
         /* A figure is CUT OFF when its box holds less than it draws — the one
            question only a browser can answer, asked of every figure the Map
            carries at this laptop's own width. */
-        clipped: map ? [...map.querySelectorAll('.hm-map-fact, .hm-map-legend button')]
+        clipped: map ? [...map.querySelectorAll('.hb-fig-main, .hb-stagekey button')]
           .filter(el => el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1).length : -1,
       };
     });

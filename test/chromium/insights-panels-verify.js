@@ -275,7 +275,9 @@ const QUESTION = 'why do I have a big workload runway today?';
       };
     })()`;
     const heads = {};
-    for (const tab of ['frame', 'friction', 'map']){
+    /* 'obligations' in place of 'map' since 3 Oct 2026: Explorer left this
+       row for Home (Young: "keep Insights for the detailed tabs") */
+    for (const tab of ['frame', 'friction', 'obligations']){
       await page.evaluate(t => { intel.tab = t; renderIntel(); }, tab);
       await page.waitForTimeout(700);
       heads[tab] = await page.evaluate(HEAD);
@@ -308,9 +310,9 @@ const QUESTION = 'why do I have a big workload runway today?';
        and the tabs are the page's, so this is really a check that switching
        tabs does not quietly redraw the header a different way. */
     check('5 and all three tabs read the same, because it is one header',
-      ['frame', 'friction', 'map'].every(t =>
+      ['frame', 'friction', 'obligations'].every(t =>
         heads[t].sub === null && heads[t].headH === f.headH && heads[t].scrollH === f.scrollH),
-      ['frame', 'friction', 'map'].map(t =>
+      ['frame', 'friction', 'obligations'].map(t =>
         `${t}: ${heads[t].headH}px/${heads[t].scrollH}px`).join(' · '));
 
     /* ---- 5b. THE HEAD AND THE TABS ARE ONE WHITE CARD ----
@@ -324,7 +326,9 @@ const QUESTION = 'why do I have a big workload runway today?';
        them for the ground to show through. Asked on every tab, because the
        strip is rebuilt per tab and the header is not. */
     const cards = {};
-    for (const tab of ['frame', 'friction', 'map']){
+    /* 'obligations' in place of 'map' since 3 Oct 2026: Explorer left this
+       row for Home (Young: "keep Insights for the detailed tabs") */
+    for (const tab of ['frame', 'friction', 'obligations']){
       await page.evaluate(t => { intel.tab = t; renderIntel(); }, tab);
       await page.waitForTimeout(700);
       cards[tab] = await page.evaluate(() => {
@@ -350,9 +354,9 @@ const QUESTION = 'why do I have a big workload runway today?';
     check('5b with nothing between them for the grey to come through',
       c && c.gap === 0, c && c.gap);
     check('5b on every tab, because the strip is rebuilt and the header is not',
-      ['frame', 'friction', 'map'].every(t => cards[t] && cards[t].head === cards[t].strip
+      ['frame', 'friction', 'obligations'].every(t => cards[t] && cards[t].head === cards[t].strip
         && cards[t].gap === 0),
-      ['frame', 'friction', 'map'].map(t => `${t}: ${cards[t] && cards[t].head}`).join(' · '));
+      ['frame', 'friction', 'obligations'].map(t => `${t}: ${cards[t] && cards[t].head}`).join(' · '));
     /* AND IT DOES NOT FOLLOW THE READER OFF THE PAGE. The rule is written into
        a style block inside #content, so leaving Insights takes it with it —
        otherwise one page would quietly repaint every other page's header. */
