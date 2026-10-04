@@ -1,6 +1,8 @@
 # WORK ORDER — Copilot builds the Board, with precision
 
-**Status: written 4 Oct 2026. NOT STARTED. Do not begin until the owner says go.**
+**Status: DONE (built overnight 4 Oct 2026 and merged to main). Part 8's "a new clause" item waits on the owner — see the end of this file. Written 4 Oct 2026; the owner said go the same evening.**
+
+The numbers below were the suggestions written before the build. The tests were built as f496 (Part 1), f497 (2), f498 (3), f499 (4), f500 (5), f501 (6), f502 (7) and f503 (8), because f484–f495 had been used by other work the same day.
 
 **The owner's words, 4 Oct 2026:**
 
@@ -403,17 +405,71 @@ overnight work order and merge all to main once completed".
   summary below filled in. If a part stopped on an owner question, merge
   what is finished and green, and say what waits.
 
-## The morning summary (fill in at the end)
+## The morning summary
 
-In simple English, for the owner:
-- what was built, part by part;
-- the precision report, before → after;
-- anything not built, and why;
-- anything waiting on the owner;
-- the cost of the overnight Copilot calls (from `agent_runs` / the spend
-  page).
+In simple English, for the owner.
+
+**What was built, part by part**
+1. **One recipe language.** Every chart card is now described the same way:
+   which contracts, split by what (now two splits are possible), what is
+   counted, which picture (new: stacked columns, side-by-side columns, a heat
+   grid), the order, the top N, the period, a comparison with last year or the
+   period before, and a name. Every bar and cell can still be pressed to see
+   its contracts.
+2. **Copilot presses the board's buttons.** Copilot can now add, change,
+   remove, arrange and name cards, and filter the whole board, several in one
+   answer ("build me a renewals dashboard").
+3. **A data guide.** Copilot is told which fields are filled in your book, so
+   it builds cards on data that is there.
+4. **Check and repair.** Every card Copilot proposes is checked first. A bad
+   one goes back to Copilot once to be fixed; if it is still wrong it is not
+   drawn, and the panel says why in one line.
+5. **Preview and undo.** A big build (two or more cards, or a removal) is shown
+   as a list with ticks; nothing changes until you choose. Any change can be
+   taken back with Undo or Ctrl/⌘+Z.
+6. **Choices when a question is unclear.** The board draws the likeliest
+   reading, says so, and offers the other readings as buttons.
+7. **Precision is measured.** A book of 106 questions in your style. The free
+   half runs on every change; its pass mark can only go up.
+8. **One door for edits.** Risks already covered by one of your redlines leave
+   the list and wait in a "Covered by your redlines" fold. "Edit with Copilot"
+   on a risk opens the Edit with Copilot window on the right clause, with a
+   Risks tab, Copilot's wording in the box, quick asks, and Previous / Skip /
+   Save & next. Save opens the note drawer as always, then the next risk. A
+   safety net stops a second redline on one clause. Risk View now offers only
+   "Add a note".
+
+**The precision report, before → after**
+- Free half (questions HaTi reads without Copilot): **78% before (83 of 106)
+  → 97% after (103 of 106).** Building the book found three faults in the new
+  reader ("as a heat map" flipped the board to the map; "by month and
+  stream"; "stacked by stage"), and one older gap ("add a trend"); all four
+  are fixed. The three left are older board words catching a sentence meant
+  for Copilot ("stages", "board") — written in BUGLOG, not fixed.
+- Copilot half: **not measured.** There is no Copilot key in the overnight
+  environment, so `npm run eval:board` could not run before or after. It is
+  ready: run it with a key and it writes docs/BOARD-PRECISION.md.
+
+**Not built, and why**
+- Part 8, screen 5 "A new clause": the Edit with Copilot window only holds a
+  clause that is already on the paper. Holding a brand-new one is a big change
+  (see below), so, as this order says, it was stopped and not built around. A
+  risk that needs a brand-new clause still drafts in the Redlines card as
+  before — now new clauses only, and never after the signatures.
+
+**Cost of the overnight Copilot calls**
+- None. No key was present, so no Copilot call was made; every Copilot step
+  was tested with a stand-in.
 
 ## Waiting on the owner
+
+- **Part 8, "A new clause" (screen 5).** The Edit with Copilot window is built
+  around one clause that is already on the paper: its lock, its canvas and
+  its Save (which files only through the clause-edit route). Holding a clause
+  that does not exist yet needs a placeholder clause drawn on the paper, a
+  second Save route for adding a clause, and a lock for something that is not
+  there yet. Your choice: (1) build that, so new clauses are also written in
+  the window; or (2) keep new clauses drafted in the Redlines card, as now.
 
 - **Open chart language (not in this order).** On 4 Oct the owner was offered
   a second road for requests beyond the recipe: Copilot describes any chart
