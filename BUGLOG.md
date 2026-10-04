@@ -20203,3 +20203,15 @@ card's right corner. Story in docs/MAP-HISTORY.md under "THE OWNER'S ELEVEN".
 - js/views/home.js wires `#dd-ask-ai` to openAI, but nothing draws `#dd-ask-ai` any more (dead wiring on the old Home).
 - The board's free reader reads "value by counterparty" as a COUNT ring, not a value measure (f448 phrase book has no such line); the shelf's concentration proposal carries its own recipe to get blocks by value.
 - CLAUDE.md is ~117 KB, over its own 80 KB ceiling; it needs the owner-approved condensing pass, not a trim on the way past.
+
+### Noticed, not fixed — 4 Oct 2026 (the process review; nothing built)
+- js/review.js reviewHeldIds/reviewWithheldIds read only UNSENT asks and negoHandOver stamps turnAt without re-dating a held change left out of a batch send, so a held change appears to stop being withheld after the next hand-over and would travel on the following payload refresh — needs a test (f154 does not drive this) before the review wall is relied on.
+- js/obligations.js adds NEW proposals ticked (only duplicates arrive unticked); CLAUDE.md's OBLIGATIONS line says "proposals arrive unticked" — one of the two is wrong.
+- signcheck "advise": the browser holds brief-read and unrun readings (signReadiness) while the server's srvSignCheckOpen holds only escalated departures; briefRead is not read server-side.
+- POST /api/shares/:token/respond returns signCheckRefusal's text (names internal departures) to the counterparty; approval refusals are neutral, this one is not. POST /api/shares never asks the sign check or the desk, so a sign link can be issued and then refused at signing.
+- js/signcheck.js SIGN_STAGE_OF lacks 'signcap', 'signfolder' and 'hold' (it has 'cap' and 'folder', which nothing produces), so those rows draw under the "paper" stage.
+- js/signapproval.js saRuleOf falls back to the legacy settings.overseer.on switch when u.overseerOn is absent; no settings screen shows that switch.
+- js/views/register.js row act 'decline' ("Decline & close") only opens the contract; the room's ⋯ menu has no decline row.
+- js/views/settings.js stPersonSays prints "Can sign up to X" / "Work is checked by" even when the signing-cap or review-gate switches are off, and never mentions sign folders.
+- js/views/intake.js intakeLaneSweep runs only in an editor's open browser (10-min timer from core.js); nothing in server/ runs the lanes; POST /api/intake fires a webhook and mails nobody.
+- core.js:7808 (the "X answered" arrival toast), negotiation.js:10948 ("Updated just now") and :3958 (accepted) are bare toast() calls and print nothing.
