@@ -10644,13 +10644,19 @@ function renderRedline(){
          the hold is lifted — negoHandOver is told work left anyway. */
       const solo = _rlSoloSendId; _rlSoloSendId = null;
       let released = false;
+      /* How many drafts a batch door is about to free — counted for the turn
+         email's "what moved" line, before the hold is lifted. */
+      const freed = (!solo && window.negoHeldBackIds) ? negoHeldBackIds(c).length : 0;
       if (solo && window.negoHoldOthers) negoHoldOthers(c, solo);
       else if (window.negoReleaseHold) released = negoReleaseHold(c);
       const to = c.counterpartyName || c.counterparty || 'the counterparty';
       const btns = [...document.querySelectorAll('#view-redline [data-rl-send], #view-redline [data-rl-blast]')];
       btns.forEach(b => { b.disabled = true; });
       try{
-        const out = await reshareToLastRecipient(c, { purpose: 'negotiate' });
+        /* handOver: this is a round send, so where it hands the table to
+           them one "it is your turn" email rides with it (roundTurnMail). */
+        const out = await reshareToLastRecipient(c, { purpose: 'negotiate',
+          handOver: { sentAnyway: released, released: released ? freed : 0 } });
         /* THE TURN MOVES ONLY AFTER SOMETHING HAS LEFT. Every "Sent" this page
            draws — the badge, the amber button, the count on the toolbar — is
            read back from negoUnsentAsks, which is measured against this
@@ -10718,7 +10724,20 @@ function renderRedline(){
            about the other drafts is how a partial send reads as a full one. */
         const kept = window.negoHeldBackIds ? negoHeldBackIds(c).length : 0;
         const keptLine = kept ? ` — ${kept} other draft${kept === 1 ? '' : 's'} still unsent` : '';
-        if (window.toast) toast(out && out.stranded
+        /* THE TURN EMAIL'S OWN THREE OUTCOMES (4 Oct 2026): where the send
+           tried to tell them it is their turn, the toast says whether that
+           email went, is waiting in the outbox, or was refused and why. */
+        const tm = !!(out && out.turnMail && !out.stranded);
+        if (window.toast && tm) toast(delivered
+          ? `${i18t('ng_turn_emailed', { who: to })}${keptLine}`
+          : out.outbox
+          ? `${i18t('ng_turn_mail_outbox', { who: to })}${keptLine}`
+          : `${i18t('ng_turn_mail_failed', { who: to, why: (out && out.emailError) || '' })}${keptLine}`,
+          delivered ? 'ok' : 'warn',
+          (!delivered && link) ? { action: { label: i18t('ng_copy_link'),
+            onClick: () => { try{ navigator.clipboard.writeText(link); }catch(e){}
+              if (window.toast) toast(i18t('ng_link_copied'), 'ok'); } } } : undefined);
+        else if (window.toast) toast(out && out.stranded
           ? `${window.reshareStrandedLine ? reshareStrandedLine(to) : 'A NEW link was created for ' + to + '.'}${turnLine ? ' It is now their turn.' : ''}`
           : delivered
           ? `Sent to ${to}${turnLine}${keptLine}`
