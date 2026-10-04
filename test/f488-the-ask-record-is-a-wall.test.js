@@ -19,7 +19,10 @@
    ============================================================ */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { startHati, seedWorkspace, FOLDER_A } = require('./helpers');
+const { mkDocx, para } = require('./docxfix');
 
 const get = (cl, id) => cl.json('/api/contracts/' + id);
 const put = async (cl, c) => { const v = c._v; const body = { ...c }; delete body._v;
@@ -246,5 +249,49 @@ describe('f488 (2) a rule step — its question opened when it falls due', () =>
     assert.equal(a.state, 'no');
     assert.equal(a.why, 'Clause 9 is missing.');
     assert.equal(a.answeredBy.name, me.name);
+  });
+});
+
+describe('f488 (3) the server\'s own writer — a reopened handover withdraws through it', () => {
+  const RULE = { id: 'r-val', name: 'Value check', order: 1, cond: { type: 'value', op: '>=', value: 1000 }, approver: { kind: 'role', role: 'admin' } };
+  const stampOf = new Function(/function approvalStamp\(c\)\{[\s\S]*?\n\}/.exec(fs.readFileSync(path.join(__dirname, '..', 'js/approvals.js'), 'utf8'))[0]
+    + '; return approvalStamp;')();
+  const AGREED = ['SERVICE AGREEMENT', 'This Agreement is made between Nordkust Industri AB and Highland Corporate Ltd.',
+    '1. Fees. The Customer shall pay within thirty days of invoice.'];
+  const docx = lines => Buffer.from(mkDocx(lines.map(l => para(l)).join(''))).toString('base64');
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  let h, W;
+  before(async () => { h = await startHati(); W = await seedWorkspace(h, { approvalRules: [RULE] }); });
+  after(async () => { await h.stop(); });
+
+  test('the rule\'s yes is withdrawn on the list, the step goes back to waiting exactly as before, and a new question opens', async () => {
+    const ID = 'RL-488';
+    const me = await meOf(W.admin);
+    const c = { id: ID, name: 'Service agreement', counterparty: 'Nordkust Industri AB', folder: 'proc', value: 120000,
+      valueType: 'standard', status: 'Under Review', signRoute: 'outside', template: null, redlineText: AGREED.join('\n'),
+      format: 'text', fields: {}, metadata: { currency: 'KES' }, signatures: [], obligations: [], rounds: [],
+      audit: [{ at: new Date().toISOString(), user: me.name, action: 'Uploaded', detail: 'fixture' }] };
+    const at = new Date().toISOString();
+    c.approvalChain = [{ ruleId: RULE.id, name: RULE.name, approver: RULE.approver, order: 1, status: 'approved',
+      by: me.name, at, comment: null, stamp: stampOf(c) }];
+    let r = await W.admin.raw('/api/contracts/' + ID, { method: 'PUT', body: { contract: c, baseVersion: 0, rlUid: 1 } });
+    assert.equal(r.status, 200, r.text);
+    const yes = askIn(await get(W.admin, ID), 'ar:r-val:1');
+    assert.equal(yes && yes.state, 'yes', 'a decision on a brand-new record is adopted onto the list');
+    r = await W.admin.raw('/api/contracts/' + ID + '/handover', { method: 'POST', body: { act: 'hand',
+      how: { kind: 'email', at: today() }, channel: 'download', to: { name: '', email: '' }, note: '', agreedHash: 'h',
+      agreedWords: 20, version: 1, file: { filename: 'RL-488-agreed.docx', content: docx(AGREED) } } });
+    assert.equal(r.status, 200, r.text);
+    r = await W.admin.raw('/api/contracts/' + ID + '/handover', { method: 'POST', body: { act: 'reopen', why: 'Notice period.' } });
+    assert.equal(r.status, 200, r.text);
+    const step = r.json.approvalChain.find(s => s.ruleId === RULE.id);
+    assert.equal(step.status, 'pending');
+    assert.equal(step.by, null);
+    assert.equal(step.stamp, null);
+    assert.deepEqual(step.was, { by: me.name, at }, 'the step, exactly as the route always left it');
+    assert.ok(Array.isArray(r.json.asks), 'and the route hands the browser the list');
+    const s = await get(W.admin, ID);
+    assert.equal(askIn(s, 'ar:r-val:1').state, 'withdrawn', 'the approval is cancelled with the handover — on the list');
+    assert.equal(askIn(s, 'ar:r-val:2').state, 'open', 'and the rule asks again');
   });
 });

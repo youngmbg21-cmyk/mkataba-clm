@@ -203,6 +203,17 @@ describe('f487 (4) one writer, the list and its mirror in one breath', () => {
     assert.equal(row.as, 'approver');
     assert.equal(c.asks[0].answeredAt, row.decidedAt, 'one time, written twice');
   });
+  test('a named yes withdrawn by a reopen: the request says so as it always did, the list says withdrawn', () => {
+    const c = { id: 'MK-1b', signApprovals: [{ id: 'sa_y', key: 'u_boss', approverId: 'u_boss', status: 'approved',
+      askedBy: { id: 'u_lead', name: 'Asha Kimani' }, askedAt: '2026-10-01', decidedBy: { id: 'u_boss', name: BOSS.name }, decidedAt: '2026-10-02' }] };
+    AK.askAnswer(c, 'sa_y', { state: 'withdrawn', at: '2026-10-04', by: null, mirror: { withdrawnBy: 'reopen', withdrawnAt: '2026-10-04' } });
+    const row = c.signApprovals[0];
+    assert.deepEqual([row.status, row.withdrawnBy, row.withdrawnAt], ['withdrawn', 'reopen', '2026-10-04']);
+    assert.deepEqual(row.decidedBy, { id: 'u_boss', name: BOSS.name }, 'what was decided stays on the request');
+    const a = AK.askById(c, 'sa_y');
+    assert.equal(a.state, 'withdrawn');
+    assert.equal(a.answeredBy, null);
+  });
   test('a rule step: answered on the step; a stale yes kept as history; sent back resets the step', () => {
     const c = { id: 'MK-2', approvalChain: [{ ruleId: 'r1', name: 'Finance', approver: { kind: 'role', role: 'admin' }, order: 1, status: 'pending', by: null, at: null, comment: null, stamp: null }] };
     let a = AK.askRuleFor(c, 'r1', { approver: { kind: 'role', role: 'admin' }, keepStep: true });
