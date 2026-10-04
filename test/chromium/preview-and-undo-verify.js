@@ -43,7 +43,6 @@ const check = (name, pass, detail) => {
   const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
     while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(120); }
     return v; };
-  const titles = () => page.evaluate(() => hbS().panels.map(p => p.title).sort().join('|'));
   try {
     await page.goto(h.base + '/', { waitUntil: 'networkidle' });
     await page.fill('#li-email', 'admin@example.co.ke');
