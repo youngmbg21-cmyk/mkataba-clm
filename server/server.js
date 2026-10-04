@@ -27,11 +27,19 @@ const { intakeLaneMatch, intakeAnswersClean, intakeAnswersOnto, intakeLaneOwner 
    screen and this wall ask the same questions of the same record, so they
    cannot come to different answers about whether a contract may be signed. */
 const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide, saWorkdays,
-  SA_NOTE_MAX, SA_KEEP, SA_REMIND_WORKDAYS, SA_ESCALATE_WORKDAYS } = require('../js/signapproval.js');
+  SA_NOTE_MAX, SA_KEEP, SA_REMIND_WORKDAYS, SA_ESCALATE_WORKDAYS, SA_UNUSED_DAYS } = require('../js/signapproval.js');
 /* The check before signing as a wall (4 Oct 2026): which departures hold on
    each gate, and whether OUR signer has read the brief that stands for this
    wording. ONE reading for both hosts — js/signcheck.js asks the same file. */
 const { sgDepartures, sgBriefReadOwed } = require('../js/signgate.js');
+/* ONE ASK RECORD (4 Oct 2026): who was asked, the answer, when and for what,
+   across the four kinds of "a colleague must say yes" — the rule steps, a
+   named person's yes, the internal review and a contributor's suggestion.
+   ONE file for both hosts: the browser writes through it, this server adopts
+   older records through it, guards `c.asks` as a difference (srvAsksMerge),
+   and every kind's lapse is its one rule (askLapsed). */
+const { ASK_KINDS, ASK_STATES, ASK_WHY_MAX, askLapsed, askSamePerson, askRuleTo, asksReconcile, asksDerive,
+  asksAdopt, asksBound, askAnswer, askRuleFor } = require('../js/asks.js');
 /* Redline here, sign there (26 Sep 2026): the working reference, the contract
    number, the handover's clock and the word check. ONE reading for both hosts,
    the signapproval.js pattern — the screen and this wall cannot disagree about
@@ -1310,7 +1318,11 @@ const rvOpenFor = (c, id) => rvOpenList(c).find(r => (r.changeIds || []).some(x 
    a stale CLEAR is not a clear. A stale HOLD is still a hold — somebody said
    this must not go out, and rewriting it is not permission to overrule them. */
 const rvVerdict = ch => (ch && ch.review && ch.review.verdict) ? ch.review : null;
-const rvStale = ch => { const v = rvVerdict(ch); return !!(v && v.hash && ch.hash && String(v.hash) !== String(ch.hash)); };
+/* THE ONE LAPSE RULE (js/asks.js askLapsed), measured by this kind's own
+   stamp: the change's fingerprint against the one the verdict was given for. */
+const rvStale = ch => { const v = rvVerdict(ch);
+  return !!(v && v.hash && ch.hash) && askLapsed({ state: 'yes' },
+    { drift: () => String(v.hash) !== String(ch.hash) ? ['wording'] : [] }).lapsed; };
 const rvHeld = ch => { const v = rvVerdict(ch); return !!(v && v.verdict === 'held'); };
 const rvCleared = ch => { const v = rvVerdict(ch); return !!(v && v.verdict === 'cleared' && !rvStale(ch)); };
 
@@ -1709,6 +1721,168 @@ function srvSignApprovalMerge(prev, c, user) {
 }
 
 /* ============================================================
+   ONE ASK RECORD — THE WALL (4 Oct 2026, the process review's last gap)
+   ============================================================
+   `c.asks` (js/asks.js) is the one list of who was asked, the answer, when
+   and for what, across the rule steps, a named person's yes, the internal
+   review and a contributor's suggestion. The old fields are its mirrors and
+   keep EVERY wall they had — this one is added beside them, never in their
+   place, and it is asked as a DIFFERENCE against the STORED record:
+     · the stored list is the base — a save can add a question but never
+       drop one, and never rewrite what a question asked, of whom or when;
+     · a question is raised in the caller's own name (a rule step's is the
+       rule's), and only with what it asks about on the record beside it;
+     · an answer is recorded in the name of the person who gives it, by the
+       person it was asked of (or an admin where the kind's own rule says so)
+       — and NOBODY ANSWERS THEIR OWN ASK, so the asker can never mark yes;
+     · a refusal says why; only the asker or an admin takes a question back;
+     · a lapse is accepted only where the kind's own lapse rule agrees on the
+       record being saved — otherwise the stored answer stands;
+     · an answer once given stays as it was given (an attempt to move it back
+       is not stored — the stored record wins).
+   Then the list is brought up to what the (already guarded) mirrors say:
+   an older browser that wrote only the old fields is adopted, not refused.
+   Returns { list } or { status, error }. */
+const _askChanges = c => {
+  const out = [];
+  (Array.isArray(c && c.changes) ? c.changes : []).forEach(x => { if (x && x.id != null) out.push(x); });
+  ((c && c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : [])
+    .forEach(r => (Array.isArray(r && r.changes) ? r.changes : []).forEach(x => { if (x && x.id != null) out.push(x); }));
+  return out;
+};
+/* Does the kind's own lapse rule agree that this question or yes has lapsed,
+   on the record being saved? */
+function srvAskLapses(c, a) {
+  if (!a || !c) return false;
+  if (a.kind === 'named') {
+    const req = (Array.isArray(c.signApprovals) ? c.signApprovals : []).find(r => r && String(r.id) === String(a.id));
+    const stamp = (req && req.stamp) || a.stamp;
+    return askLapsed({ state: a.state, answeredAt: (req && req.decidedAt) || a.answeredAt },
+      { started: saStarted(c, { responded: srvSaResponded(c.id) }), drift: () => saDrift(stamp, c),
+        unusedDays: SA_UNUSED_DAYS }).lapsed;
+  }
+  if (a.kind === 'rule') {
+    if (a.state !== 'yes') return false;
+    const step = (Array.isArray(c.approvalChain) ? c.approvalChain : []).find(x => x && !x.sa && String(x.ruleId) === String(a.of && a.of[0]));
+    if (!step || step.status !== 'approved') return true;          // the yes is no longer on the chain
+    if (a.answeredAt && step.at && String(step.at) !== String(a.answeredAt)) return true;   // answered again since
+    return srvRuleYesLapsed(step, srvApprovalStamp(c));
+  }
+  return false;   // a review and a suggestion are never lapsed whole
+}
+const ASK_ANSWERS = { rule: ['yes', 'no'], named: ['yes', 'no'], review: ['returned'], suggest: ['yes', 'returned'] };
+function srvAsksMerge(prev, c, user) {
+  const base = prev ? asksDerive(prev) : [];
+  const out = base.map(a => ({ ...a }));
+  const byId = new Map(out.map(a => [String(a.id), a]));
+  const given = (Array.isArray(c && c.asks) ? c.asks : []).filter(a => a && typeof a === 'object' && a.id != null);
+  if (!given.length) return { list: out };
+  const me = { id: String(user.id), name: String(user.name || '') };
+  const isAdmin = user.role === 'admin';
+  /* What this save's own (already guarded) mirrors say each question is —
+     where a NEW question's facts are taken from, never from the body. */
+  const fromMirrors = new Map(asksReconcile([], c).map(a => [String(a.id), a]));
+  const prevReq = id => (Array.isArray(prev && prev.signApprovals) ? prev.signApprovals : []).find(r => r && String(r.id) === id) || null;
+  const prevRv = id => ((prev && prev.review && Array.isArray(prev.review.requests)) ? prev.review.requests : []).find(r => r && String(r.id) === id) || null;
+  const ruleOf = a => srvApprovalRules().find(r => r && String(r.id) === String(a.of && a.of[0])) || null;
+  for (const e of given) {
+    const id = String(e.id).slice(0, 80);
+    let b = byId.get(id);
+    if (!b) {
+      /* ---- A NEW QUESTION ---- */
+      if (!ASK_KINDS.includes(e.kind)) return { status: 400, error: 'An ask is a rule step, a named approval, a review or a suggestion.' };
+      if (e.kind !== 'rule' && !(e.by && String(e.by.id || '') === me.id))
+        return { status: 403, error: 'An ask is raised in your own name.' };
+      if (e.kind === 'rule') {
+        const rule = ruleOf(e);
+        if (!rule || !(srvRuleMatches(rule, c) || (prev && srvRuleMatches(rule, prev))))
+          return { status: 403, error: 'No approval rule asks that of this contract.' };
+        b = { id, kind: 'rule', of: [String(rule.id)], by: null, to: askRuleTo(rule.approver), at: now(), due: null,
+          state: 'open', answeredAt: null, answeredBy: null, why: null, note: null, stamp: null };
+      } else {
+        const m = fromMirrors.get(id);
+        if (!m || m.kind !== e.kind)
+          return { status: 400, error: 'An ask is filed with what it asks about — a request, a review or a suggestion on the record.' };
+        if (e.state !== 'open' || m.state !== 'open')
+          return { status: 403, error: 'A new ask starts open — it cannot arrive already answered.' };
+        b = { ...m };
+      }
+      out.push(b); byId.set(id, b);
+    }
+    /* ---- ONE OF A REVIEW'S VERDICTS ---- the reviewer's, while it is open */
+    if (b.kind === 'review' && Array.isArray(e.parts)) {
+      const had = new Map((Array.isArray(b.parts) ? b.parts : []).map(p => [String(p && p.of), p]));
+      for (const p of e.parts) {
+        if (!p || p.of == null) continue;
+        const was = had.get(String(p.of));
+        if (was && String(was.answer) === String(p.answer) && String(was.why || '') === String(p.why || '')) continue;
+        const rv = prevRv(id);
+        if (b.state !== 'open' || !rv) return { status: 403, error: `Internal review ${id} is not open, so no verdict can be recorded in it.` };
+        if (!rvIsReviewer(rv, user)) return { status: 403, error: `Only ${(rv.reviewer || {}).name || 'the reviewer'} can rule in internal review ${id}.` };
+        if (!(b.of || []).some(x => String(x) === String(p.of)))
+          return { status: 403, error: `#${p.of} is not part of internal review ${id}.` };
+        had.set(String(p.of), { of: String(p.of), answer: String(p.answer || ''), by: me, at: now(),
+          why: clean(p.why).slice(0, ASK_WHY_MAX) || null, stamp: p.stamp != null ? p.stamp : null });
+      }
+      b.parts = [...had.values()];
+    }
+    const from = b.state, to = String(e.state || '');
+    if (to === from || !ASK_STATES.includes(to)) continue;
+    const moves = from === 'open' || (from === 'yes' && to === 'lapsed') || (b.kind === 'suggest' && from === 'returned' && to === 'yes');
+    if (!moves) continue;                                    // an answer given stays as given
+    if (to === 'lapsed') {
+      if (srvAskLapses(c, b)) Object.assign(b, { state: 'lapsed', lapsedAt: now() });
+      continue;
+    }
+    if (to === 'withdrawn') {
+      if (b.kind === 'rule') return { status: 403, error: 'A rule step is not taken back by a save — it is reopened with the negotiation.' };
+      if (!(askSamePerson(b.by, me) || isAdmin))
+        return { status: 403, error: 'Only the person who asked, or an admin, can take the question back.' };
+      Object.assign(b, { state: 'withdrawn', answeredAt: now(), answeredBy: me, why: null });
+      continue;
+    }
+    /* ---- AN ANSWER ---- */
+    if (!(ASK_ANSWERS[b.kind] || []).includes(to)) return { status: 400, error: 'That is not an answer this question takes.' };
+    if (!(e.answeredBy && String(e.answeredBy.id || '') === me.id))
+      return { status: 403, error: 'An answer is recorded in the name of the person who gives it.' };
+    if (b.by && askSamePerson(b.by, me)) return { status: 403, error: 'Nobody answers their own ask.' };
+    const why = clean(e.why).slice(0, ASK_WHY_MAX);
+    if (b.kind === 'rule') {
+      const rule = ruleOf(b);
+      if (!rule || !srvUserCanApprove(rule.approver || {}, user))
+        return { status: 403, error: `Only the approver the rule names can answer “${rule ? rule.name : 'this step'}”.` };
+    } else if (b.kind === 'named') {
+      const req = prevReq(id);
+      const as = req ? saMayDecide(req, user) : null;
+      if (!as) return { status: 403, error: `This approval is ${(req && req.approverName) || 'an admin'}'s to give.` };
+      if (as === 'admin' && !why) return { status: 400, error: 'An admin deciding in the approver\'s place has to say why.' };
+    } else if (b.kind === 'review') {
+      const rv = prevRv(id);
+      if (!rv || !rvIsReviewer(rv, user)) return { status: 403, error: `Only ${(rv && rv.reviewer && rv.reviewer.name) || 'the reviewer'} can hand internal review ${id} back.` };
+    } else if (b.kind === 'suggest') {
+      const ch = _askChanges(prev).find(x => 'sg:' + String(x.id) === id) || null;
+      if (deskRuleOn() && deskIsClaimed(prev) && !dkMayRuleSuggestion(prev, ch, user))
+        return { status: 403, error: `Only ${deskLeadName(prev)}, or an admin, can answer a colleague's suggestion.` };
+      if (to === 'returned' && !why) return { status: 400, error: 'A suggestion handed back says why.' };
+    }
+    if (to === 'no' && !why) return { status: 400, error: 'A refusal says why — the reason is what goes back.' };
+    Object.assign(b, { state: to, answeredAt: now(), answeredBy: me, why: why || null },
+      b.kind === 'rule' && to === 'yes' && e.stamp ? { stamp: e.stamp } : {});
+  }
+  return { list: asksBound(out) };
+}
+/* Money in a question's stamp is money, and is masked like every figure
+   (maskContractValues): a named request's value and currency, a rule's. */
+function asksMasked(list) {
+  return (Array.isArray(list) ? list : []).map(a => {
+    if (!a || !a.stamp || typeof a.stamp !== 'object') return a;
+    if (a.kind === 'named') return { ...a, stamp: { ...a.stamp, value: '', currency: '' } };
+    if (a.kind === 'rule') return { ...a, stamp: { ...a.stamp, value: '' } };
+    return a;
+  });
+}
+
+/* ============================================================
    REDLINE HERE, SIGN THERE — the server's half (26 Sep 2026)
    ============================================================
    js/outside.js is the reading, required at the top of this file; these are
@@ -1784,10 +1958,18 @@ function srvApprovalChainOpen(c) {
   for (const r of rules) {
     const step = chain.find(p => p && p.ruleId === r.id);
     if (!step || step.status !== 'approved') { open.push({ name: r.name, status: step ? (step.status || 'pending') : 'pending' }); continue; }
-    const st = step.stamp;
-    if (st && (Number(st.value || 0) !== now.value || String(st.doc || '') !== now.doc)) open.push({ name: r.name, status: 'stale' });
+    if (srvRuleYesLapsed(step, now)) open.push({ name: r.name, status: 'stale' });
   }
   return open;
+}
+/* THE ONE LAPSE RULE (js/asks.js askLapsed) for a rule step's yes, measured
+   by this kind's own stamp — the amount and a hash of the words. A yes with
+   no stamp was given before stamps existed and is not invalidated now. */
+function srvRuleYesLapsed(step, now) {
+  const st = step && step.stamp;
+  const n = now || null;
+  return askLapsed({ state: 'yes' }, { drift: () => (st && n && (Number(st.value || 0) !== n.value
+    || String(st.doc || '') !== n.doc)) ? ['stamp'] : [] }).lapsed;
 }
 /* ---- THE APPROVAL RULES ARE A WALL, NOT ONLY A SCREEN (the owner's list,
    27 Sep 2026) ----
@@ -1813,8 +1995,7 @@ function srvApprovalChainOpenOf(c, prev) {
   for (const r of rules) {
     const step = chain.find(p => p && p.ruleId === r.id);
     if (!step || step.status !== 'approved') { open.push({ ruleId: r.id, name: r.name, status: step ? (step.status || 'pending') : 'pending' }); continue; }
-    const st = step.stamp;
-    if (st && (Number(st.value || 0) !== now.value || String(st.doc || '') !== now.doc)) open.push({ ruleId: r.id, name: r.name, status: 'stale' });
+    if (srvRuleYesLapsed(step, now)) open.push({ ruleId: r.id, name: r.name, status: 'stale' });
   }
   return open;
 }
@@ -2099,6 +2280,8 @@ function maskContractValues(c, moneyKeys) {
   if (Array.isArray(x.signApprovals)) x.signApprovals = x.signApprovals.map(r => r ? {
     ...r, shows: r.shows ? { ...r.shows, value: null, currency: '' } : r.shows,
     stamp: r.stamp ? { ...r.stamp, value: '', currency: '' } : r.stamp } : r);
+  /* ...and the one ask record's own copy of what each question was of. */
+  if (Array.isArray(x.asks)) x.asks = asksMasked(x.asks);
   x._valuesHidden = true;
   return x;
 }
@@ -5267,6 +5450,32 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
   }
 
+  /* ---- ONE ASK RECORD, GUARDED AS A DIFFERENCE (4 Oct 2026) ----
+     After every wall on the old fields has passed — they are the ask list's
+     mirrors and keep their walls — the list itself is merged against the
+     stored one (srvAsksMerge) and brought up to what those guarded mirrors
+     say. A record that never had a list is adopted here, additively. */
+  {
+    const am = srvAsksMerge(prev, c, req.user);
+    if (am.error) return res.status(am.status || 403).json({ error: am.error, asks: true });
+    const list = asksBound(asksReconcile(am.list, c));
+    /* THE QUESTION A RULE STEP ASKS IS OPENED WHEN IT FALLS DUE — the save
+       that made it somebody's to decide (ruleStepDue, the same difference the
+       mail below is sent on). The step itself is the chain's to compute and is
+       never rewritten here (keepStep). Its `at` is the reminders' clock. */
+    try {
+      const due = prev ? ruleStepDue(prev, c) : null;
+      if (due) {
+        const tmp = { ...c, asks: list };
+        const open = list.some(a => a && a.kind === 'rule' && a.state === 'open' && String(a.of && a.of[0]) === String(due.ruleId));
+        const rule = srvApprovalRules().find(r => r && r.id === due.ruleId);
+        if (!open && rule) askRuleFor(tmp, due.ruleId, { approver: rule.approver, keepStep: true, at: now() });
+        list.splice(0, list.length, ...tmp.asks);
+      }
+    } catch (_) { /* the save is the thing that matters */ }
+    if (list.length || Array.isArray(prev && prev.asks)) c.asks = list; else delete c.asks;
+  }
+
   /* Template provenance is written once, at creation, and never overwritten or
      removed — it is the audit trail that answers "which live contracts came
      from which template version". The columns are set-once via COALESCE in
@@ -5388,6 +5597,9 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   /* A REQUEST DRAFTED AS THIS CONTRACT IS DONE once the contract leaves Drafting. */
   try { srvIntakeCloseOn(prev, c, req); } catch (_) {}
   res.json({ ok: true, version: next, signNeeds,
+    /* The one ask record as stored — the browser takes it as given
+       (asksTakeServer); money in a stamp masked for whoever may not see it. */
+    ...(Array.isArray(c.asks) ? { asks: canViewValues(req.user) ? c.asks : asksMasked(c.asks) } : {}),
     ...(c.contractNo ? { contractNo: c.contractNo } : {}),
     ...(numberedLine ? { numberedLine } : {}),
     uid: Number(getSetting('uid')) || 100, rlUid: Number(getSetting('rlUid')) || 0,
@@ -11755,7 +11967,9 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
   const done = extra => {
     hoWrite(c.id, c);
     res.json({ ok: true, handover: c.handover || null, handoverHistory: c.handoverHistory || null,
-      signApprovals: c.signApprovals || null, approvalChain: c.approvalChain || null, audit: lines, ...(extra || {}) });
+      signApprovals: c.signApprovals || null, approvalChain: c.approvalChain || null,
+      ...(Array.isArray(c.asks) ? { asks: canViewValues(req.user) ? c.asks : asksMasked(c.asks) } : {}),
+      audit: lines, ...(extra || {}) });
   };
   const ref = contractRef(c);
 
@@ -12015,13 +12229,21 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
        approval of the version that went out is not an approval of the next.
        A personal approval is withdrawn (the need goes back to unasked); a rule
        step goes back to waiting. Both are kept on the record as they were. */
+    /* THROUGH THE ONE ASK WRITER (js/asks.js, 4 Oct 2026): each question is
+       withdrawn on c.asks, and its mirror — the request, the step — is written
+       exactly as it always was in the same breath. */
     let nSa = 0, nRule = 0;
-    (Array.isArray(c.signApprovals) ? c.signApprovals : []).forEach(r => {
-      if (r && (r.status === 'approved' || r.status === 'pending')) { r.status = 'withdrawn'; r.withdrawnBy = 'reopen'; r.withdrawnAt = at; nSa++; } });
-    if (Array.isArray(c.approvalChain)) c.approvalChain = c.approvalChain.map(s => {
-      if (s && s.status === 'approved') { nRule++; return { ...s, status: 'pending', by: null, at: null, comment: null, stamp: null,
-        was: { by: s.by || null, at: s.at || null } }; }
-      return s; });
+    asksAdopt(c);
+    (Array.isArray(c.signApprovals) ? c.signApprovals : []).filter(r => r && (r.status === 'approved' || r.status === 'pending'))
+      .map(r => String(r.id)).forEach(id => {
+        askAnswer(c, id, { state: 'withdrawn', at, by: null, mirror: { withdrawnBy: 'reopen', withdrawnAt: at } }); nSa++; });
+    (Array.isArray(c.approvalChain) ? c.approvalChain : []).filter(s => s && !s.sa && s.status === 'approved').forEach(s => {
+      const mine = (c.asks || []).filter(a => a && a.kind === 'rule' && String(a.of && a.of[0]) === String(s.ruleId));
+      const last = mine[mine.length - 1];
+      if (!last) return;
+      askAnswer(c, last.id, { state: 'withdrawn', at, by: null, mirror: { was: { by: s.by || null, at: s.at || null } } });
+      nRule++; });
+    asksAdopt(c);
     say('Reopened', `${me.name} reopened the negotiation${why ? ` — “${why}”` : ''}. The handover of ${hoDay(was.at)} was cancelled`
       + ((nSa + nRule) ? ` and the approval with it (${nSa + nRule} to ask again)` : '')
       + '. Their link says this version was withdrawn.');
@@ -12543,8 +12765,15 @@ async function runRuleStepReminders() {
     const step = ruleStepDueOf(c);
     if (!step) continue;
     checked++;
-    const clock = db.prepare('SELECT rkey, created_at FROM reminders WHERE rkey LIKE ? ORDER BY created_at DESC LIMIT 1')
-      .get(`ar:${c.id}:${step.ruleId}:due:%`);
+    /* THE CLOCK IS THE QUESTION'S OWN (4 Oct 2026): the rule step's open ask
+       on the one ask record (js/asks.js) says when it fell due. A step that
+       fell due before that record existed keeps the `ar:` row it was given
+       then — and a step with neither has no clock and is not chased. */
+    const ask = asksDerive(c).filter(a => a.kind === 'rule' && a.state === 'open' && a.at
+      && String(a.of && a.of[0]) === String(step.ruleId)).pop() || null;
+    const clock = ask ? { rkey: `ask:${c.id}:${ask.id}`, created_at: ask.at }
+      : db.prepare('SELECT rkey, created_at FROM reminders WHERE rkey LIKE ? ORDER BY created_at DESC LIMIT 1')
+        .get(`ar:${c.id}:${step.ruleId}:due:%`);
     if (!clock) continue;
     const waited = saWorkdays(clock.created_at);
     if (waited >= SA_REMIND_WORKDAYS && once(`${clock.rkey}:remind`)) sent += (await ruleStepTell(null, c, step, 'remind')).n || 0;

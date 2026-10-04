@@ -30,7 +30,7 @@ const { JSDOM } = require('jsdom');
 const { startHati, seedWorkspace } = require('./helpers');
 
 const ROOT = path.join(__dirname, '..');
-const FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/approvals.js'];
+const FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/asks.js', 'js/approvals.js'];
 
 function stage(opts = {}) {
   const dom = new JSDOM('<!doctype html><html><body></body></html>', { url: 'https://hati.test/' });

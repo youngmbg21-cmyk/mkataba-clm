@@ -456,6 +456,8 @@ function outsideAdopt(c, r){
   if (r.handoverHistory) c.handoverHistory = r.handoverHistory;
   if (Array.isArray(r.signApprovals)) c.signApprovals = r.signApprovals;
   if (Array.isArray(r.approvalChain)) c.approvalChain = r.approvalChain;
+  /* ...and the one ask record those two are mirrors of (js/asks.js). */
+  if (Array.isArray(r.asks)) c.asks = (typeof asksTakeServer === 'function') ? asksTakeServer(c.asks, r.asks) : r.asks;
   if (Array.isArray(r.audit) && r.audit.length){
     c.audit = Array.isArray(c.audit) ? c.audit : [];
     r.audit.forEach(l => c.audit.push(l));
