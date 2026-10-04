@@ -86,13 +86,16 @@ describe('F461 (B) — HaTi\'s reading on an enlarged chart', () => {
     assert.match(t, /Most of them are in .+ and .+: 11 and 14, 25 in all\./);
     assert.match(t, /Nothing at all for \d+ months, from .+ to .+\./);
     assert.match(t, /4 are from before .+\./);
-    assert.match(t, /20 contracts are not signed yet, so they are not on this chart\./);
+    assert.match(t, /20 contracts are not signed yet \(KES 20K\), so they are not on this chart\./, 'what is left off is said with its money');
   });
   test('it replaces the trend line\'s arithmetic only when enlarged', () => {
     const w = world();
     const big = card(w, true).html, rest = card(w, false).html;
     assert.ok(/class="hb-read"/.test(big) && !/hb-tr-say/.test(big));
-    assert.ok(!/class="hb-read"/.test(rest) && /hb-tr-say/.test(rest), 'at normal size nothing changes');
+    assert.ok(!/class="hb-read"/.test(rest), 'at normal size no reading');
+    /* one burst after many empty months is not a trend (4 Oct 2026): said, never drawn */
+    assert.ok(!/hb-tr-say/.test(rest) && !/class="hb-sv-trend"/.test(rest), 'no line through two busy months');
+    assert.match(text(rest), /Not enough history yet for a trend\. It needs 6 months that hold contracts; there are 2\./);
   });
   test('every count of contracts is a door onto those contracts', () => {
     const w = world();

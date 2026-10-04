@@ -223,11 +223,15 @@ describe('F448 (4) — trends: a line through enough history, or the plain reaso
     const cs = D.ids.map(id => w.getContract(id));
     const R = w.hbColsSvg(D, cs, P);
     assert.match(R.body, /class="hb-sv-trend"/, 'the line is drawn');
-    assert.match(R.say, /Average days to sign: \d+ days → \d+ days over \d+ months · getting faster/);
-    const [from, to] = (R.say.match(/(\d+) days → (\d+) days/) || []).slice(1).map(Number);
+    assert.match(R.say, /^Trend line, average days to sign per month: about \d+ days → about \d+ days over \d+ months · getting faster$/);
+    const [from, to] = (R.say.match(/(\d+) days → about (\d+) days/) || []).slice(1).map(Number);
     assert.ok(from > to, 'from ' + from + ' to ' + to);
-    assert.match(R.note, /\d+ contracts not signed yet are not drawn\./, 'what is not signed yet is said apart, not drawn as "no date"');
-    assert.doesNotMatch(R.body, /§none§signed/, 'no "No date" column on a signing chart');
+    assert.match(R.note, /\d+ contracts not signed yet \(KES [\d.]+M\) are not drawn\./, 'what is not signed yet is said apart, with its money, not drawn as "no date"');
+    /* SIGNED IS THE STAGE, NOT THE DATE (4 Oct 2026): an executed contract with
+       no signing date on record stands in the "No date" column — never among
+       the not signed yet */
+    assert.equal(R.none, cs.filter(c => c.status === 'Signed' && !c.signedAt).length, 'the undated executed ones are the No date column');
+    assert.equal(R.unsigned, cs.filter(c => c.status !== 'Signed').length, 'only the not-yet-signed are said apart');
   });
   test('fewer than six months with three contracts each: no line, the reason in words', () => {
     const w = world();
@@ -279,7 +283,7 @@ describe('F448 (5) — live contracts each month read the monthly picture of the
     w.hbSnapsSet(snaps);
     const { D, P } = planOf(w, 'How many live contracts did we have each month?');
     const R = w.hbLiveSvg(D, P);
-    assert.match(R.body, /class="hb-sv-trend"/); assert.match(R.say, /Live contracts: 120 → 150 over 6 months · rising/);
+    assert.match(R.body, /class="hb-sv-trend"/); assert.match(R.say, /^Trend line, live contracts per month: about 120 → about 150 over 6 months · rising$/);
   });
 });
 

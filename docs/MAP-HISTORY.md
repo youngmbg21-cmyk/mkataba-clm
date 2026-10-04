@@ -26741,3 +26741,52 @@ The owner read the process review (16 findings, published as an artifact) and sa
 - Also fixed, because the same button is now on many more cards: the ask button drew its star ABOVE its words and the words spilled out of its 28px frame (no inline-flex). Now one line (read-then-ask-verify 8e, red against the old stylesheet).
 - Noticed, not fixed (BUGLOG): a chart split BY STAGE says "{stage} has the most", but `hbGroupsOf` sorts stages in stage order, so it names the first stage, not the largest.
 - Tests: f461 (D) has 7 tests, all red at unmodified main. read-then-ask-verify stage 8 (8a–8e) is red at main and 23/23 here.
+
+## THE BOARD ANSWERS THE QUESTION ASKED (4 Oct 2026)
+
+- Young sent a screenshot of Home's board: "All contracts · by month · signed · Value · Trend". It read "Value: SEK -367.66 → SEK 851.41 over 24 months · rising", "29 contracts · SEK 6K" and "148 contracts not signed yet are not drawn". In the panel Young had asked *"why does the dashboard say on 851 SEK when we have over 1 billion sek under management"*, and Copilot answered *"Nothing changed on the map. … The 851 SEK you're seeing likely points to a single contract's value or a filtered subset"*. Then: *"fix the stage bug then review this bug where dashboards are still not working well as far as the relationship between prompting and the output. Review this as a whole and fix it. Then merge to main."*
+- THE STAGE BUG (BUGLOG, 4 Oct): `hbGroupsOf` keeps stages in stage order, so the reading's "has the most" named the first stage. It is now measured (sorted by size); "the three largest" too.
+- THE REVIEW: 25 everyday questions were put to a book shaped like the owner's (177 contracts; the money in 86 drafts; 47 signed, 18 of them with no signing date), in a real browser, and each card was recorded. Mismatches found:
+  1. Executed contracts with no signing date were said to be "not signed yet" (148 instead of 130), and the headline counted only the dated ones (29 contracts · a few thousand).
+  2. The trend line was fitted through 24 months that were mostly empty; its ends went below zero and were printed to the cent as if they were figures ("SEK -367.66 → SEK 851.41").
+  3. Copilot in the panel was never shown the board: on Home, a question the board's reader did not take went to the MAP's route with only the map's screen. It answered about the map and opened with "Nothing changed on the map".
+  4. The reader missed money questions and everyday words: "how much value did we sign each month", "total value signed by month", "average days to sign by month", "how long does signing take", "value of contracts in review" (drew a count), "how much is signed", "total value under management".
+  5. A default split put everything in one group ("how much is signed" → one ring slice, "Executed 100%").
+  6. "my contracts" drew the attention bubbles, because "owner" is in `HB_ATTENTION_RE` for "nobody owns".
+  7. A ring by owner was captioned "by stage" (`hbGroupWord` had no owner).
+  8. The card title read "over 1million".
+- THE FIXES:
+  1. SIGNED IS THE STAGE: an executed contract with no date stands in the "No date" column. Only the not-yet-signed are left off, said with their money ("14 contracts not signed yet (KES 520M) are not drawn"). The reading's totals include the "No date" column, like the headline.
+  2. A trend on a total or a count needs `HB_TREND_MIN_PTS` columns that hold contracts, else it is said in words (`hb_tr_few_any`). It is clamped at zero, and its ends are "≈", rounded (`hbTrendFmt`) and said as "Trend line, value per month: about … → about …".
+  3. `hbBoardNow()` describes the board in words: Your book's figures, the count, the open card (set, picture, headline, columns, the trend sentence called the ends of a fitted line and not totals, what is left off, HaTi's reading), and the panels. It rides as `screen.board` to `/api/ai/graph`, where `graphScreenSays` tells the model it was asked on the board and to change nothing on the map. It also rides at the head of the chat question. On the board, the answer is printed without "Nothing changed on the map", and a sentence with a count the board does not show is left out (`hbWhyCheck`).
+  4. A why/explain/what-does-this-mean question (`HB_WHY_ASK_RE`) is never read as a new chart; it goes to Copilot with the board.
+  5. `valueLead`: a question that leads with money asks for money, and the money words are read. "how", "much", "total", "average", "sign", "under", "management" are filler. "did we sign" is the signing date, and "how long does signing take" is time to sign. A money question's panel line carries the money (`hb_found_n_value`).
+  6. `hbUsefulGroup`: a split the board picks itself moves to one that divides the contracts; a split the question named is drawn as asked.
+  7. Attention only for "nobody owns". `hbGroupWord` knows owner and value band. Value labels shorten their unit ("over 1M").
+- Ruling changed: f448 (4) had pinned "no 'No date' column on a signing chart". The undated EXECUTED ones now stand there; the not-yet-signed are still said apart. read-then-ask-verify 1b and f461 (B) now expect no line through one burst after a long quiet.
+- Tests: f482 (24 tests; 21 red at unmodified main, the other two guard what must not change). board-answers-the-question-verify 12/12; at main it was 3/12, and drew "KES -94.28571428571428" on the chart.
+
+## "THIS" IS THE OPEN CHART, AND COPILOT PRESSES THE BOARD'S BUTTONS (4 Oct 2026)
+
+- A review of how the board and Copilot talk was compared with four open-source projects on GitHub, and their own pages were checked:
+  - CopilotKit gives the copilot what is on screen (`useCopilotReadable`) and the app's own buttons (`useCopilotAction`).
+  - Microsoft LIDA turns a question into a goal, draws the chart, evaluates and repairs it, and takes edits like "convert this to a bar chart".
+  - NL4DV surfaces an unclear part of a question as "ambiguity widgets", small dropdowns.
+  - Metabase's Metabot keeps the current question as context, and its interface sends the dashboard and question being viewed.
+- The review found three faults. Copilot was told it was "filtering and clustering for a graph view" even on the board. A chart-only answer ("make it a pie", "show this by stream") was thrown away, because the board only drew answers that came with a list. And the board and the server kept two word lists.
+- Young: *"build 1 and 2, run full suite then merge to main"*.
+- WHAT WAS BUILT, (1) "this" is the open chart:
+  - `hbFollowUp` reads a follow-up while a list card is open on the board. Edit words ("make it monthly", "as a pie", "by stream", "show value", "add a trend", "remove the trend") change THAT card through `hbBoardEdit`. That is the dropdowns' own `hbRecipeSet`, part by part, with the picture last.
+  - A monthly/quarterly change keeps the card's date unless another date is named.
+  - "only X" (or a condition plus a refer word) nests a `qn:` card: the open card's contracts narrowed by `igConditions` + `igIdsWhere`. It sits in the trail and in `hbRootKey`, so the count follows it.
+  - "all contracts" or "the whole book" start fresh, as does a question with no refer, edit or lead word.
+  - The board's own commands win (`hbParse` non-`q:` acts).
+  - "that" and "those" are NOT refer words. home-board-verify 11c caught "agreements that are past due" being read as a narrowing.
+- WHAT WAS BUILT, (2) Copilot presses the board's buttons:
+  - On the board, the `/api/ai/graph` prompt OPENS with `boardJob`. Its order of preference: change the open chart (`chart.target` "open", only the parts asked for, in the board's own dropdown words); a new chart over a set ("new"); or an answer from the board's numbers. The map's own fields stay empty unless the map is asked for.
+  - `hbBoardNow` adds "Open chart settings (chart{} words)", so "this" can be changed exactly.
+  - `graphChartClean` keeps `target`, keeps `trend:false` ("remove the trend"), and takes `live`. f483 pins the server's `GRAPH_CHART_*` lists equal to the board's `HB_PICS`/`HB_DATES`/`HB_MEASURES`.
+  - In the panel, `hbBoardTakes(res)` takes a chart-only answer BEFORE the map sees it: it changes the open chart, or draws a new one over the whole book. The panel says "Changed the open chart, "…": now …", followed by Copilot's own sentence.
+  - On the board, the map's ARRANGING reader (`intelMapLocal` regroup/floors/colour) stands aside (`boardUp`). Its list-making acts (top N, narrow, compare, linked, families, sort, outliers, walk) still answer, so "top 10 contracts by value" still lands on the board.
+- Re-measured: the 25-question review shows no regressions. One gained: "total value under management".
+- Tests: f483 (17 tests; 15 red at unmodified main, the other two guard what must not change); this-is-the-open-chart-verify 12/12 (3/12 at main). The pinned line in f425 (6) and f426 (4) now reads `(igPaperUp()||boardUp)`.

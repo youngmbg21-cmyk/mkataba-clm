@@ -89,9 +89,11 @@ const check = (name, pass, detail) => {
 
     /* ================= 1. AT REST ================= */
     const b1 = await btnOf('#hb-focus [data-hb-digbig]');
-    const r1 = await page.evaluate(() => ({ read: !!document.querySelector('#hb-focus .hb-read'), say: !!document.querySelector('#hb-focus .hb-tr-say') }));
+    const r1 = await page.evaluate(() => ({ read: !!document.querySelector('#hb-focus .hb-read'), note: ((document.querySelector('#hb-focus .hb-chart-note') || {}).textContent || '') }));
     check('1a at rest the button says Make bigger, arrows out', b1 && b1.title === 'Make bigger' && b1.aria === 'Make bigger' && b1.pressed === 'false' && /^M2 6V2h4/.test(b1.path), JSON.stringify(b1));
-    check('1b and the card is as it was: no reading, the chart\'s own line', !r1.read && r1.say, JSON.stringify(r1));
+    /* one burst after a long quiet is not a trend (4 Oct 2026): at rest the
+       card says why in its own note, and no reading is drawn */
+    check('1b and the card is as it was: no reading; the chart\'s own note says why there is no line', !r1.read && /Not enough history yet for a trend/.test(r1.note), JSON.stringify(r1));
 
     /* ================= 2. ENLARGED ================= */
     await page.click('#hb-focus [data-hb-digbig]');

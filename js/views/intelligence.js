@@ -1299,9 +1299,10 @@ function igConditions(text){
   // money
   const inRange=/\b(?:between|mellan)\b/.test(t);
   const mv=t.match(/(?:^|\s)(over|above|more than|greater than|at least|bigger than|larger than|över|mer än|minst|större än)\s*(?:sek|kes|usd|eur|kr)?\s*([\d][\d.,]*)\s*(m|mn|million|millions|k|thousand|bn|billion|miljoner|miljon|mkr|tusen|miljarder)?\b/);
-  if(mv&&moneyOk&&!inRange){ const v=igMoneyOf(mv[2],mv[3]); if(v!=null) add(mv[1]+' '+mv[2]+(mv[3]?mv[3]:''), c=>{ const h=igHomeValue(c); return h!=null&&h>=v; }, 'valueAbove', mv[0]); }
+  const igUnitShort=u=>!u?'':/^(m|mn|million|millions|miljon|miljoner|mkr)$/.test(u)?'M':/^(k|thousand|tusen)$/.test(u)?'K':/^(bn|b|billion|miljard|miljarder)$/.test(u)?'B':u;
+  if(mv&&moneyOk&&!inRange){ const v=igMoneyOf(mv[2],mv[3]); if(v!=null) add(mv[1]+' '+mv[2]+igUnitShort(mv[3]), c=>{ const h=igHomeValue(c); return h!=null&&h>=v; }, 'valueAbove', mv[0]); }
   const lv=t.match(/\b(under|below|less than|smaller than|under|mindre än)\s*(?:sek|kes|usd|eur|kr)?\s*([\d][\d.,]*)\s*(m|mn|million|millions|k|thousand|bn|billion|miljoner|miljon|mkr|tusen|miljarder)?\b/);
-  if(lv&&moneyOk&&!inRange&&!/\b(days?|dagar)\b/.test(t.slice(t.indexOf(lv[0])+lv[0].length, t.indexOf(lv[0])+lv[0].length+8))){ const v=igMoneyOf(lv[2],lv[3]); if(v!=null) add(lv[1]+' '+lv[2]+(lv[3]?lv[3]:''), c=>{ const h=igHomeValue(c); return h!=null&&h<v; }, 'valueBelow', lv[0]); }
+  if(lv&&moneyOk&&!inRange&&!/\b(days?|dagar)\b/.test(t.slice(t.indexOf(lv[0])+lv[0].length, t.indexOf(lv[0])+lv[0].length+8))){ const v=igMoneyOf(lv[2],lv[3]); if(v!=null) add(lv[1]+' '+lv[2]+igUnitShort(lv[3]), c=>{ const h=igHomeValue(c); return h!=null&&h<v; }, 'valueBelow', lv[0]); }
   // a range: "between 2 million and 80 million", "from 2M to 80M", "2M–80M"
   const U='(m|mn|million|millions|k|thousand|bn|billion|miljoner|miljon|mkr|tusen|miljarder)';
   const bt=t.match(new RegExp('\\b(?:between|from|mellan|från)\\s*(?:sek|kes|usd|eur|kr)?\\s*([\\d][\\d.,]*)\\s*'+U+'?\\s*(?:and|to|och|till|-|–)\\s*(?:sek|kes|usd|eur|kr)?\\s*([\\d][\\d.,]*)\\s*'+U+'?(?![\\p{L}\\p{N}])','u'))
@@ -1859,7 +1860,17 @@ async function intelAsk(qRaw){
        and EVERYTHING ELSE goes to Copilot, which decides whether the question
        is about the map (it returns a recipe) or about what a contract says
        (it hands the question to the reading chat). */
-    const mapRest=igPaperUp()?null:await intelMapLocal(q);
+    /* ON THE BOARD THE MAP IS NOT THE SCREEN (4 Oct 2026): the map's own reader
+       (regroup, floors, colour) would rearrange a map nobody is looking at and
+       say "Nothing changed on the map"; on the board it reads only what lands
+       on the board (outliers, the walk, a top N, a narrowing, a comparison —
+       each a list), and the rest goes to Copilot with the
+       board — or, with no key, to the map's filter reader, whose list the
+       board draws */
+    let mapListy=false;
+    if(igBoardNow()){ try{ const pz=igRecipeParse(q); mapListy=!!(pz&&pz.acts.some(x=>x.top||x.narrow||x.compare||x.linked||x.linkedParty||x.families||x.sort)); }catch(_){ mapListy=false; } }
+    const boardUp=!!igBoardNow()&&!IG_WALK_RE.test(q)&&!IG_OUTLIER_RE.test(q)&&!mapListy;
+    const mapRest=(igPaperUp()||boardUp)?null:await intelMapLocal(q);
     if(mapRest!=null){ if(mapRest) await intelGraphAsk(mapRest); }
     else if(igPaperUp())                                await igPaperAsk(q);
     else if(idHits>=2)                                  await intelChatAsk(q);
@@ -1954,9 +1965,16 @@ function graphCrowdedQuarters(cs){
 function graphLensesNow(){
   return intel.lenses.filter(l=>l.on).map(l=>({ label:String(l.label||''), action:l.action||'filter', count:(l.ids||[]).length }));
 }
+/* ON HOME'S BOARD, THE BOARD IS THE SCREEN (4 Oct 2026): a question asked
+   while the Board is up carries what the board shows (hbBoardNow), so
+   Copilot answers about the numbers in front of the reader, not the map. */
+function igBoardNow(){
+  try{ return (state.view==='dashboard' && typeof window.hbFace==='function' && hbFace()==='board' && typeof window.hbBoardNow==='function') ? (hbBoardNow()||'') : ''; }catch(_){ return ''; }
+}
 function graphAskScreen(){
   return { groupBy:intel.groupBy, custom:!!intel.groups, lenses:graphLensesNow(), crowded:graphCrowdedQuarters(),
-    lang:(typeof langPromptName==='function')?langPromptName():'', currency:(typeof jxCurrency==='function')?jxCurrency():'' };
+    lang:(typeof langPromptName==='function')?langPromptName():'', currency:(typeof jxCurrency==='function')?jxCurrency():'',
+    board:igBoardNow() };
 }
 async function intelGraphAsk(q){
   const act=intelActive();
@@ -1986,6 +2004,13 @@ async function intelGraphAsk(q){
   /* COPILOT DECIDED IT IS ABOUT WORDING: the reading chat answers it, and
      the map is left exactly as it was. */
   if(res&&res.kind==='wording'){ await intelChatAsk(q); return; }
+  /* ASKED ON THE BOARD, COPILOT PRESSES THE BOARD'S BUTTONS (4 Oct 2026): a
+     chart-only answer changes the open chart (or draws a new one) and the map
+     is left exactly as it was */
+  if(res&&igBoardNow()&&typeof window.hbBoardTakes==='function'){
+    let said=null; try{ said=hbBoardTakes(res); }catch(_){ said=null; }
+    if(said){ intel.history.push({ role:'assistant', text:said+igNoticeHtml(res.notice) }); return; }
+  }
   if(!res){ res=graphInterpret(q);           // fallback
     /* The built-in reader understood nothing: say what the map can do, as
        presses, rather than leave a sentence and nothing to act on. */
@@ -2084,7 +2109,13 @@ function intelGraphApply(q, res, opts){
   /* THE COUNT IS HATI'S, NEVER THE MODEL'S (the owner's screenshot, 3 Oct
      2026: the board showed 35 and the sentence said "16 contracts"): a
      sentence that states a different number of contracts is not printed. */
-  const own0=String(res.answer||'').trim();
+  let own0=String(res.answer||'').trim();
+  /* asked on the Board: a sentence stating a number of contracts the board
+     does not show is left out, as the board's own ask does (hbWhyCheck) */
+  const onBoard=igBoardNow();
+  if(onBoard&&own0&&!(ids&&ids.length)&&typeof window.hbWhyCheck==='function'){
+    const nums=new Set((onBoard.match(/\d[\d,]*/g)||[]).map(x=>Number(x.replace(/,/g,''))));
+    own0=hbWhyCheck(own0, nums).text; }
   const saidN=own0.match(/\b(\d[\d,.\s]*)\s+(?:matching\s+|live\s+|such\s+)?(?:contracts?|agreements?|avtal)\b/i);
   const ownN=(saidN&&ids&&Number(String(saidN[1]).replace(/[^\d]/g,''))!==ids.length)?'':own0;
   /* ---- COPILOT'S OWN SENTENCE IS FORMATTED, NOT PRINTED RAW (Young, 28 Sep
@@ -2102,7 +2133,9 @@ function intelGraphApply(q, res, opts){
   const own=(!didHere||lookDid)&&IG_CLAIM_RE.test(ownN)?'':ownN;
   const ownHtml=own?(rich?aiRichText(own):igEsc(own)):'';
   if(!line&&lookDid){ if(!ownHtml||!graphSaysMore(own,res.note,'')) return { refused:false, groupBy, ids, look:true }; line=ownHtml; }
-  else if(!line) line=didHere?(ownHtml||igEsc(res.note||'Done.')):igEsc(i18t('int_did_nothing'))+(ownHtml?(rich?'':'<br>')+ownHtml:'');
+  /* asked on the Board, the map is not the screen: "Nothing changed on the
+     map" is not said over an answer about the board */
+  else if(!line) line=didHere?(ownHtml||igEsc(res.note||'Done.')):(ownHtml&&onBoard?ownHtml:igEsc(i18t('int_did_nothing'))+(ownHtml?(rich?'':'<br>')+ownHtml:''));
   else if(graphSaysMore(own,res.note,parts[0])) line+=(rich?'':'<br>')+ownHtml;
   intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:res.note?String(res.note):null, listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
@@ -2233,7 +2266,11 @@ async function intelChatAsk(q){
     return;
   }
   try{
-    const res=await copilotAsk(intelChatMessages(), { view:'intel' }, null, IG_QUIET);
+    const msgs=intelChatMessages();
+    const board=igBoardNow();
+    if(board&&msgs.length&&msgs[msgs.length-1].role==='user')
+      msgs[msgs.length-1]={ role:'user', content:'[The reader is on the Home board. What the board shows now:\n'+board+'\nAnswer from these numbers when the question is about the board.]\n\n'+msgs[msgs.length-1].content };
+    const res=await copilotAsk(msgs, { view:'intel' }, null, IG_QUIET);
     intelPushChatResult(res);
   }catch(e){
     // Copilot failed mid-flight → still deliver a local comparison if we can.
