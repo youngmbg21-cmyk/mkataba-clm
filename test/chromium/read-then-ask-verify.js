@@ -37,7 +37,12 @@ const add = (id, signed) => { const c = fixtureContract(id, 'Supply ' + id, 'Jun
 for (let k = 0; k < 4; k++) add('MK-E' + k, dayIn(-30 - k, 10));
 for (let k = 0; k < 11; k++) add('MK-J' + k, dayIn(-3, 3 + k));
 for (let k = 0; k < 14; k++) add('MK-A' + k, dayIn(-2, 3 + k));
-const BOOK = FIXTURES.concat(SIGNED);
+/* three signed long ago that end within weeks: Ending in 90 days and the
+   Renewals panel (which counts agreements in force) have something to read
+   (stage 8) */
+const dayOff = n => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const SOON = [20, 30, 40].map((n, k) => { const c = fixtureContract('MK-S' + k, 'Service ' + k, 'Nordkraft AB', 'proc', 2e6, 'Signed'); c.signedAt = dayIn(-40, 10); c.expiry = dayOff(n); return c; });
+const BOOK = FIXTURES.concat(SIGNED, SOON);
 const KEY = 'q:contracts by month signed';
 
 /* amber: red high, green middling, blue low — read from rgb() or from the
@@ -143,6 +148,42 @@ const check = (name, pass, detail) => {
     const bv1 = await btnOf('.hb-view [data-hb-act="big"]');
     const vr = await page.evaluate(() => !!document.querySelector('.hb-view.is-big .hb-read'));
     check('6a a kept view: Make bigger at rest, Make smaller enlarged, with the reading', bv0 && bv0.title === 'Make bigger' && bv1 && bv1.title === 'Make smaller' && /^M6 2v4H2/.test(bv1.path) && vr, JSON.stringify({ bv0, bv1, vr }));
+
+    /* ================= 8. EVERY ENLARGED CARD READS =================
+       Young, 4 Oct 2026: "i do not see the options in the dashboard" →
+       "build all three": Value under contract, Ending in 90 days and the
+       ready-made panels, made bigger, read and offer the one ask */
+    await page.evaluate(() => { const s = hbS(); s.panels = []; s.path = []; s.digBig = false; s.why = {}; hbSave(); hbPaintBoard(); window._asked = []; });
+    const fv = await until(() => document.querySelector('#hb-board [data-hb-dig="f:value"]') ? true : null);
+    if (fv) await page.click('#hb-board [data-hb-dig="f:value"]');
+    const v8 = await until(() => document.querySelector('#hb-focus [data-hb-digbig]') ? true : null);
+    if (v8) await page.click('#hb-focus [data-hb-digbig]');
+    const s8a = await until(() => { const r = document.querySelector('#hb-focus .hb-dig.is-big .hb-read'); return r ? { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), ask: !!document.querySelector('#hb-focus [data-hb-why="f:value"]') } : null; });
+    /* the ask wears one line: the star beside the words, the words inside the frame */
+    const fit = await page.evaluate(() => { const b = document.querySelector('#hb-focus [data-hb-why]'); if (!b) return null; const r = b.getBoundingClientRect(), i = b.querySelector('svg').getBoundingClientRect();
+      const t = document.createRange(); t.selectNodeContents(b.lastChild); const tr = t.getBoundingClientRect();
+      return { h: Math.round(r.height), over: b.scrollHeight - b.clientHeight, sideBySide: i.right <= tr.left + 1 && Math.abs((i.top + i.bottom) / 2 - (tr.top + tr.bottom) / 2) < 4, inside: tr.bottom <= r.bottom + 0.5 }; });
+    check('8e the ask button is one line: the star beside its words, inside its frame', !!fit && fit.sideBySide && fit.inside && fit.over <= 0, JSON.stringify(fit));
+    check('8a Value under contract can be made bigger, and reads where the money sits', !!s8a && s8a.ask && /^Most of the value, .+ \(\d+%\), sits in .+, across \d+ contracts\.$/.test(s8a.lines[0] || ''), JSON.stringify({ fv, v8, s8a }));
+    await page.screenshot({ path: path.join(OUT, '8a-value-reading.png') });
+    await page.evaluate(() => { const s = hbS(); s.path = []; s.digBig = false; hbSave(); hbPaintBoard(); });
+    const fe = await until(() => document.querySelector('#hb-board [data-hb-dig="f:ending"]') ? true : null);
+    if (fe) await page.click('#hb-board [data-hb-dig="f:ending"]');
+    if (await until(() => document.querySelector('#hb-focus [data-hb-digbig]') ? true : null)) await page.click('#hb-focus [data-hb-digbig]');
+    const s8b = await until(() => { const r = document.querySelector('#hb-focus .hb-dig.is-big .hb-read'); return r ? [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()) : null; });
+    check('8b Ending in 90 days, made bigger, names the first to end', !!s8b && s8b.some(l => /end in the next 90 days; the first is MK-S0 \(Nordkraft AB\), on /.test(l)), JSON.stringify({ fe, s8b }));
+    await page.screenshot({ path: path.join(OUT, '8b-ending-reading.png') });
+    await page.evaluate(() => { const s = hbS(); s.path = []; s.digBig = false; s.panels = [{ id: 'p8', kind: 'ren', split: false, big: false }]; s.seq = 8; hbSave(); hbPaintBoard(); });
+    const p0 = await until(() => document.querySelector('.hb-panel[data-hb-pid="p8"] [data-hb-act="big"]') ? { read: !!document.querySelector('.hb-panel[data-hb-pid="p8"] .hb-read') } : null);
+    if (p0) await page.click('.hb-panel[data-hb-pid="p8"] [data-hb-act="big"]');
+    const s8c = await until(() => { const P = document.querySelector('.hb-panel.is-big[data-hb-pid="p8"]'); const r = P && P.querySelector('.hb-read'); return r ? { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), ask: !!P.querySelector('[data-hb-why="hp:ren"]') } : null; });
+    check('8c a ready-made panel: nothing extra at normal size; made bigger, it reads and offers the ask', !!p0 && !p0.read && !!s8c && s8c.ask && s8c.lines.some(l => /^The first to end is MK-S0 \(Nordkraft AB\), in \d+ days/.test(l)), JSON.stringify({ p0, s8c }));
+    if (s8c) await page.click('.hb-panel[data-hb-pid="p8"] [data-hb-why="hp:ren"]');
+    const s8d = await until(() => { const P = document.querySelector('.hb-panel[data-hb-pid="p8"]'); const w = P && P.querySelector('.hb-why:not(.is-err) .hb-why-b'); const r = P && P.querySelector('.hb-read');
+      return w ? { t: w.textContent.replace(/\s+/g, ' ').trim(), border: getComputedStyle(w.parentElement).borderTopColor, readBorder: r ? getComputedStyle(r).borderTopColor : '', prompt: window._asked[0] || '' } : null; });
+    check('8d asked from the panel, the answer lands in the panel\'s own amber box', !!s8d && /Worth checking which of the open ones/.test(s8d.t) && isAmber(s8d.border) && s8d.border !== s8d.readBorder && /^A panel on the HaTi Home board: "Ending in the next 90 days"\./.test(s8d.prompt), JSON.stringify(s8d && { t: s8d.t, border: s8d.border, p: s8d.prompt.slice(0, 90) }));
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: path.join(OUT, '8d-panel-asked.png') });
 
     /* ================= 7. LIGHT ================= */
     await page.evaluate(k => { const s = hbS(); s.panels = []; s.path = [k]; s.digBig = true; hbSave(); setView('dashboard'); }, KEY);
