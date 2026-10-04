@@ -170,7 +170,10 @@ describe('f322 (4) a lane fires, and names itself on the record', () => {
     assert.equal(w.intakeLaneFor(REQ({ title:'A new NDA for the depot',
       need:'Their own NDA template arrived for the depot.' })), null,
       'whatever else the rule says — this is the one condition it may not switch off');
-    assert.match(CODE, /if\(IK_THEIR_PAPER\.test\(text\)\) continue;/);
+    /* RE-POINTED 4 Oct 2026: the rule is shared with the server's sweep and
+       lives in js/intakelanes.js — the condition is unchanged. */
+    assert.match(fs.readFileSync(path.join(__dirname, '..', 'js', 'intakelanes.js'), 'utf8'),
+      /if \(IK_THEIR_PAPER\.test\(text\)\) continue;/);
   });
   test('4c a lane with a ceiling refuses an ask that mentions money, rather than guessing the amount', () => {
     const w = lanes(world([]), [{ on:true, name:'NDA', template:'ND', maxValue:100000, knownOnly:false }]);
@@ -189,15 +192,17 @@ describe('f322 (4) a lane fires, and names itself on the record', () => {
     assert.deepEqual(w.intakeLanes(), []);
     assert.equal(w.intakeLaneFor(REQ({ need:'x' })), null);
   });
-  test('4f it presses the ordinary creation path and mints nothing itself', () => {
-    const run = CODE.slice(CODE.indexOf('async function intakeRunLanes'), CODE.indexOf('async function intakeSetStatus'));
-    /* RE-POINTED IN PLACE 21 Sep 2026: this pinned the call's exact
-       SIGNATURE, so adding the options argument that lets a lane mint
-       without navigating the reader broke a claim about which door it
-       presses. The claim is the DOOR. */
-    assert.match(run, /createFromTemplate\(\s*L\.template\b/);
-    assert.ok(!/state\.contracts\.(push|unshift)|nextId\(/.test(run));
-    assert.ok(!/signatures|signDocument|'Signed'|'Executed'/.test(run), 'a lane never signs anything');
+  /* RE-POINTED 4 Oct 2026 (the process review's Requests stream): the lanes
+     run on the SERVER now, so the claim moved with them — the page mints
+     nothing at all, and the server's mint signs nothing, sends nothing and
+     takes its number from the one counter. f460 drives it. */
+  test('4f the page mints nothing, and the server\'s lane signs nothing', () => {
+    assert.ok(!/createFromTemplate\(/.test(CODE), 'the Requests page never mints');
+    assert.ok(!/state\.contracts\.(push|unshift)|nextId\(/.test(CODE));
+    const run = SRV.slice(SRV.indexOf('function srvIntakeLaneDraft('), SRV.indexOf('setInterval(() => { try { runIntakeLanes(); }'));
+    assert.match(run, /srvNextContractNo\(\)/, 'the one counter every MK id comes from');
+    assert.match(run, /status: 'Draft'/);
+    assert.ok(!/signDocument|status: 'Signed'|'Executed'|sendEmail|shares/.test(run), 'a lane never signs or sends anything');
   });
   test('4g the rule lives in Settings and the queue only READS it', () => {
     assert.match(SET, /lanes:\{\s*\n\s*tab:'platform'/);
@@ -257,19 +262,23 @@ describe('f322 (6) absent stays absent, and an editor is the only one who may sa
     assert.match(p, /SELECT id,name FROM users WHERE id=\?/);
     assert.ok(!/assignee_name=\?[^;]*b\.assigneeName/.test(p), 'a name in a request body is a name anybody could type');
   });
+  /* RE-POINTED 4 Oct 2026: the region is the route, to its answer — not 4000
+     bytes after its first line (PIN THE REGION, NOT A BYTE COUNT). */
+  const patchRoute = () => SRV.slice(SRV.indexOf("app.patch('/api/intake/:id'"),
+    SRV.indexOf('res.json({ ok: true, request: intakeRow(after) });', SRV.indexOf("app.patch('/api/intake/:id'")));
   test('6c a viewer may not set any of the three', () => {
-    const p = SRV.slice(SRV.indexOf("app.patch('/api/intake/:id'"), SRV.indexOf("app.patch('/api/intake/:id'") + 4000);
+    const p = patchRoute();
     assert.match(p, /if \(isEditor && b\.assignee !== undefined\)/);
     assert.match(p, /if \(isEditor && b\.promisedAt !== undefined\)/);
     assert.match(p, /isEditor \? \(clean\(b\.lane\)/);
   });
   test('6d a promised date is a day, and anything else is refused', () => {
-    const p = SRV.slice(SRV.indexOf("app.patch('/api/intake/:id'"), SRV.indexOf("app.patch('/api/intake/:id'") + 4000);
+    const p = patchRoute();
     assert.match(p, /\\d\{4\}-\\d\{2\}-\\d\{2\}/);
     assert.match(p, /A promised date is a day/);
   });
   test('6e undefined leaves the stored value exactly as it was', () => {
-    const p = SRV.slice(SRV.indexOf("app.patch('/api/intake/:id'"), SRV.indexOf("app.patch('/api/intake/:id'") + 4000);
+    const p = patchRoute();
     assert.match(p, /let asgId = r\.assignee_id, asgName = r\.assignee_name;/);
     assert.match(p, /let promised = r\.promised_at;/);
   });
@@ -279,7 +288,7 @@ describe('f322 (7) every name this page grew is reachable', () => {
   test('7a published', () => {
     const w = world([]);
     ['intakeRoad','intakePromise','intakeMedianDays','intakePastDue','intakeTrackUrl',
-     'intakeLanes','intakeLaneFor','intakeRunLanes','intakePick','intakePromiseAsk',
+     'intakeLanes','intakeLaneFor','intakeRefresh','intakePick','intakePromiseAsk',
      'ikClockHtml','IK_ROADS','IK_MEDIAN_MIN','intakeMinutes','intakeStoppedAt'].forEach(n=>{
       assert.notEqual(typeof w[n], 'undefined', n + ' is not published');
     });

@@ -5767,6 +5767,13 @@ function contractLeavesDrafting(c, why){
      Guarded on the published name because js/views/contract.js is not on the
      counterparty's script list, and this file is. */
   try{ if(window.triageAndPaint) triageAndPaint(c); }catch(_){}
+  /* ---- AND A REQUEST DRAFTED AS THIS CONTRACT IS DONE (4 Oct 2026) ----
+     A request is "drafted, not yet sent" until its contract goes to the other
+     side; this is that moment. The server closes it on the save that carries
+     the move and mails the person who asked; the page is told here so it says
+     so at once. Guarded: the counterparty's page carries this file, not the
+     Requests page. */
+  try{ if(window.intakeContractSent) intakeContractSent(c); }catch(_){}
   return true;
 }
 async function reshareToLastRecipient(c, opts={}){
