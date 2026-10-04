@@ -166,7 +166,8 @@ describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
     w.copilotAvailable = () => true;
     w.copilotAsk = async () => ({ answer: 'A late burst.' });
     await w.hbWhyAsk(KEY);
-    w.eval('_hbS = null;');
+    /* a REAL reload: another person's sitting, then back — read from storage */
+    const me = w.currentUser; w.currentUser = () => ({ id: 'u_other_sitting', name: 'X' }); w.hbS(); w.currentUser = me;
     assert.equal(w.hbS().why[KEY].text, 'A late burst.');
   });
   test('the check reads "N contracts" the way the map\'s own rule does', () => {

@@ -105,9 +105,15 @@ function hbS(){
         ? { id: String(p.id || ''), kind: 'view', key: p.key.slice(0, 300), title: String(p.title || '').slice(0, 120), shape: String(p.shape || '').slice(0, 20),
             recipe: (hbRecipeClean({ k: p.recipe || {} }).k) || null, split: false, big: !!p.big }
         : { id: String(p.id || ''), kind: p.kind, split: !!p.split, big: !!p.big });
+    /* THE DAY'S SHELF COMES BACK WHOLE (Young, 4 Oct 2026: "fix the shelf
+       refresh fault"): an id is a shape or a shape's ".mine" (hbInsOf reads
+       both), and the scope, the young book and the open usual pictures are
+       part of the day's choice — dropping them kept the day's "yours"
+       findings off the shelf until tomorrow */
     if (v.ins && typeof v.ins === 'object' && typeof v.ins.day === 'string' && Array.isArray(v.ins.list))
-      s.ins = { day: v.ins.day, n: String(v.ins.n || ''), v: Number(v.ins.v) || 0, list: v.ins.list.filter(k => HB_INS_SHAPES.includes(k)).slice(0, HB_INS_MAX),
-        plain: Array.isArray(v.ins.plain) ? v.ins.plain.filter(k => HB_INS_SHAPES.includes(k)) : [] };
+      s.ins = { day: v.ins.day, n: String(v.ins.n || ''), v: Number(v.ins.v) || 0, list: v.ins.list.filter(k => typeof k === 'string' && !!hbInsOf(k)).slice(0, HB_INS_MAX),
+        scope: ['mine', 'few', 'co'].includes(v.ins.scope) ? v.ins.scope : 'co', young: !!v.ins.young,
+        usual: typeof v.ins.usual === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v.ins.usual) ? v.ins.usual : null };
     if (v.insKept && typeof v.insKept === 'object') HB_INS_SHAPES.forEach(k => { if (Number(v.insKept[k]) > 0) s.insKept[k] = Math.min(20, Number(v.insKept[k])); });
     if (v.insOff && typeof v.insOff === 'object') HB_INS_SHAPES.forEach(k => { if (/^\d{4}-\d{2}-\d{2}$/.test(String(v.insOff[k] || ''))) s.insOff[k] = v.insOff[k]; });
     if (typeof v.keptSent === 'string') s.keptSent = v.keptSent.slice(0, 4000);

@@ -40,6 +40,8 @@ const DRIFT = [];
 for (let m = 12; m >= 1; m--) for (let j = 0; j < 4; j++){
   const c = fixtureContract(`MK-P${m}-${j}`, `Supply ${m}-${j}`, ['Naivas Supermarkets', 'Kabras Sugar', 'Bidco Africa', 'Twiga Foods'][j], 'proc', 1e6, 'Signed');
   c.signedAt = dayIn(-m, 10 + j); c.metadata = { ...c.metadata, paymentTerms: (m === 1 && j < 3 ? 60 : 30 + (m % 3)) + ' days' };
+  /* who owns them is on the record too, so a refresh reads the same book */
+  c.owner = j < 3 ? { id: null, name: 'Amina Otieno' } : { id: null, name: 'Someone Else' };
   DRIFT.push(c);
 }
 const BOOK = FIXTURES.concat(DRIFT);
@@ -112,6 +114,19 @@ const check = (name, pass, detail) => {
       const hid = await until(() => document.querySelectorAll('#hm-agents .hb-ins.is-plain').length === 0);
       check('1j and the same press takes them away', !!hid);
     }
+
+    /* ================= 2. A REFRESH KEEPS THE DAY'S SHELF ================= */
+    /* (Young, 4 Oct 2026: "fix the shelf refresh fault") — the board record
+       kept only bare shape names, so "yours" left the shelf until tomorrow */
+    const before2 = await page.evaluate(() => ({ list: hbS().ins.list.slice(), n: hbS().ins.n }));
+    await page.reload({ waitUntil: 'networkidle' });
+    const s2 = await until(() => { if (!(window.hbS && hbS().ins && document.querySelector('#hm-agents .hb-shelf'))) return null;
+      const c = document.querySelector('[data-hb-ins-card="pay.mine"]');
+      return c ? { list: hbS().ins.list.slice(), scope: hbS().ins.scope, chip: (c.querySelector('.hb-ins-scope') || {}).textContent } : null; }, null, 20000);
+    check('2a a refresh keeps your own picture on the shelf, marked yours', !!s2 && s2.list.includes('pay.mine') && s2.scope === 'mine' && /^Yours · \d+$/.test(s2.chip || ''), JSON.stringify({ before2, s2 }));
+    await page.screenshot({ path: path.join(OUT, '2-after-refresh.png') });
+    /* the reload cleared the stand-in for the floating chat: arm it again */
+    await page.evaluate(() => { window._outsideChat = 0; window.openAI = () => { window._outsideChat++; }; });
 
     /* ================= 3. OPEN IS THE BOARD'S OWN DIG-IN ================= */
     await page.evaluate(() => document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-ins="open"]').click());
