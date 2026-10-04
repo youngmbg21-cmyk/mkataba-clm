@@ -420,7 +420,10 @@ const SEED = () => {
     await page.setViewportSize({ width: 1440, height: 460 });
     await pause(600);
     const readRow = () => page.evaluate(() => {
-      const row = document.querySelector('.st-tabs'), sc = document.getElementById('content-scroll');
+      /* THE PINNED BLOCK (4 Oct 2026, f481): Our standards is a tab of Our
+         paper, so the pinned block holds the page's row over this page's own
+         sub-tabs; its first glyph is the page's first tab. */
+      const row = document.querySelector('.st-tabs-pin'), sc = document.getElementById('content-scroll');
       if (!row || !sc) return null;
       const r = row.getBoundingClientRect(), s = sc.getBoundingClientRect();
       const first = row.querySelector('.st-tab');

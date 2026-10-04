@@ -783,7 +783,15 @@ function contractArrived(c, opts){
      that is too empty to be worth reading is still a contract somebody just
      named three colleagues on. A bulk import claims nothing: nobody stood at
      that screen. */
-  if (c && !o.bulk){ try{ if (typeof participantsClaim === 'function') participantsClaim(c); }catch(_){} }
+  let named = false;
+  if (c && !o.bulk){ try{ if (typeof participantsClaim === 'function') named = participantsClaim(c) > 0; }catch(_){} }
+  /* ---- AND THE ADDRESS IT ARRIVED WITH IS IN THE ADDRESS BOOK (4 Oct 2026) ----
+     A creation form, the server's template route or an import wrote the
+     record's contact; the people list is the one store of the other side's
+     people, so the address goes in through its one writer here — every door,
+     bulk included, because this costs nothing and spends nothing. */
+  if (c){ try{ if (typeof contactAdopt === 'function' && contactAdopt(c)) named = true; }catch(_){} }
+  if (named && typeof persist === 'function'){ try{ persist(c); }catch(_){} }
   /* AND THE REQUEST IT WAS DRAFTED FOR (4 Oct 2026): Requests' Draft it opens
      the drafting screen with the request held, and the contract that screen
      makes is claimed here, the same way (intakeClaimDraft, js/views/intake.js). */
@@ -799,6 +807,12 @@ function contractArrived(c, opts){
     try{ if (mintTemplateObligations(c) && typeof persist === 'function') persist(c); }catch(_){}
   }
   if (!c || o.bulk) return false;
+  /* ---- THE UPLOAD'S TICK-BOX STILL GOVERNS ITS OWN READING (4 Oct 2026) ----
+     The upload door now arrives through here like every other door — so the
+     people it names, the address it carries and the promises it makes are
+     claimed the same way — but the owner's 9 Sep ruling stands: NO BOX MEANS
+     NO READING. `read:false` is that box left unticked. */
+  if (o.read === false) return false;
   if (typeof triageAndPaint !== 'function') return false;
   if (!triageApplies(c)) return false;
   try{ triageAndPaint(c); }catch(_){ return false; }

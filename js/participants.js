@@ -118,12 +118,16 @@ const PARTY_PATCH_KEYS = ['name', 'email', 'role', 'access', 'memberId'];
 function participantSet(c, id, patch){
   const row = participantsOf(c).find(p => p.id === id);
   if (!row || !patch) return null;
+  const before = _ptStr(row.email);
   PARTY_PATCH_KEYS.forEach(k => {
     if (!(k in patch)) return;
     if (k === 'role' && !PARTY_ROLE_OF[_ptStr(patch.role)]) return;
     if (k === 'access' && !PARTY_ACCESS_OF[_ptStr(patch.access)]) return;
     row[k] = _ptStr(patch[k]);
   });
+  /* AN OUTSIDE PERSON'S ADDRESS IS THE ADDRESS BOOK'S — the record, the
+     signing route and the parties follow it in the same breath. */
+  if (participantSideOf(row.role) === 'theirs') contactFollow(c, before, row.email);
   return row;
 }
 function participantRemove(c, id){
@@ -131,9 +135,220 @@ function participantRemove(c, id){
   if (!list) return false;
   const i = list.findIndex(p => p && p.id === id);
   if (i < 0) return false;
+  const gone = list[i];
   list.splice(i, 1);
+  /* TAKING OFF THE CONTACT TAKES OFF ITS ADDRESS. The record's copy of it is a
+     mirror; left behind, the reading below would bring the person straight
+     back as the record's contact. */
+  if (gone && gone.main && participantSideOf(gone.role) === 'theirs') contactUnmirror(c, gone);
   return true;
 }
+
+/* ============================================================
+   ONE ADDRESS BOOK (the process review, 4 Oct 2026)
+   ============================================================
+   The other side's people could be typed in ten boxes — the three creation
+   forms, the upload, the Overview's "Their email", this list, the parties
+   editor, the signing route, the send screen and the handover — and each kept
+   its own copy. THIS LIST IS NOW THE ONE STORE for an outside person's name
+   and address. `contactSet` is the ONE writer every box writes through and
+   `contactsOf` / `contactEmail` the ONE reading every box reads through.
+
+   THE OLD FIELDS ARE MIRRORS, kept in step by the writer, because hundreds of
+   readings (and the server) read them: `c.counterpartyEmail` and
+   `c.counterpartyName` are the first outside party's MAIN contact, a stored
+   party's `email` is that party's main contact, and a signer on the route
+   carries the address of the person they are. A record on file that has never
+   been written through here is READ as if it had (`contactsOf` derives the
+   rows from the mirrors) — reading never writes.
+
+   AN ADDRESS BELONGS TO A PERSON. Changing it in any box moves it everywhere
+   that person appears — their other roles, the route, the record — so the
+   same person never carries two addresses. Two DIFFERENT people (the finance
+   director signs, the commercial lead argues) have two addresses and neither
+   is touched. The route follows only while it may still change: never a row
+   that has signed, never once anybody has. */
+const CONTACT_ROLE_OF_PURPOSE = { sign: 'cpsign', negotiate: 'negotiate', view: 'cpread', advise: 'advise', history: 'cpread' };
+const CONTACT_MAIN_ROLE = 'negotiate';
+function _ctTheirs(c){ const t = _ptCall('partiesTheirs', c); return Array.isArray(t) ? t : []; }
+function _ctFirstPartyId(c){ const t = _ctTheirs(c); return t.length ? _ptStr(t[0].id) : ''; }
+/* ABSENT MEANS THE FIRST OUTSIDE PARTY — the share's and the signer's own
+   rule (partyOfShare, partyOfSigner), so a row on file needs no migration. */
+function contactPartyOf(c, row){ return _ptStr(row && row.partyId) || _ctFirstPartyId(c); }
+function _ctOutside(p){ return !!p && participantSideOf(p.role) === 'theirs'; }
+function _ctStoredMain(c, partyId){
+  const want = _ptStr(partyId) || _ctFirstPartyId(c);
+  return participantsOf(c).find(p => _ctOutside(p) && p.main && contactPartyOf(c, p) === want) || null;
+}
+/* THE READING: every outside person this contract knows, stored rows first,
+   then the ones only a mirror still names (a record on file, a route saved
+   before this existed). Fresh objects — nothing here writes. */
+function contactsOf(c){
+  if (!c) return [];
+  const out = participantsOf(c).filter(_ctOutside)
+    .map(p => Object.assign({}, p, { partyId: contactPartyOf(c, p), main: !!p.main }));
+  const theirs = _ctTheirs(c);
+  const mainFor = pid => out.some(r => r.main && r.partyId === pid);
+  if (theirs.length){
+    theirs.forEach((py, i) => {
+      const pid = _ptStr(py.id);
+      if (mainFor(pid)) return;
+      const em = i === 0 ? (_ptStr(c.counterpartyEmail) || _ptStr(py.email)) : _ptStr(py.email);
+      if (!em) return;
+      out.push({ id: '', derived: true, main: true, partyId: pid, role: CONTACT_MAIN_ROLE,
+        access: PARTY_ACCESS_DEFAULT, name: i === 0 ? _ptStr(c.counterpartyName) : '', email: em });
+    });
+  } else if (_ptStr(c.counterpartyEmail) && !mainFor('')){
+    out.push({ id: '', derived: true, main: true, partyId: '', role: CONTACT_MAIN_ROLE,
+      access: PARTY_ACCESS_DEFAULT, name: _ptStr(c.counterpartyName), email: _ptStr(c.counterpartyEmail) });
+  }
+  (Array.isArray(c.signerPlan) ? c.signerPlan : []).forEach(s => {
+    if (!s || s.party !== 'counterparty' || !_ptStr(s.email)) return;
+    const k = _ptFold(s.email);
+    if (out.some(r => r.role === 'cpsign' && _ptFold(r.email) === k)) return;
+    out.push({ id: '', derived: true, main: false, partyId: _ptStr(s.partyId) || _ctFirstPartyId(c),
+      role: 'cpsign', access: PARTY_ACCESS_DEFAULT, name: _ptStr(s.name), email: _ptStr(s.email) });
+  });
+  return out;
+}
+/* The party's main contact — who "Their email" means — or null. */
+function contactMain(c, partyId){
+  const want = _ptStr(partyId) || _ctFirstPartyId(c);
+  return contactsOf(c).find(r => r.main && r.partyId === want) || null;
+}
+function contactEmail(c, partyId){ const m = contactMain(c, partyId); return m ? _ptStr(m.email) : ''; }
+
+/* THE ONE WRITER.
+   p: { id?, partyId?, name?, email?, role?, main?, was? }
+     · `main` writes the party's main contact ("Their email" on every form)
+     · `was` is the address this person had before — a box that edits a
+       signer passes the old one so the same person is found and moved
+     · `name` absent leaves the stored name alone
+   Returns the stored row, or null where there was nothing to keep. */
+function contactSet(c, p){
+  if (!c || !p) return null;
+  const firstId = _ctFirstPartyId(c);
+  const partyId = _ptStr(p.partyId) || firstId;
+  const r0 = PARTY_ROLE_OF[_ptStr(p.role)];
+  const role = p.main ? CONTACT_MAIN_ROLE : (r0 && r0.side === 'theirs' ? r0.k : CONTACT_MAIN_ROLE);
+  const has = k => Object.prototype.hasOwnProperty.call(p, k) && p[k] !== undefined;
+  const email = has('email') ? _ptStr(p.email) : undefined;
+  const name = has('name') ? _ptStr(p.name) : undefined;
+  const list = participantsOf(c);
+  const samePerson = (x, mail) => _ctOutside(x) && mail && _ptFold(x.email) === _ptFold(mail)
+    && contactPartyOf(c, x) === partyId;
+  let row = null;
+  if (p.id) row = list.find(x => x.id === p.id) || null;
+  if (!row && p.main) row = _ctStoredMain(c, partyId);
+  if (!row && p.main && email) row = list.find(x => samePerson(x, email) && _ptStr(x.role) === role) || null;
+  if (!row && p.was) row = list.find(x => samePerson(x, p.was) && _ptStr(x.role) === role) || null;
+  if (!row && email) row = list.find(x => samePerson(x, email) && _ptStr(x.role) === role) || null;
+  const derived = p.main ? contactMain(c, partyId) : null;
+  const before = row ? _ptStr(row.email) : (derived ? _ptStr(derived.email) : _ptStr(p.was));
+  if (!row){
+    if (!email && !name){
+      /* Emptying a contact that only a mirror held empties the mirror. */
+      if (p.main && derived) contactUnmirror(c, derived);
+      return null;
+    }
+    row = participantAdd(c, { name: name != null ? name : (derived ? derived.name : ''),
+      email: email || '', role, access: PARTY_ACCESS_DEFAULT });
+    if (!row) return null;
+    if (partyId) row.partyId = partyId;
+  } else {
+    if (email !== undefined) row.email = email;
+    if (name !== undefined) row.name = name;
+  }
+  if (p.main) row.main = true;
+  /* A CONTACT WITH NEITHER NAME NOR ADDRESS IS NOBODY — it goes, and the
+     mirrors go with it, so the record does not keep what the book dropped. */
+  if (!_ptStr(row.email) && !_ptStr(row.name)){
+    participantRemove(c, row.id);
+    if (row.main) contactUnmirror(c, row);
+    return null;
+  }
+  contactFollow(c, before, row.email);
+  return row;
+}
+
+/* THE SAME PERSON, EVERYWHERE THEY APPEAR: the other rows that carry the old
+   address, the route while it may change, and then the mirrors. */
+function contactFollow(c, before, after){
+  if (!c) return;
+  const was = _ptFold(before), now = _ptStr(after);
+  if (was && was !== _ptFold(now)){
+    participantsOf(c).forEach(x => { if (_ctOutside(x) && _ptFold(x.email) === was) x.email = now; });
+    const locked = _ptCall('signingLocked', c) === true;
+    if (!locked && Array.isArray(c.signerPlan)){
+      c.signerPlan.forEach(s => {
+        if (s && s.party === 'counterparty' && !s.signed && _ptFold(s.email) === was) s.email = now;
+      });
+    }
+    /* AND A MIRROR NOBODY HAS WRITTEN THROUGH HERE YET carries the same
+       person's address — a record on file whose contact is this person. */
+    if (!_ctStoredMain(c, _ctFirstPartyId(c)) && _ptFold(c.counterpartyEmail) === was){
+      if (now) c.counterpartyEmail = now; else delete c.counterpartyEmail;
+    }
+    if (Array.isArray(c.parties)){
+      c.parties.forEach(py => {
+        if (py && py.side !== 'ours' && !_ctStoredMain(c, _ptStr(py.id)) && _ptFold(py.email) === was) py.email = now;
+      });
+    }
+  }
+  contactMirror(c);
+}
+/* THE MIRRORS, written from the book — only where the book holds a stored
+   main contact; a record nobody has written through here keeps its own copy,
+   which is exactly what contactsOf reads it as. */
+function contactMirror(c){
+  if (!c) return;
+  const m = _ctStoredMain(c, _ctFirstPartyId(c));
+  if (m){
+    if (_ptStr(m.email)) c.counterpartyEmail = _ptStr(m.email); else delete c.counterpartyEmail;
+    if (_ptStr(m.name)) c.counterpartyName = _ptStr(m.name); else delete c.counterpartyName;
+  }
+  if (Array.isArray(c.parties)){
+    c.parties.forEach(py => {
+      if (!py || py.side === 'ours') return;
+      const pm = _ctStoredMain(c, _ptStr(py.id));
+      if (pm) py.email = _ptStr(pm.email);
+    });
+  }
+}
+function contactUnmirror(c, row){
+  if (!c || !row) return;
+  const pid = contactPartyOf(c, row);
+  const mail = _ptFold(row.email);
+  if (pid === _ctFirstPartyId(c)){
+    if (!mail || _ptFold(c.counterpartyEmail) === mail) delete c.counterpartyEmail;
+    if (_ptStr(row.name) && _ptFold(c.counterpartyName) === _ptFold(row.name)) delete c.counterpartyName;
+  }
+  if (Array.isArray(c.parties)){
+    c.parties.forEach(py => { if (py && py.side !== 'ours' && _ptStr(py.id) === pid
+      && (!mail || _ptFold(py.email) === mail)) py.email = ''; });
+  }
+}
+/* A RECORD THAT ARRIVED CARRYING AN ADDRESS (a creation form, the server's
+   own template route, an import) puts it in the book at arrival — the one
+   moment a write is the point. Idempotent. */
+function contactAdopt(c){
+  if (!c) return false;
+  if (!_ptStr(c.counterpartyEmail) || _ctStoredMain(c, _ctFirstPartyId(c))) return false;
+  return !!contactSet(c, { main: true, email: c.counterpartyEmail,
+    name: _ptStr(c.counterpartyName) || undefined });
+}
+/* WHAT A PICKER OFFERS: every outside address once, the main contact first. */
+function contactChoices(c, partyId){
+  const want = _ptStr(partyId);
+  const seen = new Set(), out = [];
+  contactsOf(c).filter(r => _ptStr(r.email) && (!want || r.partyId === want))
+    .sort((a, b) => (b.main ? 1 : 0) - (a.main ? 1 : 0))
+    .forEach(r => { const k = _ptFold(r.email); if (seen.has(k)) return; seen.add(k);
+      out.push({ email: _ptStr(r.email), name: _ptStr(r.name), role: r.role, main: !!r.main }); });
+  return out;
+}
+/* The send screen's own memory: whoever a link went to is now in the book. */
+function contactRoleOfPurpose(purpose){ return CONTACT_ROLE_OF_PURPOSE[_ptStr(purpose)] || 'cpread'; }
 
 /* ---- WHAT THIS PERSON CAN ACTUALLY REACH ----
    THE WALL IS THE WORKSPACE'S, NOT THIS LIST'S. For a colleague the question
@@ -326,16 +541,23 @@ function contractAddressBook(c, shares){
     if(row){ if(!row.where.includes(where)) row.where.push(where); if(!row.name && name) row.name = _ptStr(name); return; }
     seen.set(k, { email: e, name: _ptStr(name), where: [where] });
   };
+  /* ONE BOOK, FOUR WORDS (4 Oct 2026). Every row is a person in the address
+     book (contactsOf) — nothing is admitted from anywhere else. The four
+     words say what each address IS to a round, in the order a round asks. */
+  const book = contactsOf(c).filter(r => _ptStr(r.email));
+  const inBook = e => book.some(r => _ptFold(r.email) === _ptFold(e));
   /* 1 — the signer whose turn it is. What a round goes to first. */
   const route = _ptCall('shareRouteRecipient', c);
-  if(route) add(route.email, route.name, 'route');
-  /* 2 — the people list, in the roles' own order */
+  if(route && inBook(route.email)) add(route.email, route.name, 'route');
+  /* 2 — the people named on it, in the roles' own order */
   participantSendRows(c).forEach(p => add(p.email, p.name, 'people'));
-  /* 3 — the Overview's recorded contact */
-  if(c) add(c.counterpartyEmail, c.counterparty, 'record');
-  /* 4 — the last link actually sent */
+  /* 3 — the main contact (what "Their email" says) */
+  book.filter(r => r.main).forEach(r => add(r.email, r.name || (c && c.counterparty), 'record'));
+  /* 4 — the last link actually sent, where that person is in the book */
   const last = _ptCall('lastShareRecipient', shares || []);
-  if(last) add(last.email, last.name, 'last');
+  if(last && inBook(last.email)) add(last.email, last.name, 'last');
+  /* and anybody else in the book */
+  book.forEach(r => add(r.email, r.name, 'people'));
 
   const rows = Array.from(seen.values()).map(r => Object.assign({}, r, {
     /* the earliest source this address appears under decides where it sits */
@@ -419,7 +641,13 @@ function participantRowHtml(carrier, p, opts){
   const reach = o.reach === false ? { ok: true } : participantReach(carrier, p);
   const say = reach.ok ? '' : i18t(reach.why === 'nostream' ? 'ppl_no_stream' : 'ppl_no_member');
   const cell = (inner) => `<div class="pt-c">${inner}</div>`;
-  return `<div class="pt-row${reach.ok ? '' : ' is-blocked'}" data-pt-row="${_ptEsc(p.id)}">
+  /* A PERSON ONLY A MIRROR STILL NAMES (a record on file, a route saved
+     before the book) is drawn like any other row and becomes a stored one the
+     moment somebody types in it — see participantsWire. */
+  const d = o.derived ? ` data-pt-dmail="${_ptEsc(p.email)}" data-pt-drole="${_ptEsc(p.role)}" data-pt-dparty="${
+    _ptEsc(p.partyId || '')}" data-pt-dmain="${p.main ? '1' : '0'}"` : '';
+  const mayRemove = ed && !(o.derived && !p.main);
+  return `<div class="pt-row${reach.ok ? '' : ' is-blocked'}" data-pt-row="${_ptEsc(p.id)}"${d}>
     ${cell(ed ? `<input data-pt-f="name" type="text" value="${_ptEsc(p.name)}" placeholder="${
       _ptEsc(i18t('ppl_name'))}" style="${PT_IN}"/>` : `<b>${_ptEsc(p.name)}</b>`)}
     ${cell(ed ? `<input data-pt-f="email" type="email" value="${_ptEsc(p.email)}" placeholder="${
@@ -429,7 +657,7 @@ function participantRowHtml(carrier, p, opts){
     ${cell(ed ? `<select data-pt-f="access" style="${PT_IN}">${participantAccessOptions(p.access)}</select>`
       : _ptEsc(participantAccessLabel(p.access)))}
     ${o.reached ? `<div class="pt-c pt-reached">${_ptEsc(participantReachedWord(carrier, p))}</div>` : ''}
-    <div class="pt-c pt-x">${ed ? `<button type="button" data-pt-remove="${_ptEsc(p.id)}"
+    <div class="pt-c pt-x">${mayRemove ? `<button type="button" data-pt-remove="${_ptEsc(p.id)}"
       title="${_ptEsc(i18t('ppl_remove'))}" aria-label="${_ptEsc(i18t('ppl_remove'))}">&#215;</button>` : ''}</div>
     <div class="pt-says">${_ptEsc(participantFills(p.role))}${
       say ? ` <span class="pt-warn">${_ptEsc(say)}</span>` : ''}</div>
@@ -451,10 +679,15 @@ function participantsPanelHtml(carrier, opts){
      asks (a contract that exists; the drafting screen has nobody who worked
      on it yet). */
   const auto = o.auto ? participantsAuto(carrier) : [];
+  /* THE ADDRESS BOOK'S OTHER ROWS (4 Oct 2026): where the caller asks, the
+     outside people only a mirror still names are drawn too, so this list and
+     every box that reads the book show the same people. */
+  const derived = o.book ? contactsOf(carrier).filter(r => r.derived) : [];
   const rows = list.map(p => participantRowHtml(carrier, p, o)).join('')
+    + derived.map(r => participantRowHtml(carrier, r, Object.assign({}, o, { derived: true }))).join('')
     + auto.map(a => participantAutoRowHtml(carrier, a, o)).join('');
   return `<div class="pt-list${o.reached ? ' has-reached' : ''}">
-    ${(list.length || auto.length) ? head + rows : `<p class="pt-none">${_ptEsc(i18t('ppl_none'))}</p>`}
+    ${(list.length || auto.length || derived.length) ? head + rows : `<p class="pt-none">${_ptEsc(i18t('ppl_none'))}</p>`}
     ${ed ? `<div class="pt-acts"><button type="button" class="ui-btn" data-pt-add="1">${
       (typeof window!=='undefined'&&window.plusLed) ? window.plusLed(_ptEsc(i18t('ppl_add'))) : _ptEsc(i18t('ppl_add'))}</button></div>` : ''}
   </div>`;
@@ -488,6 +721,12 @@ function participantsWire(root, carrier, opts){
     }
     const rm = ev.target.closest && ev.target.closest('[data-pt-remove]');
     if (rm && host.contains(rm)){
+      const el = rm.closest('[data-pt-row]');
+      if (el && !el.getAttribute('data-pt-row') && el.getAttribute('data-pt-dmain') === '1'){
+        /* the record's own contact, never stored: emptying it is the writer's */
+        contactSet(carrier, { main: true, partyId: el.getAttribute('data-pt-dparty') || '', email: '', name: '' });
+        changed(); again(); return;
+      }
       const row = participantsOf(carrier).find(p => p.id === rm.getAttribute('data-pt-remove'));
       participantRemove(carrier, rm.getAttribute('data-pt-remove'));
       if (typeof o.onRemove === 'function' && row) o.onRemove(row);
@@ -498,18 +737,35 @@ function participantsWire(root, carrier, opts){
      rule one screen over: nothing here repaints, so the caret stays where the
      reader put it. A ROLE IS THE ONE EXCEPTION — the sentence under the row
      says what that role fills in, so it has to be redrawn to stay true. */
+  /* A ROW ONLY A MIRROR NAMED BECOMES A STORED ONE ON ITS FIRST EDIT,
+     through the one writer, and keeps its place on the screen. */
+  const idOf = row => {
+    const id = row.getAttribute('data-pt-row');
+    if (id || !row.hasAttribute('data-pt-dmail')) return id;
+    const made = contactSet(carrier, { main: row.getAttribute('data-pt-dmain') === '1',
+      role: row.getAttribute('data-pt-drole') || '', partyId: row.getAttribute('data-pt-dparty') || '',
+      email: row.getAttribute('data-pt-dmail') || '',
+      was: row.getAttribute('data-pt-dmail') || '' });
+    if (!made) return '';
+    row.setAttribute('data-pt-row', made.id);
+    ['data-pt-dmail', 'data-pt-drole', 'data-pt-dparty', 'data-pt-dmain'].forEach(a => row.removeAttribute(a));
+    const x = row.querySelector('[data-pt-remove]'); if (x) x.setAttribute('data-pt-remove', made.id);
+    return made.id;
+  };
   host.addEventListener('input', ev => {
     const f = ev.target.getAttribute && ev.target.getAttribute('data-pt-f');
     if (!f || f === 'role' || f === 'access') return;
     const row = ev.target.closest('[data-pt-row]'); if (!row) return;
-    participantSet(carrier, row.getAttribute('data-pt-row'), { [f]: ev.target.value });
+    const id = idOf(row); if (!id) return;
+    participantSet(carrier, id, { [f]: ev.target.value });
     changed();
   });
   host.addEventListener('change', ev => {
     const f = ev.target.getAttribute && ev.target.getAttribute('data-pt-f');
     if (f !== 'role' && f !== 'access') return;
     const row = ev.target.closest('[data-pt-row]'); if (!row) return;
-    participantSet(carrier, row.getAttribute('data-pt-row'), { [f]: ev.target.value });
+    const id = idOf(row); if (!id) return;
+    participantSet(carrier, id, { [f]: ev.target.value });
     changed(); if (f === 'role') again();
   });
 }
@@ -568,4 +824,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   participantReach, participantReached, participantSignerRows, participantSendRows,
   participantsHold, participantsHeld, participantsDrop, participantsClaim,
   contractAddressBook, addressWhereWords, ADDR_SOURCES, ADDR_WHERE_KEY,
+  CONTACT_ROLE_OF_PURPOSE, CONTACT_MAIN_ROLE, contactsOf, contactMain, contactEmail, contactSet,
+  contactFollow, contactMirror, contactUnmirror, contactAdopt, contactChoices, contactPartyOf,
+  contactRoleOfPurpose,
 });

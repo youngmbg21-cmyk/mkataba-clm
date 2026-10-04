@@ -813,7 +813,11 @@ function createAmendment(parent, opts={}){
        document starts when it starts. The obligations, because they belong to
        the document that created them. And who signs, because a signature is
        given to one arrangement and last year's signatory may have left. */
-    value: 0, valueType: parent.valueType || 'estimated',
+    /* EMPTY, NOT NOUGHT (the process review, 4 Oct 2026): a 0 read as "this
+       amendment is worth nothing" and the readiness check took it as answered.
+       Absent is the honest answer, so signing asks for it. A non-monetary
+       family stays 0, which is what isMonetary reads for 'none'. */
+    value: (parent.valueType === 'none') ? 0 : null, valueType: parent.valueType || 'estimated',
     status: 'Draft', template: null, source: 'amendment',
     lastAction: (typeof todayStr==='function'?todayStr():''), hash: null, signedAt: null,
     signatory: who, compliance: {},
@@ -825,7 +829,15 @@ function createAmendment(parent, opts={}){
         + (opts.expiry?` — states a term to ${opts.expiry}`:'')
         + (opts.skeleton===false?' — blank page':'') }],
   };
-  if(parent.counterpartyEmail) c.counterpartyEmail = parent.counterpartyEmail;
+  /* The other side's main contact comes with it, through the address book's
+     one writer (js/participants.js), read off the parent's book. */
+  const cpMail = (typeof window.contactEmail==='function') ? window.contactEmail(parent) : String(parent.counterpartyEmail||'');
+  if(cpMail){
+    if(typeof window.contactSet==='function'){
+      const m = window.contactMain ? window.contactMain(parent) : null;
+      window.contactSet(c, { main:true, email:cpMail, ...(m && m.name ? { name:m.name } : {}) });
+    } else c.counterpartyEmail = cpMail;
+  }
   c.redlineText = (opts.skeleton===false)
     ? FAMILY_BLANK_BODY
     : amendmentSkeletonBody(parent, { relation:rel, ordinal:ord, says:opts.says });
@@ -847,6 +859,13 @@ function createAmendment(parent, opts={}){
   state.contracts.unshift(c);
   persist(c);
   const p=getContract(parent.id); if(p) persist(p);
+  /* ---- AND COPILOT READS IT ON ARRIVAL, like every other creation site
+     (the process review, 4 Oct 2026) ----
+     contractArrived claims who was named, puts the address in the book and
+     starts the reading. It does NOT register roomOpenOnTerms — this one still
+     lands on its Document tab (see the note above), which is the owner's
+     ruled exemption. Saved first, then read: the reading flushes the save. */
+  if(window.contractArrived) contractArrived(c);
   return { contract:c };
 }
 

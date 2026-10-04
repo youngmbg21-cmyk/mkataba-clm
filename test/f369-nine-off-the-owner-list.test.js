@@ -143,7 +143,9 @@ describe('f369 (3) "Who else" fills itself with who edited and approved', () => 
     assert.ok(/data-pt-auto-remove="u-2"/.test(html), 'and can be taken off');
   });
   test('the Overview asks for them', () => {
-    assert.ok(/participantsPanelHtml\(c,\{\s*editable:ed, reached:true, auto:true \}\)/.test(CONTRACT));
+    /* `book:true` (4 Oct 2026, f479): the Overview also draws the address
+       book's rows only a mirror still names. */
+    assert.ok(/participantsPanelHtml\(c,\{\s*editable:ed, reached:true, auto:true(, book:true)? \}\)/.test(CONTRACT));
   });
 });
 

@@ -10884,17 +10884,17 @@
       <div class="nav-section open" data-section="library">
         <div class="nav-section-head static" data-i18n="nav_grp_library">Library</div>
         <div class="nav-section-body">
-          <button data-view="templates" class="nav-item" title="Templates — the paper you draft from: company standards, counterparty paper and HaTi's own" data-i18n-title="nav_templates_title">
+          <!-- ONE DOOR, ONE PAGE (the process review, 4 Oct 2026): the paper
+               and its rulebook are one page — "Our paper", the product's own word
+               for what we draft from ("Templates & standards" wrapped on the
+               rail, and a door's words never wrap) — with
+               the Book, the Templates list and Our standards as its tabs. The
+               second door ("Our standards") went; its view id still opens the
+               Our standards tab, so every link to it still lands. -->
+          <button data-view="templates" class="nav-item" title="Our paper — templates and standards: the paper you draft from, and the clause library and playbook every review checks it against" data-i18n-title="nav_tpl_std_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-tpl"/></svg>
-            <span style="flex:1;" data-i18n="nav_templates">Templates</span><span class="nav-count" data-count="templates"></span>
-          </button>
-          <!-- Our standards moved up here from ADMINISTRATION on 20 Sep 2026: it
-               is the paper's own rulebook and sits beside the paper. Same door. -->
-          <button data-view="playbook" class="nav-item" title="Our standards — the clause library and negotiation playbook every review checks against" data-i18n-title="nav_our_standards_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shield"/></svg>
-            <span style="flex:1;" data-i18n="nav_our_standards">Our standards</span>
+            <span style="flex:1;" data-i18n="nav_tpl_std">Our paper</span><span class="nav-count" data-count="templates"></span>
           </button>
           <!-- THE INTAKE FRONT DOOR (W2-2), MOVED UNDER TEMPLATES (owner-asked
                19 Aug 2026, off a screenshot with the row ringed: "move requests
@@ -10947,25 +10947,11 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg>
             <span style="flex:1;" data-i18n="nav_advice_desk">Advice Desk</span><span class="nav-count" data-count="advice"></span>
           </button>
-          <!-- Bulk import has a door again, and it is in here rather than in
-               the everyday five. It was retired to the "+ New contract" menu on
-               the reasoning that the three ways a contract gets in belong
-               together — true of DRAFTING one and UPLOADING one, both a single
-               act that ends with a contract on screen a moment later.
-               Importing a back-catalogue is not that: it is a job of work with
-               a queue, a review pass and a Copilot budget, and you come back to
-               it across days. A menu called "+ New contract" is where you go to
-               START one, not where you go to RESUME one — which is the whole
-               case for a door. ADMINISTRATION is the right shelf for it: the
-               fold is for what is reached rarely and by choice, and a
-               back-catalogue import is a setup job, not a daily destination.
-               The menu entry stays; the two doors reach the same page. -->
-          <button data-view="migration" class="nav-item" title="Import contracts — bring a whole back-catalogue in at once, with Copilot extraction and a human review pass" data-i18n-title="nav_import_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-import"/></svg>
-            <span style="flex:1;" data-i18n="nav_import">Import contracts</span><span class="nav-count" data-count="migration"
-              title="Imported contracts still waiting on a human review pass" data-i18n-title="nav_import_count_title"></span>
-          </button>
+          <!-- NO IMPORT DOOR ON THE RAIL (the process review, 4 Oct 2026):
+               importing a portfolio is reached from the upload door
+               ("Upload several (import a portfolio)"), which is where a
+               contract comes in. The page, its route and every other link to
+               it are unchanged; only the second door went. -->
           <button data-view="team" class="nav-item" title="Team" data-i18n-title="nav_team_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cog"/></svg>

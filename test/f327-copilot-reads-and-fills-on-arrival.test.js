@@ -279,6 +279,10 @@ describe('f327 (4) the reading runs at creation, at every door', () => {
     'js/views/templatelib.js': 'a published company standard',
     'js/templatefields.js': 'the bulk template maker',
     'js/views/migration.js': 'the back-catalogue importer',
+    /* THE LAST TWO JOINED 4 Oct 2026 (f480): the upload, behind its tick-box,
+       and the amendment, which still lands on its Document tab. */
+    'js/views/contract.js': 'the upload',
+    'js/family.js': 'an amendment written against its parent',
   };
   for (const [file, what] of Object.entries(DOORS)) {
     test(`${what} reads on arrival`, () => {
@@ -303,15 +307,15 @@ describe('f327 (4) the reading runs at creation, at every door', () => {
     const b = fnBody(TRI, 'contractArrived');
     assert.match(b, /o\.bulk/, 'and the door itself is what refuses them');
   });
-  test('the upload door is exempt, and says why on the spot', () => {
-    /* NO BOX MEANS NO READING is the owner's 9 Sep ruling and still governs
-       that one door. It presses the same launcher, conditionally. */
-    assert.ok(!/contractArrived/.test(strip(fnBody(CONTRACT, 'submitUpload') || '')),
-      'submitUpload does not call the unconditional door');
-    assert.match(CONTRACT, /THE ONE CREATION SITE THAT DOES NOT CALL contractArrived/,
-      'and the exemption is written where somebody would look for it');
-    assert.match(strip(fnBody(CONTRACT, 'submitUpload') || ''), /if\(wantTriage\) triageAndPaint\(c\)/,
-      'it presses the same launcher behind the tick-box');
+  test('the upload arrives through the one door, and its tick-box still governs the reading', () => {
+    /* REVERSED DELIBERATELY 4 Oct 2026 (the process review, f480): the upload
+       was the one creation site that did not call contractArrived, so it
+       claimed nobody named and put no address in the book. It does now — and
+       NO BOX MEANS NO READING (the owner's 9 Sep ruling) rides in as `read`. */
+    assert.match(strip(fnBody(CONTRACT, 'submitUpload') || ''), /contractArrived\(c,\{ read:wantTriage \}\)/,
+      'submitUpload arrives through the door with the box\'s answer');
+    assert.match(fnBody(TRI, 'contractArrived'), /o\.read === false/,
+      'and the door reads nothing where the box was left unticked');
   });
   test('the send door still reads, so nothing that skipped creation is missed', () => {
     const b = fnBody(read('js/core.js'), 'contractLeavesDrafting');

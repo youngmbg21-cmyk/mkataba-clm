@@ -67,9 +67,10 @@ const SHELL_ICONS = [
   ['[data-view="intake"]',       'i-req'],
   ['[data-view="directory"]',    'i-people'],
   ['[data-view="team"]',         'i-cog'],
-  ['[data-view="playbook"]',     'i-shield'],
+  /* [data-view="playbook"] and [data-view="migration"] left the rail on
+     4 Oct 2026 (the process review, f481): Our standards is a tab of
+     Templates & standards, and importing is reached from the upload door. */
   ['[data-view="advice"]',       'i-chat'],
-  ['[data-view="migration"]',    'i-import'],
   ['#side-copilot',              'i-spark'],
 ];
 

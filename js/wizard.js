@@ -468,7 +468,9 @@ function createFromWizard(tid, vars, opts){
     numbering:'live' };
   // the blanks ARE the database: every value lands on the contract AND in
   // c.metadata, with no separate data-entry step
-  if(cpEmail) c.counterpartyEmail=cpEmail;
+  /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK through its one writer
+     (js/participants.js), which keeps the record's copy in step. */
+  if(cpEmail){ if(window.contactSet) contactSet(c,{ main:true, email:cpEmail }); else c.counterpartyEmail=cpEmail; }
   applyTemplateValues(c, vars, values);
   if(t.valueType==='none'){ c.value=0; c.valueType='none'; }
   c._loaded=true; c._light=false; c._v=0;

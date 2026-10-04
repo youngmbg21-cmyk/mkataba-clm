@@ -189,6 +189,17 @@ describe('f170 · no creation route was missed', () => {
       'the exception is written down where the code is, not only here');
   });
 
+  /* 4 Oct 2026 (the process review, f480): the amendment and the upload now
+     arrive through contractArrived like the other creation sites — the count
+     of doors that ARRIVE is now nine, the count that lands on Key terms is
+     unchanged. Arriving is not landing: the amendment still opens on its
+     document, the owner's ruled exemption. */
+  test('the amendment arrives through contractArrived and still does not land on Key terms', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'js/family.js'), 'utf8');
+    assert.match(src, /contractArrived\(c\)/, 'Copilot reads it on arrival');
+    assert.ok(!/roomOpenOnTerms\s*\(/.test(src), 'and it still lands on the document');
+  });
+
   test('and an amendment therefore lands on the document', () => {
     const w = buildWorld({ user: ME, contractView: true, negotiationView: true });
     w.win.state = { settings: {}, contracts: [], activeId: null, view: 'workspace' };
