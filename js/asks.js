@@ -318,7 +318,12 @@ function _akReconcileRule(list, c){
       continue;
     }
     if (last && fits.includes(last.state)){
-      if (s.at && _akStr(last.answeredAt) !== _akStr(s.at)) Object.assign(last, fromStep(want));
+      /* The step's own time and words are the answer's; the list keeps the
+         id it recorded for the same person — the step only ever had a name. */
+      if (s.at && _akStr(last.answeredAt) !== _akStr(s.at)){
+        const keep = last.answeredBy && _akStr(last.answeredBy.name) === _akStr(s.by) ? last.answeredBy : null;
+        Object.assign(last, fromStep(want), keep ? { answeredBy: keep } : {});
+      }
       continue;
     }
     if (last && last.state === 'yes') last.state = 'lapsed';
