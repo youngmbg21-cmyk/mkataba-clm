@@ -151,7 +151,12 @@ import './mobile-portal.js';
    as it had none of its own; it has one now (12 Aug 2026), so it lights itself
    — and a view with its own nav item must never appear in this table, or the
    sidebar points at a door the reader is not standing behind. */
-const NAV_HOME_FOR={ folder:'register', workspace:'register' };
+/* `advice` IS in here (the process review, gap F, 4 Oct 2026): the Advice
+   desk lost its own door and is the Advice tab of Requests, so the view
+   lights the door it now lives behind. setView names the VIEW to this
+   function after the page has painted, so a renderer naming the door is not
+   enough on its own — the table is what keeps the light on. */
+const NAV_HOME_FOR={ folder:'register', workspace:'register', advice:'intake' };
 function setActiveNav(view){
   const navFor = NAV_HOME_FOR[view] || view;
   document.querySelectorAll('.nav-item').forEach(b=>{
@@ -201,7 +206,9 @@ function commandMeta(view){
        so its head carries the page's name, not the tab's. */
     case 'playbook':  return [i18t('nav_tpl_std'), i18t('pg_standards_sub')];
     case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
-    case 'advice':    return [i18t('nav_advice_desk'), i18t('pg_advice_sub')];
+    /* ONE PAGE (gap F, 4 Oct 2026): the Advice desk is the Advice tab of
+       Requests, so its head carries the page's name, not the tab's. */
+    case 'advice':    return [i18t('nav_intake'), i18t('pg_advice_sub')];
     case 'obligations': return [i18t('nav_obligations'), ''];
     case 'approvals': return [i18t('nav_approvals'), ''];
     case 'brain':     return [i18t('nav_brain'), ''];
@@ -287,7 +294,9 @@ const PAGE_ACTIONS = {
 /* WHICH PAGES PAINT THEIR OWN HEAD SLOTS, and the painter each one answers
    to, by name — asked through window, because not every page's module is on
    every stage. */
-const PAGE_HEAD_PAINT = { obligations:'obwPaintHead', intake:'ikPaintHead', playbook:'pbPaintHead', agents:'agPaintHead' };
+/* `advice` paints an empty line whose room is held (adviceHeadPaint), so
+   the Requests page's tab row sits at one height on both its tabs (gap F). */
+const PAGE_HEAD_PAINT = { obligations:'obwPaintHead', intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -719,8 +728,11 @@ function updateSidebarCounts(){
   const counts={
     register: total,
     pipeline: nc.pipeline,
-    advice: (state.advice||[]).filter(r=>ADVICE_ACTIVE.includes(r.status)).length,
-    intake: (typeof intakeCount==='function')?intakeCount():0,
+    /* ONE DOOR FOR BOTH KINDS OF REQUEST (gap F, 4 Oct 2026): the Advice
+       desk's door is gone and its open requests ride on this one, added to
+       the contract requests — the same total the two doors showed, and the
+       sum of the two tabs the door opens (requestsDoorCount). */
+    intake: (typeof requestsDoorCount==='function')?requestsDoorCount():((typeof intakeCount==='function')?intakeCount():0),
     /* WHAT IS LATE, across the book — the same reading the worklist's own head
        prints, so the door and the page it opens cannot disagree. */
     obligations: (typeof obligationsDoorCount==='function')?obligationsDoorCount():0,
@@ -749,13 +761,16 @@ function updateSidebarCounts(){
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
-  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
+  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     el.textContent=(v==null||v==='')?'':Number(v).toLocaleString(jxLocale());
     const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
     if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
+  /* …and the Requests page's two tabs, on the same beat, off the same
+     reading, so the door and the tabs it opens cannot disagree. */
+  try{ if(typeof rqPaintKindCounts==='function') rqPaintKindCounts(); }catch(_){}
   /* The bell's badge is refreshed on the same beat as the sidebar counts, and
      for the same reason: this runs on every view change and every save, which
      is exactly when the number can have moved. Nothing marks an alert as seen,
