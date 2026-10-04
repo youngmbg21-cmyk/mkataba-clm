@@ -204,7 +204,7 @@ function openWizard(preTid, prefill){
       ];
       const esc2=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
       const rowCard=r=>`<button data-wz-${r.pick}="${esc2(r.id)}" style="text-align:left;border:${r.std?'1.5px solid var(--color-accent)':'1px solid var(--color-divider)'};background:${r.std?'var(--color-accent-100)':'var(--color-surface)'};border-radius:var(--radius);padding:var(--s-3);cursor:pointer;">
-        <span style="display:flex;align-items:center;gap:var(--s-2);"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:var(--radius);background:${r.std?'var(--color-accent)':'var(--color-accent-100)'};color:${r.std?'#fff':'var(--color-accent)'};flex:none;">${icon(r.ic,'w-3.5 h-3.5')}</span>
+        <span style="display:flex;align-items:center;gap:var(--s-2);"><span style="width:28px;height:28px;display:grid;place-items:center;border-radius:var(--radius);background:${r.std?'var(--color-accent)':'var(--color-accent-100)'};color:${r.std?'#fff':'var(--accent-ink)'};flex:none;">${icon(r.ic,'w-3.5 h-3.5')}</span>
         <span style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);">${esc2(r.name)}</span></span>
         <span style="display:block;margin-top:5px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4;">${esc2(r.sub)}</span></button>`;
       /* Grouped once, and the ORDER is visibleFolders' — the same order every

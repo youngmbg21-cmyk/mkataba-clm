@@ -25866,3 +25866,208 @@ The list, as built:
 15. **Where we are started on the edge**: `.ds-sheet` said `padding:var(--s-4) var(--s-5) …` and `--s-5` never existed, so the WHOLE padding was dropped and our Where we are's words sat on the border. Fixed to `--s-4` (the Overview's own 16px); their pane's heading, journey and cards now start on the same line (`--pw-inset`). f457 (1) sweeps every `var(--s-N)` against `:root`.
 
 Tests: f457 (new), f448 (7), f96, f292, f248, f303, f449; owners-fifteen-verify (new, 33 checks), where-we-are-verify 10–12. Already red at main and left alone: nego-redesign-verify 1, notes-two-rooms-verify (2 checks), f293.
+
+---
+
+## THE OWNER'S ELEVEN (4 Oct 2026)
+
+Eleven things, written down over four messages on 3 and 4 October and held as a
+list until he said *"Add this last one to the list then go ahead and build."*
+Each is small. What they have in common is that every one of them is something
+a reader sees, every day, that nobody had ever measured.
+
+### 1 · The five new features on the Brain
+
+Asked as a question first — *"Do not code but can these new features be mapped
+by the brain tab?"* — and the honest answer was: not until somebody names them.
+`BRAIN_PARTS` is hand-written on purpose (the catalogue is a person's story;
+only whether each part is still in the code is read), so a feature nobody adds
+draws as a grey pending dot and the flows walk past it.
+
+Six parts added — `suggest` (deskStampOnFile), `here` (presenceHere), `follow`
+(presenceWalk), `baton` (clauseLockAsk), `guestcode` (shareNeedsCode) and
+`stands` (dealStands) — measured as FOUND at js/desk.js:1486, js/presence.js:87,
+js/presence.js:237, js/clauselock.js:192, server/server.js:13854 and
+js/dealstands.js:111; the reading goes from 52 parts to 58, all found, no flow
+gaps.
+
+They joined STEPS THAT ALREADY EXIST rather than taking steps of their own. A
+step inserted in the middle of a flow renumbers `brn_step_<flow>_<n>` in both
+books, and these are not new stages of the story: they are who else is on the
+page while you do it, and who may rule on what you file. Five sentences were
+widened instead (redline 1, 2 and 4; round 1 and 7), in both books.
+
+Two `BRAIN_FILE_REGION` lines went with them, because `brainRegionOfFile`
+defaults everything outside `js/views/` to the wall: js/presence.js is the
+negotiation's, and js/dealstands.js is a reading, not a route — the one thing
+the wall is for.
+
+### 2 · Waiting on you is off Home — reversing the same morning's ruling
+
+Built that morning as **One list, one place**, which Young had picked by name
+from three options and then confirmed in writing. By the evening, having used
+it: *"Remove waiting on you from the home page permanently. It is not needed."*
+
+The card is **Prepared by Copilot** again. `hbNeedsData`, `HB_NEED_IC`,
+`HB_NEED_MAX`, the `[data-hb-need]` door and `hb_work_title` are deleted rather
+than left behind: a reading nothing draws is a thing somebody maintains for no
+reader, and a published name nothing builds is a `window.foo` that answers
+undefined (f232's own fault class).
+
+NOTHING WAS LOST, and that is the half worth recording. Every prompt that card
+drew is still drawn in the three places it was drawn before: the checklist in
+the side panel beside each contract, the bell, and the phone's own Home. All
+three read `hmDecisionItems`, untouched. f450 was rewritten to assert the
+reversal, keeping its number, and `home-one-list-verify` with it — the stage
+now seeds a book that really does owe this reader two renewals, so "the card
+draws none" cannot pass on an empty desk.
+
+### 3 · The Export button off the Document page
+
+A second door onto an act that has one. `.ws-export` was a `<details>` whose
+three rows did nothing but `document.getElementById('ws-pdf').click()` — the ⋯
+menu's own buttons, under its own Export heading, where every handler and every
+test already reached them. It went in on 21 Sep as part of a reference frame;
+it comes off now, with its wiring and its stylesheet. Nothing can be exported
+today that could not be exported yesterday.
+
+`export-button-verify` was NOT re-pointed: it presses `#nego-export` on the
+negotiation page, which is a different control and untouched.
+
+### 4 · "Counting · All contracts" off the top of Home
+
+The whole book, described to somebody looking at the whole book — the reader's
+own choice read back to them, which the band rule has never allowed to take
+room on a page. At rest `hbCountChipHtml` now returns the empty string; the
+moment the board IS cut it names the cut, with "Counting" in front of it,
+because a bare chip does not say that the six figures beside it are counting
+only that much, and a narrowed board with no way back is the worse of the two
+faults. The `is-all` chip is retired: it was only ever drawn at rest.
+
+The same rule was applied to the two other places that printed it — Your book's
+own sub-line and the Counted strip above the board (`hb_counted_plain`, new in
+both books). One rule: **the board never reads the default back to you.**
+
+### 5 · The greeting stands alone
+
+*"Just keep the greeting and name."* The day is on every clock the reader owns,
+and what is ready is said by the card that holds it, with its own count, a few
+pixels below. `hbHelloInner` is now one line.
+
+### 6 · The value under contract was cut off
+
+MEASURED on Home at 1500×1000 before the fix: a book of 3.6 billion printed
+`KES 3600M` at scrollWidth 118 in a 105px tile, so the reader saw `KES 360…`.
+The ladder in `fmtMoneyShortIn` stopped at M. One more rung — `n >= 1e9 → B` —
+answers it for every figure on every screen, because this is the one shortener.
+Every rung below it prints exactly what it printed before.
+
+### 7 · The calendar changed height as you moved around it
+
+The month grid and the agenda are one column: the grid took what was left
+(`flex:1 1 auto`, floored at 440px) and the agenda took whatever its rows
+needed (`flex:none`). So the one control on that card a reader presses four
+times a sitting resized the month above it. MEASURED at 1500×1000 on a book
+with fourteen dates spread over ninety days:
+
+| window | agenda rows | month card | a day box | page |
+|---|---|---|---|---|
+| 14 | 4 | 480.64px | 74.03px | fits |
+| 60 | 9 | 440.00px (its floor) | 67.27px | overflows by 197px |
+| 90 | 14 | 440.00px | 67.27px | overflows by 455px — the panel reached 814.31px |
+
+The panel now declares one height (`--cal-panel-h` 300px, `flex:0 1` so a short
+screen squeezes it before the month gives up its floor) and the agenda scrolls
+inside it, which `.cal-upn-list` was already built to do. After: 479.02px and
+69.94px on every window, both steppers, and out of Horizon and back.
+
+### 8 · Rounded corners on the date boxes
+
+They were cells, not tiles: a 1px gap over a grey backing drew the ruled grid,
+so a radius on a cell would have left four grey wedges in every corner. Both
+halves went together — the backing off, the gap real, and each day takes the
+ladder card's own clothes (surface, one divider edge, `--radius-lg`, the radius
+CLAUDE.md names for a card). The day-name band above took the same column gap
+and side padding, or its seven labels no longer stand over their seven columns;
+measured at 0, 0, 0 px of drift across the first, fourth and seventh.
+
+### 9 · White patches in dark mode
+
+ONE CAUSE, not a list. `html.dark` redefines the surface, the ink and the whole
+neutral ramp, and deliberately does not redefine the accent ramp — which was
+right for the rungs that carry TEXT and had already been answered by
+`--accent-ink` on 23 Aug. It was never answered for the two rungs that carry a
+SURFACE. MEASURED at unmodified main, in dark, in both brands:
+
+| brand | accent-50 | accent-100 | body |
+|---|---|---|---|
+| teal | rgb(240,247,245) L=0.962 | rgb(225,240,237) L=0.928 | L=0.07 |
+| navy | rgb(238,243,251) L=0.951 | rgb(220,229,247) L=0.896 | L=0.07 |
+
+Those two rungs are this product's "this one is selected" wash: our own party
+chip on the page every party reads, the selected row in the Deal board, the lit
+filter chip over it, a hovered template row, the Exposure grid's lightest
+square. One answer fixes all of them; twenty hand-written overrides would have
+fixed none of the next ones.
+
+THE ANSWER IS THE ONE THIS PRODUCT ALREADY GAVE: the compiled utilities
+`bg-brand-50` and `bg-brand-100` have had a dark answer since the Tailwind
+sweep — a translucent accent-500 wash at .08 and .16 — so a hand-written rule
+and a utility class now paint one colour at night instead of one of them
+staying white. Written in channels, so it follows whichever brand is on.
+
+`:root.dark` RATHER THAN `html.dark`, and placed after the brand blocks:
+`:root[data-brand="navy"]` is (0,2,0) and `html.dark` is (0,1,1), so the navy
+reader would have kept the patch. `:root.dark` matches that weight and wins on
+order, in both brands.
+
+Four inks that sat ON the wash were moved to `--accent-ink` (accent-700 by day,
+accent-400 at night): two in js/views/contract.js, one in js/views/settings.js,
+one in js/wizard.js. Without that, darkening the wash would have put
+accent-800 on a dark ground.
+
+THE MID RUNGS WERE LEFT ALONE. accent-200 and accent-300 read as mint, not as
+white, and they carry borders as often as fills.
+
+THE COLOUR CENSUS WAS NOT RE-RECORDED. `theme-tokens-verify` is 20/40 at
+unmodified main and 20/40 here — already red, left red, the rulebook's own
+rule. Audited as a SET DIFFERENCE first: the entire difference my change makes
+to it is ONE line, `negotiate--dark`, where `rgb(225, 240, 237)` becomes
+`rgba(46, 140, 130, 0.16)`. That is the palette change and nothing else moved.
+`contrast-verify` is 33/33 and f96 is green.
+
+### 10 · The calendar's More button had no outline
+
+The SAME fault the contract room's More button was reported for on 23 Aug 2026
+("the more buttons should have the same color outline like the other buttons"),
+in the one place that fix did not reach. `.ui-btn-plain` declares a transparent
+border, so in a row of outlined buttons this was the one with no edge. The class
+came off and it inherits `.ui-btn` with `.ws-more-btn`'s shared dress: measured
+at rgb(226,231,229) 1px solid 28px tall, identical to Export and Share beside
+it, where it had been rgba(0,0,0,0).
+
+A CHECK THAT READ WIDTH AND STYLE WOULD HAVE PASSED AGAINST IT. The rulebook
+already records "a line is painted only when its style draws one"; this is the
+other half — a transparent colour. The stage asks all three.
+
+### 11 · The x that closes a card, in the card's right corner
+
+Every card head on the board is one flex row, and whether the × landed at the
+right edge or halfway along it depended on whether some earlier child in that
+particular head happened to take the free space. Copilot's card had `.hb-cs`
+(flex:1) and a panel had `.hb-src` (margin-left:auto), so both were right; the
+focus card had neither, so its controls huddled against the title with the
+card's right half empty. MEASURED after: all three at 12px from the head's
+right edge — the head's own padding — and last in the row.
+
+One auto margin (`.hb-ch .hb-x{margin-left:auto}`) makes the corner a RULE
+rather than an arrangement: where something already takes the space it resolves
+to nothing and nothing moves. The focus card also took a `.hb-grow` before its
+controls, so the group sits at the right together instead of the × detaching
+from its siblings.
+
+Tests: f458 (new, 46 checks), f450 (rewritten for the reversal), f447 (the chip
+re-pointed); calendar-holds-still-verify (new, 14 checks, 9 red at main),
+dark-no-white-patches-verify (new, 9 checks, 2 red at main),
+home-one-list-verify (rewritten, 14 checks, 5 red at main). Already red at main
+and left alone: theme-tokens-verify 20/40.

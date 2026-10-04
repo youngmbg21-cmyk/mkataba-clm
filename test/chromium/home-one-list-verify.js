@@ -1,25 +1,22 @@
-/* ONE LIST, ONE PLACE — measured in a real browser.
+/* WAITING ON YOU IS NOT ON HOME — measured in a real browser.
  *
- * Young, 4 Oct 2026: *"Idea 4 but this should be included inside the newly
- * built dashboard"*, then, confirming: *"waiting on you will be in the home
- * page dashboard and will have it as a suggestion prompt."* He picked the
- * option by name — One list, one place.
+ * This stage used to drive the opposite, and keeps its name because it guards
+ * the same ruling, reversed. Young picked **One list, one place** by name on
+ * the morning of 4 Oct 2026; the same day, having looked at it:
+ *
+ *   *"Remove waiting on you from the home page permanently. It is not
+ *   needed."*
  *
  * WHAT THIS DRIVES, where the user looks:
- *   1. Home's card is YOUR WORK, and what is waiting on you is in it;
- *   2. every row is a prompt, not a number — it names what is owed, to whom,
- *      how long it has waited, and carries the act;
- *   3. waiting rows lead, and Copilot's prepared work follows under its own
- *      heading, so the only difference between two rows is who raised them;
- *   4. pressing a row lands where that kind is answered — the checklist's own
- *      door (needsYouGo), never a second one;
- *   5. the sub-line counts both halves, and the card's count survives being
- *      closed and brought back;
- *   6. THE SENTENCES ARE HaTi'S OWN. No AI route is called to draw this card:
- *      the words are worked out from the record, so they are free, instant,
- *      and cannot say something the contract does not.
- *   7. the list stays on the WHOLE BOOK while the board is counting a
- *      question — what is owed by you is not a property of the last question.
+ *   1. Home's card is PREPARED BY COPILOT again, and draws no waiting rows —
+ *      proved on a book that really does have work waiting on this reader, so
+ *      an empty desk cannot pass this by accident;
+ *   2. nothing on the board carries the waiting row's door;
+ *   3. the card still works: Copilot's own rows, closed and brought back with
+ *      a count that is Copilot's alone;
+ *   4. NOTHING WAS LOST — the side panel beside the very contract that raised
+ *      the prompt still lists it, and its button still opens it;
+ *   5. the board still costs no model.
  *
  * Every driven half is guarded, so a missing feature REPORTS rather than
  * times out (the house rule). */
@@ -95,118 +92,103 @@ const CONTRACTS = [
     const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 6);
     ok('0 Home lands on the board', landed);
 
-    /* ===== 1. THE CARD IS YOUR WORK, AND THE WAITING IS IN IT ===== */
+    /* ===== 1. THE CARD IS COPILOT'S, AND NOTHING IS WAITING ON IT ===== */
     const card = await until(page, () => !!document.getElementById('hm-agents'));
     ok('1a the card is on the board', card);
-    /* COUNTED HERE, before anything on the board is pressed. Opening a
-       contract later starts Copilot reading it on arrival, which is a
-       different feature paying for itself; what this stage is about is that
-       DRAWING THE CARD costs nothing. */
     const aiAtCard = aiCalls.length;
+    /* THE BOOK REALLY DOES OWE THIS READER SOMETHING. Two renewals are due on
+       it (one urgent), so a card drawing nothing is the ruling and not an
+       empty desk — which is the only way this check means anything. */
+    const owed = await page.evaluate(() => {
+      try { return (hmDecisionItems(null, []) || []).map(x => ({ kind: x.kind, cid: x.cid })); }
+      catch (_){ return null; }
+    });
+    ok('1b the reading still finds work waiting on this reader',
+      !!owed && owed.filter(x => x.kind === 'renewal').length >= 2, JSON.stringify(owed));
     const A = await page.evaluate(() => {
       const el = document.getElementById('hm-agents');
-      /* THE BOARD'S OWN READING, asked exactly as the card asks it —
-         hmDecisionItems called straight would subtract the renewals a desk
-         card would have shown, and no desk is drawn here. */
-      const want = (typeof hbNeedsData === 'function') ? (hbNeedsData().rows || []) : null;
-      const rows = [...document.querySelectorAll('#hm-agents .hb-need')];
       return { title: el ? (el.querySelector('.hb-ct') || {}).textContent : null,
         sub: el ? (el.querySelector('.hb-cs') || {}).textContent : null,
-        want: want && want.map(x => ({ kind: x.kind, cid: x.cid, urgent: !!x.urgent })),
-        drawn: rows.map(r => ({ kind: r.getAttribute('data-hb-need'), cid: r.getAttribute('data-hb-cid'),
-          urgent: r.classList.contains('is-crit'),
-          text: (r.querySelector('.hb-ag-t') || {}).textContent || '',
-          meta: (r.querySelector('.hb-ag-s') || {}).textContent || '',
-          tag: (r.querySelector('.hb-chip') || {}).textContent || '',
-          verb: (r.querySelector('.hb-btn') || {}).textContent || '' })) };
+        needs: document.querySelectorAll('#hb-board [data-hb-need]').length,
+        needCls: document.querySelectorAll('#hb-board .hb-need').length,
+        agents: document.querySelectorAll('#hm-agents .hb-ag').length,
+        reading: typeof window.hbNeedsData };
     });
-    ok('1b it is called Your work, not Prepared by Copilot',
-      !!A.title && !/copilot/i.test(A.title), JSON.stringify(A.title));
-    ok('1c the reading found both renewals, neither struck out by a card Home does not draw',
-      !!A.want && A.want.filter(x => x.kind === 'renewal').length === 2
-        && ['MK-W1', 'MK-W2'].every(id => A.want.some(x => x.cid === id)),
-      JSON.stringify(A.want));
-    ok('1d and the card draws exactly what the reading says, in its order',
-      !!A.want && A.drawn.length === Math.min(A.want.length, 6)
-        && A.drawn.every((r, i) => r.kind === A.want[i].kind && r.cid === A.want[i].cid),
-      `${A.drawn.length} drawn of ${A.want ? A.want.length : '?'}`);
+    ok('1c it is called Prepared by Copilot again',
+      !!A.title && /copilot/i.test(A.title), JSON.stringify(A.title));
+    ok('1d not one waiting row is drawn anywhere on the board',
+      A.needs === 0 && A.needCls === 0, `${A.needs} doors, ${A.needCls} rows`);
+    ok('1e and the reading behind them is not published either',
+      A.reading === 'undefined', A.reading);
 
-    /* ===== 2. EVERY ROW IS A PROMPT, NOT A NUMBER ===== */
-    const r0 = A.drawn[0] || {};
-    ok('2a it says what is owed, and names the contract in it',
-      (r0.text || '').trim().length > 0 && /Packaging|Fleet/.test(r0.text || ''), JSON.stringify(r0.text));
-    ok('2b it says who it is with', (r0.meta || '').trim().length > 0, JSON.stringify(r0.meta));
-    ok('2c it says how long, as words rather than a raw date',
-      (r0.tag || '').trim().length > 0 && !/^\d{4}-\d{2}-\d{2}$/.test((r0.tag || '').trim()), JSON.stringify(r0.tag));
-    ok('2d and it carries the act', (r0.verb || '').trim().length > 0, JSON.stringify(r0.verb));
-    const urgent = A.drawn.find(r => r.cid === 'MK-W2');
-    ok('2e the nearer renewal is marked urgent and the further one is not',
-      !!urgent && urgent.urgent === true && A.drawn.some(r => r.cid === 'MK-W1' && r.urgent === false),
-      JSON.stringify(A.drawn.map(r => [r.cid, r.urgent])));
-
-    /* ===== 3. ONE LIST: WAITING LEADS, COPILOT FOLLOWS ===== */
-    const order = await page.evaluate(() => {
-      const el = document.getElementById('hm-agents'); if (!el) return null;
-      const kids = [...el.children];
-      const idx = sel => kids.findIndex(k => k.matches(sel) || k.querySelector(sel));
-      return { need: idx('.hb-need'), agent: idx('.hb-ag:not(.hb-need)'),
-        agents: el.querySelectorAll('.hb-ag:not(.hb-need)').length };
-    });
-    ok('3a waiting on you comes before Copilot\'s prepared work',
-      !!order && order.need >= 0 && (order.agent < 0 || order.need < order.agent), JSON.stringify(order));
-
-    /* ===== 4. THE PRESS IS THE CHECKLIST'S OWN DOOR ===== */
-    const went = await page.evaluate(() => {
-      const seen = [];
-      const real = window.needsYouGo;
-      window.needsYouGo = (k, id) => { seen.push([k, id]); return true; };
-      const b = document.querySelector('#hm-agents .hb-need .hb-btn');
-      if (b) b.click();
-      window.needsYouGo = real;
-      return seen;
-    });
-    ok('4a pressing a row calls needsYouGo with its kind and its contract',
-      went.length === 1 && went[0][0] === (A.drawn[0] || {}).kind && went[0][1] === (A.drawn[0] || {}).cid,
-      JSON.stringify(went));
-    /* AND IT REALLY LANDS. The stub above proves the door is pressed; this
-       proves the door opens — a renewal lands on the contract's Overview. */
-    await page.click('#hm-agents .hb-need .hb-btn').catch(() => {});
-    const landedOn = await until(page, () => state.view === 'workspace', null, 6000);
-    const where = await page.evaluate(() => ({ view: state.view, id: state.activeId,
-      tab: typeof roomCurrentTab === 'function' ? roomCurrentTab() : null }));
-    ok('4b and the contract really opens, on the tab that answers it',
-      landedOn && where.id === (A.drawn[0] || {}).cid && where.tab === 'terms', JSON.stringify(where));
-    await page.evaluate(() => setView('dashboard'));
-    await until(page, () => !!document.getElementById('hm-agents'));
-
-    /* ===== 5. THE SUB-LINE, AND THE CARD CLOSED AND BROUGHT BACK ===== */
-    ok('5a the sub-line counts what is waiting on you',
-      !!A.sub && /\d/.test(A.sub) && A.sub.trim().length > 0, JSON.stringify(A.sub));
+    /* ===== 2. THE CARD STILL DOES ITS OWN JOB ===== */
+    ok('2a Copilot\'s own rows are still drawn', A.agents > 0, String(A.agents));
     await page.click('#hm-agents [data-hb-prep="closed"]').catch(() => {});
     const gone = await until(page, () => !document.getElementById('hm-agents'));
-    const backBtn = await page.evaluate(() => {
+    const back = await page.evaluate(() => {
       const b = document.querySelector('[data-hb-prep="open"]');
-      return b ? b.textContent.replace(/\s+/g, ' ').trim() : null;
+      const n = b && b.querySelector('.hb-pill');
+      let ready = null; try { ready = hbAgentsData(null).ready; } catch (_){}
+      return { label: b ? b.textContent.replace(/\s+/g, ' ').trim() : null,
+        pill: n ? n.textContent.trim() : null, ready: ready == null ? null : String(ready) };
     });
-    ok('5b closing it leaves a way back that still carries the count',
-      gone && !!backBtn && /\d/.test(backBtn), JSON.stringify(backBtn));
+    ok('2b the x closes it and leaves a way back', gone && !!back.label, JSON.stringify(back.label));
+    ok('2c whose count is Copilot\'s work alone',
+      back.pill != null && back.ready != null && back.pill === back.ready, JSON.stringify(back));
     await page.click('[data-hb-prep="open"]').catch(() => {});
-    ok('5c and it comes back', await until(page, () => !!document.getElementById('hm-agents')));
+    ok('2d and it comes back', await until(page, () => !!document.getElementById('hm-agents')));
 
-    /* ===== 6. THE SENTENCES ARE HaTi'S OWN ===== */
-    ok('6a drawing this card called no AI route at all', aiAtCard === 0,
+    /* ===== 3. THE X IS IN THE CARD'S RIGHT CORNER =====
+       EVERY CARD THAT CLOSES, not whichever one happened to be open: a dig-in
+       card (the one that was wrong — its controls huddled against the title
+       with the card's right half empty) and a panel are opened first, or this
+       check measures one card and reports a rule. */
+    await page.evaluate(() => { try { hbDig('f:live'); } catch (_){} });
+    await until(page, () => !!document.querySelector('.hb-dig .hb-x'));
+    await page.evaluate(() => { try { hbAddPanel('obl'); hbPaintBoard(); } catch (_){} });
+    await until(page, () => !!document.querySelector('.hb-panel .hb-x'));
+    const corners = await page.evaluate(() => {
+      const out = [];
+      for (const h of document.querySelectorAll('#hb-board .hb-ch')){
+        const x = h.querySelector('.hb-x'); if (!x) continue;
+        const hb = h.getBoundingClientRect(), xb = x.getBoundingClientRect();
+        const card = h.closest('.hb-card');
+        out.push({ card: card ? (card.id || card.className) : '?',
+          gap: +(hb.right - xb.right).toFixed(1),
+          last: h.lastElementChild === x });
+      }
+      return out;
+    });
+    ok('3a every card that closes puts its x at the right edge, last in the row',
+      corners.length >= 3 && corners.every(c => c.last && c.gap <= 14), JSON.stringify(corners));
+    await page.evaluate(() => { try { hbDig(null); } catch (_){} const s = hbS(); s.path = []; s.panels = []; hbSave(); hbPaintBoard(); });
+    await until(page, () => !document.querySelector('.hb-dig'));
+
+    /* ===== 4. NOTHING WAS LOST: THE CHECKLIST STILL SAYS IT ===== */
+    const cid = (owed.find(x => x.kind === 'renewal') || {}).cid;
+    /* THE CHECKLIST IS BUILT FROM needsYouOf, so the honest question is
+       whether that reading still answers for this contract AND whether the
+       panel's builder still draws what it answers. Both, or neither means
+       anything: a reading nothing draws is the thing this change removed from
+       Home, and a builder reading nothing is an empty panel that passes. */
+    const chk = await page.evaluate(id => {
+      const c = state.contracts.find(x => x.id === id);
+      let says = null, html = '';
+      try { says = (needsYouOf(c) || []).map(r => r.kind); } catch (e) { return { err: e.message }; }
+      try { html = (typeof insNeedsHtml === 'function') ? insNeedsHtml(c) : null; } catch (e) { html = null; }
+      return { says, drew: html == null ? null : (html.match(/data-ins-need="([a-z]+)"/g) || []).length };
+    }, cid);
+    ok('4a the side panel beside that contract still lists what is waiting on you',
+      !!chk.says && chk.says.length > 0 && chk.drew != null && chk.drew >= chk.says.length,
+      JSON.stringify(chk));
+
+    /* ===== 5. AND THE BOARD STILL COSTS NO MODEL ===== */
+    ok('5a drawing the board called no AI route at all', aiAtCard === 0,
       aiCalls.slice(0, aiAtCard).join(', ') || 'none');
+    await page.evaluate(() => setView('dashboard'));
+    await until(page, () => !!document.getElementById('hb-board'));
 
-    /* ===== 7. THE WHOLE BOOK, WHILE THE BOARD COUNTS A QUESTION ===== */
-    await page.fill('#igd-input', 'suppliers only');
-    await page.keyboard.press('Enter');
-    await until(page, () => typeof hbS === 'function' && hbS().lens === 'suppliers', null, 9000);
-    const narrowed = await page.evaluate(() => ({ lens: hbS().lens,
-      rows: document.querySelectorAll('#hm-agents .hb-need').length }));
-    ok('7a a narrowed board does not narrow what is waiting on you',
-      narrowed.rows === A.drawn.length, JSON.stringify(narrowed));
-
-    await page.screenshot({ path: path.join(OUT, '1-your-work.png'), fullPage: false });
+    await page.screenshot({ path: path.join(OUT, '1-prepared-by-copilot.png'), fullPage: false });
     ok('9 no page errors', errs.length === 0, errs.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     ok('the stage ran to the end', false, e && e.message);

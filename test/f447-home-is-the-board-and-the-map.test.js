@@ -333,11 +333,16 @@ describe('F447 (3) — the reader, without a model', () => {
   });
   test('the head\'s chip says what is counted, and its × closes the dig-in', () => {
     const w = both();
-    assert.match(w.hbCountChipHtml(), /hb_lens_all|All contracts/);
+    /* AT REST IT SAYS NOTHING (owner-asked 4 Oct 2026: "Delete counting and
+       all contracts from the top of the home page"). The whole book described
+       to somebody looking at the whole book is the reader's own choice read
+       back to them, and this product has never let that take room on a page.
+       It was `Counting [All contracts]`. */
+    assert.equal(w.hbCountChipHtml(), '', 'the default is never read back');
     w.hbS().path = ['q:contracts with Sendy']; w.hbSave();
     const h = w.hbCountChipHtml();
     assert.match(h, /is-count/); assert.match(h, /Sendy/); assert.match(h, /data-hb-crumb="-1"/);
-    assert.doesNotMatch(h, /is-all/, 'no "All contracts" beside a counted set');
+    assert.doesNotMatch(h, /is-all/, 'and the "All contracts" chip is gone for good');
     w.hbS().lens = 'suppliers';
     assert.match(w.hbCountChipHtml(), /data-hb-lens="all"/, 'the side lens keeps its own chip');
   });
