@@ -1565,8 +1565,14 @@ const REG_ROW_ACTIONS=[
      over a drawing, because reaching it meant opening the contract first —
      and a chooser would put it one press further away again. The words were
      the half that was missing; the rows were not. */
+  /* IT DECLINES NOW (4 Oct 2026, the process review): it only opened the
+     contract, where there was no act to finish it with. regDeclineAsk asks
+     the reason and presses contractDecline, the one act. Drawn only where it
+     can work — never on a signed or closed contract, never for a viewer;
+     contractDecline still refuses in words whatever reaches it. */
   {k:'decline',ic:'ban',       get label(){ return i18t('reg_decline_close'); },
-   get says(){ return i18t('end_decline_says'); }, ruby:true},
+   get says(){ return i18t('end_decline_says'); }, ruby:true,
+   when:c=>c.status!=='Signed'&&c.status!=='Declined'&&(typeof canEdit!=='function'||canEdit())},
   /* the archive shelf (WO-5): reversible filing, editor-and-up — the same
      level as re-filing between streams, and audited the same way */
   {k:'archive', ic:'folder',  get label(){ return i18t('reg_archive'); },
@@ -1612,7 +1618,16 @@ function regEndAct(c, k){
         contractSetHold(c, true, why).then(ok=>{ if(ok) regRepaint(); }); });
     return;
   }
-  openWorkspace(c.id);   /* decline — completed inside the contract, as before */
+  if(k === 'decline'){ regDeclineAsk(c); return; }
+  openWorkspace(c.id);
+}
+/* The reason, asked before anything is written — the hold's own shape. */
+function regDeclineAsk(c){
+  if(!c || !window.contractDecline || !window.promptDialog) return;
+  Promise.resolve(promptDialog({ title:i18t('end_decline_q'), message:i18t('end_decline_says'),
+    label:i18t('end_decline_why'), placeholder:i18t('end_decline_ph'), confirmLabel:i18t('reg_decline_close'), multiline:true }))
+    .then(why=>{ if(why==null) return;
+      contractDecline(c, why).then(ok=>{ if(ok) regRepaint(); }); });
 }
 /* ---- THE ROW'S MENU, AS MARKUP — ONE BUILDER, TWO HOMES (26 Sep 2026) ----
    The full table's ⋯ and the list inspector's panel draw the same rows, so a
@@ -1637,6 +1652,7 @@ function regRunRowAct(act, id){
   else if(act==='archive'||act==='restore'){
     if(window.contractSetArchived) contractSetArchived(c,act==='archive').then(ok=>{ if(ok) regRepaint(); });
   }
+  else if(act==='decline') regDeclineAsk(c);
   /* THE REASON IS COMPULSORY, so the press asks for it before anything is
      written — `contractSetHold` refuses an empty one, and a dialog is the
      only honest way to collect it. Releasing needs none. Both go through the
@@ -1665,7 +1681,7 @@ function regRunRowAct(act, id){
     if(sc2){ sc2.scrollTop=top;
       if(typeof requestAnimationFrame==='function') requestAnimationFrame(()=>{ sc2.scrollTop=top; }); }
   } });
-  else openWorkspace(id); // Export PDF / Decline & close are completed inside the workspace
+  else openWorkspace(id); // Export PDF is completed inside the workspace
 }
 /* ---- WHAT OPENING A ROW MEANS — one answer for the row press, Enter, a
    double-click and the panel's own button ----
@@ -3326,5 +3342,5 @@ Object.assign(window,{regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYe
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,regDeclineAsk,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

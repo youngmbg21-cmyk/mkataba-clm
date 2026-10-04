@@ -3131,6 +3131,17 @@
   .st-fdel{ flex:none; border:0; background:none; cursor:pointer; color:var(--color-neutral-500); display:inline-grid; place-items:center;
     font-size:var(--t-card); line-height:1; padding:0 3px; }
   .st-fdel:hover{ color:var(--st-ruby-dot); }
+  /* THE RULES PAGE (4 Oct 2026): one row per rule — its dot, its name and
+     state, one sentence, the door to where it is set. The st-frow rhythm. */
+  .st-rule-row{ display:flex; align-items:flex-start; gap:9px; padding:9px 2px;
+    border-bottom:1px solid var(--color-divider); font-size:var(--t-meta); }
+  .st-rules > .st-rule-row:last-child{ border-bottom:0; }
+  .st-rule-row > .st-dot{ margin-top:5px; }
+  .st-rule-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .st-rule-name{ font-weight:var(--w-strong); color:var(--color-text); }
+  .st-rule-state{ font-weight:var(--w-body); color:var(--color-neutral-600); }
+  .st-rule-says{ color:var(--color-neutral-600); line-height:1.5; }
+  .st-rule-row > .ui-btn{ flex:none; }
   .st-you{ max-width:620px; }
   /* Below 768 the desktop shell is hidden outright and the phone draws instead
      — its account sheet is where these live there. Said in the stylesheet
@@ -10176,6 +10187,9 @@
   .ap-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);padding:6px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-600);}
   /* .ap-go is the small rung since 26 Sep 2026 (the Compact ladder): a row's
      verb wears .ui-btn-sm in the markup and takes no size of its own here. */
+  /* Approve · Refuse · Open on a row this reader may decide (4 Oct 2026):
+     side by side at the right wall, never wrapping. */
+  .ap-acts{display:inline-flex;gap:var(--s-1);white-space:nowrap;}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════

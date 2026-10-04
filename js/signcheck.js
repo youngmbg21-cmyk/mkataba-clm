@@ -544,6 +544,12 @@ const SIGN_STAGE_OF = {
   record: 'read', risk: 'read',
   approval: 'people', signapproval: 'people', turn: 'people', signers: 'people', spots: 'people',
   cap: 'people', folder: 'people', 'ho-signatory': 'people', 'ho-blanks': 'paper',
+  /* THE KEYS signBlockers REALLY PRODUCES (4 Oct 2026, the process review):
+     the cap and the folder rule arrive as 'signcap' / 'signfolder' and the
+     hold as 'hold', so they fell to the 'paper' default — a signing limit
+     drawn as a fault in the paper. 'cap' and 'folder' above are kept,
+     harmless, for anything older that still names them. */
+  signcap: 'people', signfolder: 'people', hold: 'paper',
   brief: 'sign', 'brief-read': 'sign',
 };
 const signStageOf = kind => SIGN_STAGE_OF[String(kind || '')] || 'paper';
