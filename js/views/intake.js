@@ -710,6 +710,7 @@ function renderIntake(){
            measure — the same one Templates, Reports and the template library
            use — rather than a number picked for this screen. */}
     <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:22px;max-width:894px" data-ins-page="intake" data-ins="0">
+      ${rqKindTabsHtml('contracts')}
       <section style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
         <div style="flex:1;min-width:220px">
           ${''/* The asker's helping sentence moved into the Ask window (Young
@@ -747,6 +748,7 @@ function renderIntake(){
   host.querySelectorAll('[data-ik-pick]').forEach(b=>b.addEventListener('click',()=>intakePick(b.getAttribute('data-ik-pick'))));
   host.querySelectorAll('[data-ik-promise]').forEach(b=>b.addEventListener('click',()=>intakePromiseAsk(b.getAttribute('data-ik-promise'))));
   host.querySelectorAll('[data-ik-track]').forEach(b=>b.addEventListener('click',()=>intakeTrackCopy(b.getAttribute('data-ik-track'))));
+  rqKindTabsWire(host);
   ikAfterRender(may);
 }
 /* What every paint of this page does once its markup is down, in either
@@ -759,6 +761,64 @@ function ikAfterRender(may){
   if(!_intake.loaded) loadIntake().then(()=>{ if(state.view==='intake') renderIntake(); });
   /* The lanes are the server's (runIntakeLanes): nothing runs here. */
   void may;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ADVICE IS A KIND OF REQUEST (the process review, gap F, 4 Oct 2026)
+   ════════════════════════════════════════════════════════════════════════
+   Two queues of one shape had two rail doors: Requests (a colleague asks
+   for a contract) and the Advice Desk (a customer asks for advice, a review
+   or a draft). One door now — Requests — and the kind is the page's first
+   tab row: Contracts · Advice.
+
+   A DOOR MERGE, NOT A DATA MERGE, the shape Our paper took with Our
+   standards (paperTabsHtml, js/views/library.js). The Advice tab IS the
+   Advice desk board, drawn by renderAdviceDesk under its own view id
+   ('advice'): its records, routes, rates, the public portal and the
+   customer's tracking page are exactly what they were; every
+   setView('advice') still lands on it; a refresh comes back to it (the view
+   is what placeSave records, so the tab needs no PLACE_PARTS pair of its
+   own); and the rail lights Requests on it (NAV_HOME_FOR, js/app.js).
+
+   THE NUMBERS. The Requests door carried intakeCount() and the Advice door
+   the open advice requests; requestsDoorCount is the two added, so the
+   reader sees the total they saw on the two doors, and each tab carries its
+   own half — the door is the sum of the tabs it opens. Two different
+   records, so nothing is counted twice. A tab at zero prints no number, as
+   the views row under it does. */
+const RQ_KINDS = ['contracts', 'advice'];
+const RQ_KIND_VIEW = { contracts:'intake', advice:'advice' };
+function rqKindCounts(){
+  const ik = (typeof intakeCount === 'function') ? intakeCount() : 0;
+  const ad = (typeof window !== 'undefined' && typeof window.adviceActiveCount === 'function') ? window.adviceActiveCount() : 0;
+  return { contracts: Number(ik) || 0, advice: Number(ad) || 0 };
+}
+function requestsDoorCount(){ const n = rqKindCounts(); return n.contracts + n.advice; }
+function rqKindTabsHtml(lit){
+  const n = rqKindCounts();
+  const lbl = { contracts: i18t('rq_kind_contracts'), advice: i18t('rq_kind_advice') };
+  return `<div class="st-tabs rq-kinds" role="tablist" aria-label="${esc(i18t('rq_kinds_label'))}" style="flex:none">${RQ_KINDS.map(k=>
+    `<button type="button" class="st-tab${k===lit?' on':''}" data-rq-kind="${k}" role="tab" aria-selected="${k===lit?'true':'false'}">${esc(lbl[k])}<span class="st-tab-n" data-rq-n="${k}"${n[k]?'':' hidden'}>${n[k]}</span></button>`).join('')}</div>`;
+}
+/* The numbers move on a load or a save with no repaint of the page (the
+   advice list lands after the first paint; the intake beat re-reads the
+   queue) — so updateSidebarCounts, which writes the door, writes the tabs on
+   the same beat, from the same reading. */
+function rqPaintKindCounts(){
+  if(typeof document === 'undefined') return;
+  const els = document.querySelectorAll('[data-rq-n]'); if(!els.length) return;
+  const n = rqKindCounts();
+  els.forEach(el=>{ const v = n[el.getAttribute('data-rq-n')] || 0; el.textContent = String(v); el.hidden = !v; });
+}
+/* A press on the other kind is a page change (the two are two views); a
+   press on the lit one does nothing. */
+function rqKindTabsWire(root){
+  const host = root || (typeof document !== 'undefined' ? document : null); if(!host) return;
+  host.querySelectorAll('[data-rq-kind]').forEach(b=>b.addEventListener('click',()=>{
+    const v = RQ_KIND_VIEW[b.getAttribute('data-rq-kind')];
+    if(!v || (typeof state !== 'undefined' && state.view === v)) return;
+    if(typeof setView === 'function') setView(v);
+  }));
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -1104,6 +1164,7 @@ function renderIntakeInspector(host){
   const table=`<table class="ins-lt ik-lt"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
     cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
   host.innerHTML=`<div class="view-enter ins-page ik-ins" data-ins-page="intake" data-ins="1">
+    ${rqKindTabsHtml('contracts')}
     ${views}
     <div class="ins-body">
       <section class="ins-card" aria-label="${esc(i18t('nav_intake'))}">
@@ -1119,6 +1180,7 @@ function renderIntakeInspector(host){
   host.querySelectorAll('[data-ik-view]').forEach(b=>b.addEventListener('click',()=>{ f.view=b.getAttribute('data-ik-view'); again(); }));
   host.querySelectorAll('[data-ik-f]').forEach(s=>s.addEventListener('change',()=>{ f[s.getAttribute('data-ik-f')]=s.value; again(); }));
   host.querySelectorAll('[data-ik-clear]').forEach(b=>b.addEventListener('click',()=>{ IK_CHIPS.forEach(k=>{ f[k]=IK_DEF[k]; }); again(); }));
+  rqKindTabsWire(host);
   const seat=asker?'intake:asker':'intake:team';
   const tb=host.querySelector('.ik-lt tbody');
   const idOf=t=>t.getAttribute('data-ik-row');
@@ -1223,4 +1285,5 @@ Object.assign(window,{INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_ST
   ikPaintHead,ikAfterRender,renderIntakeInspector,ikPanelOpts,ikActs,ikStatusSay,ikFilters,
   IK_V_TEAM,IK_V_ASKER,IK_DEF,IK_CHIPS,IK_GROUPS,ikPassView,ikPassChips,ikSort,ikAgeWords,ikTookWords,ikDay,
   openIntakeForm,intakeAnswerLine,openIntakeTracker,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,intakeSuggestTemplate,
+  RQ_KINDS,RQ_KIND_VIEW,rqKindCounts,requestsDoorCount,rqKindTabsHtml,rqPaintKindCounts,rqKindTabsWire,
   _intakeState:_intake});

@@ -72,8 +72,20 @@ function renderAdviceDesk(){
       </div>
     </div>`).join('');
 
+  /* ---- THE ADVICE TAB OF REQUESTS (the process review, gap F, 4 Oct 2026) ----
+     This board has no rail door of its own any more: it is the second tab of
+     the Requests page (rqKindTabsHtml, js/views/intake.js), drawn here under
+     its own view id so every link to it still lands. The board below is
+     exactly what it was; only the frame follows the Requests page, so the
+     tab row sits where it sits on the Contracts tab and a press between the
+     two moves nothing but the page under the row. That page draws at the
+     top of the page area where the inspector fits and below the page's own
+     top padding where it does not — so this frame reads the same width line
+     (insFits) and is repainted when a resize crosses it (INS_PAGE_REPAINT). */
+  const fits=(typeof window.insFits==='function')&&!!insFits();
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)">
+  <div class="view-enter" data-ins-page="advice" data-ins="${fits?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:${fits?'0':'var(--page-pad-t)'} var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)">
+    ${typeof window.rqKindTabsHtml==='function'?rqKindTabsHtml('advice'):''}
     <style>
       .q-card{transition:border-color var(--dur-1) ease,box-shadow var(--dur-1) ease}
       .q-card:hover{border-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
@@ -94,8 +106,28 @@ function renderAdviceDesk(){
     <div class="board-cols board-5" style="flex:1;min-height:0;display:grid;gap:var(--s-3)">${columnsHtml}</div>
   </div>`;
   wireAdviceBoard();
-  setActiveNav('advice');
+  if(typeof window.rqKindTabsWire==='function') rqKindTabsWire(document.getElementById('content'));
+  if(typeof window.insWatchWidth==='function') insWatchWidth();
+  adviceHeadPaint();
+  /* ONE DOOR: the rail lights Requests on this tab (NAV_HOME_FOR maps the
+     view; this names the door outright, as Our standards does). */
+  setActiveNav('intake');
   refreshAdviceBoard();
+}
+/* ---- THE HEAD HOLDS ITS LINE (gap F, 4 Oct 2026) ----
+   Where the inspector fits, the Contracts tab of Requests carries a facts
+   line under the page's name (ikPaintHead). This tab says nothing there —
+   the board's own tiles are its facts, and saying them twice is noise — but
+   the line's ROOM is held, so the tab row under the head does not jump a
+   line when the reader presses between the two tabs. Held only where the
+   Contracts tab draws one: its narrow page draws none, so neither does this.
+   Painted by the header (PAGE_HEAD_PAINT) and again on every board paint,
+   because a resize across the width line repaints the board, not the head. */
+function adviceHeadPaint(){
+  if(typeof document==='undefined') return;
+  const f=document.getElementById('page-head-facts'); if(!f) return;
+  f.textContent='';
+  f.classList.toggle('is-held', (typeof window.insFits==='function') && !!insFits());
 }
 // Pull the latest list from the server (API mode) and repaint once, without
 // looping: only re-render when something actually changed.
@@ -317,4 +349,4 @@ function openAdviceIntakeModal(){
   });
 }
 
-Object.assign(window,{adviceCard,adviceMove,openAdviceIntakeModal,openAdviceModal,openRateCardModal,refreshAdviceBoard,renderAdviceDesk,wireAdviceBoard});
+Object.assign(window,{adviceCard,adviceHeadPaint,adviceMove,openAdviceIntakeModal,openAdviceModal,openRateCardModal,refreshAdviceBoard,renderAdviceDesk,wireAdviceBoard});

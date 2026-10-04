@@ -70,7 +70,8 @@ const SHELL_ICONS = [
   /* [data-view="playbook"] and [data-view="migration"] left the rail on
      4 Oct 2026 (the process review, f481): Our standards is a tab of
      Templates & standards, and importing is reached from the upload door. */
-  ['[data-view="advice"]',       'i-chat'],
+  /* [data-view="advice"] left the rail on 4 Oct 2026 too (the process
+     review, gap F, f495): the Advice desk is the Advice tab of Requests. */
   ['#side-copilot',              'i-spark'],
 ];
 
