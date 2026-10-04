@@ -397,7 +397,8 @@ describe('F448 (8) — Copilot may name the picture; the words HaTi read win', (
     assert.deepEqual(clean({ pic: 'ring', split: 'stream' }), { pic: 'ring', split: { by: 'folder' } });
     assert.equal(clean({ pic: 'pie3d', split: 'galaxy' }), null, 'a word it does not know is dropped');
     assert.equal(clean('bars'), null);
-    assert.match(src, /chart: graphChartClean\(out\.chart\)/, 'the route answers with the cleaned picture');
+    /* on the board the answer is the board's actions instead (work order Part 2) */
+    assert.match(src, /chart: (?:onBoard \? null : )?graphChartClean\(out\.chart\)/, 'the route answers with the cleaned picture');
   });
   test('a list Copilot found is drawn with the picture the question asked for', () => {
     const w = world();

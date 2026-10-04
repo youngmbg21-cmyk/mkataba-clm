@@ -148,8 +148,8 @@ const check = (name, pass, detail) => {
       const s = hbS(); const open = (s.path || []).slice(-1)[0];
       s.panels = [{ id: 'pk1', kind: 'view', key: 'q:contracts by stage', title: 'By stage', recipe: { pic: 'ring', split: { by: 'status' } }, split: false, big: false }];
       hbSave(); hbPaintBoard();
-      const row = document.querySelector('[data-hb-pid="pk1"] [data-hb-rkey]');
-      row.querySelector('[data-hb-rc="split2"]').click();
+      document.querySelector('[data-hb-pid="pk1"] [data-hb-rkey] [data-hb-rmore]').click();
+      document.querySelector('[data-hb-pid="pk1"] [data-hb-rkey] [data-hb-rc="split2"]').click();
       const opt = document.querySelector('[data-hb-pid="pk1"] [data-hb-rset="split2:g:folder"]'); if (opt) opt.click();
       const P = hbPlan(hbDigData('q:contracts by stage', s.lens));
       return { panel: P.split2 && P.split2.by, pic: P.pic, openKept: JSON.stringify((s.recipe || {})[open] || {}).indexOf('split2') < 0 || /stream/.test(open), kept: !!(s.panels[0].recipe && s.panels[0].recipe.split2) };

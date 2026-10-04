@@ -283,7 +283,15 @@ describe('F496 (I) — the dropdown row edits the card it stands on', () => {
     const { D, P } = card(w, { split: { by: 'folder' } });
     const html = w.hbRecipeRowHtml(D, P);
     assert.match(html, /data-hb-rkey="q:contracts by stream"/);
-    ['split2', 'order', 'window', 'compare'].forEach(p => assert.match(html, new RegExp('data-hb-rc="' + p + '"')));
+    /* the newer four wait behind ONE "More" until the card uses them */
+    ['split2', 'order', 'window', 'compare'].forEach(p => assert.doesNotMatch(html, new RegExp('data-hb-rc="' + p + '"')));
+    assert.match(html, /data-hb-rmore aria-expanded="false">More \(4\)</);
+    w.hbRcMoreToggle('q:contracts by stream');
+    const all = w.hbRecipeRowHtml(D, P);
+    ['split2', 'order', 'window', 'compare'].forEach(p => assert.match(all, new RegExp('data-hb-rc="' + p + '"')));
+    w.hbRcMoreToggle('q:contracts by stream');
+    const used = w.hbRecipeRowHtml(D, w.hbPlan(card(w, { split: { by: 'folder' }, top: 3 }).D));
+    assert.match(used, /data-hb-rc="order"/, 'a part the card uses always shows'); assert.match(used, /More \(3\)/);
     const pics = w.hbRcOptions('pic', P, D);
     const heat = pics.find(o => o.v === 'heat'); assert.equal(heat.on, false); assert.match(heat.why, /second split/);
     const P2 = w.hbPlan(card(w, { split: { by: 'date', unit: 'm', date: 'signed' } }).D);

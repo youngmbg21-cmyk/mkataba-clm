@@ -349,9 +349,9 @@ const CONTRACTS = [
        where the owner looks */
     await ask(page, 'Show Juno contracts by month');
     /* ONE RECIPE LANGUAGE (work order Part 1, 4 Oct 2026): the row gained
-       Then by, Order, Period and Compare beside the first four */
+       Then by, Order, Period and Compare, behind one "More" until used */
     ok('15a "by month" draws month columns, each a door, with the recipe\'s dropdowns and the trend switch on the card', await until(page, () =>
-      document.querySelectorAll('#hb-focus .hb-cols [data-hb-dig^="qm:"]').length >= 1 && ['which', 'split', 'split2', 'pic', 'measure', 'order', 'window', 'compare'].every(p => document.querySelector(`#hb-focus .hb-recipe [data-hb-rc="${p}"]`)) && !!document.querySelector('#hb-focus .hb-recipe [data-hb-rtrend]') && /month/i.test(document.querySelector('#hb-focus [data-hb-rc="split"]').textContent)));
+      document.querySelectorAll('#hb-focus .hb-cols [data-hb-dig^="qm:"]').length >= 1 && ['which', 'split', 'pic', 'measure'].every(p => document.querySelector(`#hb-focus .hb-recipe [data-hb-rc="${p}"]`)) && !!document.querySelector('#hb-focus .hb-recipe [data-hb-rmore]') && !!document.querySelector('#hb-focus .hb-recipe [data-hb-rtrend]') && /month/i.test(document.querySelector('#hb-focus [data-hb-rc="split"]').textContent)));
     await page.click('#hb-focus [data-hb-rc="pic"]');
     const menu = await page.evaluate(() => { const m = document.querySelector('#hb-focus .hb-rmenu'); if (!m) return null; const r = m.getBoundingClientRect(); const top = document.elementFromPoint(r.left + 30, r.top + 14);
       return { h: Math.round(r.height), onTop: !!(top && top.closest('.hb-rmenu')), dead: [...m.querySelectorAll('button:disabled')].map(b => b.title).filter(Boolean).length, opts: m.querySelectorAll('button').length }; });

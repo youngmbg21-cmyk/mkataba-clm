@@ -136,11 +136,16 @@ describe('F483 (2) — Copilot presses the board\'s buttons', () => {
   });
   test('target "new" with no set draws a new chart over the whole book', () => {
     const w = world();
-    open(w, 'Juno contracts by stage');
+    const k = open(w, 'Juno contracts by stage');
     w.hbBoardTakes({ chart: { pic: 'cols', split: { by: 'date', unit: 'q', date: 'end' }, target: 'new' }, note: 'Ending by quarter' });
-    const now = planNow(w);
-    assert.equal(now.k, 'ls'); assert.equal(now.D.n, 18);
-    assert.deepEqual(now.P.split, { by: 'date', unit: 'q', date: 'end' });
+    /* SEVERAL AT ONCE (work order Part 2): a new chart is a new CARD on the
+       board, the open one left as it was */
+    assert.equal(planNow(w).k, k, 'the open chart is untouched');
+    const p = w.hbS().panels.slice(-1)[0];
+    assert.ok(p && /^cd:/.test(p.key) && p.title === 'Ending by quarter', JSON.stringify(p));
+    const D = w.hbDigData(p.key, 'all');
+    assert.equal(D.n, 18);
+    assert.deepEqual(JSON.parse(JSON.stringify(w.hbPlan(D).split)), { by: 'date', unit: 'q', date: 'end' });
   });
   test('an answer that names a set is left to the list road; a map answer is the map\'s', () => {
     const w = world();

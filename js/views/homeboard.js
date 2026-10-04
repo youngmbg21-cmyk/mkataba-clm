@@ -100,10 +100,11 @@ function hbS(){
     if (HB_LENSES.includes(v.lens)) s.lens = v.lens;
     if (HB_SCREENS.includes(v.screen)) s.screen = v.screen;
     if (HB_PREP.includes(v.prep)) s.prep = v.prep;
-    if (Array.isArray(v.panels)) s.panels = v.panels.filter(p => p && (HB_KINDS[p.kind] || (p.kind === 'view' && typeof p.key === 'string' && /^q:/.test(p.key))))
+    /* a kept view is a question (q:) or a card Copilot built (cd:, its set in `which`) */
+    if (Array.isArray(v.panels)) s.panels = v.panels.filter(p => p && (HB_KINDS[p.kind] || (p.kind === 'view' && typeof p.key === 'string' && /^(q|cd):/.test(p.key))))
       .slice(-HB_PANELS_MAX).map(p => p.kind === 'view'
-        ? { id: String(p.id || ''), kind: 'view', key: p.key.slice(0, 300), title: String(p.title || '').slice(0, 120), shape: String(p.shape || '').slice(0, 20),
-            recipe: (hbRecipeClean({ k: p.recipe || {} }).k) || null, split: false, big: !!p.big }
+        ? Object.assign({ id: String(p.id || ''), kind: 'view', key: p.key.slice(0, 300), title: String(p.title || '').slice(0, 120), shape: String(p.shape || '').slice(0, 20),
+            recipe: (hbRecipeClean({ k: p.recipe || {} }).k) || null, split: false, big: !!p.big }, /^cd:/.test(p.key) ? { which: hbCardClean({ which: p.which }).which || { all: true } } : {})
         : { id: String(p.id || ''), kind: p.kind, split: !!p.split, big: !!p.big });
     /* THE DAY'S SHELF COMES BACK WHOLE (Young, 4 Oct 2026: "fix the shelf
        refresh fault"): an id is a shape or a shape's ".mine" (hbInsOf reads
@@ -548,6 +549,14 @@ function hbDigData(key, lens){
     const P = hbPanelData('fric', lens); const cl = P.clauses.find(x => x.label === a);
     return { key, kind: 'list', crumb: a, title: a, ids: cl ? cl.ids : [], n: cl ? cl.n : 0, chart: { mode: 'groups', by: 'counterparty' }, fixed: [] };
   }
+  /* A CARD COPILOT BUILT (work order Part 2): a kept card holding its own
+     set (`which`) and recipe; the set is read again on every paint */
+  if (k === 'cd'){
+    const p = (hbS().panels || []).find(x => x.kind === 'view' && x.key === key); if (!p) return null;
+    const W = hbWhichOf(p.which, lens);
+    const t = p.title || W.label;
+    return { key, kind: 'list', crumb: t, title: t, setLabel: W.label, ids: W.ids, n: W.ids.length, whole: W.whole, fixed: W.fields, chart: Object.assign({}, p.recipe || {}) };
+  }
   /* THE QUESTION ITSELF IS THE KEY: the map's reader is run again on every
      paint, so the list is always today's (a refresh keeps the question, never
      a stale list). 'fd:' is the day-old shape of the same door. */
@@ -672,6 +681,10 @@ const HB_RX = {
   board:     /\b(the board|board|dashboard|back to the numbers|tavlan|översikten|tillbaka till siffrorna)\b/i,
   present:   /\b(present|presentation|full ?screen|meeting mode|presentera|helskärm|mötesläge)\b/i,
   save:      /(?:save|keep) (?:this|the|my) board as (.+)|spara (?:den här tavlan|tavlan) som (.+)/i,
+  /* BUILD ME A DASHBOARD (work order Part 2): several cards at once is
+     Copilot's to answer with the board's own buttons — never "back to the
+     board" or one panel */
+  build:     /\b(?:build|make|create|set up|design|put together|give me|bygg|skapa|gör|sätt ihop)\b[^.?!]{0,40}?\b(?:dashboards?|boards?|cards|charts|views|overview|översikt|tavla|instrumentpanel|kort|diagram)\b/i,
   obl:       /overdue|past due|obligation|\bdut(y|ies)\b|\blate\b|promise|förfall|åtagande|\bsena?\b/i,
   fric:      /slow|friction|negotiat|delay|stuck|förhandl|trög|fastnat|friktion/i,
   ren:       /renew|expir|\bending\b|end date|förny|löper ut|slutdatum|upphör/i,
@@ -751,6 +764,7 @@ function hbParse(qRaw){
   if (open){ const v = (hbS().saved || []).find(x => x.name.toLowerCase() === open[1].trim().toLowerCase()); if (v) return { act: 'open', name: v.name }; }
   const named = (hbS().saved || []).find(x => x.name.toLowerCase() === s);
   if (named) return { act: 'open', name: named.name };
+  if (HB_RX.build.test(s)) return null;
   if (HB_RX.map.test(s) && !HB_RX.showThese.test(s) && s.length < 40) return { act: 'face', face: 'explorer' };
   if (HB_RX.board.test(s) && s.length < 40) return { act: 'face', face: 'board' };
   if (HB_RX.present.test(s) && s.length < 40) return { act: 'present' };
@@ -1958,8 +1972,22 @@ function hbRecipeRowHtml(D, P){
   const canTrend = P.pic === 'cols' && P.measure !== 'live' && !P.compare;
   const trend = `<button type="button" class="hb-tg${P.trend ? ' is-on' : ''}" data-hb-rtrend aria-pressed="${!!P.trend}"${canTrend ? '' : ` disabled title="${_hbE(i18t('hb_why_trend'))}"`}><span class="hb-tg-sl" aria-hidden="true"></span>${_hbE(i18t('hb_rc_trend'))}</button>`;
   const order = P.sort || P.top ? [P.sort ? hbOrderWord(P.sort) : '', P.top ? i18t('hb_top_n', { n: P.top }) : ''].filter(Boolean).join(' · ') : i18t('hb_order_default');
-  return `<div class="hb-recipe" role="group" data-hb-rkey="${_hbE(D.key)}" aria-label="${_hbE(i18t('hb_rc_menu'))}">${whichChip}${chip('split', i18t('hb_rc_split'), hbSplitWord(P.split))}${chip('split2', i18t('hb_rc_split2'), P.split2 ? hbSplitWord(P.split2) : i18t('hb_sp_none'))}${chip('pic', i18t('hb_rc_pic'), hbPicWord(P))}${chip('measure', i18t('hb_rc_measure'), i18t('hb_ms_' + P.measure))}${chip('order', i18t('hb_rc_order'), order)}${chip('window', i18t('hb_rc_window'), P.window ? hbWinWord(P.window) : i18t('hb_win_all'))}${chip('compare', i18t('hb_rc_compare'), i18t('hb_cmp_' + (P.compare || 'off')))}${trend}</div>`;
+  /* THE ROW HOLDS WHAT THE CARD USES: the four first parts always; the
+     newer four (then by, order, period, compare) when the card uses them,
+     the rest behind ONE "More" — so a half-width card keeps its chart */
+  const extra = [['split2', !!P.split2, () => chip('split2', i18t('hb_rc_split2'), P.split2 ? hbSplitWord(P.split2) : i18t('hb_sp_none'))],
+    ['order', !!(P.sort || P.top), () => chip('order', i18t('hb_rc_order'), order)],
+    ['window', !!P.window, () => chip('window', i18t('hb_rc_window'), P.window ? hbWinWord(P.window) : i18t('hb_win_all'))],
+    ['compare', !!P.compare, () => chip('compare', i18t('hb_rc_compare'), i18t('hb_cmp_' + (P.compare || 'off')))]];
+  const more = _hbRcMore.has(D.key) || extra.some(([k]) => _hbRcOpen === D.key + '|' + k);
+  const shown = extra.filter(([, used]) => used || more).map(([, , draw]) => draw()).join('');
+  const left = extra.filter(([, used]) => !used).length;
+  const moreBtn = left ? `<button type="button" class="hb-rc hb-rc-more" data-hb-rmore aria-expanded="${more}">${_hbE(more ? i18t('hb_rc_fewer') : i18t('hb_rc_more', { n: left }))}</button>` : '';
+  return `<div class="hb-recipe" role="group" data-hb-rkey="${_hbE(D.key)}" aria-label="${_hbE(i18t('hb_rc_menu'))}">${whichChip}${chip('split', i18t('hb_rc_split'), hbSplitWord(P.split))}${chip('pic', i18t('hb_rc_pic'), hbPicWord(P))}${chip('measure', i18t('hb_rc_measure'), i18t('hb_ms_' + P.measure))}${shown}${trend}${moreBtn}</div>`;
 }
+/* which cards show their whole row (per sitting: a reader's glance, never kept) */
+const _hbRcMore = new Set();
+function hbRcMoreToggle(key){ if (_hbRcMore.has(key)) _hbRcMore.delete(key); else _hbRcMore.add(key); return _hbRcMore.has(key); }
 function hbOrderWord(S){ return i18t('hb_order_' + S.by + '_' + S.dir) || i18t('hb_order_default'); }
 
 /* ============================================================
@@ -2898,7 +2926,11 @@ function hbBoardNow(){
       const r = hbReadStagesOf(D.stages, D.money, D.left); if (r) out.push('HaTi\'s reading: ' + r.lines.map(plain).join(' '));
     }
   }
-  if (s.panels.length) out.push('Panels on the board: ' + s.panels.map(p => p.kind === 'view' ? (p.title || hbPanelWord(p)) : i18t(HB_KINDS[p.kind].word)).join('; ') + '.');
+  /* every card with the ref Copilot's actions name it by (work order Part 2) */
+  if (s.panels.length) out.push('Cards on the board, top first (ref: name — settings): ' + s.panels.slice().reverse().map(p => {
+    if (p.kind !== 'view') return `${p.id}: ${hbPanelWord(p)} (a ready-made panel; it can be moved, sized or removed, not changed)`;
+    const Dp = hbDigData(p.key, s.lens); return `${p.id}: ${hbPanelWord(p)}${Dp ? ' — ' + Dp.n + ' contracts; ' + hbRecipeWords(hbPlan(Dp)) : ''}`; }).join(' | ') + (key ? ' The open chart is ref "open".' : ''));
+  else if (key) out.push('No cards on the board yet. The open chart is ref "open".');
   const text = out.join('\n');
   return text.length > HB_BOARD_NOW_MAX ? text.slice(0, HB_BOARD_NOW_MAX) + ' …(cut)' : text;
 }
@@ -3205,7 +3237,7 @@ function hbPage(){ return document.getElementById('ig-page') || document.getElem
    and a keyboard reader is thrown to the top). The pressed control is found
    again by what it IS — its own data-hb-* attribute — and a dig-in that
    opened takes focus on its first crumb instead. */
-const HB_FOCUS_KEYS = ['data-hb-dig', 'data-hb-act', 'data-hb-prep', 'data-hb-crumb', 'data-hb-watch', 'data-hb-lens', 'data-hm-agent', 'data-hb-rc', 'data-hb-rset', 'data-hb-rtrend', 'data-hb-digbig'];
+const HB_FOCUS_KEYS = ['data-hb-dig', 'data-hb-act', 'data-hb-prep', 'data-hb-crumb', 'data-hb-watch', 'data-hb-lens', 'data-hm-agent', 'data-hb-rc', 'data-hb-rset', 'data-hb-rtrend', 'data-hb-digbig', 'data-hb-rmore'];
 function hbFocusKey(el){
   if (!el || !el.getAttribute) return null;
   const pid = el.closest && el.closest('[data-hb-pid]');
@@ -3716,7 +3748,7 @@ function hbViewPanelHtml(p, lens){
   const body = D ? (D.kind === 'list' ? hbRecipeRowHtml(D, hbPlan(D)) : '') + `<div class="hb-cb">${hbDigBodyHtml(D, lens, !!p.big)}</div>` : `<div class="hb-cb"><div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div></div>`;
   return `<section class="hb-card hb-panel hb-view${p.big ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
     <header class="hb-ch"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span><span class="hb-grow"></span>
-      <span class="hb-src" title="${_hbE(i18t('hb_ins_src_tip'))}">${_hbE(i18t('hb_ins_src'))}</span>
+      ${/^cd:/.test(p.key) ? `<span class="hb-src" title="${_hbE(i18t('hb_cd_src_tip'))}">${_hbE(i18t('hb_cd_src'))}</span>` : `<span class="hb-src" title="${_hbE(i18t('hb_ins_src_tip'))}">${_hbE(i18t('hb_ins_src'))}</span>`}
       ${hbBigBtnHtml(p.big, 'data-hb-act="big"')}
       <button type="button" class="hb-ib hb-x" data-hb-act="x" title="${_hbE(i18t('hb_p_x'))}" aria-label="${_hbE(i18t('hb_p_x'))}">${_hbX}</button></header>
     ${body}</section>`;
@@ -3852,33 +3884,184 @@ function hbFollowUp(qRaw){
 }
 /* COPILOT PRESSES THE BOARD'S BUTTONS (Young picked it, 4 Oct 2026; the lesson
    CopilotKit teaches — the copilot acts through the app's own controls).
-   Asked on the board, Copilot's `chart` is applied HERE: to the open chart
-   when it names target "open" (or names no set), as a new chart over the
-   whole book when it names target "new" and no set. A chart over a set it
-   named rides the list as before (hbShowFound). Returns what to say, or null
-   when the answer is the map's. */
+   SEVERAL AT ONCE (work order Part 2): asked on the board, Copilot answers
+   with a LIST of actions — add a card, change a card, remove, arrange, name,
+   filter the board — and ONE applier, hbBoardApply, does them in order, each
+   through the writer a press uses. The older single `chart` answer is read
+   as one action (change the open chart, or a new card over the whole book).
+   An answer that names a set rides the list road as before (hbShowFound).
+   Returns what to say, or null when the answer is the map's. */
 function hbBoardTakes(res){
-  const s = hbS(); if (s.face !== 'board' || !res || !res.chart || typeof res.chart !== 'object') return null;
-  const c = res.chart;
-  const hasSet = (Array.isArray(res.visibleIds) && res.visibleIds.length) || (res.where && typeof res.where === 'object' && Object.keys(res.where).length);
-  if (hasSet) return null;
+  const s = hbS(); if (s.face !== 'board' || !res) return null;
+  let actions = Array.isArray(res.actions) && res.actions.length ? res.actions : null;
+  if (!actions && res.chart && typeof res.chart === 'object'){
+    const hasSet = (Array.isArray(res.visibleIds) && res.visibleIds.length) || (res.where && typeof res.where === 'object' && Object.keys(res.where).length);
+    if (hasSet) return null;
+    const c = res.chart;
+    actions = c.target !== 'new' && hbOpenListKey() ? [{ do: 'change_card', card: 'open', recipe: c }]
+      : [{ do: 'add_card', which: { all: true }, recipe: c, title: String(res.note || '').slice(0, HB_TITLE_MAX) }];
+  }
+  if (!actions) return null;
   _hbPendingRecipe = null;
+  const r = hbBoardApply(actions);
+  /* the server keeps the first HB_ACTIONS_MAX; more asked for is said */
+  if (Number(res.actionsTotal) > actions.length){ const l = i18t('hb_act_cap', { n: actions.length, m: Number(res.actionsTotal) }); r.refused.push(l); r.html += (r.html ? '<br>' : '') + _hbE(l); }
+  if (!r.did.length && !r.refused.length) return null;
   const own = String(res.answer || '').trim();
   const tail = own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : '';
-  if (c.target !== 'new' && hbOpenListKey()){
-    const did = hbBoardEdit(c); if (!did) return null;
-    hbPaintBoard({ jump: 'focus' });
-    return _hbE(did.said) + tail;
+  return r.html + tail;
+}
+
+/* ---- THE BOARD'S TOOLS, AS COPILOT IS GIVEN THEM (the server's list is the same, f497) ---- */
+const HB_BOARD_ACTIONS = ['add_card', 'change_card', 'remove_card', 'arrange', 'name_card', 'filter_board'];
+const HB_ACTIONS_MAX = 12;
+/* a card's set: the whole book, the map's own reading of plain words, or ids */
+function hbWhichOf(which, lens){
+  const book = hbBook(lens);
+  const w = which || { all: true };
+  if (w.ids){ const inL = new Set(book.map(c => c.id)); const ids = w.ids.filter(id => inL.has(id));
+    return { ids, label: i18tn('hb_n_contracts', ids.length, { n: ids.length }), whole: false, fields: [] }; }
+  if (w.q && typeof igConditions === 'function'){
+    let cq = []; try { cq = igConditions(w.q); } catch (_){ cq = []; }
+    if (cq.length){ const ids = (typeof igIdsWhere === 'function') ? igIdsWhere(cq, book) : [];
+      return { ids, label: cq.map(x => x.label).join(' · '), whole: false, fields: cq.map(x => x.field), unread: false }; }
+    return { ids: [], label: hbPlainText(w.q, 80), whole: false, fields: [], unread: true };
   }
-  if (c.target === 'new' || !hbOpenListKey()){
-    const ids = hbBook(s.lens).filter(x => x.status !== 'Declined').map(x => x.id);
-    if (!ids.length) return null;
-    const clean = (hbRecipeClean({ k: c }).k) || {};
-    s.found = { title: String(res.note || i18t('hb_lens_all')).slice(0, 120), ids, chart: Object.keys(clean).length ? clean : null }; if (s.recipe) delete s.recipe.ls;
-    hbDig('ls', false);
-    return _hbE(i18tn('hb_found_n', ids.length, { n: _hbN(ids.length), what: s.found.title })) + tail;
-  }
-  return null;
+  return { ids: book.filter(c => c.status !== 'Declined').map(c => c.id), label: i18t('hb_lens_all'), whole: true, fields: [] };
+}
+/* ONE WRITER FOR A NEW CARD: a kept view holding its set and its recipe (the
+   Keep press's own shape, hbAddView); the board holds HB_PANELS_MAX, and the
+   oldest leaving is said */
+function hbAddCard(which, recipe, title){
+  const s = hbS();
+  const id = 'p' + (++s.seq), clean = hbCardClean(recipe || {}); delete clean.which;
+  const p = { id, kind: 'view', key: 'cd:' + id, title: '', which: hbCardClean({ which }).which || { all: true }, recipe: clean, split: false, big: false };
+  let left = null; if (s.panels.length >= HB_PANELS_MAX) left = s.panels.shift();
+  s.panels.push(p); _hbNewPanel = id;
+  hbCardSet(p.key, clean, { seed: true });
+  /* a card always has a name: the one asked for, else what it counts and how */
+  const D = hbDigData(p.key, s.lens);
+  p.title = hbPlainText(title || clean.title || (D ? D.setLabel + ' · ' + hbSplitWord(hbPlan(D).split) : ''), HB_TITLE_MAX);
+  hbSave();
+  return { p, left };
+}
+/* a panel's own buttons: close, side by side, bigger, give (a press, or Copilot) */
+function hbPanelAct(pid, act){
+  const s = hbS(); const p = s.panels.find(x => x.id === pid); if (!p) return false;
+  if (act === 'x') s.panels.splice(s.panels.indexOf(p), 1);
+  else if (act === 'split') p.split = !p.split;
+  else if (act === 'big') p.big = !p.big;
+  else if (act === 'large') p.big = true;
+  else if (act === 'small') p.big = false;
+  else if (act === 'give') _hbGiveForm = _hbGiveForm === pid ? null : pid;
+  else return false;
+  hbSave(); return true;
+}
+/* the trail's crumbs: back to step i, or (-1) to the board — the count goes with it */
+function hbCrumb(i){
+  const s = hbS();
+  s.path = i < 0 ? [] : (s.path || []).slice(0, i + 1); _hbFocusNew = i >= 0; _hbWatchForm = null; hbSave();
+}
+/* the board's order, top first, and each card's size */
+function hbArrange(order, sizes){
+  const s = hbS(), byId = new Map(s.panels.map(p => [p.id, p]));
+  const top = (order || []).map(id => byId.get(id)).filter(Boolean);
+  const shown = s.panels.slice().reverse(), rest = shown.filter(p => !top.includes(p));
+  s.panels = top.concat(rest).reverse();
+  Object.keys(sizes || {}).forEach(id => { const p = byId.get(id); if (p) p.big = sizes[id] === 'big'; });
+  hbSave();
+}
+/* a card's name: a kept view's own (and its recipe's); a ready-made panel keeps its word */
+function hbPanelName(pid, title){
+  const s = hbS(); const p = s.panels.find(x => x.id === pid); if (!p || p.kind !== 'view') return false;
+  const t = hbPlainText(title, HB_TITLE_MAX); if (!t) return false;
+  p.title = t; hbCardSet(p.key, { title: t }); return true;
+}
+/* one action, cleaned: a word the board does not know is left out (and said) */
+function hbActionClean(a){
+  if (!a || typeof a !== 'object' || !HB_BOARD_ACTIONS.includes(a.do)) return null;
+  const out = { do: a.do };
+  if (a.card != null) out.card = hbPlainText(a.card, 40);
+  if (a.which != null){ const w = a.which === 'all' ? { all: true } : hbCardClean({ which: a.which }).which; if (w) out.which = w; }
+  if (a.recipe && typeof a.recipe === 'object'){ const r = hbCardClean(a.recipe); delete r.which; out.recipe = r; }
+  if (a.title != null){ const t = hbPlainText(a.title, HB_TITLE_MAX); if (t) out.title = t; }
+  if (Array.isArray(a.order)) out.order = a.order.filter(x => typeof x === 'string').slice(0, HB_PANELS_MAX).map(x => x.slice(0, 40));
+  if (a.sizes && typeof a.sizes === 'object') out.sizes = Object.keys(a.sizes).slice(0, HB_PANELS_MAX).reduce((o, k) => { if (a.sizes[k] === 'big' || a.sizes[k] === 'small') o[String(k).slice(0, 40)] = a.sizes[k]; return o; }, {});
+  return out;
+}
+/* which card an action names: "open" (the chart open on the board), a card's
+   ref, or its name as the reader sees it */
+function hbCardRef(ref){
+  const s = hbS(); const r = String(ref || '').trim(); if (!r) return null;
+  if (/^open$/i.test(r)){ const key = hbOpenListKey(); return key ? { open: true, key } : null; }
+  const p = s.panels.find(x => x.id === r) || s.panels.find(x => hbPanelWord(x).toLowerCase() === r.toLowerCase());
+  return p ? { p, key: p.kind === 'view' ? p.key : null } : null;
+}
+/* THE ONE APPLIER: each action in order, through the writer a press uses;
+   what was done is said in HaTi's words, one line each */
+function hbBoardApply(actions){
+  const s = hbS(), did = [], refused = [];
+  const list = (Array.isArray(actions) ? actions : []).slice(0, HB_ACTIONS_MAX);
+  if (Array.isArray(actions) && actions.length > HB_ACTIONS_MAX) refused.push(i18t('hb_act_cap', { n: HB_ACTIONS_MAX, m: actions.length }));
+  let jump = null; const added = [];
+  list.forEach(raw => {
+    const a = hbActionClean(raw);
+    if (!a){ refused.push(i18t('hb_act_unknown')); return; }
+    if (a.do === 'add_card'){
+      const { p, left } = hbAddCard(a.which || { all: true }, a.recipe || {}, a.title);
+      added.push(p.id);
+      const D = hbDigData(p.key, s.lens);
+      did.push(i18t('hb_act_added', { what: p.title, how: D ? hbHowWord(hbPlan(D)) : '' }) + (left ? ' ' + i18t('hb_panel_left', { what: hbPanelWord(left) }) : ''));
+      return;
+    }
+    if (a.do === 'filter_board'){
+      const w = a.which || { all: true };
+      if (w.all){ hbCrumb(-1); did.push(i18t('hb_act_unfiltered')); jump = 'top'; return; }
+      const W = hbWhichOf(w, s.lens);
+      if (W.unread){ refused.push(i18t('hb_act_unread', { what: W.label })); return; }
+      const key = w.ids ? 'ls' : 'q:' + w.q;
+      if (w.ids){ s.found = { title: W.label, ids: W.ids.slice(0, 2000), chart: null }; if (s.recipe) delete s.recipe.ls; }
+      hbDig(key, false);
+      did.push(i18tn('hb_act_filtered', W.ids.length, { n: _hbN(W.ids.length), what: W.label })); jump = 'focus';
+      return;
+    }
+    if (a.do === 'arrange'){
+      const known = (a.order || []).filter(id => s.panels.some(p => p.id === id));
+      hbArrange(known, a.sizes || {});
+      const names = known.map(id => hbPanelWord(s.panels.find(p => p.id === id)));
+      const sized = Object.keys(a.sizes || {}).filter(id => s.panels.some(p => p.id === id));
+      if (!known.length && !sized.length){ refused.push(i18t('hb_act_no_card', { ref: (a.order || []).join(', ') || '—' })); return; }
+      did.push(i18t('hb_act_arranged', { what: names.concat(sized.filter(id => !known.includes(id)).map(id => hbPanelWord(s.panels.find(p => p.id === id)))).join(', ') }));
+      return;
+    }
+    const C = hbCardRef(a.card || 'open');
+    if (!C){ refused.push(i18t('hb_act_no_card', { ref: a.card || 'open' })); return; }
+    if (a.do === 'change_card'){
+      if (!C.key){ refused.push(i18t('hb_act_fixed', { what: hbPanelWord(C.p) })); return; }
+      const r = hbCardEdit(C.key, a.recipe || {});
+      if (!r){ refused.push(i18t('hb_act_nothing', { what: C.p ? hbPanelWord(C.p) : hbCrumbOf(C.key, s.lens) })); return; }
+      did.push(C.open ? r.said : i18t('hb_act_changed', { what: hbPanelWord(C.p), how: hbHowWord(hbPlan(hbDigData(C.key, s.lens))) }));
+      if (C.open) jump = 'focus';
+      return;
+    }
+    if (a.do === 'remove_card'){
+      if (C.open){ hbCrumb(-1); did.push(i18t('hb_act_closed')); return; }
+      const what = hbPanelWord(C.p); hbPanelAct(C.p.id, 'x'); did.push(i18t('hb_act_removed', { what })); return;
+    }
+    if (a.do === 'name_card'){
+      if (!a.title){ refused.push(i18t('hb_act_nothing', { what: C.p ? hbPanelWord(C.p) : '' })); return; }
+      if (C.open){ hbCardSet(C.key, { title: a.title }); did.push(i18t('hb_act_named', { what: a.title })); return; }
+      if (!hbPanelName(C.p.id, a.title)){ refused.push(i18t('hb_act_fixed', { what: hbPanelWord(C.p) })); return; }
+      did.push(i18t('hb_act_named', { what: a.title })); return;
+    }
+  });
+  /* cards built together stand together, at the top, in the order asked
+     (the board otherwise puts the newest first) */
+  const still = added.filter(id => s.panels.some(p => p.id === id));
+  if (still.length > 1 && !list.some(x => x && x.do === 'arrange')) hbArrange(still, {});
+  if (did.length) hbPaintBoard(jump ? { jump } : still.length ? { jump: 'top' } : undefined);
+  const html = did.concat(refused).map(l => _hbE(l)).join('<br>');
+  return { did, refused, html };
 }
 /* A QUESTION ABOUT WHAT IS ON THE SCREEN ("why does the dashboard say 851
    …", "explain the trend line", "what does this chart mean") is Copilot's,
@@ -4157,10 +4340,10 @@ function hbOnClick(e){
     if (k === 'clear') hbInkClear(); else if (k === 'exit') hbPresent(false); else hbSetTool(k); return; }
   if ((el = on('[data-hb-jump]'))){ const sec = document.getElementById(el.getAttribute('data-hb-jump'));
     if (sec){ try { sec.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_){} sec.classList.add('is-lit'); setTimeout(() => sec.classList.remove('is-lit'), 1400); } return; }
-  if ((el = on('[data-hb-crumb]'))){ const s = hbS(), i = Number(el.getAttribute('data-hb-crumb'));
-    s.path = i < 0 ? [] : (s.path || []).slice(0, i + 1); _hbFocusNew = i >= 0; _hbWatchForm = null; hbSave(); hbPaintBoard({ jump: i < 0 ? null : 'focus' }); return; }
+  if ((el = on('[data-hb-crumb]'))){ const i = Number(el.getAttribute('data-hb-crumb')); hbCrumb(i); hbPaintBoard({ jump: i < 0 ? null : 'focus' }); return; }
   /* THE ROW EDITS ITS OWN CARD: the open dig-in's, or a panel's */
   const rkey = x => { const row = x.closest('[data-hb-rkey]'); return row ? row.getAttribute('data-hb-rkey') : (hbS().path || []).slice(-1)[0]; };
+  if ((el = on('[data-hb-rmore]'))){ hbRcMoreToggle(rkey(el)); _hbRcOpen = null; hbPaintBoard(); return; }
   if ((el = on('[data-hb-rc]'))){ const p = rkey(el) + '|' + el.getAttribute('data-hb-rc'); _hbRcOpen = _hbRcOpen === p ? null : p; hbPaintBoard(); return; }
   if ((el = on('[data-hb-rset]'))){ if (el.disabled) return; const key = rkey(el), v = el.getAttribute('data-hb-rset'), i = v.indexOf(':');
     _hbRcOpen = null; if (key && i > 0) hbRecipeSet(key, v.slice(0, i), v.slice(i + 1)); hbPaintBoard(); return; }
@@ -4177,14 +4360,9 @@ function hbOnClick(e){
   if ((el = on('[data-hb-ungive]'))){ hbUngive(el.getAttribute('data-hb-ungive')); return; }
   if ((el = on('[data-hb-act]'))){
     const card = el.closest('[data-hb-pid]'); const pid = card && card.getAttribute('data-hb-pid'); if (!pid) return;
-    const act = el.getAttribute('data-hb-act'), s = hbS();
+    const act = el.getAttribute('data-hb-act');
     if (/^gift:/.test(pid)){ if (act === 'x') hbDropGift(pid.slice(5)); return; }
-    const p = s.panels.find(x => x.id === pid); if (!p) return;
-    if (act === 'x') s.panels.splice(s.panels.indexOf(p), 1);
-    else if (act === 'split') p.split = !p.split;
-    else if (act === 'big') p.big = !p.big;
-    else if (act === 'give') _hbGiveForm = _hbGiveForm === pid ? null : pid;
-    hbSave(); hbPaintBoard(); return; }
+    if (hbPanelAct(pid, act)) hbPaintBoard(); return; }
   if ((el = on('[data-hb-analyze]'))){ hbAnalyze(el.getAttribute('data-hb-analyze')); return; }
   if ((el = on('[data-hb-map]'))){ hbShowOnMap(el.getAttribute('data-hb-map'), el.getAttribute('data-hb-what')); return; }
   if ((el = on('[data-hb-open][data-hb-stage]')) && typeof regGoFiltered === 'function'){ regGoFiltered({ stage: el.getAttribute('data-hb-stage') }); return; }
@@ -4298,4 +4476,5 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbCardClean, hbCardPlan, hbPlanSpec, hbCardSet, hbCardSetPart, hbSplitClean, hbWindowClean, hbPlainText, hbWinOf, hbWinWord, hbWindowCut, hbWinCs,
   hbGroupsCut, hbGroupsSorted, hbIsGroupDim, hbRestDig, hbKeptGroups, hbSeriesOf, hbXOf, hbCellDig, hbStackSvg, hbHeatSvg, hbCompareSvg, hbCmpChange, hbChartRun,
   hbCardEdit, hbHowWord, hbRecipeWords, hbSplitModelWord, hbOrderWord, hbReadCompareOf, hbReadTwoOf, hbReadingCore, hbRcCur, hbRcCurHas,
-  hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk });
+  hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,
+  HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle });

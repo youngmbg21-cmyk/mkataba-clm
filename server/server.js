@@ -6632,6 +6632,38 @@ const GRAPH_CHART_PROPS = {
   compare: { type: 'string', enum: GRAPH_CHART_COMPARES, description: 'prev = against the period just before; year = against the same period a year earlier.' },
   title: { type: 'string', description: `The card's own name (at most ${GRAPH_CHART_TITLE_MAX} characters).` },
 };
+/* THE BOARD'S TOOLS (work order Part 2, 4 Oct 2026): on Home's board the
+   model answers with a LIST of the board's own presses, applied in order by
+   the browser's one applier (hbBoardApply). f497 pins this list to the
+   browser's. Each is cleaned here; a word it does not know is dropped. */
+const GRAPH_BOARD_ACTIONS = ['add_card', 'change_card', 'remove_card', 'arrange', 'name_card', 'filter_board'];
+const GRAPH_BOARD_ACTIONS_MAX = 12;
+function graphBoardActionsClean(list) {
+  if (!Array.isArray(list)) return null;
+  const txt = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  const out = list.slice(0, GRAPH_BOARD_ACTIONS_MAX).map(a => {
+    if (!a || typeof a !== 'object' || !GRAPH_BOARD_ACTIONS.includes(a.do)) return null;
+    const o = { do: a.do };
+    if (a.card != null && txt(a.card, 40)) o.card = txt(a.card, 40);
+    if (a.which === 'all' || (a.which && a.which.all === true)) o.which = { all: true };
+    else if (a.which && typeof a.which === 'object' && txt(a.which.q, 200)) o.which = { q: txt(a.which.q, 200) };
+    if (a.recipe && typeof a.recipe === 'object') { const r = graphChartClean(a.recipe); if (r) { delete r.target; o.recipe = r; } }
+    if (a.title != null && txt(a.title, GRAPH_CHART_TITLE_MAX)) o.title = txt(a.title, GRAPH_CHART_TITLE_MAX);
+    if (Array.isArray(a.order)) o.order = a.order.filter(x => typeof x === 'string').slice(0, 8).map(x => txt(x, 40));
+    if (a.sizes && typeof a.sizes === 'object') o.sizes = Object.keys(a.sizes).slice(0, 8).reduce((m, k) => { if (a.sizes[k] === 'big' || a.sizes[k] === 'small') m[txt(k, 40)] = a.sizes[k]; return m; }, {});
+    return o;
+  }).filter(Boolean);
+  return out.length ? out : null;
+}
+const GRAPH_BOARD_ACTIONS_SCHEMA = { type: 'array', description: 'On Home\'s BOARD: the board\'s own buttons, pressed in order. Several in one answer are fine ("build me a renewals dashboard" = four or five add_card).',
+  items: { type: 'object', required: ['do'], properties: {
+    do: { type: 'string', enum: GRAPH_BOARD_ACTIONS },
+    card: { type: 'string', description: 'Which card: "open" = the chart open on the board; else a card\'s ref from the board (e.g. p3).' },
+    which: { type: 'object', description: 'add_card / filter_board: which contracts. {all:true} = the whole book; {q:"plain words naming the contracts"} e.g. "Juno contracts", "signed contracts", "suppliers", "contracts ending in the next 90 days". Never ids.', properties: { all: { type: 'boolean' }, q: { type: 'string' } } },
+    recipe: { type: 'object', description: 'add_card / change_card: the picture, in the board\'s words; for change_card only the parts asked for.', properties: GRAPH_CHART_PROPS },
+    title: { type: 'string', description: 'add_card / name_card: the card\'s name.' },
+    order: { type: 'array', items: { type: 'string' }, description: 'arrange: card refs, top first.' },
+    sizes: { type: 'object', additionalProperties: { type: 'string', enum: ['big', 'small'] }, description: 'arrange: a card ref → big or small.' } } } };
 /* the look the model named, in the map's own words — or nothing */
 function graphLookClean(l) {
   if (!l || typeof l !== 'object') return null;
@@ -6663,6 +6695,10 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
     return y;
   });
   const total = Math.max(Number(req.body && req.body.total) || 0, contracts.length);
+  /* ON THE BOARD, THE BOARD IS THE JOB (Young, 4 Oct 2026, "build 1 and 2"):
+     the model is told first that it is answering on a page of charts, and is
+     handed the board's own buttons (actions) instead of one chart */
+  const onBoard = !!(screen && typeof screen === 'object' && String(screen.board || '').trim());
   const tool = {
     name: 'render_graph',
     description: 'Decide which contracts stay visible and how to cluster them. Name a DIMENSION to group by; HaTi cuts the buckets itself. Prefer the structured `where` over listing ids.',
@@ -6692,8 +6728,8 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
         /* THE BOARD'S RECIPE (4 Oct 2026): on Home's board an answer is drawn
            as a chart; the model may say which picture the words asked for,
            and HaTi still counts every figure. */
-        chart: { type: 'object', description: 'Fill ONLY when the request asks for a picture or a split of one: a pie/ring, bars, columns, blocks/treemap, bubbles, a list, a timeline, "by month/quarter/year", "by stream/stage/owner…", or a trend. HaTi draws it and counts it; never put numbers here.',
-          properties: { target: { type: 'string', enum: ['open', 'new'], description: 'On the Home BOARD only: open = change the chart that is open on the board ("make it monthly", "as a pie", "by stream", "remove the trend") — fill only the parts asked for; new = draw a new chart (over the set in where/visibleIds, or the whole book when none).' }, ...GRAPH_CHART_PROPS } },
+        ...(onBoard ? { actions: GRAPH_BOARD_ACTIONS_SCHEMA } : { chart: { type: 'object', description: 'Fill ONLY when the request asks for a picture or a split of one: a pie/ring, bars, columns, blocks/treemap, bubbles, a list, a timeline, "by month/quarter/year", "by stream/stage/owner…", or a trend. HaTi draws it and counts it; never put numbers here.',
+          properties: { target: { type: 'string', enum: ['open', 'new'], description: 'On the Home BOARD only: open = change the chart that is open on the board ("make it monthly", "as a pie", "by stream", "remove the trend") — fill only the parts asked for; new = draw a new chart (over the set in where/visibleIds, or the whole book when none).' }, ...GRAPH_CHART_PROPS } } }),
         ask: { type: 'array', description: 'When the request is unclear, up to three things it could mean, as {role, fact}; HaTi shows them as buttons and changes nothing else.', items: { type: 'object', properties: { role: { type: 'string', enum: ['group', 'floors', 'columns', 'colour', 'size', 'label', 'time'] }, fact: { type: 'string' } } } },
         /* THE MAP'S LOOK (4 Oct 2026): names, names on the edges, dot size,
            big bubbles and bundles — the same acts the map's own reader does.
@@ -6709,11 +6745,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
   const active = Array.isArray(activeIds) && activeIds.length ? activeIds.slice(0, GRAPH_ASK_CAP) : null;
   const onScreen = graphScreenSays(screen, list.length, total);
   const figures = portfolioSays(portfolioFigures(copilotCtx(req)));
-  /* ON THE BOARD, THE BOARD IS THE JOB (Young, 4 Oct 2026, "build 1 and 2"):
-     the model is told first that it is answering on a page of charts, and how
-     to press its buttons (chart.target), before any word about the map */
-  const onBoard = !!(screen && typeof screen === 'object' && String(screen.board || '').trim());
-  const boardJob = onBoard ? `You are answering a question asked on HaTi's Home BOARD, a page of charts over a contract portfolio (the board is described under "On screen now"). In order of preference:\n1. CHANGE THE OPEN CHART when the request is about it ("make it monthly", "as a pie", "by stream", "show value", "add/remove the trend", "this", "it"): fill chart with ONLY the parts asked for and chart.target "open". The words are the board's own dropdowns: pic ${GRAPH_CHART_PICS.join('/')}; split ${GRAPH_CHART_SPLITS.join('/')} (with date ${GRAPH_CHART_DATES.join('/')} for month/quarter/year); split2 (a second split, same words); measure ${GRAPH_CHART_MEASURES.join('/')}; trend true/false; sort {by ${GRAPH_CHART_SORTS.join('/')}, dir ${GRAPH_CHART_DIRS.join('/')}}; top N; window {last|next N, unit ${GRAPH_CHART_UNITS.join('/')}, date} or {from, to}; compare ${GRAPH_CHART_COMPARES.join('/')}; title. Set no where, visibleIds or groupBy for it.\n2. A NEW CHART over a set of contracts: the set in where (or visibleIds) and chart.target "new".\n3. A QUESTION ABOUT WHAT THE BOARD SHOWS: answer only, from the board's numbers.\nThe map's own fields (groupBy, floorsBy, columnsBy, colourBy, view, look) are for the map: leave them empty unless the reader asks for the map.\n\n` : '';
+  const boardJob = onBoard ? `You are answering a question asked on HaTi's Home BOARD, a page of charts over a contract portfolio (the board is described under "On screen now", with each card's ref). Act through the board's own buttons in actions, a list HaTi presses in order:\n- add_card {which, recipe, title}: a new card. which = {all:true} for the whole book, or {q:"plain words naming the contracts"}.\n- change_card {card, recipe}: change a card; card "open" is the chart open on the board ("make it monthly", "as a pie", "by stream", "show value", "remove the trend", "this", "it"); fill ONLY the parts asked for.\n- remove_card {card}; name_card {card, title}; arrange {order: refs top first, sizes: {ref: big|small}}; filter_board {which}: what the whole board counts ({all:true} counts everything again).\nFor a whole dashboard ("build me a renewals dashboard") add four or five cards in one answer, each a different view. A recipe uses the board's own words: pic ${GRAPH_CHART_PICS.join('/')} (stack/grouped/heat need split2); split ${GRAPH_CHART_SPLITS.join('/')} (with date ${GRAPH_CHART_DATES.join('/')} for month/quarter/year); split2 (a second split, same words); measure ${GRAPH_CHART_MEASURES.join('/')}; trend true/false; sort {by ${GRAPH_CHART_SORTS.join('/')}, dir ${GRAPH_CHART_DIRS.join('/')}}; top N; window {last|next N, unit ${GRAPH_CHART_UNITS.join('/')}, date} or {from, to}; compare ${GRAPH_CHART_COMPARES.join('/')}; title. HaTi counts every number: never put numbers in a recipe, and set no where, visibleIds or groupBy for a board action.\nA QUESTION ABOUT WHAT THE BOARD SHOWS (why a number says what it says, what a line means): answer only, from the board's numbers, with no actions.\nThe map's own fields (groupBy, floorsBy, columnsBy, colourBy, view, look) are for the map: leave them empty unless the reader asks for the map.\n\n` : '';
   const prompt = `${boardJob}You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n${onScreen ? `\nOn screen now: ${onScreen}\n` : ''}${figures ? `\n${figures}\n` : ''}\nContracts (JSON; fields per card: id, name, counterparty, folder = value stream, kind = type, status, currency, ${money ? 'value, ' : ''}expiry, signedAt, createdAt, decisionDate = renewal decision date, noticeDays, effDate, payTermsDays, parentId/relation = family, move = whose move in the negotiation ("you" = ours, "them" = theirs), live = negotiation live, overdue = overdue obligations, nextDue, offStandard = playbook deviations (null = never checked), risk = risk score (null = not scanned), read = Copilot has read it, archived, source):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring", "overdue", "waiting on us"), express it as a \`where\` filter wherever a field carries it; use visibleIds only for a match no field expresses (a name, a city).\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel — HaTi prints its own line of counts, so say what the numbers cannot. For any count or total, quote HaTi's own figures above; never add up the cards. NEVER state how many contracts match the request — HaTi counts the matches itself and prints that number; a sentence that states a different count is not shown.\n- If it is purely a grouping request ("group by customer", "cluster by expiration date", "by when they were signed"), leave visibleIds empty and set groupBy to the DIMENSION: ${GRAPH_GROUP_DESC}\n- It can be both.\n- Use groupBy="custom" ONLY for a dimension no key names (city, region, sector…), and then fill groups by INFERRING the label from the counterparty/name for every contract you can place, with at least two labels. Never return custom with an empty groups map.\n- If the request is about what a contract SAYS (a clause, its obligations, a summary, an explanation, a quote) and does not ask to arrange or narrow the map, set kind="wording" and nothing else.
 - The map has five views: brain, wiring, floors, grid and timeline. "Floors by X" sets floorsBy; "columns by X" sets columnsBy; "X against Y" sets columnsBy X, floorsBy Y and view grid; "over time" or "timeline" sets view timeline (timeBy names the date). Colour, size and labels each name a fact. Every fact is one of: ${GRAPH_GROUP_DESC}
 - When the request could mean more than one of these and you cannot tell which, fill ask with up to three {role, fact} options and change nothing else.
@@ -6742,7 +6774,9 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
       kind: out.kind === 'wording' ? 'wording' : 'map',
       ...['floorsBy', 'columnsBy', 'colourBy', 'sizeBy', 'labelBy', 'timeBy', 'view'].reduce((o, k) => { if (typeof out[k] === 'string' && out[k]) o[k] = out[k].slice(0, 40); return o; }, {}),
       top: (out.top && typeof out.top === 'object' && Number(out.top.n) > 0) ? { n: Math.min(200, Math.round(Number(out.top.n))), by: String(out.top.by || 'value').slice(0, 20), per: out.top.per ? String(out.top.per).slice(0, 40) : null } : null,
-      chart: graphChartClean(out.chart),
+      chart: onBoard ? null : graphChartClean(out.chart),
+      actions: onBoard ? graphBoardActionsClean(out.actions) : null,
+      actionsTotal: onBoard && Array.isArray(out.actions) ? out.actions.length : 0,
       ask: Array.isArray(out.ask) ? out.ask.slice(0, 3).map(o => ({ role: String((o && o.role) || '').slice(0, 20), fact: String((o && o.fact) || '').slice(0, 40) })) : null,
       look: graphLookClean(out.look),
       ...aiNotice(req, resp) });
