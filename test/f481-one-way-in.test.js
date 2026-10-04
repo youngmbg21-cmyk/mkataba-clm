@@ -65,7 +65,8 @@ describe('f481 (2) Templates & standards is one page with one door', () => {
   });
   test('the old view id opens that tab, under the page\'s name, lighting the one door', () => {
     const pb = strip(fnBody(LIB, 'renderPlaybookPage'));
-    assert.equal((pb.match(/paperTabsHtml\('standards'\)/g) || []).length, 2, 'both shapes draw the row');
+    assert.match(pb, /class="st-tabs-pin" style="flex:none">\$\{paperTabsHtml\('standards'\)\}<div class="st-tabs" role="tablist">/,
+      'the page row and the sub-tabs pin together, in both shapes');
     assert.match(pb, /setActiveNav\('templates'\)/);
     assert.ok(!/setActiveNav\('playbook'\)/.test(pb));
     assert.match(read('js/app.js'), /case 'playbook':\s+return \[i18t\('nav_tpl_std'\)/);

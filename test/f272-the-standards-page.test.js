@@ -620,10 +620,13 @@ describe('f272 — the tab row stays while the page scrolls', () => {
      that the reading is the settings page's own rather than a second one. */
   const fs2 = require('fs'), path2 = require('path');
   const LIB2 = fs2.readFileSync(path2.join(__dirname, '..', 'js', 'views', 'library.js'), 'utf8');
-  const ROW = /const tabRow=`<div class="[^"]*" role="tablist">\$\{PB_PAGE_TABS/.exec(LIB2);
+  /* 4 Oct 2026 (f481): Our standards is a tab of Our paper, so the pin is a
+     block holding the page's own row over these sub-tabs. The opt-in moved
+     from the row to that block; the row is still built in one place. */
+  const ROW = /const tabRow=`<div class="[^"]*"[^>]*>\$\{paperTabsHtml\('standards'\)\}<div class="st-tabs" role="tablist">\$\{PB_PAGE_TABS/.exec(LIB2);
   test('the standards tab row opts in to the pin', () => {
     assert.ok(ROW, 'the row is still built in one place');
-    assert.match(ROW[0], /class="st-tabs st-tabs-pin"/, 'and it carries the opt-in');
+    assert.match(ROW[0], /class="st-tabs-pin"/, 'and it carries the opt-in');
     const RULE = /\.st-tabs-pin\{[^}]*\}/.exec(
       fs2.readFileSync(path2.join(__dirname, '..', 'index.html'), 'utf8'));
     assert.ok(RULE, 'the rule it opts in to exists');

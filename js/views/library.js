@@ -2877,12 +2877,16 @@ function renderPlaybookPage(){
      and settings page, the page should scroll behind the tab line"). The class
      is the opt-in and the rule is in index.html; the Templates page's own
      .st-tabs row is deliberately NOT opted in — it was not asked for. */
-  const tabRow=`<div class="st-tabs st-tabs-pin" role="tablist">${PB_PAGE_TABS.map(k=>
-    `<button class="st-tab${k===tab?' on':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}${sd?`<span class="st-tab-n">${sd.n[k]}</span>`:''}</button>`).join('')}</div>`;
+  /* THE PAGE'S OWN ROW RIDES IN THE PIN WITH IT (4 Oct 2026): Our standards
+     is the third tab of Our paper, so the page's row (paperTabsHtml) and this
+     page's own sub-tabs pin together as one block — the first glyph is still
+     the page's first tab, where ONE HEADER TOP measures it. */
+  const tabRow=`<div class="st-tabs-pin" style="flex:none">${paperTabsHtml('standards')}<div class="st-tabs" role="tablist">${PB_PAGE_TABS.map(k=>
+    `<button class="st-tab${k===tab?' on':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}${sd?`<span class="st-tab-n">${sd.n[k]}</span>`:''}</button>`).join('')}</div></div>`;
 
   if(INS){
     _pbHead=sdHeads(sd, canEditLib);
-    document.getElementById('content').innerHTML=sdPageHtml(paperTabsHtml('standards')+tabRow, tab, sd);
+    document.getElementById('content').innerHTML=sdPageHtml(tabRow, tab, sd);
     sdWire(sd, canEditLib);
   } else {
   _pbHead={ facts:{}, acts:{} }; pbPaintHead();
@@ -2917,7 +2921,6 @@ function renderPlaybookPage(){
       .std-acts button:hover{text-decoration:underline}
       .std-acts button.warn{color:var(--danger)}
     </style>
-    ${paperTabsHtml('standards')}
     ${tabRow}
     <p id="pb-tabsub" class="st-tabsub">${esc(i18t(PB_TAB_SUB[tab]))}</p>
 
