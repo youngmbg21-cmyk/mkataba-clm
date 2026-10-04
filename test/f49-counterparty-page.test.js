@@ -299,9 +299,10 @@ describe('what is ours stays ours', () => {
     const page = v.win.document.body.textContent.replace(/\s+/g, ' ');
     assert.ok(!/Email:/.test(page), 'our mail configuration is ours');
     assert.ok(!/Last seen/.test(page), 'a reader should not be shown a log of their own visits');
-    const facts = v.$('.pw-jfacts').textContent.replace(/\s+/g, ' ');
-    assert.match(facts, /Round 1/, 'the negotiation facts stay on both sides');
-    assert.match(facts, /Resolved:/);
+    /* the shared sheet's facts row (4 Oct 2026) */
+    const facts = v.$('#pt-where-pane .ds-facts').textContent.replace(/\s+/g, ' ');
+    assert.match(facts, /Round\s*1/, 'the negotiation facts stay on both sides');
+    assert.match(facts, /Settled\s*\d+ of \d+/);
   });
 
   test('the owner still has every one of those', async () => {
