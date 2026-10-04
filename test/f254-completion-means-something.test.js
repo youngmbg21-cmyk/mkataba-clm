@@ -291,7 +291,11 @@ describe('f254 (5) — the contract remembers that it was read', () => {
     assert.equal(c.obligationsReadAt, undefined, 'absent until something reads it');
     win.obligationsReadStamp(c, 'A contract with quite enough words in it to fingerprint properly, '
       + 'repeated so the shingles have something to chew on, repeated so the shingles have something.');
-    assert.equal(c.obligationsReadAt, isoDay(0), 'the day it was read');
+    /* A MOMENT, NOT A DAY since 4 Oct 2026 (f475): a same-day change read
+       as stale against a bare day. Its first ten characters are still the
+       day (UTC), which is what ktDayDot prints. */
+    assert.match(String(c.obligationsReadAt), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, 'the moment it was read');
+    assert.ok(Math.abs(Date.parse(c.obligationsReadAt) - Date.now()) < 60000, 'and it is now');
     /* THE HASH IS THE SMALLER HALF AND MAY BE ABSENT. simhash64 is the
        product's own fingerprint and lives in js/dedupe.js; on a stage without
        that file the stamp keeps its DATE and carries no hash, which is a
@@ -312,7 +316,9 @@ describe('f254 (5) — the contract remembers that it was read', () => {
        without reading fails here. */
     const hits = (OB_CODE.match(/obligationsReadStamp\(/g) || []).length;
     assert.equal(hits, 2, 'inside this file: one definition, one caller');
-    const run = OB_CODE.match(/async function runFindObligations\(c\)\{[\s\S]*?\n\}/)[0];
+    /* RE-POINTED 4 Oct 2026 (f475): the funnel takes an options argument
+       (`fresh`) — pinned by name, never by its parameter list. */
+    const run = OB_CODE.match(/async function runFindObligations\([^)]*\)\{[\s\S]*?\n\}/)[0];
     assert.match(run, /obligationsReadStamp\(c, _obText\)/);
     assert.match(run, /_obText\.length>=OBLIG_TEXT_MIN/,
       'and never where there was nothing to read — the reader refuses a '

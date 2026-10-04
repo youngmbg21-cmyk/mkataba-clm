@@ -174,7 +174,7 @@ describe('f413 (2) — no link to sign: the blind spots, the warning and the mai
     W = await seedWorkspace(h, { contracts: [], approvalRules: [] });
     owner = W.users.unrestricted;
     const { DatabaseSync } = require('node:sqlite');
-    db = () => new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    db = () => (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
   });
   after(async () => { await h.stop(); });
 
@@ -419,7 +419,7 @@ describe('f413 (4) — their round came back: Copilot prepares the answers on ar
     const full = await W.admin.json('/api/contracts/MK-RD-1');
     await W.admin.json('/api/contracts/MK-RD-1', { method: 'PUT', body: { contract: full, baseVersion: full._v } });
     const { DatabaseSync } = require('node:sqlite');
-    const d = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const d = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     const j = d.prepare('SELECT json FROM contracts WHERE id=?').get('MK-RD-1').json; d.close();
     assert.ok(!j.includes('_roundPrep'), 'stripped on save');
   });

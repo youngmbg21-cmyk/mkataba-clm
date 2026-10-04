@@ -194,7 +194,9 @@ describe('f193 · what is carried over, and what is deliberately not', () => {
        agreement is a different question and the parent has already answered it
        — an amendment to an NDA is no likelier to carry a figure than the NDA. */
     const { c } = made();
-    assert.equal(c.value, 0, 'no figure is invented');
+    /* EMPTY, NOT NOUGHT (reversed deliberately 4 Oct 2026, f480): a 0 read
+       as an answer; absent is what signing's readiness asks for. */
+    assert.equal(c.value, null, 'no figure is invented — and none is claimed either');
     assert.equal(c.valueType, 'estimated', 'but the kind of agreement carries over');
 
     const w = world([master({ valueType: 'none', value: 0 })]);

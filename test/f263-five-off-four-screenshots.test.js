@@ -54,7 +54,7 @@ describe('f263 (1) — the scan says it is working, at every door', () => {
        card's door — by name. The contract's own Obligations tab draws
        `#obt-find`, which was never touched at all, and that tab is the screen
        in the screenshot. */
-    const fn = OB.match(/async function runFindObligations\(c\)\{[\s\S]*?\n\}/)[0];
+    const fn = OB.match(/async function runFindObligations\([^)]*\)\{[\s\S]*?\n\}/)[0];   // by name, not parameter list (f475)
     assert.ok(!/getElementById\('ob-find'\)/.test(fn),
       'it must not reach for one door by name — that IS the report');
     assert.match(fn, /obFindBusy\(true\)/, 'it says so through the one helper');
@@ -83,7 +83,7 @@ describe('f263 (1) — the scan says it is working, at every door', () => {
        contract — a second press on a redrawn button paid for a second scan),
        and stops the spin unless the contract ON SCREEN is still scanning.
        The claim is unchanged: the stop is in the finally. */
-    const fn = OB.match(/async function runFindObligations\(c\)\{[\s\S]*?\n\}/)[0];
+    const fn = OB.match(/async function runFindObligations\([^)]*\)\{[\s\S]*?\n\}/)[0];   // by name, not parameter list (f475)
     assert.match(fn, /try\{ found = await extractObligations\(c\)[\s\S]{0,40}?\}\n\s*finally\{[\s\S]*?_obFinding\.delete\(String\(c\.id\)\);[\s\S]*?obFindBusy\(false\);[\s\S]*?\n\s*\}/,
       'the stop is in a finally, not on the happy path');
   });

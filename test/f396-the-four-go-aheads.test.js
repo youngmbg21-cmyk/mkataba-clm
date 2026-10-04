@@ -358,7 +358,10 @@ describe('f396 (4) — a renewal\'s Decide reads the contract again', () => {
     assert.equal(ran.join(','), 'Under Review', '[control] a deal still being argued is filled as before');
   });
   test('4h when the readings land, the head\'s Copilot fact is repainted with them', () => {
-    const f = code(fnOf(CONTRACT, 'triageAndPaint'));
+    /* RE-POINTED IN PLACE 4 Oct 2026 (f475): onStep repaints through
+       triageRepaintSurfaces, the one list the strip's Read again shares. */
+    assert.match(code(fnOf(CONTRACT, 'triageAndPaint')), /triageRepaintSurfaces\(x\)/);
+    const f = code(fnOf(CONTRACT, 'triageRepaintSurfaces'));
     assert.match(f, /paintKtTriage\(x\);\s*roomHeadRefresh\(x\);/, 'the strip, then the head, from the same landing');
   });
   test('4f the other two homes that press this door carry the same hover — Home\'s renewal row and the bell\'s renewal rows', () => {

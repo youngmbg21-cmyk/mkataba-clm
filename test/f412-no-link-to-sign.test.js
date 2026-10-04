@@ -82,7 +82,7 @@ describe('f412 (1) — can the other side still answer: the server works it out'
     h = await startHati();
     W = await seedWorkspace(h, { approvalRules: [] });
     const { DatabaseSync } = require('node:sqlite');
-    db = () => new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    db = () => (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
   });
   after(async () => { await h.stop(); });
   const put = c => W.admin.json('/api/contracts/' + c.id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });
@@ -305,7 +305,8 @@ describe('f412 (2) — the browser reads it, and keeps no second copy of the rul
   });
   test('2f a fresh link for a round already sent is ONE published act: the round send, then the hand-over', () => {
     const f = bodyOf(CORE, 'resendRoundFresh');
-    assert.match(f, /reshareToLastRecipient\(c, \{ \.\.\.opts, purpose:'negotiate' \}\)/);
+    /* handOver:true asks for the one "your turn" email (4 Oct 2026). */
+    assert.match(f, /reshareToLastRecipient\(c, \{ \.\.\.opts, purpose:'negotiate'(?:, handOver:true)? \}\)/);
     assert.match(f, /roundHandedOver\(c, opts\.by\)/);
     const h = bodyOf(CORE, 'roundHandedOver');
     assert.match(h, /negoHandOver\(c,\{ to:'counterparty'/);

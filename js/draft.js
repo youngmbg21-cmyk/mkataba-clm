@@ -292,7 +292,7 @@ async function draftNothingFits(out, sentence, why, closest){
     b.type='button'; b.id='dr-ask-team'; b.className='ui-btn';
     b.style.cssText='font-size:var(--t-meta);padding:5px 11px';
     b.textContent=i18t('dr_send_as_request');
-    b.addEventListener('click',()=>{ closeModal(); openIntakeForm({ need:String(sentence||'') }); });
+    b.addEventListener('click',()=>{ closeModal(); openIntakeForm({ need:String(sentence||''), title:(typeof intakeTitleFrom==='function')?intakeTitleFrom(sentence):'' }); });
     row.appendChild(b);
   }
   /* THE SECOND DOOR IS NOT FOR MOST PEOPLE, and that is the governance rule

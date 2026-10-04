@@ -87,7 +87,7 @@ function buildFromCustomTemplate(t, values, opts){
        falls back to the workspace, which is what the paper said before this
        question existed. */
     party:String((opts&&opts.party)||'').trim()||undefined,
-    counterpartyEmail:cpEmail||undefined, value:0, status:'Draft',
+    value:0, status:'Draft',
     /* The reader's own answer where the door asked for one, else the
        template's filing, else Other — the order this door has always had with
        one rung added on top (18 Sep 2026). */
@@ -112,6 +112,15 @@ function buildFromCustomTemplate(t, values, opts){
     // N3-T1: template-born, so it numbers live (see js/wizard.js for the rule).
     numbering:'live' };
   if(fs.length) applyTemplateValues(c, fs, values);
+  /* Which side of the money, where the fill form asked it — written by the
+     essentials' own field, so it lands where every other door puts it. */
+  if(opts && opts.side && typeof CONTRACT_ESSENTIALS!=='undefined'){
+    const sideF=CONTRACT_ESSENTIALS.find(f=>f.key==='side');
+    if(sideF) applyTemplateValues(c, [sideF], { side:opts.side });
+  }
+  /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK through its one writer
+     (js/participants.js), which keeps the record's copy in step. */
+  if(cpEmail){ if(window.contactSet) contactSet(c,{ main:true, email:cpEmail }); else c.counterpartyEmail=cpEmail; }
   /* The essentials, when this template had no blanks of its own to carry them.
      Same mapping, applied after so a template field always wins over the
      generic question if a template happened to ask both. */
@@ -171,6 +180,22 @@ function openTemplateFillModal(t, prefill, ho){
      is byte-identical to what it was: a preview that squeezes the questions is
      worse than no preview. */
   const _pv = (typeof fillPreviewFits==='function') && fillPreviewFits();
+  /* ---- WHICH SIDE OF THE MONEY, ASKED HERE TOO (the process review,
+     4 Oct 2026) ----
+     The wizard and the essentials form both ask it; this door never did, so
+     every contract made from a saved template left payment terms blind. THE
+     SAME FIELD, borrowed by reference from CONTRACT_ESSENTIALS — one
+     definition, one label, one set of answers, one mapping onto the record —
+     and drawn only where the template does not carry a blank of its own for
+     it. */
+  const sideF=(fs.some(f=>f.maps==='category'))?null
+    :((typeof CONTRACT_ESSENTIALS!=='undefined'&&Array.isArray(CONTRACT_ESSENTIALS))
+      ? CONTRACT_ESSENTIALS.find(f=>f.key==='side')||null : null);
+  const sideHtml=sideF?`<label style="display:block">
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(sideF.label)}</span>
+        <select id="tf-side" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none">${
+          (sideF.opts||[]).map(o=>(typeof fieldOpt==='function'?fieldOpt(o):{v:String(o),l:String(o)})).map(o=>
+            `<option value="${_tplEsc(o.v).replace(/"/g,'&quot;')}"${String(sideF.def||'')===o.v?' selected':''}>${_tplEsc(o.l)}</option>`).join('')}</select></label>`:'';
   const fieldsHtml=`
     <div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')}">
       ${''/* OUR SIDE, ASKED HERE TOO. A customer's own template may carry a
@@ -191,6 +216,7 @@ function openTemplateFillModal(t, prefill, ho){
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}</span>
         <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
+      ${sideHtml}
       ${''/* WHERE IT IS FILED (Young ruled 18 Sep 2026). Hand-written beside
              the other two record facts for the same reason they are: a saved
              template carries its own blanks and none of them is this, so this
@@ -217,10 +243,11 @@ function openTemplateFillModal(t, prefill, ho){
     if(errs.length){ const er=document.getElementById('tf-err'); if(er) er.textContent=errs[0]; return false; }
     const party=((document.getElementById('tf-party')||{}).value||'').trim();
     const folder=tfFolder();
-    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party, folder });
+    const side=((document.getElementById('tf-side')||{}).value||'').trim();
+    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party, folder, side });
     return true;
   };
-  const count=fs.length+3;
+  const count=fs.length+3+(sideF?1:0);
   if(ho && ho.host){
     ho.host.innerHTML=fieldsHtml+errHtml;
     if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));
@@ -2648,7 +2675,7 @@ function renderTemplatesPage(){
             MEASURED, and it is exactly the spread the owner reported on
             25 Aug. Home answers this the same way, by taking one element out
             of the row's alignment rather than by moving the row. */}
-      <div style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
+      <div style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_tpl_std')}</h1>
       ${''/* THE ARTIFACT'S OWN LINE under the title (Young, 21 Sep 2026: "exactly
              what is in the artifact") — this REVERSES the 25 Aug "no sentence
              under the title" for this page on the owner's later word. */}
@@ -2671,6 +2698,12 @@ function renderTemplatesPage(){
              note on tplHealthData: the card it drew is kept, unreferenced. */}
       <button class="st-tab${tab==='book'?' on':''}" data-tpl-tab="book" role="tab" aria-selected="${tab==='book'?'true':'false'}">${i18t('lib_tab_book')}</button>
       <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}<span class="st-tab-n">${pile.ready}</span></button>
+      ${''/* OUR STANDARDS IS THIS PAGE'S THIRD TAB (the process review,
+             4 Oct 2026): one door for the paper and its rulebook. The tab is
+             the standards page itself, drawn under this page's name — see
+             paperTabsHtml — so every one of its own tabs, its inspector and
+             its links are exactly what they were. */}
+      <button class="st-tab" data-paper-tab="standards" role="tab" aria-selected="false">${i18t('nav_our_standards')}</button>
     </div>
 
     ${''/* TWO SECTIONS, NOT THREE. The health card (tplHealthHtml) and the
@@ -2720,6 +2753,7 @@ function renderTemplatesPage(){
      does not guess at a painter; the caller hands it one. */
   sectionWire(document.querySelector('[data-tpl-sec="book"]'), tplBookRepaint);
   document.querySelectorAll('[data-tpl-tab]').forEach(b=>b.addEventListener('click',()=>tplPageSetTab(b.getAttribute('data-tpl-tab'))));
+  paperTabsWire();
   /* Every door on the overview lands on the same one: the table, narrowed to
      the template that was pressed. A card, an attention row and a bar are
      three drawings of one act, so they share one handler and one selector. */
@@ -2757,6 +2791,36 @@ function renderTemplatesPage(){
       if(changed||!lib.loaded) renderTemplatesPage();
     });
   setActiveNav('templates');
+}
+
+/* ════ TEMPLATES & STANDARDS — ONE PAGE, ONE DOOR (the process review,
+   4 Oct 2026) ════
+   The paper and the rulebook it is checked against had two rail doors and two
+   pages. They are one page now: the Book, the Templates list and Our
+   standards are its three tabs, under one name. A DOOR MERGE, NOT A REWRITE —
+   Our standards is still renderPlaybookPage, under its own view id
+   ('playbook'), so every link that opened it lands on its tab, a refresh
+   comes back to it (the view is what placeSave records), and its own tab row
+   (clause library · playbook · deviations) sits under this one as its
+   sub-tabs. PAPER_TABS is the one list; the Templates page draws the first
+   two itself, and the standards page draws all three with its own lit. */
+const PAPER_TABS=['book','list','standards'];
+function paperTabsHtml(lit, tight){
+  const lbl={ book:i18t('lib_tab_book'), list:i18t('nav_templates'), standards:i18t('nav_our_standards') };
+  return `<div class="st-tabs paper-tabs" role="tablist" style="${tight?'margin-bottom:0;flex:none':'margin-bottom:var(--s-2)'}">${PAPER_TABS.map(k=>
+    `<button class="st-tab${k===lit?' on':''}" data-paper-tab="${k}" role="tab" aria-selected="${k===lit?'true':'false'}">${esc(lbl[k])}</button>`).join('')}</div>`;
+}
+/* One handler for the row on both pages. A press on a tab of the OTHER view
+   is a page change; on the Templates page the two of its own are the page's
+   own flips (data-tpl-tab), and this listens only for the third. */
+function paperTabsWire(){
+  document.querySelectorAll('[data-paper-tab]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-paper-tab');
+    if(!PAPER_TABS.includes(k)) return;
+    if(k==='standards'){ if(state.view!=='playbook') setView('playbook'); return; }
+    _tplPageTab=k;
+    setView('templates');
+  }));
 }
 
 /* ============================================================ PLAYBOOK PAGE */
@@ -2813,8 +2877,12 @@ function renderPlaybookPage(){
      and settings page, the page should scroll behind the tab line"). The class
      is the opt-in and the rule is in index.html; the Templates page's own
      .st-tabs row is deliberately NOT opted in — it was not asked for. */
-  const tabRow=`<div class="st-tabs st-tabs-pin" role="tablist">${PB_PAGE_TABS.map(k=>
-    `<button class="st-tab${k===tab?' on':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}${sd?`<span class="st-tab-n">${sd.n[k]}</span>`:''}</button>`).join('')}</div>`;
+  /* THE PAGE'S OWN ROW RIDES IN THE PIN WITH IT (4 Oct 2026): Our standards
+     is the third tab of Our paper, so the page's row (paperTabsHtml) and this
+     page's own sub-tabs pin together as one block — the first glyph is still
+     the page's first tab, where ONE HEADER TOP measures it. */
+  const tabRow=`<div class="st-tabs-pin" style="flex:none;display:flex;align-items:stretch;min-width:0">${paperTabsHtml('standards', true)}<div class="st-tabs" role="tablist" style="flex:1 1 auto;min-width:0;padding-left:var(--s-4);margin-left:var(--s-4);box-shadow:inset 1px 0 0 var(--color-divider)">${PB_PAGE_TABS.map(k=>
+    `<button class="st-tab${k===tab?' on':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}${sd?`<span class="st-tab-n">${sd.n[k]}</span>`:''}</button>`).join('')}</div></div>`;
 
   if(INS){
     _pbHead=sdHeads(sd, canEditLib);
@@ -2915,7 +2983,9 @@ function renderPlaybookPage(){
   /* Either shape arms the watch: a width that crosses the line repaints the
      page in the other shape (INS_PAGE_REPAINT names this page). */
   if(typeof insWatchWidth==='function') insWatchWidth();
-  setActiveNav('playbook');
+  paperTabsWire();
+  /* ONE DOOR: the rail lights Templates & standards on this tab too. */
+  setActiveNav('templates');
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -3507,4 +3577,4 @@ function sdWire(d, mayEdit){
 Object.assign(window,{tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

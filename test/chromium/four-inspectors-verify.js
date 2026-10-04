@@ -101,7 +101,7 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
       !!(staged && staged.checked >= 5), staged);
 
     /* The requests, straight into the database so their dates are real. */
-    const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const db = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     const users = db.prepare('SELECT id, name FROM users').all();
     const U = n => users.find(x => x.name === n);
     const ins = db.prepare(`INSERT INTO intake_requests (id,title,need,counterparty,folder,status,by_id,by_name,contract_id,decided_by,decided_at,note,created_at,updated_at,assignee_id,assignee_name,promised_at,lane,track_token)

@@ -156,6 +156,18 @@ const check = (name, pass, detail) => {
     });
     await page.waitForTimeout(1400);
 
+    /* ---- 2c · THE ANSWER STARTS ITS ACT (4 Oct 2026, f475) ----
+       Renegotiate opens the renewal draft's own dialog — the family's one
+       door, Renewal chosen, the reason carried as its note. Cancelled here, so
+       the act stays owed and the card carries it (3h). */
+    const act = await page.evaluate(() => ({ open: !!document.getElementById('am-rel'),
+      rel: (document.getElementById('am-rel') || {}).value || '',
+      note: (document.getElementById('am-note') || {}).value || '' }));
+    check('2c recording it opens the renewal draft\'s own dialog, the reason carried',
+      act.open && act.rel === 'renewal' && /price review clause/.test(act.note), act);
+    await page.evaluate(() => { const b = document.getElementById('am-cancel'); if (b) b.click(); });
+    await page.waitForTimeout(500);
+
     /* ---- 3 · the decided reading ---- */
     const dec = await page.evaluate(() => {
       const s = document.getElementById('renewal-section');
@@ -163,8 +175,10 @@ const check = (name, pass, detail) => {
       return { text: s.innerText.replace(/\s+/g, ' ').trim(),
         answers: s.querySelectorAll('[data-rn-decide]').length,
         change: !!s.querySelector('[data-rn-change]'),
-        start: !!s.querySelector('[data-rn-start]') };
+        start: !!s.querySelector('[data-rn-start]'),
+        next: (s.querySelector('[data-rn-next]') || {}).textContent || '' };
     });
+    check('3h the next owed act is said until it is done', dec && /write the renewal paper/i.test(dec.next), dec && dec.next);
     check('3a the card states the decision and who took it', dec && /We will renegotiate\./.test(dec.text) && /Decided by /.test(dec.text), dec && dec.text.slice(0, 120));
     check('3b it quotes the reason somebody actually wrote', dec && /price review clause is one-sided/.test(dec.text));
     check('3c it says which reminders stopped', dec && /decision reminders have stopped/i.test(dec.text));

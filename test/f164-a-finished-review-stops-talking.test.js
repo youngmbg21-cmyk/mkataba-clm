@@ -204,7 +204,13 @@ describe('f164 · a review row lives exactly as long as its subject', () => {
   test('handing the round over does not silence a live review', async () => {
     const { w, c, rev } = await stage();
     w.win.negoHandOver(c, { by: ME.name, side: 'owner' });
-    assert.equal(w.win.negoUnsentAsks(c, 'owner').length, 0, 'nothing is unsent any more');
+    /* REVERSED 4 Oct 2026 (f470): this asserted "nothing is unsent any more",
+       which was the defect — a change out with a reviewer was left out of the
+       send and then read as sent, so the NEXT send carried it. What stays
+       behind is exactly what is still being read. */
+    const back = w.win.reviewWithheldIds(c);
+    assert.ok(w.win.negoUnsentAsks(c, 'owner').every(x => back.has(x.id)),
+      'only what is still with a reviewer stayed unsent');
     const html = text(rev.win.reviewBannerHtml(c, { side: 'owner' }));
     assert.match(html, /asked you to review this/, 'and the review is still their job');
     assert.match(html, /1 of 1 still needs your verdict/, 'counted over what is on the table');

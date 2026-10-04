@@ -261,6 +261,11 @@ function approveContract(c, comment){
 function rejectApprovalStep(c, comment){
   const st=approvalState(c); if(!st.required) return;
   if(st.next && !st.next.sa && st.canApproveNext){
+    /* A REFUSAL SAYS WHY (4 Oct 2026, the process review): one set of rules
+       for asking a colleague, so a rule step is refused the way a named
+       person's yes is — with a reason, or not at all. The server's
+       srvApprovalDecisionRefusal is the wall; this says it in words first. */
+    if(!String(comment||'').trim()){ toast(i18t('ap_refuse_needs_why'),'warn'); return; }
     const u=currentUser();
     c.approvalChain=st.chain.filter(s=>!s.sa).map(s=> s.ruleId===st.next.ruleId
       ? {...s, status:'rejected', by:u.name, at:nowISO(), comment:comment||s.comment||null} : s);
@@ -276,6 +281,76 @@ function rejectApprovalStep(c, comment){
   if(mine.length) return signApprovalDecide(c, mine[0].req.id, 'refused', comment);
   if(!st.next) return;
   toast(i18t('ap_step_needs',{who:approverLabelOf(st.next.approver)}),'err');
+}
+/* ════ DECIDING FROM WHERE THE ASK IS LISTED (4 Oct 2026, the process
+   review) ════════════════════════════════════════════════════════════════
+   The Approvals & signing page listed what waits on a person's yes and every
+   press opened the contract first; the phone decided in place. These are the
+   page's half: the SAME verbs (approveContract, rejectApprovalStep,
+   signApprovalDecide through openSignApprovalRefuse), the same reasons and
+   the same server wall — only the door is nearer.
+
+   approvalDecidableNow is the one reading of "what may this reader decide on
+   this contract, now": the rule step that is next and theirs, else a named
+   person's yes asked of them. Null is "nothing" and draws no verb. */
+function approvalDecidableNow(c, u){
+  let st=null; try{ st=approvalState(c); }catch(_){ st=null; }
+  if(!st||!st.required) return null;
+  if(st.next && !st.next.sa && st.canApproveNext) return { kind:'rule', step:st.next };
+  let mine=[]; try{ mine=signApprovalDecidable(c, u); }catch(_){ mine=[]; }
+  return mine.length ? { kind:'sa', row:mine[0] } : null;
+}
+/* THE ONE ASKER for a rule step's refusal — the room's gate and the page
+   both press it. Required: an empty answer is said in words and refuses
+   nothing. Null = nothing refused. */
+async function approvalRefuseWhy(){
+  if(typeof window.promptDialog!=='function') return null;
+  const why=await window.promptDialog({ title:i18t('ap_reject_step_q'), message:i18t('ap_refuse_msg'),
+    label:i18t('ap_why_refusing'), placeholder:i18t('ap_refuse_ph'), confirmLabel:i18t('ap_refuse_go'), multiline:true });
+  if(why==null) return null;
+  const text=String(why).trim();
+  if(!text){ toast(i18t('ap_refuse_needs_why'),'warn'); return null; }
+  return text;
+}
+/* EVERY RULE STEP GIVEN — the bell's question (the owner's 'ap-cleared'
+   row), asked of the STORED steps so a light list row answers it honestly:
+   the stamp's wording hash cannot be read off a row whose wording the list
+   left out, so drift is asked only of a whole record. False where no rule
+   matches — nothing was ever asked, so nothing cleared. */
+function approvalRulesCleared(c){
+  if(!c) return false;
+  const rules=approvalRules().filter(r=>{ try{ return ruleMatches(r,c); }catch(_){ return false; } });
+  if(!rules.length) return false;
+  const chain=Array.isArray(c.approvalChain)?c.approvalChain:[];
+  const light=!!(c._light&&!c._loaded);
+  return rules.every(r=>{ const s=chain.find(x=>x&&x.ruleId===r.id);
+    return !!s && s.status==='approved' && (light || !approvalDrift(s,c).length); });
+}
+async function approvalDecideAsk(c, verdict){
+  if(!c) return false;
+  /* A LIST ROW IS LIGHT: the decision is stamped against the wording, so the
+     whole record is read first — the room's own reading of it. */
+  try{ if(typeof ensureFull==='function') await ensureFull(c); }catch(_){}
+  const d=approvalDecidableNow(c);
+  if(!d){ toast(i18t('sa_gone'),'warn'); return false; }
+  if(d.kind==='rule'){
+    if(verdict==='approved'){ approveContract(c); return true; }
+    const why=await approvalRefuseWhy(); if(why==null) return false;
+    rejectApprovalStep(c, why); return true;
+  }
+  if(verdict!=='approved') return openSignApprovalRefuse(c, d.row.req.id);
+  /* An admin deciding in the approver's place says why — signApprovalDecide's
+     own rule, asked here rather than bounced. */
+  let note='';
+  if(d.row.as==='admin'){
+    if(typeof window.promptDialog!=='function') return false;
+    const v=await window.promptDialog({ title:i18t('sa_card_approve'), label:i18t('sa_card_note_admin'), multiline:true,
+      confirmLabel:i18t('sa_card_approve') });
+    if(v==null) return false;
+    note=String(v).trim();
+    if(!note){ toast(i18t('sa_admin_needs_why',{who:d.row.req.approverName||i18t('sa_admins')}),'warn'); return false; }
+  }
+  return signApprovalDecide(c, d.row.req.id, 'approved', note);
 }
 /* THE WAY OUT OF A REFUSAL.
 
@@ -1332,7 +1407,23 @@ function saveSignerPlan(c, rows){
       signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
   const why=signerPlanWhy(c, out);
   if(why) return why;
+  const before=(c.signerPlan||[]).slice();
   c.signerPlan=out;
+  /* ---- EVERY SIGNER ON THEIR SIDE IS IN THE ADDRESS BOOK (4 Oct 2026) ----
+     The route keeps its own rows (it is still the one authority on WHO SIGNS
+     and in what order) but the person and their address are the people
+     list's: each of their signers is written there as their signer, and an
+     address changed here moves wherever that person appears — the record's
+     contact, their other roles — through the book's one writer. */
+  if(typeof contactSet==='function'){
+    out.forEach(s=>{
+      if(s.party!=='counterparty' || !String(s.email||'').trim()) return;
+      const prior=before.find(p=>p && p.id===s.id);
+      const was=prior && String(prior.email||'').trim();
+      contactSet(c, { role:'cpsign', name:s.name, email:s.email, partyId:s.partyId,
+        ...(was && was.toLowerCase()!==String(s.email).trim().toLowerCase()?{ was }:{}) });
+    });
+  }
   logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`);
   persist(c);
   return null;
@@ -1378,8 +1469,10 @@ function openSignerPlanEditor(c, opts){
     plan.push({ party:'internal', name:me?me.name:'', email:me?me.email:'',
       role:(me&&typeof signerTitle==='function'?signerTitle(me):'')||'',
       memberId:me?me.id:'' });
+    /* THEIR ADDRESS IS THE ADDRESS BOOK'S main contact (4 Oct 2026). */
+    const book=(typeof contactEmail==='function')?contactEmail(c):'';
     plan.push({ party:'counterparty', name:theirName,
-      email:them.email||c.counterpartyEmail||'', role:'', memberId:'' });
+      email:book||them.email||c.counterpartyEmail||'', role:'', memberId:'' });
   }
   signerRouteWindow(c, plan, back);
 }
@@ -2000,6 +2093,12 @@ function signerRouteHtml(c, opts){
        line — an inline state, not a band. The counterparty's own send is
        greyed with the same sentence, because the server refuses the link. */
     let saHold=null; try{ saHold=signApprovalHoldsLinks(c); }catch(_){ saHold=null; }
+    /* AND THE SEND ITSELF ASKS THE ONE ISSUING CHECK (signLinkRefusal,
+       4 Oct 2026): greyed with the list's own sentence wherever HaTi can know
+       before the press — the desk, the review, the rules, the check — not
+       only where the personal approval holds. */
+    let sendNo=null; try{ const no=window.signLinkRefusal?signLinkRefusal(c):null; sendNo=no?no.why:null; }catch(_){ sendNo=null; }
+    if(saHold) sendNo=saHold;
     /* A FILE THEY SIGN (26 Sep 2026): the route is who signs, and nothing
        more — nobody's turn comes in HaTi, no link goes out, nobody is told it
        is their turn. Our signatory is told to expect the document when it is
@@ -2095,7 +2194,7 @@ function signerRouteHtml(c, opts){
               </div>
               <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
               ${(!s.signed&&!theySign&&s.party==='counterparty'&&(ls==='unsent'||ls==='failed')&&!gated&&canEdit())
-                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}"${saHold?` disabled aria-disabled="true" title="${esc1(saHold)}"`:''} class="ui-btn ui-btn-sm mt-1${saHold?' opacity-50 cursor-not-allowed':''}">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
+                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}"${sendNo?` disabled aria-disabled="true" title="${esc1(sendNo)}"`:''} class="ui-btn ui-btn-sm mt-1${sendNo?' opacity-50 cursor-not-allowed':''}">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
                 : ''}
               ${''/* THE INTERNAL ROW'S OWN DOOR. A resend is a deliberate act
                      with a visible result, never a silent retry — so it is
@@ -2125,15 +2224,11 @@ function wireApprovalPanel(c){
      email — the same reasoning js/versioning.js gives for the reply that
      travels with a rejected round. Asked here, once, and shown to the owner on
      the panel above. */
+  /* REQUIRED SINCE 4 Oct 2026 — see approvalRefuseWhy, the one asker. */
   document.getElementById('ap-reject')?.addEventListener('click',async()=>{
-    let why='';
-    if(typeof window.promptDialog==='function'){
-      why=await window.promptDialog({ get title(){ return i18t('ap_reject_step_q'); },
-        message:'The contract goes back to its owner. Say what has to change and they can revise it and send it back.',
-        get label(){ return i18t('ap_why_refusing'); }, placeholder:'e.g. the liability cap is below our floor', optional:true });
-      if(why===null) return;                 // dismissed — nothing was refused
-    }
-    rejectApprovalStep(c, String(why||'').trim()||null);
+    const why=await approvalRefuseWhy();
+    if(why==null) return;                    // dismissed, or nothing said — nothing was refused
+    rejectApprovalStep(c, why);
   });
   document.getElementById('ap-resubmit')?.addEventListener('click',async()=>{
     let note='';
@@ -2153,8 +2248,8 @@ function wireApprovalPanel(c){
     b.disabled=true; b.textContent='Sending…';
     let out=null;
     try{ out=window.issueSigningRouteLinks?await issueSigningRouteLinks(c):null; }catch(e){ out=null; }
-    if(out&&out.heldForApproval){
-      toast(out.heldForApproval,'warn');
+    if(out&&(out.refused||out.heldForApproval)){
+      toast(out.refused||out.heldForApproval,'warn');
     } else if(out&&out.links){
       const first=out.links.find(x=>!x.heldForTurn);
       toast(first&&first.emailSent
@@ -2215,7 +2310,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
+Object.assign(window,{approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
   signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,

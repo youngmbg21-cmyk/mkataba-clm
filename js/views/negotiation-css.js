@@ -6148,6 +6148,12 @@ function redlineLayoutCss(){
   .redline-page .rl-close-go:hover:not(:disabled){background:var(--color-neutral-100);
     color:var(--color-text);filter:none}
   .redline-page .rl-close-go:disabled{opacity:.5}
+  ${''/* THE ROUND, IN CLOSE ROUND'S OLD SLOT (4 Oct 2026): words, not a button —
+         the same height the button had so the head does not move a pixel,
+         the meta ink the column's other quiet words wear, nothing to press. */}
+  .redline-page .rl-idx-top .rl-round-at{flex:none;display:inline-flex;align-items:center;
+    height:var(--ctl-h-sm);white-space:nowrap;font-size:var(--t-meta);font-weight:var(--w-label);
+    color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
   .redline-page .rl-band,.redline-page .rl-band:first-child{background:none;border:0;
     padding:12px var(--s-4) 4px;font-size:var(--t-micro);letter-spacing:.08em;
     color:var(--color-neutral-500)}

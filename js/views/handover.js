@@ -285,6 +285,12 @@ function _hoWireRoute(c, root){
    three things only the lead knows: how they agreed, who signs for us, and
    how the Word file leaves. Nothing in it asks how or by whom they will sign:
    that is theirs to decide. */
+/* THE ADDRESS BOOK'S main contact for a party (js/participants.js), else the
+   record's own copy of it on a stage without the people module. */
+function _hoBookEmail(c, partyId){
+  if (typeof contactEmail === 'function') return contactEmail(c, partyId);
+  return partyId ? '' : String((c && c.counterpartyEmail) || '');
+}
 async function openHandoverWindow(c){
   if (!c) return;
   if (typeof flushSaves === 'function'){ try { await flushSaves(); } catch (_) {} }
@@ -313,7 +319,7 @@ async function openHandoverWindow(c){
   const toRows = many
     ? multi.map((p, i) => `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px" data-ho-to-party="${_hoEsc(p.id)}">
         <input type="text" data-ho-to-name placeholder="${_hoEsc(i18t('ho_to_name_ph'))}" value="${_hoEsc(i ? '' : (pre.name || ''))}" style="${FLD}" aria-label="${_hoEsc(p.name)}">
-        <input type="email" data-ho-to-email placeholder="${_hoEsc(i18t('ho_to_email_ph_for', { who: p.name }))}" value="${_hoEsc(p.email || (i ? '' : (pre.email || '')))}" style="${FLD}" aria-label="${_hoEsc(p.name)}">
+        <input type="email" data-ho-to-email placeholder="${_hoEsc(i18t('ho_to_email_ph_for', { who: p.name }))}" value="${_hoEsc(_hoBookEmail(c, p.id) || p.email || (i ? '' : (pre.email || '')))}" style="${FLD}" aria-label="${_hoEsc(p.name)}">
       </div>`).join('')
     : '';
   openModal(`<div class="ho-win" style="padding:22px var(--s-6)">
@@ -341,7 +347,7 @@ async function openHandoverWindow(c){
         </div>
         <div id="ho-email-box" style="margin-top:8px;display:grid;gap:6px">
           ${many ? toRows : `<input id="ho-to-name" type="text" placeholder="${_hoEsc(i18t('ho_to_name_ph'))}" value="${_hoEsc(pre.name || '')}" style="${FLD}">
-          <input id="ho-to-email" type="email" placeholder="${_hoEsc(i18t('ho_to_email_ph'))}" value="${_hoEsc(pre.email || c.counterpartyEmail || '')}" style="${FLD}">`}
+          <input id="ho-to-email" type="email" placeholder="${_hoEsc(i18t('ho_to_email_ph'))}" value="${_hoEsc(pre.email || _hoBookEmail(c) || '')}" style="${FLD}">`}
           <textarea id="ho-note" rows="3" style="${FLD};height:auto;padding:6px var(--field-pad-x);resize:vertical">${_hoEsc(i18t('ho_note_default'))}</textarea>
         </div>
       </div>
@@ -384,6 +390,13 @@ async function openHandoverWindow(c){
       to = { name: ((document.getElementById('ho-to-name') || {}).value || '').trim(),
         email: ((document.getElementById('ho-to-email') || {}).value || '').trim() };
       if (channel === 'email' && !/.+@.+\..+/.test(to.email)) return err(i18t('ho_need_email'));
+    }
+    /* WHOEVER THE FILE GOES TO IS IN THE ADDRESS BOOK (4 Oct 2026) — the
+       send screen's own memory, so this box never holds an address the
+       people list does not. */
+    if (channel === 'email' && typeof shareRememberRecipient === 'function'){
+      [to].concat(also).forEach(r => { if (r && r.email) shareRememberRecipient(c,
+        { purpose: 'negotiate', email: r.email, name: r.name, partyId: r.partyId }); });
     }
     btn.disabled = true; btn.textContent = i18t('ho_handing');
     const out = await outsideHandOver(c, { how, channel, to, also,

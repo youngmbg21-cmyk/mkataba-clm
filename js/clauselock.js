@@ -224,6 +224,60 @@ function clauseLockHandOver(c, clauseId, toId){
   clauseLockSave(c, { clauseId: id, handTo: to.id });
   return to;
 }
+/* ---- HANDING OVER, ASKED ONCE, FROM EITHER DOOR (4 Oct 2026, the process
+   review) ----
+   The act had one door — the editor rail's line — and it always went to the
+   FIRST asker. It is offered now on the sign the holder sees on the paper too,
+   and both doors press THIS, so the confirm, the toast and the repaint cannot
+   come to differ between them. Where more than one colleague asked, the
+   confirm carries a small picker (first asker chosen, so a plain yes is
+   exactly the old act). The picker is put into the confirm after it opens;
+   confirmDialog's own options are unchanged. Nothing is filed and the draft
+   is kept, which is what the dialog says. */
+function clauseLockHandOverAsk(c, clauseId, after){
+  const W = (typeof window !== 'undefined') ? window : null;
+  const id = String(clauseId || '');
+  const rows = (c && id) ? clauseLockMineWaiting(c, id) : [];
+  if (!W || !rows.length) return Promise.resolve(null);
+  const go = toId => {
+    const got = clauseLockHandOver(c, id, toId);
+    if (!got) return null;
+    if (typeof W.persist === 'function') try{ W.persist(c); }catch(_){ }
+    if (W.toast) W.toast(_clT('cl_handed', { who: String(got.name || '') }), 'ok');
+    if (typeof after === 'function') try{ after(got); }catch(_){ }
+    return got;
+  };
+  if (typeof W.confirmDialog !== 'function') return Promise.resolve(go(rows[0].id));
+  const many = rows.length > 1;
+  let pick = rows[0].id;
+  const asked = W.confirmDialog({ title: _clT('cl_hand_over'),
+    message: many ? _clT('cl_hand_title_many') : _clT('cl_hand_title', { who: String(rows[0].name || '') }),
+    confirmLabel: _clT('cl_hand_over') });
+  if (many && typeof document !== 'undefined') try{
+    const ok = document.querySelector('#confirm-overlay #cf-ok');
+    const foot = ok && ok.parentElement;
+    if (foot && foot.parentElement){
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'padding-left:46px;margin:0 0 var(--s-4)';
+      const lab = document.createElement('label');
+      lab.setAttribute('for', 'cl-hand-to');
+      lab.style.cssText = W.HATI_LBL || '';
+      lab.textContent = _clT('cl_hand_to');
+      const sel = document.createElement('select');
+      sel.id = 'cl-hand-to';
+      sel.style.cssText = W.HATI_FLD || '';
+      rows.forEach(r => {
+        const o = document.createElement('option');
+        o.value = String(r.id); o.textContent = String(r.name || _clT('cl_a_colleague'));
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', () => { pick = sel.value; });
+      wrap.appendChild(lab); wrap.appendChild(sel);
+      foot.parentElement.insertBefore(wrap, foot);
+    }
+  }catch(_){ }
+  return asked.then(yes => (yes ? go(pick) : null));
+}
 /* THE TWO SENTENCES, in the reader's own language and in one place, so the
    sign, the editor's foot and the toast cannot each invent their own account
    of the same queue. */
@@ -391,13 +445,13 @@ function clauseLockSign(c, clauseId){
 if (typeof window !== 'undefined') Object.assign(window, {
   CLAUSE_LOCK_MS,
   clauseLockAsks, clauseLockAskedByMe, clauseLockAsk, clauseLockMineWaiting,
-  clauseLockHandOver, clauseLockWaitingLine, clauseLockAskedLine, clauseLockLive, clauseLockMe, clauseLockInitials, clauseLockMonogram,
+  clauseLockHandOver, clauseLockHandOverAsk, clauseLockWaitingLine, clauseLockAskedLine, clauseLockLive, clauseLockMe, clauseLockInitials, clauseLockMonogram,
   clauseLockOf, clauseLockHeldByOther, clauseLockTake, clauseLockKeep,
   clauseLockRelease, clauseLockSweep, clauseLockLine, clauseLockTitle, clauseLockSave,
   clauseLockMerge, clauseLockSign });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
   CLAUSE_LOCK_MS,
   clauseLockAsks, clauseLockAskedByMe, clauseLockAsk, clauseLockMineWaiting,
-  clauseLockHandOver, clauseLockWaitingLine, clauseLockAskedLine, clauseLockLive, clauseLockInitials, clauseLockMonogram,
+  clauseLockHandOver, clauseLockHandOverAsk, clauseLockWaitingLine, clauseLockAskedLine, clauseLockLive, clauseLockInitials, clauseLockMonogram,
   clauseLockOf, clauseLockHeldByOther, clauseLockTake, clauseLockKeep,
   clauseLockRelease, clauseLockSweep, clauseLockSave, clauseLockMerge, clauseLockSign };

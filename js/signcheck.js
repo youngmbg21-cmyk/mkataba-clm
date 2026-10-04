@@ -215,20 +215,14 @@ function signCheckRecord(c){
    the shape the product does not produce, which is how it passed for a
    fortnight. The newest of the four is taken; the older two stay for any
    record shaped that way. */
-const BRIEF_AT_KEYS = ['createdAt', 'updatedAt', 'at', 'filedAt'];
+/* THE WALK MOVED TO js/signgate.js (4 Oct 2026) — `sgLastProposedAt`, same
+   keys, same answer — so the server's wall reads the date the card reads: the
+   brief-read stamp is keyed on it, and a second copy on the server would be
+   the drift that file exists to prevent. A stage without it answers 0, "we do
+   not know". */
 function signCheckBriefAt(c){
-  let last = 0;
-  const walk = list => (list || []).forEach(ch => {
-    if (!ch) return;
-    for (const k of BRIEF_AT_KEYS){
-      const t = Date.parse(String(ch[k] || '')) || 0;
-      if (t > last) last = t;
-    }
-  });
-  walk(c && c.changes);
-  const n = c && c.negotiation;
-  if (n && Array.isArray(n.rounds)) n.rounds.forEach(r => walk(r && r.changes));
-  return last;
+  const n = _scCall('sgLastProposedAt', c);
+  return typeof n === 'number' ? n : 0;
 }
 function signCheckBrief(c){
   const b = (c && c._brief) || null;
@@ -290,12 +284,30 @@ function readingStale(c, kind){
     try { pb = (typeof playbookStale === 'function') ? playbookStale(c) : null; } catch (_) { pb = null; }
     if (pb === true || pb === false) return pb;
   }
-  const made = Date.parse(readingMadeAt(c, kind)) || 0;
+  const at = readingMadeAt(c, kind);
+  const made = Date.parse(at) || 0;
   if (!made) return null;                 /* never read is not out of date */
   const moved = signCheckBriefAt(c);
   if (!moved) return null;                /* nothing has been proposed to compare with */
+  /* ---- A DAY IS NOT A MOMENT (process review, 4 Oct 2026) ----
+     The obligations read was stamped as a bare DAY ("2026-10-04"), which
+     Date.parse takes as that day's first instant — so a change proposed later
+     the SAME day as the reading, before it or after it, read as "the wording
+     moved since". The stamp is a full time from today on
+     (obligationsReadStamp); a day-only stamp still on file answers what a day
+     can answer: moved on a LATER day is moved, on an earlier day is not, and
+     on the same day is "we do not know". */
+  if (READING_DAY_ONLY.test(at)){
+    /* Compared as LOCAL days, which is what the old stamp wrote (isoDay). */
+    const d = new Date(moved), p2 = n => String(n).padStart(2, '0');
+    const movedDay = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+    if (movedDay > at) return true;
+    if (movedDay < at) return false;
+    return null;
+  }
   return moved > made;
 }
+const READING_DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 /* Which of the three a round has left behind. The count the Overview prints,
    and the one thing a reader needs to know between a round landing and the
    signing flow: how much of what is on this card speaks for the old text. */
@@ -447,7 +459,17 @@ function signCheckMayAccept(c, v, user){
    paper, and the two need different sentences. pbCarryDecisions sets the flag
    when it carries a stamp onto a departure whose quote has changed. */
 function signCheckAcceptStale(v){ const a = v && v.accepted; return !!(a && a.staleQuote); }
+/* THE WALL'S OWN QUESTION (js/signgate.js, 4 Oct 2026). The server also counts
+   an acceptance stamped by somebody who IS an admin on the roster, so the card
+   asks the roster too — or it would hold what the wall lets through. */
+function signCheckIsAdminId(id){
+  const users = _scCall('getUsers');
+  const u = Array.isArray(users) ? users.find(x => x && String(x.id) === String(id)) : null;
+  return !!(u && String(u.role || '') === 'admin');
+}
 function signCheckAcceptedProperly(v){
+  const sg = _scW('sgAcceptedProperly');
+  if (typeof sg === 'function') return !!sg(v, signCheckIsAdminId);
   const a = v && v.accepted;
   if (!a || !a.at) return false;
   if (!v.escalate) return true;
@@ -522,6 +544,12 @@ const SIGN_STAGE_OF = {
   record: 'read', risk: 'read',
   approval: 'people', signapproval: 'people', turn: 'people', signers: 'people', spots: 'people',
   cap: 'people', folder: 'people', 'ho-signatory': 'people', 'ho-blanks': 'paper',
+  /* THE KEYS signBlockers REALLY PRODUCES (4 Oct 2026, the process review):
+     the cap and the folder rule arrive as 'signcap' / 'signfolder' and the
+     hold as 'hold', so they fell to the 'paper' default — a signing limit
+     drawn as a fault in the paper. 'cap' and 'folder' above are kept,
+     harmless, for anything older that still names them. */
+  signcap: 'people', signfolder: 'people', hold: 'paper',
   brief: 'sign', 'brief-read': 'sign',
 };
 const signStageOf = kind => SIGN_STAGE_OF[String(kind || '')] || 'paper';
@@ -801,7 +829,17 @@ function signReadinessFor(c){
   }
   return signReadiness(c, { light });
 }
-if (typeof window !== 'undefined') Object.assign(window, { signReadinessFor });
+/* ---- WHAT THE CHECK HOLDS AT A SIGNING LINK (4 Oct 2026) ----
+   The wall's own list (js/signgate.js `sgHolds`) at this workspace's gate,
+   with no signer: a link is the counterparty's signature, and our brief is
+   never theirs to read. The one issuing check (signLinkRefusal, js/core.js)
+   asks this, and the server's POST /api/shares asks the same function. */
+function signCheckLinkHolds(c){
+  const f = _scW('sgHolds');
+  if (typeof f !== 'function' || !c) return [];
+  try { return f(c, { gate: signCheckGate(), isAdmin: signCheckIsAdminId }) || []; } catch (_) { return []; }
+}
+if (typeof window !== 'undefined') Object.assign(window, { signReadinessFor, signCheckLinkHolds, signCheckIsAdminId });
 if (typeof window !== 'undefined') Object.assign(window, {
   SIGN_FIELD_OF, SIGN_BOX_FIELD, signFieldMarks,
   briefReadKey, briefReadOf, briefReadBy, briefMarkRead, briefReadWho, signCheckBriefStands,
@@ -810,6 +848,6 @@ if (typeof window !== 'undefined') Object.assign(window, {
   signCheckRowHolds, signCheckRows, signCheckHolding, signReadiness, signCheckWillRun,
   signCheck, signCheckReady, signCheckTableClear, signCheckWaiting,
   signCheckBrief, signCheckBriefAt, SIGN_STAGES, SIGN_STAGE_OF, signStageOf,
-  READING_KINDS, readingMadeAt, readingStale, readingsStale,
+  READING_KINDS, READING_DAY_ONLY, readingMadeAt, readingStale, readingsStale,
   signCheckStandards, signCheckObligations, signCheckRecord, signCheckRecordValue,
 });

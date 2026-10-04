@@ -254,9 +254,12 @@ const ok = (name, good, detail) => {
       await page.click(`.ap-table tbody tr[data-ap-row="${ap.rows[1]}"]`); await page.waitForTimeout(300);
       const s = await page.evaluate(() => ({ view: state.view, pid: document.getElementById('ins-panel').getAttribute('data-ins-id') }));
       ok('3b a press selects on Approvals too', s.view === 'approvals' && s.pid === ap.rows[1], JSON.stringify(s));
-      await page.click('#ins-panel [data-ins-act]'); await page.waitForTimeout(1200);
+      /* RE-POINTED 4 Oct 2026 (the process review, approved): a step this
+         reader may decide now LEADS with Approve and Refuse (f466), so the door
+         to the Signing tab is pressed by its own name — it is still there. */
+      await page.click('#ins-panel [data-ins-act="gate"]'); await page.waitForTimeout(1200);
       const g = await page.evaluate(() => ({ view: state.view, id: state.activeId, tab: (typeof roomCurrentTab === 'function') ? roomCurrentTab() : null }));
-      ok('3c the panel’s lead act opens that contract on its Signing tab', g.view === 'workspace' && g.id === ap.rows[1] && (g.tab === 'sign' || g.tab == null), JSON.stringify(g));
+      ok('3c the panel’s Signing-tab door opens that contract on its Signing tab', g.view === 'workspace' && g.id === ap.rows[1] && (g.tab === 'sign' || g.tab == null), JSON.stringify(g));
     } else {
       ok('3b a press selects on Approvals too', false, 'fewer than two approval rows, or no panel');
       ok('3c the panel’s lead act opens that contract on its Signing tab', false, 'nothing to press');

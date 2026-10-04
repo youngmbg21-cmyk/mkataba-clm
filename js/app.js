@@ -47,6 +47,7 @@ import './payterms.js';    // payment terms turned into a number of days, and co
    Loaded before the screens that draw it and before approvals.js, whose
    signer editor opens on the rows this list can fill. */
 import './participants.js';
+import './signgate.js';    // the check before signing as a wall: one reading, loaded by the server too (4 Oct 2026)
 import './signcheck.js';   // where a contract stands at the signing door: one deterministic reading, no spend (13 Sep 2026)
 /* Approval before signing: who on a contract needs a named colleague's yes
    before anyone signs it — one reading, loaded by the server too (23 Sep 2026). */
@@ -106,6 +107,7 @@ import './views/directory.js';    // People: the roster, read-only, for every ro
 import './views/queue.js';
 import './views/advice.js';
 import './views/adviceportal.js';
+import './intakelanes.js';      // a request's lane and answers: one reading, both hosts (4 Oct 2026)
 import './views/intake.js';     // the intake front door: anybody may ASK for a contract (W2-2)
 import './templatefields.js';
 import './views/library.js';
@@ -193,8 +195,10 @@ function commandMeta(view){
        DIVERGES FROM THE DESIGN REFERENCE, which draws a subtitle on every
        screen header — recorded as the owner's ruling, not as drift. */
     case 'register':  return [i18t('nav_contracts'), ''];
-    case 'templates': return [i18t('nav_templates'), i18t('pg_templates_sub')];
-    case 'playbook':  return [i18t('nav_our_standards'), i18t('pg_standards_sub')];
+    case 'templates': return [i18t('nav_tpl_std'), i18t('pg_templates_sub')];
+    /* ONE PAGE (4 Oct 2026): Our standards is a tab of Templates & standards,
+       so its head carries the page's name, not the tab's. */
+    case 'playbook':  return [i18t('nav_tpl_std'), i18t('pg_standards_sub')];
     case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
     case 'advice':    return [i18t('nav_advice_desk'), i18t('pg_advice_sub')];
     case 'obligations': return [i18t('nav_obligations'), ''];
@@ -1762,7 +1766,35 @@ const ALERT_KINDS = [
      that NAME you and remembers per browser; this counts notes somebody
      handed you, reads the record, and clears when the note is done. */
   { k:'note-mine',   tone:'amber', ic:'&#128221;' },
+  /* ---- WHAT A COLLEAGUE HANDED BACK, AND WHAT WAITS ON THE LEAD (4 Oct 2026) ----
+     Three more colleagues waiting on this reader by name, so they rank with
+     the others, after the note (the join stays pinned beside review-mine):
+     a contributor's suggestion waiting for the lead to adopt or hand back; a
+     review handed back to the person who asked for it, whose move it now is;
+     and a suggestion handed back to its author with a reason. Amber: work
+     owed. Each clears only by the work being done — adopting, sending,
+     filing again. */
+  { k:'suggest',     tone:'amber', ic:'&#128161;' },
+  { k:'review-back', tone:'amber', ic:'&#8617;'  },
+  { k:'suggest-back',tone:'amber', ic:'&#8617;'  },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
+  /* ---- EVERY APPROVAL RULE STEP IS GIVEN (4 Oct 2026, the process review) ----
+     To the contract's OWNER, beside the approvals it ends: the last rule step
+     cleared and nothing else on the chain waits, so it can go for signature.
+     The server mails the same moment (ruleChainClearedTell). Green — good
+     news, the next move is theirs. The internal signer needs no row of their
+     own: their 'signature' row above is already theirs. It goes away by
+     itself the moment signing starts. */
+  { k:'ap-cleared',  tone:'green', ic:'&#9989;'  },
+  /* ---- A COLLEAGUE ASKED FOR A CONTRACT (4 Oct 2026, the process review's
+     Requests stream) ----
+     A request was raised and nothing told the people who could draft it: the
+     Requests count moved in a rail most of them never looked at. One row per
+     request nobody holds, to a reader who may draft and can see its stream
+     (intakeAlertRows, off the list the server already scoped), gone the moment
+     somebody picks it up, drafts it or declines it. Ranked under approvals:
+     a colleague is waiting, but no live deal is held by it. Amber: work owed. */
+  { k:'request',     tone:'amber', ic:'&#128233;' },
   /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
      A REGISTERED KIND, not a special case at the draw. It arrived as a warn
      toast and on a real workspace that meant four orange boxes stacked over the
@@ -1976,6 +2008,28 @@ function buildAlerts(){
       (st.waiting||[]).filter(rv=>!window.reviewMaySee||reviewMaySee(rv)).forEach(rv=>push('review-out',c,
         i18t('al_review_out',{who:rv.reviewer&&rv.reviewer.name}),
         ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); }));
+      /* AND ONE THAT CAME BACK, to the person who asked (reviewReturnedTo). */
+      let back=[]; try{ back=window.reviewReturnedTo?reviewReturnedTo(c):[]; }catch(_){ back=[]; }
+      back.forEach(rv=>push('review-back',c,
+        i18t('al_review_back',{who:rv.returnedBy||(rv.reviewer&&rv.reviewer.name)||''}),
+        ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); }));
+    });
+  }
+  /* 3a. A colleague's suggestion waiting on the lead, and one handed back to
+         its author (js/desk.js). Both read c.changes RAW and answer [] where
+         the desk rule is off or the contract has no desk — counting starts no
+         negotiation. One row per contract, the door the negotiate page. */
+  if(window.deskSuggestionsFor || window.deskSuggestionsBackTo){
+    cs.forEach(c=>{
+      if(!c || !c.desk) return;
+      let wait=[], back=[];
+      try{ wait=window.deskSuggestionsFor?deskSuggestionsFor(c):[]; }catch(_){ wait=[]; }
+      try{ back=window.deskSuggestionsBackTo?deskSuggestionsBackTo(c):[]; }catch(_){ back=[]; }
+      const go=()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); };
+      if(wait.length) push('suggest',c,i18tn('al_suggest',wait.length,{ n:wait.length,
+        who:(wait[0].suggested&&wait[0].suggested.by)||'' }),go);
+      if(back.length) push('suggest-back',c,i18tn('al_suggest_back',back.length,{ n:back.length,
+        who:(back[0].suggested&&back[0].suggested.returnedBy)||'' }),go);
     });
   }
   /* 3b. Notes a colleague gave this reader. negoNotesForMe reads c.thread and
@@ -2005,6 +2059,20 @@ function buildAlerts(){
         &&meNow&&String(s.req.askedBy.id)===String(meNow.id));
       if(bad) push('approval',x.c,i18t('al_sa_refused',{who:bad.by||''}),
         ()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} });
+    });
+    /* ---- AND WHEN THE LAST RULE STEP IS GIVEN, THE OWNER IS TOLD ----
+       Read off approvalRulesCleared (js/approvals.js); only rule chains (a named
+       person's yes already tells whoever asked), only before anyone signs. */
+    if(meNow && typeof approvalRulesCleared==='function') cs.forEach(c=>{
+      if(c.status==='Signed'||c.status==='Declined'||c.status==='Draft') return;
+      if(!(c.owner&&String(c.owner.id)===String(meNow.id))) return;
+      if((Array.isArray(c.signatures)&&c.signatures.length)||(c.signerPlan||[]).some(s=>s&&s.signed)) return;
+      let ok=false; try{ ok=approvalRulesCleared(c); }catch(_){ ok=false; }
+      if(!ok) return;
+      /* A named person's yes still owed is not "cleared" — that row says so. */
+      try{ if(typeof signApprovalStateOf==='function'&&signApprovalStateOf(c).rows.some(r=>r.status!=='approved')) return; }catch(_){}
+      push('ap-cleared',c,i18t('al_ap_cleared'),
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
     });
     /* ---- A NEGOTIATION GONE QUIET, AND A COLLEAGUE ASKING TO JOIN ----
        (24 Sep 2026.) Read off the same slices the approvals above ride on —
@@ -2176,6 +2244,17 @@ function buildAlerts(){
         ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} });
     });
   }
+  /* A COLLEAGUE ASKED FOR A CONTRACT (see the kind). The door is the
+     Requests page with that request lit (intakeGoTo). */
+  try{
+    if(typeof window.intakeAlertRows==='function') intakeAlertRows().forEach(r=>{
+      const who=String((r.by&&r.by.name)||'').trim();
+      let age=''; try{ age=(typeof window.ikAgeWords==='function')?ikAgeWords(r):''; }catch(_){ age=''; }
+      push('request',null,i18t('al_request',{title:String(r.title||'')}),
+        ()=>{ if(window.intakeGoTo) intakeGoTo(r.id); else setView('intake'); },
+        { sub:[who?i18t('al_request_by',{who}):'', age].filter(Boolean).join(' \u00b7 ') });
+    });
+  }catch(e){}
   /* ---- EMAIL ISN'T SET UP (owner-ruled 24 Aug 2026: it moves here) ----
      ADMIN ONLY, and that is the whole of why it is not simply the old banner
      re-parented: an Editor could not act on it, so on their screen it was a

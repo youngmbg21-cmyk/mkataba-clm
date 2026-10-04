@@ -449,10 +449,14 @@ describe('F92 — the six-round negotiation, end to end', () => {
     t.view('owner');
     await t.pause();
 
-    // Everything decided: the closer appears, and only now.
-    const closer = t.$('[data-rl-close-round]');
-    assert.ok(closer, 'G4: a finished round must be closable from the page it was worked on');
-    closer.click();
+    /* Everything decided. REVERSED 4 Oct 2026 (f471): there is no Close
+       round button to press any more — the round closes itself on the send
+       that hands the table over, and where the table is quiet that send
+       archives it exactly as the button did. So the owner sends it back. */
+    assert.equal(t.$('[data-rl-close-round]'), null, 'no button: the send is the close');
+    const before = win.negoRound(c);
+    win.negoHandOver(c, { to: 'counterparty', by: 'Wanjiru Kamau' });
+    win.renderRedline();
     await t.pause(40);
 
     // The book: one archived round holding every decided change with its
@@ -461,7 +465,10 @@ describe('F92 — the six-round negotiation, end to end', () => {
     const archived = c.negotiation.rounds[0];
     assert.equal(archived.changes.length, 5, 'all five decided changes archived');
     assert.equal(win.negoChanges(c).length, 0, 'the table is empty for round two');
-    assert.equal(win.negoRound(c), 2);
+    assert.equal(win.negoRound(c), before + 1, 'the send started the next round');
+    const sentNames = (c.versions || []).map(v => v.label || v.name || '').filter(x => / — sent to /.test(x) && /^Round \d+ — sent to Nordfrakt/.test(x));
+    assert.ok(sentNames.length >= 2, 'several sends were filed: ' + sentNames.join(' / '));
+    assert.equal(new Set(sentNames).size, sentNames.length, 'and no two sends share a round name any more');
     const base = win.negoBaseText(c);
     assert.match(base, /forty-five \(45\) days from the date of issue/, 'accepted Net-45 is baseline');
     assert.match(base, /forty-five \(45\) days written notice/, 'the accepted counter is baseline');

@@ -427,7 +427,8 @@ describe('F230 — the whole contract is read', () => {
        outsourcing and transport agreements alike. */
     assert.match(OBLIG, /action:\s*\{\s*label:i18t\('ob_try_again'\)/,
       'a refusal needs its way forward on the same screen');
-    assert.match(OBLIG, /onClick:\(\)=>runFindObligations\(c\)/,
+    /* 4 Oct 2026 (f475): the retry carries the press's own options. */
+    assert.match(OBLIG, /onClick:\(\)=>runFindObligations\(c(, opts)?\)/,
       'and the way forward must be the same act, not a second path');
     /* The words must not claim the contract is empty — that is the one thing
        this scan has repeatedly been wrong about. */

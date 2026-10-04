@@ -834,7 +834,7 @@ describe('F100f — and all of it from the counterparty\'s own chair', () => {
     assert.equal(bandOf(card), 'answered', 'the pile of answers not yet sent');
     assert.match(card.querySelector('.rl-badge').textContent, /Accepted/,
       'which answer — the one thing that pile\'s heading cannot say');
-    assert.match(card.querySelector('.rl-badge').textContent, /held/, 'and that nothing has left the page');
+    assert.match(card.querySelector('.rl-badge').textContent, /not yet sent/, 'and that nothing has left the page');
     assert.deepEqual(verbsOf(card), ['Send', 'Undo']);
   });
 
@@ -1109,7 +1109,7 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
       heldDecisionIds: [p.c.changes[0].id], unsentIds: [] });
     const send = box.querySelector('[data-rl-send]');
     assert.ok(send, 'their held answer carries its Send');
-    assert.match(send.getAttribute('title') || '', /everything else held/i,
+    assert.match(send.getAttribute('title') || '', /every other answer not yet sent/i,
       'and its title still promises the batch');
   });
 });

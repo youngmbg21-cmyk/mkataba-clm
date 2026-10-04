@@ -148,12 +148,12 @@ describe('f313 — the clause ladder', () => {
 
   /* ---------- 3 · THE CHIP ---------- */
 
-  test('(9) the chip says the round, whose move, and what it stands on', async () => {
+  test('(9) the chip says the step (4 Oct 2026: steps, not R-numbers), whose move, and what it stands on', async () => {
     const w = await buildWorld({ ladder: true });
     const c = book();
     const ours = w.win.ladderChip(c, 'cl_4', 'owner');
-    assert.match(ours.text, /R3/);
-    assert.match(ours.text, /R2/, 'it does not say what it stands on');
+    assert.match(ours.text, /Step 3/);
+    assert.match(ours.text, /step 2/, 'it does not say what it stands on');
     assert.equal(ours.cls, 'you');
   });
 

@@ -15,12 +15,14 @@
        decision rows quote.
      · readyToSignItems(cs) — the counterparty's ready-to-sign signal, the
        same list Home's green rows draw.
-   NO SECOND WAY TO APPROVE OR SIGN. Approving is the approval gate on the
-   contract's Signing tab and signing is that tab's Sign button, and both
-   stay exactly where they are: every verb on this page OPENS that tab
-   (openWorkspace + roomGoTab 'sign') and does nothing else. approveContract,
-   rejectApprovalStep and signDocument are deliberately not called from this
-   file — f344 greps for them. The page spends nothing and writes nothing.
+   NO SECOND WAY TO APPROVE OR SIGN. Signing is the Signing tab's Sign
+   button and stays there. APPROVING MOVED ONE DOOR NEARER (4 Oct 2026, the
+   process review): an approval this reader may decide carries Approve and
+   Refuse here, and both press approvalDecideAsk (js/approvals.js) — the
+   room's own verbs, the room's own reasons and the server's own wall, asked
+   from where the ask is listed, as the phone already did. Nothing in this
+   file writes: approveContract, rejectApprovalStep and signDocument are
+   still not called from it (f344, f466). Opening the Signing tab stays.
    ============================================================ */
 let _apTab='approvals';
 const AP_TABS=['approvals','signatures'];
@@ -134,8 +136,32 @@ function apLeadHtml(tab, r){
     list.length?`<ul class="ins-log ins-holds">${list.slice(0,3).map(t=>`<li><span class="t" title="${esc(t)}">${esc(t)}</span></li>`).join('')}</ul>${
       list.length>3?`<p class="ins-note">${esc(i18tn('ins_more_asks',list.length-3,{n:list.length-3}))}</p>`:''}`:''}`,'ins-lead');
 }
+/* MAY THIS READER DECIDE IT FROM HERE — the one reading, borrowed. Only on
+   the reader's own rows: a row raised BY them is theirs to watch. */
+function apMayDecide(r){
+  if(!r||!r.mine||typeof approvalDecidableNow!=='function') return null;
+  try{ return approvalDecidableNow(r.c); }catch(_){ return null; }
+}
+/* Approve or Refuse, then the list is read again — the row leaves the page
+   when the decision is made, which is the confirmation (with the act's own
+   toast). Nothing is pressed for the reader beyond the act they chose. */
+async function apDecide(id, verdict){
+  const c=(state.contracts||[]).find(x=>x.id===id); if(!c) return;
+  if(typeof approvalDecideAsk!=='function'){ apOpenSigning(id); return; }
+  const ok=await approvalDecideAsk(c, verdict);
+  if(ok && state.view==='approvals'){
+    try{ if(typeof updateSidebarCounts==='function') updateSidebarCounts(); }catch(_){}
+    renderApprovalsPage();
+  }
+}
 function apInsActs(tab, r){
   if(!r) return [];
+  if(tab==='approvals' && apMayDecide(r)) return [
+    { k:'approve', kind:'accent', label:i18t('ap_pg_approve'), title:i18t('ap_pg_approve_title'), run:c=>apDecide(c.id,'approved') },
+    { k:'refuse', label:i18t('ap_pg_refuse'), title:i18t('ap_pg_refuse_title'), run:c=>apDecide(c.id,'refused') },
+    { k:'gate', label:i18t('ap_pg_open_signing'), title:i18t('ap_pg_gate_title'), run:c=>apOpenSigning(c.id) },
+    { k:'open', kind:'plain', label:i18t('ins_open_contract'), run:c=>selectContract(c.id) },
+  ];
   const lead=tab==='approvals'
     ? { k:'gate', kind:'accent', label:r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'), title:i18t('ap_pg_gate_title'), run:c=>apOpenSigning(c.id) }
     : { k:'sign', kind:'accent', label:i18t('ap_pg_open_signing'), title:i18t('ap_pg_sign_title'), run:c=>apOpenSigning(c.id) };
@@ -177,7 +203,8 @@ function renderApprovalsPage(){
       <td>${esc(r.who||'—')}</td>
       <td class="${r.idle>=3?'late':''}">${esc(apWaitingText(r.idle))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
-      <td class="r"><button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'))}</button></td>
+      <td class="r">${apMayDecide(r)?`<span class="ap-acts"><button type="button" class="ui-btn ui-btn-sm ui-btn-accent" data-ap-approve="${esc(r.c.id)}" title="${esc(i18t('ap_pg_approve_title'))}">${esc(i18t('ap_pg_approve'))}</button><button type="button" class="ui-btn ui-btn-sm" data-ap-refuse="${esc(r.c.id)}" title="${esc(i18t('ap_pg_refuse_title'))}">${esc(i18t('ap_pg_refuse'))}</button><button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(i18t('ap_pg_open'))}</button></span>`
+        :`<button type="button" class="ui-btn ui-btn-sm ap-go" data-ap-open="${esc(r.c.id)}" title="${esc(i18t('ap_pg_gate_title'))}">${esc(r.mine?i18t('ap_pg_open_gate'):i18t('ap_pg_open'))}</button>`}</td>
     </tr>`);
   const sgHead=[{t:'MK'},{t:i18t('reg_col_title')},{t:i18t('ap_pg_what_waits')},...(money?[{t:i18t('reg_col_value'),right:true}]:[]),{t:''}];
   const sgRowsHtml=sg.map(r=>`<tr data-ap-row="${esc(r.c.id)}">
@@ -236,9 +263,11 @@ function renderApprovalsPage(){
     if(typeof insWatchWidth==='function') insWatchWidth();
   } else {
     document.querySelectorAll('[data-ap-open]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apOpenSigning(b.getAttribute('data-ap-open')); }));
+    document.querySelectorAll('[data-ap-approve]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apDecide(b.getAttribute('data-ap-approve'),'approved'); }));
+    document.querySelectorAll('[data-ap-refuse]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); apDecide(b.getAttribute('data-ap-refuse'),'refused'); }));
     document.querySelectorAll('[data-ap-row]').forEach(tr=>tr.addEventListener('click',()=>apOpenSigning(tr.getAttribute('data-ap-row'))));
   }
   setActiveNav('approvals');
 }
 Object.assign(window,{AP_TABS,apTab,apSetTab,apSaWaiting,apApprovalRows,apSignatureRows,approvalsDoorCount,renderApprovalsPage,apOpenSigning,
-  apInsSeat,apLeadHtml,apInsActs,apInsPaint});
+  apInsSeat,apLeadHtml,apInsActs,apInsPaint,apMayDecide,apDecide});

@@ -20204,5 +20204,60 @@ card's right corner. Story in docs/MAP-HISTORY.md under "THE OWNER'S ELEVEN".
 - The board's free reader reads "value by counterparty" as a COUNT ring, not a value measure (f448 phrase book has no such line); the shelf's concentration proposal carries its own recipe to get blocks by value.
 - CLAUDE.md is ~117 KB, over its own 80 KB ceiling; it needs the owner-approved condensing pass, not a trim on the way past.
 
+### Noticed, not fixed — 4 Oct 2026 (the process review; nothing built)
+- js/review.js reviewHeldIds/reviewWithheldIds read only UNSENT asks and negoHandOver stamps turnAt without re-dating a held change left out of a batch send, so a held change appears to stop being withheld after the next hand-over and would travel on the following payload refresh — needs a test (f154 does not drive this) before the review wall is relied on.
+- js/obligations.js adds NEW proposals ticked (only duplicates arrive unticked); CLAUDE.md's OBLIGATIONS line says "proposals arrive unticked" — one of the two is wrong.
+- signcheck "advise": the browser holds brief-read and unrun readings (signReadiness) while the server's srvSignCheckOpen holds only escalated departures; briefRead is not read server-side.
+- POST /api/shares/:token/respond returns signCheckRefusal's text (names internal departures) to the counterparty; approval refusals are neutral, this one is not. POST /api/shares never asks the sign check or the desk, so a sign link can be issued and then refused at signing.
+- js/signcheck.js SIGN_STAGE_OF lacks 'signcap', 'signfolder' and 'hold' (it has 'cap' and 'folder', which nothing produces), so those rows draw under the "paper" stage.
+- js/signapproval.js saRuleOf falls back to the legacy settings.overseer.on switch when u.overseerOn is absent; no settings screen shows that switch.
+- js/views/register.js row act 'decline' ("Decline & close") only opens the contract; the room's ⋯ menu has no decline row.
+- js/views/settings.js stPersonSays prints "Can sign up to X" / "Work is checked by" even when the signing-cap or review-gate switches are off, and never mentions sign folders.
+- js/views/intake.js intakeLaneSweep runs only in an editor's open browser (10-min timer from core.js); nothing in server/ runs the lanes; POST /api/intake fires a webhook and mails nobody.
+- core.js:7808 (the "X answered" arrival toast), negotiation.js:10948 ("Updated just now") and :3958 (accepted) are bare toast() calls and print nothing.
 ## Noticed, not fixed (4 Oct 2026, Yours, measured)
 - CLAUDE.md is about 118 KB, well above the "under about 80 KB" the owner set on 27 Sep; it was 117 KB before this change. A trim needs the owner's yes (it is the rules file).
+
+## 4 Oct 2026 — the process review's fixes, built
+
+Built in eight streams: requests reach the team and close when sent; one
+address book; one question set at every door; Our paper; the round closes
+itself; one your-turn email per hand-over; a returned Word file answers our
+asks; held changes stay held; one check before every signing link; approve on
+the Approvals page; one Rules page; rule steps told and reminded; readings say
+when the wording moved; a renewal answer starts its act; proposals arrive
+unticked; Decline & close works. Story in docs/MAP-HISTORY.md under "THE
+PROCESS REVIEW'S FIXES".
+
+### Noticed, not fixed
+- Our own Word export read straight back loses clause 1's "1." number and the signature block lands inside the last clause, so an untouched returned file files phantom changes.
+- Word import matches base clauses to returned clauses by position (when readOurAsks off), so their inserted/deleted clauses can misalign later ones.
+- POST /api/shares does not check the desk for negotiate or view links; only sign is walled.
+- Negotiate page's onIssueSigningLink opens the send screen directly, so it is checked only at Send.
+- reshareToLastRecipient saves a version before building the payload, so a refused sign resend can leave a "Sent to you" version.
+- On "require", the server's "no standards review on file" row holds even where the browser draws no standards row (no playbook).
+- i18n keys ik_f_who, ik_draft_title, ik_pick_template, ik_create_draft, ik_no_suggestion, ik_drafted have no caller.
+- lane drafts minted on the server have no owner and no arrival reading until they leave Drafting; prefs.notifyIntake has no on-screen switch.
+- renewal-decision-verify 6b "the nags start again" fails the same way at unmodified main.
+- openCreateAmendmentModal confirms with a bare toast(i18t('fa_created'…)) which prints nothing.
+- on the served-notice path renewalDecisionOf returns `by` as a string, so the card's "Decided by" shows "somebody".
+- runSignCheck calls runFindObligations(c,{}) without fresh, so it can offer an old held list.
+- the server's renewal sweeps (srvRenewalDecision) do not count a served notice; only the browser does.
+- the Word channel (wordTrackedFile) builds from the whole redline, so may carry held changes and open suggestions the link payload strips.
+- a sent change revised later and put under review is withheld whole, so the other side loses sight of the version they hold (predates).
+- captureVersion skips a send whose wording is unchanged, so "Round N — sent" can be missing when only new pending asks travel.
+- the share dialog's onSent toast in views/negotiation.js is usually unreachable (negoHandOver already ran).
+- .rl-close-go CSS and an old comment near deadAttrs are stale.
+- the Home triage card still writes 'Declined' inline instead of using contractDecline.
+- overseerFor / overseerEnforced still have no caller.
+- a light list record may show a rule step as "stale" because wording is stripped from list rows (hmDashSlices / approvalState).
+- the `side` field is defined twice, in js/templates.js and in CONTRACT_ESSENTIALS.
+- templates-tabs-verify 7c expects a rail caption "Library" that the rail no longer says (red at main too).
+- on a seeded test workspace the Templates page shows a "template list could not be loaded" toast.
+- the New-agreement pop-up keeps its own import link (na-import), a second way into import.
+- the solo-send toast in views/negotiation.js onSendDirect ("Sent to … — N other drafts still unsent") is hard-coded English.
+- i18n key ng_countered_decide_counter left in both books with no caller.
+- a lock ask lapses after ~2 minutes when the asker's tab is hidden (presence beat pauses).
+- test/f293-the-renewal-cliff fails at unmodified main as well (two quarter checks); left red.
+- Two test files now share the number f460 (f460-yours-measured from main, f460-requests-reach-the-people-who-draft from this run).
+- Fixed later the same day, on the owner's word ("fix those two old failures too"): f293's season-dependent notice fixture (now 120 days) and swedish-verify's 3px insights-card overflow (the action row wraps).

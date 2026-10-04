@@ -138,6 +138,13 @@ const TRIAGE_HEADS = {
    It is in memory and dies with the sitting, which is right: a run cannot
    survive a reload, so a step still absent afterwards really has not run. */
 const triageBusy = c => !!(c && c._triaging);
+/* The three tiles that are readings OF THE WORDING, and so can fall behind it.
+   Risk is free and re-run on every scan; filed is a fact about the record. */
+const TRIAGE_STALE_KEYS = ['brief', 'playbook', 'oblig'];
+function triageReadingStale(c, key){
+  try{ return (typeof readingStale === 'function') ? readingStale(c, key) === true : false; }
+  catch(_){ return false; }
+}
 
 function triageTiles(c){
   const t = triageOf(c); if (!t) return [];
@@ -171,9 +178,21 @@ function triageTiles(c){
        which is this section's own fault one size smaller. */
     const cut = ok && (live ? live.cut : (st || {}).cut)
       ? ((typeof i18t === 'function') ? i18t('tri_cut') : '') : '';
-    const d = working ? '' : [detail || '', cut].filter(Boolean).join(' — ');
+    /* ---- THE WORDING MOVED UNDER IT (process review, 4 Oct 2026) ----
+       A round lands and the brief, the standards check and the obligations
+       read go on describing the wording from before; the Overview's readings
+       table said so and this strip, the first thing on the page, did not.
+       readingStale (js/signcheck.js) is the ONE reading — the playbook's hash
+       first, the dates otherwise — so the tile and the table cannot disagree.
+       Only `true` is said: "we do not know" prints as the tile it always was.
+       Said FIRST in the detail, so every surface that draws these tiles
+       (the strip, Home's card, Copilot's work) says it without a second
+       sentence of its own; the strip adds the one press that reads again. */
+    const stale = !working && ok && TRIAGE_STALE_KEYS.includes(key) && triageReadingStale(c, key);
+    const d = working ? '' : [stale ? ((typeof i18t === 'function') ? i18t('tri_stale') : '') : '',
+      detail || '', cut].filter(Boolean).join(' — ');
     const heads = TRIAGE_HEADS[key];
-    out.push({ key, ok, working, none: nothing ? none : null,
+    out.push({ key, ok, working, stale, none: nothing ? none : null,
       /* A STEEL TILE, NOT A GREEN ONE AND NOT A RUBY ONE. Nothing is wrong and
          nothing was achieved; `ok:false` here would read as an accusation and
          the tick read as a claim. The strip's own tone table branches on this. */
@@ -764,7 +783,19 @@ function contractArrived(c, opts){
      that is too empty to be worth reading is still a contract somebody just
      named three colleagues on. A bulk import claims nothing: nobody stood at
      that screen. */
-  if (c && !o.bulk){ try{ if (typeof participantsClaim === 'function') participantsClaim(c); }catch(_){} }
+  let named = false;
+  if (c && !o.bulk){ try{ if (typeof participantsClaim === 'function') named = participantsClaim(c) > 0; }catch(_){} }
+  /* ---- AND THE ADDRESS IT ARRIVED WITH IS IN THE ADDRESS BOOK (4 Oct 2026) ----
+     A creation form, the server's template route or an import wrote the
+     record's contact; the people list is the one store of the other side's
+     people, so the address goes in through its one writer here — every door,
+     bulk included, because this costs nothing and spends nothing. */
+  if (c){ try{ if (typeof contactAdopt === 'function' && contactAdopt(c)) named = true; }catch(_){} }
+  if (named && typeof persist === 'function'){ try{ persist(c); }catch(_){} }
+  /* AND THE REQUEST IT WAS DRAFTED FOR (4 Oct 2026): Requests' Draft it opens
+     the drafting screen with the request held, and the contract that screen
+     makes is claimed here, the same way (intakeClaimDraft, js/views/intake.js). */
+  if (c && !o.bulk){ try{ if (typeof window !== 'undefined' && typeof window.intakeClaimDraft === 'function') window.intakeClaimDraft(c); }catch(_){} }
   /* ---- A BUILT-IN TEMPLATE'S OWN PROMISES, ON ARRIVAL (the owner's list,
      27 Sep 2026) ----
      They were minted only by an Overview edit, so a draft made in one pass
@@ -776,6 +807,12 @@ function contractArrived(c, opts){
     try{ if (mintTemplateObligations(c) && typeof persist === 'function') persist(c); }catch(_){}
   }
   if (!c || o.bulk) return false;
+  /* ---- THE UPLOAD'S TICK-BOX STILL GOVERNS ITS OWN READING (4 Oct 2026) ----
+     The upload door now arrives through here like every other door — so the
+     people it names, the address it carries and the promises it makes are
+     claimed the same way — but the owner's 9 Sep ruling stands: NO BOX MEANS
+     NO READING. `read:false` is that box left unticked. */
+  if (o.read === false) return false;
   if (typeof triageAndPaint !== 'function') return false;
   if (!triageApplies(c)) return false;
   try{ triageAndPaint(c); }catch(_){ return false; }
@@ -852,7 +889,7 @@ function triageAck(c){
   return true;
 }
 
-Object.assign(window, { TRIAGE_STEPS, TRIAGE_HEADS, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
+Object.assign(window, { TRIAGE_STEPS, TRIAGE_HEADS, TRIAGE_STALE_KEYS, triageReadingStale, triageBusy, triageAbsent, triageNoText, triageApplies, triageOf, triageSeen, triageCards,
   triageWordingHash, triageNeedsRead, contractArrived,
   triageTiles, triageFiledLine, triageLine, triageReadAnything, triageRun, triageBriefLine,
   triageWhy, triageFail,

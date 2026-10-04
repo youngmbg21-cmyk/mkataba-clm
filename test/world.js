@@ -507,7 +507,9 @@ function buildWorld(opts = {}) {
   if (opts.blanks) files.push(BLANKS, UPLOAD_BLANKS);
   if (opts.family) files.push(FAMILY);
   if (opts.obligations) files.push(OBLIGATIONS);
-  if (opts.intakeView) files.push(INTAKE_VIEW);
+  /* js/intakelanes.js first (4 Oct 2026): the lane rule and the two patterns
+     the queue reads are shared with the server's sweep and published there. */
+  if (opts.intakeView) files.push('js/intakelanes.js', INTAKE_VIEW);
   if (opts.notice){
     /* THE SAME BARE READING THE DESK OPTION HAS TO STAND IN FOR: renewalWindow
        calls daysUntil, which is declared in a VIEW file, so on a stage without
@@ -541,6 +543,9 @@ function buildWorld(opts = {}) {
     if (!opts.playbook && !opts.copilotRead && !opts.standards) files.push(PLAYBOOK);
     if (!opts.obligations) files.push(OBLIGATIONS);
     if (!files.includes(DEDUPE)) files.push(DEDUPE);
+    /* The wall's own reading (4 Oct 2026): signcheck.js borrows its date walk
+       and its acceptance question, as js/app.js loads them. */
+    files.push('js/signgate.js');
     files.push(SIGNCHECK);
   }
   /* The guard is the one this file already uses for intelView and obligations:

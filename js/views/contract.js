@@ -1504,7 +1504,16 @@ function openUploadModal(){
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:var(--s-3)"></div>
         <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:14px">
-          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_whole_catalogue')} ${i18t('ct_import_many')}</button>
+          ${''/* ---- UPLOAD SEVERAL IS THE WAY INTO THE IMPORTER (the process
+                 review, 4 Oct 2026) ----
+                 The importer had its own rail door as well as this link, so
+                 two doors reached one act. The rail door is gone; this is the
+                 one door, said plainly, and it carries the count the rail
+                 door used to carry — imported contracts still waiting for a
+                 person — only where there is one. */}
+          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_upload_several')}${
+            (()=>{ const n=(typeof navCounts==='function')?Number((navCounts()||{}).migration)||0:0;
+              return n>0?` <span id="up-bulk-waiting" style="margin-left:4px;color:var(--st-amber-fg)">· ${esc(i18tn('ct_import_waiting',n,{n}))}</span>`:''; })()}</button>
           <span style="flex:1"></span>
           <button id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         </div>
@@ -1901,7 +1910,7 @@ async function submitUpload(){
   const u=currentUser();
   /* A WORKING FILE takes its working reference, RL-012, and no contract
      number: that comes from the server when the signed copy is filed. */
-  const c={ id:outside?nextWorkingId():nextId(), name, party:party||undefined, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
+  const c={ id:outside?nextWorkingId():nextId(), name, party:party||undefined, counterparty:cp, value, status: cp?'Under Review':'Draft',
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{},
@@ -1953,6 +1962,8 @@ async function submitUpload(){
     if(body && body.replace(/<[^>]*>/g,'').trim()){ c.redlineText=body; c.format='rich'; }
   }
   c._loaded=true; c._light=false; c._v=0;
+  /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK, through the one writer. */
+  if(cpEmail) ctSetTheirEmail(c, cpEmail);
   if(meta){
     const conf=meta.confidence||{};
     const out={ confidence:{} };
@@ -1975,24 +1986,22 @@ async function submitUpload(){
      wsTabDefaults. Registered at every creation site because there is no
      single funnel for creating a contract. */
   if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
-  /* ---- THE ONE CREATION SITE THAT DOES NOT CALL contractArrived ----
-     and it is exempt for the owner's own reason rather than by omission. The
-     upload screen's tick-box is the 9 Sep 2026 ruling — NO BOX MEANS NO
-     READING — so this door asks the reader and the others do not have one to
-     ask. It presses the same launcher four lines down, which is the same act;
-     what it does not do is press it unconditionally. */
   state.activeId=c.id;
   persist(c);
   closeModal();
   toast(outside ? i18t('ho_working_opened',{id:c.id}) : i18t('ct_uploaded_filed_in')+FOLDERS[folder].name, outside?'ok':undefined);
   setView('workspace');
   renderSideFolders();
-  /* ---- AND THEN IT IS READ, IF THE READER LEFT THE BOX TICKED ----
-     The tick-box is the owner's ruling of 9 Sep 2026 and still governs THIS
-     door: no box means no reading on arrival. What the reading itself does,
-     and why it is neither awaited nor started before the save lands, is in
-     triageAndPaint — which the send door calls too. */
-  if(wantTriage) triageAndPaint(c);
+  /* ---- AND IT ARRIVES THROUGH THE ONE DOOR EVERY OTHER CREATION USES
+     (the process review, 4 Oct 2026) ----
+     This was the one creation site that did not call contractArrived, so an
+     upload claimed nobody named on the way in and never put its address in
+     the book. It arrives the same way now. THE TICK-BOX STILL GOVERNS THE
+     READING — the owner's 9 Sep 2026 ruling, NO BOX MEANS NO READING — so the
+     box's answer rides in as `read`; what the reading does, and why it is
+     neither awaited nor started before the save lands, is in triageAndPaint. */
+  if(window.contractArrived) contractArrived(c,{ read:wantTriage });
+  else if(wantTriage) triageAndPaint(c);
 }
 
 /* ---------- THE READINGS, RUN BEHIND THE READER ----------
@@ -2074,6 +2083,15 @@ function triageAndPaint(c, opts){
          overnight clean-up): the reading takes seconds, so the room showing
          now may be a different contract's — asked of contractOnScreen, the
          one reading every slow result asks. */
+      triageRepaintSurfaces(x);
+    }}); }catch(e){ /* the card says what happened */ }
+  });
+}
+/* EVERY SURFACE A READING MOVES, repainted where it is on screen. Lifted out
+   of triageAndPaint's onStep (4 Oct 2026) so the strip's own "Read again"
+   press repaints the same surfaces through the same one list. */
+function triageRepaintSurfaces(x){
+      if(!x) return;
       if(window.contractOnScreen && !contractOnScreen(x)) return;
       if(document.getElementById('checks-card')) renderChecksCard(x);
       if(document.getElementById('kt-rows')) renderKeyTerms(x);
@@ -2087,8 +2105,6 @@ function triageAndPaint(c, opts){
          of the reader. roomHeadRefresh is the head's own in-place repaint and
          asks contractOnScreen itself. */
       roomHeadRefresh(x);
-    }}); }catch(e){ /* the card says what happened */ }
-  });
 }
 /* Fold confirmed metadata back into the contract's own fields + a metadata block. */
 function applyMetadata(c, m){
@@ -5141,6 +5157,28 @@ function wireWsTabs(c){
 
    STATUS HAS GONE FROM THE LIST. It is already a chip beside the contract's
    name on every tab; this was the third place it was said. */
+/* ---- THEIR EMAIL IS THE ADDRESS BOOK'S (4 Oct 2026) ----
+   The Overview's "Their email" is the first outside party's MAIN contact in
+   the people list (js/participants.js) — read through contactEmail and written
+   through contactSet, the one reader and the one writer every box uses, so
+   this row, the people list, the signing route and the send screen cannot
+   hold two addresses for one person. A stage without the people module reads
+   and writes the record's own field, which is what the book mirrors. */
+function ctTheirEmail(c, partyId){
+  if(typeof window!=='undefined' && typeof window.contactEmail==='function') return window.contactEmail(c, partyId);
+  return String((c&&c.counterpartyEmail)||'').trim();
+}
+function ctSetTheirEmail(c, email, name, partyId){
+  if(!c) return;
+  if(typeof window!=='undefined' && typeof window.contactSet==='function'){
+    window.contactSet(c, { main:true, email:String(email||'').trim(), partyId,
+      ...(name!=null&&String(name).trim()?{ name:String(name).trim() }:{}) });
+    return;
+  }
+  const e=String(email||'').trim();
+  if(e) c.counterpartyEmail=e; else delete c.counterpartyEmail;
+  if(name!=null&&String(name).trim()) c.counterpartyName=String(name).trim();
+}
 /* The read-out for one row, so an edit can refresh just that row. */
 function ktReadValue(c,key){
   const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
@@ -5148,7 +5186,7 @@ function ktReadValue(c,key){
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v)
     :`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
   if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
-  if(key==='cpEmail') return c.counterpartyEmail?esc(c.counterpartyEmail):dash;
+  if(key==='cpEmail'){ const em=ctTheirEmail(c); return em?esc(em):dash; }
   // W2-1: a contract states its OWN currency; only REPORTING converts
   if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
   if(key==='effDate') return day(c.fields&&c.fields.effDate);
@@ -5213,7 +5251,7 @@ function ktRouteEmailRead(c){
     ? shareRouteRecipient(c) : null;
   const routeEmail=String((route&&route.email)||'').trim();
   if(!routeEmail) return null;
-  const recorded=String((c&&c.counterpartyEmail)||'').trim();
+  const recorded=ctTheirEmail(c);
   if(recorded && recorded.toLowerCase()===routeEmail.toLowerCase()) return null;
   return { email:routeEmail, who:String((route&&route.name)||'').trim() };
 }
@@ -5316,7 +5354,7 @@ function ktFactReads(c){
     contractType: (()=>{ try{ return esc((window.contractTypeRead?contractTypeRead(c):'')||''); }catch(_){ return ''; } })(),
     party: c.party?esc(c.party):'',
     counterparty: c.counterparty?esc(c.counterparty):'',
-    cpEmail: c.counterpartyEmail?esc(c.counterpartyEmail):'',
+    cpEmail: ctTheirEmail(c)?esc(ctTheirEmail(c)):'',
     money: (isMonetary(c)&&c.value)?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):'',
     effDate: d(c.fields&&c.fields.effDate),
     expiry: d(c.expiry),
@@ -5418,7 +5456,7 @@ function ktTermsRowsHtml(c,opts={}){
        leaving it empty costs nothing, because the share dialog still collects
        an address at the moment of sending. */
     ['cpEmail', ktRowHtml('cpEmail','Their email', R.cpEmail||dash,
-      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed, 'pencil')],
+      `<input data-kt="cpEmail" type="email" value="${ctTheirEmail(c).replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed, 'pencil')],
     /* ---- AND WHEN THE SIGNING ROUTE SAYS SOMETHING ELSE, IT SAYS SO ----
        Two records can name the counterparty's address: this row — the general
        contact, where rounds of the negotiation go — and the signing route,
@@ -5651,12 +5689,23 @@ function ktTriageStripHtml(c){
      failed there is nothing else worth pressing. `filed` never fails (it is a
      fact about the record, not a reading), and a tile mid-flight draws no
      door at all, so neither can reach this. */
+  /* ---- A READING THE WORDING HAS MOVED PAST READS AGAIN ON ONE PRESS
+     (process review, 4 Oct 2026) ----
+     triageTiles marks it (`stale`, readingStale's one answer) and says so
+     first in the detail; here the tile's press becomes the re-read of THAT
+     reading alone, never the whole arrival run, and nothing is spent until it
+     is pressed. Asked BEFORE the open doors: a card about older wording is
+     not what the reader most needs to open. The card itself is still a press
+     away on the sheet (the brief's button, the Checks card, the tab). */
   const doorFor = x =>
+    x.stale ? 'reread' :
     (!x.working && !x.ok && !x.none && x.key!=='filed') ? 'retry' :
     (x.key==='brief'    && x.ok) ? 'brief' :
     (x.key==='oblig'    && x.ok) ? 'oblig' :
     (x.key==='playbook' && x.ok) ? 'playbook' : '';
-  const tiles=triageTiles(c).map(x=>{
+  const tiles=triageTiles(c).map(x0=>{
+    /* A RE-READ IN FLIGHT turns the tile, as an arrival reading does. */
+    const x=ktRereading(c,x0.key)?Object.assign({},x0,{ working:true, stale:false, detail:'' }):x0;
     const door=x.working?'':doorFor(x);
     /* NOTHING-TO-DO IS ASKED BEFORE `ok`, so a reading that looked and found
        no boxes can never draw the tick that made the tile read as a claim.
@@ -5676,8 +5725,11 @@ function ktTriageStripHtml(c){
     const mark=x.working?'<span class="ob-spin" aria-hidden="true"></span>'
       :((x.count!=null&&x.count>0)?String(x.count)
         :(x.none?'&mdash;':(x.ok?'&#10003;':'&mdash;')));
+    /* The re-read says its verb where the arrow would sit — it costs no
+       height (it rides the heading) and the cost is on the hover. */
     const head=`<div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span><span class="kt-tri-hw">${
-      esc(i18t(x.headKey))}</span>${door?'<span class="kt-tri-go" aria-hidden="true">&rarr;</span>':''}</div>`;
+      esc(i18t(x.headKey))}</span>${door==='reread'?`<span class="kt-tri-go">${esc(i18t('tri_reread'))}</span>`
+        :(door?'<span class="kt-tri-go" aria-hidden="true">&rarr;</span>':'')}</div>`;
     /* ONE PRODUCER OF THE TILE BODY, whichever shape the tile takes. The two
        reserved lines and the whole-detail hover are stated here and nowhere
        else — see the note below, and f273 (10), which counts this class. */
@@ -5690,8 +5742,10 @@ function ktTriageStripHtml(c){
        the SIGN that the tile opens something, and a 9px hit area would be a
        worse control than the one that was there. A real <button> so the
        keyboard reaches it and the focus ring is the product's own. */
-    if(door) return `<button type="button" class="kt-tri-tile is-door" data-kt-tri-go="${door}"
-      title="${esc(i18t(door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':'tri_go_oblig'))}">
+    if(door) return `<button type="button" class="kt-tri-tile is-door${door==='reread'?' is-stale':''}" data-kt-tri-go="${door}"${
+      door==='reread'?` data-kt-tri-key="${esc(x.key)}"`:''}
+      title="${esc(door==='reread'?i18t('tri_reread_title')
+        :i18t(door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':'tri_go_oblig'))}">
       ${head}${body}
     </button>`;
     return `<div class="kt-tri-tile${x.working?' is-busy':''}"${x.working?' aria-busy="true"':''}>
@@ -5825,6 +5879,52 @@ function renderKeyTerms(c){
      reload. */
   paintKtTriage(c);
 }
+/* ---- READ IT AGAIN, ONE READING, ON A PRESS (process review, 4 Oct 2026) ----
+   The strip's stale tile presses this. Each reading goes through its own
+   door and stores where its own screen reads it — the brief rewritten
+   (`force`, the route caches per wording), the standards check re-run the way
+   runSignCheck runs it, the obligations re-read through runFindObligations
+   with `fresh` so a list held from the OLD wording is not offered in place of
+   a reading. Nothing else is run and nothing is filed: the obligations still
+   end in the review dialog, unticked.
+   THE LATCH IS A SET RAISED BEFORE THE PROMISE EXISTS (a latch may not be its
+   own promise), and per sitting — it is never written onto the record. */
+const _ktRereads=new Set();
+const ktRereading=(c,key)=>!!(c&&_ktRereads.has(String(c.id)+':'+key));
+async function ktTriageReread(c,key){
+  if(!c||!['brief','playbook','oblig'].includes(key)) return false;
+  const live=(window.getContract&&getContract(c.id))||c;
+  const k=String(live.id)+':'+key;
+  if(_ktRereads.has(k)) return false;
+  if(typeof canEdit==='function'&&!canEdit()) return false;
+  _ktRereads.add(k);
+  let ok=false;
+  try{
+    if(key!=='oblig') paintKtTriage(live);
+    if(key==='brief'&&window.runContractBrief){
+      const r=await runContractBrief(live,{ force:true });
+      ok=!!(r&&!r.error);
+    } else if(key==='playbook'&&window.runPlaybookReview){
+      const r=await runPlaybookReview(live,{});
+      if(r&&!r.error&&r.verdicts){
+        live.playbook=r;
+        logAudit(live,'Playbook',`Reviewed again after the wording moved — against ${r.label}`);
+        persist(live); ok=true;
+      }
+    } else if(key==='oblig'&&window.runFindObligations){
+      /* The scan has its own busy mark on its doors, and its answer is the
+         review dialog, so the tile's own latch stands down first. */
+      _ktRereads.delete(k);
+      ok=(await runFindObligations(live,{ fresh:true }))!==false;
+    }
+  }catch(_){ ok=false; }
+  finally{ _ktRereads.delete(k); }
+  if(key!=='oblig'){
+    if(ok) toast(i18t('tri_reread_done'),'ok');
+    triageRepaintSurfaces(live);
+  }
+  return ok;
+}
 /* Fills the slot, and is the ONE place the strip is drawn or wired: called on
    arrival and again on every reading that lands. Wiring on each paint is right
    here — the markup it binds to is the markup this call has just written. */
@@ -5843,6 +5943,7 @@ function paintKtTriage(c){
        stands aside: that guard exists to stop a FAILURE being retried silently
        and paid for on every send, which is not what this is. */
     if(go==='retry'){ if(window.triageAndPaint) triageAndPaint(c,{again:true}); return; }
+    if(go==='reread'){ ktTriageReread(c, btn.getAttribute('data-kt-tri-key')); return; }
     /* ---- THE OBLIGATIONS DOOR FOLLOWS THE TAB (F, Young ruled 22 Sep 2026) ----
        While the Obligations tab is EMPTY the press opens the list this reading
        already found, to tick and add — the funnel runFindObligations, which
@@ -6506,7 +6607,7 @@ function openPartyEditor(c, id){
         esc(adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'))}</h3>
       ${fld('name',i18t('reg_col_counterparty'),i18t('py_name_ph'),p.name)}
       ${roleSel(p.role)}
-      ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),p.email)}
+      ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),(!adding&&p.side!==PARTY_SIDE_OURS)?ctTheirEmail(c,p.id):p.email)}
       <div class="py-inv">${inv}</div>
       <div id="py-say" class="py-say" hidden></div>
     </div>
@@ -6520,9 +6621,14 @@ function openPartyEditor(c, id){
 
   const say=m=>{ const el=document.getElementById('py-say'); if(!el) return;
     el.textContent=m||''; el.hidden=!m; };
-  const write=rows=>{
+  const write=(rows,after)=>{
     const why=partiesSet(c,rows);
     if(why){ say(why); return false; }
+    /* AN OUTSIDE PARTY'S ADDRESS IS ITS MAIN CONTACT IN THE ADDRESS BOOK
+       (4 Oct 2026): written through the one writer, and the book's mirrors
+       put back over whatever partiesSet copied. */
+    if(typeof after==='function') after();
+    if(typeof window.contactMirror==='function') window.contactMirror(c);
     logAudit(c,'Parties',`Parties on this agreement: ${
       contractParties(c).map(x=>x.name||'—').join(', ')}`);
     persist(c); closeModal();
@@ -6576,7 +6682,7 @@ function openPartyEditor(c, id){
     const next={ ...p, name:v('name'), role:roleV, email:v('email'),
       involvement:chosen?chosen.value:p.involvement };
     const rows=adding?list.concat([next]):list.map((x,i)=>i===at?next:x);
-    write(rows);
+    write(rows, ()=>{ if(next.side!==PARTY_SIDE_OURS) ctSetTheirEmail(c, next.email, null, next.id); });
   });
   document.getElementById('py-name')?.focus();
 }
@@ -6996,7 +7102,7 @@ function ktOverviewTermsHtml(c,opts={}){
      asked. The one act is the signing order's own editor, drawn only where
      somebody here has a signing role. */
   const people=(typeof participantsPanelHtml==='function')?participantsPanelHtml(c,{
-    editable:ed, reached:true, auto:true }):'';
+    editable:ed, reached:true, auto:true, book:true }):'';
   /* EVERY ADDRESS ON FILE, IN THE ORDER A ROUND USES THEM (21 Sep 2026).
      The address a round actually goes to was only discoverable by opening the
      send screen and looking. This prints what shareModalPrefill would pick —
@@ -7797,8 +7903,7 @@ function openNegotiationOwnerRoom(c){
        we do not, and sends without asking when we do. */
     contact:(window.counterpartyContact?counterpartyContact(c,(window.cachedShares?cachedShares(c):[])):null),
     onSetCounterparty(x){
-      c.counterpartyEmail=String((x&&x.email)||'').trim();
-      if(x&&x.name) c.counterpartyName=x.name;
+      ctSetTheirEmail(c, (x&&x.email)||'', x&&x.name);
       logAudit(c,'Negotiation',`Counterparty contact set — changes on this contract go to ${c.counterpartyEmail}`);
       persist(c);
       toast(`Saved — changes now go straight to ${c.counterpartyEmail}`);
@@ -7813,7 +7918,9 @@ function openNegotiationOwnerRoom(c){
     async onSendDirect(){
       const to=c.counterpartyName||c.counterparty||'the counterparty';
       try{
-        const out=await reshareToLastRecipient(c,{ purpose:'negotiate' });
+        /* handOver: a round send — where it hands the table to them, one
+           "it is your turn" email rides with it (roundTurnMail). */
+        const out=await reshareToLastRecipient(c,{ purpose:'negotiate', handOver:true });
         if(!negoHandOver(c,{ to:'counterparty', by:currentUser()?.name })) { persist(c); }
         else persist(c);
         /* Three honest outcomes. quiet: the standing link took the round and no
@@ -7825,6 +7932,12 @@ function openNegotiationOwnerRoom(c){
            and the URL they hold has stopped being the contract. Reported on
            MK-255, where the round published and the counterparty reloaded the
            link they actually had to find nothing had moved. */
+        /* The turn email's own three outcomes come first where one was tried. */
+        if(out.turnMail && !out.stranded){
+          toast(out.delivered ? i18t('ng_turn_emailed',{who:to})
+            : out.outbox ? i18t('ng_turn_mail_outbox',{who:to})
+            : i18t('ng_turn_mail_failed',{who:to, why:out.emailError||''}), out.delivered?'ok':'warn');
+        } else
         toast(out.stranded
           ? `${reshareStrandedLine(to)} It is now their turn.`
           : out.quiet
@@ -8909,10 +9022,18 @@ async function issueSigningAct(c){
     logAudit(c,'Shared','A signing link was issued — the negotiation links on this contract are superseded and can no longer be answered');
     persist(c); renderWorkspace();
   };
+  /* THE ONE ISSUING CHECK FIRST (signLinkRefusal, 4 Oct 2026). It used to ask
+     only the personal approval and then fall through to the send screen, so
+     the room head, the Negotiate page, Copilot's work and the phone each
+     reached a dialog that refused what this press could have said. Refused
+     here, in the list's own sentence, with nothing opened. */
+  { const no=window.signLinkRefusal?signLinkRefusal(c):null;
+    if(no){ toast(no.why,'warn'); return; } }
   if(window.issueSigningRouteLinks){
     let out=null;
     try{ out=await issueSigningRouteLinks(c); }
     catch(e){ toast(e.message||'The signing links could not be issued','err'); return; }
+    if(out && out.refused){ toast(out.refused,'warn'); return; }
     if(out && out.links){
       supersededLine();
       const held=out.links.filter(x=>x.heldForTurn).length;
@@ -14063,7 +14184,7 @@ function wireKeyTerms(c){
          an email is what every email looks like on the way in. It is only ever
          USED by a send, and the send already checks it and asks if it cannot
          reach anyone, so a typo costs a dialog rather than a lost change. */
-      else if(key==='cpEmail') c.counterpartyEmail=inp.value.trim();
+      else if(key==='cpEmail') ctSetTheirEmail(c, inp.value);
       /* THE FIGURE READS AS A FIGURE. This field was type=number, so a
          78-million-shilling contract showed `78000000` — eight digits with no
          separators, on the panel whose whole job is to state the commercial
@@ -16304,7 +16425,9 @@ async function signDocument(c){
             : 'the signing links are issued from the route'}${out.links.length>1?'; the rest release automatically as each signer signs':''}`);
           renderSignButton(c); renderAuditSection(c);
         } else {
-          if(out && out.missingEmails)
+          if(out && out.refused)
+            toast(out.refused,'warn');
+          else if(out && out.missingEmails)
             toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it, or share a link by hand`,'err');
           else
             toast(i18t('ct_internal_complete'));
@@ -16682,7 +16805,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read
@@ -16690,7 +16813,7 @@ Object.assign(window,{PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paint
   docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
   scApplyZoom,scZoomStep,scPaintPage,scPageGo,scSourceLine,scControlsHtml,scWireControls,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

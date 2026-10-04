@@ -35,7 +35,11 @@ function stage(){
     c('MK-Q0', { expiry: qMid(0) }),                                         // this quarter
     c('MK-Q1a', { expiry: qMid(1) }), c('MK-Q1b', { expiry: qMid(1) }), c('MK-Q1c', { expiry: qMid(1) }),   // next quarter — crowded
     c('MK-Q2', { expiry: qMid(2) }),
-    c('MK-N', { expiry: qMid(2), metadata: { noticePeriodDays: 90 } }),      // notice pulls it back a quarter
+    /* 120 days, not 90: from a 30 June quarter-end, 90 days back is 1 April,
+       still the same quarter, so the answer moved with the season (red from
+       early October 2026). 120 is longer than any quarter and shorter than two,
+       so it pulls back exactly one quarter whatever today is. */
+    c('MK-N', { expiry: qMid(2), metadata: { noticePeriodDays: 120 } }),     // notice pulls it back a quarter
     c('MK-Q9', { expiry: qMid(9) }),                                         // later
     c('MK-P', { expiry: qMid(-1) }),                                         // passed
     c('MK-X', {}),                                                           // no date
@@ -51,7 +55,7 @@ describe('f293 — the grouping is renewalDecisionDate\'s own', () => {
     assert.equal(g('MK-Q0'), 'This quarter');
     assert.equal(g('MK-Q1a'), qLabel(1));
     assert.equal(g('MK-Q2'), qLabel(2));
-    assert.equal(g('MK-N'), qLabel(1), 'ninety days of notice pulls a quarter-end expiry back a quarter');
+    assert.equal(g('MK-N'), qLabel(1), 'notice longer than a quarter pulls a quarter-end expiry back one quarter');
     assert.equal(g('MK-Q9'), 'Later');
     assert.equal(g('MK-P'), 'Passed');
     assert.equal(g('MK-X'), 'No decision date');

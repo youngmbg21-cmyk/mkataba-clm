@@ -2225,6 +2225,65 @@ async function negoFileProposal(c, proposedText, opts = {}){
   const loose = nextClauses.filter(cl => !cl.clauseId || !baseClauses.some(b => b.clauseId === cl.clauseId));
   const usedLoose = new Set();
 
+  /* ---- A RETURNED FILE ANSWERS OUR ASKS FIRST (4 Oct 2026, the other side) ----
+     opts.readOurAsks is the Word round trip's own flag. The file we sent them
+     carried OUR open asks as tracked changes, and the reader reads every
+     tracked change as accepted — so an ask they left alone came back looking
+     like wording of THEIRS identical to ours, filed as their change, and
+     superseded our own ask instead of counting as agreed. And an ask they
+     rejected in Word came back as the prior wording, which filed nothing at
+     all: our ask sat pending as if the file had never answered it.
+
+     So, per clause carrying an open ask of ours, the returned wording is read
+     against the ask: OUR WORDS → they accepted it; THE WORDING IT REPLACED →
+     they rejected it; ANYTHING ELSE → their counter, filed exactly as before
+     through the funnel, which handles our ask the way a counter on the link
+     does. The answers go through negoResolve on their side — the same door a
+     decision on their link takes — and are returned in `answered`. Nothing
+     changes for a caller that does not pass the flag. */
+  const readBack = !!opts.readOurAsks;
+  const answered = [];
+  const ours = readBack ? negoPending(c).filter(x => x && x.authorSide === 'owner' && !x.withdrawn) : [];
+  const theirsOpen = readBack ? negoPending(c).filter(x => x && x.authorSide === 'counterparty') : [];
+  /* Exact first; then the clause with its heading against an ask whose words
+     are the body alone (an insertion's newText carries no heading). */
+  const sameText = (a, b) => { const x = norm(a), y = norm(b);
+    return !!y && (x === y || (y.length >= 12 && (x.endsWith(' ' + y) || y.endsWith(' ' + x)))); };
+  const answer = (ask, status) => {
+    const done = negoResolve(c, ask.id, status, { side: 'counterparty', quiet: true,
+      by: String(opts.author || c.counterparty || 'Counterparty').trim(),
+      reply: status === 'rejected' ? 'Rejected in Word' : null });
+    if (done) answered.push({ id: ask.id, status });
+    return !!done;
+  };
+  /* Our open insertions are claimed out of the loose clauses BEFORE anything
+     is matched by position, or one clause of ours present in the file would
+     push every later clause one slot along. */
+  const claimed = new Set();
+  if (readBack){
+    for (const ask of ours.filter(a => a.changeType === 'insertClause')){
+      const j = loose.findIndex((cl, k) => !claimed.has(k) && sameText(cl.text, ask.newText));
+      if (j >= 0){ claimed.add(j); usedLoose.add(j); answer(ask, 'accepted'); }
+      else answer(ask, 'rejected');
+    }
+  }
+  /* Under the flag the position walk is ORDERED over what is left: a clause
+     found by its own words fixes the walk there, and a clause of ours they
+     struck takes no slot. Without the flag, the old index walk, untouched. */
+  let walk = 0;
+  const looseAt = (was, i) => {
+    if (!readBack){
+      return loose[i] !== undefined && !usedLoose.has(i) ? i : -1;
+    }
+    const askNew = ours.filter(a => a.clauseId === was.clauseId && a.changeType === 'modify').map(a => a.newText);
+    const j = loose.findIndex((cl, k) => !usedLoose.has(k)
+      && (norm(cl.text) === norm(was.text) || askNew.some(t => norm(cl.text) === norm(t))));
+    if (j >= 0){ walk = j + 1; return j; }
+    if (ours.some(a => a.clauseId === was.clauseId && a.changeType === 'deleteClause')) return -1;
+    while (walk < loose.length && usedLoose.has(walk)) walk++;
+    return walk < loose.length ? walk++ : -1;
+  };
+
   const filed = [];
   const matchedBase = new Set();
   for (let i = 0; i < baseClauses.length; i++){
@@ -2233,12 +2292,34 @@ async function negoFileProposal(c, proposedText, opts = {}){
     if (!now){
       /* fall back to position among the unmatched, which is how a Word round
          trip has to be read: same slot, possibly reworded */
-      const cand = loose[i] !== undefined && !usedLoose.has(i) ? loose[i] : null;
-      if (cand){ now = cand; usedLoose.add(i); }
+      const k = looseAt(was, i);
+      if (k >= 0){ now = loose[k]; usedLoose.add(k); }
     }
-    if (!now) continue;
+    const mine = readBack ? ours.filter(a => a.clauseId === was.clauseId && a.changeType !== 'insertClause') : [];
+    if (!now){
+      /* Gone from their file. Where WE asked to delete it, that is their yes —
+         not a deletion of theirs to file over ours. */
+      const del = mine.find(a => a.changeType === 'deleteClause');
+      if (del){ matchedBase.add(was.clauseId); answer(del, 'accepted'); }
+      continue;
+    }
     matchedBase.add(was.clauseId);
+    if (mine.length){
+      const yes = mine.find(a => a.changeType === 'modify' && norm(a.newText) === norm(now.text));
+      if (yes){ answer(yes, 'accepted'); continue; }
+      if (norm(now.text) === norm(was.text) || mine.some(a => a.oldText && norm(a.oldText) === norm(now.text))){
+        for (const a of mine) answer(a, 'rejected');
+        continue;
+      }
+      const near = mine.find(a => a.changeType === 'modify' && sameText(now.text, a.newText));
+      if (near){ answer(near, 'accepted'); continue; }
+      /* Anything else is their counter, filed below as it always was. */
+    }
     if (norm(was.text) === norm(now.text)) continue;
+    /* An ask of THEIRS they sent back untouched is the ask already on the
+       table, not a second one. */
+    if (readBack && theirsOpen.some(a => a.clauseId === was.clauseId && a.changeType === 'modify'
+      && norm(a.newText) === norm(now.text))) continue;
     const ch = await negoFileChange(c, { clauseId: was.clauseId, changeType: 'modify',
       oldText: was.text, newText: now.text,
       bodyHtml: fromText ? negoBodyFromText(was.bodyHtml, now.text) : now.bodyHtml,
@@ -2264,6 +2345,7 @@ async function negoFileProposal(c, proposedText, opts = {}){
     if (usedLoose.has(i)) continue;
     const cl = loose[i];
     if (!cl.text.trim()) continue;
+    if (readBack && theirsOpen.some(a => a.changeType === 'insertClause' && sameText(cl.text, a.newText))) continue;
     const after = baseClauses[Math.min(i, baseClauses.length) - 1] || null;
     const ch = await negoInsertClause(c, after ? after.clauseId : null,
       { headingText: cl.headingText, bodyHtml: cl.bodyHtml }, { ...opts, quiet: true });
@@ -2286,6 +2368,9 @@ async function negoFileProposal(c, proposedText, opts = {}){
       `${side === 'counterparty' ? ' (the counterparty\'s wording, recorded in their name)' : ''}` +
       `${opts.via ? ` · received via ${opts.via}` : ''}`);
   }
+  /* The answers ride on the array so every caller that reads `filed` as a
+     list keeps reading exactly the list it always did. */
+  if (readBack) filed.answered = answered;
   return filed;
 }
 
@@ -2305,8 +2390,11 @@ async function negoImportReturnedDocx(c, bytes, opts = {}){
   const text = String((read && read.text) || '');
   if (!text.trim()) throw new Error('That file has no readable wording in it');
   const author = String(opts.author || c.counterparty || 'Counterparty').trim();
+  /* readOurAsks: the file answers OUR open asks before anything of theirs is
+     filed — see negoFileProposal. `answered` is what they decided in Word. */
   const filed = await negoFileProposal(c, text, { side: 'counterparty', author,
-    via: 'a returned Word file' });
+    via: 'a returned Word file', readOurAsks: true });
+  const answered = Array.isArray(filed.answered) ? filed.answered : [];
   const comments = (window.docxComments ? await docxComments(bytes) : []).map(cm => {
     /* ---- A COMMENT THAT NAMES ITS CHG COMES HOME TO IT (11 Sep 2026) ----
        The Word export writes every note on a change with the change's own
@@ -2322,7 +2410,7 @@ async function negoImportReturnedDocx(c, bytes, opts = {}){
     const t = negoTopicForQuote(c, cm.quote || cm.text);
     return { ...cm, topic: t.topic, topicLabel: t.label };
   });
-  return { filed, comments, tracked: (read && read.tracked) || null };
+  return { filed: filed.slice(), answered, comments, tracked: (read && read.tracked) || null };
 }
 /* Which discussion topic a quoted passage belongs to. The same clause keys
    discussTopics hands the composer, derived the same way, so a comment lands
@@ -2806,8 +2894,21 @@ function negoResolve(c, id, status, opts = {}){
      its own: accepting the counter answers it, refusing the counter puts it
      back. Deciding it directly would give two changes four outcomes. Refused
      in words, naming the change to decide instead. */
+  /* ---- AND THE REFUSAL CARRIES ITS WAY FORWARD (4 Oct 2026, the process
+     review) ----
+     It was a bare 'err' naming a CHG number. Nothing failed — the reader
+     pressed the right idea on the wrong half of a pair — so it is a 'warn'
+     naming the CLAUSE (negoRefusalClause), and the page takes them to the
+     counter: rlLinkFocus, the one function that lights and scrolls a change's
+     card and clause. After the press has finished, so a repaint the caller
+     makes cannot take the light off again. Quiet callers stay quiet. */
   if (ch.status === 'countered'){
-    if (!opts.quiet && window.toast) toast(i18t('ng_countered_decide_counter', { id: ch.counteredBy || '' }), 'err');
+    if (!opts.quiet){
+      const counter = ch.counteredBy ? negoChangeById(c, ch.counteredBy) : null;
+      if (window.toast) toast(i18t('ng_countered_go_counter', { clause: negoRefusalClause(counter, ch) }), 'warn');
+      if (counter && typeof window.rlLinkFocus === 'function' && typeof setTimeout === 'function')
+        setTimeout(() => { try{ window.rlLinkFocus(c, counter.id); }catch(_){ } }, 0);
+    }
     return null;
   }
   /* Read the permission through `window` deliberately, not as a bare call.
@@ -4901,9 +5002,33 @@ function negoHandOver(c, opts = {}){
      arithmetic (their createdAt predates the last stamp). The idempotency
      this guard exists for is untouched — a second caller after one send
      passes no such flag and still no-ops. */
-  if (alreadyTheirs && !negoUnsentAsks(c, mine).length && !opts.sentAnyway) return null;
+  /* ---- WHAT THIS SEND LEFT BEHIND IS WRITTEN DOWN (4 Oct 2026) ----
+     A change a reviewer held, one still out with a reviewer, and a colleague's
+     open suggestion are all UNSENT asks, and buildSharePayload leaves every
+     one of them out. Measured against the turn stamp alone they read as sent
+     the moment the stamp below moved — so the NEXT send was no longer told to
+     withhold them, and they went to the other side with nobody having cleared
+     them. Asked BEFORE the stamp, while they are still unsent, and kept on the
+     record as `keptIds`: negoUnsentAsks keeps them unsent until a hand-over at
+     which they are no longer withheld, which is the send that carries them.
+     f154's rule is untouched — a kept-back change never reached them. */
+  const kept = to === 'counterparty' ? negoWithheldNow(c) : null;
+  /* The idempotency below asks what would actually TRAVEL: a kept-back change
+     is unsent for as long as it is withheld, and counting it would make every
+     second caller after one send stamp again. */
+  const travels = negoUnsentAsks(c, mine).filter(x => !(kept && kept.has(x.id)));
+  if (alreadyTheirs && !travels.length && !opts.sentAnyway) return null;
+  /* ---- THE ROUND CLOSES ITSELF (4 Oct 2026) ----
+     A send that hands the table to the other side, after the round on the
+     table has already been sent once, starts the next round. The number moves
+     so "Round N — sent" names each send once; where the table is quiet the
+     decided changes are archived and the agreed wording becomes the baseline,
+     by negoAdvanceRound — the one function that has ever done that. */
+  const nextRound = (to === 'counterparty' && !alreadyTheirs && negoRoundWasSent(c))
+    ? negoAdvanceRound(c, { by: opts.by, auto: true }) : null;
   n.turn = to;
   n.turnAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
+  if (kept) n.keptIds = [...kept];
   const by = String(opts.by || (window.currentUser && window.currentUser()?.name) || 'System');
   /* Every turn close snapshots a version, so version compare keeps working and
      the history reads as a sequence of hand-offs rather than a pile of edits. */
@@ -4923,7 +5048,14 @@ function negoHandOver(c, opts = {}){
   if (window.logAudit) logAudit(c, 'Negotiation', alreadyTheirs
     ? `Further changes sent to ${whom} by ${by} in round ${n.round} — it was already their turn`
     : `Turn handed to ${to} by ${by} in round ${n.round} — ${negoPending(c).length} change(s) awaiting a decision`);
-  return { turn: to, at: n.turnAt, moved: !alreadyTheirs };
+  /* THEIR COPY NAMES THE SAME ROUND. The send that called this built its
+     payload a moment ago, under the old number; the quiet catch-up carries the
+     new one to every standing link (it holds back anything still unsent, so it
+     can carry nothing new). Absent on a stage without js/core.js. */
+  if (nextRound && window.refreshLiveShareQuietly){
+    try{ const p = refreshLiveShareQuietly(c); if (p && p.catch) p.catch(() => {}); }catch(_){}
+  }
+  return { turn: to, at: n.turnAt, moved: !alreadyTheirs, round: n.round, roundMoved: !!nextRound };
 }
 /* The banner both sides read. A READ of the change set and the turn, so it can
    never claim a state the record does not support. */
@@ -4979,13 +5111,35 @@ function negoReleaseHold(c){
   }
   return false;
 }
+/* ---- WHAT A SEND KEPT BACK, AND WHY IT IS STILL UNSENT (4 Oct 2026) ----
+   `negotiation.keptIds` is written by negoHandOver: the ids of our own unsent
+   asks that were WITHHELD at that hand-over (a reviewer's hold, a change still
+   out with a reviewer, a colleague's open suggestion). Read self-cleaning like
+   holdIds — only ids still our own pending asks count. RAW, so a reading drawn
+   beside every clause (ladderUnsent) can ask the same list. */
+function negoKeptIds(c){
+  const raw = (c && c.negotiation && Array.isArray(c.negotiation.keptIds)) ? c.negotiation.keptIds : [];
+  if (!raw.length) return [];
+  const live = new Set((Array.isArray(c.changes) ? c.changes : [])
+    .filter(x => x && x.status === 'pending' && x.authorSide !== 'counterparty').map(x => x.id));
+  return raw.filter(id => live.has(id));
+}
+/* Everything a send must leave home right now, for its own reasons — the same
+   three sets buildSharePayload subtracts besides a solo send's own holds. */
+function negoWithheldNow(c){
+  const out = new Set();
+  try{ if (window.reviewWithheldIds) for (const id of reviewWithheldIds(c)) out.add(id); }catch(_){}
+  try{ if (window.deskSuggestedIds) for (const id of deskSuggestedIds(c)) out.add(id); }catch(_){}
+  return out;
+}
 function negoUnsentAsks(c, side){
   const me = side === 'counterparty' ? 'counterparty' : 'owner';
   const at = (c && c.negotiation && c.negotiation.turnAt) || null;
   /* A draft deliberately kept back by a solo send stays unsent whatever the
      turn stamp says — see negoHeldBackIds above. Owner side only: the list is
-     only ever written on the owner's desk. */
-  const hb = me === 'owner' ? new Set(negoHeldBackIds(c)) : null;
+     only ever written on the owner's desk. And so does one a send WITHHELD
+     (negoKeptIds) — it never left either. */
+  const hb = me === 'owner' ? new Set([...negoHeldBackIds(c), ...negoKeptIds(c)]) : null;
   /* Measured against a hand-over that actually happened. With no `turnAt` at
      all nothing has ever been sent, and "unsent" is not the useful fact about
      the round — it is simply somebody's turn, and the turn already says so.
@@ -5029,9 +5183,48 @@ function negoTurnBanner(c, side){
    history reads as a sequence of decisions rather than one ever-growing pile.
    The archived records keep their hashes and their revisions, which is what
    lets verifyChangeChain walk a six-round history. */
+/* ---- WHEN THE ROUND ON THE TABLE BEGAN, AND WHETHER IT HAS GONE OUT ----
+   (4 Oct 2026, the round closes itself.) Both RAW — the column head draws the
+   first beside every paint and READING MUST NOT WRITE. `roundAt` is stamped by
+   negoAdvanceRound from today; a record from before it reads the last archived
+   round's close, and round one reads when the negotiation started. */
+function negoRoundSince(c){
+  const n = c && c.negotiation;
+  if (!n) return null;
+  if (n.roundAt) return n.roundAt;
+  const rs = Array.isArray(n.rounds) ? n.rounds : [];
+  if (rs.length && Number(n.round) > 1) return (rs[rs.length - 1] && rs[rs.length - 1].at) || null;
+  return n.startedAt || null;
+}
+/* Has anything changed hands since this round began? The question a send
+   asks before it starts the next one: the FIRST send of a round is that
+   round's send, every later one that hands the table over is a new round. */
+function negoRoundWasSent(c){
+  const n = c && c.negotiation;
+  if (!n || !n.turnAt) return false;
+  return String(n.turnAt) > String(negoRoundSince(c) || '');
+}
 function negoAdvanceRound(c, opts = {}){
   negoInit(c);
   const p = negoProgress(c);
+  /* ---- CALLED BY A SEND, THE NUMBER MOVES EITHER WAY (4 Oct 2026) ----
+     negoHandOver asks with `auto` when a send starts the next round. Where the
+     table is quiet the round is archived exactly as below; where it is not —
+     an answer still owed, an ask parked under a counter, nothing decided at
+     all — nothing is archived (an undecided change is not history yet) and
+     only the counter moves, so each send that hands the table over is named
+     for its own round. The open changes simply carry on into it. */
+  const quiet = !p.pending && !negoChanges(c).some(x => x && x.status === 'countered')
+    && negoChanges(c).some(x => x.status === 'accepted' || x.status === 'rejected');
+  if (opts.auto && !quiet){
+    const was = c.negotiation.round;
+    c.negotiation.round = was + 1;
+    c.negotiation.roundAt = (window.nowISO ? window.nowISO() : new Date().toISOString());
+    if (window.logAudit) logAudit(c, 'Negotiation',
+      `Round ${was} closed by sending round ${was + 1}` +
+      (p.pending ? ` — ${p.pending} change(s) still open carry into it` : ''));
+    return { n: was, at: c.negotiation.roundAt, archived: false };
+  }
   if (p.pending) return null;                 // an undecided change is not history yet
   /* ---- A PARKED ASK IS NOT HISTORY EITHER (13 Sep 2026) ----
      An ask parked under a counter is answered only when the counter is; the
@@ -5060,6 +5253,7 @@ function negoAdvanceRound(c, opts = {}){
   c.negotiation.baselineText = (window.richToText ? richToText(body) : '');
   c.negotiation.baselineFormat = (window.docFormat ? docFormat(c.format) : 'text');
   c.negotiation.round = n + 1;
+  c.negotiation.roundAt = c.negotiation.rounds[c.negotiation.rounds.length - 1].at;
   c.changes = [];                             // the archived set lives on the round
   /* A round closing makes the agreed wording the new baseline — that is an
      update to the contract, so it is listed even though nobody asked for it. */
@@ -5084,6 +5278,17 @@ function negoAdvanceRound(c, opts = {}){
     try{ negoRenumberApply(c, { by: opts.by, auto: true }); }catch(_){ /* the round is closed either way */ }
   }
   return c.negotiation.rounds[c.negotiation.rounds.length - 1];
+}
+/* ---- A SIGNING LINK CLOSES THE ROUND (4 Oct 2026) ----
+   The third door, beside Ready to sign and the outside hand-over: once a
+   signing link exists the arguing is over, so the decided changes are archived
+   and the agreed wording becomes the baseline the signature rests on. Only
+   where a negotiation exists and has changes on its table — issuing a link on
+   paper nobody negotiated must not start one (READING MUST NOT WRITE) — and
+   negoAdvanceRound refuses on its own where anything is undecided. */
+function negoRoundClosesForSigning(c, by){
+  if (!c || !c.negotiation || !Array.isArray(c.changes) || !c.changes.length) return null;
+  return negoAdvanceRound(c, { by: by || (window.currentUser && window.currentUser()?.name) || 'System' });
 }
 /* Every change this negotiation has ever carried, live and archived, newest
    round last. What the history panel and the evidence pack read. */
@@ -5426,7 +5631,8 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoVersionOptions, negoVersionChoices, negoVersionByKey, negoVersionRound,
   negoIsLivePair, negoCompareVersions,
   negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks,
-  negoHeldBackIds, negoHoldOthers, negoReleaseHold,
+  negoHeldBackIds, negoHoldOthers, negoReleaseHold, negoKeptIds, negoWithheldNow,
+  negoRoundWasSent, negoRoundSince, negoRoundClosesForSigning,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,
   negoChangeHtml, negoDiffHtml,
   negoIntakePath, negoNormalizeDocument, negoRichFromLines, negoMigrate,

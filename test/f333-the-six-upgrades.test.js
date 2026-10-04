@@ -35,7 +35,10 @@ describe('f333 (4) "nothing fits" leads to the door that exists', () => {
     assert.match(DR, /function draftNothingFits\(out, sentence, why, closest\)/);
     assert.match(DR, /draftNothingFits\(out, sentence, String\(\(r&&r\.why\)\|\|''\), String\(\(r&&r\.closestName\)\|\|''\)\); return;/,
       'the branch hands it the reason and the nearest, both read off the route');
-    assert.match(DR, /openIntakeForm\(\{ need:String\(sentence\|\|''\) \}\)/,
+    /* RE-POINTED 4 Oct 2026: the required title is filled from the sentence
+       too (intakeTitleFrom), so the form does not refuse them for a box they
+       never saw empty. */
+    assert.match(DR, /openIntakeForm\(\{ need:String\(sentence\|\|''\), title:/,
       'and the sentence they already typed goes with them');
     assert.ok(!/function openIntakeForm/.test(DR), 'never a second copy of the ask form');
   });

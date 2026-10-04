@@ -238,11 +238,15 @@ describe('f195 — the screens', () => {
     assert.match(row.detail, /not enforced/i, 'and a tick here never reads as "and it is being enforced"');
   });
 
-  test('the switch is on the approval-rules panel, off by default, and writes on change', () => {
+  /* RE-POINTED 4 Oct 2026 (the process review, approved): the switch left the
+     approval rules' drawer for a row of its own, "Signing limits", under
+     "Before anyone signs" — a rule found by its own name. The claim is the
+     same: off by default, the ladder under it. */
+  test('the switch has its own row, off by default, and writes on change', () => {
     const { sb, $ } = stage();
-    sb.renderTeam(); sb.settingsGoTab('platform'); sb.stDrawerOpen('approvals');
+    sb.renderTeam(); sb.settingsGoTab('platform'); sb.stDrawerOpen('signcap');
     const box = $('sc-rule-on');
-    assert.ok(box, 'the switch is beside the rules — the other half of the same question');
+    assert.ok(box, 'the switch is on its own row');
     assert.equal(box.checked, false, 'off by default');
     assert.ok($('sc-ladder'), 'and the ladder is under it');
   });
