@@ -69,6 +69,9 @@ const BAD = add('Starts by month', { pic: 'cols', split: { by: 'date', unit: 'm'
       : { actions: [add('By stream', { pic: 'ring', split: { by: 'folder' } }), BAD], answer: 'Two cards.' };
     const n0 = sent.length;
     const said1 = await ask('build me two cards about the book');
+    /* two cards are a preview first (work order Part 5): Add all */
+    await until(() => document.querySelector('[data-hb-pv="all"]') ? true : null);
+    await page.evaluate(() => document.querySelector('[data-hb-pv="all"]').click());
     await until(() => hbS().panels.length === 2 ? true : null);
     const titles = await page.evaluate(() => hbS().panels.map(p => p.title).sort().join('|'));
     check('1a the good card and the fixed card are on the board; the bad one is not', titles === 'By stream|Ends by month', titles);

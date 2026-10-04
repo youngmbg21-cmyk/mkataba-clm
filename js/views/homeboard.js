@@ -84,7 +84,7 @@ let _hbS = null, _hbSUid = null;
 function hbFresh(){
   return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: 'dark',
     watches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
-    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {} };
+    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0 };
 }
 /* The board as this person left it. Read once per sitting and per person; a
    value that does not parse, or a word this version does not know, falls
@@ -139,13 +139,65 @@ function hbS(){
       if (typeof k === 'string' && w && typeof w.day === 'string' && typeof w.sig === 'string' && typeof w.text === 'string')
         s.why[k.slice(0, 300)] = { day: w.day.slice(0, 10), sig: w.sig.slice(0, 400), text: w.text.slice(0, 4000), dropped: Number(w.dropped) || 0, at: String(w.at || '').slice(0, 5), notice: String(w.notice || '').slice(0, 300) }; });
   }
-  _hbS = s; _hbSUid = uid;
+  if (v && Array.isArray(v.undo)) s.undo = v.undo.filter(u => u && Number(u.n) > 0 && typeof u.shape === 'string' && u.shape.length < 400000).slice(-HB_UNDO_MAX).map(u => ({ n: Number(u.n), shape: u.shape }));
+  if (v && Number(v.undoSeq) > 0) s.undoSeq = Number(v.undoSeq);
+  _hbS = s; _hbSUid = uid; _hbShape = hbShapeOf(s);
   return s;
 }
 function hbSave(){
   const s = hbS();
+  hbUndoMark(s);
   try { localStorage.setItem(HB_LS + hbUid(), JSON.stringify(s)); } catch (_){}
 }
+/* ---- ONE-PRESS UNDO (work order Part 5) ----
+   ONE store, s.undo: the last HB_UNDO_MAX board states (cards, trail,
+   recipes), written by ONE writer, here, before every board change —
+   whatever made it: a press, the free reader or Copilot. Changes made in one
+   go (five cards from one answer) are one step back. Kept on this person's
+   own board record; trimmed to ten, unsaid (it holds only their own views). */
+const HB_UNDO_MAX = 10;
+let _hbShape = null, _hbUndoBusy = false, _hbUndoOpen = false;
+function hbShapeOf(s){ return JSON.stringify({ panels: s.panels || [], path: s.path || [], recipe: s.recipe || {} }); }
+function hbUndoMark(s){
+  if (_hbUndoBusy) return;
+  const now = hbShapeOf(s);
+  if (_hbShape == null){ _hbShape = now; return; }
+  if (now === _hbShape) return;
+  if (!_hbUndoOpen){
+    s.undoSeq = (Number(s.undoSeq) || 0) + 1;
+    s.undo = (s.undo || []).concat([{ n: s.undoSeq, shape: _hbShape }]).slice(-HB_UNDO_MAX);
+    /* one go = everything done before control returns (a microtask closes it) */
+    _hbUndoOpen = true; Promise.resolve().then(() => { _hbUndoOpen = false; });
+  }
+  _hbShape = now;
+}
+function hbUndoTop(){ const u = hbS().undo || []; return u.length ? u[u.length - 1].n : 0; }
+/* back to the board as it stood before step n (the latest when none named) */
+function hbUndo(n){
+  const s = hbS(), list = s.undo || [];
+  const i = n == null ? list.length - 1 : list.findIndex(u => u.n === Number(n));
+  if (i < 0) return false;
+  let shape = null; try { shape = JSON.parse(list[i].shape); } catch (_){ shape = null; }
+  if (!shape) return false;
+  s.undo = list.slice(0, i);
+  s.panels = Array.isArray(shape.panels) ? shape.panels : []; s.path = Array.isArray(shape.path) ? shape.path : []; s.recipe = shape.recipe && typeof shape.recipe === 'object' ? shape.recipe : {};
+  _hbUndoBusy = true; try { hbSave(); } finally { _hbUndoBusy = false; }
+  _hbShape = hbShapeOf(s);
+  return true;
+}
+/* AN ANSWER'S PRESSES RIDE BESIDE ITS WORDS: the panel strips buttons from
+   an answer's text (its wall), so Undo and a preview's ticks travel as the
+   message's own fields, drawn by the panel through hbUndoHtml/hbPreviewHtml.
+   The ask that made them collects them once (hbTakeMeta). */
+let _hbMeta = null;
+function hbTakeMeta(){ const m = _hbMeta; _hbMeta = null; return m || {}; }
+/* an answer that changed the board carries Undo, back to before it */
+function hbNoteUndo(since){
+  const u = (hbS().undo || []).find(x => x.n > since);
+  if (u) _hbMeta = Object.assign(_hbMeta || {}, { undo: u.n });
+  return '';
+}
+function hbUndoHtml(n){ return `<div class="hb-undo-row"><button type="button" class="ui-link hb-undo" data-hb-undo="${_hbE(String(n))}">${_hbE(i18t('hb_undo'))}</button></div>`; }
 function hbFace(){ return hbS().face; }
 
 /* ---------------- the book, through the lens ----------------
@@ -4050,10 +4102,11 @@ function hbActionTitle(a){ const t = a && (a.title || (a.recipe && a.recipe.titl
 /* COPILOT'S ANSWER, CHECKED: the good actions apply; the bad go back ONCE;
    what still fails is said and not applied */
 async function hbBoardTakesChecked(res, retry){
+  _hbMeta = null;
   const s = hbS(); if (s.face !== 'board' || !res) return null;
-  if (!Array.isArray(res.actions) || !res.actions.length) return hbBoardTakes(res);
+  if (!Array.isArray(res.actions) || !res.actions.length){ const u0 = hbUndoTop(); const said = hbBoardTakes(res); return said ? said + hbNoteUndo(u0) : said; }
   const bad = hbActionsCheck(res.actions);
-  if (!bad.length) return hbBoardTakes(res);
+  if (!bad.length) return hbBoardAnswer(res, res.actions, []);
   const good = res.actions.filter((a, i) => !bad.some(b => b.i === i));
   let fixed = [], ran = false, still = bad;
   if (typeof retry === 'function'){
@@ -4070,12 +4123,84 @@ async function hbBoardTakesChecked(res, retry){
   const lines = [];
   if (ran) lines.push(i18tn('hb_chk_retried', bad.length, { n: _hbN(bad.length) }));
   still.forEach(b => lines.push(i18t(b.a && b.a.do === 'change_card' ? 'hb_chk_not_changed' : 'hb_chk_not_added', { what: hbActionTitle(b.a), why: b.problems.map(p => p.say).join('; ') })));
-  /* HaTi's lines first — what was done, the retry, what was not — then Copilot's own sentence */
-  const applied = good.concat(fixed);
-  const said = applied.length ? hbBoardTakes(Object.assign({}, res, { actions: applied, answer: '' })) : null;
+  return hbBoardAnswer(res, good.concat(fixed), lines);
+}
+/* ---- PREVIEW A BIG BUILD (work order Part 5) ----
+   An answer that would add two or more cards, or remove any, is shown as a
+   list with ticks in the panel's answer — "Add all" / "Add chosen" —
+   and NOTHING is applied until pressed: the reader's choice, in the cheapest
+   channel that carries the act (no band, no dialog). One card, or one change
+   to the open card, applies at once, as before. */
+const _hbPreviews = new Map();
+let _hbPvSeq = 0;
+function hbIsBig(actions){
+  const list = (actions || []).map(a => hbActionClean(a)).filter(Boolean);
+  return list.filter(a => a.do === 'add_card').length >= 2 || list.some(a => a.do === 'remove_card');
+}
+/* one action in the reader's words, for the list */
+function hbActionWords(raw){
+  const a = hbActionClean(raw); if (!a) return '';
+  const s = hbS();
+  if (a.do === 'add_card'){
+    const W = hbWhichOf(a.which || { all: true }, s.lens);
+    const D = { key: 'pv:new', kind: 'list', ids: W.ids, n: W.ids.length, fixed: W.fields, chart: a.recipe || {} };
+    return i18t('hb_pv_add', { what: a.title || (a.recipe && a.recipe.title) || W.label, how: hbHowWord(hbCardPlan(Object.assign(hbPlanBase(D), a.recipe || {}), D)), n: _hbN(W.ids.length) });
+  }
+  const C = a.card ? hbCardRef(a.card) : null;
+  const name = C ? (C.p ? hbPanelWord(C.p) : hbCrumbOf(C.key, s.lens)) : (a.card || '');
+  if (a.do === 'remove_card') return i18t('hb_pv_remove', { what: name });
+  if (a.do === 'change_card'){ const D = C && C.key ? hbDigData(C.key, s.lens) : null;
+    return i18t('hb_pv_change', { what: name, how: D ? hbHowWord(hbCardPlan(Object.assign(hbPlanSpec(D), hbCardClean(a.recipe || {})), D)) : '' }); }
+  if (a.do === 'name_card') return i18t('hb_pv_name', { what: name, to: a.title || '' });
+  if (a.do === 'arrange') return i18t('hb_pv_arrange');
+  if (a.do === 'filter_board') return i18t('hb_pv_filter', { what: hbWhichOf(a.which || { all: true }, s.lens).label });
+  return a.do;
+}
+/* what the panel says for an answer: applied at once, or offered as a list */
+function hbBoardAnswer(res, applied, lines){
   const own = String(res.answer || '').trim();
   const tail = own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : '';
-  return [said, lines.map(l => _hbE(l)).join('<br>')].filter(Boolean).join('<br>') + tail;
+  const extra = (lines || []).map(l => _hbE(l)).join('<br>');
+  if (applied.length && hbIsBig(applied)){
+    const id = 'pv' + (++_hbPvSeq);
+    _hbPreviews.set(id, { actions: applied, tail, extra });
+    _hbMeta = Object.assign(_hbMeta || {}, { preview: { id, adds: applied.every(a => a && a.do !== 'remove_card'), rows: applied.map(a => hbActionWords(a)) } });
+    return _hbE(i18tn('hb_pv_head', applied.length, { n: _hbN(applied.length) })) + (extra ? '<br>' + extra : '') + tail;
+  }
+  const u0 = hbUndoTop();
+  const said = applied.length ? hbBoardTakes(Object.assign({}, res, { actions: applied, answer: '' })) : null;
+  /* HaTi's lines first — what was done, the retry, what was not — then Copilot's own sentence */
+  return [said ? said + hbNoteUndo(u0) : '', extra].filter(Boolean).join('<br>') + tail;
+}
+/* the list with ticks, drawn by the panel under the answer's words */
+function hbPreviewHtml(P){
+  if (!P || !Array.isArray(P.rows)) return '';
+  return `<div class="hb-pv" data-hb-pv-id="${_hbE(P.id)}">${P.rows.map((r, i) => `<label class="hb-pv-row"><input type="checkbox" data-hb-pv-item="${i}" checked><span>${_hbE(r)}</span></label>`).join('')}
+    <div class="hb-pv-acts"><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-hb-pv="all">${_hbE(i18t(P.adds ? 'hb_pv_all' : 'hb_pv_apply_all'))}</button><button type="button" class="ui-btn ui-btn-sm" data-hb-pv="chosen">${_hbE(i18t(P.adds ? 'hb_pv_chosen' : 'hb_pv_apply_chosen'))}</button></div></div>`;
+}
+/* the press on a preview: all, or only the ticked ones; the panel's answer
+   becomes what was done, with Undo */
+function hbPreviewPress(id, which, chosen){
+  const P = _hbPreviews.get(id);
+  if (!P) return { html: _hbE(i18t('hb_pv_gone')) };
+  const pick = which === 'all' ? P.actions : P.actions.filter((a, i) => (chosen || []).includes(i));
+  if (!pick.length) return null;
+  _hbPreviews.delete(id);
+  const u0 = hbUndoTop();
+  const r = hbBoardApply(pick);
+  const left = P.actions.length - pick.length;
+  hbNoteUndo(u0);
+  const html = r.html + (left ? '<br>' + _hbE(i18tn('hb_pv_left', left, { n: _hbN(left) })) : '') + (P.extra ? '<br>' + P.extra : '') + P.tail;
+  return Object.assign({ html, r }, hbTakeMeta());
+}
+/* the panel's message that held the list is replaced by what was done */
+function hbPreviewSettle(id, html, undo){
+  try {
+    const h = window.intel && Array.isArray(intel.history) ? intel.history : [];
+    const m = h.find(x => x && x.role === 'assistant' && x.preview && x.preview.id === id);
+    if (m){ m.text = html; delete m.preview; if (undo) m.undo = undo; }
+    if (typeof renderIntelDock === 'function') renderIntelDock();
+  } catch (_){}
 }
 
 /* ---- THE BOARD'S TOOLS, AS COPILOT IS GIVEN THEM (the server's list is the same, f497) ---- */
@@ -4234,9 +4359,11 @@ function hbBoardApply(actions){
    with the board shown to it (hbBoardNow) — never read as a new chart */
 const HB_WHY_ASK_RE = /^\s*(?:why|explain|how come|what (?:does|do) .{0,60}\bmean|what is this|what's this|varför|förklara|vad betyder)\b/i;
 function hbAsk(q){
+  _hbMeta = null;
   if (HB_WHY_ASK_RE.test(String(q || ''))){ _hbPendingRecipe = null; return null; }
+  const u0 = hbUndoTop();
   const fu = hbFollowUp(q);
-  if (fu){ _hbPendingRecipe = null; return fu + `<div class="hb-cost">${_hbE(i18t('hb_free'))}</div>`; }
+  if (fu){ _hbPendingRecipe = null; return fu + `<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u0)}</div>`; }
   const r = hbParse(q);
   /* a chart question HaTi could not read whole goes on to Copilot with its
      picture words already read (hbShowFound puts them on the answer) */
@@ -4249,7 +4376,7 @@ function hbAsk(q){
      renewals asked of the map is the map's to answer. */
   if (s.face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.act === 'present' || r.act === 'analyze')) return null;
   const free = i18t('hb_free');
-  const say = (html, opts) => { if (!opts || !opts.noPaint){ if (s.face === 'board') hbPaintBoard(opts && opts.jump ? { jump: opts.jump } : undefined); } return html + `<div class="hb-cost">${_hbE(free)}</div>`; };
+  const say = (html, opts) => { if (!opts || !opts.noPaint){ if (s.face === 'board') hbPaintBoard(opts && opts.jump ? { jump: opts.jump } : undefined); } return html + `<div class="hb-cost">${_hbE(free)}${hbNoteUndo(u0)}</div>`; };
   if (r.act === 'card'){
     const c = hbContract(r.id); const K = hbCardData(c);
     hbDig('c:' + c.id, false);
@@ -4262,7 +4389,7 @@ function hbAsk(q){
   }
   if (r.act === 'noref') return say(_hbE(i18t('hb_no_ref', { ref: r.ref })), { noPaint: true });
   if (r.act === 'reset'){
-    const keep = { screen: s.screen, watches: s.watches, saved: s.saved, seen: s.seen, seq: s.seq };
+    const keep = { screen: s.screen, watches: s.watches, saved: s.saved, seen: s.seen, seq: s.seq, undo: s.undo, undoSeq: s.undoSeq };
     Object.assign(s, hbFresh(), keep); hbSave(); hbLensOnMap();
     hbMount();
     return say(_hbE(i18t('hb_reset_said')), { noPaint: true });
@@ -4513,6 +4640,13 @@ function hbOnClick(e){
   if ((el = on('[data-hb-crumb]'))){ const i = Number(el.getAttribute('data-hb-crumb')); hbCrumb(i); hbPaintBoard({ jump: i < 0 ? null : 'focus' }); return; }
   /* THE ROW EDITS ITS OWN CARD: the open dig-in's, or a panel's */
   const rkey = x => { const row = x.closest('[data-hb-rkey]'); return row ? row.getAttribute('data-hb-rkey') : (hbS().path || []).slice(-1)[0]; };
+  if ((el = on('[data-hb-pv]'))){ const box = el.closest('[data-hb-pv-id]'); if (!box) return; const id = box.getAttribute('data-hb-pv-id');
+    const chosen = [...box.querySelectorAll('[data-hb-pv-item]')].filter(x => x.checked).map(x => Number(x.getAttribute('data-hb-pv-item')));
+    const out = hbPreviewPress(id, el.getAttribute('data-hb-pv'), chosen);
+    if (!out){ if (typeof toast === 'function') toast(i18t('hb_pv_none_chosen'), 'warn'); return; }
+    hbPreviewSettle(id, out.html, out.undo); return; }
+  if ((el = on('[data-hb-undo]'))){ const ok = hbUndo(el.getAttribute('data-hb-undo')); hbPaintBoard();
+    if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_gone'), ok ? 'ok' : 'warn'); return; }
   if ((el = on('[data-hb-rmore]'))){ hbRcMoreToggle(rkey(el)); _hbRcOpen = null; hbPaintBoard(); return; }
   if ((el = on('[data-hb-rc]'))){ const p = rkey(el) + '|' + el.getAttribute('data-hb-rc'); _hbRcOpen = _hbRcOpen === p ? null : p; hbPaintBoard(); return; }
   if ((el = on('[data-hb-rset]'))){ if (el.disabled) return; const key = rkey(el), v = el.getAttribute('data-hb-rset'), i = v.indexOf(':');
@@ -4587,6 +4721,12 @@ function hbOnPenDown(e){
 function hbOnPenUp(){ if (!_hbStroke) return; if (_hbStroke.length > 1) _hbInk.push(_hbStroke); _hbStroke = null; hbInkDraw(); }
 function hbOnKey(e){
   if (!window.state || state.view !== 'dashboard') return;
+  /* Ctrl/⌘+Z on the board undoes the last board change (never inside a box being typed in) */
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z') && hbS().face === 'board'){
+    const t = e.target; if (t && (t.closest && t.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]'))) return;
+    e.preventDefault(); const ok = hbUndo(); hbPaintBoard();
+    if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_none'), ok ? 'ok' : 'warn'); return;
+  }
   if (e.key === 'Escape' && _hbRcOpen){ const at = _hbRcOpen.lastIndexOf('|'), k = _hbRcOpen.slice(0, at), p = _hbRcOpen.slice(at + 1); _hbRcOpen = null; hbPaintBoard();
     const row = [...document.querySelectorAll('[data-hb-rkey]')].find(r => r.getAttribute('data-hb-rkey') === k);
     const b = row && row.querySelector(`[data-hb-rc="${p}"]`); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }
@@ -4648,4 +4788,5 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbCardEdit, hbHowWord, hbRecipeWords, hbSplitModelWord, hbOrderWord, hbReadCompareOf, hbReadTwoOf, hbReadingCore, hbRcCur, hbRcCurHas,
   hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,
   HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide,
-  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked });
+  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked,
+  HB_UNDO_MAX, hbShapeOf, hbUndoMark, hbUndoTop, hbUndo, hbNoteUndo, hbUndoHtml, hbTakeMeta, hbPreviewHtml, hbIsBig, hbActionWords, hbBoardAnswer, hbPreviewPress, hbPreviewSettle });

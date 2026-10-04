@@ -20302,3 +20302,4 @@ asker leaves; advice is a kind of request. Story in docs/MAP-HISTORY.md under
 - the bell rows still read the old approval/review/suggestion fields, not c.asks (follow-up).
 - srvAsksMerge's refusal messages are English-only, like their neighbours (the screens never trigger them).
 - Home board: a dig two levels deep inside a chart (a slice of a slice, key `qg:qg:…`) reads its parent key as only the first `§` segment in hbDigData's qg/qm/qv branch, so it can open the wrong list; the new q2/qr doors read the key from the end and are not affected (noticed 4 Oct, not fixed).
+- Home board: a Ring drawn in a half-width card (a kept view) scales its 1000-wide drawing down, so the legend names and figures beside the ring become too small to read (seen in the Part 5 photos, 4 Oct; the ring itself is unchanged by the work order, not fixed).

@@ -43,6 +43,8 @@ const BRAIN_PARTS = [
   ['dataguide', 'hbDataGuide', 'ai', 1],
   /* Check and repair (work order Part 4): every card checked before it lands; one retry */
   ['cardcheck', 'hbCardCheck', 'see', 1],
+  /* Preview and undo (work order Part 5): a big build waits for the reader; any change can be taken back */
+  ['boardundo', 'hbUndo', 'see', 1],
   ['upload', 'submitUpload', 'in', 0],
   ['newagr', 'openNewAgreement', 'in', 0],
   ['mailroom', 'POST /api/mailroom', 'in', 2],
@@ -139,7 +141,7 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home', 'insights']] },
-  { id: 'ask', steps: [['explorer', 'chartread', 'recipe'], ['db'], ['model', 'boardtools', 'dataguide', 'cardcheck'], ['quote'], ['contracts'], ['explorer']] }
+  { id: 'ask', steps: [['explorer', 'chartread', 'recipe'], ['db'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo'], ['quote'], ['contracts'], ['explorer']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it

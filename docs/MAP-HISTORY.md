@@ -26910,3 +26910,12 @@ The LIDA pattern: nothing wrong reaches the board quietly. ONE checker, `hbCardC
 - Copilot's answer is checked before it is applied (`hbBoardTakesChecked`): the good actions apply; the bad go back to Copilot ONCE through the panel's own payload with the failing recipes and reasons (`hbRepairNote`); the retry costs one more call and the panel says "One retry ran: n cards went back to Copilot to be fixed"; what still fails (or never came back) is not applied and is said one line each ("Could not add “Starts by month”: the start date is missing for 20 of 20 contracts."). HaTi's lines come first, Copilot's sentence last. No band, no dialog.
 - The free reader's cards go through the same checker: drawn as asked, no retry, and the answer adds "Drawn, but …".
 - Red at main: f499 7 of 8; the browser check stops at "the board has no checker".
+
+## PREVIEW AND UNDO (work order Part 5, built 4 Oct 2026 overnight)
+
+A big build is the owner's choice, and any change can be taken back.
+
+- Preview: an answer that would add two or more cards, or remove any, is offered as a list with ticks — "Add all" / "Add chosen" ("Do all" / "Do chosen" when a removal is in it) — and nothing is applied until pressed (`hbIsBig`, `hbBoardAnswer`, `hbPreviewPress`). The panel's message then becomes what was done ("2 were left out, as chosen") with Undo. A list is pressed once; an old one says "no longer open — ask again". One card, or a change to the open card, applies at once as before. No band, no dialog: the cheapest channel that carries the act.
+- Found while building: the panel strips buttons and inputs from an answer's text (`IG_UNSAFE_TAGS`, its security wall), so the first version drew text with no buttons. The presses now ride as the message's own parts — `hbTakeMeta()` hands `preview` / `undo` to the message intelAsk pushes, and `igMsgHTML` draws them with `hbPreviewHtml` / `hbUndoHtml` (rows escaped).
+- Undo: ONE store `s.undo` (the last ten board shapes — cards, trail, recipes) and ONE writer, `hbUndoMark`, inside `hbSave`, so every change is caught whatever made it — a press, the free reader or Copilot. Changes made in one go are one step (the step closes on a microtask; test/world.js runs timers at once, which first split one answer into five steps). An answer's Undo goes back to before that answer; Ctrl/⌘+Z on the board takes the last step, never inside a box being typed in. Kept on the person's own board record, so a refresh keeps it; the trim to ten is not said (it holds only their own views).
+- Red at main: f500 8 of 8.

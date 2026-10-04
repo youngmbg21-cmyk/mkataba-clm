@@ -83,7 +83,13 @@ const check = (name, pass, detail) => {
     /* ================= 1. FIVE CARDS IN ONE ANSWER ================= */
     const map0 = await page.evaluate(() => JSON.stringify({ g: intel.groupBy, l: (intel.lenses || []).filter(l => !l.hb).length }));
     reply = { actions: DASH, answer: 'A renewals board: what ends when, who it is with, and the money.' };
-    const said1 = await ask('build me a renewals dashboard');
+    const said0 = await ask('build me a renewals dashboard');
+    /* five cards are a PREVIEW first (work order Part 5): nothing lands until pressed */
+    check('1p five cards are offered as a list, nothing on the board yet', (await page.evaluate(() => hbS().panels.length)) === 0 && /Copilot proposes 5 changes/.test(said0 || ''), said0);
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: path.join(OUT, '0-preview.png') });
+    await page.evaluate(() => document.querySelector('[data-hb-pv="all"]').click());
+    const said1 = await until(() => { const a = (intel.history || []).filter(m => m.role === 'assistant'); return a.length && !/data-hb-pv-id/.test(a[a.length - 1].text) ? a.map(m => String(m.text || '').replace(/<br>/g, '\n').replace(/<[^>]+>/g, ' ').replace(/[ \t]+/g, ' ').trim()).join(' / ') : null; });
     const c1 = await until(() => { const s = hbS(); return s.panels.length === 5 && document.querySelectorAll('#hb-board [data-hb-pid]').length === 5 ? true : null; });
     const list = await cards();
     check('1a five actions built five cards', !!c1 && list.length === 5, JSON.stringify(list.map(x => x.title)));

@@ -1842,7 +1842,7 @@ async function intelAsk(qRaw){
      What it does not understand goes on exactly as on the map. No spend. */
   if(state.view==='dashboard' && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
-    if(said){ intel.history.push({role:'user', text:q}); intel.history.push({role:'assistant', text:said}); renderIntelDock(); return; }
+    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); renderIntelDock(); return; }
   }
   const h0=intel.history.length;
   intel.history.push({role:'user', text:q});
@@ -2018,7 +2018,7 @@ async function intelGraphAsk(q){
   if(res&&igBoardNow()&&typeof window.hbBoardTakes==='function'){
     const retry=payload?(note=>api('ai/graph','POST',Object.assign({},payload,{ query:q+'\n\n'+note, screen:graphAskScreen() }))):null;
     let said=null; try{ said=(typeof window.hbBoardTakesChecked==='function')?await hbBoardTakesChecked(res,retry):hbBoardTakes(res); }catch(_){ said=null; }
-    if(said){ intel.history.push({ role:'assistant', text:said+igNoticeHtml(res.notice) }); return; }
+    if(said){ intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice) }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); return; }
   }
   if(!res){ res=graphInterpret(q);           // fallback
     /* The built-in reader understood nothing: say what the map can do, as
@@ -6113,6 +6113,10 @@ function igMsgHTML(m,i){
       ${''/* ASK BACK (the view recipe, 28 Sep 2026): when a request could mean
              more than one thing, or cannot be done as asked, the answer carries
              the two or three things it could mean, as presses. */}
+      ${''/* THE BOARD'S PRESSES (work order Part 5): a big build offered as a list
+             with ticks, and Undo for an answer that changed the board */}
+      ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
+      ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm" data-ig-choice="${i}:${j}">${igEsc(c.label)}</button>`).join('')}</div>`:''}
       ${(Number.isInteger(i)&&Array.isArray(m.listIds)&&m.listIds.length)?`<div class="igd-list" style="display:flex;gap:12px;flex-wrap:wrap;padding-left:2px"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:''}
       ${body}
