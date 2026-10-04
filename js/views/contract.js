@@ -9687,7 +9687,7 @@ function roomHeadHtml(c,opts={}){
      second builder to reach one listener is how two copies of one rule start
      disagreeing. */
   const backC=!!opts.backToContract;
-  const backTitle=backC?i18t('ct_back_to_agreement'):backLabel;
+  const backTitle=backC?i18t('ct_back_to_document'):backLabel;   /* the hover says what the bar's words say (4 Oct 2026); ct_back_to_agreement is inert */
   return `<section class="room-head" id="ws-head">
     ${''/* ---- A BREADCRUMB, NOT A BACK ARROW (owner-asked 22 Aug 2026, off the
            design mock-up) ----

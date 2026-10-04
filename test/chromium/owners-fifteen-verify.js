@@ -8,14 +8,14 @@
    A book of forty-one customers, measured as drawn. Waits ask for the state,
    bounded; a missing feature reports rather than times out.
 
-   Screenshots go to test/chromium/shots/explorer-tidy/.
-   Run: node test/chromium/explorer-tidy-verify.js */
+   Screenshots go to test/chromium/shots/owners-fifteen/.
+   Run: node test/chromium/owners-fifteen-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace, fixtureContract, FIXTURES } = require('../helpers');
 
-const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'explorer-tidy');
+const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'owners-fifteen');
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 const NAMES = ['Naivas Supermarkets', 'Kabras Sugar (West Kenya Ltd)', 'Ramogi Distributors Ltd', 'Wilmar East Africa Ltd',
@@ -131,6 +131,22 @@ const check = (name, pass, detail) => {
     check('3d a mouse press still focuses the select and opens the list', await page.evaluate(() =>
       document.activeElement === document.getElementById('ig-group') && !!document.querySelector('.hati-selmenu')));
     await page.keyboard.press('Escape');
+
+    /* ================= 14. BACK TO DOCUMENT, IN A RING ===================== */
+    await page.evaluate(() => { const c = state.contracts.find(x => x.id === 'MK-A2'); if (c && typeof negoInit === 'function') negoInit(c); openRedlineWorkbench('MK-A2', { blanksAsked: true }); });
+    const back = await until(() => { const b = document.querySelector('#shell-title [data-back="contract"]'); if (!b) return null;
+      const ring = b.querySelector('.crumb-ring'), word = b.querySelector('.crumb-back-word'); if (!ring || !word) return null;
+      const cs = getComputedStyle(ring), r = ring.getBoundingClientRect(), svg = ring.querySelector('svg');
+      return { style: cs.borderTopStyle, width: parseFloat(cs.borderTopWidth), radius: cs.borderTopLeftRadius, w: Math.round(r.width), h: Math.round(r.height),
+        arrowInside: !!svg, word: word.textContent.trim(), wordRight: word.getBoundingClientRect().left >= r.right, label: b.getAttribute('aria-label') }; });
+    check('14a the way back is a ring round the arrow (style AND width, never width alone)', !!back && back.style === 'solid' && back.width >= 1
+      && back.radius === '50%' && back.w === back.h && back.arrowInside, JSON.stringify(back));
+    check('14b "Back to Document" stands beside it, and the label says the same', !!back && back.word === 'Back to Document' && back.wordRight && back.label === 'Back to Document', JSON.stringify(back));
+    await page.screenshot({ path: path.join(OUT, '14-back-to-document.png'), clip: { x: 0, y: 0, width: 1180, height: 120 } });
+    await page.click('#shell-title [data-back="contract"]').catch(() => {});
+    const docs = await until(() => state.view === 'workspace' && !!document.querySelector('#ws-tabs [data-room-tab="docs"][aria-selected="true"]'));
+    check('14c pressed, it lands on the contract\'s Document tab', !!docs,
+      await page.evaluate(() => state.view + ' · ' + ((document.querySelector('#ws-tabs [aria-selected="true"]') || {}).textContent || '')));
 
     check('9a no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } catch (e) {

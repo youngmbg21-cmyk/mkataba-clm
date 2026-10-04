@@ -147,8 +147,19 @@ describe('f449 (3) — what the bar prints', () => {
   });
 
   test('a word left on the button from an earlier paint is cleared', () => {
-    assert.match(ADOPT, /querySelectorAll\('\.crumb-word'\)/,
-      'the sign stands alone, and the button is re-used paint after paint');
+    assert.match(ADOPT, /querySelectorAll\('\.crumb-word,\.crumb-back-word'\)/,
+      'the button is re-used paint after paint; its words are written once per paint');
+  });
+
+  test('the sign wears a ring and says "Back to Document" beside it (Young, 4 Oct 2026, reversing "the sign stands alone")', () => {
+    assert.match(ADOPT, /className='crumb-ring'/, 'the arrow sits in a circle');
+    assert.match(ADOPT, /i18t\('ct_back_to_document'\)/, 'and its words follow it');
+    assert.ok(!/className='crumb-word'/.test(ADOPT),
+      'its own class: roomHeadRefresh writes the contract\'s name into a .crumb-word it finds in the bar');
+    const ring = (HTML.match(/#shell-title \.room-crumb-back\.in-crumb \.crumb-ring\{[^}]*\}/) || [''])[0];
+    assert.match(ring, /border-radius:50%/, ring);
+    assert.match(ring, /border:1px solid var\(--bar-ink-2\)/, 'the bar\'s own ink, so it shows on every brand');
+    assert.match(ring, /height:var\(--ctl-h-sm\)/, 'the control\'s height: the crumb row keeps its line box');
   });
 
   test('the sign is PAINTED in the bar, not hidden there', () => {

@@ -10381,8 +10381,15 @@
      the hover and the aria-label, which is where a screen reader was reading
      it anyway. A sign underlined on hover reads as broken text, so the sign
      takes the bar's own well instead and the underline is left to the words. */
-  #shell-title .room-crumb-back.in-crumb{padding:4px;margin:-4px;border-radius:var(--radius);}
-  #shell-title .room-crumb-back.in-crumb svg{display:block;width:15px;height:15px;}
+  /* THE SIGN WEARS A RING AND SAYS WHERE IT GOES (Young, 4 Oct 2026, reversing
+     "it stands ALONE" above): a circle round the arrow in the bar's own ink,
+     and "Back to Document" beside it. The ring is the control's height, so
+     the crumb row keeps its steady line box (pages-read-alike 1). */
+  #shell-title .room-crumb-back.in-crumb{gap:8px;padding:2px 10px 2px 2px;margin:-2px;border-radius:999px;}
+  #shell-title .room-crumb-back.in-crumb .crumb-ring{display:grid;place-items:center;flex:none;box-sizing:border-box;
+    width:var(--ctl-h-sm);height:var(--ctl-h-sm);border:1px solid var(--bar-ink-2);border-radius:50%;}
+  #shell-title .room-crumb-back.in-crumb .crumb-back-word{font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;}
+  #shell-title .room-crumb-back.in-crumb svg{display:block;width:13px;height:13px;}
   #shell-title .room-crumb-back.in-crumb::before{content:none;}
   #shell-title .crumb-door:hover{color:var(--color-text);text-decoration:underline;background:none;}
   #shell-title .room-crumb-back.in-crumb:hover{background:var(--bar-hover);text-decoration:none;}

@@ -2108,6 +2108,7 @@ const STRINGS = {
     ng_start_held: 'This agreement is on hold for a dispute — release the hold to negotiate it',
     sp_notice_outbox: 'the email is waiting in the outbox, because email is not set up on this server (Settings → Build & launch → Email delivery & outbox)',
     ct_back_to_agreement: 'Back to this agreement',
+    ct_back_to_document: 'Back to Document',
     ct_between_parties: 'Between {us} and {them}',
     /* THREE OR MORE PARTIES read as a list, not as a pair. The paper's own
        sentence, so it takes the document's register and not the product's. */
@@ -13225,6 +13226,7 @@ const STRINGS = {
     ng_start_held: 'Avtalet är pausat på grund av en tvist — häv pausen för att förhandla det',
     sp_notice_outbox: 'e-postmeddelandet väntar i utkorgen, eftersom e-post inte är konfigurerad på den här servern (Inställningar → Bygg och driftsätt → E-postleverans och utkorg)',
     ct_back_to_agreement: 'Tillbaka till avtalet',
+    ct_back_to_document: 'Tillbaka till dokumentet',
     ct_between_parties: 'Mellan {us} och {them}',
     ct_between_list: 'Mellan {list}',
     ct_between_and: ' och ',
