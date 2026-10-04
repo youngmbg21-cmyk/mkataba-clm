@@ -283,6 +283,41 @@ describe('F448 (5) — live contracts each month read the monthly picture of the
   });
 });
 
+describe('F448 (7) — read it with me: one contract\'s paper, asked for in words (Young, 4 Oct 2026)', () => {
+  const ASK = [
+    ['let me ask questions about MK-7', 'MK-7'],
+    ['Can I ask some questions about MK-8?', 'MK-8'],
+    ['analyze MK-7', 'MK-7'],
+    ['analyse MK-9 please', 'MK-9'],
+    ['read MK-7 with me', 'MK-7'],
+    ['open the Freight contract and read it with me', 'MK-7'],
+    ['go through the Warehouse Lease with me', 'MK-1'],
+    ['questions about Packaging', 'MK-3'],
+    ['analysera MK-7', 'MK-7'],
+    ['låt mig ställa frågor om MK-8', 'MK-8'],
+    ['läs avtalet MK-9 med mig', 'MK-9'],
+  ];
+  for (const [q, id] of ASK) test(JSON.stringify(q), () => {
+    const w = world();
+    assert.deepEqual({ ...(w.hbParse(q) || {}) }, { act: 'analyze', id });
+  });
+  test('"bring up" still opens the card, and a reading question with no one contract is not a guess', () => {
+    const w = world();
+    assert.deepEqual({ ...(w.hbParse('bring up MK-7') || {}) }, { act: 'card', id: 'MK-7' });
+    const r = w.hbParse('analyze my portfolio');
+    assert.ok(!r || r.act !== 'analyze', JSON.stringify(r));
+    const j = w.hbParse('let me ask questions about Juno');   /* three Juno contracts: not a guess */
+    assert.ok(!j || j.act !== 'analyze', JSON.stringify(j));
+  });
+  test('the card\'s own button is the same door (data-hb-analyze, the map\'s own words)', () => {
+    const src = read('js/views/homeboard.js');
+    const card = src.slice(src.indexOf('function hbCardHtml('), src.indexOf('function hbCardHtml(') + 4000);
+    assert.match(card, /data-hb-analyze="\$\{_hbE\(K\.id\)\}"/);
+    assert.match(card, /i18t\('int_analyze'\)/, 'one label for one act: the map card says "Analyze contract" too');
+    assert.match(src, /function hbAnalyze\(id\)\{[\s\S]*?igAnalyze\(id\)/, 'Explorer\'s igAnalyze stays the one door');
+  });
+});
+
 describe('F448 (6) — a chart of the whole book is not a count', () => {
   test('the six figures follow a set, never the whole book read back as one', () => {
     const w = world();

@@ -250,7 +250,13 @@ describe('f248 — the seats, the doors and the words', () => {
       { side: 'counterparty', canComment: true, org: 'Mkataba Holdings' });
     assert.equal(host.querySelector('[data-rl-np-room]'), null,
       'no tabs: their page is thrown away on every paint, so there is nowhere to keep a private note');
-    assert.ok(host.querySelector('.rl-np-who.out'), 'one room, and it says who reads it');
+    /* One room, said the way our seat says a room (Young, 3 Oct 2026: "the notes
+       panel in counterparty should resemble the owner side"): a lit tab naming
+       who reads it, never a strip across the panel — and not a button, since
+       one room has nowhere to switch to. */
+    const seat = host.querySelector('.rl-np-tabs.is-seat .rl-np-tab.on.is-ext');
+    assert.ok(seat && seat.tagName === 'SPAN' && /reads everything/.test(seat.getAttribute('title')), 'one room, and it says who reads it');
+    assert.equal(host.querySelector('.rl-np-who'), null, 'no strip across their panel');
     assert.ok(host.querySelector('[data-rl-np-send]'), 'and no gate on it');
   });
 

@@ -94,7 +94,7 @@ describe('f292 — the four lines and the hub', () => {
     const w = stage();
     const L = w.win.graphPartyLines(w.win.graphPartyStats('Naivas'));
     assert.equal(L.length, 3);
-    assert.ok(/3 contracts · 80% of the book/.test(L[0]));
+    assert.ok(/3 contracts · 80% of the book's value/.test(L[0]), L[0]);   /* says what it is a share of (4 Oct 2026) */
     assert.ok(/2\.5 rounds a deal · 1 of 2 met on time/.test(L[1]), L[1]);
     assert.ok(/Pays 45 d out · 1 over standard/.test(L[2]), L[2]);
     const B = w.win.graphPartyLines(w.win.graphPartyStats('Britam'));
@@ -140,7 +140,7 @@ describe('f292 — the four lines and the hub', () => {
     assert.ok(bodyOf(AI, 'aiChatContext').includes('graphPartyStatsAll'));
   });
   test('both languages', () => {
-    for (const k of ['int_cp_contracts_other', 'int_cp_of_book', 'int_cp_rounds', 'int_cp_ontime_pct', 'int_cp_ontime_frac', 'int_cp_pay', 'int_cp_pay_in', 'int_cp_pay_out', 'int_cp_pay_mixed', 'int_cp_pay_over_other'])
+    for (const k of ['int_cp_contracts_other', 'int_cp_of_value', 'int_cp_under_1', 'int_cp_rounds', 'int_cp_ontime_pct', 'int_cp_ontime_frac', 'int_cp_pay', 'int_cp_pay_in', 'int_cp_pay_out', 'int_cp_pay_mixed', 'int_cp_pay_over_other'])
       assert.equal((I18N.match(new RegExp('^\\s*' + k + ':', 'mg')) || []).length, 2, k);
   });
 });

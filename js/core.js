@@ -1015,7 +1015,18 @@ const lsSet = (k,v) => localStorage.setItem(k, JSON.stringify(v));
    server (multi-user, multi-device). Opened as a plain static page,
    it falls back to this browser's localStorage. */
 window.REMOTE=null; // {org, me, users} when a HaTi server is present
-Object.assign(window,{LS,REMOTE,lsGet,lsSet});
+/* A FILE'S NAME, READ AS A TITLE (Young, 3 Oct 2026: a contract named
+   "17.04.01%20BPS…"). A file that came through a web link keeps the link's
+   spelling — %20 for a space — so the name is decoded once, where it can be;
+   a name that does not decode (a lone % in "50% Rebate.pdf") is kept as it
+   came. The extension goes. A stored name is never rewritten: this is read
+   where a file BECOMES a name, at the upload and the import. */
+function fileTitleOf(name){
+  let s=String(name||'').replace(/\.[^.\/\\]+$/,'');
+  if(/%[0-9a-f]{2}/i.test(s)){ try{ s=decodeURIComponent(s); }catch(_){ /* not an encoded name: keep it */ } }
+  return s.replace(/\s+/g,' ').trim();
+}
+Object.assign(window,{LS,REMOTE,lsGet,lsSet,fileTitleOf});
 
 const nowISO = () => new Date().toISOString();
 const fmtDT = iso => new Date(iso).toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'});
@@ -3107,9 +3118,25 @@ function selectMenuWire(root, selector){
        the reader presses. */
     if (selectMenuStandsDown()) return;
     ev.preventDefault();                        /* the system pane never opens */
-    sel.focus();
+    /* A FINGER NEVER FOCUSES THE SELECT (Young's iPad, 3 Oct 2026: two menus
+       side by side). On iPadOS a select that takes focus inside a touch IS
+       the system picker, so preventing the pointer event was not enough: the
+       focus we gave it opened the pane we had just refused. A mouse still
+       focuses it, which keeps the keyboard's arrows and type-ahead. */
+    if (ev.pointerType === 'mouse') sel.focus();
     selectMenuOpen(sel);
   });
+  /* AND THE TOUCH ITSELF IS SPENT: iPadOS raises its picker from the touch's
+     own end (and the click it makes), which no pointer event cancels. Both
+     ends of a touch on a select are refused while HaTi's list is the one
+     drawn — the list already opened on the pointer press. */
+  const touchSpent = ev => {
+    const sel = ev.target && ev.target.closest ? ev.target.closest(selector) : null;
+    if (!sel || sel.disabled || selectMenuStandsDown()) return;
+    if (ev.cancelable) ev.preventDefault();
+  };
+  root.addEventListener('touchstart', touchSpent, { passive: false });
+  root.addEventListener('touchend', touchSpent, { passive: false });
 }
 /* ---- EVERY DROPDOWN IN THE PLATFORM DRAWS HaTi'S OWN LIST (Young ruled it
    21 Sep 2026: "make all drop downs in the platform similar to the ones in the

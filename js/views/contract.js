@@ -1540,6 +1540,9 @@ function uploadPartyOptions(){
   (((typeof state!=='undefined'&&state)||{}).contracts||[]).forEach(c=>add(c&&c.party));
   return [...seen.values()];
 }
+/* a file's name read as a title: core's fileTitleOf where it is loaded (it is,
+   on every page), the extension alone cut where it is not */
+function _ctFileTitle(n){ return (typeof fileTitleOf==='function')?fileTitleOf(n):String(n||'').replace(/\.[^.]+$/,''); }
 function uploadConfirmHtml(ext, meta){
   const m=meta||{}, spans=m.sourceSpans||{};
   const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
@@ -1570,7 +1573,7 @@ function uploadConfirmHtml(ext, meta){
       `<input id="${id}" type="${opts.type||'text'}" value="${attr(opts.value||'')}" placeholder="${attr(opts.ph||'')}"${opts.list?` list="${opts.list}"`:''} class="mt-1 w-full rounded-lg border border-brand-100 bg-canvas ui-fld outline-none focus:border-brand-400"${read?' style="border-color:var(--color-accent);background:var(--st-steel-bg)"':''}/>`,
       `${read?found(opts.foundKey||''):''}${opts.sub?`<span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-600)">${opts.sub}</span>`:''}`);
   };
-  const fileBase=ext?String(ext.file.name||'').replace(/\.[^.]+$/,''):'';
+  const fileBase=ext?_ctFileTitle(ext.file.name):'';
   const nameFromDoc=has('contractType')&&has('counterparty');
   const suggestedName=nameFromDoc?`${m.contractType} — ${m.counterparty}`:fileBase;
   const readCount=['counterparty','value','expiryDate'].filter(has).length;
@@ -1868,7 +1871,7 @@ async function submitUpload(){
   const party=fval('up-party');
   const cpEmail=fval('up-cpemail');
   if(cpEmail && !/.+@.+\..+/.test(cpEmail)){ toast(`"${cpEmail}" is not an email address`,'err'); return; }
-  const name=fval('up-name')||file.name.replace(/\.[^.]+$/,'');
+  const name=fval('up-name')||_ctFileTitle(file.name);
   const folder=document.getElementById('up-folder').value;
   const vtype=document.getElementById('up-vtype').value;
   const value=vtype==='none'?0:Number(fval('up-value')||0);
@@ -9687,7 +9690,7 @@ function roomHeadHtml(c,opts={}){
      second builder to reach one listener is how two copies of one rule start
      disagreeing. */
   const backC=!!opts.backToContract;
-  const backTitle=backC?i18t('ct_back_to_agreement'):backLabel;
+  const backTitle=backC?i18t('ct_back_to_document'):backLabel;   /* the hover says what the bar's words say (4 Oct 2026); ct_back_to_agreement is inert */
   return `<section class="room-head" id="ws-head">
     ${''/* ---- A BREADCRUMB, NOT A BACK ARROW (owner-asked 22 Aug 2026, off the
            design mock-up) ----

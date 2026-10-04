@@ -358,7 +358,8 @@ describe('f303 (4) — the pin, the reply as its own act, Done, and the clock', 
     const p = await bench();
     const html = p.w.win.rlChatPanelHtml(p.c, { side: 'counterparty', canComment: true, messages: [] });
     assert.equal(/data-rl-np-room=/.test(html), false);
-    assert.match(html, /rl-np-who out/);
+    assert.match(html, /class="rl-np-tabs is-seat"/, 'their one room, named in our tab\'s clothes (3 Oct 2026)');
+    assert.equal(/rl-np-who/.test(html), false, 'no strip across their panel');
   });
 });
 

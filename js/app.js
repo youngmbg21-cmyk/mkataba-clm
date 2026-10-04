@@ -462,7 +462,21 @@ function shellCrumbAdopt(c, backBtn){
   if(wb){
     /* A WORD LEFT ON THE BUTTON FROM AN EARLIER PAINT would print beside the
        sign, so the sign is cleared before it is hung. */
-    backBtn.querySelectorAll('.crumb-word').forEach(w=>w.remove());
+    backBtn.querySelectorAll('.crumb-word,.crumb-back-word').forEach(w=>w.remove());
+    /* THE SIGN IN A CIRCLE, AND ITS WORDS BESIDE IT (Young, 4 Oct 2026: "the
+       arrow in negotiations page that brings you to the document page needs to
+       have a circular outline around it and say Back to Document next to it").
+       This reverses the morning's "the sign stands alone" in the bar: the
+       arrow sits in a ring (.crumb-ring) and the words follow it. Its own
+       class, never .crumb-word — roomHeadRefresh writes the contract's name
+       into a .crumb-word it finds here. */
+    if(!backBtn.querySelector('.crumb-ring')){
+      const ring=document.createElement('span'); ring.className='crumb-ring'; ring.setAttribute('aria-hidden','true');
+      const svg=backBtn.querySelector('svg'); if(svg) ring.appendChild(svg);
+      backBtn.prepend(ring);
+    }
+    const word=document.createElement('span'); word.className='crumb-back-word'; word.textContent=i18t('ct_back_to_document');
+    backBtn.appendChild(word);
     backBtn.classList.add('in-crumb');
     el.appendChild(backBtn);
   } else {
@@ -3094,10 +3108,17 @@ function brandNow(){
   if(BRANDS.includes(v)) return v;
   return themeNow()==='navy' ? 'navy' : 'green';     /* legacy key, read never written */
 }
+/* THEIR PAGE KEEPS ITS OWN LIGHT AND DARK (Young, 3 Oct 2026): a share or
+   adviser link reads and writes its own key and never falls back to ours —
+   the pre-paint script in index.html asks the same question. */
+const DARK_KEY_GUEST='hati-dark-guest';
+function darkGuest(){ try{ return /^#(share=|advice)/.test(location.hash||'') || !!(window.PORTAL_MODE===true); }catch(e){ return false; } }
+function darkKey(){ return darkGuest() ? DARK_KEY_GUEST : DARK_KEY; }
 function darkNow(){
-  const v=brandRead(DARK_KEY);
+  const v=brandRead(darkKey());
   if(v==='1') return true;
   if(v==='0') return false;
+  if(darkGuest()) return false;                      /* their page: light unless they chose */
   return themeNow()==='dark';                        /* legacy key */
 }
 /* THE ONE PAINTER. Both setters and the boot path call it, so the attribute
@@ -3122,7 +3143,7 @@ function setBrand(b){
   brandWrite(BRAND_KEY,b); applyAppearance(); repaintForAppearance();
 }
 function setDark(on){
-  brandWrite(DARK_KEY, on?'1':'0'); applyAppearance(); repaintForAppearance();
+  brandWrite(darkKey(), on?'1':'0'); applyAppearance(); repaintForAppearance();
 }
 function toggleDark(){ setDark(!darkNow()); }
 /* THE SWATCHES ARE ADMIN-ONLY (owner-ruled 24 Aug 2026). Light/dark and

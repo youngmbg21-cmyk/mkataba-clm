@@ -151,6 +151,56 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
   const sub = await page.evaluate(() => (document.querySelector('.pw-id-sub') || {}).textContent || '');
   check('5a the link\'s end date is in words, not digits', /Oct/.test(sub) && !/\d{4}-\d{2}-\d{2}/.test(sub), sub.replace(/\s+/g, ' ').trim());
 
+  /* ---- 10 · one starting line with the Overview (Young, 4 Oct 2026: "the
+     sentences start very close to the edge") ---- */
+  await press(page, '#pt-tab-where');
+  await until(page, () => { const p = document.getElementById('pt-where-pane'); return p && !p.hidden; });
+  const line = await page.evaluate(() => {
+    const pane = document.getElementById('pt-where-pane');
+    const ink = el => { if (!el) return null; const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n;
+      while ((n = w.nextNode())) if (n.textContent.trim()) { const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; } return null; };
+    const card = pane.querySelector('.pw-card');
+    return { head: ink(pane.querySelector('.pw-where-head h2')), step: ink(pane.querySelector('.pw-jst')),
+      cardHead: ink(card && card.querySelector('h3')), cardEdge: card ? card.getBoundingClientRect().left : null,
+      paneEdge: pane.getBoundingClientRect().left };
+  });
+  check('10a the heading, the journey and the cards\' words start on ONE line',
+    line.head != null && Math.abs(line.head - line.step) <= 1 && Math.abs(line.head - line.cardHead) <= 1, JSON.stringify(line));
+  check('10b that line is the Overview\'s: a card\'s border and 16px inside its edge (was 14, and the heading sat on the edge)',
+    line.cardHead != null && Math.abs(line.cardHead - line.cardEdge - 17) <= 1, `${Math.round(line.cardHead - line.cardEdge)}px inside the card`);
+
+  /* ---- 11 · Edit from another tab (Young, 3 Oct 2026: "half the page not
+     being what redline page should look like") ---- */
+  const edited = await press(page, '#pt-edit');
+  const ed = edited && await until(page, () => !!document.getElementById('ce-clausebody'));
+  const e11 = await page.evaluate(() => ({ tab: document.getElementById('pw-page').dataset.ptTab,
+    whereHidden: (document.getElementById('pt-where-pane') || {}).hidden, inert: !!(document.getElementById('pt-nego') || {}).inert,
+    col: (() => { const c = document.getElementById('rl-changes-col'); if (!c) return null; const r = c.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + 80); return !!(at && c.contains(at)); })() }));
+  check('11a Edit pressed on Where we are opens the editor', !!ed, JSON.stringify(e11));
+  check('11b on the Redlines tab, the other tab\'s pane gone and the contract live', e11.tab === 'redlines' && e11.whereHidden === true && !e11.inert, JSON.stringify(e11));
+  check('11c with their Redlines column beside it, painted where it stands', e11.col === true, JSON.stringify(e11));
+  await page.screenshot({ path: path.join(OUT, '05-edit-from-where.png') });
+  await press(page, '#ce-page [data-ce-act="close"], [data-ce-act="close"]');
+  await until(page, () => !document.getElementById('ce-clausebody'), null, 3000);
+
+  /* ---- 12 · their Notes panel is ours (Young, 3 Oct 2026: "the notes panel
+     in counterparty should resemble the owner side") ---- */
+  await press(page, '#pt-tab-redlines');
+  const np = await press(page, '#pt-notes-door');
+  await until(page, () => { const p = document.getElementById('pt-notes'); return p && p.classList.contains('open'); });
+  const n12 = await page.evaluate(() => {
+    const p = document.getElementById('pt-notes'), sc = document.getElementById('pt-notes-scrim'), seat = p && p.querySelector('.rl-np-tabs.is-seat .rl-np-tab.on');
+    return { w: p ? Math.round(p.getBoundingClientRect().width) : 0, vw: window.innerWidth, scrim: sc ? !sc.hidden : false,
+      strip: !!(p && p.querySelector('.rl-np-who')), seat: seat ? seat.textContent.replace(/\s+/g, ' ').trim() : null,
+      seatTag: seat ? seat.tagName : null, empty: ((p && p.querySelector('.rl-np-empty b')) || {}).textContent || '' };
+  });
+  check('12a their Notes opens at our drawer\'s width (460, or 92% of a narrow window)', np && n12.w === Math.min(460, Math.floor(n12.vw * 0.92)), JSON.stringify(n12));
+  check('12b and leaves the contract lit, as ours does — no scrim', np && !n12.scrim, JSON.stringify(n12));
+  check('12c their one room is named as our tabs are, with no strip across the panel', np && !n12.strip && !!n12.seat && /\(\d+\)/.test(n12.seat) && n12.seatTag === 'SPAN', JSON.stringify(n12));
+  check('12d an empty room says what is empty, never "on this change" for the whole contract', np && !/on this change/i.test(n12.empty), n12.empty);
+  await page.screenshot({ path: path.join(OUT, '06-their-notes.png') });
+  await press(page, '#pt-notes-close');
+
   /* ---- 6 · a reason after Save ---- */
   await press(page, '#pt-tab-redlines');
   const counter = await press(page, '#rl-changes-col .rl-card [data-rl-cp-editor-row]');

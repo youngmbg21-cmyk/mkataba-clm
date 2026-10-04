@@ -183,6 +183,43 @@ describe('F96 — the choice is remembered, and old choices still mean something
     assert.ok(combinations > 60, 'the sweep read back too short: ' + combinations);
   });
 
+  test('their page keeps its own light and dark: our choice never reaches a share link (Young, 4 Oct 2026)', () => {
+    /* One site, one browser, one 'hati-dark' — so our reader going dark turned
+       the counterparty's page dark too. A share or adviser link reads and
+       writes 'hati-dark-guest'; the pre-paint script and darkNow() agree. */
+    const head = src('index.html');
+    const at = head.indexOf('var brand  = localStorage.getItem');
+    const open = head.lastIndexOf('try{', at);
+    const close = head.indexOf('}catch(e){}', at);
+    const boot = head.slice(head.indexOf('{', open) + 1, close);
+    for (const hash of ['#share=tok123', '#advice=abc']){
+      for (const [ours, theirs, want] of [['1', null, false], ['1', '0', false], ['0', '1', true], [null, '1', true], [null, null, false]]){
+        const s = stage();
+        s.win.localStorage.clear();
+        s.win.location.hash = hash;
+        if (ours !== null) s.win.localStorage.setItem('hati-dark', ours);
+        if (theirs !== null) s.win.localStorage.setItem('hati-dark-guest', theirs);
+        s.win.localStorage.setItem('hati-theme', 'dark');   /* the legacy key is ours too */
+        s.root.className = '';
+        vm.runInContext(boot, vm.createContext(s.win));
+        const where = `${hash} ours=${ours} theirs=${theirs}`;
+        assert.equal(s.root.classList.contains('dark'), want, 'the pre-paint script at ' + where);
+        assert.equal(s.win.darkNow(), want, 'darkNow() at ' + where);
+      }
+    }
+    /* a switch pressed on their page writes their key, and ours is untouched */
+    const s = stage();
+    s.win.localStorage.clear(); s.win.location.hash = '#share=tok123';
+    s.win.localStorage.setItem('hati-dark', '1');
+    s.win.setDark(false);
+    assert.equal(s.win.localStorage.getItem('hati-dark-guest'), '0');
+    assert.equal(s.win.localStorage.getItem('hati-dark'), '1', 'their switch reached our choice');
+    /* and on our own page nothing changed */
+    const o = stage();
+    o.win.localStorage.clear(); o.win.localStorage.setItem('hati-dark', '1'); o.win.localStorage.setItem('hati-dark-guest', '0');
+    assert.equal(o.win.darkNow(), true);
+  });
+
   test('and it asks the two questions independently — navy at night survives a load', () => {
     /* The one combination the old `else if` could not paint, whatever was
        stored. It is the whole reason the two axes exist. */

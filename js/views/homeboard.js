@@ -643,6 +643,9 @@ const HB_RX = {
      question that also says renew is a renewals question */
   renewWord: /renew|förny/i,
   bring:     /^(?:bring up|pull up|open|show me|look at|find|visa|öppna|ta fram|hitta)\s+(?:the\s+|avtalet\s+)?(?:contract\s+)?(.+?)\??$/i,
+  /* READ IT WITH ME (Young, 4 Oct 2026): a question that asks to put ONE
+     contract's paper up and ask it things — Explorer's "Analyze contract". */
+  analyze:   /\b(?:analy[sz]e|read\b[^?]{0,60}?\bwith me|go through\b[^?]{0,60}?\bwith me|(?:let me |i want to |can i )?ask (?:some |a few )?questions?(?: about| on| of)?|questions? about|analysera|läs\b[^?]{0,60}?\bmed mig|gå igenom\b[^?]{0,60}?\bmed mig|(?:låt mig )?ställa frågor(?: om)?|frågor om)\b/i,
   fig: {
     live:    /live contracts|\blive\b|how many (?:contracts|agreements)|number of (?:contracts|agreements)|levande avtal|aktiva avtal|hur många avtal/i,
     value:   /value under contract|total value|värde under avtal|totalt värde/i,
@@ -674,12 +677,24 @@ function hbFindContract(q){
   }
   return null;
 }
+/* What is left of a "read it with me" question once its asking words are
+   gone: the contract it names, ready for hbFindContract's name lookup. */
+function hbAnalyzeObject(q){
+  return String(q)
+    .replace(/\b(?:analy[sz]e|analysera|read|go through|läs|gå igenom|with me|med mig|let me|låt mig|can i|i want to|ask|ställa|some|a few|questions?|frågor|so i can|so that i can|så att jag kan)\b/gi, ' ')
+    .replace(/\b(?:about|on|of|the|this|contract|agreement|please|and|it|avtalet|om|och|det)\b/gi, ' ')
+    .replace(/^\s*(?:open|öppna|bring up|pull up)\s+/i, '').replace(/[?.!]+$/, '').replace(/\s+/g, ' ').trim();
+}
 function hbParse(qRaw){
   const q = String(qRaw || '').trim(); if (!q) return null;
   const s = q.toLowerCase();
   /* two named contracts are Explorer's to compare side by side */
   if ((q.match(/\b(?:mk|rl)[- ]?\d+\b/gi) || []).length >= 2) return null;
   const found = hbFindContract(q);
+  if (HB_RX.analyze.test(q)){
+    const f = (found && found.c) ? found : hbFindContract('open ' + hbAnalyzeObject(q));
+    if (f && f.c) return { act: 'analyze', id: f.c.id };
+  }
   if (found && found.c) return { act: 'card', id: found.c.id };
   if (found && found.miss) return { act: 'noref', ref: found.miss };
   if (HB_RX.reset.test(s)) return { act: 'reset' };
@@ -940,7 +955,7 @@ function hbNextGroup(fixed){ const f = new Set(fixed || []); return HB_GROUP_FIE
 function hbGroupOf(c, field){
   if (field === 'status') return c.status || '';
   if (field === 'folder') return (typeof FOLDERS !== 'undefined' && FOLDERS && FOLDERS[c.folder] && FOLDERS[c.folder].name) || String(c.folder || '');
-  if (field === 'counterparty') return String(c.counterparty || '').trim();
+  if (field === 'counterparty') return (typeof graphPartyLabel === 'function') ? graphPartyLabel(c.counterparty) : String(c.counterparty || '').trim();
   if (field === 'kind'){ try { return (typeof cKind === 'function') ? cKind(c) : ''; } catch (_){ return ''; } }
   if (field === 'side'){ const x = hbSideOf(c); return x || ''; }
   if (field === 'owner'){ try { return String(((typeof contractOwnerName === 'function') ? contractOwnerName(c) : (c.owner && c.owner.name)) || c._raisedBy || '').trim(); } catch (_){ return ''; } }
@@ -1781,6 +1796,7 @@ function hbCardHtml(K){
   return `<div class="hb-chead"><div><div class="hb-cref">${_hbE(K.ref)}${K.side ? ' · ' + _hbE(i18t('hb_side_' + K.side)) : ''}</div>
       <div class="hb-cname">${_hbE(K.name)}</div><div class="hb-quiet">${_hbE(K.cp || i18t('home_no_counterparty'))}${K.owner ? ' · ' + _hbE(i18t('hb_c_owned', { who: K.owner })) : ''}</div></div>
     <div class="hb-acts"><button type="button" class="hb-btn is-primary" data-hb-room="${_hbE(K.id)}">${_hbE(i18t('hb_c_open'))}</button>
+      <button type="button" class="hb-btn" data-hb-analyze="${_hbE(K.id)}" title="${_hbE(i18t('int_analyze_title'))}">${_hbE(i18t('int_analyze'))}</button>
       <button type="button" class="hb-btn" data-hb-map="${_hbE(K.id)}" data-hb-what="${_hbE(K.ref)}">${_hbE(i18t('hb_c_on_map'))}</button>
       <button type="button" class="hb-btn" data-hb-ai="${_hbE(q)}" title="${_hbE(i18t('hb_c_ask_cost'))}">${_hbE(i18t('hb_c_ask', { q }))}</button></div></div>
     <div class="hb-say">${K.brief ? _hbE(K.brief) + ` <span class="hb-quiet">${_hbE(i18t('hb_c_brief_note'))}</span>` : _hbE(K.full ? (K.hasBrief ? i18t('hb_c_brief_elsewhere') : i18t('hb_c_no_brief')) : i18t('hb_c_loading'))}</div>
@@ -1993,6 +2009,18 @@ function hbRender(){
 }
 /* A door that still names the map (Insights' old tab, intelGoTab('map'),
    Copilot's own "show me the map") lands here: Home, on its Explorer side. */
+/* ANALYZE CONTRACT FROM THE BOARD (Young, 4 Oct 2026): the card's button and
+   "let me ask questions about MK-398" both land here — Explorer, with that
+   contract's paper up and the panel ready for the first question. The ONE
+   door stays Explorer's own igAnalyze; this only takes the reader there. */
+function hbAnalyze(id){
+  if (!id || !hbContract(id)) return;
+  const s = hbS(); s.face = 'explorer'; hbSave();
+  hbMount();
+  if (typeof igAnalyze === 'function') Promise.resolve(igAnalyze(id)).then(() => {
+    const box = document.getElementById('igd-input'); if (box) try { box.focus({ preventScroll: true }); } catch (_){}
+  }).catch(() => {});
+}
 function hbOpenExplorer(){
   const s = hbS(); s.face = 'explorer'; hbSave();
   if (typeof setView === 'function') setView('dashboard'); else hbMount();
@@ -2100,13 +2128,18 @@ function hbAsk(q){
      board's reader steps aside for every question but the two that are about
      the screen itself — back to the board, and Present. A question about
      renewals asked of the map is the map's to answer. */
-  if (s.face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.act === 'present')) return null;
+  if (s.face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.act === 'present' || r.act === 'analyze')) return null;
   const free = i18t('hb_free');
   const say = (html, opts) => { if (!opts || !opts.noPaint){ if (s.face === 'board') hbPaintBoard(opts && opts.jump ? { jump: opts.jump } : undefined); } return html + `<div class="hb-cost">${_hbE(free)}</div>`; };
   if (r.act === 'card'){
     const c = hbContract(r.id); const K = hbCardData(c);
     hbDig('c:' + c.id, false);
     return say(`<b>${_hbE(K.ref)} · ${_hbE(K.name)}</b> — ${_hbE(_hbStatus(K.status))}${K.cp ? ' · ' + _hbE(K.cp) : ''}${K.expiry ? ' · ' + _hbE(i18t('hb_c_ends', { day: K.expiry })) : ''}. ${_hbE(i18t('hb_card_said'))}`, { noPaint: true });
+  }
+  if (r.act === 'analyze'){
+    const c = hbContract(r.id); const K = hbCardData(c);
+    hbAnalyze(c.id);
+    return say(`<b>${_hbE(K.ref)} · ${_hbE(K.name)}</b> — ${_hbE(i18t('hb_analyze_said'))}`, { noPaint: true });
   }
   if (r.act === 'noref') return say(_hbE(i18t('hb_no_ref', { ref: r.ref })), { noPaint: true });
   if (r.act === 'reset'){
@@ -2388,6 +2421,7 @@ function hbOnClick(e){
     else if (act === 'big') p.big = !p.big;
     else if (act === 'give') _hbGiveForm = _hbGiveForm === pid ? null : pid;
     hbSave(); hbPaintBoard(); return; }
+  if ((el = on('[data-hb-analyze]'))){ hbAnalyze(el.getAttribute('data-hb-analyze')); return; }
   if ((el = on('[data-hb-map]'))){ hbShowOnMap(el.getAttribute('data-hb-map'), el.getAttribute('data-hb-what')); return; }
   if ((el = on('[data-hb-open][data-hb-stage]')) && typeof regGoFiltered === 'function'){ regGoFiltered({ stage: el.getAttribute('data-hb-stage') }); return; }
   if ((el = on('[data-hb-open]'))){ const ids = String(el.getAttribute('data-hb-open') || '').split(',').filter(Boolean);

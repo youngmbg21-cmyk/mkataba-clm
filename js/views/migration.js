@@ -432,7 +432,7 @@ async function migBuildAndSave(ctx){
     ||(M.defaults.folder!=='auto'?M.defaults.folder:null)||'corp';
   const status=(manifest&&manifest.status)||M.defaults.status;
   const executedOutside=status==='Signed';
-  const name=(manifest&&manifest.name)||file.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();
+  const name=(manifest&&manifest.name)||((typeof fileTitleOf==='function')?fileTitleOf(file.name):String(file.name||'').replace(/\.[^.]+$/,'')).replace(/[_-]+/g,' ').trim();
   const cp=(manifest&&manifest.counterparty)||(meta&&meta.counterparty)||'';
   const value=(manifest&&manifest.value>0)?manifest.value:Number(meta&&meta.value)||0;
   const expiry=(manifest&&manifest.expiry)||(meta&&meta.expiryDate)||null;

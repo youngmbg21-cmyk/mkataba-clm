@@ -8388,8 +8388,15 @@ function mailroomKeyOk(given) {
 /* A name for the document, in the order that gives a person the most to go on:
    the attachment's own filename, then the subject, then the day. Never a
    guess at what the agreement IS — that is read on the queue. */
+/* A file's name read as a title — the browser's fileTitleOf, line for line:
+   %20 and its kind decoded where they decode, the extension gone. */
+function srvFileTitleOf(name) {
+  let s = String(name || '').replace(/\.[^.\/\\]+$/, '');
+  if (/%[0-9a-f]{2}/i.test(s)) { try { s = decodeURIComponent(s); } catch (_) { /* not an encoded name: keep it */ } }
+  return s.replace(/\s+/g, ' ').trim();
+}
 function mailroomName(filename, subject) {
-  const f = String(filename || '').replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
+  const f = srvFileTitleOf(filename).replace(/[_-]+/g, ' ').trim();
   if (f) return f.slice(0, 160);
   const s = String(subject || '').replace(/^(re|fw|fwd)\s*:\s*/i, '').trim();
   return (s || 'Received by email').slice(0, 160);
@@ -19317,7 +19324,7 @@ app.post('/api/templates/upload', auth, paperMaker, passwordCurrent, rlAiDeep, a
 
   const sourceType = isPdf ? pdf.sourceType : 'docx';
   const fileName = clean(b.fileName).slice(0, 200) || (isPdf ? 'upload.pdf' : 'upload.docx');
-  const name = clean(b.name).slice(0, 160) || fileName.replace(/\.(docx|pdf)$/i, '');
+  const name = clean(b.name).slice(0, 160) || srvFileTitleOf(fileName);
   // store the original for reprocessing before anything can fail
   const fileId = 'f_' + rid(10);
   db.prepare('INSERT INTO files (id,name,mime,data,created_at) VALUES (?,?,?,?,?)')
