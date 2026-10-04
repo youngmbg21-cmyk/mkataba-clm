@@ -42,6 +42,16 @@ const SA_KEEP = 20;                 // requests kept on one record, oldest out f
 const SA_WHEN = ['lead', 'sign'];
 
 const _saFold = s => String(s == null ? '' : s).replace(/\s+/g, ' ').trim().toLowerCase();
+/* THE ONE LAPSE RULE lives in js/asks.js, which both hosts load before this
+   file (js/app.js imports it first; the server requires it here). Resolved
+   when asked, so the order a page loads its files in cannot leave it empty.
+   AND IT FAILS CLOSED: a page without it reads every waiting request and
+   every yes as lapsed — a signature held, never one let through. */
+function _saLapsed(){
+  if (typeof window !== 'undefined' && typeof window.askLapsed === 'function') return window.askLapsed;
+  if (typeof require === 'function'){ try { return require('./asks.js').askLapsed; } catch (_) {} }
+  return () => ({ lapsed: true, drift: [], expired: false });
+}
 
 /* ---- WHAT THE RULE ON ONE PERSON SAYS ----
    `answered` separates "an admin decided" from "nobody has said", which the
@@ -285,13 +295,13 @@ function saState(c, needs, opts){
     if (req){
       status = req.status === 'approved' ? 'approved' : req.status === 'refused' ? 'refused'
         : req.status === 'pending' ? 'pending' : 'unasked';
-      if (!started && (status === 'pending' || status === 'approved')){
-        drift = saDrift(req.stamp, c);
-        if (drift.length) status = 'lapsed';
-        else if (status === 'approved'){
-          const at = Date.parse(req.decidedAt || '');
-          if (Number.isFinite(at) && now - at > SA_UNUSED_DAYS * 86400000){ status = 'lapsed'; expired = true; }
-        }
+      /* THE ONE LAPSE RULE (js/asks.js askLapsed, 4 Oct 2026): this kind's
+         own stamp and its own SA_UNUSED_DAYS, asked of a waiting request and
+         of a yes, never once signing has started — what it always was. */
+      if (status === 'pending' || status === 'approved'){
+        const l = _saLapsed()({ state: status === 'approved' ? 'yes' : 'open', answeredAt: req.decidedAt },
+          { started, drift: () => saDrift(req.stamp, c), unusedDays: SA_UNUSED_DAYS, nowMs: now });
+        if (l.lapsed){ status = 'lapsed'; drift = l.drift; expired = l.expired; }
       }
     }
     const waited = req && req.status === 'pending' ? saWorkdays(req.askedAt, now) : 0;

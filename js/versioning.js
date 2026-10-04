@@ -950,6 +950,11 @@ function resolveRound(c, n, accept, opts={}){
   // written straight onto c.value, breaking money KPIs, sorting and CSV export.
   if(accept && Number.isFinite(Number(r.proposedValue))){
     c.value=Number(r.proposedValue);
+    /* ...and on the one ask record (js/asks.js, 4 Oct 2026) each rule step's
+       yes lapses with them, through the one writer, before the chain goes. */
+    if(window.askLapse && window.asksAdopt){
+      asksAdopt(c).filter(a=>a.kind==='rule'&&a.state==='yes').map(a=>a.id).forEach(id=>askLapse(c,id));
+    }
     c.approval=null; c.approvalChain=null; // value changed — prior approvals are void, rebuild the chain
   }
   logAudit(c,'Negotiation',`Round ${n} ${accept?'accepted':'rejected'} by ${u.name}${accept&&r.proposedValue!=null?` — value set to ${fmtMoney(r.proposedValue)}`:''}`);

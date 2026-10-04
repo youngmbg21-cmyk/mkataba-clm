@@ -448,6 +448,8 @@ function openIntakeForm(pre){
         counterparty:g('ik-cp'), folder:g('ik-folder'), answers });
       closeModal();
       await loadIntake();
+      /* A lane may have drafted it in the same breath — read it as it lands. */
+      if(made && made.request && made.request.lane) try{ intakeLaneArrivals().catch(()=>{}); }catch(_){}
       /* ---- AND IT HANDS BACK THE TRACKER (upgrade 4) ----
          The asker can follow it without a seat and without asking anybody. The
          link is the record's own (intakeTrackUrl); where the server did not
@@ -606,6 +608,72 @@ function intakeAlertRows(){
       && !(me&&r.by&&r.by.id===me.id))
     .sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
 }
+/* ---- A DRAFT A LANE MADE FOR YOU (4 Oct 2026, the process review's last
+   gaps) ----
+   A lane's draft has an owner now (the lane's, intakeLaneOwner), and the
+   request is held by that same person — so the bell tells them, as the
+   `request` kind it already has: one row per draft, to its owner only, gone
+   when the draft leaves Drafting (the request is then `done`), because
+   nothing marks an alert seen except the work done. Borrowed off the list
+   GET /api/intake already scoped to the reader. */
+function intakeLaneDraftRows(){
+  if(typeof canEdit!=='function' || !canEdit()) return [];
+  const me=_ikMe(); if(!me || me.id==null) return [];
+  return (_intake.list||[]).filter(r=>r && r.status==='drafted' && r.lane && r.contractId
+      && r.assignee && String(r.assignee.id)===String(me.id))
+    .sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
+}
+/* ---- AND COPILOT READS IT ON ARRIVAL, LIKE A DRAFT MADE BY HAND ----
+   A lane mints on the SERVER, where contractArrived never runs, so Copilot's
+   arrival reading waited until somebody sent the draft. The reading stays
+   the browser's — triageRun presses the product's own readings, and a server
+   copy would be a second opinion about what a contract says — so the server
+   marks the draft `arrivalOwed`, and the first editor's browser that holds
+   it CLAIMS it (POST /api/contracts/:id/arrival: one claim, ever, so two
+   editors opening it at once cannot both pay) and then arrives it through
+   the one door every creation uses: contractArrived with `elsewhere` (claim
+   nothing this screen holds for a draft of its own) and `read:false`, then
+   the one launcher, triageAndPaint, AWAITED — the readings run one contract
+   at a time, never several at once (triageRun's own rule).
+   ASKED WHEN THIS BROWSER FIRST HOLDS THE BOOK AND THE QUEUE (startApp), on
+   the queue's own beat (intakeRefresh), and after this browser raises a
+   request a lane may clear in the same breath. A lane draft the queue names
+   and the book does not hold yet is taken into the book first, so it is on
+   the Contracts list without a reload. */
+let _ikArriving = false;
+async function intakeLaneArrivals(){
+  if(_ikArriving) return 0;
+  if(!(typeof API_MODE==='function' && API_MODE())) return 0;
+  if(typeof canEdit!=='function' || !canEdit()) return 0;
+  if(typeof state==='undefined' || !Array.isArray(state.contracts)) return 0;
+  _ikArriving = true;
+  let read = 0, took = false;
+  const inBook = id => state.contracts.find(x=>x && String(x.id)===String(id)) || null;
+  try{
+    for(const r of (_intake.list||[])){
+      if(!r || !r.lane || !r.contractId || r.status!=='drafted' || inBook(r.contractId)) continue;
+      try{
+        const row=await api('contracts/'+encodeURIComponent(r.contractId),'GET',undefined,{ quiet:true });
+        if(row && row.id && typeof window.contractsTakeRow==='function' && await window.contractsTakeRow(row)) took = true;
+      }catch(_){ /* not ours to see, or not reachable: the next beat asks again */ }
+    }
+    const owed = state.contracts.filter(c=>c && c.arrivalOwed);
+    for(const c of owed){
+      try{ if(typeof window.ensureFull==='function') await window.ensureFull(c); }catch(_){ continue; }
+      let got = null;
+      try{ got = await api('contracts/'+encodeURIComponent(c.id)+'/arrival','POST',{},{ quiet:true }); }catch(_){ continue; }
+      delete c.arrivalOwed;
+      if(!got || !got.claimed) continue;
+      try{ if(typeof window.contractArrived==='function') window.contractArrived(c,{ elsewhere:true, read:false }); }catch(_){}
+      try{ if(typeof window.triageAndPaint==='function'){ await window.triageAndPaint(c); read++; } }catch(_){}
+    }
+  } finally { _ikArriving = false; }
+  if(took){
+    try{ if(window.updateSidebarCounts) updateSidebarCounts(); }catch(_){}
+    try{ if(state.view==='register' && typeof window.regRepaint==='function') window.regRepaint(); }catch(_){}
+  }
+  return read;
+}
 /* ---- THE LANES RUN ON THE SERVER (4 Oct 2026, the process review's Requests
    stream) ----
    They ran in whatever browser had HaTi open with a person in it who may
@@ -629,6 +697,9 @@ async function intakeRefresh(){
   try{ if(window.updateSidebarCounts) updateSidebarCounts(); }catch(_){}
   try{ if(window.updateAlertBadge) updateAlertBadge(); }catch(_){}
   try{ if(typeof state!=='undefined' && state.view==='intake') renderIntake(); }catch(_){}
+  /* A draft a lane made since the last beat is taken in and read (not awaited:
+     the readings take the better part of a minute and the beat is done). */
+  try{ intakeLaneArrivals().catch(()=>{}); }catch(_){}
   return true;
 }
 function intakeSweepStart(){
@@ -710,6 +781,7 @@ function renderIntake(){
            measure — the same one Templates, Reports and the template library
            use — rather than a number picked for this screen. */}
     <div class="view-enter" style="padding:var(--page-pad);display:flex;flex-direction:column;gap:22px;max-width:894px" data-ins-page="intake" data-ins="0">
+      ${rqKindTabsHtml('contracts')}
       <section style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
         <div style="flex:1;min-width:220px">
           ${''/* The asker's helping sentence moved into the Ask window (Young
@@ -747,6 +819,7 @@ function renderIntake(){
   host.querySelectorAll('[data-ik-pick]').forEach(b=>b.addEventListener('click',()=>intakePick(b.getAttribute('data-ik-pick'))));
   host.querySelectorAll('[data-ik-promise]').forEach(b=>b.addEventListener('click',()=>intakePromiseAsk(b.getAttribute('data-ik-promise'))));
   host.querySelectorAll('[data-ik-track]').forEach(b=>b.addEventListener('click',()=>intakeTrackCopy(b.getAttribute('data-ik-track'))));
+  rqKindTabsWire(host);
   ikAfterRender(may);
 }
 /* What every paint of this page does once its markup is down, in either
@@ -759,6 +832,64 @@ function ikAfterRender(may){
   if(!_intake.loaded) loadIntake().then(()=>{ if(state.view==='intake') renderIntake(); });
   /* The lanes are the server's (runIntakeLanes): nothing runs here. */
   void may;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ADVICE IS A KIND OF REQUEST (the process review, gap F, 4 Oct 2026)
+   ════════════════════════════════════════════════════════════════════════
+   Two queues of one shape had two rail doors: Requests (a colleague asks
+   for a contract) and the Advice Desk (a customer asks for advice, a review
+   or a draft). One door now — Requests — and the kind is the page's first
+   tab row: Contracts · Advice.
+
+   A DOOR MERGE, NOT A DATA MERGE, the shape Our paper took with Our
+   standards (paperTabsHtml, js/views/library.js). The Advice tab IS the
+   Advice desk board, drawn by renderAdviceDesk under its own view id
+   ('advice'): its records, routes, rates, the public portal and the
+   customer's tracking page are exactly what they were; every
+   setView('advice') still lands on it; a refresh comes back to it (the view
+   is what placeSave records, so the tab needs no PLACE_PARTS pair of its
+   own); and the rail lights Requests on it (NAV_HOME_FOR, js/app.js).
+
+   THE NUMBERS. The Requests door carried intakeCount() and the Advice door
+   the open advice requests; requestsDoorCount is the two added, so the
+   reader sees the total they saw on the two doors, and each tab carries its
+   own half — the door is the sum of the tabs it opens. Two different
+   records, so nothing is counted twice. A tab at zero prints no number, as
+   the views row under it does. */
+const RQ_KINDS = ['contracts', 'advice'];
+const RQ_KIND_VIEW = { contracts:'intake', advice:'advice' };
+function rqKindCounts(){
+  const ik = (typeof intakeCount === 'function') ? intakeCount() : 0;
+  const ad = (typeof window !== 'undefined' && typeof window.adviceActiveCount === 'function') ? window.adviceActiveCount() : 0;
+  return { contracts: Number(ik) || 0, advice: Number(ad) || 0 };
+}
+function requestsDoorCount(){ const n = rqKindCounts(); return n.contracts + n.advice; }
+function rqKindTabsHtml(lit){
+  const n = rqKindCounts();
+  const lbl = { contracts: i18t('rq_kind_contracts'), advice: i18t('rq_kind_advice') };
+  return `<div class="st-tabs rq-kinds" role="tablist" aria-label="${esc(i18t('rq_kinds_label'))}" style="flex:none">${RQ_KINDS.map(k=>
+    `<button type="button" class="st-tab${k===lit?' on':''}" data-rq-kind="${k}" role="tab" aria-selected="${k===lit?'true':'false'}">${esc(lbl[k])}<span class="st-tab-n" data-rq-n="${k}"${n[k]?'':' hidden'}>${n[k]}</span></button>`).join('')}</div>`;
+}
+/* The numbers move on a load or a save with no repaint of the page (the
+   advice list lands after the first paint; the intake beat re-reads the
+   queue) — so updateSidebarCounts, which writes the door, writes the tabs on
+   the same beat, from the same reading. */
+function rqPaintKindCounts(){
+  if(typeof document === 'undefined') return;
+  const els = document.querySelectorAll('[data-rq-n]'); if(!els.length) return;
+  const n = rqKindCounts();
+  els.forEach(el=>{ const v = n[el.getAttribute('data-rq-n')] || 0; el.textContent = String(v); el.hidden = !v; });
+}
+/* A press on the other kind is a page change (the two are two views); a
+   press on the lit one does nothing. */
+function rqKindTabsWire(root){
+  const host = root || (typeof document !== 'undefined' ? document : null); if(!host) return;
+  host.querySelectorAll('[data-rq-kind]').forEach(b=>b.addEventListener('click',()=>{
+    const v = RQ_KIND_VIEW[b.getAttribute('data-rq-kind')];
+    if(!v || (typeof state !== 'undefined' && state.view === v)) return;
+    if(typeof setView === 'function') setView(v);
+  }));
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -1104,6 +1235,7 @@ function renderIntakeInspector(host){
   const table=`<table class="ins-lt ik-lt"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
     cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
   host.innerHTML=`<div class="view-enter ins-page ik-ins" data-ins-page="intake" data-ins="1">
+    ${rqKindTabsHtml('contracts')}
     ${views}
     <div class="ins-body">
       <section class="ins-card" aria-label="${esc(i18t('nav_intake'))}">
@@ -1119,6 +1251,7 @@ function renderIntakeInspector(host){
   host.querySelectorAll('[data-ik-view]').forEach(b=>b.addEventListener('click',()=>{ f.view=b.getAttribute('data-ik-view'); again(); }));
   host.querySelectorAll('[data-ik-f]').forEach(s=>s.addEventListener('change',()=>{ f[s.getAttribute('data-ik-f')]=s.value; again(); }));
   host.querySelectorAll('[data-ik-clear]').forEach(b=>b.addEventListener('click',()=>{ IK_CHIPS.forEach(k=>{ f[k]=IK_DEF[k]; }); again(); }));
+  rqKindTabsWire(host);
   const seat=asker?'intake:asker':'intake:team';
   const tb=host.querySelector('.ik-lt tbody');
   const idOf=t=>t.getAttribute('data-ik-row');
@@ -1217,10 +1350,11 @@ async function intakeTrackCopy(id){
 Object.assign(window,{INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
   ikKnownCounterparty,intakeRoad,intakeStoppedAt,intakeMinutes,
   intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
-  intakeRefresh,intakeSweepStart,IK_SWEEP_MS,intakeFormFields,ikFieldHtml,ikFieldId,intakeTitleFrom,intakeHoldDraft,intakeHeldDraft,intakeClaimDraft,intakeContractSent,intakeGoTo,intakeAlertRows,ikShelfOf,IK_HOLD_AFTER_CREATE_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
+  intakeRefresh,intakeSweepStart,IK_SWEEP_MS,intakeFormFields,ikFieldHtml,ikFieldId,intakeTitleFrom,intakeHoldDraft,intakeHeldDraft,intakeClaimDraft,intakeContractSent,intakeGoTo,intakeAlertRows,intakeLaneDraftRows,intakeLaneArrivals,ikShelfOf,IK_HOLD_AFTER_CREATE_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
   intakeMine,intakeQueue,intakeCount,loadIntake,
   intakeStatusKey,intakePickLabel,intakeTakeOver,intakeStage,intakeFinishedThisMonth,intakePromiseSay,
   ikPaintHead,ikAfterRender,renderIntakeInspector,ikPanelOpts,ikActs,ikStatusSay,ikFilters,
   IK_V_TEAM,IK_V_ASKER,IK_DEF,IK_CHIPS,IK_GROUPS,ikPassView,ikPassChips,ikSort,ikAgeWords,ikTookWords,ikDay,
   openIntakeForm,intakeAnswerLine,openIntakeTracker,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,intakeSuggestTemplate,
+  RQ_KINDS,RQ_KIND_VIEW,rqKindCounts,requestsDoorCount,rqKindTabsHtml,rqPaintKindCounts,rqKindTabsWire,
   _intakeState:_intake});

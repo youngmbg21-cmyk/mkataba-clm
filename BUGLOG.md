@@ -20269,3 +20269,35 @@ PROCESS REVIEW'S FIXES".
 - 4 Oct 2026 — FIXED: the stage reading bug ("has the most" named the first stage, not the largest). hbReadingOf now sorts by size; f482 (A).
 - 4 Oct 2026 — Noticed, not fixed: Home board month-column charts with small counts print repeated axis labels ("2, 1, 1, 0, 0") because hbColsSvg rounds quarter steps of a small top (fmtAxis Math.round on top*k/4). Seen on this-is-the-open-chart-verify's "made monthly" photo.
 - 4 Oct 2026 — FIXED: repeated axis labels on Home board month columns and live-per-month ("2, 1, 1, 0, 0"). hbAxisTop: four nice steps, a whole-number step for contracts and days; f482 (G).
+
+## 4 Oct 2026 — the six remaining gaps, built
+
+Lane drafts have an owner and are read on arrival; one stored record of every
+colleague's yes (c.asks) with the old fields kept as mirrors; one link check for
+every link kind; our Word file reads back exactly; a lock ask lives until the
+asker leaves; advice is a kind of request. Story in docs/MAP-HISTORY.md under
+"THE PROCESS REVIEW'S FIXES — THE SIX GAPS".
+
+### Noticed, not fixed
+- asks belong to a person not a tab; closing one of two tabs on the same contract withdraws the ask.
+- Our standards lights no sidebar button (NAV_HOME_FOR has no playbook:'templates').
+- KNOWN_RED's note for type-and-symbols names only the icon-size failure, but 8 Home-board checks in it also fail at unmodified main.
+- the Advice board's own words are hard-coded English (Overdue, Delivered · 30d, Rate card, unassigned).
+- the phone's More list keeps its Advice Desk row (it has no Requests row at all); nav_advice_desk keys now unused, left in both books.
+- test/audit/sim-d-server-attacks.audit.js stops with a harness error at line 253 (its signing-link step hits the legacy 5M approval rule; no approvalRules: []). Same on main.
+- deskSendBlockToast and reviewActorSendBlock (js/core.js) have no caller.
+- the readiness panel shows the review gate as a tick-past block on a status link, though the status link does not ask it.
+- a non-silent refresh of a signing link asks only the shared rows, not the signing-only ones (signing itself still refuses).
+- the lanes panel never shows maxValue, and every save wipes it.
+- mailroom drafts (POST /api/mailroom) have no owner.
+- f461 4c checks by character count, not by code region.
+- if the browser that claims a lane draft's arrival reading closes mid-reading, the reading falls back to when the draft leaves Drafting.
+- on built-in template contracts the Negotiate paper (and so their page and the Word file) shows no recital or parties line and prints the agreement's name twice.
+- the Word import reads with the text-only reader (docxExtract), so a counterparty's own auto-numbered file loses its numbers and files changes nobody made.
+- the DOCX writer puts w:ind before w:spacing when a line is both hanging and tight, breaking Word's required order.
+- the paper draws nested lists as "a." but the record says "1.1.".
+- the server's template converter tplDocxStructure was left alone (its only door tplLibUploadModal has no caller).
+- maskContractValues does not hide the contract value inside approvalChain[].stamp from people without value rights.
+- unused `d` lint warning in desk.js around line 814 (pre-existing).
+- the bell rows still read the old approval/review/suggestion fields, not c.asks (follow-up).
+- srvAsksMerge's refusal messages are English-only, like their neighbours (the screens never trigger them).

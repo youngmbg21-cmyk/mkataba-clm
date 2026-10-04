@@ -112,8 +112,13 @@ function loadViews(files, overrides = {}) {
      of sectionHtml now, so a sandbox without it renders a page with no
      sections in it at all — which looks like the view failing rather than the
      harness being short a module. */
+  /* js/asks.js joins them (4 Oct 2026): the one ask record and its one lapse
+     rule are read by approvals.js, signapproval.js, review.js and desk.js —
+     and a lapse rule that is absent FAILS CLOSED, so a sandbox without it
+     reads every approval as lapsed rather than as the product would. A pure
+     module that publishes only its own names. */
   for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/graphwhere.js',
-                   'js/section.js'].concat(files)) {
+                   'js/section.js', 'js/asks.js'].concat(files)) {
     // compiled once per process, see test/vmcache.js
     runFileInContext(path.join(__dirname, '..', f), sandbox, f);
   }

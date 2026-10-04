@@ -104,7 +104,40 @@ function intakeAnswersOnto(c, r){
   return c;
 }
 
+/* ---- WHOSE A LANE'S DRAFT IS (4 Oct 2026, the process review's last gaps) ----
+   A draft a lane minted on the server had NO OWNER: nobody's list, nobody's
+   bell, nobody's reminders. Each lane names one (`ownerId`, picked on the
+   lanes panel from the members who may draft); where it names nobody, or
+   somebody who can no longer hold it, the draft is the admin's who last SAVED
+   the lane (`savedById`, stamped by the server on PUT /api/settings and never
+   read from a body), else the FIRST admin. ONE reading, both hosts: the
+   panel says which of the three it will be, and the server's mint asks the
+   same question, so the row and the record cannot disagree.
+
+   `users` in the order the server keeps them (created first, first);
+   `mayHold(u)` is the host's own extra test — the server asks whether the
+   person can see the request's stream, the panel whether they can see the
+   lane's. A Viewer never holds a draft: they may not draft at all. Returns
+   { id, name, how } with how = 'named' | 'saver' | 'first', or null where the
+   workspace has no admin to fall back on — an absence, never a guess. */
+const _iklCreated = u => String((u && (u.createdAt || u.created_at)) || '');
+function intakeLaneOwner(L, users, mayHold){
+  const list = (Array.isArray(users) ? users : []).filter(u => u && u.id != null);
+  const may = u => !!u && u.role !== 'viewer' && (typeof mayHold !== 'function' || !!mayHold(u));
+  const byId = id => (id == null || id === '') ? null : (list.find(u => String(u.id) === String(id)) || null);
+  const out = (u, how) => ({ id: u.id, name: String(u.name || ''), how });
+  const named = byId(L && L.ownerId);
+  if (named && may(named)) return out(named, 'named');
+  const saver = byId(L && L.savedById);
+  if (saver && saver.role === 'admin' && may(saver)) return out(saver, 'saver');
+  const first = list.filter(u => u.role === 'admin')
+    .map((u, i) => ({ u, i }))
+    .sort((a, b) => _iklCreated(a.u).localeCompare(_iklCreated(b.u)) || a.i - b.i)
+    .map(x => x.u).find(may);
+  return first ? out(first, 'first') : null;
+}
+
 const IKL_API = { IK_THEIR_PAPER, IK_MONEY, INTAKE_ANSWER_KEYS, INTAKE_SIDES,
-  intakeAnswersClean, intakePrefillOf, intakeLaneMatch, intakeAnswersOnto };
+  intakeAnswersClean, intakePrefillOf, intakeLaneMatch, intakeAnswersOnto, intakeLaneOwner };
 if (typeof window !== 'undefined') Object.assign(window, IKL_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = IKL_API;

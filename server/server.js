@@ -21,17 +21,25 @@ const { graphWhereHit } = require('../js/graphwhere.js');
 /* A request's lane and its answers (4 Oct 2026): ONE reading for both hosts —
    the Requests page says which lane a request would take, and the server's
    sweep clears it, off the same rule. */
-const { intakeLaneMatch, intakeAnswersClean, intakeAnswersOnto } = require('../js/intakelanes.js');
+const { intakeLaneMatch, intakeAnswersClean, intakeAnswersOnto, intakeLaneOwner } = require('../js/intakelanes.js');
 /* Approval before signing: who on a contract needs a named colleague's yes
    before anyone signs it (23 Sep 2026). ONE reading for both hosts — the
    screen and this wall ask the same questions of the same record, so they
    cannot come to different answers about whether a contract may be signed. */
 const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide, saWorkdays,
-  SA_NOTE_MAX, SA_KEEP, SA_REMIND_WORKDAYS, SA_ESCALATE_WORKDAYS } = require('../js/signapproval.js');
+  SA_NOTE_MAX, SA_KEEP, SA_REMIND_WORKDAYS, SA_ESCALATE_WORKDAYS, SA_UNUSED_DAYS } = require('../js/signapproval.js');
 /* The check before signing as a wall (4 Oct 2026): which departures hold on
    each gate, and whether OUR signer has read the brief that stands for this
    wording. ONE reading for both hosts — js/signcheck.js asks the same file. */
 const { sgDepartures, sgBriefReadOwed } = require('../js/signgate.js');
+/* ONE ASK RECORD (4 Oct 2026): who was asked, the answer, when and for what,
+   across the four kinds of "a colleague must say yes" — the rule steps, a
+   named person's yes, the internal review and a contributor's suggestion.
+   ONE file for both hosts: the browser writes through it, this server adopts
+   older records through it, guards `c.asks` as a difference (srvAsksMerge),
+   and every kind's lapse is its one rule (askLapsed). */
+const { ASK_KINDS, ASK_STATES, ASK_WHY_MAX, askLapsed, askSamePerson, askRuleTo, asksReconcile, asksDerive,
+  asksAdopt, asksBound, askAnswer, askRuleFor } = require('../js/asks.js');
 /* Redline here, sign there (26 Sep 2026): the working reference, the contract
    number, the handover's clock and the word check. ONE reading for both hosts,
    the signapproval.js pattern — the screen and this wall cannot disagree about
@@ -1310,7 +1318,11 @@ const rvOpenFor = (c, id) => rvOpenList(c).find(r => (r.changeIds || []).some(x 
    a stale CLEAR is not a clear. A stale HOLD is still a hold — somebody said
    this must not go out, and rewriting it is not permission to overrule them. */
 const rvVerdict = ch => (ch && ch.review && ch.review.verdict) ? ch.review : null;
-const rvStale = ch => { const v = rvVerdict(ch); return !!(v && v.hash && ch.hash && String(v.hash) !== String(ch.hash)); };
+/* THE ONE LAPSE RULE (js/asks.js askLapsed), measured by this kind's own
+   stamp: the change's fingerprint against the one the verdict was given for. */
+const rvStale = ch => { const v = rvVerdict(ch);
+  return !!(v && v.hash && ch.hash) && askLapsed({ state: 'yes' },
+    { drift: () => String(v.hash) !== String(ch.hash) ? ['wording'] : [] }).lapsed; };
 const rvHeld = ch => { const v = rvVerdict(ch); return !!(v && v.verdict === 'held'); };
 const rvCleared = ch => { const v = rvVerdict(ch); return !!(v && v.verdict === 'cleared' && !rvStale(ch)); };
 
@@ -1709,6 +1721,168 @@ function srvSignApprovalMerge(prev, c, user) {
 }
 
 /* ============================================================
+   ONE ASK RECORD — THE WALL (4 Oct 2026, the process review's last gap)
+   ============================================================
+   `c.asks` (js/asks.js) is the one list of who was asked, the answer, when
+   and for what, across the rule steps, a named person's yes, the internal
+   review and a contributor's suggestion. The old fields are its mirrors and
+   keep EVERY wall they had — this one is added beside them, never in their
+   place, and it is asked as a DIFFERENCE against the STORED record:
+     · the stored list is the base — a save can add a question but never
+       drop one, and never rewrite what a question asked, of whom or when;
+     · a question is raised in the caller's own name (a rule step's is the
+       rule's), and only with what it asks about on the record beside it;
+     · an answer is recorded in the name of the person who gives it, by the
+       person it was asked of (or an admin where the kind's own rule says so)
+       — and NOBODY ANSWERS THEIR OWN ASK, so the asker can never mark yes;
+     · a refusal says why; only the asker or an admin takes a question back;
+     · a lapse is accepted only where the kind's own lapse rule agrees on the
+       record being saved — otherwise the stored answer stands;
+     · an answer once given stays as it was given (an attempt to move it back
+       is not stored — the stored record wins).
+   Then the list is brought up to what the (already guarded) mirrors say:
+   an older browser that wrote only the old fields is adopted, not refused.
+   Returns { list } or { status, error }. */
+const _askChanges = c => {
+  const out = [];
+  (Array.isArray(c && c.changes) ? c.changes : []).forEach(x => { if (x && x.id != null) out.push(x); });
+  ((c && c.negotiation && Array.isArray(c.negotiation.rounds)) ? c.negotiation.rounds : [])
+    .forEach(r => (Array.isArray(r && r.changes) ? r.changes : []).forEach(x => { if (x && x.id != null) out.push(x); }));
+  return out;
+};
+/* Does the kind's own lapse rule agree that this question or yes has lapsed,
+   on the record being saved? */
+function srvAskLapses(c, a) {
+  if (!a || !c) return false;
+  if (a.kind === 'named') {
+    const req = (Array.isArray(c.signApprovals) ? c.signApprovals : []).find(r => r && String(r.id) === String(a.id));
+    const stamp = (req && req.stamp) || a.stamp;
+    return askLapsed({ state: a.state, answeredAt: (req && req.decidedAt) || a.answeredAt },
+      { started: saStarted(c, { responded: srvSaResponded(c.id) }), drift: () => saDrift(stamp, c),
+        unusedDays: SA_UNUSED_DAYS }).lapsed;
+  }
+  if (a.kind === 'rule') {
+    if (a.state !== 'yes') return false;
+    const step = (Array.isArray(c.approvalChain) ? c.approvalChain : []).find(x => x && !x.sa && String(x.ruleId) === String(a.of && a.of[0]));
+    if (!step || step.status !== 'approved') return true;          // the yes is no longer on the chain
+    if (a.answeredAt && step.at && String(step.at) !== String(a.answeredAt)) return true;   // answered again since
+    return srvRuleYesLapsed(step, srvApprovalStamp(c));
+  }
+  return false;   // a review and a suggestion are never lapsed whole
+}
+const ASK_ANSWERS = { rule: ['yes', 'no'], named: ['yes', 'no'], review: ['returned'], suggest: ['yes', 'returned'] };
+function srvAsksMerge(prev, c, user) {
+  const base = prev ? asksDerive(prev) : [];
+  const out = base.map(a => ({ ...a }));
+  const byId = new Map(out.map(a => [String(a.id), a]));
+  const given = (Array.isArray(c && c.asks) ? c.asks : []).filter(a => a && typeof a === 'object' && a.id != null);
+  if (!given.length) return { list: out };
+  const me = { id: String(user.id), name: String(user.name || '') };
+  const isAdmin = user.role === 'admin';
+  /* What this save's own (already guarded) mirrors say each question is —
+     where a NEW question's facts are taken from, never from the body. */
+  const fromMirrors = new Map(asksReconcile([], c).map(a => [String(a.id), a]));
+  const prevReq = id => (Array.isArray(prev && prev.signApprovals) ? prev.signApprovals : []).find(r => r && String(r.id) === id) || null;
+  const prevRv = id => ((prev && prev.review && Array.isArray(prev.review.requests)) ? prev.review.requests : []).find(r => r && String(r.id) === id) || null;
+  const ruleOf = a => srvApprovalRules().find(r => r && String(r.id) === String(a.of && a.of[0])) || null;
+  for (const e of given) {
+    const id = String(e.id).slice(0, 80);
+    let b = byId.get(id);
+    if (!b) {
+      /* ---- A NEW QUESTION ---- */
+      if (!ASK_KINDS.includes(e.kind)) return { status: 400, error: 'An ask is a rule step, a named approval, a review or a suggestion.' };
+      if (e.kind !== 'rule' && !(e.by && String(e.by.id || '') === me.id))
+        return { status: 403, error: 'An ask is raised in your own name.' };
+      if (e.kind === 'rule') {
+        const rule = ruleOf(e);
+        if (!rule || !(srvRuleMatches(rule, c) || (prev && srvRuleMatches(rule, prev))))
+          return { status: 403, error: 'No approval rule asks that of this contract.' };
+        b = { id, kind: 'rule', of: [String(rule.id)], by: null, to: askRuleTo(rule.approver), at: now(), due: null,
+          state: 'open', answeredAt: null, answeredBy: null, why: null, note: null, stamp: null };
+      } else {
+        const m = fromMirrors.get(id);
+        if (!m || m.kind !== e.kind)
+          return { status: 400, error: 'An ask is filed with what it asks about — a request, a review or a suggestion on the record.' };
+        if (e.state !== 'open' || m.state !== 'open')
+          return { status: 403, error: 'A new ask starts open — it cannot arrive already answered.' };
+        b = { ...m };
+      }
+      out.push(b); byId.set(id, b);
+    }
+    /* ---- ONE OF A REVIEW'S VERDICTS ---- the reviewer's, while it is open */
+    if (b.kind === 'review' && Array.isArray(e.parts)) {
+      const had = new Map((Array.isArray(b.parts) ? b.parts : []).map(p => [String(p && p.of), p]));
+      for (const p of e.parts) {
+        if (!p || p.of == null) continue;
+        const was = had.get(String(p.of));
+        if (was && String(was.answer) === String(p.answer) && String(was.why || '') === String(p.why || '')) continue;
+        const rv = prevRv(id);
+        if (b.state !== 'open' || !rv) return { status: 403, error: `Internal review ${id} is not open, so no verdict can be recorded in it.` };
+        if (!rvIsReviewer(rv, user)) return { status: 403, error: `Only ${(rv.reviewer || {}).name || 'the reviewer'} can rule in internal review ${id}.` };
+        if (!(b.of || []).some(x => String(x) === String(p.of)))
+          return { status: 403, error: `#${p.of} is not part of internal review ${id}.` };
+        had.set(String(p.of), { of: String(p.of), answer: String(p.answer || ''), by: me, at: now(),
+          why: clean(p.why).slice(0, ASK_WHY_MAX) || null, stamp: p.stamp != null ? p.stamp : null });
+      }
+      b.parts = [...had.values()];
+    }
+    const from = b.state, to = String(e.state || '');
+    if (to === from || !ASK_STATES.includes(to)) continue;
+    const moves = from === 'open' || (from === 'yes' && to === 'lapsed') || (b.kind === 'suggest' && from === 'returned' && to === 'yes');
+    if (!moves) continue;                                    // an answer given stays as given
+    if (to === 'lapsed') {
+      if (srvAskLapses(c, b)) Object.assign(b, { state: 'lapsed', lapsedAt: now() });
+      continue;
+    }
+    if (to === 'withdrawn') {
+      if (b.kind === 'rule') return { status: 403, error: 'A rule step is not taken back by a save — it is reopened with the negotiation.' };
+      if (!(askSamePerson(b.by, me) || isAdmin))
+        return { status: 403, error: 'Only the person who asked, or an admin, can take the question back.' };
+      Object.assign(b, { state: 'withdrawn', answeredAt: now(), answeredBy: me, why: null });
+      continue;
+    }
+    /* ---- AN ANSWER ---- */
+    if (!(ASK_ANSWERS[b.kind] || []).includes(to)) return { status: 400, error: 'That is not an answer this question takes.' };
+    if (!(e.answeredBy && String(e.answeredBy.id || '') === me.id))
+      return { status: 403, error: 'An answer is recorded in the name of the person who gives it.' };
+    if (b.by && askSamePerson(b.by, me)) return { status: 403, error: 'Nobody answers their own ask.' };
+    const why = clean(e.why).slice(0, ASK_WHY_MAX);
+    if (b.kind === 'rule') {
+      const rule = ruleOf(b);
+      if (!rule || !srvUserCanApprove(rule.approver || {}, user))
+        return { status: 403, error: `Only the approver the rule names can answer “${rule ? rule.name : 'this step'}”.` };
+    } else if (b.kind === 'named') {
+      const req = prevReq(id);
+      const as = req ? saMayDecide(req, user) : null;
+      if (!as) return { status: 403, error: `This approval is ${(req && req.approverName) || 'an admin'}'s to give.` };
+      if (as === 'admin' && !why) return { status: 400, error: 'An admin deciding in the approver\'s place has to say why.' };
+    } else if (b.kind === 'review') {
+      const rv = prevRv(id);
+      if (!rv || !rvIsReviewer(rv, user)) return { status: 403, error: `Only ${(rv && rv.reviewer && rv.reviewer.name) || 'the reviewer'} can hand internal review ${id} back.` };
+    } else if (b.kind === 'suggest') {
+      const ch = _askChanges(prev).find(x => 'sg:' + String(x.id) === id) || null;
+      if (deskRuleOn() && deskIsClaimed(prev) && !dkMayRuleSuggestion(prev, ch, user))
+        return { status: 403, error: `Only ${deskLeadName(prev)}, or an admin, can answer a colleague's suggestion.` };
+      if (to === 'returned' && !why) return { status: 400, error: 'A suggestion handed back says why.' };
+    }
+    if (to === 'no' && !why) return { status: 400, error: 'A refusal says why — the reason is what goes back.' };
+    Object.assign(b, { state: to, answeredAt: now(), answeredBy: me, why: why || null },
+      b.kind === 'rule' && to === 'yes' && e.stamp ? { stamp: e.stamp } : {});
+  }
+  return { list: asksBound(out) };
+}
+/* Money in a question's stamp is money, and is masked like every figure
+   (maskContractValues): a named request's value and currency, a rule's. */
+function asksMasked(list) {
+  return (Array.isArray(list) ? list : []).map(a => {
+    if (!a || !a.stamp || typeof a.stamp !== 'object') return a;
+    if (a.kind === 'named') return { ...a, stamp: { ...a.stamp, value: '', currency: '' } };
+    if (a.kind === 'rule') return { ...a, stamp: { ...a.stamp, value: '' } };
+    return a;
+  });
+}
+
+/* ============================================================
    REDLINE HERE, SIGN THERE — the server's half (26 Sep 2026)
    ============================================================
    js/outside.js is the reading, required at the top of this file; these are
@@ -1784,10 +1958,18 @@ function srvApprovalChainOpen(c) {
   for (const r of rules) {
     const step = chain.find(p => p && p.ruleId === r.id);
     if (!step || step.status !== 'approved') { open.push({ name: r.name, status: step ? (step.status || 'pending') : 'pending' }); continue; }
-    const st = step.stamp;
-    if (st && (Number(st.value || 0) !== now.value || String(st.doc || '') !== now.doc)) open.push({ name: r.name, status: 'stale' });
+    if (srvRuleYesLapsed(step, now)) open.push({ name: r.name, status: 'stale' });
   }
   return open;
+}
+/* THE ONE LAPSE RULE (js/asks.js askLapsed) for a rule step's yes, measured
+   by this kind's own stamp — the amount and a hash of the words. A yes with
+   no stamp was given before stamps existed and is not invalidated now. */
+function srvRuleYesLapsed(step, now) {
+  const st = step && step.stamp;
+  const n = now || null;
+  return askLapsed({ state: 'yes' }, { drift: () => (st && n && (Number(st.value || 0) !== n.value
+    || String(st.doc || '') !== n.doc)) ? ['stamp'] : [] }).lapsed;
 }
 /* ---- THE APPROVAL RULES ARE A WALL, NOT ONLY A SCREEN (the owner's list,
    27 Sep 2026) ----
@@ -1813,8 +1995,7 @@ function srvApprovalChainOpenOf(c, prev) {
   for (const r of rules) {
     const step = chain.find(p => p && p.ruleId === r.id);
     if (!step || step.status !== 'approved') { open.push({ ruleId: r.id, name: r.name, status: step ? (step.status || 'pending') : 'pending' }); continue; }
-    const st = step.stamp;
-    if (st && (Number(st.value || 0) !== now.value || String(st.doc || '') !== now.doc)) open.push({ ruleId: r.id, name: r.name, status: 'stale' });
+    if (srvRuleYesLapsed(step, now)) open.push({ ruleId: r.id, name: r.name, status: 'stale' });
   }
   return open;
 }
@@ -2099,6 +2280,8 @@ function maskContractValues(c, moneyKeys) {
   if (Array.isArray(x.signApprovals)) x.signApprovals = x.signApprovals.map(r => r ? {
     ...r, shows: r.shows ? { ...r.shows, value: null, currency: '' } : r.shows,
     stamp: r.stamp ? { ...r.stamp, value: '', currency: '' } : r.stamp } : r);
+  /* ...and the one ask record's own copy of what each question was of. */
+  if (Array.isArray(x.asks)) x.asks = asksMasked(x.asks);
   x._valuesHidden = true;
   return x;
 }
@@ -4076,11 +4259,16 @@ app.post('/api/contracts/:id/here', auth, (req, res) => {
      or a signed contract simply has no spot. */
   const spot = String((req.body || {}).spot || '').trim().slice(0, 64);
   const okSpot = /^[A-Za-z0-9_-]+$/.test(spot) ? spot : '';
-  live[String(me.id)] = okSpot
-    ? { name: me.name, at: new Date().toISOString(), spot: okSpot }
-    : { name: me.name, at: new Date().toISOString() };
+  /* A HIDDEN TAB'S BEAT and A LEAVING ONE say nothing about being HERE (gap E,
+     below): neither stamps the room, so the face row is exactly what it was. */
+  const askOnly = (req.body || {}).askOnly === true, leave = (req.body || {}).leave === true;
   const next = { ...c };
-  if (Object.keys(live).length) next.here = live; else delete next.here;
+  if (!askOnly && !leave) {
+    live[String(me.id)] = okSpot
+      ? { name: me.name, at: new Date().toISOString(), spot: okSpot }
+      : { name: me.name, at: new Date().toISOString() };
+    if (Object.keys(live).length) next.here = live; else delete next.here;
+  }
   /* ---- AN ASK FOR A CLAUSE LIVES AS LONG AS THE ASKER IS HERE (4 Oct 2026,
      the process review) ----
      "Ask for it" lapsed after the lock's two minutes while the holder's lock
@@ -4088,19 +4276,44 @@ app.post('/api/contracts/:id/here', auth, (req, res) => {
      reading was silently dropped from the queue. The asker's own beat is this
      route, so it refreshes THEIR asks on a lock that is still alive — only
      theirs, only asks still live (a lapsed one is not raised from the dead),
-     and only on a live lock. An ask now lapses when the asker stops beating:
-     they left the contract, closed the page, or the tab went hidden for two
-     minutes. Asking still takes nothing and is still made only at /lock. */
+     and only on a live lock. Asking still takes nothing and is still made
+     only at /lock.
+
+     ---- AND IT LIVES UNTIL THE ASKER LEAVES, NOT UNTIL THEY LOOK AWAY (gap E,
+     4 Oct 2026, the process review's last gaps) ----
+     The browser sends nothing about being here while its tab is hidden — a tab
+     behind three others is not somebody in the room — so an asker who switched
+     tab to read their mail fell out of the queue after two minutes although
+     they had not left. Two more beats on this one door, because a second route
+     would be a second way for two browsers to disagree about an ask:
+       · askOnly — a HIDDEN tab's slower beat. It keeps the caller's own live
+         asks and does nothing else: no stamp on the room (so the face row still
+         drops them after its own window) and no spot.
+       · leave — the page closing, or the reader leaving the contract. It takes
+         the caller's asks off every lock, so the holder's queue does not name
+         somebody who is gone. ONLY THEIRS: the holder, the lock and everybody
+         else's asks are untouched.
+     Neither writes unless something moved — a hidden tab with nothing to keep
+     costs the record nothing. */
+  let moved = false, kept = 0;
   if (c.locks && typeof c.locks === 'object' && !Array.isArray(c.locks)) {
     const at = new Date().toISOString();
     const locks = {};
-    let moved = false;
     Object.keys(c.locks).forEach(k => {
       const l = c.locks[k];
-      if (!srvLockAlive(l) || !Array.isArray(l.asked)) { locks[k] = l; return; }
+      if (!l || !Array.isArray(l.asked)) { locks[k] = l; return; }
+      if (leave) {
+        const asked = l.asked.filter(r => !(r && String(r.id) === String(me.id)));
+        if (asked.length === l.asked.length) { locks[k] = l; return; }
+        moved = true;
+        const rest = { ...l }; delete rest.asked;
+        locks[k] = asked.length ? { ...rest, asked } : rest;
+        return;
+      }
+      if (!srvLockAlive(l)) { locks[k] = l; return; }
       const asked = l.asked.map(r => {
         if (!r || String(r.id) !== String(me.id) || !srvLockAlive(r)) return r;
-        moved = true;
+        moved = true; kept++;
         return { ...r, at };
       });
       locks[k] = { ...l, asked };
@@ -4108,8 +4321,37 @@ app.post('/api/contracts/:id/here', auth, (req, res) => {
     if (moved) next.locks = locks;
   }
   /* JSON ONLY — see the note at the head of this block. */
-  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  if ((!askOnly && !leave) || moved)
+    db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  /* The two quiet beats answer how many of the caller's asks still stand, and
+     nothing about who else is here: a hidden tab is not reading the row. */
+  if (askOnly || leave) return res.json({ asks: kept });
   res.json({ here: srvHereOthers(live, me.id) });
+});
+
+/* ---- A LANE'S DRAFT IS READ ONCE, BY WHOEVER HOLDS IT FIRST (4 Oct 2026,
+   the process review's last gaps) ----
+   A draft a lane minted on the server never passed through contractArrived,
+   so Copilot's arrival reading — run for every draft made by hand — waited
+   until somebody sent it. The reading is the BROWSER's (it presses the
+   product's own readings), so the mint records that one is owed
+   (`arrivalOwed`) and the first editor's browser to hold the contract claims
+   it HERE before reading.
+   ONE CLAIM, EVER: the first caller is answered `claimed: true` and the flag
+   is gone in the same synchronous step, so two editors opening the new draft
+   at once cannot both pay for the reading. JSON ONLY, like /here: claiming
+   is not an edit, so it moves neither `version` nor `updated_at`, and a
+   browser's next save is not turned away for it. An editor's act — a Viewer's
+   browser cannot run the reading, so it may not claim it. A sealed record
+   takes no write and is answered as not owed. */
+app.post('/api/contracts/:id/arrival', auth, editor, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  if (!c.arrivalOwed || isExecutedRow(c)) return res.json({ claimed: false });
+  const next = { ...c }; delete next.arrivalOwed;
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  res.json({ claimed: true });
 });
 
 /* ---------- executed records are immutable ----------
@@ -4347,6 +4589,12 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      a colleague arrived would echo back a map without them — taking somebody
      out of a room they are sitting in. The STORED map wins, always. */
   if (prev && prev.here) c.here = prev.here; else delete c.here;
+  /* ---- AND WHETHER COPILOT STILL OWES IT ITS ARRIVAL READING (4 Oct 2026) ----
+     `arrivalOwed` is written by a lane's mint and cleared by POST
+     /api/contracts/:id/arrival, and by nothing else — the same rule as
+     `here`: a browser holding the record from before the claim would echo the
+     flag back and owe the reading twice, and no save may invent one. */
+  if (prev && prev.arrivalOwed) c.arrivalOwed = prev.arrivalOwed; else delete c.arrivalOwed;
   /* What a send kept back stays kept back through a save — see rvKeptCarry. */
   rvKeptCarry(prev, c);
   /* ---- A CHASE ALREADY SENT IS NOT UNDONE BY A SAVE (27 Sep 2026) ----
@@ -5202,6 +5450,32 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     }
   }
 
+  /* ---- ONE ASK RECORD, GUARDED AS A DIFFERENCE (4 Oct 2026) ----
+     After every wall on the old fields has passed — they are the ask list's
+     mirrors and keep their walls — the list itself is merged against the
+     stored one (srvAsksMerge) and brought up to what those guarded mirrors
+     say. A record that never had a list is adopted here, additively. */
+  {
+    const am = srvAsksMerge(prev, c, req.user);
+    if (am.error) return res.status(am.status || 403).json({ error: am.error, asks: true });
+    const list = asksBound(asksReconcile(am.list, c));
+    /* THE QUESTION A RULE STEP ASKS IS OPENED WHEN IT FALLS DUE — the save
+       that made it somebody's to decide (ruleStepDue, the same difference the
+       mail below is sent on). The step itself is the chain's to compute and is
+       never rewritten here (keepStep). Its `at` is the reminders' clock. */
+    try {
+      const due = prev ? ruleStepDue(prev, c) : null;
+      if (due) {
+        const tmp = { ...c, asks: list };
+        const open = list.some(a => a && a.kind === 'rule' && a.state === 'open' && String(a.of && a.of[0]) === String(due.ruleId));
+        const rule = srvApprovalRules().find(r => r && r.id === due.ruleId);
+        if (!open && rule) askRuleFor(tmp, due.ruleId, { approver: rule.approver, keepStep: true, at: now() });
+        list.splice(0, list.length, ...tmp.asks);
+      }
+    } catch (_) { /* the save is the thing that matters */ }
+    if (list.length || Array.isArray(prev && prev.asks)) c.asks = list; else delete c.asks;
+  }
+
   /* Template provenance is written once, at creation, and never overwritten or
      removed — it is the audit trail that answers "which live contracts came
      from which template version". The columns are set-once via COALESCE in
@@ -5323,6 +5597,9 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   /* A REQUEST DRAFTED AS THIS CONTRACT IS DONE once the contract leaves Drafting. */
   try { srvIntakeCloseOn(prev, c, req); } catch (_) {}
   res.json({ ok: true, version: next, signNeeds,
+    /* The one ask record as stored — the browser takes it as given
+       (asksTakeServer); money in a stamp masked for whoever may not see it. */
+    ...(Array.isArray(c.asks) ? { asks: canViewValues(req.user) ? c.asks : asksMasked(c.asks) } : {}),
     ...(c.contractNo ? { contractNo: c.contractNo } : {}),
     ...(numberedLine ? { numberedLine } : {}),
     uid: Number(getSetting('uid')) || 100, rlUid: Number(getSetting('rlUid')) || 0,
@@ -5510,9 +5787,40 @@ app.put('/api/settings', auth, admin, (req, res) => {
      converted figure in the workspace. The rates change only through their
      own atomic endpoint below. */
   if (!('fxRates' in incoming) && 'fxRates' in stored) incoming.fxRates = stored.fxRates;
+  /* WHO SAVED A LANE, AND WHO IT NAMES, ARE THE SERVER'S WORD — see
+     srvLanesStamp. */
+  if (Array.isArray(incoming.intakeLanes)) incoming.intakeLanes = srvLanesStamp(incoming.intakeLanes, stored.intakeLanes, req.user);
   setSetting('appSettings', incoming);
-  res.json({ ok: true });
+  res.json({ ok: true, ...(Array.isArray(incoming.intakeLanes) ? { intakeLanes: incoming.intakeLanes } : {}) });
 });
+/* ---- A LANE KNOWS WHO SAVED IT AND WHOSE ITS DRAFTS ARE (4 Oct 2026, the
+   process review's last gaps) ----
+   A lane's draft belongs to the member the lane names (`ownerId`), else to
+   the admin who saved the lane, else to the first admin — intakeLaneOwner
+   (js/intakelanes.js), the one reading both hosts ask. Two facts it reads are
+   written HERE and never taken from a body:
+   · `savedById` is the admin making THIS save, for a lane that is new or
+     changed (or never stamped); an unchanged lane keeps the stamp it had. A
+     body that names somebody else as the saver is not believed.
+   · `ownerId` must name a member who may draft. A Viewer, or an id nobody
+     holds, is dropped rather than refused: the settings blob is saved whole,
+     and one stale name on one lane must not stop an admin saving anything
+     else. The panel then says which default applies, in the lane's own row. */
+const _laneSig = l => JSON.stringify(Object.keys(l || {}).filter(k => k !== 'savedById').sort().map(k => [k, l[k]]));
+function srvLanesStamp(next, prev, user) {
+  const before = new Map((Array.isArray(prev) ? prev : []).filter(l => l && l.id != null).map(l => [String(l.id), l]));
+  const drafters = new Set(db.prepare("SELECT id FROM users WHERE role != 'viewer'").all().map(u => String(u.id)));
+  return next.map(l => {
+    if (!l || typeof l !== 'object' || Array.isArray(l)) return l;
+    const x = { ...l };
+    delete x.savedById;
+    if (x.ownerId == null || x.ownerId === '' || !drafters.has(String(x.ownerId))) delete x.ownerId;
+    else x.ownerId = String(x.ownerId);
+    const was = x.id != null ? before.get(String(x.id)) : null;
+    x.savedById = (was && was.savedById && _laneSig(was) === _laneSig(x)) ? was.savedById : user.id;
+    return x;
+  });
+}
 /* W2-1: the one place the exchange rates change — read-modify-write of just
    that key. A rate is a CLAIM WITH A DATE: {code: {rate, at}}, rate being how
    many units of the workspace currency one unit of the foreign one is worth,
@@ -8378,7 +8686,7 @@ app.post('/api/intake', auth, rlIntake, (req, res) => {   // a trigger path, so 
      people who draft told: a request a rule drafted in the same breath is not
      waiting on anybody. */
   let laned = null;
-  try { laned = runIntakeLanes({ only: id }).cleared[0] || null; } catch (_) { laned = null; }
+  try { laned = runIntakeLanes({ only: id, req }).cleared[0] || null; } catch (_) { laned = null; }
   let told = null;
   if (!laned) { try { told = notifyIntakeRaised(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id), req); } catch (_) { told = null; } }
   res.json({ ok: true, request: intakeRow(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id)),
@@ -8555,6 +8863,29 @@ function notifyIntakeRaised(row, req) {
   }
   return { n: to.length };
 }
+/* ---- THE DRAFT'S OWNER IS TOLD IT WAS MADE FOR THEM (4 Oct 2026) ----
+   Before this a lane's draft told nobody: the request was not waiting on
+   anybody, so the "new request" mail rightly stayed quiet, and the draft sat
+   in Drafting with nobody's name on it. Now it has an owner, and the owner is
+   told — on the same path as the request mail (their own stored address,
+   their own language, the same switch: prefs.notifyIntake), with a link to
+   the contract itself. The bell says the same (the browser's `request` kind,
+   intakeLaneDraftRows) until the draft leaves Drafting. One mail per draft,
+   because a request is cleared once. */
+function notifyLaneDrafted(row, c, laneName, req) {
+  const own = c && c.owner;
+  if (!row || !own || !own.id) return false;
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(own.id);
+  if (!u || !/.+@.+\..+/.test(String(u.email || ''))) return false;
+  if (userPrefs(u).notifyIntake === false) return false;
+  const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+  const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n`
+    + tFor(L, 'mail_ik_lane_lead', { lane: laneName, id: c.id, who: row.by_name || tFor(L, 'cl_a_colleague'), title: row.title }) + '\n\n'
+    + `${tFor(L, 'mail_ik_new_need')}\n${String(row.need || '').slice(0, 1200)}\n\n`
+    + `${tFor(L, 'mail_ik_lane_where')}\n${contractUrl(req || null, c.id)}\n\n${tFor(L, 'mail_automated_notice')}`;
+  sendEmail(u.email, tFor(L, 'mail_ik_lane_subject', { title: row.title }), body, 'intake lane draft');
+  return true;
+}
 
 /* ---- THE LANES RUN ON THE SERVER (4 Oct 2026, the process review's
    Requests stream) ----
@@ -8590,29 +8921,66 @@ const SRV_TEMPLATES = (() => {
     return (out && typeof out === 'object') ? out : {};
   } catch (_) { return {}; }
 })();
-const IK_LANE_SWEEP_MS = 10 * 60 * 1000;
+/* Ten minutes. HATI_LANE_SWEEP_MS shortens it for a test that must watch the
+   sweep (not only the request's own POST) clear a request — never below a
+   second. */
+const IK_LANE_SWEEP_MS = Math.max(1000, Number(process.env.HATI_LANE_SWEEP_MS) || 10 * 60 * 1000);
 const srvKnownCounterparty = name => {
   const n = String(name || '').trim().toLowerCase();
   if (!n) return false;
   return !!db.prepare('SELECT 1 FROM contracts WHERE lower(trim(counterparty))=? LIMIT 1').get(n);
 };
+/* ---- WHOSE THE DRAFT IS, AND THAT COPILOT STILL OWES IT A READING (4 Oct
+   2026, the process review's last gaps) ----
+   OWNER: the lane's, by the one reading both hosts ask (intakeLaneOwner) —
+   and a named member who cannot see the request's stream cannot hold its
+   draft, so the default answers instead. Stamped in the SAME shape the
+   browser's contractOwnerStamp writes, { id, name }, so every reader of
+   `c.owner` (lists, Home, reminders, the "my contracts" condition) reads a
+   lane draft exactly as one made by hand.
+   THE ARRIVAL READING is browser-side (it presses the product's own
+   readings, and a server copy would be a second opinion about what a
+   contract says), so the server only RECORDS that one is owed:
+   `arrivalOwed`, written by this mint and cleared by POST
+   /api/contracts/:id/arrival and by nothing else — the PUT keeps the stored
+   value, exactly as it keeps `here`. The first editor's browser to hold the
+   contract claims it there and reads it once (intakeLaneArrivals). */
+/* A REQUEST SOMEBODY HAD ALREADY PICKED UP keeps its holder, and the draft is
+   theirs: the sweep may clear an open request a colleague is holding, and
+   taking it off them silently — or leaving the request with one person and
+   the draft with another — would make the Requests page and the contract
+   disagree about whose it is. Only where the holder could hold the draft
+   (may draft, sees the stream); otherwise the lane's own answer stands and
+   the request moves to that person. */
+function srvLaneOwnerFor(L, folder, r) {
+  const users = db.prepare('SELECT * FROM users ORDER BY created_at').all();
+  const may = u => inScope(folderScopeFor(u), folder);
+  const held = r && r.assignee_id ? users.find(u => String(u.id) === String(r.assignee_id)) : null;
+  if (held && held.role !== 'viewer' && may(held)) return { id: held.id, name: String(held.name || ''), how: 'held' };
+  return intakeLaneOwner(L, users, may);
+}
 function srvIntakeLaneDraft(r, L, t) {
   const at = now();
   const id = srvNextContractNo();
   const cp = String(r.counterparty || '').trim();
   const day = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   const laneName = String(L.name || L.id || 'a lane').slice(0, 80);
+  const folder = String(r.folder || t.folder || '');
+  const owner = srvLaneOwnerFor(L, folder, r);
   const c = {
     id, name: t.name + (cp ? ' \u2014 ' + cp : ''), counterparty: '', value: 0, status: 'Draft',
-    template: t.id, folder: String(r.folder || t.folder || ''), lastAction: day,
+    template: t.id, folder, lastAction: day,
     hash: null, signedAt: null, signatory: null, compliance: { iprs: false, pki: false },
     comments: [{ author: 'System', role: 'Automation', side: 'internal',
       text: `Drafted by the "${laneName}" lane from request ${r.id} (${t.kind}). Fill the highlighted fields to begin.`, ts: at }],
     fields: {}, scan: null, expiry: null, valueType: t.valueType, signatures: [], obligations: [],
     numbering: 'live', intakeRequestId: r.id,
+    ...(owner ? { owner: { id: owner.id, name: owner.name } } : {}),
+    arrivalOwed: { at, lane: laneName },
     audit: [{ at, user: 'System', action: 'Created', detail: `Generated from Template ${t.id} (${t.kind})` },
       { at, user: 'System', action: 'Requested',
-        detail: `Cleared by the "${laneName}" lane from request ${r.id} by ${r.by_name || 'a colleague'}: ${r.title}` }],
+        detail: `Cleared by the "${laneName}" lane from request ${r.id} by ${r.by_name || 'a colleague'}: ${r.title}`
+          + (owner ? ` \u2014 drafted for ${owner.name}` : '') }],
   };
   intakeAnswersOnto(c, { counterparty: cp, folder: r.folder, answers: intakeAnswersOf(r) });
   if (t.valueType === 'none') { c.value = 0; c.valueType = 'none'; }
@@ -8636,9 +9004,16 @@ function runIntakeLanes(opts = {}) {
     try {
       const c = srvIntakeLaneDraft(r, L, t);
       const at = now();
-      db.prepare("UPDATE intake_requests SET status='drafted', contract_id=?, lane=?, decided_by=?, decided_at=?, updated_at=? WHERE id=? AND status='open' AND contract_id IS NULL")
-        .run(c.id, String(L.name || L.id || '').slice(0, 80) || 'lane', '', at, at, r.id);
+      const laneName = String(L.name || L.id || '').slice(0, 80) || 'lane';
+      /* THE REQUEST IS HELD BY THE DRAFT'S OWNER — the same person, so the
+         Requests page's "with" and the contract's owner cannot disagree (a
+         holder who could hold the draft already IS its owner: srvLaneOwnerFor).
+         Where nobody can be named the request keeps whatever it had. */
+      const own = c.owner || null;
+      db.prepare("UPDATE intake_requests SET status='drafted', contract_id=?, lane=?, decided_by=?, decided_at=?, updated_at=?, assignee_id=COALESCE(?, assignee_id), assignee_name=CASE WHEN ? IS NULL THEN assignee_name ELSE ? END WHERE id=? AND status='open' AND contract_id IS NULL")
+        .run(c.id, laneName, '', at, at, own ? own.id : null, own ? own.id : null, own ? own.name : null, r.id);
       out.cleared.push(r.id);
+      try { notifyLaneDrafted(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(r.id), c, laneName, opts.req); } catch (_) {}
     } catch (e) { out.skipped.push({ id: r.id, why: String((e && e.message) || e).slice(0, 200) }); break; }
   }
   return out;
@@ -11592,7 +11967,9 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
   const done = extra => {
     hoWrite(c.id, c);
     res.json({ ok: true, handover: c.handover || null, handoverHistory: c.handoverHistory || null,
-      signApprovals: c.signApprovals || null, approvalChain: c.approvalChain || null, audit: lines, ...(extra || {}) });
+      signApprovals: c.signApprovals || null, approvalChain: c.approvalChain || null,
+      ...(Array.isArray(c.asks) ? { asks: canViewValues(req.user) ? c.asks : asksMasked(c.asks) } : {}),
+      audit: lines, ...(extra || {}) });
   };
   const ref = contractRef(c);
 
@@ -11852,13 +12229,21 @@ app.post('/api/contracts/:id/handover', auth, editor, async (req, res) => {
        approval of the version that went out is not an approval of the next.
        A personal approval is withdrawn (the need goes back to unasked); a rule
        step goes back to waiting. Both are kept on the record as they were. */
+    /* THROUGH THE ONE ASK WRITER (js/asks.js, 4 Oct 2026): each question is
+       withdrawn on c.asks, and its mirror — the request, the step — is written
+       exactly as it always was in the same breath. */
     let nSa = 0, nRule = 0;
-    (Array.isArray(c.signApprovals) ? c.signApprovals : []).forEach(r => {
-      if (r && (r.status === 'approved' || r.status === 'pending')) { r.status = 'withdrawn'; r.withdrawnBy = 'reopen'; r.withdrawnAt = at; nSa++; } });
-    if (Array.isArray(c.approvalChain)) c.approvalChain = c.approvalChain.map(s => {
-      if (s && s.status === 'approved') { nRule++; return { ...s, status: 'pending', by: null, at: null, comment: null, stamp: null,
-        was: { by: s.by || null, at: s.at || null } }; }
-      return s; });
+    asksAdopt(c);
+    (Array.isArray(c.signApprovals) ? c.signApprovals : []).filter(r => r && (r.status === 'approved' || r.status === 'pending'))
+      .map(r => String(r.id)).forEach(id => {
+        askAnswer(c, id, { state: 'withdrawn', at, by: null, mirror: { withdrawnBy: 'reopen', withdrawnAt: at } }); nSa++; });
+    (Array.isArray(c.approvalChain) ? c.approvalChain : []).filter(s => s && !s.sa && s.status === 'approved').forEach(s => {
+      const mine = (c.asks || []).filter(a => a && a.kind === 'rule' && String(a.of && a.of[0]) === String(s.ruleId));
+      const last = mine[mine.length - 1];
+      if (!last) return;
+      askAnswer(c, last.id, { state: 'withdrawn', at, by: null, mirror: { was: { by: s.by || null, at: s.at || null } } });
+      nRule++; });
+    asksAdopt(c);
     say('Reopened', `${me.name} reopened the negotiation${why ? ` — “${why}”` : ''}. The handover of ${hoDay(was.at)} was cancelled`
       + ((nSa + nRule) ? ` and the approval with it (${nSa + nRule} to ask again)` : '')
       + '. Their link says this version was withdrawn.');
@@ -12380,8 +12765,15 @@ async function runRuleStepReminders() {
     const step = ruleStepDueOf(c);
     if (!step) continue;
     checked++;
-    const clock = db.prepare('SELECT rkey, created_at FROM reminders WHERE rkey LIKE ? ORDER BY created_at DESC LIMIT 1')
-      .get(`ar:${c.id}:${step.ruleId}:due:%`);
+    /* THE CLOCK IS THE QUESTION'S OWN (4 Oct 2026): the rule step's open ask
+       on the one ask record (js/asks.js) says when it fell due. A step that
+       fell due before that record existed keeps the `ar:` row it was given
+       then — and a step with neither has no clock and is not chased. */
+    const ask = asksDerive(c).filter(a => a.kind === 'rule' && a.state === 'open' && a.at
+      && String(a.of && a.of[0]) === String(step.ruleId)).pop() || null;
+    const clock = ask ? { rkey: `ask:${c.id}:${ask.id}`, created_at: ask.at }
+      : db.prepare('SELECT rkey, created_at FROM reminders WHERE rkey LIKE ? ORDER BY created_at DESC LIMIT 1')
+        .get(`ar:${c.id}:${step.ruleId}:due:%`);
     if (!clock) continue;
     const waited = saWorkdays(clock.created_at);
     if (waited >= SA_REMIND_WORKDAYS && once(`${clock.rkey}:remind`)) sent += (await ruleStepTell(null, c, step, 'remind')).n || 0;
@@ -13628,6 +14020,132 @@ async function releaseOneSignerLink(req, contractId, rt, next) {
   } catch (_) { /* the signature that triggered this is safe regardless */ }
 }
 
+/* ============================================================
+   ONE LINK CHECK FOR EVERY LINK KIND — THE WALL'S HALF
+   (the process review, 4 Oct 2026)
+   ============================================================
+   The signing link had one list (signLinkRefusal in the browser, the sign
+   block below at this wall). Every other kind asked less, and differently at
+   each door: the desk was never asked here for a negotiation, view, record or
+   status link, so a colleague who is not the lead could mint one through the
+   API; a contract on hold could still be sent for negotiation.
+
+   ONE TABLE, both hosts. js/core.js holds the browser's twin (LINK_ASKS);
+   f490 pins the two equal, the arrangement deskRuleOn already has with the
+   browser's deskEnforced. What each question guards decides which kinds ask
+   it:
+     hold        — nothing new leaves while a dispute is dealt with.  ALL.
+     desk        — only the lead reaches the other side (deskMaySend: an admin
+                   is not exempt; they take the lead first). Every kind that
+                   reaches them; never an adviser, who is our own counsel.
+                   A signing link asks it only before signing has begun.
+     reviewer    — the sender's own posture: being asked to review narrows you
+                   until you hand back, so nothing you do reaches the other
+                   side. Every kind that reaches them.
+     reviewgate  — wording nobody has cleared does not travel. Every kind whose
+                   copy CARRIES our wording; a status page carries none.
+     signapproval · approval · signcheck · address — the signing link's own
+                   rows, asked by the sign block in POST /api/shares in this
+                   order (needs signers and the outside route sit between).
+   An EXECUTED record is exempt from the hold and the desk: its copy travels
+   on any kind, as a signed copy always has on a Sign link. The review rows
+   are asked of a sealed record as this route always asked them; on one there
+   is nothing unsent for them to find. */
+const SRV_LINK_ASKS = Object.freeze({
+  sign:      ['hold', 'desk', 'reviewer', 'reviewgate', 'signapproval', 'approval', 'signcheck', 'address'],
+  negotiate: ['hold', 'desk', 'reviewer', 'reviewgate'],
+  view:      ['hold', 'desk', 'reviewer', 'reviewgate'],
+  history:   ['hold', 'desk', 'reviewer', 'reviewgate'],
+  status:    ['hold', 'desk', 'reviewer'],
+  advise:    ['hold'],
+});
+/* Keeping a link that already went (more time, a reminder) sends nothing new,
+   so it asks only who may reach them and whether the contract is frozen. */
+const SRV_LINK_KEEP_ASKS = ['hold', 'desk'];
+/* A link with no stated purpose is read as a negotiation link everywhere
+   (sharePurposeOf); an unknown word asks the strictest row. */
+function srvLinkAsks(purpose, keep) {
+  const p = purpose || 'negotiate';
+  const row = SRV_LINK_ASKS[p] || SRV_LINK_ASKS.sign;
+  return new Set(keep ? row.filter(k => SRV_LINK_KEEP_ASKS.includes(k)) : row);
+}
+/* The refusal, or null: { status, body }. Read off the STORED contract
+   (`rvStored`) and the signed-in person (`req.user`), never the body's word.
+   `payload` is the envelope the review gate measures; absent, the gate has
+   nothing to look at. `keep` asks the keeping rows only. */
+function srvLinkRefusal(req, rvStored, purpose, opts) {
+  if (!rvStored || !req || !req.user) return null;
+  const o = opts || {};
+  const asks = srvLinkAsks(purpose, o.keep);
+  const sign = (purpose || 'negotiate') === 'sign';
+  const sealed = isExecutedRow(rvStored);
+  const cid = o.contractId || rvStored.id;
+  const started = sign && !!saStarted(rvStored, { responded: srvSaResponded(cid) });
+  if (!sealed && asks.has('hold') && rvStored.hold && rvStored.hold.at)
+    return { status: 409, body: { heldFreeze: true, error: sign
+      ? `${contractRef(rvStored)} is on hold while a dispute is dealt with, so a signing link cannot be issued. Release the hold first.`
+      : `${contractRef(rvStored)} is on hold while a dispute is dealt with, so no link goes out on it. Release the hold first.` } };
+  if (!sealed && !started && asks.has('desk') && deskRuleOn() && deskIsClaimed(rvStored)
+    && deskSeatOf(rvStored, req.user) !== 'lead')
+    return { status: 403, body: { desk: 'not-the-lead', error: sign
+      ? `Only ${deskLeadName(rvStored)}, who leads this negotiation, sends it to the other side — including the signing link.`
+      : `Only ${deskLeadName(rvStored)}, who leads this negotiation, sends it to the other side.` } };
+  /* 1. THE SENDER'S OWN POSTURE. Being asked to review a clause narrows you
+     on this contract until you hand back: nothing you do reaches the
+     counterparty. Refused rather than stripped — the person is not entitled
+     to send this round at all, so there is no smaller send to offer. */
+  if (asks.has('reviewer')) {
+    const holding = rvActorHeld(rvStored, req.user);
+    if (holding.length) {
+      const n = holding.reduce((a, r) => a + ((r.changeIds || []).length), 0);
+      return { status: 403, body: { error: `You are reviewing ${n} change${n === 1 ? '' : 's'} on this contract`
+        + ` for ${holding[0].by || 'a colleague'}. Hand the review back before sending anything to the counterparty.`,
+        reviewing: holding.map(r => r.id) } };
+    }
+  }
+  /* 2. THE GATE, where an admin has turned it on. A change nobody has looked
+     at does not travel, and this is the refusal the setting promises. The
+     SENDER is who the gate is about — it is their wording going out. */
+  if (asks.has('reviewgate') && o.payload) {
+    const unreviewed = rvUnreviewedIds(rvStored, req.user);
+    if (unreviewed.size) {
+      const k = o.payload.contract;
+      const carried = (k && Array.isArray(k.changes) ? k.changes : []).filter(x => x && unreviewed.has(String(x.id)));
+      if (carried.length)
+        return { status: 403, body: { error: `${carried.length} change${carried.length === 1 ? ' has' : 's have'}`
+          + ' not been cleared by an internal reviewer, and this workspace requires one before changes are sent.',
+          unreviewed: carried.map(x => x.id) } };
+    }
+  }
+  return null;
+}
+/* 3. THE HELD AND THE STILL-BEING-READ, taken out of the envelope — and what
+   a colleague only suggested. STRIPPED rather than refused, because the
+   ordinary case is a race and not an attack: the sender built this payload, a
+   colleague pressed Hold, and the send arrived a second later. Refusing would
+   lose the whole round over one clause. What travels is what may travel, and
+   the count comes back so the sender is not told a lie by omission. Asked by
+   every route that writes a copy the other side reads (POST /api/shares and
+   the refresh of a standing link), so the round send is walled like the first.
+   `unsent` also takes out every ask of ours they have not seen: the quiet
+   catch-up of a person the table refuses may bring a link up to date, and
+   carries nothing new. Returns the number taken out. */
+function srvLinkStrip(rvStored, payload, opts) {
+  if (!rvStored || !payload || !payload.contract || !Array.isArray(payload.contract.changes)) return 0;
+  const withheld = rvWithheldIds(rvStored);
+  /* AND WHAT A COLLEAGUE ONLY SUGGESTED (4 Oct 2026). The same envelope, the
+     same arithmetic and the same honest report: a contributor's redline
+     belongs to the lead to adopt, and until they have it is not what this
+     company is asking for. Added to the one set rather than filtered twice,
+     so the count the sender is told is the whole of what stayed behind. */
+  for (const id of dkSuggestedIds(rvStored)) withheld.add(id);
+  if (opts && opts.unsent) for (const ch of rvUnsentOurs(rvStored)) withheld.add(String(ch.id));
+  if (!withheld.size) return 0;
+  const before = payload.contract.changes.length;
+  payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
+  return before - payload.contract.changes.length;
+}
+
 app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   const { payload, recipient, channel, message, expiryDays, durable, purpose } = req.body || {};
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
@@ -13666,48 +14184,24 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   const rvRow = shareId ? db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId) : null;
   let rvStored = null;
   if (rvRow) { try { rvStored = JSON.parse(rvRow.json); } catch (_) { rvStored = null; } }
+  /* The body may state it; the payload the reader will actually be served
+     always does. They are the same value, and the payload is the one the page
+     obeys, so it is the one that wins here — a row that disagreed with the
+     document it serves would supersede the wrong links. Read before the wall
+     below, because which questions a link answers depends on its kind. */
+  const purp = SHARE_PURPOSES.includes(payload.purpose) ? payload.purpose
+    : SHARE_PURPOSES.includes(purpose) ? purpose : null;
   if (rvStored){
-    /* 1. THE SENDER'S OWN POSTURE. Being asked to review a clause narrows you
-       on this contract until you hand back: nothing you do reaches the
-       counterparty. Refused rather than stripped — the person is not entitled
-       to send this round at all, so there is no smaller send to offer. */
-    const holding = rvActorHeld(rvStored, req.user);
-    if (holding.length){
-      const n = holding.reduce((a, r) => a + ((r.changeIds || []).length), 0);
-      return res.status(403).json({ error: `You are reviewing ${n} change${n === 1 ? '' : 's'} on this contract`
-        + ` for ${holding[0].by || 'a colleague'}. Hand the review back before sending anything to the counterparty.`,
-        reviewing: holding.map(r => r.id) });
-    }
-    /* 2. THE GATE, where an admin has turned it on. A change nobody has looked
-       at does not travel, and this is the refusal the setting promises. */
-    /* The SENDER is who the gate is about — it is their wording going out. */
-    const unreviewed = rvUnreviewedIds(rvStored, req.user);
-    if (unreviewed.size){
-      const carried = (payload.contract && Array.isArray(payload.contract.changes) ? payload.contract.changes : [])
-        .filter(x => x && unreviewed.has(String(x.id)));
-      if (carried.length)
-        return res.status(403).json({ error: `${carried.length} change${carried.length === 1 ? ' has' : 's have'}`
-          + ' not been cleared by an internal reviewer, and this workspace requires one before changes are sent.',
-          unreviewed: carried.map(x => x.id) });
-    }
-    /* 3. THE HELD AND THE STILL-BEING-READ, taken out of the envelope. STRIPPED
-       rather than refused, because the ordinary case here is a race and not an
-       attack: the sender built this payload, a colleague pressed Hold, and the
-       send arrived a second later. Refusing would lose the whole round over
-       one clause. What travels is what may travel, and the response says what
-       stayed behind so the sender is not told a lie by omission. */
-    const withheld = rvWithheldIds(rvStored);
-    /* 3b. AND WHAT A COLLEAGUE ONLY SUGGESTED (4 Oct 2026). The same envelope,
-       the same arithmetic and the same honest report: a contributor's redline
-       belongs to the lead to adopt, and until they have it is not what this
-       company is asking for. Added to the one set rather than filtered twice,
-       so the count the sender is told is the whole of what stayed behind. */
-    for (const id of dkSuggestedIds(rvStored)) withheld.add(id);
-    if (withheld.size && payload.contract && Array.isArray(payload.contract.changes)){
-      const before = payload.contract.changes.length;
-      payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
-      req.rvStripped = before - payload.contract.changes.length;
-    }
+    /* ONE LINK CHECK FOR EVERY LINK KIND (4 Oct 2026): the hold, the desk,
+       the sender's own review posture and the review gate, each asked of the
+       kinds it guards (SRV_LINK_ASKS). A signing link's own rows follow in the
+       sign block below. */
+    const no = srvLinkRefusal(req, rvStored, purp, { payload, contractId: shareId });
+    if (no) return res.status(no.status).json(no.body);
+    /* 3. THE HELD, THE STILL-BEING-READ AND THE ONLY-SUGGESTED, taken out of
+       the envelope rather than refused — see srvLinkStrip. */
+    const stripped = srvLinkStrip(rvStored, payload);
+    if (stripped) req.rvStripped = stripped;
   }
   /* THE BRIEF NEVER TRAVELS (WO-2). It is an internal reading aid — our own
      colleague's plain-English take on their paper — and the product's client
@@ -13722,6 +14216,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        stripped here as well because an allow-list holds only until somebody
        adds a field — the discipline the brief beside it keeps. */
     delete payload.contract.here;
+    delete payload.contract.arrivalOwed;        // a lane's bookkeeping is ours (4 Oct 2026)
     delete payload.contract._readings;          // idea 7: our plain-English reading of their paper is ours
     delete payload.contract._roundPrep; }       // Copilot's answers to their round are ours alone
   /* 'word' joined the list on 13 Sep 2026: the round travels as an attached
@@ -13739,12 +14234,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   /* Durability is opt-in per share. The default stays one-shot: the signature
      pass wants exactly one answer bound to exactly one copy of the wording. */
   const isDurable = durable === true || durable === 1 ? 1 : 0;
-  /* The body may state it; the payload the reader will actually be served
-     always does. They are the same value, and the payload is the one the page
-     obeys, so it is the one that wins here — a row that disagreed with the
-     document it serves would supersede the wrong links. */
-  const purp = SHARE_PURPOSES.includes(payload.purpose) ? payload.purpose
-    : SHARE_PURPOSES.includes(purpose) ? purpose : null;
+  /* (`purp`, the kind of link this is, was read above the wall.) */
   /* ---- A STATUS LINK CARRIES NO CONTRACT AT ALL (idea 15, 4 Oct 2026) ----
      Its page is built fresh from the stored record on every open, by a reading
      that carries no wording, no people and nothing one party may not show
@@ -13808,21 +14298,15 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        The browser's issuing doors (signLinkRefusal, js/core.js) ask these
        too; a link minted round them was a link refused at signing a day
        later, with the counterparty told something had gone wrong.
-         · A CONTRACT ON HOLD is not signed — the respond route refuses it, so
-           a link issued now is a dead link.
-         · THE DESK: reaching the counterparty is the lead's act (deskMaySend —
-           an admin is not exempt; they take the lead first). Asked only
-           before signing has begun: once our signatures are on, issuing the
-           next signer's link is the route carrying itself, and the desk
-           never gates signing.
+         · A CONTRACT ON HOLD and THE DESK are asked above the wall's strip,
+           for every link kind (srvLinkRefusal) — a signing link in the
+           signing link's own words, and the desk only before signing has
+           begun: once our signatures are on, issuing the next signer's link
+           is the route carrying itself, and the desk never gates signing.
          · THE CHECK BEFORE SIGNING, at this workspace's gate and with no
            signer — the counterparty's signature, refused at respond by the
            same function. Before signing has begun, for the desk's reason:
            our first signature already passed it. */
-    if (stored && stored.hold && stored.hold.at)
-      return res.status(409).json({ error: `${contractRef(stored)} is on hold while a dispute is dealt with, so a signing link cannot be issued. Release the hold first.`, heldFreeze: true });
-    if (stored && !started && deskRuleOn() && deskIsClaimed(stored) && deskSeatOf(stored, req.user) !== 'lead')
-      return res.status(403).json({ error: `Only ${deskLeadName(stored)}, who leads this negotiation, sends it to the other side — including the signing link.`, desk: 'not-the-lead' });
     const checked = (stored && !started) ? signCheckRefusal(stored) : null;
     if (checked) return res.status(409).json({ error: checked, signCheck: true });
   }
@@ -15325,6 +15809,24 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
      the current wording is a fact about THEM, and it must not be reset by
      bookkeeping they never asked for and cannot see. */
   const silent = !!(req.body || {}).silent;
+  /* ---- THE ROUND SEND MEETS THE SAME WALL AS THE FIRST SEND (4 Oct 2026) ----
+     Every round after the first travels on THIS route, not POST /api/shares,
+     so a wall that lived only there walled the first send. Asked of the
+     STORED contract and the ROW's kind (a link keeps the kind it was made
+     with): the hold, the desk, the sender's review posture and the gate
+     refuse a send. A QUIET CATCH-UP IS NOT A SEND — any colleague's browser
+     runs one after it applies the other side's answer, and refusing it would
+     leave their link describing a negotiation that has moved on — so where
+     the table would refuse this person, the catch-up still goes and carries
+     none of our asks they have not seen. Held, still-being-read and
+     only-suggested wording is taken out of every refresh, as on the first. */
+  const linkStored = s.contract_id ? srvStoredContract(s.contract_id) : null;
+  let linkStripped = 0;
+  if (linkStored) {
+    const no = srvLinkRefusal(req, linkStored, sharePurposeOf(s), { payload, contractId: s.contract_id });
+    if (no && !silent) return res.status(no.status).json(no.body);
+    linkStripped = srvLinkStrip(linkStored, payload, { unsent: !!no });
+  }
   let oldText = '';
   try { oldText = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}
   if (!silent)
@@ -15390,6 +15892,8 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
        can tell "nothing was meant to go" from "it did not go". */
     turnMail: turnMail && mailTried, outbox: mailTried && !emailSent && !EMAIL_ON(),
     recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
+    /* What stayed behind, said as the first send says it. */
+    withheldByReview: linkStripped || undefined,
     emailSent, emailConfigured: EMAIL_ON(), emailError, reach: srvReachOf(s.contract_id) });
 });
 
@@ -15447,6 +15951,11 @@ app.post('/api/shares/:token/extend', auth, editor, (req, res) => {
   if (s.revoked_at) return res.status(409).json({ error: 'This link was cancelled — send a fresh one instead.' });
   if (shareExpired(s)) return res.status(409).json({ error: 'This link has already run out — send a fresh one instead.' });
   if (s.response && !s.durable) return res.status(409).json({ error: 'This link has already been used — send a fresh one instead.' });
+  /* MORE TIME IS STILL REACH (4 Oct 2026): a link kept open is a link the
+     other side can go on answering, so the one link check is asked — its
+     keeping rows only, the hold and the desk, because nothing new travels. */
+  { const no = srvLinkRefusal(req, srvStoredContract(s.contract_id), sharePurposeOf(s), { keep: true, contractId: s.contract_id });
+    if (no) return res.status(no.status).json(no.body); }
   const days = Math.min(90, Math.max(1, Number((req.body || {}).days) || SHARE_EXPIRY_DEFAULT_DAYS));
   const was = Date.parse(String(s.expires_at || '')) || 0;
   const until = new Date(Math.max(was, Date.now() + days * 86400000)).toISOString();
@@ -15469,6 +15978,10 @@ app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res
   if (s.response) return res.status(409).json({ error: 'This share already has a response' });
   if (s.revoked_at) return res.status(409).json({ error: 'This share was revoked — create a new share instead' });
   if (shareExpired(s)) return res.status(409).json({ error: 'This share has expired — create a new share instead' });
+  /* A REMINDER IS A SEND (4 Oct 2026): it puts our name in their inbox, so
+     the one link check's keeping rows are asked — the hold and the desk. */
+  { const no = srvLinkRefusal(req, srvStoredContract(s.contract_id), sharePurposeOf(s), { keep: true, contractId: s.contract_id });
+    if (no) return res.status(no.status).json(no.body); }
   const link = shareUrl(req, s.token);
   let emailSent = false, emailError = null;
   if ((s.channel || 'link') === 'email' && s.recipient_email) {

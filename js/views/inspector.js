@@ -730,6 +730,9 @@ const INS_PAGE_REPAINT = {
   approvals: 'renderApprovalsPage',
   obligations: 'obwRepaint',
   intake: 'renderIntake',
+  /* Not an inspector: the Advice tab of Requests, whose frame follows this
+     line so its tab row sits where the Contracts tab's does (gap F). */
+  advice: 'renderAdviceDesk',
   playbook: 'renderPlaybookPage',
   oblig: () => { const c = (typeof getContract === 'function' && typeof state !== 'undefined') ? getContract(state.activeId) : null;
     if (c && typeof roomPaintObligations === 'function') roomPaintObligations(c); },
