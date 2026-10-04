@@ -380,14 +380,16 @@ describe('f154 · a held change does not travel, and neither does the review', (
     const { win } = world({ user: BOSS });
     const c = contract(); win.negoInit(c);
     const a = await mine(win, c, '4', '<p>Payable within forty-five (45) days.</p>');
-    win.reviewAsk(c, { reviewer: BOSS, by: ME.name });
-    win.reviewMark(c, a.id, 'held');
-    assert.equal(win.reviewHeldIds(c).has(a.id), true);
-
-    /* It goes out anyway — the gate was off in this world — and from that
-       moment holding it back is a thing the world does not permit. Deleting it
-       from a later payload would read to them as us rewriting what we sent. */
+    /* REWRITTEN 4 Oct 2026 (f470). This used to hold the change and THEN hand
+       over, asserting the hold had lapsed — "it goes out anyway, the gate was
+       off". It never did go out: buildSharePayload subtracts a hold whatever
+       the gate says, so that send left it home, and the lapse this asserted
+       was the defect that let the NEXT send carry it. The rule it stood for
+       is unchanged and is pinned the true way round: wording that really
+       reached them cannot be recalled by a hold placed afterwards. */
     win.negoHandOver(c, { to: 'counterparty', by: ME.name });
+    win.reviewAsk(c, { reviewer: BOSS, by: ME.name, ids: [a.id] });
+    win.reviewMark(c, a.id, 'held');
     assert.equal(win.reviewHeldIds(c).has(a.id), false,
       'sent wording cannot be recalled by a hold');
   });

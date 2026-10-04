@@ -3954,10 +3954,15 @@ function wireNegotiationTab(c, opts = {}){
        that costs on their side — the owner catches up the live link, the
        counterparty has no link to catch up. See openNegotiationOwnerRoom. */
     if (typeof opts.onDecided === 'function') opts.onDecided(c, ch);
+    /* SAID, AND NAMED BY ITS CLAUSE (4 Oct 2026): a bare toast prints
+       nothing, and a decision is a hand-off the reader should see land. The
+       fingerprint is on the card and in the trail; the sentence names the
+       clause, as every sentence about a change on this page does. */
     if (window.toast){
-      if (status === 'accepted') toast(`#${id} accepted — merged into the clean text · ${negoShortHash(ch.hash)} filed to the audit trail`);
-      else if (status === 'rejected') toast(`#${id} rejected — the clause reverts to the baseline and the ask travels back as an open point`);
-      else toast(`#${id} reopened — back to pending`);
+      const what = _neClause(ch.clauseLabel || '') || i18t('ng_a_clause');
+      if (status === 'accepted') toast(i18t('ng_decided_accepted', { what }), 'ok');
+      else if (status === 'rejected') toast(i18t('ng_decided_rejected', { what }), 'ok');
+      else toast(i18t('ng_decided_reopened', { what }), 'ok');
     }
     again();
   };
@@ -4203,8 +4208,8 @@ function wireNegotiationTab(c, opts = {}){
         if (!negoHandOver(c, { to, by: opts.by })) return;
         if (opts.persist !== false && window.persist) persist(c);
         if (window.toast) toast(info && info.emailSent
-          ? `Sent to ${who} — it is now their turn`
-          : `Link created for ${who} — it is now their turn. Send them the link if it was not emailed.`);
+          ? i18t('ng_sent_their_turn', { who })
+          : i18t('ng_link_their_turn', { who }), info && info.emailSent ? 'ok' : 'warn');
         again();
       },
     };
@@ -5986,10 +5991,15 @@ function rlUnsentCount(c, opts = {}){
      thing that knows about the first, which is why it hands the numbers in. */
   if (side === 'counterparty')
     return Math.max(0, Number(opts.pendingDecisions || 0) + Number(opts.pendingProposals || 0));
-  const unsent = window.negoUnsentAsks ? negoUnsentAsks(c, 'owner').length : 0;
-  const held = window.reviewHeldIds ? reviewHeldIds(c).size : 0;
-  const wait = window.reviewAwaiting ? reviewAwaiting(c).length : 0;
-  return Math.max(0, unsent - held - wait);
+  const unsent = window.negoUnsentAsks ? negoUnsentAsks(c, 'owner') : [];
+  /* WHAT THE PAYLOAD SUBTRACTS, THE BUTTON SUBTRACTS: a reviewer's hold, a
+     change still out with one, and a colleague's open suggestion (4 Oct 2026 —
+     the suggestion was counted, so "Send all · 3" sent two). One union, so a
+     change that is both is subtracted once. */
+  const back = new Set();
+  try{ if (window.reviewWithheldIds) for (const id of reviewWithheldIds(c)) back.add(id); }catch(_){}
+  try{ if (window.deskSuggestedIds) for (const id of deskSuggestedIds(c)) back.add(id); }catch(_){}
+  return Math.max(0, unsent.filter(x => !back.has(x.id)).length);
 }
 /* ---- THE CO-PILOT'S FIRST PASS, DRAWN (W3-1) ----
    A folded band over the change column: how many of their asks sit inside
@@ -6096,21 +6106,37 @@ function rlUnsentSendHtml(c, opts = {}){
    THE PROGRESS READING IS PASSED IN. The panes have already asked negoProgress
    once for the bar; a second call here would be a second arithmetic on a figure
    already on the page. */
-function rlCloseRoundHtml(c, opts = {}, prog = null){
+function rlCloseRoundHtml(){
+  /* ---- A STUB, NOT A DELETION (4 Oct 2026, the round closes itself) ----
+     The button is gone from the head: a send that hands the table over now
+     closes the round on its own (negoHandOver → negoAdvanceRound), and so do
+     Ready to sign, the outside hand-over and issuing a signing link. The slot
+     says WHICH round and since when instead — rlRoundLabelHtml. Kept
+     published so a caller nobody remembered cannot bring the act back. */
+  return '';
+}
+/* ---- THE ROUND, SAID QUIETLY IN THE SAME PLACE (4 Oct 2026) ----
+   "Round 3 · since 2 Oct" — a fact, not a control: nothing to press, no fill,
+   the meta ink the column's other quiet words wear. Our seat only, where the
+   Close round button stood; their page already says the round on its facts
+   row (portalNegoFacts), from the same number. Read RAW — a label drawn on
+   every paint must not start a negotiation. */
+function rlRoundLabelHtml(c, opts = {}){
   if ((opts.side === 'counterparty' ? 'counterparty' : 'owner') !== 'owner') return '';
-  if (opts.readonly) return '';
-  if (rlActorHeld(c, opts)) return '';
-  const p = prog || ((typeof negoProgress === 'function') ? negoProgress(c)
-    : { pending: 0, total: 0 });
-  /* Nothing on the table is nothing to close. */
-  if (!p.total) return '';
-  const blocked = p.pending > 0;
-  const title = blocked
-    ? i18tn('ng_close_blocked', p.pending, { n: p.pending })
-    : i18t('ng_close_round_title');
-  return `<button type="button" class="rl-close-go" data-rl-close-round${
-    blocked ? ' disabled aria-disabled="true"' : ''} title="${_nea(title)}">${
-      _ne(i18t('ng_close_round_n', { n: negoRound(c) }))}</button>`;
+  const n = c && c.negotiation;
+  if (!n) return '';
+  const round = (typeof n.round === 'number' && n.round > 0) ? n.round : 1;
+  const since = window.negoRoundSince ? negoRoundSince(c) : (n.startedAt || null);
+  let day = '';
+  if (since){
+    const d = new Date(since);
+    if (!isNaN(d.getTime())){
+      try{ day = d.toLocaleDateString(window.langLocale ? langLocale() : 'en-GB', { day: 'numeric', month: 'short' }); }
+      catch(_){ day = String(since).slice(0, 10); }
+    }
+  }
+  const words = day ? i18t('ng_round_since', { n: round, day }) : i18t('ng_round_n', { n: round });
+  return `<span class="rl-round-at" title="${_nea(i18t('ng_round_since_title'))}">${_ne(words)}</span>`;
 }
 
 /* ============================================================
@@ -10827,21 +10853,8 @@ function renderRedline(){
   /* The counterparty postbox (#nego-send-decisions) is no longer bound here:
      Counterparty View is read-only, supplies no onSendDecisions, and renders
      no postbox to bind. The portal's own mount keeps its binding. */
-  /* Closing the round — the naming dialog first, because it is irreversible:
-     the decided changes fold into the round history and the agreed wording
-     becomes the baseline the next round is measured against. */
-  host.querySelectorAll('[data-rl-close-round]').forEach(el =>
-    el.addEventListener('click', async () => {
-      if (window.negoConfirmCloseRound && !await negoConfirmCloseRound(c)) return;
-      const r = negoAdvanceRound(c, { by: opts.by || (window.currentUser && currentUser()?.name) });
-      if (!r){ if (window.toast) toast(i18t('ng_round_cannot_close'), 'err'); return; }
-      if (window.persist) persist(c);
-      /* 'ok' by the same test as the portal's send confirmations: closing a
-         round is irreversible and moves the baseline every later change is
-         measured against. See TOAST_KINDS. */
-      if (window.toast) toast(`Round ${r.n} closed — the agreed wording is the new baseline for round ${negoRound(c)}`, 'ok');
-      renderRedline();
-    }));
+  /* The Close round press that lived here went with its button (4 Oct 2026):
+     a send that hands the table over closes the round itself. */
   rlWireClauseTools(c, host, opts);
   redlineSyncProxies(host);
   /* The composers on this page are rebuilt by every repaint, and a textarea
@@ -10964,7 +10977,7 @@ function rlStartLivePoll(c){
           if (window.toast) toast(i18t('ng_live_held_for_editor', { id: window.contractRef ? contractRef(fresh) : id }), 'warn');
         } else {
           renderRedline();
-          if (window.toast) toast(`Updated just now — new activity on ${window.contractRef ? contractRef(fresh) : id}`);
+          if (window.toast) toast(i18t('ng_live_updated', { id: window.contractRef ? contractRef(fresh) : id }), 'ok');
         }
       }
     }catch(_){ /* transient — the next tick retries */ }
@@ -20522,7 +20535,7 @@ function redlinePanesHtml(c, opts = {}){
                      page head, where it appeared only once the round was
                      already settled and therefore said nothing about rounds
                      until the moment you no longer needed telling. */}
-              ${rlCloseRoundHtml(c, opts, p)}
+              ${rlRoundLabelHtml(c, opts)}
             </div>
             ${''/* ---- THE COLUMN'S OWN KEY (Young ruled 14 Sep 2026) ----
                    Two colours carry the whole page — one side's marks and the
@@ -20820,7 +20833,7 @@ if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml,
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly, rlCpNarrowSeat,
   rlEditorTakesIt,
   rlCpTypePx, rlCpSetType, rlCpZoom,
-  rlUnsentBandHtml, rlUnsentSendHtml, rlUnsentCount, rlCloseRoundHtml,
+  rlUnsentBandHtml, rlUnsentSendHtml, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlRungPeekHtml, rlPeekShow, rlPeekHide, rlPeekLater, rlPeekOpenId, RL_PEEK_MS,

@@ -218,6 +218,9 @@ function ladderUnsent(c, r, viewerSide){
   const neg = c.negotiation || null;
   const hb = (neg && Array.isArray(neg.holdIds)) ? neg.holdIds : [];
   if (hb.includes(r.id)) return true;
+  /* …or one a send WITHHELD (negotiation.keptIds — a review hold, a change
+     out with a reviewer, a colleague's suggestion): it never left either. */
+  if (viewerSide !== 'counterparty' && neg && Array.isArray(neg.keptIds) && neg.keptIds.includes(r.id)) return true;
   const at = neg && neg.turnAt;
   return at ? String(r.ch.createdAt || '') > String(at) : viewerSide !== 'counterparty';
 }

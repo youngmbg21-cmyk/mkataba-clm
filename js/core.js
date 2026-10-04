@@ -6094,6 +6094,11 @@ async function issueSigningRouteLinks(c){
   }
   /* One audit line for the act, naming what actually went and what is held —
      "3 links created" hides exactly the fact the route exists to record. */
+  /* And the round closes, as every signing door closes it — see
+     negoRoundClosesForSigning (4 Oct 2026). */
+  if(links.length && window.negoRoundClosesForSigning){
+    try{ if(negoRoundClosesForSigning(c, (currentUser()||{}).name)) persist(c); }catch(_){}
+  }
   const made=links.filter(x=>!x.reused).length;
   const sent=links.find(x=>x.emailSent);
   if(made || sent){
@@ -7172,6 +7177,13 @@ async function openShareModal(c, opts={}){
       if(payloadObj.purpose!=='sign' && c.status!=='Signed' && window.negoHandOver){
         try{ negoHandOver(c, { to:'counterparty', by:currentUser()?.name }); }catch(_){}
       }
+      /* A SIGNING LINK CLOSES THE ROUND, like Ready to sign and the outside
+         hand-over (4 Oct 2026): the arguing is over and the agreed wording is
+         the baseline the signature rests on. negoRoundClosesForSigning asks
+         negoAdvanceRound, which refuses anything still undecided. */
+      if(payloadObj.purpose==='sign' && window.negoRoundClosesForSigning){
+        try{ negoRoundClosesForSigning(c, currentUser()?.name); }catch(_){}
+      }
       /* ONE ACT, TWO DOORS — see contractLeavesDrafting. The line used to live
          here and only here, which is how the round send came to be sending
          contracts to the counterparty that still called themselves drafts. */
@@ -7827,7 +7839,9 @@ async function applyResponse(c, r, opts={}){
     // than reading like every other verified counterparty signature.
     const unverified = r.verified===false;
     logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${boundRow?` — step ${boundRow.order} of the signing route, on their own bound link`:''}${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}${routeNote}`);
-    toast(`${r.name} has signed — countersignature recorded`);
+    /* NEWS, SAID WHERE THE READER LOOKS (4 Oct 2026): a bare toast prints
+       nothing, so every arrival that moves whose move it is names a kind. */
+    toast(i18t('co_arr_signed',{ who:r.name }),'ok');
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
     const routeDone = window.allSigned && allSigned(c);
     /* THE SAME MOMENT, REACHED WITHOUT A ROUTE. A contract with no signing
@@ -7869,7 +7883,7 @@ async function applyResponse(c, r, opts={}){
     c.comments.push({ author:r.name, role:'Counterparty — Wording accepted', side:'external',
       text:r.comment||'Accepted the current wording. Not yet signed.', at:r.at, ts:fmtDT(r.at) });
     logAudit(c,'Wording accepted',`${who} accepted the current wording without signing`);
-    toast(`${r.name} accepted the wording — ready for signature`);
+    toast(i18t('co_arr_accepted',{ who:r.name }),'ok');
   } else if(r.action==='decisions'){
     /* Answers to individual fingerprinted changes we proposed. Applied through
        negoResolve, so the wording is rebuilt from the accepted set by the same
@@ -7935,7 +7949,13 @@ async function applyResponse(c, r, opts={}){
       text:r.comment||(said+'.'), at:r.at, ts:fmtDT(r.at) });
     if(done.length) logAudit(c,'Negotiation',`${who} decided ${done.length} proposed change${done.length===1?'':'s'} — ${acc} accepted, ${done.length-acc} rejected (${done.map(x=>'#'+x.id+' '+x.status).join(', ')})`);
     negoTurnBack(c, who);
-    toast(said?`${r.name}: ${said}`:`${r.name} answered`);
+    /* The record above keeps its English (a RECORD label keeps English);
+       the reader is told in their own language. */
+    const saidHere=[done.length?i18t('co_arr_decided',{ acc, n:done.length }):'',
+      filed.length?i18tn('co_arr_filed',filed.length,{ n:filed.length }):'',
+      withdrew.length?i18tn('co_arr_withdrew',withdrew.length,{ n:withdrew.length }):'']
+      .filter(Boolean).join('; ');
+    toast(saidHere?i18t('co_arr_answered_said',{ who:r.name, said:saidHere }):i18t('co_arr_answered',{ who:r.name }),'ok');
   } else if(r.action==='ready'){
     /* ONE PRESS, ONE CALL. "Ready to sign" carries whatever decisions were
        still held on their page AND the readiness signal, in a single response.
@@ -8026,7 +8046,7 @@ async function applyResponse(c, r, opts={}){
     negoTurnBack(c, who);
     logAudit(c,'Ready to sign',`${who} signalled ready to sign via the negotiation link`
       +`${parts.length?` — ${parts.join('; ')}`:''}. Nothing is signed: issue a signing link to take it forward.`);
-    toast(`${r.name} is ready to sign — issue a signing link`);
+    toast(i18t('co_arr_ready',{ who:r.name }),'ok');
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
     c.rounds=c.rounds||[];
@@ -8067,7 +8087,7 @@ async function applyResponse(c, r, opts={}){
           baseText:base, roundN:c.rounds.length, notes, via:'the counterparty’s link' });
       }catch(e){ /* the round is filed either way — the fingerprints are the bonus, not the record */ }
     }
-    toast(`${r.name} requested changes — review in Negotiation`);
+    toast(i18t('co_arr_changes',{ who:r.name }),'ok');
   } else if(r.action==='decline'){
     c.status='Declined';
     c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
