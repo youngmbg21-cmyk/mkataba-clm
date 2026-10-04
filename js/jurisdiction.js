@@ -298,7 +298,17 @@ const jxNamesHome = s => {
    One formatter, reading the pack. Both shapes kept because the short one is
    what fits in a KPI tile and the long one is what belongs in a sentence. */
 const fmtMoney = n => `${jxCurrency()} ` + Number(n || 0).toLocaleString(jxLocale());
+/* ---- AND IT STEPS UP TO BILLIONS (owner-reported 4 Oct 2026: "The value
+   under contract card in the home page needs to always show the full value
+   because it currently cuts off. Change the value to Millions, thousand and
+   billions abbreviations if you need to make sure it fits in the card") ----
+   The ladder stopped at M, so a book worth 3.6 billion printed "KES 3600M" —
+   nine characters in a tile whose number is clipped with an ellipsis.
+   MEASURED on Home at 1500x1000 before the fix: scrollWidth 118 in a 105px
+   box, so the reader saw "KES 360…". One more rung answers it for every
+   figure on every screen, because this is the one shortener. */
 const fmtMoneyShortIn = (n, code) => { n = Number(n || 0); const c = code || jxCurrency();
+  if (n >= 1e9) return `${c} ` + (n / 1e9).toFixed(2).replace(/\.00$/, '') + 'B';
   if (n >= 1e6) return `${c} ` + (n / 1e6).toFixed(2).replace(/\.00$/, '') + 'M';
   if (n >= 1e3) return `${c} ` + (n / 1e3).toFixed(0) + 'K';
   return `${c} ` + n; };

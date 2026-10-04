@@ -773,7 +773,15 @@ function renderCalendar(){
         <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
         <button class="ui-btn" id="cal-export" title="${_esc(i18t('cal_export_title'))}">${icon('download','w-3.5 h-3.5')} ${_esc(i18t('cal_export'))}</button>
         <button class="ui-btn" id="cal-share" title="${_esc(i18t('cal_share_title'))}">${icon('share','w-3.5 h-3.5')} ${_esc(i18t('cal_share'))}</button>
-        <button class="ui-btn ui-btn-plain" id="cal-more" aria-haspopup="true" aria-expanded="false">${_esc(i18t('ct_more'))}${icon('chevD','w-3.5 h-3.5')}</button>
+        ${''/* ---- IT WEARS THE ROW'S OWN OUTLINE (owner-reported 4 Oct 2026:
+               "More button in the calendar page does not have an outline") ----
+               The SAME fault the contract room's More button was reported for on
+               23 Aug 2026, in the one place that fix did not reach:
+               .ui-btn-plain declares a transparent border, so in a row of
+               outlined buttons this was the one with no edge. The class comes
+               off and it inherits .ui-btn like Export and New beside it;
+               .ws-more-btn is the shared dress every other More wears. */}
+        <button class="ui-btn ws-more-btn" id="cal-more" aria-haspopup="true" aria-expanded="false">${_esc(i18t('ct_more'))}${icon('chevD','w-3.5 h-3.5')}</button>
         <div id="cal-more-menu" class="cal-menu" hidden>
           <button data-cal-act="print">${_esc(i18t('cal_print'))}</button>
           <button data-cal-act="register">${_esc(i18t('cal_open_register'))}</button>
@@ -798,7 +806,8 @@ function renderCalendar(){
    Every colour is a token so both themes answer for free.
    ------------------------------------------------------------------------- */
 function calStyleCss(){ return `
-  .cal-page{height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;min-height:0}
+  .cal-page{height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;min-height:0;
+    --cal-panel-h:300px}
   ${''/* ---- THE HEAD IS ONE WHITE BAND, AND THE TAB ROW IS PART OF IT ----
          (owner-reported 24 Aug 2026, off a screenshot with the strip between
          the two ringed: "remove the line in the highlighted area")
@@ -923,7 +932,26 @@ function calStyleCss(){ return `
          the body scrolls, which is what makes the card below reachable. */}
   .cal-stack{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--s-3)}
   .cal-stack > .cal-grid{flex:1 1 auto;min-height:440px}
-  .cal-stack > .cal-panel{flex:none}
+  ${''/* ---- THE MONTH DOES NOT CHANGE HEIGHT WHEN YOU MOVE AROUND THE PAGE
+         (owner-reported 4 Oct 2026: "the height of the calendar changes when
+         you navigate around the buttons in the page. This should not happen")
+         ---- The panel was flex:none, which means "as tall as what is in it",
+         and what is in it is the agenda — four rows on one window, fourteen on
+         another. MEASURED before the fix at 1500x1000: the month card was
+         480.64px tall with four rows and 440px (its own floor) with nine, the
+         day boxes 74.03px then 67.27px, and at ninety days the panel reached
+         814.31px and pushed the page past its own height.
+         The panel now declares ONE height and the agenda scrolls inside it
+         (.cal-upn-list is already the scroller), so the month keeps the same
+         height whichever window, whichever month, however many rows. It may
+         NOR DOES IT SHRINK. It was flex:0 1 for one run, so that a short
+         laptop squeezed the panel rather than the month — and MEASURED on
+         1536x734 and 1440x790 that starved it: the card clipped 13px and the
+         agenda had 43px of room for a 118px row. A card that hides its own
+         words is worse than a page that scrolls, and the body already
+         scrolls (.cal-body is overflow:auto), which is what the stacked
+         layout below 1024 does for the same reason. */}
+  .cal-stack > .cal-panel{flex:0 0 var(--cal-panel-h);min-height:0}
   .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);
     display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
   /* ---- THE MONTH ----
@@ -1060,12 +1088,24 @@ function calStyleCss(){ return `
          it, which is why it survived the move. */}
   .cal-cardbar .cal-legend{margin:0;padding:0;border:0;box-shadow:none;flex:none}
   .cal-dow{flex:none;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
+    column-gap:var(--s-1);padding:0 var(--s-1);
     background:var(--color-neutral-100);box-shadow:inset 0 -1px var(--color-divider)}
   .cal-dow span{padding:7px var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.06em;
     text-transform:uppercase;color:var(--color-neutral-500);white-space:nowrap;overflow:hidden}
+  ${''/* ---- THE DAY BOXES ARE TILES WITH ROUNDED CORNERS (owner-asked 4 Oct
+         2026: "the date boxes should have rounded corners like the cards
+         across the platform") ---- They were cells: a 1px gap over a grey
+         backing drew the ruled grid, so a radius on the cell would have left
+         four grey wedges in every corner. BOTH halves go together — the
+         backing comes off, the gap becomes a real one, and each day takes the
+         ladder card's own clothes (surface, one divider edge, a radius). The
+         CARD radius is --radius-lg, the one CLAUDE.md names for a card.
+         The day-name band above takes the SAME column gap and side padding,
+         or its seven labels no longer stand over their seven columns. */}
   .cal-weeks{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));
-    grid-template-rows:repeat(6,minmax(0,1fr));gap:1px;background:var(--color-divider)}
-  .cal-day{background:var(--color-surface);padding:var(--s-1) var(--s-1) 6px;display:flex;
+    grid-template-rows:repeat(6,minmax(0,1fr));gap:var(--s-1);padding:var(--s-1);background:none}
+  .cal-day{background:var(--color-surface);border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg);padding:var(--s-1) var(--s-1) 6px;display:flex;
     flex-direction:column;gap:3px;min-width:0;min-height:0;overflow:hidden}
   .cal-day.is-mute{background:var(--color-neutral-100)}
   .cal-day[data-cal-day]{cursor:pointer}
@@ -1170,6 +1210,13 @@ function calStyleCss(){ return `
     .cal-body{padding:var(--s-3) var(--s-4) 18px}
     .cal-head{padding-left:var(--s-4);padding-right:var(--s-4)}
     .cal-stack > .cal-grid{min-height:340px}
+    ${''/* AND THE PANEL GOES BACK TO ITS CONTENT'S HEIGHT DOWN HERE. The one
+           height above is what stops the month resizing on a page that cannot
+           scroll; stacked, the page DOES scroll, and a fixed panel would put
+           a second scroller inside it — the trap this block's own note names.
+           The month is not being resized by it either, because down here the
+           page grows instead. */}
+    .cal-stack > .cal-panel{flex:none}
     .cal-card{min-height:380px}
   }
   @media print{

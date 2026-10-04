@@ -335,7 +335,14 @@ const CONTRACTS = [
     await page.evaluate(() => Promise.race([Promise.all(document.getAnimations().filter(a => a.effect && a.effect.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))), new Promise(r => setTimeout(r, 2000))]));
     await page.screenshot({ path: path.join(OUT, '14d-card-within-the-count.png') });
     await page.click('.hb-counting .is-count [data-hb-crumb="-1"]');
-    ok('14c the chip\'s × brings the whole book back', await until(page, w => !hbCountKey() && hbBookData('all').figs.live.n === w && !!document.querySelector('.hb-counting .is-all'), whole));
+    /* RE-POINTED 4 Oct 2026: the whole book no longer says so. "Counting ·
+       All contracts" was the reader's own default read back to them, and the
+       owner asked for it off the top of the page — so the way back is the
+       chip DISAPPEARING, not a chip that names everything. */
+    ok('14c the chip\'s × brings the whole book back, and says nothing once it is back', await until(page, w =>
+      !hbCountKey() && hbBookData('all').figs.live.n === w
+      && !document.querySelector('.hb-counting .is-all')
+      && !(document.querySelector('.hb-counting') || {}).textContent.trim(), whole));
 
     /* ===== 15. THE RECIPE (Young, "Build it", 4 Oct 2026: "when I ask for a
        timeline by month the charts do not come out as I asked") — measured

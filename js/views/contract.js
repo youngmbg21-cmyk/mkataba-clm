@@ -4763,27 +4763,21 @@ function wsTabRowEndHtml(c){
   const door=`<button type="button" id="ws-to-nego" class="ui-btn${needs?' ws-to-nego-due':''}"
     style="flex:none"${may.ok?'':' disabled'}
     title="${esc(may.ok?i18t('ct_open_negotiate_title'):why)}"${may.ok?'':` aria-label="${esc(label+' — '+why)}"`}>${label}</button>`;
-  /* ---- EXPORT AND FOCUS ARE ON THE CONTROL ROW (the redesign's second pass,
-     21 Sep 2026; the reference frame draws both between the stepper and the
-     negotiation door). TWO DOORS, ONE ACT, ONE HANDLER: neither is a second
-     implementation. Export is a small menu whose rows PRESS the ⋯ menu's own
-     rows by id (ws-pdf, ws-word, ws-pdf-record — the handlers and every test
-     stay where they were); Focus presses the head's own square, which carries
-     data-ws-focus and the one handler. While this row draws the Focus door
-     the head's square stands down on this tab (wsPaintTabRowEnd), so the
-     act is not offered twice forty pixels apart; on every other tab the head's
-     square is what it was. */
-  const record=!!(window.printIsHatiExecuted&&printIsHatiExecuted(c));
-  const exp=`<details class="ws-export" data-ws-export>
-    <summary class="ui-btn" title="${esc(i18t('ct_export'))}">${icon('copy','w-3.5 h-3.5')}${i18t('ct_export')}</summary>
-    <div class="ws-export-menu" role="menu">
-      <button type="button" role="menuitem" data-ws-export-go="ws-pdf">${icon('printer','w-3.5 h-3.5')}PDF<span class="mnote">${esc(i18t('ct_clean_copy'))}</span></button>
-      <button type="button" role="menuitem" data-ws-export-go="ws-word">${icon('file','w-3.5 h-3.5')}Word<span class="mnote">${esc(i18t('ct_redline_word'))}</span></button>
-      ${record?`<button type="button" role="menuitem" data-ws-export-go="ws-pdf-record">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
-    </div></details>`;
+  /* ---- THE EXPORT DOOR IS GONE FROM THIS ROW (owner-asked 4 Oct 2026:
+     "delete export button from the document page") ----
+     It was a SECOND DOOR onto an act that has one: its three rows did nothing
+     but press the ⋯ menu's own PDF, Word and Record buttons by id. Those three
+     are untouched, under the ⋯ menu's Export heading, which is where this
+     product has always kept them and where every handler and every test still
+     reaches them. Nothing can be exported today that could not be exported
+     yesterday; it is asked for in one place instead of two.
+     FOCUS STAYS. It presses the head's own square (data-ws-focus, one
+     handler), and while this row draws the door the head's square stands down
+     on this tab (wsPaintTabRowEnd), so the act is never offered twice forty
+     pixels apart; on every other tab the head's square is what it was. */
   const focus=(PORTAL_MODE)?'':`<button type="button" class="ui-btn ws-focus-door" data-ws-focus-door aria-pressed="${_wsFocus?'true':'false'}"
     title="${esc(i18t('ct_focus_mode'))}" aria-label="${esc(i18t('ct_focus_mode'))}" aria-pressed="false">${icon('scan','w-3.5 h-3.5')}</button>`;
-  return docReadSwitchHtml(c)+step+focus+exp+door;
+  return docReadSwitchHtml(c)+step+focus+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
    The two strips that used to band the top of the contract, in the SAME stack
@@ -4889,20 +4883,11 @@ function wsPaintTabRowEnd(c){
      a handler bound in each stacks one per tab change. This slot's own note
      three functions up is the reason it exists. */
   end.querySelector('#ws-walk')?.addEventListener('click',()=>{ if(window.signWalkGo) signWalkGo(c); });
-  /* The control row's Export rows press the ⋯ menu's own buttons; its Focus
-     door presses the head's square (see wsTabRowEndHtml). The head's square
-     stands down while this row carries the door, and comes back the moment
-     the row stops drawing it (another tab). */
-  end.querySelectorAll('[data-ws-export-go]').forEach(b=>b.addEventListener('click',()=>{
-    const d=b.closest('details'); if(d) d.open=false;
-    document.getElementById(b.getAttribute('data-ws-export-go'))?.click();
-  }));
+  /* The control row's Focus door presses the head's square (see
+     wsTabRowEndHtml). The head's square stands down while this row carries the
+     door, and comes back the moment the row stops drawing it (another tab). */
   const fd=end.querySelector('[data-ws-focus-door]');
   if(fd) fd.addEventListener('click',wsFocusToggle);
-  if(!document._wsExportWired){
-    document._wsExportWired=true;
-    document.addEventListener('click',e=>{ document.querySelectorAll('details[data-ws-export][open]').forEach(d=>{ if(!d.contains(e.target)) d.open=false; }); });
-  }
   /* THE SWITCH'S OWN WIRING — the one call this slot's rewrite dropped on
      21 Sep 2026, which left the Plain English press dead for one run
      (duty-marks-verify 0b caught it: a press, no call, no reading). */
@@ -7998,7 +7983,7 @@ function applyDocTabs(){
     b.style.background=on?'var(--color-accent-800)':'none'; b.style.color=on?'#fff':'var(--color-neutral-600)'; });
   root.querySelectorAll('[data-inner-pane]').forEach(p=>{ p.style.display=(p.getAttribute('data-inner-pane')===_docInnerTab)?'flex':'none'; });
   root.querySelectorAll('#doc-innertabs [data-inner-tab]').forEach(b=>{ const on=b.getAttribute('data-inner-tab')===_docInnerTab;
-    b.style.background=on?'var(--color-accent-100)':'none'; b.style.color=on?'var(--color-accent-800)':'var(--color-neutral-600)'; });
+    b.style.background=on?'var(--color-accent-100)':'none'; b.style.color=on?'var(--accent-ink)':'var(--color-neutral-600)'; });
 }
 /* The Screening|Signing pair and the Signing|Audit pair that used to live on
    the right-hand panel are GONE — they became two of the room's own tabs. The
@@ -14328,7 +14313,7 @@ function renderFeed(c){
     return `
     <div style="display:flex;gap:10px">
       <div style="flex:none;height:28px;width:28px;display:grid;place-items:center;border-radius:50%;font-size:var(--t-label);font-weight:var(--w-title);
-        background:${internal?'var(--color-accent-100)':'var(--st-amber-bg)'};color:${internal?'var(--color-accent-800)':'var(--st-amber-fg)'}">${initials}</div>
+        background:${internal?'var(--color-accent-100)':'var(--st-amber-bg)'};color:${internal?'var(--accent-ink)':'var(--st-amber-fg)'}">${initials}</div>
       <div style="min-width:0;flex:1">
         <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.4">
           <span style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${esc(m.author)}</span>

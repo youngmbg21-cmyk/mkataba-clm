@@ -109,7 +109,13 @@ const HELPERS = `(() => {
     const row = await page.evaluate(() => {
       const b = window.__b, want = b.tok('--btn-edge');
       const pick = sel => [...document.querySelectorAll(sel)].find(b.vis) || null;
-      const seg = pick('.doc-read-seg'), exp = pick('#ws-tabrow-end summary.ui-btn, summary.ui-btn'), nego = pick('#ws-to-nego'), step = pick('.rl-type-step');
+      /* RE-POINTED 4 Oct 2026: the Export menu is off this row (the owner:
+         "delete export button from the document page"). It was a second door
+         whose rows only pressed the ⋯ menu's own PDF, Word and Record, and
+         those three are untouched. The row it left is the switch, the Focus
+         door, Open Negotiate and the stepper — the same claim, one control
+         further along. */
+      const seg = pick('.doc-read-seg'), exp = pick('#ws-tabrow-end .ws-focus-door'), nego = pick('#ws-to-nego'), step = pick('.rl-type-step');
       const lit = seg && seg.querySelector('button[aria-pressed="true"]');
       const seam = seg && seg.querySelector('button + button');
       return { want, fill: b.bg('--accent-fill'),
@@ -117,9 +123,9 @@ const HELPERS = `(() => {
         seam: seam ? getComputedStyle(seam).borderLeftColor : null,
         litBg: lit ? getComputedStyle(lit).backgroundColor : null, litInk: lit ? getComputedStyle(lit).color : null };
     });
-    ok('3a the row the owner photographed paints ONE edge — the switch, Export, Open Negotiate and the stepper',
+    ok('3a the row the owner photographed paints ONE edge — the switch, Focus, Open Negotiate and the stepper',
       !!(row.seg && row.exp && row.nego && row.step) && [row.seg, row.exp, row.nego, row.step].every(c => c === row.want),
-      `switch ${row.seg} · Export ${row.exp} · Open Negotiate ${row.nego} · stepper ${row.step} · token ${row.want}`);
+      `switch ${row.seg} · Focus ${row.exp} · Open Negotiate ${row.nego} · stepper ${row.step} · token ${row.want}`);
     ok('3b and it is the LIGHT grey, #E2E7E5', row.want === 'rgb(226, 231, 229)', row.want);
     ok('3c the switch\'s seams are the same grey', !!row.seam && row.seam === row.want, `seam ${row.seam}`);
     ok('3d [control] its lit half is still FILLED, with white words — the fill says which is on',

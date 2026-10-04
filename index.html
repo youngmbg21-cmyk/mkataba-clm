@@ -2038,6 +2038,37 @@
   :root{ --accent-ink:var(--color-accent-700); --accent-ink-700:var(--color-accent-700); }
   html.dark{ --accent-ink:var(--color-accent-400); --accent-ink-700:var(--color-accent-400); }
 
+  /* ═══ AND THE TWO PALE RUNGS, WHICH CARRY A SURFACE ══════════════════════
+     (owner-reported 4 Oct 2026, off two screenshots: "when in dark mode you
+     still have white patches. Fix this across the platform.")
+     The block above fixed the accent ramp where it carries TEXT and said
+     plainly that html.dark does not redefine the ramp. The other half of that
+     sentence was never answered: accent-50 (#F0F7F5) and accent-100 (#E1F0ED)
+     are the two rungs nothing reads as a colour — they are a WASH, the "this
+     one is selected" tint — and at night they paint a near-white block on a
+     #151B1A page. Our own party chip on the page every party reads, the
+     selected row in the Deal board, the lit filter chip over it, the avatar
+     in the rail, a hovered template row, the Exposure grid's lightest square:
+     every one of them is the same rung, which is why one answer fixes all of
+     them and twenty hand-written overrides would have fixed none of the next
+     ones.
+     THE ANSWER IS THE ONE THIS PRODUCT ALREADY GAVE. The compiled utilities
+     bg-brand-50 and bg-brand-100 have had a dark answer since the Tailwind
+     sweep — a translucent accent-500 wash at .08 and .16 — so a hand-written
+     rule and a utility class now paint the SAME tint at night instead of one
+     of them staying white. Written in channels, so the wash follows whichever
+     brand is on.
+     :root.dark RATHER THAN html.dark, and placed after the brand blocks: the
+     navy workspace declares its own pale rungs at :root[data-brand="navy"],
+     which outranks html.dark (0,1,1) — so the navy reader kept the white
+     patch. :root.dark matches that weight and wins on order, in both brands.
+     THE MID RUNGS ARE LEFT ALONE: accent-200 and accent-300 read as mint, not
+     as white, and they carry borders as often as fills. */
+  :root.dark{
+    --color-accent-50:rgb(var(--color-accent-500-rgb)/.08);
+    --color-accent-100:rgb(var(--color-accent-500-rgb)/.16);
+  }
+
   /* ═══ THREE MORE TOKENS THAT CARRY INK OR A RULE AND HAD NO DARK ANSWER ══
      MEASURED on the night panel (#0f172a):
        --danger      #dc2626  3.70:1  — a destructive VERB, under AA's 4.5
@@ -3351,21 +3382,12 @@
   #ws-tabrow-end .rl-type-step{ height:var(--ctl-h); padding:0 3px; }
   #ws-tabrow-end .rl-type-step button,
   #ws-tabrow-end .rl-type-step .rl-type-out{ font-size:var(--t-body); font-weight:var(--w-label); }
-  /* THE CONTROL ROW'S EXPORT MENU AND FOCUS DOOR (second pass, 21 Sep 2026).
-     A <details> so the row needs no script to open it; its rows press the ⋯
-     menu's own buttons (wsPaintTabRowEnd). The focus door is a square in the
-     row's own rung. */
-  #ws-tabrow-end .ws-export{ position:relative; flex:none; }
-  #ws-tabrow-end .ws-export>summary{ list-style:none; display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
-  #ws-tabrow-end .ws-export>summary::-webkit-details-marker{ display:none; }
-  #ws-tabrow-end .ws-export-menu{ position:absolute; right:0; top:calc(100% + 4px); z-index:30; min-width:200px;
-    padding:4px; background:var(--color-surface); border:1px solid var(--rule-strong); border-radius:var(--radius-lg);
-    box-shadow:var(--shadow-lg, 0 8px 24px rgb(0 0 0/.12)); display:flex; flex-direction:column; }
-  #ws-tabrow-end .ws-export-menu button{ display:flex; align-items:center; gap:8px; width:100%; text-align:left;
-    padding:7px 10px; border:0; background:none; border-radius:var(--radius); font:inherit; font-size:var(--t-body);
-    color:var(--color-text); cursor:pointer; }
-  #ws-tabrow-end .ws-export-menu button:hover{ background:var(--nav-well); }
-  #ws-tabrow-end .ws-export-menu .mnote{ margin-left:auto; font-size:var(--t-label); color:var(--color-neutral-600); }
+  /* THE CONTROL ROW'S FOCUS DOOR (second pass, 21 Sep 2026). A square in the
+     row's own rung; it presses the head's own data-ws-focus, one handler.
+     THE EXPORT MENU THAT STOOD HERE IS GONE (owner, 4 Oct 2026: "delete
+     export button from the document page") — it was a second door whose rows
+     only pressed the ⋯ menu's own PDF, Word and Record buttons by id, and
+     those three are untouched under the ⋯ menu's Export heading. */
   #ws-tabrow-end .ws-focus-door{ width:var(--ctl-h); padding:0; justify-content:center; }
   #ws-tabrow-end .ws-focus-door[aria-pressed="true"]{ background:var(--nav-well); }
   /* ---- THE SIGNING COPY'S CONTROLS (25 Sep 2026) ----
@@ -7831,8 +7853,11 @@
   .hb-groupby[hidden]{display:none}
   .hb-groupby{display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)}
   .hb-counting{display:inline-flex;align-items:center;gap:var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap}
+  /* At rest the chip says nothing (owner, 4 Oct 2026), and a slot with
+     nothing in it must take no room: the head row has its own gap, so an
+     empty inline-flex would leave a hole where the words used to be. */
+  .hb-counting:empty{display:none}
   .hb-lens-chip{display:inline-flex;align-items:center;gap:4px;height:var(--ctl-h-sm);padding:0 4px 0 9px;border-radius:var(--radius);border:1.5px solid var(--color-accent);background:var(--st-steel-bg);color:var(--accent-ink,var(--color-accent));font-weight:var(--w-strong)}
-  .hb-lens-chip.is-all{padding-right:9px}
   .hb-lens-chip.is-count{max-width:280px;overflow:hidden;white-space:nowrap}
   .hb-counting .hb-lens-chip+.hb-lens-chip{margin-left:4px}
   .hb-lens-chip button{border:0;background:none;color:inherit;cursor:pointer;display:grid;place-items:center;width:18px;height:18px;border-radius:3px}
@@ -7857,8 +7882,22 @@
   .hb-ct{font-weight:var(--w-strong);font-size:var(--t-body);color:var(--hb-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .hb-cs{flex:1;min-width:0;font-size:var(--t-meta);color:var(--hb-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hb-cb{padding:var(--s-3);display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
-  .hb-src{font-size:var(--t-micro);color:var(--hb-mute);border:1px solid rgba(var(--hb-ln),.22);border-radius:3px;padding:1px 6px;white-space:nowrap;margin-left:auto}
+  /* The free space in a card head is taken by ONE thing — .hb-cs, or a
+     .hb-grow spacer — never by a second auto margin: two of them SPLIT it,
+     which is how the x ended up forty pixels adrift from the buttons it
+     belongs to. This chip took the space before the x's rule existed. */
+  .hb-src{font-size:var(--t-micro);color:var(--hb-mute);border:1px solid rgba(var(--hb-ln),.22);border-radius:3px;padding:1px 6px;white-space:nowrap}
   .hb-ib{width:24px;height:24px;flex:none;display:grid;place-items:center;border:0;border-radius:var(--radius);background:none;color:var(--hb-ink-2);cursor:pointer;transition:transform .2s}
+  /* THE X THAT CLOSES A CARD IS ALWAYS IN ITS RIGHT CORNER (owner-asked 4 Oct
+     2026). Every card head on the board is one flex row, and whether the x
+     landed at the right edge or halfway along it depended on whether some
+     earlier child in that particular head happened to take the free space —
+     the focus card's did not, so its controls huddled against the title with
+     the card's right half empty. One auto margin makes the corner a RULE
+     rather than an arrangement: where something already takes the space it
+     resolves to nothing and nothing moves, and where nothing does it puts the
+     x where the reader reaches for it. */
+  .hb-ch .hb-x{margin-left:auto}
   .hb-ib:hover{background:rgba(var(--hb-ln),.14);color:var(--hb-ink)}
   .hb-ib[aria-pressed="true"]{color:var(--hb-glow)}
   .hb-link{border:0;background:none;color:var(--hb-glow);cursor:pointer;font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);display:inline-flex;align-items:center;gap:5px;padding:2px 4px;border-radius:3px;white-space:nowrap}

@@ -20175,3 +20175,26 @@ Three things, and only one of them was about width.
 - Noticed, not fixed (4 Oct 2026): notes-two-rooms-verify fails 2 checks on unmodified main (ad28d56): "it sits between Copilot and the bell" and a run error reading .replace of undefined.
 - Noticed, not fixed (4 Oct 2026): the owner's iPad screenshots show the whole page ~20px wider than the screen; not reproducible on three emulated iPads — likely Safari page zoom or a narrow window. Waiting on the owner.
 - Noticed, not fixed (4 Oct 2026): CLAUDE.md is now ~112 KB, well past its own 80 KB guideline; needs an owner-approved trim.
+
+## 4 Oct 2026 — the owner's eleven
+
+Built: the five new features named on the Brain; waiting-on-you off Home; the
+Export door off the Document page; "Counting · All contracts" off the top of
+Home; the greeting alone; a billions rung on the money shortener; the calendar
+holding its height; rounded date tiles; the two pale accent rungs given a dark
+answer; the calendar's More button given its outline; the x in every board
+card's right corner. Story in docs/MAP-HISTORY.md under "THE OWNER'S ELEVEN".
+
+### Noticed, not fixed
+- theme-tokens-verify (the colour census) is 20/40 at unmodified main and has
+  been for some time: its baseline predates several deliberate palette moves.
+  Left red. The one line my palette change moves in it is audited in the
+  history; nothing was re-recorded.
+- index.html still carries #ws-export-menu in a selector list (line ~7520). No
+  element has ever had that id — the markup used the CLASS .ws-export-menu — so
+  it was stale before this session and is stale now.
+- CLAUDE.md is 114 KB. The file's own rule asks for about 80 KB, and it was
+  73 KB after the 27 Sep trim. Not trimmed here: that is an owner-facing edit.
+- js/views/intelligence.js:562 passes fill:'var(--color-accent-100)' into a
+  legend entry. If that value ever reaches a canvas or a standalone document it
+  cannot resolve — a var() needs a :root. Pre-existing; not touched.

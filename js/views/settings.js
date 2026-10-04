@@ -4615,7 +4615,7 @@ function openPlaybookEditor(key){
   </div>`, {maxWidth:'34rem'});
 
   const seg=(i)=>POS.map(([v,l])=>{ const on=e.positions[i].pos===v; const hard=v==='required'||v==='forbidden';
-    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:var(--t-label);font-weight:var(--w-strong);border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--color-accent-800)'):'var(--color-neutral-600)'};padding:var(--s-1) 9px;border-radius:var(--radius);cursor:pointer">${l}</button>`; }).join('');
+    return `<button data-pb-pos="${i}" data-v="${v}" style="font-size:var(--t-label);font-weight:var(--w-strong);border:1px solid ${on?(hard?'var(--st-ruby-line)':'var(--color-accent)'):'var(--color-divider)'};background:${on?(hard?'var(--st-ruby-bg)':'var(--color-accent-100)'):'var(--color-surface)'};color:${on?(hard?'var(--st-ruby-fg)':'var(--accent-ink)'):'var(--color-neutral-600)'};padding:var(--s-1) 9px;border-radius:var(--radius);cursor:pointer">${l}</button>`; }).join('');
   const paint=()=>{
     const pl=document.getElementById('pb-pos-list');
     pl.innerHTML=e.positions.length?e.positions.map((p,i)=>`

@@ -30,6 +30,7 @@ const BRAIN_PARTS = [
   ['negpage', 'renderRedline', 'see', 0],
   ['signtab', 'renderSignButton', 'see', 0],
   ['explorer', 'intelGraphApply', 'see', 0],
+  ['stands', 'dealStands', 'see', 1],
   ['upload', 'submitUpload', 'in', 0],
   ['newagr', 'openNewAgreement', 'in', 0],
   ['mailroom', 'POST /api/mailroom', 'in', 2],
@@ -49,6 +50,15 @@ const BRAIN_PARTS = [
   ['editor', 'ceFile', 'nego', 0],
   ['funnel', 'negoFileChange', 'nego', 1],
   ['desk', 'deskClaimOnFile', 'nego', 1],
+  /* ---- THE 4 OCTOBER PARTS (owner-asked: "can these new features be mapped
+     by the brain tab?") ---- Five features shipped that morning and one the
+     evening before, and the catalogue is hand-written, so until they are named
+     here the reading draws them as grey pending dots and the flows walk past
+     them. Named, each takes its place in a flow below. */
+  ['suggest', 'deskStampOnFile', 'nego', 1],
+  ['here', 'presenceHere', 'nego', 1],
+  ['follow', 'presenceWalk', 'nego', 1],
+  ['baton', 'clauseLockAsk', 'nego', 1],
   ['review', 'reviewSendBlock', 'nego', 1],
   ['payload', 'buildSharePayload', 'nego', 1],
   ['apply', 'applyNegoProposals', 'nego', 1],
@@ -60,6 +70,7 @@ const BRAIN_PARTS = [
   ['seal', 'sealWhen', 'sign', 2],
   ['putguard', 'PUT /api/contracts/:id', 'wall', 2],
   ['shares', 'POST /api/shares', 'wall', 2],
+  ['guestcode', 'shareNeedsCode', 'wall', 2],
   ['respond', 'POST /api/shares/:token/respond', 'wall', 2],
   ['db', 'contracts table', 'wall', 2, { def: 'CREATE TABLE IF NOT EXISTS contracts', men: '\\b(?:FROM|INTO|UPDATE)\\s+contracts\\b' }],
   ['audit', 'logAudit', 'wall', 1],
@@ -82,8 +93,12 @@ const BRAIN_PARTS = [
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
   { id: 'upload', steps: [['upload'], ['docx'], ['clauses'], ['putguard', 'db'], ['triage'], ['brief', 'playbook', 'oblscan', 'risk'], ['model'], ['blanks'], ['overview', 'bell']] },
-  { id: 'redline', steps: [['negpage'], ['editor'], ['funnel'], ['desk'], ['ladder'], ['review'], ['payload'], ['shares'], ['email', 'cplink'], ['whosemove', 'bell']] },
-  { id: 'round', steps: [['cplink'], ['respond'], ['audit'], ['apply'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage'], ['webhook']] },
+  /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
+     their own: a step inserted in the middle renumbers every sentence after
+     it in both books, and these are not new stages of the story — they are
+     who else is on the page while you do it, and who may rule on it. */
+  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review'], ['payload'], ['shares'], ['email', 'cplink'], ['whosemove', 'bell']] },
+  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands'], ['webhook']] },
   { id: 'sign', steps: [['signtab'], ['readiness'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders'], ['renewal'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home']] },
   { id: 'ask', steps: [['explorer'], ['db'], ['model'], ['quote'], ['contracts'], ['explorer']] }
@@ -93,7 +108,11 @@ const BRAIN_FLOWS = [
    lives in, the floor by where that file runs. First match wins. */
 const BRAIN_FILE_REGION = [
   [/^server\/.*$/, 'wall'],
-  [/^js\/(negotiation|desk|review|ladder|clauselock|redlineplan)\.js$|^js\/views\/(negotiation|negotiation-css|clauseeditor)\.js$/, 'nego'],
+  [/^js\/(negotiation|desk|review|ladder|clauselock|presence|redlineplan)\.js$|^js\/views\/(negotiation|negotiation-css|clauseeditor)\.js$/, 'nego'],
+  /* The page every party reads is a reading, not a view file, so without this
+     line it would default to the wall — which is where a reading that spends
+     nothing and touches no route does not belong. */
+  [/^js\/dealstands\.js$/, 'see'],
   [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|draft)\.js$/, 'ai'],
   [/^js\/(docx|pdf|pdfrich|ocr|clausemodel|blanks|uploadblanks|richdoc|redline|templateform)\.js$/, 'read'],
   [/^js\/(signcheck|signapproval|approvals|signature|assurance|outside)\.js$|^js\/views\/(handover|approvalsview)\.js$/, 'sign'],
