@@ -413,18 +413,21 @@ describe('f412 (3) — the sixth agent, "No link to sign"', () => {
     assert.ok(!/data-ag-act="fresh"/.test(win.agPanelActs(reply)) && !/data-ag-act="fresh"/.test(win.agPanelActs(sign)),
       'somebody who may not send is shown where the work lives, and nothing that sends');
   });
-  test('3i the fresh link ASKS FIRST, naming who, then presses the one act — with no Word row choosing how', async () => {
+  /* REVERSED 4 Oct 2026 (Young): the panel's press is enough — no question;
+     the toast names who it went to. */
+  test('3i the fresh link sends on the panel\'s one press, to the person the round send picks, saying who — with no Word row choosing how', async () => {
     const { win, c } = stage();
     let asked = null, pressed = null;
     win.contractShares = async () => [
       { token: 'w', channel: 'word', recipientName: 'Wrong Channel', recipientEmail: 'w@x.example', createdAt: iso(-1) },
       { token: 'l', channel: 'email', durable: 1, recipientName: 'Erik Lindqvist', recipientEmail: 'erik@nordkust.example', createdAt: iso(-8) }];
     win.counterpartyContact = (cc, shares) => { const s = shares[0]; return { name: s.recipientName, email: s.recipientEmail, channel: s.channel }; };
-    win.confirmDialog = async o => { asked = o.message; return true; };
+    win.confirmDialog = async () => { asked = 'a question'; return true; };
     win.resendRoundFresh = async (cc, o) => { pressed = o.shares.map(s => s.token).join(','); return { delivered: true }; };
-    win.toast = () => {};
+    let said = null; win.toast = (m) => { said = m; };
     await win.agFreshLink('reply:MK-L1');
-    assert.match(String(asked), /Erik Lindqvist \(erik@nordkust\.example\)/, 'the person the round send will pick, named first');
+    assert.equal(asked, null, 'no second press');
+    assert.match(String(said), /Erik Lindqvist/, 'the toast names the person the round send picked');
     assert.equal(pressed, 'l', 'the Word row neither chose who nor how');
     /* Somebody sent one meanwhile: the refetch says so, and nothing is sent. */
     asked = null; pressed = null;
@@ -433,27 +436,29 @@ describe('f412 (3) — the sixth agent, "No link to sign"', () => {
     await win.agFreshLink('reply:MK-L1');
     assert.equal(asked, null); assert.equal(pressed, null);
   });
-  test('3j a declined question sends nothing', async () => {
+  test('3j with nobody to reach, nothing is sent and the send screen opens instead', async () => {
     const { win } = stage();
-    let pressed = false;
-    win.contractShares = async () => [{ token: 'l', channel: 'email', recipientName: 'Erik', recipientEmail: 'erik@nordkust.example' }];
-    win.counterpartyContact = () => ({ name: 'Erik', email: 'erik@nordkust.example', channel: 'email' });
-    win.confirmDialog = async () => false;
+    let pressed = false, said = null;
+    win.contractShares = async () => [];
+    win.counterpartyContact = () => null;
     win.resendRoundFresh = async () => { pressed = true; return {}; };
+    win.toast = (m, k) => { said = k; };
+    win.agRunAct = () => {};
     await win.agFreshLink('reply:MK-L1');
     assert.equal(pressed, false);
+    assert.equal(said, 'warn');
   });
-  test('3k a signature\'s fresh link asks first, then lands on the Signing tab and presses its own act', async () => {
+  test('3k a signature\'s fresh link lands on the Signing tab and presses its own act, on the panel\'s one press', async () => {
     const { win } = stage();
     let asked = null, went = null, issued = null;
     win.getContract = id => win.state.contracts.find(x => x.id === id) || null;
-    win.confirmDialog = async o => { asked = o.message; return true; };
+    win.confirmDialog = async () => { asked = 'a question'; return true; };
     win.openWorkspace = id => { went = id; };
     win.roomGoTab = (cc, tab) => { went += ':' + tab; };
     win.issueSigningAct = cc => { issued = cc.id; };
     await win.agFreshLink('sign:MK-S1');
     await new Promise(r => setTimeout(r, 20));
-    assert.match(String(asked), /Grace Njeri \(grace@savanna\.example\), whose turn it is to sign\. The link of 1 more signer/);
+    assert.equal(asked, null, 'no second press');
     assert.equal(went, 'MK-S1:sign');
     assert.equal(issued, 'MK-S1');
   });

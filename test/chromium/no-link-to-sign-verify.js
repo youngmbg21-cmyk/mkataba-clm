@@ -10,7 +10,7 @@
       "Theirs" of a deal whose one-time link is unused even after the deal has
       been opened (the share cache used to count standing links only).
    2  THE SIXTH AGENT — "No link to sign" sits second, lists the reply-stuck
-      and the signing-stuck deal, and its "Send a fresh link" asks first,
+      and the signing-stuck deal, and its "Send a fresh link" sends on the panel's one press (4 Oct 2026; it asked first before),
       naming who it goes to, then sends — through the round send for an
       answer, through the Signing tab's own act for a signature — and the deal
       leaves Ready for Done recently.
@@ -183,11 +183,15 @@ const inRound = (id, name, cp) => {
       await page.screenshot({ path: path.join(OUT, 'link-panel.png') });
       ok('2f the panel says what the work is and carries the fresh link and the send screen', /cannot answer/i.test(panel.title)
         && panel.acts[0] === 'fresh:Send a fresh link' && panel.acts.includes('sendscreen:Choose who it goes to'), JSON.stringify(panel));
+      /* REVERSED 4 Oct 2026 (Young: "i do not need another press to send the
+         link. The one in the side panel should be enough"): the panel names
+         who it last went to, and its press sends. */
+      const named = await page.evaluate(() => document.body.textContent.replace(/\s+/g, ' '));
       await page.click('[data-ag-act="fresh"]');
-      await page.waitForSelector('#confirm-overlay', { timeout: 6000 }).catch(() => {});
-      asked = await page.evaluate(() => { const o = document.getElementById('confirm-overlay'); return o ? o.textContent.replace(/\s+/g, ' ').trim() : null; });
-      ok('2g it ASKS FIRST, naming who the fresh link goes to', !!asked && /Erik Lindqvist/.test(asked) && /erik@nordkust\.example/.test(asked), asked);
-      if (asked) { await page.click('#cf-ok'); await page.waitForTimeout(2500); }
+      await page.waitForTimeout(600);
+      asked = await page.evaluate(() => !!document.getElementById('confirm-overlay'));
+      ok('2g the panel\'s one press sends — no second question — and the panel named who it goes to', !asked && /Erik Lindqvist/.test(named), JSON.stringify({ asked }));
+      await page.waitForTimeout(2500);
       sent = await page.evaluate(async () => {
         const r = await api('contracts/MK-NL1/shares');
         const open = (r.shares || []).filter(s => s.durable && !s.revokedAt && !(s.expiresAt && s.expiresAt < new Date().toISOString()));
@@ -210,17 +214,18 @@ const inRound = (id, name, cp) => {
     const linkRow = await page.$('[data-ag-agent="link"]'); if (linkRow) { await linkRow.click(); await page.waitForTimeout(400); }
     let signAsk = null, signed = null;
     if (await openCard('sign:MK-NS1')) {
+      const signNamed = await page.evaluate(() => document.body.textContent.replace(/\s+/g, ' '));
       await page.click('[data-ag-act="fresh"]');
-      await page.waitForSelector('#confirm-overlay', { timeout: 6000 }).catch(() => {});
-      signAsk = await page.evaluate(() => { const o = document.getElementById('confirm-overlay'); return o ? o.textContent.replace(/\s+/g, ' ').trim() : null; });
-      if (signAsk) { await page.click('#cf-ok'); await page.waitForTimeout(3000); }
+      await page.waitForTimeout(600);
+      signAsk = { asked: await page.evaluate(() => !!document.getElementById('confirm-overlay')), named: /Grace Njeri/.test(signNamed) };
+      await page.waitForTimeout(3000);
       signed = await page.evaluate(async () => {
         const r = await api('contracts/MK-NS1/shares');
         return { view: state.view, id: state.activeId, live: (r.shares || []).filter(s => s.purpose === 'sign' && !s.revokedAt).length,
           sign: (r.reach || {}).sign || null, fresh: ((r.reach || {}).fresh || []).map(f => f.kind) };
       });
     }
-    ok('2k the signing link asks first, naming the signer whose turn it is', !!signAsk && /Grace Njeri/.test(signAsk), signAsk);
+    ok('2k the signing link goes on the panel\'s one press, the panel naming the signer whose turn it is', !!signAsk && !signAsk.asked && signAsk.named, JSON.stringify(signAsk));
     ok('2l it lands on the contract and the signing route issues a fresh link — the Signing tab\'s own act',
       !!signed && signed.view === 'workspace' && signed.id === 'MK-NS1' && signed.live >= 1 && signed.sign === null && signed.fresh.includes('sign'),
       JSON.stringify(signed));

@@ -106,7 +106,8 @@ function hbS(){
             recipe: (hbRecipeClean({ k: p.recipe || {} }).k) || null, split: false, big: !!p.big }
         : { id: String(p.id || ''), kind: p.kind, split: !!p.split, big: !!p.big });
     if (v.ins && typeof v.ins === 'object' && typeof v.ins.day === 'string' && Array.isArray(v.ins.list))
-      s.ins = { day: v.ins.day, n: String(v.ins.n || ''), list: v.ins.list.filter(k => HB_INS_SHAPES.includes(k)).slice(0, HB_INS_MAX) };
+      s.ins = { day: v.ins.day, n: String(v.ins.n || ''), list: v.ins.list.filter(k => HB_INS_SHAPES.includes(k)).slice(0, HB_INS_MAX),
+        plain: Array.isArray(v.ins.plain) ? v.ins.plain.filter(k => HB_INS_SHAPES.includes(k)) : [] };
     if (v.insKept && typeof v.insKept === 'object') HB_INS_SHAPES.forEach(k => { if (Number(v.insKept[k]) > 0) s.insKept[k] = Math.min(20, Number(v.insKept[k])); });
     if (v.insOff && typeof v.insOff === 'object') HB_INS_SHAPES.forEach(k => { if (/^\d{4}-\d{2}-\d{2}$/.test(String(v.insOff[k] || ''))) s.insOff[k] = v.insOff[k]; });
     if (typeof v.keptSent === 'string') s.keptSent = v.keptSent.slice(0, 4000);
@@ -2155,17 +2156,22 @@ function hbInsChart(key){
   } catch (_){ R = null; }
   return R ? { D, cs, P, R } : null;
 }
-function hbInsCandidate(k){
+/* PLAIN (Young, 4 Oct 2026: "i do not see the graphs … maybe there could be
+   a way to run them if they are not on screen?"): a picture that did not move
+   enough to be offered as a finding can still fill an empty place on the
+   shelf — named by WHAT IT SHOWS, never by a claim, and toned like any view. */
+function hbInsCandidate(k, plain){
   const book = hbBook('all').filter(c => c.status !== 'Declined');
   if (!book.length) return null;
+  const asPlain = x => x && plain ? Object.assign(x, { plain: true, tone: '', title: i18t('hb_ins_view_' + k) }) : x;
   if (k === 'pay' || k === 'sign' || k === 'rounds'){
     const C = hbInsChart(hbInsKey(k)); const T = C && C.R && C.R.trend; if (!T) return null;
     const pct = (T.y1 - T.y0) / Math.max(Math.abs(T.y0), 1e-9);
-    if (!(Math.abs(pct) >= HB_INS_MIN_MOVE)) return null;
+    if (!plain && !(Math.abs(pct) >= HB_INS_MIN_MOVE)) return null;
     const m = HB_INS[k].m, up = pct > 0;
-    return { shape: k, C, score: Math.min(1, Math.abs(pct)), tone: (k !== 'pay' && up) ? 'warn' : '',
+    return asPlain({ shape: k, C, score: Math.min(1, Math.abs(pct)), tone: (k !== 'pay' && up) ? 'warn' : '',
       title: i18t('hb_ins_t_' + k + (up ? '_up' : '_down')),
-      say: i18t('hb_ins_s_trend', { from: hbMeasureFmt(m, T.y0), to: hbMeasureFmt(m, T.y1), n: _hbN(T.span), units: i18tn('hb_tr_units_' + T.unit, T.span, { n: T.span }) }) };
+      say: i18t('hb_ins_s_trend', { from: hbMeasureFmt(m, T.y0), to: hbMeasureFmt(m, T.y1), n: _hbN(T.span), units: i18tn('hb_tr_units_' + T.unit, T.span, { n: T.span }) }) });
   }
   if (k === 'ren'){
     const ags = (typeof agreementsIn === 'function') ? agreementsIn(book) : book;
@@ -2176,34 +2182,37 @@ function hbInsCandidate(k){
       const b = hbBucketOf(String(e).slice(0, 10), 'q'); byQ.set(b, (byQ.get(b) || 0) + 1); total++;
     }
     const top = [...byQ.entries()].sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))[0];
-    if (!top || total < HB_INS_REN_MIN || top[1] < HB_INS_REN_MIN || top[1] / total < HB_INS_REN_SHARE) return null;
+    if (!top || (!plain && (total < HB_INS_REN_MIN || top[1] < HB_INS_REN_MIN || top[1] / total < HB_INS_REN_SHARE))) return null;
     const C = hbInsChart(hbInsKey(k)); if (!C) return null;
-    return { shape: k, C, score: top[1] / total, tone: 'warn',
+    return asPlain({ shape: k, C, score: top[1] / total, tone: 'warn',
       title: i18t('hb_ins_t_ren', { q: hbBucketLabel(top[0], 'q', false) }),
-      say: i18tn('hb_ins_s_ren', top[1], { n: _hbN(top[1]), t: _hbN(total) }) };
+      say: plain ? i18tn('hb_ins_s_ren_plain', top[1], { n: _hbN(top[1]), t: _hbN(total), q: hbBucketLabel(top[0], 'q', false) })
+        : i18tn('hb_ins_s_ren', top[1], { n: _hbN(top[1]), t: _hbN(total) }) });
   }
   if (k === 'cp'){
     if (!hbMoneyOk()) return null;
     const by = new Map(); let tot = 0;
     for (const c of book){ const v = hbValueOfOne(c); if (!v) continue; const g = hbGroupOf(c, 'counterparty') || ''; if (!g) continue; by.set(g, (by.get(g) || 0) + v); tot += v; }
     const rows = [...by.entries()].sort((a, b) => b[1] - a[1]);
-    if (!tot || rows.length < 3) return null;
+    if (!tot || rows.length < (plain ? 2 : 3)) return null;
     const share = rows[0][1] / tot, next = rows[1][1] / tot;
-    if (share < HB_INS_CP_SHARE || rows[0][1] < HB_INS_CP_LEAD * rows[1][1]) return null;
+    if (!plain && (share < HB_INS_CP_SHARE || rows[0][1] < HB_INS_CP_LEAD * rows[1][1])) return null;
     hbInsRecipeOn(k);
     const C = hbInsChart(hbInsKey(k)); if (!C) return null;
-    return { shape: k, C, score: share, tone: '',
+    return asPlain({ shape: k, C, score: share, tone: '',
       title: i18t('hb_ins_t_cp', { who: rows[0][0], pct: Math.round(share * 100) }),
-      say: i18t('hb_ins_s_cp', { v: _hbM(rows[0][1]), t: _hbM(tot), pct: Math.round(next * 100) }) };
+      say: plain ? i18t('hb_ins_s_cp_plain', { who: rows[0][0], pct: Math.round(share * 100) })
+        : i18t('hb_ins_s_cp', { v: _hbM(rows[0][1]), t: _hbM(tot), pct: Math.round(next * 100) }) });
   }
   return null;
 }
 /* worked out once per paint: hbBoardHtml empties it, so every picture and
    every sentence is counted off the book as it stands now */
 let _hbInsMemo = new Map();
-function hbInsCandidateMemo(k){
-  if (!_hbInsMemo.has(k)){ let v = null; try { v = hbInsCandidate(k); } catch (_){ v = null; } _hbInsMemo.set(k, v); }
-  return _hbInsMemo.get(k);
+function hbInsCandidateMemo(k, plain){
+  const mk = plain ? k + '~' : k;
+  if (!_hbInsMemo.has(mk)){ let v = null; try { v = hbInsCandidate(k, !!plain); } catch (_){ v = null; } _hbInsMemo.set(mk, v); }
+  return _hbInsMemo.get(mk);
 }
 /* which book: its size and a short hash of its ids */
 function hbInsBookSig(){
@@ -2226,12 +2235,15 @@ function hbInsightsToday(){
      one the page started with (measured: same length, different contracts),
      and a contract added later in the day is a different book too. */
   if (!s.ins || s.ins.day !== day || s.ins.n !== n){
-    const ranked = HB_INS_SHAPES.map(k => hbInsCandidateMemo(k)).filter(x => x && !hbInsResting(x.shape))
-      .map(x => ({ k: x.shape, r: x.score + 0.25 * Math.min(4, s.insKept[x.shape] || 0) }))
-      .sort((a, b) => b.r - a.r).slice(0, HB_INS_MAX).map(o => o.k);
-    s.ins = { day, n, list: ranked }; hbSave();
+    const rank = xs => xs.filter(x => x && !hbInsResting(x.shape))
+      .map(x => ({ k: x.shape, r: x.score + 0.25 * Math.min(4, s.insKept[x.shape] || 0) })).sort((a, b) => b.r - a.r).map(o => o.k);
+    const ranked = rank(HB_INS_SHAPES.map(k => hbInsCandidateMemo(k))).slice(0, HB_INS_MAX);
+    /* the places nothing moved enough to fill are filled with plain views */
+    const plain = rank(HB_INS_SHAPES.filter(k => !ranked.includes(k)).map(k => hbInsCandidateMemo(k, true))).slice(0, HB_INS_MAX - ranked.length);
+    s.ins = { day, n, list: ranked.concat(plain), plain }; hbSave();
   }
-  return s.ins.list.map(k => hbInsCandidateMemo(k)).filter(Boolean);
+  const P = new Set(s.ins.plain || []);
+  return s.ins.list.map(k => hbInsCandidateMemo(k, P.has(k))).filter(Boolean);
 }
 /* A PICTURE, NOT A DOOR-FIELD: the thumbnail is the chart's own drawing with
    its doors taken off, so the whole picture is one press (Open). */

@@ -1869,7 +1869,11 @@ async function agRunAct(key, act){
   }
 }
 
-/* ---- SEND A FRESH LINK: the product's own acts, and it asks first ----
+/* ---- SEND A FRESH LINK: the product's own acts, ON THE PANEL'S ONE PRESS
+   (Young, 4 Oct 2026: "i do not need another press to send the link. The one
+   in the side panel should be enough" — reversing the 27 Sep "asks first").
+   The panel the button sits in already names who it last went to; the press
+   sends, and the toast says to whom. ----
    AN ANSWER goes by the round send — reshareToLastRecipient, the one the
    negotiation's own Send presses, with the desk, the reviewer and the review
    gate asked inside it — to the person the round send itself would pick
@@ -1887,7 +1891,7 @@ async function agFreshLink(key){
   const it = agFind(key);
   if (!it) return;
   const c = ((typeof getContract === 'function') && getContract(it.cid)) || it.c;
-  if (!c || typeof confirmDialog !== 'function') return;
+  if (!c) return;
   if (it.kind === 'reply'){
     if (typeof resendRoundFresh !== 'function') return;
     let shares = [];
@@ -1907,9 +1911,6 @@ async function agFreshLink(key){
       return agRunAct(key, 'sendscreen');
     }
     const who = agSentTo({ to: to.name || to.email || to.phone, email: to.email });
-    const ok = await confirmDialog({ title: _agT('ag_fresh_title'), message: _agT('ag_fresh_reply_ask', { who }),
-      confirmLabel: _agT('ag_a_fresh') });
-    if (!ok) return;
     let out = null;
     try { out = await resendRoundFresh(c, { shares: links }); }
     catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
@@ -1921,13 +1922,6 @@ async function agFreshLink(key){
   }
   if (it.kind === 'sign'){
     if (typeof issueSigningAct !== 'function') return;
-    const S = it.sign || {};
-    const who = agSentTo({ to: S.signer || S.to, email: S.signerEmail || S.email });
-    const more = Math.max(0, (Number(S.n) || 1) - 1);
-    const ok = await confirmDialog({ title: _agT('ag_fresh_title'),
-      message: _agT('ag_fresh_sign_ask', { who }) + (more ? _agTn('ag_fresh_sign_more', more, { n: more }) : ''),
-      confirmLabel: _agT('ag_a_fresh') });
-    if (!ok) return;
     agGo('sign', c.id);
     setTimeout(() => { try { issueSigningAct(((typeof getContract === 'function') && getContract(c.id)) || c); } catch (_){} }, 0);
   }

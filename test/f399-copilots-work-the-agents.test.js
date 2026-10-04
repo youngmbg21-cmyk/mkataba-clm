@@ -78,12 +78,15 @@ describe('f399 (1) — the walls', () => {
        anywhere but that one press. */
     /* AND RUN NOW (27 Sep 2026, f413): an admin's press that spends Copilot
        money asks first and says who pays — the only other question here. */
+    /* AND REVERSED 4 Oct 2026 (Young: "i do not need another press to send
+       the link. The one in the side panel should be enough"): the fresh link
+       no longer asks — Run now is the one question left on the page. */
     const asks = CODE.split('confirmDialog(').length - 1;
-    const fresh = CODE.slice(CODE.indexOf('async function agFreshLink('));
+    const fresh = CODE.slice(CODE.indexOf('async function agFreshLink('), CODE.indexOf('\n}', CODE.indexOf('async function agFreshLink(')));
     const runNow = CODE.slice(CODE.indexOf('async function agRunNowPress('), CODE.indexOf('\n}', CODE.indexOf('async function agRunNowPress(')));
-    assert.equal(asks, (fresh.split('confirmDialog(').length - 1) + (runNow.split('confirmDialog(').length - 1),
-      'every question on the page is the fresh link\'s or Run now\'s');
-    assert.ok(asks >= 2, 'and both ask');
+    assert.equal(fresh.split('confirmDialog(').length - 1, 0, 'the panel\'s fresh link sends on its own press');
+    assert.equal(asks, runNow.split('confirmDialog(').length - 1, 'every question on the page is Run now\'s');
+    assert.ok(asks >= 1, 'and it asks');
   });
 });
 

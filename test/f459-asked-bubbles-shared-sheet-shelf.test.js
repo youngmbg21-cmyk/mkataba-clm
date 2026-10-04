@@ -217,6 +217,20 @@ describe('F459 (D) — today\'s insights', () => {
     assert.ok(!I.some(x => x.shape === 'sign'), 'resting');
     assert.equal(w.hbInsResting('sign'), true);
   });
+  /* Young, 4 Oct 2026: "i do not see the graphs … maybe there could be a way
+     to run them if they are not on screen?" — a place nothing moved enough to
+     fill takes a plain view, named by what it shows, never as a finding. */
+  test('places nothing moved enough to fill are filled with plain views, named by what they show', () => {
+    const w = world();
+    const s = w.hbS(); s.ins = null; s.insOff = {};
+    const I = w.hbInsightsToday();
+    const sign = I.find(x => x.shape === 'sign'), pay = I.find(x => x.shape === 'pay');
+    assert.ok(sign && !sign.plain, 'the drift is still a finding');
+    assert.ok(pay && pay.plain, 'payment days did not move: a plain view fills the place');
+    assert.equal(pay.title, 'Payment days by month signed');
+    assert.ok(!/longer|shorter|faster/.test(pay.title));
+    assert.equal(w.hbS().ins.list.indexOf('sign') < w.hbS().ins.list.indexOf('pay'), true, 'findings come first');
+  });
   test('a picture is one press: the thumbnail carries no doors', () => {
     const w = world();
     const c = w.hbInsCandidate('sign');
@@ -266,5 +280,21 @@ describe('F459 (D) — the daily brief carries your kept views', () => {
     const body = m.text || m.body || '';
     assert.match(body, /Payment days by month signed — 30 days → 55 days over 6 months/);
     assert.match(body, new RegExp('\\(as of ' + isoDay(0) + '\\)'));
+  });
+});
+
+/* ================================================================ (E) */
+describe('F459 (E) — a line break written out as text is a line break', () => {
+  /* Young's screenshot, 4 Oct 2026: an answer on Home's panel printed
+     "changes.\n\nYour options:" — every Copilot answer passes mdParse. */
+  const { aiRichText } = require('../js/aimd.js');
+  const BS = String.fromCharCode(92);
+  test('escaped breaks become paragraphs and a list', () => {
+    const html = aiRichText('It was signed.' + BS + 'n' + BS + 'n**Your options:**' + BS + 'n' + BS + 'n1. **Renew it**' + BS + 'n2. Archive.');
+    assert.ok(!html.includes(BS + 'n'), html);
+    assert.match(html, /<ol class="ai-list"><li><strong>Renew it<\/strong><\/li><li>Archive\.<\/li><\/ol>/);
+  });
+  test('a doubled backslash is left alone', () => {
+    assert.match(aiRichText('C:' + BS + BS + 'new'), /C:\\\\new/);
   });
 });
