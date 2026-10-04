@@ -623,7 +623,9 @@ describe('f272 — the tab row stays while the page scrolls', () => {
   /* 4 Oct 2026 (f481): Our standards is a tab of Our paper, so the pin is a
      block holding the page's own row over these sub-tabs. The opt-in moved
      from the row to that block; the row is still built in one place. */
-  const ROW = /const tabRow=`<div class="[^"]*"[^>]*>\$\{paperTabsHtml\('standards'\)\}<div class="st-tabs" role="tablist">\$\{PB_PAGE_TABS/.exec(LIB2);
+  /* One row since 4 Oct 2026: the page's tabs (tight) and the standards
+     sub-tabs share the pinned block side by side. */
+  const ROW = /const tabRow=`<div class="[^"]*"[^>]*>\$\{paperTabsHtml\('standards'(?:, true)?\)\}<div class="st-tabs" role="tablist"[^>]*>\$\{PB_PAGE_TABS/.exec(LIB2);
   test('the standards tab row opts in to the pin', () => {
     assert.ok(ROW, 'the row is still built in one place');
     assert.match(ROW[0], /class="st-tabs-pin"/, 'and it carries the opt-in');
