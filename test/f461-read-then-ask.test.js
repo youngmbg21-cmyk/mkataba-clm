@@ -183,3 +183,121 @@ describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
       assert.equal((I.match(new RegExp('\\n\\s+' + k + ':', 'g')) || []).length, 2, k);
   });
 });
+
+/* (D) EVERY ENLARGED CARD READS (Young, 4 Oct 2026: "please review again as i
+   do not see the options in the dashboard" → "build all three and merge to
+   main"): the timeline (Ending in 90 days, Past end date), Value under
+   contract, and the six ready-made panels open with HaTi's reading and the
+   one ask, through the same builder. */
+const day = off => { const t = new Date(); const x = new Date(t.getFullYear(), t.getMonth(), t.getDate() + off); return x.getFullYear() + '-' + pad(x.getMonth() + 1) + '-' + pad(x.getDate()); };
+function bookWorld(){
+  const w = buildWorld({ intelView: true }).win;
+  const cs = []; let i = 0;
+  const add = (o) => cs.push(Object.assign({ id: 'K' + (i++), name: 'K ' + i, counterparty: 'Juno AB', status: 'Signed', value: 1000, folder: 'proc', audit: [], metadata: {}, _raisedAt: mon(-20) }, o));
+  /* ending soon: three in the month after next, one in ten days, one in eighty */
+  [10, 80].forEach(d => add({ expiry: day(d) }));
+  for (let k = 0; k < 3; k++) add({ expiry: mon(2, 5 + k), counterparty: 'Nordkraft AB' });
+  /* past their end, two still Executed */
+  add({ expiry: day(-40) }); add({ expiry: day(-200) });
+  /* later, and in review */
+  for (let k = 0; k < 4; k++) add({ expiry: mon(14), status: 'Under Review', value: 9000 });
+  w.state = { contracts: cs, settings: {}, view: 'dashboard' };
+  w.FOLDERS = { proc: { id: 'proc', name: 'Procurement' } };
+  w.cKind = () => 'Contract';
+  w.getContract = id => w.state.contracts.find(c => c.id === id) || null;
+  w.payDays = () => null; w.paySide = () => null;
+  w.contractExpired = c => !!c.expiry && c.expiry < day(0);
+  w.renewalWindow = c => (c.expiry ? { expiry: c.expiry, expiresDays: Math.round((new Date(c.expiry + 'T00:00:00') - new Date(day(0) + 'T00:00:00')) / 864e5), decided: c.id === 'K0', inWindow: true, missed: c.id === 'K1' } : null);
+  w.currentUser = () => ({ id: 'u1', name: 'Me', role: 'legal' });
+  w.eval(read('js/views/homeboard.js'));
+  w.eval('intel.lenses=[]; intel.groups=null; intel.groupBy="folder"; intel.history=[];');
+  w.hbPaintBoard = () => {};
+  const s = w.hbS(); s.why = {}; s.recipe = {}; s.digBig = false; s.panels = []; s.path = [];
+  return w;
+}
+const dig = (w, key, big) => { const s = w.hbS(); s.path = [key]; s.digBig = !!big; return w.hbFocusHtml(); };
+
+describe('F461 (D) — every enlarged card reads', () => {
+  test('Ending in 90 days, enlarged: when things end, the first one named, the busiest month a door', () => {
+    const w = bookWorld();
+    const big = dig(w, 'f:ending', true), t = text(big);
+    assert.match(big, /class="hb-read"/);
+    assert.match(t, /5 end in the next 90 days; the first is K0 \(Juno AB\), on /);
+    /* the busiest month holds the three (a fourth may join it, by the day the test runs) */
+    const bm = /The busiest month is .+ \d{4}: (\d) end then\./.exec(t);
+    assert.ok(bm && Number(bm[1]) >= 3, 'the busiest month is said');
+    assert.match(t, /4 of those ending soon have no renewal decision yet\./, 'K0 is decided');
+    const m = new RegExp('data-hb-dig="(qm:[^"]+)"[^>]*>' + bm[1] + '<').exec(big);
+    assert.ok(m, 'its count is a door'); assert.equal(w.hbDigData(m[1].replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&'), 'all').n, Number(bm[1]));
+    assert.match(big, /data-hb-why="f:ending"/);
+    assert.ok(!/class="hb-read"/.test(dig(w, 'f:ending', false)), 'at normal size nothing changes');
+  });
+  test('Past end date, enlarged: how many, since when, and how many still stand as Executed', () => {
+    const w = bookWorld();
+    const t = text(dig(w, 'f:past', true));
+    assert.match(t, /2 have already passed their end date; the earliest ended in [A-Z][a-z]+ \d{4}\./);
+    assert.match(t, /2 are past their end date but still marked /);
+  });
+  test('Value under contract can be made bigger, and then reads where the money sits, by stage', () => {
+    const w = bookWorld();
+    const rest = dig(w, 'f:value', false);
+    assert.match(rest, /data-hb-digbig/, 'the enlarge button is there');
+    assert.ok(!/class="hb-read"/.test(rest));
+    const big = dig(w, 'f:value', true), t = text(big);
+    assert.match(big, /hb-dig is-big|hb-dig[^"]* is-big/);
+    assert.match(t, /Most of the value, .+ \(84%\), sits in .+, across 4 contracts\./);
+    assert.match(t, /: .+ \(16%\), across 7 contracts\./);
+    assert.match(big, /class="hb-read-n" data-hb-dig="st:Under Review"[^>]*>4</);
+    assert.match(big, /data-hb-why="f:value"/);
+  });
+  test('the six ready-made panels: enlarged, each opens with a reading and the one ask; at normal size nothing changes', () => {
+    const w = bookWorld();
+    for (const kind of ['obl', 'fric', 'ren', 'pay', 'exp', 'val']){
+      const big = w.hbPanelHtml({ id: 'p_' + kind, kind, big: true }, 'all'), rest = w.hbPanelHtml({ id: 'p_' + kind, kind, big: false }, 'all');
+      assert.match(big, /class="hb-read"/, kind + ' reads when enlarged');
+      assert.match(big, new RegExp('data-hb-why="hp:' + kind + '"'), kind + ' offers the ask');
+      assert.ok(!/class="hb-read"/.test(rest), kind + ' at normal size');
+    }
+    assert.match(text(w.hbPanelHtml({ id: 'p', kind: 'ren', big: true }, 'all')), /The first to end is K0 \(Juno AB\), in \d+ days; its renewal is decided\./);
+    assert.match(text(w.hbPanelHtml({ id: 'p', kind: 'ren', big: true }, 'all')), /1 has passed the date to decide on renewal and is still undecided\./);
+  });
+  test('each panel\'s reading says what its own lines do not, every count a door the panel already has', () => {
+    const w = bookWorld();
+    const T = (kind, d) => { const r = w.hbReadPanelOf(kind, d); return r ? r.lines.map(l => text(l).replace(/\( /g, '(')).join(' | ') : ''; };
+    const H = (kind, d) => { const r = w.hbReadPanelOf(kind, d); return r ? r.lines.join(' ') : ''; };
+    const obl = { rows: [{ cid: 'K0', what: 'Insurance certificate', who: 'Amina', late: 30 }, { cid: 'K0', what: 'Report', who: 'Amina', late: 3 }, { cid: 'K2', what: 'Audit', who: '', late: 9 }], n: 3, open: 5, soon: 1 };
+    assert.equal(T('obl', obl), 'The longest overdue is “Insurance certificate” on K0 (Juno AB): 30 days late. | They sit on 2 contracts. | Amina holds the most of them: 2. | 1 has nobody assigned.');
+    const fric = { live: 4, us: 3, them: 1, liveIds: ['K0', 'K1'], clauses: [{ label: 'Liability', n: 3, ids: ['K0'] }], cps: [{ name: 'Juno AB', rounds: 2.5, n: 2 }, { name: 'Nordkraft AB', rounds: 4.25, n: 1 }] };
+    assert.equal(T('fric', fric), '“Liability” is argued over most: open in 3 negotiations. | Nordkraft AB takes the most rounds: 4.3 on average, in 1 negotiation. | 75% of the live ones are waiting on us.');
+    assert.match(H('fric', fric), /data-hb-dig="cl:Liability"/);
+    const pay = { sides: [{ key: 'supplier', n: 5, avg: 50, std: 45, over: 2, overIds: [], buckets: [{ i: 0, label: '0–30', ids: ['K0'] }, { i: 2, label: '46–60', ids: ['K1', 'K2', 'K3'] }] }], noSide: 0 };
+    assert.equal(T('pay', pay), 'We pay suppliers: the largest group is 46–60 days (3 contracts). | We pay suppliers: 2 of 5 are over our standard (40%).');
+    assert.match(H('pay', pay), /data-hb-dig="po:supplier"/);
+    const exp = { rows: [{ k: 'uncapped', title: 'Uncapped liability', n: 3, ids: ['K0', 'K1', 'K2'] }, { k: 'auto', title: 'Auto-renewal', n: 1, ids: ['K0'] }, { k: 'law', title: 'Foreign law', n: 0, ids: [] }] };
+    assert.equal(T('exp', exp), '“Uncapped liability” is found most: in 3 contracts. | 2 kinds of risk are found, across 3 contracts. | 1 kind is not found anywhere.');
+    assert.equal(T('obl', { rows: [], n: 0 }), 'Nothing is overdue.');
+  });
+  test('asking from a panel: the prompt carries the panel\'s own numbers, the answer lands in the amber box for that panel', async () => {
+    const w = bookWorld();
+    let sent = null;
+    w.copilotAvailable = () => true;
+    w.copilotAsk = async (msgs) => { sent = msgs[0].content; return { answer: 'Executed holds the money. 9 contracts were renewed last week.' }; };
+    await w.hbWhyAsk('hp:val');
+    assert.match(sent, /A panel on the HaTi Home board: "Value by stage"\./);
+    assert.match(sent, /Its numbers:/);
+    assert.match(sent, /The contracts behind it \(11\)/);
+    const html = w.hbPanelHtml({ id: 'p', kind: 'val', big: true }, 'all');
+    assert.match(html, /class="hb-why"/);
+    assert.match(text(html), /Executed holds the money\./);
+    assert.ok(!/9 contracts were renewed/.test(text(html)), 'a count the panel does not hold is left out');
+    assert.equal(w.hbS().why['hp:val'].dropped, 1);
+  });
+  test('one builder draws the reading and the ask for every card', () => {
+    const HB = strip(read('js/views/homeboard.js'));
+    assert.equal((HB.match(/data-hb-why="\$\{/g) || []).length, 1, 'the ask button is drawn in one place');
+    assert.match(region(HB, 'hbReadBlockHtml'), /class="hb-read"/);
+    assert.match(region(HB, 'hbPanelHtml'), /hbReadSrcHtml\('hp:' \+ p\.kind\)/);
+    for (const k of ['hb_read_tl_soon_other', 'hb_read_val_top_other', 'hb_read_obl_worst_other', 'hb_read_fric_clause_other', 'hb_read_ren_missed_other', 'hb_read_pay_over_other', 'hb_read_exp_top_other'])
+      assert.equal((read('js/i18n.js').match(new RegExp('\\n\\s+' + k + ':', 'g')) || []).length, 2, k);
+  });
+});
