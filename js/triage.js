@@ -131,7 +131,9 @@ const TRIAGE_HEADS = {
                  "No open fields to fill" would be false and so would a tick.
                  See uploadBlanksTheirs. */
               theirs: 'tri_t_fill_theirs' },
-  filed:    { ok: 'tri_t_filed',  no: 'tri_t_filed',     ing: 'tri_t_filed' },
+  /* `filed` LEFT THE STRIP on 4 Oct 2026 for `risk` (see triageTiles); its
+     words stay inert in both books. */
+  risk:     { ok: 'tri_t_risk',   no: 'tri_t_risk_no',   ing: 'tri_t_risk_ing' },
 };
 /* IS IT STILL READING? `_triaging` is set for the life of the run and deleted
    in its `finally`, so this is true exactly while a reading could still land.
@@ -377,10 +379,29 @@ function triageTiles(c){
     (fillNone === 'form' && openNames.length) ? openNames.length
       : (fl.ok ? names.length : null), null, fillNone);
 
-  /* FILED reports facts already on the record — the stream somebody picked on
-     the upload screen and the owner HaTi stamps at creation. It proposes
-     nothing, which is why it costs nothing and why it is here at all. */
-  add('filed', triageFiledLine(c));
+  /* ---- RISKS FOUND TAKES FILED'S PLACE (Young, 4 Oct 2026: "we replace the
+     automatic scan for 'filed' ... with the risk scan so the scan is never
+     missed") ----
+     The scan has always run first on arrival (step 1 below) and never had a
+     tile; Filed repeated the stream and the owner, which the line under the
+     title already prints. The count is the risk list's own (js/risks.js
+     riskOpenOf) — what is still to be read — so this tile, the Checks badge
+     and the Redlines card's list agree. Read LIVE off the record wherever the
+     scan is on it, the brief's own remedy for a note written once. A clean
+     scan is a tick under "No risks found", never a steel dash.
+     triageFiledLine stays published for its other readers and is no longer
+     drawn here. */
+  const rk = s.risk || {};
+  const rkLive = c.scan ? { ok: true } : null;
+  const rkOpen = !c.scan ? []
+    : (typeof window !== 'undefined' && typeof window.riskOpenOf === 'function') ? window.riskOpenOf(c)
+    : (typeof openFindings === 'function') ? openFindings(c) : [];
+  const rkRan = !!(rkLive || rk.ok);
+  add('risk', rkRan ? rkOpen.slice(0, 2).map(x => x.title).join(' · ') : (rk.why || ''),
+    rkRan && rkOpen.length ? rkOpen.length : null, rkLive);
+  const rkTile = out[out.length - 1];
+  if (rkTile && rkTile.key === 'risk' && rkTile.ok && !rkTile.working && !rkOpen.length)
+    rkTile.headKey = 'tri_t_risk_clear';
   return out;
 }
 

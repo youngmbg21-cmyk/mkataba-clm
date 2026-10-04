@@ -105,7 +105,9 @@ const BRAIN_PARTS = [
   ['decide', 'approvalDecideAsk', 'sign', 1],
   ['rulestep', 'ruleStepTell', 'sign', 2],
   ['rules', 'stRulesRows', 'sign', 0],
-  ['renewact', 'renewalDecisionAct', 'time', 1]
+  ['renewact', 'renewalDecisionAct', 'time', 1],
+  /* Risks to look at (4 Oct 2026): the risk scan's list lives in the Redlines card */
+  ['risklist', 'riskOpenOf', 'nego', 1]
 ].map((a, i) => ({ id: a[0], code: a[1], reg: a[2], floor: a[3], def: (a[4] || {}).def || '', men: (a[4] || {}).men || '', i }));
 
 /* The six flows: which parts each step lands on. The sentences are
@@ -117,7 +119,7 @@ const BRAIN_FLOWS = [
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
-  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept'], ['payload'], ['shares'], ['email', 'cplink', 'turnmail'], ['whosemove', 'bell', 'roundauto']] },
+  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'risklist'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept'], ['payload'], ['shares'], ['email', 'cplink', 'turnmail'], ['whosemove', 'bell', 'roundauto']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home', 'insights']] },
@@ -128,7 +130,7 @@ const BRAIN_FLOWS = [
    lives in, the floor by where that file runs. First match wins. */
 const BRAIN_FILE_REGION = [
   [/^server\/.*$/, 'wall'],
-  [/^js\/(negotiation|desk|review|ladder|clauselock|presence|redlineplan)\.js$|^js\/views\/(negotiation|negotiation-css|clauseeditor)\.js$/, 'nego'],
+  [/^js\/(negotiation|desk|review|ladder|clauselock|presence|redlineplan|risks)\.js$|^js\/views\/(negotiation|negotiation-css|clauseeditor)\.js$/, 'nego'],
   /* The page every party reads is a reading, not a view file, so without this
      line it would default to the wall — which is where a reading that spends
      nothing and touches no route does not belong. */
