@@ -1860,7 +1860,17 @@ async function intelAsk(qRaw){
        and EVERYTHING ELSE goes to Copilot, which decides whether the question
        is about the map (it returns a recipe) or about what a contract says
        (it hands the question to the reading chat). */
-    const mapRest=igPaperUp()?null:await intelMapLocal(q);
+    /* ON THE BOARD THE MAP IS NOT THE SCREEN (4 Oct 2026): the map's own reader
+       (regroup, floors, colour) would rearrange a map nobody is looking at and
+       say "Nothing changed on the map"; on the board it reads only what lands
+       on the board (outliers, the walk, a top N, a narrowing, a comparison —
+       each a list), and the rest goes to Copilot with the
+       board — or, with no key, to the map's filter reader, whose list the
+       board draws */
+    let mapListy=false;
+    if(igBoardNow()){ try{ const pz=igRecipeParse(q); mapListy=!!(pz&&pz.acts.some(x=>x.top||x.narrow||x.compare||x.linked||x.linkedParty||x.families||x.sort)); }catch(_){ mapListy=false; } }
+    const boardUp=!!igBoardNow()&&!IG_WALK_RE.test(q)&&!IG_OUTLIER_RE.test(q)&&!mapListy;
+    const mapRest=(igPaperUp()||boardUp)?null:await intelMapLocal(q);
     if(mapRest!=null){ if(mapRest) await intelGraphAsk(mapRest); }
     else if(igPaperUp())                                await igPaperAsk(q);
     else if(idHits>=2)                                  await intelChatAsk(q);
@@ -1994,6 +2004,13 @@ async function intelGraphAsk(q){
   /* COPILOT DECIDED IT IS ABOUT WORDING: the reading chat answers it, and
      the map is left exactly as it was. */
   if(res&&res.kind==='wording'){ await intelChatAsk(q); return; }
+  /* ASKED ON THE BOARD, COPILOT PRESSES THE BOARD'S BUTTONS (4 Oct 2026): a
+     chart-only answer changes the open chart (or draws a new one) and the map
+     is left exactly as it was */
+  if(res&&igBoardNow()&&typeof window.hbBoardTakes==='function'){
+    let said=null; try{ said=hbBoardTakes(res); }catch(_){ said=null; }
+    if(said){ intel.history.push({ role:'assistant', text:said+igNoticeHtml(res.notice) }); return; }
+  }
   if(!res){ res=graphInterpret(q);           // fallback
     /* The built-in reader understood nothing: say what the map can do, as
        presses, rather than leave a sentence and nothing to act on. */

@@ -26765,3 +26765,28 @@ The owner read the process review (16 findings, published as an artifact) and sa
   7. Attention only for "nobody owns". `hbGroupWord` knows owner and value band. Value labels shorten their unit ("over 1M").
 - Ruling changed: f448 (4) had pinned "no 'No date' column on a signing chart". The undated EXECUTED ones now stand there; the not-yet-signed are still said apart. read-then-ask-verify 1b and f461 (B) now expect no line through one burst after a long quiet.
 - Tests: f482 (24 tests; 21 red at unmodified main, the other two guard what must not change). board-answers-the-question-verify 12/12; at main it was 3/12, and drew "KES -94.28571428571428" on the chart.
+
+## "THIS" IS THE OPEN CHART, AND COPILOT PRESSES THE BOARD'S BUTTONS (4 Oct 2026)
+
+- A review of how the board and Copilot talk was compared with four open-source projects on GitHub, and their own pages were checked:
+  - CopilotKit gives the copilot what is on screen (`useCopilotReadable`) and the app's own buttons (`useCopilotAction`).
+  - Microsoft LIDA turns a question into a goal, draws the chart, evaluates and repairs it, and takes edits like "convert this to a bar chart".
+  - NL4DV surfaces an unclear part of a question as "ambiguity widgets", small dropdowns.
+  - Metabase's Metabot keeps the current question as context, and its interface sends the dashboard and question being viewed.
+- The review found three faults. Copilot was told it was "filtering and clustering for a graph view" even on the board. A chart-only answer ("make it a pie", "show this by stream") was thrown away, because the board only drew answers that came with a list. And the board and the server kept two word lists.
+- Young: *"build 1 and 2, run full suite then merge to main"*.
+- WHAT WAS BUILT, (1) "this" is the open chart:
+  - `hbFollowUp` reads a follow-up while a list card is open on the board. Edit words ("make it monthly", "as a pie", "by stream", "show value", "add a trend", "remove the trend") change THAT card through `hbBoardEdit`. That is the dropdowns' own `hbRecipeSet`, part by part, with the picture last.
+  - A monthly/quarterly change keeps the card's date unless another date is named.
+  - "only X" (or a condition plus a refer word) nests a `qn:` card: the open card's contracts narrowed by `igConditions` + `igIdsWhere`. It sits in the trail and in `hbRootKey`, so the count follows it.
+  - "all contracts" or "the whole book" start fresh, as does a question with no refer, edit or lead word.
+  - The board's own commands win (`hbParse` non-`q:` acts).
+  - "that" and "those" are NOT refer words. home-board-verify 11c caught "agreements that are past due" being read as a narrowing.
+- WHAT WAS BUILT, (2) Copilot presses the board's buttons:
+  - On the board, the `/api/ai/graph` prompt OPENS with `boardJob`. Its order of preference: change the open chart (`chart.target` "open", only the parts asked for, in the board's own dropdown words); a new chart over a set ("new"); or an answer from the board's numbers. The map's own fields stay empty unless the map is asked for.
+  - `hbBoardNow` adds "Open chart settings (chart{} words)", so "this" can be changed exactly.
+  - `graphChartClean` keeps `target`, keeps `trend:false` ("remove the trend"), and takes `live`. f483 pins the server's `GRAPH_CHART_*` lists equal to the board's `HB_PICS`/`HB_DATES`/`HB_MEASURES`.
+  - In the panel, `hbBoardTakes(res)` takes a chart-only answer BEFORE the map sees it: it changes the open chart, or draws a new one over the whole book. The panel says "Changed the open chart, "…": now …", followed by Copilot's own sentence.
+  - On the board, the map's ARRANGING reader (`intelMapLocal` regroup/floors/colour) stands aside (`boardUp`). Its list-making acts (top N, narrow, compare, linked, families, sort, outliers, walk) still answer, so "top 10 contracts by value" still lands on the board.
+- Re-measured: the 25-question review shows no regressions. One gained: "total value under management".
+- Tests: f483 (17 tests; 15 red at unmodified main, the other two guard what must not change); this-is-the-open-chart-verify 12/12 (3/12 at main). The pinned line in f425 (6) and f426 (4) now reads `(igPaperUp()||boardUp)`.

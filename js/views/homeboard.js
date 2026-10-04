@@ -316,7 +316,7 @@ function hbAgentsData(sinceIso){
    (a figure, a stage, a panel row), which dig WITHIN the count (hbDig). Closing the
    dig-in, the chip's × or "all contracts" brings the whole book back. What
    moved and the watches stay on the whole book. */
-function hbRootKey(key){ let k = String(key || ''); while (/^(qg|qm|qv):/.test(k)) k = k.replace(/^(qg|qm|qv):/, '').split(HB_KEY_SEP)[0]; return k; }
+function hbRootKey(key){ let k = String(key || ''); while (/^(qg|qm|qv|qn):/.test(k)) k = k.replace(/^(qg|qm|qv|qn):/, '').split(HB_KEY_SEP)[0]; return k; }
 function hbCountKey(){
   const path = hbS().path || [];
   for (let i = path.length - 1; i >= 0; i--){ const r = hbRootKey(path[i]); if (r === 'ls' || /^q:/.test(r)) return path[i]; }
@@ -475,6 +475,19 @@ function hbDigData(key, lens){
     const ids = cs.filter(c => hbInBucket(c, unit, date, label)).map(c => c.id);
     const name = hbBucketLabel(label, unit, false) + (date !== 'end' ? ' · ' + i18t('hb_dt_' + date) : '');
     return { key, kind: 'list', crumb: name, title: name, ids, n: ids.length, fixed: P.fixed || [], chart: { mode: 'groups', by: hbNextGroup(P.fixed || []) } };
+  }
+  /* NARROWING THE OPEN CHART (Young, 4 Oct 2026: "this" is the open chart):
+     "only Juno" said over a card is that card's own contracts, narrowed by
+     the map's one reader of conditions, nested under it in the trail */
+  if (k === 'qn'){
+    const cut = a.lastIndexOf(HB_KEY_SEP); if (cut < 0) return null;
+    const pk = a.slice(0, cut), text = a.slice(cut + HB_KEY_SEP.length);
+    const P = hbDigData(pk, lens); if (!P || P.kind !== 'list' || typeof igConditions !== 'function') return null;
+    const cq = igConditions(text); if (!cq.length) return null;
+    const ids = (typeof igIdsWhere === 'function') ? igIdsWhere(cq, hbListOf(P.ids, lens)) : [];
+    const t = cq.map(x => x.label).join(' · ');
+    const fixed = (P.fixed || []).concat(cq.map(x => x.field));
+    return { key, kind: 'list', crumb: t, title: t, setLabel: t, ids, n: ids.length, fixed, chart: P.chart && (P.chart.pic || P.chart.split || P.chart.measure) ? P.chart : { mode: 'groups', by: hbNextGroup(fixed) } };
   }
   if (k === 'mv'){
     const base = hbS().seen && hbS().seen.base;
@@ -2124,6 +2137,10 @@ function hbBoardNow(){
     if (D.kind === 'list'){
       const cs = hbListOf(D.ids, s.lens), P = hbPlan(D);
       out.push(`Its set: ${cs.length} contracts${money ? ', ' + _hbM(hbValueOf(cs).v) : ''}${D.whole ? ' (the whole book)' : ''}. Picture: ${hbPicWord(P)}; split: ${hbSplitWord(P.split)}; measure: ${i18t('hb_ms_' + P.measure)}${P.trend ? '; trend line on' : ''}.`);
+      /* the open chart's settings in the words chart{} takes, so "this" can be changed exactly */
+      const SPW = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', valueBand: 'valueBand' }, UW = { m: 'month', q: 'quarter', y: 'year' };
+      const spl = !P.split ? 'none' : P.split.by === 'date' ? `${UW[P.split.unit] || 'month'} (date ${P.split.date})` : (SPW[P.split.by] || P.split.by);
+      out.push(`Open chart settings (chart{} words): pic=${P.pic}; split=${spl}; measure=${P.measure}; trend=${P.trend ? 'on' : 'off'}.`);
       if (P.pic === 'cols' && P.measure !== 'live'){
         const R = hbColsSvg(D, cs, P), unit = R.unit || 'm';
         if (R.lead) out.push(`Headline over the chart: ${plain(R.lead)} (what is drawn).`);
@@ -2996,12 +3013,125 @@ function hbKeptSync(){
 /* ---- THE ASK: the board's free reader in front of Explorer's own ----
    Called by intelAsk on Home. Returns the answer it gave (HTML for the dock),
    or null to hand the question on. */
+/* ============================================================
+   "THIS" IS THE OPEN CHART (Young picked it, 4 Oct 2026: "build 1 and 2"; the
+   lesson Metabase's Metabot teaches — the question is read in the context of
+   the chart being looked at). With a chart open on the board, a follow-up
+   CHANGES THAT CHART instead of starting another: "make it monthly", "as a
+   pie", "by stream", "show value", "add a trend", "remove the trend". A
+   follow-up naming contracts NARROWS it ("only Juno" → a card nested under
+   it). "All contracts", "the whole book" start fresh. Free; the same
+   recipe the card's dropdowns write (hbBoardEdit), so a press and a sentence
+   can never draw different charts.
+   ============================================================ */
+const HB_FU = {
+  /* "that" and "those" are left out: "agreements that are past due" is a new
+     question, not a word about the open chart */
+  refer: /\b(?:it|this|these|them|the chart|this chart|the same|instead)\b|\b(?:det|dessa|diagrammet)\b/,
+  verb: /^\s*(?:make|change|switch|turn|use|put|redraw|draw it|show it|show this|show them|show (?:the )?(?:value|count|number|money|amount|average|days to sign|trend)|now|add|remove|hide|drop|gör|ändra|byt|visa det|lägg till|ta bort)\b/,
+  lead: /^\s*(?:by|per|as|in|with|without|monthly|quarterly|yearly|annually|over time|split by|grouped by|efter|per|som|med|utan|månadsvis|kvartalsvis)\b/,
+  narrow: /\b(?:only|just|of these|of those|among these|among them|filter (?:it )?to|narrow (?:it )?to|bara|endast)\b/,
+  fresh: /\b(?:all contracts|every contract|all agreements|whole book|the book|everything|all of them|alla avtal|hela)\b/,
+  noTrend: /\b(?:no trend|without (?:a |the )?trend|remove (?:the )?trend|hide (?:the )?trend|trend off|turn off (?:the )?trend|utan trend)\b/,
+  count: /\b(?:count|how many|number of|antal)\b/,
+};
+function hbOpenListKey(){
+  const s = hbS(); if (s.face !== 'board') return null;
+  const key = (s.path || []).slice(-1)[0]; if (!key) return null;
+  const D = hbDigData(key, s.lens);
+  return D && D.kind === 'list' ? key : null;
+}
+/* the one edit: a chart's own recipe, written part by part as the dropdowns
+   write it; the picture last, so a picture asked for wins over the split's
+   default picture */
+function hbBoardEdit(chart){
+  const key = hbOpenListKey(); if (!key || !chart) return null;
+  const sp = chart.split;
+  if (sp && sp.by === 'date' && HB_UNITS.includes(sp.unit) && HB_DATES.includes(sp.date)) hbRecipeSet(key, 'split', 'd:' + sp.unit + ':' + sp.date);
+  else if (sp && HB_SPLIT_GROUPS.includes(sp.by)) hbRecipeSet(key, 'split', 'g:' + sp.by);
+  if (HB_MEASURES.includes(chart.measure)) hbRecipeSet(key, 'measure', chart.measure);
+  if (typeof chart.trend === 'boolean') hbRecipeSet(key, 'trend', chart.trend);
+  if (HB_PICS.includes(chart.pic)) hbRecipeSet(key, 'pic', chart.pic);
+  const s = hbS(); const D = hbDigData(key, s.lens), P = hbPlan(D);
+  const how = [hbPicWord(P), hbSplitWord(P.split), i18t('hb_ms_' + P.measure).toLowerCase()].concat(P.trend ? [i18t('hb_edit_trend_on')] : []).join(' · ');
+  return { key, said: i18t('hb_edit_said', { what: hbCrumbOf(key, s.lens), how }) };
+}
+/* Read a follow-up. Returns what to say, or null when it is not one. */
+function hbFollowUp(qRaw){
+  const q = String(qRaw || '').trim(); const key = hbOpenListKey(); if (!q || !key) return null;
+  const low = ' ' + _hbRcNorm(q) + ' ';
+  if (/\b(?:mk|rl)[- ]?\d+\b/i.test(q) || HB_FU.fresh.test(low)) return null;
+  /* the board's own commands win: a panel, a figure, a contract, the lens… */
+  const pr = hbParse(q); if (pr && !(pr.act === 'dig' && /^q:/.test(pr.key))) return null;
+  const refer = HB_FU.refer.test(low), verb = HB_FU.verb.test(low), lead = HB_FU.lead.test(low), narrow = HB_FU.narrow.test(low);
+  const s = hbS(); const D = hbDigData(key, s.lens), P0 = hbPlan(D);
+  const R = hbRecipeRead(q);
+  let cq = []; try { cq = (typeof igConditions === 'function') ? igConditions(R ? R.condText : q) : []; } catch (_){ cq = []; }
+  /* "only Juno", "show these for Naivas": the open chart's contracts, narrowed */
+  if (cq.length && (narrow || refer)){
+    const nk = 'qn:' + key + HB_KEY_SEP + cq.map(x => x.hit || x.label).join(' ');
+    const N = hbDigData(nk, s.lens); if (!N) return null;
+    hbDig(nk, true);
+    return _hbE(i18tn('hb_found_n', N.n, { n: _hbN(N.n), what: N.title || '' }));
+  }
+  const noTrend = HB_FU.noTrend.test(low);
+  if (cq.length || !(refer || verb || lead || noTrend)) return null;
+  if (!R && !noTrend) return null;
+  if (R && R.left && !noTrend) return null;           /* words HaTi cannot read: Copilot, with the board */
+  const chart = {};
+  if (R){
+    const unitNamed = HB_RC.unit.some(([, re]) => re.test(low)), groupNamed = HB_RC.split.some(([, re]) => re.test(low)), dateNamed = HB_RC.date.some(([, re]) => re.test(low));
+    if (R.split && R.split.by === 'date' && (unitNamed || (!groupNamed && P0.split && P0.split.by !== 'date' && R.trend)))
+      chart.split = { by: 'date', unit: R.split.unit, date: dateNamed || !(P0.split && P0.split.by === 'date') ? R.split.date : P0.split.date };
+    else if (R.split && R.split.by !== 'date' && groupNamed) chart.split = R.split;
+    if (R.pic) chart.pic = R.pic;
+    if (R.measure && (R.measure !== 'count' || HB_FU.count.test(low))) chart.measure = R.measure;
+    if (R.trend && !noTrend) chart.trend = true;
+  }
+  if (noTrend) chart.trend = false;
+  if (!Object.keys(chart).length) return null;
+  const did = hbBoardEdit(chart); if (!did) return null;
+  hbPaintBoard({ jump: 'focus' });
+  return _hbE(did.said);
+}
+/* COPILOT PRESSES THE BOARD'S BUTTONS (Young picked it, 4 Oct 2026; the lesson
+   CopilotKit teaches — the copilot acts through the app's own controls).
+   Asked on the board, Copilot's `chart` is applied HERE: to the open chart
+   when it names target "open" (or names no set), as a new chart over the
+   whole book when it names target "new" and no set. A chart over a set it
+   named rides the list as before (hbShowFound). Returns what to say, or null
+   when the answer is the map's. */
+function hbBoardTakes(res){
+  const s = hbS(); if (s.face !== 'board' || !res || !res.chart || typeof res.chart !== 'object') return null;
+  const c = res.chart;
+  const hasSet = (Array.isArray(res.visibleIds) && res.visibleIds.length) || (res.where && typeof res.where === 'object' && Object.keys(res.where).length);
+  if (hasSet) return null;
+  _hbPendingRecipe = null;
+  const own = String(res.answer || '').trim();
+  const tail = own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : '';
+  if (c.target !== 'new' && hbOpenListKey()){
+    const did = hbBoardEdit(c); if (!did) return null;
+    hbPaintBoard({ jump: 'focus' });
+    return _hbE(did.said) + tail;
+  }
+  if (c.target === 'new' || !hbOpenListKey()){
+    const ids = hbBook(s.lens).filter(x => x.status !== 'Declined').map(x => x.id);
+    if (!ids.length) return null;
+    const clean = (hbRecipeClean({ k: c }).k) || {};
+    s.found = { title: String(res.note || i18t('hb_lens_all')).slice(0, 120), ids, chart: Object.keys(clean).length ? clean : null }; if (s.recipe) delete s.recipe.ls;
+    hbDig('ls', false);
+    return _hbE(i18tn('hb_found_n', ids.length, { n: _hbN(ids.length), what: s.found.title })) + tail;
+  }
+  return null;
+}
 /* A QUESTION ABOUT WHAT IS ON THE SCREEN ("why does the dashboard say 851
    …", "explain the trend line", "what does this chart mean") is Copilot's,
    with the board shown to it (hbBoardNow) — never read as a new chart */
 const HB_WHY_ASK_RE = /^\s*(?:why|explain|how come|what (?:does|do) .{0,60}\bmean|what is this|what's this|varför|förklara|vad betyder)\b/i;
 function hbAsk(q){
   if (HB_WHY_ASK_RE.test(String(q || ''))){ _hbPendingRecipe = null; return null; }
+  const fu = hbFollowUp(q);
+  if (fu){ _hbPendingRecipe = null; return fu + `<div class="hb-cost">${_hbE(i18t('hb_free'))}</div>`; }
   const r = hbParse(q);
   /* a chart question HaTi could not read whole goes on to Copilot with its
      picture words already read (hbShowFound puts them on the answer) */
@@ -3403,4 +3533,4 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbInsScope, hbInsNormal, hbInsRenNormal, hbInsFinding, hbInsFindingMemo, hbInsightsToday, hbInsUsual, hbInsUsualOpen, hbInsWhy, hbInsResting, hbInsBookSig,
   hbInsThumb, hbInsRowHtml, hbShelfHtml, hbPanelWord, hbAddView, hbViewPanelHtml, hbInsAct, hbKeptSync,
   hbBigBtnHtml, hbReadingOf, hbReadHtml, hbWhySig, hbWhyKept, hbWhyPrompt, hbWhyCheck, hbWhyAsk, hbWhyFollow, HB_WHY_KEEP,
-  hbBoardNow, HB_BOARD_NOW_MAX, hbUsefulGroup, hbTrendFmt, HB_WHY_ASK_RE });
+  hbBoardNow, HB_BOARD_NOW_MAX, hbUsefulGroup, hbTrendFmt, HB_WHY_ASK_RE, HB_FU, hbOpenListKey, hbBoardEdit, hbFollowUp, hbBoardTakes });
