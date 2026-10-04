@@ -20260,3 +20260,4 @@ PROCESS REVIEW'S FIXES".
 - a lock ask lapses after ~2 minutes when the asker's tab is hidden (presence beat pauses).
 - test/f293-the-renewal-cliff fails at unmodified main as well (two quarter checks); left red.
 - Two test files now share the number f460 (f460-yours-measured from main, f460-requests-reach-the-people-who-draft from this run).
+- Fixed later the same day, on the owner's word ("fix those two old failures too"): f293's season-dependent notice fixture (now 120 days) and swedish-verify's 3px insights-card overflow (the action row wraps).
