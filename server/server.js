@@ -24,6 +24,10 @@ const { graphWhereHit } = require('../js/graphwhere.js');
    cannot come to different answers about whether a contract may be signed. */
 const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide,
   SA_NOTE_MAX, SA_KEEP, SA_REMIND_WORKDAYS, SA_ESCALATE_WORKDAYS } = require('../js/signapproval.js');
+/* The check before signing as a wall (4 Oct 2026): which departures hold on
+   each gate, and whether OUR signer has read the brief that stands for this
+   wording. ONE reading for both hosts — js/signcheck.js asks the same file. */
+const { sgDepartures, sgBriefReadOwed } = require('../js/signgate.js');
 /* Redline here, sign there (26 Sep 2026): the working reference, the contract
    number, the handover's clock and the word check. ONE reading for both hosts,
    the signapproval.js pattern — the screen and this wall cannot disagree about
@@ -1419,19 +1423,23 @@ function scGate(){
    carries the id of the colleague it was escalated to, or an admin's. The
    role is looked up on the users table by the stamped id, so a member who was
    an admin when they accepted and is not one now still counts — the record
-   is what it was at the time. */
-function scAcceptedProperly(v){
-  const a = v && v.accepted;
-  if (!a || !a.at) return false;
-  if (!v.escalate) return true;
-  const to = v.escalation && v.escalation.to;
-  if (to && to.id && a.byId && String(to.id) === String(a.byId)) return true;
-  if (String(a.role || '') === 'admin') return true;
-  if (a.byId){
-    const u = db.prepare('SELECT role FROM users WHERE id=?').get(String(a.byId));
-    if (u && u.role === 'admin') return true;
-  }
-  return false;
+   is what it was at the time. The question itself is js/signgate.js's
+   (sgAcceptedProperly), which the card asks too; this is only its roster. */
+function scIsAdminId(id){
+  const u = id ? db.prepare('SELECT role FROM users WHERE id=?').get(String(id)) : null;
+  return !!(u && u.role === 'admin');
+}
+/* The brief as the wall reads it: its own table, never the record (WO-2).
+   Only `at` and `truncated` are asked — the brief-read stamp is keyed on when
+   it was written. */
+function scBriefOf(contractId){
+  if (!contractId) return null;
+  try {
+    const row = db.prepare('SELECT json FROM briefs WHERE contract_id=?').get(String(contractId));
+    if (!row) return null;
+    const b = JSON.parse(row.json) || {};
+    return { at: b.at || '', truncated: !!b.truncated };
+  } catch (_) { return null; }
 }
 /* The record rows, read exactly as the browser's signCheckRecord reads them:
    `metadata` is what was read OUT OF the wording, the fields beside it are what
@@ -1446,25 +1454,37 @@ function scRecordSays(c, field){
   if (field === 'counterparty') return String((c && c.counterparty) || '').trim();
   return '';
 }
-/* What is open on the check, itemised with whether the row is an ESCALATION —
-   `advise` holds only those, `require` holds every row. A finding accepted by
-   somebody the escalation did not name is still open, and says so. */
+/* What is open on the check. The DEPARTURES are js/signgate.js's
+   (sgDepartures — the card's own question, so the two cannot disagree about
+   which hold on which gate: an escalation on advise, every one on require; an
+   acceptance by the wrong person, or one given against wording that has since
+   moved, is still open and says so). `opts.signer` {who, brief, briefRead}
+   adds OUR signer's own question — the brief that stands for this wording,
+   read by them — and is passed only at the in-app signature: a link is the
+   counterparty's, and our brief is never theirs to read. On require the record
+   rows and "no review on file" hold too, as before. */
+const SC_WHY_WORDS = {
+  stale: cat => `an escalated departure on "${cat}" accepted against wording that has since moved`,
+  'wrong-person': cat => `an escalated departure on "${cat}" accepted by somebody it was not escalated to`,
+  escalated: cat => `an escalated departure on "${cat}"`,
+  unaccepted: cat => `an unaccepted departure on "${cat}"`,
+};
 function srvSignCheckOpen(c, opts){
-  const all = [];
-  const pb = c && c.playbook;
-  if (!pb || !Array.isArray(pb.verdicts)) all.push({ text: 'no standards review on file', esc: false });
-  else for (const v of pb.verdicts){
-    if (!v || (v.status !== 'deviation' && v.status !== 'missing')) continue;
-    if (scAcceptedProperly(v)) continue;
-    const cat = String(v.category || 'a standard');
-    all.push({ esc: !!v.escalate, text: v.accepted && v.accepted.at
-      ? `an escalated departure on "${cat}" accepted by somebody it was not escalated to`
-      : `${v.escalate ? 'an escalated' : 'an unaccepted'} departure on "${cat}"` });
-  }
   const out = [];
   const gate = (opts && opts.gate) || scGate();
-  const take = x => { if (gate === 'require' || (gate === 'advise' && x.esc)) out.push(x.text); };
-  all.forEach(take);
+  if (gate === 'off' || !c) return out;
+  const pb = c && c.playbook;
+  if (gate === 'require' && (!pb || !Array.isArray(pb.verdicts))) out.push('no standards review on file');
+  for (const r of sgDepartures(c, { gate, isAdmin: scIsAdminId })) {
+    if (!r.holds) continue;
+    out.push((SC_WHY_WORDS[r.why] || SC_WHY_WORDS.unaccepted)(r.category || 'a standard'));
+  }
+  const s = opts && opts.signer;
+  if (s && s.who) {
+    const read = Object.assign({}, (c && c.briefRead) || {}, s.briefRead || {});
+    if (sgBriefReadOwed({ ...c, briefRead: read }, s.brief, s.who, gate))
+      out.push('the signer has not read the brief written for this wording');
+  }
   if (gate !== 'require') return out;
   const m = (c && c.metadata) || {};
   const kept = (c && c.recordAccepted) || {};
@@ -1480,14 +1500,17 @@ function srvSignCheckOpen(c, opts){
   }
   return out;
 }
-/* The one refusal both signing doors ask. Null where the gate is off or
-   nothing is open — a wall that is always there is not a wall, it is a door
-   that does not open. */
-function signCheckRefusal(c){
+/* The one refusal every signing door asks — the in-app signature (with its
+   signer), the counterparty's signature and the issuing of a signing link
+   (without). Null where the gate is off or nothing is open — a wall that is
+   always there is not a wall, it is a door that does not open. THIS SENTENCE
+   IS OUR SIDE'S: it names internal departures, so the counterparty's door
+   says SC_NOT_READY and this goes on the trail (scRecordHeldSignature). */
+function signCheckRefusal(c, opts){
   const gate = scGate();
   if (gate === 'off') return null;
   if (!c) return null;
-  const open = srvSignCheckOpen(c, { gate });
+  const open = srvSignCheckOpen(c, { gate, signer: opts && opts.signer });
   if (!open.length) return null;
   return (gate === 'require'
       ? 'This workspace requires a check before signing, and it is not clear yet: '
@@ -1495,6 +1518,29 @@ function signCheckRefusal(c){
     + open.slice(0, 3).join('; ')
     + (open.length > 3 ? `, and ${open.length - 3} more` : '')
     + '. Settle or accept each one on the Signing tab first.';
+}
+/* THE COUNTERPARTY'S SENTENCE for every hold that is our business — the
+   approval, the approval rules and the check before signing alike. Who has to
+   approve, which standard we departed from and what our colleague made of it
+   are internal; they are told only that the contract is not ready yet. */
+const SC_NOT_READY = 'This contract is not ready to be signed yet. The sender will let you know when it is — '
+  + 'you can still read it and comment in the meantime.';
+/* AND OUR SIDE IS TOLD WHY, on the trail the counterparty never sees (the
+   audit never travels). Once per reason in ten minutes, so a counterparty
+   pressing Sign twice writes one line; never fails the refusal it records. */
+function scRecordHeldSignature(contractId, why){
+  if (!contractId || !why) return;
+  try {
+    const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(contractId));
+    if (!row) return;
+    const cj = JSON.parse(row.json);
+    const trail = Array.isArray(cj.audit) ? cj.audit : [];
+    const detail = `The counterparty tried to sign and was told the contract is not ready yet. Our reason: ${why}`;
+    const recent = Date.now() - 600000;
+    if (trail.some(a => a && a.detail === detail && (Date.parse(a.at || '') || 0) >= recent)) return;
+    cj.audit = trail.concat([{ at: now(), user: 'HaTi', action: 'Signature held', detail }]);
+    db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), String(contractId));
+  } catch (_) {}
 }
 /* ============================================================
    APPROVAL BEFORE SIGNING — the server's half (23 Sep 2026)
@@ -4921,7 +4967,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     const had = new Set((Array.isArray(prev.signatures) ? prev.signatures : []).filter(inApp).map(key));
     const fresh = (Array.isArray(c.signatures) ? c.signatures : []).filter(inApp).filter(x => !had.has(key(x)));
     if (fresh.length) {
-      const refusal = signCheckRefusal(prev);
+      /* WITH ITS SIGNER (4 Oct 2026): the brief that stands for this wording,
+         read by the person signing — the card's mandatory last step, now the
+         wall's too. The stamp may ride this same save (c.briefRead), so it is
+         read from the incoming record over the stored one; it is the signer's
+         own claim either way, keyed on facts the server holds. */
+      const refusal = signCheckRefusal(prev, { signer: { who: req.user && req.user.id,
+        brief: scBriefOf(req.params.id), briefRead: c.briefRead } });
       if (refusal) return res.status(403).json({ error: refusal, signCheck: true });
     }
   }
@@ -13357,8 +13409,30 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     /* AND THE APPROVAL RULES (27 Sep 2026): a signing link would let the other
        side sign first and go round an open step. Not once signing has begun —
        the rules are asked at the start of signing, as the save's own are. */
-    const ruled = (stored && !saStarted(stored, { responded: srvSaResponded(shareId) })) ? srvApprovalChainRefusal(stored) : null;
+    const started = !!(stored && saStarted(stored, { responded: srvSaResponded(shareId) }));
+    const ruled = (stored && !started) ? srvApprovalChainRefusal(stored) : null;
     if (ruled) return res.status(409).json({ error: ruled, approvalRule: true });
+    /* ---- AND THE REST OF THE ONE LIST, AT THE WALL (4 Oct 2026) ----
+       The browser's issuing doors (signLinkRefusal, js/core.js) ask these
+       too; a link minted round them was a link refused at signing a day
+       later, with the counterparty told something had gone wrong.
+         · A CONTRACT ON HOLD is not signed — the respond route refuses it, so
+           a link issued now is a dead link.
+         · THE DESK: reaching the counterparty is the lead's act (deskMaySend —
+           an admin is not exempt; they take the lead first). Asked only
+           before signing has begun: once our signatures are on, issuing the
+           next signer's link is the route carrying itself, and the desk
+           never gates signing.
+         · THE CHECK BEFORE SIGNING, at this workspace's gate and with no
+           signer — the counterparty's signature, refused at respond by the
+           same function. Before signing has begun, for the desk's reason:
+           our first signature already passed it. */
+    if (stored && stored.hold && stored.hold.at)
+      return res.status(409).json({ error: `${contractRef(stored)} is on hold while a dispute is dealt with, so a signing link cannot be issued. Release the hold first.`, heldFreeze: true });
+    if (stored && !started && deskRuleOn() && deskIsClaimed(stored) && deskSeatOf(stored, req.user) !== 'lead')
+      return res.status(403).json({ error: `Only ${deskLeadName(stored)}, who leads this negotiation, sends it to the other side — including the signing link.`, desk: 'not-the-lead' });
+    const checked = (stored && !started) ? signCheckRefusal(stored) : null;
+    if (checked) return res.status(409).json({ error: checked, signCheck: true });
   }
   /* ---- THE SHARE BUTTON REACHES THE ROUTE (auto-bind) ----
      Only the route's own issued links used to carry the signer binding, so a
@@ -15260,7 +15334,15 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
     let stored = null; try { stored = row ? JSON.parse(row.json) : null; } catch (_) { stored = null; }
     const refusal = stored ? signCheckRefusal(stored) : null;
-    if (refusal) return res.status(403).json({ error: refusal, signCheck: true });
+    /* THEY ARE TOLD WHAT THE APPROVAL'S REFUSAL TELLS THEM (4 Oct 2026): the
+       reason named our internal departures and who had or had not accepted
+       them — our negotiating position, read out to the other side. The same
+       neutral sentence as the approval wall below; the reason is ours, and it
+       goes on our trail. */
+    if (refusal) {
+      scRecordHeldSignature(s.contract_id, refusal);
+      return res.status(403).json({ error: SC_NOT_READY, signCheck: true, notReady: true });
+    }
   }
   /* ---- AND NOBODY SIGNS BEFORE THE APPROVAL (23 Sep 2026) ----
      The wall for a link minted before the approval was owed, or one whose
@@ -15274,10 +15356,7 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
        step is the sender's business. Asked only while signing has not begun. */
     if (stored && (srvSignApprovalRefusal(stored)
       || (!saStarted(stored, { responded: srvSaResponded(s.contract_id) }) && srvApprovalChainOpenOf(stored).length)))
-      return res.status(409).json({
-        error: 'This contract is not ready to be signed yet. The sender will let you know when it is — '
-          + 'you can still read it and comment in the meantime.',
-        notReady: true });
+      return res.status(409).json({ error: SC_NOT_READY, notReady: true });
   }
   if (r.action === 'sign') {
     /* ---- W7: A SIGNATURE LANDS ON ITS OWN ROW, OR NOT AT ALL ----

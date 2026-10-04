@@ -541,6 +541,9 @@ function buildWorld(opts = {}) {
     if (!opts.playbook && !opts.copilotRead && !opts.standards) files.push(PLAYBOOK);
     if (!opts.obligations) files.push(OBLIGATIONS);
     if (!files.includes(DEDUPE)) files.push(DEDUPE);
+    /* The wall's own reading (4 Oct 2026): signcheck.js borrows its date walk
+       and its acceptance question, as js/app.js loads them. */
+    files.push('js/signgate.js');
     files.push(SIGNCHECK);
   }
   /* The guard is the one this file already uses for intelView and obligations:

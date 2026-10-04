@@ -232,7 +232,11 @@ describe('f375 (6) the screens ask the one reading', () => {
     const refusedRule = { name: 'Value ≥ KES 5M', status: 'rejected', by: 'Amina Otieno' };
     const ctl = readiness({ required: true, ok: false, chain: [refusedRule], next: refusedRule, rejected: [refusedRule], stale: [] });
     assert.match(said(ctl), /^block:.*refused/i, '[control] a refused RULE step still blocks');
-    assert.match(CORE, /if\(saHeld\)\{ toast\(saHeld,'err'\); return false; \}/);
+    /* RE-POINTED 4 Oct 2026 (f463): the send screen asks the ONE issuing check,
+       which asks the personal approval among the rest — still a refusal in its
+       own sentence, never an acknowledgeable risk. */
+    assert.match(CORE, /const sa=ask\(\(\)=>window\.signApprovalHoldsLinks&&signApprovalHoldsLinks\(c\)\);\s*if\(sa\) return \{ kind:'signapproval'/);
+    assert.match(CORE, /const no=signLinkRefusal\(c,\{ signerId:signerSel, email \}\);\s*if\(no\)\{ toast\(no\.why,'err'\); return false; \}/);
   });
   test('6f the workspace switch left the approvals panel; the person drawer holds the rule', () => {
     const SET = read('js/views/settings.js');

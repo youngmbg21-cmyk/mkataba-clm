@@ -215,20 +215,14 @@ function signCheckRecord(c){
    the shape the product does not produce, which is how it passed for a
    fortnight. The newest of the four is taken; the older two stay for any
    record shaped that way. */
-const BRIEF_AT_KEYS = ['createdAt', 'updatedAt', 'at', 'filedAt'];
+/* THE WALK MOVED TO js/signgate.js (4 Oct 2026) — `sgLastProposedAt`, same
+   keys, same answer — so the server's wall reads the date the card reads: the
+   brief-read stamp is keyed on it, and a second copy on the server would be
+   the drift that file exists to prevent. A stage without it answers 0, "we do
+   not know". */
 function signCheckBriefAt(c){
-  let last = 0;
-  const walk = list => (list || []).forEach(ch => {
-    if (!ch) return;
-    for (const k of BRIEF_AT_KEYS){
-      const t = Date.parse(String(ch[k] || '')) || 0;
-      if (t > last) last = t;
-    }
-  });
-  walk(c && c.changes);
-  const n = c && c.negotiation;
-  if (n && Array.isArray(n.rounds)) n.rounds.forEach(r => walk(r && r.changes));
-  return last;
+  const n = _scCall('sgLastProposedAt', c);
+  return typeof n === 'number' ? n : 0;
 }
 function signCheckBrief(c){
   const b = (c && c._brief) || null;
@@ -447,7 +441,17 @@ function signCheckMayAccept(c, v, user){
    paper, and the two need different sentences. pbCarryDecisions sets the flag
    when it carries a stamp onto a departure whose quote has changed. */
 function signCheckAcceptStale(v){ const a = v && v.accepted; return !!(a && a.staleQuote); }
+/* THE WALL'S OWN QUESTION (js/signgate.js, 4 Oct 2026). The server also counts
+   an acceptance stamped by somebody who IS an admin on the roster, so the card
+   asks the roster too — or it would hold what the wall lets through. */
+function signCheckIsAdminId(id){
+  const users = _scCall('getUsers');
+  const u = Array.isArray(users) ? users.find(x => x && String(x.id) === String(id)) : null;
+  return !!(u && String(u.role || '') === 'admin');
+}
 function signCheckAcceptedProperly(v){
+  const sg = _scW('sgAcceptedProperly');
+  if (typeof sg === 'function') return !!sg(v, signCheckIsAdminId);
   const a = v && v.accepted;
   if (!a || !a.at) return false;
   if (!v.escalate) return true;
@@ -801,7 +805,17 @@ function signReadinessFor(c){
   }
   return signReadiness(c, { light });
 }
-if (typeof window !== 'undefined') Object.assign(window, { signReadinessFor });
+/* ---- WHAT THE CHECK HOLDS AT A SIGNING LINK (4 Oct 2026) ----
+   The wall's own list (js/signgate.js `sgHolds`) at this workspace's gate,
+   with no signer: a link is the counterparty's signature, and our brief is
+   never theirs to read. The one issuing check (signLinkRefusal, js/core.js)
+   asks this, and the server's POST /api/shares asks the same function. */
+function signCheckLinkHolds(c){
+  const f = _scW('sgHolds');
+  if (typeof f !== 'function' || !c) return [];
+  try { return f(c, { gate: signCheckGate(), isAdmin: signCheckIsAdminId }) || []; } catch (_) { return []; }
+}
+if (typeof window !== 'undefined') Object.assign(window, { signReadinessFor, signCheckLinkHolds, signCheckIsAdminId });
 if (typeof window !== 'undefined') Object.assign(window, {
   SIGN_FIELD_OF, SIGN_BOX_FIELD, signFieldMarks,
   briefReadKey, briefReadOf, briefReadBy, briefMarkRead, briefReadWho, signCheckBriefStands,

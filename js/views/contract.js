@@ -8909,10 +8909,18 @@ async function issueSigningAct(c){
     logAudit(c,'Shared','A signing link was issued — the negotiation links on this contract are superseded and can no longer be answered');
     persist(c); renderWorkspace();
   };
+  /* THE ONE ISSUING CHECK FIRST (signLinkRefusal, 4 Oct 2026). It used to ask
+     only the personal approval and then fall through to the send screen, so
+     the room head, the Negotiate page, Copilot's work and the phone each
+     reached a dialog that refused what this press could have said. Refused
+     here, in the list's own sentence, with nothing opened. */
+  { const no=window.signLinkRefusal?signLinkRefusal(c):null;
+    if(no){ toast(no.why,'warn'); return; } }
   if(window.issueSigningRouteLinks){
     let out=null;
     try{ out=await issueSigningRouteLinks(c); }
     catch(e){ toast(e.message||'The signing links could not be issued','err'); return; }
+    if(out && out.refused){ toast(out.refused,'warn'); return; }
     if(out && out.links){
       supersededLine();
       const held=out.links.filter(x=>x.heldForTurn).length;
@@ -16304,7 +16312,9 @@ async function signDocument(c){
             : 'the signing links are issued from the route'}${out.links.length>1?'; the rest release automatically as each signer signs':''}`);
           renderSignButton(c); renderAuditSection(c);
         } else {
-          if(out && out.missingEmails)
+          if(out && out.refused)
+            toast(out.refused,'warn');
+          else if(out && out.missingEmails)
             toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it, or share a link by hand`,'err');
           else
             toast(i18t('ct_internal_complete'));
