@@ -35,6 +35,16 @@ const BRAIN_PARTS = [
   ['insights', 'hbInsightsToday', 'see', 1],
   /* Read, then ask (4 Oct 2026): an enlarged chart says what it shows, and one press asks Copilot why */
   ['chartread', 'hbReadHtml', 'see', 1],
+  /* One recipe language (work order Part 1, 4 Oct 2026): every board card is one recipe, drawn by one planner */
+  ['recipe', 'hbCardPlan', 'see', 1],
+  /* Several buttons at once (work order Part 2): Copilot's list of board actions, pressed by one applier */
+  ['boardtools', 'hbBoardApply', 'see', 1],
+  /* A data guide for Copilot (work order Part 3): what each field holds, sent beside the board */
+  ['dataguide', 'hbDataGuide', 'ai', 1],
+  /* Check and repair (work order Part 4): every card checked before it lands; one retry */
+  ['cardcheck', 'hbCardCheck', 'see', 1],
+  /* Preview and undo (work order Part 5): a big build waits for the reader; any change can be taken back */
+  ['boardundo', 'hbUndo', 'see', 1],
   ['upload', 'submitUpload', 'in', 0],
   ['newagr', 'openNewAgreement', 'in', 0],
   ['mailroom', 'POST /api/mailroom', 'in', 2],
@@ -108,6 +118,7 @@ const BRAIN_PARTS = [
   ['renewact', 'renewalDecisionAct', 'time', 1],
   /* Risks to look at (4 Oct 2026): the risk scan's list lives in the Redlines card */
   ['risklist', 'riskOpenOf', 'nego', 1],
+  ['riskwalk', 'riskEditStart', 'nego', 1],
   /* the six gaps closed (4 Oct 2026, owner: "build the six remaining gaps") */
   ['askkeep', 'presenceKeepAsks', 'nego', 1],
   ['kinds', 'requestsDoorCount', 'in', 2],
@@ -127,11 +138,11 @@ const BRAIN_FLOWS = [
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
-  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
+  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home', 'insights']] },
-  { id: 'ask', steps: [['explorer', 'chartread'], ['db'], ['model'], ['quote'], ['contracts'], ['explorer']] }
+  { id: 'ask', steps: [['explorer', 'chartread', 'recipe'], ['db'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo'], ['quote'], ['contracts'], ['explorer']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it

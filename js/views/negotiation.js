@@ -11913,9 +11913,6 @@ function rlWireClauseTools(c, host, opts){
      that knows how its host repaints, which is the rule stated at its top. */
   host.querySelectorAll('[data-rl-prepare]').forEach(b => b.addEventListener('click', () =>
     rlPrepareRedlines(c, again)));
-  /* A risk somebody pressed "Draft a redline" on in Risk View opens here, in
-     the column's own list, once the page has painted (js/risks.js). */
-  if (typeof window.riskAfterPaint === 'function') window.riskAfterPaint(c);
   /* "Edit a clause", the empty column's other door, is wired in
      wireNegotiationTab beside the paper's pencil — NOT here. It has to reach
      the editor through `openEditor`, the one named reading of what a press

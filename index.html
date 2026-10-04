@@ -8113,6 +8113,7 @@
   .hb-rc i{font-style:normal;font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--hb-mute)}
   .hb-rc.is-open{border-color:var(--hb-glow);box-shadow:0 0 0 1px var(--hb-glow) inset}
   .hb-rc.is-still{cursor:default}
+  .hb-rc-more{border-style:dashed;color:var(--hb-ink-2)} .hb-rc-more[aria-expanded="true"]{border-style:solid}
   .hb-rc:focus-visible,.hb-tg:focus-visible,.hb-rmenu button:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px}
   .hb-rmenu{position:absolute;top:calc(100% + 4px);left:0;z-index:20;min-width:260px;max-height:360px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid rgba(var(--hb-ln),.35);background:var(--hb-card);backdrop-filter:blur(var(--hb-blur));box-shadow:0 18px 40px -12px rgba(0,0,0,.6)}
   .hb-rmenu button{display:flex;align-items:center;gap:10px;width:100%;padding:7px 9px;border:0;border-radius:var(--radius);background:none;color:var(--hb-ink);font:inherit;font-size:var(--t-body);text-align:left;cursor:pointer}
@@ -8129,6 +8130,13 @@
   .hb-tr-say{margin:0 0 6px;font-size:var(--t-section);font-weight:var(--w-label);color:var(--hb-ink)}
   .hb-sv-col{fill:var(--hb-glow)} .hb-sv-colpast{fill:rgba(var(--hb-ln),.42)} .hb-sv-coledge{fill:rgba(var(--hb-ln),.3)} .hb-sv-colq{fill:rgba(var(--hb-ln),.22)}
   .hb-sv-colhollow{fill:none;stroke:var(--hb-mute);stroke-width:1.5;stroke-dasharray:3 3}
+  /* the recipe's other pictures: the period before, a heat grid's cells */
+  .hb-sv-colprev{fill:rgba(var(--hb-ln),.4)}
+  .hb-sv-heat{fill:var(--hb-glow)} .hb-sv-heat-ink{fill:var(--hb-on-glow)}
+  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-heat,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-heat{stroke:var(--hb-ink);stroke-width:1.5;fill:var(--hb-glow)}
+  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-col,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-col{stroke:var(--hb-ink);stroke-width:1.5;fill:var(--hb-glow)}
+  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-colprev,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-colprev{stroke:var(--hb-ink);stroke-width:1.5;fill:rgba(var(--hb-ln),.4)}
+  .hb-svg .hb-sv-cbox:hover>rect[style],.hb-svg .hb-sv-cbox:focus-visible>rect[style]{stroke:var(--hb-ink);stroke-width:1.5}
   /* a column's press area lights softly; the box itself is never outlined */
   .hb-svg .hb-sv-cbox:hover>rect,.hb-svg .hb-sv-cbox:focus-visible>rect{stroke:none;fill:rgba(var(--hb-ln),.06)}
   .hb-svg .hb-sv-cbox:hover>path,.hb-svg .hb-sv-cbox:focus-visible>path{stroke:var(--hb-ink);stroke-width:1.5}
@@ -8195,6 +8203,13 @@
   .hb-split>div{display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
   .hb-empty{grid-column:1 / -1;border:1px dashed rgba(var(--hb-ln),.3);border-radius:var(--radius-lg);padding:22px;text-align:center;color:var(--hb-mute);font-size:var(--t-body)}
   .hb-cost{margin-top:6px;font-size:var(--t-micro);color:var(--color-neutral-600)}
+  /* the preview of a big build, and Undo, inside the panel's answer (work order Part 5) */
+  .hb-undo-row{display:flex;padding-left:2px}
+  .hb-pv{display:flex;flex-direction:column;gap:6px;margin:2px 0 6px}
+  .hb-pv-h{font-weight:var(--w-label)}
+  .hb-pv-row{display:flex;align-items:flex-start;gap:8px;cursor:pointer;line-height:1.35}
+  .hb-pv-row input{margin-top:3px;flex:none;accent-color:var(--accent-fill,var(--color-accent-600))}
+  .hb-pv-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 
   /* present, the red pointer and the pen */
   .hb-tools{position:absolute;right:12px;bottom:12px;z-index:6;display:none;gap:6px}

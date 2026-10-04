@@ -1842,7 +1842,7 @@ async function intelAsk(qRaw){
      What it does not understand goes on exactly as on the map. No spend. */
   if(state.view==='dashboard' && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
-    if(said){ intel.history.push({role:'user', text:q}); intel.history.push({role:'assistant', text:said}); renderIntelDock(); return; }
+    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); renderIntelDock(); return; }
   }
   const h0=intel.history.length;
   intel.history.push({role:'user', text:q});
@@ -1974,17 +1974,22 @@ function igBoardNow(){
 function graphAskScreen(){
   return { groupBy:intel.groupBy, custom:!!intel.groups, lenses:graphLensesNow(), crowded:graphCrowdedQuarters(),
     lang:(typeof langPromptName==='function')?langPromptName():'', currency:(typeof jxCurrency==='function')?jxCurrency():'',
-    board:igBoardNow() };
+    board:igBoardNow(), guide:igBoardGuide() };
+}
+/* THE DATA GUIDE RIDES BESIDE THE BOARD (work order Part 3): what each field
+   holds, so Copilot picks fields that work; on the board only */
+function igBoardGuide(){
+  try{ return (igBoardNow() && typeof window.hbDataGuide==='function') ? (hbDataGuide(hbS().lens)||'') : ''; }catch(_){ return ''; }
 }
 async function intelGraphAsk(q){
   const act=intelActive();
-  let res=null, capped=null;
+  let res=null, capped=null, payload=null;
   if(API_MODE() && state.aiConfigured){
     try{
       const all=state.contracts||[];
       const cards=all.slice(0,GRAPH_ASK_CAP).map(graphCopilotCard);
       if(all.length>cards.length) capped={ sent:cards.length, total:all.length };
-      const payload={ query:q, contracts:cards, sent:cards.length, total:all.length,
+      payload={ query:q, contracts:cards, sent:cards.length, total:all.length,
         history: intel.history.slice(-9,-1).filter(m=>m.text).map(m=>({role:m.role,text:m.text})),
         activeIds: act.ids?[...act.ids]:null,
         screen: graphAskScreen() };
@@ -2007,9 +2012,13 @@ async function intelGraphAsk(q){
   /* ASKED ON THE BOARD, COPILOT PRESSES THE BOARD'S BUTTONS (4 Oct 2026): a
      chart-only answer changes the open chart (or draws a new one) and the map
      is left exactly as it was */
+  /* CHECK AND REPAIR (work order Part 4): Copilot's cards are checked before
+     they are applied; what fails goes back ONCE, at the cost of one more
+     call, and the panel says so */
   if(res&&igBoardNow()&&typeof window.hbBoardTakes==='function'){
-    let said=null; try{ said=hbBoardTakes(res); }catch(_){ said=null; }
-    if(said){ intel.history.push({ role:'assistant', text:said+igNoticeHtml(res.notice) }); return; }
+    const retry=payload?(note=>api('ai/graph','POST',Object.assign({},payload,{ query:q+'\n\n'+note, screen:graphAskScreen() }))):null;
+    let said=null; try{ said=(typeof window.hbBoardTakesChecked==='function')?await hbBoardTakesChecked(res,retry):hbBoardTakes(res); }catch(_){ said=null; }
+    if(said){ intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice) }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); return; }
   }
   if(!res){ res=graphInterpret(q);           // fallback
     /* The built-in reader understood nothing: say what the map can do, as
@@ -6104,6 +6113,10 @@ function igMsgHTML(m,i){
       ${''/* ASK BACK (the view recipe, 28 Sep 2026): when a request could mean
              more than one thing, or cannot be done as asked, the answer carries
              the two or three things it could mean, as presses. */}
+      ${''/* THE BOARD'S PRESSES (work order Part 5): a big build offered as a list
+             with ticks, and Undo for an answer that changed the board */}
+      ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
+      ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm" data-ig-choice="${i}:${j}">${igEsc(c.label)}</button>`).join('')}</div>`:''}
       ${(Number.isInteger(i)&&Array.isArray(m.listIds)&&m.listIds.length)?`<div class="igd-list" style="display:flex;gap:12px;flex-wrap:wrap;padding-left:2px"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:''}
       ${body}
@@ -6235,7 +6248,10 @@ function renderIntelDock(){
   dock.querySelectorAll('[data-ig-analyze]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); igAnalyze(b.getAttribute('data-ig-analyze')); }));
   dock.querySelectorAll('[data-ig-choice]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-choice')||'').split(':').map(Number); const m=intel.history[t], c=m&&m.choices&&m.choices[k];
-    if(!c) return; intel.history.push({ role:'user', text:c.label }); igRecipeRun({ acts:c.acts }); renderIntelDock(); updateIntelNote(); }));
+    if(!c) return; intel.history.push({ role:'user', text:c.label });
+    /* a choice on Home's board is that card's recipe, pressed through the board's one applier (work order Part 6) */
+    if(Array.isArray(c.board)&&typeof window.hbChoicePress==='function'){ const out=hbChoicePress(c); if(out) intel.history.push(Object.assign({ role:'assistant', text:out.html }, out.undo?{ undo:out.undo }:{})); renderIntelDock(); return; }
+    igRecipeRun({ acts:c.acts }); renderIntelDock(); updateIntelNote(); }));
   dock.querySelectorAll('[data-ig-saved]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const name=b.getAttribute('data-ig-saved'); intel.history.push({ role:'user', text:name }); igRecipeRun({ acts:[{ open:name }] }); renderIntelDock(); updateIntelNote(); }));
   dock.querySelectorAll('[data-ig-list]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();

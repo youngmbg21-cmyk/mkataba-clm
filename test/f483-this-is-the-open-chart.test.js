@@ -136,11 +136,16 @@ describe('F483 (2) — Copilot presses the board\'s buttons', () => {
   });
   test('target "new" with no set draws a new chart over the whole book', () => {
     const w = world();
-    open(w, 'Juno contracts by stage');
+    const k = open(w, 'Juno contracts by stage');
     w.hbBoardTakes({ chart: { pic: 'cols', split: { by: 'date', unit: 'q', date: 'end' }, target: 'new' }, note: 'Ending by quarter' });
-    const now = planNow(w);
-    assert.equal(now.k, 'ls'); assert.equal(now.D.n, 18);
-    assert.deepEqual(now.P.split, { by: 'date', unit: 'q', date: 'end' });
+    /* SEVERAL AT ONCE (work order Part 2): a new chart is a new CARD on the
+       board, the open one left as it was */
+    assert.equal(planNow(w).k, k, 'the open chart is untouched');
+    const p = w.hbS().panels.slice(-1)[0];
+    assert.ok(p && /^cd:/.test(p.key) && p.title === 'Ending by quarter', JSON.stringify(p));
+    const D = w.hbDigData(p.key, 'all');
+    assert.equal(D.n, 18);
+    assert.deepEqual(JSON.parse(JSON.stringify(w.hbPlan(D).split)), { by: 'date', unit: 'q', date: 'end' });
   });
   test('an answer that names a set is left to the list road; a map answer is the map\'s', () => {
     const w = world();
@@ -168,12 +173,32 @@ describe('F483 (2) — Copilot presses the board\'s buttons', () => {
     assert.deepEqual(arr('GRAPH_CHART_PICS').slice().sort(), Array.from(w.HB_PICS).slice().sort());
     assert.deepEqual(arr('GRAPH_CHART_DATES').slice().sort(), Array.from(w.HB_DATES).slice().sort());
     assert.deepEqual(arr('GRAPH_CHART_MEASURES').slice().sort(), Array.from(w.HB_MEASURES).slice().sort());
-    const i = SERVER.indexOf('function graphChartClean('), fn = SERVER.slice(i, SERVER.indexOf('\n}\n', i) + 2);
-    const clean = c => vm.runInNewContext(arr.toString() && `const GRAPH_CHART_PICS=${JSON.stringify(arr('GRAPH_CHART_PICS'))};const GRAPH_CHART_DATES=${JSON.stringify(arr('GRAPH_CHART_DATES'))};const GRAPH_CHART_MEASURES=${JSON.stringify(arr('GRAPH_CHART_MEASURES'))};${fn}\ngraphChartClean(C);`, { C: c });
+    /* ONE RECIPE LANGUAGE (work order Part 1): every part's list is the board's */
+    assert.deepEqual(arr('GRAPH_CHART_SORTS').slice().sort(), Array.from(w.HB_SORTS).slice().sort());
+    assert.deepEqual(arr('GRAPH_CHART_DIRS').slice().sort(), Array.from(w.HB_DIRS).slice().sort());
+    assert.deepEqual(arr('GRAPH_CHART_COMPARES').slice().sort(), Array.from(w.HB_COMPARES).slice().sort());
+    assert.deepEqual(arr('GRAPH_CHART_UNITS').map(u => ({ month: 'm', quarter: 'q', year: 'y' })[u]).sort(), Array.from(w.HB_UNITS).slice().sort());
+    assert.equal(Number(/const GRAPH_CHART_TOP_MAX = (\d+)/.exec(SERVER)[1]), w.HB_TOP_MAX);
+    assert.equal(Number(/GRAPH_CHART_TITLE_MAX = (\d+)/.exec(SERVER)[1]), w.HB_TITLE_MAX);
+    const groups = vm.runInNewContext('(' + /const GRAPH_CHART_GROUP_OF = (\{[^}]*\})/.exec(SERVER)[1] + ')');
+    assert.deepEqual(Object.values(groups).sort(), Array.from(w.HB_SPLIT_GROUPS).slice().sort(), 'every group the board splits by has a word');
+    const consts = SERVER.split('\n').filter(l => /^const GRAPH_CHART_[A-Z_]+ = /.test(l) && !/GRAPH_CHART_PROPS/.test(l)).join('\n');
+    const fnOf = name => { const i = SERVER.indexOf('function ' + name + '('); return SERVER.slice(i, SERVER.indexOf('\n}\n', i) + 2); };
+    const clean = c => vm.runInNewContext(`${consts}\n${fnOf('graphChartSplit')}\n${fnOf('graphChartClean')}\ngraphChartClean(C);`, { C: c });
     assert.deepEqual(JSON.parse(JSON.stringify(clean({ pic: 'ring', split: 'stream', target: 'open' }))), { pic: 'ring', split: { by: 'folder' }, target: 'open' });
     assert.deepEqual(JSON.parse(JSON.stringify(clean({ trend: false, target: 'open' }))), { trend: false, target: 'open' }, '"remove the trend" can be said');
     assert.equal(clean({ target: 'open' }), null, 'a target alone is nothing to do');
     assert.deepEqual(JSON.parse(JSON.stringify(clean({ measure: 'live' }))), { measure: 'live' });
+    /* the server's cleaner and the board's agree, part by part */
+    const said = { pic: 'stack', split: 'month', date: 'signed', split2: 'stream', measure: 'value', sort: { by: 'value', dir: 'up' }, top: 5,
+      window: { last: 12, unit: 'month', date: 'signed' }, compare: 'year', title: '  Renewals  watch ' };
+    const S = JSON.parse(JSON.stringify(clean(said)));
+    assert.deepEqual(S, { pic: 'stack', measure: 'value', split: { by: 'date', unit: 'm', date: 'signed' }, split2: { by: 'folder' }, sort: { by: 'value', dir: 'up' }, top: 5,
+      window: { last: 12, unit: 'm', date: 'signed' }, compare: 'year', title: 'Renewals watch' });
+    assert.deepEqual(JSON.parse(JSON.stringify(w.hbCardClean(S))), S, 'what the server cleans, the board keeps whole');
+    assert.equal(clean({ top: 0 }), null, 'a top of nothing is dropped'); assert.equal(clean({ top: 999 }), null);
+    assert.equal(clean({ window: { last: 500, unit: 'month' } }), null, 'a period past the limit is dropped');
+    assert.equal(clean({ compare: 'sometimes' }), null);
   });
   test('on the board, the prompt leads with the board\'s job and its buttons', () => {
     const SERVER = read('server/server.js');
