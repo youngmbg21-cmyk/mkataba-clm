@@ -224,3 +224,29 @@ describe('F482 (F) — Copilot is shown the board', () => {
     assert.equal(cq[0].label, 'over 1M');
   });
 });
+
+describe('F482 (G) — an axis never says one number twice', () => {
+  const axis = body => [...String(body).matchAll(/<text x="\d+(?:\.\d+)?" y="[\d.]+" text-anchor="end" font-size="12" class="hb-sv-mute">([^<]*)<\/text>/g)].map(m => m[1]);
+  test('one or two contracts a month: the scale reads 0, 1, 2, 3, 4 — never "2, 1, 1, 0, 0"', () => {
+    const dates = []; for (let i = 0; i < 6; i++) for (let k = 0; k < 1 + (i % 2); k++) dates.push(mon(i - 7, 3 + k));
+    /* the tallest column is 2: the undated executed ones are left out here */
+    const w = world(book(dates).filter(c => c.status !== 'Signed' || c.signedAt));
+    const { D, cs, P } = card(w, 'signed contracts by month');
+    const labels = axis(w.hbColsSvg(D, cs, P).body);
+    assert.equal(labels.length, 5, JSON.stringify(labels));
+    assert.equal(new Set(labels).size, 5, 'every label differs: ' + JSON.stringify(labels));
+    assert.deepEqual(labels, ['0', '1', '2', '3', '4']);
+  });
+  test('the same rule holds for live contracts each month', () => {
+    const w = world();
+    w.hbSnapsSet([0, 1, 2, 3, 4, 5].map(i => ({ month: mon(i - 6).slice(0, 7), live: 1 + (i % 2) })));
+    const D = w.hbDigData('q:How many live contracts did we have each month?', 'all');
+    const labels = axis(w.hbLiveSvg(D, w.hbPlan(D)).body);
+    assert.equal(new Set(labels).size, labels.length, JSON.stringify(labels));
+  });
+  test('money keeps its own steps', () => {
+    const w = world();
+    assert.equal(w.hbAxisTop(8300, false), 10000);
+    assert.equal(w.hbAxisTop(2.24, true), 4);
+  });
+});
