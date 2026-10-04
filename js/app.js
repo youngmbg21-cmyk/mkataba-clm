@@ -1763,6 +1763,14 @@ const ALERT_KINDS = [
      handed you, reads the record, and clears when the note is done. */
   { k:'note-mine',   tone:'amber', ic:'&#128221;' },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
+  /* ---- EVERY APPROVAL RULE STEP IS GIVEN (4 Oct 2026, the process review) ----
+     To the contract's OWNER, beside the approvals it ends: the last rule step
+     cleared and nothing else on the chain waits, so it can go for signature.
+     The server mails the same moment (ruleChainClearedTell). Green — good
+     news, the next move is theirs. The internal signer needs no row of their
+     own: their 'signature' row above is already theirs. It goes away by
+     itself the moment signing starts. */
+  { k:'ap-cleared',  tone:'green', ic:'&#9989;'  },
   /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
      A REGISTERED KIND, not a special case at the draw. It arrived as a warn
      toast and on a real workspace that meant four orange boxes stacked over the
@@ -2005,6 +2013,20 @@ function buildAlerts(){
         &&meNow&&String(s.req.askedBy.id)===String(meNow.id));
       if(bad) push('approval',x.c,i18t('al_sa_refused',{who:bad.by||''}),
         ()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} });
+    });
+    /* ---- AND WHEN THE LAST RULE STEP IS GIVEN, THE OWNER IS TOLD ----
+       Read off approvalRulesCleared (js/approvals.js); only rule chains (a named
+       person's yes already tells whoever asked), only before anyone signs. */
+    if(meNow && typeof approvalRulesCleared==='function') cs.forEach(c=>{
+      if(c.status==='Signed'||c.status==='Declined'||c.status==='Draft') return;
+      if(!(c.owner&&String(c.owner.id)===String(meNow.id))) return;
+      if((Array.isArray(c.signatures)&&c.signatures.length)||(c.signerPlan||[]).some(s=>s&&s.signed)) return;
+      let ok=false; try{ ok=approvalRulesCleared(c); }catch(_){ ok=false; }
+      if(!ok) return;
+      /* A named person's yes still owed is not "cleared" — that row says so. */
+      try{ if(typeof signApprovalStateOf==='function'&&signApprovalStateOf(c).rows.some(r=>r.status!=='approved')) return; }catch(_){}
+      push('ap-cleared',c,i18t('al_ap_cleared'),
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} });
     });
     /* ---- A NEGOTIATION GONE QUIET, AND A COLLEAGUE ASKING TO JOIN ----
        (24 Sep 2026.) Read off the same slices the approvals above ride on —

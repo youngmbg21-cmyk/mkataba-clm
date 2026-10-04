@@ -375,23 +375,28 @@ const signIn = async (page, base, email, pass) => {
     await page.waitForTimeout(500);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 
-    await page.click('[data-st-panel="approvals"]'); await page.waitForTimeout(600);
+    /* RE-POINTED 4 Oct 2026 (the process review, approved): the limit and the
+       folder rule each have a row of their own now, under "Before anyone
+       signs", instead of two switches folded into the approval rules. */
+    await page.click('[data-st-panel="signcap"]'); await page.waitForTimeout(600);
     const ladder = await page.evaluate(VISIBLE, '#sc-ladder');
     const sw = await page.evaluate(() => ({
       on: document.getElementById('sc-rule-on').checked,
       rows: document.querySelectorAll('#sc-ladder .st-frow').length,
       note: document.getElementById('sc-ladder').textContent,
     }));
-    check('the ladder is drawn beside the approval rules and the switch is OFF',
+    check('the ladder is drawn on the signing limits row and the switch is OFF',
       ladder.ok && sw.on === false && sw.rows >= 3, `${sw.rows} rows · switch ${sw.on}`);
+    check('and it says out loud that the limits are recorded, not enforced',
+      /not enforced/i.test(sw.note), sw.note.replace(/\s+/g, ' ').trim().slice(-70));
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    await page.click('[data-st-panel="signfolder"]'); await page.waitForTimeout(600);
     const sfSwitch = await page.evaluate(() => {
       const b = document.getElementById('sf-rule-on');
       return b ? { there: true, on: b.checked } : { there: false };
     });
-    check('and the folder rule has its OWN switch, also off by default',
+    check('and the folder rule has its OWN row and switch, also off by default',
       sfSwitch.there && sfSwitch.on === false, JSON.stringify(sfSwitch));
-    check('and it says out loud that the limits are recorded, not enforced',
-      /not enforced/i.test(sw.note), sw.note.replace(/\s+/g, ' ').trim().slice(-70));
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 
     /* ---- CLEARING THE SAMPLES, end to end ----

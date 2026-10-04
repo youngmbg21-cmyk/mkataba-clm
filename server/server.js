@@ -22,7 +22,7 @@ const { graphWhereHit } = require('../js/graphwhere.js');
    before anyone signs it (23 Sep 2026). ONE reading for both hosts — the
    screen and this wall ask the same questions of the same record, so they
    cannot come to different answers about whether a contract may be signed. */
-const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide,
+const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide, saWorkdays,
   SA_NOTE_MAX, SA_KEEP, SA_REMIND_WORKDAYS, SA_ESCALATE_WORKDAYS } = require('../js/signapproval.js');
 /* Redline here, sign there (26 Sep 2026): the working reference, the contract
    number, the handover's clock and the word check. ONE reading for both hosts,
@@ -1732,9 +1732,9 @@ function srvApprovalChainOpenOf(c, prev) {
   const open = [];
   for (const r of rules) {
     const step = chain.find(p => p && p.ruleId === r.id);
-    if (!step || step.status !== 'approved') { open.push({ name: r.name, status: step ? (step.status || 'pending') : 'pending' }); continue; }
+    if (!step || step.status !== 'approved') { open.push({ ruleId: r.id, name: r.name, status: step ? (step.status || 'pending') : 'pending' }); continue; }
     const st = step.stamp;
-    if (st && (Number(st.value || 0) !== now.value || String(st.doc || '') !== now.doc)) open.push({ name: r.name, status: 'stale' });
+    if (st && (Number(st.value || 0) !== now.value || String(st.doc || '') !== now.doc)) open.push({ ruleId: r.id, name: r.name, status: 'stale' });
   }
   return open;
 }
@@ -1778,6 +1778,12 @@ function srvApprovalDecisionRefusal(prev, c, u) {
     if (!rule) continue;                     // a step no rule asks for unlocks nothing
     if (!srvUserCanApprove(rule.approver || {}, u))
       return `Only the approver the rule names can decide the approval step “${rule.name}”.`;
+    /* ONE SET OF RULES FOR ASKING A COLLEAGUE (4 Oct 2026, the process
+       review): a refusal says why, on a rule step exactly as on a named
+       person's yes (srvSignApprovalMerge asks the same of a decision there).
+       A refusal with no reason sends the argument into email. */
+    if (s.status === 'rejected' && !String(s.comment || '').trim())
+      return `A refusal of “${rule.name}” says why — the owner needs to know what to change.`;
     if (String(s.by || '') !== String((u && u.name) || ''))
       return `An approval step is recorded in the name of the person who decides it.`;
     const i = matched.findIndex(r => r.id === rule.id);
@@ -5171,10 +5177,21 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       const nx = plan.find(x => !x.signed);
       return nx ? String(nx.id) : '';
     };
+    const chainCleared = !!prev && srvApprovalChainOpenOf(prev).length > 0 && !srvApprovalChainOpenOf(c, prev).length;
     if (turnOf(c) && turnOf(prev) !== turnOf(c)) notifyInternalSignerTurn(req, c.id);
     /* ...and when this save GAVE the approval signing was waiting on, the turn
        that notice was holding is announced now (23 Sep 2026). */
     else if (prev && srvSignApprovalRefusal(prev) && !srvSignApprovalRefusal(c)) notifyInternalSignerTurn(req, c.id);
+    /* ...and the same when this save CLEARED THE LAST APPROVAL RULE STEP
+       (4 Oct 2026, the process review): the internal signer whose notice
+       notifyInternalSignerTurn held back for it is told now, and so is the
+       contract's owner. Before this nobody was told at all. */
+    else if (chainCleared) notifyInternalSignerTurn(req, c.id);
+    if (chainCleared) ruleChainClearedTell(req, c, req.params.id);
+    /* A RULE STEP THAT HAS BECOME SOMEBODY'S TO DECIDE is mailed to them —
+       the named-yes rule, now the rule steps' too. See ruleStepDue. */
+    const due = prev ? ruleStepDue(prev, c) : null;
+    if (due) ruleStepTell(req, c, due, 'due');
   } catch (_) { /* the save is the thing that matters */ }
   /* The save may have moved who is on the route, so the server's reading of
      the approvals it needs rides back with the answer — read with the whole
@@ -11914,6 +11931,14 @@ app.post('/api/contracts/:id/sign-approval-notify', auth, editor, async (req, re
    request sent again starts its own clock. A lapsed request is not chased: it
    has to be sent again, and the person who sent it is the one who is told. */
 async function runSignApprovalReminders() {
+  /* The rule steps ride this sweep (4 Oct 2026): the same timer, the same
+     admin "run it now", their own count beside the named yes's. */
+  const named = await runNamedYesReminders();
+  let ruleSteps = null;
+  try { ruleSteps = await runRuleStepReminders(); } catch (e) { ruleSteps = { error: (e && e.message) || String(e) }; }
+  return { ...named, sent: (named.sent || 0) + ((ruleSteps && ruleSteps.sent) || 0), ruleSteps };
+}
+async function runNamedYesReminders() {
   const rows = db.prepare("SELECT id, folder, json FROM contracts WHERE status!='Declined' AND status!='Signed' AND json LIKE '%signApprovals%'").all();
   if (!rows.length) return { checked: 0, sent: 0 };
   const all = db.prepare('SELECT * FROM users').all();
@@ -11945,6 +11970,132 @@ async function runSignApprovalReminders() {
   return { checked: rows.length, sent };
 }
 
+
+/* ════ ONE SET OF RULES FOR ASKING A COLLEAGUE (4 Oct 2026, the process
+   review) ════════════════════════════════════════════════════════════════
+   A named person's yes was mailed, reminded and escalated; an approval RULE
+   step told nobody — its approver found it on their own list or not at all,
+   and when the last step cleared, the owner and the signer whose "your turn"
+   notice had been held back for it were never told either. The rule steps
+   now ride the named yes's own cadence, through the same send and the same
+   reminders table, and nothing about either record changes: c.approvalChain
+   and c.signApprovals stay what they were.
+
+   WHEN A STEP IS "DUE": it is the first open step of the chain, waiting on
+   its approver (pending, or approved over wording that has since moved), and
+   the contract has left Draft — the moment named-yes asks too ("nothing new
+   appears until the deal is agreed"), so a draft crossing a value line while
+   it is still being written mails nobody. It is asked as a DIFFERENCE between
+   the stored and the saved record, so a save that leaves it where it was sends
+   nothing. A refused step is the OWNER's move, never the approver's. Once
+   signing has started the approval has done its work. */
+function ruleStepDueOf(c) {
+  if (!c || c.status === 'Draft' || c.status === 'Signed' || c.status === 'Declined') return null;
+  const f = srvApprovalChainOpenOf(c)[0];
+  return (f && f.status !== 'rejected') ? f : null;
+}
+function ruleStepDue(prev, c) {
+  if (!c || !prev || saStarted(c, { responded: srvSaResponded(c.id) })) return null;
+  const now = ruleStepDueOf(c);
+  if (!now) return null;
+  const was = ruleStepDueOf(prev);
+  return (!was || was.ruleId !== now.ruleId || was.status !== now.status) ? now : null;
+}
+/* userCanApprove's people, as addresses: a named member by name, an admin
+   step the admins, a legal step legal (and the admins where nobody is legal),
+   any other role its holders. srvUserCanApprove is the wall; this only
+   decides who is TOLD. */
+function ruleStepPeople(rule, users) {
+  const a = (rule && rule.approver) || {};
+  if (a.kind === 'member') return users.filter(u => String(u.name || '') === String(a.name || ''));
+  if (a.role === 'admin') return users.filter(u => u.role === 'admin');
+  if (a.role === 'legal') {
+    const legal = users.filter(u => u.role === 'legal');
+    return legal.length ? legal : users.filter(u => u.role === 'admin');
+  }
+  return users.filter(u => a.role && u.role === a.role);
+}
+/* The one send for a rule step: due, remind, escalate. Recipients go through
+   saMailTo (an address on file and the contract's stream in reach); the value
+   is left out for anybody who may not see money (saMailFacts). The clock a
+   reminder counts from is the `ar:` row written when the step fell due. */
+async function ruleStepTell(req, c, step, kind, extra) {
+  try {
+    const rule = srvApprovalRules().find(r => r && r.id === step.ruleId);
+    if (!rule) return { n: 0 };
+    const all = db.prepare('SELECT * FROM users').all();
+    const deciders = ruleStepPeople(rule, all);
+    let to = kind === 'escalate'
+      ? all.filter(u => u.role === 'admin' && !deciders.some(d => String(d.id) === String(u.id)))
+      : deciders;
+    if (req && req.user && kind === 'due') to = to.filter(u => String(u.id) !== String(req.user.id));
+    to = saMailTo(to, c.folder);
+    if (kind === 'due') db.prepare('INSERT OR IGNORE INTO reminders (rkey,created_at) VALUES (?,?)')
+      .run(`ar:${c.id}:${step.ruleId}:due:${now()}`, now());
+    const cName = c.name || c.id;
+    const link = contractUrl(req, c.id, 'sign');
+    let n = 0, first = null;
+    for (const u of to) {
+      const L = langForEmail(u.email);
+      const v = { step: rule.name, name: cName, id: contractRef(c), n: extra && extra.days,
+        who: deciders.map(d => d.name).filter(Boolean).join(', ') || rule.name };
+      const subject = tFor(L, `mail_ar_${kind}_subject`, v);
+      const lines = [tFor(L, (kind === 'due' && step.status === 'stale') ? 'mail_ar_due_stale' : `mail_ar_${kind}_line`, v), '',
+        `${cName} (${contractRef(c)})`, saMailFacts(c, u), '', tFor(L, 'mail_ar_open'), link];
+      const body = `${tFor(L, 'mail_hello')} ${u.name || ''},\n\n${lines.join('\n')}\n\n${tFor(L, 'mail_automated_notice')}`;
+      const sent = await sendEmail(u.email, subject, body, `approval rule ${kind}: ${c.id} -> ${u.email}`);
+      if (!first) first = { u, sent: mailReport(sent) };
+      if (sent && sent.sent) n++;
+    }
+    return { n, first, to: to.length };
+  } catch (e) { return { n: 0, error: String((e && e.message) || e).slice(0, 200) }; }
+}
+/* The last step cleared: the owner hears it (the signer's own turn notice is
+   notifyInternalSignerTurn's, sent beside this). Nobody hears it twice — the
+   person whose save cleared it is looking at it. */
+async function ruleChainClearedTell(req, c, id) {
+  try {
+    const own = contractOwnerRecipient(c, c.folder);
+    if (!own || !own.row || (req && req.user && String(own.row.id) === String(req.user.id))) return { n: 0 };
+    const L = langForEmail(own.email, own.lang);
+    const cName = c.name || id;
+    const body = `${tFor(L, 'mail_hello')} ${own.name || ''},\n\n`
+      + [tFor(L, 'mail_ar_clear_line', { name: cName }), '', `${cName} (${contractRef(c)})`, '', tFor(L, 'mail_at_open'), contractUrl(req, id, 'sign')].join('\n')
+      + `\n\n${tFor(L, 'mail_automated_notice')}`;
+    const sent = await sendEmail(own.email, tFor(L, 'mail_ar_clear_subject', { name: cName }), body, `approval rules cleared: ${id} -> ${own.email}`);
+    return { n: sent && sent.sent ? 1 : 0, ...mailReport(sent) };
+  } catch (_) { return { n: 0 }; }
+}
+/* THE NAMED YES'S CADENCE, FOR A RULE STEP: reminded after
+   SA_REMIND_WORKDAYS working days, the admins told after
+   SA_ESCALATE_WORKDAYS, each once per time the step fell due. A step that
+   fell due before this shipped has no clock and is not chased — a deploy
+   must not mail every approver in the workspace at once. */
+async function runRuleStepReminders() {
+  if (!srvApprovalRules().length) return { checked: 0, sent: 0 };
+  const rows = db.prepare("SELECT id, json FROM contracts WHERE status NOT IN ('Draft','Signed','Declined')").all();
+  const once = key => {
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(key)) return false;
+    db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
+    return true;
+  };
+  let sent = 0, checked = 0;
+  for (const row of rows) {
+    let c; try { c = JSON.parse(row.json) || {}; } catch (_) { continue; }
+    if (!c.id) c.id = row.id;
+    if (saStarted(c, { responded: srvSaResponded(c.id) })) continue;
+    const step = ruleStepDueOf(c);
+    if (!step) continue;
+    checked++;
+    const clock = db.prepare('SELECT rkey, created_at FROM reminders WHERE rkey LIKE ? ORDER BY created_at DESC LIMIT 1')
+      .get(`ar:${c.id}:${step.ruleId}:due:%`);
+    if (!clock) continue;
+    const waited = saWorkdays(clock.created_at);
+    if (waited >= SA_REMIND_WORKDAYS && once(`${clock.rkey}:remind`)) sent += (await ruleStepTell(null, c, step, 'remind')).n || 0;
+    if (waited >= SA_ESCALATE_WORKDAYS && once(`${clock.rkey}:escalate`)) sent += (await ruleStepTell(null, c, step, 'escalate', { days: waited })).n || 0;
+  }
+  return { checked, sent };
+}
 
 /* ---- THE WAIT, CHASED BY THE CLOCK (26 Sep 2026) ----
    Redline here, sign there: once the agreed words are out with them, the lead

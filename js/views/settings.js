@@ -539,6 +539,14 @@ const ST_DOT={ ok:'var(--st-green-dot)', warn:'var(--st-amber-dot)', off:'var(--
    every heading is the wall of words this page already had. */
 const ST_GROUPS=[
   { key:'agreement', tab:'platform', sub:true },
+  /* ---- BEFORE ANYONE SIGNS (4 Oct 2026, the process review) ----
+     The signing limit and the folder rule were two switches folded inside the
+     approval rules' drawer, and the default signing route sat inside the
+     check before signing — three rules nobody could find by their own name.
+     Each is its own row now, and the four that decide HOW a contract gets to
+     signed sit together; "The agreement" keeps the rules page and the three
+     rules about who must say yes. Four and four: no group is a wall. */
+  { key:'signing',   tab:'platform', sub:true },
   /* ---- LINKS YOU SEND (4 Oct 2026) ----
      Added for the named guest's code, and measured before it was: dropping
      that row into "The agreement" made a group of five, and settings-groups
@@ -846,17 +854,31 @@ function stPersonSays(u){
   const over = (u.overseerId && typeof userById==='function') ? (userById(u.overseerId)||{}).name : '';
   if(saOn && over) out.push(say('sa_sum_on', { who: over }));
   if(admin){ out.push(say('st_sum_admin')); return out; }
-  /* 2 — how much they may sign for */
+  /* 2 — how much they may sign for. A limit is a FACT only while the
+     workspace switch enforces it (4 Oct 2026, the process review): with the
+     switch off it is a record, and "can sign up to X" read as a refusal that
+     was not there. */
   let cap = null; try{ cap = (typeof signCapOf==='function') ? signCapOf(u) : null; }catch(_){ cap = null; }
+  const capOn = (typeof signCapEnforced==='function') && signCapEnforced();
   if(viewer) out.push(say('st_sum_cannot_sign'));
   else if(cap && cap.answered && cap.limit != null)
-    out.push(say('st_sum_cap', { amount: (typeof fmtMoneyShort==='function') ? fmtMoneyShort(cap.limit) : String(cap.limit) }));
+    out.push(say(capOn ? 'st_sum_cap' : 'st_sum_cap_off', { amount: (typeof fmtMoneyShort==='function') ? fmtMoneyShort(cap.limit) : String(cap.limit) }));
   else out.push(say('st_sum_cap_none'));
-  /* 3 and 4 — is their work checked, and by whom */
+  /* 2b — the value streams they may sign in, said only while that rule is
+     on and only where it narrows them: "every stream" is the default. */
+  if(!viewer && (typeof signFolderEnforced==='function') && signFolderEnforced()){
+    let sf = '*'; try{ sf = (typeof signFolderAccess==='function') ? signFolderAccess(u) : '*'; }catch(_){ sf = '*'; }
+    if(Array.isArray(sf)) out.push((typeof i18tn==='function') ? i18tn('st_sum_sign_folders', sf.length, { n: sf.length }) : 'st_sum_sign_folders');
+  }
+  /* 3 and 4 — is their work checked, and by whom: said only while the
+     review gate is on, which is the only time it holds anything back. */
+  const gateOn = !!((typeof reviewGateCfg==='function') ? reviewGateCfg() : {}).on;
   const checked = u.reviewChecked !== false;
   const by = (u.reviewerId && typeof userById==='function') ? (userById(u.reviewerId)||{}).name : '';
-  if(!checked) out.push(say('st_sum_unchecked'));
-  else out.push(by ? say('st_sum_checked_by', { who: by }) : say('st_sum_checked'));
+  if(gateOn){
+    if(!checked) out.push(say('st_sum_unchecked'));
+    else out.push(by ? say('st_sum_checked_by', { who: by }) : say('st_sum_checked'));
+  }
   /* 5 — who oversees them: said above, as the approval it now is. */
   /* 6, 7, 8 — the three grants, said only where they are ON, because OFF is
      the default and a list of things somebody cannot do is not a summary */
@@ -2291,6 +2313,26 @@ const SET_PANELS={
     wire(){ stPaintFolders(); stPaintCategories(); },
   },
 
+  /* ════ WHO MUST SAY YES BEFORE SIGNING — ONE RULES PAGE (4 Oct 2026, the
+     process review) ════════════════════════════════════════════════════
+     Nine rules stand between a contract and its signature, or beside it,
+     and each lived in its own drawer, a person's drawer, or nowhere: nobody
+     could read in one place what this workspace asks before anyone signs.
+     This drawer READS them, in the order signBlockers asks them, and points
+     at where each one is set. It writes nothing and decides nothing — every
+     on/off is the rule's own reading (stRulesRows). A row, not a band. */
+  rules:{
+    tab:'platform', group:'agreement', mandatory:false,
+    title:()=>i18t('st_p_rules'),
+    sub:()=>i18t('st_p_rules_sub'),
+    state(){ const rows=stRulesRows().filter(r=>r.holds);
+      const on=rows.filter(r=>r.on).length;
+      return { dot:'ok', text:esc(i18t('st_rules_state',{ n:on, of:rows.length })) }; },
+    find:()=>stRulesRows().map(r=>r.name),
+    body(){ return `<div id="st-rules-list"></div>`; },
+    wire(){ stPaintRules(); },
+  },
+
   approvals:{
     tab:'platform', group:'agreement', mandatory:true,
     title:()=>i18t('st_p_approvals'),
@@ -2302,49 +2344,15 @@ const SET_PANELS={
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_rules_sub')}</p>
       <div id="approval-rules"></div>
       <button id="ar-add" style="margin-top:var(--s-2);${ST_BTN2}">${icon('plus','w-3.5 h-3.5')} ${i18t('set_add_rule_btn')}</button>
-      ${''/* ---- THE OTHER HALF OF THE SAME QUESTION ----
-             The rules above decide who must say YES before a contract is
-             signed. This decides how much each person may sign FOR. They
-             belong on one panel because an admin reading either one without
-             the other has half the answer. WARN BEFORE ENFORCE: the switch is
-             off by default and the ladder is a record until it is on. */}
-      <div class="st-sec">
-        <h3 class="st-sec-h">${esc(i18t('sc_rule_title'))}</h3>
-        <label class="st-toggle" style="margin-bottom:var(--s-2)">
-          <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
-          <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span>
-          <span class="st-note">${esc(i18t('sc_rule_sub'))}</span></span></label>
-        ${''/* THE OVERSEER SWITCH IS GONE FROM HERE (23 Sep 2026): approval
-               before signing is set on each person, in their own drawer, and
-               a workspace switch beside it would be a second door onto one
-               rule. A person nobody has answered for still READS the old
-               switch, so nothing changed on the day this moved. */}
-        <label class="st-toggle" style="margin-bottom:var(--s-2)">
-          <input id="sf-rule-on" type="checkbox"${((typeof signFolderEnforced==='function')&&signFolderEnforced())?' checked':''}/>
-          <span><span class="st-role-name">${esc(i18t('sf_rule_on'))}</span>
-          <span class="st-note">${esc(i18t('sf_rule_sub'))}</span></span></label>
-        <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
-        <div id="sc-ladder"></div>
-      </div>`; },
+      ${''/* THE SIGNING LIMIT AND THE FOLDER RULE LEFT THIS DRAWER (4 Oct 2026,
+             the process review) for rows of their own under "Before anyone
+             signs" — see signcap and signfolder. THE OVERSEER SWITCH left it
+             on 23 Sep: a named person's yes is set on each person, and a
+             person nobody has answered for reads the old workspace switch as
+             their DEFAULT — said on the rules page (stRulesRows). */}`; },
     wire(){
       renderApprovalRules();
       document.getElementById('ar-add')?.addEventListener('click',()=>openApprovalRuleEditor(-1));
-      stPaintLadder();
-      document.getElementById('sc-rule-on')?.addEventListener('change',e=>{
-        if(typeof saveSignCapCfg!=='function') return;
-        saveSignCapCfg({ on:e.target.checked });
-        toast(i18t('sc_rule_saved'));
-        /* The ladder's own sentences change with the switch (a limit that is
-           recorded and a limit that refuses are different facts), so it
-           repaints — the panel does not, and the page behind it does not. */
-        stPaintLadder();
-      });
-      document.getElementById('sf-rule-on')?.addEventListener('change',e=>{
-        if(typeof saveSignFolderCfg!=='function') return;
-        saveSignFolderCfg({ on:e.target.checked });
-        toast(i18t('sf_rule_saved'));
-        stPaintLadder();
-      });
     },
   },
 
@@ -2403,7 +2411,7 @@ const SET_PANELS={
      something leaves or is signed — and a reader looking for one will be
      looking in the same place for the other. */
   signcheck:{
-    tab:'platform', group:'agreement', mandatory:false,
+    tab:'platform', group:'signing', mandatory:false,
     title:()=>i18t('sc_set_title'),
     sub:()=>i18t('sc_set_sub'),
     state(){ const g=(window.signCheckGate?signCheckGate():'off');
@@ -2417,12 +2425,78 @@ const SET_PANELS={
        contract gets to signed — and a row of its own made this group five long,
        where the page's own rule is that no group is a wall (settings-groups 1c).
        `find` puts its words in the search, so it is found by what it says. */
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('sc_set_sub')}</p><div id="sc-gate-panel"></div>`
-      + `<div class="ho-set-route" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--color-divider)">`
-      + `<div style="font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-text);margin-bottom:4px">${i18t('ho_set_title')}</div>`
-      + `<p class="st-note" style="margin-bottom:10px">${i18t('ho_set_sub')}</p><div id="ho-route-panel"></div></div>`; },
-    find:()=>[i18t('ho_set_title'), i18t('ho_set_sub')],
-    wire(){ renderSignCheckGatePanel(); renderSignRouteDefaultPanel(); },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('sc_set_sub')}</p><div id="sc-gate-panel"></div>`; },
+    wire(){ renderSignCheckGatePanel(); },
+  },
+
+  /* ---- HOW MUCH EACH PERSON MAY SIGN FOR — ITS OWN ROW (4 Oct 2026) ----
+     It was a switch inside the approval rules' drawer. WARN BEFORE ENFORCE:
+     off by default, and the ladder is a record until it is on. */
+  signcap:{
+    tab:'platform', group:'signing', mandatory:false,
+    title:()=>i18t('sc_rule_title'),
+    sub:()=>i18t('sc_rule_sub'),
+    state(){ const on=(typeof signCapEnforced==='function')&&signCapEnforced();
+      return { dot:on?'ok':'off', text:`${esc(i18t('sc_rule_on'))} — ${on?stOn():stOff()}` }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('sc_rule_sub'))}</p>
+      <label class="st-toggle" style="margin-bottom:var(--s-2)">
+        <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
+        <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span></span></label>
+      <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
+      <div id="sc-ladder"></div>`; },
+    wire(){
+      stPaintLadder();
+      document.getElementById('sc-rule-on')?.addEventListener('change',e=>{
+        if(typeof saveSignCapCfg!=='function') return;
+        saveSignCapCfg({ on:e.target.checked });
+        toast(i18t('sc_rule_saved'),'ok');
+        /* The ladder's own sentences change with the switch (a limit that is
+           recorded and a limit that refuses are different facts). */
+        stPaintLadder(); stRepaintRow('signcap');
+      });
+    },
+  },
+
+  /* ---- WHICH VALUE STREAMS EACH PERSON MAY SIGN IN — ITS OWN ROW (4 Oct
+     2026) ---- It was the second switch inside the approval rules' drawer.
+     The narrowing itself is set on each person; this is the switch that
+     makes it refuse, and the list of who is narrowed today. */
+  signfolder:{
+    tab:'platform', group:'signing', mandatory:false,
+    title:()=>i18t('sf_rule_title'),
+    sub:()=>i18t('sf_rule_sub'),
+    state(){ const on=(typeof signFolderEnforced==='function')&&signFolderEnforced();
+      return { dot:on?'ok':'off', text:`${esc(i18t('sf_rule_on'))} — ${on?stOn():stOff()}` }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('sf_rule_sub'))}</p>
+      <label class="st-toggle" style="margin-bottom:var(--s-2)">
+        <input id="sf-rule-on" type="checkbox"${((typeof signFolderEnforced==='function')&&signFolderEnforced())?' checked':''}/>
+        <span><span class="st-role-name">${esc(i18t('sf_rule_on'))}</span></span></label>
+      <div id="sf-people"></div>`; },
+    wire(){
+      stPaintSignFolders();
+      document.getElementById('sf-rule-on')?.addEventListener('change',e=>{
+        if(typeof saveSignFolderCfg!=='function') return;
+        saveSignFolderCfg({ on:e.target.checked });
+        toast(i18t('sf_rule_saved'),'ok');
+        stPaintSignFolders(); stRepaintRow('signfolder');
+      });
+    },
+  },
+
+  /* ---- WHO RUNS THE SIGNING ON AN UPLOAD — ITS OWN ROW (4 Oct 2026) ----
+     The answer ticked by default when somebody uploads the other side's
+     contract: we sign it in HaTi, or they sign it their way and we file the
+     signed copy. It lived inside the check before signing's drawer, found
+     only by search; it is the same KIND of rule — how a contract gets to
+     signed — so it sits in the same group, by its own name. */
+  signroute:{
+    tab:'platform', group:'signing', mandatory:false,
+    title:()=>i18t('ho_set_title'),
+    sub:()=>i18t('ho_set_sub'),
+    state(){ const out=(state.settings&&state.settings.signRouteDefault)==='outside';
+      return { dot:'ok', text:esc(i18t(out?'ho_route_out':'ho_route_in')) }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('ho_set_sub')}</p><div id="ho-route-panel"></div>`; },
+    wire(){ renderSignRouteDefaultPanel(); },
   },
 
   /* ---- NAMED GUESTS: A LINK MAY ASK WHO IS OPENING IT (idea 8, 4 Oct 2026)
@@ -3162,6 +3236,87 @@ function stPaintLadder(){
     </div>`).join(''):`<p class="st-note">${esc(i18t('sc_ladder_none'))}</p>`)
     +(un.length?`<p class="st-note" style="color:var(--st-amber-fg)">${esc(i18tn('sc_unanswered',un.length,{n:un.length}))}</p>`:'')
     +(enforced?'':`<p class="st-note">${esc(i18t('sc_not_enforced'))}</p>`);
+}
+
+/* WHO IS NARROWED TODAY — the folder rule's own drawer. Read-only; each
+   person's narrowing is set in their own drawer (saveSignFolders). */
+function stPaintSignFolders(){
+  const host=document.getElementById('sf-people'); if(!host) return;
+  const users=((typeof getUsers==='function'?getUsers():[])||[]).filter(u=>u&&u.role!=='viewer');
+  const on=(typeof signFolderEnforced==='function')&&signFolderEnforced();
+  host.innerHTML=users.map(u=>`<div class="st-frow">
+      <span class="st-fname" data-st-fixed="1">${esc(u.name||u.email||'')}</span>
+      <span class="st-fmeta">${esc(roleName(u.role))}</span>
+      <span class="st-fmeta">${esc((typeof signFolderText==='function')?signFolderText(u):'')}</span>
+    </div>`).join('')
+    +(on?'':`<p class="st-note">${esc(i18t('sf_not_enforced'))}</p>`);
+}
+/* ════ THE RULES PAGE'S ROWS — one reading, in signBlockers' order ════════
+   Every fact is borrowed from the rule's own reader; `holds` says whether it
+   ever holds a SIGNATURE (review and the desk hold sending and redlining and
+   are listed after, so nobody looks for them and finds nothing). `go` is
+   where the rule is set: [tab, panel] for openSettingsAt. */
+function stRulesRows(){
+  const users=((typeof getUsers==='function'?getUsers():[])||[]).filter(Boolean);
+  const legacy=(typeof signApprovalLegacyOn==='function')?signApprovalLegacyOn():false;
+  let saPeople=0, saDefaulted=0;
+  users.forEach(u=>{ if(u.role==='viewer'||typeof saRuleOf!=='function') return;
+    let r=null; try{ r=saRuleOf(u, legacy); }catch(_){ r=null; }
+    if(r&&r.on){ saPeople++; if(!r.answered) saDefaulted++; } });
+  const rules=(typeof approvalRules==='function')?approvalRules():[];
+  const gate=(typeof signCheckGate==='function')?signCheckGate():'off';
+  const holders=users.filter(u=>u.role==='admin'||u.holdContracts===true).length;
+  const capOn=(typeof signCapEnforced==='function')&&signCapEnforced();
+  const sfOn=(typeof signFolderEnforced==='function')&&signFolderEnforced();
+  const rv=!!((typeof reviewGateCfg==='function')?reviewGateCfg():{}).on;
+  const dk=!!((typeof deskCfg==='function')?deskCfg():{}).on;
+  return [
+    { k:'hold', holds:true, on:true, name:i18t('st_rules_hold'), state:i18tn('st_rules_hold_state',holders,{n:holders}),
+      says:i18t('st_rules_hold_says'), go:['people',null] },
+    { k:'approval', holds:true, on:rules.length>0, name:i18t('st_p_approvals'),
+      state:rules.length?i18tn('st_rules_n_rules',rules.length,{n:rules.length}):i18t('set_no_approval_rules'),
+      says:i18t('st_rules_approval_says'), go:['platform','approvals'] },
+    { k:'signapproval', holds:true, on:saPeople>0||legacy, name:i18t('st_rules_named'),
+      state:i18tn('st_rules_named_state',saPeople,{n:saPeople}),
+      says:i18t('st_rules_named_says'),
+      /* THE OLD WORKSPACE SWITCH, SAID OUT LOUD: it has no screen of its own
+         since 23 Sep and is read only for a person nobody has answered for. */
+      extra:i18t(legacy?'st_rules_named_default_on':'st_rules_named_default_off')
+        +(saDefaulted?' '+i18tn('st_rules_named_defaulted',saDefaulted,{n:saDefaulted}):''),
+      go:['people',null] },
+    { k:'signcap', holds:true, on:capOn, name:i18t('sc_rule_title'), state:capOn?stOn():stOff(),
+      says:i18t('st_rules_cap_says'), go:['platform','signcap'] },
+    { k:'signfolder', holds:true, on:sfOn, name:i18t('sf_rule_title'), state:sfOn?stOn():stOff(),
+      says:i18t('st_rules_folder_says'), go:['platform','signfolder'] },
+    { k:'signcheck', holds:true, on:gate!=='off', name:i18t('sc_set_title'), state:i18t('sc_set_'+gate),
+      says:i18t('st_rules_check_says'), go:['platform','signcheck'] },
+    { k:'brief', holds:true, on:gate!=='off', name:i18t('st_rules_brief'), state:gate!=='off'?stOn():stOff(),
+      says:i18t('st_rules_brief_says'), go:['platform','signcheck'] },
+    { k:'review', holds:false, on:rv, name:i18t('st_p_review'), state:rv?stOn():stOff(),
+      says:i18t('st_rules_review_says'), go:['platform','review'] },
+    { k:'desk', holds:false, on:dk, name:i18t('st_p_desk'), state:dk?stOn():stOff(),
+      says:i18t('st_rules_desk_says'), go:['platform','desk'] },
+  ];
+}
+function stPaintRules(){
+  const host=document.getElementById('st-rules-list'); if(!host) return;
+  const rows=stRulesRows();
+  const row=r=>`<div class="st-rule-row" data-st-rule="${esc(r.k)}">
+      <span class="st-dot" style="background:${r.on?ST_DOT.ok:ST_DOT.off}"></span>
+      <span class="st-rule-main">
+        <span class="st-rule-name">${esc(r.name)} <span class="st-rule-state">— ${esc(r.state)}</span></span>
+        <span class="st-rule-says">${esc(r.says)}${r.extra?' '+esc(r.extra):''}</span>
+      </span>
+      <button type="button" class="ui-btn ui-btn-sm" data-st-rule-go="${esc(r.go[0])}:${esc(r.go[1]||'')}">${esc(i18t(r.go[0]==='people'?'st_rules_go_people':'st_rules_go'))}</button>
+    </div>`;
+  host.innerHTML=`<div class="st-rules">${rows.filter(r=>r.holds).map(row).join('')}</div>
+    <h3 class="st-sec-h" style="margin-top:var(--s-4)">${esc(i18t('st_rules_not_signing'))}</h3>
+    <div class="st-rules">${rows.filter(r=>!r.holds).map(row).join('')}</div>`;
+  host.querySelectorAll('[data-st-rule-go]').forEach(b=>b.addEventListener('click',()=>{
+    const [tab,panel]=String(b.getAttribute('data-st-rule-go')||'').split(':');
+    try{ stDrawerClose(); }catch(_){}
+    openSettingsAt(tab, panel||null);
+  }));
 }
 
 /* The directory as a list, each row saying whether anything actually names it. */
@@ -4928,6 +5083,7 @@ function renderSignRouteDefaultPanel(){
     if(window.saveSettings) saveSettings();
     toast(i18t('ho_set_saved'),'ok');
     renderSignRouteDefaultPanel();
+    if(typeof stRepaintRow==='function') stRepaintRow('signroute');
   }));
 }
 /* The switch, and nothing else: there is no number to tune here. How long a
@@ -5011,6 +5167,7 @@ async function loadSessions(){
 Object.assign(window,{renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST_AGENT_KEYS,AG_MONEY_NOTE_KEYS,stRepaintPanel,renderMyAccountPage,briefCadenceOf,BRIEF_EVERY_VALUES,renderPrecedentPanel,precedentAdopt,stdOpenPreferred,renderStandardsDraft,stdOpenClauseId,stdSetOpenClause,stdStanceChipHtml,stdFallbackChipHtml,renderAllowancePanel,renderRateTable,renderClauseLibrary,openClauseEditor,
   renderPlaybookView,openPlaybookEditor,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
+  stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
