@@ -5805,6 +5805,14 @@ async function reshareToLastRecipient(c, opts={}){
   const turn=opts.handOver ? roundTurnMail(c, opts.handOver) : null;
   if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you',null,{auto:true}); if(v) persist(c); }
   const payload=buildSharePayload(c, docHash, null, { purpose:opts.purpose });
+  /* A RESEND THAT READS AS SIGN IS A SIGNING LINK (4 Oct 2026). Two callers
+     pass no purpose, and on a contract with nothing proposed the payload's
+     reading is 'sign' — so this is a fourth door onto the act, and it asks the
+     one list. Thrown, like every refusal on this path. */
+  if(payload && payload.purpose==='sign'){
+    const no=signLinkRefusal(c);
+    if(no) throw new Error(no.why);
+  }
   /* If this counterparty already has a standing link, refresh THAT rather than
      mint another one: the point of a standing link is that the other side keeps
      one URL for the whole negotiation. A new link is created only when there is
@@ -5985,12 +5993,76 @@ async function resendRoundFresh(c, opts={}){
    signers), and { missingEmails } where it should but the plan is incomplete —
    the caller decides whether to fall back to the hand-typed dialog, because
    only the caller knows whether an owner is watching. */
+/* ============================================================
+   ONE CHECK BEFORE A SIGNING LINK LEAVES (the process review, 4 Oct 2026)
+   ============================================================
+   A signing link was minted by four doors — the send screen on Sign, the
+   route card's "Email their signing link", issueSigningAct (the room head,
+   the Negotiate page, Copilot's work, the phone) and the round resend when
+   its purpose reads as sign — and each asked its own subset: the send screen
+   asked the desk, the review, the approvals and the address; the others asked
+   only the personal approval. So the same contract could be refused at one
+   door and sent from the next, and a link sent round the check met it a day
+   later at the counterparty's Sign.
+
+   THIS IS THE ONE LIST, and every door asks it. A door that opens a dialog
+   may still open it; what it may not do is ask a different question. In
+   order: the hold, the desk, the review (your own posture, then the gate),
+   the named person's yes, the approval rules, the check before signing at
+   this workspace's gate (signCheckLinkHolds — js/signgate.js, the server's
+   own function), and — where the door names a signer — that the address is
+   theirs. The desk, the rules and the check are asked BEFORE signing has
+   begun, as the server asks them: once our signatures are on, issuing the
+   next signer's link is the route carrying itself.
+
+   Returns null, or { kind, why } with the sentence to say. The server refuses
+   the same things at POST /api/shares (the wall); this is the screen saying so
+   before a request is spent finding out. */
+function signLinkRefusal(c, opts={}){
+  if(!c) return null;
+  const ask=f=>{ try{ return f()||null; }catch(_){ return null; } };
+  const executed=ask(()=>window.negoExecuted&&negoExecuted(c)) || String(c.status||'')==='Signed';
+  if(executed) return null;
+  let started=false; try{ started=!!(window.saStarted&&saStarted(c)); }catch(_){ started=false; }
+  if(ask(()=>window.contractOnHold&&contractOnHold(c)))
+    return { kind:'hold', why:i18t('sl_on_hold',{ ref:(window.contractRef?contractRef(c):c.id) }) };
+  if(!started){
+    const desk=ask(()=>window.deskSendBlock&&deskSendBlock(c));
+    if(desk) return { kind:'desk', why:desk };
+  }
+  const actor=ask(()=>window.reviewActorBlockMessage&&reviewActorBlockMessage(c));
+  if(actor) return { kind:'review', why:actor };
+  const gate=ask(()=>window.reviewGateMessage&&reviewGateMessage(c));
+  if(gate) return { kind:'review', why:gate };
+  const sa=ask(()=>window.signApprovalHoldsLinks&&signApprovalHoldsLinks(c));
+  if(sa) return { kind:'signapproval', why:sa };
+  if(!started){
+    const ap=ask(()=>window.approvalState&&approvalState(c));
+    if(ap && ap.required && !ap.ok){
+      const why=(ap.rejected||[]).length ? i18t('sl_appr_refused')
+        : (ap.stale||[]).length ? i18t('sl_appr_stale')
+        : i18t('sl_appr_waiting',{ step:ap.next?ap.next.name:i18t('sl_approval_word'), who:ap.approverLabel||i18t('sl_an_approver') });
+      return { kind:'approval', why };
+    }
+    const held=ask(()=>window.signCheckLinkHolds&&signCheckLinkHolds(c)) || [];
+    if(held.length){
+      const what=held.slice(0,3).map(r=>r.category||'—').join(', ');
+      return { kind:'signcheck', why:i18tn('sl_check_holds', held.length, { n:held.length, what }) };
+    }
+  }
+  if(opts.signerId && opts.email){
+    const row=(typeof signerPlan==='function'?signerPlan(c):[]).find(x=>x&&String(x.id)===String(opts.signerId));
+    const rowMail=String((row&&row.email)||'').trim().toLowerCase();
+    if(rowMail && String(opts.email).trim().toLowerCase()!==rowMail) return { kind:'address', why:i18t('srv_signer_other_address') };
+  }
+  return null;
+}
 async function issueSigningRouteLinks(c){
   if(!API_MODE() || !window.signerPlan) return null;
-  /* NOBODY SIGNS BEFORE THE APPROVAL (23 Sep 2026). The server refuses these
-     links while a personal approval is outstanding; this says so in the
-     approval's own sentence before a request is spent finding out. */
-  try{ const held=window.signApprovalHoldsLinks?signApprovalHoldsLinks(c):null; if(held) return { heldForApproval:held }; }catch(_){}
+  /* THE ONE CHECK FIRST (4 Oct 2026). `heldForApproval` is kept for the
+     callers that read it; `refused` is the whole answer. */
+  { const no=signLinkRefusal(c);
+    if(no) return { refused:no.why, kind:no.kind, ...(no.kind==='signapproval'||no.kind==='approval'?{ heldForApproval:no.why }:{}) }; }
   const cps=signerPlan(c).filter(s=>s && s.party==='counterparty' && !s.signed)
     .slice().sort((a,b)=>(a.order||0)-(b.order||0));
   if(!cps.length) return null;
@@ -6780,11 +6852,8 @@ async function openShareModal(c, opts={}){
        dialog open on the one screen that has the way forward — the signing
        route's own Edit button sits beside the rows. A row with no address is
        waiting for the one typed here, and stands. */
-    if(purposeSel==='sign' && signerSel && email){
-      const row=(typeof signerPlan==='function'?signerPlan(c):[]).find(x=>x&&String(x.id)===String(signerSel));
-      const rowMail=String((row&&row.email)||'').trim().toLowerCase();
-      if(rowMail && email.trim().toLowerCase()!==rowMail){ toast(i18t('srv_signer_other_address'),'err'); return false; }
-    }
+    /* (The address question is the last row of signLinkRefusal, asked below
+       with everything else a signing link must pass — 4 Oct 2026.) */
     /* A SIGNING LINK IS NOT AN ACKNOWLEDGEABLE RISK.
 
        Everything else on the readiness list is the sender's call — a missing
@@ -6798,20 +6867,14 @@ async function openShareModal(c, opts={}){
        dialog. signDocument refuses this outright rather than warning about it;
        so does this. A negotiation link is unaffected: sending a draft out for
        comment is exactly what happens BEFORE approval. */
+    /* THE ONE ISSUING CHECK (signLinkRefusal, 4 Oct 2026): the desk, the
+       review, the named person's yes, the approval rules, the check before
+       signing and the signer's own address — the list every other door that
+       mints a signing link asks, so this dialog cannot pass what the route
+       card refuses, or the other way round. */
     if(purposeSel==='sign'){
-      /* The personal approval first, in its own sentence — the server
-         refuses this link for the same reason. */
-      let saHeld=null; try{ saHeld=window.signApprovalHoldsLinks?signApprovalHoldsLinks(c):null; }catch(_){ saHeld=null; }
-      if(saHeld){ toast(saHeld,'err'); return false; }
-      let ap=null; try{ ap=(window.approvalState)?window.approvalState(c):null; }catch(_){ ap=null; }
-      if(ap && ap.required && !ap.ok){
-        toast(`This contract needs internal approval before it can go out for signature — ${
-          (ap.rejected||[]).length ? 'an approver refused it'
-          : (ap.stale||[]).length ? 'it changed after it was approved'
-          : `“${ap.next?ap.next.name:'approval'}” is still waiting on ${ap.approverLabel||'an approver'}`
-        }. Send it to negotiate instead, or clear the approval first.`,'err');
-        return false;
-      }
+      const no=signLinkRefusal(c,{ signerId:signerSel, email });
+      if(no){ toast(no.why,'err'); return false; }
     }
     /* AND THE REDLINES' OWN GATE, WHICH BITES EARLIER AND ON THE OTHER PURPOSE.
 
@@ -8506,4 +8569,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal});

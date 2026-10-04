@@ -2000,6 +2000,12 @@ function signerRouteHtml(c, opts){
        line — an inline state, not a band. The counterparty's own send is
        greyed with the same sentence, because the server refuses the link. */
     let saHold=null; try{ saHold=signApprovalHoldsLinks(c); }catch(_){ saHold=null; }
+    /* AND THE SEND ITSELF ASKS THE ONE ISSUING CHECK (signLinkRefusal,
+       4 Oct 2026): greyed with the list's own sentence wherever HaTi can know
+       before the press — the desk, the review, the rules, the check — not
+       only where the personal approval holds. */
+    let sendNo=null; try{ const no=window.signLinkRefusal?signLinkRefusal(c):null; sendNo=no?no.why:null; }catch(_){ sendNo=null; }
+    if(saHold) sendNo=saHold;
     /* A FILE THEY SIGN (26 Sep 2026): the route is who signs, and nothing
        more — nobody's turn comes in HaTi, no link goes out, nobody is told it
        is their turn. Our signatory is told to expect the document when it is
@@ -2095,7 +2101,7 @@ function signerRouteHtml(c, opts){
               </div>
               <div class="text-[10px] font-mono text-ink/45 mt-0.5">${meta}</div>
               ${(!s.signed&&!theySign&&s.party==='counterparty'&&(ls==='unsent'||ls==='failed')&&!gated&&canEdit())
-                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}"${saHold?` disabled aria-disabled="true" title="${esc1(saHold)}"`:''} class="ui-btn ui-btn-sm mt-1${saHold?' opacity-50 cursor-not-allowed':''}">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
+                ? `<button data-sp-send="${String(s.id).replace(/"/g,'&quot;')}"${sendNo?` disabled aria-disabled="true" title="${esc1(sendNo)}"`:''} class="ui-btn ui-btn-sm mt-1${sendNo?' opacity-50 cursor-not-allowed':''}">${ls==='failed'?'Resend their signing link':'Email their signing link'}</button>`
                 : ''}
               ${''/* THE INTERNAL ROW'S OWN DOOR. A resend is a deliberate act
                      with a visible result, never a silent retry — so it is
@@ -2153,8 +2159,8 @@ function wireApprovalPanel(c){
     b.disabled=true; b.textContent='Sending…';
     let out=null;
     try{ out=window.issueSigningRouteLinks?await issueSigningRouteLinks(c):null; }catch(e){ out=null; }
-    if(out&&out.heldForApproval){
-      toast(out.heldForApproval,'warn');
+    if(out&&(out.refused||out.heldForApproval)){
+      toast(out.refused||out.heldForApproval,'warn');
     } else if(out&&out.links){
       const first=out.links.find(x=>!x.heldForTurn);
       toast(first&&first.emailSent

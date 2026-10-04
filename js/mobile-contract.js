@@ -963,6 +963,14 @@ async function mShareCreate(){
     if(window.toast) toast(i18t('mc_sharing_needs_server'),'err');
     return;
   }
+  /* A SIGNING LINK FROM THE PHONE ASKS THE DESKTOP'S ONE ISSUING CHECK
+     (signLinkRefusal, 4 Oct 2026) — this sheet posts itself, so without it
+     the phone was the door round the desk, the review and the check. Said in
+     the sheet's own error line, where the address is. */
+  if(s.share==='sign' && window.signLinkRefusal){
+    let no=null; try{ no=signLinkRefusal(c,{ email }); }catch(_){ no=null; }
+    if(no){ s.shareErr=no.why; mRender(); return; }
+  }
   s.shareErr=''; mRender();
   try{
     if(window.ensureFull) await ensureFull(c);

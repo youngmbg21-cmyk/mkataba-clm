@@ -47,6 +47,7 @@ import './payterms.js';    // payment terms turned into a number of days, and co
    Loaded before the screens that draw it and before approvals.js, whose
    signer editor opens on the rows this list can fill. */
 import './participants.js';
+import './signgate.js';    // the check before signing as a wall: one reading, loaded by the server too (4 Oct 2026)
 import './signcheck.js';   // where a contract stands at the signing door: one deterministic reading, no spend (13 Sep 2026)
 /* Approval before signing: who on a contract needs a named colleague's yes
    before anyone signs it — one reading, loaded by the server too (23 Sep 2026). */

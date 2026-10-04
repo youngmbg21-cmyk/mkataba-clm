@@ -240,8 +240,12 @@ describe('f319 (4b) THREE STAGES, IN THE ORDER A PERSON ASKS THEM', () => {
 describe('f319 (4c) THE BRIEF JOINS THE CHECK', () => {
   test('staleness is asked of the record, and the limit is stated', () => {
     assert.match(SC, /function signCheckBriefAt\(c\)\{/, 'when wording was last proposed');
-    assert.match(SC, /walk\(c && c\.changes\);/, 'read RAW');
-    assert.match(SC, /if \(n && Array\.isArray\(n\.rounds\)\) n\.rounds\.forEach/, 'closed rounds too');
+    /* RE-POINTED 4 Oct 2026 (f463): the walk moved to js/signgate.js so the
+       server's wall reads the same date; signCheckBriefAt borrows it. */
+    const SGF = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/signgate.js'), 'utf8');
+    assert.match(SC, /function signCheckBriefAt\(c\)\{\s*const n = _scCall\('sgLastProposedAt', c\);/, 'borrowed, never a second walk');
+    assert.match(SGF, /walk\(c && c\.changes\);/, 'read RAW');
+    assert.match(SGF, /if \(n && Array\.isArray\(n\.rounds\)\) n\.rounds\.forEach/, 'closed rounds too');
     assert.match(SC, /IT CAN OVER-REPORT/,
       'a refused change moved no wording — the safe direction, and named');
   });
