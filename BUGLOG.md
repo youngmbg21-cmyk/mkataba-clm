@@ -20203,3 +20203,6 @@ card's right corner. Story in docs/MAP-HISTORY.md under "THE OWNER'S ELEVEN".
 - js/views/home.js wires `#dd-ask-ai` to openAI, but nothing draws `#dd-ask-ai` any more (dead wiring on the old Home).
 - The board's free reader reads "value by counterparty" as a COUNT ring, not a value measure (f448 phrase book has no such line); the shelf's concentration proposal carries its own recipe to get blocks by value.
 - CLAUDE.md is ~117 KB, over its own 80 KB ceiling; it needs the owner-approved condensing pass, not a trim on the way past.
+
+## Noticed, not fixed (4 Oct 2026, Yours, measured)
+- CLAUDE.md is about 118 KB, well above the "under about 80 KB" the owner set on 27 Sep; it was 117 KB before this change. A trim needs the owner's yes (it is the rules file).

@@ -201,13 +201,15 @@ describe('F459 (D) — today\'s insights', () => {
     w.eval('intel.lenses=[]; intel.groups=null; intel.groupBy="folder"; intel.history=[];');
     return w;
   }
-  test('a drift the board can chart is offered in HaTi\'s own words, with the chart\'s own numbers', () => {
+  /* How a finding is chosen moved to f460 (Young picked "Yours, measured",
+     4 Oct 2026): against the book's own normal, yours first. What stays here
+     is the shelf's furniture. */
+  test('a usual picture is named by what it shows, with the chart\'s own numbers', () => {
     const w = world();
     const c = w.hbInsCandidate('sign');
-    assert.ok(c, 'signing got faster by a third: offered');
-    assert.equal(c.title, 'Contracts are being signed faster');
+    assert.ok(c && c.plain);
+    assert.equal(c.title, 'Days to sign by month signed');
     assert.match(c.say, /^\d+ days → \d+ days over \d+ months$/);
-    assert.equal(w.hbInsCandidate('pay'), null, 'payment days did not move: nothing offered');
   });
   test('three at most a day, and a shape let go rests for 30 days', () => {
     const w = world();
@@ -217,33 +219,13 @@ describe('F459 (D) — today\'s insights', () => {
     assert.ok(!I.some(x => x.shape === 'sign'), 'resting');
     assert.equal(w.hbInsResting('sign'), true);
   });
-  /* Young, 4 Oct 2026: "i do not see the graphs … maybe there could be a way
-     to run them if they are not on screen?" — a place nothing moved enough to
-     fill takes a plain view, named by what it shows, never as a finding. */
-  test('places nothing moved enough to fill are filled with plain views, named by what they show', () => {
-    const w = world();
-    const s = w.hbS(); s.ins = null; s.insOff = {};
-    const I = w.hbInsightsToday();
-    const sign = I.find(x => x.shape === 'sign'), pay = I.find(x => x.shape === 'pay');
-    assert.ok(sign && !sign.plain, 'the drift is still a finding');
-    assert.ok(pay && pay.plain, 'payment days did not move: a plain view fills the place');
-    assert.equal(pay.title, 'Payment days by month signed');
-    assert.ok(!/longer|shorter|faster/.test(pay.title));
-    assert.equal(w.hbS().ins.list.indexOf('sign') < w.hbS().ins.list.indexOf('pay'), true, 'findings come first');
-  });
-  /* Young's screenshot, 4 Oct 2026, after the plain views shipped: still no
-     shelf. The day's choice had been saved EMPTY by the older rule and was
-     kept all day. */
-  test('a day\'s choice saved empty, or by an older rule, is chosen again at once', () => {
+  test('a day\'s choice saved by an older rule is chosen again at once', () => {
     const w = world();
     const s = w.hbS();
     s.insOff = {};
     s.ins = { day: w.hbToday(), n: w.hbInsBookSig(), list: [] };
-    assert.ok(w.hbInsightsToday().length >= 1, 'an empty saved choice is made again');
+    assert.ok(w.hbInsightsToday().length >= 1, 'a choice saved before the rule changed is made again');
     assert.equal(w.hbS().ins.v, w.HB_INS_V);
-    s.ins = { day: w.hbToday(), n: w.hbInsBookSig(), list: ['sign'] };
-    w.hbInsightsToday();
-    assert.ok(w.hbS().ins.list.includes('pay'), 'a choice saved by the older rule is made again, plain views and all');
   });
   test('a picture is one press: the thumbnail carries no doors', () => {
     const w = world();
