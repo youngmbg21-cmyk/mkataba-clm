@@ -284,12 +284,30 @@ function readingStale(c, kind){
     try { pb = (typeof playbookStale === 'function') ? playbookStale(c) : null; } catch (_) { pb = null; }
     if (pb === true || pb === false) return pb;
   }
-  const made = Date.parse(readingMadeAt(c, kind)) || 0;
+  const at = readingMadeAt(c, kind);
+  const made = Date.parse(at) || 0;
   if (!made) return null;                 /* never read is not out of date */
   const moved = signCheckBriefAt(c);
   if (!moved) return null;                /* nothing has been proposed to compare with */
+  /* ---- A DAY IS NOT A MOMENT (process review, 4 Oct 2026) ----
+     The obligations read was stamped as a bare DAY ("2026-10-04"), which
+     Date.parse takes as that day's first instant — so a change proposed later
+     the SAME day as the reading, before it or after it, read as "the wording
+     moved since". The stamp is a full time from today on
+     (obligationsReadStamp); a day-only stamp still on file answers what a day
+     can answer: moved on a LATER day is moved, on an earlier day is not, and
+     on the same day is "we do not know". */
+  if (READING_DAY_ONLY.test(at)){
+    /* Compared as LOCAL days, which is what the old stamp wrote (isoDay). */
+    const d = new Date(moved), p2 = n => String(n).padStart(2, '0');
+    const movedDay = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+    if (movedDay > at) return true;
+    if (movedDay < at) return false;
+    return null;
+  }
   return moved > made;
 }
+const READING_DAY_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 /* Which of the three a round has left behind. The count the Overview prints,
    and the one thing a reader needs to know between a round landing and the
    signing flow: how much of what is on this card speaks for the old text. */
@@ -824,6 +842,6 @@ if (typeof window !== 'undefined') Object.assign(window, {
   signCheckRowHolds, signCheckRows, signCheckHolding, signReadiness, signCheckWillRun,
   signCheck, signCheckReady, signCheckTableClear, signCheckWaiting,
   signCheckBrief, signCheckBriefAt, SIGN_STAGES, SIGN_STAGE_OF, signStageOf,
-  READING_KINDS, readingMadeAt, readingStale, readingsStale,
+  READING_KINDS, READING_DAY_ONLY, readingMadeAt, readingStale, readingsStale,
   signCheckStandards, signCheckObligations, signCheckRecord, signCheckRecordValue,
 });

@@ -2074,6 +2074,15 @@ function triageAndPaint(c, opts){
          overnight clean-up): the reading takes seconds, so the room showing
          now may be a different contract's — asked of contractOnScreen, the
          one reading every slow result asks. */
+      triageRepaintSurfaces(x);
+    }}); }catch(e){ /* the card says what happened */ }
+  });
+}
+/* EVERY SURFACE A READING MOVES, repainted where it is on screen. Lifted out
+   of triageAndPaint's onStep (4 Oct 2026) so the strip's own "Read again"
+   press repaints the same surfaces through the same one list. */
+function triageRepaintSurfaces(x){
+      if(!x) return;
       if(window.contractOnScreen && !contractOnScreen(x)) return;
       if(document.getElementById('checks-card')) renderChecksCard(x);
       if(document.getElementById('kt-rows')) renderKeyTerms(x);
@@ -2087,8 +2096,6 @@ function triageAndPaint(c, opts){
          of the reader. roomHeadRefresh is the head's own in-place repaint and
          asks contractOnScreen itself. */
       roomHeadRefresh(x);
-    }}); }catch(e){ /* the card says what happened */ }
-  });
 }
 /* Fold confirmed metadata back into the contract's own fields + a metadata block. */
 function applyMetadata(c, m){
@@ -5651,12 +5658,23 @@ function ktTriageStripHtml(c){
      failed there is nothing else worth pressing. `filed` never fails (it is a
      fact about the record, not a reading), and a tile mid-flight draws no
      door at all, so neither can reach this. */
+  /* ---- A READING THE WORDING HAS MOVED PAST READS AGAIN ON ONE PRESS
+     (process review, 4 Oct 2026) ----
+     triageTiles marks it (`stale`, readingStale's one answer) and says so
+     first in the detail; here the tile's press becomes the re-read of THAT
+     reading alone, never the whole arrival run, and nothing is spent until it
+     is pressed. Asked BEFORE the open doors: a card about older wording is
+     not what the reader most needs to open. The card itself is still a press
+     away on the sheet (the brief's button, the Checks card, the tab). */
   const doorFor = x =>
+    x.stale ? 'reread' :
     (!x.working && !x.ok && !x.none && x.key!=='filed') ? 'retry' :
     (x.key==='brief'    && x.ok) ? 'brief' :
     (x.key==='oblig'    && x.ok) ? 'oblig' :
     (x.key==='playbook' && x.ok) ? 'playbook' : '';
-  const tiles=triageTiles(c).map(x=>{
+  const tiles=triageTiles(c).map(x0=>{
+    /* A RE-READ IN FLIGHT turns the tile, as an arrival reading does. */
+    const x=ktRereading(c,x0.key)?Object.assign({},x0,{ working:true, stale:false, detail:'' }):x0;
     const door=x.working?'':doorFor(x);
     /* NOTHING-TO-DO IS ASKED BEFORE `ok`, so a reading that looked and found
        no boxes can never draw the tick that made the tile read as a claim.
@@ -5676,8 +5694,11 @@ function ktTriageStripHtml(c){
     const mark=x.working?'<span class="ob-spin" aria-hidden="true"></span>'
       :((x.count!=null&&x.count>0)?String(x.count)
         :(x.none?'&mdash;':(x.ok?'&#10003;':'&mdash;')));
+    /* The re-read says its verb where the arrow would sit — it costs no
+       height (it rides the heading) and the cost is on the hover. */
     const head=`<div class="kt-tri-th"><span class="kt-tri-chip ${tone}">${mark}</span><span class="kt-tri-hw">${
-      esc(i18t(x.headKey))}</span>${door?'<span class="kt-tri-go" aria-hidden="true">&rarr;</span>':''}</div>`;
+      esc(i18t(x.headKey))}</span>${door==='reread'?`<span class="kt-tri-go">${esc(i18t('tri_reread'))}</span>`
+        :(door?'<span class="kt-tri-go" aria-hidden="true">&rarr;</span>':'')}</div>`;
     /* ONE PRODUCER OF THE TILE BODY, whichever shape the tile takes. The two
        reserved lines and the whole-detail hover are stated here and nowhere
        else — see the note below, and f273 (10), which counts this class. */
@@ -5690,8 +5711,10 @@ function ktTriageStripHtml(c){
        the SIGN that the tile opens something, and a 9px hit area would be a
        worse control than the one that was there. A real <button> so the
        keyboard reaches it and the focus ring is the product's own. */
-    if(door) return `<button type="button" class="kt-tri-tile is-door" data-kt-tri-go="${door}"
-      title="${esc(i18t(door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':'tri_go_oblig'))}">
+    if(door) return `<button type="button" class="kt-tri-tile is-door${door==='reread'?' is-stale':''}" data-kt-tri-go="${door}"${
+      door==='reread'?` data-kt-tri-key="${esc(x.key)}"`:''}
+      title="${esc(door==='reread'?i18t('tri_reread_title')
+        :i18t(door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':'tri_go_oblig'))}">
       ${head}${body}
     </button>`;
     return `<div class="kt-tri-tile${x.working?' is-busy':''}"${x.working?' aria-busy="true"':''}>
@@ -5825,6 +5848,52 @@ function renderKeyTerms(c){
      reload. */
   paintKtTriage(c);
 }
+/* ---- READ IT AGAIN, ONE READING, ON A PRESS (process review, 4 Oct 2026) ----
+   The strip's stale tile presses this. Each reading goes through its own
+   door and stores where its own screen reads it — the brief rewritten
+   (`force`, the route caches per wording), the standards check re-run the way
+   runSignCheck runs it, the obligations re-read through runFindObligations
+   with `fresh` so a list held from the OLD wording is not offered in place of
+   a reading. Nothing else is run and nothing is filed: the obligations still
+   end in the review dialog, unticked.
+   THE LATCH IS A SET RAISED BEFORE THE PROMISE EXISTS (a latch may not be its
+   own promise), and per sitting — it is never written onto the record. */
+const _ktRereads=new Set();
+const ktRereading=(c,key)=>!!(c&&_ktRereads.has(String(c.id)+':'+key));
+async function ktTriageReread(c,key){
+  if(!c||!['brief','playbook','oblig'].includes(key)) return false;
+  const live=(window.getContract&&getContract(c.id))||c;
+  const k=String(live.id)+':'+key;
+  if(_ktRereads.has(k)) return false;
+  if(typeof canEdit==='function'&&!canEdit()) return false;
+  _ktRereads.add(k);
+  let ok=false;
+  try{
+    if(key!=='oblig') paintKtTriage(live);
+    if(key==='brief'&&window.runContractBrief){
+      const r=await runContractBrief(live,{ force:true });
+      ok=!!(r&&!r.error);
+    } else if(key==='playbook'&&window.runPlaybookReview){
+      const r=await runPlaybookReview(live,{});
+      if(r&&!r.error&&r.verdicts){
+        live.playbook=r;
+        logAudit(live,'Playbook',`Reviewed again after the wording moved — against ${r.label}`);
+        persist(live); ok=true;
+      }
+    } else if(key==='oblig'&&window.runFindObligations){
+      /* The scan has its own busy mark on its doors, and its answer is the
+         review dialog, so the tile's own latch stands down first. */
+      _ktRereads.delete(k);
+      ok=(await runFindObligations(live,{ fresh:true }))!==false;
+    }
+  }catch(_){ ok=false; }
+  finally{ _ktRereads.delete(k); }
+  if(key!=='oblig'){
+    if(ok) toast(i18t('tri_reread_done'),'ok');
+    triageRepaintSurfaces(live);
+  }
+  return ok;
+}
 /* Fills the slot, and is the ONE place the strip is drawn or wired: called on
    arrival and again on every reading that lands. Wiring on each paint is right
    here — the markup it binds to is the markup this call has just written. */
@@ -5843,6 +5912,7 @@ function paintKtTriage(c){
        stands aside: that guard exists to stop a FAILURE being retried silently
        and paid for on every send, which is not what this is. */
     if(go==='retry'){ if(window.triageAndPaint) triageAndPaint(c,{again:true}); return; }
+    if(go==='reread'){ ktTriageReread(c, btn.getAttribute('data-kt-tri-key')); return; }
     /* ---- THE OBLIGATIONS DOOR FOLLOWS THE TAB (F, Young ruled 22 Sep 2026) ----
        While the Obligations tab is EMPTY the press opens the list this reading
        already found, to tick and add — the funnel runFindObligations, which
@@ -16708,7 +16778,7 @@ Object.assign(window,{PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paint
   docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
   scApplyZoom,scZoomStep,scPaintPage,scPageGo,scSourceLine,scControlsHtml,scWireControls,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

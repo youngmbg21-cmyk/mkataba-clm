@@ -401,7 +401,7 @@ const ok = (name, good, detail) => {
       const ob = await page.$('#side-panel [data-ag-act="obs"]');
       if (ob) { await ob.click(); await page.waitForTimeout(1200); }
       const review = await page.evaluate(() => ({ dialog: !!document.getElementById('or-add'), text: ((document.getElementById('modal-root') || {}).textContent || '').replace(/\s+/g, ' ').slice(0, 120) }));
-      ok('10e "Review 2 obligations" opens the one review dialog, where each is ticked — nothing is added from the card (RED at faa8f95)', review.dialog, JSON.stringify(review));
+      ok('10e "Review 2 obligations" opens the one review dialog, where each is ticked by the reader — nothing is added from the card (RED at faa8f95)', review.dialog, JSON.stringify(review));
       await page.evaluate(() => { try { closeModal(); } catch (_){} });
       /* THE FUNNEL: any door that opens the brief panel on a light row — here
          pressed straight, with nothing loaded first. NOT FROM THE CONTRACTS

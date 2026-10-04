@@ -397,7 +397,10 @@ const SEED = t => {
     check('8n · and it costs NOTHING — the reading is not made a second time',
       obligCalls - callsBefore === 0, { calls: obligCalls - callsBefore });
     const ticked = await drive(() => {
-      document.querySelectorAll('[data-ob-pick]').forEach(cb => { cb.checked = true; });
+      /* A PRESS per box (4 Oct 2026, f475): proposals arrive unticked and the
+         add button is grey until something is ticked, so a box set by script
+         without its change event leaves the button grey. */
+      document.querySelectorAll('[data-ob-pick]').forEach(cb => { if (!cb.checked) cb.click(); });
       const add = document.getElementById('or-add');
       if (add) add.click();
       return true;
@@ -888,6 +891,54 @@ const SEED = t => {
        because a rule that loses a cascade fight looks perfectly correct. */
     check('14f · so the whole strip is a band, not a page',
       !!fixed && fixed.stripH > 0 && fixed.stripH < 150, fixed && fixed.stripH);
+
+    /* ======== 15 · THE WORDING MOVED PAST A READING (f475, 4 Oct 2026) ====
+       A round lands after the brief was written: the strip's brief tile says
+       so first and its press is the re-read of THAT reading — the brief
+       rewritten with `force`, nothing else run. The reader is stood in for
+       (the route is not the claim) and counted, so "nothing is spent without
+       the press" is a number. */
+    const stale = await drive(async id => {
+      const c = (state.contracts || []).find(x => x.id === id);
+      c.triage.seenAt = null;
+      const was = window.runContractBrief;
+      const calls = window._f475calls = [];
+      window._f475was = was;
+      window.runContractBrief = async (cc, o) => { calls.push(o || {});
+        cc._brief = Object.assign({}, cc._brief || {}, { at: new Date().toISOString() }); return cc._brief; };
+      c._brief = Object.assign({ data: { overview: 'A short brief about the agreement and its terms.' } }, c._brief || {},
+        { at: new Date(Date.now() - 3600e3).toISOString() });
+      c.changes = (c.changes || []).concat([{ id: 'chg-stale-1', createdAt: new Date(Date.now() - 60e3).toISOString() }]);
+      paintKtTriage(c);
+      const tile = document.querySelector('#kt-triage [data-kt-tri-go="reread"][data-kt-tri-key="brief"]');
+      const out = { tile: !!tile, before: calls.length,
+        td: tile ? (tile.querySelector('.kt-tri-td') || {}).textContent || '' : '',
+        go: tile ? (tile.querySelector('.kt-tri-go') || {}).textContent || '' : '',
+        title: tile ? tile.getAttribute('title') || '' : '' };
+      return out;
+    }, drew.id, null);
+    await page.screenshot({ path: path.join(OUT, '15-stale-strip.png'), fullPage: false });
+    if (stale) Object.assign(stale, await drive(async id => {
+      const c = (state.contracts || []).find(x => x.id === id);
+      const calls = window._f475calls || [];
+      const was = window._f475was;
+      const out = {};
+      const tile = document.querySelector('#kt-triage [data-kt-tri-go="reread"][data-kt-tri-key="brief"]');
+      if (tile) tile.click();
+      await new Promise(z => setTimeout(z, 600));
+      out.calls = calls.length; out.force = !!(calls[0] && calls[0].force);
+      out.after = !!document.querySelector('#kt-triage [data-kt-tri-go="reread"][data-kt-tri-key="brief"]');
+      c.changes = c.changes.filter(x => x.id !== 'chg-stale-1');
+      window.runContractBrief = was;
+      paintKtTriage(c);
+      return out;
+    }, drew.id, {}));
+    check('15a · a reading older than the wording says so on its tile, first',
+      !!stale && stale.tile && /wording moved since this was read/i.test(stale.td), stale);
+    check('15b · the tile offers the re-read in words, with the cost on the hover, and spends nothing until pressed',
+      !!stale && /read again/i.test(stale.go) && /spent only then/i.test(stale.title) && stale.before === 0, stale);
+    check('15c · one press reads THAT reading again, rewritten rather than handed back, and the mark clears',
+      !!stale && stale.calls === 1 && stale.force === true && stale.after === false, stale);
 
     check('9 · and the whole journey raised no page error',
       errors.length === 0, errors.slice(0, 4));
