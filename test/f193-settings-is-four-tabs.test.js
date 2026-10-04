@@ -655,7 +655,7 @@ describe('f193 — the tab row does not scroll away', () => {
     assert.match(SET, /class="st-tabs st-tabs-pin"/, 'Team & Settings opts in');
     /* Our standards is now a tab of "Our paper" (4 Oct 2026): the page's tab
        row and the standards row are pinned together as ONE opted-in block. */
-    assert.match(LIB, /class="st-tabs-pin"[^>]*>\$\{paperTabsHtml\('standards'\)\}/, 'and so does Our standards');
+    assert.match(LIB, /class="st-tabs-pin"[^>]*>\$\{paperTabsHtml\('standards'(?:, true)?\)\}/, 'and so does Our standards');
     /* THE TEMPLATES ROW WAS NOT ASKED FOR AND IS NOT OPTED IN. It also carries
        an inline margin-bottom the bleed's shorthand would fight. */
     const tplRow = /<div class="st-tabs" role="tablist" style="margin-bottom:14px">/.exec(LIB);

@@ -2805,9 +2805,9 @@ function renderTemplatesPage(){
    sub-tabs. PAPER_TABS is the one list; the Templates page draws the first
    two itself, and the standards page draws all three with its own lit. */
 const PAPER_TABS=['book','list','standards'];
-function paperTabsHtml(lit){
+function paperTabsHtml(lit, tight){
   const lbl={ book:i18t('lib_tab_book'), list:i18t('nav_templates'), standards:i18t('nav_our_standards') };
-  return `<div class="st-tabs paper-tabs" role="tablist" style="margin-bottom:var(--s-2)">${PAPER_TABS.map(k=>
+  return `<div class="st-tabs paper-tabs" role="tablist" style="${tight?'margin-bottom:0;flex:none':'margin-bottom:var(--s-2)'}">${PAPER_TABS.map(k=>
     `<button class="st-tab${k===lit?' on':''}" data-paper-tab="${k}" role="tab" aria-selected="${k===lit?'true':'false'}">${esc(lbl[k])}</button>`).join('')}</div>`;
 }
 /* One handler for the row on both pages. A press on a tab of the OTHER view
@@ -2881,7 +2881,7 @@ function renderPlaybookPage(){
      is the third tab of Our paper, so the page's row (paperTabsHtml) and this
      page's own sub-tabs pin together as one block — the first glyph is still
      the page's first tab, where ONE HEADER TOP measures it. */
-  const tabRow=`<div class="st-tabs-pin" style="flex:none">${paperTabsHtml('standards')}<div class="st-tabs" role="tablist">${PB_PAGE_TABS.map(k=>
+  const tabRow=`<div class="st-tabs-pin" style="flex:none;display:flex;align-items:stretch;min-width:0">${paperTabsHtml('standards', true)}<div class="st-tabs" role="tablist" style="flex:1 1 auto;min-width:0;padding-left:var(--s-4);margin-left:var(--s-4);box-shadow:inset 1px 0 0 var(--color-divider)">${PB_PAGE_TABS.map(k=>
     `<button class="st-tab${k===tab?' on':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}${sd?`<span class="st-tab-n">${sd.n[k]}</span>`:''}</button>`).join('')}</div></div>`;
 
   if(INS){

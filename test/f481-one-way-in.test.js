@@ -65,7 +65,9 @@ describe('f481 (2) Templates & standards is one page with one door', () => {
   });
   test('the old view id opens that tab, under the page\'s name, lighting the one door', () => {
     const pb = strip(fnBody(LIB, 'renderPlaybookPage'));
-    assert.match(pb, /class="st-tabs-pin" style="flex:none">\$\{paperTabsHtml\('standards'\)\}<div class="st-tabs" role="tablist">/,
+    /* ONE ROW since CI's short laptop (4 Oct 2026): the page's tabs and the
+       standards sub-tabs stand side by side in the one pinned block. */
+    assert.match(pb, /class="st-tabs-pin" style="flex:none;display:flex[^"]*">\$\{paperTabsHtml\('standards', true\)\}<div class="st-tabs" role="tablist"/,
       'the page row and the sub-tabs pin together, in both shapes');
     assert.match(pb, /setActiveNav\('templates'\)/);
     assert.ok(!/setActiveNav\('playbook'\)/.test(pb));

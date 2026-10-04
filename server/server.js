@@ -15370,7 +15370,10 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
       .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), s.token);
   }
   res.json({ ok: true, token: s.token, link, channel: s.channel || 'link', silent,
-    notifySkipped: !silent && !notify,
+    /* A turn email asked for on a link that is not email (copy link, WhatsApp,
+       no address) went nowhere by design: it is the quiet standing-link send it
+       always was, not a mail failure (round-delivery-verify 9). */
+    notifySkipped: !silent && (!notify || (turnMail && !mailTried)),
     /* The turn email's own report, in mailReport's words: sent / outbox /
        refused-and-why. turnMail says it was ATTEMPTED, so the sender's toast
        can tell "nothing was meant to go" from "it did not go". */

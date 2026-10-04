@@ -8649,16 +8649,20 @@ async function negoBlanksAsk(c){
      boolean, so the button's own press is noted beside it — the flag is read
      after every click listener has run, because a promise settles later. */
   let saidGo = false;
+  /* HEARD ON THE DOCUMENT, IN CAPTURE, armed BEFORE the dialog exists: a
+     listener looked up on the button after confirmDialog returned missed the
+     press in the browser (drafting-stage-verify read 'stay' for "Open
+     Negotiate anyway"), so the press is caught on its way down instead. */
+  const onGo = e => { try{ if (e.target && e.target.closest && e.target.closest('#confirm-overlay #cf-cancel')) saidGo = true; }catch(_){ } };
+  try{ document.addEventListener('click', onGo, true); }catch(_){ }
   const asked = confirmDialog({
     title: i18t('ng_blanks_title'),
     message: lines.join(' '),
     confirmLabel: i18t('ng_blanks_fill'),
     cancelLabel: i18t('ng_blanks_go') });
-  try{
-    const goBtn = document.querySelector('#confirm-overlay #cf-cancel');
-    if (goBtn) goBtn.addEventListener('click', () => { saidGo = true; });
-  }catch(_){ }
-  const fill = await asked;
+  let fill = false;
+  try{ fill = await asked; }
+  finally{ try{ document.removeEventListener('click', onGo, true); }catch(_){ } }
   return fill ? 'fill' : (saidGo ? 'go' : 'stay');
 }
 
