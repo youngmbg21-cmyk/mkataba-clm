@@ -13662,6 +13662,132 @@ async function releaseOneSignerLink(req, contractId, rt, next) {
   } catch (_) { /* the signature that triggered this is safe regardless */ }
 }
 
+/* ============================================================
+   ONE LINK CHECK FOR EVERY LINK KIND — THE WALL'S HALF
+   (the process review, 4 Oct 2026)
+   ============================================================
+   The signing link had one list (signLinkRefusal in the browser, the sign
+   block below at this wall). Every other kind asked less, and differently at
+   each door: the desk was never asked here for a negotiation, view, record or
+   status link, so a colleague who is not the lead could mint one through the
+   API; a contract on hold could still be sent for negotiation.
+
+   ONE TABLE, both hosts. js/core.js holds the browser's twin (LINK_ASKS);
+   f490 pins the two equal, the arrangement deskRuleOn already has with the
+   browser's deskEnforced. What each question guards decides which kinds ask
+   it:
+     hold        — nothing new leaves while a dispute is dealt with.  ALL.
+     desk        — only the lead reaches the other side (deskMaySend: an admin
+                   is not exempt; they take the lead first). Every kind that
+                   reaches them; never an adviser, who is our own counsel.
+                   A signing link asks it only before signing has begun.
+     reviewer    — the sender's own posture: being asked to review narrows you
+                   until you hand back, so nothing you do reaches the other
+                   side. Every kind that reaches them.
+     reviewgate  — wording nobody has cleared does not travel. Every kind whose
+                   copy CARRIES our wording; a status page carries none.
+     signapproval · approval · signcheck · address — the signing link's own
+                   rows, asked by the sign block in POST /api/shares in this
+                   order (needs signers and the outside route sit between).
+   An EXECUTED record is exempt from the hold and the desk: its copy travels
+   on any kind, as a signed copy always has on a Sign link. The review rows
+   are asked of a sealed record as this route always asked them; on one there
+   is nothing unsent for them to find. */
+const SRV_LINK_ASKS = Object.freeze({
+  sign:      ['hold', 'desk', 'reviewer', 'reviewgate', 'signapproval', 'approval', 'signcheck', 'address'],
+  negotiate: ['hold', 'desk', 'reviewer', 'reviewgate'],
+  view:      ['hold', 'desk', 'reviewer', 'reviewgate'],
+  history:   ['hold', 'desk', 'reviewer', 'reviewgate'],
+  status:    ['hold', 'desk', 'reviewer'],
+  advise:    ['hold'],
+});
+/* Keeping a link that already went (more time, a reminder) sends nothing new,
+   so it asks only who may reach them and whether the contract is frozen. */
+const SRV_LINK_KEEP_ASKS = ['hold', 'desk'];
+/* A link with no stated purpose is read as a negotiation link everywhere
+   (sharePurposeOf); an unknown word asks the strictest row. */
+function srvLinkAsks(purpose, keep) {
+  const p = purpose || 'negotiate';
+  const row = SRV_LINK_ASKS[p] || SRV_LINK_ASKS.sign;
+  return new Set(keep ? row.filter(k => SRV_LINK_KEEP_ASKS.includes(k)) : row);
+}
+/* The refusal, or null: { status, body }. Read off the STORED contract
+   (`rvStored`) and the signed-in person (`req.user`), never the body's word.
+   `payload` is the envelope the review gate measures; absent, the gate has
+   nothing to look at. `keep` asks the keeping rows only. */
+function srvLinkRefusal(req, rvStored, purpose, opts) {
+  if (!rvStored || !req || !req.user) return null;
+  const o = opts || {};
+  const asks = srvLinkAsks(purpose, o.keep);
+  const sign = (purpose || 'negotiate') === 'sign';
+  const sealed = isExecutedRow(rvStored);
+  const cid = o.contractId || rvStored.id;
+  const started = sign && !!saStarted(rvStored, { responded: srvSaResponded(cid) });
+  if (!sealed && asks.has('hold') && rvStored.hold && rvStored.hold.at)
+    return { status: 409, body: { heldFreeze: true, error: sign
+      ? `${contractRef(rvStored)} is on hold while a dispute is dealt with, so a signing link cannot be issued. Release the hold first.`
+      : `${contractRef(rvStored)} is on hold while a dispute is dealt with, so no link goes out on it. Release the hold first.` } };
+  if (!sealed && !started && asks.has('desk') && deskRuleOn() && deskIsClaimed(rvStored)
+    && deskSeatOf(rvStored, req.user) !== 'lead')
+    return { status: 403, body: { desk: 'not-the-lead', error: sign
+      ? `Only ${deskLeadName(rvStored)}, who leads this negotiation, sends it to the other side — including the signing link.`
+      : `Only ${deskLeadName(rvStored)}, who leads this negotiation, sends it to the other side.` } };
+  /* 1. THE SENDER'S OWN POSTURE. Being asked to review a clause narrows you
+     on this contract until you hand back: nothing you do reaches the
+     counterparty. Refused rather than stripped — the person is not entitled
+     to send this round at all, so there is no smaller send to offer. */
+  if (asks.has('reviewer')) {
+    const holding = rvActorHeld(rvStored, req.user);
+    if (holding.length) {
+      const n = holding.reduce((a, r) => a + ((r.changeIds || []).length), 0);
+      return { status: 403, body: { error: `You are reviewing ${n} change${n === 1 ? '' : 's'} on this contract`
+        + ` for ${holding[0].by || 'a colleague'}. Hand the review back before sending anything to the counterparty.`,
+        reviewing: holding.map(r => r.id) } };
+    }
+  }
+  /* 2. THE GATE, where an admin has turned it on. A change nobody has looked
+     at does not travel, and this is the refusal the setting promises. The
+     SENDER is who the gate is about — it is their wording going out. */
+  if (asks.has('reviewgate') && o.payload) {
+    const unreviewed = rvUnreviewedIds(rvStored, req.user);
+    if (unreviewed.size) {
+      const k = o.payload.contract;
+      const carried = (k && Array.isArray(k.changes) ? k.changes : []).filter(x => x && unreviewed.has(String(x.id)));
+      if (carried.length)
+        return { status: 403, body: { error: `${carried.length} change${carried.length === 1 ? ' has' : 's have'}`
+          + ' not been cleared by an internal reviewer, and this workspace requires one before changes are sent.',
+          unreviewed: carried.map(x => x.id) } };
+    }
+  }
+  return null;
+}
+/* 3. THE HELD AND THE STILL-BEING-READ, taken out of the envelope — and what
+   a colleague only suggested. STRIPPED rather than refused, because the
+   ordinary case is a race and not an attack: the sender built this payload, a
+   colleague pressed Hold, and the send arrived a second later. Refusing would
+   lose the whole round over one clause. What travels is what may travel, and
+   the count comes back so the sender is not told a lie by omission. Asked by
+   every route that writes a copy the other side reads (POST /api/shares and
+   the refresh of a standing link), so the round send is walled like the first.
+   `unsent` also takes out every ask of ours they have not seen: the quiet
+   catch-up of a person the table refuses may bring a link up to date, and
+   carries nothing new. Returns the number taken out. */
+function srvLinkStrip(rvStored, payload, opts) {
+  if (!rvStored || !payload || !payload.contract || !Array.isArray(payload.contract.changes)) return 0;
+  const withheld = rvWithheldIds(rvStored);
+  /* AND WHAT A COLLEAGUE ONLY SUGGESTED (4 Oct 2026). The same envelope, the
+     same arithmetic and the same honest report: a contributor's redline
+     belongs to the lead to adopt, and until they have it is not what this
+     company is asking for. Added to the one set rather than filtered twice,
+     so the count the sender is told is the whole of what stayed behind. */
+  for (const id of dkSuggestedIds(rvStored)) withheld.add(id);
+  if (opts && opts.unsent) for (const ch of rvUnsentOurs(rvStored)) withheld.add(String(ch.id));
+  if (!withheld.size) return 0;
+  const before = payload.contract.changes.length;
+  payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
+  return before - payload.contract.changes.length;
+}
+
 app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   const { payload, recipient, channel, message, expiryDays, durable, purpose } = req.body || {};
   if (!payload || payload.kind !== 'hati-share') return res.status(400).json({ error: 'Invalid share payload' });
@@ -13700,48 +13826,24 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   const rvRow = shareId ? db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId) : null;
   let rvStored = null;
   if (rvRow) { try { rvStored = JSON.parse(rvRow.json); } catch (_) { rvStored = null; } }
+  /* The body may state it; the payload the reader will actually be served
+     always does. They are the same value, and the payload is the one the page
+     obeys, so it is the one that wins here — a row that disagreed with the
+     document it serves would supersede the wrong links. Read before the wall
+     below, because which questions a link answers depends on its kind. */
+  const purp = SHARE_PURPOSES.includes(payload.purpose) ? payload.purpose
+    : SHARE_PURPOSES.includes(purpose) ? purpose : null;
   if (rvStored){
-    /* 1. THE SENDER'S OWN POSTURE. Being asked to review a clause narrows you
-       on this contract until you hand back: nothing you do reaches the
-       counterparty. Refused rather than stripped — the person is not entitled
-       to send this round at all, so there is no smaller send to offer. */
-    const holding = rvActorHeld(rvStored, req.user);
-    if (holding.length){
-      const n = holding.reduce((a, r) => a + ((r.changeIds || []).length), 0);
-      return res.status(403).json({ error: `You are reviewing ${n} change${n === 1 ? '' : 's'} on this contract`
-        + ` for ${holding[0].by || 'a colleague'}. Hand the review back before sending anything to the counterparty.`,
-        reviewing: holding.map(r => r.id) });
-    }
-    /* 2. THE GATE, where an admin has turned it on. A change nobody has looked
-       at does not travel, and this is the refusal the setting promises. */
-    /* The SENDER is who the gate is about — it is their wording going out. */
-    const unreviewed = rvUnreviewedIds(rvStored, req.user);
-    if (unreviewed.size){
-      const carried = (payload.contract && Array.isArray(payload.contract.changes) ? payload.contract.changes : [])
-        .filter(x => x && unreviewed.has(String(x.id)));
-      if (carried.length)
-        return res.status(403).json({ error: `${carried.length} change${carried.length === 1 ? ' has' : 's have'}`
-          + ' not been cleared by an internal reviewer, and this workspace requires one before changes are sent.',
-          unreviewed: carried.map(x => x.id) });
-    }
-    /* 3. THE HELD AND THE STILL-BEING-READ, taken out of the envelope. STRIPPED
-       rather than refused, because the ordinary case here is a race and not an
-       attack: the sender built this payload, a colleague pressed Hold, and the
-       send arrived a second later. Refusing would lose the whole round over
-       one clause. What travels is what may travel, and the response says what
-       stayed behind so the sender is not told a lie by omission. */
-    const withheld = rvWithheldIds(rvStored);
-    /* 3b. AND WHAT A COLLEAGUE ONLY SUGGESTED (4 Oct 2026). The same envelope,
-       the same arithmetic and the same honest report: a contributor's redline
-       belongs to the lead to adopt, and until they have it is not what this
-       company is asking for. Added to the one set rather than filtered twice,
-       so the count the sender is told is the whole of what stayed behind. */
-    for (const id of dkSuggestedIds(rvStored)) withheld.add(id);
-    if (withheld.size && payload.contract && Array.isArray(payload.contract.changes)){
-      const before = payload.contract.changes.length;
-      payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
-      req.rvStripped = before - payload.contract.changes.length;
-    }
+    /* ONE LINK CHECK FOR EVERY LINK KIND (4 Oct 2026): the hold, the desk,
+       the sender's own review posture and the review gate, each asked of the
+       kinds it guards (SRV_LINK_ASKS). A signing link's own rows follow in the
+       sign block below. */
+    const no = srvLinkRefusal(req, rvStored, purp, { payload, contractId: shareId });
+    if (no) return res.status(no.status).json(no.body);
+    /* 3. THE HELD, THE STILL-BEING-READ AND THE ONLY-SUGGESTED, taken out of
+       the envelope rather than refused — see srvLinkStrip. */
+    const stripped = srvLinkStrip(rvStored, payload);
+    if (stripped) req.rvStripped = stripped;
   }
   /* THE BRIEF NEVER TRAVELS (WO-2). It is an internal reading aid — our own
      colleague's plain-English take on their paper — and the product's client
@@ -13773,12 +13875,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
   /* Durability is opt-in per share. The default stays one-shot: the signature
      pass wants exactly one answer bound to exactly one copy of the wording. */
   const isDurable = durable === true || durable === 1 ? 1 : 0;
-  /* The body may state it; the payload the reader will actually be served
-     always does. They are the same value, and the payload is the one the page
-     obeys, so it is the one that wins here — a row that disagreed with the
-     document it serves would supersede the wrong links. */
-  const purp = SHARE_PURPOSES.includes(payload.purpose) ? payload.purpose
-    : SHARE_PURPOSES.includes(purpose) ? purpose : null;
+  /* (`purp`, the kind of link this is, was read above the wall.) */
   /* ---- A STATUS LINK CARRIES NO CONTRACT AT ALL (idea 15, 4 Oct 2026) ----
      Its page is built fresh from the stored record on every open, by a reading
      that carries no wording, no people and nothing one party may not show
@@ -13842,21 +13939,15 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        The browser's issuing doors (signLinkRefusal, js/core.js) ask these
        too; a link minted round them was a link refused at signing a day
        later, with the counterparty told something had gone wrong.
-         · A CONTRACT ON HOLD is not signed — the respond route refuses it, so
-           a link issued now is a dead link.
-         · THE DESK: reaching the counterparty is the lead's act (deskMaySend —
-           an admin is not exempt; they take the lead first). Asked only
-           before signing has begun: once our signatures are on, issuing the
-           next signer's link is the route carrying itself, and the desk
-           never gates signing.
+         · A CONTRACT ON HOLD and THE DESK are asked above the wall's strip,
+           for every link kind (srvLinkRefusal) — a signing link in the
+           signing link's own words, and the desk only before signing has
+           begun: once our signatures are on, issuing the next signer's link
+           is the route carrying itself, and the desk never gates signing.
          · THE CHECK BEFORE SIGNING, at this workspace's gate and with no
            signer — the counterparty's signature, refused at respond by the
            same function. Before signing has begun, for the desk's reason:
            our first signature already passed it. */
-    if (stored && stored.hold && stored.hold.at)
-      return res.status(409).json({ error: `${contractRef(stored)} is on hold while a dispute is dealt with, so a signing link cannot be issued. Release the hold first.`, heldFreeze: true });
-    if (stored && !started && deskRuleOn() && deskIsClaimed(stored) && deskSeatOf(stored, req.user) !== 'lead')
-      return res.status(403).json({ error: `Only ${deskLeadName(stored)}, who leads this negotiation, sends it to the other side — including the signing link.`, desk: 'not-the-lead' });
     const checked = (stored && !started) ? signCheckRefusal(stored) : null;
     if (checked) return res.status(409).json({ error: checked, signCheck: true });
   }
@@ -15359,6 +15450,24 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
      the current wording is a fact about THEM, and it must not be reset by
      bookkeeping they never asked for and cannot see. */
   const silent = !!(req.body || {}).silent;
+  /* ---- THE ROUND SEND MEETS THE SAME WALL AS THE FIRST SEND (4 Oct 2026) ----
+     Every round after the first travels on THIS route, not POST /api/shares,
+     so a wall that lived only there walled the first send. Asked of the
+     STORED contract and the ROW's kind (a link keeps the kind it was made
+     with): the hold, the desk, the sender's review posture and the gate
+     refuse a send. A QUIET CATCH-UP IS NOT A SEND — any colleague's browser
+     runs one after it applies the other side's answer, and refusing it would
+     leave their link describing a negotiation that has moved on — so where
+     the table would refuse this person, the catch-up still goes and carries
+     none of our asks they have not seen. Held, still-being-read and
+     only-suggested wording is taken out of every refresh, as on the first. */
+  const linkStored = s.contract_id ? srvStoredContract(s.contract_id) : null;
+  let linkStripped = 0;
+  if (linkStored) {
+    const no = srvLinkRefusal(req, linkStored, sharePurposeOf(s), { payload, contractId: s.contract_id });
+    if (no && !silent) return res.status(no.status).json(no.body);
+    linkStripped = srvLinkStrip(linkStored, payload, { unsent: !!no });
+  }
   let oldText = '';
   try { oldText = String((JSON.parse(s.payload).contract || {}).docText || ''); } catch (_) {}
   if (!silent)
@@ -15424,6 +15533,8 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
        can tell "nothing was meant to go" from "it did not go". */
     turnMail: turnMail && mailTried, outbox: mailTried && !emailSent && !EMAIL_ON(),
     recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
+    /* What stayed behind, said as the first send says it. */
+    withheldByReview: linkStripped || undefined,
     emailSent, emailConfigured: EMAIL_ON(), emailError, reach: srvReachOf(s.contract_id) });
 });
 
@@ -15481,6 +15592,11 @@ app.post('/api/shares/:token/extend', auth, editor, (req, res) => {
   if (s.revoked_at) return res.status(409).json({ error: 'This link was cancelled — send a fresh one instead.' });
   if (shareExpired(s)) return res.status(409).json({ error: 'This link has already run out — send a fresh one instead.' });
   if (s.response && !s.durable) return res.status(409).json({ error: 'This link has already been used — send a fresh one instead.' });
+  /* MORE TIME IS STILL REACH (4 Oct 2026): a link kept open is a link the
+     other side can go on answering, so the one link check is asked — its
+     keeping rows only, the hold and the desk, because nothing new travels. */
+  { const no = srvLinkRefusal(req, srvStoredContract(s.contract_id), sharePurposeOf(s), { keep: true, contractId: s.contract_id });
+    if (no) return res.status(no.status).json(no.body); }
   const days = Math.min(90, Math.max(1, Number((req.body || {}).days) || SHARE_EXPIRY_DEFAULT_DAYS));
   const was = Date.parse(String(s.expires_at || '')) || 0;
   const until = new Date(Math.max(was, Date.now() + days * 86400000)).toISOString();
@@ -15503,6 +15619,10 @@ app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res
   if (s.response) return res.status(409).json({ error: 'This share already has a response' });
   if (s.revoked_at) return res.status(409).json({ error: 'This share was revoked — create a new share instead' });
   if (shareExpired(s)) return res.status(409).json({ error: 'This share has expired — create a new share instead' });
+  /* A REMINDER IS A SEND (4 Oct 2026): it puts our name in their inbox, so
+     the one link check's keeping rows are asked — the hold and the desk. */
+  { const no = srvLinkRefusal(req, srvStoredContract(s.contract_id), sharePurposeOf(s), { keep: true, contractId: s.contract_id });
+    if (no) return res.status(no.status).json(no.body); }
   const link = shareUrl(req, s.token);
   let emailSent = false, emailError = null;
   if ((s.channel || 'link') === 'email' && s.recipient_email) {

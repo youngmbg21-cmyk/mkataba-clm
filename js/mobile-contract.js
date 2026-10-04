@@ -967,8 +967,14 @@ async function mShareCreate(){
      (signLinkRefusal, 4 Oct 2026) — this sheet posts itself, so without it
      the phone was the door round the desk, the review and the check. Said in
      the sheet's own error line, where the address is. */
+  /* AND EVERY OTHER KIND ITS OWN ROW OF THE SAME CHECK (linkRefusal, 4 Oct
+     2026): a negotiation or read-only link from the phone asked nothing at
+     all, so the phone was the door round the desk and the hold. */
   if(s.share==='sign' && window.signLinkRefusal){
     let no=null; try{ no=signLinkRefusal(c,{ email }); }catch(_){ no=null; }
+    if(no){ s.shareErr=no.why; mRender(); return; }
+  }else if(window.linkRefusal){
+    let no=null; try{ no=linkRefusal(c,{ purpose:s.share }); }catch(_){ no=null; }
     if(no){ s.shareErr=no.why; mRender(); return; }
   }
   s.shareErr=''; mRender();

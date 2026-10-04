@@ -1775,6 +1775,13 @@ async function agRunAct(key, act){
   if (act === 'fresh') return agFreshLink(key);
   if (act === 'keepopen'){
     if (!c || typeof shareKeepOpen !== 'function' || !it.soon) return;
+    /* MORE TIME IS STILL REACH (4 Oct 2026): the one link check's keeping
+       rows — the hold and the desk — asked before the press is spent. */
+    if (typeof linkRefusal === 'function'){
+      let no = null;
+      try { no = linkRefusal(c, { purpose: it.soon.kind === 'sign' ? 'sign' : 'negotiate', keep: true }); } catch (_){ no = null; }
+      if (no){ if (typeof toast === 'function') toast(no.why, 'err'); return; }
+    }
     let r = null;
     try { r = await shareKeepOpen(c, it.soon.token); }
     catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
