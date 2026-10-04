@@ -5,12 +5,13 @@
    tile for "Risks found". Driven where the reader stands:
      1. the Negotiate page's Redlines column lists the risks, worst first, and
         the standards button now says "Draft from our standards";
-     2. Risk View's "Draft a redline" lands on Negotiate with that risk open
-        and Copilot's wording drawn as tracked changes beside it — read first;
-     3. "Add to redlines" files an UNSENT change through the funnel, the risk
-        leaves the list, and the row says "from the risk scan" on our seat;
-     4. a missing clause becomes a NEW clause with a heading the reader can
-        change;
+     2. Risk View offers only "Add a note" (one door for edits, work order
+        Part 8, 4 Oct 2026); "Edit with Copilot" on the row opens the clause
+        editor on that clause with Copilot's wording in the box — read first;
+     3. its Save files an UNSENT change through the funnel, the risk leaves
+        the list, and the row says "from the risk scan" on our seat;
+     4. a missing clause no clause carries becomes a NEW clause, drafted in
+        the card, with a heading the reader can change;
      5. Dismiss / Show dismissed / Bring back, one list everywhere;
      6. with no Copilot key the row opens on a box to write in — never silent;
      7. every door that opened the old panel (the Checks row, the head icon)
@@ -139,33 +140,39 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   /* pick the marked clause (Payment) */
   await page.evaluate(() => { const b = document.querySelector('[data-xr-seg]'); if (b) b.click(); });
   const go = await until(page, () => {
-    const b = document.querySelector('#doc-xray [data-rk-go]');
-    return b ? { key: b.getAttribute('data-rk-go'), text: b.textContent.trim(),
-      note: !!document.querySelector('#doc-xray [data-rk-note]') } : null;
+    const n = document.querySelector('#doc-xray [data-rk-note]');
+    return n ? { draft: document.querySelectorAll('#doc-xray [data-rk-go]').length, text: n.textContent.trim() } : null;
   });
-  check(!!go && go.key === 's:t-pay' && /Draft a redline/.test(go.text), '2a the Payment mark in Risk View carries "Draft a redline"', go && JSON.stringify(go));
-  check(!!go && go.note, '2b and "Add a note instead" beside it');
+  check(!!go && go.draft === 0, '2a the Payment mark in Risk View draws no "Draft a redline" (one door for edits)', go && JSON.stringify(go));
+  check(!!go && /^Add a note$/.test(go.text), '2b only "Add a note"', go && go.text);
   await page.screenshot({ path: path.join(OUT, '02-risk-view.png') });
-  await press(page, '#doc-xray [data-rk-go]');
+  await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
+  await until(page, () => !!document.querySelector('#rl-risks [data-rk-key="s:t-pay"] [data-rk-act="edit-ce"]'));
+  await press(page, '#rl-risks [data-rk-key="s:t-pay"] [data-rk-act="edit-ce"]');
   const open = await until(page, () => {
-    const r = document.querySelector('#rl-risks .rk-row.is-open[data-rk-key="s:t-pay"]');
-    if (!r || r.querySelector('.rk-busy')) return null;
-    return { ins: !!r.querySelector('.rk-draft ins, .rk-draft .hati-ins'), del: !!r.querySelector('.rk-draft del, .rk-draft .hati-del'),
-      target: (r.querySelector('[data-rk-target]') || {}).value || '', cost: (r.querySelector('.rk-cost') || {}).textContent || '',
-      add: !!r.querySelector('[data-rk-act="add"]:not([disabled])') };
+    const pg = document.getElementById('clause-editor'); if (!pg) return null;
+    const lane = pg.querySelector('#ce-lane');
+    if (!lane || !/Payment terms: 60 days/.test(lane.textContent) || lane.querySelector('.rk-busy') || !/Copilot wrote/.test(lane.textContent)) return null;
+    return { ins: !!pg.querySelector('#ce-doc ins, #ce-doc .hati-ins, #ce-doc .nego-ins'), del: !!pg.querySelector('#ce-doc del, #ce-doc .hati-del, #ce-doc .nego-del'),
+      clause: clauseEditorClauseId(), cost: (lane.querySelector('.rk-cost') || {}).textContent || '' };
   }, null, 8000);
-  check(!!open, '2c the press lands on Negotiate with that risk open in the list', open && JSON.stringify(open));
+  check(!!open, '2c "Edit with Copilot" opens the clause editor on that risk', open && JSON.stringify(open));
   check(!!open && open.ins && open.del, '2d Copilot\'s wording is drawn as tracked changes against the clause — read first');
-  check(!!open && /^e:/.test(open.target), '2e it changes the clause the risk is about', open && open.target);
-  check(!!open && /1 Copilot call/.test(open.cost) && /nothing sent/.test(open.cost), '2f the cost is said beside the buttons', open && open.cost);
+  const payClause = await page.evaluate(id => (negoClauseList(getContract(id)).find(x => /Payment/.test(x.headingText || x.title || '')) || {}).clauseId, ID);
+  check(!!open && open.clause === payClause, '2e it changes the clause the risk is about', open && open.clause);
+  check(!!open && /1 Copilot call/.test(open.cost), '2f the cost is said', open && open.cost);
   await page.screenshot({ path: path.join(OUT, '03-read-in-place.png') });
 
-  /* ============ 3. ADD TO REDLINES — UNSENT, THROUGH THE FUNNEL ============ */
+  /* ============ 3. SAVE — UNSENT, THROUGH THE FUNNEL ============ */
   const before = await page.evaluate(id => { const c = getContract(id); return { n: (c.changes || []).length, turnAt: (c.negotiation || {}).turnAt || null }; }, ID);
-  await press(page, '#rl-risks [data-rk-key="s:t-pay"] [data-rk-act="add"]');
+  await press(page, '[data-ce-act="rk-save"]');
+  await until(page, () => !!document.querySelector('#context-panel [data-rl-np-unpin]'));
+  await press(page, '#context-panel [data-rl-np-unpin]');
+  await until(page, () => !!document.querySelector('[data-ce-rk="back"]'));
+  await press(page, '[data-ce-rk="back"]');
   const filed = await until(page, ({ id, n }) => {
     const c = getContract(id);
-    if ((c.changes || []).length <= n) return null;
+    if ((c.changes || []).length <= n || document.getElementById('clause-editor')) return null;
     const ch = c.changes[c.changes.length - 1];
     const p = document.getElementById('rl-risks');
     return { status: ch.status, side: ch.authorSide, type: ch.changeType, newText: ch.newText,
@@ -174,7 +181,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
       stillListed: !!document.querySelector('#rl-risks [data-rk-key="s:t-pay"]'),
       rowSays: [...document.querySelectorAll('#rl-changes .rl-card-sum')].map(x => x.textContent).join(' | ') };
   }, { id: ID, n: before.n }, 8000);
-  check(!!filed && filed.status === 'pending' && filed.side === 'owner', '3a "Add to redlines" files one change of ours, pending', filed && JSON.stringify({ s: filed.status, side: filed.side }));
+  check(!!filed && filed.status === 'pending' && filed.side === 'owner', '3a Save files one change of ours, pending', filed && JSON.stringify({ s: filed.status, side: filed.side }));
   check(!!filed && /forty-five/.test(filed.newText || ''), '3b with the wording that was read', filed && filed.newText);
   check(!!filed && filed.turnAt === before.turnAt, '3c and sends nothing — the turn did not move');
   check(!!filed && !filed.stillListed && /· 2/.test(filed.head), '3d the risk leaves the list, which now counts two', filed && filed.head);
@@ -182,7 +189,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await page.screenshot({ path: path.join(OUT, '04-added.png') });
 
   /* ============ 4. A MISSING CLAUSE BECOMES A NEW ONE ============ */
-  await press(page, '#rl-risks [data-rk-key="s:t-inj"] [data-rk-act="draft"]');
+  await press(page, '#rl-risks [data-rk-key="s:t-inj"] [data-rk-act="edit-ce"]');
   const nw = await until(page, () => {
     const r = document.querySelector('#rl-risks .rk-row.is-open[data-rk-key="s:t-inj"]');
     if (!r || r.querySelector('.rk-busy')) return null;
@@ -221,7 +228,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
 
   /* ============ 6. NO COPILOT IS SAID, NEVER SILENT ============ */
   await page.evaluate(() => { state.aiConfigured = false; });
-  await press(page, '#rl-risks [data-rk-key="s:t-ass"] [data-rk-act="draft"]');
+  await press(page, '#rl-risks [data-rk-key="s:t-ass"] [data-rk-act="edit-ce"]');
   const noai = await until(page, () => {
     const r = document.querySelector('#rl-risks .rk-row.is-open[data-rk-key="s:t-ass"]');
     return r ? { box: !!r.querySelector('textarea[data-rk-words]'), says: r.textContent } : null;

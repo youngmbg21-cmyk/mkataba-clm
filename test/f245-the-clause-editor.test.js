@@ -1834,11 +1834,12 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     assert.equal(/\.ce-chg\{/.test(SRC), false, 'and its dress went with it');
   });
 
-  test('the rail is Copilot, the ladder, the figure and the playbook scan, and nothing else', () => {
+  test('the rail is Copilot, the ladder, the figure, the playbook scan and the risks, and nothing else', () => {
     /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's rail): the
-       Ladder and Figure tabs joined; the Changes tab is still gone. */
+       Ladder and Figure tabs joined; the Changes tab is still gone. And
+       4 Oct 2026 (work order Part 8, "one door for edits"): Risks joined. */
     const tabs = [...CODE.matchAll(/data-ce-tab="([a-z]+)"/g)].map(m => m[1]);
-    assert.deepEqual([...new Set(tabs)].sort(), ['chat', 'figure', 'ladder', 'scan']);
+    assert.deepEqual([...new Set(tabs)].sort(), ['chat', 'figure', 'ladder', 'risks', 'scan']);
   });
 
   test('the two keys are left INERT in both dictionaries, never removed from one', () => {
@@ -2392,9 +2393,10 @@ describe('f245 (20) — putting a scroll back is not travelling to it', () => {
     assert.equal(sites.filter(x => x === 'el.scrollTop = ').length, 1,
       'and the helper itself is the one place that writes one');
     /* RE-POINTED 14 Sep 2026: the rail gained the Ladder and Figure tabs,
-       each landing at its own top exactly as the scan tab does. */
-    assert.equal(sites.filter(x => x === 'lane.scrollTop = ').length, 4,
-      'the rail keeps its own four — the scan, ladder and figure tabs\' tops and the last turn');
+       each landing at its own top exactly as the scan tab does. And again
+       4 Oct 2026 (work order Part 8): the Risks tab lands at its top too. */
+    assert.equal(sites.filter(x => x === 'lane.scrollTop = ').length, 5,
+      'the rail keeps its own five — the scan, ladder, figure and risks tabs\' tops and the last turn');
   });
 });
 

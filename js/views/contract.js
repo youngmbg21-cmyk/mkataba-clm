@@ -13045,9 +13045,10 @@ const docXrayTone = marks =>
    contract-level block are the same shape and must stay the same shape -- the
    clothes follow the builder. EVERY MARK NAMES WHO SAID IT, so amber never
    hides whether this is a rule of yours or something the paper itself does. */
-/* `foot` is the risk list's two doors under a mark (js/risks.js,
-   riskMarkFootHtml) — "Add a note instead" and "Draft a redline". Empty
-   wherever they cannot act, so every other caller is byte-identical. */
+/* `foot` is the risk list's one door under a mark (js/risks.js,
+   riskMarkFootHtml) — "Add a note"; editing is Edit with Copilot's, on
+   Negotiate (work order Part 8). Empty wherever it cannot act, so every other
+   caller is byte-identical. */
 const docXrayMarkHtml = (m, foot) => `<div class="doc-xr-mark is-${esc(m.grade||'amber')}">
     <span class="doc-xr-mk">${esc(m.tag||'')}</span>
     <span class="doc-xr-mt"><span>${m.lead?`<b>${esc(m.lead)}</b>`:''}${m.lead&&m.say?' \u2014 ':''}${

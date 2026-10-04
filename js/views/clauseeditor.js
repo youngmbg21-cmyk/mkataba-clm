@@ -99,7 +99,7 @@ let _ceStep = 0;
    one clause you came in on is typeable is this, and the control for it is the
    pencil already on that clause. */
 let _ceEditing = false;
-let _ceTab = 'chat';        /* chat | scan */
+let _ceTab = 'chat';        /* chat | scan | ladder | figure | risks */
 let _ceThread = [];         /* the conversation, this sitting only */
 let _ceBusy = false;
 let _ceSavedAt = null;
@@ -1733,6 +1733,9 @@ function clauseEditorHtml(){
                    ceFiledList, ceChangesHtml and the ce_tab_changes /
                    ce_changes_none keys are STALE — flag any mention. */}
             ${ceNoAi() ? '' : `<button type="button" data-ce-tab="scan">${_cet('ce_tab_scan')}<span class="n" id="ce-scan-n"></span></button>`}
+            ${''/* ONE DOOR FOR EDITS (work order Part 8): the risks, beside the
+                   Playbook scan, on our seat where the reader may act on them. */}
+            ${ceRisksOn() ? `<button type="button" data-ce-tab="risks" id="ce-tab-risks">${_cet('ce_tab_risks')}<span class="n" id="ce-rk-n"></span></button>` : ''}
           </span>
         </div>
         ${ceNoAi() ? '' : `<div class="ce-disc"><b>&#10022;</b><span>${_cet('ce_disclaimer')}</span></div>`}
@@ -1752,6 +1755,7 @@ function clauseEditorHtml(){
         ${''/* THE SPELLING LIST'S SLOT, directly over the Save it is about
                (28 Sep 2026). Empty unless a Save found something. */}
         <div class="ce-spell" id="ce-spell"></div>
+        <div class="ce-railfoot ce-rkfoot" id="ce-rkfoot" hidden></div>
         <div class="ce-railfoot" id="ce-railfoot"></div>
       </aside>
       ${''/* ONE picker element, three contents — ink, highlight, size. Three
@@ -2278,7 +2282,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      unless a caller NAMES the Playbook tab. ceClauseFindings stays as a
      reading with no caller here; the Playbook tab's own count still shows
      the findings without moving anybody onto it. */
-  _ceTab = ceNoAi() ? 'ladder' : opts.tab === 'scan' ? 'scan' : 'chat';
+  _ceTab = ceNoAi() ? 'ladder' : opts.tab === 'scan' ? 'scan' : (opts.tab === 'risks' && ceRisksOn()) ? 'risks' : 'chat';
 
   ceEnsureStyle();
   /* ---- THE PAPER'S OWN SHEET, ASKED FOR RATHER THAN ASSUMED ----
@@ -2347,6 +2351,9 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
           rests: prep.standard ? _cet('ag_prep_rests', { what: prep.standard }) : '', text: prep.wording, passage: null, prepared: true }] });
   }catch(_){}
   ceRenderAll();
+  /* A RISK OPENED HERE (work order Part 8): Copilot's wording goes into the
+     box on arrival — one call, said in the Risks tab. */
+  if (opts && opts.risk && window.riskEditorArrive){ try{ riskEditorArrive(_ceC, opts.risk); }catch(_){} }
   /* The paper's Ask Copilot names the words it was pressed on; they go to
      the rail once the page is drawn. */
   /* THE NEGOTIATE PAGE'S HIGHLIGHT IS THE THIRD PICK DOOR (12 Sep 2026): its
@@ -3889,6 +3896,7 @@ function ceRenderFoot(){
             title="${_cee(_cet('cl_hand_title', { who: String(rows[0].name || '') }))}">${_cee(_cet('cl_hand_over'))}</button>
         </span>` : '';
   }
+  ceRenderRiskFoot();
   const foot = _ceQ('#ce-railfoot');
   if (!foot) return;
   /* ---- PATCHED IN PLACE, NEVER REWRITTEN (owner-reported 30 Aug 2026) ----
@@ -4294,6 +4302,12 @@ function ceRenderTabs(){
   if (ft) ft.hidden = !ceFigureTopic();
   const badge = _ceQ('#ce-scan-n');
   if (badge){ badge.textContent = n ? String(n) : ''; badge.style.display = n ? '' : 'none'; }
+  const rkn = _ceQ('#ce-rk-n');
+  if (rkn){ const k = (window.riskOpenOf && _ceC) ? riskOpenOf(_ceC).length : 0; rkn.textContent = k ? String(k) : ''; rkn.style.display = k ? '' : 'none'; }
+  /* ON THE RISKS TAB THE FOOT IS THE WALK'S: ‹ Previous · Skip · Save & next. */
+  const rf = _ceQ('#ce-rkfoot'), mf = _ceQ('#ce-railfoot');
+  if (rf) rf.hidden = _ceTab !== 'risks';
+  if (mf) mf.style.display = _ceTab === 'risks' ? 'none' : '';
   /* The ask box belongs to the conversation. The scan has nothing to be asked.
      THE PASSAGE CARD GOES WITH IT: it is the subject of the next question, and
      over a list of playbook findings it would be a card about nothing. The
@@ -4333,6 +4347,12 @@ function ceRenderLane(){
   const lane = _ceQ('#ce-lane'); if (!lane) return;
   if (_ceTab === 'scan'){ lane.innerHTML = ceScanHtml(); lane.scrollTop = 0; ceScanFitPv(lane); return; }
   if (_ceTab === 'ladder'){ lane.innerHTML = ceLadderLaneHtml(); lane.scrollTop = 0; return; }
+  if (_ceTab === 'risks'){
+    const ta = _ceQ('#ce-rk-ask'); const typed = ta ? ta.value : '';
+    lane.innerHTML = window.riskLaneHtml && _ceC ? riskLaneHtml(_ceC) : '';
+    const tb = _ceQ('#ce-rk-ask'); if (tb && typed) tb.value = typed;
+    lane.scrollTop = 0; ceRenderRiskFoot(); return;
+  }
   if (_ceTab === 'figure'){
     lane.innerHTML = ceFigureLaneHtml(); lane.scrollTop = 0;
     const rg = _ceQ('#ce-fig-range'), fi = _ceQ('#ce-fig');
@@ -5881,6 +5901,81 @@ function ceSpellDrop(word){
   _ceSpellFor = _ceSpellList.length ? ceSpellKey() : null;
   ceRenderSpell(); ceRenderFoot();
 }
+/* ============================================================================
+   ONE DOOR FOR EDITS — THE RISKS TAB (the owner's work order, Part 8, 4 Oct
+   2026). js/risks.js owns the risks, the walk and the rail's card; this page
+   owns the box and the Save. A Save from the walk is THIS PAGE'S OWN SAVE
+   (ceSaveChecked → ceFile → negoEditClause) wearing the risk's provenance,
+   then the same Notes drawer every Save opens, then the next risk.
+   ========================================================================== */
+let _ceFileNote = '';
+let _ceLastNoteAsk = null;
+function ceRisksOn(){
+  if (ceNoAi() || !_ceC || !window.riskMayAct || !window.riskOpenOf) return false;
+  try{
+    if (!riskMayAct(_ceC, { side: ceSide() })) return false;
+    return !!((_ceOpts && _ceOpts.risk) || riskOpenOf(_ceC).length);
+  }catch(_){ return false; }
+}
+/* The box's words as plain text, typed words included — what Copilot is asked
+   to build on. */
+function ceBoxWords(){
+  if (!clauseEditorOpen()) return '';
+  const now = ceBoxNow();
+  return ceWords(now ? now.text : _ceText);
+}
+/* The walk's foot, patched in place like the rail foot (a row rewritten under
+   a reader's finger is a dead press). */
+function ceRenderRiskFoot(){
+  const foot = _ceQ('#ce-rkfoot'); if (!foot) return;
+  const info = (window.riskWalkInfo && _ceC) ? riskWalkInfo(_ceC) : null;
+  if (!info || info.done || !info.it){ if (foot.innerHTML) foot.innerHTML = ''; return; }
+  let prev = foot.querySelector('[data-ce-act="rk-prev"]'), skip = foot.querySelector('[data-ce-act="rk-skip"]'), save = foot.querySelector('[data-ce-act="rk-save"]');
+  if (!prev || !skip || !save){
+    foot.innerHTML = '<button type="button" data-ce-act="rk-prev"></button><button type="button" data-ce-act="rk-skip"></button>'
+      + '<button type="button" class="p" data-ce-act="rk-save"></button>';
+    prev = foot.querySelector('[data-ce-act="rk-prev"]'); skip = foot.querySelector('[data-ce-act="rk-skip"]'); save = foot.querySelector('[data-ce-act="rk-save"]');
+  }
+  const here = String(info.clauseId) === String(_ceClauseId);
+  const live = ceEditableReading();
+  const label = _ceLead && _ceLead.authorSide === 'owner' ? _cet('rk_ce_save_to', { id: _ceLead.id }) : _cet('rk_ce_save');
+  [[prev, _cet('rk_ce_prev'), info.k > 1], [skip, _cet('rk_ce_skip'), true], [save, label, here && live && ceCanFile(ceBoxNow())]].forEach(([b, word, on]) => {
+    b.disabled = !on;
+    if (b.textContent !== word) b.textContent = word;
+  });
+  save.setAttribute('title', _cet('ce_save_opens_note'));
+}
+/* SAVE & NEXT: the safety net, then this page's own Save with the risk's
+   provenance, then the note drawer as after any Save, then the next risk. */
+async function ceRiskSave(){
+  if (!clauseEditorOpen() || !_ceC || !window.riskWalkInfo) return null;
+  const info = riskWalkInfo(_ceC);
+  if (!info || !info.it || String(info.clauseId) !== String(_ceClauseId)) return null;
+  cePullText();
+  if (!ceCanFile()){ ceSay(_cet('ce_nothing_to_file')); return null; }
+  const c = _ceC, clauseId = _ceClauseId, key = info.key;
+  const twice = window.riskSecondRedline ? riskSecondRedline(c, clauseId) : null;
+  if (twice){
+    const clause = ceClauseLabel(ceClause()) || _cet('ce_this_clause');
+    const go = window.confirmDialog ? await confirmDialog({ title: _cet('rk_net_title', { clause, id: twice.id }),
+      message: _cet('rk_net_msg', { id: twice.id }), confirmLabel: _cet('rk_net_open', { id: twice.id }) }) : false;
+    if (go){ rlCloseClauseEditor(); if (window.rlJumpToClause) rlJumpToClause(clauseId); }
+    return null;
+  }
+  _ceFileNote = window.riskProvenance ? riskProvenance(info.it) : '';
+  _ceLastNoteAsk = null;
+  let ch = null;
+  try{ ch = await ceSaveChecked(); } finally { _ceFileNote = ''; }
+  if (!ch) return null;
+  if (window.riskFiled) riskFiled(c, key, ch);
+  const wait = _ceLastNoteAsk; _ceLastNoteAsk = null;
+  try{ if (wait) await wait; }catch(_){}
+  /* Add note or Skip answered the drawer: it goes, so the next risk's rail
+     is what the reader sees. */
+  if (wait){ try{ if (window.closeContextPanel) closeContextPanel(); }catch(_){} }
+  if (window.riskWalkStep) riskWalkStep(c, 'next');
+  return ch;
+}
 async function ceFile(why){
   /* A note kept from the ladder card rides the filing as its reason. */
   if (!why && _ceHeldNote) why = _ceHeldNote;
@@ -5901,7 +5996,7 @@ async function ceFile(why){
   /* Already rich, and already sanitised on its way out of the box — the funnel
      sanitises again on the way in, which is this codebase's standing rule. */
   const html = _ceText;
-  const note = _cet('ce_provenance');
+  const note = _ceFileNote || _cet('ce_provenance');
   _ceBusy = true;
   let ch = null, err = null;
   try{
@@ -5964,6 +6059,7 @@ async function ceFile(why){
     ? rlNoteAskAfterFile(c, ch, { side: ceSide(), author: (_ceOpts && _ceOpts.by) || undefined,
         persist: (_ceOpts && _ceOpts.persist) })
     : null;
+  _ceLastNoteAsk = _noteAsk;
   /* THE CONFIRMATION IS BRIEF AND ALWAYS (11 Sep 2026): the receipt window
      that carried "filed" as its headline is retired; the drawer that opens
      instead pins the change and asks for the note. */
@@ -6219,11 +6315,14 @@ function ceWirePage(page){
          the rest of the page rather than keeping the last reading's face. */
       ceDetachPassage(); ceRenderPaper(); ceRenderFoot(); ceRenderBar(); return; }
 
+    const rkp = hit('[data-ce-rk]');
+    if (rkp){ ev.preventDefault(); if (!rkp.disabled && window.riskWalkPress && _ceC) riskWalkPress(_ceC, rkp.getAttribute('data-ce-rk')); return; }
+
     const tab = hit('[data-ce-tab]');
     if (tab){ ev.preventDefault();
       const want = tab.getAttribute('data-ce-tab');
       _ceTab = ceNoAi() ? (want === 'figure' ? 'figure' : 'ladder')
-        : ['scan', 'ladder', 'figure'].includes(want) ? want : 'chat';
+        : ['scan', 'ladder', 'figure', 'risks'].includes(want) ? want : 'chat';
       ceRenderTabs(); ceRenderLane(); return; }
 
 
@@ -6520,6 +6619,10 @@ function ceWirePage(page){
          browser files reach this button by it — and what changed is where it
          goes. `reason-back`, `reason-skip` and `reason-file` are STALE. */
       case 'save': cePullText(); ceSaveChecked(); break;
+      /* THE WALK'S FOOT (work order Part 8) */
+      case 'rk-save': ceRiskSave(); break;
+      case 'rk-prev': if (window.riskWalkPress && _ceC) riskWalkPress(_ceC, 'prev'); break;
+      case 'rk-skip': if (window.riskWalkPress && _ceC) riskWalkPress(_ceC, 'skip'); break;
       case 'ladder-apply': {
         if (_ceLadderReply && _ceLadderReply.text){
           ceApply(_ceLadderReply.text, _cet('ce_step_copilot'));
@@ -6844,7 +6947,7 @@ Object.assign(window, {
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor, ceAttachLoose, ceSetWhole,
-  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceRunScan, ceScanItems, ceScanGroups, ceClauseFindings, ceAddMissingClause,
+  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceBoxWords, ceRenderLane, ceRiskSave, ceRisksOn, ceRunScan, ceScanItems, ceScanGroups, ceClauseFindings, ceAddMissingClause,
   ceBoxDirty,
   ceHeldPassage, ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceOfferPassage, ceAttachWords, ceRenderScope, ceRenderChips,
   ceReplacePassage, ceCutPassage, ceRestoreScroll,

@@ -118,6 +118,7 @@ const BRAIN_PARTS = [
   ['renewact', 'renewalDecisionAct', 'time', 1],
   /* Risks to look at (4 Oct 2026): the risk scan's list lives in the Redlines card */
   ['risklist', 'riskOpenOf', 'nego', 1],
+  ['riskwalk', 'riskEditStart', 'nego', 1],
   /* the six gaps closed (4 Oct 2026, owner: "build the six remaining gaps") */
   ['askkeep', 'presenceKeepAsks', 'nego', 1],
   ['kinds', 'requestsDoorCount', 'in', 2],
@@ -137,7 +138,7 @@ const BRAIN_FLOWS = [
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
-  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
+  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home', 'insights']] },
