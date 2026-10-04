@@ -10624,8 +10624,12 @@ function renderRedline(){
        banner slot (see redlinePanesHtml) until a contact exists, and never
        again after — every later send goes straight to the standing link. */
     onSetCounterparty(x){
-      c.counterpartyEmail = String((x && x.email) || '').trim();
-      if (x && x.name) c.counterpartyName = x.name;
+      /* THROUGH THE ADDRESS BOOK (4 Oct 2026) — see ctSetTheirEmail. */
+      if (window.ctSetTheirEmail) ctSetTheirEmail(c, (x && x.email) || '', x && x.name);
+      else {
+        c.counterpartyEmail = String((x && x.email) || '').trim();
+        if (x && x.name) c.counterpartyName = x.name;
+      }
       if (window.logAudit) logAudit(c, 'Negotiation',
         `Counterparty contact set — changes on this contract go to ${c.counterpartyEmail}`);
       if (window.persist) persist(c);

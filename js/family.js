@@ -825,7 +825,15 @@ function createAmendment(parent, opts={}){
         + (opts.expiry?` — states a term to ${opts.expiry}`:'')
         + (opts.skeleton===false?' — blank page':'') }],
   };
-  if(parent.counterpartyEmail) c.counterpartyEmail = parent.counterpartyEmail;
+  /* The other side's main contact comes with it, through the address book's
+     one writer (js/participants.js), read off the parent's book. */
+  const cpMail = (typeof window.contactEmail==='function') ? window.contactEmail(parent) : String(parent.counterpartyEmail||'');
+  if(cpMail){
+    if(typeof window.contactSet==='function'){
+      const m = window.contactMain ? window.contactMain(parent) : null;
+      window.contactSet(c, { main:true, email:cpMail, ...(m && m.name ? { name:m.name } : {}) });
+    } else c.counterpartyEmail = cpMail;
+  }
   c.redlineText = (opts.skeleton===false)
     ? FAMILY_BLANK_BODY
     : amendmentSkeletonBody(parent, { relation:rel, ordinal:ord, says:opts.says });

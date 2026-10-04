@@ -1332,7 +1332,23 @@ function saveSignerPlan(c, rows){
       signed:prior?!!prior.signed:false, at:prior?prior.at:null, by:prior?prior.by:null, signature:prior?prior.signature:null }); });
   const why=signerPlanWhy(c, out);
   if(why) return why;
+  const before=(c.signerPlan||[]).slice();
   c.signerPlan=out;
+  /* ---- EVERY SIGNER ON THEIR SIDE IS IN THE ADDRESS BOOK (4 Oct 2026) ----
+     The route keeps its own rows (it is still the one authority on WHO SIGNS
+     and in what order) but the person and their address are the people
+     list's: each of their signers is written there as their signer, and an
+     address changed here moves wherever that person appears — the record's
+     contact, their other roles — through the book's one writer. */
+  if(typeof contactSet==='function'){
+    out.forEach(s=>{
+      if(s.party!=='counterparty' || !String(s.email||'').trim()) return;
+      const prior=before.find(p=>p && p.id===s.id);
+      const was=prior && String(prior.email||'').trim();
+      contactSet(c, { role:'cpsign', name:s.name, email:s.email, partyId:s.partyId,
+        ...(was && was.toLowerCase()!==String(s.email).trim().toLowerCase()?{ was }:{}) });
+    });
+  }
   logAudit(c,'Signing route',`Set ${out.length} signer(s) in order`);
   persist(c);
   return null;
@@ -1378,8 +1394,10 @@ function openSignerPlanEditor(c, opts){
     plan.push({ party:'internal', name:me?me.name:'', email:me?me.email:'',
       role:(me&&typeof signerTitle==='function'?signerTitle(me):'')||'',
       memberId:me?me.id:'' });
+    /* THEIR ADDRESS IS THE ADDRESS BOOK'S main contact (4 Oct 2026). */
+    const book=(typeof contactEmail==='function')?contactEmail(c):'';
     plan.push({ party:'counterparty', name:theirName,
-      email:them.email||c.counterpartyEmail||'', role:'', memberId:'' });
+      email:book||them.email||c.counterpartyEmail||'', role:'', memberId:'' });
   }
   signerRouteWindow(c, plan, back);
 }

@@ -764,7 +764,15 @@ function contractArrived(c, opts){
      that is too empty to be worth reading is still a contract somebody just
      named three colleagues on. A bulk import claims nothing: nobody stood at
      that screen. */
-  if (c && !o.bulk){ try{ if (typeof participantsClaim === 'function') participantsClaim(c); }catch(_){} }
+  let named = false;
+  if (c && !o.bulk){ try{ if (typeof participantsClaim === 'function') named = participantsClaim(c) > 0; }catch(_){} }
+  /* ---- AND THE ADDRESS IT ARRIVED WITH IS IN THE ADDRESS BOOK (4 Oct 2026) ----
+     A creation form, the server's template route or an import wrote the
+     record's contact; the people list is the one store of the other side's
+     people, so the address goes in through its one writer here — every door,
+     bulk included, because this costs nothing and spends nothing. */
+  if (c){ try{ if (typeof contactAdopt === 'function' && contactAdopt(c)) named = true; }catch(_){} }
+  if (named && typeof persist === 'function'){ try{ persist(c); }catch(_){} }
   /* ---- A BUILT-IN TEMPLATE'S OWN PROMISES, ON ARRIVAL (the owner's list,
      27 Sep 2026) ----
      They were minted only by an Overview edit, so a draft made in one pass

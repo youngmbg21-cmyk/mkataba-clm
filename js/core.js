@@ -5633,13 +5633,29 @@ function standingShareFor(shares, contact){
 
    A SIGNING LINK IS NOT A NEGOTIATING CONTACT. It goes to whoever signs, who
    need not be the person the contract is being argued with. */
+/* ---- AND WHOEVER IT WENT TO IS IN THE ADDRESS BOOK (4 Oct 2026) ----
+   The people list (js/participants.js) is the one store of the other side's
+   people. A link sent to an address the book did not hold ADDS that person,
+   in the role the link's purpose means (a signing link → their signer), so
+   the send screen never holds an address the book does not. The first-one-
+   wins rule above is unchanged: only a non-signing send to a contract with no
+   main contact makes them the main contact. Returns whether it did. */
 function shareRememberRecipient(c, info){
   const o = info || {};
-  if (!c || o.purpose === 'sign') return false;
+  if (!c) return false;
   const email = String(o.email || '').trim();
-  if (!email || String(c.counterpartyEmail || '').trim()) return false;
-  c.counterpartyEmail = email;
+  if (!email) return false;
   const name = String(o.name || '').trim();
+  const book = typeof contactSet === 'function';
+  const hasMain = book ? !!contactEmail(c, o.partyId) : !!String(c.counterpartyEmail || '').trim();
+  const main = o.purpose !== 'sign' && !hasMain;
+  if (book){
+    if (main) contactSet(c, { main: true, email, partyId: o.partyId, ...(name ? { name } : {}) });
+    else contactSet(c, { role: contactRoleOfPurpose(o.purpose), email, partyId: o.partyId, ...(name ? { name } : {}) });
+    return main;
+  }
+  if (!main) return false;
+  c.counterpartyEmail = email;
   if (name && !String(c.counterpartyName || '').trim()) c.counterpartyName = name;
   return true;
 }
@@ -6208,7 +6224,12 @@ async function openShareModal(c, opts={}){
                filled box says it is filled. */}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <label><span style="${LBL}">${i18t('co_name')}</span><input id="sh-name" type="text" value="${attr(pre.name)}" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
-          <label id="sh-email-wrap"><span style="${LBL}">${i18t('co_email_req')}</span><input id="sh-email" type="email" data-prefill-src="${attr(pre.source||'')}" value="${attr(pre.email)}" placeholder="them@company.co.ke" style="${FLD}"/></label>
+          <label id="sh-email-wrap"><span style="${LBL}">${i18t('co_email_req')}</span><input id="sh-email" type="email" data-prefill-src="${attr(pre.source||'')}" value="${attr(pre.email)}" list="sh-email-book" autocomplete="off" placeholder="them@company.co.ke" style="${FLD}"/></label>
+          ${''/* THE ADDRESS BOOK, OFFERED (4 Oct 2026): the box picks from the
+                 people on this contract; a new address typed here is added to
+                 them when the link goes (shareRememberRecipient). */}
+          <datalist id="sh-email-book">${((typeof contactChoices==='function')?contactChoices(c):[]).map(r=>
+            `<option value="${attr(r.email)}">${esc(r.name||'')}</option>`).join('')}</datalist>
           <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">${i18t('co_whatsapp_number')}</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
         </div>
         ${''/* ---- AND EVERYONE ELSE WHO SHOULD GET IT (Young ruled 21 Sep
@@ -7055,7 +7076,8 @@ async function openShareModal(c, opts={}){
          excluded — a signature request is not a negotiating turn. */
       /* The address this dialog collected, kept — see shareRememberRecipient
          for why every later Send was re-asking for it. */
-      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name });
+      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name,
+        partyId:((typeof sharePartyPick==='function'&&sharePartyPick(c))||{}).id||undefined });
       if(payloadObj.purpose!=='sign' && c.status!=='Signed' && window.negoHandOver){
         try{ negoHandOver(c, { to:'counterparty', by:currentUser()?.name }); }catch(_){}
       }
@@ -7095,7 +7117,8 @@ async function openShareModal(c, opts={}){
         window.open(waShareLink(phone, shareMessageText(c,link,msg,null)),'_blank');
         resultBox(copyBox(link,'WhatsApp opened with the message prefilled. If it didn’t, copy the link below.')); wireCopy();
       } else { resultBox(copyBox(link)); wireCopy(); }
-      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name });
+      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name,
+        partyId:((typeof sharePartyPick==='function'&&sharePartyPick(c))||{}).id||undefined });
       logAudit(c,'Shared',`Review link ${ch==='link'?'generated':'sent via '+ch} for ${rcptLabel}`);
       if(typeof opts.onSent==='function')
         try{ opts.onSent({ channel:ch, recipient:rcptLabel, link, emailSent:false, emailConfigured:false }); }catch(e){}

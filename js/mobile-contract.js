@@ -691,7 +691,7 @@ function mSignersState(c){
       memberId: (mine && mine.memberId) || (me ? me.id : '') },
     theirs: { id: theirs && theirs.id, party: 'counterparty',
       name: (theirs && theirs.name) || theirName,
-      email: (theirs && theirs.email) || them.email || c.counterpartyEmail || '',
+      email: (theirs && theirs.email) || (typeof contactEmail === 'function' && contactEmail(c)) || them.email || c.counterpartyEmail || '',
       role: (theirs && theirs.role) || '', memberId: '' },
   };
   return s.signers;

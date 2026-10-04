@@ -87,7 +87,7 @@ function buildFromCustomTemplate(t, values, opts){
        falls back to the workspace, which is what the paper said before this
        question existed. */
     party:String((opts&&opts.party)||'').trim()||undefined,
-    counterpartyEmail:cpEmail||undefined, value:0, status:'Draft',
+    value:0, status:'Draft',
     /* The reader's own answer where the door asked for one, else the
        template's filing, else Other — the order this door has always had with
        one rung added on top (18 Sep 2026). */
@@ -112,6 +112,9 @@ function buildFromCustomTemplate(t, values, opts){
     // N3-T1: template-born, so it numbers live (see js/wizard.js for the rule).
     numbering:'live' };
   if(fs.length) applyTemplateValues(c, fs, values);
+  /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK through its one writer
+     (js/participants.js), which keeps the record's copy in step. */
+  if(cpEmail){ if(window.contactSet) contactSet(c,{ main:true, email:cpEmail }); else c.counterpartyEmail=cpEmail; }
   /* The essentials, when this template had no blanks of its own to carry them.
      Same mapping, applied after so a template field always wins over the
      generic question if a template happened to ask both. */

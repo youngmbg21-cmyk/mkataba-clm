@@ -1901,7 +1901,7 @@ async function submitUpload(){
   const u=currentUser();
   /* A WORKING FILE takes its working reference, RL-012, and no contract
      number: that comes from the server when the signed copy is filed. */
-  const c={ id:outside?nextWorkingId():nextId(), name, party:party||undefined, counterparty:cp, counterpartyEmail:cpEmail||undefined, value, status: cp?'Under Review':'Draft',
+  const c={ id:outside?nextWorkingId():nextId(), name, party:party||undefined, counterparty:cp, value, status: cp?'Under Review':'Draft',
     template:null, source:'upload', folder, valueType:vtype,
     lastAction:todayStr(), expiry, hash:null, signedAt:null, signatory:u?.name||'Authorized signatory',
     compliance:{},
@@ -1953,6 +1953,8 @@ async function submitUpload(){
     if(body && body.replace(/<[^>]*>/g,'').trim()){ c.redlineText=body; c.format='rich'; }
   }
   c._loaded=true; c._light=false; c._v=0;
+  /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK, through the one writer. */
+  if(cpEmail) ctSetTheirEmail(c, cpEmail);
   if(meta){
     const conf=meta.confidence||{};
     const out={ confidence:{} };
@@ -5141,6 +5143,28 @@ function wireWsTabs(c){
 
    STATUS HAS GONE FROM THE LIST. It is already a chip beside the contract's
    name on every tab; this was the third place it was said. */
+/* ---- THEIR EMAIL IS THE ADDRESS BOOK'S (4 Oct 2026) ----
+   The Overview's "Their email" is the first outside party's MAIN contact in
+   the people list (js/participants.js) — read through contactEmail and written
+   through contactSet, the one reader and the one writer every box uses, so
+   this row, the people list, the signing route and the send screen cannot
+   hold two addresses for one person. A stage without the people module reads
+   and writes the record's own field, which is what the book mirrors. */
+function ctTheirEmail(c, partyId){
+  if(typeof window!=='undefined' && typeof window.contactEmail==='function') return window.contactEmail(c, partyId);
+  return String((c&&c.counterpartyEmail)||'').trim();
+}
+function ctSetTheirEmail(c, email, name, partyId){
+  if(!c) return;
+  if(typeof window!=='undefined' && typeof window.contactSet==='function'){
+    window.contactSet(c, { main:true, email:String(email||'').trim(), partyId,
+      ...(name!=null&&String(name).trim()?{ name:String(name).trim() }:{}) });
+    return;
+  }
+  const e=String(email||'').trim();
+  if(e) c.counterpartyEmail=e; else delete c.counterpartyEmail;
+  if(name!=null&&String(name).trim()) c.counterpartyName=String(name).trim();
+}
 /* The read-out for one row, so an edit can refresh just that row. */
 function ktReadValue(c,key){
   const dash=`<span class="kt-none" data-kt-none="1">${i18t('ct_not_set')}</span>`;
@@ -5148,7 +5172,7 @@ function ktReadValue(c,key){
   const day=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v)
     :`<span class="kt-none" data-kt-none="1">${i18t('ct_pick_a_date')}</span>`;
   if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
-  if(key==='cpEmail') return c.counterpartyEmail?esc(c.counterpartyEmail):dash;
+  if(key==='cpEmail'){ const em=ctTheirEmail(c); return em?esc(em):dash; }
   // W2-1: a contract states its OWN currency; only REPORTING converts
   if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
   if(key==='effDate') return day(c.fields&&c.fields.effDate);
@@ -5213,7 +5237,7 @@ function ktRouteEmailRead(c){
     ? shareRouteRecipient(c) : null;
   const routeEmail=String((route&&route.email)||'').trim();
   if(!routeEmail) return null;
-  const recorded=String((c&&c.counterpartyEmail)||'').trim();
+  const recorded=ctTheirEmail(c);
   if(recorded && recorded.toLowerCase()===routeEmail.toLowerCase()) return null;
   return { email:routeEmail, who:String((route&&route.name)||'').trim() };
 }
@@ -5316,7 +5340,7 @@ function ktFactReads(c){
     contractType: (()=>{ try{ return esc((window.contractTypeRead?contractTypeRead(c):'')||''); }catch(_){ return ''; } })(),
     party: c.party?esc(c.party):'',
     counterparty: c.counterparty?esc(c.counterparty):'',
-    cpEmail: c.counterpartyEmail?esc(c.counterpartyEmail):'',
+    cpEmail: ctTheirEmail(c)?esc(ctTheirEmail(c)):'',
     money: (isMonetary(c)&&c.value)?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):'',
     effDate: d(c.fields&&c.fields.effDate),
     expiry: d(c.expiry),
@@ -5418,7 +5442,7 @@ function ktTermsRowsHtml(c,opts={}){
        leaving it empty costs nothing, because the share dialog still collects
        an address at the moment of sending. */
     ['cpEmail', ktRowHtml('cpEmail','Their email', R.cpEmail||dash,
-      `<input data-kt="cpEmail" type="email" value="${(c.counterpartyEmail||'').replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed, 'pencil')],
+      `<input data-kt="cpEmail" type="email" value="${ctTheirEmail(c).replace(/"/g,'&quot;')}" placeholder="${i18t('ct_changes_straight')}" style="${KIN}"/>`, ed, 'pencil')],
     /* ---- AND WHEN THE SIGNING ROUTE SAYS SOMETHING ELSE, IT SAYS SO ----
        Two records can name the counterparty's address: this row — the general
        contact, where rounds of the negotiation go — and the signing route,
@@ -6506,7 +6530,7 @@ function openPartyEditor(c, id){
         esc(adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'))}</h3>
       ${fld('name',i18t('reg_col_counterparty'),i18t('py_name_ph'),p.name)}
       ${roleSel(p.role)}
-      ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),p.email)}
+      ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),(!adding&&p.side!==PARTY_SIDE_OURS)?ctTheirEmail(c,p.id):p.email)}
       <div class="py-inv">${inv}</div>
       <div id="py-say" class="py-say" hidden></div>
     </div>
@@ -6520,9 +6544,14 @@ function openPartyEditor(c, id){
 
   const say=m=>{ const el=document.getElementById('py-say'); if(!el) return;
     el.textContent=m||''; el.hidden=!m; };
-  const write=rows=>{
+  const write=(rows,after)=>{
     const why=partiesSet(c,rows);
     if(why){ say(why); return false; }
+    /* AN OUTSIDE PARTY'S ADDRESS IS ITS MAIN CONTACT IN THE ADDRESS BOOK
+       (4 Oct 2026): written through the one writer, and the book's mirrors
+       put back over whatever partiesSet copied. */
+    if(typeof after==='function') after();
+    if(typeof window.contactMirror==='function') window.contactMirror(c);
     logAudit(c,'Parties',`Parties on this agreement: ${
       contractParties(c).map(x=>x.name||'—').join(', ')}`);
     persist(c); closeModal();
@@ -6576,7 +6605,7 @@ function openPartyEditor(c, id){
     const next={ ...p, name:v('name'), role:roleV, email:v('email'),
       involvement:chosen?chosen.value:p.involvement };
     const rows=adding?list.concat([next]):list.map((x,i)=>i===at?next:x);
-    write(rows);
+    write(rows, ()=>{ if(next.side!==PARTY_SIDE_OURS) ctSetTheirEmail(c, next.email, null, next.id); });
   });
   document.getElementById('py-name')?.focus();
 }
@@ -6996,7 +7025,7 @@ function ktOverviewTermsHtml(c,opts={}){
      asked. The one act is the signing order's own editor, drawn only where
      somebody here has a signing role. */
   const people=(typeof participantsPanelHtml==='function')?participantsPanelHtml(c,{
-    editable:ed, reached:true, auto:true }):'';
+    editable:ed, reached:true, auto:true, book:true }):'';
   /* EVERY ADDRESS ON FILE, IN THE ORDER A ROUND USES THEM (21 Sep 2026).
      The address a round actually goes to was only discoverable by opening the
      send screen and looking. This prints what shareModalPrefill would pick —
@@ -7797,8 +7826,7 @@ function openNegotiationOwnerRoom(c){
        we do not, and sends without asking when we do. */
     contact:(window.counterpartyContact?counterpartyContact(c,(window.cachedShares?cachedShares(c):[])):null),
     onSetCounterparty(x){
-      c.counterpartyEmail=String((x&&x.email)||'').trim();
-      if(x&&x.name) c.counterpartyName=x.name;
+      ctSetTheirEmail(c, (x&&x.email)||'', x&&x.name);
       logAudit(c,'Negotiation',`Counterparty contact set — changes on this contract go to ${c.counterpartyEmail}`);
       persist(c);
       toast(`Saved — changes now go straight to ${c.counterpartyEmail}`);
@@ -14063,7 +14091,7 @@ function wireKeyTerms(c){
          an email is what every email looks like on the way in. It is only ever
          USED by a send, and the send already checks it and asks if it cannot
          reach anyone, so a typo costs a dialog rather than a lost change. */
-      else if(key==='cpEmail') c.counterpartyEmail=inp.value.trim();
+      else if(key==='cpEmail') ctSetTheirEmail(c, inp.value);
       /* THE FIGURE READS AS A FIGURE. This field was type=number, so a
          78-million-shilling contract showed `78000000` — eight digits with no
          separators, on the panel whose whole job is to state the commercial
@@ -16682,7 +16710,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read
