@@ -4076,11 +4076,16 @@ app.post('/api/contracts/:id/here', auth, (req, res) => {
      or a signed contract simply has no spot. */
   const spot = String((req.body || {}).spot || '').trim().slice(0, 64);
   const okSpot = /^[A-Za-z0-9_-]+$/.test(spot) ? spot : '';
-  live[String(me.id)] = okSpot
-    ? { name: me.name, at: new Date().toISOString(), spot: okSpot }
-    : { name: me.name, at: new Date().toISOString() };
+  /* A HIDDEN TAB'S BEAT and A LEAVING ONE say nothing about being HERE (gap E,
+     below): neither stamps the room, so the face row is exactly what it was. */
+  const askOnly = (req.body || {}).askOnly === true, leave = (req.body || {}).leave === true;
   const next = { ...c };
-  if (Object.keys(live).length) next.here = live; else delete next.here;
+  if (!askOnly && !leave) {
+    live[String(me.id)] = okSpot
+      ? { name: me.name, at: new Date().toISOString(), spot: okSpot }
+      : { name: me.name, at: new Date().toISOString() };
+    if (Object.keys(live).length) next.here = live; else delete next.here;
+  }
   /* ---- AN ASK FOR A CLAUSE LIVES AS LONG AS THE ASKER IS HERE (4 Oct 2026,
      the process review) ----
      "Ask for it" lapsed after the lock's two minutes while the holder's lock
@@ -4088,19 +4093,44 @@ app.post('/api/contracts/:id/here', auth, (req, res) => {
      reading was silently dropped from the queue. The asker's own beat is this
      route, so it refreshes THEIR asks on a lock that is still alive — only
      theirs, only asks still live (a lapsed one is not raised from the dead),
-     and only on a live lock. An ask now lapses when the asker stops beating:
-     they left the contract, closed the page, or the tab went hidden for two
-     minutes. Asking still takes nothing and is still made only at /lock. */
+     and only on a live lock. Asking still takes nothing and is still made
+     only at /lock.
+
+     ---- AND IT LIVES UNTIL THE ASKER LEAVES, NOT UNTIL THEY LOOK AWAY (gap E,
+     4 Oct 2026, the process review's last gaps) ----
+     The browser sends nothing about being here while its tab is hidden — a tab
+     behind three others is not somebody in the room — so an asker who switched
+     tab to read their mail fell out of the queue after two minutes although
+     they had not left. Two more beats on this one door, because a second route
+     would be a second way for two browsers to disagree about an ask:
+       · askOnly — a HIDDEN tab's slower beat. It keeps the caller's own live
+         asks and does nothing else: no stamp on the room (so the face row still
+         drops them after its own window) and no spot.
+       · leave — the page closing, or the reader leaving the contract. It takes
+         the caller's asks off every lock, so the holder's queue does not name
+         somebody who is gone. ONLY THEIRS: the holder, the lock and everybody
+         else's asks are untouched.
+     Neither writes unless something moved — a hidden tab with nothing to keep
+     costs the record nothing. */
+  let moved = false, kept = 0;
   if (c.locks && typeof c.locks === 'object' && !Array.isArray(c.locks)) {
     const at = new Date().toISOString();
     const locks = {};
-    let moved = false;
     Object.keys(c.locks).forEach(k => {
       const l = c.locks[k];
-      if (!srvLockAlive(l) || !Array.isArray(l.asked)) { locks[k] = l; return; }
+      if (!l || !Array.isArray(l.asked)) { locks[k] = l; return; }
+      if (leave) {
+        const asked = l.asked.filter(r => !(r && String(r.id) === String(me.id)));
+        if (asked.length === l.asked.length) { locks[k] = l; return; }
+        moved = true;
+        const rest = { ...l }; delete rest.asked;
+        locks[k] = asked.length ? { ...rest, asked } : rest;
+        return;
+      }
+      if (!srvLockAlive(l)) { locks[k] = l; return; }
       const asked = l.asked.map(r => {
         if (!r || String(r.id) !== String(me.id) || !srvLockAlive(r)) return r;
-        moved = true;
+        moved = true; kept++;
         return { ...r, at };
       });
       locks[k] = { ...l, asked };
@@ -4108,7 +4138,11 @@ app.post('/api/contracts/:id/here', auth, (req, res) => {
     if (moved) next.locks = locks;
   }
   /* JSON ONLY — see the note at the head of this block. */
-  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  if ((!askOnly && !leave) || moved)
+    db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  /* The two quiet beats answer how many of the caller's asks still stand, and
+     nothing about who else is here: a hidden tab is not reading the row. */
+  if (askOnly || leave) return res.json({ asks: kept });
   res.json({ here: srvHereOthers(live, me.id) });
 });
 
