@@ -132,6 +132,45 @@ const check = (name, pass, detail) => {
       document.activeElement === document.getElementById('ig-group') && !!document.querySelector('.hati-selmenu')));
     await page.keyboard.press('Escape');
 
+    /* ================= 13. ANALYZE CONTRACT, EASY TO REACH ================= */
+    await page.evaluate(() => { intel.paper = null; const st = hbS(); st.face = 'board'; hbSave(); setView('dashboard'); });
+    await until(() => hbS().face === 'board' && document.querySelectorAll('#hb-board .hb-fig').length === 6);
+    await page.fill('#igd-input', 'bring up MK-A2'); await page.keyboard.press('Enter');
+    const cardBtn = await until(() => !!document.querySelector('#hb-focus [data-hb-analyze="MK-A2"]'));
+    check('13a the Board\'s contract card carries "Analyze contract"', !!cardBtn,
+      await page.evaluate(() => [...document.querySelectorAll('#hb-focus .hb-acts button')].map(b => b.textContent.trim()).join(' | ')));
+    if (cardBtn) await page.click('#hb-focus [data-hb-analyze="MK-A2"]');
+    const up = await until(() => { const p = document.getElementById('ig-paper'); return hbS().face === 'explorer' && intel.paper && intel.paper.id === 'MK-A2' && p && !p.hidden && !!p.querySelector('.pg-sheet'); }, null, 10000);
+    check('13b pressed, Explorer opens with that contract\'s paper up', !!up);
+    check('13c and the question box is ready for the first question', await until(() => document.activeElement && document.activeElement.id === 'igd-input', null, 3000));
+    await page.screenshot({ path: path.join(OUT, '13-analyze-from-board.png') });
+    /* asked in words, from the board */
+    await page.evaluate(() => { intel.paper = null; igPaintPaper(); hbSetFace('board'); });
+    await until(() => hbS().face === 'board');
+    await page.fill('#igd-input', 'let me ask questions about MK-A2'); await page.keyboard.press('Enter');
+    const said = await until(() => { const p = document.getElementById('ig-paper'); return hbS().face === 'explorer' && intel.paper && intel.paper.id === 'MK-A2' && p && !p.hidden; }, null, 10000);
+    check('13d "let me ask questions about MK-A2" opens the same paper, spending nothing', !!said,
+      await page.evaluate(() => (document.querySelector('#igd-feed .hb-cost') || {}).textContent || ''));
+    /* a finger: a bigger target, and a wobble is still a press */
+    await page.evaluate(() => { intel.paper = null; igPaintPaper(); igSetSpin && igSetSpin(false); });
+    const coarse = await page.evaluate(() => igTapCoarse());
+    /* a dot nothing else is drawn over, so the press is the dot's to answer */
+    const dot = await until(() => { if (!IG || !IG.contracts) return null;
+      for (const n of IG.contracts){ if (!(n._fold < .5) || n.g.style.display === 'none' || !n.hitEl) continue;
+        const r = n.hitEl.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, at = document.elementFromPoint(x, y);
+        if (at && n.g.contains(at)) return { id: n.id, x, y, d: Math.round(r.width) }; }
+      return null; });
+    check('13e on a touch screen each dot answers across a 44px target', !!dot && (coarse ? dot.d >= 44 : true), JSON.stringify({ coarse, dot }));
+    if (dot){
+      await page.evaluate(() => { intel.history = []; });
+      const cdp14 = await ctx.newCDPSession(page);
+      await cdp14.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: dot.x, y: dot.y, id: 1 }] });
+      await cdp14.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: dot.x + 5, y: dot.y + 4, id: 1 }] });
+      await cdp14.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      const opened = await until(id => (intel.history || []).some(m => m.explainId === id), dot.id, 3000);
+      check('13f a press that wobbles by a few pixels still opens the contract\'s card, and does not turn the map', !!opened, JSON.stringify(dot));
+    }
+
     /* ================= 14. BACK TO DOCUMENT, IN A RING ===================== */
     await page.evaluate(() => { const c = state.contracts.find(x => x.id === 'MK-A2'); if (c && typeof negoInit === 'function') negoInit(c); openRedlineWorkbench('MK-A2', { blanksAsked: true }); });
     const back = await until(() => { const b = document.querySelector('#shell-title [data-back="contract"]'); if (!b) return null;

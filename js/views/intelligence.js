@@ -2603,6 +2603,14 @@ function igbGlow(ctx,x,y,r,col,a){ if(!(r>0)||!(a>0)) return; const g=ctx.create
    or down first (the cards are wide and short), then sideways, then the
    diagonals, then twice as far. Units are about half a card's width across
    and one card's height down. */
+/* A FINGER IS NOT A MOUSE (Young's iPad, 4 Oct 2026: a contract's dot was
+   too small to press, and a press that wobbled turned the map instead). On a
+   coarse pointer each dot answers a press across IG_TAP_R_TOUCH (a 44px
+   target, the touch guideline's), and a finger may wander IG_TAP_SLOP_TOUCH
+   before its press becomes a turn. A mouse keeps its 8px and its 4px. */
+const IG_TAP_R_TOUCH=22, IG_TAP_SLOP_TOUCH=12;
+let _igCoarse=null;
+function igTapCoarse(){ if(_igCoarse==null){ try{ _igCoarse=!!(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches); }catch(_){ _igCoarse=false; } } return _igCoarse; }
 const IGB_HUB_STEPS=Object.freeze([[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,1],[1,-1],[-1,-1],[0,2],[0,-2],[2,0],[-2,0],[2,1],[-2,1],[2,-1],[-2,-1],[0,3],[0,-3],[2,2],[-2,2],[2,-2],[-2,-2]].map(Object.freeze));
 function igbSet(el,k,v){ if(el['_'+k]!==v){ el['_'+k]=v; el.setAttribute(k,v); } }
 function igbShow(el,on){ const v=on?'':'none'; if(el._disp!==v){ el._disp=v; el.style.display=v; } }
@@ -2639,7 +2647,7 @@ function igbPlace(G){
   order.forEach(n=>{
     const q=n.q, r=n._r||3; igbShow(n.g,true);
     igbSet(n.g,'transform',`translate(${Math.round(q[0])},${Math.round(q[1])})`);
-    igbSet(n.hitEl,'r',String(Math.max(8,Math.round(r+4))));
+    igbSet(n.hitEl,'r',String(Math.max(igTapCoarse()?IG_TAP_R_TOUCH:8,Math.round(r+4))));
     const quiet=n.g.classList.contains('mut')||n._fold>.5||n._a<.12;
     let at=null;
     if(!quiet){ const tw=n.tw, th=n.th;
@@ -3368,7 +3376,7 @@ function renderIntel(){
     if(e.pointerType==='touch'&&e.isPrimary) T.clear();
     T.set(e.pointerId,[e.clientX,e.clientY]);
     if(T.size>=2){ const [p,q]=[...T.values()]; window._igPinch={ d:Math.hypot(p[0]-q[0],p[1]-q[1])||1, z:igbCam().zoom, a:Math.atan2(q[1]-p[1],q[0]-p[0]), m:[(p[0]+q[0])/2,(p[1]+q[1])/2] }; window._igTurn=null; return; }
-    window._igTurn={ x:e.clientX, y:e.clientY, moved:0 }; IG.dragMoved=false; });
+    window._igTurn={ x:e.clientX, y:e.clientY, moved:0, slop:(e.pointerType==='touch'||e.pointerType==='pen')?IG_TAP_SLOP_TOUCH:4 }; IG.dragMoved=false; });
   svg.addEventListener('dblclick',e=>{ e.preventDefault(); igFaceAgain(); });
   svg.addEventListener('dragstart',e=>e.preventDefault());
   /* Safari's own pinch would zoom the PAGE under the map (the stage's touch-action says the rest) */
@@ -3389,7 +3397,7 @@ function renderIntel(){
          stuck"): a drag that began or ended over a contract left its hover
          light on and every other dot faded, so the map read as frozen while
          it was turning. The light goes when the turn starts. */
-      if(d.moved>4){ if(!IG.turning){ IG.turning=true; IG.dragMoved=true; IG.hover=null; igPaint(null); igHoverHide(); IG.svg.classList.add('is-turning'); } igTurnBy(dx,dy); }
+      if(d.moved>(d.slop||4)){ if(!IG.turning){ IG.turning=true; IG.dragMoved=true; IG.hover=null; igPaint(null); igHoverHide(); IG.svg.classList.add('is-turning'); } igTurnBy(dx,dy); }
     });
     const end=e=>{
       const T=window._igTouch; if(T&&e&&e.pointerId!=null) T.delete(e.pointerId); if(!T||T.size<2) window._igPinch=null;
@@ -6432,7 +6440,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SE
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp});
-Object.assign(window,{graphPartyLabel,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
