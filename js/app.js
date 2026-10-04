@@ -35,6 +35,10 @@ import './negotiation.js'; // the fingerprinted change model every intake path c
    public status link. After negotiation.js and parties.js, whose raw fields
    it reads, and before any screen that draws it. */
 import './dealstands.js';
+/* Who has this contract open right now: a row of initials in its header, on a
+   beat of its own, and nothing on the paper. Reads the record RAW and writes
+   only through its own route — see the file. */
+import './presence.js';
 import './obligations.js';
 import './playbook.js';
 import './payterms.js';    // payment terms turned into a number of days, and counted (2 Sep 2026)
@@ -916,6 +920,13 @@ function setView(view){
      page rendered behind a guard the reader then cancels is a navigation that
      half happened. */
   if(!viewLayersClosed(view)) return;
+  /* ---- LEAVING THE ROOM LEAVES THE ROOM (idea 5, 4 Oct 2026) ----
+     A beat that carried on after the reader went to Insights would keep
+     telling a colleague somebody is reading a contract nobody has open. The
+     room restarts it from applyWsTabs the moment it lands again, so this is
+     safe on a repaint of the same view too — and it is the only place a page
+     change is recorded, which is why it is here and not in six renderers. */
+  if(typeof window!=='undefined' && window.presenceStop) try{ presenceStop(); }catch(_){}
   /* Focus mode belongs to the negotiation bench. Leaving it must give the
      navigation back — a reader who exits in focus mode and lands on the
      register would otherwise find the sidebar and the top strip missing. */

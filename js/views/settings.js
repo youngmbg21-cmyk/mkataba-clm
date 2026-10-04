@@ -539,6 +539,15 @@ const ST_DOT={ ok:'var(--st-green-dot)', warn:'var(--st-amber-dot)', off:'var(--
    every heading is the wall of words this page already had. */
 const ST_GROUPS=[
   { key:'agreement', tab:'platform', sub:true },
+  /* ---- LINKS YOU SEND (4 Oct 2026) ----
+     Added for the named guest's code, and measured before it was: dropping
+     that row into "The agreement" made a group of five, and settings-groups
+     3.1c holds every group to four because a list you have to read twice is
+     the wall the groups replaced. It is also the truer home. The three rules
+     above it decide WHO MUST SAY YES before a step; this one decides WHO MAY
+     OPEN what has already left the building — the other end of the same act,
+     and where the rest of the sharing rules will go. */
+  { key:'links',     tab:'platform', sub:true },
   { key:'standards', tab:'platform' },
   { key:'intake',    tab:'platform', sub:true },
   { key:'copilot',   tab:'platform' },
@@ -2414,6 +2423,24 @@ const SET_PANELS={
       + `<p class="st-note" style="margin-bottom:10px">${i18t('ho_set_sub')}</p><div id="ho-route-panel"></div></div>`; },
     find:()=>[i18t('ho_set_title'), i18t('ho_set_sub')],
     wire(){ renderSignCheckGatePanel(); renderSignRouteDefaultPanel(); },
+  },
+
+  /* ---- NAMED GUESTS: A LINK MAY ASK WHO IS OPENING IT (idea 8, 4 Oct 2026)
+     ---- The guest list was already built: participants.js holds several named
+     people per outside party and the send screen mints one link each. This is
+     the door — off by default, like every other wall in this product, so not
+     one link behaves differently until an admin says so and no workspace needs
+     a migration. The SERVER reads the stored rule and refuses the payload; the
+     switch here is what an admin presses, not what decides. */
+  linkcode:{
+    tab:'platform', group:'links', mandatory:false,
+    title:()=>i18t('set_link_code'),
+    sub:()=>i18t('set_link_code_sub'),
+    state(){ const c=(window.linkCodeCfg?linkCodeCfg():{on:false});
+      return { dot:c.on?'ok':'off', text:`${i18t('set_link_code')} — ${c.on?stOn():stOff()}` }; },
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_link_code_sub')}</p><div id="lc-rule-panel"></div>`; },
+    find:()=>[i18t('set_link_code'), i18t('set_link_code_sub')],
+    wire(){ renderLinkCodePanel(); },
   },
 
   desk:{
@@ -4902,6 +4929,26 @@ function renderSignRouteDefaultPanel(){
     toast(i18t('ho_set_saved'),'ok');
     renderSignRouteDefaultPanel();
   }));
+}
+/* The switch, and nothing else: there is no number to tune here. How long a
+   code lives and how many wrong guesses it takes are the server's, because
+   they are what stops guessing rather than what an admin has an opinion
+   about. */
+function renderLinkCodePanel(){
+  const host=document.getElementById('lc-rule-panel'); if(!host) return;
+  const admin=isAdmin();
+  const cfg=(window.linkCodeCfg?linkCodeCfg():{on:false});
+  host.innerHTML=`
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin?'pointer':'not-allowed'}">
+      <input id="lc-rule-on" type="checkbox"${cfg.on?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
+      <span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_link_code')}</span>
+    </label>`;
+  if(!admin) return;
+  host.querySelector('#lc-rule-on')?.addEventListener('change',e=>{
+    if(window.saveLinkCodeCfg) saveLinkCodeCfg({ on:!!e.target.checked });
+    stRepaintRow('linkcode');
+    if(window.toast) toast(i18t(e.target.checked?'set_link_code_on':'set_link_code_off'),'ok');
+  });
 }
 function renderDeskRulePanel(){
   const host=document.getElementById('dk-rule-panel'); if(!host) return;

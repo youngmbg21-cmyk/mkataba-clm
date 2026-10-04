@@ -668,6 +668,18 @@ function clauseEditorCss(){
   .ce-foot .undo:hover:not([disabled]){background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
   .ce-foot .undo[disabled]{color:var(--color-neutral-500)}
   .ce-foot .g{flex:1; min-width:8px}
+  /* ---- WHO IS WAITING FOR THIS CLAUSE (idea 12, 4 Oct 2026) ----
+     The foot's own type and shade, with an amber key because this IS work
+     waiting on the reader — the one thing on this page that somebody else is
+     held up by. One text button beside it; nothing is drawn when the queue is
+     empty, which is every ordinary sitting. */
+  .ce-foot .ce-wait{display:inline-flex; align-items:center; gap:7px;
+    font-size:var(--t-label); color:var(--color-neutral-700)}
+  .ce-foot .ce-wait-k{font-weight:var(--w-title); color:var(--st-amber-fg)}
+  .ce-foot .ce-wait-go{background:none; border:0; padding:0; font:inherit;
+    font-size:var(--t-label); font-weight:var(--w-label); color:var(--accent-ink-700);
+    cursor:pointer; text-decoration:underline; text-underline-offset:2px}
+  .ce-foot .ce-wait-go:hover{text-decoration-thickness:2px}
 
   /* ---- the band over Copilot: whose words these are ----
      The reference page carries ONE brand colour and no other, so the Copilot
@@ -1660,6 +1672,13 @@ function clauseEditorHtml(){
         <div class="ce-foot">
           <span class="draft" id="ce-draft"></span>
           <button class="undo" type="button" data-ce-act="undo" id="ce-undo">${_cet('ce_undo')}</button>
+          ${''/* ---- WHO IS WAITING FOR THIS CLAUSE (idea 12, 4 Oct 2026) ----
+                 A SLOT, filled by cePaintFoot, because the queue moves while
+                 the holder types and nobody presses anything. THE HOLDER IS
+                 HERE: you hold a clause because you have it open, so this is
+                 where the news belongs and the hand-over with it. It draws
+                 nothing at all when nobody is waiting. */}
+          <span id="ce-waiting"></span>
           <span class="g"></span>
         </div>
       </div>
@@ -3851,6 +3870,24 @@ function ceRenderFoot(){
   if (undo){
     undo.disabled = _ceStep === 0 || !live;
     if (live) undo.removeAttribute('title'); else undo.setAttribute('title', _cet('ce_reading_only'));
+  }
+  /* ---- AND WHO IS WAITING FOR THIS CLAUSE (idea 12, 4 Oct 2026) ----
+     js/clauselock.js is the one reading, and it answers nothing where the
+     clause is not yours or nobody has asked — so this is empty on every
+     ordinary sitting. PATCHED IN PLACE for the reason the note below gives
+     about the two buttons: a row rewritten under a reader's finger is a dead
+     press. */
+  const wait = _ceQ('#ce-waiting');
+  if (wait){
+    let rows = [];
+    try{ rows = (window.clauseLockMineWaiting && _ceC && _ceClauseId)
+      ? clauseLockMineWaiting(_ceC, _ceClauseId) : []; }catch(_){ rows = []; }
+    const line = (rows.length && window.clauseLockWaitingLine) ? clauseLockWaitingLine(rows) : '';
+    wait.innerHTML = line
+      ? `<span class="ce-wait"><span class="ce-wait-k">${_cee(line)}</span>
+          <button type="button" class="ce-wait-go" data-ce-act="handover"
+            title="${_cee(_cet('cl_hand_title', { who: String(rows[0].name || '') }))}">${_cee(_cet('cl_hand_over'))}</button>
+        </span>` : '';
   }
   const foot = _ceQ('#ce-railfoot');
   if (!foot) return;
@@ -6464,6 +6501,33 @@ function ceWirePage(page){
       case 'close': ceLeaveGuard(() => rlCloseClauseEditor()); break;
       case 'undo': ceUndo(); break;
       case 'discard': ceDiscard(); break;
+      /* ---- HAND THE CLAUSE TO WHOEVER ASKED FOR IT (idea 12, 4 Oct 2026) ----
+         IT ASKS FIRST, because it is the one act here that gives something
+         away: the clause goes to a colleague and this reader can no longer
+         type in it. What it does NOT do is throw work away — the draft in the
+         box is untouched and nothing is filed — and the dialog says so, which
+         is what makes a yes an informed one.
+         js/clauselock.js owns both the reading and the act; this presses. */
+      case 'handover': {
+        let rows = [];
+        try{ rows = (window.clauseLockMineWaiting && _ceC && _ceClauseId)
+          ? clauseLockMineWaiting(_ceC, _ceClauseId) : []; }catch(_){ rows = []; }
+        const to = rows[0];
+        if (!to || !window.clauseLockHandOver) break;
+        const go = () => {
+          const got = clauseLockHandOver(_ceC, _ceClauseId, to.id);
+          if (!got) return;
+          if (window.persist) try{ persist(_ceC); }catch(_){}
+          if (window.toast) toast(_cet('cl_handed', { who: String(got.name || '') }), 'ok');
+          ceRenderAll();
+        };
+        if (window.confirmDialog){
+          confirmDialog({ title: _cet('cl_hand_over'),
+            message: _cet('cl_hand_title', { who: String(to.name || '') }),
+            confirmLabel: _cet('cl_hand_over') }).then(ok => { if (ok) go(); });
+        } else go();
+        break;
+      }
       /* ONE PRESS FILES. The act keeps its name — every check and both
          browser files reach this button by it — and what changed is where it
          goes. `reason-back`, `reason-skip` and `reason-file` are STALE. */

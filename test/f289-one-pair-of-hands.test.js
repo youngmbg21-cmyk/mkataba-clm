@@ -189,8 +189,22 @@ test('f289 (11) it draws the monogram AND the line, and is not a control', () =>
   assert.ok(k > 0, 'there is a locked branch');
   const branch = body.slice(k, body.indexOf('const label', k));
   assert.ok(/<span class="rl-cp-lock"/.test(branch), 'it takes the pencil\'s slot');
-  assert.ok(!/<button/.test(branch),
+  /* ---- WIDENED 4 Oct 2026, THE CLAIM UNCHANGED ----
+     This read "no button at all", and the reason it gave is the one that
+     matters: *a control drawn dead is how a reader comes to blame themselves*.
+     The SIGN is still not a control — it is a fact, and nothing in it is
+     pressable. What this corner now also carries is the refusal's WAY FORWARD
+     (idea 12, "Take it in turns"): one live button that asks the holder for the
+     clause. It is the opposite of a dead control, and the rulebook requires it
+     — a refusal carries its way forward on the same screen. So the claim is
+     now what it always meant: nothing here is disabled, and the only button is
+     the ask. */
+  const buttons = branch.match(/<button[\s\S]*?>/g) || [];
+  assert.ok(buttons.length <= 1, 'one way forward at most, never a row of controls');
+  assert.ok(!/disabled/.test(branch),
     'a control drawn dead is how a reader comes to blame themselves');
+  if (buttons.length) assert.ok(/data-rl-lock-ask=/.test(branch),
+    'and the one button is the ask — never a second door onto the clause itself');
   /* REVERSED IN PLACE 10 Sep 2026 onto the three pieces rather than the three
      functions that used to be called here one at a time. The claim was never
      which helper was invoked — it is that this control draws the GLANCE and the

@@ -353,9 +353,9 @@ function insPartiesHtml(list){
    worst row's, and a button wears the platform's one light edge (26 Sep 2026)
    with the row's colour on its word. */
 const INS_NEED_VERB = { quiet: 'home_verb_answer', review: 'home_verb_review', join: 'home_verb_answer',
-  note: 'home_verb_answer', sign: 'home_verb_sign', renewal: 'home_verb_decide' };
+  note: 'home_verb_answer', suggest: 'home_verb_answer', sign: 'home_verb_sign', renewal: 'home_verb_decide' };
 const INS_NEED_GO = { quiet: 'ins_need_go_nego', review: 'ins_need_go_nego', join: 'ins_need_go_desk',
-  note: 'ins_need_go_notes', sign: 'ins_need_go_sign', renewal: 'ins_need_go_terms' };
+  note: 'ins_need_go_notes', suggest: 'ins_need_go_nego', sign: 'ins_need_go_sign', renewal: 'ins_need_go_terms' };
 /* One row's words: a title, and a line under it as HTML (`sub`) with the same
    words plain on its hover (`plain`) — the line is cut to one line, never the
    fact. Every number is a reading the panel already prints elsewhere: the
@@ -393,6 +393,14 @@ function insNeedWords(c, it){
     return Object.assign({ title: i18tn('ins_need_note', it.n || 1, { n: it.n || 1, who: it.who }) },
       lineOf([day ? bit(i18t(it.urgent ? 'ins_need_was_due' : 'ins_need_due', { day }), it.urgent)
         : bit(i18t('ins_need_no_due'))]));
+  }
+  /* A colleague's suggestion (the seat decides, 4 Oct 2026). The count is the
+     title and the colleague is the line, because a lead with three of these
+     wants the number first and the name second — the shape every row here
+     keeps. Never urgent: a suggestion waits on a person, not on a date. */
+  if (it.kind === 'suggest'){
+    return Object.assign({ title: i18tn('dk_sg_held', it.n || 1) },
+      lineOf([it.who ? bit(i18t('dk_sg_theirs', { who: it.who })) : null]));
   }
   if (it.kind === 'sign'){
     if (!it.n) return Object.assign({ title: i18t('ins_need_sign_ready') }, lineOf([bit(i18t('ins_need_sign_clear'))]));

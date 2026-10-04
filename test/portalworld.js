@@ -39,6 +39,7 @@ const MODULES = [
   'js/versioning.js',
   'js/discuss.js',
   'js/dealstands.js',   // where the deal stands: one reading, three surfaces
+  'js/presence.js',     // who has this contract open right now (idea 5)
   'js/negotiation.js',
   'js/section.js',
   'js/precedent.js', 'js/ladder.js',

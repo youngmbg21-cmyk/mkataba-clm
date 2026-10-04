@@ -2618,6 +2618,17 @@ function redlineLayoutCss(){
     color:var(--color-text);font-size:calc(9px * var(--doc-scale,1));
     font-weight:var(--w-title);letter-spacing:.02em;flex:none}
   .redline-page .rl-cp-lock-say{font-weight:var(--w-body,400)}
+  ${''/* ---- THE WAY FORWARD, IN THE SAME CORNER (idea 12, 4 Oct 2026) ----
+       The one pressable thing beside the sign, and it is deliberately the
+       quietest button on the paper: a text button at the sign's own size, in
+       the accent ink so it reads as a way forward rather than as a warning.
+       It does not open the clause — it tells somebody you want it — so it
+       takes none of the pencil's clothes. Asked, it becomes a word. */}
+  .redline-page .rl-cp-lock-ask{background:none;border:0;padding:0 0 0 calc(2px * var(--doc-scale,1));
+    font:inherit;font-size:inherit;font-weight:var(--w-label,500);color:var(--accent-ink-700);
+    cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+  .redline-page .rl-cp-lock-ask:hover{text-decoration-thickness:2px}
+  .redline-page .rl-cp-lock-asked{font-weight:var(--w-label,500);color:var(--color-neutral-500)}
   ${''/* The heading reserves the PENCIL's width; where the lock is drawn
        instead there is no pinned control to reserve for, and the reserved
        padding would only push the heading's own words into a needless second

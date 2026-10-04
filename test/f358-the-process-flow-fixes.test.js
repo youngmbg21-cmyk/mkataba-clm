@@ -298,7 +298,15 @@ describe('f358 (7) the guest’s one-time code was ALREADY built', () => {
     assert.ok(/attempts/.test(SRV), 'wrong guesses are counted');
   });
   test('7b the address is the STORED one — never a body address', () => {
-    const route = code(SRV.slice(SRV.indexOf("app.post('/api/shares/:token/otp'"), SRV.indexOf("app.post('/api/shares/:token/otp'") + 2000));
+    /* RE-POINTED 4 Oct 2026: PIN THE REGION, NOT A BYTE COUNT. This took 2000
+       characters from the route's first line, and when the route gained the
+       narrow escape that lets a named guest's link mint the code it needs to
+       OPEN (idea 8), the window ran past the route's end and swallowed the
+       NEXT route's body — where a `req.body` and an `email` sit innocently
+       together. The region is the route, which is the thing this claim is
+       about, and it ends where the next one begins. */
+    const route = code(SRV.slice(SRV.indexOf("app.post('/api/shares/:token/otp'"),
+      SRV.indexOf("app.post('/api/shares/:token/verify-otp'")));
     assert.ok(/s\.recipient_email/.test(route), 'the open-relay rule');
     assert.ok(!/req\.body[^)]*email/.test(route), 'a code sent wherever the caller asked proves nothing');
   });

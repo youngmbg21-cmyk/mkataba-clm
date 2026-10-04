@@ -98,7 +98,18 @@ function clauseLockTake(c, clauseId){
   const other = clauseLockHeldByOther(c, id);
   if (other) return false;
   if (!c.locks) c.locks = {};
-  c.locks[id] = { by: me, at: new Date().toISOString() };
+  /* ---- AND A REFRESH OF YOUR OWN LOCK KEEPS THE QUEUE ON IT (4 Oct 2026) ----
+     Refreshing IS taking it again, which is the rule one line up and the whole
+     reason there is one act here rather than two. Measured while building the
+     baton: a bare new lock wiped the asks, and a holder's browser refreshes
+     every few seconds while they type, so a colleague's ask vanished the
+     moment the holder touched a key. The server keeps the same rule at the same
+     place; this is the browser's copy of it, not the wall. */
+  const had = c.locks[id];
+  const keep = (clauseLockLive(had) && had.by && String(had.by.id || '') === String(me.id || '')
+    && Array.isArray(had.asked)) ? had.asked.filter(r => r && r.id && clauseLockLive(r)) : [];
+  c.locks[id] = keep.length ? { by: me, at: new Date().toISOString(), asked: keep }
+    : { by: me, at: new Date().toISOString() };
   return true;
 }
 /* Refreshing is taking it again, so there is ONE act rather than two that could
@@ -127,6 +138,107 @@ function clauseLockSweep(c){
   if (!Object.keys(c.locks).length) delete c.locks;
   return moved;
 }
+/* ============================================================
+   TAKE IT IN TURNS — the lock becomes a baton (idea 12, 4 Oct 2026)
+   ============================================================
+   Young picked "Take it in turns" by name from three. The lock above is an
+   ADVISORY and that is what made it safe, but it left the second person with
+   one thing to do: wait. Two minutes is not long; not knowing how long is.
+   A colleague who reaches for a clause and is told somebody else has it has
+   no way to say "I need this" and no way to know when it comes free, so they
+   either sit refreshing or go round the wall by editing somewhere else.
+
+   SO A REFUSAL CARRIES ITS WAY FORWARD, which is the rulebook's own rule said
+   on a new door: the second person can ASK for the clause, the holder is told
+   somebody is waiting, and handing it over is one press.
+
+   NOTHING ABOUT THE WALL CHANGES. An ask takes no lock, moves no wording and
+   refuses nothing — it is a request written on the lock, and the holder keeps
+   every power they had including the power to ignore it. The lock still lapses
+   on its own, so a holder who shut their laptop still frees the clause in two
+   minutes whether they were asked or not.
+
+   AND THE HAND-OVER IS DIRECT, which is the whole of why this is a baton
+   rather than a Please-Finish button: releasing the lock and letting the asker
+   race for it would hand the clause to whoever's browser polled first, which
+   on a busy afternoon is not the person who asked. The holder names them, and
+   the server moves the lock to that name in one write.
+
+   WHO MAY DO WHAT, and the server keeps both: only the HOLDER may hand a
+   clause over, and only to somebody who ASKED — a hand-over to a name that
+   never asked would be a way of locking a colleague out of a clause from
+   across the office. */
+/* The live asks on a lock, in the order they were made, newest last. The same
+   window the lock itself uses: two readings of "is this still live" is how a
+   holder and an asker come to disagree about whether anybody is waiting. */
+function clauseLockAsks(l){
+  const rows = (l && Array.isArray(l.asked)) ? l.asked : [];
+  return rows.filter(r => r && r.id && clauseLockLive(r)).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+}
+/* Have I already asked? One ask per person: a second press is not a louder
+   ask, and a list that grew every time somebody pressed would turn "2 waiting"
+   into a lie. */
+function clauseLockAskedByMe(l, u){
+  const me = u || clauseLockMe();
+  if (!me) return null;
+  return clauseLockAsks(l).find(r => String(r.id || '') === String(me.id || '')) || null;
+}
+/* ---- ASKING ----
+   LOCALLY FIRST AND THEN THROUGH THE ROUTE, the shape clauseLockTake already
+   has: the reader's own screen answers at once, and the server's copy is what
+   the holder will see. It refuses on a clause that is not held by somebody
+   else, because there is nothing there to ask for — the door that offers it
+   has already asked the same question, and this is the wall behind the sign. */
+function clauseLockAsk(c, clauseId){
+  const me = clauseLockMe();
+  const id = String(clauseId || '');
+  if (!c || !id || !me) return false;
+  const l = clauseLockHeldByOther(c, id);
+  if (!l) return false;
+  if (!Array.isArray(l.asked)) l.asked = [];
+  if (!clauseLockAskedByMe(l, me)) l.asked.push({ id: me.id, name: me.name || '', at: new Date().toISOString() });
+  clauseLockSave(c, { clauseId: id, ask: true });
+  return true;
+}
+/* What MY lock is holding up. The mirror of clauseLockHeldByOther, and a
+   separate reading because that one answers null for your own lock on purpose
+   — your own lock is not a lock to you, but the queue on it is yours to see. */
+function clauseLockMineWaiting(c, clauseId){
+  const id = String(clauseId || '');
+  const l = (c && c.locks && id) ? c.locks[id] : null;
+  if (!clauseLockLive(l)) return [];
+  const me = clauseLockMe();
+  if (!me || !l.by || String(l.by.id || '') !== String(me.id || '')) return [];
+  return clauseLockAsks(l);
+}
+/* ---- AND HANDING IT OVER ----
+   ONLY YOUR OWN, and only to somebody who asked. Both are the server's to
+   enforce and both are asked here as well, so the button is never drawn over
+   an act the route will refuse. */
+function clauseLockHandOver(c, clauseId, toId){
+  const id = String(clauseId || '');
+  const waiting = clauseLockMineWaiting(c, id);
+  const to = waiting.find(r => String(r.id || '') === String(toId || '')) || waiting[0];
+  if (!to) return null;
+  c.locks[id] = { by: { id: to.id, name: to.name || '' }, at: new Date().toISOString() };
+  clauseLockSave(c, { clauseId: id, handTo: to.id });
+  return to;
+}
+/* THE TWO SENTENCES, in the reader's own language and in one place, so the
+   sign, the editor's foot and the toast cannot each invent their own account
+   of the same queue. */
+function clauseLockWaitingLine(list){
+  const n = (list || []).length;
+  if (!n) return '';
+  const T = (typeof window !== 'undefined' && window.i18tn) ? window.i18tn : null;
+  const who = clauseLockMonogram(String((list[0] && list[0].name) || '')) || _clT('cl_a_colleague');
+  return T ? T('cl_waiting', n, { n, who }) : (n + ' waiting');
+}
+function clauseLockAskedLine(l){
+  const mine = clauseLockAskedByMe(l);
+  return mine ? _clT('cl_asked_said') : '';
+}
+
 /* ---- AND IT HAS TO REACH THE OTHER BROWSER, OR IT IS A NOTE TO YOURSELF ----
    A lock held only in this tab tells a colleague nothing. It reaches them by
    its OWN tiny write — POST /api/contracts/:id/lock — and never by the
@@ -173,7 +285,11 @@ function clauseLockSave(c, opts){
        else and may never make them wait, and a refusal is already drawn by the
        door that asked (rlOpenClauseEditor) rather than by a background write. */
     try{
-      W.api('contracts/' + c.id + '/lock', 'POST', { clauseId: String(o.clauseId), release: !!o.release })
+      /* THE BATON'S TWO VERBS RIDE THE SAME WRITE (4 Oct 2026). One door onto
+         the lock map, as the note above insists: a second route would be a
+         second way for two browsers to disagree about who holds a clause. */
+      W.api('contracts/' + c.id + '/lock', 'POST', { clauseId: String(o.clauseId),
+        release: !!o.release, ask: !!o.ask, handTo: o.handTo || null })
         .then(r => { if (r && r.locks) clauseLockMerge(c, r.locks); })
         .catch(() => {});
     }catch(_){ }
@@ -186,11 +302,40 @@ function clauseLockSave(c, opts){
    rather than being folded into it: a merge that kept a local entry the server
    did not return would be this browser insisting on a lock the server has
    already given to somebody else. */
+/* ---- WHICH ARRIVALS THIS SITTING HAS ALREADY ANNOUNCED ----
+   Per sitting and in memory: a baton arriving is news exactly once, and the
+   live poll asks every twelve seconds. Nothing here reaches the record — the
+   rulebook's own rule that per-sitting marks never do. */
+const _clSaid = Object.create(null);
 function clauseLockMerge(c, locks){
   if (!c) return false;
   const live = {};
   Object.keys(locks || {}).forEach(k => { if (clauseLockLive(locks[k])) live[k] = locks[k]; });
   const before = JSON.stringify(c.locks || {});
+  /* ---- THE BATON ARRIVING IS NEWS, AND THIS IS WHERE IT LANDS (4 Oct 2026) ----
+     The ONE funnel the server's map comes through, which is why the notice is
+     here and not at a press: a hand-over happens in somebody else's browser,
+     so the only thing that can tell this reader is the answer that carries it.
+     Asked as a DIFFERENCE — the clause was held by a colleague this reader had
+     ASKED, and now it is theirs — so nothing is said on an ordinary refresh,
+     and said once per clause per sitting.
+     IT IS A TOAST, NOT A BAND. A transient confirmation of a thing that just
+     happened is the cheapest channel that does the job; the clause is open to
+     them from this moment and the pencil says so. */
+  const me = clauseLockMe();
+  if (me) Object.keys(live).forEach(k => {
+    const was = (c.locks || {})[k], now = live[k];
+    if (!was || !clauseLockLive(was)) return;
+    const wasMine = was.by && String(was.by.id || '') === String(me.id || '');
+    const nowMine = now.by && String(now.by.id || '') === String(me.id || '');
+    if (wasMine || !nowMine) return;
+    if (!clauseLockAskedByMe(was, me)) return;      // only a baton you asked for
+    const key = String(c.id || '') + '|' + k;
+    if (_clSaid[key]) return;
+    _clSaid[key] = 1;
+    if (typeof window !== 'undefined' && window.toast)
+      window.toast(_clT('cl_your_turn', { who: String((was.by && was.by.name) || _clT('cl_a_colleague')) }), 'ok');
+  });
   if (Object.keys(live).length) c.locks = live; else delete c.locks;
   return JSON.stringify(c.locks || {}) !== before;
 }
@@ -232,15 +377,27 @@ function clauseLockSign(c, clauseId){
   const l = clauseLockHeldByOther(c, clauseId);
   if (!l) return null;
   const name = String((l.by && l.by.name) || '').trim();
-  return { mono: clauseLockInitials(name), say: clauseLockLine(l), title: clauseLockTitle(l), name };
+  /* ---- AND WHETHER THIS READER HAS ALREADY ASKED (4 Oct 2026) ----
+     On the SIGN, because the sign is what the reader reaching for the pencil
+     finds, and a refusal carries its way forward on the same screen. Two
+     pieces: may I ask, and have I. The sign still DRESSES NOTHING — the door
+     that draws it decides whether it has room for the act. */
+  const askedMine = !!clauseLockAskedByMe(l);
+  return { mono: clauseLockInitials(name), say: clauseLockLine(l), title: clauseLockTitle(l), name,
+    asked: askedMine, askedSay: askedMine ? clauseLockAskedLine(l) : '',
+    mayAsk: !askedMine && !!clauseLockMe(), clauseId: String(clauseId || '') };
 }
 
 if (typeof window !== 'undefined') Object.assign(window, {
-  CLAUSE_LOCK_MS, clauseLockLive, clauseLockMe, clauseLockInitials, clauseLockMonogram,
+  CLAUSE_LOCK_MS,
+  clauseLockAsks, clauseLockAskedByMe, clauseLockAsk, clauseLockMineWaiting,
+  clauseLockHandOver, clauseLockWaitingLine, clauseLockAskedLine, clauseLockLive, clauseLockMe, clauseLockInitials, clauseLockMonogram,
   clauseLockOf, clauseLockHeldByOther, clauseLockTake, clauseLockKeep,
   clauseLockRelease, clauseLockSweep, clauseLockLine, clauseLockTitle, clauseLockSave,
   clauseLockMerge, clauseLockSign });
 if (typeof module !== 'undefined' && module.exports) module.exports = {
-  CLAUSE_LOCK_MS, clauseLockLive, clauseLockInitials, clauseLockMonogram,
+  CLAUSE_LOCK_MS,
+  clauseLockAsks, clauseLockAskedByMe, clauseLockAsk, clauseLockMineWaiting,
+  clauseLockHandOver, clauseLockWaitingLine, clauseLockAskedLine, clauseLockLive, clauseLockInitials, clauseLockMonogram,
   clauseLockOf, clauseLockHeldByOther, clauseLockTake, clauseLockKeep,
   clauseLockRelease, clauseLockSweep, clauseLockSave, clauseLockMerge, clauseLockSign };

@@ -1663,6 +1663,15 @@ function negoLiveCardsHtml(c, opts){
                twice would be the "one tag per card" fault the review feature
                was reported for. */}
         ${window.deskCardInsteadHtml ? deskCardInsteadHtml(c, ch, opts) : ''}
+        ${''/* ---- AND WHOSE TURN A SUGGESTION IS (4 Oct 2026) ----
+               THE CLOTHES FOLLOW THE BUILDER: both card renderers draw the
+               same strip from the same function in js/desk.js, because this is
+               precisely the kind of feature that gets built in one renderer
+               and forgotten in the other. The acts are on it, because a verb
+               must be visible pixels and a sentence saying somebody must adopt
+               this — with no way to adopt it — is the unexplained-absence
+               fault one step quieter. */}
+        ${window.deskCardSuggestHtml ? deskCardSuggestHtml(c, ch, opts) : ''}
         ${''/* The requester's way out of their own escalation — see
                reviewCardCancelHtml. Both card renderers carry it, which is the
                project's own duplication rule and exactly the kind of thing this
@@ -6452,9 +6461,25 @@ function rlClauseEditPillHtml(cl, opts = {}){
        corner of its own and nothing else is in it. The three other doors into
        the editor sit in fixed columns and one-glyph boxes, so they keep their
        size and go dead instead — see rlLockedBtn. */
+    /* ---- AND THE REFUSAL CARRIES ITS WAY FORWARD (idea 12, 4 Oct 2026) ----
+       Young picked "Take it in turns": the reader who reaches for the pencil
+       and finds this can ASK for the clause, and the holder hands it over in
+       one press. THE ASK BELONGS HERE AND NOWHERE ELSE — this is the one place
+       a person meets the refusal, and the rulebook's own rule is that a
+       refusal carries its way forward on the same screen.
+
+       IT IS THE ONLY PRESSABLE THING IN THIS CORNER, which is what the note
+       above refuses to break: the SIGN is still a fact and not a control, and
+       the button beside it does not open the clause — it tells somebody you
+       want it. Once asked it becomes a word rather than a button, because a
+       second press is not a louder ask. */
+    const ask = held.mayAsk
+      ? `<button type="button" class="rl-cp-lock-ask" data-rl-lock-ask="${_ne(held.clauseId)}"
+          title="${_nea(i18t('cl_ask_title', { who: held.name || i18t('cl_a_colleague') }))}">${_ne(i18t('cl_ask'))}</button>`
+      : (held.asked ? `<span class="rl-cp-lock-asked" title="${_nea(i18t('cl_asked_title'))}">${_ne(held.askedSay)}</span>` : '');
     return `<span class="rl-cp-lock" title="${_nea(held.title)}">
       <b class="rl-cp-lock-mono" aria-hidden="true">${_ne(held.mono)}</b>
-      <span class="rl-cp-lock-say">${_ne(held.say)}</span>
+      <span class="rl-cp-lock-say">${_ne(held.say)}</span>${ask}
     </span>`;
   }
   /* ---- AND A CALLER MAY SAY THAT ITS PENCIL CANNOT WORK HERE ----
@@ -10813,6 +10838,16 @@ function renderRedline(){
      when the nav's "N Open" tag and this toolbar's dropdown counts moved. */
   if (window.updateSidebarCounts) updateSidebarCounts();
   rlStartLivePoll(c);
+  /* ---- AND THE ROOM SAYS YOU ARE IN IT, HERE TOO (ideas 5 and 14, 4 Oct
+     2026) ---- The head on this page is the room's head, so it already carries
+     the presence slot; what it did not have was the beat. It matters most
+     HERE, because this is the page "Follow me" walks: the beat carries where
+     this reader is looking and arrives at where the leader is.
+     presenceStart is idempotent per contract, so moving between the room and
+     this page re-uses one beat rather than opening a second, and both calls
+     are guarded — a stage that loads this page without js/presence.js is
+     byte-identical. */
+  if (c && c.id && window.presenceStart) try{ presenceStart(c.id, presencePaint); presencePaint(c.id); }catch(_){}
 }
 
 /* ---------- THE BENCH STAYS CURRENT ----------
@@ -19035,7 +19070,12 @@ function redlineChangeCardsHtml(c, opts = {}){
       /* `info` is the caution captions; the other three are the sentences and
          buttons that used to ride in the body's action bar. Built above, in the
          one place that decides them, and only re-homed here. */
-      const rowStrips = [info, noCopyBlock, rvStuckBlock, dkInstead, rvVerbs]
+      /* The suggestion strip rides with the others, after the verbs and beside
+       the desk's "instead" line — it is about the same thing those two are:
+       what this card is waiting on, and who can move it. One builder, both
+       renderers (js/desk.js). */
+    const dkSuggest = window.deskCardSuggestHtml ? deskCardSuggestHtml(c, ch, opts) : '';
+    const rowStrips = [info, noCopyBlock, rvStuckBlock, dkInstead, dkSuggest, rvVerbs]
         .filter(Boolean).join('');
       return `<article class="rl-card rl-card-d${
         RL_SETTLED_BANDS.includes(band) ? ' rl-card-done' : ''}${
@@ -19983,6 +20023,69 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
        PENCIL, and querySelector answers in document order, so a chip
        carrying it answered instead of the pencil and a click in the wording
        opened the panel rather than the editor. */
+    /* ---- ASK FOR A CLAUSE A COLLEAGUE IS HOLDING (idea 12, 4 Oct 2026) ----
+       On this listener for the reason the two below it give: the sign is drawn
+       by a shared builder in several places and a listener bound where one of
+       them paints would be dead on the others. The contract is fetched at the
+       press, never closed over. It TAKES NOTHING — js/clauselock.js refuses on
+       a clause that is not held by somebody else, which is the wall behind
+       this sign. */
+    const askBtn = t.closest('[data-rl-lock-ask]');
+    if (askBtn){
+      ev.preventDefault(); ev.stopPropagation();
+      const cc = rlLadderContract();
+      const cid = askBtn.getAttribute('data-rl-lock-ask');
+      if (!cc || !cid || !window.clauseLockAsk) return;
+      const sign = window.clauseLockSign ? clauseLockSign(cc, cid) : null;
+      if (!clauseLockAsk(cc, cid)) return;
+      if (window.toast) toast(i18t('cl_asked_done', { who: (sign && sign.name) || i18t('cl_a_colleague') }), 'ok');
+      if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
+      else if (window.renderWorkspace) renderWorkspace();
+      return;
+    }
+    /* ---- ADOPT A COLLEAGUE'S SUGGESTION, OR HAND IT BACK (4 Oct 2026) ----
+       ON THIS LISTENER, armed once at module load and delegated, because the
+       strip is painted by BOTH card renderers and a listener bound where one
+       of them draws would be dead on the other. The contract is fetched at the
+       press (rlLadderContract), never closed over, for the reason the note
+       above it gives. Both acts are js/desk.js's own — nothing here decides
+       anything; it presses and repaints. */
+    const sgA = t.closest('[data-dk-adopt]'), sgR = t.closest('[data-dk-return]');
+    if (sgA || sgR){
+      ev.preventDefault(); ev.stopPropagation();
+      const cc = rlLadderContract();
+      const id = (sgA || sgR).getAttribute(sgA ? 'data-dk-adopt' : 'data-dk-return');
+      if (!cc || !id) return;
+      /* Repaint whichever surface the reader is on — the negotiate page, the
+         room if it is open, the workspace behind it either way. The one helper
+         three other acts on this page already use. */
+      const repaint = () => {
+        if (document.getElementById('view-redline') && window.renderRedline){ renderRedline(); return; }
+        let painted = false;
+        try{ painted = !!(window.negoRepaintOpenRoom && negoRepaintOpenRoom(cc)); }catch(_){}
+        try{ if (!painted && window.renderWorkspace) renderWorkspace(); }catch(_){}
+      };
+      if (sgA){
+        if (window.deskAdoptSuggestion && deskAdoptSuggestion(cc, id)){
+          if (window.toast) toast(i18t('dk_sg_adopted'), 'ok');
+          repaint();
+        }
+        return;
+      }
+      /* A REASON IS REQUIRED, so it is asked for rather than assumed — the
+         same box the negotiation's own "Why this change?" uses, and the model
+         refuses an empty one whatever this screen does. */
+      if (!window.promptDialog) return;
+      promptDialog({ title: i18t('dk_sg_return'), label: i18t('dk_sg_why_ask'),
+        multiline: true, confirmLabel: i18t('dk_sg_return') }).then(why => {
+        if (why == null) return;
+        const g = window.deskReturnSuggestion ? deskReturnSuggestion(cc, id, why) : null;
+        if (!g) return;
+        if (window.toast) toast(i18t('dk_sg_returned', { who: g.by }), 'ok');
+        repaint();
+      });
+      return;
+    }
     const lad = t.closest('[data-rl-ladder]');
     if (lad){
       ev.preventDefault(); ev.stopPropagation();

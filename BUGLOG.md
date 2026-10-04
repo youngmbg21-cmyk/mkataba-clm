@@ -20155,3 +20155,19 @@ Three things, and only one of them was about width.
 - portal-header-verbs-verify: "the Send is ON TOP OF THE REDLINE CARDS, in
   their own column" reports "no band or no card to measure against". Already
   red on unmodified main. Left alone.
+
+## 4 Oct 2026 — Noticed, not fixed
+
+- A filing the funnel then REFUSES still claims the desk. deskClaimOnFile runs
+  near the top of negoFileChange, before the no-op guard, so an edit that
+  changes nothing opens a desk and names whoever tried as the lead. Measured
+  while building the seat-decides stage: its first run reported a colleague as
+  the lead of a negotiation they had filed nothing on. Harmless today (the lead
+  is transferable from the header and deskOpen is idempotent), but it means a
+  stray press can decide who leads a deal. The claim arguably belongs where the
+  suggestion stamp now is — after every guard, beside the push.
+- A status link could ask the server for a signing code. Found the same night
+  and FIXED, because it is the class of fault f144 measured on a view token and
+  the feature being built was the door: shareIsReadOnly had not been told about
+  the 'status' purpose added two commits earlier, which the comment directly
+  above it warns about in those words.

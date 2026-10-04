@@ -4946,6 +4946,15 @@ function applyWsTabs(c){
     });
   };
   paint(_wsTab);
+  /* ---- AND THE ROOM SAYS YOU ARE IN IT (idea 5, 4 Oct 2026) ----
+     Started HERE because this is where the room lands on every render, which
+     is also where every other thing that paints itself is started.
+     presenceStart is idempotent per contract — a repaint re-uses the beat it
+     already has rather than opening a second one — and presencePaint fills
+     the slot immediately so a reader who arrives while a colleague is already
+     here is told at once rather than in twenty-five seconds. Both are guarded:
+     a stage that loads the room without js/presence.js is byte-identical. */
+  if(c && c.id && window.presenceStart) try{ presenceStart(c.id, presencePaint); presencePaint(c.id); }catch(_){}
   /* THE SHARED PAGE IS PAINTED ON ARRIVAL, never built with the room: what it
      says moves every time a change is filed or answered. */
   if(_wsTab==='stands') try{ paintStandsPane(c); }catch(_){}
@@ -9578,7 +9587,15 @@ function roomHeadSubHtml(c, opts = {}){
   if (owner) bits.push(`${esc(i18t('ov_f_owner'))} ${esc(owner)}`);
   if (c && c.lastAction) bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
   const needs = opts.needs ? `<span id="ws-round-needs-slot">${negoRoundNeedsHtml(c)}</span>` : '';
-  return `<div class="room-sub room-headsub">${bits.join(' &middot; ')}${needs}</div>`;
+  /* ---- WHO ELSE HAS THIS OPEN (idea 5, 4 Oct 2026) ----
+     A SLOT, painted by the beat rather than built here, because this is the
+     one fact on the head that changes while nobody presses anything — the
+     rulebook's own rule, learnt on the status chip and the fact row: wire
+     where you paint. It lands on the quiet line of facts rather than in the
+     six-fact row (a ruled set) or the acts row (these are not acts), and it
+     draws NOTHING when nobody else is here: an empty slot with a caption
+     would be a band about an absence. */
+  return `<div class="room-sub room-headsub">${bits.join(' &middot; ')}${needs}<span data-pz-slot="head"></span></div>`;
 }
 function roomHeadHtml(c,opts={}){
   const _wr=state.wsReturn||{};
@@ -10143,13 +10160,18 @@ function roomHeadRefresh(c){
       const nf=tmp.firstElementChild;
       if(nf){ if(facts.classList.contains('is-folded')) nf.classList.add('is-folded'); facts.replaceWith(nf); }
     }
-    const who=`${(window.contractRef?contractRef(c):c.id)} · ${roomHeadTitle(c)||''}`;
-    const here=document.querySelector('#shell-title.is-crumb > .crumb-here:not(.crumb-layer)');
-    if(here){ here.textContent=who; here.title=who; }
-    else {
-      const word=document.querySelector('#shell-title.is-crumb [data-back="contract"] .crumb-word');
-      if(word) word.textContent=who;
-    }
+    /* ---- THE BAR'S CRUMB IS NOT THIS FUNCTION'S ANY MORE (4 Oct 2026) ----
+       It used to write "REF · title" into the shell bar, and both halves of
+       that are gone by the owner's own two rulings of the same day: *"In
+       contracts, there should be no back button"* and *"Just the word
+       Contracts, not a button"*. The bar now carries one word on the room's
+       page and the arrow alone on the negotiate page (shellCrumbAdopt, which
+       is the one writer of both), so a refresh that still wrote a reference
+       there would quietly put the wording back the next time anything on this
+       head moved — the ruling undone by a repaint rather than by a decision.
+       THE REFERENCE IS NOT LOST: it leads the room's OWN breadcrumb
+       (.room-crumb-here), which is built from contractRef on every render, and
+       it is the first thing on the quiet line under the title. */
   }catch(_){ /* a head that cannot be repainted is still the head it was */ }
 }
 /* Opening and closing the "⋯". The items themselves are wired where they

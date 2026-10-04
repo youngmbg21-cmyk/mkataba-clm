@@ -113,7 +113,15 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await page.waitForTimeout(1200);
     const tabs = await page.evaluate(() =>
       [...document.querySelectorAll('#ws-tabs .room-tab')].map(b => b.textContent.trim()));
-    check('the room shows four tabs', tabs.length === 4, tabs.join(' | '));
+    /* RE-POINTED 4 Oct 2026, the same way obligations-tab was the same night:
+       this counted FOUR and the room has grown twice since — Obligations, and
+       then "Where we are" when the shared page earned a tab. PIN THE RELATION.
+       What this file is about is that Negotiate is NOT one of them: the room
+       has no tab onto the bench, which is the whole of section 2's heading. */
+    const declared = await page.evaluate(() => (window.ROOM_TABS || []).length);
+    check('the room shows the tabs it declares, and Negotiate is not one of them',
+      declared > 1 && tabs.length === declared && !tabs.some(t => /negotiat/i.test(t)),
+      tabs.join(' | ') + ' | declared ' + declared);
     check('and Negotiate is not one of them', !tabs.some(t => /Negotiat/i.test(t)), tabs.join(' | '));
 
     /* ---- 3. THE DOOR IN IS ON THE DOCUMENT TAB, AND IT DOES NOT HIDE ---- */
@@ -193,7 +201,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       tabs: [...document.querySelectorAll('#ws-tabs .room-tab')].map(b => b.textContent.trim()) }));
     check('the arrow returns to the agreement', out.view === 'workspace', out.view);
     check('on its Document tab, where the door in lives', out.tab === 'docs', out.tab);
-    check('and the four tabs are back with it', out.tabs.length === 4, out.tabs.join(' | '));
+    check('and the whole tab row is back with it',
+      out.tabs.length === (await page.evaluate(() => (window.ROOM_TABS || []).length)),
+      out.tabs.join(' | '));
 
     /* ---- 7b. AND THE ROOM HAS NO BACK ARROW AT ALL ----
        REVERSED IN PLACE 4 Oct 2026 (Young: "In negotiations, back takes you to

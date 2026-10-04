@@ -3113,6 +3113,46 @@
   .dk-card-instead{ font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-700);
     background:var(--color-bg); border:1px solid var(--color-divider);
     border-radius:var(--radius); padding:6px 9px; margin-top:7px; }
+  /* ---- A COLLEAGUE'S SUGGESTION (4 Oct 2026) ----
+     The "instead" strip's own clothes, with an amber left edge because every
+     case this draws is waiting on somebody — the card's own tone for in
+     flight, never a colour of its own. It is the same box so that a reader
+     who has learnt what one means has learnt what both mean. */
+  /* ---- WHO IS IN THE ROOM (idea 5, 4 Oct 2026) ----
+     The quietest thing a header can carry: the desk's own face, one rung
+     smaller, overlapped so four of them take the room of two. It sits on the
+     quiet line of facts and draws nothing at all when nobody else is here. */
+  .pz-row{ display:inline-flex; align-items:center; gap:0; margin-left:7px;
+    vertical-align:middle; }
+  .pz-face{ width:17px; height:17px; border-radius:50%; display:inline-flex;
+    align-items:center; justify-content:center; font-size:8px; font-weight:var(--w-title);
+    letter-spacing:0; background:var(--color-accent-100); color:var(--accent-ink-700);
+    border:1px solid var(--color-surface); margin-left:-4px; }
+  .pz-face:first-child{ margin-left:0; }
+  /* ---- AND EACH FACE IS A BUTTON (Follow me, idea 14) ----
+     It does something, so it is one; it keeps the face's exact size, so the row
+     does not move when the feature is on. LIT while it is the one being
+     followed — inline state rather than a strip, which is the owner's standing
+     rule about bands and the cheapest channel that does this job. */
+  button.pz-face{ padding:0; font-family:inherit; cursor:pointer; }
+  button.pz-face:hover{ border-color:var(--color-accent-500); }
+  button.pz-face.is-following{ background:var(--accent-solid); color:#fff;
+    border-color:var(--accent-solid); }
+  .pz-more{ margin-left:4px; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .dk-card-sg{ font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-700);
+    background:var(--color-bg); border:1px solid var(--color-divider);
+    border-left:2px solid var(--st-amber-line); border-radius:var(--radius);
+    padding:6px 9px; margin-top:7px; }
+  .dk-card-sg .dk-sg-k{ display:block; font-size:var(--t-label); font-weight:var(--w-title);
+    letter-spacing:.01em; color:var(--st-amber-fg); }
+  .dk-card-sg .dk-sg-say{ display:block; }
+  /* Handed back reads as a refusal, so it takes the ruby edge the held
+     answer takes. One word changes; the box does not move. */
+  .dk-card-sg[data-dk-returned] { border-left-color:var(--st-ruby-line); }
+  .dk-card-sg[data-dk-returned] .dk-sg-k{ color:var(--st-ruby-fg); }
+  /* The verbs sit on their own full-width line, left-aligned, at the compact
+     ladder's small height — the row's own rule for every verb on this page. */
+  .dk-sg-verbs{ display:flex; gap:6px; margin-top:6px; }
   /* Draft new agreement. Solid green, by the owner's call: starting the next
      agreement is a first-class act here, not a second thought beside whatever
      this one contract happens to need. .ui-btn-primary carries the fill; this
