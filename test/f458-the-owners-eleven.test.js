@@ -287,8 +287,11 @@ describe('f458 (11) — the x that closes a card is in its right corner', () => 
     /* The three: Copilot's prepared work, the focus card a question digs
        into, and a panel. The focus card is the one that was wrong — nothing
        before its controls took the free space, so they huddled by the title. */
+    /* and since 4 Oct 2026 a fourth: a view kept from today's insights is a
+       panel of its own (hbViewPanelHtml), closed the same way. The shelf's
+       per-picture "let go" is not a card's close and wears hb-ins-x. */
     const xs = (BOARD.match(/class="hb-ib hb-x"/g) || []).length;
-    assert.equal(xs, 3, 'expected three card-closing x buttons, found ' + xs);
+    assert.equal(xs, 4, 'expected four card-closing x buttons, found ' + xs);
     for (const door of ['data-hb-prep="closed"', 'data-hb-crumb="-1"', 'data-hb-act="x"'])
       assert.ok(new RegExp('class="hb-ib hb-x"[^>]*' + door.replace(/"/g, '"')).test(BOARD)
         || new RegExp(door.replace(/"/g, '"') + '[^>]*class="hb-ib hb-x"').test(BOARD),

@@ -144,9 +144,9 @@ const DEAL = {
     ok('4b and it is the same deal the owner\'s tab reads',
       /Nordbygg AB/.test(seen) && /MK-S9/.test(seen) && /Liability Cap/.test(seen)
         && /Payment Terms/.test(seen) && /Round/.test(seen), seen.slice(0, 120));
-    ok('4c whose move is a party, and it is the side that must answer',
-      /Nordbygg AB/.test(seen) && !/\byour\b|\btheir\b/i.test(seen),
-      (seen.match(/Whose move[^·]*/i) || [''])[0].slice(0, 60));
+    ok('4c what waits is said by party, and the side that must answer is named',
+      /WAITING ON NORDBYGG AB\s*1/i.test(seen) && !/\byour\b|\btheir\b/i.test(seen),
+      (seen.match(/Waiting on[^·]{0,40}/i) || [''])[0].slice(0, 60));
     /* ---- THE TWO READINGS, PINNED AGAINST EACH OTHER ----
        The browser has dealStands and the server has srvDealStands, written
        twice because the public page is served outside the application. Two
@@ -156,15 +156,15 @@ const DEAL = {
     const mine = await page.evaluate(() => {
       const D = dealStands(getContract('MK-S9'));
       return { round: D.round, open: D.open, total: D.total, settled: D.settled,
-        move: D.move && D.move.party, days: D.move && D.move.days,
+        waiting: (D.waiting || []).map(w => w.party + ' ' + w.n),
         points: D.points.map(p => p.clause), settledPoints: D.settledPoints.map(p => p.clause),
         parties: D.parties.map(p => p.name), step: (D.steps.find(s => s.now) || {}).key };
     });
     const says = s => (seen.match(s) || [])[1];
     ok('4d the owner\'s reading and the public page agree, field by field',
-      mine.round === Number(says(/ROUND (\d+)/))
-        && `${mine.open} / ${mine.total}` === says(/OPEN POINTS (\d+ \/ \d+)/)
-        && seen.includes(mine.move)
+      mine.round === Number(says(/ROUND (\d+)/i))
+        && `${mine.settled} of ${mine.total}` === says(/SETTLED (\d+ of \d+)/i)
+        && mine.waiting.every(x => new RegExp('WAITING ON ' + x.replace(/ (\d+)$/, '\\s*$1'), 'i').test(seen))
         && mine.points.every(p => seen.includes(p))
         && mine.settledPoints.every(p => seen.includes(p))
         && mine.parties.every(p => seen.includes(p))

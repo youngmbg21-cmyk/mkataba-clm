@@ -138,9 +138,10 @@ describe('f440 (4) — their page follows the signing', () => {
   });
   test('Where we are: the wording is agreed and signing is under way', () => {
     const v = theirPage(ORDER(false));
-    const steps = [...v.d.querySelectorAll('#pt-where-pane .pw-jst')];
+    /* the shared sheet's journey (4 Oct 2026), told by their link that signing is under way */
+    const steps = [...v.d.querySelectorAll('#pt-where-pane .ds-j li')];
     assert.ok(steps[2].classList.contains('is-done'), 'wording agreed');
     assert.match(steps[3].textContent, /Under way/);
-    assert.ok(v.$('#pt-where-pane button.pw-wrow'), 'and the door onto the Signing tab is listed');
+    assert.ok(v.$('#pt-where-pane .ds-mine button[data-pt-where-row]'), 'and the door onto the Signing tab is on their own line');
   });
 });

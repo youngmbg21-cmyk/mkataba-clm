@@ -128,7 +128,7 @@ const DEAL = {
         parties: txt('.ds-pch'), steps: txt('.ds-j li'),
         now: (el.querySelector('.ds-j li.is-now b') || {}).textContent || '',
         done: el.querySelectorAll('.ds-j li.is-done').length,
-        facts: txt('.ds-move > span'), points: txt('.ds-li'), lately: txt('.ds-late'),
+        facts: txt('.ds-facts > div'), points: txt('.ds-li'), lately: txt('.ds-late'),
         data: typeof dealStands === 'function' ? dealStands(getContract('MK-D1')) : null };
     });
     ok('2b it names every party, with what each one does',
@@ -141,10 +141,11 @@ const DEAL = {
       JSON.stringify(S && S.data && { s: S.data.settled, o: S.data.open, t: S.data.total }));
     ok('2e and the round is the record\'s own', !!S && S.data && S.data.round === 2, S && S.data && S.data.round);
 
-    /* 3. WHOSE MOVE IS A PARTY, NOT A SEAT */
-    const move = (S && S.facts.find(f => /whose/i.test(f))) || '';
-    ok('3a whose move names the party that holds the open point',
-      /Nordbygg/.test(move), JSON.stringify(move));
+    /* 3. WHAT WAITS ON EACH PARTY IS SAID BY ITS NAME, NOT A SEAT (the shared
+       sheet's one row of facts, 4 Oct 2026, in place of "Whose move") */
+    const move = (S && S.facts.find(f => /waiting on nordbygg/i.test(f))) || '';
+    ok('3a the facts row names the party that holds the open point, with its count',
+      /Nordbygg/.test(move) && /1/.test(move), JSON.stringify(S && S.facts));
     ok('3b and it uses no seat word anywhere on the page',
       !!S && !/\byou\b|\byour\b|\bthem\b|\btheir\b|\bus\b|\bour\b/i.test(S.all),
       JSON.stringify((S && S.all || '').match(/\b(you|your|them|their|us|our)\b/i) || null));
@@ -162,8 +163,8 @@ const DEAL = {
       leaks.length === 0, leaks.join(', ') || 'none');
     ok('5b and nothing from the internal review or the notes is on it',
       !!S && !/review/i.test(S.all) && !S.all.includes('Zanzibarium'));
-    ok('5c what it does carry, it says: the page states what it never shows',
-      !!S && /never shows/i.test(S.all));
+    ok('5c it says it is the same page every party sees (the disclaimer went, 4 Oct 2026)',
+      !!S && /same page every party sees/i.test(S.all) && !/never shows/i.test(S.all));
 
     /* 6. IT SPENDS NOTHING */
     ok('6a drawing it called no generative route', ai.length === 0, ai.join(', ') || 'none');

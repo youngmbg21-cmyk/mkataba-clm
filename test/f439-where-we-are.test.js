@@ -58,7 +58,7 @@ describe('f439 — the tabs', () => {
     const v = theirPage();
     assert.equal(v.$('#pw-page').dataset.ptTab, 'where');
     assert.equal(v.$('#pt-where-pane').hidden, false);
-    assert.ok(v.$('#pt-where-pane .pw-journey'), 'the journey is drawn');
+    assert.ok(v.$('#pt-where-pane .ds-sheet .ds-j'), 'the shared sheet is drawn, journey and all');
     assert.ok(v.$('#pt-nego'), 'the workbench is still mounted underneath');
     assert.equal(v.$('#pt-nego').inert, true, 'and takes no presses while covered');
   });
@@ -125,12 +125,21 @@ describe('f439 — where they land', () => {
 });
 
 describe('f439 — Where we are borrows, never re-counts', () => {
-  test('"Waiting on you" is the bell\'s rows, one for one', () => {
+  /* THE SHARED SHEET (Young picked it, 4 Oct 2026): "Waiting on you" became
+     ONE line in the sheet's head. It names what the bell lists first and its
+     door IS that row of the bell, so the two cannot disagree. */
+  test('their own line is the bell\'s first row of work, and its door is that row', () => {
     const v = theirPage();
-    const where = [...v.d.querySelectorAll('#pt-where-pane .pw-wrow')].map(r => r.getAttribute('data-pt-kind'));
+    const mine = v.$('#pt-where-pane .ds-sheet .ds-mine');
+    assert.ok(mine, 'the reader\'s own line is in the sheet\'s head');
     const bell = [...v.d.querySelectorAll('#pt-alerts-body .pt-alert')].map(r => r.getAttribute('data-pt-kind'));
-    assert.ok(where.length, 'there is work waiting on this fixture');
-    assert.deepEqual(where, bell);
+    assert.ok(bell.includes('answer'), 'there is work waiting on this fixture');
+    const door = mine.querySelector('[data-pt-where-row]');
+    assert.ok(door, 'the line carries its door');
+    const row = v.$(`#pt-alerts-body [data-pt-alert="${door.getAttribute('data-pt-where-row')}"]`);
+    assert.equal(row && row.getAttribute('data-pt-kind'), 'answer', 'the same row the bell lists');
+    assert.match(mine.textContent, /For you:/);
+    assert.ok(!v.$('#pt-where-pane .pw-wrow, #pt-where-pane .pw-card, #pt-where-pane .pw-shrule'), 'the old cards and the rule are gone');
   });
   test('the link\'s end date is in words', () => {
     const v = theirPage({}, { expiresAt: '2026-10-12T09:00:00.000Z' });

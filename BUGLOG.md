@@ -20198,3 +20198,8 @@ card's right corner. Story in docs/MAP-HISTORY.md under "THE OWNER'S ELEVEN".
 - js/views/intelligence.js:562 passes fill:'var(--color-accent-100)' into a
   legend entry. If that value ever reaches a canvas or a standalone document it
   cannot resolve — a var() needs a :root. Pre-existing; not touched.
+
+### Noticed, not fixed — 4 Oct 2026 (four builds on one list)
+- js/views/home.js wires `#dd-ask-ai` to openAI, but nothing draws `#dd-ask-ai` any more (dead wiring on the old Home).
+- The board's free reader reads "value by counterparty" as a COUNT ring, not a value measure (f448 phrase book has no such line); the shelf's concentration proposal carries its own recipe to get blocks by value.
+- CLAUDE.md is ~117 KB, over its own 80 KB ceiling; it needs the owner-approved condensing pass, not a trim on the way past.
