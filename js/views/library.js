@@ -2675,7 +2675,7 @@ function renderTemplatesPage(){
             MEASURED, and it is exactly the spread the owner reported on
             25 Aug. Home answers this the same way, by taking one element out
             of the row's alignment rather than by moving the row. */}
-      <div style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_templates')}</h1>
+      <div style="min-width:0;align-self:flex-start"><h1 style="margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;color:var(--color-text);line-height:1.2">${i18t('nav_tpl_std')}</h1>
       ${''/* THE ARTIFACT'S OWN LINE under the title (Young, 21 Sep 2026: "exactly
              what is in the artifact") — this REVERSES the 25 Aug "no sentence
              under the title" for this page on the owner's later word. */}
@@ -2698,6 +2698,12 @@ function renderTemplatesPage(){
              note on tplHealthData: the card it drew is kept, unreferenced. */}
       <button class="st-tab${tab==='book'?' on':''}" data-tpl-tab="book" role="tab" aria-selected="${tab==='book'?'true':'false'}">${i18t('lib_tab_book')}</button>
       <button class="st-tab${tab==='list'?' on':''}" data-tpl-tab="list" role="tab" aria-selected="${tab==='list'?'true':'false'}">${i18t('nav_templates')}<span class="st-tab-n">${pile.ready}</span></button>
+      ${''/* OUR STANDARDS IS THIS PAGE'S THIRD TAB (the process review,
+             4 Oct 2026): one door for the paper and its rulebook. The tab is
+             the standards page itself, drawn under this page's name — see
+             paperTabsHtml — so every one of its own tabs, its inspector and
+             its links are exactly what they were. */}
+      <button class="st-tab" data-paper-tab="standards" role="tab" aria-selected="false">${i18t('nav_our_standards')}</button>
     </div>
 
     ${''/* TWO SECTIONS, NOT THREE. The health card (tplHealthHtml) and the
@@ -2747,6 +2753,7 @@ function renderTemplatesPage(){
      does not guess at a painter; the caller hands it one. */
   sectionWire(document.querySelector('[data-tpl-sec="book"]'), tplBookRepaint);
   document.querySelectorAll('[data-tpl-tab]').forEach(b=>b.addEventListener('click',()=>tplPageSetTab(b.getAttribute('data-tpl-tab'))));
+  paperTabsWire();
   /* Every door on the overview lands on the same one: the table, narrowed to
      the template that was pressed. A card, an attention row and a bar are
      three drawings of one act, so they share one handler and one selector. */
@@ -2784,6 +2791,36 @@ function renderTemplatesPage(){
       if(changed||!lib.loaded) renderTemplatesPage();
     });
   setActiveNav('templates');
+}
+
+/* ════ TEMPLATES & STANDARDS — ONE PAGE, ONE DOOR (the process review,
+   4 Oct 2026) ════
+   The paper and the rulebook it is checked against had two rail doors and two
+   pages. They are one page now: the Book, the Templates list and Our
+   standards are its three tabs, under one name. A DOOR MERGE, NOT A REWRITE —
+   Our standards is still renderPlaybookPage, under its own view id
+   ('playbook'), so every link that opened it lands on its tab, a refresh
+   comes back to it (the view is what placeSave records), and its own tab row
+   (clause library · playbook · deviations) sits under this one as its
+   sub-tabs. PAPER_TABS is the one list; the Templates page draws the first
+   two itself, and the standards page draws all three with its own lit. */
+const PAPER_TABS=['book','list','standards'];
+function paperTabsHtml(lit){
+  const lbl={ book:i18t('lib_tab_book'), list:i18t('nav_templates'), standards:i18t('nav_our_standards') };
+  return `<div class="st-tabs paper-tabs" role="tablist" style="margin-bottom:var(--s-2)">${PAPER_TABS.map(k=>
+    `<button class="st-tab${k===lit?' on':''}" data-paper-tab="${k}" role="tab" aria-selected="${k===lit?'true':'false'}">${esc(lbl[k])}</button>`).join('')}</div>`;
+}
+/* One handler for the row on both pages. A press on a tab of the OTHER view
+   is a page change; on the Templates page the two of its own are the page's
+   own flips (data-tpl-tab), and this listens only for the third. */
+function paperTabsWire(){
+  document.querySelectorAll('[data-paper-tab]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-paper-tab');
+    if(!PAPER_TABS.includes(k)) return;
+    if(k==='standards'){ if(state.view!=='playbook') setView('playbook'); return; }
+    _tplPageTab=k;
+    setView('templates');
+  }));
 }
 
 /* ============================================================ PLAYBOOK PAGE */
@@ -2845,7 +2882,7 @@ function renderPlaybookPage(){
 
   if(INS){
     _pbHead=sdHeads(sd, canEditLib);
-    document.getElementById('content').innerHTML=sdPageHtml(tabRow, tab, sd);
+    document.getElementById('content').innerHTML=sdPageHtml(paperTabsHtml('standards')+tabRow, tab, sd);
     sdWire(sd, canEditLib);
   } else {
   _pbHead={ facts:{}, acts:{} }; pbPaintHead();
@@ -2880,6 +2917,7 @@ function renderPlaybookPage(){
       .std-acts button:hover{text-decoration:underline}
       .std-acts button.warn{color:var(--danger)}
     </style>
+    ${paperTabsHtml('standards')}
     ${tabRow}
     <p id="pb-tabsub" class="st-tabsub">${esc(i18t(PB_TAB_SUB[tab]))}</p>
 
@@ -2942,7 +2980,9 @@ function renderPlaybookPage(){
   /* Either shape arms the watch: a width that crosses the line repaints the
      page in the other shape (INS_PAGE_REPAINT names this page). */
   if(typeof insWatchWidth==='function') insWatchWidth();
-  setActiveNav('playbook');
+  paperTabsWire();
+  /* ONE DOOR: the rail lights Templates & standards on this tab too. */
+  setActiveNav('templates');
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -3534,4 +3574,4 @@ function sdWire(d, mayEdit){
 Object.assign(window,{tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

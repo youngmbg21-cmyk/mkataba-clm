@@ -193,8 +193,10 @@ function commandMeta(view){
        DIVERGES FROM THE DESIGN REFERENCE, which draws a subtitle on every
        screen header — recorded as the owner's ruling, not as drift. */
     case 'register':  return [i18t('nav_contracts'), ''];
-    case 'templates': return [i18t('nav_templates'), i18t('pg_templates_sub')];
-    case 'playbook':  return [i18t('nav_our_standards'), i18t('pg_standards_sub')];
+    case 'templates': return [i18t('nav_tpl_std'), i18t('pg_templates_sub')];
+    /* ONE PAGE (4 Oct 2026): Our standards is a tab of Templates & standards,
+       so its head carries the page's name, not the tab's. */
+    case 'playbook':  return [i18t('nav_tpl_std'), i18t('pg_standards_sub')];
     case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
     case 'advice':    return [i18t('nav_advice_desk'), i18t('pg_advice_sub')];
     case 'obligations': return [i18t('nav_obligations'), ''];

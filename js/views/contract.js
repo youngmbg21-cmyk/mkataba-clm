@@ -1504,7 +1504,16 @@ function openUploadModal(){
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:var(--s-3)"></div>
         <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:14px">
-          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_whole_catalogue')} ${i18t('ct_import_many')}</button>
+          ${''/* ---- UPLOAD SEVERAL IS THE WAY INTO THE IMPORTER (the process
+                 review, 4 Oct 2026) ----
+                 The importer had its own rail door as well as this link, so
+                 two doors reached one act. The rail door is gone; this is the
+                 one door, said plainly, and it carries the count the rail
+                 door used to carry — imported contracts still waiting for a
+                 person — only where there is one. */}
+          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_upload_several')}${
+            (()=>{ const n=(typeof navCounts==='function')?Number((navCounts()||{}).migration)||0:0;
+              return n>0?` <span id="up-bulk-waiting" style="margin-left:4px;color:var(--st-amber-fg)">· ${esc(i18tn('ct_import_waiting',n,{n}))}</span>`:''; })()}</button>
           <span style="flex:1"></span>
           <button id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         </div>
