@@ -2894,8 +2894,21 @@ function negoResolve(c, id, status, opts = {}){
      its own: accepting the counter answers it, refusing the counter puts it
      back. Deciding it directly would give two changes four outcomes. Refused
      in words, naming the change to decide instead. */
+  /* ---- AND THE REFUSAL CARRIES ITS WAY FORWARD (4 Oct 2026, the process
+     review) ----
+     It was a bare 'err' naming a CHG number. Nothing failed — the reader
+     pressed the right idea on the wrong half of a pair — so it is a 'warn'
+     naming the CLAUSE (negoRefusalClause), and the page takes them to the
+     counter: rlLinkFocus, the one function that lights and scrolls a change's
+     card and clause. After the press has finished, so a repaint the caller
+     makes cannot take the light off again. Quiet callers stay quiet. */
   if (ch.status === 'countered'){
-    if (!opts.quiet && window.toast) toast(i18t('ng_countered_decide_counter', { id: ch.counteredBy || '' }), 'err');
+    if (!opts.quiet){
+      const counter = ch.counteredBy ? negoChangeById(c, ch.counteredBy) : null;
+      if (window.toast) toast(i18t('ng_countered_go_counter', { clause: negoRefusalClause(counter, ch) }), 'warn');
+      if (counter && typeof window.rlLinkFocus === 'function' && typeof setTimeout === 'function')
+        setTimeout(() => { try{ window.rlLinkFocus(c, counter.id); }catch(_){ } }, 0);
+    }
     return null;
   }
   /* Read the permission through `window` deliberately, not as a bare call.

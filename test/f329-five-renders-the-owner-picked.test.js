@@ -234,12 +234,15 @@ describe('f329 (3) — opening Negotiate offers to fill the open fields first', 
     assert.match(fn, /NG_BLANKS_NAMED/, 'three, from one constant');
     assert.match(fn, /ng_blanks_these_more/, 'and what was left out is counted, never trimmed in silence');
   });
-  test('BOTH DOORS ARE ON THE SCREEN, and Escape takes you through', () => {
+  /* REVERSED 4 Oct 2026 (the process review, owner-approved build): Escape
+     used to take you through to Negotiate. A dismissal is not a yes — only
+     the "Open Negotiate anyway" button goes; anything else stays (f473). */
+  test('BOTH DOORS ARE ON THE SCREEN, and Escape stays where you are', () => {
     const fn = realBody(strip(NEGO), 'async function negoBlanksAsk(');
     assert.match(fn, /confirmLabel:\s*i18t\('ng_blanks_fill'\)/, 'the recommended act is the filled one');
     assert.match(fn, /cancelLabel:\s*i18t\('ng_blanks_go'\)/, 'and the other door is beside it');
-    assert.match(fn, /return fill \? 'fill' : 'go'/,
-      'dismissing the suggestion carries on with what was pressed for');
+    assert.match(fn, /return fill \? 'fill' : \(saidGo \? 'go' : 'stay'\)/,
+      'only the go button goes; a dismissal stays');
   });
   test('the answer RE-ENTERS the funnel rather than carrying on inline', () => {
     const fn = realBody(strip(NEGO), 'function openRedlineWorkbench(');

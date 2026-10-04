@@ -6359,6 +6359,26 @@ function rlAskRevealHtml(c, ch, side, opts = {}){
    does not load it behaving exactly as it did. */
 const rlLockSign = (c, clauseId) => (typeof window !== 'undefined' && window.clauseLockSign)
   ? clauseLockSign(c, clauseId) : null;
+/* ---- THE HOLDER'S SIDE OF THE SIGN: WHO IS WAITING, AND HAND OVER
+   (4 Oct 2026, the process review) ----
+   Hand over lived only in the editor rail's foot, so a holder reading the
+   paper never met it. The same line the rail prints (clauseLockWaitingLine)
+   and ONE live button, on the clause's own corner, drawn only where this
+   reader holds the clause AND somebody asked — empty on every ordinary
+   sitting, so it is not a new band. The press is delegated at module load
+   and goes to clauseLockHandOverAsk, the one act both doors share. */
+function rlLockMineSignHtml(c, clauseId){
+  if (typeof window === 'undefined' || !c || !window.clauseLockMineWaiting) return '';
+  let rows = [];
+  try{ rows = clauseLockMineWaiting(c, clauseId) || []; }catch(_){ rows = []; }
+  if (!rows.length) return '';
+  const line = window.clauseLockWaitingLine ? clauseLockWaitingLine(rows) : '';
+  const who = rows.length > 1 ? '' : String(rows[0].name || '');
+  return `<span class="rl-cp-lock is-mine">
+      <span class="rl-cp-lock-say">${_ne(line)}</span><button type="button" class="rl-cp-lock-ask" data-rl-lock-hand="${_nea(String(clauseId || ''))}"
+        title="${_nea(who ? i18t('cl_hand_title', { who }) : i18t('cl_hand_title_many'))}">${_ne(i18t('cl_hand_over'))}</button>
+    </span>`;
+}
 /* ---- AND A CONTROL THAT CANNOT WORK SAYS SO BEFORE THE PRESS ----
    Three of those four sit somewhere that has no room for a sentence: the card's
    verb column is a fixed width shared by every row, and the sparkle is a single
@@ -6521,7 +6541,11 @@ function rlClauseEditPillHtml(cl, opts = {}){
      type. NOT DRAWN rather than drawn dead, which is this paper's own answer
      one line up, where a reading that refuses editing draws no pencil either.
      Absent, nothing changes for any caller written before this. */
-  if (say(pill && pill.skip, false) === true) return '';
+  /* The holder's own sign (rlLockMineSignHtml) sits BESIDE whatever pencil
+     this caller draws, never in its place: the holder is typing, and the
+     pencil is their Save. Empty unless somebody is waiting. */
+  const mineSign = rlLockMineSignHtml(opts.c, cl.clauseId);
+  if (say(pill && pill.skip, false) === true) return mineSign;
   const label = say(pill && pill.label, i18t('ng_cp_edit'));
   /* THE WORDS FOLLOW THE DOOR (owner-reported 30 Aug 2026, off a screenshot of
      this tooltip). The default said "Open this clause — what it says now, what
@@ -6551,9 +6575,9 @@ function rlClauseEditPillHtml(cl, opts = {}){
      and the aria-label. The clause editor asks for it on both seats. Every
      other pencil is byte-identical. */
   if (done && pill.icon === 'save')
-    return `<button type="button" class="rl-cp-pill rl-cp-pill-done rl-cp-pill-save" ${attr}="${id}"
+    return mineSign + `<button type="button" class="rl-cp-pill rl-cp-pill-done rl-cp-pill-save" ${attr}="${id}"
     aria-expanded="true" aria-label="${_nea(label)}" data-tip="${_nea(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M8 3v5h7V3"/><rect x="8" y="13" width="8" height="6" rx="1"/></svg></button>`;
-  return `<button type="button" class="rl-cp-pill${done ? ' rl-cp-pill-done' : ''}" ${attr}="${id}"
+  return mineSign + `<button type="button" class="rl-cp-pill${done ? ' rl-cp-pill-done' : ''}" ${attr}="${id}"
     aria-expanded="${on ? 'true' : 'false'}"
     aria-label="${_nea(label)}"
     title="${_nea(title)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg>${
@@ -7276,7 +7300,7 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
       title="${_nea(winIds.has(r.id)
         ? i18t('ng_rung_win_title') + ' \u00b7 ' + i18t('ng_rung_go_title')
         : i18t('ng_rung_go_title'))}">
-      <div class="rl-rung-who"><span class="rl-rung-n">R${r.n}</span>
+      <div class="rl-rung-who"><span class="rl-rung-n">${_ne(i18t('ng_rung_step', { n: r.n }))}</span>
         <span>${_ne(mine(r) ? i18t('ng_rung_you') : i18t('ng_rung_them'))}${
           r.author ? ` · ${_ne(r.author)}` : ''}</span>
         ${tag ? `<span class="rl-rung-tag">${_ne(tag)}</span>` : ''}
@@ -7384,7 +7408,7 @@ function rlProgressPileHtml(c, p, side){
 }
 function rlLadderTrackHtml(track){
   if (!track || !Array.isArray(track.rows) || track.rows.length < 2) return '';
-  const cell = r => `<span class="rl-tr-n rl-tr-${_ne(r.who)}">R${r.lab} ${_ne(String(r.n))}</span>`;
+  const cell = r => `<span class="rl-tr-n rl-tr-${_ne(r.who)}">${_ne(i18t('ng_rung_step', { n: r.lab }))} ${_ne(String(r.n))}</span>`;
   return `<p class="rl-ladder-track">${track.rows.map(cell).join('<i aria-hidden="true">&rarr;</i>')}${
     track.unit ? `<span class="rl-tr-u">${_ne(track.unit)}</span>` : ''}</p>`;
 }
@@ -7485,10 +7509,10 @@ function rlRungPeekHtml(c, clauseId, rungId){
   const unsent = r && typeof window.ladderUnsent === 'function'
     && ladderUnsent(c, r, 'owner');
   const who = r
-    ? [ `R${r.n}`, _ne(mine ? i18t('ng_rung_you') : i18t('ng_rung_them')),
+    ? [ _ne(i18t('ng_rung_step', { n: r.n })), _ne(mine ? i18t('ng_rung_you') : i18t('ng_rung_them')),
         _ne(i18t('ng_rung_round', { n: r.round })),
         unsent ? _ne(i18t('ng_rung_not_sent')) : '' ].filter(Boolean).join(' · ')
-    : `R0 · ${_ne(i18t('ng_rung_agreed'))}`;
+    : `${_ne(i18t('ng_rung_step', { n: 0 }))} · ${_ne(i18t('ng_rung_agreed'))}`;
   /* THE WORDING. A rung with nothing readable says so rather than drawing an
      empty sheet — an absence is stated, never left blank. */
   let body = '';
@@ -8113,7 +8137,7 @@ function dealBoardCardHtml(c, r, side, k){
   const moves = r.rungs.map(rg => {
     const mine = (rg.side === 'counterparty') === (side === 'counterparty');
     const t = tag(rg), fn = fig(rg);
-    return `<li class="db-mv db-mv-${mine ? 'you' : 'them'}"><span class="db-mv-n">R${rg.n}</span><span class="db-mv-b">
+    return `<li class="db-mv db-mv-${mine ? 'you' : 'them'}"><span class="db-mv-n">${_ne(i18t('ng_rung_step', { n: rg.n }))}</span><span class="db-mv-b">
       <span class="db-mv-who">${whoOf(rg)}${t ? ` <span class="db-mv-tag">${_ne(t)}</span>` : ''}</span>
       ${rg.summary ? `<span class="db-mv-what">${_ne(rg.summary)}</span>`
         : fn != null ? `<span class="db-mv-what">${_ne(String(fn))}${unit ? ` ${_ne(unit)}` : ''}</span>` : ''}${
@@ -8599,8 +8623,9 @@ function negoBlanksOpen(c){
 const NG_BLANKS_NAMED = 3;   /* the artifact's three, then "and N more" */
 
 /* THE ASK ITSELF. Returns 'go' to carry on into the negotiation, 'fill' where
-   the reader chose the boxes instead, and 'none' where there was nothing to
-   ask about — three answers rather than a boolean, so the caller never has to
+   the reader chose the boxes instead, 'stay' where they closed it without
+   choosing, and 'none' where there was nothing to
+   ask about — four answers rather than a boolean, so the caller never has to
    guess which silence it is looking at. */
 async function negoBlanksAsk(c){
   const left = negoBlanksOpen(c);
@@ -8616,12 +8641,25 @@ async function negoBlanksAsk(c){
   if(names.length) lines.push(more > 0
     ? i18tn('ng_blanks_these_more', more, { names: names.join(' · '), more })
     : i18t('ng_blanks_these', { names: names.join(' · ') }));
-  const fill = await confirmDialog({
+  /* ---- A DISMISSAL IS NOT A YES (4 Oct 2026, the process review) ----
+     Escape and a press on the backdrop used to answer 'go' and open Negotiate
+     anyway, so the reader who closed the question to think was carried
+     somewhere they had not chosen. Only the "Open Negotiate anyway" button
+     says go now; every other way out answers 'stay'. confirmDialog answers a
+     boolean, so the button's own press is noted beside it — the flag is read
+     after every click listener has run, because a promise settles later. */
+  let saidGo = false;
+  const asked = confirmDialog({
     title: i18t('ng_blanks_title'),
     message: lines.join(' '),
     confirmLabel: i18t('ng_blanks_fill'),
     cancelLabel: i18t('ng_blanks_go') });
-  return fill ? 'fill' : 'go';
+  try{
+    const goBtn = document.querySelector('#confirm-overlay #cf-cancel');
+    if (goBtn) goBtn.addEventListener('click', () => { saidGo = true; });
+  }catch(_){ }
+  const fill = await asked;
+  return fill ? 'fill' : (saidGo ? 'go' : 'stay');
 }
 
 /* Where "Fill them in" lands: the Document tab of the contract they were
@@ -8664,6 +8702,9 @@ function openRedlineWorkbench(id, opts = {}){
     _rlBlanksAsked.add(String(target));
     negoBlanksAsk(held).then(ans => {
       if (ans === 'fill') negoBlanksFill(held);
+      /* CLOSED WITHOUT AN ANSWER: the reader stays where they are, and the
+         question is not spent — the next press on Negotiate asks again. */
+      else if (ans === 'stay') _rlBlanksAsked.delete(String(target));
       else openRedlineWorkbench(target, Object.assign({}, opts, { blanksAsked: true }));
     });
     return false;
@@ -18301,7 +18342,7 @@ function redlineChangeCardsHtml(c, opts = {}){
     const me = side === 'counterparty' ? 'counterparty' : 'owner';
     const mine = x => x.side === me;
     const under = ladderUnder(rungs, r);
-    const lead = `R${r.n} · ${i18t(mine(r) ? 'ng_rung_yours' : 'ng_rung_theirs')}${
+    const lead = `${_ne(i18t('ng_rung_step', { n: r.n }))} · ${i18t(mine(r) ? 'ng_rung_yours' : 'ng_rung_theirs')}${
       under ? ` ${i18t('ng_rung_on_word', { who: i18t(mine(under) ? 'ng_base_your' : 'ng_base_their'), n: under.n })}` : ''}`;
     /* A CLAUSE ARGUED IN A NUMBER says the last two figures in the same
        sentence — "R3 · yours on their R2 · 24 → 18 months" — the artifact's
@@ -20087,6 +20128,24 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
       if (window.toast) toast(i18t('cl_asked_done', { who: (sign && sign.name) || i18t('cl_a_colleague') }), 'ok');
       if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
       else if (window.renderWorkspace) renderWorkspace();
+      return;
+    }
+    /* ---- AND THE HOLDER HANDS IT OVER FROM THE SAME CORNER (4 Oct 2026) ----
+       The rail's Hand over and this one press ONE act (clauseLockHandOverAsk).
+       In the editor the contract is the editor's own; on the paper it is
+       fetched at the press, never closed over. */
+    const handBtn = t.closest('[data-rl-lock-hand]');
+    if (handBtn){
+      ev.preventDefault(); ev.stopPropagation();
+      const inEd = !!(window.clauseEditorOpen && clauseEditorOpen());
+      const cc = (inEd && window.clauseEditorContract) ? clauseEditorContract() : rlLadderContract();
+      const cid = handBtn.getAttribute('data-rl-lock-hand');
+      if (!cc || !cid || !window.clauseLockHandOverAsk) return;
+      clauseLockHandOverAsk(cc, cid, () => {
+        if (inEd && window.ceRenderAll) ceRenderAll();
+        else if (document.getElementById('view-redline') && window.renderRedline) renderRedline();
+        else if (window.renderWorkspace) renderWorkspace();
+      });
       return;
     }
     /* ---- ADOPT A COLLEAGUE'S SUGGESTION, OR HAND IT BACK (4 Oct 2026) ----

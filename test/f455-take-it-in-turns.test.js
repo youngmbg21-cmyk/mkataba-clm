@@ -211,10 +211,16 @@ describe('f455 (6) — the holder is told where the holder is', () => {
   test('handing over asks first, and says what it does NOT do', () => {
     const br = bare(CE.slice(CE.indexOf("case 'handover':"), CE.indexOf("case 'save':") > CE.indexOf("case 'handover':")
       ? CE.indexOf("case 'save':") : CE.indexOf("case 'handover':") + 1800));
-    assert.match(br, /confirmDialog\(/,
+    /* RE-POINTED 4 Oct 2026 (process review, f473): the editor's case and the
+       paper's new Hand over both press clauseLockHandOverAsk, so the confirm
+       and its words are asked there, once. */
+    assert.match(br, /clauseLockHandOverAsk\(/, 'the editor presses the one shared act');
+    const ask = MODEL.slice(MODEL.indexOf('function clauseLockHandOverAsk('),
+      MODEL.indexOf('function clauseLockWaitingLine('));
+    assert.match(ask, /confirmDialog\(/,
       'it is the one act here that gives something away: the clause goes to a '
       + 'colleague and this reader can no longer type in it');
-    assert.match(br, /cl_hand_title/, 'and the message says the draft is kept and nothing is filed');
+    assert.match(ask, /cl_hand_title/, 'and the message says the draft is kept and nothing is filed');
     assert.ok(!/ceDiscard|ceSave|negoEditClause/.test(br),
       'nothing is filed and nothing is lost — the draft in the box is untouched');
   });
