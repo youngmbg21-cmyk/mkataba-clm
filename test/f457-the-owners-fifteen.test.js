@@ -136,3 +136,41 @@ describe('F457 (3) — the map\'s look, asked for in words (items 4–7)', () =>
     w.igRecipeRun({ acts: [{ fold: 'all' }] }); assert.equal(w.intel.foldWant, 'all', 'applied to the groups as they are built');
   });
 });
+
+describe('F457 (4) — the small words (item 9)', () => {
+  const { buildWorld } = require('./world');
+  const w = buildWorld({ intelView: true }).win;
+  test('a span of days is said at its own scale', () => {
+    assert.equal(w.igSpanWords(12), '12 d');
+    assert.equal(w.igSpanWords(59), '59 d');
+    assert.equal(w.igSpanWords(90), '3 months');
+    assert.equal(w.igSpanWords(400), '13 months');
+    assert.equal(w.igSpanWords(3385), '9 years');
+    assert.equal(w.igDecideText(-3385), '9 years past decision');
+    assert.equal(w.igDecideText(20), 'Decide in 20 d');
+  });
+  test('a party with no value prints no share, and a small share is "under 1%", never 0%', () => {
+    const L0 = w.graphPartyLines({ found: true, contracts: 9, value: 0, share: 0, missing: {}, rounds: null, onTime: { met: 0, answered: 0 }, pay: null });
+    assert.ok(!/%/.test(L0[0]), L0[0]);
+    const L1 = w.graphPartyLines({ found: true, contracts: 2, value: 1e5, share: 0.003, missing: {}, rounds: null, onTime: { met: 0, answered: 0 }, pay: null });
+    assert.match(L1[0], /under 1% of the book's value/);
+  });
+});
+
+describe('F457 (5) — a file\'s name read as a title, never "%20" (item 9)', () => {
+  const vm = require('node:vm');
+  const grab = (src, name) => { const i = src.indexOf('function ' + name + '('); assert.ok(i > -1, name); let d = 0, j = src.indexOf('{', i);
+    for (let k = j; k < src.length; k++){ if (src[k] === '{') d++; else if (src[k] === '}' && --d === 0) return src.slice(i, k + 1); } };
+  const browser = vm.runInNewContext('(' + grab(read('js/core.js'), 'fileTitleOf') + ')');
+  const server = vm.runInNewContext('(' + grab(read('server/server.js'), 'srvFileTitleOf') + ')');
+  for (const [raw, want] of [['17.04.01%20BPS%20Agreement.pdf', '17.04.01 BPS Agreement'], ['Supply Agreement.docx', 'Supply Agreement'],
+    ['50% Rebate.pdf', '50% Rebate'], ['Lease%2C%20Westlands.docx', 'Lease, Westlands'], ['', '']])
+    test(JSON.stringify(raw), () => { assert.equal(browser(raw), want); assert.equal(server(raw), want, 'the server reads it the same way'); });
+  test('every place a file becomes a contract\'s name reads it so', () => {
+    assert.match(read('js/views/contract.js'), /const fileBase=ext\?_ctFileTitle\(ext\.file\.name\)/);
+    assert.match(read('js/views/contract.js'), /fval\('up-name'\)\|\|_ctFileTitle\(file\.name\)/);
+    assert.match(read('js/views/contract.js'), /function _ctFileTitle\(n\)\{ return \(typeof fileTitleOf==='function'\)\?fileTitleOf\(n\)/);
+    assert.match(read('js/views/migration.js'), /fileTitleOf\(file\.name\)/);
+    assert.match(read('server/server.js'), /const f = srvFileTitleOf\(filename\)/);
+  });
+});

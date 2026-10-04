@@ -1015,7 +1015,18 @@ const lsSet = (k,v) => localStorage.setItem(k, JSON.stringify(v));
    server (multi-user, multi-device). Opened as a plain static page,
    it falls back to this browser's localStorage. */
 window.REMOTE=null; // {org, me, users} when a HaTi server is present
-Object.assign(window,{LS,REMOTE,lsGet,lsSet});
+/* A FILE'S NAME, READ AS A TITLE (Young, 3 Oct 2026: a contract named
+   "17.04.01%20BPS…"). A file that came through a web link keeps the link's
+   spelling — %20 for a space — so the name is decoded once, where it can be;
+   a name that does not decode (a lone % in "50% Rebate.pdf") is kept as it
+   came. The extension goes. A stored name is never rewritten: this is read
+   where a file BECOMES a name, at the upload and the import. */
+function fileTitleOf(name){
+  let s=String(name||'').replace(/\.[^.\/\\]+$/,'');
+  if(/%[0-9a-f]{2}/i.test(s)){ try{ s=decodeURIComponent(s); }catch(_){ /* not an encoded name: keep it */ } }
+  return s.replace(/\s+/g,' ').trim();
+}
+Object.assign(window,{LS,REMOTE,lsGet,lsSet,fileTitleOf});
 
 const nowISO = () => new Date().toISOString();
 const fmtDT = iso => new Date(iso).toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'});

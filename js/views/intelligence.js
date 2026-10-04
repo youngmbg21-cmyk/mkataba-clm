@@ -161,6 +161,16 @@ const GRAPH_EDGE_KINDS = ['family','chain','party'];
 /* Fold a counterparty name the way obligationAlreadyOn folds a description:
    case and whitespace go, nothing else — "Naivas Ltd" and "Naivas" are two
    parties, because saying they are one is a guess about the record. */
+/* A SPAN OF DAYS SAID AT THE SCALE IT IS (Young, 3 Oct 2026: "3385 d past
+   decision" on the map). Under two months in days, under two years in months,
+   past that in years; the number behind it is unchanged. */
+function igSpanWords(days){
+  const d=Math.abs(Math.round(Number(days)||0));
+  if(d<60) return i18t('int_span_days',{ n:d });
+  if(d<730){ const m=Math.round(d/30.44); return i18tn('int_span_months',m,{ n:m }); }
+  const y=Math.round(d/365.25); return i18tn('int_span_years',y,{ n:y });
+}
+function igDecideText(days){ return days<0 ? i18t('int_fact_decide_past_t',{ t:igSpanWords(-days) }) : i18t('int_fact_decide_t',{ t:igSpanWords(days) }); }
 const _gFold = s => String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
 /* ONE PARTY, ONE GROUP (Young, 4 Oct 2026: "Young Mbgaya" stood twice on the
    map grouped by customer). The grouping read the name exactly as typed while
@@ -321,7 +331,7 @@ function graphNodeFacts(c){
 const GRAPH_NODE_FACTS_MAX = 3;
 function graphNodeFactLine(c){
   const f=graphNodeFacts(c), out=[];
-  if(f.decideDays!=null) out.push({ k:'decide', text: f.decideDays<0 ? i18t('int_fact_decide_past',{n:-f.decideDays}) : i18t('int_fact_decide',{n:f.decideDays}), tone:'amber' });
+  if(f.decideDays!=null) out.push({ k:'decide', text: igDecideText(f.decideDays), tone:'amber' });
   if(f.whose) out.push({ k:'whose', text:f.whose, tone:f.whoseSay&&/mine/i.test(f.whose)?'amber':'ink', title:f.whoseSay });
   if(f.overdue) out.push({ k:'overdue', text:i18tn('int_fact_overdue',f.overdue,{n:f.overdue}), tone:'ruby' });
   if(f.unread) out.push({ k:'unread', text:i18t('int_fact_unread'), tone:'mute' });
@@ -333,7 +343,7 @@ function igFactRowsHtml(c){
   const f=graphNodeFacts(c);
   const row=(k,v,tone)=>`<div class="flex justify-between gap-3 text-[11.5px] py-0.5" data-ig-fact="${k}"><span class="text-ink/45">${i18t('int_fr_'+k)}</span><span class="text-right font-medium truncate"${tone?` style="color:var(--st-${tone}-fg)"`:' style="color:var(--color-text)"'}>${v}</span></div>`;
   const parts=[];
-  if(f.decideDays!=null) parts.push(row('decide', f.decideDays<0 ? i18t('int_fact_decide_past',{n:-f.decideDays}) : i18t('int_fact_decide',{n:f.decideDays}), 'amber'));
+  if(f.decideDays!=null) parts.push(row('decide', igDecideText(f.decideDays), 'amber'));
   if(f.whose) parts.push(row('whose', igEsc(f.whose)+(f.whoseSay&&f.whoseSay!==f.whose?` <span class="text-ink/45 font-normal">· ${igEsc(f.whoseSay)}</span>`:''), null));
   if(f.overdue) parts.push(row('overdue', i18tn('int_fact_overdue',f.overdue,{n:f.overdue})+(f.overdueValue!=null?` · ${fmtMoneyShort(f.overdueValue)}`:''), 'ruby'));
   if(f.offStandard!=null) parts.push(row('standard', f.offStandard?i18tn('int_fact_offstd',f.offStandard,{n:f.offStandard}):i18t('int_fact_aligned'), f.offStandard?'amber':'green'));
@@ -411,7 +421,12 @@ function graphPartyStatsAll(){
 function graphPartyLines(p){
   if(!p||!p.found) return [];
   const L=[];
-  const share=(p.share!=null)?` · ${Math.round(p.share*100)}% ${i18t('int_cp_of_book')}`:'';
+  /* THE SHARE IS OF THE BOOK'S VALUE, and says so (Young, 3 Oct 2026: "9
+     contracts · 0% of the book" read as if they did not count). A party whose
+     contracts carry no value has no share to print; a share under one per cent
+     is "under 1%", never a 0 beside contracts that are there. */
+  const pc=p.share!=null?p.share*100:null;
+  const share=(pc!=null&&p.value>0)?` · ${pc<1?i18t('int_cp_under_1'):Math.round(pc)+'%'} ${i18t('int_cp_of_value')}`:'';
   L.push(i18tn('int_cp_contracts',p.contracts,{n:p.contracts})+share);
   const mid=[];
   if(p.rounds) mid.push(i18t('int_cp_rounds',{n:p.rounds.avg}));
@@ -6608,7 +6623,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SE
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp});
-Object.assign(window,{igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

@@ -35,6 +35,7 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
+  'int_span_days',   /* "{n} d": the day's mark reads alike in both, as int_fact_decide always did */
   /* The Exposure tab's Pattern Grid (28 Sep 2026): '{dim}: {group}' labels the
      picked square ("Category: Supplier") and is only its placeholders. */
   'exp_pg_sel_in',
