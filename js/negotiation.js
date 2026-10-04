@@ -1849,6 +1849,24 @@ async function negoFileChange(c, draft, opts = {}){
       `wording stays on the record with its fingerprint`);
   }
   await negoIssue(c, ch);
+  /* ---- THE SEAT DECIDES (4 Oct 2026) ----
+     A change filed by somebody holding a CONTRIBUTOR's seat is a SUGGESTION:
+     it stays in our draft, where they wrote it, and stays out of every send
+     until the lead adopts it. Stamped HERE for the reason the two guards at
+     the top of this function give in their own words and deskClaimOnFile
+     repeats — the clause editor, the clause library, Copilot's shortcut, both
+     playbook entrances and the Word round-trip all arrive here, and a stamp
+     written at any one of those would be a stamp the other five never make.
+
+     BEFORE THE PUSH, so a change is never on the record for an instant
+     unstamped: deskSuggestedIds reads c.changes, and a payload built in that
+     instant would carry wording the lead had not seen.
+
+     IT REFUSES NOTHING AND SAYS NOTHING. deskStampOnFile answers null wherever
+     the desk rule is off, no desk is open, nobody is signed in, or this person
+     holds the lead's seat — which is every workspace until an admin switches
+     the desk rule on. */
+  try{ if (window.deskStampOnFile) deskStampOnFile(c, side, ch); }catch(_){}
   c.changes.push(ch);
   /* ---- AND IF COPILOT PROPOSED THIS WORDING, THE RECORD SAYS SO (idea 22) ----
      SETTLED AT THE FUNNEL, NOT AT THE PRESS. Every door that files a change

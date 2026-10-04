@@ -691,7 +691,18 @@ const shareIsStatus = s => sharePurposeOf(s) === 'status';
    identically. Adding the purpose without adding it here is how a fifth
    purpose becomes a hole. */
 const shareIsHistory = s => sharePurposeOf(s) === 'history';
-const shareIsReadOnly = s => shareIsViewOnly(s) || shareIsHistory(s);
+/* AND A STATUS LINK IS THE MOST READ-ONLY OF THE SIX (closed 4 Oct 2026, the
+   same night it was found). The comment directly above said it in advance —
+   *"adding the purpose without adding it here is how a fifth purpose becomes a
+   hole"* — and the status purpose was added two commits earlier without being
+   added here. MEASURED, not reasoned about: a status token, which opens a page
+   with no account and no copy of the contract on it, could still make the
+   server mint a six-digit signing code and email it to the recipient. It could
+   never have spent it — every route that takes a signature asks harder
+   questions — but generating signing traffic to somebody's inbox from a link
+   issued expressly to show a progress bar is exactly the fault f144 measured
+   on a view token. The payload route's own 403 was never the whole wall. */
+const shareIsReadOnly = s => shareIsViewOnly(s) || shareIsHistory(s) || shareIsStatus(s);
 /* ---- AND THE ADVISER, WHO READS A FEW CLAUSES AND WRITES NOTES ----
    Deliberately NOT on shareIsReadOnly. The two guards answer different
    questions: a view link may not write at ALL, and an adviser link exists in
@@ -716,6 +727,15 @@ function refuseIfViewOnly(s, res){
     res.status(403).json({ error: 'This is a history link. It shows the record of the negotiation, '
       + 'and nothing else — there is no wording on it to answer and nothing to sign. '
       + 'Ask the person who sent it if you need to respond.', purpose: 'history' });
+    return true;
+  }
+  /* Its own sentence, because the view link's words — "it can show the
+     contract" — are untrue of this one: a status link shows where the deal
+     stands and carries no copy of the contract at all. */
+  if (shareIsStatus(s)){
+    res.status(403).json({ error: 'This is a status link. It shows where the deal stands, and nothing '
+      + 'else — there is no copy of the contract behind it and nothing to sign. '
+      + 'Ask the person who sent it if you need more.', purpose: 'status' });
     return true;
   }
   res.status(403).json({ error: 'This is a view-only link. It can show the contract, and nothing else. '
@@ -1077,6 +1097,80 @@ const deskRosterStamp = c => {
     (d.contributors || []).map(p => String((p && p.id) || '')).sort()]);
 };
 const rosterMoved = (prev, next) => deskRosterStamp(prev) !== deskRosterStamp(next);
+/* ---- THE SEAT DECIDES — THE SERVER'S OWN READING (4 Oct 2026) ----
+   A contributor's redline is a SUGGESTION: it sits in our draft and stays out
+   of every send until the lead adopts it. js/desk.js draws that; this decides
+   it, and the pair is the arrangement deskRuleOn above already has with the
+   browser's deskEnforced — the client file cannot be required, and a rule
+   expressed twice in twenty lines is safer than a rule expressed once and
+   shipped to the person it is meant to restrain.
+
+   WHY A SERVER COPY IS NOT OPTIONAL HERE. Without it the whole feature is one
+   request wide: a contributor sends a PUT with `suggested` deleted, and then
+   the ordinary send carries their wording to the other side with nobody
+   accountable having seen it. The stamp is therefore guarded as a DIFFERENCE
+   against the stored record, like the roster above it and the review verdicts
+   below. */
+const dkSuggestion = ch => {
+  const g = ch && ch.suggested;
+  return (g && typeof g === 'object' && !Array.isArray(g)) ? g : null;
+};
+const dkSuggestionOpen = ch => { const g = dkSuggestion(ch); return !!(g && !g.adoptedAt); };
+/* The ids that must not travel. rvUnsentOurs's own arithmetic, for its own
+   reason: wording the counterparty already holds cannot be recalled, and a
+   payload that quietly dropped it would read to them as us rewriting history. */
+function dkSuggestedIds(c) {
+  const out = new Set();
+  if (!deskRuleOn() || !deskIsClaimed(c)) return out;
+  for (const ch of rvUnsentOurs(c)) if (dkSuggestionOpen(ch)) out.add(String(ch.id));
+  return out;
+}
+/* WHO MAY RULE ON ONE, and the two refusals it carries are different mistakes:
+   "that is not yours to adopt" and "that is your own". Nobody rules on their
+   own suggestion — the room's rule, kept at rvMark and at the approval chain,
+   and kept here because a contributor who is made the lead on Tuesday must not
+   be able to wave Monday's own wording through. */
+const dkMayRuleSuggestion = (c, ch, user) => {
+  const g = dkSuggestion(ch);
+  if (!g || !user) return false;
+  if (String(g.byId || '') && String(g.byId) === String(user.id)) return false;
+  return user.role === 'admin' || deskSeatOf(c, user) === 'lead';
+};
+/* Did this save move a suggestion's stamp? Compared as a stable projection per
+   change id, so a reordering is not a change and a cleared stamp is. */
+const dkSuggestStamp = c => {
+  const m = {};
+  for (const ch of (Array.isArray(c && c.changes) ? c.changes : [])) {
+    if (!ch || !ch.id) continue;
+    const g = dkSuggestion(ch);
+    m[String(ch.id)] = g ? [String(g.byId || ''), String(g.adoptedAt || ''), String(g.returnedAt || '')].join('|') : '';
+  }
+  return m;
+};
+/* The refusal, or null. One sentence per fault, named for the change. */
+function dkSuggestionRefusal(prev, next, user) {
+  if (!prev || !deskRuleOn() || !deskIsClaimed(prev)) return null;
+  const before = dkSuggestStamp(prev), after = dkSuggestStamp(next);
+  const byId = new Map((Array.isArray(prev.changes) ? prev.changes : [])
+    .filter(x => x && x.id).map(x => [String(x.id), x]));
+  for (const id of Object.keys(before)) {
+    if (!(id in after)) continue;                       // a withdrawal is the funnel's business
+    if (before[id] === after[id]) continue;
+    const ch = byId.get(id);
+    if (!dkSuggestionOpen(ch)) {
+      /* An adopted or absent stamp is settled history. Nothing may rewrite it:
+         a lead who could un-adopt could take their own name off the decision. */
+      return `${ch && ch.clauseLabel ? ch.clauseLabel : id} — a suggestion that has already been settled cannot be changed.`;
+    }
+    if (!dkMayRuleSuggestion(prev, ch, user)) {
+      const g = dkSuggestion(ch) || {};
+      return String(g.byId || '') === String(user.id)
+        ? `${ch.clauseLabel || id} — you suggested this wording, so it is not yours to adopt. ${deskLeadName(prev)} decides.`
+        : `${ch.clauseLabel || id} — only ${deskLeadName(prev)}, or an admin, can adopt a colleague's suggestion.`;
+    }
+  }
+  return null;
+}
 /* Did this save add, remove or reword one of OUR changes? Their proposals are
    not this rule's business — those arrive through the share routes, which have
    their own wall — so only owner-side records are compared. The hash is the
@@ -3765,7 +3859,45 @@ app.post('/api/contracts/:id/lock', auth, editor, (req, res) => {
   const me = { id: req.user.id, name: req.user.name || '' };
   const held = locks[clauseId];
   const mine = held && String((held.by || {}).id || '') === String(me.id);
-  if (b.release) {
+  /* ---- TAKE IT IN TURNS: THE LOCK IS A BATON (idea 12, 4 Oct 2026) ----
+     Two verbs on the one door, because a second route would be a second way
+     for two browsers to disagree about who holds a clause — this route's own
+     rule, stated in its own words above.
+
+     ASKING TAKES NOTHING. It is a request written on the lock: no wording
+     moves, the holder keeps every power they had including the power to ignore
+     it, and the lock still lapses on its own, so a holder who shut their
+     laptop frees the clause in two minutes whether they were asked or not.
+     ONE ASK PER PERSON — a second press is not a louder ask, and a list that
+     grew on every press would turn "2 waiting" into a lie — and a CAP, so a
+     queue cannot be used to grow a record without bound.
+
+     HANDING OVER IS DIRECT, and that is the whole of why this is a baton
+     rather than a Please-Finish button: releasing the lock and letting the
+     asker race for it would hand the clause to whoever's browser polled
+     first, which on a busy afternoon is not the person who asked.
+
+     AND BOTH WALLS ARE HERE. Only the HOLDER may hand a clause over, and only
+     to somebody who ASKED — a hand-over to a name that never asked would be a
+     way of locking a colleague out of a clause from across the office. */
+  const ASK_CAP = 8;
+  const askLive = r => !!(r && r.id && r.at && (Date.now() - Date.parse(r.at)) < SRV_CLAUSE_LOCK_MS);
+  if (b.ask) {
+    /* Nothing to ask for: either it is free (press the pencil) or it is yours
+       already. Refused rather than recorded, because an ask nobody can answer
+       would sit on the record for ever. */
+    if (!held || mine) return res.status(409).json({ error: 'That clause is not being held by anybody else.', locks });
+    const asked = (Array.isArray(held.asked) ? held.asked : []).filter(askLive)
+      .filter(r => String(r.id) !== String(me.id));
+    asked.push({ id: me.id, name: me.name, at: new Date().toISOString() });
+    locks[clauseId] = { ...held, asked: asked.slice(-ASK_CAP) };
+  } else if (b.handTo) {
+    if (!held || !mine) return res.status(403).json({ error: 'Only the colleague holding a clause can hand it over.', locks });
+    const asked = (Array.isArray(held.asked) ? held.asked : []).filter(askLive);
+    const to = asked.find(r => String(r.id) === String(b.handTo));
+    if (!to) return res.status(409).json({ error: 'That colleague is not waiting for this clause.', locks });
+    locks[clauseId] = { by: { id: to.id, name: to.name || '' }, at: new Date().toISOString() };
+  } else if (b.release) {
     /* LETTING GO IS ONLY EVER YOUR OWN. An editor closing must not clear a lock
        a colleague took in the meantime, which is exactly what happens when two
        browsers race. */
@@ -3774,7 +3906,19 @@ app.post('/api/contracts/:id/lock', auth, editor, (req, res) => {
     return res.status(409).json({ error: 'A colleague is editing this clause right now.',
       locks, by: held.by || null });
   } else {
-    locks[clauseId] = { by: me, at: new Date().toISOString() };
+    /* ---- A REFRESH OF YOUR OWN LOCK KEEPS THE QUEUE ON IT (4 Oct 2026) ----
+       MEASURED while building the baton: refreshing is taking it again — the
+       lock's own rule, so that there is one act rather than two that could
+       disagree about what a lock is — and a holder's browser refreshes every
+       few seconds while they type. Writing a bare new lock therefore wiped the
+       asks on it, so a colleague's ask vanished the moment the holder touched
+       a key and nobody was ever told anybody was waiting. The asks survive a
+       refresh by the same person; a NEW holder starts with none, which is the
+       hand-over's own clean slate. */
+    const keep = (mine && Array.isArray(held.asked)) ? held.asked.filter(askLive) : [];
+    locks[clauseId] = keep.length
+      ? { by: me, at: new Date().toISOString(), asked: keep }
+      : { by: me, at: new Date().toISOString() };
   }
   const next = { ...c };
   if (Object.keys(locks).length) next.locks = locks; else delete next.locks;
@@ -3783,6 +3927,77 @@ app.post('/api/contracts/:id/lock', auth, editor, (req, res) => {
      register's own "updated" column and every watcher in the workspace. */
   db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
   res.json({ locks });
+});
+
+/* ============================================================
+   WHO IS IN THE ROOM (idea 5, 4 Oct 2026)
+   ============================================================
+   Young picked "On this contract": a row of initials in the contract's header,
+   and nothing on the paper.
+
+   IT IS THE CLAUSE LOCK'S OWN FACT, ONE STEP WIDER, so it is written in the
+   same place on the record and under the same discipline as the route above: a
+   merge on the STORED row, json only, never `version` and never `updated_at`.
+   That route's own words, which are this one's reason too — *"presence is not
+   an edit, and a record that read as edited every forty-five seconds would
+   churn the register's own updated column and every watcher in the
+   workspace"*.
+
+   WHY IT IS ITS OWN ROUTE. Two acts, not one. Holding a clause is an EDITOR's
+   act and /lock refuses anybody else; reading a contract is something a VIEWER
+   does all day, and a viewer in the room is exactly who you want to see. One
+   door per act is the rule; two doors onto one act is what it forbids.
+
+   IT ANSWERS WITH THE OTHERS AND NOTHING ELSE — a name and when they were last
+   seen. No address, no seat, no role: the row is a fact about who is reading,
+   and anything more would turn a header into a directory.
+
+   A SEALED RECORD TAKES NO COURTESY WRITE, aiNoteRead's own lesson and /lock's
+   one field along: it answers with the live row rather than an error, because
+   a screen asking about a signed contract is asking an honest question. */
+const SRV_PRESENCE_MS = 75000;
+const srvHereLive = r => !!(r && r.at && (Date.now() - Date.parse(r.at)) < SRV_PRESENCE_MS);
+function srvHereLiveMap(c) {
+  const out = {};
+  const h = (c && c.here && typeof c.here === 'object' && !Array.isArray(c.here)) ? c.here : {};
+  Object.keys(h).forEach(k => { if (srvHereLive(h[k])) out[k] = h[k]; });
+  return out;
+}
+/* The others, as the header draws them. Never the caller: a row that counted
+   you would say "2 here" to somebody alone in the room. */
+const srvHereOthers = (map, meId) => Object.keys(map || {})
+  .filter(k => String(k) !== String(meId))
+  /* `spot` is WHERE THEY ARE LOOKING — one clause id, for "Follow me" (idea
+     14). It is a destination and not a mirror: no cursor, no selection, no
+     scroll position and no keystrokes, so the most it can ever say is which
+     clause of this contract somebody has in the middle of their screen. */
+  .map(k => ({ id: k, name: String((map[k] || {}).name || ''), at: map[k].at,
+    spot: (map[k] || {}).spot || null }))
+  .sort((a, b) => String(a.at).localeCompare(String(b.at)));
+app.post('/api/contracts/:id/here', auth, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  const me = { id: req.user.id, name: req.user.name || '' };
+  const live = srvHereLiveMap(c);
+  if (isExecutedRow(c)) return res.json({ here: srvHereOthers(live, me.id) });
+  /* ---- AND WHERE THEY ARE LOOKING (idea 14, Follow me) ----
+     A CLAUSE ID OF THIS CONTRACT AND NOTHING ELSE. Taken from the body because
+     only that browser knows where its reader is looking — there is nothing to
+     look it up against — so it is clamped to the shape a clause id has and to
+     a length, which is what stops the field being used as a place to post
+     anything. It is dropped if the browser sends none, so a reader on a list
+     or a signed contract simply has no spot. */
+  const spot = String((req.body || {}).spot || '').trim().slice(0, 64);
+  const okSpot = /^[A-Za-z0-9_-]+$/.test(spot) ? spot : '';
+  live[String(me.id)] = okSpot
+    ? { name: me.name, at: new Date().toISOString(), spot: okSpot }
+    : { name: me.name, at: new Date().toISOString() };
+  const next = { ...c };
+  if (Object.keys(live).length) next.here = live; else delete next.here;
+  /* JSON ONLY — see the note at the head of this block. */
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  res.json({ here: srvHereOthers(live, me.id) });
 });
 
 /* ---------- executed records are immutable ----------
@@ -4013,6 +4228,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      audit-trail guard further down. A brand-new contract has no stored map and
      starts with none. */
   if (prev && prev.locks) c.locks = prev.locks; else delete c.locks;
+  /* ---- AND WHO IS IN THE ROOM IS NOT THIS ROUTE'S EITHER (4 Oct 2026) ----
+     `here` is written by POST /api/contracts/:id/here and by nothing else, for
+     every reason the locks note above gives: it travels out on a GET, so an
+     ordinary save echoes it back, and a browser holding the record from before
+     a colleague arrived would echo back a map without them — taking somebody
+     out of a room they are sitting in. The STORED map wins, always. */
+  if (prev && prev.here) c.here = prev.here; else delete c.here;
   /* ---- A CHASE ALREADY SENT IS NOT UNDONE BY A SAVE (27 Sep 2026) ----
      Late promises sends the first chase by itself and stamps it on the STORED
      obligation; a browser holding the record from before would save it back
@@ -4430,6 +4652,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
           desk: 'not-a-member' });
     }
   }
+  /* ---- AND A SUGGESTION IS ADOPTED BY THE LEAD, NOT BY ITS AUTHOR ----
+     (4 Oct 2026.) Asked as a DIFFERENCE against the stored record, like the
+     roster above and the review verdicts below: every save that moves no stamp
+     passes untouched, so this costs nothing on the ordinary write. Without it
+     the whole feature is one request wide — delete the stamp, then send. */
+  const sgWhy = dkSuggestionRefusal(prev, c, req.user);
+  if (sgWhy) return res.status(403).json({ error: sgWhy, desk: 'suggestion' });
 
   /* ---- AND A CLAUSE A COLLEAGUE IS TYPING IN IS NOT YOURS TO FILE AGAINST ----
      (Young asked 10 Sep 2026.) The browser refuses at the editor's door and
@@ -12981,6 +13210,12 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        one clause. What travels is what may travel, and the response says what
        stayed behind so the sender is not told a lie by omission. */
     const withheld = rvWithheldIds(rvStored);
+    /* 3b. AND WHAT A COLLEAGUE ONLY SUGGESTED (4 Oct 2026). The same envelope,
+       the same arithmetic and the same honest report: a contributor's redline
+       belongs to the lead to adopt, and until they have it is not what this
+       company is asking for. Added to the one set rather than filtered twice,
+       so the count the sender is told is the whole of what stayed behind. */
+    for (const id of dkSuggestedIds(rvStored)) withheld.add(id);
     if (withheld.size && payload.contract && Array.isArray(payload.contract.changes)){
       const before = payload.contract.changes.length;
       payload.contract.changes = payload.contract.changes.filter(x => !(x && withheld.has(String(x.id))));
@@ -12994,6 +13229,12 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      the route every path goes through, like the review strip above. */
   if (payload.contract) { delete payload.contract._brief; delete payload.contract.brief;
     delete payload.contract._renewalAdvice;
+    /* WHO IS IN OUR ROOM IS NOT THEIR BUSINESS (4 Oct 2026). How many of our
+       people are reading their paper right now is a negotiating fact.
+       buildSharePayload is an allow-list so this is true by construction, and
+       stripped here as well because an allow-list holds only until somebody
+       adds a field — the discipline the brief beside it keeps. */
+    delete payload.contract.here;
     delete payload.contract._readings;          // idea 7: our plain-English reading of their paper is ours
     delete payload.contract._roundPrep; }       // Copilot's answers to their round are ours alone
   /* 'word' joined the list on 13 Sep 2026: the round travels as an attached
@@ -13561,6 +13802,88 @@ function contractExecution(contractId) {
   return { at: at || contractSignedOn(c) || null };
 }
 
+/* ============================================================
+   NAMED GUESTS — THE CODE AT THE DOOR (idea 8, 4 Oct 2026)
+   ============================================================
+   Young picked "The guest list" from three: *several people per party, each
+   with their own link and their own code.* Two thirds of it was already here,
+   which is why this is one night's work rather than a week's:
+
+     · THE GUEST LIST. js/participants.js has held several named people per
+       contract since September, and the send screen has minted one link each
+       through shareSendExtras since the day it learned to copy a colleague.
+     · AND THE CODE ITSELF. share_otp, /api/shares/:token/otp and
+       /verify-otp have minted a six-digit code, mailed it to the address ON
+       THE ROW, hashed it, counted wrong guesses and handed back a ticket since
+       the signing work — and f358 (7) records that a SECOND pair of routes was
+       once written for this and reverted, as a second door onto an act that
+       already has one.
+
+   SO THIS BUILD WROTE NEITHER. What was missing was one question asked in one
+   more place: the code gated SIGNING, and nothing gated OPENING. A link
+   addressed to Elin opened for anybody she forwarded it to.
+
+   ONE CODE, ONE PROOF, TWO GATES. The proof the door wants is exactly the
+   proof the signature wants — this address, this person, this link — so a
+   guest who proved their inbox to open the link does not prove it again to
+   sign. Reusing it is not a weakening; minting a second code for the same
+   question would be the weakening, because then two codes are in that inbox
+   and neither means anything in particular.
+
+   OFF BY DEFAULT, like the desk rule, the review gate and approval before
+   signing. With it off not one link behaves differently, which is what lets it
+   be switched on later with no migration and nothing to undo.
+
+   AND NOT ON A STATUS LINK. That page was built on 3 October to be read with
+   no account by whoever is sent it; it carries no wording, no names and no
+   copy of the contract, so there is nothing behind it for a code to protect.
+   Asking for one would make a deliberately open page feel shut. */
+/* THE SAME BLOB EVERY OTHER WALL LIVES IN (appSettings), and read from the
+   STORED settings rather than from a request — the browser's copy of a rule is
+   cosmetics, as deskRuleOn beside it records. */
+const shareCodeOn = () => { try { return !!((getSetting('appSettings') || {}).linkCode || {}).on; } catch (_) { return false; } };
+/* WHICH LINKS ASK. One reading, so the gate, the code route and the browser
+   cannot disagree about whether a code is coming. */
+function shareNeedsCode(s) {
+  if (!s || !shareCodeOn()) return false;
+  if (shareIsStatus(s)) return false;
+  /* A code that cannot be delivered is a locked door with the key thrown away:
+     the link would simply never open, for anybody. */
+  return !!String(s.recipient_email || '').trim();
+}
+/* The address, said back without giving it away. THE STANDARD ANSWER is what
+   every sign-in screen does — the first characters of the name, then the whole
+   domain (el…@nordbygg.example) — and the first draft of this went further,
+   masking the domain too. Measured on a real address it printed e…g@n…g.example,
+   which tells somebody with three inboxes nothing at all, so the wall was
+   doing no work and the help was gone. The domain is the company whose link
+   this is; the part worth hiding is which person at it. */
+function shareCodeMask(email) {
+  const e = String(email || '').trim();
+  const at = e.indexOf('@');
+  if (at < 1) return '';
+  const u = e.slice(0, at), d = e.slice(at + 1);
+  return (u.length <= 2 ? u[0] : u.slice(0, 2)) + '…@' + d;
+}
+/* HAS THIS BROWSER PROVED THE INBOX? Asked of the one code table, so there is
+   nothing new to expire, burn or clean up. Compared in constant time: a plain
+   === on a secret leaks its length and then its prefix a byte at a time.
+
+   THE TICKET OUTLIVES THE CODE ON PURPOSE. share_otp keeps `expires` for the
+   CODE — ten minutes to type six digits — while `verify` is the proof that was
+   earned with it, and a reader who proved who they were should not be asked
+   again eleven minutes into reading a contract. Asking for a fresh code clears
+   it (verify=NULL on the /otp route's own upsert), which is what shuts a
+   previous opener out. */
+function shareDoorOtpOk(token, t) {
+  const got = String(t || '');
+  if (!got) return false;
+  const row = db.prepare('SELECT verified, verify FROM share_otp WHERE token=?').get(token);
+  const want = String((row && row.verified && row.verify) || '');
+  return !!want && want.length === got.length
+    && crypto.timingSafeEqual(Buffer.from(want), Buffer.from(got));
+}
+
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
@@ -13575,6 +13898,19 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     error: 'This is a status link. It opens a read-only page at /deal/' + req.params.token + ' and carries no copy of the contract.' });
   if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked' });
   if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired' });
+  /* ---- AND A NAMED GUEST'S LINK ASKS WHO IS OPENING IT (idea 8, 4 Oct 2026)
+     ---- The wall is HERE, on the route that hands over the contract, and not
+     in the browser: a page can be skipped, a payload cannot. It answers with
+     the masked address so the holder knows which inbox to open, and with
+     nothing else about the deal.
+
+     IT STANDS BELOW THE TWO 'GONE' ANSWERS ON PURPOSE. A withdrawn or expired
+     link is dead for everybody, so saying "prove who you are" first would send
+     its holder to ask for a code the code route itself refuses — a door that
+     asks for a key to a room that is not there. Dead first, then who. */
+  if (shareNeedsCode(s) && !shareDoorOtpOk(s.token, req.query && req.query.t))
+    return res.status(401).json({ error: 'Check it is you before this opens.', needsCode: true,
+      to: shareCodeMask(s.recipient_email) });
   /* WP-1.6: a derived view link dies with its parent — checked live, on every
      open, because a cascade WRITE at revoke time would miss a parent that
      merely expired. A derived ticket is strictly weaker than its source, and
@@ -14643,15 +14979,31 @@ app.post('/api/shares/:token/otp', rlOtp, rlOtpToken, async (req, res) => {     
      link issued expressly to let them look and nothing else. Found by the
      history-link suite (f144), which replays the mutating routes against a
      read-only token — and it was already true of view links. */
-  if (refuseIfViewOnly(s, res)) return;
-  if (refuseIfAdvice(s, res)) return;
+  /* ---- AND THE SAME CODE IS THE DOOR, WHERE A LINK ASKS ONE (idea 8, 4 Oct
+     2026) ---- The three refusals below are about SIGNING: a read-only pass
+     cannot sign, an adviser's copy cannot sign, and a spent one-shot link
+     cannot sign again, so none of them may make the server email a signing
+     code. Where the link-code rule is on, this route is also the only way its
+     holder can OPEN the link at all — and then those three refusals would lock
+     a legitimate reader out of their own view link with no way forward.
+
+     SO ONE ESCAPE, AND IT IS NARROW. It applies only where shareNeedsCode says
+     this link must prove its inbox before it opens, which is off by default
+     and never true of a status link or of a link with no recorded address. The
+     code is then the door rather than signing traffic, which is what f144's
+     measured concern about a view token was about. A revoked or expired link
+     is still refused below, for everybody: dead is dead. */
+  if (!shareNeedsCode(s)) {
+    if (refuseIfViewOnly(s, res)) return;
+    if (refuseIfAdvice(s, res)) return;
+  }
   /* A LINK THAT CAN NO LONGER SIGN MAKES NO SIGNING CODE (26 Sep 2026, the
      overnight clean-up). The respond route has always refused a revoked, an
      expired and an already-answered one-shot link; this route did not, so a
      link withdrawn by the sender could still make the server email a signing
      code to its address (measured). Same three questions, same answers. */
   if (s.revoked_at || shareExpired(s)) return res.status(410).json({ error: 'This share link is no longer active' });
-  if (s.response && !s.durable) return res.status(409).json({ error: 'A response was already submitted for this link' });
+  if (s.response && !s.durable && !shareNeedsCode(s)) return res.status(409).json({ error: 'A response was already submitted for this link' });
   const invited = String(s.recipient_email || '').toLowerCase();
   if (!/.+@.+\..+/.test(invited))
     /* No recorded address means there is nothing this check could verify
@@ -14686,7 +15038,13 @@ app.post('/api/shares/:token/verify-otp', rlOtp, rlOtpToken, (req, res) => {  //
   const sh = db.prepare('SELECT revoked_at, expires_at, response, durable FROM shares WHERE token=?').get(req.params.token);
   if (!sh) return res.status(404).json({ error: 'Share link not found or expired' });
   if (sh.revoked_at || shareExpired(sh)) return res.status(410).json({ error: 'This share link is no longer active' });
-  if (sh.response && !sh.durable) return res.status(409).json({ error: 'A response was already submitted for this link' });
+  /* …and the same escape the /otp route carries, for the same reason: where
+     the code is the door, a spent one-shot link must still be openable by the
+     person it was addressed to. It reads the WHOLE row here because
+     shareNeedsCode asks for the purpose and the address. */
+  const shFull = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
+  if (sh.response && !sh.durable && !shareNeedsCode(shFull))
+    return res.status(409).json({ error: 'A response was already submitted for this link' });
   const row = db.prepare('SELECT * FROM share_otp WHERE token=?').get(req.params.token);
   const { code } = req.body || {};
   /* The typed email is no longer part of the check — the server chose the

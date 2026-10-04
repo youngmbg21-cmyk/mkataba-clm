@@ -57,6 +57,7 @@ const MODULES = [
      against a party. */
   'js/parties.js',
   'js/dealstands.js',   // where the deal stands: one reading, three surfaces
+  'js/presence.js',     // who has this contract open right now (idea 5)
   'js/docx.js',
   'js/docxwrite.js',
   'js/versioning.js',

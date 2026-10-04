@@ -252,10 +252,22 @@ const AGREED = [
     await page.waitForTimeout(500);
     const filed = await page.evaluate(() => { const c = getContract(state.activeId);
       return { id: c.id, no: c.contractNo || '', status: c.status, sub: ((document.querySelector('.room-sub-id') || {}).textContent || '').trim(),
-        crumb: ((document.getElementById('shell-title') || {}).textContent || '').replace(/\s+/g, ' ').trim() }; });
+        crumb: ((document.getElementById('shell-title') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+        /* RE-POINTED 4 Oct 2026. The SHELL BAR no longer carries the contract's
+           reference: Young ruled the same day that it says the one word
+           "Contracts" on this page and nothing else. The reference leads the
+           ROOM'S own breadcrumb, which is where this claim belongs — the point
+           being that a filed copy is cited by its NUMBER and never by the
+           working id it was drafted under. */
+        roomCrumb: ((document.querySelector('.room-crumb-here') || {}).textContent || '').trim(),
+        barWord: (window.i18t ? i18t('nav_contracts') : '') }; });
     check('6d filed as signed, it takes its contract number — from the server, in that save', /^MK-\d+$/.test(filed.no) && filed.status === 'Signed' && filed.id === RL, JSON.stringify(filed));
-    check('6e the room\'s head and the breadcrumb print the number, not the working reference',
-      filed.sub === filed.no && filed.crumb.includes(filed.no) && !filed.crumb.includes(RL), `${filed.sub} · ${filed.crumb}`);
+    check('6e the room\'s head and its breadcrumb print the number, not the working reference',
+      filed.sub === filed.no && filed.roomCrumb === filed.no && !filed.roomCrumb.includes(RL),
+      `${filed.sub} · ${filed.roomCrumb}`);
+    check('6e2 and the shell bar says the one word it was ruled to say, whatever the head does',
+      !!filed.barWord && filed.crumb === filed.barWord && !filed.crumb.includes(RL),
+      `${filed.crumb} · want ${filed.barWord}`);
     await page.evaluate(() => setView('register'));
     await page.waitForTimeout(900);
     const row = await page.evaluate(no => [...document.querySelectorAll('.reg-table .reg-mk')].some(td => td.textContent.trim() === no), filed.no);

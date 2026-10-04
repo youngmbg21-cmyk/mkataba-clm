@@ -2800,8 +2800,35 @@ function portalShowUpdatedNotice(){
   root.insertAdjacentHTML('afterbegin', portalUpdatedNoticeHtml());
   document.getElementById('pt-updated-go')?.addEventListener('click',()=>portalRefreshNow('asked'));
 }
+/* ---- THE TICKET A CODE EARNS (idea 8, 4 Oct 2026) ----
+   Kept for this browser and this link only, and in sessionStorage rather than
+   localStorage: a borrowed laptop should not still be inside somebody else's
+   deal tomorrow morning. It is the SERVER that decides whether it is still
+   good — this only carries it. */
+const PT_TICKET_KEY = t => 'hati.ptTicket.' + t;
+/* How long the code lasts, as the route that mints it says so. Said on the
+   screen rather than discovered when it stops working. */
+const PT_CODE_MINUTES = 10;
+/* The address said back without being given away. The SERVER draws this mask
+   on its own refusal (shareCodeMask) and the /otp route answers with the whole
+   address — that address was the sender's own choice and the route has always
+   returned it — so this redraws the same shape rather than printing it, and the
+   two surfaces of one screen cannot read differently. */
+function portalMaskAddress(email){
+  const e=String(email||'').trim(), at=e.indexOf('@');
+  if(at<1) return '';
+  const u=e.slice(0,at);
+  return (u.length<=2?u[0]:u.slice(0,2))+'…@'+e.slice(at+1);
+}
+function portalTicket(token){
+  try{ return sessionStorage.getItem(PT_TICKET_KEY(token)) || ''; }catch(_){ return ''; }
+}
+function portalTicketPut(token, t){
+  try{ if(t) sessionStorage.setItem(PT_TICKET_KEY(token), t); else sessionStorage.removeItem(PT_TICKET_KEY(token)); }catch(_){}
+}
 async function portalFetchShare(token){
-  const r=await fetch('api/shares/'+encodeURIComponent(token));
+  const t=portalTicket(token);
+  const r=await fetch('api/shares/'+encodeURIComponent(token)+(t?('?t='+encodeURIComponent(t)):''));
   const d=await r.json().catch(()=>null);
   return { status:r.status, ok:r.ok, d };
 }
@@ -2872,6 +2899,12 @@ async function portalEntry(encoded){
     try{
       const { status, ok, d }=await portalFetchShare(token);
       if(status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
+      /* ---- A NAMED GUEST'S LINK ASKS WHO IS OPENING IT (idea 8, 4 Oct 2026)
+         ---- The server refused the payload, so there is nothing of the deal
+         on this screen to be skipped past: the page cannot show the contract
+         because it has not been given it. A stale ticket is dropped here
+         rather than argued with. */
+      if(status===401 && d && d.needsCode){ portalTicketPut(token, ''); portalCodeScreen(token, d); return; }
       if(!ok) throw new Error(d?.error||'not found');
       /* A dormant bound link (W7): show the waiting page AND start polling —
          the poll is what turns it into the signing page when the earlier
@@ -4363,6 +4396,112 @@ function renderShareHistory(p, opts={}){
   paint({});
 }
 
+/* ============================================================
+   CHECK IT IS YOU — the code at the door (idea 8, 4 Oct 2026)
+   ============================================================
+   Young picked "The guest list": several named people per party, each with
+   their own link AND THEIR OWN CODE. This is the screen the code is typed on.
+
+   THERE IS NOTHING OF THE DEAL ON IT, and that is not a design choice — the
+   server refused the payload, so this page has not been given the contract to
+   show. A screen that hid what it was holding could be skipped; this one has
+   nothing to skip to.
+
+   IT NAMES THE INBOX WITHOUT GIVING IT AWAY (the server's own mask), so the
+   holder knows which account to open and a stranger learns no address.
+
+   AND IT SAYS WHAT IT IS FOR, once: a link addressed to a person, checked. No
+   account to make, nothing to remember, and twenty minutes before the code
+   runs out — which is said rather than discovered. */
+function portalCodeScreen(token, d){
+  const root=document.getElementById('share-root')||document.body;
+  const to=(d&&d.to)||'';
+  root.innerHTML=`<div class="pt-code-wrap"><div class="pt-code">
+    <p class="pt-code-brand">HaTi</p>
+    <h1>${esc(i18t('po_code_title'))}</h1>
+    <p class="pt-code-sub" id="pt-code-sub">${esc(to?i18t('po_code_sub',{to}):i18t('po_code_sub_plain'))}</p>
+    <div class="pt-code-row">
+      <input id="pt-code-in" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+        aria-label="${esc(i18t('po_code_title'))}" placeholder="000000">
+      <button type="button" id="pt-code-go" class="ui-btn ui-btn-primary">${esc(i18t('po_code_go'))}</button>
+    </div>
+    <p class="pt-code-say" id="pt-code-say" role="status"></p>
+    <button type="button" id="pt-code-send" class="ui-link">${esc(i18t('po_code_send'))}</button>
+    <p class="pt-code-fine">${esc(i18t('po_code_fine'))}</p>
+  </div></div>
+  <style>
+    .pt-code-wrap{min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:24px;}
+    .pt-code{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
+      box-shadow:var(--shadow-sm);padding:28px 30px;max-width:420px;width:100%;}
+    .pt-code-brand{margin:0 0 18px;font-size:var(--t-micro);letter-spacing:.11em;text-transform:uppercase;color:var(--color-neutral-500);}
+    .pt-code h1{margin:0 0 6px;font-family:var(--font-heading);font-size:var(--t-page);font-weight:var(--w-strong);}
+    .pt-code-sub{margin:0 0 18px;font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.6;}
+    .pt-code-row{display:flex;gap:8px;}
+    #pt-code-in{flex:1;height:var(--field-h);border:1px solid var(--field-line);border-radius:var(--radius);
+      padding:0 12px;font:inherit;font-size:var(--t-card);letter-spacing:.22em;background:var(--color-bg);color:var(--color-text);}
+    #pt-code-in:focus{outline:none;border-color:var(--color-accent-500);}
+    .pt-code-say{margin:10px 0 0;font-size:var(--t-meta);min-height:1.2em;color:var(--st-ruby-fg);}
+    .pt-code-say.is-ok{color:var(--color-neutral-600);}
+    #pt-code-send{margin-top:14px;}
+    .pt-code-fine{margin:16px 0 0;padding-top:12px;border-top:1px solid var(--color-divider);
+      font-size:var(--t-micro);color:var(--color-neutral-500);line-height:1.6;}
+  </style>`;
+  const say=(t,ok)=>{ const e=document.getElementById('pt-code-say'); if(e){ e.textContent=t||''; e.classList.toggle('is-ok',!!ok); } };
+  const box=document.getElementById('pt-code-in');
+  /* ASKING FOR A CODE SPENDS OUTBOUND MAIL, so a refresh must not spend it
+     again. One mark per link per sitting: the first arrival sends, every
+     later one waits for the press. */
+  const sentKey='hati.ptCodeSent.'+token;
+  const sentAlready=()=>{ try{ return !!sessionStorage.getItem(sentKey); }catch(_){ return false; } };
+  const markSent=()=>{ try{ sessionStorage.setItem(sentKey,'1'); }catch(_){} };
+  const send=async()=>{
+    say(i18t('po_code_sending'), true);
+    try{
+      /* THE PRODUCT'S OWN CODE ROUTE, not a second one. f358 (7e) records
+         that a second pair was written for this and reverted; the code a guest
+         proves their inbox with is the same code the signature asks for. */
+      const r=await fetch('api/shares/'+encodeURIComponent(token)+'/otp',{ method:'POST',
+        headers:{ 'Content-Type':'application/json' }, body:'{}' });
+      const j=await r.json().catch(()=>null);
+      if(!r.ok) return say((j&&j.error)||i18t('po_code_send_failed'));
+      markSent();
+      const sub=document.getElementById('pt-code-sub');
+      const to=(j&&j.sentTo)?portalMaskAddress(j.sentTo):'';
+      if(sub&&to) sub.textContent=i18t('po_code_sub',{to});
+      /* "SENT" MUST MEAN SENT: mailReportPublic's own four states, and the
+         outbox is honest delivery rather than a failure. */
+      const queued=!!(j&&!j.emailSent&&!j.emailConfigured);
+      say(j&&j.emailSent?i18t('po_code_sent',{n:PT_CODE_MINUTES})
+        :queued?i18t('po_code_outbox')
+        :((j&&j.emailError)||i18t('po_code_send_failed')),
+        !!(j&&(j.emailSent||queued)));
+      if(box) box.focus();
+    }catch(_){ say(i18t('po_code_send_failed')); }
+  };
+  const go=async()=>{
+    const code=String((box&&box.value)||'').replace(/\D/g,'');
+    if(code.length<6) return say(i18t('po_code_six'));
+    say(i18t('po_code_checking'), true);
+    try{
+      const r=await fetch('api/shares/'+encodeURIComponent(token)+'/verify-otp',{ method:'POST',
+        headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ code }) });
+      const j=await r.json().catch(()=>null);
+      if(!r.ok||!j||!j.verify) return say((j&&j.error)||i18t('po_code_wrong'));
+      portalTicketPut(token, j.verify);
+      say(i18t('po_code_ok'), true);
+      await portalEntry('t:'+token);
+    }catch(_){ say(i18t('po_code_wrong')); }
+  };
+  document.getElementById('pt-code-go')?.addEventListener('click', go);
+  document.getElementById('pt-code-send')?.addEventListener('click', send);
+  box?.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); go(); } });
+  /* The first code is sent without being asked for, because a reader who has
+     just opened a link they were emailed has already asked for it by opening
+     it. A refresh does not ask again — it says the code is already out and
+     waits for the press. */
+  if(sentAlready()) say(i18t('po_code_already'), true); else send();
+}
+
 function renderSharePortal(p, opts={}){
   /* The signing screen draws the verbs at the foot of a card, which has room
      for the sentence beside them. Reset here rather than only set on the
@@ -5846,6 +5985,6 @@ async function refreshStats(){
     if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
-Object.assign(window,{portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

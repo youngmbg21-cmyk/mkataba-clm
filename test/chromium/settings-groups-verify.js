@@ -87,12 +87,20 @@ const PAINTED = (sel) => {
         rows: s.querySelectorAll('.st-row').length,
         h: Math.round(s.querySelector('.st-grp-h').getBoundingClientRect().height)
       })));
-    check('1a. the platform tab draws five named groups, not one list',
-      groups.length === 5, groups.map(g => `${g.name}(${g.rows})`).join(' · '));
+    /* RE-POINTED 4 Oct 2026, the same lesson 1d learned on 30 September: PIN
+       THE RELATION, NOT THE NUMBER. This said five, and "Links you send" was
+       added for the named guest's code — so a page that had grown correctly
+       read as broken. What matters is that every group the page DECLARES for
+       this tab is drawn, and that none is left as an empty box. */
+    const declared = await page.evaluate(() =>
+      (window.ST_GROUPS || []).filter(g => g.tab === 'platform').length);
+    check('1a. the platform tab draws every group it declares, not one list',
+      declared > 1 && groups.length === declared, declared + ' declared · '
+        + groups.map(g => `${g.name}(${g.rows})`).join(' · '));
     /* The length test is not decoration: `[].every()` is true, so without it
        this passed against a page that draws no groups at all. */
     check('1b. every heading is painted ink, not an empty box',
-      groups.length === 5 && groups.every(g => g.name.length && g.h > 0),
+      groups.length === declared && groups.every(g => g.name.length && g.h > 0),
       groups.map(g => g.h + 'px').join(' ') || 'no groups');
     check('1c. no group is a wall — the largest holds four rows',
       groups.length && Math.max(...groups.map(g => g.rows)) <= 4,
@@ -112,9 +120,14 @@ const PAINTED = (sel) => {
       !!all.want && all.want.length > 0 && all.keys.length === all.want.length
         && new Set(all.keys).size === all.keys.length && all.want.every(k => all.keys.includes(k)),
       `${all.keys.length} rows for ${all.want ? all.want.length : '?'} panels`);
-    check('1e. exactly the two groups whose name needs one carry a caption',
-      groups.filter(g => g.sub.length).length === 2,
-      groups.filter(g => g.sub.length).map(g => g.name).join(' · ') || 'none');
+    /* RE-POINTED 4 Oct 2026 for the same reason as 1a: this counted two, and
+       "Links you send" declared itself a third. PIN THE RELATION — a caption is
+       drawn exactly where ST_GROUPS says one is wanted, and nowhere else. */
+    const wantSub = await page.evaluate(() => (window.ST_GROUPS || [])
+      .filter(g => g.tab === 'platform' && g.sub).length);
+    check('1e. a caption is drawn on exactly the groups that declare one',
+      wantSub > 0 && groups.filter(g => g.sub.length).length === wantSub,
+      wantSub + ' declared · ' + (groups.filter(g => g.sub.length).map(g => g.name).join(' · ') || 'none'));
 
     /* ============ 2. THE TAG IS GONE, THE DOT IS THE STATE ============ */
     /* ASKED OF EVERY ROW ON THE PAGE, not of the rows inside a group. Scoped to
@@ -211,7 +224,8 @@ const PAINTED = (sel) => {
     await page.fill('#st-q', '');
     await page.waitForTimeout(300);
     check('4h. clearing it brings the groups back',
-      (await page.evaluate(() => document.querySelectorAll('#st-list .st-grp').length)) === 5);
+      (await page.evaluate(() => document.querySelectorAll('#st-list .st-grp').length))
+        === (await page.evaluate(() => (window.ST_GROUPS || []).filter(g => g.tab === 'platform').length)));
     }
 
     /* ============ 5. THE DRAWER SAYS WHERE YOU ARE ============ */

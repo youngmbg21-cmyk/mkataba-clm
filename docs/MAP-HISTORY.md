@@ -25268,3 +25268,583 @@ TOP OF THE REDLINE CARDS".
 Tests: where-we-are-verify 4e re-pointed and 4f added (the sheet is drawn under
 the rule); f439's More claim reversed in place — what it was really about,
 Notes and Focus being buttons rather than menu rows, is untouched.
+
+---
+
+## A NAMED GUEST'S LINK ASKS WHO IS OPENING IT (idea 8, built 4 Oct 2026)
+
+Young picked **"The guest list"** by name from three options in the decision
+pack: *several named people per outside party, each with their own link and
+their own code.*
+
+### Two thirds of it was already built, and the first draft did not notice
+
+- **The guest list.** `js/participants.js` has held several named people per
+  contract since September, and the send screen has minted one link each
+  through `shareSendExtras` since the day it learned to copy a colleague.
+- **And the code.** `share_otp`, `POST /api/shares/:token/otp` and
+  `/verify-otp` have minted a six-digit code, mailed it to the address ON THE
+  ROW, hashed it, counted wrong guesses and handed back a ticket since the
+  signing work.
+
+The first draft of this build wrote a **second pair of routes anyway** — four
+new columns on `shares` (`code_hash`, `code_at`, `code_tries`, `code_ticket`),
+two new rate-limit buckets (`codesend`, `codetry`), its own twenty-minute
+expiry, its own five-guess cap, its own ticket. The full suite answered with
+**f358 (7e)** by name:
+
+> `assert.ok(!/shares\/:token\/code'/.test(SRV), 'a second door onto an act
+> that already has one');`
+
+and that test exists because the same mistake was made once before and
+reverted. Its own heading is *"the guest's one-time code was ALREADY built"*.
+Every line of the second pair was removed. What the build actually added was
+**one question asked in one more place**: the code gated SIGNING and nothing
+gated OPENING, so a link addressed to Elin opened for anybody she forwarded it
+to.
+
+### One code, one proof, two gates
+
+The proof the door wants is exactly the proof the signature wants — this
+address, this person, this link — so a guest who proved their inbox to open the
+link does not prove it again to sign. Minting a second code for the same
+question would have been the weakening: two codes in one inbox, neither meaning
+anything in particular.
+
+`shareDoorOtpOk(token, t)` reads the one code table, compares the ticket in
+constant time (`timingSafeEqual`, lengths asked first because it throws on a
+mismatch), and requires `verified && verify` so a null can never be a ticket.
+The ticket deliberately outlives the code: `share_otp.expires` is ten minutes
+to type six digits, while `verify` is the proof that was earned with it, and a
+reader should not be asked again eleven minutes into reading a contract.
+Asking for a fresh code clears it (`verify=NULL` on the `/otp` upsert), which
+is what shuts a previous opener out — driven by named-guest-verify 5a.
+
+### The escape, and why it reverses nothing
+
+`/otp` and `/verify-otp` carried three refusals that are about SIGNING: a
+read-only pass cannot sign, an adviser's copy cannot sign, a spent one-shot
+link cannot sign again. f144 measured the first of those — a view token could
+make the server email a signing code — and that wall stays. But where the
+link-code rule is on, this route is also the only way the holder can OPEN the
+link at all, and those three would then lock a legitimate reader out of their
+own link with no way forward. So **one escape, gated on `shareNeedsCode(s)`**,
+which is off by default and never true of a status link or a link with no
+recorded address. A revoked or expired link is still refused, for everybody,
+and that check sits outside the escape: dead is dead.
+
+### Where the gate stands, and the two measured corrections
+
+The 401 stands on `GET /api/shares/:token` — the route that hands over the
+contract — and **below** the two "gone" answers. It was written above them
+first; a withdrawn link would then have sent its holder off to fetch a code the
+code route itself refuses, which is a door asking for a key to a room that is
+not there.
+
+**The mask was measured and loosened.** The first draft masked the domain too
+and printed `e…g@n…g.example` for `elin.hallberg@nordbygg.example` — which
+tells somebody with three inboxes nothing at all, so the wall was doing no work
+and the help was gone with it. It now does what every sign-in screen does:
+first characters of the name, whole domain (`el…@nordbygg.example`). The domain
+is the company whose link this is; the part worth hiding is which person at it.
+The server draws it on its refusal (`shareCodeMask`) and the screen redraws the
+same shape from the whole address `/otp` has always returned
+(`portalMaskAddress`), so one screen cannot read two ways.
+
+**And a hole was found and closed on the way past.** The comment above
+`shareIsReadOnly` says, in those words, *"adding the purpose without adding it
+here is how a fifth purpose becomes a hole"* — and the `status` purpose, added
+two commits earlier the same night, had not been added. Measured: a status
+token, which opens a page with no account and no copy of the contract on it,
+could make the server mint a six-digit signing code and email it to the
+recipient. It could never have spent it, but generating signing traffic to
+somebody's inbox from a link issued to show a progress bar is exactly f144's
+fault in a new costume. `shareIsStatus` is now on `shareIsReadOnly`, with its
+own sentence in `refuseIfViewOnly` because the view link's words ("it can show
+the contract") are untrue of it.
+
+### The screen
+
+`portalCodeScreen` holds **nothing of the deal**, and not as a design choice:
+the payload was refused, so the page has not been given a contract to show.
+There is nothing to skip to. It sends the first code on arrival (opening the
+link IS the ask) and marks the sitting so a refresh does not spend the mail
+again; every later code is a press. The ticket lives in `sessionStorage`, not
+`localStorage`, so a borrowed laptop is not still inside somebody else's deal
+tomorrow morning. "Sent" means sent, in `mailReportPublic`'s own four states.
+
+Measured off the rendered page (named-guest-verify 2g/2h): the card is 420px,
+the box and its button share one line, the box is what `elementFromPoint`
+returns at its own centre, the face is 14px, and at 390px there is a 24px
+gutter and no sideways scroll.
+
+### The setting, and the group it forced
+
+An admin's switch, OFF by default, in the same `appSettings` blob every other
+wall lives in. It was first put in **The agreement** group — and that made a
+group of five, which settings-groups 1c holds to four, measured on the first
+run. It is also the truer home elsewhere: the three rules in that group decide
+**who must say yes before a step**; this one decides **who may open what has
+already left the building**. So a sixth platform group was declared, **"Links
+you send"** (*who may open what leaves the building*), and settings-groups 1a,
+1e and 4h were re-pointed from the numbers five and two to the relation — every
+group `ST_GROUPS` declares is drawn, and a caption appears on exactly the ones
+that declare one. That file had already learnt the same lesson on 30 September.
+
+### And f354 learnt the house rule from the other end
+
+`f354` swept the whole of server.js for the word `participants` to prove there
+is no route to the people list. It went red because a comment about THIS
+feature mentioned the browser module by name — so a sentence explaining one
+wall was breaking another, and the only way to keep it green was to stop
+writing the word. The rulebook's own rule applies: **strip comments before
+sweeping code**. The claim is unchanged and still catches a real field.
+
+Tests: **f452** (30 claims, all red at the parent), **named-guest-verify**
+(28 claims, 15 red at the parent, runs to the end either way).
+
+---
+
+## THE SEAT DECIDES — A CONTRIBUTOR PROPOSES, THE LEAD ADOPTS (idea 6, built 4 Oct 2026)
+
+Young picked this by name from three: not a mode switch beside the text size,
+and not a per-person setting — **the seat decides**.
+
+### The gap, and it is not the one the desk already closed
+
+`js/desk.js` has said since its first day that a contributor's work *"does not
+travel"*, and that was true of SENDING only. What a contributor typed went
+straight into our draft, so the lead opened the contract on Monday to wording
+they had never agreed to, with nothing on the page to tell them which of forty
+clauses a colleague had moved. The wall was in the right place and the lead
+still had no way to see what they were being asked to stand behind.
+
+### One stamp, in the funnel
+
+`deskStampOnFile(c, side, ch)` is called from `negoFileChange` — the one funnel
+the clause editor, the clause library, Copilot's shortcut, both playbook
+entrances and the Word round-trip all converge on. It asks a question the desk
+was already asking there: which seat is this person in. It stamps only where
+all four are true (rule on, desk open, somebody signed in, and they hold a
+contributor's seat rather than the lead's), and it refuses nothing and says
+nothing — `deskClaimOnFile` beside it is quiet for the same reason.
+
+**Before the push, not after.** `deskSuggestedIds` reads `c.changes`, so a
+payload built in the instant between the push and the stamp would carry wording
+the lead had never seen. f453 (1) pins the order.
+
+**And no second setting.** A rule about seats that could be on while seats were
+off would be a rule about nothing, and it would be one more thing for an admin
+to get wrong.
+
+### It does not travel, on both hosts
+
+A fourth set was added to `buildSharePayload`'s `heldBack`, beside the review's
+two and the solo send's one, and unconditionally for the reason those three are
+unconditional: `reshareToLastRecipient` — the round-send every negotiation
+after the first travels on — passes no options at all. On the server
+`dkSuggestedIds` is added to the one set `POST /api/shares` already strips, so
+the count the sender is told is the whole of what stayed behind. Both measure
+"unsent" off `negotiation.turnAt`, because wording the counterparty already
+holds cannot be recalled and a payload that quietly dropped it would read to
+them as us rewriting history.
+
+Both read **raw**. `negoChanges`, `negoUnsentAsks` and `negoRound` run
+`negoInit`, and a payload being built is the last place that may create a
+negotiation.
+
+### The server is the wall
+
+Without a server copy the whole feature is one request wide: delete the stamp,
+then send. `dkSuggestionRefusal(prev, c, user)` asks the stamp as a
+**difference** against the stored record — a stable projection per change id,
+so a reordering is not a change and a cleared stamp is — and every save that
+moves nothing passes untouched. It carries two refusals because a caller can
+get two different things wrong here: *"you suggested this wording, so it is not
+yours to adopt"* and *"only the lead, or an admin, can adopt a colleague's
+suggestion"*. A settled stamp cannot be rewritten by anybody, including the
+lead: one who could un-adopt could take their own name off the decision.
+
+Driven for real by the-seat-decides-verify 3c — the colleague's own browser
+sends the route's own envelope with `suggested` deleted and is answered
+403 *"Clause 6 · Limitation of Liability — you suggested this wording, so it is
+not yours to adopt. Amina Otieno decides."*
+
+### Nobody rules on their own
+
+A contributor made the lead on Tuesday still cannot wave Monday's own wording
+through. The room's rule, kept at `reviewMark` and at the approval chain, kept
+here in `deskMayRuleSuggestion` and again in `dkMayRuleSuggestion`.
+
+### Handing one back keeps the work
+
+The reason is **required** — a suggestion handed back without one is a
+colleague staring at a clause with no idea what to do next, which is the fault
+the negotiation's own "Why this change?" box exists to stop — and it is clamped
+to `DK_WHY_MAX`, the cap the desk already keeps. Nothing is deleted, withdrawn
+or superseded, and there is no Discard on the strip: the desk's oldest rule,
+written at `deskContributors`, is that you take somebody off a deal and you do
+not lose four clauses of redlining with them. An **adopted** suggestion keeps
+its stamp and gains `adoptedAt`, because "whose idea was this clause" is a
+question the trail should answer a year on; a field that erased itself would
+make every adopted suggestion look like the lead's own work.
+
+**A suggestion waits on exactly one of two people.** `deskSuggestionsFor` drops
+the ones already handed back — the lead has answered those and the turn is the
+author's — and `deskSuggestionsBackTo` holds exactly those. The author answers
+by filing again, which supersedes the old change through machinery that already
+exists, so there was nothing new to build for the round trip. Without that
+split the two lists would add up to more suggestions than there are.
+
+### Said where the reader is, by one builder
+
+`deskCardSuggestHtml` is called by BOTH card renderers — this is exactly the
+kind of feature that gets built in one and forgotten in the other, which is
+what the project's duplication rule exists for. The acts are on the strip
+because a verb must be visible pixels (f180) and because a sentence saying
+somebody must adopt this, with no way to adopt it, is the unexplained-absence
+fault one step quieter. Never on their seat (`deskSeatShowsDesk`): a suggestion
+names a colleague and says our own side has not agreed with itself yet.
+Amber while it waits, ruby once it is handed back, in the card's own tones.
+
+The presses are **delegated on the document** at module load, on the same
+listener the ladder's acts use, because the strip is painted by two renderers
+and a listener bound where one of them draws would be dead on the other. The
+contract is fetched at the press (`rlLadderContract`), never closed over.
+
+And it is a row on Home's one list and on the contract's checklist — the
+decision pack's own argument for one list, now paid off: the seventh kind cost
+one reading, one order entry, one door and one sentence. f450's "the kinds it
+can return are the checklist's own six" was re-pointed from the hand-written
+six to `NEEDS_YOU_ORDER` itself, the same PIN-THE-RELATION lesson.
+
+### Noticed, not fixed
+
+A filing the funnel then REFUSES still claims the desk: `deskClaimOnFile` runs
+before the no-op guard, so an edit that changes nothing opens a desk and names
+whoever tried as the lead. Measured — the stage's first run reported a
+colleague as the lead of a negotiation they had filed nothing on. One BUGLOG
+line; the claim arguably belongs where the stamp now is.
+
+Tests: **f453** (29 claims, 29 red at the parent), **the-seat-decides-verify**
+(27 claims driven with two real people signed in in two browsers, 15 red at the
+parent).
+
+---
+
+## WHO IS IN THE ROOM — "ON THIS CONTRACT" (idea 5, built 4 Oct 2026)
+
+Young picked **"On this contract"** by name from three: a row of initials in
+the contract's header, and nothing on the paper.
+
+### The gap, and what already existed
+
+Two colleagues open the same agreement on a Tuesday afternoon and neither
+knows. The product already stops them colliding INSIDE a clause — the clause
+lock has recorded who is typing where since September and refuses the second
+pencil by name — but a lock is about the forty seconds somebody is in a box. It
+says nothing about the hour two people spend working the same contract in
+parallel, each assuming they are alone, and finding out from the audit trail
+afterwards.
+
+Half the machinery was therefore already on file, and the estimate for this
+idea was corrected before it was built: `CLAUSE_LOCK_MS` is a server-side
+record of who is in which clause, expiring after two minutes, written by a
+route that deliberately moves neither `version` nor `updated_at`.
+
+### Nothing on the paper
+
+That was the owner's own instruction and it is also the right answer. Cursors
+and coloured names in the wording make a document people stop trusting, and
+the agreement's pixels are the agreement's — CLAUDE.md's third question. A
+presence mark that moved while somebody was reading a liability cap would be
+the worst possible place to spend them. who-is-in-the-room-verify 3e measures
+it: zero marks inside `.doc-surface` and `.nego-clause`.
+
+### Its own route, and why
+
+`c.here` is the clause lock's fact one step wider, so it is written in the same
+place on the record and under the same discipline: a merge on the STORED row,
+json only, never `version` and never `updated_at`. That route's own words are
+this one's reason too — *"presence is not an edit, and a record that read as
+edited every forty-five seconds would churn the register's own updated column
+and every watcher in the workspace"*. The stage measures both: the record's
+version and the register's "updated" column are byte-identical before and
+after two people spend time in the room.
+
+It is nonetheless **its own route**, because these are two acts and not one.
+Holding a clause is an EDITOR's act and `/lock` refuses anybody else; reading a
+contract is something a VIEWER does all day, and a viewer in the room is
+exactly who the row exists to show. One door per act is the rule; two doors
+onto one act is what it forbids. It answers with the others and nothing else —
+a name and when they were last seen, never an address, a seat or a role,
+because anything more would turn a header into a directory.
+
+And **the PUT keeps the stored map**, beside the locks and for the same reason
+the locks note gives in its own words: the map travels out on a GET, so an
+ordinary save echoes it back, and a browser holding the record from before a
+colleague arrived would echo back a map without them — taking somebody out of a
+room they are sitting in. Driven for real (3d): the first browser saves a
+record with `here` deleted, gets a 200, and both people are still in the room.
+
+### It never travels
+
+How many of our people are reading their paper right now is a negotiating fact.
+`buildSharePayload` is an allow-list so that is true by construction, and the
+share route deletes the field as well, because an allow-list holds only until
+somebody adds a field — the discipline the brief beside it keeps. The stage
+hand-builds a payload with a forged `here` and watches the route strip it (4b).
+
+What the counterparty DOES still learn is the sender's name, and that is not a
+leak and never was: a deal has a named contact, the payload has always carried
+it, and the page says "shared by" in those words. The first draft of 4c
+asserted that no name of ours appears at all and was corrected — what must not
+cross is who ELSE on our side is reading.
+
+### The beat
+
+`PRESENCE_BEAT_MS` is 25 seconds and `PRESENCE_GONE_MS` is 75 — three missed
+beats. Two would make a slow network look like somebody leaving the room, and
+the cost of being wrong in that direction is a colleague believing they are
+alone. It asks nothing while `document.hidden`: a tab behind three others is
+not somebody in the room, which is the courteous reading and the honest one.
+A failed beat says **nothing** — no toast, no alert; nobody asked for this and
+a network blip is not news, so the row simply empties as the last answer ages
+out. And it repaints only where the answer moved, because a header that redrew
+itself every twenty-five seconds would steal the reader's hover and, on the
+negotiation page, their scroll.
+
+`presenceStart` is idempotent per contract (a repaint re-uses the beat it has
+rather than opening a second one) and is called from `applyWsTabs`, where the
+room lands on every render. `presenceStop` is called from `setView` — the one
+place a page change is recorded — because a beat that carried on after the
+reader went to Insights would keep telling a colleague somebody is reading a
+contract nobody has open.
+
+`presenceHere` reads the last answer and **never fetches**: a renderer that
+turned a repaint into a request is the fault `deskInit` and `reviewInit` both
+record. The latch is raised before the promise exists, which is the rule this
+codebase states as *"a latch may not be its own promise"*.
+
+### The row
+
+A slot (`[data-pz-slot]`) on the quiet line of facts under the title, painted
+by the beat rather than built with the head — WIRE WHERE YOU PAINT, the rule
+this head learnt on its status chip and its fact row. Not in the six-fact row
+(a ruled set) and not in the acts row (these are not acts). Four faces at most
+and then a count, because six initials in a header is a crowd rather than a
+fact. `deskInitials` is the one shortener, so a colleague's monogram never
+reads two ways in one product.
+
+**It draws nothing at all when nobody else is here.** An empty slot with a
+caption would be a band about an absence, which is the thing the owner ruled
+out by name on 26 August.
+
+Measured off the rendered page: a 17px face, `elementFromPoint` returns the
+face itself at its own centre, "UL" for Unrestricted Legal, and the hover reads
+*"1 colleague has this open — Unrestricted Legal"*.
+
+Tests: **f454** (28 claims, 27 red at the parent), **who-is-in-the-room-verify**
+(21 claims driven with two real people in two browsers, 12 red at the parent,
+runs to the end either way).
+
+---
+
+## TAKE IT IN TURNS — THE LOCK IS A BATON (idea 12, built 4 Oct 2026)
+
+Young picked **"Take it in turns"** by name from three: the clause lock becomes
+a baton you can ask for.
+
+### The gap
+
+The lock built in September is an ADVISORY and that is what makes it safe, but
+it left the second person with exactly one thing to do: wait. Two minutes is
+not long; **not knowing how long is**. A colleague who reaches for a clause and
+is told somebody else has it has no way to say "I need this" and no way to know
+when it comes free, so they either sit refreshing or go round the wall by
+editing somewhere else.
+
+So a refusal carries its way forward — the rulebook's own rule, said on a new
+door. The second person asks, the holder is told somebody is waiting, and
+handing it over is one press.
+
+### Nothing about the wall changes
+
+An ask takes no lock, moves no wording and refuses nothing. It is a request
+written on the lock: the route carries the holder and their timestamp through
+untouched (`{...held, asked}`) and only the queue moves. The holder keeps every
+power they had **including the power to ignore it**, and the lock still lapses
+on its own, so a holder who shut their laptop frees the clause in two minutes
+whether they were asked or not.
+
+One ask per person — a second press is not a louder ask, and a list that grew
+on every press would turn "2 waiting" into a lie — and a cap, so a queue cannot
+be used to grow a record without bound. An ask on a free clause, or on your
+own, is refused rather than recorded: an ask nobody can answer would sit on the
+record for ever.
+
+### The hand-over is direct, and that is the point
+
+Releasing the lock and letting the asker race for it would hand the clause to
+whoever's browser polled first, which on a busy afternoon is not the person who
+asked. So the holder names them and the server moves the lock in one write.
+Two walls, both on the route and both asked in the browser as well so the
+button is never drawn over a refusal: only the **holder** may hand a clause
+over, and only to somebody who **asked** — a hand-over to a name that never
+asked would be a way of locking a colleague out of a clause from across the
+office. Driven for real: 403 for a colleague who does not hold it, 409 *"That
+colleague is not waiting for this clause."*
+
+### The fault this build found, by measuring
+
+**Refreshing a lock IS taking it again** — the lock's own rule, written so that
+there is one act rather than two that could disagree about what a lock is — and
+a holder's browser refreshes every few seconds while they type. Writing a bare
+new lock therefore **wiped the asks on it**, so a colleague's ask vanished the
+moment the holder touched a key and nobody was ever told anybody was waiting.
+Fixed in both copies (the route and `clauseLockTake`), and driven in
+take-it-in-turns-verify 7b/7c: the new holder refreshes, and the queue is still
+there on the server AND in their own browser's copy.
+
+### Said in three places, each where somebody is standing
+
+- **The sign's own corner.** The reader who reaches for the pencil and finds
+  "Locked by A. O." now finds "Ask for it" beside it. This is the one place a
+  person meets the refusal, which is where the way forward belongs. It is the
+  only pressable thing in that corner and it does NOT open the clause — the
+  sign is still a fact and not a control, which is the note that corner has
+  carried since September. Once asked it becomes the word "Asked". f289 (11)
+  was widened to say what it always meant: nothing here is disabled, and the
+  one button is the ask.
+- **The clause editor's foot.** You hold a clause because you have it open, so
+  that is where the news belongs and the hand-over with it: *"1 waiting · U. L.
+  Hand over"*, in a slot because the queue moves while the holder types and
+  nobody presses anything. It asks before it gives the clause away, and the
+  message says what it does NOT do — the draft is kept, nothing is filed.
+  Amber, because this is the one thing on that page somebody else is held up by.
+- **And the baton arriving is news.** A hand-over happens in somebody else's
+  browser, so the only thing that can tell this reader is the answer that
+  carries it: `clauseLockMerge`, the one funnel the server's map comes through.
+  Asked as a DIFFERENCE (the clause was held by a colleague this reader had
+  asked, and now it is theirs), so nothing is said on an ordinary refresh, and
+  said once per clause per sitting. A toast, not a band: a transient
+  confirmation of a thing that just happened is the cheapest channel that does
+  the job.
+
+Tests: **f455** (25 claims, all red at the parent), **take-it-in-turns-verify**
+(23 claims with two people in two browsers, 15 red at the parent).
+
+**And one measured fact about the stage itself**, worth keeping: clause ids are
+assigned when wording is parsed and are only SHARED once they are on the record
+("once stamped the ids decide"). The stage's first run had the two browsers
+calling the same clause `cl_1lkccc` and `cl_1jf7vk`, so the lock the first took
+was on a clause the second had never heard of. One save — the way any real edit
+makes one — and both sides agree.
+
+---
+
+## FOLLOW ME — WALKING THROUGH IT TOGETHER (idea 14, built 4 Oct 2026)
+
+Young picked **"Follow me"** by name from three: one leader, the others' pages
+follow, one press to stop.
+
+### The gap
+
+Two people on a call, both with the contract open, and the whole first minute
+of every clause goes on *"which one are you on — no, the one above that"*. A
+screen share solves it by taking one person's whole machine and giving everybody
+else a video of it; what people actually want is to be looking at the same
+clause **on their own screen**, with their own text size, their own notes and
+their own hands.
+
+### A destination, not a mirror
+
+That is the whole design. What travels is ONE CLAUSE ID — where the leader is
+looking — and the follower's own page goes there through the SAME door a press
+on a card already uses (`rlJumpToClause`, which lights the clause and scrolls
+to it). No cursor, no selection, no scroll position, no keystrokes. The follower
+keeps every power they had, and if they scroll away they simply arrive again
+when the leader moves on. Driven and measured: no editor opened, no selection
+made, no panel opened on the follower's page.
+
+**Where the leader is looking** is the clause at the CENTRE of the painted
+paper, asked with `elementFromPoint` — because "looking at" is a question about
+what is on the screen, so it is asked of the screen. Not the clause whose
+pencil was last pressed, which is where the reader WAS. It answers null
+wherever there is no paper, so a reader on a list, a dashboard or a signed
+contract sends nothing at all.
+
+### It rides the beat that was already going
+
+Presence (idea 5) was built the same night and already asks the server every
+twenty-five seconds who else is here. The spot is one more field on the row it
+already sends, so this feature adds **no route, no table and no timer**. The
+server clamps it to the shape a clause id has and to 64 characters, which is
+what stops the field being used as a place to post anything, and returns it on
+the others' rows beside their name and their time.
+
+The walk moves the page only when the leader's spot has CHANGED since the last
+time it was followed. Without that the follower's page would re-centre itself
+every twenty-five seconds on a clause they are already reading — the page taking
+the reader's place rather than keeping up with somebody else. And the leader
+leaving the room stands the follow down rather than leaving it pointing at a
+name that is gone.
+
+### There is no invitation and nothing to accept
+
+A leader does not start a session; a follower picks a name from the row that is
+already there and presses it. That is why there is nothing to clean up when a
+call ends: following is per sitting and a reload is out. One at a time, because
+two would be two pages fighting over one scroll. A different contract drops it
+— the names, the clauses and the colleagues are all different — while the SAME
+contract keeps it across the room and the negotiate page, which `setView` stops
+the beat between.
+
+**And the leader is told nothing about being followed.** This is the follower's
+own choice about their own page, measured on the leader's screen: nothing lit,
+nothing said.
+
+### No band was added for the state, and that was a decision
+
+A strip saying "Following Amina · Stop" would say what the lit face already
+says, and the owner's standing rule of 26 August is that a band is asked for
+first. So the face IS the control: a real button that keeps the face's exact
+size so the row does not move when the feature is on, lit while it is the one
+being followed, `aria-pressed` so a keyboard reader can tell, with the sentence
+on its title because a monogram alone cannot say *"press this to walk through
+the contract with them"*. The same press stops it — the owner's own rule that
+the press which opens a thing closes it. The press is delegated at module load,
+because the row is painted into a slot on a head that is rebuilt every render.
+
+Tests: **f456** (23 claims, 22 red at the parent), **follow-me-verify**
+(13 claims with two people in two browsers, 8 red at the parent). The "it stops
+moving" claim presses `presenceWalk` directly rather than sitting out two beats:
+a test whose answer depends on a minute-long sleep is one nobody runs, and the
+same function is driven end to end through the real beat two claims earlier.
+
+### And the row cost the contract half a pixel (measured, 4 Oct 2026)
+
+The first build of the presence row put a 17px face on the head's quiet line of
+12px text, and that grew the line. `approval-before-signing 7a` caught it with
+the whole claim in its own name — *"the contract did not move by a pixel"* —
+reporting `300.875 → 301.390625`. It fires in that stage and not in the
+presence stage's own first draft because two people are signed in there and the
+approver opens the same contract: the faces appear, and the agreement below
+them drops half a pixel.
+
+That is the **third question's own refusal**: measure window top to the first
+line of wording before and after, and refuse any growth. Half a pixel of the
+agreement's space spent on furniture is still the agreement's space.
+
+Two wrong answers were tried and measured before the right one. `display:
+contents` on the slot changed nothing, and nor did `display:none` on it — both
+because the slot was never the cost; the ROW inside it was, and it is only
+drawn once somebody else is in the room, which is why the numbers did not budge.
+The fix is that the row is **zero high and its faces overflow it**: the line box
+is formed as if the row were not there, and the faces paint centred on it
+either way. The empty slot is `display:none` as well, which costs nothing and
+removes the question.
+
+It is now pinned in two places: `f454` reads the two rules off the sheet, and
+**who-is-in-the-room-verify 2f** measures the paper's own top before and after
+a colleague arrives (270.875 → 270.875).

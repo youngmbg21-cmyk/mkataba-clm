@@ -82,9 +82,17 @@ describe('f450 (1) — the book-wide list says everything the checklist says', (
       + 'a count that did that would start one on every contract in the book');
   });
 
-  test('the kinds it can return are the checklist\'s own six', () => {
-    const kinds = [...ITEMS.matchAll(/kind:'([a-z]+)'/g)].map(m => m[1]).sort();
-    assert.deepEqual([...new Set(kinds)].join(','), 'join,note,quiet,renewal,review,sign',
+  test('the kinds it can return are exactly the checklist\'s own', () => {
+    /* RE-POINTED 4 Oct 2026: this named the six by hand and went red the day a
+       seventh was added correctly to BOTH readings (a colleague's suggestion,
+       the seat decides). PIN THE RELATION — the two readings of one question
+       must answer the same kinds, which is the whole claim, and the page's own
+       order list is where the set is declared. */
+    const kinds = [...new Set([...ITEMS.matchAll(/kind:'([a-z]+)'/g)].map(m => m[1]))].sort();
+    const declared = (HOME.match(/const NEEDS_YOU_ORDER = \[([^\]]*)\]/) || [])[1] || '';
+    const order = [...declared.matchAll(/'([a-z]+)'/g)].map(m => m[1]).sort();
+    assert.ok(order.length >= 6, 'the order list is there to compare against');
+    assert.deepEqual(kinds, order,
       'two readings of one question that answer different kinds is how a '
       + 'checklist and a list disagree about the same contract');
   });

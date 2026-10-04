@@ -197,7 +197,14 @@ describe('f354 (4) the walls', () => {
   });
 
   test('the server has no participants field, because there is no route to it [WALL]', () => {
-    assert.ok(!/participants/.test(SERVER), 'it is an ordinary field on the contract json');
+    /* ASKED OF CODE, NOT OF PROSE (4 Oct 2026). This swept the whole file and
+       went red the day a comment about a DIFFERENT feature mentioned the
+       browser module by name — so a sentence explaining a wall was breaking
+       it, and the only way to keep the test green was to stop writing the
+       word. The house rule, stated in the rulebook: strip comments before
+       sweeping code. The claim is unchanged and still catches a real field. */
+    const code = SERVER.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    assert.ok(!/participants/.test(code), 'it is an ordinary field on the contract json');
   });
 
   test('and it never reaches the counterparty [WALL]', () => {

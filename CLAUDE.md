@@ -190,6 +190,33 @@ Tests: f207, f208, settled-ask-reopen-verify.
 
 Four seats: Initiator, Lead (exactly one; the only one who reaches the counterparty), Contributor, Reader; claimed by the first change filed (`deskClaimOnFile`). `deskMayRedline`/`deskMaySend` true on four escapes (rule off, no desk, nobody signed in, PORTAL_MODE). Admin setting, off by default. The desk gates redlining and sending, NEVER signing. The people chip is a statement. Server: `deskRuleOn`, `deskSeatOf`, `rosterMoved` as a difference. Tests: f165–f169.
 
+## TAKE IT IN TURNS — THE LOCK IS A BATON (Young picked it 4 Oct 2026)
+
+- `l.asked` [{id,name,at}] on a live lock; same window as the lock (`clauseLockAsks`). ONE ask per person, capped. Asking takes nothing: `POST .../lock {ask:true}` carries the holder through (`{...held, asked}`) and refuses on a free or your own clause.
+- `{handTo:id}` moves the lock directly — the HOLDER only, and only to somebody who ASKED (both walls on the route, both asked in `clauseLockHandOver` too). A new holder starts with no queue.
+- **A REFRESH OF YOUR OWN LOCK KEEPS THE QUEUE** (both hosts) — refreshing is taking it again, and a bare new lock wiped the asks.
+- Said in three places: the sign's own corner carries "Ask for it" (`data-rl-lock-ask`, one live button, becomes "Asked"); the clause editor's foot carries `clauseLockWaitingLine` + Hand over (`data-ce-act="handover"`, confirm first); and the baton arriving is a toast once per clause per sitting, said in `clauseLockMerge` (`_clSaid`). Tests: f455, take-it-in-turns-verify.
+
+## FOLLOW ME — WALKING THROUGH IT TOGETHER (Young picked it 4 Oct 2026)
+
+- A DESTINATION, NOT A MIRROR: one clause id rides presence's own beat (`presenceSpotNow` = the clause at the centre of the painted paper, `elementFromPoint`), and the follower's page goes there through `rlJumpToClause` — the door a press already uses. No cursor, selection, scroll or keystrokes.
+- The server clamps `spot` to `/^[A-Za-z0-9_-]+$/` and 64 chars and returns it on the others' rows. `presenceWalk(rows)` moves only when the leader's spot CHANGED (`_pzWent`), and stands the follow down when the leader leaves.
+- One at a time, per sitting, nothing stored; the face IS the control (`data-pz-follow`, `is-following`, `aria-pressed`, delegated at module load) and the same press stops it. NO BAND — asked and declined on purpose. A different contract drops the follow (`_pzWas`). Tests: f456, follow-me-verify.
+
+## WHO IS IN THE ROOM — "ON THIS CONTRACT" (Young picked it 4 Oct 2026)
+
+- js/presence.js: `c.here` {uid:{name,at}} is the clause lock's fact one step wider, written ONLY by `POST /api/contracts/:id/here` (auth, scope-checked, json only — never `version` or `updated_at`; a sealed record answers without writing). The PUT keeps the stored map beside the locks; the share route deletes `payload.contract.here`.
+- `presenceStart(cid, presencePaint)` from `applyWsTabs` (idempotent per contract), `presenceStop()` from `setView`. `PRESENCE_BEAT_MS` 25s, `PRESENCE_GONE_MS` 75s (three missed beats), nothing while `document.hidden`, no toast on failure, repaint only where the answer moved.
+- `presenceHere(c)` reads the last answer and NEVER fetches. The row is a slot (`[data-pz-slot]` in `roomHeadSubHtml`), `PRESENCE_FACES` 4 then a count, `deskInitials` the one shortener, NOTHING drawn when nobody else is here and NOTHING on the paper.
+- **IT COSTS THE CONTRACT NOTHING**: `.pz-row` is `height:0; overflow:visible` and an empty slot is `display:none` — a 17px face on a 12px line grew it and the paper moved half a pixel (approval-before-signing 7a). Tests: f454, who-is-in-the-room-verify 2f.
+
+## THE SEAT DECIDES — A CONTRIBUTOR PROPOSES, THE LEAD ADOPTS (Young picked it 4 Oct 2026)
+
+- `ch.suggested` {by,byId,at,+adoptedAt|returnedAt,why} is stamped by `deskStampOnFile` in the FUNNEL, after every guard and BEFORE the push; only a contributor's own-side filing, only where the desk rule is on. No second setting.
+- It does not travel: `deskSuggestedIds` → `buildSharePayload`'s heldBack, and `dkSuggestedIds` → the route's own withheld set. Both read RAW (`c.changes`) off `turnAt`.
+- Lead or admin adopts (`deskAdoptSuggestion`, stamp KEPT and dated) or hands back with a required reason (`deskReturnSuggestion`, no Discard, nothing deleted). NOBODY RULES ON THEIR OWN (`deskMayRuleSuggestion`, server `dkMayRuleSuggestion`); PUT guards the stamp as a difference (`dkSuggestionRefusal`). A suggestion waits on the lead OR its author, never both (`deskSuggestionsFor` drops the handed-back; `deskSuggestionsBackTo` holds them).
+- Said by ONE builder in both card renderers (`deskCardSuggestHtml`, `.dk-card-sg`), plus Home's one list and the checklist (kind `suggest`, `NEEDS_YOU_ORDER`, door → the negotiate page). Tests: f453, the-seat-decides-verify.
+
 ## STREAM ACCESS, PEOPLE, RE-FILING
 
 - The server filters every query (`folderScopeFor`). Browser: `userFolderAccess(u)` + `canAccessFolder`; lists go through `visibleFolders()`; a picker keeps the current stream even when out of reach. A new member defaults to VIEWER.
@@ -414,6 +441,12 @@ Tests: f180, f181, f189, f191, f237, f422, f423, f426, f439, counterparty-bell-v
 ## THE SPELL CHECK (js/spell.js)
 
 Both seats, no route: `spellSuspects` reads NEW words only (null = not checked); contract words (incl. a template contract's `negotiation.baselineText`, `spellContractText`), names, `SPELL_LEGAL` pass — but a capitalised slip of a term the contract capitalises is checked (`spellTermSlip`); non-English stands down. `vendor/en-words-1.txt` on first keystroke or Save. Doors `ceSaveChecked`, `fileChecked`; nothing moves without a press. WHILE TYPING a red wavy underline marks exactly what the Save would list (`spellUnderline`/`spellUnderlineSoon`, a CSS highlight `hati-spell`, nothing in the box; browser's own underline off where HaTi draws; `ceSpellBefore` shared with the Save). Tests: f422, f427, f428, their-side-verify, their-edit-page-verify.
+
+## A NAMED GUEST'S LINK ASKS WHO IS OPENING IT (idea 8, Young picked "the guest list" 4 Oct 2026)
+
+- The guest list was ALREADY built (js/participants.js + `shareSendExtras`) and so was the code (`share_otp`, `/api/shares/:token/otp` + `/verify-otp`). ONE DOOR: a second pair of `/code` routes was written and reverted — f358 (7e) caught it. ONE CODE, ONE PROOF, TWO GATES (opening and signing).
+- Admin setting, OFF by default (`linkCode.on`; browser `linkCodeCfg`/`saveLinkCodeCfg`, Settings group `links` "Links you send"). `shareNeedsCode(s)` = rule on + not status + has a recipient address; `shareDoorOtpOk(token,t)` (timingSafeEqual) gates GET /api/shares/:token with 401 `needsCode` + `shareCodeMask` (name masked, domain not), BELOW the two 'gone' answers. `/otp` and `/verify-otp` carry ONE narrow escape where `shareNeedsCode` is true (view-only/advice/spent-one-shot) — a revoked or expired link is still refused.
+- A status link is now on `shareIsReadOnly` (it was not, and could mint a signing code). Browser: `portalCodeScreen`, ticket in sessionStorage (`PT_TICKET_KEY`), `portalMaskAddress`. Tests: f452, named-guest-verify.
 
 ## THE SEND SCREEN
 

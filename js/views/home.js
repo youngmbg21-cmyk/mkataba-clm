@@ -1456,6 +1456,28 @@ function hmDecisionItems(S, deskRows){
         tag:d.due?fmtDDay(String(d.due)):i18t('rv_home_open'),
         verb:i18t('home_verb_answer') };
     }).filter(Boolean) : []),
+    /* A COLLEAGUE'S SUGGESTION WAITING ON THIS READER (the seat decides, built
+       4 Oct 2026). A contributor's redline stays in our draft and out of every
+       send until the lead adopts it, so the lead is the one person who can move
+       it — and until this row existed they had no way of knowing it was there
+       without opening the contract.
+
+       READ RAW through deskSuggestionsFor, which asks c.changes directly:
+       counting must not start a negotiation. It answers nothing where the desk
+       rule is off, which is everywhere by default, so this row costs the
+       ordinary workspace nothing at all. And nothing is added up across the
+       two halves — a suggestion is waiting on the lead OR on its author, never
+       both, which is the rule deskSuggestionsFor keeps in its own words. */
+    ...(window.deskSuggestionsFor ? (cs||[]).map(c=>{
+      let mine=[]; try{ mine=deskSuggestionsFor(c, me)||[]; }catch(_){ mine=[]; }
+      if(!mine.length) return null;
+      const g=(window.deskSuggestion?deskSuggestion(mine[0]):null)||{};
+      return { kind:'suggest', cid:c.id, urgent:false,
+        txt:esc(i18tn('dk_sg_held',mine.length))+' — '+strong(c.name),
+        meta:esc(g.by||c.counterparty||i18t('home_no_counterparty')),
+        tag:esc(i18t('dk_sg_badge')),
+        verb:i18t('home_verb_answer') };
+    }).filter(Boolean) : []),
     /* SOMEBODY IS ASKING TO JOIN A NEGOTIATION YOU LEAD — one colleague
        waiting on one answer from this reader by name, the shape of every
        other row here. */
@@ -1520,7 +1542,7 @@ function hmDecisionItems(S, deskRows){
    owns is theirs to decide. The drawing is inspector.js's (insNeedsHtml).
    READING MUST NOT WRITE: every source reads, and a source a stage does not
    load says nothing rather than throwing. */
-const NEEDS_YOU_ORDER = ['quiet','review','note','join','sign','renewal'];
+const NEEDS_YOU_ORDER = ['quiet','review','note','suggest','join','sign','renewal'];
 function needsYouOf(c){
   if(!c || c.archived) return [];
   const me=(typeof currentUser==='function')?currentUser():null;
@@ -1543,6 +1565,13 @@ function needsYouOf(c){
     const d=hmNoteDue(mine);
     out.push({ kind:'note', urgent:d.late, n:mine.length,
       who:(mine[0].m&&mine[0].m.who)||'', due:d.due }); });
+  /* A COLLEAGUE'S SUGGESTION, THE SAME READING THE BOOK-WIDE LIST ASKS
+     (4 Oct 2026). One source, two homes, so the checklist beside a contract
+     and the list on Home cannot disagree about how many are sitting there. */
+  take(()=>{ const sg=(window.deskSuggestionsFor?deskSuggestionsFor(c, me):[])||[];
+    if(!sg.length) return;
+    const g=(window.deskSuggestion?deskSuggestion(sg[0]):null)||{};
+    out.push({ kind:'suggest', urgent:false, n:sg.length, who:g.by||'' }); });
   take(()=>hmMySignings(one).forEach(x=>out.push({ kind:'sign', urgent:false, n:x.n||0 })));
   take(()=>{ const r=hmRenewalDue(c);
     if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))
@@ -1568,7 +1597,11 @@ function needsYouOf(c){
 function needsYouGo(kind, id){
   const c=(typeof getContract==='function')?getContract(id):null;
   if(!c) return false;
-  if(kind==='quiet'||kind==='review'){
+  /* AND A SUGGESTION IS ADOPTED WHERE IT IS DRAWN — the negotiate page, where
+     the strip and its two verbs are. On this branch rather than below, with
+     the two rows that already land there, so the reader is not taken through
+     the room on the way (4 Oct 2026). */
+  if(kind==='quiet'||kind==='review'||kind==='suggest'){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); else openWorkspace(c.id);
     return true;
   }

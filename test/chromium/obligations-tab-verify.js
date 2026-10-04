@@ -106,14 +106,23 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
         words: tabs.map(b => (b.textContent || '').replace(/\\s+/g, ' ').trim()),
         tops: tabs.map(b => Math.round(b.getBoundingClientRect().top)),
         oblig: seen(document.querySelector('#ws-tabs [data-ws-tab="oblig"]')),
+        declared: (window.ROOM_TABS || []).map(t => t[0]),
         headH: Math.round(document.getElementById('ws-head').getBoundingClientRect().height),
       };
     })()`);
-    check('the room draws five tabs and Obligations is the fourth',
-      row.keys.join(',') === 'terms,docs,sign,oblig,history', row.keys.join(','));
+    /* RE-POINTED 4 Oct 2026: this named the five by hand and went red the day
+       the shared page earned a tab of its own ("Where we are", added second).
+       PIN THE RELATION — the row is ROOM_TABS in its own order, and what this
+       file is about is that Obligations comes AFTER Signing and BEFORE the
+       history, which is the rule CLAUDE.md states for it. */
+    check('the room draws the tabs it declares, and Obligations sits after Signing',
+      row.keys.join(',') === row.declared.join(',')
+        && row.keys.indexOf('oblig') === row.keys.indexOf('sign') + 1
+        && row.keys.indexOf('oblig') < row.keys.indexOf('history'),
+      row.keys.join(',') + ' | declared ' + row.declared.join(','));
     check('and it is real pixels, not merely markup',
       !!(row.oblig && row.oblig.on), JSON.stringify(row.oblig));
-    check('all five sit on ONE line at 1500px',
+    check('and all of them sit on ONE line at 1500px',
       new Set(row.tops).size === 1, JSON.stringify(row.tops));
 
     /* ---- THE COUNT, AND THE ONE THING IT COLOURS ---- */

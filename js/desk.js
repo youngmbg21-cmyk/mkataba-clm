@@ -988,6 +988,56 @@ function deskCardInsteadHtml(c, ch, opts = {}){
   return `<div class="dk-card-instead">${_dkE(line)}</div>`;
 }
 
+/* ---- AND A SUGGESTION SAYS WHOSE TURN IT IS, WITH THE TURN ON IT (4 Oct 2026)
+   ---- ONE BUILDER, TWO RENDERERS, the discipline the two lines above it keep:
+   the negotiate page's row and the contract tab's card both call this, so a fix
+   to one is a fix to both. THE CLOTHES FOLLOW THE BUILDER.
+
+   WHAT IT DRAWS, and it is one strip either way rather than two:
+     · to the LEAD — who suggested it, and the two acts. The verbs are on the
+       strip because a verb must be visible pixels (f180) and because a
+       sentence saying somebody must adopt this, with no way to adopt it, is
+       the "absence with no sentence" fault one step quieter.
+     · to the AUTHOR — that it is theirs and who decides, or, once it has been
+       handed back, the reason. No verbs: it is not theirs to adopt.
+     · to ANYBODY ELSE on the desk — who suggested it. No verbs.
+   Nothing at all once it is adopted: the wording is simply ours from then on.
+
+   NEVER ON THEIR SEAT. deskSeatShowsDesk is the one predicate for that, and a
+   suggestion is the most internal fact on the card — it names a colleague and
+   says our own side has not agreed with itself yet. */
+function deskCardSuggestHtml(c, ch, opts = {}){
+  if (!c || !ch || !deskSeatShowsDesk(opts)) return '';
+  const g = deskSuggestion(ch);
+  if (!g || g.adoptedAt) return '';
+  if (!deskEnforced() || !deskIsOpen(c)) return '';
+  const me = _dkMe();
+  if (!me) return '';
+  const say = deskSuggestionSay(c, ch, me);
+  if (!say) return '';
+  const mayRule = !opts.readonly && deskMayRuleSuggestion(c, ch, me);
+  const verbs = mayRule ? `<div class="dk-sg-verbs">
+      <button type="button" class="rl-accept" data-dk-adopt="${_dkE(ch.id)}">${i18t('dk_sg_adopt')}</button>
+      <button type="button" class="rl-reject" data-dk-return="${_dkE(ch.id)}">${i18t('dk_sg_return')}</button>
+    </div>` : '';
+  /* AMBER WHERE IT IS WAITING ON SOMEBODY, which is every case this draws —
+     the card's own tones, never a colour of its own. */
+  return `<div class="dk-card-sg"${g.returnedAt ? ' data-dk-returned="1"' : ''} data-dk-sg="${_dkE(ch.id)}">
+    <span class="dk-sg-k">${i18t('dk_sg_badge')}</span>
+    <span class="dk-sg-say">${_dkE(say)}</span>${verbs}
+  </div>`;
+}
+/* THE COUNT, SAID THE SAME WAY EVERYWHERE. Home's one list, the contract's
+   checklist and the bell all print one of these two sentences, so none of them
+   invents its own account of the same number. */
+function deskSuggestionCountSay(c, u){
+  const mine = deskSuggestionsFor(c, u);
+  if (mine.length) return i18tn('dk_sg_held', mine.length);
+  const back = deskSuggestionsBackTo(c, u);
+  if (back.length) return i18tn('dk_sg_wait', back.length, { who: (deskLead(c) || {}).name || '' });
+  return null;
+}
+
 /* ---- THE ONE BAND, AND ONLY WHEN SOMETHING REFUSES ----
    The density rule this feature is drawn to, stated at deskChipHtml: a band
    appears only when it changes what you can do right now. Leading a negotiation
@@ -1355,6 +1405,210 @@ function openDeskJoinAsk(c, opts = {}){
   });
 }
 
+
+/* ============================================================
+   THE SEAT DECIDES — a contributor's redline is a suggestion (4 Oct 2026)
+   ============================================================
+   Young picked this by name from three in the decision pack: not a mode switch
+   beside the text size, and not a per-person setting — THE SEAT DECIDES.
+
+   THE GAP. The desk has said from its first day that a contributor's work
+   "does not travel", and that was true of SENDING only. What a contributor
+   typed went straight into our draft, so the lead opened the contract on
+   Monday to wording they had never agreed to, with nothing to tell them which
+   of forty clauses a colleague had changed. The wall was in the right place
+   and the lead still had no way to see what they were being asked to stand
+   behind.
+
+   SO A CONTRIBUTOR PROPOSES AND THE LEAD ADOPTS. One stamp, written in the
+   funnel where the desk already claims itself, by the one question that was
+   already being asked: which seat is this person in. A suggestion is kept out
+   of every send by the same arithmetic that keeps a held change back, and the
+   lead has two acts on it — adopt it, or hand it back with a reason.
+
+   IT IS OFF WHEREVER THE DESK IS OFF, which is everywhere by default, so not
+   one workspace sees this until an admin switches the desk rule on. There is
+   no second setting: a rule about seats that could be on while seats were off
+   would be a rule about nothing.
+
+   WHAT IT NEVER DOES IS THROW WORK AWAY. Handing a suggestion back keeps every
+   word of it and adds the reason — the desk's own oldest rule, written at
+   deskContributors: you take somebody off a deal and you do not lose four
+   clauses of redlining with them. There is no Discard here, and the lead
+   cannot edit a suggestion into something else and call it adopted; adopting
+   it is adopting what the colleague wrote.
+
+   AND THE COUNTERPARTY LEARNS NOTHING. A suggestion is not in the payload at
+   all, so there is nothing to leak: no name, no reason, not the fact that one
+   exists. buildSharePayload is an allow-list and the stamp is not on it; the
+   route subtracts the ids as well, because an allow-list holds only until
+   somebody adds a field. */
+
+/* THE READ. Absent on every change ever filed before today and on every change
+   filed by a lead, which is what makes this free to switch on. */
+function deskSuggestion(ch){
+  const g = ch && ch.suggested;
+  return (g && typeof g === 'object' && !Array.isArray(g)) ? g : null;
+}
+/* OPEN means nobody has adopted it yet. An adopted suggestion keeps its stamp
+   — it is how the trail says whose idea a clause was a year later — so the
+   question everything asks is not "is it stamped" but "is it still waiting". */
+function deskSuggestionOpen(ch){
+  const g = deskSuggestion(ch);
+  return !!(g && !g.adoptedAt);
+}
+/* WHICH CHANGES MUST NOT TRAVEL, and it is asked of the record RAW. Reading
+   must not write: negoUnsentAsks and friends run negoInit, and a payload being
+   built is the last place that may create a negotiation. The arithmetic is
+   deliberately narrower than "every open suggestion" in one way — a change the
+   counterparty already holds cannot be recalled, so a stamp arriving late on a
+   sent ask withholds nothing. That is the same ruling reviewHeldIds makes in
+   its own words, and for the same reason: a payload that quietly dropped
+   wording they already have reads to them as us rewriting history. */
+function deskSuggestedIds(c){
+  const out = new Set();
+  if (!deskEnforced()) return out;
+  const at = (c && c.negotiation && c.negotiation.turnAt) || null;
+  for (const x of (Array.isArray(c && c.changes) ? c.changes : [])){
+    if (!x || x.status !== 'pending' || x.authorSide === 'counterparty') continue;
+    if (!deskSuggestionOpen(x)) continue;
+    if (at && !(String(x.createdAt || '') > String(at))) continue;
+    out.add(x.id);
+  }
+  return out;
+}
+/* THE FUNNEL'S HOOK, beside deskClaimOnFile and quiet for the same reason:
+   filing a redline is the act the person meant to perform. It stamps only
+   where all four are true — the rule is on, a desk is open, there is a signed-in
+   person, and that person holds a CONTRIBUTOR's seat rather than the lead's.
+   An admin who has not taken the lead is a contributor like any other: the
+   desk's own ruling that silent power is not fine, said once more. */
+function deskStampOnFile(c, side, ch){
+  if (!ch || side !== 'owner') return null;
+  if (!deskEnforced() || !deskIsOpen(c)) return null;
+  const me = _dkMe();
+  if (!me || !me.id) return null;
+  if (deskIsLead(c, me)) return null;
+  if (!deskHasSeat(c, me)) return null;
+  ch.suggested = { by: String(me.name || ''), byId: me.id, at: _dkNow() };
+  return ch.suggested;
+}
+/* WHO MAY RULE ON ONE. The lead, and an admin — the same two deskMayManage
+   names, because adopting a colleague's wording into the round we will send is
+   the lead's act in exactly the way naming a contributor is. NOBODY RULES ON
+   THEIR OWN SUGGESTION: a contributor who became the lead afterwards still
+   cannot wave their own through, which is the room's own rule (reviewMark
+   keeps it, saMayDecide keeps it) in one more place. */
+/* AND THE ONE STUCK CASE, SAID OUT LOUD RATHER THAN PATCHED: a contributor who
+   is afterwards made the sole lead cannot adopt their own old suggestion,
+   because nobody rules on their own. There is a clean way out and it is the
+   funnel's own — they file the wording again, now as the lead, which supersedes
+   the suggestion and is not stamped. No work is lost, and the rule does not
+   need an exception that would let anybody wave their own wording through. */
+function deskMayRuleSuggestion(c, ch, u){
+  const me = u || _dkMe();
+  if (!me || !deskSuggestionOpen(ch)) return false;
+  const g = deskSuggestion(ch);
+  if (_dkSamePerson({ id: g.byId, name: g.by }, me)) return false;
+  return _dkIsAdmin(me) || deskIsLead(c, me);
+}
+const _dkChange = (c, id) => (Array.isArray(c && c.changes) ? c.changes : [])
+  .find(x => x && String(x.id) === String(id)) || null;
+/* ---- ADOPT IT ----
+   The stamp is kept and dated rather than deleted: a year on, "whose idea was
+   this clause" is a question the trail should be able to answer, and a field
+   that erased itself on acceptance would make every adopted suggestion look
+   like the lead's own work. */
+function deskAdoptSuggestion(c, changeId){
+  const ch = _dkChange(c, changeId);
+  if (!ch) return null;
+  const g = deskSuggestion(ch);
+  if (!g) { _dkSay(i18t('dk_sg_notsug'), 'err'); return null; }
+  if (!deskSuggestionOpen(ch)) return g;
+  const me = _dkMe();
+  if (!deskMayRuleSuggestion(c, ch, me)){
+    _dkSay(i18t(_dkSamePerson({ id: g.byId, name: g.by }, me) ? 'dk_sg_not_your_own'
+      : 'dk_sg_lead_only', { who: (deskLead(c) || {}).name || '' }), 'err');
+    return null;
+  }
+  g.adoptedAt = _dkNow();
+  g.adoptedBy = String((me && me.name) || '');
+  g.why = null;
+  g.returnedAt = null;
+  _dkAudit(c, 'Suggestion adopted',
+    `${ch.clauseLabel || ch.clauseId || changeId} — ${g.by}'s wording adopted by ${g.adoptedBy}`);
+  _dkSave(c);
+  return g;
+}
+/* ---- OR HAND IT BACK ----
+   WITH A REASON, REQUIRED. A suggestion handed back without one is a colleague
+   staring at a clause with no idea what to do next, which is the fault the
+   negotiation's own "Why this change?" box exists to stop. The wording is
+   untouched: this is not a rejection that deletes, it is a turn passed back. */
+function deskReturnSuggestion(c, changeId, why){
+  const ch = _dkChange(c, changeId);
+  if (!ch) return null;
+  const g = deskSuggestion(ch);
+  if (!g) { _dkSay(i18t('dk_sg_notsug'), 'err'); return null; }
+  const me = _dkMe();
+  if (!deskMayRuleSuggestion(c, ch, me)){
+    _dkSay(i18t(_dkSamePerson({ id: g.byId, name: g.by }, me) ? 'dk_sg_not_your_own'
+      : 'dk_sg_lead_only', { who: (deskLead(c) || {}).name || '' }), 'err');
+    return null;
+  }
+  const reason = _dkClamp(why, DK_WHY_MAX);
+  if (!reason) { _dkSay(i18t('dk_sg_why_needed'), 'err'); return null; }
+  g.why = reason;
+  g.returnedAt = _dkNow();
+  g.returnedBy = String((me && me.name) || '');
+  _dkAudit(c, 'Suggestion handed back',
+    `${ch.clauseLabel || ch.clauseId || changeId} — back to ${g.by}: ${reason}`);
+  _dkSave(c);
+  return g;
+}
+/* ---- WHAT IS WAITING ON THE LEAD ----
+   One reading, read by the card, the send button's count, Home's one list and
+   the contract's own checklist, so those four cannot disagree about how many
+   suggestions are sitting there. Asked of the record RAW, like deskSuggestedIds
+   above and for the same reason. */
+function deskSuggestionsFor(c, u){
+  const me = u || _dkMe();
+  if (!me || !deskEnforced() || !deskIsOpen(c)) return [];
+  return (Array.isArray(c && c.changes) ? c.changes : [])
+    .filter(x => x && x.status === 'pending' && x.authorSide !== 'counterparty'
+      /* A HANDED-BACK SUGGESTION IS NOT WAITING ON THE LEAD. They have already
+         answered it; the turn is the author's, and it comes back here when the
+         author files again. Exactly one of these two lists holds a suggestion
+         at any moment, which is what lets Home count them without adding up to
+         more than there are. */
+      && deskSuggestionOpen(x) && !x.suggested.returnedAt
+      && deskMayRuleSuggestion(c, x, me));
+}
+/* And what is waiting on the person who wrote it: handed back, with a reason
+   to read. The other half of the same list, because a suggestion is always
+   waiting on exactly one of the two. */
+function deskSuggestionsBackTo(c, u){
+  const me = u || _dkMe();
+  if (!me || !deskEnforced() || !deskIsOpen(c)) return [];
+  return (Array.isArray(c && c.changes) ? c.changes : []).filter(x => {
+    const g = deskSuggestion(x);
+    return !!(x && x.status === 'pending' && g && !g.adoptedAt && g.returnedAt
+      && _dkSamePerson({ id: g.byId, name: g.by }, me));
+  });
+}
+/* THE SENTENCE, in one place. Four surfaces print it and none of them writes
+   its own account of the rule — the discipline deskBlockMessage keeps. */
+function deskSuggestionSay(c, ch, u){
+  const g = deskSuggestion(ch);
+  if (!g || g.adoptedAt) return null;
+  const me = u || _dkMe();
+  const mine = _dkSamePerson({ id: g.byId, name: g.by }, me);
+  if (g.returnedAt) return mine ? i18t('dk_sg_back_to_you', { why: g.why || '' })
+    : i18t('dk_sg_back_to', { who: g.by, why: g.why || '' });
+  return mine ? i18t('dk_sg_yours', { who: (deskLead(c) || {}).name || '' })
+    : i18t('dk_sg_theirs', { who: g.by });
+}
+
 if (typeof document !== 'undefined') deskWireChip();
 
 Object.assign(window, {
@@ -1379,4 +1633,9 @@ Object.assign(window, {
      asks THIS walk rather than keeping a second one — two walks disagree
      about a bank holiday the day one of them is changed. */
   deskWorkingDaysBetween: _dkWorkingDaysBetween,
+  /* THE SEAT DECIDES (4 Oct 2026). */
+  deskSuggestion, deskSuggestionOpen, deskSuggestedIds, deskStampOnFile,
+  deskMayRuleSuggestion, deskAdoptSuggestion, deskReturnSuggestion,
+  deskSuggestionsFor, deskSuggestionsBackTo, deskSuggestionSay,
+  deskCardSuggestHtml, deskSuggestionCountSay,
 });
