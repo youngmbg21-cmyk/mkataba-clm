@@ -49,19 +49,35 @@ function apSaWaiting(c){
   const me=(typeof currentUser==='function')?currentUser():null;
   try{ return (typeof signApprovalWaitsOn==='function')?(signApprovalWaitsOn(c,me)[0]||null):null; }catch(_){ return null; }
 }
+/* ---- WHO ASKED, AND SINCE WHEN — OFF THE ONE ASK RECORD (4 Oct 2026) ----
+   js/asks.js keeps one row per question, whatever its kind: a named
+   person's request is its own row, and a rule step's question is opened by
+   the server the day the step falls due. So "asked by" and "waiting" are read
+   off that row for both kinds; a rule step whose question was never recorded
+   (it fell due before the record existed) keeps the contract's own idle
+   count, and a question the rule asks names the contract's owner as before. */
+function apAskOf(c, req, next){
+  try{
+    if(req && typeof askById==='function') return askById(c, req.id);
+    if(next && !next.sa && typeof askOpenFor==='function') return askOpenFor(c, 'rule', next.ruleId);
+  }catch(_){}
+  return null;
+}
 function apApprovalRows(){
   const D=(typeof hmDashSlices==='function')?hmDashSlices():{};
   return (D.myApprovals||[]).map(x=>{
     const sa=x.mine?apSaWaiting(x.c):null;
     const req=sa&&sa.req;
     const next=x.st&&x.st.next;
-    const asked=req?Date.parse(req.askedAt||''):NaN;
+    const ask=apAskOf(x.c, req, next);
+    const asked=Date.parse((ask&&ask.at)||(req&&req.askedAt)||'');
+    const owner=(typeof contractOwnerName==='function')?(contractOwnerName(x.c)||''):'';
     return {
       c:x.c, mine:!!x.mine, own:!!x.own, st:x.st,
       idle:Number.isFinite(asked)?Math.max(0,Math.floor((Date.now()-asked)/86400000)):(x.idle||0),
       rule:req?(typeof saStepName==='function'?saStepName(sa.need):apRuleText(x.st)):apRuleText(x.st),
       ruleSub:req?i18t('sa_pg_rule_sub'):'',
-      who:req?((req.askedBy&&req.askedBy.name)||''):((typeof contractOwnerName==='function')?(contractOwnerName(x.c)||''):''),
+      who:(ask&&ask.by&&ask.by.name)||(req?((req.askedBy&&req.askedBy.name)||''):owner),
       waitsOn:(x.st&&x.st.approverLabel)||'',
       /* An approval nobody has sent is not "waiting on" its approver — it is
          the lead's move, and the row says so. */

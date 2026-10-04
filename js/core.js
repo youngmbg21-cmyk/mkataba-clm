@@ -1446,6 +1446,11 @@ async function saveContract(c){
        of the approvals it needs rides back with the answer. */
     if(r && Array.isArray(r.signNeeds)) c._signNeeds=r.signNeeds;
     if(r && Array.isArray(r.signState)) c._signState=r.signState;
+    /* THE ONE ASK RECORD AS THE SERVER KEPT IT (4 Oct 2026): it may have
+       opened a rule step's question this save made due, and it stamps the
+       answers it accepted — taken as given, with anything asked here since
+       the save left kept on top (js/asks.js asksTakeServer). */
+    if(r && Array.isArray(r.asks)) c.asks=(typeof asksTakeServer==='function')?asksTakeServer(c.asks,r.asks):r.asks;
   }catch(e){
     if(/conflict|version/i.test(e.message)){
       /* H-4: someone else saved this contract while it was being edited. The old

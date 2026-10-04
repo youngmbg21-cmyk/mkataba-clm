@@ -327,10 +327,18 @@ function reviewAwaiting(c){
 
    Both directions are the same principle: when in doubt, nothing leaves. */
 function reviewOn(ch){ return (ch && ch.review && ch.review.verdict) ? ch.review : null; }
+/* THE ONE LAPSE RULE (js/asks.js askLapsed, 4 Oct 2026), measured by this
+   kind's own stamp: the change's fingerprint against the one the verdict was
+   given for. It is asked of EITHER verdict — reviewHeld deliberately never
+   reads it, which is what keeps a stale hold a hold. Without the rule loaded
+   it answers "moved", which turns a clear back into a question and leaves a
+   hold where it is. */
 function reviewStale(ch){
   const v = reviewOn(ch);
   if (!v || !v.hash || !ch.hash) return false;
-  return String(v.hash) !== String(ch.hash);
+  const rule = (typeof window !== 'undefined' && window.askLapsed) || null;
+  if (!rule) return true;
+  return rule({ state: 'yes' }, { drift: () => String(v.hash) !== String(ch.hash) ? ['wording'] : [] }).lapsed;
 }
 function reviewCurrent(ch){ const v = reviewOn(ch); return (v && !reviewStale(ch)) ? v : null; }
 function reviewHeld(ch){ const v = reviewOn(ch); return !!(v && v.verdict === 'held'); }
@@ -599,25 +607,25 @@ function reviewAsk(c, o = {}){
   const chosen = want ? scope.all.filter(x => want.has(String(x.id))) : scope.all;
   if (!chosen.length){ _rvSay(i18t('rv_pick_changes'), 'err'); return null; }
   const me = _rvMe();
-  const rv = {
-    id: 'REV-' + (c.review.requests.length + 1),
-    at: _rvNow(),
-    by: String(o.by || (me && me.name) || 'System'),
-    byId: (me && me.id) || null,
-    reviewer: { id: who.id || null, name, email: who.email || null },
-    note: _rvClamp(o.note, RV_NOTE_MAX) || null,
-    due: String(o.due || '').trim() || null,
+  const by = String(o.by || (me && me.name) || 'System');
+  const byId = (me && me.id) || null;
+  /* THE QUESTION IS WRITTEN BY THE ONE ASK WRITER (js/asks.js, 4 Oct 2026):
+     a row on c.asks and this request, its mirror, together. The request
+     keeps exactly the shape the server's review guards compare. */
+  const ask = window.askOpen(c, {
+    kind: 'review', id: 'REV-' + (c.review.requests.length + 1),
+    of: chosen.map(x => x.id), by: { id: byId, name: by }, to: { id: who.id || null, name },
+    at: _rvNow(), due: String(o.due || '').trim() || null, note: _rvClamp(o.note, RV_NOTE_MAX) || null,
     /* WHAT WAS IN FRONT OF THEM WHEN THEY WERE ASKED. Recorded because the set
        moves: a change filed after the request is not something the reviewer was
        ever shown, and a review that silently swallowed it would let anybody
        slip wording past an open review by writing it a minute late. The gate
        reads the LIVE set and requires a verdict on all of it, so a late arrival
        shows up as unreviewed rather than as cleared. */
-    changeIds: chosen.map(x => x.id),
-    status: 'open',
-    returnedAt: null, returnedBy: null, returnedNote: null,
-  };
-  c.review.requests.push(rv);
+    mirror: { by, byId, reviewer: { id: who.id || null, name, email: who.email || null },
+      changeIds: chosen.map(x => x.id) } });
+  const rv = c.review.requests.find(r => r && ask && r.id === ask.id);
+  if (!rv) return null;
   const chOurs = chosen.filter(x => reviewSideOf(x) === 'ours').length;
   _rvAudit(c, 'Internal review',
     `Internal review requested from ${rv.reviewer.name} by ${rv.by} — ${chOurs} of our unsent change(s)`
@@ -760,9 +768,11 @@ function reviewCancel(c, o = {}){
     _rvSay(i18t('rv_only_requester_cancels', { who: rv.by }), 'err');
     return null;
   }
-  rv.status = 'cancelled';
-  rv.returnedAt = _rvNow();
   const by = String(o.by || (_rvMe() && _rvMe().name) || 'System');
+  /* Taken back, through the one ask writer: withdrawn on c.asks, cancelled
+     on the request. */
+  window.askAnswer(c, rv.id, { state: 'withdrawn', at: _rvNow(),
+    by: o.by ? { id: o.byId || null, name: o.by } : _rvMe() });
   _rvAudit(c, 'Internal review',
     `Internal review ${rv.id} cancelled by ${by} — it was with ${rv.reviewer.name}`);
   return rv;
@@ -811,16 +821,12 @@ function reviewMark(c, changeId, verdict, o = {}){
   const live = (window.negoChangeById ? window.negoChangeById(c, changeId) : null)
     || (c.changes || []).find(x => x && x.id === changeId);
   if (!live) return null;
-  live.review = {
-    verdict: String(verdict),
-    note: String(o.note || '').trim() || null,
-    by: String((actor && actor.name) || 'System'),
-    byId: (actor && actor.id) || null,
-    at: _rvNow(),
-    /* The wording this verdict was given for. See reviewStale. */
-    hash: live.hash || null,
-    reviewId: rv.id,
-  };
+  /* ONE PART OF THE REVIEW'S ANSWER, through the one ask writer: the
+     verdict on c.asks and on the change, its mirror. `hash` is the wording
+     this verdict was given for — see reviewStale. */
+  window.askAnswer(c, rv.id, { part: live.id, answer: String(verdict), at: _rvNow(),
+    by: actor, why: String(o.note || '').trim() || null, stamp: live.hash || null, target: live,
+    mirror: { by: String((actor && actor.name) || 'System'), byId: (actor && actor.id) || null } });
   _rvAudit(c, 'Internal review',
     `#${live.id} ${REVIEW_VERDICT_RECORD[verdict]} by ${live.review.by} in internal review ${rv.id}`
     + ` — “${live.summary || live.clauseLabel || live.clauseId}”`
@@ -869,14 +875,14 @@ function reviewReturn(c, o = {}){
     _rvSay(i18tn('rv_mark_all_first', unmarked.length, { n: unmarked.length }), 'err');
     return null;
   }
-  rv.status = 'returned';
-  rv.returnedAt = _rvNow();
-  rv.returnedBy = String((actor && actor.name) || 'System');
-  rv.returnedNote = String(o.note || '').trim() || null;
   const cleared = ourIn.filter(reviewCleared).length;
   const held = ourIn.filter(reviewHeld).length;
   const advised = inRv.filter(x => reviewSideOf(x) === 'theirs' && reviewOn(x)).length;
-  rv.tally = { cleared, held, advised };
+  /* HANDED BACK, through the one ask writer: returned on c.asks and on the
+     request, its mirror, with the tally the hand-back counted. */
+  window.askAnswer(c, rv.id, { state: 'returned', at: _rvNow(),
+    by: actor ? { id: actor.id || null, name: String(actor.name || 'System') } : { name: 'System' },
+    why: String(o.note || '').trim() || null, mirror: { tally: { cleared, held, advised } } });
   _rvAudit(c, 'Internal review',
     `Internal review ${rv.id} returned by ${rv.returnedBy} to ${rv.by}`
     + ` — ${cleared} cleared to send, ${held} held back, ${advised} of the counterparty's asks advised on`

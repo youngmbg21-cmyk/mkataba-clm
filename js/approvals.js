@@ -163,9 +163,11 @@ function buildApprovalChain(c){
     const step={ ruleId:r.id, name:r.name, approver:r.approver, order:r.order||99,
       status:kept, by:was?.by||null, at:was?.at||null, comment:was?.comment||null,
       stamp:was?.stamp||null };
+    /* THE ONE LAPSE RULE (js/asks.js askLapsed, 4 Oct 2026): a rule's yes
+       is measured by this kind's own stamp — the amount and the words. */
     if(kept==='approved'){
-      const drift=approvalDrift(step, c);
-      if(drift.length){ step.status='stale'; step.drift=drift; }
+      const l=askLapsed({ state:'yes' },{ drift:()=>approvalDrift(step, c) });
+      if(l.lapsed){ step.status='stale'; step.drift=l.drift; }
     }
     return step; });
   /* ---- THE PERSONAL APPROVAL JOINS THE SAME CHAIN, LAST (23 Sep 2026) ----
@@ -236,10 +238,13 @@ function approveContract(c, comment){
     const stamp=approvalStamp(c);
     const was=st.next.status;
     /* The personal steps are DRAWN on this chain and never stored on it —
-       their decisions live on c.signApprovals. */
-    c.approvalChain=st.chain.filter(s=>!s.sa).map(s=> s.ruleId===st.next.ruleId
-      ? {...s, status:'approved', by:u.name, at:nowISO(), comment:comment||null, stamp, drift:undefined}
-      : s);
+       their decisions live on c.signApprovals. THE ANSWER IS WRITTEN BY THE
+       ONE ASK WRITER (js/asks.js, 4 Oct 2026): the step's own question on
+       c.asks — a stale yes lapsed first — and the step on this chain, its
+       mirror, in the same breath. */
+    c.approvalChain=st.chain.filter(s=>!s.sa).map(s=>({ ...s }));
+    const ask=askRuleFor(c, st.next.ruleId, { approver:st.next.approver, keepStep:true });
+    askAnswer(c, ask.id, { state:'yes', by:u, why:comment||null, stamp });
     logAudit(c,'Approved',`Step "${st.next.name}" approved by ${u.name} (${ROLE_LABEL[u.role]})`
       +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
       +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
@@ -267,8 +272,9 @@ function rejectApprovalStep(c, comment){
        srvApprovalDecisionRefusal is the wall; this says it in words first. */
     if(!String(comment||'').trim()){ toast(i18t('ap_refuse_needs_why'),'warn'); return; }
     const u=currentUser();
-    c.approvalChain=st.chain.filter(s=>!s.sa).map(s=> s.ruleId===st.next.ruleId
-      ? {...s, status:'rejected', by:u.name, at:nowISO(), comment:comment||s.comment||null} : s);
+    c.approvalChain=st.chain.filter(s=>!s.sa).map(s=>({ ...s }));
+    const ask=askRuleFor(c, st.next.ruleId, { approver:st.next.approver, keepStep:true });
+    askAnswer(c, ask.id, { state:'no', by:u, why:comment||null });
     if(c.status!=='Signed') c.status='Under Review';
     logAudit(c,'Approval rejected',`Step "${st.next.name}" rejected by ${u.name}`
       +(comment?` — “${String(comment).slice(0,500)}”`:'')
@@ -324,7 +330,7 @@ function approvalRulesCleared(c){
   const chain=Array.isArray(c.approvalChain)?c.approvalChain:[];
   const light=!!(c._light&&!c._loaded);
   return rules.every(r=>{ const s=chain.find(x=>x&&x.ruleId===r.id);
-    return !!s && s.status==='approved' && (light || !approvalDrift(s,c).length); });
+    return !!s && s.status==='approved' && (light || !askLapsed({ state:'yes' },{ drift:()=>approvalDrift(s,c) }).lapsed); });
 }
 async function approvalDecideAsk(c, verdict){
   if(!c) return false;
@@ -374,8 +380,12 @@ function resubmitApproval(c, note){
   if(!back.length){ toast(i18t('ap_nothing_resubmit'),'warn'); return false; }
   if(!canEdit()){ toast(i18t('ap_viewers_no_resubmit'),'err'); return false; }
   const u=currentUser();
-  c.approvalChain=st.chain.filter(s=>!s.sa).map(s=> (s.status==='rejected'||s.status==='stale')
-    ? {...s, status:'pending', by:null, at:null, comment:null, stamp:null, drift:undefined} : s);
+  /* SENT BACK IS ASKED AGAIN (js/asks.js, 4 Oct 2026): the refusal or the
+     outgrown yes stays on its own row of c.asks, a new question opens for
+     each step, and the writer takes the old answer off the step — this
+     chain's own reset, field for field. */
+  c.approvalChain=st.chain.filter(s=>!s.sa).map(s=>({ ...s }));
+  back.forEach(s=>askRuleFor(c, s.ruleId, { approver:s.approver }));
   logAudit(c,'Approval resubmitted',
     `${back.map(s=>`"${s.name}"`).join(', ')} sent back for approval by ${(u&&u.name)||'System'}`
     +(note?` — “${String(note).slice(0,500)}”`:'')
@@ -570,18 +580,22 @@ async function signApprovalRequest(c, note){
   const at=nowISO();
   const text=String(note||'').trim().slice(0,SA_NOTE_MAX);
   const stamp=saStamp(c), shows=saShows(c, signApprovalRound(c));
-  const list=Array.isArray(c.signApprovals)?c.signApprovals.slice():[];
+  /* ONE ASK PER APPROVER, WRITTEN BY THE ONE ASK WRITER (js/asks.js, 4 Oct
+     2026): the question on c.asks and the request on c.signApprovals, its
+     mirror, together. A request this replaces because the contract moved
+     under it is lapsed on the list — it stays there as what it was. */
   const made=can.rows.map(r=>{
     const n=r.need;
-    const req={ id:'sa_'+Math.random().toString(36).slice(2,10), key:String(n.key),
-      approverId:n.approverId||'', approverName:n.approverName||'', backupId:n.backupId||'', backupName:n.backupName||'',
-      people:(n.people||[]).map(p=>({ id:String(p.id), name:String(p.name||''), why:(p.why||[]).slice() })),
-      status:'pending', askedBy:{ id:String(me.id), name:me.name||'' }, askedAt:at, note:text, stamp, shows,
-      decidedBy:null, decidedAt:null, as:null, decision:null, notice:null, reminded:[] };
-    list.push(req);
-    return req;
+    if(r.status==='lapsed' && r.req) askLapse(c, r.req.id);
+    const ask=askOpen(c, { kind:'named', id:'sa_'+Math.random().toString(36).slice(2,10), of:[String(n.key)],
+      by:me, to:n.approverId?{ id:n.approverId, name:n.approverName||'' }:{ role:'admin' }, at, note:text||null, stamp,
+      mirror:{ key:String(n.key), approverId:n.approverId||'', approverName:n.approverName||'',
+        backupId:n.backupId||'', backupName:n.backupName||'',
+        people:(n.people||[]).map(p=>({ id:String(p.id), name:String(p.name||''), why:(p.why||[]).slice() })),
+        note:text, shows } });
+    return (c.signApprovals||[]).find(x=>x&&x.id===ask.id);
   });
-  c.signApprovals=list.slice(-SA_KEEP);
+  c.signApprovals=(c.signApprovals||[]).slice(-SA_KEEP);
   made.forEach(req=>logAudit(c,'Approval requested',
     `${me.name} asked ${req.approverName||'an admin'} to approve before anyone signs — for `
     +`${saShowsLine(c,req.shows)}, the wording as it stands`+(text?` — “${text}”`:'')));
@@ -628,9 +642,8 @@ async function signApprovalDecide(c, reqId, verdict, note){
   if(as==='admin' && !text){ toast(i18t('sa_admin_needs_why',{who:row.req.approverName||i18t('sa_admins')}),'warn'); return false; }
   const live=(c.signApprovals||[]).find(x=>x&&x.id===reqId);
   if(!live){ toast(i18t('sa_gone'),'warn'); return false; }
-  live.status=verdict==='approved'?'approved':'refused';
-  live.decidedBy={ id:String(me.id), name:me.name||'', role:me.role||'' };
-  live.decidedAt=nowISO(); live.as=as; live.decision=text||null;
+  /* The answer, through the one ask writer: the list and the request. */
+  askAnswer(c, reqId, { state:verdict==='approved'?'yes':'no', by:me, role:me.role||'', as, why:text||null });
   const cap=as==='backup'?` as the backup for ${row.req.approverName}`:as==='admin'?` as an admin, in ${row.req.approverName||'the approver'}’s place`:'';
   if(verdict==='approved') logAudit(c,'Approved',
     `Signing approved by ${me.name}${cap} — for ${saShowsLine(c,live.shows)}, the wording as it stands`+(text?` — “${text}”`:''));
@@ -650,7 +663,7 @@ function signApprovalWithdraw(c, reqId){
   const live=(c&&c.signApprovals||[]).find(x=>x&&x.id===reqId);
   if(!live||live.status!=='pending'||!me){ toast(i18t('sa_gone'),'warn'); return false; }
   if(!(String((live.askedBy||{}).id)===String(me.id) || me.role==='admin')){ toast(i18t('sa_withdraw_not_you'),'warn'); return false; }
-  live.status='withdrawn';
+  askAnswer(c, reqId, { state:'withdrawn', by:me });
   logAudit(c,'Approval withdrawn',`${me.name} withdrew the request asking ${live.approverName||'an admin'} to approve before signing`);
   persist(c);
   toast(i18t('sa_withdrawn_toast'),'ok');

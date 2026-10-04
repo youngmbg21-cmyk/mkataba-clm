@@ -1494,7 +1494,11 @@ function deskStampOnFile(c, side, ch){
   if (!me || !me.id) return null;
   if (deskIsLead(c, me)) return null;
   if (!deskHasSeat(c, me)) return null;
-  ch.suggested = { by: String(me.name || ''), byId: me.id, at: _dkNow() };
+  /* THE QUESTION TO THE LEAD, through the one ask writer (js/asks.js, 4 Oct
+     2026): a row on c.asks and the stamp on the change, its mirror — the
+     stamp first, so the change is never on the record unstamped. */
+  window.askOpen(c, { kind: 'suggest', of: [ch.id], by: { id: me.id, name: String(me.name || '') },
+    to: { role: 'lead' }, at: _dkNow(), stamp: ch.hash || null, target: ch, mirror: { byId: me.id } });
   return ch.suggested;
 }
 /* WHO MAY RULE ON ONE. The lead, and an admin — the same two deskMayManage
@@ -1535,10 +1539,9 @@ function deskAdoptSuggestion(c, changeId){
       : 'dk_sg_lead_only', { who: (deskLead(c) || {}).name || '' }), 'err');
     return null;
   }
-  g.adoptedAt = _dkNow();
-  g.adoptedBy = String((me && me.name) || '');
-  g.why = null;
-  g.returnedAt = null;
+  /* Adopted, through the one ask writer: yes on c.asks, dated on the stamp. */
+  window.askAnswer(c, 'sg:' + ch.id, { state: 'yes', at: _dkNow(), target: ch,
+    by: { id: me && me.id, name: String((me && me.name) || '') } });
   _dkAudit(c, 'Suggestion adopted',
     `${ch.clauseLabel || ch.clauseId || changeId} — ${g.by}'s wording adopted by ${g.adoptedBy}`);
   _dkSave(c);
@@ -1562,9 +1565,10 @@ function deskReturnSuggestion(c, changeId, why){
   }
   const reason = _dkClamp(why, DK_WHY_MAX);
   if (!reason) { _dkSay(i18t('dk_sg_why_needed'), 'err'); return null; }
-  g.why = reason;
-  g.returnedAt = _dkNow();
-  g.returnedBy = String((me && me.name) || '');
+  /* Handed back, through the one ask writer: returned on c.asks, with the
+     reason, and on the stamp. */
+  window.askAnswer(c, 'sg:' + ch.id, { state: 'returned', at: _dkNow(), why: reason, target: ch,
+    by: { id: me && me.id, name: String((me && me.name) || '') } });
   _dkAudit(c, 'Suggestion handed back',
     `${ch.clauseLabel || ch.clauseId || changeId} — back to ${g.by}: ${reason}`);
   _dkSave(c);

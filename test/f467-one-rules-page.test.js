@@ -20,7 +20,7 @@ const vm = require('node:vm');
 const { JSDOM } = require('jsdom');
 
 const ROOT = path.join(__dirname, '..');
-const FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/signapproval.js', 'js/signcheck.js',
+const FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/asks.js', 'js/signapproval.js', 'js/signcheck.js',
   'js/approvals.js', 'js/views/settings.js'];
 
 function stage(opts = {}) {

@@ -37,7 +37,7 @@ const S = require('../js/i18n.js').STRINGS.en;
 /* ============================================================
    THE MODEL AND THE SCREENS
    ============================================================ */
-const MODEL_FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/approvals.js', 'js/views/settings.js'];
+const MODEL_FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/asks.js', 'js/approvals.js', 'js/views/settings.js'];
 
 function stage(opts = {}) {
   const dom = new JSDOM('<!doctype html><html><body><div id="content"></div></body></html>',
