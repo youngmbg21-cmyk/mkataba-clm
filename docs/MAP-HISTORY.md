@@ -26902,3 +26902,11 @@ So Copilot builds cards on fields that work: every board question now carries `s
 - A cap is a fact: the browser stops at HB_GUIDE_MAX (3000) and says how many lines it left out; the server clamps at GRAPH_GUIDE_MAX (3200) and says the guide was cut, and adds one instruction — build cards on fields the guide shows as filled.
 - Board only: off the board no guide travels and the server prints none.
 - Red at main: f498 6 of 6.
+
+## CHECK AND REPAIR (work order Part 4, built 4 Oct 2026 overnight)
+
+The LIDA pattern: nothing wrong reaches the board quietly. ONE checker, `hbCardCheck(D, raw, spec)`, reads a card's recipe against the book and returns problems in plain words: no contracts ("no contracts could be found for …" when the words name nothing); nothing in the period; a picture or split that cannot be drawn as asked (a ring split by month — the planner quietly moved the split, so the asked split is compared too); parts the planner dropped; money this reader may not see; more than 25 groups with no top N; a date missing for more than half the set (the signing date is measured over signed contracts; a start date falls back to signing, as hbStartOf does — the test first expected 40 of 40 and the checker rightly said 34); a trend with fewer than six months that hold contracts; a word the cleaner dropped.
+
+- Copilot's answer is checked before it is applied (`hbBoardTakesChecked`): the good actions apply; the bad go back to Copilot ONCE through the panel's own payload with the failing recipes and reasons (`hbRepairNote`); the retry costs one more call and the panel says "One retry ran: n cards went back to Copilot to be fixed"; what still fails (or never came back) is not applied and is said one line each ("Could not add “Starts by month”: the start date is missing for 20 of 20 contracts."). HaTi's lines come first, Copilot's sentence last. No band, no dialog.
+- The free reader's cards go through the same checker: drawn as asked, no retry, and the answer adds "Drawn, but …".
+- Red at main: f499 7 of 8; the browser check stops at "the board has no checker".

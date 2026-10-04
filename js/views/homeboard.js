@@ -3967,6 +3967,117 @@ function hbBoardTakes(res){
   return r.html + tail;
 }
 
+/* ============================================================
+   CHECK AND REPAIR (work order Part 4, 4 Oct 2026; the LIDA pattern:
+   "Nothing wrong reaches the board quietly")
+   ============================================================
+   ONE checker, hbCardCheck, reads a card's recipe against the book and
+   returns its problems in plain words: no contracts; nothing in the period;
+   a picture that cannot show this split; money this reader may not see; too
+   many groups to read; a date that is mostly empty; a trend with no history;
+   a word the board does not know. Copilot's cards are checked before they
+   are applied: what fails goes back to Copilot ONCE (hbBoardTakesChecked),
+   the retry is said, and what still fails is NOT applied — one line each.
+   The free reader's cards go through the same checker: no retry, the same
+   line. */
+const HB_CHK_GROUPS_MAX = 25, HB_CHK_EMPTY_SHARE = 0.5;
+function hbCardCheck(D, raw, spec){
+  const out = [], say = (k, vars) => out.push({ k, say: i18t('hb_chk_' + k, vars || {}) });
+  const s = hbS(), money = hbMoneyOk();
+  const r = raw && typeof raw === 'object' ? raw : {};
+  /* a word the board does not know: what the cleaner dropped */
+  const clean = hbCardClean(r);
+  const known = Object.keys(r).filter(k => k !== 'target' && k !== 'which');
+  const lost = known.filter(k => !(k in clean));
+  if (lost.length) say('unknown', { what: lost.join(', ') });
+  if (r.measure === 'value' && !money) say('money');
+  if (!D){ say('empty'); return out; }
+  const P = hbCardPlan(spec || Object.assign(hbPlanSpec(D), clean), D);
+  const cs0 = hbListOf(D.ids || [], s.lens);
+  if (!cs0.length){ say('empty'); return out; }
+  /* the picture asked for, or the split asked for, is not what can be drawn */
+  const splitMoved = clean.split && clean.split.by !== 'none' && JSON.stringify(clean.split) !== JSON.stringify(P.split) && JSON.stringify(clean.split) !== JSON.stringify(P.split2);
+  if ((clean.pic && clean.pic !== P.pic && !(clean.pic === 'bars' && P.pic === 'cols')) || (clean.pic && splitMoved))
+    say('pic', { pic: i18t('hb_pic_' + (clean.pic === 'cols' ? 'cols_m' : clean.pic)), split: hbSplitWord(clean.split || P.split).toLowerCase() });
+  if (P.dropped && P.dropped.length) say('dropped', { what: P.dropped.map(k => i18t('hb_part_' + k)).join(', ') });
+  let run = null; try { run = P.pic === 'list' ? null : hbChartRun(D, cs0, P); } catch (_){ run = null; }
+  if (P.window && run && !run.cs.length) say('period', { what: hbWinWord(P.window).toLowerCase() });
+  /* too many groups to read, with no top N */
+  const field = P.split && P.split.by !== 'date' && P.split.by !== 'valueBand' ? P.split.by : null;
+  if (field && !P.top){ const g = new Set((run ? run.cs : cs0).map(c => hbGroupOf(c, field))).size; if (g > HB_CHK_GROUPS_MAX) say('groups', { n: _hbN(g), max: HB_CHK_GROUPS_MAX }); }
+  /* a date that is mostly empty: the split's, else the period's */
+  const date = P.split && P.split.by === 'date' ? P.split.date : P.window ? P.window.date : null;
+  if (date){ const base = date === 'signed' ? cs0.filter(c => c.status === 'Signed' || hbDateOf(c, 'signed')) : cs0;
+    const none = base.filter(c => !hbDateOf(c, date)).length;
+    if (base.length && none / base.length > HB_CHK_EMPTY_SHARE) say('date', { date: i18t('hb_dtn_' + date), n: _hbN(none), t: _hbN(base.length) }); }
+  /* a trend with no history */
+  if (P.trend && run && run.R && Array.isArray(run.R.cols)){
+    const filled = run.R.cols.filter(c => c.k && !c.sofar).length;
+    if (filled < HB_TREND_MIN_PTS) say('trend', { need: HB_TREND_MIN_PTS, n: _hbN(filled) });
+  }
+  return out;
+}
+/* the card an action would make, checked: a new card over its set, or a
+   change to a card that is there */
+function hbActionCheck(a){
+  const s = hbS();
+  if (a.do === 'add_card'){
+    const W = hbWhichOf(a.which || { all: true }, s.lens);
+    if (W.unread) return [{ k: 'which', say: i18t('hb_chk_which', { what: W.label }) }];
+    const D = { key: 'chk:new', kind: 'list', ids: W.ids, n: W.ids.length, fixed: W.fields, chart: hbCardClean(a.recipe || {}) };
+    return hbCardCheck(D, a.recipe || {});
+  }
+  if (a.do === 'change_card'){
+    const C = hbCardRef(a.card || 'open'); if (!C || !C.key) return [];       /* said by the applier */
+    const D = hbDigData(C.key, s.lens);
+    return hbCardCheck(D, a.recipe || {}, Object.assign(hbPlanSpec(D), hbCardClean(a.recipe || {})));
+  }
+  return [];
+}
+function hbActionsCheck(actions){
+  const bad = [];
+  (actions || []).forEach((raw, i) => { const a = hbActionClean(raw) || raw; const p = a && a.do ? hbActionCheck(a) : [];
+    if (p.length) bad.push({ i, a: raw, problems: p }); });
+  return bad;
+}
+/* what Copilot is told when its cards come back: the recipe and the reason */
+function hbRepairNote(bad){
+  return ['HaTi checked your board actions and did not apply these (nothing else was changed for them):']
+    .concat(bad.map((b, j) => `${j + 1}. ${JSON.stringify(b.a).slice(0, 600)} — ${b.problems.map(p => p.say).join('; ')}`))
+    .concat(['Send corrected actions for these cards only, in actions. Use fields the data guide shows as filled; for many groups add a top N.']).join('\n');
+}
+function hbActionTitle(a){ const t = a && (a.title || (a.recipe && a.recipe.title)); return t ? String(t).slice(0, HB_TITLE_MAX) : (a && a.card ? String(a.card) : i18t('hb_chk_card')); }
+/* COPILOT'S ANSWER, CHECKED: the good actions apply; the bad go back ONCE;
+   what still fails is said and not applied */
+async function hbBoardTakesChecked(res, retry){
+  const s = hbS(); if (s.face !== 'board' || !res) return null;
+  if (!Array.isArray(res.actions) || !res.actions.length) return hbBoardTakes(res);
+  const bad = hbActionsCheck(res.actions);
+  if (!bad.length) return hbBoardTakes(res);
+  const good = res.actions.filter((a, i) => !bad.some(b => b.i === i));
+  let fixed = [], ran = false, still = bad;
+  if (typeof retry === 'function'){
+    let res2 = null;
+    try { res2 = await retry(hbRepairNote(bad)); ran = true; } catch (_){ res2 = null; ran = true; }
+    const again = res2 && Array.isArray(res2.actions) ? res2.actions : [];
+    const bad2 = hbActionsCheck(again);
+    fixed = again.filter((a, i) => !bad2.some(b => b.i === i));
+    /* a card still wrong is said with its second problem; one that never
+       came back is said with its first */
+    const missing = Math.max(0, bad.length - (fixed.length + bad2.length));
+    still = bad2.concat(missing ? bad.slice(bad.length - missing) : []);
+  }
+  const lines = [];
+  if (ran) lines.push(i18tn('hb_chk_retried', bad.length, { n: _hbN(bad.length) }));
+  still.forEach(b => lines.push(i18t(b.a && b.a.do === 'change_card' ? 'hb_chk_not_changed' : 'hb_chk_not_added', { what: hbActionTitle(b.a), why: b.problems.map(p => p.say).join('; ') })));
+  /* HaTi's lines first — what was done, the retry, what was not — then Copilot's own sentence */
+  const applied = good.concat(fixed);
+  const said = applied.length ? hbBoardTakes(Object.assign({}, res, { actions: applied, answer: '' })) : null;
+  const own = String(res.answer || '').trim();
+  const tail = own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : '';
+  return [said, lines.map(l => _hbE(l)).join('<br>')].filter(Boolean).join('<br>') + tail;
+}
+
 /* ---- THE BOARD'S TOOLS, AS COPILOT IS GIVEN THEM (the server's list is the same, f497) ---- */
 const HB_BOARD_ACTIONS = ['add_card', 'change_card', 'remove_card', 'arrange', 'name_card', 'filter_board'];
 const HB_ACTIONS_MAX = 12;
@@ -4202,10 +4313,14 @@ function hbAsk(q){
     hbDig(r.key, false);
     if (/^f:/.test(r.key)) return say(_hbE(hbFigSay(r.key.slice(2))), { noPaint: true });
     const D = hbDigData(r.key, s.lens) || { n: 0, title: '' };
+    /* THE FREE READER'S CARD IS CHECKED TOO (work order Part 4): no retry —
+       it is drawn as asked — and what is wrong with it is said, the same line */
+    let warn = '';
+    if (/^q:/.test(r.key) && D.kind === 'list' && D.n){ try { const pr = hbCardCheck(D, {}, hbPlanSpec(D)); if (pr.length) warn = ' ' + _hbE(i18t('hb_chk_free', { why: pr.map(p => p.say).join('; ') })); } catch (_){ warn = ''; } }
     /* a question about money is answered with the money, not only a count */
     if (D.kind === 'list' && hbMoneyOk() && hbPlan(D).measure === 'value')
-      return say(_hbE(i18tn('hb_found_n_value', D.n, { n: _hbN(D.n), what: D.title || '', v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) })), { noPaint: true });
-    return say(_hbE(i18tn('hb_found_n', D.n, { n: _hbN(D.n), what: D.title || '' })), { noPaint: true });
+      return say(_hbE(i18tn('hb_found_n_value', D.n, { n: _hbN(D.n), what: D.title || '', v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) })) + warn, { noPaint: true });
+    return say(_hbE(i18tn('hb_found_n', D.n, { n: _hbN(D.n), what: D.title || '' })) + warn, { noPaint: true });
   }
   return null;
 }
@@ -4532,4 +4647,5 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbGroupsCut, hbGroupsSorted, hbIsGroupDim, hbRestDig, hbKeptGroups, hbSeriesOf, hbXOf, hbCellDig, hbStackSvg, hbHeatSvg, hbCompareSvg, hbCmpChange, hbChartRun,
   hbCardEdit, hbHowWord, hbRecipeWords, hbSplitModelWord, hbOrderWord, hbReadCompareOf, hbReadTwoOf, hbReadingCore, hbRcCur, hbRcCurHas,
   hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,
-  HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide });
+  HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide,
+  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked });

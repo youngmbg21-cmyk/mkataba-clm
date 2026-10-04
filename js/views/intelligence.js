@@ -1983,13 +1983,13 @@ function igBoardGuide(){
 }
 async function intelGraphAsk(q){
   const act=intelActive();
-  let res=null, capped=null;
+  let res=null, capped=null, payload=null;
   if(API_MODE() && state.aiConfigured){
     try{
       const all=state.contracts||[];
       const cards=all.slice(0,GRAPH_ASK_CAP).map(graphCopilotCard);
       if(all.length>cards.length) capped={ sent:cards.length, total:all.length };
-      const payload={ query:q, contracts:cards, sent:cards.length, total:all.length,
+      payload={ query:q, contracts:cards, sent:cards.length, total:all.length,
         history: intel.history.slice(-9,-1).filter(m=>m.text).map(m=>({role:m.role,text:m.text})),
         activeIds: act.ids?[...act.ids]:null,
         screen: graphAskScreen() };
@@ -2012,8 +2012,12 @@ async function intelGraphAsk(q){
   /* ASKED ON THE BOARD, COPILOT PRESSES THE BOARD'S BUTTONS (4 Oct 2026): a
      chart-only answer changes the open chart (or draws a new one) and the map
      is left exactly as it was */
+  /* CHECK AND REPAIR (work order Part 4): Copilot's cards are checked before
+     they are applied; what fails goes back ONCE, at the cost of one more
+     call, and the panel says so */
   if(res&&igBoardNow()&&typeof window.hbBoardTakes==='function'){
-    let said=null; try{ said=hbBoardTakes(res); }catch(_){ said=null; }
+    const retry=payload?(note=>api('ai/graph','POST',Object.assign({},payload,{ query:q+'\n\n'+note, screen:graphAskScreen() }))):null;
+    let said=null; try{ said=(typeof window.hbBoardTakesChecked==='function')?await hbBoardTakesChecked(res,retry):hbBoardTakes(res); }catch(_){ said=null; }
     if(said){ intel.history.push({ role:'assistant', text:said+igNoticeHtml(res.notice) }); return; }
   }
   if(!res){ res=graphInterpret(q);           // fallback
