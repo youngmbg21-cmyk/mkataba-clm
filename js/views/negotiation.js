@@ -13329,7 +13329,11 @@ function redlineDocHtml(c, opts = {}){
     </header>
     ${front.bodyHtml ? `<div class="rl-recital" data-anchor="recital">${front.bodyHtml}</div>` : ''}${
       frontCl ? cpPush(frontCl, frontChs) : ''}`
-    : `<header class="rl-paper-head">
+    /* `rl-paper-label` (4 Oct 2026, f492): this head is made from the RECORD,
+       not from the document's wording, and the Word writer marks it as the
+       paper's own so a file sent back is not read as two new clauses. No rule
+       draws it; it changes nothing on screen. */
+    : `<header class="rl-paper-head rl-paper-label">
       <h3 class="rl-paper-title">${_ne(c.name || tmpl)}</h3>
       <p class="rl-paper-sub">${_ne(tmpl)}${lawHtml}</p>
     </header>`;

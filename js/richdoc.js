@@ -550,6 +550,12 @@ function _listMark(list, index, path, ulDepth){
   const next = dotted ? path.concat([mark]) : [];
   return { prefix: dotted ? next.join('.') + '. ' : mark + '. ', next };
 }
+/* ---- AND THE WORD FILE PRINTS THE SAME MARK (4 Oct 2026, f492) ----
+   A list item leaves HaTi in a .docx carrying THIS marker as its own text, so
+   the file reads back with exactly the numbers the record's projection has.
+   Published under a name of its own for js/docx.js, which asks it at call
+   time through `window`: one reading, three walks. */
+const richListMark = _listMark;
 function richToText(html){
   const root=_parseInert(sanitizeRich(html));
   const lines=[];
@@ -1378,5 +1384,7 @@ Object.assign(window,{RICH_TAGS,
   sanitizeRich,docFormat,isRich,renderDocHtml,richToText,docContentText,
   RICH_SHAPE_CLASSES,RICH_TOC_TAIL_CLASS,RICH_WFIELD_CLASS,RICH_WFIELD_NAME_ATTR,RICH_FIELD_DONE_CLASS,richBlockClass,
   canonicalRich,canonicalDocString,richFromTextEdit,markPlaceholders,unmarkPlaceholders,fillRichBody,richPlaceholders,textToRich,
+  /* the Word writer prints a list item's marker through this (4 Oct 2026, f492) */
+  richListMark,
   /* the clause editor's painter reads the projection off the live box through this (14 Sep 2026) */
   _lineUnits});
