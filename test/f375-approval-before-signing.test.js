@@ -453,7 +453,7 @@ describe('f375 (7) the server is the wall', () => {
     assert.equal((await put(W.unrestricted, c)).status, 200);
     /* Backdate the ask, as a week passing would. */
     const { DatabaseSync } = require('node:sqlite');
-    const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const db = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     const row = db.prepare("SELECT json FROM contracts WHERE id='MK-A2'").get();
     const j = JSON.parse(row.json);
     j.signApprovals.find(x => x.id === 'sa_t3').askedAt = new Date(Date.now() - 12 * 86400000).toISOString();

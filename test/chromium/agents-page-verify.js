@@ -359,7 +359,7 @@ const ok = (name, good, detail) => {
     });
     ok('10 the stage: a contract read on arrival, and a second with only a brief', !!fresh, JSON.stringify(fresh));
     if (fresh) {
-      const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+      const db = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
       /* THE SERVER IS STILL A WRITER (30 Sep 2026): this connection had no busy
          timeout, so a write landing while the server held the lock (the
          arrival read, a save) was refused at once — "database is locked" on

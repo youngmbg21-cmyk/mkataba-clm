@@ -288,7 +288,7 @@ describe('f463 (5) our signer reads the brief, at the wall too', () => {
   test('5b a brief that stands and is unread holds the in-app signature; the stamp lets it go', async () => {
     const at = new Date(Date.now() - 60000).toISOString();
     const { DatabaseSync } = require('node:sqlite');
-    const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const db = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     db.prepare('INSERT OR REPLACE INTO briefs (contract_id, json, created_at) VALUES (?,?,?)')
       .run(ID, JSON.stringify({ v: 1, at, by: 'Copilot', truncated: false, data: {} }), at);
     db.close();

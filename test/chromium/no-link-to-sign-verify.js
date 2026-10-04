@@ -86,7 +86,7 @@ const inRound = (id, name, cp) => {
     const ns1 = await mint('MK-NS1', { purpose: 'sign', durable: false, signerId: 'sg-cp-1', recipient: { name: 'Grace Njeri', email: 'grace@savanna.example' } });
     await W.admin.json('/api/shares/' + ns1.token + '/revoke', { method: 'POST', body: {} });
     /* NL1's standing link ran out three days ago — a row backdated, as time passing would. */
-    const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const db = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     db.prepare('UPDATE shares SET expires_at=?, created_at=? WHERE token=?').run(iso(-3), iso(-8), nl1.token);
     db.close();
 

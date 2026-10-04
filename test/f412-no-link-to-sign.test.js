@@ -82,7 +82,7 @@ describe('f412 (1) — can the other side still answer: the server works it out'
     h = await startHati();
     W = await seedWorkspace(h, { approvalRules: [] });
     const { DatabaseSync } = require('node:sqlite');
-    db = () => new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    db = () => (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
   });
   after(async () => { await h.stop(); });
   const put = c => W.admin.json('/api/contracts/' + c.id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });

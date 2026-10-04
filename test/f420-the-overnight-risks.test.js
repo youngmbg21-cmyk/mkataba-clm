@@ -80,7 +80,7 @@ describe('f420 — the server halves', () => {
     const tok = await mint('advise', FULL('MK-ADV-2'));
     await W.admin.json('/api/contracts/MK-ADV-2', { method: 'DELETE' });
     const { DatabaseSync } = require('node:sqlite');
-    const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'), { readOnly: true });
+    const db = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db'), { readOnly: true }));
     const row = db.prepare('SELECT recipient_name, recipient_email FROM shares WHERE token=?').get(tok);
     db.close();
     assert.ok(row, 'the row is kept (it says a link went)');
