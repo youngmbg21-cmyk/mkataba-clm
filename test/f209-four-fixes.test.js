@@ -346,8 +346,11 @@ describe('f209 · a toast says which of three things happened', () => {
     assert.match(portal, /toast\(i18t\('po_ready_toast'[\s\S]{0,300}?\),'ok'\)/,
       'and so does telling them you are ready');
     const nego = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
-    assert.match(nego, /the new baseline for round \$\{negoRound\(c\)\}`, 'ok'\)/,
-      'and closing a round, which is irreversible');
+    /* The Close round button and its toast went on 4 Oct 2026 (f471): a send
+       that hands the table over closes the round itself. What travels still
+       confirms itself — the arrival of their answer, and a decision here. */
+    assert.match(nego, /toast\(i18t\('ng_decided_accepted', \{ what \}\), 'ok'\)/,
+      'and a decision on their ask, which they will see');
   });
 
   test('EVERY DOOR ONTO THE POSTBOX IS DELEGATED, and there is only one mechanism', () => {

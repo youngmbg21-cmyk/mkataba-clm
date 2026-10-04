@@ -1117,6 +1117,20 @@ function reviewState(c){
   return { ...base, phase: 'none', rv: last || null, total: scope.all.length, marked: 0 };
 }
 
+/* ---- A REVIEW THAT CAME BACK TO THE PERSON WHO ASKED (4 Oct 2026) ----
+   The bell's `review-back` row. Handed back, asked by this reader (and not
+   their own review of their own ask), its clauses still on the table — the
+   banner's own "news stops being news" rule — and not yet acted on: a send
+   since the hand-back is the work it was waiting for. Read RAW, like every
+   reading the bell asks across the book. */
+function reviewReturnedTo(c, u){
+  const me = u || _rvMe();
+  if (!me) return [];
+  const sent = (c && c.negotiation && c.negotiation.turnAt) || '';
+  return reviewRequests(c).filter(r => r && r.status === 'returned'
+    && reviewIsRequester(r, me) && !reviewIsReviewer(r, me) && reviewInPlay(c, r).length
+    && !(sent && r.returnedAt && String(sent) > String(r.returnedAt)));
+}
 /* Contracts sitting on this person's desk. Read by the dashboard, and by
    nothing else — it is a filter over state.contracts, which the server has
    already scoped, so it can only ever list paper the reader may see. */
@@ -1838,7 +1852,11 @@ function openReviewAskModal(c, opts = {}){
     _rvSay(notice && notice.kind === 'sent'
       ? i18t('rv_sent_mailed', { who: rv.reviewer.name })
       : `${i18t('rv_sent_quiet', { who: rv.reviewer.name })} ${(st && st.text) || ''}`.trim(),
-      notice && notice.kind === 'refused' ? 'err' : undefined);
+      /* SAID EVERY TIME (4 Oct 2026): the ask is filed either way, so it is
+         'ok' when the mail went or none was wanted, 'warn' when one was
+         wanted and did not go (the outbox, a failure), 'err' on a refusal. */
+      notice && notice.kind === 'refused' ? 'err'
+        : (notice && notice.kind === 'sent') || !out.wanted ? 'ok' : 'warn');
     done();
   });
 }
@@ -1985,7 +2003,7 @@ function openReviewReturnModal(c, opts = {}){
     if (!done) return;
     _rvSave(c);
     window.closeModal();
-    _rvSay(i18t('rv_returned_toast', { who: done.by }));
+    _rvSay(i18t('rv_returned_toast', { who: done.by }), 'ok');
     if (typeof opts.after === 'function') opts.after();
   });
 }
@@ -2053,7 +2071,7 @@ function reviewWireCards(c, host, opts = {}){
       const rv = reviewOpenList(c).find(r => r.id === reviewId);
       if (!rv) return;
       const go = ok => { if (!ok) return;
-        if (reviewCancel(c, { reviewId })){ _rvSave(c); _rvSay(i18t('rv_cancelled_toast')); again(); } };
+        if (reviewCancel(c, { reviewId })){ _rvSave(c); _rvSay(i18t('rv_cancelled_toast'), 'ok'); again(); } };
       if (window.confirmDialog){
         window.confirmDialog({ title: i18t('rv_cancel_confirm_title'),
           message: reviewCancelCost(c, rv),
@@ -2088,7 +2106,7 @@ function reviewWireCards(c, host, opts = {}){
         Promise.resolve(reviewRemind(c, { reviewId })).then(() => again(), () => { act.disabled = false; });
       }
       else if (what === 'rv-cancel'){
-        if (reviewCancel(c, { reviewId })){ _rvSave(c); _rvSay(i18t('rv_cancelled_toast')); again(); }
+        if (reviewCancel(c, { reviewId })){ _rvSave(c); _rvSay(i18t('rv_cancelled_toast'), 'ok'); again(); }
       }
     }
   });
@@ -2104,7 +2122,7 @@ Object.assign(window, {
   reviewActorHeld, reviewActorIsHeld, reviewActorBlockMessage, reviewMyChangeIds,
   reviewOpenList, reviewOpenFor, reviewMineOpen, reviewNames, reviewWaitingOn,
   reviewInPlay, reviewSpent,
-  reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds,
+  reviewInOpen, reviewOutFor, reviewAwaiting, reviewSendWarning, reviewWithheldIds, reviewReturnedTo,
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
   reviewNoteDelivery, reviewDeliveryState, reviewDaysWaiting, reviewRemind,
   reviewCardCancelHtml, reviewCancelCost, reviewWantsAttention,

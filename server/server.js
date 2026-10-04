@@ -1311,9 +1311,35 @@ function rvUnsentOurs(c){
      different definition here and the server would withhold changes the browser
      believes it sent, or pass ones it believes it is holding. */
   const at = (c && c.negotiation && c.negotiation.turnAt) || null;
+  /* AND WHAT A SEND KEPT BACK STAYS UNSENT (4 Oct 2026). negoHandOver records
+     the ids it withheld as negotiation.keptIds; measured against the stamp
+     alone they read as sent on the very next send, and this route stopped
+     stripping them — a reviewer's hold lasted exactly one send. */
+  const kept = new Set(((c && c.negotiation && Array.isArray(c.negotiation.keptIds)) ? c.negotiation.keptIds : []).map(String));
   return (Array.isArray(c && c.changes) ? c.changes : []).filter(x =>
     x && x.status === 'pending' && x.authorSide !== 'counterparty'
-    && (at ? String(x.createdAt || '') > String(at) : true));
+    && (!at || kept.has(String(x.id)) || String(x.createdAt || '') > String(at)));
+}
+/* ---- A SAVE DOES NOT WIPE WHAT A SEND KEPT BACK (4 Oct 2026) ----
+   The stored list is carried through an ordinary save for every id that is
+   STILL withheld on the record being saved — a hold, an open review with no
+   verdict yet, an open suggestion. A browser holding the record from before
+   the send would otherwise save it back without the list, and the change
+   would read as sent. An id whose reason has gone may drop: that is the send
+   that carries it. Asked of the incoming record, so the reasons are the ones
+   the guards around this route have already accepted. */
+function rvKeptCarry(prev, next){
+  const had = (prev && prev.negotiation && Array.isArray(prev.negotiation.keptIds)) ? prev.negotiation.keptIds.map(String) : [];
+  if (!had.length || !next || !next.negotiation || typeof next.negotiation !== 'object') return;
+  const now = new Set((Array.isArray(next.negotiation.keptIds) ? next.negotiation.keptIds : []).map(String));
+  const byId = new Map((Array.isArray(next.changes) ? next.changes : []).filter(x => x && x.id != null).map(x => [String(x.id), x]));
+  const stillBack = ch => rvHeld(ch) || (!rvVerdict(ch) && !!rvOpenFor(next, ch.id))
+    || (deskRuleOn() && deskIsClaimed(next) && dkSuggestionOpen(ch));
+  for (const id of had){
+    const ch = byId.get(id);
+    if (ch && ch.status === 'pending' && ch.authorSide !== 'counterparty' && stillBack(ch)) now.add(id);
+  }
+  if (now.size) next.negotiation.keptIds = [...now]; else delete next.negotiation.keptIds;
 }
 /* TWO REASONS A CHANGE STAYS BEHIND, and they are one answer here. HELD is a
    refusal. OUT is in flight — wording read by the counterparty while a
@@ -4235,6 +4261,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      a colleague arrived would echo back a map without them — taking somebody
      out of a room they are sitting in. The STORED map wins, always. */
   if (prev && prev.here) c.here = prev.here; else delete c.here;
+  /* What a send kept back stays kept back through a save — see rvKeptCarry. */
+  rvKeptCarry(prev, c);
   /* ---- A CHASE ALREADY SENT IS NOT UNDONE BY A SAVE (27 Sep 2026) ----
      Late promises sends the first chase by itself and stamps it on the STORED
      obligation; a browser holding the record from before would save it back

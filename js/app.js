@@ -1762,6 +1762,17 @@ const ALERT_KINDS = [
      that NAME you and remembers per browser; this counts notes somebody
      handed you, reads the record, and clears when the note is done. */
   { k:'note-mine',   tone:'amber', ic:'&#128221;' },
+  /* ---- WHAT A COLLEAGUE HANDED BACK, AND WHAT WAITS ON THE LEAD (4 Oct 2026) ----
+     Three more colleagues waiting on this reader by name, so they rank with
+     the others, after the note (the join stays pinned beside review-mine):
+     a contributor's suggestion waiting for the lead to adopt or hand back; a
+     review handed back to the person who asked for it, whose move it now is;
+     and a suggestion handed back to its author with a reason. Amber: work
+     owed. Each clears only by the work being done — adopting, sending,
+     filing again. */
+  { k:'suggest',     tone:'amber', ic:'&#128161;' },
+  { k:'review-back', tone:'amber', ic:'&#8617;'  },
+  { k:'suggest-back',tone:'amber', ic:'&#8617;'  },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
   /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
      A REGISTERED KIND, not a special case at the draw. It arrived as a warn
@@ -1976,6 +1987,28 @@ function buildAlerts(){
       (st.waiting||[]).filter(rv=>!window.reviewMaySee||reviewMaySee(rv)).forEach(rv=>push('review-out',c,
         i18t('al_review_out',{who:rv.reviewer&&rv.reviewer.name}),
         ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); }));
+      /* AND ONE THAT CAME BACK, to the person who asked (reviewReturnedTo). */
+      let back=[]; try{ back=window.reviewReturnedTo?reviewReturnedTo(c):[]; }catch(_){ back=[]; }
+      back.forEach(rv=>push('review-back',c,
+        i18t('al_review_back',{who:rv.returnedBy||(rv.reviewer&&rv.reviewer.name)||''}),
+        ()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); }));
+    });
+  }
+  /* 3a. A colleague's suggestion waiting on the lead, and one handed back to
+         its author (js/desk.js). Both read c.changes RAW and answer [] where
+         the desk rule is off or the contract has no desk — counting starts no
+         negotiation. One row per contract, the door the negotiate page. */
+  if(window.deskSuggestionsFor || window.deskSuggestionsBackTo){
+    cs.forEach(c=>{
+      if(!c || !c.desk) return;
+      let wait=[], back=[];
+      try{ wait=window.deskSuggestionsFor?deskSuggestionsFor(c):[]; }catch(_){ wait=[]; }
+      try{ back=window.deskSuggestionsBackTo?deskSuggestionsBackTo(c):[]; }catch(_){ back=[]; }
+      const go=()=>{ if(window.openRedlineWorkbench) openRedlineWorkbench(c.id); };
+      if(wait.length) push('suggest',c,i18tn('al_suggest',wait.length,{ n:wait.length,
+        who:(wait[0].suggested&&wait[0].suggested.by)||'' }),go);
+      if(back.length) push('suggest-back',c,i18tn('al_suggest_back',back.length,{ n:back.length,
+        who:(back[0].suggested&&back[0].suggested.returnedBy)||'' }),go);
     });
   }
   /* 3b. Notes a colleague gave this reader. negoNotesForMe reads c.thread and
