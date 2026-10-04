@@ -83,7 +83,13 @@ const HOOK_TOASTS = () => { window.__toasts = [];
 
     /* ---- 1 & 2: the dialog says where you are, and offers two ways out ---- */
     await page.evaluate(() => window.runMetaBackfill({ missingCategory: true }));
-    await page.waitForTimeout(900);
+    /* A WAIT ASKS FOR THE STATE, BOUNDED: a fixed pause read an empty dialog
+       on a busy CI runner. */
+    const atStep = n => page.waitForFunction(k => {
+      const h = (document.querySelector('#modal-root h3') || {}).parentElement;
+      return !!document.getElementById('mr-save') && !!h && new RegExp('(?:^|\\D)' + k + ' of \\d+').test(h.textContent);
+    }, n, { timeout: 10000 }).then(() => true, () => false);
+    await atStep(1);
     let m = await page.evaluate(OPEN);
     check('the queue opens a dialog', m.up, `${waiting} contracts waiting`);
     check('it says where you are in the queue', /(?:^|\D)1 of \d+/.test(m.head), m.head.replace(/\s+/g, ' ').slice(0, 60));
@@ -92,7 +98,7 @@ const HOOK_TOASTS = () => { window.__toasts = [];
 
     /* ---- 7: Skip still means next ---- */
     await page.click('#mr-cancel');
-    await page.waitForTimeout(700);
+    await atStep(2);
     m = await page.evaluate(OPEN);
     check('Skip moves on to the next one', m.up && /(?:^|\D)2 of \d+/.test(m.head), m.head.replace(/\s+/g, ' ').slice(0, 60));
 

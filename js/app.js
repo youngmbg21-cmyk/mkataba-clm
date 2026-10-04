@@ -8,6 +8,7 @@ import './outside.js';     // redline here, sign there: the working reference, t
 import './graphwhere.js';   // the graph's structured filter, one predicate for both hosts (Copilot audit phase 4)
 import './roundprep.js';    // Their round came back: one key for an ask of theirs, both hosts (27 Sep 2026)
 import './migread.js';      // Archive import: what an imported contract's reading decides, both hosts (27 Sep 2026)
+import './asks.js';         // one ask record: who was asked, the answer, when and for what — both hosts (4 Oct 2026)
 import './section.js';      // the section grammar: one way of grouping a screen (16 Sep 2026)
 import './core.js';
 /* Who the agreement is BETWEEN: the legal entities on the paper, which is
@@ -151,7 +152,12 @@ import './mobile-portal.js';
    as it had none of its own; it has one now (12 Aug 2026), so it lights itself
    — and a view with its own nav item must never appear in this table, or the
    sidebar points at a door the reader is not standing behind. */
-const NAV_HOME_FOR={ folder:'register', workspace:'register' };
+/* `advice` IS in here (the process review, gap F, 4 Oct 2026): the Advice
+   desk lost its own door and is the Advice tab of Requests, so the view
+   lights the door it now lives behind. setView names the VIEW to this
+   function after the page has painted, so a renderer naming the door is not
+   enough on its own — the table is what keeps the light on. */
+const NAV_HOME_FOR={ folder:'register', workspace:'register', advice:'intake' };
 function setActiveNav(view){
   const navFor = NAV_HOME_FOR[view] || view;
   document.querySelectorAll('.nav-item').forEach(b=>{
@@ -201,7 +207,9 @@ function commandMeta(view){
        so its head carries the page's name, not the tab's. */
     case 'playbook':  return [i18t('nav_tpl_std'), i18t('pg_standards_sub')];
     case 'pipeline':  return [i18t('pg_queue'), i18t('pg_queue_sub')];
-    case 'advice':    return [i18t('nav_advice_desk'), i18t('pg_advice_sub')];
+    /* ONE PAGE (gap F, 4 Oct 2026): the Advice desk is the Advice tab of
+       Requests, so its head carries the page's name, not the tab's. */
+    case 'advice':    return [i18t('nav_intake'), i18t('pg_advice_sub')];
     case 'obligations': return [i18t('nav_obligations'), ''];
     case 'approvals': return [i18t('nav_approvals'), ''];
     case 'brain':     return [i18t('nav_brain'), ''];
@@ -287,7 +295,9 @@ const PAGE_ACTIONS = {
 /* WHICH PAGES PAINT THEIR OWN HEAD SLOTS, and the painter each one answers
    to, by name — asked through window, because not every page's module is on
    every stage. */
-const PAGE_HEAD_PAINT = { obligations:'obwPaintHead', intake:'ikPaintHead', playbook:'pbPaintHead', agents:'agPaintHead' };
+/* `advice` paints an empty line whose room is held (adviceHeadPaint), so
+   the Requests page's tab row sits at one height on both its tabs (gap F). */
+const PAGE_HEAD_PAINT = { obligations:'obwPaintHead', intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -719,8 +729,11 @@ function updateSidebarCounts(){
   const counts={
     register: total,
     pipeline: nc.pipeline,
-    advice: (state.advice||[]).filter(r=>ADVICE_ACTIVE.includes(r.status)).length,
-    intake: (typeof intakeCount==='function')?intakeCount():0,
+    /* ONE DOOR FOR BOTH KINDS OF REQUEST (gap F, 4 Oct 2026): the Advice
+       desk's door is gone and its open requests ride on this one, added to
+       the contract requests — the same total the two doors showed, and the
+       sum of the two tabs the door opens (requestsDoorCount). */
+    intake: (typeof requestsDoorCount==='function')?requestsDoorCount():((typeof intakeCount==='function')?intakeCount():0),
     /* WHAT IS LATE, across the book — the same reading the worklist's own head
        prints, so the door and the page it opens cannot disagree. */
     obligations: (typeof obligationsDoorCount==='function')?obligationsDoorCount():0,
@@ -749,13 +762,16 @@ function updateSidebarCounts(){
   /* Tone of the count pill: teal = size of the portfolio, amber = items
      waiting on a person. A zero drops to neutral so an amber tag never cries
      wolf over an empty queue. */
-  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',advice:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
+  const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
     el.textContent=(v==null||v==='')?'':Number(v).toLocaleString(jxLocale());
     const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
     if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
+  /* …and the Requests page's two tabs, on the same beat, off the same
+     reading, so the door and the tabs it opens cannot disagree. */
+  try{ if(typeof rqPaintKindCounts==='function') rqPaintKindCounts(); }catch(_){}
   /* The bell's badge is refreshed on the same beat as the sidebar counts, and
      for the same reason: this runs on every view change and every save, which
      is exactly when the number can have moved. Nothing marks an alert as seen,
@@ -2254,6 +2270,18 @@ function buildAlerts(){
       push('request',null,i18t('al_request',{title:String(r.title||'')}),
         ()=>{ if(window.intakeGoTo) intakeGoTo(r.id); else setView('intake'); },
         { sub:[who?i18t('al_request_by',{who}):'', age].filter(Boolean).join(' \u00b7 ') });
+    });
+    /* AND A DRAFT A LANE MADE FOR THIS READER (4 Oct 2026): the same kind,
+       to the draft's owner only, until it leaves Drafting. The door is the
+       draft's Overview where the book holds it — where a new draft lands and
+       where its reading is said — else the request. */
+    if(typeof window.intakeLaneDraftRows==='function') intakeLaneDraftRows().forEach(r=>{
+      const c=(state.contracts||[]).find(x=>x&&String(x.id)===String(r.contractId))||null;
+      const who=String((r.by&&r.by.name)||'').trim();
+      push('request',c,i18t('al_lane_draft',{title:String(r.title||'')}),
+        ()=>{ if(c && window.openWorkspace){ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} }
+          else if(window.intakeGoTo) intakeGoTo(r.id); else setView('intake'); },
+        { sub:[i18t('al_lane_draft_sub',{lane:String(r.lane||'')}), who?i18t('al_request_by',{who}):''].filter(Boolean).join(' \u00b7 ') });
     });
   }catch(e){}
   /* ---- EMAIL ISN'T SET UP (owner-ruled 24 Aug 2026: it moves here) ----

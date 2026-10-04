@@ -350,7 +350,13 @@ describe('F88e — the export is a Word file, not a picture of one', () => {
     assert.deepEqual(out.tracked, { ins: 1, del: 1 });
   });
 
-  test('a legal list arrives as a list, against a numbering definition the file ships', () => {
+  /* NARROWED 4 Oct 2026 (f492): this is a BARE require of the writer, with no
+     js/richdoc.js beside it, so there is no list-mark reading to ask and the
+     writer falls back to the automatic list it always wrote. In the product a
+     list item now carries the record's own number as text in a hanging gutter
+     — Word's automatic numbering was invisible to the import's reader — and
+     f492 (3) pins that, on a stage with the reading on it. */
+  test('a legal list arrives as a list — on a bare stage, against a numbering definition the file ships', () => {
     const out = D.docxExportTracked(HTML);
     assert.match(out.xml, /<w:numPr><w:ilvl w:val="0"\/><w:numId w:val="2"\/><\/w:numPr>/);
     assert.equal((out.xml.match(/<w:p>/g) || []).length, 3, 'one paragraph, two list items');

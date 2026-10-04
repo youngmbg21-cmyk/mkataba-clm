@@ -280,7 +280,9 @@ function chainStage(opts = {}) {
   vm.createContext(sb);
   /* js/signapproval.js joined the stage on 23 Sep 2026: the personal step is
      read by it on both hosts (approval before signing). */
-  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/signapproval.js', 'js/approvals.js'])
+  /* js/asks.js joined it on 4 Oct 2026: the one ask record and its lapse
+     rule, which fails closed where it is missing (f487). */
+  for (const f of ['js/i18n.js', 'js/jurisdiction.js', 'js/asks.js', 'js/signapproval.js', 'js/approvals.js'])
     vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sb, { filename: f });
   sb.approvalRules = () => opts.rules || [];
   return { sb, asha, boss, admin };

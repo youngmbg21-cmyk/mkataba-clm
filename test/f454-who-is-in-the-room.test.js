@@ -189,7 +189,10 @@ describe('f454 (4) — reading never writes, and the beat is honest', () => {
     assert.match(fn, /finally \{ _pzBusy = false; \}/);
   });
 
-  test('it asks nothing while the window is hidden', () => {
+  /* RE-WORDED 4 Oct 2026 (f494, gap E): a hidden tab now keeps a slower beat
+     for the reader's own asks for a clause — and that beat says nothing about
+     being here. The claim pinned below is unchanged. */
+  test('it says nothing about being here while the window is hidden', () => {
     const fn = MOD.slice(MOD.indexOf('function presenceStart'), MOD.indexOf('function presenceStop'));
     assert.match(fn, /document\.hidden\) return;/,
       'a tab behind three others is not somebody in the room, and it is the '

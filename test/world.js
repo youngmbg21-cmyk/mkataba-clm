@@ -66,6 +66,10 @@ const MODULES = [
      no dependency of its own and every reader it reaches for is guarded, so a
      world that loads it and never proposes anything is byte-identical. */
   'js/aitrace.js',
+  /* THE ONE ASK RECORD (4 Oct 2026): the review and the desk below write
+     their questions through it, and its lapse rule FAILS CLOSED where it is
+     missing — so it is on every stage, before them, as js/app.js loads it. */
+  'js/asks.js',
   'js/negotiation.js',
   /* The internal review sits directly on top of the change model and is read by
      it nowhere — it annotates changes, it never rewrites them — so it loads

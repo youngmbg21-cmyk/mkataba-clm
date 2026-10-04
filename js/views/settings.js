@@ -2633,7 +2633,26 @@ const SET_PANELS={
       const L=(typeof intakeLanes==='function')?intakeLanes():[];
       const tpls=(typeof TEMPLATES!=='undefined')?Object.keys(TEMPLATES):[];
       const streams=(typeof visibleFolders==='function')?visibleFolders():[];
-      const row=(x,i)=>`<div class="st-lane" data-lane-i="${i}" style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-3);display:flex;flex-direction:column;gap:9px">
+      /* ---- WHOSE ITS DRAFTS ARE (4 Oct 2026, the process review's last
+         gaps) ----
+         The members who may draft and can see the lane's stream; the empty
+         choice is the default, and it SAYS WHO that is — the admin who saved
+         the lane, else the first admin — by the one reading the server's
+         mint asks (intakeLaneOwner, js/intakelanes.js). A lane not saved yet
+         will be saved by the reader, so its default names them. */
+      const users=((typeof getUsers==='function')?getUsers():[])||[];
+      const me=(typeof currentUser==='function')?currentUser():null;
+      const ownerSel=x=>{
+        const may=u=>!x.folder || typeof canAccessFolder!=='function' || canAccessFolder(x.folder,u);
+        const def=(typeof intakeLaneOwner==='function')
+          ? intakeLaneOwner({ savedById: x.savedById || (x.id ? null : (me&&me.id)) }, users, may) : null;
+        const defWord=def ? i18t(def.how==='saver'?'set_lane_owner_saver':'set_lane_owner_first',{ name:def.name }) : '\u2014';
+        const people=users.filter(u=>u && u.role!=='viewer' && may(u));
+        const cur=(x.ownerId && people.some(u=>String(u.id)===String(x.ownerId))) ? String(x.ownerId) : '';
+        return `<select class="ln-owner" style="${window.RV_FLD||ST_INPUT}width:100%"><option value="">${esc(defWord)}</option>${
+          people.map(u=>`<option value="${esc(u.id)}"${cur===String(u.id)?' selected':''}>${esc(u.name||u.email||'')}</option>`).join('')}</select>`;
+      };
+      const row=(x,i)=>`<div class="st-lane" data-lane-i="${i}"${x.id?` data-lane-id="${esc(x.id)}"`:''} style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-3);display:flex;flex-direction:column;gap:9px">
         <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
           <input class="ln-on" type="checkbox" ${x.on===false?'':'checked'} style="width:14px;height:14px;accent-color:var(--color-accent)"/>
           <input class="ln-name" type="text" value="${esc(x.name||'')}" placeholder="${esc(i18t('set_lane_name_ph'))}" style="${window.RV_FLD||ST_INPUT}flex:1;min-width:150px"/>
@@ -2648,6 +2667,8 @@ const SET_PANELS={
               streams.map(f=>`<option value="${esc(f.id)}"${x.folder===f.id?' selected':''}>${esc(f.name)}</option>`).join('')}</select></label>
           <label style="display:block"><span style="font-size:var(--t-label);color:var(--color-neutral-600)">${esc(i18t('set_lane_words'))}</span>
             <input class="ln-words" type="text" value="${esc(x.words||'')}" placeholder="${esc(i18t('set_lane_words_ph'))}" style="${window.RV_FLD||ST_INPUT}width:100%"/></label>
+          <label style="display:block" title="${esc(i18t('set_lane_owner_tip'))}"><span style="font-size:var(--t-label);color:var(--color-neutral-600)">${esc(i18t('set_lane_owner'))}</span>
+            ${ownerSel(x)}</label>
           <label style="display:flex;align-items:center;gap:7px;align-self:end;font-size:var(--t-meta)">
             <input class="ln-known" type="checkbox" ${x.knownOnly?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>
             <span>${esc(i18t('set_lane_known'))}</span></label>
@@ -2662,20 +2683,38 @@ const SET_PANELS={
         <p class="st-note" style="margin-top:var(--s-3)">${i18t('set_lanes_note')}</p>`;
     },
     wire(){
-      const read=()=>[...document.querySelectorAll('#st-lanes .st-lane')].map(el=>({
-        id:'lane_'+Math.abs(Date.now()+Math.floor(Math.random()*9973)).toString(36),
-        on: !!el.querySelector('.ln-on')?.checked,
-        name: String(el.querySelector('.ln-name')?.value||'').trim().slice(0,80),
-        template: String(el.querySelector('.ln-tpl')?.value||''),
-        folder: String(el.querySelector('.ln-folder')?.value||''),
-        words: String(el.querySelector('.ln-words')?.value||'').trim().slice(0,120),
-        knownOnly: !!el.querySelector('.ln-known')?.checked,
-      }));
+      /* A LANE KEEPS ITS ID ACROSS SAVES (4 Oct 2026): the server knows an
+         unchanged lane by it, so the admin who saved it stays its saver.
+         `savedById` is the server's word and rides along only so the panel can
+         go on naming the default; the server never believes it. */
+      const was=id=>((typeof intakeLanes==='function')?intakeLanes():[]).find(l=>l&&id&&String(l.id)===String(id))||null;
+      const read=()=>[...document.querySelectorAll('#st-lanes .st-lane')].map(el=>{
+        const keep=el.getAttribute('data-lane-id')||'';
+        const prev=was(keep);
+        const ownerId=String(el.querySelector('.ln-owner')?.value||'');
+        return {
+          id: keep || ('lane_'+Math.abs(Date.now()+Math.floor(Math.random()*9973)).toString(36)),
+          on: !!el.querySelector('.ln-on')?.checked,
+          name: String(el.querySelector('.ln-name')?.value||'').trim().slice(0,80),
+          template: String(el.querySelector('.ln-tpl')?.value||''),
+          folder: String(el.querySelector('.ln-folder')?.value||''),
+          words: String(el.querySelector('.ln-words')?.value||'').trim().slice(0,120),
+          knownOnly: !!el.querySelector('.ln-known')?.checked,
+          ...(ownerId ? { ownerId } : {}),
+          ...(prev && prev.savedById ? { savedById: prev.savedById } : {}),
+        };
+      });
       document.getElementById('st-lane-add')?.addEventListener('click',()=>{
         state.settings=state.settings||{};
         state.settings.intakeLanes=read().concat([{ on:true, name:'', template:(typeof TEMPLATES!=='undefined'?Object.keys(TEMPLATES)[0]:''), folder:'', words:'', knownOnly:true }]);
         stRepaintPanel('lanes');
       });
+      /* The people a lane's draft may belong to are the ones who can see its
+         stream, so choosing a stream redraws the choice beside it. */
+      document.querySelectorAll('#st-lanes .ln-folder').forEach(sel=>sel.addEventListener('change',()=>{
+        state.settings=state.settings||{}; state.settings.intakeLanes=read();
+        stRepaintPanel('lanes');
+      }));
       document.querySelectorAll('#st-lanes .ln-del').forEach((b,i)=>b.addEventListener('click',()=>{
         const all=read(); all.splice(i,1);
         state.settings=state.settings||{}; state.settings.intakeLanes=all;

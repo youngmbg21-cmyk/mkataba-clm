@@ -89,7 +89,12 @@ describe('f453 (1) — the stamp is written in the FUNNEL', () => {
   test('and it refuses nothing and says nothing', () => {
     const fn = MODEL.slice(MODEL.indexOf('function deskStampOnFile'),
       MODEL.indexOf('function deskMayRuleSuggestion'));
-    assert.match(fn, /ch\.suggested = \{/, 'a not-doing proves nothing over an empty slice');
+    /* RE-POINTED 4 Oct 2026 (f487, one ask record): the stamp is written by
+       the ONE ASK WRITER — the question on c.asks and ch.suggested, its
+       mirror, in one breath — so the act is the writer's call here and the
+       field's line is the writer's suggest mirror in js/asks.js. */
+    assert.match(fn, /askOpen\(c, \{ kind: 'suggest'/, 'a not-doing proves nothing over an empty slice');
+    assert.match(read('js/asks.js'), /ch\.suggested = \{ by:/, 'and the writer stamps the change itself');
     assert.ok(!/toast\(|_dkSay\(/.test(fn),
       'filing a redline is the act the person meant to perform; deskClaimOnFile '
       + 'beside it is quiet for the same reason');
@@ -214,7 +219,10 @@ describe('f453 (5) — handing it back keeps the work, and needs a reason', () =
   test('nothing is deleted, withdrawn or superseded', () => {
     const fn = MODEL.slice(MODEL.indexOf('function deskReturnSuggestion'),
       MODEL.indexOf('function deskSuggestionsFor'));
-    assert.match(fn, /g\.returnedAt = _dkNow\(\)/, 'the act is here to be read, or this claim is about nothing');
+    /* RE-POINTED 4 Oct 2026 (f487): the hand-back is written through the one
+       ask writer; the field's line is its suggest mirror. */
+    assert.match(fn, /askAnswer\(c, 'sg:' \+ ch\.id, \{ state: 'returned', at: _dkNow\(\)/, 'the act is here to be read, or this claim is about nothing');
+    assert.match(read('js/asks.js'), /g\.why = a\.why \|\| null; g\.returnedAt = at; g\.returnedBy = name;/);
     assert.ok(!/withdrawn|status\s*=|splice|delete ch|bodyHtml/.test(fn),
       'the desk\'s oldest rule, at deskContributors: you take somebody off a '
       + 'deal and you do not lose four clauses of redlining with them');
@@ -224,7 +232,9 @@ describe('f453 (5) — handing it back keeps the work, and needs a reason', () =
   test('an adopted suggestion keeps its stamp', () => {
     const fn = MODEL.slice(MODEL.indexOf('function deskAdoptSuggestion'),
       MODEL.indexOf('function deskReturnSuggestion'));
-    assert.match(fn, /g\.adoptedAt = _dkNow\(\)/);
+    /* RE-POINTED 4 Oct 2026 (f487): adopted through the one ask writer. */
+    assert.match(fn, /askAnswer\(c, 'sg:' \+ ch\.id, \{ state: 'yes', at: _dkNow\(\)/);
+    assert.match(read('js/asks.js'), /g\.adoptedAt = at; g\.adoptedBy = name;/);
     assert.ok(!/delete ch\.suggested|ch\.suggested = null/.test(fn),
       '"whose idea was this clause" is a question the trail should answer a year '
       + 'on; a field that erased itself would make every adopted suggestion look '

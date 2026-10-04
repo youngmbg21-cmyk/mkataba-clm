@@ -37,7 +37,7 @@ const { startHati, seedWorkspace } = require('./helpers');
 const ROOT = path.join(__dirname, '..');
 const S = require('../js/i18n.js').STRINGS.en;
 
-const FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/review.js'];
+const FILES = ['js/i18n.js', 'js/jurisdiction.js', 'js/templates.js', 'js/asks.js', 'js/review.js'];
 
 /* A contract with one unsent ask of ours, which is what the gate is about. */
 const contract = () => ({

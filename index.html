@@ -9786,6 +9786,12 @@
   .reg-dash{color:var(--color-neutral-400);}
   .page-facts{font-size:var(--t-body);color:var(--color-neutral-600);margin-top:3px;line-height:1.4;}
   .page-facts:empty{display:none;}
+  /* THE ADVICE TAB HOLDS THE LINE (gap F, 4 Oct 2026): where the Contracts
+     tab of Requests draws its facts line, the Advice tab says nothing there
+     (the board's own tiles are its facts) but keeps the line's room, so the
+     tab row under the head does not jump a line between the two tabs.
+     adviceHeadPaint raises the class; one line of this rule's own type. */
+  .page-facts.is-held:empty{display:block;min-height:1.4em;}
   .reg-seg{display:inline-flex;align-items:stretch;height:var(--ctl-h);border:1px solid var(--btn-edge);border-radius:var(--radius);overflow:hidden;background:var(--color-surface);align-self:flex-end;flex:none;}
   .reg-seg button{border:0;background:transparent;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-600);padding:0 var(--pad-ctl-x);cursor:pointer;white-space:nowrap;}
   .reg-seg button + button{border-left:1px solid var(--btn-edge);}
@@ -10962,15 +10968,16 @@
                with one picture. Sliders: the mark every product uses for
                settings, and nothing else in this menu wears it. People keeps
                the people. -->
-          <!-- Advice Desk is the one operational desk left in the fold: the
-               Queue and Reports doors were retired as premature for this
-               stage — both views stay routable (a saved link still opens
-               them), they just no longer occupy the sidebar. -->
-          <button data-view="advice" class="nav-item" title="Advice Desk" data-i18n-title="nav_advice_desk_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg>
-            <span style="flex:1;" data-i18n="nav_advice_desk">Advice Desk</span><span class="nav-count" data-count="advice"></span>
-          </button>
+          <!-- NO ADVICE DESK DOOR ON THE RAIL (the process review, gap F,
+               4 Oct 2026): advice is a kind of request, so the desk is the
+               Advice tab of Requests, and its open requests ride on the
+               Requests door's count. A door merge, not a data merge — the
+               board, its view id (`advice`), its records, rates, the public
+               portal and the tracking page are unchanged, and every link to
+               the desk still lands on its tab. The Queue and Reports doors
+               were retired earlier as premature for this stage; both views
+               stay routable. -->
+
           <!-- NO IMPORT DOOR ON THE RAIL (the process review, 4 Oct 2026):
                importing a portfolio is reached from the upload door
                ("Upload several (import a portfolio)"), which is where a

@@ -14,10 +14,14 @@ const API_MODE=()=>!!REMOTE;
    IT SUPPRESSES THE TOAST AND NOTHING ELSE: `notice` still rides back on the
    answer, and the caller is expected to say so where the reader is looking. A
    cap is a FACT, never a silent trim. */
+/* `opts.keepalive` — A REQUEST SENT AS THE PAGE GOES AWAY (gap E, 4 Oct 2026):
+   presence withdraws a reader's asks for a clause on pagehide, and only a
+   keepalive request outlives the page that sent it. Off for everybody else. */
 async function api(path, method='GET', body, opts){
   const res=await fetch('api/'+path,{ method,
     headers:body?{'Content-Type':'application/json'}:undefined,
-    body:body?JSON.stringify(body):undefined, credentials:'same-origin' });
+    body:body?JSON.stringify(body):undefined, credentials:'same-origin',
+    ...(opts&&opts.keepalive?{keepalive:true}:{}) });
   let data=null; try{ data=await res.json(); }catch(e){}
   // Rate-limit / daily-ceiling responses (429) carry a friendly message —
   // surface it centrally so every caller shows it, even ones that otherwise

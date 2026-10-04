@@ -26854,3 +26854,16 @@ Built in js/risks.js. Points worth keeping:
 - Scan findings about record blanks (`g-*`, anchor `recital`) are not drafted: they are filled on the Overview, and still marked in Risk View and on the sign check.
 - `openCheckPanel(c,'scan')` was Insights' "open this finding" door (pfOpenContract); it now lands on Risk View too, so pfMarkFinding finds no row to blink — said to the owner.
 - The room's Copilot count is now standards departures + every open risk (was: + high findings only), so it equals the Standards tile plus the Risks tile.
+
+## THE PROCESS REVIEW'S FIXES — THE SIX GAPS (4 Oct 2026)
+
+The owner said "build the six remaining gaps" after the first batch was merged (#118). Six streams in parallel worktrees, merged onto a branch restarted from main. Decisions taken without the owner: gap B keeps the old fields as mirrors written by the one writer (the address book's pattern), so no existing wall moved and signing was never at risk; gap F merges the DOOR only (the advice records, fees and public portal are untouched). Each stream's own map lines:
+
+## E lock ask (f494)
+- an ask lives until the asker LEAVES — a hidden tab beats `askOnly` (`PRESENCE_ASK_BEAT_MS`, `presenceKeepAsks`; stamps no room); `pagehide` or leaving the contract (`PRESENCE_LEAVE_MS` grace) sends a keepalive `leave` (`presenceLeave`), which drops only the caller's asks. Tests: f494, take-it-in-turns-verify 8.
+## F advice is a request (f495)
+## C one link check (f490,f491)
+## A lane drafts (f485,f486)
+## D Word reads back (f492)
+- a list item goes out with the record's own mark as text (`richListMark`), then a tab and a hanging indent, no `numPr` (Word will not renumber them); paper lines (`rl-paper-foot`, `rl-paper-sub`, `rl-paper-label`) wear `HatiPaper*` styles both readers drop (`docxIsPaperPara`, `docxDropPaper`); screen chrome (`DOCX_UI_CLASSES` + every <button>) never reaches the file. Tests: f492.
+## B one ask record (f487-f489)

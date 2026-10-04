@@ -15,7 +15,10 @@
  *      and nobody can be handed a clause they never asked for;
  *   6. one press moves the baton, and the asker is told it arrived;
  *   7. a refresh of the holder's own lock does not wipe the queue — which is
- *      the fault this build found by measuring.
+ *      the fault this build found by measuring;
+ *   8. an ask lives until the asker LEAVES (gap E, f494): a hidden tab keeps
+ *      it without saying it is in the room, and closing the page takes it off
+ *      the holder's queue at once.
  *
  * Every driven half is guarded, so a missing feature REPORTS rather than times
  * out (the house rule). */
@@ -278,6 +281,53 @@ const DEAL = {
       JSON.stringify(survives));
     ok('7c on the server AND in the browser\'s own copy',
       survives.local.includes('Amina Otieno'), JSON.stringify(survives.local));
+
+    /* ===== 8. AN ASK LIVES UNTIL THE ASKER LEAVES (gap E, 4 Oct 2026) =====
+       The first colleague is now the one waiting. Their tab goes behind
+       another: the ordinary beat falls silent (a hidden tab is not in the
+       room), and the slower ask beat keeps their place in the queue. The beat
+       is DRIVEN here rather than waited for — f494 drives the minutes. */
+    const hid = await a.p.evaluate(async () => {
+      if (!window.presenceKeepAsks) return { err: 'no ask beat' };
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      const me = currentUser().id;
+      const before = await (await fetch('/api/contracts/MK-T1')).json();
+      const mine = l => ((l && l.asked) || []).find(x => String(x.id) === String(me)) || null;
+      const k = Object.keys(before.locks || {})[0];
+      const askAt0 = (mine(before.locks[k]) || {}).at || null;
+      const hereAt0 = ((before.here || {})[me] || {}).at || null;
+      await new Promise(r => setTimeout(r, 30));
+      const n = await presenceKeepAsks('MK-T1');
+      const back = await (await fetch('/api/contracts/MK-T1')).json();
+      return { watching: presenceWatching(), n, askAt0, askAt1: (mine(back.locks[k]) || {}).at || null,
+        hereAt0, hereAt1: ((back.here || {})[me] || {}).at || null };
+    });
+    ok('8a hidden, the ask beat keeps their ask on the holder\'s lock',
+      hid.n === 1 && hid.askAt0 && hid.askAt1 && Date.parse(hid.askAt1) > Date.parse(hid.askAt0),
+      JSON.stringify(hid));
+    ok('8b and says nothing about being in the room — the face row still drops a hidden reader',
+      !!hid.hereAt0 && hid.hereAt1 === hid.hereAt0, JSON.stringify([hid.hereAt0, hid.hereAt1]));
+    /* THE PAGE GOES AWAY. A real navigation, so pagehide fires the way it does
+       when somebody closes the tab; the withdrawal has to outlive the page. */
+    await a.p.goto('about:blank').catch(() => {});
+    let gone = null;
+    for (let i = 0; i < 20 && !(gone && gone.asked.length === 0); i++){
+      gone = await b.p.evaluate(async cid => {
+        const c = getContract('MK-T1');
+        const r = await api('contracts/MK-T1');
+        if (window.clauseLockMerge) clauseLockMerge(c, r.locks || {});
+        const l = (r.locks || {})[cid] || {};
+        return { by: (l.by || {}).name || null, asked: (l.asked || []).map(x => x.name),
+          queue: window.clauseLockMineWaiting ? clauseLockMineWaiting(c, cid).map(x => x.name) : null };
+      }, held.clause);
+      if (gone.asked.length) await b.p.waitForTimeout(250);
+    }
+    ok('8c closing the page takes their ask off the holder\'s queue at once — not two minutes later',
+      gone && gone.asked.length === 0 && Array.isArray(gone.queue) && gone.queue.length === 0, JSON.stringify(gone));
+    ok('8d and only their ask: the holder still holds the clause',
+      gone && gone.by === 'Unrestricted Legal', JSON.stringify(gone && gone.by));
+    await b.p.screenshot({ path: path.join(OUT, '3-asker-left.png') });
 
     ok('9 no page errors', errs.length === 0, errs.slice(0, 3).join(' | ') || 'none');
   } catch (e) {

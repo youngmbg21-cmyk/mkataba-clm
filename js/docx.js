@@ -84,6 +84,33 @@ function decodeXmlEntities(s){
     return {amp:'&',lt:'<',gt:'>',quot:'"',apos:"'"}[e]??m;
   });
 }
+/* ---- THE PAPER'S OWN LINES ARE NOT WORDING (4 Oct 2026, f492) ----
+   Our own Word file carries the paper around the agreement — the ruled line
+   per party at its foot, the template-and-law line under its title, the head
+   made from the record where a document has none of its own — in paragraphs
+   wearing a style of HaTi's own (see docxRunsFromHtml). They are there to be
+   SEEN in Word and not read as the agreement, exactly as the seal takes the
+   signature block off before it hashes: read as wording, the signature lines
+   came back as part of the last clause and the head as two new clauses, and
+   a file sent back untouched filed changes nobody made. BOTH readers ask this
+   one question of every top-level paragraph. Only our own style is read
+   this way — a paragraph in any style another file uses is wording, always.
+   Matched on the style's ID without regard to case: Word re-derives an ID
+   from the style's NAME when it saves, and the names are written so that it
+   derives this one. */
+const DOCX_PAPER_STYLE = /^hatipaper/i;
+function docxIsPaperPara(pXml){
+  const pr = /^<w:p\b[^>]*>\s*<w:pPr\b[^>]*>([\s\S]*?)<\/w:pPr>/.exec(String(pXml || ''));
+  const st = pr && (/<w:pStyle\b[^>]*w:val="([^"]*)"/.exec(pr[1]) || [])[1];
+  return !!(st && DOCX_PAPER_STYLE.test(st));
+}
+/* The body with those paragraphs taken out, so nothing measured off the whole
+   body afterwards (the indent ladder, "is there a Title") sees them either. */
+function docxDropPaper(body){
+  let out = String(body || '');
+  for (const b of docxTopBlocks(out)) if (b.kind === 'w:p' && docxIsPaperPara(b.xml)) out = out.replace(b.xml, '');
+  return out;
+}
 function docxXmlToText(xml){
   const tracked={ ins:(xml.match(/<w:ins[ >]/g)||[]).length,
                   del:(xml.match(/<w:del[ >]/g)||[]).length };
@@ -91,6 +118,7 @@ function docxXmlToText(xml){
   body=body
     .replace(/<w:delText[^>]*>[\s\S]*?<\/w:delText>/g,'')    // struck-out wording is not content
     .replace(/<w:instrText[^>]*>[\s\S]*?<\/w:instrText>/g,''); // field codes (TOC, page refs) are plumbing
+  body=docxDropPaper(body);                                  // our paper's own lines are not wording
   /* ---- ONE READING OF A TABLE, ON BOTH READERS ----
      This split the body on `</w:p>` and a table CELL is a w:p, so a row came
      out as one line per cell while the structured reader beside it joins a
@@ -973,6 +1001,9 @@ function docxXmlToRich(xml, parts){
   body = body
     .replace(/<w:delText[^>]*>[\s\S]*?<\/w:delText>/g, '')
     .replace(/<w:instrText[^>]*>[\s\S]*?<\/w:instrText>/g, '');
+  /* Our paper's own lines are not wording, here as in the scraper — see
+     docxIsPaperPara. Taken out before anything is measured off the body. */
+  body = docxDropPaper(body);
   /* ---- WHERE THE DOCUMENT'S OWN TITLE GOES, AND WHY THE LEVELS SHIFT ----
      HaTi's clause model reads a LEADING h1 as the document's title and the
      headings below it as the clauses — which is exactly how a Word contract is
@@ -1617,16 +1648,30 @@ function docRichFromText(text){
 
    Structure is preserved on the way through for the same reason it is preserved
    on screen — a legal list that arrives as one paragraph is a different
-   document. Lists come out as real Word lists against a numbering definition
-   this writer ships, not as digits typed into a paragraph. */
+   document. A list item comes out as its own paragraph, its number in a
+   hanging gutter — the number the RECORD gives it, written as text with a
+   real tab (4 Oct 2026, f492: Word's automatic numbering was invisible to the
+   import's reader and counted every list in the file as one). The numbering
+   definition is still shipped, for a stage that has no reading to ask. */
 
 /* ---- the furniture, named ----
    Every one of these is something HaTi drew for a reader looking at a screen.
    None of it is wording anybody agreed to. */
+/* ---- AND THE NEGOTIATE PAPER'S OWN (4 Oct 2026, f492) ----
+   The Word file is drawn from the same canvas the Negotiate page draws, and
+   that canvas carries screen furniture this list did not name: the ladder
+   chip beside a heading ("Step 1 · your ask"), the line under a clause saying
+   what its baseline equals on the ladder, a status chip ("Formatting only",
+   "#CHG-004 accepted"), the numbering-gap notice and the reviewer's
+   "showing your clauses" line. MEASURED on a negotiated contract: "Step 1 ·
+   your ask" went to the counterparty as a line of the payment clause, and a
+   file they sent back untouched filed it as their wording. Every one of them
+   is screen, and so is every <button> — no wording is ever inside one, which
+   is why docxStripUiBadges drops the element by name as well. */
 const DOCX_UI_CLASSES = ['change-tag-badge', 'rl-authormark', 'lab-tag', 'lab-tagwho',
   'lab-tagvis', 'lab-authorpill', 'lab-pilldepth', 'lab-stacktrail', 'lab-stackid',
   'lab-stackarrow', 'lab-stacklabel', 'lab-chip', 'clause-tools', 'clause-tool',
-  'badge', 'ui-btn'];
+  'badge', 'ui-btn', 'rl-rung', 'rl-baseline', 'nego-note', 'nego-gaps', 'rl-rv-docnote'];
 /* The id series the lab stamps on a change: L-001, L-002, … Matched as a whole
    id so a clause genuinely called "L-shaped premises" is untouched. */
 const DOCX_UI_ID = /^L-\d+$/;
@@ -1635,15 +1680,15 @@ const _dxTagOpen = name => new RegExp(
   '<' + name + '(?=[\\s>/])[^>]*>|<' + name + '>', 'i');
 
 /* Remove one element and everything inside it, matching nesting properly.
-   `test(attrs)` decides, from the opening tag's attributes, whether this
-   element is furniture. */
+   `test(attrs, name)` decides, from the opening tag's attributes and name,
+   whether this element is furniture. */
 function _dxDropElements(html, test){
   let out = '', i = 0;
   const tag = /<(\/?)([a-zA-Z][\w:-]*)((?:"[^"]*"|'[^']*'|[^>])*?)(\/?)>/g;
   let m;
   while ((m = tag.exec(html))){
     const [full, close, name, attrs, selfClose] = m;
-    if (close || selfClose || !test(attrs || '')){ continue; }
+    if (close || selfClose || !test(attrs || '', name)){ continue; }
     out += html.slice(i, m.index);
     /* Walk forward to this element's own closing tag, counting nested opens of
        the same name — a badge inside a badge is not this one's end. */
@@ -1668,7 +1713,7 @@ function docxStripUiBadges(html){
   let s = String(html == null ? '' : html);
   const classRe = new RegExp('class\\s*=\\s*("|\')[^"\']*\\b(?:'
     + DOCX_UI_CLASSES.join('|') + ')\\b[^"\']*\\1', 'i');
-  s = _dxDropElements(s, attrs => classRe.test(attrs)
+  s = _dxDropElements(s, (attrs, name) => /^button$/i.test(name) || classRe.test(attrs)
     || /\bdata-change-id\s*=/i.test(attrs)
     || (/\bid\s*=\s*("|')([^"']*)\1/i.exec(attrs) || [])[2] !== undefined
        && DOCX_UI_ID.test((/\bid\s*=\s*("|')([^"']*)\1/i.exec(attrs) || [])[2]));
@@ -1689,6 +1734,13 @@ function docxStripUiBadges(html){
    table out before this tokeniser sees it; this is what catches one that is
    nested or malformed. */
 const DOCX_BLOCK_TAGS = /^(?:p|div|h[1-6]|li|tr|td|th|blockquote|section|article|ol|ul|table|tbody|thead|tfoot)$/i;
+/* Elements HTML never closes, which the paper-container count must not wait
+   for. */
+const DOCX_VOID_TAGS = /^(?:br|img|input|hr|meta|link|col|area|base|wbr|source|embed|param|track)$/i;
+/* THE PAPER'S OWN LINES, by the class the paper draws them with (see
+   docxRunsFromHtml): the ruled lines at the foot, the template-and-law line,
+   and the head the paper makes from the record when a document has none. */
+const DOCX_PAPER_CLASSES = /\b(?:rl-paper-foot|rl-paper-sub|rl-paper-label)\b/;
 /* Collapse runs of whitespace as HTML does — EXCEPT a tab, which in this
    product's wording is the separator between a clause number and its words and
    is what Word needs to reach the tab stop. Spaces either side of one go with
@@ -1731,20 +1783,63 @@ function docxRunsFromHtml(html){
      module read this file cannot make at load and a reading that could drift
      from the class the paper is drawn by. */
   let pending = null;
+  /* ---- A LIST ITEM GOES OUT WITH ITS OWN NUMBER ON IT (4 Oct 2026, f492) ----
+     A list used to leave as Word's AUTOMATIC numbering: one shared list for
+     the whole file. Three faults in one. The numbers were not in the file's
+     text, so the import's reader — which reads the words on the page — read
+     "1. The Supplier shall supply…" back as "The Supplier shall supply…" and
+     filed clause 1 as changed. Every list in the file continued ONE count, so
+     a clause whose list starts again at 1 (or at 3, with `start`) printed
+     whatever number the previous list had reached. And a list inside a list
+     printed "1." where the record says "1.1.".
+
+     So an item now carries the mark the RECORD gives it — richListMark, the
+     very reading richToText projects the record with — as text, then a real
+     tab, in a hanging indent: exactly the shape every received contract's
+     numbers already leave in (rl-hang). One way for a number to go out, and
+     the file reads back with the numbers the record has, by construction.
+     WHAT THIS COSTS: Word does not renumber such a list by itself when a
+     line is added to it in Word — the same as every uploaded contract's
+     numbering always has. A stage without js/richdoc.js on it (a bare
+     require of this file) has no reading to ask and writes the automatic
+     list it always wrote. */
+  const listMark = (typeof window !== 'undefined' && typeof window.richListMark === 'function')
+    ? window.richListMark : null;
+  const lists = [];                            // { tag, attrs, i, path, ulDepth, next }, innermost last
+  const attrOf = (attrs, k) => {
+    const mm = new RegExp('(?:^|\\s)' + k + '\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\'|([^\\s>]+))', 'i').exec(attrs || '');
+    return mm ? (mm[1] != null ? mm[1] : mm[2] != null ? mm[2] : mm[3]) : null;
+  };
+  /* ---- THE PAPER'S OWN LINES (4 Oct 2026, f492) ----
+     The paper draws three things that are not the agreement's wording: the
+     ruled line per party at its foot, the template-and-law line under the
+     title, and — where the document has no front matter of its own — a head
+     made from the record's name. They go into the file, because the file is
+     the paper, and they go in WEARING A STYLE OF THEIR OWN (HatiPaper…), so
+     both readers leave them out again: the rule the seal already follows when
+     it takes the signature block off before hashing. MEASURED before: the
+     signature lines came back as wording of the last clause on all twelve
+     templates, and a head made from the record's name came back as two new
+     clauses. Counted by name, as docxHtmlBlocks counts a table: a container
+     is closed by its own closing tag and not by the first one that matches. */
+  const paper = [];                            // { name, at }: open paper containers
+  const opens = {};                            // how deep each element name is open
+  const classOf = attrs => (/\bclass\s*=\s*("|')([^"']*)\1/i.exec(attrs || '') || [])[2] || '';
   const open = () => {
     if (!cur){
-      cur = { runs: [], list: list.length ? list[list.length - 1] : null,
-        level: Math.max(0, list.length - 1), heading: 0 };
+      cur = { runs: [], list: (list.length && !listMark) ? list[list.length - 1] : null,
+        level: listMark ? Math.min(DOCX_LEVEL_MAX, list.length) : Math.max(0, list.length - 1), heading: 0 };
+      if (paper.length) cur.paper = true;
       if (pending){ Object.assign(cur, pending); pending = null; }
     }
     return cur;
   };
   const shapeOf = attrs => {
-    const cls = (/\bclass\s*=\s*("|')([^"']*)\1/i.exec(attrs || '') || [])[2] || '';
+    const cls = classOf(attrs);
     const lv = /\bhati-lv-([123])\b/.exec(cls);
     return { level: lv ? Number(lv[1]) : 0, hang: /\brl-hang\b/.test(cls),
       tight: /\bhati-tight\b/.test(cls), pageBreak: /\bhati-pb\b/.test(cls),
-      toc: /\bhati-toc\b/.test(cls) };
+      toc: /\bhati-toc\b/.test(cls), sign: /\brl-sigline\b/.test(cls) };
   };
   /* ---- THE WRITER WRITES NO PARAGRAPH FOR WHITESPACE (owner-reported 11 Sep 2026) ----
      *"massive blank gaps between the clauses"* — 32 paragraphs exported, 21 of
@@ -1757,6 +1852,25 @@ function docxRunsFromHtml(html){
      block without one), or a page break. The styles' spacing is not touched:
      it was right, and was being applied to paragraphs that should not exist. */
   const close = () => {
+    if (cur && cur.marker){
+      /* The mark leads the line, and it belongs to whoever's the wording is:
+         an item somebody inserted whole is inserted with its number, one
+         struck whole is struck with it, anything else keeps it. The spaces
+         the markup left before the first word go — the tab is the gap. */
+      const said = cur.runs.filter(r => /\S/.test(r.text));
+      const all = k => said.length > 0 && said.every(r => r.mark === k);
+      const mk = all('ins') ? 'ins' : all('del') ? 'del' : 'keep';
+      if (cur.runs.length) cur.runs[0].text = cur.runs[0].text.replace(/^[^\S\t]+/, '');
+      const run = { mark: mk, bold: false, italic: false, under: false, text: cur.marker + '\t' };
+      if (mk !== 'keep' && said[0].author) run.author = said[0].author;
+      cur.runs.unshift(run);
+      cur.marker = '';
+    }
+    if (cur && cur.paper && cur.runs.length){
+      cur.runs[0].text = cur.runs[0].text.replace(/^\s+/, '');
+      const z = cur.runs[cur.runs.length - 1];
+      z.text = z.text.replace(/\s+$/, '');
+    }
     if (cur && (cur.runs.some(r => /\S/.test(r.text)) || cur.forced)) paras.push(cur);
     cur = null;
   };
@@ -1777,6 +1891,16 @@ function docxRunsFromHtml(html){
     push(_dxHtmlText(_dxSpace(src.slice(i, m.index))));
     i = m.index + m[0].length;
     const closing = m[1] === '/', name = m[2].toLowerCase(), selfClose = m[4] === '/';
+    if (!selfClose && !DOCX_VOID_TAGS.test(name)){
+      if (closing){
+        const top = paper[paper.length - 1];
+        if (top && top.name === name && top.at === (opens[name] || 0)) paper.pop();
+        opens[name] = Math.max(0, (opens[name] || 0) - 1);
+      } else {
+        opens[name] = (opens[name] || 0) + 1;
+        if (DOCX_PAPER_CLASSES.test(classOf(m[3]))) paper.push({ name, at: opens[name] });
+      }
+    }
     if (name === 'br'){ close(); open().forced = true; continue; }
     const authorOf = () => decodeXmlEntities((/\bdata-author\s*=\s*"([^"]*)"/i.exec(m[3] || '') || [])[1] || '').trim();
     if (name === 'ins'){ closing ? (ins = Math.max(0, ins - 1), who.pop()) : (ins++, who.push(authorOf())); continue; }
@@ -1787,11 +1911,21 @@ function docxRunsFromHtml(html){
     if (name === 'em' || name === 'i'){ closing ? (fmt.em = Math.max(0, fmt.em - 1)) : fmt.em++; continue; }
     if (name === 'u'){ closing ? (fmt.u = Math.max(0, fmt.u - 1)) : fmt.u++; continue; }
     if (name === 'ol' || name === 'ul'){
+      /* An item whose only wording is the list under it still prints its own
+         mark, on a line of its own, as the record's projection does. */
+      if (pending && pending.marker) open();
       close();
-      if (closing) list.pop(); else list.push(name === 'ol' ? 'ol' : 'ul');
+      if (closing){ list.pop(); lists.pop(); }
+      else {
+        list.push(name === 'ol' ? 'ol' : 'ul');
+        const up = lists[lists.length - 1];
+        lists.push({ tag: name.toUpperCase(), attrs: m[3] || '', i: 0, next: [],
+          path: up ? up.next : [], ulDepth: up ? up.ulDepth + (up.tag === 'UL' ? 1 : 0) : 0 });
+      }
       continue;
     }
     if (DOCX_BLOCK_TAGS.test(name)){
+      if (closing && name === 'li' && pending && pending.marker) open();
       close();
       if (!closing && !selfClose){
         /* Held until the paragraph is opened by its first run: a block with no
@@ -1799,6 +1933,13 @@ function docxRunsFromHtml(html){
            carry its shape, so `close()` is told to keep it. */
         const sh = shapeOf(m[3]);
         if (/^h([1-6])$/i.test(name)) open().heading = Number(name[1]);
+        else if (name === 'li' && listMark && lists.length){
+          const L = lists[lists.length - 1];
+          const r = listMark({ tagName: L.tag, getAttribute: k => attrOf(L.attrs, k) }, L.i++, L.path, L.ulDepth);
+          L.next = (r && r.next) || [];
+          pending = Object.assign(sh, { marker: String((r && r.prefix) || '').trim(), hang: true,
+            level: Math.min(DOCX_LEVEL_MAX, lists.length - 1) });
+        }
         else if (/^(?:p|li|div)$/i.test(name)) pending = sh;
         if (sh.pageBreak){ open(); Object.assign(cur, sh); cur.forced = true; }
       }
@@ -1850,7 +1991,11 @@ const DOCX_STEP = 720;
 const DOCX_TOC_STOP = 11906 - 1134 - 1134;
 function docxTrackedParagraphXml(p, state){
   const props = [];
-  if (p.heading) props.push(`<w:pStyle w:val="Heading${Math.min(p.heading, 6)}"/>`);
+  /* The paper's own lines wear HaTi's paper styles, which is how both readers
+     know them again (docxIsPaperPara): a ruled line per party, a title, or a
+     plain line. */
+  if (p.paper) props.push(`<w:pStyle w:val="${p.sign ? 'HatiPaperSign' : p.heading ? 'HatiPaperTitle' : 'HatiPaper'}"/>`);
+  else if (p.heading) props.push(`<w:pStyle w:val="Heading${Math.min(p.heading, 6)}"/>`);
   else if (p.list) props.push('<w:pStyle w:val="ListParagraph"/>');
   if (p.list) props.push(`<w:numPr><w:ilvl w:val="${p.level || 0}"/>`
     + `<w:numId w:val="${p.list === 'ol' ? 2 : 1}"/></w:numPr>`);
@@ -2104,12 +2249,31 @@ function docxDocumentXml(html, opts = {}){
       + `<w:document ${DOCX_NS}><w:body>${built.xml}${DOCX_SECT}</w:body></w:document>` };
 }
 
+/* ---- THE PAPER'S OWN STYLES (4 Oct 2026, f492) ----
+   The lines the paper draws around the agreement (see docxRunsFromHtml) wear
+   these, and both readers leave a paragraph in any of them out of the
+   wording (docxIsPaperPara). Each NAME is written so that Word, re-deriving
+   an ID from it on save, derives the same ID. They look like what they are on
+   the paper: a plain line, a title the size of the paper's own, and a ruled
+   line with room above it to sign on — the rule drawn as the paragraph's top
+   border across half the page, as the paper draws one per party. `next` is
+   Normal, so a line typed after one of them in Word is ordinary wording. */
+const DOCX_PAPER_STYLES = '<w:style w:type="paragraph" w:customStyle="1" w:styleId="HatiPaper"><w:name w:val="Hati Paper"/>'
+  + '<w:basedOn w:val="Normal"/><w:next w:val="Normal"/></w:style>'
+  + '<w:style w:type="paragraph" w:customStyle="1" w:styleId="HatiPaperTitle"><w:name w:val="Hati Paper Title"/>'
+  + '<w:basedOn w:val="HatiPaper"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/></w:pPr>'
+  + '<w:rPr><w:b/><w:sz w:val="24"/></w:rPr></w:style>'
+  + '<w:style w:type="paragraph" w:customStyle="1" w:styleId="HatiPaperSign"><w:name w:val="Hati Paper Sign"/>'
+  + '<w:basedOn w:val="HatiPaper"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:keepLines/>'
+  + '<w:pBdr><w:top w:val="single" w:sz="6" w:space="4" w:color="auto"/></w:pBdr>'
+  + `<w:spacing w:before="720" w:after="0"/><w:ind w:right="${Math.round((11906 - 1134 - 1134) / 2)}"/></w:pPr></w:style>`;
 const DOCX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles ${DOCX_NS}>
 <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>
 <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:pPr><w:spacing w:after="160" w:line="276" w:lineRule="auto"/></w:pPr></w:style>
 <w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:ind w:left="720"/></w:pPr></w:style>
 ${[1,2,3,4,5,6].map(n => `<w:style w:type="paragraph" w:styleId="Heading${n}"><w:name w:val="heading ${n}"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="${360 - n*40}" w:after="120"/><w:outlineLvl w:val="${n-1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="${30 - n*2}"/></w:rPr></w:style>`).join('')}
+${DOCX_PAPER_STYLES}
 </w:styles>`;
 
 /* A real numbering definition, shipped with the file. Without it a <w:numPr>

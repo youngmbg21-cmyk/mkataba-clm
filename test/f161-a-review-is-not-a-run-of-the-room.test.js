@@ -755,7 +755,7 @@ describe('f161 · the person asked must be able to reach the contract', () => {
       { runScripts: 'outside-only', url: 'https://hati.test/' });
     const ctx = dom.getInternalVMContext();
     for (const rel of ['js/i18n.js', 'js/components.js', 'js/templates.js',
-                       'js/jurisdiction.js', 'js/core.js', 'js/review.js'])
+                       'js/jurisdiction.js', 'js/asks.js', 'js/core.js', 'js/review.js'])
       vm.runInContext(fs.readFileSync(path.join(ROOT, rel), 'utf8'), ctx, { filename: rel });
     const run = src => vm.runInContext(src, ctx);
     run(`state.settings = { folderAccess: ${JSON.stringify(folderAccess || {})} };

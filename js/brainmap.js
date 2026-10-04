@@ -100,28 +100,36 @@ const BRAIN_PARTS = [
   ['roundauto', 'negoRoundWasSent', 'nego', 1],
   ['turnmail', 'roundTurnMail', 'out', 3],
   ['wordback', 'negoImportReturnedDocx', 'nego', 1],
-  ['linkcheck', 'signLinkRefusal', 'sign', 1],
+  ['linkcheck', 'linkRefusal', 'sign', 1],
   ['signgate', 'sgHolds', 'sign', 1],
   ['decide', 'approvalDecideAsk', 'sign', 1],
   ['rulestep', 'ruleStepTell', 'sign', 2],
   ['rules', 'stRulesRows', 'sign', 0],
   ['renewact', 'renewalDecisionAct', 'time', 1],
   /* Risks to look at (4 Oct 2026): the risk scan's list lives in the Redlines card */
-  ['risklist', 'riskOpenOf', 'nego', 1]
+  ['risklist', 'riskOpenOf', 'nego', 1],
+  /* the six gaps closed (4 Oct 2026, owner: "build the six remaining gaps") */
+  ['askkeep', 'presenceKeepAsks', 'nego', 1],
+  ['kinds', 'requestsDoorCount', 'in', 2],
+  ['laneowner', 'intakeLaneOwner', 'in', 1],
+  ['arrivalowed', 'intakeLaneArrivals', 'in', 1],
+  ['wordmark', 'richListMark', 'out', 3],
+  ['paperdrop', 'docxIsPaperPara', 'read', 1],
+  ['asks', 'askOpen', 'sign', 1]
 ].map((a, i) => ({ id: a[0], code: a[1], reg: a[2], floor: a[3], def: (a[4] || {}).def || '', men: (a[4] || {}).men || '', i }));
 
 /* The six flows: which parts each step lands on. The sentences are
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'book'], ['docx'], ['clauses'], ['putguard', 'db'], ['triage'], ['brief', 'playbook', 'oblscan', 'risk'], ['model'], ['blanks'], ['overview', 'bell', 'request']] },
+  { id: 'upload', steps: [['upload', 'book'], ['docx'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'risk'], ['model'], ['blanks'], ['overview', 'bell', 'request', 'kinds', 'laneowner']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
-  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'risklist'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept'], ['payload'], ['shares'], ['email', 'cplink', 'turnmail'], ['whosemove', 'bell', 'roundauto']] },
-  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
-  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
+  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
+  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
+  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home', 'insights']] },
   { id: 'ask', steps: [['explorer', 'chartread'], ['db'], ['model'], ['quote'], ['contracts'], ['explorer']] }
 ];
@@ -136,7 +144,7 @@ const BRAIN_FILE_REGION = [
      nothing and touches no route does not belong. */
   [/^js\/dealstands\.js$/, 'see'],
   /* the process review's two new files (4 Oct 2026) and the address book */
-  [/^js\/signgate\.js$/, 'sign'],
+  [/^js\/(signgate|asks)\.js$/, 'sign'],
   [/^js\/(intakelanes|participants)\.js$/, 'in'],
   [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|draft)\.js$/, 'ai'],
   [/^js\/(docx|pdf|pdfrich|ocr|clausemodel|blanks|uploadblanks|richdoc|redline|templateform)\.js$/, 'read'],

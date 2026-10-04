@@ -61,6 +61,34 @@ const PRESENCE_BEAT_MS = 25000;
    the room, and the cost of being wrong in that direction is a colleague
    believing they are alone. */
 const PRESENCE_GONE_MS = 75000;
+/* ---- AN ASK LIVES UNTIL THE ASKER LEAVES, NOT UNTIL THEY LOOK AWAY (gap E,
+   4 Oct 2026, the process review's last gaps) ----
+   "Ask for it" is kept alive by the asker's own beat (/here refreshes their
+   asks), and the beat says nothing while the tab is hidden — so somebody who
+   asked for a clause and switched tab to read their mail fell out of the queue
+   after the lock's two minutes, although they had not left.
+
+   SO A HIDDEN TAB KEEPS A SECOND, SLOWER BEAT THAT DOES ONE THING: it keeps
+   this reader's own asks (`askOnly`). It does not say they are here — the
+   server stamps no room for it — so the face row still drops a hidden reader
+   after PRESENCE_GONE_MS, exactly as before. It runs only while this reader has
+   an ask on the contract, and stops once the server says none is left.
+
+   HOW SLOW: a browser that has throttled a hidden tab wakes it about once a
+   minute, so a beat may arrive up to a minute late. The beat plus that minute
+   has to stay inside the ask's own window (the lock's two minutes) with room to
+   spare — f494 pins that relation, not the number.
+
+   AND LEAVING TAKES THE ASKS AWAY (`leave`): the page closing (pagehide, the
+   one event that fires on every way out, including the back-forward cache —
+   beforeunload does not fire reliably on phones), or the reader leaving the
+   contract inside the app. The holder's queue then stops naming somebody who
+   is gone, instead of naming them for two more minutes.
+   Leaving inside the app is measured after PRESENCE_LEAVE_MS, because setView
+   stops the beat between the room and the negotiate page of the SAME contract
+   — that is not leaving, and the beat starting again on it cancels the leave. */
+const PRESENCE_ASK_BEAT_MS = 40000;
+const PRESENCE_LEAVE_MS = 10000;
 const _pzMe = () => (window.currentUser ? window.currentUser() : null) || null;
 const _pzE = s => String(s == null ? '' : s)
   .replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
@@ -69,6 +97,11 @@ const _pzE = s => String(s == null ? '' : s)
    belongs in the record the browser keeps. */
 const _pzSeen = Object.create(null);
 let _pzTimer = null, _pzCid = null, _pzBusy = false, _pzAfter = null, _pzWas = null;
+/* The hidden tab's ask beat, and the leaves waiting out their grace, per
+   contract. Per sitting and in memory, like everything else in this file. */
+let _pzAskTimer = null, _pzAskBusy = false;
+const _pzAskDone = Object.create(null);
+const _pzLeave = Object.create(null);
 
 /* Is this a surface that should say anything at all? Never on the
    counterparty's page — who is in our room is ours — and never without a
@@ -128,12 +161,17 @@ async function presenceSay(cid){
   } finally { _pzBusy = false; }
 }
 /* ---- THE BEAT ----
-   Started when a contract is opened and stopped when it is left. It asks
-   nothing while the window is hidden, which is both the courteous thing and
-   the honest one: a tab behind three others is not somebody in the room. */
+   Started when a contract is opened and stopped when it is left. It says
+   nothing about being here while the window is hidden, which is both the
+   courteous thing and the honest one: a tab behind three others is not
+   somebody in the room. Only the slower ask beat runs then (gap E, above). */
 function presenceStart(cid, after){
   const id = String(cid || '');
   if (!id || !presenceOn()) return false;
+  /* COMING BACK INSIDE THE GRACE IS NOT LEAVING: the room and the negotiate
+     page of one contract are two surfaces, and setView stops the beat between
+     them. */
+  if (_pzLeave[id]){ if (typeof clearTimeout === 'function') clearTimeout(_pzLeave[id]); delete _pzLeave[id]; }
   if (_pzCid === id && _pzTimer) { _pzAfter = after || _pzAfter; return true; }
   presenceStop();
   /* A DIFFERENT CONTRACT IS A DIFFERENT ROOM, so whoever was being followed in
@@ -150,18 +188,110 @@ function presenceStart(cid, after){
     if (typeof document !== 'undefined' && document.hidden) return;
     presenceSay(id);
   }, PRESENCE_BEAT_MS);
+  /* AND THE HIDDEN TAB'S OWN BEAT, which keeps this reader's asks and nothing
+     else. Visible, it stands aside: the ordinary beat keeps them already. */
+  _pzAskTimer = setInterval(() => {
+    if (_pzCid !== id) return;
+    if (typeof document === 'undefined' || !document.hidden) return;
+    presenceKeepAsks(id);
+  }, PRESENCE_ASK_BEAT_MS);
   return true;
 }
 function presenceStop(){
   if (_pzTimer && typeof clearInterval === 'function') clearInterval(_pzTimer);
+  if (_pzAskTimer && typeof clearInterval === 'function') clearInterval(_pzAskTimer);
+  const left = _pzCid;
   /* WHICH CONTRACT IT WAS, kept so that following survives a move between the
      room and the negotiate page — the same contract, two surfaces, and setView
      stops the beat between them. Following a DIFFERENT contract's colleague is
      meaningless, so that is where it is dropped: in presenceStart. */
   _pzWas = _pzCid || _pzWas;
-  _pzTimer = null; _pzCid = null; _pzAfter = null;
+  _pzTimer = null; _pzAskTimer = null; _pzCid = null; _pzAfter = null;
+  /* LEAVING THE CONTRACT TAKES THIS READER'S ASKS WITH THEM — once the grace
+     has passed without the beat starting on it again. */
+  if (left) presenceLeaveSoon(left);
 }
 function presenceWatching(){ return _pzCid; }
+
+/* ---- WHICH ASKS ARE MINE (gap E) ----
+   The newest of this reader's asks on the contract as this browser holds it,
+   as a signature, or '' when there are none. READS ONLY, and deliberately not
+   asked whether the ask is still live by this browser's clock: on a hidden tab
+   nothing refreshes the local copy, so a live-only reading would talk itself
+   out of keeping the very ask it exists to keep. The SERVER judges what is
+   alive; this only decides whether there is anything worth asking it about. */
+function presenceMyAsks(cid){
+  const id = String(cid || '');
+  const me = _pzMe();
+  const c = (id && me && typeof window.getContract === 'function') ? window.getContract(id) : null;
+  const locks = (c && c.locks && typeof c.locks === 'object' && !Array.isArray(c.locks)) ? c.locks : null;
+  if (!locks) return '';
+  let sig = '';
+  Object.keys(locks).forEach(k => {
+    const asked = (locks[k] && Array.isArray(locks[k].asked)) ? locks[k].asked : [];
+    asked.forEach(r => {
+      if (!r || String(r.id || '') !== String(me.id || '')) return;
+      const at = String(r.at || '') + '|' + k;
+      if (at > sig) sig = at;
+    });
+  });
+  return sig;
+}
+/* ---- THE HIDDEN TAB'S BEAT ----
+   One quiet call that keeps this reader's own asks and says nothing about
+   being here. When the server answers that none is left (handed to somebody
+   else, released, lapsed), it stops asking until this reader asks again — a
+   new ask is a new signature. A latch raised before the promise exists. */
+async function presenceKeepAsks(cid){
+  const id = String(cid || '');
+  if (!id || !presenceOn() || _pzAskBusy) return null;
+  const sig = presenceMyAsks(id);
+  if (!sig || _pzAskDone[id] === sig) return null;
+  _pzAskBusy = true;
+  try {
+    const r = await window.api('contracts/' + encodeURIComponent(id) + '/here', 'POST',
+      { askOnly: true }, { quiet: true });
+    const n = (r && typeof r.asks === 'number') ? r.asks : null;
+    if (n === 0) _pzAskDone[id] = sig;
+    return n;
+  } catch (_){
+    /* A beat that fails says nothing, like the ordinary one. */
+    return null;
+  } finally { _pzAskBusy = false; }
+}
+/* ---- LEAVING ----
+   Sent so that it survives the page going away: a keepalive request where the
+   browser has one, a beacon where it does not. Fire and forget — there is
+   nobody left to read an answer. Sent only when this reader has an ask here,
+   so leaving a contract you never asked about costs nothing. */
+function presenceLeave(cid){
+  const id = String(cid || '');
+  if (!id || !presenceOn()) return false;
+  const sig = presenceMyAsks(id);
+  if (!sig || _pzAskDone[id] === sig) return false;
+  _pzAskDone[id] = sig;
+  const path = 'contracts/' + encodeURIComponent(id) + '/here';
+  const body = { leave: true };
+  const keeps = typeof Request === 'function' && 'keepalive' in Request.prototype;
+  if (!keeps && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function' && typeof Blob === 'function'){
+    try { if (navigator.sendBeacon('api/' + path, new Blob([JSON.stringify(body)], { type: 'application/json' }))) return true; } catch (_){}
+  }
+  try {
+    const p = window.api(path, 'POST', body, { quiet: true, keepalive: true });
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+    return true;
+  } catch (_){ return false; }
+}
+function presenceLeaveSoon(cid){
+  const id = String(cid || '');
+  if (!id || !presenceMyAsks(id) || typeof setTimeout !== 'function') return false;
+  if (_pzLeave[id] && typeof clearTimeout === 'function') clearTimeout(_pzLeave[id]);
+  _pzLeave[id] = setTimeout(() => {
+    delete _pzLeave[id];
+    if (_pzCid !== id) presenceLeave(id);
+  }, PRESENCE_LEAVE_MS);
+  return true;
+}
 
 /* ============================================================
    FOLLOW ME — walking through it together (idea 14, 4 Oct 2026)
@@ -325,9 +455,25 @@ if (typeof document !== 'undefined') document.addEventListener('click', ev => {
   presenceFollow(f.getAttribute('data-pz-follow'));
 });
 
+/* ---- AND THE PAGE GOING AWAY (gap E) ----
+   Armed once at module load. Every leave still waiting out its grace goes now,
+   and so does the contract being watched — the page will not be here to send
+   them later. The beat itself is left alone: a page restored from the
+   back-forward cache carries on beating, and the reader asks again if they
+   still want the clause. */
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('pagehide', () => {
+  Object.keys(_pzLeave).forEach(k => {
+    if (typeof clearTimeout === 'function') clearTimeout(_pzLeave[k]);
+    delete _pzLeave[k];
+    presenceLeave(k);
+  });
+  if (_pzCid) presenceLeave(_pzCid);
+});
+
 Object.assign(window, {
-  PRESENCE_BEAT_MS, PRESENCE_GONE_MS, PRESENCE_FACES,
+  PRESENCE_BEAT_MS, PRESENCE_GONE_MS, PRESENCE_FACES, PRESENCE_ASK_BEAT_MS, PRESENCE_LEAVE_MS,
   presenceOn, presenceHere, presenceSay, presenceStart, presenceStop, presenceWatching,
+  presenceMyAsks, presenceKeepAsks, presenceLeave,
   presenceInitials, presenceRowHtml, presencePaint,
   presenceSpotNow, presenceFollow, presenceFollowing, presenceWalk,
 });
