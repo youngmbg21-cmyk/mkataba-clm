@@ -1105,7 +1105,8 @@ function igRecipeNow(){
   return { lenses:intel.lenses.map(l=>({ ...l, ids:l.ids.slice(), badges:l.badges?{ ...l.badges }:null })),
     groupBy:intel.groupBy, groups:intel.groups?{ ...intel.groups }:null,
     floorsBy:intel.floorsBy||null, columnsBy:intel.columnsBy||null, colourBy:intel.colourBy||null, sizeBy:intel.sizeBy||null,
-    labelBy:intel.labelBy||null, timeBy:intel.timeBy||null, sortBy:intel.sortBy||null, view:igbCam().view };
+    labelBy:intel.labelBy||null, timeBy:intel.timeBy||null, sortBy:intel.sortBy||null, view:igbCam().view,
+    names:intel.names?{ ...intel.names }:null, dotScale:intel.dotScale||1, bubbleBy:intel.bubbleBy||null, folds:{ ...(intel.folds||{}) } };
 }
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
@@ -1126,6 +1127,8 @@ function igRecipeSet(r){
   intel.lenses=(r.lenses||[]).map(l=>({ ...l, ids:l.ids.slice() }));
   intel.groupBy=r.groupBy||'folder'; intel.groups=r.groups||null;
   ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy'].forEach(k=>{ intel[k]=r[k]||null; });
+  intel.names=r.names?{ ...r.names }:null; intel.dotScale=igDotScaleClamp(r.dotScale||1); intel.bubbleBy=r.bubbleBy||null;
+  if(r.folds&&typeof r.folds==='object') intel.folds={ ...r.folds };
   intel.walk=null;
   igSetView(r.view==null?igbCam().view:r.view);
 }
@@ -1148,6 +1151,11 @@ function igRecipeSays(){
   if(intel.labelBy&&GRAPH_GROUP_KEYS.includes(intel.labelBy)) out.push(i18t('int_says_label',{ x:w(intel.labelBy) }));
   if(intel.timeBy&&igbCam().view===4) out.push(i18t('int_says_time',{ x:i18t('int_time_'+intel.timeBy) }));
   if(intel.sortBy) out.push(i18t('int_says_sort',{ x:igSortWord(intel.sortBy) }));
+  if(intel.names&&intel.names.mode==='none') out.push(i18t('int_says_names_none'));
+  else if(intel.names&&intel.names.mode==='only') out.push(i18t('int_says_names_only',{ x:intel.names.label||intel.names.q }));
+  else if(intel.names&&intel.names.mode==='hide') out.push(i18t('int_says_names_hide',{ x:intel.names.label||intel.names.q }));
+  if((intel.dotScale||1)!==1) out.push(i18t('int_says_dots',{ n:Math.round((intel.dotScale||1)*100) }));
+  if(intel.bubbleBy==='value') out.push(i18t('int_says_bubbles_value'));
   return out;
 }
 /* ---- ONE LIST OF FACTS, AND THE WORDS PEOPLE USE FOR THEM ----
@@ -1380,6 +1388,61 @@ const IG_ROLE_RE=[
 ];
 const IG_BY_RE=/\b(?:by|per|of|according to|based on|on|into|with|efter|per|enligt|utifrån|på|med|av)\s+(.+)$/;
 const IG_VIEW_WORDS=[[3,/\b(?:grid|matrix|table of|cross[- ]tab|rutnät|matris|tabell)\b/],[4,/\b(?:time ?line|over time|chronolog\w*|tidslinje|över tid)\b/],[0,/\b(?:brain view|as a brain|brain|hjärnvy|hjärna)\b/],[1,/\b(?:wiring|network view|kopplingar|nätverk)\b/],[2,/\b(?:floors view|floor view|våningsvy)\b/]];
+const IG_DOT_SCALE_MIN=.5, IG_DOT_SCALE_MAX=3, IG_DOT_STEP=1.5;
+function igDotScaleClamp(v){ const n=Number(v); return Math.max(IG_DOT_SCALE_MIN,Math.min(IG_DOT_SCALE_MAX,isFinite(n)&&n>0?n:1)); }
+/* The words for the map's LOOK — names, bubble size, folding groups into one
+   bubble — as acts igRecipeRun carries out. Fixed English and Swedish
+   patterns over the normalised question; never translated words. */
+const IG_NAMES_RE='(?:names?|labels?|captions?|words|text|titles?|namn(?:en)?|etiketter(?:na)?|texter(?:na)?)';
+const IG_DOTS_RE='(?:bubbles?|dots?|circles?|points?|nodes?|bubblor(?:na)?|bubbla|prickar(?:na)?|punkter(?:na)?|cirklar(?:na)?)';
+function igLookRead(q){
+  let m;
+  /* names back */
+  if(new RegExp('^(?:please\\s+)?(?:show|bring back|turn on|switch on|put back|give me back|restore)\\s+(?:all\\s+)?(?:the\\s+)?'+IG_NAMES_RE+'(?:\\s+again|\\s+back)?$').test(q)
+    ||new RegExp('^(?:visa|tänd|ta tillbaka)\\s+(?:alla\\s+)?'+IG_NAMES_RE+'(?:\\s+igen)?$').test(q)) return [{ names:null }];
+  /* some names: "only show names for Juno and Naivas", "names only for signed", "hide the names of drafts" */
+  m=q.match(new RegExp('^(?:only\\s+|just\\s+)?(?:show|keep|leave|put)\\s+(?:the\\s+)?'+IG_NAMES_RE+'\\s+(?:only\\s+|just\\s+)?(?:for|of|on)\\s+(?:the\\s+)?(.+)$'))
+    ||q.match(new RegExp('^(?:only|just)\\s+'+IG_NAMES_RE+'\\s+(?:for|of|on)\\s+(?:the\\s+)?(.+)$'))
+    ||q.match(new RegExp('^'+IG_NAMES_RE+'\\s+only\\s+(?:for|of|on)\\s+(?:the\\s+)?(.+)$'))
+    ||q.match(new RegExp('^(?:visa\\s+)?(?:bara\\s+|endast\\s+)'+IG_NAMES_RE+'\\s+(?:för|på)\\s+(.+)$'))
+    ||q.match(new RegExp('^visa\\s+'+IG_NAMES_RE+'\\s+(?:bara\\s+|endast\\s+)?(?:för|på)\\s+(.+)$'));
+  if(m){ const c=igConditions(m[1]); return c.length?[{ names:{ mode:'only', q:m[1].trim(), label:c.map(x=>x.label).join(' · ') } }]:[{ namesUnknown:m[1].trim() }]; }
+  m=q.match(new RegExp('^(?:please\\s+)?(?:hide|remove|drop|take (?:away|off)|turn off|switch off)\\s+(?:the\\s+)?'+IG_NAMES_RE+'\\s+(?:of|for|on)\\s+(?:the\\s+)?(.+)$'))
+    ||q.match(new RegExp('^(?:dölj|göm|ta bort)\\s+'+IG_NAMES_RE+'\\s+(?:för|på)\\s+(.+)$'));
+  if(m){ const c=igConditions(m[1]); return c.length?[{ names:{ mode:'hide', q:m[1].trim(), label:c.map(x=>x.label).join(' · ') } }]:[{ namesUnknown:m[1].trim() }]; }
+  /* no names at all: "hide the names", "just the bubbles", "remove the labels" */
+  if(new RegExp('^(?:please\\s+)?(?:hide|remove|drop|take (?:away|off)|turn off|switch off|clear|lose|get rid of|no)\\s+(?:all\\s+)?(?:the\\s+)?'+IG_NAMES_RE+'(?:\\s+(?:and|so|to)\\s+.*)?$').test(q)
+    ||new RegExp('^(?:(?:show\\s+)?(?:me\\s+)?)?(?:just|only|nothing but)\\s+(?:the\\s+)?'+IG_DOTS_RE+'$').test(q)
+    ||new RegExp('^'+IG_DOTS_RE+'\\s+only$').test(q)
+    ||new RegExp('^(?:without|no)\\s+(?:the\\s+)?'+IG_NAMES_RE+'$').test(q)
+    ||new RegExp('^(?:dölj|göm|ta bort|släck)\\s+(?:alla\\s+)?'+IG_NAMES_RE+'$').test(q)
+    ||new RegExp('^(?:visa\\s+)?(?:bara|endast)\\s+'+IG_DOTS_RE+'$').test(q)) return [{ names:{ mode:'none' } }];
+  /* bubble size */
+  if(new RegExp('\\b(?:normal|default|regular|usual|original|standard)\\s+(?:size|sized)\\b|\\breset\\s+(?:the\\s+)?(?:'+IG_DOTS_RE+'\\s+)?size\\b|\\bnormal storlek\\b|\\bvanlig storlek\\b').test(q)&&new RegExp(IG_DOTS_RE+'|\\bsize\\b|storlek').test(q)) return [{ dots:'reset' }];
+  const big=new RegExp('\\b(?:bigger|larger|enlarge|grow|increase|blow up|större|förstora)\\b').test(q), small=new RegExp('\\b(?:smaller|shrink|reduce|tinier|decrease|mindre|förminska)\\b').test(q);
+  if((big||small)&&!(big&&small)&&new RegExp(IG_DOTS_RE).test(q)&&!/\b(?:than|än)\b/.test(q)){
+    const much=/\b(?:much|a lot|far|way|mycket|betydligt)\b/.test(q), bit=/\b(?:a (?:bit|little)|slightly|lite|något)\b/.test(q);
+    const k=much?2:bit?1.2:IG_DOT_STEP; return [{ dots:big?k:1/k }]; }
+  /* fold every group into one bubble — and, when a fact is named, group by it first */
+  m=q.match(/^(?:show\s+)?(?:me\s+)?(?:each|every|all(?: the)?|the)?\s*(.+?)\s+as\s+(?:one|a single|single|big|their own)?\s*(?:big\s+)?(?:bubbles?|circles?)$/)
+    ||q.match(/^(?:show\s+)?(?:me\s+)?one\s+(?:big\s+)?(?:bubble|circle)\s+(?:per|for each|for every|for)\s+(.+)$/)
+    ||q.match(/^(?:visa\s+)?(?:varje|alla)\s+(.+?)\s+som\s+(?:en\s+)?(?:stor\s+)?bubbl(?:a|or)$/)
+    ||q.match(/^(?:visa\s+)?en\s+(?:stor\s+)?bubbla\s+(?:per|för varje)\s+(.+)$/);
+  if(m){ const f=igFactFind(m[1].replace(/^(?:the|each|every|varje)\s+/,'')); if(f||/^(?:group|groups|grupp|grupper)$/.test(m[1].trim())) return (f?[{ role:'group', fact:f.key }]:[]).concat([{ fold:'all' }]); }
+  if(/^(?:please\s+)?(?:fold|collapse|gather|close|bundle|group)\s+(?:up\s+)?(?:everything|it all|them all|all(?: the)?(?: groups| bubbles)?|every group|the groups|each group)(?:\s+into (?:one|a|single|big)?\s*bubbles?)?$/.test(q)
+    ||/^(?:one (?:big )?bubble (?:per|for each) group|groups as bubbles|bubbles per group)$/.test(q)
+    ||/^(?:fäll ihop|samla)\s+(?:allt|alla(?: grupper)?)$/.test(q)) return [{ fold:'all' }];
+  if(/^(?:please\s+)?(?:open|unfold|expand|spread)\s+(?:up\s+)?(?:everything|it all|them all|all(?: the)?(?: groups| bubbles)?|every group|the groups|each group)(?:\s+again)?$/.test(q)
+    ||/^(?:fäll ut|öppna)\s+(?:allt|alla(?: grupper)?)(?:\s+igen)?$/.test(q)) return [{ fold:'none' }];
+  /* the big bubbles' measure: "size the bubbles by value", "bubbles by count" */
+  m=q.match(new RegExp('\\b(?:size\\s+)?(?:the\\s+)?(?:group\\s+|big\\s+)?'+IG_DOTS_RE+'\\s+(?:sized\\s+)?(?:by|on|per|efter)\\s+(value|worth|money|amount|count|number|how many|contracts|värde|antal|avtal)\\b'));
+  if(m&&/\b(?:big|group|bubbles?|bubblor)\b/.test(q)) return [{ bubbleBy:/value|worth|money|amount|värde/.test(m[1])?'value':'count' }];
+  m=q.match(/^(?:please\s+)?(?:open|unfold|expand|spread)\s+(?:up\s+)?(?:the\s+)?(.+?)(?:\s+(?:bubble|group|again|back))*$/)||q.match(/^(?:öppna|fäll ut)\s+(.+?)(?:\s+(?:igen|bubblan|gruppen))*$/);
+  if(m&&IG&&IG.hubs){ const w=_igNorm(m[1]); const hit=IG.hubs.filter(h=>h.folded&&_igNorm(h.label).includes(w)); if(w.length>=3&&hit.length) return [{ fold:'open', labels:hit.map(h=>h.label) }]; }
+  m=q.match(/^(?:please\s+)?(?:fold|collapse|close|gather)\s+(?:up\s+)?(?:the\s+)?(.+?)(?:\s+(?:bubble|group|into one bubble|into a bubble))*$/)||q.match(/^(?:fäll ihop|samla)\s+(.+?)(?:\s+(?:bubblan|gruppen))*$/);
+  if(m&&IG&&IG.hubs){ const w=_igNorm(m[1]); const hit=IG.hubs.filter(h=>!h.folded&&_igNorm(h.label).includes(w)); if(w.length>=3&&hit.length) return [{ fold:'close', labels:hit.map(h=>h.label) }]; }
+  return null;
+}
 function igRecipeParse(qRaw){
   const q0=String(qRaw||'').trim(); if(!q0) return null;
   const q=_igNorm(q0.replace(/[,;]/g,' and '));
@@ -1393,6 +1456,12 @@ function igRecipeParse(qRaw){
   if(m){ const raw=m[1]?String(q0).slice(-m[1].length).trim():''; return { acts:[{ save:(raw&&_igNorm(raw)===m[1].trim()?raw:(m[1]||'')).trim() }], rest:'' }; }
   m=q.match(/^(?:open|show|load|go to|switch to)\s+(?:the\s+|my\s+)?(?:saved\s+)?view\s+(.+)$/)||q.match(/^(?:öppna|visa)\s+(?:den sparade\s+)?vyn\s+(.+)$/);
   if(m){ const raw=String(q0).slice(-m[1].length).trim(); return { acts:[{ open:(_igNorm(raw)===m[1].trim()?raw:m[1]).trim() }], rest:'' }; }
+  /* NAMES, BUBBLE SIZE AND ONE BUBBLE PER GROUP (Young, 3–4 Oct 2026: "be
+     able to ask copilot to remove names and only see the bubbles", "show
+     certain or remove certain names", "make the bubbles bigger or smaller",
+     "make the bubbles be represented by one big bubble"). Read here, free,
+     before the roles — "size" and "show" mean something else below. */
+  { const t=igLookRead(q); if(t) return { acts:t, rest:'' }; }
   /* follow-ups: narrow what is showing rather than start again */
   let follow=false;
   const fm=q.match(/^(?:and|also|now|then|plus|of (?:those|these|them)|among (?:those|these|them)|from (?:those|these)|och|också|nu|sedan|av (?:dem|dessa)|bland (?:dem|dessa))\b[\s,]*(?:only\s+|just\s+|bara\s+|endast\s+)?/);
@@ -1517,12 +1586,12 @@ function igViewFind(name){ const n=_igNorm(name); return igViewsRead().slice().r
 function igRecipeRun(parsed){
   const said=[]; let choices=null, list=null, listTitle=null, changed=false, lensNote=null;
   const acts=parsed.acts||[];
-  const quiet=acts.every(a=>a.undo||a.ask||a.unknownFact||a.save!=null);
+  const quiet=acts.every(a=>a.undo||a.ask||a.unknownFact||a.save!=null||a.namesUnknown);
   if(!quiet) igRecipePush();
   for(const a of acts){
     if(a.undo){ said.push(igRecipeUndo()?i18t('int_did_undo'):i18t('int_undo_none')); changed=true; continue; }
     if(a.everything){ intel.lenses=[]; intel.groups=null; intel.walk=null; const t=(state.contracts||[]).length; said.push(i18t('int_did_showing',{ n:t, t })+'.'); changed=true; continue; }
-    if(a.landing){ ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole'].forEach(k=>{ intel[k]=null; }); intel.groupBy='folder'; intel.groups=null; said.push(i18t('int_did_landing')); changed=true; continue; }
+    if(a.landing){ ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole','names','bubbleBy'].forEach(k=>{ intel[k]=null; }); intel.dotScale=1; intel.groupBy='folder'; intel.groups=null; said.push(i18t('int_did_landing')); changed=true; continue; }
     if(a.save!=null){ const n=igViewSave(a.save); said.push(n?i18t('int_did_saved',{ name:n }):i18t('int_save_failed')); continue; }
     if(a.open){ const v=igViewFind(a.open); if(v){ igRecipeSet(v.recipe); said.push(i18t('int_did_opened',{ name:v.name })); changed=true; }
       else { const names=igViewsRead().map(x=>x.name); said.push(names.length?i18t('int_view_unknown',{ name:a.open }):i18t('int_views_none')); if(names.length) choices=names.slice(-3).map(n=>({ label:n, acts:[{ open:n }] })); } continue; }
@@ -1530,6 +1599,25 @@ function igRecipeRun(parsed){
     if(a.unknownFact){ const role=IG_RECIPE_ROLES.includes(a.role)?a.role:'group'; said.push(i18t('int_fact_unknown',{ x:a.unknownFact }));
       choices=IG_NEAREST[role].map(k=>({ label:igRoleSays(role,k).replace(/\.$/,''), acts:[{ role, fact:k }].concat(role==='floors'?[{ view:2 }]:role==='columns'?[{ view:3 }]:[]) })); continue; }
     if(a.role){ if(igRoleSet(a.role,a.fact)){ said.push(igRoleSays(a.role,a.fact)); changed=true; } continue; }
+    /* the map's LOOK (4 Oct 2026): names, bubble size, folds — undoable, kept in a saved view */
+    if('names' in a){ intel.names=a.names;
+      /* names asked for are names shown: a group folded away (small groups
+         start folded on a crowded map) is opened for the contracts named */
+      if(a.names&&a.names.mode==='only'&&IG&&IG.hubs){ let ids=[]; try{ ids=igIdsWhere(igConditions(a.names.q)); }catch(_){} const set=new Set(ids), F=intel.folds||(intel.folds={});
+        IG.hubs.forEach(h=>{ if(h.folded&&(h.kids||[]).some(n=>set.has(n.id))) F[h.foldKey]=false; }); }
+      said.push(!a.names?i18t('int_did_names_all'):a.names.mode==='none'?i18t('int_did_names_none')
+      :i18t(a.names.mode==='only'?'int_did_names_only':'int_did_names_hide',{ x:a.names.label||a.names.q })); changed=true; continue; }
+    if(a.namesUnknown){ said.push(i18t('int_names_unknown',{ x:a.namesUnknown })); continue; }
+    if(a.dots){ const was=intel.dotScale||1, now=a.dots==='reset'?1:igDotScaleClamp(was*a.dots); intel.dotScale=now;
+      said.push(now===was?i18t(now>=IG_DOT_SCALE_MAX?'int_did_dots_max':now<=IG_DOT_SCALE_MIN?'int_did_dots_min':'int_did_dots',{ n:Math.round(now*100) }):i18t('int_did_dots',{ n:Math.round(now*100) })); continue; }
+    if(a.bubbleBy){ intel.bubbleBy=a.bubbleBy==='value'&&((typeof canViewValues!=='function')||canViewValues())?'value':'count';
+      said.push(i18t(intel.bubbleBy==='value'?'int_did_bubbles_value':'int_did_bubbles_count')); continue; }
+    if(a.fold){ const F=intel.folds||(intel.folds={});
+      if(a.fold==='all'||a.fold==='none'){ intel.foldWant=a.fold; if(IG&&IG.hubs) IG.hubs.forEach(h=>{ F[h.foldKey]=a.fold==='all'; }); if(a.fold==='all') intel.walk=null;
+        said.push(i18t(a.fold==='all'?'int_did_fold_all':'int_did_open_all')); }
+      else { const want=a.fold==='close'; (IG&&IG.hubs||[]).filter(h=>a.labels.includes(h.label)).forEach(h=>{ F[h.foldKey]=want; });
+        said.push(i18t(want?'int_did_fold_some':'int_did_open_some',{ x:a.labels.join(', ') })); }
+      changed=true; continue; }
     if(a.view!=null){ igSetView(a.view); changed=true; continue; }
     if(a.sort){ intel.sortBy=a.sort; said.push(i18t('int_says_sort',{ x:igSortWord(a.sort) }).replace(/^./,ch=>ch.toUpperCase())+'.'); changed=true; continue; }
     if(a.narrow){ const n=a.narrow, label=n.conds.map(x=>x.label).join(' · ');
@@ -2283,6 +2371,9 @@ function igbLayout(G){
   hubs.forEach(h=>{ h.kids=kidsOf(h); });
   const order=hubs.slice().sort((a,b)=>(b.kids.length-a.kids.length)||String(a.label).localeCompare(String(b.label)));
   const folds=intel.folds||(intel.folds={});
+  /* "fold everything" asked before the groups existed (a regroup in the same
+     sentence) is applied to the groups as built */
+  if(intel.foldWant){ const all=intel.foldWant==='all'; hubs.forEach(h=>{ folds[(intel.groupBy||'')+'|'+h.label]=all; }); intel.foldWant=null; }
   const many=hubs.length>IGB_FOLD_MANY;
   order.forEach((h,i)=>{
     h.slot=igbSlot(i); h.col=IGB_PALETTE[i%IGB_PALETTE.length];
@@ -2461,6 +2552,51 @@ function igbHeart(h,w){ const P=[h.hA,h.W3,h.hL,h.hG||h.hL,h.hT||h.hL]; return [
    the brain and the wiring; the floors, the grid and the timeline always
    show every contract. */
 const igbCardW=w=>Math.max(0,1-w[2]-w[3]-w[4]);
+/* A group bubble's radius: its share of the biggest group, by count or (when
+   asked, and money may be seen) by value converted home — area follows the
+   figure, so the radius follows its square root. */
+const IGB_BUBBLE_R=[12,48];
+function igBubbleRadius(G,h){
+  const by=intel.bubbleBy==='value'&&((typeof canViewValues!=='function')||canViewValues())?'value':'count';
+  if(!G._bub||G._bub.by!==by){ const m=new Map(); let top=0;
+    G.hubs.forEach(x=>{ let v=x.kids.length; if(by==='value'){ v=0; x.kids.forEach(n=>{ const hv=n.c?igHomeValue(n.c):null; if(hv) v+=hv; }); } m.set(x,v); if(v>top) top=v; });
+    G._bub={ by, m, top }; }
+  const v=G._bub.m.get(h)||0, t=G._bub.top||1;
+  /* many groups share the stage: the biggest bubble gives way so a crowd of
+     forty stays forty bubbles rather than one blot */
+  const top=Math.max(IGB_BUBBLE_R[0]+6,IGB_BUBBLE_R[1]*Math.min(1,Math.sqrt(12/Math.max(1,G.hubs.length))));
+  return IGB_BUBBLE_R[0]+(top-IGB_BUBBLE_R[0])*Math.sqrt(Math.max(0,v)/t);
+}
+function igBubDoors(G){
+  if(!G||!G.svg) return;
+  const ns='http://www.w3.org/2000/svg', nodes=G.svg.querySelector('#ig-nodes');
+  let layer=G.svg.querySelector('#ig-bubs');
+  if(!layer){ layer=document.createElementNS(ns,'g'); layer.id='ig-bubs'; (nodes&&nodes.parentNode||G.svg).insertBefore(layer,nodes||null); }
+  if(layer._for!==G){ layer.innerHTML=''; layer._for=G; }
+  const tap=igTapCoarse()?IG_TAP_R_TOUCH:0;
+  G.hubs.forEach(h=>{
+    if(!(h._bubR>2)){ if(h.bubEl&&h.bubEl._disp!=='none'){ h.bubEl._disp='none'; h.bubEl.style.display='none'; } return; }
+    if(!h.bubEl){ const c=document.createElementNS(ns,'circle'); c.setAttribute('class','ig-bub'); c.setAttribute('fill','transparent'); c.style.cursor='pointer';
+      const t=document.createElementNS(ns,'title'); t.textContent=h.label+' · '+((h.lines&&h.lines[0])||h.sub||i18tn('hb_n_contracts',(h.kids||[]).length,{ n:(h.kids||[]).length }))+' — '+i18t('int_bub_open');
+      c.appendChild(t);
+      c.addEventListener('click',e=>{ e.stopPropagation(); if(IG&&IG.dragMoved) return; igRecipePush(); igFoldHub(h,false); updateIntelNote(); });
+      layer.appendChild(c); h.bubEl=c; }
+    if(h.bubEl._disp==='none'){ h.bubEl._disp=''; h.bubEl.style.display=''; }
+    const bq=h._bq||h.q; igbSet(h.bubEl,'cx',bq[0].toFixed(1)); igbSet(h.bubEl,'cy',bq[1].toFixed(1)); igbSet(h.bubEl,'r',String(Math.round(Math.max(h._bubR,tap))));
+  });
+}
+/* WHICH NAMES THE MAP PRINTS (Young, 3–4 Oct 2026): all (rest), none ("just
+   the bubbles"), only these, or all but these — the set read with the map's
+   own conditions reader, again whenever the question changes. */
+function igNamesRule(){
+  const n=intel.names; if(!n) return null;
+  if(n.mode==='none') return { none:true };
+  const key=n.mode+'|'+n.q; if(!IG) return null;
+  if(IG._nmKey!==key){ IG._nmKey=key; let ids=[]; try{ ids=igIdsWhere(igConditions(n.q)); }catch(_){} IG._nmSet=new Set(ids); }
+  return { mode:n.mode, set:IG._nmSet };
+}
+function igNameShows(id,R){ if(!R) return true; if(R.none) return false; return R.mode==='only'?R.set.has(id):!R.set.has(id); }
+function igHubNamed(h,R){ if(!R) return true; if(R.none) return false; return (h.kids||[]).some(n=>igNameShows(n.id,R)); }
 function igbMix(n,w){
   const P=[n.A,n.W3,n.L,n.G||n.L,n.T||n.L];
   const p=[0,1,2].map(i=>P.reduce((s,v,k)=>s+v[i]*w[k],0));
@@ -2565,6 +2701,28 @@ function igbDraw(G,t){
   const bw=igbCardW(w);
   if(bw>.05) G.hubs.forEach(h=>{ if(h.fold>.95) return; const q=h.q, vis=(w[0]*igbClamp01((q[3]+.25)*2)+w[1])*h.vis;
     igbGlow(ctx,q[0],q[1],50+6*Math.sqrt(h.kids.length),h.col,.1*bw*vis*(1-h.fold)); });
+  /* ONE BIG BUBBLE PER GROUP (Young, 4 Oct 2026): a folded group is drawn as
+     a bubble in its colour where its contracts gathered, sized by how many it
+     holds — or by their value when asked (igBubbleRadius) — and the card
+     moves under it (igbPlace). */
+  const NRb=igNamesRule();
+  G.hubs.forEach(h=>{ const f=h.fold*bw; h._bubR=0; if(f<.05) return;
+    const vis=Math.min(1,(w[0]*igbClamp01((h.q[3]+.25)*2)+w[1])*h.vis); if(vis<.08) return;
+    const r=igBubbleRadius(G,h)*Math.sqrt(igbCam().zoom)*(intel.dotScale||1);
+    /* THE CARD STAYS WHERE IT WAS PRESSED: the bubble rises just above the
+       card's place, so a second press on the card opens it again; with the
+       names hidden there is no card, and the bubble sits where the contracts
+       gathered */
+    const q=igHubNamed(h,NRb)?[h.q[0],h.q[1]-h.h/2-6-r*f,h.q[2],h.q[3]]:h.q; h._bq=q;
+    igbGlow(ctx,q[0],q[1],r*1.9,h.col,.32*f*vis);
+    ctx.fillStyle=igbHexA(h.col,.82*f*vis); ctx.beginPath(); ctx.arc(q[0],q[1],r*Math.max(.25,f),0,6.283); ctx.fill();
+    ctx.strokeStyle='rgba(230,242,239,'+(.55*f*vis)+')'; ctx.lineWidth=1.2; ctx.stroke();
+    /* a card that had to step away from its bubble is tied to it by a faint
+       line (last frame's place: igbPlace runs after this) */
+    if(h.box&&h.g&&h.g.style.display!=='none'){ const bx=Math.max(h.box.x,Math.min(q[0],h.box.x+h.box.w)), by=Math.max(h.box.y,Math.min(q[1],h.box.y+h.box.h)), d=Math.hypot(bx-q[0],by-q[1]);
+      if(d>r*f+14){ const ux=(bx-q[0])/d, uy=(by-q[1])/d; ctx.beginPath(); ctx.moveTo(q[0]+ux*r*f,q[1]+uy*r*f); ctx.lineTo(bx,by);
+        ctx.strokeStyle=igbHexA(h.col,.45*f*vis); ctx.lineWidth=1; ctx.stroke(); } }
+    h._bubR=r*f; });
   const P=G.contracts.slice().sort((a,b)=>a.q[3]-b.q[3]);
   P.forEach(n=>{
     if(n._fold>.95) return;
@@ -2590,7 +2748,7 @@ function igbShade(G){
   const w=igbCam().w, walking=!!intel.walk, zs=Math.sqrt(igbCam().zoom);
   G.contracts.forEach(n=>{
     const q=n.q, fold=n.hub?n.hub.fold*igbCardW(w):0, cl=n.g.classList, lit=igbWalkLit(n.id), front=igbClamp01((q[3]+1.1)/2.2);
-    n._fold=fold; n._lit=lit; n._r=n.r0*q[2]*zs;
+    n._fold=fold; n._lit=lit; n._r=n.r0*q[2]*zs*(intel.dotScale||1);
     n._a=(walking&&lit<0?.3:1)*(cl.contains('dim')?.22:1)*(cl.contains('passed')?.3:1)*(cl.contains('mut')?.28:1)*(.45+front*.55)*(1-fold); });
 }
 function line2(a,b,col){ const ctx=IG&&IG.ctx; if(!ctx) return; ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.strokeStyle=col; ctx.lineWidth=1; ctx.stroke(); }
@@ -2616,10 +2774,16 @@ function igbSet(el,k,v){ if(el['_'+k]!==v){ el['_'+k]=v; el.setAttribute(k,v); }
 function igbShow(el,on){ const v=on?'':'none'; if(el._disp!==v){ el._disp=v; el.style.display=v; } }
 function igbPlace(G){
   const w=igbCam().w, bw=igbCardW(w), W=G.W, H=G.H, placed=(G.reserve||[]).slice(), gap=2;
+  /* the stage's own furniture — the view bar and the legend — is not a place
+     for a card, and every group bubble is kept clear before any card is set */
+  if(G.svg){ const sr=G.svg.getBoundingClientRect();
+    [document.querySelector('#ig-gwrap .ig-viewbar'),document.getElementById('ig-legend')].forEach(el=>{ if(!el||el.hidden) return; const r=el.getBoundingClientRect(); if(r.width>0) placed.push({ x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height }); }); }
+  G.hubs.forEach(h=>{ if(h._bubR>2&&h._bq) placed.push({ x:h._bq[0]-h._bubR, y:h._bq[1]-h._bubR, w:2*h._bubR, h:2*h._bubR }); });
   const inside=A=>A.x>=2&&A.y>=2&&A.x+A.w<=W-2&&A.y+A.h<=H-2;
   const clash=A=>placed.some(B=>A.x<B.x+B.w+gap&&B.x<A.x+A.w+gap&&A.y<B.y+B.h+gap&&B.y<A.y+A.h+gap);
+  const NR=igNamesRule();
   G.hubs.forEach(h=>{ const q=h.q, vis=(w[0]*igbClamp01((q[3]+.25)*2)+w[1])*bw*h.vis;
-    if(vis<.08){ igbShow(h.g,false); return; }
+    if(vis<.08||!igHubNamed(h,NR)){ igbShow(h.g,false); h.box=null; return; }
     /* A card stays on the stage: near an edge it slides in rather than being
        cut off under the panel or the rail. */
     const at=(dx,dy)=>{ const A={ x:Math.max(4,Math.min(W-h.w-4,q[0]-h.w/2+dx)), y:Math.max(4,Math.min(H-h.h-4,q[1]-h.h/2+dy)), w:h.w, h:h.h }; return clash(A)?null:A; };
@@ -2648,7 +2812,7 @@ function igbPlace(G){
     const q=n.q, r=n._r||3; igbShow(n.g,true);
     igbSet(n.g,'transform',`translate(${Math.round(q[0])},${Math.round(q[1])})`);
     igbSet(n.hitEl,'r',String(Math.max(igTapCoarse()?IG_TAP_R_TOUCH:8,Math.round(r+4))));
-    const quiet=n.g.classList.contains('mut')||n._fold>.5||n._a<.12;
+    const quiet=n.g.classList.contains('mut')||n._fold>.5||n._a<.12||!igNameShows(n.id,NR);
     let at=null;
     if(!quiet){ const tw=n.tw, th=n.th;
       for(const [x,y] of [[r+6,-11],[-r-6-tw,-11],[-tw/2,-r-5-th],[-tw/2,r+5]]){ const A={ x:q[0]+x, y:q[1]+y, w:tw, h:th }; if(inside(A)&&!clash(A)){ at=[x,y,A]; break; } } }
@@ -2661,6 +2825,10 @@ function igbPlace(G){
     if(at2){ placed.push(at2[2]); igbShow(n.num,true); igbSet(n.num,'transform',`translate(${Math.round(at2[0])},${Math.round(at2[1])})`); igbSet(n.num,'opacity',Math.max(.4,Math.min(1,n._a)).toFixed(2)); }
     else igbShow(n.num,false);
   });
+  /* A BUBBLE IS A DOOR TOO: pointing at it names the group (its title), a
+     press opens the group again — so a bubble whose card stepped down or was
+     hidden ("hide the names") is still something a reader can read and use. */
+  igBubDoors(G);
   G.edges.forEach(e=>{ const s=e.s, t=e.t;
     const gone=x=>x.kind==='contract'?!(x._fold<.95):(x.g._disp==='none');
     if(gone(s)||gone(t)){ igbShow(e.el,false); return; }
@@ -6440,7 +6608,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SE
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp});
-Object.assign(window,{graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

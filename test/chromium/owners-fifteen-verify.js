@@ -132,6 +132,78 @@ const check = (name, pass, detail) => {
       document.activeElement === document.getElementById('ig-group') && !!document.querySelector('.hati-selmenu')));
     await page.keyboard.press('Escape');
 
+    /* ================= 4–7. THE MAP'S LOOK, ASKED FOR IN WORDS ============== */
+    const askMap = async q => { await page.fill('#igd-input', q); await page.keyboard.press('Enter'); await page.waitForTimeout(500); };
+    const shown = () => page.evaluate(() => ({
+      tags: IG.contracts.filter(n => n.tag && n.tag._disp !== 'none' && n.g.style.display !== 'none').map(n => n.id),
+      nums: IG.contracts.filter(n => n.num && n.num._disp !== 'none' && n.g.style.display !== 'none').map(n => n.id),
+      cards: IG.hubs.filter(h => h.g.style.display !== 'none').map(h => h.label) }));
+    await page.evaluate(() => { intel.groupBy = 'counterparty'; intel.folds = {}; intel.names = null; intel.dotScale = 1; rebuildIntelGraph(); });
+    await until(() => IG && IG.hubs && IG.hubs.length >= 40);
+    await page.waitForTimeout(600);
+    const before = await shown();
+    await askMap('hide the names');
+    await page.waitForTimeout(400);
+    const none = await shown();
+    check('4a "hide the names": no contract\'s name or number and no group card is drawn — only the bubbles', before.tags.length + before.nums.length > 0 && before.cards.length > 0
+      && none.tags.length === 0 && none.nums.length === 0 && none.cards.length === 0, JSON.stringify({ before: [before.tags.length, before.nums.length, before.cards.length], after: [none.tags.length, none.nums.length, none.cards.length] }));
+    check('4b and the head line says so', await page.evaluate(() => /names hidden/i.test((document.getElementById('ig-note') || {}).textContent || '')));
+    await page.screenshot({ path: path.join(OUT, '4-names-hidden.png') });
+    await askMap('show the names again');
+    await page.waitForTimeout(400);
+    const again = await shown();
+    check('4c "show the names again" brings them back', again.tags.length + again.nums.length > 0 && again.cards.length > 0, JSON.stringify([again.tags.length, again.nums.length, again.cards.length]));
+    await askMap('only show names for Juno Logistics');
+    await page.waitForTimeout(1200);
+    const only = await shown();
+    const rule = await page.evaluate(() => { const R = igNamesRule(); return R && R.set ? [...R.set].sort() : null; });
+    check('5a "only show names for Juno Logistics": the rule names Juno\'s three, every name drawn is Juno\'s, and only Juno\'s card stands',
+      JSON.stringify(rule) === JSON.stringify(['MK-Y1', 'MK-Y2', 'MK-Y3']) && only.tags.concat(only.nums).length > 0 && only.tags.concat(only.nums).every(id => /^MK-Y/.test(id))
+      && only.cards.length >= 1 && only.cards.every(l => /juno/i.test(l)), JSON.stringify({ rule, only }));
+    await askMap('show the names again');
+    const r0 = await page.evaluate(() => { const n = IG.contracts.find(x => x._r > 0); return n ? { id: n.id, r: n._r } : null; });
+    await askMap('make the bubbles bigger');
+    await page.waitForTimeout(300);
+    const r1 = await page.evaluate(id => { const n = IG.contracts.find(x => x.id === id); return n ? n._r : null; }, r0 && r0.id);
+    check('6a "make the bubbles bigger": every bubble grows by half', !!r0 && r1 / r0.r > 1.4 && r1 / r0.r < 1.6, JSON.stringify({ r0, r1 }));
+    await askMap('smaller bubbles');
+    await page.waitForTimeout(300);
+    const r2 = await page.evaluate(id => { const n = IG.contracts.find(x => x.id === id); return n ? n._r : null; }, r0 && r0.id);
+    check('6b "smaller bubbles" takes it back', !!r0 && Math.abs(r2 / r0.r - 1) < .05, JSON.stringify({ r0, r2 }));
+    await askMap('show each customer as one bubble');
+    const folded = await until(() => IG && intel.groupBy === 'counterparty' && IG.hubs.length >= 40 && IG.hubs.every(h => h.folded) && IG.hubs.filter(h => h._bubR > 2).length > 0, null, 8000);
+    await page.waitForTimeout(900);
+    const bub = await page.evaluate(() => {
+      const big = IG.hubs.slice().sort((a, b) => b.kids.length - a.kids.length);
+      const drawn = IG.hubs.filter(h => h._bubR > 2);
+      /* no card covers any bubble (its own or another group's) */
+      const covered = [];
+      IG.hubs.filter(h => h.box && h.g.style.display !== 'none').forEach(h => drawn.forEach(o => {
+        const c = o._bq || o.q, cx = Math.max(h.box.x, Math.min(c[0], h.box.x + h.box.w)), cy = Math.max(h.box.y, Math.min(c[1], h.box.y + h.box.h));
+        if (Math.hypot(cx - c[0], cy - c[1]) < o._bubR - 2) covered.push(h.label + ' on ' + o.label); }));
+      const top = big.find(h => h._bubR > 2), small = big.slice().reverse().find(h => h._bubR > 2);
+      return { drawn: drawn.length, covered, top: top && [top.label, top.kids.length, Math.round(top._bubR)], small: small && [small.label, small.kids.length, Math.round(small._bubR)] };
+    });
+    check('7a "show each customer as one bubble": grouped by customer, every group folded, the bubbles drawn', !!folded && bub.drawn > 0, JSON.stringify(bub));
+    check('7b a bigger group is a bigger bubble', !!bub.top && !!bub.small && (bub.top[1] === bub.small[1] || bub.top[2] > bub.small[2]), JSON.stringify(bub));
+    check('7c no card is drawn over a bubble — its own or another group\'s', bub.covered.length === 0, JSON.stringify(bub.covered));
+    await page.screenshot({ path: path.join(OUT, '7-one-bubble-per-customer.png') });
+    /* a bubble is a door: it names its group, and a press opens it */
+    const door = await page.evaluate(() => { const h = IG.hubs.find(x => x._bubR > 8 && x.bubEl && x.bubEl.style.display !== 'none');
+      if (!h) return null; const r = h.bubEl.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, at = document.elementFromPoint(x, y);
+      return { label: h.label, title: (h.bubEl.querySelector('title') || {}).textContent || '', x, y, mine: at === h.bubEl }; });
+    check('7f a bubble names its group when pointed at', !!door && door.title.indexOf(door.label) === 0, JSON.stringify(door));
+    if (door && door.mine){
+      await page.mouse.click(door.x, door.y);
+      check('7g and a press on the bubble opens that group', await until(l => { const h = IG.hubs.find(x => x.label === l); return h && !h.folded; }, door.label, 3000), door.label);
+    } else check('7g and a press on the bubble opens that group', false, 'no uncovered bubble to press: ' + JSON.stringify(door));
+    const foldedBefore = await page.evaluate(() => IG.hubs.filter(h => h.folded).map(h => h.label).sort().join('|'));
+    await askMap('open everything');
+    check('7d "open everything" spreads every group again', await until(() => IG.hubs.every(h => !h.folded), null, 4000));
+    await askMap('undo');
+    check('7e and undo puts back exactly the folds it had', await until(f => IG.hubs.filter(h => h.folded).map(h => h.label).sort().join('|') === f, foldedBefore, 4000));
+    await askMap('open everything');
+
     /* ================= 13. ANALYZE CONTRACT, EASY TO REACH ================= */
     await page.evaluate(() => { intel.paper = null; const st = hbS(); st.face = 'board'; hbSave(); setView('dashboard'); });
     await until(() => hbS().face === 'board' && document.querySelectorAll('#hb-board .hb-fig').length === 6);
@@ -154,7 +226,15 @@ const check = (name, pass, detail) => {
     /* a finger: a bigger target, and a wobble is still a press */
     await page.evaluate(() => { intel.paper = null; igPaintPaper(); igSetSpin && igSetSpin(false); });
     const coarse = await page.evaluate(() => igTapCoarse());
-    /* a dot nothing else is drawn over, so the press is the dot's to answer */
+    /* a dot nothing else is drawn over, so the press is the dot's to answer —
+       read once the map has stopped gliding (two reads 300ms apart agree) */
+    let still = false;
+    for (let k = 0; k < 20 && !still; k++){
+      const a = await page.evaluate(() => IG.contracts.slice(0, 20).map(n => n.q ? Math.round(n.q[0]) + ',' + Math.round(n.q[1]) : '').join('|'));
+      await page.waitForTimeout(300);
+      const b = await page.evaluate(() => IG.contracts.slice(0, 20).map(n => n.q ? Math.round(n.q[0]) + ',' + Math.round(n.q[1]) : '').join('|'));
+      still = a === b;
+    }
     const dot = await until(() => { if (!IG || !IG.contracts) return null;
       for (const n of IG.contracts){ if (!(n._fold < .5) || n.g.style.display === 'none' || !n.hitEl) continue;
         const r = n.hitEl.getBoundingClientRect(), x = r.left + r.width / 2, y = r.top + r.height / 2, at = document.elementFromPoint(x, y);
