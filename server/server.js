@@ -3995,6 +3995,32 @@ app.post('/api/contracts/:id/here', auth, (req, res) => {
     : { name: me.name, at: new Date().toISOString() };
   const next = { ...c };
   if (Object.keys(live).length) next.here = live; else delete next.here;
+  /* ---- AN ASK FOR A CLAUSE LIVES AS LONG AS THE ASKER IS HERE (4 Oct 2026,
+     the process review) ----
+     "Ask for it" lapsed after the lock's two minutes while the holder's lock
+     never did (their editor keeps it), so a colleague who asked and kept
+     reading was silently dropped from the queue. The asker's own beat is this
+     route, so it refreshes THEIR asks on a lock that is still alive — only
+     theirs, only asks still live (a lapsed one is not raised from the dead),
+     and only on a live lock. An ask now lapses when the asker stops beating:
+     they left the contract, closed the page, or the tab went hidden for two
+     minutes. Asking still takes nothing and is still made only at /lock. */
+  if (c.locks && typeof c.locks === 'object' && !Array.isArray(c.locks)) {
+    const at = new Date().toISOString();
+    const locks = {};
+    let moved = false;
+    Object.keys(c.locks).forEach(k => {
+      const l = c.locks[k];
+      if (!srvLockAlive(l) || !Array.isArray(l.asked)) { locks[k] = l; return; }
+      const asked = l.asked.map(r => {
+        if (!r || String(r.id) !== String(me.id) || !srvLockAlive(r)) return r;
+        moved = true;
+        return { ...r, at };
+      });
+      locks[k] = { ...l, asked };
+    });
+    if (moved) next.locks = locks;
+  }
   /* JSON ONLY — see the note at the head of this block. */
   db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
   res.json({ here: srvHereOthers(live, me.id) });

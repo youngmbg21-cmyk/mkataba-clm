@@ -480,14 +480,18 @@ describe('f207-D — the layered redline: a counter written on their ask stacks'
     assert.equal(ours.counterOf, undefined);
   });
 
-  test('(parent: red) a parked ask takes no decision of its own — the refusal names the counter to decide', async () => {
-    const { win, c, theirs, ours, w } = await stacked();
+  /* RE-POINTED 4 Oct 2026 (the process review): the refusal named the
+     counter's CHG number in an 'err'. It is a 'warn' now that names the
+     clause and takes the reader to the counter (f473 pins the door). */
+  test('(parent: red) a parked ask takes no decision of its own — the refusal warns and points at the counter', async () => {
+    const { win, c, theirs, w } = await stacked();
     for (const verdict of ['accepted', 'rejected', 'pending']){
       w.log.toasts.length = 0;
       assert.equal(win.negoResolve(c, theirs.id, verdict, { side: 'owner', by: 'Amina Otieno' }), null, verdict);
       assert.equal(theirs.status, 'countered', 'still parked after ' + verdict);
       const said = w.log.toasts.map(t => t.msg).join(' | ');
-      assert.ok(said.includes(ours.id), 'the refusal names the counter: ' + (said || 'NOTHING SAID'));
+      assert.ok(/decided together/.test(said), 'the refusal says the pair is decided together: ' + (said || 'NOTHING SAID'));
+      assert.ok(!/CHG-/.test(said), 'and names the clause, never a CHG number: ' + said);
     }
   });
 

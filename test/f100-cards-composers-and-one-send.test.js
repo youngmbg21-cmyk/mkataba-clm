@@ -1109,7 +1109,7 @@ describe('F100g — a card\'s Send sends that card, and only that card', () => {
       heldDecisionIds: [p.c.changes[0].id], unsentIds: [] });
     const send = box.querySelector('[data-rl-send]');
     assert.ok(send, 'their held answer carries its Send');
-    assert.match(send.getAttribute('title') || '', /everything else held/i,
+    assert.match(send.getAttribute('title') || '', /every other answer not yet sent/i,
       'and its title still promises the batch');
   });
 });
