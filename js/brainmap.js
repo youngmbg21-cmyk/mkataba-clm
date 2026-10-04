@@ -114,7 +114,8 @@ const BRAIN_PARTS = [
   ['laneowner', 'intakeLaneOwner', 'in', 1],
   ['arrivalowed', 'intakeLaneArrivals', 'in', 1],
   ['wordmark', 'richListMark', 'out', 3],
-  ['paperdrop', 'docxIsPaperPara', 'read', 1]
+  ['paperdrop', 'docxIsPaperPara', 'read', 1],
+  ['asks', 'askOpen', 'sign', 1]
 ].map((a, i) => ({ id: a[0], code: a[1], reg: a[2], floor: a[3], def: (a[4] || {}).def || '', men: (a[4] || {}).men || '', i }));
 
 /* The six flows: which parts each step lands on. The sentences are
@@ -126,9 +127,9 @@ const BRAIN_FLOWS = [
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
-  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
+  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
-  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
+  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home', 'insights']] },
   { id: 'ask', steps: [['explorer', 'chartread'], ['db'], ['model'], ['quote'], ['contracts'], ['explorer']] }
 ];
@@ -143,7 +144,7 @@ const BRAIN_FILE_REGION = [
      nothing and touches no route does not belong. */
   [/^js\/dealstands\.js$/, 'see'],
   /* the process review's two new files (4 Oct 2026) and the address book */
-  [/^js\/signgate\.js$/, 'sign'],
+  [/^js\/(signgate|asks)\.js$/, 'sign'],
   [/^js\/(intakelanes|participants)\.js$/, 'in'],
   [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|draft)\.js$/, 'ai'],
   [/^js\/(docx|pdf|pdfrich|ocr|clausemodel|blanks|uploadblanks|richdoc|redline|templateform)\.js$/, 'read'],
