@@ -49,10 +49,16 @@
   //
   // 'light' is what the old two-position switch wrote and is still in
   // people's browsers; it means green.
+  // THEIR PAGE KEEPS ITS OWN LIGHT AND DARK (Young, 3 Oct 2026: "when i go
+  // dark mode on owner side it impacts counterparty"). Both pages are one
+  // site, so one browser shared one 'hati-dark'. A share or adviser link reads
+  // 'hati-dark-guest' and never the legacy key: our reader's choice is ours.
+  // js/app.js darkKey() is the same question, asked line for line.
   try{
+    var guest  = /^#(share=|advice)/.test(location.hash || '');
     var brand  = localStorage.getItem('hati-brand');
-    var dark   = localStorage.getItem('hati-dark');
-    var legacy = localStorage.getItem('hati-theme') || '';
+    var dark   = localStorage.getItem(guest ? 'hati-dark-guest' : 'hati-dark');
+    var legacy = guest ? '' : (localStorage.getItem('hati-theme') || '');
     if (legacy === 'light') legacy = 'green';
     // themeNow(): the pair answers as a whole the moment EITHER half is
     // written, and the legacy key answers only while both are silent.
@@ -9991,7 +9997,12 @@
      document served on its own carries no :root. The two DRAW alike and the
      reading behind them is the same function. */
   .ds-sheet{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
-    box-shadow:var(--shadow-sm);padding:var(--s-4) var(--s-5) var(--s-4);}
+    box-shadow:var(--shadow-sm);padding:var(--s-4);}
+  /* THE WORDS START WHERE THE OVERVIEW'S DO (Young, 4 Oct 2026: "the sentences
+     start very close to the edge"). This asked for --s-5, a token :root never
+     had — so the WHOLE padding was dropped and every line sat on the sheet's
+     border. --s-4 is the Overview's own inset (.sec-head 16px): same sheet
+     edge, same first letter. */
   .ds-eyebrow{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink-700);}
   .ds-h1{font-family:var(--font-heading);font-size:var(--t-page);font-weight:var(--w-strong);line-height:1.25;margin:5px 0 8px;}
   .ds-parties{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px;}

@@ -3094,10 +3094,17 @@ function brandNow(){
   if(BRANDS.includes(v)) return v;
   return themeNow()==='navy' ? 'navy' : 'green';     /* legacy key, read never written */
 }
+/* THEIR PAGE KEEPS ITS OWN LIGHT AND DARK (Young, 3 Oct 2026): a share or
+   adviser link reads and writes its own key and never falls back to ours —
+   the pre-paint script in index.html asks the same question. */
+const DARK_KEY_GUEST='hati-dark-guest';
+function darkGuest(){ try{ return /^#(share=|advice)/.test(location.hash||'') || !!(window.PORTAL_MODE===true); }catch(e){ return false; } }
+function darkKey(){ return darkGuest() ? DARK_KEY_GUEST : DARK_KEY; }
 function darkNow(){
-  const v=brandRead(DARK_KEY);
+  const v=brandRead(darkKey());
   if(v==='1') return true;
   if(v==='0') return false;
+  if(darkGuest()) return false;                      /* their page: light unless they chose */
   return themeNow()==='dark';                        /* legacy key */
 }
 /* THE ONE PAINTER. Both setters and the boot path call it, so the attribute
@@ -3122,7 +3129,7 @@ function setBrand(b){
   brandWrite(BRAND_KEY,b); applyAppearance(); repaintForAppearance();
 }
 function setDark(on){
-  brandWrite(DARK_KEY, on?'1':'0'); applyAppearance(); repaintForAppearance();
+  brandWrite(darkKey(), on?'1':'0'); applyAppearance(); repaintForAppearance();
 }
 function toggleDark(){ setDark(!darkNow()); }
 /* THE SWATCHES ARE ADMIN-ONLY (owner-ruled 24 Aug 2026). Light/dark and

@@ -162,6 +162,27 @@ const GRAPH_EDGE_KINDS = ['family','chain','party'];
    case and whitespace go, nothing else — "Naivas Ltd" and "Naivas" are two
    parties, because saying they are one is a guess about the record. */
 const _gFold = s => String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
+/* ONE PARTY, ONE GROUP (Young, 4 Oct 2026: "Young Mbgaya" stood twice on the
+   map grouped by customer). The grouping read the name exactly as typed while
+   the party's own lines (graphPartyStats) already folded case and spacing, so
+   "Juno Ltd" and "juno ltd " drew two cards counting each other's contracts.
+   The group is the FOLDED name, printed in the spelling most of the book
+   uses (ties: the first met). A different spelling ("Mbagaya" / "Mbgaya") is
+   a different name: HaTi does not guess two parties are one. */
+let _gPartyNames=null;
+function graphPartyLabel(name){
+  const k=_gFold(name); if(!k) return '';
+  const cs=(typeof state==='object'&&state&&state.contracts)||[];
+  if(!_gPartyNames||_gPartyNames.cs!==cs||_gPartyNames.n!==cs.length){
+    const tally={};
+    cs.forEach(c=>{ const raw=String(c.counterparty||'').replace(/\s+/g,' ').trim(); const f=raw.toLowerCase(); if(!f) return;
+      const t=tally[f]||(tally[f]={}); t[raw]=(t[raw]||0)+1; });
+    const best={};
+    Object.keys(tally).forEach(f=>{ let top='', n=-1; Object.keys(tally[f]).forEach(s=>{ if(tally[f][s]>n){ top=s; n=tally[f][s]; } }); best[f]=top; });
+    _gPartyNames={ cs, n:cs.length, best };
+  }
+  return _gPartyNames.best[k]||String(name).replace(/\s+/g,' ').trim();
+}
 /* THE LIVE BOOK. An archived or declined contract depends on nothing and
    nothing depends on it: counting one into a blast radius tells the reader a
    dead agreement is at risk. The same reading fxMissing and the sidebar's
@@ -813,7 +834,7 @@ const _gQuarterOfDay=d=>`Q${Math.floor((Number(d.slice(5,7))-1)/3)+1} ${d.slice(
 function groupLabelOf(c, groupBy, override){
   if(override && override[c.id]) return override[c.id];
   switch(groupBy){
-    case 'counterparty': return c.counterparty||'No counterparty';
+    case 'counterparty': return graphPartyLabel(c.counterparty)||'No counterparty';
     case 'status': return statusLabel(c.status);
     case 'valueBand': return valueBand(c.value);
     case 'kind': return cKind(c);
@@ -2075,6 +2096,7 @@ async function intelRunCompare(){
 
 /* ---- build the node/edge model from current state + lenses/group ---- */
 function buildGraphModel(){
+  _gPartyNames=null;   /* the spelling a group prints is re-read with the book, never kept across an edit */
   const groupBy=intel.groupBy, override=intel.groups;
   const act=intelActive();
   let cs=state.contracts;
@@ -2577,6 +2599,11 @@ function igbGlow(ctx,x,y,r,col,a){ if(!(r>0)||!(a>0)) return; const g=ctx.create
 /* THE WORDS: every group card where it faces the reader, then every contract's
    two small lines where they fit without covering another; where they do not,
    its number alone; where not even that fits, the dot speaks on hover. */
+/* Where a card may step to when its own place is taken: one card's height up
+   or down first (the cards are wide and short), then sideways, then the
+   diagonals, then twice as far. Units are about half a card's width across
+   and one card's height down. */
+const IGB_HUB_STEPS=Object.freeze([[0,1],[0,-1],[1,0],[-1,0],[1,1],[-1,1],[1,-1],[-1,-1],[0,2],[0,-2],[2,0],[-2,0],[2,1],[-2,1],[2,-1],[-2,-1],[0,3],[0,-3],[2,2],[-2,2],[2,-2],[-2,-2]].map(Object.freeze));
 function igbSet(el,k,v){ if(el['_'+k]!==v){ el['_'+k]=v; el.setAttribute(k,v); } }
 function igbShow(el,on){ const v=on?'':'none'; if(el._disp!==v){ el._disp=v; el.style.display=v; } }
 function igbPlace(G){
@@ -2585,11 +2612,24 @@ function igbPlace(G){
   const clash=A=>placed.some(B=>A.x<B.x+B.w+gap&&B.x<A.x+A.w+gap&&A.y<B.y+B.h+gap&&B.y<A.y+A.h+gap);
   G.hubs.forEach(h=>{ const q=h.q, vis=(w[0]*igbClamp01((q[3]+.25)*2)+w[1])*bw*h.vis;
     if(vis<.08){ igbShow(h.g,false); return; }
-    igbShow(h.g,true);
     /* A card stays on the stage: near an edge it slides in rather than being
        cut off under the panel or the rail. */
-    const x=Math.max(4,Math.min(W-h.w-4,q[0]-h.w/2)), y=Math.max(4,Math.min(H-h.h-4,q[1]-h.h/2));
-    h.box={ x, y, w:h.w, h:h.h };
+    const at=(dx,dy)=>{ const A={ x:Math.max(4,Math.min(W-h.w-4,q[0]-h.w/2+dx)), y:Math.max(4,Math.min(H-h.h-4,q[1]-h.h/2+dy)), w:h.w, h:h.h }; return clash(A)?null:A; };
+    /* CARDS NEVER COVER CARDS (Young, 4 Oct 2026: grouped by customer, forty
+       cards piled into one unreadable heap). G.hubs is biggest group first, so
+       the biggest groups keep their own spot; a later card steps aside to the
+       nearest free place (IGB_HUB_STEPS), trying the place it held last frame
+       second so a turning map does not make it jump about; a card with no
+       free place is not drawn — its dots still speak on hover, the same rule
+       the contracts' own labels follow. */
+    let box=at(0,0);
+    if(!box&&h._off) box=at(h._off[0],h._off[1]);
+    if(!box) for(const [fx,fy] of IGB_HUB_STEPS){ const dx=fx*(h.w*.55+gap), dy=fy*(h.h+gap); box=at(dx,dy); if(box){ h._off=[dx,dy]; break; } }
+    if(!box){ igbShow(h.g,false); h.box=null; return; }
+    if(box.x===Math.max(4,Math.min(W-h.w-4,q[0]-h.w/2))&&box.y===Math.max(4,Math.min(H-h.h-4,q[1]-h.h/2))) h._off=null;
+    igbShow(h.g,true);
+    const x=box.x, y=box.y;
+    h.box=box;
     igbSet(h.g,'transform',`translate(${Math.round(x)},${Math.round(y)})`);
     igbSet(h.card,'opacity',Math.min(1,vis).toFixed(2));
     placed.push(h.box); });
@@ -6392,7 +6432,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SE
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp});
-Object.assign(window,{IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{graphPartyLabel,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */

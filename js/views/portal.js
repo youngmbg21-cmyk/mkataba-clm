@@ -1976,6 +1976,11 @@ function portalEditHtml(){
 function portalOpenEditor(){
   const host=document.getElementById('pt-nego');
   if(!host || typeof host._rlOpenEditor!=='function') return false;
+  /* EDIT GOES TO THE REDLINES FIRST (Young, 3 Oct 2026: Edit pressed on Where
+     we are opened half an editor over the other tab). The editor sits BESIDE
+     their Redlines column (ceFitToTheirs); on any other tab that column is
+     under a pane and inert, so the editor had nothing to sit beside. */
+  if(_ptTab!=='redlines') portalSetTab('redlines');
   const first=host.querySelector('#rl-doc [data-clause]:not([data-clause="front"])');
   const id=first && first.getAttribute('data-clause');
   if(!id) return false;
@@ -3996,7 +4001,15 @@ function portalTabsStyle(){
     .pw-mount>.pw-pane{position:absolute;inset:0;z-index:6;overflow:auto;background:var(--color-bg);}
     #pt-hist-pane .ht{max-width:880px;max-height:none;overflow:visible;margin:0 auto;background:var(--color-surface);
       border:1px solid var(--color-divider);border-radius:var(--radius-lg);}
-    .pw-where{max-width:1180px;margin:0 auto;padding:18px 4px 28px;display:flex;flex-direction:column;gap:18px;}
+    .pw-where{max-width:1180px;margin:0 auto;padding:18px 2px 28px;display:flex;flex-direction:column;gap:18px;}
+    /* ONE STARTING LINE WITH THE OVERVIEW (Young, 4 Oct 2026: "the sentences
+       start very close to the edge ... the same starting line from the edge as
+       the overview page"). The Overview's first letter sits a card's border
+       and 16px inside its sheet; here the heading, the journey and every
+       card's words start on that same line (--pw-inset: the card's 1px border
+       and its 16px). */
+    .pw-where{--pw-inset:17px;}
+    .pw-where-head{padding-left:var(--pw-inset);}
     /* THE RULE, and the page under it. A quiet label rather than a band: it
        names a region, it carries no act, and the reader's own choice is not
        read back to them — the three tests the owner's band rule sets. */
@@ -4006,7 +4019,7 @@ function portalTabsStyle(){
     .pw-where-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
     .pw-where-head h2{margin:0;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);}
     .pw-where-head span{font-size:var(--t-body);color:var(--color-neutral-600);}
-    .pw-journey{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));}
+    .pw-journey{list-style:none;margin:0;padding:0 0 0 var(--pw-inset);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));}
     .pw-jst{position:relative;padding:24px 12px 0 0;display:flex;flex-direction:column;gap:1px;font-size:var(--t-meta);color:var(--color-neutral-600);min-width:0;}
     .pw-jst::before{content:"";position:absolute;top:7px;left:0;right:0;height:3px;background:var(--color-divider);}
     .pw-jst.is-done::before{background:var(--accent-fill);}
@@ -4019,12 +4032,12 @@ function portalTabsStyle(){
     .pw-where-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px;align-items:start;}
     .pw-where-side{display:flex;flex-direction:column;gap:18px;min-width:0;}
     .pw-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);min-width:0;}
-    .pw-card h3{margin:0;padding:11px 14px;border-bottom:1px solid var(--color-divider);font-size:var(--t-card);font-weight:var(--w-strong);}
-    .pw-card-b{padding:6px 8px;display:flex;flex-direction:column;}
+    .pw-card h3{margin:0;padding:11px 16px;border-bottom:1px solid var(--color-divider);font-size:var(--t-card);font-weight:var(--w-strong);}
+    .pw-card-b{padding:6px 10px;display:flex;flex-direction:column;}
     .pw-wrow{width:100%;}
     .pw-wrow svg{margin-left:auto;flex:none;color:var(--color-neutral-500);}
     .pw-wnone{margin:0;padding:10px 6px;font-size:var(--t-body);color:var(--color-neutral-600);}
-    .pw-contact{display:flex;gap:12px;padding:12px 14px;align-items:flex-start;}
+    .pw-contact{display:flex;gap:12px;padding:12px 16px;align-items:flex-start;}
     .pw-contact>span:last-child{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:var(--t-body);}
     .pw-contact>span:last-child>span{color:var(--color-neutral-600);font-size:var(--t-meta);}
     .pw-contact .ui-link{align-self:flex-start;margin-top:4px;}

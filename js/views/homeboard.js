@@ -940,7 +940,7 @@ function hbNextGroup(fixed){ const f = new Set(fixed || []); return HB_GROUP_FIE
 function hbGroupOf(c, field){
   if (field === 'status') return c.status || '';
   if (field === 'folder') return (typeof FOLDERS !== 'undefined' && FOLDERS && FOLDERS[c.folder] && FOLDERS[c.folder].name) || String(c.folder || '');
-  if (field === 'counterparty') return String(c.counterparty || '').trim();
+  if (field === 'counterparty') return (typeof graphPartyLabel === 'function') ? graphPartyLabel(c.counterparty) : String(c.counterparty || '').trim();
   if (field === 'kind'){ try { return (typeof cKind === 'function') ? cKind(c) : ''; } catch (_){ return ''; } }
   if (field === 'side'){ const x = hbSideOf(c); return x || ''; }
   if (field === 'owner'){ try { return String(((typeof contractOwnerName === 'function') ? contractOwnerName(c) : (c.owner && c.owner.name)) || c._raisedBy || '').trim(); } catch (_){ return ''; } }

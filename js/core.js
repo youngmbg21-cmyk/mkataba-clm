@@ -3107,9 +3107,25 @@ function selectMenuWire(root, selector){
        the reader presses. */
     if (selectMenuStandsDown()) return;
     ev.preventDefault();                        /* the system pane never opens */
-    sel.focus();
+    /* A FINGER NEVER FOCUSES THE SELECT (Young's iPad, 3 Oct 2026: two menus
+       side by side). On iPadOS a select that takes focus inside a touch IS
+       the system picker, so preventing the pointer event was not enough: the
+       focus we gave it opened the pane we had just refused. A mouse still
+       focuses it, which keeps the keyboard's arrows and type-ahead. */
+    if (ev.pointerType === 'mouse') sel.focus();
     selectMenuOpen(sel);
   });
+  /* AND THE TOUCH ITSELF IS SPENT: iPadOS raises its picker from the touch's
+     own end (and the click it makes), which no pointer event cancels. Both
+     ends of a touch on a select are refused while HaTi's list is the one
+     drawn — the list already opened on the pointer press. */
+  const touchSpent = ev => {
+    const sel = ev.target && ev.target.closest ? ev.target.closest(selector) : null;
+    if (!sel || sel.disabled || selectMenuStandsDown()) return;
+    if (ev.cancelable) ev.preventDefault();
+  };
+  root.addEventListener('touchstart', touchSpent, { passive: false });
+  root.addEventListener('touchend', touchSpent, { passive: false });
 }
 /* ---- EVERY DROPDOWN IN THE PLATFORM DRAWS HaTi'S OWN LIST (Young ruled it
    21 Sep 2026: "make all drop downs in the platform similar to the ones in the
