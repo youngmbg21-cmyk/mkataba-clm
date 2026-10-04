@@ -406,7 +406,8 @@ describe('an action by one side shows up on the other', () => {
   test('progress and the resolved count move together on both sides', async () => {
     const o = await negotiated();
     let v = counterpartyView(o.c);
-    assert.match(v.$('.pw-jfacts').textContent, /Resolved: 0 of 3/);
+    /* the shared sheet's facts row (4 Oct 2026) carries the round and what is settled */
+    assert.match(v.$('#pt-where-pane .ds-facts').textContent.replace(/\s+/g, ' '), /Settled\s*0 of 3/);
     assert.match(o.ownerDoc().querySelector('#nego-progress').textContent, /0 of 3 resolved/);
 
     /* The owner answers every one of their asks. The bulk verb that used to do
@@ -422,7 +423,7 @@ describe('an action by one side shows up on the other', () => {
     }
     // the owner's page repainted itself; Erik's repaints from a fresh read of the link
     v = counterpartyView(o.c);
-    assert.match(v.$('.pw-jfacts').textContent, /Resolved: 3 of 3/);
+    assert.match(v.$('#pt-where-pane .ds-facts').textContent.replace(/\s+/g, ' '), /Settled\s*3 of 3/);
     assert.match(o.ownerDoc().querySelector('#nego-progress').textContent, /3 of 3 resolved/);
   });
 
@@ -813,7 +814,8 @@ describe('the durable link keeps showing current state', () => {
     p.open(sharePayloadFor(p, o.c));
     assert.equal(p.win.document.querySelectorAll('[data-nego-card]').length, 3,
       'three asks are live on his table');
-    assert.match(p.win.document.querySelector('.pw-jfacts').textContent, /Resolved: 0 of 3/);
+    /* the shared sheet's facts row (4 Oct 2026) carries the round and what is settled */
+    assert.match(p.win.document.querySelector('#pt-where-pane .ds-facts').textContent.replace(/\s+/g, ' '), /Settled\s*0 of 3/);
 
     // Wanjiru answers everything, then the SAME link is refreshed in place
     /* The owner answers every one of their asks. The bulk verb that used to do
@@ -837,7 +839,7 @@ describe('the durable link keeps showing current state', () => {
     assert.ok([...liveNego(p.win).querySelectorAll('#rl-cp-body .rl-cp-who')]
       .some(t => /adopted/.test(t.textContent || '')),
       'the decisions are in the clause panel now');
-    assert.match(p.win.document.querySelector('.pw-jfacts').textContent, /Resolved: 3 of 3/);
+    assert.match(p.win.document.querySelector('#pt-where-pane .ds-facts').textContent.replace(/\s+/g, ' '), /Settled\s*3 of 3/);
   });
 
   test('a superseded copy is read-only, and says why', async () => {

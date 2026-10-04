@@ -6136,6 +6136,18 @@ function graphChartClean(c) {
   else if (group) out.split = { by: group };
   return Object.keys(out).length ? out : null;
 }
+/* the look the model named, in the map's own words — or nothing */
+function graphLookClean(l) {
+  if (!l || typeof l !== 'object') return null;
+  const out = {};
+  if (['all', 'none'].includes(l.names)) out.names = l.names;
+  if (l.edgeNames === true || l.edgeNames === false) out.edgeNames = l.edgeNames;
+  if (['small', 'smaller', 'bigger', 'normal'].includes(l.dots)) out.dots = l.dots;
+  if (['none', 'all'].includes(l.bubbles)) out.bubbles = l.bubbles;
+  if (typeof l.bundle === 'string' && l.bundle.trim()) out.bundle = l.bundle.trim().slice(0, 80);
+  if (l.grouping === 'reset') out.grouping = 'reset';
+  return Object.keys(out).length ? out : null;
+}
 app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
@@ -6186,7 +6198,12 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
            and HaTi still counts every figure. */
         chart: { type: 'object', description: 'Fill ONLY when the request asks for a picture or a split of one: a pie/ring, bars, columns, blocks/treemap, bubbles, a list, a timeline, "by month/quarter/year", "by stream/stage/owner…", or a trend. HaTi draws it and counts it; never put numbers here.',
           properties: { pic: { type: 'string', enum: GRAPH_CHART_PICS }, split: { type: 'string', enum: GRAPH_CHART_SPLITS }, date: { type: 'string', enum: GRAPH_CHART_DATES, description: 'For a split by month/quarter/year: which date (end = expiry, the default).' }, measure: { type: 'string', enum: GRAPH_CHART_MEASURES }, trend: { type: 'boolean', description: 'True when the request asks how something changes over time.' } } },
-        ask: { type: 'array', description: 'When the request is unclear, up to three things it could mean, as {role, fact}; HaTi shows them as buttons and changes nothing else.', items: { type: 'object', properties: { role: { type: 'string', enum: ['group', 'floors', 'columns', 'colour', 'size', 'label', 'time'] }, fact: { type: 'string' } } } }
+        ask: { type: 'array', description: 'When the request is unclear, up to three things it could mean, as {role, fact}; HaTi shows them as buttons and changes nothing else.', items: { type: 'object', properties: { role: { type: 'string', enum: ['group', 'floors', 'columns', 'colour', 'size', 'label', 'time'] }, fact: { type: 'string' } } } },
+        /* THE MAP'S LOOK (4 Oct 2026): names, names on the edges, dot size,
+           big bubbles and bundles — the same acts the map's own reader does.
+           The browser carries each out and says in its own words what it did. */
+        look: { type: 'object', description: 'Fill ONLY for the map\'s look: names on or off ("remove customer names" → names none), names on the edges of floors/grid/timeline, dot size ("the bubbles need to be small" → dots small), opening or folding big bubbles, putting named contracts into ONE bubble across groups ("fold all Juno contracts into one bubble" → bundle "Juno"), or "remove the grouping" (grouping reset). Never express these with labelBy, sizeBy, groupBy or a filter.',
+          properties: { names: { type: 'string', enum: ['all', 'none'] }, edgeNames: { type: 'boolean' }, dots: { type: 'string', enum: ['small', 'smaller', 'bigger', 'normal'] }, bubbles: { type: 'string', enum: ['none', 'all'], description: 'none = open every big bubble; all = every group folded into its own bubble.' }, bundle: { type: 'string', description: 'Which contracts go into ONE bubble, in the plain words of the request ("Juno", "drafts", "leases").' }, grouping: { type: 'string', enum: ['reset'] } } }
       },
       required: ['note']
     }
@@ -6199,6 +6216,8 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
   const prompt = `You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n${onScreen ? `\nOn screen now: ${onScreen}\n` : ''}${figures ? `\n${figures}\n` : ''}\nContracts (JSON; fields per card: id, name, counterparty, folder = value stream, kind = type, status, currency, ${money ? 'value, ' : ''}expiry, signedAt, createdAt, decisionDate = renewal decision date, noticeDays, effDate, payTermsDays, parentId/relation = family, move = whose move in the negotiation ("you" = ours, "them" = theirs), live = negotiation live, overdue = overdue obligations, nextDue, offStandard = playbook deviations (null = never checked), risk = risk score (null = not scanned), read = Copilot has read it, archived, source):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring", "overdue", "waiting on us"), express it as a \`where\` filter wherever a field carries it; use visibleIds only for a match no field expresses (a name, a city).\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel — HaTi prints its own line of counts, so say what the numbers cannot. For any count or total, quote HaTi's own figures above; never add up the cards. NEVER state how many contracts match the request — HaTi counts the matches itself and prints that number; a sentence that states a different count is not shown.\n- If it is purely a grouping request ("group by customer", "cluster by expiration date", "by when they were signed"), leave visibleIds empty and set groupBy to the DIMENSION: ${GRAPH_GROUP_DESC}\n- It can be both.\n- Use groupBy="custom" ONLY for a dimension no key names (city, region, sector…), and then fill groups by INFERRING the label from the counterparty/name for every contract you can place, with at least two labels. Never return custom with an empty groups map.\n- If the request is about what a contract SAYS (a clause, its obligations, a summary, an explanation, a quote) and does not ask to arrange or narrow the map, set kind="wording" and nothing else.
 - The map has five views: brain, wiring, floors, grid and timeline. "Floors by X" sets floorsBy; "columns by X" sets columnsBy; "X against Y" sets columnsBy X, floorsBy Y and view grid; "over time" or "timeline" sets view timeline (timeBy names the date). Colour, size and labels each name a fact. Every fact is one of: ${GRAPH_GROUP_DESC}
 - When the request could mean more than one of these and you cannot tell which, fill ask with up to three {role, fact} options and change nothing else.
+- The map's LOOK — names shown or hidden, names on the edges, the size of the dots ("bubbles"), big bubbles, contracts gathered into one bubble, removing the grouping — goes in look and nowhere else. Never answer a look request with labelBy, sizeBy, groupBy, where or visibleIds.
+- Never write that the map did something (hid, showed, grouped, resized…) unless a field you set does it: HaTi prints what the map did in its own words.
 - Always return via the render_graph tool.`;
   try {
     const resp = await anthropicMessages(key, 'fast', { max_tokens: 2000, tools: [tool], tool_choice: { type: 'tool', name: 'render_graph' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'graph', who: aiWho(req) });
@@ -6224,6 +6243,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
       top: (out.top && typeof out.top === 'object' && Number(out.top.n) > 0) ? { n: Math.min(200, Math.round(Number(out.top.n))), by: String(out.top.by || 'value').slice(0, 20), per: out.top.per ? String(out.top.per).slice(0, 40) : null } : null,
       chart: graphChartClean(out.chart),
       ask: Array.isArray(out.ask) ? out.ask.slice(0, 3).map(o => ({ role: String((o && o.role) || '').slice(0, 20), fact: String((o && o.fact) || '').slice(0, 40) })) : null,
+      look: graphLookClean(out.look),
       ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
@@ -8573,26 +8593,27 @@ function dealPageHtml(D, org) {
   const day = d => { if (!d) return ''; try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (_) { return String(d).slice(0, 10); } };
   const evText = x => x.kind === 'round' ? `Round ${x.round} closed`
     : x.kind === 'signed' ? `${x.party || 'A party'} signed`
-      : x.kind === 'settled' ? `${x.clause} settled`
-        : x.kind === 'declined' ? `${x.clause} was turned down`
-          : `${x.party || 'A party'} asked about ${x.clause}`;
+      : x.kind === 'settled' ? `${clauseOf(x)} settled`
+        : x.kind === 'declined' ? `${clauseOf(x)} was turned down`
+          : `${x.party || 'A party'} asked about ${clauseOf(x)}`;
   const role = p => [p.negotiates ? 'negotiates' : '', p.signs ? 'signs' : ''].filter(Boolean).join(' · ');
   const step = (s, i) => `<td style="padding:0 10px 0 0;vertical-align:top;width:25%">
     <div style="height:2px;background:${s.done ? '#0C5D55' : '#D9E0DE'};margin:5px 0 9px"></div>
     <div style="font-size:14px;font-weight:700;color:${s.now ? '#8A5A00' : '#1B2A28'}">${e(DEAL_WORDS[s.key])}</div>
     <div style="font-size:12px;color:#5F6D6B;margin-top:1px">${e(s.now && s.key === 'negotiating'
-      ? `Round ${D.round} · ${D.settled} of ${D.total} settled` : s.done ? '' : 'Not yet')}</div></td>`
+      ? `Round ${D.round}` : s.done ? '' : 'Not yet')}</div></td>`
       + (i === 0 ? '' : '');
-  const fact = (k, v, warn) => `<td style="padding:0 26px 0 0;vertical-align:top">
+  const fact = (k, v) => `<td style="padding:0 28px 0 0;vertical-align:top">
     <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8A9693;margin-bottom:2px">${e(k)}</div>
-    <div style="font-size:14px;font-weight:600;color:${warn ? '#8A5A00' : '#1B2A28'}">${e(v)}</div></td>`;
+    <div style="font-size:15px;font-weight:600;color:#1B2A28">${e(v)}</div></td>`;
+  const clauseOf = p => (p && p.clause) || 'a clause';
   const li = (mark, a, b) => `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #F1F4F3;font-size:14px">
     <span style="flex:none;color:${mark === 'o' ? '#E8B84B' : '#0C5D55'};line-height:1.5">${mark === 'o' ? '○' : '✓'}</span>
     <span><b style="font-weight:600">${e(a)}</b>${b ? `<i style="font-style:normal;display:block;color:#5F6D6B;font-size:12.5px;margin-top:1px">${e(b)}</i>` : ''}</span></div>`;
-  const whose = D.executed ? 'Signed'
-    : D.move ? (D.move.days == null ? D.move.party
-      : `${D.move.party} — ${D.move.days === 1 ? 'since yesterday' : `for ${D.move.days} days`}`)
-      : 'Nobody — nothing is open';
+  /* THE SHARED SHEET (4 Oct 2026): one row of facts — the round, how much is
+     settled, what waits on each party — in place of "Whose move — X for 0 days". */
+  const facts = [fact('Round', String(D.round)), fact('Settled', `${D.settled} of ${D.total}`)]
+    .concat(D.executed ? [] : (D.waiting || []).map(w => fact(`Waiting on ${w.party}`, String(w.n))));
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
@@ -8605,30 +8626,28 @@ function dealPageHtml(D, org) {
       <span>${D.updatedAt ? 'Last moved ' + e(day(D.updatedAt)) : ''}</span></div>
     <div style="padding:22px 20px 40px">
     <div style="background:#fff;border:1px solid #E2E7E5;max-width:880px;margin:0 auto;padding:22px 30px 20px;box-shadow:0 1px 3px rgba(27,42,40,.06)">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:#0C5D55">Where the deal stands</div>
-      <h1 style="font-size:20px;font-weight:700;line-height:1.25;margin:5px 0 8px">${e(D.name)} &mdash; ${e(D.ref)}</h1>
+      <h1 style="font-size:20px;font-weight:700;line-height:1.25;margin:0 0 4px">Where the deal stands</h1>
+      <div style="font-size:13px;color:#5F6D6B;margin:0 0 10px">${e(D.name)} &middot; ${e(D.ref)}</div>
       <div style="margin-bottom:5px">${D.parties.map(p => `<span style="display:inline-block;font-size:12px;border:1px solid ${p.ours ? '#B6D3CE' : '#D9E0DE'};background:${p.ours ? '#F1F7F6' : 'transparent'};border-radius:999px;padding:1px 10px;margin:0 6px 5px 0;color:#42504D"><b style="font-weight:700">${e(p.name)}</b>${role(p) ? ' · ' + e(role(p)) : ''}</span>`).join('')}</div>
-      <p style="font-size:12px;color:#8A9693;margin:0">Built from the record${org ? ' by ' + e(org) : ''}. No advice, no opinions, and the same for every party.</p>
-      <table style="width:100%;border-collapse:collapse;margin-top:18px"><tr>${D.steps.map(step).join('')}</tr></table>
-      <table style="border-collapse:collapse;background:#F5F7F6;border:1px solid #E7EBE9;margin:16px 0;width:100%"><tr style="vertical-align:top">
-        <td style="padding:11px 0 11px 15px"><table style="border-collapse:collapse"><tr style="vertical-align:top">
-          ${fact('Whose move', whose, !!D.move)}${fact('Open points', `${D.open} / ${D.total}`)}${fact('Round', String(D.round))}
-        </tr></table></td></tr></table>
+      <table style="border-collapse:collapse;border-top:1px solid #E7EBE9;margin:12px 0 0;width:100%"><tr style="vertical-align:top">
+        <td style="padding:12px 0 0"><table style="border-collapse:collapse"><tr style="vertical-align:top">${facts.join('')}</tr></table></td></tr></table>
+      <table style="width:100%;border-collapse:collapse;margin:16px 0 18px"><tr>${D.steps.map(step).join('')}</tr></table>
       <table style="width:100%;border-collapse:collapse"><tr style="vertical-align:top">
         <td style="width:50%;padding-right:12px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Agreed</div>
-          ${D.settledPoints.length ? D.settledPoints.map(p => li('t', p.clause, '')).join('')
+          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Agreed &middot; ${D.settled}</div>
+          ${D.settledPoints.length ? D.settledPoints.map(p => li('t', clauseOf(p), '')).join('')
             + (D.settled > D.settledPoints.length ? `<div style="font-size:13px;color:#8A9693;padding:5px 0">and ${D.settled - D.settledPoints.length} more</div>` : '')
             : '<div style="font-size:14px;color:#8A9693;padding:5px 0">Nothing has been settled yet</div>'}</td>
         <td style="width:50%;padding-left:12px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Still open</div>
-          ${D.points.length ? D.points.map(p => li('o', p.clause, p.with ? 'with ' + p.with : '')).join('')
+          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Still open &middot; ${D.open}</div>
+          ${D.points.length ? D.points.map(p => li('o', clauseOf(p), p.with ? 'with ' + p.with : '')).join('')
+            + (D.open > D.points.length ? `<div style="font-size:13px;color:#8A9693;padding:5px 0">and ${D.open - D.points.length} more</div>` : '')
             : '<div style="font-size:14px;color:#8A9693;padding:5px 0">Nothing is open</div>'}</td>
       </tr></table>
       <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin:18px 0 6px">Lately</div>
       ${D.lately.length ? D.lately.map(x => `<div style="display:flex;gap:12px;font-size:12.5px;padding:4px 0"><span style="color:#9AA6A3;flex:none;width:92px">${e(day(x.at))}</span><div>${e(evText(x))}</div></div>`).join('')
         : '<div style="font-size:14px;color:#8A9693">Nothing has happened yet</div>'}
-      <p style="margin:18px 0 0;border-top:1px solid #EDF1F0;padding-top:11px;font-size:11px;color:#8A9693;line-height:1.6">This page shows the state of the deal and nothing else. It never shows what any side said privately, who inside a company was asked to look at something, any party&rsquo;s notes, or any figure that has not been put to every party. It is read-only, and whoever switched it on can switch it off.</p>
+      <p style="margin:18px 0 0;border-top:1px solid #EDF1F0;padding-top:11px;font-size:12px;color:#8A9693;line-height:1.6">The same page every party sees${org ? ' &middot; shared by ' + e(org) : ''} &middot; read-only; whoever switched it on can switch it off.</p>
     </div></div>
   </body></html>`;
 }
@@ -12727,7 +12746,13 @@ function srvDsSince(c, side) {
   const t = at ? Date.parse(at) : NaN;
   return isFinite(t) ? Math.max(0, Math.floor((Date.now() - t) / 864e5)) : null;
 }
-function srvDsClause(ch) { return String((ch && (ch.clauseLabel || ch.clauseId)) || ''); }
+/* A clause is named by its LABEL; an inside id (cl_7f, CHG-4) is said as
+   nothing and drawn as "a clause" — the browser's dsClauseOf, line for line. */
+const SRV_DS_INSIDE_ID = /^(?:CHG-\d|cl[_-]|c[_-]\w|chg[_-])/i;
+function srvDsClause(ch) {
+  const raw = String((ch && (ch.clauseLabel || ch.clauseId)) || '');
+  return (!ch || !ch.clauseLabel) && SRV_DS_INSIDE_ID.test(raw) ? '' : raw;
+}
 function srvDealStands(c) {
   if (!c) return null;
   /* ---- OUR OWN ROW HAS A NAME EVEN WHERE THE PAPER DOES NOT GIVE IT ONE ----
@@ -12782,6 +12807,17 @@ function srvDealStands(c) {
     settledPoints.push({ clause: srvDsClause(ch), settled: ch.status === 'accepted' });
     if (settledPoints.length >= DEAL_POINTS_MAX) break;
   }
+  /* what waits on each party that negotiates — the browser's dsWaiting */
+  const byName = new Map(parties.filter(p => p.negotiates).map(p => [p.name, 0]));
+  const seenW = new Set();
+  for (const ch of open) {
+    const key = String(ch.clauseId || ch.id || '');
+    if (seenW.has(key)) continue;
+    seenW.add(key);
+    const holder = ch.authorSide === 'owner' ? them : us;
+    if (holder && holder.name) byName.set(holder.name, (byName.get(holder.name) || 0) + 1);
+  }
+  const waiting = parties.filter(p => byName.has(p.name)).map(p => ({ party: p.name, ours: p.ours, n: byName.get(p.name) || 0 }));
   const nameOf = side => ((side === 'owner' ? us : them) || {}).name || '';
   const ev = [];
   for (const ch of srvDsChanges(c)) {
@@ -12802,7 +12838,7 @@ function srvDealStands(c) {
     parties, steps, move, agreed, executed,
     round: Math.max(1, Number((neg && neg.round) || srvDsRounds(c).length + 1) || 1),
     total: live.length, settled: live.length - open.length, open: open.length,
-    points, settledPoints, lately,
+    points, settledPoints, waiting, lately,
     updatedAt: (lately[0] && lately[0].at) || c.updatedAt || c.lastAction || null,
   };
 }
@@ -15533,6 +15569,28 @@ app.delete('/api/home/gifts/:id', auth, (req, res) => {
   res.json({ ok: true });
 });
 
+/* ---------- YOUR KEPT VIEWS, FOR THE DAILY BRIEF (the Insights shelf, Young
+   "Build it", 4 Oct 2026) ----------
+   A view kept from Home's shelf lives on the person's own board in their
+   browser, and the board counts it every time Home opens. The brief cannot
+   count it — the recipe is the board's own arithmetic — so the board hands
+   over what it last counted: the view's name, HaTi's own sentence and the day
+   it was counted. The mail says "as of" that day, never "now". A RECORD OF
+   THE PERSON'S OWN SCREEN, kept on their own row (users.prefs), capped, and
+   never a contract's figure taken on the browser's word anywhere else. */
+const HOME_KEPT_MAX = 8;
+app.put('/api/home/kept', auth, (req, res) => {
+  const b = req.body || {};
+  if (!Array.isArray(b.views)) return res.status(400).json({ error: 'views must be a list' });
+  if (b.views.length > HOME_KEPT_MAX) return res.status(400).json({ error: `A board keeps at most ${HOME_KEPT_MAX} views.` });
+  const views = b.views.map(v => ({ title: clean(v && v.title).slice(0, 120), say: clean(v && v.say).slice(0, 240),
+    at: /^\d{4}-\d{2}-\d{2}$/.test(String((v && v.at) || '')) ? String(v.at) : '' })).filter(v => v.title);
+  const prefs = userPrefs(req.user);
+  prefs.keptViews = views;
+  db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), req.user.id);
+  res.json({ ok: true, views });
+});
+
 /* ---------- A MONTHLY PICTURE OF THE BOOK (Young, "Build it", 4 Oct 2026) ----------
    "How many live contracts did we have each month?" cannot be worked out
    backwards: a contract does not record how many others were live beside it.
@@ -16113,6 +16171,16 @@ function briefWeekOf(day) {
   d.setUTCDate(d.getUTCDate() - back);
   return d.toISOString().slice(0, 10);
 }
+/* YOUR KEPT VIEWS ride a brief that is going anyway; on their own they do not
+   send one (a quiet day says nothing). Each line is what Home last counted,
+   with the day it counted it. */
+function keptSec(L, u) {
+  const kept = (userPrefs(u).keptViews || []).filter(v => v && v.title).slice(0, HOME_KEPT_MAX);
+  if (!kept.length) return '';
+  const home = (APP_URL() || `http://localhost:${PORT}`) + '/';
+  return `${tFor(L, 'mail_db_kept')}\n` + kept.map(v => `  • ${v.title}${v.say ? ' — ' + v.say : ''}${v.at ? ' ' + tFor(L, 'mail_db_kept_asof', { date: v.at }) : ''}`).join('\n')
+    + `\n    ${home}\n\n`;
+}
 function runDailyBriefs() {
   const day = aiToday();
   const members = db.prepare('SELECT * FROM users').all()
@@ -16226,6 +16294,7 @@ function runDailyBriefs() {
       + sec(tFor(L, 'mail_db_sign'), S.sign) + sec(tFor(L, 'mail_db_exp'), S.exp)
       + sec(tFor(L, 'mail_db_notice'), S.notice)
       + sec(tFor(L, 'mail_db_link'), S.link)
+      + keptSec(L, u)
       + `${tFor(L, K.off)}\n\n${tFor(L, 'mail_automated_notice')}`;
     sendEmail(u.email, tFor(L, K.subject, { n: total }), body, every === 'weekly' ? 'weekly brief' : 'daily brief');
     sent++;

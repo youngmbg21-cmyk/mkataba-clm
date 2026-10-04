@@ -151,6 +151,7 @@ function dealStands(c){
     total: live.length, settled, open: open.length,
     points: dsPoints(c, open, parties),
     settledPoints: dsSettled(c, parties),
+    waiting: dsWaiting(open, parties),
     lately: dsLately(c, parties),
     updatedAt: dsUpdatedAt(c),
   };
@@ -168,8 +169,8 @@ function dsPoints(c, open, parties){
     const key = String(ch.clauseId || ch.id || '');
     if (seen.has(key)) continue;
     seen.add(key);
-    let clause = String(ch.clauseLabel || ch.clauseId || '');
-    try { if (typeof window !== 'undefined' && window.negoClauseName) clause = negoClauseName(clause) || clause; } catch (_){}
+    let clause = dsClauseOf(ch);
+    try { if (clause && typeof window !== 'undefined' && window.negoClauseName) clause = negoClauseName(clause) || clause; } catch (_){}
     const holder = ch.authorSide === 'owner' ? them : us;
     out.push({ clause, with: (holder && holder.name) || '', kind: ch.changeType || ch.kind || '' });
     if (out.length >= DEAL_POINTS_MAX) break;
@@ -177,6 +178,31 @@ function dsPoints(c, open, parties){
   return out;
 }
 
+/* ---- WHAT WAITS ON EACH PARTY (the shared sheet, Young 4 Oct 2026) ----
+   One figure per party that negotiates: the open points it holds, counted by
+   CLAUSE as the list names them, never capped. It replaces "Whose move — X
+   for 0 days", which named one side and said a number nobody could act on. */
+function dsWaiting(open, parties){
+  const us = parties.find(p => p.ours), them = parties.find(p => !p.ours);
+  const byName = new Map(parties.filter(p => p.negotiates).map(p => [p.name, 0]));
+  const seen = new Set();
+  for (const ch of open){
+    const key = String(ch.clauseId || ch.id || '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const holder = ch.authorSide === 'owner' ? them : us;
+    if (holder && holder.name) byName.set(holder.name, (byName.get(holder.name) || 0) + 1);
+  }
+  return parties.filter(p => byName.has(p.name)).map(p => ({ party: p.name, ours: p.ours, n: byName.get(p.name) || 0 }));
+}
+/* A CLAUSE IS NAMED BY ITS LABEL, never by an inside id. Where the change
+   carries no label the reading says nothing ('') and the drawing writes "a
+   clause" — an id like cl_7f or CHG-4 means nothing outside the negotiation. */
+const DS_INSIDE_ID = /^(?:CHG-\d|cl[_-]|c[_-]\w|chg[_-])/i;
+function dsClauseOf(ch){
+  const raw = String((ch && (ch.clauseLabel || ch.clauseId)) || '');
+  return (!ch || !ch.clauseLabel) && DS_INSIDE_ID.test(raw) ? '' : raw;
+}
 /* ---- AND WHAT IS AGREED, named the same way ----
    A count alone ("8 points are settled") tells a reader the deal is moving
    and nothing about what it now says. The clause NAMES are what a finance
@@ -190,8 +216,8 @@ function dsSettled(c, parties){
     const key = String(ch.clauseId || ch.id || '');
     if (seen.has(key)) continue;
     seen.add(key);
-    let clause = String(ch.clauseLabel || ch.clauseId || '');
-    try { if (typeof window !== 'undefined' && window.negoClauseName) clause = negoClauseName(clause) || clause; } catch (_){}
+    let clause = dsClauseOf(ch);
+    try { if (clause && typeof window !== 'undefined' && window.negoClauseName) clause = negoClauseName(clause) || clause; } catch (_){}
     out.push({ clause, settled: ch.status === 'accepted' });
     if (out.length >= DEAL_POINTS_MAX) break;
   }
@@ -209,8 +235,8 @@ function dsLately(c, parties){
   const ev = [];
   for (const ch of dsChanges(c)){
     if (ch.status === 'superseded') continue;
-    let clause = String(ch.clauseLabel || ch.clauseId || '');
-    try { if (typeof window !== 'undefined' && window.negoClauseName) clause = negoClauseName(clause) || clause; } catch (_){}
+    let clause = dsClauseOf(ch);
+    try { if (clause && typeof window !== 'undefined' && window.negoClauseName) clause = negoClauseName(clause) || clause; } catch (_){}
     const at = ch.createdAt || ch.at || '';
     if (at) ev.push({ at, kind: 'asked', party: nameOf(ch.authorSide), clause });
     if ((ch.status === 'accepted' || ch.status === 'rejected') && (ch.resolvedAt || at))
@@ -233,6 +259,7 @@ function dsUpdatedAt(c){
 if (typeof window !== 'undefined') Object.assign(window, {
   dealStands, DEAL_STEPS, DEAL_LATELY_MAX, DEAL_POINTS_MAX,
   dsChanges, dsRounds, dsRound, dsLive, dsOpen, dsPartyNames, dsPoints, dsSettled, dsLately, dsUpdatedAt, dsSinceDays,
+  dsWaiting, dsClauseOf, DS_INSIDE_ID,
 });
 
 /* ============================================================
@@ -259,12 +286,13 @@ function dsDay(iso){
     { day: 'numeric', month: 'short', year: 'numeric' }); } catch (_){ return String(iso).slice(0, 10); }
 }
 /* ONE SENTENCE PER EVENT, and the actor is always a PARTY. */
+function dsClauseWord(x){ return (x && x.clause) || dsT('ds_a_clause'); }
 function dsEventText(e){
   if (e.kind === 'round') return dsT('ds_ev_round', { n: e.round });
   if (e.kind === 'signed') return dsT('ds_ev_signed', { who: e.party || '' });
-  if (e.kind === 'settled') return dsT('ds_ev_settled', { clause: e.clause || '' });
-  if (e.kind === 'declined') return dsT('ds_ev_declined', { clause: e.clause || '' });
-  return dsT('ds_ev_asked', { who: e.party || '', clause: e.clause || '' });
+  if (e.kind === 'settled') return dsT('ds_ev_settled', { clause: dsClauseWord(e) });
+  if (e.kind === 'declined') return dsT('ds_ev_declined', { clause: dsClauseWord(e) });
+  return dsT('ds_ev_asked', { who: e.party || '', clause: dsClauseWord(e) });
 }
 function dsRoleWord(p){
   const bits = [];
@@ -272,58 +300,69 @@ function dsRoleWord(p){
   if (p.signs) bits.push(dsT('ds_role_signs'));
   return bits.join(' · ');
 }
-/* The one builder both in-app surfaces call. `opts.head` adds the owner's own
-   quiet line about the link; nobody else is ever given it. */
+/* The one builder both in-app surfaces call.
+   THE SHARED SHEET (Young picked it by name, 4 Oct 2026; "go with your
+   recommendation" put the same sheet on all three places): ONE title, the
+   parties, one line that belongs to the reader, ONE row of facts, ONE
+   progress line, Agreed beside Still open, and a short line at the foot.
+   What went: the eyebrow over a second title, the contract's name said again
+   under the room's own, "Whose move — X for 0 days", and the disclaimer.
+     opts.head  — the owner's own line about the link (ours only);
+     opts.mine  — the reader's own line ("For you: answer 12. Governing Law");
+     opts.you   — the reader's party, so its figure says "you" (a seat word,
+                  and only where the surface knows who is reading);
+     opts.stepSub — a step's own word the surface knows better (signing under
+                  way on their link);
+     opts.lately — false where Lately lives on another tab. */
 function standsHtml(c, opts = {}){
   const D = (opts.data) || dealStands(c);
   if (!D) return '';
-  /* A SURFACE MAY LEAVE OUT WHAT IT ALREADY SAYS BETTER, and only that. The
-     counterparty's page draws its own journey and its own Lately above this
-     sheet, in its own words and with more in them, so it asks for neither
-     here — two of each on one screen is the page answering one question
-     twice. Nothing else can be switched off: the parties, whose move, the
-     counts and the two lists are the page. */
   const wantJourney = opts.journey !== false, wantLately = opts.lately !== false;
+  const sub = opts.stepSub || {};
   const steps = D.steps.map(s => `<li class="ds-st${s.done ? ' is-done' : ''}${s.now ? ' is-now' : ''}"${s.now ? ' aria-current="step"' : ''}>
     <span class="ds-dot" aria-hidden="true"></span><b>${dsEsc(dsT('ds_step_' + s.key))}</b>
-    <span>${dsEsc(s.now && s.key === 'negotiating'
-      ? dsT('ds_step_round', { n: D.round, k: D.settled, n2: D.total })
-      : s.done ? '' : dsT('ds_step_not_yet'))}</span></li>`).join('');
-  const facts = [
-    [dsT('ds_whose'), D.executed ? dsT('ds_step_signed')
-      : D.move ? (D.move.days == null ? D.move.party
-        : dsTn('ds_move_days', D.move.days, { who: D.move.party, n: D.move.days }))
-      : dsT('ds_move_nobody'), !!D.move],
-    [dsT('ds_open_n'), `${D.open} / ${D.total}`, false],
-    [dsT('ds_round'), String(D.round), false],
-  ];
+    <span>${dsEsc(sub[s.key] || (s.now && s.key === 'negotiating'
+      ? dsT('ds_step_round_short', { n: D.round })
+      : s.done ? '' : dsT('ds_step_not_yet')))}</span></li>`).join('');
+  /* ONE ROW OF FACTS: the round, how much is settled, and what waits on each
+     party that negotiates. The reader's own figure is amber when it is not 0. */
+  const facts = [[dsT('ds_round'), String(D.round), ''], [dsT('ds_settled_fact'), dsT('ds_k_of_n', { k: D.settled, n: D.total }), '']];
+  if (!D.executed) (D.waiting || []).forEach(w => {
+    const mine = !!opts.you && w.party === opts.you;
+    facts.push([mine ? dsT('ds_waiting_you') : dsT('ds_waiting_on', { who: w.party }), String(w.n), mine && w.n ? 'ds-warn' : '']);
+  });
   const agreedList = (D.settledPoints && D.settledPoints.length)
-    ? D.settledPoints.map(p => `<div class="ds-li"><span class="ds-tick" aria-hidden="true">\u2713</span><span><b>${dsEsc(p.clause)}</b></span></div>`).join('')
+    ? D.settledPoints.map(p => `<div class="ds-li"><span class="ds-tick" aria-hidden="true">\u2713</span><span><b>${dsEsc(dsClauseWord(p))}</b></span></div>`).join('')
       + (D.settled > D.settledPoints.length
         ? `<div class="ds-li ds-quiet">${dsEsc(dsTn('ds_and_more', D.settled - D.settledPoints.length, { n: D.settled - D.settledPoints.length }))}</div>` : '')
     : `<div class="ds-li ds-quiet">${dsEsc(dsT('ds_settled_none'))}</div>`;
   const points = D.points.length
-    ? D.points.map(p => `<div class="ds-li"><span class="ds-o" aria-hidden="true"></span><span><b>${dsEsc(p.clause)}</b>${
-        p.with ? `<i>${dsEsc(dsT('ds_with', { who: p.with }))}</i>` : ''}</span></div>`).join('')
+    ? D.points.map(p => { const mine = !!opts.you && p.with === opts.you;
+        return `<div class="ds-li"><span class="ds-o${mine ? ' is-mine' : ''}" aria-hidden="true"></span><span><b>${dsEsc(dsClauseWord(p))}</b>${
+          p.with ? `<i>${dsEsc(mine ? dsT('ds_with_you') : dsT('ds_with', { who: p.with }))}</i>` : ''}</span></div>`; }).join('')
+      + (D.open > D.points.length ? `<div class="ds-li ds-quiet">${dsEsc(dsTn('ds_and_more', D.open - D.points.length, { n: D.open - D.points.length }))}</div>` : '')
     : `<div class="ds-li ds-quiet">${dsEsc(dsT('ds_none_open'))}</div>`;
   const lately = D.lately.length
     ? D.lately.map(e => `<div class="ds-late"><span>${dsEsc(dsDay(e.at))}</span><div>${dsEsc(dsEventText(e))}</div></div>`).join('')
     : `<div class="ds-quiet">${dsEsc(dsT('ds_nothing_yet'))}</div>`;
+  const foot = [dsT('ds_foot_same')].concat(D.updatedAt ? [dsT('ds_updated', { when: dsDay(D.updatedAt) })] : [])
+    .concat(opts.foot === false ? [] : [opts.foot || dsT('ds_foot_tabs')]).join(' · ');
   return `<section class="ds-sheet">
-    <div class="ds-eyebrow">${dsEsc(dsT('ds_eyebrow'))}</div>
-    <h2 class="ds-h1">${dsEsc(D.name)} &mdash; ${dsEsc(D.ref)}</h2>
-    <div class="ds-parties">${D.parties.map(p => `<span class="ds-pch${p.ours ? ' is-ours' : ''}"><b>${dsEsc(p.name)}</b>${
-      dsRoleWord(p) ? ' · ' + dsEsc(dsRoleWord(p)) : ''}</span>`).join('')}</div>
-    <p class="ds-upd">${dsEsc(dsT('ds_built_from'))}${D.updatedAt ? ' · ' + dsEsc(dsT('ds_updated', { when: dsDay(D.updatedAt) })) : ''}</p>
-    ${opts.head || ''}
+    <div class="ds-top">
+      <h2 class="ds-h1">${dsEsc(dsT('ds_eyebrow'))}</h2>
+      <div class="ds-parties">${D.parties.map(p => `<span class="ds-pch${p.ours ? ' is-ours' : ''}"><b>${dsEsc(p.name)}</b>${
+        dsRoleWord(p) ? ' · ' + dsEsc(dsRoleWord(p)) : ''}</span>`).join('')}</div>
+      ${opts.head || ''}
+      ${opts.mine || ''}
+    </div>
+    <div class="ds-facts">${facts.map(([k, v, cls]) => `<div><span>${dsEsc(k)}</span><b${cls ? ` class="${cls}"` : ''}>${dsEsc(v)}</b></div>`).join('')}</div>
     ${wantJourney ? `<ol class="ds-j">${steps}</ol>` : ''}
-    <div class="ds-move">${facts.map(([k, v, warn]) => `<span><b>${dsEsc(k)}</b><span${warn ? ' class="ds-warn"' : ''}>${dsEsc(v)}</span></span>`).join('')}</div>
     <div class="ds-cols">
-      <div><div class="ds-h">${dsEsc(dsT('ds_agreed'))}</div>${agreedList}</div>
-      <div><div class="ds-h">${dsEsc(dsT('ds_still_open'))}</div>${points}</div>
+      <div><div class="ds-h">${dsEsc(dsT('ds_agreed_n', { n: D.settled }))}</div>${agreedList}</div>
+      <div><div class="ds-h">${dsEsc(dsT('ds_still_open_n', { n: D.open }))}</div>${points}</div>
     </div>
     ${wantLately ? `<div class="ds-h ds-h-late">${dsEsc(dsT('ds_lately'))}</div>${lately}` : ''}
-    <p class="ds-foot">${dsEsc(dsT('ds_never_shows'))}</p>
+    <p class="ds-foot">${dsEsc(foot)}</p>
   </section>`;
 }
 /* The owner's tab. A SLOT painted on arrival, because what it says moves with
@@ -336,12 +375,14 @@ function paintStandsPane(c){
      after the sheet, so the sheet draws at once and the line fills in behind
      it (dsLoadShares). A page that waited on a fetch before saying anything
      would say nothing at all on a slow morning. */
-  host.innerHTML = standsHtml(c, { head: standsOwnerHeadHtml(c) });
+  /* NO SEAT WORD HERE: our tab is word for word what the other parties read,
+     so every figure names its party (opts.you is the counterparty page's). */
+  host.innerHTML = standsHtml(c, { head: standsOwnerHeadHtml(c), foot: dsT('ds_foot_tabs_ours') });
   dsWireOwner();
   dsLoadShares(c);
 }
 if (typeof window !== 'undefined') Object.assign(window, {
-  standsHtml, paintStandsPane, dsEventText, dsRoleWord, dsDay, dsEsc,
+  standsHtml, paintStandsPane, dsEventText, dsRoleWord, dsDay, dsEsc, dsClauseWord,
 });
 
 /* ============================================================

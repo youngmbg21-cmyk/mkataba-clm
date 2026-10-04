@@ -3785,104 +3785,52 @@ function portalTurnHtml(){
   const org=(PORTAL_OPTS.payload&&PORTAL_OPTS.payload.org)||i18t('pt_the_sender');
   return `<span class="pw-turn is-${t}">${esc(t==='you'?i18t('po_turn_you'):i18t('po_turn_them',{ org }))}</span>`;
 }
-/* ---- THE JOURNEY, THE WORK, THE PERSON, THE LATEST ---- */
-function portalWhereHtml(c, p){
-  const src=(p&&p.contract)||{};
+/* ---- WHERE WE ARE IS THE SHARED SHEET (Young picked "The shared sheet" by
+   name, 4 Oct 2026: "looks awful like two different pages patched into one")
+   ----
+   ONE page: the very sheet every party reads (standsHtml, the same reading
+   our own tab and the public link draw), with ONE line inside its head that
+   belongs to this reader — what waits on them, with the door to it, and who
+   to talk to. What went: the second title, the "Waiting on you" card, the
+   contact card, the second journey, Lately (it is the History tab's), the
+   "What every party can see" rule, and the disclaimer. The bell still lists
+   every row; this line names the first and counts the rest.
+   A stage without js/dealstands.js draws the line alone rather than a hole. */
+function portalWhereMineHtml(c, p, D){
   const org=(p&&p.org)||i18t('pt_the_sender');
   const rows=(PT_ALERT_ROWS||[]);
-  /* A closed page lists nothing — except where its one row is a door (signing
-     has started: it opens the Signing tab). */
-  const work=rows.filter(r=>r&&(r.kind!=='closed'||r.go));
+  const changes=(c&&Array.isArray(c.changes))?c.changes:[];
+  const waiting=changes.filter(x=>x&&x.authorSide==='owner'&&x.status==='pending'&&!x.withdrawn&&!PORTAL_NEGO_DECISIONS[x.id]);
+  const owed=rows.filter(r=>r&&(r.kind==='answer'||r.kind==='held'||r.kind==='sign'));
   const closed=rows.find(r=>r&&r.kind==='closed');
-  const executed=portalExecuted();
-  const changes=(Array.isArray(src.changes)?src.changes:[]).filter(x=>x&&x.status!=='superseded');
-  const open=changes.filter(x=>x.status==='pending'&&!x.withdrawn).length;
-  const held=Object.keys(PORTAL_NEGO_DECISIONS).length+Object.keys(PORTAL_NEGO_PROPOSED).length;
-  const started=portalSigningStarted();
-  const agreed=executed || !!started || (changes.length>0 && !open && !held);
-  const t=portalTurn(rows);
-  const turn = started ? i18t('po_where_turn_signing')
-    : closed ? closed.text
-    : executed ? i18t('po_step_signed')
-    : t==='you' ? i18t('po_where_turn_you') : i18t('po_where_turn_them',{ org });
-  const steps=[
-    { head:i18t('po_step_shared'), sub:p&&p.at?portalDayWords(p.at):'', done:true },
-    started ? { head:i18t('po_step_negotiating'), sub:i18t('po_step_closed_on',{ when:portalDayWords(started.at) }), done:true }
-      : { head:i18t('po_step_negotiating'), facts:portalNegoFacts(c), done:agreed },
-    { head:i18t('po_step_agreed'), sub:'', done:agreed },
-    { head:i18t('po_step_signed'), sub:(started&&!executed)?i18t('po_step_signing_under_way'):'', done:executed },
-  ];
-  const nowAt=steps.findIndex(s=>!s.done);
-  const journey=`<ol class="pw-journey">${steps.map((s,i)=>`<li class="pw-jst${s.done?' is-done':''}${i===nowAt?' is-now':''}"${i===nowAt?' aria-current="step"':''}>
-      <span class="pw-jdot" aria-hidden="true"></span><b>${esc(s.head)}</b>${s.facts
-        ? `<span class="pw-jfacts">${s.facts}</span>`
-        : `<span>${esc(s.sub || (s.done ? '' : i===nowAt ? i18t('po_step_now') : i18t('po_step_not_yet')))}</span>`}</li>`).join('')}</ol>`;
-  const tone=r=>PT_ALERT_TONE[r.tone]||PT_ALERT_TONE.gray;
-  const workHtml = work.length
-    ? work.map(r=>{ const i=rows.indexOf(r);
-        return r.go
-          ? `<button type="button" class="pt-alert pw-wrow" data-pt-where-row="${i}" data-pt-kind="${esc(r.kind)}">
-              <span class="pt-alert-dot" style="background:${tone(r)}"></span><span class="pt-alert-t">${esc(r.text)}</span>${icon('chevR','w-3.5 h-3.5')}</button>`
-          : `<div class="pt-alert pt-alert-flat pw-wrow" data-pt-kind="${esc(r.kind)}">
-              <span class="pt-alert-dot" style="background:${tone(r)}"></span><span class="pt-alert-t">${esc(r.text)}</span></div>`; }).join('')
-    : `<p class="pw-wnone">${esc(i18t('po_where_nothing'))}</p>`;
+  const door=(r,word)=>r&&r.go?`<button type="button" class="ui-btn ui-btn-accent" data-pt-where-row="${rows.indexOf(r)}">${esc(word)}</button>`:'';
+  let line='', act='', isOwed=false;
+  if(closed){ line=esc(closed.text); act=door(closed, i18t('po_for_you_go')); }
+  else if(waiting.length){
+    const l=String(waiting[0].clauseLabel||''), clause=l&&window.clauseNameShown?(clauseNameShown(l)||l):l;
+    const more=owed.length-1+Math.max(0,waiting.length-1);
+    line=`<span class="ds-mine-k">${esc(i18t('po_for_you'))}</span> ${esc(i18t('po_for_you_answer_verb'))} <b>${esc(clause||i18t('ds_a_clause'))}</b>${
+      more>0?' '+esc(i18tn('po_for_you_more',more,{ n:more })):''}`;
+    act=door(rows.find(r=>r&&r.kind==='answer'), i18t('po_for_you_answer')); isOwed=true; }
+  else if(owed.length){
+    line=`<span class="ds-mine-k">${esc(i18t('po_for_you'))}</span> ${esc(owed[0].text)}${owed.length>1?' '+esc(i18tn('po_for_you_more',owed.length-1,{ n:owed.length-1 })):''}`;
+    act=door(owed[0], i18t('po_for_you_go')); isOwed=true; }
+  else {
+    const ours=D&&(D.waiting||[]).find(w=>w.ours);
+    line=esc(i18t('po_for_you_none'))+(ours&&ours.n?' '+esc(i18tn('po_for_you_them',ours.n,{ n:ours.n, who:ours.party })):''); }
   const who=(p&&p.sharedBy)||org;
-  const initials=String(who).split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
-  let lately=[];
-  try{ lately=(window.negoTimeline?negoTimeline(c):[]).slice(-4).reverse(); }catch(_){ lately=[]; }
-  const hasHist=!!document.getElementById('pt-hist');
-  return `<div class="pw-where">
-    <div class="pw-where-head"><h2>${esc(i18t('po_tab_where'))}</h2><span>${esc(turn)}</span></div>
-    ${journey}
-    <div class="pw-where-grid">
-      <section class="pw-card"><h3>${esc(i18t('po_where_waiting'))}</h3><div class="pw-card-b">${workHtml}</div></section>
-      <div class="pw-where-side">
-        <section class="pw-card"><h3>${esc(i18t('po_where_contact'))}</h3>
-          <div class="pw-contact"><span class="pw-av" aria-hidden="true">${esc(initials||'·')}</span>
-            <span><b>${esc(who)}</b><span>${esc(org)}</span>
-            ${PORTAL_OPTS.token?`<button type="button" class="ui-link" data-pt-where-notes>${esc(i18t('po_where_write'))}</button>`:''}</span></div></section>
-        ${''/* THE COPIES CARD HAS GONE INTO More (Young, 4 Oct 2026). Its two
-               buttons were the only things in this column that were not about
-               where the deal stands, and the shared page needs the room. The
-               act is unchanged and so are its handlers: data-pt-copy still
-               presses portalExportPdf and portalExportWord, from the menu
-               rows instead of from a card. */}
-        ${lately.length?`<section class="pw-card"><h3>${esc(i18t('po_where_lately'))}</h3><div class="pw-card-b">${
-          lately.map(e=>`<div class="pw-late"><span>${esc(e.at?portalDayWords(e.at):'')}</span><div>${esc(e.text||'')}</div></div>`).join('')}
-          ${hasHist?`<button type="button" class="ui-link pw-late-all" data-pt-where-history>${esc(i18t('po_where_all_history'))}</button>`:''}</div></section>`:''}
-      </div>
-    </div>
-    ${''/* ---- AND UNDER THE RULE, THE PAGE EVERY PARTY READS (idea 15, 4 Oct
-           2026) ---- The two cards above know who is reading: what is waiting
-           on YOU, and who to talk to. Everything below does not, and could be
-           shown to anybody — it is the same sheet the owner's own tab draws
-           and the same one served at the public address, from one reading
-           (dealStands). That is the whole claim of the idea: not three
-           pictures that agree, one picture.
-
-           DRAWN ONLY WHERE THE MODULE IS. A stage without js/dealstands.js
-           shows the page exactly as it was rather than a hole. */}
-    ${''/* ---- AND UNDER THE RULE, WHAT EVERY PARTY CAN SEE (idea 15, 4 Oct
-           2026) ---- The two cards above know who is reading: what is waiting
-           on YOU, and who to talk to. What is under the rule does not, and
-           could be shown to anybody — it is the same reading (dealStands) the
-           owner's own tab draws and the public address serves.
-
-           WITHOUT THE JOURNEY AND WITHOUT LATELY, because this page already
-           draws both ABOVE, in its own words and with more in them: their
-           journey can say signing is under way on their link, and their Lately
-           carries the exact words that moved. Two journeys and two Lately
-           lists on one screen is the page answering one question twice, so the
-           richer one stays and the sheet leaves them out. What it adds is what
-           their page never had: every party named with what each one does,
-           whose move said as a party rather than as a seat, and the settled
-           and open points as lists.
-
-           DRAWN ONLY WHERE THE MODULE IS: a stage without js/dealstands.js
-           shows this page exactly as it was rather than a hole. */}
-    ${(typeof standsHtml==='function')?`<div class="pw-shrule"><span>${esc(i18t('po_shared_rule'))}</span></div>
-    <div class="pw-stands">${standsHtml(c,{ journey:false, lately:false })}</div>`:''}
-  </div>`;
+  const contact=`${esc(i18t('po_your_contact',{ who }))}${PORTAL_OPTS.token?` (<button type="button" class="ui-link" data-pt-where-notes>${esc(i18t('po_write_notes'))}</button>)`:''}`;
+  return `<div class="ds-mine${isOwed?' is-owed':''}"><span class="ds-mine-dot" aria-hidden="true"></span>
+    <div class="ds-mine-t">${line} · ${contact}</div>${act}</div>`;
+}
+function portalWhereHtml(c, p){
+  if(typeof standsHtml!=='function'||typeof dealStands!=='function')
+    return `<div class="pw-where">${portalWhereMineHtml(c, p, null)}</div>`;
+  const D=dealStands(c);
+  const you=D&&(D.parties.find(x=>!x.ours)||{}).name||'';
+  const started=portalSigningStarted(), executed=portalExecuted();
+  const stepSub=(started&&!executed)?{ signed:i18t('po_step_signing_under_way') }:{};
+  return `<div class="pw-where">${standsHtml(c,{ data:D, you, lately:false, stepSub, mine:portalWhereMineHtml(c, p, D) })}</div>`;
 }
 /* ---- THE SIGNING TAB ON A NEGOTIATION LINK ----
    The signing page's own four stages (portalBeforeSignStagesHtml), said as
@@ -4015,41 +3963,10 @@ function portalTabsStyle(){
        and 16px inside its sheet; here the heading, the journey and every
        card's words start on that same line (--pw-inset: the card's 1px border
        and its 16px). */
-    .pw-where{--pw-inset:17px;}
-    .pw-where-head{padding-left:var(--pw-inset);}
-    /* THE RULE, and the page under it. A quiet label rather than a band: it
-       names a region, it carries no act, and the reader's own choice is not
-       read back to them — the three tests the owner's band rule sets. */
-    .pw-shrule{display:flex;align-items:center;gap:12px;}
-    .pw-shrule::before,.pw-shrule::after{content:"";flex:1;height:1px;background:var(--color-divider);}
-    .pw-shrule span{font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.11em;text-transform:uppercase;color:var(--accent-ink-700);}
-    .pw-where-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
-    .pw-where-head h2{margin:0;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);}
-    .pw-where-head span{font-size:var(--t-body);color:var(--color-neutral-600);}
-    .pw-journey{list-style:none;margin:0;padding:0 0 0 var(--pw-inset);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));}
-    .pw-jst{position:relative;padding:24px 12px 0 0;display:flex;flex-direction:column;gap:1px;font-size:var(--t-meta);color:var(--color-neutral-600);min-width:0;}
-    .pw-jst::before{content:"";position:absolute;top:7px;left:0;right:0;height:3px;background:var(--color-divider);}
-    .pw-jst.is-done::before{background:var(--accent-fill);}
-    .pw-jdot{position:absolute;top:0;left:0;width:17px;height:17px;box-sizing:border-box;border-radius:50%;
-      background:var(--color-surface);border:3px solid var(--rule-strong);}
-    .pw-jst.is-done .pw-jdot{background:var(--accent-fill);border-color:var(--accent-fill);}
-    .pw-jst.is-now .pw-jdot{border-color:var(--st-amber-dot);}
-    .pw-jst b{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);}
-    .pw-jst.is-now b{color:var(--st-amber-fg);}
-    .pw-where-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px;align-items:start;}
-    .pw-where-side{display:flex;flex-direction:column;gap:18px;min-width:0;}
-    .pw-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);min-width:0;}
-    .pw-card h3{margin:0;padding:11px 16px;border-bottom:1px solid var(--color-divider);font-size:var(--t-card);font-weight:var(--w-strong);}
-    .pw-card-b{padding:6px 10px;display:flex;flex-direction:column;}
-    .pw-wrow{width:100%;}
-    .pw-wrow svg{margin-left:auto;flex:none;color:var(--color-neutral-500);}
-    .pw-wnone{margin:0;padding:10px 6px;font-size:var(--t-body);color:var(--color-neutral-600);}
-    .pw-contact{display:flex;gap:12px;padding:12px 16px;align-items:flex-start;}
-    .pw-contact>span:last-child{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:var(--t-body);}
-    .pw-contact>span:last-child>span{color:var(--color-neutral-600);font-size:var(--t-meta);}
-    .pw-contact .ui-link{align-self:flex-start;margin-top:4px;}
-    .pw-av{width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:var(--t-label);
-      font-weight:var(--w-strong);background:var(--color-accent-100);color:var(--accent-ink);}
+    /* THE SHARED SHEET IS THE WHOLE PAGE (4 Oct 2026): .ds-sheet carries its
+       own 1px border and 16px inset, the Overview's own starting line. The
+       old page's styles (.pw-where-head, .pw-shrule, .pw-journey, .pw-jst,
+       .pw-where-grid, .pw-card, .pw-wrow, .pw-contact, .pw-late) are stale. */
     .pw-copy{display:flex;align-items:center;gap:12px;padding:8px 6px;border-bottom:1px solid var(--rule-faint);}
     .pw-copy:last-child{border-bottom:0;}
     .pw-copy>span{flex:1;min-width:0;display:flex;flex-direction:column;font-size:var(--t-body);}
@@ -4059,12 +3976,7 @@ function portalTabsStyle(){
     .pw-turn{flex:none;align-self:center;font-size:var(--t-label);font-weight:var(--w-strong);border-radius:999px;
       padding:1px 8px;white-space:nowrap;border:1px solid var(--color-divider);color:var(--color-neutral-700);background:var(--color-surface);}
     .pw-turn.is-you{color:var(--st-amber-fg);background:var(--st-amber-bg);border-color:var(--st-amber-line);}
-    .pw-late{padding:7px 6px;border-bottom:1px solid var(--rule-faint);font-size:var(--t-body);}
-    .pw-late>span{display:block;font-size:var(--t-label);color:var(--color-neutral-600);}
-    .pw-late-all{align-self:flex-start;margin:8px 6px 4px;}
-    @media (max-width:760px){.pw-where-grid{grid-template-columns:minmax(0,1fr);}
-      .pw-tab{padding-left:9px;padding-right:9px;}
-      .pw-journey{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:14px;}}
+    @media (max-width:760px){.pw-tab{padding-left:9px;padding-right:9px;}}
     @media (max-width:480px){.pw-tab{font-size:var(--t-body);padding-left:7px;padding-right:7px;}}`;
   document.head.appendChild(el);
 }

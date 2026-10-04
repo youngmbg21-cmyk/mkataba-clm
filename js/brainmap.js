@@ -31,6 +31,8 @@ const BRAIN_PARTS = [
   ['signtab', 'renderSignButton', 'see', 0],
   ['explorer', 'intelGraphApply', 'see', 0],
   ['stands', 'dealStands', 'see', 1],
+  /* the Insights shelf (4 Oct 2026): worked out the first time Home opens each day */
+  ['insights', 'hbInsightsToday', 'see', 1],
   ['upload', 'submitUpload', 'in', 0],
   ['newagr', 'openNewAgreement', 'in', 0],
   ['mailroom', 'POST /api/mailroom', 'in', 2],
@@ -100,7 +102,7 @@ const BRAIN_FLOWS = [
   { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review'], ['payload'], ['shares'], ['email', 'cplink'], ['whosemove', 'bell']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands'], ['webhook']] },
   { id: 'sign', steps: [['signtab'], ['readiness'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
-  { id: 'night', steps: [['reminders'], ['renewal'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home']] },
+  { id: 'night', steps: [['reminders'], ['renewal'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home', 'insights']] },
   { id: 'ask', steps: [['explorer'], ['db'], ['model'], ['quote'], ['contracts'], ['explorer']] }
 ];
 

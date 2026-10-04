@@ -82,8 +82,8 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     return { lit: lit ? lit.id : null, onTop: !!(mid && pane.contains(mid)),
       toolsShown: tools ? getComputedStyle(tools).display !== 'none' : null,
       inert: !!(document.getElementById('pt-nego') || {}).inert,
-      steps: document.querySelectorAll('.pw-journey .pw-jst').length,
-      now: (document.querySelector('.pw-jst.is-now b') || {}).textContent || '' };
+      steps: document.querySelectorAll('#pt-where-pane .ds-j li').length,
+      now: (document.querySelector('#pt-where-pane .ds-j li.is-now b') || {}).textContent || '' };
   });
   check('1b the Where we are tab is lit', l.lit === 'pt-tab-where', l.lit);
   check('1c the pane is what is painted, over the contract', l.onTop);
@@ -91,13 +91,14 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
   check('1e the contract under it takes no presses', l.inert);
   check('1f the journey has four steps and names the one in hand', l.steps === 4 && l.now.length > 0, `${l.steps} · ${l.now}`);
 
-  /* ---- 2 · Waiting on you is the bell's rows ---- */
-  const w = await page.evaluate(() => ({
-    rows: [...document.querySelectorAll('#pt-where-pane .pw-wrow')].map(r => r.getAttribute('data-pt-kind')),
-    bell: [...document.querySelectorAll('#pt-alerts-body .pt-alert')].map(r => r.getAttribute('data-pt-kind')) }));
-  check('2a "Waiting on you" lists the bell\'s own rows, one for one',
-    w.rows.length > 0 && w.rows.join(',') === w.bell.join(','), `${w.rows.join(',')} vs ${w.bell.join(',')}`);
-  const door = await page.evaluate(() => { const b = document.querySelector('#pt-where-pane button.pw-wrow'); if (!b) return null; const k = b.getAttribute('data-pt-kind'); b.click(); return k; });
+  /* ---- 2 · their own line is the bell's first row of work (the shared
+     sheet, Young 4 Oct 2026: "Waiting on you" became one line in its head) ---- */
+  const w = await page.evaluate(() => { const m = document.querySelector('#pt-where-pane .ds-sheet .ds-mine'); const d = m && m.querySelector('[data-pt-where-row]');
+    const row = d && document.querySelector(`#pt-alerts-body [data-pt-alert="${d.getAttribute('data-pt-where-row')}"]`);
+    return { line: m ? m.textContent.replace(/\s+/g, ' ').trim() : null, kind: row && row.getAttribute('data-pt-kind') }; });
+  check('2a their own line names what the bell lists first, and its door is that row',
+    !!w.line && /For you:/.test(w.line) && w.kind === 'answer', JSON.stringify(w));
+  const door = await page.evaluate(() => { const b = document.querySelector('#pt-where-pane .ds-mine button[data-pt-where-row]'); if (!b) return null; b.click(); return 'answer'; });
   check('2b a row is a door', !!door, door);
   if (door){
     const went = await until(page, () => document.getElementById('pw-page').dataset.ptTab === 'redlines');
@@ -123,7 +124,7 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
       more: !!document.getElementById('pt-more'),
       inMore: [...document.querySelectorAll('#pt-more-menu [id^="pt-"]')].map(b => b.id),
       copies: [...document.querySelectorAll('#pt-where-pane [data-pt-copy]')].map(b => b.dataset.ptCopy),
-      shared: !!document.querySelector('#pt-where-pane .pw-stands .ds-sheet') };
+      shared: !!document.querySelector('#pt-where-pane .ds-sheet') && !document.querySelector('#pt-where-pane .pw-shrule, #pt-where-pane .pw-card') };
   });
   check('4a Notes is a button beside the bell, not a row in More', nf.notes);
   check('4b Focus is a button on the control row, not a row in More', nf.focus);
@@ -135,7 +136,7 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
   check('4e the copies are in More, and not also a card on the page',
     nf.more && nf.inMore.includes('pt-pdf') && nf.copies.length === 0,
     JSON.stringify({ more: nf.more, inMore: nf.inMore, copies: nf.copies }));
-  check('4f and the page every party reads is drawn under the rule', nf.shared);
+  check('4f the page IS the sheet every party reads — no rule, no second set of cards', nf.shared);
   await press(page, '#pt-notes-door');
   check('4c Notes opens the notes drawer', await until(page, () => (document.getElementById('pt-notes') || { classList: { contains: () => false } }).classList.contains('open')));
   await press(page, '#pt-notes-close');
@@ -159,15 +160,15 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
     const pane = document.getElementById('pt-where-pane');
     const ink = el => { if (!el) return null; const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n;
       while ((n = w.nextNode())) if (n.textContent.trim()) { const r = document.createRange(); r.selectNodeContents(n); return r.getBoundingClientRect().left; } return null; };
-    const card = pane.querySelector('.pw-card');
-    return { head: ink(pane.querySelector('.pw-where-head h2')), step: ink(pane.querySelector('.pw-jst')),
-      cardHead: ink(card && card.querySelector('h3')), cardEdge: card ? card.getBoundingClientRect().left : null,
+    const card = pane.querySelector('.ds-sheet');
+    return { head: ink(pane.querySelector('.ds-sheet .ds-h1')), step: ink(pane.querySelector('.ds-j li b')),
+      cardHead: ink(pane.querySelector('.ds-facts > div')), cardEdge: card ? card.getBoundingClientRect().left : null,
       paneEdge: pane.getBoundingClientRect().left };
   });
-  check('10a the heading, the journey and the cards\' words start on ONE line',
+  check('10a the title, the facts and the journey start on ONE line',
     line.head != null && Math.abs(line.head - line.step) <= 1 && Math.abs(line.head - line.cardHead) <= 1, JSON.stringify(line));
-  check('10b that line is the Overview\'s: a card\'s border and 16px inside its edge (was 14, and the heading sat on the edge)',
-    line.cardHead != null && Math.abs(line.cardHead - line.cardEdge - 17) <= 1, `${Math.round(line.cardHead - line.cardEdge)}px inside the card`);
+  check('10b that line is the Overview\'s: the sheet\'s border and 16px inside its edge',
+    line.head != null && Math.abs(line.head - line.cardEdge - 17) <= 1, `${Math.round(line.head - line.cardEdge)}px inside the sheet`);
 
   /* ---- 11 · Edit from another tab (Young, 3 Oct 2026: "half the page not
      being what redline page should look like") ---- */
