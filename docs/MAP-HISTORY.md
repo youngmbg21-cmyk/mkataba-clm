@@ -26741,3 +26741,27 @@ The owner read the process review (16 findings, published as an artifact) and sa
 - Also fixed, because the same button is now on many more cards: the ask button drew its star ABOVE its words and the words spilled out of its 28px frame (no inline-flex). Now one line (read-then-ask-verify 8e, red against the old stylesheet).
 - Noticed, not fixed (BUGLOG): a chart split BY STAGE says "{stage} has the most", but `hbGroupsOf` sorts stages in stage order, so it names the first stage, not the largest.
 - Tests: f461 (D) has 7 tests, all red at unmodified main. read-then-ask-verify stage 8 (8a–8e) is red at main and 23/23 here.
+
+## THE BOARD ANSWERS THE QUESTION ASKED (4 Oct 2026)
+
+- Young sent a screenshot of Home's board: "All contracts · by month · signed · Value · Trend". It read "Value: SEK -367.66 → SEK 851.41 over 24 months · rising", "29 contracts · SEK 6K" and "148 contracts not signed yet are not drawn". In the panel Young had asked *"why does the dashboard say on 851 SEK when we have over 1 billion sek under management"*, and Copilot answered *"Nothing changed on the map. … The 851 SEK you're seeing likely points to a single contract's value or a filtered subset"*. Then: *"fix the stage bug then review this bug where dashboards are still not working well as far as the relationship between prompting and the output. Review this as a whole and fix it. Then merge to main."*
+- THE STAGE BUG (BUGLOG, 4 Oct): `hbGroupsOf` keeps stages in stage order, so the reading's "has the most" named the first stage. It is now measured (sorted by size); "the three largest" too.
+- THE REVIEW: 25 everyday questions were put to a book shaped like the owner's (177 contracts; the money in 86 drafts; 47 signed, 18 of them with no signing date), in a real browser, and each card was recorded. Mismatches found:
+  1. Executed contracts with no signing date were said to be "not signed yet" (148 instead of 130), and the headline counted only the dated ones (29 contracts · a few thousand).
+  2. The trend line was fitted through 24 months that were mostly empty; its ends went below zero and were printed to the cent as if they were figures ("SEK -367.66 → SEK 851.41").
+  3. Copilot in the panel was never shown the board: on Home, a question the board's reader did not take went to the MAP's route with only the map's screen. It answered about the map and opened with "Nothing changed on the map".
+  4. The reader missed money questions and everyday words: "how much value did we sign each month", "total value signed by month", "average days to sign by month", "how long does signing take", "value of contracts in review" (drew a count), "how much is signed", "total value under management".
+  5. A default split put everything in one group ("how much is signed" → one ring slice, "Executed 100%").
+  6. "my contracts" drew the attention bubbles, because "owner" is in `HB_ATTENTION_RE` for "nobody owns".
+  7. A ring by owner was captioned "by stage" (`hbGroupWord` had no owner).
+  8. The card title read "over 1million".
+- THE FIXES:
+  1. SIGNED IS THE STAGE: an executed contract with no date stands in the "No date" column. Only the not-yet-signed are left off, said with their money ("14 contracts not signed yet (KES 520M) are not drawn"). The reading's totals include the "No date" column, like the headline.
+  2. A trend on a total or a count needs `HB_TREND_MIN_PTS` columns that hold contracts, else it is said in words (`hb_tr_few_any`). It is clamped at zero, and its ends are "≈", rounded (`hbTrendFmt`) and said as "Trend line, value per month: about … → about …".
+  3. `hbBoardNow()` describes the board in words: Your book's figures, the count, the open card (set, picture, headline, columns, the trend sentence called the ends of a fitted line and not totals, what is left off, HaTi's reading), and the panels. It rides as `screen.board` to `/api/ai/graph`, where `graphScreenSays` tells the model it was asked on the board and to change nothing on the map. It also rides at the head of the chat question. On the board, the answer is printed without "Nothing changed on the map", and a sentence with a count the board does not show is left out (`hbWhyCheck`).
+  4. A why/explain/what-does-this-mean question (`HB_WHY_ASK_RE`) is never read as a new chart; it goes to Copilot with the board.
+  5. `valueLead`: a question that leads with money asks for money, and the money words are read. "how", "much", "total", "average", "sign", "under", "management" are filler. "did we sign" is the signing date, and "how long does signing take" is time to sign. A money question's panel line carries the money (`hb_found_n_value`).
+  6. `hbUsefulGroup`: a split the board picks itself moves to one that divides the contracts; a split the question named is drawn as asked.
+  7. Attention only for "nobody owns". `hbGroupWord` knows owner and value band. Value labels shorten their unit ("over 1M").
+- Ruling changed: f448 (4) had pinned "no 'No date' column on a signing chart". The undated EXECUTED ones now stand there; the not-yet-signed are still said apart. read-then-ask-verify 1b and f461 (B) now expect no line through one burst after a long quiet.
+- Tests: f482 (24 tests; 21 red at unmodified main, the other two guard what must not change). board-answers-the-question-verify 12/12; at main it was 3/12, and drew "KES -94.28571428571428" on the chart.

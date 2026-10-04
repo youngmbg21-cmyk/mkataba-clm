@@ -519,7 +519,9 @@ function hbDigData(key, lens){
        bubbles; a money question → the blocks; a date question → the timeline;
        else the ring over the groups the question did not already fix */
     const fields = cq.map(x => x.field);
-    const chart = fields.some(f => HB_ATTENTION_RE.test(f)) ? { mode: 'attention' } : fields.some(f => /^value/.test(f)) ? { mode: 'values' } : fields.some(f => /Window$|^expired$/.test(f)) ? { mode: 'months' } : { mode: 'groups', by: hbNextGroup(fields) };
+    /* "nobody owns these" is a question about attention; "my contracts" is not */
+    const attention = cq.some(x => HB_ATTENTION_RE.test(x.field) && (x.field !== 'owner' || x.label === 'nobody owns'));
+    const chart = attention ? { mode: 'attention' } : fields.some(f => /^value/.test(f)) ? { mode: 'values' } : fields.some(f => /Window$|^expired$/.test(f)) ? { mode: 'months' } : { mode: 'groups', by: hbNextGroup(fields) };
     return { key, kind: 'list', crumb: whole ? i18t('hb_lens_all') : labels.join(' · '), title: whole ? i18t('hb_lens_all') : title, setLabel: labels.join(' · '), ids, n: ids.length, fixed: whole ? [] : fields, chart, whole };
   }
   /* THE LIST AN ANSWER CAME BACK WITH (Copilot's or the map's), drawn on the
@@ -957,7 +959,7 @@ function hbGroupLabel(field, g){
   if (field === 'side') return i18t(g === 'supplier' ? 'hb_lens_suppliers' : 'hb_lens_customers');
   return g;
 }
-function hbGroupWord(field){ return i18t({ status: 'hb_by_stage', folder: 'hb_by_stream', counterparty: 'hb_by_party', kind: 'hb_by_kind', side: 'hb_by_side' }[field] || 'hb_by_stage'); }
+function hbGroupWord(field){ return i18t({ status: 'hb_by_stage', folder: 'hb_by_stream', counterparty: 'hb_by_party', kind: 'hb_by_kind', side: 'hb_by_side', owner: 'hb_by_owner', valueBand: 'hb_by_band' }[field] || 'hb_by_stage'); }
 function hbEndOf(c){ try { const e = (typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : c.expiry; return e ? String(e).slice(0, 10) : null; } catch (_){ return c.expiry ? String(c.expiry).slice(0, 10) : null; } }
 function hbMonthOf(c, byYear){ const e = hbEndOf(c); return e ? (byYear ? e.slice(0, 4) : e.slice(0, 7)) : 'none'; }
 function hbMonthLabel(m, byYear){
@@ -1242,14 +1244,14 @@ const HB_RC = {
           /* "suppliers vs customers" stays the side-by-side panels' question */
           ['side', new RegExp('\\b' + _HB_BY + '(?:side|sida)\\b')],
           ['valueBand', new RegExp('\\b' + _HB_BY + '(?:value bands?|values?|sizes?|amounts?|värde|storlek)\\b')]],
-  date: [['signed', /\b(?:signed|signing|signature|signatures|executed|signerade?|undertecknade?|signering)\b/],
+  date: [['signed', /\b(?:sign|signed|signing|signature|signatures|executed|signerade?|undertecknade?|signering)\b/],
          ['start', /\b(?:start(?:s|ed|ing)?|effective|began|begin|startar|startade|startdatum)\b/],
          ['created', /\b(?:created|raised|drafted|opened|new (?:contracts|agreements)|skapade?|nya avtal)\b/],
          ['decision', /\b(?:renew\w*|decision|decisions|decide|förny\w*|beslut)\b/],
          ['end', /\b(?:end(?:s|ed|ing)?|expir\w*|löper ut|slutar|slutdatum|upphör\w*|går ut)\b/]],
   when: /\bwhen (?:do|does|will|did)\b|\bnär (?:löper|går|slutar|förnyas)\b/,
   m: {
-    daysToSign: /\b(?:time to sign|days to sign|how (?:long|quickly|fast) (?:does it take |it takes |do they take |do we take |we take )?to (?:sign|get (?:them |it )?signed)|signing time|time to signature|cycle time|turnaround(?: time)?|tid till signering|signeringstid)\b/,
+    daysToSign: /\b(?:time to sign|days to sign|how (?:long|quickly|fast) (?:does it take |it takes |do they take |do we take |we take )?to (?:sign|get (?:them |it )?signed)|how (?:long|quickly|fast) (?:does|do) signing(?: take)?|signing time|time to signature|cycle time|turnaround(?: time)?|tid till signering|signeringstid)\b/,
     payDays: /\b(?:payment terms?|days to pay|payment days|betalningsvillkor|betalningstid)\b/,
     rounds: /\b(?:negotiation rounds|rounds of negotiation|rounds|förhandlingsrundor|rundor)\b/,
     value: /\b(?:value|worth|money|how much|amount|spend|värde|belopp|hur mycket)\b/,
@@ -1257,7 +1259,7 @@ const HB_RC = {
   },
   trend: /\b(?:trend\w*|over time|over the (?:last|past)|getting (?:faster|slower|longer|shorter|better|worse|bigger|smaller)|faster|slower|grow(?:s|ing)?|shrink\w*|increas\w*|decreas\w*|rising|falling|going (?:up|down)|month on month|year on year|quarter on quarter|compared (?:to|with) last|utveckling|ökar|minskar|snabbare|långsammare)\b/,
   /* words a chart question may carry that name nothing to count */
-  filler: /\b(?:when|do|does|did|will|by|per|each|every|over|time|as|an?|on|in|at|into|getting|draw|make|create|build|plot|me|it|they|we|our|take|takes|took|is|are|was|were|been|be|end|ends|ended|ending|expir\w*|start|starts|starting|started|signed|signing|created|raised|renewal|renewals|renew|renewing|decision|decisions|date|dates|new|month|months|quarter|quarters|year|years|chart|graph|than|then|so|far|has|have|had|live|active|faster|slower|more|fewer|less|längre|när|per|varje|som|av|på|i)\b/g,
+  filler: /\b(?:when|how|much|total|overall|sum|average|avg|sign|what|whats|do|does|did|will|by|per|each|every|over|time|as|an?|on|in|at|into|getting|draw|make|create|build|plot|me|it|they|we|our|take|takes|took|is|are|was|were|been|be|end|ends|ended|ending|expir\w*|start|starts|starting|started|signed|signing|created|raised|renewal|renewals|renew|renewing|decision|decisions|date|dates|new|month|months|quarter|quarters|year|years|chart|graph|than|then|so|far|has|have|had|live|active|under|managed|management|altogether|faster|slower|more|fewer|less|längre|när|per|varje|som|av|på|i)\b/g,
 };
 const _hbRcNorm = s => (typeof _igNorm === 'function') ? _igNorm(s) : String(s || '').toLowerCase().replace(/[?!.,;:()]/g, ' ').replace(/\s+/g, ' ').trim();
 /* the date a split by time reads: the one named nearest the time words, else
@@ -1292,8 +1294,14 @@ function hbRecipeRead(qRaw){
   const when = HB_RC.when.test(full);
   const live = (unit || trend) && !group && !measure && HB_RC.m.live.test(full);
   if (live){ take(HB_RC.m.live); measure = 'live'; }
-  if (!measure && HB_RC.m.value.test(t) && (unit || group || pic || chartWord || trend || gantt)) measure = 'value';
-  const isChart = unit || group || gantt || pic || chartWord || trend || when || live || measure === 'daysToSign' || measure === 'rounds';
+  /* A QUESTION THAT LEADS WITH MONEY ASKS FOR MONEY ("value of contracts in
+     review", "how much is signed", "total value signed by month"): the
+     measure is value even with no other chart word, and the money words are
+     read here so they are not left over for Copilot */
+  const valueLead = /^ (?:what(?: is| s|s)? (?:the |our )?|show (?:me )?(?:the |our )?)?(?:total |overall |the )?(?:value|worth|how much|hur mycket|värdet?)\b/.test(full);
+  if (!measure && HB_RC.m.value.test(t) && (unit || group || pic || chartWord || trend || gantt || valueLead)) measure = 'value';
+  if (measure === 'value') for (let k = 0; k < 3 && take(HB_RC.m.value); k++);
+  const isChart = unit || group || gantt || pic || chartWord || trend || when || live || measure === 'daysToSign' || measure === 'rounds' || (measure === 'value' && valueLead);
   if (!isChart) return null;
   /* the time split: asked for, or implied by a trend, a "when" or a measure that lives in time */
   let split = null;
@@ -1316,18 +1324,30 @@ function hbRecipeRead(qRaw){
 /* The plan a card draws: the reader's (or a dig's own) defaults, the reader's
    presses on top, then made drawable — a picture that cannot show this split
    or this measure moves to one that can, and money obeys canViewValues. */
+/* A SPLIT THE BOARD PICKS ITSELF MUST SPLIT: "how much is signed" drew one
+   ring slice, "Executed 100%". A default that puts every contract in one
+   group moves to the next one that divides them; a split the question
+   named is drawn as asked. */
+function hbUsefulGroup(D, want){
+  const fixed = D.fixed || [];
+  const cs = hbListOf(D.ids || [], hbS().lens);
+  if (cs.length < 2) return want;
+  const groups = f => { const g = new Set(); for (const c of cs){ g.add(hbGroupOf(c, f)); if (g.size > 1) break; } return g.size; };
+  if (groups(want) >= 2) return want;
+  return ['status', 'folder', 'counterparty', 'kind'].filter(f => f !== want && !fixed.includes(f)).find(f => groups(f) >= 2) || want;
+}
 function hbPlanBase(D){
   const c = D.chart || {}; const fixed = D.fixed || [];
   if (c.pic || c.split || c.measure){
     const P = { pic: c.pic || null, split: c.split || null, measure: c.measure || 'count', trend: !!c.trend };
     if (!P.pic) P.pic = P.split && P.split.by === 'date' ? 'cols' : P.measure === 'value' ? 'blocks' : P.measure === 'count' ? 'ring' : 'bars';
-    if (!P.split && ['ring', 'blocks', 'bars'].includes(P.pic)) P.split = { by: hbNextGroup(fixed) };
+    if (!P.split && ['ring', 'blocks', 'bars'].includes(P.pic)) P.split = { by: hbUsefulGroup(D, hbNextGroup(fixed)) };
     return P;
   }
-  if (c.mode === 'values') return { pic: 'blocks', split: { by: c.by || hbNextGroup(fixed) }, measure: 'value', trend: false };
+  if (c.mode === 'values') return { pic: 'blocks', split: { by: hbUsefulGroup(D, c.by || hbNextGroup(fixed)) }, measure: 'value', trend: false };
   if (c.mode === 'months') return { pic: 'gantt', split: null, measure: 'count', trend: false };
   if (c.mode === 'attention') return { pic: 'bubbles', split: null, measure: 'count', trend: false };
-  return { pic: 'ring', split: { by: c.by || hbNextGroup(fixed) }, measure: 'count', trend: false };
+  return { pic: 'ring', split: { by: hbUsefulGroup(D, c.by || hbNextGroup(fixed)) }, measure: 'count', trend: false };
 }
 function hbPlanFix(P, D){
   const money = hbMoneyOk(); const fixed = (D && D.fixed) || [];
@@ -1384,6 +1404,12 @@ function hbMeasureFmt(m, y){
   if (m === 'rounds') return (Math.round(y * 10) / 10).toLocaleString((typeof jxLocale === 'function') ? jxLocale() : undefined);
   return _hbN(Math.round(y));
 }
+/* a trend line's end, rounded: it is a line, not a figure on record */
+function hbTrendFmt(m, y){
+  if (m === 'value') return _hbM(Math.abs(y) >= 1000 ? y : Math.round(y));
+  if (m === 'count' || m === 'live') return _hbN(Math.round(y));
+  return hbMeasureFmt(m, y);
+}
 function hbMeasureShort(m, y){
   if (y == null || !isFinite(y)) return '';
   if (m === 'value') return _hbM(y);
@@ -1431,8 +1457,12 @@ function hbColsSvg(D, cs, P){
   const today = hbToday(), nowB = hbBucketOf(today, unit);
   /* a chart on the signing date (or of time to sign) is a chart of what was
      signed: a contract not signed yet is not "no date", it is said apart */
-  const unsigned = (date === 'signed' || m === 'daysToSign') ? cs.filter(c => !hbDateOf(c, 'signed')) : [];
-  if (unsigned.length) cs = cs.filter(c => hbDateOf(c, 'signed'));
+  /* SIGNED IS THE STAGE, NOT THE DATE (Young, 4 Oct 2026: "why does the
+     dashboard say 851 SEK when we have over 1 billion"): an executed contract
+     with no signing date on record IS signed — it stands in the "No date"
+     column, never among the "not signed yet" */
+  const unsigned = (date === 'signed' || m === 'daysToSign') ? cs.filter(c => !hbDateOf(c, 'signed') && c.status !== 'Signed') : [];
+  if (unsigned.length){ const out = new Set(unsigned); cs = cs.filter(c => !out.has(c)); }
   const keyed = cs.map(c => ({ c, b: hbBucketOf(hbDateOf(c, date), unit) }));
   const dated = keyed.filter(x => x.b !== 'none').map(x => x.b).sort();
   const forward = date === 'end' || date === 'decision' || date === 'start';
@@ -1468,7 +1498,13 @@ function hbColsSvg(D, cs, P){
   const unfinished = b => !forward && b === nowB;
   cols.forEach((c, i) => { c.i = i; c.hollow = avg && c.M.n > 0 && c.M.n < HB_TREND_MIN_N; c.sofar = unfinished(c.b); });
   const pts = P.trend ? cols.filter(c => !c.edge && !c.sofar && (avg ? c.M.n >= HB_TREND_MIN_N && c.M.y != null : true)).map(c => ({ i: c.i, y: c.M.y || 0 })) : [];
-  const T = P.trend ? hbTrendOf(pts) : null;
+  /* A LINE NEEDS HISTORY TO STAND ON: a total or a count drawn as a line
+     through months that hold nothing is one busy month and a slope; it needs
+     HB_TREND_MIN_PTS months that hold contracts, else it is said in words */
+  const filled = P.trend && !avg ? cols.filter(c => !c.edge && !c.sofar && c.list.length).length : null;
+  const T0 = P.trend && (avg || filled >= HB_TREND_MIN_PTS) ? hbTrendOf(pts) : null;
+  /* nothing here is ever below zero: neither is the line */
+  const T = T0 ? Object.assign({}, T0, { y0: Math.max(0, T0.y0), y1: Math.max(0, T0.y1) }) : null;
   /* geometry */
   const W = 1000, H = 320, L = 64, R = 18, Tp = 30, B = 52, base = H - B;
   const extra = none.length ? 1.6 : 0, n = cols.length, step = (W - L - R) / Math.max(1, n + extra), cw = Math.min(28, step * 0.52);
@@ -1512,20 +1548,26 @@ function hbColsSvg(D, cs, P){
   if (T){
     g += `<line x1="${X(T.i0).toFixed(1)}" y1="${Y(T.y0).toFixed(1)}" x2="${X(T.i1).toFixed(1)}" y2="${Y(T.y1).toFixed(1)}" class="hb-sv-trend" stroke-width="3" stroke-linecap="round"/>
       <circle cx="${X(T.i0).toFixed(1)}" cy="${Y(T.y0).toFixed(1)}" r="5.5" class="hb-sv-trend-dot"/><circle cx="${X(T.i1).toFixed(1)}" cy="${Y(T.y1).toFixed(1)}" r="5.5" class="hb-sv-trend-dot"/>
-      <text x="${X(T.i0).toFixed(1)}" y="${(Y(T.y0) - 14).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" class="hb-sv-glow">${_hbE(hbMeasureFmt(m, T.y0))}</text>
-      <text x="${X(T.i1).toFixed(1)}" y="${(Y(T.y1) - 14).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" class="hb-sv-glow">${_hbE(hbMeasureFmt(m, T.y1))}</text>`;
+      <text x="${X(T.i0).toFixed(1)}" y="${(Y(T.y0) - 14).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" class="hb-sv-glow">${_hbE('≈ ' + hbTrendFmt(m, T.y0))}</text>
+      <text x="${X(T.i1).toFixed(1)}" y="${(Y(T.y1) - 14).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" class="hb-sv-glow">${_hbE('≈ ' + hbTrendFmt(m, T.y1))}</text>`;
     const span = T.i1 - T.i0 + 1;
-    say = i18t('hb_tr_say', { what: i18t('hb_ms_' + m), from: hbMeasureFmt(m, T.y0), to: hbMeasureFmt(m, T.y1), n: _hbN(span), units: i18tn('hb_tr_units_' + unit, span, { n: span }), dir: hbTrendDir(m, T) });
+    /* THE LINE'S ENDS ARE THE LINE'S, NOT A TOTAL: said as the trend line, per
+       month, rounded — never read as what the book holds */
+    say = i18t('hb_tr_say', { what: i18t('hb_ms_' + m).toLowerCase(), per: i18tn('hb_tr_units_' + unit, 1, { n: 1 }), from: hbTrendFmt(m, T.y0), to: hbTrendFmt(m, T.y1), n: _hbN(span), units: i18tn('hb_tr_units_' + unit, span, { n: span }), dir: hbTrendDir(m, T) });
     const notes = [];
     if (cols.some(c => c.hollow)) notes.push(i18t('hb_tr_hollow', { min: HB_TREND_MIN_N }));
     if (cols.some(c => c.sofar)) notes.push(i18t('hb_tr_sofar', { unit: i18tn('hb_tr_units_' + unit, 1, { n: 1 }) }));
     note = notes.join(' ');
   } else if (P.trend){
-    note = i18t('hb_tr_few', { need: HB_TREND_MIN_PTS, units: i18tn('hb_tr_units_' + unit, HB_TREND_MIN_PTS, { n: HB_TREND_MIN_PTS }), min: HB_TREND_MIN_N, n: _hbN(pts.length) });
+    note = avg ? i18t('hb_tr_few', { need: HB_TREND_MIN_PTS, units: i18tn('hb_tr_units_' + unit, HB_TREND_MIN_PTS, { n: HB_TREND_MIN_PTS }), min: HB_TREND_MIN_N, n: _hbN(pts.length) })
+      : i18t('hb_tr_few_any', { need: HB_TREND_MIN_PTS, units: i18tn('hb_tr_units_' + unit, HB_TREND_MIN_PTS, { n: HB_TREND_MIN_PTS }), n: _hbN(filled || 0) });
   }
   const leftN = avg ? cs.length - cols.reduce((a, c) => a + c.M.n, 0) - (none.length ? hbMeasure(none, m).n : 0) : 0;
   if (leftN > 0) note = [note, i18t('hb_ms_left', { n: _hbN(leftN), what: i18t('hb_ms_' + m).toLowerCase() })].filter(Boolean).join(' ');
-  if (unsigned.length) note = [note, i18tn('hb_cols_unsigned', unsigned.length, { n: _hbN(unsigned.length) })].filter(Boolean).join(' ');
+  /* what is left off is said with its money, so a small total is never
+     mistaken for the book's (the 1-billion question) */
+  const offV = hbMoneyOk() && unsigned.length ? unsigned.reduce((a, c) => a + hbValueOfOne(c), 0) : 0;
+  if (unsigned.length) note = [note, offV > 0 ? i18tn('hb_cols_unsigned_value', unsigned.length, { n: _hbN(unsigned.length), v: _hbM(offV) }) : i18tn('hb_cols_unsigned', unsigned.length, { n: _hbN(unsigned.length) })].filter(Boolean).join(' ');
   const by = hbSplitWord(P.split);
   const money = hbMoneyOk();
   const lead = unsigned.length ? `<b>${_hbN(cs.length)}</b> ${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}${money ? ` · <b>${_hbE(_hbM(cs.reduce((a, c) => a + hbValueOfOne(c), 0)))}</b>` : ''}` : '';
@@ -1536,7 +1578,8 @@ function hbColsSvg(D, cs, P){
     cols: cols.filter(c => !c.edge).map(c => ({ b: c.b, y: c.M.y, n: c.M.n, sofar: !!c.sofar, hollow: !!c.hollow, k: c.list.length, dig: c.dig })), unit, nowB,
     /* and what the reading says beside them: the edges, the undated, the unsigned */
     edges: cols.filter(c => c.edge).map(c => ({ b: c.b, y: c.M.y, k: c.list.length, dig: c.dig })), none: none.length, noneDig: door('none'),
-    unsigned: unsigned.length, date, m, left: leftN };
+    noneY: none.length ? (hbMeasure(none, m).y || 0) : 0,
+    unsigned: unsigned.length, unsignedV: offV, date, m, left: leftN };
 }
 /* ---- LIVE CONTRACTS EACH MONTH: read off the monthly picture of the book ----
    How many were live at a past month's end is not on the contracts, so it
@@ -1574,7 +1617,7 @@ function hbLiveSvg(D, P){
   const T = hbTrendOf(pts);
   let say = '', note = '';
   if (T){ g += `<line x1="${X(T.i0).toFixed(1)}" y1="${Y(T.y0).toFixed(1)}" x2="${X(T.i1).toFixed(1)}" y2="${Y(T.y1).toFixed(1)}" class="hb-sv-trend" stroke-width="3" stroke-linecap="round"/>`;
-    say = i18t('hb_tr_say', { what: i18t('hb_ms_live'), from: _hbN(Math.round(T.y0)), to: _hbN(Math.round(T.y1)), n: _hbN(T.i1 - T.i0 + 1), units: i18tn('hb_tr_units_m', T.i1 - T.i0 + 1, { n: T.i1 - T.i0 + 1 }), dir: hbTrendDir('live', T) }); }
+    say = i18t('hb_tr_say', { what: i18t('hb_ms_live').toLowerCase(), per: i18tn('hb_tr_units_m', 1, { n: 1 }), from: _hbN(Math.round(T.y0)), to: _hbN(Math.round(T.y1)), n: _hbN(T.i1 - T.i0 + 1), units: i18tn('hb_tr_units_m', T.i1 - T.i0 + 1, { n: T.i1 - T.i0 + 1 }), dir: hbTrendDir('live', T) }); }
   else { let when = snaps[0].month; for (let i = 1; i < HB_TREND_MIN_PTS; i++) when = hbBucketNext(when, 'm');
     const x5 = X(HB_TREND_MIN_PTS - 1);
     g += `<line x1="${x5.toFixed(1)}" x2="${x5.toFixed(1)}" y1="${Tp}" y2="${base}" class="hb-sv-grid" stroke-dasharray="3 4"/><text x="${(x5 - 6).toFixed(1)}" y="${Tp + 12}" text-anchor="end" font-size="12" class="hb-sv-mute">${_hbE(i18t('hb_snap_starts'))}</text>`;
@@ -1761,8 +1804,14 @@ function hbReadingOf(D, cs, P, R){
     cols.forEach(c => counts.add(c.k)); edges.forEach(c => counts.add(c.k)); counts.add(counted);
     if (!avg){
       const money = m === 'value';
-      const tot = cols.reduce((a, c) => a + (c.y || 0), 0) + edges.reduce((a, c) => a + (c.y || 0), 0);
-      if ((R.date === 'signed' || m === 'daysToSign') && R.unsigned) say('hb_read_signed', { n: _hbN(counted), t: _hbN(cs.length) }, counted);
+      /* the "No date" column is on the chart too: the totals said here are the
+         card's, the same as its headline */
+      const counted = cols.reduce((a, c) => a + c.k, 0) + edges.reduce((a, c) => a + c.k, 0) + (R.none || 0);
+      counts.add(counted);
+      const tot = cols.reduce((a, c) => a + (c.y || 0), 0) + edges.reduce((a, c) => a + (c.y || 0), 0) + (R.noneY || 0);
+      /* the signed are the dated AND the undated executed ones (the "No date" column) */
+      const signedN = counted;
+      if ((R.date === 'signed' || m === 'daysToSign') && R.unsigned){ counts.add(signedN); say('hb_read_signed', { n: _hbN(signedN), t: _hbN(cs.length) }, signedN); }
       else if (money) say('hb_read_value', { v: _hbM(tot), n: _hbN(counted) }, counted);
       else say('hb_read_counted', { n: _hbN(counted) }, counted);
       /* where most of it sits: the busiest one or two neighbouring columns */
@@ -1805,8 +1854,12 @@ function hbReadingOf(D, cs, P, R){
       if (thin) say('hb_read_thin', { k: _hbN(thin), u: units(thin), min: _hbN(HB_TREND_MIN_N) }, thin);
       if (R.left) { counts.add(R.left); say('hb_read_left', { n: _hbN(R.left) }, R.left); }
     }
-    if (R.none){ counts.add(R.none); say('hb_read_none', { n: { html: hbReadDoor(R.none, R.noneDig) }, what: i18t('hb_dt_' + (R.date || 'end')) }, R.none); }
-    if (R.unsigned){ counts.add(R.unsigned); say('hb_read_unsigned', { n: _hbN(R.unsigned) }, R.unsigned); }
+    if (R.none){ counts.add(R.none);
+      if (R.date === 'signed') say('hb_read_none_signed', { n: { html: hbReadDoor(R.none, R.noneDig) } }, R.none);
+      else say('hb_read_none', { n: { html: hbReadDoor(R.none, R.noneDig) }, what: i18t('hb_dt_' + (R.date || 'end')) }, R.none); }
+    if (R.unsigned){ counts.add(R.unsigned);
+      if (R.unsignedV > 0) say('hb_read_unsigned_value', { n: _hbN(R.unsigned), v: _hbM(R.unsignedV) }, R.unsigned);
+      else say('hb_read_unsigned', { n: _hbN(R.unsigned) }, R.unsigned); }
     return lines.length ? { lines, counts } : null;
   }
   if ((P.pic === 'ring' || P.pic === 'bars' || P.pic === 'blocks') && P.split && P.split.by && P.split.by !== 'valueBand' && P.split.by !== 'none' && P.split.by !== 'date'){
@@ -1817,7 +1870,9 @@ function hbReadingOf(D, cs, P, R){
     const tot = rows.reduce((a, r) => a + (money ? r.v : r.n), 0) || 1;
     const dig = r => 'qg:' + D.key + HB_KEY_SEP + field + HB_KEY_SEP + r.g;
     say('hb_read_groups', { n: _hbN(cs.length), k: _hbN(rows.length), by: hbSplitWord(P.split).toLowerCase() }, rows.length);
-    const named = rows.filter(r => r.g);
+    /* the LARGEST first: hbGroupsOf keeps stages in stage order (the ring's
+       own order), so "has the most" must be measured, never read off the top */
+    const named = rows.filter(r => r.g).sort((a, b) => (money ? b.v - a.v : b.n - a.n));
     if (named.length){
       const top = named[0], pct = Math.round((money ? top.v : top.n) / tot * 100);
       say(money ? 'hb_read_top_value' : 'hb_read_top', { who: top.label, n: { html: hbReadDoor(top.n, dig(top)) }, v: _hbM(top.v), pct: _hbN(pct) }, top.n);
@@ -2041,6 +2096,52 @@ function hbWhyPrompt(src){
   out.push(`The contracts behind it (${cs.length}${cs.length > HB_WHY_IDS ? `, the first ${HB_WHY_IDS} listed` : ''}): ${ids.join(', ')}.`);
   out.push(`Question: what could explain this pattern, and what is worth checking next? Do not repeat what HaTi already said. Answer in at most three short sentences, in ${i18t('hb_cx_lang')}. Use only counts shown above or found with your tools; name contracts by their reference.`);
   return out.join('\n');
+}
+/* WHAT THE BOARD SHOWS, IN WORDS (Young, 4 Oct 2026: asked in the panel "why
+   does the dashboard say 851 SEK when we have over 1 billion", Copilot
+   answered "Nothing changed on the map … likely points to a single
+   contract's value or a filtered subset" — it had never been shown the
+   board). A question asked while the Board is up goes to Copilot with this:
+   Your book's figures, what the board is counting, the open card — its set,
+   its picture, its headline, its columns, its trend sentence (said to be the
+   ends of a fitted line, not totals), what it leaves off and HaTi's reading
+   — and the panels on the board. Built from the same readings the board
+   draws, so it can never describe a different board. Nothing on the Explorer
+   side, where the map is the screen. */
+const HB_BOARD_NOW_MAX = 4000;
+function hbBoardNow(){
+  const s = hbS(); if (s.face !== 'board') return '';
+  const plain = h => String(h || '').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
+  const out = [];
+  const B = hbBookData(s.lens), money = B.money, F = B.figs;
+  out.push(`Your book (the six figures at the top): ${F.live.n} live contracts${money ? `; ${_hbM(F.value.v)} value under contract (all live contracts, every stage)` : ''}; ${F.ending.n} ending in 90 days; ${F.past.n} past their end date; ${F.overdue.n} obligations overdue; ${F.us.n} waiting on us. By stage: ${B.stages.map(x => `${x.k} ${x.n}${money ? ' (' + _hbM(x.v || 0) + ')' : ''}`).join(', ')}.`);
+  if (s.lens !== 'all') out.push(`Side shown: ${i18t('hb_lens_' + s.lens)}.`);
+  const lab = hbCountLabel(s.lens); if (lab) out.push(`The board is counting only: ${lab}.`);
+  const path = s.path || [], key = path[path.length - 1];
+  const D = key ? hbDigData(key, s.lens) : null;
+  if (D){
+    out.push(`Open card: "${hbCrumbOf(key, s.lens)}"${s.digBig ? ' (enlarged)' : ''}.`);
+    if (D.kind === 'list'){
+      const cs = hbListOf(D.ids, s.lens), P = hbPlan(D);
+      out.push(`Its set: ${cs.length} contracts${money ? ', ' + _hbM(hbValueOf(cs).v) : ''}${D.whole ? ' (the whole book)' : ''}. Picture: ${hbPicWord(P)}; split: ${hbSplitWord(P.split)}; measure: ${i18t('hb_ms_' + P.measure)}${P.trend ? '; trend line on' : ''}.`);
+      if (P.pic === 'cols' && P.measure !== 'live'){
+        const R = hbColsSvg(D, cs, P), unit = R.unit || 'm';
+        if (R.lead) out.push(`Headline over the chart: ${plain(R.lead)} (what is drawn).`);
+        const cols = (R.cols || []).filter(c => c.k);
+        if (cols.length) out.push('Columns (label: ' + i18t('hb_ms_' + P.measure).toLowerCase() + ', contracts): ' + cols.slice(-24).map(c => `${hbBucketLabel(c.b, unit, false)}: ${hbMeasureFmt(P.measure, c.y)}, ${c.k}`).join('; ') + '.');
+        if (R.say) out.push(`Trend sentence: "${R.say}" — the two ends of a straight line fitted through the columns, per ${i18tn('hb_tr_units_' + unit, 1, { n: 1 })}; they are not totals and not what the book holds.`);
+        if (R.note) out.push(`Said under the chart: ${R.note}`);
+        const r = hbReadingOf(D, cs, P, R); if (r) out.push('HaTi\'s reading: ' + r.lines.map(plain).join(' '));
+      } else {
+        const r = hbReadingOf(D, cs, P, null); if (r) out.push('HaTi\'s reading: ' + r.lines.map(plain).join(' '));
+      }
+    } else if (D.kind === 'stages'){
+      const r = hbReadStagesOf(D.stages, D.money, D.left); if (r) out.push('HaTi\'s reading: ' + r.lines.map(plain).join(' '));
+    }
+  }
+  if (s.panels.length) out.push('Panels on the board: ' + s.panels.map(p => p.kind === 'view' ? (p.title || hbPanelWord(p)) : i18t(HB_KINDS[p.kind].word)).join('; ') + '.');
+  const text = out.join('\n');
+  return text.length > HB_BOARD_NOW_MAX ? text.slice(0, HB_BOARD_NOW_MAX) + ' …(cut)' : text;
 }
 /* THE COUNT IS HATI'S: a sentence stating a number of contracts this chart
    does not hold is left out, and how many were left out is said */
@@ -2895,7 +2996,12 @@ function hbKeptSync(){
 /* ---- THE ASK: the board's free reader in front of Explorer's own ----
    Called by intelAsk on Home. Returns the answer it gave (HTML for the dock),
    or null to hand the question on. */
+/* A QUESTION ABOUT WHAT IS ON THE SCREEN ("why does the dashboard say 851
+   …", "explain the trend line", "what does this chart mean") is Copilot's,
+   with the board shown to it (hbBoardNow) — never read as a new chart */
+const HB_WHY_ASK_RE = /^\s*(?:why|explain|how come|what (?:does|do) .{0,60}\bmean|what is this|what's this|varför|förklara|vad betyder)\b/i;
 function hbAsk(q){
+  if (HB_WHY_ASK_RE.test(String(q || ''))){ _hbPendingRecipe = null; return null; }
   const r = hbParse(q);
   /* a chart question HaTi could not read whole goes on to Copilot with its
      picture words already read (hbShowFound puts them on the answer) */
@@ -2972,6 +3078,9 @@ function hbAsk(q){
     hbDig(r.key, false);
     if (/^f:/.test(r.key)) return say(_hbE(hbFigSay(r.key.slice(2))), { noPaint: true });
     const D = hbDigData(r.key, s.lens) || { n: 0, title: '' };
+    /* a question about money is answered with the money, not only a count */
+    if (D.kind === 'list' && hbMoneyOk() && hbPlan(D).measure === 'value')
+      return say(_hbE(i18tn('hb_found_n_value', D.n, { n: _hbN(D.n), what: D.title || '', v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) })), { noPaint: true });
     return say(_hbE(i18tn('hb_found_n', D.n, { n: _hbN(D.n), what: D.title || '' })), { noPaint: true });
   }
   return null;
@@ -3293,4 +3402,5 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   HB_INS, HB_INS_SHAPES, HB_INS_MEASURED, HB_INS_V, HB_INS_MAX, HB_INS_REST_DAYS, HB_INS_NORM_PTS, HB_INS_MINE_MIN, hbInsKey, hbInsId, hbInsOf, hbInsViewWord, hbInsChart, hbInsCandidate, hbInsCandidateMemo,
   hbInsScope, hbInsNormal, hbInsRenNormal, hbInsFinding, hbInsFindingMemo, hbInsightsToday, hbInsUsual, hbInsUsualOpen, hbInsWhy, hbInsResting, hbInsBookSig,
   hbInsThumb, hbInsRowHtml, hbShelfHtml, hbPanelWord, hbAddView, hbViewPanelHtml, hbInsAct, hbKeptSync,
-  hbBigBtnHtml, hbReadingOf, hbReadHtml, hbWhySig, hbWhyKept, hbWhyPrompt, hbWhyCheck, hbWhyAsk, hbWhyFollow, HB_WHY_KEEP });
+  hbBigBtnHtml, hbReadingOf, hbReadHtml, hbWhySig, hbWhyKept, hbWhyPrompt, hbWhyCheck, hbWhyAsk, hbWhyFollow, HB_WHY_KEEP,
+  hbBoardNow, HB_BOARD_NOW_MAX, hbUsefulGroup, hbTrendFmt, HB_WHY_ASK_RE });

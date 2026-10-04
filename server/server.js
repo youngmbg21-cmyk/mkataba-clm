@@ -6250,6 +6250,10 @@ function graphScreenSays(sc, sent, total) {
   const lang = cut(sc.lang); if (lang) parts.push(`The reader's language is ${lang} — write the answer in it.`);
   const cur = cut(sc.currency, 8); if (cur) parts.push(`Values are in ${cur} unless a card says otherwise.`);
   if (Number(total) > Number(sent)) parts.push(`The list below is the first ${Number(sent)} of ${Number(total)} contracts — say so if the answer could depend on the rest.`);
+  /* ON HOME'S BOARD THE BOARD IS THE SCREEN (4 Oct 2026): what it shows rides
+     along, and a question about a number on it is answered from it */
+  const board = String(sc.board == null ? '' : sc.board).replace(/[\u0000-\u0008\u000b-\u001f]/g, ' ').trim().slice(0, 4200);
+  if (board) parts.push(`\nThe reader asked this on the Home BOARD, not on the map. What the board shows now:\n${board}\nWhen the request asks about something on the board (why a number says what it says, what a chart or line means, where the rest of the money is), answer it in the answer field from these numbers, quoting them, and change nothing on the map (no groupBy, no where, no visibleIds).`);
   return parts.join(' ');
 }
 /* the picture the model named, in the board's own words — or nothing */
