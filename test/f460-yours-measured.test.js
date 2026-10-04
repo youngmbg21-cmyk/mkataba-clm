@@ -217,3 +217,37 @@ describe('F460 — renewals: the busiest quarter ahead against the year around i
     assert.equal(w.hbInsRenNormal({ unit: 'q', nowB: '2026-Q4', cols: [{ b: '2026-Q4', y: 9, n: 9 }] }), null, 'no year around it: no normal');
   });
 });
+
+/* Young, 4 Oct 2026: "fix the shelf refresh fault". The board record's loader
+   kept only bare shape names, so after a page refresh the day's "yours"
+   findings (ids like sign.mine) were thrown away — and with the day, the
+   book and the rule unchanged, nothing chose them again until tomorrow. */
+describe('F460 — a refresh keeps the day\'s shelf', () => {
+  /* a REAL reload: the board record is read once per sitting and per person,
+     so another person signs in and back — the record is read from storage */
+  const reload = w => { const me = w.currentUser; w.currentUser = () => ({ id: 'u_other_sitting', name: 'X' }); w.hbS(); w.currentUser = me; return w.hbS(); };
+  test('your own findings, the scope and the open usual pictures come back after a reload', () => {
+    const w = world({ days: lateMine });
+    const first = w.hbInsightsToday().map(x => x.id);
+    assert.deepEqual(Array.from(first), ['sign.mine']);
+    w.hbS().ins.usual = w.hbToday(); w.hbSave();
+    const ins = reload(w).ins;
+    assert.deepEqual(Array.from(ins.list), ['sign.mine'], 'the id with .mine survives');
+    assert.equal(ins.scope, 'mine');
+    assert.equal(ins.usual, w.hbToday(), 'the usual pictures stay open');
+    assert.equal(ins.young, false);
+    assert.deepEqual(Array.from(w.hbInsightsToday().map(x => x.id)), Array.from(first), 'the shelf is the same after the refresh');
+  });
+  test('a young book stays young after a reload, and a word the loader does not know is dropped', () => {
+    const w = world({ months: 4, days: lateAll, mine: 0 });
+    w.hbInsightsToday();
+    const raw = JSON.parse(w.localStorage.getItem(Object.keys(w.localStorage).find(k => /homeBoard/.test(k))));
+    raw.ins.list = ['sign', 'evil.mine', 'pay.mine', '<b>'];
+    raw.ins.scope = 'everyone';
+    w.localStorage.setItem(Object.keys(w.localStorage).find(k => /homeBoard/.test(k)), JSON.stringify(raw));
+    const ins = reload(w).ins;
+    assert.deepEqual(Array.from(ins.list), ['sign', 'pay.mine']);
+    assert.equal(ins.scope, 'co', 'an unknown scope falls back to the company');
+    assert.equal(ins.young, true);
+  });
+});

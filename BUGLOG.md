@@ -20264,3 +20264,4 @@ PROCESS REVIEW'S FIXES".
 - test/f293-the-renewal-cliff fails at unmodified main as well (two quarter checks); left red.
 - Two test files now share the number f460 (f460-yours-measured from main, f460-requests-reach-the-people-who-draft from this run).
 - Fixed later the same day, on the owner's word ("fix those two old failures too"): f293's season-dependent notice fixture (now 120 days) and swedish-verify's 3px insights-card overflow (the action row wraps).
+- 4 Oct 2026 — FIXED: the Insights shelf refresh fault (a reload dropped the ".mine" findings, scope, young and usual). The loader now keeps them; f460 "a refresh keeps the day's shelf", insights-shelf-verify 2a.
