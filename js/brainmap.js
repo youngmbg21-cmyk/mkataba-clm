@@ -33,6 +33,8 @@ const BRAIN_PARTS = [
   ['stands', 'dealStands', 'see', 1],
   /* the Insights shelf (4 Oct 2026): worked out the first time Home opens each day */
   ['insights', 'hbInsightsToday', 'see', 1],
+  /* Read, then ask (4 Oct 2026): an enlarged chart says what it shows, and one press asks Copilot why */
+  ['chartread', 'hbReadHtml', 'see', 1],
   ['upload', 'submitUpload', 'in', 0],
   ['newagr', 'openNewAgreement', 'in', 0],
   ['mailroom', 'POST /api/mailroom', 'in', 2],
@@ -103,7 +105,7 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands'], ['webhook']] },
   { id: 'sign', steps: [['signtab'], ['readiness'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders'], ['renewal'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home', 'insights']] },
-  { id: 'ask', steps: [['explorer'], ['db'], ['model'], ['quote'], ['contracts'], ['explorer']] }
+  { id: 'ask', steps: [['explorer', 'chartread'], ['db'], ['model'], ['quote'], ['contracts'], ['explorer']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it

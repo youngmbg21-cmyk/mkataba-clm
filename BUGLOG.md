@@ -20209,3 +20209,4 @@ card's right corner. Story in docs/MAP-HISTORY.md under "THE OWNER'S ELEVEN".
 
 ## Noticed, not fixed (4 Oct 2026, chart summaries — owner's screenshot of "All contracts by month signed")
 - The board's count trend (hbColsSvg → hbTrendOf) fits a straight line through every month, empty months counted as 0, and prints a start below zero: "Count: −2 → 4 over 24 months · rising". A count can never be negative, and the "rising" comes from 25 of 29 signings landing in the last two months, not from a steady rise.
+- (Same day, found while building Read-then-ask.) The board record's loader (hbS) keeps `s.ins.list` only where each id is a bare shape (`HB_INS_SHAPES.includes(k)`) and drops `scope`/`young`/`usual`; since Yours, measured (PR #116) ids can be `k.mine`, so after a page reload the day's "yours" findings vanish and are not chosen again until the next day (day, book and rule version still match).

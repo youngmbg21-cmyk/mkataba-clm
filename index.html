@@ -8012,6 +8012,29 @@
   .hb-ins.is-warn .hb-ins-pic .hb-sv-collit{fill:var(--hb-amber)}
   .hb-ins.is-good .hb-ins-pic .hb-sv-collit{fill:var(--hb-green)}
   .hb-view .hb-recipe{border-bottom:1px solid rgba(var(--hb-ln),.12)}
+  /* READ, THEN ASK (Young picked it by name, 4 Oct 2026): an enlarged chart
+     opens with HaTi's reading (teal, counted, free) and one press asks Copilot
+     why; Copilot's answer wears amber, so the two are told apart at a glance.
+     Board tokens only (--hb-*). */
+  .hb-read{margin:0 0 var(--s-3);padding:10px 14px;border-radius:var(--radius);background:rgba(var(--hb-gw),.07);border:1px solid rgba(var(--hb-gw),.28)}
+  .hb-read-h,.hb-why-h{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.08em;text-transform:uppercase;color:var(--hb-mute)}
+  .hb-read-src{letter-spacing:0;text-transform:none;font-weight:var(--w-body);font-size:var(--t-meta);color:var(--hb-mute)}
+  .hb-read ul{margin:0;padding-left:18px;color:var(--hb-ink);font-size:var(--t-body);line-height:1.55}
+  .hb-read li{margin:2px 0}
+  .hb-read b{font-weight:var(--w-strong)}
+  .hb-read-n{border:0;background:none;padding:0;font:inherit;font-weight:var(--w-strong);color:var(--hb-glow);border-bottom:1px dotted currentColor;cursor:pointer}
+  .hb-read-n:hover{border-bottom-style:solid}
+  .hb-read-n:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px;border-radius:2px}
+  .hb-why-ask{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 var(--s-3)}
+  .hb-why-ask .hb-btn{gap:6px}
+  .hb-why-ask .hb-btn[disabled]{opacity:.55;cursor:default}
+  .hb-why{margin:0 0 var(--s-3);padding:10px 14px;border-radius:var(--radius);background:color-mix(in srgb,var(--hb-amber) 7%,transparent);border:1px solid color-mix(in srgb,var(--hb-amber) 40%,transparent)}
+  .hb-why .hb-why-h{color:var(--hb-amber)}
+  .hb-why-b,.hb-why p{color:var(--hb-ink);font-size:var(--t-body);line-height:1.6;margin:0}
+  .hb-why-b p{margin:0 0 6px}
+  .hb-why-f{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:8px;font-size:var(--t-meta);color:var(--hb-mute)}
+  .hb-why-ok{color:var(--hb-green)}
+  .hb-why-cut{color:var(--hb-amber)}
 
   /* the dig-in */
   .hb-focus{display:flex;flex-direction:column;gap:6px}
