@@ -2059,8 +2059,12 @@ function triageAndPaint(c, opts){
      is the save they read. A save that FAILS still lets them start: the
      reading then answers honestly on the card, which beats silence. */
   const onServer = (API_MODE() && window.flushSaves) ? flushSaves() : Promise.resolve();
-  Promise.resolve(onServer).catch(()=>{}).then(()=>{
-    try{ triageRun(c,{ fresh:!!(opts&&opts.fresh), onStep:x=>{
+  /* IT HANDS BACK ITS PROMISE (4 Oct 2026) so a caller that must not start a
+     second reading while this one runs — the lane drafts' sweep, which may
+     meet several at once — can wait for it. Every older caller ignores it, as
+     it always ignored the undefined this returned. */
+  return Promise.resolve(onServer).catch(()=>{}).then(()=>{
+    try{ return triageRun(c,{ fresh:!!(opts&&opts.fresh), onStep:x=>{
       /* EVERY SURFACE THE READING JUST MOVED, and the side column is the one
          that was missing (owner-reported 9 Sep 2026: the Contract brief card
          still read "Not written yet" with the brief already on the record).
@@ -2084,8 +2088,8 @@ function triageAndPaint(c, opts){
          now may be a different contract's — asked of contractOnScreen, the
          one reading every slow result asks. */
       triageRepaintSurfaces(x);
-    }}); }catch(e){ /* the card says what happened */ }
-  });
+    }}); }catch(e){ /* the card says what happened */ return null; }
+  }).catch(()=>null);
 }
 /* EVERY SURFACE A READING MOVES, repainted where it is on screen. Lifted out
    of triageAndPaint's onStep (4 Oct 2026) so the strip's own "Read again"

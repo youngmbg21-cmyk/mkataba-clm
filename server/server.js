@@ -21,7 +21,7 @@ const { graphWhereHit } = require('../js/graphwhere.js');
 /* A request's lane and its answers (4 Oct 2026): ONE reading for both hosts —
    the Requests page says which lane a request would take, and the server's
    sweep clears it, off the same rule. */
-const { intakeLaneMatch, intakeAnswersClean, intakeAnswersOnto } = require('../js/intakelanes.js');
+const { intakeLaneMatch, intakeAnswersClean, intakeAnswersOnto, intakeLaneOwner } = require('../js/intakelanes.js');
 /* Approval before signing: who on a contract needs a named colleague's yes
    before anyone signs it (23 Sep 2026). ONE reading for both hosts — the
    screen and this wall ask the same questions of the same record, so they
@@ -4112,6 +4112,31 @@ app.post('/api/contracts/:id/here', auth, (req, res) => {
   res.json({ here: srvHereOthers(live, me.id) });
 });
 
+/* ---- A LANE'S DRAFT IS READ ONCE, BY WHOEVER HOLDS IT FIRST (4 Oct 2026,
+   the process review's last gaps) ----
+   A draft a lane minted on the server never passed through contractArrived,
+   so Copilot's arrival reading — run for every draft made by hand — waited
+   until somebody sent it. The reading is the BROWSER's (it presses the
+   product's own readings), so the mint records that one is owed
+   (`arrivalOwed`) and the first editor's browser to hold the contract claims
+   it HERE before reading.
+   ONE CLAIM, EVER: the first caller is answered `claimed: true` and the flag
+   is gone in the same synchronous step, so two editors opening the new draft
+   at once cannot both pay for the reading. JSON ONLY, like /here: claiming
+   is not an edit, so it moves neither `version` nor `updated_at`, and a
+   browser's next save is not turned away for it. An editor's act — a Viewer's
+   browser cannot run the reading, so it may not claim it. A sealed record
+   takes no write and is answered as not owed. */
+app.post('/api/contracts/:id/arrival', auth, editor, (req, res) => {
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { return res.status(409).json({ error: 'Contract not readable' }); }
+  if (!c.arrivalOwed || isExecutedRow(c)) return res.json({ claimed: false });
+  const next = { ...c }; delete next.arrivalOwed;
+  db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(next), req.params.id);
+  res.json({ claimed: true });
+});
+
 /* ---------- executed records are immutable ----------
    A signature is a claim about a specific document. If the document, its
    frozen copy, its value or its parties can still be changed afterwards, the
@@ -4347,6 +4372,12 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      a colleague arrived would echo back a map without them — taking somebody
      out of a room they are sitting in. The STORED map wins, always. */
   if (prev && prev.here) c.here = prev.here; else delete c.here;
+  /* ---- AND WHETHER COPILOT STILL OWES IT ITS ARRIVAL READING (4 Oct 2026) ----
+     `arrivalOwed` is written by a lane's mint and cleared by POST
+     /api/contracts/:id/arrival, and by nothing else — the same rule as
+     `here`: a browser holding the record from before the claim would echo the
+     flag back and owe the reading twice, and no save may invent one. */
+  if (prev && prev.arrivalOwed) c.arrivalOwed = prev.arrivalOwed; else delete c.arrivalOwed;
   /* What a send kept back stays kept back through a save — see rvKeptCarry. */
   rvKeptCarry(prev, c);
   /* ---- A CHASE ALREADY SENT IS NOT UNDONE BY A SAVE (27 Sep 2026) ----
@@ -5510,9 +5541,40 @@ app.put('/api/settings', auth, admin, (req, res) => {
      converted figure in the workspace. The rates change only through their
      own atomic endpoint below. */
   if (!('fxRates' in incoming) && 'fxRates' in stored) incoming.fxRates = stored.fxRates;
+  /* WHO SAVED A LANE, AND WHO IT NAMES, ARE THE SERVER'S WORD — see
+     srvLanesStamp. */
+  if (Array.isArray(incoming.intakeLanes)) incoming.intakeLanes = srvLanesStamp(incoming.intakeLanes, stored.intakeLanes, req.user);
   setSetting('appSettings', incoming);
-  res.json({ ok: true });
+  res.json({ ok: true, ...(Array.isArray(incoming.intakeLanes) ? { intakeLanes: incoming.intakeLanes } : {}) });
 });
+/* ---- A LANE KNOWS WHO SAVED IT AND WHOSE ITS DRAFTS ARE (4 Oct 2026, the
+   process review's last gaps) ----
+   A lane's draft belongs to the member the lane names (`ownerId`), else to
+   the admin who saved the lane, else to the first admin — intakeLaneOwner
+   (js/intakelanes.js), the one reading both hosts ask. Two facts it reads are
+   written HERE and never taken from a body:
+   · `savedById` is the admin making THIS save, for a lane that is new or
+     changed (or never stamped); an unchanged lane keeps the stamp it had. A
+     body that names somebody else as the saver is not believed.
+   · `ownerId` must name a member who may draft. A Viewer, or an id nobody
+     holds, is dropped rather than refused: the settings blob is saved whole,
+     and one stale name on one lane must not stop an admin saving anything
+     else. The panel then says which default applies, in the lane's own row. */
+const _laneSig = l => JSON.stringify(Object.keys(l || {}).filter(k => k !== 'savedById').sort().map(k => [k, l[k]]));
+function srvLanesStamp(next, prev, user) {
+  const before = new Map((Array.isArray(prev) ? prev : []).filter(l => l && l.id != null).map(l => [String(l.id), l]));
+  const drafters = new Set(db.prepare("SELECT id FROM users WHERE role != 'viewer'").all().map(u => String(u.id)));
+  return next.map(l => {
+    if (!l || typeof l !== 'object' || Array.isArray(l)) return l;
+    const x = { ...l };
+    delete x.savedById;
+    if (x.ownerId == null || x.ownerId === '' || !drafters.has(String(x.ownerId))) delete x.ownerId;
+    else x.ownerId = String(x.ownerId);
+    const was = x.id != null ? before.get(String(x.id)) : null;
+    x.savedById = (was && was.savedById && _laneSig(was) === _laneSig(x)) ? was.savedById : user.id;
+    return x;
+  });
+}
 /* W2-1: the one place the exchange rates change — read-modify-write of just
    that key. A rate is a CLAIM WITH A DATE: {code: {rate, at}}, rate being how
    many units of the workspace currency one unit of the foreign one is worth,
@@ -8378,7 +8440,7 @@ app.post('/api/intake', auth, rlIntake, (req, res) => {   // a trigger path, so 
      people who draft told: a request a rule drafted in the same breath is not
      waiting on anybody. */
   let laned = null;
-  try { laned = runIntakeLanes({ only: id }).cleared[0] || null; } catch (_) { laned = null; }
+  try { laned = runIntakeLanes({ only: id, req }).cleared[0] || null; } catch (_) { laned = null; }
   let told = null;
   if (!laned) { try { told = notifyIntakeRaised(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id), req); } catch (_) { told = null; } }
   res.json({ ok: true, request: intakeRow(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id)),
@@ -8555,6 +8617,29 @@ function notifyIntakeRaised(row, req) {
   }
   return { n: to.length };
 }
+/* ---- THE DRAFT'S OWNER IS TOLD IT WAS MADE FOR THEM (4 Oct 2026) ----
+   Before this a lane's draft told nobody: the request was not waiting on
+   anybody, so the "new request" mail rightly stayed quiet, and the draft sat
+   in Drafting with nobody's name on it. Now it has an owner, and the owner is
+   told — on the same path as the request mail (their own stored address,
+   their own language, the same switch: prefs.notifyIntake), with a link to
+   the contract itself. The bell says the same (the browser's `request` kind,
+   intakeLaneDraftRows) until the draft leaves Drafting. One mail per draft,
+   because a request is cleared once. */
+function notifyLaneDrafted(row, c, laneName, req) {
+  const own = c && c.owner;
+  if (!row || !own || !own.id) return false;
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(own.id);
+  if (!u || !/.+@.+\..+/.test(String(u.email || ''))) return false;
+  if (userPrefs(u).notifyIntake === false) return false;
+  const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+  const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n`
+    + tFor(L, 'mail_ik_lane_lead', { lane: laneName, id: c.id, who: row.by_name || tFor(L, 'cl_a_colleague'), title: row.title }) + '\n\n'
+    + `${tFor(L, 'mail_ik_new_need')}\n${String(row.need || '').slice(0, 1200)}\n\n`
+    + `${tFor(L, 'mail_ik_lane_where')}\n${contractUrl(req || null, c.id)}\n\n${tFor(L, 'mail_automated_notice')}`;
+  sendEmail(u.email, tFor(L, 'mail_ik_lane_subject', { title: row.title }), body, 'intake lane draft');
+  return true;
+}
 
 /* ---- THE LANES RUN ON THE SERVER (4 Oct 2026, the process review's
    Requests stream) ----
@@ -8590,29 +8675,66 @@ const SRV_TEMPLATES = (() => {
     return (out && typeof out === 'object') ? out : {};
   } catch (_) { return {}; }
 })();
-const IK_LANE_SWEEP_MS = 10 * 60 * 1000;
+/* Ten minutes. HATI_LANE_SWEEP_MS shortens it for a test that must watch the
+   sweep (not only the request's own POST) clear a request — never below a
+   second. */
+const IK_LANE_SWEEP_MS = Math.max(1000, Number(process.env.HATI_LANE_SWEEP_MS) || 10 * 60 * 1000);
 const srvKnownCounterparty = name => {
   const n = String(name || '').trim().toLowerCase();
   if (!n) return false;
   return !!db.prepare('SELECT 1 FROM contracts WHERE lower(trim(counterparty))=? LIMIT 1').get(n);
 };
+/* ---- WHOSE THE DRAFT IS, AND THAT COPILOT STILL OWES IT A READING (4 Oct
+   2026, the process review's last gaps) ----
+   OWNER: the lane's, by the one reading both hosts ask (intakeLaneOwner) —
+   and a named member who cannot see the request's stream cannot hold its
+   draft, so the default answers instead. Stamped in the SAME shape the
+   browser's contractOwnerStamp writes, { id, name }, so every reader of
+   `c.owner` (lists, Home, reminders, the "my contracts" condition) reads a
+   lane draft exactly as one made by hand.
+   THE ARRIVAL READING is browser-side (it presses the product's own
+   readings, and a server copy would be a second opinion about what a
+   contract says), so the server only RECORDS that one is owed:
+   `arrivalOwed`, written by this mint and cleared by POST
+   /api/contracts/:id/arrival and by nothing else — the PUT keeps the stored
+   value, exactly as it keeps `here`. The first editor's browser to hold the
+   contract claims it there and reads it once (intakeLaneArrivals). */
+/* A REQUEST SOMEBODY HAD ALREADY PICKED UP keeps its holder, and the draft is
+   theirs: the sweep may clear an open request a colleague is holding, and
+   taking it off them silently — or leaving the request with one person and
+   the draft with another — would make the Requests page and the contract
+   disagree about whose it is. Only where the holder could hold the draft
+   (may draft, sees the stream); otherwise the lane's own answer stands and
+   the request moves to that person. */
+function srvLaneOwnerFor(L, folder, r) {
+  const users = db.prepare('SELECT * FROM users ORDER BY created_at').all();
+  const may = u => inScope(folderScopeFor(u), folder);
+  const held = r && r.assignee_id ? users.find(u => String(u.id) === String(r.assignee_id)) : null;
+  if (held && held.role !== 'viewer' && may(held)) return { id: held.id, name: String(held.name || ''), how: 'held' };
+  return intakeLaneOwner(L, users, may);
+}
 function srvIntakeLaneDraft(r, L, t) {
   const at = now();
   const id = srvNextContractNo();
   const cp = String(r.counterparty || '').trim();
   const day = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   const laneName = String(L.name || L.id || 'a lane').slice(0, 80);
+  const folder = String(r.folder || t.folder || '');
+  const owner = srvLaneOwnerFor(L, folder, r);
   const c = {
     id, name: t.name + (cp ? ' \u2014 ' + cp : ''), counterparty: '', value: 0, status: 'Draft',
-    template: t.id, folder: String(r.folder || t.folder || ''), lastAction: day,
+    template: t.id, folder, lastAction: day,
     hash: null, signedAt: null, signatory: null, compliance: { iprs: false, pki: false },
     comments: [{ author: 'System', role: 'Automation', side: 'internal',
       text: `Drafted by the "${laneName}" lane from request ${r.id} (${t.kind}). Fill the highlighted fields to begin.`, ts: at }],
     fields: {}, scan: null, expiry: null, valueType: t.valueType, signatures: [], obligations: [],
     numbering: 'live', intakeRequestId: r.id,
+    ...(owner ? { owner: { id: owner.id, name: owner.name } } : {}),
+    arrivalOwed: { at, lane: laneName },
     audit: [{ at, user: 'System', action: 'Created', detail: `Generated from Template ${t.id} (${t.kind})` },
       { at, user: 'System', action: 'Requested',
-        detail: `Cleared by the "${laneName}" lane from request ${r.id} by ${r.by_name || 'a colleague'}: ${r.title}` }],
+        detail: `Cleared by the "${laneName}" lane from request ${r.id} by ${r.by_name || 'a colleague'}: ${r.title}`
+          + (owner ? ` \u2014 drafted for ${owner.name}` : '') }],
   };
   intakeAnswersOnto(c, { counterparty: cp, folder: r.folder, answers: intakeAnswersOf(r) });
   if (t.valueType === 'none') { c.value = 0; c.valueType = 'none'; }
@@ -8636,9 +8758,16 @@ function runIntakeLanes(opts = {}) {
     try {
       const c = srvIntakeLaneDraft(r, L, t);
       const at = now();
-      db.prepare("UPDATE intake_requests SET status='drafted', contract_id=?, lane=?, decided_by=?, decided_at=?, updated_at=? WHERE id=? AND status='open' AND contract_id IS NULL")
-        .run(c.id, String(L.name || L.id || '').slice(0, 80) || 'lane', '', at, at, r.id);
+      const laneName = String(L.name || L.id || '').slice(0, 80) || 'lane';
+      /* THE REQUEST IS HELD BY THE DRAFT'S OWNER — the same person, so the
+         Requests page's "with" and the contract's owner cannot disagree (a
+         holder who could hold the draft already IS its owner: srvLaneOwnerFor).
+         Where nobody can be named the request keeps whatever it had. */
+      const own = c.owner || null;
+      db.prepare("UPDATE intake_requests SET status='drafted', contract_id=?, lane=?, decided_by=?, decided_at=?, updated_at=?, assignee_id=COALESCE(?, assignee_id), assignee_name=CASE WHEN ? IS NULL THEN assignee_name ELSE ? END WHERE id=? AND status='open' AND contract_id IS NULL")
+        .run(c.id, laneName, '', at, at, own ? own.id : null, own ? own.id : null, own ? own.name : null, r.id);
       out.cleared.push(r.id);
+      try { notifyLaneDrafted(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(r.id), c, laneName, opts.req); } catch (_) {}
     } catch (e) { out.skipped.push({ id: r.id, why: String((e && e.message) || e).slice(0, 200) }); break; }
   }
   return out;
@@ -13722,6 +13851,7 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        stripped here as well because an allow-list holds only until somebody
        adds a field — the discipline the brief beside it keeps. */
     delete payload.contract.here;
+    delete payload.contract.arrivalOwed;        // a lane's bookkeeping is ours (4 Oct 2026)
     delete payload.contract._readings;          // idea 7: our plain-English reading of their paper is ours
     delete payload.contract._roundPrep; }       // Copilot's answers to their round are ours alone
   /* 'word' joined the list on 13 Sep 2026: the round travels as an attached

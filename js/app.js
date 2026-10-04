@@ -2255,6 +2255,18 @@ function buildAlerts(){
         ()=>{ if(window.intakeGoTo) intakeGoTo(r.id); else setView('intake'); },
         { sub:[who?i18t('al_request_by',{who}):'', age].filter(Boolean).join(' \u00b7 ') });
     });
+    /* AND A DRAFT A LANE MADE FOR THIS READER (4 Oct 2026): the same kind,
+       to the draft's owner only, until it leaves Drafting. The door is the
+       draft's Overview where the book holds it — where a new draft lands and
+       where its reading is said — else the request. */
+    if(typeof window.intakeLaneDraftRows==='function') intakeLaneDraftRows().forEach(r=>{
+      const c=(state.contracts||[]).find(x=>x&&String(x.id)===String(r.contractId))||null;
+      const who=String((r.by&&r.by.name)||'').trim();
+      push('request',c,i18t('al_lane_draft',{title:String(r.title||'')}),
+        ()=>{ if(c && window.openWorkspace){ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} }
+          else if(window.intakeGoTo) intakeGoTo(r.id); else setView('intake'); },
+        { sub:[i18t('al_lane_draft_sub',{lane:String(r.lane||'')}), who?i18t('al_request_by',{who}):''].filter(Boolean).join(' \u00b7 ') });
+    });
   }catch(e){}
   /* ---- EMAIL ISN'T SET UP (owner-ruled 24 Aug 2026: it moves here) ----
      ADMIN ONLY, and that is the whole of why it is not simply the old banner
