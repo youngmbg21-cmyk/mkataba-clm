@@ -1558,8 +1558,7 @@ function signCheckRefusal(c, opts){
    approval, the approval rules and the check before signing alike. Who has to
    approve, which standard we departed from and what our colleague made of it
    are internal; they are told only that the contract is not ready yet. */
-const SC_NOT_READY = 'This contract is not ready to be signed yet. The sender will let you know when it is — '
-  + 'you can still read it and comment in the meantime.';
+const SC_NOT_READY = 'This contract is not ready to be signed yet. The sender will let you know when it is — you can still read it and comment in the meantime.';
 /* AND OUR SIDE IS TOLD WHY, on the trail the counterparty never sees (the
    audit never travels). Once per reason in ten minutes, so a counterparty
    pressing Sign twice writes one line; never fails the refusal it records. */

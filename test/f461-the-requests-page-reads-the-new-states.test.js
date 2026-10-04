@@ -104,7 +104,11 @@ describe('f461 (3) the bell names a request nobody holds, to somebody who may dr
   test('3b a registered kind, ranked under approvals, and every row is a door', () => {
     const kinds = APP.slice(APP.indexOf('const ALERT_KINDS = ['), APP.indexOf('const alertRank'));
     const order = [...kinds.matchAll(/\{ k:'([a-z-]+)'/g)].map(m => m[1]);
-    assert.equal(order.indexOf('request'), order.indexOf('approval') + 1);
+    /* Under approvals, and under the approval-cleared row that sits beside them
+       (the approvals stream's 'ap-cleared', merged the same day). */
+    const after = order.includes('ap-cleared') ? order.indexOf('ap-cleared') : order.indexOf('approval');
+    assert.ok(order.indexOf('ap-cleared') === -1 || order.indexOf('ap-cleared') === order.indexOf('approval') + 1);
+    assert.equal(order.indexOf('request'), after + 1);
     const body = APP.slice(APP.indexOf('function buildAlerts'), APP.indexOf('function alertCount'));
     assert.match(body, /push\('request',null,i18t\('al_request'/);
     assert.match(body, /intakeGoTo\(r\.id\)/, 'the press lands on that request');
