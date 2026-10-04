@@ -388,9 +388,10 @@ describe('F448 (7) — the monthly picture on the server: one a month, behind th
 describe('F448 (8) — Copilot may name the picture; the words HaTi read win', () => {
   test('the server keeps only a picture in the board\'s own words, never a number', () => {
     const src = read('server/server.js');
-    const body = src.slice(src.indexOf('function graphChartClean('), src.indexOf("app.post('/api/ai/graph'"));
-    const clean = new Function('GRAPH_CHART_PICS', 'GRAPH_CHART_DATES', 'GRAPH_CHART_MEASURES', body + '\nreturn graphChartClean;')(
-      ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list'], ['end', 'signed', 'start', 'created', 'decision'], ['count', 'value', 'daysToSign', 'payDays', 'rounds']);
+    /* the cleaner with its word lists (one recipe language, 4 Oct 2026: the
+       lists sit beside it) */
+    const body = src.slice(src.indexOf('const GRAPH_CHART_PICS'), src.indexOf("app.post('/api/ai/graph'"));
+    const clean = new Function(body + '\nreturn graphChartClean;')();
     assert.deepEqual(clean({ pic: 'cols', split: 'quarter', date: 'signed', measure: 'value', trend: true, total: 99 }),
       { pic: 'cols', measure: 'value', trend: true, split: { by: 'date', unit: 'q', date: 'signed' } });
     assert.deepEqual(clean({ pic: 'ring', split: 'stream' }), { pic: 'ring', split: { by: 'folder' } });

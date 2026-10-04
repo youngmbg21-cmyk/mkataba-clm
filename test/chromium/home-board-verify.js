@@ -348,12 +348,15 @@ const CONTRACTS = [
        timeline by month the charts do not come out as I asked") — measured
        where the owner looks */
     await ask(page, 'Show Juno contracts by month');
-    ok('15a "by month" draws month columns, each a door, with the four dropdowns and the trend switch on the card', await until(page, () =>
-      document.querySelectorAll('#hb-focus .hb-cols [data-hb-dig^="qm:"]').length >= 1 && document.querySelectorAll('#hb-focus .hb-recipe [data-hb-rc]').length === 4 && !!document.querySelector('#hb-focus .hb-recipe [data-hb-rtrend]') && /month/i.test(document.querySelector('#hb-focus [data-hb-rc="split"]').textContent)));
+    /* ONE RECIPE LANGUAGE (work order Part 1, 4 Oct 2026): the row gained
+       Then by, Order, Period and Compare beside the first four */
+    ok('15a "by month" draws month columns, each a door, with the recipe\'s dropdowns and the trend switch on the card', await until(page, () =>
+      document.querySelectorAll('#hb-focus .hb-cols [data-hb-dig^="qm:"]').length >= 1 && ['which', 'split', 'split2', 'pic', 'measure', 'order', 'window', 'compare'].every(p => document.querySelector(`#hb-focus .hb-recipe [data-hb-rc="${p}"]`)) && !!document.querySelector('#hb-focus .hb-recipe [data-hb-rtrend]') && /month/i.test(document.querySelector('#hb-focus [data-hb-rc="split"]').textContent)));
     await page.click('#hb-focus [data-hb-rc="pic"]');
     const menu = await page.evaluate(() => { const m = document.querySelector('#hb-focus .hb-rmenu'); if (!m) return null; const r = m.getBoundingClientRect(); const top = document.elementFromPoint(r.left + 30, r.top + 14);
       return { h: Math.round(r.height), onTop: !!(top && top.closest('.hb-rmenu')), dead: [...m.querySelectorAll('button:disabled')].map(b => b.title).filter(Boolean).length, opts: m.querySelectorAll('button').length }; });
-    ok('15b the Picture dropdown is painted on top, every picture listed, a dead one says why', !!menu && menu.onTop && menu.opts === 7 && menu.h > 100, JSON.stringify(menu));
+    const nPics = await page.evaluate(() => HB_PICS.length);
+    ok('15b the Picture dropdown is painted on top, every picture listed, a dead one says why', !!menu && menu.onTop && menu.opts === nPics && menu.dead >= 1 && menu.h > 100, JSON.stringify(menu));
     await page.keyboard.press('Escape');
     ok('15c Escape closes it and gives the keyboard back to the dropdown', await until(page, () => !document.querySelector('#hb-focus .hb-rmenu') && (document.activeElement || {}).getAttribute && document.activeElement.getAttribute('data-hb-rc') === 'pic'));
     await pick('pic', 'gantt');

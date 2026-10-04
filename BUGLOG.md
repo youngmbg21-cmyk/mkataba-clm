@@ -20301,3 +20301,4 @@ asker leaves; advice is a kind of request. Story in docs/MAP-HISTORY.md under
 - unused `d` lint warning in desk.js around line 814 (pre-existing).
 - the bell rows still read the old approval/review/suggestion fields, not c.asks (follow-up).
 - srvAsksMerge's refusal messages are English-only, like their neighbours (the screens never trigger them).
+- Home board: a dig two levels deep inside a chart (a slice of a slice, key `qg:qg:…`) reads its parent key as only the first `§` segment in hbDigData's qg/qm/qv branch, so it can open the wrong list; the new q2/qr doors read the key from the end and are not affected (noticed 4 Oct, not fixed).

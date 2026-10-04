@@ -8129,6 +8129,13 @@
   .hb-tr-say{margin:0 0 6px;font-size:var(--t-section);font-weight:var(--w-label);color:var(--hb-ink)}
   .hb-sv-col{fill:var(--hb-glow)} .hb-sv-colpast{fill:rgba(var(--hb-ln),.42)} .hb-sv-coledge{fill:rgba(var(--hb-ln),.3)} .hb-sv-colq{fill:rgba(var(--hb-ln),.22)}
   .hb-sv-colhollow{fill:none;stroke:var(--hb-mute);stroke-width:1.5;stroke-dasharray:3 3}
+  /* the recipe's other pictures: the period before, a heat grid's cells */
+  .hb-sv-colprev{fill:rgba(var(--hb-ln),.4)}
+  .hb-sv-heat{fill:var(--hb-glow)} .hb-sv-heat-ink{fill:var(--hb-on-glow)}
+  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-heat,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-heat{stroke:var(--hb-ink);stroke-width:1.5;fill:var(--hb-glow)}
+  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-col,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-col{stroke:var(--hb-ink);stroke-width:1.5;fill:var(--hb-glow)}
+  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-colprev,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-colprev{stroke:var(--hb-ink);stroke-width:1.5;fill:rgba(var(--hb-ln),.4)}
+  .hb-svg .hb-sv-cbox:hover>rect[style],.hb-svg .hb-sv-cbox:focus-visible>rect[style]{stroke:var(--hb-ink);stroke-width:1.5}
   /* a column's press area lights softly; the box itself is never outlined */
   .hb-svg .hb-sv-cbox:hover>rect,.hb-svg .hb-sv-cbox:focus-visible>rect{stroke:none;fill:rgba(var(--hb-ln),.06)}
   .hb-svg .hb-sv-cbox:hover>path,.hb-svg .hb-sv-cbox:focus-visible>path{stroke:var(--hb-ink);stroke-width:1.5}

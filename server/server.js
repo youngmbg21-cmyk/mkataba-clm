@@ -6564,11 +6564,29 @@ function graphScreenSays(sc, sent, total) {
   if (board) parts.push(`\nThe reader asked this on the Home BOARD, not on the map. What the board shows now:\n${board}\nWhen the request asks about something on the board (why a number says what it says, what a chart or line means, where the rest of the money is), answer it in the answer field from these numbers, quoting them, and change nothing on the map (no groupBy, no where, no visibleIds).`);
   return parts.join(' ');
 }
-/* the picture the model named, in the board's own words — or nothing */
-const GRAPH_CHART_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list'];
+/* the picture the model named, in the board's own words — or nothing.
+   ONE RECIPE LANGUAGE (work order Part 1, 4 Oct 2026): this is the server's
+   mirror of the board's one cleaner (hbCardClean). It takes the model's words
+   and gives back the board's recipe, part by part; a word it does not know is
+   dropped, never guessed. f483 pins every list here to the board's own. */
+const GRAPH_CHART_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', 'stack', 'grouped', 'heat'];
 const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'valueBand'];
 const GRAPH_CHART_DATES = ['end', 'signed', 'start', 'created', 'decision'];
 const GRAPH_CHART_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live'];
+const GRAPH_CHART_SORTS = ['value', 'count', 'name'];
+const GRAPH_CHART_DIRS = ['down', 'up'];
+const GRAPH_CHART_COMPARES = ['prev', 'year'];
+const GRAPH_CHART_UNITS = ['month', 'quarter', 'year'];
+const GRAPH_CHART_TOP_MAX = 50, GRAPH_CHART_TITLE_MAX = 80;
+const GRAPH_CHART_WIN_MAX = { m: 120, q: 40, y: 10 };
+const GRAPH_CHART_UNIT_OF = { month: 'm', quarter: 'q', year: 'y' };
+const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', valueBand: 'valueBand' };
+function graphChartSplit(word, date) {
+  const unit = GRAPH_CHART_UNIT_OF[word], group = GRAPH_CHART_GROUP_OF[word];
+  if (unit) return { by: 'date', unit, date: GRAPH_CHART_DATES.includes(date) ? date : 'end' };
+  if (group) return { by: group };
+  return null;
+}
 function graphChartClean(c) {
   if (!c || typeof c !== 'object') return null;
   const out = {};
@@ -6577,12 +6595,43 @@ function graphChartClean(c) {
   if (typeof c.trend === 'boolean') out.trend = c.trend;
   /* on the board: change the chart that is open, or draw a new one */
   if (c.target === 'open' || c.target === 'new') out.target = c.target;
-  const unit = { month: 'm', quarter: 'q', year: 'y' }[c.split];
-  const group = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', valueBand: 'valueBand' }[c.split];
-  if (unit) out.split = { by: 'date', unit, date: GRAPH_CHART_DATES.includes(c.date) ? c.date : 'end' };
-  else if (group) out.split = { by: group };
+  const sp = graphChartSplit(c.split, c.date); if (sp) out.split = sp;
+  else if (c.split === 'none') out.split = { by: 'none' };
+  const s2 = graphChartSplit(c.split2, c.date2);
+  if (s2 && !(sp && sp.by === s2.by)) out.split2 = s2;
+  else if (c.split2 === 'none') out.split2 = { by: 'none' };
+  if (c.sort && typeof c.sort === 'object' && GRAPH_CHART_SORTS.includes(c.sort.by))
+    out.sort = { by: c.sort.by, dir: GRAPH_CHART_DIRS.includes(c.sort.dir) ? c.sort.dir : (c.sort.by === 'name' ? 'up' : 'down') };
+  if (c.top != null) { const t = Math.round(Number(c.top)); if (Number.isFinite(t) && t >= 1 && t <= GRAPH_CHART_TOP_MAX) out.top = t; }
+  if (c.window && typeof c.window === 'object') {
+    const w = c.window, unit = GRAPH_CHART_UNIT_OF[w.unit] || 'm', lim = GRAPH_CHART_WIN_MAX[unit];
+    const num = v => { const n = Math.round(Number(v)); return v != null && Number.isFinite(n) && n >= 1 && n <= lim ? n : null; };
+    const iso = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : null;
+    const W = {};
+    if (num(w.last)) { W.last = num(w.last); W.unit = unit; }
+    else if (num(w.next)) { W.next = num(w.next); W.unit = unit; }
+    else { const f = iso(w.from), t = iso(w.to); if ((f || t) && !(f && t && f > t)) { if (f) W.from = f; if (t) W.to = t; } }
+    if (Object.keys(W).length) { if (GRAPH_CHART_DATES.includes(w.date)) W.date = w.date; out.window = W; }
+  }
+  if (GRAPH_CHART_COMPARES.includes(c.compare)) out.compare = c.compare;
+  if (typeof c.title === 'string') { const t = c.title.replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, GRAPH_CHART_TITLE_MAX); if (t) out.title = t; }
   return Object.keys(out).filter(k => k !== 'target').length ? out : null;
 }
+/* the recipe's parts as the model is told them (one schema, two tools) */
+const GRAPH_CHART_PROPS = {
+  pic: { type: 'string', enum: GRAPH_CHART_PICS, description: 'stack/grouped/heat draw TWO splits (split and split2).' },
+  split: { type: 'string', enum: GRAPH_CHART_SPLITS },
+  date: { type: 'string', enum: GRAPH_CHART_DATES, description: 'For a split by month/quarter/year: which date (end = expiry, the default).' },
+  split2: { type: 'string', enum: GRAPH_CHART_SPLITS, description: 'A second split ("by month and stream", "by stream then stage"); time always runs across.' },
+  date2: { type: 'string', enum: GRAPH_CHART_DATES },
+  measure: { type: 'string', enum: GRAPH_CHART_MEASURES },
+  trend: { type: 'boolean', description: 'True when the request asks how something changes over time.' },
+  sort: { type: 'object', description: 'How the groups line up: value = by the measure, count = by contracts, name = A to Z.', properties: { by: { type: 'string', enum: GRAPH_CHART_SORTS }, dir: { type: 'string', enum: GRAPH_CHART_DIRS } } },
+  top: { type: 'number', description: `Draw only the top N groups (1–${GRAPH_CHART_TOP_MAX}); HaTi says the rest.` },
+  window: { type: 'object', description: 'A period: the last or next N months/quarters/years (last 1 year = this year), or from/to days (YYYY-MM-DD); date = which date it reads.', properties: { last: { type: 'number' }, next: { type: 'number' }, unit: { type: 'string', enum: GRAPH_CHART_UNITS }, from: { type: 'string' }, to: { type: 'string' }, date: { type: 'string', enum: GRAPH_CHART_DATES } } },
+  compare: { type: 'string', enum: GRAPH_CHART_COMPARES, description: 'prev = against the period just before; year = against the same period a year earlier.' },
+  title: { type: 'string', description: `The card's own name (at most ${GRAPH_CHART_TITLE_MAX} characters).` },
+};
 /* the look the model named, in the map's own words — or nothing */
 function graphLookClean(l) {
   if (!l || typeof l !== 'object') return null;
@@ -6644,7 +6693,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
            as a chart; the model may say which picture the words asked for,
            and HaTi still counts every figure. */
         chart: { type: 'object', description: 'Fill ONLY when the request asks for a picture or a split of one: a pie/ring, bars, columns, blocks/treemap, bubbles, a list, a timeline, "by month/quarter/year", "by stream/stage/owner…", or a trend. HaTi draws it and counts it; never put numbers here.',
-          properties: { target: { type: 'string', enum: ['open', 'new'], description: 'On the Home BOARD only: open = change the chart that is open on the board ("make it monthly", "as a pie", "by stream", "remove the trend") — fill only the parts asked for; new = draw a new chart (over the set in where/visibleIds, or the whole book when none).' }, pic: { type: 'string', enum: GRAPH_CHART_PICS }, split: { type: 'string', enum: GRAPH_CHART_SPLITS }, date: { type: 'string', enum: GRAPH_CHART_DATES, description: 'For a split by month/quarter/year: which date (end = expiry, the default).' }, measure: { type: 'string', enum: GRAPH_CHART_MEASURES }, trend: { type: 'boolean', description: 'True when the request asks how something changes over time.' } } },
+          properties: { target: { type: 'string', enum: ['open', 'new'], description: 'On the Home BOARD only: open = change the chart that is open on the board ("make it monthly", "as a pie", "by stream", "remove the trend") — fill only the parts asked for; new = draw a new chart (over the set in where/visibleIds, or the whole book when none).' }, ...GRAPH_CHART_PROPS } },
         ask: { type: 'array', description: 'When the request is unclear, up to three things it could mean, as {role, fact}; HaTi shows them as buttons and changes nothing else.', items: { type: 'object', properties: { role: { type: 'string', enum: ['group', 'floors', 'columns', 'colour', 'size', 'label', 'time'] }, fact: { type: 'string' } } } },
         /* THE MAP'S LOOK (4 Oct 2026): names, names on the edges, dot size,
            big bubbles and bundles — the same acts the map's own reader does.
@@ -6664,7 +6713,7 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
      the model is told first that it is answering on a page of charts, and how
      to press its buttons (chart.target), before any word about the map */
   const onBoard = !!(screen && typeof screen === 'object' && String(screen.board || '').trim());
-  const boardJob = onBoard ? `You are answering a question asked on HaTi's Home BOARD, a page of charts over a contract portfolio (the board is described under "On screen now"). In order of preference:\n1. CHANGE THE OPEN CHART when the request is about it ("make it monthly", "as a pie", "by stream", "show value", "add/remove the trend", "this", "it"): fill chart with ONLY the parts asked for and chart.target "open". The words are the board's own dropdowns: pic ${GRAPH_CHART_PICS.join('/')}; split ${GRAPH_CHART_SPLITS.join('/')} (with date ${GRAPH_CHART_DATES.join('/')} for month/quarter/year); measure ${GRAPH_CHART_MEASURES.join('/')}; trend true/false. Set no where, visibleIds or groupBy for it.\n2. A NEW CHART over a set of contracts: the set in where (or visibleIds) and chart.target "new".\n3. A QUESTION ABOUT WHAT THE BOARD SHOWS: answer only, from the board's numbers.\nThe map's own fields (groupBy, floorsBy, columnsBy, colourBy, view, look) are for the map: leave them empty unless the reader asks for the map.\n\n` : '';
+  const boardJob = onBoard ? `You are answering a question asked on HaTi's Home BOARD, a page of charts over a contract portfolio (the board is described under "On screen now"). In order of preference:\n1. CHANGE THE OPEN CHART when the request is about it ("make it monthly", "as a pie", "by stream", "show value", "add/remove the trend", "this", "it"): fill chart with ONLY the parts asked for and chart.target "open". The words are the board's own dropdowns: pic ${GRAPH_CHART_PICS.join('/')}; split ${GRAPH_CHART_SPLITS.join('/')} (with date ${GRAPH_CHART_DATES.join('/')} for month/quarter/year); split2 (a second split, same words); measure ${GRAPH_CHART_MEASURES.join('/')}; trend true/false; sort {by ${GRAPH_CHART_SORTS.join('/')}, dir ${GRAPH_CHART_DIRS.join('/')}}; top N; window {last|next N, unit ${GRAPH_CHART_UNITS.join('/')}, date} or {from, to}; compare ${GRAPH_CHART_COMPARES.join('/')}; title. Set no where, visibleIds or groupBy for it.\n2. A NEW CHART over a set of contracts: the set in where (or visibleIds) and chart.target "new".\n3. A QUESTION ABOUT WHAT THE BOARD SHOWS: answer only, from the board's numbers.\nThe map's own fields (groupBy, floorsBy, columnsBy, colourBy, view, look) are for the map: leave them empty unless the reader asks for the map.\n\n` : '';
   const prompt = `${boardJob}You filter and cluster a contract portfolio for a graph view.\n\nToday's date: ${today}\n${onScreen ? `\nOn screen now: ${onScreen}\n` : ''}${figures ? `\n${figures}\n` : ''}\nContracts (JSON; fields per card: id, name, counterparty, folder = value stream, kind = type, status, currency, ${money ? 'value, ' : ''}expiry, signedAt, createdAt, decisionDate = renewal decision date, noticeDays, effDate, payTermsDays, parentId/relation = family, move = whose move in the negotiation ("you" = ours, "them" = theirs), live = negotiation live, overdue = overdue obligations, nextDue, offStandard = playbook deviations (null = never checked), risk = risk score (null = not scanned), read = Copilot has read it, archived, source):\n${JSON.stringify(list)}\n${hist ? `\nConversation so far:\n${hist}\n` : ''}${active ? `\nCurrently selected/highlighted contract ids (the user may refer to these as "those"/"these" in follow-ups — intersect with them when they do):\n${JSON.stringify(active)}\n` : ''}\nUser request: "${query}"\n\nRules:\n- If the request narrows the set (e.g. "leases", "Naivas", "high value", "expiring", "overdue", "waiting on us"), express it as a \`where\` filter wherever a field carries it; use visibleIds only for a match no field expresses (a name, a city).\n- Choose action: "filter" for explicit narrowing commands ("show only leases"), "highlight" for analytical questions ("which contracts end in 6 months?") so the rest of the portfolio stays visible for context.\n- For date/expiry questions, compute against today's date (${today}) using each contract's expiry field, and add a badges entry per match like "ends in 143d".\n- Write a short answer (1-3 sentences) for the chat panel — HaTi prints its own line of counts, so say what the numbers cannot. For any count or total, quote HaTi's own figures above; never add up the cards. NEVER state how many contracts match the request — HaTi counts the matches itself and prints that number; a sentence that states a different count is not shown.\n- If it is purely a grouping request ("group by customer", "cluster by expiration date", "by when they were signed"), leave visibleIds empty and set groupBy to the DIMENSION: ${GRAPH_GROUP_DESC}\n- It can be both.\n- Use groupBy="custom" ONLY for a dimension no key names (city, region, sector…), and then fill groups by INFERRING the label from the counterparty/name for every contract you can place, with at least two labels. Never return custom with an empty groups map.\n- If the request is about what a contract SAYS (a clause, its obligations, a summary, an explanation, a quote) and does not ask to arrange or narrow the map, set kind="wording" and nothing else.
 - The map has five views: brain, wiring, floors, grid and timeline. "Floors by X" sets floorsBy; "columns by X" sets columnsBy; "X against Y" sets columnsBy X, floorsBy Y and view grid; "over time" or "timeline" sets view timeline (timeBy names the date). Colour, size and labels each name a fact. Every fact is one of: ${GRAPH_GROUP_DESC}
 - When the request could mean more than one of these and you cannot tell which, fill ask with up to three {role, fact} options and change nothing else.
