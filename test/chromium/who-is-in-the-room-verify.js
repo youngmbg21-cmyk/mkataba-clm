@@ -91,7 +91,10 @@ const DEAL = {
     ok('1b and it says NOTHING while you are the only one here',
       !alone.row && !alone.text, JSON.stringify(alone.text));
     const before = await a.p.evaluate(() => { const c = getContract('MK-R1');
-      return { v: c._v || null, last: c.lastAction || '' }; });
+      const paper = document.querySelector('#doc-canvas, .doc-surface');
+      return { v: c._v || null, last: c.lastAction || '',
+        /* THE CONTRACT'S PIXELS, measured before anybody else is here. */
+        top: paper ? +paper.getBoundingClientRect().top.toFixed(4) : null }; });
 
     /* ===== 2. A COLLEAGUE ARRIVES ===== */
     await b.p.evaluate(() => openWorkspace('MK-R1'));
@@ -118,6 +121,18 @@ const DEAL = {
     }, null, 40000);
     const bRow = await slot(b.p);
     ok('2e and the colleague sees them back', back && /Amina/.test(bRow.title), JSON.stringify(bRow.text));
+    /* ---- AND IT COSTS THE CONTRACT NOTHING ----
+       THE THIRD QUESTION'S OWN REFUSAL: measure window top to the first line
+       of wording before and after, and refuse any growth. MEASURED, and the
+       first build failed it: a 17px face on a line of 12px text grew that
+       line, and approval-before-signing 7a caught the paper moving
+       300.875 → 301.390625 the moment a second person opened the contract.
+       The row is zero high and its faces overflow it, so the line box is
+       formed as if it were not there. */
+    const after2 = await a.p.evaluate(() => { const paper = document.querySelector('#doc-canvas, .doc-surface');
+      return paper ? +paper.getBoundingClientRect().top.toFixed(4) : null; });
+    ok('2f and the contract did not move by a pixel when they arrived',
+      before.top != null && after2 === before.top, `${before.top} → ${after2}`);
 
     /* ===== 3. NOTHING ELSE MOVED ===== */
     const after = await a.p.evaluate(async () => {

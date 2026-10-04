@@ -207,7 +207,8 @@ Four seats: Initiator, Lead (exactly one; the only one who reaches the counterpa
 
 - js/presence.js: `c.here` {uid:{name,at}} is the clause lock's fact one step wider, written ONLY by `POST /api/contracts/:id/here` (auth, scope-checked, json only — never `version` or `updated_at`; a sealed record answers without writing). The PUT keeps the stored map beside the locks; the share route deletes `payload.contract.here`.
 - `presenceStart(cid, presencePaint)` from `applyWsTabs` (idempotent per contract), `presenceStop()` from `setView`. `PRESENCE_BEAT_MS` 25s, `PRESENCE_GONE_MS` 75s (three missed beats), nothing while `document.hidden`, no toast on failure, repaint only where the answer moved.
-- `presenceHere(c)` reads the last answer and NEVER fetches. The row is a slot (`[data-pz-slot]` in `roomHeadSubHtml`), `PRESENCE_FACES` 4 then a count, `deskInitials` the one shortener, NOTHING drawn when nobody else is here and NOTHING on the paper. Tests: f454, who-is-in-the-room-verify.
+- `presenceHere(c)` reads the last answer and NEVER fetches. The row is a slot (`[data-pz-slot]` in `roomHeadSubHtml`), `PRESENCE_FACES` 4 then a count, `deskInitials` the one shortener, NOTHING drawn when nobody else is here and NOTHING on the paper.
+- **IT COSTS THE CONTRACT NOTHING**: `.pz-row` is `height:0; overflow:visible` and an empty slot is `display:none` — a 17px face on a 12px line grew it and the paper moved half a pixel (approval-before-signing 7a). Tests: f454, who-is-in-the-room-verify 2f.
 
 ## THE SEAT DECIDES — A CONTRIBUTOR PROPOSES, THE LEAD ADOPTS (Young picked it 4 Oct 2026)
 

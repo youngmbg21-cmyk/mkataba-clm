@@ -3122,8 +3122,26 @@
      The quietest thing a header can carry: the desk's own face, one rung
      smaller, overlapped so four of them take the room of two. It sits on the
      quiet line of facts and draws nothing at all when nobody else is here. */
+  /* THE SLOT ITSELF GENERATES NO BOX. MEASURED, and it is the third question's
+     own refusal: an empty inline <span> on the head's quiet line still joins
+     that line's inline formatting context, and the contract below moved
+     300.875 → 301.390625 — half a pixel of the paper's own space spent on an
+     element with nothing in it (approval-before-signing 7a). `display:contents`
+     means an empty slot is nothing at all, and a filled one lays its row out
+     in the parent exactly as if the slot were not there. */
+  /* ---- AND IT COSTS THE CONTRACT NOTHING (measured 4 Oct 2026) ----
+     THE THIRD QUESTION'S OWN REFUSAL: measure window top to the first line of
+     wording before and after, and refuse any growth. A 17px face on a line of
+     12px text grows that line, and approval-before-signing 7a caught the
+     paper moving 300.875 → 301.390625 the moment a second person opened the
+     same contract — half a pixel of the agreement's own space, spent on
+     furniture.
+     SO THE ROW IS ZERO HIGH AND ITS FACES OVERFLOW IT. The line box is formed
+     as if the row were not there; the faces paint centred on it either way.
+     The empty slot generates no box at all. */
+  [data-pz-slot]:empty{ display:none; }
   .pz-row{ display:inline-flex; align-items:center; gap:0; margin-left:7px;
-    vertical-align:middle; }
+    vertical-align:middle; height:0; overflow:visible; }
   .pz-face{ width:17px; height:17px; border-radius:50%; display:inline-flex;
     align-items:center; justify-content:center; font-size:8px; font-weight:var(--w-title);
     letter-spacing:0; background:var(--color-accent-100); color:var(--accent-ink-700);

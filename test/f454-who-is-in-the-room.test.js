@@ -256,6 +256,16 @@ describe('f454 (5) — the row is a slot, and it is quiet', () => {
       + 'agreement\'s pixels are the agreement\'s');
   });
 
+  test('and the row costs the contract NOTHING', () => {
+    assert.match(HTML, /\.pz-row\{[^}]*height:0; overflow:visible/,
+      'THE THIRD QUESTION\'S REFUSAL, measured and failed by the first build: a '
+      + '17px face on a line of 12px text grows that line, and the paper moved '
+      + '300.875 → 301.390625 the moment a second person opened the contract. '
+      + 'A zero-high row forms the line box as if it were not there');
+    assert.match(HTML, /\[data-pz-slot\]:empty\{ display:none; \}/,
+      'and an empty slot generates no box at all');
+  });
+
   test('its clothes are the desk\'s face, one rung smaller', () => {
     assert.match(HTML, /\.pz-face\{[^}]*width:17px/);
     assert.match(HTML, /\.pz-face\{[^}]*var\(--accent-ink-700\)/,

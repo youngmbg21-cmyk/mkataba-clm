@@ -25821,3 +25821,30 @@ Tests: **f456** (23 claims, 22 red at the parent), **follow-me-verify**
 moving" claim presses `presenceWalk` directly rather than sitting out two beats:
 a test whose answer depends on a minute-long sleep is one nobody runs, and the
 same function is driven end to end through the real beat two claims earlier.
+
+### And the row cost the contract half a pixel (measured, 4 Oct 2026)
+
+The first build of the presence row put a 17px face on the head's quiet line of
+12px text, and that grew the line. `approval-before-signing 7a` caught it with
+the whole claim in its own name — *"the contract did not move by a pixel"* —
+reporting `300.875 → 301.390625`. It fires in that stage and not in the
+presence stage's own first draft because two people are signed in there and the
+approver opens the same contract: the faces appear, and the agreement below
+them drops half a pixel.
+
+That is the **third question's own refusal**: measure window top to the first
+line of wording before and after, and refuse any growth. Half a pixel of the
+agreement's space spent on furniture is still the agreement's space.
+
+Two wrong answers were tried and measured before the right one. `display:
+contents` on the slot changed nothing, and nor did `display:none` on it — both
+because the slot was never the cost; the ROW inside it was, and it is only
+drawn once somebody else is in the room, which is why the numbers did not budge.
+The fix is that the row is **zero high and its faces overflow it**: the line box
+is formed as if the row were not there, and the faces paint centred on it
+either way. The empty slot is `display:none` as well, which costs nothing and
+removes the question.
+
+It is now pinned in two places: `f454` reads the two rules off the sheet, and
+**who-is-in-the-room-verify 2f** measures the paper's own top before and after
+a colleague arrives (270.875 → 270.875).
