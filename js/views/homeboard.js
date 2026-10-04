@@ -729,7 +729,8 @@ function hbCardData(c){
 const HB_RX = {
   reset:     /\b(start over|reset|clear (the )?board|börja om|rensa tavlan)\b/i,
   showThese: /show (these|them) on the map|visa (dessa|dem) på kartan/i,
-  map:       /\b(the map|map|explorer|brain|kartan|karta|utforskaren|hjärnan)\b/i,
+  /* a heat map or a tree map is a picture on the board, never the map */
+  map:       /\b(the map|(?<!heat |heat-|tree |tree-)map|explorer|brain|kartan|(?<!värme)karta|utforskaren|hjärnan)\b/i,
   board:     /\b(the board|board|dashboard|back to the numbers|tavlan|översikten|tillbaka till siffrorna)\b/i,
   present:   /\b(present|presentation|full ?screen|meeting mode|presentera|helskärm|mötesläge)\b/i,
   save:      /(?:save|keep) (?:this|the|my) board as (.+)|spara (?:den här tavlan|tavlan) som (.+)/i,
@@ -1389,6 +1390,7 @@ const HB_RC = {
   /* a second split said with "and" or "then": "by stream and stage" (never a
      value band: "and value" asks for money) */
   split2: Object.keys(HB_RC_GW).filter(g => g !== 'valueBand').map(g => [g, new RegExp('\\b(?:and|then|och|sedan)\\s+(?:then\\s+)?(?:by\\s+|per\\s+|efter\\s+)?(?:the\\s+|their\\s+)?' + HB_RC_GW[g] + '\\b')]),
+  stackBy: Object.keys(HB_RC_GW).filter(g => g !== 'valueBand').map(g => [g, new RegExp('\\b(?:stacked|coloured|colored|staplade|färgade)\\s+(?:by|per|efter)\\s+(?:the\\s+|their\\s+)?' + HB_RC_GW[g] + '\\b')]),
   /* "top 5 counterparties", "the 3 biggest streams": the groups a top N counts */
   topGroup: Object.keys(HB_RC_GW).filter(g => g !== 'valueBand').map(g => [g, new RegExp('\\b(?:the\\s+)?(?:top|topp|de)\\s+' + _HB_NUM + '\\s+(?:(biggest|largest|highest|smallest|lowest|största|minsta)\\s+)?' + HB_RC_GW[g] + '\\b')]),
   topBig: Object.keys(HB_RC_GW).filter(g => g !== 'valueBand').map(g => [g, new RegExp('\\b(?:the\\s+)?' + _HB_NUM + '\\s+(biggest|largest|highest|smallest|lowest|största|minsta)\\s+' + HB_RC_GW[g] + '\\b')]),
@@ -1420,7 +1422,7 @@ const HB_RC = {
   },
   trend: /\b(?:trend\w*|over time|over the (?:last|past)|getting (?:faster|slower|longer|shorter|better|worse|bigger|smaller)|faster|slower|grow(?:s|ing)?|shrink\w*|increas\w*|decreas\w*|rising|falling|going (?:up|down)|month on month|year on year|quarter on quarter|compared (?:to|with) last|utveckling|ökar|minskar|snabbare|långsammare)\b/,
   /* words a chart question may carry that name nothing to count */
-  filler: /\b(?:and|then|first|with|och|sedan|when|how|much|total|overall|sum|average|avg|sign|what|whats|do|does|did|will|by|per|each|every|over|time|as|an?|on|in|at|into|getting|draw|make|create|build|plot|me|it|they|we|our|take|takes|took|is|are|was|were|been|be|end|ends|ended|ending|expir\w*|start|starts|starting|started|signed|signing|created|raised|renewal|renewals|renew|renewing|decision|decisions|date|dates|new|month|months|quarter|quarters|year|years|chart|graph|than|then|so|far|has|have|had|live|active|under|managed|management|altogether|faster|slower|more|fewer|less|längre|när|per|varje|som|av|på|i)\b/g,
+  filler: /\b(?:and|then|first|with|add|och|sedan|when|how|much|total|overall|sum|average|avg|sign|what|whats|do|does|did|will|by|per|each|every|over|time|as|an?|on|in|at|into|getting|draw|make|create|build|plot|me|it|they|we|our|take|takes|took|is|are|was|were|been|be|end|ends|ended|ending|expir\w*|start|starts|starting|started|signed|signing|created|raised|renewal|renewals|renew|renewing|decision|decisions|date|dates|new|month|months|quarter|quarters|year|years|chart|graph|than|then|so|far|has|have|had|live|active|under|managed|management|altogether|faster|slower|more|fewer|less|längre|när|per|varje|som|av|på|i)\b/g,
 };
 const _hbRcNorm = s => (typeof _igNorm === 'function') ? _igNorm(s) : String(s || '').toLowerCase().replace(/[?!.,;:()]/g, ' ').replace(/\s+/g, ' ').trim();
 /* the date a split by time reads: the one named nearest the time words, else
@@ -1470,8 +1472,15 @@ function hbRecipeRead(qRaw){
     const side = /\b(supplier|vendor|leverantör|customer|client|kund)\w*/.exec(m[0]); if (side) t += ' ' + side[0] + ' ';
     break;
   }
+  /* "stacked by stage", "coloured by owner": that group is the second split
+     (the stack), whatever else the question splits by */
+  let stackBy = null;
+  if (!group) for (const [g, re] of HB_RC.stackBy){ if (take(re)){ stackBy = g; break; } }
   if (!group) for (const [g, re] of HB_RC.split){ if (take(re)){ group = g; break; } }
-  if (group && !unit){
+  /* "by month and stream": time runs across, the group is the second split */
+  if (!group && unit) for (const [g, re] of HB_RC.split2){ if (take(re)){ group = g; break; } }
+  if (stackBy){ if (group && group !== stackBy) group2 = stackBy; else if (!group) group = stackBy; }
+  if (group && !unit && !group2){
     for (const [g, re] of HB_RC.split){ if (g !== group && g !== 'valueBand' && take(re)){ group2 = g; break; } }
     if (!group2) for (const [g, re] of HB_RC.split2){ if (g !== group && take(re)){ group2 = g; break; } }
   }
@@ -1481,6 +1490,7 @@ function hbRecipeRead(qRaw){
   const gantt = !!take(HB_RC.gantt);
   let pic = null;
   for (const [p, re] of HB_RC.pic){ if (take(re)){ pic = p; break; } }
+  if (!pic && group2 && stackBy === group2) pic = 'stack';
   const chartWord = !!take(HB_RC.chart);
   let measure = null;
   for (const k of ['daysToSign', 'rounds', 'payDays']){ if (take(HB_RC.m[k])){ measure = k; break; } }

@@ -15,6 +15,7 @@
     "test:standardpaper": "node test/chromium/standard-paper-verify.js",
     "test:designstep": "node test/chromium/designstep-verify.js",
     "test:all": "npm run lint && npm test && node test/chromium/run-all.js",
+    "eval:board": "node test/board-precision-eval.js",
     "test:browser:all": "node test/chromium/run-all.js",
     "test:live": "node test/chromium/live-verify.js",
     "test:laptops": "node test/chromium/laptops-verify.js",
