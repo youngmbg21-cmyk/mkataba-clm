@@ -11,7 +11,9 @@
 > "Create a work order to build this overnight but do not start yet"
 
 The seven solutions below are the owner's list, in the owner's order. Build
-them in that order: each one stands on the one before.
+them in that order: each one stands on the one before. Part 8, added by the
+owner the same day, is built LAST and stands on its own (the Negotiate page,
+not the Board).
 
 ---
 
@@ -244,6 +246,139 @@ answer. "Build me a renewals dashboard" becomes four or five cards in one go.
   - The overnight run runs it once before Part 1 and once at the end, so the
     owner sees before and after.
 
+### 8. One door for edits: risks open in Edit with Copilot, without duplicates
+
+**Added by the owner, 4 Oct 2026:** "Add this as the last part of the
+overnight work order and merge all to main once completed".
+
+- **Source.** The owner's proposal page "One door for edits" (Artifact
+  https://claude.ai/artifact/UuMeJdpX7MdbQcDi3PwtkZ). Open it, and walk its
+  eight screens, before building:
+  1. The list
+  2. Covered fold
+  3. Edit with Copilot
+  4. Note after Save
+  5. A new clause
+  6. Last risk done
+  7. Risk View
+  8. Safety net
+- **Base.** It builds on what is live since PR #124, "Risks to look at" in the
+  Redlines card:
+  - js/risks.js;
+  - Risk View on the Document tab;
+  - the Overview's "Risks found" tile (`tri_t_risk`);
+  - keys `rk_*`.
+- **Before building**, grep docs/MAP-HISTORY.md for "Risks to look at" and
+  for "THE CLAUSE EDITOR", and read both sections. This part touches the
+  clause editor (js/views/clauseeditor.js) and its funnel rule: it FILES
+  THROUGH `negoEditClause` AND NOTHING ELSE (f245).
+
+**The owner's three decisions:**
+1. **Already covered.** A risk on a topic Our standards already checked, or on
+   a clause we already redlined, leaves the list. It waits in "Covered by
+   your redlines (n)", each line linking to the redline that covers it. It is
+   counted nowhere. Discard that redline and the risk comes back by itself.
+2. **The right place.** "Missing governing law" when clause 33 Governing Law
+   exists changes clause 33; it never adds a second one. If that clause
+   already has our redline, the edit goes on top of it: one redline, never
+   two. A new clause never goes after Signatures, Execution, Signed by or In
+   witness.
+3. **One door for edits.** "Edit with Copilot" on a risk opens the Edit with
+   Copilot window, the same one the pencil opens. The risk sits in its own
+   rail tab with Copilot's wording already in the box. Save, then Next risk,
+   all inside the window. The Redlines card only lists risks. Risk View only
+   offers Add a note.
+
+#### A. Duplicates between the risk scan and Our standards
+
+1. **Already covered.** Before a risk is listed, HaTi asks whether it is
+   already being handled. It is covered when (a) Our standards checked the
+   same topic on this contract, or (b) we already have a redline on the
+   clause the risk is about.
+   - "Same topic" uses the clause types the standards already use to match
+     clauses (governing law, liability, payment, confidentiality …).
+   - The risk's title and the clause it points at are read the same way.
+2. **Where a covered risk goes.** Into a fold under the list, "Covered by
+   your redlines (n)", each line linking to the redline that covers it.
+   - Not counted in "Risks to look at", the Overview "Risks found" tile or the
+     room's Copilot number.
+   - Skipped by Next.
+   - Comes back by itself when that redline is discarded.
+3. **Change the clause that is there.** A "missing clause" risk on a contract
+   that already has a clause of that type changes that clause (e.g. 33
+   Governing Law), never adds a second one. If that clause already carries
+   our redline, the Copilot draft builds on top of it: one redline per
+   clause.
+4. **Never after the signatures.** A new clause is added only when no clause
+   of that type exists, and always before Signatures / Execution / Signed by /
+   In witness.
+5. **Safety net at Save.** About to file a second redline of ours on a clause
+   that already has one, HaTi stops: "Clause 33 already has your redline
+   CHG-001", with Open CHG-001 / Cancel. This is a dialog because it is a
+   decision that cannot proceed (the SAP rule), and the owner chose it.
+6. **Known limit.** A risk whose title matches no known clause type is not
+   treated as covered and stays listed (the safe direction). The safety net
+   catches the rest.
+
+#### B. One door for edits: risks are edited in Edit with Copilot
+
+1. **Redlines card.** Risk rows only list: Add a note · Dismiss · Edit with
+   Copilot. The in-card drafting (open row, wording, Where it goes, Add to
+   redlines) is removed.
+2. **Edit with Copilot opens on the risk.** The same window the pencil opens.
+   A new rail tab, **Risks (n)**, sits beside Playbook scan. It shows:
+   - "Risk k of n" with progress;
+   - the risk card (what it says, why it matters, suggested fix);
+   - Copilot's wording already in the box as tracked changes (one Copilot
+     call on arrival, said).
+3. **Ask Copilot for a better clause.** Under the risk card:
+   - quick asks: Make it firmer · Give me a softer version · Shorter · What
+     does our playbook say?;
+   - a typing box with Send.
+   Each ask is one Copilot call and redrafts the box; nothing is saved until
+   Save. With no key, say so and let the reader write it.
+4. **Moving through.** The foot reads ‹ Previous · Skip · Save to CHG-xxx &
+   next ›.
+   - Covered and dismissed risks are skipped.
+   - After the last: "That was the last risk", with what was saved, skipped
+     and covered, nothing sent, and Back to Redlines.
+5. **A new clause.** The window holds the new clause where it will go (Where
+   it goes, an editable heading). *To confirm while building:* the window
+   today edits existing clauses only. If holding a new one is a big change,
+   STOP this item and write it under "Waiting on the owner"; do not build
+   around it.
+6. **The note, as today.** Save opens the same Notes drawer that opens after
+   saving from the pencil, pinned to the redline just filed ("CHG-007
+   filed", what moved, Internal lit / the other side). Add note or Skip, then
+   the next risk opens. No note box inside the panel.
+7. **Risk View.** "Draft a redline" is removed; only "Add a note" stays.
+
+#### C. Unchanged
+
+- Dismiss / Show dismissed / Bring back; Re-scan; "Risk scan not run yet ·
+  Run it"; the Overview "Risks found" tile; "Draft from our standards".
+- Nothing is ever sent by itself. Every Save files an unsent redline through
+  the same route a person's own edit uses (`negoEditClause` /
+  `negoInsertClause`, the funnel). A risk redline's provenance never reaches
+  the other side.
+
+#### D. Tests to add or re-point
+
+- A risk on a topic Our standards checked, and a risk on a clause we already
+  redlined, are both "covered": not counted, in the fold, back when the
+  redline is discarded.
+- "Missing governing law" on a contract with a Governing Law clause targets
+  that clause; a new clause never lands after a Signatures heading.
+- Edit with Copilot opens on a risk with the Risks tab; Save & next files one
+  unsent redline, opens the Notes drawer, then the next risk; Skip files
+  nothing.
+- The safety net stops a second redline on one clause.
+- Risk View draws no "Draft a redline"; the Redlines card draws no in-card
+  drafting.
+- Plus the house's own: f245's funnel grep stays green; each new check is red
+  at unmodified main; the eight screens are photographed in a browser check
+  (one-door-for-edits-verify) and the photos read.
+
 ---
 
 ## How to run the night (house rules, unchanged)
@@ -262,8 +397,11 @@ answer. "Build me a renewals dashboard" becomes four or five cards in one go.
 - MAP: at most four lines per part in CLAUDE.md. The story goes to
   MAP-HISTORY. Keep CLAUDE.md under 80 KB.
 - New features are named in `BRAIN_PARTS` and placed in a flow (f458).
-- Full suite ONCE at the end. Then one PR, merged only when green, with this
-  file's status line changed to DONE and the morning summary below filled in.
+- Full suite ONCE at the end. Then MERGE EVERYTHING TO MAIN (the owner's
+  words: "merge all to main once completed"): one PR, merged only when
+  green, with this file's status line changed to DONE and the morning
+  summary below filled in. If a part stopped on an owner question, merge
+  what is finished and green, and say what waits.
 
 ## The morning summary (fill in at the end)
 
