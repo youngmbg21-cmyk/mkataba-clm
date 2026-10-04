@@ -804,8 +804,11 @@ function contractArrived(c, opts){
      that is too empty to be worth reading is still a contract somebody just
      named three colleagues on. A bulk import claims nothing: nobody stood at
      that screen. */
+  /* `elsewhere` (4 Oct 2026): a lane's draft, minted on the server and met
+     here later (intakeLaneArrivals) — what this screen holds is not its. */
+  const held = c && !o.bulk && !o.elsewhere;
   let named = false;
-  if (c && !o.bulk){ try{ if (typeof participantsClaim === 'function') named = participantsClaim(c) > 0; }catch(_){} }
+  if (held){ try{ if (typeof participantsClaim === 'function') named = participantsClaim(c) > 0; }catch(_){} }
   /* ---- AND THE ADDRESS IT ARRIVED WITH IS IN THE ADDRESS BOOK (4 Oct 2026) ----
      A creation form, the server's template route or an import wrote the
      record's contact; the people list is the one store of the other side's
@@ -816,7 +819,7 @@ function contractArrived(c, opts){
   /* AND THE REQUEST IT WAS DRAFTED FOR (4 Oct 2026): Requests' Draft it opens
      the drafting screen with the request held, and the contract that screen
      makes is claimed here, the same way (intakeClaimDraft, js/views/intake.js). */
-  if (c && !o.bulk){ try{ if (typeof window !== 'undefined' && typeof window.intakeClaimDraft === 'function') window.intakeClaimDraft(c); }catch(_){} }
+  if (held){ try{ if (typeof window !== 'undefined' && typeof window.intakeClaimDraft === 'function') window.intakeClaimDraft(c); }catch(_){} }
   /* ---- A BUILT-IN TEMPLATE'S OWN PROMISES, ON ARRIVAL (the owner's list,
      27 Sep 2026) ----
      They were minted only by an Overview edit, so a draft made in one pass

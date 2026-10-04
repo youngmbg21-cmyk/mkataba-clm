@@ -1501,7 +1501,13 @@ async function saveSettings(){
        it rides the general save. Sending .by here would let a stale blob revert
        a restriction, which is precisely what H-3 was. */
     if(signFolders && typeof signFolders==='object') rest.signFolders={ on: !!signFolders.on };
-    try{ await api('settings','PUT',rest); }catch(e){ toast(i18t('co_settings_save_failed')+e.message,'err'); }
+    try{
+      const r=await api('settings','PUT',rest);
+      /* THE SERVER STAMPS WHO SAVED EACH LANE (4 Oct 2026, srvLanesStamp) and
+         answers with the lanes as it stored them, so the lanes panel names the
+         right default without a reload. Nothing else in the answer is taken. */
+      if(r && Array.isArray(r.intakeLanes) && state.settings) state.settings.intakeLanes=r.intakeLanes;
+    }catch(e){ toast(i18t('co_settings_save_failed')+e.message,'err'); }
   }
   else persist();
 }
@@ -2282,7 +2288,10 @@ function startApp(){
     if(!window._refreshTimersArmed){ window._refreshTimersArmed=true;
       setInterval(refreshShareOverview,60000); setInterval(refreshWaitingQuestions,60000); setInterval(refreshAiUsage,30000); }
     window.loadAdviceRequests&&loadAdviceRequests().then(()=>{ updateSidebarCounts(); if(state.view==='advice') renderAdviceDesk(); }).catch(()=>{});
-    window.loadIntake&&loadIntake().then(()=>{ updateSidebarCounts(); if(state.view==='intake') renderIntake(); }).catch(()=>{});
+    window.loadIntake&&loadIntake().then(()=>{ updateSidebarCounts(); if(state.view==='intake') renderIntake();
+      /* The book and the queue are both in hand: a draft a lane made while
+         nobody was looking is read now, as one made by hand is on arrival. */
+      if(window.intakeLaneArrivals) intakeLaneArrivals().catch(()=>{}); }).catch(()=>{});
     /* AND THE INTAKE LANES RUN ON THEIR OWN BEAT (21 Sep 2026): they used to
        fire only when somebody opened the Requests page, so a request a rule
        would have cleared in seconds waited for a human to look. */
