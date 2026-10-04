@@ -7992,6 +7992,25 @@
   .hb-ins-acts{display:flex;align-items:center;gap:6px}
   .hb-btn.is-sm{height:var(--ctl-h-sm);padding:0 9px;font-size:var(--t-label)}
   .hb-ins-acts .hb-btn[disabled]{opacity:.55;cursor:default}
+  /* YOURS, MEASURED (Young picked it by name, 4 Oct 2026): whose contracts a
+     picture is about, why it is here, the normal range drawn on the picture,
+     and a quiet place that says nothing else stood out */
+  .hb-ins.is-good::before{background:var(--hb-green)}
+  /* a finding's sentence carries the range and the company's figure: it may
+     take a second line rather than lose its end */
+  .hb-ins-f{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+  .hb-ins.is-plain::before{background:rgba(var(--hb-ln),.35)}
+  .hb-ins-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .hb-ins-scope{display:inline-flex;align-items:center;font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--hb-glow);border:1px solid rgba(var(--hb-gw),.55);border-radius:3px;padding:1px 7px;white-space:nowrap}
+  .hb-ins-why{font-size:var(--t-meta);color:var(--hb-mute);line-height:1.35}
+  .hb-ins-calm{border:1px dashed rgba(var(--hb-ln),.28);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;font-size:var(--t-meta);color:var(--hb-ink-2);line-height:1.45}
+  .hb-ins-calm b{color:var(--hb-ink)}
+  .hb-ins-calm.is-wide{grid-column:span 2}
+  @media (max-width:1100px){.hb-ins-calm.is-wide{grid-column:auto}}
+  .hb-ins-pic .hb-sv-band{fill:rgba(var(--hb-ln),.16);stroke:var(--hb-ink-2);stroke-width:4;stroke-dasharray:12 10}
+  .hb-ins-pic .hb-sv-collit{fill:var(--hb-glow);fill-opacity:1}
+  .hb-ins.is-warn .hb-ins-pic .hb-sv-collit{fill:var(--hb-amber)}
+  .hb-ins.is-good .hb-ins-pic .hb-sv-collit{fill:var(--hb-green)}
   .hb-view .hb-recipe{border-bottom:1px solid rgba(var(--hb-ln),.12)}
 
   /* the dig-in */

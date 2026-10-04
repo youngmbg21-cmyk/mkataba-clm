@@ -20215,3 +20215,5 @@ card's right corner. Story in docs/MAP-HISTORY.md under "THE OWNER'S ELEVEN".
 - js/views/settings.js stPersonSays prints "Can sign up to X" / "Work is checked by" even when the signing-cap or review-gate switches are off, and never mentions sign folders.
 - js/views/intake.js intakeLaneSweep runs only in an editor's open browser (10-min timer from core.js); nothing in server/ runs the lanes; POST /api/intake fires a webhook and mails nobody.
 - core.js:7808 (the "X answered" arrival toast), negotiation.js:10948 ("Updated just now") and :3958 (accepted) are bare toast() calls and print nothing.
+## Noticed, not fixed (4 Oct 2026, Yours, measured)
+- CLAUDE.md is about 118 KB, well above the "under about 80 KB" the owner set on 27 Sep; it was 117 KB before this change. A trim needs the owner's yes (it is the rules file).

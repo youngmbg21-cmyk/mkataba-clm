@@ -1333,6 +1333,13 @@ function igConditions(text){
     if(u) add('liability uncapped', c=>groupLabelOf(c,'liability')==='Liability uncapped', 'liability', u);
     else if(k) add('liability capped', c=>groupLabelOf(c,'liability')==='Liability capped', 'liability', k); }
   { const h=hit(/ (?:no owner|nobody owns|unowned|utan ägare) /); if(h) add('nobody owns', c=>groupLabelOf(c,'owner')==='Nobody owns this', 'owner', h); }
+  /* THE READER'S OWN CONTRACTS (Young picked "Yours, measured", 4 Oct 2026):
+     the contracts the person asking owns, by the record's own owner
+     (contractOwnedBy) — so the shelf's "yours" pictures are board questions
+     like any other, and typing "my contracts" asks the same thing */
+  { const me=(typeof currentUser==='function')?currentUser():null;
+    const h=me&&typeof contractOwnedBy==='function'?hit(/ (?:my (?:own )?(?:[a-zåäö]+ )?(?:contracts?|agreements?)|contracts? i own|(?:that |which )?i own|owned by me|mina (?:egna )?avtal|avtal (?:som )?jag äger) /):null;
+    if(h) add(i18t('hb_lens_mine'), c=>contractOwnedBy(c,me), 'owner', h); }
   // which side of the table: the record's own category (paySide's reading)
   if(typeof paySide==='function'){
     const sp=hit(/ (?:suppliers?|vendors?|leverantör(?:er)?) /), cu=sp?null:hit(/ (?:customers?|clients?|kund(?:er)?) /);
