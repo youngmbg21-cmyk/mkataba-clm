@@ -4188,6 +4188,17 @@ const dismissNote = async pg => {
       await pause(400);
       if (!other){ ck('33g a second clause is on the stage', false, 'none long enough'); }
       else {
+        /* THE PAGE HAS TO HOLD STILL BEFORE THE POINT IS CHOSEN (4 Oct 2026,
+           f473): with the longer ladder chips ("Step 1 · their ask") the page
+           was sometimes still settling after the scroll, and the point and its
+           word were read off a moving page. Bounded: the clause's top, the
+           same on three reads 100ms apart. */
+        { let last = null, same = 0;
+          for (let i = 0; i < 30 && same < 3; i++){
+            await pause(100);
+            const top = await p.evaluate(id => Math.round(document.querySelector(`#ce-doc .rl-clause[data-clause="${CSS.escape(id)}"]`).getBoundingClientRect().top), other.id);
+            same = (top === last) ? same + 1 : 0; last = top;
+          } }
         const pt2 = await p.evaluate(id => {
           const sec = document.querySelector(`#ce-doc .rl-clause[data-clause="${CSS.escape(id)}"]`);
           const t = [...sec.querySelectorAll('p, div')].find(e => (e.textContent || '').trim().length > 80) || sec;
