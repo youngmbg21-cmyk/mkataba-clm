@@ -421,9 +421,17 @@ function standsOwnerHeadHtml(c){
   const st = _dsShares[c && c.id];
   if (st === undefined) return `<div class="ds-own" data-ds-own="loading"></div>`;
   const live = dsStatusShare(st);
+  /* THE ONE LINK CHECK, ASKED BEFORE THE PRESS (linkRefusal, 4 Oct 2026):
+     a status page reaches every outside party, so the hold, the desk and the
+     reviewer's posture hold it. Greyed with the check's own sentence rather
+     than opening a send screen that would refuse at its last step. */
+  let no = null;
+  if (!live && typeof window !== 'undefined' && typeof window.linkRefusal === 'function'){
+    try { no = linkRefusal(c, { purpose: 'status' }); } catch (_){ no = null; }
+  }
   if (!live) return `<div class="ds-own" data-ds-own="off">
     <span>${dsEsc(dsT('ds_link_off'))}</span><span class="sep" aria-hidden="true">·</span>
-    <button type="button" class="ui-link" data-ds-share>${dsEsc(dsT('ds_link_share'))}</button></div>`;
+    <button type="button" class="ui-link" data-ds-share${no ? ` disabled aria-disabled="true" title="${dsEsc(no.why)}"` : ''}>${dsEsc(dsT('ds_link_share'))}</button></div>`;
   const who = dsAudience(c);
   return `<div class="ds-own" data-ds-own="on">
     <span>${dsEsc(dsT('ds_link_on'))} <b>${dsEsc(dsT('ds_link_on_word'))}</b>${who ? ' — ' + dsEsc(dsT('ds_link_seen_by', { who })) : ''}</span>

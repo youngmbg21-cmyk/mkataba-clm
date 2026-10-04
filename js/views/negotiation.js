@@ -4147,13 +4147,12 @@ function wireNegotiationTab(c, opts = {}){
        note and presses Send only to be told the wording is still with their
        boss has been walked to the end of a corridor with no door. Said before
        the corridor, not after it. */
-    if (window.deskSendBlock){
-      let msg = null; try{ msg = deskSendBlock(c); }catch(_){ msg = null; }
-      if (msg){ if (window.toast) toast(msg, 'err'); return; }
-    }
-    if (window.reviewGateMessage){
-      let msg = null; try{ msg = reviewGateMessage(c); }catch(_){ msg = null; }
-      if (msg){ if (window.toast) toast(msg, 'err'); return; }
+    /* THE ONE LINK CHECK (linkRefusal, 4 Oct 2026) — a round is a negotiation
+       link: the hold, the desk, the reviewer's posture and the gate, in the
+       words the send itself will refuse with. */
+    if (window.linkRefusal){
+      let no = null; try{ no = linkRefusal(c, { purpose: 'negotiate' }); }catch(_){ no = null; }
+      if (no){ if (window.toast) toast(no.why, 'err'); return; }
     }
     /* ---- AND THE SOFTER CASE: SOME OF THIS IS STILL BEING LOOKED AT ----
        With the rule off, sending wording that is sitting with a colleague is

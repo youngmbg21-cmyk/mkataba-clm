@@ -630,6 +630,9 @@ const STRINGS = {
     /* THE ONE ISSUING CHECK (signLinkRefusal, 4 Oct 2026) — every door that
        mints a signing link says these, and the server refuses the same. */
     sl_on_hold: '{ref} is on hold while a dispute is dealt with, so a signing link cannot be issued. Release the hold first.',
+    /* ONE LINK CHECK FOR EVERY LINK KIND (linkRefusal, 4 Oct 2026) — the
+       hold's sentence for every kind that is not a signing link. */
+    sl_on_hold_link: '{ref} is on hold while a dispute is dealt with, so no link goes out on it. Release the hold first.',
     sl_appr_refused: 'This contract needs internal approval before it can go out for signature — an approver refused it. Send it to negotiate instead, or clear the approval first.',
     sl_appr_stale: 'This contract needs internal approval before it can go out for signature — it changed after it was approved. Send it to negotiate instead, or clear the approval first.',
     sl_appr_waiting: 'This contract needs internal approval before it can go out for signature — “{step}” is still waiting on {who}. Send it to negotiate instead, or clear the approval first.',
@@ -12323,6 +12326,7 @@ const STRINGS = {
     srv_signer_other_address: 'Den signeringslänken gäller en undertecknare med en annan e-postadress — ändra undertecknaren i signeringsordningen först',
     srv_not_ready_to_sign: 'Avtalet är inte klart att signeras ännu. Avsändaren hör av sig när det är det — du kan fortfarande läsa och kommentera under tiden.',
     sl_on_hold: '{ref} är pausat medan en tvist hanteras, så ingen signeringslänk kan utfärdas. Häv pausen först.',
+    sl_on_hold_link: '{ref} är pausat medan en tvist hanteras, så ingen länk skickas ut för det. Häv pausen först.',
     sl_appr_refused: 'Avtalet behöver internt godkännande innan det kan skickas för signering — en godkännare avslog det. Skicka det för förhandling i stället, eller klara av godkännandet först.',
     sl_appr_stale: 'Avtalet behöver internt godkännande innan det kan skickas för signering — det har ändrats sedan det godkändes. Skicka det för förhandling i stället, eller klara av godkännandet först.',
     sl_appr_waiting: 'Avtalet behöver internt godkännande innan det kan skickas för signering — ”{step}” väntar fortfarande på {who}. Skicka det för förhandling i stället, eller klara av godkännandet först.',
