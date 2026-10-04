@@ -169,7 +169,7 @@ const VERDICTS = [
   await pause(400);
   check(hasRow && await visible(page, MENU), '1b and once the menu is open the row is VISIBLE PIXELS');
   const row = hasRow ? await page.evaluate(s => { const b = document.querySelector(s); return { text: b.textContent.trim(), dead: b.disabled, title: b.title }; }, MENU) : { text: '', dead: true, title: '' };
-  check(/prepare redlines/i.test(row.text) && !row.dead, '1c it says what it is and is live on a readable draft', JSON.stringify(row));
+  check(/draft from our standards/i.test(row.text) && !row.dead, '1c it says what it is and is live on a readable draft', JSON.stringify(row));
   check(/nothing goes to the other side/i.test(row.title), '1d its hover says nothing is sent', row.title);
   check(hasRow && await visible(page, '[data-rl-memo]') && await visible(page, '[data-rl-pbreview]'), '1e beside the memo and the playbook pass');
   await page.screenshot({ path: path.join(OUT, '01-menu.png') });
@@ -281,7 +281,7 @@ const VERDICTS = [
     '6a the empty column draws two buttons', JSON.stringify({ n: emptyDoors.n, labels: emptyDoors.labels }));
   check(emptyDoors.onScreen.every(Boolean) && !emptyDoors.dead.some(Boolean),
     '6b both are VISIBLE PIXELS and neither is dead on a readable draft', JSON.stringify(emptyDoors));
-  check(/prepare redlines/i.test(emptyDoors.labels.join(' ')) && /edit a clause/i.test(emptyDoors.labels.join(' ')),
+  check(/draft from our standards/i.test(emptyDoors.labels.join(' ')) && /edit a clause/i.test(emptyDoors.labels.join(' ')),
     '6c and they are the two acts the owner asked for', emptyDoors.labels.join(' · '));
   check(!emptyDoors.blurb && /nothing is sent until you press Send/i.test(emptyDoors.lead),
     '6d the how-to paragraph is gone and one line says what the press spends', emptyDoors.lead.slice(0, 120));

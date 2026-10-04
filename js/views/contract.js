@@ -5702,7 +5702,8 @@ function ktTriageStripHtml(c){
     (!x.working && !x.ok && !x.none && x.key!=='filed') ? 'retry' :
     (x.key==='brief'    && x.ok) ? 'brief' :
     (x.key==='oblig'    && x.ok) ? 'oblig' :
-    (x.key==='playbook' && x.ok) ? 'playbook' : '';
+    (x.key==='playbook' && x.ok) ? 'playbook' :
+    (x.key==='risk'     && x.ok) ? 'risk' : '';
   const tiles=triageTiles(c).map(x0=>{
     /* A RE-READ IN FLIGHT turns the tile, as an arrival reading does. */
     const x=ktRereading(c,x0.key)?Object.assign({},x0,{ working:true, stale:false, detail:'' }):x0;
@@ -5745,7 +5746,7 @@ function ktTriageStripHtml(c){
     if(door) return `<button type="button" class="kt-tri-tile is-door${door==='reread'?' is-stale':''}" data-kt-tri-go="${door}"${
       door==='reread'?` data-kt-tri-key="${esc(x.key)}"`:''}
       title="${esc(door==='reread'?i18t('tri_reread_title')
-        :i18t(door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':'tri_go_oblig'))}">
+        :i18t(door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':door==='risk'?'tri_go_risk':'tri_go_oblig'))}">
       ${head}${body}
     </button>`;
     return `<div class="kt-tri-tile${x.working?' is-busy':''}"${x.working?' aria-busy="true"':''}>
@@ -5957,6 +5958,8 @@ function paintKtTriage(c){
     /* Standards opens the playbook review in the same panel, by the same one
        act — see doorFor. */
     if(go==='playbook'){ openCheckPanel(c,'playbook'); return; }
+    /* Risks found opens Risk View — where a risk is read beside its clause. */
+    if(go==='risk'){ riskViewOpen(c); return; }
     /* ---- THE BRIEF TILE PULLS THE BRIEF PANEL (Young reported it 20 Sep
        2026: "Brief Witten is supposed to pull the brief side Panel but it does
        not") ----
@@ -8135,7 +8138,11 @@ function checkVerdict(c,kind){
   }
   if(kind==='risk'){
     if(!c.scan) return null;
-    const open=(typeof openFindings==='function')?openFindings(c):[];
+    /* THE RISK LIST'S OWN COUNT (js/risks.js riskOpenOf): what is still to be
+       read — not dismissed, not already a redline — so this badge, the
+       Overview's "Risks found" tile and the Redlines card's list agree. */
+    const open=(typeof window.riskOpenOf==='function')?window.riskOpenOf(c)
+      :(typeof openFindings==='function')?openFindings(c):[];
     if(!open.length) return {tone:'ok',n:0,get label(){ return i18t('ct_all_clear'); }};
     const high=open.filter(x=>x.sev==='high').length;
     /* The badge counts what is OPEN and takes its tone from whether any of
@@ -8685,7 +8692,32 @@ function briefPanelToggle(c){
   if(briefPanelOpenFor(c)){ closeModal(); return false; }
   openCheckPanel(c,'brief'); return true;
 }
+/* ---- THE RISK SCAN HAS NO PANEL OF ITS OWN (Young ruled 4 Oct 2026) ----
+   *"would it make sense to get rid of the risk scan panel and keep it in the
+   redlines card?"* — yes, on two homes: READ a risk in Risk View, beside the
+   paper; ACT on it in the Redlines card's "Risks to look at" (js/risks.js).
+   Every door that opened the side panel — the Checks card's row, the head's
+   check icon, the Overview tile — arrives here, so none of them can open the
+   retired panel by accident. On the Negotiate page the list is already on
+   screen and the press takes the reader to it. A window too narrow for Risk
+   View lands on the Document tab and says why. */
+function riskViewOpen(c){
+  if(!c) return;
+  const pile=document.getElementById('rl-risks');
+  if(pile&&pile.closest('.redline-page')){ pile.scrollIntoView({block:'nearest'}); return; }
+  if(!docReadFits()){
+    roomGoTab(c,'docs');
+    if(typeof toast==='function') toast(i18t('rk_view_narrow'),'warn');
+    return;
+  }
+  docViewSet('xray');
+  /* Not an ARRIVAL: the reader asked for this view, so the landing rule that
+     puts the switch back to Contract View stands aside for this one press. */
+  _docViewAt=String(c.id)+'|docs';
+  roomGoTab(c,'docs');
+}
 function openCheckPanel(c,kind){
+  if(kind==='risk'||kind==='scan'){ riskViewOpen(c); return; }
   const id=kind==='playbook'?'playbook-section':kind==='oblig'?'obligations-section':kind==='brief'?'brief-section':'scan-section';
   const title=kind==='playbook'?i18t('ct_playbook_review'):kind==='oblig'?i18t('ob_obligations'):kind==='brief'?i18t('br_title'):i18t('ct_risk_scan');
   /* THE BRIEF GETS A QUARTER MORE ROOM (owner-asked, 19 Aug 2026). It is the
@@ -9589,7 +9621,10 @@ function roomFactsHtml(c,opts={}){
     if(!read) return `<span class="room-facet-dot is-unread"></span>${esc(i18t('int_fact_unread'))}`;
     let n=0;
     try{ if(typeof deviationSummary==='function'){ const s=deviationSummary(c); n+=(s.dev||0)+(s.miss||0); } }catch(_){}
-    try{ if(typeof openFindings==='function'&&c.scan){ n+=openFindings(c).filter(x=>x.sev==='high').length; } }catch(_){}
+    /* EVERY RISK STILL TO LOOK AT, not only the high ones — the same count the
+       Overview's "Risks found" tile prints, so this number is the Standards
+       tile's plus the Risks tile's (4 Oct 2026). */
+    try{ if(c.scan&&typeof window.riskOpenOf==='function'){ n+=window.riskOpenOf(c).length; } }catch(_){}
     return `<span class="room-facet-dot ${n?'is-look':'is-ok'}"></span>${esc(n?i18t('ct_copilot_read_n',{n}):i18t('ct_copilot_read_clear'))}`;
   })();
   const facets=[
@@ -12957,8 +12992,12 @@ function docXrayMarks(c,row){
   const txt=docXrayRowText(row);
   _xrFinds(c).forEach(f=>{ if(docXrayPlace(txt,_xrFindQuote(f))) out.push(_xrScanMark(f)); });
   _xrVerdicts(c).forEach(v=>{ if(docXrayPlace(txt,v.quote)) out.push(_xrPbMark(v)); });
-  docXrayBriefWatch(c).forEach(w=>{ if(docXrayPlace(txt,w.quote)) out.push(_xrBriefMark(w)); });
-  docXrayBriefOdd(c).forEach(u=>{ if(docXrayPlace(txt,u.quote)) out.push(_xrOddMark(u)); });
+  /* A brief line somebody dismissed in the Redlines card's risk list is gone
+     here too — dismissing anywhere dismisses everywhere (js/risks.js). A scan
+     finding already is: openFindings is the scan's own "not dismissed". */
+  const gone=(k,say)=>!!(window.riskKeyDismissed&&window.riskKeyOf&&riskKeyDismissed(c,riskKeyOf(k,say)));
+  docXrayBriefWatch(c).forEach(w=>{ if(!gone('brief',w.say)&&docXrayPlace(txt,w.quote)) out.push(_xrBriefMark(w)); });
+  docXrayBriefOdd(c).forEach(u=>{ if(!gone('odd',u.say)&&docXrayPlace(txt,u.quote)) out.push(_xrOddMark(u)); });
   return out;
 }
 /* ---- WHAT IS SAID ABOUT THE WHOLE AGREEMENT (U1, the owner's pick) ----
@@ -13002,10 +13041,13 @@ const docXrayTone = marks =>
    contract-level block are the same shape and must stay the same shape -- the
    clothes follow the builder. EVERY MARK NAMES WHO SAID IT, so amber never
    hides whether this is a rule of yours or something the paper itself does. */
-const docXrayMarkHtml = m => `<div class="doc-xr-mark is-${esc(m.grade||'amber')}">
+/* `foot` is the risk list's two doors under a mark (js/risks.js,
+   riskMarkFootHtml) — "Add a note instead" and "Draft a redline". Empty
+   wherever they cannot act, so every other caller is byte-identical. */
+const docXrayMarkHtml = (m, foot) => `<div class="doc-xr-mark is-${esc(m.grade||'amber')}">
     <span class="doc-xr-mk">${esc(m.tag||'')}</span>
     <span class="doc-xr-mt"><span>${m.lead?`<b>${esc(m.lead)}</b>`:''}${m.lead&&m.say?' \u2014 ':''}${
-      m.say?esc(m.say):''}</span>${m.why?`<span class="doc-xr-why"><b>${esc(i18t('xr_why'))}</b> ${esc(m.why)}</span>`:''}</span></div>`;
+      m.say?esc(m.say):''}</span>${m.why?`<span class="doc-xr-why"><b>${esc(i18t('xr_why'))}</b> ${esc(m.why)}</span>`:''}${foot||''}</span></div>`;
 
 /* THE CLAUSE'S OWN ID, where the paper carries one. A stored rich body has
    its clauses stamped; template paper does not, and on that paper the ladder
@@ -13465,7 +13507,8 @@ function docXrayPanelHtml(c,rows){
   const cid=docXrayClauseId(x.row);
   if(cid){ try{ if(window.ladderRungs) rungs=ladderRungs(c,cid)||[]; }catch(_){ rungs=[]; } }
 
-  const marks=(x.marks||[]).map(docXrayMarkHtml).join('');
+  const marks=(x.marks||[]).map(m=>docXrayMarkHtml(m,
+    (typeof window.riskMarkFootHtml==='function')?window.riskMarkFootHtml(c,m):'')).join('');
   const n=s=>s.length?' · '+s.length:'';
   /* ---- ONE LIGHT-RED AREA, AND IT IS WORTH A LOOK (Young ruled 25 Sep
      2026: "i want this highlighted area in the x-ray page to be the area that
@@ -16851,7 +16894,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
   DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docViewLeave,docReadOn,docReadSet,docReadItems,
   DOC_VIEW_MODES,docViewMode,docViewSet,docXrayOn,DOC_XRAY_SPINE_W,DOC_XRAY_SPINE_GAP,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
-  XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,
+  riskViewOpen,XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,
   XR_WD_MAX,XR_WD_WORDS,XR_WD_SIDES,XR_WD_CHIPS,XR_WD_BAL,XR_MODAL_RE,XR_RIGHT_RE,XR_LIMIT_RE,XR_BOTH_RE,xrSentences,xrClauseBlocks,xrPartyNames,xrSideByName,xrActOf,xrPlaceObligations,docXrayWho,docXrayWhoHtml,xrWhoChip,xrWhoTracked,
   docXrayLabel,docXraySpineHtml,docXraySpineRows,docXraySegH,XR_SEG_MIN,XR_SEG_MAX,docXrayFollow,docXrayPanelHtml,docXrayPaint,docXrayWire,
   docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,

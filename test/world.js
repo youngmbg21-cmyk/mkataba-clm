@@ -493,6 +493,10 @@ function buildWorld(opts = {}) {
      the figure a clause is argued in, and a stage without that file would
      exercise this module's own typeof fallback and prove nothing. */
   if (opts.ladder){ if (!files.includes(PRECEDENT)) files.push(PRECEDENT); files.push(LADDER); }
+  /* js/risks.js — the risk scan's list in the Redlines card
+     (buildWorld({risks:true})). Every reading it borrows is asked through
+     window with a guard, so a stage without it draws exactly what it drew. */
+  if (opts.risks && !files.includes('js/risks.js')) files.push('js/risks.js');
   if (opts.runway && !files.includes(RUNWAY)) files.push(RUNWAY);
   if (opts.homeView){ if (!files.includes(RUNWAY)) files.push(RUNWAY); files.push(HOME_VIEW); }
   /* The family model and the obligations record (buildWorld({family:true}) /

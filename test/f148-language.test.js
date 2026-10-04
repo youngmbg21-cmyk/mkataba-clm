@@ -139,6 +139,8 @@ const SAME_IN_BOTH = new Set([
      shown on a screen. Same reason the other AI prompt strings are not
      translated anywhere in js/ai.js. */
   'ce_prompt_ask',
+  /* the risk list's two drafting prompts (4 Oct 2026): the MODEL reads them, in English */
+  'rk_prompt_edit', 'rk_prompt_add',
   'ce_prompt_passage',
   'ce_prompt_question',   // the Ask verb's own prompt (11 Sep 2026, evening)
   'ce_prompt_contract',   // the whole-contract question's prompt (fix 5, 23 Sep 2026)

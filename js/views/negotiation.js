@@ -11914,6 +11914,9 @@ function rlWireClauseTools(c, host, opts){
      that knows how its host repaints, which is the rule stated at its top. */
   host.querySelectorAll('[data-rl-prepare]').forEach(b => b.addEventListener('click', () =>
     rlPrepareRedlines(c, again)));
+  /* A risk somebody pressed "Draft a redline" on in Risk View opens here, in
+     the column's own list, once the page has painted (js/risks.js). */
+  if (typeof window.riskAfterPaint === 'function') window.riskAfterPaint(c);
   /* "Edit a clause", the empty column's other door, is wired in
      wireNegotiationTab beside the paper's pencil — NOT here. It has to reach
      the editor through `openEditor`, the one named reading of what a press
@@ -18336,7 +18339,12 @@ function redlineChangeCardsHtml(c, opts = {}){
        element, two names, so neither reading has to be taught the other. */
     return kept.length ? `<span class="rl-card-face rl-card-verbs">${kept.join('')}</span>` : '';
   };
-  const rlRowSubHtml = (c, ch, side, sum) => {
+  const rlRowSubHtml = (c, ch, side, sum0) => {
+    /* A REDLINE THE RISK LIST FILED SAYS SO, on our seat only — the other
+       side never learns where an ask of ours came from. */
+    const fromRisk = side !== 'counterparty' && !rlOnTheirPage()
+      && typeof window.riskFromScan === 'function' && window.riskFromScan(c, ch);
+    const sum = [sum0, fromRisk ? i18t('rk_from_scan') : ''].filter(Boolean).join(' · ');
     if (!ch.clauseId || typeof window.ladderRungs !== 'function' || ch.changeType === 'insertClause')
       return sum ? `<div class="rl-card-sum">${_ne(sum)}</div>` : '';
     const track = (typeof ladderTrack === 'function') ? ladderTrack(c, String(ch.clauseId), side) : null;
@@ -18355,7 +18363,7 @@ function redlineChangeCardsHtml(c, opts = {}){
     if (track && Array.isArray(track.rows) && track.rows.length >= 2){
       const [a, b] = track.rows.slice(-2);
       const figs = `${_ne(String(a.n))} → ${_ne(String(b.n))}${track.unit ? ' ' + _ne(track.unit) : ''}`;
-      return `<div class="rl-card-sum" title="${_nea(sum)}">${_ne(lead)} · ${figs}</div>`;
+      return `<div class="rl-card-sum" title="${_nea(sum)}">${_ne(lead)} · ${figs}${fromRisk ? ` · ${_ne(i18t('rk_from_scan'))}` : ''}</div>`;
     }
     return `<div class="rl-card-sum" title="${_nea(sum)}">${_ne(lead)}${sum ? ` · ${_ne(sum)}` : ''}</div>`;
   };
@@ -20749,7 +20757,11 @@ function redlinePanesHtml(c, opts = {}){
           ${''/* cpPanel: this mount renders the clause panel a few lines below,
                  so the rows may draw their Open door onto it. A caller that
                  renders cards with no panel (none today) draws no door. */}
-          <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, { ...opts, cpPanel: true })}</div>${rlProgressPileHtml(c, p, side)}</div>
+          <div class="nego-index-scroll rl-cards" id="nego-cards">${negoLinkedBarHtml()}<div id="rl-changes">${redlineChangeCardsHtml(c, { ...opts, cpPanel: true })}</div>${rlProgressPileHtml(c, p, side)}${
+            /* RISKS TO LOOK AT (Young picked it 4 Oct 2026): the risk scan's
+               findings and the brief's watchouts, read here one by one. Our
+               seat only — js/risks.js decides, and draws nothing elsewhere. */
+            (typeof window.rlRisksPileHtml === 'function') ? window.rlRisksPileHtml(c, { ...opts, side }) : ''}</div>
         </div>
       </aside>
       <!-- THE CLAUSE PANEL, on the other wall and on the same mechanism as the

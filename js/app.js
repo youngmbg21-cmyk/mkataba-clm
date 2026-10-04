@@ -88,6 +88,7 @@ import './standards.js';     // the Standards page's own readings (ideas 20 & 21
 import './blanks.js';     // the open blanks of a drafted contract: one reading, read off the paper (17 Sep 2026)
 import './uploadblanks.js'; // the blanks in a document somebody SENT us: placeholders read off their wording (20 Sep 2026)
 import './triage.js';       // auto-triage on upload: it presses the product's own four readings
+import './risks.js';        // risks to look at: the risk scan lives in the Redlines card, read one by one (4 Oct 2026)
 import './notice.js';    // the notice desk: a letter drafted from the record, never from a model (S6, 16 Sep 2026)
 import './desknight.js';    // the overnight desk: three kinds of prepared work, read off the record (idea 19)
 import './assurance.js';     // which rung a signature was taken at (W3-3)

@@ -450,7 +450,9 @@ describe('f364 (9) Format A', () => {
      unusual term with no quote is never matched by its words. */
   test('[wall] an UNUSUAL term is placed only by its own quote, never its words', () => {
     const marks = region('docXrayMarks');
-    assert.ok(/docXrayBriefOdd\(c\)\.forEach\(u=>\{ if\(docXrayPlace\(txt,u\.quote\)\)/.test(marks),
+    /* 4 Oct 2026: a line dismissed in the Redlines card's risk list is asked
+       first (`!gone(...)`), then the same containment on its own quote. */
+    assert.ok(/docXrayBriefOdd\(c\)\.forEach\(u=>\{ if\(!gone\('odd',u\.say\)&&docXrayPlace\(txt,u\.quote\)\)/.test(marks),
       'the same containment, on the quote it carries');
     assert.ok(!/u\.say\)\)/.test(marks), 'never on the sentence');
     /* RE-POINTED IN PLACE 25 Sep 2026 (Young: "this 'about contract x'
@@ -478,7 +480,9 @@ describe('f364 (9) Format A', () => {
 
   /* ---- one builder for a mark ---- */
   test('ONE builder for a mark, and it always names who said it', () => {
-    assert.ok(/const docXrayMarkHtml = m =>/.test(CODE), 'one builder');
+    /* 4 Oct 2026: the builder takes the risk list's two doors as an optional
+       second argument (riskMarkFootHtml); still one builder. */
+    assert.ok(/const docXrayMarkHtml = \(m, foot\) =>/.test(CODE), 'one builder');
     const p = PANEL();
     /* REVERSED IN PLACE 25 Sep 2026: About this contract left the X-ray, so
        the builder has ONE home in the panel — the clause's own list. It was
