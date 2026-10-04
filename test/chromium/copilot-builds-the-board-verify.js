@@ -102,6 +102,8 @@ const check = (name, pass, detail) => {
     await ask('turn the Juno card into something round');
     const board = (sent[sent.length - 1] && sent[sent.length - 1].screen && sent[sent.length - 1].screen.board) || '';
     const ids = list.map(x => x.id);
+    const guide = (sent[sent.length - 1] && sent[sent.length - 1].screen && sent[sent.length - 1].screen.guide) || '';
+    check('2b and with the data guide: what each field holds', /^Data guide/.test(guide) && /Signing date \(date signed\): \d+ of \d+ signed have one/.test(guide), guide.split('\n').slice(0, 3).join(' | '));
     check('2a the question went with every card\'s ref', ids.length === 5 && ids.every(id => board.includes(id + ': ')) && /Cards on the board, top first/.test(board), board.split('\n').filter(l => /Cards on the board/.test(l)).join(' ').slice(0, 300));
 
     /* ================= 3. ONE CARD CHANGED BY ITS NAME ================= */

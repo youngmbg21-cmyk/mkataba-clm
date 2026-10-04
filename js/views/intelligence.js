@@ -1974,7 +1974,12 @@ function igBoardNow(){
 function graphAskScreen(){
   return { groupBy:intel.groupBy, custom:!!intel.groups, lenses:graphLensesNow(), crowded:graphCrowdedQuarters(),
     lang:(typeof langPromptName==='function')?langPromptName():'', currency:(typeof jxCurrency==='function')?jxCurrency():'',
-    board:igBoardNow() };
+    board:igBoardNow(), guide:igBoardGuide() };
+}
+/* THE DATA GUIDE RIDES BESIDE THE BOARD (work order Part 3): what each field
+   holds, so Copilot picks fields that work; on the board only */
+function igBoardGuide(){
+  try{ return (igBoardNow() && typeof window.hbDataGuide==='function') ? (hbDataGuide(hbS().lens)||'') : ''; }catch(_){ return ''; }
 }
 async function intelGraphAsk(q){
   const act=intelActive();

@@ -6547,6 +6547,7 @@ function portfolioSays(f) {
   }
   return t;
 }
+const GRAPH_GUIDE_MAX = 3200;
 function graphScreenSays(sc, sent, total) {
   if (!sc || typeof sc !== 'object') sc = {};
   const cut = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n || 40);
@@ -6562,6 +6563,10 @@ function graphScreenSays(sc, sent, total) {
      along, and a question about a number on it is answered from it */
   const board = String(sc.board == null ? '' : sc.board).replace(/[\u0000-\u0008\u000b-\u001f]/g, ' ').trim().slice(0, 4200);
   if (board) parts.push(`\nThe reader asked this on the Home BOARD, not on the map. What the board shows now:\n${board}\nWhen the request asks about something on the board (why a number says what it says, what a chart or line means, where the rest of the money is), answer it in the answer field from these numbers, quoting them, and change nothing on the map (no groupBy, no where, no visibleIds).`);
+  /* THE DATA GUIDE (work order Part 3): what each field holds, so a card is
+     built on fields that are filled. Clamped like the board; a cut is said. */
+  const guideRaw = board ? String(sc.guide == null ? '' : sc.guide).replace(/[\u0000-\u0008\u000b-\u001f]/g, ' ').trim() : '';
+  if (guideRaw) parts.push(`\n${guideRaw.slice(0, GRAPH_GUIDE_MAX)}${guideRaw.length > GRAPH_GUIDE_MAX ? '\n(The guide was cut here to keep it short.)' : ''}\nBuild cards on fields the guide shows as filled; a date most contracts lack makes an empty chart.`);
   return parts.join(' ');
 }
 /* the picture the model named, in the board's own words — or nothing.

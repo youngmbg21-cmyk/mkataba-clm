@@ -2934,6 +2934,61 @@ function hbBoardNow(){
   const text = out.join('\n');
   return text.length > HB_BOARD_NOW_MAX ? text.slice(0, HB_BOARD_NOW_MAX) + ' …(cut)' : text;
 }
+/* ============================================================
+   A DATA GUIDE FOR COPILOT (work order Part 3, 4 Oct 2026: "Copilot picks
+   fields that actually work")
+   ============================================================
+   For every field a recipe can use: what it means, how many contracts carry
+   it (a count and a share — "signing date: 22 of 24 signed have one"), the
+   range for dates and money, the top values for a group (at most
+   HB_GUIDE_TOP, then how many more), and the live / drafting / signed split.
+   Every count is the board's own reading (hbDateOf, hbGroupOf, hbMeasureOne,
+   hbValueOfOne), so the guide cannot describe a different book. Money only
+   for a reader who may see it (canViewValues); a stream outside
+   visibleFolders is never named. It rides with every board question beside
+   hbBoardNow, capped at HB_GUIDE_MAX characters — A CAP IS A FACT, said. */
+const HB_GUIDE_TOP = 8, HB_GUIDE_MAX = 3000;
+function hbDataGuide(lens, max){
+  const cs = hbBook(lens || 'all'), money = hbMoneyOk(), n = cs.length;
+  const lim = max || HB_GUIDE_MAX;
+  const pct = (k, t) => t ? Math.round(k / t * 100) + '%' : '0%';
+  const signed = cs.filter(c => c.status === 'Signed'), live = cs.filter(c => c.status !== 'Declined');
+  const by = st => cs.filter(c => c.status === st).length;
+  const lines = [`Data guide — what each field holds over the ${n} contracts on this board (use fields that are filled; HaTi counts, the guide is not for quoting):`];
+  lines.push(`- Stage (split stage): ${HB_STATUS_ORDER.map(st => `${st} ${by(st)}`).join(', ')}. Live ${live.length} · drafting ${by('Draft')} · signed ${signed.length}.`);
+  const DATES = [['end', 'End date (expiry)', live, 'live'], ['signed', 'Signing date', signed, 'signed'], ['start', 'Start date', live, 'live'],
+    ['created', 'Created date', cs, 'all'], ['decision', 'Renewal decision date', live, 'live']];
+  DATES.forEach(([k, word, base, of]) => {
+    const ds = base.map(c => hbDateOf(c, k)).filter(Boolean).sort();
+    lines.push(`- ${word} (date ${k}): ${ds.length} of ${base.length} ${of} have one (${pct(ds.length, base.length)})${ds.length ? `; from ${ds[0].slice(0, 7)} to ${ds[ds.length - 1].slice(0, 7)}` : ''}.`);
+  });
+  /* the streams this reader may open, by name; any other is never named */
+  const okFolder = (() => { try { const v = (typeof visibleFolders === 'function') ? visibleFolders() : null; return v ? new Set(v.map(f => f.name)) : null; } catch (_){ return null; } })();
+  const GROUPS = [['folder', 'Stream (split stream)'], ['counterparty', 'Counterparty (split counterparty)'], ['owner', 'Owner (split owner)'], ['kind', 'Type (split type)'], ['side', 'Side (split side)']];
+  GROUPS.forEach(([f, word]) => {
+    const rows = hbGroupsOf(cs, f, false);
+    const named = rows.filter(r => r.g && !(f === 'folder' && okFolder && !okFolder.has(r.g)));
+    const blank = rows.filter(r => !r.g).reduce((a, r) => a + r.n, 0);
+    const hidden = rows.filter(r => r.g && f === 'folder' && okFolder && !okFolder.has(r.g)).reduce((a, r) => a + r.n, 0);
+    const top = named.slice().sort((a, b) => b.n - a.n || String(a.label).localeCompare(String(b.label))).slice(0, HB_GUIDE_TOP);
+    const more = named.length - top.length;
+    lines.push(`- ${word}: ${named.length} groups; ${top.map(r => `${r.label} ${r.n}`).join(', ')}${more > 0 ? ` (+${more} more)` : ''}${blank ? `; ${blank} with none on record` : ''}${hidden ? `; ${hidden} in streams this reader cannot open` : ''}.`);
+  });
+  if (money){
+    const vs = cs.map(hbValueOfOne).filter(v => v > 0).sort((a, b) => a - b);
+    lines.push(`- Value (measure value; split valueBand): ${vs.length} of ${n} carry one (${pct(vs.length, n)})${vs.length ? `; from ${_hbM(vs[0])} to ${_hbM(vs[vs.length - 1])}` : ''}.`);
+  } else lines.push('- Value: not shown to this reader — do not use measure value or split valueBand.');
+  const mk = m => cs.filter(c => { const v = hbMeasureOne(c, m); return v != null && isFinite(v); }).length;
+  lines.push(`- Days to sign (measure daysToSign): ${mk('daysToSign')} contracts have both a created and a signing date.`);
+  lines.push(`- Payment days (measure payDays): ${mk('payDays')} contracts state payment terms.`);
+  lines.push(`- Negotiation rounds (measure rounds): ${mk('rounds')} contracts have rounds on record.`);
+  lines.push(`- Live contracts each month (measure live): ${(_hbSnaps || []).length} monthly pictures kept so far.`);
+  /* A CAP IS A FACT: what did not fit is said */
+  let out = '', left = 0;
+  for (const l of lines){ if ((out + l).length + 60 > lim){ left++; continue; } out += (out ? '\n' : '') + l; }
+  if (left) out += `\n(${left} more lines of the guide were left out to keep it short.)`;
+  return out;
+}
 /* THE COUNT IS HATI'S: a sentence stating a number of contracts this chart
    does not hold is left out, and how many were left out is said */
 function hbWhyCheck(text, counts){
@@ -4477,4 +4532,4 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbGroupsCut, hbGroupsSorted, hbIsGroupDim, hbRestDig, hbKeptGroups, hbSeriesOf, hbXOf, hbCellDig, hbStackSvg, hbHeatSvg, hbCompareSvg, hbCmpChange, hbChartRun,
   hbCardEdit, hbHowWord, hbRecipeWords, hbSplitModelWord, hbOrderWord, hbReadCompareOf, hbReadTwoOf, hbReadingCore, hbRcCur, hbRcCurHas,
   hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,
-  HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle });
+  HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide });

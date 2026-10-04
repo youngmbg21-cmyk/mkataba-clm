@@ -26893,3 +26893,12 @@ The CopilotKit pattern: the copilot acts through the app's own controls. Before,
 - Found by the browser check: "build me a renewals dashboard" never reached Copilot — the free reader read "dashboard" as "back to the board". `HB_RX.build` (build/make/create/design … dashboard/board/cards/charts/overview) now hands it on. Cards added together are arranged in the order asked (the board otherwise draws the newest first).
 - Photographed: with nine dropdowns a half-width card wrapped its row onto four lines and the chart shrank. The row now shows the first four, any newer part the card uses, and ONE "More (n)" (per sitting, `hbRcMoreToggle`). Copilot's cards say "Built by Copilot" where a kept view says "Kept view".
 - Red at main: f497 12 of 12.
+
+## DATA GUIDE (work order Part 3, built 4 Oct 2026 overnight)
+
+So Copilot builds cards on fields that work: every board question now carries `screen.guide` beside `screen.board`. `hbDataGuide(lens)` writes one line per field a recipe can use — the stage split (live · drafting · signed), each date (end, signed, start, created, decision: "22 of 24 signed have one", first and last month), each group (streams, counterparties, owners, types, sides: how many groups, the top eight with their counts, "+n more", how many have none), value (filled count and range), and the measures (days to sign, payment days, rounds, the monthly live pictures). Every count is the board's own reading (hbDateOf, hbGroupsOf, hbMeasureOne, hbValueOfOne), so it cannot describe a different book.
+
+- Walls: no amount for a reader without canViewValues ("Value: not shown to this reader — do not use measure value"); a stream outside visibleFolders is counted as "in streams this reader cannot open", never named.
+- A cap is a fact: the browser stops at HB_GUIDE_MAX (3000) and says how many lines it left out; the server clamps at GRAPH_GUIDE_MAX (3200) and says the guide was cut, and adds one instruction — build cards on fields the guide shows as filled.
+- Board only: off the board no guide travels and the server prints none.
+- Red at main: f498 6 of 6.

@@ -39,6 +39,8 @@ const BRAIN_PARTS = [
   ['recipe', 'hbCardPlan', 'see', 1],
   /* Several buttons at once (work order Part 2): Copilot's list of board actions, pressed by one applier */
   ['boardtools', 'hbBoardApply', 'see', 1],
+  /* A data guide for Copilot (work order Part 3): what each field holds, sent beside the board */
+  ['dataguide', 'hbDataGuide', 'ai', 1],
   ['upload', 'submitUpload', 'in', 0],
   ['newagr', 'openNewAgreement', 'in', 0],
   ['mailroom', 'POST /api/mailroom', 'in', 2],
@@ -135,7 +137,7 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home', 'insights']] },
-  { id: 'ask', steps: [['explorer', 'chartread', 'recipe'], ['db'], ['model', 'boardtools'], ['quote'], ['contracts'], ['explorer']] }
+  { id: 'ask', steps: [['explorer', 'chartread', 'recipe'], ['db'], ['model', 'boardtools', 'dataguide'], ['quote'], ['contracts'], ['explorer']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it
