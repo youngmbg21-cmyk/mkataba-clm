@@ -18,6 +18,10 @@ const { jxPack, JX_DEFAULT, JURISDICTIONS,
 const { STRINGS: I18N_STRINGS, I18N_DEFAULT } = require('../js/i18n.js');
 /* The graph's `where` predicate, one for both hosts (Copilot audit phase 4). */
 const { graphWhereHit } = require('../js/graphwhere.js');
+/* A request's lane and its answers (4 Oct 2026): ONE reading for both hosts —
+   the Requests page says which lane a request would take, and the server's
+   sweep clears it, off the same rule. */
+const { intakeLaneMatch, intakeAnswersClean, intakeAnswersOnto } = require('../js/intakelanes.js');
 /* Approval before signing: who on a contract needs a named colleague's yes
    before anyone signs it (23 Sep 2026). ONE reading for both hosts — the
    screen and this wall ask the same questions of the same record, so they
@@ -633,6 +637,11 @@ addColumnIfMissing('intake_requests', 'assignee_name', 'TEXT');
 addColumnIfMissing('intake_requests', 'promised_at', 'TEXT');
 addColumnIfMissing('intake_requests', 'lane', 'TEXT');
 addColumnIfMissing('intake_requests', 'track_token', 'TEXT');
+/* THE ESSENTIALS THE PERSON ASKING GAVE (4 Oct 2026): our party, their email,
+   the value and which side of the money, the start and the end — a JSON map
+   cleaned by intakeAnswersClean (js/intakelanes.js) on the way in, so nothing
+   outside that list is ever stored. Counterparty and stream stay columns. */
+addColumnIfMissing('intake_requests', 'answers', 'TEXT');
 db.exec('CREATE INDEX IF NOT EXISTS idx_intake_track ON intake_requests(track_token)');
 addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
 // Contract sharing (email/WhatsApp delivery + traffic-light tracking): each
@@ -5189,6 +5198,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     if ((Array.isArray(c.changes) ? c.changes : []).some(x => x && x.authorSide === 'counterparty'
         && x.status === 'pending' && !x.withdrawn && !hadAsk.has(String(x.id)))) roundPrepKick(c.id);
   } catch (_) {}
+  /* A REQUEST DRAFTED AS THIS CONTRACT IS DONE once the contract leaves Drafting. */
+  try { srvIntakeCloseOn(prev, c, req); } catch (_) {}
   res.json({ ok: true, version: next, signNeeds,
     ...(c.contractNo ? { contractNo: c.contractNo } : {}),
     ...(numberedLine ? { numberedLine } : {}),
@@ -8199,7 +8210,11 @@ const intakeRow = r => ({ id: r.id, title: r.title, need: r.need, counterparty: 
      where the honest answer is "nobody has said". */
   assignee: r.assignee_id ? { id: r.assignee_id, name: r.assignee_name || '' } : null,
   promisedAt: r.promised_at || null, lane: r.lane || null,
-  trackToken: r.track_token || null });
+  trackToken: r.track_token || null, answers: intakeAnswersOf(r) });
+function intakeAnswersOf(r) {
+  let a = null; try { a = r && r.answers ? JSON.parse(r.answers) : null; } catch (_) { a = null; }
+  return intakeAnswersClean(a);
+}
 app.post('/api/intake', auth, rlIntake, (req, res) => {   // a trigger path, so rationed
   const b = req.body || {};
   const title = clean(b.title).slice(0, 200);
@@ -8216,14 +8231,25 @@ app.post('/api/intake', auth, rlIntake, (req, res) => {   // a trigger path, so 
      request for its whole life and no route can hand out a second. 24 bytes
      from crypto — the same source every share link uses. */
   const track = rid(24);
-  db.prepare(`INSERT INTO intake_requests (id,title,need,counterparty,folder,status,by_id,by_name,created_at,track_token)
-    VALUES (?,?,?,?,?,'open',?,?,?,?)`)
-    .run(id, title, need, clean(b.counterparty).slice(0, 200), folder, req.user.id, req.user.name || '', now(), track);
+  const answers = intakeAnswersClean(b.answers);
+  db.prepare(`INSERT INTO intake_requests (id,title,need,counterparty,folder,status,by_id,by_name,created_at,track_token,answers)
+    VALUES (?,?,?,?,?,'open',?,?,?,?,?)`)
+    .run(id, title, need, clean(b.counterparty).slice(0, 200), folder, req.user.id, req.user.name || '', now(), track,
+      Object.keys(answers).length ? JSON.stringify(answers) : null);
   /* The TITLE is arbitrary text any signed-in person — a Viewer included —
      can type, so carrying it would be a small data-egress primitive handed to
      the least-privileged role. The id is enough to go and look. */
   webhookQueue('intake.requested', () => ({ requestId: id }));
-  res.json({ ok: true, request: intakeRow(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id)) });
+  /* A LANE CLEARS IT NOW, not on the next sweep — the request's own POST is
+     the moment it can first be cleared. Only where no lane takes it are the
+     people who draft told: a request a rule drafted in the same breath is not
+     waiting on anybody. */
+  let laned = null;
+  try { laned = runIntakeLanes({ only: id }).cleared[0] || null; } catch (_) { laned = null; }
+  let told = null;
+  if (!laned) { try { told = notifyIntakeRaised(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id), req); } catch (_) { told = null; } }
+  res.json({ ok: true, request: intakeRow(db.prepare('SELECT * FROM intake_requests WHERE id=?').get(id)),
+    ...(told ? { told: told.n } : {}) });
 });
 app.get('/api/intake', auth, (req, res) => {
   const mine = String(req.query.mine || '') === '1';
@@ -8291,7 +8317,7 @@ app.patch('/api/intake/:id', auth, (req, res) => {
   const status = clean(b.status);
   const isEditor = req.user.role !== 'viewer';
   const isOwner = r.by_id === req.user.id;
-  if (!['open', 'accepted', 'declined', 'withdrawn', 'done'].includes(status))
+  if (!['open', 'accepted', 'declined', 'withdrawn', 'drafted', 'done'].includes(status))
     return res.status(400).json({ error: 'Unknown status' });
   if (status === 'withdrawn') {
     /* WITHDRAWING IS THE REQUESTER'S OWN ACT, AND ONLY THEIRS (launch audit,
@@ -8316,6 +8342,15 @@ app.patch('/api/intake/:id', auth, (req, res) => {
     return res.status(403).json({ error: 'Viewers can raise and withdraw requests, not decide them' });
   }
   const contractId = clean(b.contractId).slice(0, 60) || r.contract_id;
+  /* DRAFTED NAMES ITS CONTRACT, and a contract that has already left Drafting
+     makes the request done on the same call — drafted means "not yet sent",
+     and that would be false. */
+  if (status === 'drafted' && !contractId) return res.status(400).json({ error: 'A drafted request names its contract' });
+  let status2 = status;
+  if (status === 'drafted') {
+    const ct = db.prepare('SELECT status FROM contracts WHERE id=?').get(contractId);
+    if (ct && ct.status && ct.status !== 'Draft') status2 = 'done';
+  }
   /* ---- WHO IS HOLDING IT, WHEN IT WAS PROMISED, WHICH LANE CLEARED IT ----
      All three are EDITOR-ONLY and all three are absent unless this call says
      something about them: `undefined` leaves the stored value exactly as it
@@ -8345,15 +8380,154 @@ app.patch('/api/intake/:id', auth, (req, res) => {
      about what happened, so a later call cannot relabel it. */
   const lane = r.lane || (isEditor ? (clean(b.lane).slice(0, 80) || null) : null);
   db.prepare('UPDATE intake_requests SET status=?, note=?, contract_id=?, decided_by=?, decided_at=?, updated_at=?, assignee_id=?, assignee_name=?, promised_at=?, lane=? WHERE id=?')
-    .run(status, clean(b.note).slice(0, 2000) || r.note, contractId || null,
+    .run(status2, clean(b.note).slice(0, 2000) || r.note, contractId || null,
       req.user.name || '', now(), now(), asgId, asgName, promised, lane, req.params.id);
   const after = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id);
   /* Only where the answer actually MOVED, and never back to the person who
      moved it. Re-saving the same status is not news. */
-  if (status !== r.status && ['accepted', 'declined', 'done'].includes(status) && r.by_id !== req.user.id)
+  if (status2 !== r.status && ['accepted', 'declined', 'done'].includes(status2) && r.by_id !== req.user.id)
     notifyIntakeDecision(after, req.user, req);
   res.json({ ok: true, request: intakeRow(after) });
 });
+
+/* ---- THE PEOPLE WHO DRAFT ARE TOLD A REQUEST WAS RAISED (4 Oct 2026, the
+   process review's Requests stream) ----
+   POST /api/intake fired a webhook and nothing else: no mail and no bell, so a
+   request waited until somebody happened to open Requests. ONE MAIL PER
+   REQUEST to each member who could act on it — an editor or an admin whose
+   streams include the request's (or any editor, where it names none) — and
+   never to the person who raised it. The bell's row is the browser's
+   (intakeAlertRows), off the same scoped list.
+   ONLY A MEMBER'S OWN STORED ADDRESS, in their own language. "Sent" must mean
+   sent: each attempt lands in the outbox with the provider's answer, and the
+   route answers how many were told. A person who switched off the
+   colleagues' mail (prefs.notifyIntake === false) is not written to. */
+function intakeRaisedRecipients(row) {
+  if (!row) return [];
+  return db.prepare("SELECT * FROM users WHERE role != 'viewer'").all().filter(u => u
+    && u.id !== row.by_id && /.+@.+\..+/.test(String(u.email || ''))
+    && userPrefs(u).notifyIntake !== false
+    && (!row.folder || inScope(folderScopeFor(u), row.folder)));
+}
+function notifyIntakeRaised(row, req) {
+  const to = intakeRaisedRecipients(row);
+  const link = (APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : `http://localhost:${PORT}`)) + '/';
+  for (const u of to) {
+    const L = (u.lang && I18N_STRINGS[u.lang]) ? u.lang : I18N_DEFAULT;
+    const body = `${tFor(L, 'mail_hello')}${u.name ? ' ' + u.name : ''},\n\n`
+      + tFor(L, 'mail_ik_new_lead', { who: row.by_name || '', title: row.title }) + '\n\n'
+      + `${tFor(L, 'mail_ik_new_need')}\n${String(row.need || '').slice(0, 1200)}\n\n`
+      + `${tFor(L, 'mail_ik_new_where')}\n${link}\n\n${tFor(L, 'mail_automated_notice')}`;
+    sendEmail(u.email, tFor(L, 'mail_ik_new_subject', { title: row.title }), body, 'intake raised');
+  }
+  return { n: to.length };
+}
+
+/* ---- THE LANES RUN ON THE SERVER (4 Oct 2026, the process review's
+   Requests stream) ----
+   They ran only in an editor's OPEN browser. The reason given — "the template
+   catalogue lives in the browser" — holds for the WORDING, which is drawn
+   from the template at read time and never stored, and does not hold for the
+   record: a built-in draft is a dozen plain facts (createFromTemplate,
+   js/app.js), and the catalogue's facts are read here from js/templates.js
+   itself, not copied, so there is one catalogue.
+
+   WHAT IT MINTS is what the browser's guided creation mints — a Draft from
+   the lane's built-in template, numbered from the one counter every MK id
+   comes from, with the request's answers on it (intakeAnswersOnto, the shared
+   reading) and the request named on the record and in its trail. It signs
+   nothing and sends nothing: every wall between a draft and a signature is
+   untouched. A lane naming a template that is not a built-in is skipped and
+   SAID (`skipped`), never guessed.
+
+   ONCE PER REQUEST, by construction: a request is cleared only while it is
+   open with no lane and no contract, and the same synchronous step writes all
+   three — Node runs it to completion, so no second sweep can see it half done.
+   The request becomes `drafted` (not done): it closes when its contract leaves
+   Drafting (srvIntakeCloseOn). */
+const SRV_TEMPLATES = (() => {
+  try {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'templates.js'), 'utf8');
+    const head = 'const TEMPLATES = {';
+    const i = src.indexOf(head);
+    const j = src.indexOf('\n};', i);
+    if (i < 0 || j < 0) return {};
+    const lit = src.slice(i + head.length - 1, j + 2);
+    const out = require('vm').runInNewContext('(' + lit + ')', {}, { timeout: 200 });
+    return (out && typeof out === 'object') ? out : {};
+  } catch (_) { return {}; }
+})();
+const IK_LANE_SWEEP_MS = 10 * 60 * 1000;
+const srvKnownCounterparty = name => {
+  const n = String(name || '').trim().toLowerCase();
+  if (!n) return false;
+  return !!db.prepare('SELECT 1 FROM contracts WHERE lower(trim(counterparty))=? LIMIT 1').get(n);
+};
+function srvIntakeLaneDraft(r, L, t) {
+  const at = now();
+  const id = srvNextContractNo();
+  const cp = String(r.counterparty || '').trim();
+  const day = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const laneName = String(L.name || L.id || 'a lane').slice(0, 80);
+  const c = {
+    id, name: t.name + (cp ? ' \u2014 ' + cp : ''), counterparty: '', value: 0, status: 'Draft',
+    template: t.id, folder: String(r.folder || t.folder || ''), lastAction: day,
+    hash: null, signedAt: null, signatory: null, compliance: { iprs: false, pki: false },
+    comments: [{ author: 'System', role: 'Automation', side: 'internal',
+      text: `Drafted by the "${laneName}" lane from request ${r.id} (${t.kind}). Fill the highlighted fields to begin.`, ts: at }],
+    fields: {}, scan: null, expiry: null, valueType: t.valueType, signatures: [], obligations: [],
+    numbering: 'live', intakeRequestId: r.id,
+    audit: [{ at, user: 'System', action: 'Created', detail: `Generated from Template ${t.id} (${t.kind})` },
+      { at, user: 'System', action: 'Requested',
+        detail: `Cleared by the "${laneName}" lane from request ${r.id} by ${r.by_name || 'a colleague'}: ${r.title}` }],
+  };
+  intakeAnswersOnto(c, { counterparty: cp, folder: r.folder, answers: intakeAnswersOf(r) });
+  if (t.valueType === 'none') { c.value = 0; c.valueType = 'none'; }
+  upsertContract(c, 1);
+  return c;
+}
+function runIntakeLanes(opts = {}) {
+  const out = { cleared: [], skipped: [] };
+  const lanes = ((getSetting('appSettings') || {}).intakeLanes);
+  if (!Array.isArray(lanes) || !lanes.length) return out;
+  const rows = opts.only
+    ? db.prepare("SELECT * FROM intake_requests WHERE id=? AND status='open'").all(opts.only)
+    : db.prepare("SELECT * FROM intake_requests WHERE status='open' AND (lane IS NULL OR lane='') AND contract_id IS NULL ORDER BY created_at ASC LIMIT 200").all();
+  for (const r of rows) {
+    if (r.lane || r.contract_id || r.status !== 'open') continue;
+    const L = intakeLaneMatch({ title: r.title, need: r.need, counterparty: r.counterparty, folder: r.folder,
+      status: r.status, lane: r.lane, contractId: r.contract_id, answers: intakeAnswersOf(r) }, lanes, srvKnownCounterparty);
+    if (!L) continue;
+    const t = SRV_TEMPLATES[String(L.template)];
+    if (!t || !t.id) { out.skipped.push({ id: r.id, why: 'the lane names a template that is not one of HaTi\u2019s own' }); continue; }
+    try {
+      const c = srvIntakeLaneDraft(r, L, t);
+      const at = now();
+      db.prepare("UPDATE intake_requests SET status='drafted', contract_id=?, lane=?, decided_by=?, decided_at=?, updated_at=? WHERE id=? AND status='open' AND contract_id IS NULL")
+        .run(c.id, String(L.name || L.id || '').slice(0, 80) || 'lane', '', at, at, r.id);
+      out.cleared.push(r.id);
+    } catch (e) { out.skipped.push({ id: r.id, why: String((e && e.message) || e).slice(0, 200) }); break; }
+  }
+  return out;
+}
+setInterval(() => { try { runIntakeLanes(); } catch (_) {} }, IK_LANE_SWEEP_MS).unref?.();
+
+/* ---- A REQUEST CLOSES WHEN ITS CONTRACT LEAVES DRAFTING (4 Oct 2026) ----
+   Asked on the save, as a DIFFERENCE against the stored record: only the save
+   that moves the contract out of Draft closes it, and only a request that is
+   still `drafted`. The person who asked is mailed then — the real close — by
+   the same notice every other decision sends, never about their own act. */
+function srvIntakeCloseOn(prev, c, req) {
+  if (!prev || !c || prev.status !== 'Draft' || !c.status || c.status === 'Draft') return 0;
+  const rows = db.prepare("SELECT * FROM intake_requests WHERE contract_id=? AND status='drafted'").all(c.id);
+  for (const r of rows) {
+    db.prepare("UPDATE intake_requests SET status='done', decided_by=?, decided_at=?, updated_at=? WHERE id=? AND status='drafted'")
+      .run((req && req.user && req.user.name) || '', now(), now(), r.id);
+    const after = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(r.id);
+    if (!(req && req.user && r.by_id === req.user.id)) notifyIntakeDecision(after, req && req.user, req);
+  }
+  return rows.length;
+}
 
 /* ═══ THE MAILROOM (S1, 16 Sep 2026) ══════════════════════════════════════
    *"Forwarded contracts land in the queue HaTi already has."*
@@ -8527,7 +8701,10 @@ const TRACK_STAGE = {
      derived, never stored, and it sends no mail. */
   held:      { word: 'Being worked on',         tone: '#2f5d8a', bg: '#eef3f9' },
   accepted:  { word: 'Being drafted',           tone: '#2f5d8a', bg: '#eef3f9' },
-  done:      { word: 'Drafted',                 tone: '#3f6f5e', bg: '#edf5f1' },
+  /* DRAFTED, NOT YET SENT (4 Oct 2026): a contract exists and has not gone
+     to the other side yet. Done is the moment it does. */
+  drafted:   { word: 'Drafted, not yet sent',   tone: '#2f5d8a', bg: '#eef3f9' },
+  done:      { word: 'Drafted and sent',        tone: '#3f6f5e', bg: '#edf5f1' },
   declined:  { word: 'Declined',                tone: '#b0453c', bg: '#fbeeed' },
   withdrawn: { word: 'Withdrawn',               tone: '#5F6D6B', bg: '#f1f3f2' },
 };
@@ -15486,7 +15663,7 @@ app.put('/api/me/prefs', auth, (req, res) => {
   const prefs = userPrefs(req.user);
   // dailyBrief: WO-3's off switch — absent means ON, so only an explicit
   // false ever silences somebody, and a fresh workspace briefs everyone.
-  for (const k of ['notifyShareOpens', 'dailyBrief']) if (k in (req.body || {})) prefs[k] = !!req.body[k];
+  for (const k of ['notifyShareOpens', 'dailyBrief', 'notifyIntake']) if (k in (req.body || {})) prefs[k] = !!req.body[k];
   /* HOW OFTEN THE BRIEF COMES (owner-asked 19 Aug 2026): daily, weekly or
      not at all. ONE stored answer, and a value outside the three is REFUSED
      rather than stored — a preference nobody can read is worse than none.

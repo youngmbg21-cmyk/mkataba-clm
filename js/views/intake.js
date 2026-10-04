@@ -32,6 +32,16 @@ const INTAKE_STATUS = {
      drafted or declined, which is what every screen promises them. */
   held:      { get label(){ return i18t('ik_st_held'); },      tone:'steel' },
   accepted:  { get label(){ return i18t('ik_st_accepted'); },  tone:'steel' },
+  /* ---- DRAFTED, NOT YET SENT (4 Oct 2026, the process review's Requests
+     stream) ----
+     A request read "done" the moment a draft was MINTED, and the person who
+     asked was mailed that their contract existed while it sat unsent in
+     somebody's Drafting. Minting is now this: the request points at its
+     contract and its clock keeps running. It closes ('done') when that
+     contract LEAVES Drafting — the server closes it on the save that moves
+     it (srvIntakeCloseOn), and contractLeavesDrafting tells this page — and
+     the requester's mail goes then. */
+  drafted:   { get label(){ return i18t('ik_st_drafted'); },   tone:'steel' },
   done:      { get label(){ return i18t('ik_st_done'); },      tone:'green' },
   declined:  { get label(){ return i18t('ik_st_declined'); },  tone:'ruby'  },
   withdrawn: { get label(){ return i18t('ik_st_withdrawn'); }, tone:'steel' },
@@ -94,20 +104,14 @@ const IK_ROADS = {
   standard:{ get label(){ return i18t('ik_road_standard'); },tone:'ink'   },
   close:   { get label(){ return i18t('ik_road_close'); },   tone:'ruby'  },
 };
-/* THE WORDS THAT MEAN "THEIR PAPER". Matched on the requester's own sentence,
-   which is the only description of the job that exists at this point. A
-   request that says nothing about whose paper it is falls through to the
-   ordinary road rather than to the careful one — an over-cautious default
-   would mark the whole queue for a close read and the column would stop
-   meaning anything. */
-/* UP TO TWO WORDS MAY SIT BETWEEN "their" AND THE NOUN, because that is how
-   people write it: *"Their own NDA template arrived"* is the other side's
-   paper and the first draft of this pattern read it as ours — measured, it
-   cleared a request a lane should never have touched. Two is the ceiling on
-   purpose: at three, "their side of the agreement" starts matching, and that
-   is a sentence about our own paper. */
-const IK_THEIR_PAPER = /\btheir (?:own\s+)?(?:\w+\s+){0,2}(?:paper|terms|form|template|contract|agreement|draft|nda|msa)\b|\bthey (?:have )?sent\b|\bsent (?:us|their)\b|\breview (?:their|the attached)\b|\bon their paper\b/i;
-const IK_MONEY = /(?:KES|Ksh|USD|EUR|GBP|\$|€|£)\s?[\d,.]+|\b\d[\d,.]*\s?(?:m|million|bn|billion)\b/i;
+/* THE WORDS THAT MEAN "THEIR PAPER", AND A FIGURE IN THE ASK, live in
+   js/intakelanes.js since 4 Oct 2026 — the server's lane sweep asks the same
+   two patterns, so they are written once. Matched on the requester's own
+   sentence, which is the only description of the job that exists at this
+   point. A request that says nothing about whose paper it is falls through to
+   the ordinary road rather than to the careful one. Read through window: this
+   is a module, and a stage without the shared file reads nothing as matching. */
+const _ikRx = k => { const x=(typeof window!=='undefined')?window[k]:null; return (x&&typeof x.test==='function')?x:/(?!)/; };
 /* Have we ever dealt with this counterparty? Asked of the book the reader can
    already see — no route, and `state.contracts` is the scoped list, so a
    counterparty in a stream this person cannot reach reads as new to them,
@@ -124,8 +128,8 @@ function intakeRoad(r){
   if(!r) return { k:'standard', why:'' };
   if(r.lane) return { k:'lane', why:i18t('ik_why_lane',{name:r.lane}) };
   const text=`${r.title||''} ${r.need||''}`;
-  const theirs=IK_THEIR_PAPER.test(text);
-  const money=IK_MONEY.test(text);
+  const theirs=_ikRx('IK_THEIR_PAPER').test(text);
+  const money=_ikRx('IK_MONEY').test(text);
   const known=ikKnownCounterparty(r.counterparty);
   const why=[];
   if(theirs) why.push(i18t('ik_why_their_paper'));
@@ -254,25 +258,12 @@ function intakeTrackUrl(r){
    creation path; every wall between a draft and a signature — the signers,
    the approval chain, the check, the cap — is untouched. */
 const intakeLanes = () => { try{ return (state.settings&&Array.isArray(state.settings.intakeLanes))?state.settings.intakeLanes:[]; }catch(_){ return []; } };
+/* WHICH LANE WOULD CLEAR THIS REQUEST — the shared reading (js/intakelanes.js),
+   asked of the book this reader can see. The SERVER runs the lanes now
+   (runIntakeLanes); this page only reads the same rule. */
 function intakeLaneFor(r){
-  if(!r || r.status!=='open' || r.lane) return null;
-  const text=`${r.title||''} ${r.need||''}`;
-  for(const L of intakeLanes()){
-    if(!L || L.on===false || !L.template) continue;
-    if(L.folder && String(L.folder)!==String(r.folder||'')) continue;
-    /* THEIR PAPER IS NEVER ROUTINE. No lane clears a request to review
-       somebody else's wording, whatever else it says — that is the one
-       condition a lane may not switch off. */
-    if(IK_THEIR_PAPER.test(text)) continue;
-    if(L.knownOnly && !ikKnownCounterparty(r.counterparty)) continue;
-    /* A FIGURE IN THE ASK IS A FIGURE THE LANE HAS TO BE ABLE TO CLEAR. The
-       request carries no value field, so a lane with a ceiling refuses any
-       request that mentions money at all rather than guessing the amount. */
-    if(L.maxValue!=null && L.maxValue!=='' && IK_MONEY.test(text)) continue;
-    if(L.words){ try{ if(!new RegExp(L.words,'i').test(text)) continue; }catch(_){ continue; } }
-    return L;
-  }
-  return null;
+  if(typeof window==='undefined' || typeof window.intakeLaneMatch!=='function') return null;
+  return window.intakeLaneMatch(r, intakeLanes(), ikKnownCounterparty);
 }
 
 function ikChip(status){
@@ -361,6 +352,47 @@ function ikClockHtml(r){
    nothing by taking it — so the refusal carries a door to THIS form, with the
    sentence they typed already in the box. Additive: every older caller passes
    nothing and draws exactly what it drew before. */
+/* THE ESSENTIALS THE FORM ASKS, in Create's own order, each optional. The
+   counterparty and the stream keep the ids they always had (#ik-cp,
+   #ik-folder) because the request stores them in columns of their own. */
+const IK_FIELD_IDS = { counterparty:'ik-cp', folder:'ik-folder' };
+const ikFieldId = k => IK_FIELD_IDS[k] || ('ik-e-'+k);
+function intakeFormFields(pre){
+  const all=(typeof window!=='undefined'&&typeof window.essentialFields==='function')?window.essentialFields()
+    :[{ key:'counterparty', label:i18t('ik_f_who'), type:'text' },{ key:'folder', label:i18t('ik_f_stream'), type:'stream' }];
+  const p=pre||{};
+  /* Copied by descriptor, never spread — the getter trap: a label is a live
+     getter, and {...f} would freeze today's language into it. */
+  return all.map(f=>{
+    const c=Object.defineProperties({}, Object.getOwnPropertyDescriptors(f));
+    const v=p[f.key]!=null?String(p[f.key]):(f.key==='party'?String(f.def||''):'');
+    Object.defineProperty(c,'def',{ value:v, enumerable:true, configurable:true, writable:true });
+    return c;
+  });
+}
+function ikFieldHtml(f, streams, FLD, LBL){
+  const id=ikFieldId(f.key), v=String(f.def||'');
+  const lab=`<span style="${LBL}">${esc(String(f.label||f.key))}</span>`;
+  if(f.type==='stream') return `<label style="display:block"><span style="${LBL}">${esc(i18t('ik_f_stream'))}</span>
+    <select id="${id}" style="${FLD}"><option value="">${esc(i18t('ik_f_stream_unsure'))}</option>
+      ${(streams||[]).map(x=>`<option value="${esc(x.id)}"${v===String(x.id)?' selected':''}>${esc(x.name)}</option>`).join('')}</select></label>`;
+  if(f.type==='select') return `<label style="display:block">${lab}
+    <select id="${id}" style="${FLD}">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{ v:String(o), l:String(o) })
+      .map(o=>`<option value="${esc(o.v)}"${v===o.v?' selected':''}>${esc(o.l)}</option>`).join('')}</select></label>`;
+  const it=f.type==='date'?'date':(f.type==='num'?'number':(f.type==='email'?'email':'text'));
+  return `<label style="display:block">${lab}
+    <input id="${id}" type="${it}" value="${esc(v)}" placeholder="${esc(String(f.ph||''))}" style="${FLD}" maxlength="200"${it==='number'?' min="0"':''}/></label>`;
+}
+/* A TITLE FROM A SENTENCE, for the door that arrives with only a sentence
+   (draft-from-a-sentence's "nothing fits"): its first line, cut at a word
+   before 80 characters. The person can change it; the form no longer refuses
+   them for a box they never saw empty. */
+function intakeTitleFrom(sentence){
+  const line=String(sentence||'').split(/\r?\n/).map(x=>x.trim()).find(Boolean)||'';
+  if(line.length<=80) return line.replace(/[.\s]+$/,'');
+  const cut=line.slice(0,80), sp=cut.lastIndexOf(' ');
+  return (sp>40?cut.slice(0,sp):cut).replace(/[,;:.\s]+$/,'')+'\u2026';
+}
 function openIntakeForm(pre){
   const streams=(typeof visibleFolders==='function')?visibleFolders():Object.values(FOLDERS||{});
   /* READS THE ONE PAIR (25 Aug 2026). It was a local copy on its own
@@ -380,14 +412,19 @@ function openIntakeForm(pre){
       <input id="ik-title" value="${esc(String((pre&&pre.title)||''))}" style="${FLD}" placeholder="${esc(i18t('ik_f_title_ph'))}" maxlength="200"/></label>
     <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('ik_f_need')}</span>
       <textarea id="ik-need" rows="5" style="${FLD};height:auto;resize:vertical" placeholder="${esc(i18t('ik_f_need_ph'))}" maxlength="4000">${esc(String((pre&&pre.need)||''))}</textarea></label>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <label style="flex:1;min-width:170px"><span style="${LBL}">${i18t('ik_f_who')}</span>
-        <input id="ik-cp" style="${FLD}" maxlength="200"/></label>
-      <label style="flex:1;min-width:170px"><span style="${LBL}">${i18t('ik_f_stream')}</span>
-        <select id="ik-folder" style="${FLD}">
-          <option value="">${esc(i18t('ik_f_stream_unsure'))}</option>
-          ${streams.map(f=>`<option value="${esc(f.id)}">${esc(f.name)}</option>`).join('')}
-        </select></label>
+    ${''/* ---- THE SAME ESSENTIALS CREATE ASKS (4 Oct 2026, the process
+          review's Requests stream) ----
+          The form asked who it is with and the stream, and the editor then
+          asked the person everything else by email. It asks the essentials
+          Create asks now — CONTRACT_ESSENTIALS, read through essentialFields,
+          the one list, so the two cannot drift — ALL OPTIONAL: the person
+          asking may not know the value or the dates, and a request refused
+          over a blank would be the enterprise intake form this page exists to
+          avoid. What they give rides the request (`answers`) and arrives in
+          the drafting screen's boxes when an editor presses Draft it. */}
+    <p style="margin:var(--s-2) 0 var(--s-2);font-size:var(--t-label);color:var(--color-neutral-600)">${esc(i18t('ik_f_essentials'))}</p>
+    <div class="field-grid" style="${(typeof window.FIELD_GRID_CSS==='string')?window.FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px'}">
+      ${intakeFormFields(pre).map(f=>ikFieldHtml(f, streams, FLD, LBL)).join('')}
     </div>
     <p id="ik-err" style="font-size:var(--t-meta);color:var(--st-ruby-fg);min-height:16px;margin:var(--s-2) 0 0"></p>
     <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:10px">
@@ -400,10 +437,15 @@ function openIntakeForm(pre){
     const g=id=>(document.getElementById(id)||{value:''}).value.trim();
     const err=document.getElementById('ik-err');
     if(!g('ik-title')||!g('ik-need')){ if(err) err.textContent=i18t('ik_need_both'); return; }
+    const answers={};
+    for(const f of intakeFormFields()){ if(f.key==='counterparty'||f.key==='folder') continue;
+      const v=g(ikFieldId(f.key)); if(v) answers[f.key]=v; }
+    if(answers.cpemail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.cpemail)){ if(err) err.textContent=i18t('ik_bad_email'); return; }
+    if(answers.effDate && answers.expiry && answers.expiry<answers.effDate){ if(err) err.textContent=i18t('ik_bad_term'); return; }
     const btn=document.getElementById('ik-send'); if(btn) btn.disabled=true;
     try{
       const made=await api('intake','POST',{ title:g('ik-title'), need:g('ik-need'),
-        counterparty:g('ik-cp'), folder:g('ik-folder') });
+        counterparty:g('ik-cp'), folder:g('ik-folder'), answers });
       closeModal();
       await loadIntake();
       /* ---- AND IT HANDS BACK THE TRACKER (upgrade 4) ----
@@ -442,12 +484,22 @@ function openIntakeTracker(url){
 }
 
 /* ---- TURNING A REQUEST INTO PAPER. The AI reads the request and names the
-   template it thinks fits; the EDITOR presses the button. Where Copilot is
-   not connected the picker still opens on the full list, so the door works
-   without it — the AI shortens the choice, it does not own it. */
+   paper it thinks fits; the EDITOR presses the button. Where Copilot is not
+   connected the drafting screen still opens on every shelf, so the door works
+   without it — the AI shortens the choice, it does not own it.
+
+   EVERY SHELF, COMPANY STANDARDS FIRST (4 Oct 2026, the process review's
+   Requests stream): it named HaTi's twelve built-ins only, so a workspace
+   whose own standard was the right paper was offered the wrong one. The
+   candidates are draft-from-a-sentence's own (draftCandidates — standards,
+   then saved, then HaTi's), sent as `kind:id` so the answer names its shelf. */
+function ikShelfOf(){
+  const all=(typeof window!=='undefined'&&typeof window.draftCandidates==='function')?window.draftCandidates()
+    :Object.entries((typeof TEMPLATES!=='undefined'&&TEMPLATES)||{}).map(([id,t])=>({ kind:'builtin', id, name:t.name, blurb:t.blurb||'' }));
+  return all.map(c=>({ ...c, key:`${c.kind}:${c.id}` }));
+}
 async function intakeSuggestTemplate(r){
-  const cands=Object.entries(TEMPLATES||{}).map(([id,t])=>({ id, name:t.name, kind:t.kind,
-    folder:(FOLDERS[t.folder]||{}).name||'', blurb:t.blurb||'' }));
+  const cands=ikShelfOf().slice(0,24).map(c=>({ id:c.key, name:c.name, kind:c.kind, blurb:c.blurb||'' }));
   if(!cands.length) return null;
   if(!(typeof API_MODE==='function'&&API_MODE())||!state.aiConfigured) return null;
   try{
@@ -455,8 +507,41 @@ async function intakeSuggestTemplate(r){
        contract id, and a stream-limited member's shelf was dropped whole. */
     const res=await api('ai/template','POST',{ query:`${r.title}\n\n${r.need}`, templates:cands });
     const top=(res&&Array.isArray(res.ranked)&&res.ranked[0])||null;
-    return top&&top.id&&TEMPLATES[top.id] ? { id:top.id, why:top.why||res.answer||'' } : null;
+    const hit=top&&top.id?ikShelfOf().find(c=>c.key===top.id):null;
+    if(!hit) return null;
+    return { kind:hit.kind==='builtin'?'tid':hit.kind, id:hit.id, name:hit.name, why:top.reason||top.why||res.answer||'' };
   }catch(_){ return null; }
+}
+/* ---- DRAFT IT OPENS THE ORDINARY DRAFTING SCREEN (4 Oct 2026) ----
+   It opened a one-select dialog of HaTi's built-ins and pressed
+   createFromTemplate, which asks no questions — so the request's answers were
+   typed again by the editor, and a company standard could not be chosen at
+   all. It opens openNewAgreement now: every shelf, the suggested paper lit,
+   and the request's answers already in the boxes (intakePrefillOf, the shared
+   reading). Nothing new mints anything: the screen's own Create does.
+
+   THE LINK IS HELD, NOT GUESSED. The request is held while the screen stands
+   and claimed by contractArrived — the one funnel every creation site
+   registers with — exactly as the people named on that screen are
+   (participantsHold). A screen left without Create drops the hold; one left
+   by Create keeps it a little while for the create to land. */
+let _ikHold = null;
+const IK_HOLD_AFTER_CREATE_MS = 60 * 1000;
+function intakeHoldDraft(id){ _ikHold = id ? { id:String(id), at:Date.now() } : null; }
+function intakeHeldDraft(){ return _ikHold ? _ikHold.id : null; }
+async function intakeClaimDraft(c){
+  if(!_ikHold || !c || !c.id) return false;
+  const rid=_ikHold.id; _ikHold=null;
+  const r=(_intake.list||[]).find(x=>x.id===rid)||null;
+  c.intakeRequestId=rid;
+  try{ logAudit(c,'Requested',`Raised from request ${rid} by ${(r&&r.by&&r.by.name)||'a colleague'}: ${(r&&r.title)||''}`); }catch(_){}
+  try{ persist(c); }catch(_){}
+  try{
+    await api('intake/'+encodeURIComponent(rid),'PATCH',{ status:'drafted', contractId:c.id });
+    await loadIntake();
+    if(window.updateSidebarCounts) updateSidebarCounts();
+  }catch(_){ /* the draft exists either way; the queue catches up on reload */ }
+  return true;
 }
 async function intakeDraft(id){
   if(!canEdit()){ toast(i18t('ap_viewers_no_create'),'err'); return; }
@@ -464,140 +549,92 @@ async function intakeDraft(id){
   const btnBusy=document.querySelector(`[data-ik-draft="${CSS.escape(id)}"]`);
   if(btnBusy){ btnBusy.disabled=true; btnBusy.textContent=i18t('ct_working'); }
   const pick=await intakeSuggestTemplate(r);
-  const ids=Object.keys(TEMPLATES||{});
-  const FLD=window.HATI_FLD;
-  openModal(`<div style="padding:24px">
-    <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0 0 var(--s-1)">${i18t('ik_draft_title')}</h3>
-    <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${esc(r.title)}</p>
-    ${pick?`<p style="font-size:var(--t-meta);line-height:1.55;margin:0 0 10px;padding:9px 11px;background:var(--st-green-bg);color:var(--st-green-fg);border-radius:var(--radius)">
-      ${esc(i18t('ik_suggested',{name:TEMPLATES[pick.id].name}))}${pick.why?' '+esc(pick.why):''}</p>`
-      :`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 10px">${esc(i18t('ik_no_suggestion'))}</p>`}
-    <label style="display:block;margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('ik_pick_template')}</span>
-      <select id="ik-tpl" style="${FLD}">
-        ${ids.map(t=>`<option value="${esc(t)}"${pick&&pick.id===t?' selected':''}>${esc(TEMPLATES[t].name)}</option>`).join('')}
-      </select></label>
-    <div style="display:flex;gap:var(--s-2);justify-content:flex-end">
-      <button id="ik-d-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="ik-d-go" class="ui-btn ui-btn-primary">${i18t('ik_create_draft')}</button>
-    </div>
-  </div>`,{maxWidth:'560px'});
   const restore=()=>{ const b=document.querySelector(`[data-ik-draft="${CSS.escape(id)}"]`); if(b){ b.disabled=false; b.textContent=i18t('ik_act_draft'); } };
-  document.getElementById('ik-d-cancel')?.addEventListener('click',()=>{ closeModal(); restore(); });
-  document.getElementById('ik-d-go')?.addEventListener('click',async()=>{
-    const tid=(document.getElementById('ik-tpl')||{}).value;
-    if(!tid||!TEMPLATES[tid]) return;
-    closeModal();
-    /* THE ORDINARY CREATION PATH, with the request's own facts carried in.
-       createFromTemplate is the door every other template-made contract goes
-       through — it stamps the owner, registers the open-on-Key-terms intent
-       and files the audit line — so a requested contract is in no way a
-       different kind of record from a drafted one. */
-    createFromTemplate(tid);
-    const c=getContract(state.activeId);
-    if(c){
-      if(r.counterparty&&!c.counterparty) c.counterparty=r.counterparty;
-      if(r.folder&&FOLDERS[r.folder]) c.folder=r.folder;
-      logAudit(c,'Requested',`Raised from request ${r.id} by ${(r.by&&r.by.name)||'a colleague'}: ${r.title}`);
-      c.intakeRequestId=r.id;
-      persist(c);
-      try{
-        await api('intake/'+encodeURIComponent(r.id),'PATCH',{ status:'done', contractId:c.id });
-        await loadIntake();
-        if(window.updateSidebarCounts) updateSidebarCounts();
-      }catch(_){ /* the draft exists either way; the queue catches up on reload */ }
-      toast(i18t('ik_drafted',{id:(window.contractRef?contractRef(c):c.id)}),'ok');
-    }
-  });
+  restore();
+  if(typeof openNewAgreement!=='function') return;
+  const prefill=(typeof window.intakePrefillOf==='function')?window.intakePrefillOf(r):{};
+  intakeHoldDraft(r.id);
+  openNewAgreement({ pick:pick?{ kind:pick.kind, id:pick.id }:null, prefill });
+  if(pick&&pick.name) toast(i18t('ik_suggested',{name:pick.name}),'ok');
+  /* The hold belongs to the screen: Create keeps it long enough to land,
+     every other way out drops it. */
+  const root=document.getElementById('na-root');
+  if(!root || typeof MutationObserver!=='function'){ return; }
+  let pressed=false;
+  root.addEventListener('click',e=>{ if(e.target&&e.target.closest&&e.target.closest('#na-create,#na-skip')) pressed=true; },true);
+  try{
+    const mr=document.getElementById('modal-root')||document.body;
+    const ob=new MutationObserver(()=>{
+      if(document.getElementById('na-root')===root) return;
+      ob.disconnect();
+      if(!pressed){ if(intakeHeldDraft()===r.id) intakeHoldDraft(null); return; }
+      setTimeout(()=>{ if(intakeHeldDraft()===r.id) intakeHoldDraft(null); }, IK_HOLD_AFTER_CREATE_MS);
+    });
+    ob.observe(mr,{ childList:true, subtree:true });
+  }catch(_){}
 }
-/* ---- A LANE FIRES, AND SAYS SO (S3) ----
-   It runs when a person who may draft loads this page, and only then. THAT IS
-   SAID OUT LOUD rather than dressed up as automation: HaTi has no server-side
-   template catalogue, and building one so a lane could fire on a timer would
-   be a second place contracts are minted from — the fault class this codebase
-   pays for most. The clock the row prints is the REAL elapsed time either
-   way, so nothing here claims a speed it did not achieve.
+/* ---- ITS CONTRACT LEFT DRAFTING: THE REQUEST IS DONE ----
+   Called by contractLeavesDrafting, the ONE act that takes a contract out of
+   Draft. The SERVER closes the request on the save that carries the move
+   (srvIntakeCloseOn) and mails the person who asked; this only says so on
+   this page at once and re-reads the queue once that save has had time to
+   land. It writes nothing. */
+function intakeContractSent(c){
+  if(!c || !c.id) return false;
+  const r=(_intake.list||[]).find(x=>x.status==='drafted'&&(x.contractId===c.id||x.id===c.intakeRequestId));
+  if(!r) return false;
+  r.status='done'; r.decidedAt=new Date().toISOString();
+  try{ if(window.updateSidebarCounts) updateSidebarCounts(); }catch(_){}
+  try{ setTimeout(()=>{ intakeRefresh(); }, 5000); }catch(_){}
+  return true;
+}
+/* ---- THE BELL'S DOOR: the Requests page, on that request ----
+   The filters come back to rest first, so the row is in the list it lands
+   on; the inspector lights it (insSelect). */
+function intakeGoTo(id){
+  const f=ikFilters(); Object.assign(f, IK_DEF);
+  try{ if(typeof window.insSelect==='function') window.insSelect('intake:team', String(id)); }catch(_){}
+  if(typeof setView==='function') setView('intake');
+}
+/* WHAT THE BELL SAYS: open requests nobody holds, raised by a colleague, for
+   a reader who may draft. Borrowed off the list GET /api/intake already
+   scoped to their streams. One row each, oldest first. */
+function intakeAlertRows(){
+  if(typeof canEdit!=='function' || !canEdit()) return [];
+  const me=_ikMe();
+  return (_intake.list||[]).filter(r=>r && r.status==='open' && !(r.assignee&&r.assignee.id)
+      && !(me&&r.by&&r.by.id===me.id))
+    .sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
+}
+/* ---- THE LANES RUN ON THE SERVER (4 Oct 2026, the process review's Requests
+   stream) ----
+   They ran in whatever browser had HaTi open with a person in it who may
+   draft, every ten minutes, and nowhere else — so a request raised at night
+   waited for somebody to open a laptop. The "no server-side catalogue"
+   reason given for it was answerable: the server reads the built-in
+   catalogue's facts from js/templates.js and mints the draft itself
+   (runIntakeLanes, server/server.js), on the request's own POST and on its
+   sweep, once per request (a cleared request carries its lane and its
+   contract, and nothing clears one twice).
 
-   IT PRESSES THE ORDINARY CREATION PATH. `createFromTemplate` is the same
-   door intakeDraft uses, so a lane-cleared contract is in no way a different
-   kind of record; the only difference is that `lane` is written on the
-   request, which is what makes the row say who decided and lets an
-   administrator audit the rule afterwards.
-
-   ONE AT A TIME, NEWEST LAST, and it stops at the first failure — a lane that
-   half-fired across a queue would be worse than one that did not fire. */
-/* ---- THE LANES DO NOT WAIT FOR SOMEBODY TO OPEN THIS PAGE (21 Sep 2026,
-   the process review's third item) ----
-
-   They fired when a person who may draft LOADED the Requests page, and
-   nothing ran them on a timer — so a request a rule would have cleared in
-   seconds sat in the queue until a human happened to look, while the person
-   who asked had been promised a date by a clock that was already running.
-   The whole point of a lane is that it does not need a human.
-
-   THE SERVER CANNOT DO THIS, and that is why it does not: the template
-   catalogue lives in the browser, and giving the server one would make it a
-   SECOND place contracts are minted from. So the sweep runs in whatever
-   browser has HaTi open and a person in it who may draft — the same
-   condition as before, without the page.
-
-   IT COSTS NOTHING IN A WORKSPACE WITH NO LANES: the list of lanes is read
-   first, and where there are none it returns before loading anything. */
+   WHAT IS LEFT HERE IS THE BEAT. An editor's open page re-reads the queue on
+   the same ten minutes, so the Requests count and the bell's "asked for a
+   contract" rows follow what colleagues raised and what the lanes cleared
+   without a reload. It fetches nothing for somebody who may not draft. */
 const IK_SWEEP_MS = 10 * 60 * 1000;
 let _ikSweepOn = false;
-async function intakeLaneSweep(){
-  if(typeof canEdit !== 'function' || !canEdit()) return 0;
-  if(!intakeLanes().length) return 0;
-  try{ if(!_intake.loaded) await loadIntake(); }catch(_){ return 0; }
-  let n = 0;
-  try{ n = await intakeRunLanes(); }catch(_){ return 0; }
-  if(n){
-    try{ if(window.updateSidebarCounts) updateSidebarCounts(); }catch(_){}
-    try{ if(typeof state!=='undefined' && state.view==='intake') renderIntake(); }catch(_){}
-  }
-  return n;
+async function intakeRefresh(){
+  if(typeof canEdit !== 'function' || !canEdit()) return false;
+  try{ await loadIntake(); }catch(_){ return false; }
+  try{ if(window.updateSidebarCounts) updateSidebarCounts(); }catch(_){}
+  try{ if(window.updateAlertBadge) updateAlertBadge(); }catch(_){}
+  try{ if(typeof state!=='undefined' && state.view==='intake') renderIntake(); }catch(_){}
+  return true;
 }
 function intakeSweepStart(){
   if(_ikSweepOn) return;
   _ikSweepOn = true;
-  intakeLaneSweep();
-  try{ setInterval(intakeLaneSweep, IK_SWEEP_MS); }catch(_){}
-}
-let _ikLanesRunning = false;
-async function intakeRunLanes(){
-  if(_ikLanesRunning) return 0;
-  if(typeof canEdit!=='function' || !canEdit()) return 0;
-  if(typeof createFromTemplate!=='function') return 0;
-  const lanes = intakeLanes();
-  if(!lanes.length) return 0;
-  const todo = (_intake.list||[]).filter(r=>!!intakeLaneFor(r));
-  if(!todo.length) return 0;
-  _ikLanesRunning = true;
-  let n = 0;
-  try{
-    for(const r of todo){
-      const L = intakeLaneFor(r); if(!L) continue;
-      if(!(typeof TEMPLATES!=='undefined' && TEMPLATES[L.template])) continue;
-      /* QUIET: a lane fires without a human, so it may not take the human
-         anywhere. It returns the contract it made rather than leaving the
-         caller to read state.activeId back — which is also what made this
-         safe to run on a timer. */
-      const c = createFromTemplate(L.template, { quiet:true });
-      if(!c) break;
-      if(r.counterparty && !c.counterparty) c.counterparty = r.counterparty;
-      if(r.folder && typeof FOLDERS!=='undefined' && FOLDERS[r.folder]) c.folder = r.folder;
-      c.intakeRequestId = r.id;
-      logAudit(c,'Requested',`Cleared by the "${L.name||L.id}" lane from request ${r.id}: ${r.title}`);
-      persist(c);
-      try{
-        await api('intake/'+encodeURIComponent(r.id),'PATCH',
-          { status:'done', contractId:c.id, lane:String(L.name||L.id||'').slice(0,80) });
-        n++;
-      }catch(_){ break; }
-    }
-    if(n){ await loadIntake(); if(window.updateSidebarCounts) updateSidebarCounts(); }
-  } finally { _ikLanesRunning = false; }
-  if(n) toast(i18tn('ik_lane_cleared',n,{n}),'ok');
-  return n;
+  try{ setInterval(intakeRefresh, IK_SWEEP_MS); }catch(_){}
 }
 async function intakeSetStatus(id,status,opts={}){
   const r=(_intake.list||[]).find(x=>x.id===id); if(!r) return;
@@ -720,11 +757,8 @@ function ikAfterRender(may){
      the same shape the Advice Desk uses, and the reason the empty state is a
      real sentence rather than a spinner. */
   if(!_intake.loaded) loadIntake().then(()=>{ if(state.view==='intake') renderIntake(); });
-  /* THE LANES RUN ONCE THE QUEUE IS ON THE FLOOR, never before it: a rule
-     cannot clear a request the page has not loaded. It repaints itself if
-     anything fired, and answers 0 the rest of the time, which is every time
-     for a workspace that has written no lanes. */
-  else if(may) intakeRunLanes().then(n=>{ if(n && state.view==='intake') renderIntake(); });
+  /* The lanes are the server's (runIntakeLanes): nothing runs here. */
+  void may;
 }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -794,6 +828,7 @@ function intakeFinishedThisMonth(r){
   const n=new Date(); return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth();
 }
 function intakeStage(r, asker){
+  if(r && r.status==='drafted') return 'drafted';
   if(IK_STOPPED.includes(r&&r.status)) return (asker||intakeFinishedThisMonth(r))?'fin':'old';
   const p=intakePromise(r);
   if(p&&p.k==='over') return 'over';
@@ -803,6 +838,7 @@ const IK_GROUPS = [
   ['over',  'ik_g_over',   'ik_g_over',          'ruby'],
   ['nobody','ik_g_nobody', 'ik_g_nobody_asker',  'amber'],
   ['held',  'ik_g_held',   'ik_g_held',          'steel'],
+  ['drafted','ik_g_drafted','ik_g_drafted',       'steel'],
   ['fin',   'ik_g_fin',    'ik_g_fin_asker',     'green'],
   ['old',   'ik_g_old',    'ik_g_old',           'gray'],
 ];
@@ -877,6 +913,8 @@ function ikStatusSay(r, asker){
   if(g==='nobody') return { tone, html:`${esc(i18t(asker?'ik_s_nobody_asker':'ik_s_nobody'))} <span class="x">· ${esc(i18t('ik_s_asked',{age:ikAgeWords(r)}))}</span>` };
   if(g==='held') return { tone, html:`${esc(ikHeldByMe(r)&&!asker?i18t('ik_s_you_work'):i18t('ik_s_they_work',{who:(r.assignee&&r.assignee.name)||''}))}${
     r.promisedAt?` <span class="x">· ${esc(i18t('ik_s_promised',{day:ikDay(String(r.promisedAt).slice(0,10),{weekday:true})}))}</span>`:''}` };
+  if(g==='drafted') return { tone, html:`${esc(i18t('ik_s_drafted_unsent',{id:r.contractId||''}))}${
+    r.lane?` <span class="x">· ${esc(i18t('ik_s_lane'))}</span>`:''}` };
   const at=intakeStoppedAt(r), mins=intakeMinutes(r), t=mins==null?'':ikTookWords(mins);
   if(r.status==='declined') return { tone:'gray', html:`${esc(i18t('ik_s_declined',{date:ikDay(at)}))}${t?` <span class="x">· ${esc(i18t('ik_s_after',{t}))}</span>`:''}` };
   if(r.status==='withdrawn') return { tone:'gray', html:esc(i18t('ik_s_withdrawn',{date:ikDay(at)})) };
@@ -891,14 +929,14 @@ function ikActs(r, asker){
   const openAct=r.contractId?{ k:'open', kind:'accent', label:i18t('ik_act_open_mk',{id:r.contractId}), run:()=>openWorkspace(r.contractId) }:null;
   if(asker){
     if(live&&ikIsMine(r)) acts.push({ k:'withdraw', label:i18t('ik_act_withdraw'), title:i18t('ik_withdraw_msg'), run:()=>intakeSetStatus(r.id,'withdrawn') });
-    if(openAct&&r.status==='done') acts.unshift(openAct);
+    if(openAct&&(r.status==='done'||r.status==='drafted')) acts.unshift(openAct);
     if(track) acts.push({ k:'track', label:i18t('ik_act_copy_track'), icon:'link', title:i18t('ik_track_title'), run:()=>intakeTrackCopy(r.id) });
     return { acts, menu:'' };
   }
   if(may&&r.status==='open') acts.push({ k:'draft', kind:'accent', label:i18t('ik_act_draft'), icon:'pencil', attrs:`data-ik-draft="${esc(r.id)}"`, run:()=>intakeDraft(r.id) });
   if(may&&live) acts.push({ k:'pick', label:intakePickLabel(r), run:()=>intakePick(r.id) });
   if(may&&live) acts.push({ k:'promise', label:r.promisedAt?i18t('ik_act_repromise'):i18t('ik_act_promise'), title:i18t('ik_promise_msg'), run:()=>intakePromiseAsk(r.id) });
-  if(openAct&&r.status==='done') acts.unshift(openAct);
+  if(openAct&&(r.status==='done'||r.status==='drafted')) acts.unshift(openAct);
   if(may&&r.status==='open') menu.push(insMenuItemHtml({ k:'decline', label:i18t('ik_act_decline'), ruby:true, says:i18t('ik_decline_msg') }));
   if(live&&(ikIsMine(r)||(typeof isAdmin==='function'&&isAdmin()))) menu.push(insMenuItemHtml({ k:'withdraw', label:i18t('ik_act_withdraw'), says:i18t('ik_withdraw_msg') }));
   if(track) menu.push(insMenuItemHtml({ k:'track', label:i18t('ik_act_copy_track'), icon:'link', says:i18t('ik_track_title') }));
@@ -923,6 +961,8 @@ function ikHistoryHtml(r, asker){
   h.push({ t: mine?i18t('ik_h_asked_you'):i18t('ik_h_asked',{who:(r.by&&r.by.name)||''}), at:r.createdAt });
   const at=intakeStoppedAt(r);
   const by=String(r.decidedBy||'').trim();
+  if(r.status==='drafted') h.push({ t: r.lane?i18t('ik_h_lane',{lane:r.lane,id:r.contractId||''})
+    : by?i18t('ik_h_drafted_by',{id:r.contractId||'',who:by}):i18t('ik_h_drafted',{id:r.contractId||''}), at:r.decidedAt||r.updatedAt });
   if(r.status==='done') h.push({ t: r.lane?i18t('ik_h_lane',{lane:r.lane,id:r.contractId||''})
     : by?i18t('ik_h_drafted_by',{id:r.contractId||'',who:by}):i18t('ik_h_drafted',{id:r.contractId||''}), at });
   if(r.status==='declined') h.push({ t: by?i18t('ik_h_declined_by',{who:by}):i18t('ik_h_declined'), at });
@@ -1175,9 +1215,9 @@ async function intakeTrackCopy(id){
 }
 
 Object.assign(window,{INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_STOPPED,
-  IK_THEIR_PAPER,IK_MONEY,ikKnownCounterparty,intakeRoad,intakeStoppedAt,intakeMinutes,
+  ikKnownCounterparty,intakeRoad,intakeStoppedAt,intakeMinutes,
   intakeMedianDays,intakePromise,intakePastDue,intakeTrackUrl,intakeLanes,intakeLaneFor,
-  intakeRunLanes,intakeLaneSweep,intakeSweepStart,IK_SWEEP_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
+  intakeRefresh,intakeSweepStart,IK_SWEEP_MS,intakeFormFields,ikFieldHtml,ikFieldId,intakeTitleFrom,intakeHoldDraft,intakeHeldDraft,intakeClaimDraft,intakeContractSent,intakeGoTo,intakeAlertRows,ikShelfOf,IK_HOLD_AFTER_CREATE_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
   intakeMine,intakeQueue,intakeCount,loadIntake,
   intakeStatusKey,intakePickLabel,intakeTakeOver,intakeStage,intakeFinishedThisMonth,intakePromiseSay,
   ikPaintHead,ikAfterRender,renderIntakeInspector,ikPanelOpts,ikActs,ikStatusSay,ikFilters,

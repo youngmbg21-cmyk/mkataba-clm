@@ -765,6 +765,10 @@ function contractArrived(c, opts){
      named three colleagues on. A bulk import claims nothing: nobody stood at
      that screen. */
   if (c && !o.bulk){ try{ if (typeof participantsClaim === 'function') participantsClaim(c); }catch(_){} }
+  /* AND THE REQUEST IT WAS DRAFTED FOR (4 Oct 2026): Requests' Draft it opens
+     the drafting screen with the request held, and the contract that screen
+     makes is claimed here, the same way (intakeClaimDraft, js/views/intake.js). */
+  if (c && !o.bulk){ try{ if (typeof window !== 'undefined' && typeof window.intakeClaimDraft === 'function') window.intakeClaimDraft(c); }catch(_){} }
   /* ---- A BUILT-IN TEMPLATE'S OWN PROMISES, ON ARRIVAL (the owner's list,
      27 Sep 2026) ----
      They were minted only by an Overview edit, so a draft made in one pass

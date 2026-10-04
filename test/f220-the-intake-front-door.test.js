@@ -143,9 +143,14 @@ describe('F220 — the screen, pinned at the source', () => {
     assert.match(fn, /intakeMine\(\)\.filter/, 'everybody else, what they are waiting on');
   });
 
+  /* RE-POINTED 4 Oct 2026 (the process review's Requests stream): Draft it
+     opens the ORDINARY DRAFTING SCREEN (openNewAgreement) with the request's
+     answers in its boxes and every shelf on offer — the screen's own Create
+     mints, and the contract is claimed by contractArrived. */
   test('creating paper goes through the ORDINARY creation path', () => {
-    assert.match(src, /createFromTemplate\(tid\)/,
-      'the same door every template-made contract uses — owner stamp, audit line, open-on-Key-terms');
+    assert.match(src, /openNewAgreement\(\{ pick:/,
+      'the same screen every new agreement is drafted on — owner stamp, audit line, open-on-Key-terms');
+    assert.match(src, /intakePrefillOf\(r\)/, 'with the request\'s own answers');
     assert.ok(!/state\.contracts\.unshift/.test(src),
       'this file never mints a contract of its own');
     assert.match(src, /logAudit\(c,'Requested'/, 'and the contract records where it came from');
@@ -155,8 +160,10 @@ describe('F220 — the screen, pinned at the source', () => {
     const fn = src.slice(src.indexOf('async function intakeSuggestTemplate'), src.indexOf('async function intakeDraft'));
     assert.match(fn, /if\(!\(typeof API_MODE==='function'&&API_MODE\(\)\)\|\|!state\.aiConfigured\) return null;/,
       'no key, no suggestion — and the picker still opens');
-    assert.match(src, /ik_no_suggestion/, 'which the dialog says out loud');
-    assert.match(src, /ids\.map\(t=>`<option/, 'the full template list is always offered');
+    /* RE-POINTED 4 Oct 2026: every shelf, company standards first — the
+       candidates are draft-from-a-sentence's own, and the drafting screen
+       lists them all whatever Copilot said. */
+    assert.match(src, /window\.draftCandidates\(\)/, 'every shelf is a candidate');
   });
 
   test('every act still asks canEdit, and the form is open to everyone', () => {
@@ -270,7 +277,8 @@ describe('F220 — the requester is told what happened', () => {
     await settle(() => to(ASKER).length >= 1);
     const got = to(ASKER);
     assert.equal(got.length, 1, 'one notice, to the person who asked');
-    assert.match(got[0].subject, /Din förfrågan är nu ett utkast/, 'their own language');
+    /* RE-POINTED 4 Oct 2026: done means drafted AND SENT now. */
+    assert.match(got[0].subject, /Din förfrågan är skriven och skickad/, 'their own language');
     assert.match(got[0].subject, /NDA for the packaging trial/, 'named by what they asked for');
     assert.match(got[0].text, /MK-NEW-1/, 'and it carries the way through to the contract');
   });
@@ -321,7 +329,10 @@ describe('F220 — the requester is told what happened', () => {
     mail.reset();
     await W2.admin.json('/api/intake/' + request.id, { method: 'PATCH', body: { status: 'declined', note: 'Changed my mind.' } });
     await pause(700);
-    assert.equal(mail.sent.length, 0);
+    /* RE-POINTED 4 Oct 2026: raising a request now tells the colleagues who
+       draft ("New request"), and those mails may land after the reset. The
+       claim is about the DECISION notice. */
+    assert.equal(mail.sent.filter(m => !/^(New request|Ny förfrågan):/.test(String(m.subject))).length, 0);
   });
 
   test('the decline dialog promises the email only where mail is actually delivering', () => {

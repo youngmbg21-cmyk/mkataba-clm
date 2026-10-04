@@ -106,6 +106,7 @@ import './views/directory.js';    // People: the roster, read-only, for every ro
 import './views/queue.js';
 import './views/advice.js';
 import './views/adviceportal.js';
+import './intakelanes.js';      // a request's lane and answers: one reading, both hosts (4 Oct 2026)
 import './views/intake.js';     // the intake front door: anybody may ASK for a contract (W2-2)
 import './templatefields.js';
 import './views/library.js';
@@ -1763,6 +1764,15 @@ const ALERT_KINDS = [
      handed you, reads the record, and clears when the note is done. */
   { k:'note-mine',   tone:'amber', ic:'&#128221;' },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
+  /* ---- A COLLEAGUE ASKED FOR A CONTRACT (4 Oct 2026, the process review's
+     Requests stream) ----
+     A request was raised and nothing told the people who could draft it: the
+     Requests count moved in a rail most of them never looked at. One row per
+     request nobody holds, to a reader who may draft and can see its stream
+     (intakeAlertRows, off the list the server already scoped), gone the moment
+     somebody picks it up, drafts it or declines it. Ranked under approvals:
+     a colleague is waiting, but no live deal is held by it. Amber: work owed. */
+  { k:'request',     tone:'amber', ic:'&#128233;' },
   /* ---- AN ANSWER THAT WILL NOT LAND (owner-asked 23 Aug 2026) ----
      A REGISTERED KIND, not a special case at the draw. It arrived as a warn
      toast and on a real workspace that meant four orange boxes stacked over the
@@ -2176,6 +2186,17 @@ function buildAlerts(){
         ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'terms'); }catch(_){} });
     });
   }
+  /* A COLLEAGUE ASKED FOR A CONTRACT (see the kind). The door is the
+     Requests page with that request lit (intakeGoTo). */
+  try{
+    if(typeof window.intakeAlertRows==='function') intakeAlertRows().forEach(r=>{
+      const who=String((r.by&&r.by.name)||'').trim();
+      let age=''; try{ age=(typeof window.ikAgeWords==='function')?ikAgeWords(r):''; }catch(_){ age=''; }
+      push('request',null,i18t('al_request',{title:String(r.title||'')}),
+        ()=>{ if(window.intakeGoTo) intakeGoTo(r.id); else setView('intake'); },
+        { sub:[who?i18t('al_request_by',{who}):'', age].filter(Boolean).join(' \u00b7 ') });
+    });
+  }catch(e){}
   /* ---- EMAIL ISN'T SET UP (owner-ruled 24 Aug 2026: it moves here) ----
      ADMIN ONLY, and that is the whole of why it is not simply the old banner
      re-parented: an Editor could not act on it, so on their screen it was a
