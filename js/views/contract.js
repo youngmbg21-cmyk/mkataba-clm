@@ -7813,7 +7813,9 @@ function openNegotiationOwnerRoom(c){
     async onSendDirect(){
       const to=c.counterpartyName||c.counterparty||'the counterparty';
       try{
-        const out=await reshareToLastRecipient(c,{ purpose:'negotiate' });
+        /* handOver: a round send — where it hands the table to them, one
+           "it is your turn" email rides with it (roundTurnMail). */
+        const out=await reshareToLastRecipient(c,{ purpose:'negotiate', handOver:true });
         if(!negoHandOver(c,{ to:'counterparty', by:currentUser()?.name })) { persist(c); }
         else persist(c);
         /* Three honest outcomes. quiet: the standing link took the round and no
@@ -7825,6 +7827,12 @@ function openNegotiationOwnerRoom(c){
            and the URL they hold has stopped being the contract. Reported on
            MK-255, where the round published and the counterparty reloaded the
            link they actually had to find nothing had moved. */
+        /* The turn email's own three outcomes come first where one was tried. */
+        if(out.turnMail && !out.stranded){
+          toast(out.delivered ? i18t('ng_turn_emailed',{who:to})
+            : out.outbox ? i18t('ng_turn_mail_outbox',{who:to})
+            : i18t('ng_turn_mail_failed',{who:to, why:out.emailError||''}), out.delivered?'ok':'warn');
+        } else
         toast(out.stranded
           ? `${reshareStrandedLine(to)} It is now their turn.`
           : out.quiet

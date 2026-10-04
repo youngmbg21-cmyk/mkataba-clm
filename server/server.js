@@ -14788,6 +14788,11 @@ async function notifyCounterpartyMessage(_contractId, _m) {
    moved into share_payload_history first, carrying whether this reader had
    actually opened it — that is what "revised since you last opened it" is
    measured against once the link itself stops changing. */
+/* "3 changes and 1 note" — the one line of what moved in a turn email. */
+function srvTurnMovedLine(changes, notes) {
+  const part = (n, one, many) => (n ? `${n} ${n === 1 ? one : many}` : '');
+  return [part(changes, 'change', 'changes'), part(notes, 'note', 'notes')].filter(Boolean).join(' and ');
+}
 app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s || (s.contract_id && !idInScope(folderScopeFor(req.user), s.contract_id)))
@@ -14863,29 +14868,47 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   else db.prepare('UPDATE shares SET payload=?, created_at=?, first_opened_at=NULL WHERE token=?')
     .run(JSON.stringify(payload), now(), s.token);
 
-  /* TELL THEM — ONCE, AT THE START. The email's job in this flow is to deliver
-     the link, and that happens exactly once, when the negotiation begins
-     (POST /api/shares). From then on the platform IS the channel: a round-send
-     refreshes the standing link and the reader finds the new wording behind
-     the same URL they already hold. `notify:false` is how a round-send says
-     so — it is a real send (history recorded, "opened" reset, the round moves)
-     that posts no email, because there is no second link to deliver.
+  /* ---- ONE "IT IS YOUR TURN" EMAIL PER HAND-OVER (4 Oct 2026) ----
+     REVERSES "one email per negotiation". That rule kept the inbox quiet by
+     telling the other side nothing after the first link: a round handed to
+     them sat behind the URL they already held until they happened to open it,
+     and nobody's inbox said the table was theirs. So:
 
-     The email stays available (`notify` omitted or true) for the explicit
-     "email them again" acts — a reminder is a human choice, not a side effect
-     of the round moving. */
-  const notify = (req.body || {}).notify !== false;
+       notify:'turn' — the round send that HANDS THE TURN TO THEM (the browser
+         asks negoHandOver's own question before sending). One email, naming
+         who sent it, one line of what moved, and the same link. Never on a
+         single accept/reject (those are silent refreshes), never when nothing
+         was handed over (notify:false), never on a link that is not email.
+       notify:false — a round send that hands nothing over: refreshed, no mail.
+       notify omitted/true — the explicit "email them again" acts, unchanged.
+
+     WHO SENT IT is the signed-in person (req.user), never a name from the
+     body; the counts are clamped integers, the only thing the body supplies. */
+  const notifyRaw = (req.body || {}).notify;
+  const turnMail = notifyRaw === 'turn';
+  const notify = notifyRaw !== false;
   const link = shareUrl(req, s.token);
-  let emailSent = false, emailError = null;
+  let emailSent = false, emailError = null, mailTried = false;
   if (!silent && notify && (s.channel || 'link') === 'email' && s.recipient_email) {
+    mailTried = true;
     const cName = (payload.contract && payload.contract.name) || s.contract_id || 'a contract';
-    const body = [
+    const cnt = k => { const n = Math.floor(Number(((req.body || {}).turn || {})[k])); return Number.isFinite(n) && n > 0 ? Math.min(n, 999) : 0; };
+    const moved = turnMail ? srvTurnMovedLine(cnt('changes'), cnt('notes')) : '';
+    const body = (turnMail ? [
+      `${req.user.name} at ${payload.org || 'HaTi'} has sent you the next round of "${cName}" — it is your turn.`,
+      moved ? `What moved: ${moved}.` : '',
+      `\nOpen the same link you already have to see it and respond — no account is needed:\n${link}`,
+      s.expires_at ? `\nThis link expires on ${String(s.expires_at).slice(0, 10)}.` : '',
+    ] : [
       `${req.user.name} at ${payload.org || 'HaTi'} has updated "${cName}".`,
       `\nOpen the same link you already have to see what changed and respond — no account is needed:\n${link}`,
       s.expires_at ? `\nThis link expires on ${String(s.expires_at).slice(0, 10)}.` : '',
-    ].filter(Boolean).join('\n');
-    const r = await sendEmail(s.recipient_email, `Updated: "${cName}" is ready for your review`, body, `share refresh: ${link}`);
+    ]).filter(Boolean).join('\n');
+    const r = await sendEmail(s.recipient_email,
+      turnMail ? `Your turn: "${cName}"` : `Updated: "${cName}" is ready for your review`,
+      body, `${turnMail ? 'your turn' : 'share refresh'}: ${link}`);
     emailSent = !!r.sent; emailError = r.detail || null;
+    if (!emailSent && !emailError) emailError = mailReport(r).emailError;
     /* See the note on the mint route above: only a real send is recorded as one. */
     if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), s.token);
     else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
@@ -14893,6 +14916,10 @@ app.put('/api/shares/:token/payload', auth, editor, async (req, res) => {
   }
   res.json({ ok: true, token: s.token, link, channel: s.channel || 'link', silent,
     notifySkipped: !silent && !notify,
+    /* The turn email's own report, in mailReport's words: sent / outbox /
+       refused-and-why. turnMail says it was ATTEMPTED, so the sender's toast
+       can tell "nothing was meant to go" from "it did not go". */
+    turnMail: turnMail && mailTried, outbox: mailTried && !emailSent && !EMAIL_ON(),
     recipientEmail: s.recipient_email || null, recipientPhone: s.recipient_phone || null,
     emailSent, emailConfigured: EMAIL_ON(), emailError, reach: srvReachOf(s.contract_id) });
 });

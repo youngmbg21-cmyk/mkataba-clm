@@ -3082,6 +3082,9 @@ const STRINGS = {
        link beside it, over a link the counterparty was already holding.
        Nothing is owed, so it is green and it carries no action. */
     ng_round_sent_standing: 'Round sent to {who} — it is on the link they already have',
+    ng_turn_emailed: 'Sent to {who} — they were emailed that it is their turn',
+    ng_turn_mail_outbox: 'Sent to {who} on their link — the “your turn” email is waiting in the outbox (no mail provider is set up)',
+    ng_turn_mail_failed: 'Sent to {who} on their link — the “your turn” email was not delivered: {why}',
     ng_copy_link: 'Copy link',
     ng_link_copied: 'Link copied.',
     wz_pick_stream: 'Pick a value stream, then the agreement you need.',
@@ -4153,6 +4156,12 @@ const STRINGS = {
     co_import_comments_one: ' · {n} Word comment attached',
     co_import_comments_other: ' · {n} Word comments attached',
     co_import_nothing: '{name} — the wording matches the current draft and there are no comments, so nothing was filed',
+    co_import_read: '{name} read',
+    co_import_accepted_one: ' · {n} of your changes accepted',
+    co_import_accepted_other: ' · {n} of your changes accepted',
+    co_import_rejected_one: ' · {n} of your changes rejected in Word',
+    co_import_rejected_other: ' · {n} of your changes rejected in Word',
+    co_import_your_turn: ' — it is your turn',
     /* THE MENU ROW that opens all of this. "Import their response" said nothing
        about the thing people actually have in their hand — a Word document the
        other side marked up and emailed back (owner-asked, 13 Aug 2026). It
@@ -14205,6 +14214,9 @@ const STRINGS = {
     ng_read_group: 'Så här läses avtalet',
     ng_published_not_emailed: 'Publicerad till {who}s länk — inte mejlad.',
     ng_round_sent_standing: 'Rundan skickad till {who} — den ligger på länken de redan har',
+    ng_turn_emailed: 'Skickad till {who} — de har fått ett mejl om att det är deras tur',
+    ng_turn_mail_outbox: 'Skickad till {who} på deras länk — mejlet ”er tur” ligger i utkorgen (ingen e-postleverantör är inställd)',
+    ng_turn_mail_failed: 'Skickad till {who} på deras länk — mejlet ”er tur” levererades inte: {why}',
     ng_copy_link: 'Kopiera länk',
     ng_link_copied: 'Länken är kopierad.',
     wz_pick_stream: 'Välj ett värdeflöde och sedan avtalet du behöver.',
@@ -15139,6 +15151,12 @@ const STRINGS = {
     co_import_comments_one: ' · {n} Word-kommentar bifogad',
     co_import_comments_other: ' · {n} Word-kommentarer bifogade',
     co_import_nothing: '{name} — formuleringen stämmer med nuvarande utkast och det finns inga kommentarer, så inget arkiverades',
+    co_import_read: '{name} läst',
+    co_import_accepted_one: ' · {n} av dina ändringar godkänd',
+    co_import_accepted_other: ' · {n} av dina ändringar godkända',
+    co_import_rejected_one: ' · {n} av dina ändringar avvisad i Word',
+    co_import_rejected_other: ' · {n} av dina ändringar avvisade i Word',
+    co_import_your_turn: ' — det är din tur',
     ct_import_word_file: 'Importera deras Word-fil',
     co_viewers_no_delete: 'Läsare kan inte radera avtal',
     co_only_draft_delete: 'Endast avtal som är utkast eller under granskning kan raderas',

@@ -2225,6 +2225,65 @@ async function negoFileProposal(c, proposedText, opts = {}){
   const loose = nextClauses.filter(cl => !cl.clauseId || !baseClauses.some(b => b.clauseId === cl.clauseId));
   const usedLoose = new Set();
 
+  /* ---- A RETURNED FILE ANSWERS OUR ASKS FIRST (4 Oct 2026, the other side) ----
+     opts.readOurAsks is the Word round trip's own flag. The file we sent them
+     carried OUR open asks as tracked changes, and the reader reads every
+     tracked change as accepted — so an ask they left alone came back looking
+     like wording of THEIRS identical to ours, filed as their change, and
+     superseded our own ask instead of counting as agreed. And an ask they
+     rejected in Word came back as the prior wording, which filed nothing at
+     all: our ask sat pending as if the file had never answered it.
+
+     So, per clause carrying an open ask of ours, the returned wording is read
+     against the ask: OUR WORDS → they accepted it; THE WORDING IT REPLACED →
+     they rejected it; ANYTHING ELSE → their counter, filed exactly as before
+     through the funnel, which handles our ask the way a counter on the link
+     does. The answers go through negoResolve on their side — the same door a
+     decision on their link takes — and are returned in `answered`. Nothing
+     changes for a caller that does not pass the flag. */
+  const readBack = !!opts.readOurAsks;
+  const answered = [];
+  const ours = readBack ? negoPending(c).filter(x => x && x.authorSide === 'owner' && !x.withdrawn) : [];
+  const theirsOpen = readBack ? negoPending(c).filter(x => x && x.authorSide === 'counterparty') : [];
+  /* Exact first; then the clause with its heading against an ask whose words
+     are the body alone (an insertion's newText carries no heading). */
+  const sameText = (a, b) => { const x = norm(a), y = norm(b);
+    return !!y && (x === y || (y.length >= 12 && (x.endsWith(' ' + y) || y.endsWith(' ' + x)))); };
+  const answer = (ask, status) => {
+    const done = negoResolve(c, ask.id, status, { side: 'counterparty', quiet: true,
+      by: String(opts.author || c.counterparty || 'Counterparty').trim(),
+      reply: status === 'rejected' ? 'Rejected in Word' : null });
+    if (done) answered.push({ id: ask.id, status });
+    return !!done;
+  };
+  /* Our open insertions are claimed out of the loose clauses BEFORE anything
+     is matched by position, or one clause of ours present in the file would
+     push every later clause one slot along. */
+  const claimed = new Set();
+  if (readBack){
+    for (const ask of ours.filter(a => a.changeType === 'insertClause')){
+      const j = loose.findIndex((cl, k) => !claimed.has(k) && sameText(cl.text, ask.newText));
+      if (j >= 0){ claimed.add(j); usedLoose.add(j); answer(ask, 'accepted'); }
+      else answer(ask, 'rejected');
+    }
+  }
+  /* Under the flag the position walk is ORDERED over what is left: a clause
+     found by its own words fixes the walk there, and a clause of ours they
+     struck takes no slot. Without the flag, the old index walk, untouched. */
+  let walk = 0;
+  const looseAt = (was, i) => {
+    if (!readBack){
+      return loose[i] !== undefined && !usedLoose.has(i) ? i : -1;
+    }
+    const askNew = ours.filter(a => a.clauseId === was.clauseId && a.changeType === 'modify').map(a => a.newText);
+    const j = loose.findIndex((cl, k) => !usedLoose.has(k)
+      && (norm(cl.text) === norm(was.text) || askNew.some(t => norm(cl.text) === norm(t))));
+    if (j >= 0){ walk = j + 1; return j; }
+    if (ours.some(a => a.clauseId === was.clauseId && a.changeType === 'deleteClause')) return -1;
+    while (walk < loose.length && usedLoose.has(walk)) walk++;
+    return walk < loose.length ? walk++ : -1;
+  };
+
   const filed = [];
   const matchedBase = new Set();
   for (let i = 0; i < baseClauses.length; i++){
@@ -2233,12 +2292,34 @@ async function negoFileProposal(c, proposedText, opts = {}){
     if (!now){
       /* fall back to position among the unmatched, which is how a Word round
          trip has to be read: same slot, possibly reworded */
-      const cand = loose[i] !== undefined && !usedLoose.has(i) ? loose[i] : null;
-      if (cand){ now = cand; usedLoose.add(i); }
+      const k = looseAt(was, i);
+      if (k >= 0){ now = loose[k]; usedLoose.add(k); }
     }
-    if (!now) continue;
+    const mine = readBack ? ours.filter(a => a.clauseId === was.clauseId && a.changeType !== 'insertClause') : [];
+    if (!now){
+      /* Gone from their file. Where WE asked to delete it, that is their yes —
+         not a deletion of theirs to file over ours. */
+      const del = mine.find(a => a.changeType === 'deleteClause');
+      if (del){ matchedBase.add(was.clauseId); answer(del, 'accepted'); }
+      continue;
+    }
     matchedBase.add(was.clauseId);
+    if (mine.length){
+      const yes = mine.find(a => a.changeType === 'modify' && norm(a.newText) === norm(now.text));
+      if (yes){ answer(yes, 'accepted'); continue; }
+      if (norm(now.text) === norm(was.text) || mine.some(a => a.oldText && norm(a.oldText) === norm(now.text))){
+        for (const a of mine) answer(a, 'rejected');
+        continue;
+      }
+      const near = mine.find(a => a.changeType === 'modify' && sameText(now.text, a.newText));
+      if (near){ answer(near, 'accepted'); continue; }
+      /* Anything else is their counter, filed below as it always was. */
+    }
     if (norm(was.text) === norm(now.text)) continue;
+    /* An ask of THEIRS they sent back untouched is the ask already on the
+       table, not a second one. */
+    if (readBack && theirsOpen.some(a => a.clauseId === was.clauseId && a.changeType === 'modify'
+      && norm(a.newText) === norm(now.text))) continue;
     const ch = await negoFileChange(c, { clauseId: was.clauseId, changeType: 'modify',
       oldText: was.text, newText: now.text,
       bodyHtml: fromText ? negoBodyFromText(was.bodyHtml, now.text) : now.bodyHtml,
@@ -2264,6 +2345,7 @@ async function negoFileProposal(c, proposedText, opts = {}){
     if (usedLoose.has(i)) continue;
     const cl = loose[i];
     if (!cl.text.trim()) continue;
+    if (readBack && theirsOpen.some(a => a.changeType === 'insertClause' && sameText(cl.text, a.newText))) continue;
     const after = baseClauses[Math.min(i, baseClauses.length) - 1] || null;
     const ch = await negoInsertClause(c, after ? after.clauseId : null,
       { headingText: cl.headingText, bodyHtml: cl.bodyHtml }, { ...opts, quiet: true });
@@ -2286,6 +2368,9 @@ async function negoFileProposal(c, proposedText, opts = {}){
       `${side === 'counterparty' ? ' (the counterparty\'s wording, recorded in their name)' : ''}` +
       `${opts.via ? ` · received via ${opts.via}` : ''}`);
   }
+  /* The answers ride on the array so every caller that reads `filed` as a
+     list keeps reading exactly the list it always did. */
+  if (readBack) filed.answered = answered;
   return filed;
 }
 
@@ -2305,8 +2390,11 @@ async function negoImportReturnedDocx(c, bytes, opts = {}){
   const text = String((read && read.text) || '');
   if (!text.trim()) throw new Error('That file has no readable wording in it');
   const author = String(opts.author || c.counterparty || 'Counterparty').trim();
+  /* readOurAsks: the file answers OUR open asks before anything of theirs is
+     filed — see negoFileProposal. `answered` is what they decided in Word. */
   const filed = await negoFileProposal(c, text, { side: 'counterparty', author,
-    via: 'a returned Word file' });
+    via: 'a returned Word file', readOurAsks: true });
+  const answered = Array.isArray(filed.answered) ? filed.answered : [];
   const comments = (window.docxComments ? await docxComments(bytes) : []).map(cm => {
     /* ---- A COMMENT THAT NAMES ITS CHG COMES HOME TO IT (11 Sep 2026) ----
        The Word export writes every note on a change with the change's own
@@ -2322,7 +2410,7 @@ async function negoImportReturnedDocx(c, bytes, opts = {}){
     const t = negoTopicForQuote(c, cm.quote || cm.text);
     return { ...cm, topic: t.topic, topicLabel: t.label };
   });
-  return { filed, comments, tracked: (read && read.tracked) || null };
+  return { filed: filed.slice(), answered, comments, tracked: (read && read.tracked) || null };
 }
 /* Which discussion topic a quoted passage belongs to. The same clause keys
    discussTopics hands the composer, derived the same way, so a comment lands
