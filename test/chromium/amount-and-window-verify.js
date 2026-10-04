@@ -207,14 +207,23 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
     });
     check('every proposal is DRAWN, including the ones already on the contract',
       rev.n === 3, String(rev.n));
-    check('A DUPLICATE ARRIVES UNTICKED, and a fresh one is still ticked',
-      JSON.stringify(rev.checked) === JSON.stringify([false, false, true]),
+    /* REVERSED 4 Oct 2026 (process review, f475): every proposal arrives
+       UNTICKED, the fresh one too — the reader ticks what they add. */
+    check('A DUPLICATE ARRIVES UNTICKED, and so does a fresh one',
+      JSON.stringify(rev.checked) === JSON.stringify([false, false, false]),
       JSON.stringify(rev.checked));
     check('and it says why, on the row it is true of',
       rev.reasons.filter(t => /already on this contract/i.test(t)).length === 2,
       JSON.stringify(rev.reasons.map(t => t.slice(0, 42))));
+    check('nothing ticked: the button asks for a tick and is grey',
+      /tick/i.test(String(rev.button)) && !/\d/.test(String(rev.button)), String(rev.button).trim());
+    const ticked = await page.evaluate(() => {
+      const box = document.querySelectorAll('[data-ob-pick]')[2];
+      box.click();
+      return (document.getElementById('or-add') || {}).textContent;
+    });
     check('THE BUTTON COUNTS WHAT WILL ACTUALLY BE ADDED',
-      /\b1\b/.test(String(rev.button)), String(rev.button).trim());
+      /\b1\b/.test(String(ticked)), String(ticked).trim());
 
     const beforeN = await page.evaluate(id => getContract(id).obligations.length, cid);
     await page.evaluate(() => document.getElementById('or-add').click());

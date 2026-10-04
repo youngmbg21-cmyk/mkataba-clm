@@ -684,7 +684,8 @@ function applyContractEssentials(c, values){
   if(!any) return false;
   applyTemplateValues(c, fs, values);
   const em = String(values.cpemail||'').trim();
-  if(em) c.counterpartyEmail = em;
+  /* Into the address book, through its one writer (js/participants.js). */
+  if(em){ if(typeof window!=='undefined' && window.contactSet) window.contactSet(c,{ main:true, email:em }); else c.counterpartyEmail = em; }
   return true;
 }
 Object.assign(window,{CONTRACT_ESSENTIALS,essentialFields,fieldOpt,fieldOptHit,FIELD_GRID_CSS,openContractEssentials,ceWirePreview,applyContractEssentials});

@@ -78,6 +78,9 @@ const DEAL = {
     /* The payload names whoever is sending it, so the stage waits for the
        session to land rather than racing it. */
     await until(page, () => typeof currentUser === 'function' && !!currentUser(), null, 12000);
+    /* AND THE CONTRACT THIS STAGE MINTS ON is on the list, not merely some
+       contract: CI read getContract('MK-S9') as undefined on a busy runner. */
+    await until(page, () => typeof getContract === 'function' && !!getContract('MK-S9'), null, 15000);
 
     /* ===== 1. THE SEND SCREEN OFFERS IT ===== */
     const offered = await page.evaluate(() => ({

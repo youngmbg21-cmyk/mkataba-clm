@@ -308,7 +308,8 @@ describe('f341 (5) — two arrival tiles open the card that owns their reading',
 
   test('the whole tile is the press, and it is a real button', () => {
     const b = fnBody(CONTRACT_CODE, 'ktTriageStripHtml');
-    assert.match(b, /<button type="button" class="kt-tri-tile is-door" data-kt-tri-go=/,
+    /* 4 Oct 2026 (f475): a stale tile adds `is-stale` to the same button. */
+    assert.match(b, /<button type="button" class="kt-tri-tile is-door[^"]*" data-kt-tri-go=/,
       'a 9px arrow would be a worse target than the control that was there');
   });
 

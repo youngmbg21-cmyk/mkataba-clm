@@ -681,7 +681,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
              open: box(document.querySelector('.rl-idx-open')),
              send: box(document.querySelector('.rl-idx-top .rl-unsent-go')),
              close: box(document.querySelector('.rl-idx-top .rl-close-go')),
-             closeOff: !!document.querySelector('.rl-idx-top .rl-close-go[disabled]'),
+             round: box(document.querySelector('.rl-idx-top .rl-round-at')),
+             roundTag: (document.querySelector('.rl-idx-top .rl-round-at') || {}).tagName || null,
              label: box(document.querySelector('.rl-idx-fk')),
              filter: box(document.querySelector('#rl-cardfilter')),
              cards: document.querySelectorAll('#rl-changes [data-nego-card]').length };
@@ -709,11 +710,13 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('14a it is called Redlines, and says one number',
     idxHead.title && /^Redlines/.test(idxHead.title.text) && !idxHead.open,
     idxHead.title && `${idxHead.title.text} · open marker: ${!!idxHead.open}`);
-  check('14a Close Round sits beside Send all, not on the page head',
-    !!idxHead.close && !!idxHead.send,
-    `send ${!!idxHead.send}, close ${!!idxHead.close}`);
-  check('14a and only ever one of the pair invites a press',
-    idxHead.closeOff === true, `close disabled: ${idxHead.closeOff}`);
+  /* REVERSED 4 Oct 2026 (f471): the round closes itself on the send that
+     hands the table over, so there is no Close round to press. The slot
+     says which round and since when — a fact, not a control. */
+  check('14a the round is said beside Send all, and there is no Close round',
+    !idxHead.close && !!idxHead.send && !!idxHead.round && idxHead.roundTag === 'SPAN'
+      && /^Round \d+/.test(idxHead.round.text),
+    `send ${!!idxHead.send}, close ${!!idxHead.close}, round ${idxHead.round && idxHead.round.text}`);
   /* ---- AND THE PAIR WEARS THE WORKSPACE ACCENT, NOT AMBER (owner-asked
      27 Aug 2026: "green / blue depending on the mode as opposed to orange
      which is out of place") ----
@@ -730,7 +733,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       d.style.color = v; document.body.appendChild(d);
       const out = getComputedStyle(d).color; d.remove(); return out; };
     return { send: bg(q('.rl-idx-top .rl-unsent-go')),
-             close: bg(q('.rl-idx-top .rl-close-go')),
+             close: bg(q('.rl-idx-top .rl-round-at')),
              ink: q('.rl-idx-top .rl-unsent-go')
                ? getComputedStyle(q('.rl-idx-top .rl-unsent-go')).color : null,
              fill: probe(root.getPropertyValue('--accent-fill').trim()),
@@ -738,7 +741,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   });
   /* RE-POINTED 21 Sep 2026 (the reference's head): Send all is the filled
      act and Close round is a QUIET word beside it — no fill of its own. */
-  check('14a Send all is filled with the workspace accent and Close round is quiet',
+  check('14a Send all is filled with the workspace accent and the round is quiet words',
     roundActs.send && roundActs.send === roundActs.fill && roundActs.close === 'rgba(0, 0, 0, 0)',
     `send ${roundActs.send} · close ${roundActs.close} · --accent-fill ${roundActs.fill}`);
   check('14a and neither is the amber this page keeps for work owed',
@@ -747,10 +750,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('14a with white on it, which accent-700 is chosen for',
     roundActs.ink === 'rgb(255, 255, 255)', roundActs.ink);
   check('14a all three sit on one line — the row does not wrap',
-    idxHead.title && idxHead.send && idxHead.close
+    idxHead.title && idxHead.send && idxHead.round
       && Math.abs(idxHead.title.mid - idxHead.send.mid) < 12
-      && Math.abs(idxHead.send.mid - idxHead.close.mid) < 12,
-    idxHead.title && `mids ${idxHead.title.mid} / ${idxHead.send.mid} / ${idxHead.close.mid}`);
+      && Math.abs(idxHead.send.mid - idxHead.round.mid) < 12,
+    idxHead.title && `mids ${idxHead.title.mid} / ${idxHead.send && idxHead.send.mid} / ${idxHead.round && idxHead.round.mid}`);
 
   /* ---- 14b. THE CARD OPENS IN PLACE, AND THAT IS THE RULING ----
      REVERSED IN PLACE, 2 Sep 2026 (owner-ruled): the ⋯ is retired and the

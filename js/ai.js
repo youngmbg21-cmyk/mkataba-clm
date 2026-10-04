@@ -4594,6 +4594,34 @@ function renewalCardHtml(c,opts){
     answer:i18t('rn_ans_'+c.renewalDecision.answer)||c.renewalDecision.answer,
     date:decWhen(c.renewalDecision.at)})):'';
   const settled=!!(dec&&!asking);
+  /* ---- WHAT THE ANSWER STILL OWES, CARRIED UNTIL IT IS DONE (process
+     review, 4 Oct 2026) ----
+     renewalNextStep is the ONE reading. One quiet line under the decision
+     says the next act, and the act itself is a button in the row the card
+     already draws — Start the renewal, Open the draft, Draft the notice —
+     never a new band. A served notice that disagrees with the recorded answer
+     says so in its own line; nothing is changed on the reader's behalf. */
+  let next=null; try{ next=(settled&&typeof window.renewalNextStep==='function')?renewalNextStep(c):null; }catch(_){ next=null; }
+  const nextRef=(next&&next.child)?(window.contractRef?contractRef(next.child):next.child.id):'';
+  const nextLine=!next?'':(
+    next.step==='draft'?i18t('rn_next_draft')
+    :next.step==='send'?i18t('rn_next_send',{ref:nextRef})
+    :next.step==='out'?i18t('rn_next_out',{ref:nextRef})
+    :next.step==='notice'?(
+      (typeof window.noticeMayDraft==='function'&&!noticeMayDraft(c)&&typeof window.noticeWhyLine==='function'&&typeof window.noticeBlockers==='function')
+        ?i18t('rn_next_notice_blocked',{why:noticeWhyLine(noticeBlockers(c))})
+        :i18t('rn_next_notice'))
+    :'');
+  const conflictLine=(next&&next.conflict&&dec&&dec.recorded)?i18t('rn_served_disagrees',{
+    answer:i18t('rn_ans_'+next.conflict)||next.conflict,
+    who:(dec.recorded.by&&dec.recorded.by.name)?dec.recorded.by.name:i18t('rn_somebody'),
+    date:decWhen(dec.recorded.at)}):'';
+  const childBtn=(may&&next&&next.child&&(next.step==='send'||next.step==='out'))
+    ?`<button class="ui-btn ui-btn-sm" data-rn-child="${_aiEsc(next.child.id)}">${
+      i18t(next.answer==='renegotiate'?'rn_open_negotiation':'rn_open_draft')}</button>`:'';
+  /* Start the renewal stands down once renewal paper is already in flight:
+     a second draft is not the next act, opening the one there is. */
+  const startShown=may&&!(next&&next.child);
   return `<section id="renewal-section" class="kt-side-card" style="${BOX}">
     <div style="display:flex;flex-direction:row;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);flex:1">${i18t('rn_title')}</h6>
@@ -4601,7 +4629,8 @@ function renewalCardHtml(c,opts){
         ? `<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${i18t('rn_badge_decided')}</span>`
         : (w.auto?`<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('rn_auto')}</span>`:'')}
     </div>
-    ${settled?decidedBlock:`
+    ${settled?decidedBlock+(conflictLine?`<p data-rn-conflict style="margin:0 0 7px;font-size:var(--t-label);line-height:1.55;color:var(--st-amber-fg)">${_aiEsc(conflictLine)}</p>`:'')
+      +(nextLine?`<p data-rn-next="${_aiEsc(next.step)}" style="margin:0 0 4px;font-size:var(--t-label);line-height:1.55;color:var(--color-text);font-weight:var(--w-label)">${_aiEsc(nextLine)}</p>`:''):`
       <p style="margin:0 0 6px;font-size:var(--t-meta);line-height:1.55;color:${w.missed?'var(--st-ruby-fg)':'var(--color-neutral-700)'}">${_aiEsc(line)}</p>
       ${srcLine?`<p title="${_aiEsc(srcWhy)}" style="margin:0 0 6px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${srcLine}</p>`:''}
       ${fixLine?`<p style="margin:0 0 9px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${fixLine}</p>`:''}
@@ -4623,7 +4652,8 @@ function renewalCardHtml(c,opts){
       ${settled?'':decideRow}
       ${settled&&may?`<button class="ui-btn ui-btn-sm" data-rn-change>${i18t('rn_change')}</button>`:''}
       ${!settled&&may?`<button class="ui-btn ui-btn-sm" data-rn-ask title="${_aiEsc(i18t('rn_not_asked'))}">${a?i18t('rn_again'):i18t('rn_ask')}</button>`:''}
-      ${may?`<button class="ui-btn ui-btn-sm" data-rn-start>${i18t('rn_start')}</button>`:''}
+      ${childBtn}
+      ${startShown?`<button class="ui-btn ui-btn-sm" data-rn-start>${i18t('rn_start')}</button>`:''}
       ${''/* ---- SERVE A NOTICE (S6, 16 Sep 2026) ----
              The third act, and the one the other two cannot do: renewing and
              re-negotiating both start paper, and this ENDS it. Drawn only
@@ -4653,6 +4683,31 @@ function renewalCardHtml(c,opts){
            is the thing this change is for. Its reason is on its hover. */}
     ${!dec&&toLine?`<p title="${_aiEsc(note.why==='none'?i18t('rn_to_none_why'):'')}" style="margin:7px 0 0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);flex:none">${toLine}</p>`:''}
   </section>`;
+}
+/* ---- THE ANSWER STARTS ITS ACT (process review, 4 Oct 2026) ----
+   Recording Renew opens the renewal draft's own dialog (the family's one
+   door, Renewal chosen, the reason carried as its note); Renegotiate opens the
+   same dialog and lands the new draft on its negotiation (openRedlineWorkbench,
+   the one funnel); Let lapse opens the notice desk where a letter can be
+   drafted. Each is the act's existing door — nothing here mints or sends, and
+   cancelling the dialog leaves the answer recorded with the act still owed,
+   which the card then carries (renewalNextStep). */
+function renewalStartPaper(c,answer,why){
+  if(!window.openCreateAmendmentModal){ toast(i18t('rn_start_unavailable'),'err'); return false; }
+  const land=(answer==='renegotiate'&&window.openRedlineWorkbench)
+    ? child=>{ if(!openRedlineWorkbench(child.id)&&window.openWorkspace) openWorkspace(child.id); }
+    : null;
+  openCreateAmendmentModal(c,land,{ relation:'renewal', note:String(why||'').trim() });
+  return true;
+}
+function renewalDecisionAct(c,answer,why){
+  if(!c||(typeof canEdit==='function'&&!canEdit())) return false;
+  if(answer==='renew'||answer==='renegotiate') return renewalStartPaper(c,answer,why);
+  if(answer==='lapse'){
+    if(typeof window.noticeMayDraft==='function'&&noticeMayDraft(c)&&window.openNoticeDialog) return openNoticeDialog(c);
+    return false;   // the card's next line says why no letter can be drafted yet
+  }
+  return false;
 }
 function renderRenewalSection(c){
   const host=document.getElementById('renewal-host'); if(!host) return;
@@ -4703,7 +4758,7 @@ function renderRenewalSection(c){
       confirmLabel:i18t('rn_decide_ok'), multiline:true }) : '';
     if(why==null) return;   // cancelled — nothing is written, nothing is said
     const ok=await contractSetRenewalDecision(c,answer,why);
-    if(ok){ _rnChanging=null; renderRenewalSection(c); }
+    if(ok){ _rnChanging=null; renderRenewalSection(c); renewalDecisionAct(c,answer,why); }
   }));
   /* CHANGE THE DECISION PUTS THE QUESTION BACK — it does not un-record the
      answer. Nothing is written until a new one is chosen, so a mis-press costs
@@ -4712,8 +4767,17 @@ function renderRenewalSection(c){
     _rnChanging=c.id; renderRenewalSection(c);
   });
   host.querySelector('[data-rn-start]')?.addEventListener('click',()=>{
-    if(!window.openCreateAmendmentModal) return toast(i18t('rn_start_unavailable'),'err');
-    openCreateAmendmentModal(c,null,{relation:'renewal'});
+    /* The decided answer decides where the paper lands: renegotiating opens
+       the negotiation on it, renewing opens the draft. Undecided, the draft. */
+    const d=(typeof window.renewalDecisionOf==='function')?renewalDecisionOf(c):null;
+    renewalStartPaper(c,(d&&d.answer)||'renew',(d&&d.why)||'');
+  });
+  /* THE PAPER ALREADY IN FLIGHT — the next act once a renewal is drafted. */
+  host.querySelector('[data-rn-child]')?.addEventListener('click',ev=>{
+    const id=ev.currentTarget.getAttribute('data-rn-child');
+    const d=(typeof window.renewalDecisionOf==='function')?renewalDecisionOf(c):null;
+    if(d&&d.answer==='renegotiate'&&window.openRedlineWorkbench){ openRedlineWorkbench(id); return; }
+    if(window.openWorkspace) openWorkspace(id);
   });
   /* ONE DOOR TO THE LETTER, and it is js/notice.js's own — the same reading
      the overnight desk's row leads with, so the two cannot come to disagree
@@ -4765,4 +4829,4 @@ Object.assign(window,{scanGoTo,aiContractByRef,
   aiKeepStructuralTags,aiStructureOf,aiSplitItems,aiRestoreEmphasis,aiPreserveTypography,aiDropRestatedHeading,
   aiParseProposal,copilotPropose,copilotProposeTemplate,AI_TEMPLATE_RULE,aiProposalCardHtml,aiOpenProposal,aiActiveProposal,
   aiProposalApply,aiProposalDecline,aiProposalToggleEdit,aiWireProposals,aiRefineProposal,aiStepBackIfSummoned,
-  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});
+  AI_SUGGESTIONS,aiStyle,aiSetStyle,aiRestyleLastAnswer,renderAIStyleToggle,buildAssistantContext,aiPortfolioSnapshot,aiPortfolioFigures,aiPortfolioSays,aiWholeBookAsk,aiDegrade,AI_CHAT_STEPS,AI_SNAPSHOT_CAP,AI_GROUND_RULES,AI_STYLE_RULES,AI_DISAMBIG_RULES,AI_PANEL_NAMES,AI_PANEL_TOOL_DESC,AI_DEPENDENTS_TOOL_DESC,AI_COUNTERPARTY_TOOL_DESC,aiInsightsPanels,aiInsightsBrief,aiInsightsTab,LOCAL_AI_TOOLS,_localToolRun,AI_EMPTY_ANSWER,aiWantsHealthReport,aiChipQuestions,KIND_LABEL,SEV_META,SEV_RANK,ai,aiAnswer,aiCards,aiContractCard,aiPush,aiSubmit,aiFmt,AI_WORKLIST_MIN,AI_WORKLIST_LABEL_MAX,aiWorklistHtml,aiCompareTable,aiChatMessages,aiChatContext, aiPageContext, aiPageSays, aiGraphSays, aiScreenContractId,aiRenderServerAnswer,aiLocalClaude,aiLocalGraph,copilotAvailable,copilotAsk,copilotBrainInfo,updateAiBrainPill,localCompareData,_aiEsc,_localAiKey,clearAIHistory,closeAI,minimizeAI,openAI,openFindings,toggleAIExpand,renderAIFeed,renderAISuggest,renderBriefSection,briefMoved,briefMovedHtml,briefReadFootHtml,BRIEF_MOVED_MAX,runContractBrief,runFillBlanks,aiNoteRead,briefMark,briefFactsHtml,runRenewalAdvice,renewalCardHtml,renderRenewalSection,renewalStartPaper,renewalDecisionAct,RN_TONE,renderScanSection,runScanAct,runScan,runScanFor,scanRules,scanUI,scanCanvas,scrollToQuote,quoteNorm,findingQuote,clearQuoteMarks,updateAIBadge,worstSevOf});

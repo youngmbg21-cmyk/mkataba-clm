@@ -1469,10 +1469,14 @@ function deskSuggestedIds(c){
   const out = new Set();
   if (!deskEnforced()) return out;
   const at = (c && c.negotiation && c.negotiation.turnAt) || null;
+  /* A suggestion an earlier send KEPT BACK is still unsent whatever the stamp
+     says (negotiation.keptIds, written by negoHandOver) — without this the
+     second send after it carried it (4 Oct 2026). */
+  const kept = new Set((c && c.negotiation && Array.isArray(c.negotiation.keptIds)) ? c.negotiation.keptIds : []);
   for (const x of (Array.isArray(c && c.changes) ? c.changes : [])){
     if (!x || x.status !== 'pending' || x.authorSide === 'counterparty') continue;
     if (!deskSuggestionOpen(x)) continue;
-    if (at && !(String(x.createdAt || '') > String(at))) continue;
+    if (at && !kept.has(x.id) && !(String(x.createdAt || '') > String(at))) continue;
     out.add(x.id);
   }
   return out;

@@ -266,7 +266,11 @@ const PAINTED = (sel) => {
       check('5g. PRESSING IT really moves the drawer to that panel',
         landed.title.trim().length > 0 && landed.title.trim() !== crumbText.title.trim(),
         `${crumbText.title.trim()} -> ${landed.title.trim()} (${nextKey})`);
-      check('5h. and the position counts up with it', /2\s*(of|av)/i.test(landed.n), landed.n);
+      /* RE-POINTED 4 Oct 2026: this read "2 of", which held only while the
+         approval rules led their group — the rules page leads it now. PIN THE
+         RELATION: the position counts up by one from where the drawer was. */
+      const at = t => Number((/(\d+)\s*(of|av)/i.exec(t) || [])[1]);
+      check('5h. and the position counts up with it', at(landed.n) === at(crumbText.n) + 1, `${crumbText.n} -> ${landed.n}`);
     }
 
     /* ============ 6. THE BUILD TAB GOT THE SAME TREATMENT ============ */

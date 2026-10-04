@@ -220,7 +220,11 @@ describe('F219 — the window, and the card it draws', () => {
 
   test('"Start the renewal" opens the family machinery, not a second creation path', () => {
     const ai = read('js/ai.js');
-    assert.match(ai, /openCreateAmendmentModal\(c,null,\{relation:'renewal'\}\)/);
+    /* RE-POINTED IN PLACE 4 Oct 2026 (f475): the press goes through
+       renewalStartPaper, which still opens THIS dialog with Renewal chosen —
+       now carrying the recorded reason as its note, and landing a
+       renegotiation on its negotiation. */
+    assert.match(ai, /openCreateAmendmentModal\(c,land,\{ relation:'renewal', note:/);
     assert.ok(!/createAmendment\(/.test(ai), 'js/ai.js never mints a contract of its own');
     const fam = read('js/family.js');
     assert.match(fam, /const relOpen = \(opts && isRelation\(opts\.relation\)\) \? opts\.relation : 'amendment';/,

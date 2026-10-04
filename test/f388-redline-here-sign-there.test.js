@@ -545,7 +545,7 @@ describe('f388 (7) the server is the wall', () => {
     const r = await act(W.admin, 'RL-003', hand({ file: { filename: 'RL-003-agreed.docx', content: docx(AGREED) } }));
     assert.equal(r.status, 200, r.text);
     const { DatabaseSync } = require('node:sqlite');
-    const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const db = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     const row = db.prepare('SELECT json FROM contracts WHERE id=?').get('RL-003');
     const c = JSON.parse(row.json);
     c.handover.at = new Date(Date.now() - 12 * 86400000).toISOString();
@@ -560,7 +560,7 @@ describe('f388 (7) the server is the wall', () => {
     await W.admin.json('/api/reminders/run', { method: 'POST', body: {} });
     assert.equal((await ofMine()).length, mine.length, 'and only once for that reminder');
     /* sixty-five days out: the still-live question, once */
-    const db2 = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const db2 = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     const c2 = JSON.parse(db2.prepare('SELECT json FROM contracts WHERE id=?').get('RL-003').json);
     c2.handover.at = new Date(Date.now() - 65 * 86400000).toISOString();
     db2.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c2), 'RL-003');

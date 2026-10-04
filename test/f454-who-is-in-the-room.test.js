@@ -62,8 +62,10 @@ const PORTALWORLD = read('test/portalworld.js');
    tests by forgetting it in both directions on one night. */
 const bare = s => String(s).replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ');
 const MOD = bare(PZ);
+/* PINNED TO THE REGION, not a byte count (re-pointed 4 Oct 2026, f473: the
+   route grew the ask refresh and its 1800-character window cut it short). */
 const ROUTE = bare(SRV.slice(SRV.indexOf("app.post('/api/contracts/:id/here'"),
-  SRV.indexOf("app.post('/api/contracts/:id/here'") + 1800));
+  SRV.indexOf('/* ---------- executed records are immutable')));
 const SRVMODEL = bare(SRV.slice(SRV.indexOf('const SRV_PRESENCE_MS'),
   SRV.indexOf("app.post('/api/contracts/:id/here'")));
 

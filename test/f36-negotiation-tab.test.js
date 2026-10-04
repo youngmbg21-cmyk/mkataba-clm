@@ -377,8 +377,9 @@ describe('accept, reject and undo do what they say to the document', () => {
     assert.match(m.win.docPlainText(m.c), /forty-five \(45\) days/,
       'the wording must actually move');
     assert.match(m.$('.nego-pane.working').textContent, /forty-five \(45\) days/);
-    // and the toast names the fingerprint that was filed
-    assert.match(m.w.toastText(), /#CHG-\d{3} accepted — merged into the clean text · 0x[0-9a-f]{8}…/);
+    // and the toast says so, naming the CLAUSE (4 Oct 2026: it was a bare
+    // toast, which prints nothing; the fingerprint is on the card and the trail)
+    assert.match(m.w.toastText(), /Payment Terms: accepted — now part of the agreed wording/);
   });
 
   test('reject leaves the clause at the baseline, and says so in the document', async () => {

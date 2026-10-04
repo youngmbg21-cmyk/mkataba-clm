@@ -87,7 +87,7 @@ const answer = body => {
       recipient: { name: 'Otieno Kabras', email: 'ops@kabras.example' },
       payload: { v: 1, kind: 'hati-share', org: 'Highland', sharedBy: 'Amina', at: iso(0), docHash: 'h1', purpose: 'negotiate', purposeChosen: 'negotiate',
         contract: { id: 'MK-DW2', name: 'Freight', counterparty: 'X', fields: {}, redlineText: DOC, format: 'text', docText: DOC, versions: [] } } } });
-    const db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const db = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     db.prepare('UPDATE shares SET expires_at=? WHERE token=?').run(iso(1.5), s2.token);
     /* Copilot's answer to their ask, as the round agent files it. */
     const { roundPrepKey } = require('../../js/roundprep.js');

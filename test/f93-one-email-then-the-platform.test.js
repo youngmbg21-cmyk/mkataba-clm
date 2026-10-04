@@ -13,6 +13,11 @@
        (f78 pins the closure; f72 pins the final signed-copy email that
        follows it).
 
+   REVERSED IN PART, 4 Oct 2026 (f478): a round send that HANDS THE TURN to
+   them now asks notify:'turn' — one "it is your turn" email per hand-over.
+   What stays pinned here: the first send delivers the link, the default
+   still notifies, and a round that hands nothing over is quiet.
+
    The quiet round is `notify:false` on the payload refresh — a real send
    (history recorded, the reader's "opened" reset, the round moves) that
    simply delivers no second link. The email stays available when it is a
@@ -156,8 +161,10 @@ describe('F93 — the client: a round onto a standing link asks for quiet', () =
     await s.reshareToLastRecipient(c, { purpose: 'negotiate', shares: [durableShare()] });
     const line = c.audit.map(e => e.detail).join(' | ');
     assert.match(line, /standing link/);
-    assert.match(line, /platform is the channel/);
-    assert.match(line, /emailed once, when the negotiation began/);
+    /* REVERSED 4 Oct 2026 (f478): "one email per negotiation" is gone — a
+       round that hands the turn to them now emails "it is your turn". A quiet
+       refresh is the send that handed NOTHING over, and the line says that. */
+    assert.match(line, /no email went with it/);
     assert.ok(!/NOT emailed/.test(line), 'a quiet round is not an email outage');
   });
 

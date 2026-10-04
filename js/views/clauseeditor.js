@@ -6509,23 +6509,11 @@ function ceWirePage(page){
          is what makes a yes an informed one.
          js/clauselock.js owns both the reading and the act; this presses. */
       case 'handover': {
-        let rows = [];
-        try{ rows = (window.clauseLockMineWaiting && _ceC && _ceClauseId)
-          ? clauseLockMineWaiting(_ceC, _ceClauseId) : []; }catch(_){ rows = []; }
-        const to = rows[0];
-        if (!to || !window.clauseLockHandOver) break;
-        const go = () => {
-          const got = clauseLockHandOver(_ceC, _ceClauseId, to.id);
-          if (!got) return;
-          if (window.persist) try{ persist(_ceC); }catch(_){}
-          if (window.toast) toast(_cet('cl_handed', { who: String(got.name || '') }), 'ok');
-          ceRenderAll();
-        };
-        if (window.confirmDialog){
-          confirmDialog({ title: _cet('cl_hand_over'),
-            message: _cet('cl_hand_title', { who: String(to.name || '') }),
-            confirmLabel: _cet('cl_hand_over') }).then(ok => { if (ok) go(); });
-        } else go();
+        /* js/clauselock.js asks (with a picker where more than one colleague
+           is waiting) and hands over; the paper's own sign presses the same
+           function, so the two doors cannot come to differ. */
+        if (!_ceC || !_ceClauseId || !window.clauseLockHandOverAsk) break;
+        clauseLockHandOverAsk(_ceC, _ceClauseId, () => ceRenderAll());
         break;
       }
       /* ONE PRESS FILES. The act keeps its name — every check and both

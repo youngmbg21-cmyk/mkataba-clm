@@ -230,7 +230,10 @@ describe('f390 (3) — the Requests page and its three rulings', () => {
   });
   test('3e four piles, from the reader\'s chair — a finished request this month is the team\'s last pile', () => {
     const win = ikWorld();
-    assert.equal(Array.from(win.IK_GROUPS).map(g => g[0]).join(','), 'over,nobody,held,fin,old');
+    /* RE-POINTED 4 Oct 2026 (the process review's Requests stream): a request
+       is "drafted, not yet sent" between its draft and its send, and that pile
+       sits after the ones being worked on and before the finished. */
+    assert.equal(Array.from(win.IK_GROUPS).map(g => g[0]).join(','), 'over,nobody,held,drafted,fin,old');
     const past = REQ({ status: 'open', assignee: { id: 'u2', name: 'A' }, promisedAt: isoIn(-2) });
     assert.equal(win.intakeStage(past), 'over', 'a promise that has passed leads');
     assert.equal(win.intakeStage(REQ({ assignee: { id: 'u2', name: 'A' } })), 'held');

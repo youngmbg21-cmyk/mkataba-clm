@@ -3131,6 +3131,17 @@
   .st-fdel{ flex:none; border:0; background:none; cursor:pointer; color:var(--color-neutral-500); display:inline-grid; place-items:center;
     font-size:var(--t-card); line-height:1; padding:0 3px; }
   .st-fdel:hover{ color:var(--st-ruby-dot); }
+  /* THE RULES PAGE (4 Oct 2026): one row per rule — its dot, its name and
+     state, one sentence, the door to where it is set. The st-frow rhythm. */
+  .st-rule-row{ display:flex; align-items:flex-start; gap:9px; padding:9px 2px;
+    border-bottom:1px solid var(--color-divider); font-size:var(--t-meta); }
+  .st-rules > .st-rule-row:last-child{ border-bottom:0; }
+  .st-rule-row > .st-dot{ margin-top:5px; }
+  .st-rule-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .st-rule-name{ font-weight:var(--w-strong); color:var(--color-text); }
+  .st-rule-state{ font-weight:var(--w-body); color:var(--color-neutral-600); }
+  .st-rule-says{ color:var(--color-neutral-600); line-height:1.5; }
+  .st-rule-row > .ui-btn{ flex:none; }
   .st-you{ max-width:620px; }
   /* Below 768 the desktop shell is hidden outright and the phone draws instead
      — its account sheet is where these live there. Said in the stylesheet
@@ -6122,6 +6133,11 @@
      `min-width:0` is what lets a long head elide instead of pushing it off. */
   .kt-tri-hw{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .kt-tri-go{ margin-left:auto; color:var(--accent-ink); font-weight:var(--w-strong); }
+  /* A READING THE WORDING MOVED PAST (4 Oct 2026): the verb "Read again"
+     rides the heading where the arrow sits and never wraps; the tile's edge
+     is amber, the readings table's own tone for "stale". */
+  .kt-tri-tile.is-door.is-stale{ border-color:var(--st-amber-fg); }
+  .kt-tri-tile.is-stale .kt-tri-go{ white-space:nowrap; padding-left:6px; }
   /* ---- TWO LINES, RESERVED, ON EVERY TILE (Young ruled 17 Sep 2026) ----
      The strip was as tall as its tallest tile, so one obligations tile of ten
      lines made four tall empty ones and the card was a different height on
@@ -7989,7 +8005,8 @@
   .hb-ins-pic .hb-sv-trend{stroke-width:6}
   .hb-ins-pic .hb-blocks,.hb-ins-pic .hb-bars{max-height:76px;overflow:hidden;pointer-events:none}
   .hb-ins-f{font-size:var(--t-meta);color:var(--hb-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
-  .hb-ins-acts{display:flex;align-items:center;gap:6px}
+  .hb-ins-acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+  .hb-ins-acts>.hb-ib{margin-left:auto}
   .hb-btn.is-sm{height:var(--ctl-h-sm);padding:0 9px;font-size:var(--t-label)}
   .hb-ins-acts .hb-btn[disabled]{opacity:.55;cursor:default}
   /* YOURS, MEASURED (Young picked it by name, 4 Oct 2026): whose contracts a
@@ -10194,6 +10211,9 @@
   .ap-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2);padding:6px 14px;border-top:1px solid var(--color-divider);font-size:var(--t-label);color:var(--color-neutral-600);}
   /* .ap-go is the small rung since 26 Sep 2026 (the Compact ladder): a row's
      verb wears .ui-btn-sm in the markup and takes no size of its own here. */
+  /* Approve · Refuse · Open on a row this reader may decide (4 Oct 2026):
+     side by side at the right wall, never wrapping. */
+  .ap-acts{display:inline-flex;gap:var(--s-1);white-space:nowrap;}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════
@@ -10888,17 +10908,17 @@
       <div class="nav-section open" data-section="library">
         <div class="nav-section-head static" data-i18n="nav_grp_library">Library</div>
         <div class="nav-section-body">
-          <button data-view="templates" class="nav-item" title="Templates — the paper you draft from: company standards, counterparty paper and HaTi's own" data-i18n-title="nav_templates_title">
+          <!-- ONE DOOR, ONE PAGE (the process review, 4 Oct 2026): the paper
+               and its rulebook are one page — "Our paper", the product's own word
+               for what we draft from ("Templates & standards" wrapped on the
+               rail, and a door's words never wrap) — with
+               the Book, the Templates list and Our standards as its tabs. The
+               second door ("Our standards") went; its view id still opens the
+               Our standards tab, so every link to it still lands. -->
+          <button data-view="templates" class="nav-item" title="Our paper — templates and standards: the paper you draft from, and the clause library and playbook every review checks it against" data-i18n-title="nav_tpl_std_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-tpl"/></svg>
-            <span style="flex:1;" data-i18n="nav_templates">Templates</span><span class="nav-count" data-count="templates"></span>
-          </button>
-          <!-- Our standards moved up here from ADMINISTRATION on 20 Sep 2026: it
-               is the paper's own rulebook and sits beside the paper. Same door. -->
-          <button data-view="playbook" class="nav-item" title="Our standards — the clause library and negotiation playbook every review checks against" data-i18n-title="nav_our_standards_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shield"/></svg>
-            <span style="flex:1;" data-i18n="nav_our_standards">Our standards</span>
+            <span style="flex:1;" data-i18n="nav_tpl_std">Our paper</span><span class="nav-count" data-count="templates"></span>
           </button>
           <!-- THE INTAKE FRONT DOOR (W2-2), MOVED UNDER TEMPLATES (owner-asked
                19 Aug 2026, off a screenshot with the row ringed: "move requests
@@ -10951,25 +10971,11 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-chat"/></svg>
             <span style="flex:1;" data-i18n="nav_advice_desk">Advice Desk</span><span class="nav-count" data-count="advice"></span>
           </button>
-          <!-- Bulk import has a door again, and it is in here rather than in
-               the everyday five. It was retired to the "+ New contract" menu on
-               the reasoning that the three ways a contract gets in belong
-               together — true of DRAFTING one and UPLOADING one, both a single
-               act that ends with a contract on screen a moment later.
-               Importing a back-catalogue is not that: it is a job of work with
-               a queue, a review pass and a Copilot budget, and you come back to
-               it across days. A menu called "+ New contract" is where you go to
-               START one, not where you go to RESUME one — which is the whole
-               case for a door. ADMINISTRATION is the right shelf for it: the
-               fold is for what is reached rarely and by choice, and a
-               back-catalogue import is a setup job, not a daily destination.
-               The menu entry stays; the two doors reach the same page. -->
-          <button data-view="migration" class="nav-item" title="Import contracts — bring a whole back-catalogue in at once, with Copilot extraction and a human review pass" data-i18n-title="nav_import_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-import"/></svg>
-            <span style="flex:1;" data-i18n="nav_import">Import contracts</span><span class="nav-count" data-count="migration"
-              title="Imported contracts still waiting on a human review pass" data-i18n-title="nav_import_count_title"></span>
-          </button>
+          <!-- NO IMPORT DOOR ON THE RAIL (the process review, 4 Oct 2026):
+               importing a portfolio is reached from the upload door
+               ("Upload several (import a portfolio)"), which is where a
+               contract comes in. The page, its route and every other link to
+               it are unchanged; only the second door went. -->
           <button data-view="team" class="nav-item" title="Team" data-i18n-title="nav_team_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cog"/></svg>

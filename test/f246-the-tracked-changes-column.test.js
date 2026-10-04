@@ -161,34 +161,32 @@ describe('f246 (1) — the column names itself, and the name carries the total',
     assert.match(t, /margin-bottom:-1px/, 'sitting ON the head\'s hairline, not above it');
   });
 
-  /* ---- THE ROUND'S TWO ACTS SIT TOGETHER (owner-asked 27 Aug 2026) ---- */
-  test('Send all and Close Round share the head\'s right-hand end', async () => {
+  /* ---- THE ROUND CLOSES ITSELF (4 Oct 2026, reversing 27 Aug's pair) ----
+     Close round was a second act beside Send all that only ever came alive
+     once nothing was left to send — and a round nobody pressed it for never
+     closed, so every send was filed as "Round 1 — sent". A send that hands the
+     table over now starts the next round itself (negoHandOver → negoAdvanceRound),
+     and the slot says which round and since when. f471 pins the behaviour. */
+  test('Send all shares the head\'s right-hand end with the round, said quietly', async () => {
     const p = await bench();
     const top = p.$('.rl-idx-top');
     const send = top.querySelector('.rl-unsent-go');
-    const close = top.querySelector('.rl-close-go');
     assert.ok(send, 'the send is in the head');
-    assert.ok(close, 'and so is the close, from the first change onwards');
-    assert.ok(close.hasAttribute('data-rl-close-round'),
-      'it presses the page\'s own close handler, never a second path');
-    /* ONLY EVER ONE OF THEM IS LIVE. Everything unsent has to travel before a
-       round can be closed, so a live Send all means a dead Close and the pair
-       can never both invite a press. That is the whole reason they may share
-       one dress. */
     assert.equal(send.disabled, false, 'the send is live while something is unsent');
-    assert.equal(close.disabled, true, 'and the close is not');
-    assert.match(close.getAttribute('title'), /answer/i,
-      'and it says why on its hover rather than after the press');
+    assert.equal(top.querySelector('.rl-close-go'), null, 'there is no Close round to press');
+    assert.equal(top.querySelector('[data-rl-close-round]'), null, 'and no second path onto the act');
+    const label = top.querySelector('.rl-round-at');
+    assert.ok(label, 'the round is said in the slot the button had');
+    assert.match(label.textContent, /^Round 1\b/, 'which round');
+    assert.equal(label.tagName, 'SPAN', 'a fact, not a control');
   });
 
-  test('the close is drawn for nobody who may not press it', async () => {
+  test('the round is said only on our seat, where the button stood', async () => {
     const p = await bench();
     const w = p.win;
-    assert.equal(w.rlCloseRoundHtml(p.c, { side: 'counterparty' }), '',
-      'a counterparty answers a round, they do not close one');
-    assert.equal(w.rlCloseRoundHtml(p.c, { readonly: true }), '', 'nor a read-only copy');
-    assert.equal(w.rlCloseRoundHtml({ ...p.c, changes: [] }, {}), '',
-      'and nothing on the table is nothing to close');
+    assert.equal(w.rlRoundLabelHtml(p.c, { side: 'counterparty' }), '',
+      'their page says the round on its own facts row');
+    assert.equal(w.rlCloseRoundHtml(p.c, {}), '', 'and the old builder draws nothing');
   });
 
   /* ---- AND THE PAIR WEARS THE WORKSPACE ACCENT, NEVER AMBER (owner-asked

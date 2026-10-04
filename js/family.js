@@ -813,7 +813,11 @@ function createAmendment(parent, opts={}){
        document starts when it starts. The obligations, because they belong to
        the document that created them. And who signs, because a signature is
        given to one arrangement and last year's signatory may have left. */
-    value: 0, valueType: parent.valueType || 'estimated',
+    /* EMPTY, NOT NOUGHT (the process review, 4 Oct 2026): a 0 read as "this
+       amendment is worth nothing" and the readiness check took it as answered.
+       Absent is the honest answer, so signing asks for it. A non-monetary
+       family stays 0, which is what isMonetary reads for 'none'. */
+    value: (parent.valueType === 'none') ? 0 : null, valueType: parent.valueType || 'estimated',
     status: 'Draft', template: null, source: 'amendment',
     lastAction: (typeof todayStr==='function'?todayStr():''), hash: null, signedAt: null,
     signatory: who, compliance: {},
@@ -825,7 +829,15 @@ function createAmendment(parent, opts={}){
         + (opts.expiry?` — states a term to ${opts.expiry}`:'')
         + (opts.skeleton===false?' — blank page':'') }],
   };
-  if(parent.counterpartyEmail) c.counterpartyEmail = parent.counterpartyEmail;
+  /* The other side's main contact comes with it, through the address book's
+     one writer (js/participants.js), read off the parent's book. */
+  const cpMail = (typeof window.contactEmail==='function') ? window.contactEmail(parent) : String(parent.counterpartyEmail||'');
+  if(cpMail){
+    if(typeof window.contactSet==='function'){
+      const m = window.contactMain ? window.contactMain(parent) : null;
+      window.contactSet(c, { main:true, email:cpMail, ...(m && m.name ? { name:m.name } : {}) });
+    } else c.counterpartyEmail = cpMail;
+  }
   c.redlineText = (opts.skeleton===false)
     ? FAMILY_BLANK_BODY
     : amendmentSkeletonBody(parent, { relation:rel, ordinal:ord, says:opts.says });
@@ -847,6 +859,13 @@ function createAmendment(parent, opts={}){
   state.contracts.unshift(c);
   persist(c);
   const p=getContract(parent.id); if(p) persist(p);
+  /* ---- AND COPILOT READS IT ON ARRIVAL, like every other creation site
+     (the process review, 4 Oct 2026) ----
+     contractArrived claims who was named, puts the address in the book and
+     starts the reading. It does NOT register roomOpenOnTerms — this one still
+     lands on its Document tab (see the note above), which is the owner's
+     ruled exemption. Saved first, then read: the reading flushes the save. */
+  if(window.contractArrived) contractArrived(c);
   return { contract:c };
 }
 
@@ -856,7 +875,8 @@ function createAmendment(parent, opts={}){
    renewal" opens THIS dialog with Renewal chosen rather than growing a second
    creation path — one door, one set of rules, one audit line). Everything
    about the dialog is otherwise unchanged, and a caller that passes nothing
-   still opens on Amendment. */
+   still opens on Amendment. `opts.note` prefills the note box (4 Oct 2026:
+   the renewal card carries its recorded reason here), editable like any. */
 function openCreateAmendmentModal(parent, onDone, opts){
   if(!canEdit()){ toast(i18t('fa_viewers_no_change'),'err'); return; }
   if(!parent) return;
@@ -899,7 +919,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
         <span style="${HINT}" id="am-end-hint">${i18t(TERM_CHANGING.has('amendment')?'fa_end_hint':'fa_end_hint_kept')}</span></label>
 
       <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_note_optional')}</span>
-        <input id="am-note" placeholder="${_famAttr(i18t('fa_note_ph'))}" style="${FLD}"/></label>
+        <input id="am-note" value="${_famAttr(String((opts&&opts.note)||'').slice(0,240))}" placeholder="${_famAttr(i18t('fa_note_ph'))}" style="${FLD}"/></label>
 
       ${''/* THE ONE DECISION THAT WAS LEFT OPEN, PUT ON THE FORM RATHER THAN
              BAKED IN. Blank paper was asked for; the four-line skeleton is what

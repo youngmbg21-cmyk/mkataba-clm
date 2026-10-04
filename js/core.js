@@ -1186,6 +1186,36 @@ async function contractSetHold(c,on,why){
   return true;
 }
 const HOLD_WHY_MAX = 240;
+/* ---- DECLINE AND CLOSE (4 Oct 2026, the process review) ----
+   The Contracts row's "Decline & close" said it closed the deal and only
+   opened the contract — and the room had no general way to close one either:
+   the triage card, the counterparty's own refusal and a handover nobody
+   answered each wrote 'Declined' inline. This is the act for the row, in the
+   archive act's shape (editor-and-up, one English audit line, persist, one
+   'ok' toast) with the hold act's reason: the reason is REQUIRED, because a
+   closed deal with no reason on it is a question for whoever finds it.
+   REFUSED, in words, on paper anybody has signed — EXECUTED_IMMUTABLE is the
+   server's wall for a sealed record; a first signature is this act's own
+   line — and while the agreed words are out with them for signature (their
+   handover is closed from the contract, which reopens it first). */
+async function contractDecline(c,why){
+  if(!c) return false;
+  if(typeof canEdit==='function'&&!canEdit()){ toast(i18t('end_decline_editors'),'err'); return false; }
+  if(c.status==='Declined'){ toast(i18t('end_decline_already'),'warn'); return false; }
+  const signed=c.status==='Signed'||(Array.isArray(c.signatures)&&c.signatures.length>0)
+    ||(Array.isArray(c.signerPlan)&&c.signerPlan.some(s=>s&&s.signed));
+  if(signed){ toast(i18t('end_decline_signed'),'warn'); return false; }
+  if(typeof window.handoverActive==='function'&&window.handoverActive(c)){ toast(i18t('end_decline_out'),'warn'); return false; }
+  const text=String(why==null?'':why).trim().slice(0,HOLD_WHY_MAX);
+  if(!text){ toast(i18t('end_decline_needs_why'),'warn'); return false; }
+  try{ await ensureFull(c); }catch(_){}
+  c.status='Declined'; c.lastAction=todayStr();
+  logAudit(c,'Declined',`Declined and closed by ${(currentUser()||{}).name||'System'} — “${text}”`);
+  persist(c);
+  toast(i18t('end_declined_toast'),'ok');
+  if(window.updateSidebarCounts) updateSidebarCounts();
+  return true;
+}
 async function contractSetArchived(c,on){
   if(typeof canEdit==='function'&&!canEdit()){ toast(i18t('ar_editors_only'),'err'); return false; }
   if(on) c.archived={ at:new Date().toISOString(), by:currentUser().name };
@@ -5633,13 +5663,29 @@ function standingShareFor(shares, contact){
 
    A SIGNING LINK IS NOT A NEGOTIATING CONTACT. It goes to whoever signs, who
    need not be the person the contract is being argued with. */
+/* ---- AND WHOEVER IT WENT TO IS IN THE ADDRESS BOOK (4 Oct 2026) ----
+   The people list (js/participants.js) is the one store of the other side's
+   people. A link sent to an address the book did not hold ADDS that person,
+   in the role the link's purpose means (a signing link → their signer), so
+   the send screen never holds an address the book does not. The first-one-
+   wins rule above is unchanged: only a non-signing send to a contract with no
+   main contact makes them the main contact. Returns whether it did. */
 function shareRememberRecipient(c, info){
   const o = info || {};
-  if (!c || o.purpose === 'sign') return false;
+  if (!c) return false;
   const email = String(o.email || '').trim();
-  if (!email || String(c.counterpartyEmail || '').trim()) return false;
-  c.counterpartyEmail = email;
+  if (!email) return false;
   const name = String(o.name || '').trim();
+  const book = typeof contactSet === 'function';
+  const hasMain = book ? !!contactEmail(c, o.partyId) : !!String(c.counterpartyEmail || '').trim();
+  const main = o.purpose !== 'sign' && !hasMain;
+  if (book){
+    if (main) contactSet(c, { main: true, email, partyId: o.partyId, ...(name ? { name } : {}) });
+    else contactSet(c, { role: contactRoleOfPurpose(o.purpose), email, partyId: o.partyId, ...(name ? { name } : {}) });
+    return main;
+  }
+  if (!main) return false;
+  c.counterpartyEmail = email;
   if (name && !String(c.counterpartyName || '').trim()) c.counterpartyName = name;
   return true;
 }
@@ -5767,6 +5813,13 @@ function contractLeavesDrafting(c, why){
      Guarded on the published name because js/views/contract.js is not on the
      counterparty's script list, and this file is. */
   try{ if(window.triageAndPaint) triageAndPaint(c); }catch(_){}
+  /* ---- AND A REQUEST DRAFTED AS THIS CONTRACT IS DONE (4 Oct 2026) ----
+     A request is "drafted, not yet sent" until its contract goes to the other
+     side; this is that moment. The server closes it on the save that carries
+     the move and mails the person who asked; the page is told here so it says
+     so at once. Guarded: the counterparty's page carries this file, not the
+     Requests page. */
+  try{ if(window.intakeContractSent) intakeContractSent(c); }catch(_){}
   return true;
 }
 async function reshareToLastRecipient(c, opts={}){
@@ -5800,8 +5853,19 @@ async function reshareToLastRecipient(c, opts={}){
   if(!last) throw new Error('This contract has not been shared with anyone yet');
   try{ await ensureFull(c); }catch(_){}
   const docHash=await sha256(canonicalDoc(c));
+  /* Asked before anything is built, while the record still says what is about
+     to leave — see roundTurnMail. */
+  const turn=opts.handOver ? roundTurnMail(c, opts.handOver) : null;
   if(c.status!=='Signed'){ const v=captureVersion(c,'Sent to you',null,{auto:true}); if(v) persist(c); }
   const payload=buildSharePayload(c, docHash, null, { purpose:opts.purpose });
+  /* A RESEND THAT READS AS SIGN IS A SIGNING LINK (4 Oct 2026). Two callers
+     pass no purpose, and on a contract with nothing proposed the payload's
+     reading is 'sign' — so this is a fourth door onto the act, and it asks the
+     one list. Thrown, like every refusal on this path. */
+  if(payload && payload.purpose==='sign'){
+    const no=signLinkRefusal(c);
+    if(no) throw new Error(no.why);
+  }
   /* If this counterparty already has a standing link, refresh THAT rather than
      mint another one: the point of a standing link is that the other side keeps
      one URL for the whole negotiation. A new link is created only when there is
@@ -5839,8 +5903,13 @@ async function reshareToLastRecipient(c, opts={}){
        after that travels through the platform, and the audit line says so
        instead of reading like a mail outage. */
     const quiet=!!r.notifySkipped;
+    /* THE TURN EMAIL WAS ATTEMPTED: its own three outcomes, in mailReport's
+       words — sent, waiting in the outbox, or refused and why. */
+    const turnMail=!!r.turnMail;
     const detail = quiet
-      ? `Round sent to ${who}'s standing link — the platform is the channel; the link was emailed once, when the negotiation began`
+      ? `Round sent to ${who}'s standing link — no email went with it (the turn did not change hands, or this was not a round send)`
+      : turnMail && delivered
+      ? `Round sent to ${who} on their existing link — "it is your turn" emailed`
       : delivered
       ? `Updated version emailed to ${who}${reused?' on their existing link':''}`
       : ch==='email'
@@ -5868,18 +5937,23 @@ async function reshareToLastRecipient(c, opts={}){
     logAudit(c,'Shared',detail+stranded);
     persist(c);
     return { share:r, recipient:last, reused:!!reused, delivered, quiet, channel:ch,
+             turnMail, outbox:!!r.outbox,
              /* The caller says this on screen too — an audit line nobody opens
                 is not a warning. */
              stranded:!!stranded,
              link:r.link||null, emailConfigured:r.emailConfigured!==false, emailError:r.emailError||null };
   };
   if(live){
-    /* ONE EMAIL PER NEGOTIATION, and this is the line that keeps the promise:
-       a round-send onto an existing standing link refreshes the copy behind
-       the URL the counterparty already holds and posts nothing. The first
-       send — the POST below, when no link exists yet — is the one that emails,
-       because it is the one delivering a link. */
-    const r=await api('shares/'+live.token+'/payload','PUT',{ payload, notify:false });
+    /* ONE "IT IS YOUR TURN" EMAIL PER HAND-OVER (4 Oct 2026, reversing "one
+       email per negotiation"). A round send that hands the table to them
+       (opts.handOver, asked by roundTurnMail with negoHandOver's own
+       question) refreshes their standing link AND tells them, once, naming
+       who sent it and what moved. Anything else — a send that hands nothing
+       over, a caller that is not a round send — refreshes in silence as
+       before. The first send (the POST below) still delivers the link. */
+    const r=await api('shares/'+live.token+'/payload','PUT', turn
+      ? { payload, notify:'turn', turn }
+      : { payload, notify:false });
     reachTake(c, r);
     /* AND EVERY OTHER STANDING LINK ON THIS CONTRACT, quietly. The quiet
        catch-up already refreshes all of them on a decision, so leaving one
@@ -5903,6 +5977,36 @@ async function reshareToLastRecipient(c, opts={}){
   reachTake(c, r);
   return record(r||{}, false);
 }
+/* ---- WILL THIS SEND HAND THE TURN TO THEM, AND WHAT MOVED (4 Oct 2026) ----
+   Asked BEFORE the send, because the email rides the same request as the
+   refresh (one request: the turn email goes only if the round really left).
+   The question is negoHandOver's own guard, read and never written: a hand-over
+   happens unless the turn is already theirs with nothing of ours unsent.
+   null = nothing is handed over, so nothing is emailed.
+   `h.sentAnyway`/`h.released`: a batch door just lifted a solo send's hold, so
+   those drafts travel although the arithmetic reads them as sent.
+   The counts: our asks leaving now (held-back drafts excluded), our decisions
+   on their asks since the last hand-over, and our shared notes since then.
+   Read RAW off c.negotiation/c.changes where nothing exists yet, so counting
+   never starts a negotiation. */
+function roundTurnMail(c, h){
+  const opt=(h && typeof h==='object') ? h : {};
+  const n=c && c.negotiation;
+  const at=(n && n.turnAt) || '';
+  let unsent=[];
+  if(n && window.negoUnsentAsks){ try{ unsent=negoUnsentAsks(c,'owner')||[]; }catch(_){ unsent=[]; } }
+  if(n && n.turn==='counterparty' && !unsent.length && !opt.sentAnyway) return null;
+  const held=new Set((n && window.negoHeldBackIds) ? (negoHeldBackIds(c)||[]) : []);
+  const asks=unsent.filter(x=>x && !held.has(x.id)).length + (Number(opt.released)||0);
+  const decided=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x && x.authorSide==='counterparty'
+    && (x.status==='accepted'||x.status==='rejected') && x.resolvedAt && String(x.resolvedAt)>String(at)).length;
+  let notes=0;
+  const walk=list=>{ for(const m of (Array.isArray(list)?list:[]))
+    if(m && m.side==='owner' && m.visibility==='shared' && String(m.at||'')>String(at)) notes++; };
+  walk(c.thread);
+  for(const x of (Array.isArray(c.changes)?c.changes:[])) if(x) walk(x.thread);
+  return { changes:asks+decided, notes };
+}
 /* ---- A FRESH LINK FOR A ROUND ALREADY SENT (27 Sep 2026, the "No link to
    sign" agent) ----
    The round send and then the hand-over, the two steps the negotiation page's
@@ -5919,7 +6023,7 @@ function roundHandedOver(c, by){
   return moved;
 }
 async function resendRoundFresh(c, opts={}){
-  const out=await reshareToLastRecipient(c, { ...opts, purpose:'negotiate' });
+  const out=await reshareToLastRecipient(c, { ...opts, purpose:'negotiate', handOver:true });
   roundHandedOver(c, opts.by);
   return out;
 }
@@ -5942,12 +6046,76 @@ async function resendRoundFresh(c, opts={}){
    signers), and { missingEmails } where it should but the plan is incomplete —
    the caller decides whether to fall back to the hand-typed dialog, because
    only the caller knows whether an owner is watching. */
+/* ============================================================
+   ONE CHECK BEFORE A SIGNING LINK LEAVES (the process review, 4 Oct 2026)
+   ============================================================
+   A signing link was minted by four doors — the send screen on Sign, the
+   route card's "Email their signing link", issueSigningAct (the room head,
+   the Negotiate page, Copilot's work, the phone) and the round resend when
+   its purpose reads as sign — and each asked its own subset: the send screen
+   asked the desk, the review, the approvals and the address; the others asked
+   only the personal approval. So the same contract could be refused at one
+   door and sent from the next, and a link sent round the check met it a day
+   later at the counterparty's Sign.
+
+   THIS IS THE ONE LIST, and every door asks it. A door that opens a dialog
+   may still open it; what it may not do is ask a different question. In
+   order: the hold, the desk, the review (your own posture, then the gate),
+   the named person's yes, the approval rules, the check before signing at
+   this workspace's gate (signCheckLinkHolds — js/signgate.js, the server's
+   own function), and — where the door names a signer — that the address is
+   theirs. The desk, the rules and the check are asked BEFORE signing has
+   begun, as the server asks them: once our signatures are on, issuing the
+   next signer's link is the route carrying itself.
+
+   Returns null, or { kind, why } with the sentence to say. The server refuses
+   the same things at POST /api/shares (the wall); this is the screen saying so
+   before a request is spent finding out. */
+function signLinkRefusal(c, opts={}){
+  if(!c) return null;
+  const ask=f=>{ try{ return f()||null; }catch(_){ return null; } };
+  const executed=ask(()=>window.negoExecuted&&negoExecuted(c)) || String(c.status||'')==='Signed';
+  if(executed) return null;
+  let started=false; try{ started=!!(window.saStarted&&saStarted(c)); }catch(_){ started=false; }
+  if(ask(()=>window.contractOnHold&&contractOnHold(c)))
+    return { kind:'hold', why:i18t('sl_on_hold',{ ref:(window.contractRef?contractRef(c):c.id) }) };
+  if(!started){
+    const desk=ask(()=>window.deskSendBlock&&deskSendBlock(c));
+    if(desk) return { kind:'desk', why:desk };
+  }
+  const actor=ask(()=>window.reviewActorBlockMessage&&reviewActorBlockMessage(c));
+  if(actor) return { kind:'review', why:actor };
+  const gate=ask(()=>window.reviewGateMessage&&reviewGateMessage(c));
+  if(gate) return { kind:'review', why:gate };
+  const sa=ask(()=>window.signApprovalHoldsLinks&&signApprovalHoldsLinks(c));
+  if(sa) return { kind:'signapproval', why:sa };
+  if(!started){
+    const ap=ask(()=>window.approvalState&&approvalState(c));
+    if(ap && ap.required && !ap.ok){
+      const why=(ap.rejected||[]).length ? i18t('sl_appr_refused')
+        : (ap.stale||[]).length ? i18t('sl_appr_stale')
+        : i18t('sl_appr_waiting',{ step:ap.next?ap.next.name:i18t('sl_approval_word'), who:ap.approverLabel||i18t('sl_an_approver') });
+      return { kind:'approval', why };
+    }
+    const held=ask(()=>window.signCheckLinkHolds&&signCheckLinkHolds(c)) || [];
+    if(held.length){
+      const what=held.slice(0,3).map(r=>r.category||'—').join(', ');
+      return { kind:'signcheck', why:i18tn('sl_check_holds', held.length, { n:held.length, what }) };
+    }
+  }
+  if(opts.signerId && opts.email){
+    const row=(typeof signerPlan==='function'?signerPlan(c):[]).find(x=>x&&String(x.id)===String(opts.signerId));
+    const rowMail=String((row&&row.email)||'').trim().toLowerCase();
+    if(rowMail && String(opts.email).trim().toLowerCase()!==rowMail) return { kind:'address', why:i18t('srv_signer_other_address') };
+  }
+  return null;
+}
 async function issueSigningRouteLinks(c){
   if(!API_MODE() || !window.signerPlan) return null;
-  /* NOBODY SIGNS BEFORE THE APPROVAL (23 Sep 2026). The server refuses these
-     links while a personal approval is outstanding; this says so in the
-     approval's own sentence before a request is spent finding out. */
-  try{ const held=window.signApprovalHoldsLinks?signApprovalHoldsLinks(c):null; if(held) return { heldForApproval:held }; }catch(_){}
+  /* THE ONE CHECK FIRST (4 Oct 2026). `heldForApproval` is kept for the
+     callers that read it; `refused` is the whole answer. */
+  { const no=signLinkRefusal(c);
+    if(no) return { refused:no.why, kind:no.kind, ...(no.kind==='signapproval'||no.kind==='approval'?{ heldForApproval:no.why }:{}) }; }
   const cps=signerPlan(c).filter(s=>s && s.party==='counterparty' && !s.signed)
     .slice().sort((a,b)=>(a.order||0)-(b.order||0));
   if(!cps.length) return null;
@@ -5972,6 +6140,11 @@ async function issueSigningRouteLinks(c){
   }
   /* One audit line for the act, naming what actually went and what is held —
      "3 links created" hides exactly the fact the route exists to record. */
+  /* And the round closes, as every signing door closes it — see
+     negoRoundClosesForSigning (4 Oct 2026). */
+  if(links.length && window.negoRoundClosesForSigning){
+    try{ if(negoRoundClosesForSigning(c, (currentUser()||{}).name)) persist(c); }catch(_){}
+  }
   const made=links.filter(x=>!x.reused).length;
   const sent=links.find(x=>x.emailSent);
   if(made || sent){
@@ -6208,7 +6381,12 @@ async function openShareModal(c, opts={}){
                filled box says it is filled. */}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <label><span style="${LBL}">${i18t('co_name')}</span><input id="sh-name" type="text" value="${attr(pre.name)}" placeholder="e.g. Grace Njeri" style="${FLD}"/></label>
-          <label id="sh-email-wrap"><span style="${LBL}">${i18t('co_email_req')}</span><input id="sh-email" type="email" data-prefill-src="${attr(pre.source||'')}" value="${attr(pre.email)}" placeholder="them@company.co.ke" style="${FLD}"/></label>
+          <label id="sh-email-wrap"><span style="${LBL}">${i18t('co_email_req')}</span><input id="sh-email" type="email" data-prefill-src="${attr(pre.source||'')}" value="${attr(pre.email)}" list="sh-email-book" autocomplete="off" placeholder="them@company.co.ke" style="${FLD}"/></label>
+          ${''/* THE ADDRESS BOOK, OFFERED (4 Oct 2026): the box picks from the
+                 people on this contract; a new address typed here is added to
+                 them when the link goes (shareRememberRecipient). */}
+          <datalist id="sh-email-book">${((typeof contactChoices==='function')?contactChoices(c):[]).map(r=>
+            `<option value="${attr(r.email)}">${esc(r.name||'')}</option>`).join('')}</datalist>
           <label id="sh-phone-wrap" class="hidden"><span style="${LBL}">${i18t('co_whatsapp_number')}</span><input id="sh-phone" type="tel" value="${attr(pre.phone)}" placeholder="+254 7…" style="${FLD}"/></label>
         </div>
         ${''/* ---- AND EVERYONE ELSE WHO SHOULD GET IT (Young ruled 21 Sep
@@ -6737,11 +6915,8 @@ async function openShareModal(c, opts={}){
        dialog open on the one screen that has the way forward — the signing
        route's own Edit button sits beside the rows. A row with no address is
        waiting for the one typed here, and stands. */
-    if(purposeSel==='sign' && signerSel && email){
-      const row=(typeof signerPlan==='function'?signerPlan(c):[]).find(x=>x&&String(x.id)===String(signerSel));
-      const rowMail=String((row&&row.email)||'').trim().toLowerCase();
-      if(rowMail && email.trim().toLowerCase()!==rowMail){ toast(i18t('srv_signer_other_address'),'err'); return false; }
-    }
+    /* (The address question is the last row of signLinkRefusal, asked below
+       with everything else a signing link must pass — 4 Oct 2026.) */
     /* A SIGNING LINK IS NOT AN ACKNOWLEDGEABLE RISK.
 
        Everything else on the readiness list is the sender's call — a missing
@@ -6755,20 +6930,14 @@ async function openShareModal(c, opts={}){
        dialog. signDocument refuses this outright rather than warning about it;
        so does this. A negotiation link is unaffected: sending a draft out for
        comment is exactly what happens BEFORE approval. */
+    /* THE ONE ISSUING CHECK (signLinkRefusal, 4 Oct 2026): the desk, the
+       review, the named person's yes, the approval rules, the check before
+       signing and the signer's own address — the list every other door that
+       mints a signing link asks, so this dialog cannot pass what the route
+       card refuses, or the other way round. */
     if(purposeSel==='sign'){
-      /* The personal approval first, in its own sentence — the server
-         refuses this link for the same reason. */
-      let saHeld=null; try{ saHeld=window.signApprovalHoldsLinks?signApprovalHoldsLinks(c):null; }catch(_){ saHeld=null; }
-      if(saHeld){ toast(saHeld,'err'); return false; }
-      let ap=null; try{ ap=(window.approvalState)?window.approvalState(c):null; }catch(_){ ap=null; }
-      if(ap && ap.required && !ap.ok){
-        toast(`This contract needs internal approval before it can go out for signature — ${
-          (ap.rejected||[]).length ? 'an approver refused it'
-          : (ap.stale||[]).length ? 'it changed after it was approved'
-          : `“${ap.next?ap.next.name:'approval'}” is still waiting on ${ap.approverLabel||'an approver'}`
-        }. Send it to negotiate instead, or clear the approval first.`,'err');
-        return false;
-      }
+      const no=signLinkRefusal(c,{ signerId:signerSel, email });
+      if(no){ toast(no.why,'err'); return false; }
     }
     /* AND THE REDLINES' OWN GATE, WHICH BITES EARLIER AND ON THE OTHER PURPOSE.
 
@@ -7055,9 +7224,17 @@ async function openShareModal(c, opts={}){
          excluded — a signature request is not a negotiating turn. */
       /* The address this dialog collected, kept — see shareRememberRecipient
          for why every later Send was re-asking for it. */
-      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name });
+      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name,
+        partyId:((typeof sharePartyPick==='function'&&sharePartyPick(c))||{}).id||undefined });
       if(payloadObj.purpose!=='sign' && c.status!=='Signed' && window.negoHandOver){
         try{ negoHandOver(c, { to:'counterparty', by:currentUser()?.name }); }catch(_){}
+      }
+      /* A SIGNING LINK CLOSES THE ROUND, like Ready to sign and the outside
+         hand-over (4 Oct 2026): the arguing is over and the agreed wording is
+         the baseline the signature rests on. negoRoundClosesForSigning asks
+         negoAdvanceRound, which refuses anything still undecided. */
+      if(payloadObj.purpose==='sign' && window.negoRoundClosesForSigning){
+        try{ negoRoundClosesForSigning(c, currentUser()?.name); }catch(_){}
       }
       /* ONE ACT, TWO DOORS — see contractLeavesDrafting. The line used to live
          here and only here, which is how the round send came to be sending
@@ -7095,7 +7272,8 @@ async function openShareModal(c, opts={}){
         window.open(waShareLink(phone, shareMessageText(c,link,msg,null)),'_blank');
         resultBox(copyBox(link,'WhatsApp opened with the message prefilled. If it didn’t, copy the link below.')); wireCopy();
       } else { resultBox(copyBox(link)); wireCopy(); }
-      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name });
+      shareRememberRecipient(c, { purpose:payloadObj.purpose, email, name,
+        partyId:((typeof sharePartyPick==='function'&&sharePartyPick(c))||{}).id||undefined });
       logAudit(c,'Shared',`Review link ${ch==='link'?'generated':'sent via '+ch} for ${rcptLabel}`);
       if(typeof opts.onSent==='function')
         try{ opts.onSent({ channel:ch, recipient:rcptLabel, link, emailSent:false, emailConfigured:false }); }catch(e){}
@@ -7523,13 +7701,30 @@ function openImportModal(c){
           attached++;
         }
       }
-      logAudit(c,'Negotiation',`Returned Word file ${f.name} read — ${res.filed.length} change${res.filed.length===1?'':'s'} filed`+(attached?`, ${attached} margin comment${attached===1?'':'s'} attached to the discussion`:''));
+      /* WHAT THEY DECIDED IN WORD (4 Oct 2026): our open asks the file
+         answered — accepted where it came back in our words, rejected where it
+         came back as the wording ours replaced. */
+      const answered=Array.isArray(res.answered)?res.answered:[];
+      const yes=answered.filter(x=>x.status==='accepted').length, no=answered.length-yes;
+      logAudit(c,'Negotiation',`Returned Word file ${f.name} read — ${res.filed.length} change${res.filed.length===1?'':'s'} filed`
+        +(answered.length?`, ${yes} of our change${answered.length===1?'':'s'} accepted and ${no} rejected in Word (${answered.map(x=>'#'+x.id+' '+x.status).join(', ')})`:'')
+        +(attached?`, ${attached} margin comment${attached===1?'':'s'} attached to the discussion`:''));
+      /* A RETURNED FILE IS AN ANSWER, and an answer hands the table back —
+         the same negoTurnBack a reply on their link runs, so the turn, the
+         listed version and the trail read alike whichever way they answered. */
+      const any=res.filed.length||answered.length||attached;
+      if(any) negoTurnBack(c, String(c.counterparty||'Counterparty'));
       persist(c);
       closeModal();
-      toast(res.filed.length||attached
-        ? i18tn('co_import_filed', res.filed.length, { name:f.name, n:res.filed.length })
+      toast(any
+        ? (res.filed.length
+            ? i18tn('co_import_filed', res.filed.length, { name:f.name, n:res.filed.length })
+            : i18t('co_import_read',{name:f.name}))
+          + (yes ? i18tn('co_import_accepted', yes, { n:yes }) : '')
+          + (no ? i18tn('co_import_rejected', no, { n:no }) : '')
           + (attached ? i18tn('co_import_comments', attached, { n:attached }) : '')
-        : i18t('co_import_nothing',{name:f.name}));
+          + i18t('co_import_your_turn')
+        : i18t('co_import_nothing',{name:f.name}), 'ok');
       if(state.view==='workspace'&&window.renderWorkspace) renderWorkspace();
       else if(state.view==='redline'&&window.renderRedline) renderRedline();
     }catch(e){
@@ -7697,7 +7892,9 @@ async function applyResponse(c, r, opts={}){
     // than reading like every other verified counterparty signature.
     const unverified = r.verified===false;
     logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${boundRow?` — step ${boundRow.order} of the signing route, on their own bound link`:''}${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}${routeNote}`);
-    toast(`${r.name} has signed — countersignature recorded`);
+    /* NEWS, SAID WHERE THE READER LOOKS (4 Oct 2026): a bare toast prints
+       nothing, so every arrival that moves whose move it is names a kind. */
+    toast(i18t('co_arr_signed',{ who:r.name }),'ok');
     // Last signature on a route ⇒ freeze, seal and distribute automatically.
     const routeDone = window.allSigned && allSigned(c);
     /* THE SAME MOMENT, REACHED WITHOUT A ROUTE. A contract with no signing
@@ -7739,7 +7936,7 @@ async function applyResponse(c, r, opts={}){
     c.comments.push({ author:r.name, role:'Counterparty — Wording accepted', side:'external',
       text:r.comment||'Accepted the current wording. Not yet signed.', at:r.at, ts:fmtDT(r.at) });
     logAudit(c,'Wording accepted',`${who} accepted the current wording without signing`);
-    toast(`${r.name} accepted the wording — ready for signature`);
+    toast(i18t('co_arr_accepted',{ who:r.name }),'ok');
   } else if(r.action==='decisions'){
     /* Answers to individual fingerprinted changes we proposed. Applied through
        negoResolve, so the wording is rebuilt from the accepted set by the same
@@ -7805,7 +8002,13 @@ async function applyResponse(c, r, opts={}){
       text:r.comment||(said+'.'), at:r.at, ts:fmtDT(r.at) });
     if(done.length) logAudit(c,'Negotiation',`${who} decided ${done.length} proposed change${done.length===1?'':'s'} — ${acc} accepted, ${done.length-acc} rejected (${done.map(x=>'#'+x.id+' '+x.status).join(', ')})`);
     negoTurnBack(c, who);
-    toast(said?`${r.name}: ${said}`:`${r.name} answered`);
+    /* The record above keeps its English (a RECORD label keeps English);
+       the reader is told in their own language. */
+    const saidHere=[done.length?i18t('co_arr_decided',{ acc, n:done.length }):'',
+      filed.length?i18tn('co_arr_filed',filed.length,{ n:filed.length }):'',
+      withdrew.length?i18tn('co_arr_withdrew',withdrew.length,{ n:withdrew.length }):'']
+      .filter(Boolean).join('; ');
+    toast(saidHere?i18t('co_arr_answered_said',{ who:r.name, said:saidHere }):i18t('co_arr_answered',{ who:r.name }),'ok');
   } else if(r.action==='ready'){
     /* ONE PRESS, ONE CALL. "Ready to sign" carries whatever decisions were
        still held on their page AND the readiness signal, in a single response.
@@ -7896,7 +8099,7 @@ async function applyResponse(c, r, opts={}){
     negoTurnBack(c, who);
     logAudit(c,'Ready to sign',`${who} signalled ready to sign via the negotiation link`
       +`${parts.length?` — ${parts.join('; ')}`:''}. Nothing is signed: issue a signing link to take it forward.`);
-    toast(`${r.name} is ready to sign — issue a signing link`);
+    toast(i18t('co_arr_ready',{ who:r.name }),'ok');
   } else if(r.action==='changes'){
     c.comments.push({ author:r.name, role:'Counterparty — Changes requested', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
     c.rounds=c.rounds||[];
@@ -7937,7 +8140,7 @@ async function applyResponse(c, r, opts={}){
           baseText:base, roundN:c.rounds.length, notes, via:'the counterparty’s link' });
       }catch(e){ /* the round is filed either way — the fingerprints are the bonus, not the record */ }
     }
-    toast(`${r.name} requested changes — review in Negotiation`);
+    toast(i18t('co_arr_changes',{ who:r.name }),'ok');
   } else if(r.action==='decline'){
     c.status='Declined';
     c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
@@ -8446,4 +8649,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,contractDecline});

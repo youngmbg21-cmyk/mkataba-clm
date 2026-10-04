@@ -38,7 +38,7 @@ describe('f423 (1)–(3) — the server sends the order, and nothing else about 
     h = await startHati();
     W = await seedWorkspace(h, { approvalRules: [] });
     const { DatabaseSync } = require('node:sqlite');
-    db = () => new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    db = () => (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     const c = fixtureContract('MK-SO1', 'Supply Agreement', 'Juno Limited', FOLDER_A, 480000, 'Under Review', DOC);
     c.signerPlan = ROUTE.map(r => ({ ...r }));
     await W.admin.json('/api/contracts/' + c.id, { method: 'PUT', body: { contract: c, baseVersion: 0 } });

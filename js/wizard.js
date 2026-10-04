@@ -468,7 +468,9 @@ function createFromWizard(tid, vars, opts){
     numbering:'live' };
   // the blanks ARE the database: every value lands on the contract AND in
   // c.metadata, with no separate data-entry step
-  if(cpEmail) c.counterpartyEmail=cpEmail;
+  /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK through its one writer
+     (js/participants.js), which keeps the record's copy in step. */
+  if(cpEmail){ if(window.contactSet) contactSet(c,{ main:true, email:cpEmail }); else c.counterpartyEmail=cpEmail; }
   applyTemplateValues(c, vars, values);
   if(t.valueType==='none'){ c.value=0; c.valueType='none'; }
   c._loaded=true; c._light=false; c._v=0;
@@ -527,10 +529,10 @@ function wzFieldHtml(v){
    share dialog when you pressed Send. Three times for one fact, in one
    sitting. Once it is on the contract the strip never appears and the send
    goes straight out. */
-function wzEmailHtml(){
+function wzEmailHtml(val){
   return `<label style="display:block;">
     <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${i18t('wz_their_email')}</span>
-    <input id="wz-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="${WZ_ST}"/></label>`;
+    <input id="wz-cpemail" type="email" value="${String(val||'').replace(/[&"<>]/g,ch=>({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[ch]))}" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="${WZ_ST}"/></label>`;
 }
 /* THE ANSWER STEP, MOUNTED IN SOMEBODY ELSE'S FRAME. The New agreement
    pop-up hosts a built-in template's questions in its right-hand card; the
@@ -542,7 +544,7 @@ function wizardFormMount(o, tid, prefill){
   const t=TEMPLATES[tid]; if(!t || !o || !o.host) return null;
   const vars=(prefill && typeof draftApplyPrefill==='function')
     ? draftApplyPrefill(templateVars(tid), prefill) : templateVars(tid);
-  o.host.innerHTML=`<div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')};">${vars.map(wzFieldHtml).join('')}${wzEmailHtml()}</div>`;
+  o.host.innerHTML=`<div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')};">${vars.map(wzFieldHtml).join('')}${wzEmailHtml(prefill&&prefill.cpemail)}</div>`;
   if(typeof bindFolderSelect==='function')
     vars.filter(v=>v.type==='stream').forEach(v=>{
       const el=document.getElementById('wz-'+String(v.key).replace(/[:]/g,'_'));

@@ -67,11 +67,14 @@ describe('f409 — the approval rules, on the server', () => {
     return cl.raw('/api/contracts/' + id, { method: 'PUT', body: { contract: next, baseVersion: v } });
   };
   const signOurs = c => ({ ...c, signerPlan: c.signerPlan.map(s => s.party === 'internal' ? { ...s, signed: true, signedAt: '2026-09-27T10:00:00Z' } : s) });
+  /* A refusal carries its reason since 4 Oct 2026 (f466): the wall refuses
+     one without, so the helper writes one the way a press would. */
   const decide = (c, ruleId, status, by) => {
     const rule = RULES.find(r => r.id === ruleId);
     const chain = (c.approvalChain || []).filter(s => s.ruleId !== ruleId);
     chain.push({ ruleId, name: rule.name, approver: rule.approver, order: rule.order, status, by,
-      at: '2026-09-27T09:00:00Z', stamp: status === 'approved' ? stampOf(c) : null });
+      at: '2026-09-27T09:00:00Z', stamp: status === 'approved' ? stampOf(c) : null,
+      comment: status === 'rejected' ? 'The cap is below our floor.' : null });
     return { ...c, approvalChain: chain };
   };
 

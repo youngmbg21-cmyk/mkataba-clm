@@ -36,7 +36,7 @@ describe('f403 — what goes with a deleted contract', () => {
     h = await startHati();
     W = await seedWorkspace(h);
     const { DatabaseSync } = require('node:sqlite');
-    db = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    db = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
   });
   after(async () => { try { db.close(); } catch (_) {} await h.stop(); });
 

@@ -99,7 +99,7 @@ describe('F63 — answers held on the page survive a reload', () => {
     b.open();
     assert.equal(b.last(), null, 'remembering an answer is not sending it');
     const badge = b.$(`[data-nego-card="${filed[0].id}"] .rl-badge`);
-    assert.match(badge.textContent, /held/, 'and the card still says so in words');
+    assert.match(badge.textContent, /not yet sent/, 'and the card still says so in words');
   });
 
   test('answers to several changes all come back', async () => {

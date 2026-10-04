@@ -323,7 +323,7 @@ describe('F-C — every Copilot exchange leaves a record', () => {
     // answer must arrive; the row is lost and warned about, and that is the
     // designed trade — the log serves the answer, never the other way round.
     const { DatabaseSync } = require('node:sqlite');
-    const raw = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const raw = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     raw.exec('PRAGMA busy_timeout = 5000');
     raw.exec('ALTER TABLE copilot_log RENAME TO copilot_log_hidden');
     try {
@@ -344,7 +344,7 @@ describe('F-C — every Copilot exchange leaves a record', () => {
 
   test('another org\'s rows never come back', async () => {
     const { DatabaseSync } = require('node:sqlite');
-    const raw = new DatabaseSync(path.join(h.dataDir, 'hati.db'));
+    const raw = (d => (d.exec('PRAGMA busy_timeout = 5000'), d))(new DatabaseSync(path.join(h.dataDir, 'hati.db')));
     raw.exec('PRAGMA busy_timeout = 5000');
     raw.prepare(`INSERT INTO copilot_log (at, org_id, user_id, user_email, question, answer, cited_ids, tools_used, quote_drops, model, steps)
       VALUES (?,?,?,?,?,?,?,?,?,?,?)`)

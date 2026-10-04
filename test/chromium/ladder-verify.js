@@ -86,7 +86,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
       rightOfHead: head ? r.left >= head.getBoundingClientRect().left : null };
   }, staged.c4);
   check('1a the round chip is drawn on the clause head', !!chip && chip.seen && chip.inTop, chip && JSON.stringify(chip));
-  check('1b it says the round, whose move, and what it stands on', !!chip && /R3/.test(chip.text) && /R2/.test(chip.text), chip && chip.text);
+  check('1b it says the round, whose move, and what it stands on', !!chip && /Step 3/.test(chip.text) && /step 2/.test(chip.text), chip && chip.text);
   check('1c it is a door onto the clause panel', !!chip && chip.door === staged.c4);
   check('1d it takes no line: it sits above the wording, beside the heading', !!chip && chip.aboveBody && chip.rightOfHead);
   const overlap = await page.evaluate(cid => {
@@ -119,7 +119,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   });
   check('2a the press opens the clause panel', !!panel.open);
   check('2b the ladder is drawn in it, every move plus R0', panel.has && panel.rows.length === 4, JSON.stringify(panel.rows.map(r => r.n)));
-  check('2c each move says what it stands on', panel.rows.filter(r => /R\d/.test(r.on)).length >= 2, JSON.stringify(panel.rows.map(r => r.on)));
+  check('2c each move says what it stands on', panel.rows.filter(r => /[Ss]tep \d/.test(r.on)).length >= 2, JSON.stringify(panel.rows.map(r => r.on)));
   check('2d the figure track reads the whole argument', /12/.test(panel.track) && /24/.test(panel.track) && /6/.test(panel.track) && /18/.test(panel.track), panel.track);
   const lst = await page.evaluate(() => {
     const ol = document.querySelector('.rl-ladder');
@@ -147,7 +147,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   }, staged.c4);
   check('3a Read as it stood redraws that clause at that move', atR2.pinned && atR2.words !== before, atR2.words.slice(0, 90));
   check('3b it draws that move as marks against the move below it', atR2.dels > 0 && atR2.ins > 0, `del ${atR2.dels} ins ${atR2.ins}`);
-  check('3c the chip says so and is the way back', /R2/.test(atR2.chip) && atR2.back, atR2.chip);
+  check('3c the chip says so and is the way back', /step 2/i.test(atR2.chip) && atR2.back, atR2.chip);
   await page.screenshot({ path: OUT + '/03-readat.png' });
   await page.click(`#rl-doc .rl-clause[data-clause="${staged.c4}"] .rl-rung`);
   await pause(350);
@@ -315,7 +315,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     return { tags, ons, accepts: document.querySelectorAll('[data-rl-rung-accept]').length };
   });
   check('10a a parked ask is marked as countered', parked.tags.some(t => /counter/i.test(t)), JSON.stringify(parked.tags));
-  check('10b and it names the move that answers it', parked.ons.some(l => l.some(x => /together with R/i.test(x))), JSON.stringify(parked.ons));
+  check('10b and it names the move that answers it', parked.ons.some(l => l.some(x => /together with step/i.test(x))), JSON.stringify(parked.ons));
   check('10c no press is offered that the model would refuse', parked.accepts === 0, 'accept verbs ' + parked.accepts);
   /* ---- 11 · THE KEYBOARD REACHES THE LADDER ----
      A door that only a mouse can open is half a door. */
@@ -494,7 +494,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   check('18c2 Discard is ruby, and the verb beside it is not',
     !!d18.discard && /rgb\(190, 18, 60\)|rgb\(1[6-9][0-9], [0-9]+, [0-9]+\)/.test(d18.discard)
     && d18.discard !== d18.send, d18.discard + ' vs send ' + d18.send);
-  check('18d the argued figure is said on the row — the last two rungs as a sentence', !!col18.track4 && /R3/.test(col18.track4) && /6\s*→\s*18/.test(col18.track4) /* their R2 (6) → your R3 (18): the last two rungs */, col18.track4);
+  check('18d the argued figure is said on the row — the last two rungs as a sentence', !!col18.track4 && /Step 3/.test(col18.track4) && /6\s*→\s*18/.test(col18.track4) /* their R2 (6) → your R3 (18): the last two rungs */, col18.track4);
   check('18e the piles carry the artifact\'s names', col18.bands.some(b => /not yet sent/i.test(b)) && col18.bands.some(b => /Awaiting you/i.test(b)), col18.bands.join(' · '));
   /* RE-POINTED 21 Sep 2026: amber is --st-amber-fg, RESOLVED — the redesign moved
      the hex, and the claim is the tone, not a number. */
@@ -590,7 +590,7 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
       tabs, card: !!card && card.getBoundingClientRect().height > 0,
       cardHeads: card ? [...card.querySelectorAll('.k')].map(k => k.textContent.trim()) : [] };
   }, staged.c4);
-  check('21a the chip is on the editor\'s paper too, as a statement', !!ed21.chip && /R3/.test(ed21.chip), ed21.chip);
+  check('21a the chip is on the editor\'s paper too, as a statement', !!ed21.chip && /Step 3/.test(ed21.chip), ed21.chip);
   /* RE-POINTED 28 Sep 2026 (Young picked the save symbol): Done is a drawn
      disk named Save, beside the chip, out of sight until something is typed. */
   check('21b the save symbol sits beside the chip, named Save, hidden until typing', ed21.done === '' && ed21.label === 'Save' && ed21.hidden && ed21.besides, JSON.stringify({ done: ed21.done, label: ed21.label, hidden: ed21.hidden, besides: ed21.besides }));

@@ -77,7 +77,7 @@ describe('F62 — an answer that has not gone is marked on the card', () => {
        the lock that says it has not left this page. */
     const badge = v.card(id).querySelector('.rl-badge');
     assert.match(badge.textContent, /Accepted/, 'the answer is on the card');
-    assert.match(badge.textContent, /held/,
+    assert.match(badge.textContent, /not yet sent/,
       'and so is the half of it the reader does not already believe');
     assert.ok(v.$(`[data-unsent="${id}"]`));
   });

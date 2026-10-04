@@ -126,31 +126,29 @@ describe('f358 (2) a round lands and the readings say they are behind', () => {
 });
 
 /* ---------- 3 · the lanes run on their own beat ---------- */
+/* RE-POINTED 4 Oct 2026 (the process review's Requests stream): the lanes left
+   the browser for the server (runIntakeLanes, driven by f460), so what an open
+   page keeps is a BEAT that re-reads the queue for the bell and the count. */
 describe('f358 (3) the lanes do not wait for somebody to open a page', () => {
-  test('3a there is a sweep, and it is armed at sign-in', () => {
-    assert.ok(/function intakeLaneSweep\(/.test(IK));
+  test('3a the page keeps a beat, armed at sign-in', () => {
+    assert.ok(/function intakeRefresh\(/.test(IK));
     assert.ok(/function intakeSweepStart\(/.test(IK));
-    assert.ok(/setInterval\(intakeLaneSweep/.test(IK), 'and on a beat after that');
+    assert.ok(/setInterval\(intakeRefresh/.test(IK), 'and on a beat after that');
     assert.ok(/intakeSweepStart\(\)/.test(code(CORE)), 'started where the queue is first loaded');
   });
-  test('3b it costs nothing in a workspace with no lanes', () => {
-    const fn = code((IK.match(/async function intakeLaneSweep\(\)\{[\s\S]*?\n\}/) || [''])[0]);
-    const iLanes = fn.indexOf('intakeLanes()');
-    const iLoad  = fn.indexOf('loadIntake');
-    assert.ok(iLanes > 0 && iLoad > iLanes, 'the lanes are read before anything is fetched');
+  test('3b it fetches nothing for somebody who may not draft', () => {
+    const fn = code((IK.match(/async function intakeRefresh\(\)\{[\s\S]*?\n\}/) || [''])[0]);
+    const iMay = fn.indexOf('canEdit()');
+    const iLoad = fn.indexOf('loadIntake');
+    assert.ok(iMay > 0 && iLoad > iMay, 'the chair is asked before anything is fetched');
   });
-  test('3c A RULE THAT FIRES WITHOUT A HUMAN MAY NOT MOVE THE HUMAN', () => {
-    const run = code((IK.match(/async function intakeRunLanes\(\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(/createFromTemplate\(\s*L\.template,\s*\{\s*quiet\s*:\s*true/.test(run),
-      'on a timer this would yank a reader onto a fresh draft, once per request');
+  test('3c A RULE THAT FIRES WITHOUT A HUMAN MAY NOT MOVE THE HUMAN — the server moves nobody', () => {
+    assert.ok(!/intakeRunLanes|createFromTemplate\(/.test(code(IK)), 'no lane runs in a browser');
     const mint = code((APP.match(/function createFromTemplate\(tid, opts\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(/if\(!quiet\)\{[\s\S]*?setView\('workspace'\)/.test(mint), 'quiet skips the navigation');
-    assert.ok(/return c;/.test(mint), 'and hands the contract back instead');
+    assert.ok(/if\(!quiet\)\{[\s\S]*?setView\('workspace'\)/.test(mint), 'quiet still skips the navigation');
   });
-  test('3d it still mints nothing of its own', () => {
-    const run = code((IK.match(/async function intakeRunLanes\(\)\{[\s\S]*?\n\}/) || [''])[0]);
-    assert.ok(!/state\.contracts\.(push|unshift)|nextId\(/.test(run));
-    assert.ok(!/signatures|signDocument|'Signed'/.test(run), 'a lane never signs anything');
+  test('3d the page still mints nothing of its own', () => {
+    assert.ok(!/state\.contracts\.(push|unshift)|nextId\(/.test(code(IK)));
   });
 });
 

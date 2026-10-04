@@ -680,8 +680,15 @@ describe('F273 — auto-triage on upload', () => {
          passed or failed on nothing. The same lesson f178 and f255 are
          already carrying: pin the REGION, never a signature that happens
          to hold today. */
+      /* RE-POINTED IN PLACE 4 Oct 2026 (f475): the repaints moved into
+         triageRepaintSurfaces, which onStep calls and the strip's "Read
+         again" press calls too — the region is both functions. */
       const i = CONTRACT.indexOf('function triageAndPaint(');
-      const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i));
+      const j = CONTRACT.indexOf('function triageRepaintSurfaces(');
+      const w = CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i))
+        + CONTRACT.slice(j, CONTRACT.indexOf('\n}\n', j));
+      assert.match(CONTRACT.slice(i, CONTRACT.indexOf('\n}\n', i)), /triageRepaintSurfaces\(x\)/,
+        'onStep repaints through the one list');
       for (const f of ['renderChecksCard', 'renderKeyTerms', 'renderKeyTermsSide'])
         assert.ok(!new RegExp('window\\.' + f).test(w),
           f + ' is not reached through window — it is not published');
@@ -740,8 +747,11 @@ describe('F273 — auto-triage on upload', () => {
       /* The Checks card and the Obligations tab press one function, and so will
          the next door; teaching each separately is how they come to disagree
          about whether a scan is owed. */
-      const f = OB_SRC.slice(OB_SRC.indexOf('async function runFindObligations'),
-        OB_SRC.indexOf('async function runFindObligations') + 1600);
+      /* RE-POINTED 4 Oct 2026 (f475): the REGION, to the function's own
+         closing brace — a 1600-character slice ran out before the scan once
+         the `fresh` note was added (pin the region, not a byte count). */
+      const f0 = OB_SRC.indexOf('async function runFindObligations');
+      const f = OB_SRC.slice(f0, OB_SRC.indexOf('\n}\n', f0));
       assert.match(f, /triageHeldObligations\(c\)/, 'it asks');
       assert.match(f, /if\(held\.length\)\{ openObligationsReview\(c, held\); return; \}/,
         'and returns BEFORE the scan, which is what stops the second spend');
