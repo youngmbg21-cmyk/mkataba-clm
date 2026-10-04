@@ -26680,3 +26680,41 @@ One reason for "Why they asked" (`negoReasonOf`; Copilot's provenance label is n
 - Discard on a revised, sent change restores the sent version (`negoSentVersionOf`); a confirmed review merges and a blank answer never erases one (`metaMergeReviewed`); their page reads `PORTAL_MODE` as either shape (`rlOnTheirPage`); a ruled line's name drops a stray bracket (`upLeadName`), and so does Copilot's browser guard on `get_obligations` / `get_contract_history`.
 - "Waiting on us" with no desk counts for the contract's owner and admins (`_dkUnclaimedWaiting`, `deskStaleSub` "nobody on our side has taken it yet"). `obligationBand`'s month is the next `OB_MONTH_DAYS` (Copilot's `thisMonth` stays calendar, `_obCalMonth`). The narrow Obligations page and tab say money by direction (`obMoneyWords`), dates through `obDay`, "Nobody owns this" on ours only, and the tab carries Chase, the document's end and the chase; the narrow Requests queue is the colleagues' own, in `intakeStage` order, heading counts the unheld; one chip per standard (`pbBookChipsHtml`). Stale: `ob_roll_committed/_outstanding/_overdue` (inert, both books).
 - Tests: f401–f411; their-markers, review-keeps-typed-terms, discard-keeps-sent, paper-terms-frozen, opening-keeps-your-edit, waiting-on-us-no-desk, narrow-pages verify files. A stage that signs a fixture (all ≥5M) says `seedWorkspace(h, { approvalRules: [] })` unless it is about approval rules.
+
+## THE PROCESS REVIEW'S FIXES (4 Oct 2026)
+
+The owner read the process review (16 findings, published as an artifact) and said "Build all the fixes in one go". Eight streams were built in parallel worktrees and merged onto one branch: requests, signing links, approvals and settings, negotiation, editor/lock/words, readings/renewal/obligations, the other side, and one address book / one way in. Decisions taken without the owner: finding 08's your-turn email reverses "one email per negotiation"; the Advice desk keeps its own page (a paid service with a public portal); stored approval records were NOT merged (a migration under the signing gates, left for a go-ahead); an amendment still lands on the Document tab. Each stream's own map lines, as reported:
+
+## other side (f477,f478)
+- SENT: ONE "IT IS YOUR TURN" EMAIL PER HAND-OVER (4 Oct 2026, reverses one email per negotiation): `roundTurnMail` asks negoHandOver's guard before the send; PUT payload `notify:'turn'` + `turn{changes,notes}`; sender is req.user; `turnMail`/`outbox` via mailReport. Tests: f478, f93.
+- NEGO: A RETURNED WORD FILE ANSWERS OUR ASKS: `negoFileProposal(…,{readOurAsks})`; ours = accepted, prior = rejected 'Rejected in Word', else counter; import runs `negoTurnBack`. Tests: f477.
+## signing links (f463)
+- SIGNING: advise holds an escalated departure (incl. one accepted against moved wording) and the signer's own unread brief — one reading, js/signgate.js (`sgDepartures`, `sgBriefReadOwed`, `sgHolds`), both hosts; hash-based 'readings current' stays the browser's. Tests: f463.
+- SIGNLINKS: `signLinkRefusal` is the ONE issuing check (hold · desk · review · named yes · rules · check · address); every signing-link door asks it; POST /api/shares walls hold/desk/check before signing starts; the counterparty hears `SC_NOT_READY`, our trail 'Signature held'. Tests: f463. Stale: scAcceptedProperly, BRIEF_AT_KEYS.
+## requests (f460,f461)
+- REQUESTS: Raised → server mails editors/admins in scope (`notifyIntakeRaised`, prefs.notifyIntake) + bell kind `request` (`intakeAlertRows`, door `intakeGoTo`). Lanes run on the SERVER (`runIntakeLanes`, `SRV_TEMPLATES` read from js/templates.js), one rule both hosts (js/intakelanes.js `intakeLaneMatch`/`intakeAnswersClean`/`intakeAnswersOnto`). Status `drafted` until the contract leaves Draft (`srvIntakeCloseOn` on PUT; `intakeContractSent` from `contractLeavesDrafting`). Draft it = `openNewAgreement` with `intakePrefillOf`, claimed in `contractArrived` (`intakeClaimDraft`). Stale: `intakeRunLanes`, `intakeLaneSweep`. Tests: f460, f461, requests-reach-the-team-verify.
+## readings/renewal/obligations (f475)
+- OBLIGATIONS: proposals arrive unticked (both doors, one window `openObligationsReview`); `runFindObligations(c,{fresh})` skips the held list.
+- ARRIVAL: a tile older than the wording says so (`triageTiles` stale via `readingStale`, `TRIAGE_STALE_KEYS`); the strip's press re-reads THAT reading (`ktTriageReread`); `obligationsReadAt` is a full ISO time; a day-only stamp reads null on the same day (`READING_DAY_ONLY`). Tests: f475.
+- RENEWAL: an answer starts its act (`renewalDecisionAct`, `renewalStartPaper`); the card carries `renewalNextStep`; a served notice keeps a differing answer as `recorded` (`renewalRecordedOf`).
+## negotiation (f470-f472)
+- COLUMN: Close round → the round label `rlRoundLabelHtml` (`.rl-round-at`); `rlCloseRoundHtml` stub; `.rl-close-go`, `data-rl-close-round`, `ng_close_round_*` STALE.
+- NEW: THE ROUND CLOSES ITSELF: `negoHandOver` → `negoAdvanceRound({auto})` when `negoRoundWasSent`; `roundAt`/`negoRoundSince`; a signing link closes it (`negoRoundClosesForSigning`). Tests: f471.
+- REVIEW: What a send withheld stays unsent: `negotiation.keptIds` (`negoKeptIds`, `negoWithheldNow`), server `rvUnsentOurs` + `rvKeptCarry`. Tests: f470.
+- SHELL: bell kinds suggest / review-back / suggest-back (`reviewReturnedTo`). Tests: f472.
+## approvals/settings (f466,f467)
+- APPROVALS: A rule step and a named yes are asked alike: refusal needs a reason (`approvalRefuseWhy`, `srvApprovalDecisionRefusal`); a due step is mailed after Draft (`ruleStepDue`/`ruleStepTell`), reminded by `runRuleStepReminders`; last step cleared → `ruleChainClearedTell` + bell `ap-cleared` (`approvalRulesCleared`). Tests: f466, approve-from-the-list-verify.
+- OTHER/Approvals: Approve/Refuse on rows this reader may decide via `approvalDecidableNow`/`approvalDecideAsk`; the page itself writes nothing (f344, f466).
+- SETTINGS: Rules page `rules` (`stRulesRows`, read-only) leads The agreement; group `signing`: signcheck · signcap · signfolder · signroute. Tests: f467.
+- CONTRACTS: `contractDecline` is the decline act (reason required; refused on signed paper or while handed over); the row presses `regDeclineAsk`.
+## address book / creation (f479-f481)
+- PEOPLE: ONE ADDRESS BOOK: `contactSet` the one writer, `contactsOf`/`contactEmail` the readers; record/party/route emails are mirrors (`contactFollow`, `contactMirror`); `contactAdopt` in contractArrived; send screen offers `contactChoices`. Tests: f479.
+- ARRIVAL: Upload and amendment arrive (`contractArrived(c,{read})`; read:false = the tick-box). Tests: f480.
+- AMENDMENT: value null, not 0.
+- TEMPLATES: Our paper = `PAPER_TABS` ['book','list','standards'] (`paperTabsHtml`, `paperTabsWire`); view `playbook` is the standards tab, lighting `templates`. Tests: f481.
+- SHELL: No Import or Our standards rail doors (`ct_upload_several`).
+## editor/lock/words (f473)
+- BATON: an ask stays alive while the asker beats — `/here` refreshes the caller's live asks on live locks (json only). `clauseLockHandOverAsk` is the one hand-over act (picker when several asked, first chosen); the rail and the paper's holder sign (`rlLockMineSignHtml`, `data-rl-lock-hand`, delegated) press it. Tests: f473, editor-lock-words-verify.
+- NEGOTIATE: `negoBlanksAsk` answers fill / go / stay; a dismissal stays and does not use up the question.
+- ONE PROPOSAL: a verb on a parked ask warns with `ng_countered_go_counter` and goes to the counter (`rlLinkFocus`). `ng_countered_decide_counter` stale.
+- LADDER: steps are "Step n" (`ng_rung_step`), never R-numbers.
