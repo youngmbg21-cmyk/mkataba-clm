@@ -20171,3 +20171,7 @@ Three things, and only one of them was about width.
   the feature being built was the door: shareIsReadOnly had not been told about
   the 'status' purpose added two commits earlier, which the comment directly
   above it warns about in those words.
+- Noticed, not fixed (4 Oct 2026): nego-redesign-verify check 1 ("a hairline under it and the band measure inside it") fails on unmodified main (ad28d56).
+- Noticed, not fixed (4 Oct 2026): notes-two-rooms-verify fails 2 checks on unmodified main (ad28d56): "it sits between Copilot and the bell" and a run error reading .replace of undefined.
+- Noticed, not fixed (4 Oct 2026): the owner's iPad screenshots show the whole page ~20px wider than the screen; not reproducible on three emulated iPads — likely Safari page zoom or a narrow window. Waiting on the owner.
+- Noticed, not fixed (4 Oct 2026): CLAUDE.md is now ~112 KB, well past its own 80 KB guideline; needs an owner-approved trim.
