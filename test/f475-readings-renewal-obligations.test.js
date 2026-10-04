@@ -105,11 +105,13 @@ describe('f475 (1) a reading the wording moved past says so on the strip', () =>
     c.changes = [{ id: 'x', createdAt: at(2026, 9, 22, 9) }];
     const tiles = win.triageTiles(c);
     const brief = tiles.find(t => t.key === 'brief'), ob = tiles.find(t => t.key === 'oblig');
-    const fill = tiles.find(t => t.key === 'filed');
+    /* "Filed" left the strip on 4 Oct 2026 for "Risks found" — a reading
+       that is re-run free on every scan, so it is never stale either. */
+    const fill = tiles.find(t => t.key === 'risk');
     assert.equal(brief.stale, true, 'the brief is older than the wording');
     assert.equal(ob.stale, true, 'and so is the obligations read');
     assert.ok(brief.detail.startsWith('The wording moved since this was read'), brief.detail);
-    assert.ok(!fill.stale, 'a fact about the record never goes stale');
+    assert.ok(!fill.stale, 'the free risk reading never goes stale');
     c.changes = [{ id: 'x', createdAt: at(2026, 9, 19, 9) }];
     const now = win.triageTiles(c).find(t => t.key === 'brief');
     assert.ok(!now.stale && !/wording moved/.test(now.detail), '[control] nothing moved, nothing said');

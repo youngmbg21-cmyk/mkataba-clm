@@ -321,10 +321,11 @@ describe('F273 — auto-triage on upload', () => {
       /* FIVE SINCE 17 Sep 2026 — the fill reading draws its own, between the
          obligations and FILED. Counted off TRIAGE_HEADS, which IS the tile
          table, rather than typed: a sixth tile cannot leave this claim quietly
-         describing five, and the RISK reading deliberately draws none (it is
-         a step, not a tile — the Checks card is where findings are read). */
+         describing five. REVERSED 4 Oct 2026 (Young: "we replace the
+         automatic scan for 'filed' ... with the risk scan so the scan is
+         never missed"): RISKS FOUND takes Filed's place, still five. */
       assert.equal(tiles.length, Object.keys(win.TRIAGE_HEADS).length, 'one tile per head');
-      assert.ok(!tiles.some(x => x.key === 'risk'), 'and the free reading draws none');
+      assert.ok(tiles.some(x => x.key === 'risk'), 'and the free risk reading now draws its own tile');
       assert.ok(tiles.some(x => x.key === 'fill'), 'the fill reading draws its own');
       const std = tiles.find(x => x.key === 'playbook');
       assert.equal(std.count, (t.steps.playbook.dev || 0) + (t.steps.playbook.miss || 0),
@@ -332,12 +333,16 @@ describe('F273 — auto-triage on upload', () => {
       const ob = tiles.find(x => x.key === 'oblig');
       assert.equal(ob.count, t.steps.oblig.found.length);
     });
-    test('the FILED tile reports and proposes nothing', async () => {
+    test('the RISKS FOUND tile takes Filed\'s place and counts what is still to read', async () => {
       const { win, c } = stage();
       await win.triageRun(c);
-      const filed = win.triageTiles(c).find(x => x.key === 'filed');
-      assert.match(filed.detail, /Supply & Logistics/, 'the stream somebody picked');
-      assert.match(filed.detail, /Wanjiru Kamau/, 'and the owner HaTi stamped');
+      const t = win.triageTiles(c);
+      assert.ok(!t.some(x => x.key === 'filed'), 'Filed is no longer drawn');
+      const risk = t.find(x => x.key === 'risk');
+      assert.ok(risk && risk.ok, 'the scan ran on arrival and has a tile');
+      const open = (win.openFindings ? win.openFindings(c) : []).length;
+      assert.equal(risk.count, open || null, 'its number is the open findings, nothing of its own');
+      assert.equal(risk.headKey, open ? 'tri_t_risk' : 'tri_t_risk_clear', 'and a clean scan says so');
     });
     test('and the SIGNING ROUTE tile is deliberately absent', () => {
       const { win, c } = stage();
@@ -459,11 +464,12 @@ describe('F273 — auto-triage on upload', () => {
       const p = win.triageTiles(c).find(x => x.key === 'playbook');
       assert.ok(!/cut short/i.test(p.detail), 'said only where it happened');
     });
-    test('the filed tile reports the stream and the owner', async () => {
+    test('the risk tile names the worst open risk first', async () => {
       const { win, c } = stage();
       await win.triageRun(c);
-      const f = win.triageTiles(c).find(t => t.key === 'filed');
-      assert.ok(f && f.detail.includes('Wanjiru'), 'the owner already on the record');
+      const f = win.triageTiles(c).find(t => t.key === 'risk');
+      const open = win.openFindings ? win.openFindings(c) : [];
+      assert.ok(f && (!open.length || f.detail.length > 0), 'the detail names what was found');
     });
   });
 
@@ -633,11 +639,12 @@ describe('F273 — auto-triage on upload', () => {
       assert.equal(ob.working, false, 'done is done');
       assert.equal(ob.count, 1);
       assert.equal(t.find(x => x.key === 'brief').working, true, 'the others are not');
-      assert.equal(t.find(x => x.key === 'filed').working, false, 'and filed never works');
+      assert.equal(t.find(x => x.key === 'risk').working, !c.triage.steps.risk && !c.scan,
+        'the risk reading works only until it lands');
     });
     test('three heads per reading, named in ONE table', () => {
       const { win } = world();
-      for (const k of ['brief', 'playbook', 'oblig', 'filed'])
+      for (const k of ['brief', 'playbook', 'oblig', 'risk'])
         for (const st of ['ok', 'no', 'ing'])
           assert.ok(win.TRIAGE_HEADS[k] && win.TRIAGE_HEADS[k][st], k + '.' + st);
       assert.equal((TRI_CODE.match(/headKey:/g) || []).length, 1,

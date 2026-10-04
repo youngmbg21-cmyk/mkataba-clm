@@ -337,8 +337,12 @@ const SEED = t => {
       return { t, acts: e.querySelectorAll('[data-tri-act]').length,
         txt: e.textContent.replace(/\s+/g, ' ') };
     }, undefined, null);
-    check('8f · the FILED tile reports the stream and the owner',
-      !!(detail && detail.t.some(x => /Filed|Arkiverat/.test(x.head) && x.td.includes('·'))),
+    /* RE-POINTED 4 Oct 2026 (Young: "we replace the automatic scan for
+       'filed' ... with the risk scan so the scan is never missed"). The scan
+       ran first on arrival all along; its tile now takes Filed's place. */
+    check('8f · the RISKS FOUND tile takes Filed\'s place and names what it found',
+      !!(detail && !detail.t.some(x => /Filed|Arkiverat/.test(x.head))
+        && detail.t.some(x => /Risks found|No risks found|Risker hittade|Inga risker hittade/.test(x.head))),
       detail && detail.t.map(x => x.head.trim()));
     check('8g · and no tile claims to know who signs',
       !!(detail && !/signing route|signeringsordning/i.test(detail.txt)),

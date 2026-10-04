@@ -26841,3 +26841,16 @@ Tests: f151, f183, f247, f267, f290–f299, f305, f321, f338, f392, f394, f424�
 - SIGNING: `signLinkRefusal` is the ONE issuing check (hold · desk · review · named yes · rules · check · address) at every signing-link door; POST /api/shares walls hold/desk/check; the counterparty hears `SC_NOT_READY`. "Advise" is one reading both hosts (js/signgate.js `sgHolds`). Rule steps: refusal needs a reason, approver mailed when due + reminded (`ruleStepTell`, `runRuleStepReminders`), last cleared → owner told (`ruleChainClearedTell`). Rules page `rules` (`stRulesRows`); group `signing`. `contractDecline` is the decline act. Tests: f463, f466, f467.
 - READINGS AND RENEWAL: a tile older than the wording says so, one press re-reads (`triageReadingStale`, `ktTriageReread`); `obligationsReadAt` full ISO. Obligation proposals arrive UNTICKED. A renewal answer starts its act (`renewalDecisionAct`); the card shows `renewalNextStep`. Tests: f475.
 
+
+## RISKS TO LOOK AT — THE RISK SCAN LIVES IN THE REDLINES CARD (4 Oct 2026)
+
+The owner asked why a risk-scan finding ("No injunctive-relief clause" on an NDA) never became a prepared redline. Answer: Prepare redlines reads only Our standards; the scan is a separate, fixed rule list per template, and the NDA book had no remedies standard. Then: *"shouldnt there be an option to prepare a rebuttal or choice to add language to the contract as redline to cover the potential risk?"* and *"i also think copilot scan is very much hidden."*
+
+Three options were drawn in an artifact for each round. The owner picked by name: **"A pile to look at"** (open risks listed at the foot of the Redlines column, kept after the first redline) with **"Read in place"** (Copilot's wording drawn as tracked changes in the row; "Add to redlines" files it), then ruled **the separate Risk scan panel away** (*"would it make sense to get rid of the risk scan panel and keep it in the redlines card?"* — yes: read in Risk View, act in the Redlines card), then **"Risks found" replaces the Overview's "Filed" tile** (*"so the scan is never missed"*). "Go with your suggestions" settled the four open points: both sources (scan + the brief's watchouts/unusual terms, de-duplicated), the rename "Prepare redlines" → "Draft from our standards", one "Risk scan not run yet · Run it" row on an unscanned contract, and "Add a note instead" on every risk.
+
+Built in js/risks.js. Points worth keeping:
+- The scan already ran first on every arrival (TRIAGE_STEPS[0] = 'risk') and had no tile. Filed only repeated the stream and owner already printed under the title.
+- A filed risk carries the note "Copilot — Risk scan: …" so `negoReasonOf` reads it as provenance; the other side is never shown it as "why we asked". Our seat's row says "from the risk scan" (`riskFromScan`, in `rlRowSubHtml`, both branches).
+- Scan findings about record blanks (`g-*`, anchor `recital`) are not drafted: they are filled on the Overview, and still marked in Risk View and on the sign check.
+- `openCheckPanel(c,'scan')` was Insights' "open this finding" door (pfOpenContract); it now lands on Risk View too, so pfMarkFinding finds no row to blink — said to the owner.
+- The room's Copilot count is now standards departures + every open risk (was: + high findings only), so it equals the Standards tile plus the Risks tile.
