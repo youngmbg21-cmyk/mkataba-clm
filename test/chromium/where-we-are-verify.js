@@ -183,6 +183,24 @@ const press = (page, sel) => page.evaluate(s => { const el = document.querySelec
   await press(page, '#ce-page [data-ce-act="close"], [data-ce-act="close"]');
   await until(page, () => !document.getElementById('ce-clausebody'), null, 3000);
 
+  /* ---- 12 · their Notes panel is ours (Young, 3 Oct 2026: "the notes panel
+     in counterparty should resemble the owner side") ---- */
+  await press(page, '#pt-tab-redlines');
+  const np = await press(page, '#pt-notes-door');
+  await until(page, () => { const p = document.getElementById('pt-notes'); return p && p.classList.contains('open'); });
+  const n12 = await page.evaluate(() => {
+    const p = document.getElementById('pt-notes'), sc = document.getElementById('pt-notes-scrim'), seat = p && p.querySelector('.rl-np-tabs.is-seat .rl-np-tab.on');
+    return { w: p ? Math.round(p.getBoundingClientRect().width) : 0, vw: window.innerWidth, scrim: sc ? !sc.hidden : false,
+      strip: !!(p && p.querySelector('.rl-np-who')), seat: seat ? seat.textContent.replace(/\s+/g, ' ').trim() : null,
+      seatTag: seat ? seat.tagName : null, empty: ((p && p.querySelector('.rl-np-empty b')) || {}).textContent || '' };
+  });
+  check('12a their Notes opens at our drawer\'s width (460, or 92% of a narrow window)', np && n12.w === Math.min(460, Math.floor(n12.vw * 0.92)), JSON.stringify(n12));
+  check('12b and leaves the contract lit, as ours does — no scrim', np && !n12.scrim, JSON.stringify(n12));
+  check('12c their one room is named as our tabs are, with no strip across the panel', np && !n12.strip && !!n12.seat && /\(\d+\)/.test(n12.seat) && n12.seatTag === 'SPAN', JSON.stringify(n12));
+  check('12d an empty room says what is empty, never "on this change" for the whole contract', np && !/on this change/i.test(n12.empty), n12.empty);
+  await page.screenshot({ path: path.join(OUT, '06-their-notes.png') });
+  await press(page, '#pt-notes-close');
+
   /* ---- 6 · a reason after Save ---- */
   await press(page, '#pt-tab-redlines');
   const counter = await press(page, '#rl-changes-col .rl-card [data-rl-cp-editor-row]');

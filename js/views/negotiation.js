@@ -13750,8 +13750,6 @@ function rlCardBodyNotesHtml(c, ch, opts = {}, side = 'owner'){
   const n = negoNoteCounts(c, ch, opts, side);
   const ext = negoRoomIsExternal(room);
   const tabs = tabbed ? rlNpRoomsHtml(c, room, n, opts, side) : '';
-  const who = ext ? i18t('ng_np_who_ext', { who: _ne(other) })
-    : i18t('ng_np_who_int', { org: _ne(us), who: _ne(them) });
   const list = notes.length
     ? notes.map(m => rlNpNoteHtml(m, room, side, other)).join('')
     : `<p class="rl-cb-none">${i18t(ext ? 'ng_np_none_ext' : 'ng_np_none_int')}</p>`;
@@ -13769,7 +13767,7 @@ function rlCardBodyNotesHtml(c, ch, opts = {}, side = 'owner'){
     : `<div class="rl-np-no">${RL_NP_LOCK}<span>${i18t('ng_np_viewer')}</span></div>`;
   return `<div class="rl-cb-notes rl-np" data-rl-np="${_nea(ch.id)}">
     ${tabs}
-    ${rlNpWhoHtml(tabbed, ext, who)}
+    ${tabbed ? '' : rlNpSeatTabHtml(other, notes.length, ext)}
     <div class="rl-cb-list">${list}</div>
     ${foot}
   </div>`;
@@ -16100,6 +16098,20 @@ function rlNpWhoHtml(tabbed, ext, who){
   return `<div class="rl-np-who${ext ? ' out' : ''}">${
     ext ? RL_NP_GLOBE : RL_NP_LOCK}<span>${who}</span></div>`;
 }
+/* THEIR SEAT SAYS ITS ROOM THE WAY OURS DOES (Young, 3 Oct 2026: "the notes
+   panel in counterparty should resemble the owner side"). Our seat names each
+   room as a tab — "Nandi Dairy (2)" — and their seat drew a blue strip across
+   the panel instead ("… reads everything on this tab"). Their one room is now
+   drawn in our tab's own clothes: the other side's name and the count, lit,
+   with who-reads-it on the hover. A span, not a button: one room has nowhere
+   to switch to, and a button that does nothing is a dead door. rlNpWhoHtml
+   stays for a reader with no room row at all and has no caller on either seat. */
+function rlNpSeatTabHtml(other, n, ext){
+  const title = ext ? i18t('ng_np_who_ext', { who: other }) : i18t('ng_np_room_t_int');
+  return `<div class="rl-np-tabs is-seat" role="tablist">
+      <span role="tab" aria-selected="true" class="rl-np-tab on${ext ? ' is-ext' : ''}" title="${_nea(title)}">${_ne(other)} <i>(${n})</i></span>
+    </div>`;
+}
 /* One note. The per-note visibility badge the card used to carry is GONE and
    that is the split paying for itself: every note in a room has the same
    answer, so marking each one is the same fact printed five times. The room
@@ -16461,9 +16473,6 @@ function rlNotesPanelHtml(c, ch, opts = {}){
   const n = negoNoteCounts(c, ch, opts, side);
   const mayWrite = notesMayWrite(c, opts);
   const ext = negoRoomIsExternal(room);
-  const who = ext
-    ? i18t('ng_np_who_ext', { who: _ne(other) })
-    : i18t('ng_np_who_int', { org: _ne(us), who: _ne(them) });
   const tabs = tabbed ? rlNpRoomsHtml(c, room, n, opts, side) : '';
   const list = notes.length
     ? rlNpListHtml(c, ch, notes, room, side, other, opts)
@@ -16500,7 +16509,7 @@ function rlNotesPanelHtml(c, ch, opts = {}){
       ${ch.clauseId ? '<span class="ch" aria-hidden="true">&rsaquo;</span>' : ''}
     </button>
     ${tabs}
-    ${rlNpWhoHtml(tabbed, ext, who)}
+    ${tabbed ? '' : rlNpSeatTabHtml(other, notes.length, ext)}
     <div class="rl-np-list">
       <div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>
       ${list}
@@ -16685,9 +16694,6 @@ function rlChatPanelHtml(c, opts = {}){
   const byRoom = {};
   for (const r of negoNoteRoomList(c, opts, side)) byRoom[r.key] = 0;
   for (const { m } of all){ const k = negoNoteRoomKey(c, m); byRoom[k] = (byRoom[k] || 0) + 1; }
-  const who = ext
-    ? i18t('ng_np_who_ext', { who: _ne(other) })
-    : i18t('ng_np_who_int', { org: _ne(us), who: _ne(them) });
   /* ---- THE BOX IS BACK, AND IT WRITES A NOTE THAT BELONGS TO NO REDLINE
      (owner-asked 2 Sep 2026) ----
      *"you should also be able to tag people and add any notes internally or
@@ -16765,9 +16771,13 @@ function rlChatPanelHtml(c, opts = {}){
         </button>` : ''}
         ${rlNpNoteHtml(m, room, side, other)}
       </div>`).join('')
+    /* THE WHOLE CONTRACT'S EMPTY ROOM SAYS SO (4 Oct 2026): "Nothing has
+       crossed on this change" was the per-change panel's sentence printed on
+       the contract-wide one; and "nothing has been written on this contract"
+       was printed even while the other room held notes */
     : `<div class="rl-np-empty">
-        <b>${i18t(ext ? 'ng_np_none_ext' : 'ng_np_none_int')}</b>
-        <span>${i18t('ng_chat_empty')}</span>
+        <b>${ext ? i18t('ng_chat_none_ext', { who: _ne(other) }) : i18t('ng_chat_none_int')}</b>
+        ${all.length ? '' : `<span>${i18t('ng_chat_empty')}</span>`}
       </div>`);
   return `<div class="rl-np rl-chat" data-rl-chat="${_nea(c.id)}">
     <div class="rl-np-which is-static">
@@ -16780,7 +16790,7 @@ function rlChatPanelHtml(c, opts = {}){
     ${''/* TABBED ON OUR SEAT: the tab row names the room and the line under
            it would be that fact twice. Their seat has no tabs, so the line is
            the one thing naming who reads it. */}
-    ${rlNpWhoHtml(tabbed, ext, who)}
+    ${tabbed ? '' : rlNpSeatTabHtml(other, rows.length, ext)}
     <div class="rl-np-list">
       <div class="rl-np-scope"><i></i>${i18t('ng_np_oldest')}</div>
       ${body}

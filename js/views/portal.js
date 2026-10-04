@@ -2149,7 +2149,10 @@ function portalOpenNotes(o){
   _ptNotesKey=key;
   portalNotesPaint();
   panel.classList.add('open'); panel.setAttribute('aria-hidden','false');
-  if(scrim) scrim.hidden=false;
+  /* NO SCRIM (4 Oct 2026): our drawer leaves the contract lit and pressable
+     (notes-two-rooms-verify: "the scrim does not come up"); theirs now does
+     the same. Escape, the × and the door shut it. */
+  if(scrim) scrim.hidden=true;
   return true;
 }
 function portalNotesClose(){
@@ -3433,6 +3436,10 @@ function portalAlertsStyle(){
     .pt-alerts-x:hover{background:var(--surface-2);color:var(--color-text);}
     .pt-alerts-body{flex:1;min-height:0;overflow-y:auto;padding:10px var(--s-3);}
     .pt-notes-body{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:0;}
+    /* OUR DRAWER'S WIDTH (Young, 3 Oct 2026: "the notes panel in counterparty
+       should resemble the owner side"): the notes face tops at 460, as ours
+       does (RL_RIGHT_W0); the alerts aside keeps its 360. */
+    .pt-alerts.pt-notes{width:min(460px,92vw);}
     .pt-notes-body .rl-np{display:flex;flex-direction:column;min-height:0;flex:1;}
     /* The workbench's own notice cards, printed here instead of folded behind
        a second bell. They are built for a floating stack about 320px wide, so
