@@ -6248,7 +6248,10 @@ function renderIntelDock(){
   dock.querySelectorAll('[data-ig-analyze]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); igAnalyze(b.getAttribute('data-ig-analyze')); }));
   dock.querySelectorAll('[data-ig-choice]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const [t,k]=String(b.getAttribute('data-ig-choice')||'').split(':').map(Number); const m=intel.history[t], c=m&&m.choices&&m.choices[k];
-    if(!c) return; intel.history.push({ role:'user', text:c.label }); igRecipeRun({ acts:c.acts }); renderIntelDock(); updateIntelNote(); }));
+    if(!c) return; intel.history.push({ role:'user', text:c.label });
+    /* a choice on Home's board is that card's recipe, pressed through the board's one applier (work order Part 6) */
+    if(Array.isArray(c.board)&&typeof window.hbChoicePress==='function'){ const out=hbChoicePress(c); if(out) intel.history.push(Object.assign({ role:'assistant', text:out.html }, out.undo?{ undo:out.undo }:{})); renderIntelDock(); return; }
+    igRecipeRun({ acts:c.acts }); renderIntelDock(); updateIntelNote(); }));
   dock.querySelectorAll('[data-ig-saved]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const name=b.getAttribute('data-ig-saved'); intel.history.push({ role:'user', text:name }); igRecipeRun({ acts:[{ open:name }] }); renderIntelDock(); updateIntelNote(); }));
   dock.querySelectorAll('[data-ig-list]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();

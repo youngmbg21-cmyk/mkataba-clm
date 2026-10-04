@@ -64,7 +64,8 @@ describe('F497 (A) — the tools the model is given are the applier\'s', () => {
     assert.equal(Number(/GRAPH_BOARD_ACTIONS_MAX = (\d+)/.exec(SERVER)[1]), w.HB_ACTIONS_MAX);
   });
   test('on the board the model gets the actions instead of the single chart', () => {
-    assert.match(SERVER, /\.\.\.\(onBoard \? \{ actions: GRAPH_BOARD_ACTIONS_SCHEMA \} : \{ chart:/);
+    assert.match(SERVER, /\.\.\.\(onBoard \? \{ actions: GRAPH_BOARD_ACTIONS_SCHEMA[,}]/);
+    assert.match(SERVER, /\} : \{ chart: \{ type: 'object', description: 'Fill ONLY when the request asks for a picture/, 'off the board, the one chart as before');
     assert.match(SERVER, /actions: onBoard \? graphBoardActionsClean\(out\.actions\) : null/);
     assert.match(SERVER, /add_card \{which, recipe, title\}/, 'the board\'s job names its buttons');
   });

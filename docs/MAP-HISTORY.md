@@ -26919,3 +26919,12 @@ A big build is the owner's choice, and any change can be taken back.
 - Found while building: the panel strips buttons and inputs from an answer's text (`IG_UNSAFE_TAGS`, its security wall), so the first version drew text with no buttons. The presses now ride as the message's own parts — `hbTakeMeta()` hands `preview` / `undo` to the message intelAsk pushes, and `igMsgHTML` draws them with `hbPreviewHtml` / `hbUndoHtml` (rows escaped).
 - Undo: ONE store `s.undo` (the last ten board shapes — cards, trail, recipes) and ONE writer, `hbUndoMark`, inside `hbSave`, so every change is caught whatever made it — a press, the free reader or Copilot. Changes made in one go are one step (the step closes on a microtask; test/world.js runs timers at once, which first split one answer into five steps). An answer's Undo goes back to before that answer; Ctrl/⌘+Z on the board takes the last step, never inside a box being typed in. Kept on the person's own board record, so a refresh keeps it; the trim to ten is not said (it holds only their own views).
 - Red at main: f500 8 of 8.
+
+## CHOICES WHEN UNCLEAR (work order Part 6, built 4 Oct 2026 overnight)
+
+The NL4DV pattern. Three known places where the free reader's words can mean more than one thing: "by month" with no date named (end · signed · created), "by value" (value bands · the contract value), and one word matching two or three counterparties ("Juno" → Juno Logistics Ltd, Juno Fresh AB). The work order said "two or three buttons instead of guessing"; the phrase book (the pass mark) and home-board-verify both expect "Show Juno contracts by month" to draw month columns by end date, so the board draws the likeliest reading AND SAYS IT ("Drawn by end date; you may have meant another date:"), with the other readings as presses — NL4DV's own ambiguity widgets do the same (show the default interpretation, offer the alternatives). Nothing is guessed silently.
+
+- The presses are the map's own choice buttons (`m.choices`, drawn by igMsgHTML); a board choice carries `board` actions and its press goes through `hbChoicePress` → `hbBoardApply`, with Undo.
+- Copilot may answer `choices` on the board (up to three, each a label and the board's actions; `graphBoardChoicesClean`); nothing is applied until one is pressed.
+- A clear question offers none (pinned for four questions).
+- Red at main: f501 11 of 11.

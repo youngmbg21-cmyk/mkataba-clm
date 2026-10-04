@@ -4104,6 +4104,12 @@ function hbActionTitle(a){ const t = a && (a.title || (a.recipe && a.recipe.titl
 async function hbBoardTakesChecked(res, retry){
   _hbMeta = null;
   const s = hbS(); if (s.face !== 'board' || !res) return null;
+  /* Copilot was unsure: up to three readings, each a press (nothing applied) */
+  if ((!Array.isArray(res.actions) || !res.actions.length) && Array.isArray(res.choices) && res.choices.length){
+    const ch = res.choices.slice(0, HB_CHOICES_MAX).map(c => ({ label: hbPlainText(c && c.label, 60), board: Array.isArray(c && c.actions) ? c.actions : [] })).filter(c => c.label && c.board.length);
+    if (ch.length){ _hbMeta = { choices: ch }; const own = String(res.answer || '').trim();
+      return _hbE(i18t('hb_ch_copilot_said')) + (own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : ''); }
+  }
   if (!Array.isArray(res.actions) || !res.actions.length){ const u0 = hbUndoTop(); const said = hbBoardTakes(res); return said ? said + hbNoteUndo(u0) : said; }
   const bad = hbActionsCheck(res.actions);
   if (!bad.length) return hbBoardAnswer(res, res.actions, []);
@@ -4124,6 +4130,50 @@ async function hbBoardTakesChecked(res, retry){
   if (ran) lines.push(i18tn('hb_chk_retried', bad.length, { n: _hbN(bad.length) }));
   still.forEach(b => lines.push(i18t(b.a && b.a.do === 'change_card' ? 'hb_chk_not_changed' : 'hb_chk_not_added', { what: hbActionTitle(b.a), why: b.problems.map(p => p.say).join('; ') })));
   return hbBoardAnswer(res, good.concat(fixed), lines);
+}
+/* ============================================================
+   CHOICES WHEN A QUESTION IS UNCLEAR (work order Part 6; the NL4DV pattern)
+   ============================================================
+   The free reader's words can mean more than one thing in three known ways:
+   "by month" with no date named (end · signed · created), "by value" (value
+   bands · the contract value), and one word matching two or three
+   counterparties. The likeliest reading is drawn — and SAID — and the others
+   are presses, drawn with the map's own choice buttons (m.choices); a press
+   applies that recipe through hbBoardApply and can be undone. Copilot may
+   answer the same way (up to three choices, each a list of the board's own
+   actions). A clear question offers none. */
+const HB_CHOICES_MAX = 3;
+function hbAmbiguity(q){
+  const full = ' ' + _hbRcNorm(q) + ' ';
+  const R = hbRecipeRead(q); const choices = []; let say = '';
+  const dateNamed = HB_RC.date.some(([, re]) => re.test(full));
+  if (R && R.split && R.split.by === 'date' && !dateNamed && !['daysToSign', 'rounds', 'payDays', 'live'].includes(R.measure) && !R.trend){
+    ['end', 'signed', 'created'].filter(d => d !== R.split.date).forEach(d => choices.push({ label: i18t('hb_ch_date', { date: i18t('hb_dtn_' + d) }),
+      board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'date', unit: R.split.unit, date: d } } }] }));
+    say = i18t('hb_ch_date_said', { date: i18t('hb_dtn_' + R.split.date) });
+  }
+  if (!choices.length && R && R.split && R.split.by === 'valueBand' && hbMoneyOk() && !/\b(?:value bands?|sizes?|storlek)\b/.test(full)){
+    choices.push({ label: i18t('hb_ch_value'), board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'status' }, measure: 'value', pic: 'blocks' } }] });
+    say = i18t('hb_ch_value_said');
+  }
+  if (!choices.length && typeof igConditions === 'function'){
+    let cq = []; try { cq = igConditions(R ? R.condText : q); } catch (_){ cq = []; }
+    const cp = cq.find(x => x.field === 'counterparty');
+    if (cp){ const names = [...new Set(hbBook(hbS().lens).filter(c => { try { return cp.fn(c); } catch (_){ return false; } }).map(c => String(c.counterparty || '').trim()).filter(Boolean))];
+      if (names.length >= 2 && names.length <= HB_CHOICES_MAX){
+        names.sort().forEach(n => choices.push({ label: i18t('hb_ch_only', { who: n }), board: [{ do: 'filter_board', which: { q: n } }] }));
+        say = i18t('hb_ch_party_said', { word: cp.hit || cp.label, n: names.length }); } }
+  }
+  return choices.length ? { choices: choices.slice(0, HB_CHOICES_MAX), say } : null;
+}
+/* a press on a choice: that recipe, through the one applier, undoable */
+function hbChoicePress(c){
+  if (!c || !Array.isArray(c.board)) return null;
+  _hbMeta = null;
+  const u0 = hbUndoTop();
+  const r = hbBoardApply(c.board);
+  hbNoteUndo(u0);
+  return Object.assign({ html: r.html || _hbE(i18t('hb_ch_nothing')) }, hbTakeMeta());
 }
 /* ---- PREVIEW A BIG BUILD (work order Part 5) ----
    An answer that would add two or more cards, or remove any, is shown as a
@@ -4440,10 +4490,13 @@ function hbAsk(q){
     hbDig(r.key, false);
     if (/^f:/.test(r.key)) return say(_hbE(hbFigSay(r.key.slice(2))), { noPaint: true });
     const D = hbDigData(r.key, s.lens) || { n: 0, title: '' };
+    /* WHEN THE WORDS COULD MEAN MORE THAN ONE THING (work order Part 6): the
+       likeliest reading is drawn and SAID, and the others are presses */
+    let warn = '';
+    if (/^q:/.test(r.key)){ const A = hbAmbiguity(r.key.slice(2)); if (A){ warn += ' ' + _hbE(A.say); _hbMeta = Object.assign(_hbMeta || {}, { choices: A.choices }); } }
     /* THE FREE READER'S CARD IS CHECKED TOO (work order Part 4): no retry —
        it is drawn as asked — and what is wrong with it is said, the same line */
-    let warn = '';
-    if (/^q:/.test(r.key) && D.kind === 'list' && D.n){ try { const pr = hbCardCheck(D, {}, hbPlanSpec(D)); if (pr.length) warn = ' ' + _hbE(i18t('hb_chk_free', { why: pr.map(p => p.say).join('; ') })); } catch (_){ warn = ''; } }
+    if (/^q:/.test(r.key) && D.kind === 'list' && D.n){ try { const pr = hbCardCheck(D, {}, hbPlanSpec(D)); if (pr.length) warn += ' ' + _hbE(i18t('hb_chk_free', { why: pr.map(p => p.say).join('; ') })); } catch (_){ /* the line is a courtesy */ } }
     /* a question about money is answered with the money, not only a count */
     if (D.kind === 'list' && hbMoneyOk() && hbPlan(D).measure === 'value')
       return say(_hbE(i18tn('hb_found_n_value', D.n, { n: _hbN(D.n), what: D.title || '', v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) })) + warn, { noPaint: true });
@@ -4789,4 +4842,5 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,
   HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide,
   HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked,
-  HB_UNDO_MAX, hbShapeOf, hbUndoMark, hbUndoTop, hbUndo, hbNoteUndo, hbUndoHtml, hbTakeMeta, hbPreviewHtml, hbIsBig, hbActionWords, hbBoardAnswer, hbPreviewPress, hbPreviewSettle });
+  HB_UNDO_MAX, hbShapeOf, hbUndoMark, hbUndoTop, hbUndo, hbNoteUndo, hbUndoHtml, hbTakeMeta, hbPreviewHtml, hbIsBig, hbActionWords, hbBoardAnswer, hbPreviewPress, hbPreviewSettle,
+  HB_CHOICES_MAX, hbAmbiguity, hbChoicePress });
