@@ -85,6 +85,11 @@ const check = (name, pass, detail) => {
     await page.waitForTimeout(1500);   /* the columns rise in; photograph them risen */
     await page.screenshot({ path: path.join(OUT, '1-the-shelf.png') });
 
+    /* the day's choice saved EMPTY by an older rule (Young's screenshot after
+       the plain views shipped): Home chooses again on its next paint */
+    const s1e = await page.evaluate(() => { const s = hbS(); s.ins = { day: todayISO(), n: hbInsBookSig(), list: [] }; hbSave(); hbPaintBoard();
+      return document.querySelectorAll('#hm-agents .hb-shelf .hb-ins').length; });
+    check('1e a day\'s choice saved empty is chosen again: the shelf is drawn', s1e >= 1, `${s1e} pictures`);
     /* ================= 2. THE DRIFT, IN HATI'S WORDS ================= */
     const s2 = await page.evaluate(() => { const c = document.querySelector('[data-hb-ins-card="pay"]');
       return c ? { t: c.querySelector('.hb-ins-t').textContent, f: c.querySelector('.hb-ins-f').textContent } : null; });

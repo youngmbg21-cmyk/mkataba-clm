@@ -106,7 +106,7 @@ function hbS(){
             recipe: (hbRecipeClean({ k: p.recipe || {} }).k) || null, split: false, big: !!p.big }
         : { id: String(p.id || ''), kind: p.kind, split: !!p.split, big: !!p.big });
     if (v.ins && typeof v.ins === 'object' && typeof v.ins.day === 'string' && Array.isArray(v.ins.list))
-      s.ins = { day: v.ins.day, n: String(v.ins.n || ''), list: v.ins.list.filter(k => HB_INS_SHAPES.includes(k)).slice(0, HB_INS_MAX),
+      s.ins = { day: v.ins.day, n: String(v.ins.n || ''), v: Number(v.ins.v) || 0, list: v.ins.list.filter(k => HB_INS_SHAPES.includes(k)).slice(0, HB_INS_MAX),
         plain: Array.isArray(v.ins.plain) ? v.ins.plain.filter(k => HB_INS_SHAPES.includes(k)) : [] };
     if (v.insKept && typeof v.insKept === 'object') HB_INS_SHAPES.forEach(k => { if (Number(v.insKept[k]) > 0) s.insKept[k] = Math.min(20, Number(v.insKept[k])); });
     if (v.insOff && typeof v.insOff === 'object') HB_INS_SHAPES.forEach(k => { if (/^\d{4}-\d{2}-\d{2}$/.test(String(v.insOff[k] || ''))) s.insOff[k] = v.insOff[k]; });
@@ -2136,6 +2136,9 @@ const HB_INS = {
   cp:     { q: 'value by counterparty', recipe: { pic: 'blocks', measure: 'value', split: { by: 'counterparty' } } },
 };
 const HB_INS_SHAPES = Object.keys(HB_INS);
+/* the rule the day's pictures were chosen by: raised when the choosing
+   changes, so a choice saved under the old rule is made again at once */
+const HB_INS_V = 2;
 function hbInsKey(k){ return 'q:' + HB_INS[k].q; }
 /* a proposal that needs a picture its words do not name carries the recipe */
 function hbInsRecipeOn(k){
@@ -2234,13 +2237,17 @@ function hbInsightsToday(){
      paint after signing in can come before the server's list replaces the
      one the page started with (measured: same length, different contracts),
      and a contract added later in the day is a different book too. */
-  if (!s.ins || s.ins.day !== day || s.ins.n !== n){
+  /* AND WHEN IT WAS CHOSEN BY AN OLDER RULE, OR CHOSE NOTHING (Young, 4 Oct
+     2026: the shelf stayed empty after the plain views shipped — the day's
+     empty choice, made before them, was kept for the rest of the day). An
+     empty shelf is chosen again on every paint; it costs one reading. */
+  if (!s.ins || s.ins.day !== day || s.ins.n !== n || s.ins.v !== HB_INS_V || !s.ins.list.length){
     const rank = xs => xs.filter(x => x && !hbInsResting(x.shape))
       .map(x => ({ k: x.shape, r: x.score + 0.25 * Math.min(4, s.insKept[x.shape] || 0) })).sort((a, b) => b.r - a.r).map(o => o.k);
     const ranked = rank(HB_INS_SHAPES.map(k => hbInsCandidateMemo(k))).slice(0, HB_INS_MAX);
     /* the places nothing moved enough to fill are filled with plain views */
     const plain = rank(HB_INS_SHAPES.filter(k => !ranked.includes(k)).map(k => hbInsCandidateMemo(k, true))).slice(0, HB_INS_MAX - ranked.length);
-    s.ins = { day, n, list: ranked.concat(plain), plain }; hbSave();
+    s.ins = { day, n, v: HB_INS_V, list: ranked.concat(plain), plain }; hbSave();
   }
   const P = new Set(s.ins.plain || []);
   return s.ins.list.map(k => hbInsCandidateMemo(k, P.has(k))).filter(Boolean);
@@ -2721,5 +2728,5 @@ Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS
   hbDateOf, hbMeasure, hbMeasureOne, hbMeasureFmt, hbBucketOf, hbBucketLabel, hbInBucket, hbTrendOf, hbColsSvg, hbLiveSvg, hbSnapsLoad, hbSnapsSet, hbGroupBars, hbSplitWord, hbPicWord,
   hbRcOptions, hbRecipeRowHtml, hbRecipeSet, hbRecipeClean, hbFoundChart,
   hbRootKey, hbCountKey, hbCountIds, hbCounted, hbCountLabel, hbCountChipHtml, hbAskInPanel,
-  HB_INS, HB_INS_SHAPES, HB_INS_MAX, HB_INS_REST_DAYS, hbInsKey, hbInsChart, hbInsCandidate, hbInsCandidateMemo, hbInsightsToday, hbInsResting, hbInsBookSig,
+  HB_INS, HB_INS_SHAPES, HB_INS_V, HB_INS_MAX, HB_INS_REST_DAYS, hbInsKey, hbInsChart, hbInsCandidate, hbInsCandidateMemo, hbInsightsToday, hbInsResting, hbInsBookSig,
   hbInsThumb, hbInsRowHtml, hbShelfHtml, hbPanelWord, hbAddView, hbViewPanelHtml, hbInsAct, hbKeptSync });

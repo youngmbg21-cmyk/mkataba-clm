@@ -231,6 +231,20 @@ describe('F459 (D) — today\'s insights', () => {
     assert.ok(!/longer|shorter|faster/.test(pay.title));
     assert.equal(w.hbS().ins.list.indexOf('sign') < w.hbS().ins.list.indexOf('pay'), true, 'findings come first');
   });
+  /* Young's screenshot, 4 Oct 2026, after the plain views shipped: still no
+     shelf. The day's choice had been saved EMPTY by the older rule and was
+     kept all day. */
+  test('a day\'s choice saved empty, or by an older rule, is chosen again at once', () => {
+    const w = world();
+    const s = w.hbS();
+    s.insOff = {};
+    s.ins = { day: w.hbToday(), n: w.hbInsBookSig(), list: [] };
+    assert.ok(w.hbInsightsToday().length >= 1, 'an empty saved choice is made again');
+    assert.equal(w.hbS().ins.v, w.HB_INS_V);
+    s.ins = { day: w.hbToday(), n: w.hbInsBookSig(), list: ['sign'] };
+    w.hbInsightsToday();
+    assert.ok(w.hbS().ins.list.includes('pay'), 'a choice saved by the older rule is made again, plain views and all');
+  });
   test('a picture is one press: the thumbnail carries no doors', () => {
     const w = world();
     const c = w.hbInsCandidate('sign');
