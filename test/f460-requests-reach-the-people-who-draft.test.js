@@ -92,7 +92,10 @@ describe('f460 (2)(3) a lane drafts on the server, and the request closes when t
     assert.ok(req.contractId, 'and the request points at its contract');
     cid = req.contractId;
     await pause(400);
-    assert.equal(newMails().length, 0, 'a request a rule drafted in the same breath is not waiting on anybody');
+    /* Only THIS request's mail counts: on a busy machine the earlier stages'
+       "New request" mails can land after the reset above. */
+    assert.equal(newMails().filter(m => /depot visit/.test(String(m.subject))).length, 0,
+      'a request a rule drafted in the same breath is not waiting on anybody');
   });
   test('2b the draft is an ordinary Draft, from the lane\'s template, with the request\'s answers on it', async () => {
     const c = await W.admin.json('/api/contracts/' + cid);
