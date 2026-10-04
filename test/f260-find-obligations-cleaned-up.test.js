@@ -87,8 +87,11 @@ describe('f260 (2) — a duplicate is SHOWN, not hidden', () => {
   test('it is drawn, unticked, with a word saying why', () => {
     /* Never silently dropped: the reader has to be able to see that the scan
        found it AND that they already have it. */
-    assert.match(body, /data-ob-pick="\$\{i\}"\$\{dupe\[i\]\?'':' checked'\}/,
-      'the fresh ones stay ticked; a duplicate arrives unticked');
+    /* REVERSED 4 Oct 2026 (process review, f475): every proposal arrives
+       UNTICKED now, fresh ones too — the rule the map states. */
+    assert.match(body, /<input type="checkbox" data-ob-pick="\$\{i\}" class=/,
+      'no proposal arrives ticked; a duplicate still arrives unticked');
+    assert.ok(!/data-ob-pick="\$\{i\}"[^>]*checked/.test(body), 'no box is drawn checked');
     assert.match(body, /ob_already_on/, 'and says why');
     assert.ok(!/found\.filter\(/.test(body), 'nothing is filtered out of the list');
   });

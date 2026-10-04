@@ -285,8 +285,25 @@ function renewalDecisionOf(c){
      "served". */
   let served = null;
   try{ served = (typeof window !== 'undefined' && window.noticeServed) ? noticeServed(c) : null; }catch(_){ served = null; }
-  if(served) return { answer:'lapse', at:served.at || '', by:served.by || '',
-    expiry:(c && c.expiry) || '', decideBy:served.servedOn, served:true };
+  /* ---- BUT NOT SILENTLY OVER A DIFFERENT ANSWER (process review, 4 Oct
+     2026) ----
+     The served letter still settles the question — it has gone, and the
+     reminders stop — but a recorded Renew or Renegotiate that still answers
+     today's question is no longer swallowed by it. `recorded` carries the
+     other answer so the card says, in its own line, that the two disagree;
+     nothing is changed on the reader's behalf. */
+  if(served){
+    const own = renewalRecordedOf(c);
+    const out = { answer:'lapse', at:served.at || '', by:served.by || '',
+      expiry:(c && c.expiry) || '', decideBy:served.servedOn, served:true };
+    if(own && own.answer !== 'lapse') out.recorded = own;
+    return out;
+  }
+  return renewalRecordedOf(c);
+}
+/* THE RECORDED ANSWER ALONE, served notice aside — the half renewalDecisionOf
+   asks after the letter. Read raw, writes nothing. */
+function renewalRecordedOf(c){
   const d = c && c.renewalDecision;
   if(!d || RENEWAL_ANSWERS.indexOf(d.answer) < 0) return null;
   const q = renewalQuestionOf(c);
@@ -311,6 +328,46 @@ function renewalDecisionStale(c){
    Two screens disagreeing about what the product does is this codebase's most
    expensive fault class, so they ask ONE function. */
 function renewalDecided(c){ return !!renewalDecisionOf(c); }
+
+/* ---- AN ANSWER IS FOLLOWED BY AN ACT (process review, 4 Oct 2026) ----
+   Renew, Renegotiate and Let lapse were written down and started nothing: the
+   renewal draft and the notice were separate presses the card did not connect
+   to the answer. This is the ONE reading of what the recorded answer still
+   owes, so the card can carry that act until it is done:
+     renew / renegotiate — 'draft' (no renewal paper yet), 'send' (a draft is
+       sitting in Drafting), 'out' (it has gone, waiting on them / signature);
+     lapse — 'notice' (the letter is owed), 'served' (it has gone).
+   THE PAPER IS THE FAMILY'S OWN: an unsigned, undeclined child that can move
+   the term (TERM_CHANGING) and was not made before the answer. A signed one
+   moves effectiveExpiry, which changes the question itself — the decision
+   then answers an older deadline and the card says so (renewalDecisionStale).
+   Read raw through `window` with guards: a stage without js/family.js or
+   js/notice.js answers the first step rather than inventing progress. */
+const RENEWAL_PAPER_KINDS = ['renewal', 'amendment', 'variation', 'addendum'];
+function renewalNextStep(c){
+  const d = renewalDecisionOf(c);
+  if(!d) return null;
+  const out = { answer: d.answer, step: null, child: null, conflict: d.recorded ? d.recorded.answer : null };
+  if(d.answer === 'lapse'){
+    let served = null;
+    try{ served = (typeof window !== 'undefined' && window.noticeServed) ? noticeServed(c) : null; }catch(_){ served = null; }
+    out.step = served ? 'served' : 'notice';
+    return out;
+  }
+  let kids = [];
+  try{ kids = (typeof window !== 'undefined' && typeof window.familyChildren === 'function') ? (familyChildren(c.id) || []) : []; }
+  catch(_){ kids = []; }
+  const since = Date.parse(String(d.at || '')) || 0;
+  const madeAt = k => Date.parse(String((k && (k.createdAt || ((k.audit || [])[0] || {}).at)) || '')) || 0;
+  const executed = k => !!(k && (k.status === 'Signed' || k.hash || (k.execution && k.execution.at)));
+  const open = kids.filter(k => k && k.status !== 'Declined' && !k.archived && RENEWAL_PAPER_KINDS.includes(k.relation)
+    && !executed(k) && !(since && madeAt(k) && madeAt(k) < since));
+  if(!open.length){ out.step = 'draft'; return out; }
+  const child = open.slice().sort((a, b) => madeAt(b) - madeAt(a))[0];
+  out.child = child;
+  out.step = child.status === 'Draft' ? 'send' : 'out';
+  return out;
+}
 
 /* ---- WHO THE RENEWAL MAIL ACTUALLY REACHES ----
    The browser twin of the server's `ownerOf` (server/server.js, runReminders),
@@ -1006,7 +1063,7 @@ function obFindBusy(on){
     }
   });
 }
-async function runFindObligations(c){
+async function runFindObligations(c, opts){
   /* ---- A READING ALREADY MADE IS OFFERED, NOT PAID FOR AGAIN (owner-reported
      9 Sep 2026) ----
      Auto-triage reads a received contract on arrival and PROPOSES what it finds
@@ -1021,7 +1078,12 @@ async function runFindObligations(c){
      It ENDS in the same review dialog the scan ends in, so nothing about who
      decides has moved: the reader still ticks. Read through `window`, the
      ES-module rule — a stage without js/triage.js scans exactly as it did. */
-  const held = (typeof window!=='undefined' && typeof window.triageHeldObligations==='function')
+  /* `fresh` IS A PERSON ASKING FOR A NEW READING (process review, 4 Oct 2026):
+     the arrival strip's "Read again" on a tile whose wording has moved. A list
+     held from the OLD wording is exactly what they are asking past, so it is
+     not offered in place of the reading. Absent on every other caller. */
+  const fresh = !!(opts && opts.fresh);
+  const held = (!fresh && typeof window!=='undefined' && typeof window.triageHeldObligations==='function')
     ? triageHeldObligations(c) : [];
   if(held.length){ openObligationsReview(c, held); return; }
   if(obFinding(c)){ obFindBusy(true); return; }
@@ -1055,6 +1117,15 @@ async function runFindObligations(c){
   const _obText = isUpload(c) ? (c.upload&&c.upload.extractedText)||''
     : (window.contractPlainText?contractPlainText(c):'');
   if(_obText && _obText.length>=OBLIG_TEXT_MIN){ obligationsReadStamp(c, _obText); persist(c); }
+  /* A FRESH READING REPLACES WHAT THE ARRIVAL HELD, so the strip's tile and
+     its held list describe the wording just read rather than the old one —
+     still proposed, still unticked, nothing filed. */
+  if(fresh && c.triage && c.triage.steps && c.triage.steps.oblig && c.triage.steps.oblig.ok){
+    c.triage.steps.oblig = { ok: true, found: found.slice(), cut: '' };
+    persist(c);
+    if(typeof window.paintKtTriage === 'function' && document.getElementById('kt-triage-slot')
+      && (!window.contractOnScreen || contractOnScreen(c))) paintKtTriage(c);
+  }
   /* ---- THE ANSWER STAYS WITH ITS OWN CONTRACT (26 Sep 2026, the overnight
      clean-up) ----
      A scan takes seconds. A reader who opened another contract meanwhile got
@@ -1094,7 +1165,7 @@ async function runFindObligations(c){
      refusal needs its way forward on the same screen. */
   if(!found.length){
     toast(i18t('ob_none_found'),'warn',{ action:{ label:i18t('ob_try_again'),
-      onClick:()=>runFindObligations(c) } });
+      onClick:()=>runFindObligations(c, opts) } });
     return;
   }
   openObligationsReview(c, found);
@@ -1122,6 +1193,13 @@ async function runFindObligations(c){
         this product's own rule a bare toast prints nothing, so the act that
         changed the record said nothing on screen. It was hardcoded English
         besides.
+
+   EVERY PROPOSAL ARRIVES UNTICKED (process review, 4 Oct 2026): the comment
+   above named (2) and the box still drew `checked` on every fresh row, so the
+   rule the map states ("proposals arrive unticked") was not what the window
+   did. A proposal is Copilot's claim about the wording; adding it is the
+   reader's act, one tick at a time. Both doors — the arrival's held list and
+   Find obligations — come through this one window, so one box serves both.
 
    A DUPLICATE IS SHOWN, NOT HIDDEN. It arrives unticked with a word saying
    why — never silently dropped, because the reader has to be able to see that
@@ -1171,7 +1249,7 @@ function openObligationsReview(c, found){
       <p class="text-xs text-ink/60 mb-3">${i18t('ob_tick_to_add')}</p>
       <div class="space-y-2 max-h-[45vh] overflow-y-auto scroll-thin mb-4">
         ${found.map((o,i)=>`<label class="flex gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 cursor-pointer${dupe[i]?' opacity-70':''}">
-          <input type="checkbox" data-ob-pick="${i}"${dupe[i]?'':' checked'} class="mt-0.5 h-4 w-4 rounded border-brand-200 accent-brand-700"/>
+          <input type="checkbox" data-ob-pick="${i}" class="mt-0.5 h-4 w-4 rounded border-brand-200 accent-brand-700"/>
           <span class="min-w-0"><span class="block text-[12.5px] font-normal text-ink">${(o.desc||'').replace(/</g,'&lt;')}</span>
           ${dupe[i]
             ? `<span class="block text-[10px] text-gold-700 mt-0.5">${_obEsc(i18t('ob_already_on'))}</span>`
@@ -1983,7 +2061,10 @@ function obligationOnTime(o){
    hash, which is a smaller fact rather than a wrong one. */
 function obligationsReadStamp(c, text){
   if(!c) return null;
-  c.obligationsReadAt = isoDay(new Date());
+  /* A MOMENT, NOT A DAY (process review, 4 Oct 2026): a bare day read a
+     change proposed later that same day as "the wording moved since" — see
+     readingStale, which still answers an old day-only stamp honestly. */
+  c.obligationsReadAt = new Date().toISOString();
   let h = null;
   try{ h = (typeof window.simhash64 === 'function') ? simhash64(String(text || '')) : null; }catch(_){ h = null; }
   if(h) c.obligationsReadHash = String(h); else delete c.obligationsReadHash;
@@ -3347,4 +3428,4 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
   OBW_VIEWS,OBW_CHIPS,obwPlace,obwPlacePut,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
-  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalDecisionStale,renewalDecided,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalRecordedOf,renewalDecisionStale,renewalDecided,RENEWAL_PAPER_KINDS,renewalNextStep,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});

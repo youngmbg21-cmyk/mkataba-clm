@@ -856,7 +856,8 @@ function createAmendment(parent, opts={}){
    renewal" opens THIS dialog with Renewal chosen rather than growing a second
    creation path — one door, one set of rules, one audit line). Everything
    about the dialog is otherwise unchanged, and a caller that passes nothing
-   still opens on Amendment. */
+   still opens on Amendment. `opts.note` prefills the note box (4 Oct 2026:
+   the renewal card carries its recorded reason here), editable like any. */
 function openCreateAmendmentModal(parent, onDone, opts){
   if(!canEdit()){ toast(i18t('fa_viewers_no_change'),'err'); return; }
   if(!parent) return;
@@ -899,7 +900,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
         <span style="${HINT}" id="am-end-hint">${i18t(TERM_CHANGING.has('amendment')?'fa_end_hint':'fa_end_hint_kept')}</span></label>
 
       <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_note_optional')}</span>
-        <input id="am-note" placeholder="${_famAttr(i18t('fa_note_ph'))}" style="${FLD}"/></label>
+        <input id="am-note" value="${_famAttr(String((opts&&opts.note)||'').slice(0,240))}" placeholder="${_famAttr(i18t('fa_note_ph'))}" style="${FLD}"/></label>
 
       ${''/* THE ONE DECISION THAT WAS LEFT OPEN, PUT ON THE FORM RATHER THAN
              BAKED IN. Blank paper was asked for; the four-line skeleton is what

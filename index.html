@@ -6122,6 +6122,11 @@
      `min-width:0` is what lets a long head elide instead of pushing it off. */
   .kt-tri-hw{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .kt-tri-go{ margin-left:auto; color:var(--accent-ink); font-weight:var(--w-strong); }
+  /* A READING THE WORDING MOVED PAST (4 Oct 2026): the verb "Read again"
+     rides the heading where the arrow sits and never wraps; the tile's edge
+     is amber, the readings table's own tone for "stale". */
+  .kt-tri-tile.is-door.is-stale{ border-color:var(--st-amber-fg); }
+  .kt-tri-tile.is-stale .kt-tri-go{ white-space:nowrap; padding-left:6px; }
   /* ---- TWO LINES, RESERVED, ON EVERY TILE (Young ruled 17 Sep 2026) ----
      The strip was as tall as its tallest tile, so one obligations tile of ten
      lines made four tall empty ones and the card was a different height on
