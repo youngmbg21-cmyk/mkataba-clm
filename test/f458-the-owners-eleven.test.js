@@ -177,8 +177,9 @@ describe('f458 (6) — the money shortener steps up to billions', () => {
 /* ------------------------------------------------------------- 7 8 10 --- */
 describe('f458 (7) — the calendar keeps its height', () => {
   test('the agenda panel declares ONE height instead of taking its content\'s', () => {
-    assert.match(CAL, /\.cal-stack > \.cal-panel\{flex:0 1 var\(--cal-panel-h\);min-height:0\}/,
-      'flex:none means "as tall as what is in it", and what is in it is four rows or fourteen');
+    assert.match(CAL, /\.cal-stack > \.cal-panel\{flex:0 0 var\(--cal-panel-h\);min-height:0\}/,
+      'flex:none means "as tall as what is in it", and what is in it is four rows or fourteen; '
+      + 'and it must not SHRINK either, or a short laptop starves the agenda instead');
     assert.match(CAL, /--cal-panel-h:300px/, 'and the number is written once');
   });
 

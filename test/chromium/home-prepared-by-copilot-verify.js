@@ -81,28 +81,28 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
         needsyou: !!document.querySelector('[data-hm-go="needsyou"]'),
         below: !!(card && map && (map.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING)),
         title: card ? card.querySelector('.hb-ct').textContent.trim() : '',
-        /* RE-POINTED 4 Oct 2026. Young picked "One list, one place" on the same
-           day: the card became ONE list called "Your work", holding both what a
-           colleague is waiting on you for and what Copilot has prepared, with a
-           divider between them carrying Copilot's own name. So the card's TITLE
-           is no longer "Prepared by Copilot" — the divider is — and this claim
-           asked the wrong element. Both strings are asked of the dictionary
-           rather than typed here, so neither can drift. */
-        want: (window.i18t ? i18t('hb_work_title') : ''),
-        /* The divider only earns its place where BOTH halves are drawn; with
-           one of them the card is already one list and a heading over it says
-           nothing. So the claim is conditional on there being a waiting half. */
-        needs: (card ? card.querySelectorAll('.hb-need').length : 0),
+        /* RE-POINTED TWICE IN ONE DAY, 4 Oct 2026, and this is the second.
+           In the morning Young picked "One list, one place": the card became
+           ONE list called "Your work", holding both what a colleague is
+           waiting on you for and what Copilot had prepared, with a divider
+           between them carrying Copilot's own name — so the title moved to
+           the divider and this claim was re-pointed at it. By the evening:
+           "Remove waiting on you from the home page permanently. It is not
+           needed." There is one half again, so the card's own title carries
+           Copilot's name as it did before the morning, there is no divider to
+           name, and NO waiting row may be drawn at all. Asked of the
+           dictionary rather than typed here, so neither can drift. */
+        want: (window.i18t ? i18t('hm_ag_title') : ''),
+        needs: (card ? card.querySelectorAll('.hb-need, [data-hb-need]').length : 0),
         divider: (() => { const d = card && card.querySelector('.hb-done span');
-          return d ? d.textContent.trim() : ''; })(),
-        wantDiv: (window.i18t ? i18t('hm_ag_title') : '') };
+          return d ? d.textContent.trim() : ''; })() };
     });
     ok('1a "Prepared for you" and "Needs your decision" are not drawn', !shape.desk && !shape.dd && !shape.needsyou, JSON.stringify(shape));
-    ok('1b the one work card is drawn, below Your book, titled Your work',
+    ok('1b the one work card is drawn, below Your book, titled Prepared by Copilot',
       shape.card && shape.below && !!shape.want && shape.title === shape.want, JSON.stringify(shape));
-    ok('1b2 and Copilot\'s own half is named on the divider wherever both halves are drawn',
-      !!shape.wantDiv && (shape.needs ? shape.divider === shape.wantDiv : !shape.divider),
-      JSON.stringify([shape.needs, shape.divider, shape.wantDiv]));
+    ok('1b2 and nothing waiting on you is drawn in it, so it needs no divider',
+      shape.needs === 0 && !shape.divider,
+      JSON.stringify([shape.needs, shape.divider]));
     await page.screenshot({ path: path.join(OUT, '1-home.png'), fullPage: true });
 
     /* ===== 2. ONE ROW PER AGENT WITH WORK, EVERY NUMBER BORROWED ===== */

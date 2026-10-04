@@ -944,9 +944,14 @@ function calStyleCss(){ return `
          The panel now declares ONE height and the agenda scrolls inside it
          (.cal-upn-list is already the scroller), so the month keeps the same
          height whichever window, whichever month, however many rows. It may
-         still SHRINK (flex-shrink 1) on a short screen, which is the older
-         rule above — the month keeps its floor and the page fits. */}
-  .cal-stack > .cal-panel{flex:0 1 var(--cal-panel-h);min-height:0}
+         NOR DOES IT SHRINK. It was flex:0 1 for one run, so that a short
+         laptop squeezed the panel rather than the month — and MEASURED on
+         1536x734 and 1440x790 that starved it: the card clipped 13px and the
+         agenda had 43px of room for a 118px row. A card that hides its own
+         words is worse than a page that scrolls, and the body already
+         scrolls (.cal-body is overflow:auto), which is what the stacked
+         layout below 1024 does for the same reason. */}
+  .cal-stack > .cal-panel{flex:0 0 var(--cal-panel-h);min-height:0}
   .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);
     display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
   /* ---- THE MONTH ----
