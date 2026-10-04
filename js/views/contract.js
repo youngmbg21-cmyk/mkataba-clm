@@ -1977,24 +1977,22 @@ async function submitUpload(){
      wsTabDefaults. Registered at every creation site because there is no
      single funnel for creating a contract. */
   if(window.roomOpenOnTerms) roomOpenOnTerms(c.id);
-  /* ---- THE ONE CREATION SITE THAT DOES NOT CALL contractArrived ----
-     and it is exempt for the owner's own reason rather than by omission. The
-     upload screen's tick-box is the 9 Sep 2026 ruling — NO BOX MEANS NO
-     READING — so this door asks the reader and the others do not have one to
-     ask. It presses the same launcher four lines down, which is the same act;
-     what it does not do is press it unconditionally. */
   state.activeId=c.id;
   persist(c);
   closeModal();
   toast(outside ? i18t('ho_working_opened',{id:c.id}) : i18t('ct_uploaded_filed_in')+FOLDERS[folder].name, outside?'ok':undefined);
   setView('workspace');
   renderSideFolders();
-  /* ---- AND THEN IT IS READ, IF THE READER LEFT THE BOX TICKED ----
-     The tick-box is the owner's ruling of 9 Sep 2026 and still governs THIS
-     door: no box means no reading on arrival. What the reading itself does,
-     and why it is neither awaited nor started before the save lands, is in
-     triageAndPaint — which the send door calls too. */
-  if(wantTriage) triageAndPaint(c);
+  /* ---- AND IT ARRIVES THROUGH THE ONE DOOR EVERY OTHER CREATION USES
+     (the process review, 4 Oct 2026) ----
+     This was the one creation site that did not call contractArrived, so an
+     upload claimed nobody named on the way in and never put its address in
+     the book. It arrives the same way now. THE TICK-BOX STILL GOVERNS THE
+     READING — the owner's 9 Sep 2026 ruling, NO BOX MEANS NO READING — so the
+     box's answer rides in as `read`; what the reading does, and why it is
+     neither awaited nor started before the save lands, is in triageAndPaint. */
+  if(window.contractArrived) contractArrived(c,{ read:wantTriage });
+  else if(wantTriage) triageAndPaint(c);
 }
 
 /* ---------- THE READINGS, RUN BEHIND THE READER ----------

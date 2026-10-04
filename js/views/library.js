@@ -112,6 +112,12 @@ function buildFromCustomTemplate(t, values, opts){
     // N3-T1: template-born, so it numbers live (see js/wizard.js for the rule).
     numbering:'live' };
   if(fs.length) applyTemplateValues(c, fs, values);
+  /* Which side of the money, where the fill form asked it — written by the
+     essentials' own field, so it lands where every other door puts it. */
+  if(opts && opts.side && typeof CONTRACT_ESSENTIALS!=='undefined'){
+    const sideF=CONTRACT_ESSENTIALS.find(f=>f.key==='side');
+    if(sideF) applyTemplateValues(c, [sideF], { side:opts.side });
+  }
   /* THEIR ADDRESS GOES INTO THE ADDRESS BOOK through its one writer
      (js/participants.js), which keeps the record's copy in step. */
   if(cpEmail){ if(window.contactSet) contactSet(c,{ main:true, email:cpEmail }); else c.counterpartyEmail=cpEmail; }
@@ -174,6 +180,22 @@ function openTemplateFillModal(t, prefill, ho){
      is byte-identical to what it was: a preview that squeezes the questions is
      worse than no preview. */
   const _pv = (typeof fillPreviewFits==='function') && fillPreviewFits();
+  /* ---- WHICH SIDE OF THE MONEY, ASKED HERE TOO (the process review,
+     4 Oct 2026) ----
+     The wizard and the essentials form both ask it; this door never did, so
+     every contract made from a saved template left payment terms blind. THE
+     SAME FIELD, borrowed by reference from CONTRACT_ESSENTIALS — one
+     definition, one label, one set of answers, one mapping onto the record —
+     and drawn only where the template does not carry a blank of its own for
+     it. */
+  const sideF=(fs.some(f=>f.maps==='category'))?null
+    :((typeof CONTRACT_ESSENTIALS!=='undefined'&&Array.isArray(CONTRACT_ESSENTIALS))
+      ? CONTRACT_ESSENTIALS.find(f=>f.key==='side')||null : null);
+  const sideHtml=sideF?`<label style="display:block">
+        <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(sideF.label)}</span>
+        <select id="tf-side" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none">${
+          (sideF.opts||[]).map(o=>(typeof fieldOpt==='function'?fieldOpt(o):{v:String(o),l:String(o)})).map(o=>
+            `<option value="${_tplEsc(o.v).replace(/"/g,'&quot;')}"${String(sideF.def||'')===o.v?' selected':''}>${_tplEsc(o.l)}</option>`).join('')}</select></label>`:'';
   const fieldsHtml=`
     <div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')}">
       ${''/* OUR SIDE, ASKED HERE TOO. A customer's own template may carry a
@@ -194,6 +216,7 @@ function openTemplateFillModal(t, prefill, ho){
       <label style="display:block">
         <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${i18t('lib_their_email')}</span>
         <input id="tf-cpemail" type="email" placeholder="${(typeof jxEg==='function'&&jxEg('theirEmail'))||'them@company.co.ke'}" style="width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none"/></label>
+      ${sideHtml}
       ${''/* WHERE IT IS FILED (Young ruled 18 Sep 2026). Hand-written beside
              the other two record facts for the same reason they are: a saved
              template carries its own blanks and none of them is this, so this
@@ -220,10 +243,11 @@ function openTemplateFillModal(t, prefill, ho){
     if(errs.length){ const er=document.getElementById('tf-err'); if(er) er.textContent=errs[0]; return false; }
     const party=((document.getElementById('tf-party')||{}).value||'').trim();
     const folder=tfFolder();
-    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party, folder });
+    const side=((document.getElementById('tf-side')||{}).value||'').trim();
+    closeModal(); buildFromCustomTemplate(t, values, { counterpartyEmail:cpEmail.trim(), party, folder, side });
     return true;
   };
-  const count=fs.length+3;
+  const count=fs.length+3+(sideF?1:0);
   if(ho && ho.host){
     ho.host.innerHTML=fieldsHtml+errHtml;
     if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));

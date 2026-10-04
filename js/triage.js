@@ -784,6 +784,12 @@ function contractArrived(c, opts){
     try{ if (mintTemplateObligations(c) && typeof persist === 'function') persist(c); }catch(_){}
   }
   if (!c || o.bulk) return false;
+  /* ---- THE UPLOAD'S TICK-BOX STILL GOVERNS ITS OWN READING (4 Oct 2026) ----
+     The upload door now arrives through here like every other door — so the
+     people it names, the address it carries and the promises it makes are
+     claimed the same way — but the owner's 9 Sep ruling stands: NO BOX MEANS
+     NO READING. `read:false` is that box left unticked. */
+  if (o.read === false) return false;
   if (typeof triageAndPaint !== 'function') return false;
   if (!triageApplies(c)) return false;
   try{ triageAndPaint(c); }catch(_){ return false; }
