@@ -566,7 +566,7 @@ function _rkRowHtml(c, it){
     <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>
     <div class="rk-verbs">
       <button type="button" class="rk-verb" data-rk-act="note">${_rkMark('chat')}${_rkE(_rkT('rk_note'))}</button>
-      <button type="button" class="rk-verb is-no" data-rk-act="dismiss">${_rkMark('x')}${_rkE(_rkT('rk_dismiss'))}</button>
+      <button type="button" class="rk-verb is-no" data-rk-act="dismiss">${_rkMark('bin')}${_rkE(_rkT('ng_discard'))}</button>
       <button type="button" class="rk-verb is-ai" data-rk-act="edit-ce" title="${_rkE(_rkT('rk_edit_ce_title'))}">${_rkMark('edit')}${_rkE(_rkT('rk_edit_ce'))}</button>
     </div></div>`;
 }
@@ -681,7 +681,9 @@ function rkEnsureStyle(){
     border:0;border-radius:var(--radius);background:transparent;font:inherit;font-size:var(--t-meta);
     font-weight:var(--w-label);line-height:1;color:var(--accent-ink);cursor:pointer;white-space:nowrap}
   .rk-verb:hover{background:var(--color-accent-100)}
-  /* Dismiss wears Reject's ruby, x and all (Young, 5 Oct 2026). */
+  /* The dismiss act wears the redline row's Discard: the word, the bin, the
+     ruby (Young, 5 Oct 2026: "dismiss should actually say discard"). It still
+     only sets the risk aside — Bring back returns it. */
   .rk-verb.is-no{color:var(--st-ruby-fg)}
   /* Copilot's own door wears Copilot's violet, as the redline row's Edit does
      (.rl-card-verbs .rl-verb-ai in negotiation-css.js, the same two values). */

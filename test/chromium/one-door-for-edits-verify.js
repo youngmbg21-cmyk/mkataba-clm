@@ -2,7 +2,7 @@
    order, Part 8, 4 Oct 2026; the owner's proposal page's eight screens)
    ============================================================
    Driven where the reader stands, Copilot scripted at its transport:
-     1. THE LIST — risk rows offer Add a note · Dismiss · Edit with Copilot,
+     1. THE LIST — risk rows offer Add a note · Discard · Edit with Copilot,
         and no in-card drafting;
      2. COVERED FOLD — a risk on a topic our standards redlined is not listed
         and not counted; it waits in "Covered by your redlines (1)" naming
@@ -139,7 +139,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
         acts: rows.map(r => [...r.querySelectorAll('button')].map(b => b.textContent.trim()).join(' · ')),
         drafting: !!p.querySelector('[data-rk-target], .rk-draft, [data-rk-act="add"]') };
     });
-    check(!!list && list.acts.length && list.acts.every(a => a === 'Add a note · Dismiss · Edit with Copilot'), '1a each risk row offers Add a note · Dismiss · Edit with Copilot', list && list.acts[0]);
+    check(!!list && list.acts.length && list.acts.every(a => a === 'Add a note · Discard · Edit with Copilot'), '1a each risk row offers Add a note · Discard · Edit with Copilot', list && list.acts[0]);
     check(!!list && !list.drafting, '1b no wording is drafted in the card');
     check(!!list && /· 3$/.test(list.head) && !list.keys.includes('s:t-pay'), '1c the covered Payment risk is not listed or counted', list && list.head + ' ' + list.keys.join(','));
     const tile = await page.evaluate(id => riskOpenOf(getContract(id)).length, ID);
@@ -163,8 +163,8 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     const rej = await page.evaluate(() => { const d = document.querySelector('#rl-risks [data-rk-act="dismiss"]');
       const probe = document.createElement('span'); probe.style.color = 'var(--st-ruby-fg)'; document.body.appendChild(probe);
       const ruby = getComputedStyle(probe).color; probe.remove();
-      return d ? { col: getComputedStyle(d).color, ruby, x: /#i-x/.test(d.innerHTML), word: d.textContent.trim() } : null; });
-    check(!!rej && rej.col === rej.ruby && rej.x && rej.word === 'Dismiss', '1h Dismiss reads like Reject: ruby, with an x', JSON.stringify(rej));
+      return d ? { col: getComputedStyle(d).color, ruby, x: /#i-bin/.test(d.innerHTML), word: d.textContent.trim() } : null; });
+    check(!!rej && rej.col === rej.ruby && rej.x && rej.word === 'Discard', '1h the dismiss act reads like the redline row\'s Discard: the word, the bin, the ruby', JSON.stringify(rej));
     await shot('1-the-list.png');
 
     /* ============ 2. COVERED FOLD ============ */
