@@ -6776,9 +6776,10 @@ function graphScreenSays(sc, sent, total) {
    and gives back the board's recipe, part by part; a word it does not know is
    dropped, never guessed. f483 pins every list here to the board's own. */
 const GRAPH_CHART_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', 'stack', 'grouped', 'heat'];
-const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'decision', 'risks'];
+const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'decision', 'risks', 'standards'];
 const GRAPH_CHART_DATES = ['end', 'signed', 'start', 'created', 'decision'];
-const GRAPH_CHART_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live'];
+const GRAPH_CHART_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live', 'exposure', 'avgValue', 'medianValue'];
+const GRAPH_CHART_SHOWS = ['running', 'share'];
 const GRAPH_CHART_SORTS = ['value', 'count', 'name'];
 const GRAPH_CHART_DIRS = ['down', 'up'];
 const GRAPH_CHART_COMPARES = ['prev', 'year'];
@@ -6786,7 +6787,7 @@ const GRAPH_CHART_UNITS = ['month', 'quarter', 'year'];
 const GRAPH_CHART_TOP_MAX = 50, GRAPH_CHART_TITLE_MAX = 80;
 const GRAPH_CHART_WIN_MAX = { m: 120, q: 40, y: 10 };
 const GRAPH_CHART_UNIT_OF = { month: 'm', quarter: 'q', year: 'y' };
-const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks' };
+const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks', standards: 'standards' };
 function graphChartSplit(word, date) {
   const unit = GRAPH_CHART_UNIT_OF[word], group = GRAPH_CHART_GROUP_OF[word];
   if (unit) return { by: 'date', unit, date: GRAPH_CHART_DATES.includes(date) ? date : 'end' };
@@ -6820,6 +6821,7 @@ function graphChartClean(c) {
     if (Object.keys(W).length) { if (GRAPH_CHART_DATES.includes(w.date)) W.date = w.date; out.window = W; }
   }
   if (GRAPH_CHART_COMPARES.includes(c.compare)) out.compare = c.compare;
+  if (GRAPH_CHART_SHOWS.includes(c.show)) out.show = c.show;
   if (typeof c.title === 'string') { const t = c.title.replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, GRAPH_CHART_TITLE_MAX); if (t) out.title = t; }
   return Object.keys(out).filter(k => k !== 'target').length ? out : null;
 }
@@ -6830,7 +6832,8 @@ const GRAPH_CHART_PROPS = {
   date: { type: 'string', enum: GRAPH_CHART_DATES, description: 'For a split by month/quarter/year: which date (end = expiry, the default).' },
   split2: { type: 'string', enum: GRAPH_CHART_SPLITS, description: 'A second split ("by month and stream", "by stream then stage"); time always runs across.' },
   date2: { type: 'string', enum: GRAPH_CHART_DATES },
-  measure: { type: 'string', enum: GRAPH_CHART_MEASURES },
+  measure: { type: 'string', enum: GRAPH_CHART_MEASURES, description: 'exposure = risk exposure (value weighted by the worst open risk); avgValue / medianValue = the average / median contract value.' },
+  show: { type: 'string', enum: GRAPH_CHART_SHOWS, description: 'running = a running total over time (columns); share = each group as a share of the total (bars). Only for count, value or exposure.' },
   trend: { type: 'boolean', description: 'True when the request asks how something changes over time.' },
   sort: { type: 'object', description: 'How the groups line up: value = by the measure, count = by contracts, name = A to Z.', properties: { by: { type: 'string', enum: GRAPH_CHART_SORTS }, dir: { type: 'string', enum: GRAPH_CHART_DIRS } } },
   top: { type: 'number', description: `Draw only the top N groups (1–${GRAPH_CHART_TOP_MAX}); HaTi says the rest.` },
