@@ -4068,8 +4068,8 @@ function hbFollowUpRead(qRaw){
   if (noTrend) chart.trend = false;
   return Object.keys(chart).length ? { key, chart } : null;
 }
-function hbFollowUp(qRaw){
-  const r = hbFollowUpRead(qRaw); if (!r) return null;
+function hbFollowUp(qRaw, pre){
+  const r = pre || hbFollowUpRead(qRaw); if (!r) return null;
   if (r.narrow){
     const N = hbDigData(r.narrow, hbS().lens); if (!N) return null;
     hbDig(r.narrow, true);
@@ -4932,27 +4932,75 @@ async function hbVerSave(pid, title, phrasesText, remove){
     if (typeof toast === 'function') toast(i18t(remove ? 'hb_ver_offed' : 'hb_ver_saved', { what: body.title || (v && v.title) || '' }), 'ok');
   } catch (e){ const el = sayEl(); if (el) el.textContent = (e && e.message) || String(e); else if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); }
 }
-function hbAsk(q){
-  _hbMeta = null;
-  if (HB_WHY_ASK_RE.test(String(q || ''))){ _hbPendingRecipe = null; return null; }
+/* ---- SEE IT WHILE YOU TYPE (work order "the board that answers right",
+   Part 10, 5 Oct 2026) ----
+   ONE READING of a question, PURE: what the answer WOULD be — the verified
+   view, a change to the open chart, the board's own command, or Copilot —
+   and nothing written (no hbDig, no hbCardSet, no hbSave). hbAsk takes this
+   as its first step, so the line over the ask box and the answer are the
+   same reading. (Named hbAskReadingOf: hbReadingOf is the chart's reading.) */
+function hbAskReadingOf(qRaw){
+  const raw = String(qRaw == null ? '' : qRaw);
+  if (!raw.trim()) return null;
+  const s = hbS();
+  if (HB_WHY_ASK_RE.test(raw)) return { road: 'copilot', why: true, q: raw };
   /* A VERIFIED VIEW ANSWERS FIRST (Part 9): the company's own answer to the
      questions an admin named, exact after normalising, before any reading */
-  { const v = hbVerifiedHit(q); if (v && hbS().face === 'board'){ _hbPendingRecipe = null; const u = hbUndoTop(); return hbVerifiedAnswer(v) + `<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u)}</div>`; } }
-  q = hbWordsApply(q);
-  const u0 = hbUndoTop();
-  const fu = hbFollowUp(q);
-  if (fu){ _hbPendingRecipe = null; return fu + `<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u0)}</div>`; }
+  if (s.face === 'board'){ const v = hbVerifiedHit(raw); if (v) return { road: 'free', kind: 'verified', v, q: raw }; }
+  const q = hbWordsApply(raw);
+  const fu = hbFollowUpRead(q);
+  if (fu) return { road: 'free', kind: 'follow', fu, q };
   const r = hbParse(q);
+  if (!r) return { road: 'copilot', q, r: null };
+  /* EXPLORER STAYS AS DESIGNED (the owner's words): on the map side the
+     board's reader steps aside for every question but the two that are about
+     the screen itself — back to the board, and Present. A question about
+     renewals asked of the map is the map's to answer. */
+  if (s.face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.act === 'present' || r.act === 'analyze')) return { road: 'map', q, r };
+  return { road: 'free', kind: r.act, r, q };
+}
+/* the line's words for a reading: what it will draw, and free — or Copilot,
+   with no price (a cost is never guessed) */
+function hbAskPreviewText(A){
+  if (!A || A.road === 'map') return '';
+  if (A.road === 'copilot') return i18t('hb_pre_copilot');
+  const s = hbS(), free = ' · ' + i18t('hb_pre_free');
+  try {
+    if (A.kind === 'verified') return i18t('hb_pre_verified', { what: A.v.title }) + free;
+    if (A.kind === 'follow'){
+      if (A.fu.narrow){ const N = hbDigData(A.fu.narrow, s.lens); return i18t('hb_pre_narrow', { what: (N && N.title) || '' }) + free; }
+      const D = hbDigData(A.fu.key, s.lens); if (!D) return i18t('hb_pre_cmd') + free;
+      return i18t('hb_pre_change', { how: hbHowWord(hbCardPlan(Object.assign(hbPlanSpec(D), hbCardClean(A.fu.chart)), D)) }) + free;
+    }
+    const r = A.r;
+    if (r.act === 'dig'){
+      if (/^f:/.test(r.key)) return i18t('hb_pre_fig', { what: i18t('hb_f_' + r.key.slice(2)) }) + free;
+      const D = hbDigData(r.key, s.lens);
+      if (D && D.kind === 'list') return i18t('hb_pre_chart', { what: D.setLabel || D.title || '', how: hbHowWord(hbPlan(D)), n: _hbN(D.n) }) + free;
+      return i18t('hb_pre_open', { what: (D && D.title) || '' }) + free;
+    }
+    if (r.act === 'panel' || r.act === 'remove') return i18t(r.act === 'panel' ? 'hb_pre_panel' : 'hb_pre_remove', { what: i18t(HB_KINDS[r.kind].word) }) + free;
+    if (r.act === 'card' || r.act === 'analyze'){ const K = hbCardData(hbContract(r.id)); return i18t(r.act === 'card' ? 'hb_pre_card' : 'hb_pre_analyze', { what: K.ref + ' · ' + K.name }) + free; }
+  } catch (_){ /* the line is a courtesy: say the plain thing */ }
+  return i18t('hb_pre_cmd') + free;
+}
+function hbAsk(q){
+  _hbMeta = null;
+  const A = hbAskReadingOf(q);
+  if (!A){ _hbPendingRecipe = null; return null; }
+  if (A.why){ _hbPendingRecipe = null; return null; }
+  if (A.kind === 'verified'){ _hbPendingRecipe = null; const u = hbUndoTop(); return hbVerifiedAnswer(A.v) + `<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u)}</div>`; }
+  q = A.q;
+  const u0 = hbUndoTop();
+  const fu = A.kind === 'follow' ? hbFollowUp(q, A.fu) : null;
+  if (fu){ _hbPendingRecipe = null; return fu + `<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u0)}</div>`; }
+  const r = 'r' in A ? A.r : hbParse(q);
   /* a chart question HaTi could not read whole goes on to Copilot with its
      picture words already read (hbShowFound puts them on the answer) */
   _hbPendingRecipe = r ? null : hbRecipeRead(q);
   if (!r) return null;
   const s = hbS();
-  /* EXPLORER STAYS AS DESIGNED (the owner's words): on the map side the
-     board's reader steps aside for every question but the two that are about
-     the screen itself — back to the board, and Present. A question about
-     renewals asked of the map is the map's to answer. */
-  if (s.face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.act === 'present' || r.act === 'analyze')) return null;
+  if (A.road === 'map') return null;
   const free = i18t('hb_free');
   const say = (html, opts) => { if (!opts || !opts.noPaint){ if (s.face === 'board') hbPaintBoard(opts && opts.jump ? { jump: opts.jump } : undefined); } return html + `<div class="hb-cost">${_hbE(free)}${hbNoteUndo(u0)}</div>`; };
   if (r.act === 'card'){
@@ -5361,7 +5409,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
