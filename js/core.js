@@ -7595,7 +7595,11 @@ async function renderSharesSection(c){
      painted BEFORE this fetch answered, so repaint it now the truth is in —
      otherwise the panel keeps route-order guesses until the next full render. */
   try{ if((c.signerPlan||[]).length && typeof renderSignButton==='function') renderSignButton(c); }catch(_){}
-  if(!shares.length){ host.innerHTML=''; return; }
+  /* THE CLAUSES DRAWER IS TOLD (the Drawer, 5 Oct 2026): this card fills
+     after its fetch, and whether the Document tab has a Form & links panel
+     to land on — and a door to the clauses — turns on it. */
+  const told=()=>{ try{ if(window.docThreadPanelMoved) docThreadPanelMoved(c); }catch(_){} };
+  if(!shares.length){ host.innerHTML=''; told(); return; }
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[x]));
   const chLabel={email:'Email',whatsapp:'WhatsApp',link:'Link'};
   const live=s=>s.state==='sent'||s.state==='opened';
@@ -7635,6 +7639,7 @@ async function renderSharesSection(c){
           </div>`:''}
         </div>`; }).join('')}
     </div></div>`;
+  told();
   document.getElementById('seen-resend')?.addEventListener('click',async e=>{
     const btn=e.currentTarget, restore=btn.innerHTML;
     btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('co_sending')}</span>`;

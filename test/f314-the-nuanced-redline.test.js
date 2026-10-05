@@ -451,8 +451,9 @@ describe('f314 (7) — the plain English column is the thread now', () => {
      clauses and opens the one under the reader's eye. The walls stay. */
   test('no mirror, no second scroller of the paper', () => {
     assert.ok(!/function docReadFront\(|function docReadMirrorStyle\(|function docReadMirrorToc\(|docReadWheel/.test(CONTRACT));
-    assert.match(INDEX, /\.doc-th-rows\{ position:absolute; inset:0; overflow-y:auto;/, 'the thread scrolls its rows, not the paper');
-    assert.match(INDEX, /\.doc-th-row\.is-open \.doc-th-in\{[^}]*max-height:var\(--th-max,420px\)/, 'and the open row scrolls inside itself');
+    assert.match(INDEX, /\.doc-th-rows\{[^}]*overflow-y:auto;/, 'the thread scrolls its rows, not the paper');
+    /* RE-POINTED 5 Oct 2026 (the Drawer): the open row GROWS — the list is the one scroller. */
+    assert.ok(!/\.doc-th-row\.is-open \.doc-th-in\{[^}]*(max-height|overflow-y:auto)/.test(INDEX), 'and the open row does not scroll inside itself');
   });
 
   test('the sent list never knew the mirror, and still does not', () => {

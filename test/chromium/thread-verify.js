@@ -12,9 +12,10 @@
      2  every clause is a row; scrolling the paper opens the row at the line
      3  pressing a row GLIDES the paper until that clause is at the line, and
         ‹ › step one clause the same way — scroll and press never disagree
-     4  "Explain this clause" sends ONE request carrying ONE clause, the
-        reading lands in the paper's own face, and it rides the GET after a
-        reload; "Explain all" is still offered
+     4  PLAIN (was "Explain this clause", renamed 5 Oct 2026) sends ONE
+        request carrying ONE clause, the reading lands in the paper's own
+        face, and it rides the GET after a reload; "All N clauses in plain
+        English" is still offered
      5  Worth a look is the one light-red area, with marks as sentences under a
         coloured rule and NO "Add a note"; Who does what sits under it
      6  the contract does not move (refusal 3), in either theme; the risk door
@@ -185,7 +186,7 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
       s1.rows.some(r => /INDEMNIF/.test(r.name) && r.tone === 'ruby') && s1.rows.some(r => /TERM, TERM/.test(r.name) && r.tone === 'amber')
         && s1.rows.some(r => /INSURANCE/.test(r.name) && r.tone === 'steel'),
       s1.rows.map(r => r.name.slice(0, 10) + ':' + (r.tone || '-')).join(' | '));
-    check('1e a row with no reading offers "Explain this clause" and "Explain all"', s1.explain && s1.explainAll, JSON.stringify({ explain: s1.explain, all: s1.explainAll }));
+    check('1e a row with no reading offers Plain and "All N clauses in plain English"', s1.explain && s1.explainAll, JSON.stringify({ explain: s1.explain, all: s1.explainAll }));
     await page.screenshot({ path: path.join(OUT, '01-arrival.png') });
 
     /* ===== 2. SCROLL OPENS THE ROW AT THE LINE ===== */
@@ -226,12 +227,12 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
     await page.waitForTimeout(2500);
     const s5 = await read();
     const asked = ai.calls.slice(calls0).map(c => (c.body.messages && String(c.body.messages[0].content).match(/\[R\d+\]/g) || []).length);
-    check('4a "Explain this clause" sends ONE request carrying ONE clause', asked.length === 1 && asked[0] === 1, JSON.stringify({ calls: asked.length, rowsPerCall: asked, posts0 }));
+    check('4a Plain sends ONE request carrying ONE clause', asked.length === 1 && asked[0] === 1, JSON.stringify({ calls: asked.length, rowsPerCall: asked, posts0 }));
     check('4b the reading lands in the open row', /THPLAIN/.test(s5.openText), s5.openText.slice(0, 80));
     check('4c set in the paper\'s own face', !!s5.plainFace && s5.plainFace === s5.paperFace, s5.plainFace.slice(0, 40) + ' vs ' + s5.paperFace.slice(0, 40));
     check('4d that row says Read, and no other does', s5.rows.filter(r => /Read\b/.test(r.state) && !/Reading/.test(r.state)).length === 1 && /Read/.test(s5.rows[2].state),
       s5.rows.map(r => r.state || '-').join(' | '));
-    check('4e the other rows still offer their own Explain', s5.rows.filter(r => !/Read/.test(r.state)).length >= 3, s5.rows.length + ' rows');
+    check('4e the other rows still offer their own Plain', s5.rows.filter(r => !/Read/.test(r.state)).length >= 3, s5.rows.length + ' rows');
     await page.screenshot({ path: path.join(OUT, '04-explained.png') });
 
     /* the one-clause reading rides the GET after a reload */
