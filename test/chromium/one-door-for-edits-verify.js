@@ -152,7 +152,8 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
           fs: k.fontSize, fw: k.fontWeight, col: k.color, mark: !!el.querySelector('svg use') }; };
       const ed = document.querySelector('#rl-changes .rl-card-face [data-rl-cp-editor-row], #rl-changes .rl-card-face [data-rl-edit]');
       const row = document.querySelector('#rl-risks .rk-row[data-rk-key]:not(.is-covered):not(.is-gone)');
-      const vs = row ? [...row.querySelectorAll('[data-rk-act]:not([data-rk-act="why"])')] : [];
+      /* the head is a door to the clause since 5 Oct 2026 (risk-card-titles-verify), not a verb */
+      const vs = row ? [...row.querySelectorAll('[data-rk-act]:not([data-rk-act="why"]):not([data-rk-act="go"])')] : [];
       const lefts = vs.map(b => Math.round(b.getBoundingClientRect().left));
       return { edit: st(ed), risk: st(row && row.querySelector('[data-rk-act="edit-ce"]')), all: vs.map(st), leftFirst: lefts[0], rowLeft: row ? Math.round(row.getBoundingClientRect().left) : 0, ordered: lefts.every((x, i) => !i || x > lefts[i - 1]) };
     });
