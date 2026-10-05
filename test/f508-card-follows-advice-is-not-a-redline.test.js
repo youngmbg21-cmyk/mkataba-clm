@@ -15,7 +15,7 @@
          editor; a risk that can be put on paper (data protection, no clause
          yet) still opens a new clause;
      (C) ONE NAMED SET — every rule the upload scanner writes is in
-         RK_ADVICE_IDS, and no rule that names wording is: a new advisory
+         RK_NEEDS_WORDING as needing none (re-pointed 5 Oct 2026, see f510): a new advisory
          rule written tomorrow turns this red until it is decided.
 
    Run: node --test test/f508-card-follows-advice-is-not-a-redline.test.js */
@@ -175,15 +175,24 @@ describe('f508 (C) one named set', () => {
   const upIds = [...new Set([...body.matchAll(/add\('([a-z]+-[a-z]+)'/g)].map(m => m[1]))];
   const allIds = [...new Set([...(read('js/ai.js') + UP).matchAll(/add\('((?:t|u|rm|pk|cm|eq|wh|ff|da|rl|mk|nd|le|ps)-[a-z]+)'/g)].map(m => m[1]))];
 
-  test('every rule the upload scanner writes is decided: advice, not paper', () => {
+  /* RE-POINTED 5 Oct 2026 (Young: "any risks that do not require an amendment
+     to the contract or need additional language … should not be moved to the
+     redline panel"): the hand list RK_ADVICE_IDS became a mark on EVERY rule,
+     RK_NEEDS_WORDING, read through riskIsAdvice / riskNeedsWording. What this
+     pinned still holds — every upload check is decided as needing no wording;
+     f510 holds every other rule to its mark. */
+  test('every rule the upload scanner writes is decided: needs no wording', () => {
     assert.ok(upIds.length >= 8, upIds.length + ' rules read');
     const w = load();
-    for (const id of upIds) assert.ok(w.RK_ADVICE_IDS.has(id), id + ' is in RK_ADVICE_IDS — a new upload check must be decided');
+    for (const id of upIds){
+      assert.equal(typeof w.RK_NEEDS_WORDING[id], 'boolean', id + ' is marked — a new upload check must be decided');
+      assert.equal(w.riskIsAdvice({ id }), true, id + ' needs no wording');
+    }
   });
 
-  test('no rule that names wording is in the set', () => {
+  test('a rule that names wording is not advice', () => {
     const w = load();
-    for (const id of w.RK_ADVICE_IDS) assert.ok(/^u-/.test(id), id + ' is an upload check');
-    for (const id of allIds.filter(x => !/^u-/.test(x))) assert.ok(!w.RK_ADVICE_IDS.has(id), id + ' stays a redline');
+    for (const id of ['t-dp', 'rm-kebs', 't-liab', 'nd-inj']) assert.equal(w.riskIsAdvice({ id, kind: 'risk' }), false, id + ' stays a redline');
+    assert.ok(allIds.length >= 40, allIds.length + ' rules read');
   });
 });

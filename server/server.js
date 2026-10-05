@@ -2567,6 +2567,12 @@ const AI_TRUNC_MARK = '\n\n[…truncated by HaTi before sending to Copilot…]';
    which is exactly where splicing is tempting. One sentence, on every tool
    that returns a quote, so the four cannot drift apart. */
 const AI_QUOTE_RULE = ' Quote ONE continuous run of text, copied character for character — never join two separate passages with "..." or an ellipsis. If no single passage carries the whole answer, quote the one that carries most of it. If the document says nothing on the point, return nothing at all — never a sentence describing what is absent.';
+/* THE BRIEF'S "NEEDS WORDING" MARK (Young, 5 Oct 2026: "any risks that do not
+   require an amendment to the contract or need additional language to contract
+   should not be moved to the redline panel"). One sentence for both lists, so
+   a watch-out and an unusual term are marked by the same question; only the
+   Redlines card's list reads it (js/risks.js riskItemsOf). */
+const BRIEF_WORDING_MARK = 'True only if dealing with this would mean changing the contract\'s wording or adding wording to it. False if it is a step outside the contract (a check, a payment, a document to obtain), a box to fill, or simply a fact worth knowing.';
 
 /* A REDLINE IS WORDING, NOT A NOTE ABOUT WORDING (owner-reported 26 Aug 2026,
    off a Kenyan equipment lease whose data-protection card offered to file this
@@ -7739,19 +7745,21 @@ app.post('/api/ai/brief', auth, editor, rlAiDeep, aiFeature('brief'), aiBudgetGu
           point: { type: 'string', description: 'A clause that bites, in one plain sentence — what it means in practice.' },
           why: { type: 'string', description: 'One plain sentence on why this is worth a look before signing — the practical consequence for the reader. Never advice on whether to sign.' },
           quote: { type: 'string', description: 'Short verbatim snippet it comes from.' + AI_QUOTE_RULE },
-        }, required: ['point', 'why'] } },
+          wording: { type: 'boolean', description: BRIEF_WORDING_MARK },
+        }, required: ['point', 'why', 'wording'] } },
         unusual: { type: 'array', maxItems: 4, items: { type: 'object', properties: {
           point: { type: 'string', description: 'The unusual term, plainly put.' },
           why: { type: 'string', description: 'One plain sentence on why it is unusual for this kind of contract and why that matters to the reader.' },
           quote: { type: 'string', description: 'Short verbatim snippet of the wording it rests on, where there is one.' + AI_QUOTE_RULE },
-        }, required: ['point', 'why'] },
+          wording: { type: 'boolean', description: BRIEF_WORDING_MARK },
+        }, required: ['point', 'why', 'wording'] },
           description: 'Terms unusual for this kind of contract. Empty if none.' },
       },
       required: ['overview', 'watchouts'],
     },
   };
   const J = orgJx();
-  const prompt = `You are explaining a contract to a business owner who has no lawyer, under ${J.adjective} law. Read the DOCUMENT and return a short cover memo via contract_brief. Plain, everyday sentences — any unavoidable legal term gets an immediate plain explanation. Only state what the wording actually says: never invent, never guess, and never propose new wording — this is a reading aid, not a redraft. Keep every monetary amount in the money section only. If something is unusual for this kind of contract, say so plainly; if nothing is, return an empty unusual list. For every watchout and every unusual term, add one plain sentence saying WHY it is worth a look — the practical consequence for the reader, never whether to sign — and quote the wording it rests on where there is one.\n\nDOCUMENT:\n${sent}`;
+  const prompt = `You are explaining a contract to a business owner who has no lawyer, under ${J.adjective} law. Read the DOCUMENT and return a short cover memo via contract_brief. Plain, everyday sentences — any unavoidable legal term gets an immediate plain explanation. Only state what the wording actually says: never invent, never guess, and never propose new wording — this is a reading aid, not a redraft. Keep every monetary amount in the money section only. If something is unusual for this kind of contract, say so plainly; if nothing is, return an empty unusual list. For every watchout and every unusual term, add one plain sentence saying WHY it is worth a look — the practical consequence for the reader, never whether to sign — and quote the wording it rests on where there is one. Mark each one "wording": true only if dealing with it would mean changing the contract's wording or adding wording to it; false if it is a step outside the contract, a box to fill, or simply a fact worth knowing.\n\nDOCUMENT:\n${sent}`;
   try {
     /* ---- ROOM FOR THE ANSWER THIS SCHEMA ASKS FOR ---- (owner-reported 10 Sep 2026)
        "The brief is written and readable; refresh and the card is back to Not

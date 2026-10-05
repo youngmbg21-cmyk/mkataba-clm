@@ -11830,8 +11830,12 @@ const XR_SEV_GRADE={ high:'ruby', med:'amber', low:'steel' };
 function docXrayBriefWatch(c){
   const d=(c&&c._brief&&c._brief.data)||null;
   const list=(d&&Array.isArray(d.watchouts))?d.watchouts:[];
+  /* `wording` (5 Oct 2026): Copilot's own mark, true where dealing with it
+     means changing or adding contract wording; null on a brief written before
+     it existed. Only the Redlines card's list reads it (riskItemsOf). */
+  const mark=w=>(w&&typeof w.wording==='boolean')?w.wording:null;
   return list.map(w=>({ say:String((w&&w.point)||'').trim(), quote:(w&&w.quote)||'',
-      why:String((w&&w.why)||'').trim() }))
+      why:String((w&&w.why)||'').trim(), wording:mark(w) }))
     .filter(w=>!!w.say);
 }
 /* THE BRIEF'S UNUSUAL TERMS, in either shape: a bare sentence (every brief
@@ -11841,8 +11845,9 @@ function docXrayBriefOdd(c){
   const d=(c&&c._brief&&c._brief.data)||null;
   const list=(d&&Array.isArray(d.unusual))?d.unusual:[];
   return list.map(u=>(u&&typeof u==='object')
-      ? { say:String(u.point||'').trim(), quote:u.quote||'', why:String(u.why||'').trim() }
-      : { say:String(u||'').trim(), quote:'', why:'' })
+      ? { say:String(u.point||'').trim(), quote:u.quote||'', why:String(u.why||'').trim(),
+          wording:(typeof u.wording==='boolean')?u.wording:null }
+      : { say:String(u||'').trim(), quote:'', why:'', wording:null })
     .filter(u=>!!u.say);
 }
 /* ---- A CLAUSE'S WORDS ARE ITS NAME AND ITS WORDING (C, 22 Sep 2026) ----
