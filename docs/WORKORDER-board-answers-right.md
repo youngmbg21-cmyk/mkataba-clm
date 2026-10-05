@@ -1,6 +1,6 @@
 # WORK ORDER — The board that answers right
 
-**Status: NOT STARTED. Written 5 Oct 2026. Build overnight only when the owner says go.**
+**Status: DONE. Written 5 Oct 2026; built the same night (owner: "Start the overnight run now"); merged to main. The morning summary is at the end.**
 
 **The owner's words, 5 Oct 2026:**
 
@@ -477,13 +477,33 @@ with a link that opens its chart on Home.
 
 ## The morning summary
 
-(To be filled in, in simple English, for the owner. For each part, say:)
-- what was built;
-- whether it is on screen;
-- what was left alone, and why;
-- the precision book, before → after;
-- Copilot's score: "not measured" unless a key was present;
-- the cost of the night's Copilot calls.
+All eleven parts are built, tested and on main. Nothing stopped on a question for you. No Copilot key was present, so **nothing was spent**; every Copilot step was tested with a stand-in.
+
+1. **The honest reply** — on screen. Copilot's answer on the board now says exactly what was drawn and how many contracts. A sentence that claims something the board did not draw is left out. Copilot renames a card only when you asked for a name or a new board.
+2. **Ask or assume** — on screen. "value", "terms", "owner" and "stage" are drawn the likeliest way, the answer says so, and the other meaning is one press.
+3. **Board words** — on screen, in Settings › Copilot (admins). Teach the board your own words ("BU" means value stream).
+4. **The reading, as chips** — on screen. Under an answer: Picture · Split · Measure, each opening its menu. A quick change after an answer is noted as a possible misreading.
+5. **Three next questions** — on screen, under the latest answer. Each one is answered for free.
+6. **Right or wrong** — on screen. Two small marks under each answer; your admins see the list.
+7. **Copilot accuracy** — on screen for admins in Settings. It runs every Monday. Score: **not measured** (no key).
+8. **Deal facts** — on screen. In the Split menu, under "Deal facts": whose move, rounds, overdue duties, renewal decision, risks found. "Which stalled deals are waiting on us, by counterparty" is now answered for free.
+9. **Verified views** — on screen for admins: a card's ⋯ › "Verified view…". Asking one of its questions brings that card back, marked VERIFIED, with who set it.
+10. **See it while you type** — on screen. One faint line over the ask box says how the board will read your question, and whether it is free or goes to Copilot. Nothing moves while you type.
+11. **What moved, in the brief** — email only. Your daily or weekly brief gains "What moved on your board": the top three findings, each with a link that opens the chart. As written in this order, there is no new switch and no second email.
+
+**The precision book:** 109 questions before, 117 after. Every free question is still answered correctly (100%).
+
+**Left alone:**
+- The phone: Home on the phone is the old Home, and none of this shows there.
+- One test about the Document tab's clause list was already failing on main before this work. It is untouched and still logged.
+
+**Small things fixed on the way, inside this work:**
+- Two of tonight's own test pins moved when Part 6 changed a line; they were re-pointed.
+- Part 6's "Wrong" mark used two colour names that do not exist; it now uses the app's own red.
+
+**The full test run, once at the end:** 11,626 tests, 11,624 passed.
+- One failure (Swedish wording check) was fixed afterwards: three word-free patterns like "{what}: {how}".
+- The other is the clause-list test above, which was already failing before this work.
 
 ## Waiting on the owner
 
