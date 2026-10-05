@@ -6794,7 +6794,9 @@ function graphLookClean(l) {
   if (l.grouping === 'reset') out.grouping = 'reset';
   return Object.keys(out).length ? out : null;
 }
-app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
+/* the map's and the board's Copilot, as a named handler: the route calls it,
+   and so does the board's weekly accuracy run (runBoardAccuracy) */
+const graphAskHandler = async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
   const { query, contracts, history, activeIds, screen } = req.body || {};
@@ -6900,7 +6902,8 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
       look: graphLookClean(out.look),
       ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
-});
+};
+app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, graphAskHandler);
 
 /* ---------- OCR: read scanned paper ----------
    The client rasterizes each page (pdf.js, ~200 DPI, JPEG) and posts it here;
@@ -18688,6 +18691,7 @@ function agentLocalHour() {
 const agentRanOnScheduleToday = k => !!db.prepare("SELECT 1 FROM agent_runs WHERE agent=? AND trigger='schedule' AND day=? LIMIT 1").get(k, aiToday());
 function agentScheduleTick() {
   if (!agentsAuto()) return;
+  boardAccuracyTick();
   const hour = agentLocalHour();
   for (const k of AGENT_SCHEDULED) {
     const cfg = agentCfg(k);
@@ -18697,6 +18701,95 @@ function agentScheduleTick() {
     if (go) runAgent(k, 'schedule', null, go).catch(() => {});
   }
 }
+/* ============================================================
+   COPILOT ACCURACY, MEASURED EVERY MONDAY (work order "the board that answers
+   right", Part 7, 5 Oct 2026; Databricks Genie's benchmarks)
+   ============================================================
+   The precision book's Copilot requests are asked of the board's Copilot
+   route (graphAskHandler, the route's own handler) over the BOOK'S OWN
+   contracts — never the customer's — and judged by the one judge
+   (server/boardjudge.js). Questions an admin kept from the review list ride
+   along: their right answer is not known, so a kept question passes when
+   Copilot no longer draws the recipe somebody marked wrong. The run spends
+   through runAgent (agent 'board', not one of the page's agents), so the
+   spend page counts it and the workspace ceiling stops it. No key: the run
+   records 'noKey' and the drawer says "Not measured" — never a zero. */
+const BOARD_ACC_DAY = 1, BOARD_ACC_HOUR = 3, BOARD_ACC_MISSES_SHOWN = 30;
+function boardAccuracyBook() {
+  try {
+    const bp = require('../test/board-precision.js');
+    return { book: bp.readBook(), contracts: bp.bookContracts() };
+  } catch (_) { return null; }
+}
+const boardAccCard = c => ({ id: c.id, name: c.name, counterparty: c.counterparty, status: c.status, value: c.value, folder: c.folder,
+  expiry: c.expiry || null, signedAt: c.signedAt || null, category: (c.metadata && c.metadata.category) || null, paymentTerms: (c.metadata && c.metadata.paymentTerms) || null });
+async function boardAccuracyAsk(user, q, after, cards) {
+  const board = after ? `The board, with one card open. Open card: "${after}" (the chart drawn for "${after}").` : 'The board, with no card open.';
+  let status = 200, out = null;
+  const res = { status(n) { status = n; return this; }, json(o) { out = o; return this; } };
+  await graphAskHandler({ user, body: { query: q, contracts: cards, total: cards.length, screen: { board } } }, res);
+  return status === 200 ? out : { error: (out && out.error) || ('status ' + status) };
+}
+async function runBoardAccuracy(who) {
+  if (!aiKey()) return { noKey: true };
+  const B = boardAccuracyBook(); if (!B) return { noBook: true };
+  const { judgeCopilot, recipeMisses } = require('./boardjudge.js');
+  const user = who || db.prepare("SELECT * FROM users WHERE role='admin' ORDER BY rowid LIMIT 1").get();
+  if (!user) return { noUser: true };
+  const cards = B.contracts.map(boardAccCard);
+  const reqs = B.book.requests.filter(r => r.road === 'copilot');
+  let hits = 0; const misses = []; let asked = 0, stopped = null;
+  for (const r of reqs) {
+    const why = agentMaySpend('board'); if (why) { stopped = why; break; }
+    const res = await boardAccuracyAsk(user, r.q, r.after || null, cards); asked++;
+    const miss = res && res.error ? ['no answer: ' + String(res.error).slice(0, 120)] : judgeCopilot(res, r.want);
+    const acts = res && Array.isArray(res.actions) ? res.actions : [];
+    const a0 = acts.find(x => x && x.do === r.want.do) || acts[0] || null;
+    /* what was wanted and what came back, as recipes the drawer says in words */
+    if (!miss.length) hits++; else if (misses.length < BOARD_ACC_MISSES_SHOWN) misses.push({ q: r.q, after: r.after || '', why: miss.slice(0, 3),
+      want: r.want, got: { do: a0 ? a0.do : null, recipe: a0 && a0.recipe ? a0.recipe : null, cards: acts.filter(x => x && x.do === 'add_card').length, error: res && res.error ? String(res.error).slice(0, 120) : null } });
+  }
+  const kept = db.prepare("SELECT * FROM board_feedback WHERE state='kept' AND kind IN ('wrong','fix') ORDER BY at DESC LIMIT 50").all();
+  let keptHits = 0, keptAsked = 0;
+  for (const k of kept) {
+    if (stopped || agentMaySpend('board')) { stopped = stopped || agentMaySpend('board'); break; }
+    const wrong = (() => { try { return k.recipe ? JSON.parse(k.recipe) : null; } catch (_) { return null; } })();
+    const res = await boardAccuracyAsk(user, k.q, k.after || null, cards); keptAsked++;
+    const a = res && Array.isArray(res.actions) ? res.actions.find(x => x && (x.do === 'add_card' || x.do === 'change_card')) : null;
+    const same = a && wrong ? !recipeMisses(a.recipe || {}, Object.fromEntries(['split', 'pic', 'measure'].filter(x => wrong[x] != null).map(x => [x, wrong[x]]))).length : false;
+    if (a && !same) keptHits++; else if (misses.length < BOARD_ACC_MISSES_SHOWN) misses.push({ q: k.q, after: k.after || '', why: [a ? 'drew again what was marked wrong' : 'no chart'], kept: true,
+      got: { do: a ? a.do : null, recipe: a && a.recipe ? a.recipe : null } });
+  }
+  return { total: reqs.length, asked, hits, kept: { total: kept.length, asked: keptAsked, hits: keptHits }, misses, stopped };
+}
+const boardAccRanThisWeek = () => !!db.prepare("SELECT 1 FROM agent_runs WHERE agent='board' AND trigger='schedule' AND day>=? LIMIT 1").get(briefWeekOf(aiToday()));
+function boardAccuracyTick() {
+  try {
+    const d = new Date(aiToday() + 'T00:00:00Z').getUTCDay();
+    if (d !== BOARD_ACC_DAY || agentLocalHour() < BOARD_ACC_HOUR || boardAccRanThisWeek()) return;
+    runAgent('board', 'schedule', null, () => runBoardAccuracy(null)).catch(() => {});
+  } catch (_) { /* the clock never stops the others */ }
+}
+/* the same run on an admin's word (no button on the page; for the record
+   and the tests) */
+app.post('/api/board/accuracy/run', auth, admin, async (req, res) => {
+  const out = await runAgent('board', 'button', req.user, () => runBoardAccuracy(req.user));
+  if (out && out.busy) return res.status(409).json({ error: 'A run is already going' });
+  res.json(out || {});
+});
+/* THE DRAWER'S ONE QUESTION (admins): the free half's book and pass mark,
+   Copilot's last weekly run, this week's disconnects, and what people marked */
+app.get('/api/board/accuracy', auth, admin, (req, res) => {
+  const B = boardAccuracyBook();
+  const free = B ? { total: B.book.requests.filter(r => r.road === 'free').length, passMark: (B.book.passMark || {}).free || null } : null;
+  const last = db.prepare("SELECT * FROM agent_runs WHERE agent='board' AND finished_at IS NOT NULL ORDER BY started_at DESC LIMIT 1").get();
+  let run = null; if (last) { try { run = { at: last.started_at, result: last.result ? JSON.parse(last.result) : null, error: last.error || null, cost: last.cost }; } catch (_) { run = null; } }
+  const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  const disconnects = db.prepare("SELECT COUNT(*) AS n FROM board_feedback WHERE kind='disconnect' AND day>=?").get(since).n;
+  const rows = db.prepare("SELECT * FROM board_feedback WHERE kind IN ('wrong','fix') AND state='open' ORDER BY at DESC LIMIT 50").all().map(bfRow);
+  const keptN = db.prepare("SELECT COUNT(*) AS n FROM board_feedback WHERE state='kept'").get().n;
+  res.json({ free, run, noKey: !aiKey(), disconnects, rows, kept: keptN, day: BOARD_ACC_DAY, hour: BOARD_ACC_HOUR });
+});
 /* WHEN IT RUNS NEXT, said as the page will print it. */
 function agentNextRun(k) {
   const cfg = agentCfg(k);
