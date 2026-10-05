@@ -1,6 +1,6 @@
 {
   "about": "THE BOARD'S PRECISION BOOK (the owner's work order, Part 7, 4 Oct 2026). Each request is in the owner's style, with the card it must produce. road 'free': HaTi must read it without Copilot (f502 runs these on every change). road 'copilot': HaTi hands it on, and Copilot's answer must carry this recipe (npm run eval:board, only with a key). 'after' is a question asked first, so 'this'/'it' has a chart to mean. In 'want': split/split2 are compared whole; set is 'all' (the whole book) or words the card's set must name; parse is the board's own command for a question with no chart words; do/cards are what Copilot must press.",
-  "passMark": { "free": 100, "note": "The free half's hit rate, in per cent, at or above which f502 passes. Day one (4 Oct 2026): 97 (103 of 106); the same book on main before this work read 78 (83 of 106). 5 Oct 2026: 100 (106 of 106) — the three Copilot sentences the older words took are handed on; then 109 of 109 with the owner's three screenshot questions; 110 with \"contracts by terms\" (Part 2); 117 with the deal facts (Part 8). It may only go up." },
+  "passMark": { "free": 100, "note": "The free half's hit rate, in per cent, at or above which f502 passes. Day one (4 Oct 2026): 97 (103 of 106); the same book on main before this work read 78 (83 of 106). 5 Oct 2026: 100 (106 of 106) — the three Copilot sentences the older words took are handed on; then 109 of 109 with the owner's three screenshot questions; 110 with \"contracts by terms\" (Part 2); 117 with the deal facts (Part 8); 141 with Charts That Explain (5 Oct 2026): the owner's four questions and twenty more. It may only go up." },
   "requests": [
     { "src": "f448", "road": "free", "q": "Show Juno contracts by month", "want": { "split": { "by": "date", "unit": "m", "date": "end" }, "pic": "cols", "measure": "count", "trend": false, "set": "Juno" } },
     { "src": "f448", "road": "free", "q": "timeline of Juno contracts", "want": { "split": null, "pic": "gantt", "measure": "count", "set": "Juno" } },
@@ -123,6 +123,30 @@
     { "src": "part2", "after": "contracts by stage", "road": "copilot", "q": "turn this into something that shows each stream inside the stages", "want": { "do": "change_card", "recipe": { "split2": { "by": "folder" } } } },
     { "src": "part2", "after": "contracts by stage", "road": "copilot", "q": "rename this card to Board pack, stages", "want": { "do": "name_card" } },
     { "src": "part2", "after": "contracts by stage", "road": "copilot", "q": "get rid of that card", "want": { "do": "remove_card" } },
-    { "src": "part2", "road": "copilot", "q": "make the whole board count procurement only", "want": { "do": "filter_board" } }
+    { "src": "part2", "road": "copilot", "q": "make the whole board count procurement only", "want": { "do": "filter_board" } },
+    { "src": "charts-explain", "road": "free", "q": "Show me our top risk contracts", "want": { "pack": "risks" } },
+    { "src": "charts-explain", "road": "free", "q": "Which month and year will the most value come to an end?", "want": { "pack": "ending" } },
+    { "src": "charts-explain", "road": "free", "q": "Which contracts violate our company standards?", "want": { "pack": "standards" } },
+    { "src": "charts-explain", "road": "free", "q": "What should concern me most over the next 12 months?", "want": { "pack": "next12" } },
+    { "src": "charts-explain", "road": "free", "q": "riskiest contracts", "want": { "pack": "risks" } },
+    { "src": "charts-explain", "road": "free", "q": "which contracts break our standards", "want": { "pack": "standards" } },
+    { "src": "charts-explain", "road": "free", "q": "what should worry me over the next year", "want": { "pack": "next12" } },
+    { "src": "charts-explain", "road": "free", "q": "when does the most value end", "want": { "pack": "ending" } },
+    { "src": "charts-explain", "road": "free", "q": "risk exposure by stream", "want": { "split": { "by": "folder" }, "measure": "exposure", "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "top 5 counterparties by risk exposure", "want": { "split": { "by": "counterparty" }, "measure": "exposure", "top": 5, "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "median contract value by counterparty", "want": { "split": { "by": "counterparty" }, "measure": "medianValue", "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "average value by stage", "want": { "split": { "by": "status" }, "measure": "avgValue", "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "running total of value by month", "want": { "split": { "by": "date", "unit": "m", "date": "end" }, "measure": "value", "show": "running", "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "value by stream as a share of the total", "want": { "split": { "by": "folder" }, "measure": "value", "show": "share", "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "contracts by standards", "want": { "split": { "by": "standards" }, "measure": "count", "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "contracts by liability cap", "want": { "split": { "by": "liabcap" }, "measure": "count", "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "value by auto-renewal", "want": { "split": { "by": "autorenew" }, "measure": "value", "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "contracts by price increases", "want": { "split": { "by": "priceup" }, "measure": "count", "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "act by dates by month", "want": { "split": { "by": "date", "unit": "m", "date": "decision" }, "measure": "count", "set": "all" } },
+    { "src": "charts-explain", "road": "free", "q": "give notice dates by quarter", "want": { "split": { "by": "date", "unit": "q", "date": "decision" }, "set": "all" } },
+    { "src": "charts-explain", "road": "copilot", "q": "Why is so much of our value tied up with one supplier?", "want": { "answer": true } },
+    { "src": "charts-explain", "road": "copilot", "q": "What explains the rise in risk this year?", "want": { "answer": true } },
+    { "src": "charts-explain", "road": "copilot", "q": "Why are so many of our contracts not checked against our standards?", "want": { "answer": true } },
+    { "src": "charts-explain", "road": "copilot", "q": "How exposed are we if Juno walks away?", "want": { "answer": true } }
   ]
 }

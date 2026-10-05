@@ -135,7 +135,7 @@ describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
     assert.match(text(html), /Copilot’s read/);
     assert.match(text(html), /25 contracts landed in two months/);
     assert.ok(!/22 contracts were imported/.test(text(html)), 'a count this chart does not hold is left out');
-    assert.match(text(html), /1 sentence was left out: its count did not match HaTi’s\./);
+    assert.match(text(html), /1 sentence was left out: its number was not on HaTi’s fact sheet\./);
     assert.ok(!/data-hb-why="/.test(html), 'kept: no second press offered');
     assert.match(html, /data-hb-why-follow=/);
   });
@@ -288,7 +288,9 @@ describe('F461 (D) — every enlarged card reads', () => {
     await w.hbWhyAsk('hp:val');
     assert.match(sent, /A panel on the HaTi Home board: "Value by stage"\./);
     assert.match(sent, /Its numbers:/);
-    assert.match(sent, /The contracts behind it \(11\)/);
+    /* RE-POINTED 5 Oct 2026 (Charts That Explain, Part 2): the prompt is HaTi's fact sheet */
+    assert.match(sent, /^FACT SHEET — /);
+    assert.match(sent, /Contracts behind it \(11\)/);
     const html = w.hbPanelHtml({ id: 'p', kind: 'val', big: true }, 'all');
     assert.match(html, /class="hb-why"/);
     assert.match(text(html), /Executed holds the money\./);
@@ -297,7 +299,10 @@ describe('F461 (D) — every enlarged card reads', () => {
   });
   test('one builder draws the reading and the ask for every card', () => {
     const HB = strip(read('js/views/homeboard.js'));
-    assert.equal((HB.match(/data-hb-why="\$\{/g) || []).length, 1, 'the ask button is drawn in one place');
+    /* RE-POINTED 5 Oct 2026 (Charts That Explain, rec 6): every card's ask is
+       drawn in one place; the board's own "Summarise my board" is the second */
+    assert.equal((HB.match(/data-hb-why="\$\{/g) || []).length, 2, 'the card ask and the board summary');
+    assert.match(region(HB, 'hbBoardSumHtml'), /data-hb-why="\$\{_hbE\(key\)\}"/);
     assert.match(region(HB, 'hbReadBlockHtml'), /class="hb-read"/);
     assert.match(region(HB, 'hbPanelHtml'), /hbReadSrcHtml\('hp:' \+ p\.kind\)/);
     for (const k of ['hb_read_tl_soon_other', 'hb_read_val_top_other', 'hb_read_obl_worst_other', 'hb_read_fric_clause_other', 'hb_read_ren_missed_other', 'hb_read_pay_over_other', 'hb_read_exp_top_other'])

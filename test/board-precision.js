@@ -71,6 +71,8 @@ function runFreeIn(w, r){
   try { said = w.hbAsk(r.q); } catch (e){ return { hit: false, why: ['threw: ' + e.message] }; }
   if (!said) return { hit: false, why: ['not read free: handed on to Copilot'] };
   const s = w.hbS(); const key = (s.path || []).slice(-1)[0];
+  /* an answer pack (Charts That Explain): the right pack opened, free */
+  if (r.want.pack) return key === 'pk:' + r.want.pack ? { hit: true, why: [] } : { hit: false, why: [`pack: wanted ${r.want.pack}, got ${key || 'nothing'}`] };
   const D = key ? w.hbDigData(key, s.lens) : null;
   if (!D) return { hit: false, why: ['no card opened'] };
   const P = w.hbPlan(D);

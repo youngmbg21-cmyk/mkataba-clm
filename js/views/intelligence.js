@@ -2044,7 +2044,9 @@ async function intelGraphAsk(q){
   if(res&&igBoardNow()&&typeof window.hbBoardTakes==='function'){
     const retry=payload?(note=>api('ai/graph','POST',Object.assign({},payload,{ query:q+'\n\n'+note, screen:graphAskScreen() }))):null;
     let said=null; try{ said=(typeof window.hbBoardTakesChecked==='function')?await hbBoardTakesChecked(res,retry,q):hbBoardTakes(res,q); }catch(_){ said=null; }
-    if(said){ intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice) }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); return; }
+    /* DIG DEEPER (Charts That Explain, rec 4): under Copilot's board answer,
+       the press that hands the question to the analyst, its cost beside it */
+    if(said){ intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice), deeper:q }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); return; }
   }
   if(!res){ res=graphInterpret(q);           // fallback
     /* The built-in reader understood nothing: say what the map can do, as
@@ -6156,6 +6158,7 @@ function igMsgHTML(m,i){
       ${(Number.isInteger(i)&&m.reading&&typeof window.hbReadingHtml==='function')?hbReadingHtml(m.reading,hbReadingLive(i)):''}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&m.boardReply&&typeof window.hbMarksHtml==='function')?hbMarksHtml(i,m):''}
+      ${(Number.isInteger(i)&&m.deeper&&!m.err&&typeof window.hbDeeperHtml==='function')?hbDeeperHtml(m.deeper):''}
       ${(Number.isInteger(i)&&Array.isArray(m.listIds)&&m.listIds.length)?`<div class="igd-list" style="display:flex;gap:12px;flex-wrap:wrap;padding-left:2px"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:''}
       ${body}
     </div>

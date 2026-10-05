@@ -1397,6 +1397,9 @@ async function saveContract(c){
      server table. Same rule as _brief above: a reading written back into the
      record would be stale the moment the wording moved. */
   delete payload._readings;
+  /* _book is the overnight reading of what the wording says (Charts That
+     Explain, rec 7), off its own server table: transport, never record. */
+  delete payload._book;
   /* _renewalPrep is the list's twin of _renewalAdvice below — one word saying a
      renewal note exists and who wrote it, so the desk can say so without the
      memo riding every row. Same rule: transport, never record. */

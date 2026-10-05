@@ -3846,6 +3846,17 @@ function srvListDecorate(dbRows, user) {
       .all(...pageIds).map(x => String(x.contract_id)));
     rows.forEach(c => { if (!has.has(String(c.id))) return; try { const rp = roundPrepFor(c); if (rp) c._roundPrep = rp; } catch (_) {} });
   }
+  /* ---- AND WHAT THE WORDING SAYS (Charts That Explain, rec 7) ----
+     The overnight reading of the whole book (book_readings): each key term's
+     STATE and the check's verdicts as category and status only — what the
+     board counts, never the quotes. ONE query for this page's ids. */
+  if (pageIds.length) {
+    for (const r of db.prepare('SELECT * FROM book_readings WHERE contract_id IN ' + inList(pageIds.length)).all(...pageIds)) {
+      const b = bookReadingRow(r); if (!b) continue;
+      const c = rows.find(x => String(x.id) === String(r.contract_id)); if (!c) continue;
+      c._book = bookLite(b);
+    }
+  }
   return rows;
 }
 app.get('/api/contracts', auth, (req, res) => {
@@ -4071,6 +4082,11 @@ app.get('/api/contracts/:id', auth, (req, res) => {
      already governs it. */
   const pe = db.prepare('SELECT json FROM clause_readings WHERE contract_id=?').get(req.params.id);
   if (pe) { try { out._readings = JSON.parse(pe.json); } catch (_) {} }
+  /* What the wording says, read overnight (rec 7): transport, never record.
+     The quotes ride the single record only, and only to a reader with the
+     money (a cap's quote names an amount). */
+  const bk = bookReadingOf(req.params.id);
+  if (bk) out._book = canViewValues(req.user) ? bk : bookLite(bk);
   /* Whether the other side can still answer, and their signer still sign —
      the list's own reading, fresh for the one contract (srvReach). */
   try { out._reach = srvReach(c); } catch (_) {}
@@ -4598,6 +4614,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   delete c._signNeeds; delete c._signState;   // approval before signing: read here, never stored
   delete c._reach;           // can they still answer: read off the links, never stored (srvReach)
   delete c._roundPrep;       // Copilot's prepared answers to their round: its own table (runRoundPrep)
+  delete c._book;            // what the wording says, read overnight: its own table (runBookReading)
 
   let prev = null;
   if (existing) { try { prev = JSON.parse(existing.json); } catch (_) { prev = null; } }
@@ -6776,9 +6793,10 @@ function graphScreenSays(sc, sent, total) {
    and gives back the board's recipe, part by part; a word it does not know is
    dropped, never guessed. f483 pins every list here to the board's own. */
 const GRAPH_CHART_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', 'stack', 'grouped', 'heat'];
-const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'decision', 'risks'];
+const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'decision', 'risks', 'standards', 'liabcap', 'autorenew', 'priceup'];
 const GRAPH_CHART_DATES = ['end', 'signed', 'start', 'created', 'decision'];
-const GRAPH_CHART_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live'];
+const GRAPH_CHART_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live', 'exposure', 'avgValue', 'medianValue'];
+const GRAPH_CHART_SHOWS = ['running', 'share'];
 const GRAPH_CHART_SORTS = ['value', 'count', 'name'];
 const GRAPH_CHART_DIRS = ['down', 'up'];
 const GRAPH_CHART_COMPARES = ['prev', 'year'];
@@ -6786,7 +6804,7 @@ const GRAPH_CHART_UNITS = ['month', 'quarter', 'year'];
 const GRAPH_CHART_TOP_MAX = 50, GRAPH_CHART_TITLE_MAX = 80;
 const GRAPH_CHART_WIN_MAX = { m: 120, q: 40, y: 10 };
 const GRAPH_CHART_UNIT_OF = { month: 'm', quarter: 'q', year: 'y' };
-const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks' };
+const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks', standards: 'standards', liabcap: 'liabcap', autorenew: 'autorenew', priceup: 'priceup' };
 function graphChartSplit(word, date) {
   const unit = GRAPH_CHART_UNIT_OF[word], group = GRAPH_CHART_GROUP_OF[word];
   if (unit) return { by: 'date', unit, date: GRAPH_CHART_DATES.includes(date) ? date : 'end' };
@@ -6820,6 +6838,7 @@ function graphChartClean(c) {
     if (Object.keys(W).length) { if (GRAPH_CHART_DATES.includes(w.date)) W.date = w.date; out.window = W; }
   }
   if (GRAPH_CHART_COMPARES.includes(c.compare)) out.compare = c.compare;
+  if (GRAPH_CHART_SHOWS.includes(c.show)) out.show = c.show;
   if (typeof c.title === 'string') { const t = c.title.replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, GRAPH_CHART_TITLE_MAX); if (t) out.title = t; }
   return Object.keys(out).filter(k => k !== 'target').length ? out : null;
 }
@@ -6830,7 +6849,8 @@ const GRAPH_CHART_PROPS = {
   date: { type: 'string', enum: GRAPH_CHART_DATES, description: 'For a split by month/quarter/year: which date (end = expiry, the default).' },
   split2: { type: 'string', enum: GRAPH_CHART_SPLITS, description: 'A second split ("by month and stream", "by stream then stage"); time always runs across.' },
   date2: { type: 'string', enum: GRAPH_CHART_DATES },
-  measure: { type: 'string', enum: GRAPH_CHART_MEASURES },
+  measure: { type: 'string', enum: GRAPH_CHART_MEASURES, description: 'exposure = risk exposure (value weighted by the worst open risk); avgValue / medianValue = the average / median contract value.' },
+  show: { type: 'string', enum: GRAPH_CHART_SHOWS, description: 'running = a running total over time (columns); share = each group as a share of the total (bars). Only for count, value or exposure.' },
   trend: { type: 'boolean', description: 'True when the request asks how something changes over time.' },
   sort: { type: 'object', description: 'How the groups line up: value = by the measure, count = by contracts, name = A to Z.', properties: { by: { type: 'string', enum: GRAPH_CHART_SORTS }, dir: { type: 'string', enum: GRAPH_CHART_DIRS } } },
   top: { type: 'number', description: `Draw only the top N groups (1–${GRAPH_CHART_TOP_MAX}); HaTi says the rest.` },
@@ -7003,6 +7023,94 @@ const graphAskHandler = async (req, res) => {
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 };
 app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, graphAskHandler);
+
+/* ============================================================
+   DIG DEEPER — THE BOARD'S ANALYST (Young, 5 Oct 2026, "HaTi Board: Charts
+   That Explain", recommendations 4 and 5)
+   ============================================================
+   An open question ("why is value at risk up?") is worked out in steps. The
+   model never adds a number up: each step it ASKS for one of HaTi's own
+   calculations (calculate: a set and a recipe; pack: one of the four answer
+   packs), the BROWSER runs it through the board's one planner and sends the
+   fact sheet back, and the model asks again or finishes. This route is
+   stateless: the browser carries the steps so far and the server rebuilds
+   them as tool calls and results, each re-cleaned here. At most
+   BOARD_ANALYST_STEPS calculations; after that the model must finish. It
+   spends only on a press (the browser's "Dig deeper", its cost beside it);
+   the finish's sentences are checked against every fact sheet in the
+   browser (hbFactCheck) before one reaches the page. */
+const BOARD_ANALYST_STEPS = 5;
+const BOARD_ANALYST_RESULT_MAX = 3500;
+const BOARD_ANALYST_PACKS = ['risks', 'ending', 'standards', 'next12'];
+function boardAnalystClean(name, input) {
+  const txt = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  const i = (input && typeof input === 'object') ? input : {};
+  const which = w => (w === 'all' || (w && w.all === true) || !w) ? { all: true } : (w && typeof w === 'object' && txt(w.q, 200)) ? { q: txt(w.q, 200) } : { all: true };
+  if (name === 'calculate') {
+    const r = graphChartClean(i.recipe) || {}; delete r.target;
+    return { why: txt(i.why, 200), which: which(i.which), recipe: r };
+  }
+  if (name === 'pack') return BOARD_ANALYST_PACKS.includes(i.name) ? { why: txt(i.why, 200), name: i.name } : null;
+  if (name === 'finish') {
+    const cards = Array.isArray(i.cards) ? i.cards.slice(0, 3).map(c => {
+      if (!c || typeof c !== 'object') return null;
+      const r = graphChartClean(c.recipe); if (!r) return null; delete r.target;
+      const o = { which: which(c.which), recipe: r }; if (txt(c.title, GRAPH_CHART_TITLE_MAX)) o.title = txt(c.title, GRAPH_CHART_TITLE_MAX);
+      return o;
+    }).filter(Boolean) : [];
+    const next = Array.isArray(i.next) ? i.next.map(x => txt(x, 120)).filter(Boolean).slice(0, 3) : [];
+    return { summary: String(i.summary == null ? '' : i.summary).replace(/[\u0000-\u0008\u000b-\u001f\u007f<>]/g, ' ').trim().slice(0, 1500), cards, next };
+  }
+  return null;
+}
+const boardAnalystHandler = async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const b = req.body || {};
+  const question = String(b.question || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 600);
+  if (!question) return res.status(400).json({ error: 'question is required' });
+  const guide = String(b.guide || '').slice(0, 6000), board = String(b.board || '').slice(0, 4000);
+  const steps = (Array.isArray(b.steps) ? b.steps : []).slice(0, BOARD_ANALYST_STEPS).map(s => {
+    if (!s || typeof s !== 'object' || !['calculate', 'pack'].includes(s.name)) return null;
+    const input = boardAnalystClean(s.name, s.input); if (!input) return null;
+    return { name: s.name, input, result: String(s.result == null ? '' : s.result).slice(0, BOARD_ANALYST_RESULT_MAX) };
+  }).filter(Boolean);
+  const must = steps.length >= BOARD_ANALYST_STEPS;
+  const tools = [
+    { name: 'calculate', description: 'Ask HaTi to count one chart over the contracts: a set (which) and a recipe. HaTi returns a FACT SHEET with every number. You never count yourself.',
+      input_schema: { type: 'object', properties: { why: { type: 'string', description: 'One short sentence: what this step checks, shown to the reader.' },
+        which: { type: 'object', description: '{all:true} for the whole book, or {q:"plain words naming the contracts"} (e.g. "leases", "auto-renewing", "Nordkemi").', properties: { all: { type: 'boolean' }, q: { type: 'string' } } },
+        recipe: { type: 'object', properties: { ...GRAPH_CHART_PROPS } } }, required: ['why', 'recipe'] } },
+    { name: 'pack', description: 'Ask HaTi for one of its four ready answers: risks (top risk contracts), ending (when the most value ends), standards (contracts off our standards), next12 (what to watch over the next 12 months). Returns its fact sheet.',
+      input_schema: { type: 'object', properties: { why: { type: 'string' }, name: { type: 'string', enum: BOARD_ANALYST_PACKS } }, required: ['why', 'name'] } },
+    { name: 'finish', description: 'The answer: a short summary, up to three cards to draw on the board, up to three next questions.',
+      input_schema: { type: 'object', properties: {
+        summary: { type: 'string', description: 'Three to five plain sentences: what the steps showed, why it matters, what to do. Use ONLY numbers that appear on the fact sheets, written as they appear; never work out a new number.' },
+        cards: { type: 'array', description: 'Up to three charts worth keeping on the board, each a set, a recipe and a short title.', items: { type: 'object', properties: { which: { type: 'object', properties: { all: { type: 'boolean' }, q: { type: 'string' } } }, recipe: { type: 'object', properties: { ...GRAPH_CHART_PROPS } }, title: { type: 'string' } } } },
+        next: { type: 'array', items: { type: 'string' }, description: 'Up to three short follow-up questions the reader could ask.' } }, required: ['summary'] } },
+  ];
+  const lang = String(b.lang || '').replace(/[^\p{L} ]/gu, '').slice(0, 30) || 'English';
+  const prompt = `You are HaTi's analyst on the Home BOARD of a contract portfolio. Work out the reader's question in steps. Each step, ask HaTi for ONE calculation (calculate or pack); HaTi counts and returns a fact sheet. Take at most ${BOARD_ANALYST_STEPS} steps — usually two or three — then call finish. Never state a number that is not on a fact sheet; never add, subtract or divide numbers yourself. If a fact sheet says some contracts were not read or not checked, say the picture may be incomplete. Write in ${lang}.\n\nToday's date: ${new Date().toISOString().slice(0, 10)}\n${board ? `\nThe board now:\n${board}\n` : ''}${guide ? `\nWhat each field holds:\n${guide}\n` : ''}\nThe reader's question: "${question}"`;
+  const messages = [{ role: 'user', content: prompt }];
+  steps.forEach((s, n) => {
+    const id = 'step_' + n;
+    messages.push({ role: 'assistant', content: [{ type: 'tool_use', id, name: s.name, input: s.input }] });
+    messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content: s.result || '(nothing came back)' }] });
+  });
+  if (must) messages[messages.length - 1].content.push({ type: 'text', text: 'That was the last step: call finish now.' });
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1800, tools, tool_choice: must ? { type: 'tool', name: 'finish' } : { type: 'any' }, messages }, { feature: 'graph', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    let name = block.name, input = boardAnalystClean(name, block.input);
+    /* a step the board cannot run (an unknown pack, a step past the last) is
+       turned into a finish with nothing claimed, never run */
+    if (!input || (must && name !== 'finish')) { name = 'finish'; input = { summary: '', cards: [], next: [] }; }
+    res.json({ step: { name, input }, steps: steps.length, max: BOARD_ANALYST_STEPS, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+};
+app.post('/api/board/analyst', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, boardAnalystHandler);
 
 /* ---------- OCR: read scanned paper ----------
    The client rasterizes each page (pdf.js, ~200 DPI, JPEG) and posts it here;
@@ -18804,7 +18912,7 @@ async function runAgent(k, trigger, who, fn, { subject = '' } = {}) {
 /* English names for the admin's note above — the page itself names them in
    the reader's language. */
 const AGENT_NAME_EN = { round: 'Their round came back', link: 'No link to sign', renew: 'Renewals',
-  paper: 'New paper', late: 'Late promises', ours: 'Our promises', import: 'Archive import' };
+  paper: 'New paper', late: 'Late promises', ours: 'Our promises', import: 'Archive import', book: 'Read the whole book' };
 /* The runner each clock-driven agent presses, and Run now presses the same. */
 function agentRunner(k) {
   if (k === 'renew') return () => runRenewalPrep();
@@ -18825,6 +18933,7 @@ const agentRanOnScheduleToday = k => !!db.prepare("SELECT 1 FROM agent_runs WHER
 function agentScheduleTick() {
   if (!agentsAuto()) return;
   boardAccuracyTick();
+  bookReadingTick();
   const hour = agentLocalHour();
   for (const k of AGENT_SCHEDULED) {
     const cfg = agentCfg(k);
@@ -18866,7 +18975,19 @@ async function boardAccuracyAsk(user, q, after, cards) {
 async function runBoardAccuracy(who) {
   if (!aiKey()) return { noKey: true };
   const B = boardAccuracyBook(); if (!B) return { noBook: true };
-  const { judgeCopilot, recipeMisses } = require('./boardjudge.js');
+  const { judgeCopilot, recipeMisses, numbersOutside } = require('./boardjudge.js');
+  /* EVERY NUMBER IN EACH ANSWER (Charts That Explain, rec 8): a number
+     Copilot states that it was never shown is counted and named — the
+     board's fact-sheet rule, measured weekly. A flag to look at, not a miss:
+     the hit is still the card. */
+  const numbers = { answers: 0, flagged: 0, examples: [] };
+  const numCheck = (q, after, res, cards) => {
+    const said = String((res && res.answer) || '');
+    if (!/\d/.test(said)) return;
+    numbers.answers++;
+    const out = numbersOutside(said, [JSON.stringify(cards), q, after || '', aiToday()].join(' '));
+    if (out.length){ numbers.flagged++; if (numbers.examples.length < 10) numbers.examples.push({ q, said: said.slice(0, 300), numbers: [...new Set(out)].slice(0, 6) }); }
+  };
   const user = who || db.prepare("SELECT * FROM users WHERE role='admin' ORDER BY rowid LIMIT 1").get();
   if (!user) return { noUser: true };
   const cards = B.contracts.map(boardAccCard);
@@ -18875,6 +18996,7 @@ async function runBoardAccuracy(who) {
   for (const r of reqs) {
     const why = agentMaySpend('board'); if (why) { stopped = why; break; }
     const res = await boardAccuracyAsk(user, r.q, r.after || null, cards); asked++;
+    numCheck(r.q, r.after, res, cards);
     const miss = res && res.error ? ['no answer: ' + String(res.error).slice(0, 120)] : judgeCopilot(res, r.want);
     const acts = res && Array.isArray(res.actions) ? res.actions : [];
     const a0 = acts.find(x => x && x.do === r.want.do) || acts[0] || null;
@@ -18893,7 +19015,7 @@ async function runBoardAccuracy(who) {
     if (a && !same) keptHits++; else if (misses.length < BOARD_ACC_MISSES_SHOWN) misses.push({ q: k.q, after: k.after || '', why: [a ? 'drew again what was marked wrong' : 'no chart'], kept: true,
       got: { do: a ? a.do : null, recipe: a && a.recipe ? a.recipe : null } });
   }
-  return { total: reqs.length, asked, hits, kept: { total: kept.length, asked: keptAsked, hits: keptHits }, misses, stopped };
+  return { total: reqs.length, asked, hits, kept: { total: kept.length, asked: keptAsked, hits: keptHits }, misses, stopped, numbers };
 }
 const boardAccRanThisWeek = () => !!db.prepare("SELECT 1 FROM agent_runs WHERE agent='board' AND trigger='schedule' AND day>=? LIMIT 1").get(briefWeekOf(aiToday()));
 function boardAccuracyTick() {
@@ -18922,6 +19044,201 @@ app.get('/api/board/accuracy', auth, admin, (req, res) => {
   const rows = db.prepare("SELECT * FROM board_feedback WHERE kind IN ('wrong','fix') AND state='open' ORDER BY at DESC LIMIT 50").all().map(bfRow);
   const keptN = db.prepare("SELECT COUNT(*) AS n FROM board_feedback WHERE state='kept'").get().n;
   res.json({ free, run, noKey: !aiKey(), disconnects, rows, kept: keptN, day: BOARD_ACC_DAY, hour: BOARD_ACC_HOUR });
+});
+/* ============================================================
+   CHART WHAT CONTRACTS SAY — THE WHOLE BOOK, READ ONCE, OVERNIGHT (Young,
+   5 Oct 2026, "HaTi Board: Charts That Explain", recommendation 7: "Read
+   each contract once for key terms (liability cap, auto-renewal, notice
+   period, price increases) and run the playbook check across the whole book
+   overnight")
+   ============================================================
+   An admin's switch, OFF by default — it spends while nobody watches, so it
+   is never on until somebody turns it on (Settings → Platform → Copilot,
+   "Read the whole book"), with its cost said there. Once a night, at the
+   hour set, it walks the live book (not declined, not archived):
+     - KEY TERMS: once per WORDING (the hash of the text read), one fast-tier
+       call returns the four terms, each with a verbatim quote; a term that
+       asserts something (a cap, a renewal, a notice period, a price rule)
+       whose quote is not in the wording is kept as 'unclear', never believed;
+     - OUR STANDARDS: a contract with no check on record is checked against
+       the workspace's own playbook (aiPlaybookVerdicts, the review panel's
+       own function). An open record takes the verdicts as its ordinary
+       playbook record, as the new-paper agent writes it; an EXECUTED record
+       is never written — its verdicts are kept beside it.
+   Both readings live in their own table (book_readings) and ride the light
+   list and the single GET as transport (_book), stripped on save — so the
+   board can chart them and the record is never rewritten by a reading.
+   The OWNER PAYS (the overnight rule): a contract with no owner is skipped
+   and counted. Every call asks agentMaySpend('book') first (the workspace
+   ceiling, then this reading's own daily limit); a run reads at most `max`
+   contracts; an outage stops it after PREP_OUTAGE_STREAK failures. A failed
+   call is tried again the next night — nothing is marked done that was not. */
+db.exec(`
+  CREATE TABLE IF NOT EXISTS book_readings (
+    contract_id TEXT PRIMARY KEY, hash TEXT, at TEXT, terms TEXT, pb TEXT, pb_at TEXT);
+`);
+AGENT_DEFAULTS.book = { on: false, at: 2, max: 50, limit: 3 };
+const BOOK_TERM_STATES = { liabilityCap: ['capped', 'uncapped', 'unclear'], autoRenew: ['yes', 'no', 'unclear'], priceIncrease: ['at_will', 'indexed', 'fixed', 'none', 'unclear'] };
+/* the states that assert something the wording must show */
+const BOOK_TERM_NEEDS_QUOTE = { liabilityCap: ['capped'], autoRenew: ['yes'], priceIncrease: ['at_will', 'indexed', 'fixed'] };
+const bookNorm = s => String(s == null ? '' : s).toLowerCase().replace(/[‘’“”"'`]/g, '').replace(/[–—-]/g, '-').replace(/\s+/g, ' ').trim();
+function bookTermsClean(raw, wording) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const hay = bookNorm(wording);
+  const quoteOk = q => { const n = bookNorm(q); return n.length >= 8 && hay.includes(n); };
+  const out = {};
+  for (const k of Object.keys(BOOK_TERM_STATES)) {
+    const t = r[k] && typeof r[k] === 'object' ? r[k] : {};
+    let state = BOOK_TERM_STATES[k].includes(t.state) ? t.state : 'unclear';
+    const quote = typeof t.quote === 'string' ? t.quote.replace(/\s+/g, ' ').trim().slice(0, 400) : '';
+    const ok = quote && quoteOk(quote);
+    if (BOOK_TERM_NEEDS_QUOTE[k].includes(state) && !ok) state = 'unclear';
+    out[k] = { state, ...(ok ? { quote } : {}) };
+  }
+  const nt = r.notice && typeof r.notice === 'object' ? r.notice : {};
+  const days = Math.round(Number(nt.days));
+  const nq = typeof nt.quote === 'string' ? nt.quote.replace(/\s+/g, ' ').trim().slice(0, 400) : '';
+  out.notice = Number.isFinite(days) && days > 0 && days <= 3650 && nq && quoteOk(nq) ? { days, quote: nq } : { days: null };
+  return out;
+}
+async function aiKeyTerms(key, text, meter) {
+  const term = (states, what) => ({ type: 'object', description: what, properties: { state: { type: 'string', enum: states }, quote: { type: 'string', description: 'The words of the document that say it, copied exactly (one continuous run). Empty when the document says nothing.' } }, required: ['state'] });
+  const tool = { name: 'key_terms', description: 'The key commercial terms this contract states.',
+    input_schema: { type: 'object', properties: {
+      liabilityCap: term(BOOK_TERM_STATES.liabilityCap, 'capped = a limit or cap on a party\'s liability is stated; uncapped = the document has no limit of liability; unclear = it cannot be told.'),
+      autoRenew: term(BOOK_TERM_STATES.autoRenew, 'yes = the term renews or extends by itself unless notice is given; no = it ends or needs a new agreement; unclear = it cannot be told.'),
+      notice: { type: 'object', description: 'The notice needed to stop a renewal or to end the contract, in days (a month = 30).', properties: { days: { type: 'number' }, quote: { type: 'string' } } },
+      priceIncrease: term(BOOK_TERM_STATES.priceIncrease, 'at_will = a party may raise prices on notice; indexed = prices move with an index (CPI and the like); fixed = prices are fixed for the term; none = nothing about price changes; unclear = it cannot be told.'),
+    }, required: ['liabilityCap', 'autoRenew', 'priceIncrease'] } };
+  const prompt = `Read this contract and return its key commercial terms through key_terms. Quote the document's own words, exactly, for every term you find; never guess. Where the document does not say, use the state for that (uncapped, no, none) only when you have read the whole text; otherwise unclear.\n\nDOCUMENT:\n${aiDocText(null, text)}`;
+  const resp = await anthropicMessages(key, 'fast', { max_tokens: 1200, tools: [tool], tool_choice: { type: 'tool', name: 'key_terms' }, messages: [{ role: 'user', content: prompt }] }, { feature: (meter && meter.feature) || 'playbook', who: (meter && meter.who) || null });
+  if (!resp.ok) return { ok: false, resp };
+  const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+  if (!block) return { ok: false, resp, noResult: true };
+  return { ok: true, resp, terms: block.input || {} };
+}
+function bookReadingOf(id) {
+  const r = db.prepare('SELECT * FROM book_readings WHERE contract_id=?').get(String(id));
+  return r ? bookReadingRow(r) : null;
+}
+/* the reading as the list carries it: states and days, verdicts as category
+   and status — what the board counts, no quotes */
+function bookLite(b) {
+  const out = {};
+  if (b.terms) { out.at = b.at; out.terms = {}; for (const k of Object.keys(b.terms)) { const t = b.terms[k] || {}; out.terms[k] = k === 'notice' ? { days: t.days == null ? null : t.days } : { state: t.state }; } }
+  if (b.pb && Array.isArray(b.pb.verdicts)) out.pb = { label: b.pb.label || '', overnight: true, verdicts: b.pb.verdicts.map(v => ({ category: String((v && v.category) || '').slice(0, 120), status: String((v && v.status) || '') })) };
+  return out;
+}
+function bookReadingRow(r) {
+  let terms = null, pb = null;
+  try { terms = r.terms ? JSON.parse(r.terms) : null; } catch (_) {}
+  try { pb = r.pb ? JSON.parse(r.pb) : null; } catch (_) {}
+  if (!terms && !pb) return null;
+  return { ...(terms ? { terms, at: r.at } : {}), ...(pb ? { pb } : {}) };
+}
+async function runBookReading() {
+  const out = { looked: 0, read: 0, checked: 0, skipped: {} };
+  const cfg = agentCfg('book');
+  if (!cfg.on) return { ...out, off: true };
+  const key = aiKey();
+  if (!key) return { ...out, noKey: true };
+  const cap = Math.max(1, Math.min(1000, Number(cfg.max) || 50));
+  const pb = workspacePlaybook();
+  const rows = db.prepare("SELECT id,json FROM contracts WHERE status!='Declined'").all();
+  const bump = k => { out.skipped[k] = (out.skipped[k] || 0) + 1; };
+  let streak = 0, done = 0;
+  for (const r of rows) {
+    if (done >= cap) { out.cap = true; break; }
+    let c = {}; try { c = JSON.parse(r.json) || {}; } catch (_) { continue; }
+    if (c.archived) continue;
+    const wording = copilotContractWording(c);
+    const hash = sha(wording);
+    const have = db.prepare('SELECT * FROM book_readings WHERE contract_id=?').get(String(r.id)) || null;
+    const needTerms = !(have && have.terms && have.hash === hash);
+    const hasCheck = (c.playbook && Array.isArray(c.playbook.verdicts) && c.playbook.verdicts.length) || (have && have.pb);
+    const pkey = pb ? copilotPlaybookKey(pb, c) : null;
+    const resolved = pb ? copilotResolvePlaybook(pb, pkey) : null;
+    const needCheck = !hasCheck && !!resolved;
+    if (!needTerms && !needCheck) { bump('done'); continue; }
+    out.looked++;
+    const owner = c.owner && c.owner.id ? c.owner : null;
+    if (!owner) { bump('noOwner'); continue; }
+    if (wording.length < COPILOT_PB_TEXT_MIN) { bump('noText'); continue; }
+    const who = { id: String(owner.id), name: owner.name || String(owner.id) };
+    done++;
+    if (needTerms) {
+      const stop = agentMaySpend('book'); if (stop) { out[stop] = true; break; }
+      try {
+        const res = await aiKeyTerms(key, wording, { feature: 'playbook', who });
+        if (!res.ok || res.resp.truncated) { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
+        else {
+          streak = 0;
+          const terms = bookTermsClean(res.terms, wording);
+          db.prepare(`INSERT INTO book_readings (contract_id,hash,at,terms) VALUES (?,?,?,?)
+            ON CONFLICT(contract_id) DO UPDATE SET hash=excluded.hash, at=excluded.at, terms=excluded.terms`).run(String(r.id), hash, now(), JSON.stringify(terms));
+          out.read++;
+        }
+      } catch (e) { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
+    }
+    if (needCheck) {
+      const stop = agentMaySpend('book'); if (stop) { out[stop] = true; break; }
+      try {
+        const res = await aiPlaybookVerdicts(key, { text: aiDocText(null, wording), playbook: resolved, kind: copilotContractKind(c) }, { feature: 'playbook', who });
+        if (!res.ok || res.resp.truncated || !Array.isArray(res.verdicts)) { bump('failed'); if (!res.ok && ++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } continue; }
+        streak = 0;
+        const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(r.id);
+        let cur = {}; try { cur = JSON.parse((fresh && fresh.json) || '{}') || {}; } catch (_) { bump('failed'); continue; }
+        const rec = { key: pkey, label: resolved.label, verdicts: res.verdicts, source: 'ai', overnight: true, at: now() };
+        if (isExecutedRow(cur)) {
+          /* a sealed record is never written: the check is kept beside it */
+          db.prepare(`INSERT INTO book_readings (contract_id,pb,pb_at) VALUES (?,?,?)
+            ON CONFLICT(contract_id) DO UPDATE SET pb=excluded.pb, pb_at=excluded.pb_at`).run(String(r.id), JSON.stringify(rec), now());
+        } else {
+          if (cur.playbook && Array.isArray(cur.playbook.verdicts) && cur.playbook.verdicts.length) { bump('done'); continue; }
+          cur.playbook = rec;
+          cur.audit = (Array.isArray(cur.audit) ? cur.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Playbook',
+            detail: `Checked against our standards overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Copilot-assisted), charged to ${who.name}` }]);
+          db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cur), now(), r.id);
+        }
+        out.checked++;
+      } catch (e) { bump('failed'); if (++streak >= PREP_OUTAGE_STREAK) { out.outage = true; break; } }
+    }
+  }
+  return out;
+}
+const bookRanToday = () => !!db.prepare("SELECT 1 FROM agent_runs WHERE agent='book' AND trigger='schedule' AND day=? LIMIT 1").get(aiToday());
+function bookReadingTick() {
+  try {
+    const cfg = agentCfg('book');
+    if (!cfg.on || agentLocalHour() < (Number(cfg.at) || 0) || bookRanToday()) return;
+    runAgent('book', 'schedule', null, () => runBookReading()).catch(() => {});
+  } catch (_) { /* the clock never stops the others */ }
+}
+/* THE DRAWER (admins): the switch, the hour, how many a night, this
+   reading's own daily money limit, how much of the book is read, the last run */
+app.get('/api/board/reading', auth, admin, (req, res) => {
+  const cfg = agentCfg('book');
+  const total = db.prepare("SELECT COUNT(*) AS n FROM contracts WHERE status!='Declined'").get().n;
+  const read = db.prepare('SELECT COUNT(*) AS n FROM book_readings WHERE terms IS NOT NULL').get().n;
+  const checked = db.prepare('SELECT COUNT(*) AS n FROM book_readings WHERE pb IS NOT NULL').get().n
+    + db.prepare("SELECT COUNT(*) AS n FROM contracts WHERE status!='Declined' AND json_extract(json,'$.playbook.verdicts[0]') IS NOT NULL").get().n;
+  const last = db.prepare("SELECT * FROM agent_runs WHERE agent='book' AND finished_at IS NOT NULL ORDER BY started_at DESC LIMIT 1").get();
+  let run = null; if (last) { try { run = { at: last.started_at, result: last.result ? JSON.parse(last.result) : null, error: last.error || null, cost: last.cost }; } catch (_) { run = null; } }
+  res.json({ on: !!cfg.on, at: Number(cfg.at) || 0, max: Number(cfg.max) || 50, limit: Number(cfg.limit) || 0, total, read, checked: Math.min(checked, total), noKey: !aiKey(), run });
+});
+app.put('/api/board/reading', auth, admin, (req, res) => {
+  const b = req.body || {}, patch = {};
+  if (b.on !== undefined) patch.on = !!b.on;
+  if (b.at !== undefined) { const h = Math.round(Number(b.at)); if (!(h >= 0 && h <= 23)) return res.status(400).json({ error: 'The hour must be 0 to 23.' }); patch.at = h; }
+  if (b.max !== undefined) { const m = Math.round(Number(b.max)); if (!(m >= 1 && m <= 1000)) return res.status(400).json({ error: 'Contracts a night must be 1 to 1000.' }); patch.max = m; }
+  if (b.limit !== undefined) { const l = Number(b.limit); if (!(l >= 0 && l <= 1000)) return res.status(400).json({ error: 'The daily limit must be 0 to 1000.' }); patch.limit = l; }
+  agentSetCfg('book', patch);
+  res.json({ ok: true });
+});
+app.post('/api/board/reading/run', auth, admin, async (req, res) => {
+  const out = await runAgent('book', 'button', req.user, () => runBookReading());
+  if (out && out.busy) return res.status(409).json({ error: 'A run is already going' });
+  res.json(out || {});
 });
 /* WHEN IT RUNS NEXT, said as the page will print it. */
 function agentNextRun(k) {
