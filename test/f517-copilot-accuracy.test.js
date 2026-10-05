@@ -25,7 +25,7 @@ describe('F517 (A) — one judge', () => {
     assert.match(t, /require\('\.\.\/server\/boardjudge\.js'\)/);
     assert.ok(!/function recipeMisses\(|function judgeCopilot\(/.test(t));
     const srv = strip(read('server/server.js'));
-    assert.match(srv, /const \{ judgeCopilot, recipeMisses \} = require\('\.\/boardjudge\.js'\);/);
+    assert.match(srv, /const \{ judgeCopilot, recipeMisses(?:, numbersOutside)? \} = require\('\.\/boardjudge\.js'\);/);   /* f530: the weekly run checks every number too */
   });
 });
 

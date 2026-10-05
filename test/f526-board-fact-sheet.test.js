@@ -73,6 +73,15 @@ describe('f526 (2) a number not on the sheet removes its sentence', () => {
     assert.equal(c.text, 'Juno carries 59% of it. That is SEK 1.06B in all. Act now.');
     assert.equal(c.dropped, 1);
   });
+  test('a list on the sheet is several numbers, each one the sheet\'s ("11 and 14, 25 in all")', () => {
+    const { w } = world();
+    const nums = w.hbNumsOf('- HaTi read: Most of them are in Jul 2026 and Aug 2026: 11 and 14, 25 in all.\n- Jul 2026: 11, 11');
+    const c = w.hbFactCheck('A late burst: 25 contracts landed in two months. Then 14, 11 and 7 more.', nums);
+    assert.equal(c.text, 'A late burst: 25 contracts landed in two months.');
+    assert.equal(c.dropped, 1, 'the 7 was never on the sheet');
+    const { numbersOutside } = require('../server/boardjudge.js');
+    assert.deepEqual(numbersOutside('Then 14, 25 in all.', 'Most: 11 and 14, 25 in all.'), [], 'the weekly judge reads a list the same way');
+  });
   test('the press writes from the sheet and both checks run', async () => {
     const { w } = world();
     const { k } = open(w, 'risk exposure by counterparty');

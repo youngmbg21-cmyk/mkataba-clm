@@ -183,7 +183,7 @@ const check = (name, pass, detail) => {
     if (s8c) await page.click('.hb-panel[data-hb-pid="p8"] [data-hb-why="hp:ren"]');
     const s8d = await until(() => { const P = document.querySelector('.hb-panel[data-hb-pid="p8"]'); const w = P && P.querySelector('.hb-why:not(.is-err) .hb-why-b'); const r = P && P.querySelector('.hb-read');
       return w ? { t: w.textContent.replace(/\s+/g, ' ').trim(), border: getComputedStyle(w.parentElement).borderTopColor, readBorder: r ? getComputedStyle(r).borderTopColor : '', prompt: window._asked[0] || '' } : null; });
-    check('8d asked from the panel, the answer lands in the panel\'s own amber box', !!s8d && /Worth checking which of the open ones/.test(s8d.t) && isAmber(s8d.border) && s8d.border !== s8d.readBorder && /^A panel on the HaTi Home board: "Ending in the next 90 days"\./.test(s8d.prompt), JSON.stringify(s8d && { t: s8d.t, border: s8d.border, p: s8d.prompt.slice(0, 90) }));
+    check('8d asked from the panel, the answer lands in the panel\'s own amber box', !!s8d && /Worth checking which of the open ones/.test(s8d.t) && isAmber(s8d.border) && s8d.border !== s8d.readBorder && /^FACT SHEET — Ending in the next 90 days\nA panel on the HaTi Home board: "Ending in the next 90 days"\./.test(s8d.prompt), JSON.stringify(s8d && { t: s8d.t, border: s8d.border, p: s8d.prompt.slice(0, 90) }));
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT, '8d-panel-asked.png') });
 

@@ -20377,3 +20377,9 @@ Built overnight on the owner's "Go with the recommendations". Story in docs/MAP-
 Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLINE — THE CHART'S POINT ON THE SMALL CARD".
 
 - 5 Oct 2026 — DONE (owner-picked): every small chart card on Home (and Value under contract, and the ready-made panels) says its main point in one line under its totals; Read more opens the full reading in the same card.
+
+## 5 Oct 2026 — Charts That Explain (overnight run)
+- Fixed (in scope): "top N … by risk exposure" was read as a second split by risks; exposure is now read before any split.
+- Fixed (in scope): "act by dates by month" / "notice dates by month" fell through to Copilot; the decision-date words are now taken where the date split is made.
+- Fixed (in scope): the fact-sheet number check read a list ("11 and 14, 25") as one number and dropped a true sentence; a run of numbers is now its pieces, in the board and in the weekly judge.
+- Noticed, not fixed: f364 (5) "the Document tab mounts no strand" is red on main 8239802 too (already logged); left red.

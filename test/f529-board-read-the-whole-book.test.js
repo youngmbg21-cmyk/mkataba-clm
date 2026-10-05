@@ -213,5 +213,6 @@ describe('f529 (6) the drawer', () => {
     assert.match(srv, /AGENT_DEFAULTS\.book = \{ on: false,/);
     const st = read('js/views/settings.js');
     assert.match(st, /st_book_on[\s\S]{0,200}st_book_cost/, 'the cost sits under the switch');
+    assert.match(st, /agents:\{[\s\S]{0,1600}id="st-book"[\s\S]{0,200}wire\(\)\{ stAgentsPaint\(\); stBookLoad\(\); \}/, 'it sits with the overnight agents, not a fifth Copilot row');
   });
 });

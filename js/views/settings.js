@@ -1921,7 +1921,7 @@ function stFxPaint(){
 let _stBook=null;
 async function stBookLoad(){
   try{ _stBook=await api('board/reading'); }catch(e){ _stBook=null; const h=document.getElementById('st-book'); if(h) h.textContent=(e&&e.message)||i18t('co_settings_save_failed'); return; }
-  stBookPaint(); if(typeof stRepaintRow==='function') stRepaintRow('bookreading');
+  stBookPaint();
 }
 function stBookPaint(){
   const host=document.getElementById('st-book'); if(!host||!_stBook) return;
@@ -1935,7 +1935,7 @@ function stBookPaint(){
     <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${fld('st-book-at',i18t('st_book_at'),b.at,0,23)}${fld('st-book-max',i18t('st_book_max'),b.max,1,1000)}${fld('st-book-limit',i18t('st_book_limit'),b.limit,0,1000,0.5)}</div>
     <p class="st-note" style="margin:10px 0 4px">${esc(i18t('st_book_cover',{ read:b.read, checked:b.checked, total:b.total }))}</p>
     <p class="st-note" style="margin:0 0 10px">${esc(last)}</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="st-book-save" style="${ST_BTN_SM}">${esc(i18t('st_book_save'))}</button><button id="st-book-run" style="${ST_BTN2}"${b.on&&!b.noKey?'':' disabled'}>${esc(i18t('st_book_run'))}</button></div>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="st-book-save" style="${ST_BTN_SM}">${esc(i18t('st_book_save'))}</button><button id="st-book-run" style="${ST_BTN2}${b.on&&!b.noKey?'':';opacity:.5;cursor:default'}"${b.on&&!b.noKey?'':` disabled title="${esc(i18t(b.noKey?'st_book_nokey':'st_book_run_off'))}"`}>${esc(i18t('st_book_run'))}</button></div>`;
   document.getElementById('st-book-save')?.addEventListener('click',stBookSave);
   document.getElementById('st-book-run')?.addEventListener('click',stBookRun);
 }
@@ -2557,9 +2557,17 @@ const SET_PANELS={
       if(!s||!s.agents) return { dot:'off', text:i18t('st_p_agents_sub') };
       const all=Object.values(s.agents), on=all.filter(a=>a&&a.on).length;
       return { dot:on?'ok':'off', text:i18t('st_agents_on',{ n:on, of:all.length }) }; },
-    find:()=>['round','link','renew','paper','late','import'].map(k=>i18t('ag_'+k)),
-    body(){ return `<div id="st-agents-panel"></div>`; },
-    wire(){ stAgentsPaint(); },
+    find:()=>['round','link','renew','paper','late','import'].map(k=>i18t('ag_'+k)).concat([i18t('st_p_book'),i18t('st_book_terms')]),
+    /* READ THE WHOLE BOOK (Charts That Explain, rec 7, 5 Oct 2026): the
+       overnight reading of every contract's key terms and its check against
+       our standards is an overnight agent, so it sits with them — under the
+       agents, its own section, OFF by default, its cost said beside the
+       switch (GET/PUT /api/board/reading, Run now POST …/run). The Copilot
+       group stays four rows (f467). */
+    body(){ return `<div id="st-agents-panel"></div>
+      <section class="st-sec" style="margin-top:var(--s-4)"><h3 class="st-sec-h">${esc(i18t('st_p_book'))}</h3>
+      <p class="st-note" style="margin-bottom:10px">${esc(i18t('st_book_note'))}</p><div id="st-book">${esc(i18t('st_acc_loading'))}</div></section>`; },
+    wire(){ stAgentsPaint(); stBookLoad(); },
   },
 
   /* ---- THE BOARD'S WORD BOOK (the board that answers right, Part 3, 5 Oct
@@ -2613,23 +2621,6 @@ const SET_PANELS={
     find:()=>[i18t('st_acc_misses'),i18t('st_acc_marked')],
     body(){ return `<p class="st-note" style="margin-bottom:10px" id="st-acc-sub">${esc(i18t('st_acc_loading'))}</p><div id="st-acc"></div>`; },
     wire(){ stAccLoad(); },
-  },
-
-  /* ---- READ THE WHOLE BOOK (Charts That Explain, rec 7, 5 Oct 2026) ----
-     The overnight reading of every contract's key terms and its check against
-     our standards, so the board's charts cover the whole book and not only the
-     contracts somebody opened. OFF by default; it spends while nobody watches,
-     so its cost is said here, beside the switch. Read and written through
-     GET/PUT /api/board/reading; Run now is POST /api/board/reading/run. */
-  bookreading:{
-    tab:'platform', group:'copilot', mandatory:false,
-    title:()=>i18t('st_p_book'),
-    sub:()=>i18t('st_p_book_sub'),
-    state(){ const b=_stBook; if(!b) return { dot:'off', text:i18t('st_p_book_sub') };
-      return b.on?{ dot:'ok', text:i18t('st_book_state',{ read:b.read, total:b.total }) }:{ dot:'off', text:i18t('st_book_off') }; },
-    find:()=>[i18t('st_book_terms'),i18t('st_book_run')],
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('st_book_note'))}</p><div id="st-book">${esc(i18t('st_acc_loading'))}</div>`; },
-    wire(){ stBookLoad(); },
   },
 
   review:{

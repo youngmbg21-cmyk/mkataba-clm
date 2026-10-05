@@ -53,6 +53,11 @@ function numbersOutside(text, shown){
     const n = Number(raw);
     if (Number.isFinite(n) && n >= 1000) for (const div of [1e3, 1e6, 1e9]) if (n >= div) for (const dp of [0, 1, 2]) put(String((n / div).toFixed(dp)).replace(/\D/g, ''));
   });
-  return _digits(text).filter(d => !have.has(d) && !have.has(String(Number(d))));
+  /* a run like "11 and 14, 25" is several numbers (the board's hbNumPieces) */
+  const has = d => have.has(d) || have.has(String(Number(d)));
+  return (String(text || '').match(/\d(?:[\d\u00a0 ,.]*\d)?/g) || []).flatMap(t => {
+    const d = t.replace(/\D/g, ''); if (!d || has(d)) return [];
+    return t.split(/[\u00a0 ]+|,\s+/).map(x => x.replace(/\D/g, '')).filter(x => x && !has(x));
+  });
 }
 module.exports = { recipeMisses, judgeCopilot, numbersOutside };
