@@ -331,7 +331,8 @@ A counter ON TOP of their ask (`negoEditClause(c,id,html,{onTop})`) PARKS it (`c
 - The rail: one scope card (`ceRenderScope`); Ask (no Apply) / Edit (Apply into the box — the only thing that moves wording); `ceScanGroups`; `ceCostLine`; tabs Suggestions · Ladder · Figure · Playbook scan. Writing bar `richBarHtml`/`RICH_BAR_TOOLS` (`redlineSplitMarker`, `RICH_MARK_CLASSES`). The front matter is a region (`CLAUDE_FRONT_ID='front'`); the heading is part of the clause (`negoHeadingAsk`).
 - A NEW CLAUSE HELD BEFORE IT EXISTS (`opts.newClause`, `_ceNew`, `CE_NEW_ID`, `ceIsNew`): the paper draws a VIEW with one unsaved insertion (`ceNewView`, never written), no lock (`ceLockable`), "new clause" on the chip (`ceNewBadge`); the FIRST Save is `ceFileNew` → `negoAddNamedClause` (the ONE other wrapper, f245 (7)), then it is a proposed clause like any other.
 - THEIR SEAT (`ceSide()`, `ceNoAi()`): no Copilot, no locks; beside their Redlines column (`is-theirs`, `ceFitToTheirs`, `pw-editing`; `ceForgetUnfiled`). The clause lock: `POST /api/contracts/:id/lock` only; `clauseLockSign` at every door; never travels.
-Tests: f245, f249, f250, f287, f289, clause-editor-verify, clause-door-verify, redline-verify 25.
+- ONE EDITOR FOR BOTH DOORS (Young, 5 Oct 2026): the Risks tab draws the risk, then `ceRiskAnswerHtml` = `ceTurnHtml` over `riskAnswerOf` (card key `rk:0`); Copilot's risk wording WAITS FOR APPLY (`riskEditorDraft` calls no `ceApply`); risk asks in the rail's chips row (`riskChipsHtml`) and box (`ceAskHere`); both feet on every tab in a walk. FILL THE PANEL: Expand (`data-ce-expand`) on every Suggested wording card → `#ce-full` (`ceRenderFull`, `ceFullOpen`/`ceFullClose`; Escape, Apply, Ask for a change, a tab change close it). `#ce-rk-ask`, `.rk-ce-ask` STALE.
+Tests: f245, f249, f250, f287, f289, f505, clause-editor-verify, clause-door-verify, redline-verify 25, one-copilot-editor-verify.
 
 ## NOTES AND COMMENTS
 

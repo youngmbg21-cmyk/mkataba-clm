@@ -534,7 +534,9 @@ describe('f245 (16) — the highlighted passage goes to the rail, and it files n
     /* RE-POINTED 11 Sep 2026 (evening): the placeholder also says which VERB
        the passage is held under — a question or an edit. And since fix 5 it
        names the other two things the card can hold. */
-    assert.match(r[0], /ask\.placeholder = _cet\(\{ ask: 'ce_ask_ph_question', edit: 'ce_ask_ph_passage',\s*contract: 'ce_ask_ph_contract', clause: 'ce_ask_ph_clause' \}\[state\]\)/,
+    /* RE-POINTED 5 Oct 2026: on the Risks tab the same box asks about the
+       risk (the risk edit is the clause edit's screen), so it says so first. */
+    assert.match(r[0], /ask\.placeholder = _ceTab === 'risks' \? _cet\('rk_ce_ph'\) : _cet\(\{ ask: 'ce_ask_ph_question', edit: 'ce_ask_ph_passage',\s*contract: 'ce_ask_ph_contract', clause: 'ce_ask_ph_clause' \}\[state\]\)/,
       'and the box says what it is for');
   });
 
@@ -555,8 +557,13 @@ describe('f245 (16) — the highlighted passage goes to the rail, and it files n
        keystroke paths is how they come to disagree about what Enter means. */
     assert.equal(CODE.split("key === 'Enter' && !ev.shiftKey").length - 1, 1,
       'exactly one Enter path');
-    assert.match(CODE, /key === 'Enter' && !ev\.shiftKey\)\{\n\s+ev\.preventDefault\(\);\n\s+if \(ask\.value\.trim\(\)\)[\s\S]{0,120}?ceAsk\(q\)/,
+    /* RE-POINTED 5 Oct 2026: ceAskHere — the conversation's ceAsk, or on the
+       Risks tab the risk's own ask; neither applies anything. */
+    assert.match(CODE, /key === 'Enter' && !ev\.shiftKey\)\{\n\s+ev\.preventDefault\(\);\n\s+if \(ask\.value\.trim\(\)\)[\s\S]{0,120}?ceAskHere\(q\)/,
       'and it asks Copilot rather than applying');
+    const here = CODE.match(/function ceAskHere\(q\)\{[\s\S]*?\n\}/);
+    assert.ok(here && /riskWalkPress\(_ceC, 'send', q\)/.test(here[0]) && /\n  ceAsk\(q\);/.test(here[0]),
+      'one box: the risk\'s ask on the Risks tab, the conversation everywhere else');
   });
 
   test('A CHIP IS A QUESTION, and the answer lands on a card', () => {

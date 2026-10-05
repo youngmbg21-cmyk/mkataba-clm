@@ -30,7 +30,8 @@
    ONE DOOR FOR EDITS (the owner's work order, Part 8, 4 Oct 2026). "Edit with
    Copilot" on a risk opens the Edit with Copilot window — the one the pencil
    opens — on the clause the risk is about, with the risk in the rail's Risks
-   tab and Copilot's wording already in the box. Save, then the next risk, all
+   tab and Copilot's wording in the Suggested wording card, waiting for Apply
+   (5 Oct 2026, the same screen as from a clause). Save, then the next risk, all
    inside the window (riskEditStart, the walk, riskLaneHtml). A risk that needs
    a brand-new clause opens the window holding that clause where it will go
    (Young chose to build it, 5 Oct 2026): "Where it goes" in the Risks tab,
@@ -215,7 +216,7 @@ function riskDismiss(c, key, back){
    What the list and the walk are showing is a fact about this sitting, never
    about the record; a refresh starts fresh, which costs nothing because
    nothing here was filed. */
-const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, busy: '', err: {}, spent: {} };
+const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, advice: {}, busy: '', err: {}, spent: {} };
 
 /* WHERE A RISK'S WORDING WOULD GO, asked at the PRESS (negoClauseList may
    start a negotiation; a draw never calls this). A finding whose words are on
@@ -398,13 +399,16 @@ function riskSecondRedline(c, clauseId){
     && x.authorSide === 'owner' && !x.withdrawn && !['superseded', 'rejected'].includes(String(x.status))
     && !(x.status === 'pending' && (round == null || x.roundN === round))) || null;
 }
-/* ONE COPILOT CALL ON ARRIVAL, said; a quick ask or a typed one redrafts the
-   box. Wording already written for a risk this sitting is put back without
-   asking again. Nothing is filed until Save. */
+/* ONE COPILOT CALL ON ARRIVAL, said; a quick ask or a typed one asks again.
+   THE WORDING WAITS FOR APPLY (Young, 5 Oct 2026: "yes to waiting for
+   Apply"): Copilot's answer is the editor's own Suggested wording card
+   (riskAnswerOf → ceRiskAnswerHtml), exactly as it is from a clause, and only
+   the card's Apply moves it into the box. Wording already written for a risk
+   this sitting is shown again without asking. Nothing is filed until Save. */
 async function riskEditorDraft(c, key, ask){
   const it = riskItemsOf(c).find(x => x.key === key);
   if (!c || !it || typeof ceApply !== 'function') return false;
-  if (!ask && _rk.words[key]){ ceApply(_rk.words[key], _rkT('ce_tab_risks'), { quiet: true }); return true; }
+  if (!ask && _rk.words[key]){ if (typeof ceRenderLane === 'function') ceRenderLane(); return true; }
   if (!(typeof copilotAvailable === 'function' && copilotAvailable()) || typeof copilotPropose !== 'function'){
     _rk.err[key] = 'noai'; if (typeof ceRenderLane === 'function') ceRenderLane(); return false;
   }
@@ -425,8 +429,8 @@ async function riskEditorDraft(c, key, ask){
   const words = String((res && res.proposedText) || '').trim();
   if (err || !words){ _rk.err[key] = err ? String((err && err.message) || err) : String((res && res.advice) || _rkT('ce_ask_nothing')); }
   else {
-    _rk.words[key] = words; _rk.spent[key] = (_rk.spent[key] || 0) + 1;
-    if (typeof clauseEditorOpen === 'function' && clauseEditorOpen()) ceApply(words, _rkT('ce_tab_risks'), { quiet: true });
+    _rk.words[key] = words; _rk.advice[key] = String((res && res.advice) || '').trim();
+    _rk.spent[key] = (_rk.spent[key] || 0) + 1;
   }
   if (typeof ceRenderLane === 'function') ceRenderLane();
   return !!words;
@@ -435,6 +439,23 @@ function riskEditorArrive(c, key){
   const w = _rkWalkOf(c);
   if (!w || w.key !== key) return;
   riskEditorDraft(c, key, '');
+}
+/* WHAT COPILOT ANSWERED FOR THE RISK IN FRONT OF THE READER, read by the
+   editor, which draws it with its own card (the clothes follow the builder). */
+function riskAnswerOf(c){
+  const w = _rkWalkOf(c);
+  if (!w || !w.key || w.done || _rk.busy === w.key) return null;
+  const words = _rk.words[w.key];
+  return words ? { key: w.key, words, advice: _rk.advice[w.key] || '' } : null;
+}
+/* THE RISK'S QUICK ASKS, drawn in the rail's own chips row (the same row the
+   clause's questions use), each one Copilot call. */
+function riskChipsHtml(c){
+  const w = _rkWalkOf(c);
+  if (!w || !w.key || w.done) return '';
+  const busy = _rk.busy === w.key, noai = _rk.err[w.key] === 'noai';
+  return Object.keys(RK_ASK_WORD).map(k =>
+    `<button type="button" data-ce-rk="ask-${k}" title="${_rkE(_rkT('rk_ce_each'))}"${busy || noai ? ' disabled' : ''}>${_rkE(_rkT(RK_ASK_WORD[k]))}</button>`).join('');
 }
 /* THE RISKS TAB, drawn by the window's rail. */
 function riskLaneHtml(c){
@@ -460,8 +481,6 @@ function riskLaneHtml(c){
     : err === 'noai' ? `<p class="rk-p rk-quiet">${_rkE(_rkT('rk_ce_no_ai'))}</p>`
     : err ? `<div class="rk-err">${_rkE(_rkT('rk_failed', { why: err }))}</div>`
     : _rk.spent[it.key] ? `<p class="rk-cost">&#10022; ${_rkE(_rkT(_rk.spent[it.key] === 1 ? 'rk_ce_wrote' : 'rk_ce_wrote_n', { n: _rk.spent[it.key] }))}</p>` : '';
-  const quick = Object.keys(RK_ASK_WORD).map(k =>
-    `<button type="button" class="ui-btn ui-btn-sm" data-ce-rk="ask-${k}"${busy || err === 'noai' ? ' disabled' : ''}>${_rkE(_rkT(RK_ASK_WORD[k]))}</button>`).join('');
   return `<div class="rk-ce" data-rk-key="${_rkE(it.key)}">
     <div class="rk-ce-step"><span>${_rkE(_rkT('rk_ce_step', { k: info.k, n: info.n }))}</span><span class="rk-ce-dots" aria-hidden="true">${dots}</span></div>
     <div class="rk-ce-card">
@@ -473,12 +492,6 @@ function riskLaneHtml(c){
     </div>
     ${_rkWhereHtml(c)}
     ${say}
-    <div class="rk-ce-ask" title="${_rkE(_rkT('rk_ce_each'))}">
-      <span class="rk-k">${_rkE(_rkT('rk_ce_ask_h'))}</span>
-      <div class="rk-acts" style="justify-content:flex-start">${quick}</div>
-      <div class="rk-ce-row"><textarea id="ce-rk-ask" rows="2" aria-label="${_rkE(_rkT('rk_ce_ask_h'))}" placeholder="${_rkE(_rkT('rk_ce_ph'))}"${err === 'noai' ? ' disabled' : ''}></textarea>
-        <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ce-rk="send" aria-label="${_rkE(_rkT('ce_send'))}" title="${_rkE(_rkT('ce_send'))}"${busy || err === 'noai' ? ' disabled' : ''}>${_rkE(_rkT('ce_send'))}</button></div>
-    </div>
   </div>`;
 }
 /* WHERE A NEW CLAUSE GOES, while it is held and not yet filed: a clause to put
@@ -498,7 +511,7 @@ function _rkWhereHtml(c){
     ${sign ? `<span class="rk-cost">${_rkE(_rkT('rk_ce_never_after', { clause: _rkClauseName(sign) }))}</span>` : ''}</label>`;
 }
 /* The presses the rail hands over (the window's own Save stays the window's). */
-function riskWalkPress(c, act){
+function riskWalkPress(c, act, typed){
   if (!c) return;
   if (act === 'start'){ const first = riskOpenOf(c)[0]; if (first) riskEditStart(c, first.key); return; }
   if (act === 'back'){ riskWalkEnd(c); return; }
@@ -506,10 +519,9 @@ function riskWalkPress(c, act){
   if (act === 'skip'){ riskWalkStep(c, 'skip'); return; }
   const w = _rkWalkOf(c); if (!w || !w.key) return;
   if (act === 'send'){
-    const box = document.getElementById('ce-rk-ask');
-    const typed = box ? String(box.value || '').trim() : '';
-    if (!typed) return;
-    riskEditorDraft(c, w.key, typed); return;
+    const said = String(typed || '').trim();
+    if (!said) return;
+    riskEditorDraft(c, w.key, said); return;
   }
   const k = String(act).replace(/^ask-/, '');
   if (RK_ASKS[k]) riskEditorDraft(c, w.key, RK_ASKS[k]);
@@ -671,10 +683,6 @@ function rkEnsureStyle(){
   .rk-ce-dots i{width:14px;height:4px;border-radius:2px;background:var(--color-divider)}
   .rk-ce-dots i.is-done{background:var(--st-green-fg)} .rk-ce-dots i.is-now{background:var(--color-accent-600, var(--accent))}
   .rk-ce-card{display:grid;gap:4px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;background:var(--color-bg)}
-  .rk-ce-ask{display:grid;gap:6px;border-top:1px solid var(--color-divider);padding-top:8px}
-  .rk-ce-row{display:flex;gap:6px;align-items:flex-end}
-  .rk-ce-row textarea{flex:1;min-width:0;font:inherit;font-size:var(--t-meta);border:1px solid var(--color-divider);border-radius:var(--radius);
-    background:var(--color-surface);color:var(--color-text);padding:6px 8px;resize:vertical}
   .rk-ce-end{border:1px solid var(--st-green-fg);border-radius:var(--radius-lg);padding:12px}
   .doc-xr-rk{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin-top:6px}
   .doc-xr-rk .rk-done{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--st-green-fg)}
@@ -756,5 +764,5 @@ Object.assign(window, {
   riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss,
   riskNote, riskMayAct, rlRisksPileHtml, riskMarkFootHtml,
   riskCoverOf, riskEditTarget, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled,
-  riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml,
+  riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml, riskAnswerOf, riskChipsHtml,
 });

@@ -113,6 +113,12 @@ let _ceTab = 'chat';        /* chat | scan | ladder | figure | risks */
 const CE_NEW_ID = 'cl_ce_new';
 let _ceNew = null;
 let _ceThread = [];         /* the conversation, this sitting only */
+/* FILL THE PANEL (Young picked it 5 Oct 2026): the key ('i:j', or 'rk:0' for
+   the risk's card) of the Suggested wording card read across the whole rail,
+   or '' when the rail is its ordinary self. Per sitting, never stored. */
+let _ceFull = '';
+/* The Risks tab's answer card, kept so a vote on it survives a repaint. */
+let _ceRiskCard = null;
 let _ceBusy = false;
 let _ceSavedAt = null;
 let _ceScan = null;         /* the playbook review, once run */
@@ -809,6 +815,37 @@ function clauseEditorCss(){
   .ce-card .av .ce-vote{width:26px; padding:0; color:var(--color-neutral-600)}
   .ce-card .av .ce-vote.is-on{color:var(--accent-ink); border-color:var(--accent-solid)}
   .ce-card .av .g{flex:1; min-width:4px}
+  /* EXPAND, in the card's own head (Fill the panel, 5 Oct 2026): a quiet
+     control on the compact ladder, never a second filled button. */
+  .ce-card .n .ce-x{flex:none; display:inline-flex; align-items:center; gap:5px; height:var(--ctl-h-sm);
+    padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label);
+    background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider);
+    border-radius:var(--radius); cursor:pointer; white-space:nowrap}
+  .ce-card .n .ce-x:hover{border-color:var(--accent-solid)}
+  /* FILL THE PANEL: the rail's lane, passage card, chips and ask box step
+     aside; the head, the disclaimer and both feet stay where they are. */
+  .ce-rail.is-full > .ce-lane, .ce-rail.is-full > #ce-scope,
+  .ce-rail.is-full > .ce-chips, .ce-rail.is-full > .ce-ask{display:none}
+  .ce-rail > .ce-full{flex:1; min-height:0; display:flex; flex-direction:column; margin:0;
+    padding:0; border:0; border-top:1px solid var(--color-divider); background:var(--color-surface)}
+  .ce-rail > .ce-full[hidden]{display:none}
+  .ce-full .ce-full-h{flex:none; display:flex; align-items:center; gap:var(--s-2); padding:10px 14px;
+    border-bottom:1px solid var(--color-divider); font-size:var(--t-body); min-width:0}
+  .ce-full .ce-full-h b{flex:none; font-weight:var(--w-title)}
+  .ce-full .ce-full-h .g{flex:1; min-width:4px}
+  .ce-full .ce-full-cl{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    font-size:var(--t-meta); color:var(--color-neutral-600)}
+  .ce-full .ce-full-back{flex:none; height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit;
+    font-size:var(--t-meta); font-weight:var(--w-label); background:var(--color-surface); color:var(--accent-ink);
+    border:1px solid var(--color-divider); border-radius:var(--radius); cursor:pointer; white-space:nowrap}
+  .ce-full .ce-full-back:hover{border-color:var(--accent-solid)}
+  .ce-full .ce-full-body{flex:1; min-height:0; overflow:auto; padding:16px 20px}
+  .ce-full .ce-full-body .pv{display:block; margin:0; padding:0; border:0; background:transparent;
+    max-height:none; overflow:visible; font-family:var(--font-doc); font-size:16px; line-height:1.75;
+    color:var(--color-text)}
+  .ce-full .ce-full-body .pv ins{text-decoration:underline; text-underline-offset:3px; font-weight:var(--w-label)}
+  .ce-full > .av{flex:none; margin:0; padding:10px 14px; border-top:1px solid var(--color-divider);
+    background:var(--color-neutral-100)}
 
   /* the scan reads as a list of verdicts, then the same cards */
   .ce-rule{background:var(--color-surface); border:1px solid var(--color-divider);
@@ -1786,6 +1823,9 @@ function clauseEditorHtml(){
         </div>
         ${ceNoAi() ? '' : `<div class="ce-disc"><b>&#10022;</b><span>${_cet('ce_disclaimer')}</span></div>`}
         <div class="ce-lane" id="ce-lane"></div>
+        ${''/* FILL THE PANEL: one Suggested wording card read across the
+               whole rail (ceRenderFull). Empty and hidden at rest. */}
+        <div class="ce-full ce-card" id="ce-full" hidden></div>
         ${''/* ---- WHAT IS ATTACHED, DIRECTLY OVER THE BOX YOU TYPE IN ----
                The passage the reader highlighted on the paper. Painted by
                ceRenderScope and EMPTY when nothing is attached, so this slot
@@ -2300,6 +2340,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   _ceEditing = !ceUnderDeletion()
     && (wantTyping || (_ceText === _ceBase && _ceHead === _ceHeadBase));
   _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceSel = null; _ceWhole = false;
+  _ceFull = ''; _ceRiskCard = null;
   _ceScan = null; _ceScanFiled = {};
   _ceSpellList = []; _ceSpellFor = null;
   /* ---- THE RAIL OPENS ON THE FINDING IT IS ALREADY HOLDING ----
@@ -2459,6 +2500,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceRead0 = null;
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null; _ceNew = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null; _ceWhole = false;
+  _ceFull = ''; _ceRiskCard = null;
   _ceSpellList = []; _ceSpellFor = null;
   _ceRendering = false; _ceZoom = 100;
   _ceOpenText = '';
@@ -2685,6 +2727,7 @@ function ceGoClause(clauseId, extra){
    Hairline, in the button's own ink (currentColor), 14px like every other
    mark on a button. */
 const CE_THUMB_PATH = '<path d="M2 7.5h3V14H2z"/><path d="M5 7.5 7.8 2.6c.9 0 1.9.8 1.6 2L9 7h4.1c.9 0 1.5.8 1.3 1.6l-1.1 4.5c-.2.6-.6.9-1.2.9H5"/>';
+const CE_EXPAND_ICON = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg>';
 const CE_THUMB_UP = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true">${CE_THUMB_PATH}</svg>`;
 const CE_THUMB_DOWN = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(180 8 8)">${CE_THUMB_PATH}</g></svg>`;
 function clauseEditorLeaveAsk(){
@@ -4357,19 +4400,33 @@ function ceRenderTabs(){
   if (badge){ badge.textContent = n ? String(n) : ''; badge.style.display = n ? '' : 'none'; }
   const rkn = _ceQ('#ce-rk-n');
   if (rkn){ const k = (window.riskOpenOf && _ceC) ? riskOpenOf(_ceC).length : 0; rkn.textContent = k ? String(k) : ''; rkn.style.display = k ? '' : 'none'; }
-  /* ON THE RISKS TAB THE FOOT IS THE WALK'S: ‹ Previous · Skip · Save & next. */
+  /* ONE FOOT ON EVERY TAB (Young, 5 Oct 2026: the risk edit is the clause
+     edit's screen): while a walk is on, ‹ Previous · Skip · Save & next sits
+     over Discard · Save on every tab, the Risks tab included. Outside a walk
+     ceRenderRiskFoot leaves the walk's row empty. */
   const rf = _ceQ('#ce-rkfoot'), mf = _ceQ('#ce-railfoot');
-  if (rf) rf.hidden = _ceTab !== 'risks';
-  if (mf) mf.style.display = _ceTab === 'risks' ? 'none' : '';
+  if (rf) rf.hidden = false;
+  if (mf) mf.style.display = '';
   /* The ask box belongs to the conversation. The scan has nothing to be asked.
      THE PASSAGE CARD GOES WITH IT: it is the subject of the next question, and
      over a list of playbook findings it would be a card about nothing. The
      passage is NOT let go — coming back to the conversation finds it still
      held, because a tab is a reading and not a decision. */
+  /* THE RISKS TAB ASKS IN THE SAME ROWS (5 Oct 2026): the risk's quick asks
+     in the chips row and its typed ask in the same box, so both screens wear
+     one face. The passage card shows there only over the whole clause — a
+     risk's ask is always about the clause it opened on. */
   const ask = _ceQ('#ce-askrow'), chips = _ceQ('#ce-chips'), scope = _ceQ('#ce-scope');
-  if (ask) ask.style.display = _ceTab === 'chat' ? '' : 'none';
-  if (chips) chips.style.display = _ceTab === 'chat' ? '' : 'none';
-  if (scope) scope.style.display = _ceTab === 'chat' ? '' : 'none';
+  const rk = _ceTab === 'risks' && ceRiskAsking();
+  if (ask) ask.style.display = (_ceTab === 'chat' || rk) ? '' : 'none';
+  if (chips) chips.style.display = (_ceTab === 'chat' || rk) ? '' : 'none';
+  if (scope) scope.style.display = (_ceTab === 'chat' || (rk && !_ceSel && !_ceWhole && !ceIsNew())) ? '' : 'none';
+  ceRenderChips(); ceRenderScope();
+}
+/* Whether the Risks tab has a risk in front of the reader to ask about. */
+function ceRiskAsking(){
+  const info = (window.riskWalkInfo && _ceC) ? riskWalkInfo(_ceC) : null;
+  return !!(info && !info.done && info.it);
 }
 /* ---- A CONTROL DRAWN ONLY WHERE THERE IS REALLY MORE TO SEE (21 Sep 2026) ----
    Asked of the BROWSER after the paint, never of the character count: whether
@@ -4401,10 +4458,8 @@ function ceRenderLane(){
   if (_ceTab === 'scan'){ lane.innerHTML = ceScanHtml(); lane.scrollTop = 0; ceScanFitPv(lane); return; }
   if (_ceTab === 'ladder'){ lane.innerHTML = ceLadderLaneHtml(); lane.scrollTop = 0; return; }
   if (_ceTab === 'risks'){
-    const ta = _ceQ('#ce-rk-ask'); const typed = ta ? ta.value : '';
-    lane.innerHTML = window.riskLaneHtml && _ceC ? riskLaneHtml(_ceC) : '';
-    const tb = _ceQ('#ce-rk-ask'); if (tb && typed) tb.value = typed;
-    lane.scrollTop = 0; ceRenderRiskFoot(); return;
+    lane.innerHTML = (window.riskLaneHtml && _ceC ? riskLaneHtml(_ceC) : '') + ceRiskAnswerHtml();
+    lane.scrollTop = 0; ceRenderRiskFoot(); ceRenderTabs(); ceRenderFull(); return;
   }
   if (_ceTab === 'figure'){
     lane.innerHTML = ceFigureLaneHtml(); lane.scrollTop = 0;
@@ -4421,7 +4476,68 @@ function ceRenderLane(){
     + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
   const last = lane.lastElementChild;
   if (last) lane.scrollTop = Math.max(0, last.offsetTop - lane.offsetTop - 4);
+  ceRenderFull();
 }
+/* ---- THE RISK'S ANSWER IS THE CLAUSE'S ANSWER (Young, 5 Oct 2026) ----
+   "The risk scan edit with copilot design … should be exactly like the edit
+   with copilot design": Copilot's sentence, the reading rows and ONE
+   Suggested wording card, drawn by the conversation's own ceTurnHtml — so
+   Apply, Ask for a change, the votes and Expand are the same buttons with the
+   same handlers. The wording waits in the card until Apply. */
+function ceRiskAnswerHtml(){
+  const a = (window.riskAnswerOf && _ceC) ? riskAnswerOf(_ceC) : null;
+  if (!a){ _ceRiskCard = null; return ''; }
+  if (!_ceRiskCard || _ceRiskCard.key !== a.key || _ceRiskCard.text !== a.words){
+    _ceRiskCard = { key: a.key, name: _cet('ce_suggestion'), chip: _cet('ce_chip_copilot'), chipTone: 'wait',
+      line: '', rests: [cePlaybookLine(), cePrecedentLine()].filter(Boolean)[0] || '', text: a.words, passage: null };
+  }
+  return ceTurnHtml({ who: 'ai', text: a.advice, read: ceReadList(), cards: [_ceRiskCard] }, 'rk');
+}
+/* ---- FILL THE PANEL (Young picked it 5 Oct 2026, over "Grow in place" and
+   "Read it on the paper") ----
+   Expand on a Suggested wording card turns the whole rail into a reading of
+   that one card: the marked wording in the contract's own face, with Apply,
+   Ask for a change and the votes pinned under it. The contract on the left
+   does not move a pixel; the feet stay. ONE way back (Back to Copilot, or
+   Escape); a card that is no longer there closes it by itself. */
+function ceRenderFull(){
+  if (!clauseEditorOpen()) return;
+  const full = _ceQ('#ce-full'), rail = _ceQ('.ce-rail');
+  if (!full) return;
+  const card = _ceFull ? ceCardAt(_ceFull) : null;
+  if (!card || !card.text){
+    _ceFull = '';
+    if (!full.hidden){ full.hidden = true; full.innerHTML = ''; }
+    if (rail) rail.classList.remove('is-full');
+    return;
+  }
+  const key = _ceFull;
+  const marked = ceRedlineHtml(card.passage ? card.passage.text : _ceText, card.text || '');
+  const offerWording = !ceUnderDeletion() && card.mode !== 'ask';
+  const vote = card.vote || '';
+  const where = card.passage ? _cet('ce_scope_words') : (ceClauseLabel(ceClause()) || _cet('ce_this_clause'));
+  full.innerHTML = `<div class="ce-full-h">
+      <button type="button" class="ce-full-back" data-ce-act="full-close">&#8249; ${_cee(_cet('ce_full_back'))}</button>
+      <b>${_cee(card.name || _cet('ce_suggestion'))}</b><span class="ce-full-cl" title="${_ceea(where)}">${_cee(where)}</span><span class="g"></span>${
+      card.chip ? `<span class="chip ${_ceea(card.chipTone || 'wait')}">${_cee(card.chip)}</span>` : ''}</div>
+    <div class="ce-full-body"><span class="pv">${marked}</span></div>
+    <div class="av">
+      ${offerWording ? `<button type="button" class="p" data-ce-apply="${key}">${_cet('ce_apply')}</button>` : ''}
+      ${offerWording ? `<button type="button" data-ce-refine="${key}">${_cet('ce_refine')}</button>` : ''}
+      <span class="g"></span>
+      <button type="button" class="ce-vote${vote === 'up' ? ' is-on' : ''}" data-ce-vote="${key}:up"
+        aria-pressed="${vote === 'up' ? 'true' : 'false'}"
+        title="${_ceea(_cet('ce_vote_up'))}" aria-label="${_ceea(_cet('ce_vote_up'))}">${CE_THUMB_UP}</button>
+      <button type="button" class="ce-vote${vote === 'down' ? ' is-on' : ''}" data-ce-vote="${key}:down"
+        aria-pressed="${vote === 'down' ? 'true' : 'false'}"
+        title="${_ceea(_cet('ce_vote_down'))}" aria-label="${_ceea(_cet('ce_vote_down'))}">${CE_THUMB_DOWN}</button>
+    </div>`;
+  full.hidden = false;
+  if (rail) rail.classList.add('is-full');
+}
+function ceFullOpen(key){ _ceFull = String(key || ''); ceRenderFull();
+  const back = _ceQ('#ce-full .ce-full-back'); if (back){ try{ back.focus(); }catch(_){} } }
+function ceFullClose(){ if (!_ceFull) return false; _ceFull = ''; ceRenderFull(); return true; }
 function ceTurnHtml(t, i){
   if (t.who === 'you') return `<div class="ce-you"><span>${_cee(t.text)}</span></div>`;
   if (t.greeting) return ceGreetingHtml();
@@ -4499,7 +4615,8 @@ function ceCardHtml(card, i, j){
   const offerWording = !!card.text && !ceUnderDeletion() && card.mode !== 'ask';
   return `<div class="ce-card">
     <div class="n"><span>${_cee(card.name || _cet('ce_suggestion'))}</span><span class="g"></span>${
-      card.chip ? `<span class="chip ${_ceea(card.chipTone || 'wait')}">${_cee(card.chip)}</span>` : ''}</div>
+      card.chip ? `<span class="chip ${_ceea(card.chipTone || 'wait')}">${_cee(card.chip)}</span>` : ''}${
+      card.text ? `<button type="button" class="ce-x" data-ce-expand="${i}:${j}" title="${_ceea(_cet('ce_expand_title'))}">${CE_EXPAND_ICON}${_cee(_cet('ce_expand'))}</button>` : ''}</div>
     ${card.line ? `<span class="l">${_cee(card.line)}</span>` : ''}
     ${card.rests ? `<span class="r">${_cee(_cet('ce_rests_on', { on: card.rests }))}</span>` : ''}
     ${card.text ? `<span class="pv">${marked}</span>` : ''}
@@ -4519,6 +4636,7 @@ function ceCardHtml(card, i, j){
 function ceRenderChips(){
   if (!clauseEditorOpen()) return;
   const box = _ceQ('#ce-chips'); if (!box) return;
+  if (_ceTab === 'risks'){ box.innerHTML = (window.riskChipsHtml && _ceC) ? riskChipsHtml(_ceC) : ''; return; }
   const qs = [];
   /* ---- THE READY-MADE QUESTIONS FOLLOW THE SCOPE ----
      With a passage held they are THE STRIP'S OWN THREE, word for word and key
@@ -4676,6 +4794,13 @@ function ceWholeContext(){
   let ctx = null;
   try{ ctx = (typeof window.buildAssistantContext === 'function') ? buildAssistantContext() : null; }catch(_){ ctx = null; }
   return Object.assign({}, ctx || {}, { wholeDoc: true });
+}
+/* ONE ASK BOX, TWO TABS: on the Risks tab a typed ask asks Copilot about the
+   risk in front of the reader (riskWalkPress 'send'); everywhere else it is
+   the conversation's own ceAsk. */
+function ceAskHere(q){
+  if (_ceTab === 'risks'){ if (window.riskWalkPress && _ceC && ceRiskAsking()) riskWalkPress(_ceC, 'send', q); return; }
+  ceAsk(q);
 }
 async function ceAsk(question, opts = {}){
   /* THE WALL, NOT ONLY THE SIGN: their page draws no ask box, and a press
@@ -5516,7 +5641,7 @@ function ceRenderScope(){
      (Edit with Copilot), a question about words (Ask Copilot), or the whole
      contract (after the ✕). */
   const state = sel ? (asking ? 'ask' : 'edit') : (_ceWhole ? 'contract' : 'clause');
-  if (ask) ask.placeholder = _cet({ ask: 'ce_ask_ph_question', edit: 'ce_ask_ph_passage',
+  if (ask) ask.placeholder = _ceTab === 'risks' ? _cet('rk_ce_ph') : _cet({ ask: 'ce_ask_ph_question', edit: 'ce_ask_ph_passage',
     contract: 'ce_ask_ph_contract', clause: 'ce_ask_ph_clause' }[state]);
   /* The rail's own clause label says the same: in whole-contract mode it is
      not about this clause any more. */
@@ -6409,7 +6534,8 @@ function ceWirePage(page){
       const want = tab.getAttribute('data-ce-tab');
       _ceTab = ceNoAi() ? (want === 'figure' ? 'figure' : 'ladder')
         : ['scan', 'ladder', 'figure', 'risks'].includes(want) ? want : 'chat';
-      ceRenderTabs(); ceRenderLane(); return; }
+      _ceFull = '';
+      ceRenderTabs(); ceRenderLane(); ceRenderFull(); return; }
 
 
     /* THE SPELLING LIST'S TWO PRESSES (28 Sep 2026) — see ceSaveChecked. */
@@ -6420,6 +6546,9 @@ function ceWirePage(page){
 
     const chip = hit('[data-ce-chip]');
     if (chip){ ev.preventDefault(); if (!ceNoAi()) ceAsk(chip.getAttribute('data-ce-chip')); return; }
+
+    const ex = hit('[data-ce-expand]');
+    if (ex){ ev.preventDefault(); ceFullOpen(ex.getAttribute('data-ce-expand')); return; }
 
     const ew = hit('[data-ce-edit-with]');
     if (ew){ ev.preventDefault(); ceEditWith(_ceThread[Number(ew.getAttribute('data-ce-edit-with'))]); return; }
@@ -6446,6 +6575,7 @@ function ceWirePage(page){
          aiLooksConversational, and the builder's own sentence. */
       if (typeof window.aiLooksConversational === 'function' && window.aiLooksConversational(String(card.text || ''))){
         ceSay(i18t('tb_not_wording'), 'warn'); return; }
+      ceFullClose();
       if (card.passage) ceReplacePassage(card.passage, card.text, { keepView: false });
       else ceApply(card.text, _cet('ce_step_copilot'));
       /* WHAT THE DRAFT BECAME, so the funnel can later say whether the reader
@@ -6461,6 +6591,7 @@ function ceWirePage(page){
 
     const refine = hit('[data-ce-refine]');
     if (refine){ ev.preventDefault();
+      ceFullClose();
       const box = _ceQ('#ce-ask');
       if (box){ try{ box.focus(); }catch(_){} }
       ceSay(_cet('ce_refine_hint')); return; }
@@ -6469,7 +6600,7 @@ function ceWirePage(page){
     if (vote){ ev.preventDefault();
       const parts = String(vote.getAttribute('data-ce-vote')).split(':');
       const card = ceCardAt(parts[0] + ':' + parts[1]);
-      if (card){ card.vote = card.vote === parts[2] ? '' : parts[2]; ceRenderLane(); }
+      if (card){ card.vote = card.vote === parts[2] ? '' : parts[2]; ceRenderLane(); ceRenderFull(); }
       return; }
 
     /* The preview's own opener — a class flip on the card it sits in, never a
@@ -6727,7 +6858,7 @@ function ceWirePage(page){
       case 'fig-write': ceFigureWrite(); break;
       case 'ask': {
         const box = _ceQ('#ce-ask');
-        if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; ceAsk(q); }
+        if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; ceAskHere(q); }
         break;
       }
       /* THE PASSAGE'S OWN CARD IN THE RAIL CARRIES BOTH: the way to let it go,
@@ -6737,6 +6868,7 @@ function ceWirePage(page){
       case 'scope-off': ceDetachPassage(); ceSetWhole(true); break;
       case 'scope-cut': ceCutPassage(); break;
       case 'scan-run': ceRunScan(); break;
+      case 'full-close': ceFullClose(); break;
       default: break;
     }
   });
@@ -6757,7 +6889,7 @@ function ceWirePage(page){
     ask.addEventListener('keydown', ev => {
       if (ev.key === 'Enter' && !ev.shiftKey){
         ev.preventDefault();
-        if (ask.value.trim()){ const q = ask.value; ask.value = ''; ask.style.height = ''; ceAsk(q); }
+        if (ask.value.trim()){ const q = ask.value; ask.value = ''; ask.style.height = ''; ceAskHere(q); }
       }
     });
   }
@@ -6991,6 +7123,7 @@ function ceEditWith(t){
 }
 function ceCardAt(key){
   const parts = String(key || '').split(':');
+  if (parts[0] === 'rk') return (_ceTab === 'risks' && _ceRiskCard && parts[1] === '0') ? _ceRiskCard : null;
   const turn = _ceThread[Number(parts[0])];
   return (turn && turn.cards) ? turn.cards[Number(parts[1])] || null : null;
 }
@@ -7014,6 +7147,7 @@ if (typeof document !== 'undefined' && !document._ceWired){
     const mr = document.getElementById('modal-root');
     if (mr && mr.innerHTML.trim()) return;
     if (document.querySelector('[data-top-overlay]')) return;
+    if (ceFullClose()) return;
     if (_ceSel){ ceDetachPassage(); return; }
     ceLeaveGuard(() => rlCloseClauseEditor());
   });
@@ -7033,7 +7167,7 @@ Object.assign(window, {
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor, ceAttachLoose, ceSetWhole,
-  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceBoxWords, ceRenderLane, ceRiskSave, ceRisksOn,
+  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceBoxWords, ceRenderLane, ceRiskSave, ceRisksOn, ceFullOpen, ceFullClose,
   CE_NEW_ID, ceIsNew, ceNewPlace, ceSetNewPlace, ceRunScan, ceScanItems, ceScanGroups, ceClauseFindings, ceAddMissingClause,
   ceBoxDirty,
   ceHeldPassage, ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceOfferPassage, ceAttachWords, ceRenderScope, ceRenderChips,
