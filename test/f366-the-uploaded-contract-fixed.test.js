@@ -318,7 +318,10 @@ describe('f366 (G) the brief carries a reason for every concern', () => {
   const i = SERVER.indexOf("name: 'contract_brief'");
   const schema = SERVER.slice(SERVER.lastIndexOf('watchouts:', i + 4000), SERVER.lastIndexOf('watchouts:', i + 4000) + 1500);
   test('a watchout and an unusual term each REQUIRE a why', () => {
-    assert.ok(/required: \['point', 'why'\] \} \},\s*unusual:/.test(schema), 'watchouts');
+    /* RE-POINTED 5 Oct 2026: the brief's items also require `wording` now
+       (only what needs wording goes in the Redlines card, f510); `why` is
+       still required, which is what this pins. */
+    assert.ok(/required: \['point', 'why'(, '[a-z]+')*\] \} \},\s*unusual:/.test(schema), 'watchouts');
     assert.ok(/unusual: \{ type: 'array', maxItems: 4, items: \{ type: 'object'/.test(schema), 'unusual is an object now');
     assert.ok(/quote: \{ type: 'string', description: 'Short verbatim snippet of the wording it rests on/.test(schema),
       'and carries a quote so it can be placed');

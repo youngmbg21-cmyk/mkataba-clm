@@ -83,22 +83,56 @@ function _rkStoreW(c){
    no counterparty, no value, no date, no material named — which is filled on
    the Overview, not argued over in wording. They stay in Risk View and on the
    sign check; they are not drafted here. */
-/* ---- A RISK THAT ONLY ADVISES IS NOT A REDLINE (Young, 5 Oct 2026) ----
-   *"this risk should not be redlines because you cannot edit it to create a
-   redline. Exclude such clauses where it just advise as opposed to ones where
-   they can be added on paper."*
-   The upload scanner's own checks (js/views/contract.js uploadScanRules) are a
-   step for the READER, never words for the paper: have counsel read it, the
-   text could not be read or was read from a scan, the checklist written when
-   no clause was read, and two boxes on the record (counterparty, value — the
-   owner said yes to those too). Opened in Edit with Copilot they held an empty
-   new clause and Copilot refused. Named by RULE, because the findings are
-   stored as they were at scan time and a flag stamped tomorrow would not be on
-   any scan already kept; never by "no clause found" — "No data-protection
-   terms detected" finds none either and IS put on paper, as a new clause.
-   They stay in the scan's own list (openFindings) for every other reader. */
-const RK_ADVICE_IDS = new Set(['u-legal', 'u-noext', 'u-ocr', 'u-law', 'u-liab', 'u-term', 'u-cp', 'u-val']);
-const riskIsAdvice = f => !!f && RK_ADVICE_IDS.has(String(f.id || ''));
+/* ---- ONLY A RISK THAT NEEDS WORDING GOES IN THE REDLINES CARD (Young,
+   5 Oct 2026) ----
+   *"any risks that do not require an amendment to the contract or need
+   additional language to contract should not be moved to the redline panel"*
+   — which replaces the narrower ruling the same morning ("a risk that only
+   advises is not a redline", RK_ADVICE_IDS, now STALE). EVERY fixed scan
+   rule is marked once here: true where dealing with it means changing or
+   adding contract wording; false where it is a step outside the contract
+   (have counsel read it, pay the duty, attach the certificate), a box on the
+   record or the paper to fill (counterparty, value, deposit, the recital's
+   blanks), or simply a fact worth knowing ("Governing law: Sweden (found in
+   text)" — your own law; payment terms of 45 days or less; the termination
+   notice period). A rule whose meaning turns on its kind is keyed
+   `<id>_<kind>`. f510 holds every rule a scanner can write to a mark here, so
+   a new rule cannot arrive unmarked. Named by RULE rather than stamped by the
+   scanner, because findings are stored as they were at scan time. An
+   unmarked id (a retired rule on an old scan) is shown, never guessed away.
+   Copilot's own watch-outs and unusual terms carry the same mark from the
+   brief (`wording`); a brief written before it carries none and is shown.
+   The scan's own list (openFindings) keeps every finding for every other
+   reader — the Thread, Insights, the reports. */
+const RK_NEEDS_WORDING = {
+  'g-cp': false, 'g-val': false, 'g-date': false,
+  'rm-mat': false, 'rm-kebs': true, 'rm-index': true, 'rm-sec': true,
+  'pk-ip': true, 'pk-moq': true,
+  'cm-fs': false, 'cm-recall': true, 'cm-ip': true,
+  'eq-eq': false, 'eq-credit': true, 'eq-title': true,
+  'wh-temp': true, 'wh-ins': true,
+  'ff-reg': false, 'ff-otif': true, 'ff-ins': true,
+  'da-credit': true, 'da-excl': true, 'da-perf': true,
+  'rl-pay': true, 'rl-listing': true, 'rl-return': true,
+  'mk-rebate': true, 'mk-ip': true, 'mk-appr': true,
+  'nd-term': true, 'nd-inj': true,
+  'le-dep': false, 'le-stamp': false, 'le-esc': true,
+  'ps-cap': true, 'ps-indep': true,
+  't-law_risk': true, 't-law_ambiguity': false, 't-law_missing': true,
+  't-pay_risk': true, 't-pay_ambiguity': false,
+  't-renew': true, 't-term': false, 't-liab': true, 't-stamp': true, 't-dp': true,
+  'u-cp': false, 'u-val': false, 'u-ocr': false, 'u-noext': false,
+  'u-law': false, 'u-liab': false, 'u-term': false, 'u-legal': false,
+};
+function riskNeedsWording(f){
+  if (!f) return false;
+  const id = String(f.id || ''), kind = String(f.kind || '');
+  const byKind = RK_NEEDS_WORDING[id + '_' + kind];
+  if (typeof byKind === 'boolean') return byKind;
+  const byId = RK_NEEDS_WORDING[id];
+  return typeof byId === 'boolean' ? byId : true;
+}
+const riskIsAdvice = f => !!f && !riskNeedsWording(f);
 const _rkDraftable = f => !!f && !/^g-/.test(String(f.id || '')) && String(f.anchor || '') !== 'recital' && !riskIsAdvice(f);
 
 /* A TOPIC, READ THE WAY THE STANDARDS READ A CLAUSE: the clause kinds Our
@@ -193,6 +227,7 @@ function riskItemsOf(c){
       dismissed: dis.includes(f.id) });
   });
   const brief = (src, list, sev) => (list || []).forEach(w => {
+    if (w && w.wording === false) return;
     const key = riskKeyOf(src, w.say);
     take({ key, src, sev, title: w.say, say: '', why: w.why || '', fix: '', quote: w.quote || '',
       missing: false, anchor: '', dismissed: st.dismissed.includes(key) });
@@ -969,7 +1004,7 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
 }
 
 Object.assign(window, {
-  riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss, riskIsAdvice, RK_ADVICE_IDS,
+  riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss, riskIsAdvice, riskNeedsWording, RK_NEEDS_WORDING,
   riskNote, riskMayAct, rlRisksPileHtml, riskMarkFootHtml,
   riskCoverOf, riskEditTarget, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled, riskWherePick,
   riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml, riskAnswerOf, riskChipsHtml, riskWhereHtml, riskWhyOf,
