@@ -16,9 +16,10 @@
         column does not move a pixel; Back to Copilot and Escape both return;
         Apply from the full view moves the wording and returns;
      4. a typed ask on the Risks tab asks about the risk, never the chat;
-     5. THE SECOND PASS (Young, 5 Oct 2026): the suggestion reads like the
-        paper (the paper's colour for our marks, not bold, the paper's face
-        and size) in the card and the expanded view; the walk's buttons and
+     5. THE SECOND PASS (Young, 5 Oct 2026): our marks wear the paper's
+        colour, not bold, in the card and the expanded view; the card is in
+        the panel's type, the expanded view in the paper's; "Where it goes"
+        for a new clause is on the expanded view too; the walk's buttons and
         Discard · File share ONE row of small buttons; the prompt box is one
         line at rest, grows as it wraps, and stops at five lines.
    Every driven half is GUARDED — a build without the feature REPORTS.
@@ -166,7 +167,10 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
       const c = el => { const k = getComputedStyle(el); return { f: k.fontFamily, s: k.fontSize, col: k.color, bg: k.backgroundColor, w: k.fontWeight, dec: k.textDecorationLine }; };
       const out = { para: c(p), pv: c(pv), ins: c(ins), del: c(del), paperIns: c(probe) }; probe.remove(); return out;
     });
-    check(!!face && face.pv.f === face.para.f && face.pv.s === face.para.s, '5c the card is in the paper\'s face and size', face && JSON.stringify([face.para.f.slice(0, 20), face.para.s, face.pv.s]));
+    /* RE-POINTED 5 Oct 2026 (Young): the small card speaks the PANEL's type
+       (Copilot's answer above it); only the expanded view takes the paper's. */
+    const panelType = await page.evaluate(() => { const t = document.querySelector('#ce-lane .ce-ai p.t'); const k = t && getComputedStyle(t); return k ? { f: k.fontFamily, s: k.fontSize } : null; });
+    check(!!face && !!panelType && face.pv.f === panelType.f && face.pv.s === panelType.s, '5c the card is in the panel\'s own face and size', face && JSON.stringify([panelType, face.pv.f.slice(0, 20), face.pv.s]));
     check(!!face && face.ins.col === face.paperIns.col && face.ins.bg === face.paperIns.bg && /underline/.test(face.ins.dec) && Number(face.ins.w) < 500, '5d an added run wears the paper\'s colour, underlined, not bold', face && JSON.stringify([face.ins, face.paperIns]));
     check(!!face && face.del.col === face.paperIns.col && /line-through/.test(face.del.dec), '5e a struck run wears the same colour, struck', face && JSON.stringify(face.del));
     const ask0 = await page.evaluate(() => Math.round(document.querySelector('#ce-ask').getBoundingClientRect().height));

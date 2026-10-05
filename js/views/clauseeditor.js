@@ -822,7 +822,13 @@ function clauseEditorCss(){
      paper's own face, size and line height (ceWordingFace reads them off the
      painted sheet, so a contract's own design and the reader's text size
      follow). The scan's cards (.ce-rule) keep their look. */
-  .ce-rail .ce-card .pv, .ce-rail .ce-full .ce-full-body .pv{font-family:var(--ce-wd-font, var(--font-doc));
+  /* THE SMALL CARD SPEAKS THE PANEL'S TYPE, THE EXPANDED VIEW THE PAPER'S
+     (Young, 5 Oct 2026: "the font in the suggested wording should be the
+     same font type and size as what is on the rest of the panel above it.
+     But when you expand it should remain as is"). Both keep the paper's
+     colours for the marks. */
+  .ce-rail .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
+  .ce-rail .ce-full .ce-full-body .pv{font-family:var(--ce-wd-font, var(--font-doc));
     font-size:var(--ce-wd-size, var(--t-body)); line-height:var(--ce-wd-lh, 1.65); color:var(--color-doc-text, var(--color-text))}
   .ce-rail .ce-card .pv ins.rl-us, .ce-rail .ce-full .ce-full-body .pv ins.rl-us{background:var(--st-steel-bg); color:var(--accent-ink);
     font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
@@ -865,6 +871,8 @@ function clauseEditorCss(){
   .ce-full .ce-full-body{flex:1; min-height:0; overflow:auto; padding:16px 20px}
   .ce-full .ce-full-body .pv{display:block; margin:0; padding:0; border:0; background:transparent;
     max-height:none; overflow:visible}
+  .ce-full .ce-full-where{flex:none; padding:10px 14px; border-top:1px solid var(--color-divider)}
+  .ce-full .ce-full-where:empty{display:none}
   .ce-full > .av{flex:none; margin:0; padding:10px 14px; border-top:1px solid var(--color-divider);
     background:var(--color-neutral-100)}
 
@@ -1112,6 +1120,9 @@ function ceNewPlace(){ return ceIsNew() ? String(_ceNew.afterClauseId || '') : '
 function ceSetNewPlace(afterClauseId){
   if (!ceIsNew() || !afterClauseId) return false;
   _ceNew.afterClauseId = String(afterClauseId);
+  /* "Where it goes" is drawn twice (the Risks tab and the expanded view);
+     both say the place the paper now holds. */
+  document.querySelectorAll('#clause-editor [data-ce-rk-where]').forEach(sel => { sel.value = _ceNew.afterClauseId; });
   ceRenderPaper(); ceScrollToClause();
   return true;
 }
@@ -4559,6 +4570,9 @@ function ceRenderFull(){
       <b>${_cee(card.name || _cet('ce_suggestion'))}</b><span class="ce-full-cl" title="${_ceea(where)}">${_cee(where)}</span><span class="g"></span>${
       card.chip ? `<span class="chip ${_ceea(card.chipTone || 'wait')}">${_cee(card.chip)}</span>` : ''}</div>
     <div class="ce-full-body"><span class="pv">${marked}</span></div>
+    ${''/* A NEW CLAUSE'S PLACE IS CHOSEN BEFORE APPLY (Young, 5 Oct 2026):
+           the Risks tab's own "Where it goes", over the buttons it decides. */}
+    ${(key.startsWith('rk:') && window.riskWhereHtml && _ceC) ? `<div class="ce-full-where">${riskWhereHtml(_ceC)}</div>` : ''}
     <div class="av">
       ${offerWording ? `<button type="button" class="p" data-ce-apply="${key}">${_cet('ce_apply')}</button>` : ''}
       ${offerWording ? `<button type="button" data-ce-refine="${key}">${_cet('ce_refine')}</button>` : ''}
