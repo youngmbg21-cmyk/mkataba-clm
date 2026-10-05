@@ -687,7 +687,9 @@ describe('f304 (10) — round four: reply on any note, Delete beside Done, marks
   });
 
   test('THE NOTE COMES AT SAVE, and the control says so; a Copilot card\'s Apply files nothing', () => {
-    assert.match(CE, /else if \(b === save\) b\.setAttribute\('title', _cet\('ce_save_opens_note'\)\);/);
+    /* RE-POINTED 5 Oct 2026 (one row of feet): the hover still says the note
+       comes at Save, now after naming the change Save files into. */
+    assert.match(CE, /else if \(b === save\) b\.setAttribute\('title', \(_ceLead \? _cet\('ce_save_to_long', \{ id: _ceLead\.id \}\) \+ ' — ' : ''\) \+ _cet\('ce_save_opens_note'\)\);/);
     assert.match(CE, /if \(card\.passage\) ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);/);
     assert.ok(!/ceReplacePassage\(card\.passage, card\.text, \{ keepView: false \}\);\s*ceFile\(/.test(CE), 'Apply is not a second door onto the filing');
   });

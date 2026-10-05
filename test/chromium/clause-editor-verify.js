@@ -577,8 +577,11 @@ const dismissNote = async pg => {
   await p.fill('#ce-ask', 'One '.repeat(80));
   await pause(200);
   const ask1 = await p.evaluate(() => Math.round(document.querySelector('#ce-ask').getBoundingClientRect().height));
-  ck('5a it is three lines deep at rest, not a single-line field',
-     ask0.h >= 70, `${ask0.h}px`);
+  /* RE-POINTED 5 Oct 2026 (Young: "the field for prompting should be one
+     line space but if your prompt is long then it will then wrap text"):
+     one line at rest; 5b still asks that it wraps and grows. */
+  ck('5a it is one line at rest, and still a real box',
+     ask0.h <= 30 && ask0.resize === 'none', `${ask0.h}px`);
   ck('5b it wraps and GROWS as you write', ask1 > ask0.h && ask0.ws === 'pre-wrap',
      `${ask0.h} to ${ask1}px`);
   await p.fill('#ce-ask', '');
@@ -647,10 +650,13 @@ const dismissNote = async pg => {
      filed.pageGone === false, filed.pageGone ? 'closed' : 'still open');
   const reseed = await p.evaluate(() => ({
     save: (document.querySelector('[data-ce-act="save"]') || {}).disabled,
-    label: ((document.querySelector('[data-ce-act="save"]') || {}).textContent || '').trim(),
+    label: ((document.querySelector('[data-ce-act="save"]') || {}).textContent || '').trim()
+      + ' ' + ((document.querySelector('[data-ce-act="save"]') || {}).title || ''),
   }));
+  /* RE-POINTED 5 Oct 2026 (one row of feet): the button reads "Save" and
+     names the change it saves into on its hover. */
   ck('7f and the page was re-read from the record — File greys, naming the change',
-     reseed.save === true && /CHG-/.test(reseed.label),
+     reseed.save === true && /^Save Saves into CHG-/.test(reseed.label),
      `${reseed.label} · disabled ${reseed.save}`);
 
   /* ---- 8. THE PANEL'S OWN COPILOT BUTTON IS THE OTHER DOOR ---- */

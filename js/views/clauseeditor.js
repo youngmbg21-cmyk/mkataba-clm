@@ -461,11 +461,19 @@ function clauseEditorCss(){
   .ce-rail{min-width:0; min-height:0; display:flex; flex-direction:column; position:relative;
     background:var(--color-surface); border-left:1px solid var(--color-divider)}
   .ce-rail .ce-lane{flex:1; min-height:0}
-  .ce-railfoot{flex:none; display:flex; align-items:center; justify-content:flex-end; gap:var(--s-2);
-    padding:9px 14px; border-top:1px solid var(--color-divider); background:var(--color-surface)}
+  /* ONE ROW OF FEET (Young, 5 Oct 2026: "bring them down to the same level
+     as the discard changes and file as a change … shorten to Discard and File
+     … make the buttons smaller"): the walk's ‹ Previous · Skip · Save & next
+     and Discard · File share ONE row on the compact rung, so the rail gives
+     Copilot a whole row back. A rail too narrow for five wraps rather than
+     cutting a word. */
+  .ce-feet{flex:none; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end;
+    gap:6px var(--s-2); padding:8px 14px; border-top:1px solid var(--color-divider); background:var(--color-surface)}
+  .ce-railfoot{flex:none; display:flex; align-items:center; justify-content:flex-end; gap:6px}
+  .ce-railfoot:empty{display:none}
   .ce-spell{flex:none; padding:0 14px 8px; max-height:40%; overflow:auto}
   .ce-spell:empty{display:none}
-  .ce-railfoot button{height:var(--ctl-h); padding:0 var(--pad-ctl-x); font:inherit; font-size:var(--t-body); font-weight:var(--w-label);
+  .ce-railfoot button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label); white-space:nowrap;
     background:var(--color-surface); color:var(--color-text); border:1px solid var(--color-divider)}
   .ce-railfoot button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
@@ -805,6 +813,21 @@ function clauseEditorCss(){
     max-height:120px; overflow:auto}
   .ce-card .pv del{color:var(--st-ruby-fg); text-decoration:line-through}
   .ce-card .pv ins{color:var(--st-green-fg); text-decoration:none; font-weight:var(--w-strong)}
+  /* ---- A SUGGESTION READS LIKE THE PAPER (Young, 5 Oct 2026: "the redlines
+     need to match the color theme on the paper … not in bold letters and the
+     fonts on both sides of the screen should be the same") ----
+     The Suggested wording card and its expanded view draw OUR marks with the
+     paper's own tokens — the rl-us rules in negotiation-css.js, mirrored here
+     at higher specificity than the card's old green — and the wording in the
+     paper's own face, size and line height (ceWordingFace reads them off the
+     painted sheet, so a contract's own design and the reader's text size
+     follow). The scan's cards (.ce-rule) keep their look. */
+  .ce-rail .ce-card .pv, .ce-rail .ce-full .ce-full-body .pv{font-family:var(--ce-wd-font, var(--font-doc));
+    font-size:var(--ce-wd-size, var(--t-body)); line-height:var(--ce-wd-lh, 1.65); color:var(--color-doc-text, var(--color-text))}
+  .ce-rail .ce-card .pv ins.rl-us, .ce-rail .ce-full .ce-full-body .pv ins.rl-us{background:var(--st-steel-bg); color:var(--accent-ink);
+    font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
+  .ce-rail .ce-card .pv del.rl-us, .ce-rail .ce-full .ce-full-body .pv del.rl-us{background:transparent; color:var(--accent-ink);
+    font-weight:inherit; text-decoration:line-through; text-decoration-thickness:1.5px; text-decoration-color:currentColor}
   .ce-card .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap; align-items:center}
   .ce-card .av button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label);
     background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider)}
@@ -841,9 +864,7 @@ function clauseEditorCss(){
   .ce-full .ce-full-back:hover{border-color:var(--accent-solid)}
   .ce-full .ce-full-body{flex:1; min-height:0; overflow:auto; padding:16px 20px}
   .ce-full .ce-full-body .pv{display:block; margin:0; padding:0; border:0; background:transparent;
-    max-height:none; overflow:visible; font-family:var(--font-doc); font-size:16px; line-height:1.75;
-    color:var(--color-text)}
-  .ce-full .ce-full-body .pv ins{text-decoration:underline; text-underline-offset:3px; font-weight:var(--w-label)}
+    max-height:none; overflow:visible}
   .ce-full > .av{flex:none; margin:0; padding:10px 14px; border-top:1px solid var(--color-divider);
     background:var(--color-neutral-100)}
 
@@ -917,12 +938,13 @@ function clauseEditorCss(){
     border:1px solid var(--color-divider)}
   .ce-chips button:hover{color:var(--color-text); border-color:var(--accent-solid)}
 
-  /* the box you type in is a real box — three lines deep at rest, growing as
-     you write and wrapping like any other text area */
+  /* THE BOX YOU TYPE IN IS ONE LINE AT REST (Young, 5 Oct 2026: "one line
+     space but if your prompt is long then it will then wrap text"): it grows
+     with what is typed, up to CE_ASK_LINES lines, then scrolls inside. */
   .ce-ask{flex:none; display:flex; gap:var(--s-2); padding:10px 14px;
     border-top:1px solid var(--color-divider); align-items:flex-end}
-  .ce-ask textarea{flex:1; min-width:0; height:74px; min-height:74px; max-height:200px;
-    padding:9px 11px; font:inherit; font-size:var(--t-meta); line-height:1.5; resize:none;
+  .ce-ask textarea{flex:1; min-width:0; height:var(--ctl-h); min-height:var(--ctl-h); max-height:none; overflow-y:hidden;
+    padding:4px 10px; font:inherit; font-size:var(--t-meta); line-height:1.5; resize:none;
     white-space:pre-wrap; overflow-wrap:break-word; background:var(--color-surface);
     border:1px solid var(--color-divider); color:var(--color-text); outline:none}
   .ce-ask textarea:focus{box-shadow:var(--focus)}
@@ -1841,8 +1863,10 @@ function clauseEditorHtml(){
         ${''/* THE SPELLING LIST'S SLOT, directly over the Save it is about
                (28 Sep 2026). Empty unless a Save found something. */}
         <div class="ce-spell" id="ce-spell"></div>
-        <div class="ce-railfoot ce-rkfoot" id="ce-rkfoot" hidden></div>
-        <div class="ce-railfoot" id="ce-railfoot"></div>
+        <div class="ce-feet" id="ce-feet">
+          <div class="ce-railfoot ce-rkfoot" id="ce-rkfoot" hidden></div>
+          <div class="ce-railfoot" id="ce-railfoot"></div>
+        </div>
       </aside>
       ${''/* ONE picker element, three contents — ink, highlight, size. Three
              elements is three places for a stale one to be left open. */}
@@ -4048,7 +4072,7 @@ function ceRenderFoot(){
        Save is the one act that files, and the note drawer opens on the
        filing. Said on the control's hover, no band. */
     if (!live) b.setAttribute('title', _cet('ce_reading_only'));
-    else if (b === save) b.setAttribute('title', _cet('ce_save_opens_note'));
+    else if (b === save) b.setAttribute('title', (_ceLead ? _cet('ce_save_to_long', { id: _ceLead.id }) + ' — ' : '') + _cet('ce_save_opens_note'));
     else b.removeAttribute('title');
     if (b.textContent !== word) b.textContent = word;
   });
@@ -4500,8 +4524,22 @@ function ceRiskAnswerHtml(){
    Ask for a change and the votes pinned under it. The contract on the left
    does not move a pixel; the feet stay. ONE way back (Back to Copilot, or
    Escape); a card that is no longer there closes it by itself. */
+/* THE PAPER'S FACE, READ OFF THE PAINTED SHEET (5 Oct 2026): a contract's
+   own design picks its face, and the reader's text size moves its size, so
+   the rail asks the sheet rather than guessing. Three variables on the rail,
+   nothing else; a sheet not painted yet leaves the fallbacks standing. */
+function ceWordingFace(){
+  const rail = _ceQ('.ce-rail'); if (!rail || typeof getComputedStyle !== 'function') return;
+  const p = [...document.querySelectorAll('#ce-doc .rl-clause p, #ce-doc p')].find(x => x.textContent.trim().length > 20);
+  if (!p) return;
+  const cs = getComputedStyle(p);
+  if (cs.fontFamily) rail.style.setProperty('--ce-wd-font', cs.fontFamily);
+  if (cs.fontSize) rail.style.setProperty('--ce-wd-size', cs.fontSize);
+  if (cs.lineHeight) rail.style.setProperty('--ce-wd-lh', cs.lineHeight);
+}
 function ceRenderFull(){
   if (!clauseEditorOpen()) return;
+  ceWordingFace();
   const full = _ceQ('#ce-full'), rail = _ceQ('.ce-rail');
   if (!full) return;
   const card = _ceFull ? ceCardAt(_ceFull) : null;
@@ -4794,6 +4832,21 @@ function ceWholeContext(){
   let ctx = null;
   try{ ctx = (typeof window.buildAssistantContext === 'function') ? buildAssistantContext() : null; }catch(_){ ctx = null; }
   return Object.assign({}, ctx || {}, { wholeDoc: true });
+}
+/* THE ASK BOX GROWS WITH ITS WORDS: one line at rest, at most CE_ASK_LINES,
+   then it scrolls inside. Measured off the box's own line height. */
+const CE_ASK_LINES = 5;
+function ceAskFit(box){
+  if (!box) return;
+  box.style.height = 'auto';
+  const cs = getComputedStyle(box);
+  const lh = parseFloat(cs.lineHeight) || 18;
+  const edge = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0)
+    + (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+  const most = Math.ceil(lh * CE_ASK_LINES + edge);
+  const want = box.scrollHeight + (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+  box.style.height = Math.min(most, Math.ceil(want)) + 'px';
+  box.style.overflowY = want > most ? 'auto' : 'hidden';
 }
 /* ONE ASK BOX, TWO TABS: on the Risks tab a typed ask asks Copilot about the
    risk in front of the reader (riskWalkPress 'send'); everywhere else it is
@@ -6116,12 +6169,15 @@ function ceRenderRiskFoot(){
   }
   const here = String(info.clauseId) === String(_ceClauseId);
   const live = ceEditableReading();
-  const label = _ceLead && _ceLead.authorSide === 'owner' ? _cet('rk_ce_save_to', { id: _ceLead.id }) : _cet('rk_ce_save');
+  /* "Save & next" whether or not the clause holds a redline already (5 Oct
+     2026, one row of feet): the change it saves into is on the hover. */
+  const into = _ceLead && _ceLead.authorSide === 'owner' ? _ceLead.id : '';
+  const label = _cet('rk_ce_save');
   [[prev, _cet('rk_ce_prev'), info.k > 1], [skip, _cet('rk_ce_skip'), true], [save, label, here && live && ceCanFile(ceBoxNow())]].forEach(([b, word, on]) => {
     b.disabled = !on;
     if (b.textContent !== word) b.textContent = word;
   });
-  save.setAttribute('title', _cet('ce_save_opens_note'));
+  save.setAttribute('title', (into ? _cet('ce_save_to_long', { id: into }) + ' — ' : '') + _cet('ce_save_opens_note'));
 }
 /* SAVE & NEXT: the safety net, then this page's own Save with the risk's
    provenance, then the note drawer as after any Save, then the next risk. */
@@ -6858,7 +6914,7 @@ function ceWirePage(page){
       case 'fig-write': ceFigureWrite(); break;
       case 'ask': {
         const box = _ceQ('#ce-ask');
-        if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; ceAskHere(q); }
+        if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; box.style.overflowY = ''; ceAskHere(q); }
         break;
       }
       /* THE PASSAGE'S OWN CARD IN THE RAIL CARRIES BOTH: the way to let it go,
@@ -6882,14 +6938,11 @@ function ceWirePage(page){
 
   const ask = page.querySelector('#ce-ask');
   if (ask){
-    ask.addEventListener('input', () => {
-      ask.style.height = 'auto';
-      ask.style.height = Math.max(74, Math.min(200, ask.scrollHeight)) + 'px';
-    });
+    ask.addEventListener('input', () => ceAskFit(ask));
     ask.addEventListener('keydown', ev => {
       if (ev.key === 'Enter' && !ev.shiftKey){
         ev.preventDefault();
-        if (ask.value.trim()){ const q = ask.value; ask.value = ''; ask.style.height = ''; ceAskHere(q); }
+        if (ask.value.trim()){ const q = ask.value; ask.value = ''; ask.style.height = ''; ask.style.overflowY = ''; ceAskHere(q); }
       }
     });
   }
