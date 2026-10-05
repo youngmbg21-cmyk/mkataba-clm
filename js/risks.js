@@ -566,7 +566,7 @@ function _rkRowHtml(c, it){
     <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>
     <div class="rk-verbs">
       <button type="button" class="rk-verb" data-rk-act="note">${_rkMark('chat')}${_rkE(_rkT('rk_note'))}</button>
-      <button type="button" class="rk-verb is-quiet" data-rk-act="dismiss">${_rkMark('x')}${_rkE(_rkT('rk_dismiss'))}</button>
+      <button type="button" class="rk-verb is-no" data-rk-act="dismiss">${_rkMark('x')}${_rkE(_rkT('rk_dismiss'))}</button>
       <button type="button" class="rk-verb is-ai" data-rk-act="edit-ce" title="${_rkE(_rkT('rk_edit_ce_title'))}">${_rkMark('edit')}${_rkE(_rkT('rk_edit_ce'))}</button>
     </div></div>`;
 }
@@ -681,12 +681,13 @@ function rkEnsureStyle(){
     border:0;border-radius:var(--radius);background:transparent;font:inherit;font-size:var(--t-meta);
     font-weight:var(--w-label);line-height:1;color:var(--accent-ink);cursor:pointer;white-space:nowrap}
   .rk-verb:hover{background:var(--color-accent-100)}
-  .rk-verb.is-quiet{color:var(--color-neutral-600)}
+  /* Dismiss wears Reject's ruby, x and all (Young, 5 Oct 2026). */
+  .rk-verb.is-no{color:var(--st-ruby-fg)}
   /* Copilot's own door wears Copilot's violet, as the redline row's Edit does
      (.rl-card-verbs .rl-verb-ai in negotiation-css.js, the same two values). */
   .rk-verb.is-ai{color:#6d28d9}
   html.dark .rk-verb.is-ai{color:#c4b5fd}
-  .rk-verb.is-quiet:hover{background:var(--color-neutral-100)}
+  .rk-verb.is-no:hover{background:var(--st-ruby-bg)}
   .rk-verb-i{flex:none;width:var(--btn-ic, 15px);height:var(--btn-ic, 15px)}
   .rk-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin-top:4px}
   .rk-cost{font-size:var(--t-micro);color:var(--color-neutral-500)}

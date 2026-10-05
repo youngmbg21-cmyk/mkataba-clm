@@ -160,6 +160,11 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     check(!!dress.edit && same(dress.risk, dress.edit), '1e "Edit with Copilot" on a risk is dressed as "Edit" on a redline (no box, small rung, a mark, the same ink)', JSON.stringify([dress.edit, dress.risk]));
     check(dress.all.length === 3 && dress.all.every(v => v && v.mark && v.h === dress.edit.h && /^none/.test(v.bd)), '1f all three risk verbs carry a mark and no box', JSON.stringify(dress.all));
     check(dress.ordered && dress.leftFirst - dress.rowLeft < 24, '1g set from the left, like the redlines row', JSON.stringify([dress.rowLeft, dress.leftFirst]));
+    const rej = await page.evaluate(() => { const d = document.querySelector('#rl-risks [data-rk-act="dismiss"]');
+      const probe = document.createElement('span'); probe.style.color = 'var(--st-ruby-fg)'; document.body.appendChild(probe);
+      const ruby = getComputedStyle(probe).color; probe.remove();
+      return d ? { col: getComputedStyle(d).color, ruby, x: /#i-x/.test(d.innerHTML), word: d.textContent.trim() } : null; });
+    check(!!rej && rej.col === rej.ruby && rej.x && rej.word === 'Dismiss', '1h Dismiss reads like Reject: ruby, with an x', JSON.stringify(rej));
     await shot('1-the-list.png');
 
     /* ============ 2. COVERED FOLD ============ */
