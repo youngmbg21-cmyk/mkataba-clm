@@ -20371,3 +20371,9 @@ Built overnight on the owner's "Go with the recommendations". Story in docs/MAP-
 ### Noticed, not fixed
 - 5 Oct 2026: the clause editor's `.ce-rule`, `.ce-scan-h` and `.ce-fig-note` styles, and negotiation-css.js's `.rl-fig-sec`/`.rl-fig-u` rules, are now dead (their markup was retired with the two tabs); left because f245 (13) pins the quiet cost rule on `.ce-rule .cost`.
 - 5 Oct 2026: opening Edit with Copilot from a risk card's Edit, the top bar's "Edit …" crumb was empty on the first open in a-risk-finds-its-clause-verify (later opens named the clause); the Selected card names it. Not measured at main.
+
+## 5–6 Oct 2026 — Home: the chart's point on the small card (Headline)
+
+Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLINE — THE CHART'S POINT ON THE SMALL CARD".
+
+- 5 Oct 2026 — DONE (owner-picked): every small chart card on Home (and Value under contract, and the ready-made panels) says its main point in one line under its totals; Read more opens the full reading in the same card.
