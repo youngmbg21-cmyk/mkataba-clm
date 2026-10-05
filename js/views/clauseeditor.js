@@ -2185,7 +2185,7 @@ function ceForgetUnfiled(){
   _ceEditing = false;
   const pg = document.getElementById('clause-editor');
   if (pg) pg.classList.remove('ce-typed');
-  ceDetachPassage(); ceRenderPaper(); ceRenderFoot(); ceRenderHead(); ceRenderBar();
+  ceDetachPassage(); ceRenderPaper(); ceRenderFoot(); ceRenderHead(); ceRenderBar(); ceRenderScope();
 }
 function ceFitToShell(){
   if (typeof document === 'undefined') return;
@@ -3733,6 +3733,7 @@ function ceMarksSchedule(){
     _ceMarksTimer = null;
     try{ ceMarksMount(); }catch(_){}
     try{ cePaintStat(ceDraftNow()); }catch(_){}
+    try{ ceRenderScope(); }catch(_){}
   }, CE_MARKS_MS);
 }
 /* ---- A STRUCK RUN IS NOT NON-EDITABLE, AND THAT IS DELIBERATE ----
@@ -4204,6 +4205,9 @@ function ceApply(text, label, opts = {}){
      will not keep, and a repaint is the only thing that tells the truth. */
   if (opts.keepView && !opts.repaint){ cePaintStat(); ceRenderFoot(); ceMarksMount(); }
   else { ceRenderPaper(); ceRenderFoot(); ceRenderHead(); }
+  /* THE CARD IN THE RAIL QUOTES THE DRAFT, so it moves with it (see
+     ceRenderScope). Written in place, beside the box, never into it. */
+  ceRenderScope();
   if (!opts.quiet) ceSay(_cet('ce_applied'), 'ok');
   return true;
 }
@@ -4261,7 +4265,7 @@ function ceUndo(){
   if (_ceStep <= 0) return;
   _ceStep -= 1;
   ceRestoreStep();
-  ceRenderPaper(); ceRenderFoot(); ceRenderHead();
+  ceRenderPaper(); ceRenderFoot(); ceRenderHead(); ceRenderScope();
   ceSay(_cet('ce_stepped_back', { label: _ceSteps[_ceStep].label }), 'ok');
 }
 /* ---- AND FORWARD AGAIN ----
@@ -4275,7 +4279,7 @@ function ceRedo(){
   if (_ceStep >= _ceSteps.length - 1) return;
   _ceStep += 1;
   ceRestoreStep();
-  ceRenderPaper(); ceRenderFoot(); ceRenderHead();
+  ceRenderPaper(); ceRenderFoot(); ceRenderHead(); ceRenderScope();
   ceSay(_cet('ce_stepped_forward', { label: _ceSteps[_ceStep].label }), 'ok');
 }
 /* A step is the draft as it stood, and the draft has two halves — so stepping
@@ -4292,7 +4296,7 @@ function ceDiscard(){
   if (!clauseEditorOpen()) return;
   _ceSteps = [{ label: _cet('ce_step_stands'), text: _ceBase, head: _ceHeadBase }];
   _ceStep = 0; _ceText = _ceBase; _ceHead = _ceHeadBase; _ceSavedAt = null;
-  ceRenderPaper(); ceRenderFoot(); ceRenderHead();
+  ceRenderPaper(); ceRenderFoot(); ceRenderHead(); ceRenderScope();
   ceSay(_cet('ce_discarded'), 'ok');
 }
 
@@ -5731,8 +5735,18 @@ function ceRenderScope(){
   }
   if (state === 'clause'){
     /* The clause's WORDS, never its markup: the draft is stored as a rich
-       body, and a card quoting "<p>" is a card quoting nothing a reader wrote. */
-    const raw = String(_ceText || _ceBase || '');
+       body, and a card quoting "<p>" is a card quoting nothing a reader wrote.
+       ---- THE CARD FOLLOWS THE DRAFT (Young picked "Follows", 5 Oct 2026) ----
+       It quoted the draft as it stood at its last paint, and nothing repainted
+       it on Apply, Undo, Redo or Discard — so beside a paper showing the new
+       wording it went on quoting the old (the owner's screenshot: "4.2 Monthly
+       Invoicing. Terms are net thirty (30) days." under a paper reading "within
+       two (2) days"). It now reads the draft as the page shows it (ceDraftNow:
+       the box as typed while typing) and is painted wherever the draft moves —
+       ceApply, ceUndo, ceRedo, ceDiscard, ceForgetUnfiled, and a beat behind
+       the typing with the marks (ceMarksSchedule). The card is in the rail,
+       never under the caret, so nothing the reader is typing in is rebuilt. */
+    const raw = String(ceDraftNow() || _ceBase || '');
     const words = String(window.richToText ? richToText(raw) : raw.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
     box.innerHTML = `<div class="ce-scope is-clause">
       <div class="eb"><b>&#9998; ${_cee(_cet('ce_scope_in', { where }))}</b><span class="g"></span>${off}</div>

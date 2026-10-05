@@ -20327,3 +20327,11 @@ are essentially redundant"). Story in docs/MAP-HISTORY.md under "THE THREAD".
 - the Thread adds shades to theme-tokens-verify's contract screen census, but that baseline has been red for every screen since 28 Sep (KNOWN_RED, identical 20 of 40 at unmodified main), so it was not re-recorded.
 - `rk_view_narrow` (both books) was retuned to speak of the Thread; the words of the old Risk View keys (xr_switch, xr_sec_plain, xr_sec_wide, pe_*) are inert in both books.
 - drives of the Document tab log one 404 for a resource at sign-in (seen in every run, before the Thread too).
+
+## 5 Oct 2026 — the "Selected" card follows the draft; advice is not a redline
+
+Built from docs/WORKORDER-selected-card-and-advice-risks.md (owner: "Go, build both parts and merge to main"). Story in docs/MAP-HISTORY.md under "THE "SELECTED" CARD FOLLOWS THE DRAFT" and "A RISK THAT ONLY ADVISES IS NOT A REDLINE".
+
+### Noticed, not fixed
+- f364 (5) "the Document tab mounts no strand" fails on unmodified main since the Thread merge (bbf15d6), 44 of 45 in that file; not touched by this work.
+- the scan's own open-findings count (openFindings) still counts the upload advice checks (u-legal on every upload), so Insights, the register, the weekly review and the health report count one more "finding" per upload than the Redlines card lists as a risk; the owner's ask was the Redlines card only.
