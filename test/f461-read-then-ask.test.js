@@ -299,7 +299,10 @@ describe('F461 (D) — every enlarged card reads', () => {
   });
   test('one builder draws the reading and the ask for every card', () => {
     const HB = strip(read('js/views/homeboard.js'));
-    assert.equal((HB.match(/data-hb-why="\$\{/g) || []).length, 1, 'the ask button is drawn in one place');
+    /* RE-POINTED 5 Oct 2026 (Charts That Explain, rec 6): every card's ask is
+       drawn in one place; the board's own "Summarise my board" is the second */
+    assert.equal((HB.match(/data-hb-why="\$\{/g) || []).length, 2, 'the card ask and the board summary');
+    assert.match(region(HB, 'hbBoardSumHtml'), /data-hb-why="\$\{_hbE\(key\)\}"/);
     assert.match(region(HB, 'hbReadBlockHtml'), /class="hb-read"/);
     assert.match(region(HB, 'hbPanelHtml'), /hbReadSrcHtml\('hp:' \+ p\.kind\)/);
     for (const k of ['hb_read_tl_soon_other', 'hb_read_val_top_other', 'hb_read_obl_worst_other', 'hb_read_fric_clause_other', 'hb_read_ren_missed_other', 'hb_read_pay_over_other', 'hb_read_exp_top_other'])

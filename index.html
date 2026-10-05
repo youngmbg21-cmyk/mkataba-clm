@@ -7885,6 +7885,23 @@
      opens with HaTi's reading (teal, counted, free) and one press asks Copilot
      why; Copilot's answer wears amber, so the two are told apart at a glance.
      Board tokens only (--hb-*). */
+  /* ANSWER PACKS and SUMMARISE MY BOARD (Charts That Explain, 5 Oct 2026):
+     a pack is cards, a ranked list, how HaTi worked it out and next
+     questions, in the board's own tokens. */
+  .hb-pack{display:grid;gap:var(--s-3)}
+  .hb-pack-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:var(--s-3)}
+  .hb-pack-card{min-width:0;border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg);padding:10px 12px}
+  .hb-pack-card h4,.hb-pack-list h4{margin:0 0 8px;font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--hb-mute)}
+  .hb-pack-list{overflow-x:auto}
+  .hb-pk-t{width:100%;border-collapse:collapse;font-size:var(--t-meta);color:var(--hb-ink)}
+  .hb-pk-t th{text-align:left;font-weight:var(--w-strong);color:var(--hb-mute);padding:4px 8px;border-bottom:1px solid rgba(var(--hb-ln),.2)}
+  .hb-pk-t td{padding:6px 8px;border-bottom:1px solid rgba(var(--hb-ln),.1);vertical-align:top}
+  .hb-pk-i{color:var(--hb-mute);width:24px}
+  .hb-pk-n{white-space:nowrap;font-variant-numeric:tabular-nums}
+  .hb-how summary{cursor:pointer;color:var(--hb-glow);font-size:var(--t-meta);font-weight:var(--w-label)}
+  .hb-how ol{margin:6px 0;padding-left:20px;color:var(--hb-ink);font-size:var(--t-meta);line-height:1.55}
+  .hb-note .hb-bs-go{display:inline-flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:var(--t-meta)}
+  .hb-note .hb-bs-go[disabled]{opacity:.55;cursor:default}
   /* HEADLINE (Young picked it, 5 Oct 2026): the chart's point in one line on
      the small card, HaTi's teal, with Read more beside it. Board tokens only. */
   .hb-head-line{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;margin:0 0 var(--s-3);padding:6px 12px;border-left:3px solid var(--hb-glow);border-radius:0 var(--radius) var(--radius) 0;background:rgba(var(--hb-gw),.06)}

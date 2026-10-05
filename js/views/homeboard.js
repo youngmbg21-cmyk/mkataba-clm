@@ -493,6 +493,16 @@ function hbListOf(ids, lens){
 function hbDigData(key, lens){
   const at = String(key || '').indexOf(':');
   const k = at < 0 ? key : key.slice(0, at), a = at < 0 ? '' : key.slice(at + 1);
+  /* AN ANSWER PACK (Charts That Explain, rec 3): the pack, its cards, its lists */
+  if (k === 'pk'){
+    const dot = a.indexOf('.'), name = dot < 0 ? a : a.slice(0, dot), sub = dot < 0 ? '' : a.slice(dot + 1);
+    if (!HB_PACKS.includes(name)) return null;
+    const P = hbPackData(name, lens);
+    if (!sub) return { key, kind: 'pack', pack: name, crumb: P.title, title: P.title, n: P.cs.length };
+    if (/^k:/.test(sub)){ const L = P.lists[sub.slice(2)]; if (!L) return null; const ids = L.ids.filter(x => hbContract(x));
+      return { key, kind: 'list', crumb: L.title, title: L.title, ids, n: ids.length, chart: { mode: 'groups', by: 'counterparty' }, fixed: [] }; }
+    return hbPackCardD(name, sub, lens);
+  }
   const B = hbBookData(lens);
   if (k === 'f'){
     const F = B.figs[a]; if (!F) return null;
@@ -3013,6 +3023,8 @@ function hbWhyKept(key, sig){
    worked out, so the drawn box and the asked question never differ. */
 function hbReadSrc(key){
   const lens = hbS().lens;
+  if (/^pk:\w+$/.test(String(key || ''))) return hbPackSrc(key, lens);
+  if (key === HB_BOARD_KEY) return hbBoardSrc(lens);
   const pk = /^hp:(\w+)$/.exec(String(key || ''));
   if (pk){
     if (!HB_KINDS[pk[1]]) return null;
@@ -3282,7 +3294,7 @@ async function hbWhyAsk(key){
   try {
     /* the safe summary: written from HaTi's fact sheet, every number checked */
     const sheet = hbFactSheet(src);
-    const res = await copilotAsk([{ role: 'user', content: hbSummaryPrompt(sheet) }], { view: 'intel' }, null, { quiet: true });
+    const res = await copilotAsk([{ role: 'user', content: hbSummaryPrompt(sheet, key === HB_BOARD_KEY ? i18t('hb_bs_ask', { lang: i18t('hb_cx_lang') }) : null) }], { view: 'intel' }, null, { quiet: true });
     const cov = sheet.coverage, counts = new Set([...src.reading.counts, cov.n, cov.read, cov.checked, cov.n - cov.read, cov.n - cov.checked]);
     const c1 = hbWhyCheck(res && res.answer, counts), c2 = hbFactCheck(c1.text, sheet.nums);
     const chk = { text: c2.text, dropped: c1.dropped + c2.dropped };
@@ -3373,6 +3385,7 @@ function hbReadMoreToggle(key){
 }
 
 function hbDigBodyHtml(D, lens, big){
+  if (D.kind === 'pack') return hbPackHtml(D, lens, big);
   if (D.kind === 'list'){
     const cs = hbListOf(D.ids, lens);
     const fig = D.fig || '';
@@ -3582,6 +3595,7 @@ function hbBoardHtml(){
   let time = ''; try { time = new Date().toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); } catch (_){}
   const gifts = hbGiftsFor();
   _hbInsMemo = new Map();
+  _hbPackMemo.clear();
   hbKeptSync();
   hbMovedSync();
   const panels = s.panels.slice().reverse().map(p => hbPanelHtml(p, s.lens, { sent: gifts.sent[p.id] || null })).join('');
@@ -3589,11 +3603,230 @@ function hbBoardHtml(){
   /* and the freshness line too: WHEN it was counted is a fact the reader
      cannot know; "all contracts" is one they chose. */
   const cut = [hbCountLabel(s.lens), s.lens === 'all' ? '' : i18t('hb_lens_' + s.lens).toLowerCase()].filter(Boolean).join(' · ');
-  return `<div class="hb-note"><span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span>${_hbE(cut ? i18t('hb_counted', { time, lens: cut }) : i18t('hb_counted_plain', { time }))}</span></div>
+  const bs = hbBoardSumHtml();
+  return `<div class="hb-note"><span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span>${_hbE(cut ? i18t('hb_counted', { time, lens: cut }) : i18t('hb_counted_plain', { time }))}</span><span class="hb-grow"></span>${bs.btn}</div>
+    ${bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
     ${hbFocusHtml()}
     <div class="hb-grid">${received}${panels || (received ? '' : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}</div>`)}</div>`;
+}
+
+/* ============================================================
+   ANSWER PACKS (Young, 5 Oct 2026, "HaTi Board: Charts That Explain",
+   recommendation 3; "build what it is suggesting in totality")
+   ============================================================
+   The four questions that matter most get a READY ANSWER, the same way every
+   time: Top risks · Money ending · Standards breaches · The next 12 months.
+   Each pack is two or three cards, a RANKED LIST with the reason for each
+   row, HaTi's reading, the next questions, and "How HaTi worked this out"
+   (recommendation 5) — all counted by HaTi, free. Only the summary is
+   Copilot's, on a press, written from the pack's fact sheet and checked
+   number by number (recommendation 2). A pack opens where any answer opens
+   (the focus card, key pk:<name>); its cards are ordinary chart cards
+   (pk:<name>.c1), its rows and concerns ordinary lists (pk:<name>.k:<id>),
+   so every number is a door onto the contracts it counts. Every pack states
+   its COVERAGE: "no breaches" can never mean "nothing checked". */
+const HB_PACKS = ['risks', 'ending', 'standards', 'next12'];
+const HB_PACK_ROWS = 10, HB_PACK_MONTHS = 18;
+const HB_PACK_RE = {
+  risks: /\b(?:(?:top|biggest|highest|main|worst|greatest)\s+risk(?:s|y)?(?:\s+(?:contracts?|agreements?))?|riskiest|most risky|high risk contracts|risk(?:iest)? contracts|(?:största|högsta)\s+risk\w*|mest riskfyllda)\b/,
+  ending: /\b(?:which|what)\s+(?:month|year|quarter|months|månad|år)\b.*\b(?:most|biggest|largest|highest|mest|störst)\b.*\b(?:end|ends|ending|expire|expires|expiring|come to an end|comes to an end|löper ut|upphör)\b|\bmoney ending\b|\bwhen does the most (?:value|money) (?:end|expire)\b/,
+  standards: /\b(?:violat\w*|break\w*|breach\w*|deviat\w*|(?:do not|dont|don't|doesn't|does not) (?:meet|follow)|off|outside|against|bryter mot|avviker från|följer inte)\b.*\b(?:our standards?|company standards?|standards|playbook|polic(?:y|ies)|standarder|våra standarder)\b/,
+  next12: /\b(?:concern|worry|worried|watch out|focus on|attention|oroa|bekymra)\w*\b.*\b(?:next|coming|kommande|nästa)\s+(?:12 months|twelve months|year|12 månader|året)\b|\bwhat should (?:concern|worry) me\b/,
+};
+function hbPackOfQ(q){
+  const t = ' ' + _hbRcNorm(q) + ' ';
+  return HB_PACKS.find(k => HB_PACK_RE[k].test(t)) || null;
+}
+const _hbPackMemo = new Map();
+/* the dates a pack reads, as days from today */
+function _hbDaysAhead(iso){ return iso ? hbDaysTo(String(iso).slice(0, 10)) : null; }
+function _hbActBy(c){ try { return (typeof renewalDecisionDate === 'function') ? renewalDecisionDate(c) : hbDateOf(c, 'decision'); } catch (_){ return null; } }
+function _hbAuto(c){ return !!(c && c.metadata && c.metadata.renewalType === 'auto-renew'); }
+function _hbLive(c){ return c && c.status !== 'Declined' && c.status !== 'Draft' && !(typeof contractExpired === 'function' && contractExpired(c)); }
+/* THE PACK, worked out once per paint: what it counts, ranks and says */
+function hbPackData(name, lens){
+  const memoKey = name + '|' + (lens || 'all') + '|' + ((window.state && state.contracts) ? state.contracts.length : 0);
+  if (_hbPackMemo.has(memoKey)) return _hbPackMemo.get(memoKey);
+  const book = hbBook(lens || 'all'), money = hbMoneyOk();
+  const fv = v => money ? _hbM(v) : _hbN(v);
+  const V = list => list.reduce((a, c) => a + hbValueOfOne(c), 0);
+  const P = { name, title: i18t('hb_pk_' + name), money, cards: [], rows: [], cols: [], lines: [], counts: new Set(), facts: [], next: [], steps: [], lists: {}, cs: book };
+  const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l) P.lines.push(l); if (n != null) P.counts.add(n); };
+  const list = (id, title, cs) => { P.lists[id] = { title, ids: cs.map(c => c.id) }; return 'pk:' + name + '.k:' + id; };
+  const door = (id, title, cs, word) => ({ html: hbReadDoor(cs.length, cs.length ? list(id, title, cs) : null, word) });
+  const cov = hbCoverageOf(book);
+  if (name === 'risks'){
+    const rows = book.filter(_hbLive).map(c => ({ c, w: hbRiskWeightOf(c), x: hbExposureOf(c), risks: (typeof riskOpenOf === 'function') ? riskOpenOf(c) : [] }))
+      .filter(r => r.w != null && r.risks.length);
+    rows.sort((a, b) => (b.x || 0) - (a.x || 0) || b.w - a.w || b.risks.length - a.risks.length);
+    const tot = rows.reduce((a, r) => a + (r.x || 0), 0), top3 = rows.slice(0, 3), t3 = top3.reduce((a, r) => a + (r.x || 0), 0);
+    const unread = book.filter(c => _hbLive(c) && hbRiskWeightOf(c) == null);
+    P.cols = [i18t('hb_pk_col_contract'), money ? i18t('hb_ms_exposure') : i18t('hb_pk_col_risks'), i18t('hb_pk_col_why')];
+    P.rows = rows.slice(0, HB_PACK_ROWS).map(r => {
+      const sev = r.risks.slice().sort((a, b) => (HB_RISK_WEIGHT[b.sev] || 0) - (HB_RISK_WEIGHT[a.sev] || 0));
+      const why = sev.slice(0, 2).map(it => String(it.title || '').trim()).filter(Boolean);
+      const w = (typeof renewalWindow === 'function') ? (() => { try { return renewalWindow(r.c); } catch (_){ return null; } })() : null;
+      if (w && !w.decided && w.days != null && w.days <= 183) why.push(i18t(w.auto ? 'hb_pk_why_autorenew' : 'hb_pk_why_renews', { day: hbReadDay(w.decideBy) }));
+      return { c: r.c, cells: [money ? _hbM(r.x || 0) : _hbN(r.risks.length)], why: why.join(' · ') };
+    });
+    if (rows.length){
+      say(money ? 'hb_pk_r_total' : 'hb_pk_r_total_n', { n: door('risky', i18t('hb_pk_l_risky'), rows.map(r => r.c)), v: fv(tot) }, rows.length);
+      if (money && top3.length >= 2 && tot > 0) say('hb_pk_r_top3', { k: _hbN(top3.length), v: _hbM(t3), pct: _hbN(Math.round(t3 / tot * 100)) });
+    } else say('hb_pk_r_none', {});
+    if (unread.length) say('hb_pk_unread', { n: door('unread', i18t('hb_pk_l_unread'), unread) }, unread.length);
+    P.cards = [
+      { id: 'c1', title: i18t(money ? 'hb_pk_c_exp_cp' : 'hb_pk_c_risk_cp'), chart: { pic: 'bars', split: { by: 'counterparty' }, measure: money ? 'exposure' : 'count', top: 8, sort: { by: 'value', dir: 'down' } }, ids: rows.map(r => r.c.id) },
+      { id: 'c2', title: i18t('hb_pk_c_risks'), chart: { pic: 'ring', split: { by: 'risks' }, measure: 'count' }, ids: book.filter(_hbLive).map(c => c.id) } ];
+    P.facts = ['Ranked by risk exposure (value × the weight of the worst open risk: high 1, medium 0.5, low 0.25):',
+      ...rows.slice(0, HB_PACK_ROWS).map((r, i) => `- ${i + 1}. ${hbRef(r.c)}${r.c.counterparty ? ' (' + r.c.counterparty + ')' : ''}: ${money ? _hbM(r.x || 0) + ', ' : ''}${r.risks.length} open risk${r.risks.length === 1 ? '' : 's'}; ${P.rows[i].why}`)];
+    P.next = [i18t('hb_pk_n_r1'), i18t('hb_pk_n_r2'), i18t('hb_pk_n_r3')];
+    P.steps = [i18t('hb_pk_s_r1'), i18t('hb_pk_s_r2'), i18t('hb_pk_s_r3')];
+  }
+  if (name === 'ending'){
+    const live = book.filter(c => _hbLive(c));
+    const ahead = live.map(c => ({ c, e: hbEndOf(c) })).filter(r => r.e && hbDaysTo(r.e) >= 0 && hbDaysTo(r.e) <= HB_PACK_MONTHS * 31);
+    const by = new Map(); ahead.forEach(r => { const k = r.e.slice(0, 7); const t = by.get(k) || { k, cs: [], v: 0 }; t.cs.push(r.c); t.v += hbValueOfOne(r.c); by.set(k, t); });
+    const months = [...by.values()].sort((a, b) => (money ? b.v - a.v : b.cs.length - a.cs.length) || (a.k < b.k ? -1 : 1));
+    const peak = months[0], second = months[1];
+    P.cols = [i18t('hb_pk_col_contract'), money ? i18t('hb_ms_value') : i18t('hb_pk_col_ends'), i18t('hb_pk_col_why')];
+    if (peak){
+      const cs = peak.cs.slice().sort((a, b) => hbValueOfOne(b) - hbValueOfOne(a));
+      const acts = cs.map(_hbActBy).filter(Boolean).sort();
+      say(money ? 'hb_pk_e_peak' : 'hb_pk_e_peak_n', { a: hbReadMonth(peak.k), v: fv(peak.v), n: door('peak', hbReadMonth(peak.k), cs) }, cs.length);
+      const auto = cs.filter(_hbAuto);
+      if (auto.length) say('hb_pk_e_auto', { n: door('auto', i18t('hb_pk_l_auto'), auto), d: acts.length ? hbReadDay(acts[0]) : '' }, auto.length);
+      if (acts.length) say('hb_pk_e_act', { d: hbReadDay(acts[0]) });
+      if (second) say(money ? 'hb_pk_e_second' : 'hb_pk_e_second_n', { a: hbReadMonth(second.k), v: fv(second.v), n: _hbN(second.cs.length) }, second.cs.length);
+      P.rows = cs.slice(0, HB_PACK_ROWS).map(c => { const a = _hbActBy(c);
+        return { c, cells: [money ? _hbM(hbValueOfOne(c)) : (hbEndOf(c) || '')], why: [a ? i18t('hb_pk_why_actby', { day: hbReadDay(a) }) : '', _hbAuto(c) ? i18t('hb_pk_why_auto') : ''].filter(Boolean).join(' · ') }; });
+      P.facts = ['Value ending by month, next 18 months (month: value, contracts):', ...months.slice().sort((a, b) => (a.k < b.k ? -1 : 1)).map(m => `- ${hbReadMonth(m.k)}: ${fv(m.v)}, ${m.cs.length}`),
+        `Peak month ${hbReadMonth(peak.k)}, its contracts (ref: value, act by, auto-renew):`, ...cs.slice(0, HB_PACK_ROWS).map(c => `- ${hbRef(c)}: ${fv(hbValueOfOne(c))}, act by ${_hbActBy(c) || 'not known'}, ${_hbAuto(c) ? 'renews automatically' : 'no automatic renewal on record'}`)];
+    } else say('hb_pk_e_none', { k: _hbN(HB_PACK_MONTHS) });
+    const noEnd = live.filter(c => !hbEndOf(c));
+    if (noEnd.length) say('hb_pk_e_noend', { n: door('noend', i18t('hb_pk_l_noend'), noEnd) }, noEnd.length);
+    const m = money ? 'value' : 'count';
+    P.cards = [
+      { id: 'c1', title: i18t('hb_pk_c_ending'), chart: { pic: 'cols', split: { by: 'date', unit: 'm', date: 'end' }, measure: m, window: { next: HB_PACK_MONTHS, unit: 'm', date: 'end' } }, ids: live.map(c => c.id) },
+      { id: 'c2', title: i18t('hb_pk_c_actby'), chart: { pic: 'cols', split: { by: 'date', unit: 'm', date: 'decision' }, measure: m, window: { next: HB_PACK_MONTHS, unit: 'm', date: 'decision' } }, ids: live.map(c => c.id) } ];
+    P.next = [i18t('hb_pk_n_e1'), i18t('hb_pk_n_e2'), i18t('hb_pk_n_e3')];
+    P.steps = [i18t('hb_pk_s_e1'), i18t('hb_pk_s_e2'), i18t('hb_pk_s_e3')];
+  }
+  if (name === 'standards'){
+    const live = book.filter(c => c.status !== 'Declined');
+    const off = live.filter(c => hbStdStateOf(c) === 'off').sort((a, b) => hbValueOfOne(b) - hbValueOfOne(a));
+    const unchecked = live.filter(c => hbStdStateOf(c) === 'unchecked');
+    const checked = live.length - unchecked.length;
+    const by = new Map(); off.forEach(c => hbStdBreaches(c).forEach(s => { const t = by.get(s) || { s, cs: [], v: 0 }; if (!t.cs.includes(c)){ t.cs.push(c); t.v += hbValueOfOne(c); } by.set(s, t); }));
+    const stds = [...by.values()].sort((a, b) => b.cs.length - a.cs.length || b.v - a.v);
+    P.cols = [i18t('hb_pk_col_contract'), money ? i18t('hb_ms_value') : i18t('hb_pk_col_breaks'), i18t('hb_pk_col_why')];
+    P.rows = off.slice(0, HB_PACK_ROWS).map(c => { const b = hbStdBreaches(c); return { c, cells: [money ? _hbM(hbValueOfOne(c)) : _hbN(b.length)], why: b.join(' · ') }; });
+    say('hb_pk_s_checked', { k: _hbN(checked), n: _hbN(live.length) }, checked);
+    if (off.length) say(money ? 'hb_pk_s_off' : 'hb_pk_s_off_n', { n: door('off', i18t('hb_std_off'), off), v: fv(V(off)) }, off.length);
+    else say(checked ? 'hb_pk_s_none' : 'hb_pk_s_none_checked', {});
+    if (stds.length) say(money ? 'hb_pk_s_most' : 'hb_pk_s_most_n', { what: stds[0].s, n: door('std0', stds[0].s, stds[0].cs), v: fv(stds[0].v) }, stds[0].cs.length);
+    if (unchecked.length) say('hb_pk_s_unchecked', { n: door('unchecked', i18t('hb_std_unchecked'), unchecked) }, unchecked.length);
+    P.bars = stds.slice(0, 8).map((t, i) => ({ g: t.s, label: t.s, n: t.cs.length, v: money ? t.v : t.cs.length, say: _hbN(t.cs.length) + (money ? ' · ' + _hbM(t.v) : ''), dig: list('s' + i, t.s, t.cs) }));
+    P.cards = [{ id: 'c1', title: i18t('hb_pk_c_std'), chart: { pic: 'ring', split: { by: 'standards' }, measure: 'count' }, ids: live.map(c => c.id) }];
+    P.facts = [`Checked against our standards: ${checked} of ${live.length}; never checked: ${unchecked.length}.`,
+      'Standards broken (standard: contracts, value):', ...stds.map(t => `- ${t.s}: ${t.cs.length}, ${fv(t.v)}`),
+      'Contracts off standard, largest first (ref: value; standards broken):', ...off.slice(0, HB_PACK_ROWS).map(c => `- ${hbRef(c)}${c.counterparty ? ' (' + c.counterparty + ')' : ''}: ${fv(hbValueOfOne(c))}; ${hbStdBreaches(c).join(', ')}`)];
+    P.next = [i18t('hb_pk_n_s1'), i18t('hb_pk_n_s2'), i18t('hb_pk_n_s3')];
+    P.steps = [i18t('hb_pk_s_s1'), i18t('hb_pk_s_s2'), i18t('hb_pk_s_s3')];
+  }
+  if (name === 'next12'){
+    const live = book.filter(_hbLive);
+    const within = (iso, d) => { const n = _hbDaysAhead(iso); return n != null && n >= -31 && n <= d; };
+    const C = [];
+    const add = (id, cs, earliest) => { if (cs.length) C.push({ id, cs, v: V(cs), earliest }); };
+    const decisions = live.filter(c => { try { const w = (typeof renewalWindow === 'function') ? renewalWindow(c) : null; return w && !w.decided && within(w.decideBy, 365); } catch (_){ return false; } });
+    add('decide', decisions, decisions.map(_hbActBy).filter(Boolean).sort()[0]);
+    const riskyAuto = live.filter(c => _hbAuto(c) && (hbRiskWeightOf(c) || 0) >= 1 && within(_hbActBy(c), 365));
+    add('riskauto', riskyAuto, riskyAuto.map(_hbActBy).filter(Boolean).sort()[0]);
+    const overdue = live.filter(c => { try { return (typeof graphNodeFacts === 'function') ? graphNodeFacts(c).overdue > 0 : false; } catch (_){ return false; } });
+    add('overdue', overdue, null);
+    const offEnding = live.filter(c => hbStdStateOf(c) === 'off' && within(hbEndOf(c), 365));
+    add('offend', offEnding, offEnding.map(hbEndOf).filter(Boolean).sort()[0]);
+    const blind = live.filter(c => within(hbEndOf(c), 365) && (hbRiskWeightOf(c) == null || hbStdStateOf(c) === 'unchecked'));
+    add('blind', blind, null);
+    /* ranked: what is owed soonest and weighs most first (money, then count) */
+    C.sort((a, b) => (money ? b.v - a.v : b.cs.length - a.cs.length) || ((a.earliest || '9') < (b.earliest || '9') ? -1 : 1));
+    P.concerns = C.map(x => ({ id: x.id, word: i18t('hb_pk_k_' + x.id), n: x.cs.length, v: x.v, earliest: x.earliest, dig: list(x.id, i18t('hb_pk_k_' + x.id), x.cs) }));
+    P.cols = [i18t('hb_pk_col_concern'), money ? i18t('hb_ms_value') : i18t('hb_pk_col_contracts'), i18t('hb_pk_col_when')];
+    if (C.length){ const f = C[0];
+      say((money ? 'hb_pk_x_first' : 'hb_pk_x_first_n') + (f.earliest ? '' : '_nod'), { what: i18t('hb_pk_k_' + f.id).toLowerCase(), n: door(f.id, i18t('hb_pk_k_' + f.id), f.cs), v: fv(f.v), d: f.earliest ? hbReadDay(f.earliest) : '' }, f.cs.length);
+      say('hb_pk_x_count', { k: _hbN(C.length) }); }
+    else say('hb_pk_x_none', {});
+    P.cards = [{ id: 'c1', title: i18t('hb_pk_c_next12'), chart: { pic: 'cols', split: { by: 'date', unit: 'm', date: 'decision' }, measure: money ? 'value' : 'count', window: { next: 12, unit: 'm', date: 'decision' } }, ids: live.map(c => c.id) }];
+    P.facts = ['Concerns over the next 12 months, ranked (concern: contracts, value, earliest date):', ...C.map((x, i) => `- ${i + 1}. ${i18t('hb_pk_k_' + x.id)}: ${x.cs.length}, ${fv(x.v)}, ${x.earliest || 'no date'}`)];
+    P.next = [i18t('hb_pk_n_x1'), i18t('hb_pk_n_x2'), i18t('hb_pk_n_x3')];
+    P.steps = [i18t('hb_pk_s_x1'), i18t('hb_pk_s_x2'), i18t('hb_pk_s_x3')];
+  }
+  P.coverage = cov;
+  P.counts.add(cov.n); P.counts.add(cov.read); P.counts.add(cov.checked);
+  _hbPackMemo.set(memoKey, P);
+  return P;
+}
+/* a pack's card, as an ordinary chart card: its key is a door like any other */
+function hbPackCardD(name, id, lens){
+  const P = hbPackData(name, lens); const k = (P.cards || []).find(x => x.id === id); if (!k) return null;
+  const ids = k.ids.filter(x => hbContract(x));
+  return { key: 'pk:' + name + '.' + id, kind: 'list', crumb: P.title + ' › ' + k.title, title: k.title, ids, n: ids.length, chart: k.chart, fixed: [] };
+}
+function hbPackHtml(D, lens, big){
+  const P = hbPackData(D.pack, lens);
+  const reading = { lines: P.lines, counts: P.counts, keys: [] };
+  const cards = (P.cards || []).map(k => { const S = hbPackCardD(D.pack, k.id, lens); if (!S) return '';
+    return `<section class="hb-pack-card"><h4>${_hbE(k.title)}</h4>${hbChartHtml(S, hbListOf(S.ids, lens), false)}</section>`; }).join('')
+    + (P.bars && P.bars.length ? `<section class="hb-pack-card"><h4>${_hbE(i18t('hb_pk_c_broken'))}</h4>${hbChartBarsHtml(P.bars, true)}</section>` : '');
+  const rows = P.concerns
+    ? P.concerns.map((x, i) => `<tr><td class="hb-pk-i">${i + 1}</td><td><button type="button" class="hb-read-n" data-hb-dig="${_hbE(x.dig)}">${_hbE(x.word)}</button></td><td class="hb-pk-n">${_hbE(P.money ? _hbM(x.v) + ' · ' + _hbN(x.n) : _hbN(x.n))}</td><td>${_hbE(x.earliest ? hbReadDay(x.earliest) : '—')}</td></tr>`).join('')
+    : (P.rows || []).map((r, i) => `<tr><td class="hb-pk-i">${i + 1}</td><td><button type="button" class="hb-read-n" data-hb-dig="c:${_hbE(r.c.id)}">${_hbE(hbRef(r.c))}</button> <span class="hb-quiet">${_hbE(r.c.counterparty || r.c.name || '')}</span></td><td class="hb-pk-n">${_hbE(r.cells[0])}</td><td>${_hbE(r.why || '—')}</td></tr>`).join('');
+  const table = rows ? `<div class="hb-pack-list"><h4>${_hbE(i18t('hb_pk_ranked'))}</h4><table class="hb-pk-t"><thead><tr><th></th>${P.cols.map(c => `<th>${_hbE(c)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>` : '';
+  const cov = P.coverage;
+  const work = `<details class="hb-how"><summary>${_hbE(i18t('hb_how_title'))}</summary><ol>${P.steps.map(s => `<li>${_hbE(s)}</li>`).join('')}</ol>
+    <p class="hb-quiet">${_hbE(i18t('hb_how_cov', { n: _hbN(cov.n), r: _hbN(cov.read), k: _hbN(cov.checked) }))}</p></details>`;
+  const next = `<div class="hb-nx"><span class="hb-nx-l">${_hbE(i18t('hb_nx_label'))}</span>${P.next.map(q => `<button type="button" class="hb-nx-q" data-hb-next="${_hbE(q)}">${_hbE(q)}</button>`).join('')}</div>`;
+  void big;
+  return `<div class="hb-pack" data-hb-pack="${_hbE(D.pack)}">${hbReadBlockHtml(D.key, reading, P.cs.length, hbWhySigOf('pack:' + D.pack, P.cs))}
+    <div class="hb-pack-cards">${cards}</div>${table}${work}${next}</div>`;
+}
+/* the pack as Copilot is shown it (its fact sheet is built from this) */
+function hbPackSrc(key, lens){
+  const m = /^pk:(\w+)$/.exec(String(key || '')); if (!m || !HB_PACKS.includes(m[1])) return null;
+  const P = hbPackData(m[1], lens);
+  return { key, title: P.title, head: `An answer pack on the HaTi Home board: "${P.title}".`, data: P.facts,
+    reading: { lines: P.lines, counts: P.counts, keys: [] }, cs: P.cs, sig: hbWhySigOf('pack:' + m[1], P.cs) };
+}
+
+/* ============================================================
+   SUMMARISE MY BOARD (recommendation 6): one press for the whole board.
+   Its fact sheet is the board as it stands (hbBoardNow — the same words the
+   board panel's Copilot is given) and each card's own reading; the answer is
+   checked number by number like every summary, and kept for the day.
+   ============================================================ */
+const HB_BOARD_KEY = 'board:all';
+function hbBoardSrc(lens){
+  const s = hbS(); const cs = hbBook(lens || s.lens || 'all');
+  const data = String(hbBoardNow() || '').split('\n').filter(Boolean);
+  const counts = new Set([cs.length]);
+  [...String(hbBoardNow() || '').matchAll(/\b(\d+)\b/g)].forEach(m => counts.add(Number(m[1])));
+  return { key: HB_BOARD_KEY, title: i18t('hb_bs_title'), head: 'The whole HaTi Home board, as it stands now.', data,
+    reading: { lines: [], counts, keys: [] }, cs, sig: hbWhySigOf('board', cs) };
+}
+function hbBoardSumHtml(){
+  const src = hbBoardSrc(); const key = HB_BOARD_KEY;
+  const kept = hbWhyKept(key, src.sig), busy = _hbWhyBusy.has(key), err = _hbWhyErr.get(key);
+  const live = typeof copilotAvailable === 'function' && copilotAvailable();
+  const btn = `<button type="button" class="hb-link hb-bs-go" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? ` title="${_hbE(i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) }))}"` : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
+  let box = '';
+  if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div><p class="hb-quiet">${_hbE(i18t('hb_bs_busy'))}</p></div>`;
+  else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div><p>${_hbE(err)}</p></div>`;
+  else if (kept) box = `<div class="hb-why"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span><span class="hb-grow"></span><span class="hb-read-src">${_hbE(i18t('hb_cx_when', { at: kept.at }))}</span></div>
+    <div class="hb-why-b">${(typeof aiRichText === 'function') ? aiRichText(kept.text) : _hbE(kept.text)}</div>
+    <div class="hb-why-f"><span class="${kept.dropped ? 'hb-why-cut' : 'hb-why-ok'}">${_hbE(kept.dropped ? i18tn('hb_cx_dropped', kept.dropped, { n: kept.dropped }) : i18t('hb_cx_ok'))}</span></div></div>`;
+  return { btn, box };
 }
 
 /* ============================================================
@@ -5178,6 +5411,9 @@ function hbAskReadingOf(qRaw){
   /* A VERIFIED VIEW ANSWERS FIRST (Part 9): the company's own answer to the
      questions an admin named, exact after normalising, before any reading */
   if (s.face === 'board'){ const v = hbVerifiedHit(raw); if (v) return { road: 'free', kind: 'verified', v, q: raw }; }
+  /* AN ANSWER PACK (Charts That Explain, rec 3): the four questions that
+     matter most get their ready answer, free, the same way every time */
+  if (s.face === 'board'){ const pk = hbPackOfQ(raw); if (pk) return { road: 'free', kind: 'pack', pack: pk, q: raw }; }
   const q = hbWordsApply(raw);
   const fu = hbFollowUpRead(q);
   if (fu) return { road: 'free', kind: 'follow', fu, q };
@@ -5198,6 +5434,7 @@ function hbAskPreviewText(A){
   const s = hbS(), free = ' · ' + i18t('hb_pre_free');
   try {
     if (A.kind === 'verified') return i18t('hb_pre_verified', { what: A.v.title }) + free;
+    if (A.kind === 'pack') return i18t('hb_pre_pack', { what: i18t('hb_pk_' + A.pack) }) + free;
     if (A.kind === 'follow'){
       if (A.fu.narrow){ const N = hbDigData(A.fu.narrow, s.lens); return i18t('hb_pre_narrow', { what: (N && N.title) || '' }) + free; }
       const D = hbDigData(A.fu.key, s.lens); if (!D) return i18t('hb_pre_cmd') + free;
@@ -5221,6 +5458,12 @@ function hbAsk(q){
   if (!A){ _hbPendingRecipe = null; return null; }
   if (A.why){ _hbPendingRecipe = null; return null; }
   if (A.kind === 'verified'){ _hbPendingRecipe = null; const u = hbUndoTop(); return hbVerifiedAnswer(A.v) + `<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u)}</div>`; }
+  if (A.kind === 'pack'){
+    _hbPendingRecipe = null; const u = hbUndoTop();
+    hbDig('pk:' + A.pack, false);
+    const P = hbPackData(A.pack, hbS().lens);
+    return `<b>${_hbE(P.title)}</b> — ${_hbE(i18t('hb_pk_said'))}${P.lines[0] ? ' ' + P.lines[0] : ''}<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u)}</div>`;
+  }
   q = A.q;
   const u0 = hbUndoTop();
   const fu = A.kind === 'follow' ? hbFollowUp(q, A.fu) : null;
@@ -5641,7 +5884,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
