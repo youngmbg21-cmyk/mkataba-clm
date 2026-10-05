@@ -4760,8 +4760,48 @@ function hbCopilotTail(own, q){
   const chk = hbProseChecked(o); if (!chk.text) return '';
   return '<br>' + ((typeof aiRichText === 'function') ? aiRichText(chk.text) : _hbE(chk.text));
 }
-/* filled by Part 6 (the review record); a catch is never said on the page */
-function hbFeedbackSend(rec){ return rec; }
+/* THE REVIEW RECORD (Part 6): a mark, a quick fix or a caught disconnect,
+   sent to POST /api/board/feedback; the server names the person. Nothing is
+   said on the page for a 'fix' or a 'disconnect'. */
+function hbFeedbackSend(rec){
+  if (!rec || typeof API_MODE !== 'function' || !API_MODE() || typeof api !== 'function') return null;
+  try { const p = api('board/feedback', 'POST', rec); return p && p.catch ? p.catch(() => null) : p; } catch (_){ return null; }
+}
+/* ============================================================
+   RIGHT OR WRONG (work order "the board that answers right", Part 6, 5 Oct
+   2026; screen 4 of the sketches)
+   ============================================================
+   Two small marks at the foot of every board reply, free or Copilot's.
+   Pressed once — a second press does nothing. "Wrong" sends the question,
+   the recipe that was drawn and the reply to the admins' review list and
+   says so in ONE quiet line; "Right" is kept quietly. No band, no dialog. */
+function hbMarksHtml(i, m){
+  if (!m || !m.boardReply) return '';
+  const on = m.fb || '';
+  const b = (k, ic, lab) => `<button type="button" class="hb-fb-b${on === k ? ' is-on is-' + k : ''}" data-hb-fb="${i}:${k}" aria-label="${_hbE(lab)}" title="${_hbE(lab)}" aria-pressed="${on === k}"${on ? ' disabled' : ''}>${(typeof icon === 'function') ? icon(ic, 'w-3 h-3', 2) : _hbE(lab)}</button>`;
+  return `<div class="hb-fb">${on === 'wrong' ? `<span class="hb-fb-said">${_hbE(i18t('hb_fb_sent'))}</span>` : ''}${b('right', 'check2', i18t('hb_fb_right'))}${b('wrong', 'x', i18t('hb_fb_wrong'))}</div>`;
+}
+function hbMarkPress(i, kind){
+  const h = (window.intel && Array.isArray(intel.history)) ? intel.history : [];
+  const m = h[i]; if (!m || !m.boardReply || m.fb || !['right', 'wrong'].includes(kind)) return false;
+  m.fb = kind;
+  const q = (h.slice(0, i).reverse().find(x => x && x.role === 'user') || {}).text || '';
+  const before = (h.slice(0, i).reverse().filter(x => x && x.role === 'user')[1] || {}).text || '';
+  let recipe = null;
+  try { const key = m.reading && m.reading.key; const D = key ? hbDigData(key, hbS().lens) : null; if (D && D.kind === 'list') recipe = hbCardClean(hbPlan(D)); } catch (_){ recipe = null; }
+  const said = String(m.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600);
+  hbFeedbackSend({ kind, q, after: before, recipe, said });
+  return true;
+}
+function hbMarksRepaint(i){
+  try {
+    const turn = document.querySelector(`[data-ig-turn="${i}"]`); const el = turn && turn.querySelector('.hb-fb');
+    const m = window.intel && intel.history[i];
+    if (el && m) el.outerHTML = hbMarksHtml(i, m); else if (typeof renderIntelDock === 'function') renderIntelDock();
+  } catch (_){ /* the panel is not up */ }
+}
+/* a reply asked on the board carries the marks */
+function hbBoardReplyMeta(){ try { return (window.state && state.view === 'dashboard' && hbS().face === 'board') ? { boardReply: true } : {}; } catch (_){ return {}; } }
 function hbAsk(q){
   _hbMeta = null;
   if (HB_WHY_ASK_RE.test(String(q || ''))){ _hbPendingRecipe = null; return null; }
@@ -5055,6 +5095,8 @@ function hbOnClick(e){
     hbPreviewSettle(id, out.html, out.undo); return; }
   if ((el = on('[data-hb-undo]'))){ const ok = hbUndo(el.getAttribute('data-hb-undo')); hbPaintBoard();
     if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_gone'), ok ? 'ok' : 'warn'); return; }
+  /* RIGHT OR WRONG (Part 6): once */
+  if ((el = on('[data-hb-fb]'))){ if (el.disabled) return; const [i, k] = String(el.getAttribute('data-hb-fb')).split(':'); if (hbMarkPress(Number(i), k)) hbMarksRepaint(Number(i)); return; }
   /* A NEXT QUESTION (Part 5): asked as if typed, through the panel */
   if ((el = on('[data-hb-next]'))){ const q = el.getAttribute('data-hb-next'); if (q && typeof intelAsk === 'function') intelAsk(q); return; }
   /* THE READING'S CHIPS, in the panel's reply (Part 4) */
@@ -5178,7 +5220,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

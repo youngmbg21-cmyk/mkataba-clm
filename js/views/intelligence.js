@@ -1851,7 +1851,7 @@ async function intelAsk(qRaw){
   const rdOf=()=>{ try{ const r=rdSnap?hbReadingAfter(rdSnap):null; return r?{ reading:r }:{}; }catch(_){ return {}; } };
   if(state.view==='dashboard' && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
-    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf())); renderIntelDock(); return; }
+    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
   }
   const h0=intel.history.length;
   /* A TYPED QUESTION ON THE BOARD STARTS AFRESH (the honest reply, 5 Oct
@@ -1905,6 +1905,8 @@ async function intelAsk(qRaw){
     /* the Copilot reply that drew or changed the open chart carries its reading too */
     const last=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
     if(last&&!last.reading){ const r=rdOf(); if(r.reading){ last.reading=r.reading; renderIntelDock(); } }
+    /* …and the Right / Wrong marks (Part 6), on every reply asked on the board */
+    if(last&&typeof window.hbBoardReplyMeta==='function'&&hbBoardReplyMeta().boardReply&&!last.boardReply){ last.boardReply=true; renderIntelDock(); }
   }
 }
 
@@ -6147,6 +6149,7 @@ function igMsgHTML(m,i){
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm" data-ig-choice="${i}:${j}">${igEsc(c.label)}</button>`).join('')}</div>`:''}
       ${(Number.isInteger(i)&&m.reading&&typeof window.hbReadingHtml==='function')?hbReadingHtml(m.reading,hbReadingLive(i)):''}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
+      ${(Number.isInteger(i)&&m.boardReply&&typeof window.hbMarksHtml==='function')?hbMarksHtml(i,m):''}
       ${(Number.isInteger(i)&&Array.isArray(m.listIds)&&m.listIds.length)?`<div class="igd-list" style="display:flex;gap:12px;flex-wrap:wrap;padding-left:2px"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:''}
       ${body}
     </div>

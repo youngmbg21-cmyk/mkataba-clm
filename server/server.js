@@ -5895,6 +5895,56 @@ app.put('/api/settings/board-words', auth, admin, (req, res) => {
   setSetting('appSettings', stored);
   res.json({ ok: true, boardWords: kept });
 });
+/* ---- WHAT PEOPLE SAY ABOUT THE BOARD'S ANSWERS (work order "the board that
+   answers right", Parts 6 and 7, 5 Oct 2026) ----
+   ONE record of the board's answers as people judged them: Right / Wrong on a
+   reply, a chip changed right after an answer (a possible misreading, 'fix'),
+   and a Copilot sentence the disconnect check left out ('disconnect'). It
+   holds the question, the recipe that was drawn and the reply — NO contract
+   text and no name but the asker's, whom the server looks up (never read
+   from the body). Admins read it (the Copilot accuracy drawer) and settle a
+   row: kept as a test, or dismissed. */
+db.exec(`
+  CREATE TABLE IF NOT EXISTS board_feedback (
+    id TEXT PRIMARY KEY, kind TEXT NOT NULL, q TEXT, after TEXT, recipe TEXT, said TEXT, changed TEXT,
+    by_id TEXT, by_name TEXT, at TEXT NOT NULL, day TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'open');
+  CREATE INDEX IF NOT EXISTS idx_board_feedback_day ON board_feedback(day, kind);
+`);
+const BOARD_FEEDBACK_KINDS = ['wrong', 'right', 'disconnect', 'fix'];
+const BOARD_FEEDBACK_STATES = ['open', 'kept', 'dismissed'];
+const BOARD_FEEDBACK_DAY_MAX = 200;
+const bfText = (v, n) => String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+const bfJson = (v, n) => { if (v == null || typeof v !== 'object' || Array.isArray(v)) return null; const t = JSON.stringify(v); return t.length <= n ? t : null; };
+app.post('/api/board/feedback', auth, (req, res) => {
+  const b = req.body || {};
+  if (!BOARD_FEEDBACK_KINDS.includes(b.kind)) return res.status(400).json({ error: 'kind must be one of ' + BOARD_FEEDBACK_KINDS.join(', ') });
+  const day = now().slice(0, 10);
+  const n = db.prepare('SELECT COUNT(*) AS n FROM board_feedback WHERE by_id=? AND day=?').get(req.user.id, day).n;
+  if (n >= BOARD_FEEDBACK_DAY_MAX) return res.status(429).json({ error: 'Enough said for today — thank you' });
+  const id = 'BF-' + rid(6);
+  db.prepare('INSERT INTO board_feedback (id,kind,q,after,recipe,said,changed,by_id,by_name,at,day) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+    .run(id, b.kind, bfText(b.q, 400), bfText(b.after, 400), bfJson(b.recipe, 1500), bfText(b.said, 600), bfJson(b.changed, 300),
+      req.user.id, req.user.name || '', now(), day);
+  res.json({ ok: true, id });
+});
+const bfRow = r => ({ id: r.id, kind: r.kind, q: r.q || '', after: r.after || '', recipe: (() => { try { return r.recipe ? JSON.parse(r.recipe) : null; } catch (_) { return null; } })(),
+  said: r.said || '', changed: (() => { try { return r.changed ? JSON.parse(r.changed) : null; } catch (_) { return null; } })(), by: r.by_name || '', at: r.at, state: r.state });
+app.get('/api/board/feedback', auth, admin, (req, res) => {
+  const kind = BOARD_FEEDBACK_KINDS.includes(req.query.kind) ? req.query.kind : null;
+  const rows = kind ? db.prepare('SELECT * FROM board_feedback WHERE kind=? ORDER BY at DESC LIMIT 200').all(kind)
+    : db.prepare('SELECT * FROM board_feedback ORDER BY at DESC LIMIT 200').all();
+  const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  const week = db.prepare('SELECT kind, COUNT(*) AS n FROM board_feedback WHERE day>=? GROUP BY kind').all(since)
+    .reduce((o, r) => { o[r.kind] = r.n; return o; }, {});
+  res.json({ rows: rows.map(bfRow), week });
+});
+app.patch('/api/board/feedback/:id', auth, admin, (req, res) => {
+  const state = (req.body || {}).state;
+  if (!BOARD_FEEDBACK_STATES.includes(state)) return res.status(400).json({ error: 'state must be one of ' + BOARD_FEEDBACK_STATES.join(', ') });
+  const r = db.prepare('UPDATE board_feedback SET state=? WHERE id=?').run(state, String(req.params.id));
+  if (!r.changes) return res.status(404).json({ error: 'No such row' });
+  res.json({ ok: true, row: bfRow(db.prepare('SELECT * FROM board_feedback WHERE id=?').get(String(req.params.id))) });
+});
 /* H-3: the one place folderAccess changes — a server-side read-modify-write of
    just that key, so it cannot be clobbered by a concurrent full-blob save. Send
    `folders` as an array of stream ids to restrict, or null to lift the

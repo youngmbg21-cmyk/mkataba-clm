@@ -60,6 +60,12 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     const s6b = await until(k0 => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const a = (intel.history || []).filter(m => m.role === 'assistant').pop();
       return a && /Free/.test(String(a.text)) && k === k0 && (intel.history || []).filter(m => m.role === 'user').length >= 3 ? { k, said: String(a.text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 160) } : null; }, k6);
     check('6b pressing one asks it as typed: the open card changes, free', !!s6b, JSON.stringify(s6b));
+    /* RIGHT OR WRONG (Part 6): once, one quiet line, one row for the admins */
+    await page.evaluate(() => { const rows = [...document.querySelectorAll('[data-hb-fb$=":wrong"]')]; rows.pop().click(); });
+    const s7 = await until(() => { const f = [...document.querySelectorAll('.hb-fb')].pop(); return f && /Sent to your admins/.test(f.textContent) ? { said: f.textContent.trim(), off: [...f.querySelectorAll('button')].every(b => b.disabled) } : null; });
+    await page.screenshot({ path: path.join(OUT, '7-wrong.png') });
+    const rows7 = await until(async () => { const r = await api('board/feedback'); return r && r.rows && r.rows.length ? r.rows : null; });
+    check('7 "Wrong" says so in one line, cannot be pressed twice, and reaches the admins\' list', !!s7 && s7.off && !!rows7 && rows7.filter(r => r.kind === 'wrong').length === 1 && rows7.find(r => r.kind === 'wrong').by === 'Amina Otieno' && rows7.some(r => r.kind === 'fix'), JSON.stringify({ s7, row: rows7 && rows7[0] }));
     check('5 no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) { check('stage ran', false, e.message); }
   finally { await browser.close(); await h.stop(); const bad = results.filter(r => !r.pass); console.log(`\n${results.length - bad.length}/${results.length} passed`); process.exit(bad.length ? 1 : 0); }
