@@ -23,18 +23,19 @@
 
    NOTHING IS FILED THAT A PERSON DID NOT READ, AND NOTHING IS SENT. Drafting
    asks Copilot once (copilotPropose, the clause editor's own call) and the
-   wording waits in the box. Only a Save files it — through negoEditClause or
-   negoAddNamedClause, the funnel a person's own edit uses — and the change
-   lands unsent like any other.
+   wording waits in the editor's box. Only the editor's Save files it — through
+   negoEditClause, negoReviseInsert or negoAddNamedClause, the funnel a
+   person's own edit uses — and the change lands unsent like any other.
 
    ONE DOOR FOR EDITS (the owner's work order, Part 8, 4 Oct 2026). "Edit with
    Copilot" on a risk opens the Edit with Copilot window — the one the pencil
    opens — on the clause the risk is about, with the risk in the rail's Risks
    tab and Copilot's wording already in the box. Save, then the next risk, all
    inside the window (riskEditStart, the walk, riskLaneHtml). A risk that needs
-   a brand-new clause is the one exception: the window edits clauses that are
-   on the paper, and holding a new one is waiting on the owner, so that risk
-   still drafts in the card as it did — adds only, never after the signatures.
+   a brand-new clause opens the window holding that clause where it will go
+   (Young chose to build it, 5 Oct 2026): "Where it goes" in the Risks tab,
+   never at or after the signatures, its heading on the paper. The card itself
+   drafts nothing any more.
 
    ALREADY COVERED. A risk on a topic Our standards checked, or on a clause we
    already redlined, is not listed and not counted (riskCoverOf): it waits in
@@ -210,17 +211,11 @@ function riskDismiss(c, key, back){
   if (typeof persist === 'function') persist(c);
 }
 
-/* ================= THE ROW'S SITTING STATE =================
-   What a row is showing — open, drafting, the wording Copilot wrote, where it
-   would go — is a fact about this sitting, never about the record. Kept per
-   contract and per risk; a refresh starts fresh, which costs nothing because
+/* ================= THE SITTING STATE =================
+   What the list and the walk are showing is a fact about this sitting, never
+   about the record; a refresh starts fresh, which costs nothing because
    nothing here was filed. */
-const _rk = { rows: {}, showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, busy: '', err: {}, spent: {} };
-const _rkRow = (c, key) => {
-  const k = String(c.id) + '|' + key;
-  return _rk.rows[k] || (_rk.rows[k] = { open: false });
-};
-const _rkForget = (c, key) => { delete _rk.rows[String(c.id) + '|' + key]; };
+const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, busy: '', err: {}, spent: {} };
 
 /* WHERE A RISK'S WORDING WOULD GO, asked at the PRESS (negoClauseList may
    start a negotiation; a draw never calls this). A finding whose words are on
@@ -258,14 +253,16 @@ function riskEditTarget(c, it){
   if (!(cl && cl.clauseId) && kind && typeof clauseKind === 'function'){
     cl = _rkClauses(c).find(x => { try{ return !_rkIsSigning(x) && clauseKind(x) === kind; }catch(_){ return false; } }) || null;
   }
-  if (!cl || !cl.clauseId) return null;
+  if (!cl || !cl.clauseId){
+    /* NOTHING OF ITS TOPIC IS THERE: a NEW clause, after the last clause
+       ahead of the signatures, named from the risk (the reader may move it
+       and rename it before saving). */
+    const after = _rkLastTerm(_rkClauses(c));
+    return after ? { newClause: true, afterClauseId: String(after), heading: _rkHeadingFrom(it), label: _rkHeadingFrom(it), clauseId: '', changeId: null } : null;
+  }
   const ch = (Array.isArray(c.changes) ? c.changes : []).find(x => x && String(x.clauseId) === String(cl.clauseId)
     && x.authorSide === 'owner' && !x.withdrawn && x.status === 'pending');
   return { clauseId: String(cl.clauseId), label: _rkClauseName(cl), changeId: ch ? String(ch.id) : null };
-}
-function _rkDefaultTarget(c){
-  const after = _rkLastTerm(_rkClauses(c));
-  return after ? 'a:' + after : 'a:';
 }
 const _rkClauseName = cl => {
   const raw = String((cl && (cl.headingText || cl.title)) || '').trim();
@@ -284,94 +281,6 @@ function _rkHeadingFrom(it){
 function _rkConcern(it){
   return [it.title, it.say, it.why ? 'Why it matters: ' + it.why : '', it.fix ? 'Suggested fix: ' + it.fix : '']
     .filter(Boolean).join('\n');
-}
-
-/* ================= DRAFTING — ONE COPILOT CALL, ON A PRESS ================= */
-async function riskDraft(c, key){
-  const it = riskItemsOf(c).find(x => x.key === key);
-  if (!it) return;
-  const row = _rkRow(c, key);
-  row.open = true;
-  if (!row.target) row.target = _rkDefaultTarget(c);
-  if (row.heading == null) row.heading = _rkHeadingFrom(it);
-  row.err = ''; row.editing = false;
-  /* NO KEY IS SAID, NEVER SILENT: the row opens on a box to write in. */
-  if (!(typeof copilotAvailable === 'function' && copilotAvailable()) || typeof copilotPropose !== 'function'){
-    row.noAi = true; row.editing = true; row.words = row.words || ''; row.draftFor = row.target;
-    rkRepaint(c); return;
-  }
-  row.noAi = false;
-  row.busy = true;
-  rkRepaint(c);
-  const target = row.target;
-  const editId = target.startsWith('e:') ? target.slice(2) : '';
-  let cl = null;
-  if (editId){ try{ cl = (typeof negoClauseNowById === 'function') ? negoClauseNowById(c, editId) : null; }catch(_){ cl = null; } }
-  let res = null, err = null;
-  try{
-    res = await copilotPropose({
-      ask: _rkT(cl ? 'rk_prompt_edit' : 'rk_prompt_add'),
-      passage: cl ? String(cl.text || '') : '',
-      instruction: _rkConcern(it),
-      clauseLabel: cl ? _rkClauseName(cl) : '',
-      party: (typeof contractParty === 'function' ? contractParty(c) : '') || '',
-      law: (typeof jxLaw === 'function') ? jxLaw() : '',
-    });
-  }catch(e){ err = e; }
-  row.busy = false;
-  const words = String((res && res.proposedText) || '').trim();
-  if (err || !words){
-    row.err = err ? String((err && err.message) || err) : String((res && res.advice) || _rkT('ce_ask_nothing'));
-  } else {
-    row.words = words; row.draftFor = target; row.spent = true;
-  }
-  rkRepaint(c);
-}
-
-/* ================= ADD TO REDLINES — THE FUNNEL, AND NOTHING ELSE ================= */
-async function riskFile(c, key){
-  const it = riskItemsOf(c).find(x => x.key === key);
-  const row = _rkRow(c, key);
-  if (!it || row.busy) return null;
-  const words = String(row.words || '').trim();
-  if (!words){ if (typeof toast === 'function') toast(_rkT('rk_empty_words'), 'warn'); return null; }
-  if (row.draftFor && row.draftFor !== row.target && !row.editing){
-    if (typeof toast === 'function') toast(_rkT('rk_redraft_first'), 'warn'); return null;
-  }
-  const author = (typeof currentUser === 'function' && currentUser() && currentUser().name) || 'This workspace';
-  /* PROVENANCE, NEVER A REASON: "Copilot — …" is what negoReasonOf reads as
-     machinery, so the other side is not shown it as "why we asked". */
-  const note = riskProvenance(it);
-  let ch = null;
-  const bag = { side: 'owner', author, note };
-  try{
-    if (row.target.startsWith('e:') && typeof negoEditClause === 'function'){
-      const body = (typeof negoRichFromLines === 'function') ? negoRichFromLines(words) : `<p>${_rkE(words)}</p>`;
-      ch = await negoEditClause(c, row.target.slice(2), body, bag);
-    } else {
-      const clauses = _rkClauses(c);
-      const after = row.target.slice(2) || _rkLastTerm(clauses) || null;
-      const typed = String(row.heading || '').trim() || _rkHeadingFrom(it);
-      const heading = (typeof clauseHeadingFor === 'function') ? clauseHeadingFor(typed, clauses) : typed;
-      const body = (typeof textToRich === 'function') ? textToRich(words) : `<p>${_rkE(words)}</p>`;
-      bag.summary = 'Clause added from the risk scan — ' + String(it.title || '').slice(0, 120);
-      ch = (typeof negoAddNamedClause === 'function')
-        ? await negoAddNamedClause(c, { headingText: heading, bodyHtml: body, afterClauseId: after }, bag)
-        : await negoInsertClause(c, after, { headingText: heading, bodyHtml: body }, bag);
-      if (!ch && bag.refused && typeof toast === 'function') toast(bag.refused.message || String(bag.refused), 'err');
-    }
-  }catch(e){
-    if (typeof toast === 'function') toast(String((e && e.message) || e), 'err');
-    ch = null;
-  }
-  if (!ch) return null;
-  _rkStoreW(c).drafted[key] = String(ch.id);
-  if (typeof logAudit === 'function') logAudit(c, 'Risk', `Redline drafted from the risk scan — ${String(it.title || '').slice(0, 160)} (${ch.id}, not sent)`);
-  if (typeof persist === 'function') persist(c);
-  _rkForget(c, key);
-  if (typeof toast === 'function') toast(_rkT('rk_added'), 'ok');
-  rkRepaintAll(c);
-  return ch;
 }
 
 /* ================= A NOTE INSTEAD ================= */
@@ -399,8 +308,7 @@ function riskNote(c, key){
    tab. The walk is a fact about this sitting: the open risks in list order
    when it began, where the reader is, what was saved and skipped. Covered,
    dismissed and drafted risks are passed over; a risk that needs a NEW clause
-   is passed over too and said at the end (the window holds clauses that are on
-   the paper — holding a new one is waiting on the owner). */
+   opens the window holding it where it will go. */
 const RK_ASKS = {
   firmer: 'Make it firmer for our side.',
   softer: 'Give a softer, more balanced version.',
@@ -412,18 +320,20 @@ const _rkOpenNow = (c, key) => riskOpenOf(c).some(x => x.key === key);
 function _rkWalkOf(c){ const w = _rk.walk; return (w && c && w.cid === String(c.id)) ? w : null; }
 function _rkEditorOpen(c, key, t){
   const w = _rkWalkOf(c); if (!w) return false;
-  w.key = key; w.clauseId = t.clauseId; w.label = t.label || ''; w.done = false;
+  w.key = key; w.isNew = !!t.newClause; w.clauseId = t.newClause ? String(window.CE_NEW_ID || 'cl_ce_new') : t.clauseId;
+  w.label = t.label || ''; w.done = false;
   try{ if (typeof clauseEditorOpen === 'function' && clauseEditorOpen() && typeof rlCloseClauseEditor === 'function') rlCloseClauseEditor(); }catch(_){}
   if (typeof rlOpenClauseEditor !== 'function') return false;
+  if (t.newClause) return rlOpenClauseEditor(c, null, { tab: 'risks', risk: key, newClause: { afterClauseId: t.afterClauseId, heading: t.heading } });
   return rlOpenClauseEditor(c, t.clauseId, { tab: 'risks', risk: key, ...(t.changeId ? { changeId: t.changeId } : {}) });
 }
-/* The first press. A risk with a clause to change opens the window; one that
-   needs a new clause drafts in the card, as before. */
+/* The first press: the window, on the clause the risk changes or holding the
+   new clause it needs. */
 function riskEditStart(c, key){
   const it = riskItemsOf(c).find(x => x.key === key);
   if (!c || !it) return false;
   const t = riskEditTarget(c, it);
-  if (!t){ riskDraft(c, key); return false; }
+  if (!t){ if (typeof toast === 'function') toast(_rkT('ce_no_clause'), 'warn'); return false; }
   const keys = riskOpenOf(c).map(x => x.key);
   if (!keys.includes(key)) keys.unshift(key);
   _rk.walk = { cid: String(c.id), keys, at: keys.indexOf(key), saved: [], skipped: [], newcl: [], key: '', clauseId: '', done: false };
@@ -467,9 +377,13 @@ function riskFiled(c, key, ch){
   if (!c || !key || !ch) return;
   const it = riskItemsOf(c).find(x => x.key === key);
   _rkStoreW(c).drafted[key] = String(ch.id);
+  const w0 = _rkWalkOf(c); if (w0 && w0.key === key){ w0.clauseId = String(ch.clauseId || w0.clauseId); w0.isNew = false; }
   if (typeof logAudit === 'function') logAudit(c, 'Risk', `Redline drafted from the risk scan in Edit with Copilot — ${String((it && it.title) || '').slice(0, 160)} (${ch.id}, not sent)`);
   if (typeof persist === 'function') persist(c);
   const w = _rkWalkOf(c); if (w && !w.saved.includes(key)) w.saved.push(key);
+  /* the column behind the window learns where the row came from now, not at
+     the next repaint */
+  try{ rkRepaintAll(c); }catch(_){}
 }
 /* PROVENANCE, NEVER A REASON — the same words the card's filing writes. */
 const riskProvenance = it => 'Copilot — Risk scan: ' + String((it && it.title) || '').slice(0, 200);
@@ -500,7 +414,8 @@ async function riskEditorDraft(c, key, ask){
   const clauseLabel = (_rkWalkOf(c) || {}).label || '';
   let res = null, err = null;
   try{
-    res = await copilotPropose({ ask: _rkT('rk_prompt_edit'), passage,
+    const isNew = !!(_rkWalkOf(c) || {}).isNew;
+    res = await copilotPropose({ ask: _rkT(isNew ? 'rk_prompt_add' : 'rk_prompt_edit'), passage: isNew && !ask ? '' : passage,
       instruction: _rkConcern(it) + (ask ? '\nAsked now: ' + ask : ''),
       clauseLabel: clauseLabel ? String(clauseLabel) : '',
       party: (typeof contractParty === 'function' ? contractParty(c) : '') || '',
@@ -556,6 +471,7 @@ function riskLaneHtml(c){
       ${it.why ? `<p class="rk-p"><b>${_rkE(_rkT('ai_why_matters'))}:</b> ${_rkE(it.why)}</p>` : ''}
       ${it.fix ? `<p class="rk-p"><b>${_rkE(_rkT('ai_suggested_fix'))}:</b> ${_rkE(it.fix)}</p>` : ''}
     </div>
+    ${_rkWhereHtml(c)}
     ${say}
     <div class="rk-ce-ask" title="${_rkE(_rkT('rk_ce_each'))}">
       <span class="rk-k">${_rkE(_rkT('rk_ce_ask_h'))}</span>
@@ -564,6 +480,22 @@ function riskLaneHtml(c){
         <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ce-rk="send" aria-label="${_rkE(_rkT('ce_send'))}" title="${_rkE(_rkT('ce_send'))}"${busy || err === 'noai' ? ' disabled' : ''}>${_rkE(_rkT('ce_send'))}</button></div>
     </div>
   </div>`;
+}
+/* WHERE A NEW CLAUSE GOES, while it is held and not yet filed: a clause to put
+   it after, never at or after the signatures (the window holds the place; the
+   select moves it — ceSetNewPlace). */
+function _rkWhereHtml(c){
+  const w = _rkWalkOf(c);
+  if (!w || !w.isNew || typeof ceNewPlace !== 'function') return '';
+  const now = ceNewPlace();
+  const clauses = _rkClauses(c);
+  const cut = clauses.findIndex(_rkIsSigning);
+  const before = cut >= 0 ? clauses.slice(0, cut) : clauses;
+  const opts = before.map(cl => `<option value="${_rkE(cl.clauseId)}"${String(cl.clauseId) === now ? ' selected' : ''}>${_rkE(_rkT('rk_after', { clause: _rkClauseName(cl) }))}</option>`).join('');
+  const sign = cut >= 0 ? clauses[cut] : null;
+  return `<label class="rk-where"><span class="rk-k">${_rkE(_rkT('rk_where'))}</span>
+    <select class="rk-sel" data-ce-rk-where>${opts}</select>
+    ${sign ? `<span class="rk-cost">${_rkE(_rkT('rk_ce_never_after', { clause: _rkClauseName(sign) }))}</span>` : ''}</label>`;
 }
 /* The presses the rail hands over (the window's own Save stays the window's). */
 function riskWalkPress(c, act){
@@ -612,70 +544,7 @@ function _rkSevHtml(s){
 /* ONLY A NEW CLAUSE IS DRAFTED IN THE CARD (one door for edits): changing a
    clause on the paper is Edit with Copilot's. And never at or after the
    signatures. */
-function _rkTargetOptions(c, row){
-  const clauses = _rkClauses(c);
-  const opt = (v, label) => `<option value="${_rkE(v)}"${row.target === v ? ' selected' : ''}>${_rkE(label)}</option>`;
-  const cut = clauses.findIndex(_rkIsSigning);
-  const before = cut >= 0 ? clauses.slice(0, cut) : clauses;
-  const adds = before.map(cl => opt('a:' + cl.clauseId, _rkT('rk_after', { clause: _rkClauseName(cl) })));
-  return `<optgroup label="${_rkE(_rkT('rk_group_new'))}">${adds.join('')}</optgroup>`;
-}
-function _rkPreviewHtml(c, row){
-  const words = String(row.words || '');
-  if (row.target && row.target.startsWith('e:')){
-    let cl = null;
-    try{ cl = (typeof negoClauseNowById === 'function') ? negoClauseNowById(c, row.target.slice(2)) : null; }catch(_){ cl = null; }
-    if (cl && typeof redlineOps === 'function' && typeof redlineOpsHtml === 'function'){
-      try{ return redlineOpsHtml(redlineOps(String(cl.text || ''), words)); }catch(_){}
-    }
-    return _rkE(words);
-  }
-  return `<ins class="hati-ins nego-ins">${_rkE(words)}</ins>`;
-}
-function _rkOpenRowHtml(c, it, row){
-  const isAdd = !String(row.target || '').startsWith('e:');
-  const stale = !!(row.words && row.draftFor && row.draftFor !== row.target && !row.editing);
-  const detail = [
-    it.say ? `<p class="rk-p">${_rkE(it.say)}</p>` : '',
-    it.why ? `<p class="rk-p"><b>${_rkE(_rkT('ai_why_matters'))}:</b> ${_rkE(it.why)}</p>` : '',
-    it.fix ? `<p class="rk-p"><b>${_rkE(_rkT('ai_suggested_fix'))}:</b> ${_rkE(it.fix)}</p>` : '',
-  ].join('');
-  let body;
-  if (row.busy){
-    body = `<div class="rk-busy" aria-busy="true"><span class="ob-spin" aria-hidden="true"></span>${_rkE(_rkT('rk_writing'))}</div>`;
-  } else if (row.err){
-    body = `<div class="rk-err">${_rkE(_rkT('rk_failed', { why: row.err }))}</div>
-      <div class="rk-acts"><button type="button" class="ui-btn ui-btn-sm" data-rk-act="write">${_rkE(_rkT('rk_write_myself'))}</button>
-      <button type="button" class="ui-btn ui-btn-sm" data-rk-act="draft" title="${_rkE(_rkT('rk_draft_title'))}">${_rkE(_rkT('rk_try_again'))}</button></div>`;
-  } else {
-    const box = row.editing
-      ? `<textarea class="rk-box" data-rk-words rows="6" aria-label="${_rkE(_rkT('rk_your_words'))}">${_rkE(row.words || '')}</textarea>`
-      : `<div class="rk-draft">${_rkPreviewHtml(c, row)}</div>`;
-    body = `${row.noAi ? `<p class="rk-p rk-quiet">${_rkE(_rkT('rk_no_ai'))}</p>` : ''}
-      <div class="rk-k">${_rkE(_rkT(row.editing ? 'rk_your_words' : 'rk_words'))}</div>
-      ${box}
-      ${stale ? `<div class="rk-acts"><button type="button" class="ui-btn ui-btn-sm" data-rk-act="draft">${_rkE(_rkT('rk_redraft'))}</button></div>` : ''}
-      <div class="rk-foot"><span class="rk-cost">${row.spent ? _rkE(_rkT('rk_cost')) : _rkE(_rkT('rk_nothing_sent'))}</span>
-        <span class="rk-acts">
-          <button type="button" class="ui-btn ui-btn-sm" data-rk-act="close">${_rkE(_rkT('rk_discard'))}</button>
-          ${row.noAi ? '' : `<button type="button" class="ui-btn ui-btn-sm" data-rk-act="edit">${_rkE(_rkT(row.editing ? 'rk_show_changes' : 'rk_change_words'))}</button>`}
-          <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-rk-act="add"${stale ? ' disabled aria-disabled="true"' : ''}>${_rkE(_rkT('rk_add'))}</button>
-        </span></div>`;
-  }
-  return `<div class="rk-row is-open is-${_rkE(it.sev)}" data-rk-key="${_rkE(it.key)}">
-    <div class="rk-top"><b class="rk-t">${_rkE(it.title)}</b>${_rkSevHtml(it.sev)}</div>
-    <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>
-    ${detail}
-    <label class="rk-where"><span class="rk-k">${_rkE(_rkT('rk_where'))}</span>
-      <select class="rk-sel" data-rk-target>${_rkTargetOptions(c, row)}</select></label>
-    ${isAdd ? `<label class="rk-where"><span class="rk-k">${_rkE(_rkT('rk_heading'))}</span>
-      <input class="rk-in" type="text" data-rk-heading value="${_rkE(row.heading || '')}"></label>` : ''}
-    ${body}
-  </div>`;
-}
 function _rkRowHtml(c, it){
-  const row = _rkRow(c, it.key);
-  if (row.open) return _rkOpenRowHtml(c, it, row);
   return `<div class="rk-row is-${_rkE(it.sev)}" data-rk-key="${_rkE(it.key)}">
     <div class="rk-top"><b class="rk-t">${_rkE(it.title)}</b>${_rkSevHtml(it.sev)}</div>
     <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>
@@ -773,7 +642,6 @@ function rkEnsureStyle(){
   .rk-row.is-low{border-left-color:var(--st-steel-dot)}
   .rk-row.is-none,.rk-row.is-gone{border-left-color:var(--color-divider)}
   .rk-row.is-gone .rk-t{color:var(--color-neutral-500)}
-  .rk-row.is-open{border-color:var(--color-accent-300);box-shadow:0 0 0 2px var(--color-accent-100)}
   .rk-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
   .rk-t{font-weight:var(--w-strong);min-width:0}
   .rk-sev{flex:none;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase}
@@ -791,10 +659,6 @@ function rkEnsureStyle(){
   .rk-sel,.rk-in{width:100%;min-width:0;height:var(--field-h, 28px);font:inherit;font-size:var(--t-meta);
     border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);
     color:var(--color-text);padding:0 6px}
-  .rk-draft,.rk-box{font-family:var(--font-doc);font-size:var(--t-body);line-height:1.6;color:var(--color-text);
-    border:1px dashed var(--color-accent-300);border-radius:var(--radius);background:var(--color-bg);
-    padding:8px 10px;white-space:pre-wrap;overflow-wrap:anywhere}
-  .rk-box{width:100%;min-height:120px;resize:vertical;border-style:solid}
   .rk-busy{display:flex;align-items:center;gap:8px;color:var(--color-neutral-600)}
   .rk-err{color:var(--st-ruby-fg)}
   .rk-gone-t{justify-self:start;font-size:var(--t-meta)}
@@ -843,15 +707,6 @@ function rkRepaintAll(c){
   if (typeof renderRedline === 'function' && document.querySelector('.redline-page')) { renderRedline(); return; }
   rkRepaint(c);
 }
-function _rkKeep(c, el){
-  const rowEl = el && el.closest && el.closest('[data-rk-key]');
-  if (!rowEl) return;
-  const row = _rkRow(c, rowEl.getAttribute('data-rk-key'));
-  const ta = rowEl.querySelector('[data-rk-words]');
-  if (ta) row.words = ta.value;
-  const h = rowEl.querySelector('[data-rk-heading]');
-  if (h) row.heading = h.value;
-}
 if (typeof document !== 'undefined' && document.addEventListener && !document._rkWired){
   document._rkWired = true;
   document.addEventListener('click', e => {
@@ -872,7 +727,6 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
     const act = b.getAttribute('data-rk-act');
     const rowEl = b.closest('[data-rk-key]');
     const key = rowEl ? rowEl.getAttribute('data-rk-key') : '';
-    _rkKeep(c, b);
     if (act === 'run' || act === 'rescan'){
       if (typeof runScan !== 'function') return;
       runScan(c);
@@ -886,33 +740,20 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
     if (act === 'covered'){ const k = String(c.id); _rk.showCovered[k] = !_rk.showCovered[k]; rkRepaint(c); return; }
     if (act === 'cov-go'){ if (typeof rlJumpToClause === 'function') rlJumpToClause(b.getAttribute('data-rk-clause')); return; }
     if (!key) return;
-    if (act === 'dismiss'){ _rkForget(c, key); riskDismiss(c, key); rkRepaint(c); return; }
+    if (act === 'dismiss'){ riskDismiss(c, key); rkRepaint(c); return; }
     if (act === 'back'){ riskDismiss(c, key, true); rkRepaint(c); return; }
     if (act === 'note'){ riskNote(c, key); return; }
-    if (act === 'draft'){ riskDraft(c, key); return; }
     if (act === 'edit-ce'){ riskEditStart(c, key); return; }
-    if (act === 'write'){ const row = _rkRow(c, key); row.err = ''; row.editing = true; row.draftFor = row.target; rkRepaint(c); return; }
-    if (act === 'close'){ _rkForget(c, key); rkRepaint(c); return; }
-    if (act === 'edit'){ const row = _rkRow(c, key); row.editing = !row.editing; if (row.editing) row.draftFor = row.target; rkRepaint(c); return; }
-    if (act === 'add'){ riskFile(c, key); return; }
   });
+  /* WHERE A NEW CLAUSE GOES, moved in the Risks tab before it is filed. */
   document.addEventListener('change', e => {
-    const sel = e.target && e.target.closest && e.target.closest('#rl-risks [data-rk-target]');
-    if (!sel) return;
-    const c = _rkContract(); if (!c) return;
-    _rkKeep(c, sel);
-    const rowEl = sel.closest('[data-rk-key]');
-    const row = _rkRow(c, rowEl.getAttribute('data-rk-key'));
-    row.target = sel.value;
-    /* Written by hand, the words follow wherever they are put; Copilot's
-       wording was written for one place and asks again for another. */
-    if (row.editing) row.draftFor = row.target;
-    rkRepaint(c);
+    const sel = e.target && e.target.closest && e.target.closest('#clause-editor [data-ce-rk-where]');
+    if (sel && typeof ceSetNewPlace === 'function') ceSetNewPlace(sel.value);
   });
 }
 
 Object.assign(window, {
-  riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss, riskDraft, riskFile,
+  riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss,
   riskNote, riskMayAct, rlRisksPileHtml, riskMarkFootHtml,
   riskCoverOf, riskEditTarget, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled,
   riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml,

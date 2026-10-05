@@ -112,17 +112,24 @@ describe('f503 (B) the right place', () => {
     assert.deepEqual(J(w.riskEditTarget({ changes: [] }, it)), { clauseId: 'c33', label: '33 Governing law', changeId: null });
     const c = { changes: [mine('CHG-009', { clauseId: 'c33' })] };
     assert.equal(w.riskEditTarget(c, it).changeId, 'CHG-009', 'one redline per clause: the edit goes on top of ours');
-    assert.equal(w.riskEditTarget({ changes: [] }, { title: 'No injunctive-relief clause', quote: '' }), null, 'nothing of that topic: a new clause');
   });
-  test('a new clause is offered only before the signatures, and the card drafts no change to a clause', async () => {
-    const w = load({ negoClauseList: () => clauses, copilotAvailable: () => false });
+  test('a risk no clause covers is a NEW clause, after the last clause ahead of the signatures', () => {
+    const w = load({ negoClauseList: () => clauses, rlPbFindClause: () => null });
+    const t = J(w.riskEditTarget({ changes: [] }, { title: 'No injunctive-relief clause', quote: '' }));
+    assert.equal(t.newClause, true);
+    assert.equal(t.afterClauseId, 'c40', 'Notes, the last clause before 41 Signatures — never after it');
+    assert.equal(t.heading, 'Injunctive relief', 'named from the risk; the reader may rename it');
+  });
+  test('"Where it goes" offers only places before the signatures', () => {
+    const w = load({ negoClauseList: () => clauses, ceNewPlace: () => 'c40' });
     w.riskMayAct = () => true;
     const c = { id: 'K2', scan: { at: 'today', dismissed: [], findings: [{ id: 'inj', sev: 'low', kind: 'missing', title: 'No injunctive-relief clause', anchor: 'doc' }] }, changes: [] };
-    await w.riskDraft(c, 's:inj');
-    const h = w.rlRisksPileHtml(c, {});
+    w.riskEditStart(c, 's:inj');
+    const h = w.riskLaneHtml(c);
     const opts = [...h.matchAll(/<option value="([^"]+)"/g)].map(m => m[1]);
-    assert.deepEqual(opts, ['a:c1', 'a:c33', 'a:c40'], 'adds only, never at or after Signatures');
-    assert.match(h, /value="a:c40" selected/, 'the default is the last clause ahead of the signatures');
+    assert.deepEqual(opts, ['c1', 'c33', 'c40'], 'never at or after Signatures');
+    assert.match(h, /value="c40" selected/);
+    assert.match(h, /rk_ce_never_after/);
   });
 });
 
@@ -159,6 +166,13 @@ describe('f503 (D) the walls', () => {
     assert.match(CE, /const note = _ceFileNote \|\| _cet\('ce_provenance'\);/);
     const w = load();
     assert.match(w.riskProvenance({ title: 'Liability cap may be too low' }), /^Copilot — Risk scan: Liability cap may be too low$/);
+  });
+  test('a held new clause is drawn from a VIEW of the contract — the record is never written', () => {
+    const fn = strip(CE.slice(CE.indexOf('function ceNewView('), CE.indexOf('function ceNewPlace(')));
+    assert.match(fn, /return \{ \.\.\._ceC, changes: \[\.\.\.\(Array\.isArray\(_ceC\.changes\) \? _ceC\.changes : \[\]\), ph\] \};/);
+    assert.ok(!/_ceC\.changes\s*=|\.push\(|persist\(/.test(fn), 'nothing written');
+    assert.match(CE, /html = redlineDocHtml\(ceNewView\(\), \{/, 'the paper draws the view');
+    assert.match(CE, /const ceLockable = \(\) => !!\(_ceClauseId && _ceClauseId !== CE_NEW_ID\);/, 'no lock on a clause that does not exist yet');
   });
   test('the walk files nothing and sends nothing by itself', () => {
     const walk = strip(SRC.slice(SRC.indexOf('ONE DOOR FOR EDITS: THE WALK'), SRC.indexOf('WHO MAY ACT HERE')));

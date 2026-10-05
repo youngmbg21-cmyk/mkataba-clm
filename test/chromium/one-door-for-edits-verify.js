@@ -14,11 +14,12 @@
      4. NOTE AFTER SAVE — Save & next files ONE unsent redline through the
         funnel and opens the Notes drawer pinned to it; Skip there moves on;
      5. THE RIGHT PLACE — "Missing governing law" opens on clause 4 Governing
-        law (never a second one); a new clause is drafted in the card, never
-        after the signatures (holding a new clause in the window is waiting
-        on the owner);
-     6. LAST RISK DONE — Skip to the end: "That was the last risk", nothing
-        sent, Back to Redlines;
+        law (never a second one); a risk no clause covers opens the window
+        HOLDING A NEW CLAUSE where it will go, before the signatures, with
+        "Where it goes" and its heading on the paper; Save files it as a new
+        clause (Young chose to build it, 5 Oct 2026);
+     6. LAST RISK DONE — "That was the last risk", nothing sent, Back to
+        Redlines;
      7. RISK VIEW — the mark offers only "Add a note";
      8. SAFETY NET — a second redline of ours on one clause stops with a
         dialog naming the first; Cancel files nothing;
@@ -108,6 +109,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
         const t = String((msgs[0] || {}).content || '');
         window._odAsked.push(t);
         const words = /Asked now: Make it firmer/.test(t) ? LIAB_FIRM
+          : /Draft ONE new contract clause/.test(t) ? 'Each party may seek interim injunctive relief from a competent court for a breach of clause 3.'
           : /governing law/i.test(t) ? 'This Agreement is governed by the laws of Sweden, and the courts of Stockholm have jurisdiction.'
           : LIAB_NEW;
         return { answer: JSON.stringify({ proposedText: words, advice: 'Drafted.' }) };
@@ -199,33 +201,60 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     check(!!law && law.clause === lawClause, '5a after the note, risk 2 opens: "Missing governing law" changes clause 4, never a second one', law && law.clause);
     await shot('5-right-place.png');
 
-    /* ============ 6. LAST RISK DONE ============ */
+    /* ============ 5b. A NEW CLAUSE, HELD IN THE WINDOW ============ */
     const before6 = await page.evaluate(id => (getContract(id).changes || []).length, ID);
     await press(page, '[data-ce-act="rk-skip"]');
+    const nc = await until(page, () => {
+      const pg = document.getElementById('clause-editor'); if (!pg) return null;
+      const lane = pg.querySelector('#ce-lane');
+      if (!lane || !/Risk 3 of 3/.test(lane.textContent) || !/No injunctive-relief clause/.test(lane.textContent) || lane.querySelector('.rk-busy') || !/Copilot wrote/.test(lane.textContent)) return null;
+      const secs = [...pg.querySelectorAll('#ce-doc [data-clause]')].map(x => x.getAttribute('data-clause'));
+      const heads = [...pg.querySelectorAll('#ce-doc [data-clause]')].map(x => (x.querySelector('.rl-clause-h, h4') || {}).textContent || '');
+      const at = secs.indexOf(window.CE_NEW_ID);
+      return { at, before: heads[at - 1] || '', after: heads[at + 1] || '', head: (pg.querySelector('#ce-doc [data-clause="' + window.CE_NEW_ID + '"]') || {}).textContent || '',
+        opts: [...lane.querySelectorAll('[data-ce-rk-where] option')].map(o => o.textContent), never: (lane.querySelector('.rk-where .rk-cost') || {}).textContent || '',
+        badge: (pg.querySelector('#ce-doc [data-clause="' + window.CE_NEW_ID + '"] .rl-rung') || {}).textContent || '' };
+    }, null, 10000);
+    check((await page.evaluate(id => (getContract(id).changes || []).length, ID)) === before6, '5b Skip filed nothing');
+    check(!!nc && nc.at > 0 && /Limitation of liability/i.test(nc.before) && /Signatures/i.test(nc.after), '5c the window holds the new clause where it will go — after the last clause, before the signatures', nc && JSON.stringify({ at: nc.at, before: nc.before, after: nc.after }));
+    check(!!nc && /Injunctive relief/i.test(nc.head) && /interim injunctive relief/.test(nc.head), '5d with its heading and Copilot\'s wording on the paper', nc && nc.head.slice(0, 120));
+    check(!!nc && /^New clause$/i.test(nc.badge.trim()), '5d2 marked "New clause", not as a step on the ladder, until it is saved', nc && nc.badge);
+    check(!!nc && nc.opts.length > 0 && nc.opts.every(o => /^New clause after/.test(o)) && !nc.opts.some(o => /Signatures/.test(o)) && /Never after .*Signatures/.test(nc.never), '5e "Where it goes" offers only places before the signatures', nc && (nc.opts.join(' | ') + ' / ' + nc.never));
+    await shot('5b-new-clause.png');
+    /* move it: after Confidentiality */
+    await page.evaluate(() => { const sel = document.querySelector('[data-ce-rk-where]'); const o = [...sel.options].find(x => /Confidentiality/.test(x.textContent)); sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); });
+    const moved = await until(page, () => {
+      const heads = [...document.querySelectorAll('#ce-doc [data-clause]')].map(x => [x.getAttribute('data-clause'), (x.querySelector('.rl-clause-h, h4') || {}).textContent || '']);
+      const at = heads.findIndex(h => h[0] === window.CE_NEW_ID);
+      return at > 0 && /Confidentiality/.test(heads[at - 1][1]) ? heads[at - 1][1] : null;
+    });
+    check(!!moved, '5f moving it puts it after Confidentiality on the paper, still unsaved', moved);
+    const n5 = await page.evaluate(id => (getContract(id).changes || []).length, ID);
+    await press(page, '[data-ce-act="rk-save"]');
+    const ins = await until(page, ({ id, n }) => {
+      const c = getContract(id); if ((c.changes || []).length <= n) return null;
+      const ch = c.changes[c.changes.length - 1];
+      const after = (negoClauseList(c).find(x => x.clauseId === ch.afterClauseId) || {});
+      return { type: ch.changeType, status: ch.status, heading: ch.headingText, after: after.headingText || after.title || '', note: ch.note,
+        drafted: (c.risks && c.risks.drafted || {})['s:t-inj'] === ch.id, pin: !!document.querySelector('#context-panel [data-rl-np-unpin]') };
+    }, { id: ID, n: n5 }, 10000);
+    check(!!ins && ins.type === 'insertClause' && ins.status === 'pending' && /Injunctive relief/i.test(ins.heading), '5g Save files ONE new clause, unsent, with its heading', ins && JSON.stringify(ins));
+    check(!!ins && /Confidentiality/.test(ins.after) && /^Copilot — Risk scan/.test(ins.note) && ins.drafted, '5h where it was put, wearing the risk\'s provenance, and the risk remembers it', ins && JSON.stringify(ins));
+    check(!!ins && ins.pin, '5i the notes drawer opens for it, as after any Save');
+    if (ins && ins.pin) await press(page, '#context-panel [data-rl-np-unpin]');
+
+    /* ============ 6. LAST RISK DONE ============ */
     const end = await until(page, () => {
       const lane = document.querySelector('#clause-editor #ce-lane');
       return lane && /That was the last risk/.test(lane.textContent) ? lane.innerText.replace(/\s+/g, ' ') : null;
     });
-    check(!!end && /Saved as unsent redlines: 1 · skipped: 1 · covered by your redlines: 1\. Nothing was sent\./.test(end), '6a Skip to the end: "That was the last risk", what was saved, skipped and covered', end);
-    check(!!end && /Need a new clause: 1/.test(end), '6b the risk that needs a new clause is said, not built around', end);
-    check((await page.evaluate(id => (getContract(id).changes || []).length, ID)) === before6, '6c Skip filed nothing');
+    check(!!end && /Saved as unsent redlines: 2 · skipped: 1 · covered by your redlines: 1\. Nothing was sent\./.test(end), '6a "That was the last risk", what was saved, skipped and covered', end);
+    check(!!end && !/Need a new clause/.test(end), '6b no risk is left behind for needing a new clause', end);
     check(await page.evaluate(() => !state.panelOpen), '6e the notes drawer went once the note was answered, so the rail shows the walk');
     await shot('6-last-risk-done.png');
     await press(page, '[data-ce-rk="back"]');
     check(!!(await until(page, () => !document.getElementById('clause-editor') && !!document.getElementById('rl-risks'))), '6d Back to Redlines closes the window');
-
-    /* the new clause, drafted in the card — adds only, never after the signatures */
-    await press(page, '#rl-risks [data-rk-key="s:t-inj"] [data-rk-act="edit-ce"]');
-    const nc = await until(page, () => {
-      const r = document.querySelector('#rl-risks .rk-row.is-open[data-rk-key="s:t-inj"]');
-      if (!r || r.querySelector('.rk-busy')) return null;
-      const opts = [...r.querySelectorAll('[data-rk-target] option')].map(o => o.textContent);
-      return { opts, editor: !!document.getElementById('clause-editor') };
-    });
-    check(!!nc && !nc.editor && nc.opts.length > 0 && nc.opts.every(o => /^New clause after/.test(o)), '5b a risk that needs a new clause drafts in the card, adds only', nc && nc.opts.join(' | '));
-    check(!!nc && !nc.opts.some(o => /Signatures/.test(o)), '5c and never after the signatures', nc && nc.opts.slice(-1)[0]);
-    await shot('5b-new-clause-in-card.png');
-    await press(page, '#rl-risks [data-rk-key="s:t-inj"] [data-rk-act="close"]');
+    check(await page.evaluate(() => !document.querySelector('#rl-risks [data-rk-target], #rl-risks .rk-row.is-open')), '6f the card drafts nothing itself');
 
     /* ============ 7. RISK VIEW ============ */
     await page.evaluate(id => { openWorkspace(id); roomGoTab(getContract(id), 'docs'); }, ID);

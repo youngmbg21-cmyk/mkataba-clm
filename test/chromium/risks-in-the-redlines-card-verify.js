@@ -10,10 +10,12 @@
         editor on that clause with Copilot's wording in the box — read first;
      3. its Save files an UNSENT change through the funnel, the risk leaves
         the list, and the row says "from the risk scan" on our seat;
-     4. a missing clause no clause carries becomes a NEW clause, drafted in
-        the card, with a heading the reader can change;
+     4. a missing clause no clause carries becomes a NEW clause, held in the
+        same window where it will go, with a heading the reader can change
+        (Young chose to build it, 5 Oct 2026);
      5. Dismiss / Show dismissed / Bring back, one list everywhere;
-     6. with no Copilot key the row opens on a box to write in — never silent;
+     6. with no Copilot key the window says so and the reader writes in the
+        box — never silent;
      7. every door that opened the old panel (the Checks row, the head icon)
         now lands on Risk View; the Overview tile reads "Risks found";
      8. nothing travels: the share payload carries no `risks`, nothing was sent.
@@ -168,11 +170,18 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await press(page, '[data-ce-act="rk-save"]');
   await until(page, () => !!document.querySelector('#context-panel [data-rl-np-unpin]'));
   await press(page, '#context-panel [data-rl-np-unpin]');
-  await until(page, () => !!document.querySelector('[data-ce-rk="back"]'));
-  await press(page, '[data-ce-rk="back"]');
+  /* the walk goes on to the next open risk — the missing clause (section 4) */
+  const nw = await until(page, () => {
+    const pg = document.getElementById('clause-editor'); if (!pg) return null;
+    const lane = pg.querySelector('#ce-lane');
+    if (!lane || !/No injunctive-relief clause/.test(lane.textContent) || lane.querySelector('.rk-busy') || !/Copilot wrote/.test(lane.textContent)) return null;
+    const sec = pg.querySelector('#ce-doc [data-clause="' + window.CE_NEW_ID + '"]');
+    return { held: !!sec, head: sec ? ((sec.querySelector('.rl-clause-h, h4') || {}).textContent || '') : '',
+      where: [...lane.querySelectorAll('[data-ce-rk-where] option')].map(o => o.textContent) };
+  }, null, 10000);
   const filed = await until(page, ({ id, n }) => {
     const c = getContract(id);
-    if ((c.changes || []).length <= n || document.getElementById('clause-editor')) return null;
+    if ((c.changes || []).length <= n) return null;
     const ch = c.changes[c.changes.length - 1];
     const p = document.getElementById('rl-risks');
     return { status: ch.status, side: ch.authorSide, type: ch.changeType, newText: ch.newText,
@@ -189,25 +198,24 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await page.screenshot({ path: path.join(OUT, '04-added.png') });
 
   /* ============ 4. A MISSING CLAUSE BECOMES A NEW ONE ============ */
-  await press(page, '#rl-risks [data-rk-key="s:t-inj"] [data-rk-act="edit-ce"]');
-  const nw = await until(page, () => {
-    const r = document.querySelector('#rl-risks .rk-row.is-open[data-rk-key="s:t-inj"]');
-    if (!r || r.querySelector('.rk-busy')) return null;
-    return { target: (r.querySelector('[data-rk-target]') || {}).value || '',
-      heading: (r.querySelector('[data-rk-heading]') || {}).value || '' };
-  }, null, 8000);
-  check(!!nw && /^a:/.test(nw.target), '4a a missing clause is offered as a NEW clause', nw && nw.target);
-  check(!!nw && /Injunctive relief/i.test(nw.heading), '4b with a heading taken from the risk, which the reader can change', nw && nw.heading);
+  check(!!nw && nw.held, '4a a missing clause opens the window holding a NEW clause where it will go', nw && JSON.stringify(nw));
+  check(!!nw && /Injunctive relief/i.test(nw.head) && nw.where.length > 0 && nw.where.every(o => /^New clause after/.test(o)),
+    '4b with a heading taken from the risk, and "Where it goes"', nw && (nw.head + ' / ' + nw.where.join(' | ')));
   await page.screenshot({ path: path.join(OUT, '05-new-clause.png') });
   const n2 = await page.evaluate(id => (getContract(id).changes || []).length, ID);
-  await press(page, '#rl-risks [data-rk-key="s:t-inj"] [data-rk-act="add"]');
+  await press(page, '[data-ce-act="rk-save"]');
   const ins = await until(page, ({ id, n }) => {
     const c = getContract(id);
     if ((c.changes || []).length <= n) return null;
     const ch = c.changes[c.changes.length - 1];
     return { type: ch.changeType, heading: ch.headingText || ch.clauseLabel || '' };
   }, { id: ID, n: n2 }, 8000);
-  check(!!ins && ins.type === 'insertClause', '4c and files as an inserted clause', ins && JSON.stringify(ins));
+  check(!!ins && ins.type === 'insertClause' && /Injunctive relief/i.test(ins.heading), '4c and files as an inserted clause', ins && JSON.stringify(ins));
+  await until(page, () => !!document.querySelector('#context-panel [data-rl-np-unpin]'));
+  await press(page, '#context-panel [data-rl-np-unpin]');
+  await until(page, () => !!document.querySelector('[data-ce-rk="back"]'));
+  await press(page, '[data-ce-rk="back"]');
+  await until(page, () => !document.getElementById('clause-editor') && !!document.getElementById('rl-risks'));
 
   /* ============ 5. DISMISS, SHOW, BRING BACK ============ */
   await press(page, '#rl-risks [data-rk-key="s:t-ass"] [data-rk-act="dismiss"]');
@@ -230,12 +238,14 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await page.evaluate(() => { state.aiConfigured = false; });
   await press(page, '#rl-risks [data-rk-key="s:t-ass"] [data-rk-act="edit-ce"]');
   const noai = await until(page, () => {
-    const r = document.querySelector('#rl-risks .rk-row.is-open[data-rk-key="s:t-ass"]');
-    return r ? { box: !!r.querySelector('textarea[data-rk-words]'), says: r.textContent } : null;
+    const pg = document.getElementById('clause-editor'); if (!pg) return null;
+    const lane = pg.querySelector('#ce-lane');
+    return lane && /not connected/.test(lane.textContent) ? { box: !!pg.querySelector('#ce-doc [data-clause]'), says: lane.textContent } : null;
   });
-  check(!!noai && noai.box && /not connected/.test(noai.says), '6a with no key the row opens on a box to write in, and says why');
+  check(!!noai && noai.box && /write the wording in the box yourself/.test(noai.says), '6a with no key the window says so, and the reader writes in the box');
   await page.screenshot({ path: path.join(OUT, '07-no-copilot.png') });
-  await press(page, '#rl-risks [data-rk-key="s:t-ass"] [data-rk-act="close"]');
+  await page.evaluate(id => riskWalkEnd(getContract(id)), ID);
+  await until(page, () => !document.getElementById('clause-editor'));
 
   /* ============ 7. THE OLD PANEL'S DOORS LAND ON RISK VIEW ============ */
   await page.evaluate(id => { const c = getContract(id); roomGoTab(c, 'terms'); }, ID);

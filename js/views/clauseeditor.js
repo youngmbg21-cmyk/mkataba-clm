@@ -100,6 +100,18 @@ let _ceStep = 0;
    pencil already on that clause. */
 let _ceEditing = false;
 let _ceTab = 'chat';        /* chat | scan | ladder | figure | risks */
+/* ---- A NEW CLAUSE, HELD BEFORE IT EXISTS (Young chose to build it, 5 Oct
+   2026 — the work order's Part 8, screen 5) ----
+   The page is built around ONE clause on the paper. A clause nobody has filed
+   yet is held here as `_ceNew` {afterClauseId, heading} under a placeholder id
+   (CE_NEW_ID): the paper draws it in its place through a VIEW of the contract
+   carrying one unsaved insertion (ceNewView — the record is never written), the
+   heading is the clause's own head box, and the first Save files it through
+   negoAddNamedClause (the funnel's add-a-clause door, with its duplicate wall).
+   From then on it is a clause we proposed, revised through negoReviseInsert
+   like any other. No lock is taken on a clause that does not exist yet. */
+const CE_NEW_ID = 'cl_ce_new';
+let _ceNew = null;
 let _ceThread = [];         /* the conversation, this sitting only */
 let _ceBusy = false;
 let _ceSavedAt = null;
@@ -1019,8 +1031,42 @@ function ceEnsureStyle(){
    clause with a change already adopted on it does not read like the baseline
    any more, and measuring an edit against the baseline anyway re-expresses the
    adopted change as though the author had just made it (MK-311). */
+function ceIsNew(){ return !!(_ceNew && _ceClauseId === CE_NEW_ID); }
+function ceNewClause(){
+  const heading = String(_ceNew.heading || '').trim();
+  return { clauseId: CE_NEW_ID, num: '', title: heading, headingText: heading, text: '', bodyHtml: '', _ceProposed: true, _ceNew: true };
+}
+/* The contract as the paper should draw it while a new clause is held: the
+   record's own changes plus ONE unsaved insertion where the clause will go. A
+   shallow copy — nothing here is written back. */
+function ceNewView(){
+  if (!ceIsNew()) return _ceC;
+  let round = 1;
+  try{ round = (_ceC.negotiation && _ceC.negotiation.round) || 1; }catch(_){ round = 1; }
+  const ph = { id: 'CE-NEW', clauseId: CE_NEW_ID, changeType: 'insertClause', status: 'pending', authorSide: ceSide(),
+    afterClauseId: _ceNew.afterClauseId || null, headingText: String(_ceHead || _ceNew.heading || ''),
+    newText: ceWords(_ceText), bodyHtml: _ceText, roundN: round, seq: 1e9, revisions: [] };
+  return { ..._ceC, changes: [...(Array.isArray(_ceC.changes) ? _ceC.changes : []), ph] };
+}
+/* Where a held new clause goes, moved by the rail before it is filed. */
+function ceNewPlace(){ return ceIsNew() ? String(_ceNew.afterClauseId || '') : ''; }
+function ceSetNewPlace(afterClauseId){
+  if (!ceIsNew() || !afterClauseId) return false;
+  _ceNew.afterClauseId = String(afterClauseId);
+  ceRenderPaper(); ceScrollToClause();
+  return true;
+}
+/* A HELD NEW CLAUSE IS NOT A STEP ON ANY LADDER YET: the paper's step chip
+   counted the unsaved insertion, so it says "new clause" until Save. */
+function ceNewBadge(host){
+  if (!ceIsNew() || !host) return;
+  const rung = host.querySelector(`[data-clause="${CE_NEW_ID}"] .rl-clause-top .rl-rung`);
+  if (rung){ rung.className = 'rl-rung rl-rung-you rl-rung-static ce-new-badge'; rung.textContent = _cet('ng_new_clause_tag'); }
+}
+const ceLockable = () => !!(_ceClauseId && _ceClauseId !== CE_NEW_ID);
 function ceClause(){
   if (!_ceC || !_ceClauseId) return null;
+  if (ceIsNew()) return ceNewClause();
   try{ const cl = window.negoClauseNowById ? negoClauseNowById(_ceC, _ceClauseId) : null;
     if (cl) return cl; }catch(_){}
   return ceProposedClause();
@@ -2135,16 +2181,21 @@ function ceLockBeat(stop){
   if (stop) return;
   _ceLockBeat = setInterval(() => {
     if (!clauseEditorOpen()){ ceLockBeat(true); return; }
-    try{
-      if (ceSide() === 'owner' && window.clauseLockKeep && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
-    }catch(_){}
+    ceLockKeepNow();
   }, CE_LOCK_BEAT_MS);
+}
+/* One keep: the beat's tick, and a new clause the moment it is filed. */
+function ceLockKeepNow(){
+  try{
+    if (ceSide() === 'owner' && window.clauseLockKeep && ceLockable() && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
+  }catch(_){}
 }
 
 function rlOpenClauseEditor(c, clauseId, opts = {}){
   const refusal = clauseEditorRefusal(c, opts);
   if (refusal){ if (window.toast) toast(refusal, 'err'); return false; }
-  const probeC = c, probeId = String(clauseId || '');
+  const probeC = c, wantNew = !clauseId && !!(opts && opts.newClause);
+  const probeId = wantNew ? CE_NEW_ID : String(clauseId || '');
   if (!probeId){ if (window.toast) toast(_cet('ce_no_clause'), 'err'); return false; }
   /* ---- ONE CLAUSE, ONE PAIR OF HANDS ---- (Young asked 10 Sep 2026)
      THE PENCIL IS THE SIGN AND THIS IS THE WALL, which is what makes the lock
@@ -2156,7 +2207,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
 
      ASKED ON THE PROBE, BEFORE ANY STATE IS SET, so a refusal leaves nothing
      half-open behind it. */
-  const heldBy = window.clauseLockHeldByOther ? clauseLockHeldByOther(probeC, probeId) : null;
+  const heldBy = (!wantNew && window.clauseLockHeldByOther) ? clauseLockHeldByOther(probeC, probeId) : null;
   if (heldBy){
     /* 'warn' RATHER THAN 'err': nothing failed and nothing was refused that
        will not be permitted in a minute — this is somebody else's turn, not a
@@ -2177,6 +2228,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      standing for the next arrival to obey. */
   const placeAt = _cePlaceAt; _cePlaceAt = null;
   _ceC = probeC; _ceClauseId = probeId; _ceOpts = opts || {};
+  _ceNew = wantNew ? { afterClauseId: String(opts.newClause.afterClauseId || ''), heading: String(opts.newClause.heading || '') } : null;
   if (wantTyping){ _ceOpts = { ..._ceOpts }; delete _ceOpts.typing; }
   try{ _ceRead0 = window.rlReadMode ? rlReadMode() : null; }catch(_){ _ceRead0 = null; }
   _ceAgain = typeof opts.again === 'function' ? opts.again
@@ -2194,7 +2246,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
     /* A LOCK IS BETWEEN COLLEAGUES, and their page has no colleague of ours
        and no session: the lock route would refuse them, and their copy never
        carries our locks (they never travel). So their seat takes none. */
-    if (ceSide() === 'owner' && window.clauseLockTake && clauseLockTake(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
+    if (ceSide() === 'owner' && window.clauseLockTake && ceLockable() && clauseLockTake(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
   }catch(_){}
   ceLockBeat();
   ceSeedDraft(opts.changeId);
@@ -2367,7 +2419,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      difference between arriving at the clause and arriving at the contract. */
   ceScrollToClause(placeAt);
   /* the bar's third crumb names this clause (second pass, 21 Sep 2026) */
-  try{ if (window.shellCrumbLayer) shellCrumbLayer(i18t('ce_crumb_edit', { clause: ceClauseLabel(ceClause()) || _ceClauseId })); }catch(_){}
+  try{ if (window.shellCrumbLayer) shellCrumbLayer(i18t(ceIsNew() ? 'ce_crumb_new' : 'ce_crumb_edit', { clause: ceClauseLabel(ceClause()) || _ceClauseId })); }catch(_){}
   /* AN ASK TO TYPE THAT THE CLAUSE REFUSES IS SAID, NOT SWALLOWED (13 Sep
      2026): a click into a clause the other side wants removed arrives here
      with typing asked for, opens showing the strike-through, and says why. */
@@ -2393,7 +2445,7 @@ function rlCloseClauseEditor(opts = {}){
      state is cleared, because the release needs to know which clause. */
   ceLockBeat(true);
   try{
-    if (ceSide() === 'owner' && window.clauseLockRelease && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId, release: true });
+    if (ceSide() === 'owner' && window.clauseLockRelease && ceLockable() && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId, release: true });
   }catch(_){}
   const page = document.getElementById('clause-editor');
   if (page){ try{ if (page._ceRo) page._ceRo.disconnect(); }catch(_){} page.remove(); }
@@ -2405,7 +2457,7 @@ function rlCloseClauseEditor(opts = {}){
   let readMoved = false;
   try{ readMoved = _ceRead0 != null && window.rlReadMode && rlReadMode() !== _ceRead0; }catch(_){}
   _ceRead0 = null;
-  _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null;
+  _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null; _ceNew = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null; _ceWhole = false;
   _ceSpellList = []; _ceSpellFor = null;
   _ceRendering = false; _ceZoom = 100;
@@ -3131,7 +3183,7 @@ function ceRenderPaper(){
   const keep = host.scrollTop;
   let html = '';
   try{
-    html = redlineDocHtml(_ceC, {
+    html = redlineDocHtml(ceNewView(), {
       side: ceSide(),
       /* THEIR COPY IS ALREADY WALLED BY THE TRANSPORT, and the rebuilt copy's
          turn stamp cannot re-derive the wall — the embed passes [] for that
@@ -3179,6 +3231,7 @@ function ceRenderPaper(){
   _ceRendering = true;
   try{
     host.innerHTML = html || `<p class="rl-clause-p">${_cee(_cet('ce_this_clause'))}</p>`;
+    ceNewBadge(host);
     /* THE NOTE MARKS ARE FURNITURE ON THE CANVAS, painted after it and never
        inside the typing box (rlPaintNoteMarks skips the clause being typed). */
     try { if (window.rlPaintNoteMarks && _ceC) rlPaintNoteMarks(host, _ceC, { side: ceSide() }); } catch (e){}
@@ -5976,6 +6029,38 @@ async function ceRiskSave(){
   if (window.riskWalkStep) riskWalkStep(c, 'next');
   return ch;
 }
+/* THE FIRST SAVE OF A NEW CLAUSE: the funnel's add-a-clause door (its
+   duplicate wall included), unsent, then the page holds the real clause — a
+   clause we proposed — and everything after is the ordinary path. */
+async function ceFileNew(why){
+  const c = _ceC;
+  if (!window.negoAddNamedClause){ if (window.toast) toast(_cet('ce_cannot_file'), 'err'); return null; }
+  const heading = String(_ceHead || _ceNew.heading || '').trim();
+  if (!heading){ ceSay(_cet('ce_new_needs_heading')); return null; }
+  const o = { side: ceSide(), author: (_ceOpts && _ceOpts.by) || undefined,
+    why: String(why || '').trim() || undefined, note: _ceFileNote || _cet('ce_provenance') };
+  _ceBusy = true;
+  let ch = null, err = null;
+  try{ ch = await negoAddNamedClause(c, { headingText: heading, bodyHtml: _ceText, afterClauseId: _ceNew.afterClauseId || null }, o); }
+  catch(e){ err = e; }
+  _ceBusy = false;
+  if (err){ if (window.toast) toast(_cet('ce_file_failed', { why: (err && err.message) || String(err) }), 'err'); return null; }
+  if (!ch){ ceSay(String((o.refused && (o.refused.message || o.refused)) || _cet('ce_nothing_changed'))); return null; }
+  _ceNew = null; _ceClauseId = String(ch.clauseId);
+  if (_ceOpts && _ceOpts.newClause){ _ceOpts = { ..._ceOpts }; delete _ceOpts.newClause; }
+  /* the clause exists now: the beat's own keep takes it at once */
+  ceLockKeepNow();
+  ceSeedDraft(ch.id);
+  try{ if (window.shellCrumbLayer) shellCrumbLayer(i18t('ce_crumb_edit', { clause: ceClauseLabel(ceClause()) || _ceClauseId })); }catch(_){}
+  const _noteAsk = window.rlNoteAskAfterFile
+    ? rlNoteAskAfterFile(c, ch, { side: ceSide(), author: (_ceOpts && _ceOpts.by) || undefined, persist: (_ceOpts && _ceOpts.persist) })
+    : null;
+  _ceLastNoteAsk = _noteAsk;
+  if (window.toast) toast(_cet('ce_filed', { id: ch.id }), 'ok');
+  ceFiled(c);
+  if (_noteAsk) _noteAsk.then(out => { if (!out) return; try{ if (typeof _ceAgain === 'function') _ceAgain(); }catch(_){} });
+  return ch;
+}
 async function ceFile(why){
   /* A note kept from the ladder card rides the filing as its reason. */
   if (!why && _ceHeldNote) why = _ceHeldNote;
@@ -5990,6 +6075,7 @@ async function ceFile(why){
      reason, the Skip, every guard the funnel carries — is the same code either
      way, which is the whole reason it routes here rather than growing a second
      filing path. The panel's own editor branches in exactly these words. */
+  if (ceIsNew()) return ceFileNew(why);
   const proposed = ceIsProposed();
   const need = proposed ? window.negoReviseInsert : window.negoEditClause;
   if (!need){ if (window.toast) toast(_cet('ce_cannot_file'), 'err'); return null; }
@@ -6947,7 +7033,8 @@ Object.assign(window, {
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor, ceAttachLoose, ceSetWhole,
-  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceBoxWords, ceRenderLane, ceRiskSave, ceRisksOn, ceRunScan, ceScanItems, ceScanGroups, ceClauseFindings, ceAddMissingClause,
+  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceBoxWords, ceRenderLane, ceRiskSave, ceRisksOn,
+  CE_NEW_ID, ceIsNew, ceNewPlace, ceSetNewPlace, ceRunScan, ceScanItems, ceScanGroups, ceClauseFindings, ceAddMissingClause,
   ceBoxDirty,
   ceHeldPassage, ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceOfferPassage, ceAttachWords, ceRenderScope, ceRenderChips,
   ceReplacePassage, ceCutPassage, ceRestoreScroll,

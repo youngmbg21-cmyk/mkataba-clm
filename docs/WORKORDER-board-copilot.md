@@ -463,13 +463,14 @@ In simple English, for the owner.
 
 ## Waiting on the owner
 
-- **Part 8, "A new clause" (screen 5).** The Edit with Copilot window is built
-  around one clause that is already on the paper: its lock, its canvas and
-  its Save (which files only through the clause-edit route). Holding a clause
-  that does not exist yet needs a placeholder clause drawn on the paper, a
-  second Save route for adding a clause, and a lock for something that is not
-  there yet. Your choice: (1) build that, so new clauses are also written in
-  the window; or (2) keep new clauses drafted in the Redlines card, as now.
+- ~~**Part 8, "A new clause" (screen 5).**~~ **Built 5 Oct 2026** (the owner
+  chose option 1): the Edit with Copilot window now holds a brand-new clause
+  where it will go, with "Where it goes" and its heading, and Save files it as
+  one new clause. The card drafts nothing any more.
+- **The Copilot half of the precision test** has still not run: the Copilot
+  key lives in the live app's settings on Render, which this workspace cannot
+  read. Adding the same key to this workspace's environment as
+  `ANTHROPIC_API_KEY` lets `npm run eval:board` run here.
 
 - **Open chart language (not in this order).** On 4 Oct the owner was offered
   a second road for requests beyond the recipe: Copilot describes any chart
