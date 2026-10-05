@@ -401,6 +401,15 @@ function auditDatesOf(c) {
    next time anybody reads it. */
 const SITTING_KEYS = ['_messages', '_msgFetch', '_shareFetch', '_signChecking', '_triaging'];
 const dropSittingKeys = c => { if (c && typeof c === 'object') for (const k of SITTING_KEYS) delete c[k]; return c; };
+/* THE BRIEF'S CONCERNS, LITE — what riskItemsOf needs to count, nothing more. */
+const briefLiteOf = d => {
+  const one = w => (w && typeof w === 'object')
+    ? { point: String(w.point || '').slice(0, 400), quote: String(w.quote || '').slice(0, 240), why: String(w.why || '').slice(0, 400),
+        wording: typeof w.wording === 'boolean' ? w.wording : null }
+    : { point: String(w || '').slice(0, 400), quote: '', why: '', wording: null };
+  const pick = l => (Array.isArray(l) ? l : []).map(one).filter(w => w.point.trim());
+  return { data: { watchouts: pick(d.watchouts), unusual: pick(d.unusual) } };
+};
 const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
   dropSittingKeys(x);
@@ -3783,9 +3792,18 @@ function srvListDecorate(dbRows, user) {
   const pageIds = rows.map(c => String(c.id));
   const inList = n => '(' + new Array(n).fill('?').join(',') + ')';
   if (pageIds.length) {
-    const have = new Set(db.prepare('SELECT contract_id FROM briefs WHERE contract_id IN ' + inList(pageIds.length))
-      .all(...pageIds).map(x => String(x.contract_id)));
-    rows.forEach(c => { if (have.has(String(c.id))) c._hasBrief = true; });
+    /* AND ITS CONCERNS, LITE (5 Oct 2026, the board's "by open risks" split).
+       The board counts open risks per contract off riskItemsOf, which reads
+       the brief's watchouts and unusual terms — and the light list carried
+       only the boolean, so the split undercounted in production. Only the
+       points the count needs ride (point, a short quote, why, wording), never
+       the memo; transport, stripped on save like _brief. Same ONE query. */
+    const lite = new Map();
+    for (const r of db.prepare('SELECT contract_id, json FROM briefs WHERE contract_id IN ' + inList(pageIds.length)).all(...pageIds)) {
+      let d = null; try { const b = JSON.parse(r.json); d = b && b.data; } catch (_) {}
+      lite.set(String(r.contract_id), d ? briefLiteOf(d) : null);
+    }
+    rows.forEach(c => { const k = String(c.id); if (lite.has(k)) { c._hasBrief = true; const l = lite.get(k); if (l) c._briefLite = l; } });
   }
   /* ---- AND WHETHER A RENEWAL NOTE IS WAITING (9 Sep 2026) ----
      The overnight desk on the home page says a renewal note is ready — and it
@@ -4568,7 +4586,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   // _brief is GET-time transport off the briefs table (WO-2) — a client that
   // echoes it back must not get it stored into the record, where it would
   // shadow the real cache and ride saves it was never part of.
-  delete c._brief;
+  delete c._brief; delete c._briefLite;   // the list's lite concerns too (the board's risks split)
   delete c._renewalAdvice;   // W2-4: transport too, off its own table
   delete c._readings;        // idea 7: the plain-English layer, off its own table
   delete c._signNeeds; delete c._signState;   // approval before signing: read here, never stored
@@ -6677,7 +6695,7 @@ function graphScreenSays(sc, sent, total) {
    and gives back the board's recipe, part by part; a word it does not know is
    dropped, never guessed. f483 pins every list here to the board's own. */
 const GRAPH_CHART_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', 'stack', 'grouped', 'heat'];
-const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'payterms', 'valueBand'];
+const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'decision', 'risks'];
 const GRAPH_CHART_DATES = ['end', 'signed', 'start', 'created', 'decision'];
 const GRAPH_CHART_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live'];
 const GRAPH_CHART_SORTS = ['value', 'count', 'name'];
@@ -6687,7 +6705,7 @@ const GRAPH_CHART_UNITS = ['month', 'quarter', 'year'];
 const GRAPH_CHART_TOP_MAX = 50, GRAPH_CHART_TITLE_MAX = 80;
 const GRAPH_CHART_WIN_MAX = { m: 120, q: 40, y: 10 };
 const GRAPH_CHART_UNIT_OF = { month: 'm', quarter: 'q', year: 'y' };
-const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', payterms: 'payterms', valueBand: 'valueBand' };
+const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks' };
 function graphChartSplit(word, date) {
   const unit = GRAPH_CHART_UNIT_OF[word], group = GRAPH_CHART_GROUP_OF[word];
   if (unit) return { by: 'date', unit, date: GRAPH_CHART_DATES.includes(date) ? date : 'end' };

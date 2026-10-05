@@ -86,7 +86,7 @@ describe('F514 — wired into the panel (source)', () => {
   test('the panel draws the chips and attaches the reading to both roads', () => {
     const src = strip(read('js/views/intelligence.js'));
     assert.match(src, /hbReadingHtml\(m\.reading,hbReadingLive\(i\)\)/);
-    assert.match(src, /hbTakeMeta\(\):\{\}, rdOf\(\)\)/);
+    assert.match(src, /hbTakeMeta\(\):\{\}, rdOf\(\),/);
     assert.match(src, /if\(last&&!last\.reading\)\{ const r=rdOf\(\);/);
   });
 });

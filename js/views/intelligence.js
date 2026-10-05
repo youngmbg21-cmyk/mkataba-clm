@@ -1332,6 +1332,12 @@ function igConditions(text){
   { const h=hit(/ (?:overdue|late obligations|past due|försenade|förfallna) /); if(h) add('overdue', c=>graphNodeFacts(c).overdue>0, 'overdue', h); }
   { const h=hit(/ (?:waiting on us|our move|mine to answer|väntar på oss|vårt drag) /); if(h) add('waiting on us', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='you'; }catch(_){ return false; } }, 'move', h); }
   { const h=hit(/ (?:waiting on them|their move|with the other side|väntar på dem|deras drag) /); if(h) add('waiting on them', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='them'; }catch(_){ return false; } }, 'move', h); }
+  /* DEAL FACTS (5 Oct 2026, the board's Part 8). "Stalled" is said as what
+     HaTi can know — a live negotiation with a move owed by one side — never a
+     guessed number of quiet days; "negotiations" is the contracts that have
+     one, read RAW off the record (READING MUST NOT WRITE: never negoInit). */
+  { const h=hit(/ (?:stalled|stuck|fastnade|fastnat|stillastående) /); if(h) add('waiting on a side', c=>{ try{ const w=negWhoseMove(c); return !!w&&(w.k==='you'||w.k==='them'); }catch(_){ return false; } }, 'stalled', h); }
+  { const h=hit(/ (?:negotiations|förhandlingar|förhandlingarna) /); if(h) add('in negotiation', c=>live(c)&&c.status!=='Signed'&&((Array.isArray(c.changes)&&c.changes.length>0)||!!c.negotiation), 'nego', h); }
   { const h=hit(/ (?:not read|unread|never read|inte lästa|olästa|oläst) /); if(h) add('not read yet', c=>graphNodeFacts(c).unread===true, 'read', h); }
   { const h=hit(/ (?:off[- ]standard|departing|deviat\w*|avvik\w*) /); if(h) add('off standard', c=>graphNodeFacts(c).offStandard>0, 'offStandard', h); }
   { const u=hit(/ (?:uncapped|no cap|without a cap|unlimited liability|obegränsat|utan tak|obegränsat ansvar) /), k=u?null:hit(/ (?:capped|with a cap|limited liability|begränsat ansvar|med tak) /);
