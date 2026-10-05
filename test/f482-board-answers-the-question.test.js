@@ -211,7 +211,7 @@ describe('F482 (F) — Copilot is shown the board', () => {
   test('asked on the board, "Nothing changed on the map" is not said over the answer, and a count the board does not show is left out', () => {
     const src = read('js/views/intelligence.js');
     assert.match(src, /\(ownHtml&&onBoard\?ownHtml:igEsc\(i18t\('int_did_nothing'\)\)/);
-    assert.match(src, /own0=hbWhyCheck\(own0, nums\)\.text/);
+    assert.match(src, /own0=hbProseChecked\(own0\)\.text/); /* the honest reply (f511): hbWhyCheck runs inside hbProseChecked */
   });
   test('a question about the screen goes to Copilot with the board, never read as a new chart', () => {
     const w = world();

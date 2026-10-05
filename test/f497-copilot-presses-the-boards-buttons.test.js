@@ -43,6 +43,8 @@ function world(){
   w.eval(read('js/views/homeboard.js'));
   w.eval('intel.lenses=[]; intel.groups=null; intel.groupBy="folder"; intel.history=[];');
   const s = w.hbS(); s.face = 'board'; s.panels = []; s.path = []; s.recipe = {};
+  /* these tests name Copilot's cards: the question asked for a board to be built (the honest reply, f511) */
+  w.hbBoardApply([], 'build me a dashboard');
   return w;
 }
 const J = x => JSON.parse(JSON.stringify(x));
@@ -118,7 +120,9 @@ describe('F497 (C) — several actions apply in order, each said', () => {
     s.panels.forEach(p => { assert.match(p.key, /^cd:/); assert.ok(w.hbDigData(p.key, 'all'), 'each card counts its own set'); });
     const lines = said.split('\n');
     assert.equal(lines.filter(l => /^Added “/.test(l)).length, 5, said);
-    assert.match(lines[lines.length - 1], /Here is a renewals board\./, 'Copilot\'s own sentence comes last');
+    /* the honest reply (f511): HaTi says what was done; Copilot's own sentence
+       is printed only for a why / explain question */
+    assert.ok(!/Here is a renewals board\./.test(said), 'Copilot\'s own sentence is not printed over what was done');
     const top = s.panels.slice().reverse();
     const juno = w.hbDigData(top[1].key, 'all');
     assert.equal(juno.n, 9, 'the set is read from the plain words, by the map\'s own reader');

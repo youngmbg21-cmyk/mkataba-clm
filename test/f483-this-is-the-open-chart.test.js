@@ -132,7 +132,9 @@ describe('F483 (2) — Copilot presses the board\'s buttons', () => {
     const said = text(w.hbBoardTakes({ chart: { pic: 'bars', split: { by: 'folder' }, target: 'open' }, answer: 'Split by stream as bars.' }));
     const now = planNow(w);
     assert.equal(now.k, k); assert.equal(now.P.pic, 'bars'); assert.equal(now.P.split.by, 'folder');
-    assert.match(said, /^Changed the open chart, “.+”: now Bars · by value stream · count\. Split by stream as bars\.$/);
+    /* the honest reply (f511): HaTi's line and the count; Copilot's own
+       sentence is printed only for a why / explain question */
+    assert.match(said, /^Changed the open chart, “.+”: now Bars · by value stream · count\. \d+ contracts\.$/);
   });
   test('target "new" with no set draws a new chart over the whole book', () => {
     const w = world();
@@ -142,7 +144,7 @@ describe('F483 (2) — Copilot presses the board\'s buttons', () => {
        board, the open one left as it was */
     assert.equal(planNow(w).k, k, 'the open chart is untouched');
     const p = w.hbS().panels.slice(-1)[0];
-    assert.ok(p && /^cd:/.test(p.key) && p.title === 'Ending by quarter', JSON.stringify(p));
+    assert.ok(p && /^cd:/.test(p.key) && p.title === 'All contracts · by quarter · end date', JSON.stringify(p)); /* named by HaTi, never by Copilot's note (f511) */
     const D = w.hbDigData(p.key, 'all');
     assert.equal(D.n, 18);
     assert.deepEqual(JSON.parse(JSON.stringify(w.hbPlan(D).split)), { by: 'date', unit: 'q', date: 'end' });
@@ -159,7 +161,7 @@ describe('F483 (2) — Copilot presses the board\'s buttons', () => {
     const src = read('js/views/intelligence.js');
     const i = src.indexOf('async function intelGraphAsk('), j = src.indexOf('\nasync function ', i + 10);
     const body = src.slice(i, j < 0 ? i + 4000 : j);
-    assert.ok(body.indexOf('hbBoardTakes(res)') > 0 && body.indexOf('hbBoardTakes(res)') < body.indexOf('intelGraphApply(q, res'), 'the board takes it first');
+    assert.ok(body.indexOf('hbBoardTakes(res,q)') > 0 && body.indexOf('hbBoardTakes(res,q)') < body.indexOf('intelGraphApply(q, res'), 'the board takes it first');
   });
   test('on the board, the map\'s arranging reader stands aside; its list-making reader still answers', () => {
     const src = read('js/views/intelligence.js');

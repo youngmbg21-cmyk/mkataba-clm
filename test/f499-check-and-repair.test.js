@@ -36,6 +36,8 @@ function world(opts){
   w.eval(read('js/views/homeboard.js'));
   w.eval('intel.lenses=[]; intel.groups=null; intel.groupBy="folder"; intel.history=[];');
   const s = w.hbS(); s.face = 'board'; s.panels = []; s.path = []; s.recipe = {};
+  /* these tests name Copilot's cards: the question asked for a board to be built (the honest reply, f511) */
+  w.hbBoardApply([], 'build me a dashboard');
   return w;
 }
 const kinds = (w, a) => Array.from(w.hbActionCheck(a)).map(p => p.k);
@@ -95,7 +97,7 @@ describe('F499 (B, C) — a failing card is not applied; the retry runs once', (
   test('the panel asks once more through the same route, and only on the board', () => {
     const src = read('js/views/intelligence.js');
     assert.match(src, /const retry=payload\?\(note=>api\('ai\/graph','POST',Object\.assign\(\{\},payload,\{ query:q\+'\\n\\n'\+note, screen:graphAskScreen\(\) \}\)\)\):null;/);
-    assert.match(src, /await hbBoardTakesChecked\(res,retry\)/);
+    assert.match(src, /await hbBoardTakesChecked\(res,retry,q\)/);
   });
 });
 

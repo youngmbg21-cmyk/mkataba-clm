@@ -3973,7 +3973,8 @@ function hbCardEdit(key, chart){
   if (!Object.keys(parts).length) return null;
   hbCardSet(key, parts);
   const s = hbS(); const D = hbDigData(key, s.lens); if (!D) return null;
-  return { key, said: i18t('hb_edit_said', { what: hbCrumbOf(key, s.lens), how: hbHowWord(hbPlan(D)) }) };
+  const P = hbPlan(D), n = hbAnswerCount(D, P);
+  return { key, said: i18t('hb_edit_said', { what: hbCrumbOf(key, s.lens), how: hbHowWord(P) }) + (n ? ' ' + n : '') };
 }
 /* what a card draws, in the reader's words: picture · split · measure, and
    whichever other parts it carries */
@@ -4032,7 +4033,8 @@ function hbFollowUp(qRaw){
    as one action (change the open chart, or a new card over the whole book).
    An answer that names a set rides the list road as before (hbShowFound).
    Returns what to say, or null when the answer is the map's. */
-function hbBoardTakes(res){
+function hbBoardTakes(res, q){
+  if (q != null) _hbAskQ = String(q);
   const s = hbS(); if (s.face !== 'board' || !res) return null;
   let actions = Array.isArray(res.actions) && res.actions.length ? res.actions : null;
   if (!actions && res.chart && typeof res.chart === 'object'){
@@ -4040,7 +4042,7 @@ function hbBoardTakes(res){
     if (hasSet) return null;
     const c = res.chart;
     actions = c.target !== 'new' && hbOpenListKey() ? [{ do: 'change_card', card: 'open', recipe: c }]
-      : [{ do: 'add_card', which: { all: true }, recipe: c, title: String(res.note || '').slice(0, HB_TITLE_MAX) }];
+      : [{ do: 'add_card', which: { all: true }, recipe: c }];
   }
   if (!actions) return null;
   _hbPendingRecipe = null;
@@ -4048,9 +4050,7 @@ function hbBoardTakes(res){
   /* the server keeps the first HB_ACTIONS_MAX; more asked for is said */
   if (Number(res.actionsTotal) > actions.length){ const l = i18t('hb_act_cap', { n: actions.length, m: Number(res.actionsTotal) }); r.refused.push(l); r.html += (r.html ? '<br>' : '') + _hbE(l); }
   if (!r.did.length && !r.refused.length) return null;
-  const own = String(res.answer || '').trim();
-  const tail = own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : '';
-  return r.html + tail;
+  return r.html + hbCopilotTail(res.answer, _hbAskQ);
 }
 
 /* ============================================================
@@ -4135,16 +4135,17 @@ function hbRepairNote(bad){
 function hbActionTitle(a){ const t = a && (a.title || (a.recipe && a.recipe.title)); return t ? String(t).slice(0, HB_TITLE_MAX) : (a && a.card ? String(a.card) : i18t('hb_chk_card')); }
 /* COPILOT'S ANSWER, CHECKED: the good actions apply; the bad go back ONCE;
    what still fails is said and not applied */
-async function hbBoardTakesChecked(res, retry){
+async function hbBoardTakesChecked(res, retry, q){
   _hbMeta = null;
+  if (q != null) _hbAskQ = String(q);
   const s = hbS(); if (s.face !== 'board' || !res) return null;
   /* Copilot was unsure: up to three readings, each a press (nothing applied) */
   if ((!Array.isArray(res.actions) || !res.actions.length) && Array.isArray(res.choices) && res.choices.length){
-    const ch = res.choices.slice(0, HB_CHOICES_MAX).map(c => ({ label: hbPlainText(c && c.label, 60), board: Array.isArray(c && c.actions) ? c.actions : [] })).filter(c => c.label && c.board.length);
+    const ch = res.choices.slice(0, HB_CHOICES_MAX).map(c => ({ label: hbPlainText(c && c.label, 60), board: Array.isArray(c && c.actions) ? c.actions : [], q: _hbAskQ })).filter(c => c.label && c.board.length);
     if (ch.length){ _hbMeta = { choices: ch }; const own = String(res.answer || '').trim();
       return _hbE(i18t('hb_ch_copilot_said')) + (own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : ''); }
   }
-  if (!Array.isArray(res.actions) || !res.actions.length){ const u0 = hbUndoTop(); const said = hbBoardTakes(res); return said ? said + hbNoteUndo(u0) : said; }
+  if (!Array.isArray(res.actions) || !res.actions.length){ const u0 = hbUndoTop(); const said = hbBoardTakes(res, _hbAskQ); return said ? said + hbNoteUndo(u0) : said; }
   const bad = hbActionsCheck(res.actions);
   if (!bad.length) return hbBoardAnswer(res, res.actions, []);
   const good = res.actions.filter((a, i) => !bad.some(b => b.i === i));
@@ -4204,6 +4205,7 @@ function hbAmbiguity(q){
 function hbChoicePress(c){
   if (!c || !Array.isArray(c.board)) return null;
   _hbMeta = null;
+  _hbAskQ = c.q || '';
   const u0 = hbUndoTop();
   const r = hbBoardApply(c.board);
   hbNoteUndo(u0);
@@ -4242,17 +4244,16 @@ function hbActionWords(raw){
 }
 /* what the panel says for an answer: applied at once, or offered as a list */
 function hbBoardAnswer(res, applied, lines){
-  const own = String(res.answer || '').trim();
-  const tail = own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : '';
+  const tail = hbCopilotTail(res.answer, _hbAskQ);
   const extra = (lines || []).map(l => _hbE(l)).join('<br>');
   if (applied.length && hbIsBig(applied)){
     const id = 'pv' + (++_hbPvSeq);
-    _hbPreviews.set(id, { actions: applied, tail, extra });
+    _hbPreviews.set(id, { actions: applied, tail, extra, q: _hbAskQ });
     _hbMeta = Object.assign(_hbMeta || {}, { preview: { id, adds: applied.every(a => a && a.do !== 'remove_card'), rows: applied.map(a => hbActionWords(a)) } });
     return _hbE(i18tn('hb_pv_head', applied.length, { n: _hbN(applied.length) })) + (extra ? '<br>' + extra : '') + tail;
   }
   const u0 = hbUndoTop();
-  const said = applied.length ? hbBoardTakes(Object.assign({}, res, { actions: applied, answer: '' })) : null;
+  const said = applied.length ? hbBoardTakes(Object.assign({}, res, { actions: applied, answer: '' }), _hbAskQ) : null;
   /* HaTi's lines first — what was done, the retry, what was not — then Copilot's own sentence */
   return [said ? said + hbNoteUndo(u0) : '', extra].filter(Boolean).join('<br>') + tail;
 }
@@ -4270,6 +4271,7 @@ function hbPreviewPress(id, which, chosen){
   const pick = which === 'all' ? P.actions : P.actions.filter((a, i) => (chosen || []).includes(i));
   if (!pick.length) return null;
   _hbPreviews.delete(id);
+  _hbAskQ = P.q || '';
   const u0 = hbUndoTop();
   const r = hbBoardApply(pick);
   const left = P.actions.length - pick.length;
@@ -4374,7 +4376,8 @@ function hbCardRef(ref){
 }
 /* THE ONE APPLIER: each action in order, through the writer a press uses;
    what was done is said in HaTi's words, one line each */
-function hbBoardApply(actions){
+function hbBoardApply(actions, q){
+  if (q != null) _hbAskQ = String(q);
   const s = hbS(), did = [], refused = [];
   const list = (Array.isArray(actions) ? actions : []).slice(0, HB_ACTIONS_MAX);
   if (Array.isArray(actions) && actions.length > HB_ACTIONS_MAX) refused.push(i18t('hb_act_cap', { n: HB_ACTIONS_MAX, m: actions.length }));
@@ -4383,7 +4386,9 @@ function hbBoardApply(actions){
     const a = hbActionClean(raw);
     if (!a){ refused.push(i18t('hb_act_unknown')); return; }
     if (a.do === 'add_card'){
-      const { p, left } = hbAddCard(a.which || { all: true }, a.recipe || {}, a.title);
+      const named = hbNameAsked(_hbAskQ);
+      if (!named && a.recipe) delete a.recipe.title;
+      const { p, left } = hbAddCard(a.which || { all: true }, a.recipe || {}, named ? a.title : null);
       added.push(p.id);
       const D = hbDigData(p.key, s.lens);
       did.push(i18t('hb_act_added', { what: p.title, how: D ? hbHowWord(hbPlan(D)) : '' }) + (left ? ' ' + i18t('hb_panel_left', { what: hbPanelWord(left) }) : ''));
@@ -4412,6 +4417,7 @@ function hbBoardApply(actions){
     const C = hbCardRef(a.card || 'open');
     if (!C){ refused.push(i18t('hb_act_no_card', { ref: a.card || 'open' })); return; }
     if (a.do === 'change_card'){
+      if (a.recipe && !hbNameAsked(_hbAskQ)) delete a.recipe.title;
       if (!C.key){ refused.push(i18t('hb_act_fixed', { what: hbPanelWord(C.p) })); return; }
       const r = hbCardEdit(C.key, a.recipe || {});
       if (!r){ refused.push(i18t('hb_act_nothing', { what: C.p ? hbPanelWord(C.p) : hbCrumbOf(C.key, s.lens) })); return; }
@@ -4424,6 +4430,8 @@ function hbBoardApply(actions){
       const what = hbPanelWord(C.p); hbPanelAct(C.p.id, 'x'); did.push(i18t('hb_act_removed', { what })); return;
     }
     if (a.do === 'name_card'){
+      /* a name nobody asked for is not taken; nothing to say about it */
+      if (!hbNameAsked(_hbAskQ)) return;
       if (!a.title){ refused.push(i18t('hb_act_nothing', { what: C.p ? hbPanelWord(C.p) : '' })); return; }
       if (C.open){ hbCardSet(C.key, { title: a.title }); did.push(i18t('hb_act_named', { what: a.title })); return; }
       if (!hbPanelName(C.p.id, a.title)){ refused.push(i18t('hb_act_fixed', { what: hbPanelWord(C.p) })); return; }
@@ -4442,6 +4450,96 @@ function hbBoardApply(actions){
    …", "explain the trend line", "what does this chart mean") is Copilot's,
    with the board shown to it (hbBoardNow) — never read as a new chart */
 const HB_WHY_ASK_RE = /^\s*(?:why|explain|how come|what (?:does|do) .{0,60}\bmean|what is this|what's this|varför|förklara|vad betyder)\b/i;
+/* ============================================================
+   THE HONEST REPLY (work order "the board that answers right", Part 1, 5 Oct
+   2026; the owner's screenshots: "Showing 10 of 181 · Top 10 by value · as
+   graph" beside a board of 178, a card named by Copilot's note)
+   ============================================================
+   Every count, scope and card name in a reply on the board is written by
+   HaTi from what was DRAWN. Copilot's own sentence may explain — it is
+   printed for a why / explain question, or where Copilot did nothing on the
+   board — and it never names, counts or titles: a name it offers is taken
+   only where the person's own words asked for one (or asked for a whole
+   board to be built). Before a Copilot sentence is printed it is held up
+   against the open chart (hbProseChecked); a sentence that disagrees is left
+   out and the catch is counted (kind 'disconnect'). */
+let _hbAskQ = '';
+const HB_NAME_ASK_RE = /\b(?:call (?:it|this|them|the card)|name (?:it|this|the card)|rename|retitle|titled?|kalla (?:den|det)|döp|byt namn)\b/i;
+function hbNameAsked(q){
+  const t = String(q || '').trim(); if (!t) return false;
+  return HB_RC.title.test(t) || HB_NAME_ASK_RE.test(t) || HB_RX.build.test(t.toLowerCase());
+}
+function hbCopilotMaySay(q){ return HB_WHY_ASK_RE.test(String(q || '')); }
+/* the count line: "10 contracts, SEK 729M." — the money only where the card
+   measures it and this reader may see it */
+function hbAnswerCount(D, P){
+  if (!D || !D.n) return '';
+  const s = hbS();
+  if (P && P.measure === 'value' && hbMoneyOk()) return i18tn('hb_count_n_value', D.n, { n: _hbN(D.n), v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) });
+  return i18tn('hb_count_n', D.n, { n: _hbN(D.n) });
+}
+/* ONE ANSWER WRITER: what is counted, how many, and how it is drawn */
+function hbAnswerSay(D, P){
+  if (!D) return '';
+  const s = hbS(); P = P || (D.kind === 'list' ? hbPlan(D) : null);
+  const money = D.kind === 'list' && hbMoneyOk() && P && P.measure === 'value';
+  const head = money ? i18tn('hb_found_n_value', D.n, { n: _hbN(D.n), what: D.title || '', v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) })
+    : i18tn('hb_found_n', D.n, { n: _hbN(D.n), what: D.title || '' });
+  const how = D.kind === 'list' && D.n && P ? ' ' + i18t('hb_found_how', { how: hbHowWord(P) }) : '';
+  return _hbE(head + how);
+}
+/* the name a set Copilot chose is shown under: the one asked for, HaTi's own
+   top-N label, the open card's when the question points at it, else the
+   person's own words — never Copilot's note */
+function hbFoundTitle(q, top){
+  const raw = String(q || '').trim();
+  const m = HB_RC.title.exec(raw); if (m && m[1]) return hbPlainText(m[1], HB_TITLE_MAX);
+  if (top) return hbPlainText(top, HB_TITLE_MAX);
+  const low = ' ' + _hbRcNorm(raw) + ' ', key = hbOpenListKey();
+  if (key && HB_FU.refer.test(low)) return hbPlainText(hbCrumbOf(key, hbS().lens), HB_TITLE_MAX);
+  const t = hbPlainText(raw.replace(/[?!.]+$/, ''), 60);
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : i18t('hb_found_list');
+}
+/* the reply for a set drawn on the board (after hbShowFound) */
+function hbFoundSay(){
+  const s = hbS(); const key = (s.path || []).slice(-1)[0]; if (!key) return '';
+  return hbAnswerSay(hbDigData(key, s.lens));
+}
+/* THE DISCONNECT CHECK: a Copilot sentence that states a count the board
+   does not show, a picture the open chart is not, or a split it is not split
+   by, is left out. Returns the kept text and what was dropped. */
+const HB_PIC_CLAIM_RE = /\b(?:as an?|shown as an?|drawn as an?|now an?|into an?|in an?)\s+(pie|ring|doughnut|donut|bar|bars|column|columns|timeline|gantt|heat ?map|blocks|tree ?map)\b/i;
+const HB_PIC_OF = { pie: 'ring', ring: 'ring', doughnut: 'ring', donut: 'ring', bar: 'bars', bars: 'bars', column: 'cols', columns: 'cols', timeline: 'gantt', gantt: 'gantt', heatmap: 'heat', 'heat map': 'heat', blocks: 'blocks', treemap: 'blocks', 'tree map': 'blocks' };
+const HB_SPLIT_CLAIM_RE = /\b(?:split|grouped|broken down|shown|drawn|now)\b[^.]{0,30}?\bby (stage|stream|value stream|counterparty|owner|type|side|payment terms|month|quarter|year)\b/i;
+const HB_SPLIT_OF = { stage: 'status', stream: 'folder', 'value stream': 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', 'payment terms': 'payterms', month: 'date', quarter: 'date', year: 'date' };
+function hbProseChecked(text){
+  const s = hbS(); const key = hbOpenListKey();
+  const D = key ? hbDigData(key, s.lens) : null, P = D ? hbPlan(D) : null;
+  const counts = new Set();
+  try { (String(hbBoardNow() || '').match(/\d[\d,]*/g) || []).forEach(x => counts.add(Number(x.replace(/,/g, '')))); } catch (_){ /* no board to read */ }
+  if (D) counts.add(D.n);
+  const first = hbWhyCheck(text, counts);
+  let dropped = first.dropped;
+  const sentences = first.text ? first.text.split(/(?<=[.!?])\s+(?=[A-ZÅÄÖ0-9*"(])/) : [];
+  const kept = !P ? sentences : sentences.filter(snt => {
+    const pm = HB_PIC_CLAIM_RE.exec(snt);
+    if (pm){ const want = HB_PIC_OF[pm[1].toLowerCase().replace(/\s+/, ' ')] || HB_PIC_OF[pm[1].toLowerCase().replace(/\s+/g, '')]; if (want && want !== P.pic && !(want === 'bars' && P.pic === 'cols')){ dropped++; return false; } }
+    const sm = HB_SPLIT_CLAIM_RE.exec(snt);
+    if (sm){ const by = HB_SPLIT_OF[sm[1].toLowerCase()]; const drawn = [P.split && P.split.by, P.split2 && P.split2.by].filter(Boolean); if (by && drawn.length && !drawn.includes(by)){ dropped++; return false; } }
+    return true;
+  });
+  if (dropped) hbFeedbackSend({ kind: 'disconnect', q: _hbAskQ, said: String(text || '').slice(0, 600) });
+  return { text: kept.join(' ').trim(), dropped };
+}
+/* Copilot's own sentence, as the reply may carry it: only for a why or
+   explain question, checked against the open chart, formatted */
+function hbCopilotTail(own, q){
+  const o = String(own || '').trim(); if (!o || !hbCopilotMaySay(q)) return '';
+  const chk = hbProseChecked(o); if (!chk.text) return '';
+  return '<br>' + ((typeof aiRichText === 'function') ? aiRichText(chk.text) : _hbE(chk.text));
+}
+/* filled by Part 6 (the review record); a catch is never said on the page */
+function hbFeedbackSend(rec){ return rec; }
 function hbAsk(q){
   _hbMeta = null;
   if (HB_WHY_ASK_RE.test(String(q || ''))){ _hbPendingRecipe = null; return null; }
@@ -4531,13 +4629,9 @@ function hbAsk(q){
     /* THE FREE READER'S CARD IS CHECKED TOO (work order Part 4): no retry —
        it is drawn as asked — and what is wrong with it is said, the same line */
     if (/^q:/.test(r.key) && D.kind === 'list' && D.n){ try { const pr = hbCardCheck(D, {}, hbPlanSpec(D)); if (pr.length) warn += ' ' + _hbE(i18t('hb_chk_free', { why: pr.map(p => p.say).join('; ') })); } catch (_){ /* the line is a courtesy */ } }
-    /* THE ANSWER SAYS WHAT IS DRAWN (the owner's screenshot, 5 Oct 2026:
-       "payment terms in a pie" answered only "All contracts: 178") */
-    if (/^q:/.test(r.key) && D.kind === 'list' && D.n){ try { warn = ' ' + _hbE(i18t('hb_found_how', { how: hbHowWord(hbPlan(D)) })) + warn; } catch (_){ /* the line is a courtesy */ } }
-    /* a question about money is answered with the money, not only a count */
-    if (D.kind === 'list' && hbMoneyOk() && hbPlan(D).measure === 'value')
-      return say(_hbE(i18tn('hb_found_n_value', D.n, { n: _hbN(D.n), what: D.title || '', v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) })) + warn, { noPaint: true });
-    return say(_hbE(i18tn('hb_found_n', D.n, { n: _hbN(D.n), what: D.title || '' })) + warn, { noPaint: true });
+    /* THE ANSWER SAYS WHAT IS DRAWN, and money where the card measures it:
+       ONE writer (hbAnswerSay) for every reply on the board */
+    return say(hbAnswerSay(D) + warn, { noPaint: true });
   }
   return null;
 }
@@ -4853,7 +4947,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

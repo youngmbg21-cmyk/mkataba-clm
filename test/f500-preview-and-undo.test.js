@@ -32,6 +32,8 @@ function world(){
   w.eval(read('js/views/homeboard.js'));
   w.eval('intel.lenses=[]; intel.groups=null; intel.groupBy="folder"; intel.history=[];');
   const s = w.hbS(); s.face = 'board'; s.panels = []; s.path = []; s.recipe = {}; w.hbSave();
+  /* these tests name Copilot's cards: the question asked for a board to be built (the honest reply, f511) */
+  w.hbBoardApply([], 'build me a dashboard');
   return w;
 }
 const add = (title, recipe) => ({ do: 'add_card', which: { all: true }, title, recipe: recipe || { pic: 'ring', split: { by: 'folder' } } });

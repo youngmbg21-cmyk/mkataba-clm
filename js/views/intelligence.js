@@ -1850,6 +1850,10 @@ async function intelAsk(qRaw){
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); renderIntelDock(); return; }
   }
   const h0=intel.history.length;
+  /* A TYPED QUESTION ON THE BOARD STARTS AFRESH (the honest reply, 5 Oct
+     2026): a set an earlier question left on the map no longer narrows the
+     next one ("Top 10 by value" drawing 2) — the board's own count stays */
+  if(igBoardNow()) intel.lenses=(intel.lenses||[]).filter(l=>l.hb||l.action!=='filter');
   intel.history.push({role:'user', text:q});
   intel.busy=true; renderIntelDock(); updateIntelNote();
   try{
@@ -1891,7 +1895,9 @@ async function intelAsk(qRaw){
      came back from Copilot or the map is drawn on the board as well. */
   if(state.view==='dashboard' && typeof window.hbShowFound==='function'){
     const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&Array.isArray(x.listIds)&&x.listIds.length);
-    if(m){ try{ hbShowFound(m.listIds, m.listTitle||'', m.listChart||null); }catch(_){} }
+    if(m){ try{ hbShowFound(m.listIds, m.listTitle||'', m.listChart||null);
+      /* the reply is written from what the board now draws (the honest reply) */
+      if(igBoardNow()&&typeof window.hbFoundSay==='function'){ const say=hbFoundSay(); if(say){ m.text=say; renderIntelDock(); } } }catch(_){} }
   }
 }
 
@@ -2022,7 +2028,7 @@ async function intelGraphAsk(q){
      call, and the panel says so */
   if(res&&igBoardNow()&&typeof window.hbBoardTakes==='function'){
     const retry=payload?(note=>api('ai/graph','POST',Object.assign({},payload,{ query:q+'\n\n'+note, screen:graphAskScreen() }))):null;
-    let said=null; try{ said=(typeof window.hbBoardTakesChecked==='function')?await hbBoardTakesChecked(res,retry):hbBoardTakes(res); }catch(_){ said=null; }
+    let said=null; try{ said=(typeof window.hbBoardTakesChecked==='function')?await hbBoardTakesChecked(res,retry,q):hbBoardTakes(res,q); }catch(_){ said=null; }
     if(said){ intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice) }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); return; }
   }
   if(!res){ res=graphInterpret(q);           // fallback
@@ -2045,6 +2051,13 @@ async function intelGraphAsk(q){
    builds, so it cannot say "clustered by expiration date" over hubs that
    are value streams; Copilot's own sentence rides as a second line only
    where it says something the numbers do not. Returns what it did. */
+/* ON THE BOARD A SET COPILOT CHOSE IS NAMED BY HATI (the honest reply, 5 Oct
+   2026): the asked-for name, HaTi's top-N label, the open card's, or the
+   person's own words — never the model's note ("· as graph") */
+function igBoardTitle(q,res){
+  if(!igBoardNow()||typeof window.hbFoundTitle!=='function') return null;
+  try{ return hbFoundTitle(q,res&&res._top); }catch(_){ return null; }
+}
 function graphSaysMore(own, note, line){
   const s=String(own||'').replace(/\s+/g,' ').trim(); if(!s) return false;
   const fold=x=>String(x||'').replace(/\s+/g,' ').trim().toLowerCase().replace(/[.!]+$/,'');
@@ -2098,14 +2111,15 @@ function intelGraphApply(q, res, opts){
   if(res.top&&typeof res.top==='object'&&Number(res.top.n)>0){
     const by=IG_TOP_BY[res.top.by]?res.top.by:'value', per=GRAPH_GROUP_KEYS.includes(res.top.per)?res.top.per:null, n=Math.min(200,Math.round(Number(res.top.n)));
     const tIds=igTopIds(n,by,per); ids=ids&&ids.length?tIds.filter(id=>ids.includes(id)):tIds;
-    res.note=res.note||(i18t('int_top_label',{ n, x:igSortWord(by) })+(per?' · '+i18t('int_top_per',{ x:graphGroupingWord(per) }):'')); intel.sortBy=by; }
+    res._top=i18t('int_top_label',{ n, x:igSortWord(by) })+(per?' · '+i18t('int_top_per',{ x:graphGroupingWord(per) }):'');
+    res.note=res.note||res._top; intel.sortBy=by; }
   const choices=Array.isArray(res.ask)?res.ask.slice(0,3).filter(o=>o&&IG_RECIPE_ROLES.includes(o.role)&&(o.role==='size'?IGB_SIZE_KEYS.includes(o.fact):o.role==='time'?IG_TIME_KEYS.includes(o.fact):GRAPH_GROUP_KEYS.includes(o.fact)))
     .map(o=>({ label:igRoleSays(o.role,o.fact).replace(/\.$/,''), acts:[{ role:o.role, fact:o.fact }].concat(o.role==='floors'?[{ view:2 }]:o.role==='columns'?[{ view:3 }]:[]) })):null;
   const action=res.action==='highlight'?'highlight':'filter';
   /* a request about the look narrows nothing unless its words narrow */
   if(lookActs.length&&ids&&!/\b(?:only|just|which|what|show me|among|bara|endast|vilka|vilket)\b/i.test(q)) ids=null;
   if(ids&&ids.length)
-    addLens({ label:res.note||ids.length+' matches', ids, action, badges:res.badges||null });
+    addLens({ label:igBoardTitle(q,res)||res.note||ids.length+' matches', ids, action, badges:res.badges||null });
   /* Composed off the built model — counts, never a sentence the model wrote. */
   const parts=[];
   if(groupBy){
@@ -2127,9 +2141,9 @@ function intelGraphApply(q, res, opts){
   /* asked on the Board: a sentence stating a number of contracts the board
      does not show is left out, as the board's own ask does (hbWhyCheck) */
   const onBoard=igBoardNow();
-  if(onBoard&&own0&&!(ids&&ids.length)&&typeof window.hbWhyCheck==='function'){
-    const nums=new Set((onBoard.match(/\d[\d,]*/g)||[]).map(x=>Number(x.replace(/,/g,''))));
-    own0=hbWhyCheck(own0, nums).text; }
+  /* …and one naming a picture or a split the open chart does not draw
+     (the disconnect check, hbProseChecked) */
+  if(onBoard&&own0&&!(ids&&ids.length)&&typeof window.hbProseChecked==='function') own0=hbProseChecked(own0).text;
   const saidN=own0.match(/\b(\d[\d,.\s]*)\s+(?:matching\s+|live\s+|such\s+)?(?:contracts?|agreements?|avtal)\b/i);
   const ownN=(saidN&&ids&&Number(String(saidN[1]).replace(/[^\d]/g,''))!==ids.length)?'':own0;
   /* ---- COPILOT'S OWN SENTENCE IS FORMATTED, NOT PRINTED RAW (Young, 28 Sep
@@ -2151,7 +2165,7 @@ function intelGraphApply(q, res, opts){
      map" is not said over an answer about the board */
   else if(!line) line=didHere?(ownHtml||igEsc(res.note||'Done.')):(ownHtml&&onBoard?ownHtml:igEsc(i18t('int_did_nothing'))+(ownHtml?(rich?'':'<br>')+ownHtml:''));
   else if(graphSaysMore(own,res.note,parts[0])) line+=(rich?'':'<br>')+ownHtml;
-  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:res.note?String(res.note):null, listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
+  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
 
