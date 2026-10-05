@@ -3083,7 +3083,7 @@ function hbWhyPrompt(src){
 const HB_BOARD_NOW_MAX = 4000;
 /* A RECIPE IN COPILOT'S WORDS (the server's mirror reads these same words
    back): what the board's settings are, so "this" can be changed exactly */
-const HB_SPLIT_WORDS = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks' };
+const HB_SPLIT_WORDS = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks', standards: 'standards' };
 const HB_UNIT_WORDS = { m: 'month', q: 'quarter', y: 'year' };
 function hbSplitModelWord(S){ return !S ? 'none' : S.by === 'date' ? `${HB_UNIT_WORDS[S.unit] || 'month'} (date ${S.date})` : (HB_SPLIT_WORDS[S.by] || S.by); }
 function hbRecipeWords(P){
@@ -3094,6 +3094,7 @@ function hbRecipeWords(P){
   if (P.window) more.push('window=' + (P.window.last ? `last ${P.window.last} ${HB_UNIT_WORDS[P.window.unit || 'm']}` : P.window.next ? `next ${P.window.next} ${HB_UNIT_WORDS[P.window.unit || 'm']}` : `${P.window.from || '…'} to ${P.window.to || '…'}`) + ` (date ${P.window.date || 'end'})`);
   if (P.compare) more.push('compare=' + P.compare);
   if (P.title) more.push(`title="${P.title}"`);
+  if (P.show) more.push('show=' + P.show);
   return `pic=${P.pic}; split=${hbSplitModelWord(P.split)}; measure=${P.measure}; trend=${P.trend ? 'on' : 'off'}.` + (more.length ? ' Also: ' + more.join('; ') + '.' : '');
 }
 function hbBoardNow(){
@@ -3197,6 +3198,70 @@ function hbDataGuide(lens, max){
   if (left) out += `\n(${left} more lines of the guide were left out to keep it short.)`;
   return out;
 }
+/* ============================================================
+   THE FACT SHEET AND THE SAFE SUMMARY (Young, 5 Oct 2026, "HaTi Board:
+   Charts That Explain", recommendation 2)
+   ============================================================
+   For every answer HaTi writes a FACT SHEET in one fixed format: the card's
+   totals, HaTi's own reading, the numbers drawn, the contracts behind it and
+   what is NOT known (risks not read, contracts never checked against our
+   standards). Copilot turns it into three or four plain sentences — what it
+   shows, why it matters, what to do — and ANY sentence carrying a number that
+   is not on the fact sheet is removed (hbFactCheck), so the words can never
+   contradict the chart. The sheet is HaTi's arithmetic; Copilot writes only
+   on a press, its cost beside the button. */
+const HB_FACT_MAX = 6000;
+function hbFactPlain(h){ return String(h || '').replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim(); }
+/* COVERAGE: how much of a set HaTi could read — said on every sheet, so "no
+   breaches" can never mean "nothing checked" */
+function hbCoverageOf(cs){
+  const n = cs.length;
+  const read = cs.filter(c => hbRiskWeightOf(c) != null).length;
+  const checked = cs.filter(c => hbStdStateOf(c) !== 'unchecked').length;
+  return { n, read, checked };
+}
+function hbFactSheet(src){
+  if (!src) return null;
+  const cs = src.cs || [], money = hbMoneyOk();
+  const lines = [`FACT SHEET — ${src.title || ''}`];
+  if (src.head) lines.push(src.head);
+  lines.push(`- Contracts on this card: ${cs.length}`);
+  if (money){ const v = cs.reduce((a, c) => a + hbValueOfOne(c), 0); if (v > 0) lines.push(`- Value under contract: ${_hbM(v)}`); }
+  if (src.reading && src.reading.lines) src.reading.lines.forEach(l => lines.push('- HaTi read: ' + hbFactPlain(l)));
+  (src.data || []).forEach(l => lines.push(String(l)));
+  (src.extra || []).forEach(l => lines.push(String(l)));
+  const cov = hbCoverageOf(cs);
+  lines.push(`- Coverage: risks read on ${cov.read} of ${cov.n} (${cov.n - cov.read} not read); checked against our standards: ${cov.checked} of ${cov.n} (${cov.n - cov.checked} never checked).`);
+  const refs = cs.slice(0, HB_WHY_IDS).map(c => hbRef(c));
+  lines.push(`- Contracts behind it (${cs.length}${cs.length > HB_WHY_IDS ? `, the first ${HB_WHY_IDS} listed` : ''}): ${refs.join(', ')}`);
+  let text = lines.join('\n');
+  if (text.length > HB_FACT_MAX) text = text.slice(0, HB_FACT_MAX) + '\n(The fact sheet was cut here to keep it short.)';
+  return { text, nums: hbNumsOf(text), coverage: cov };
+}
+/* every number written on a sheet, as its digits alone ("SEK 1.06B" → 106,
+   "59%" → 59, "1 234" → 1234): what a sentence may say */
+function hbNumsOf(text){
+  const out = new Set();
+  (String(text || '').match(/\d(?:[\d\u00a0 ,.]*\d)?/g) || []).forEach(t => { const d = t.replace(/\D/g, ''); if (d) { out.add(d); out.add(String(Number(d))); } });
+  return out;
+}
+/* A SENTENCE WITH A NUMBER THE SHEET DOES NOT HOLD IS REMOVED, and how many
+   were removed is said */
+function hbFactCheck(text, nums){
+  const sentences = String(text || '').replace(/\r/g, '').split(/(?<=[.!?])\s+(?=[A-ZÅÄÖ0-9*"(])/);
+  let dropped = 0;
+  const kept = sentences.filter(snt => {
+    const ts = snt.match(/\d(?:[\d\u00a0 ,.]*\d)?/g) || [];
+    for (const t of ts){ const d = t.replace(/\D/g, ''); if (d && !nums.has(d) && !nums.has(String(Number(d)))){ dropped++; return false; } }
+    return true;
+  });
+  return { text: kept.join(' ').trim(), dropped };
+}
+function hbSummaryPrompt(sheet, ask){
+  return [sheet.text, '',
+    ask || `Write three or four plain sentences, in ${i18t('hb_cx_lang')}, for a business owner: what this shows, why it matters, and what to do next.`,
+    'Use ONLY numbers that appear on the fact sheet, written exactly as they appear there; never work out a new number (no new totals, percentages, differences or dates). Name contracts by their reference. If the coverage line says some contracts were not read or not checked, say the picture may be incomplete. Do not repeat the sheet line by line.'].join('\n');
+}
 /* THE COUNT IS HATI'S: a sentence stating a number of contracts this chart
    does not hold is left out, and how many were left out is said */
 function hbWhyCheck(text, counts){
@@ -3215,8 +3280,12 @@ async function hbWhyAsk(key){
   if (!(typeof copilotAvailable === 'function' && copilotAvailable())){ _hbWhyErr.set(key, i18t('hb_cx_nokey')); hbPaintBoard(); return; }
   _hbWhyBusy.add(key); _hbWhyErr.delete(key); hbPaintBoard();
   try {
-    const res = await copilotAsk([{ role: 'user', content: hbWhyPrompt(src) }], { view: 'intel' }, null, { quiet: true });
-    const chk = hbWhyCheck(res && res.answer, src.reading.counts);
+    /* the safe summary: written from HaTi's fact sheet, every number checked */
+    const sheet = hbFactSheet(src);
+    const res = await copilotAsk([{ role: 'user', content: hbSummaryPrompt(sheet) }], { view: 'intel' }, null, { quiet: true });
+    const cov = sheet.coverage, counts = new Set([...src.reading.counts, cov.n, cov.read, cov.checked, cov.n - cov.read, cov.n - cov.checked]);
+    const c1 = hbWhyCheck(res && res.answer, counts), c2 = hbFactCheck(c1.text, sheet.nums);
+    const chk = { text: c2.text, dropped: c1.dropped + c2.dropped };
     const s = hbS(); s.why = s.why || {};
     delete s.why[key];
     s.why[key] = { day: hbToday(), sig: src.sig, text: chk.text.slice(0, 4000), dropped: chk.dropped,
@@ -5572,7 +5641,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

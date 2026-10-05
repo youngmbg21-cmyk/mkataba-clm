@@ -135,7 +135,7 @@ describe('F461 (C) — then ask: Copilot\'s answer in its own box', () => {
     assert.match(text(html), /Copilot’s read/);
     assert.match(text(html), /25 contracts landed in two months/);
     assert.ok(!/22 contracts were imported/.test(text(html)), 'a count this chart does not hold is left out');
-    assert.match(text(html), /1 sentence was left out: its count did not match HaTi’s\./);
+    assert.match(text(html), /1 sentence was left out: its number was not on HaTi’s fact sheet\./);
     assert.ok(!/data-hb-why="/.test(html), 'kept: no second press offered');
     assert.match(html, /data-hb-why-follow=/);
   });
@@ -288,7 +288,9 @@ describe('F461 (D) — every enlarged card reads', () => {
     await w.hbWhyAsk('hp:val');
     assert.match(sent, /A panel on the HaTi Home board: "Value by stage"\./);
     assert.match(sent, /Its numbers:/);
-    assert.match(sent, /The contracts behind it \(11\)/);
+    /* RE-POINTED 5 Oct 2026 (Charts That Explain, Part 2): the prompt is HaTi's fact sheet */
+    assert.match(sent, /^FACT SHEET — /);
+    assert.match(sent, /Contracts behind it \(11\)/);
     const html = w.hbPanelHtml({ id: 'p', kind: 'val', big: true }, 'all');
     assert.match(html, /class="hb-why"/);
     assert.match(text(html), /Executed holds the money\./);

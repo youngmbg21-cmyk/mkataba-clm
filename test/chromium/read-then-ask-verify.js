@@ -128,7 +128,7 @@ const check = (name, pass, detail) => {
         again: !!document.querySelector('#hb-focus [data-hb-why]'), follow: !!w.querySelector('[data-hb-why-follow]'), below: !!(r.compareDocumentPosition(w) & Node.DOCUMENT_POSITION_FOLLOWING), asked: window._asked.length, prompt: window._asked[0] || '' }; });
     check('4c the answer lands under the reading, in Copilot\'s box', !!s4 && s4.below && /Copilot’s read/.test(s4.t) && /late burst: 25 contracts landed in two months/.test(s4.t), s4 && s4.t.slice(0, 200));
     check('4d it wears amber, not the reading\'s teal', !!s4 && s4.border !== s4.readBorder && isAmber(s4.border), s4 && `${s4.border} vs ${s4.readBorder}`);
-    check('4e a count this chart does not hold is left out, and the box says so', !!s4 && !/22 contracts were imported/.test(s4.t) && /1 sentence was left out: its count did not match HaTi’s\./.test(s4.t), s4 && s4.t.slice(-160));
+    check('4e a count this chart does not hold is left out, and the box says so', !!s4 && !/22 contracts were imported/.test(s4.t) && /1 sentence was left out: its number was not on HaTi’s fact sheet\./.test(s4.t), s4 && s4.t.slice(-160));
     check('4f asked once, not offered again; a follow-up goes to the panel', !!s4 && s4.asked === 1 && !s4.again && s4.follow, JSON.stringify({ asked: s4 && s4.asked, again: s4 && s4.again }));
     check('4g Copilot was shown the columns and the contracts behind them', !!s4 && /Columns \(label: value, contracts\):/.test(s4.prompt) && /MK-J0/.test(s4.prompt), s4 && s4.prompt.slice(0, 120));
     await page.screenshot({ path: path.join(OUT, '4-asked.png') });
