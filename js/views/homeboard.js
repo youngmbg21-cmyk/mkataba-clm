@@ -1078,15 +1078,20 @@ function hbGroupOf(c, field){
   if (field === 'kind'){ try { return (typeof cKind === 'function') ? cKind(c) : ''; } catch (_){ return ''; } }
   if (field === 'side'){ const x = hbSideOf(c); return x || ''; }
   if (field === 'owner'){ try { return String(((typeof contractOwnerName === 'function') ? contractOwnerName(c) : (c.owner && c.owner.name)) || c._raisedBy || '').trim(); } catch (_){ return ''; } }
+  /* PAYMENT TERMS: the payment-terms tab's own bands (payBucketOf), so the
+     board and that page never sort one contract two ways; no terms read is
+     its own slice */
+  if (field === 'payterms'){ try { const d = (typeof payDays === 'function') ? payDays(c) : null; return d == null ? '' : ((typeof payBucketOf === 'function') ? payBucketOf(d) : String(d)); } catch (_){ return ''; } }
   return '';
 }
 function hbGroupLabel(field, g){
-  if (!g) return field === 'counterparty' ? i18t('hb_no_counterparty') : field === 'owner' ? i18t('hb_nobody_owns') : '—';
+  if (!g) return field === 'counterparty' ? i18t('hb_no_counterparty') : field === 'owner' ? i18t('hb_nobody_owns') : field === 'payterms' ? i18t('hb_no_payterms') : '—';
+  if (field === 'payterms') return i18tn('hb_days_n', 2, { n: g });
   if (field === 'status') return (typeof statusLabel === 'function') ? statusLabel(g) : g;
   if (field === 'side') return i18t(g === 'supplier' ? 'hb_lens_suppliers' : 'hb_lens_customers');
   return g;
 }
-function hbGroupWord(field){ return i18t({ status: 'hb_by_stage', folder: 'hb_by_stream', counterparty: 'hb_by_party', kind: 'hb_by_kind', side: 'hb_by_side', owner: 'hb_by_owner', valueBand: 'hb_by_band' }[field] || 'hb_by_stage'); }
+function hbGroupWord(field){ return i18t({ status: 'hb_by_stage', folder: 'hb_by_stream', counterparty: 'hb_by_party', kind: 'hb_by_kind', side: 'hb_by_side', owner: 'hb_by_owner', payterms: 'hb_by_payterms', valueBand: 'hb_by_band' }[field] || 'hb_by_stage'); }
 function hbEndOf(c){ try { const e = (typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : c.expiry; return e ? String(e).slice(0, 10) : null; } catch (_){ return c.expiry ? String(c.expiry).slice(0, 10) : null; } }
 function hbMonthOf(c, byYear){ const e = hbEndOf(c); return e ? (byYear ? e.slice(0, 4) : e.slice(0, 7)) : 'none'; }
 function hbMonthLabel(m, byYear){
@@ -1144,6 +1149,7 @@ function hbGroupsOf(cs, field, money){
   const groups = {}; cs.forEach(c => { const g = hbGroupOf(c, field); (groups[g] || (groups[g] = [])).push(c); });
   const rows = Object.keys(groups).map(g => { const list = groups[g]; const v = list.reduce((a, c) => a + hbValueOfOne(c), 0); return { g, label: hbGroupLabel(field, g), list, n: list.length, v }; });
   if (field === 'status') rows.sort((a, b) => HB_STATUS_ORDER.indexOf(a.g) - HB_STATUS_ORDER.indexOf(b.g));
+  else if (field === 'payterms'){ const at = g => { const i = (typeof PAY_BUCKETS !== 'undefined' ? PAY_BUCKETS : []).findIndex(b => b.k === g); return g ? (i < 0 ? 98 : i) : 99; }; rows.sort((a, b) => at(a.g) - at(b.g)); }
   else rows.sort((a, b) => (money ? b.v - a.v : b.n - a.n) || a.label.localeCompare(b.label));
   return rows;
 }
@@ -1352,7 +1358,7 @@ const HB_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', '
 const HB_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live'];
 const HB_UNITS = ['m', 'q', 'y'];
 const HB_DATES = ['end', 'signed', 'start', 'created', 'decision'];
-const HB_SPLIT_GROUPS = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side', 'valueBand'];
+const HB_SPLIT_GROUPS = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side', 'payterms', 'valueBand'];
 /* THE RECIPE'S OTHER PARTS (work order Part 1, 4 Oct 2026): the pictures two
    splits need, the order, the top N, the period, the comparison, the name */
 const HB_PICS2 = ['stack', 'grouped', 'heat'];
@@ -1372,6 +1378,7 @@ const HB_RC_GW = {
   owner: '(?:owners?|who owns (?:them|it)|ägare|ansvarig)',
   kind: '(?:contract types?|types?|kinds?|avtalstyp(?:er)?|typ(?:er)?)',
   side: '(?:side|sida)',
+  payterms: '(?:payment terms?|terms of payment|payment days|credit terms|betalningsvillkor|betalningstid)',
   valueBand: '(?:value bands?|values?|sizes?|amounts?|värde|storlek)',
 };
 const _HB_NUM = '(\\d{1,3}|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)';
@@ -1429,7 +1436,7 @@ const HB_RC = {
   },
   trend: /\b(?:trend\w*|over time|over the (?:last|past)|getting (?:faster|slower|longer|shorter|better|worse|bigger|smaller)|faster|slower|grow(?:s|ing)?|shrink\w*|increas\w*|decreas\w*|rising|falling|going (?:up|down)|month on month|year on year|quarter on quarter|compared (?:to|with) last|utveckling|ökar|minskar|snabbare|långsammare)\b/,
   /* words a chart question may carry that name nothing to count */
-  filler: /\b(?:and|then|first|with|add|och|sedan|when|how|much|total|overall|sum|average|avg|sign|what|whats|do|does|did|will|by|per|each|every|over|time|as|an?|on|in|at|into|getting|draw|make|create|build|plot|me|it|they|we|our|take|takes|took|is|are|was|were|been|be|end|ends|ended|ending|expir\w*|start|starts|starting|started|signed|signing|created|raised|renewal|renewals|renew|renewing|decision|decisions|date|dates|new|month|months|quarter|quarters|year|years|chart|graph|than|then|so|far|has|have|had|live|active|under|managed|management|altogether|faster|slower|more|fewer|less|längre|när|per|varje|som|av|på|i)\b/g,
+  filler: /\b(?:and|then|first|with|add|och|sedan|when|how|much|total|overall|sum|average|avg|sign|what|whats|do|does|did|will|by|per|each|every|over|time|as|an?|on|in|at|into|getting|draw|make|create|build|plot|me|it|them|these|they|we|our|take|takes|took|is|are|was|were|been|be|end|ends|ended|ending|expir\w*|start|starts|starting|started|signed|signing|created|raised|renewal|renewals|renew|renewing|decision|decisions|date|dates|new|month|months|quarter|quarters|year|years|chart|graph|than|then|so|far|has|have|had|live|active|under|managed|management|altogether|faster|slower|more|fewer|less|längre|när|per|varje|som|av|på|i)\b/g,
 };
 const _hbRcNorm = s => (typeof _igNorm === 'function') ? _igNorm(s) : String(s || '').toLowerCase().replace(/[?!.,;:()]/g, ' ').replace(/\s+/g, ' ').trim();
 /* the date a split by time reads: the one named nearest the time words, else
@@ -1501,6 +1508,9 @@ function hbRecipeRead(qRaw){
   const chartWord = !!take(HB_RC.chart);
   let measure = null;
   for (const k of ['daysToSign', 'rounds', 'payDays']){ if (take(HB_RC.m[k])){ measure = k; break; } }
+  /* "payment terms as a pie": a ring shows shares, and an average has none —
+     the slices are the payment terms themselves, counted */
+  if (measure === 'payDays' && !group && !unit && (pic === 'ring' || pic === 'blocks')){ group = 'payterms'; measure = null; }
   const trend = !compare && !!take(HB_RC.trend);
   const when = HB_RC.when.test(full);
   const live = (unit || trend) && !group && !measure && HB_RC.m.live.test(full);
@@ -1528,7 +1538,7 @@ function hbRecipeRead(qRaw){
   else if (split && split.by === 'date' && !split2 && (!pic || pic === 'bars')) pic = 'cols';
   /* a compared period over time names its date: the split's own */
   if (win && !win.date && split && split.by === 'date') win.date = split.date;
-  const R = { split, pic, measure: measure || 'count', trend: trend || (measure === 'daysToSign' && !unit && !group), condText: t.trim() };
+  const R = { split, pic, measure: measure || 'count', trend: trend || (measure === 'daysToSign' && !unit && !group), condText: t.trim(), chartWord };
   if (split2) R.split2 = split2;
   if (sort) R.sort = sort;
   if (top) R.top = top;
@@ -1576,6 +1586,9 @@ function hbPlanFix(P, D){
   const isDate = P.split && P.split.by === 'date';
   if (!money && P.measure === 'value') P.measure = 'count';
   if (!money && (P.pic === 'blocks' || P.pic === 'bubbles')) P.pic = isDate ? 'cols' : 'ring';
+  /* a ring or blocks draw shares of a whole; an average has no share — bars
+     draw it (the measure the dropdown names is the one drawn) */
+  if (['ring', 'blocks'].includes(P.pic) && hbAvgMeasure(P.measure)) P.pic = 'bars';
   if (P.pic === 'cols' && !isDate) P.split = { by: 'date', unit: 'm', date: 'end' };
   if (['ring', 'blocks'].includes(P.pic) && (isDate || !P.split)) P.split = { by: hbNextGroup(fixed) };
   if (['ring', 'blocks'].includes(P.pic) && P.split && P.split.by === 'valueBand') P.pic = 'bars';
@@ -1959,6 +1972,7 @@ function hbRcOptions(part, P, D){
     const word = p === 'cols' ? i18t('hb_pic_cols_' + ((isDate && P.split.unit) || 'm')) : i18t('hb_pic_' + p);
     if ((p === 'blocks' || p === 'bubbles') && !money) return opt(p, word, false, i18t('hb_why_money'));
     if ((p === 'ring' || p === 'blocks') && P.split && P.split.by === 'valueBand') return opt(p, word, false, i18t('hb_why_group'));
+    if ((p === 'ring' || p === 'blocks') && hbAvgMeasure(P.measure)) return opt(p, word, false, i18t('hb_why_avg'));
     if (HB_PICS2.includes(p) && !P.split2) return opt(p, word, false, i18t('hb_why_split2'));
     if (P.split2 && !HB_PICS2.includes(p) && p !== 'list') return opt(p, word, false, i18t('hb_why_one_split'));
     return opt(p, word, true);
@@ -2949,7 +2963,7 @@ function hbWhyPrompt(src){
 const HB_BOARD_NOW_MAX = 4000;
 /* A RECIPE IN COPILOT'S WORDS (the server's mirror reads these same words
    back): what the board's settings are, so "this" can be changed exactly */
-const HB_SPLIT_WORDS = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', valueBand: 'valueBand' };
+const HB_SPLIT_WORDS = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', payterms: 'payterms', valueBand: 'valueBand' };
 const HB_UNIT_WORDS = { m: 'month', q: 'quarter', y: 'year' };
 function hbSplitModelWord(S){ return !S ? 'none' : S.by === 'date' ? `${HB_UNIT_WORDS[S.unit] || 'month'} (date ${S.date})` : (HB_SPLIT_WORDS[S.by] || S.by); }
 function hbRecipeWords(P){
@@ -3033,7 +3047,7 @@ function hbDataGuide(lens, max){
   });
   /* the streams this reader may open, by name; any other is never named */
   const okFolder = (() => { try { const v = (typeof visibleFolders === 'function') ? visibleFolders() : null; return v ? new Set(v.map(f => f.name)) : null; } catch (_){ return null; } })();
-  const GROUPS = [['folder', 'Stream (split stream)'], ['counterparty', 'Counterparty (split counterparty)'], ['owner', 'Owner (split owner)'], ['kind', 'Type (split type)'], ['side', 'Side (split side)']];
+  const GROUPS = [['folder', 'Stream (split stream)'], ['counterparty', 'Counterparty (split counterparty)'], ['owner', 'Owner (split owner)'], ['kind', 'Type (split type)'], ['side', 'Side (split side)'], ['payterms', 'Payment terms (split payterms — a pie of payment terms; a ring never draws measure payDays)']];
   GROUPS.forEach(([f, word]) => {
     const rows = hbGroupsOf(cs, f, false);
     const named = rows.filter(r => r.g && !(f === 'folder' && okFolder && !okFolder.has(r.g)));
@@ -3997,6 +4011,9 @@ function hbFollowUp(qRaw){
       chart.split = { by: 'date', unit: R.split.unit, date: dateNamed || !(P0.split && P0.split.by === 'date') ? R.split.date : P0.split.date };
     else if (R.split && R.split.by !== 'date' && groupNamed) chart.split = R.split;
     if (R.pic) chart.pic = R.pic;
+    /* "show them in a graph": the open chart's own contracts and split, drawn
+       as bars (Young picked it, 5 Oct 2026) — never a new card */
+    else if (R.chartWord && !Object.keys(chart).length && (refer || verb)) chart.pic = 'bars';
     if (R.measure && (R.measure !== 'count' || HB_FU.count.test(low))) chart.measure = R.measure;
     if (R.trend && !noTrend) chart.trend = true;
   }
@@ -4514,6 +4531,9 @@ function hbAsk(q){
     /* THE FREE READER'S CARD IS CHECKED TOO (work order Part 4): no retry —
        it is drawn as asked — and what is wrong with it is said, the same line */
     if (/^q:/.test(r.key) && D.kind === 'list' && D.n){ try { const pr = hbCardCheck(D, {}, hbPlanSpec(D)); if (pr.length) warn += ' ' + _hbE(i18t('hb_chk_free', { why: pr.map(p => p.say).join('; ') })); } catch (_){ /* the line is a courtesy */ } }
+    /* THE ANSWER SAYS WHAT IS DRAWN (the owner's screenshot, 5 Oct 2026:
+       "payment terms in a pie" answered only "All contracts: 178") */
+    if (/^q:/.test(r.key) && D.kind === 'list' && D.n){ try { warn = ' ' + _hbE(i18t('hb_found_how', { how: hbHowWord(hbPlan(D)) })) + warn; } catch (_){ /* the line is a courtesy */ } }
     /* a question about money is answered with the money, not only a count */
     if (D.kind === 'list' && hbMoneyOk() && hbPlan(D).measure === 'value')
       return say(_hbE(i18tn('hb_found_n_value', D.n, { n: _hbN(D.n), what: D.title || '', v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) })) + warn, { noPaint: true });

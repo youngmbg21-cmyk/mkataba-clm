@@ -6575,7 +6575,7 @@ function graphScreenSays(sc, sent, total) {
    and gives back the board's recipe, part by part; a word it does not know is
    dropped, never guessed. f483 pins every list here to the board's own. */
 const GRAPH_CHART_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', 'stack', 'grouped', 'heat'];
-const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'valueBand'];
+const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'payterms', 'valueBand'];
 const GRAPH_CHART_DATES = ['end', 'signed', 'start', 'created', 'decision'];
 const GRAPH_CHART_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live'];
 const GRAPH_CHART_SORTS = ['value', 'count', 'name'];
@@ -6585,7 +6585,7 @@ const GRAPH_CHART_UNITS = ['month', 'quarter', 'year'];
 const GRAPH_CHART_TOP_MAX = 50, GRAPH_CHART_TITLE_MAX = 80;
 const GRAPH_CHART_WIN_MAX = { m: 120, q: 40, y: 10 };
 const GRAPH_CHART_UNIT_OF = { month: 'm', quarter: 'q', year: 'y' };
-const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', valueBand: 'valueBand' };
+const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', payterms: 'payterms', valueBand: 'valueBand' };
 function graphChartSplit(word, date) {
   const unit = GRAPH_CHART_UNIT_OF[word], group = GRAPH_CHART_GROUP_OF[word];
   if (unit) return { by: 'date', unit, date: GRAPH_CHART_DATES.includes(date) ? date : 'end' };
