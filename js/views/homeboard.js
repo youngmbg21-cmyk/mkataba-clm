@@ -3982,13 +3982,19 @@ function hbMovedOf(){
   return I.filter(x => x && x.id && x.title).slice(0, HB_MOVED_MAX)
     .map(x => ({ say: hbPlainText(x.title + (x.say ? ' — ' + x.say : ''), 240), key: x.id, at: hbToday() }));
 }
+/* WHAT THIS TAB LAST SENT is the tab's own, never the shared board record:
+   kept there, two open tabs woke each other on every save and sent without
+   end (home-board-verify's second tab, 5 Oct 2026). A failed send is not
+   retried until what would be sent changes. */
+let _hbMovedSent = '';
 function hbMovedSync(){
   if (typeof api !== 'function' || (typeof API_MODE === 'function' && !API_MODE())) return;
-  const s = hbS(), out = hbMovedOf();
+  if (!(window.state && Array.isArray(state.contracts) && state.contracts.length)) return;
+  const out = hbMovedOf();
   const sig = hbToday() + '|' + out.map(x => x.key + ':' + x.say).join('§');
-  if (s.movedSent === sig) return;
-  s.movedSent = sig; hbSave();
-  Promise.resolve(api('home/moved', 'PUT', { items: out })).catch(() => { s.movedSent = ''; hbSave(); });
+  if (_hbMovedSent === sig) return;
+  _hbMovedSent = sig;
+  Promise.resolve(api('home/moved', 'PUT', { items: out })).catch(() => {});
 }
 /* the brief's link lands here (core.js openFromHash, HASH_GO.moved): the board,
    with that finding's chart open — or simply the board, when the finding is no

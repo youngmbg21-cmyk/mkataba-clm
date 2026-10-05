@@ -38,6 +38,13 @@ describe('F521 (A) — the board hands over its top three', () => {
     assert.equal(sent.length, 1); assert.equal(sent[0].path, 'home/moved'); assert.equal(sent[0].method, 'PUT');
     assert.equal(sent[0].body.items.length, 3);
   });
+  test('what was sent is this tab\'s own: the shared board record is never written (two tabs woke each other)', () => {
+    const { w, sent } = world();
+    const before = JSON.stringify(w.hbS());
+    w.hbMovedSync();
+    assert.equal(sent.length, 1);
+    assert.equal(JSON.stringify(w.hbS()), before, 'no save, so no storage event for another tab');
+  });
 });
 
 describe('F521 (B, D) — the brief prints them, in their period, with a link', () => {
