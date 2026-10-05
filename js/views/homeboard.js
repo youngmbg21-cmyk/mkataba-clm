@@ -1378,7 +1378,8 @@ const HB_RC_GW = {
   owner: '(?:owners?|who owns (?:them|it)|ägare|ansvarig)',
   kind: '(?:contract types?|types?|kinds?|avtalstyp(?:er)?|typ(?:er)?)',
   side: '(?:side|sida)',
-  payterms: '(?:payment terms?|terms of payment|payment days|credit terms|betalningsvillkor|betalningstid)',
+  /* bare "terms" after "by" is payment terms, said and offered the other way (Part 2) */
+  payterms: '(?:payment terms?|terms of payment|payment days|credit terms|terms|betalningsvillkor|betalningstid|villkor)',
   valueBand: '(?:value bands?|values?|sizes?|amounts?|värde|storlek)',
 };
 const _HB_NUM = '(\\d{1,3}|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)';
@@ -4190,6 +4191,24 @@ function hbAmbiguity(q){
   if (!choices.length && R && R.split && R.split.by === 'valueBand' && hbMoneyOk() && !/\b(?:value bands?|sizes?|storlek)\b/.test(full)){
     choices.push({ label: i18t('hb_ch_value'), board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'status' }, measure: 'value', pic: 'blocks' } }] });
     say = i18t('hb_ch_value_said');
+  }
+  /* ASK OR ASSUME, EVERY TWO-WAY WORD (the board that answers right, Part 2):
+     the likeliest reading is drawn and said; the other is one press */
+  const word = w => new RegExp('\\b' + w + '\\b').test(full);
+  /* "value" read as the contract value — or value bands */
+  if (!choices.length && R && R.measure === 'value' && hbMoneyOk() && word('value') && !(R.split && R.split.by === 'valueBand') && !/\b(?:value bands?|sizes?|storlek)\b/.test(full)){
+    choices.push({ label: i18t('hb_ch_band'), board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'valueBand' }, measure: 'count', pic: 'bars' } }] });
+    say = i18t('hb_ch_band_said');
+  }
+  /* "terms" read as payment terms — or how long the contract runs (when it ends) */
+  if (!choices.length && R && R.split && R.split.by === 'payterms' && word('terms') && !/\b(?:payment|credit|betalnings)\b/.test(full)){
+    choices.push({ label: i18t('hb_ch_terms_end'), board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'date', unit: 'q', date: 'end' }, pic: 'cols' } }] });
+    say = i18t('hb_ch_terms_said');
+  }
+  /* "owner" read as who owns it on our side — or the counterparty */
+  if (!choices.length && R && R.split && R.split.by === 'owner' && /\bowners?\b/.test(full) && !/\b(?:our|who owns|internal)\b/.test(full)){
+    choices.push({ label: i18t('hb_ch_owner_cp'), board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'counterparty' } } }] });
+    say = i18t('hb_ch_owner_said');
   }
   if (!choices.length && typeof igConditions === 'function'){
     let cq = []; try { cq = igConditions(R ? R.condText : q); } catch (_){ cq = []; }

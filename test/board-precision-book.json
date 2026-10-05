@@ -103,6 +103,7 @@
     { "src": "part2", "road": "copilot", "q": "build me a dashboard for our procurement contracts", "want": { "cards": 4 } },
     { "src": "part2", "road": "copilot", "q": "what share of our book is still being drafted, as a doughnut I can show the board", "want": { "do": "add_card", "recipe": { "pic": "ring", "split": { "by": "status" } } } },
     { "src": "part2", "road": "copilot", "q": "plot how contract values are spread out", "want": { "do": "add_card", "recipe": { "split": { "by": "valueBand" } } } },
+    { "src": "part2-amb", "road": "free", "q": "contracts by terms", "want": { "split": { "by": "payterms" }, "measure": "count", "set": "all" } },
     { "src": "5oct", "road": "free", "q": "Show me the payment terms in pie chart", "want": { "split": { "by": "payterms" }, "pic": "ring", "measure": "count", "set": "all" } },
     { "src": "5oct", "road": "free", "q": "payment terms by stage as a pie", "want": { "split": { "by": "status" }, "pic": "bars", "measure": "payDays" } },
     { "src": "5oct", "after": "contracts by counterparty", "road": "free", "q": "Show them in graph", "want": { "split": { "by": "counterparty" }, "pic": "bars", "measure": "count" } },
