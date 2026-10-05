@@ -564,12 +564,19 @@ function _rkRowHtml(c, it){
   return `<div class="rk-row is-${_rkE(it.sev)}" data-rk-key="${_rkE(it.key)}">
     <div class="rk-top"><b class="rk-t">${_rkE(it.title)}</b>${_rkSevHtml(it.sev)}</div>
     <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>
-    <div class="rk-acts">
-      <button type="button" class="ui-link" data-rk-act="note">${_rkE(_rkT('rk_note'))}</button>
-      <button type="button" class="ui-btn ui-btn-sm" data-rk-act="dismiss">${_rkE(_rkT('rk_dismiss'))}</button>
-      <button type="button" class="ui-btn ui-btn-sm" data-rk-act="edit-ce" title="${_rkE(_rkT('rk_edit_ce_title'))}">${_rkE(_rkT('rk_edit_ce'))}</button>
+    <div class="rk-verbs">
+      <button type="button" class="rk-verb" data-rk-act="note">${_rkMark('chat')}${_rkE(_rkT('rk_note'))}</button>
+      <button type="button" class="rk-verb is-quiet" data-rk-act="dismiss">${_rkMark('x')}${_rkE(_rkT('rk_dismiss'))}</button>
+      <button type="button" class="rk-verb is-ai" data-rk-act="edit-ce" title="${_rkE(_rkT('rk_edit_ce_title'))}">${_rkMark('edit')}${_rkE(_rkT('rk_edit_ce'))}</button>
     </div></div>`;
 }
+/* THE ROW'S VERBS WEAR THE REDLINES ROW'S CLOTHES (Young, 5 Oct 2026: "the
+   risk to look at buttons should resemble the ones from the redlines
+   above"): no box, the small rung, the shell's own hairline mark before the
+   word, set from the left — the look rlFaceMark and .rl-card-face give
+   "Edit" and "Ladder" a few rows up. The words and their order stay. */
+const _rkMark = name => `<svg class="rk-verb-i" width="15" height="15" viewBox="0 0 16 16" fill="none"
+  stroke="currentColor" stroke-width="1.2" aria-hidden="true" focusable="false"><use href="#i-${name}"/></svg>`;
 /* COVERED BY YOUR REDLINES: the fold under the list, each line naming what
    covers it and going there. Counted nowhere. Per sitting, open or shut. */
 function _rkCoveredHtml(c, list){
@@ -619,7 +626,7 @@ function rlRisksPileHtml(c, opts = {}){
       ? _rkT('rk_hide_dismissed') : _rkT('rk_show_dismissed', { n: gone.length }))}</button>` : ''}
     ${showGone ? gone.map(it => `<div class="rk-row is-gone" data-rk-key="${_rkE(it.key)}">
       <div class="rk-top"><span class="rk-t">${_rkE(it.title)}</span>
-      <button type="button" class="ui-btn ui-btn-sm" data-rk-act="back">${_rkE(_rkT('rk_bring_back'))}</button></div></div>`).join('') : ''}
+      <button type="button" class="rk-verb" data-rk-act="back">${_rkMark('undo')}${_rkE(_rkT('rk_bring_back'))}</button></div></div>`).join('') : ''}
   </div>`;
 }
 
@@ -669,6 +676,18 @@ function rkEnsureStyle(){
     text-transform:uppercase;color:var(--color-neutral-500);margin-top:4px}
   .rk-acts{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
   .rk-row .rk-acts .ui-link{margin-right:auto}
+  .rk-verbs{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:2px}
+  .rk-verb{display:inline-flex;align-items:center;gap:4px;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);
+    border:0;border-radius:var(--radius);background:transparent;font:inherit;font-size:var(--t-meta);
+    font-weight:var(--w-label);line-height:1;color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  .rk-verb:hover{background:var(--color-accent-100)}
+  .rk-verb.is-quiet{color:var(--color-neutral-600)}
+  /* Copilot's own door wears Copilot's violet, as the redline row's Edit does
+     (.rl-card-verbs .rl-verb-ai in negotiation-css.js, the same two values). */
+  .rk-verb.is-ai{color:#6d28d9}
+  html.dark .rk-verb.is-ai{color:#c4b5fd}
+  .rk-verb.is-quiet:hover{background:var(--color-neutral-100)}
+  .rk-verb-i{flex:none;width:var(--btn-ic, 15px);height:var(--btn-ic, 15px)}
   .rk-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin-top:4px}
   .rk-cost{font-size:var(--t-micro);color:var(--color-neutral-500)}
   .rk-where{display:grid;gap:2px}

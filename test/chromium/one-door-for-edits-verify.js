@@ -144,6 +144,22 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     check(!!list && /· 3$/.test(list.head) && !list.keys.includes('s:t-pay'), '1c the covered Payment risk is not listed or counted', list && list.head + ' ' + list.keys.join(','));
     const tile = await page.evaluate(id => riskOpenOf(getContract(id)).length, ID);
     check(tile === 3, '1d the Overview tile and the room count read the same three', tile);
+    /* THE RISK ROW'S VERBS WEAR THE REDLINES ROW'S CLOTHES (Young, 5 Oct
+       2026): measured against the Edit verb on the standards redline above */
+    const dress = await page.evaluate(() => {
+      const st = el => { if (!el) return null; const k = getComputedStyle(el);
+        return { h: Math.round(el.getBoundingClientRect().height), bg: k.backgroundColor, bd: k.borderTopStyle + ' ' + k.borderTopWidth,
+          fs: k.fontSize, fw: k.fontWeight, col: k.color, mark: !!el.querySelector('svg use') }; };
+      const ed = document.querySelector('#rl-changes .rl-card-face [data-rl-cp-editor-row], #rl-changes .rl-card-face [data-rl-edit]');
+      const row = document.querySelector('#rl-risks .rk-row[data-rk-key]:not(.is-covered):not(.is-gone)');
+      const vs = row ? [...row.querySelectorAll('[data-rk-act]')] : [];
+      const lefts = vs.map(b => Math.round(b.getBoundingClientRect().left));
+      return { edit: st(ed), risk: st(row && row.querySelector('[data-rk-act="edit-ce"]')), all: vs.map(st), leftFirst: lefts[0], rowLeft: row ? Math.round(row.getBoundingClientRect().left) : 0, ordered: lefts.every((x, i) => !i || x > lefts[i - 1]) };
+    });
+    const same = (a, b) => a && b && a.h === b.h && a.bg === b.bg && a.fs === b.fs && a.fw === b.fw && a.col === b.col && a.mark && b.mark;
+    check(!!dress.edit && same(dress.risk, dress.edit), '1e "Edit with Copilot" on a risk is dressed as "Edit" on a redline (no box, small rung, a mark, the same ink)', JSON.stringify([dress.edit, dress.risk]));
+    check(dress.all.length === 3 && dress.all.every(v => v && v.mark && v.h === dress.edit.h && /^none/.test(v.bd)), '1f all three risk verbs carry a mark and no box', JSON.stringify(dress.all));
+    check(dress.ordered && dress.leftFirst - dress.rowLeft < 24, '1g set from the left, like the redlines row', JSON.stringify([dress.rowLeft, dress.leftFirst]));
     await shot('1-the-list.png');
 
     /* ============ 2. COVERED FOLD ============ */
