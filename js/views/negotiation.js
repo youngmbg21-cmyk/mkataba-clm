@@ -12429,10 +12429,9 @@ function rlSetDocType(px){
      late otherwise. Repainted here, in the same press, on the contract the
      layer holds; the observer stays for the paper's own reflows. */
   try {
-    const layer = document.getElementById('doc-read');
-    const held = layer && layer._docReadC;
-    if (held && window.docReadPaint)
-      docReadPaint((window.state && state.contracts.find(x => x.id === held.id)) || held);
+    const th = document.getElementById('doc-thread');
+    const held = th && !th.hidden && window.state && typeof getContract === 'function' && getContract(state.activeId);
+    if (held && window.docThreadPaint) docThreadPaint(held);
   } catch (e) {}
   if (window.dsApplyZoom) dsApplyZoom();
   return v;

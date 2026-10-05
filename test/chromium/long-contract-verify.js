@@ -88,51 +88,57 @@ const longBody = n => '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>' + Array.from({ 
     check('1d payment terms the contract does not state prints as a dash', /^[—-]$/.test(deal.pay || ''), deal.pay);
     await page.screenshot({ path: path.join(OUT, '01-deal.png') });
 
-    /* ===== 3. THE MAP SCROLLS ===== */
+    /* ===== 3. THE THREAD SCROLLS ===== */
+    /* RE-POINTED 5 Oct 2026 (the Thread): the X-ray's clause map became the
+       Thread — one row per clause in the right column, the open row the one
+       at the line 24px below the paper's top. The same claims: drawn for
+       every clause, scrolls on its own, follows the paper, a press lands on
+       its clause. */
     await page.evaluate(() => openWorkspace('MK-LC2'));
     await page.waitForTimeout(1200);
     await page.evaluate(() => roomGoTab(getContract('MK-LC2'), 'docs'));
     await page.waitForSelector('#doc-canvas', { timeout: 15000 }).catch(() => {});
-    await page.waitForTimeout(1200);
-    await page.evaluate(() => { if (typeof docViewSet === 'function') docViewSet('xray');
-      if (typeof applyWsTabs === 'function') applyWsTabs(getContract('MK-LC2')); });
     await page.waitForTimeout(1500);
     const map = await page.evaluate(() => {
-      const sp = document.getElementById('doc-xr-spine');
-      if (!sp) return null;
-      const segs = [...sp.querySelectorAll('.doc-xr-seg')];
-      return { n: segs.length, minH: Math.min(...segs.map(s => s.getBoundingClientRect().height)),
-        scrolls: sp.scrollHeight > sp.clientHeight + 4,
-        here: (sp.querySelector('.is-here') || {}).dataset ? sp.querySelector('.is-here').dataset.xrSeg : null };
+      const th = document.getElementById('doc-thread');
+      if (!th || th.hidden) return null;
+      const box = th.querySelector('.doc-th-rows');
+      const rows = [...th.querySelectorAll('.doc-th-row')];
+      return { n: rows.length, minH: Math.min(...rows.map(r => r.querySelector('.doc-th-head').getBoundingClientRect().height)),
+        scrolls: !!box && box.scrollHeight > box.clientHeight + 4,
+        here: (th.querySelector('.doc-th-row.is-open') || {}).dataset ? th.querySelector('.doc-th-row.is-open').dataset.thRow : null };
     });
-    check('3a the map is drawn for every clause', !!map && map.n >= 150, map ? map.n + ' blocks' : 'no map');
-    check('3b every block is at least 16px tall', !!map && map.minH >= 15.5, map ? map.minH + 'px' : '—');
-    check('3c the map scrolls on its own', !!map && map.scrolls, map ? String(map.scrolls) : '—');
+    check('3a the thread is drawn for every clause', !!map && map.n >= 150, map ? map.n + ' rows' : 'no thread');
+    check('3b every row\'s head is at least 24px tall', !!map && map.minH >= 23.5, map ? map.minH + 'px' : '—');
+    check('3c the thread scrolls on its own', !!map && map.scrolls, map ? String(map.scrolls) : '—');
     const follow = await page.evaluate(async () => {
-      const sc = document.getElementById('doc-scroll'), sp = document.getElementById('doc-xr-spine');
-      if (!sc || !sp) return null;
-      const before = sp.scrollTop;
+      const sc = document.getElementById('doc-scroll'), th = document.getElementById('doc-thread');
+      if (!sc || !th) return null;
+      const box = th.querySelector('.doc-th-rows');
+      const before = box.scrollTop;
       sc.scrollTop = sc.scrollHeight * 0.7;
-      await new Promise(z => setTimeout(z, 400));
-      const here = sp.querySelector('.doc-xr-seg.is-here');
-      return { before, after: sp.scrollTop, here: here ? Number(here.dataset.xrSeg) : -1 };
-    });
-    check('3d scrolling the paper moves the map with it', !!follow && follow.after > follow.before && follow.here > 50,
-      follow ? `map ${follow.before} → ${follow.after}, here at clause ${follow.here}` : '—');
-    const press = await page.evaluate(async () => {
-      const sp = document.getElementById('doc-xr-spine');
-      const seg = sp && sp.querySelector('.doc-xr-seg.is-here');
-      if (!seg) return null;
-      const want = Number(seg.dataset.xrSeg);
-      seg.click();
       await new Promise(z => setTimeout(z, 700));
-      const h4 = document.querySelector('#doc-xray .doc-xr-head h4');
-      return { want, head: h4 ? h4.textContent.trim() : '' };
+      const here = th.querySelector('.doc-th-row.is-open');
+      return { before, after: box.scrollTop, here: here ? Number(here.dataset.thRow) : -1, line: docThreadAtLine() };
     });
-    check('3e pressing a block lands the panel on its clause',
-      !!press && new RegExp('Clause ' + (press.want) + '\\.').test(press.head), press ? press.head : '—');
-    await page.screenshot({ path: path.join(OUT, '03-map.png') });
-    await page.evaluate(() => { if (typeof docViewSet === 'function') docViewSet('paper'); });
+    check('3d scrolling the paper opens the row at the line, and the thread moves with it',
+      !!follow && follow.after > follow.before && follow.here > 50 && follow.here === follow.line,
+      follow ? `thread ${follow.before} → ${follow.after}, open row ${follow.here}, line ${follow.line}` : '—');
+    const press = await page.evaluate(async () => {
+      const th = document.getElementById('doc-thread');
+      const open = th && th.querySelector('.doc-th-row.is-open');
+      if (!open) return null;
+      const want = Number(open.dataset.thRow) - 20;
+      th.querySelector('[data-th-go="' + want + '"]').click();
+      await new Promise(z => setTimeout(z, 1400));
+      const now = th.querySelector('.doc-th-row.is-open');
+      return { want, got: now ? Number(now.dataset.thRow) : -1, line: docThreadAtLine(),
+        name: now ? now.querySelector('.doc-th-name').textContent.trim() : '' };
+    });
+    check('3e pressing a row glides the paper until that clause is at the line',
+      !!press && press.got === press.want && press.line === press.want && new RegExp('Clause ' + (press.want) + '\\.').test(press.name),
+      press ? JSON.stringify(press) : '—');
+    await page.screenshot({ path: path.join(OUT, '03-thread.png') });
 
     /* ===== N. TWO DOORS ===== */
     await page.evaluate(() => setView('register'));

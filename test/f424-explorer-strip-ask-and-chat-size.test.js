@@ -35,7 +35,8 @@ test('f424 (1) numbers on the blocks are Explorer\'s, asked for; the Document ta
   const b = code(region(CT, 'docXraySpineHtml'));
   assert.match(b, /o\.numbers&&x\.cite/);
   assert.match(b, /doc-xr-num/);
-  assert.match(code(region(CT, 'docXrayPaint')), /docXraySpineHtml\(rows\)/, 'the Document tab is unchanged');
+  /* 5 Oct 2026 (the Thread): the Document tab draws no strand at all. */
+  assert.doesNotMatch(code(region(CT, 'docThreadPaint')), /docXraySpineHtml/, 'the Document tab draws no strand');
   assert.match(code(region(IG, 'igStrandPaint')), /docXraySpineHtml\(rows,\{ numbers:true \}\)/);
 });
 

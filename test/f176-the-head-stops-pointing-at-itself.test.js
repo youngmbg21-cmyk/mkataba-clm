@@ -188,15 +188,19 @@ describe('F176 — the intent-to-sign step speaks without a button', () => {
    sit against our playbook, then what else in it is risky. This one runs for
    real — checksRowsHtml needs nothing off-stage. */
 describe('F176 — one door onto Find obligations, and it is the Checks row', () => {
-  test('the Checks card offers three checks, obligations first', () => {
+  test('the Thread offers the three checks where their results would show', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): the Checks card is gone from the
+       Document tab. The three doors are the Thread's "not yet read · Run"
+       lines — risk and standards in Worth a look, obligations under Who does
+       what — each pressing the room's one door (data-room-check). */
     const w = buildWorld({ negotiationView: true, contractView: true });
-    const html = w.win.checksRowsHtml(supplyContract());
-    assert.ok(/data-check="oblig"/.test(html), 'the obligations sweep is a row again');
-    assert.ok(/data-check="playbook"/.test(html), 'the playbook review stays');
-    assert.ok(/data-check="risk"/.test(html), 'the risk scan stays');
-    const order = ['oblig', 'playbook', 'risk'].map(k => html.indexOf(`data-check="${k}"`));
-    assert.deepEqual(order.slice().sort((a, b) => a - b), order,
-      'obligations · playbook · risk — the order the work is done in');
+    const html = w.win.docThreadUnrunHtml(supplyContract(), ['risk', 'playbook', 'oblig']);
+    assert.ok(/data-room-check="oblig"/.test(html), 'the obligations sweep is offered');
+    assert.ok(/data-room-check="playbook"/.test(html), 'the playbook review stays');
+    assert.ok(/data-room-check="risk"/.test(html), 'the risk scan stays');
+    const body = SRC.slice(SRC.indexOf('function docThreadBodyHtml'), SRC.indexOf('function docThreadFill'));
+    assert.ok(body.indexOf("docThreadUnrunHtml(c,['risk','playbook'])") < body.indexOf("docThreadUnrunHtml(c,['oblig'])"),
+      'risk and standards in Worth a look, obligations under Who does what — where each result would show');
   });
 
   test('and the door it replaced is gone from Key terms, so there is still only one', () => {
@@ -231,8 +235,13 @@ describe('F176 — one door onto Find obligations, and it is the Checks row', ()
        an owner most needs explained, and generating a brief writes NOTHING to
        the sealed record (its cache lives in its own table). The playbook and
        risk rows still stand down once the wording is sealed. */
-    assert.match(SRC, /const editableFor=kind=>mayEdit&&\(kind==='oblig'\|\|kind==='brief'\|\|c\.status!=='Signed'\)/,
-      'obligations and the brief stay live on an executed contract; playbook and risk do not');
+    /* RE-POINTED 5 Oct 2026 (the Thread): the rule lives in the Thread's line
+       and in the door it presses, as the same test; the brief's door is the
+       Overview's own "Read the brief" now. */
+    assert.match(SRC, /if\(!\(may&&\(k==='oblig'\|\|c\.status!=='Signed'\)\)\) return '';/,
+      'the Thread offers obligations on an executed contract; playbook and risk it does not');
+    assert.match(SRC, /if\(!\(may&&\(kind==='oblig'\|\|c\.status!=='Signed'\)\)\) return;/,
+      'and the door refuses the same way');
   });
 });
 

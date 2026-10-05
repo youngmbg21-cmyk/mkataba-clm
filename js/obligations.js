@@ -550,12 +550,13 @@ function obligationSurfacesChanged(){
      sent or an obligation added anywhere has to reach it — through agRepaint,
      which keeps the reader's place and does nothing off that page. */
   if(window.state && state.view==='agents' && window.agRepaint) agRepaint();
-  /* AND THE CHECKS CARD, which counts them on its own row since 14 Aug 2026
-     ("6 tracked"). Same reasoning again, and the reason this function exists:
-     one count, many surfaces, refreshed from ONE place rather than from each of
-     the four callers that can change an obligation. renderChecksCard returns
-     immediately where there is no card, so this is a no-op everywhere else. */
-  if(window.renderChecksCard && here) renderChecksCard(here);
+  /* AND THE THREAD on the Document tab (since 5 Oct 2026; the Checks card
+     before it), whose open row ticks a duty the tab holds. Same reasoning
+     again, and the reason this function exists: one count, many surfaces,
+     refreshed from ONE place rather than from each of the four callers that
+     can change an obligation. docThreadPaint returns at once where there is
+     no thread, so this is a no-op everywhere else. */
+  if(window.docThreadPaint && here) docThreadPaint(here);
   /* AND THE ROOM'S OWN TAB, which carries the outstanding count and the amber
      that says something is overdue (J-2.1). A new surface joins this funnel or
      it goes stale the first time somebody ticks something off somewhere else —

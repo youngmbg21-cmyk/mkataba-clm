@@ -291,14 +291,14 @@ describe('f337 (5) — a recorded promise is NOT an amber fact (REVERSED)', () =
     assert.ok(!/c\.obligations/.test(body), 'it does not read them at all');
     assert.ok(!/ct_read_watch_oblig/.test(body), 'nor draw their sentence');
   });
-  test('the bar keeps the two judgements it was built for', () => {
-    /* rlPbFindClause is still the ONE reading of which clause a quote belongs
-       to, and still refuses below RL_PB_MATCH_MIN rather than guessing. */
-    const body = fnBody(CONTRACT, 'docReadFlags');
-    assert.match(body, /ct_read_watch_pb/, 'your playbook disagreed');
-    assert.match(body, /ct_read_watch_scan/, 'the risk scan flagged it');
-    assert.match(body, /rlPbFindClause\(c,q,cat\)/,
-      'CONTROL — through the door that refuses rather than guesses');
+  test('a mark keeps the two judgements the bar was built for', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): the amber bar went with the Plain
+       column; docXrayMarks is the one reading, and it places by containment
+       on the quote — refusing rather than guessing (docXrayPlace). */
+    const body = fnBody(CONTRACT, 'docXrayMarks');
+    assert.match(body, /_xrVerdicts\(c\)/, 'your playbook disagreed');
+    assert.match(body, /_xrFinds\(c\)/, 'the risk scan flagged it');
+    assert.match(body, /docXrayPlace\(txt,/, 'CONTROL — through the door that refuses rather than guesses');
   });
   test('THE DESCRIPTION IS NEVER REACHED FOR', () => {
     /* WALL, and it outlives the source it was written for: a summary in the
@@ -311,31 +311,19 @@ describe('f337 (5) — a recorded promise is NOT an amber fact (REVERSED)', () =
     assert.ok(!/obState\(o\)/.test(body), 'no state to read where there is no source');
     assert.ok(!/o\.status==='done'/.test(body), 're-derived nowhere, then or now');
   });
-  test('IT IS KEYED ON THE HEADING, BECAUSE THE PAGE HOLDS NO CLAUSE ID', () => {
-    /* MEASURED in a browser: keyed on `clauseId`, NOTHING was ever marked.
-       docReadSheet walks the PAINTED PAGE and its rows carry no clause id at
-       all; rlPbFindClause answers off clauseSegment, which MINTS one on the fly
-       for any body that has never been stamped. The two sides were comparing an
-       id the page does not have against one that changes per call — the guard
-       that is always false, and it made the amber added on 18 Sep dead too.
-       The heading is the pairing this column already uses for its readings. */
-    const body = fnBody(CONTRACT, 'docReadFlags');
-    assert.match(body, /_docReadNorm\(cl\.headingText\)/, 'the clause side reads its own heading');
-    assert.match(body, /if\(!k\) return/, 'and a headingless clause is refused rather than collapsed');
-    assert.ok(!/out\.set\(cl\.clauseId/.test(body), 'the id that never matched is gone');
-    const paint = fnBody(CONTRACT, 'docReadPaint');
-    assert.match(paint, /flags\.get\(_docReadNorm\(p\.row\.heading\)\)/,
-      'and the page side reads the same normaliser, so the two cannot drift');
+  test('IT IS PLACED BY THE QUOTE ON THE PAINTED ROW, BECAUSE THE PAGE HOLDS NO CLAUSE ID', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): the walk's rows carry no clause id,
+       so a mark lands by containment of its own quote in the row's words. */
+    const body = fnBody(CONTRACT, 'docXrayMarks');
+    assert.match(body, /const txt=docXrayRowText\(row\);/, 'the row\'s own words');
+    assert.ok(!/clauseId/.test(body), 'never an id the page does not have');
   });
   test('EVERY REASON, NOT THE FIRST ONE', () => {
-    /* A clause can carry a departure AND a finding AND a promise. The hover is
-       the ONLY place a reader is told why the bar is there, so dropping the
-       second reason would be a silent trim. */
-    const body = fnBody(CONTRACT, 'docReadFlags');
-    assert.match(body, /e\.whys\.push\(why\)/, 'reasons collect');
-    assert.match(body, /whys\.join/, 'and the title states all of them');
-    assert.ok(!/out\.has\(cl\.clauseId\)\) return;/.test(body),
-      'the first-one-wins return is gone');
+    /* A clause can carry a departure AND a finding AND a watchout: every mark
+       is listed, each with its why, none dropped. */
+    const body = fnBody(CONTRACT, 'docXrayMarks');
+    assert.equal((body.match(/out\.push\(/g) || []).length, 4, 'four sources, every hit kept');
+    assert.ok(!/return out;[\s\S]*return out;/.test(body), 'one return, after all of them');
   });
   test('READING MUST NOT WRITE, and it spends nothing', () => {
     /* WALL, and it has to stay true with a third source in it. */
@@ -350,13 +338,15 @@ describe('f337 (5) — a recorded promise is NOT an amber fact (REVERSED)', () =
       'still English and Swedish');
     assert.ok(!/ct_read_watch_oblig/.test(strip(CONTRACT)), 'and called from nowhere');
   });
-  test('AMBER, and still only amber', () => {
-    /* WALL. The owner ruled on red and green the day before and nothing here
-       reopens it: a third fact earns the same bar, not a third colour. */
-    const at = HTML.indexOf('.doc-read-note.dr-watch');
+  test('three grades, and never green', () => {
+    /* WALL, re-pointed 5 Oct 2026 (the Thread): a mark wears its own grade —
+       ruby, amber or steel — and no green anywhere in the box. */
+    const at = HTML.indexOf('.doc-th-look .doc-xr-mark::before{');
     assert.ok(at > 0, 'the rule is there');
-    const block = HTML.slice(at, at + 200);
+    const block = HTML.slice(at, HTML.indexOf('.doc-th-unrun{', at));
     assert.match(block, /--st-amber-dot/, 'amber');
-    assert.ok(!/ruby|green/.test(block), 'and nothing else');
+    assert.match(block, /--st-ruby-dot/, 'ruby');
+    assert.match(block, /--st-steel-dot/, 'steel');
+    assert.ok(!/green/.test(block), 'and never green');
   });
 });

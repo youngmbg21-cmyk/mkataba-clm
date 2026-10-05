@@ -64,11 +64,11 @@ const check = (name, pass, detail) => {
     const loaded = await page.evaluate(() => ({
       runway: typeof window.rwSplit === 'function',
       xray: typeof window.docXrayRows === 'function',
-      mode: typeof window.docViewMode === 'function',
+      thread: typeof window.docThreadPaint === 'function' && typeof window.docViewMode !== 'function',
     }));
     check('1a the runway reading is loaded', loaded.runway);
     check('1b the X-ray reading is loaded', loaded.xray);
-    check('1c the view mode is loaded', loaded.mode);
+    check('1c the Thread is loaded, and the view mode is gone (5 Oct 2026)', loaded.thread);
 
     /* ================= 2. A CONTROL: NOTHING DATED, NOTHING DRAWN =======
        The seeded book has no quiet desk and no renewal inside ninety days, so
@@ -171,11 +171,19 @@ const check = (name, pass, detail) => {
     });
     check('3j no explainer band was added to the card', homeBands === 0, 'found ' + homeBands);
 
-    /* ================= 4. X-RAY, AND THE CONTRACT'S PIXELS ============== */
+    /* ================= 4. THE THREAD, AND THE CONTRACT'S PIXELS ============== */
+    /* RE-POINTED 5 Oct 2026 (the Thread). The three-position switch, the Plain
+       English column and the X-ray panel became ONE card in the right column:
+       every clause a row, the open row the clause at the line 24px below the
+       paper's top, the reading in the paper's face, Worth a look and Who does
+       what under it. What this section asked of the X-ray it asks of the
+       Thread: the contract does not move, the cards beneath are not covered,
+       nothing marked means nothing toned, the open row names its clause and
+       says what is known, no explainer band. */
     await page.evaluate(() => { selectContract(state.contracts[0].id); });
     await page.waitForTimeout(1200);
     await page.evaluate(() => { roomGoTab(state.contracts[0], 'docs'); });
-    await page.waitForTimeout(1200);
+    await page.waitForTimeout(1400);
 
     /* Measured INSIDE the document: the first ink's offset from the canvas,
        so scrolling can never read as the paper moving. */
@@ -191,137 +199,109 @@ const check = (name, pass, detail) => {
         sheetLeft: +(cb.left - sc.left).toFixed(1), sheetW: Math.round(cb.width) };
     });
     const before = await ink();
-    /* RE-POINTED 30 Sep 2026: the switch was renamed on 27 Sep (01f8c87,
-       "Plain English and X-ray to Plain View and Risk View (both books)"), so
-       the third position no longer says "X-ray". Pinned to the label's own
-       key (xr_switch) rather than a word, so a later rename cannot turn this
-       red again while the X-ray still sits third. */
     const segsRest = await page.evaluate(() => ({
-      segs: [...document.querySelectorAll('[data-doc-read]')].map(b => b.textContent.trim()),
-      xray: (typeof i18t === 'function' ? i18t('xr_switch') : '') }));
-    check('4a the switch has three positions, the X-ray (Risk View) third',
-      segsRest.segs.length === 3 && !!segsRest.xray && segsRest.segs[2] === segsRest.xray, JSON.stringify(segsRest));
+      segs: document.querySelectorAll('[data-doc-read]').length,
+      rows: document.querySelectorAll('#doc-thread .doc-th-row').length,
+      sheet: (typeof docReadSheet === 'function') ? (docReadSheet(state.contracts[0]) || []).length : -1,
+      up: !!document.getElementById('doc-thread') && !document.getElementById('doc-thread').hidden }));
+    check('4a there is no switch; the Thread is up with one row per painted clause',
+      segsRest.segs === 0 && segsRest.up && segsRest.rows > 0 && segsRest.rows === segsRest.sheet, JSON.stringify(segsRest));
 
-    const pressedXray = await press('[data-doc-read="2"]', '4a2 there is an X-ray position to press');
-    await page.waitForTimeout(900);
-    await page.screenshot({ path: path.join(OUT, '02-xray.png') });
+    const pressedRow = await press('#doc-thread [data-th-go="1"]', '4a2 there is a second row to press');
+    await page.waitForTimeout(1300);
+    await page.screenshot({ path: path.join(OUT, '02-thread.png') });
     const after = await ink();
     /* GATED ON THE PRESS HAVING HAPPENED. "The paper did not move" is
        satisfied by a build where nothing was pressed, which is the quietest
-       way a measurement can prove nothing at all — measured against the
-       parent, where it passed. */
+       way a measurement can prove nothing at all. The paper SCROLLS on a
+       press (that is the glide); its ink inside the canvas and its width do
+       not move. */
     check('4b THE CONTRACT DOES NOT MOVE (refusal 3)',
-      pressedXray && before && after && before.inkLeft === after.inkLeft && before.inkTop === after.inkTop
+      pressedRow && before && after && before.inkLeft === after.inkLeft && before.inkTop === after.inkTop
         && before.sheetLeft === after.sheetLeft && before.sheetW === after.sheetW,
-      (pressedXray ? '' : 'X-ray was never pressed · ')
+      (pressedRow ? '' : 'no row was pressed · ')
       + JSON.stringify(before) + ' → ' + JSON.stringify(after));
 
     const xr = await page.evaluate(() => {
       const el = id => document.getElementById(id);
-      const sp = el('doc-xr-spine');
-      const cv = el('doc-canvas');
-      const panel = document.querySelector('.doc-xr-panel');
+      const th = el('doc-thread');
+      const open = th && th.querySelector('.doc-th-row.is-open');
       const right = el('doc-right');
       return {
-        layer: el('doc-xray') ? !el('doc-xray').hidden : false,
-        read: el('doc-read') ? !el('doc-read').hidden : false,
+        open: open ? Number(open.dataset.thRow) : -1,
+        line: (typeof docThreadAtLine === 'function') ? docThreadAtLine() : -2,
         right: right ? getComputedStyle(right).visibility : '(absent)',
-        spine: !!sp,
-        overlap: sp && cv ? sp.getBoundingClientRect().right > cv.getBoundingClientRect().left : null,
-        segs: sp ? sp.querySelectorAll('[data-xr-seg]').length : 0,
-        head: panel ? (panel.querySelector('.doc-xr-head h4') || {}).textContent : '',
-        secs: [...document.querySelectorAll('.doc-xr-k')].map(e => e.textContent.trim()),
+        toned: th ? th.querySelectorAll('.doc-th-row.is-ruby,.doc-th-row.is-amber,.doc-th-row.is-steel').length : -1,
+        spine: !!el('doc-xr-spine'),
+        head: open ? (open.querySelector('.doc-th-name') || {}).textContent : '',
+        secs: open ? [...open.querySelectorAll('.doc-th-look, .doc-xr-sec.is-who')].map(e => e.className) : [],
         bands: document.querySelectorAll('#doc-grid .hint,#doc-grid [class*="callout"]').length,
       };
     });
-    check('4c the panel is up and the edition is not', xr.layer && !xr.read);
-    check('4d the cards beneath it are covered, not rebuilt', xr.right === 'hidden', xr.right);
+    check('4c the pressed row is open, and it is the one at the line', pressedRow && xr.open === 1 && xr.line === 1, JSON.stringify({ open: xr.open, line: xr.line }));
+    check('4d the cards beneath it are not covered — the Thread is a card among them', xr.right === 'visible', xr.right);
     /* REVERSED IN PLACE 23 Sep 2026 (Young: "Remove the grey dna strands and
-       just keep the colored ones that are of interest"). This record carries
-       no mark, so the map is not drawn at all; its geometry and its press are
-       measured in section 7, on a record that has marks. */
-    check('4e nothing marked, no map', !xr.spine && xr.segs === 0, xr.segs + ' segments');
-    check('4g the panel names the clause it is about', !!(xr.head || '').trim(), xr.head);
-    check('4h it says what is known, borrowed', xr.secs.length >= 2, JSON.stringify(xr.secs));
-    /* THE CARD IS THE EDITION'S OWN, asked as a RELATION rather than as a
-       colour: both layers are read live and required to resolve to the same
-       card, so a later palette pass moving one moves both or this goes red. */
+       just keep the colored ones that are of interest"), and again here: this
+       record carries no mark, so no row wears a tone, and no strand is drawn. */
+    check('4e nothing marked, nothing toned, no strand', xr.toned === 0 && !xr.spine, xr.toned + ' toned');
+    check('4g the open row names the clause it is about', !!(xr.head || '').trim(), xr.head);
+    check('4h it says what is known, borrowed — Worth a look and Who does what', xr.secs.length >= 2, JSON.stringify(xr.secs));
+    /* THE CARD IS A REAL SURFACE, asked live. */
     const cards = await page.evaluate(() => {
-      const of = id => { const e = document.getElementById(id); if (!e) return null;
-        const c = getComputedStyle(e);
-        return [c.backgroundColor, c.borderTopWidth, c.borderTopColor,
-          c.borderTopLeftRadius, c.boxShadow, c.paddingRight, c.paddingBottom].join(' | '); };
-      return { xray: of('doc-xray'), read: of('doc-read') };
+      const e = document.getElementById('doc-thread'); if (!e) return null;
+      const c = getComputedStyle(e);
+      return { bg: c.backgroundColor, radius: c.borderTopLeftRadius };
     });
-    check('4i2 the panel is on the same white card as Plain English',
-      !!cards.xray && cards.xray === cards.read, cards.xray + '  vs  ' + cards.read);
     check('4i3 and that card is a real surface, not the page ground',
-      /rgb\(255, 255, 255\)|rgb\(21, 27, 26\)/.test(cards.xray || ''), cards.xray);
+      !!cards && /rgb\(255, 255, 255\)|rgb\(21, 27, 26\)/.test(cards.bg), cards && cards.bg);
 
     check('4i NO EXPLAINER BAND over the paper (the owner’s exclusion)',
-      pressedXray && xr.bands === 0,
-      (pressedXray ? '' : 'X-ray was never up · ') + 'found ' + xr.bands);
+      pressedRow && xr.bands === 0,
+      (pressedRow ? '' : 'nothing was pressed · ') + 'found ' + xr.bands);
 
-
-
-    /* the way back hands the cards over, and the paper is where it was */
-    await press('[data-doc-read="0"]', '4k2 there is a way back to the paper');
+    /* the reader's hand: scrolling the paper to the top opens the first row,
+       and the paper is where it was */
+    await page.evaluate(() => { document.getElementById('doc-scroll').scrollTop = 0; });
     await page.waitForTimeout(600);
     const back = await page.evaluate(() => ({
-      mode: (typeof docViewMode === 'function') ? docViewMode() : '(absent)',
+      open: Number((document.querySelector('#doc-thread .doc-th-row.is-open') || { dataset: {} }).dataset.thRow),
       right: document.getElementById('doc-right')
         ? getComputedStyle(document.getElementById('doc-right')).visibility : '(absent)',
-      xray: (document.getElementById('doc-xray') || { hidden: '(absent)' }).hidden,
-      spine: !!document.getElementById('doc-xr-spine'),
     }));
     const backInk = await ink();
-    check('4k Contract View hands the cards back and takes the map away',
-      back.mode === 'paper' && back.right === 'visible' && back.xray && !back.spine,
+    check('4k a scroll back to the top opens the first row again',
+      back.open === 0 && back.right === 'visible',
       JSON.stringify(back));
     check('4l and the contract is exactly where it started',
-      pressedXray && backInk && before && backInk.inkLeft === before.inkLeft
+      pressedRow && backInk && before && backInk.inkLeft === before.inkLeft && backInk.inkTop === before.inkTop
         && backInk.sheetLeft === before.sheetLeft,
-      (pressedXray ? '' : 'X-ray was never pressed · ') + JSON.stringify(backInk));
+      (pressedRow ? '' : 'nothing was pressed · ') + JSON.stringify(backInk));
 
     /* ================= 5. THE NARROW WINDOW ============================= */
-    /* RE-POINTED AT THE FIRST RUN. The claim was "the switch disappears when
-       the window narrows", and it does not: this row is built once per paint
-       and the product has never rebuilt it on a resize — the edition's own two
-       positions behave identically, so that was never X-ray's to change. What
-       IS true, and is what the rule actually says, is that the mode is READ as
-       the paper at a width where no layer can be drawn (so a choice made on a
-       laptop is not quietly cleared), and a REPAINT at that width draws no
-       switch at all. Both are measured. */
+    /* The Thread is up where two working columns fit (1024); below that it
+       stands down and the paper has the tab, and a repaint at that width
+       draws no row at all. */
     await page.setViewportSize({ width: 900, height: 900 });
     await page.waitForTimeout(400);
-    const narrowMode = await page.evaluate(() =>
-      (typeof docViewMode === 'function') ? docViewMode() : '(absent)');
-    check('5a below 1024 the mode reads as the paper, whatever is stored',
-      narrowMode === 'paper', narrowMode);
-    const stuck = await page.evaluate(() => {
-      try { localStorage.setItem('hati.v1.docPlainEnglish', 'xray'); } catch (_) {}
-      return (typeof docViewMode === 'function') ? docViewMode() : '(absent)';
-    });
-    check('5b and a stored choice cannot force a layer it has no room for',
-      stuck === 'paper', stuck);
+    const narrowOn = await page.evaluate(() => (typeof docThreadOn === 'function') ? docThreadOn() : '(absent)');
+    check('5a below 1024 the Thread reads itself as off', narrowOn === false, String(narrowOn));
     await page.evaluate(() => { roomGoTab(state.contracts[0], 'docs'); });
     await page.waitForTimeout(700);
     const narrow = await page.evaluate(() => ({
-      mode: (typeof docViewMode === 'function') ? docViewMode() : '(absent)',
+      hidden: (document.getElementById('doc-thread') || {}).hidden,
+      rows: document.querySelectorAll('#doc-thread .doc-th-row').length,
       segs: document.querySelectorAll('[data-doc-read]').length,
-      xray: (document.getElementById('doc-xray') || {}).hidden,
-      spine: !!document.getElementById('doc-xr-spine'),
     }));
-    check('5c (CONTROL) a repaint at that width draws no switch and no layer',
-      narrow.segs === 0 && narrow.xray !== false && !narrow.spine, JSON.stringify(narrow));
+    check('5c (CONTROL) a repaint at that width draws no row and no switch',
+      narrow.hidden === true && narrow.rows === 0 && narrow.segs === 0, JSON.stringify(narrow));
 
     /* ================= 7. FORMAT A, ON A CONTRACT THAT HAS BEEN READ ====
        WHY THIS SECTION EXISTS. Section 4 opened a contract with NO reading,
-       no brief and no scan, and asked whether the panel said "no reading".
-       It passed either way — and it passed, green, for as long as the X-ray
-       never once showed a reading, which is the fault the owner reported off
-       his iPad. A check that passes against the broken build is a
-       description. Everything below stages the real thing first. */
+       no brief and no scan. It passed either way — and it passed, green, for
+       as long as the X-ray never once showed a reading, which is the fault
+       the owner reported off his iPad. A check that passes against the
+       broken build is a description. Everything below stages the real thing
+       first. */
     await page.setViewportSize({ width: 1500, height: 950 });
     await page.waitForTimeout(300);
     await page.evaluate(() => { selectContract(state.contracts[0].id); });
@@ -355,139 +335,90 @@ const check = (name, pass, detail) => {
     if (!ok7) check('7 (stage) a contract with four painted clauses to read', false, JSON.stringify(staged));
 
     const beforeXr = await ink();
-    const pressed7 = ok7 && await press('[data-doc-read="2"]', '7a2 there is an X-ray to press');
-    await page.waitForTimeout(900);
-    if (pressed7) await page.screenshot({ path: path.join(OUT, '03-xray-format-a.png') });
-
-    const fa = pressed7 ? await page.evaluate(() => {
-      const secOf = k => [...document.querySelectorAll('#doc-xray .doc-xr-sec')]
-        .find(s => (s.querySelector('.doc-xr-k') || {}).textContent &&
-          s.querySelector('.doc-xr-k').textContent.trim().indexOf(k) === 0) || null;
-      const txt = el => el ? el.innerText.replace(/\s+/g, ' ').trim() : '';
-      const marksIn = el => el ? [...el.querySelectorAll('.doc-xr-mark')].map(m =>
-        ({ grade: (m.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-',
-           tag: txt(m.querySelector('.doc-xr-mk')), say: txt(m).slice(0, 60) })) : [];
-      /* land on the clause the high finding quotes */
-      const rows = docXrayRows(state.contracts[0]);
-      const i = rows.findIndex(r => r.tone === 'ruby');
-      if (i >= 0) { const b = document.querySelector('[data-xr-seg="' + i + '"]'); if (b) b.click(); }
-      const sp = document.getElementById('doc-xr-spine'), cv = document.getElementById('doc-canvas');
-      const overlap = sp && cv ? sp.getBoundingClientRect().right > cv.getBoundingClientRect().left : null;
-      const lit = document.querySelectorAll('.doc-xr-seg.is-on').length;
-      const head = (document.querySelector('.doc-xr-head h4') || {}).textContent || '';
-      return { i, overlap, lit, head, tones: rows.map(r => r.tone || '-'),
-        segs: [...document.querySelectorAll('.doc-xr-seg')].map(b =>
-          (b.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-'),
-        _later: 1 };
-    }) : null;
-    await page.waitForTimeout(500);
-
-    const panel = pressed7 ? await page.evaluate(() => {
-      const secOf = k => [...document.querySelectorAll('#doc-xray .doc-xr-sec')]
-        .find(s => { const h = s.querySelector('.doc-xr-k'); return h && h.textContent.trim().indexOf(k) === 0; }) || null;
-      const txt = el => el ? el.innerText.replace(/\s+/g, ' ').trim() : '';
-      const marksIn = el => el ? [...el.querySelectorAll('.doc-xr-mark')].map(m =>
-        ({ grade: (m.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-',
-           tag: txt(m.querySelector('.doc-xr-mk')), say: txt(m).slice(0, 70) })) : [];
-      const plain = secOf(i18t('xr_sec_plain')), look = secOf(i18t('xr_sec_look')), wide = secOf(i18t('xr_sec_wide'));
-      return { plain: txt(plain && plain.querySelector('.doc-xr-t')).slice(0, 60),
-        look: marksIn(look), wide: marksIn(wide),
-        wideDrawn: !!wide, lookHead: txt(look && look.querySelector('.doc-xr-k')) };
-    }) : null;
-
-    check('7a the panel shows the reading that is ON the record',
-      !!panel && /^XRPLAIN/.test(panel.plain),
-      panel ? JSON.stringify(panel.plain) : 'X-ray was never pressed');
-    /* REVERSED IN PLACE 23 Sep 2026: the map draws the MARKED clauses only,
-       so "bare where nothing is said" is now "nothing bare on the map". */
-    check('7b the map is GRADED — ruby and steel, and nothing grey on it',
-      !!fa && fa.segs.indexOf('ruby') >= 0 && fa.segs.indexOf('steel') >= 0 && fa.segs.indexOf('-') < 0
-        && fa.segs.length === fa.tones.filter(t => t !== '-').length,
-      fa ? fa.segs.join(',') + ' of ' + fa.tones.join(',') : 'no map');
-    check('7b2 and it takes grey, never paper', !!fa && fa.overlap === false, fa ? 'overlap:' + fa.overlap : 'no map');
-    check('7b3 a block picks its clause, and exactly one is lit', !!fa && fa.i >= 0 && fa.lit === 1,
-      fa ? JSON.stringify({ i: fa.i, lit: fa.lit, head: fa.head }) : 'no map');
-    check('7c every mark on the clause names its source AND wears its grade',
-      !!panel && panel.look.length >= 2 && panel.look.every(m => m.grade !== '-' && m.tag.length > 1)
-        && panel.look.some(m => m.grade === 'ruby') && panel.look.some(m => m.grade === 'amber'),
-      panel ? JSON.stringify(panel.look) : 'no panel');
-    check('7d the brief’s watchout reached the clause its wording sits on',
-      !!panel && panel.look.some(m => /XRWATCH/.test(m.say) && m.grade === 'amber'),
-      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no panel');
-    /* REVERSED IN PLACE 25 Sep 2026 (Young: "this 'about contract x' portion
-       should be excluded from the x-ray so there is only one red highlighted
-       area which is the worth a look area"). What lands on no clause was
-       SAID in a contract-level block; the X-ray draws that block no more — it
-       stays on the Brief and the Risk scan. What still holds, and is still
-       asserted, is that nothing is ever GUESSED onto a clause. */
-    check('7e About this contract is not drawn, though the brief has an unusual term that lands nowhere',
-      !!panel && !panel.wideDrawn && !panel.look.some(m => /XRODD/.test(m.say)),
-      panel ? JSON.stringify({ wide: panel.wideDrawn, look: panel.look.map(m => m.say) }) : 'no panel');
-    check('7f a watchout with no wording is never guessed onto a clause',
-      !!panel && !panel.look.some(m => /XRLOOSE/.test(m.say)),
-      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no panel');
-    /* GATED on the clause's own list holding something: "not in a block" is
-       satisfied by a build that draws nothing, which proves nothing. */
-    check('7g and one that DID land is said on its clause, once',
-      !!panel && panel.look.length > 0 && panel.look.filter(m => /XRWATCH/.test(m.say)).length === 1,
-      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no panel');
-
-    const afterXr = await ink();
-    check('7h THE CONTRACT DOES NOT MOVE with the whole map drawn (refusal 3)',
-      pressed7 && beforeXr && afterXr && afterXr.inkLeft === beforeXr.inkLeft
-        && afterXr.inkTop === beforeXr.inkTop && afterXr.sheetW === beforeXr.sheetW,
-      (pressed7 ? '' : 'X-ray was never pressed · ') + JSON.stringify({ beforeXr, afterXr }));
-
-    /* ---- the press, with a reading on file and the route refusing ---- */
-    await press('[data-doc-read="0"]', '7i2 there is a way back to the paper');
-    await page.waitForTimeout(400);
-    const pr = await page.evaluate(async () => {
+    /* THE REPAINT BUYS NOTHING: the readings are on the record, so painting
+       the thread with them sends no request. */
+    const pr = ok7 ? await page.evaluate(async () => {
       const real = window.api; let asked = 0;
       window.api = async (p, m, b, o) => {
         if (String(p).indexOf('ai/readings') === 0) { asked++; throw new Error('Copilot is busy'); }
         return real(p, m, b, o);
       };
-      const btn = document.querySelector('[data-doc-read="1"]');
-      if (btn) btn.click();
-      await new Promise(r => setTimeout(r, 1000));
-      const layer = document.getElementById('doc-read');
-      const out = { asked, mode: (typeof docViewMode === 'function') ? docViewMode() : '(absent)',
-        hidden: layer ? layer.hidden : '(absent)',
-        notes: document.querySelectorAll('#doc-read .doc-read-note').length };
-      window.api = real; return out;
-    });
-    check('7i Plain English opens off the reading already on file, buying nothing',
-      pr.asked === 0 && pr.mode === 'plain' && pr.hidden === false && pr.notes > 0,
-      JSON.stringify(pr));
+      docThreadPaint(state.contracts[0]);
+      await new Promise(r => setTimeout(r, 600));
+      window.api = real;
+      return { asked, read: document.querySelectorAll('#doc-thread .doc-th-state .is-read').length };
+    }) : null;
+    const fa = ok7 ? await page.evaluate(async () => {
+      /* land on the clause the high finding quotes */
+      const rows = docXrayRows(state.contracts[0]);
+      const i = rows.findIndex(r => r.tone === 'ruby');
+      if (i >= 0) { const b = document.querySelector('#doc-thread [data-th-go="' + i + '"]'); if (b) b.click(); }
+      await new Promise(z => setTimeout(z, 1300));
+      const th = document.getElementById('doc-thread'), cv = document.getElementById('doc-canvas');
+      const overlap = th && cv ? th.getBoundingClientRect().left < cv.getBoundingClientRect().right : null;
+      const lit = document.querySelectorAll('#doc-thread .doc-th-row.is-open').length;
+      const open = document.querySelector('#doc-thread .doc-th-row.is-open');
+      return { i, overlap, lit, head: open ? open.querySelector('.doc-th-name').textContent : '',
+        got: open ? Number(open.dataset.thRow) : -1, line: docThreadAtLine(),
+        tones: rows.map(r => r.tone || '-'),
+        segs: [...document.querySelectorAll('#doc-thread .doc-th-row')].map(b =>
+          (b.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-') };
+    }) : null;
+    if (fa) await page.screenshot({ path: path.join(OUT, '03-thread-format-a.png') });
 
-    /* ---- D1, the dividers ---- */
-    const divs = await page.evaluate(() => {
-      const bs = [...document.querySelectorAll('.doc-read-seg button')];
-      const grp = document.querySelector('.doc-read-seg');
-      const rung = getComputedStyle(document.documentElement).getPropertyValue('--ctl-h').trim();
-      return { rung, h: grp ? Math.round(grp.getBoundingClientRect().height) : -1,
-        rows: bs.map(b => ({ w: parseFloat(getComputedStyle(b).borderLeftWidth),
-          c: getComputedStyle(b).borderLeftColor,
-          pressed: b.getAttribute('aria-pressed') })) };
-    });
-    check('7j D1 — a hairline between every pair, none before the first',
-      divs.rows.length === 3 && divs.rows[0].w === 0 && divs.rows[1].w === 1 && divs.rows[2].w === 1,
-      JSON.stringify(divs.rows.map(r => r.w)));
-    /* MEASURED WITH THE LAST HALF LIT, not with whatever happened to be lit:
-       the question is what a divider does when it meets the filled half, and
-       on a build with no dividers at all "the lit one is the first one" made
-       that claim pass while measuring nothing. */
-    await press('[data-doc-read="2"]', '7k2 there is an X-ray to light');
-    await page.waitForTimeout(500);
-    const lit = await page.evaluate(() => [...document.querySelectorAll('.doc-read-seg button')]
-      .map(b => ({ w: parseFloat(getComputedStyle(b).borderLeftWidth),
-        pressed: b.getAttribute('aria-pressed') })));
-    check('7k and the divider is drawn beside the LIT half too, so nothing moves',
-      lit.length === 3 && lit[2].pressed === 'true' && lit[2].w === 1 && lit[1].w === 1,
-      JSON.stringify(lit));
-    check('7l (CONTROL) the group gained a divider and not a pixel of height',
-      divs.h > 0 && divs.rung && divs.h === Math.round(parseFloat(divs.rung)),
-      'group ' + divs.h + 'px · --ctl-h ' + divs.rung);
+    const panel = fa ? await page.evaluate(() => {
+      const open = document.querySelector('#doc-thread .doc-th-row.is-open');
+      const txt = el => el ? el.innerText.replace(/\s+/g, ' ').trim() : '';
+      const marksIn = el => el ? [...el.querySelectorAll('.doc-xr-mark')].map(m =>
+        ({ grade: (m.className.match(/is-(ruby|amber|steel)/) || [])[1] || '-',
+           tag: txt(m.querySelector('.doc-xr-mk')), say: txt(m).slice(0, 70) })) : [];
+      const look = open && open.querySelector('.doc-th-look'), wide = open && open.querySelector('.doc-xr-sec.is-wide');
+      const plain = open && open.querySelector('.doc-th-plain');
+      return { plain: txt(plain).slice(0, 60), look: marksIn(look), wide: marksIn(wide), wideDrawn: !!wide,
+        face: plain ? getComputedStyle(plain).fontFamily : '', paper: getComputedStyle(document.querySelector('#doc-canvas .doc-surface') || document.getElementById('doc-canvas')).fontFamily };
+    }) : null;
+
+    check('7a the open row shows the reading that is ON the record, in the paper\'s face',
+      !!panel && /^XRPLAIN/.test(panel.plain) && !!panel.face && panel.face === panel.paper,
+      panel ? JSON.stringify({ plain: panel.plain, face: panel.face.slice(0, 30), paper: panel.paper.slice(0, 30) }) : 'nothing staged');
+    check('7b the rows are GRADED — ruby and steel where the record says so, and a tone on exactly the marked ones',
+      !!fa && fa.segs.indexOf('ruby') >= 0 && fa.segs.indexOf('steel') >= 0
+        && fa.segs.every((g, k) => g === fa.tones[k]),
+      fa ? fa.segs.join(',') + ' of ' + fa.tones.join(',') : 'no thread');
+    check('7b2 and the Thread takes the column, never the paper', !!fa && fa.overlap === false, fa ? 'overlap:' + fa.overlap : 'no thread');
+    check('7b3 a press opens its row, exactly one, at the line', !!fa && fa.i >= 0 && fa.lit === 1 && fa.got === fa.i && fa.line === fa.i,
+      fa ? JSON.stringify({ i: fa.i, got: fa.got, line: fa.line, lit: fa.lit, head: fa.head }) : 'no thread');
+    check('7c every mark on the clause names its source AND wears its grade',
+      !!panel && panel.look.length >= 2 && panel.look.every(m => m.grade !== '-' && m.tag.length > 1)
+        && panel.look.some(m => m.grade === 'ruby') && panel.look.some(m => m.grade === 'amber'),
+      panel ? JSON.stringify(panel.look) : 'no row');
+    check('7d the brief’s watchout reached the clause its wording sits on',
+      !!panel && panel.look.some(m => /XRWATCH/.test(m.say) && m.grade === 'amber'),
+      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no row');
+    /* REVERSED IN PLACE 25 Sep 2026 (Young: "this 'about contract x' portion
+       should be excluded from the x-ray so there is only one red highlighted
+       area which is the worth a look area"). What lands on no clause is never
+       GUESSED onto one. */
+    check('7e About this contract is not drawn, though the brief has an unusual term that lands nowhere',
+      !!panel && !panel.wideDrawn && !panel.look.some(m => /XRODD/.test(m.say)),
+      panel ? JSON.stringify({ wide: panel.wideDrawn, look: panel.look.map(m => m.say) }) : 'no row');
+    check('7f a watchout with no wording is never guessed onto a clause',
+      !!panel && !panel.look.some(m => /XRLOOSE/.test(m.say)),
+      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no row');
+    /* GATED on the clause's own list holding something: "not in a block" is
+       satisfied by a build that draws nothing, which proves nothing. */
+    check('7g and one that DID land is said on its clause, once',
+      !!panel && panel.look.length > 0 && panel.look.filter(m => /XRWATCH/.test(m.say)).length === 1,
+      panel ? JSON.stringify(panel.look.map(m => m.say)) : 'no row');
+
+    const afterXr = await ink();
+    check('7h THE CONTRACT DOES NOT MOVE with the whole thread drawn (refusal 3)',
+      !!fa && beforeXr && afterXr && afterXr.inkLeft === beforeXr.inkLeft
+        && afterXr.inkTop === beforeXr.inkTop && afterXr.sheetW === beforeXr.sheetW,
+      (fa ? '' : 'nothing staged · ') + JSON.stringify({ beforeXr, afterXr }));
+    check('7i the readings on file are shown without buying anything',
+      !!pr && pr.asked === 0 && pr.read >= 4, JSON.stringify(pr));
+    /* 7j–7l (the switch's dividers) RETIRED 5 Oct 2026 with the switch. */
 
     check('6a no page errors anywhere in the run', errors.length === 0,
       errors.slice(0, 3).join(' | '));

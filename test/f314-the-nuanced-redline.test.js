@@ -445,101 +445,25 @@ describe('f314 (6) — the decision that could not be made', () => {
 });
 
 /* ========================================================================== */
-describe('f314 (7) — the plain English column', () => {
-  test('the front matter is mirrored, and only where there is a boundary to mirror to', () => {
-    const i = CONTRACT.indexOf('function docReadFront');
-    assert.ok(i > 0, 'there is one reading of what sits above the first clause');
-    const body = CONTRACT.slice(i, CONTRACT.indexOf('function docReadSwitchHtml'));
-    /* RE-POINTED 26 Sep 2026 (Young: "the words reading still display beneath
-       the translation so they are on top of each other"). The boundary was the
-       first PAIRED clause, and while a long contract is read in pieces a later
-       page lands first — so the wording of every clause above it was copied in
-       as "front matter" with a "Reading…" drawn on top. The boundary is the
-       first clause ON THE PAPER; the claim it protected is unchanged: no clause,
-       no boundary, nothing mirrored. */
-    assert.match(body, /const first=Array\.isArray\(rows\)\?rows\.find\(r=>r&&r\.el\):null;/,
-      'the boundary is the first clause the sheet holds');
-    assert.match(body, /if\(!canvas\|\|!first\) return \[\]/,
-      'no clause on the paper, no boundary, nothing mirrored');
-    assert.match(CONTRACT, /const front=docReadFront\(c,sheet\);/,
-      'and the painter hands it the SHEET, never the pairs');
-    assert.match(body, /DOCUMENT_POSITION_PRECEDING/, 'only what comes BEFORE the first entry');
-    assert.match(body, /DOC_READ_FURNITURE/, 'and never the paper\'s furniture');
+describe('f314 (7) — the plain English column is the thread now', () => {
+  /* REVERSED IN PLACE 5 Oct 2026 (the Thread): the column that mirrored the
+     paper's front matter beside the readings is gone; the thread lists the
+     clauses and opens the one under the reader's eye. The walls stay. */
+  test('no mirror, no second scroller of the paper', () => {
+    assert.ok(!/function docReadFront\(|function docReadMirrorStyle\(|function docReadMirrorToc\(|docReadWheel/.test(CONTRACT));
+    assert.match(INDEX, /\.doc-th-rows\{ position:absolute; inset:0; overflow-y:auto;/, 'the thread scrolls its rows, not the paper');
+    assert.match(INDEX, /\.doc-th-row\.is-open \.doc-th-in\{[^}]*max-height:var\(--th-max,420px\)/, 'and the open row scrolls inside itself');
   });
 
-  test('the mirror never reaches the route, the cache or the hash', () => {
-    /* docReadClauses is what is SENT and what the reading is keyed on. If the
-       mirror touched it, every contract already read would pay again. */
+  test('the sent list never knew the mirror, and still does not', () => {
     const i = CONTRACT.indexOf('function docReadClauses');
     const body = CONTRACT.slice(i, i + 2600);
-    assert.ok(!/docReadFront|dr-mirror/.test(body), 'the sent list knows nothing about it');
+    assert.ok(!/docReadFront|dr-mirror|hati-toc-n/.test(body), 'the sent list knows nothing about it');
     assert.ok(!/docReadFront/.test(CONTRACT.slice(CONTRACT.indexOf('function docReadSig'),
       CONTRACT.indexOf('function docReadSig') + 900)), 'and neither does the signature it is cached on');
   });
 
-  test('its shape is MEASURED off the block it faces, through a narrow door', () => {
-    const i = CONTRACT.indexOf('function docReadMirrorStyle');
-    const body = CONTRACT.slice(i, CONTRACT.indexOf('function docReadFront'));
-    assert.match(body, /getComputedStyle/, 'read off the paper, never typed here');
-    assert.match(body, /DOC_READ_ALIGN\.has/, 'alignment from a fixed set');
-    assert.match(body, /DOC_READ_CASE\.has/, 'case from a fixed set');
-    assert.match(body, /\/\^-\?\\d\+\(\\\.\\d\+\)\?px\$\//, 'letter-spacing only where it is a plain number of pixels');
-    assert.match(body, /var\(--dr-size/, 'and the size is a RATIO of the edition\'s own, never a copied pixel');
-  });
-
-  /* ---- A CONTENTS ROW KEEPS ITS RIGHT-HAND COLUMN (Young reported it 15 Sep
-     2026: "The numbers in the contract on the right are supposed to be on the
-     far right of the contract similar to the contract on the left") ----
-     The geometry is measured in plain-english-verify 19, which is the only
-     instrument that can see it. These are the walls round it: the tail is the
-     FILE'S own, the split refuses rather than guesses, and nothing about it
-     reaches what is sent. */
-  test('a contents row is two columns, and the tail is the FILE\'s own', () => {
-    const i = CONTRACT.indexOf('function docReadMirrorToc');
-    assert.ok(i > 0, 'there is one reading of a contents row\'s right-hand column');
-    const body = CONTRACT.slice(i, CONTRACT.indexOf('function docReadFront'));
-    assert.match(body, /window\.RICH_TOC_TAIL_CLASS/,
-      'the class is read through window, so the mirror and the sanitiser cannot drift');
-    assert.match(body, /'hati-toc-n'/, 'with a fallback for a stage without it');
-    assert.match(body, /if\(!whole\.endsWith\(n\)\) return null/,
-      'and it REFUSES rather than guessing where the line does not end with the tail');
-    assert.match(body, /if\(!tail\) return null/, 'a block with no such span is not a contents row');
-    assert.match(CONTRACT, /toc:docReadMirrorToc\(el,text\)/, 'every mirrored block is asked');
-    assert.match(CONTRACT, /f\.toc\?`<p class="hati-toc">\$\{esc\(f\.toc\.head\)\}<span class="hati-toc-n">/,
-      'and where there is one the mirror draws the paper\'s own two-part shape');
-  });
-
-  test('and the mirror is dressed for it in its own home', () => {
-    /* THE CLOTHES FOLLOW THE BUILDER: every sheet that draws this markup
-       carries the pair, and each is scoped to its own home — none of them can
-       reach a layer that is a SIBLING of the paper. */
-    assert.match(INDEX, /\.doc-read-mirror > p\.hati-toc\{ overflow:hidden; \}/,
-      'the row contains its own float');
-    assert.match(INDEX, /\.doc-read-mirror \.hati-toc-n\{ float:right; padding-left:1\.2em; \}/,
-      'and the tail sits at the wall, in the document\'s own declarations');
-    assert.match(INDEX, /\.hati-doc \.hati-toc-n\{float:right;padding-left:1\.2em;\}/,
-      'the sheet it mirrors is untouched');
-  });
-
-  /* A NAMED WALL, and it is green at the parent on purpose: it asserts an
-     ABSENCE, and the whole point of it is that the absence survives. */
-  test('the contents tail never reaches what is sent', () => {
-    const i = CONTRACT.indexOf('function docReadClauses');
-    const body = CONTRACT.slice(i, i + 2600);
-    assert.ok(!/docReadMirrorToc|hati-toc-n/.test(body), 'the sent list knows nothing about it');
-    assert.ok(!/docReadMirrorToc/.test(CONTRACT.slice(CONTRACT.indexOf('function docReadSig'),
-      CONTRACT.indexOf('function docReadSig') + 900)), 'and neither does the signature it is cached on');
-  });
-
-  test('the wheel is forwarded to the paper, and the edition grows no second scroller', () => {
-    const i = CONTRACT.indexOf('docReadWheel');
-    assert.ok(i > 0, 'the layer forwards the wheel');
-    const body = CONTRACT.slice(i - 200, i + 900);
-    assert.match(body, /getElementById\('doc-scroll'\)/, 'onto the paper\'s own scroller');
-    assert.match(body, /deltaMode===1\?16:\(e\.deltaMode===2\?s\.clientHeight:1\)/, 'lines and pages honoured');
-    assert.match(body, /if\(s\.scrollTop!==was\) e\.preventDefault\(\)/,
-      'and the press is only swallowed where it actually moved the paper');
-    assert.match(CONTRACT, /inner\.style\.transform='translateY\('/,
-      'the edition is still a transform, never a scroller of its own');
+  test('the paper\'s own contents rows keep their two columns', () => {
+    assert.match(INDEX, /\.hati-doc \.hati-toc-n\{float:right;padding-left:1\.2em;\}/, 'the sheet is untouched');
   });
 });

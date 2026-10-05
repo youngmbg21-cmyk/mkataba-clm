@@ -1214,7 +1214,7 @@ function tplFormCommit(c, idx, value) {
      empty. Filling the last required field has to clear its notice in the same
      breath, or the card goes on asking for work that is finished. Guarded:
      this file is loaded on pages that have no Checks card at all. */
-  if (window.renderChecksCard) renderChecksCard(c);
+  if (window.docThreadPaint && (!window.contractOnScreen || contractOnScreen(c))) docThreadPaint(c);
 }
 
 /* Click a blank in the document: typed input right there. Signatures route

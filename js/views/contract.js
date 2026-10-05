@@ -2097,7 +2097,6 @@ function triageAndPaint(c, opts){
 function triageRepaintSurfaces(x){
       if(!x) return;
       if(window.contractOnScreen && !contractOnScreen(x)) return;
-      if(document.getElementById('checks-card')) renderChecksCard(x);
       if(document.getElementById('kt-rows')) renderKeyTerms(x);
       if(document.getElementById('kt-side')) renderKeyTermsSide(x);
       if(document.getElementById('kt-triage-slot')) paintKtTriage(x);
@@ -4264,13 +4263,14 @@ function wireActionBar(c){
       if(_wsTab==='sign'){ go(); return; }
       roomGoTab(c,'sign'); setTimeout(go,180); return;
     }
-    /* The reading rung: put the document in front of them and open the Checks
-       card's own panel, rather than leaving "run the checks" as an instruction
-       to go and find something. */
+    /* The reading rung: put the document in front of them with the Thread
+       beside it, whose open row says which readings have not been made and
+       carries their Run — rather than leaving "run the checks" as an
+       instruction to go and find something. */
     if(kind==='checks'){
       roomGoTab(c,'docs');
       setTimeout(()=>{
-        const card=document.getElementById('checks-card');
+        const card=document.getElementById('doc-thread');
         if(card){ card.scrollIntoView({behavior:'smooth',block:'center'});
           card.classList.add('anchor-flash'); setTimeout(()=>card.classList.remove('anchor-flash'),1800); }
       },160);
@@ -4530,8 +4530,6 @@ function roomPlace(){ return state.activeId ? { tab:_wsTab } : null; }
 function roomPlacePut(p){
   if(!p||!ROOM_TABS.some(t=>t[0]===p.tab)) return;
   _wsTabWant=p.tab;
-  /* a reload is not an ARRIVAL: the Document tab keeps the reading the reader had up */
-  if(p.tab==='docs'&&state.activeId) _docViewAt=state.activeId+'|docs';
 }
 function wsTabDefaults(c){
   if(_wsTabFor!==c.id){
@@ -4797,7 +4795,7 @@ function wsTabRowEndHtml(c){
      pixels apart; on every other tab the head's square is what it was. */
   const focus=(PORTAL_MODE)?'':`<button type="button" class="ui-btn ws-focus-door" data-ws-focus-door aria-pressed="${_wsFocus?'true':'false'}"
     title="${esc(i18t('ct_focus_mode'))}" aria-label="${esc(i18t('ct_focus_mode'))}" aria-pressed="false">${icon('scan','w-3.5 h-3.5')}</button>`;
-  return docReadSwitchHtml(c)+step+focus+door;
+  return step+focus+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
    The two strips that used to band the top of the contract, in the SAME stack
@@ -4908,26 +4906,11 @@ function wsPaintTabRowEnd(c){
      door, and comes back the moment the row stops drawing it (another tab). */
   const fd=end.querySelector('[data-ws-focus-door]');
   if(fd) fd.addEventListener('click',wsFocusToggle);
-  /* THE SWITCH'S OWN WIRING — the one call this slot's rewrite dropped on
-     21 Sep 2026, which left the Plain English press dead for one run
-     (duty-marks-verify 0b caught it: a press, no call, no reading). */
-  wireDocRead(c,end);
 }
 let _wsTabApplied=null;   /* the tab applyWsTabs last painted — "arrived" is a change of it */
 function applyWsTabs(c){
   const keys=ROOM_TABS.map(t=>t[0]);
   if(!keys.includes(_wsTab)) _wsTab='docs';
-  /* ---- THE DOCUMENT TAB LANDS ON THE CONTRACT (Young ruled 23 Sep 2026:
-     "when you go to document page, the landing state should be on contract
-     view not x-ray") ----
-     The switch's choice used to be remembered for ever, so a reader who
-     looked at the X-ray once found every contract opening on it. It is now a
-     choice about THIS visit: ARRIVING on the tab — from another tab, another
-     contract or another page — puts it back to Contract View, and a repaint
-     of the tab the reader is already on keeps whatever they picked. */
-  const here=(c&&c.id)+'|'+_wsTab;
-  if(_wsTab==='docs' && _docViewAt!==here) docViewSet('paper');
-  _docViewAt=here;
   const paint=k=>{
     document.querySelectorAll('[data-ws-pane]').forEach(p=>{
       /* A PANE MAY SERVE MORE THAN ONE TAB (J-1). The Document and Signing
@@ -5063,13 +5046,9 @@ function applyWsTabs(c){
        than handed back from its cache — see triageRun. After the paint, so
        the strip it repaints is the one on screen. */
     if(roomReadAgainDue(c)) triageAndPaint(c,{ again:true, fresh:true }); }
-  /* The layer belongs to the Document tab alone, and the cards it covers have to
-     be handed back on the way to any other tab (idea 7). */
-  docReadPaint(c);
-  /* AND X-RAY, after it, for the reason stated over docXrayPaint: the painter
-     above hands #doc-right back whenever the edition is off, which in this
-     mode it is. */
-  docXrayPaint(c); docXrayWire(c);
+  /* The thread belongs to the Document tab alone and stands down on the way
+     to any other tab. */
+  docThreadPaint(c);
   /* The Document pane has just been given a width for the first time since it
      was hidden. Measure it NOW — see the note in layoutDocResizer about why it
      refuses to measure a hidden pane at all. */
@@ -7214,7 +7193,7 @@ function riskCardHtml(c){
    run over the wording, which is what the other two rows on that card are —
    and it was a check row until August, when the row was removed as a duplicate
    of this card. It is not a duplicate any more, because this card is not
-   staying: see checksRowsHtml. */
+   staying — and since the Thread (5 Oct 2026) the Checks card itself is gone. */
 /* ---- THE CONTRACT BRIEF, WHERE THE CONTRACT IS BEING UNDERSTOOD ----
    (owner-asked 20 Aug 2026.) Moved off the Document tab's Checks card, which
    is a list of sweeps that pin findings to clauses; the brief pins to nothing
@@ -8599,79 +8578,6 @@ function wireFieldLink(c){
   }
 }
 
-function checksRowsHtml(c){
-  const row=(kind,ic,name)=>{
-    const v=checkVerdict(c,kind);
-    /* STEEL IS THE FOURTH TONE AND IT MEANS "NOTHING IS WRONG, SOMETHING IS
-       WAITING" — a reading already made that nobody has ticked yet. Without it
-       a held list fell through to GREEN, which is the row saying this contract
-       is clear when the work has not been looked at. */
-    /* THE ROW IS THE REFERENCE'S (the redesign's second pass, 21 Sep 2026): a
-       state mark, the name over what was found, and ONE verb at the right. The
-       verdict's label moved from a coloured pill in the verb's own slot to the
-       sub-line — the same words, the same four tones, now on the mark — and
-       the verb says what the press does: Open where there is something to
-       read, the reading's own count where a held list waits to be ticked, and
-       Run where nothing has been run. `.cn`, `.cg` and data-check keep their
-       names; the browser files that read the row read them. */
-    const state=!v?'is-none':v.tone==='bad'?'is-bad':v.tone==='warn'?'is-warn':v.tone==='steel'?'is-steel':'is-ok';
-    const mark=!v?'·':v.tone==='ok'?'✓':v.tone==='steel'?'·':'!';
-    /* A DRAWN ARROW, never a typed one (the Compact ladder, 26 Sep 2026). */
-    const verb=!v?`Run ${icon('chevR','w-3.5 h-3.5')}`:v.held?esc(v.label):i18t('act_open');
-    return `<div class="check-row ${state}"><span class="ci" aria-hidden="true">${mark}</span>
-      <span class="ct"><span class="cn">${name}</span><span class="cs">${v?esc(v.label):i18t('ct_check_not_run')}</span></span>
-      <button class="cg" data-check="${kind}" title="${esc(v?i18t('ct_see_found'):i18t('ct_run_check'))}">${verb}</button></div>`;
-  };
-  /* ---- OBLIGATIONS IS A CHECK ROW AGAIN, AND IT LEADS (owner-asked, 14 Aug 2026) ----
-     This REVERSES the removal of 10 Aug 2026, and the reason that removal was
-     right has gone. It was taken out as a duplicate: the Obligations card on
-     Key terms carried its own Find obligations beside the list the sweep fills,
-     so there were two doors onto one act — and this was the worse door, because
-     pressing it here sent you to the other tab to read what it found.
-
-     BOTH HALVES ARE ANSWERED NOW. There is one door, because the card is not
-     staying on Key terms (see renderKeyTermsSide — Agreement family has taken
-     that slot). And nothing sends you anywhere: the findings open in a panel
-     over this document, which is how the other two rows already work.
-
-     IT LEADS BECAUSE IT IS THE ORDER THE WORK IS DONE IN — what does this
-     contract commit us to, then how does the wording compare with our
-     playbook, then what else is risky in it.
-
-     THE COST, SAID OUT LOUD: on a contract that is already signed, ticking off
-     a quarterly report is now one press deeper than it was. The calendar and
-     the dashboard still open an obligation directly, so this only bites while
-     reading the contract itself. */
-  /* ---- THE CONTRACT BRIEF HAS LEFT THIS CARD (owner-asked 20 Aug 2026) ----
-     "It only makes sense to review a brief while in the [Key terms] page than
-     while under the documents page." The other three rows all PIN THEIR
-     FINDINGS TO A CLAUSE, which is why they belong beside the wording; the
-     brief is prose about the whole agreement and pins to nothing. And the
-     moment it is most wanted is a contract somebody sent you that you have
-     never read — which is where Key terms already sends you. It is a card in
-     the Key terms column now, beside Renewal and Agreement family. */
-  return row('oblig','calendar',i18t('ob_obligations'))
-    + row('playbook','shield',i18t('ct_playbook_review'))
-    + row('risk','scan',i18t('ct_copilot_risk_scan'));
-}
-function renderChecksCard(c){
-  const card=document.getElementById('checks-card'); if(!card) return;
-  const rows=card.querySelector('[data-checks-rows]'); if(!rows) return;
-  rows.innerHTML=checksRowsHtml(c);
-  /* The line above the rows moves with the form. Typing the last required
-     field has to take "12 still empty" off the card in the same breath —
-     otherwise the card goes on telling somebody to do the thing they just
-     finished. Repainted from the record, never from a counter of its own. */
-  const note=card.querySelector('[data-checks-note]');
-  if(note) note.innerHTML=checksNoteHtml(c);
-  wireChecksCard(c);
-}
-function checksNoteHtml(c){
-  const n=tplFormOpenCount(c);
-  return n
-    ? `Fill the contract form first — ${n} required field${n===1?'':'s'} still empty.`
-    : i18t('ct_run_before_sending');
-}
 /* The findings, over the page. The panel hosts the SAME element id the column
    used to, so the existing renderer fills it without knowing it moved — which
    is also why the column no longer carries one: two elements with one id is
@@ -8703,8 +8609,8 @@ function briefPanelToggle(c){
    Every door that opened the side panel — the Checks card's row, the head's
    check icon, the Overview tile — arrives here, so none of them can open the
    retired panel by accident. On the Negotiate page the list is already on
-   screen and the press takes the reader to it. A window too narrow for Risk
-   View lands on the Document tab and says why. */
+   screen and the press takes the reader to it. A window too narrow for the
+   thread lands on the Document tab and says why. */
 function riskViewOpen(c){
   if(!c) return;
   const pile=document.getElementById('rl-risks');
@@ -8714,11 +8620,11 @@ function riskViewOpen(c){
     if(typeof toast==='function') toast(i18t('rk_view_narrow'),'warn');
     return;
   }
-  docViewSet('xray');
-  /* Not an ARRIVAL: the reader asked for this view, so the landing rule that
-     puts the switch back to Contract View stands aside for this one press. */
-  _docViewAt=String(c.id)+'|docs';
+  /* The thread opens on the first clause carrying a mark and glides the
+     paper to it — see docThreadPaint. */
+  _docThreadWant='risk';
   roomGoTab(c,'docs');
+  if(_wsTab==='docs') docThreadPaint(c);
 }
 function openCheckPanel(c,kind){
   if(kind==='risk'||kind==='scan'){ riskViewOpen(c); return; }
@@ -8775,91 +8681,6 @@ function openCheckPanel(c,kind){
     return;
   }
   backstop();
-}
-function wireChecksCard(c){
-  const card=document.getElementById('checks-card'); if(!card) return;
-  const mayEdit=(typeof canEdit!=='function'||canEdit());
-  /* ---- AN EXECUTED CONTRACT IS WHERE OBLIGATIONS START, NOT WHERE THEY STOP ----
-     The rule below — no re-running a check once the contract is signed — is
-     right for a playbook review and a risk scan: those read the WORDING, and
-     sealed wording does not change, so re-reading it can only produce the same
-     answer over a document nobody can act on.
-
-     It is wrong for obligations, and quietly so. An obligation is not a reading
-     of the wording, it is a commitment kept alongside it, and the whole point
-     of tracking a quarterly report is that the quarter comes round AFTER
-     signature. Left to inherit this rule, the sweep would go dead on exactly
-     the contracts where it is useful — which is the same mistake
-     renderObligationsSection had made and corrected in its own guard, so
-     inheriting it here would have re-introduced through the door the panel had
-     just shut.
-
-     Deliberate, and per-kind rather than a hole in the rule.
-
-     THE BRIEF JOINS THE EXCEPTION (WO-2), for the imported-paper reason: a
-     signed contract that arrived by upload is exactly the one an owner most
-     needs explained, and generating a brief writes NOTHING to the sealed
-     record — the cache lives in its own table, additive like a note. */
-  const editableFor=kind=>mayEdit&&(kind==='oblig'||kind==='brief'||c.status!=='Signed');
-  card.querySelectorAll('[data-check]').forEach(b=>{
-    const kind=b.getAttribute('data-check');
-    /* THE VERDICT ITSELF, not a boolean of it: the branch below has to be able
-       to ask WHICH kind of answer it is, and coerced to true/false a held
-       reading was indistinguishable from findings already on the record. */
-    const ran=checkVerdict(c,kind);
-    const editable=editableFor(kind);
-    /* Reading a finding is not editing. A viewer, and anyone on an executed
-       contract, can still open what was found — they just cannot re-run it. */
-    if(!editable&&!ran){ b.disabled=true; b.style.opacity='.45'; b.style.cursor='default';
-      b.title='Read-only for your role, or this contract is executed'; return; }
-    b.addEventListener('click',async()=>{
-      /* A HELD READING IS A LIST TO TICK, NOT FINDINGS TO READ. The panel shows
-         what is ON the contract, and nothing is yet — so a verdict saying "20
-         proposed" must press the funnel, which offers them and spends nothing.
-         BOTH presses ask this, or the same row behaves differently depending on
-         which of them the reader happened to use. */
-      if(ran && !ran.held) return openCheckPanel(c,kind);
-      if(!editable) return;
-      b.innerHTML=`<span style="opacity:.6">${i18t('ct_working')}</span>`; b.disabled=true;
-      try{
-        if(kind==='risk'){
-          if(!window.runScanAct) throw new Error('unavailable');
-          runScanAct(c);            // repaints the card itself when it lands
-          return;
-        }
-        if(kind==='playbook'){
-          if(!window.runPlaybookReview) throw new Error('unavailable');
-          const res=await runPlaybookReview(c);
-          if(res){ c.playbook=res; logAudit(c,'Playbook',`Reviewed against ${res.label} — ${deviationSummary(c).dev} deviation(s), ${deviationSummary(c).miss} missing`); persist(c); }
-          /* The review is stored on its own contract either way; where the
-             reader has opened another one meanwhile, nothing here paints over
-             it (26 Sep 2026, the overnight clean-up — see contractOnScreen). */
-          if(window.contractOnScreen && !contractOnScreen(c)) return;
-          renderChecksCard(c);
-          if(window.renderSignButton) renderSignButton(c);
-          openCheckPanel(c,'playbook');
-          return;
-        }
-        if(kind==='oblig'){
-          if(!window.runFindObligations) throw new Error('unavailable');
-          /* NO openCheckPanel AFTERWARDS, and that is not an omission. The
-             sweep ends by opening its own review dialog — the list of what it
-             found, with tick-boxes — and that dialog and this panel are the
-             same #modal-root. Opening the panel here would be destroyed by the
-             dialog a frame later, leaving renderObligationsSection filling a
-             host that is no longer on the page. The row repaints instead, and
-             once anything is tracked it reads "N tracked" and opens the panel
-             on the next press, exactly like the other two. */
-          await runFindObligations(c);
-          renderChecksCard(c);
-          return;
-        }
-      }catch(e){
-        toast(i18t('ct_check_unavailable'),'err');
-        renderChecksCard(c);
-      }
-    });
-  });
 }
 /* Draggable divider between the contract (left) and workspace (right). The
    contract takes about two thirds by default and drags either way — wider for
@@ -8988,8 +8809,8 @@ function applyDocZoom(){
      type off fixed tokens, so the stepper moved one side of the page and not
      the other. It takes the same RATIO, written on its own host because the
      host is not inside #doc-zoom. */
-  const xr=document.getElementById('doc-xray');
-  if(xr) xr.style.setProperty('--doc-scale', pref.toFixed(3));
+  const th=document.getElementById('doc-thread');
+  if(th) th.style.setProperty('--doc-scale', pref.toFixed(3));
 }
 function wireDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
@@ -10758,25 +10579,9 @@ function renderWorkspace(){
           </div>
         </div>
 
-        <div data-doc-col="docs" style="display:flex;flex-direction:column;gap:var(--s-3)">
-          <!-- ---- CHECKS: THREE ROWS, NOT THREE CARDS ----
-               The playbook review and the Copilot scan each used to open a
-               full card carrying a paragraph of explanation and a filled
-               button, before either had been run — two thirds of this column
-               spent describing work nobody had asked for yet. They are rows
-               now. Each one's RESULTS still open into the full card below,
-               which is what those cards were always for. -->
-          <!-- ---- FILL THE CONTRACT IN, THEN CHECK IT ----
-               Checks sat above the contract form, which put the reviewing
-               before the writing: a form reading "0 of 26 required filled" had
-               three Run buttons above it offering to review a document that
-               did not exist yet. Nothing they returned could have been true.
-
-               The form comes first now, and Checks follows it — the order the
-               work is actually done in. Checks is not hidden or disabled while
-               the form is open (a contract from a plain template has no form at
-               all, and an uploaded one is complete on arrival), but it does say
-               so: see checksRowsHtml, which counts the unfilled fields. -->
+        <div data-doc-col="docs" style="display:flex;flex-direction:column;gap:var(--s-3);flex:1 1 auto;min-height:0">
+          ${''/* The form first (the writing before the reviewing), then the
+                 Thread — what is known about each clause — below it. */}
           <!-- template form: the open fields of a library-template contract -->
           <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           ${''/* Where this contract came from. Quiet, because it is a thing you
@@ -10784,54 +10589,17 @@ function renderWorkspace(){
                  wrong, which is that a template revised later does not revise
                  the contracts already made from it. */}
           ${templateProvenanceHtml(c)}
-          <section id="checks-card" style="${CARD};padding:13px 15px">
-            <div style="display:flex;align-items:baseline;gap:var(--s-2);flex-wrap:wrap;margin-bottom:4px">
-              <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${i18t('ct_checks')}</h6>
-              <p data-checks-note style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0;line-height:1.5">${checksNoteHtml(c)}</p>
-            </div>
-            <div data-checks-rows>${checksRowsHtml(c)}</div>
-          </section>
-          ${''/* THE RESULTS CARDS HAVE LEFT THIS COLUMN. They open over the
-                 page from the rows above — see openCheckPanel — because a
-                 finding is something you read and act on, not something that
-                 lives in the sidebar forever repeating a verdict the row can
-                 say in three words. Their ids move with them; they are not
-                 declared twice. */}
-
-          <!-- collaborate & negotiate -->
-          ${''/* The role chip that used to sit beside every name is gone. It was
-                 a bordered pill per message, on a column of messages, doing the
-                 work one line of quiet grey text does — and it made three
-                 comments read as nine competing objects. Name, then role and
-                 when, then what they said: the shape every message list has. */}
-          <section style="${CARD};padding:var(--s-3) 14px">
-            <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:10px">
-              <h6 style="${H6};flex:1">${i18t('ct_activity_comments')}</h6>
-              <span style="display:inline-flex;align-items:center;gap:5px;font-size:var(--t-label);color:var(--st-green-fg);font-weight:var(--w-strong)"><span class="live-dot" style="height:6px;width:6px;border-radius:var(--radius);background:var(--st-green-dot);display:inline-block"></span>${i18t('ct_live')}</span>
-            </div>
-            <div id="feed" class="scroll-thin" style="max-height:300px;overflow-y:auto;padding-right:var(--s-1);display:flex;flex-direction:column;gap:14px"></div>
-            ${''/* ---- A VIEWER IS NOT OFFERED A BOX THAT DISCARDS WHAT THEY TYPE ----
-                 The composer was drawn for everybody. A Viewer typed, pressed
-                 send, watched the comment appear in the feed and in the audit
-                 panel — and nothing was saved and nothing said so. The refusal
-                 lived in the save, which is too late to be a refusal at all.
-                 A Viewer reads; that is what the role is, and every other
-                 surface in this product already draws no verb for them. So the
-                 composer stands down and the feed stays, because reading the
-                 conversation is exactly what a Viewer is here to do. */}
-            ${(typeof canEdit==='function' && !canEdit()) ? '' : `
-            <div style="margin-top:var(--s-3);padding-top:11px;border-top:1px solid var(--color-divider)">
-              <div style="font-size:var(--t-label);color:var(--color-neutral-500);margin-bottom:7px">${i18t('ct_commenting_as')} <span style="font-weight:var(--w-strong);color:var(--color-text)">${currentUser()?.name||'you'}</span> · internal</div>
-              ${''/* THE BOX IS THE BUTTON'S HEIGHT (the Compact ladder, 26 Sep
-                     2026): one line of it is the everyday rung, and the send
-                     square beside it sits on its last line as it grows rather
-                     than stretching with it. */}
-              <div style="display:flex;align-items:flex-end;gap:var(--btn-gap)">
-                <textarea id="comment-input" class="chat-field" rows="1" placeholder="${i18t('ct_add_comment')}" title="${i18t('ct_internal_to_team')}" style="flex:1;min-width:0;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);min-height:var(--field-h);padding:var(--field-pad-y) var(--pad-ctl-x);font-size:var(--t-body);line-height:var(--field-lh);outline:none"></textarea>
-                <button id="comment-send" class="ui-btn ui-btn-icon ui-btn-primary" style="flex:none">${icon('send','w-4 h-4')}</button>
-              </div>
-            </div>`}
-          </section>
+          ${''/* ---- THE THREAD (Young picked it 5 Oct 2026) ----
+                 The Document tab's one facing page: every clause as a row, the
+                 clause under the reader's eye open. It took the place of the
+                 Checks card (Obligations · Playbook review · Risk scan, each
+                 with Run) and the Activity & comments card, both retired by the
+                 owner as redundant: the head's icons and the Negotiate page's
+                 More row keep the three acts, and the thread's open row says in
+                 one line where a reading has not been made. Painted by
+                 docThreadPaint on the sheet's own funnel; hidden below
+                 DOC_READ_MIN_W, where two working columns do not fit. */}
+          <div id="doc-thread" class="doc-th" hidden></div>
           <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           ${''/* the general discussion panel is removed — see js/views/portal.js */}
           ${''/* "Counterparty activity" is removed, and NOT only for room.
@@ -10883,35 +10651,6 @@ function renderWorkspace(){
         </div>
       </section>
 
-      ${''/* ---- THE PLAIN-ENGLISH LAYER SITS IN THE RIGHT-HAND TRACK (idea 7) ----
-             Absolutely positioned into the grid's SECOND area — the clause
-             panel's own trick on the negotiation page — so it takes the column
-             the cards occupy without narrowing the paper by a pixel or being
-             able to fall out of step with the track's width. It is empty and
-             hidden until somebody presses Plain English; docReadPaint fills it,
-             and wireDocCanvas puts it back after every re-render of the sheet. */}
-      ${''/* ---- THE TWO SHEETS START AT ONE HEIGHT (Young reported it 19 Sep
-           2026, ringing the gap: "the top edge of the contract pages do not
-           start from the same point. They should be the same distance between
-           top the edge and the contracts.") ----
-           MEASURED against the grid's own top: the cream sheet's edge at 4 and
-           this card's at 0. The 4 is #doc-scroll's own `padding-top:var(--s-1)`
-           — the air the paper has always had above it — and this card is
-           absolutely positioned on the grid and knew nothing about it.
-           THE CARD COMES DOWN TO THE PAPER, NEVER THE PAPER UP TO THE CARD:
-           refusal 3 is satisfied by construction rather than by measurement,
-           the contract does not move by a pixel, and matching the paper is
-           this column's whole job — it already measures its size, its face and
-           every note's top off the sheet.
-           AND IT READS THE SAME TOKEN THE PADDING READS, never a literal 4, so
-           the two cannot drift. The readings do not move with it: docReadPaint
-           measures each note against the CLIP's own top, so a clip 4px lower
-           yields tops 4px smaller and the same screen position. */}
-    <div id="doc-read" hidden style="grid-column:2;grid-row:1;position:absolute;inset:var(--s-1) 0 0;overflow:hidden"></div>
-    ${''/* X-RAY'S PANEL, the same geometry as the edition's layer beside it and
-           for the same reason: the cards under it are COVERED, never rebuilt,
-           so they keep their place and their own scroll position. */}
-    <div id="doc-xray" hidden style="grid-column:2;grid-row:1;position:absolute;inset:var(--s-1) 0 0;overflow:hidden"></div>
 
       <!-- Divider: drag right to widen the contract (default → +25%), never narrower. Double-click resets. -->
       <div id="doc-resizer" title="${i18t('ct_drag_width')}" style="position:absolute;top:0;bottom:0;left:0;width:14px;z-index:6;cursor:col-resize;display:flex;align-items:center;justify-content:center;touch-action:none" onmouseover="this.firstElementChild.style.background='var(--color-accent)'" onmouseout="if(!this.dataset.drag)this.firstElementChild.style.background='var(--color-neutral-300)'">
@@ -11049,9 +10788,8 @@ function renderWorkspace(){
   scanUI = { running:false, filter:'all', expanded:new Set() };
   docTabDefaults(c);   // Screening for in-progress, Signing once executed (per contract)
   wsTabDefaults(c);    // Document by default; the choice persists per contract
-  wireDocumentSync(c); renderFeed(c); wireComments(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderAuditSection(c);
+  wireDocumentSync(c); wireCompliance(c); renderSignButton(c); renderScanSection(c); renderPlaybookSection(c); renderSharesSection(c); renderNegotiationSection(c); renderAuditSection(c);
   paintContractForm(c);   // one slot, two builders — see paintContractForm
-  wireChecksCard(c);   // the three Run → rows, each pressing an existing act
   wireDocTabs(c);      // "Next: Signing" — the pair of sub-tabs it belonged to has gone
   wireWsTabs(c);       // the room's five tabs
   document.getElementById('doc-to-nego')?.addEventListener('click',()=>roomGoTab(c,'redline'));
@@ -11114,42 +10852,9 @@ function renderWorkspace(){
    Wiring them through one function lets every re-render re-arm them; wiring
    them inline at only the first render is how the Word buttons went dead the
    moment a reloaded page rehydrated (BUGLOG F9-003). */
-/* ============================================================
-   THE PLAIN-ENGLISH LAYER (idea 7 — Young ruled 9 Sep 2026)
-   ============================================================
-   A short "what this means for you" beside every clause, in the column that
-   already sits to the right of the paper. Young's own words on why it exists:
-   *"part of the frustration with reading contracts is the legal verbiage ... the
-   plain english needs to be clear enough for a regular person."*
-
-   THE SWITCH IS IN THE SLOT YOUNG DREW — the tab row's right-hand end, before
-   the A-/A+ stepper — and reads Contract View | Plain English, in that order,
-   with Contract View lit at rest. Ruled off a rendered mock on 9 Sep 2026.
-
-   IT IS PAINTED BESIDE THE PAPER AND NEVER INTO IT. docBody is the ONE builder
-   for a contract's wording and it is what the share copy, the exports and the
-   phone all render — so a reading written into it would travel. This hangs off
-   wireDocCanvas instead, exactly as the signature places on the paper do (J-1),
-   which buys four promises rather than four rules: it cannot reach the other
-   side, no wording and no fingerprint moves, it dies and is redrawn with every
-   re-render so it cannot go stale under an edit, and the document builder is
-   not edited at all.
-
-   THE COLUMN TAKES TURNS, IT IS NOT REPLACED. Young's own worry, put in those
-   words: the three cards there are not deleted, they are one press away — which
-   is the same thing the Document and Signing tabs already do to that column.
-
-   AND THE FORM IS SAVED BEFORE THE SWAP. That column regularly holds the
-   contract form, whose boxes commit on CHANGE — that is, when the box loses
-   focus — so a reader mid-typing who pressed the switch would have lost that
-   one box. Blurring first fires the same commit the form already listens for,
-   which is why this is one line rather than a second way to save. */
-const DOC_READ_KEY='hati.v1.docPlainEnglish';
 /* The clause editor's own floor, and for the same reason: two working columns
    need room to be two columns. Below it the layer stands down. */
 const DOC_READ_MIN_W=1024;
-/* The air an entry keeps below it when the one above has pushed it down. */
-const DOC_READ_GAP=18;
 /* ---- PLAIN ENGLISH READS IN THE BACKGROUND (fix 6, Young's go on the
    preview, 23 Sep 2026) ----
    "On a long contract, one press tries to translate everything in one go, and
@@ -11199,36 +10904,12 @@ function docReadRunName(){
 const docReadFits=()=>window.innerWidth>=DOC_READ_MIN_W;
 /* READ, NEVER WRITTEN, WHERE IT CANNOT BE HONOURED — the nav drawer's rule: a
    sitting at a narrow width must not quietly clear a choice made on a laptop. */
-/* ---- THREE POSITIONS, ONE STORE (22 Sep 2026) ----
-   X-ray is the switch's third position, so what was a yes/no about one layer
-   is now WHICH LAYER. The store keeps its key and its old value: a browser
-   holding '1' from yesterday still opens on Plain English, because that is
-   what '1' has always meant here. Anything the reader has never chosen reads
-   as the paper, which is where the switch rests.
-   docReadOn() KEEPS ITS NAME AND ITS ANSWER — it is asked by the painter, the
-   switch, the duty marks and the mirror column, and every one of those means
-   "is the plain-English edition up". Saying it in terms of the mode is what
-   stops those callers and this one drifting apart. */
-const DOC_VIEW_MODES=['paper','plain','xray'];
-let _docViewAt='';
-/* Leaving the room is the other half of arriving: the next visit to the same
-   contract's Document tab is an arrival too. setView calls it on every
-   navigation that changes the page. */
-function docViewLeave(){ _docViewAt=''; }
-function docViewMode(){
-  if(!docReadFits()) return 'paper';
-  let v=''; try{ v=localStorage.getItem(DOC_READ_KEY)||''; }catch(_){ v=''; }
-  if(v==='1') return 'plain';
-  return DOC_VIEW_MODES.indexOf(v)>0 ? v : 'paper';
-}
-function docViewSet(m){
-  if(!docReadFits()) return;
-  const v = m==='plain' ? '1' : (m==='xray' ? 'xray' : '0');
-  try{ localStorage.setItem(DOC_READ_KEY, v); }catch(_){}
-}
-function docReadOn(){ return docViewMode()==='plain'; }
-function docXrayOn(){ return docViewMode()==='xray'; }
-function docReadSet(v){ docViewSet(v?'plain':'paper'); }
+/* ---- ONE FACING PAGE, ALWAYS UP (the Thread, 5 Oct 2026) ----
+   The three-position switch and its store are gone: the thread is the
+   Document tab's column wherever the window holds two working columns.
+   docReadOn() KEEPS ITS NAME AND ITS ANSWER for the readings' own polling
+   ("is the column that draws readings up"); it is the thread now. */
+function docReadOn(){ return docThreadOn(); }
 const docReadItems=c=>{
   const r=c&&c._readings;
   return (r&&Array.isArray(r.items)) ? r.items.slice().sort((a,b)=>(a.i||0)-(b.i||0)) : [];
@@ -11697,7 +11378,7 @@ function docReadSig(c,sheet){
    Silence is the only safe failure here — a note beside the wrong clause is
    worse than no note at all. */
 function docReadAnchors(c, items, sheet){
-  /* `sheet` is the walk the CALLER already made (docReadPaint makes one per
+  /* `sheet` is the walk the CALLER already made (docThreadPaint makes one per
      paint and hands it to everything that needs it). Absent, the walk is made
      here, which is what every other caller has always had. */
   const list=Array.isArray(sheet)?sheet:docReadSheet(c);
@@ -11727,10 +11408,6 @@ function docReadAnchors(c, items, sheet){
     out.push({el:row.el,row,it});
   });
   return out;
-}
-function docReadSync(){
-  const sc=document.getElementById('doc-scroll'), inner=document.getElementById('doc-read-inner');
-  if(sc&&inner) inner.style.transform='translateY('+(-sc.scrollTop)+'px)';
 }
 /* ---- THE FIGURES ARE MARKED, AND NO MODEL DECIDES WHICH (19 Sep 2026) ----
    The contract brief has done exactly this since 19 Aug 2026 and the note
@@ -11823,7 +11500,7 @@ const DOC_DUTY_RE = new RegExp(
   + '\\s+' + DOC_DUTY_ADV
   + '(?:' + DOC_DUTY_STATE.join('|') + ')\\b'
   + '|\\b(?:is|are)\\sresponsible\\sfor\\b', 'gi');
-/* The store is DOC_READ_KEY's own shape, one rung along: the reader's choice,
+/* The store is its own key, one rung along from the text size's: the reader's choice,
    remembered in this browser exactly as the text size and the switch itself
    are (Young's ruling of 19 Sep 2026). OFF AT REST — his ruling too — so the
    first thing a reader meets is the reading, and the marks are asked for. */
@@ -11946,813 +11623,24 @@ function docDutyPaperPaint(on){
   }
   return marks;
 }
-/* ---- AND AMBER RESTS ON SOMETHING CHECKABLE ----
-   The owner asked for red, amber and green and was shown the fork: a model
-   deciding, or facts HaTi already holds. He took the facts — so a clause is
-   marked here only where THIS workspace's own playbook disagreed with it, or
-   the risk scan raised a finding still open on it. Both are already on the
-   record, both are already shown elsewhere, and both can be pressed through to.
-   `rlPbFindClause` is the ONE reading of which clause a finding belongs to and
-   it REFUSES rather than guesses (RL_PB_MATCH_MIN), so an unplaceable finding
-   marks nothing rather than marking the wrong paragraph.
-   READING MUST NOT WRITE: it reads `c.playbook` and `openFindings` and nothing
-   else, and every hop is guarded — this runs on a Document tab that may carry
-   neither module. */
-function docReadFlags(c){
-  const out=new Map();
-  if(!c) return out;
-  /* EVERY REASON, NOT THE FIRST ONE (19 Sep 2026). This used to return on a
-     clause it had already marked, so a clause your playbook disagrees with
-     AND the risk scan has flagged said only whichever was read first — and the
-     hover is the ONLY place a reader is told why the bar is there. A cut is a
-     fact, never a silent trim, so the reasons collect and the title states all
-     of them, one per line. It stays on two sources for the reason written
-     under them: the collect is what makes a third safe to add, not a promise
-     that there is one. */
-  /* ---- KEYED ON THE CLAUSE'S OWN HEADING, WHICH IS WHAT BOTH SIDES HOLD ----
-     This was keyed on `clauseId` and NOTHING WAS EVER MARKED. `docReadSheet`
-     walks the PAINTED PAGE and its rows carry no clause id at all, and
-     `rlPbFindClause` answers off `clauseSegment`, which MINTS an id on the fly
-     for any body that has never been stamped — so the two sides were comparing
-     an id the page does not have against one that changes per call. Nothing
-     errored, nothing logged, the source read correctly: the guard that is
-     always false, in its fourth costume.
-     THE HEADING IS THE PAIRING THIS COLUMN ALREADY USES — `docReadAnchors`
-     checks every reading against "the heading's own words" through
-     `_docReadNorm`, and that is the same reading used here so the two cannot
-     drift. It works on stamped and unstamped paper alike, which an id does not.
-     AN EMPTY HEADING IS REFUSED rather than collapsed into one key: every
-     headingless clause would share it, and a bar beside the wrong clause is
-     worse than no bar. Two clauses genuinely sharing a heading would both be
-     marked — a mark too many, never a mark in the wrong place. */
-  const add=(cl,why)=>{
-    if(!cl||!why) return;
-    const k=_docReadNorm(cl.headingText);
-    if(!k) return;
-    const e=out.get(k);
-    if(!e){ out.set(k,{why, whys:[why]}); return; }
-    if(e.whys.indexOf(why)>=0) return;
-    e.whys.push(why); e.why=e.whys.join('\n');
-  };
-  const find=(q,cat)=>{ if(!q||typeof rlPbFindClause!=='function') return null;
-    try{ return rlPbFindClause(c,q,cat); }catch(_){ return null; } };
-  try{
-    const vs=(c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[];
-    for(const v of vs){
-      if(!v||!(window.pbVerdictOpen?pbVerdictOpen(v):(v&&!/^(aligned|ok|na)$/.test(String(v.status||''))))) continue;
-      add(find(v.quote,v.category), i18t('ct_read_watch_pb',{what:String(v.category||'').trim()}));
-    }
-  }catch(_){}
-  try{
-    const fs=(typeof openFindings==='function')?openFindings(c):[];
-    for(const f of fs){
-      if(!f) continue;
-      add(find(f.quote||f.text,f.category), i18t('ct_read_watch_scan'));
-    }
-  }catch(_){}
-  /* ---- AND A PROMISE IS NOT ONE OF THEM (Young ruled 19 Sep 2026, later
-     the same day) ----
-     An obligation WAS the third source here for a few hours. It came off the
-     same ask — *"Plain English contract should highlight obligations in
-     Amber"* — and it was the wrong answer to it twice over.
-
-     It was a fact about the CLAUSE where the ask was about the WORDS, which is
-     what `docDutyMark` above does instead. And once those words are lit, one
-     colour would be saying two things on one screen: a bar down the gutter
-     meaning "a duty was recorded off this clause" and amber on the wording
-     twelve pixels away meaning "these words create a duty". A reader cannot be
-     asked to hold both.
-
-     SO THE BAR KEEPS THE TWO IT WAS BUILT FOR — your playbook disagreed, or
-     the risk scan flagged it — and both of those are judgements about the
-     clause as a whole, which is exactly what a gutter rule says. The promise
-     is on the words. `ct_read_watch_oblig` is STALE, inert in both books: a
-     key retired by not being called, never deleted, so a screen cannot come
-     back half-English. */
-  return out;
-}
-function docReadPaint(c){
-  const layer=document.getElementById('doc-read');
-  if(!layer) return;
-  /* A PARTIAL EDITION DRAWS, even where nothing in it could be paired: its
-     foot is where the reader is told how many clauses could not be matched and
-     given the press that asks again. */
-  const partial=docReadUnmatched(c);
-  const on=docReadOn()&&_wsTab==='docs'&&docReadHeld(c);
-  layer.hidden=!on;
-  /* The cards keep their place and their own scroll position; they are covered,
-     never rebuilt. visibility also takes them out of the way of the pointer. */
-  const right=document.getElementById('doc-right');
-  if(right) right.style.visibility=on?'hidden':'';
-  /* THE MARKS COME OFF THE PAPER ON THE WAY OUT, always and first. The reader
-     may be leaving for the Signing tab, the Key terms tab or another contract,
-     and a mark left behind would be a mark on wording nobody asked about. */
-  if(!on){ docDutyPaperPaint(false); layer.innerHTML=''; return; }
-  const canvas=document.getElementById('doc-canvas');
-  /* THE SIZE AND THE FACE ARE BOTH MEASURED OFF THE PAPER, never computed from
-     a token here. The reader's A⁻/A⁺ choice is written as --doc-scale on the
-     paper's own zoom wrapper, which is in the OTHER column and does not reach
-     this one, and a document style can multiply the size again on top of it.
-     Asking the sheet what it actually resolves to follows both, and follows the
-     next one.
-
-     ---- AND THE FACE RIDES THE SAME ROAD (Young asked 11 Sep 2026: "please
-     make the font in the plain english page the same as the contract page") ----
-     MEASURED before it was written: a contract in Formal legal drew Times New
-     Roman on the sheet and IBM Plex Sans in the edition beside it, because this
-     layer is a SIBLING of the paper rather than a descendant — it sits in the
-     grid's second track, so the `[data-doc-body]` hook the design rules read as
-     an ancestor is not above it.
-
-     WIDENING THOSE RULES TO NAME THIS SHEET WAS THE OTHER ANSWER AND IS THE
-     WORSE ONE: it is a list of nine designs that would have to be kept in step
-     for ever, and a design added later would dress the contract and not its
-     translation. Measuring is a RELATION — it is right for every design, for
-     one added tomorrow, and for a face that arrives from somewhere else
-     entirely. It is also what this element already does for its size, which is
-     the argument for not inventing a second mechanism beside it.
-
-     THE CAPTION IS NOT IN IT. `--dr-face` is read by .doc-read-note and by
-     nothing else, so the column's own "PLAIN ENGLISH" label keeps the product's
-     face: it is furniture about the reading rather than part of it. */
-  try{
-    const paper=canvas&&(canvas.querySelector('.doc-surface')||canvas);
-    const cs=paper?getComputedStyle(paper):null;
-    const px=cs?cs.fontSize:'';
-    if(px&&parseFloat(px)>0) layer.style.setProperty('--dr-size',px);
-    else layer.style.removeProperty('--dr-size');
-    const face=cs?cs.fontFamily:'';
-    if(face) layer.style.setProperty('--dr-face',face);
-    else layer.style.removeProperty('--dr-face');
-  }catch(_){}
-  /* ---- ONE WALK OF THE SHEET PER PAINT (26 Sep 2026) ----
-     The pairing, the "moved" count, the clauses still to come and the mirror
-     all ask the same question — what clauses are painted on this paper — and
-     each used to walk the whole canvas for itself: three walks of a 300-clause
-     contract every second and a half while a reading was running. Walked once
-     here and handed to all four, so they also cannot disagree. */
-  const sheet=docReadSheet(c)||[];
-  const pairs=docReadAnchors(c, docReadItems(c), sheet);
-  /* ONCE PER PAINT, never per entry: `rlPbFindClause` walks every clause for
-     every quote, so asking it inside the map would be O(clauses x findings) on
-     every repaint of a 200-clause contract. */
-  const flags=docReadFlags(c);
-  const over=Number((c._readings&&c._readings.over)||0);
-  /* THE EDITION IS DRAWN AS A DOCUMENT, not as a stack of notes: the clause's
-     own number, then a heading of its own, then the reading — at the size the
-     contract itself is set at. The NUMBER is the paper's, read off the sheet by
-     docReadSheet and never asked of the model, which is what lets it be printed
-     as a citation. */
-  /* The paper's own front matter, mirrored so the column is not blank above
-     the first clause — see docReadFront. Drawn FIRST, because it sits above
-     every entry on the sheet it mirrors.
-
-     AND IT IS NOT A .doc-read-note. It wears a class of its own, dressed by
-     the same rules, because a mirror is the CONTRACT'S words and a note is a
-     READING of them — four checks that count the readings on a page found the
-     mirrors among them the moment the two shared a class. Anything asking
-     "how many clauses came back" must never have to know about this. */
-  const front=docReadFront(c,sheet);
-  /* HOW MANY CLAUSES THIS EDITION CAN NO LONGER SPEAK FOR. Zero where the
-     wording has not moved — the signature is over exactly what was sent — so
-     an unchanged contract draws nothing and the caption is what it always was.
-     Counted off the sheet against what came back, never guessed: a clause the
-     route answered for and the pairing then refused is one the reader is
-     looking at a gap beside. */
-  let moved=0;
-  /* ---- WHILE IT READS, THE HEAD SAYS HOW FAR IT HAS GOT (fix 6) ----
-     "Reading 4 of 12" takes the slot the moved and short lines use — the
-     column's own heading, never a band — and neither of those is said while a
-     reading is running: the edition they would describe is being replaced. */
-  const running=docReadRunning(c);
-  const prog=(running&&c._readings&&c._readings.running)?c._readings:null;
-  try{
-    const sig=running?'':docReadSig(c,sheet);
-    if(sig&&c._readSig&&c._readSig!==sig){
-      moved=Math.max(0,sheet.filter(x=>x&&x.kind!=='front').length-pairs.length);
-      if(!moved) moved=1;
-    }
-  }catch(_){ moved=0; }
-  /* ---- AND A QUIET "Reading…" BESIDE EACH CLAUSE STILL TO COME (fix 6) ----
-     The rows of the sheet no entry has landed on yet, in paper order, each
-     with its own number — so the column keeps the contract's shape while it
-     fills rather than growing from the top. Drawn only while a reading runs,
-     and with a class of its own: anything counting the READINGS on a page must
-     never find these among them (the mirror's lesson). */
-  const waits=[];
-  if(running){
-    const got=new Set(docReadItems(c).map(it=>Number(it&&it.i)));
-    try{ sheet.forEach((row,k)=>{ if(row&&row.el&&!got.has(k)) waits.push({k,row}); }); }catch(_){ }
-  }
-  /* ---- THE SWITCH'S TWO FACTS, READ ONCE PER PAINT ----
-     How many of the clauses on screen carry a promise, and whether the reader
-     has asked for them to be lit. Counted off the paired READINGS — the very
-     entries the marks land in — so the number on the switch and the number of
-     lit entries are the same arithmetic and cannot drift. */
-  const dutyN=docDutyCount(pairs.map(p=>{
-    let paper='';
-    try{ paper=(p.el&&p.el.textContent)||''; }catch(_){}
-    return String((p.it&&p.it.plain)||'')+' \n '+paper;
-  }));
-  const dutyOn=dutyN?docDutyOn():false;
-  layer.innerHTML=`
-    ${''/* ---- THE CAPTION SAYS WHEN THIS WAS READ (Young ruled 15 Sep 2026) ----
-           *"after completing a negotiation and you want to reread the contract
-           in plain english, how will that be triggered?"*
-
-           HALF OF THIS ALREADY WORKED, and that half is what made it a trap.
-           Pressing the switch ON re-asks the route where the wording has moved
-           (docReadSig differs), so a reader who switched away and back got a
-           fresh edition and nothing to trigger. But a reader who left the
-           switch ON — read here, went to negotiate, came back — got the
-           edition made BEFORE the round, with every clause that changed drawn
-           BLANK, because docReadAnchors refuses to put a stale reading beside
-           new wording. That refusal is right and stays. What was missing is
-           that the page never said so: gaps with no explanation.
-
-           SO THE FACT GOES ON THE THING IT IS ABOUT. The caption is already
-           drawn, so this is the cheapest channel that carries it — no band, no
-           pop-up, and not one pixel off the contract. The press is
-           `data-doc-read-again`, which this column already draws for the
-           partial case and which is already wired on the layer: ONE door,
-           shown for its second honest reason.
-
-           AND IT NEVER RE-READS BY ITSELF. A full contract is a real cost the
-           reader has not asked for, and they may be back for thirty seconds to
-           check a date. Told, then their choice. */}
-    ${''/* ---- AND THE CAPTION SLOT IS THE SWITCH (Young ruled 19 Sep 2026,
-           off the render: *"turn that area to a trigger for turning on the
-           amber highlighting"*) ----
-
-           THE CHEAPEST CHANNEL, AND IT COSTS THE CONTRACT NOTHING. The slot is
-           already drawn, already at the right of this head, already in the
-           quiet register a caption wears — so the switch takes the place of a
-           sentence rather than adding a row, and the paper beside it does not
-           move by a pixel.
-
-           "a reading, not the contract" IS NOT DELETED. It is a reassurance
-           rather than a working fact, so it steps down one rung to the hover on
-           the PLAIN ENGLISH label it was always about (the owner's own ruling).
-           A reader who wants it is twelve pixels away from it.
-
-           THE COUNT IS ON THE FACE because a press whose effect you cannot
-           predict is a press nobody makes. It says how many clauses carry a
-           promise before you ask for the marks; at zero the switch is not drawn
-           at all, which is this product's rule for a verb that cannot work. */}
-    <div class="doc-read-head"><span class="doc-read-lbl" title="${esc(i18t('ct_read_cap'))}">${
-      esc(i18t('ct_read_plain'))}</span>${dutyN?`<button type="button" class="doc-read-duty" data-doc-read-duty
-      aria-pressed="${dutyOn}" title="${esc(i18t('ct_duty_title'))}"><span class="dr-tick" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><use href="#i-check"/></svg></span>${
-      esc(i18tn('ct_duty_switch',dutyN,{n:dutyN}))}</button>`:''}${
-      running?`<span class="doc-read-moved doc-read-progress" role="status">${esc(prog&&Number.isFinite(prog.done)
-          ?i18t('ct_read_progress',{n:prog.done,m:prog.total})
-          :i18t('ct_read_reading'))}</span>`
-      :moved?`<span class="doc-read-moved">${esc(i18tn('ct_read_moved',moved,{n:moved}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`
-      /* ---- A SHORT READING IS SAID WHERE THE READER IS LOOKING (Young
-         reported it 22 Sep 2026: a long contract, the Plain English column
-         white from top to bottom, and no word of why) ----
-         The partial and cap lines are drawn at the FOOT of the edition, which
-         on a 60-page contract is a scroll of a thousand lines away. The head
-         is always on screen, so the same fact and the same press are said here
-         too — the moved line's own slot and its own door, never a band. */
-      :(partial||over)?`<span class="doc-read-moved doc-read-short">${esc(partial
-          ?i18tn('ct_read_partial',partial,{n:partial})
-          :i18tn('ct_read_over',over,{n:over}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></span>`:''}</div>
-    <div class="doc-read-clip"><div id="doc-read-inner">${front.map((f,i)=>
-      `<div class="doc-read-mirror" data-doc-read-front="${i}"${
-        f.style?` style="${esc(f.style)}"`:''} aria-hidden="true">${
-        f.toc?`<p class="hati-toc">${esc(f.toc.head)}<span class="hati-toc-n">${
-          esc(f.toc.n)}</span></p>`:`<p>${esc(f.text)}</p>`}</div>`).join('')}${pairs.map((p,n)=>{
-      /* The TAG follows the paper's own shape — a heading row draws a heading,
-         whether or not it is a section title in the route's terms (D-2a). */
-      const sec=!!p.row.headed;
-      /* The stored number first, the live walk second, and the heading's own
-         number last — a heading carries no `num` by design (see _docReadHeadNum). */
-      const num=String(p.it.num||p.row.num||p.row.cite||'').trim();
-      /* THE HEADING IS THE DRAFTER'S OWN, never the model's — Young's own
-         ruling. A model-written heading beside the paper's is a second name for
-         one clause, and they disagree the moment it is renamed. The reading's
-         own `head` is left on the record and simply not drawn, so nothing
-         already read has to be paid for again. */
-      const head=String(p.row.ownHead||'').trim();
-      const body=String(p.it.plain||'').trim();
-      /* THE ENTRY SITS WHERE ITS CLAUSE SITS. The step and the gutter are the
-         paper's own — hati-lv-N and rl-hang, read off the clause this entry
-         faces — so the two columns are genuinely parallel rather than two lists
-         that happen to line up at the top. */
-      const shape=docReadShape(p.el);
-      /* ---- THE NUMBER IS NOT WELDED TO THE NAME (Young reported it 10 Sep
-         2026, off the two columns side by side: "fix how the Clause header in
-         the plain english contract is merged with the clause number") ----
-         The paper read "4. Independent Contractor" and the edition read
-         "4Independent Contractor", because the reading that cuts the number off
-         a heading drops the drafter's punctuation with it and NOTHING was put
-         in its place: the rule that would have separated them gives the number
-         a 2.6em box, and it only fires where the clause hangs its marker in a
-         gutter — which this contract's headings, and most commercial paper's,
-         do not.
-         TWO HALVES AND BOTH ARE NEEDED. The separator is the PAPER'S (see
-         _docReadSepOf), so the citation reads as the drafter wrote it; and the
-         gap is in the stylesheet, so a heading that carried no punctuation
-         cannot weld either. Neither is invented and neither is sent. */
-      const numHtml=num?`<span class="dr-n">${esc(num+String(p.row.sep||''))}</span>`:'';
-      /* ---- THE NUMBER SITS BESIDE THE READING, NEVER ABOVE IT (Young, 10 Sep
-         2026: "the numbers are above the clause as opposed to next to the
-         clause like in the contract") ----
-         Where the clause has a heading of its own the number is that heading's
-         marker, in its gutter. Where it has none — which is most commercial
-         paper, whose clauses run straight into their wording — the number is
-         the READING's own marker, which is exactly what the contract does one
-         column over. What it is never again is a line of its own with the
-         reading underneath, which is what was reported. */
-      const lead=!head&&!!num&&!sec;
-      /* ---- THE HEADING IS THE SIZE OF THE HEADING IT FACES (D-3b, 11 Sep
-         2026: "the headers should the same size in both sides") ----
-         The body is already measured off the sheet (--dr-size); the headings
-         were typed ratios — 1.13em and 1em against a paper whose h2 is
-         1.16em, h3 1.04em and template h4 1.05em: four numbers for "the same
-         size". So each entry reads the computed size of the element it faces —
-         the heading itself, or a clause's bold lead-in — and writes it on the
-         note. A RELATION: right for every design and for one added tomorrow.
-         Size only; weight and case are the edition's own. */
-      let hsize='';
-      try{
-        const face=sec?p.el:(p.el.querySelector&&p.el.querySelector('strong,b'))||p.el;
-        const fs=face&&getComputedStyle(face).fontSize;
-        if(fs&&parseFloat(fs)>0) hsize=fs;
-      }catch(_){}
-      /* ---- WHAT TO LOOK AT TWICE, AND IT IS NOT AN OPINION (Young asked
-         19 Sep 2026: "copilot should add bold letters plus highlight red,
-         green, amber on the words or sentences a user needs to pay attention
-         to") ----
-         TWO HALVES, AND THEY COME FROM DIFFERENT PLACES ON PURPOSE.
-         THE BOLD is `docReadMark` — the contract brief's own deterministic
-         pass for money, periods, percentages and dates, running over ALREADY
-         ESCAPED text. No model decides what is emphasised, so nothing can be
-         talked up, and it costs nothing: the reading on file is unchanged.
-         THE AMBER BAR is `docReadFlags` — a clause your playbook disagrees
-         with, or one the risk scan flagged. Both are facts HaTi already holds
-         and already shows elsewhere, both are resolved through
-         `rlPbFindClause`, which REFUSES rather than guesses, and the hover
-         names every one of them that applies to this clause.
-         THE AMBER ON THE WORDS is `docDutyMark`, and it is a different claim
-         in the same colour on purpose: the bar is about the CLAUSE, the words
-         are the two or three that make it a promise. It is drawn only while
-         the reader has asked for it.
-         RED AND GREEN ARE DELIBERATELY ABSENT and the owner ruled on it: a
-         colour saying "this is bad for you" with nothing behind it is Copilot
-         giving a legal opinion on its own authority, which is the one thing
-         this product's Copilot never does; and in HaTi green and red are
-         already the redline's own grammar for added and struck. */
-      const flag=(p.row&&p.row.heading)?flags.get(_docReadNorm(p.row.heading)):null;
-      return `<div class="doc-read-note${sec?' dr-sec':''}${shape}${flag?' dr-watch':''}" data-doc-read-note="${n}"${
-          flag?` title="${esc(flag.why)}"`:''}${hsize?` style="--dr-hsize:${hsize}"`:''}>`
-        +(head?`<${sec?'h3':'h4'} class="${sec?'dr-s':'dr-h'}">${numHtml}${esc(head)}</${sec?'h3':'h4'}>`:'')
-        +(body?`<p${lead?' class="dr-lead"':''}>${lead?numHtml:''}${
-            dutyOn?docDutyMark(docReadMark(body)):docReadMark(body)}</p>`:'')
-        +`</div>`;
-    }).join('')}${waits.map(w=>{
-      const num=String(w.row.num||w.row.cite||'').trim();
-      return `<div class="doc-read-wait" data-doc-read-wait="${w.k}" aria-hidden="true"><p>${
-        num?`<span class="dr-n">${esc(num+String(w.row.sep||''))}</span>`:''}${esc(i18t('ct_read_reading'))}</p></div>`;
-    }).join('')}
-      ${over?`<div class="doc-read-over">${esc(i18tn('ct_read_over',over,{n:over}))}</div>`:''}
-      ${partial?`<div class="doc-read-over doc-read-partial">${esc(i18tn('ct_read_partial',partial,{n:partial}))} <button type="button" class="ui-btn-plain" data-doc-read-again>${esc(i18t('ct_read_again'))}</button></div>`:''}
-    </div></div>`;
-  /* ---- THE FOOT'S PRESS IS THE BRIEF'S REWRITE (11 Sep 2026) ----
-     A route answer with more than a quarter of its entries unpairable is
-     handed over PARTIAL and never cached, so the only way forward is to ask
-     again by name. Armed once on the layer, because the foot is rebuilt with
-     every paint. */
-  layer._docReadC=c;
-  if(!layer.dataset.docReadAgain){
-    layer.dataset.docReadAgain='1';
-    layer.addEventListener('click',async e=>{
-      const t=e.target;
-      /* ---- THE SWITCH RIDES THE LAYER'S ONE LISTENER (19 Sep 2026) ----
-         The head is rebuilt with every paint, so a listener bound to the
-         button itself dies on the first press. Armed once on the layer, and
-         the contract read at press time is the one painted LAST — never the
-         one this listener happened to be armed on. */
-      const d=t&&t.closest&&t.closest('[data-doc-read-duty]');
-      if(d){
-        docDutySet(!docDutyOn());
-        docReadPaint(layer._docReadC||c);
-        return;
-      }
-      const b=t&&t.closest&&t.closest('[data-doc-read-again]');
-      if(!b||b.disabled) return;
-      /* The contract painted LAST, not the one this listener was armed on. */
-      const cc=layer._docReadC||c;
-      b.disabled=true;
-      try{ if(await docReadRun(cc,{force:true})){ wsPaintTabRowEnd(cc); docReadPaint(cc); } }
-      finally{ b.disabled=false; }
-    });
-  }
-  /* ---- AND THE SAME WORDS ON THE PAPER (the render Young approved) ----
-     Painted before the placing below and it may not disturb it: the mark is a
-     wash and an underline and states no padding, margin or weight, so the
-     wording does not move by a pixel and every rect measured after this is the
-     rect that would have been measured without it. That is a REQUIREMENT, not
-     an observation — duty-marks-verify measures the paper with the marks
-     off and on and requires the two to be identical. */
-  docDutyPaperPaint(dutyOn);
-  const inner=document.getElementById('doc-read-inner');
-  const sc=document.getElementById('doc-scroll');
-  const clip=layer.querySelector('.doc-read-clip');
-  if(!inner||!sc||!clip) return;
-  /* MEASURED FROM THE CLIP, NEVER FROM THE SCROLLER. A note's top is relative
-     to the box it hangs in, and that box starts below this column's own head —
-     so measuring against the paper's scroller put every note a constant 29px
-     low, which reads as a note beside the clause after its own. Caught as
-     PIXELS in plain-english-verify; nothing in the markup looked wrong. */
-  const base=clip.getBoundingClientRect().top - sc.scrollTop;
-  /* EACH ENTRY SITS LEVEL WITH ITS OWN CLAUSE, and steps DOWN rather than
-     overlapping where the plain wording runs past the clause above it. Level is
-     what makes this a parallel reading — 3.3 beside 3.3 — and the step is what
-     keeps that promise honest when it cannot be kept exactly. */
-  /* ---- READ EVERYTHING, THEN WRITE EVERYTHING (26 Sep 2026) ----
-     Each entry used to be placed in turn: read its clause's top, write its
-     own top, read its own height — and a write followed by a read makes the
-     browser lay the whole page out again before it can answer. On a
-     300-clause contract that was ~600 full layouts, MEASURED at ~510ms of a
-     ~550ms repaint, and while a reading runs the column repaints every 1.5s:
-     the page stuck for a third of every second and a half. An entry's height
-     does not depend on where it sits, so every clause top and every entry
-     height is read first (one layout), the places are worked out in plain
-     arithmetic, and every top is written last. What is placed where is
-     exactly what the one-at-a-time loop placed. */
-  /* The order is the promise: the mirror first (no gap between its blocks),
-     then the clauses in PAPER order — a "Reading…" and a reading interleaved
-     by their row, so the two can never overlap. */
-  const seq=[];
-  /* NO GAP BETWEEN MIRRORED BLOCKS. DOC_READ_GAP is the breathing room between
-     two READINGS of two different clauses; the front matter's own lines are
-     already spaced by the paper they are copied from, and adding 18px to each
-     would walk the mirror off the bottom of the page it is mirroring. The
-     floor still holds within the mirror, so they can never overlap. */
-  front.forEach((f,i)=>{
-    const el=inner.querySelector(`[data-doc-read-front="${i}"]`);
-    if(el) seq.push({src:f.el, el, gap:0, front:true});
-  });
-  /* The clauses still to come are placed in the SAME pass, in paper order, so
-     a "Reading…" and a reading can never overlap. */
-  let w=0;
-  const waitsUpTo=i=>{
-    while(w<waits.length&&waits[w].k<i){
-      const el=inner.querySelector(`[data-doc-read-wait="${waits[w].k}"]`);
-      if(el) seq.push({src:waits[w].row.el, el, gap:DOC_READ_GAP});
-      w++;
-    }
-  };
-  pairs.forEach((p,n)=>{
-    waitsUpTo(Number(p.it&&p.it.i));
-    const el=inner.querySelector(`[data-doc-read-note="${n}"]`);
-    if(el) seq.push({src:p.el, el, gap:DOC_READ_GAP});
-  });
-  waitsUpTo(Infinity);
-  /* ---- THE READS ---- */
-  const firstRow=sheet.find(r=>r&&r.el);
-  const firstTop=firstRow?Math.round(firstRow.el.getBoundingClientRect().top - base):null;
-  seq.forEach(x=>{
-    x.want=Math.round(x.src.getBoundingClientRect().top - base);
-    x.h=x.el.offsetHeight;
-    if(x.front){ try{ x.lh=parseFloat(getComputedStyle(x.el).lineHeight)||0; }catch(_){ x.lh=0; } }
-  });
-  /* ---- THE ARITHMETIC ----
-     EACH ENTRY SITS LEVEL WITH ITS OWN CLAUSE, and steps DOWN rather than
-     overlapping where the plain wording runs past the clause above it. Level is
-     what makes this a parallel reading — 3.3 beside 3.3 — and the step is what
-     keeps that promise honest when it cannot be kept exactly. */
-  let floor=0, bottom=0, inFront=true;
-  seq.forEach(x=>{
-    /* AND THE MIRROR NEVER PUSHES A READING DOWN. The floor is reset before the
-       entries are placed, because "level with its own clause, to the pixel" is
-       the promise this column exists to keep and the mirror is only context: a
-       title page whose copy runs a few pixels taller than the paper it copies
-       must not cost the first clause its place. MEASURED — sharing one floor put
-       the first reading 28px below the clause it reads. */
-    if(inFront&&!x.front){ inFront=false; floor=0; }
-    let top=x.want;
-    if(top<floor) top=floor;
-    x.top=top;
-    floor=top+x.h+x.gap;
-    bottom=floor;
-  });
-  /* ---- THE WRITES ---- */
-  seq.forEach(x=>{ x.el.style.top=x.top+'px'; });
-  /* ---- AND THE COPY NEVER RUNS UNDER THE FIRST CLAUSE (26 Sep 2026) ----
-     This column is narrower than the paper, so a recital or a contents page
-     wraps onto more lines here than it does there, and the floor is reset
-     above so the first reading keeps its own clause's line (the 15 Sep
-     ruling). Together those drew the tail of a long preamble UNDER the first
-     entry. Where the copy would reach the first clause it is cut at a whole
-     line above it and fades out — the mirror is context, and its unabridged
-     original is the column immediately to the left — so nothing in this column
-     is ever drawn on top of anything else. */
-  if(firstTop!=null){
-    const limit=firstTop-4;
-    seq.forEach(x=>{
-      if(!x.front||x.top+x.h<=limit) return;
-      const room=limit-x.top;
-      const keep=x.lh>0?Math.floor(room/x.lh)*x.lh:room;
-      if(keep<=0||(x.lh>0&&keep<x.lh)){ x.el.style.display='none'; return; }
-      x.el.style.maxHeight=keep+'px';
-      x.el.style.overflow='hidden';
-      x.el.classList.add('is-cut');
-    });
-  }
-  const lastEl=pairs.length?pairs[pairs.length-1].el.getBoundingClientRect().bottom-base:0;
-  const last=Math.max(lastEl,bottom);
-  const overEl=inner.querySelector('.doc-read-over:not(.doc-read-partial)');
-  if(overEl) overEl.style.top=Math.round(last+24)+'px';
-  /* The partial line sits under the cap line where both are drawn. */
-  const partEl=inner.querySelector('.doc-read-partial');
-  if(partEl) partEl.style.top=Math.round(last+24+(overEl?overEl.offsetHeight+8:0))+'px';
-  inner.style.height=Math.round(last+140+(partEl?partEl.offsetHeight+8:0))+'px';
-  docReadSync();
-  if(!sc.dataset.docReadBound){
-    sc.dataset.docReadBound='1';
-    sc.addEventListener('scroll',docReadSync,{passive:true});
-  }
-  /* ---- AND THE WHEEL WORKS OVER EITHER COLUMN (Young reported it 15 Sep
-     2026: "I am only able to scroll by putting my cursor on the left of the
-     screen where the original contract is. Make it possible to scroll from
-     both sides") ----
-     THE EDITION HAS NO SCROLLER AND MUST NOT GROW ONE. It is a clip with a
-     transformed inner, kept in step with the paper by docReadSync, and that is
-     the whole reason the two columns cannot drift apart; a second real
-     scroller here would be two scrollers racing each other over one reading.
-     So the wheel is FORWARDED to the paper's scroller instead — the same
-     surface moves, from either side of the screen.
-
-     deltaMode is honoured because a mouse in Firefox reports LINES and a page
-     key reports PAGES, and treating either as pixels moves the sheet by three
-     pixels a notch. The press is only swallowed where it actually moved the
-     paper, so reaching the end of the contract still hands the wheel back to
-     the page underneath rather than trapping it. */
-  if(!layer.dataset.docReadWheel){
-    layer.dataset.docReadWheel='1';
-    layer.addEventListener('wheel',e=>{
-      const s=document.getElementById('doc-scroll');
-      if(!s) return;
-      const step=e.deltaMode===1?16:(e.deltaMode===2?s.clientHeight:1);
-      const was=s.scrollTop;
-      s.scrollTop=was+e.deltaY*step;
-      if(s.scrollTop!==was) e.preventDefault();
-    },{passive:false});
-    /* ════ AND A FINGER IS NOT A WHEEL (Young reported it 19 Sep 2026) ══════
-       "While on an iPad, I am unable to scroll on the plain english side with
-       touch screen."
-       THE WHEEL FIX ABOVE WAS RIGHT AND HALF THE JOB. A touchscreen fires no
-       wheel event at all, and because this layer is a CLIP — the whole reason
-       the two columns cannot drift — the browser has no scroller under the
-       finger to pan instead: the paper's scroller is this layer's SIBLING in
-       the grid, never its ancestor. So a drag here moved nothing, silently.
-       THE SAME ONE SURFACE MOVES, by the same arithmetic: remember where the
-       finger landed, and on each move push the paper by the distance it
-       travelled. The press is swallowed only where the paper ACTUALLY moved,
-       so reaching the end of the contract hands the gesture back to the page
-       rather than trapping it — the wheel's own rule, kept.
-       `touch-action:pan-y` on the layer tells the browser we intend the
-       vertical drag, so it stops waiting to decide and the first pixel counts;
-       a pinch (two fingers) is left alone. */
-    let _ty=null;
-    layer.addEventListener('touchstart',e=>{
-      _ty=(e.touches&&e.touches.length===1)?e.touches[0].clientY:null;
-    },{passive:true});
-    layer.addEventListener('touchmove',e=>{
-      if(_ty==null||!e.touches||e.touches.length!==1) return;
-      const s=document.getElementById('doc-scroll');
-      if(!s) return;
-      const y=e.touches[0].clientY, was=s.scrollTop;
-      s.scrollTop=was+(_ty-y);
-      _ty=y;
-      if(s.scrollTop!==was) e.preventDefault();
-    },{passive:false});
-    layer.addEventListener('touchend',()=>{ _ty=null; },{passive:true});
-    layer.addEventListener('touchcancel',()=>{ _ty=null; },{passive:true});
-    layer.style.touchAction='pan-y';
-  }
-  /* The paper changes height when the reader changes its type size, and the
-     notes have to follow it. One observer, armed once on the canvas. */
-  if(window.ResizeObserver&&canvas&&!canvas.dataset.docReadObs){
-    canvas.dataset.docReadObs='1';
-    new ResizeObserver(()=>{ const cur=state.contracts.find(x=>x.id===c.id)||c; docReadPaint(cur); docXrayPaint(cur); }).observe(canvas);
-  }
-}
-/* THE SHAPE OF THE CLAUSE THIS ENTRY FACES, in the paper's own vocabulary. It
-   is read off the DOM rather than carried in the reading, because the reading
-   is cached against the WORDING and a clause can be indented without a word
-   moving — so a stored shape would go stale under a reader while the paper in
-   front of them said otherwise. Walks up because a marked clause number is a
-   span inside the paragraph that carries the class. */
-function docReadShape(el){
-  let n=el, hang=false, lv=0;
-  for(let i=0;i<4&&n&&n.classList;i++){
-    const cls=String(n.className||'');
-    if(/\brl-hang\b/.test(cls)) hang=true;
-    const m=/\bhati-lv-([123])\b/.exec(cls);
-    if(m&&!lv) lv=Number(m[1]);
-    if(hang&&lv) break;
-    n=n.parentElement;
-  }
-  return (hang?' dr-hang':'')+(lv?' hati-lv-'+lv:'');
-}
-/* ============================================================================
-   THE COLUMN IS NOT BLANK ABOVE THE FIRST CLAUSE (Young ruled 15 Sep 2026:
-   "Instead of having a black screen on the plain english side of the contract,
-   simply mimic what is on the contract side until where the clauses begin
-   translating to plain english")
-   ============================================================================
-   The front matter is deliberately NOT a clause — the title page and the
-   contents are not wording anybody negotiates, and docReadSheet drops them so
-   that nothing is sent to the route or hashed for them. The cost was a reader
-   who turns Plain English on at the top of a long contract and is shown an
-   empty column for two pages before the first entry appears.
-
-   SO IT IS MIRRORED, NOT READ. Every block above the first paired clause draws
-   the paper's OWN words in the edition's column, level with the block it
-   faces. Nothing here is asked of a model, nothing is cached, nothing is sent:
-   docReadClauses is untouched, so what the route receives and what its cache
-   is keyed on do not move by a byte.
-
-   THE SHAPE IS MEASURED, EXACTLY AS THE SIZE AND THE FACE BESIDE IT ARE. A
-   title page is centred, bold, sometimes letter-spaced or in small capitals,
-   and every one of those belongs to the document's own design — so each is
-   read off the block being mirrored rather than typed here, and a design added
-   tomorrow is mirrored correctly without this function being told about it.
-   The values are taken through a NARROW door: a fixed set of keywords and one
-   number apiece, so nothing a computed style could carry reaches the markup
-   unchecked.
-
-   AND ONLY WHERE THERE IS A BOUNDARY TO MIRROR UP TO. A paper with no clause
-   on it has no "until the clauses begin", and mirroring would silently draw a
-   second copy of the whole contract. The boundary is the FIRST CLAUSE ON THE
-   PAPER — see the note over docReadFront for why it is not the first clause
-   that has been read. */
-const DOC_READ_FRONT_MAX=200;
-/* JUSTIFIED TOO (the owner's list, 27 Sep 2026): an opening block the paper
-   sets justified came across ragged-right beside it. */
-const DOC_READ_ALIGN=new Set(['center','right','justify']);
-const DOC_READ_CASE=new Set(['uppercase','lowercase','capitalize','small-caps']);
-function docReadMirrorStyle(el,base){
-  let cs=null;
-  try{ cs=getComputedStyle(el); }catch(_){ return ''; }
-  if(!cs) return '';
-  const out=[];
-  const al=String(cs.textAlign||'')==='end'?'right':String(cs.textAlign||'');
-  if(DOC_READ_ALIGN.has(al)) out.push('text-align:'+al);
-  const w=parseInt(cs.fontWeight,10);
-  if(Number.isFinite(w)&&w>=600) out.push('font-weight:600');
-  if(String(cs.fontStyle||'')==='italic') out.push('font-style:italic');
-  if(DOC_READ_CASE.has(String(cs.textTransform||''))) out.push('text-transform:'+cs.textTransform);
-  const ls=String(cs.letterSpacing||'');
-  if(/^-?\d+(\.\d+)?px$/.test(ls)&&parseFloat(ls)!==0) out.push('letter-spacing:'+ls);
-  const fs=parseFloat(cs.fontSize);
-  /* A RATIO, never a pixel: the entry's own --dr-size already follows the
-     reader's A⁻/A⁺ and the document's design, and a pixel copied off the paper
-     would stop following either the moment one of them moved. */
-  if(base>0&&fs>0&&Math.abs(fs-base)>0.5)
-    out.push('font-size:calc(var(--dr-size, 1em) * '+(Math.round((fs/base)*100)/100)+')');
-  /* AND ITS LEADING, for the same reason and in the same shape. The edition's
-     own 1.75 is right for a translation set beside a clause and wrong for a
-     title page: mirrored at 1.75 every line sits a little lower than the line
-     it faces, and twelve lines of front matter end up visibly out of step.
-     Unitless, so it follows the size above it rather than fighting it. */
-  const lh=parseFloat(cs.lineHeight);
-  if(fs>0&&Number.isFinite(lh)&&lh>0) out.push('line-height:'+(Math.round((lh/fs)*100)/100));
-  return out.join(';');
-}
-/* ---- A CONTENTS ROW IS TWO COLUMNS, AND THE MIRROR KEEPS BOTH (Young
-   reported it 15 Sep 2026: "The numbers in the contract on the right are
-   supposed to be on the far right of the contract similar to the contract on
-   the left") ----
-   The page number of a contents row is not part of the line's sentence; it is
-   a RIGHT-HAND COLUMN, and the reader of the mirror is matching it against the
-   same number twelve inches to the left. Flattened to one run of text it reads
-   as the last word of the heading ("Definitions and Interpretation 3"), which
-   is a different fact from the one the paper states.
-
-   THE TAIL IS THE FILE'S OWN, NEVER A GUESS FROM THE WORDS. The docx reader
-   emits it as a span of its own for exactly this reason (a right tab stop is
-   Word saying the line has a right-hand number), and the class it uses is read
-   through window so the two cannot drift about what a contents tail is called.
-   A block with no such span is not a contents row and is mirrored as it was.
-
-   AND IT REFUSES RATHER THAN GUESSING, in the reader's own posture: where the
-   collapsed line does not END with the tail, something else sits between them
-   and any split would be invented, so the row is drawn flat. */
-function docReadMirrorToc(el,text){
-  let tail=null;
-  try{
-    const cls=(typeof window!=='undefined'&&window.RICH_TOC_TAIL_CLASS)||'hati-toc-n';
-    tail=el&&el.querySelector?el.querySelector('.'+cls):null;
-  }catch(_){ return null; }
-  if(!tail) return null;
-  const n=String(tail.textContent||'').replace(/\s+/g,' ').trim();
-  if(!n) return null;
-  const whole=String(text||'');
-  if(!whole.endsWith(n)) return null;
-  const head=whole.slice(0,whole.length-n.length).trim();
-  if(!head) return null;
-  return {head,n};
-}
-/* ---- THE BOUNDARY IS THE FIRST CLAUSE ON THE PAPER, NEVER THE FIRST ONE
-   THAT HAPPENS TO HAVE COME BACK (Young reported it 26 Sep 2026: "when the
-   translation to plain English comes up, the words reading still display
-   beneath the translation so they are on top of each other") ----
-   `rows` is the sheet (docReadSheet): the clauses in paper order. The
-   boundary used to be the first PAIRED clause, which is the same place once an
-   edition is whole — and a different one while a long contract is being read
-   in pieces. Three pages are read at once, so page 2 can land before page 1;
-   the first pair was then clause 61, and every block above it — the WORDING of
-   clauses 1 to 60 — was copied into this column as "front matter", with a
-   "Reading…" drawn on top of each one. MEASURED on a 130-clause contract with
-   its first page held back: 104 lines drawn over each other.
-   The front matter is exactly what the sheet does NOT hold, so it ends where
-   the sheet's first row begins, whatever has or has not been read. A clause is
-   never mirrored: it gets its reading, its "Reading…", or nothing. Any array
-   of rows carrying `.el` in paper order is accepted, so a caller holding the
-   pairs still gets an honest boundary for that list. */
-function docReadFront(c,rows){
-  const canvas=document.getElementById('doc-canvas');
-  const first=Array.isArray(rows)?rows.find(r=>r&&r.el):null;
-  if(!canvas||!first) return [];
-  const stop=first.el;
-  let els=[];
-  try{
-    /* ---- AND THE PAPER'S HEAD IS MIRRORED, THOUGH IT IS FURNITURE TO THE
-       ROUTE ---- MEASURED: the title block was the one thing above the first
-       clause that did NOT appear, because DOC_READ_FURNITURE excludes it. That
-       exclusion is right for what is SENT — a paper head is not clause wording
-       and must never be read as any — and wrong for what is DRAWN, because the
-       reader is looking straight at it and its absence is the blank the owner
-       reported. The bound is "above the first paired clause", which is what
-       keeps the foot and the seal card out of this without naming them. */
-    els=Array.from(canvas.querySelectorAll(
-        DOC_READ_HEADS+',p,li,div,'+DOC_READ_TXT_HEAD+','+DOC_READ_TXT_NUM))
-      .filter(el=>!el.contains(stop)
-        && !!(stop.compareDocumentPosition(el)&Node.DOCUMENT_POSITION_PRECEDING));
-  }catch(_){ return []; }
-  /* The innermost block only — a wrapper that merely CONTAINS the line is not
-     the line, and mirroring both would print the front matter twice. */
-  /* One pass: in document order a wrapper's contents follow it directly, so
-     it contains another block exactly when it contains the next one. */
-  els=els.filter((el,i)=>!(els[i+1]&&el.contains(els[i+1])));
-  let base=0;
-  try{
-    const paper=canvas.querySelector('.doc-surface')||canvas;
-    base=parseFloat(getComputedStyle(paper).fontSize)||0;
-  }catch(_){}
-  const out=[];
-  for(const el of els){
-    const text=String(el.textContent||'').replace(/\s+/g,' ').trim();
-    if(!text) continue;
-    out.push({el,text,style:docReadMirrorStyle(el,base),toc:docReadMirrorToc(el,text)});
-    /* A ceiling, and it hides nothing: the unabridged front matter is the
-       column immediately to the left of this one. */
-    if(out.length>=DOC_READ_FRONT_MAX) break;
-  }
-  return out;
-}
-function docReadSwitchHtml(c){
-  if(!c||!docReadFits()) return '';
-  /* A VERB THAT CANNOT WORK IS NOT DRAWN. Asked of the clause list itself
-     rather than of docHasNoWording, which is narrow by design (a blank
-     amendment) and answers false for the case that actually matters here — a
-     scan whose words never came out of the file. */
-  if(!docReadClauses(c).length) return '';
-  const on=docReadOn()&&docReadHeld(c);
-  /* X-RAY IS THE THIRD POSITION, straight after Plain English (22 Sep 2026).
-     It is lit off the MODE alone and never off docReadHeld: it needs no
-     reading to have been made — its panel offers that press where there is
-     none — so gating it on one would hide the position that explains the
-     other two. */
-  const xr=docXrayOn();
-  return `<div class="doc-read-seg" role="group" aria-label="${esc(i18t('ct_read_group'))}">
-    <button type="button" data-doc-read="0" aria-pressed="${!on&&!xr}">${esc(i18t('ct_read_contract'))}</button>
-    ${''/* NEVER GREYED WHILE IT READS (fix 6): the column is open and says how
-           far it has got, so the half that opened it stays lit and pressable —
-           a second press joins the reading already running. */}
-    ${''/* NOT CONNECTED IS KNOWN BEFORE THE PRESS (the owner's list, 27 Sep
-           2026): the press used to open nothing and flash a passing pop-up.
-           Where the server says Copilot is not connected and no reading is
-           held, the half is greyed and says why on its own hover — a reading
-           already held still opens, since it costs nothing. */}
-    ${(()=>{ const dead=typeof API_MODE==='function'&&API_MODE()&&typeof state!=='undefined'&&state&&state.aiConfigured===false&&!docReadHeld(c);
-      return `<button type="button" data-doc-read="1" aria-pressed="${on}"${dead?' disabled aria-disabled="true"':''}
-      title="${esc(i18t(dead?'ct_read_no_ai':'ct_read_plain_title'))}">${esc(i18t('ct_read_plain'))}</button>`; })()}
-    <button type="button" data-doc-read="2" aria-pressed="${xr}"
-      title="${esc(i18t('xr_switch_title'))}">${esc(i18t('xr_switch'))}</button>
-  </div>`;
-}
 async function docReadRun(c,opts){
   const id=c&&c.id;
   if(id==null) return false;
   /* ONE PRESS PER CONTRACT: a reading already running is joined, never asked
      for twice (fix 6). */
   const busy=_docReadJobs.get(id);
-  if(busy) return busy.promise;
+  /* ---- AND ONE CLAUSE AT A TIME (the Thread, 5 Oct 2026) ----
+     `only` names the rows to read now, by their place in the walk; the whole
+     walk is still sent so every key stays global (see the route). A press for
+     one clause while another reading runs WAITS for it rather than joining
+     it — the clause it wants is not in the run it would join — and a press
+     for the whole joins a whole already running, as before. */
+  const only=(opts&&Array.isArray(opts.only))?opts.only.filter(Number.isInteger):null;
+  if(busy){
+    if(!only&&!busy.only) return busy.promise;
+    try{ await busy.promise; }catch(_){}
+    if(_docReadJobs.get(id)) return false;
+  }
   const clauses=docReadClauses(c);
   if(!clauses.length){ toast(i18t('ct_read_nothing'),'warn'); return false; }
   /* STAMPED ONLY ON A READING THAT ARRIVED, and stamped with the signature of
@@ -12760,15 +11648,16 @@ async function docReadRun(c,opts){
      can be repainted while it is in flight and a signature read afterwards
      would claim a reading of wording nobody read. */
   const sig=docReadSig(c);
-  const job={ run:docReadRunName(), got:new Map(), from:0, total:clauses.length, prev:c._readings };
+  const job={ run:docReadRunName(), got:new Map(), from:0, total:clauses.length, prev:c._readings, only };
   _docReadJobs.set(id,job);
+  _docThreadOnly=only?new Set(only):null;
   /* What the column shows until the first answer about progress arrives: the
      edition it already held, if any — never a blank column over wording that
      was read yesterday — marked as reading. */
   const prev=c._readings;
   c._readings=Object.assign({ v:1, items:[] }, prev||{},
     { running:true, total:clauses.length, done:null, over:0, unmatched:0, partial:false, truncated:false });
-  wsPaintTabRowEnd(c);
+  if(docReadWatching(id)) docThreadPaint(c);
   job.promise=(async()=>{
     let r=null, err=null;
     const started=Date.now();
@@ -12778,7 +11667,7 @@ async function docReadRun(c,opts){
          never what was read clause by clause. */
       for(let attempt=0;attempt<2;attempt++){
         let settled=false; r=null; err=null;
-        const post=api('ai/readings','POST',{id,clauses,force:!!(opts&&opts.force),run:job.run})
+        const post=api('ai/readings','POST',Object.assign({id,clauses,force:!!(opts&&opts.force),run:job.run},only?{only}:{}))
           .then(x=>{ r=x; },e=>{ err=e; }).then(()=>{ settled=true; });
         let wait=DOC_READ_FIRST_MS;
         while(!settled){
@@ -12821,9 +11710,9 @@ async function docReadRun(c,opts){
       return false;
     }finally{
       _docReadJobs.delete(id);
+      _docThreadOnly=null;
       const cur=docReadCur(id,c);
-      wsPaintTabRowEnd(cur);
-      if(docReadWatching(id)) docReadPaint(cur);
+      if(docReadWatching(id)) docThreadPaint(cur);
     }
   })();
   return job.promise;
@@ -12851,52 +11740,26 @@ async function docReadPoll(id,job,always){
       const items=Array.from(job.got.values()).sort((a,b)=>a.i-b.i);
       cur._readings={ v:1, running:true, total:job.total, done:items.length, items,
         over:0, unmatched:0, partial:false, truncated:false };
-      if(docReadWatching(id)) docReadPaint(cur);
+      if(docReadWatching(id)) docThreadPaint(cur);
     }
   }
   return p;
 }
 /* ============================================================
-   X-RAY — THE THIRD POSITION ON THE DOCUMENT TAB'S SWITCH
-   (Young ruled 22 Sep 2026)
+   WHAT IS KNOWN ABOUT A CLAUSE — the readings the Thread draws
    ============================================================
-   Contract View shows the paper. Plain English shows the paper and a
-   translation beside it. X-ray shows the paper, a MAP of it down the margin,
-   and everything already known about whichever clause you are looking at.
-
-   IT SPENDS NOTHING AND ASKS NOTHING. Every section of the panel is a reading
-   this product has already paid for: the plain-English entry out of the
-   `_readings` the second position wrote, the open risk-scan findings, the
-   playbook review's verdicts, and the clause ladder. X-ray adds no route, no
-   store and no field (f360 greps for all of it) — it is a third way of
-   LOOKING at what is there, which is why it can be a position on a switch
-   rather than a feature with a bill.
-
-   THE MAP BELONGS IN A MARGIN, AND THE MARGIN IS GREY, NEVER PAPER. The
-   sheet is capped at --doc-sheet-max and centred, so there is page ground
-   either side of it whenever the column is wider than the sheet. The spine
-   floats over that ground: nothing in the layout changes, so the contract
-   cannot move by a pixel — refusal 3 satisfied by construction rather than by
-   measurement, which is the same answer the plain-English column already
-   gives. Where the ground is too narrow to hold it the spine is NOT DRAWN and
-   the panel still works: a verb that cannot work is not drawn.
-
-   NO EXPLAINER BAND, by the owner's word on the day. The prototype carried a
-   paragraph over the paper saying what X-ray was; this draws none, and the
-   tab row's own switch is what says which reading you are in.
+   Born as X-ray, the switch's third position (22 Sep 2026); since 5 Oct 2026
+   these readings feed THE THREAD, the Document tab's one facing page (see the
+   block over docThreadPaint). They spend nothing: the open risk-scan
+   findings, the playbook review's verdicts, the brief's watchouts and unusual
+   terms, each placed on the clause whose wording it quotes, graded worst
+   first; Who does what; and the clause ladder. The strand builders below are
+   kept for the Explorer, which draws them over its own paper.
    ============================================================ */
-/* MEASURED, not chosen: on a 1500px window with the divider at rest the grey
-   beside the sheet is 43px, and a 34px column wanting 10px of clearance missed
-   it by ONE pixel and drew nothing. 28 and 8 fit that ordinary case with 15px
-   still clear of the paper, and the measurement in docXrayPaint is what keeps
-   the narrow ones honest rather than these numbers. */
-const DOC_XRAY_SPINE_W  = 28;   /* the map's own column, in px */
-const DOC_XRAY_SPINE_GAP= 8;    /* clear ground it will not encroach past */
 /* A QUOTE SHORTER THAN THIS NAMES NOTHING. Placement is containment — the
    same certainty rlPbFindClause insists on — so a two-word quote that appears
    in nine clauses must not put a mark on all nine. */
 const DOC_XRAY_QUOTE_MIN = 14;
-let _docXrayPick = 0;           /* which clause the panel is about, per sitting */
 
 const _xrNorm = s => { try{ if(window.quoteNorm) return quoteNorm(s); }catch(_){}
   return String(s==null?'':s).toLowerCase().replace(/\s+/g,' ').trim(); };
@@ -12987,7 +11850,10 @@ function _xrFinds(c){
 const _xrFindQuote = f => (window.findingQuote?findingQuote(f):(f&&f.quote)||'');
 const _xrVerdicts = c => ((c&&c.playbook&&Array.isArray(c.playbook.verdicts))?c.playbook.verdicts:[]).filter(_xrPbOpen);
 /* WHAT IS WORTH A LOOK ON THIS CLAUSE, from the four readings that carry a
-   quote. Borrowed whole: openFindings is the scan's own "not dismissed" rule
+   quote. A RECORDED PROMISE IS NOT ONE OF THEM (Young ruled 19 Sep 2026): an
+   obligation is lit on the WORDS, never worn as a bar on the clause — one
+   colour would be saying two things on one screen.
+   Borrowed whole: openFindings is the scan's own "not dismissed" rule
    and findingQuote its own reading of where a finding points; a watchout or an
    unusual term arrives with the wording it rests on, so it places by exactly
    the containment docXrayPlace already insists on and by nothing looser. */
@@ -13011,7 +11877,7 @@ function docXrayMarks(c,row){
    highlighted area which is the worth a look area"). The panel draws it no
    more; it stays the one reading of "which concerns land on no clause", with
    no caller, because a reading deleted outright is rebuilt worse a month
-   later and two lines in docXrayPanelHtml put it back. What it listed is
+   later and two lines in docThreadBodyHtml put it back. What it listed is
    still read where it came from — the Brief, the Risk scan and the Playbook
    check. The note below is how it read while it was drawn.
 
@@ -13444,8 +12310,8 @@ function docXrayWhoHtml(who){
    the screen and each block was a few pixels tall. A block now has a floor it
    can be pressed at, XR_SEG_MIN, and grows with its clause's words up to
    XR_SEG_MAX — a relation to the words, never a share of the screen — and the
-   map scrolls on its own. It FOLLOWS the paper (docXrayFollow): the clause at
-   the top of the sheet is marked on the map and kept in view. */
+   map scrolls on its own. It FOLLOWS the paper (the Explorer's igStrandFollow):
+   the clause at the top of the sheet is marked on the map and kept in view. */
 /* ---- AND THE STRAND RUNS TO THE BOTTOM OF THE SCREEN, AND NO FURTHER
    (Young ruled 24 Sep 2026: "make the DNA strand to cover until the bottom of
    the screen. It should not extend past the length of the screen") ----
@@ -13458,6 +12324,9 @@ function docXrayWhoHtml(who){
    floor (about 29 on a laptop screen) still scrolls, and that is the one case
    where the two rulings meet and the older one decides. */
 const XR_SEG_MIN = 16, XR_SEG_MAX = 44, XR_SEG_WORDS = 400;
+/* The strand's width. Read by the Explorer (js/views/intelligence.js) through
+   window — kept and published after the strand left the Document tab (f232). */
+const DOC_XRAY_SPINE_W = 28;
 const docXraySegH = words => Math.round(XR_SEG_MIN
   + (XR_SEG_MAX - XR_SEG_MIN) * Math.min(1, Math.sqrt(Math.max(0, words) / XR_SEG_WORDS)));
 /* ---- ONLY THE CLAUSES WORTH A LOOK ARE ON THE MAP (Young ruled 23 Sep
@@ -13475,271 +12344,442 @@ const docXraySpineRows = rows => (rows||[]).filter(x => x && x.tone);
    page's own hover card. The Document tab calls it bare and is unchanged. */
 function docXraySpineHtml(rows, opts){
   const o=opts||{};
+  /* `opts.pick` outlines one block; nothing is outlined unless a caller asks
+     (the Document tab draws no strand since the Thread, 5 Oct 2026). */
+  const pick=Number.isInteger(o.pick)?o.pick:-1;
   return docXraySpineRows(rows).map(x=>`<button type="button" class="doc-xr-seg${x.tone?' is-'+x.tone:''}${
-      x.i===_docXrayPick?' is-on':''}" data-xr-seg="${x.i}"
-      style="--xr-w:${docXraySegH(x.words)};min-height:${XR_SEG_MIN}px" aria-pressed="${x.i===_docXrayPick?'true':'false'}"
+      x.i===pick?' is-on':''}" data-xr-seg="${x.i}"
+      style="--xr-w:${docXraySegH(x.words)};min-height:${XR_SEG_MIN}px" aria-pressed="${x.i===pick?'true':'false'}"
       ${o.numbers?'':`title="${esc(docXrayLabel(x)+' · '+i18tn('xr_words',x.words,{n:x.words}))}"`}
       aria-label="${esc(docXrayLabel(x))}">${o.numbers&&x.cite
         ?`<span class="doc-xr-num">${esc(String(x.cite).replace(/\.$/,''))}</span>`
         :'<span class="doc-xr-dot"></span>'}</button>`).join('');
 }
-/* ---------- the panel ---------- */
+/* ============================================================
+   THE THREAD — THE DOCUMENT TAB'S FACING PAGE (Young picked it 5 Oct 2026:
+   "Build Thread with Quiet's typography")
+   ============================================================
+   Over two rounds of drawn options the owner retired the three-position
+   switch (Contract View · Plain View · Risk View), the plain-English column,
+   the X-ray panel and the DNA strand in the paper's margin, and chose ONE
+   facing page that is always there: every clause as a row on one thread, in
+   the paper's order — a bead wearing the clause's worst mark, its name, and
+   at the right what is known about it ("1 to look at", "Read"). THE CLAUSE
+   UNDER THE READER'S EYE IS THE OPEN ROW: its reading (or the one press that
+   makes it), Worth a look and Who does what unfold under its name; every
+   other clause stays one line. The thread IS the map, with names.
+
+   TWO HANDS, ONE LINE. A fixed line DOC_THREAD_LINE below the paper's top
+   decides which clause is on: scrolling the paper reads that line; a press
+   on a row, or ‹ ›, glides the paper until that clause's heading sits on it,
+   and the row opens at once. Both hands read the same line, so the paper and
+   the page cannot disagree — the owner's own ask: "they should never be
+   misaligned and should glide gracefully".
+
+   PLAIN ENGLISH IS MADE ONE CLAUSE AT A TIME, ON REQUEST — the owner's reason
+   for the redesign: reading a long contract whole "slows down the process".
+   Explain this clause asks the ONE readings route for that row (`only`); the
+   answer lands in the same `_readings` the whole edition uses, and Explain all
+   is the same route for every row, filling in the background as before. The
+   reading is set in the paper's own face and size (Quiet), as the Plain
+   edition was.
+
+   THE CHECKS CARD AND THE COMMENTS CARD ARE GONE FROM THIS TAB (owner: "they
+   are essentially redundant"). Obligations and the risk scan keep their icons
+   in the room head, the Playbook review keeps its row under More on
+   Negotiate, and where a reading has not been made the open row says so in
+   one quiet line with its Run — the head icons' own `data-room-check` door,
+   never a second act. Worth a look carries no "Add a note" (owner, 5 Oct).
+
+   IT SPENDS NOTHING UNTIL A PRESS: every section is a reading already paid
+   for (docXrayRows, docXrayMarks, docXrayWho, docReadAnchors); only Explain
+   asks the model, and it says its cost beside the button.
+   ============================================================ */
+const DOC_THREAD_LINE = 24;       /* px below the paper's top: the line that decides the open row */
+const DOC_THREAD_GLIDE_MS = 900;  /* a glide that never reports its end is settled after this */
+const DOC_THREAD_SETTLE_MS = 160; /* quiet after the last scroll event = the glide has ended */
+const DOC_THREAD_BODY_MIN = 320;  /* the open row's body keeps at least this, however many rows */
+let _docThreadOn = -1;            /* the open row, per sitting */
+let _docThreadRows = [];          /* the painted rows' elements on the paper, for the line */
+let _docThreadGlide = -1;         /* the row a press is gliding the paper to; -1 at rest */
+let _docThreadHold = -1;          /* a pressed row the paper cannot bring up to the line stays open */
+let _docThreadGlideT = null;
+let _docThreadWant = '';          /* 'risk': land on the first marked clause when the tab paints */
+let _docThreadOnly = null;        /* the rows the running reading was asked for; null = every row */
+let _docThreadCache = null;       /* the last paint's walk, so a scroll does not re-walk the sheet */
+
+/* The thread is up wherever the Document tab has room for two working
+   columns; below DOC_READ_MIN_W it stands down, as the layers before it did. */
+const docThreadOn = () => docReadFits() && _wsTab === 'docs';
+const docThreadCur = c => (typeof getContract === 'function' && c && c.id != null && getContract(c.id)) || c;
+const docThreadReduce = () => { try{ return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } };
+
 function docXraySecHtml(k,body,cls){
   return `<div class="doc-xr-sec${cls?' '+cls:''}"><div class="doc-xr-k">${esc(k)}</div><div class="doc-xr-t">${body}</div></div>`;
 }
-function docXrayPanelHtml(c,rows){
-  if(!rows.length) return `<div class="doc-xr-none">${esc(i18t('xr_no_clauses'))}</div>`;
-  const x=rows[Math.min(Math.max(_docXrayPick,0),rows.length-1)];
-  /* THE PLAIN-ENGLISH ENTRY IS THE SECOND POSITION'S OWN, paired by the same
-     anchors it pairs with — never a second reading of the same words.
 
-     AND THE ENTRIES HAVE TO BE HANDED OVER (Young reported it 22 Sep 2026:
-     *"the x ray says press in plain english to get a plain English but plain
-     english is already there"*). docReadAnchors takes the items as its SECOND
-     argument; this call passed none, so it walked `(items||[])` — an empty
-     list — found nothing, and the panel honestly printed the only sentence it
-     has for that case. On EVERY clause of EVERY contract, whether a reading
-     existed or not: it had never once worked. MEASURED in a browser on a
-     contract carrying thirteen readings — the Plain English column paired 13,
-     this paired 0. */
-  let plain='';
+/* ---------- the line ---------- */
+/* WHICH CLAUSE THE LINE IS ON: the last row whose element has reached the
+   line below the paper's top. Measured live, never remembered, so a resize or
+   a type-size change cannot leave a stale answer. */
+function docThreadAtLine(){
+  const sc=document.getElementById('doc-scroll');
+  if(!sc||!_docThreadRows.length) return 0;
+  const line=sc.getBoundingClientRect().top+DOC_THREAD_LINE+0.5;
+  let here=0;
+  _docThreadRows.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=line) here=i; }catch(_){} });
+  return here;
+}
+/* THE GLIDE: the paper moves until the pressed clause's heading sits on the
+   line, and the row opens at once so the page never waits for the paper. The
+   scroll handler stands aside while a glide is in flight and the end of the
+   glide RECONCILES — what the line says is what the page says — unless the
+   paper could not bring that clause up to the line (the last ones on the
+   sheet), in which case the pressed row stays open and the reader's next
+   scroll decides. */
+function docThreadGoTo(c,i){
+  const n=_docThreadRows.length; if(!n) return;
+  i=Math.max(0,Math.min(n-1,Number(i)||0));
+  const sc=document.getElementById('doc-scroll'), el=_docThreadRows[i];
+  if(!sc||!el){ docThreadOpen(c,i); return; }
+  let target=0;
+  try{ target=el.getBoundingClientRect().top-sc.getBoundingClientRect().top+sc.scrollTop-DOC_THREAD_LINE+1; }catch(_){ target=0; }
+  const max=Math.max(0,sc.scrollHeight-sc.clientHeight);
+  _docThreadHold = target>max ? i : -1;
+  target=Math.max(0,Math.min(max,target));
+  _docThreadGlide=i;
+  docThreadOpen(c,i);
+  if(docThreadReduce()||Math.abs(sc.scrollTop-target)<1){ sc.scrollTop=target; docThreadSettle(c); return; }
+  try{ sc.scrollTo({top:target,behavior:'smooth'}); }catch(_){ sc.scrollTop=target; }
+  clearTimeout(_docThreadGlideT);
+  _docThreadGlideT=setTimeout(()=>docThreadSettle(c),DOC_THREAD_GLIDE_MS);
+}
+function docThreadSettle(c){
+  clearTimeout(_docThreadGlideT); _docThreadGlideT=null;
+  const held=_docThreadHold;
+  _docThreadGlide=-1; _docThreadHold=-1;
+  docThreadOpen(docThreadCur(c), held>=0?held:docThreadAtLine());
+}
+/* The paper's scroller is rebuilt with the room, so the listener rides the
+   element and is armed once per element. The contract is looked up LIVE at
+   every event: a record replaced since would otherwise be the one acted on. */
+function docThreadFollowArm(){
+  const sc=document.getElementById('doc-scroll');
+  if(!sc||sc.dataset.thFollow) return;
+  sc.dataset.thFollow='1';
+  let raf=0;
+  const live=()=>(typeof getContract==='function'&&typeof state!=='undefined'&&state)?getContract(state.activeId):null;
+  sc.addEventListener('scroll',()=>{
+    if(_docThreadGlide>=0){
+      clearTimeout(_docThreadGlideT);
+      _docThreadGlideT=setTimeout(()=>docThreadSettle(live()),DOC_THREAD_SETTLE_MS);
+      return;
+    }
+    if(raf) return;
+    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(c&&docThreadOn()) docThreadOpen(c,docThreadAtLine()); });
+  },{passive:true});
+  if('onscrollend' in window) sc.addEventListener('scrollend',()=>{ if(_docThreadGlide>=0) docThreadSettle(live()); });
+}
+
+/* ---------- the readings, paired once per paint ---------- */
+/* WHICH ROWS HAVE A READING: the plain-English edition's own pairing
+   (docReadAnchors), keyed by the row's element so the states and the open
+   row read one answer. A section row carries no reading by design. */
+function docThreadPlain(c, sheet){
+  const out=new Map();
+  let pairs=[];
+  try{ pairs=docReadAnchors(c, docReadItems(c), sheet)||[]; }catch(_){ pairs=[]; }
+  pairs.forEach(p=>{ const t=String((p&&p.it&&p.it.plain)||'').trim(); if(p&&p.row&&p.row.el&&t) out.set(p.row.el,t); });
+  return out;
+}
+/* THE FACE AND THE SIZE ARE MEASURED OFF THE PAPER (Young, 11 Sep 2026: "make
+   the font in the plain english page the same as the contract page"). The
+   reading is set in them; the thread's own furniture keeps the product's face. */
+function docThreadFace(card){
   try{
-    const paired=(typeof docReadAnchors==='function')?docReadAnchors(c,docReadItems(c)):[];
-    const hit=paired.find(a=>a&&a.row&&a.row.el===x.el);
-    plain=hit?String((hit.it&&hit.it.plain)||'').trim():'';
-  }catch(_){ plain=''; }
+    const canvas=document.getElementById('doc-canvas');
+    const paper=canvas&&(canvas.querySelector('.doc-surface')||canvas);
+    const cs=paper?getComputedStyle(paper):null;
+    const px=cs?cs.fontSize:'';
+    if(px&&parseFloat(px)>0) card.style.setProperty('--dr-size',px); else card.style.removeProperty('--dr-size');
+    const face=cs?cs.fontFamily:'';
+    if(face) card.style.setProperty('--dr-face',face); else card.style.removeProperty('--dr-face');
+  }catch(_){}
+}
+
+/* ---------- the rows ---------- */
+function docThreadRowHtml(x,i){
+  const tone=x.tone||'';
+  const prev=esc(i18t('th_prev')), next=esc(i18t('th_next'));
+  return `<div class="doc-th-row${tone?' is-'+tone:''}" data-th-row="${i}" role="listitem">
+    <div class="doc-th-head">
+      <button type="button" class="doc-th-go" data-th-go="${i}" aria-expanded="false">
+        <span class="doc-th-bead" aria-hidden="true"></span>
+        <span class="doc-th-name">${esc(docXrayLabel(x))}</span>
+        <span class="doc-th-state" data-th-state="${i}"></span>
+      </button>
+      <span class="doc-th-steps">
+        <button type="button" class="ui-btn ui-btn-icon doc-th-step" data-th-step="-1" title="${prev}" aria-label="${prev}">${icon('chevL','w-3.5 h-3.5')}</button>
+        <button type="button" class="ui-btn ui-btn-icon doc-th-step" data-th-step="1" title="${next}" aria-label="${next}">${icon('chevR','w-3.5 h-3.5')}</button>
+      </span>
+    </div>
+    <div class="doc-th-body"><div class="doc-th-in"></div></div>
+  </div>`;
+}
+/* WHAT IS KNOWN, at the right of every row: how many marks (in the worst
+   mark's tone), whether a reading exists, or that one is on its way. */
+function docThreadStates(c,rows,plain){
+  const running=docReadRunning(c);
+  rows.forEach((x,i)=>{
+    const el=document.querySelector(`#doc-thread [data-th-state="${i}"]`); if(!el) return;
+    /* THE BEAD FOLLOWS THE RECORD, not the first paint: the rows are rebuilt
+       only when the labels change, and a scan or a brief that lands LATER
+       (js/ai.js repaints the thread when one does) must recolour the bead of
+       a row already drawn. Found by uploaded-contract-fixed-verify 2b, which
+       stages the scan after the tab has painted. */
+    const row=el.closest('.doc-th-row');
+    if(row){ XR_GRADES.forEach(g=>row.classList.remove('is-'+g)); if(x.tone) row.classList.add('is-'+x.tone); }
+    const n=(x.marks||[]).length;
+    const parts=[];
+    if(n) parts.push(`<span class="is-${esc(x.tone||'amber')}">${esc(i18tn('th_look_n',n,{n}))}</span>`);
+    if(plain.has(x.el)) parts.push(`<span class="is-read">${esc(i18t('th_read'))}</span>`);
+    else if(running&&!(x.row&&x.row.kind==='section')&&(!_docThreadOnly||_docThreadOnly.has(i)))
+      parts.push(`<span class="is-wait">${esc(i18t('ct_read_reading'))}</span>`);
+    el.innerHTML=parts.join('<span class="doc-th-dot"> · </span>');
+  });
+}
+
+/* ---------- the open row ---------- */
+function docThreadProgress(c){
+  const r=c&&c._readings;
+  if(!_docThreadOnly&&r&&r.running&&Number.isFinite(Number(r.done))&&Number(r.total)>0)
+    return i18t('ct_read_progress',{n:Number(r.done),m:Number(r.total)});
+  return i18t('ct_read_reading');
+}
+/* NOT CONNECTED IS KNOWN BEFORE THE PRESS (the owner's list, 27 Sep 2026):
+   where the server says Copilot is not connected the press is greyed and says
+   why on its own hover, never a passing pop-up after a dead press. */
+const docThreadNoAi = () => typeof API_MODE==='function'&&API_MODE()&&typeof state!=='undefined'&&state&&state.aiConfigured===false;
+function docThreadExplainHtml(c,rows,i){
+  const dead=docThreadNoAi();
+  const n=rows.filter(x=>!(x.row&&x.row.kind==='section')).length;
+  return `<div class="doc-th-ask">
+    <button type="button" class="ui-btn" data-th-explain="${i}"${dead?' disabled aria-disabled="true"':''}
+      title="${esc(i18t(dead?'th_no_ai':'th_explain_title'))}">${esc(i18t('th_explain'))}</button>
+    <span class="doc-th-cost">${esc(i18t('th_cost'))}</span>
+    <button type="button" class="ui-btn ui-btn-plain doc-th-all" data-th-explain-all${dead?' disabled aria-disabled="true"':''}
+      title="${esc(i18t(dead?'th_no_ai':'th_explain_all_title'))}">${esc(i18tn('th_explain_all',n,{n}))}</button>
+  </div>`;
+}
+/* A MISSING MEMORY IS "WE DO NOT KNOW", NEVER "IT MOVED" (22 Sep 2026):
+   `_readSig` lives only as long as the tab does, and its absence says
+   nothing. Where it is held and differs, the reading is stale and says so,
+   with the one press that reads this clause again. AND IT NEVER RE-READS BY
+   ITSELF: a reading is a real cost the reader has not asked for. */
+function docThreadMovedHtml(c,i,sheet){
+  let moved=false;
+  try{ const sig=docReadSig(c,sheet); moved=!!(sig&&c._readSig&&c._readSig!==sig); }catch(_){ moved=false; }
+  if(!moved) return '';
+  return `<span class="doc-th-moved">${esc(i18t('th_moved'))} <button type="button" class="ui-btn ui-btn-plain ui-btn-sm" data-th-explain="${i}" data-th-force="1">${esc(i18t('ct_read_again'))}</button></span>`;
+}
+/* WHERE A READING HAS NOT BEEN MADE, THE ROW SAYS SO — one quiet line with
+   its Run, in the place its result would show. The press is the room head's
+   own data-room-check door (wireRoomChecks), so there is one act, not two. */
+function docThreadUnrunHtml(c,kinds){
+  if(typeof checkVerdict!=='function') return '';
+  const may=(typeof canEdit!=='function'||canEdit());
+  return kinds.map(k=>{
+    let v=null; try{ v=checkVerdict(c,k); }catch(_){ v=null; }
+    if(v) return '';
+    if(!(may&&(k==='oblig'||c.status!=='Signed'))) return '';
+    const key=k==='risk'?'th_unrun_scan':k==='playbook'?'th_unrun_pb':'th_unrun_oblig';
+    return `<div class="doc-th-unrun">${esc(i18t(key))} · <button type="button" class="ui-btn ui-btn-plain ui-btn-sm" data-room-check="${k}">${esc(i18t('th_run'))}</button></div>`;
+  }).join('');
+}
+function docThreadBodyHtml(c,rows,i,plain,sheet){
+  const x=rows[i]; if(!x) return '';
+  const section=!!(x.row&&x.row.kind==='section');
+  const words=Number(x.words)||0;
+  const parts=[];
+  parts.push(`<div class="doc-th-meta">${esc(i18tn('xr_words',words,{n:words}))} · ${esc(i18t('xr_share',{n:x.share}))} · ${esc(i18t('th_of',{i:i+1,n:rows.length}))}</div>`);
+  /* THE READING, in the paper's face — or the press that makes it. A section
+     title carries no reading by design and offers no press. */
+  const p=plain.get(x.el)||'';
+  const asked=docReadRunning(c)&&(!_docThreadOnly||_docThreadOnly.has(i));
+  if(p){
+    const at=(c._readings&&c._readings.at)||'';
+    const when=(at&&typeof relTime==='function')?relTime(at):'';
+    parts.push(`<div class="doc-th-plain">${docReadMark(p)}</div>
+      <div class="doc-th-at" title="${esc(i18t('ct_read_cap'))}">${esc(when?i18t('th_read_at',{when}):i18t('th_read'))}${docThreadMovedHtml(c,i,sheet)}</div>`);
+  } else if(!section){
+    parts.push(asked?`<div class="doc-th-wait">${esc(docThreadProgress(c))}</div>`:docThreadExplainHtml(c,rows,i));
+  }
+  /* WORTH A LOOK — the one light-red area (Young ruled 25 Sep 2026), only
+     while it holds something; every mark names who said it and why. */
+  const marks=(x.marks||[]).map(m=>docXrayMarkHtml(m,'')).join('');
+  parts.push(`<div class="doc-th-look${marks?' has':''}">${marks||`<div class="doc-xr-q">${esc(i18t('xr_look_none'))}</div>`}${docThreadUnrunHtml(c,['risk','playbook'])}</div>`);
+  /* WHO DOES WHAT — the X-ray's own reading, drawn by its own builder. A
+     reading that throws draws nothing, never "found nothing". */
+  let who=null;
+  try{ who=docXrayWho(c,rows,i); }
+  catch(e){ who=null; try{ console.warn('Thread · who does what', e); }catch(_){} }
+  if(who) parts.push(`<div class="doc-th-rule"></div>${docXrayWhoHtml(who)}${docThreadUnrunHtml(c,['oblig'])}`);
+  /* WHAT HAS BEEN ARGUED, where the paper carries clause ids. */
   let rungs=[];
   const cid=docXrayClauseId(x.row);
   if(cid){ try{ if(window.ladderRungs) rungs=ladderRungs(c,cid)||[]; }catch(_){ rungs=[]; } }
-
-  const marks=(x.marks||[]).map(m=>docXrayMarkHtml(m,
-    (typeof window.riskMarkFootHtml==='function')?window.riskMarkFootHtml(c,m):'')).join('');
-  const n=s=>s.length?' · '+s.length:'';
-  /* ---- ONE LIGHT-RED AREA, AND IT IS WORTH A LOOK (Young ruled 25 Sep
-     2026: "i want this highlighted area in the x-ray page to be the area that
-     is highlighted in light red … this 'about contract x' portion should be
-     excluded from the x-ray so there is only one red highlighted area") ----
-     The shade the contract-level block wore since 22 Sep moves onto the
-     clause's own list, and only while that list HOLDS something — a red box
-     that says "nothing here" is an alarm about nothing, so an empty list
-     stays white. About this contract is no longer drawn: what it listed is
-     still on the Brief, the Risk scan and the Playbook check, and docXrayWide
-     is kept whole, with no caller, because two lines put it back.
-
-     WHO DOES WHAT takes the space it left, and it is different on every
-     clause by construction — see docXrayWho. */
-  /* A READING THAT THROWS DRAWS NOTHING, never "found nothing": the empty
-     line is a claim about the clause, and a fault is not one. Logged, so it
-     is not silent either. */
-  let who=null;
-  try{ who=docXrayWho(c,rows,rows.indexOf(x)); }
-  catch(e){ who=null; try{ console.warn('X-ray · who does what', e); }catch(_){} }
-
-  return `<div class="doc-xr-head">
-      <h4>${esc(docXrayLabel(x))}</h4>
-      <span class="doc-xr-n">${esc(i18tn('xr_words',x.words,{n:x.words}))} · ${esc(i18t('xr_share',{n:x.share}))}</span>
-    </div>
-    ${docXraySecHtml(i18t('xr_sec_plain'), plain
-      ? docReadMark(plain)
-      : `<span class="doc-xr-q">${esc(i18t('xr_plain_none'))}</span>`)}
-    ${docXraySecHtml(i18t('xr_sec_look')+n(x.marks||[]), marks
-      || `<span class="doc-xr-q">${esc(i18t('xr_look_none'))}</span>`, marks?'is-look has':'is-look')}
-    ${who?docXrayWhoHtml(who):''}
-    ${rungs.length?docXraySecHtml(i18t('xr_sec_argued'),
-        `<b>${esc(i18tn('xr_rungs',rungs.length,{n:rungs.length}))}</b>`):''}`;
+  if(rungs.length) parts.push(`<div class="doc-th-rule"></div><div class="doc-th-argued"><b>${esc(i18tn('xr_rungs',rungs.length,{n:rungs.length}))}</b></div>`);
+  return parts.join('');
 }
+/* OPEN ONE ROW, CLOSE THE REST. The open body is capped so every row stays in
+   view and the body scrolls inside; on a thread longer than the column the
+   open row's head is kept in view. The body's own scroll survives a repaint. */
+function docThreadFill(c,rows,i,opts){
+  const o=opts||{};
+  const card=document.getElementById('doc-thread'); if(!card) return;
+  const box=card.querySelector('.doc-th-rows'); if(!box) return;
+  const plain=o.plain||docThreadPlain(c,o.sheet);
+  rows.forEach((x,k)=>{
+    const r=box.querySelector(`[data-th-row="${k}"]`); if(!r) return;
+    const open=k===i;
+    if(open){
+      const body=r.querySelector('.doc-th-in');
+      if(body){ const keep=body.scrollTop; body.innerHTML=docThreadBodyHtml(c,rows,k,plain,o.sheet); body.scrollTop=keep; }
+    }
+    r.classList.toggle('is-open',open);
+    const b=r.querySelector('[data-th-go]'); if(b) b.setAttribute('aria-expanded',open?'true':'false');
+  });
+  let heads=0; box.querySelectorAll('.doc-th-head').forEach(h=>{ heads+=h.offsetHeight+6; });
+  box.style.setProperty('--th-max',Math.max(DOC_THREAD_BODY_MIN,box.clientHeight-heads-24)+'px');
+  const r=box.querySelector(`[data-th-row="${i}"]`);
+  if(!r) return;
+  r.querySelectorAll('[data-th-step]').forEach(b=>{ const d=Number(b.getAttribute('data-th-step')); b.disabled=(i+d<0||i+d>=rows.length); });
+  const instant=!!o.instant||docThreadReduce();
+  setTimeout(()=>{
+    try{
+      const top=r.offsetTop-6, bottom=r.offsetTop+r.offsetHeight+12;
+      if(top<box.scrollTop||bottom>box.scrollTop+box.clientHeight){
+        const to=Math.max(0,top);
+        if(instant) box.scrollTop=to; else box.scrollTo({top:to,behavior:'smooth'});
+      }
+    }catch(_){}
+  }, instant?0:260);
+}
+/* A SCROLL OPENS THE ROW AT THE LINE off the last paint's walk — never a
+   re-walk of the sheet per scroll event. */
+function docThreadOpen(c,i){
+  if(i===_docThreadOn) return;
+  _docThreadOn=i;
+  const card=document.getElementById('doc-thread');
+  if(!card||card.hidden) return;
+  const cache=_docThreadCache;
+  if(!cache||cache.id!==String(c&&c.id)){ docThreadPaint(c); return; }
+  docThreadFill(c,cache.rows,i,{plain:cache.plain,sheet:cache.sheet});
+}
+
 /* ---------- paint ----------
-   AFTER docReadPaint, ALWAYS, and the order is load-bearing: that painter
-   owns #doc-right's visibility and correctly gives it back when the reading
-   is off — which, in this mode, it is. This one takes it again. Two writers
-   of one property only agree while one of them runs last, so it is said here
-   and both callers keep it. */
-function docXrayPaint(c){
-  const layer=document.getElementById('doc-xray');
-  const sec=document.getElementById('doc-paper-col');
-  if(!layer) return;
-  const on=docXrayOn()&&_wsTab==='docs';
-  layer.hidden=!on;
-  const spineOld=document.getElementById('doc-xr-spine');
-  const keepTop=spineOld?spineOld.scrollTop:0;
-  if(!on){ if(spineOld) spineOld.remove(); layer.innerHTML=''; _xrRowEls=[]; return; }
-  const right=document.getElementById('doc-right');
-  if(right) right.style.visibility='hidden';
+   ON THE SAME FUNNEL THE LAYERS RODE: wireDocCanvas after every re-render of
+   the sheet, applyWsTabs on every tab change, the readings as they land. The
+   rows are rebuilt only when the walk changes (a signature of the labels);
+   otherwise the states and the open row are repainted in place, so a poll
+   while a reading runs does not reset the thread's own scroll. */
+function docThreadPaint(c){
+  const card=document.getElementById('doc-thread');
+  if(!card) return;
+  const on=docThreadOn();
+  card.hidden=!on;
+  if(!on){ card.innerHTML=''; card.removeAttribute('data-th-sig'); _docThreadRows=[]; _docThreadCache=null; return; }
+  docThreadFace(card);
+  const sheet=docReadSheet(c)||[];
   const rows=docXrayRows(c);
-  layer.innerHTML=`<div class="doc-xr-panel scroll-thin">${docXrayPanelHtml(c,rows)}</div>`;
-  /* THE SPINE ONLY WHERE THE GROUND WILL HOLD IT. Measured against the sheet
-     the reader is actually looking at, every paint, because the divider beside
-     this column can be dragged and the text size can change under it. */
-  if(spineOld) spineOld.remove();
-  if(!sec||!docXraySpineRows(rows).length){ _xrRowEls=[]; return; }
-  const canvas=document.getElementById('doc-canvas');
-  if(!canvas) return;
-  let room=0;
-  try{ room=canvas.getBoundingClientRect().left-sec.getBoundingClientRect().left; }catch(_){ room=0; }
-  if(!(room>=DOC_XRAY_SPINE_W+DOC_XRAY_SPINE_GAP)) return;
-  const sp=document.createElement('div');
-  sp.id='doc-xr-spine'; sp.className='doc-xr-spine';
-  sp.style.width=DOC_XRAY_SPINE_W+'px';
-  sp.setAttribute('role','group');
-  sp.setAttribute('aria-label',i18t('xr_spine_label'));
-  sp.innerHTML=docXraySpineHtml(rows);
-  sec.appendChild(sp);
-  /* A REPAINT KEEPS THE MAP WHERE THE READER LEFT IT, then follows the paper. */
-  if(keepTop) sp.scrollTop=keepTop;
-  _xrRowEls=rows.map(x=>x.el);
-  docXrayFollow();
-  const scroller=document.getElementById('doc-scroll');
-  if(scroller&&!scroller.dataset.xrFollowBound){
-    scroller.dataset.xrFollowBound='1';
-    let raf=0;
-    scroller.addEventListener('scroll',()=>{ if(raf) return;
-      raf=requestAnimationFrame(()=>{ raf=0; docXrayFollow(); }); },{passive:true});
+  _docThreadRows=rows.map(x=>x.el);
+  if(!rows.length){
+    card.innerHTML=`<div class="doc-xr-none">${esc(i18t('xr_no_clauses'))}</div>`;
+    card.removeAttribute('data-th-sig'); _docThreadCache=null; return;
+  }
+  /* ARRIVING FROM A RISK DOOR (riskViewOpen): the first clause carrying the
+     WORST mark on the paper is opened and the paper glides to it, once —
+     worst first is the risk list's own order, so the reader who pressed
+     "Risks found" lands on the one that could hurt them. */
+  let land=-1;
+  if(_docThreadWant==='risk'){
+    _docThreadWant='';
+    const worst=XR_GRADES.find(g=>rows.some(x=>x.tone===g));
+    land=worst?rows.findIndex(x=>x.tone===worst):-1;
+  }
+  if(land>=0) _docThreadOn=land;
+  else if(_docThreadOn<0||_docThreadOn>=rows.length) _docThreadOn=docThreadAtLine();
+  const sig=String(c&&c.id)+'|'+rows.map(x=>docXrayLabel(x)).join('\u0001');
+  if(card.getAttribute('data-th-sig')!==sig){
+    card.setAttribute('data-th-sig',sig);
+    card.innerHTML=`<div class="doc-th-rows scroll-thin" role="list" aria-label="${esc(i18t('th_label'))}">${rows.map((x,i)=>docThreadRowHtml(x,i)).join('')}</div>`;
+  }
+  const plain=docThreadPlain(c,sheet);
+  _docThreadCache={ id:String(c&&c.id), rows, plain, sheet };
+  docThreadStates(c,rows,plain);
+  docThreadFill(c,rows,_docThreadOn,{plain,sheet,instant:true});
+  docThreadWire(c);
+  docThreadFollowArm();
+  if(land>=0) setTimeout(()=>{ try{ docThreadGoTo(docThreadCur(c),land); }catch(_){} },0);
+}
+/* ---------- wire ----------
+   Delegated on the card and on the paper's column, armed once per element,
+   because both are rebuilt. WHO DOES WHAT's two presses ride the same
+   listener as before: a line takes the paper to its sentence through
+   scrollToQuote, the door goes to the Obligations tab through roomGoTab. */
+function docThreadWire(c){
+  const card=document.getElementById('doc-thread');
+  if(card&&!card.dataset.thBound){
+    card.dataset.thBound='1';
+    card.addEventListener('click',async e=>{
+      const t=e.target; if(!t||!t.closest) return;
+      const cur=docThreadCur(c);
+      const go=t.closest('[data-th-go]');
+      if(go){ docThreadGoTo(cur,Number(go.getAttribute('data-th-go'))); return; }
+      const st=t.closest('[data-th-step]');
+      if(st){ if(!st.disabled) docThreadGoTo(cur,_docThreadOn+Number(st.getAttribute('data-th-step'))); return; }
+      const ex=t.closest('[data-th-explain]');
+      if(ex){
+        if(ex.disabled) return;
+        ex.disabled=true;
+        const i=Number(ex.getAttribute('data-th-explain'));
+        try{ await docReadRun(cur,{only:[i],force:ex.hasAttribute('data-th-force')}); }
+        finally{ ex.disabled=false; const now=docThreadCur(cur); if(docReadWatching(now.id)) docThreadPaint(now); }
+        return;
+      }
+      const all=t.closest('[data-th-explain-all]');
+      if(all){
+        if(all.disabled) return;
+        all.disabled=true;
+        try{ await docReadRun(cur,{}); }
+        finally{ all.disabled=false; const now=docThreadCur(cur); if(docReadWatching(now.id)) docThreadPaint(now); }
+        return;
+      }
+      const wd=t.closest('[data-xr-wd]');
+      if(wd){ const q=String(wd.getAttribute('data-xr-q')||''); try{ if(q&&typeof window.scrollToQuote==='function') window.scrollToQuote(q); }catch(_){} return; }
+      const ob=t.closest('[data-xr-ob]');
+      if(ob){ roomGoTab(cur,'oblig'); return; }
+    });
+  }
+  /* A PLAIN PRESS ON A CLAUSE IN THE PAPER OPENS ITS ROW (the owner's list,
+     27 Sep 2026); the paper does not move — the reader is already there — and
+     a press that ends a highlight, or lands on a control, opens nothing. */
+  const col=document.getElementById('doc-paper-col');
+  if(col&&!col.dataset.thBound){
+    col.dataset.thBound='1';
+    col.addEventListener('click',e=>{
+      if(!docThreadOn()) return;
+      try{ const sel=window.getSelection&&window.getSelection(); if(sel&&!sel.isCollapsed) return; }catch(_){}
+      if(e.target&&e.target.closest&&e.target.closest('button,a,input,textarea,select,[contenteditable],.sig-spot')) return;
+      const at=_docThreadRows.findIndex(el=>el&&el.contains&&el.contains(e.target));
+      if(at<0||at===_docThreadOn) return;
+      docThreadOpen(docThreadCur(c),at);
+    });
   }
 }
-/* WHICH CLAUSE IS AT THE TOP OF THE SHEET, marked on the map and kept in view.
-   It moves the MAP only, never the paper, and never takes focus. */
-let _xrRowEls=[];
-function docXrayFollow(){
-  const sp=document.getElementById('doc-xr-spine');
-  const scroller=document.getElementById('doc-scroll');
-  if(!sp||!scroller||!_xrRowEls.length) return;
-  const top=scroller.getBoundingClientRect().top+24;
-  let here=0;
-  _xrRowEls.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=top) here=i; }catch(_){} });
-  sp.querySelectorAll('.doc-xr-seg.is-here').forEach(b=>b.classList.remove('is-here'));
-  /* The map carries the MARKED clauses only, so the clause at the top of the
-     sheet may have no block: the mark goes on the nearest marked clause at or
-     above it — the last one the reader has reached. */
-  let seg=null;
-  sp.querySelectorAll('[data-xr-seg]').forEach(b=>{ if(Number(b.getAttribute('data-xr-seg'))<=here) seg=b; });
-  if(!seg) return;
-  seg.classList.add('is-here');
-  const a=seg.offsetTop, b=a+seg.offsetHeight;
-  if(a<sp.scrollTop+8) sp.scrollTop=Math.max(0,a-8);
-  else if(b>sp.scrollTop+sp.clientHeight-8) sp.scrollTop=b-sp.clientHeight+8;
-}
-/* ONE PRESS, ONE ACT: pick a clause, repaint the panel, land on the clause.
-   Delegated on the two hosts that draw it, armed once per element, because
-   both are rebuilt on every paint. */
-function docXrayWire(c){
-  [document.getElementById('doc-xray'),document.getElementById('doc-paper-col')].forEach(host=>{
-    if(!host||host.dataset.xrBound) return;
-    host.dataset.xrBound='1';
-    host.addEventListener('click',e=>{
-      /* WHO DOES WHAT's two presses ride this same listener. A line takes the
-         paper to its sentence through scrollToQuote — the risk scan's own
-         "take me to these words", never a second finder — and the door goes
-         to the Obligations tab through roomGoTab, the one router both shells
-         press. The contract is looked up LIVE at the press: this listener is
-         armed once per element and a record replaced since would otherwise
-         be the one it acted on. */
-      const wd=e.target&&e.target.closest&&e.target.closest('[data-xr-wd]');
-      if(wd){
-        const q=String(wd.getAttribute('data-xr-q')||'');
-        try{ if(q&&typeof window.scrollToQuote==='function') window.scrollToQuote(q); }catch(_){}
-        return;
-      }
-      const go=e.target&&e.target.closest&&e.target.closest('[data-xr-ob]');
-      if(go){
-        const cur=(typeof getContract==='function'&&c&&getContract(c.id))||c;
-        roomGoTab(cur,'oblig');
-        return;
-      }
-      const b=e.target&&e.target.closest&&e.target.closest('[data-xr-seg]');
-      /* ---- A PRESS ON THE PAPER PICKS ITS CLAUSE (the owner's list, 27 Sep
-         2026) ----
-         The map draws only the marked clauses, so an unmarked one could be
-         the panel's subject only by being first, and Who does what was out of
-         reach for every other. A plain press on a clause in the paper makes it
-         the panel's clause; the paper does not move (the reader is already
-         there), and a press that ends a highlight picks nothing. */
-      if(!b){
-        if(!docXrayOn()||!host.contains(e.target)||host.id!=='doc-paper-col') return;
-        try{ const sel=window.getSelection&&window.getSelection(); if(sel&&!sel.isCollapsed) return; }catch(_){}
-        const cur=(typeof getContract==='function'&&c&&getContract(c.id))||c;
-        const rows=docXrayRows(cur);
-        const at=rows.findIndex(r=>r&&r.el&&r.el.contains&&r.el.contains(e.target));
-        if(at<0||at===_docXrayPick) return;
-        _docXrayPick=at;
-        docXrayPaint(cur);
-        return;
-      }
-      const i=Number(b.getAttribute('data-xr-seg'));
-      if(!Number.isInteger(i)) return;
-      _docXrayPick=i;
-      docXrayPaint(c);
-      const rows=docXrayRows(c);
-      const el=rows[i]&&rows[i].el;
-      if(el&&el.scrollIntoView) el.scrollIntoView({block:'start'});
-    });
-  });
-}
-function wireDocRead(c,host){
-  (host||document).querySelectorAll('[data-doc-read]').forEach(b=>{
-    b.addEventListener('click',async ()=>{
-      const pos=String(b.getAttribute('data-doc-read')||'0');
-      const mode=pos==='1'?'plain':pos==='2'?'xray':'paper';
-      const want=mode==='plain';
-      /* SAVE THE BOX FIRST (Young ruled 9 Sep 2026). The contract form in that
-         column commits a field on CHANGE, so a field still holding the caret is
-         not on the record yet; blurring fires that same commit before anything
-         is covered over. */
-      const act=document.activeElement;
-      if(act&&act!==document.body&&act.blur&&act.closest&&act.closest('#doc-right')) act.blur();
-      let ask=false;
-      if(want){
-        const sig=docReadSig(c);
-        /* ---- A MISSING MEMORY IS "WE DO NOT KNOW", NEVER "IT MOVED" ----
-           (Young reported it 22 Sep 2026: *"when i press on plain english
-           nothing happens"*.)
-
-           `c._readSig` is written in ONE place, inside docReadRun, and it is
-           not stored, not transport and not on the payload — so it lives only
-           as long as the tab does. The reading beside it, `c._readings`, rides
-           every GET. After a refresh the app therefore holds a whole edition
-           and no memory of what it was written about, and `_readSig !== sig`
-           read that absence as *the wording has changed*: the first press
-           after every page load bought a fresh reading it already had.
-
-           THE PAINTER 250 LINES DOWN ALREADY READS THIS FIELD CORRECTLY —
-           `sig && c._readSig && c._readSig!==sig` — and says nothing where the
-           memory is absent. Two readings of one fact, disagreeing, which is
-           this codebase's own named fault class; they agree now. */
-        const moved=!!(sig&&c._readSig&&c._readSig!==sig);
-        /* ---- AND AN EDITION WITH A HOLE IN IT IS ASKED FOR TOO (fix 6:
-           "If one part fails, only that part is tried again") ----
-           A clause the last reading could not match is asked for again on the
-           next press — and only that clause: everything read before it is kept
-           at the server and comes back for nothing. A reading still running is
-           JOINED, which is how a reader who left mid-read finds the column
-           carrying on where it was. */
-        const holes=Number((c._readings&&c._readings.unmatched)||0)>0;
-        ask=!docReadItems(c).length||moved||holes||docReadRunning(c);
-      }
-      /* ---- THE COLUMN OPENS ON THE PRESS AND FILLS AS IT IS READ (fix 6) ----
-         It used to wait for the whole contract before the switch moved at
-         all. The switch is set FIRST now, so the reader watches the clauses
-         arrive. A reading that brings back nothing at all needs no second
-         write to stand down: with nothing held the column is not drawn, so
-         the paper and Contract View are what the reader sees — and
-         docReadRun has already said why, in a toast. */
-      docViewSet(mode);
-      wsPaintTabRowEnd(c);
-      docReadPaint(c);
-      docXrayPaint(c); docXrayWire(c);
-      if(!ask) return;
-      await docReadRun(c);
-      const cur=docReadCur(c.id,c);
-      /* THE READER MAY HAVE MOVED ON while it read — the other half of the
-         switch, another tab, another page — and that choice stands: nothing
-         is repainted over it. */
-      if(docViewMode()!=='plain'||!docReadWatching(cur.id)) return;
-      wsPaintTabRowEnd(cur);
-      docReadPaint(cur);
-      docXrayPaint(cur); docXrayWire(cur);
-    });
-  });
-}
+/* The column's one painter, kept under the name every caller outside this
+   file already presses (the negotiate page's type stepper, the clause editor). */
+function docReadPaint(c){ docThreadPaint(c); }
 function wireDocCanvas(c){
   document.querySelector('[data-expand-doc]')?.addEventListener('click',()=>openDocReader(docFileUrl(c), c.upload?.fileName||c.name, c.upload?.mime));
   document.querySelector('[data-reread]')?.addEventListener('click',e=>rereadUploadText(c, e.currentTarget));
@@ -13766,14 +12806,10 @@ function wireDocCanvas(c){
      flow, so they have to be in before a page is broken; Plain English and
      X-ray below measure where each clause IS, so they come after. */
   try{ docPaginate(c); }catch(_){}
-  /* The plain-English layer rides this same funnel and for the same reason: it
-     is painted BESIDE the canvas rather than inside docBody, so it dies with
-     every re-render and has to be put back here (idea 7). */
-  docReadPaint(c);
-  /* AND X-RAY, on the same funnel and in this order — see the note over
-     docXrayPaint: docReadPaint gives #doc-right back when the edition is off,
-     which in this mode it is, so the cover has to be taken again after it. */
-  docXrayPaint(c); docXrayWire(c);
+  /* THE THREAD rides this same funnel and for the same reason: it is painted
+     BESIDE the canvas rather than inside docBody, reads the clauses off the
+     painted sheet, and so is put back after every re-render of it. */
+  docThreadPaint(c);
   /* AND THE PLACEHOLDERS IN A DOCUMENT SOMEBODY SENT US (item 9, 20 Sep 2026).
      Third on this funnel and for the third time the same reason: a mark built
      into docBody would TRAVEL — to the counterparty's page, the PDF and the
@@ -14455,71 +13491,6 @@ function updateStatusUI(c){
 }
 
 /* -------- comments -------- */
-function renderFeed(c){
-  const feed=document.getElementById('feed');
-  /* H-1: escape every value that reaches innerHTML. A counterparty's typed name
-     (m.author) and comment (m.text) flow into c.comments through the public
-     share portal (applyResponse in core.js), so this feed renders text that
-     originates OUTSIDE the workspace. Rendered raw, a name or comment like
-     "<img src=x onerror=…>" would execute in the contract owner's browser —
-     stored cross-site scripting from an external party against an internal
-     (often admin) user. Every other typed-text surface already escapes; this
-     older panel did not. initials is derived from author, so it is escaped too. */
-  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  feed.innerHTML=c.comments.map(m=>{
-    const internal=m.side==='internal';
-    const initials=esc(String(m.author||'').split(' ').map(w=>w[0]||'').slice(0,2).join('').toUpperCase());
-    /* "Legal (Internal)" is two facts, and the second one is already said by
-       the footer under this list — every comment you can type here is internal.
-       So the parenthetical is dropped from the line and the side is carried by
-       the avatar's colour instead, which is where it costs nothing to read. */
-    const role=esc(String(m.role||'').replace(/\s*\(internal\)\s*$/i,'').trim());
-    /* Relative where the stamp can be read as a date, absolute where it cannot.
-       Comments filed before `at` existed carry only a formatted display string,
-       and a message list that silently drops its timestamps because a parse
-       failed is worse than one showing the long form. */
-    const when=esc((window.relTime?relTime(m.at||m.ts):'') || m.ts || '');
-    return `
-    <div style="display:flex;gap:10px">
-      <div style="flex:none;height:28px;width:28px;display:grid;place-items:center;border-radius:50%;font-size:var(--t-label);font-weight:var(--w-title);
-        background:${internal?'var(--color-accent-100)':'var(--st-amber-bg)'};color:${internal?'var(--accent-ink)':'var(--st-amber-fg)'}">${initials}</div>
-      <div style="min-width:0;flex:1">
-        <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;line-height:1.4">
-          <span style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${esc(m.author)}</span>
-          <span style="font-size:var(--t-label);color:var(--color-neutral-500)">${role}${role&&when?' · ':''}${when}</span>
-        </div>
-        <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:3px 0 0;line-height:1.55">${esc(m.text)}</p>
-      </div>
-    </div>`;
-  }).join('');
-  feed.scrollTop=feed.scrollHeight;
-}
-function wireComments(c){
-  const input=document.getElementById('comment-input');
-  const send=document.getElementById('comment-send');
-  /* A Viewer is drawn the feed and no composer (see renderFeed's section), so
-     there is nothing here to wire. This function is called unconditionally from
-     renderWorkspace, and without this it threw on the first Viewer to open a
-     contract — taking the whole room down with it. */
-  if(!input || !send) return;
-  const post=()=>{
-    const text=input.value.trim(); if(!text) return;
-    const u=currentUser();
-    /* `at` is the machine-readable stamp; `ts` stays as the long form both for
-       records written before this and for the fallback in renderFeed. A list
-       that says "3h ago" needs a date it can subtract, not a sentence. */
-    const at=nowISO();
-    c.comments.push({ author:u?.name||'You', role:`${ROLE_LABEL[u?.role]||'User'} (Internal)`, side:'internal', text, at, ts:fmtDT(at) });
-    logAudit(c,'Comment','Internal comment added');
-    persist(c);
-    input.value=''; renderFeed(c); renderAuditSection(c);
-  };
-  send.addEventListener('click',post);
-  input.addEventListener('keydown',e=>{
-    if(window.chatFieldSubmits?chatFieldSubmits(e):e.key==='Enter') post();
-  });
-  if(window.chatFieldWire) chatFieldWire(input.parentNode||document);
-}
 
 /* -------- compliance + signing -------- */
 function wireCompliance(c){
@@ -16861,7 +15832,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
   docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
   scApplyZoom,scZoomStep,scPaintPage,scPageGo,scSourceLine,scControlsHtml,scWireControls,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,docReadFlags,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,renderFeed,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
@@ -16889,19 +15860,19 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
      the recovery from a zero-width measurement — the whole point of that fix —
      never ran on a plain tab swap. It only appeared to work because the routes
      I walked it on re-rendered the workspace, which measures on the way in. */
-  layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireComments,wireCompliance,wireDocumentSync,wsNextAction,
+  layoutDocResizer,renderSignButton,renderSignSide,roomFactsHtml,signBlockHtml,signReadinessCardHtml,signRowTitle,signWhyShort,SIGN_WHY_WORDS,signLandOnList,signCheckEscalate,signCheckTake,signRiskDismiss,signConsentStamp,signHeadLabel,signPartyBoxes,renderWorkspace,sentenceAround,signDocument,signatureBlock,submitUpload,uploadConfirmHtml,runUploadPipeline,upField,updateStatusUI,uploadDocBody,uploadScanRules,wireCompliance,wireDocumentSync,wsNextAction,
   wsTabDefaults,applyWsTabs,wireWsTabs,wsTabRowEndHtml,wsPaintTabRowEnd,wsPaintRoundNeeds,wsNoticesHtml,wsPaintNotices,readyToSignStrip,returnedChangesStrip,reviewReturnedRound,docWorkingTextNoteHtml,docNothingWrittenHtml,docHasNoWording,negoRoundNeedsHtml,openNegotiationOwnerRoom,negoRepaintOpenRoom,openNegoProposeModal,
-  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,wireChecksCard,renderChecksCard,checksRowsHtml,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
+  ROOM_TABS,wsPaintTabCounts,roomHeadTitle,roomHeadSubHtml,roomTabsHtml,roomGoTab,roomOpenOnTerms,roomReadOnArrival,roomReadAgainDue,ROOM_READ_AGAIN_MS,roomCurrentTab,roomPlace,roomPlacePut,roomPaintHistory,roomHistoryHtml,roomHistoryEvents,histWhen,roomVersionsHtml,docFillable,ktDayDot,ktReadingsRows,paintContractForm,renderBlankFormSection,contractFieldKeyOf,contractFieldPeer,contractFieldLight,contractFieldUnlight,contractFieldFocus,wireFieldLink,blankFormSectionsOf,blankFormFilledLineHtml,blankFormInputHtml,wireBlankForm,paintBlankForm,paintBlankFormCount,checkVerdict,tplFormOpenCount,tplFormOpenFields,openCheckPanel,roomHeadHtml,wireRoomHead,
   DOC_SEL_ACTIONS,wireDocCopilotSel,docAiRead,docSelKill,
   /* idea 7 — the plain-English layer. Published because a name read through
      window from another module, or from a test stage, is silence when it is
      not on this list: this codebase's most repeated defect. */
-  DOC_READ_KEY,DOC_READ_MIN_W,docReadFits,docViewLeave,docReadOn,docReadSet,docReadItems,
-  DOC_VIEW_MODES,docViewMode,docViewSet,docXrayOn,DOC_XRAY_SPINE_W,DOC_XRAY_SPINE_GAP,
+  DOC_READ_MIN_W,docReadFits,docReadOn,docReadItems,
+  DOC_XRAY_SPINE_W,DOC_THREAD_LINE,DOC_THREAD_BODY_MIN,docThreadOn,docThreadAtLine,docThreadGoTo,docThreadOpen,docThreadPaint,docThreadWire,
+  docThreadRowHtml,docThreadBodyHtml,docThreadExplainHtml,docThreadUnrunHtml,docThreadPlain,docThreadStates,docThreadFill,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
   riskViewOpen,XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,
   XR_WD_MAX,XR_WD_WORDS,XR_WD_SIDES,XR_WD_CHIPS,XR_WD_BAL,XR_MODAL_RE,XR_RIGHT_RE,XR_LIMIT_RE,XR_BOTH_RE,xrSentences,xrClauseBlocks,xrPartyNames,xrSideByName,xrActOf,xrPlaceObligations,docXrayWho,docXrayWhoHtml,xrWhoChip,xrWhoTracked,
-  docXrayLabel,docXraySpineHtml,docXraySpineRows,docXraySegH,XR_SEG_MIN,XR_SEG_MAX,docXrayFollow,docXrayPanelHtml,docXrayPaint,docXrayWire,
-  docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadSwitchHtml,docReadPaint,docReadSync,
-  docReadFront,docReadMirrorStyle,docReadMirrorToc,
-  docReadRun,wireDocRead});
+  docXrayLabel,docXraySpineHtml,docXraySpineRows,docXraySegH,XR_SEG_MIN,XR_SEG_MAX,docXraySecHtml,
+  docReadSheet,docReadClauses,docReadSig,docReadAnchors,docReadPaint,
+  docReadRun});

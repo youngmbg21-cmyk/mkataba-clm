@@ -135,11 +135,12 @@ describe('f367 (3) the X-ray map can be pressed on a long contract', () => {
     assert.match(INDEX, /\.doc-xr-seg\{position:relative;flex:var\(--xr-w,1\) 0 0px;/,
       'a block grows by its weight from a zero basis');
   });
-  test('the map follows the paper and keeps its place through a repaint', () => {
-    assert.match(ROOM, /function docXrayFollow\(\)/);
-    assert.match(ROOM, /scroller\.dataset\.xrFollowBound='1'/);
-    assert.match(ROOM, /if\(keepTop\) sp\.scrollTop=keepTop;/);
-    assert.match(INDEX, /\.doc-xr-seg\.is-here::before\{/);
+  test('the thread follows the paper, armed once on its scroller', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): the Document tab's follow is the
+       thread's (the open row); the Explorer keeps its own strand follow. */
+    assert.match(ROOM, /function docThreadFollowArm\(\)/);
+    assert.match(ROOM, /sc\.dataset\.thFollow='1'/);
+    assert.match(INDEX, /\.doc-xr-seg\.is-here::before\{/, 'the Explorer\'s marker is still dressed');
   });
 });
 

@@ -982,7 +982,6 @@ function setView(view){
   // focus mode is a posture, not a setting: arriving at the Redline tab from
   // any other view always lands on the full screen with its exits visible
   if(view==='redline' && state.view!=='redline' && window.rlResetFocus) rlResetFocus();
-  if(!_sameView && typeof window.docViewLeave==='function'){ try{ window.docViewLeave(); }catch(_){} }
   /* The contract room shows state.activeId; a notes drawer open on another
      contract closes before the page is drawn (see notesPanelFollow). The
      negotiate page asks the same from rlCardForgetPins, where it learns which

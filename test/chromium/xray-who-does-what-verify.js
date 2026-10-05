@@ -7,6 +7,10 @@
    area"* — and, over three drawn options for the space that left, *"build it
    using your recommendation of who does what"*.
 
+   RE-POINTED 5 Oct 2026 (the Thread): the X-ray panel became the open row of
+   the Thread on the Document tab, and the map's blocks its rows. The claims
+   are unchanged; "the panel" below is the open row.
+
    f384 pins the reading; this file proves what the owner SEES, on a real
    warehousing agreement uploaded as Word through the real file input:
 
@@ -162,30 +166,29 @@ const BODY =
           quote: 'the parties shall cooperate in good faith to ensure an orderly transition' },
         { id: 'ob2', desc: 'Deliver insurance certificates', status: 'open', party: 'theirs', due: '2026-12-31',
           quote: 'Certificates of insurance are to be delivered on request' }];
-      if (typeof docViewSet !== 'function') return false;
-      docViewSet('xray');
-      if (typeof applyWsTabs === 'function') applyWsTabs(c);
+      if (typeof docThreadPaint !== 'function') return false;
+      docThreadPaint(c);
       return true;
     });
     await page.waitForTimeout(1200);
     await page.evaluate(() => { const sc = document.getElementById('doc-scroll'); if (sc) sc.scrollTop = 0; });
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(600);
     const during = await ink();
 
     /* What the panel shows, as data. */
     const read = () => page.evaluate(() => {
-      const panel = document.querySelector('#doc-xray');
+      const panel = document.querySelector('#doc-thread .doc-th-row.is-open');
       if (!panel) return null;
       const txt = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
-      const secs = [...panel.querySelectorAll('.doc-xr-sec')];
+      const secs = [...panel.querySelectorAll('.doc-th-look, .doc-xr-sec')];
       const heads = secs.map(s => txt(s.querySelector('.doc-xr-k')));
-      const look = secs.find(s => s.classList.contains('is-look')) || null;
+      const look = secs.find(s => s.classList.contains('doc-th-look')) || null;
       const who = secs.find(s => s.classList.contains('is-who')) || null;
       const lines = who ? [...who.querySelectorAll('.doc-xr-wd')].map(b => ({
         chip: txt(b.querySelector('.doc-xr-who')), side: (b.querySelector('.doc-xr-who').className.match(/is-(\w+)/) || [])[1],
         say: txt(b.querySelector('.doc-xr-wdt')), cite: txt(b.querySelector('.doc-xr-wdc')),
         ob: txt(b.querySelector('.doc-xr-wdo')) })) : [];
-      return { head: txt(panel.querySelector('.doc-xr-head h4')), heads,
+      return { head: txt(panel.querySelector('.doc-th-name')), heads,
         lookHas: !!(look && look.classList.contains('has')),
         lookBg: look ? getComputedStyle(look).backgroundColor : '',
         whoAfterLook: !!(look && who && (look.compareDocumentPosition(who) & Node.DOCUMENT_POSITION_FOLLOWING)
@@ -201,16 +204,16 @@ const BODY =
     const pick = async re => page.evaluate(async src => {
       const rows = docXrayRows(getContract(state.activeId));
       const i = rows.findIndex(r => new RegExp(src).test((r.row && r.row.heading) || r.name || ''));
-      const b = document.querySelector('[data-xr-seg="' + i + '"]');
+      const b = document.querySelector('#doc-thread [data-th-go="' + i + '"]');
       if (!b) return { i, pressed: false };
       b.click();
-      await new Promise(z => setTimeout(z, 600));
+      await new Promise(z => setTimeout(z, 1300));
       return { i, pressed: true };
     }, re.source);
 
     /* ===== 1. ONE LIGHT-RED AREA ===== */
     const first = await read();
-    check('1a the X-ray is drawn', staged && !!first, first ? first.head : 'no panel');
+    check('1a the Thread is drawn, with a row open', staged && !!first, first ? first.head : 'no open row');
     /* A CONTROL: nothing ever shaded an empty list, so this passes before the
        change too — it is here to prove the new shade did not start to. */
     check('1b [control] with nothing worth a look (Article VI), Worth a look stays WHITE',
@@ -218,7 +221,7 @@ const BODY =
       first ? `${first.head} · has:${first.lookHas} · ${first.lookBg}` : '—');
     check('1c About this contract is not drawn, though a finding lands on no clause',
       !!first && !first.heads.some(hd => /About this contract/i.test(hd)) && !/XRNOWHERE/.test(first.text)
-        && !(await page.$('#doc-xray .is-wide')),
+        && !(await page.$('#doc-thread .is-wide')),
       first ? first.heads.join(' | ') : '—');
 
     await pick(/INDEMNIFICATION/);
@@ -228,12 +231,12 @@ const BODY =
       xi ? `${xi.head} · has:${xi.lookHas} · ${xi.lookBg}` : '—');
     /* GATED on WHICH area is red: before this change the one red area was
        About this contract, and "exactly one" alone passed on it. */
-    const reds = await page.evaluate(() => [...document.querySelectorAll('#doc-xray .doc-xr-sec')].filter(s => {
+    const reds = await page.evaluate(() => [...document.querySelectorAll('#doc-thread .doc-th-row.is-open .doc-th-in > *')].filter(s => {
       const bg = getComputedStyle(s).backgroundColor;
       const v = (bg.match(/[\d.]+/g) || []).map(Number).map(n => /srgb/.test(bg) ? n * 255 : n);
       return v.length >= 3 && (v.length < 4 || v[3] > 0) && v[0] > v[1] + 3 && v[0] > v[2] + 3;
     }).map(s => s.className));
-    check('1e and it is the only red area in the panel', reds.length === 1 && /is-look/.test(reds[0]), JSON.stringify(reds));
+    check('1e and it is the only red area in the row', reds.length === 1 && /doc-th-look/.test(reds[0]), JSON.stringify(reds));
     await page.screenshot({ path: path.join(OUT, '01-article-xi.png') });
 
     /* ===== 2. WHO DOES WHAT ===== */
@@ -262,7 +265,7 @@ const BODY =
         && xiv.lines.some(l => l.side === 'both' && /^cooperate in good faith/.test(l.say) && l.cite === 'XIV.4'),
       xiv ? JSON.stringify(xiv.lines.map(l => [l.chip, l.cite, l.say.slice(0, 30)])) : '—');
     const aligned = await page.evaluate(() => {
-      const xs = [...document.querySelectorAll('#doc-xray .doc-xr-wd .doc-xr-wdt')].map(e => Math.round(e.getBoundingClientRect().left));
+      const xs = [...document.querySelectorAll('#doc-thread .doc-th-row.is-open .doc-xr-wd .doc-xr-wdt')].map(e => Math.round(e.getBoundingClientRect().left));
       return { xs, same: xs.length >= 2 && xs.every(x => x === xs[0]) };
     });
     check('2f2 every line’s words start at the same place, whatever its chip says',
@@ -283,12 +286,14 @@ const BODY =
       ix ? JSON.stringify(ix.lines.map(l => [l.chip, l.say.slice(0, 30), l.ob])) : '—');
 
     /* ===== 4. THE PRESSES ===== */
+    /* RE-POINTED 5 Oct 2026 (the Thread): the row is the one at the line, so
+       the paper is NOT scrolled away first — a scroll to the top would open
+       Article VI's row. The pick has glided XIV to the line; the press takes
+       the paper to the sentence and lights it. */
     await pick(/TERM, TERMINATION/);
     const moved = await page.evaluate(async () => {
       const sc = document.getElementById('doc-scroll');
-      if (sc) sc.scrollTop = 0;
-      await new Promise(z => setTimeout(z, 200));
-      const b = [...document.querySelectorAll('#doc-xray .doc-xr-wd')].find(x => /cooperate in good faith/.test(x.textContent));
+      const b = [...document.querySelectorAll('#doc-thread .doc-th-row.is-open .doc-xr-wd')].find(x => /cooperate in good faith/.test(x.textContent));
       if (!b) return null;
       const top0 = sc ? sc.scrollTop : -1;
       b.click();
@@ -300,10 +305,11 @@ const BODY =
         inView: !!(r && box && r.top >= box.top && r.bottom <= box.bottom) };
     });
     check('4a pressing a line takes the paper to that sentence and lights it',
-      !!moved && moved.top1 > moved.top0 && /the parties shall cooperate/i.test(moved.marked) && moved.inView,
+      !!moved && /the parties shall cooperate/i.test(moved.marked) && moved.inView,
       JSON.stringify(moved));
+    await pick(/TERM, TERMINATION/);
     const door = await page.evaluate(async () => {
-      const b = document.querySelector('#doc-xray [data-xr-ob]');
+      const b = document.querySelector('#doc-thread .doc-th-row.is-open [data-xr-ob]');
       if (!b) return null;
       b.click();
       await new Promise(z => setTimeout(z, 700));
@@ -315,23 +321,21 @@ const BODY =
     /* ===== 5. THE CONTRACT DOES NOT MOVE ===== */
     /* A CONTROL as well as a wall: the X-ray has never moved the paper, and
        this proves the new section did not start to. */
-    check('5a [control] the paper keeps its place with the X-ray open (refusal 3)',
+    check('5a [control] the paper keeps its place with the Thread drawn (refusal 3)',
       !!before && !!during && during.top === before.top && during.left === before.left && during.sheetW === before.sheetW,
       JSON.stringify({ before, during }));
 
-    /* Back on the Document tab the switch lands on Contract View (its own
-       rule), so X-ray is asked for again before the night is measured. */
     await page.evaluate(() => { roomGoTab(getContract(state.activeId), 'docs'); });
     await page.waitForTimeout(900);
     await page.evaluate(() => { document.documentElement.setAttribute('data-theme', 'dark');
       if (typeof setDark === 'function') setDark(true);
       const c = getContract(state.activeId);
-      docViewSet('xray'); if (typeof applyWsTabs === 'function') applyWsTabs(c); });
+      if (typeof applyWsTabs === 'function') applyWsTabs(c); });
     await page.waitForTimeout(900);
     await pick(/INDEMNIFICATION/);
     const night = await read();
     const nightInk = await page.evaluate(() => {
-      const c = document.querySelector('#doc-xray .doc-xr-who');
+      const c = document.querySelector('#doc-thread .doc-th-row.is-open .doc-xr-who');
       return c ? getComputedStyle(c).color : '';
     });
     check('5b at night Worth a look is still the one reddish area, and a chip is still inked',

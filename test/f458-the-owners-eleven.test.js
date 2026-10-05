@@ -270,7 +270,8 @@ describe('f458 (9) — the two pale accent rungs have a dark answer', () => {
        day and accent-400 at night, so one token answers both. */
     for (const [file, mark] of [
       ['js/views/contract.js', "b.style.color=on?'var(--accent-ink)'"],
-      ['js/views/contract.js', "color:${internal?'var(--accent-ink)'"],
+      /* the Activity & comments card's avatar (color:${internal?…}) left the
+         Document tab with the card, 5 Oct 2026 (the Thread) */
       ['js/views/settings.js', "'var(--accent-ink)'"],
       ['js/wizard.js', "color:${r.std?'#fff':'var(--accent-ink)'}"]])
       assert.ok(read(file).includes(mark), file + ' still pairs a dark ink with the wash');

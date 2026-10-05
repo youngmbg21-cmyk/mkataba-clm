@@ -175,11 +175,13 @@ describe('f341 (2) — the shield goes, the More-menu row comes back', () => {
     assert.ok(row, 'today it is the row, and the shield is gone');
   });
 
-  test('the Document tab\u2019s Checks card is untouched', () => {
-    /* A NAMED CONTROL: it passes at the parent, and it is here to prove the
-       change is narrow. Young ringed the three squares on the Negotiate page. */
-    assert.match(CONTRACT_CODE, /row\('playbook','shield',i18t\('ct_playbook_review'\)\)/,
-      'the Checks card still carries its playbook row');
+  test('the Document tab\u2019s way onto the playbook read stands (the Thread, 5 Oct 2026)', () => {
+    /* RE-POINTED 5 Oct 2026: the Checks card is gone; the Thread's Worth a
+       look offers "not yet checked · Run" for the standards where the check
+       has not run, pressing the same door whose playbook branch stays. */
+    assert.match(CONTRACT_CODE, /docThreadUnrunHtml\(c,\['risk','playbook'\]\)/,
+      'the Thread still offers the standards check');
+    assert.match(CONTRACT_CODE, /if\(kind==='playbook'\)\{/, 'and the door keeps its playbook branch');
   });
 });
 

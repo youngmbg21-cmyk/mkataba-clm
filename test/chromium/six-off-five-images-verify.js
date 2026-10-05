@@ -101,7 +101,11 @@ const ok = (name, good, detail) => {
        restored card is measured by home-page-verify and
        runway-and-xray-verify, back as they were. */
 
-    /* ════════ 4. THE X-RAY STRAND RUNS TO THE BOTTOM, AND NO FURTHER ════════ */
+    /* ════════ 4. THE THREAD RUNS TO THE BOTTOM OF ITS CARD, AND NO FURTHER ════════ */
+    /* RE-POINTED 5 Oct 2026 (the Thread): the X-ray strand left the Document
+       tab (it still draws on the Explorer); the Thread's row list is what runs
+       to the bottom of its card now, scrolling inside it, never past the
+       screen, every row head big enough to press. */
     await page.evaluate(() => { selectContract(state.contracts[0].id); });
     await page.waitForTimeout(1000);
     await page.evaluate(() => { roomGoTab(state.contracts[0], 'docs'); });
@@ -116,36 +120,39 @@ const ok = (name, good, detail) => {
         sev: i % 2 ? 'med' : 'high', kind: 'risk', title: 'T' + i, why: 'It could hurt you.', quote: snip(r) })) };
       c._brief = { at: '21 Sep 2026', data: { overview: 'x',
         watchouts: [{ point: 'A point.', why: 'Because it bites.', quote: long[0] ? snip(long[0]) : '' }], unusual: [] } };
+      docThreadPaint(c);
       return long.length;
     });
     ok('4-stage a contract with marked clauses', staged >= 3, staged + ' marked');
-    const xr = await page.$('[data-doc-read="2"]');
-    if (xr) await xr.click();
-    await page.waitForTimeout(900);
-    await page.screenshot({ path: path.join(OUT, '04-xray.png') });
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: path.join(OUT, '04-thread.png') });
     const strand = await page.evaluate(() => {
-      const sp = document.getElementById('doc-xr-spine');
-      if (!sp) return null;
-      const segs = [...sp.querySelectorAll('.doc-xr-seg')];
-      const r = sp.getBoundingClientRect(), last = segs[segs.length - 1].getBoundingClientRect();
-      const pad = parseFloat(getComputedStyle(sp).paddingBottom) || 0;
-      return { n: segs.length, toEnd: Math.round(r.bottom - last.bottom), pad,
-        scrolls: sp.scrollHeight > sp.clientHeight + 1, pastScreen: Math.round(r.bottom - innerHeight),
-        min: Math.round(Math.min(...segs.map(s => s.getBoundingClientRect().height))) };
+      const th = document.getElementById('doc-thread');
+      if (!th || th.hidden) return null;
+      const box = th.querySelector('.doc-th-rows');
+      const rows = [...th.querySelectorAll('.doc-th-row')];
+      const r = th.getBoundingClientRect(), bx = box.getBoundingClientRect();
+      return { n: rows.length, toEnd: Math.round(r.bottom - bx.bottom), pastScreen: Math.round(r.bottom - innerHeight),
+        inside: box.scrollHeight >= box.clientHeight, toned: rows.filter(x => /\bis-(ruby|amber|steel)\b/.test(x.className)).length,
+        min: Math.round(Math.min(...rows.map(s => s.querySelector('.doc-th-head').getBoundingClientRect().height))),
+        strandGone: !document.getElementById('doc-xr-spine') };
     });
-    ok('4a the strand runs to the bottom of its strip', !!strand && Math.abs(strand.toEnd - strand.pad) <= 2,
-      strand ? `${strand.toEnd}px after the last block · padding ${strand.pad}px` : 'no strand');
-    ok('4b and it does not run past the screen', !!strand && !strand.scrolls && strand.pastScreen <= 0,
-      strand ? `scrolls ${strand.scrolls} · ${strand.pastScreen}px past` : 'no strand');
-    ok('4c CONTROL every block is still big enough to press (the 23 Sep floor)', !!strand && strand.min >= 16,
-      strand ? strand.min + 'px' : 'no strand');
+    ok('4a the row list runs to the bottom of its card, and the strand is gone from this tab', !!strand && strand.toEnd <= 2 && strand.toEnd >= 0 && strand.strandGone,
+      strand ? `${strand.toEnd}px after the list · strand ${strand.strandGone ? 'gone' : 'still drawn'}` : 'no thread');
+    ok('4b and it does not run past the screen', !!strand && strand.pastScreen <= 0 && strand.inside,
+      strand ? `${strand.pastScreen}px past · scrolls inside ${strand.inside}` : 'no thread');
+    ok('4c CONTROL every row head is big enough to press, and the marked rows wear a tone', !!strand && strand.min >= 24 && strand.toned >= 3,
+      strand ? `${strand.min}px · ${strand.toned} toned` : 'no thread');
 
     /* ════════ 5. "WHY IT MATTERS" IS BOLD ════════ */
     const weights = await page.evaluate(async () => {
       const want = (() => { const p = document.createElement('span');
         p.style.fontWeight = 'var(--w-strong)'; document.body.appendChild(p);
         const w = getComputedStyle(p).fontWeight; p.remove(); return Number(w); })();
-      const xr = document.querySelector('#doc-xray .doc-xr-why b');
+      /* the first toned row opened, so a mark with its reason is on screen */
+      const go = document.querySelector('#doc-thread .doc-th-row.is-ruby [data-th-go], #doc-thread .doc-th-row.is-amber [data-th-go]');
+      if (go) { go.click(); await new Promise(r => setTimeout(r, 1200)); }
+      const xr = document.querySelector('#doc-thread .doc-th-row.is-open .doc-xr-why b');
       const xw = xr ? Number(getComputedStyle(xr).fontWeight) : null;
       openCheckPanel(state.contracts[0], 'brief');
       await new Promise(r => setTimeout(r, 700));
@@ -155,11 +162,10 @@ const ok = (name, good, detail) => {
       if (typeof closeModal === 'function') closeModal();
       return { want, xw, bw };
     });
-    ok('5a the X-ray\'s "Why it matters:" is bold', weights.xw != null && weights.xw >= weights.want && weights.xw > 500,
+    ok('5a the Thread\'s "Why it matters:" is bold', weights.xw != null && weights.xw >= weights.want && weights.xw > 500,
       JSON.stringify(weights));
     ok('5b and so is the brief panel\'s', weights.bw != null && weights.bw >= weights.want && weights.bw > 500,
       JSON.stringify(weights));
-    await page.evaluate(() => { if (typeof docViewSet === 'function') docViewSet('paper'); });
 
     /* ════════ 6. THE FOCUS CHIP STAYS ON ITS OWN PAGE ════════
        A real press on the Document tab's own focus door, then a real press on

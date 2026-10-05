@@ -77,7 +77,12 @@ const tu = input => [{ type: 'tool_use', id: 'tu_pe', name: 'clause_readings', i
 /* ============================================================
    1. THE SWITCH — Young's order, Young's default
    ============================================================ */
-describe('f277 (1) the switch reads Contract View then Plain English', () => {
+describe('f277 (1) the switch is gone — the thread is the Document tab\'s one facing page', () => {
+  /* REVERSED IN PLACE 5 Oct 2026 (Young picked the Thread: "Build Thread with
+     Quiet's typography"). The three-position switch, its store and the two
+     layers it chose between are retired; one facing page is up wherever the
+     window holds two working columns. What survives of these claims is the
+     floor (DOC_READ_MIN_W) and "nothing to read is said in words". */
   let win;
   before(() => {
     win = buildWorld({ contractView: true }).win;
@@ -85,67 +90,47 @@ describe('f277 (1) the switch reads Contract View then Plain English', () => {
     sheet(win, BODY);
   });
 
-  test('two buttons, in that order, with Contract View lit at rest', () => {
-    const c = { id: 'MK-1', name: 'Supply', redlineText: BODY, changes: [], audit: [] };
-    const html = win.docReadSwitchHtml(c);
-    assert.ok(html, 'the switch draws on a contract with wording');
-    const first = html.indexOf('Contract View');
-    const second = html.indexOf('Plain View');   // renamed from Plain English on main, 27 Sep 2026
-    assert.ok(first > -1 && second > -1, 'both words are on it');
-    assert.ok(first < second, 'Contract View comes FIRST — Young ruled the order');
-    const pressed = html.match(/aria-pressed="true"/g) || [];
-    assert.equal(pressed.length, 1, 'exactly one of the pair is lit');
-    const upToSecond = html.slice(0, second);
-    assert.ok(/aria-pressed="true"/.test(upToSecond),
-      'and it is Contract View: nothing has been read, so nothing is shown');
-  });
-
-  test('no ring, no band, no strip — it is a control and nothing else', () => {
-    const c = { id: 'MK-1', name: 'Supply', redlineText: BODY, changes: [], audit: [] };
-    const html = win.docReadSwitchHtml(c);
-    assert.ok(!/<div class="(band|strip|notice)/.test(html), 'the switch draws no band of its own');
-    /* RE-POINTED 27 Sep 2026 (T1): X-ray joined as the third position on
-       22 Sep 2026 (THE MAP: "one store, three positions"), so the control is
-       three buttons and nothing more. */
-    assert.equal((html.match(/<button/g) || []).length, 3, 'three buttons and nothing more');
+  test('no switch is built, no store is read, no position is set', () => {
+    assert.equal(typeof win.docReadSwitchHtml, 'undefined', 'the switch builder is gone');
+    assert.ok(!/function docReadSwitchHtml|function wireDocRead\(|function docViewMode|function docViewSet|DOC_VIEW_MODES|DOC_READ_KEY/.test(CONTRACT_JS),
+      'and so are the store and the position');
+    assert.ok(!/data-doc-read=/.test(CONTRACT_JS), 'no button carries a position');
+    const end = CONTRACT_JS.slice(CONTRACT_JS.indexOf('function wsTabRowEndHtml('), CONTRACT_JS.indexOf('function wsPaintTabRowEnd('));
+    assert.match(end, /return step\+focus\+door;/, 'the tab row ends with the stepper, Focus and the negotiate door — and no switch');
   });
 
   test('it stands down on a window too narrow to hold two working columns', () => {
-    const c = { id: 'MK-1', name: 'Supply', redlineText: BODY, changes: [], audit: [] };
+    assert.match(CONTRACT_JS, /const docThreadOn = \(\) => docReadFits\(\) && _wsTab === 'docs';/,
+      'the thread is up on the Document tab wherever two columns fit');
+    assert.match(CONTRACT_JS, /function docReadOn\(\)\{ return docThreadOn\(\); \}/,
+      'and the readings\' own polling asks it by its old name');
     win.innerWidth = 900;
-    assert.equal(win.docReadSwitchHtml(c), '', 'not drawn where it could not be used');
-    assert.equal(win.docReadOn(), false, 'and the preference is not honoured there either');
+    assert.equal(win.docReadFits(), false, 'not where it could not be used');
     win.innerWidth = 1440;
+    assert.equal(win.docReadFits(), true);
   });
 
-  test('the stored preference is READ but never WRITTEN at a width that cannot honour it', () => {
-    win.innerWidth = 1440;
-    win.docReadSet(true);
-    assert.equal(win.docReadOn(), true);
-    win.innerWidth = 900;
-    win.docReadSet(false);                       // a narrow sitting must not clear it
-    win.innerWidth = 1440;
-    assert.equal(win.docReadOn(), true, 'the laptop choice survives a narrow sitting');
-    win.docReadSet(false);
-  });
-
-  test('a document with nothing to read is offered no switch', () => {
+  test('a document with nothing to read says so in words, and offers no press', () => {
     const blank = { id: 'MK-2', name: 'A scan whose words never came out', redlineText: '', changes: [], audit: [] };
     sheet(win, '');
-    assert.equal(win.docReadSwitchHtml(blank), '', 'a verb that cannot work is not drawn');
+    assert.equal(win.docReadClauses(blank).length, 0, 'nothing to read');
+    const th = win.document.createElement('div'); th.id = 'doc-thread'; win.document.body.appendChild(th);
+    try { win.docThreadPaint(blank); } catch (e) { assert.fail('the painter must not throw on an empty sheet: ' + e.message); }
+    assert.ok(/doc-xr-none/.test(th.innerHTML) || th.hidden, 'the empty state, or nothing at all');
+    assert.ok(!/data-th-explain/.test(th.innerHTML), 'a verb that cannot work is not drawn');
+    th.remove();
     sheet(win, BODY);
   });
 
   /* THE COMMONEST SHAPE THIS FEATURE MEETS, and the browser caught it: a scan
      whose words never came out of the file still paints ONE heading — the
-     contract's own name, which the upload branch draws in a bare div of its own
-     rather than in the header the template paper uses. Left as a clause it
-     drew the switch and would have asked the model to explain a title. */
+     contract's own name. Left as a clause it would have asked the model to
+     explain a title. */
   test('a sheet holding nothing but the contract\'s own name is nothing to read', () => {
     const c = { id: 'MK-3', name: 'Nordkust supply agreement', redlineText: '', changes: [], audit: [] };
     sheet(win, '<div><h3>Nordkust supply agreement</h3></div><div>scan.pdf · filed 9 Sep</div>');
     assert.equal(win.docReadClauses(c).length, 0, 'the title is not a clause');
-    assert.equal(win.docReadSwitchHtml(c), '', 'so no switch is offered');
+    assert.equal(win.docXrayRows(c).length, 0, 'so the thread has no row to draw');
     sheet(win, BODY);
   });
 });
@@ -293,18 +278,21 @@ describe('f277 (3) the reading is never part of the document', () => {
     });
   });
 
-  test('the layer hangs off wireDocCanvas — the funnel that re-arms the sheet', () => {
+  test('the thread hangs off wireDocCanvas — the funnel that re-arms the sheet', () => {
     const at = CONTRACT_JS.indexOf('function wireDocCanvas(');
     const end = CONTRACT_JS.indexOf('\n}', at);
-    assert.ok(CONTRACT_JS.slice(at, end).includes('docReadPaint(c)'),
+    assert.ok(CONTRACT_JS.slice(at, end).includes('docThreadPaint(c)'),
       'it is put back after every re-render, exactly as the signature places are');
   });
 
-  test('it sits in the grid’s second track, so the paper is not narrowed', () => {
-    assert.ok(/id="doc-read"[^>]*grid-column:2/.test(INDEX) || /id="doc-read"[^>]*grid-column:2/.test(CONTRACT_JS),
-      'placed into the right-hand grid area rather than given a track of its own');
-    assert.ok(/id="doc-read"[^>]*hidden/.test(CONTRACT_JS),
-      'and it is hidden until somebody asks for it');
+  test('it sits in the right-hand column, after the fill panel, so the paper is not narrowed', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): the layers covered the column; the
+       thread is a card IN it, after the contract form and before the shares. */
+    const col = CONTRACT_JS.slice(CONTRACT_JS.indexOf('id="doc-right"'), CONTRACT_JS.indexOf('id="shares-section"'));
+    assert.ok(col.indexOf('id="tplform-section"') < col.indexOf('id="doc-thread"'),
+      'the writing comes before the reading');
+    assert.ok(/id="doc-thread"[^>]*hidden/.test(col), 'and it is hidden until the painter has somewhere to draw');
+    assert.ok(!/id="doc-read"|id="doc-xray"/.test(CONTRACT_JS), 'the two layers are gone');
   });
 });
 
@@ -749,14 +737,13 @@ describe('f277 (9) a redlined clause is read again', () => {
      `moved` is now the same three-part reading docReadPaint has always used,
      and the two cannot drift. See f364 (9). */
   test('the press asks when the paper has moved, and the stamp is the sent walk', () => {
-    assert.ok(/const moved=!!\(sig&&c\._readSig&&c\._readSig!==sig\)/.test(CONTRACT_JS),
+    /* RE-POINTED 5 Oct 2026 (the Thread): the open row says the reading is
+       stale off the same three-part guard, and its "try again" is the one
+       press that reads THIS clause again. */
+    assert.ok(/moved=!!\(sig&&c\._readSig&&c\._readSig!==sig\)/.test(CONTRACT_JS),
       'the wording is KNOWN to have moved — an absent stamp is "we do not know"');
-    /* RE-POINTED IN PLACE (fix 6, 23 Sep 2026): the press also asks where the
-       edition it holds has a HOLE in it ("only that part is tried again") and
-       where a reading is still running (it joins it). The first two reasons
-       are the ones this claim was always about. */
-    assert.ok(/ask=!docReadItems\(c\)\.length\|\|moved\|\|holes\|\|docReadRunning\(c\);/.test(CONTRACT_JS),
-      'nothing yet, or the wording has moved since the reading we hold');
+    const mv = CONTRACT_JS.slice(CONTRACT_JS.indexOf('function docThreadMovedHtml('), CONTRACT_JS.indexOf('function docThreadUnrunHtml('));
+    assert.match(mv, /data-th-explain="\$\{i\}" data-th-force="1"/, 'read this clause again, by force, through the one Explain door');
     const run = CONTRACT_JS.slice(CONTRACT_JS.indexOf('async function docReadRun'));
     const body = run.slice(0, run.indexOf('\nfunction '));
     /* The request is no longer awaited where it is made — the column polls
@@ -773,80 +760,42 @@ describe('f277 (9) a redlined clause is read again', () => {
    ============================================================ */
 describe('f277 (10) the edition is a facing page', () => {
   /* "Let the plain english also sit in a white card and not the grey
-     background" — Young, 10 Sep 2026. */
-  test('the layer is a white sheet, not notes on the page ground', () => {
-    /* RE-POINTED 27 Sep 2026 (T1): Plain English and X-ray share ONE rule
-       since X-ray arrived ("#doc-read/#doc-xray cover the right column as
-       white cards (one shared rule)"), so the rule is found by its pair. */
-    const at = INDEX.indexOf('#doc-read,#doc-xray{');
-    const css = INDEX.slice(at, INDEX.indexOf('.doc-read-head{', at));
+     background" — Young, 10 Sep 2026. RE-POINTED 5 Oct 2026: the card is the
+     thread's, one rule. */
+  test('the thread is a white sheet, not notes on the page ground', () => {
+    const at = INDEX.indexOf('.doc-th{');
+    const css = INDEX.slice(at, INDEX.indexOf('}', at));
     assert.ok(/background:var\(--color-surface\)/.test(css), 'the surface token, so dark follows');
     assert.ok(/border:1px solid var\(--color-divider\)/.test(css));
   });
 
   /* SET AT THE SIZE THE CONTRACT IS SET AT, and MEASURED rather than computed
      from a token: --doc-scale is written on the paper's own zoom wrapper in
-     the other column and never reaches this one, and a document style can
-     multiply the size again on top of it. */
-  /* ---- THE BASE RULE NAMES TWO THINGS SINCE 15 SEP 2026 ----
-     The front matter above the first clause is MIRRORED into this column
-     (docReadFront), and a mirror is dressed by the same rule while wearing a
-     class of its own — a mirror is the CONTRACT'S words and an entry is a
-     READING of them, and four checks that counted the readings on a page found
-     the mirrors among them while the two shared a class. So the selector is
-     `.doc-read-note,.doc-read-mirror`, and these claims follow it. */
+     the other column, and a document style can multiply the size again. */
   test('the reading takes its size from the paper itself', () => {
-    const at = INDEX.indexOf('.doc-read-note,.doc-read-mirror{');
-    const css = INDEX.slice(at, INDEX.indexOf('.doc-read-over{', at));
-    assert.ok(/font-size:var\(--dr-size,var\(--t-body\)\)/.test(css),
-      'a measured value, with the body rung as the fallback');
+    const at = INDEX.indexOf('.doc-th-plain{');
+    const css = INDEX.slice(at, INDEX.indexOf('}', at));
+    assert.ok(/font-size:var\(--dr-size,/.test(css), 'a measured value, with a fallback');
     assert.ok(!/var\(--t-meta\)/.test(css), 'and it is no longer a size smaller than the contract');
-    /* RE-POINTED 11 Sep 2026, when the face began to be measured beside the
-       size: this pinned the one EXPRESSION `getComputedStyle(paper).fontSize`
-       where the claim is a RELATION — the sheet's own computed style is what
-       the size is read from. Pin the relation, not the expression. */
-    assert.ok(/getComputedStyle\(paper\)/.test(CONTRACT_JS),
-      'the sheet\'s own computed style is read on every paint');
-    assert.ok(/cs\.fontSize/.test(CONTRACT_JS), 'and the size comes off it');
-    assert.ok(/layer\.style\.setProperty\('--dr-size',px\)/.test(CONTRACT_JS));
+    const face = CONTRACT_JS.slice(CONTRACT_JS.indexOf('function docThreadFace('), CONTRACT_JS.indexOf('/* ---------- the rows'));
+    assert.ok(/getComputedStyle\(paper\)/.test(face), 'the sheet\'s own computed style is read on every paint');
+    assert.ok(/cs\.fontSize/.test(face), 'and the size comes off it');
+    assert.ok(/card\.style\.setProperty\('--dr-size',px\)/.test(face));
   });
 
-  test('an entry is drawn as a document: the number, a heading, the reading', () => {
-    assert.ok(/class="dr-n"/.test(CONTRACT_JS), 'the clause number');
-    assert.ok(/class="\$\{sec\?'dr-s':'dr-h'\}"/.test(CONTRACT_JS), 'a heading of its own');
-    assert.ok(/p\.it\.num\|\|p\.row\.num/.test(CONTRACT_JS),
-      'and the number is the PAPER\'s, read off the sheet, never asked of the model');
+  test('a row is drawn as the paper names it: the number, then the heading, then the reading under it', () => {
+    assert.match(CONTRACT_JS, /class="doc-th-name">\$\{esc\(docXrayLabel\(x\)\)\}/, 'the row is the clause\'s own label');
+    assert.match(CONTRACT_JS, /const docXrayLabel = x => \(\(x\.cite\?x\.cite\+\(x\.sep/, 'the number is the PAPER\'s citation, read off the sheet, never asked of the model');
+    assert.match(CONTRACT_JS, /class="doc-th-plain">\$\{docReadMark\(p\)\}/, 'and the reading sits in the open row, figures marked');
   });
 
-  /* LEVEL WITH ITS OWN CLAUSE is what makes this a parallel reading; stepping
-     down is what keeps that promise honest when it cannot be kept exactly. */
-  test('an entry steps down rather than overlapping the one above', () => {
-    /* ---- RE-POINTED 26 Sep 2026 (the overnight clean-up): the placing READS
-       every clause top and entry height first and WRITES every top last — one
-       layout instead of one per entry (~510ms of a ~550ms repaint on a
-       300-clause contract). The order and the arithmetic are unchanged, so the
-       claims below are the same claims asked of the new shape: the region runs
-       from where the order is built to the line that measures the last entry. */
-    const at = CONTRACT_JS.indexOf('const seq=[];');
-    assert.ok(at > 0 && CONTRACT_JS.indexOf('let floor=0, bottom=0', at) > at, 'the stepping exists');
-    /* THE REGION, NEVER A BYTE COUNT — this file has paid for that once
-       already (f277 (13)): the placing runs from the floor to the line that
-       measures the last entry, and a comment added inside it must not push the
-       claim out of its own slice. */
-    const css = CONTRACT_JS.slice(at, CONTRACT_JS.indexOf('const lastEl=', at));
-    assert.ok(/if\(top<floor\) top=floor;/.test(css));
-    /* ---- RE-POINTED 15 Sep 2026, when the front matter began to be mirrored
-       into this column ---- the placing is one `place(src, el, gap)` used
-       twice, because a mirrored block takes the paper's own spacing and an
-       ENTRY takes DOC_READ_GAP. The claim is the same: an entry steps down by
-       its own height plus the gap rather than sitting on the one above. */
-    assert.ok(/floor=top\+x\.h\+x\.gap;/.test(css), 'by its own height plus a gap');
-    assert.ok(/data-doc-read-note[\s\S]{0,80}gap:DOC_READ_GAP\}/.test(css),
-      'and an entry\'s gap is DOC_READ_GAP');
-    /* AND A READING IS NEVER PUSHED BY A MIRROR: the floor is reset between
-       the two passes, so "level with its own clause, to the pixel" survives a
-       title page whose copy runs a little taller than the paper. */
-    assert.ok(/if\(inFront&&!x\.front\)\{ inFront=false; floor=0; \}/.test(css), 'the floor is reset before the entries');
+  /* EVERY ROW STAYS IN VIEW is what makes the thread a map of the contract;
+     the open row's body is capped and scrolls on its own. */
+  test('the open row is capped so every row stays in view, and scrolls inside', () => {
+    const fill = CONTRACT_JS.slice(CONTRACT_JS.indexOf('function docThreadFill('), CONTRACT_JS.indexOf('function docThreadOpen('));
+    assert.match(fill, /box\.style\.setProperty\('--th-max',Math\.max\(DOC_THREAD_BODY_MIN,box\.clientHeight-heads-24\)\+'px'\)/);
+    assert.match(INDEX, /\.doc-th-row\.is-open \.doc-th-in\{[^}]*max-height:var\(--th-max,420px\)/);
+    assert.match(INDEX, /\.doc-th-row\.is-open \.doc-th-in\{[^}]*overflow-y:auto/);
   });
 });
 
@@ -1007,12 +956,12 @@ describe('f277 (12) the walk reads the plain-text sheet too', () => {
       'strip the two names and the markup is what it always was');
   });
 
-  test('the reported fault: this paper had no switch at all', () => {
+  test('the reported fault: this paper had nothing to read at all', () => {
     paint();
     const rows = win.docReadClauses(C);
     assert.ok(rows.length >= 7,
-      `against the parent this was 0, so docReadSwitchHtml drew nothing — got ${rows.length}`);
-    assert.notEqual(win.docReadSwitchHtml(C), '', 'and the switch is drawn');
+      `against the parent this was 0, so nothing was read — got ${rows.length}`);
+    assert.ok(win.docXrayRows(C).length >= 7, 'and the thread has a row for each');
   });
 
   test('a section is a section and a numbered clause is a row of its own', () => {
@@ -1266,20 +1215,13 @@ test('f277 (13) — the heading is the drafter’s own', async t => {
   });
 
   await t.test('the painter draws the PAPER’S heading', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): a row's name is the walk's own
+       `ownHead`, through docXrayLabel; the model's `head` is drawn nowhere. */
     const src = rd('js/views/contract.js');
-    /* THE REGION IS THE PAINTER, NOT A BYTE WINDOW. This sliced 900 characters
-       back from `numHtml` — which is an ANCHOR, not a boundary — so the first
-       comment written above that line pushed the claim out of its own window
-       and the check failed on code that was perfectly correct. Both landmarks
-       below are the painter's own first and last lines. */
-    /* `headed` since D-2a: the tag follows the paper's shape, not the route's kind. */
-    const i = src.indexOf("const sec=!!p.row.headed");
-    const region = src.slice(i, src.indexOf('data-doc-read-note="', i));
-    assert.ok(i > 0 && region.length > 0, 'the painter was found');
-    assert.match(region, /const head=String\(p\.row\.ownHead\|\|''\)\.trim\(\)/,
-      'the sheet’s own heading, not p.it.head');
-    assert.doesNotMatch(region, /p\.it\.head/,
-      'and the model’s is not drawn at all');
+    const rows = src.slice(src.indexOf('function docXrayRows('), src.indexOf('const docXrayLabel'));
+    assert.match(rows, /name:String\(r\.ownHead\|\|''\)\.trim\(\)/, 'the sheet’s own heading');
+    const body = src.slice(src.indexOf('function docThreadRowHtml('), src.indexOf('function docThreadFill('));
+    assert.doesNotMatch(body, /it\.head\b/, 'and the model’s is not drawn at all');
   });
 
   await t.test('the number and the name are cut ONCE', () => {
@@ -1292,15 +1234,14 @@ test('f277 (13) — the heading is the drafter’s own', async t => {
       'the older reading is now half of the one reading');
   });
 
-  await t.test('the edition borrows the paper’s own step vocabulary', () => {
+  await t.test('the reading borrows no shape of its own — it is set in the paper’s face', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): the aligned column that copied the
+       paper's indents is gone; the reading is a paragraph in the paper's own
+       face and size, under the clause's name. */
     const src = rd('js/views/contract.js');
-    assert.match(src, /function docReadShape\(el\)\{[\s\S]{0,700}hati-lv-\(\[123\]\)/,
-      'hati-lv-N — the same class the Word reader, the writing bar and the '
-      + 'gutter walk all write');
-    assert.match(src, /function docReadShape[\s\S]{0,700}rl-hang/);
+    assert.doesNotMatch(src, /function docReadShape\(/, 'the shape reader went with the column');
     const css = rd('index.html');
-    assert.match(css, /\.doc-read-note\.hati-lv-1\{ margin-left:2\.6em; \}/);
-    assert.match(css, /\.doc-read-note\.dr-hang > \.dr-h[^{]*\{[^}]*text-indent:-2\.6em/);
+    assert.match(css, /\.doc-th-plain\{ font-family:var\(--dr-face,var\(--font-doc\)\);/);
   });
 
   await t.test('and the shape is read off the PAGE, never stored in the reading', () => {
@@ -1574,30 +1515,17 @@ describe('f277 (15) the heading printed is the drafter’s own', () => {
 /* ---------------------------------------------------------------------------
    f277 (16) — THE NUMBER SITS BESIDE THE READING, NEVER ABOVE IT
    --------------------------------------------------------------------------- */
-describe('f277 (16) the number sits beside the reading', () => {
-  test('a clause with no heading puts its number in the reading’s own line', () => {
+describe('f277 (16) the number sits beside the name', () => {
+  /* RE-POINTED 5 Oct 2026 (the Thread): a row prints its citation and its
+     name on one line, through the one label builder. */
+  test('a row’s label is the citation, its separator, then the name', () => {
     const src = _f277rd('js/views/contract.js');
-    /* PIN THE REGION, NOT A BYTE COUNT: from the number's own line to the
-       note's opening tag. */
-    const i = src.indexOf('const numHtml=num?');
-    const region = src.slice(i, src.indexOf("}).join('')}", i));
-    assert.match(region, /const lead=!head&&!!num&&!sec;/,
-      'the state is named: a number, no heading of its own, not a section');
-    assert.match(region, /<p\$\{lead\?' class="dr-lead"':''\}>\$\{lead\?numHtml:''\}/,
-      'and the number is drawn INSIDE the reading’s paragraph');
-    /* THE REPORTED FAULT, pinned as an absence: an <h4> holding nothing but
-       the number, with the reading underneath it. */
-    assert.ok(!/<h4 class="dr-h">\$\{numHtml\}<\/h4>/.test(region),
-      'never a heading element holding only the number');
-  });
-
-  test('and the gutter is the paper’s own measure', () => {
-    const css = _f277rd('index.html');
-    assert.match(css, /\.doc-read-note > p\.dr-lead\{[^}]*padding-left:2\.6em[^}]*text-indent:-2\.6em/);
-    assert.match(css, /\.doc-read-note > p\.dr-lead \.dr-n\{[^}]*min-width:2\.6em/,
-      'the number sits in a gutter of exactly the width the contract uses');
-    assert.match(css, /\.doc-read-note\.dr-hang > p:not\(\.dr-lead\)\{ padding-left:2\.6em; \}/,
-      'and the two rules do not double up on one paragraph');
+    const i = src.indexOf('const docXrayLabel = x =>');
+    assert.ok(i > 0, 'one builder');
+    const line = src.slice(i, src.indexOf('\n', i));
+    assert.ok(line.includes("x.cite?x.cite+(x.sep||") && line.includes("+' ':''") && line.includes("(x.name||i18t('xr_unnamed'))"),
+      'number, separator, a space, the name — or "This clause" where the paper names none');
+    assert.match(src, /class="doc-th-name">\$\{esc\(docXrayLabel\(x\)\)\}/, 'and the row prints it');
   });
 });
 
@@ -1637,11 +1565,11 @@ describe('f277 (17) the number is not welded to the name', () => {
       'no number, no separator');
   });
 
-  test('the painter prints it beside the number', () => {
-    const i = src.indexOf('const numHtml=num?');
-    const line = src.slice(i, i + 160);
-    assert.match(line, /esc\(num\+String\(p\.row\.sep\|\|''\)\)/,
-      'the row’s separator, printed inside the citation span');
+  test('the row prints it beside the number', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): through docXrayLabel. */
+    assert.match(src, /x\.cite\+\(x\.sep\|\|/, 'the row’s separator, printed after the citation');
+    const rows = src.slice(src.indexOf('function docXrayRows('), src.indexOf('const docXrayLabel'));
+    assert.match(rows, /cite:String\(r\.cite\|\|r\.num\|\|''\), sep:String\(r\.sep\|\|''\)/, 'carried off the walk');
   });
 
   test('and the sheet carries it beside the number, never inside it', () => {
@@ -1666,14 +1594,11 @@ describe('f277 (17) the number is not welded to the name', () => {
       'the cut still answers a bare citation');
   });
 
-  test('the gap is a guarantee, and the gutter takes it back', () => {
-    const css = _f277rd('index.html');
-    assert.match(css,
-      /\.doc-read-note \.dr-h \.dr-n,\.doc-read-note \.dr-s \.dr-n\{ margin-right:\.4em; \}/,
-      'a heading that carried no punctuation cannot weld either');
-    assert.match(css,
-      /\.doc-read-note\.dr-hang > \.dr-h \.dr-n,\.doc-read-note\.dr-hang > \.dr-s \.dr-n\{ margin-right:0; \}/,
-      'and where the number sits in its own 2.6em box the margin is given back');
+  test('the gap is a guarantee', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): a space is written between the
+       citation and the name, so a heading that carried no punctuation
+       cannot weld either. */
+    assert.ok(src.includes("+' ':'')+(x.name"), 'one space, always, after a citation');
   });
 });
 
@@ -1696,41 +1621,36 @@ describe('f277 (17) the number is not welded to the name', () => {
    ============================================================ */
 describe('f277 (18) the edition is set in the paper’s own face', () => {
   test('the face is measured off the sheet, on every paint', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): docThreadFace is the measurer,
+       called first in docThreadPaint. */
     const src = _f277rd('js/views/contract.js');
-    const at = src.indexOf('function docReadPaint(');
-    assert.ok(at > 0, 'the painter is there');
-    const body = src.slice(at, src.indexOf('\nfunction ', at + 10));
+    const at = src.indexOf('function docThreadFace(');
+    assert.ok(at > 0, 'the measurer is there');
+    const body = src.slice(at, src.indexOf('/* ---------- the rows', at));
     assert.match(body, /getComputedStyle\(paper\)/, 'the paper’s own computed style');
     assert.match(body, /cs\.fontFamily/, 'and the face is read off it');
-    assert.match(body, /layer\.style\.setProperty\('--dr-face',face\)/,
-      'written onto the layer as --dr-face');
-    assert.match(body, /layer\.style\.removeProperty\('--dr-face'\)/,
+    assert.match(body, /card\.style\.setProperty\('--dr-face',face\)/,
+      'written onto the thread as --dr-face');
+    assert.match(body, /card\.style\.removeProperty\('--dr-face'\)/,
       'and removed where there is nothing to measure, never left stale');
+    const paint = src.slice(src.indexOf('function docThreadPaint('), src.indexOf('function docThreadWire('));
+    assert.match(paint, /docThreadFace\(card\);/, 'on every paint');
   });
 
-  test('the entry reads it, with the document face as the fallback', () => {
+  test('the reading reads it, with the document face as the fallback', () => {
     const css = _f277rd('index.html');
-    const at = css.indexOf('.doc-read-note,.doc-read-mirror{');
-    const block = css.slice(at, css.indexOf('.doc-read-over{', at));
+    const at = css.indexOf('.doc-th-plain{');
+    const block = css.slice(at, css.indexOf('}', at));
     assert.match(block, /font-family:var\(--dr-face,var\(--font-doc\)\)/,
       'a measured value, with the document face as the fallback');
   });
 
-  /* THE ENTRY'S HEADINGS ARE REAL h3/h4, and index.html sets a face on every
-     heading tag — a declaration at (0,0,1) that beats inheritance outright,
-     because inheritance is not a cascade contest. So the two had to be named,
-     and `inherit` is what names them: it says "whatever this entry is set in"
-     rather than repeating the token, so the two cannot drift. */
-  test('the entry’s own headings take the entry’s face', () => {
+  test('the thread’s own furniture keeps the product’s face', () => {
+    /* The row names, the states and the marks are furniture ABOUT the
+       reading; only the reading wears the paper's face. */
     const css = _f277rd('index.html');
-    const at = css.indexOf('.doc-read-note .dr-h{');
-    const block = css.slice(at, css.indexOf('.doc-read-over{', at));
-    assert.match(block, /\.doc-read-note \.dr-h\{[^}]*font-family:inherit/,
-      'the clause heading');
-    assert.match(block, /\.doc-read-note \.dr-s\{[^}]*font-family:inherit/,
-      'and the section heading');
-    assert.ok(!/--dr-face/.test(block),
-      'and neither names the measured token a second time');
+    const th = css.slice(css.indexOf('.doc-th{'), css.indexOf('.doc-th-plain{'));
+    assert.ok(!/--dr-face/.test(th), 'nothing above the reading names the measured face');
   });
 
   /* THE CAPTION IS NOT IN IT — the column's own PLAIN ENGLISH label is
@@ -1841,23 +1761,19 @@ describe('f277 (20) Part D', () => {
     assert.match(css, /\.text-\\\[13\\\.5px\\\]\{font-size:15px\}/, 'CONTROL: the blob still resolves the class to a flat 15px, which is the fault');
   });
 
-  test('D-3b the entry’s heading size is measured off the heading it faces, and written per note', () => {
-    const src = _f277rd('js/views/contract.js');
-    const i = src.indexOf('const numHtml=num?');
-    const region = src.slice(i, src.indexOf("}).join('')}", i));
-    assert.match(region, /getComputedStyle\(face\)\.fontSize/);
-    assert.match(region, /style="--dr-hsize:\$\{hsize\}"/);
+  test('D-3b the reading’s size is the paper’s measured size, written on the thread', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): one measured size for the reading;
+       the thread draws no headings of its own to size. */
     const css = _f277rd('index.html');
-    assert.match(css, /\.doc-read-note \.dr-h\{ font-size:var\(--dr-hsize,1em\); \}/);
-    assert.match(css, /\.doc-read-note \.dr-s\{[^}]*font-size:var\(--dr-hsize,1\.13em\)/);
+    assert.match(css, /\.doc-th-plain\{[^}]*font-size:var\(--dr-size,calc\(13\.5px \* var\(--doc-scale,1\)\)\)/);
   });
 
-  test('D-3c the size press repaints the edition itself, not by way of a resize', () => {
+  test('D-3c the size press repaints the thread itself, not by way of a resize', () => {
     const src = _f277rd('js/views/negotiation.js');
     const i = src.indexOf('function rlSetDocType(');
     const fn = src.slice(i, src.indexOf('\n}\n', i));
     assert.match(fn, /applyDocZoom\(\)/);
-    assert.match(fn, /docReadPaint\(/, 'the edition is repainted in the same press');
+    assert.match(fn, /docThreadPaint\(/, 'the thread is repainted in the same press');
   });
 
   test('D-4 the heading wraps as the paper wraps — no balancing', () => {

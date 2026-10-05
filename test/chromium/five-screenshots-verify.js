@@ -235,21 +235,21 @@ const drive = async (page, fn, arg, fallback) => {
       !seg.err && parseFloat(seg.radius) === 0, seg.err || seg.radius);
     check('3d the box clips, so nothing can show through at the corner',
       !seg.err && /hidden|clip/.test(seg.clip || ''), seg.err || seg.clip);
-    /* THE CONTROL IT WAS TOLD TO RESEMBLE. Measured the same way on the
-       Document tab, so "they match" is a RELATION and not a typed number. */
-    await drive(page, id => { openWorkspace(id); }, cid, null);
+    /* THE CONTROL IT WAS TOLD TO RESEMBLE. Measured the same way, so "they
+       match" is a RELATION and not a typed number. RE-POINTED 5 Oct 2026 (the
+       Thread): the Document tab's switch is gone; HaTi's segmented control at
+       rest is the Calendar's Month · Horizon (.cal-seg-view), measured there. */
+    await drive(page, () => { setView('calendar'); }, undefined, null);
     await pause(1500);
-    await drive(page, () => { const b = document.querySelector('[data-ws-tab="docs"]'); if (b) b.click(); }, undefined, null);
-    await pause(900);
     const ref = await drive(page, () => {
-      const wrap = document.querySelector('.doc-read-seg');
+      const wrap = [...document.querySelectorAll('.cal-seg-view, .cal-seg')].find(w => w.getBoundingClientRect().height > 0);
       if (!wrap) return { err: 'not drawn' };
-      const on = wrap.querySelector('[aria-pressed="true"]') || wrap.querySelector('button');
+      const on = wrap.querySelector('.on') || wrap.querySelector('[aria-pressed="true"]') || wrap.querySelector('[aria-current="true"]') || wrap.querySelector('button');
       const w = wrap.getBoundingClientRect(), s = on.getBoundingClientRect();
       const bw = parseFloat(getComputedStyle(wrap).borderTopWidth) || 0;
       return { gapTop: +(s.top - (w.top + bw)).toFixed(2), gapBot: +((w.bottom - bw) - s.bottom).toFixed(2) };
     }, undefined, { err: 'blocked' });
-    check('3e CONTROL — the switch it is matched TO measures the same way',
+    check('3e CONTROL — the segmented control it is matched TO (Calendar: Month · Horizon) measures the same way',
       !ref.err && Math.abs(ref.gapTop) < 0.6 && Math.abs(ref.gapBot) < 0.6,
       ref.err || `gap ${ref.gapTop} / ${ref.gapBot}`);
 
@@ -349,9 +349,13 @@ const drive = async (page, fn, arg, fallback) => {
       const c = state.contracts.find(x => x.id === 'MK-A2');
       c.obligations = (c.obligations || []).concat([{ id: 'ob_test1', desc: 'Test promise',
         due: '', recurring: 'none', assignee: '', status: 'open', quote: q }]);
-      const flags = (typeof docReadFlags === 'function') ? docReadFlags(c) : new Map();
-      return { placed: flags.size, ids: [...flags.keys()],
-        whys: [...flags.values()].map(v => String(v.why || '').slice(0, 60)) };
+      /* RE-POINTED 5 Oct 2026 (the Thread): the Plain column's amber bars
+         (docReadFlags) went with the column; what marks a clause now is the
+         X-ray's own docXrayMarks, read per row. The claim is unchanged: a
+         promise puts no mark on its clause. */
+      const marks = (typeof docXrayRows === 'function') ? docXrayRows(c).flatMap(r => r.marks || []) : [];
+      return { placed: marks.length, ids: marks.map(m => m.k),
+        whys: marks.map(v => String((v.lead || '') + ' ' + (v.say || '') + ' ' + (v.why || '')).slice(0, 60)) };
     }, quote, { placed: -1, ids: [], whys: [] });
     /* ---- REVERSED IN PLACE, 19 Sep 2026 evening (Young ruled it) ----
        This asked that an obligation put a BAR on its clause. That was the
@@ -366,9 +370,9 @@ const drive = async (page, fn, arg, fallback) => {
     check('5c and no sentence about a promise is left on the bar',
       !(put.whys || []).some(w => /promise|åtagande/i.test(w)), (put.whys || []).join(' | '));
 
-    /* NOW THE PAINT. The edition is asked for, and the entry facing that
-       clause must carry the amber bar — which is an inset box-shadow and is
-       invisible in the markup either way. */
+    /* NOW THE PAINT. The whole contract is explained from the open row's
+       "Explain all" (the Thread, 5 Oct 2026), and no row may then wear a
+       mark for the promise — a tone is a class on the row. */
     ai.script(body => {
       const txt = JSON.stringify(body).slice(0, 200000);
       const keys = [...txt.matchAll(/\[R(\d+)\]/g)].map(m => +m[1]);
@@ -378,35 +382,30 @@ const drive = async (page, fn, arg, fallback) => {
           plain: 'In plain words, this clause says what it says.' })) } }];
     });
     await drive(page, async () => {
-      const b = document.querySelector('[data-doc-read="1"]');
+      const b = document.querySelector('#doc-thread [data-th-explain-all]');
       if (b) b.click();
       await new Promise(r => setTimeout(r, 4200));
     }, undefined, null);
     await pause(1200);
 
     const amber = await drive(page, () => {
-      const notes = Array.from(document.querySelectorAll('.doc-read-note'));
-      const watch = notes.filter(n => n.classList.contains('dr-watch'));
-      const shot = watch.map(n => {
-        const cs = getComputedStyle(n);
-        const r = n.getBoundingClientRect();
-        return { shadow: cs.boxShadow, title: (n.getAttribute('title') || '').slice(0, 70),
-          w: Math.round(r.width), h: Math.round(r.height) };
-      });
-      return { notes: notes.length, watch: watch.length, shot };
+      const rows = Array.from(document.querySelectorAll('#doc-thread .doc-th-row'));
+      const read = rows.filter(r => r.querySelector('.doc-th-state .is-read'));
+      const watch = rows.filter(r => /\bis-(ruby|amber|steel)\b/.test(r.className));
+      const shot = watch.map(r => ({ title: (r.querySelector('.doc-th-name') || {}).textContent || '',
+        marks: [...r.querySelectorAll('.doc-xr-mark')].map(m => m.textContent.slice(0, 50)) }));
+      return { notes: read.length, watch: watch.length, shot };
     }, undefined, { notes: 0, watch: 0, shot: [] });
 
-    check('5d CONTROL — the plain English edition really painted', amber.notes >= 3,
-      `${amber.notes} entries`);
+    check('5d CONTROL — the Thread really shows the readings', amber.notes >= 3,
+      `${amber.notes} rows read`);
     /* REVERSED with 5b: the obligation was the only thing on this stage that
-       could have marked a clause, so the bar must now be absent. The bar
-       ITSELF is not retired and is still driven by its own two sources in
-       plain-english-verify — what is pinned here is that a promise is not one
-       of them. */
-    check('5e no clause is barred by a promise alone', amber.watch === 0,
+       could have marked a clause, so no row may wear a tone. What is pinned
+       is that a promise is not one of the mark's sources. */
+    check('5e no clause is marked by a promise alone', amber.watch === 0,
       `${amber.watch} marked`);
-    check('5f and nothing on the page says the bar is about an obligation',
-      !(amber.shot || []).some(s => /promise|Obligations/i.test(s.title)),
+    check('5f and nothing on the page says a mark is about an obligation',
+      !(amber.shot || []).some(s => /promise|Obligations/i.test(s.marks.join(' '))),
       (amber.shot || []).map(s => s.title).join(' | ').slice(0, 140));
     await page.screenshot({ path: path.join(OUT, '05-plain-english-amber.png') });
 

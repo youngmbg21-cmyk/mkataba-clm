@@ -113,48 +113,58 @@ const BODY = '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>'
     await page.evaluate(() => { if (typeof closeModal === 'function') closeModal(); });
     await page.waitForTimeout(300);
 
-    /* ===== 5 and 8. THE X-RAY ===== */
+    /* ===== 5 and 8. THE THREAD (was the X-ray) ===== */
+    /* RE-POINTED 5 Oct 2026 (the Thread): the map and the panel became the
+       Thread's rows. "One block per marked clause" is "every clause a row,
+       the marked ones wearing their tone"; A+ grows the READING in the open
+       row, which is set in the paper's own face and size. */
     await page.evaluate(() => roomGoTab(getContract('MK-N1'), 'docs'));
-    await page.waitForTimeout(1200);
-    await page.evaluate(() => { const b = document.querySelector('[data-doc-read="2"]'); if (b) b.click(); });
     await page.waitForTimeout(1500);
     const map = await page.evaluate(() => {
-      const sp = document.getElementById('doc-xr-spine');
+      const th = document.getElementById('doc-thread');
       const rows = (typeof docXrayRows === 'function') ? docXrayRows(getContract('MK-N1')) : [];
-      return { segs: sp ? sp.querySelectorAll('.doc-xr-seg').length : -1,
-        grey: sp ? sp.querySelectorAll('.doc-xr-seg:not(.is-amber):not(.is-ruby):not(.is-steel)').length : -1,
-        marked: rows.filter(r => r.tone).length, clauses: rows.length };
+      const drawn = th ? [...th.querySelectorAll('.doc-th-row')] : [];
+      return { segs: drawn.length, toned: drawn.filter(r => /\bis-(ruby|amber|steel)\b/.test(r.className)).length,
+        grey: drawn.filter(r => /\bis-(ruby|amber|steel)\b/.test(r.className) && !r.querySelector('.doc-th-state .is-ruby,.doc-th-state .is-amber,.doc-th-state .is-steel')).length,
+        marked: rows.filter(r => r.tone).length, clauses: rows.length, switchGone: !document.querySelector('[data-doc-read]') };
     });
-    check('5 the map draws one block per marked clause', map.segs === map.marked && map.marked > 0, JSON.stringify(map));
-    check('5b and nothing grey', map.grey === 0, JSON.stringify(map));
-    await page.screenshot({ path: path.join(OUT, '03-xray.png') });
-    const sizeOf = () => page.evaluate(() => { const t = document.querySelector('#doc-xray .doc-xr-t');
+    check('5 the thread draws one row per clause, and the marked ones wear their tone', map.segs === map.clauses && map.toned === map.marked && map.marked > 0 && map.switchGone, JSON.stringify(map));
+    check('5b and a toned row always says how many marks', map.grey === 0, JSON.stringify(map));
+    await page.screenshot({ path: path.join(OUT, '03-thread.png') });
+    /* a reading on the open row, so there is a line in the paper's face to measure */
+    await page.evaluate(() => { const c = getContract('MK-N1'); const sheet = docReadSheet(c) || [];
+      c._readings = { at: '2026-10-05', over: 0, items: sheet.map((r, i) => ({ i, heading: r.heading, plain: 'NJPLAIN' + i + ' a reading.' })) };
+      docThreadPaint(c); });
+    await page.waitForTimeout(400);
+    const sizeOf = () => page.evaluate(() => { const t = document.querySelector('#doc-thread .doc-th-row.is-open .doc-th-plain');
       return t ? parseFloat(getComputedStyle(t).fontSize) : 0; });
     const s0 = await sizeOf();
     await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /A\+|A⁺/.test(x.textContent) && x.offsetParent); if (b) { b.click(); b.click(); } });
     await page.waitForTimeout(600);
     const s1 = await sizeOf();
-    check('8 A+ grows the X-ray panel\'s type', s0 > 0 && s1 > s0, `${s0}px → ${s1}px`);
+    check('8 A+ grows the reading in the thread, with the paper', s0 > 0 && s1 > s0, `${s0}px → ${s1}px`);
     await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /A-|A⁻/.test(x.textContent) && x.offsetParent); if (b) { b.click(); b.click(); } });
 
-    /* ===== 4. LANDS ON CONTRACT VIEW ===== */
+    /* ===== 4. LANDS ON THE PAPER WITH THE THREAD BESIDE IT ===== */
+    /* RE-POINTED 5 Oct 2026: there is no Contract View to land on any more —
+       the paper and the thread are one screen. Coming back finds both up and
+       no switch to have been left in the wrong position. */
     await page.evaluate(() => roomGoTab(getContract('MK-N1'), 'terms'));
     await page.waitForTimeout(700);
     await page.evaluate(() => roomGoTab(getContract('MK-N1'), 'docs'));
     await page.waitForTimeout(1000);
-    const tabBack = await page.evaluate(() => ({ mode: typeof docViewMode === 'function' ? docViewMode() : '?',
-      xray: !document.getElementById('doc-xray')?.hidden }));
-    check('4 back on the Document tab it is Contract View', tabBack.mode === 'paper' && !tabBack.xray, JSON.stringify(tabBack));
-    await page.evaluate(() => { const b = document.querySelector('[data-doc-read="2"]'); if (b) b.click(); });
-    await page.waitForTimeout(800);
+    const tabBack = await page.evaluate(() => ({ paper: !!document.getElementById('doc-canvas'),
+      thread: !document.getElementById('doc-thread')?.hidden && document.querySelectorAll('#doc-thread .doc-th-row').length > 0,
+      switchGone: !document.querySelector('[data-doc-read]') }));
+    check('4 back on the Document tab the paper and the thread are both up, and there is no switch', tabBack.paper && tabBack.thread && tabBack.switchGone, JSON.stringify(tabBack));
     await page.evaluate(() => setView('register'));
     await page.waitForTimeout(800);
     await page.evaluate(() => openWorkspace('MK-N1'));
     await page.waitForTimeout(1200);
     await page.evaluate(() => roomGoTab(getContract('MK-N1'), 'docs'));
     await page.waitForTimeout(1000);
-    const pageBack = await page.evaluate(() => typeof docViewMode === 'function' ? docViewMode() : '?');
-    check('4b and after another page too', pageBack === 'paper', pageBack);
+    const pageBack = await page.evaluate(() => !document.getElementById('doc-thread')?.hidden && document.querySelectorAll('#doc-thread .doc-th-row').length > 0 && !document.querySelector('[data-doc-read]'));
+    check('4b and after another page too', pageBack === true, String(pageBack));
 
     /* ===== 9. THE NEGOTIATE PAGE ===== */
     await page.evaluate(() => { if (window.openRedlineWorkbench) openRedlineWorkbench('MK-N1'); });

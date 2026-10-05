@@ -399,8 +399,7 @@ function runScanAct(c){
     /* The Checks row takes the verdict, and the findings open over the page.
        Both are the Document tab's; guarded so a scan run from anywhere else
        still completes normally. */
-    if(window.renderChecksCard) renderChecksCard(c);
-    if(window.openCheckPanel && document.getElementById('checks-card')) openCheckPanel(c,'risk');
+    if(window.docThreadPaint && (!window.contractOnScreen || contractOnScreen(c))) docThreadPaint(c);
     /* The SECOND scan site, and it had the same fault: the clean case rode a
        bare toast and printed nothing. Two doors onto one act, and only one of
        them was fixed would be the duplication warning in its usual direction. */
@@ -4348,7 +4347,7 @@ function renderBriefSection(c){
   host.querySelector('[data-brief-remake]')?.addEventListener('click',async ev=>{
     const btn=ev.currentTarget; btn.disabled=true; btn.textContent=i18t('ct_working');
     const r=await runContractBrief(c,{force:true});
-    if(r){ renderBriefSection(c); if(window.renderChecksCard) renderChecksCard(c); }
+    if(r){ renderBriefSection(c); if(window.docThreadPaint && (!window.contractOnScreen || contractOnScreen(c))) docThreadPaint(c); }
     else{ btn.disabled=false; btn.textContent=i18t('br_rewrite'); }
   });
 }

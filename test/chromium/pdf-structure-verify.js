@@ -299,17 +299,21 @@ const INK = `(() => {
       stripAt.every(x => x.wrap === 'nowrap') && tallest - shortest <= 1,
       stripAt.map(x => `${x.w}:${x.h}px/${x.wrap}`).join(' · '));
 
-    /* ============ 3. THE PLAIN ENGLISH SWITCH — THE REPORTED FAULT ============ */
+    /* ============ 3. THE THREAD — THE REPORTED FAULT ============ */
+    /* RE-POINTED 5 Oct 2026 (the Thread): the Plain English switch is gone;
+       what a structured PDF must now draw is the Thread, one row per clause.
+       A structureless record draws the card's "no clauses" line and no row. */
     const sw = await page.evaluate(() => {
-      const el = document.querySelector('[data-doc-read]');
-      if (!el) return { on: false, why: 'not drawn' };
+      const el = document.getElementById('doc-thread');
+      if (!el || el.hidden) return { on: false, why: 'not drawn' };
       const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
-      return { on: r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none',
-        why: `${Math.round(r.width)}x${Math.round(r.height)}`,
+      const rows = el.querySelectorAll('.doc-th-row').length;
+      return { on: rows > 0 && r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none',
+        why: `${Math.round(r.width)}x${Math.round(r.height)} · ${rows} rows`,
         clauses: (typeof docReadClauses === 'function')
           ? docReadClauses(getContract(state.activeId)).length : -1 };
     });
-    check('3a the Plain English switch is VISIBLE PIXELS on a PDF — the report',
+    check('3a the Thread is VISIBLE PIXELS on a PDF, with rows — the report',
       sw.on === true, `${sw.why} · ${sw.clauses} clauses on the sheet`);
     check('3b and the walk finds real clauses to read',
       sw.clauses >= 4, String(sw.clauses));
@@ -394,9 +398,9 @@ const INK = `(() => {
       return c.id;
     }, id);
     await openDoc(oldId);
-    const swBefore = await page.evaluate(() => !!document.querySelector('[data-doc-read]'));
-    check('7a a PDF filed before this shipped draws NO Plain English switch',
-      swBefore === false, swBefore ? 'the switch is there — nothing was staged' : 'gone, as reported');
+    const swBefore = await page.evaluate(() => document.querySelectorAll('#doc-thread .doc-th-row').length > 0);
+    check('7a a PDF filed before this shipped draws NO rows on the Thread',
+      swBefore === false, swBefore ? 'rows are there — nothing was staged' : 'none, as reported');
 
     const pressed = await page.evaluate(() => {
       const b = document.querySelector('[data-reread]');
@@ -417,14 +421,14 @@ const INK = `(() => {
 
     await openDoc(oldId);
     const swAfter = await page.evaluate(() => {
-      const el = document.querySelector('[data-doc-read]');
-      if (!el) return { on: false, clauses: -1 };
+      const el = document.getElementById('doc-thread');
+      if (!el || el.hidden) return { on: false, clauses: -1 };
       const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
-      return { on: r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none',
+      return { on: el.querySelectorAll('.doc-th-row').length > 0 && r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none',
         clauses: (typeof docReadClauses === 'function')
           ? docReadClauses(getContract(state.activeId)).length : -1 };
     });
-    check('7d and the Plain English switch is VISIBLE PIXELS afterwards',
+    check('7d and the Thread has rows, VISIBLE PIXELS, afterwards',
       swAfter.on === true, `${swAfter.on} · ${swAfter.clauses} clauses`);
     check('7e with real clauses on the sheet', swAfter.clauses >= 4, String(swAfter.clauses));
     await page.screenshot({ path: path.join(OUT, '03-after-reread.png') });
