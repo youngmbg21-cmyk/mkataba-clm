@@ -101,8 +101,11 @@ describe('f484 (4) the walls', () => {
     assert.equal(JSON.stringify(c), snap, 'the record is untouched');
   });
   test('filing goes through the funnel\'s wrappers and nothing else', () => {
-    const file = strip(SRC.slice(SRC.indexOf('async function riskFile'), SRC.indexOf('function riskNote')));
-    assert.ok(/negoEditClause\(/.test(file) && /negoAddNamedClause/.test(file), 'edit and add, the person\'s own doors');
+    /* RE-POINTED 5 Oct 2026 (one door for edits): the card drafts nothing any
+       more — every risk is written and saved in Edit with Copilot, whose Save
+       is the funnel's wrappers (f245 (7), f503 (D)). This module files nothing
+       of its own. */
+    assert.ok(!/negoEditClause\(|negoAddNamedClause\(|negoInsertClause\(/.test(CODE), 'the list files nothing itself');
     assert.ok(!/changes\.push|negoFileChange\(/.test(CODE), 'no change is pushed by hand');
     assert.ok(!/negoAdvanceRound|data-rl-send|nego-send|api\(\s*'shares/.test(CODE), 'nothing is sent');
     assert.ok(/'Copilot — Risk scan: '/.test(SRC), 'the note is provenance (NEGO_PROVENANCE_RE), never a reason shown to them');

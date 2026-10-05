@@ -313,6 +313,14 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
     assert.ok(!/negoInsertClause\(|negoDeleteClause\(/.test(CODE),
       'this page changes wording; ADDING and removing clauses have their own '
       + 'doors — revising one already proposed is not adding it again');
+    /* AND ONE NEW CLAUSE, HELD BEFORE IT EXISTS (Young chose to build it,
+       5 Oct 2026): its FIRST save is the funnel's add-a-clause door — the one
+       the standards use, duplicate wall included — exactly once, in
+       ceFileNew; every later save is the revision above. */
+    assert.equal((CODE.match(/negoAddNamedClause\(/g) || []).length, 1, 'one call');
+    const fn = CODE.slice(CODE.indexOf('async function ceFileNew('), CODE.indexOf('async function ceFile('));
+    assert.match(fn, /await negoAddNamedClause\(c, \{ headingText: heading, bodyHtml: _ceText, afterClauseId: _ceNew\.afterClauseId \|\| null \}, o\)/,
+      'and it is the new-clause save');
   });
 
   test('a filing that changes nothing says so in the page, not only in a toast', () => {
