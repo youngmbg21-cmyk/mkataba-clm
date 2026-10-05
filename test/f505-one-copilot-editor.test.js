@@ -110,3 +110,27 @@ describe('f505 (D) both books', () => {
     assert.match(I18N, /rk_ce_wrote: 'Copilot föreslog en formulering nedan/);
   });
 });
+
+describe('f505 (E) the second pass', () => {
+  test('a suggestion reads like the paper: the rl-us tokens, not bold, the paper\'s face', () => {
+    const css = read('js/views/clauseeditor.js');
+    assert.match(css, /\.ce-rail \.ce-card \.pv ins\.rl-us, \.ce-rail \.ce-full \.ce-full-body \.pv ins\.rl-us\{background:var\(--st-steel-bg\); color:var\(--accent-ink\);\n\s+font-weight:inherit; text-decoration:underline/);
+    assert.match(css, /font-family:var\(--ce-wd-font, var\(--font-doc\)\)/);
+    const f = fn(CE, 'ceWordingFace');
+    assert.match(f, /setProperty\('--ce-wd-font', cs\.fontFamily\)/);
+    assert.match(fn(CE, 'ceRenderFull'), /ceWordingFace\(\);/);
+  });
+  test('one row of small feet', () => {
+    assert.equal(CE.split('<div class="ce-feet" id="ce-feet">').length - 1, 1);
+    assert.match(read('js/views/clauseeditor.js'), /\.ce-railfoot button\{height:var\(--ctl-h-sm\)/);
+    for (const [k, en] of [['ce_discard', 'Discard'], ['ce_file_as_change', 'File'], ['ce_save_to', 'Save']]){
+      assert.match(I18N, new RegExp('\\n    ' + k + ": '" + en + "',"), k);
+    }
+    assert.equal(I18N.split('\n    ce_save_to_long:').length - 1, 2, 'the change is named on the hover, both books');
+  });
+  test('the ask box is one line and grows to CE_ASK_LINES', () => {
+    assert.match(CE, /const CE_ASK_LINES = 5;/);
+    assert.match(CE, /ask\.addEventListener\('input', \(\) => ceAskFit\(ask\)\);/);
+    assert.match(read('js/views/clauseeditor.js'), /\.ce-ask textarea\{flex:1; min-width:0; height:var\(--ctl-h\)/);
+  });
+});

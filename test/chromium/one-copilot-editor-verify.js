@@ -15,7 +15,12 @@
         the lane, chips and ask box step aside, the feet stay, the contract
         column does not move a pixel; Back to Copilot and Escape both return;
         Apply from the full view moves the wording and returns;
-     4. a typed ask on the Risks tab asks about the risk, never the chat.
+     4. a typed ask on the Risks tab asks about the risk, never the chat;
+     5. THE SECOND PASS (Young, 5 Oct 2026): the suggestion reads like the
+        paper (the paper's colour for our marks, not bold, the paper's face
+        and size) in the card and the expanded view; the walk's buttons and
+        Discard · File share ONE row of small buttons; the prompt box is one
+        line at rest, grows as it wraps, and stops at five lines.
    Every driven half is GUARDED — a build without the feature REPORTS.
    Screenshots: test/chromium/shots/one-copilot-editor/ (or HATI_SHOT_DIR).
    Run: node test/chromium/one-copilot-editor-verify.js */
@@ -104,6 +109,8 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
       fullBodyH: vis(full) ? Math.round(full.querySelector('.ce-full-body').getBoundingClientRect().height) : 0,
       fullBtns: vis(full) ? [...full.querySelectorAll('button')].map(b => b.textContent.trim() || b.getAttribute('aria-label')) : [],
       feet: [...pg.querySelectorAll('.ce-railfoot')].filter(vis).map(f => [...f.querySelectorAll('button')].map(b => b.textContent.trim()).join(' · ')),
+      footTops: [...pg.querySelectorAll('.ce-railfoot button')].filter(vis).map(b => Math.round(b.getBoundingClientRect().top)),
+      footH: [...pg.querySelectorAll('.ce-railfoot button')].filter(vis).map(b => Math.round(b.getBoundingClientRect().height)),
       col: r ? [Math.round(r.left), Math.round(r.width)] : null,
       box: ceBoxWords(),
     };
@@ -148,7 +155,26 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     check(!!R && R.ask, '1e and the typed ask in the rail\'s own box');
     check(!!R && R.scope, '1f with the clause card over it, as from a clause');
     check(!!R && !/twelve \(12\)/.test(R.box), '1g the box is untouched until Apply');
-    check(!!R && R.feet.length === 2 && /Previous · Skip · Save & next/.test(R.feet[0]) && /Discard/.test(R.feet[1]), '1h both feet: Previous · Skip · Save & next over Discard · Save', R && R.feet.join(' | '));
+    check(!!R && R.feet.length === 2 && /Previous · Skip · Save & next/.test(R.feet[0]) && /^Discard · (File|Save)$/.test(R.feet[1]), '1h the walk\'s buttons, then Discard · File', R && R.feet.join(' | '));
+    check(!!R && R.footTops.length === 5 && new Set(R.footTops).size === 1, '5a all five on ONE row', R && R.footTops.join(','));
+    check(!!R && R.footH.every(h => h <= 24), '5b on the small rung', R && R.footH.join(','));
+    const face = await page.evaluate(() => {
+      const p = [...document.querySelectorAll('#ce-doc .rl-clause p, #ce-doc p')].find(x => x.textContent.trim().length > 20);
+      const pv = document.querySelector('#ce-lane .ce-card .pv'), ins = pv && pv.querySelector('ins'), del = pv && pv.querySelector('del');
+      const probe = document.createElement('ins'); probe.className = 'rl-us'; probe.textContent = 'x';
+      const host = document.querySelector('#ce-doc .rl-doc, #ce-doc') ; host.appendChild(probe);
+      const c = el => { const k = getComputedStyle(el); return { f: k.fontFamily, s: k.fontSize, col: k.color, bg: k.backgroundColor, w: k.fontWeight, dec: k.textDecorationLine }; };
+      const out = { para: c(p), pv: c(pv), ins: c(ins), del: c(del), paperIns: c(probe) }; probe.remove(); return out;
+    });
+    check(!!face && face.pv.f === face.para.f && face.pv.s === face.para.s, '5c the card is in the paper\'s face and size', face && JSON.stringify([face.para.f.slice(0, 20), face.para.s, face.pv.s]));
+    check(!!face && face.ins.col === face.paperIns.col && face.ins.bg === face.paperIns.bg && /underline/.test(face.ins.dec) && Number(face.ins.w) < 500, '5d an added run wears the paper\'s colour, underlined, not bold', face && JSON.stringify([face.ins, face.paperIns]));
+    check(!!face && face.del.col === face.paperIns.col && /line-through/.test(face.del.dec), '5e a struck run wears the same colour, struck', face && JSON.stringify(face.del));
+    const ask0 = await page.evaluate(() => Math.round(document.querySelector('#ce-ask').getBoundingClientRect().height));
+    await page.fill('#ce-ask', 'Please raise the cap and carve out confidentiality, data protection, fraud, personal injury and anything that cannot be limited at law, and keep it to one paragraph that reads cleanly in the contract and leaves the rest of the clause as it stands today with no other edits at all please. '.repeat(3));
+    const ask1 = await page.evaluate(() => { const b = document.querySelector('#ce-ask'); return { h: Math.round(b.getBoundingClientRect().height), lh: parseFloat(getComputedStyle(b).lineHeight), ov: getComputedStyle(b).overflowY }; });
+    check(ask0 <= 30, '5f the prompt box is one line at rest', ask0);
+    check(ask1.h > ask0 && ask1.h <= Math.ceil(ask1.lh * 5) + 14 && ask1.ov === 'auto', '5g a long prompt wraps and grows to five lines, then scrolls', JSON.stringify(ask1));
+    await page.fill('#ce-ask', '');
     check(!!R && R.pvH > 0 && R.pvH <= 130, '1i the card\'s box is capped (the long redline is cut off in it)', R && R.pvH);
     await shot('1-from-a-risk.png');
 
@@ -164,7 +190,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     const ink = await page.evaluate(() => { const pv = document.querySelector('#ce-full .ce-full-body .pv'); const cs = pv && getComputedStyle(pv);
       const ins = pv && pv.querySelector('ins'), del = pv && pv.querySelector('del');
       return cs ? { face: cs.fontFamily, size: cs.fontSize, ins: !!ins, del: !!del, text: pv.textContent } : null; });
-    check(!!ink && /Source Serif|serif/i.test(ink.face) && parseFloat(ink.size) >= 15 && ink.ins && ink.del, '3f in the contract\'s own face, marked against what stands', ink && (ink.face.slice(0, 30) + ' ' + ink.size));
+    check(!!ink && ink.face === face.para.f && ink.size === face.para.s && ink.ins && ink.del, '3f in the paper\'s own face and size, marked against what stands', ink && (ink.face.slice(0, 30) + ' ' + ink.size));
     check(!!ink && /Each party shall use reasonable endeavours to mitigate/.test(ink.text), '3g the whole redline is there, to its last sentence');
     await shot('3-fill-the-panel-risk.png');
     await page.keyboard.press('Escape');
