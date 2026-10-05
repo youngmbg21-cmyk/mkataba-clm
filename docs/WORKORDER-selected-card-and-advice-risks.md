@@ -149,8 +149,9 @@ tell them apart.
 
 1. **ONE READING of "can this be put on paper".** A set of rule ids in
    js/risks.js — `RK_ADVICE_IDS` = `u-legal`, `u-noext`, `u-ocr`, `u-law`,
-   `u-liab`, `u-term`, plus `u-cp` and `u-val` as record blanks (see the
-   question below) — and `_rkDraftable` drops a finding whose id is in it.
+   `u-liab`, `u-term`, and `u-cp` and `u-val` as record blanks (the owner
+   said yes, 5 Oct 2026) — and `_rkDraftable` drops a finding whose id is in
+   it.
    In js/risks.js rather than on the scanner, because findings are STORED on
    the record (`c.scan.findings`) as they were at scan time: a flag stamped by
    the scanner tomorrow is not on any scan already stored, and two sources is
@@ -164,8 +165,10 @@ tell them apart.
    is touched. Check that Risk View (`docXrayRows`) draws nothing for them
    already (anchor `doc`, no quote); if it does, say so to the owner rather
    than widening.
-3. **Where the advice goes instead — the owner's call (see below).** Nothing
-   is added anywhere in this part unless the owner picks a place.
+3. **The advice goes nowhere else (the owner's answer, 5 Oct 2026: "No
+   where").** Nothing is added anywhere in this part. "Not legal advice" is
+   already said by the rail's own line "Written by Copilot. Check it before
+   you send it."
 4. The plain "Why" book (`rk_why_u_*`) keeps its keys; they become inert
    where the rule no longer draws a card. f506 (A) reads every id off the
    scanners and will still find a reason for each — unchanged.
@@ -187,17 +190,18 @@ tell them apart.
 
 ## Waiting on the owner
 
-- **Part 1: "Follows" or "Says less"?** Recommend "Follows".
-- **Part 2: `u-cp` and `u-val` (counterparty / value not recorded).** They
-  cannot be put on paper either — they are record fields the Overview's Fill
-  answers. Recommend treating them like the `g-*` record blanks and leaving
-  them out of the Redlines card too. Say so if not.
-- **Part 2: where does the advice go instead?** Three answers, pick one:
-  - **Nowhere** (recommend, for now). "Not legal advice" is already said by
-    the rail's own line "Written by Copilot. Check it before you send it.",
-    and the scan's reliability notes (`u-noext`, `u-ocr`) belong at the head
-    of the scan's own panel, which already says how the text was read.
-  - **The signing readiness list** — `u-legal` is about signing, so the
-    Advise rung of `signReadiness` is its natural home. That is a new line on
-    a page, so it is asked here, not built.
-  - **The contract brief's watch-outs** — read on arrival, never a redline.
+- **Part 1: "Follows" or "Says less"?** Still open. Recommend "Follows". In
+  plain words: the grey box on the right that quoted the old wording — should
+  it (A) keep its quote and simply update every time the wording changes, so
+  it always matches the paper ("Follows"), or (B) lose the quote altogether and
+  keep only its title line, because the paper next to it already shows the
+  whole clause ("Says less")?
+
+## Decided by the owner (5 Oct 2026)
+
+- **Part 2: `u-cp` and `u-val` (counterparty / value not recorded) leave the
+  Redlines card too.** Owner: "Yes." They are record fields the Overview's
+  Fill answers, like the `g-*` record blanks the list already leaves out.
+- **Part 2: the advice goes nowhere else.** Owner: "No where." Nothing is
+  added to any page. The signing readiness list and the brief's watch-outs
+  were offered and not taken.
