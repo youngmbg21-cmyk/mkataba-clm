@@ -96,7 +96,8 @@ describe('f277 (1) the switch is gone — the thread is the Document tab\'s one 
       'and so are the store and the position');
     assert.ok(!/data-doc-read=/.test(CONTRACT_JS), 'no button carries a position');
     const end = CONTRACT_JS.slice(CONTRACT_JS.indexOf('function wsTabRowEndHtml('), CONTRACT_JS.indexOf('function wsPaintTabRowEnd('));
-    assert.match(end, /return step\+focus\+door;/, 'the tab row ends with the stepper, Focus and the negotiate door — and no switch');
+    /* RE-POINTED 5 Oct 2026 (the Drawer): the Clauses door leads the slot. */
+    assert.match(end, /return clauses\+step\+focus\+door;/, 'the tab row ends with the Clauses door, the stepper, Focus and the negotiate door — and no switch');
   });
 
   test('it stands down on a window too narrow to hold two working columns', () => {
@@ -399,9 +400,13 @@ describe('f277 (5) plain enough for a regular person', () => {
     assert.ok(/leave its reading EMPTY/i.test(rule));
   });
 
-  test('an empty reading is named as the right answer', () => {
-    assert.ok(/EMPTY reading/.test(rule), 'a clause with nothing to say gets nothing');
-    assert.ok(/padding/i.test(rule), 'and padding one out is named as the failure');
+  /* REVERSED 5 Oct 2026 (Young: Plain "always turns the clause into plain
+     English"). The rule used to name an EMPTY reading as the right answer for
+     a cover page or a counterparts clause, and that empty answer was kept for
+     the life of the wording — the Plain press that drew nothing, three times. */
+  test('every clause gets a reading, however short — only a section is left empty', () => {
+    assert.ok(/EVERY CLAUSE GETS A READING/.test(rule), 'a clause with little to say still gets one plain line');
+    assert.ok(!/Return an EMPTY reading for those/.test(rule), 'and an empty reading is no longer named as an answer');
   });
   /* THE READING FOLLOWS THE READER, NEVER THE PAPER — this product's own split.
      Without it the screen was half-translated: a button reading "Klarspråk" over
@@ -450,13 +455,17 @@ describe('f277 (6) the route', () => {
   after(async () => { await h.stop(); await ai.stop(); });
 
   test('it reads the clauses it is given and pairs each answer by its own number', async () => {
-    ai.script(tu(ANSWER));
+    /* RE-POINTED 5 Oct 2026 (Plain always answers): a clause answered EMPTY
+       is no answer — it is asked again, by itself, and lands with a reading.
+       (Until today it was KEPT empty, D-1, and answered empty for ever.) */
+    const before = ai.calls.length;
+    ai.script(tu(ANSWER), tu({ readings: [{ key: 'R0', heading: CLAUSES[2].heading, plain: 'The headings are labels only.' }] }));
     const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-PE-1', clauses: CLAUSES } });
     const items = out.readings.items;
-    /* RE-POINTED 11 Sep 2026 (D-1, option A): the empty one is KEPT with an
-       empty reading, so the browser can draw the paper's heading over it. */
-    assert.equal(items.length, 3, 'the empty one is kept, its reading empty');
-    assert.equal(items.find(x => x.i === 2).plain, '', 'nothing invented under it');
+    assert.equal(ai.calls.length - before, 2, 'the empty one was asked for again');
+    assert.equal((ai.calls[ai.calls.length - 1].raw.match(/\[R\d+\] CLAUSE/g) || []).length, 1, 'by itself');
+    assert.equal(items.length, 3, 'every clause has its entry');
+    assert.equal(items.find(x => x.i === 2).plain, 'The headings are labels only.', 'and the re-asked one carries its reading');
     assert.equal(items[0].i, 0);
     assert.equal(items[0].heading, '1. Supply and delivery',
       'the heading comes from OUR list, never from the answer');
@@ -789,13 +798,17 @@ describe('f277 (10) the edition is a facing page', () => {
     assert.match(CONTRACT_JS, /class="doc-th-plain">\$\{docReadMark\(p\)\}/, 'and the reading sits in the open row, figures marked');
   });
 
-  /* EVERY ROW STAYS IN VIEW is what makes the thread a map of the contract;
-     the open row's body is capped and scrolls on its own. */
-  test('the open row is capped so every row stays in view, and scrolls inside', () => {
+  /* REVERSED 5 Oct 2026 (the Drawer, "one scroll bar in the clause list"):
+     the open row's body was capped (--th-max) and scrolled on its own — a
+     scroller inside a scroller. It now GROWS to hold what it says, the list
+     is the one scroller, and only a CHANGE of open row brings its head into
+     the list's view, so a reading landing never yanks the reader back. */
+  test('the open row grows; the list is the one scroller', () => {
     const fill = CONTRACT_JS.slice(CONTRACT_JS.indexOf('function docThreadFill('), CONTRACT_JS.indexOf('function docThreadOpen('));
-    assert.match(fill, /box\.style\.setProperty\('--th-max',Math\.max\(DOC_THREAD_BODY_MIN,box\.clientHeight-heads-24\)\+'px'\)/);
-    assert.match(INDEX, /\.doc-th-row\.is-open \.doc-th-in\{[^}]*max-height:var\(--th-max,420px\)/);
-    assert.match(INDEX, /\.doc-th-row\.is-open \.doc-th-in\{[^}]*overflow-y:auto/);
+    assert.ok(!/--th-max/.test(fill) && !/--th-max/.test(INDEX), 'no cap is written or read');
+    assert.ok(!/\.doc-th-row\.is-open \.doc-th-in\{[^}]*overflow-y:auto/.test(INDEX), 'the open row does not scroll inside itself');
+    assert.match(INDEX, /\.doc-th-rows\{[^}]*overflow-y:auto/, 'the list does');
+    assert.match(fill, /if\(i===_docThreadRevealed&&!o\.reveal\) return;/, 'a repaint of the same row leaves the list where it is');
   });
 });
 

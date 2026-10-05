@@ -4551,10 +4551,13 @@ function roomCurrentTab(){ return _wsTab; }
 /* A REFRESH LANDS WHERE YOU WERE (Young, 28 Sep 2026): what this page keeps
    across a reload, read by placeSave and put back by placeResume (js/app.js)
    BEFORE the first paint. */
-function roomPlace(){ return state.activeId ? { tab:_wsTab } : null; }
+/* …AND ON THE DOCUMENT TAB, WHETHER THE CLAUSES DRAWER WAS OPEN AND WHICH
+   COLOURS IT WAS SHOWING (the Drawer, 5 Oct 2026) — docThreadPlace. */
+function roomPlace(){ return state.activeId ? Object.assign({ tab:_wsTab }, docThreadPlace()) : null; }
 function roomPlacePut(p){
   if(!p||!ROOM_TABS.some(t=>t[0]===p.tab)) return;
   _wsTabWant=p.tab;
+  docThreadPlacePut(p);
 }
 function wsTabDefaults(c){
   if(_wsTabFor!==c.id){
@@ -4820,7 +4823,15 @@ function wsTabRowEndHtml(c){
      pixels apart; on every other tab the head's square is what it was. */
   const focus=(PORTAL_MODE)?'':`<button type="button" class="ui-btn ws-focus-door" data-ws-focus-door aria-pressed="${_wsFocus?'true':'false'}"
     title="${esc(i18t('ct_focus_mode'))}" aria-label="${esc(i18t('ct_focus_mode'))}" aria-pressed="false">${icon('scan','w-3.5 h-3.5')}</button>`;
-  return step+focus+door;
+  /* ---- THE CLAUSES DOOR, BESIDE THE TEXT-SIZE STEPPER (Young picked
+     "Drawer", 5 Oct 2026) ---- "form and links is the landing panel but you
+     click on a button above which then brings you the clauses." Drawn shut
+     and without its count: docThreadPaint, which walks the clauses, says
+     whether it is drawn at all (only while there is a panel for the drawer
+     to cover) and what it carries. */
+  const clauses=`<button type="button" id="ws-th-door" class="ui-btn ws-th-door" hidden aria-expanded="false" aria-controls="doc-thread"
+    title="${esc(i18t('th_door_title'))}"><span>${esc(i18t('th_clauses'))}</span><span class="ws-th-door-n" data-th-door-n></span></button>`;
+  return clauses+step+focus+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
    The two strips that used to band the top of the contract, in the SAME stack
@@ -4931,6 +4942,8 @@ function wsPaintTabRowEnd(c){
      door, and comes back the moment the row stops drawing it (another tab). */
   const fd=end.querySelector('[data-ws-focus-door]');
   if(fd) fd.addEventListener('click',wsFocusToggle);
+  /* The Clauses door: open the drawer, or shut it — the door says which. */
+  end.querySelector('#ws-th-door')?.addEventListener('click',()=>docThreadDrawerSet(c,!docThreadDrawerShowing(),{from:'door'}));
 }
 let _wsTabApplied=null;   /* the tab applyWsTabs last painted — "arrived" is a change of it */
 function applyWsTabs(c){
@@ -4992,6 +5005,10 @@ function applyWsTabs(c){
       try{ docRepaintSheet(c); }catch(e){ try{ console.warn('[hati] the paper could not be redrawn', e); }catch(_){} }
     }
   }
+  /* ARRIVING ON THE DOCUMENT TAB IS A LANDING: the drawer is decided afresh
+     (Form & links, or the clauses where there is nothing else) — see
+     docThreadShowsClauses. A repaint on the same tab is not a landing. */
+  if(_wsTab==='docs'&&_wsTabApplied!=='docs') docThreadLanding();
   _wsTabApplied=_wsTab;
   /* THE STRIP DESCRIBES THE TAB YOU ARE ON, so it is repainted when the tab
      changes. It was drawn once per workspace render, which meant whichever tab
@@ -8646,7 +8663,8 @@ function riskViewOpen(c){
     return;
   }
   /* The thread opens on the first clause carrying a mark and glides the
-     paper to it — see docThreadPaint. */
+     paper to it — see docThreadPaint — with the drawer open over Form & links
+     (docThreadShowsClauses reads the want). */
   _docThreadWant='risk';
   roomGoTab(c,'docs');
   if(_wsTab==='docs') docThreadPaint(c);
@@ -10604,16 +10622,21 @@ function renderWorkspace(){
           </div>
         </div>
 
-        <div data-doc-col="docs" style="display:flex;flex-direction:column;gap:var(--s-3);flex:1 1 auto;min-height:0">
-          ${''/* The form first (the writing before the reviewing), then the
-                 Thread — what is known about each clause — below it. */}
+        <div data-doc-col="docs" style="display:flex;flex-direction:column;gap:var(--s-3)">
+          ${''/* ---- FORM & LINKS IS WHERE THE TAB LANDS; THE CLAUSES ARE A DRAWER
+                 OVER IT (Young picked "Drawer", 5 Oct 2026) ----
+                 The form first, then where it came from, the links sent and the
+                 rounds, each card at the height of what it holds and the column
+                 the one scroller. The Thread is the drawer the tab row's
+                 Clauses button brings over them (docThreadDrawerSet); where
+                 there is nothing here at all, the clauses ARE the panel. */}
           <!-- template form: the open fields of a library-template contract -->
           <div id="tplform-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           ${''/* Where this contract came from. Quiet, because it is a thing you
                  check once — and it says the one thing that is easy to get
                  wrong, which is that a template revised later does not revise
                  the contracts already made from it. */}
-          ${templateProvenanceHtml(c)}
+          <div id="doc-prov" class="empty:hidden">${templateProvenanceHtml(c)}</div>
           ${''/* ---- THE THREAD (Young picked it 5 Oct 2026) ----
                  The Document tab's one facing page: every clause as a row, the
                  clause under the reader's eye open. It took the place of the
@@ -10623,7 +10646,8 @@ function renderWorkspace(){
                  More row keep the three acts, and the thread's open row says in
                  one line where a reading has not been made. Painted by
                  docThreadPaint on the sheet's own funnel; hidden below
-                 DOC_READ_MIN_W, where two working columns do not fit. */}
+                 DOC_READ_MIN_W, where two working columns do not fit, and
+                 while the drawer is shut. */}
           <div id="doc-thread" class="doc-th" hidden></div>
           <div id="shares-section" class="empty:hidden" style="${CARD};overflow:hidden"></div>
           ${''/* the general discussion panel is removed — see js/views/portal.js */}
@@ -12408,11 +12432,28 @@ function docXraySpineHtml(rows, opts){
 
    PLAIN ENGLISH IS MADE ONE CLAUSE AT A TIME, ON REQUEST — the owner's reason
    for the redesign: reading a long contract whole "slows down the process".
-   Explain this clause asks the ONE readings route for that row (`only`); the
-   answer lands in the same `_readings` the whole edition uses, and Explain all
-   is the same route for every row, filling in the background as before. The
-   reading is set in the paper's own face and size (Quiet), as the Plain
-   edition was.
+   PLAIN asks the ONE readings route for that row (`only`); the answer lands
+   in the same `_readings` the whole edition uses, and "All N clauses in plain
+   English" is the same route for every row, filling in the background as
+   before. The reading is set in the paper's own face and size (Quiet), as the
+   Plain edition was. PLAIN ALWAYS TURNS THE CLAUSE INTO PLAIN ENGLISH (Young,
+   5 Oct 2026: "the button … is supposed to be a button for converting the
+   clause to plain english"): the route no longer lets a clause come back
+   empty, and a clause Copilot could not read SAYS SO on its row, with Plain
+   to ask again (docThreadCannotMark) — a press never ends in silence.
+
+   IT IS A DRAWER OVER FORM & LINKS (Young picked "Drawer", 5 Oct 2026): "when
+   you land to documents page, form and links is the landing panel but you
+   click on a button above which then brings you the clauses." The tab lands
+   on the form, the links and the rounds at full height; the tab row's Clauses
+   button (beside the text-size stepper) brings the thread over them, opening
+   on the clause at the paper's line; × or Escape goes back. Where there is no
+   form, no link and no round, the clauses ARE the panel — no door, no ×
+   (docThreadShowsClauses). A section title is a small label, no bead and no
+   button. THE COLOUR FILTER: All · Red · Amber · Blue, any together, each
+   counting the clauses whose WORST mark it is; while it filters, ‹ › and the
+   paper's line step only through the clauses it shows, and both the drawer
+   and the filter come back after a refresh (docThreadPlace).
 
    THE CHECKS CARD AND THE COMMENTS CARD ARE GONE FROM THIS TAB (owner: "they
    are essentially redundant"). Obligations and the risk scan keep their icons
@@ -12428,7 +12469,6 @@ function docXraySpineHtml(rows, opts){
 const DOC_THREAD_LINE = 24;       /* px below the paper's top: the line that decides the open row */
 const DOC_THREAD_GLIDE_MS = 900;  /* a glide that never reports its end is settled after this */
 const DOC_THREAD_SETTLE_MS = 160; /* quiet after the last scroll event = the glide has ended */
-const DOC_THREAD_BODY_MIN = 320;  /* the open row's body keeps at least this, however many rows */
 let _docThreadOn = -1;            /* the open row, per sitting */
 let _docThreadRows = [];          /* the painted rows' elements on the paper, for the line */
 let _docThreadGlide = -1;         /* the row a press is gliding the paper to; -1 at rest */
@@ -12437,21 +12477,53 @@ let _docThreadGlideT = null;
 let _docThreadWant = '';          /* 'risk': land on the first marked clause when the tab paints */
 let _docThreadOnly = null;        /* the rows the running reading was asked for; null = every row */
 let _docThreadCache = null;       /* the last paint's walk, so a scroll does not re-walk the sheet */
+let _docThreadRevealed = -1;      /* the open row last brought into the list's view */
+/* THE DRAWER (Young picked it 5 Oct 2026) */
+let _docThreadDrawer = null;      /* the clauses over Form & links: null = not yet decided on this landing */
+let _docThreadDrawerFor = null;   /* …for this contract */
+let _docThreadKeep = null;        /* what a refresh puts back, {id, clauses, tones} — roomPlacePut */
+let _docThreadUp = false;         /* the clause list is on screen, as the last paint left it */
+let _docRightKeep = 0;            /* where Form & links was scrolled, put back when the drawer shuts */
+/* THE COLOUR FILTER: the grades shown, worst first; empty = every clause */
+let _docThreadTones = [];
+let _docThreadTonesFor = null;
+/* THE CLAUSES COPILOT COULD NOT READ, this sitting: contract id → {sig, set of rows} */
+const _docThreadCannot = new Map();
 
-/* The thread is up wherever the Document tab has room for two working
-   columns; below DOC_READ_MIN_W it stands down, as the layers before it did. */
+/* The thread may be drawn wherever the Document tab has room for two working
+   columns; below DOC_READ_MIN_W it stands down, as the layers before it did.
+   docThreadLive is whether it IS on screen — the drawer open, or the clauses
+   being the panel — and is what the paper's two hands ask. */
 const docThreadOn = () => docReadFits() && _wsTab === 'docs';
+const docThreadLive = () => docThreadOn() && _docThreadUp;
 const docThreadCur = c => (typeof getContract === 'function' && c && c.id != null && getContract(c.id)) || c;
 const docThreadReduce = () => { try{ return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(_){ return false; } };
+/* A SECTION TITLE IS A LABEL, not a clause: no bead, no button, no reading. */
+const docThreadIsSec = x => !!(x && x.row && x.row.kind === 'section');
+/* ONE ANSWER TO "IS THIS CLAUSE SHOWN": a clause, in a colour the filter
+   lets through (no filter lets every clause through). */
+const docThreadShown = x => !!x && !docThreadIsSec(x) && (!_docThreadTones.length || _docThreadTones.includes(x.tone));
+const docThreadVisible = rows => (rows||[]).reduce((a,x,i)=>{ if(docThreadShown(x)) a.push(i); return a; }, []);
+const docThreadTonesClean = t => Array.isArray(t) ? XR_GRADES.filter(g => t.includes(g)) : [];
+/* The clause the reader can see nearest a row: back from it, else forward —
+   the line on a section title, or on a clause the filter hides, opens the
+   shown clause it belongs with. -1 where nothing is shown. */
+function docThreadNearest(rows, i){
+  const n=(rows||[]).length;
+  for(let j=Math.min(Number(i)||0, n-1); j>=0; j--) if(docThreadShown(rows[j])) return j;
+  for(let j=(Number(i)||0)+1; j<n; j++) if(docThreadShown(rows[j])) return j;
+  return -1;
+}
 
 function docXraySecHtml(k,body,cls){
   return `<div class="doc-xr-sec${cls?' '+cls:''}"><div class="doc-xr-k">${esc(k)}</div><div class="doc-xr-t">${body}</div></div>`;
 }
 
 /* ---------- the line ---------- */
-/* WHICH CLAUSE THE LINE IS ON: the last row whose element has reached the
-   line below the paper's top. Measured live, never remembered, so a resize or
-   a type-size change cannot leave a stale answer. */
+/* WHICH ROW THE LINE IS ON: the last row whose element has reached the line
+   below the paper's top. Measured live, never remembered, so a resize or a
+   type-size change cannot leave a stale answer. docThreadLineRow is the
+   clause that opens for it — the nearest one shown. */
 function docThreadAtLine(){
   const sc=document.getElementById('doc-scroll');
   if(!sc||!_docThreadRows.length) return 0;
@@ -12459,6 +12531,10 @@ function docThreadAtLine(){
   let here=0;
   _docThreadRows.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=line) here=i; }catch(_){} });
   return here;
+}
+function docThreadLineRow(){
+  const rows=(_docThreadCache&&_docThreadCache.rows)||[];
+  return rows.length ? docThreadNearest(rows, docThreadAtLine()) : -1;
 }
 /* THE GLIDE: the paper moves until the pressed clause's heading sits on the
    line, and the row opens at once so the page never waits for the paper. The
@@ -12488,7 +12564,7 @@ function docThreadSettle(c){
   clearTimeout(_docThreadGlideT); _docThreadGlideT=null;
   const held=_docThreadHold;
   _docThreadGlide=-1; _docThreadHold=-1;
-  docThreadOpen(docThreadCur(c), held>=0?held:docThreadAtLine());
+  docThreadOpen(docThreadCur(c), held>=0?held:docThreadLineRow());
 }
 /* The paper's scroller is rebuilt with the room, so the listener rides the
    element and is armed once per element. The contract is looked up LIVE at
@@ -12506,9 +12582,103 @@ function docThreadFollowArm(){
       return;
     }
     if(raf) return;
-    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(c&&docThreadOn()) docThreadOpen(c,docThreadAtLine()); });
+    raf=requestAnimationFrame(()=>{ raf=0; const c=live(); if(c&&docThreadLive()) docThreadOpen(c,docThreadLineRow()); });
   },{passive:true});
   if('onscrollend' in window) sc.addEventListener('scrollend',()=>{ if(_docThreadGlide>=0) docThreadSettle(live()); });
+}
+
+/* ---------- the drawer ---------- */
+/* WHAT FORM & LINKS HOLDS: the form, where the contract came from, the links
+   sent and the rounds — read off the cards themselves (each painter empties
+   its card when it has nothing to say), and off what is already known about
+   links and rounds, because the links card fills only after a fetch. */
+function docPanelHas(c){
+  const full=id=>{ const el=document.getElementById(id); return !!(el&&el.firstElementChild); };
+  if(full('tplform-section')||full('doc-prov')||full('shares-section')||full('nego-section')) return true;
+  if(!c) return false;
+  if(Array.isArray(c.rounds)&&c.rounds.length) return true;
+  try{ if(typeof sharesKnown==='function'&&sharesKnown(c)) return cachedShares(c).length>0; }catch(_){}
+  return !!(typeof state!=='undefined'&&state&&state.shareByContract&&state.shareByContract[c.id]);
+}
+/* A LANDING — arriving on the Document tab, or in the room from another
+   page: the drawer is decided again at the next paint. */
+function docThreadLanding(){ _docThreadDrawer=null; }
+/* THE ONE ANSWER TO "ARE THE CLAUSES ON SCREEN": the drawer is open, or
+   there is nothing for it to cover — then the clauses ARE the panel, with no
+   door and no ×. Decided ONCE PER LANDING, so a links card that fills a
+   moment later never pulls the list out from under the reader: a refresh puts
+   back what was open, a risk door opens it, anything else lands on Form &
+   links. */
+function docThreadShowsClauses(c){
+  const id=String(c&&c.id);
+  if(_docThreadDrawerFor!==id){ _docThreadDrawerFor=id; _docThreadDrawer=null; }
+  if(_docThreadTonesFor!==id){ _docThreadTonesFor=id; _docThreadTones=[]; }
+  const has=docPanelHas(c);
+  if(_docThreadDrawer===null){
+    const k=_docThreadKeep; _docThreadKeep=null;
+    if(k&&String(k.id)===id){ _docThreadDrawer=!!k.clauses; _docThreadTones=docThreadTonesClean(k.tones); }
+    else _docThreadDrawer=!has;
+  }
+  if(_docThreadWant==='risk') _docThreadDrawer=true;
+  return !has||!!_docThreadDrawer;
+}
+const docThreadDrawerShowing = () => _docThreadUp;
+/* OPEN OR SHUT IT. Opening keeps where Form & links was scrolled and opens on
+   the clause at the paper's line; shutting puts the scroll back and the hand
+   back on the door. */
+function docThreadDrawerSet(c, open, opts){
+  const cur=docThreadCur(c); if(!cur) return;
+  const o=opts||{};
+  const right=document.getElementById('doc-right');
+  const was=_docThreadUp;
+  if(open&&!was&&right) _docRightKeep=right.scrollTop;
+  _docThreadDrawerFor=String(cur.id); _docThreadDrawer=!!open;
+  if(open&&!was) _docThreadOn=-1;
+  docThreadPaint(cur);
+  if(!open&&was&&right) right.scrollTop=_docRightKeep;
+  if(!open&&was&&o.from!=='door'){
+    try{ const d=document.getElementById('ws-th-door'); if(d&&!d.hidden) d.focus({preventScroll:true}); }catch(_){}
+  }
+}
+/* A REFRESH LANDS WHERE YOU WERE: the room's place carries whether the
+   drawer was open and which colours it showed (roomPlace/roomPlacePut), put
+   back by the first decision on that contract. */
+function docThreadPlace(){
+  if(_wsTab!=='docs') return {};
+  const o={ clauses:!!_docThreadUp };
+  if(_docThreadTones.length) o.tones=_docThreadTones.slice();
+  return o;
+}
+function docThreadPlacePut(p){
+  if(!p||p.tab!=='docs'||(p.clauses==null&&!Array.isArray(p.tones))) return;
+  _docThreadKeep={ id:(typeof state!=='undefined'&&state&&state.activeId)||null, clauses:!!p.clauses, tones:docThreadTonesClean(p.tones) };
+}
+/* The links card fills after its fetch: the door and the panel are told,
+   so a contract whose only content is its links gains its door at once. */
+function docThreadPanelMoved(c){
+  if(!c||typeof state==='undefined'||!state||String(state.activeId)!==String(c.id)||_wsTab!=='docs') return;
+  docThreadPaint(docThreadCur(c));
+}
+/* ESCAPE SHUTS THE DRAWER. Bound once, at load — so on the document it is
+   heard before focus mode's own Escape (bound later, by the first room), and
+   it stops that one: one key, one act. Anything nearer the reader's hand (a
+   menu, a dialog, a box being typed in) has it first, and it answers only
+   while the drawer is open over something, on this page. */
+if(typeof document!=='undefined'&&typeof document.addEventListener==='function'){
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape'||e.defaultPrevented||!_docThreadUp||!docThreadOn()) return;
+    if(typeof state==='undefined'||!state||!(state.view==='workspace'||state.view==='doc')) return;
+    const mr=document.getElementById('modal-root'); if(mr&&mr.firstElementChild) return;
+    if(document.querySelector('[data-top-overlay]')) return;
+    if(typeof selectMenuShowing==='function'&&selectMenuShowing()) return;
+    const t=e.target;
+    if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName||'')) return;
+    if(t&&t.isContentEditable) return;
+    const c=(typeof getContract==='function')?getContract(state.activeId):null;
+    if(!c||!docPanelHas(c)) return;
+    e.stopImmediatePropagation();
+    docThreadDrawerSet(c,false);
+  });
 }
 
 /* ---------- the readings, paired once per paint ---------- */
@@ -12521,6 +12691,26 @@ function docThreadPlain(c, sheet){
   try{ pairs=docReadAnchors(c, docReadItems(c), sheet)||[]; }catch(_){ pairs=[]; }
   pairs.forEach(p=>{ const t=String((p&&p.it&&p.it.plain)||'').trim(); if(p&&p.row&&p.row.el&&t) out.set(p.row.el,t); });
   return out;
+}
+/* A PRESS NEVER ENDS IN SILENCE: after Plain (or All) the rows it asked for
+   that still have no reading are marked, for this sitting and this walk of
+   the paper, and each says so on its row with Plain to ask again. A row
+   that has its reading is never marked. */
+function docThreadCannotOf(c){
+  const card=document.getElementById('doc-thread');
+  const rec=_docThreadCannot.get(String(c&&c.id));
+  return (rec&&card&&rec.sig===card.getAttribute('data-th-sig')) ? rec.set : new Set();
+}
+function docThreadCannotMark(c, idxs){
+  const cache=_docThreadCache, card=document.getElementById('doc-thread');
+  if(!c||!card||!cache||cache.id!==String(c.id)||docReadRunning(c)) return;
+  const sig=card.getAttribute('data-th-sig')||'';
+  let rec=_docThreadCannot.get(cache.id);
+  if(!rec||rec.sig!==sig){ rec={ sig, set:new Set() }; _docThreadCannot.set(cache.id,rec); }
+  (idxs||[]).forEach(i=>{
+    const x=cache.rows[i]; if(!x||docThreadIsSec(x)) return;
+    if(cache.plain.has(x.el)) rec.set.delete(i); else rec.set.add(i);
+  });
 }
 /* THE FACE AND THE SIZE ARE MEASURED OFF THE PAPER (Young, 11 Sep 2026: "make
    the font in the plain english page the same as the contract page"). The
@@ -12537,8 +12727,53 @@ function docThreadFace(card){
   }catch(_){}
 }
 
+/* ---------- the head: the title, what is marked, ×, and the filter ---------- */
+const DOC_THREAD_TONE_KEYS = { ruby:['th_f_ruby','th_f_ruby_say'], amber:['th_f_amber','th_f_amber_say'], steel:['th_f_steel','th_f_steel_say'] };
+const docThreadMarks = rows => (rows||[]).reduce((a,x)=>a+(docThreadIsSec(x)?0:(x.marks||[]).length),0);
+const docThreadWorst = rows => XR_GRADES.find(g=>(rows||[]).some(x=>!docThreadIsSec(x)&&x.tone===g))||'';
+/* WHAT IS MARKED, said the same way on the door and on the drawer's head: the
+   marks, in the worst mark's tone — the sum of every row's own "N to look at". */
+function docThreadSumHtml(rows, cls){
+  const n=docThreadMarks(rows);
+  return n?`<span class="${cls} is-${esc(docThreadWorst(rows)||'amber')}">${esc(i18tn('th_look_n',n,{n}))}</span>`:'';
+}
+function docThreadTopHtml(c, rows, has){
+  const clauses=rows.filter(x=>!docThreadIsSec(x));
+  const close=has?`<button type="button" class="ui-btn ui-btn-icon doc-th-x" data-th-close title="${esc(i18t('th_close'))}" aria-label="${esc(i18t('th_close'))}">${icon('x','w-3.5 h-3.5')}</button>`:'';
+  /* A CHIP COUNTS THE CLAUSES WHOSE WORST MARK IS ITS COLOUR, so the three
+     add up to the marked clauses and the list behind a chip is exactly as
+     long as its number. A colour nobody carries is greyed with the reason —
+     unless it is pressed, so it can always be let go. */
+  const chips=[`<button type="button" class="doc-th-chip" data-th-tone="" aria-pressed="${_docThreadTones.length?'false':'true'}">${esc(i18t('th_f_all'))} <b>${clauses.length}</b></button>`]
+    .concat(XR_GRADES.map(g=>{
+      const k=DOC_THREAD_TONE_KEYS[g]; if(!k) return '';
+      const n=clauses.filter(x=>x.tone===g).length;
+      const on=_docThreadTones.includes(g);
+      const name=i18t(k[0]);
+      const dead=!n&&!on;
+      const tip=dead?i18t('th_f_zero',{c:name.toLowerCase()}):`${name}: ${i18t(k[1])}`;
+      return `<button type="button" class="doc-th-chip is-${g}" data-th-tone="${g}" aria-pressed="${on?'true':'false'}"${dead?' aria-disabled="true"':''}
+        title="${esc(tip)}"><i aria-hidden="true"></i>${esc(name)} <b>${n}</b></button>`;
+    })).join('');
+  return `<div class="doc-th-hd"><span class="doc-th-title">${esc(i18t('th_clauses'))}</span>${docThreadSumHtml(rows,'doc-th-sum')}${close}</div>
+    <div class="doc-th-chips" role="group" aria-label="${esc(i18t('th_filter_label'))}">${chips}</div>`;
+}
+/* THE DOOR on the tab row: drawn only while there is a panel for the drawer
+   to cover and a clause to show, pressed while the drawer is open, carrying
+   the same "N to look at" as the drawer's head. */
+function docThreadDoorPaint(rows, has, up){
+  const door=document.getElementById('ws-th-door'); if(!door) return;
+  const show=docThreadOn()&&has&&(rows||[]).length>0;
+  door.hidden=!show;
+  door.classList.toggle('is-on',!!(show&&up));
+  door.setAttribute('aria-expanded',show&&up?'true':'false');
+  const n=door.querySelector('[data-th-door-n]');
+  if(n) n.innerHTML=show?docThreadSumHtml(rows,'ws-th-door-sum'):'';
+}
+
 /* ---------- the rows ---------- */
 function docThreadRowHtml(x,i){
+  if(docThreadIsSec(x)) return `<div class="doc-th-sec" data-th-row="${i}" data-th-sec role="listitem">${esc(docXrayLabel(x))}</div>`;
   const tone=x.tone||'';
   const prev=esc(i18t('th_prev')), next=esc(i18t('th_next'));
   return `<div class="doc-th-row${tone?' is-'+tone:''}" data-th-row="${i}" role="listitem">
@@ -12556,27 +12791,46 @@ function docThreadRowHtml(x,i){
     <div class="doc-th-body"><div class="doc-th-in"></div></div>
   </div>`;
 }
-/* WHAT IS KNOWN, at the right of every row: how many marks (in the worst
-   mark's tone), whether a reading exists, or that one is on its way. */
+/* WHAT IS KNOWN, at the right of every row — how many marks (in the worst
+   mark's tone), whether a reading exists, is on its way, or could not be
+   made — and WHICH ROWS THE FILTER SHOWS. A section title steps aside while
+   the filter is on: it heads clauses the filter may have hidden. */
 function docThreadStates(c,rows,plain){
+  const box=document.querySelector('#doc-thread .doc-th-rows'); if(!box) return;
   const running=docReadRunning(c);
+  const cannot=docThreadCannotOf(c);
+  const filtering=_docThreadTones.length>0;
+  const vis=docThreadVisible(rows);
+  const first=vis[0], last=vis[vis.length-1];
+  /* the hairline starts at the first bead unless a title above it is drawn */
+  const titled=i=>!filtering&&rows.slice(0,i).some(docThreadIsSec);
   rows.forEach((x,i)=>{
-    const el=document.querySelector(`#doc-thread [data-th-state="${i}"]`); if(!el) return;
+    const row=box.querySelector(`[data-th-row="${i}"]`); if(!row) return;
+    if(docThreadIsSec(x)){ row.hidden=filtering; return; }
+    row.hidden=!docThreadShown(x);
     /* THE BEAD FOLLOWS THE RECORD, not the first paint: the rows are rebuilt
        only when the labels change, and a scan or a brief that lands LATER
        (js/ai.js repaints the thread when one does) must recolour the bead of
        a row already drawn. Found by uploaded-contract-fixed-verify 2b, which
        stages the scan after the tab has painted. */
-    const row=el.closest('.doc-th-row');
-    if(row){ XR_GRADES.forEach(g=>row.classList.remove('is-'+g)); if(x.tone) row.classList.add('is-'+x.tone); }
+    XR_GRADES.forEach(g=>row.classList.remove('is-'+g)); if(x.tone) row.classList.add('is-'+x.tone);
+    row.classList.toggle('is-first',i===first&&!titled(i));
+    row.classList.toggle('is-last',i===last);
+    const el=row.querySelector(`[data-th-state="${i}"]`); if(!el) return;
     const n=(x.marks||[]).length;
     const parts=[];
     if(n) parts.push(`<span class="is-${esc(x.tone||'amber')}">${esc(i18tn('th_look_n',n,{n}))}</span>`);
     if(plain.has(x.el)) parts.push(`<span class="is-read">${esc(i18t('th_read'))}</span>`);
-    else if(running&&!(x.row&&x.row.kind==='section')&&(!_docThreadOnly||_docThreadOnly.has(i)))
+    else if(running&&(!_docThreadOnly||_docThreadOnly.has(i)))
       parts.push(`<span class="is-wait">${esc(i18t('ct_read_reading'))}</span>`);
+    else if(cannot.has(i)) parts.push(`<span class="is-amber">${esc(i18t('th_cannot_state'))}</span>`);
     el.innerHTML=parts.join('<span class="doc-th-dot"> · </span>');
   });
+  let none=box.querySelector('.doc-th-none');
+  if(!vis.length){
+    if(!none){ none=document.createElement('div'); none.className='doc-th-none'; box.appendChild(none); }
+    none.textContent=i18t('th_f_empty');
+  } else if(none) none.remove();
 }
 
 /* ---------- the open row ---------- */
@@ -12590,15 +12844,18 @@ function docThreadProgress(c){
    where the server says Copilot is not connected the press is greyed and says
    why on its own hover, never a passing pop-up after a dead press. */
 const docThreadNoAi = () => typeof API_MODE==='function'&&API_MODE()&&typeof state!=='undefined'&&state&&state.aiConfigured===false;
+/* PLAIN, AND ALL N CLAUSES IN PLAIN ENGLISH (Young, 5 Oct 2026) — the one
+   press that turns this clause into plain English, its cost beside it, and
+   the same route for every clause. */
 function docThreadExplainHtml(c,rows,i){
   const dead=docThreadNoAi();
-  const n=rows.filter(x=>!(x.row&&x.row.kind==='section')).length;
+  const n=rows.filter(x=>!docThreadIsSec(x)).length;
   return `<div class="doc-th-ask">
     <button type="button" class="ui-btn" data-th-explain="${i}"${dead?' disabled aria-disabled="true"':''}
-      title="${esc(i18t(dead?'th_no_ai':'th_explain_title'))}">${esc(i18t('th_explain'))}</button>
+      title="${esc(i18t(dead?'th_no_ai':'th_plain_title'))}">${esc(i18t('th_plain'))}</button>
     <span class="doc-th-cost">${esc(i18t('th_cost'))}</span>
     <button type="button" class="ui-btn ui-btn-plain doc-th-all" data-th-explain-all${dead?' disabled aria-disabled="true"':''}
-      title="${esc(i18t(dead?'th_no_ai':'th_explain_all_title'))}">${esc(i18tn('th_explain_all',n,{n}))}</button>
+      title="${esc(i18t(dead?'th_no_ai':'th_plain_all_title'))}">${esc(i18tn('th_plain_all',n,{n}))}</button>
   </div>`;
 }
 /* A MISSING MEMORY IS "WE DO NOT KNOW", NEVER "IT MOVED" (22 Sep 2026):
@@ -12627,13 +12884,17 @@ function docThreadUnrunHtml(c,kinds){
   }).join('');
 }
 function docThreadBodyHtml(c,rows,i,plain,sheet){
-  const x=rows[i]; if(!x) return '';
-  const section=!!(x.row&&x.row.kind==='section');
+  const x=rows[i]; if(!x||docThreadIsSec(x)) return '';
   const words=Number(x.words)||0;
+  /* WHERE THIS CLAUSE IS among the ones on show — "3 of 11", or while the
+     filter is on, "2 of 3 shown". */
+  const vis=docThreadVisible(rows);
+  const k=vis.indexOf(i)+1;
+  const of=_docThreadTones.length?i18t('th_of_shown',{i:k,n:vis.length}):i18t('th_of',{i:k,n:vis.length});
   const parts=[];
-  parts.push(`<div class="doc-th-meta">${esc(i18tn('xr_words',words,{n:words}))} · ${esc(i18t('xr_share',{n:x.share}))} · ${esc(i18t('th_of',{i:i+1,n:rows.length}))}</div>`);
-  /* THE READING, in the paper's face — or the press that makes it. A section
-     title carries no reading by design and offers no press. */
+  parts.push(`<div class="doc-th-meta">${esc(i18tn('xr_words',words,{n:words}))} · ${esc(i18t('xr_share',{n:x.share}))} · ${esc(of)}</div>`);
+  /* THE READING, in the paper's face — or the press that makes it, under the
+     one sentence that says the last press could not. */
   const p=plain.get(x.el)||'';
   const asked=docReadRunning(c)&&(!_docThreadOnly||_docThreadOnly.has(i));
   if(p){
@@ -12641,8 +12902,12 @@ function docThreadBodyHtml(c,rows,i,plain,sheet){
     const when=(at&&typeof relTime==='function')?relTime(at):'';
     parts.push(`<div class="doc-th-plain">${docReadMark(p)}</div>
       <div class="doc-th-at" title="${esc(i18t('ct_read_cap'))}">${esc(when?i18t('th_read_at',{when}):i18t('th_read'))}${docThreadMovedHtml(c,i,sheet)}</div>`);
-  } else if(!section){
-    parts.push(asked?`<div class="doc-th-wait">${esc(docThreadProgress(c))}</div>`:docThreadExplainHtml(c,rows,i));
+  } else if(asked){
+    parts.push(`<div class="doc-th-wait">${esc(docThreadProgress(c))}</div>`);
+  } else {
+    if(docThreadCannotOf(c).has(i))
+      parts.push(`<p class="doc-th-cannot"><b>${esc(i18t('th_cannot_head'))}</b> ${esc(i18t('th_cannot_say'))}</p>`);
+    parts.push(docThreadExplainHtml(c,rows,i));
   }
   /* WORTH A LOOK — the one light-red area (Young ruled 25 Sep 2026), only
      while it holds something; every mark names who said it and why. */
@@ -12661,35 +12926,37 @@ function docThreadBodyHtml(c,rows,i,plain,sheet){
   if(rungs.length) parts.push(`<div class="doc-th-rule"></div><div class="doc-th-argued"><b>${esc(i18tn('xr_rungs',rungs.length,{n:rungs.length}))}</b></div>`);
   return parts.join('');
 }
-/* OPEN ONE ROW, CLOSE THE REST. The open body is capped so every row stays in
-   view and the body scrolls inside; on a thread longer than the column the
-   open row's head is kept in view. The body's own scroll survives a repaint. */
+/* OPEN ONE ROW, CLOSE THE REST. THE OPEN ROW GROWS to hold what it says —
+   nothing in the drawer scrolls but the list itself, one scroll bar — and
+   when the open row CHANGES its head is brought into the list's view. A
+   repaint of the same row (a reading landing, a save) leaves the list where
+   the reader has scrolled it. */
 function docThreadFill(c,rows,i,opts){
   const o=opts||{};
   const card=document.getElementById('doc-thread'); if(!card) return;
   const box=card.querySelector('.doc-th-rows'); if(!box) return;
   const plain=o.plain||docThreadPlain(c,o.sheet);
   rows.forEach((x,k)=>{
+    if(docThreadIsSec(x)) return;
     const r=box.querySelector(`[data-th-row="${k}"]`); if(!r) return;
     const open=k===i;
-    if(open){
-      const body=r.querySelector('.doc-th-in');
-      if(body){ const keep=body.scrollTop; body.innerHTML=docThreadBodyHtml(c,rows,k,plain,o.sheet); body.scrollTop=keep; }
-    }
+    const body=r.querySelector('.doc-th-in');
+    if(body) body.innerHTML=open?docThreadBodyHtml(c,rows,k,plain,o.sheet):'';
     r.classList.toggle('is-open',open);
     const b=r.querySelector('[data-th-go]'); if(b) b.setAttribute('aria-expanded',open?'true':'false');
   });
-  let heads=0; box.querySelectorAll('.doc-th-head').forEach(h=>{ heads+=h.offsetHeight+6; });
-  box.style.setProperty('--th-max',Math.max(DOC_THREAD_BODY_MIN,box.clientHeight-heads-24)+'px');
-  const r=box.querySelector(`[data-th-row="${i}"]`);
-  if(!r) return;
-  r.querySelectorAll('[data-th-step]').forEach(b=>{ const d=Number(b.getAttribute('data-th-step')); b.disabled=(i+d<0||i+d>=rows.length); });
+  const r=i>=0?box.querySelector(`[data-th-row="${i}"]`):null;
+  if(!r){ _docThreadRevealed=-1; return; }
+  const vis=docThreadVisible(rows), at=vis.indexOf(i);
+  r.querySelectorAll('[data-th-step]').forEach(b=>{ const d=Number(b.getAttribute('data-th-step')); b.disabled=(at<0||at+d<0||at+d>=vis.length); });
+  if(i===_docThreadRevealed&&!o.reveal) return;
+  _docThreadRevealed=i;
   const instant=!!o.instant||docThreadReduce();
   setTimeout(()=>{
     try{
-      const top=r.offsetTop-6, bottom=r.offsetTop+r.offsetHeight+12;
-      if(top<box.scrollTop||bottom>box.scrollTop+box.clientHeight){
-        const to=Math.max(0,top);
+      const top=r.offsetTop;
+      if(top<box.scrollTop+4||top>box.scrollTop+box.clientHeight-120){
+        const to=Math.max(0,top-40);
         if(instant) box.scrollTop=to; else box.scrollTo({top:to,behavior:'smooth'});
       }
     }catch(_){}
@@ -12698,7 +12965,7 @@ function docThreadFill(c,rows,i,opts){
 /* A SCROLL OPENS THE ROW AT THE LINE off the last paint's walk — never a
    re-walk of the sheet per scroll event. */
 function docThreadOpen(c,i){
-  if(i===_docThreadOn) return;
+  if(i<0||i===_docThreadOn) return;
   _docThreadOn=i;
   const card=document.getElementById('doc-thread');
   if(!card||card.hidden) return;
@@ -12706,44 +12973,79 @@ function docThreadOpen(c,i){
   if(!cache||cache.id!==String(c&&c.id)){ docThreadPaint(c); return; }
   docThreadFill(c,cache.rows,i,{plain:cache.plain,sheet:cache.sheet});
 }
+/* THE FILTER MOVED: the rows it hides step aside; where the open clause is
+   one of them, the paper glides on to the next clause it shows (or the
+   nearest, at the end of the paper) and that row opens. */
+function docThreadFilterSet(c, tone){
+  const cur=docThreadCur(c);
+  if(!tone) _docThreadTones=[];
+  else _docThreadTones=docThreadTonesClean(_docThreadTones.includes(tone)
+    ? _docThreadTones.filter(g=>g!==tone) : _docThreadTones.concat([tone]));
+  const rows=(_docThreadCache&&_docThreadCache.rows)||[];
+  let go=-1;
+  if(rows.length&&!docThreadShown(rows[_docThreadOn])){
+    for(let k=Math.max(0,_docThreadOn);k<rows.length;k++) if(docThreadShown(rows[k])){ go=k; break; }
+    if(go<0) go=docThreadNearest(rows,_docThreadOn);
+    if(go>=0) _docThreadOn=go;
+  }
+  docThreadPaint(cur);
+  if(go>=0) docThreadGoTo(cur,go);
+  try{ const b=document.querySelector(`#doc-thread [data-th-tone="${tone||''}"]`); if(b) b.focus({preventScroll:true}); }catch(_){}
+}
 
 /* ---------- paint ----------
    ON THE SAME FUNNEL THE LAYERS RODE: wireDocCanvas after every re-render of
    the sheet, applyWsTabs on every tab change, the readings as they land. The
    rows are rebuilt only when the walk changes (a signature of the labels);
    otherwise the states and the open row are repainted in place, so a poll
-   while a reading runs does not reset the thread's own scroll. */
+   while a reading runs does not reset the thread's own scroll. It also says
+   whether the clauses are on screen at all — the drawer — and paints the
+   door that opens it. */
 function docThreadPaint(c){
   const card=document.getElementById('doc-thread');
   if(!card) return;
+  const right=document.getElementById('doc-right');
   const on=docThreadOn();
-  card.hidden=!on;
-  if(!on){ card.innerHTML=''; card.removeAttribute('data-th-sig'); _docThreadRows=[]; _docThreadCache=null; return; }
+  const rows=on?docXrayRows(c):[];
+  const has=on?docPanelHas(c):true;
+  const up=on&&docThreadShowsClauses(c);
+  _docThreadUp=up;
+  card.hidden=!up;
+  card.classList.toggle('is-drawer',up&&has);
+  if(right) right.classList.toggle('is-clauses',up);
+  docThreadDoorPaint(rows,has,up);
+  if(!up){ card.innerHTML=''; card.removeAttribute('data-th-sig'); _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; return; }
   docThreadFace(card);
   const sheet=docReadSheet(c)||[];
-  const rows=docXrayRows(c);
   _docThreadRows=rows.map(x=>x.el);
   if(!rows.length){
-    card.innerHTML=`<div class="doc-xr-none">${esc(i18t('xr_no_clauses'))}</div>`;
+    _docThreadWant='';
+    card.innerHTML=`<div class="doc-th-top">${docThreadTopHtml(c,rows,has)}</div><div class="doc-xr-none">${esc(i18t('xr_no_clauses'))}</div>`;
     card.removeAttribute('data-th-sig'); _docThreadCache=null; return;
   }
   /* ARRIVING FROM A RISK DOOR (riskViewOpen): the first clause carrying the
      WORST mark on the paper is opened and the paper glides to it, once —
      worst first is the risk list's own order, so the reader who pressed
-     "Risks found" lands on the one that could hurt them. */
+     "Risks found" lands on the one that could hurt them. A filter that hides
+     it is let go. */
   let land=-1;
   if(_docThreadWant==='risk'){
     _docThreadWant='';
-    const worst=XR_GRADES.find(g=>rows.some(x=>x.tone===g));
-    land=worst?rows.findIndex(x=>x.tone===worst):-1;
+    const worst=docThreadWorst(rows);
+    land=worst?rows.findIndex(x=>!docThreadIsSec(x)&&x.tone===worst):-1;
+    if(land>=0&&!docThreadShown(rows[land])) _docThreadTones=[];
   }
   if(land>=0) _docThreadOn=land;
-  else if(_docThreadOn<0||_docThreadOn>=rows.length) _docThreadOn=docThreadAtLine();
-  const sig=String(c&&c.id)+'|'+rows.map(x=>docXrayLabel(x)).join('\u0001');
-  if(card.getAttribute('data-th-sig')!==sig){
+  else if(!docThreadShown(rows[_docThreadOn])) _docThreadOn=docThreadNearest(rows,docThreadAtLine());
+  const sig=String(c&&c.id)+'|'+rows.map(x=>(docThreadIsSec(x)?'§':'')+docXrayLabel(x)).join('\u0001');
+  if(card.getAttribute('data-th-sig')!==sig||!card.querySelector('.doc-th-rows')){
     card.setAttribute('data-th-sig',sig);
-    card.innerHTML=`<div class="doc-th-rows scroll-thin" role="list" aria-label="${esc(i18t('th_label'))}">${rows.map((x,i)=>docThreadRowHtml(x,i)).join('')}</div>`;
+    card.innerHTML=`<div class="doc-th-top" data-th-top></div><div class="doc-th-rows scroll-thin" role="list" aria-label="${esc(i18t('th_label'))}">${rows.map((x,i)=>docThreadRowHtml(x,i)).join('')}</div>`;
+    _docThreadRevealed=-1;
   }
+  const top=card.querySelector('[data-th-top]');
+  const topHtml=docThreadTopHtml(c,rows,has);
+  if(top&&top.getAttribute('data-th-was')!==topHtml){ top.innerHTML=topHtml; top.setAttribute('data-th-was',topHtml); }
   const plain=docThreadPlain(c,sheet);
   _docThreadCache={ id:String(c&&c.id), rows, plain, sheet };
   docThreadStates(c,rows,plain);
@@ -12767,14 +13069,28 @@ function docThreadWire(c){
       const go=t.closest('[data-th-go]');
       if(go){ docThreadGoTo(cur,Number(go.getAttribute('data-th-go'))); return; }
       const st=t.closest('[data-th-step]');
-      if(st){ if(!st.disabled) docThreadGoTo(cur,_docThreadOn+Number(st.getAttribute('data-th-step'))); return; }
+      if(st){
+        if(st.disabled) return;
+        const vis=docThreadVisible((_docThreadCache&&_docThreadCache.rows)||[]);
+        const at=vis.indexOf(_docThreadOn), d=Number(st.getAttribute('data-th-step'));
+        const to=at<0?vis[0]:vis[at+d];
+        if(to!=null) docThreadGoTo(cur,to);
+        return;
+      }
+      if(t.closest('[data-th-close]')){ docThreadDrawerSet(cur,false); return; }
+      const tn=t.closest('[data-th-tone]');
+      if(tn){ if(tn.getAttribute('aria-disabled')!=='true') docThreadFilterSet(cur,tn.getAttribute('data-th-tone')||''); return; }
       const ex=t.closest('[data-th-explain]');
       if(ex){
         if(ex.disabled) return;
         ex.disabled=true;
         const i=Number(ex.getAttribute('data-th-explain'));
         try{ await docReadRun(cur,{only:[i],force:ex.hasAttribute('data-th-force')}); }
-        finally{ ex.disabled=false; const now=docThreadCur(cur); if(docReadWatching(now.id)) docThreadPaint(now); }
+        finally{
+          ex.disabled=false;
+          const now=docThreadCur(cur);
+          if(docReadWatching(now.id)){ docThreadCannotMark(now,[i]); docThreadPaint(now); }
+        }
         return;
       }
       const all=t.closest('[data-th-explain-all]');
@@ -12782,7 +13098,14 @@ function docThreadWire(c){
         if(all.disabled) return;
         all.disabled=true;
         try{ await docReadRun(cur,{}); }
-        finally{ all.disabled=false; const now=docThreadCur(cur); if(docReadWatching(now.id)) docThreadPaint(now); }
+        finally{
+          all.disabled=false;
+          const now=docThreadCur(cur);
+          if(docReadWatching(now.id)){
+            docThreadCannotMark(now,((_docThreadCache&&_docThreadCache.rows)||[]).map((_,k)=>k));
+            docThreadPaint(now);
+          }
+        }
         return;
       }
       const wd=t.closest('[data-xr-wd]');
@@ -12793,16 +13116,18 @@ function docThreadWire(c){
   }
   /* A PLAIN PRESS ON A CLAUSE IN THE PAPER OPENS ITS ROW (the owner's list,
      27 Sep 2026); the paper does not move — the reader is already there — and
-     a press that ends a highlight, or lands on a control, opens nothing. */
+     a press that ends a highlight, or lands on a control, opens nothing. Nor
+     does a press on a clause the filter hides, or on a section title. */
   const col=document.getElementById('doc-paper-col');
   if(col&&!col.dataset.thBound){
     col.dataset.thBound='1';
     col.addEventListener('click',e=>{
-      if(!docThreadOn()) return;
+      if(!docThreadLive()) return;
       try{ const sel=window.getSelection&&window.getSelection(); if(sel&&!sel.isCollapsed) return; }catch(_){}
       if(e.target&&e.target.closest&&e.target.closest('button,a,input,textarea,select,[contenteditable],.sig-spot')) return;
       const at=_docThreadRows.findIndex(el=>el&&el.contains&&el.contains(e.target));
-      if(at<0||at===_docThreadOn) return;
+      const rows=(_docThreadCache&&_docThreadCache.rows)||[];
+      if(at<0||at===_docThreadOn||!docThreadShown(rows[at])) return;
       docThreadOpen(docThreadCur(c),at);
     });
   }
@@ -15898,8 +16223,12 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
      window from another module, or from a test stage, is silence when it is
      not on this list: this codebase's most repeated defect. */
   DOC_READ_MIN_W,docReadFits,docReadOn,docReadItems,
-  DOC_XRAY_SPINE_W,DOC_THREAD_LINE,DOC_THREAD_BODY_MIN,docThreadOn,docThreadAtLine,docThreadGoTo,docThreadOpen,docThreadPaint,docThreadWire,
+  DOC_XRAY_SPINE_W,DOC_THREAD_LINE,docThreadOn,docThreadLive,docThreadAtLine,docThreadLineRow,docThreadGoTo,docThreadOpen,docThreadPaint,docThreadWire,
   docThreadRowHtml,docThreadBodyHtml,docThreadExplainHtml,docThreadUnrunHtml,docThreadPlain,docThreadStates,docThreadFill,
+  /* the Drawer, the colour filter and Plain (Young, 5 Oct 2026) */
+  docPanelHas,docThreadLanding,docThreadShowsClauses,docThreadDrawerShowing,docThreadDrawerSet,docThreadPlace,docThreadPlacePut,
+  docThreadPanelMoved,docThreadShown,docThreadVisible,docThreadNearest,docThreadFilterSet,docThreadTopHtml,docThreadDoorPaint,
+  docThreadCannotOf,docThreadCannotMark,docThreadIsSec,DOC_THREAD_TONE_KEYS,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
   riskViewOpen,XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,
   XR_WD_MAX,XR_WD_WORDS,XR_WD_SIDES,XR_WD_CHIPS,XR_WD_BAL,XR_MODAL_RE,XR_RIGHT_RE,XR_LIMIT_RE,XR_BOTH_RE,xrSentences,xrClauseBlocks,xrPartyNames,xrSideByName,xrActOf,xrPlaceObligations,docXrayWho,docXrayWhoHtml,xrWhoChip,xrWhoTracked,

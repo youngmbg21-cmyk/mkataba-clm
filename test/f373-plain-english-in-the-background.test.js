@@ -305,7 +305,9 @@ describe('f373 (7) the column opens on the press and fills as it is read', () =>
     const r = region('docReadRun');
     assert.ok(r.indexOf('if(docReadWatching(id)) docThreadPaint(c);') < r.indexOf("api('ai/readings','POST'"), 'the row says Reading… first');
     const w = region('docThreadWire');
-    assert.match(w, /finally\{ ex\.disabled=false; const now=docThreadCur\(cur\); if\(docReadWatching\(now\.id\)\) docThreadPaint\(now\); \}/,
+    /* RE-POINTED 5 Oct 2026 (Plain never ends in silence): the row is marked
+       when it is still unread, then painted — still only where the reader is. */
+    assert.match(w, /finally\{\n\s*ex\.disabled=false;\n\s*const now=docThreadCur\(cur\);\n\s*if\(docReadWatching\(now\.id\)\)\{ docThreadCannotMark\(now,\[i\]\); docThreadPaint\(now\); \}/,
       'and a reader who moved on while it read keeps what they chose');
   });
   test('one press per contract: a whole reading already running is joined; a one-clause press waits for it', () => {

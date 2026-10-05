@@ -987,6 +987,11 @@ function setView(view){
      negotiate page asks the same from rlCardForgetPins, where it learns which
      contract it is showing. */
   if(view==='workspace'||view==='doc') notesPanelFollow(state.activeId);
+  /* ARRIVING IN THE ROOM FROM ANOTHER PAGE IS A LANDING: the Document tab's
+     side panel opens on Form & links again, not on whatever the clauses
+     drawer was left at (Young picked "Drawer", 5 Oct 2026). */
+  if((view==='workspace'||view==='doc')&&state.view!==view&&typeof window!=='undefined'&&window.docThreadLanding)
+    try{ docThreadLanding(); }catch(_){}
   /* A SIDE PANEL IS ABOUT THE PAGE IT WAS OPENED FROM (26 Sep 2026, the
      overnight clean-up): the brief, the memo and the check panels open beside
      one contract and sat on over the next page — one contract's brief over the
