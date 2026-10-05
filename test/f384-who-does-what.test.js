@@ -115,13 +115,14 @@ const whoOf = (w, c, re) => {
    1 · ONE LIGHT-RED AREA
    ==========================================================================*/
 describe('f384 (1) Worth a look is the one light-red area; About this contract is gone', () => {
-  const PANEL = region('docXrayPanelHtml');
+  /* RE-POINTED 5 Oct 2026 (the Thread): the open row draws it. */
+  const PANEL = region('docThreadBodyHtml');
   test('Worth a look carries the shade only while it holds something', () => {
-    assert.ok(/marks\?'is-look has':'is-look'/.test(PANEL),
-      'the clause list is named is-look, and has only where there are marks — a red box saying "nothing here" is an alarm about nothing');
+    assert.ok(/class="doc-th-look\$\{marks\?' has':''\}"/.test(PANEL),
+      'has only where there are marks — a red box saying "nothing here" is an alarm about nothing');
   });
-  test('About this contract is not drawn: the panel never asks the whole-contract reading', () => {
-    assert.ok(PANEL.length > 200, 'gated: there is a panel builder to read');
+  test('About this contract is not drawn: the row never asks the whole-contract reading', () => {
+    assert.ok(PANEL.length > 200, 'gated: there is a builder to read');
     assert.ok(!/docXrayWide\(/.test(PANEL), 'no call to the reading that gathered what lands nowhere');
     assert.ok(!/xr_sec_wide/.test(PANEL), 'and its heading is asked for nowhere');
     assert.ok(!/is-wide/.test(ROOM), 'nothing builds the stale class');
@@ -132,23 +133,21 @@ describe('f384 (1) Worth a look is the one light-red area; About this contract i
     assert.equal(calls, 1, 'its own declaration and nothing else');
   });
   test('the shade is the one About this contract wore, mixed from tokens so the night answers', () => {
-    const at = INDEX.indexOf('.doc-xr-sec.is-look.has{');
+    const at = INDEX.indexOf('.doc-th-look.has{');
     assert.ok(at > 0, 'the rule exists');
     const rule = INDEX.slice(at, INDEX.indexOf('}', at));
     assert.ok(/background:color-mix\(in srgb,var\(--st-ruby-bg\) 55%,var\(--color-surface\)\)/.test(rule), 'the wash');
-    assert.ok(/border:1px solid\s+color-mix\(in srgb,var\(--st-ruby-dot\) 22%,var\(--color-surface\)\)/.test(rule), 'the edge');
+    assert.ok(/border:1px solid color-mix\(in srgb,var\(--st-ruby-dot\) 22%,var\(--color-surface\)\)/.test(rule), 'the edge');
     assert.ok(!/#[0-9a-f]{3,8}\b/i.test(rule), 'and no colour of its own');
     assert.ok(!/\.doc-xr-sec\.is-wide\{/.test(INDEX), 'the old rule is gone with the class');
   });
   test('a reading that throws draws nothing — never the "found nothing" line, which would be a claim', () => {
-    assert.ok(/try\{ who=docXrayWho\(c,rows,rows\.indexOf\(x\)\); \}/.test(PANEL), 'the reading is guarded');
-    assert.ok(/\$\{who\?docXrayWhoHtml\(who\):''\}/.test(PANEL), 'and a failed one draws no section at all');
+    assert.ok(/try\{ who=docXrayWho\(c,rows,i\); \}/.test(PANEL), 'the reading is guarded');
+    assert.ok(/if\(who\) parts\.push/.test(PANEL), 'and a failed one draws no section at all');
   });
   test('Who does what is drawn straight after Worth a look', () => {
-    const a = PANEL.indexOf("i18t('xr_sec_look')"), b = PANEL.indexOf('docXrayWhoHtml(');
+    const a = PANEL.indexOf('class="doc-th-look'), b = PANEL.indexOf('docXrayWhoHtml(');
     assert.ok(a > 0 && b > a, 'in that order');
-    const between = PANEL.slice(a, b);
-    assert.ok(!/docXraySecHtml\(/.test(between.slice(between.indexOf('is-look'))), 'with nothing between them');
   });
 });
 
@@ -341,27 +340,28 @@ describe('f384 (4) the section the builder draws', () => {
     assert.ok(/\.doc-xr-sec\.is-who \.doc-xr-t\{display:grid;grid-template-columns:auto minmax\(0,1fr\) auto/.test(INDEX));
     assert.ok(/\.doc-xr-wd\{display:grid;grid-template-columns:subgrid/.test(INDEX));
   });
-  test('the words follow the reader’s text size, like the rest of the panel', () => {
-    assert.ok(/#doc-xray \.doc-xr-wdt\{font-size:calc\(var\(--t-meta\) \* var\(--doc-scale,1\)\)/.test(INDEX));
+  test('the words follow the reader’s text size, like the rest of the thread', () => {
+    assert.ok(/#doc-thread \.doc-xr-wdt\{font-size:calc\(var\(--t-meta\) \* var\(--doc-scale,1\)\)/.test(INDEX));
   });
 });
 
 /* ============================================================================
    5 · THE PRESSES
    ==========================================================================*/
-describe('f384 (5) the two presses ride the X-ray’s one listener', () => {
-  const WIRE = region('docXrayWire');
+describe('f384 (5) the two presses ride the thread’s one listener', () => {
+  const WIRE = region('docThreadWire');
   test('a line takes the paper to its sentence through scrollToQuote — never a second finder', () => {
-    assert.ok(/closest\('\[data-xr-wd\]'\)/.test(WIRE), 'the line is answered in the X-ray listener');
+    assert.ok(/closest\('\[data-xr-wd\]'\)/.test(WIRE), 'the line is answered in the thread listener');
     assert.ok(/window\.scrollToQuote\(q\)/.test(WIRE), 'by the risk scan’s own "take me to these words"');
     assert.ok(!/createTreeWalker/.test(whoBlock()), 'and nothing here walks the text for itself');
   });
   test('the door goes to the Obligations tab through roomGoTab, with the contract looked up LIVE', () => {
     assert.ok(/closest\('\[data-xr-ob\]'\)/.test(WIRE));
-    assert.ok(/getContract\(c\.id\)/.test(WIRE) && /roomGoTab\(cur,'oblig'\)/.test(WIRE));
+    assert.ok(/const cur=docThreadCur\(c\);/.test(WIRE) && /roomGoTab\(cur,'oblig'\)/.test(WIRE));
+    assert.ok(/const docThreadCur = c => \(typeof getContract === 'function' && c && c\.id != null && getContract\(c\.id\)\) \|\| c;/.test(ROOM));
   });
   test('[wall] still armed once per element', () => {
-    assert.ok(/if\(!host\|\|host\.dataset\.xrBound\) return;/.test(WIRE));
+    assert.ok(/if\(card&&!card\.dataset\.thBound\)\{/.test(WIRE));
   });
 });
 

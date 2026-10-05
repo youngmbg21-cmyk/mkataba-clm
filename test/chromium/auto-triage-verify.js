@@ -375,28 +375,33 @@ const SEED = t => {
       if (t) t.click();
     });
     await pause(900);
-    await drive(() => renderChecksCard(state.contracts[0]));
+    /* RE-POINTED 5 Oct 2026 (the Thread): the Checks card is gone from the
+       Document tab. A held reading is a VERDICT ("2 proposed"), so the Thread
+       draws no "not yet read · Run" for obligations; the room's door onto the
+       funnel is the Obligations tab's own Find, which offers the held list
+       before it spends. */
+    await drive(() => docThreadPaint(state.contracts[0]));
     await pause(400);
-    const rowLabel = () => drive(() => {
-      const r = [...document.querySelectorAll('.check-row')]
-        .find(x => /Obligation|Åtagand/i.test(x.textContent || ''));
-      return r ? r.querySelector('.cg').textContent.replace(/\s+/g, ' ').trim() : '(no row)';
-    }, undefined, '(blocked)');
-    const rowBefore = await rowLabel();
-    check('8l · the row says a reading is waiting, not "Run"',
-      /proposed|föreslag/i.test(rowBefore), { row: rowBefore });
+    const rowBefore = await drive(() => {
+      const v = checkVerdict(state.contracts[0], 'oblig');
+      return { label: v ? String(v.label) : '(no verdict)', unrun: document.querySelectorAll('#doc-thread .doc-th-unrun [data-room-check="oblig"]').length };
+    }, undefined, { label: '(blocked)', unrun: -1 });
+    check('8l · the verdict says a reading is waiting, and the Thread offers no second "Run"',
+      /proposed|föreslag/i.test(rowBefore.label) && rowBefore.unrun === 0, rowBefore);
     const callsBefore = obligCalls;
+    await drive(() => { roomGoTab(state.contracts[0], 'oblig'); });
+    await pause(900);
     await drive(() => {
-      const r = [...document.querySelectorAll('.check-row')]
-        .find(x => /Obligation|Åtagand/i.test(x.textContent || ''));
-      if (r) r.querySelector('.cg').click();
+      /* the tab's own door (OB_FIND_DOORS names both ids; the tab draws obt-find) */
+      const b = document.getElementById('obt-find') || document.getElementById('ob-find');
+      if (b) b.click();
     });
     await pause(2500);
     const dlg = await drive(() => {
       const m = document.querySelector('#modal-root');
       return m ? m.textContent.replace(/\s+/g, ' ').trim().slice(0, 80) : '';
     }, undefined, '');
-    check('8m · pressing it opens the list to tick, not the panel',
+    check('8m · pressing Find on the Obligations tab opens the list to tick, not a scan',
       /Proposed obligations|Föreslagna/i.test(dlg), { dlg });
     check('8n · and it costs NOTHING — the reading is not made a second time',
       obligCalls - callsBefore === 0, { calls: obligCalls - callsBefore });

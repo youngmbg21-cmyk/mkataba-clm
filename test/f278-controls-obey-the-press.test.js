@@ -53,13 +53,17 @@ test('f278 (1) the fact row has no second opinion about folding', () => {
      paper as the reader scrolls (scPaintPage) — a third listener, and it too
      folds nothing: it writes the page number into the control row. Named
      below with the other two, so a fourth still fails here. */
+  /* RE-POINTED 5 Oct 2026 (the Thread): the Plain English sync and the map's
+     follow became ONE listener, the Thread's follow (docThreadFollowArm),
+     which opens the row at the line and folds nothing. Two are named, so a
+     third — the snap coming back — still fails here. */
   const scrollers = CODE.match(/addEventListener\('scroll'/g) || [];
-  assert.equal(scrollers.length, 3,
-    'three scroll listeners in this file: docReadSync, the X-ray map\'s follow and the signing copy\'s page number');
-  assert.ok(/sc\.addEventListener\('scroll',docReadSync/.test(CODE),
-    'the plain-English sync, by name');
-  assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; docXrayFollow\(\); \}\)/.test(CODE),
-    'and the map\'s follow, which moves the map and never the head');
+  assert.equal(scrollers.length, 2,
+    'two scroll listeners in this file: the Thread\'s follow and the signing copy\'s page number');
+  assert.ok(/sc\.addEventListener\('scroll',\(\)=>\{\s*if\(_docThreadGlide>=0\)/.test(CODE),
+    'the Thread\'s follow, by name');
+  assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; const c=live\(\); if\(c&&docThreadOn\(\)\) docThreadOpen\(c,docThreadAtLine\(\)\); \}\)/.test(CODE),
+    'and it opens a row and never touches the head');
   assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; scPaintPage\(\); \}\)/.test(CODE),
     'and the signing copy\'s page number, which writes a number and never touches the head');
 });

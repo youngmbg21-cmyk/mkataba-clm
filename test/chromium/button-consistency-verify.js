@@ -110,26 +110,22 @@ const HELPERS = `(() => {
       const b = window.__b, want = b.tok('--btn-edge');
       const pick = sel => [...document.querySelectorAll(sel)].find(b.vis) || null;
       /* RE-POINTED 4 Oct 2026: the Export menu is off this row (the owner:
-         "delete export button from the document page"). It was a second door
-         whose rows only pressed the ⋯ menu's own PDF, Word and Record, and
-         those three are untouched. The row it left is the switch, the Focus
-         door, Open Negotiate and the stepper — the same claim, one control
-         further along. */
-      const seg = pick('.doc-read-seg'), exp = pick('#ws-tabrow-end .ws-focus-door'), nego = pick('#ws-to-nego'), step = pick('.rl-type-step');
-      const lit = seg && seg.querySelector('button[aria-pressed="true"]');
-      const seam = seg && seg.querySelector('button + button');
+         "delete export button from the document page"). RE-POINTED AGAIN
+         5 Oct 2026 (the Thread): the three-position switch is gone too. The
+         row is the Focus door, Open Negotiate and the stepper — the same
+         claim on the three that remain; the seam and the lit-half claims
+         went with the switch (the negotiate page's seat switch keeps them in
+         3e), and the Thread's own step squares take the edge too. */
+      const exp = pick('#ws-tabrow-end .ws-focus-door'), nego = pick('#ws-to-nego'), step = pick('.rl-type-step');
+      const thStep = pick('#doc-thread .doc-th-row.is-open .doc-th-step');
       return { want, fill: b.bg('--accent-fill'),
-        seg: b.edge(seg), exp: b.edge(exp), nego: b.edge(nego), step: b.edge(step),
-        seam: seam ? getComputedStyle(seam).borderLeftColor : null,
-        litBg: lit ? getComputedStyle(lit).backgroundColor : null, litInk: lit ? getComputedStyle(lit).color : null };
+        exp: b.edge(exp), nego: b.edge(nego), step: b.edge(step), thStep: b.edge(thStep), switchGone: !document.querySelector('[data-doc-read]') };
     });
-    ok('3a the row the owner photographed paints ONE edge — the switch, Focus, Open Negotiate and the stepper',
-      !!(row.seg && row.exp && row.nego && row.step) && [row.seg, row.exp, row.nego, row.step].every(c => c === row.want),
-      `switch ${row.seg} · Focus ${row.exp} · Open Negotiate ${row.nego} · stepper ${row.step} · token ${row.want}`);
+    ok('3a the row the owner photographed paints ONE edge — Focus, Open Negotiate and the stepper; the switch is gone',
+      !!(row.exp && row.nego && row.step) && row.switchGone && [row.exp, row.nego, row.step].every(c => c === row.want),
+      `Focus ${row.exp} · Open Negotiate ${row.nego} · stepper ${row.step} · token ${row.want}${row.switchGone ? '' : ' · a switch is still drawn'}`);
     ok('3b and it is the LIGHT grey, #E2E7E5', row.want === 'rgb(226, 231, 229)', row.want);
-    ok('3c the switch\'s seams are the same grey', !!row.seam && row.seam === row.want, `seam ${row.seam}`);
-    ok('3d [control] its lit half is still FILLED, with white words — the fill says which is on',
-      !!row.litBg && row.litBg === row.fill && row.litInk === 'rgb(255, 255, 255)', `${row.litBg} / ${row.litInk}`);
+    ok('3c the Thread\'s ‹ › squares take the same edge', !!row.thStep && row.thStep === row.want, `step ${row.thStep}`);
 
     await page.evaluate(i => openRedlineWorkbench(i, { blanksAsked: true }), id);
     await page.waitForTimeout(1800); await load(); await rest();

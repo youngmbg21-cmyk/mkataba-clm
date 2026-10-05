@@ -104,7 +104,8 @@ describe('f357 (2) one look-up per obligation tick', () => {
     assert.equal(n, 1, 'getContract searches the whole book — twice was twice the book');
   });
   test('2b every surface is still reached', () => {
-    for(const p of ['updateSidebarCounts','renderChecksCard','wsPaintTabCounts','roomPaintObligations','paintOverviewDocs','renderCalendar','renderDashboard']){
+    /* RE-POINTED 5 Oct 2026 (the Thread): the Checks card became the Thread. */
+    for(const p of ['updateSidebarCounts','docThreadPaint','wsPaintTabCounts','roomPaintObligations','paintOverviewDocs','renderCalendar','renderDashboard']){
       assert.ok(new RegExp(p).test(fn), `${p} left the funnel — that is how a count goes stale`);
     }
   });

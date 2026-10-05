@@ -326,23 +326,26 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     check(!!(await until(page, () => !document.getElementById('clause-editor') && !!document.getElementById('rl-risks'))), '6d Back to Redlines closes the window');
     check(await page.evaluate(() => !document.querySelector('#rl-risks [data-rk-target], #rl-risks .rk-row.is-open')), '6f the card drafts nothing itself');
 
-    /* ============ 7. RISK VIEW ============ */
+    /* ============ 7. THE THREAD (was Risk View) ============ */
+    /* RE-POINTED 5 Oct 2026 (the Thread): Risk View is gone; a clause's marks
+       sit in its row's Worth a look on the Document tab. The card still drafts
+       nothing, and "Add a note" went with the panel (the owner, 5 Oct 2026:
+       "the add note feature has been deleted from the worth a look panel"). */
     await page.evaluate(id => { openWorkspace(id); roomGoTab(getContract(id), 'docs'); }, ID);
-    await until(page, () => !!document.querySelector('[data-doc-read="2"]'));
-    await press(page, '[data-doc-read="2"]');
-    await until(page, () => document.querySelectorAll('[data-xr-seg]').length ? true : null);
-    /* the clause map's segments, each pressed until one carries a risk mark */
+    await until(page, () => { const t = document.getElementById('doc-thread'); return t && !t.hidden && t.querySelectorAll('.doc-th-row').length ? true : null; });
+    /* every marked row pressed until one carries a risk mark */
     const rv = await until(page, () => {
-      const x = document.getElementById('doc-xray'); if (!x) return null;
-      const read = () => { const notes = x.querySelectorAll('[data-rk-note]').length;
-        return notes || x.querySelector('.rk-done') ? { notes, go: x.querySelectorAll('[data-rk-go]').length, text: x.innerText } : null; };
+      const th = document.getElementById('doc-thread'); if (!th) return null;
+      const read = () => { const open = th.querySelector('.doc-th-row.is-open'); if (!open) return null;
+        const marks = open.querySelectorAll('.doc-th-look .doc-xr-mark').length;
+        return marks ? { marks, notes: open.querySelectorAll('[data-rk-note]').length, go: open.querySelectorAll('[data-rk-go]').length, text: open.innerText } : null; };
       let got = read(); if (got) return got;
-      for (const b of document.querySelectorAll('[data-xr-seg]')){ b.click(); got = read(); if (got) return got; }
+      for (const b of th.querySelectorAll('.doc-th-row.is-ruby [data-th-go], .doc-th-row.is-amber [data-th-go]')){ b.click(); got = read(); if (got) return got; }
       return null;
     });
-    check(!!rv && rv.go === 0 && !/Draft a redline/.test(rv.text), '7a Risk View draws no "Draft a redline"', rv && rv.go);
-    check(!!rv && (rv.notes > 0 || /Redline drafted/.test(rv.text)), '7b only "Add a note" (or the drafted mark) under a risk', rv && rv.notes);
-    await shot('7-risk-view.png');
+    check(!!rv && rv.go === 0 && !/Draft a redline/.test(rv.text), '7a the Thread draws no "Draft a redline"', rv && rv.go);
+    check(!!rv && rv.marks > 0 && rv.notes === 0 && !/Add a note/.test(rv.text), '7b the marks are there, and "Add a note" is not (removed 5 Oct 2026)', rv && JSON.stringify({ marks: rv.marks, notes: rv.notes }));
+    await shot('7-thread.png');
 
     /* ============ 8. SAFETY NET ============ */
     await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);

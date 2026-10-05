@@ -188,20 +188,22 @@ const HELPERS = `(() => {
     const c3 = await page.evaluate(() => {
       const m = window.__m;
       const slot = [...document.querySelectorAll('#ws-tabrow-end .ui-btn, #ws-tabrow-end .doc-read-seg, #ws-tabrow-end .rl-type-step, #ws-tabrow-end .ws-focus-door')].filter(m.vis).map(m.box);
-      const segs = [...document.querySelectorAll('#ws-tabrow-end .doc-read-seg button')].filter(m.vis)
-        .map(b => ({ t: b.innerText.trim(), on: b.getAttribute('aria-pressed') === 'true', fw: getComputedStyle(b).fontWeight }));
-      const run = [...document.querySelectorAll('.check-row .cg')].filter(m.vis).map(m.box);
+      /* RE-POINTED 5 Oct 2026 (the Thread): the switch and the Checks card
+         are gone; the Thread's ‹ › are the small rung's squares and its text
+         buttons (Explain all, Run) are the text button. */
+      const segs = [...document.querySelectorAll('#doc-thread .doc-th-row.is-open .doc-th-step')].filter(m.vis).map(m.box);
+      const run = [...document.querySelectorAll('#doc-thread .doc-th-row.is-open .ui-btn-plain')].filter(m.vis).map(m.box);
       const squares = [...document.querySelectorAll('#ws-tabrow-end .ws-focus-door')].filter(m.vis).map(m.box);
       return { slot, segs, run, squares, accent: m.tok('--accent-ink'), ink: m.ink('#doc-canvas') ?? m.ink('.doc-surface') };
     });
     ok('3a the Document tab\'s control row is one height (28)',
       c3.slot.length >= 3 && c3.slot.every(b => near(b.h, 28)), JSON.stringify(c3.slot.map(b => b.t.slice(0, 14) + ':' + b.h)));
-    ok('3b the switch\'s resting halves read at the buttons\' weight, and the lit half stands out',
-      c3.segs.length >= 2 && c3.segs.filter(s => !s.on).every(s => s.fw === '500') && c3.segs.filter(s => s.on).every(s => Number(s.fw) >= 600),
-      JSON.stringify(c3.segs));
-    ok('3c the checks card\'s Run is a text button: accent, 500, no underline, a drawn arrow, at least 24 tall',
-      c3.run.length > 0 && c3.run.every(b => b.h >= 23.5 && b.fw === '500' && b.td === 'none' && b.color === c3.accent && b.svg),
-      JSON.stringify(c3.run.map(b => ({ h: b.h, fw: b.fw, td: b.td, svg: b.svg, ink: b.color === c3.accent }))));
+    ok('3b the Thread\'s ‹ › are squares of the small rung (22)',
+      c3.segs.length === 2 && c3.segs.every(b => near(b.w, b.h) && near(b.h, 22)),
+      JSON.stringify(c3.segs.map(b => b.w + '×' + b.h)));
+    ok('3c the Thread\'s text buttons (Explain all, Run) are the text button: accent, 500, no underline',
+      c3.run.length > 0 && c3.run.every(b => b.fw === '500' && b.td === 'none' && b.color === c3.accent),
+      JSON.stringify(c3.run.map(b => ({ h: b.h, fw: b.fw, td: b.td, ink: b.color === c3.accent }))));
     ok('3e an icon alone is a square of its row\'s rung (the Focus door)',
       c3.squares.length > 0 && c3.squares.every(b => near(b.w, b.h) && near(b.h, 28)), JSON.stringify(c3.squares.map(b => b.w + '×' + b.h)));
     ok('3d REFUSAL 3: the contract\'s first line on the Document tab did not move down',

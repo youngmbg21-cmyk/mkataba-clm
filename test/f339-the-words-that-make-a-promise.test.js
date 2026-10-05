@@ -269,12 +269,13 @@ describe('f339 (3) — the mark can never straddle a tag', () => {
     ok(out);
   });
 
-  test('the entries compose the two passes in that order, once', () => {
-    /* The figures pass runs FIRST and escapes; the duty pass runs over its
-       output. The other order would escape the duty spans. */
-    const body = fnBody(CONTRACT, 'docReadPaint');
-    assert.match(body, /dutyOn\?docDutyMark\(docReadMark\(body\)\):docReadMark\(body\)/,
-      'figures then duties, and only where the reader asked for the marks');
+  test('the two passes are still two passes, and the duty one is DORMANT', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): the column that composed them is
+       gone and the duty highlighter has no door; both readers stay declared
+       so a door can be put back without rebuilding them. */
+    assert.match(CONTRACT, /function docDutyMark\(html\)/);
+    assert.match(CONTRACT, /function docReadMark\(text\)/);
+    assert.ok(!/docDutyMark\(docReadMark\(/.test(CONTRACT), 'nothing composes them today');
   });
 
   test('CONTROL — docReadMark itself does not mark duties', () => {
@@ -286,141 +287,24 @@ describe('f339 (3) — the mark can never straddle a tag', () => {
 /* ══════════════════════════════════════════════════════════════════════════
    4 — THE SWITCH IS THE CAPTION SLOT
    ══════════════════════════════════════════════════════════════════════════ */
-describe('f339 (4) — the caption slot is the trigger', () => {
-  test('"a reading, not the contract" is the hover on the label, not a line', () => {
-    const body = fnBody(CONTRACT, 'docReadPaint');
-    assert.match(body, /class="doc-read-lbl" title="\$\{esc\(i18t\('ct_read_cap'\)\)\}"/,
-      'the caveat rides the label it was always about');
-    assert.ok(!/<em>\$\{esc\(i18t\('ct_read_cap'\)\)\}<\/em>/.test(body),
-      'and no longer takes the slot the switch needs');
+describe('f339 (4) — the duty switch is DORMANT since the Thread (5 Oct 2026)', () => {
+  /* REVERSED IN PLACE 5 Oct 2026: the Plain English caption that carried the
+     Highlight-obligations tick-box went with the column. The reader, its
+     store and the paper painter are kept whole with no door, and their keys
+     are inert in both books; Who does what on the thread lists the duties. */
+  test('the readers are kept whole', () => {
+    for (const name of ['docDutyOn', 'docDutySet', 'docDutyMark', 'docDutyCount', 'docDutyPaperPaint', 'docDutyPaperClear'])
+      assert.match(CONTRACT, new RegExp('function ' + name + '\\('), name);
+    assert.match(CONTRACT, /const DOC_DUTY_KEY='hati\.v1\.docDutyMarks';/);
   });
-
-  test('the switch is drawn in that slot, and carries the count', () => {
-    const body = fnBody(CONTRACT, 'docReadPaint');
-    assert.match(body, /class="doc-read-duty" data-doc-read-duty/, 'the press is there');
-    assert.match(body, /aria-pressed="\$\{dutyOn\}"/, 'and says its state out loud');
-    assert.match(body, /i18tn\('ct_duty_switch',dutyN,\{n:dutyN\}\)/,
-      'the count is ON the face — a press whose effect you cannot predict is one nobody makes');
+  test('and nothing presses them', () => {
+    assert.ok(!/data-doc-read-duty/.test(CONTRACT), 'no tick-box');
+    assert.equal((CONTRACT.match(/docDutyPaperPaint\(/g) || []).length, 1, 'the paper painter has its declaration and no caller');
   });
-
-  test('at zero it is not drawn at all', () => {
-    const body = fnBody(CONTRACT, 'docReadPaint');
-    assert.match(body, /\$\{dutyN\?`<button type="button" class="doc-read-duty"/,
-      'a verb that cannot work is not drawn — this product\'s rule everywhere');
-    assert.match(body, /const dutyOn=dutyN\?docDutyOn\(\):false/,
-      'and nothing reads as pressed where there is nothing to press');
-  });
-
-  test('it rides the layer\'s ONE listener, not a listener on the button', () => {
-    /* The head is rebuilt with every paint, so a listener bound to the button
-       dies on the first press — the fault this file would otherwise be the
-       fourth to record. */
-    const body = fnBody(CONTRACT, 'docReadPaint');
-    assert.match(body, /closest\('\[data-doc-read-duty\]'\)/, 'delegated');
-    assert.match(body, /layer\.dataset\.docReadAgain/, 'on the layer, armed once');
-    const at = body.indexOf("closest('[data-doc-read-duty]')");
-    const armed = body.indexOf('layer.dataset.docReadAgain');
-    assert.ok(armed > -1 && at > armed, 'inside that one armed block');
-    assert.match(body, /docReadPaint\(layer\._docReadC\|\|c\)/,
-      'and it repaints the contract painted LAST, never the one it was armed on');
-  });
-
-  test('no band, no strip, no second row', () => {
-    /* NO NEW BANDS ON THE PAGE. The slot was already drawn; the switch takes
-       the place of a sentence. */
-    const body = strip(fnBody(CONTRACT, 'docReadPaint'));
-    assert.ok(!/class="[^"]*\b(band|strip|banner|notice|callout|tip)\b/.test(body),
-      'nothing new above the reading');
-    assert.equal((body.match(/class="doc-read-head"/g) || []).length, 1,
-      'and still exactly one head row');
-  });
-
-  /* ---- REVERSED IN PLACE, 19 Sep 2026 (Young ruled it) ----
-     This asked the switch to opt OUT of the head's label treatment: the label
-     SIZE, no letter-spacing, no capitals. *"Make Highlight obligations to be
-     in Capital letters but Not [bold]."* It opts out of ONE declaration now —
-     the weight — and takes the rest of the row, so the switch is the same
-     label as PLAIN ENGLISH beside it in body weight. The quiet-press half
-     (no fill, no edge) is unchanged and still asserted. */
-  test('the clothes are the row\'s own label treatment, in body weight', () => {
-    const r = ruleFor(HTML, '.doc-read-duty{').replace(/\s+/g, ' ');
-    const em = ruleFor(HTML, '.doc-read-head em{').replace(/\s+/g, ' ');
-    assert.ok(r.includes('margin-left:auto'), 'it still takes the caption\'s slot');
-    assert.ok(r.includes('font:inherit'),
-      'and the row\'s own font, which is what makes the rest a RELATION');
-    assert.ok(r.includes('font-weight:var(--w-body)'),
-      'the ONE opt-out the owner kept');
-    for (const d of ['font-size:var(--t-label)', 'letter-spacing:0'])
-      assert.ok(!r.includes(d), 'no longer opts out of the row\'s ' + d);
-    assert.ok(!/text-transform:none/.test(r), 'and not out of its capitals');
-    assert.ok(em.includes('margin-left:auto'),
-      'CONTROL — and that is the slot it took, stated by the rule it replaced');
-    assert.ok(/background:none/.test(r) && /border:0/.test(r),
-      'a quiet press, never a filled control beside a contract');
-  });
-
-  test('INHERITANCE IS NOT A CASCADE CONTEST — the capitals are NAMED', () => {
-    /* `button,select{text-transform:none}` is in the compiled Tailwind
-       preflight and beats inheritance, so the head's uppercase never reached
-       this button. `inherit` rather than the word, so the switch and the label
-       cannot drift. The third costume of this fault in this codebase. */
-    const r = ruleFor(HTML, '.doc-read-duty{').replace(/\s+/g, ' ');
-    assert.ok(r.includes('text-transform:inherit'),
-      'named, and named as a relation');
-    assert.match(HTML, /button,select\{text-transform:none\}/,
-      'CONTROL — because that is what was beating it');
-  });
-
-  test('the box is a SQUARE with a check in it, not a ring', () => {
-    const t = ruleFor(HTML, '.doc-read-duty .dr-tick{').replace(/\s+/g, ' ');
-    assert.ok(t, 'the tick-box has a rule');
-    assert.ok(t.includes('border-radius:var(--radius)'),
-      'the platform\'s own corner, which is what square means here');
-    assert.ok(!/border-radius:50%/.test(t), 'never a circle again');
-    assert.ok(/width:12px/.test(t) && /height:12px/.test(t), 'and it is square');
-    assert.ok(!HTML.includes('.doc-read-duty .dr-ring'),
-      '`.dr-ring` is gone from this switch, not left drawing beside it');
-    assert.match(CONTRACT, /class="dr-tick"[^>]*><svg[^>]*><use href="#i-check"\/><\/svg>/,
-      'and the mark is the product\'s OWN check symbol');
-  });
-
-  test('the check is in the markup at BOTH states, so a press moves nothing', () => {
-    const t = ruleFor(HTML, '.doc-read-duty .dr-tick{').replace(/\s+/g, ' ');
-    const on = ruleFor(HTML, '.doc-read-duty[aria-pressed="true"] .dr-tick{').replace(/\s+/g, ' ');
-    assert.ok(t.includes('color:transparent'), 'invisible at rest');
-    assert.ok(on.includes('color:#2A1B04'), 'and inked when pressed');
-    /* ONE LITERAL, BORROWED: #hdr-notify-dot is the one other place this
-       product puts ink on --st-amber-dot, and that token is the same colour in
-       both themes, so a theme-aware token above it would be the wrong answer. */
-    assert.match(HTML, /background:var\(--st-amber-dot\);\s*\n?\s*color:#2A1B04/,
-      'CONTROL — the same pair #hdr-notify-dot states');
-    const body = fnBody(CONTRACT, 'docReadPaint');
-    assert.equal((body.match(/#i-check/g) || []).length, 1,
-      'one symbol, drawn once, whatever the state');
-  });
-
-  test('the state is not colour alone', () => {
-    const on = ruleFor(HTML, '.doc-read-duty[aria-pressed="true"]{').replace(/\s+/g, ' ');
-    const tick = ruleFor(HTML, '.doc-read-duty[aria-pressed="true"] .dr-tick{').replace(/\s+/g, ' ');
-    assert.ok(tick.includes('background:var(--st-amber-dot)'), 'the box fills');
-    assert.ok(!/font-weight/.test(on),
-      'and the weight never moves — a heavier word would shuffle the row under the reader\'s hand');
-  });
-
-  test('the two sheets start at one height, off ONE token', () => {
-    /* Young, 19 Sep 2026: "the top edge of the contract pages do not start
-       from the same point." MEASURED at the parent against the grid's own top:
-       the cream sheet at 4 and this card at 0. The 4 is #doc-scroll's own
-       padding-top, so the card reads that token rather than a literal, and it
-       is the CARD that came down to the paper — refusal 3 by construction. */
-    const at = CONTRACT.indexOf('<div id="doc-read"');
-    assert.ok(at > 0, 'the card is mounted there');
-    const tag = CONTRACT.slice(at, at + 220);
-    assert.match(tag, /inset:var\(--s-1\) 0 0/,
-      'the same token #doc-scroll pads with, never a literal 4');
-    assert.ok(!/inset:0/.test(tag), 'and no longer flush with the grid');
-    assert.match(CONTRACT, /padding:var\(--s-1\) 2px var\(--s-6\)/,
-      'CONTROL — which is the padding it is matching');
+  test('the keys are inert in BOTH books', () => {
+    for (const k of ['ct_duty_switch_one', 'ct_duty_switch_other', 'ct_duty_title'])
+      assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+    assert.ok(!/ct_duty_switch|ct_duty_title/.test(strip(CONTRACT)), 'and called from nowhere');
   });
 });
 
@@ -465,12 +349,14 @@ describe('f339 (5) — Young\'s two rulings on the switch itself', () => {
    6 — THE BAR STOPS MENTIONING OBLIGATIONS
    ══════════════════════════════════════════════════════════════════════════ */
 describe('f339 (6) — one colour, one meaning', () => {
-  test('docReadFlags is the playbook and the scan, and nothing else', () => {
-    const b = strip(fnBody(CONTRACT, 'docReadFlags'));
-    assert.match(b, /ct_read_watch_pb/, 'your playbook disagreed');
-    assert.match(b, /ct_read_watch_scan/, 'the risk scan flagged it');
-    assert.ok(!/ct_read_watch_oblig/.test(b),
-      'and a promise is no longer a fact about the clause — it is on the words');
+  test('a mark on a clause is the scan, the playbook and the brief — never a recorded promise', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): the amber bar went with the
+       column; docXrayMarks is the one reading of what is worth a look. */
+    assert.ok(!/function docReadFlags\(/.test(CONTRACT), 'the bar reader is gone');
+    const b = strip(fnBody(CONTRACT, 'docXrayMarks'));
+    assert.match(b, /_xrFinds\(c\)/, 'the risk scan');
+    assert.match(b, /_xrVerdicts\(c\)/, 'the playbook');
+    assert.match(b, /docXrayBriefWatch\(c\)/, 'the brief');
     assert.ok(!/c\.obligations/.test(b), 'it does not read the obligations at all');
     assert.ok(!/obState/.test(b), 'nor their state');
   });
@@ -485,7 +371,7 @@ describe('f339 (6) — one colour, one meaning', () => {
   });
 
   test('the reason is written beside the code, so it is not put back', () => {
-    assert.match(CONTRACT, /AND A PROMISE IS NOT ONE OF THEM/,
+    assert.match(CONTRACT, /A RECORDED PROMISE IS NOT ONE OF THEM/,
       'the ruling sits where the next reader will find it');
     assert.match(CONTRACT, /colour would be saying two things on one screen/,
       'with the reason, not just the decision');
@@ -591,10 +477,9 @@ describe('f339 (7) — the marks are painted after the canvas and come off clean
     assert.equal(canvas.innerHTML, before, 'and nothing changed');
   });
 
-  test('the marks come off on the way out of the layer, always and first', () => {
-    const b = fnBody(CONTRACT, 'docReadPaint');
-    assert.match(b, /if\(!on\)\{ docDutyPaperPaint\(false\); layer\.innerHTML=''; return; \}/,
-      'leaving for another tab or another contract takes the marks with it');
+  test('the marks are painted by nobody today, so nothing has to take them off', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): dormant, see (4). */
+    assert.equal((CONTRACT.match(/docDutyPaperPaint\(/g) || []).length, 1, 'declared, never pressed');
   });
 });
 
@@ -616,10 +501,8 @@ describe('f339 (8) — what the number on the switch counts', () => {
     /* A reading is a translation, not a transcript: "shall pay" on the paper
        may come back as "must pay" beside it. Counting one column would print
        a number the other contradicts. */
-    const body = fnBody(CONTRACT, 'docReadPaint');
-    assert.match(body, /const dutyN=docDutyCount\(pairs\.map\(p=>\{/, 'counted off the pairs');
-    assert.match(body, /p\.el&&p\.el\.textContent/, 'the wording');
-    assert.match(body, /p\.it&&p\.it\.plain/, 'and the reading');
+    /* RE-POINTED 5 Oct 2026 (the Thread): the count has no caller; the
+       reader's own rule is what is pinned. */
     assert.equal(win.docDutyCount(['must pay on time \n The Buyer shall pay on time.']), 1);
     assert.equal(win.docDutyCount(['a summary with no duty \n The Buyer shall pay on time.']), 1,
       'the wording alone is enough');
@@ -676,16 +559,10 @@ describe('f339 (9) — what the route is sent does not move by a byte', () => {
     for (const line of en) assert.match(line, /\{n\}/, 'both carry the count');
   });
 
-  test('the mark is ONE rule for its two homes', () => {
-    /* THE CLOTHES FOLLOW THE BUILDER: the reading's span and the one painted
-       onto the paper are the same claim and must not drift into two ambers. */
-    assert.match(HTML, /\.doc-read-note \.dr-duty, #doc-canvas \.dr-duty-p\{/,
-      'one selector, both homes');
-    const r = ruleFor(HTML, '.doc-read-note .dr-duty, #doc-canvas .dr-duty-p{').replace(/\s+/g, ' ');
-    assert.ok(r.includes('background:var(--st-amber-bg)'), 'the product\'s own amber');
-    /* IT COSTS NO LAYOUT, and that is a requirement: the paper half is written
-       into the drafter's own text nodes. */
-    for (const bad of ['padding', 'margin', 'font-weight', 'font-size', 'border:'])
-      assert.ok(!r.includes(bad), 'nothing that moves the wording: ' + bad);
+  test('the mark has no rule today, because nothing paints it', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): the two homes went with the
+       column; the painter is dormant (see (4)), so a rule here would dress
+       nothing. */
+    assert.ok(!/\.dr-duty-p\{/.test(HTML), 'no orphan rule');
   });
 });

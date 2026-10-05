@@ -20306,3 +20306,24 @@ asker leaves; advice is a kind of request. Story in docs/MAP-HISTORY.md under
 - Home board: the free reader takes three of the precision book's Copilot requests itself — "stages" in a longer sentence opens the value-at-each-stage panel ("a grid of streams against stages…", "turn this into something that shows each stream inside the stages"), and "board" in "rename this card to Board pack, stages" reads as "back to the board" — so Copilot never sees them (f502 lists them as its three misses, 4 Oct; not fixed).
 - Explorer's free "top N" reader does not read a number in words: "the top two by value" draws the top 10 (seen 5 Oct 2026 while fixing the board's disconnects; "top 2" works).
 - Home board: when Copilot answers a set on the board, its note (e.g. "as graph") becomes part of the card's name and the Counting chip, and a second chip for the same set stacks beside the first in the panel (the owner's screenshot, 5 Oct 2026; "show them in graph" is now read free, so that phrasing no longer reaches it).
+
+## 5 Oct 2026 — the Thread (the Document tab's one card for reading a clause)
+
+The three-position switch, the Plain English column and the X-ray panel became
+ONE card in the right column: every clause a row, the open row the clause at the
+line 24px below the paper's top, plain English per clause on "Explain this
+clause", Worth a look (no "Add a note") and Who does what under it. The Checks
+card and the Activity & comments card left the Document tab (the owner: "they
+are essentially redundant"). Story in docs/MAP-HISTORY.md under "THE THREAD".
+
+- 5 Oct 2026 — FIXED on the way (found by uploaded-contract-fixed-verify 2b): a row's bead kept the tone of the first paint; a scan or brief landing later recoloured nothing until the labels changed. docThreadStates now sets the row's tone class on every paint.
+
+### Noticed, not fixed
+- the contract's own page has no door to run the Risk scan or the Standards check while a verdict is already held, other than the Overview tile's re-read and the ⋯ menu; the room head's three check icons are drawn only on the Negotiate page (roomHeadHtml gates them on backToContract), so CLAUDE.md's Contract Room line naming `roomChecksHtml` describes the Negotiate head.
+- the internal comment thread on the record (`c.comments`) has no door anywhere on the Document tab now that Activity & comments is gone; the Notes drawer is the product's conversation, but old comments on a record are unreachable from that tab.
+- the duty-marks reading (docDutyOn, docDutySet, DOC_DUTY_RE, docDutyPaperPaint) is dormant: its tick-box went with the Plain column's caption and nothing offers it.
+- riskMarkFootHtml (js/risks.js) and its [data-rk-note] handler have no caller since the Thread draws marks with an empty foot.
+- a Plain English edition the server marks `partial` or `over` shows on the Thread only as rows without "Read" (Explain re-offered); nothing says how many could not be paired.
+- the Thread adds shades to theme-tokens-verify's contract screen census, but that baseline has been red for every screen since 28 Sep (KNOWN_RED, identical 20 of 40 at unmodified main), so it was not re-recorded.
+- `rk_view_narrow` (both books) was retuned to speak of the Thread; the words of the old Risk View keys (xr_switch, xr_sec_plain, xr_sec_wide, pe_*) are inert in both books.
+- drives of the Document tab log one 404 for a resource at sign-in (seen in every run, before the Thread too).

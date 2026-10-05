@@ -8058,6 +8058,16 @@ app.get('/api/contracts/:id/reading-progress', auth, (req, res) => {
 app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBudgetGuard, capAiInput, async (req, res) => {
   const { id, clauses, force } = req.body || {};
   if (!id) return res.status(400).json({ error: 'id is required' });
+  /* ---- ONE CLAUSE AT A TIME (the Thread, 5 Oct 2026) ----
+     `only` names the rows the reader wants read NOW, by their place in the
+     whole list the browser sends — the whole list is still sent, so every key,
+     hash and index stays global and the edition that comes back is the one
+     the browser pairs against. Rows not asked for and not already kept are
+     SKIPPED, counted, and said: an edition with skipped rows is kept (so the
+     readings made one at a time ride every GET) but is never served whole
+     from the cache, because the next press may be for one of the holes. */
+  const onlyAsk = Array.isArray(req.body && req.body.only)
+    ? new Set(req.body.only.map(Number).filter(n => Number.isInteger(n) && n >= 0)) : null;
   const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(String(id));
   if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
 
@@ -8145,7 +8155,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
          missing; otherwise the press goes on below, where everything already
          read comes out of the per-clause table for nothing and ONLY the missing
          clauses are asked for again. */
-      if (r.inputHash === inputHash && !(Number(r.unmatched) > 0)) {
+      if (r.inputHash === inputHash && !(Number(r.unmatched) > 0) && !(Number(r.skipped) > 0)) {
         /* …AND WHAT IT HOLDS IS KEPT A CLAUSE AT A TIME, so an edition read
            before the clauses were kept one by one is not paid for again the
            day one clause changes. INSERT OR IGNORE: nothing already kept is
@@ -8185,7 +8195,9 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   const have = readRowsGet(id, hashes);
   const covered = [];
   pages.forEach(pg => pg.rows.forEach((_, k) => covered.push(pg.base + k)));
-  const pending = covered.filter(i => !have.has(hashes[i]));
+  const wanted = covered.filter(i => !have.has(hashes[i]));
+  const pending = onlyAsk ? wanted.filter(i => onlyAsk.has(i)) : wanted;
+  const skipped = wanted.length - pending.length;
   const key = aiKey();
   if (pending.length && !key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
 
@@ -8460,7 +8472,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        reading on it came from the cut answer itself. */
     if (!unmatched && !cut.size) truncated = false;
     failed = failed.filter(f => f.i < 0 || !paired.has(f.i));
-    const entriesN = answered.size + (covered.length - pending.length);
+    const entriesN = answered.size + (covered.length - pending.length - skipped);
     over += unread;
     // A CUT-SHORT ANSWER IS NOT CACHED AS A WHOLE ONE — the brief paid for this
     // lesson: written to the table it would serve half a document for ever, with
@@ -8479,7 +8491,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        cached: the next press asks for the pages that are missing rather than
        serving a document with a hole in it for the life of the wording. */
     const readings = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash,
-      truncated, over, unmatched, partial, failed, items };
+      truncated, over, unmatched, partial, failed, skipped, items };
     if (!truncated && !unread && !partial && items.length)
       db.prepare('INSERT INTO clause_readings (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
         .run(String(id), JSON.stringify(readings), now());

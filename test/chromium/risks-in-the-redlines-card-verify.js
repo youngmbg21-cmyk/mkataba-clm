@@ -130,24 +130,29 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   check(std.length > 0 && std.every(t => /Draft from our standards/.test(t)), '1d the standards button says "Draft from our standards" at every door', JSON.stringify(std));
   await page.screenshot({ path: path.join(OUT, '01-the-list.png') });
 
-  /* ============ 2. FROM RISK VIEW, READ IN PLACE ============ */
+  /* ============ 2. FROM THE THREAD, READ IN PLACE ============ */
+  /* RE-POINTED 5 Oct 2026 (the Thread): Risk View and its clause map became
+     the Thread's rows; a marked clause wears its tone, and its open row holds
+     the mark in Worth a look — with no "Draft a redline" and (the owner's
+     word) no "Add a note" either. */
   await page.evaluate(id => { const c = getContract(id); roomGoTab(c, 'docs'); }, ID);
-  await until(page, () => !!document.querySelector('[data-doc-read="2"]'));
-  await press(page, '[data-doc-read="2"]');
+  await until(page, () => document.querySelectorAll('#doc-thread .doc-th-row').length ? true : null);
   const seg = await until(page, () => {
-    const segs = [...document.querySelectorAll('[data-xr-seg]')];
-    return segs.length ? segs.length : null;
+    const n = document.querySelectorAll('#doc-thread .doc-th-row.is-ruby, #doc-thread .doc-th-row.is-amber, #doc-thread .doc-th-row.is-steel').length;
+    return n ? n : null;
   });
-  check(!!seg, '2- Risk View draws the clause map', seg);
-  /* pick the marked clause (Payment) */
-  await page.evaluate(() => { const b = document.querySelector('[data-xr-seg]'); if (b) b.click(); });
+  check(!!seg, '2- the Thread draws the marked clauses in their tone', seg);
+  /* open the marked clause (Payment) */
+  await page.evaluate(() => { const b = document.querySelector('#doc-thread .doc-th-row.is-ruby [data-th-go], #doc-thread .doc-th-row.is-amber [data-th-go], #doc-thread .doc-th-row.is-steel [data-th-go]'); if (b) b.click(); });
   const go = await until(page, () => {
-    const n = document.querySelector('#doc-xray [data-rk-note]');
-    return n ? { draft: document.querySelectorAll('#doc-xray [data-rk-go]').length, text: n.textContent.trim() } : null;
+    const open = document.querySelector('#doc-thread .doc-th-row.is-open');
+    const m = open && open.querySelector('.doc-th-look .doc-xr-mark');
+    return m ? { draft: open.querySelectorAll('[data-rk-go]').length, notes: open.querySelectorAll('[data-rk-note]').length,
+      text: open.querySelector('.doc-th-look').textContent.replace(/\s+/g, ' ').trim().slice(0, 80) } : null;
   });
-  check(!!go && go.draft === 0, '2a the Payment mark in Risk View draws no "Draft a redline" (one door for edits)', go && JSON.stringify(go));
-  check(!!go && /^Add a note$/.test(go.text), '2b only "Add a note"', go && go.text);
-  await page.screenshot({ path: path.join(OUT, '02-risk-view.png') });
+  check(!!go && go.draft === 0, '2a the Payment mark in the Thread draws no "Draft a redline" (one door for edits)', go && JSON.stringify(go));
+  check(!!go && go.notes === 0 && !/Add a note/.test(go.text), '2b and no "Add a note" (removed 5 Oct 2026)', go && go.text);
+  await page.screenshot({ path: path.join(OUT, '02-thread.png') });
   await page.evaluate(id => roomGoTab(getContract(id), 'redline'), ID);
   await until(page, () => !!document.querySelector('#rl-risks [data-rk-key="s:t-pay"] [data-rk-act="edit-ce"]'));
   await press(page, '#rl-risks [data-rk-key="s:t-pay"] [data-rk-act="edit-ce"]');
@@ -255,11 +260,17 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
 
   /* ============ 7. THE OLD PANEL'S DOORS LAND ON RISK VIEW ============ */
   await page.evaluate(id => { const c = getContract(id); roomGoTab(c, 'terms'); }, ID);
-  await until(page, () => !!document.querySelector('[data-room-check="risk"]'));
-  await press(page, '[data-room-check="risk"]');
-  const rv = await until(page, () => (typeof docViewMode === 'function' && docViewMode() === 'xray'
+  /* RE-POINTED 5 Oct 2026 (the Thread): Risk View became the Thread, and the
+     head's risk icon is the NEGOTIATE head's (roomHeadHtml draws the checks
+     only with backToContract) — the contract's page never had it, so the door
+     measured here is riskViewOpen itself, which every risk door presses: it
+     lands on the Document tab with the worst-marked clause's row open. */
+  const noIcon = await page.evaluate(() => !document.querySelector('[data-room-check="risk"]'));
+  await page.evaluate(id => riskViewOpen(getContract(id)), ID);
+  const rv = await until(page, () => (typeof roomCurrentTab === 'function' && roomCurrentTab() === 'docs'
+    && !document.getElementById('doc-thread')?.hidden && !!document.querySelector('#doc-thread .doc-th-row.is-open')
     && !document.querySelector('#scan-section')) ? true : null);
-  check(!!rv, '7a the head\'s risk icon opens Risk View, not a side panel');
+  check(!!rv && noIcon, '7a the risk door opens the Document tab with the Thread, not a side panel (and the room head draws no risk icon of its own)', JSON.stringify({ landed: !!rv, noIcon }));
   const tiles = await page.evaluate(id => {
     const c = getContract(id);
     const t = triageTiles(Object.assign({}, c, { triage: { at: '2026-10-04', steps: { risk: { ok: true, open: 1 } } } }));
@@ -281,8 +292,8 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await page.screenshot({ path: path.join(OUT, '08-overview-tile.png') });
   if (tile){
     await press(page, '[data-kt-tri-go="risk"]');
-    const rv2 = await until(page, () => (docViewMode() === 'xray' && !!document.querySelector('#doc-xray:not([hidden])')) ? true : null);
-    check(!!rv2, '7d and pressing it opens Risk View');
+    const rv2 = await until(page, () => (roomCurrentTab() === 'docs' && !!document.querySelector('#doc-thread:not([hidden]) .doc-th-row.is-open')) ? true : null);
+    check(!!rv2, '7d and pressing it opens the Document tab with the Thread');
   }
 
   /* ============ 8. NOTHING TRAVELS ============ */

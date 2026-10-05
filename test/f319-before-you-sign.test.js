@@ -99,32 +99,34 @@ describe('f319 (2) A ROW WHOSE WORK IS ON THIS SCREEN POINTS AT IT', () => {
   });
 });
 
-describe('f319 (3) THE PLAIN ENGLISH CAPTION SAYS WHEN IT WAS READ', () => {
-  test('the staleness rides the caption that is already drawn', () => {
-    assert.match(CT, /class="doc-read-moved"/, 'no band, no pop-up, and no pixel off the contract');
-    assert.match(CT, /i18tn\('ct_read_moved',moved,\{n:moved\}\)/, 'and it counts what it can no longer speak for');
+describe('f319 (3) THE OPEN ROW SAYS WHEN IT WAS READ, AND WHEN THAT IS STALE', () => {
+  /* RE-POINTED 5 Oct 2026 (the Thread): the caption is the open row's own
+     line under the reading. */
+  test('the staleness rides the line that is already drawn', () => {
+    assert.match(CT, /class="doc-th-moved"/, 'no band, no pop-up, and no pixel off the contract');
+    assert.match(CT, /i18t\('th_moved'\)/, 'and it says the contract has changed since this reading');
   });
 
-  test('it reuses the press this column already has, rather than growing a second', () => {
-    const cap = CT.slice(CT.indexOf('class="doc-read-moved"'), CT.indexOf('class="doc-read-moved"') + 400);
-    assert.match(cap, /data-doc-read-again/, 'one door, shown for its second honest reason');
+  test('it reuses the press this row already has, rather than growing a second', () => {
+    const cap = CT.slice(CT.indexOf('class="doc-th-moved"'), CT.indexOf('class="doc-th-moved"') + 400);
+    assert.match(cap, /data-th-explain="\$\{i\}" data-th-force="1"/, 'one door, shown for its second honest reason');
   });
 
   test('nothing re-reads by itself', () => {
-    assert.ok(!/docReadRun\(c[c]?,\s*\{\s*force:\s*true\s*\}\)\s*;?\s*\}\s*\)\s*;?\s*\/\* auto/.test(CT));
-    assert.match(CT, /AND IT NEVER RE-READS BY ITSELF/,
+    assert.match(CT, /AND IT NEVER RE-READS BY\s+ITSELF/,
       'a full contract is a real cost the reader has not asked for');
   });
 
   test('an unchanged contract draws no line at all', () => {
-    assert.match(CT, /let moved=0;/, 'zero where the wording has not moved');
-    assert.match(CT, /if\(sig&&c\._readSig&&c\._readSig!==sig\)\{/,
+    const mv = CT.slice(CT.indexOf('function docThreadMovedHtml('), CT.indexOf('function docThreadUnrunHtml('));
+    assert.match(mv, /if\(!moved\) return '';/, 'nothing where the wording has not moved');
+    assert.match(mv, /moved=!!\(sig&&c\._readSig&&c\._readSig!==sig\)/,
       'asked of the signature the reading was made under, never guessed');
   });
 
   test('the words are in both books', () => {
-    for (const k of ['ct_read_moved_one', 'ct_read_moved_other'])
-      assert.equal((I18N.match(new RegExp(k + ':', 'g')) || []).length, 2, k);
+    assert.equal((I18N.match(/\bth_moved:/g) || []).length, 2);
+    assert.equal((I18N.match(/\bct_read_again:/g) || []).length, 2);
   });
 });
 
