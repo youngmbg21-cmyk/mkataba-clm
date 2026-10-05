@@ -45,6 +45,18 @@ const BRAIN_PARTS = [
   ['cardcheck', 'hbCardCheck', 'see', 1],
   /* Preview and undo (work order Part 5): a big build waits for the reader; any change can be taken back */
   ['boardundo', 'hbUndo', 'see', 1],
+  /* The board that answers right (the overnight work order, 5 Oct 2026) */
+  ['honest', 'hbProseChecked', 'see', 1],
+  ['askchoice', 'hbAmbiguity', 'see', 1],
+  ['boardwords', 'hbWordsApply', 'see', 1],
+  ['readchips', 'hbReadingHtml', 'see', 1],
+  ['nextq', 'hbNextQuestions', 'see', 1],
+  ['boardmarks', 'board_feedback', 'wall', 2, { def: 'CREATE TABLE IF NOT EXISTS board_feedback', men: '\\bboard_feedback\\b' }],
+  ['boardjudge', 'runBoardAccuracy', 'ai', 2],
+  ['dealfacts', 'hbDealGroupOf', 'see', 1],
+  ['verified', 'hbVerifiedHit', 'see', 1],
+  ['askpreview', 'hbAskReadingOf', 'see', 1],
+  ['boardmoved', 'movedSec', 'out', 2],
   ['upload', 'submitUpload', 'in', 0],
   ['newagr', 'openNewAgreement', 'in', 0],
   ['mailroom', 'POST /api/mailroom', 'in', 2],
@@ -141,8 +153,8 @@ const BRAIN_FLOWS = [
   { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
-  { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model'], ['db'], ['obligations'], ['email'], ['desknight', 'home', 'insights']] },
-  { id: 'ask', steps: [['explorer', 'chartread', 'recipe'], ['db'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo'], ['quote'], ['contracts'], ['explorer']] }
+  { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge'], ['db'], ['obligations'], ['email', 'boardmoved'], ['desknight', 'home', 'insights']] },
+  { id: 'ask', steps: [['explorer', 'chartread', 'recipe', 'askpreview', 'verified', 'boardwords'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice'], ['quote'], ['contracts'], ['explorer', 'readchips', 'nextq', 'boardmarks']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it

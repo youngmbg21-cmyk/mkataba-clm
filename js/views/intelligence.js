@@ -1332,6 +1332,12 @@ function igConditions(text){
   { const h=hit(/ (?:overdue|late obligations|past due|försenade|förfallna) /); if(h) add('overdue', c=>graphNodeFacts(c).overdue>0, 'overdue', h); }
   { const h=hit(/ (?:waiting on us|our move|mine to answer|väntar på oss|vårt drag) /); if(h) add('waiting on us', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='you'; }catch(_){ return false; } }, 'move', h); }
   { const h=hit(/ (?:waiting on them|their move|with the other side|väntar på dem|deras drag) /); if(h) add('waiting on them', c=>{ try{ const w=negWhoseMove(c); return !!w&&w.k==='them'; }catch(_){ return false; } }, 'move', h); }
+  /* DEAL FACTS (5 Oct 2026, the board's Part 8). "Stalled" is said as what
+     HaTi can know — a live negotiation with a move owed by one side — never a
+     guessed number of quiet days; "negotiations" is the contracts that have
+     one, read RAW off the record (READING MUST NOT WRITE: never negoInit). */
+  { const h=hit(/ (?:stalled|stuck|fastnade|fastnat|stillastående) /); if(h) add('waiting on a side', c=>{ try{ const w=negWhoseMove(c); return !!w&&(w.k==='you'||w.k==='them'); }catch(_){ return false; } }, 'stalled', h); }
+  { const h=hit(/ (?:negotiations|förhandlingar|förhandlingarna) /); if(h) add('in negotiation', c=>live(c)&&c.status!=='Signed'&&((Array.isArray(c.changes)&&c.changes.length>0)||!!c.negotiation), 'nego', h); }
   { const h=hit(/ (?:not read|unread|never read|inte lästa|olästa|oläst) /); if(h) add('not read yet', c=>graphNodeFacts(c).unread===true, 'read', h); }
   { const h=hit(/ (?:off[- ]standard|departing|deviat\w*|avvik\w*) /); if(h) add('off standard', c=>graphNodeFacts(c).offStandard>0, 'offStandard', h); }
   { const u=hit(/ (?:uncapped|no cap|without a cap|unlimited liability|obegränsat|utan tak|obegränsat ansvar) /), k=u?null:hit(/ (?:capped|with a cap|limited liability|begränsat ansvar|med tak) /);
@@ -1845,11 +1851,19 @@ async function intelAsk(qRaw){
   /* ON HOME THE BOARD'S FREE READER ANSWERS FIRST (3 Oct 2026): a figure, a
      panel, a contract by its reference, the lens, the side of the screen.
      What it does not understand goes on exactly as on the map. No spend. */
+  /* THE READING, AS CHIPS (the board that answers right, Part 4): a reply
+     that drew or changed the open chart carries how it was read */
+  const rdSnap=(state.view==='dashboard'&&typeof window.hbReadingSnap==='function')?hbReadingSnap():null;
+  const rdOf=()=>{ try{ const r=rdSnap?hbReadingAfter(rdSnap):null; return r?{ reading:r }:{}; }catch(_){ return {}; } };
   if(state.view==='dashboard' && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
-    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); renderIntelDock(); return; }
+    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
   }
   const h0=intel.history.length;
+  /* A TYPED QUESTION ON THE BOARD STARTS AFRESH (the honest reply, 5 Oct
+     2026): a set an earlier question left on the map no longer narrows the
+     next one ("Top 10 by value" drawing 2) — the board's own count stays */
+  if(igBoardNow()) intel.lenses=(intel.lenses||[]).filter(l=>l.hb||l.action!=='filter');
   intel.history.push({role:'user', text:q});
   intel.busy=true; renderIntelDock(); updateIntelNote();
   try{
@@ -1891,7 +1905,14 @@ async function intelAsk(qRaw){
      came back from Copilot or the map is drawn on the board as well. */
   if(state.view==='dashboard' && typeof window.hbShowFound==='function'){
     const m=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&Array.isArray(x.listIds)&&x.listIds.length);
-    if(m){ try{ hbShowFound(m.listIds, m.listTitle||'', m.listChart||null); }catch(_){} }
+    if(m){ try{ hbShowFound(m.listIds, m.listTitle||'', m.listChart||null);
+      /* the reply is written from what the board now draws (the honest reply) */
+      if(igBoardNow()&&typeof window.hbFoundSay==='function'){ const say=hbFoundSay(); if(say){ m.text=say; renderIntelDock(); } } }catch(_){} }
+    /* the Copilot reply that drew or changed the open chart carries its reading too */
+    const last=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
+    if(last&&!last.reading){ const r=rdOf(); if(r.reading){ last.reading=r.reading; renderIntelDock(); } }
+    /* …and the Right / Wrong marks (Part 6), on every reply asked on the board */
+    if(last&&typeof window.hbBoardReplyMeta==='function'&&hbBoardReplyMeta().boardReply&&!last.boardReply){ last.boardReply=true; renderIntelDock(); }
   }
 }
 
@@ -2022,7 +2043,7 @@ async function intelGraphAsk(q){
      call, and the panel says so */
   if(res&&igBoardNow()&&typeof window.hbBoardTakes==='function'){
     const retry=payload?(note=>api('ai/graph','POST',Object.assign({},payload,{ query:q+'\n\n'+note, screen:graphAskScreen() }))):null;
-    let said=null; try{ said=(typeof window.hbBoardTakesChecked==='function')?await hbBoardTakesChecked(res,retry):hbBoardTakes(res); }catch(_){ said=null; }
+    let said=null; try{ said=(typeof window.hbBoardTakesChecked==='function')?await hbBoardTakesChecked(res,retry,q):hbBoardTakes(res,q); }catch(_){ said=null; }
     if(said){ intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice) }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); return; }
   }
   if(!res){ res=graphInterpret(q);           // fallback
@@ -2045,6 +2066,13 @@ async function intelGraphAsk(q){
    builds, so it cannot say "clustered by expiration date" over hubs that
    are value streams; Copilot's own sentence rides as a second line only
    where it says something the numbers do not. Returns what it did. */
+/* ON THE BOARD A SET COPILOT CHOSE IS NAMED BY HATI (the honest reply, 5 Oct
+   2026): the asked-for name, HaTi's top-N label, the open card's, or the
+   person's own words — never the model's note ("· as graph") */
+function igBoardTitle(q,res){
+  if(!igBoardNow()||typeof window.hbFoundTitle!=='function') return null;
+  try{ return hbFoundTitle(q,res&&res._top); }catch(_){ return null; }
+}
 function graphSaysMore(own, note, line){
   const s=String(own||'').replace(/\s+/g,' ').trim(); if(!s) return false;
   const fold=x=>String(x||'').replace(/\s+/g,' ').trim().toLowerCase().replace(/[.!]+$/,'');
@@ -2098,14 +2126,15 @@ function intelGraphApply(q, res, opts){
   if(res.top&&typeof res.top==='object'&&Number(res.top.n)>0){
     const by=IG_TOP_BY[res.top.by]?res.top.by:'value', per=GRAPH_GROUP_KEYS.includes(res.top.per)?res.top.per:null, n=Math.min(200,Math.round(Number(res.top.n)));
     const tIds=igTopIds(n,by,per); ids=ids&&ids.length?tIds.filter(id=>ids.includes(id)):tIds;
-    res.note=res.note||(i18t('int_top_label',{ n, x:igSortWord(by) })+(per?' · '+i18t('int_top_per',{ x:graphGroupingWord(per) }):'')); intel.sortBy=by; }
+    res._top=i18t('int_top_label',{ n, x:igSortWord(by) })+(per?' · '+i18t('int_top_per',{ x:graphGroupingWord(per) }):'');
+    res.note=res.note||res._top; intel.sortBy=by; }
   const choices=Array.isArray(res.ask)?res.ask.slice(0,3).filter(o=>o&&IG_RECIPE_ROLES.includes(o.role)&&(o.role==='size'?IGB_SIZE_KEYS.includes(o.fact):o.role==='time'?IG_TIME_KEYS.includes(o.fact):GRAPH_GROUP_KEYS.includes(o.fact)))
     .map(o=>({ label:igRoleSays(o.role,o.fact).replace(/\.$/,''), acts:[{ role:o.role, fact:o.fact }].concat(o.role==='floors'?[{ view:2 }]:o.role==='columns'?[{ view:3 }]:[]) })):null;
   const action=res.action==='highlight'?'highlight':'filter';
   /* a request about the look narrows nothing unless its words narrow */
   if(lookActs.length&&ids&&!/\b(?:only|just|which|what|show me|among|bara|endast|vilka|vilket)\b/i.test(q)) ids=null;
   if(ids&&ids.length)
-    addLens({ label:res.note||ids.length+' matches', ids, action, badges:res.badges||null });
+    addLens({ label:igBoardTitle(q,res)||res.note||ids.length+' matches', ids, action, badges:res.badges||null });
   /* Composed off the built model — counts, never a sentence the model wrote. */
   const parts=[];
   if(groupBy){
@@ -2127,9 +2156,9 @@ function intelGraphApply(q, res, opts){
   /* asked on the Board: a sentence stating a number of contracts the board
      does not show is left out, as the board's own ask does (hbWhyCheck) */
   const onBoard=igBoardNow();
-  if(onBoard&&own0&&!(ids&&ids.length)&&typeof window.hbWhyCheck==='function'){
-    const nums=new Set((onBoard.match(/\d[\d,]*/g)||[]).map(x=>Number(x.replace(/,/g,''))));
-    own0=hbWhyCheck(own0, nums).text; }
+  /* …and one naming a picture or a split the open chart does not draw
+     (the disconnect check, hbProseChecked) */
+  if(onBoard&&own0&&!(ids&&ids.length)&&typeof window.hbProseChecked==='function') own0=hbProseChecked(own0).text;
   const saidN=own0.match(/\b(\d[\d,.\s]*)\s+(?:matching\s+|live\s+|such\s+)?(?:contracts?|agreements?|avtal)\b/i);
   const ownN=(saidN&&ids&&Number(String(saidN[1]).replace(/[^\d]/g,''))!==ids.length)?'':own0;
   /* ---- COPILOT'S OWN SENTENCE IS FORMATTED, NOT PRINTED RAW (Young, 28 Sep
@@ -2151,7 +2180,7 @@ function intelGraphApply(q, res, opts){
      map" is not said over an answer about the board */
   else if(!line) line=didHere?(ownHtml||igEsc(res.note||'Done.')):(ownHtml&&onBoard?ownHtml:igEsc(i18t('int_did_nothing'))+(ownHtml?(rich?'':'<br>')+ownHtml:''));
   else if(graphSaysMore(own,res.note,parts[0])) line+=(rich?'':'<br>')+ownHtml;
-  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:res.note?String(res.note):null, listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
+  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
 
@@ -6121,12 +6150,25 @@ function igMsgHTML(m,i){
       ${''/* THE BOARD'S PRESSES (work order Part 5): a big build offered as a list
              with ticks, and Undo for an answer that changed the board */}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
-      ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
+      ${''/* a choice sits right under the sentence that offers it; then how the
+             question was read, with the next questions; then Undo (Part 4) */}
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm" data-ig-choice="${i}:${j}">${igEsc(c.label)}</button>`).join('')}</div>`:''}
+      ${(Number.isInteger(i)&&m.reading&&typeof window.hbReadingHtml==='function')?hbReadingHtml(m.reading,hbReadingLive(i)):''}
+      ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
+      ${(Number.isInteger(i)&&m.boardReply&&typeof window.hbMarksHtml==='function')?hbMarksHtml(i,m):''}
       ${(Number.isInteger(i)&&Array.isArray(m.listIds)&&m.listIds.length)?`<div class="igd-list" style="display:flex;gap:12px;flex-wrap:wrap;padding-left:2px"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:''}
       ${body}
     </div>
   </div>`;
+}
+/* the line over the ask box, on Home's board only (Part 10) */
+const IG_PRE_MS = 250;
+let _igPreT = null;
+function igPreOn(){ return !!(window.state && state.view==='dashboard' && typeof window.hbFace==='function' && hbFace()==='board' && typeof window.hbAskReadingOf==='function'); }
+function igPrePaint(){
+  const el=document.getElementById('igd-pre'), inp=document.getElementById('igd-input'); if(!el||!inp) return;
+  let t=''; try{ t=hbAskPreviewText(hbAskReadingOf(inp.value)); }catch(_){ t=''; }
+  el.textContent=t; el.title=t;
 }
 function renderIntelDock(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
@@ -6199,6 +6241,7 @@ function renderIntelDock(){
              right edge. It is now the chat-field every other composer is — it
              grows with its words up to its cap, Enter asks, Shift+Enter breaks
              the line — and Ask sits at its foot, where a growing box keeps it. */}
+      ${igPreOn()?`<div id="igd-pre" class="hb-pre" aria-live="polite"></div>`:''}
       <textarea id="igd-input" rows="1" placeholder="${igEsc(igAskPlaceholder())}" title="${igEsc(igAskCost())}" class="chat-field w-full rounded-xl border border-inputln bg-white pl-3.5 pr-16 py-2.5 text-[13px] outline-none focus:border-brand-600 focus:ring-[3px] focus:ring-[rgba(11,122,95,.1)] transition" style="display:block"></textarea>
       <button id="igd-go" class="ui-btn ui-btn-sm ui-btn-primary absolute" style="right:18px;bottom:20px">${i18t('int_ask')}</button>
     </div>`;
@@ -6222,6 +6265,12 @@ function renderIntelDock(){
   document.getElementById('igd-go').addEventListener('click',go);
   document.getElementById('igd-input').addEventListener('keydown',e=>{
     if(window.chatFieldSubmits ? chatFieldSubmits(e) : (e.key==='Enter'&&!e.shiftKey&&(e.preventDefault(),true))) go(); });
+  /* SEE IT WHILE YOU TYPE (Part 10): after a short pause, the board's ONE
+     reading of the words in the box, said on the line above it. Costs nothing,
+     writes nothing; the line's room is always there, so nothing moves. */
+  if(igPreOn()){ const inp=document.getElementById('igd-input');
+    inp.addEventListener('input',()=>{ clearTimeout(_igPreT); _igPreT=setTimeout(igPrePaint,IG_PRE_MS); });
+    if(_keep) igPrePaint(); }
   dock.querySelectorAll('[data-igsug]').forEach(b=>b.addEventListener('click',()=>intelAsk(b.getAttribute('data-igsug'))));
   document.getElementById('igd-clear')?.addEventListener('click',()=>{ intel.lenses=[]; intel.groups=null; rebuildIntelGraph(); renderIntelDock(); });
   // lens chips: toggle / remove / hover-trace
@@ -6898,7 +6947,7 @@ Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
-Object.assign(window,{igMapUp,igPageUp});
+Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
 Object.assign(window,{IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first

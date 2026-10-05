@@ -95,7 +95,8 @@ const check = (name, pass, detail) => {
     check('1a five actions built five cards', !!c1 && list.length === 5, JSON.stringify(list.map(x => x.title)));
     check('1b in the order asked, top first', list.map(x => x.title).join('|') === DASH.map(a => a.title).join('|'), list.map(x => x.title).join(' | '));
     check('1c each drawn with its own picture', list.length === 5 && /hb-cols/.test(list[0].svg || '') && list[1].bars && list[2].bars && /hb-heat/.test(list[3].svg || '') && /hb-blocks/.test(list[4].svg || ''), JSON.stringify(list.map(x => x.svg || (x.bars ? 'bars' : null))));
-    check('1d the panel says each thing done, then Copilot\'s sentence', (said1 || '').split('\n').filter(l => /^Added “/.test(l.trim())).length === 5 && /A renewals board: what ends when/.test(said1 || ''), said1);
+    /* the honest reply (f511): HaTi says each thing done; Copilot's own sentence is for why-questions only */
+    check('1d the panel says each thing done, in HaTi\'s words only', (said1 || '').split('\n').filter(l => /^Added “/.test(l.trim())).length === 5 && !/A renewals board: what ends when/.test(said1 || ''), said1);
     check('1e the map is untouched', (await page.evaluate(() => JSON.stringify({ g: intel.groupBy, l: (intel.lenses || []).filter(l => !l.hb).length }))) === map0, map0);
     await page.waitForTimeout(900);
     await page.screenshot({ path: path.join(OUT, '1-five-cards.png'), fullPage: false });

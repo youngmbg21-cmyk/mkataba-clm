@@ -7971,6 +7971,7 @@
   .hb-rmenu button{display:flex;align-items:center;gap:10px;width:100%;padding:7px 9px;border:0;border-radius:var(--radius);background:none;color:var(--hb-ink);font:inherit;font-size:var(--t-body);text-align:left;cursor:pointer}
   .hb-rmenu button:hover:not(:disabled){background:rgba(var(--hb-ln),.1)}
   .hb-rmenu button[aria-checked="true"]{background:rgba(var(--hb-ln),.14)}
+  .hb-rmenu-h{padding:9px 9px 3px;font-size:var(--t-micro);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--hb-mute)}
   .hb-rmenu button b{margin-left:auto;color:var(--hb-glow);font-weight:var(--w-strong)}
   .hb-rmenu button:disabled{color:var(--hb-mute);cursor:default}
   .hb-rmenu button small{margin-left:auto;font-size:var(--t-micro);color:var(--hb-mute);white-space:nowrap}
@@ -8062,6 +8063,52 @@
   .hb-pv-row{display:flex;align-items:flex-start;gap:8px;cursor:pointer;line-height:1.35}
   .hb-pv-row input{margin-top:3px;flex:none;accent-color:var(--accent-fill,var(--color-accent-600))}
   .hb-pv-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  /* the reading, as chips, under a board reply in the panel (the board that answers right, Part 4) */
+  .hb-rd{position:relative;display:flex;flex-wrap:wrap;gap:6px;padding-left:2px}
+  .hb-rd-wrap{display:inline-flex}
+  .hb-rd-chip{display:inline-flex;align-items:center;gap:5px;height:var(--ctl-h-sm);padding:0 9px;border:1px solid var(--color-divider);border-radius:999px;background:var(--color-surface);color:var(--color-neutral-800,inherit);font:inherit;font-size:var(--t-meta);font-weight:500;white-space:nowrap;cursor:pointer}
+  .hb-rd-chip i{font-style:normal;font-weight:400;color:var(--color-neutral-600)}
+  .hb-rd-chip svg{width:10px;height:10px;opacity:.7}
+  .hb-rd-chip:hover:not(.is-still),.hb-rd-chip.is-open{border-color:var(--accent-fill,var(--color-accent-600))}
+  .hb-rd-chip.is-open{box-shadow:inset 0 0 0 1px var(--accent-fill,var(--color-accent-600))}
+  .hb-rd-chip.is-still{cursor:default;opacity:.75}
+  .hb-rd-chip:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  .hb-rd-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;max-height:300px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px -10px rgba(0,0,0,.35)}
+  .hb-rd-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:6px 9px;border:0;border-radius:var(--radius);background:none;color:inherit;font:inherit;font-size:var(--t-meta);text-align:left;cursor:pointer}
+  .hb-rd-menu button:hover:not(:disabled){background:var(--color-accent-50,rgba(0,0,0,.05))}
+  .hb-rd-menu button[aria-checked="true"]{background:var(--color-accent-50,rgba(0,0,0,.06));font-weight:600}
+  .hb-rd-menu button:disabled{opacity:.55;cursor:default}
+  .hb-rd-menu button small{margin-left:auto;font-size:var(--t-micro);color:var(--color-neutral-600)}
+  .hb-rd-menu button b{margin-left:auto}
+  .hb-rd-menu-h{padding:8px 9px 3px;font-size:var(--t-micro);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)}
+  /* three next questions under the live reply (Part 5) */
+  .hb-nx{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:2px}
+  .hb-nx-l{font-size:var(--t-micro);color:var(--color-neutral-600)}
+  .hb-nx-q{height:var(--ctl-h-sm);padding:0 10px;border:1px dashed var(--accent-fill,var(--color-accent-600));border-radius:999px;background:transparent;color:var(--accent-ink,var(--color-accent-700));font:inherit;font-size:var(--t-meta);font-weight:500;white-space:nowrap;cursor:pointer}
+  .hb-nx-q:hover{background:var(--color-accent-50,rgba(0,0,0,.04))}
+  .hb-nx-q:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  /* right or wrong, at the foot of a board reply (Part 6) */
+  .hb-fb{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding-left:2px}
+  .hb-fb-said{margin-right:auto;font-size:var(--t-micro);color:var(--accent-ink,var(--color-accent-700))}
+  .hb-fb-b{display:inline-grid;place-items:center;width:26px;height:var(--ctl-h-sm);border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-600);cursor:pointer}
+  .hb-fb-b:hover:not(:disabled){border-color:var(--accent-fill,var(--color-accent-600));color:inherit}
+  .hb-fb-b:disabled{cursor:default;opacity:.5}
+  .hb-fb-b.is-on{opacity:1}
+  .hb-fb-b.is-wrong{border-color:var(--st-ruby-line);color:var(--st-ruby-fg)}
+  .hb-fb-b.is-right{border-color:var(--accent-fill,var(--color-accent-600));color:var(--accent-ink,var(--color-accent-700))}
+  .hb-fb-b:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  /* SEE IT WHILE YOU TYPE (Part 10): one faint line over the ask box; its room is always there */
+  .hb-pre{height:16px;line-height:16px;margin:0 2px 6px;font-size:var(--t-micro);color:var(--color-neutral-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* VERIFIED VIEWS (Part 9): the badge in a reply and on the card head; the who-and-when line */
+  .hb-vb{display:inline-block;vertical-align:1px;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.04em;line-height:1;padding:3px 6px;border-radius:3px;background:var(--accent-fill,var(--color-accent-600));color:#fff;white-space:nowrap}
+  .hb-ch .hb-vb{margin-left:var(--s-2);background:var(--hb-glow);color:var(--hb-on-glow)}
+  .hb-ver-by{font-size:var(--t-micro);color:var(--color-neutral-600)}
+  .hb-more-w{position:relative;flex:none}
+  .hb-pmenu{position:absolute;right:0;top:calc(100% + 4px);z-index:5;min-width:180px;display:flex;flex-direction:column;padding:4px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:linear-gradient(var(--hb-fig),var(--hb-fig)),linear-gradient(var(--hb-fig),var(--hb-fig)),linear-gradient(var(--hb-fig),var(--hb-fig));backdrop-filter:blur(var(--hb-blur));box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .hb-pmenu button{all:unset;cursor:pointer;padding:6px 10px;border-radius:var(--radius);font-size:var(--t-meta);color:var(--hb-ink);white-space:nowrap}
+  .hb-pmenu button:hover,.hb-pmenu button:focus-visible{background:rgba(var(--hb-ln),.14)}
+  .hb-verf label{display:flex;flex-direction:column;gap:4px}
+  .hb-verf input,.hb-verf textarea{font:inherit;color:inherit;background:transparent;border:1px solid rgba(var(--hb-ln),.35);border-radius:var(--radius);padding:4px 6px}
 
   /* present, the red pointer and the pen */
   .hb-tools{position:absolute;right:12px;bottom:12px;z-index:6;display:none;gap:6px}

@@ -1082,16 +1082,45 @@ function hbGroupOf(c, field){
      board and that page never sort one contract two ways; no terms read is
      its own slice */
   if (field === 'payterms'){ try { const d = (typeof payDays === 'function') ? payDays(c) : null; return d == null ? '' : ((typeof payBucketOf === 'function') ? payBucketOf(d) : String(d)); } catch (_){ return ''; } }
+  /* THE DEAL FACTS (the board that answers right, Part 8): each borrows the
+     reading its own page draws, RAW off the record — counting never starts a
+     negotiation — and a fact HaTi cannot read is a group of its own */
+  if (HB_DEAL_GROUPS.includes(field)) return hbDealGroupOf(c, field);
+  return '';
+}
+/* the five deal facts, as group keys (stable English, translated on the label) */
+const HB_DEAL_GROUPS = ['move', 'rounds', 'overdue', 'decision', 'risks'];
+const HB_DEAL_ORDER = { move: ['us', 'them', 'none'], rounds: ['0', '1', '2', '3', '4+'], overdue: ['yes', 'no'], risks: ['3+', '1-2', '0', 'unread'] };
+function hbDealGroupOf(c, field){
+  try {
+    if (field === 'move'){
+      if (typeof negWhoseMove !== 'function') return '';
+      const w = negWhoseMove(c); return !w ? 'none' : w.k === 'you' ? 'us' : w.k === 'them' ? 'them' : 'none';
+    }
+    if (field === 'rounds'){ const n = c && c.negotiation && Array.isArray(c.negotiation.rounds) ? c.negotiation.rounds.length : 0; return n >= 4 ? '4+' : String(n); }
+    if (field === 'overdue'){ if (typeof graphNodeFacts !== 'function') return ''; return graphNodeFacts(c).overdue > 0 ? 'yes' : 'no'; }
+    if (field === 'decision'){ if (typeof graphDecisionOf !== 'function') return ''; return String(graphDecisionOf(c).label || ''); }
+    if (field === 'risks'){
+      /* never read by the scan nor the brief: we do not know */
+      if (!(c && c.scan && Array.isArray(c.scan.findings)) && !(c && (c._brief || c._briefLite))) return 'unread';
+      const n = (typeof riskOpenOf === 'function') ? riskOpenOf(c).length : 0;
+      return n >= 3 ? '3+' : n >= 1 ? '1-2' : '0';
+    }
+  } catch (_){ return ''; }
   return '';
 }
 function hbGroupLabel(field, g){
-  if (!g) return field === 'counterparty' ? i18t('hb_no_counterparty') : field === 'owner' ? i18t('hb_nobody_owns') : field === 'payterms' ? i18t('hb_no_payterms') : '—';
+  if (!g) return field === 'counterparty' ? i18t('hb_no_counterparty') : field === 'owner' ? i18t('hb_nobody_owns') : field === 'payterms' ? i18t('hb_no_payterms') : HB_DEAL_GROUPS.includes(field) ? i18t('hb_deal_unknown') : '—';
+  if (field === 'move') return i18t('hb_dmove_' + g);
+  if (field === 'rounds') return g === '0' ? i18t('hb_rounds_0') : i18tn('hb_rounds_n', g === '4+' ? 4 : Number(g), { n: g });
+  if (field === 'overdue') return i18t('hb_overdue_' + g);
+  if (field === 'risks') return g === 'unread' ? i18t('hb_risks_unread') : g === '0' ? i18t('hb_risks_0') : i18t('hb_risks_n', { n: g });
   if (field === 'payterms') return i18tn('hb_days_n', 2, { n: g });
   if (field === 'status') return (typeof statusLabel === 'function') ? statusLabel(g) : g;
   if (field === 'side') return i18t(g === 'supplier' ? 'hb_lens_suppliers' : 'hb_lens_customers');
   return g;
 }
-function hbGroupWord(field){ return i18t({ status: 'hb_by_stage', folder: 'hb_by_stream', counterparty: 'hb_by_party', kind: 'hb_by_kind', side: 'hb_by_side', owner: 'hb_by_owner', payterms: 'hb_by_payterms', valueBand: 'hb_by_band' }[field] || 'hb_by_stage'); }
+function hbGroupWord(field){ return i18t({ status: 'hb_by_stage', folder: 'hb_by_stream', counterparty: 'hb_by_party', kind: 'hb_by_kind', side: 'hb_by_side', owner: 'hb_by_owner', payterms: 'hb_by_payterms', valueBand: 'hb_by_band', move: 'hb_by_move', rounds: 'hb_by_rounds', overdue: 'hb_by_overdue', decision: 'hb_by_decision', risks: 'hb_by_risks' }[field] || 'hb_by_stage'); }
 function hbEndOf(c){ try { const e = (typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : c.expiry; return e ? String(e).slice(0, 10) : null; } catch (_){ return c.expiry ? String(c.expiry).slice(0, 10) : null; } }
 function hbMonthOf(c, byYear){ const e = hbEndOf(c); return e ? (byYear ? e.slice(0, 4) : e.slice(0, 7)) : 'none'; }
 function hbMonthLabel(m, byYear){
@@ -1149,6 +1178,7 @@ function hbGroupsOf(cs, field, money){
   const groups = {}; cs.forEach(c => { const g = hbGroupOf(c, field); (groups[g] || (groups[g] = [])).push(c); });
   const rows = Object.keys(groups).map(g => { const list = groups[g]; const v = list.reduce((a, c) => a + hbValueOfOne(c), 0); return { g, label: hbGroupLabel(field, g), list, n: list.length, v }; });
   if (field === 'status') rows.sort((a, b) => HB_STATUS_ORDER.indexOf(a.g) - HB_STATUS_ORDER.indexOf(b.g));
+  else if (HB_DEAL_ORDER[field]){ const at = g => { const i = HB_DEAL_ORDER[field].indexOf(g); return i < 0 ? 98 : i; }; rows.sort((a, b) => at(a.g) - at(b.g)); }
   else if (field === 'payterms'){ const at = g => { const i = (typeof PAY_BUCKETS !== 'undefined' ? PAY_BUCKETS : []).findIndex(b => b.k === g); return g ? (i < 0 ? 98 : i) : 99; }; rows.sort((a, b) => at(a.g) - at(b.g)); }
   else rows.sort((a, b) => (money ? b.v - a.v : b.n - a.n) || a.label.localeCompare(b.label));
   return rows;
@@ -1358,7 +1388,7 @@ const HB_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', '
 const HB_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live'];
 const HB_UNITS = ['m', 'q', 'y'];
 const HB_DATES = ['end', 'signed', 'start', 'created', 'decision'];
-const HB_SPLIT_GROUPS = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side', 'payterms', 'valueBand'];
+const HB_SPLIT_GROUPS = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'decision', 'risks'];
 /* THE RECIPE'S OTHER PARTS (work order Part 1, 4 Oct 2026): the pictures two
    splits need, the order, the top N, the period, the comparison, the name */
 const HB_PICS2 = ['stack', 'grouped', 'heat'];
@@ -1378,8 +1408,15 @@ const HB_RC_GW = {
   owner: '(?:owners?|who owns (?:them|it)|ägare|ansvarig)',
   kind: '(?:contract types?|types?|kinds?|avtalstyp(?:er)?|typ(?:er)?)',
   side: '(?:side|sida)',
-  payterms: '(?:payment terms?|terms of payment|payment days|credit terms|betalningsvillkor|betalningstid)',
+  /* bare "terms" after "by" is payment terms, said and offered the other way (Part 2) */
+  payterms: '(?:payment terms?|terms of payment|payment days|credit terms|terms|betalningsvillkor|betalningstid|villkor)',
   valueBand: '(?:value bands?|values?|sizes?|amounts?|värde|storlek)',
+  /* the deal facts (Part 8) — read after "by", like every group */
+  move: '(?:whose move|whose turn|who is waiting|who it is waiting on|vems drag|vems tur)',
+  rounds: '(?:negotiation rounds?|rounds?|förhandlingsrundor|rundor)',
+  overdue: '(?:overdue duties|overdue obligations|whether anything is overdue|försenade åtaganden)',
+  decision: '(?:renewal decisions?|decision quarters?|förnyelsebeslut)',
+  risks: '(?:risks? found|open risks|risks?|öppna risker|risker)',
 };
 const _HB_NUM = '(\\d{1,3}|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)';
 const HB_RC_NUMS = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
@@ -1980,7 +2017,8 @@ function hbRcOptions(part, P, D){
   if (part === 'split'){
     const ds = [['m', 'end'], ['q', 'end'], ['y', 'end'], ['m', 'signed'], ['q', 'signed'], ['m', 'start'], ['m', 'created'], ['m', 'decision']]
       .map(([u, d]) => opt('d:' + u + ':' + d, i18t('hb_sp_' + u) + ' · ' + i18t('hb_dt_' + d), true));
-    const gs = HB_SPLIT_GROUPS.map(gk => opt('g:' + gk, hbSplitWord({ by: gk }), !(gk === 'valueBand' && !money), gk === 'valueBand' && !money ? i18t('hb_why_money') : ''));
+    const gs = HB_SPLIT_GROUPS.map(gk => Object.assign(opt('g:' + gk, hbSplitWord({ by: gk }), !(gk === 'valueBand' && !money), gk === 'valueBand' && !money ? i18t('hb_why_money') : ''),
+      HB_DEAL_GROUPS[0] === gk ? { head: i18t('hb_rc_deal_head') } : {}));
     return ds.concat(gs).concat([opt('none', i18t('hb_sp_none'), true)]);
   }
   /* THEN BY: the second split — a group under time, or time or a group under a group */
@@ -2046,7 +2084,7 @@ function hbRecipeRowHtml(D, P){
     const open = _hbRcOpen === D.key + '|' + part;
     const menu = open ? `<div class="hb-rmenu" role="menu" aria-label="${_hbE(label)}">${hbRcOptions(part, P, D).map(x => {
       const cur = part === 'which' ? ((o.which || 'set') === x.v) : hbRcCurHas(part, P, x.v);
-      return `<button type="button" role="menuitemradio" aria-checked="${cur}" data-hb-rset="${_hbE(part + ':' + x.v)}"${x.on ? '' : ' disabled'}${x.why ? ` title="${_hbE(x.why)}"` : ''}><span>${_hbE(x.word)}</span>${x.why ? `<small>${_hbE(x.why)}</small>` : cur ? `<b aria-hidden="true">${_hbTick}</b>` : ''}</button>`; }).join('')}</div>` : '';
+      return (x.head ? `<div class="hb-rmenu-h" role="presentation">${_hbE(x.head)}</div>` : '') + `<button type="button" role="menuitemradio" aria-checked="${cur}" data-hb-rset="${_hbE(part + ':' + x.v)}"${x.on ? '' : ' disabled'}${x.why ? ` title="${_hbE(x.why)}"` : ''}><span>${_hbE(x.word)}</span>${x.why ? `<small>${_hbE(x.why)}</small>` : cur ? `<b aria-hidden="true">${_hbTick}</b>` : ''}</button>`; }).join('')}</div>` : '';
     return `<span class="hb-rwrap"><button type="button" class="hb-rc${open ? ' is-open' : ''}" data-hb-rc="${part}" aria-haspopup="menu" aria-expanded="${open}"><i>${_hbE(label)}</i><span>${_hbE(value)}</span>${_hbCaret}</button>${menu}</span>`;
   };
   const which = D.whole ? i18t('hb_rc_all') : (D.setLabel || D.crumb || '');
@@ -2963,7 +3001,7 @@ function hbWhyPrompt(src){
 const HB_BOARD_NOW_MAX = 4000;
 /* A RECIPE IN COPILOT'S WORDS (the server's mirror reads these same words
    back): what the board's settings are, so "this" can be changed exactly */
-const HB_SPLIT_WORDS = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', payterms: 'payterms', valueBand: 'valueBand' };
+const HB_SPLIT_WORDS = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks' };
 const HB_UNIT_WORDS = { m: 'month', q: 'quarter', y: 'year' };
 function hbSplitModelWord(S){ return !S ? 'none' : S.by === 'date' ? `${HB_UNIT_WORDS[S.unit] || 'month'} (date ${S.date})` : (HB_SPLIT_WORDS[S.by] || S.by); }
 function hbRecipeWords(P){
@@ -3047,7 +3085,8 @@ function hbDataGuide(lens, max){
   });
   /* the streams this reader may open, by name; any other is never named */
   const okFolder = (() => { try { const v = (typeof visibleFolders === 'function') ? visibleFolders() : null; return v ? new Set(v.map(f => f.name)) : null; } catch (_){ return null; } })();
-  const GROUPS = [['folder', 'Stream (split stream)'], ['counterparty', 'Counterparty (split counterparty)'], ['owner', 'Owner (split owner)'], ['kind', 'Type (split type)'], ['side', 'Side (split side)'], ['payterms', 'Payment terms (split payterms — a pie of payment terms; a ring never draws measure payDays)']];
+  const GROUPS = [['folder', 'Stream (split stream)'], ['counterparty', 'Counterparty (split counterparty)'], ['owner', 'Owner (split owner)'], ['kind', 'Type (split type)'], ['side', 'Side (split side)'], ['payterms', 'Payment terms (split payterms — a pie of payment terms; a ring never draws measure payDays)'],
+    ['move', 'Whose move in the negotiation (split move)'], ['rounds', 'Negotiation rounds (split rounds)'], ['overdue', 'Has overdue duties (split overdue)'], ['decision', 'Renewal decision quarter (split decision)'], ['risks', 'Open risks found (split risks)']];
   GROUPS.forEach(([f, word]) => {
     const rows = hbGroupsOf(cs, f, false);
     const named = rows.filter(r => r.g && !(f === 'folder' && okFolder && !okFolder.has(r.g)));
@@ -3066,6 +3105,8 @@ function hbDataGuide(lens, max){
   lines.push(`- Payment days (measure payDays): ${mk('payDays')} contracts state payment terms.`);
   lines.push(`- Negotiation rounds (measure rounds): ${mk('rounds')} contracts have rounds on record.`);
   lines.push(`- Live contracts each month (measure live): ${(_hbSnaps || []).length} monthly pictures kept so far.`);
+  { const vg = hbVerifiedGuide(); if (vg) lines.push(vg); }
+  { const wg = hbWordsGuide(); if (wg) lines.push(wg); }
   /* A CAP IS A FACT: what did not fit is said */
   let out = '', left = 0;
   for (const l of lines){ if ((out + l).length + 60 > lim){ left++; continue; } out += (out ? '\n' : '') + l; }
@@ -3211,7 +3252,7 @@ function hbFocusHtml(){
   const grows = D.kind === 'list' || D.kind === 'stages';
   const tools = grows ? `${hbBigBtnHtml(s.digBig, 'data-hb-digbig')}` : '';
   return `<div class="hb-focus" id="hb-focus"><nav class="hb-trail" aria-label="${_hbE(i18t('hb_trail'))}"><button type="button" data-hb-crumb="-1">${_hbE(i18t('hb_face_board'))}</button><span aria-hidden="true">›</span>${crumbs}</nav>
-    <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(title)}</span><span class="hb-grow"></span>${tools}${eye}
+    <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(title)}</span>${hbVerBadgeHtml((s.panels || []).find(x => x.key === path[path.length - 1]))}<span class="hb-grow"></span>${tools}${eye}
       ${path.length > 1 ? `<button type="button" class="hb-ib" data-hb-crumb="${path.length - 2}" title="${_hbE(i18t('hb_step_back'))}" aria-label="${_hbE(i18t('hb_step_back'))}">${_hbBack}</button>` : ''}
       <button type="button" class="hb-ib hb-x" data-hb-crumb="-1" title="${_hbE(i18t('hb_close_dig'))}" aria-label="${_hbE(i18t('hb_close_dig'))}">${_hbX}</button></header>
       ${D.kind === 'list' ? hbRecipeRowHtml(D, hbPlan(D)) : ''}<div class="hb-cb">${fk && _hbWatchForm === fk ? hbWatchFormHtml(fk) : ''}${watching}${hbDigBodyHtml(D, s.lens, !!s.digBig)}</div></section></div>`;
@@ -3350,6 +3391,7 @@ function hbBoardHtml(){
   const gifts = hbGiftsFor();
   _hbInsMemo = new Map();
   hbKeptSync();
+  hbMovedSync();
   const panels = s.panels.slice().reverse().map(p => hbPanelHtml(p, s.lens, { sent: gifts.sent[p.id] || null })).join('');
   const received = gifts.received.map(g => hbPanelHtml({ id: 'gift:' + g.id, kind: g.kind, split: !!g.split, big: false }, HB_LENSES.includes(g.lens) ? g.lens : 'all', { from: g })).join('');
   /* and the freshness line too: WHEN it was counted is a fact the reader
@@ -3885,11 +3927,12 @@ function hbViewPanelHtml(p, lens){
   const D = hbDigData(p.key, lens);
   const body = D ? (D.kind === 'list' ? hbRecipeRowHtml(D, hbPlan(D)) : '') + `<div class="hb-cb">${hbDigBodyHtml(D, lens, !!p.big)}</div>` : `<div class="hb-cb"><div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div></div>`;
   return `<section class="hb-card hb-panel hb-view${p.big ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
-    <header class="hb-ch"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span><span class="hb-grow"></span>
-      ${/^cd:/.test(p.key) ? `<span class="hb-src" title="${_hbE(i18t('hb_cd_src_tip'))}">${_hbE(i18t('hb_cd_src'))}</span>` : `<span class="hb-src" title="${_hbE(i18t('hb_ins_src_tip'))}">${_hbE(i18t('hb_ins_src'))}</span>`}
+    <header class="hb-ch"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span>${hbVerBadgeHtml(p)}<span class="hb-grow"></span>
+      ${p.verified ? '' : /^cd:/.test(p.key) ? `<span class="hb-src" title="${_hbE(i18t('hb_cd_src_tip'))}">${_hbE(i18t('hb_cd_src'))}</span>` : `<span class="hb-src" title="${_hbE(i18t('hb_ins_src_tip'))}">${_hbE(i18t('hb_ins_src'))}</span>`}
+      ${hbMayVerify(p) ? `<span class="hb-more-w"><button type="button" class="hb-ib" data-hb-act="more" aria-haspopup="menu" aria-expanded="${_hbMoreMenu === p.id}" title="${_hbE(i18t('hb_p_more'))}" aria-label="${_hbE(i18t('hb_p_more'))}">⋯</button>${_hbMoreMenu === p.id ? `<span class="hb-pmenu" role="menu"><button type="button" role="menuitem" data-hb-act="verify">${_hbE(i18t('hb_ver_menu'))}${p.verified ? ' ✓' : ''}</button></span>` : ''}</span>` : ''}
       ${hbBigBtnHtml(p.big, 'data-hb-act="big"')}
       <button type="button" class="hb-ib hb-x" data-hb-act="x" title="${_hbE(i18t('hb_p_x'))}" aria-label="${_hbE(i18t('hb_p_x'))}">${_hbX}</button></header>
-    ${body}</section>`;
+    ${_hbVerForm === p.id && hbMayVerify(p) ? hbVerFormHtml(p) : ''}${body}</section>`;
 }
 function hbInsAct(act, id){
   const s = hbS();
@@ -3924,6 +3967,44 @@ function hbKeptSync(){
     return { title: hbPanelWord(p), say, at: hbToday() }; });
   s.keptSent = sig; hbSave();
   Promise.resolve(api('home/kept', 'PUT', { views: out })).catch(() => { s.keptSent = ''; hbSave(); });
+}
+
+/* ---- "WHAT MOVED", FOR THE BRIEF (work order "the board that answers
+   right", Part 11, 5 Oct 2026) ----
+   The shelf's findings are counted here, in the browser; the brief cannot
+   count them. So when Home paints, the top three are handed over the way kept
+   views are (hbKeptSync): HaTi's own sentence, the finding's id and the day it
+   was counted — capped, dated, and the mail says "as of" that day. The brief's
+   own daily / weekly / off decides whether they go; there is no switch here. */
+const HB_MOVED_MAX = 3;
+function hbMovedOf(){
+  let I = []; try { I = hbInsightsToday(); } catch (_){ I = []; }
+  return I.filter(x => x && x.id && x.title).slice(0, HB_MOVED_MAX)
+    .map(x => ({ say: hbPlainText(x.title + (x.say ? ' — ' + x.say : ''), 240), key: x.id, at: hbToday() }));
+}
+/* WHAT THIS TAB LAST SENT is the tab's own, never the shared board record:
+   kept there, two open tabs woke each other on every save and sent without
+   end (home-board-verify's second tab, 5 Oct 2026). A failed send is not
+   retried until what would be sent changes. */
+let _hbMovedSent = '';
+function hbMovedSync(){
+  if (typeof api !== 'function' || (typeof API_MODE === 'function' && !API_MODE())) return;
+  if (!(window.state && Array.isArray(state.contracts) && state.contracts.length)) return;
+  const out = hbMovedOf();
+  const sig = hbToday() + '|' + out.map(x => x.key + ':' + x.say).join('§');
+  if (_hbMovedSent === sig) return;
+  _hbMovedSent = sig;
+  Promise.resolve(api('home/moved', 'PUT', { items: out })).catch(() => {});
+}
+/* the brief's link lands here (core.js openFromHash, HASH_GO.moved): the board,
+   with that finding's chart open — or simply the board, when the finding is no
+   longer on today's shelf. Nothing is pressed for the reader. */
+function hbOpenFromLink(id){
+  const s = hbS(); s.face = 'board';
+  const o = hbInsOf(id);
+  if (o){ hbInsRecipeOn(o.k); s.path = [hbInsKey(o.k, o.mine)]; _hbFocusNew = true; }
+  hbSave();
+  return !!o;
 }
 
 /* ---- THE ASK: the board's free reader in front of Explorer's own ----
@@ -3973,7 +4054,8 @@ function hbCardEdit(key, chart){
   if (!Object.keys(parts).length) return null;
   hbCardSet(key, parts);
   const s = hbS(); const D = hbDigData(key, s.lens); if (!D) return null;
-  return { key, said: i18t('hb_edit_said', { what: hbCrumbOf(key, s.lens), how: hbHowWord(hbPlan(D)) }) };
+  const P = hbPlan(D), n = hbAnswerCount(D, P);
+  return { key, said: i18t('hb_edit_said', { what: hbCrumbOf(key, s.lens), how: hbHowWord(P) }) + (n ? ' ' + n : '') };
 }
 /* what a card draws, in the reader's words: picture · split · measure, and
    whichever other parts it carries */
@@ -3983,7 +4065,10 @@ function hbHowWord(P){
     P.compare ? [i18t('hb_cmp_' + P.compare).toLowerCase()] : [], P.trend ? [i18t('hb_edit_trend_on')] : []).join(' · ');
 }
 /* Read a follow-up. Returns what to say, or null when it is not one. */
-function hbFollowUp(qRaw){
+/* WHAT A FOLLOW-UP WOULD DO, writing nothing (the preview, the next
+   questions and the answer read it alike): { key, narrow } — the open chart's
+   contracts, narrowed — or { key, chart } — parts of its recipe — or null */
+function hbFollowUpRead(qRaw){
   const q = String(qRaw || '').trim(); const key = hbOpenListKey(); if (!q || !key) return null;
   const low = ' ' + _hbRcNorm(q) + ' ';
   if (/\b(?:mk|rl)[- ]?\d+\b/i.test(q) || HB_FU.fresh.test(low)) return null;
@@ -3996,9 +4081,7 @@ function hbFollowUp(qRaw){
   /* "only Juno", "show these for Naivas": the open chart's contracts, narrowed */
   if (cq.length && (narrow || refer)){
     const nk = 'qn:' + key + HB_KEY_SEP + cq.map(x => x.hit || x.label).join(' ');
-    const N = hbDigData(nk, s.lens); if (!N) return null;
-    hbDig(nk, true);
-    return _hbE(i18tn('hb_found_n', N.n, { n: _hbN(N.n), what: N.title || '' }));
+    return hbDigData(nk, s.lens) ? { key, narrow: nk } : null;
   }
   const noTrend = HB_FU.noTrend.test(low);
   if (cq.length || !(refer || verb || lead || noTrend)) return null;
@@ -4009,17 +4092,29 @@ function hbFollowUp(qRaw){
     const unitNamed = HB_RC.unit.some(([, re]) => re.test(low)), groupNamed = HB_RC.split.some(([, re]) => re.test(low)), dateNamed = HB_RC.date.some(([, re]) => re.test(low));
     if (R.split && R.split.by === 'date' && (unitNamed || (!groupNamed && P0.split && P0.split.by !== 'date' && R.trend)))
       chart.split = { by: 'date', unit: R.split.unit, date: dateNamed || !(P0.split && P0.split.by === 'date') ? R.split.date : P0.split.date };
-    else if (R.split && R.split.by !== 'date' && groupNamed) chart.split = R.split;
+    else if (R.split && R.split.by !== 'date' && (groupNamed || R.top)) chart.split = R.split;
     if (R.pic) chart.pic = R.pic;
     /* "show them in a graph": the open chart's own contracts and split, drawn
        as bars (Young picked it, 5 Oct 2026) — never a new card */
     else if (R.chartWord && !Object.keys(chart).length && (refer || verb)) chart.pic = 'bars';
     if (R.measure && (R.measure !== 'count' || HB_FU.count.test(low))) chart.measure = R.measure;
     if (R.trend && !noTrend) chart.trend = true;
+    /* the recipe's other parts, said as a follow-up ("top 5 counterparties",
+       "compared with last year", "the last 12 months") — the next questions
+       (Part 5) stand on these */
+    ['top', 'sort', 'window', 'compare'].forEach(k => { if (R[k] != null) chart[k] = R[k]; });
   }
   if (noTrend) chart.trend = false;
-  if (!Object.keys(chart).length) return null;
-  const did = hbBoardEdit(chart); if (!did) return null;
+  return Object.keys(chart).length ? { key, chart } : null;
+}
+function hbFollowUp(qRaw, pre){
+  const r = pre || hbFollowUpRead(qRaw); if (!r) return null;
+  if (r.narrow){
+    const N = hbDigData(r.narrow, hbS().lens); if (!N) return null;
+    hbDig(r.narrow, true);
+    return _hbE(i18tn('hb_found_n', N.n, { n: _hbN(N.n), what: N.title || '' }));
+  }
+  const did = hbBoardEdit(r.chart); if (!did) return null;
   hbPaintBoard({ jump: 'focus' });
   return _hbE(did.said);
 }
@@ -4032,7 +4127,8 @@ function hbFollowUp(qRaw){
    as one action (change the open chart, or a new card over the whole book).
    An answer that names a set rides the list road as before (hbShowFound).
    Returns what to say, or null when the answer is the map's. */
-function hbBoardTakes(res){
+function hbBoardTakes(res, q){
+  if (q != null) _hbAskQ = String(q);
   const s = hbS(); if (s.face !== 'board' || !res) return null;
   let actions = Array.isArray(res.actions) && res.actions.length ? res.actions : null;
   if (!actions && res.chart && typeof res.chart === 'object'){
@@ -4040,7 +4136,7 @@ function hbBoardTakes(res){
     if (hasSet) return null;
     const c = res.chart;
     actions = c.target !== 'new' && hbOpenListKey() ? [{ do: 'change_card', card: 'open', recipe: c }]
-      : [{ do: 'add_card', which: { all: true }, recipe: c, title: String(res.note || '').slice(0, HB_TITLE_MAX) }];
+      : [{ do: 'add_card', which: { all: true }, recipe: c }];
   }
   if (!actions) return null;
   _hbPendingRecipe = null;
@@ -4048,9 +4144,7 @@ function hbBoardTakes(res){
   /* the server keeps the first HB_ACTIONS_MAX; more asked for is said */
   if (Number(res.actionsTotal) > actions.length){ const l = i18t('hb_act_cap', { n: actions.length, m: Number(res.actionsTotal) }); r.refused.push(l); r.html += (r.html ? '<br>' : '') + _hbE(l); }
   if (!r.did.length && !r.refused.length) return null;
-  const own = String(res.answer || '').trim();
-  const tail = own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : '';
-  return r.html + tail;
+  return r.html + hbCopilotTail(res.answer, _hbAskQ);
 }
 
 /* ============================================================
@@ -4135,16 +4229,17 @@ function hbRepairNote(bad){
 function hbActionTitle(a){ const t = a && (a.title || (a.recipe && a.recipe.title)); return t ? String(t).slice(0, HB_TITLE_MAX) : (a && a.card ? String(a.card) : i18t('hb_chk_card')); }
 /* COPILOT'S ANSWER, CHECKED: the good actions apply; the bad go back ONCE;
    what still fails is said and not applied */
-async function hbBoardTakesChecked(res, retry){
+async function hbBoardTakesChecked(res, retry, q){
   _hbMeta = null;
+  if (q != null) _hbAskQ = String(q);
   const s = hbS(); if (s.face !== 'board' || !res) return null;
   /* Copilot was unsure: up to three readings, each a press (nothing applied) */
   if ((!Array.isArray(res.actions) || !res.actions.length) && Array.isArray(res.choices) && res.choices.length){
-    const ch = res.choices.slice(0, HB_CHOICES_MAX).map(c => ({ label: hbPlainText(c && c.label, 60), board: Array.isArray(c && c.actions) ? c.actions : [] })).filter(c => c.label && c.board.length);
+    const ch = res.choices.slice(0, HB_CHOICES_MAX).map(c => ({ label: hbPlainText(c && c.label, 60), board: Array.isArray(c && c.actions) ? c.actions : [], q: _hbAskQ })).filter(c => c.label && c.board.length);
     if (ch.length){ _hbMeta = { choices: ch }; const own = String(res.answer || '').trim();
       return _hbE(i18t('hb_ch_copilot_said')) + (own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : ''); }
   }
-  if (!Array.isArray(res.actions) || !res.actions.length){ const u0 = hbUndoTop(); const said = hbBoardTakes(res); return said ? said + hbNoteUndo(u0) : said; }
+  if (!Array.isArray(res.actions) || !res.actions.length){ const u0 = hbUndoTop(); const said = hbBoardTakes(res, _hbAskQ); return said ? said + hbNoteUndo(u0) : said; }
   const bad = hbActionsCheck(res.actions);
   if (!bad.length) return hbBoardAnswer(res, res.actions, []);
   const good = res.actions.filter((a, i) => !bad.some(b => b.i === i));
@@ -4190,6 +4285,29 @@ function hbAmbiguity(q){
     choices.push({ label: i18t('hb_ch_value'), board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'status' }, measure: 'value', pic: 'blocks' } }] });
     say = i18t('hb_ch_value_said');
   }
+  /* ASK OR ASSUME, EVERY TWO-WAY WORD (the board that answers right, Part 2):
+     the likeliest reading is drawn and said; the other is one press */
+  const word = w => new RegExp('\\b' + w + '\\b').test(full);
+  /* "value" read as the contract value — or value bands */
+  if (!choices.length && R && R.measure === 'value' && hbMoneyOk() && word('value') && !(R.split && R.split.by === 'valueBand') && !/\b(?:value bands?|sizes?|storlek)\b/.test(full)){
+    choices.push({ label: i18t('hb_ch_band'), board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'valueBand' }, measure: 'count', pic: 'bars' } }] });
+    say = i18t('hb_ch_band_said');
+  }
+  /* "terms" read as payment terms — or how long the contract runs (when it ends) */
+  if (!choices.length && R && R.split && R.split.by === 'payterms' && word('terms') && !/\b(?:payment|credit|betalnings)\b/.test(full)){
+    choices.push({ label: i18t('hb_ch_terms_end'), board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'date', unit: 'q', date: 'end' }, pic: 'cols' } }] });
+    say = i18t('hb_ch_terms_said');
+  }
+  /* "stage" in a question about deals read as the lifecycle stage — or the negotiation round (Part 8) */
+  if (!choices.length && R && R.split && R.split.by === 'status' && /\bstages?\b/.test(full) && /\b(?:negotiat\w*|deals?|förhandl\w*)\b/.test(full)){
+    choices.push({ label: i18t('hb_ch_rounds'), board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'rounds' } } }] });
+    say = i18t('hb_ch_stage_said');
+  }
+  /* "owner" read as who owns it on our side — or the counterparty */
+  if (!choices.length && R && R.split && R.split.by === 'owner' && /\bowners?\b/.test(full) && !/\b(?:our|who owns|internal)\b/.test(full)){
+    choices.push({ label: i18t('hb_ch_owner_cp'), board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'counterparty' } } }] });
+    say = i18t('hb_ch_owner_said');
+  }
   if (!choices.length && typeof igConditions === 'function'){
     let cq = []; try { cq = igConditions(R ? R.condText : q); } catch (_){ cq = []; }
     const cp = cq.find(x => x.field === 'counterparty');
@@ -4204,6 +4322,7 @@ function hbAmbiguity(q){
 function hbChoicePress(c){
   if (!c || !Array.isArray(c.board)) return null;
   _hbMeta = null;
+  _hbAskQ = c.q || '';
   const u0 = hbUndoTop();
   const r = hbBoardApply(c.board);
   hbNoteUndo(u0);
@@ -4242,17 +4361,16 @@ function hbActionWords(raw){
 }
 /* what the panel says for an answer: applied at once, or offered as a list */
 function hbBoardAnswer(res, applied, lines){
-  const own = String(res.answer || '').trim();
-  const tail = own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : '';
+  const tail = hbCopilotTail(res.answer, _hbAskQ);
   const extra = (lines || []).map(l => _hbE(l)).join('<br>');
   if (applied.length && hbIsBig(applied)){
     const id = 'pv' + (++_hbPvSeq);
-    _hbPreviews.set(id, { actions: applied, tail, extra });
+    _hbPreviews.set(id, { actions: applied, tail, extra, q: _hbAskQ });
     _hbMeta = Object.assign(_hbMeta || {}, { preview: { id, adds: applied.every(a => a && a.do !== 'remove_card'), rows: applied.map(a => hbActionWords(a)) } });
     return _hbE(i18tn('hb_pv_head', applied.length, { n: _hbN(applied.length) })) + (extra ? '<br>' + extra : '') + tail;
   }
   const u0 = hbUndoTop();
-  const said = applied.length ? hbBoardTakes(Object.assign({}, res, { actions: applied, answer: '' })) : null;
+  const said = applied.length ? hbBoardTakes(Object.assign({}, res, { actions: applied, answer: '' }), _hbAskQ) : null;
   /* HaTi's lines first — what was done, the retry, what was not — then Copilot's own sentence */
   return [said ? said + hbNoteUndo(u0) : '', extra].filter(Boolean).join('<br>') + tail;
 }
@@ -4270,6 +4388,7 @@ function hbPreviewPress(id, which, chosen){
   const pick = which === 'all' ? P.actions : P.actions.filter((a, i) => (chosen || []).includes(i));
   if (!pick.length) return null;
   _hbPreviews.delete(id);
+  _hbAskQ = P.q || '';
   const u0 = hbUndoTop();
   const r = hbBoardApply(pick);
   const left = P.actions.length - pick.length;
@@ -4329,6 +4448,8 @@ function hbPanelAct(pid, act){
   else if (act === 'large') p.big = true;
   else if (act === 'small') p.big = false;
   else if (act === 'give') _hbGiveForm = _hbGiveForm === pid ? null : pid;
+  else if (act === 'more') _hbMoreMenu = _hbMoreMenu === pid ? null : pid;
+  else if (act === 'verify'){ _hbMoreMenu = null; _hbVerForm = _hbVerForm === pid ? null : pid; return true; }
   else return false;
   hbSave(); return true;
 }
@@ -4374,7 +4495,8 @@ function hbCardRef(ref){
 }
 /* THE ONE APPLIER: each action in order, through the writer a press uses;
    what was done is said in HaTi's words, one line each */
-function hbBoardApply(actions){
+function hbBoardApply(actions, q){
+  if (q != null) _hbAskQ = String(q);
   const s = hbS(), did = [], refused = [];
   const list = (Array.isArray(actions) ? actions : []).slice(0, HB_ACTIONS_MAX);
   if (Array.isArray(actions) && actions.length > HB_ACTIONS_MAX) refused.push(i18t('hb_act_cap', { n: HB_ACTIONS_MAX, m: actions.length }));
@@ -4383,7 +4505,9 @@ function hbBoardApply(actions){
     const a = hbActionClean(raw);
     if (!a){ refused.push(i18t('hb_act_unknown')); return; }
     if (a.do === 'add_card'){
-      const { p, left } = hbAddCard(a.which || { all: true }, a.recipe || {}, a.title);
+      const named = hbNameAsked(_hbAskQ);
+      if (!named && a.recipe) delete a.recipe.title;
+      const { p, left } = hbAddCard(a.which || { all: true }, a.recipe || {}, named ? a.title : null);
       added.push(p.id);
       const D = hbDigData(p.key, s.lens);
       did.push(i18t('hb_act_added', { what: p.title, how: D ? hbHowWord(hbPlan(D)) : '' }) + (left ? ' ' + i18t('hb_panel_left', { what: hbPanelWord(left) }) : ''));
@@ -4412,6 +4536,7 @@ function hbBoardApply(actions){
     const C = hbCardRef(a.card || 'open');
     if (!C){ refused.push(i18t('hb_act_no_card', { ref: a.card || 'open' })); return; }
     if (a.do === 'change_card'){
+      if (a.recipe && !hbNameAsked(_hbAskQ)) delete a.recipe.title;
       if (!C.key){ refused.push(i18t('hb_act_fixed', { what: hbPanelWord(C.p) })); return; }
       const r = hbCardEdit(C.key, a.recipe || {});
       if (!r){ refused.push(i18t('hb_act_nothing', { what: C.p ? hbPanelWord(C.p) : hbCrumbOf(C.key, s.lens) })); return; }
@@ -4424,6 +4549,8 @@ function hbBoardApply(actions){
       const what = hbPanelWord(C.p); hbPanelAct(C.p.id, 'x'); did.push(i18t('hb_act_removed', { what })); return;
     }
     if (a.do === 'name_card'){
+      /* a name nobody asked for is not taken; nothing to say about it */
+      if (!hbNameAsked(_hbAskQ)) return;
       if (!a.title){ refused.push(i18t('hb_act_nothing', { what: C.p ? hbPanelWord(C.p) : '' })); return; }
       if (C.open){ hbCardSet(C.key, { title: a.title }); did.push(i18t('hb_act_named', { what: a.title })); return; }
       if (!hbPanelName(C.p.id, a.title)){ refused.push(i18t('hb_act_fixed', { what: hbPanelWord(C.p) })); return; }
@@ -4442,23 +4569,477 @@ function hbBoardApply(actions){
    …", "explain the trend line", "what does this chart mean") is Copilot's,
    with the board shown to it (hbBoardNow) — never read as a new chart */
 const HB_WHY_ASK_RE = /^\s*(?:why|explain|how come|what (?:does|do) .{0,60}\bmean|what is this|what's this|varför|förklara|vad betyder)\b/i;
+/* ============================================================
+   THE READING, AS CHIPS (work order "the board that answers right", Part 4,
+   5 Oct 2026; ThoughtSpot shows the tokens it read and lets them be changed)
+   ============================================================
+   Under a reply that drew or changed the open chart, HaTi shows how it read
+   the question: Picture · Split · Measure. Each chip opens the SAME menu the
+   card's own row opens (hbRcOptions, greyed with its reason) and writes
+   through the same writer (hbRecipeSet → hbCardSet, undo marked in hbSave).
+   Only the newest reply about the card that is still open is live; an older
+   reply shows the words it read as plain text, so it can never edit a card
+   that has moved on. Desktop panel only; the phone keeps its own Home. */
+let _hbRdOpen = null;
+const HB_RD_PARTS = ['pic', 'split', 'measure'];
+function hbRdWords(P){ return { pic: hbPicWord(P), split: hbSplitWord(P.split), measure: i18t('hb_ms_' + P.measure) }; }
+function hbReadingSnap(){
+  const key = hbOpenListKey(); if (!key) return { key: null, sig: '' };
+  const D = hbDigData(key, hbS().lens); return { key, sig: D ? JSON.stringify(hbPlan(D)) : '' };
+}
+/* the reading a reply carries: the open card, when the question drew it or changed it */
+function hbReadingAfter(snap){
+  const now = hbReadingSnap(); if (!now.key) return null;
+  if (snap && now.key === snap.key && now.sig === snap.sig) return null;
+  const D = hbDigData(now.key, hbS().lens); if (!D || D.kind !== 'list') return null;
+  return { key: now.key, at: Date.now(), words: hbRdWords(hbPlan(D)) };
+}
+/* is this reply (index i in the panel's history) the live one for its card? */
+function hbReadingLive(i){
+  const h = (window.intel && Array.isArray(intel.history)) ? intel.history : [];
+  const m = h[i]; if (!m || !m.reading || m.reading.key !== hbOpenListKey()) return false;
+  for (let j = h.length - 1; j > i; j--) if (h[j] && h[j].reading) return false;
+  return true;
+}
+function hbReadingHtml(rd, live){
+  if (!rd || !rd.key) return '';
+  const s = hbS(); const D = live ? hbDigData(rd.key, s.lens) : null;
+  const P = D && D.kind === 'list' ? hbPlan(D) : null;
+  const words = P ? hbRdWords(P) : (rd.words || {});
+  const label = p => i18t({ pic: 'hb_rc_pic', split: 'hb_rc_split', measure: 'hb_rc_measure' }[p]);
+  if (!P) return `<div class="hb-rd is-still" aria-label="${_hbE(i18t('hb_rd_label'))}">${HB_RD_PARTS.filter(p => words[p]).map(p => `<span class="hb-rd-chip is-still"><i>${_hbE(label(p))}</i>${_hbE(words[p])}</span>`).join('')}</div>`;
+  const chip = p => {
+    const open = _hbRdOpen === rd.key + '|' + p;
+    const menu = open ? `<div class="hb-rd-menu" role="menu" aria-label="${_hbE(label(p))}">${hbRcOptions(p, P, D).map(x => {
+      const cur = hbRcCurHas(p, P, x.v);
+      return (x.head ? `<div class="hb-rd-menu-h" role="presentation">${_hbE(x.head)}</div>` : '') + `<button type="button" role="menuitemradio" aria-checked="${cur}" data-hb-rdset="${_hbE(p + ':' + x.v)}"${x.on ? '' : ' disabled'}${x.why ? ` title="${_hbE(x.why)}"` : ''}><span>${_hbE(x.word)}</span>${x.why ? `<small>${_hbE(x.why)}</small>` : cur ? `<b aria-hidden="true">${_hbTick}</b>` : ''}</button>`; }).join('')}</div>` : '';
+    return `<span class="hb-rd-wrap"><button type="button" class="hb-rd-chip${open ? ' is-open' : ''}" data-hb-rd="${p}" aria-haspopup="menu" aria-expanded="${open}"><i>${_hbE(label(p))}</i>${_hbE(words[p])}${_hbCaret}</button>${menu}</span>`;
+  };
+  return `<div class="hb-rd" role="group" data-hb-rd-key="${_hbE(rd.key)}" aria-label="${_hbE(i18t('hb_rd_label'))}">${HB_RD_PARTS.map(chip).join('')}${hbNextHtml(rd.key)}</div>`;
+}
+/* ============================================================
+   THREE NEXT QUESTIONS (work order "the board that answers right", Part 5,
+   5 Oct 2026; Amazon Q suggests questions beside each answer)
+   ============================================================
+   Under the live reply, up to three follow-ups worked out from the open
+   card's recipe. Each is offered ONLY when the free reader reads it
+   (hbFollowUpRead, which writes nothing), it would change the card, and the
+   checker finds no fault (never empty, never crowded) — so a press always
+   draws and never costs anything. A press asks it as if typed. */
+const HB_NEXT_MAX = 3, HB_NEXT_TOP = 5;
+const HB_NEXT_GROUP_WORD = { counterparty: 'hb_nx_g_party', folder: 'hb_nx_g_stream', owner: 'hb_nx_g_owner', kind: 'hb_nx_g_kind', status: 'hb_nx_g_stage' };
+function hbNextCandidates(D, P){
+  const split = P.split && P.split.by, isDate = split === 'date', out = [];
+  const cs = hbListOf(D.ids || [], hbS().lens);
+  /* ("only suppliers" is not offered: on the board it sets the whole board's
+     lens, not the open card's — a different act from the one it would name) */
+  if (split && !isDate && HB_NEXT_GROUP_WORD[split] && new Set(cs.map(c => hbGroupOf(c, split))).size > HB_NEXT_TOP + 1)
+    out.push(i18t('hb_nx_top', { n: HB_NEXT_TOP, g: i18t(HB_NEXT_GROUP_WORD[split]) }));
+  if (!isDate) out.push(i18t('hb_nx_month'));
+  if (isDate && !P.compare) out.push(i18t('hb_nx_cmp'));
+  out.push(split === 'status' ? i18t('hb_nx_party') : i18t('hb_nx_stage'));
+  /* a pie only over groups: over time it would move the split, not the picture */
+  if ((P.measure === 'count' || P.measure === 'value') && !isDate) out.push(P.pic === 'ring' ? i18t('hb_nx_bars') : i18t('hb_nx_pie'));
+  return out;
+}
+const _hbPlanSig = P => JSON.stringify(['pic', 'split', 'split2', 'measure', 'top', 'sort', 'window', 'compare', 'trend'].map(k => P[k] == null ? null : P[k]));
+function hbNextQuestions(key){
+  const s = hbS(); if (!key || key !== hbOpenListKey()) return [];
+  const D = hbDigData(key, s.lens); if (!D || D.kind !== 'list' || !D.n) return [];
+  const P0 = hbPlan(D), sig0 = _hbPlanSig(P0), out = [];
+  for (const q of hbNextCandidates(D, P0)){
+    if (out.length >= HB_NEXT_MAX) break;
+    let r = null; try { r = hbFollowUpRead(q); } catch (_){ r = null; }
+    if (!r) continue;
+    if (r.narrow){ const N = hbDigData(r.narrow, s.lens); if (N && N.n > 0 && N.n < D.n) out.push(q); continue; }
+    const spec1 = Object.assign({}, hbPlanSpec(D), hbCardClean(r.chart));
+    const P1 = hbCardPlan(spec1, D);
+    if (_hbPlanSig(P1) === sig0) continue;
+    let bad = []; try { bad = hbCardCheck(D, r.chart, spec1); } catch (_){ bad = [{}]; }
+    if (!bad.length) out.push(q);
+  }
+  return out;
+}
+function hbNextHtml(key){
+  const qs = hbNextQuestions(key); if (!qs.length) return '';
+  return `<div class="hb-nx" aria-label="${_hbE(i18t('hb_nx_label'))}"><span class="hb-nx-l">${_hbE(i18t('hb_nx_label'))}</span>${qs.map(q => `<button type="button" class="hb-nx-q" data-hb-next="${_hbE(q)}">${_hbE(q)}</button>`).join('')}</div>`;
+}
+/* a chip's menu, opened or closed (the press, and Escape) */
+function hbRdToggle(key, part){ const p = key && part ? key + '|' + part : null; _hbRdOpen = p && _hbRdOpen !== p ? p : null; return _hbRdOpen; }
+/* the chip row is redrawn IN PLACE (a whole-panel redraw replays every
+   reply's entrance); the panel is redrawn only when the row is not found */
+function hbDockRepaint(){
+  try {
+    const h = (window.intel && Array.isArray(intel.history)) ? intel.history : [];
+    let done = false;
+    document.querySelectorAll('[data-ig-turn] .hb-rd').forEach(el => {
+      const turn = el.closest('[data-ig-turn]'); const i = Number(turn && turn.getAttribute('data-ig-turn'));
+      const m = h[i]; if (!m || !m.reading) return;
+      el.outerHTML = hbReadingHtml(m.reading, hbReadingLive(i)); done = true;
+    });
+    if (!done && typeof renderIntelDock === 'function') renderIntelDock();
+  } catch (_){ if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_e){ /* the panel is not up */ } }
+}
+/* a chip's choice, through the card's own writer; a change right after an
+   answer is kept as a possible misreading (Part 6, kind 'fix') */
+function hbReadingSet(key, part, v){
+  const s = hbS(); if (!key || !HB_RD_PARTS.includes(part)) return false;
+  const before = hbDigData(key, s.lens); if (!before) return false;
+  const P0 = hbPlan(before);
+  hbRecipeSet(key, part, v);
+  const h = (window.intel && Array.isArray(intel.history)) ? intel.history : [];
+  const m = h.slice().reverse().find(x => x && x.reading && x.reading.key === key);
+  if (m && Date.now() - (m.reading.at || 0) <= HB_FIX_WINDOW_MS){
+    const q = (h.slice(0, h.indexOf(m)).reverse().find(x => x && x.role === 'user') || {}).text || '';
+    hbFeedbackSend({ kind: 'fix', q, recipe: hbCardClean(P0), changed: { [part]: v } });
+  }
+  return true;
+}
+const HB_FIX_WINDOW_MS = 30000;
+
+/* ============================================================
+   THE BOARD'S WORD BOOK (work order "the board that answers right", Part 3,
+   5 Oct 2026; Power BI's linguistic schema, Tableau's semantics)
+   ============================================================
+   The company's own words — "deals", "BU", "ramavtal" — and what the board
+   reads them as. ONE list, an admin's (PUT /api/settings/board-words), read
+   off the settings blob. Before the board's own reader runs, a company word
+   is swapped for a phrase the reader already knows; Copilot is handed the
+   same list in the data guide. Words are DATA: escaped, never a regex built
+   from translated text. A word the reader already reads is refused in the
+   drawer (hbWordClash) — a company word never overrides a built-in one. */
+const HB_WORD_SPLIT = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', payterms: 'payment terms', valueBand: 'value band', move: 'whose move', rounds: 'negotiation rounds', overdue: 'overdue duties', decision: 'renewal decision', risks: 'risks found' };
+const HB_WORD_MEASURE = { count: 'how many', value: 'value', daysToSign: 'days to sign', payDays: 'payment days', rounds: 'negotiation rounds', live: 'live contracts' };
+const HB_WORD_STAGE = { 'Draft': 'drafts', 'Under Review': 'in review', 'Signed': 'signed', 'Declined': 'declined' };
+const HB_WORD_KINDS = ['set', 'split', 'measure', 'stage', 'type', 'side'];
+function hbWords(){ try { const l = state && state.settings && state.settings.boardWords; return Array.isArray(l) ? l.filter(w => w && w.say && w.means) : []; } catch (_){ return []; } }
+/* the phrase the board's own reader knows, for one meaning */
+function hbWordPhrase(m){
+  if (!m) return '';
+  if (m.kind === 'split') return HB_WORD_SPLIT[m.value] || '';
+  if (m.kind === 'measure') return HB_WORD_MEASURE[m.value] || '';
+  if (m.kind === 'stage') return HB_WORD_STAGE[m.value] || '';
+  if (m.kind === 'side') return m.value === 'supplier' ? 'suppliers' : m.value === 'customer' ? 'customers' : '';
+  if (m.kind === 'set' || m.kind === 'type') return hbPlainText(m.value, 80);
+  return '';
+}
+const _hbReEsc = t => String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/* the question with every company word swapped; longest words first, so
+   "frame agreements" is read before "agreements" */
+function hbWordsApply(q){
+  let t = String(q || ''); const list = hbWords();
+  if (!list.length || !t) return t;
+  list.slice().sort((a, b) => String(b.say).length - String(a.say).length).forEach(w => {
+    const ph = hbWordPhrase(w.means); if (!ph) return;
+    const re = new RegExp('(^|[^\\p{L}\\p{N}])' + _hbReEsc(String(w.say).trim()) + '(?=$|[^\\p{L}\\p{N}])', 'giu');
+    t = t.replace(re, (m, pre) => pre + ph);
+  });
+  return t;
+}
+/* a word the board already reads, on its own or after "by": refused, so a
+   company word can never change what the built-in reader does */
+function hbWordClash(say){
+  const w = String(say || '').trim(); if (!w) return false;
+  try {
+    if (hbParse(w)) return true;
+    const R = hbRecipeRead('contracts by ' + w); if (R && R.split && !R.left) return true;
+    if (typeof igConditions === 'function' && igConditions(w).length) return true;
+  } catch (_){ return false; }
+  return false;
+}
+/* the built-in words, drawn read-only in the drawer: read off the reader's
+   own group words (HB_RC_GW), never a second copy */
+function hbWordsBuiltIn(){
+  return Object.keys(HB_RC_GW).map(g => ({ group: g, words: HB_RC_GW[g].replace(/\(\?:/g, '').replace(/[()]/g, '').split('|').map(x => x.replace(/\?/g, '').trim()).filter(Boolean) }));
+}
+/* the list as Copilot is told it, in the data guide */
+function hbWordsGuide(){
+  const list = hbWords(); if (!list.length) return '';
+  return '- Company words (read them so): ' + list.map(w => `"${hbPlainText(w.say, 40)}" = ${w.means.kind} ${hbPlainText(w.means.value, 60)}`).join('; ') + '.';
+}
+
+/* ============================================================
+   THE HONEST REPLY (work order "the board that answers right", Part 1, 5 Oct
+   2026; the owner's screenshots: "Showing 10 of 181 · Top 10 by value · as
+   graph" beside a board of 178, a card named by Copilot's note)
+   ============================================================
+   Every count, scope and card name in a reply on the board is written by
+   HaTi from what was DRAWN. Copilot's own sentence may explain — it is
+   printed for a why / explain question, or where Copilot did nothing on the
+   board — and it never names, counts or titles: a name it offers is taken
+   only where the person's own words asked for one (or asked for a whole
+   board to be built). Before a Copilot sentence is printed it is held up
+   against the open chart (hbProseChecked); a sentence that disagrees is left
+   out and the catch is counted (kind 'disconnect'). */
+let _hbAskQ = '';
+const HB_NAME_ASK_RE = /\b(?:call (?:it|this|them|the card)|name (?:it|this|the card)|rename|retitle|titled?|kalla (?:den|det)|döp|byt namn)\b/i;
+function hbNameAsked(q){
+  const t = String(q || '').trim(); if (!t) return false;
+  return HB_RC.title.test(t) || HB_NAME_ASK_RE.test(t) || HB_RX.build.test(t.toLowerCase());
+}
+function hbCopilotMaySay(q){ return HB_WHY_ASK_RE.test(String(q || '')); }
+/* the count line: "10 contracts, SEK 729M." — the money only where the card
+   measures it and this reader may see it */
+function hbAnswerCount(D, P){
+  if (!D || !D.n) return '';
+  const s = hbS();
+  if (P && P.measure === 'value' && hbMoneyOk()) return i18tn('hb_count_n_value', D.n, { n: _hbN(D.n), v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) });
+  return i18tn('hb_count_n', D.n, { n: _hbN(D.n) });
+}
+/* ONE ANSWER WRITER: what is counted, how many, and how it is drawn */
+function hbAnswerSay(D, P){
+  if (!D) return '';
+  const s = hbS(); P = P || (D.kind === 'list' ? hbPlan(D) : null);
+  const money = D.kind === 'list' && hbMoneyOk() && P && P.measure === 'value';
+  const head = money ? i18tn('hb_found_n_value', D.n, { n: _hbN(D.n), what: D.title || '', v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) })
+    : i18tn('hb_found_n', D.n, { n: _hbN(D.n), what: D.title || '' });
+  const how = D.kind === 'list' && D.n && P ? ' ' + i18t('hb_found_how', { how: hbHowWord(P) }) : '';
+  return _hbE(head + how);
+}
+/* the name a set Copilot chose is shown under: the one asked for, HaTi's own
+   top-N label, the open card's when the question points at it, else the
+   person's own words — never Copilot's note */
+function hbFoundTitle(q, top){
+  const raw = String(q || '').trim();
+  const m = HB_RC.title.exec(raw); if (m && m[1]) return hbPlainText(m[1], HB_TITLE_MAX);
+  if (top) return hbPlainText(top, HB_TITLE_MAX);
+  const low = ' ' + _hbRcNorm(raw) + ' ', key = hbOpenListKey();
+  if (key && HB_FU.refer.test(low)) return hbPlainText(hbCrumbOf(key, hbS().lens), HB_TITLE_MAX);
+  const t = hbPlainText(raw.replace(/[?!.]+$/, ''), 60);
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : i18t('hb_found_list');
+}
+/* the reply for a set drawn on the board (after hbShowFound) */
+function hbFoundSay(){
+  const s = hbS(); const key = (s.path || []).slice(-1)[0]; if (!key) return '';
+  return hbAnswerSay(hbDigData(key, s.lens));
+}
+/* THE DISCONNECT CHECK: a Copilot sentence that states a count the board
+   does not show, a picture the open chart is not, or a split it is not split
+   by, is left out. Returns the kept text and what was dropped. */
+const HB_PIC_CLAIM_RE = /\b(?:as an?|shown as an?|drawn as an?|now an?|into an?|in an?)\s+(pie|ring|doughnut|donut|bar|bars|column|columns|timeline|gantt|heat ?map|blocks|tree ?map)\b/i;
+const HB_PIC_OF = { pie: 'ring', ring: 'ring', doughnut: 'ring', donut: 'ring', bar: 'bars', bars: 'bars', column: 'cols', columns: 'cols', timeline: 'gantt', gantt: 'gantt', heatmap: 'heat', 'heat map': 'heat', blocks: 'blocks', treemap: 'blocks', 'tree map': 'blocks' };
+const HB_SPLIT_CLAIM_RE = /\b(?:split|grouped|broken down|shown|drawn|now)\b[^.]{0,30}?\bby (stage|stream|value stream|counterparty|owner|type|side|payment terms|month|quarter|year)\b/i;
+const HB_SPLIT_OF = { stage: 'status', stream: 'folder', 'value stream': 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', 'payment terms': 'payterms', month: 'date', quarter: 'date', year: 'date' };
+function hbProseChecked(text){
+  const s = hbS(); const key = hbOpenListKey();
+  const D = key ? hbDigData(key, s.lens) : null, P = D ? hbPlan(D) : null;
+  const counts = new Set();
+  try { (String(hbBoardNow() || '').match(/\d[\d,]*/g) || []).forEach(x => counts.add(Number(x.replace(/,/g, '')))); } catch (_){ /* no board to read */ }
+  if (D) counts.add(D.n);
+  const first = hbWhyCheck(text, counts);
+  let dropped = first.dropped;
+  const sentences = first.text ? first.text.split(/(?<=[.!?])\s+(?=[A-ZÅÄÖ0-9*"(])/) : [];
+  const kept = !P ? sentences : sentences.filter(snt => {
+    const pm = HB_PIC_CLAIM_RE.exec(snt);
+    if (pm){ const want = HB_PIC_OF[pm[1].toLowerCase().replace(/\s+/, ' ')] || HB_PIC_OF[pm[1].toLowerCase().replace(/\s+/g, '')]; if (want && want !== P.pic && !(want === 'bars' && P.pic === 'cols')){ dropped++; return false; } }
+    const sm = HB_SPLIT_CLAIM_RE.exec(snt);
+    if (sm){ const by = HB_SPLIT_OF[sm[1].toLowerCase()]; const drawn = [P.split && P.split.by, P.split2 && P.split2.by].filter(Boolean); if (by && drawn.length && !drawn.includes(by)){ dropped++; return false; } }
+    return true;
+  });
+  if (dropped) hbFeedbackSend({ kind: 'disconnect', q: _hbAskQ, said: String(text || '').slice(0, 600) });
+  return { text: kept.join(' ').trim(), dropped };
+}
+/* Copilot's own sentence, as the reply may carry it: only for a why or
+   explain question, checked against the open chart, formatted */
+function hbCopilotTail(own, q){
+  const o = String(own || '').trim(); if (!o || !hbCopilotMaySay(q)) return '';
+  const chk = hbProseChecked(o); if (!chk.text) return '';
+  return '<br>' + ((typeof aiRichText === 'function') ? aiRichText(chk.text) : _hbE(chk.text));
+}
+/* THE REVIEW RECORD (Part 6): a mark, a quick fix or a caught disconnect,
+   sent to POST /api/board/feedback; the server names the person. Nothing is
+   said on the page for a 'fix' or a 'disconnect'. */
+function hbFeedbackSend(rec){
+  if (!rec || typeof API_MODE !== 'function' || !API_MODE() || typeof api !== 'function') return null;
+  try { const p = api('board/feedback', 'POST', rec); return p && p.catch ? p.catch(() => null) : p; } catch (_){ return null; }
+}
+/* ============================================================
+   RIGHT OR WRONG (work order "the board that answers right", Part 6, 5 Oct
+   2026; screen 4 of the sketches)
+   ============================================================
+   Two small marks at the foot of every board reply, free or Copilot's.
+   Pressed once — a second press does nothing. "Wrong" sends the question,
+   the recipe that was drawn and the reply to the admins' review list and
+   says so in ONE quiet line; "Right" is kept quietly. No band, no dialog. */
+function hbMarksHtml(i, m){
+  if (!m || !m.boardReply) return '';
+  const on = m.fb || '';
+  const b = (k, ic, lab) => `<button type="button" class="hb-fb-b${on === k ? ' is-on is-' + k : ''}" data-hb-fb="${i}:${k}" aria-label="${_hbE(lab)}" title="${_hbE(lab)}" aria-pressed="${on === k}"${on ? ' disabled' : ''}>${(typeof icon === 'function') ? icon(ic, 'w-3 h-3', 2) : _hbE(lab)}</button>`;
+  return `<div class="hb-fb">${on === 'wrong' ? `<span class="hb-fb-said">${_hbE(i18t('hb_fb_sent'))}</span>` : ''}${b('right', 'check2', i18t('hb_fb_right'))}${b('wrong', 'x', i18t('hb_fb_wrong'))}</div>`;
+}
+function hbMarkPress(i, kind){
+  const h = (window.intel && Array.isArray(intel.history)) ? intel.history : [];
+  const m = h[i]; if (!m || !m.boardReply || m.fb || !['right', 'wrong'].includes(kind)) return false;
+  m.fb = kind;
+  const q = (h.slice(0, i).reverse().find(x => x && x.role === 'user') || {}).text || '';
+  const before = (h.slice(0, i).reverse().filter(x => x && x.role === 'user')[1] || {}).text || '';
+  let recipe = null;
+  try { const key = m.reading && m.reading.key; const D = key ? hbDigData(key, hbS().lens) : null; if (D && D.kind === 'list') recipe = hbCardClean(hbPlan(D)); } catch (_){ recipe = null; }
+  const said = String(m.text || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 600);
+  hbFeedbackSend({ kind, q, after: before, recipe, said });
+  return true;
+}
+function hbMarksRepaint(i){
+  try {
+    const turn = document.querySelector(`[data-ig-turn="${i}"]`); const el = turn && turn.querySelector('.hb-fb');
+    const m = window.intel && intel.history[i];
+    if (el && m) el.outerHTML = hbMarksHtml(i, m); else if (typeof renderIntelDock === 'function') renderIntelDock();
+  } catch (_){ /* the panel is not up */ }
+}
+/* a reply asked on the board carries the marks */
+function hbBoardReplyMeta(){ try { return (window.state && state.view === 'dashboard' && hbS().face === 'board') ? { boardReply: true } : {}; } catch (_){ return {}; } }
+/* ---- VERIFIED VIEWS (work order "the board that answers right", Part 9,
+   5 Oct 2026; Power BI's verified answers) ----
+   An admin saves a card as the company's answer to named questions
+   (PUT /api/settings/board-verified, the list on state.settings). Asking one —
+   normalised, exact — draws that card through hbAddCard like any card,
+   counted LIVE over this reader's own book, marked VERIFIED with who set it
+   and when. A view whose recipe no longer passes the checker is drawn as
+   stored and the checker's line is SAID — never silently changed. */
+function hbPhraseNorm(q){ return String(q || '').toLowerCase().normalize('NFC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); }
+function hbVerifiedList(){
+  const st = (typeof state === 'object' && state && state.settings) || {};
+  return Array.isArray(st.boardVerified) ? st.boardVerified.filter(v => v && v.id && v.recipe && Array.isArray(v.phrases)) : [];
+}
+function hbVerifiedHit(q){
+  const n = hbPhraseNorm(q); if (!n) return null;
+  return hbVerifiedList().find(v => v.phrases.some(p => hbPhraseNorm(p) === n)) || null;
+}
+/* the badge on a card head (the board's card and its open copy alike) */
+function hbVerBadgeHtml(p){ if (!p || !p.verified) return ''; const v = hbVerifiedOf(p); return `<span class="hb-vb" title="${_hbE(v ? hbVerifiedByLine(v) : '')}">${_hbE(i18t('hb_ver_badge'))}</span>`; }
+function hbVerifiedOf(p){ return p && p.verified && p.verified.id ? hbVerifiedList().find(v => v.id === p.verified.id) || null : null; }
+function hbDayShort(iso){
+  try { return new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'short' }); } catch (_){ return String(iso || ''); }
+}
+function hbVerifiedByLine(v){
+  return i18t('hb_ver_by', { by: v.by || '—', at: hbDayShort(v.at), qs: v.phrases.slice(0, 3).map(p => '“' + p + '”').join(', ') });
+}
+function hbVerifiedAnswer(v){
+  const s = hbS();
+  /* asked again: the same card, fresh from the stored recipe, back on top */
+  const old = s.panels.find(x => x.verified && x.verified.id === v.id);
+  if (old) s.panels.splice(s.panels.indexOf(old), 1);
+  const { p, left } = hbAddCard(v.which || { all: true }, v.recipe, v.title);
+  p.verified = { id: v.id, by: v.by || '', at: v.at || '' };
+  hbSave();
+  hbDig(p.key, false);
+  const D = hbDigData(p.key, s.lens) || { n: 0, kind: 'list', ids: [] };
+  let warn = '';
+  if (D.kind === 'list'){ try { const pr = hbCardCheck(D, v.recipe, Object.assign(hbPlanSpec(D), hbCardClean(v.recipe))); if (pr.length) warn = ' ' + _hbE(i18t('hb_ver_stale', { why: pr.map(x => x.say).join('; ') })); } catch (_){ /* the line is a courtesy */ } }
+  _hbMeta = Object.assign(_hbMeta || {}, { verified: { id: v.id } });
+  return `<span class="hb-vb">${_hbE(i18t('hb_ver_badge'))}</span> ${hbAnswerSay(D)}${warn}`
+    + (left ? ' ' + _hbE(i18t('hb_panel_left', { what: hbPanelWord(left) })) : '')
+    + `<br><span class="hb-ver-by">${_hbE(hbVerifiedByLine(v))}</span>`;
+}
+/* Copilot is told the phrases, so it does not compete with them */
+function hbVerifiedGuide(){
+  const L = hbVerifiedList(); if (!L.length) return '';
+  return 'Verified views (HaTi answers these questions itself with the company\'s own chart; never offer a different chart for them): '
+    + L.slice(0, 20).map(v => `"${v.title}" answers ${v.phrases.slice(0, 6).map(p => '"' + p + '"').join(', ')}`).join('; ') + '.';
+}
+/* the admin's ⋯ menu and its form, on a card the board built (cd:) */
+let _hbMoreMenu = null, _hbVerForm = null;
+function hbMayVerify(p){ return !!(p && p.kind === 'view' && /^cd:/.test(p.key || '') && typeof isAdmin === 'function' && isAdmin()); }
+function hbVerFormHtml(p){
+  const v = hbVerifiedOf(p);
+  const ph = v ? v.phrases.join('\n') : '';
+  return `<form class="hb-inl hb-verf" data-hb-ver-form="${_hbE(p.id)}">
+    <label class="hb-wide">${_hbE(i18t('hb_ver_title'))} <input name="vtitle" maxlength="80" value="${_hbE(v ? v.title : hbPanelWord(p))}"></label>
+    <label class="hb-wide">${_hbE(i18t('hb_ver_qs'))} <textarea name="phrases" rows="3" maxlength="1500" placeholder="${_hbE(i18t('hb_ver_qs_ph'))}">${_hbE(ph)}</textarea></label>
+    <button type="submit" class="hb-btn is-primary">${_hbE(i18t(v ? 'hb_ver_save' : 'hb_ver_set'))}</button>
+    ${v ? `<button type="button" class="hb-btn" data-hb-ver-off="${_hbE(p.id)}">${_hbE(i18t('hb_ver_off'))}</button>` : ''}
+    <button type="button" class="hb-btn" data-hb-ver-cancel>${_hbE(i18t('hb_cancel'))}</button>
+    <span class="hb-quiet hb-wide" data-hb-ver-say></span></form>`;
+}
+async function hbVerSave(pid, title, phrasesText, remove){
+  const s = hbS(), p = s.panels.find(x => x.id === pid); if (!p) return;
+  const v = hbVerifiedOf(p);
+  const sayEl = () => document.querySelector(`[data-hb-ver-form="${pid}"] [data-hb-ver-say]`);
+  let body;
+  if (remove){ if (!v) return; body = { id: v.id, remove: true }; }
+  else {
+    const D = hbDigData(p.key, s.lens); const P = D ? hbPlan(D) : {};
+    const recipe = {}; ['pic', 'split', 'split2', 'measure', 'trend', 'sort', 'top', 'window', 'compare'].forEach(k => { if (P[k] != null) recipe[k] = P[k]; });
+    const which = p.which && p.which.q ? { q: p.which.q } : { all: true };
+    body = { id: v ? v.id : undefined, title: String(title || '').trim(), which, recipe, phrases: String(phrasesText || '').split(/\n+/).map(x => x.trim()).filter(Boolean) };
+  }
+  try {
+    const r = await api('settings/board-verified', 'PUT', body);
+    state.settings = state.settings || {}; state.settings.boardVerified = (r && r.boardVerified) || [];
+    if (remove) delete p.verified; else if (r && r.view) p.verified = { id: r.view.id, by: r.view.by, at: r.view.at };
+    _hbVerForm = null; hbSave(); hbPaintBoard();
+    if (typeof toast === 'function') toast(i18t(remove ? 'hb_ver_offed' : 'hb_ver_saved', { what: body.title || (v && v.title) || '' }), 'ok');
+  } catch (e){ const el = sayEl(); if (el) el.textContent = (e && e.message) || String(e); else if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); }
+}
+/* ---- SEE IT WHILE YOU TYPE (work order "the board that answers right",
+   Part 10, 5 Oct 2026) ----
+   ONE READING of a question, PURE: what the answer WOULD be — the verified
+   view, a change to the open chart, the board's own command, or Copilot —
+   and nothing written (no hbDig, no hbCardSet, no hbSave). hbAsk takes this
+   as its first step, so the line over the ask box and the answer are the
+   same reading. (Named hbAskReadingOf: hbReadingOf is the chart's reading.) */
+function hbAskReadingOf(qRaw){
+  const raw = String(qRaw == null ? '' : qRaw);
+  if (!raw.trim()) return null;
+  const s = hbS();
+  if (HB_WHY_ASK_RE.test(raw)) return { road: 'copilot', why: true, q: raw };
+  /* A VERIFIED VIEW ANSWERS FIRST (Part 9): the company's own answer to the
+     questions an admin named, exact after normalising, before any reading */
+  if (s.face === 'board'){ const v = hbVerifiedHit(raw); if (v) return { road: 'free', kind: 'verified', v, q: raw }; }
+  const q = hbWordsApply(raw);
+  const fu = hbFollowUpRead(q);
+  if (fu) return { road: 'free', kind: 'follow', fu, q };
+  const r = hbParse(q);
+  if (!r) return { road: 'copilot', q, r: null };
+  /* EXPLORER STAYS AS DESIGNED (the owner's words): on the map side the
+     board's reader steps aside for every question but the two that are about
+     the screen itself — back to the board, and Present. A question about
+     renewals asked of the map is the map's to answer. */
+  if (s.face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.act === 'present' || r.act === 'analyze')) return { road: 'map', q, r };
+  return { road: 'free', kind: r.act, r, q };
+}
+/* the line's words for a reading: what it will draw, and free — or Copilot,
+   with no price (a cost is never guessed) */
+function hbAskPreviewText(A){
+  if (!A || A.road === 'map') return '';
+  if (A.road === 'copilot') return i18t('hb_pre_copilot');
+  const s = hbS(), free = ' · ' + i18t('hb_pre_free');
+  try {
+    if (A.kind === 'verified') return i18t('hb_pre_verified', { what: A.v.title }) + free;
+    if (A.kind === 'follow'){
+      if (A.fu.narrow){ const N = hbDigData(A.fu.narrow, s.lens); return i18t('hb_pre_narrow', { what: (N && N.title) || '' }) + free; }
+      const D = hbDigData(A.fu.key, s.lens); if (!D) return i18t('hb_pre_cmd') + free;
+      return i18t('hb_pre_change', { how: hbHowWord(hbCardPlan(Object.assign(hbPlanSpec(D), hbCardClean(A.fu.chart)), D)) }) + free;
+    }
+    const r = A.r;
+    if (r.act === 'dig'){
+      if (/^f:/.test(r.key)) return i18t('hb_pre_fig', { what: i18t('hb_f_' + r.key.slice(2)) }) + free;
+      const D = hbDigData(r.key, s.lens);
+      if (D && D.kind === 'list') return i18t('hb_pre_chart', { what: D.setLabel || D.title || '', how: hbHowWord(hbPlan(D)), n: _hbN(D.n) }) + free;
+      return i18t('hb_pre_open', { what: (D && D.title) || '' }) + free;
+    }
+    if (r.act === 'panel' || r.act === 'remove') return i18t(r.act === 'panel' ? 'hb_pre_panel' : 'hb_pre_remove', { what: i18t(HB_KINDS[r.kind].word) }) + free;
+    if (r.act === 'card' || r.act === 'analyze'){ const K = hbCardData(hbContract(r.id)); return i18t(r.act === 'card' ? 'hb_pre_card' : 'hb_pre_analyze', { what: K.ref + ' · ' + K.name }) + free; }
+  } catch (_){ /* the line is a courtesy: say the plain thing */ }
+  return i18t('hb_pre_cmd') + free;
+}
 function hbAsk(q){
   _hbMeta = null;
-  if (HB_WHY_ASK_RE.test(String(q || ''))){ _hbPendingRecipe = null; return null; }
+  const A = hbAskReadingOf(q);
+  if (!A){ _hbPendingRecipe = null; return null; }
+  if (A.why){ _hbPendingRecipe = null; return null; }
+  if (A.kind === 'verified'){ _hbPendingRecipe = null; const u = hbUndoTop(); return hbVerifiedAnswer(A.v) + `<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u)}</div>`; }
+  q = A.q;
   const u0 = hbUndoTop();
-  const fu = hbFollowUp(q);
+  const fu = A.kind === 'follow' ? hbFollowUp(q, A.fu) : null;
   if (fu){ _hbPendingRecipe = null; return fu + `<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u0)}</div>`; }
-  const r = hbParse(q);
+  const r = 'r' in A ? A.r : hbParse(q);
   /* a chart question HaTi could not read whole goes on to Copilot with its
      picture words already read (hbShowFound puts them on the answer) */
   _hbPendingRecipe = r ? null : hbRecipeRead(q);
   if (!r) return null;
   const s = hbS();
-  /* EXPLORER STAYS AS DESIGNED (the owner's words): on the map side the
-     board's reader steps aside for every question but the two that are about
-     the screen itself — back to the board, and Present. A question about
-     renewals asked of the map is the map's to answer. */
-  if (s.face !== 'board' && !((r.act === 'face' && r.face === 'board') || r.act === 'present' || r.act === 'analyze')) return null;
+  if (A.road === 'map') return null;
   const free = i18t('hb_free');
   const say = (html, opts) => { if (!opts || !opts.noPaint){ if (s.face === 'board') hbPaintBoard(opts && opts.jump ? { jump: opts.jump } : undefined); } return html + `<div class="hb-cost">${_hbE(free)}${hbNoteUndo(u0)}</div>`; };
   if (r.act === 'card'){
@@ -4531,13 +5112,9 @@ function hbAsk(q){
     /* THE FREE READER'S CARD IS CHECKED TOO (work order Part 4): no retry —
        it is drawn as asked — and what is wrong with it is said, the same line */
     if (/^q:/.test(r.key) && D.kind === 'list' && D.n){ try { const pr = hbCardCheck(D, {}, hbPlanSpec(D)); if (pr.length) warn += ' ' + _hbE(i18t('hb_chk_free', { why: pr.map(p => p.say).join('; ') })); } catch (_){ /* the line is a courtesy */ } }
-    /* THE ANSWER SAYS WHAT IS DRAWN (the owner's screenshot, 5 Oct 2026:
-       "payment terms in a pie" answered only "All contracts: 178") */
-    if (/^q:/.test(r.key) && D.kind === 'list' && D.n){ try { warn = ' ' + _hbE(i18t('hb_found_how', { how: hbHowWord(hbPlan(D)) })) + warn; } catch (_){ /* the line is a courtesy */ } }
-    /* a question about money is answered with the money, not only a count */
-    if (D.kind === 'list' && hbMoneyOk() && hbPlan(D).measure === 'value')
-      return say(_hbE(i18tn('hb_found_n_value', D.n, { n: _hbN(D.n), what: D.title || '', v: _hbM(hbValueOf(hbListOf(D.ids, s.lens)).v) })) + warn, { noPaint: true });
-    return say(_hbE(i18tn('hb_found_n', D.n, { n: _hbN(D.n), what: D.title || '' })) + warn, { noPaint: true });
+    /* THE ANSWER SAYS WHAT IS DRAWN, and money where the card measures it:
+       ONE writer (hbAnswerSay) for every reply on the board */
+    return say(hbAnswerSay(D) + warn, { noPaint: true });
   }
   return null;
 }
@@ -4717,6 +5294,8 @@ function hbOnClick(e){
   const t = e.target && e.target.closest ? e.target : null; if (!t) return;
   /* an open dropdown closes on a press anywhere else */
   if (_hbRcOpen && !t.closest('.hb-rwrap')){ _hbRcOpen = null; hbPaintBoard(); }
+  if (_hbRdOpen && !t.closest('.hb-rd-wrap')){ _hbRdOpen = null; hbDockRepaint(); }
+  if (_hbMoreMenu && !t.closest('.hb-more-w')){ _hbMoreMenu = null; hbPaintBoard(); }
   const on = sel => t.closest(sel);
   let el;
   if ((el = on('[data-hb-face]'))){ hbSetFace(el.getAttribute('data-hb-face')); return; }
@@ -4737,6 +5316,14 @@ function hbOnClick(e){
     hbPreviewSettle(id, out.html, out.undo); return; }
   if ((el = on('[data-hb-undo]'))){ const ok = hbUndo(el.getAttribute('data-hb-undo')); hbPaintBoard();
     if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_gone'), ok ? 'ok' : 'warn'); return; }
+  /* RIGHT OR WRONG (Part 6): once */
+  if ((el = on('[data-hb-fb]'))){ if (el.disabled) return; const [i, k] = String(el.getAttribute('data-hb-fb')).split(':'); if (hbMarkPress(Number(i), k)) hbMarksRepaint(Number(i)); return; }
+  /* A NEXT QUESTION (Part 5): asked as if typed, through the panel */
+  if ((el = on('[data-hb-next]'))){ const q = el.getAttribute('data-hb-next'); if (q && typeof intelAsk === 'function') intelAsk(q); return; }
+  /* THE READING'S CHIPS, in the panel's reply (Part 4) */
+  if ((el = on('[data-hb-rd]'))){ const row = el.closest('[data-hb-rd-key]'); if (!row) return; hbRdToggle(row.getAttribute('data-hb-rd-key'), el.getAttribute('data-hb-rd')); hbDockRepaint(); return; }
+  if ((el = on('[data-hb-rdset]'))){ if (el.disabled) return; const row = el.closest('[data-hb-rd-key]'); const v = el.getAttribute('data-hb-rdset'), i = v.indexOf(':');
+    _hbRdOpen = null; if (row && i > 0) hbReadingSet(row.getAttribute('data-hb-rd-key'), v.slice(0, i), v.slice(i + 1)); hbPaintBoard({ jump: 'focus' }); hbDockRepaint(); return; }
   if ((el = on('[data-hb-rmore]'))){ hbRcMoreToggle(rkey(el)); _hbRcOpen = null; hbPaintBoard(); return; }
   if ((el = on('[data-hb-rc]'))){ const p = rkey(el) + '|' + el.getAttribute('data-hb-rc'); _hbRcOpen = _hbRcOpen === p ? null : p; hbPaintBoard(); return; }
   if ((el = on('[data-hb-rset]'))){ if (el.disabled) return; const key = rkey(el), v = el.getAttribute('data-hb-rset'), i = v.indexOf(':');
@@ -4751,6 +5338,8 @@ function hbOnClick(e){
   if ((el = on('[data-hb-watch]'))){ const k = el.getAttribute('data-hb-watch'); _hbWatchForm = _hbWatchForm === k ? null : k; hbPaintBoard(); return; }
   if (on('[data-hb-watch-cancel]')){ _hbWatchForm = null; hbPaintBoard(); return; }
   if (on('[data-hb-give-cancel]')){ _hbGiveForm = null; hbPaintBoard(); return; }
+  if (on('[data-hb-ver-cancel]')){ _hbVerForm = null; hbPaintBoard(); return; }
+  if ((el = on('[data-hb-ver-off]'))){ hbVerSave(el.getAttribute('data-hb-ver-off'), '', '', true); return; }
   if ((el = on('[data-hb-ungive]'))){ hbUngive(el.getAttribute('data-hb-ungive')); return; }
   if ((el = on('[data-hb-act]'))){
     const card = el.closest('[data-hb-pid]'); const pid = card && card.getAttribute('data-hb-pid'); if (!pid) return;
@@ -4785,6 +5374,11 @@ function hbOnSubmit(e){
     if (typeof toast === 'function') toast(i18t('hb_watch_said', { what: i18t('hb_f_' + k), dir: i18t('hb_watch_' + dir), n }), 'ok');
     return;
   }
+  if (f && f.matches && f.matches('[data-hb-ver-form]')){
+    e.preventDefault();
+    hbVerSave(f.getAttribute('data-hb-ver-form'), f.elements.vtitle.value, f.elements.phrases.value);
+    return;
+  }
   if (f && f.matches && f.matches('[data-hb-give-form]')){
     e.preventDefault();
     hbGive(f.getAttribute('data-hb-give-form'), f.to.value, f.note.value);
@@ -4817,6 +5411,7 @@ function hbOnKey(e){
     e.preventDefault(); const ok = hbUndo(); hbPaintBoard();
     if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_none'), ok ? 'ok' : 'warn'); return;
   }
+  if (e.key === 'Escape' && _hbRdOpen){ _hbRdOpen = null; hbDockRepaint(); return; }
   if (e.key === 'Escape' && _hbRcOpen){ const at = _hbRcOpen.lastIndexOf('|'), k = _hbRcOpen.slice(0, at), p = _hbRcOpen.slice(at + 1); _hbRcOpen = null; hbPaintBoard();
     const row = [...document.querySelectorAll('[data-hb-rkey]')].find(r => r.getAttribute('data-hb-rkey') === k);
     const b = row && row.querySelector(`[data-hb-rc="${p}"]`); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }
@@ -4853,7 +5448,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

@@ -1392,7 +1392,7 @@ async function saveContract(c){
   /* _hasBrief is the LIST's twin of the above: a boolean saying a memo exists,
      so the home page's coverage tile can count without the memo itself riding
      every row. Same rule — transport, never record. */
-  delete payload._hasBrief;
+  delete payload._hasBrief; delete payload._briefLite;   // the list's lite concerns (the board's risks split)
   /* _readings is the plain-English layer's transport (idea 7), off its own
      server table. Same rule as _brief above: a reading written back into the
      record would be stale the moment the wording moved. */
@@ -2341,9 +2341,25 @@ function startApp(){
    sign-in and the same server guard; nothing here decides anything.
    A NARROW LIST, like the tab beside it: a word this does not know is simply
    not acted on, and the room opens where it always would. */
-const HASH_GO = { approval: { tab:'sign', sel:'#sa-card' } };
+const HASH_GO = { approval: { tab:'sign', sel:'#sa-card' }, moved: { home:true } };
 const HASH_GO_WAIT = 120, HASH_GO_TRIES = 25, HASH_GO_LIT = 2400;
 function openFromHash(){
+  /* "WHAT MOVED" IN THE BRIEF (Part 11, 5 Oct 2026): #home&go=moved&card=<id>
+     opens Home's board at that finding's chart. The same narrow list: a word
+     it does not know is not acted on. The id is a shelf finding's, never a
+     token, and the board is behind the same sign-in. */
+  const hm=String(location.hash||'').match(/^#home&go=([a-z]+)&card=([a-z]+(?:\.mine)?)$/i);
+  if(hm){
+    const g=HASH_GO[String(hm[1]).toLowerCase()]||null;
+    try{ history.replaceState(null,'',location.pathname+location.search); }catch(_){ location.hash=''; }
+    if(!g||!g.home) return false;
+    let opened=false;
+    if(typeof window.hbOpenFromLink==='function'){ try{ opened=hbOpenFromLink(hm[2]); }catch(_){} }
+    setView('dashboard');
+    /* to the chart, as the shelf's own Open does */
+    if(opened&&typeof window.hbPaintBoard==='function'){ try{ hbPaintBoard({ jump:'focus' }); }catch(_){} }
+    return true;
+  }
   const m=String(location.hash||'').match(/^#contract=([^&]+)(?:&tab=([a-z]+))?(?:&go=([a-z]+))?$/i);
   if(!m) return false;
   const id=decodeURIComponent(m[1]), tab=String(m[2]||'').toLowerCase();

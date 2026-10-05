@@ -401,6 +401,15 @@ function auditDatesOf(c) {
    next time anybody reads it. */
 const SITTING_KEYS = ['_messages', '_msgFetch', '_shareFetch', '_signChecking', '_triaging'];
 const dropSittingKeys = c => { if (c && typeof c === 'object') for (const k of SITTING_KEYS) delete c[k]; return c; };
+/* THE BRIEF'S CONCERNS, LITE — what riskItemsOf needs to count, nothing more. */
+const briefLiteOf = d => {
+  const one = w => (w && typeof w === 'object')
+    ? { point: String(w.point || '').slice(0, 400), quote: String(w.quote || '').slice(0, 240), why: String(w.why || '').slice(0, 400),
+        wording: typeof w.wording === 'boolean' ? w.wording : null }
+    : { point: String(w || '').slice(0, 400), quote: '', why: '', wording: null };
+  const pick = l => (Array.isArray(l) ? l : []).map(one).filter(w => w.point.trim());
+  return { data: { watchouts: pick(d.watchouts), unusual: pick(d.unusual) } };
+};
 const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
   dropSittingKeys(x);
@@ -3783,9 +3792,18 @@ function srvListDecorate(dbRows, user) {
   const pageIds = rows.map(c => String(c.id));
   const inList = n => '(' + new Array(n).fill('?').join(',') + ')';
   if (pageIds.length) {
-    const have = new Set(db.prepare('SELECT contract_id FROM briefs WHERE contract_id IN ' + inList(pageIds.length))
-      .all(...pageIds).map(x => String(x.contract_id)));
-    rows.forEach(c => { if (have.has(String(c.id))) c._hasBrief = true; });
+    /* AND ITS CONCERNS, LITE (5 Oct 2026, the board's "by open risks" split).
+       The board counts open risks per contract off riskItemsOf, which reads
+       the brief's watchouts and unusual terms — and the light list carried
+       only the boolean, so the split undercounted in production. Only the
+       points the count needs ride (point, a short quote, why, wording), never
+       the memo; transport, stripped on save like _brief. Same ONE query. */
+    const lite = new Map();
+    for (const r of db.prepare('SELECT contract_id, json FROM briefs WHERE contract_id IN ' + inList(pageIds.length)).all(...pageIds)) {
+      let d = null; try { const b = JSON.parse(r.json); d = b && b.data; } catch (_) {}
+      lite.set(String(r.contract_id), d ? briefLiteOf(d) : null);
+    }
+    rows.forEach(c => { const k = String(c.id); if (lite.has(k)) { c._hasBrief = true; const l = lite.get(k); if (l) c._briefLite = l; } });
   }
   /* ---- AND WHETHER A RENEWAL NOTE IS WAITING (9 Sep 2026) ----
      The overnight desk on the home page says a renewal note is ready — and it
@@ -4568,7 +4586,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   // _brief is GET-time transport off the briefs table (WO-2) — a client that
   // echoes it back must not get it stored into the record, where it would
   // shadow the real cache and ride saves it was never part of.
-  delete c._brief;
+  delete c._brief; delete c._briefLite;   // the list's lite concerns too (the board's risks split)
   delete c._renewalAdvice;   // W2-4: transport too, off its own table
   delete c._readings;        // idea 7: the plain-English layer, off its own table
   delete c._signNeeds; delete c._signState;   // approval before signing: read here, never stored
@@ -5793,6 +5811,10 @@ app.put('/api/settings', auth, admin, (req, res) => {
      converted figure in the workspace. The rates change only through their
      own atomic endpoint below. */
   if (!('fxRates' in incoming) && 'fxRates' in stored) incoming.fxRates = stored.fxRates;
+  /* THE BOARD'S WORD BOOK changes only through its own route (the board that
+     answers right, Part 3): a settings save never writes it, stale or not. */
+  if ('boardWords' in stored) incoming.boardWords = stored.boardWords; else delete incoming.boardWords;
+  if ('boardVerified' in stored) incoming.boardVerified = stored.boardVerified; else delete incoming.boardVerified;   // its own route (Part 9)
   /* WHO SAVED A LANE, AND WHO IT NAMES, ARE THE SERVER'S WORD — see
      srvLanesStamp. */
   if (Array.isArray(incoming.intakeLanes)) incoming.intakeLanes = srvLanesStamp(incoming.intakeLanes, stored.intakeLanes, req.user);
@@ -5848,6 +5870,173 @@ app.put('/api/settings/fx-rates', auth, admin, (req, res) => {
   stored.fxRates = rates;
   setSetting('appSettings', stored);
   res.json({ ok: true, fxRates: rates });
+});
+/* ---- THE BOARD'S WORD BOOK (work order "the board that answers right",
+   Part 3, 5 Oct 2026) ----
+   The company's own words and what Home's board reads them as: "deals" is
+   contracts, "BU" is the value stream, "ramavtal" is a type. ONE entry per
+   word and language, written only here, by an admin; the browser reads the
+   list off the settings blob and swaps a word for its meaning BEFORE its own
+   reader, and Copilot is handed the list. A meaning is one of HaTi's own
+   kinds and values — never free code. Body {say, lang, means:{kind, value}}
+   adds or replaces; {say, lang, remove:true} takes the word away. */
+const BOARD_WORD_KINDS = ['set', 'split', 'measure', 'stage', 'type', 'side'];
+const BOARD_WORD_STAGES = ['Draft', 'Under Review', 'Signed', 'Declined'];
+const BOARD_WORDS_MAX = 200;
+function boardWordClean(b) {
+  const say = String((b && b.say) || '').replace(/\s+/g, ' ').trim();
+  if (say.length < 2 || say.length > 40 || !/^[\p{L}\p{N}][\p{L}\p{N} &'’.-]*$/u.test(say)) return { error: 'A word is 2 to 40 letters, digits or spaces' };
+  const lang = (b && b.lang) === 'sv' ? 'sv' : (b && b.lang) === 'en' ? 'en' : null;
+  if (!lang) return { error: 'lang must be en or sv' };
+  if (b.remove) return { say, lang, remove: true };
+  const m = (b && b.means) || {};
+  const kind = String(m.kind || ''); let value = m.value == null ? '' : String(m.value).replace(/\s+/g, ' ').trim();
+  if (!BOARD_WORD_KINDS.includes(kind)) return { error: 'means.kind must be one of ' + BOARD_WORD_KINDS.join(', ') };
+  if (kind === 'split' && !Object.values(GRAPH_CHART_GROUP_OF).includes(value)) return { error: 'means.value is not a split the board knows' };
+  if (kind === 'measure' && !GRAPH_CHART_MEASURES.includes(value)) return { error: 'means.value is not a measure the board knows' };
+  if (kind === 'stage' && !BOARD_WORD_STAGES.includes(value)) return { error: 'means.value is not a stage' };
+  if (kind === 'side' && !['supplier', 'customer'].includes(value)) return { error: 'means.value must be supplier or customer' };
+  if ((kind === 'set' || kind === 'type') && (value.length < 2 || value.length > 80 || /[<>{}]/.test(value))) return { error: 'means.value is 2 to 80 plain characters' };
+  return { say, lang, means: { kind, value } };
+}
+app.put('/api/settings/board-words', auth, admin, (req, res) => {
+  const w = boardWordClean(req.body || {});
+  if (w.error) return res.status(400).json({ error: w.error });
+  const stored = getSetting('appSettings') || {};
+  const list = Array.isArray(stored.boardWords) ? stored.boardWords.slice() : [];
+  const same = x => x && String(x.say).toLowerCase() === w.say.toLowerCase() && x.lang === w.lang;
+  const kept = list.filter(x => !same(x));
+  if (!w.remove) {
+    if (kept.length >= BOARD_WORDS_MAX) return res.status(409).json({ error: `The word book holds ${BOARD_WORDS_MAX} words` });
+    kept.push({ say: w.say, lang: w.lang, means: w.means, by: req.user.name || req.user.email || '', at: now().slice(0, 10) });
+  } else if (kept.length === list.length) return res.status(404).json({ error: 'That word is not in the book' });
+  stored.boardWords = kept;
+  setSetting('appSettings', stored);
+  res.json({ ok: true, boardWords: kept });
+});
+/* ---- VERIFIED VIEWS (work order "the board that answers right", Part 9,
+   5 Oct 2026; Power BI's verified answers) ----
+   An admin saves a card as the company's answer to named questions. Asking
+   one of them on Home's board draws that card, marked VERIFIED, with who set
+   it and when — counted LIVE over the asker's own reach, so a verified view
+   never shows a contract a person could not already see. A row is
+   {id, title, which, recipe, phrases[], by, at}; the recipe is cleaned by
+   graphChartClean (the board's ONE cleaner's mirror), the set is the whole
+   book or a question re-read on every paint (never a list of ids). Written
+   only here, by an admin; a settings save never touches it. Body
+   {id?, title, which, recipe, phrases} adds or replaces; {id, remove:true}
+   takes it away. A phrase answers one view only. */
+const BOARD_VERIFIED_MAX = 50, BOARD_VERIFIED_PHRASES_MAX = 12;
+const boardPhraseNorm = q => String(q || '').toLowerCase().normalize('NFC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+/* read at call time: GRAPH_CHART_GROUP_OF is declared further down the file */
+const graphChartWordOf = g => (Object.entries(GRAPH_CHART_GROUP_OF).find(([, x]) => x === g) || [])[0] || '';
+const GRAPH_CHART_UNIT_WORD = { m: 'month', q: 'quarter', y: 'year' };
+/* a card's recipe (the board's own shape) in the words graphChartClean reads */
+function boardRecipeWords(r) {
+  if (!r || typeof r !== 'object') return null;
+  const w = { ...r };
+  const sp = (S, k, dk) => { if (!S || typeof S !== 'object') { delete w[k]; return; }
+    if (S.by === 'none') w[k] = 'none';
+    else if (S.by === 'date') { w[k] = GRAPH_CHART_UNIT_WORD[S.unit] || 'month'; w[dk] = S.date; }
+    else w[k] = graphChartWordOf(S.by); };
+  sp(r.split, 'split', 'date'); sp(r.split2, 'split2', 'date2');
+  if (r.window && typeof r.window === 'object') w.window = { ...r.window, unit: GRAPH_CHART_UNIT_WORD[r.window.unit] || r.window.unit };
+  return w;
+}
+function boardVerifiedClean(b) {
+  const id = /^[A-Za-z0-9_-]{1,40}$/.test(String((b && b.id) || '')) ? String(b.id) : null;
+  if (b && b.remove) return id ? { id, remove: true } : { error: 'id is required to remove' };
+  const title = String((b && b.title) || '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, GRAPH_CHART_TITLE_MAX);
+  if (!title) return { error: 'A verified view has a title' };
+  const recipe = graphChartClean(boardRecipeWords(b && b.recipe));
+  if (!recipe) return { error: 'The recipe is not a chart the board knows' };
+  delete recipe.target; delete recipe.title;
+  const wq = b && b.which;
+  let which = null;
+  if (wq && typeof wq === 'object' && wq.all === true) which = { all: true };
+  else if (wq && typeof wq === 'object' && typeof wq.q === 'string') { const q = wq.q.replace(/[\u0000-\u001f\u007f<>{}]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200); if (q) which = { q }; }
+  if (!which) return { error: 'which must be {all:true} or {q:"…"} — a set is re-read, never a list of contracts' };
+  const seen = new Set(), phrases = [];
+  for (const p of (Array.isArray(b && b.phrases) ? b.phrases : [])) {
+    const t = String(p || '').replace(/\s+/g, ' ').trim(), n = boardPhraseNorm(t);
+    if (n.length < 3 || t.length > 120 || seen.has(n)) continue;
+    seen.add(n); phrases.push(t);
+  }
+  if (!phrases.length) return { error: 'Name at least one question it answers (3 to 120 characters)' };
+  if (phrases.length > BOARD_VERIFIED_PHRASES_MAX) return { error: `At most ${BOARD_VERIFIED_PHRASES_MAX} questions per view` };
+  return { id, title, which, recipe, phrases };
+}
+app.put('/api/settings/board-verified', auth, admin, (req, res) => {
+  const v = boardVerifiedClean(req.body || {});
+  if (v.error) return res.status(400).json({ error: v.error });
+  const stored = getSetting('appSettings') || {};
+  const list = Array.isArray(stored.boardVerified) ? stored.boardVerified.slice() : [];
+  if (v.remove) {
+    const kept = list.filter(x => x && x.id !== v.id);
+    if (kept.length === list.length) return res.status(404).json({ error: 'That verified view is not on the list' });
+    stored.boardVerified = kept; setSetting('appSettings', stored);
+    return res.json({ ok: true, boardVerified: kept });
+  }
+  const id = v.id && list.some(x => x && x.id === v.id) ? v.id : ('bv_' + crypto.randomBytes(5).toString('hex'));
+  const mine = new Set(v.phrases.map(boardPhraseNorm));
+  const clash = list.find(x => x && x.id !== id && (x.phrases || []).some(p => mine.has(boardPhraseNorm(p))));
+  if (clash) return res.status(409).json({ error: `A question there already answers “${clash.title}”` });
+  const kept = list.filter(x => x && x.id !== id);
+  if (kept.length >= BOARD_VERIFIED_MAX) return res.status(409).json({ error: `The list holds ${BOARD_VERIFIED_MAX} verified views` });
+  const row = { id, title: v.title, which: v.which, recipe: v.recipe, phrases: v.phrases, by: req.user.name || req.user.email || '', at: now().slice(0, 10) };
+  kept.push(row);
+  stored.boardVerified = kept; setSetting('appSettings', stored);
+  res.json({ ok: true, view: row, boardVerified: kept });
+});
+/* ---- WHAT PEOPLE SAY ABOUT THE BOARD'S ANSWERS (work order "the board that
+   answers right", Parts 6 and 7, 5 Oct 2026) ----
+   ONE record of the board's answers as people judged them: Right / Wrong on a
+   reply, a chip changed right after an answer (a possible misreading, 'fix'),
+   and a Copilot sentence the disconnect check left out ('disconnect'). It
+   holds the question, the recipe that was drawn and the reply — NO contract
+   text and no name but the asker's, whom the server looks up (never read
+   from the body). Admins read it (the Copilot accuracy drawer) and settle a
+   row: kept as a test, or dismissed. */
+db.exec(`
+  CREATE TABLE IF NOT EXISTS board_feedback (
+    id TEXT PRIMARY KEY, kind TEXT NOT NULL, q TEXT, after TEXT, recipe TEXT, said TEXT, changed TEXT,
+    by_id TEXT, by_name TEXT, at TEXT NOT NULL, day TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'open');
+  CREATE INDEX IF NOT EXISTS idx_board_feedback_day ON board_feedback(day, kind);
+`);
+const BOARD_FEEDBACK_KINDS = ['wrong', 'right', 'disconnect', 'fix'];
+const BOARD_FEEDBACK_STATES = ['open', 'kept', 'dismissed'];
+const BOARD_FEEDBACK_DAY_MAX = 200;
+const bfText = (v, n) => String(v == null ? '' : v).replace(/<[^>]*>/g, ' ').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+const bfJson = (v, n) => { if (v == null || typeof v !== 'object' || Array.isArray(v)) return null; const t = JSON.stringify(v); return t.length <= n ? t : null; };
+app.post('/api/board/feedback', auth, (req, res) => {
+  const b = req.body || {};
+  if (!BOARD_FEEDBACK_KINDS.includes(b.kind)) return res.status(400).json({ error: 'kind must be one of ' + BOARD_FEEDBACK_KINDS.join(', ') });
+  const day = now().slice(0, 10);
+  const n = db.prepare('SELECT COUNT(*) AS n FROM board_feedback WHERE by_id=? AND day=?').get(req.user.id, day).n;
+  if (n >= BOARD_FEEDBACK_DAY_MAX) return res.status(429).json({ error: 'Enough said for today — thank you' });
+  const id = 'BF-' + rid(6);
+  db.prepare('INSERT INTO board_feedback (id,kind,q,after,recipe,said,changed,by_id,by_name,at,day) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+    .run(id, b.kind, bfText(b.q, 400), bfText(b.after, 400), bfJson(b.recipe, 1500), bfText(b.said, 600), bfJson(b.changed, 300),
+      req.user.id, req.user.name || '', now(), day);
+  res.json({ ok: true, id });
+});
+const bfRow = r => ({ id: r.id, kind: r.kind, q: r.q || '', after: r.after || '', recipe: (() => { try { return r.recipe ? JSON.parse(r.recipe) : null; } catch (_) { return null; } })(),
+  said: r.said || '', changed: (() => { try { return r.changed ? JSON.parse(r.changed) : null; } catch (_) { return null; } })(), by: r.by_name || '', at: r.at, state: r.state });
+app.get('/api/board/feedback', auth, admin, (req, res) => {
+  const kind = BOARD_FEEDBACK_KINDS.includes(req.query.kind) ? req.query.kind : null;
+  const rows = kind ? db.prepare('SELECT * FROM board_feedback WHERE kind=? ORDER BY at DESC LIMIT 200').all(kind)
+    : db.prepare('SELECT * FROM board_feedback ORDER BY at DESC LIMIT 200').all();
+  const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  const week = db.prepare('SELECT kind, COUNT(*) AS n FROM board_feedback WHERE day>=? GROUP BY kind').all(since)
+    .reduce((o, r) => { o[r.kind] = r.n; return o; }, {});
+  res.json({ rows: rows.map(bfRow), week });
+});
+app.patch('/api/board/feedback/:id', auth, admin, (req, res) => {
+  const state = (req.body || {}).state;
+  if (!BOARD_FEEDBACK_STATES.includes(state)) return res.status(400).json({ error: 'state must be one of ' + BOARD_FEEDBACK_STATES.join(', ') });
+  const r = db.prepare('UPDATE board_feedback SET state=? WHERE id=?').run(state, String(req.params.id));
+  if (!r.changes) return res.status(404).json({ error: 'No such row' });
+  res.json({ ok: true, row: bfRow(db.prepare('SELECT * FROM board_feedback WHERE id=?').get(String(req.params.id))) });
 });
 /* H-3: the one place folderAccess changes — a server-side read-modify-write of
    just that key, so it cannot be clobbered by a concurrent full-blob save. Send
@@ -6581,7 +6770,7 @@ function graphScreenSays(sc, sent, total) {
    and gives back the board's recipe, part by part; a word it does not know is
    dropped, never guessed. f483 pins every list here to the board's own. */
 const GRAPH_CHART_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', 'stack', 'grouped', 'heat'];
-const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'payterms', 'valueBand'];
+const GRAPH_CHART_SPLITS = ['month', 'quarter', 'year', 'stage', 'stream', 'counterparty', 'owner', 'type', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'decision', 'risks'];
 const GRAPH_CHART_DATES = ['end', 'signed', 'start', 'created', 'decision'];
 const GRAPH_CHART_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live'];
 const GRAPH_CHART_SORTS = ['value', 'count', 'name'];
@@ -6591,7 +6780,7 @@ const GRAPH_CHART_UNITS = ['month', 'quarter', 'year'];
 const GRAPH_CHART_TOP_MAX = 50, GRAPH_CHART_TITLE_MAX = 80;
 const GRAPH_CHART_WIN_MAX = { m: 120, q: 40, y: 10 };
 const GRAPH_CHART_UNIT_OF = { month: 'm', quarter: 'q', year: 'y' };
-const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', payterms: 'payterms', valueBand: 'valueBand' };
+const GRAPH_CHART_GROUP_OF = { stage: 'status', stream: 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks' };
 function graphChartSplit(word, date) {
   const unit = GRAPH_CHART_UNIT_OF[word], group = GRAPH_CHART_GROUP_OF[word];
   if (unit) return { by: 'date', unit, date: GRAPH_CHART_DATES.includes(date) ? date : 'end' };
@@ -6698,7 +6887,9 @@ function graphLookClean(l) {
   if (l.grouping === 'reset') out.grouping = 'reset';
   return Object.keys(out).length ? out : null;
 }
-app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, async (req, res) => {
+/* the map's and the board's Copilot, as a named handler: the route calls it,
+   and so does the board's weekly accuracy run (runBoardAccuracy) */
+const graphAskHandler = async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
   const { query, contracts, history, activeIds, screen } = req.body || {};
@@ -6804,7 +6995,8 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
       look: graphLookClean(out.look),
       ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
-});
+};
+app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, graphAskHandler);
 
 /* ---------- OCR: read scanned paper ----------
    The client rasterizes each page (pdf.js, ~200 DPI, JPEG) and posts it here;
@@ -16760,6 +16952,26 @@ app.put('/api/home/kept', auth, (req, res) => {
   res.json({ ok: true, views });
 });
 
+/* ---------- "WHAT MOVED", FOR THE BRIEF (work order "the board that answers
+   right", Part 11, 5 Oct 2026) ----------
+   The shelf's top findings as Home last counted them, on the person's own row
+   — the same rule as kept views: a record of their own screen, capped and
+   dated, printed "as of" that day, never a contract's figure taken on the
+   browser's word anywhere else. The brief's own cadence decides; no switch. */
+const HOME_MOVED_MAX = 3;
+const HOME_MOVED_ID = /^[a-z]+(?:\.mine)?$/;
+app.put('/api/home/moved', auth, (req, res) => {
+  const b = req.body || {};
+  if (!Array.isArray(b.items)) return res.status(400).json({ error: 'items must be a list' });
+  if (b.items.length > HOME_MOVED_MAX) return res.status(400).json({ error: `The brief carries at most ${HOME_MOVED_MAX} findings.` });
+  const items = b.items.map(v => ({ say: clean(v && v.say).slice(0, 240), key: HOME_MOVED_ID.test(String((v && v.key) || '')) ? String(v.key) : '',
+    at: /^\d{4}-\d{2}-\d{2}$/.test(String((v && v.at) || '')) ? String(v.at) : '' })).filter(v => v.say && v.key && v.at);
+  const prefs = userPrefs(req.user);
+  prefs.boardMoved = items;
+  db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), req.user.id);
+  res.json({ ok: true, items });
+});
+
 /* ---------- A MONTHLY PICTURE OF THE BOOK (Young, "Build it", 4 Oct 2026) ----------
    "How many live contracts did we have each month?" cannot be worked out
    backwards: a contract does not record how many others were live beside it.
@@ -17350,6 +17562,17 @@ function keptSec(L, u) {
   return `${tFor(L, 'mail_db_kept')}\n` + kept.map(v => `  • ${v.title}${v.say ? ' — ' + v.say : ''}${v.at ? ' ' + tFor(L, 'mail_db_kept_asof', { date: v.at }) : ''}`).join('\n')
     + `\n    ${home}\n\n`;
 }
+/* WHAT MOVED rides a brief that is going anyway, like kept views. A finding
+   counted before the brief's own period (a day, or a week) is not printed; each
+   carries its "as of" day and a link that opens its chart on Home. */
+function movedSec(L, u, every) {
+  const span = every === 'weekly' ? 7 : 1;
+  const from = new Date(Date.now() - span * 86400000).toISOString().slice(0, 10);
+  const items = (userPrefs(u).boardMoved || []).filter(v => v && v.say && v.key && HOME_MOVED_ID.test(v.key) && v.at && v.at >= from).slice(0, HOME_MOVED_MAX);
+  if (!items.length) return '';
+  const base = (APP_URL() || `http://localhost:${PORT}`) + '/';
+  return `${tFor(L, 'mail_db_moved')}\n` + items.map(v => `  • ${v.say} ${tFor(L, 'mail_db_kept_asof', { date: v.at })}\n    ${base}#home&go=moved&card=${encodeURIComponent(v.key)}`).join('\n') + '\n\n';
+}
 function runDailyBriefs() {
   const day = aiToday();
   const members = db.prepare('SELECT * FROM users').all()
@@ -17463,6 +17686,7 @@ function runDailyBriefs() {
       + sec(tFor(L, 'mail_db_sign'), S.sign) + sec(tFor(L, 'mail_db_exp'), S.exp)
       + sec(tFor(L, 'mail_db_notice'), S.notice)
       + sec(tFor(L, 'mail_db_link'), S.link)
+      + movedSec(L, u, every)
       + keptSec(L, u)
       + `${tFor(L, K.off)}\n\n${tFor(L, 'mail_automated_notice')}`;
     sendEmail(u.email, tFor(L, K.subject, { n: total }), body, every === 'weekly' ? 'weekly brief' : 'daily brief');
@@ -18592,6 +18816,7 @@ function agentLocalHour() {
 const agentRanOnScheduleToday = k => !!db.prepare("SELECT 1 FROM agent_runs WHERE agent=? AND trigger='schedule' AND day=? LIMIT 1").get(k, aiToday());
 function agentScheduleTick() {
   if (!agentsAuto()) return;
+  boardAccuracyTick();
   const hour = agentLocalHour();
   for (const k of AGENT_SCHEDULED) {
     const cfg = agentCfg(k);
@@ -18601,6 +18826,95 @@ function agentScheduleTick() {
     if (go) runAgent(k, 'schedule', null, go).catch(() => {});
   }
 }
+/* ============================================================
+   COPILOT ACCURACY, MEASURED EVERY MONDAY (work order "the board that answers
+   right", Part 7, 5 Oct 2026; Databricks Genie's benchmarks)
+   ============================================================
+   The precision book's Copilot requests are asked of the board's Copilot
+   route (graphAskHandler, the route's own handler) over the BOOK'S OWN
+   contracts — never the customer's — and judged by the one judge
+   (server/boardjudge.js). Questions an admin kept from the review list ride
+   along: their right answer is not known, so a kept question passes when
+   Copilot no longer draws the recipe somebody marked wrong. The run spends
+   through runAgent (agent 'board', not one of the page's agents), so the
+   spend page counts it and the workspace ceiling stops it. No key: the run
+   records 'noKey' and the drawer says "Not measured" — never a zero. */
+const BOARD_ACC_DAY = 1, BOARD_ACC_HOUR = 3, BOARD_ACC_MISSES_SHOWN = 30;
+function boardAccuracyBook() {
+  try {
+    const bp = require('../test/board-precision.js');
+    return { book: bp.readBook(), contracts: bp.bookContracts() };
+  } catch (_) { return null; }
+}
+const boardAccCard = c => ({ id: c.id, name: c.name, counterparty: c.counterparty, status: c.status, value: c.value, folder: c.folder,
+  expiry: c.expiry || null, signedAt: c.signedAt || null, category: (c.metadata && c.metadata.category) || null, paymentTerms: (c.metadata && c.metadata.paymentTerms) || null });
+async function boardAccuracyAsk(user, q, after, cards) {
+  const board = after ? `The board, with one card open. Open card: "${after}" (the chart drawn for "${after}").` : 'The board, with no card open.';
+  let status = 200, out = null;
+  const res = { status(n) { status = n; return this; }, json(o) { out = o; return this; } };
+  await graphAskHandler({ user, body: { query: q, contracts: cards, total: cards.length, screen: { board } } }, res);
+  return status === 200 ? out : { error: (out && out.error) || ('status ' + status) };
+}
+async function runBoardAccuracy(who) {
+  if (!aiKey()) return { noKey: true };
+  const B = boardAccuracyBook(); if (!B) return { noBook: true };
+  const { judgeCopilot, recipeMisses } = require('./boardjudge.js');
+  const user = who || db.prepare("SELECT * FROM users WHERE role='admin' ORDER BY rowid LIMIT 1").get();
+  if (!user) return { noUser: true };
+  const cards = B.contracts.map(boardAccCard);
+  const reqs = B.book.requests.filter(r => r.road === 'copilot');
+  let hits = 0; const misses = []; let asked = 0, stopped = null;
+  for (const r of reqs) {
+    const why = agentMaySpend('board'); if (why) { stopped = why; break; }
+    const res = await boardAccuracyAsk(user, r.q, r.after || null, cards); asked++;
+    const miss = res && res.error ? ['no answer: ' + String(res.error).slice(0, 120)] : judgeCopilot(res, r.want);
+    const acts = res && Array.isArray(res.actions) ? res.actions : [];
+    const a0 = acts.find(x => x && x.do === r.want.do) || acts[0] || null;
+    /* what was wanted and what came back, as recipes the drawer says in words */
+    if (!miss.length) hits++; else if (misses.length < BOARD_ACC_MISSES_SHOWN) misses.push({ q: r.q, after: r.after || '', why: miss.slice(0, 3),
+      want: r.want, got: { do: a0 ? a0.do : null, recipe: a0 && a0.recipe ? a0.recipe : null, cards: acts.filter(x => x && x.do === 'add_card').length, error: res && res.error ? String(res.error).slice(0, 120) : null } });
+  }
+  const kept = db.prepare("SELECT * FROM board_feedback WHERE state='kept' AND kind IN ('wrong','fix') ORDER BY at DESC LIMIT 50").all();
+  let keptHits = 0, keptAsked = 0;
+  for (const k of kept) {
+    if (stopped || agentMaySpend('board')) { stopped = stopped || agentMaySpend('board'); break; }
+    const wrong = (() => { try { return k.recipe ? JSON.parse(k.recipe) : null; } catch (_) { return null; } })();
+    const res = await boardAccuracyAsk(user, k.q, k.after || null, cards); keptAsked++;
+    const a = res && Array.isArray(res.actions) ? res.actions.find(x => x && (x.do === 'add_card' || x.do === 'change_card')) : null;
+    const same = a && wrong ? !recipeMisses(a.recipe || {}, Object.fromEntries(['split', 'pic', 'measure'].filter(x => wrong[x] != null).map(x => [x, wrong[x]]))).length : false;
+    if (a && !same) keptHits++; else if (misses.length < BOARD_ACC_MISSES_SHOWN) misses.push({ q: k.q, after: k.after || '', why: [a ? 'drew again what was marked wrong' : 'no chart'], kept: true,
+      got: { do: a ? a.do : null, recipe: a && a.recipe ? a.recipe : null } });
+  }
+  return { total: reqs.length, asked, hits, kept: { total: kept.length, asked: keptAsked, hits: keptHits }, misses, stopped };
+}
+const boardAccRanThisWeek = () => !!db.prepare("SELECT 1 FROM agent_runs WHERE agent='board' AND trigger='schedule' AND day>=? LIMIT 1").get(briefWeekOf(aiToday()));
+function boardAccuracyTick() {
+  try {
+    const d = new Date(aiToday() + 'T00:00:00Z').getUTCDay();
+    if (d !== BOARD_ACC_DAY || agentLocalHour() < BOARD_ACC_HOUR || boardAccRanThisWeek()) return;
+    runAgent('board', 'schedule', null, () => runBoardAccuracy(null)).catch(() => {});
+  } catch (_) { /* the clock never stops the others */ }
+}
+/* the same run on an admin's word (no button on the page; for the record
+   and the tests) */
+app.post('/api/board/accuracy/run', auth, admin, async (req, res) => {
+  const out = await runAgent('board', 'button', req.user, () => runBoardAccuracy(req.user));
+  if (out && out.busy) return res.status(409).json({ error: 'A run is already going' });
+  res.json(out || {});
+});
+/* THE DRAWER'S ONE QUESTION (admins): the free half's book and pass mark,
+   Copilot's last weekly run, this week's disconnects, and what people marked */
+app.get('/api/board/accuracy', auth, admin, (req, res) => {
+  const B = boardAccuracyBook();
+  const free = B ? { total: B.book.requests.filter(r => r.road === 'free').length, passMark: (B.book.passMark || {}).free || null } : null;
+  const last = db.prepare("SELECT * FROM agent_runs WHERE agent='board' AND finished_at IS NOT NULL ORDER BY started_at DESC LIMIT 1").get();
+  let run = null; if (last) { try { run = { at: last.started_at, result: last.result ? JSON.parse(last.result) : null, error: last.error || null, cost: last.cost }; } catch (_) { run = null; } }
+  const since = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  const disconnects = db.prepare("SELECT COUNT(*) AS n FROM board_feedback WHERE kind='disconnect' AND day>=?").get(since).n;
+  const rows = db.prepare("SELECT * FROM board_feedback WHERE kind IN ('wrong','fix') AND state='open' ORDER BY at DESC LIMIT 50").all().map(bfRow);
+  const keptN = db.prepare("SELECT COUNT(*) AS n FROM board_feedback WHERE state='kept'").get().n;
+  res.json({ free, run, noKey: !aiKey(), disconnects, rows, kept: keptN, day: BOARD_ACC_DAY, hour: BOARD_ACC_HOUR });
+});
 /* WHEN IT RUNS NEXT, said as the page will print it. */
 function agentNextRun(k) {
   const cfg = agentCfg(k);

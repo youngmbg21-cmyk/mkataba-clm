@@ -32,6 +32,8 @@ function world(){
   w.eval(read('js/views/homeboard.js'));
   w.eval('intel.lenses=[]; intel.groups=null; intel.groupBy="folder"; intel.history=[];');
   const s = w.hbS(); s.face = 'board'; s.panels = []; s.path = []; s.recipe = {}; w.hbSave();
+  /* these tests name Copilot's cards: the question asked for a board to be built (the honest reply, f511) */
+  w.hbBoardApply([], 'build me a dashboard');
   return w;
 }
 const add = (title, recipe) => ({ do: 'add_card', which: { all: true }, title, recipe: recipe || { pic: 'ring', split: { by: 'folder' } } });
@@ -115,7 +117,7 @@ describe('F500 (C, D) — Ctrl/⌘+Z, and the presses the panel draws', () => {
     const src = read('js/views/intelligence.js');
     assert.match(src, /m\.preview&&typeof window\.hbPreviewHtml==='function'\)\?hbPreviewHtml\(m\.preview\)/);
     assert.match(src, /m\.undo&&typeof window\.hbUndoHtml==='function'\)\?hbUndoHtml\(m\.undo\)/);
-    assert.match(src, /hbTakeMeta\(\):\{\}\)\); renderIntelDock\(\); return; \}/, 'the free reader\'s answer carries them');
+    assert.match(src, /hbTakeMeta\(\):\{\}, rdOf\(\), typeof window\.hbBoardReplyMeta==='function'\?hbBoardReplyMeta\(\):\{\}\)\); renderIntelDock\(\); return; \}/, 'the free reader\'s answer carries them (and its reading, f514; its marks, f516)');
     const w = world();
     assert.match(w.hbPreviewHtml({ id: 'pv1', adds: true, rows: ['Add “<b>x</b>”'] }), /&lt;b&gt;x&lt;\/b&gt;/, 'a row is text, never markup');
   });

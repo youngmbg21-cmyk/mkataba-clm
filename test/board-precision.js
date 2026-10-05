@@ -44,27 +44,11 @@ function bookContracts(){
   return cs.map(c => ({ audit: [], metadata: {}, ...c }));
 }
 
-/* plain data, whatever realm it came from */
+/* THE ONE JUDGE lives in server/boardjudge.js (Part 7 of "the board that
+   answers right"): the server's weekly run reads the same copy */
+const { recipeMisses, judgeCopilot } = require('../server/boardjudge.js');
 const J = v => v == null ? v : JSON.parse(JSON.stringify(v));
 const same = (a, b) => JSON.stringify(a == null ? null : a) === JSON.stringify(b == null ? null : b);
-/* a split or a window is compared on the parts the book names */
-const partsOf = (got, want) => {
-  if (want == null || got == null) return same(got, want);
-  if (typeof want !== 'object') return same(got, want);
-  return Object.keys(want).every(k => same(got[k], want[k]));
-};
-
-/* THE ONE JUDGE: what a card's recipe (or the planner's P) got wrong against
-   the book's want. Returns a list of plain sentences; empty is a hit. */
-function recipeMisses(got, want){
-  const out = [];
-  const g = J(got) || {};
-  for (const k of ['split', 'split2', 'window']) if (k in want && !partsOf(g[k] || null, want[k])) out.push(`${k}: wanted ${JSON.stringify(want[k])}, got ${JSON.stringify(g[k] || null)}`);
-  for (const k of ['pic', 'measure', 'top', 'compare', 'title']) if (k in want && !same(g[k] == null ? null : g[k], want[k])) out.push(`${k}: wanted ${JSON.stringify(want[k])}, got ${JSON.stringify(g[k] == null ? null : g[k])}`);
-  if ('trend' in want && !!g.trend !== !!want.trend) out.push(`trend: wanted ${!!want.trend}, got ${!!g.trend}`);
-  if ('sort' in want && !partsOf(g.sort || null, want.sort)) out.push(`sort: wanted ${JSON.stringify(want.sort)}, got ${JSON.stringify(g.sort || null)}`);
-  return out;
-}
 
 /* THE FREE HALF: one request in the jsdom world. A hit is the right card read
    free (or the board's own command, for a question with no chart words); a
@@ -96,19 +80,6 @@ function runFreeIn(w, r){
     else if (D.whole || !String(D.setLabel || '').toLowerCase().includes(String(r.want.set).toLowerCase())) why.push(`set: wanted "${r.want.set}", got ${D.whole ? 'the whole book' : '"' + D.setLabel + '"'}`);
   }
   return { hit: !why.length, why };
-}
-
-/* THE COPILOT HALF's judge: Copilot's answer (actions, or choices) against
-   the book's want — the first action of the kind asked for, its recipe. */
-function judgeCopilot(res, want){
-  const acts = (res && Array.isArray(res.actions)) ? res.actions : [];
-  if (want.cards){
-    const n = acts.filter(a => a && a.do === 'add_card').length;
-    return n >= want.cards ? [] : [`cards: wanted at least ${want.cards}, got ${n}`];
-  }
-  const a = acts.find(x => x && x.do === want.do);
-  if (!a) return [`do: wanted ${want.do}, got ${JSON.stringify(acts.map(x => x && x.do))}`];
-  return want.recipe ? recipeMisses(a.recipe || {}, want.recipe) : [];
 }
 
 module.exports = { ROOT, BOOK_FILE, readBook, mon, bookContracts, recipeMisses, runFree, judgeCopilot };

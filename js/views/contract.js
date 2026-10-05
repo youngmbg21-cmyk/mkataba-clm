@@ -11852,7 +11852,8 @@ const XR_SEV_GRADE={ high:'ruby', med:'amber', low:'steel' };
    own reason (asked for since 22 Sep 2026); a brief written before then has
    none and the mark simply carries no reason line. */
 function docXrayBriefWatch(c){
-  const d=(c&&c._brief&&c._brief.data)||null;
+  /* the full brief, else the list's lite concerns (server mode, the board's risks split) */
+  const d=(c&&((c._brief&&c._brief.data)||(c._briefLite&&c._briefLite.data)))||null;
   const list=(d&&Array.isArray(d.watchouts))?d.watchouts:[];
   /* `wording` (5 Oct 2026): Copilot's own mark, true where dealing with it
      means changing or adding contract wording; null on a brief written before
@@ -11866,7 +11867,8 @@ function docXrayBriefWatch(c){
    written before 22 Sep 2026) or {point, quote, why}. One carrying a quote can
    now be placed on its clause exactly as a watchout is. */
 function docXrayBriefOdd(c){
-  const d=(c&&c._brief&&c._brief.data)||null;
+  /* the full brief, else the list's lite concerns (server mode, the board's risks split) */
+  const d=(c&&((c._brief&&c._brief.data)||(c._briefLite&&c._briefLite.data)))||null;
   const list=(d&&Array.isArray(d.unusual))?d.unusual:[];
   return list.map(u=>(u&&typeof u==='object')
       ? { say:String(u.point||'').trim(), quote:u.quote||'', why:String(u.why||'').trim(),

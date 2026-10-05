@@ -54,6 +54,13 @@ const check = (name, pass, detail) => {
     const body = route.request().postData() || ''; sent.push(body);
     /* the screenshot's "top 10 by value": Copilot names a set, HaTi counts it */
     const top = /top 2/.test(body) ? BOOK.filter(c => !c.archived).slice(0, 2).map(c => c.id) : null;
+    /* THE HONEST REPLY (f511): Copilot names a set with a stray note and a
+       count of the whole store — HaTi must name it and count it itself */
+    if (/our CFO cares about/.test(body)){
+      const big = BOOK.filter(c => !c.archived).slice(0, 5).map(c => c.id);
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ visibleIds: big, where: null, action: 'filter', note: 'Largest deals · as graph', kind: 'map', sent: 1, total: 1, answer: 'Showing 10 of 181 contracts by value.' }) });
+      return;
+    }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ visibleIds: top, where: null, action: 'filter', note: top ? 'Top 2 by value' : '', kind: 'map', sent: 1, total: 1, answer: '' }) });
   });
   const until = async (fn, arg, ms = 8000) => { let v; const t0 = Date.now();
@@ -106,10 +113,34 @@ const check = (name, pass, detail) => {
 
     /* ================= 4. ONE BOOK ================= */
     await ask('top 2 by value');
-    const said4 = await until(() => { const a = (intel.history || []).filter(m => m.role === 'assistant'); const t = a.map(m => String(m.text || '').replace(/<[^>]+>/g, ' ')).join(' '); return /Showing \d+ of \d+/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; });
+    const said4 = await until(() => { const a = (intel.history || []).filter(m => m.role === 'assistant'); const t = a.map(m => String(m.text || '').replace(/<[^>]+>/g, ' ')).join(' '); return /contracts, on the board/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; });
     const live = BOOK.filter(c => !c.archived).length;
     await page.screenshot({ path: path.join(OUT, '4-showing-n-of-the-book.png') });
-    check('4a "Showing n of N" counts the book the board counts (archived left out)', new RegExp('Showing 2 of ' + live + '\\b').test(said4 || ''), said4);
+    /* on the board the reply is HaTi's own (the honest reply, f511): the count of what is drawn */
+    check('4a the reply counts what the board draws (archived left out)', /^Top 2 by value: 2 contracts, on the board\./.test(said4 || '') && live === 9, said4);
+    /* on Explorer the map's own line stays: "Showing n of N", N the book without the archived */
+    await page.evaluate(() => { hbSetFace('explorer'); });
+    await ask('top 2 by value');
+    const said4b = await until(() => { const a = (intel.history || []).filter(m => m.role === 'assistant'); const t = a.map(m => String(m.text || '').replace(/<[^>]+>/g, ' ')).join(' '); return /Showing \d+ of \d+/.test(t) ? t.replace(/\s+/g, ' ').trim() : null; });
+    check('4b on Explorer, "Showing n of N" counts the book the board counts', new RegExp('Showing 2 of ' + live + '\\b').test(said4b || ''), said4b);
+    await page.evaluate(() => { hbSetFace('board'); });
+
+    /* ================= 5. THE HONEST REPLY (f511) ================= */
+    await page.evaluate(() => { const s = hbS(); s.path = []; s.panels = []; hbSave(); hbPaintBoard(); });
+    await ask('the deals our CFO cares about');
+    const s5 = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; if (k !== 'ls') return null;
+      const a = (intel.history || []).filter(m => m.role === 'assistant');
+      return { crumb: hbCrumbOf(k, s.lens), lenses: (intel.lenses || []).map(l => l.label), said: a.length ? String(a[a.length - 1].text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '' }; });
+    await page.screenshot({ path: path.join(OUT, '5-honest-reply.png') });
+    check('5a the set is named by the question, never by Copilot\'s note', !!s5 && s5.crumb === 'The deals our CFO cares about' && !s5.lenses.some(l => /as graph/.test(l)), JSON.stringify(s5));
+    check('5b the reply is HaTi\'s count of what is drawn, not Copilot\'s "181"', !!s5 && /^The deals our CFO cares about: 5 contracts, on the board\. Drawn as /.test(s5.said) && !/181/.test(s5.said), s5 && s5.said);
+    await ask('By counterparty');
+    await ask('Show them in graph');
+    const s5c = await until(() => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const P = hbPlan(hbDigData(k, s.lens));
+      const a = (intel.history || []).filter(m => m.role === 'assistant');
+      return P.pic === 'bars' && document.querySelector('#hb-focus .hb-chart-bars') ? { k, crumb: hbCrumbOf(k, s.lens), by: P.split && P.split.by, said: a.length ? String(a[a.length - 1].text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '' } : null; });
+    await page.screenshot({ path: path.join(OUT, '5-show-them-in-graph.png') });
+    check('5c "By counterparty" then "Show them in graph": the same card, its name kept, bars by counterparty, and the count said', !!s5c && s5c.k === 'ls' && s5c.crumb === 'The deals our CFO cares about' && s5c.by === 'counterparty' && /5 contracts\./.test(s5c.said), JSON.stringify(s5c));
     check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) {
     check('stage ran', false, e.message + (errors.length ? ' | page errors: ' + errors.slice(0, 3).join(' | ') : ''));

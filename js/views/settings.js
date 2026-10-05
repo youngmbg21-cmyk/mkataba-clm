@@ -1917,6 +1917,138 @@ function stFxPaint(){
   }).join('');
   host.querySelectorAll('[data-fx-del]').forEach(b=>b.addEventListener('click',()=>stFxSave(b.getAttribute('data-fx-del'),null)));
 }
+/* ---- COPILOT ACCURACY: the drawer's reading and its rows ---- */
+let _stAcc=null;
+async function stAccLoad(){
+  try{ _stAcc=await api('board/accuracy'); }catch(e){ _stAcc=null; const sub=document.getElementById('st-acc-sub'); if(sub) sub.textContent=(e&&e.message)||i18t('co_settings_save_failed'); return; }
+  stAccPaint(); if(typeof stRepaintRow==='function') stRepaintRow('boardaccuracy');
+}
+function stAccDay(){ const d=new Date(); const add=((_stAcc&&_stAcc.day!=null?_stAcc.day:1)-d.getDay()+7)%7||7; d.setDate(d.getDate()+add);
+  try{ return d.toLocaleDateString(typeof langLocale==='function'?langLocale():undefined,{ weekday:'short', day:'numeric', month:'short' }); }catch(_){ return d.toDateString(); } }
+function stAccPaint(){
+  const host=document.getElementById('st-acc'), sub=document.getElementById('st-acc-sub'); if(!host||!_stAcc) return;
+  const a=_stAcc, r=a.run&&a.run.result, f=a.free;
+  const when=a.run&&a.run.at?String(a.run.at).slice(0,10):null;
+  if(sub) sub.textContent=i18t('st_acc_sub_line',{ last:when||i18t('st_acc_never'), next:stAccDay() });
+  const tile=(big,small,tone)=>`<div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:10px 12px;display:grid;gap:2px;min-width:0"><b style="font-size:20px;font-variant-numeric:tabular-nums;${tone?'color:'+tone:''}">${esc(big)}</b><span class="st-note" style="margin:0">${esc(small)}</span></div>`;
+  const ok='var(--st-green-fg,#1f7a45)', amber='var(--st-amber-fg,#93600e)';
+  const cop=r&&r.total?tile(Math.round(r.hits/Math.max(1,r.asked||r.total)*100)+'%',i18t('st_acc_cop',{ n:r.hits, of:r.asked||r.total }),r.hits/Math.max(1,r.asked||r.total)>=0.95?ok:amber)
+    :tile(i18t(a.noKey?'st_acc_not_measured_short':'st_acc_not_run_short'),i18t(a.noKey?'st_acc_no_key':'st_acc_first_run',{ next:stAccDay() }),amber);
+  const freeT=f?tile(`${f.total}`,i18t('st_acc_free',{ pm:f.passMark==null?'—':f.passMark }),ok):tile('—',i18t('st_acc_free_none'));
+  const disc=tile(String(a.disconnects||0),i18t('st_acc_disc'),a.disconnects?amber:ok);
+  const btn=(attr,label,quiet)=>`<button ${attr} style="${quiet?ST_BTN2:ST_BTN2};padding:3px 9px">${esc(label)}</button>`;
+  const misses=(r&&Array.isArray(r.misses)?r.misses:[]).map(m=>`<div style="padding:9px 12px;border-bottom:1px solid var(--color-divider);display:grid;gap:4px;font-size:var(--t-meta)">
+      <b>“${esc(m.q)}”${m.after?` <span class="st-note" style="margin:0">${esc(i18t('st_acc_after',{ q:m.after }))}</span>`:''}</b><span class="st-note" style="margin:0">${esc(stAccMissWords(m))}</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${btn('data-acc-word=""',i18t('st_acc_add_word'))}</div></div>`).join('');
+  const rows=(a.rows||[]).map(x=>`<div style="padding:9px 12px;border-bottom:1px solid var(--color-divider);display:grid;gap:4px;font-size:var(--t-meta)">
+      <b>“${esc(x.q)}” <span class="st-note" style="margin:0">· ${esc(x.by)} · ${esc(String(x.at||'').slice(0,10))}${x.kind==='fix'?' · '+esc(i18t('st_acc_fix')):''}</span></b>
+      <span class="st-note" style="margin:0">${esc(x.recipe?i18t('st_acc_drew',{ how:stAccHow(x.recipe) }):i18t('st_acc_said',{ said:x.said||'' }))}</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${btn(`data-acc-keep="${esc(x.id)}"`,i18t('st_acc_keep'))}${btn(`data-acc-copy="${esc(x.id)}"`,i18t('st_acc_copy'))}${btn('data-acc-word=""',i18t('st_acc_add_word'))}${btn(`data-acc-dismiss="${esc(x.id)}"`,i18t('st_acc_dismiss'))}</div></div>`).join('');
+  host.style.overflowWrap='anywhere'; host.style.minWidth='0';
+  host.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${freeT}${cop}${disc}</div>
+    ${r&&r.stopped?`<p class="st-note" style="margin:8px 0 0;color:${amber}">${esc(i18t('st_acc_stopped_'+(r.stopped==='ceiling'?'ceiling':'limit')))}</p>`:''}
+    <h3 class="st-sec-h" style="margin-top:14px">${esc(i18t('st_acc_misses'))}${r&&r.misses?` (${r.misses.length})`:''}</h3>
+    ${misses?`<div style="border:1px solid var(--color-divider);border-radius:var(--radius)">${misses}</div>`:`<p class="st-note" style="margin:0">${esc(i18t(r&&r.total?'st_acc_no_misses':'st_acc_misses_none_yet'))}</p>`}
+    <h3 class="st-sec-h" style="margin-top:14px">${esc(i18t('st_acc_marked'))} (${(a.rows||[]).length})</h3>
+    ${rows?`<div style="border:1px solid var(--color-divider);border-radius:var(--radius)">${rows}</div>`:`<p class="st-note" style="margin:0">${esc(i18t('st_acc_marked_none'))}</p>`}
+    ${a.kept?`<p class="st-note" style="margin:8px 0 0">${esc(i18tn('st_acc_kept_n',a.kept,{ n:a.kept }))}</p>`:''}`;
+  host.querySelectorAll('[data-acc-keep]').forEach(b=>b.addEventListener('click',()=>stAccSettle(b.getAttribute('data-acc-keep'),'kept')));
+  host.querySelectorAll('[data-acc-dismiss]').forEach(b=>b.addEventListener('click',()=>stAccSettle(b.getAttribute('data-acc-dismiss'),'dismissed')));
+  host.querySelectorAll('[data-acc-word]').forEach(b=>b.addEventListener('click',()=>stDrawerOpen('boardwords')));
+  host.querySelectorAll('[data-acc-copy]').forEach(b=>b.addEventListener('click',()=>stAccCopy(b.getAttribute('data-acc-copy'),b)));
+}
+/* a recipe in the reader's words, only the parts it holds (never code) */
+function stAccHow(rc){
+  const r=rc||{}, out=[];
+  try{
+    if(r.pic) out.push(window.hbPicWord?hbPicWord({ pic:r.pic, split:r.split }):r.pic);
+    if(r.split&&r.split.by) out.push(window.hbSplitWord?hbSplitWord(r.split):r.split.by);
+    if(r.split2&&r.split2.by) out.push(i18t('hb_then_by',{ b:window.hbSplitWord?hbSplitWord(r.split2):r.split2.by }));
+    if(r.measure) out.push(i18t('hb_ms_'+r.measure).toLowerCase());
+    if(r.top) out.push(i18t('hb_top_n',{ n:r.top }).toLowerCase());
+  }catch(_){ /* the words are a courtesy */ }
+  return out.join(' · ')||i18t('st_acc_any_chart');
+}
+/* a miss in plain words: what the book wanted, and what Copilot did */
+function stAccMissWords(m){
+  if(m.kept) return i18t(m.got&&m.got.do?'st_acc_kept_again':'st_acc_kept_none');
+  const w=m.want||{}, g=m.got||{};
+  if(g.error) return i18t('st_acc_no_answer');
+  const doW=d=>d?i18t('st_acc_do_'+d):i18t('st_acc_do_none');
+  if(w.cards) return i18t('st_acc_miss_cards',{ n:w.cards, got:g.cards||0 });
+  const wanted=w.recipe?i18t('st_acc_wanted_chart',{ how:stAccHow(w.recipe), act:doW(w.do) }):doW(w.do);
+  const got=g.recipe&&(g.do==='add_card'||g.do==='change_card')?i18t('st_acc_got_chart',{ how:stAccHow(g.recipe), act:doW(g.do) }):doW(g.do);
+  return i18t('st_acc_miss',{ wanted, got });
+}
+async function stAccSettle(id,state){
+  stDrawerClearRefusal();
+  try{ await api('board/feedback/'+encodeURIComponent(id),'PATCH',{ state }); toast(i18t(state==='kept'?'st_acc_kept':'st_acc_dismissed'),'ok'); await stAccLoad(); }
+  catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
+/* "Copy as test": one line for the precision book; its want is a developer's to write */
+function stAccCopy(id,btn){
+  const x=((_stAcc&&_stAcc.rows)||[]).find(r=>r.id===id); if(!x) return;
+  const line=JSON.stringify({ src:'review '+String(x.at||'').slice(0,10), road:'copilot', ...(x.after?{ after:x.after }:{}), q:x.q, drewWrong:x.recipe||null, want:{} });
+  const done=()=>toast(i18t('st_acc_copied'),'ok');
+  try{ navigator.clipboard.writeText(line).then(done,()=>stAccCopyFallback(line,btn)); }catch(_){ stAccCopyFallback(line,btn); }
+}
+function stAccCopyFallback(line,btn){ const t=document.createElement('textarea'); t.value=line; t.style.cssText='width:100%;margin-top:6px;font-family:var(--font-code);font-size:12px'; t.readOnly=true; (btn&&btn.parentElement||document.body).after(t); t.select(); }
+/* ---- THE BOARD'S WORD BOOK: the list, the value box, the save ---- */
+function stWordMeansText(m){
+  if(!m) return '';
+  const k=i18t('st_words_k_'+m.kind);
+  if(m.kind==='split') return k+': '+((window.hbSplitWord)?hbSplitWord({ by:m.value }):m.value);
+  if(m.kind==='measure') return k+': '+i18t('hb_ms_'+m.value);
+  if(m.kind==='stage') return k+': '+((typeof statusLabel==='function')?statusLabel(m.value):m.value);
+  if(m.kind==='side') return k+': '+i18t(m.value==='supplier'?'hb_lens_suppliers':'hb_lens_customers');
+  return k+': '+m.value;
+}
+function stWordsPaint(){
+  const host=document.getElementById('st-words-list'); if(!host) return;
+  const list=window.hbWords?hbWords():[];
+  const row=(say,means,lang,by,act)=>`<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) 34px auto;gap:10px;align-items:center;font-size:var(--t-meta)">
+    <b style="min-width:0;overflow-wrap:anywhere">${esc(say)}</b><span style="min-width:0">${esc(means)}</span><span class="st-note" style="margin:0">${esc(lang)}</span>${act}</div>`;
+  const mine=list.map(w=>row(w.say,stWordMeansText(w.means),String(w.lang||'').toUpperCase(),w.by,
+    `<button data-w-del="${esc(w.say)}" data-w-lang="${esc(w.lang)}" style="${ST_BTN2};flex:none">${esc(i18t('st_words_remove'))}</button>`)).join('');
+  const built=(window.hbWordsBuiltIn?hbWordsBuiltIn():[]).map(b=>row(b.words.slice(0,4).join(', '),stWordMeansText({ kind:'split', value:b.group }),'EN · SV','',
+    `<span class="st-note" style="margin:0">${esc(i18t('st_words_builtin'))}</span>`)).join('');
+  host.innerHTML=(mine||`<p class="st-note" style="margin:0">${esc(i18t('st_words_none'))}</p>`)
+    +`<details style="margin-top:6px"><summary class="st-note" style="cursor:pointer;margin:0">${esc(i18t('st_words_builtin_h'))}</summary><div style="display:grid;gap:6px;margin-top:6px">${built}</div></details>`;
+  host.querySelectorAll('[data-w-del]').forEach(b=>b.addEventListener('click',()=>stWordsSave({ say:b.getAttribute('data-w-del'), lang:b.getAttribute('data-w-lang'), remove:true })));
+}
+function stWordsValueSlot(){
+  const slot=document.getElementById('st-w-value-slot'); if(!slot) return;
+  const kind=(document.getElementById('st-w-kind')||{}).value||'set';
+  const sel=opts=>`<select id="st-w-value" style="${window.RV_FLD||ST_INPUT}">${opts.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select>`;
+  if(kind==='split') slot.innerHTML=sel(Object.keys(window.HB_WORD_SPLIT||{}).map(g=>[g,(window.hbSplitWord)?hbSplitWord({ by:g }):g]));
+  else if(kind==='measure') slot.innerHTML=sel(Object.keys(window.HB_WORD_MEASURE||{}).map(m=>[m,i18t('hb_ms_'+m)]));
+  else if(kind==='stage') slot.innerHTML=sel(Object.keys(window.HB_WORD_STAGE||{}).map(st=>[st,(typeof statusLabel==='function')?statusLabel(st):st]));
+  else if(kind==='side') slot.innerHTML=sel([['supplier',i18t('hb_lens_suppliers')],['customer',i18t('hb_lens_customers')]]);
+  else slot.innerHTML=`<input id="st-w-value" type="text" maxlength="80" placeholder="${esc(i18t(kind==='type'?'st_words_ph_type':'st_words_ph_set'))}" style="${window.RV_FLD||ST_INPUT}"/>`;
+}
+async function stWordsSave(given){
+  stDrawerClearRefusal();
+  let body=given;
+  if(!body){
+    const say=String((document.getElementById('st-w-say')||{value:''}).value).replace(/\s+/g,' ').trim();
+    const lang=(document.getElementById('st-w-lang')||{}).value||'en';
+    const kind=(document.getElementById('st-w-kind')||{}).value||'set';
+    const value=String((document.getElementById('st-w-value')||{value:''}).value).trim();
+    if(say.length<2) return stDrawerRefuse(i18t('st_words_bad_say'));
+    if(!value) return stDrawerRefuse(i18t('st_words_bad_value'));
+    /* a word the board already reads keeps its built-in meaning */
+    if(window.hbWordClash&&hbWordClash(say)) return stDrawerRefuse(i18t('st_words_clash',{ word:say }));
+    body={ say, lang, means:{ kind, value } };
+  }
+  try{
+    const r=await api('settings/board-words','PUT',body);
+    state.settings=state.settings||{}; state.settings.boardWords=(r&&r.boardWords)||[];
+    const se=document.getElementById('st-w-say'), ve=document.getElementById('st-w-value');
+    if(se) se.value=''; if(ve&&ve.tagName==='INPUT') ve.value='';
+    stWordsPaint(); if(typeof stRepaintRow==='function') stRepaintRow('boardwords');
+    toast(body.remove?i18t('st_words_removed',{ word:body.say }):i18t('st_words_saved',{ word:body.say }),'ok');
+  }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
 async function stFxSave(codeIn,rateIn){
   /* A datalist hands back whatever is in the box, and a reader who picks
      "USD — US dollar" from the list gets exactly that string. The code is the
@@ -2392,6 +2524,59 @@ const SET_PANELS={
     find:()=>['round','link','renew','paper','late','import'].map(k=>i18t('ag_'+k)),
     body(){ return `<div id="st-agents-panel"></div>`; },
     wire(){ stAgentsPaint(); },
+  },
+
+  /* ---- THE BOARD'S WORD BOOK (the board that answers right, Part 3, 5 Oct
+     2026) ----
+     The company's own words and what Home's board reads them as. Written only
+     through PUT /api/settings/board-words; the built-in words are drawn
+     read-only from the board's own reader (hbWordsBuiltIn), never a copy. A
+     word the board already reads is refused here with the reason. */
+  boardwords:{
+    tab:'platform', group:'copilot', mandatory:false,
+    title:()=>i18t('st_p_words'),
+    sub:()=>i18t('st_p_words_sub'),
+    state(){ const n=(window.hbWords?hbWords():[]).length;
+      return { dot:n?'ok':'off', text:i18tn('st_words_n',n,{ n }) }; },
+    find:()=>[i18t('st_words_say'),i18t('st_words_means')],
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('st_words_note'))}</p>
+      <div id="st-words-list" style="display:grid;gap:6px"></div>
+      <section class="st-sec" style="margin-top:var(--s-3)">
+        <h3 class="st-sec-h">${esc(i18t('st_words_add'))}</h3>
+        <div style="display:grid;grid-template-columns:minmax(0,1.2fr) 72px;gap:8px">
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_words_say'))}</span><input id="st-w-say" type="text" maxlength="40" style="${window.RV_FLD||ST_INPUT}"/></label>
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_words_lang'))}</span><select id="st-w-lang" style="${window.RV_FLD||ST_INPUT}"><option value="en">EN</option><option value="sv">SV</option></select></label>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:8px;margin-top:8px">
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_words_means'))}</span><select id="st-w-kind" style="${window.RV_FLD||ST_INPUT}">${(window.HB_WORD_KINDS||[]).map(k=>`<option value="${k}">${esc(i18t('st_words_k_'+k))}</option>`).join('')}</select></label>
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_words_value'))}</span><span id="st-w-value-slot"></span></label>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button id="st-w-add" style="${ST_BTN_SM}">${esc(i18t('st_words_add_btn'))}</button><button id="st-w-review" style="${ST_BTN2}">${esc(i18t('st_words_from_review'))}</button></div>
+      </section>`; },
+    wire(){ stWordsPaint(); stWordsValueSlot();
+      document.getElementById('st-w-kind')?.addEventListener('change',stWordsValueSlot);
+      document.getElementById('st-w-add')?.addEventListener('click',()=>stWordsSave());
+      document.getElementById('st-w-review')?.addEventListener('click',()=>stDrawerOpen('boardaccuracy')); },
+  },
+
+  /* ---- COPILOT ACCURACY (the board that answers right, Part 7, 5 Oct
+     2026) ----
+     The board's scorecard, for admins: the free reader's book and pass mark,
+     Copilot's weekly score over the book's own contracts, the disconnects
+     caught this week, Copilot's misses, and what people marked wrong — each
+     with its next step. Read through GET /api/board/accuracy; a row is
+     settled through PATCH /api/board/feedback/:id. Nothing here changes the
+     board itself. */
+  boardaccuracy:{
+    tab:'platform', group:'copilot', mandatory:false,
+    title:()=>i18t('st_p_acc'),
+    sub:()=>i18t('st_p_acc_sub'),
+    state(){ const a=_stAcc; if(!a) return { dot:'off', text:i18t('st_p_acc_sub') };
+      const r=a.run&&a.run.result; if(a.noKey&&!(r&&r.total)) return { dot:'off', text:i18t('st_acc_not_measured') };
+      return r&&r.total?{ dot:r.hits/r.total>=0.95?'ok':'warn', text:i18t('st_acc_state',{ pct:Math.round(r.hits/Math.max(1,r.asked||r.total)*100), n:(a.rows||[]).length }) }:{ dot:'off', text:i18t('st_acc_not_run') }; },
+    find:()=>[i18t('st_acc_misses'),i18t('st_acc_marked')],
+    body(){ return `<p class="st-note" style="margin-bottom:10px" id="st-acc-sub">${esc(i18t('st_acc_loading'))}</p><div id="st-acc"></div>`; },
+    wire(){ stAccLoad(); },
   },
 
   review:{

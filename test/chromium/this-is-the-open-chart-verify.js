@@ -115,7 +115,8 @@ const check = (name, pass, detail) => {
     const board = (sent[sent.length - 1] && sent[sent.length - 1].screen && sent[sent.length - 1].screen.board) || '';
     check('4a Copilot was asked with the open chart\'s settings in its own words', /Open chart settings \(chart\{\} words\): pic=ring; split=stage; measure=count; trend=off\./.test(board), board.split('\n').filter(l => /Open chart/.test(l)).join(' | '));
     check('4b Copilot\'s chart-only answer changed the open chart', !!c4 && c4.k === c4a.k && c4.pic === 'bars' && c4.split && c4.split.by === 'counterparty', JSON.stringify({ a: c4a && c4a.k, c4 }));
-    check('4c the panel says what changed, with Copilot\'s words, and not "Nothing changed on the map"', /^Changed the open chart, “.+”: now Bars · by counterparty · count\. Drawn as bars by counterparty/.test(said4 || '') && !/Nothing changed on the map/.test(said4 || ''), said4);
+    /* the honest reply (f511): HaTi's line and the count; Copilot's own sentence is for why-questions only */
+    check('4c the panel says what changed and how many, and not "Nothing changed on the map"', /^Changed the open chart, “.+”: now Bars · by counterparty · count\. \d+ contracts\./.test(said4 || '') && !/Drawn as bars by counterparty/.test(said4 || '') && !/Nothing changed on the map/.test(said4 || ''), said4);
     check('4d the map is as it was', (await page.evaluate(() => JSON.stringify({ g: intel.groupBy, l: (intel.lenses || []).filter(l => !l.hb).length }))) === map0, map0);
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT, '4-copilot-pressed.png') });
