@@ -1115,8 +1115,26 @@ function hbGroupOf(c, field){
   return '';
 }
 /* the five deal facts, as group keys (stable English, translated on the label) */
-const HB_DEAL_GROUPS = ['move', 'rounds', 'overdue', 'decision', 'risks', 'standards'];
-const HB_DEAL_ORDER = { move: ['us', 'them', 'none'], rounds: ['0', '1', '2', '3', '4+'], overdue: ['yes', 'no'], risks: ['3+', '1-2', '0', 'unread'], standards: ['off', 'met', 'unchecked'] };
+const HB_DEAL_GROUPS = ['move', 'rounds', 'overdue', 'decision', 'risks', 'standards', 'liabcap', 'autorenew', 'priceup'];
+const HB_DEAL_ORDER = { move: ['us', 'them', 'none'], rounds: ['0', '1', '2', '3', '4+'], overdue: ['yes', 'no'], risks: ['3+', '1-2', '0', 'unread'], standards: ['off', 'met', 'unchecked'],
+  liabcap: ['uncapped', 'capped', 'unclear', 'unread'], autorenew: ['yes', 'no', 'unclear', 'unread'], priceup: ['at_will', 'indexed', 'fixed', 'none', 'unclear', 'unread'] };
+/* WHAT THE CONTRACT SAYS (Charts That Explain, rec 7): the overnight reading
+   of each contract's key terms rides the light list as transport (_book, off
+   its own server table, book_readings) — a term nobody read is 'unread', one
+   the reading could not pin to a quote is 'unclear', never guessed */
+const HB_KEY_TERMS = { liabcap: 'liabilityCap', autorenew: 'autoRenew', priceup: 'priceIncrease' };
+function hbKeyTermsOf(c){ const b = c && c._book; return b && b.terms && typeof b.terms === 'object' ? b.terms : null; }
+function hbKeyTermOf(c, field){
+  const kt = hbKeyTermsOf(c); if (!kt) return 'unread';
+  const t = kt[HB_KEY_TERMS[field]], st = t && typeof t === 'object' ? String(t.state || '') : '';
+  return (HB_DEAL_ORDER[field] || []).includes(st) && st !== 'unread' ? st : 'unclear';
+}
+/* the playbook verdicts on record, or the overnight check's where the record
+   could not take them (an executed contract, read beside it) */
+function hbVerdictsOf(c){
+  if (c && c.playbook && Array.isArray(c.playbook.verdicts) && c.playbook.verdicts.length) return c.playbook.verdicts;
+  const b = c && c._book; return b && b.pb && Array.isArray(b.pb.verdicts) ? b.pb.verdicts : [];
+}
 function hbDealGroupOf(c, field){
   try {
     if (field === 'move'){
@@ -1135,20 +1153,21 @@ function hbDealGroupOf(c, field){
     /* OUR STANDARDS (Charts That Explain, Part 1): off standard, met, or NOT
        CHECKED — a contract nobody checked is a gap, never good news */
     if (field === 'standards') return hbStdStateOf(c);
+    if (HB_KEY_TERMS[field]) return hbKeyTermOf(c, field);
   } catch (_){ return ''; }
   return '';
 }
 /* one reading of a contract against our standards, off the check on record:
    'unchecked' (no check), 'off' (an open deviation or a missing standard), 'met' */
 function hbStdStateOf(c){
-  const vs = c && c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts : null;
-  if (!vs || !vs.length) return 'unchecked';
+  const vs = hbVerdictsOf(c);
+  if (!vs.length) return 'unchecked';
   const open = v => !!v && ((typeof pbVerdictOpen === 'function') ? pbVerdictOpen(v) : !/^(ok|aligned|na)$/.test(String(v.status || '')));
   return vs.some(open) ? 'off' : 'met';
 }
 /* the open standards a contract breaks, by name (the standards pack ranks them) */
 function hbStdBreaches(c){
-  const vs = c && c.playbook && Array.isArray(c.playbook.verdicts) ? c.playbook.verdicts : [];
+  const vs = hbVerdictsOf(c);
   const open = v => !!v && ((typeof pbVerdictOpen === 'function') ? pbVerdictOpen(v) : !/^(ok|aligned|na)$/.test(String(v.status || '')));
   return vs.filter(open).map(v => String(v.category || '').trim()).filter(Boolean);
 }
@@ -1167,12 +1186,13 @@ function hbGroupLabel(field, g){
   if (field === 'overdue') return i18t('hb_overdue_' + g);
   if (field === 'risks') return g === 'unread' ? i18t('hb_risks_unread') : g === '0' ? i18t('hb_risks_0') : i18t('hb_risks_n', { n: g });
   if (field === 'standards') return i18t('hb_std_' + g);
+  if (HB_KEY_TERMS[field]) return i18t('hb_kt_' + field + '_' + g);
   if (field === 'payterms') return i18tn('hb_days_n', 2, { n: g });
   if (field === 'status') return (typeof statusLabel === 'function') ? statusLabel(g) : g;
   if (field === 'side') return i18t(g === 'supplier' ? 'hb_lens_suppliers' : 'hb_lens_customers');
   return g;
 }
-function hbGroupWord(field){ return i18t({ status: 'hb_by_stage', folder: 'hb_by_stream', counterparty: 'hb_by_party', kind: 'hb_by_kind', side: 'hb_by_side', owner: 'hb_by_owner', payterms: 'hb_by_payterms', valueBand: 'hb_by_band', move: 'hb_by_move', rounds: 'hb_by_rounds', overdue: 'hb_by_overdue', decision: 'hb_by_decision', risks: 'hb_by_risks', standards: 'hb_by_standards' }[field] || 'hb_by_stage'); }
+function hbGroupWord(field){ return i18t({ status: 'hb_by_stage', folder: 'hb_by_stream', counterparty: 'hb_by_party', kind: 'hb_by_kind', side: 'hb_by_side', owner: 'hb_by_owner', payterms: 'hb_by_payterms', valueBand: 'hb_by_band', move: 'hb_by_move', rounds: 'hb_by_rounds', overdue: 'hb_by_overdue', decision: 'hb_by_decision', risks: 'hb_by_risks', standards: 'hb_by_standards', liabcap: 'hb_by_liabcap', autorenew: 'hb_by_autorenew', priceup: 'hb_by_priceup' }[field] || 'hb_by_stage'); }
 function hbEndOf(c){ try { const e = (typeof effectiveExpiry === 'function') ? effectiveExpiry(c) : c.expiry; return e ? String(e).slice(0, 10) : null; } catch (_){ return c.expiry ? String(c.expiry).slice(0, 10) : null; } }
 function hbMonthOf(c, byYear){ const e = hbEndOf(c); return e ? (byYear ? e.slice(0, 4) : e.slice(0, 7)) : 'none'; }
 function hbMonthLabel(m, byYear){
@@ -1453,7 +1473,7 @@ const HB_RISK_WEIGHT = { high: 1, med: 0.5, low: 0.25 };
 const HB_SHOWS = ['running', 'share'];
 const HB_UNITS = ['m', 'q', 'y'];
 const HB_DATES = ['end', 'signed', 'start', 'created', 'decision'];
-const HB_SPLIT_GROUPS = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'decision', 'risks', 'standards'];
+const HB_SPLIT_GROUPS = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'decision', 'risks', 'standards', 'liabcap', 'autorenew', 'priceup'];
 /* THE RECIPE'S OTHER PARTS (work order Part 1, 4 Oct 2026): the pictures two
    splits need, the order, the top N, the period, the comparison, the name */
 const HB_PICS2 = ['stack', 'grouped', 'heat'];
@@ -1483,6 +1503,10 @@ const HB_RC_GW = {
   decision: '(?:renewal decisions?|decision quarters?|förnyelsebeslut)',
   risks: '(?:risks? found|open risks|risks?|öppna risker|risker)',
   standards: '(?:(?:our |company |the )?standards?|playbook (?:checks?|results?)|standardavvikelser|standarder|våra standarder)',
+  /* what the contract says (rec 7), off the overnight reading */
+  liabcap: '(?:(?:a |the )?liability caps?|caps? on liability|limits? of liability|liability|ansvarsbegränsning(?:ar)?|ansvarstak)',
+  autorenew: '(?:auto[- ]?renew(?:al|als|s)?|automatic renewals?|renews? automatically|automatisk förnyelse)',
+  priceup: '(?:price increases?|price rises?|price escalations?|indexation|prishöjning(?:ar)?|indexering)',
 };
 const _HB_NUM = '(\\d{1,3}|a|an|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|en|ett|två|tre|fyra|fem|sex|sju|åtta|nio|tio|elva|tolv)';
 const HB_RC_NUMS = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12,
@@ -1529,7 +1553,7 @@ const HB_RC = {
   date: [['signed', /\b(?:sign|signed|signing|signature|signatures|executed|signerade?|undertecknade?|signering)\b/],
          ['start', /\b(?:start(?:s|ed|ing)?|effective|began|begin|startar|startade|startdatum)\b/],
          ['created', /\b(?:created|raised|drafted|opened|new (?:contracts|agreements)|skapade?|nya avtal)\b/],
-         ['decision', /\b(?:renew\w*|decision|decisions|decide|act by|must act|notice dates?|give notice|deadline to act|förny\w*|beslut|agera senast|uppsägningsdatum)\b/],
+         ['decision', /\b(?:renew\w*|decision|decisions|decide|act by|must act|act|notice dates?|give notice|notice|deadline to act|förny\w*|beslut|agera senast|uppsägningsdatum)\b/],
          ['end', /\b(?:end(?:s|ed|ing)?|expir\w*|löper ut|slutar|slutdatum|upphör\w*|går ut)\b/]],
   when: /\bwhen (?:do|does|will|did)\b|\bnär (?:löper|går|slutar|förnyas)\b/,
   m: {
@@ -1585,6 +1609,9 @@ function hbRecipeRead(qRaw){
   if (win && HB_RC.date.some(([, re]) => re.test(full))) win.date = hbRcDateOf(full.trim(), winAt, 'end');
   let unit = null;
   for (const [u, re] of HB_RC.unit){ const m = take(re); if (m){ unit = u; unitAt = full.indexOf(m[0].trim()); break; } }
+  /* "risk exposure" is a measure before any split reads it: its "risk" is
+     never "by risks" ("top 5 counterparties by risk exposure") */
+  const exposure = !!take(HB_RC.m.exposure);
   /* a top N names its groups: "top 5 counterparties", "the 3 biggest streams" */
   let group = null, group2 = null, top = null, sort = null;
   for (const [g, re] of HB_RC.topGroup.concat(HB_RC.topBig)){
@@ -1615,8 +1642,8 @@ function hbRecipeRead(qRaw){
   for (const [p, re] of HB_RC.pic){ if (take(re)){ pic = p; break; } }
   if (!pic && group2 && stackBy === group2) pic = 'stack';
   const chartWord = !!take(HB_RC.chart);
-  let measure = null;
-  for (const k of ['exposure', 'medianValue', 'avgValue', 'daysToSign', 'rounds', 'payDays']){ if (take(HB_RC.m[k])){ measure = k; break; } }
+  let measure = exposure ? 'exposure' : null;
+  if (!measure) for (const k of ['exposure', 'medianValue', 'avgValue', 'daysToSign', 'rounds', 'payDays']){ if (take(HB_RC.m[k])){ measure = k; break; } }
   const show = take(HB_RC.running) ? 'running' : take(HB_RC.share) ? 'share' : null;
   /* "payment terms as a pie": a ring shows shares, and an average has none —
      the slices are the payment terms themselves, counted */
@@ -1643,6 +1670,9 @@ function hbRecipeRead(qRaw){
   if (timeAsked && (!group || unit)){
     const lean = (measure === 'daysToSign' || measure === 'rounds' || measure === 'payDays' || (trend && !when)) ? 'signed' : 'end';
     split = { by: 'date', unit: unit || 'm', date: measure === 'daysToSign' ? 'signed' : hbRcDateOf(full.trim(), unitAt, lean) };
+    /* "act by", "notice dates": the date itself, read here — they are no
+       condition the map's reader knows ("renewal" still is) */
+    if (split.date === 'decision') take(/\b(?:act by dates?|must act by|act by|act on|must act|deadlines? to act|notice dates?|give notice dates?|give notice|notice deadlines?|agera senast|uppsägningsdatum)\b/);
     if (group && unit && group !== 'valueBand') split2 = { by: group };
   } else if (group){ split = { by: group }; if (group2) split2 = { by: group2 }; }
   if (gantt && !unit) pic = 'gantt';
@@ -3116,7 +3146,7 @@ function hbWhyPrompt(src){
 const HB_BOARD_NOW_MAX = 4000;
 /* A RECIPE IN COPILOT'S WORDS (the server's mirror reads these same words
    back): what the board's settings are, so "this" can be changed exactly */
-const HB_SPLIT_WORDS = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks', standards: 'standards' };
+const HB_SPLIT_WORDS = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', payterms: 'payterms', valueBand: 'valueBand', move: 'move', rounds: 'rounds', overdue: 'overdue', decision: 'decision', risks: 'risks', standards: 'standards', liabcap: 'liabcap', autorenew: 'autorenew', priceup: 'priceup' };
 const HB_UNIT_WORDS = { m: 'month', q: 'quarter', y: 'year' };
 function hbSplitModelWord(S){ return !S ? 'none' : S.by === 'date' ? `${HB_UNIT_WORDS[S.unit] || 'month'} (date ${S.date})` : (HB_SPLIT_WORDS[S.by] || S.by); }
 function hbRecipeWords(P){
@@ -3202,7 +3232,8 @@ function hbDataGuide(lens, max){
   /* the streams this reader may open, by name; any other is never named */
   const okFolder = (() => { try { const v = (typeof visibleFolders === 'function') ? visibleFolders() : null; return v ? new Set(v.map(f => f.name)) : null; } catch (_){ return null; } })();
   const GROUPS = [['folder', 'Stream (split stream)'], ['counterparty', 'Counterparty (split counterparty)'], ['owner', 'Owner (split owner)'], ['kind', 'Type (split type)'], ['side', 'Side (split side)'], ['payterms', 'Payment terms (split payterms — a pie of payment terms; a ring never draws measure payDays)'],
-    ['move', 'Whose move in the negotiation (split move)'], ['rounds', 'Negotiation rounds (split rounds)'], ['overdue', 'Has overdue duties (split overdue)'], ['decision', 'Renewal decision quarter (split decision)'], ['risks', 'Open risks found (split risks)'], ['standards', 'Against our standards — off, met or not checked (split standards)']];
+    ['move', 'Whose move in the negotiation (split move)'], ['rounds', 'Negotiation rounds (split rounds)'], ['overdue', 'Has overdue duties (split overdue)'], ['decision', 'Renewal decision quarter (split decision)'], ['risks', 'Open risks found (split risks)'], ['standards', 'Against our standards — off, met or not checked (split standards)'],
+    ['liabcap', 'Liability cap, as the wording says — capped, uncapped, unclear or not read (split liabcap)'], ['autorenew', 'Renews by itself, as the wording says (split autorenew)'], ['priceup', 'Price increases, as the wording says — at will, indexed, fixed, none (split priceup)']];
   GROUPS.forEach(([f, word]) => {
     const rows = hbGroupsOf(cs, f, false);
     const named = rows.filter(r => r.g && !(f === 'folder' && okFolder && !okFolder.has(r.g)));
@@ -3251,7 +3282,8 @@ function hbCoverageOf(cs){
   const n = cs.length;
   const read = cs.filter(c => hbRiskWeightOf(c) != null).length;
   const checked = cs.filter(c => hbStdStateOf(c) !== 'unchecked').length;
-  return { n, read, checked };
+  const terms = cs.filter(c => !!hbKeyTermsOf(c)).length;
+  return { n, read, checked, terms };
 }
 function hbFactSheet(src){
   if (!src) return null;
@@ -3265,6 +3297,7 @@ function hbFactSheet(src){
   (src.extra || []).forEach(l => lines.push(String(l)));
   const cov = hbCoverageOf(cs);
   lines.push(`- Coverage: risks read on ${cov.read} of ${cov.n} (${cov.n - cov.read} not read); checked against our standards: ${cov.checked} of ${cov.n} (${cov.n - cov.checked} never checked).`);
+  if (cov.terms) lines.push(`- Key terms read from the wording (liability cap, renewal, price increases): ${cov.terms} of ${cov.n}.`);
   const refs = cs.slice(0, HB_WHY_IDS).map(c => hbRef(c));
   lines.push(`- Contracts behind it (${cs.length}${cs.length > HB_WHY_IDS ? `, the first ${HB_WHY_IDS} listed` : ''}): ${refs.join(', ')}`);
   let text = lines.join('\n');
@@ -3690,6 +3723,7 @@ function hbPackData(name, lens){
       const sev = r.risks.slice().sort((a, b) => (HB_RISK_WEIGHT[b.sev] || 0) - (HB_RISK_WEIGHT[a.sev] || 0));
       const why = sev.slice(0, 2).map(it => String(it.title || '').trim()).filter(Boolean);
       const w = (typeof renewalWindow === 'function') ? (() => { try { return renewalWindow(r.c); } catch (_){ return null; } })() : null;
+      if (hbKeyTermOf(r.c, 'liabcap') === 'uncapped') why.push(i18t('hb_pk_why_uncapped'));
       if (w && !w.decided && w.days != null && w.days <= 183) why.push(i18t(w.auto ? 'hb_pk_why_autorenew' : 'hb_pk_why_renews', { day: hbReadDay(w.decideBy) }));
       return { c: r.c, cells: [money ? _hbM(r.x || 0) : _hbN(r.risks.length)], why: why.join(' · ') };
     });
@@ -6036,7 +6070,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

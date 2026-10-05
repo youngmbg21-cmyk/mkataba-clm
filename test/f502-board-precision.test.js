@@ -45,7 +45,7 @@ const REQ = BOOK.requests;
 
 describe('F502 (A) — the book', () => {
   test('about a hundred requests, each tagged and each with a want', () => {
-    assert.ok(REQ.length >= 95 && REQ.length <= 130, String(REQ.length));
+    assert.ok(REQ.length >= 95 && REQ.length <= 150, String(REQ.length));   /* 141 with Charts That Explain's twenty-four */
     for (const r of REQ){
       assert.ok(r.q && typeof r.q === 'string', JSON.stringify(r));
       assert.ok(r.road === 'free' || r.road === 'copilot', r.q);

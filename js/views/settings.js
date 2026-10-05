@@ -1917,6 +1917,41 @@ function stFxPaint(){
   }).join('');
   host.querySelectorAll('[data-fx-del]').forEach(b=>b.addEventListener('click',()=>stFxSave(b.getAttribute('data-fx-del'),null)));
 }
+/* ---- READ THE WHOLE BOOK: the drawer ---- */
+let _stBook=null;
+async function stBookLoad(){
+  try{ _stBook=await api('board/reading'); }catch(e){ _stBook=null; const h=document.getElementById('st-book'); if(h) h.textContent=(e&&e.message)||i18t('co_settings_save_failed'); return; }
+  stBookPaint(); if(typeof stRepaintRow==='function') stRepaintRow('bookreading');
+}
+function stBookPaint(){
+  const host=document.getElementById('st-book'); if(!host||!_stBook) return;
+  const b=_stBook, r=b.run&&b.run.result;
+  const fld=(id,label,val,min,max,step)=>`<label><span style="${window.RV_LBL||''}">${esc(label)}</span><input id="${id}" type="number" min="${min}" max="${max}" step="${step||1}" value="${esc(String(val))}" style="${window.RV_FLD||ST_INPUT}"/></label>`;
+  const last=b.run?(b.run.error?i18t('st_book_last_err',{ at:String(b.run.at||'').slice(0,10), why:b.run.error })
+    :i18t('st_book_last',{ at:String(b.run.at||'').slice(0,10), read:(r&&r.read)||0, checked:(r&&r.checked)||0 })+(r&&(r.ceiling||r.agentLimit)?' '+i18t('st_book_stopped'):r&&r.cap?' '+i18t('st_book_capped'):''))
+    :i18t('st_book_never');
+  host.innerHTML=`<label style="display:flex;align-items:center;gap:8px;font-size:var(--t-body)"><input id="st-book-on" type="checkbox"${b.on?' checked':''}/> ${esc(i18t('st_book_on'))}</label>
+    <p class="st-note" style="margin:6px 0 10px">${esc(i18t('st_book_cost'))}${b.noKey?' '+esc(i18t('st_book_nokey')):''}</p>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${fld('st-book-at',i18t('st_book_at'),b.at,0,23)}${fld('st-book-max',i18t('st_book_max'),b.max,1,1000)}${fld('st-book-limit',i18t('st_book_limit'),b.limit,0,1000,0.5)}</div>
+    <p class="st-note" style="margin:10px 0 4px">${esc(i18t('st_book_cover',{ read:b.read, checked:b.checked, total:b.total }))}</p>
+    <p class="st-note" style="margin:0 0 10px">${esc(last)}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="st-book-save" style="${ST_BTN_SM}">${esc(i18t('st_book_save'))}</button><button id="st-book-run" style="${ST_BTN2}"${b.on&&!b.noKey?'':' disabled'}>${esc(i18t('st_book_run'))}</button></div>`;
+  document.getElementById('st-book-save')?.addEventListener('click',stBookSave);
+  document.getElementById('st-book-run')?.addEventListener('click',stBookRun);
+}
+async function stBookSave(){
+  stDrawerClearRefusal();
+  const v=id=>{ const el=document.getElementById(id); return el?el.value:null; };
+  try{ await api('board/reading','PUT',{ on:!!document.getElementById('st-book-on')?.checked, at:Number(v('st-book-at')), max:Number(v('st-book-max')), limit:Number(v('st-book-limit')) });
+    toast(i18t('st_book_saved'),'ok'); await stBookLoad(); }
+  catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
+async function stBookRun(){
+  stDrawerClearRefusal();
+  const b=document.getElementById('st-book-run'); if(b) b.disabled=true;
+  try{ const r=await api('board/reading/run','POST',{}); toast(i18t('st_book_ran',{ read:(r&&r.read)||0, checked:(r&&r.checked)||0 }),'ok'); await stBookLoad(); }
+  catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); if(b) b.disabled=false; }
+}
 /* ---- COPILOT ACCURACY: the drawer's reading and its rows ---- */
 let _stAcc=null;
 async function stAccLoad(){
@@ -1947,6 +1982,7 @@ function stAccPaint(){
   host.style.overflowWrap='anywhere'; host.style.minWidth='0';
   host.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">${freeT}${cop}${disc}</div>
     ${r&&r.stopped?`<p class="st-note" style="margin:8px 0 0;color:${amber}">${esc(i18t('st_acc_stopped_'+(r.stopped==='ceiling'?'ceiling':'limit')))}</p>`:''}
+    ${r&&r.numbers&&r.numbers.answers?`<p class="st-note" style="margin:8px 0 0${r.numbers.flagged?';color:'+amber:''}">${esc(i18tn('st_acc_numbers',r.numbers.answers,{ n:r.numbers.answers, k:r.numbers.flagged }))}${(r.numbers.examples||[]).slice(0,3).map(x=>`<br>“${esc(x.q)}”: ${esc(x.numbers.join(', '))}`).join('')}</p>`:''}
     <h3 class="st-sec-h" style="margin-top:14px">${esc(i18t('st_acc_misses'))}${r&&r.misses?` (${r.misses.length})`:''}</h3>
     ${misses?`<div style="border:1px solid var(--color-divider);border-radius:var(--radius)">${misses}</div>`:`<p class="st-note" style="margin:0">${esc(i18t(r&&r.total?'st_acc_no_misses':'st_acc_misses_none_yet'))}</p>`}
     <h3 class="st-sec-h" style="margin-top:14px">${esc(i18t('st_acc_marked'))} (${(a.rows||[]).length})</h3>
@@ -2577,6 +2613,23 @@ const SET_PANELS={
     find:()=>[i18t('st_acc_misses'),i18t('st_acc_marked')],
     body(){ return `<p class="st-note" style="margin-bottom:10px" id="st-acc-sub">${esc(i18t('st_acc_loading'))}</p><div id="st-acc"></div>`; },
     wire(){ stAccLoad(); },
+  },
+
+  /* ---- READ THE WHOLE BOOK (Charts That Explain, rec 7, 5 Oct 2026) ----
+     The overnight reading of every contract's key terms and its check against
+     our standards, so the board's charts cover the whole book and not only the
+     contracts somebody opened. OFF by default; it spends while nobody watches,
+     so its cost is said here, beside the switch. Read and written through
+     GET/PUT /api/board/reading; Run now is POST /api/board/reading/run. */
+  bookreading:{
+    tab:'platform', group:'copilot', mandatory:false,
+    title:()=>i18t('st_p_book'),
+    sub:()=>i18t('st_p_book_sub'),
+    state(){ const b=_stBook; if(!b) return { dot:'off', text:i18t('st_p_book_sub') };
+      return b.on?{ dot:'ok', text:i18t('st_book_state',{ read:b.read, total:b.total }) }:{ dot:'off', text:i18t('st_book_off') }; },
+    find:()=>[i18t('st_book_terms'),i18t('st_book_run')],
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('st_book_note'))}</p><div id="st-book">${esc(i18t('st_acc_loading'))}</div>`; },
+    wire(){ stBookLoad(); },
   },
 
   review:{
