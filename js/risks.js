@@ -105,10 +105,28 @@ const _rkDraftable = f => !!f && !/^g-/.test(String(f.id || '')) && String(f.anc
    standards already match on (js/clausemodel.js), asked of a risk's title or
    a redline's clause name. null where nothing matches — the safe direction:
    a risk of no known topic is never treated as covered. */
+/* ---- AND A FEW MORE TOPICS, FOR RISKS ONLY (Young picked "Find the clause",
+   5 Oct 2026) ----
+   The six kinds above are Our standards' own and stay exactly as they are; a
+   risk also needs to know a quality, insurance, warranty, delivery or
+   intellectual-property clause when it sees one ("Product standard not cited"
+   found no clause and was offered as a new one). Asked only AFTER the six, so
+   nothing the standards already read changes. */
+const RK_TOPICS = [
+  { key: 'insurance', re: /\b(insur\w*)\b/i },
+  { key: 'quality', re: /\b(quality|standards?|certificat\w*|food[- ]safety|inspect\w*|reject\w*|conformity)\b/i },
+  { key: 'warranty', re: /\b(warrant(?:y|ies))\b/i },
+  { key: 'delivery', re: /\b(deliver\w*|shipment\w*|dispatch\w*|lead[- ]times?|otif)\b/i },
+  { key: 'ip', re: /\b(intellectual property|trade ?marks?|copyright|artwork)\b/i },
+];
 function _rkKind(text){
   const t = String(text || '').trim();
-  if (!t || typeof clauseKind !== 'function') return null;
-  try{ return clauseKind({ title: t }); }catch(_){ return null; }
+  if (!t) return null;
+  let k = null;
+  try{ k = (typeof clauseKind === 'function') ? clauseKind({ title: t }) : null; }catch(_){ k = null; }
+  if (k) return k;
+  const hit = RK_TOPICS.find(x => x.re.test(t));
+  return hit ? hit.key : null;
 }
 const RK_PB_NOTE = /^Playbook — ([^:(]+)/;
 /* What could cover a risk, read RAW once per list: our live redlines (with
@@ -232,7 +250,7 @@ function riskDismiss(c, key, back){
    What the list and the walk are showing is a fact about this sitting, never
    about the record; a refresh starts fresh, which costs nothing because
    nothing here was filed. */
-const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, advice: {}, busy: '', err: {}, spent: {}, whyOpen: {} };
+const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, advice: {}, busy: '', err: {}, say: {}, spent: {}, whyOpen: {} };
 
 /* WHERE A RISK'S WORDING WOULD GO, asked at the PRESS (negoClauseList may
    start a negotiation; a draw never calls this). A finding whose words are on
@@ -258,28 +276,60 @@ function _rkLastTerm(clauses){
   return after;
 }
 /* THE CLAUSE A RISK CHANGES, or null where it needs a new one: its quote's
-   own clause, else the first clause of its topic. With it, our own pending
-   redline on that clause, which the edit is written ON TOP of — one redline
-   per clause, never two. */
+   own clause, else the template clause its rule names, else the first clause
+   of its topic. With it, our own pending redline on that clause, which the
+   edit is written ON TOP of — one redline per clause, never two.
+   ---- AND WHERE HaTi CANNOT TELL, THE READER POINTS (Young picked "Find the
+   clause" with "You point" behind it, 5 Oct 2026) ----
+   A new clause is offered only where HaTi knows one is needed: the risk's
+   topic has no clause here, or the scan says the thing is MISSING ("No
+   injunctive-relief clause"). Anything else that finds no clause comes back
+   `choose`: the window holds the new clause's place, "Which clause is this
+   about?" offers every clause to change and every place for a new one, and
+   Copilot is asked only once the reader has chosen — never sent off with an
+   empty page, which is how "Product standard not cited" ended in a refusal. */
 function riskEditTarget(c, it){
   if (!c || !it) return null;
   const kind = _rkKind(it.title);
   const cat = (kind && typeof clauseKindByKey === 'function' && clauseKindByKey(kind)) ? clauseKindByKey(kind).category : '';
   let cl = null;
   if (it.quote && typeof rlPbFindClause === 'function'){ try{ cl = rlPbFindClause(c, it.quote, cat); }catch(_){ cl = null; } }
-  if (!(cl && cl.clauseId) && kind && typeof clauseKind === 'function'){
-    cl = _rkClauses(c).find(x => { try{ return !_rkIsSigning(x) && clauseKind(x) === kind; }catch(_){ return false; } }) || null;
+  if (!(cl && cl.clauseId)) cl = _rkAnchorClause(c, it.anchor);
+  if (!(cl && cl.clauseId) && kind){
+    cl = _rkClauses(c).find(x => { try{ return !_rkIsSigning(x) && _rkKind(x.title || x.headingText) === kind; }catch(_){ return false; } }) || null;
   }
   if (!cl || !cl.clauseId){
     /* NOTHING OF ITS TOPIC IS THERE: a NEW clause, after the last clause
        ahead of the signatures, named from the risk (the reader may move it
-       and rename it before saving). */
+       and rename it before saving) — or, where HaTi cannot tell, the same
+       place held while the reader chooses. */
     const after = _rkLastTerm(_rkClauses(c));
-    return after ? { newClause: true, afterClauseId: String(after), heading: _rkHeadingFrom(it), label: _rkHeadingFrom(it), clauseId: '', changeId: null } : null;
+    if (!after) return null;
+    const sure = !!kind || String(it.kind || '') === 'missing';
+    return { newClause: true, choose: !sure, afterClauseId: String(after), heading: _rkHeadingFrom(it), label: _rkHeadingFrom(it), clauseId: '', changeId: null };
   }
+  return _rkOnClause(c, cl);
+}
+/* The target for an existing clause: its name, and our own pending redline on
+   it, which an edit is written on top of. */
+function _rkOnClause(c, cl){
   const ch = (Array.isArray(c.changes) ? c.changes : []).find(x => x && String(x.clauseId) === String(cl.clauseId)
     && x.authorSide === 'owner' && !x.withdrawn && x.status === 'pending');
   return { clauseId: String(cl.clauseId), label: _rkClauseName(cl), changeId: ch ? String(ch.id) : null };
+}
+/* THE TEMPLATE CLAUSE A RULE NAMES (`c1`…`c4`, `s-…`), found by its title on
+   the paper as it stands (templateClauseTitles reads the template's own
+   tags). A title the negotiation renamed finds nothing — the reader points. */
+const _rkHeadNorm = s => String(s || '').toLowerCase().replace(/&amp;/g, '&')
+  .replace(/^\W*(?:\d+[.)]?\s*)+/, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
+function _rkAnchorClause(c, anchor){
+  const a = String(anchor || '');
+  if (!/^(c\d+|s-[a-z]+)$/.test(a) || typeof templateClauseTitles !== 'function') return null;
+  let titles = null;
+  try{ titles = templateClauseTitles(c); }catch(_){ titles = null; }
+  const want = _rkHeadNorm(titles && titles[a]);
+  if (!want) return null;
+  return _rkClauses(c).find(x => !_rkIsSigning(x) && _rkHeadNorm(x.title || x.headingText) === want) || null;
 }
 const _rkClauseName = cl => {
   const raw = String((cl && (cl.headingText || cl.title)) || '').trim();
@@ -335,8 +385,16 @@ const RK_ASKS = {
 const RK_ASK_WORD = { firmer: 'rk_ce_firmer', softer: 'rk_ce_softer', shorter: 'rk_ce_shorter', playbook: 'rk_ce_playbook' };
 const _rkOpenNow = (c, key) => riskOpenOf(c).some(x => x.key === key);
 function _rkWalkOf(c){ const w = _rk.walk; return (w && c && w.cid === String(c.id)) ? w : null; }
+/* WAITING ON THE READER: a risk HaTi could not place (riskEditTarget's
+   `choose`) until "Which clause is this about?" has been answered. Copilot is
+   not asked while it waits. */
+const _rkWaiting = (w, key) => !!(w && w.choose && w.choose[key] && !(w.picked && w.picked[key]));
+function _rkForget(key){ delete _rk.words[key]; delete _rk.advice[key]; delete _rk.err[key]; delete _rk.say[key]; }
 function _rkEditorOpen(c, key, t){
   const w = _rkWalkOf(c); if (!w) return false;
+  if (!w.choose) w.choose = {};
+  if (!w.picked) w.picked = {};
+  if (t.choose){ w.choose[key] = true; w.picked[key] = false; _rkForget(key); }
   w.key = key; w.isNew = !!t.newClause; w.clauseId = t.newClause ? String(window.CE_NEW_ID || 'cl_ce_new') : t.clauseId;
   w.label = t.label || ''; w.done = false;
   try{ if (typeof clauseEditorOpen === 'function' && clauseEditorOpen() && typeof rlCloseClauseEditor === 'function') rlCloseClauseEditor(); }catch(_){}
@@ -353,7 +411,7 @@ function riskEditStart(c, key){
   if (!t){ if (typeof toast === 'function') toast(_rkT('ce_no_clause'), 'warn'); return false; }
   const keys = riskOpenOf(c).map(x => x.key);
   if (!keys.includes(key)) keys.unshift(key);
-  _rk.walk = { cid: String(c.id), keys, at: keys.indexOf(key), saved: [], skipped: [], newcl: [], key: '', clauseId: '', done: false };
+  _rk.walk = { cid: String(c.id), keys, at: keys.indexOf(key), saved: [], skipped: [], newcl: [], key: '', clauseId: '', done: false, choose: {}, picked: {} };
   return _rkEditorOpen(c, key, t);
 }
 /* Move along: 'next' after a save, 'skip' without one, 'prev' back. */
@@ -424,11 +482,12 @@ function riskSecondRedline(c, clauseId){
 async function riskEditorDraft(c, key, ask){
   const it = riskItemsOf(c).find(x => x.key === key);
   if (!c || !it || typeof ceApply !== 'function') return false;
+  if (_rkWaiting(_rkWalkOf(c), key)){ _rk.err[key] = 'pick'; if (typeof ceRenderLane === 'function') ceRenderLane(); return false; }
   if (!ask && _rk.words[key]){ if (typeof ceRenderLane === 'function') ceRenderLane(); return true; }
   if (!(typeof copilotAvailable === 'function' && copilotAvailable()) || typeof copilotPropose !== 'function'){
     _rk.err[key] = 'noai'; if (typeof ceRenderLane === 'function') ceRenderLane(); return false;
   }
-  _rk.busy = key; _rk.err[key] = '';
+  _rk.busy = key; _rk.err[key] = ''; _rk.say[key] = '';
   if (typeof ceRenderLane === 'function') ceRenderLane();
   const passage = (typeof ceBoxWords === 'function') ? ceBoxWords() : '';
   const clauseLabel = (_rkWalkOf(c) || {}).label || '';
@@ -443,7 +502,17 @@ async function riskEditorDraft(c, key, ask){
   }catch(e){ err = e; }
   if (_rk.busy === key) _rk.busy = '';
   const words = String((res && res.proposedText) || '').trim();
-  if (err || !words){ _rk.err[key] = err ? String((err && err.message) || err) : String((res && res.advice) || _rkT('ce_ask_nothing')); }
+  if (err) _rk.err[key] = String((err && err.message) || err);
+  else if (!words){
+    /* ---- COPILOT ANSWERED WITHOUT WORDING (Young, 5 Oct 2026) ----
+       Not a failure to print in red: Copilot said why (usually that it cannot
+       tell which wording to change). Its sentence is said quietly, with the
+       way forward under it, and "Which clause is this about?" opens on the
+       clause in front of the reader so they can point it elsewhere. */
+    _rk.say[key] = String((res && res.advice) || _rkT('ce_ask_nothing'));
+    const w = _rkWalkOf(c);
+    if (w && w.key === key){ if (!w.choose) w.choose = {}; if (!w.picked) w.picked = {}; w.choose[key] = true; w.picked[key] = true; }
+  }
   else {
     _rk.words[key] = words; _rk.advice[key] = String((res && res.advice) || '').trim();
     _rk.spent[key] = (_rk.spent[key] || 0) + 1;
@@ -454,7 +523,43 @@ async function riskEditorDraft(c, key, ask){
 function riskEditorArrive(c, key){
   const w = _rkWalkOf(c);
   if (!w || w.key !== key) return;
+  if (_rkWaiting(w, key)){
+    /* NEVER SILENT: with no Copilot the choice will not bring one, so the
+       window says so at once — the reader chooses the clause and writes. */
+    if (!(typeof copilotAvailable === 'function' && copilotAvailable())){
+      _rk.err[key] = 'noai'; if (typeof ceRenderLane === 'function') ceRenderLane();
+    }
+    return;
+  }
   riskEditorDraft(c, key, '');
+}
+/* "WHICH CLAUSE IS THIS ABOUT?" ANSWERED: `chg:<id>` opens the window on that
+   clause (on top of our own pending redline there); a clause id is the place a
+   new clause goes after — moved in place where one is already held, held
+   there otherwise. Then Copilot is asked, once, about the clause chosen. */
+function riskWherePick(c, value){
+  const w = _rkWalkOf(c);
+  const v = String(value || '');
+  if (!w || !w.key || !v) return false;
+  const key = w.key;
+  const it = riskItemsOf(c).find(x => x.key === key);
+  if (!it) return false;
+  const choosing = !!(w.choose && w.choose[key]);
+  const first = choosing && !(w.picked && w.picked[key]);
+  if (choosing) w.picked[key] = true;
+  if (v.startsWith('chg:')){
+    const cl = _rkClauses(c).find(x => String(x.clauseId) === v.slice(4));
+    if (!cl) return false;
+    _rkForget(key);
+    return _rkEditorOpen(c, key, _rkOnClause(c, cl));
+  }
+  if (w.isNew && typeof ceSetNewPlace === 'function'){
+    ceSetNewPlace(v);
+    if (first){ _rkForget(key); riskEditorDraft(c, key, ''); }
+    return true;
+  }
+  _rkForget(key);
+  return _rkEditorOpen(c, key, { newClause: true, afterClauseId: v, heading: _rkHeadingFrom(it), label: _rkHeadingFrom(it), clauseId: '', changeId: null });
 }
 /* WHAT COPILOT ANSWERED FOR THE RISK IN FRONT OF THE READER, read by the
    editor, which draws it with its own card (the clothes follow the builder). */
@@ -469,9 +574,9 @@ function riskAnswerOf(c){
 function riskChipsHtml(c){
   const w = _rkWalkOf(c);
   if (!w || !w.key || w.done) return '';
-  const busy = _rk.busy === w.key, noai = _rk.err[w.key] === 'noai';
+  const busy = _rk.busy === w.key, noai = _rk.err[w.key] === 'noai', wait = _rkWaiting(w, w.key);
   return Object.keys(RK_ASK_WORD).map(k =>
-    `<button type="button" data-ce-rk="ask-${k}" title="${_rkE(_rkT('rk_ce_each'))}"${busy || noai ? ' disabled' : ''}>${_rkE(_rkT(RK_ASK_WORD[k]))}</button>`).join('');
+    `<button type="button" data-ce-rk="ask-${k}" title="${_rkE(_rkT(wait ? 'rk_ce_pick_first' : 'rk_ce_each'))}"${busy || noai || wait ? ' disabled' : ''}>${_rkE(_rkT(RK_ASK_WORD[k]))}</button>`).join('');
 }
 /* THE RISKS TAB, drawn by the window's rail. */
 function riskLaneHtml(c){
@@ -495,7 +600,10 @@ function riskLaneHtml(c){
   const busy = _rk.busy === it.key, err = _rk.err[it.key];
   const say = busy ? `<div class="rk-busy" aria-busy="true"><span class="ob-spin" aria-hidden="true"></span>${_rkE(_rkT('rk_writing'))}</div>`
     : err === 'noai' ? `<p class="rk-p rk-quiet">${_rkE(_rkT('rk_ce_no_ai'))}</p>`
+    : err === 'pick' ? `<p class="rk-p rk-way"><b>${_rkE(_rkT('rk_ce_pick_first'))}</b></p>`
     : err ? `<div class="rk-err">${_rkE(_rkT('rk_failed', { why: err }))}</div>`
+    : _rk.say[it.key] ? `<div class="rk-say"><p class="rk-p rk-quiet">${_rkE(_rkT('rk_failed', { why: _rk.say[it.key] }))}</p>`
+      + `<p class="rk-p rk-way"><b>${_rkE(_rkT('rk_ce_refused_way'))}</b></p></div>`
     : _rk.spent[it.key] ? `<p class="rk-cost">&#10022; ${_rkE(_rkT(_rk.spent[it.key] === 1 ? 'rk_ce_wrote' : 'rk_ce_wrote_n', { n: _rk.spent[it.key] }))}</p>` : '';
   return `<div class="rk-ce" data-rk-key="${_rkE(it.key)}">
     <div class="rk-ce-step"><span>${_rkE(_rkT('rk_ce_step', { k: info.k, n: info.n }))}</span><span class="rk-ce-dots" aria-hidden="true">${dots}</span></div>
@@ -512,18 +620,28 @@ function riskLaneHtml(c){
 }
 /* WHERE A NEW CLAUSE GOES, while it is held and not yet filed: a clause to put
    it after, never at or after the signatures (the window holds the place; the
-   select moves it — ceSetNewPlace). */
+   select moves it — ceSetNewPlace).
+   AND, WHERE HaTi COULD NOT TELL OR COPILOT WROTE NOTHING, "Which clause is
+   this about?": the same box offers every clause to CHANGE (`chg:<id>`) and
+   every place for a NEW one, with nothing chosen until the reader chooses
+   (riskWherePick). Never at or after the signatures, either way. */
 function _rkWhereHtml(c){
   const w = _rkWalkOf(c);
-  if (!w || !w.isNew || typeof ceNewPlace !== 'function') return '';
-  const now = ceNewPlace();
+  if (!w || !w.key) return '';
+  const choosing = !!(w.choose && w.choose[w.key]);
+  if (!choosing && !w.isNew) return '';
+  if (w.isNew && typeof ceNewPlace !== 'function') return '';
+  const picked = !choosing || !!(w.picked && w.picked[w.key]);
+  const now = w.isNew ? String(ceNewPlace() || '') : '';
   const clauses = _rkClauses(c);
   const cut = clauses.findIndex(_rkIsSigning);
   const before = cut >= 0 ? clauses.slice(0, cut) : clauses;
-  const opts = before.map(cl => `<option value="${_rkE(cl.clauseId)}"${String(cl.clauseId) === now ? ' selected' : ''}>${_rkE(_rkT('rk_after', { clause: _rkClauseName(cl) }))}</option>`).join('');
+  const ph = choosing ? `<option value="" disabled${picked ? '' : ' selected'}>${_rkE(_rkT('rk_choose_ph'))}</option>` : '';
+  const chg = choosing ? before.map(cl => `<option value="chg:${_rkE(cl.clauseId)}"${picked && !w.isNew && String(cl.clauseId) === String(w.clauseId) ? ' selected' : ''}>${_rkE(_rkT('rk_change', { clause: _rkClauseName(cl) }))}</option>`).join('') : '';
+  const add = before.map(cl => `<option value="${_rkE(cl.clauseId)}"${picked && w.isNew && String(cl.clauseId) === now ? ' selected' : ''}>${_rkE(_rkT('rk_after', { clause: _rkClauseName(cl) }))}</option>`).join('');
   const sign = cut >= 0 ? clauses[cut] : null;
-  return `<label class="rk-where"><span class="rk-k">${_rkE(_rkT('rk_where'))}</span>
-    <select class="rk-sel" data-ce-rk-where>${opts}</select>
+  return `<label class="rk-where"><span class="rk-k">${_rkE(_rkT(choosing ? 'rk_where_which' : 'rk_where'))}</span>
+    <select class="rk-sel" data-ce-rk-where${choosing ? ' data-rk-choose="1"' : ''}>${ph}${chg}${add}</select>
     ${sign ? `<span class="rk-cost">${_rkE(_rkT('rk_ce_never_after', { clause: _rkClauseName(sign) }))}</span>` : ''}</label>`;
 }
 /* "Where it goes", for the editor's expanded view too (Young, 5 Oct 2026:
@@ -843,13 +961,16 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
   /* WHERE A NEW CLAUSE GOES, moved in the Risks tab before it is filed. */
   document.addEventListener('change', e => {
     const sel = e.target && e.target.closest && e.target.closest('#clause-editor [data-ce-rk-where]');
-    if (sel && typeof ceSetNewPlace === 'function') ceSetNewPlace(sel.value);
+    if (!sel) return;
+    const c = _rk.walk && typeof getContract === 'function' ? getContract(_rk.walk.cid) : null;
+    if (c && riskWherePick(c, sel.value)) return;
+    if (typeof ceSetNewPlace === 'function' && !/^chg:/.test(sel.value)) ceSetNewPlace(sel.value);
   });
 }
 
 Object.assign(window, {
   riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss, riskIsAdvice, RK_ADVICE_IDS,
   riskNote, riskMayAct, rlRisksPileHtml, riskMarkFootHtml,
-  riskCoverOf, riskEditTarget, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled,
+  riskCoverOf, riskEditTarget, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled, riskWherePick,
   riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml, riskAnswerOf, riskChipsHtml, riskWhereHtml, riskWhyOf,
 });
