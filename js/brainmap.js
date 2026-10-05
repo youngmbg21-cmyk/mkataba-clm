@@ -33,7 +33,8 @@ const BRAIN_PARTS = [
   ['stands', 'dealStands', 'see', 1],
   /* the Insights shelf (4 Oct 2026): worked out the first time Home opens each day */
   ['insights', 'hbInsightsToday', 'see', 1],
-  /* Read, then ask (4 Oct 2026): an enlarged chart says what it shows, and one press asks Copilot why */
+  /* Read, then ask (4 Oct 2026): an enlarged chart says what it shows, and one press asks Copilot why;
+     a small one says its point in one line, Read more opens the rest (Headline, 5 Oct 2026, hbHeadlineHtml) */
   ['chartread', 'hbReadHtml', 'see', 1],
   /* One recipe language (work order Part 1, 4 Oct 2026): every board card is one recipe, drawn by one planner */
   ['recipe', 'hbCardPlan', 'see', 1],

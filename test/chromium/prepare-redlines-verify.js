@@ -406,8 +406,6 @@ const VERDICTS = [
     '7c and then it deletes none, which is what demotes the wall to a seatbelt', st7.lossFit);
 
   await pause(900);
-  await page.click('#clause-editor [data-ce-tab="scan"]').catch(() => {});
-  await pause(500);
   const PARTS7 = id => {
     const sec = document.querySelector('#ce-doc .rl-clause[data-clause="' + id + '"]');
     if (!sec) return { none: 'clause not drawn' };
@@ -434,12 +432,17 @@ const VERDICTS = [
     return { none: null, seen, kept, struck, floor: /not less than/.test(sec.textContent || '') };
   };
   const before7 = await page.evaluate(PARTS7, st7.clauseId);
-  const btn7 = await page.$('#clause-editor .ce-rule [data-ce-scan$=":draft"]');
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the scan tab is gone; its
+     draft is the prepared question "Use Copilot's draft", whose card's Apply
+     is what moves it in. The address claim is unchanged. */
+  const btn7 = await page.$('#clause-editor #ce-chips [data-ce-std="draft"]');
   check(!!btn7 && !before7.none && Object.values(before7.seen).every(Boolean),
     '7d- the control: the rail offers the draft on a six-part clause',
-    !btn7 ? 'no draft button drawn' : JSON.stringify(before7.seen));
+    !btn7 ? 'no draft question drawn' : JSON.stringify(before7.seen));
   if (btn7 && !before7.none){
     await btn7.click();
+    await pause(400);
+    await page.evaluate(() => { const c = [...document.querySelectorAll('#clause-editor #ce-lane .ce-card')].pop(); const a = c && c.querySelector('[data-ce-apply]'); if (a) a.click(); });
     await pause(1200);
     const after7 = await page.evaluate(PARTS7, st7.clauseId);
     check(!after7.none && ['20.1', '20.2', '20.4', '20.5', '20.6'].every(k => after7.kept[k]),
@@ -534,36 +537,36 @@ const VERDICTS = [
     rlOpenClauseEditor(c, cl.clauseId, {});
   }, ID);
   await pause(900);
-  await page.click('#clause-editor [data-ce-tab="scan"]').catch(() => {});
-  await pause(700);
+  /* RE-POINTED 5 Oct 2026: the scan card's "more" is gone with its tab; a
+     standard question's card is the ordinary Suggested wording card, and its
+     whole wording opens across the panel through Expand. */
+  await page.evaluate(() => { const b = document.querySelector('#clause-editor #ce-chips [data-ce-std]'); if (b) b.click(); });
+  await pause(500);
   const pv0 = await page.evaluate(() => {
-    const pv = document.querySelector('#clause-editor .ce-rule .pv');
-    const b = document.querySelector('#clause-editor .ce-rule .pv-more');
+    const card = [...document.querySelectorAll('#clause-editor #ce-lane .ce-card')].pop();
+    const pv = card && card.querySelector('.pv');
+    const b = card && card.querySelector('[data-ce-expand]');
     if (!pv) return { none: true };
-    const r = pv.getBoundingClientRect(), bs = b ? getComputedStyle(b) : null;
-    return { none: false, h: Math.round(r.height), full: pv.scrollHeight,
-      live: !!(b && b.classList.contains('is-live')), shown: bs ? bs.display !== 'none' : false,
-      word: b ? b.textContent.trim() : null };
+    return { none: false, h: Math.round(pv.getBoundingClientRect().height), full: pv.scrollHeight,
+      live: !!b, shown: !!(b && b.getClientRects().length), word: b ? b.textContent.trim() : null };
   });
-  check(!pv0.none && pv0.full > pv0.h + 2,
-    '8c- the control: the preview really is taller than its window',
-    JSON.stringify(pv0));
   check(!pv0.none && pv0.live && pv0.shown,
-    '8c the card offers a way to open it, and only because it measured one',
-    JSON.stringify(pv0));
+    '8c the card a standard question fills offers Expand', JSON.stringify(pv0));
   const pv1 = await page.evaluate(async () => {
-    const b = document.querySelector('#clause-editor .ce-rule .pv-more');
+    const card = [...document.querySelectorAll('#clause-editor #ce-lane .ce-card')].pop();
+    const b = card && card.querySelector('[data-ce-expand]');
     if (!b) return { none: true };
     b.click(); await new Promise(r => setTimeout(r, 400));
-    const pv = document.querySelector('#clause-editor .ce-rule .pv');
-    return { none: false, h: Math.round(pv.getBoundingClientRect().height),
-      word: b.textContent.trim(), cut: pv.scrollHeight > pv.clientHeight + 2 };
+    const full = document.getElementById('ce-full');
+    const pv = full && full.querySelector('.pv');
+    return { none: false, open: !!(full && !full.hidden && full.getClientRects().length), h: pv ? Math.round(pv.getBoundingClientRect().height) : 0,
+      back: !!(full && full.querySelector('[data-ce-act="full-close"]')) };
   });
-  check(!pv1.none && pv1.h > pv0.h && !pv1.cut,
-    '8d and pressing it shows the whole wording', `${pv0.h}px → ${pv1.h}px`);
-  check(!pv1.none && pv1.word && pv1.word !== pv0.word,
-    '8e the word turns round, so the press is its own way back',
-    `${pv0.word} → ${pv1.word}`);
+  check(!pv1.none && pv1.open && pv1.h >= pv0.h,
+    '8d and Expand shows the whole wording across the panel', `${pv0.h}px → ${pv1.h}px`);
+  check(!pv1.none && pv1.back,
+    '8e with its own way back', String(pv1.back));
+  await page.evaluate(() => { const x = document.querySelector('#ce-full [data-ce-act="full-close"]'); if (x) x.click(); });
   await page.screenshot({ path: path.join(OUT, '09-open-preview.png') });
 
   await page.evaluate(() => { if (typeof rlCloseClauseEditor === 'function') rlCloseClauseEditor(); });

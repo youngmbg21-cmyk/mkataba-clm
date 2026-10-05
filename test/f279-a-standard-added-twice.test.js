@@ -232,7 +232,9 @@ test('f279 (11) the four doors, and the sign on each that can know', async () =>
   assert.ok(!/confirmDialog/.test(file), 'and asks nobody anything');
   /* THE SIGN, where it can be known before the press — this product\'s own
      rule. Each of the three surfaces that draws an add asks the ONE reading. */
-  assert.ok(/negoDupClauseStop/.test(CE), 'the clause editor\'s scan rail signs');
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the clause editor's scan
+     rail, and its Add, are gone — it draws no add to sign. */
+  assert.ok(!/ceAddMissingClause|rlFilePlaybookProposal\(/.test(CE.replace(/\/\*[\s\S]*?\*\//g, '')), 'the clause editor draws no add at all');
   assert.ok(/negoDupClauseStop/.test(VIEW), 'the Playbook review window signs');
   assert.ok(/negoDupClauseStop/.test(PB), 'the clause picker signs');
   /* AND NO SIGN WRITES. negoClauseList calls negoInit, which CREATES a
@@ -240,7 +242,7 @@ test('f279 (11) the four doors, and the sign on each that can know', async () =>
      built while DRAWING a row would start one on any contract the row is drawn
      for. Each of the three asks for the clause list only where a negotiation
      already exists, which is the guard negoClauseNamed itself carries. */
-  for (const [src, where] of [[CE, 'the scan rail'], [VIEW, 'the review window'],
+  for (const [src, where] of [[VIEW, 'the review window'],
     [PB, 'the clause picker']]){
     const near = src.split(/negoDupClauseStop/)[0].slice(-1400)
       + src.split(/negoDupClauseStop/).slice(1).join('negoDupClauseStop').slice(0, 600);

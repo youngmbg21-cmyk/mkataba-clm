@@ -89,7 +89,8 @@ describe('f505 (C) fill the panel', () => {
   });
   test('Escape, Apply, Ask for a change and a tab change close it', () => {
     assert.match(CE, /if \(document\.querySelector\('\[data-top-overlay\]'\)\) return;\n\s+if \(ceFullClose\(\)\) return;/, 'Escape closes the full view before the window');
-    assert.match(CE, /ceFullClose\(\);\n\s+if \(card\.passage\) ceReplacePassage/, 'Apply');
+    /* RE-POINTED 5 Oct 2026: a standard card's Apply takes its own line first */
+    assert.match(CE, /ceFullClose\(\);\n\s+if \(card\.std\)\{ ceStdApply\(card\); return; \}\n\s+if \(card\.passage\) ceReplacePassage/, 'Apply');
     assert.match(CE, /if \(refine\)\{ ev\.preventDefault\(\);\n\s+ceFullClose\(\);/, 'Ask for a change');
     assert.match(CE, /_ceFull = '';\n\s+ceRenderTabs\(\); ceRenderLane\(\); ceRenderFull\(\); return; \}/, 'a tab change');
   });

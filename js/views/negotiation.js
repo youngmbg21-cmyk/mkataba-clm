@@ -7820,33 +7820,10 @@ function rlScaleHtml(row){
   return `<div class="rl-scale"><div class="rl-sc-line">${zone}${drawn}${
     base != null ? `<span class="rl-sc-mark rl-sc-grey rl-sc-below" style="left:${pct(base)}%">${_ne(i18t('ng_fig_agreed', { n: base }))}</span>` : ''}${ticks}</div></div>`;
 }
-/* THE FIGURE section: the scale, a number box and one press that writes the
-   figure into the wording. `opts.act` names the door: 'panel' opens the
-   clause editor with the figure applied (data-rl-fig-write); 'editor' is the
-   editor's own tab and applies to its box (data-ce-act="fig-write"). */
-function rlFigureSecHtml(c, clauseId, side, opts = {}){
-  if (side === 'counterparty' || typeof window.ladderStand !== 'function') return '';
-  const row = ladderStand(c, String(clauseId || ''), side);
-  if (!row || !row.topic || row.accepted) return '';
-  const scale = rlScaleHtml(row);
-  if (!scale) return '';
-  const now = row.top ? ladderFigure(row.topic, row.top.text) : null;
-  const val = now != null ? now : (row.ourFig != null ? row.ourFig : (row.theirFig != null ? row.theirFig : ''));
-  const id = _ne(String(clauseId));
-  const inputId = opts.act === 'editor' ? 'ce-fig' : `rl-fig-${id}`;
-  const press = opts.act === 'editor'
-    ? `data-ce-act="fig-write"` : `data-rl-fig-write="${id}"`;
-  return `<section class="rl-cp-sec rl-fig-sec">
-    <h5 class="rl-cp-h">${_ne(i18t('ng_fig_sec'))}</h5>
-    ${scale}
-    <div class="rl-figrow"><span>${_ne(i18t('ng_fig_propose'))}</span>
-      <input type="number" id="${inputId}" value="${_nea(String(val))}" min="0" step="1" aria-label="${_nea(i18t('ng_fig_propose'))}">
-      <span class="rl-fig-u">${_ne(row.unit || '')}</span>
-      <button type="button" class="ui-btn ui-btn-primary rl-fig-go" ${press}
-        title="${_nea(i18t('ng_fig_write_title'))}">${_ne(i18t('ng_fig_write'))}</button></div>
-    ${opts.act === 'editor' ? `<div class="rl-figrow"><input type="range" id="ce-fig-range" min="0" max="${_nea(String(Math.max(1, Math.ceil((Number(val) || 1) * 2))))}" value="${_nea(String(val))}" aria-label="${_nea(i18t('ng_fig_propose'))}"></div>` : ''}
-  </section>`;
-}
+/* THE FIGURE section is RETIRED (Young, 5 Oct 2026, "Copilot Panel Tidy":
+   "delete the Figure tab feature"): the panel's number box and its "Write it
+   into the clause" press went with the editor's Figure tab. rlScaleHtml stays —
+   the Deal board draws it. rlFigureSecHtml and data-rl-fig-write are STALE. */
 /* Notes on this clause: the count and the one door onto the drawer. */
 function rlNotesSecHtml(c, clauseId, chs, side){
   const list = Array.isArray(chs) ? chs : [];
@@ -7864,12 +7841,11 @@ function rlNotesSecHtml(c, clauseId, chs, side){
     <div class="rl-notes-row"><span>${_ne(n ? i18tn('ng_notes_n', n, { n }) : i18t('ng_notes_none'))}</span>${door}</div>
   </section>`;
 }
-/* THE PANEL'S TAIL, in the artifact's order: playbook, figure, notes. */
+/* THE PANEL'S TAIL: playbook, notes (the figure is retired, 5 Oct 2026). */
 function rlLadderTailHtml(c, cl, chs, side, opts = {}){
   if (!cl || !cl.clauseId) return '';
   const id = String(cl.clauseId);
   return rlPlaybookSecHtml(c, id, side)
-    + (opts.noFigure ? '' : rlFigureSecHtml(c, id, side, { act: opts.act || 'panel' }))
     + (opts.noNotes ? '' : rlNotesSecHtml(c, id, chs, side));
 }
 
@@ -20316,30 +20292,6 @@ if (typeof document !== 'undefined' && !document._rlCpWired){
           else no();
           return;
         }
-        const figw = t.closest('[data-rl-fig-write]');
-        if (figw){
-          ev.preventDefault(); ev.stopPropagation();
-          const fid = figw.getAttribute('data-rl-fig-write');
-          const fc = rlLadderContract();
-          const box = document.getElementById('rl-fig-' + fid);
-          const n = box ? parseInt(box.value, 10) : NaN;
-          if (!fc || !Number.isFinite(n)){ if (window.toast) toast(i18t('ng_fig_nan'), 'warn'); return; }
-          const row = (typeof ladderStand === 'function') ? ladderStand(fc, fid, 'owner') : null;
-          if (!row || !row.topic) return;
-          const from = row.top ? row.top.text : ((typeof ladderBaseText === 'function') ? ladderBaseText(row.rungs) : '');
-          const next = ladderWriteFigure(from, n, row.unit);
-          if (next === from){ if (window.toast) toast(i18t('ng_fig_same'), 'warn'); return; }
-          /* THE ONE DOOR: the clause editor, with the figure applied to its
-             box; the pencil files it as an ordinary redline. */
-          if (typeof window.rlOpenClauseEditor !== 'function') return;
-          /* Opened at rest and then APPLIED: ceApply is what puts the words in
-             the box and shows their marks, exactly as a Copilot card's Apply
-             does — so the ask to type is never made here. */
-          const opened = rlOpenClauseEditor(fc, fid, { changeId: row.top ? row.top.id : '' });
-          if (opened === false) return;
-          setTimeout(() => { if (window.ceApply) ceApply(next, i18t('ng_fig_from')); }, 0);
-          return;
-        }
         const nopen = t.closest('[data-rl-cp-notes-open]');
         if (nopen){
           ev.preventDefault(); ev.stopPropagation();
@@ -20995,7 +20947,7 @@ if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml,
   rlLadderChipHtml, rlLadderSectionHtml, rlLadderTrackHtml, rlMarkLegendHtml, rlCtlLegendHtml,
   rlReadAtOf, rlSetReadAt, rlClearReadAt, rlReadAtRung, rlReadAtHtml,
   rlLadderContract, openLadderCompare, rlSideWho, rlClauseShape, rlBaselineHtml,
-  rlPlaybookSecHtml, rlScaleHtml, rlFigureSecHtml, rlNotesSecHtml, rlLadderTailHtml,
+  rlPlaybookSecHtml, rlScaleHtml, rlNotesSecHtml, rlLadderTailHtml,
   rlBoardIsOpen, rlBoardSet, rlBoardPaintTitle, rlBoardPageHtml, rlBoardMemoText, dealBoardHtml, openDealBoard,
   dealBoardCardHtml, dealBoardVerdict, dealBoardGroupOf, rlBoardPickSet, rlBoardFilterSet, rlBoardRepaint, rlBoardGoClause, rlPrecedentSay, RL_BOARD_FILTERS,
   negoComparePair, negoSetComparePair, negoPaneSelectHtml, negoCompareDocHtml,

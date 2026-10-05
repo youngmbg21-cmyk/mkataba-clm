@@ -322,28 +322,19 @@ const check = (name, ok, detail) => {
     }, id);
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(OUT, '05-clause-editor.png') });
+    /* REVERSED 5 Oct 2026 (Young, "Copilot Panel Tidy": "delete … the title
+       name at the top of the panel that appears after copilot name"). The
+       21 Sep name in the rail head is gone; the top bar names the clause. */
     const R = await page.evaluate(() => {
-      const el = document.querySelector('.ce-ah-cl');
-      if (!el) return { drawn: false };
-      const sp = document.querySelector('.ce-ah .sp'), tabs = document.querySelector('#ce-tabs');
-      const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
       const head = document.querySelector('.ce-ah');
-      return { drawn: true, text: el.textContent.trim(), title: el.getAttribute('title'),
-        afterLabel: !!(sp && r.x > sp.getBoundingClientRect().x),
-        beforeTabs: !!(tabs && r.x < tabs.getBoundingClientRect().x),
-        weight: cs.fontWeight, col: cs.color, nowrap: cs.whiteSpace,
+      const crumb = document.querySelector('#shell-title .crumb-layer');
+      const scope = document.querySelector('#ce-scope .eb, #ce-scope');
+      return { name: !!document.querySelector('.ce-ah-cl'), crumb: (crumb ? crumb.textContent.trim() : '') || (scope ? scope.textContent.replace(/\s+/g, ' ').trim() : ''),
         headH: head ? Math.round(head.getBoundingClientRect().height) : null };
     });
-    check('5a the rail names the clause it is working on',
-      !!(opened && R.drawn && R.text && R.text.length > 1), R.drawn ? R.text : 'not drawn');
-    check('5b it sits between Copilot’s label and the tabs',
-      R.drawn && R.afterLabel && R.beforeTabs, `after ${R.afterLabel} · before ${R.beforeTabs}`);
-    check('5c it reads as the subject — the page ink at the title weight',
-      R.drawn && +R.weight >= 600 && R.col === 'rgb(20, 31, 29)', `${R.weight} ${R.col}`);
-    check('5d it elides rather than wrapping, and the whole name is on the hover',
-      R.drawn && R.nowrap === 'nowrap' && !!R.title, `${R.nowrap} · "${R.title}"`);
-    /* IT MUST NOT HAVE GROWN THE ROW: the rail head is one line, as it was. */
-    check('5e and the head row is still one line', R.drawn && R.headH <= 44, `${R.headH}px`);
+    check('5a the rail head names no clause', !!opened && !R.name, String(R.name));
+    check('5b the top bar or the Selected card names the clause it is working on', /^(Edit|✎ Selected|Selected)\b/.test(R.crumb), R.crumb || 'not drawn');
+    check('5e and the head row is one line', R.headH != null && R.headH <= 44, `${R.headH}px`);
 
     check('no page error along the way', errors.length === 0, errors.join(' | ') || 'clean');
   } finally {

@@ -163,6 +163,12 @@ function _rkKind(text){
   return hit ? hit.key : null;
 }
 const RK_PB_NOTE = /^Playbook — ([^:(]+)/;
+/* WHAT A RISK IS ABOUT, ONE READER (Young, 5 Oct 2026, "Risk Card Titles"):
+   a brief item now wears Copilot's short title on its card, but its topic,
+   its de-duplication, its audit line and its provenance stay on the SENTENCE,
+   exactly as before the title existed — a short title loses nothing. A scan
+   finding's title was always its topic. */
+const _rkTopicText = it => (it && it.src !== 'scan' && it.say) ? it.say : String((it && it.title) || '');
 /* What could cover a risk, read RAW once per list: our live redlines (with
    the clause each was filed on and, for a standards redline, the standard it
    enforces) and the standards the last check answered. */
@@ -187,7 +193,7 @@ function _rkCoverCtx(c){
    null. A risk's own redline is "drafted", not this. */
 function riskCoverOf(it, ctx, ownId){
   if (!it || !ctx) return null;
-  const q = _rkNorm(it.quote), kind = _rkKind(it.title);
+  const q = _rkNorm(it.quote), kind = _rkKind(_rkTopicText(it));
   const near = (a, b) => !!(a && b && (a.includes(b) || (a.length > 40 && b.includes(a))));
   const out = m => ({ id: String(m.ch.id), clause: String(m.ch.clauseLabel || ''), clauseId: String(m.ch.clauseId || ''), std: m.std });
   for (const m of ctx.mine){
@@ -210,7 +216,7 @@ function riskItemsOf(c){
   const out = [];
   const seenQ = new Set(), seenT = new Set();
   const take = it => {
-    const q = _rkNorm(it.quote), t = _rkNorm(it.title);
+    const q = _rkNorm(it.quote), t = _rkNorm(_rkTopicText(it));
     if ((q && seenQ.has(q)) || (t && seenT.has(t))) return;
     if (q) seenQ.add(q);
     if (t) seenT.add(t);
@@ -228,8 +234,12 @@ function riskItemsOf(c){
   });
   const brief = (src, list, sev) => (list || []).forEach(w => {
     if (w && w.wording === false) return;
+    /* The KEY stays the sentence, so every discard, drafted mark and Risk
+       View foot stored before titles existed keeps working. An untitled
+       (older) brief item keeps today's shape: the sentence is the title. */
     const key = riskKeyOf(src, w.say);
-    take({ key, src, sev, title: w.say, say: '', why: w.why || '', fix: '', quote: w.quote || '',
+    const name = String(w.title || '').trim();
+    take({ key, src, sev, title: name || w.say, say: name ? w.say : '', why: w.why || '', fix: '', quote: w.quote || '',
       missing: false, anchor: '', dismissed: st.dismissed.includes(key) });
   });
   try{ if (typeof docXrayBriefWatch === 'function') brief('brief', docXrayBriefWatch(c), 'med'); }catch(_){}
@@ -325,14 +335,7 @@ function _rkLastTerm(clauses){
    empty page, which is how "Product standard not cited" ended in a refusal. */
 function riskEditTarget(c, it){
   if (!c || !it) return null;
-  const kind = _rkKind(it.title);
-  const cat = (kind && typeof clauseKindByKey === 'function' && clauseKindByKey(kind)) ? clauseKindByKey(kind).category : '';
-  let cl = null;
-  if (it.quote && typeof rlPbFindClause === 'function'){ try{ cl = rlPbFindClause(c, it.quote, cat); }catch(_){ cl = null; } }
-  if (!(cl && cl.clauseId)) cl = _rkAnchorClause(c, it.anchor);
-  if (!(cl && cl.clauseId) && kind){
-    cl = _rkClauses(c).find(x => { try{ return !_rkIsSigning(x) && _rkKind(x.title || x.headingText) === kind; }catch(_){ return false; } }) || null;
-  }
+  const cl = riskClauseOf(c, it);
   if (!cl || !cl.clauseId){
     /* NOTHING OF ITS TOPIC IS THERE: a NEW clause, after the last clause
        ahead of the signatures, named from the risk (the reader may move it
@@ -340,10 +343,28 @@ function riskEditTarget(c, it){
        place held while the reader chooses. */
     const after = _rkLastTerm(_rkClauses(c));
     if (!after) return null;
-    const sure = !!kind || String(it.kind || '') === 'missing';
+    const sure = !!_rkKind(_rkTopicText(it)) || String(it.kind || '') === 'missing';
     return { newClause: true, choose: !sure, afterClauseId: String(after), heading: _rkHeadingFrom(it), label: _rkHeadingFrom(it), clauseId: '', changeId: null };
   }
   return _rkOnClause(c, cl);
+}
+/* THE CLAUSE A RISK IS ABOUT, ONE READING (5 Oct 2026, "a risk card takes you
+   to its clause"): the quote's own clause, else the template clause its rule
+   names, else the first clause of its topic ahead of the signatures — or
+   null. Edit (riskEditTarget) and the card's press (riskGoClause) both ask
+   this, so they always agree. It reads negoClauseList: asked at a PRESS only,
+   never while painting. */
+function riskClauseOf(c, it){
+  if (!c || !it) return null;
+  const kind = _rkKind(_rkTopicText(it));
+  const cat = (kind && typeof clauseKindByKey === 'function' && clauseKindByKey(kind)) ? clauseKindByKey(kind).category : '';
+  let cl = null;
+  if (it.quote && typeof rlPbFindClause === 'function'){ try{ cl = rlPbFindClause(c, it.quote, cat); }catch(_){ cl = null; } }
+  if (!(cl && cl.clauseId)) cl = _rkAnchorClause(c, it.anchor);
+  if (!(cl && cl.clauseId) && kind){
+    cl = _rkClauses(c).find(x => { try{ return !_rkIsSigning(x) && _rkKind(x.title || x.headingText) === kind; }catch(_){ return false; } }) || null;
+  }
+  return (cl && cl.clauseId) ? cl : null;
 }
 /* The target for an existing clause: its name, and our own pending redline on
    it, which an edit is written on top of. */
@@ -488,7 +509,7 @@ function riskFiled(c, key, ch){
   const it = riskItemsOf(c).find(x => x.key === key);
   _rkStoreW(c).drafted[key] = String(ch.id);
   const w0 = _rkWalkOf(c); if (w0 && w0.key === key){ w0.clauseId = String(ch.clauseId || w0.clauseId); w0.isNew = false; }
-  if (typeof logAudit === 'function') logAudit(c, 'Risk', `Redline drafted from the risk scan in Edit with Copilot — ${String((it && it.title) || '').slice(0, 160)} (${ch.id}, not sent)`);
+  if (typeof logAudit === 'function') logAudit(c, 'Risk', `Redline drafted from the risk scan in Edit with Copilot — ${_rkTopicText(it).slice(0, 160)} (${ch.id}, not sent)`);
   if (typeof persist === 'function') persist(c);
   const w = _rkWalkOf(c); if (w && !w.saved.includes(key)) w.saved.push(key);
   /* the column behind the window learns where the row came from now, not at
@@ -496,7 +517,7 @@ function riskFiled(c, key, ch){
   try{ rkRepaintAll(c); }catch(_){}
 }
 /* PROVENANCE, NEVER A REASON — the same words the card's filing writes. */
-const riskProvenance = it => 'Copilot — Risk scan: ' + String((it && it.title) || '').slice(0, 200);
+const riskProvenance = it => 'Copilot — Risk scan: ' + _rkTopicText(it).slice(0, 200);
 /* THE SAFETY NET AT SAVE: a redline of ours already on this clause that this
    filing would NOT fold into (sent in an earlier round, or not pending) would
    make two. Asked at the press; null where saving makes one. */
@@ -736,18 +757,27 @@ function _rkRowHtml(c, it){
   const long = it.src !== 'scan';
   const open = !!_rk.whyOpen[it.key];
   const hasMore = !!(why || long);
+  const full = _rkTopicText(it);
   return `<div class="rk-row is-${_rkE(it.sev)}${open ? ' is-open' : ''}" data-rk-key="${_rkE(it.key)}">
-    <div class="rk-top"><b class="rk-t" title="${_rkE(it.title)}">${_rkE(it.title)}</b>${_rkSevHtml(it.sev)}</div>
-    <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>
+    ${_rkHeadHtml(it, `<div class="rk-top"><b class="rk-t" title="${_rkE(full)}">${_rkE(it.title)}</b>${_rkSevHtml(it.sev)}</div>
+    <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>`)}
     <div class="rk-verbs">
       <button type="button" class="rk-verb" data-rk-act="note">${_rkMark('chat')}${_rkE(_rkT('rk_note'))}</button>
       <button type="button" class="rk-verb is-no" data-rk-act="dismiss">${_rkMark('bin')}${_rkE(_rkT('ng_discard'))}</button>
       <button type="button" class="rk-verb is-ai" data-rk-act="edit-ce" title="${_rkE(_rkT('rk_edit_ce_title'))}">${_rkMark('edit')}${_rkE(_rkT('rk_edit_ce'))}</button>
       ${hasMore ? `<button type="button" class="rk-why-btn" data-rk-act="why" aria-expanded="${open}" title="${_rkE(_rkT('rk_why_title'))}">${_rkE(_rkT('rk_why_open'))}<svg class="rk-why-i" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>` : ''}
     </div>
-    ${open && hasMore ? `<div class="rk-why">${long ? `<span class="rk-why-full">${_rkE(it.title)}</span>` : ''}${why ? `<b>${_rkE(_rkT('ai_why_matters'))}</b><span>${_rkE(why)}</span>` : ''}</div>` : ''}
+    ${open && hasMore ? `<div class="rk-why">${long ? `<span class="rk-why-full">${_rkE(full)}</span>` : ''}${why ? `<b>${_rkE(_rkT('ai_why_matters'))}</b><span>${_rkE(why)}</span>` : ''}</div>` : ''}
   </div>`;
 }
+/* A CARD'S HEAD IS A DOOR TO ITS CLAUSE (Young, 5 Oct 2026: "where possible,
+   when I click on a risk card it should take me to the clause being impacted,
+   just like in redline cards"). The title line and the source line under it;
+   never the verbs, never the opened Why. A risk about something the contract
+   does not say has nothing on the paper to show, so its head is not a door. */
+const _rkHeadHtml = (it, inner) => (it && it.missing)
+  ? `<div class="rk-head">${inner}</div>`
+  : `<div class="rk-head is-door" data-rk-act="go" role="button" tabindex="0">${inner}</div>`;
 /* ---- WHY IT MATTERS, ALWAYS IN PLAIN ENGLISH (Young, 5 Oct 2026: "make sure
    the why is always in plain english") ----
    A risk-scan finding is a fixed rule whose reason was written for lawyers
@@ -785,8 +815,8 @@ function _rkCoveredHtml(c, list){
     const by = _rkT('rk_cov_by', { id: cv.id, clause: (typeof clauseNameShown === 'function' ? clauseNameShown(cv.clause) : cv.clause) || _rkT('ng_this_clause') })
       + (cv.std ? _rkT('rk_cov_from_std') : '');
     return `<div class="rk-row is-covered" data-rk-key="${_rkE(it.key)}">
-      <div class="rk-top"><span class="rk-t">${_rkE(it.title)}</span><span class="rk-cov">${_rkE(_rkT('rk_covered'))}</span></div>
-      <div class="rk-m">${_rkE(by)}</div>
+      ${_rkHeadHtml(cv.clauseId ? it : { missing: true }, `<div class="rk-top"><span class="rk-t">${_rkE(it.title)}</span><span class="rk-cov">${_rkE(_rkT('rk_covered'))}</span></div>
+      <div class="rk-m">${_rkE(by)}</div>`)}
       ${cv.clauseId ? `<div class="rk-acts"><button type="button" class="ui-link" data-rk-act="cov-go" data-rk-clause="${_rkE(cv.clauseId)}">${_rkE(_rkT('rk_cov_go', { id: cv.id }))}</button></div>` : ''}
     </div>`;
   };
@@ -857,7 +887,11 @@ function rkEnsureStyle(){
   .rk-h b{font-family:var(--font-heading);font-size:var(--t-label);font-weight:var(--w-strong);
     letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)}
   .rk-when{font-size:var(--t-micro);color:var(--color-neutral-500)}
-  .rk-row{display:grid;gap:4px;border:1px solid var(--color-divider);border-left:3px solid var(--st-amber-dot);
+  /* THE CARD TAKES THE COLUMN'S WIDTH, NEVER ITS TITLE'S (Young, 5 Oct 2026,
+     "Risk Card Titles"): an automatic grid column let the one-line title set
+     the card's minimum width, so one long title stretched every card to
+     985px in a 427px list and the column scrolled sideways. */
+  .rk-row{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;border:1px solid var(--color-divider);border-left:3px solid var(--st-amber-dot);
     border-radius:var(--radius);padding:8px 10px;background:var(--color-surface)}
   .rk-row.is-high{border-left-color:var(--st-ruby-dot)}
   .rk-row.is-low{border-left-color:var(--st-steel-dot)}
@@ -874,6 +908,12 @@ function rkEnsureStyle(){
     text-transform:uppercase;color:var(--color-neutral-500);margin-top:4px}
   .rk-acts{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
   .rk-row .rk-acts .ui-link{margin-right:auto}
+  .rk-head{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0;border-radius:var(--radius)}
+  .rk-head.is-door{cursor:pointer}
+  .rk-head.is-door:hover .rk-t{text-decoration:underline;text-underline-offset:2px}
+  .rk-head.is-door:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+  /* the redline card's own faint ring (.rl-card.is-linked), and no line on the paper */
+  .rk-row.is-linked{box-shadow:0 0 0 1px color-mix(in srgb, var(--accent-solid) 34%, transparent)}
   .rk-verbs{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:2px}
   /* EVERY CARD ONE SIZE (Young, 5 Oct 2026): the title on ONE line, its whole
      text on the hover and in the opened card; "Why" at the bottom right,
@@ -921,7 +961,7 @@ function rkEnsureStyle(){
   .rk-ce-dots{display:flex;flex-wrap:wrap;gap:3px}
   .rk-ce-dots i{width:14px;height:4px;border-radius:2px;background:var(--color-divider)}
   .rk-ce-dots i.is-done{background:var(--st-green-fg)} .rk-ce-dots i.is-now{background:var(--color-accent-600, var(--accent))}
-  .rk-ce-card{display:grid;gap:4px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;background:var(--color-bg)}
+  .rk-ce-card{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;background:var(--color-bg)}
   .rk-ce-end{border:1px solid var(--st-green-fg);border-radius:var(--radius-lg);padding:12px}
   .doc-xr-rk{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin-top:6px}
   .doc-xr-rk .rk-done{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--st-green-fg)}
@@ -929,6 +969,35 @@ function rkEnsureStyle(){
   document.head.appendChild(st);
 }
 rkEnsureStyle();
+
+/* ================= A RISK CARD GOES TO ITS CLAUSE =================
+   The redline card's own press (rlLinkFocus): the clause comes to the middle
+   of the paper, the card wears a faint ring, the paper draws no line. Where
+   the risk quotes its words, those words come into view and flash for a
+   moment, as "Go to the wording" does. A covered row goes where its own
+   "Go to change" link goes. Where HaTi cannot tell, it says so — never a
+   silent press. */
+function riskGoClause(c, key){
+  if (!c || !key || typeof document === 'undefined') return false;
+  const it = riskItemsOf(c).find(x => x.key === key);
+  if (!it || it.missing) return false;
+  const page = document.getElementById('view-redline') || document.querySelector('.redline-page.rl-embed');
+  let clauseId = (it.covered && it.covered.clauseId) ? String(it.covered.clauseId) : '';
+  if (!clauseId){ const cl = riskClauseOf(c, it); clauseId = cl ? String(cl.clauseId) : ''; }
+  const q = v => (window.CSS && CSS.escape) ? CSS.escape(v) : v;
+  const el = (page && clauseId) ? page.querySelector('#rl-doc [data-clause="' + q(clauseId) + '"]') : null;
+  if (!el){
+    if (typeof toast === 'function') toast(_rkT('rk_go_none'), 'warn');
+    return false;
+  }
+  page.querySelectorAll('.is-linked').forEach(n => n.classList.remove('is-linked'));
+  const row = document.querySelector('#rl-risks [data-rk-key="' + q(key) + '"]');
+  if (row) row.classList.add('is-linked');
+  let found = false;
+  if (it.quote && typeof scrollToQuote === 'function'){ try{ found = !!scrollToQuote(it.quote, { root: el }); }catch(_){ found = false; } }
+  if (!found && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  return true;
+}
 
 /* ================= PAINT AND PRESS ================= */
 function _rkContract(){
@@ -987,11 +1056,21 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
     if (act === 'covered'){ const k = String(c.id); _rk.showCovered[k] = !_rk.showCovered[k]; rkRepaint(c); return; }
     if (act === 'cov-go'){ if (typeof rlJumpToClause === 'function') rlJumpToClause(b.getAttribute('data-rk-clause')); return; }
     if (!key) return;
+    if (act === 'go'){ riskGoClause(c, key); return; }
     if (act === 'why'){ _rk.whyOpen[key] = !_rk.whyOpen[key]; rkRepaint(c); return; }
     if (act === 'dismiss'){ riskDismiss(c, key); rkRepaint(c); return; }
     if (act === 'back'){ riskDismiss(c, key, true); rkRepaint(c); return; }
     if (act === 'note'){ riskNote(c, key); return; }
     if (act === 'edit-ce'){ riskEditStart(c, key); return; }
+  });
+  /* The head is a door from the keyboard too: Enter and Space do what a
+     press does. */
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const h = e.target && e.target.closest && e.target.closest('#rl-risks [data-rk-act="go"]');
+    if (!h || e.target !== h) return;
+    e.preventDefault();
+    h.click();
   });
   /* WHERE A NEW CLAUSE GOES, moved in the Risks tab before it is filed. */
   document.addEventListener('change', e => {
@@ -1006,6 +1085,6 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
 Object.assign(window, {
   riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss, riskIsAdvice, riskNeedsWording, RK_NEEDS_WORDING,
   riskNote, riskMayAct, rlRisksPileHtml, riskMarkFootHtml,
-  riskCoverOf, riskEditTarget, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled, riskWherePick,
+  riskCoverOf, riskEditTarget, riskClauseOf, riskGoClause, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled, riskWherePick,
   riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml, riskAnswerOf, riskChipsHtml, riskWhereHtml, riskWhyOf,
 });

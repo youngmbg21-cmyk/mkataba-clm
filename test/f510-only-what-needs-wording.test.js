@@ -166,7 +166,9 @@ describe('f510 (D) the brief asks for the mark', () => {
   test('both lists carry a required boolean "wording" with one shared description', () => {
     assert.ok(at > 0, 'the brief tool is found');
     assert.equal((tool.match(/wording: \{ type: 'boolean', description: BRIEF_WORDING_MARK \}/g) || []).length, 2);
-    assert.equal((tool.match(/required: \['point', 'why', 'wording'\]/g) || []).length, 2);
+    /* 'title' joined the list on 5 Oct 2026 (f522, Risk Card Titles); the
+       claim here is only that 'wording' is required on both. */
+    assert.equal((tool.match(/required: \['point', (?:'title', )?'why', 'wording'\]/g) || []).length, 2);
     assert.match(SRV, /const BRIEF_WORDING_MARK = 'True only if dealing with this would mean changing the contract\\'s wording or adding wording to it\./);
   });
   test('the prompt says what the mark means', () => {

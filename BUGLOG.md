@@ -20355,3 +20355,25 @@ Built on the owner's "Implement drawer and merge to main". Story in docs/MAP-HIS
 - Home board: the free reader does not read Swedish follow-ups that change the date, compare or top N of the open chart ("per månad efter signering", "visa det jämfört med förra året", "gör det till topp 5 motparter") — the English ones are read; Swedish readers are offered fewer next questions (found 5 Oct 2026, Part 5 of "the board that answers right").
 - 5 Oct 2026 (board work order, Part 9): two source pins (f500 (D) and f514) had gone stale when Part 6 added the reply's marks to the free reader's answer line; both re-pointed in this run. Lesson: after touching intelligence.js's answer line, run every f5xx test that pins it, not only the part's own.
 - 5 Oct 2026 (noticed while merging the board work order, not fixed): dark-no-white-patches-verify 2c is red on main (b47d3d2) — the Document tab's Thread filter chips (`.doc-th-chips > .doc-th-chip`) paint rgb(230,236,234) in dark mode on every room tab. Came with the Thread drawer merge; needs a dark answer for the chip's background. Not in KNOWN_RED, so CI's browser checks 2/4 are red on main.
+
+## 5–6 Oct 2026 — risk card titles; a risk card goes to its clause
+
+Built overnight on the owner's "Build both fixes with your recommendations" and the same-day ask. Story in docs/MAP-HISTORY.md under "RISK CARD TITLES".
+
+- 5 Oct 2026 — FIXED (the owner's report): on the Negotiate page's "Risks to look at", one long title stretched every card past its 427px column (985px measured), the Redlines column scrolled sideways and severity, Why and Re-scan went out of view; Copilot's brief items used a whole sentence as the card's title. Cards now hold the column's width; brief items carry a short title with the sentence under Why; pressing a card's head goes to its clause.
+
+## 5–6 Oct 2026 — Copilot panel tidy: prepared questions, never more than four
+
+Built overnight on the owner's "Go with the recommendations". Story in docs/MAP-HISTORY.md under "COPILOT PANEL TIDY".
+
+- 5 Oct 2026 — DONE (owner-asked): the Playbook scan and Figure tabs deleted (and the Figure box in the narrow clause panel); the clause name after "Copilot" removed; tabs Suggestions · Risks · Ladder; Use our standard / fallback / Copilot's draft are prepared questions that fill a card with no Copilot call; every row of prepared questions holds to four.
+
+### Noticed, not fixed
+- 5 Oct 2026: the clause editor's `.ce-rule`, `.ce-scan-h` and `.ce-fig-note` styles, and negotiation-css.js's `.rl-fig-sec`/`.rl-fig-u` rules, are now dead (their markup was retired with the two tabs); left because f245 (13) pins the quiet cost rule on `.ce-rule .cost`.
+- 5 Oct 2026: opening Edit with Copilot from a risk card's Edit, the top bar's "Edit …" crumb was empty on the first open in a-risk-finds-its-clause-verify (later opens named the clause); the Selected card names it. Not measured at main.
+
+## 5–6 Oct 2026 — Home: the chart's point on the small card (Headline)
+
+Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLINE — THE CHART'S POINT ON THE SMALL CARD".
+
+- 5 Oct 2026 — DONE (owner-picked): every small chart card on Home (and Value under contract, and the ready-made panels) says its main point in one line under its totals; Read more opens the full reading in the same card.

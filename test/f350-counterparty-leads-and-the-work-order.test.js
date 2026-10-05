@@ -222,27 +222,23 @@ describe('f350 (3) — the brief is the LAST button before signing', () => {
   });
 });
 
-describe('f350 (4) — the Copilot rail names the clause it is working on', () => {
-  test('through the one presenting reading this page already has', () => {
+describe('f350 (4) — the clause is named above the rail, not in it', () => {
+  /* REVERSED 5 Oct 2026 (Young, "Copilot Panel Tidy": "delete … the title
+     name at the top of the panel that appears after copilot name"). The 21
+     Sep ruling put the name in the rail's head; the owner took it out. The
+     clause stays named where the reader looks: the top bar ("Edit …") and the
+     Selected card over the box, both through ceClauseLabel. */
+  test('the rail head carries no clause name', () => {
     const i = CE.indexOf('<div class="ce-ah">');
-    const w = CE.slice(i, i + 1900);
+    const w = CE.slice(i, CE.indexOf('</div>', i));
     assert.ok(i > 0, 'the rail head is readable');
-    assert.match(w, /class="ce-ah-cl"/, 'the clause is named on the head');
-    assert.match(w, /ceClauseLabel\(ceClause\(\)\)/,
-      'through ceClauseLabel, which goes through clauseNameShown');
-    /* An unnamed region still says something rather than drawing a gap. */
-    assert.match(w, /\|\| _cet\('ce_this_clause'\)/, 'and a nameless clause still answers');
-    /* It sits between Copilot's label and the tabs. */
-    assert.ok(w.indexOf('ce-ah-cl') > w.indexOf('ce_copilot'), 'after the label');
-    assert.ok(w.indexOf('ce-ah-cl') < w.indexOf('ce-tabs'), 'and before the tabs');
+    assert.ok(!/class="ce-ah-cl"/.test(w), 'no name after Copilot');
+    assert.ok(!/\.ce-ah-cl\{/.test(CE), 'and its dress went with it');
   });
 
-  test('it elides rather than wrapping, and the whole name is on the hover', () => {
-    assert.match(HTML + CE, /\.ce-ah-cl\{[^}]*text-overflow:ellipsis/);
-    assert.match(HTML + CE, /\.ce-ah-cl\{[^}]*white-space:nowrap/);
-    assert.match(HTML + CE, /\.ce-ah-cl\{[^}]*min-width:0/, 'and can shrink below its text');
-    const w = CE.slice(CE.indexOf('<div class="ce-ah">'), CE.indexOf('<div class="ce-ah">') + 1900);
-    assert.match(w, /class="ce-ah-cl" title="/, 'the whole name is on the hover');
+  test('the top bar and the Selected card still name it, through the one reading', () => {
+    assert.match(CE, /shellCrumbLayer\(i18t\(ceIsNew\(\) \? 'ce_crumb_new' : 'ce_crumb_edit', \{ clause: ceClauseLabel\(ceClause\(\)\)/);
+    assert.match(CE, /const where = \(sel && sel\.loose\) \? _cet\('ce_scope_words'\) : \(ceClauseLabel\(ceClause\(\)\) \|\| _cet\('ce_this_clause'\)\);/);
   });
 });
 

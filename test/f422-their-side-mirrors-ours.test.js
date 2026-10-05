@@ -124,7 +124,10 @@ test('f422 (4) the clause editor opens for them, with no Copilot on it', async (
   win.rlCloseClauseEditor();
   const CE = R('js/views/clauseeditor.js');
   assert.match(CE, /async function ceAsk\(question, opts = \{\}\)\{\n[\s\S]{0,200}if \(ceNoAi\(\)\) return;/, 'the wall, not only the sign');
-  assert.match(CE, /async function ceRunScan\(\)\{\n  if \(ceNoAi\(\)\) return;/);
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the scan runner is gone;
+     the standard questions that replaced it carry the same wall. */
+  assert.match(CE, /function ceStdPress\(kind\)\{\n  if \(!clauseEditorOpen\(\) \|\| ceNoAi\(\)\) return false;/);
+  assert.match(CE, /function ceStdChips\(\)\{\n  if \(ceNoAi\(\) \|\| ceUnderDeletion\(\)\) return \[\];/);
   assert.match(CE, /const o = \{ side: ceSide\(\), author:/, 'it files under their own side');
   assert.match(CE, /if \(ceSide\(\) === 'owner' && window\.clauseLockTake/, 'their seat takes no lock');
 });

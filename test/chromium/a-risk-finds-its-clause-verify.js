@@ -84,7 +84,10 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
     const where = sel ? sel.closest('.rk-where') : null;
     return { text: ln ? ln.textContent.replace(/\s+/g, ' ') : '',
       step: ((ln && ln.textContent.match(/Risk \d+ of \d+/)) || [''])[0],
-      clause: ((pg.querySelector('.ce-ah-cl') || {}).textContent || '').trim(),
+      /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the rail head no longer
+         names the clause; the top bar's crumb ("Edit …") does. */
+      clause: (((document.querySelector('#shell-title .crumb-layer') || {}).textContent || '') + ' '
+        + ((pg.querySelector('#ce-scope .eb, #ce-scope') || {}).textContent || '')).replace(/\s+/g, ' ').trim(),
       label: where ? (where.querySelector('.rk-k') || {}).textContent : null,
       value: sel ? sel.value : null,
       opts: sel ? [...sel.options].map(o => ({ v: o.value, t: o.textContent.trim(), d: o.disabled })) : [],

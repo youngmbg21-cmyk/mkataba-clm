@@ -11859,7 +11859,9 @@ function docXrayBriefWatch(c){
      means changing or adding contract wording; null on a brief written before
      it existed. Only the Redlines card's list reads it (riskItemsOf). */
   const mark=w=>(w&&typeof w.wording==='boolean')?w.wording:null;
-  return list.map(w=>({ say:String((w&&w.point)||'').trim(), quote:(w&&w.quote)||'',
+  /* `title` (5 Oct 2026, "Risk Card Titles"): Copilot's two-to-six-word name
+     for the point; '' on every brief written before it was asked for. */
+  return list.map(w=>({ say:String((w&&w.point)||'').trim(), title:String((w&&w.title)||'').trim(), quote:(w&&w.quote)||'',
       why:String((w&&w.why)||'').trim(), wording:mark(w) }))
     .filter(w=>!!w.say);
 }
@@ -11871,9 +11873,9 @@ function docXrayBriefOdd(c){
   const d=(c&&((c._brief&&c._brief.data)||(c._briefLite&&c._briefLite.data)))||null;
   const list=(d&&Array.isArray(d.unusual))?d.unusual:[];
   return list.map(u=>(u&&typeof u==='object')
-      ? { say:String(u.point||'').trim(), quote:u.quote||'', why:String(u.why||'').trim(),
+      ? { say:String(u.point||'').trim(), title:String(u.title||'').trim(), quote:u.quote||'', why:String(u.why||'').trim(),
           wording:(typeof u.wording==='boolean')?u.wording:null }
-      : { say:String(u||'').trim(), quote:'', why:'', wording:null })
+      : { say:String(u||'').trim(), title:'', quote:'', why:'', wording:null })
     .filter(u=>!!u.say);
 }
 /* ---- A CLAUSE'S WORDS ARE ITS NAME AND ITS WORDING (C, 22 Sep 2026) ----
@@ -11897,8 +11899,10 @@ const _xrPbMark = v => ({ k:'pb', grade:'amber', tag:i18t('xr_m_pb'),
     lead:String(v.category||''),
     say:i18t(String(v.status)==='missing'?'xr_pb_missing':'xr_pb_departs'),
     why:v.position?i18t('xr_pb_why',{pos:String(v.position)}):'' });
-const _xrBriefMark = w => ({ k:'brief', grade:'amber', tag:i18t('xr_m_brief'), lead:'', say:w.say, why:w.why||'' });
-const _xrOddMark = u => ({ k:'odd', grade:'steel', tag:i18t('xr_m_odd'), lead:'', say:u.say, why:u.why||'' });
+/* A brief mark leads with Copilot's short title, the way a scan mark leads
+   with its own (5 Oct 2026); an old brief has none and reads as before. */
+const _xrBriefMark = w => ({ k:'brief', grade:'amber', tag:i18t('xr_m_brief'), lead:w.title||'', say:w.say, why:w.why||'' });
+const _xrOddMark = u => ({ k:'odd', grade:'steel', tag:i18t('xr_m_odd'), lead:u.title||'', say:u.say, why:u.why||'' });
 function _xrFinds(c){
   try{ if(c&&c.scan&&window.openFindings) return openFindings(c)||[]; }catch(_){}
   return [];

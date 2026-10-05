@@ -403,9 +403,11 @@ describe('F276 (8) where a proposal is recorded', () => {
 
   test('the playbook records only Copilot\'s own draft, and our standard is a refusal', () => {
     const code = strip(CE);
-    assert.ok(/const _pbDraft = String\(\(it && it\.draft\)/.test(code),
+    /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the scan press is now the
+       standard card's Apply (ceStdApply); the record is the same. */
+    assert.ok(/const draft = String\(it\.draft \|\| ''\)\.trim\(\);/.test(code),
       'preferred and fallback are the clause library\'s, not Copilot\'s');
-    assert.ok(/parts\[1\] !== 'draft'\) aiTraceRefuse/.test(code),
+    assert.ok(/if \(sd\.kind !== 'draft'\) aiTraceRefuse/.test(code),
       'using our own standard instead is exactly a refusal of the draft');
   });
 

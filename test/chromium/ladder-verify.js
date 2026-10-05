@@ -563,15 +563,18 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
       /* The drawer's door needs js/app.js, which this harness does not load; the section and its count are what is asked. */
       write: !!(on && on.querySelector('[data-rl-fig-write]')), notes: !!(on && on.querySelector('.rl-notes-sec .rl-notes-row')) };
   });
-  check('19a Your playbook, The figure and Notes follow the ladder, in that order', tail19.after.join('|') === 'rl-pb-sec|rl-fig-sec|rl-notes-sec', tail19.secs.join(' · '));
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the Figure box is deleted
+     from the narrow panel as from the editor; the Deal board keeps its scale. */
+  check('19a Your playbook and Notes follow the ladder, in that order — no Figure', tail19.after.join('|') === 'rl-pb-sec|rl-notes-sec', tail19.secs.join(' · '));
   check('19b the two moves the paper shows are shaded on the ladder', tail19.win === 2, 'shaded ' + tail19.win);
   check('19c the top rung carries the verbs — Edit · Send · Discard on our draft', tail19.acts.some(a => /Edit/.test(a)) && tail19.acts.some(a => /Send/.test(a)) && tail19.acts.some(a => /Discard/.test(a)), JSON.stringify(tail19.acts));
   check('19d the standard is the playbook\'s own figure', /12/.test(tail19.std || ''), tail19.std);
-  check('19e the figure scale and the write press are drawn', tail19.fig && tail19.write && tail19.notes);
-  await page.evaluate(id => { const b = document.getElementById('rl-fig-' + id); if (b) b.value = '20'; }, staged.c4);
-  await page.evaluate(() => { const b = document.querySelector('#rl-cp .rl-cp-src.is-on [data-rl-fig-write]'); b && b.click(); }); await pause(900);
-  const wrote19 = await page.evaluate(() => ({ open: !!(window.clauseEditorOpen && clauseEditorOpen()), draft: window.ceDraftNow ? ceDraftNow() : '' }));
-  check('19f "Write it into the clause" opens the editor with the figure in the box', wrote19.open && /twenty \(20\) months/.test(wrote19.draft), JSON.stringify({ open: wrote19.open, draft: wrote19.draft.slice(0, 120) }));
+  check('19e no figure box and no write press; Notes is drawn', !tail19.fig && !tail19.write && tail19.notes);
+  /* The Figure press used to open the editor here; it opens the ordinary way
+     now, on the same clause at its top rung (5 Oct 2026). */
+  await page.evaluate(cid => { const c = window.CONTRACT; const row = (typeof ladderStand === 'function') ? ladderStand(c, cid, 'owner') : null;
+    rlOpenClauseEditor(c, cid, { changeId: row && row.top ? row.top.id : '' }); }, staged.c4);
+  await pause(900);
 
   /* 21 · the editor: Done beside the chip, three tabs, the card.
      Apply ends typing (the 30 Aug rule), so the reader clicks into the
@@ -594,16 +597,14 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   /* RE-POINTED 28 Sep 2026 (Young picked the save symbol): Done is a drawn
      disk named Save, beside the chip, out of sight until something is typed. */
   check('21b the save symbol sits beside the chip, named Save, hidden until typing', ed21.done === '' && ed21.label === 'Save' && ed21.hidden && ed21.besides, JSON.stringify({ done: ed21.done, label: ed21.label, hidden: ed21.hidden, besides: ed21.besides }));
-  check('21c the rail has Suggestions · Ladder · Figure · Playbook scan', ed21.tabs.join(',') === 'chat,ladder,figure,scan', ed21.tabs.join(','));
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): Figure and Playbook scan deleted, Ladder last. */
+  check('21c the rail has Suggestions · (Risks) · Ladder, Ladder last', ed21.tabs.filter(t => t !== 'risks').join(',') === 'chat,ladder', ed21.tabs.join(','));
   check('21d the ladder card leads the conversation with what moved, the ladder and the precedent', ed21.card && ed21.cardHeads.length >= 3, ed21.cardHeads.join(' · '));
   await page.evaluate(() => document.querySelector('[data-ce-tab="ladder"]').click()); await pause(300);
   const lad21 = await page.evaluate(() => ({ rows: document.querySelectorAll('#ce-lane .rl-ladder .rl-rung-row').length, pb: !!document.querySelector('#ce-lane .rl-pb-sec') }));
   check('21e the Ladder tab draws the ladder and the playbook in the rail', lad21.rows >= 3 && lad21.pb, JSON.stringify(lad21));
-  await page.evaluate(() => document.querySelector('[data-ce-tab="figure"]').click()); await pause(300);
-  await page.evaluate(() => { const b = document.getElementById('ce-fig'); if (b) b.value = '21'; });
-  await page.evaluate(() => document.querySelector('#ce-lane [data-ce-act="fig-write"]').click()); await pause(500);
-  const fig21 = await page.evaluate(() => ({ draft: ceDraftNow(), tab: document.querySelector('[data-ce-tab].is-on') ? document.querySelector('[data-ce-tab].is-on').getAttribute('data-ce-tab') : '' }));
-  check('21f the Figure tab writes the figure into the box and returns to Suggestions', /twenty-one \(21\) months/.test(fig21.draft) && fig21.tab === 'chat', JSON.stringify({ tab: fig21.tab, draft: fig21.draft.slice(0, 100) }));
+  const fig21 = await page.evaluate(() => ({ tab: !!document.querySelector('[data-ce-tab="figure"]'), box: !!document.getElementById('ce-fig') }));
+  check('21f there is no Figure tab and no figure box', !fig21.tab && !fig21.box, JSON.stringify(fig21));
   await page.evaluate(() => { if (window.ceDiscard) ceDiscard(); rlCloseClauseEditor(); }); await pause(400);
   await page.evaluate(() => { const c = window.CONTRACT; if (window.confirmDialog) window.confirmDialog = (o) => Promise.resolve(true); });
 

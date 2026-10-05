@@ -2559,7 +2559,9 @@ function hbChartHtml(D, cs0, big){
   /* enlarged, the chart opens with HaTi's reading in place of the trend
      line's arithmetic (READ, THEN ASK, below) */
   const read = big ? hbReadHtml(D, cs, P, R) : '';
-  return `${read || (R.say ? `<p class="hb-tr-say">${_hbE(R.say)}</p>` : '')}<div class="hb-chart-lead">${lead}<span class="hb-chart-by">${_hbE(R.by)}</span></div>${R.body}${R.note ? `<div class="hb-quiet hb-chart-note">${_hbE(R.note)}</div>` : ''}`;
+  /* small, the chart says its point in one line under the totals (HEADLINE) */
+  const head = big ? '' : hbHeadlineHtml(D.key, hbReadingOf(D, cs, P, R), cs.length, hbWhySig(D, P, cs));
+  return `${read || (!head && R.say ? `<p class="hb-tr-say">${_hbE(R.say)}</p>` : '')}<div class="hb-chart-lead">${lead}<span class="hb-chart-by">${_hbE(R.by)}</span></div>${head}${R.body}${R.note ? `<div class="hb-quiet hb-chart-note">${_hbE(R.note)}</div>` : ''}`;
 }
 /* ============================================================
    READ, THEN ASK (Young picked it by name, 4 Oct 2026: "the cards when
@@ -2612,7 +2614,8 @@ function hbReadingOf(D, cs, P, R){
   else if (P.split2 && R && Array.isArray(R.cells)) r = hbReadTwoOf(D, cs, P, R);
   else r = hbReadingCore(D, cs, P, R);
   r = r || { lines: [], counts: new Set([cs.length]) };
-  const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l) r.lines.push(l); };
+  if (!r.keys) r.keys = [];
+  const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l){ r.lines.push(l); r.keys.push(key); } };
   /* the top N: what is drawn, and the rest behind ONE door */
   if (P.top && P.groupDim === 'split' && P.split && ['ring', 'bars', 'blocks'].includes(P.pic)){
     const field = P.split.by, money = hbMoneyOk(), mv = P.pic === 'blocks' ? 'b' : P.pic === 'ring' ? money : (P.measure === 'value');
@@ -2630,8 +2633,8 @@ function hbReadingOf(D, cs, P, R){
 /* THIS PERIOD AGAINST THE ONE BEFORE, in words: the totals, and the group (or
    month) that moved most — each number a door */
 function hbReadCompareOf(D, cs, P, R){
-  const lines = [], counts = new Set([cs.length]), C = R.cmp, m = P.measure;
-  const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l) lines.push(l); };
+  const lines = [], keys = [], counts = new Set([cs.length]), C = R.cmp, m = P.measure;
+  const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l){ lines.push(l); keys.push(key); } };
   const fmt = (k, y) => m === 'count' ? _hbN(k) : hbMeasureFmt(m, y);
   counts.add(C.cur.k); counts.add(C.prev.k);
   say('hb_read_cmp', { a: C.now || hbWinWord(P.window), x: fmt(C.cur.k, C.cur.y), b: C.word.toLowerCase(), y: fmt(C.prev.k, C.prev.y), chg: hbCmpChange(C.cur.y || 0, C.prev.y || 0) });
@@ -2641,19 +2644,19 @@ function hbReadCompareOf(D, cs, P, R){
     counts.add(big.ck); counts.add(big.pk);
     say('hb_read_cmp_most', { who: big.label, x: { html: hbReadDoor(big.ck, big.dc, fmt(big.ck, big.cy)) }, y: { html: hbReadDoor(big.pk, big.dp, fmt(big.pk, big.py)) }, chg: hbCmpChange(big.cy || 0, big.py || 0) });
   }
-  return { lines, counts };
+  return { lines, counts, keys };
 }
 /* TWO SPLITS, in words: the largest part, the busiest column (or the hottest
    cell) — each number a door onto its own contracts */
 function hbReadTwoOf(D, cs, P, R){
-  const lines = [], counts = new Set([cs.length]), m = P.measure, money = m === 'value';
-  const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l) lines.push(l); };
+  const lines = [], keys = [], counts = new Set([cs.length]), m = P.measure, money = m === 'value';
+  const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l){ lines.push(l); keys.push(key); } };
   const fmt = (k, y) => m === 'count' ? _hbN(k) : hbMeasureFmt(m, y);
   say('hb_read_two', { n: _hbN(cs.length), a: hbSplitWord(P.split).toLowerCase(), b: hbSplitWord(P.split2).toLowerCase() }, cs.length);
   if (P.pic === 'heat'){
     const hot = R.cells.slice().sort((a, b) => (b.y || 0) - (a.y || 0) || b.k - a.k)[0];
     if (hot){ counts.add(hot.k); say('hb_read_heat_hot', { a: hot.a, b: hot.b, x: { html: hbReadDoor(hot.k, hot.dig, fmt(hot.k, hot.y)) } }, hot.k); }
-    return { lines, counts };
+    return { lines, counts, keys };
   }
   const f2 = P.split2.by, by = new Map();
   R.cells.forEach(c => c.parts.forEach(p => { if (p.g == null) return; const t = by.get(p.g) || { label: p.label, k: 0, y: 0 }; t.k += p.k; t.y += (p.y || 0); by.set(p.g, t); }));
@@ -2665,11 +2668,11 @@ function hbReadTwoOf(D, cs, P, R){
   if (col && col.k){ counts.add(col.k);
     say('hb_read_two_col', { a: col.label, n: _hbN(col.k) }, col.k); }
   if (R.unsigned){ counts.add(R.unsigned); say('hb_read_unsigned', { n: _hbN(R.unsigned) }, R.unsigned); }
-  return { lines, counts };
+  return { lines, counts, keys };
 }
 function hbReadingCore(D, cs, P, R){
-  const lines = [], counts = new Set([cs.length]);
-  const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l) lines.push(l); };
+  const lines = [], keys = [], counts = new Set([cs.length]);
+  const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l){ lines.push(l); keys.push(key); } };
   if (!cs.length) return null;
   if (P.pic === 'cols' && R && Array.isArray(R.cols) && R.cols.length && P.measure !== 'live'){
     const unit = R.unit || 'm', m = R.m || P.measure, avg = hbAvgMeasure(m);
@@ -2736,7 +2739,7 @@ function hbReadingCore(D, cs, P, R){
     if (R.unsigned){ counts.add(R.unsigned);
       if (R.unsignedV > 0) say('hb_read_unsigned_value', { n: _hbN(R.unsigned), v: _hbM(R.unsignedV) }, R.unsigned);
       else say('hb_read_unsigned', { n: _hbN(R.unsigned) }, R.unsigned); }
-    return lines.length ? { lines, counts } : null;
+    return lines.length ? { lines, counts, keys } : null;
   }
   if ((P.pic === 'ring' || P.pic === 'bars' || P.pic === 'blocks') && P.split && P.split.by && P.split.by !== 'valueBand' && P.split.by !== 'none' && P.split.by !== 'date'){
     const field = P.split.by, money = hbMoneyOk() && (P.pic === 'blocks' || P.measure === 'value');
@@ -2758,7 +2761,7 @@ function hbReadingCore(D, cs, P, R){
     }
     const blank = rows.find(r => !r.g);
     if (blank){ counts.add(blank.n); say('hb_read_blank', { n: { html: hbReadDoor(blank.n, dig(blank)) }, what: blank.label }, blank.n); }
-    return lines.length ? { lines, counts } : null;
+    return lines.length ? { lines, counts, keys } : null;
   }
   /* THE TIMELINE (Ending in 90 days, Past end date, a date question): when
      things end, read off the same end dates the pills are drawn from */
@@ -2783,7 +2786,7 @@ function hbReadingCore(D, cs, P, R){
     const still = past.filter(r => r.c.status === 'Signed').length;
     if (still){ counts.add(still); say('hb_read_tl_still', { n: _hbN(still), stage: hbGroupLabel('status', 'Signed') }, still); }
     if (none.length) say('hb_read_tl_none', { n: _hbN(none.length) }, none.length);
-    return lines.length ? { lines, counts } : null;
+    return lines.length ? { lines, counts, keys } : null;
   }
   return null;
 }
@@ -3179,6 +3182,45 @@ function hbReadSrcHtml(key){
   const src = hbReadSrc(key);
   return src ? hbReadBlockHtml(key, src.reading, src.cs.length, src.sig) : '';
 }
+/* ============================================================
+   HEADLINE: THE CHART'S POINT ON THE SMALL CARD (Young picked "Headline",
+   5 Oct 2026, "Chart Reading Options")
+   ============================================================
+   Every chart card on Home says its main point in ONE line, right under its
+   totals, without a press: the first sentence of HaTi's own reading that is
+   not the totals said again (HB_HEAD_SKIP; the stage and panel readings have
+   no totals line and lead with their point). It is the same reading the
+   enlarged card prints — one function, never a second counting — so it costs
+   nothing and its numbers are the same doors. "Read more" opens the whole
+   reading inside the same card (the label turns to "Show less"), with "What
+   could explain this?" in it exactly as on the enlarged card: Copilot runs
+   only on that press, its cost beside the button. Which cards are open is a
+   fact about this sitting (_hbReadOpen), never stored. Enlarging works as
+   before: the full reading is already open there. */
+const HB_HEAD_SKIP = new Set(['hb_read_value', 'hb_read_counted', 'hb_read_signed', 'hb_read_groups', 'hb_read_two', 'hb_read_avg', 'hb_read_window', 'hb_read_topn']);
+const _hbReadOpen = new Set();
+function hbHeadlineOf(reading){
+  if (!reading || !Array.isArray(reading.lines) || !reading.lines.length) return '';
+  const ks = Array.isArray(reading.keys) ? reading.keys : [];
+  const i = ks.findIndex(k => !HB_HEAD_SKIP.has(k));
+  return reading.lines[i >= 0 ? i : 0];
+}
+function hbHeadlineHtml(key, reading, n, sig){
+  const line = hbHeadlineOf(reading);
+  if (!line) return '';
+  const open = _hbReadOpen.has(key);
+  return `<div class="hb-head-line"><p>${line}</p><button type="button" class="hb-link hb-head-more" data-hb-read-more="${_hbE(key)}" aria-expanded="${open}">${_hbE(i18t(open ? 'hb_head_less' : 'hb_head_more'))}</button></div>`
+    + (open ? hbReadBlockHtml(key, reading, n, sig) : '');
+}
+function hbReadSrcHeadHtml(key){
+  const src = hbReadSrc(key);
+  return src ? hbHeadlineHtml(key, src.reading, src.cs.length, src.sig) : '';
+}
+function hbReadMoreToggle(key){
+  if (!key) return;
+  if (_hbReadOpen.has(key)) _hbReadOpen.delete(key); else _hbReadOpen.add(key);
+  hbPaintBoard();
+}
 
 function hbDigBodyHtml(D, lens, big){
   if (D.kind === 'list'){
@@ -3203,7 +3245,7 @@ function hbDigBodyHtml(D, lens, big){
     <div class="hb-foot"><span>${_hbE(i18tn('hb_all_shown', D.rows.length, { n: _hbN(D.rows.length) }))}</span><button type="button" class="hb-btn" data-hb-obl="overdue">${_hbE(i18t('hb_open_obligations'))}</button></div>`;
   if (D.kind === 'stages'){
     const max = Math.max(1, ...D.stages.map(s => D.money ? (s.v || 0) : s.n));
-    return `${big ? hbReadSrcHtml(D.key) : ''}<div class="hb-say">${_hbE(D.money ? i18t('hb_say_value', { v: _hbM(D.v) }) : i18t('hb_say_value_hidden'))}</div>${hbBarsHtml(D.stages.map(s => ({ label: s.word ? i18t(s.word) : s.k, v: D.money ? (s.v || 0) : s.n, say: D.money ? _hbM(s.v) : _hbN(s.n), dig: 'st:' + s.k, tone: s.tone })), max)}`;
+    return `${big ? hbReadSrcHtml(D.key) : hbReadSrcHeadHtml(D.key)}<div class="hb-say">${_hbE(D.money ? i18t('hb_say_value', { v: _hbM(D.v) }) : i18t('hb_say_value_hidden'))}</div>${hbBarsHtml(D.stages.map(s => ({ label: s.word ? i18t(s.word) : s.k, v: D.money ? (s.v || 0) : s.n, say: D.money ? _hbM(s.v) : _hbN(s.n), dig: 'st:' + s.k, tone: s.tone })), max)}`;
   }
   if (D.kind === 'moved'){
     const isOb = D.fig === 'overdue';
@@ -3367,7 +3409,7 @@ function hbPanelHtml(p, lens, gift){
   const K = HB_KINDS[p.kind];
   const body = p.split
     ? `<div class="hb-split"><div><div class="hb-lab is-side">${_hbE(i18t('hb_lens_suppliers'))}</div>${hbPanelBodyHtml(p.kind, 'suppliers')}</div><div><div class="hb-lab is-side">${_hbE(i18t('hb_lens_customers'))}</div>${hbPanelBodyHtml(p.kind, 'customers')}</div></div>`
-    : (p.big ? hbReadSrcHtml('hp:' + p.kind) : '') + hbPanelBodyHtml(p.kind, lens);
+    : (p.big ? hbReadSrcHtml('hp:' + p.kind) : hbReadSrcHeadHtml('hp:' + p.kind)) + hbPanelBodyHtml(p.kind, lens);
   const given = gift && gift.sent ? `<span class="hb-given" title="${_hbE(gift.sent.note || '')}">${_hbE(i18t('hb_given', { who: gift.sent.toName || '', seen: i18t(gift.sent.seenAt ? 'hb_seen' : 'hb_not_seen') }))}<button type="button" data-hb-ungive="${_hbE(gift.sent.id)}" title="${_hbE(i18t('hb_take_back'))}" aria-label="${_hbE(i18t('hb_take_back'))}">${_hbX}</button></span>` : '';
   const from = gift && gift.from ? `<span class="hb-given is-from" title="${_hbE(gift.from.note || '')}">${_hbE(i18t('hb_from', { who: gift.from.fromName || '' }))}</span>` : '';
   return `<section class="hb-card hb-panel${(p.big || p.split) ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
@@ -5354,6 +5396,7 @@ function hbOnClick(e){
   if (on('[data-hb-obl]')){ if (typeof obwGoFiltered === 'function') obwGoFiltered({ state: 'overdue' }); else setView('obligations'); return; }
   if ((el = on('[data-hb-room]'))){ if (typeof openWorkspace === 'function') openWorkspace(el.getAttribute('data-hb-room')); return; }
   if ((el = on('[data-hb-why]'))){ hbWhyAsk(el.getAttribute('data-hb-why')); return; }
+  if ((el = on('[data-hb-read-more]'))){ hbReadMoreToggle(el.getAttribute('data-hb-read-more')); return; }
   if ((el = on('[data-hb-why-follow]'))){ hbWhyFollow(el.getAttribute('data-hb-why-follow')); return; }
   if ((el = on('[data-hb-ins]'))){ hbInsAct(el.getAttribute('data-hb-ins'), el.getAttribute('data-hb-ins-k')); return; }
   if ((el = on('[data-hb-ai]'))){ hbAskInPanel(el.getAttribute('data-hb-ai'), el.getAttribute('data-hb-ai-id')); return; }
@@ -5448,7 +5491,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
