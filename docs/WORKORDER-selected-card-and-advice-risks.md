@@ -1,6 +1,6 @@
 # WORK ORDER — the stale "Selected" card, and advice-only risks are not redlines
 
-**Status: NOT STARTED, every question answered. Written 5 Oct 2026 from two owner reports the same day. The owner said "Keep that as a work order for now" and, after answering the questions, "do not code yet" — do not build until the owner says go.**
+**Status: DONE (built 5 Oct 2026 on the owner's "Go, build both parts and merge to main"). Written the same day from two owner reports. Tests: f508 and test/chromium/selected-card-and-advice-verify.js (the node checks went in one new file rather than f245/f484/f503/f506; f508 (C) is the "(E)" planned for f506). Story in docs/MAP-HISTORY.md.**
 
 Two parts. They are independent; build either on its own. Part 2 is the smaller
 and the safer of the two.
@@ -190,7 +190,7 @@ tell them apart.
 
 ## Waiting on the owner
 
-- Nothing. Every question is answered; the order waits only on "go".
+- Nothing. Built.
 
 ## Decided by the owner (5 Oct 2026)
 

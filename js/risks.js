@@ -83,7 +83,23 @@ function _rkStoreW(c){
    no counterparty, no value, no date, no material named — which is filled on
    the Overview, not argued over in wording. They stay in Risk View and on the
    sign check; they are not drafted here. */
-const _rkDraftable = f => !!f && !/^g-/.test(String(f.id || '')) && String(f.anchor || '') !== 'recital';
+/* ---- A RISK THAT ONLY ADVISES IS NOT A REDLINE (Young, 5 Oct 2026) ----
+   *"this risk should not be redlines because you cannot edit it to create a
+   redline. Exclude such clauses where it just advise as opposed to ones where
+   they can be added on paper."*
+   The upload scanner's own checks (js/views/contract.js uploadScanRules) are a
+   step for the READER, never words for the paper: have counsel read it, the
+   text could not be read or was read from a scan, the checklist written when
+   no clause was read, and two boxes on the record (counterparty, value — the
+   owner said yes to those too). Opened in Edit with Copilot they held an empty
+   new clause and Copilot refused. Named by RULE, because the findings are
+   stored as they were at scan time and a flag stamped tomorrow would not be on
+   any scan already kept; never by "no clause found" — "No data-protection
+   terms detected" finds none either and IS put on paper, as a new clause.
+   They stay in the scan's own list (openFindings) for every other reader. */
+const RK_ADVICE_IDS = new Set(['u-legal', 'u-noext', 'u-ocr', 'u-law', 'u-liab', 'u-term', 'u-cp', 'u-val']);
+const riskIsAdvice = f => !!f && RK_ADVICE_IDS.has(String(f.id || ''));
+const _rkDraftable = f => !!f && !/^g-/.test(String(f.id || '')) && String(f.anchor || '') !== 'recital' && !riskIsAdvice(f);
 
 /* A TOPIC, READ THE WAY THE STANDARDS READ A CLAUSE: the clause kinds Our
    standards already match on (js/clausemodel.js), asked of a risk's title or
@@ -832,7 +848,7 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
 }
 
 Object.assign(window, {
-  riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss,
+  riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss, riskIsAdvice, RK_ADVICE_IDS,
   riskNote, riskMayAct, rlRisksPileHtml, riskMarkFootHtml,
   riskCoverOf, riskEditTarget, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled,
   riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml, riskAnswerOf, riskChipsHtml, riskWhereHtml, riskWhyOf,
