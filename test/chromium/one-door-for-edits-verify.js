@@ -232,8 +232,21 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     check(!!nc && /^New clause$/i.test(nc.badge.trim()), '5d2 marked "New clause", not as a step on the ladder, until it is saved', nc && nc.badge);
     check(!!nc && nc.opts.length > 0 && nc.opts.every(o => /^New clause after/.test(o)) && !nc.opts.some(o => /Signatures/.test(o)) && /Never after .*Signatures/.test(nc.never), '5e "Where it goes" offers only places before the signatures', nc && (nc.opts.join(' | ') + ' / ' + nc.never));
     await shot('5b-new-clause.png');
-    /* move it: after Confidentiality */
-    await page.evaluate(() => { const sel = document.querySelector('[data-ce-rk-where]'); const o = [...sel.options].find(x => /Confidentiality/.test(x.textContent)); sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); });
+    /* move it: after Confidentiality — chosen ON THE EXPANDED VIEW (Young,
+       5 Oct 2026: "where it goes should also be on this panel so you can
+       choose before you apply") */
+    await page.evaluate(() => { const b = document.querySelector('#ce-lane [data-ce-expand="rk:0"]'); if (b) b.click(); });
+    const fw = await until(page, () => {
+      const sel = document.querySelector('#ce-full:not([hidden]) [data-ce-rk-where]');
+      return sel ? { n: sel.options.length, apply: !!document.querySelector('#ce-full [data-ce-apply]'),
+        before: !!(sel.compareDocumentPosition(document.querySelector('#ce-full [data-ce-apply]')) & Node.DOCUMENT_POSITION_FOLLOWING) } : null;
+    });
+    check(!!fw && fw.n === (nc && nc.opts.length) && fw.apply && fw.before, '5e2 "Where it goes" is on the expanded view too, above Apply', fw && JSON.stringify(fw));
+    await shot('5b2-where-on-expanded.png');
+    await page.evaluate(() => { const sel = document.querySelector('#ce-full [data-ce-rk-where]'); const o = [...sel.options].find(x => /Confidentiality/.test(x.textContent)); sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); });
+    const synced = await until(page, () => { const s = document.querySelector('#ce-lane [data-ce-rk-where]'); return s && /Confidentiality/.test(s.options[s.selectedIndex].textContent) ? true : null; });
+    check(!!synced, '5e3 the Risks tab\'s own "Where it goes" says the same place');
+    await page.keyboard.press('Escape');
     const moved = await until(page, () => {
       const heads = [...document.querySelectorAll('#ce-doc [data-clause]')].map(x => [x.getAttribute('data-clause'), (x.querySelector('.rl-clause-h, h4') || {}).textContent || '']);
       const at = heads.findIndex(h => h[0] === window.CE_NEW_ID);

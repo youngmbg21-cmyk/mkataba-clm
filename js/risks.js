@@ -510,6 +510,10 @@ function _rkWhereHtml(c){
     <select class="rk-sel" data-ce-rk-where>${opts}</select>
     ${sign ? `<span class="rk-cost">${_rkE(_rkT('rk_ce_never_after', { clause: _rkClauseName(sign) }))}</span>` : ''}</label>`;
 }
+/* "Where it goes", for the editor's expanded view too (Young, 5 Oct 2026:
+   "where it goes should also be on this panel so you can choose before you
+   apply") — the same builder, so both say the same places. */
+function riskWhereHtml(c){ return _rkWhereHtml(c); }
 /* The presses the rail hands over (the window's own Save stays the window's). */
 function riskWalkPress(c, act, typed){
   if (!c) return;
@@ -764,5 +768,5 @@ Object.assign(window, {
   riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss,
   riskNote, riskMayAct, rlRisksPileHtml, riskMarkFootHtml,
   riskCoverOf, riskEditTarget, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled,
-  riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml, riskAnswerOf, riskChipsHtml,
+  riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml, riskAnswerOf, riskChipsHtml, riskWhereHtml,
 });

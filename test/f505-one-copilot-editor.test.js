@@ -134,3 +134,16 @@ describe('f505 (E) the second pass', () => {
     assert.match(read('js/views/clauseeditor.js'), /\.ce-ask textarea\{flex:1; min-width:0; height:var\(--ctl-h\)/);
   });
 });
+
+describe('f505 (F) the third pass', () => {
+  test('the small card speaks the panel\'s type; only the expanded view takes the paper\'s', () => {
+    const css = read('js/views/clauseeditor.js');
+    assert.match(css, /\.ce-rail \.ce-card \.pv\{font-family:inherit; font-size:var\(--t-meta\); line-height:1\.6\}/);
+    assert.match(css, /\.ce-rail \.ce-full \.ce-full-body \.pv\{font-family:var\(--ce-wd-font, var\(--font-doc\)\)/);
+  });
+  test('"Where it goes" is on the expanded view, from the Risks tab\'s own builder, and both stay in step', () => {
+    assert.match(fn(CE, 'ceRenderFull'), /key\.startsWith\('rk:'\) && window\.riskWhereHtml && _ceC\) \? `<div class="ce-full-where">\$\{riskWhereHtml\(_ceC\)\}<\/div>`/);
+    assert.match(fn(RK, 'riskWhereHtml'), /return _rkWhereHtml\(c\);/);
+    assert.match(fn(CE, 'ceSetNewPlace'), /querySelectorAll\('#clause-editor \[data-ce-rk-where\]'\)\.forEach/);
+  });
+});
