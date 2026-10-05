@@ -1,6 +1,6 @@
 # WORK ORDER — the stale "Selected" card, and advice-only risks are not redlines
 
-**Status: NOT STARTED. Written 5 Oct 2026 from two owner reports the same day. The owner said "Keep that as a work order for now" — do not build until the owner says go.**
+**Status: NOT STARTED, every question answered. Written 5 Oct 2026 from two owner reports the same day. The owner said "Keep that as a work order for now" and, after answering the questions, "do not code yet" — do not build until the owner says go.**
 
 Two parts. They are independent; build either on its own. Part 2 is the smaller
 and the safer of the two.
@@ -63,8 +63,8 @@ it because it carries no marks.
 
 ### What to build (the owner picks by name when they say go)
 
-Two roads. **Recommend "Follows"** — the smallest change that makes the card
-true.
+Two roads were offered; **the owner picked "Follows" (5 Oct 2026: "A. But do
+not code yet")**. "Says less" is kept below only as the road not taken.
 
 - **"Follows"** — the card is a statement about the draft, so it is repainted
   wherever the draft moves: `ceRenderScope()` joins the non-keepView branch
@@ -190,15 +190,13 @@ tell them apart.
 
 ## Waiting on the owner
 
-- **Part 1: "Follows" or "Says less"?** Still open. Recommend "Follows". In
-  plain words: the grey box on the right that quoted the old wording — should
-  it (A) keep its quote and simply update every time the wording changes, so
-  it always matches the paper ("Follows"), or (B) lose the quote altogether and
-  keep only its title line, because the paper next to it already shows the
-  whole clause ("Says less")?
+- Nothing. Every question is answered; the order waits only on "go".
 
 ## Decided by the owner (5 Oct 2026)
 
+- **Part 1: "Follows".** Owner: "A. But do not code yet." The card keeps its
+  quote and is repainted every time the draft moves, so it always matches the
+  paper. "Says less" is not built.
 - **Part 2: `u-cp` and `u-val` (counterparty / value not recorded) leave the
   Redlines card too.** Owner: "Yes." They are record fields the Overview's
   Fill answers, like the `g-*` record blanks the list already leaves out.
