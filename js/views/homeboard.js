@@ -3391,6 +3391,7 @@ function hbBoardHtml(){
   const gifts = hbGiftsFor();
   _hbInsMemo = new Map();
   hbKeptSync();
+  hbMovedSync();
   const panels = s.panels.slice().reverse().map(p => hbPanelHtml(p, s.lens, { sent: gifts.sent[p.id] || null })).join('');
   const received = gifts.received.map(g => hbPanelHtml({ id: 'gift:' + g.id, kind: g.kind, split: !!g.split, big: false }, HB_LENSES.includes(g.lens) ? g.lens : 'all', { from: g })).join('');
   /* and the freshness line too: WHEN it was counted is a fact the reader
@@ -3966,6 +3967,38 @@ function hbKeptSync(){
     return { title: hbPanelWord(p), say, at: hbToday() }; });
   s.keptSent = sig; hbSave();
   Promise.resolve(api('home/kept', 'PUT', { views: out })).catch(() => { s.keptSent = ''; hbSave(); });
+}
+
+/* ---- "WHAT MOVED", FOR THE BRIEF (work order "the board that answers
+   right", Part 11, 5 Oct 2026) ----
+   The shelf's findings are counted here, in the browser; the brief cannot
+   count them. So when Home paints, the top three are handed over the way kept
+   views are (hbKeptSync): HaTi's own sentence, the finding's id and the day it
+   was counted — capped, dated, and the mail says "as of" that day. The brief's
+   own daily / weekly / off decides whether they go; there is no switch here. */
+const HB_MOVED_MAX = 3;
+function hbMovedOf(){
+  let I = []; try { I = hbInsightsToday(); } catch (_){ I = []; }
+  return I.filter(x => x && x.id && x.title).slice(0, HB_MOVED_MAX)
+    .map(x => ({ say: hbPlainText(x.title + (x.say ? ' — ' + x.say : ''), 240), key: x.id, at: hbToday() }));
+}
+function hbMovedSync(){
+  if (typeof api !== 'function' || (typeof API_MODE === 'function' && !API_MODE())) return;
+  const s = hbS(), out = hbMovedOf();
+  const sig = hbToday() + '|' + out.map(x => x.key + ':' + x.say).join('§');
+  if (s.movedSent === sig) return;
+  s.movedSent = sig; hbSave();
+  Promise.resolve(api('home/moved', 'PUT', { items: out })).catch(() => { s.movedSent = ''; hbSave(); });
+}
+/* the brief's link lands here (core.js openFromHash, HASH_GO.moved): the board,
+   with that finding's chart open — or simply the board, when the finding is no
+   longer on today's shelf. Nothing is pressed for the reader. */
+function hbOpenFromLink(id){
+  const s = hbS(); s.face = 'board';
+  const o = hbInsOf(id);
+  if (o){ hbInsRecipeOn(o.k); s.path = [hbInsKey(o.k, o.mine)]; _hbFocusNew = true; }
+  hbSave();
+  return !!o;
 }
 
 /* ---- THE ASK: the board's free reader in front of Explorer's own ----
@@ -5409,7 +5442,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

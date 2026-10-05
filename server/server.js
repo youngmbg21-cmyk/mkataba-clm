@@ -16952,6 +16952,26 @@ app.put('/api/home/kept', auth, (req, res) => {
   res.json({ ok: true, views });
 });
 
+/* ---------- "WHAT MOVED", FOR THE BRIEF (work order "the board that answers
+   right", Part 11, 5 Oct 2026) ----------
+   The shelf's top findings as Home last counted them, on the person's own row
+   — the same rule as kept views: a record of their own screen, capped and
+   dated, printed "as of" that day, never a contract's figure taken on the
+   browser's word anywhere else. The brief's own cadence decides; no switch. */
+const HOME_MOVED_MAX = 3;
+const HOME_MOVED_ID = /^[a-z]+(?:\.mine)?$/;
+app.put('/api/home/moved', auth, (req, res) => {
+  const b = req.body || {};
+  if (!Array.isArray(b.items)) return res.status(400).json({ error: 'items must be a list' });
+  if (b.items.length > HOME_MOVED_MAX) return res.status(400).json({ error: `The brief carries at most ${HOME_MOVED_MAX} findings.` });
+  const items = b.items.map(v => ({ say: clean(v && v.say).slice(0, 240), key: HOME_MOVED_ID.test(String((v && v.key) || '')) ? String(v.key) : '',
+    at: /^\d{4}-\d{2}-\d{2}$/.test(String((v && v.at) || '')) ? String(v.at) : '' })).filter(v => v.say && v.key && v.at);
+  const prefs = userPrefs(req.user);
+  prefs.boardMoved = items;
+  db.prepare('UPDATE users SET prefs=? WHERE id=?').run(JSON.stringify(prefs), req.user.id);
+  res.json({ ok: true, items });
+});
+
 /* ---------- A MONTHLY PICTURE OF THE BOOK (Young, "Build it", 4 Oct 2026) ----------
    "How many live contracts did we have each month?" cannot be worked out
    backwards: a contract does not record how many others were live beside it.
@@ -17542,6 +17562,17 @@ function keptSec(L, u) {
   return `${tFor(L, 'mail_db_kept')}\n` + kept.map(v => `  • ${v.title}${v.say ? ' — ' + v.say : ''}${v.at ? ' ' + tFor(L, 'mail_db_kept_asof', { date: v.at }) : ''}`).join('\n')
     + `\n    ${home}\n\n`;
 }
+/* WHAT MOVED rides a brief that is going anyway, like kept views. A finding
+   counted before the brief's own period (a day, or a week) is not printed; each
+   carries its "as of" day and a link that opens its chart on Home. */
+function movedSec(L, u, every) {
+  const span = every === 'weekly' ? 7 : 1;
+  const from = new Date(Date.now() - span * 86400000).toISOString().slice(0, 10);
+  const items = (userPrefs(u).boardMoved || []).filter(v => v && v.say && v.key && HOME_MOVED_ID.test(v.key) && v.at && v.at >= from).slice(0, HOME_MOVED_MAX);
+  if (!items.length) return '';
+  const base = (APP_URL() || `http://localhost:${PORT}`) + '/';
+  return `${tFor(L, 'mail_db_moved')}\n` + items.map(v => `  • ${v.say} ${tFor(L, 'mail_db_kept_asof', { date: v.at })}\n    ${base}#home&go=moved&card=${encodeURIComponent(v.key)}`).join('\n') + '\n\n';
+}
 function runDailyBriefs() {
   const day = aiToday();
   const members = db.prepare('SELECT * FROM users').all()
@@ -17655,6 +17686,7 @@ function runDailyBriefs() {
       + sec(tFor(L, 'mail_db_sign'), S.sign) + sec(tFor(L, 'mail_db_exp'), S.exp)
       + sec(tFor(L, 'mail_db_notice'), S.notice)
       + sec(tFor(L, 'mail_db_link'), S.link)
+      + movedSec(L, u, every)
       + keptSec(L, u)
       + `${tFor(L, K.off)}\n\n${tFor(L, 'mail_automated_notice')}`;
     sendEmail(u.email, tFor(L, K.subject, { n: total }), body, every === 'weekly' ? 'weekly brief' : 'daily brief');

@@ -96,7 +96,8 @@ describe('f445 (4) the browser honours a narrow list', () => {
     assert.match(CORE, /\(\?:&go=\(\[a-z\]\+\)\)\?\$/i, 'an optional word, at the end');
   });
   test('and resolved through a table, never acted on blind', () => {
-    assert.match(CORE, /const HASH_GO = \{ approval: \{ tab:'sign', sel:'#sa-card' \} \}/);
+    /* Part 11 (5 Oct 2026) added the one Home word, 'moved' (f521) */
+    assert.match(CORE, /const HASH_GO = \{ approval: \{ tab:'sign', sel:'#sa-card' \}, moved: \{ home:true \} \}/);
     assert.match(CORE, /const go=HASH_GO\[String\(m\[3\]\|\|''\)\.toLowerCase\(\)\]\|\|null/,
       'a word the table does not know answers null and nothing happens');
   });
