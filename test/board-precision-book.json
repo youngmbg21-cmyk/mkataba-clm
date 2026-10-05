@@ -1,6 +1,6 @@
 {
   "about": "THE BOARD'S PRECISION BOOK (the owner's work order, Part 7, 4 Oct 2026). Each request is in the owner's style, with the card it must produce. road 'free': HaTi must read it without Copilot (f502 runs these on every change). road 'copilot': HaTi hands it on, and Copilot's answer must carry this recipe (npm run eval:board, only with a key). 'after' is a question asked first, so 'this'/'it' has a chart to mean. In 'want': split/split2 are compared whole; set is 'all' (the whole book) or words the card's set must name; parse is the board's own command for a question with no chart words; do/cards are what Copilot must press.",
-  "passMark": { "free": 97, "note": "The free half's hit rate, in per cent, at or above which f502 passes. Day one (4 Oct 2026): 97 (103 of 106); the same book on main before this work read 78 (83 of 106). It may only go up." },
+  "passMark": { "free": 100, "note": "The free half's hit rate, in per cent, at or above which f502 passes. Day one (4 Oct 2026): 97 (103 of 106); the same book on main before this work read 78 (83 of 106). 5 Oct 2026: 100 (106 of 106) — the three Copilot sentences the older words took are handed on. It may only go up." },
   "requests": [
     { "src": "f448", "road": "free", "q": "Show Juno contracts by month", "want": { "split": { "by": "date", "unit": "m", "date": "end" }, "pic": "cols", "measure": "count", "trend": false, "set": "Juno" } },
     { "src": "f448", "road": "free", "q": "timeline of Juno contracts", "want": { "split": null, "pic": "gantt", "measure": "count", "set": "Juno" } },

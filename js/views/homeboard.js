@@ -738,6 +738,9 @@ const HB_RX = {
      Copilot's to answer with the board's own buttons — never "back to the
      board" or one panel */
   build:     /\b(?:build|make|create|set up|design|put together|give me|bygg|skapa|gör|sätt ihop)\b[^.?!]{0,40}?\b(?:dashboards?|boards?|cards|charts|views|overview|översikt|tavla|instrumentpanel|kort|diagram)\b/i,
+  /* renaming a card is Copilot's (name_card) — never "back to the board"
+     because the new name holds the word */
+  rename:    /\b(rename|retitle|byt namn på)\b/i,
   obl:       /overdue|past due|obligation|\bdut(y|ies)\b|\blate\b|promise|förfall|åtagande|\bsena?\b/i,
   fric:      /slow|friction|negotiat|delay|stuck|förhandl|trög|fastnat|friktion/i,
   ren:       /renew|expir|\bending\b|end date|förny|löper ut|slutdatum|upphör/i,
@@ -818,6 +821,7 @@ function hbParse(qRaw){
   const named = (hbS().saved || []).find(x => x.name.toLowerCase() === s);
   if (named) return { act: 'open', name: named.name };
   if (HB_RX.build.test(s)) return null;
+  if (HB_RX.rename.test(s)) return null;
   if (HB_RX.map.test(s) && !HB_RX.showThese.test(s) && s.length < 40) return { act: 'face', face: 'explorer' };
   if (HB_RX.board.test(s) && s.length < 40) return { act: 'face', face: 'board' };
   if (HB_RX.present.test(s) && s.length < 40) return { act: 'present' };
@@ -856,6 +860,9 @@ function hbParse(qRaw){
   }
   if (HB_RX.split.test(s) && (sup || cus)) return { act: 'split', kind };
   if (HB_RX.all.test(s)) return { act: 'lens', lens: 'all' };
+  /* a panel word answers a short ask; a long sentence that merely holds one
+     ("a grid of streams against stages…") is a chart Copilot draws */
+  if (kind && s.length >= 48 && !HB_RX.remove.test(s)) return null;
   if (kind) return { act: HB_RX.remove.test(s) ? 'remove' : 'panel', kind, lens: sup ? 'suppliers' : cus ? 'customers' : null };
   if (sup && s.length < 40) return { act: 'lens', lens: 'suppliers' };
   if (cus && s.length < 40) return { act: 'lens', lens: 'customers' };
