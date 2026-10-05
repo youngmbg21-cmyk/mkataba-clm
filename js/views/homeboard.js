@@ -4471,6 +4471,87 @@ function hbBoardApply(actions, q){
    with the board shown to it (hbBoardNow) — never read as a new chart */
 const HB_WHY_ASK_RE = /^\s*(?:why|explain|how come|what (?:does|do) .{0,60}\bmean|what is this|what's this|varför|förklara|vad betyder)\b/i;
 /* ============================================================
+   THE READING, AS CHIPS (work order "the board that answers right", Part 4,
+   5 Oct 2026; ThoughtSpot shows the tokens it read and lets them be changed)
+   ============================================================
+   Under a reply that drew or changed the open chart, HaTi shows how it read
+   the question: Picture · Split · Measure. Each chip opens the SAME menu the
+   card's own row opens (hbRcOptions, greyed with its reason) and writes
+   through the same writer (hbRecipeSet → hbCardSet, undo marked in hbSave).
+   Only the newest reply about the card that is still open is live; an older
+   reply shows the words it read as plain text, so it can never edit a card
+   that has moved on. Desktop panel only; the phone keeps its own Home. */
+let _hbRdOpen = null;
+const HB_RD_PARTS = ['pic', 'split', 'measure'];
+function hbRdWords(P){ return { pic: hbPicWord(P), split: hbSplitWord(P.split), measure: i18t('hb_ms_' + P.measure) }; }
+function hbReadingSnap(){
+  const key = hbOpenListKey(); if (!key) return { key: null, sig: '' };
+  const D = hbDigData(key, hbS().lens); return { key, sig: D ? JSON.stringify(hbPlan(D)) : '' };
+}
+/* the reading a reply carries: the open card, when the question drew it or changed it */
+function hbReadingAfter(snap){
+  const now = hbReadingSnap(); if (!now.key) return null;
+  if (snap && now.key === snap.key && now.sig === snap.sig) return null;
+  const D = hbDigData(now.key, hbS().lens); if (!D || D.kind !== 'list') return null;
+  return { key: now.key, at: Date.now(), words: hbRdWords(hbPlan(D)) };
+}
+/* is this reply (index i in the panel's history) the live one for its card? */
+function hbReadingLive(i){
+  const h = (window.intel && Array.isArray(intel.history)) ? intel.history : [];
+  const m = h[i]; if (!m || !m.reading || m.reading.key !== hbOpenListKey()) return false;
+  for (let j = h.length - 1; j > i; j--) if (h[j] && h[j].reading) return false;
+  return true;
+}
+function hbReadingHtml(rd, live){
+  if (!rd || !rd.key) return '';
+  const s = hbS(); const D = live ? hbDigData(rd.key, s.lens) : null;
+  const P = D && D.kind === 'list' ? hbPlan(D) : null;
+  const words = P ? hbRdWords(P) : (rd.words || {});
+  const label = p => i18t({ pic: 'hb_rc_pic', split: 'hb_rc_split', measure: 'hb_rc_measure' }[p]);
+  if (!P) return `<div class="hb-rd is-still" aria-label="${_hbE(i18t('hb_rd_label'))}">${HB_RD_PARTS.filter(p => words[p]).map(p => `<span class="hb-rd-chip is-still"><i>${_hbE(label(p))}</i>${_hbE(words[p])}</span>`).join('')}</div>`;
+  const chip = p => {
+    const open = _hbRdOpen === rd.key + '|' + p;
+    const menu = open ? `<div class="hb-rd-menu" role="menu" aria-label="${_hbE(label(p))}">${hbRcOptions(p, P, D).map(x => {
+      const cur = hbRcCurHas(p, P, x.v);
+      return `<button type="button" role="menuitemradio" aria-checked="${cur}" data-hb-rdset="${_hbE(p + ':' + x.v)}"${x.on ? '' : ' disabled'}${x.why ? ` title="${_hbE(x.why)}"` : ''}><span>${_hbE(x.word)}</span>${x.why ? `<small>${_hbE(x.why)}</small>` : cur ? `<b aria-hidden="true">${_hbTick}</b>` : ''}</button>`; }).join('')}</div>` : '';
+    return `<span class="hb-rd-wrap"><button type="button" class="hb-rd-chip${open ? ' is-open' : ''}" data-hb-rd="${p}" aria-haspopup="menu" aria-expanded="${open}"><i>${_hbE(label(p))}</i>${_hbE(words[p])}${_hbCaret}</button>${menu}</span>`;
+  };
+  return `<div class="hb-rd" role="group" data-hb-rd-key="${_hbE(rd.key)}" aria-label="${_hbE(i18t('hb_rd_label'))}">${HB_RD_PARTS.map(chip).join('')}</div>`;
+}
+/* a chip's menu, opened or closed (the press, and Escape) */
+function hbRdToggle(key, part){ const p = key && part ? key + '|' + part : null; _hbRdOpen = p && _hbRdOpen !== p ? p : null; return _hbRdOpen; }
+/* the chip row is redrawn IN PLACE (a whole-panel redraw replays every
+   reply's entrance); the panel is redrawn only when the row is not found */
+function hbDockRepaint(){
+  try {
+    const h = (window.intel && Array.isArray(intel.history)) ? intel.history : [];
+    let done = false;
+    document.querySelectorAll('[data-ig-turn] .hb-rd').forEach(el => {
+      const turn = el.closest('[data-ig-turn]'); const i = Number(turn && turn.getAttribute('data-ig-turn'));
+      const m = h[i]; if (!m || !m.reading) return;
+      el.outerHTML = hbReadingHtml(m.reading, hbReadingLive(i)); done = true;
+    });
+    if (!done && typeof renderIntelDock === 'function') renderIntelDock();
+  } catch (_){ if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_e){ /* the panel is not up */ } }
+}
+/* a chip's choice, through the card's own writer; a change right after an
+   answer is kept as a possible misreading (Part 6, kind 'fix') */
+function hbReadingSet(key, part, v){
+  const s = hbS(); if (!key || !HB_RD_PARTS.includes(part)) return false;
+  const before = hbDigData(key, s.lens); if (!before) return false;
+  const P0 = hbPlan(before);
+  hbRecipeSet(key, part, v);
+  const h = (window.intel && Array.isArray(intel.history)) ? intel.history : [];
+  const m = h.slice().reverse().find(x => x && x.reading && x.reading.key === key);
+  if (m && Date.now() - (m.reading.at || 0) <= HB_FIX_WINDOW_MS){
+    const q = (h.slice(0, h.indexOf(m)).reverse().find(x => x && x.role === 'user') || {}).text || '';
+    hbFeedbackSend({ kind: 'fix', q, recipe: hbCardClean(P0), changed: { [part]: v } });
+  }
+  return true;
+}
+const HB_FIX_WINDOW_MS = 30000;
+
+/* ============================================================
    THE BOARD'S WORD BOOK (work order "the board that answers right", Part 3,
    5 Oct 2026; Power BI's linguistic schema, Tableau's semantics)
    ============================================================
@@ -4893,6 +4974,7 @@ function hbOnClick(e){
   const t = e.target && e.target.closest ? e.target : null; if (!t) return;
   /* an open dropdown closes on a press anywhere else */
   if (_hbRcOpen && !t.closest('.hb-rwrap')){ _hbRcOpen = null; hbPaintBoard(); }
+  if (_hbRdOpen && !t.closest('.hb-rd-wrap')){ _hbRdOpen = null; hbDockRepaint(); }
   const on = sel => t.closest(sel);
   let el;
   if ((el = on('[data-hb-face]'))){ hbSetFace(el.getAttribute('data-hb-face')); return; }
@@ -4913,6 +4995,10 @@ function hbOnClick(e){
     hbPreviewSettle(id, out.html, out.undo); return; }
   if ((el = on('[data-hb-undo]'))){ const ok = hbUndo(el.getAttribute('data-hb-undo')); hbPaintBoard();
     if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_gone'), ok ? 'ok' : 'warn'); return; }
+  /* THE READING'S CHIPS, in the panel's reply (Part 4) */
+  if ((el = on('[data-hb-rd]'))){ const row = el.closest('[data-hb-rd-key]'); if (!row) return; hbRdToggle(row.getAttribute('data-hb-rd-key'), el.getAttribute('data-hb-rd')); hbDockRepaint(); return; }
+  if ((el = on('[data-hb-rdset]'))){ if (el.disabled) return; const row = el.closest('[data-hb-rd-key]'); const v = el.getAttribute('data-hb-rdset'), i = v.indexOf(':');
+    _hbRdOpen = null; if (row && i > 0) hbReadingSet(row.getAttribute('data-hb-rd-key'), v.slice(0, i), v.slice(i + 1)); hbPaintBoard({ jump: 'focus' }); hbDockRepaint(); return; }
   if ((el = on('[data-hb-rmore]'))){ hbRcMoreToggle(rkey(el)); _hbRcOpen = null; hbPaintBoard(); return; }
   if ((el = on('[data-hb-rc]'))){ const p = rkey(el) + '|' + el.getAttribute('data-hb-rc'); _hbRcOpen = _hbRcOpen === p ? null : p; hbPaintBoard(); return; }
   if ((el = on('[data-hb-rset]'))){ if (el.disabled) return; const key = rkey(el), v = el.getAttribute('data-hb-rset'), i = v.indexOf(':');
@@ -4993,6 +5079,7 @@ function hbOnKey(e){
     e.preventDefault(); const ok = hbUndo(); hbPaintBoard();
     if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_none'), ok ? 'ok' : 'warn'); return;
   }
+  if (e.key === 'Escape' && _hbRdOpen){ _hbRdOpen = null; hbDockRepaint(); return; }
   if (e.key === 'Escape' && _hbRcOpen){ const at = _hbRcOpen.lastIndexOf('|'), k = _hbRcOpen.slice(0, at), p = _hbRcOpen.slice(at + 1); _hbRcOpen = null; hbPaintBoard();
     const row = [...document.querySelectorAll('[data-hb-rkey]')].find(r => r.getAttribute('data-hb-rkey') === k);
     const b = row && row.querySelector(`[data-hb-rc="${p}"]`); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }
@@ -5029,7 +5116,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

@@ -1845,9 +1845,13 @@ async function intelAsk(qRaw){
   /* ON HOME THE BOARD'S FREE READER ANSWERS FIRST (3 Oct 2026): a figure, a
      panel, a contract by its reference, the lens, the side of the screen.
      What it does not understand goes on exactly as on the map. No spend. */
+  /* THE READING, AS CHIPS (the board that answers right, Part 4): a reply
+     that drew or changed the open chart carries how it was read */
+  const rdSnap=(state.view==='dashboard'&&typeof window.hbReadingSnap==='function')?hbReadingSnap():null;
+  const rdOf=()=>{ try{ const r=rdSnap?hbReadingAfter(rdSnap):null; return r?{ reading:r }:{}; }catch(_){ return {}; } };
   if(state.view==='dashboard' && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
-    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); renderIntelDock(); return; }
+    if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf())); renderIntelDock(); return; }
   }
   const h0=intel.history.length;
   /* A TYPED QUESTION ON THE BOARD STARTS AFRESH (the honest reply, 5 Oct
@@ -1898,6 +1902,9 @@ async function intelAsk(qRaw){
     if(m){ try{ hbShowFound(m.listIds, m.listTitle||'', m.listChart||null);
       /* the reply is written from what the board now draws (the honest reply) */
       if(igBoardNow()&&typeof window.hbFoundSay==='function'){ const say=hbFoundSay(); if(say){ m.text=say; renderIntelDock(); } } }catch(_){} }
+    /* the Copilot reply that drew or changed the open chart carries its reading too */
+    const last=intel.history.slice(h0).reverse().find(x=>x&&x.role==='assistant'&&!x.err);
+    if(last&&!last.reading){ const r=rdOf(); if(r.reading){ last.reading=r.reading; renderIntelDock(); } }
   }
 }
 
@@ -6135,6 +6142,7 @@ function igMsgHTML(m,i){
       ${''/* THE BOARD'S PRESSES (work order Part 5): a big build offered as a list
              with ticks, and Undo for an answer that changed the board */}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
+      ${(Number.isInteger(i)&&m.reading&&typeof window.hbReadingHtml==='function')?hbReadingHtml(m.reading,hbReadingLive(i)):''}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm" data-ig-choice="${i}:${j}">${igEsc(c.label)}</button>`).join('')}</div>`:''}
       ${(Number.isInteger(i)&&Array.isArray(m.listIds)&&m.listIds.length)?`<div class="igd-list" style="display:flex;gap:12px;flex-wrap:wrap;padding-left:2px"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:''}

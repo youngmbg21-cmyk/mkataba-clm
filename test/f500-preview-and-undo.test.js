@@ -117,7 +117,7 @@ describe('F500 (C, D) — Ctrl/⌘+Z, and the presses the panel draws', () => {
     const src = read('js/views/intelligence.js');
     assert.match(src, /m\.preview&&typeof window\.hbPreviewHtml==='function'\)\?hbPreviewHtml\(m\.preview\)/);
     assert.match(src, /m\.undo&&typeof window\.hbUndoHtml==='function'\)\?hbUndoHtml\(m\.undo\)/);
-    assert.match(src, /hbTakeMeta\(\):\{\}\)\); renderIntelDock\(\); return; \}/, 'the free reader\'s answer carries them');
+    assert.match(src, /hbTakeMeta\(\):\{\}, rdOf\(\)\)\); renderIntelDock\(\); return; \}/, 'the free reader\'s answer carries them (and its reading, f514)');
     const w = world();
     assert.match(w.hbPreviewHtml({ id: 'pv1', adds: true, rows: ['Add “<b>x</b>”'] }), /&lt;b&gt;x&lt;\/b&gt;/, 'a row is text, never markup');
   });
