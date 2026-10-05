@@ -257,11 +257,12 @@ describe('f372 (9) — the server asks for one verdict each, with room for all',
   });
 });
 
-describe('f372 (10) — the Copilot editor\'s scan files the one saved check', () => {
-  test('ceRunScan writes the review onto the record, and the rail reads the record', () => {
-    const fn = CE.slice(CE.indexOf('async function ceRunScan'), CE.indexOf('ONE SENTENCE AT A TIME'));
-    assert.match(fn, /_ceC\.playbook = rev;/);
-    assert.match(fn, /persist\(_ceC\)/);
+describe('f372 (10) — the Copilot editor reads the one saved check', () => {
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the editor no longer runs
+     a check (its scan tab is deleted); it reads the one saved on the record. */
+  test('the editor runs nothing and reads the record', () => {
+    assert.ok(!CE.includes('async function ceRunScan'), 'no second runner');
+    assert.match(CE, /const rev = _ceScan \|\| \(_ceC && _ceC\.playbook\) \|\| null;/, 'the record is what it reads');
   });
 });
 

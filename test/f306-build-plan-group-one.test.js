@@ -81,14 +81,19 @@ describe('f306 (1) — the rail opens on Suggestions; the Playbook tab is a door
     assert.ok(cl, 'the fixture has a payment clause');
     putReview(c, cl.text.slice(0, 80), 'Payment terms');
     assert.equal(win.rlOpenClauseEditor(c, cl.clauseId), true, 'the editor opens');
-    assert.equal(win.ceClauseFindings() > 0, true, 'this clause has findings of its own');
+    /* RE-POINTED 5 Oct 2026: ceClauseFindings retired with the Playbook scan
+       tab; ceStdItem is this clause's own finding, read the same way. */
+    assert.ok(win.ceStdItem(), 'this clause has findings of its own');
     assert.equal(tabOn(doc), 'chat', 'and the rail stays on Suggestions regardless');
   });
-  test('a caller that names the Playbook tab still gets it', async () => {
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the Playbook tab is
+     deleted, so a caller still naming it lands on Suggestions. */
+  test('a caller that names the deleted Playbook tab lands on Suggestions', async () => {
     const { win, c, doc } = await bench();
     const cl = clauseWith(win, c, /thirty \(30\) days/);
     win.rlOpenClauseEditor(c, cl.clauseId, { tab: 'scan' });
-    assert.equal(tabOn(doc), 'scan');
+    assert.equal(tabOn(doc), 'chat');
+    assert.equal(doc.querySelector('[data-ce-tab="scan"]'), null, 'and there is no such tab');
   });
 
   test('a clause with none of its own opens on the greeting, as it always did', async () => {
@@ -102,7 +107,7 @@ describe('f306 (1) — the rail opens on Suggestions; the Playbook tab is a door
     const other = win.negoClauseList(c).find(x => x.clauseId !== pay.clauseId);
     assert.ok(other, 'the fixture has a second clause');
     assert.equal(win.rlOpenClauseEditor(c, other.clauseId), true);
-    assert.equal(win.ceClauseFindings(), 0, 'this clause has none of its own');
+    assert.equal(win.ceStdItem(), null, 'this clause has none of its own');
     assert.equal(tabOn(doc), 'chat', 'so nothing is moved');
   });
 
@@ -119,7 +124,7 @@ describe('f306 (1) — the rail opens on Suggestions; the Playbook tab is a door
     const cl = clauseWith(win, c, /thirty \(30\) days/);
     assert.equal(c.playbook, undefined, 'nothing has read this contract');
     win.rlOpenClauseEditor(c, cl.clauseId);
-    assert.equal(win.ceClauseFindings(), 0);
+    assert.equal(win.ceStdItem(), null);
     assert.equal(tabOn(doc), 'chat');
   });
 
@@ -127,7 +132,7 @@ describe('f306 (1) — the rail opens on Suggestions; the Playbook tab is a door
      rail already builds off the stored review; a fetch or a route here would be
      a call made on every open of every clause. */
   test('the reading spends nothing', () => {
-    const m = /function ceClauseFindings\(\)\{[\s\S]*?\n\}/.exec(CE);
+    const m = /function ceStdItem\(\)\{[\s\S]*?\n\}/.exec(CE);
     assert.ok(m, 'the reading exists');
     assert.doesNotMatch(m[0], /fetch|api\(|\/api\/|anthropic/i, 'and asks no route');
     assert.match(m[0], /ceScanGroups\(\)\.here/, 'it is this clause\'s own findings');

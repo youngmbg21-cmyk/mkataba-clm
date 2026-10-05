@@ -99,7 +99,7 @@ let _ceStep = 0;
    one clause you came in on is typeable is this, and the control for it is the
    pencil already on that clause. */
 let _ceEditing = false;
-let _ceTab = 'chat';        /* chat | scan | ladder | figure | risks */
+let _ceTab = 'chat';        /* chat | risks | ladder (scan and figure retired 5 Oct 2026) */
 /* ---- A NEW CLAUSE, HELD BEFORE IT EXISTS (Young chose to build it, 5 Oct
    2026 — the work order's Part 8, screen 5) ----
    The page is built around ONE clause on the paper. A clause nobody has filed
@@ -122,7 +122,6 @@ let _ceRiskCard = null;
 let _ceBusy = false;
 let _ceSavedAt = null;
 let _ceScan = null;         /* the playbook review, once run */
-let _ceScanBusy = false;
 /* ---- A SCAN THAT COMES BACK WITH NOTHING SAYS SO WHERE THE READER IS LOOKING
    (owner-asked 26 Aug 2026: "you should be able to run the playbook scan by
    pressing the highlighted button") ----
@@ -137,7 +136,6 @@ let _ceScanBusy = false;
    failure states itself where the reader is looking rather than relying on a
    toast that has already faded. This is _renewalAdviceError for the scan —
    written by the one runner, cleared the moment a review arrives. */
-let _ceScanErr = null;
 let _ceSayTimer = null;
 let _ceSel = null;          /* the passage being rewritten in place */
 /* ---- WHOLE-CONTRACT MODE (Young ruled it 23 Sep 2026, fix 5 of seven) ----
@@ -722,19 +720,6 @@ function clauseEditorCss(){
      itself on its hover. */
   .ce-ah .sp{display:inline-flex; align-items:center; gap:7px; font-size:var(--t-meta); font-weight:var(--w-title);
     color:var(--accent-ink); padding:var(--s-3) 0; flex:none; white-space:nowrap}
-  /* The clause the rail is about: the page's own ink at the title weight, so
-     it reads as the SUBJECT beside Copilot's accent label rather than as a
-     second heading. It takes the row's slack and gives it all back to the tabs
-     when it has to (min-width:0 is what lets it shrink below its text). */
-  /* IT MAY NOT GROW THE ROW, and MEASURED it did: 44px → 61px, because a
-     plain span takes the row's own line-height where .sp beside it is an
-     inline-flex that makes its own line box. It carries NO vertical padding
-     and centres itself, so the head's height stays whatever .sp and the tabs
-     make it and this name is a passenger — the rule that keeps chrome off a
-     full-window page's paper. */
-  .ce-ah-cl{min-width:0; flex:0 1 auto; align-self:center; overflow:hidden; text-overflow:ellipsis;
-    white-space:nowrap; line-height:var(--lh-tight);
-    font-size:var(--t-meta); font-weight:var(--w-title); color:var(--color-text)}
   /* THE TABS KEEP THEIR WIDTH AND THE NAME GIVES WAY. Without flex:none the
      name took 132px off the row, the four tabs wrapped to two lines and the
      head grew 44px → 61px — a label pushing CONTROLS onto a second line,
@@ -803,7 +788,12 @@ function clauseEditorCss(){
   .ce-card .chip.ok{background:var(--st-green-bg); color:var(--st-green-fg)}
   .ce-card .chip.no{background:var(--st-ruby-bg); color:var(--st-ruby-fg)}
   .ce-card .chip.wait{background:var(--st-amber-bg); color:var(--st-amber-fg)}
+  /* Our standard / Our fallback: the company's own wording, in the accent */
+  .ce-card .chip.std{background:var(--color-accent-100); color:var(--accent-ink)}
   .ce-card .l{display:block; margin-top:5px; font-size:var(--t-meta); line-height:1.5}
+  /* What a standard question's card would change: quiet, the label shade, as
+     the Playbook scan's cards said it (5 Oct 2026). */
+  .ce-card .cost{display:block; margin-top:5px; font-size:var(--t-label); line-height:1.45; color:var(--color-neutral-600)}
   .ce-card .r{display:block; margin-top:6px; font-size:var(--t-label);
     color:var(--color-neutral-600); line-height:1.45}
   /* the wording preview is white too — the same wording is white in both boxes
@@ -1394,9 +1384,6 @@ function ceScanItems(){
    opening tab. It reads the review already on the record and spends nothing;
    a contract with no review answers 0 and the rail opens on the greeting, as
    it always did. */
-function ceClauseFindings(){
-  try{ return ceScanGroups().here.length; }catch(_){ return 0; }
-}
 /* Whose wording, named by the negotiation page's own helper so the rail and the
    Playbook review modal cannot come to call the same thing by two names. Read
    through window (the ES-module rule) with the plainest possible fallback. */
@@ -1404,14 +1391,6 @@ function ceWordingLabel(kind){
   try{ if (typeof window.rlPbWordingLabel === 'function') return rlPbWordingLabel(kind); }catch(_){}
   return _cet(kind === 'draft' ? 'pb_w_draft' : kind === 'fallback' ? 'pb_w_fallback' : 'pb_w_ours');
 }
-/* WHAT WAS FILED THIS SITTING, so a card that has just been added says so
-   instead of offering the same press again. Per sitting and in memory, like
-   every other posture on this page: the change itself is on the record, and a
-   re-scan is what tells you whether the standard is still missing. */
-let _ceScanFiled = {};
-const ceScanKey = it => `${(it && it.v && it.v.category) || '?'}::${(it && it.v && it.v.status) || '?'}`;
-const ceDeviationCount = () => ceScanItems().filter(it => it.v
-  && (window.pbVerdictOpen ? pbVerdictOpen(it.v) : !/^(aligned|ok|na)$/.test(String(it.v.status || '')))).length;
 
 /* ============================================================================
    WHAT A PRESS COSTS (owner-asked 26 Aug 2026, drawn and ruled first)
@@ -1810,29 +1789,13 @@ function clauseEditorHtml(){
       <aside class="ce-rail">
         <div class="ce-ah">
           ${ceNoAi() ? '' : `<span class="sp">&#10022; ${_cet('ce_copilot')}</span>`}
-          ${''/* ---- THE RAIL NAMES THE CLAUSE IT IS WORKING ON (Young ruled it
-                 21 Sep 2026: "it is not clear which clause copilot is working
-                 on") ----
-                 MEASURED on the owner's own screen: the rail was discussing
-                 Quality & Rejection while the paper beside it showed Governing
-                 Law, and the only other place the clause is named is the shell
-                 crumb — a different colour, in a different bar, forty pixels
-                 up and out of the eye's path once a reader is deep in a
-                 conversation about wording.
-                 THROUGH `ceClauseLabel`, the one presenting reading this page
-                 already has (it goes through clauseNameShown), so the rail
-                 cannot spell a clause differently from the column, the paper
-                 or the crumb. READ AT THE BUILD, which is enough because
-                 ceGoClause closes and re-opens the page — the name cannot go
-                 stale under a reader who moves to another clause.
-                 IT ELIDES RATHER THAN WRAPS: this row also carries three tabs
-                 and a count, and the whole name is on the hover. */}
-          <span class="ce-ah-cl" title="${_ceea(ceClauseLabel(ceClause()) || _cet('ce_this_clause'))}">${_ceea(ceClauseLabel(ceClause()) || _cet('ce_this_clause'))}</span>
+          ${''/* THE CLAUSE NAME AFTER "Copilot" IS GONE (Young, 5 Oct 2026, "Copilot
+                 Panel Tidy"), reversing the 21 Sep ruling: the top bar ("Edit
+                 …") and the Selected card over the box name the clause. .ce-ah-cl
+                 is STALE. */}
           <span class="ce-tabs" id="ce-tabs" role="group"
             aria-label="${_ceea(_cet('ce_tabs_group'))}">
             ${ceNoAi() ? '' : `<button type="button" data-ce-tab="chat">${_cet('ce_tab_chat')}</button>`}
-            <button type="button" data-ce-tab="ladder">${_cet('ce_tab_ladder')}</button>
-            <button type="button" data-ce-tab="figure" id="ce-tab-figure">${_cet('ce_tab_figure')}</button>
             ${''/* ---- THE CHANGES TAB IS DELETED (owner-asked 28 Aug 2026:
                    "Delete changes tab") ----
                    It was built the same day from the approved prototype — every
@@ -1848,10 +1811,14 @@ function clauseEditorHtml(){
                    there is no door a third caller could bring one back through.
                    ceFiledList, ceChangesHtml and the ce_tab_changes /
                    ce_changes_none keys are STALE — flag any mention. */}
-            ${ceNoAi() ? '' : `<button type="button" data-ce-tab="scan">${_cet('ce_tab_scan')}<span class="n" id="ce-scan-n"></span></button>`}
-            ${''/* ONE DOOR FOR EDITS (work order Part 8): the risks, beside the
-                   Playbook scan, on our seat where the reader may act on them. */}
+            ${''/* THE PLAYBOOK SCAN AND FIGURE TABS ARE DELETED (Young, 5 Oct
+                   2026: "the playbook scan tab is redundant since it is already
+                   addressed by the drafted redlines"; "also delete the Figure
+                   tab"). Its three wordings are prepared questions now
+                   (ceRenderChips); missing standards are drafted by "Draft from
+                   our standards". Ladder is LAST: Suggestions · Risks · Ladder. */}
             ${ceRisksOn() ? `<button type="button" data-ce-tab="risks" id="ce-tab-risks">${_cet('ce_tab_risks')}<span class="n" id="ce-rk-n"></span></button>` : ''}
+            <button type="button" data-ce-tab="ladder">${_cet('ce_tab_ladder')}</button>
           </span>
         </div>
         ${ceNoAi() ? '' : `<div class="ce-disc"><b>&#10022;</b><span>${_cet('ce_disclaimer')}</span></div>`}
@@ -2374,9 +2341,9 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      words, and a card carries no Apply. */
   _ceEditing = !ceUnderDeletion()
     && (wantTyping || (_ceText === _ceBase && _ceHead === _ceHeadBase));
-  _ceThread = []; _ceBusy = false; _ceScanBusy = false; _ceScanErr = null; _ceSel = null; _ceWhole = false;
+  _ceThread = []; _ceBusy = false; _ceSel = null; _ceWhole = false;
   _ceFull = ''; _ceRiskCard = null;
-  _ceScan = null; _ceScanFiled = {};
+  _ceScan = null;
   _ceSpellList = []; _ceSpellFor = null;
   /* ---- THE RAIL OPENS ON THE FINDING IT IS ALREADY HOLDING ----
      (owner-approved 13 Sep 2026, group 1 of the build plan.)
@@ -2410,7 +2377,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      unless a caller NAMES the Playbook tab. ceClauseFindings stays as a
      reading with no caller here; the Playbook tab's own count still shows
      the findings without moving anybody onto it. */
-  _ceTab = ceNoAi() ? 'ladder' : opts.tab === 'scan' ? 'scan' : (opts.tab === 'risks' && ceRisksOn()) ? 'risks' : 'chat';
+  _ceTab = ceNoAi() ? 'ladder' : (opts.tab === 'risks' && ceRisksOn()) ? 'risks' : 'chat';
 
   ceEnsureStyle();
   /* ---- THE PAPER'S OWN SHEET, ASKED FOR RATHER THAN ASSUMED ----
@@ -4317,7 +4284,6 @@ function ceLadderRow(){
   if (!_ceC || !_ceClauseId || typeof window.ladderStand !== 'function') return null;
   try{ return ladderStand(_ceC, String(_ceClauseId), ceSide()); }catch(_){ return null; }
 }
-function ceFigureTopic(){ const r = ceLadderRow(); return (r && r.topic && typeof r.topic.num === 'function' && r.unit) ? r.topic : null; }
 function ceLadderCardHtml(){
   const row = ceLadderRow();
   if (!row) return '';
@@ -4406,37 +4372,11 @@ function ceLadderLaneHtml(){
   const tail = (typeof window.rlLadderTailHtml === 'function') ? rlLadderTailHtml(_ceC, cl, ceOnTable(), ceSide(), { noFigure: true, noNotes: true }) : '';
   return `<div class="redline-page rl-cp-src ce-ladder-lane">${sec || `<p class="ce-scan-none">${_cee(_cet('ce_lc_noladder'))}</p>`}${tail}</div>`;
 }
-function ceFigureLaneHtml(){
-  const cl = ceClause();
-  if (!cl || !_ceC || typeof window.rlFigureSecHtml !== 'function') return '';
-  const sec = rlFigureSecHtml(_ceC, cl.clauseId, ceSide(), { act: 'editor' });
-  return `<div class="redline-page rl-cp-src ce-ladder-lane">${sec}<p class="ce-fig-note">${_cee(_cet('ng_fig_write_title'))}</p></div>`;
-}
-/* Write the figure from the tab into the box. The draft's own wording is what
-   is written on — never the record's — so a figure typed twice moves once. */
-function ceFigureWrite(){
-  const topic = ceFigureTopic(); if (!topic) return;
-  const box = _ceQ('#ce-fig');
-  const n = box ? parseInt(box.value, 10) : NaN;
-  if (!Number.isFinite(n)){ ceSay(_cet('ng_fig_nan')); return; }
-  const now = ceWords(ceDraftNow() || _ceText);
-  const next = ladderWriteFigure(now, n, topic.unit);
-  if (next === now){ ceSay(_cet('ng_fig_same')); return; }
-  ceApply(next, _cet('ce_step_figure'));
-  _ceTab = ceNoAi() ? 'ladder' : 'chat'; ceRenderTabs(); ceRenderLane();
-}
-
 function ceRenderTabs(){
   if (!clauseEditorOpen()) return;
   const page = document.getElementById('clause-editor'); if (!page) return;
   page.querySelectorAll('[data-ce-tab]').forEach(b =>
     b.classList.toggle('is-on', b.getAttribute('data-ce-tab') === _ceTab));
-  const n = ceDeviationCount();
-  /* The Figure tab is drawn only where the clause is argued in a number. */
-  const ft = _ceQ('#ce-tab-figure');
-  if (ft) ft.hidden = !ceFigureTopic();
-  const badge = _ceQ('#ce-scan-n');
-  if (badge){ badge.textContent = n ? String(n) : ''; badge.style.display = n ? '' : 'none'; }
   const rkn = _ceQ('#ce-rk-n');
   if (rkn){ const k = (window.riskOpenOf && _ceC) ? riskOpenOf(_ceC).length : 0; rkn.textContent = k ? String(k) : ''; rkn.style.display = k ? '' : 'none'; }
   /* ONE FOOT ON EVERY TAB (Young, 5 Oct 2026: the risk edit is the clause
@@ -4467,46 +4407,13 @@ function ceRiskAsking(){
   const info = (window.riskWalkInfo && _ceC) ? riskWalkInfo(_ceC) : null;
   return !!(info && !info.done && info.it);
 }
-/* ---- A CONTROL DRAWN ONLY WHERE THERE IS REALLY MORE TO SEE (21 Sep 2026) ----
-   Asked of the BROWSER after the paint, never of the character count: whether
-   a preview overflows its 120px window depends on the rail's width, the
-   reader's own text size and where the wording wraps, and a guess at it draws
-   a dead button on a short card and none on a long one. The product's own
-   idiom — rowsThatFit and ptFitTable ask the same question the same way. A
-   class flip, never a repaint. */
-function ceScanFitPv(lane){
-  if (!lane) return;
-  lane.querySelectorAll('.ce-rule .pv').forEach(pv => {
-    const btn = pv.parentNode && pv.parentNode.querySelector('.pv-more');
-    if (!btn) return;
-    if (pv.scrollHeight > pv.clientHeight + 2) btn.classList.add('is-live');
-  });
-}
-/* The press: the box gives up its cap and the word turns round. Per sitting
-   and in the DOM alone — nothing about which previews a reader opened is worth
-   storing, and a rescan draws fresh cards anyway. */
-function ceScanPvToggle(i){
-  const btn = _ceQ(`[data-ce-pv="${i}"]`); if (!btn) return;
-  const pv = btn.parentNode && btn.parentNode.querySelector('.pv'); if (!pv) return;
-  const open = pv.classList.toggle('is-open');
-  btn.textContent = _cet(open ? 'ce_pv_less' : 'ce_pv_more');
-}
 function ceRenderLane(){
   if (!clauseEditorOpen()) return;
   const lane = _ceQ('#ce-lane'); if (!lane) return;
-  if (_ceTab === 'scan'){ lane.innerHTML = ceScanHtml(); lane.scrollTop = 0; ceScanFitPv(lane); return; }
   if (_ceTab === 'ladder'){ lane.innerHTML = ceLadderLaneHtml(); lane.scrollTop = 0; return; }
   if (_ceTab === 'risks'){
     lane.innerHTML = (window.riskLaneHtml && _ceC ? riskLaneHtml(_ceC) : '') + ceRiskAnswerHtml();
     lane.scrollTop = 0; ceRenderRiskFoot(); ceRenderTabs(); ceRenderFull(); return;
-  }
-  if (_ceTab === 'figure'){
-    lane.innerHTML = ceFigureLaneHtml(); lane.scrollTop = 0;
-    const rg = _ceQ('#ce-fig-range'), fi = _ceQ('#ce-fig');
-    /* The two boxes follow each other; assigned handlers, because the box's
-       own input listener is what f245 (19) reads by name. */
-    if (rg && fi){ rg.oninput = () => { fi.value = rg.value; }; fi.oninput = () => { rg.value = fi.value; }; }
-    return;
   }
   /* THE LADDER CARD LEADS THE CONVERSATION (14 Sep 2026): what moved, where
      it sits on our ladder, what we settled for, and the reply that follows —
@@ -4674,6 +4581,7 @@ function ceCardHtml(card, i, j){
       card.chip ? `<span class="chip ${_ceea(card.chipTone || 'wait')}">${_cee(card.chip)}</span>` : ''}${
       card.text ? `<button type="button" class="ce-x" data-ce-expand="${i}:${j}" title="${_ceea(_cet('ce_expand_title'))}">${CE_EXPAND_ICON}${_cee(_cet('ce_expand'))}</button>` : ''}</div>
     ${card.line ? `<span class="l">${_cee(card.line)}</span>` : ''}
+    ${card.cost ? `<span class="cost">${_cee(card.cost)}</span>` : ''}
     ${card.rests ? `<span class="r">${_cee(_cet('ce_rests_on', { on: card.rests }))}</span>` : ''}
     ${card.text ? `<span class="pv">${marked}</span>` : ''}
     <div class="av">
@@ -4694,6 +4602,7 @@ function ceRenderChips(){
   const box = _ceQ('#ce-chips'); if (!box) return;
   if (_ceTab === 'risks'){ box.innerHTML = (window.riskChipsHtml && _ceC) ? riskChipsHtml(_ceC) : ''; return; }
   const qs = [];
+  let rows = null;
   /* ---- THE READY-MADE QUESTIONS FOLLOW THE SCOPE ----
      With a passage held they are THE STRIP'S OWN THREE, word for word and key
      for key — shorten it, make it firmer, plain English — which are the three
@@ -4722,10 +4631,125 @@ function ceRenderChips(){
        how to answer the ask, what our playbook says, what the risk is, and what
        the clause says in plain English are all questions about a clause you may
        be about to lose. */
-    if (!ceUnderDeletion()) qs.push(_cet('ce_q_softer'));
-    qs.push(_cet('ce_q_our_standard'), _cet('ce_q_risk'), _cet('ce_q_plain'));
+    /* ---- NEVER MORE THAN FOUR, IN ONE LINE OF PRIORITY (Young, 5 Oct 2026,
+       "Copilot Panel Tidy": "prepared questions here or in risk should never
+       be more than 4") ----
+       The eight stand in one order and the FIRST FOUR THAT APPLY are drawn:
+       their ask (the work owed) · our standard · our fallback · Copilot's
+       draft · the risk · softer · plain English · the playbook. Anything off
+       the row can still be typed. The three standard ones are NOT questions
+       to Copilot (data-ce-std, never data-ce-chip): they put the company's
+       wording on a card, with no call (ceStdPress). */
+    rows = [
+      theirs ? { q: _cet('ce_q_answer', { id: theirs.id }) } : null,
+      ...ceStdChips(),
+      { q: _cet('ce_q_risk') },
+      ceUnderDeletion() ? null : { q: _cet('ce_q_softer') },
+      { q: _cet('ce_q_plain') },
+      { q: _cet('ce_q_our_standard') },
+    ].filter(Boolean);
   }
-  box.innerHTML = qs.map(q => `<button type="button" data-ce-chip="${_ceea(q)}">${_cee(q)}</button>`).join('');
+  box.innerHTML = (rows || qs.map(q => ({ q }))).slice(0, CE_CHIPS_MAX).map(x => x.std
+    ? `<button type="button" class="is-std" data-ce-std="${_ceea(x.std)}"${x.cost ? ` title="${_ceea(x.cost)}"` : ''}>${_cee(x.q)}</button>`
+    : `<button type="button" data-ce-chip="${_ceea(x.q)}">${_cee(x.q)}</button>`).join('');
+}
+/* THE CEILING ON EVERY ROW OF PREPARED QUESTIONS — here and in the risk walk
+   (riskChipsHtml holds its own four). */
+const CE_CHIPS_MAX = 4;
+/* THE STANDARD THIS CLAUSE DEPARTS FROM: the first open finding on THIS
+   clause in the check already on the record (nothing is run here). Where a
+   clause departs from more than one standard, the first is the one the chips
+   act on, and the card's reason names it. null where the check has not run
+   or the clause meets every standard. */
+function ceStdItem(){
+  try{
+    const open = v => !!v && (window.pbVerdictOpen ? pbVerdictOpen(v) : !/^(aligned|ok|na)$/.test(String(v.status || '')));
+    return ceScanGroups().here.find(it => it && open(it.v)) || null;
+  }catch(_){ return null; }
+}
+/* WHAT A STANDARD QUESTION WOULD BRING, one reading for the chip's hover and
+   the card: "Use our standard" changes only the figure where HaTi found it
+   (the smallest change, folded in); otherwise pbFitInto puts the wording in
+   the block the finding quoted; otherwise it is the whole wording. null where
+   that wording does not exist. */
+function ceStdWording(it, kind){
+  if (!it) return null;
+  const fig = (kind === 'preferred' && it.fit && it.fit.kind === 'figure') ? it.fit : null;
+  const words = String((fig ? fig.text : it[kind]) || '').trim();
+  if (!words) return null;
+  const into = (!fig && it.clauseId && window.pbFitInto) ? pbFitInto(it.oldHtml, it.v && it.v.quote, words) : null;
+  const html = fig ? fig.html : (into ? into.html : null);
+  return { text: html || words, fitted: !!html };
+}
+/* The three standard questions, each only where that wording exists, each
+   saying on its hover what the press would change — so two wordings can be
+   compared before either is pressed. */
+function ceStdChips(){
+  if (ceNoAi() || ceUnderDeletion()) return [];
+  const it = ceStdItem(); if (!it) return [];
+  return [['preferred', 'ce_use_standard'], ['fallback', 'ce_use_fallback'], ['draft', 'ce_use_draft']]
+    .map(([k, key]) => { const w = ceStdWording(it, k); return w ? { q: _cet(key), std: k, cost: ceCostLine(_ceText, w.text) || '' } : null; })
+    .filter(Boolean);
+}
+/* ---- A STANDARD QUESTION PUTS THE WORDING ON A CARD, AND NOTHING ELSE ----
+   A "you" turn and a Suggested wording card through the same card builder
+   Copilot's answers use, badged Our standard / Our fallback / Copilot's draft,
+   with the reason (pbVerdictWords). No model call. The wording is placed the
+   way the old Playbook scan placed it: "Use our standard" changes only the
+   figure where HaTi found it (the smallest change, folded in), else pbFitInto
+   puts the standard in the block the finding quoted, else the whole wording.
+   NOTHING REACHES THE BOX UNTIL APPLY. */
+function ceStdPress(kind){
+  if (!clauseEditorOpen() || ceNoAi()) return false;
+  const it = ceStdItem(); if (!it) return false;
+  const k = ['preferred', 'fallback', 'draft'].includes(kind) ? kind : 'preferred';
+  const v = it.v || {};
+  const w = ceStdWording(it, k);
+  if (!w) return false;
+  const label = _cet(k === 'preferred' ? 'ce_use_standard' : k === 'fallback' ? 'ce_use_fallback' : 'ce_use_draft');
+  _ceThread.push({ who: 'you', text: label });
+  _ceThread.push({ who: 'ai', text: '', read: [],
+    cards: [{ name: _cet('ce_suggestion'), chip: ceWordingLabel(k), chipTone: k === 'draft' ? 'wait' : 'std',
+      line: '', cost: ceCostLine(_ceText, w.text) || '', rests: window.pbVerdictWords ? String(pbVerdictWords(v)) : String(v.position || ''),
+      text: w.text, passage: null, std: { kind: k, fitted: w.fitted, item: it } }] });
+  _ceTab = 'chat';
+  ceRenderTabs(); ceRenderLane();
+  return true;
+}
+/* APPLY ON A STANDARD CARD: the seatbelt where the wording would replace
+   words the finding never quoted, then the box — and the idea-22 record: a
+   Copilot draft that was on offer and passed over for our own wording is a
+   refusal of the draft; applying the draft itself is its acceptance. */
+async function ceStdApply(card){
+  const sd = card && card.std; if (!sd) return false;
+  const it = sd.item || {};
+  const words = String(card.text || '');
+  if (!sd.fitted && window.pbUnquotedLoss){
+    let gone = 0;
+    try{ gone = pbUnquotedLoss(it.oldHtml, it.v && it.v.quote, words); }catch(_){ gone = 0; }
+    if (gone > 0 && window.confirmDialog){
+      const name = (window.clauseNameShown && it.clauseLabel) ? clauseNameShown(it.clauseLabel) : (it.clauseLabel || _cet('ng_this_clause'));
+      const ok = await confirmDialog({ title: _cet('ng_pb_broad_title'),
+        message: _cet('ng_pb_broad_ask', { n: gone, clause: name }), confirmLabel: _cet('ng_pb_broad_go') });
+      if (!ok) return false;
+    }
+  }
+  const draft = String(it.draft || '').trim();
+  let trace = null;
+  if (draft && window.aiTraceNote){
+    try{
+      trace = aiTraceNote(_ceC, { feature: 'playbook', kind: 'wording', clauseId: it.clauseId || null,
+        clauseLabel: it.clauseLabel || (it.v && it.v.category) || '', what: draft, rested: (it.v && it.v.category) || '', hash: null });
+      if (sd.kind !== 'draft') aiTraceRefuse(_ceC, trace, _cet('ce_trace_used_ours'));
+      if (window.aiTraceSave) aiTraceSave(_ceC);
+    }catch(_){ trace = null; }
+  }
+  const done = ceApply(words, _cet('ce_step_playbook')) !== false;
+  try{ if (done && trace && sd.kind === 'draft' && window.aiTraceApplied){
+    aiTraceApplied(_ceC, trace, _ceText);
+    if (window.aiTraceSave) aiTraceSave(_ceC);
+  } }catch(_){}
+  return done;
 }
 
 /* ============================================================================
@@ -4991,212 +5015,13 @@ async function ceAsk(question, opts = {}){
   ceRenderLane();
 }
 
-/* ============================================================================
-   THE PLAYBOOK SCAN, IN THE SAME PANEL
-   ----------------------------------------------------------------------------
-   The SAME reading the Playbook review panel draws — runPlaybookReview for the
-   run, rlPlaybookProposals for what is proposable — narrowed to this clause and
-   drawn in this rail's card shape, handing its standards to the same Apply. A
-   rule that is MET offers nothing to apply, which is the honest rendering: an
-   Apply button that would change nothing is a press that reads as broken.
-   ========================================================================== */
-const CE_RULE_TONE = { deviation: 'dev', missing: 'miss', aligned: 'ok' };
-function ceScanHtml(){
-  const rev = _ceScan || (_ceC && _ceC.playbook) || null;
-  if (_ceScanBusy) return `<p class="ce-work"><i></i>${_cee(_cet('ce_scan_running'))}</p>`;
-  if (!rev) return `<p class="ce-empty">${_cee(_cet('ce_scan_none'))}</p>`
-    + ceScanErrHtml()
-    + `<div class="ce-rule"><div class="av"><button type="button" data-ce-act="scan-run">${
-      _cet(_ceScanErr ? 'ce_scan_again' : 'ce_scan_run')}</button></div></div>`;
-  const items = ceScanItems();
-  if (!items.length) return `<p class="ce-empty">${_cee(_cet('ce_scan_clean'))}</p>`
-    + `<div class="ce-rule"><div class="av"><button type="button" data-ce-act="scan-run">${
-      _cet('ce_scan_again')}</button></div></div>`;
-  const g = ceScanGroups();
-  const head = (key, sub) => `<div class="ce-scan-h">${_cee(_cet(key))}${
-    sub ? `<span class="s">${_cee(_cet(sub))}</span>` : ''}</div>`;
-  let html = '';
-  if (g.here.length)
-    html += head('ce_scan_here') + g.here.map((it, k) => ceScanCardHtml(it, k, 'here')).join('');
-  if (g.missing.length)
-    html += head('ce_scan_missing', 'ce_scan_missing_sub')
-      + g.missing.map((it, k) => ceScanCardHtml(it, g.here.length + k, 'missing')).join('');
-  return html;
-}
-/* WHICH WORDINGS A CARD OFFERS, AND WHAT A PRESS DOES WITH ONE. The verb is the
-   only difference between the two groups, and it is decided here — once, from
-   the group — rather than at each button. A card in `here` fills the box; a card
-   in `missing` files a new clause. */
-/* ---- AND THE FOURTH WORDING, WHICH ONLY A LOCATED CLAUSE CAN HAVE ----
-   (Young's go on "The Nuanced Redline", 15 Sep 2026.) `fit` is our figure
-   written into THEIR sentence — see pbFitWording. It is on the `here` list
-   alone because there is nothing to narrow to on a clause the contract does
-   not yet carry, and it is named here rather than guessed at the card so this
-   rail and the Playbook review window offer the same four presses under the
-   same four names. */
-const CE_SCAN_VERBS = {
-  here:    { preferred: 'ce_use_standard', fallback: 'ce_use_fallback', draft: 'ce_use_draft',
-             fit: 'ce_use_fit' },
-  missing: { preferred: 'ce_add_standard', fallback: 'ce_add_fallback', draft: 'ce_add_draft' },
-};
-function ceScanCardHtml(it, i, group){
-  const v = it.v || {};
-  const tone = CE_RULE_TONE[v.status] || 'dev';
-  /* pbVerdictWords, NEVER pbVerdictLine. This slot takes plain text and the
-     line is markup; stripping its tags leaves the entities behind, which is how
-     the separator came to be printed here as the five characters "&middot;". */
-  const line = window.pbVerdictWords ? String(pbVerdictWords(v)) : String(v.position || '');
-  /* ONLY A LOCATED RULE IS DRAWN AS A REDLINE. A rule that matched no clause has
-     nothing in this document to mark up, so marking it against whichever clause
-     happens to be open is a picture of an edit nobody proposed — which is the
-     whole of what was reported. It prints its wording plainly instead. */
-  const preview = !it.lead ? ''
-    : (group === 'here' ? ceRedlineHtml(_ceText, it.lead) : `<p>${_cee(it.lead)}</p>`);
-  /* ONLY WHERE SOMETHING OF THIS CLAUSE IS AT RISK. A rule in the missing group
-     replaces nothing — it files a new clause — so a line about what it takes
-     away would be a sentence about an act that does not happen. */
-  const cost = (group === 'here' && it.lead) ? ceCostLine(_ceText, it.lead) : null;
-  const verbs = CE_SCAN_VERBS[group] || CE_SCAN_VERBS.here;
-  /* EACH BUTTON CARRIES ITS OWN COST ON ITS HOVER. The visible line under the
-     preview describes the wording being SHOWN; a card offering three of them
-     would otherwise make the reader press one to find out what it takes. The
-     hover is where a control may say more than its name can — the register
-     row's own rule — and it costs the card no height. */
-  const btn = (kind, words) => {
-    if (!words) return '';
-    const own = group === 'here' ? ceCostLine(_ceText, words) : null;
-    return `<button type="button" data-ce-scan="${i}:${kind}"${
-      own ? ` title="${_ceea(own)}"` : ''}>${_cet(verbs[kind])}</button>`;
-  };
-  const filed = !!_ceScanFiled[ceScanKey(it)];
-  /* ---- THE SIGN, WHERE IT CAN BE KNOWN BEFORE THE PRESS (owner-asked 10 Sep
-     2026) ----
-     negoAddNamedClause is the WALL and refuses in words; this is the product's
-     own other half — grey a control that cannot work rather than refuse after
-     it is pressed. Only the MISSING group can duplicate: a rule in the `here`
-     group edits a clause that is already located and adds nothing.
-
-     IT ASKS THE ONE READING through window with no fallback past it: where the
-     model is not loaded there is nothing to compare against and the card draws
-     exactly as it did. The heading is built the way the filing will build it,
-     or the sign would be answering about a different name from the wall.
-
-     AND IT READS WITHOUT WRITING: negoClauseList calls negoInit, which CREATES
-     a negotiation and stamps clause ids into the stored wording, so DRAWING a
-     card would start one. Asked only where a negotiation already exists —
-     which costs nothing here (this page is the negotiation's own editor) and
-     costs nothing anywhere, because negoDupClauseStop's own reading is guarded
-     the same way and answers null there too. */
-  const stop = (group === 'missing' && !filed && window.negoDupClauseStop && _ceC)
-    ? negoDupClauseStop(_ceC, window.clauseHeadingFor
-        ? clauseHeadingFor(String(v.category || ''),
-            (_ceC.negotiation && typeof negoClauseList === 'function')
-              ? negoClauseList(_ceC) : [])
-        : String(v.category || ''))
-    : null;
-  return `<div class="ce-rule ${tone}">
-    <div class="n"><span>${_cee(v.category || _cet('ce_rule'))}</span></div>
-    <span class="l">${_cee(line)}</span>
-    ${v.quote ? `<span class="r">${_cee(_cet('ce_scan_quote', { quote: String(v.quote).slice(0, 220) }))}</span>` : ''}
-    ${''/* NO LEAD IS AN ANSWER on a clause we already have — see the lead's
-           own note in rlPlaybookProposals. The named wordings are still
-           offered below; what is not drawn is a picture of a whole-clause
-           replacement under the words "the smallest change". */}
-    ${preview ? `<span class="pvk">${_cee(ceWordingLabel(it.leadKind))}</span><span class="pv">${preview}</span>
-      <button type="button" class="pv-more" data-ce-pv="${i}">${_cet('ce_pv_more')}</button>`
-      : (group === 'here' ? `<span class="nofit">${_cee(_cet('ng_pb_nofit'))}</span>` : '')}
-    ${cost ? `<span class="cost">${_cee(cost)}</span>` : ''}
-    <div class="av">${filed
-      ? `<span class="filed">${_cee(_cet('ce_scan_added_row'))}</span>`
-      : stop
-      ? `<span class="filed" title="${_ceea(stop.message)}">${_cee(_cet(
-          stop.hit.where === 'document' ? 'ng_dup_clause_here_doc' : 'ng_dup_clause_here_table'))}</span>`
-      : btn('preferred', it.preferred) + btn('fallback', it.fallback) + btn('draft', it.draft)
-        + ((it.fit && it.fit.kind === 'figure') ? btn('fit', it.fit.text) : '')}</div>
-  </div>`;
-}
-/* ADDING A MISSING STANDARD IS A REAL FILING, and it goes through the
-   negotiation page's own rlFilePlaybookProposal rather than growing a second
-   filing path here. That function already knows the two things this page does
-   not: where a new clause may land (ahead of the execution wording, never after
-   it — text below the signatures can be argued as outside what was signed) and
-   what note it carries. Nothing else about this page changes: its own Save
-   still goes through negoEditClause on the clause it is open on.
-
-   IT IS A DIFFERENT WEIGHT OF ACT FROM EVERYTHING ELSE ON THIS RAIL, and it
-   says so rather than being asked about — every other press here only fills a
-   box the reader can still undo, and this one puts a tracked change on the
-   record. So the card settles into "Added as a new clause" and the page says
-   what happened; the change is a PROPOSAL like any other and is withdrawn from
-   the change column if it was a mistake. */
-async function ceAddMissingClause(it, words, btn){
-  if (!clauseEditorOpen() || !it || it.clauseId) return false;
-  if (typeof window.rlFilePlaybookProposal !== 'function'){
-    ceSay(_cet('ce_scan_add_unavailable')); return false; }
-  if (btn) btn.disabled = true;
-  let ch = null;
-  try{ ch = await rlFilePlaybookProposal(_ceC, it, words); }
-  catch(_){ ch = null; }
-  if (!ch){
-    if (btn) btn.disabled = false;
-    ceSay(_cet('ce_scan_add_failed'));
-    return false;
-  }
-  /* THE CARD SETTLES FIRST, then the whole page is repainted: ceFiled draws the
-     rail among the rest, so marking it filed after the repaint would leave the
-     card offering the add again until the next paint. */
-  _ceScanFiled[ceScanKey(it)] = true;
-  /* ---- AND IT FINISHES THE WAY A FILING FINISHES ---- (owner-reported 10 Sep 2026)
-     This used to persist and draw the RAIL and nothing else, so the card settled
-     into "Added as a new clause" over a contract with no new clause on it and a
-     column still reading "Redlines (0)". The record was right and both screens
-     were stale, which is why a refresh appeared to fix it.
-
-     NO ceSeedDraft: see the note at ceFiled. The standard lands at the end of
-     the terms and the reader is still on the clause they opened, so their draft
-     and their place on the page are untouched — ceRenderPaper keeps the scroll
-     and ceApply is what owns the box. */
-  ceFiled(_ceC);
-  ceSay(_cet('ce_scan_added', { name: String((it.v && it.v.category) || '') }), 'ok');
-  return true;
-}
-/* The one sentence, and it does NOT re-derive why. runPlaybookReview owns the
-   reading of whether there is wording to check, and a second copy of that test
-   here is the twin-formula fault this codebase records. So the panel reports
-   what it can stand behind — the scan came back with nothing — and names the
-   usual cause and the way forward as prose rather than as a second verdict. */
-function ceScanErrHtml(){
-  if (!_ceScanErr) return '';
-  return `<p class="ce-empty" role="status"><b>${_cee(_cet('ce_scan_nothing'))}</b><br>${
-    _cee(_cet('ce_scan_nothing_why'))}</p>`;
-}
-async function ceRunScan(){
-  if (ceNoAi()) return;   /* the wall — see ceAsk */
-  if (_ceScanBusy) return;
-  if (!window.runPlaybookReview){ ceSay(_cet('ce_scan_unavailable')); return; }
-  _ceScanBusy = true; _ceScanErr = null; ceRenderLane();
-  let rev = null;
-  try{ rev = await runPlaybookReview(_ceC); }catch(_){ rev = null; }
-  _ceScanBusy = false;
-  /* ---- ONE SAVED CHECK, WHICHEVER DOOR RAN IT (fix 3, 23 Sep 2026) ----
-     This scan was held in memory for the sitting, so the Checks card, Prepare
-     redlines and this rail could each be reading a different check of one
-     contract — and did. It is filed on the record the way the Checks card's
-     own press files it, before the page-open test, because a check that ran
-     is a fact about the contract whether or not this page is still up. */
-  if (rev && _ceC){
-    _ceC.playbook = rev;
-    if (window.logAudit) logAudit(_ceC, 'Playbook',
-      `Playbook review run from the clause editor — ${rev.verdicts.length} position${rev.verdicts.length === 1 ? '' : 's'} checked (${rev.source === 'ai' ? 'Copilot-assisted' : 'rule-based'})`);
-    if (window.persist) persist(_ceC);
-  }
-  if (!clauseEditorOpen()) return;
-  /* A review arriving clears the note; nothing arriving IS the note. The
-     record now holds it, so the rail reads the record like every other door. */
-  if (rev) { _ceScan = null; _ceScanErr = null; }
-  else _ceScanErr = 'empty';
-  ceRenderLane(); ceRenderTabs(); ceRenderHead();
-}
+/* THE PLAYBOOK SCAN TAB IS RETIRED (Young, 5 Oct 2026, "Copilot Panel Tidy").
+   ceScanHtml, ceScanCardHtml, CE_SCAN_VERBS, CE_RULE_TONE, ceAddMissingClause,
+   ceRunScan, ceScanErrHtml, ceScanPvToggle/ceScanFitPv, _ceScanFiled/ceScanKey
+   and data-ce-scan / data-ce-pv / scan-run are STALE. The reading stays
+   (ceScanGroups, ceScanItems, ceWordingLabel): its three wordings are the
+   prepared questions "Use our standard · Use our fallback · Use Copilot's
+   draft" (ceStdChips, ceStdPress). */
 
 /* ============================================================================
    ONE SENTENCE AT A TIME
@@ -5714,13 +5539,6 @@ function ceRenderScope(){
   const state = sel ? (asking ? 'ask' : 'edit') : (_ceWhole ? 'contract' : 'clause');
   if (ask) ask.placeholder = _ceTab === 'risks' ? _cet('rk_ce_ph') : _cet({ ask: 'ce_ask_ph_question', edit: 'ce_ask_ph_passage',
     contract: 'ce_ask_ph_contract', clause: 'ce_ask_ph_clause' }[state]);
-  /* The rail's own clause label says the same: in whole-contract mode it is
-     not about this clause any more. */
-  const lab = _ceQ('.ce-ah-cl');
-  if (lab){
-    const name = state === 'contract' ? _cet('ce_whole_contract') : (ceClauseLabel(ceClause()) || _cet('ce_this_clause'));
-    lab.textContent = name; lab.title = name;
-  }
   if (!box) return;
   const where = (sel && sel.loose) ? _cet('ce_scope_words') : (ceClauseLabel(ceClause()) || _cet('ce_this_clause'));
   const off = `<button type="button" class="x" data-ce-act="scope-off"
@@ -6616,8 +6434,7 @@ function ceWirePage(page){
     const tab = hit('[data-ce-tab]');
     if (tab){ ev.preventDefault();
       const want = tab.getAttribute('data-ce-tab');
-      _ceTab = ceNoAi() ? (want === 'figure' ? 'figure' : 'ladder')
-        : ['scan', 'ladder', 'figure', 'risks'].includes(want) ? want : 'chat';
+      _ceTab = ceNoAi() ? 'ladder' : ['ladder', 'risks'].includes(want) ? want : 'chat';
       _ceFull = '';
       ceRenderTabs(); ceRenderLane(); ceRenderFull(); return; }
 
@@ -6660,6 +6477,7 @@ function ceWirePage(page){
       if (typeof window.aiLooksConversational === 'function' && window.aiLooksConversational(String(card.text || ''))){
         ceSay(i18t('tb_not_wording'), 'warn'); return; }
       ceFullClose();
+      if (card.std){ ceStdApply(card); return; }
       if (card.passage) ceReplacePassage(card.passage, card.text, { keepView: false });
       else ceApply(card.text, _cet('ce_step_copilot'));
       /* WHAT THE DRAFT BECAME, so the funnel can later say whether the reader
@@ -6687,114 +6505,10 @@ function ceWirePage(page){
       if (card){ card.vote = card.vote === parts[2] ? '' : parts[2]; ceRenderLane(); ceRenderFull(); }
       return; }
 
-    /* The preview's own opener — a class flip on the card it sits in, never a
-       repaint, so a rail the reader has scrolled stays where it is. */
-    const pvm = hit('[data-ce-pv]');
-    if (pvm){ ev.preventDefault(); ceScanPvToggle(pvm.getAttribute('data-ce-pv')); return; }
-
-    const scan = hit('[data-ce-scan]');
-    if (scan){ ev.preventDefault();
-      const parts = String(scan.getAttribute('data-ce-scan')).split(':');
-      const it = ceScanItems()[Number(parts[0])];
-      if (!it) return;
-      const words = String((parts[1] === 'fallback' ? it.fallback
-        : parts[1] === 'draft' ? it.draft
-        : parts[1] === 'fit' ? (it.fit && it.fit.text) : it.preferred) || '').trim();
-      if (!words) return;
-      /* THE SMALLEST CHANGE GOES IN AS THE CLAUSE'S OWN MARKUP. ceRich already
-         tells markup from plain lines, so handing it the fitted body is what
-         keeps every OTHER block of the clause exactly as it is — rebuilt from
-         lines they would all arrive as bare paragraphs and Save would file a
-         formatting change across wording nobody touched. */
-      /* ---- ADDRESS FIRST, SEATBELT SECOND (Young ruled 15 Sep 2026) ----
-         *"why would a suggestion try and delete clauses nobody complained
-         about?"* — it never meant to. THREE OF THESE FOUR VERBS CARRY A
-         FRAGMENT: a paragraph with no address on it. Applied whole they
-         replaced a six-part clause with one sentence, which is the clause 7
-         fault in its second home — the wall built for it in September guards
-         the playbook's own filing door and never guarded this one.
-
-         SO THE ADDRESS IS READ HERE TOO. pbFitInto puts the fragment in the
-         block the finding quoted — the same reading the figure path has always
-         used — and every other part of the clause comes through byte for byte.
-         `fit` is exempt because it already IS a fitted body; slotting a whole
-         body into one block would nest the clause inside itself.
-
-         WHERE NO ADDRESS READS the fragment still replaces the clause, and that
-         is the one case the question below is for. */
-      const fitInto = (parts[1] !== 'fit' && it.clauseId && window.pbFitInto)
-        ? pbFitInto(it.oldHtml, it.v && it.v.quote, words) : null;
-      const fitHtml = (parts[1] === 'fit' && it.fit) ? it.fit.html
-        : (fitInto ? fitInto.html : null);
-      /* ---- ONLY THE DRAFT IS COPILOT'S WORDING (idea 22) ----
-         rlPlaybookProposals names THREE wordings on a finding and only `draft`
-         is the model's: `preferred` and `fallback` are the clause library's,
-         approved in this workspace and editable in Settings. So a reader who
-         presses "Use our standard" has taken the COMPANY'S words, not
-         Copilot's — counting that as a Copilot proposal accepted would be this
-         product taking credit for its customer's own drafting.
-
-         WHICH MAKES IT A REFUSAL, precisely and honestly: Copilot's draft was
-         on the card, in front of them, and they used our own wording instead.
-         Where the finding carries no draft at all Copilot proposed no wording
-         here and nothing is recorded — there is no proposal to have an outcome.
-
-         RECORDED AT THE PRESS rather than when the scan runs, and that is a
-         deliberate difference from the Copilot cards above. A playbook finding
-         is not a one-shot answer: it STANDS on the card until it is dealt with,
-         so a reader who has not got to it yet is visible there — recording it
-         here as well would count the same not-yet twice, once on a card and
-         once as a statistic. */
-      const _pbDraft = String((it && it.draft) || '').trim();
-      let _pbTrace = null;
-      if (_pbDraft && window.aiTraceNote){
-        try{
-          _pbTrace = aiTraceNote(_ceC, { feature: 'playbook', kind: 'wording',
-            clauseId: it.clauseId || null,
-            clauseLabel: it.clauseLabel || (it.v && it.v.category) || '',
-            what: _pbDraft, rested: (it.v && it.v.category) || '',
-            /* A new clause is filed by the press itself, so its hash has to be
-               on the record before rlFilePlaybookProposal reaches the funnel. */
-            hash: (parts[1] === 'draft' && !it.clauseId && window.aiTraceHash)
-              ? aiTraceHash(words) : null });
-          if (parts[1] !== 'draft') aiTraceRefuse(_ceC, _pbTrace, _cet('ce_trace_used_ours'));
-          if (window.aiTraceSave) aiTraceSave(_ceC);
-        }catch(_){ _pbTrace = null; }
-      }
-      /* THE VERB FOLLOWS THE FINDING, never the button that was pressed. A rule
-         that located THIS clause fills the box and files nothing; a rule that
-         located no clause at all has nothing here to replace, so it files a new
-         clause instead. One decision, taken from the finding's own clauseId. */
-      /* THE SEATBELT, and it is SECOND on purpose: with an address nothing is
-         lost, pbUnquotedLoss counts zero and there is nothing to ask. The
-         sentence, the title and the count are the review window's OWN keys —
-         two doors describing one act in one set of words, because two doors
-         that word it differently is how they come to mean different things. */
-      const applyScan = async () => {
-        if (!it.clauseId){ ceAddMissingClause(it, words, scan); return true; }
-        if (!fitHtml && window.pbUnquotedLoss){
-          let gone = 0;
-          try{ gone = pbUnquotedLoss(it.oldHtml, it.v && it.v.quote, words); }catch(_){ gone = 0; }
-          if (gone > 0){
-            const name = (window.clauseNameShown && it.clauseLabel)
-              ? clauseNameShown(it.clauseLabel) : (it.clauseLabel || _cet('ng_this_clause'));
-            let ok = true;
-            if (window.confirmDialog) ok = await confirmDialog({
-              title: _cet('ng_pb_broad_title'),
-              message: _cet('ng_pb_broad_ask', { n: gone, clause: name }),
-              confirmLabel: _cet('ng_pb_broad_go') });
-            if (!ok) return false;
-          }
-        }
-        return ceApply(fitHtml || words, _cet('ce_step_playbook')) !== false;
-      };
-      applyScan().then(done => {
-        try{ if (done && _pbTrace && it.clauseId && parts[1] === 'draft' && window.aiTraceApplied){
-          aiTraceApplied(_ceC, _pbTrace, _ceText);
-          if (window.aiTraceSave) aiTraceSave(_ceC);
-        } }catch(_){}
-      });
-      return; }
+    /* A STANDARD QUESTION (5 Oct 2026): the company's wording on a card,
+       no call — see ceStdPress. */
+    const stdq = hit('[data-ce-std]');
+    if (stdq){ ev.preventDefault(); ceStdPress(stdq.getAttribute('data-ce-std')); return; }
 
     /* A ROW IS A DOOR TO ITS CLAUSE, and it is ceGoClause — the crumb's own act
        when there was a crumb, and the pencil's on another clause. A second copy
@@ -6939,7 +6653,6 @@ function ceWirePage(page){
         const btn = aid ? document.querySelector(`.redline-page [data-nego-accept="${CSS.escape(aid)}"]`) : null;
         ceLeaveGuard(() => { rlCloseClauseEditor(); if (btn) btn.click(); });
         break; }
-      case 'fig-write': ceFigureWrite(); break;
       case 'ask': {
         const box = _ceQ('#ce-ask');
         if (box && box.value.trim()){ const q = box.value; box.value = ''; box.style.height = ''; box.style.overflowY = ''; ceAskHere(q); }
@@ -6951,7 +6664,6 @@ function ceWirePage(page){
          that carries one — the clause, the words or the question. */
       case 'scope-off': ceDetachPassage(); ceSetWhole(true); break;
       case 'scope-cut': ceCutPassage(); break;
-      case 'scan-run': ceRunScan(); break;
       case 'full-close': ceFullClose(); break;
       default: break;
     }
@@ -7249,7 +6961,7 @@ Object.assign(window, {
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor, ceAttachLoose, ceSetWhole,
   ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceBoxWords, ceRenderLane, ceRiskSave, ceRisksOn, ceFullOpen, ceFullClose,
-  CE_NEW_ID, ceIsNew, ceNewPlace, ceSetNewPlace, ceRunScan, ceScanItems, ceScanGroups, ceClauseFindings, ceAddMissingClause,
+  CE_NEW_ID, ceIsNew, ceNewPlace, ceSetNewPlace, ceScanItems, ceScanGroups, ceStdItem, ceStdWording, ceStdChips, ceStdPress, ceStdApply, CE_CHIPS_MAX,
   ceBoxDirty,
   ceHeldPassage, ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceOfferPassage, ceAttachWords, ceRenderScope, ceRenderChips,
   ceReplacePassage, ceCutPassage, ceRestoreScroll,
@@ -7258,6 +6970,6 @@ Object.assign(window, {
   ceRedlineHtml, ceCounts, ceReadList, ceRenderAll, ceRenderPaper,
   ceEditableReading, ceGoClause,
   ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
-  ceLadderCardHtml, ceLadderLaneHtml, ceFigureLaneHtml, ceFigureWrite, ceFigureTopic, ceLadderRow,
+  ceLadderCardHtml, ceLadderLaneHtml, ceLadderRow,
   ceMarksPaint, ceMarksClear, ceMarksOps, ceMarksMount, ceLiveTextNodes, ceCaretSave, ceCaretRestore, ceAtomSkip, ceAtomAt, ceDraftNow, CE_MARK_ATTR, CE_MARKS_MS, CE_PAINT_SEL,
 });

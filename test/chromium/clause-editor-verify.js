@@ -1184,85 +1184,47 @@ const dismissNote = async pg => {
     window.rlOpenClauseEditor(window.CONTRACT, here.clauseId, {});
   });
   await pause(600);
-  await p.click('#clause-editor [data-ce-tab="scan"]');
-  await pause(300);
-
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the Playbook scan tab is
+     deleted. Its located rule's wordings are prepared questions over the box;
+     a missing standard is drafted by "Draft from our standards" on the
+     Redlines card and has no door here. What the 26 Aug report needs holds
+     more strongly: nothing on this page can put a missing rule's wording over
+     the clause on screen, and a press files nothing at all. */
   const rail = await p.evaluate(() => {
     const seen = el => { if (!el) return false;
       const r = el.getBoundingClientRect();
       return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
     const page = document.getElementById('clause-editor');
-    const heads = [...page.querySelectorAll('.ce-scan-h')]
-      .filter(seen).map(h => h.textContent.replace(/\s+/g, ' ').trim());
-    const cards = [...page.querySelectorAll('.ce-rule')];
-    const miss = cards.find(el => /Data protection/.test(el.textContent));
-    const here = cards.find(el => /Payment terms/.test(el.textContent));
-    const verbsOf = el => el ? [...el.querySelectorAll('[data-ce-scan]')]
-      .filter(seen).map(b => b.textContent.replace(/\s+/g, ' ').trim()) : [];
-    const pv = miss ? miss.querySelector('.pv') : null;
-    return {
-      heads,
-      missVerbs: verbsOf(miss), hereVerbs: verbsOf(here),
-      missMarks: pv ? pv.querySelectorAll('del, ins').length : -1,
-      hereMarks: here && here.querySelector('.pv')
-        ? here.querySelector('.pv').querySelectorAll('del, ins').length : -1,
-      missLine: miss ? (miss.querySelector('.l') || {}).textContent || '' : '',
-      pvk: miss ? (miss.querySelector('.pvk') || {}).textContent || '' : '',
-    };
+    const chips = [...page.querySelectorAll('#ce-chips button')].filter(seen)
+      .map(b => ({ t: b.textContent.replace(/\s+/g, ' ').trim(), std: b.getAttribute('data-ce-std') }));
+    return { chips, scanTab: !!page.querySelector('[data-ce-tab="scan"]'), cards: page.querySelectorAll('.ce-rule, [data-ce-scan]').length,
+      add: /Add our standard|Missing from the contract/.test(page.innerHTML) };
   });
-  ck('12a both group headings are painted, and the second carries its promise',
-     rail.heads.length === 2 && /This clause/.test(rail.heads[0])
-       && /Missing from the contract/.test(rail.heads[1])
-       && /never replace the clause you are in/.test(rail.heads[1]),
-     JSON.stringify(rail.heads));
-  ck('12b every verb on a missing rule ADDS — none of them offers to replace',
-     rail.missVerbs.length > 0 && rail.missVerbs.every(v => /^Add /.test(v))
-       && !rail.missVerbs.some(v => /^Use /.test(v)),
-     JSON.stringify(rail.missVerbs));
-  ck('12c a located rule keeps the USE verbs, so the split is real either way',
-     rail.hereVerbs.length > 0 && rail.hereVerbs.every(v => /^Use /.test(v)),
-     JSON.stringify(rail.hereVerbs));
-  ck('12d the missing card marks up nothing of the clause on screen',
-     rail.missMarks === 0 && rail.hereMarks > 0,
-     `missing ${rail.missMarks} marks, located ${rail.hereMarks}`);
-  ck('12e "our standard" leads the preview and says whose wording it is',
-     /Our standard/.test(rail.pvk), rail.pvk);
-  /* THE SEPARATOR CLAIM IS NOT ASKED HERE, and that is deliberate rather than an
-     omission. The doubly-escaped "&middot;" came out of pbVerdictLine, which
-     lives in js/playbook.js — absent from this stage, so the rail correctly
-     falls back to the bare position and there is no separator to measure. It is
-     a text claim, jsdom answers it with the real module loaded, and f245 (12)
-     does exactly that and fails against the old code. Stubbing the function
-     here would only prove the stub. */
-
-  /* THE PRESS ITSELF — through the page's own delegated listener. */
+  ck('12a no Playbook scan tab and no scan cards are drawn',
+     !rail.scanTab && rail.cards === 0, JSON.stringify({ tab: rail.scanTab, cards: rail.cards }));
+  ck('12b nothing offers to add a missing standard from this page',
+     !rail.add);
+  ck('12c the located rule\'s wordings lead the prepared questions, four at most',
+     rail.chips.length <= 4 && rail.chips.length > 0 && rail.chips[0].std === 'preferred' && /^Use our standard$/.test(rail.chips[0].t),
+     JSON.stringify(rail.chips));
   const pressed = await p.evaluate(async () => {
     const c = window.CONTRACT;
     const before = negoChanges(c).length;
-    const id = clauseEditorClauseId();
-    const wordingBefore = String((negoClauseNowById(c, id) || {}).text || '');
-    const btn = [...document.querySelectorAll('#clause-editor [data-ce-scan]')]
-      .find(b => /^Add our standard$/.test(b.textContent.trim()));
+    const box0 = (document.getElementById('ce-clausebody') || {}).innerHTML;
+    const btn = document.querySelector('#clause-editor #ce-chips [data-ce-std="preferred"]');
     if (!btn) return { none: true };
     btn.click();
-    await new Promise(r => setTimeout(r, 400));
-    const chs = negoChanges(c);
-    const ch = chs[chs.length - 1];
-    return { none: false, grew: chs.length - before,
-      type: ch && ch.changeType, status: ch && ch.status,
-      clauseHeld: String((negoClauseNowById(c, id) || {}).text || '') === wordingBefore,
-      settled: /Added as a new clause/.test(document.getElementById('clause-editor').innerHTML) };
+    await new Promise(r => setTimeout(r, 300));
+    const card = [...document.querySelectorAll('#clause-editor #ce-lane .ce-card')].pop();
+    return { none: false, grew: negoChanges(c).length - before,
+      boxHeld: (document.getElementById('ce-clausebody') || {}).innerHTML === box0,
+      chip: card ? (card.querySelector('.chip') || {}).textContent : '',
+      marks: card && card.querySelector('.pv') ? card.querySelector('.pv').querySelectorAll('del, ins').length : -1 };
   });
-  ck('12f with no playbook module the line degrades to the position — never blank, never an entity',
-     rail.missLine.trim().length > 0 && !/&middot;|&amp;/.test(rail.missLine), rail.missLine);
-  ck('12g pressing Add files ONE new clause as a proposal',
-     !pressed.none && pressed.grew === 1 && pressed.type === 'insertClause'
-       && pressed.status === 'pending',
-     pressed.none ? 'no Add button found' : `${pressed.grew} change, ${pressed.type}/${pressed.status}`);
-  ck('12h and the clause the reader had open is untouched',
-     !pressed.none && pressed.clauseHeld === true, String(pressed.clauseHeld));
-  ck('12i the card settles rather than offering the same press again',
-     !pressed.none && pressed.settled === true, String(pressed.settled));
+  ck('12d a press puts our standard on a card, marked against the clause',
+     !pressed.none && /Our standard/i.test(pressed.chip) && pressed.marks > 0, JSON.stringify(pressed));
+  ck('12e and files nothing, leaving the clause the reader had open untouched',
+     !pressed.none && pressed.grew === 0 && pressed.boxHeld === true, JSON.stringify(pressed));
 
   /* ==========================================================================
      13. WHAT A PRESS COSTS — drawn, quiet, and per verb
@@ -1290,19 +1252,23 @@ const dismissNote = async pg => {
     window.rlOpenClauseEditor(window.CONTRACT, here.clauseId, {});
   });
   await pause(600);
-  await p.click('#clause-editor [data-ce-tab="scan"]');
-  await pause(300);
-
-  const cost = await p.evaluate(() => {
-    const card = document.querySelector('#clause-editor .ce-rule');
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the line rides the card a
+     standard question fills, and each question carries its own cost on its
+     hover — the same two claims, on the screen that replaced the scan card. */
+  const cost = await p.evaluate(async () => {
+    const titles = {};
+    for (const b of document.querySelectorAll('#clause-editor #ce-chips [data-ce-std]'))
+      titles[b.textContent.replace(/\s+/g, ' ').trim()] = b.getAttribute('title');
+    const go = document.querySelector('#clause-editor #ce-chips [data-ce-std]');
+    if (!go) return { none: true };
+    go.click();
+    await new Promise(r => setTimeout(r, 300));
+    const card = [...document.querySelectorAll('#clause-editor #ce-lane .ce-card')].pop();
     if (!card) return { none: true };
     const line = card.querySelector('.cost');
     const pv = card.querySelector('.pv');
     const cs = line ? getComputedStyle(line) : null;
     const r = line ? line.getBoundingClientRect() : null;
-    const titles = {};
-    for (const b of card.querySelectorAll('[data-ce-scan]'))
-      titles[b.textContent.replace(/\s+/g, ' ').trim()] = b.getAttribute('title');
     /* the label shade, resolved — and the two alarm tones, resolved, to compare
        against rather than typing a hex that a palette pass would move */
     const probe = document.createElement('span');
@@ -1317,8 +1283,8 @@ const dismissNote = async pg => {
       belowPreview: !!(line && pv && (line.compareDocumentPosition(pv) & Node.DOCUMENT_POSITION_PRECEDING)),
       titles };
   });
-  ck('13a the cost line is painted under the preview, not merely in the markup',
-     !cost.none && cost.painted && cost.belowPreview, cost.none ? 'no card' : `"${cost.text}"`);
+  ck('13a the cost line is painted on the card, not merely in the markup',
+     !cost.none && cost.painted, cost.none ? 'no card' : `"${cost.text}"`);
   ck('13b it reads as a count of this clause\'s own words',
      !cost.none && /\d+ words?/.test(cost.text || ''), cost.text);
   ck('13c and it is drawn QUIET — the label shade, and neither alarm tone',
@@ -1333,7 +1299,7 @@ const dismissNote = async pg => {
      change and Copilot's draft the wholesale one, and the claim flipped. What
      the check is about is that the two verbs cost DIFFERENT things and each
      says its own, so the reader can compare them without pressing either. */
-  ck('13d each verb carries its OWN cost, so the two can be compared unpressed',
+  ck('13d each question carries its OWN cost, so the two can be compared unpressed',
      !!std && !!draft && std !== draft
        && /\d+ words?|keeps none/.test(std) && /\d+ words?|keeps none/.test(draft),
      JSON.stringify({ std, draft }));
@@ -2434,8 +2400,10 @@ const dismissNote = async pg => {
   ck('20e THE CHANGES TAB IS DELETED, not hidden',
      chg.tab === false && chg.rows === 0 && chg.badge === false,
      `tab ${chg.tab} · rows ${chg.rows} · badge ${chg.badge}`);
-  ck('20f …and the rail is Copilot, the ladder, the figure and the playbook scan',
-     JSON.stringify(chg.tabs) === JSON.stringify(['chat', 'ladder', 'figure', 'scan']), chg.tabs.join(','));
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): Figure and Playbook scan
+     deleted, Ladder last (Risks shows only where there are risks). */
+  ck('20f …and the rail is Suggestions then Ladder, last',
+     JSON.stringify(chg.tabs.filter(t => t !== 'risks')) === JSON.stringify(['chat', 'ladder']) && chg.tabs[chg.tabs.length - 1] === 'ladder', chg.tabs.join(','));
 
   /* ---- 20i THE REDLINED READING SHOWS THE REDLINES ----
      (owner-reported 28 Aug 2026, off a screenshot of this page on Redlined
@@ -3445,113 +3413,25 @@ const dismissNote = async pg => {
      t3.outcome === 'edited', `${t3.outcome} · ${t3.id}`);
 
   /* ==========================================================================
-     29 — ADDING A STANDARD REDRAWS BOTH SCREENS
+     29 — ADDING A STANDARD REDRAWS BOTH SCREENS: RETIRED 5 Oct 2026
      --------------------------------------------------------------------------
-     (owner-reported 10 Sep 2026: the rail card settled into "Added as a new
-     clause" while the contract on the left was unchanged and the column behind
-     read "Redlines (0) · No changes on the table". A refresh brought both up to
-     date, which is what said the record was right and the screen was stale.)
-
-     ONLY A RENDERED PAGE CAN ANSWER IT. "Did the screen update" is not a source
-     claim, and the two things that were stale are on two different surfaces —
-     the paper this page draws, and the column BEHIND it, which is repainted
-     through the caller's own repaint rather than by anything on this page.
-
-     IT STAGES ITS OWN GROUND, and it names a standard NO EARLIER SECTION HAS
-     ADDED. Section 12 presses Add on a Data protection rule, and adding a
-     standard the contract already carries is REFUSED as a duplicate — so a
-     check that reused that category would report the redraw as broken when what
-     it had really measured was the wall doing its job. A check that inherits
-     twenty-eight sections of drafts proves nothing about itself.
+     "Add our standard" left this page with the Playbook scan tab (Young,
+     "Copilot Panel Tidy"); a missing standard is drafted by "Draft from our
+     standards" on the Redlines card, which repaints its own page. What stands
+     here: this page offers no Add, so there is no second filing door to keep
+     in step. ceFiled — the one reading this report produced — stays for the
+     page's own Save.
      ========================================================================== */
   await p.evaluate(() => { try{ window.rlCloseClauseEditor(); }catch(_){} });
   await answerLeave(p);
   await pause(250);
-  const stage29 = await p.evaluate(() => {
-    if (window.rlSetReadMode) rlSetReadMode('marks');
-    window.clauseLibrary = () => ([
-      { id:'cl-fm', category:'Force majeure', name:'Force majeure',
-        preferred:'Neither party is liable for delay caused by an event beyond its reasonable control.',
-        fallback:'' },
-    ]);
-    window.CONTRACT.playbook = { key:'x', label:'test', source:'ai', verdicts: [
-      { category:'Force majeure', status:'missing', quote:'',
-        position:'A force majeure clause is preferred', redline:'', escalate:false },
-    ] };
+  const no29 = await p.evaluate(() => {
     const cls = negoClauseList(window.CONTRACT);
-    const cl = cls[cls.length - 1];
-    window.rlOpenClauseEditor(window.CONTRACT, cl.clauseId, {});
-    return { clauseId: cl.clauseId };
+    window.rlOpenClauseEditor(window.CONTRACT, cls[cls.length - 1].clauseId, {});
+    const pg = document.getElementById('clause-editor');
+    return !!pg && !pg.querySelector('[data-ce-scan], [data-ce-tab="scan"]');
   });
-  await pause(600);
-  await p.click('#clause-editor [data-ce-tab="scan"]');
-  await pause(350);
-  /* Typing on, whatever posture the clause opened in — the page opens showing
-     its marks where the clause already carries one. */
-  /* THE PENCIL ON THE LIVE CLAUSE, never the first one on the paper: every
-     clause carries one and on any OTHER clause it MOVES the page rather than
-     turning typing on — so a bare querySelector here walks the reader to
-     clause 1 and the check then measures a page it never asked for. */
-  await p.evaluate(id => {
-    const box = document.getElementById('ce-clausebody');
-    if (!box || box.getAttribute('contenteditable') !== 'true'){
-      const cl = document.querySelector(`#ce-doc [data-clause="${id}"]`);
-      /* RE-POINTED 13 Sep 2026: the way in is a press in the wording. */
-      if (cl) (cl.querySelector('.nego-body') || cl).dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-    }
-  }, stage29.clauseId);
-  await pause(350);
-  /* keepView, because a bare ceApply turns typing OFF by its own rule — the
-     strip passes it for the same reason. Without it this check would be
-     measuring ceApply's posture rather than whether a filing elsewhere on the
-     page disturbs the reader's own box. */
-  await p.evaluate(() => window.ceApply('<p>Wording nobody has filed yet, typed by hand.</p>',
-    'typed', { keepView: true }));
-  await pause(350);
-
-  const readCount = () => p.evaluate(() => {
-    const t = document.querySelector('.rl-idx-title');
-    const m = String((t && t.textContent) || '').match(/(\d+)/);
-    const box = document.getElementById('ce-clausebody');
-    const h = document.getElementById('ce-doc');
-    return { head: String((t && t.textContent) || '').replace(/\s+/g, ' ').trim(),
-      n: m ? Number(m[1]) : -1,
-      clauses: document.querySelectorAll('#ce-doc .rl-clause').length,
-      changes: (window.CONTRACT.changes || []).length,
-      scroll: h ? h.scrollTop : -1,
-      draft: String((box && box.textContent) || ''),
-      typing: !!(box && box.getAttribute('contenteditable') === 'true'),
-      dirty: !!(window.clauseEditorDirty && window.clauseEditorDirty()),
-      filedCard: !!document.querySelector('#clause-editor .ce-rule .filed') };
-  });
-  const b29 = await readCount();
-  /* The BOX is deliberately not read here: ceApply does not rewrite it while
-     the caret is in it (the 30 Aug rule — nothing is rebuilt while the reader
-     is typing), so what proves there is unfiled wording is the page's own
-     reading of it. */
-  ck('29a the reader is typing, with unfiled wording of their own (control)',
-     b29.typing && b29.dirty, `typing ${b29.typing} · dirty ${b29.dirty}`);
-
-  const add29 = await p.$('#clause-editor .ce-rule [data-ce-scan$=":preferred"]');
-  if (add29) await add29.click();
-  await pause(1000);
-  const a29 = await readCount();
-
-  /* THE CONTROL — it passes either way, and its job is to stop "the screen
-     updated" being satisfied by nothing having happened. */
-  ck('29b the record really gained the change (control)',
-     a29.changes === b29.changes + 1, `${b29.changes} → ${a29.changes}`);
-  ck('29c the paper drew the new clause without a refresh',
-     a29.clauses > b29.clauses, `${b29.clauses} → ${a29.clauses}`);
-  ck('29d and the Redlines column behind the page counted it',
-     a29.n > b29.n && b29.n >= 0, `${b29.head} → ${a29.head}`);
-  ck('29e the reader’s unfiled draft is still theirs, and still in the box',
-     a29.dirty && a29.typing && /nobody has filed yet/.test(a29.draft),
-     `dirty ${a29.dirty} · typing ${a29.typing} · ${JSON.stringify(a29.draft.slice(0, 48))}`);
-  ck('29f and their place on the paper did not move',
-     Math.abs(a29.scroll - b29.scroll) <= 2, `${b29.scroll} → ${a29.scroll}`);
-  ck('29g the card still settles into "Added as a new clause"',
-     a29.filedCard === true, String(a29.filedCard));
+  ck('29 this page offers no Add — no second filing door', no29);
 
   /* ==========================================================================
      30 — A PROPOSED DELETION IS ON THE PAGE, AS PIXELS

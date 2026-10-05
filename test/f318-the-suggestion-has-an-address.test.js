@@ -121,16 +121,21 @@ describe('f318 (2) EVERY SUGGESTION GETS ONE, NOT JUST THE FIGURE', () => {
   });
 
   test('the editor addresses every FRAGMENT verb and exempts the fitted one', () => {
-    assert.match(CE, /const fitInto = \(parts\[1\] !== 'fit' && it\.clauseId && window\.pbFitInto\)\s*\n\s*\? pbFitInto\(it\.oldHtml, it\.v && it\.v\.quote, words\) : null;/,
+    /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the scan tab's press is
+       now the prepared questions' one reading, ceStdWording; the smallest
+       change ("fit") is folded into "Use our standard". The claim is the same. */
+    const fn = CE.match(/function ceStdWording\(it, kind\)\{[\s\S]*?\n\}/)[0];
+    assert.match(fn, /const into = \(!fig && it\.clauseId && window\.pbFitInto\) \? pbFitInto\(it\.oldHtml, it\.v && it\.v\.quote, words\) : null;/,
       'preferred, fallback and draft are fragments and are placed');
-    assert.match(CE, /const fitHtml = \(parts\[1\] === 'fit' && it\.fit\) \? it\.fit\.html\s*\n\s*: \(fitInto \? fitInto\.html : null\);/,
+    assert.match(fn, /const html = fig \? fig\.html : \(into \? into\.html : null\);/,
       'fit already IS a fitted body — slotting one into a block would nest the clause in itself');
+    assert.match(fn, /kind === 'preferred' && it\.fit && it\.fit\.kind === 'figure'/, 'and "Use our standard" carries the smallest change');
   });
 });
 
 describe('f318 (3) THE QUESTION IS A SEATBELT, AND IT IS THE SAME QUESTION', () => {
   test('it fires only where no address was read', () => {
-    assert.match(CE, /if \(!fitHtml && window\.pbUnquotedLoss\)\{/,
+    assert.match(CE, /if \(!sd\.fitted && window\.pbUnquotedLoss\)\{/,
       'an addressed suggestion loses nothing, so there is nothing to ask');
   });
 
@@ -143,12 +148,15 @@ describe('f318 (3) THE QUESTION IS A SEATBELT, AND IT IS THE SAME QUESTION', () 
 
   test('a refused question applies nothing and records nothing as taken', () => {
     assert.match(CE, /if \(!ok\) return false;/, 'the answer is the wall');
-    assert.match(CE, /applyScan\(\)\.then\(done => \{[\s\S]*?if \(done && _pbTrace/,
+    assert.match(CE, /const done = ceApply\(words, _cet\('ce_step_playbook'\)\) !== false;\s*\n\s*try\{ if \(done && trace && sd\.kind === 'draft'/,
       'Copilot is credited with wording that was actually applied, never with one refused');
   });
 
-  test('a clause the finding could not place still ADDS rather than replaces', () => {
-    assert.match(CE, /if \(!it\.clauseId\)\{ ceAddMissingClause\(it, words, scan\); return true; \}/,
-      'the verb still follows the finding, never the button that was pressed');
+  /* RE-POINTED 5 Oct 2026: a finding no clause carries has no door in the
+     editor any more — "Draft from our standards" adds it. The prepared
+     questions read only this clause's own findings. */
+  test('a finding the editor could not place is never offered here', () => {
+    assert.match(CE, /return ceScanGroups\(\)\.here\.find\(/, 'only this clause\'s own findings');
+    assert.ok(!CE.includes('ceAddMissingClause('), 'and nothing here adds a clause');
   });
 });

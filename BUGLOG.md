@@ -20361,3 +20361,13 @@ Built on the owner's "Implement drawer and merge to main". Story in docs/MAP-HIS
 Built overnight on the owner's "Build both fixes with your recommendations" and the same-day ask. Story in docs/MAP-HISTORY.md under "RISK CARD TITLES".
 
 - 5 Oct 2026 — FIXED (the owner's report): on the Negotiate page's "Risks to look at", one long title stretched every card past its 427px column (985px measured), the Redlines column scrolled sideways and severity, Why and Re-scan went out of view; Copilot's brief items used a whole sentence as the card's title. Cards now hold the column's width; brief items carry a short title with the sentence under Why; pressing a card's head goes to its clause.
+
+## 5–6 Oct 2026 — Copilot panel tidy: prepared questions, never more than four
+
+Built overnight on the owner's "Go with the recommendations". Story in docs/MAP-HISTORY.md under "COPILOT PANEL TIDY".
+
+- 5 Oct 2026 — DONE (owner-asked): the Playbook scan and Figure tabs deleted (and the Figure box in the narrow clause panel); the clause name after "Copilot" removed; tabs Suggestions · Risks · Ladder; Use our standard / fallback / Copilot's draft are prepared questions that fill a card with no Copilot call; every row of prepared questions holds to four.
+
+### Noticed, not fixed
+- 5 Oct 2026: the clause editor's `.ce-rule`, `.ce-scan-h` and `.ce-fig-note` styles, and negotiation-css.js's `.rl-fig-sec`/`.rl-fig-u` rules, are now dead (their markup was retired with the two tabs); left because f245 (13) pins the quiet cost rule on `.ce-rule .cost`.
+- 5 Oct 2026: opening Edit with Copilot from a risk card's Edit, the top bar's "Edit …" crumb was empty on the first open in a-risk-finds-its-clause-verify (later opens named the clause); the Selected card names it. Not measured at main.

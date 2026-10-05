@@ -261,11 +261,11 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
       return { t: (c.querySelector('.rk-t') || {}).textContent, p: (c.querySelector('.rk-p') || {}).textContent || '' }; }, null, 10000);
     check(!!ce && ce.t === 'Ended on 30 days\' notice' && ce.p.includes('30 days'), '5 Edit with Copilot\'s Risks tab: the title, the sentence under it', JSON.stringify(ce));
     await shot(page, '4-edit-risks-tab.png');
-    await page.evaluate(() => { try{ if (window.clauseEditorClose) clauseEditorClose({ force: true }); }catch(_){} });
+    await page.evaluate(() => { try{ if (window.clauseEditorClose) window.clauseEditorClose({ force: true }); }catch(_){} });
     await page.keyboard.press('Escape');
 
     /* 6 — the Document tab's Worth a look */
-    await page.evaluate(id => { const c = getContract(id); try{ if (window.closeClauseEditor) closeClauseEditor(true); }catch(_){} roomGoTab(c, 'document'); }, ID);
+    await page.evaluate(id => { const c = getContract(id); try{ if (window.closeClauseEditor) window.closeClauseEditor(true); }catch(_){} roomGoTab(c, 'document'); }, ID);
     const thread = await until(page, () => {
       const door = document.getElementById('ws-th-door'); if (door && !document.querySelector('#doc-right.is-clauses')) door.click();
       const rows = [...document.querySelectorAll('#doc-thread .doc-xr-mt')].map(x => x.textContent.replace(/\s+/g, ' ').trim());

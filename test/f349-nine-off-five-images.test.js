@@ -221,8 +221,12 @@ test('F349 (7) — on a clause we already have, a stand-alone clause never leads
   await t.test('(7c) the review window says so instead of drawing a paste', () => {
     assert.match(strip(NEG), /\$\{!it\.lead\s*\n?\s*\? `<div[^`]*ng_pb_nofit/);
   });
-  await t.test('(7d) and so does the clause editor\'s scan rail', () => {
-    assert.match(strip(CE), /group === 'here' \? `<span class="nofit">/);
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the editor's scan rail is
+     deleted, so it draws no "nothing fits" line — its standard questions bring
+     the smallest change where HaTi found one, else the wording placed by the
+     finding's quote (ceStdWording). */
+  await t.test('(7d) the clause editor\'s scan rail is gone', () => {
+    assert.ok(!/class="nofit"/.test(strip(CE)) && !/function ceScanCardHtml/.test(CE));
   });
   await t.test('(7e) the sentence is a real key in both books', () => {
     assert.equal(I18N.split('ng_pb_nofit:').length, 3);
@@ -239,20 +243,17 @@ test('F349 (8) — the scan rail\'s preview can be opened', async t => {
     assert.match(CE, /\.ce-rule \.pv\{[^}]*max-height:120px/);
     assert.match(CE, /\.ce-rule \.pv\.is-open\{max-height:none/);
   });
-  await t.test('(8b) the control is drawn by MEASUREMENT, never by a character count', () => {
-    const fn = /function ceScanFitPv\(lane\)\{[\s\S]*?\n\}/.exec(CE)[0];
-    assert.match(fn, /pv\.scrollHeight > pv\.clientHeight/);
-    assert.match(fn, /classList\.add\('is-live'\)/);
-    assert.match(CE, /\.ce-rule \.pv-more\{[^}]*display:none/, 'and hidden until it answers yes');
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the scan cards are gone;
+     a standard question's wording lands on the ordinary Suggested wording
+     card, which opens across the whole panel through Expand (ceRenderFull). */
+  await t.test('(8b) a standard question\'s card is the ordinary card, with Expand', () => {
+    assert.match(CE, /data-ce-expand="\$\{i\}:\$\{j\}"/);
+    const press = /function ceStdPress\(kind\)\{[\s\S]*?\n\}/.exec(CE)[0];
+    assert.match(press, /cards: \[\{ name: _cet\('ce_suggestion'\)/, 'through the card builder Copilot\'s answers use');
   });
-  await t.test('(8c) asked where the rail lands, and nowhere else', () => {
-    assert.match(strip(CE), /lane\.innerHTML = ceScanHtml\(\); lane\.scrollTop = 0; ceScanFitPv\(lane\);/);
-  });
-  await t.test('(8d) the press is a class flip, never a repaint', () => {
-    const fn = /function ceScanPvToggle\(i\)\{[\s\S]*?\n\}/.exec(CE)[0];
-    assert.match(fn, /classList\.toggle\('is-open'\)/);
-    assert.ok(!/ceRenderLane\(\)/.test(fn), 'a repaint would lose the reader\'s place in the rail');
-    assert.match(strip(CE), /hit\('\[data-ce-pv\]'\)/);
+  await t.test('(8c) the scan preview\'s opener is gone with it', () => {
+    assert.ok(!/function ceScanFitPv|function ceScanPvToggle/.test(CE));
+    assert.ok(!/hit\('\[data-ce-pv\]'\)/.test(strip(CE)));
   });
   await t.test('(8e) and the word turns round, from both books', () => {
     assert.equal(I18N.split('ce_pv_more:').length, 3);

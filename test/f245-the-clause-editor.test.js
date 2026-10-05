@@ -809,33 +809,17 @@ describe('f245 (11) — the playbook scan reports its own failure', () => {
      states itself where the reader is looking rather than relying on a toast
      that has already faded. */
 
-  test('a scan that comes back with nothing is recorded, not swallowed', () => {
-    assert.match(CODE, /else _ceScanErr = 'empty'/,
-      'the one runner writes it down when no review arrives');
-    /* RE-POINTED 23 Sep 2026 (fix 3): a review arriving is filed ON THE RECORD,
-       the one saved check every door reads, and the rail reads it there. */
-    assert.match(CODE, /if \(rev\) \{ _ceScan = null; _ceScanErr = null; \}/,
-      'and a review arriving clears it — the note is never stale');
-    assert.match(CODE, /_ceC\.playbook = rev;/, 'and the review is on the record');
-    assert.match(CODE, /_ceScanBusy = true; _ceScanErr = null;/,
-      'a fresh run clears it before it starts, so the old note cannot outlive it');
-  });
-
-  test('the panel prints it where the reader is looking', () => {
-    assert.match(CODE, /function ceScanErrHtml\(\)/, 'it has one builder');
-    assert.match(CODE, /ce_scan_nothing/, 'which names what happened');
-    assert.match(CODE, /ce_scan_nothing_why/, 'and what to do about it');
-    /* IT DOES NOT RE-DERIVE WHY. runPlaybookReview owns the reading of whether
-       there is wording to check; a second copy of that test here is the
-       twin-formula fault this codebase records. So the panel reports only what
-       it can stand behind and names the usual cause as prose. */
+  /* RETIRED 5 Oct 2026 (Young, "Copilot Panel Tidy": "the playbook scan tab
+     is redundant"). The run, its failure note and its button went with the
+     tab; the check is run on the Overview's Standards tile and the Negotiate
+     page, which say their own failures. What stands: nothing on this page
+     runs a check or offers to. */
+  test('the editor runs no check and draws no run button', () => {
+    for (const dead of ['function ceRunScan', 'function ceScanErrHtml', "'scan-run'", '_ceScanErr', '_ceScanBusy'])
+      assert.equal(CODE.includes(dead), false, dead + ' is gone');
+    assert.ok(!/runPlaybookReview\(/.test(CODE.replace(/\/\*[\s\S]*?\*\//g, '')), 'and nothing here calls the run');
     assert.ok(!/extractedText/.test(CODE),
       'the editor never re-reads the document to work out the reason itself');
-  });
-
-  test('the empty panel offers the run, and a failed one offers it again', () => {
-    assert.match(CODE, /_cet\(_ceScanErr \? 'ce_scan_again' : 'ce_scan_run'\)/,
-      'a refusal needs its way forward on the same screen');
   });
 
   test('both languages', () => {
@@ -897,9 +881,9 @@ describe('f245 (12) — a rule that is not about this clause cannot replace it',
     ] };
     win.rlOpenClauseEditor(c, here.clauseId, {});
     const doc = win.document;
-    doc.querySelector('[data-ce-tab="scan"]').click();
     const lane = () => doc.querySelector('.ce-lane') || doc.querySelector('#ce-lane');
-    return { w, win, c, doc, here, other, lane };
+    const chip = re => [...doc.querySelectorAll('#ce-chips [data-ce-std]')].find(b => re.test(b.textContent.trim()));
+    return { w, win, c, doc, here, other, lane, chip };
   }
 
   test('the reading splits: this clause, the homeless ones, and nobody else', async () => {
@@ -921,61 +905,40 @@ describe('f245 (12) — a rule that is not about this clause cannot replace it',
       'and the flat list the press handler indexes is here-then-missing');
   });
 
-  test('the missing group offers ADD, and cannot reach the replace verb at all', async () => {
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the scan tab and its Add
+     buttons are gone — a standard missing from the contract is drafted by
+     "Draft from our standards" on the Redlines card. What the 26 Aug report
+     needs still holds, more strongly: nothing here can put a missing rule's
+     wording over the clause the reader is in, because the prepared questions
+     act ONLY on a finding that located THIS clause. */
+  test('the prepared questions act on THIS clause\'s finding, never a missing one', async () => {
     const p = await scanBench();
-    const html = p.lane().innerHTML;
-    const cards = [...p.doc.querySelectorAll('.ce-rule')];
-    const missCard = cards.find(el => /Data protection/.test(el.textContent));
-    assert.ok(missCard, 'the missing rule draws a card');
-    const verbs = [...missCard.querySelectorAll('[data-ce-scan]')].map(b => b.textContent.trim());
-    assert.ok(verbs.length, 'and it offers something to press');
-    for (const v of verbs)
-      assert.ok(/^Add /.test(v), `every verb on a missing rule adds a clause, got "${v}"`);
-    /* THE REPORTED PRESS, BY NAME. Nothing on that card may say "Use". */
-    assert.ok(!verbs.some(v => /^Use /.test(v)),
-      'nothing on a missing rule offers to replace the clause the reader is in');
-    assert.match(html, /Missing from the contract/, 'the group says what it is');
-    assert.match(html, /never replace the clause you are in/,
-      'and the heading carries the promise of what a press inside it does');
+    assert.equal(p.win.ceStdItem().v.category, 'Payment terms', 'the finding on this clause');
+    assert.ok(p.chip(/^Use our standard$/), 'it offers our standard');
+    assert.equal(p.doc.querySelectorAll('[data-ce-scan], .ce-rule').length, 0, 'no scan cards are drawn');
+    assert.ok(!/Add our standard|Missing from the contract/.test(p.doc.querySelector('#clause-editor').innerHTML),
+      'and nothing offers to add a missing standard from here');
   });
 
-  test('a missing rule prints its wording plainly — it never marks up this clause', async () => {
-    const p = await scanBench();
-    const cards = [...p.doc.querySelectorAll('.ce-rule')];
-    const missCard = cards.find(el => /Data protection/.test(el.textContent));
-    const pv = missCard.querySelector('.pv');
-    assert.ok(pv, 'it still shows the wording it would add');
-    /* THE VISUAL LIE AT THE HEART OF THE REPORT: the card used to draw a
-       redline FROM the open clause TO the standard, so the screenshot showed
-       the lease-charge sentence struck through. A rule with no clause has
-       nothing here to mark up. */
-    assert.equal(pv.querySelectorAll('del').length, 0, 'nothing of this clause is struck through');
-    assert.equal(pv.querySelectorAll('ins').length, 0, 'and nothing is marked as inserted into it');
-    /* while a rule that DID locate this clause still draws the marks, because
-       there its redline is true. */
-    const hereCard = cards.find(el => /Payment terms/.test(el.textContent));
-    assert.ok(hereCard.querySelector('.pv del'), 'a located rule still shows a real redline');
-  });
-
-  test('pressing Add files a new clause and leaves the open clause alone', async () => {
+  test('a press files nothing and leaves the clause alone until Apply', async () => {
     const p = await scanBench();
     const before = p.win.negoChanges(p.c).length;
-    const wordingBefore = String((p.win.negoClauseNowById(p.c, p.here.clauseId) || {}).text || '');
-    const btn = [...p.doc.querySelectorAll('[data-ce-scan]')]
-      .find(b => /^Add our standard$/.test(b.textContent.trim()));
-    assert.ok(btn, 'the workspace\'s own wording is what the primary add offers');
-    btn.click();
-    await new Promise(r => setTimeout(r, 30));
-    const chs = p.win.negoChanges(p.c);
-    assert.equal(chs.length, before + 1, 'exactly one change filed');
-    const ch = chs[chs.length - 1];
-    assert.equal(ch.changeType, 'insertClause', 'a missing standard is ADDED, never swapped in');
-    assert.equal(ch.status, 'pending', 'and it is a proposal like any other');
-    assert.match(String(ch.note || ''), /^Playbook — /, 'carrying the position it enforces');
-    assert.equal(String((p.win.negoClauseNowById(p.c, p.here.clauseId) || {}).text || ''),
-      wordingBefore, 'the clause the reader had open is untouched');
-    assert.match(p.lane().innerHTML, /Added as a new clause/,
-      'and the card settles rather than offering the same press again');
+    const box0 = String((p.doc.querySelector('#ce-clausebody') || {}).innerHTML || '');
+    p.chip(/^Use our standard$/).click();
+    await new Promise(r => setTimeout(r, 20));
+    assert.equal(p.win.negoChanges(p.c).length, before, 'nothing filed');
+    assert.equal(String((p.doc.querySelector('#ce-clausebody') || {}).innerHTML || ''), box0, 'the box is untouched');
+    const card = [...p.doc.querySelectorAll('#ce-lane .ce-card')].pop();
+    assert.ok(card && /Our standard/.test(card.textContent), 'a card badged Our standard');
+    assert.ok(card.querySelector('[data-ce-apply]'), 'and its Apply is the only way in');
+  });
+
+  test('a located rule still draws a real redline on its card', async () => {
+    const p = await scanBench();
+    p.chip(/^Use our standard$/).click();
+    await new Promise(r => setTimeout(r, 20));
+    const card = [...p.doc.querySelectorAll('#ce-lane .ce-card')].pop();
+    assert.ok(card.querySelector('.pv del') || card.querySelector('.pv ins'), 'its marks are drawn against the clause');
   });
 
   test('"our standard" is the workspace\'s, and Copilot\'s draft says whose it is', async () => {
@@ -994,23 +957,18 @@ describe('f245 (12) — a rule that is not about this clause cannot replace it',
     assert.ok(!/GDPR/.test(it.preferred), 'never the model\'s improvisation');
     assert.match(it.draft, /GDPR/, 'the model\'s wording is kept — under its own name');
     assert.equal(it.leadKind, 'standard', 'and the approved one is what the card previews');
-    const html = p.lane().innerHTML;
-    assert.match(html, /Add Copilot&#39;s draft|Add Copilot's draft/,
-      'the draft is offered, and the button says whose wording it is');
+    assert.match(p.win.ceWordingLabel('draft'), /Copilot/,
+      'the draft is offered under a badge that says whose wording it is');
   });
 
-  test('the verdict line is plain text — the separator is not printed as an entity', async () => {
+  test('the reason line is plain text — the separator is not printed as an entity', async () => {
     const p = await scanBench();
-    const cards = [...p.doc.querySelectorAll('.ce-rule')];
-    const missCard = cards.find(el => /Data protection/.test(el.textContent));
-    const line = missCard.querySelector('.l').textContent;
-    /* pbVerdictLine returns MARKUP. This rail stripped its tags and escaped the
-       result — and stripping tags leaves an ENTITY behind, so the ampersand was
-       escaped a second time and "&middot;" arrived on screen as five visible
-       characters. */
-    assert.ok(!/&middot;|&amp;/.test(line), `the line prints no raw entity, got "${line}"`);
-    assert.match(line, /Not in this document · Our standard is/,
-      'it reads as one sentence with a real separator');
+    p.chip(/^Use our standard$/).click();
+    await new Promise(r => setTimeout(r, 20));
+    const card = [...p.doc.querySelectorAll('#ce-lane .ce-card')].pop();
+    const line = (card.querySelector('.r') || {}).textContent || '';
+    /* pbVerdictLine returns MARKUP; the card takes pbVerdictWords. */
+    assert.ok(line && !/&middot;|&amp;/.test(line), `the line prints no raw entity, got "${line}"`);
   });
 
   test('both languages', () => {
@@ -1054,7 +1012,6 @@ describe('f245 (13) — the card says what the press takes', () => {
     ] };
     win.rlOpenClauseEditor(c, here.clauseId, {});
     const doc = win.document;
-    doc.querySelector('[data-ce-tab="scan"]').click();
     return { win, c, doc, here };
   }
 
@@ -1081,41 +1038,29 @@ describe('f245 (13) — the card says what the press takes', () => {
       'and it does not count the marks itself');
   });
 
-  test('it draws on a rule about THIS clause and not on one that adds a clause', async () => {
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the scan card is gone; the
+     same line now sits on the Suggested wording card a standard question
+     fills, and each question carries its own cost on its hover. */
+  test('the card a standard question fills says what it takes', async () => {
     const p = await costBench();
-    const cards = [...p.doc.querySelectorAll('.ce-rule')];
-    const here = cards.find(el => /Payment terms/.test(el.textContent));
-    const miss = cards.find(el => /Data protection/.test(el.textContent));
-    assert.ok(here.querySelector('.cost'), 'the located rule says what it takes');
-    /* ---- AND WHAT IT TAKES IS SMALL NOW (Young's go on the artifact "The
-       Nuanced Redline", 15 Sep 2026) ----
-       REVERSED IN PLACE. This read "Replaces all N words", which was the
-       honest description of what the card was previewing: the clause library's
-       stand-alone wording dropped over a clause the contract already had.
-       Since the lead on a LOCATED clause became the smallest change that meets
-       the position, the same reading measures the same way and reports a small
-       one, because the change really is small. Nothing is deleted: what the
-       claim pins is that a located rule says what a press costs, and the
-       number is now the proof that the press costs little. */
-    assert.match(here.querySelector('.cost').textContent, /Changes \d+ of \d+ words[\s\S]*keeps \d+/,
-      'it changes a few of the clause\'s words and keeps the rest');
-    /* A rule in the missing group replaces nothing — it files a NEW clause — so
-       a line about what it takes away would describe an act that never happens. */
-    assert.equal(miss.querySelector('.cost'), null, 'and a rule that adds one says nothing about taking');
+    const std = [...p.doc.querySelectorAll('#ce-chips [data-ce-std]')];
+    assert.ok(std.length, 'the clause\'s finding offers standard questions');
+    std[0].click();
+    await new Promise(r => setTimeout(r, 20));
+    const card = [...p.doc.querySelectorAll('#ce-lane .ce-card')].pop();
+    assert.match((card.querySelector('.cost') || {}).textContent || '', /(Changes|Replaces|Adds) /,
+      'the card says what the press takes');
   });
 
-  test('each verb carries its OWN cost, so two wordings can be compared unpressed', async () => {
+  test('each question carries its OWN cost, so two wordings can be compared unpressed', async () => {
     const p = await costBench();
-    const card = [...p.doc.querySelectorAll('.ce-rule')].find(el => /Payment terms/.test(el.textContent));
     const titles = {};
-    for (const b of card.querySelectorAll('[data-ce-scan]'))
-      titles[b.textContent.trim()] = b.getAttribute('title');
-    assert.match(titles['Use our standard'] || '', /keeps none/,
-      'the library\'s generic wording is a total swap and says so');
-    assert.match(titles['Use Copilot\'s draft'] || '', /keeps \d+\./,
-      'and the targeted draft keeps most of the clause');
-    assert.notEqual(titles['Use our standard'], titles['Use Copilot\'s draft'],
-      'two wordings that cost different amounts must not read alike');
+    for (const b of p.doc.querySelectorAll('#ce-chips [data-ce-std]')) titles[b.textContent.trim()] = b.getAttribute('title');
+    assert.ok(titles['Use Copilot\'s draft'], 'the draft says what it takes');
+    assert.match(titles['Use Copilot\'s draft'] || '', /keeps \d+\./, 'and the targeted draft keeps most of the clause');
+    if (titles['Use our standard'])
+      assert.notEqual(titles['Use our standard'], titles['Use Copilot\'s draft'],
+        'two wordings that cost different amounts must not read alike');
   });
 
   test('it is drawn quiet — the label shade, never an alarm', () => {
@@ -1849,12 +1794,14 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     assert.equal(/\.ce-chg\{/.test(SRC), false, 'and its dress went with it');
   });
 
-  test('the rail is Copilot, the ladder, the figure, the playbook scan and the risks, and nothing else', () => {
+  test('the rail is Suggestions, Risks and Ladder, in that order, and nothing else', () => {
     /* RE-POINTED 14 Sep 2026 (Young ruled: build the artifact's rail): the
        Ladder and Figure tabs joined; the Changes tab is still gone. And
-       4 Oct 2026 (work order Part 8, "one door for edits"): Risks joined. */
+       4 Oct 2026 (work order Part 8, "one door for edits"): Risks joined.
+       And 5 Oct 2026 ("Copilot Panel Tidy"): the Figure and Playbook scan
+       tabs are deleted, and Ladder is last. */
     const tabs = [...CODE.matchAll(/data-ce-tab="([a-z]+)"/g)].map(m => m[1]);
-    assert.deepEqual([...new Set(tabs)].sort(), ['chat', 'figure', 'ladder', 'risks', 'scan']);
+    assert.deepEqual([...new Set(tabs)], ['chat', 'risks', 'ladder']);
   });
 
   test('the two keys are left INERT in both dictionaries, never removed from one', () => {
@@ -2409,9 +2356,10 @@ describe('f245 (20) — putting a scroll back is not travelling to it', () => {
       'and the helper itself is the one place that writes one');
     /* RE-POINTED 14 Sep 2026: the rail gained the Ladder and Figure tabs,
        each landing at its own top exactly as the scan tab does. And again
-       4 Oct 2026 (work order Part 8): the Risks tab lands at its top too. */
-    assert.equal(sites.filter(x => x === 'lane.scrollTop = ').length, 5,
-      'the rail keeps its own five — the scan, ladder, figure and risks tabs\' tops and the last turn');
+       4 Oct 2026 (work order Part 8): the Risks tab lands at its top too.
+       And 5 Oct 2026: the scan and figure tabs are deleted. */
+    assert.equal(sites.filter(x => x === 'lane.scrollTop = ').length, 3,
+      'the rail keeps its own three — the ladder and risks tabs\' tops and the last turn');
   });
 });
 
@@ -2722,55 +2670,13 @@ describe('f245 (23) — the paper lands rather than travels', () => {
    reading, so the third door inherits it rather than having to remember it.
    ============================================================ */
 describe('f245 (24) — a filing from this page repaints both screens', () => {
-  test('ceAddMissingClause finishes the way a filing finishes', async () => {
-    const p = await bench({ ask: false });
-    wide(p.win);
-    const id = firstClauseId(p);
-    let again = 0;
-    p.win.rlOpenClauseEditor(p.c, id, { again: () => { again++; } });
-    const doc = p.doc;
-    const before = doc.querySelectorAll('#ce-doc .rl-clause').length;
-    assert.equal((p.c.changes || []).length, 0, 'nothing on the record yet');
-
-    const it = { clauseId: null, v: { category: 'Data protection', quote: '' },
-      preferred: 'Each party shall process personal data only on the other’s documented instructions.',
-      fallback: '', draft: '', lead: 'preferred', leadKind: 'preferred', landing: 'add' };
-    const ok = await p.win.ceAddMissingClause(it, it.preferred, null);
-    assert.equal(ok, true, 'it filed');
-
-    /* THE CONTROL, and it passes either way: the record really did gain the
-       change, so "the screen updated" cannot be satisfied by nothing having
-       happened. */
-    assert.equal((p.c.changes || []).length, 1,
-      'the record gained the change — this is the control');
-
-    assert.ok(doc.querySelectorAll('#ce-doc .rl-clause').length > before,
-      'the paper drew the new clause without a refresh: '
-      + before + ' → ' + doc.querySelectorAll('#ce-doc .rl-clause').length);
-    assert.ok(again >= 1,
-      'and the page underneath was repainted — the column, the contract and '
-      + 'the counts all read the record: again=' + again);
-    p.win.rlCloseClauseEditor();
-  });
-
-  test('the reader’s own unfiled draft survives it', async () => {
-    const p = await bench({ ask: false });
-    wide(p.win);
-    const id = firstClauseId(p);
-    p.win.rlOpenClauseEditor(p.c, id, { typing: true, again: () => {} });
-    const mine = '<p>Wording nobody has filed yet.</p>';
-    p.win.ceApply(mine, 'typed');
-    const it = { clauseId: null, v: { category: 'Data protection', quote: '' },
-      preferred: 'Each party shall process personal data only on documented instructions.',
-      fallback: '', draft: '', lead: 'preferred', leadKind: 'preferred', landing: 'add' };
-    await p.win.ceAddMissingClause(it, it.preferred, null);
-    const box = p.doc.querySelector('#ce-clausebody');
-    assert.ok(box && /nobody has filed yet/.test(String(box.textContent || '')),
-      'the standard lands at the end of the terms and the reader is still on '
-      + 'the clause they opened, so their draft is untouched');
-    assert.ok(p.win.clauseEditorDirty(),
-      'and it is still theirs to file — no re-seed moved them onto other wording');
-    p.win.rlCloseClauseEditor();
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): "Add our standard" left
+     this page with the Playbook scan tab, so ceAddMissingClause has no
+     caller and is gone. ceFiled — the one reading the report produced —
+     stands for every filing that is left. */
+  test('the Add door is gone from this page', () => {
+    assert.equal(CODE.includes('function ceAddMissingClause'), false, 'no second filing door here');
+    assert.equal(CODE.includes('rlFilePlaybookProposal('), false, 'and nothing here files a standard by itself');
   });
 
   test('ONE reading, and it is not the seed', () => {
@@ -2786,28 +2692,12 @@ describe('f245 (24) — a filing from this page repaints both screens', () => {
       + 'the reader onto wording they never asked to edit');
     assert.ok(/ceRenderAll\(\)/.test(shut) && /_ceAgain/.test(shut),
       'both screens are in it: this page and the page underneath');
-    /* Two callers, and a third joins them rather than growing a copy. */
+    /* The definition and the doors that file (5 Oct 2026: the Add door went
+       with the Playbook scan tab). */
     const calls = (CODE.match(/ceFiled\(/g) || []).length;
-    assert.ok(calls >= 3, 'the definition and both doors: ' + calls);
+    assert.ok(calls >= 2, 'the definition and the filing door: ' + calls);
   });
 
-  test('and the card still settles into "Added as a new clause"', async () => {
-    const p = await bench({ ask: false });
-    wide(p.win);
-    p.win.rlOpenClauseEditor(p.c, firstClauseId(p), { again: () => {} });
-    const it = { clauseId: null, v: { category: 'Data protection', quote: '' },
-      preferred: 'Each party shall process personal data only on documented instructions.',
-      fallback: '', draft: '', lead: 'preferred', leadKind: 'preferred', landing: 'add' };
-    await p.win.ceAddMissingClause(it, it.preferred, null);
-    /* _ceScanFiled is set BEFORE the repaint, because ceFiled draws the rail
-       among the rest — marking it after would leave the card offering the add
-       again until the next paint. */
-    const src = CODE.slice(CODE.indexOf('async function ceAddMissingClause'));
-    const fn = src.slice(0, src.indexOf('\n}') + 2);
-    assert.ok(fn.indexOf('_ceScanFiled[') < fn.indexOf('ceFiled(_ceC)'),
-      'the card is marked filed before the page is repainted');
-    p.win.rlCloseClauseEditor();
-  });
 });
 
 /* ============================================================
@@ -2887,8 +2777,10 @@ describe('f245 (25) — the page may not hide a proposed deletion', () => {
       'an explicit ask to type still wins where there is wording to type');
     assert.ok(p.doc.querySelectorAll('#ce-doc [data-ce-pencil]').length > 0,
       'and the pencil is still drawn');
-    assert.equal(p.doc.querySelectorAll('#ce-chips button').length, 5,
-      'and all five ready-made questions are offered');
+    /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy": "never more than 4"):
+       their ask leads, and the row stops at four. */
+    assert.equal(p.doc.querySelectorAll('#ce-chips button').length, 4,
+      'and four ready-made questions are offered — never five');
     p.win.rlCloseClauseEditor();
   });
 

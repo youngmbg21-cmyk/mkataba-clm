@@ -430,10 +430,11 @@ describe('f313 — the clause ladder', () => {
     assert.ok(card.length > 200, 'the card builder is there');
     for (const bad of ['fetch(', 'api(', 'copilotPropose', 'anthropic', 'copilotAsk'])
       assert.ok(!card.includes(bad), `the card must not call ${bad}`);
-    assert.ok(/data-ce-tab="ladder"/.test(v) && /data-ce-tab="figure"/.test(v), 'the two tabs');
+    /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the Figure tab is
+       deleted; the Ladder tab stays, last in the row. */
+    assert.ok(/data-ce-tab="ladder"/.test(v) && !/data-ce-tab="figure"/.test(v), 'the Ladder tab, and no Figure tab');
     assert.match(v, /if \(!why && _ceHeldNote\) why = _ceHeldNote;/, 'a kept note rides the filing as its reason');
-    assert.ok(!/typing: true/.test(v.slice(v.indexOf('function ceFigureWrite'), v.indexOf('function ceRenderTabs'))),
-      'writing the figure never asks to type — Apply is the door');
+    assert.ok(!v.includes('function ceFigureWrite'), 'the figure writer is gone with its tab');
   });
 
   test('(36) every paper passes whose mark it is', () => {

@@ -194,8 +194,10 @@ const closeEditor = async page => {
     chips: [i18t('ce_q_contract_risks'), i18t('ce_q_contract_missing'), i18t('ce_q_contract_end')] }));
   check(!!x && /is-whole/.test(railD.card) && /Warehousing Agreement/i.test(railD.text),
     'D1 the ✕ turns Copilot to the whole contract, and the card says so', railD.text.slice(0, 100) || 'no card');
-  check(railD.ph === want.ph && railD.label.trim() === want.label && railD.chips.join('|') === want.chips.join('|'),
-    'D2 with the whole contract\'s own questions, box and label', JSON.stringify({ ph: railD.ph, label: railD.label, chips: railD.chips }));
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the rail head no longer
+     carries a name; the card (D1) says "the whole contract". */
+  check(railD.ph === want.ph && !railD.label.trim() && railD.chips.join('|') === want.chips.join('|'),
+    'D2 with the whole contract\'s own questions and box, and no name in the rail head', JSON.stringify({ ph: railD.ph, label: railD.label, chips: railD.chips }));
   await page.screenshot({ path: path.join(OUT, '05-whole-contract.png') });
   ai.script([{ type: 'tool_use', id: 'tu_ans', name: 'deliver_answer', input: {
     answer: JSON.stringify({ advice: 'Clause 3 (Governing Law) puts the agreement under the laws of Kenya.', proposedText: '' }),
