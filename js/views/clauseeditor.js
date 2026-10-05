@@ -2181,10 +2181,14 @@ function ceLockBeat(stop){
   if (stop) return;
   _ceLockBeat = setInterval(() => {
     if (!clauseEditorOpen()){ ceLockBeat(true); return; }
-    try{
-      if (ceLockable() && ceSide() === 'owner' && window.clauseLockKeep && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
-    }catch(_){}
+    ceLockKeepNow();
   }, CE_LOCK_BEAT_MS);
+}
+/* One keep: the beat's tick, and a new clause the moment it is filed. */
+function ceLockKeepNow(){
+  try{
+    if (ceLockable() && ceSide() === 'owner' && window.clauseLockKeep && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
+  }catch(_){}
 }
 
 function rlOpenClauseEditor(c, clauseId, opts = {}){
@@ -6044,7 +6048,8 @@ async function ceFileNew(why){
   if (!ch){ ceSay(String((o.refused && (o.refused.message || o.refused)) || _cet('ce_nothing_changed'))); return null; }
   _ceNew = null; _ceClauseId = String(ch.clauseId);
   if (_ceOpts && _ceOpts.newClause){ _ceOpts = { ..._ceOpts }; delete _ceOpts.newClause; }
-  try{ if (ceSide() === 'owner' && window.clauseLockTake && clauseLockTake(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId }); }catch(_){}
+  /* the clause exists now: the beat's own keep takes it at once */
+  ceLockKeepNow();
   ceSeedDraft(ch.id);
   try{ if (window.shellCrumbLayer) shellCrumbLayer(i18t('ce_crumb_edit', { clause: ceClauseLabel(ceClause()) || _ceClauseId })); }catch(_){}
   const _noteAsk = window.rlNoteAskAfterFile
