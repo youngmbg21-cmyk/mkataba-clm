@@ -8097,6 +8097,16 @@
   .hb-fb-b.is-wrong{border-color:var(--color-rose-300,#e4a5b0);color:var(--color-rose-700,#b3263e)}
   .hb-fb-b.is-right{border-color:var(--accent-fill,var(--color-accent-600));color:var(--accent-ink,var(--color-accent-700))}
   .hb-fb-b:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  /* VERIFIED VIEWS (Part 9): the badge in a reply and on the card head; the who-and-when line */
+  .hb-vb{display:inline-block;vertical-align:1px;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.04em;line-height:1;padding:3px 6px;border-radius:3px;background:var(--accent-fill,var(--color-accent-600));color:#fff;white-space:nowrap}
+  .hb-ch .hb-vb{margin-left:var(--s-2);background:var(--hb-glow);color:var(--hb-on-glow)}
+  .hb-ver-by{font-size:var(--t-micro);color:var(--color-neutral-600)}
+  .hb-more-w{position:relative;flex:none}
+  .hb-pmenu{position:absolute;right:0;top:calc(100% + 4px);z-index:5;min-width:180px;display:flex;flex-direction:column;padding:4px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:var(--hb-fig);backdrop-filter:blur(var(--hb-blur));box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .hb-pmenu button{all:unset;cursor:pointer;padding:6px 10px;border-radius:var(--radius);font-size:var(--t-meta);color:var(--hb-ink);white-space:nowrap}
+  .hb-pmenu button:hover,.hb-pmenu button:focus-visible{background:rgba(var(--hb-ln),.14)}
+  .hb-verf label{display:flex;flex-direction:column;gap:4px}
+  .hb-verf input,.hb-verf textarea{font:inherit;color:inherit;background:transparent;border:1px solid rgba(var(--hb-ln),.35);border-radius:var(--radius);padding:4px 6px}
 
   /* present, the red pointer and the pen */
   .hb-tools{position:absolute;right:12px;bottom:12px;z-index:6;display:none;gap:6px}

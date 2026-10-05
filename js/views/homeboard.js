@@ -3105,6 +3105,7 @@ function hbDataGuide(lens, max){
   lines.push(`- Payment days (measure payDays): ${mk('payDays')} contracts state payment terms.`);
   lines.push(`- Negotiation rounds (measure rounds): ${mk('rounds')} contracts have rounds on record.`);
   lines.push(`- Live contracts each month (measure live): ${(_hbSnaps || []).length} monthly pictures kept so far.`);
+  { const vg = hbVerifiedGuide(); if (vg) lines.push(vg); }
   { const wg = hbWordsGuide(); if (wg) lines.push(wg); }
   /* A CAP IS A FACT: what did not fit is said */
   let out = '', left = 0;
@@ -3251,7 +3252,7 @@ function hbFocusHtml(){
   const grows = D.kind === 'list' || D.kind === 'stages';
   const tools = grows ? `${hbBigBtnHtml(s.digBig, 'data-hb-digbig')}` : '';
   return `<div class="hb-focus" id="hb-focus"><nav class="hb-trail" aria-label="${_hbE(i18t('hb_trail'))}"><button type="button" data-hb-crumb="-1">${_hbE(i18t('hb_face_board'))}</button><span aria-hidden="true">›</span>${crumbs}</nav>
-    <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(title)}</span><span class="hb-grow"></span>${tools}${eye}
+    <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(title)}</span>${hbVerBadgeHtml((s.panels || []).find(x => x.key === path[path.length - 1]))}<span class="hb-grow"></span>${tools}${eye}
       ${path.length > 1 ? `<button type="button" class="hb-ib" data-hb-crumb="${path.length - 2}" title="${_hbE(i18t('hb_step_back'))}" aria-label="${_hbE(i18t('hb_step_back'))}">${_hbBack}</button>` : ''}
       <button type="button" class="hb-ib hb-x" data-hb-crumb="-1" title="${_hbE(i18t('hb_close_dig'))}" aria-label="${_hbE(i18t('hb_close_dig'))}">${_hbX}</button></header>
       ${D.kind === 'list' ? hbRecipeRowHtml(D, hbPlan(D)) : ''}<div class="hb-cb">${fk && _hbWatchForm === fk ? hbWatchFormHtml(fk) : ''}${watching}${hbDigBodyHtml(D, s.lens, !!s.digBig)}</div></section></div>`;
@@ -3925,11 +3926,12 @@ function hbViewPanelHtml(p, lens){
   const D = hbDigData(p.key, lens);
   const body = D ? (D.kind === 'list' ? hbRecipeRowHtml(D, hbPlan(D)) : '') + `<div class="hb-cb">${hbDigBodyHtml(D, lens, !!p.big)}</div>` : `<div class="hb-cb"><div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div></div>`;
   return `<section class="hb-card hb-panel hb-view${p.big ? ' is-big' : ''}${p.id === _hbNewPanel ? ' is-new' : ''}" data-hb-pid="${_hbE(p.id)}">
-    <header class="hb-ch"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span><span class="hb-grow"></span>
-      ${/^cd:/.test(p.key) ? `<span class="hb-src" title="${_hbE(i18t('hb_cd_src_tip'))}">${_hbE(i18t('hb_cd_src'))}</span>` : `<span class="hb-src" title="${_hbE(i18t('hb_ins_src_tip'))}">${_hbE(i18t('hb_ins_src'))}</span>`}
+    <header class="hb-ch"><span class="hb-ct">${_hbE(hbPanelWord(p))}</span>${hbVerBadgeHtml(p)}<span class="hb-grow"></span>
+      ${p.verified ? '' : /^cd:/.test(p.key) ? `<span class="hb-src" title="${_hbE(i18t('hb_cd_src_tip'))}">${_hbE(i18t('hb_cd_src'))}</span>` : `<span class="hb-src" title="${_hbE(i18t('hb_ins_src_tip'))}">${_hbE(i18t('hb_ins_src'))}</span>`}
+      ${hbMayVerify(p) ? `<span class="hb-more-w"><button type="button" class="hb-ib" data-hb-act="more" aria-haspopup="menu" aria-expanded="${_hbMoreMenu === p.id}" title="${_hbE(i18t('hb_p_more'))}" aria-label="${_hbE(i18t('hb_p_more'))}">⋯</button>${_hbMoreMenu === p.id ? `<span class="hb-pmenu" role="menu"><button type="button" role="menuitem" data-hb-act="verify">${_hbE(i18t('hb_ver_menu'))}${p.verified ? ' ✓' : ''}</button></span>` : ''}</span>` : ''}
       ${hbBigBtnHtml(p.big, 'data-hb-act="big"')}
       <button type="button" class="hb-ib hb-x" data-hb-act="x" title="${_hbE(i18t('hb_p_x'))}" aria-label="${_hbE(i18t('hb_p_x'))}">${_hbX}</button></header>
-    ${body}</section>`;
+    ${_hbVerForm === p.id && hbMayVerify(p) ? hbVerFormHtml(p) : ''}${body}</section>`;
 }
 function hbInsAct(act, id){
   const s = hbS();
@@ -4407,6 +4409,8 @@ function hbPanelAct(pid, act){
   else if (act === 'large') p.big = true;
   else if (act === 'small') p.big = false;
   else if (act === 'give') _hbGiveForm = _hbGiveForm === pid ? null : pid;
+  else if (act === 'more') _hbMoreMenu = _hbMoreMenu === pid ? null : pid;
+  else if (act === 'verify'){ _hbMoreMenu = null; _hbVerForm = _hbVerForm === pid ? null : pid; return true; }
   else return false;
   hbSave(); return true;
 }
@@ -4845,9 +4849,95 @@ function hbMarksRepaint(i){
 }
 /* a reply asked on the board carries the marks */
 function hbBoardReplyMeta(){ try { return (window.state && state.view === 'dashboard' && hbS().face === 'board') ? { boardReply: true } : {}; } catch (_){ return {}; } }
+/* ---- VERIFIED VIEWS (work order "the board that answers right", Part 9,
+   5 Oct 2026; Power BI's verified answers) ----
+   An admin saves a card as the company's answer to named questions
+   (PUT /api/settings/board-verified, the list on state.settings). Asking one —
+   normalised, exact — draws that card through hbAddCard like any card,
+   counted LIVE over this reader's own book, marked VERIFIED with who set it
+   and when. A view whose recipe no longer passes the checker is drawn as
+   stored and the checker's line is SAID — never silently changed. */
+function hbPhraseNorm(q){ return String(q || '').toLowerCase().normalize('NFC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); }
+function hbVerifiedList(){
+  const st = (typeof state === 'object' && state && state.settings) || {};
+  return Array.isArray(st.boardVerified) ? st.boardVerified.filter(v => v && v.id && v.recipe && Array.isArray(v.phrases)) : [];
+}
+function hbVerifiedHit(q){
+  const n = hbPhraseNorm(q); if (!n) return null;
+  return hbVerifiedList().find(v => v.phrases.some(p => hbPhraseNorm(p) === n)) || null;
+}
+/* the badge on a card head (the board's card and its open copy alike) */
+function hbVerBadgeHtml(p){ if (!p || !p.verified) return ''; const v = hbVerifiedOf(p); return `<span class="hb-vb" title="${_hbE(v ? hbVerifiedByLine(v) : '')}">${_hbE(i18t('hb_ver_badge'))}</span>`; }
+function hbVerifiedOf(p){ return p && p.verified && p.verified.id ? hbVerifiedList().find(v => v.id === p.verified.id) || null : null; }
+function hbDayShort(iso){
+  try { return new Date(String(iso).slice(0, 10) + 'T00:00:00').toLocaleDateString(langLocale(), { day: 'numeric', month: 'short' }); } catch (_){ return String(iso || ''); }
+}
+function hbVerifiedByLine(v){
+  return i18t('hb_ver_by', { by: v.by || '—', at: hbDayShort(v.at), qs: v.phrases.slice(0, 3).map(p => '“' + p + '”').join(', ') });
+}
+function hbVerifiedAnswer(v){
+  const s = hbS();
+  /* asked again: the same card, fresh from the stored recipe, back on top */
+  const old = s.panels.find(x => x.verified && x.verified.id === v.id);
+  if (old) s.panels.splice(s.panels.indexOf(old), 1);
+  const { p, left } = hbAddCard(v.which || { all: true }, v.recipe, v.title);
+  p.verified = { id: v.id, by: v.by || '', at: v.at || '' };
+  hbSave();
+  hbDig(p.key, false);
+  const D = hbDigData(p.key, s.lens) || { n: 0, kind: 'list', ids: [] };
+  let warn = '';
+  if (D.kind === 'list'){ try { const pr = hbCardCheck(D, v.recipe, Object.assign(hbPlanSpec(D), hbCardClean(v.recipe))); if (pr.length) warn = ' ' + _hbE(i18t('hb_ver_stale', { why: pr.map(x => x.say).join('; ') })); } catch (_){ /* the line is a courtesy */ } }
+  _hbMeta = Object.assign(_hbMeta || {}, { verified: { id: v.id } });
+  return `<span class="hb-vb">${_hbE(i18t('hb_ver_badge'))}</span> ${hbAnswerSay(D)}${warn}`
+    + (left ? ' ' + _hbE(i18t('hb_panel_left', { what: hbPanelWord(left) })) : '')
+    + `<br><span class="hb-ver-by">${_hbE(hbVerifiedByLine(v))}</span>`;
+}
+/* Copilot is told the phrases, so it does not compete with them */
+function hbVerifiedGuide(){
+  const L = hbVerifiedList(); if (!L.length) return '';
+  return 'Verified views (HaTi answers these questions itself with the company\'s own chart; never offer a different chart for them): '
+    + L.slice(0, 20).map(v => `"${v.title}" answers ${v.phrases.slice(0, 6).map(p => '"' + p + '"').join(', ')}`).join('; ') + '.';
+}
+/* the admin's ⋯ menu and its form, on a card the board built (cd:) */
+let _hbMoreMenu = null, _hbVerForm = null;
+function hbMayVerify(p){ return !!(p && p.kind === 'view' && /^cd:/.test(p.key || '') && typeof isAdmin === 'function' && isAdmin()); }
+function hbVerFormHtml(p){
+  const v = hbVerifiedOf(p);
+  const ph = v ? v.phrases.join('\n') : '';
+  return `<form class="hb-inl hb-verf" data-hb-ver-form="${_hbE(p.id)}">
+    <label class="hb-wide">${_hbE(i18t('hb_ver_title'))} <input name="vtitle" maxlength="80" value="${_hbE(v ? v.title : hbPanelWord(p))}"></label>
+    <label class="hb-wide">${_hbE(i18t('hb_ver_qs'))} <textarea name="phrases" rows="3" maxlength="1500" placeholder="${_hbE(i18t('hb_ver_qs_ph'))}">${_hbE(ph)}</textarea></label>
+    <button type="submit" class="hb-btn is-primary">${_hbE(i18t(v ? 'hb_ver_save' : 'hb_ver_set'))}</button>
+    ${v ? `<button type="button" class="hb-btn" data-hb-ver-off="${_hbE(p.id)}">${_hbE(i18t('hb_ver_off'))}</button>` : ''}
+    <button type="button" class="hb-btn" data-hb-ver-cancel>${_hbE(i18t('hb_cancel'))}</button>
+    <span class="hb-quiet hb-wide" data-hb-ver-say></span></form>`;
+}
+async function hbVerSave(pid, title, phrasesText, remove){
+  const s = hbS(), p = s.panels.find(x => x.id === pid); if (!p) return;
+  const v = hbVerifiedOf(p);
+  const sayEl = () => document.querySelector(`[data-hb-ver-form="${pid}"] [data-hb-ver-say]`);
+  let body;
+  if (remove){ if (!v) return; body = { id: v.id, remove: true }; }
+  else {
+    const D = hbDigData(p.key, s.lens); const P = D ? hbPlan(D) : {};
+    const recipe = {}; ['pic', 'split', 'split2', 'measure', 'trend', 'sort', 'top', 'window', 'compare'].forEach(k => { if (P[k] != null) recipe[k] = P[k]; });
+    const which = p.which && p.which.q ? { q: p.which.q } : { all: true };
+    body = { id: v ? v.id : undefined, title: String(title || '').trim(), which, recipe, phrases: String(phrasesText || '').split(/\n+/).map(x => x.trim()).filter(Boolean) };
+  }
+  try {
+    const r = await api('settings/board-verified', 'PUT', body);
+    state.settings = state.settings || {}; state.settings.boardVerified = (r && r.boardVerified) || [];
+    if (remove) delete p.verified; else if (r && r.view) p.verified = { id: r.view.id, by: r.view.by, at: r.view.at };
+    _hbVerForm = null; hbSave(); hbPaintBoard();
+    if (typeof toast === 'function') toast(i18t(remove ? 'hb_ver_offed' : 'hb_ver_saved', { what: body.title || (v && v.title) || '' }), 'ok');
+  } catch (e){ const el = sayEl(); if (el) el.textContent = (e && e.message) || String(e); else if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); }
+}
 function hbAsk(q){
   _hbMeta = null;
   if (HB_WHY_ASK_RE.test(String(q || ''))){ _hbPendingRecipe = null; return null; }
+  /* A VERIFIED VIEW ANSWERS FIRST (Part 9): the company's own answer to the
+     questions an admin named, exact after normalising, before any reading */
+  { const v = hbVerifiedHit(q); if (v && hbS().face === 'board'){ _hbPendingRecipe = null; const u = hbUndoTop(); return hbVerifiedAnswer(v) + `<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u)}</div>`; } }
   q = hbWordsApply(q);
   const u0 = hbUndoTop();
   const fu = hbFollowUp(q);
@@ -5118,6 +5208,7 @@ function hbOnClick(e){
   /* an open dropdown closes on a press anywhere else */
   if (_hbRcOpen && !t.closest('.hb-rwrap')){ _hbRcOpen = null; hbPaintBoard(); }
   if (_hbRdOpen && !t.closest('.hb-rd-wrap')){ _hbRdOpen = null; hbDockRepaint(); }
+  if (_hbMoreMenu && !t.closest('.hb-more-w')){ _hbMoreMenu = null; hbPaintBoard(); }
   const on = sel => t.closest(sel);
   let el;
   if ((el = on('[data-hb-face]'))){ hbSetFace(el.getAttribute('data-hb-face')); return; }
@@ -5160,6 +5251,8 @@ function hbOnClick(e){
   if ((el = on('[data-hb-watch]'))){ const k = el.getAttribute('data-hb-watch'); _hbWatchForm = _hbWatchForm === k ? null : k; hbPaintBoard(); return; }
   if (on('[data-hb-watch-cancel]')){ _hbWatchForm = null; hbPaintBoard(); return; }
   if (on('[data-hb-give-cancel]')){ _hbGiveForm = null; hbPaintBoard(); return; }
+  if (on('[data-hb-ver-cancel]')){ _hbVerForm = null; hbPaintBoard(); return; }
+  if ((el = on('[data-hb-ver-off]'))){ hbVerSave(el.getAttribute('data-hb-ver-off'), '', '', true); return; }
   if ((el = on('[data-hb-ungive]'))){ hbUngive(el.getAttribute('data-hb-ungive')); return; }
   if ((el = on('[data-hb-act]'))){
     const card = el.closest('[data-hb-pid]'); const pid = card && card.getAttribute('data-hb-pid'); if (!pid) return;
@@ -5192,6 +5285,11 @@ function hbOnSubmit(e){
     const s = hbS(); if (s.watches.length >= HB_WATCH_MAX){ if (typeof toast === 'function') toast(i18t('hb_watch_full', { n: HB_WATCH_MAX }), 'warn'); return; }
     s.watches.push({ k, dir, n }); _hbWatchForm = null; hbSave(); hbAlertsChanged(); hbPaintBoard();
     if (typeof toast === 'function') toast(i18t('hb_watch_said', { what: i18t('hb_f_' + k), dir: i18t('hb_watch_' + dir), n }), 'ok');
+    return;
+  }
+  if (f && f.matches && f.matches('[data-hb-ver-form]')){
+    e.preventDefault();
+    hbVerSave(f.getAttribute('data-hb-ver-form'), f.elements.vtitle.value, f.elements.phrases.value);
     return;
   }
   if (f && f.matches && f.matches('[data-hb-give-form]')){
@@ -5263,7 +5361,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

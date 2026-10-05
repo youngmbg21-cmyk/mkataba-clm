@@ -5814,6 +5814,7 @@ app.put('/api/settings', auth, admin, (req, res) => {
   /* THE BOARD'S WORD BOOK changes only through its own route (the board that
      answers right, Part 3): a settings save never writes it, stale or not. */
   if ('boardWords' in stored) incoming.boardWords = stored.boardWords; else delete incoming.boardWords;
+  if ('boardVerified' in stored) incoming.boardVerified = stored.boardVerified; else delete incoming.boardVerified;   // its own route (Part 9)
   /* WHO SAVED A LANE, AND WHO IT NAMES, ARE THE SERVER'S WORD — see
      srvLanesStamp. */
   if (Array.isArray(incoming.intakeLanes)) incoming.intakeLanes = srvLanesStamp(incoming.intakeLanes, stored.intakeLanes, req.user);
@@ -5912,6 +5913,80 @@ app.put('/api/settings/board-words', auth, admin, (req, res) => {
   stored.boardWords = kept;
   setSetting('appSettings', stored);
   res.json({ ok: true, boardWords: kept });
+});
+/* ---- VERIFIED VIEWS (work order "the board that answers right", Part 9,
+   5 Oct 2026; Power BI's verified answers) ----
+   An admin saves a card as the company's answer to named questions. Asking
+   one of them on Home's board draws that card, marked VERIFIED, with who set
+   it and when — counted LIVE over the asker's own reach, so a verified view
+   never shows a contract a person could not already see. A row is
+   {id, title, which, recipe, phrases[], by, at}; the recipe is cleaned by
+   graphChartClean (the board's ONE cleaner's mirror), the set is the whole
+   book or a question re-read on every paint (never a list of ids). Written
+   only here, by an admin; a settings save never touches it. Body
+   {id?, title, which, recipe, phrases} adds or replaces; {id, remove:true}
+   takes it away. A phrase answers one view only. */
+const BOARD_VERIFIED_MAX = 50, BOARD_VERIFIED_PHRASES_MAX = 12;
+const boardPhraseNorm = q => String(q || '').toLowerCase().normalize('NFC').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+/* read at call time: GRAPH_CHART_GROUP_OF is declared further down the file */
+const graphChartWordOf = g => (Object.entries(GRAPH_CHART_GROUP_OF).find(([, x]) => x === g) || [])[0] || '';
+const GRAPH_CHART_UNIT_WORD = { m: 'month', q: 'quarter', y: 'year' };
+/* a card's recipe (the board's own shape) in the words graphChartClean reads */
+function boardRecipeWords(r) {
+  if (!r || typeof r !== 'object') return null;
+  const w = { ...r };
+  const sp = (S, k, dk) => { if (!S || typeof S !== 'object') { delete w[k]; return; }
+    if (S.by === 'none') w[k] = 'none';
+    else if (S.by === 'date') { w[k] = GRAPH_CHART_UNIT_WORD[S.unit] || 'month'; w[dk] = S.date; }
+    else w[k] = graphChartWordOf(S.by); };
+  sp(r.split, 'split', 'date'); sp(r.split2, 'split2', 'date2');
+  if (r.window && typeof r.window === 'object') w.window = { ...r.window, unit: GRAPH_CHART_UNIT_WORD[r.window.unit] || r.window.unit };
+  return w;
+}
+function boardVerifiedClean(b) {
+  const id = /^[A-Za-z0-9_-]{1,40}$/.test(String((b && b.id) || '')) ? String(b.id) : null;
+  if (b && b.remove) return id ? { id, remove: true } : { error: 'id is required to remove' };
+  const title = String((b && b.title) || '').replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, GRAPH_CHART_TITLE_MAX);
+  if (!title) return { error: 'A verified view has a title' };
+  const recipe = graphChartClean(boardRecipeWords(b && b.recipe));
+  if (!recipe) return { error: 'The recipe is not a chart the board knows' };
+  delete recipe.target; delete recipe.title;
+  const wq = b && b.which;
+  let which = null;
+  if (wq && typeof wq === 'object' && wq.all === true) which = { all: true };
+  else if (wq && typeof wq === 'object' && typeof wq.q === 'string') { const q = wq.q.replace(/[\u0000-\u001f\u007f<>{}]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200); if (q) which = { q }; }
+  if (!which) return { error: 'which must be {all:true} or {q:"…"} — a set is re-read, never a list of contracts' };
+  const seen = new Set(), phrases = [];
+  for (const p of (Array.isArray(b && b.phrases) ? b.phrases : [])) {
+    const t = String(p || '').replace(/\s+/g, ' ').trim(), n = boardPhraseNorm(t);
+    if (n.length < 3 || t.length > 120 || seen.has(n)) continue;
+    seen.add(n); phrases.push(t);
+  }
+  if (!phrases.length) return { error: 'Name at least one question it answers (3 to 120 characters)' };
+  if (phrases.length > BOARD_VERIFIED_PHRASES_MAX) return { error: `At most ${BOARD_VERIFIED_PHRASES_MAX} questions per view` };
+  return { id, title, which, recipe, phrases };
+}
+app.put('/api/settings/board-verified', auth, admin, (req, res) => {
+  const v = boardVerifiedClean(req.body || {});
+  if (v.error) return res.status(400).json({ error: v.error });
+  const stored = getSetting('appSettings') || {};
+  const list = Array.isArray(stored.boardVerified) ? stored.boardVerified.slice() : [];
+  if (v.remove) {
+    const kept = list.filter(x => x && x.id !== v.id);
+    if (kept.length === list.length) return res.status(404).json({ error: 'That verified view is not on the list' });
+    stored.boardVerified = kept; setSetting('appSettings', stored);
+    return res.json({ ok: true, boardVerified: kept });
+  }
+  const id = v.id && list.some(x => x && x.id === v.id) ? v.id : ('bv_' + crypto.randomBytes(5).toString('hex'));
+  const mine = new Set(v.phrases.map(boardPhraseNorm));
+  const clash = list.find(x => x && x.id !== id && (x.phrases || []).some(p => mine.has(boardPhraseNorm(p))));
+  if (clash) return res.status(409).json({ error: `A question there already answers “${clash.title}”` });
+  const kept = list.filter(x => x && x.id !== id);
+  if (kept.length >= BOARD_VERIFIED_MAX) return res.status(409).json({ error: `The list holds ${BOARD_VERIFIED_MAX} verified views` });
+  const row = { id, title: v.title, which: v.which, recipe: v.recipe, phrases: v.phrases, by: req.user.name || req.user.email || '', at: now().slice(0, 10) };
+  kept.push(row);
+  stored.boardVerified = kept; setSetting('appSettings', stored);
+  res.json({ ok: true, view: row, boardVerified: kept });
 });
 /* ---- WHAT PEOPLE SAY ABOUT THE BOARD'S ANSWERS (work order "the board that
    answers right", Parts 6 and 7, 5 Oct 2026) ----
