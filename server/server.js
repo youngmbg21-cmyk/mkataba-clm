@@ -5793,6 +5793,9 @@ app.put('/api/settings', auth, admin, (req, res) => {
      converted figure in the workspace. The rates change only through their
      own atomic endpoint below. */
   if (!('fxRates' in incoming) && 'fxRates' in stored) incoming.fxRates = stored.fxRates;
+  /* THE BOARD'S WORD BOOK changes only through its own route (the board that
+     answers right, Part 3): a settings save never writes it, stale or not. */
+  if ('boardWords' in stored) incoming.boardWords = stored.boardWords; else delete incoming.boardWords;
   /* WHO SAVED A LANE, AND WHO IT NAMES, ARE THE SERVER'S WORD — see
      srvLanesStamp. */
   if (Array.isArray(incoming.intakeLanes)) incoming.intakeLanes = srvLanesStamp(incoming.intakeLanes, stored.intakeLanes, req.user);
@@ -5848,6 +5851,49 @@ app.put('/api/settings/fx-rates', auth, admin, (req, res) => {
   stored.fxRates = rates;
   setSetting('appSettings', stored);
   res.json({ ok: true, fxRates: rates });
+});
+/* ---- THE BOARD'S WORD BOOK (work order "the board that answers right",
+   Part 3, 5 Oct 2026) ----
+   The company's own words and what Home's board reads them as: "deals" is
+   contracts, "BU" is the value stream, "ramavtal" is a type. ONE entry per
+   word and language, written only here, by an admin; the browser reads the
+   list off the settings blob and swaps a word for its meaning BEFORE its own
+   reader, and Copilot is handed the list. A meaning is one of HaTi's own
+   kinds and values — never free code. Body {say, lang, means:{kind, value}}
+   adds or replaces; {say, lang, remove:true} takes the word away. */
+const BOARD_WORD_KINDS = ['set', 'split', 'measure', 'stage', 'type', 'side'];
+const BOARD_WORD_STAGES = ['Draft', 'Under Review', 'Signed', 'Declined'];
+const BOARD_WORDS_MAX = 200;
+function boardWordClean(b) {
+  const say = String((b && b.say) || '').replace(/\s+/g, ' ').trim();
+  if (say.length < 2 || say.length > 40 || !/^[\p{L}\p{N}][\p{L}\p{N} &'’.-]*$/u.test(say)) return { error: 'A word is 2 to 40 letters, digits or spaces' };
+  const lang = (b && b.lang) === 'sv' ? 'sv' : (b && b.lang) === 'en' ? 'en' : null;
+  if (!lang) return { error: 'lang must be en or sv' };
+  if (b.remove) return { say, lang, remove: true };
+  const m = (b && b.means) || {};
+  const kind = String(m.kind || ''); let value = m.value == null ? '' : String(m.value).replace(/\s+/g, ' ').trim();
+  if (!BOARD_WORD_KINDS.includes(kind)) return { error: 'means.kind must be one of ' + BOARD_WORD_KINDS.join(', ') };
+  if (kind === 'split' && !Object.values(GRAPH_CHART_GROUP_OF).includes(value)) return { error: 'means.value is not a split the board knows' };
+  if (kind === 'measure' && !GRAPH_CHART_MEASURES.includes(value)) return { error: 'means.value is not a measure the board knows' };
+  if (kind === 'stage' && !BOARD_WORD_STAGES.includes(value)) return { error: 'means.value is not a stage' };
+  if (kind === 'side' && !['supplier', 'customer'].includes(value)) return { error: 'means.value must be supplier or customer' };
+  if ((kind === 'set' || kind === 'type') && (value.length < 2 || value.length > 80 || /[<>{}]/.test(value))) return { error: 'means.value is 2 to 80 plain characters' };
+  return { say, lang, means: { kind, value } };
+}
+app.put('/api/settings/board-words', auth, admin, (req, res) => {
+  const w = boardWordClean(req.body || {});
+  if (w.error) return res.status(400).json({ error: w.error });
+  const stored = getSetting('appSettings') || {};
+  const list = Array.isArray(stored.boardWords) ? stored.boardWords.slice() : [];
+  const same = x => x && String(x.say).toLowerCase() === w.say.toLowerCase() && x.lang === w.lang;
+  const kept = list.filter(x => !same(x));
+  if (!w.remove) {
+    if (kept.length >= BOARD_WORDS_MAX) return res.status(409).json({ error: `The word book holds ${BOARD_WORDS_MAX} words` });
+    kept.push({ say: w.say, lang: w.lang, means: w.means, by: req.user.name || req.user.email || '', at: now().slice(0, 10) });
+  } else if (kept.length === list.length) return res.status(404).json({ error: 'That word is not in the book' });
+  stored.boardWords = kept;
+  setSetting('appSettings', stored);
+  res.json({ ok: true, boardWords: kept });
 });
 /* H-3: the one place folderAccess changes — a server-side read-modify-write of
    just that key, so it cannot be clobbered by a concurrent full-blob save. Send

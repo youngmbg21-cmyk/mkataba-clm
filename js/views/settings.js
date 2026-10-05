@@ -1917,6 +1917,62 @@ function stFxPaint(){
   }).join('');
   host.querySelectorAll('[data-fx-del]').forEach(b=>b.addEventListener('click',()=>stFxSave(b.getAttribute('data-fx-del'),null)));
 }
+/* ---- THE BOARD'S WORD BOOK: the list, the value box, the save ---- */
+function stWordMeansText(m){
+  if(!m) return '';
+  const k=i18t('st_words_k_'+m.kind);
+  if(m.kind==='split') return k+': '+((window.hbSplitWord)?hbSplitWord({ by:m.value }):m.value);
+  if(m.kind==='measure') return k+': '+i18t('hb_ms_'+m.value);
+  if(m.kind==='stage') return k+': '+((typeof statusLabel==='function')?statusLabel(m.value):m.value);
+  if(m.kind==='side') return k+': '+i18t(m.value==='supplier'?'hb_lens_suppliers':'hb_lens_customers');
+  return k+': '+m.value;
+}
+function stWordsPaint(){
+  const host=document.getElementById('st-words-list'); if(!host) return;
+  const list=window.hbWords?hbWords():[];
+  const row=(say,means,lang,by,act)=>`<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) 34px auto;gap:10px;align-items:center;font-size:var(--t-meta)">
+    <b style="min-width:0;overflow-wrap:anywhere">${esc(say)}</b><span style="min-width:0">${esc(means)}</span><span class="st-note" style="margin:0">${esc(lang)}</span>${act}</div>`;
+  const mine=list.map(w=>row(w.say,stWordMeansText(w.means),String(w.lang||'').toUpperCase(),w.by,
+    `<button data-w-del="${esc(w.say)}" data-w-lang="${esc(w.lang)}" style="${ST_BTN2};flex:none">${esc(i18t('st_words_remove'))}</button>`)).join('');
+  const built=(window.hbWordsBuiltIn?hbWordsBuiltIn():[]).map(b=>row(b.words.slice(0,4).join(', '),stWordMeansText({ kind:'split', value:b.group }),'EN · SV','',
+    `<span class="st-note" style="margin:0">${esc(i18t('st_words_builtin'))}</span>`)).join('');
+  host.innerHTML=(mine||`<p class="st-note" style="margin:0">${esc(i18t('st_words_none'))}</p>`)
+    +`<details style="margin-top:6px"><summary class="st-note" style="cursor:pointer;margin:0">${esc(i18t('st_words_builtin_h'))}</summary><div style="display:grid;gap:6px;margin-top:6px">${built}</div></details>`;
+  host.querySelectorAll('[data-w-del]').forEach(b=>b.addEventListener('click',()=>stWordsSave({ say:b.getAttribute('data-w-del'), lang:b.getAttribute('data-w-lang'), remove:true })));
+}
+function stWordsValueSlot(){
+  const slot=document.getElementById('st-w-value-slot'); if(!slot) return;
+  const kind=(document.getElementById('st-w-kind')||{}).value||'set';
+  const sel=opts=>`<select id="st-w-value" style="${window.RV_FLD||ST_INPUT}">${opts.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join('')}</select>`;
+  if(kind==='split') slot.innerHTML=sel(Object.keys(window.HB_WORD_SPLIT||{}).map(g=>[g,(window.hbSplitWord)?hbSplitWord({ by:g }):g]));
+  else if(kind==='measure') slot.innerHTML=sel(Object.keys(window.HB_WORD_MEASURE||{}).map(m=>[m,i18t('hb_ms_'+m)]));
+  else if(kind==='stage') slot.innerHTML=sel(Object.keys(window.HB_WORD_STAGE||{}).map(st=>[st,(typeof statusLabel==='function')?statusLabel(st):st]));
+  else if(kind==='side') slot.innerHTML=sel([['supplier',i18t('hb_lens_suppliers')],['customer',i18t('hb_lens_customers')]]);
+  else slot.innerHTML=`<input id="st-w-value" type="text" maxlength="80" placeholder="${esc(i18t(kind==='type'?'st_words_ph_type':'st_words_ph_set'))}" style="${window.RV_FLD||ST_INPUT}"/>`;
+}
+async function stWordsSave(given){
+  stDrawerClearRefusal();
+  let body=given;
+  if(!body){
+    const say=String((document.getElementById('st-w-say')||{value:''}).value).replace(/\s+/g,' ').trim();
+    const lang=(document.getElementById('st-w-lang')||{}).value||'en';
+    const kind=(document.getElementById('st-w-kind')||{}).value||'set';
+    const value=String((document.getElementById('st-w-value')||{value:''}).value).trim();
+    if(say.length<2) return stDrawerRefuse(i18t('st_words_bad_say'));
+    if(!value) return stDrawerRefuse(i18t('st_words_bad_value'));
+    /* a word the board already reads keeps its built-in meaning */
+    if(window.hbWordClash&&hbWordClash(say)) return stDrawerRefuse(i18t('st_words_clash',{ word:say }));
+    body={ say, lang, means:{ kind, value } };
+  }
+  try{
+    const r=await api('settings/board-words','PUT',body);
+    state.settings=state.settings||{}; state.settings.boardWords=(r&&r.boardWords)||[];
+    const se=document.getElementById('st-w-say'), ve=document.getElementById('st-w-value');
+    if(se) se.value=''; if(ve&&ve.tagName==='INPUT') ve.value='';
+    stWordsPaint(); if(typeof stRepaintRow==='function') stRepaintRow('boardwords');
+    toast(body.remove?i18t('st_words_removed',{ word:body.say }):i18t('st_words_saved',{ word:body.say }),'ok');
+  }catch(e){ stDrawerRefuse((e&&e.message)||i18t('co_settings_save_failed')); }
+}
 async function stFxSave(codeIn,rateIn){
   /* A datalist hands back whatever is in the box, and a reader who picks
      "USD — US dollar" from the list gets exactly that string. The code is the
@@ -2392,6 +2448,38 @@ const SET_PANELS={
     find:()=>['round','link','renew','paper','late','import'].map(k=>i18t('ag_'+k)),
     body(){ return `<div id="st-agents-panel"></div>`; },
     wire(){ stAgentsPaint(); },
+  },
+
+  /* ---- THE BOARD'S WORD BOOK (the board that answers right, Part 3, 5 Oct
+     2026) ----
+     The company's own words and what Home's board reads them as. Written only
+     through PUT /api/settings/board-words; the built-in words are drawn
+     read-only from the board's own reader (hbWordsBuiltIn), never a copy. A
+     word the board already reads is refused here with the reason. */
+  boardwords:{
+    tab:'platform', group:'copilot', mandatory:false,
+    title:()=>i18t('st_p_words'),
+    sub:()=>i18t('st_p_words_sub'),
+    state(){ const n=(window.hbWords?hbWords():[]).length;
+      return { dot:n?'ok':'off', text:i18tn('st_words_n',n,{ n }) }; },
+    find:()=>[i18t('st_words_say'),i18t('st_words_means')],
+    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('st_words_note'))}</p>
+      <div id="st-words-list" style="display:grid;gap:6px"></div>
+      <section class="st-sec" style="margin-top:var(--s-3)">
+        <h3 class="st-sec-h">${esc(i18t('st_words_add'))}</h3>
+        <div style="display:grid;grid-template-columns:minmax(0,1.2fr) 72px;gap:8px">
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_words_say'))}</span><input id="st-w-say" type="text" maxlength="40" style="${window.RV_FLD||ST_INPUT}"/></label>
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_words_lang'))}</span><select id="st-w-lang" style="${window.RV_FLD||ST_INPUT}"><option value="en">EN</option><option value="sv">SV</option></select></label>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:8px;margin-top:8px">
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_words_means'))}</span><select id="st-w-kind" style="${window.RV_FLD||ST_INPUT}">${(window.HB_WORD_KINDS||[]).map(k=>`<option value="${k}">${esc(i18t('st_words_k_'+k))}</option>`).join('')}</select></label>
+          <label><span style="${window.RV_LBL||''}">${esc(i18t('st_words_value'))}</span><span id="st-w-value-slot"></span></label>
+        </div>
+        <button id="st-w-add" style="margin-top:10px;${ST_BTN_SM}">${esc(i18t('st_words_add_btn'))}</button>
+      </section>`; },
+    wire(){ stWordsPaint(); stWordsValueSlot();
+      document.getElementById('st-w-kind')?.addEventListener('change',stWordsValueSlot);
+      document.getElementById('st-w-add')?.addEventListener('click',()=>stWordsSave()); },
   },
 
   review:{

@@ -3067,6 +3067,7 @@ function hbDataGuide(lens, max){
   lines.push(`- Payment days (measure payDays): ${mk('payDays')} contracts state payment terms.`);
   lines.push(`- Negotiation rounds (measure rounds): ${mk('rounds')} contracts have rounds on record.`);
   lines.push(`- Live contracts each month (measure live): ${(_hbSnaps || []).length} monthly pictures kept so far.`);
+  { const wg = hbWordsGuide(); if (wg) lines.push(wg); }
   /* A CAP IS A FACT: what did not fit is said */
   let out = '', left = 0;
   for (const l of lines){ if ((out + l).length + 60 > lim){ left++; continue; } out += (out ? '\n' : '') + l; }
@@ -4470,6 +4471,67 @@ function hbBoardApply(actions, q){
    with the board shown to it (hbBoardNow) — never read as a new chart */
 const HB_WHY_ASK_RE = /^\s*(?:why|explain|how come|what (?:does|do) .{0,60}\bmean|what is this|what's this|varför|förklara|vad betyder)\b/i;
 /* ============================================================
+   THE BOARD'S WORD BOOK (work order "the board that answers right", Part 3,
+   5 Oct 2026; Power BI's linguistic schema, Tableau's semantics)
+   ============================================================
+   The company's own words — "deals", "BU", "ramavtal" — and what the board
+   reads them as. ONE list, an admin's (PUT /api/settings/board-words), read
+   off the settings blob. Before the board's own reader runs, a company word
+   is swapped for a phrase the reader already knows; Copilot is handed the
+   same list in the data guide. Words are DATA: escaped, never a regex built
+   from translated text. A word the reader already reads is refused in the
+   drawer (hbWordClash) — a company word never overrides a built-in one. */
+const HB_WORD_SPLIT = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', payterms: 'payment terms', valueBand: 'value band' };
+const HB_WORD_MEASURE = { count: 'how many', value: 'value', daysToSign: 'days to sign', payDays: 'payment days', rounds: 'negotiation rounds', live: 'live contracts' };
+const HB_WORD_STAGE = { 'Draft': 'drafts', 'Under Review': 'in review', 'Signed': 'signed', 'Declined': 'declined' };
+const HB_WORD_KINDS = ['set', 'split', 'measure', 'stage', 'type', 'side'];
+function hbWords(){ try { const l = state && state.settings && state.settings.boardWords; return Array.isArray(l) ? l.filter(w => w && w.say && w.means) : []; } catch (_){ return []; } }
+/* the phrase the board's own reader knows, for one meaning */
+function hbWordPhrase(m){
+  if (!m) return '';
+  if (m.kind === 'split') return HB_WORD_SPLIT[m.value] || '';
+  if (m.kind === 'measure') return HB_WORD_MEASURE[m.value] || '';
+  if (m.kind === 'stage') return HB_WORD_STAGE[m.value] || '';
+  if (m.kind === 'side') return m.value === 'supplier' ? 'suppliers' : m.value === 'customer' ? 'customers' : '';
+  if (m.kind === 'set' || m.kind === 'type') return hbPlainText(m.value, 80);
+  return '';
+}
+const _hbReEsc = t => String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/* the question with every company word swapped; longest words first, so
+   "frame agreements" is read before "agreements" */
+function hbWordsApply(q){
+  let t = String(q || ''); const list = hbWords();
+  if (!list.length || !t) return t;
+  list.slice().sort((a, b) => String(b.say).length - String(a.say).length).forEach(w => {
+    const ph = hbWordPhrase(w.means); if (!ph) return;
+    const re = new RegExp('(^|[^\\p{L}\\p{N}])' + _hbReEsc(String(w.say).trim()) + '(?=$|[^\\p{L}\\p{N}])', 'giu');
+    t = t.replace(re, (m, pre) => pre + ph);
+  });
+  return t;
+}
+/* a word the board already reads, on its own or after "by": refused, so a
+   company word can never change what the built-in reader does */
+function hbWordClash(say){
+  const w = String(say || '').trim(); if (!w) return false;
+  try {
+    if (hbParse(w)) return true;
+    const R = hbRecipeRead('contracts by ' + w); if (R && R.split && !R.left) return true;
+    if (typeof igConditions === 'function' && igConditions(w).length) return true;
+  } catch (_){ return false; }
+  return false;
+}
+/* the built-in words, drawn read-only in the drawer: read off the reader's
+   own group words (HB_RC_GW), never a second copy */
+function hbWordsBuiltIn(){
+  return Object.keys(HB_RC_GW).map(g => ({ group: g, words: HB_RC_GW[g].replace(/\(\?:/g, '').replace(/[()]/g, '').split('|').map(x => x.replace(/\?/g, '').trim()).filter(Boolean) }));
+}
+/* the list as Copilot is told it, in the data guide */
+function hbWordsGuide(){
+  const list = hbWords(); if (!list.length) return '';
+  return '- Company words (read them so): ' + list.map(w => `"${hbPlainText(w.say, 40)}" = ${w.means.kind} ${hbPlainText(w.means.value, 60)}`).join('; ') + '.';
+}
+
+/* ============================================================
    THE HONEST REPLY (work order "the board that answers right", Part 1, 5 Oct
    2026; the owner's screenshots: "Showing 10 of 181 · Top 10 by value · as
    graph" beside a board of 178, a card named by Copilot's note)
@@ -4562,6 +4624,7 @@ function hbFeedbackSend(rec){ return rec; }
 function hbAsk(q){
   _hbMeta = null;
   if (HB_WHY_ASK_RE.test(String(q || ''))){ _hbPendingRecipe = null; return null; }
+  q = hbWordsApply(q);
   const u0 = hbUndoTop();
   const fu = hbFollowUp(q);
   if (fu){ _hbPendingRecipe = null; return fu + `<div class="hb-cost">${_hbE(i18t('hb_free'))}${hbNoteUndo(u0)}</div>`; }
@@ -4966,7 +5029,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
