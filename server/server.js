@@ -7007,6 +7007,94 @@ const graphAskHandler = async (req, res) => {
 };
 app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, scopeAiPortfolio, graphAskHandler);
 
+/* ============================================================
+   DIG DEEPER — THE BOARD'S ANALYST (Young, 5 Oct 2026, "HaTi Board: Charts
+   That Explain", recommendations 4 and 5)
+   ============================================================
+   An open question ("why is value at risk up?") is worked out in steps. The
+   model never adds a number up: each step it ASKS for one of HaTi's own
+   calculations (calculate: a set and a recipe; pack: one of the four answer
+   packs), the BROWSER runs it through the board's one planner and sends the
+   fact sheet back, and the model asks again or finishes. This route is
+   stateless: the browser carries the steps so far and the server rebuilds
+   them as tool calls and results, each re-cleaned here. At most
+   BOARD_ANALYST_STEPS calculations; after that the model must finish. It
+   spends only on a press (the browser's "Dig deeper", its cost beside it);
+   the finish's sentences are checked against every fact sheet in the
+   browser (hbFactCheck) before one reaches the page. */
+const BOARD_ANALYST_STEPS = 5;
+const BOARD_ANALYST_RESULT_MAX = 3500;
+const BOARD_ANALYST_PACKS = ['risks', 'ending', 'standards', 'next12'];
+function boardAnalystClean(name, input) {
+  const txt = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+  const i = (input && typeof input === 'object') ? input : {};
+  const which = w => (w === 'all' || (w && w.all === true) || !w) ? { all: true } : (w && typeof w === 'object' && txt(w.q, 200)) ? { q: txt(w.q, 200) } : { all: true };
+  if (name === 'calculate') {
+    const r = graphChartClean(i.recipe) || {}; delete r.target;
+    return { why: txt(i.why, 200), which: which(i.which), recipe: r };
+  }
+  if (name === 'pack') return BOARD_ANALYST_PACKS.includes(i.name) ? { why: txt(i.why, 200), name: i.name } : null;
+  if (name === 'finish') {
+    const cards = Array.isArray(i.cards) ? i.cards.slice(0, 3).map(c => {
+      if (!c || typeof c !== 'object') return null;
+      const r = graphChartClean(c.recipe); if (!r) return null; delete r.target;
+      const o = { which: which(c.which), recipe: r }; if (txt(c.title, GRAPH_CHART_TITLE_MAX)) o.title = txt(c.title, GRAPH_CHART_TITLE_MAX);
+      return o;
+    }).filter(Boolean) : [];
+    const next = Array.isArray(i.next) ? i.next.map(x => txt(x, 120)).filter(Boolean).slice(0, 3) : [];
+    return { summary: String(i.summary == null ? '' : i.summary).replace(/[\u0000-\u0008\u000b-\u001f\u007f<>]/g, ' ').trim().slice(0, 1500), cards, next };
+  }
+  return null;
+}
+const boardAnalystHandler = async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const b = req.body || {};
+  const question = String(b.question || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 600);
+  if (!question) return res.status(400).json({ error: 'question is required' });
+  const guide = String(b.guide || '').slice(0, 6000), board = String(b.board || '').slice(0, 4000);
+  const steps = (Array.isArray(b.steps) ? b.steps : []).slice(0, BOARD_ANALYST_STEPS).map(s => {
+    if (!s || typeof s !== 'object' || !['calculate', 'pack'].includes(s.name)) return null;
+    const input = boardAnalystClean(s.name, s.input); if (!input) return null;
+    return { name: s.name, input, result: String(s.result == null ? '' : s.result).slice(0, BOARD_ANALYST_RESULT_MAX) };
+  }).filter(Boolean);
+  const must = steps.length >= BOARD_ANALYST_STEPS;
+  const tools = [
+    { name: 'calculate', description: 'Ask HaTi to count one chart over the contracts: a set (which) and a recipe. HaTi returns a FACT SHEET with every number. You never count yourself.',
+      input_schema: { type: 'object', properties: { why: { type: 'string', description: 'One short sentence: what this step checks, shown to the reader.' },
+        which: { type: 'object', description: '{all:true} for the whole book, or {q:"plain words naming the contracts"} (e.g. "leases", "auto-renewing", "Nordkemi").', properties: { all: { type: 'boolean' }, q: { type: 'string' } } },
+        recipe: { type: 'object', properties: { ...GRAPH_CHART_PROPS } } }, required: ['why', 'recipe'] } },
+    { name: 'pack', description: 'Ask HaTi for one of its four ready answers: risks (top risk contracts), ending (when the most value ends), standards (contracts off our standards), next12 (what to watch over the next 12 months). Returns its fact sheet.',
+      input_schema: { type: 'object', properties: { why: { type: 'string' }, name: { type: 'string', enum: BOARD_ANALYST_PACKS } }, required: ['why', 'name'] } },
+    { name: 'finish', description: 'The answer: a short summary, up to three cards to draw on the board, up to three next questions.',
+      input_schema: { type: 'object', properties: {
+        summary: { type: 'string', description: 'Three to five plain sentences: what the steps showed, why it matters, what to do. Use ONLY numbers that appear on the fact sheets, written as they appear; never work out a new number.' },
+        cards: { type: 'array', description: 'Up to three charts worth keeping on the board, each a set, a recipe and a short title.', items: { type: 'object', properties: { which: { type: 'object', properties: { all: { type: 'boolean' }, q: { type: 'string' } } }, recipe: { type: 'object', properties: { ...GRAPH_CHART_PROPS } }, title: { type: 'string' } } } },
+        next: { type: 'array', items: { type: 'string' }, description: 'Up to three short follow-up questions the reader could ask.' } }, required: ['summary'] } },
+  ];
+  const lang = String(b.lang || '').replace(/[^\p{L} ]/gu, '').slice(0, 30) || 'English';
+  const prompt = `You are HaTi's analyst on the Home BOARD of a contract portfolio. Work out the reader's question in steps. Each step, ask HaTi for ONE calculation (calculate or pack); HaTi counts and returns a fact sheet. Take at most ${BOARD_ANALYST_STEPS} steps — usually two or three — then call finish. Never state a number that is not on a fact sheet; never add, subtract or divide numbers yourself. If a fact sheet says some contracts were not read or not checked, say the picture may be incomplete. Write in ${lang}.\n\nToday's date: ${new Date().toISOString().slice(0, 10)}\n${board ? `\nThe board now:\n${board}\n` : ''}${guide ? `\nWhat each field holds:\n${guide}\n` : ''}\nThe reader's question: "${question}"`;
+  const messages = [{ role: 'user', content: prompt }];
+  steps.forEach((s, n) => {
+    const id = 'step_' + n;
+    messages.push({ role: 'assistant', content: [{ type: 'tool_use', id, name: s.name, input: s.input }] });
+    messages.push({ role: 'user', content: [{ type: 'tool_result', tool_use_id: id, content: s.result || '(nothing came back)' }] });
+  });
+  if (must) messages[messages.length - 1].content.push({ type: 'text', text: 'That was the last step: call finish now.' });
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1800, tools, tool_choice: must ? { type: 'tool', name: 'finish' } : { type: 'any' }, messages }, { feature: 'graph', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(x => x.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    let name = block.name, input = boardAnalystClean(name, block.input);
+    /* a step the board cannot run (an unknown pack, a step past the last) is
+       turned into a finish with nothing claimed, never run */
+    if (!input || (must && name !== 'finish')) { name = 'finish'; input = { summary: '', cards: [], next: [] }; }
+    res.json({ step: { name, input }, steps: steps.length, max: BOARD_ANALYST_STEPS, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+};
+app.post('/api/board/analyst', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, boardAnalystHandler);
+
 /* ---------- OCR: read scanned paper ----------
    The client rasterizes each page (pdf.js, ~200 DPI, JPEG) and posts it here;
    we transcribe it with vision through the same Anthropic proxy. The prompt is

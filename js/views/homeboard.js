@@ -84,7 +84,7 @@ let _hbS = null, _hbSUid = null;
 function hbFresh(){
   return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: 'dark',
     watches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
-    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0 };
+    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {} };
 }
 /* The board as this person left it. Read once per sitting and per person; a
    value that does not parse, or a word this version does not know, falls
@@ -139,6 +139,19 @@ function hbS(){
       if (typeof k === 'string' && w && typeof w.day === 'string' && typeof w.sig === 'string' && typeof w.text === 'string')
         s.why[k.slice(0, 300)] = { day: w.day.slice(0, 10), sig: w.sig.slice(0, 400), text: w.text.slice(0, 4000), dropped: Number(w.dropped) || 0, at: String(w.at || '').slice(0, 5), notice: String(w.notice || '').slice(0, 300) }; });
   }
+  /* the analyst's runs (Dig deeper), kept for a refresh; one cut short by
+     the refresh says so */
+  if (v && v.an && typeof v.an === 'object') Object.entries(v.an).slice(-HB_DD_KEEP).forEach(([k, r]) => {
+    if (!/^r[0-9a-z]{1,20}$/.test(k) || !r || typeof r !== 'object' || !Array.isArray(r.steps)) return;
+    const txt = (x, n) => String(x == null ? '' : x).slice(0, n);
+    const run = { id: k, q: txt(r.q, 400), state: ['done', 'empty', 'err'].includes(r.state) ? r.state : 'err', summary: txt(r.summary, 1500), dropped: Number(r.dropped) || 0,
+      err: r.state === 'busy' ? i18t('hb_dd_stopped') : txt(r.err, 300), notice: txt(r.notice, 300), at: txt(r.at, 5), added: !!r.added,
+      cards: Array.isArray(r.cards) ? r.cards.slice(0, 3).filter(c => c && typeof c === 'object').map(c => ({ which: hbCardClean({ which: c.which }).which || { all: true }, recipe: hbCardClean(c.recipe || {}), title: txt(c.title, HB_TITLE_MAX) })) : [],
+      next: Array.isArray(r.next) ? r.next.filter(x => typeof x === 'string').slice(0, 3).map(x => x.slice(0, 120)) : [],
+      steps: r.steps.slice(0, HB_DD_STEPS).filter(x => x && typeof x === 'object').map(x => ({ name: x.name === 'pack' ? 'pack' : 'calculate', why: txt(x.why, 200), title: txt(x.title, 160),
+        lines: Array.isArray(x.lines) ? x.lines.filter(l => typeof l === 'string').slice(0, 4).map(l => _hbE(hbFactPlain(l).slice(0, 600))) : [],   /* read back as words, never as markup */
+        ids: Array.isArray(x.ids) ? x.ids.filter(i => typeof i === 'string').slice(0, HB_DD_IDS_MAX) : [], n: Number(x.n) || 0, dig: /^pk:\w+$/.test(String(x.dig || '')) ? x.dig : '' })) };
+    s.an[k] = run; });
   if (v && Array.isArray(v.undo)) s.undo = v.undo.filter(u => u && Number(u.n) > 0 && typeof u.shape === 'string' && u.shape.length < 400000).slice(-HB_UNDO_MAX).map(u => ({ n: Number(u.n), shape: u.shape }));
   if (v && Number(v.undoSeq) > 0) s.undoSeq = Number(v.undoSeq);
   _hbS = s; _hbSUid = uid; _hbShape = hbShapeOf(s);
@@ -493,6 +506,9 @@ function hbListOf(ids, lens){
 function hbDigData(key, lens){
   const at = String(key || '').indexOf(':');
   const k = at < 0 ? key : key.slice(0, at), a = at < 0 ? '' : key.slice(at + 1);
+  /* DIG DEEPER: one analyst run (Charts That Explain, recs 4 and 5) */
+  if (k === 'an'){ const run = hbDdRun(a); if (!run) return null;
+    return { key, kind: 'analyst', run, crumb: i18t('hb_dd_crumb'), title: i18t('hb_dd_crumb'), n: run.steps.length }; }
   /* AN ANSWER PACK (Charts That Explain, rec 3): the pack, its cards, its lists */
   if (k === 'pk'){
     const dot = a.indexOf('.'), name = dot < 0 ? a : a.slice(0, dot), sub = dot < 0 ? '' : a.slice(dot + 1);
@@ -3041,6 +3057,11 @@ function hbReadSrc(key){
       data: ['Stages (stage: contracts' + (D.money ? ', value' : '') + '):', ...D.stages.map(s => `- ${s.k}: ${s.n}${D.money ? ', ' + _hbM(s.v || 0) : ''}`)] };
   }
   if (D.kind !== 'list') return null;
+  return hbReadOfList(D, key, title, lens);
+}
+/* a list's reading as Copilot is shown it: the same run the card draws (the
+   analyst's steps use it too, hbDdCalc) */
+function hbReadOfList(D, key, title, lens){
   const P = hbPlan(D);
   /* the same run the card draws: the period cut, then the picture */
   const run = P.pic === 'list' ? { R: null, cs: hbWinCs(hbListOf(D.ids, lens), D) } : hbChartRun(D, hbListOf(D.ids, lens), P);
@@ -3386,6 +3407,7 @@ function hbReadMoreToggle(key){
 
 function hbDigBodyHtml(D, lens, big){
   if (D.kind === 'pack') return hbPackHtml(D, lens, big);
+  if (D.kind === 'analyst') return hbDdCardHtml(D);
   if (D.kind === 'list'){
     const cs = hbListOf(D.ids, lens);
     const fig = D.fig || '';
@@ -3827,6 +3849,134 @@ function hbBoardSumHtml(){
     <div class="hb-why-b">${(typeof aiRichText === 'function') ? aiRichText(kept.text) : _hbE(kept.text)}</div>
     <div class="hb-why-f"><span class="${kept.dropped ? 'hb-why-cut' : 'hb-why-ok'}">${_hbE(kept.dropped ? i18tn('hb_cx_dropped', kept.dropped, { n: kept.dropped }) : i18t('hb_cx_ok'))}</span></div></div>`;
   return { btn, box };
+}
+
+/* ============================================================
+   DIG DEEPER — THE ANALYST (Young, 5 Oct 2026, "HaTi Board: Charts That
+   Explain", recommendations 4 and 5; Young's comment on the doc asked whether
+   it should run by itself — it runs ON A PRESS, the house rule that Copilot
+   spends only when asked, its cost beside the button)
+   ============================================================
+   Under a Copilot answer on the board, "Dig deeper" hands the question to
+   ONE analyst (POST /api/board/analyst). Copilot plans; HaTi counts: each
+   step Copilot asks for one calculation (a set and a recipe, or one of the
+   four answer packs), HaTi runs it through the board's one planner
+   (hbChartRun, hbReadingOf) and sends back its FACT SHEET; at most
+   HB_DD_STEPS steps, then a finish — a summary checked number by number
+   against every sheet (hbFactCheck), up to three cards OFFERED (one press
+   adds them through the one applier, hbBoardApply), up to three next
+   questions. The run is a focus card (an:<id>) that lists every step as
+   "How HaTi worked this out", each with its own reading and a door onto the
+   contracts it counted. Kept on this person's board for the sitting's
+   refresh (s.an, HB_DD_KEEP). */
+const HB_DD_STEPS = 5, HB_DD_KEEP = 3, HB_DD_SHEET_MAX = 3400, HB_DD_IDS_MAX = 500;
+const _hbDdBusy = new Set();
+let _hbDdCalc = 0;
+function hbDdLive(){ return typeof API_MODE === 'function' && API_MODE() && typeof copilotAvailable === 'function' && copilotAvailable(); }
+/* the press, under a Copilot reply on the board (never on the free road) */
+function hbDeeperHtml(q){
+  const t = String(q || '').trim(); if (!t || hbS().face !== 'board') return '';
+  const live = hbDdLive();
+  /* it sits in the panel, so it wears the panel's clothes, not the board's */
+  return `<div class="hb-dd-go"><button type="button" class="ui-btn ui-btn-sm" data-hb-deeper="${_hbE(t.slice(0, 400))}"${live ? '' : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t('hb_dd_btn'))}</button>
+    <span class="hb-dd-cost">${_hbE(live ? i18t('hb_dd_cost', { n: HB_DD_STEPS, m: HB_DD_STEPS + 1 }) : i18t('hb_cx_nokey'))}</span></div>`;
+}
+/* one calculation, as the analyst asked for it: a set and a recipe, run
+   through the board's own planner — the same arithmetic a card draws */
+function hbDdCalc(input, lens){
+  const W = hbWhichOf((input && input.which) || { all: true }, lens);
+  if (W.unread) return { title: W.label, say: `HaTi could not read "${W.label}" as a set of contracts, so nothing was counted. Name the set with the board's own words (a stage, a stream, a counterparty, a type) or use the whole book.`, lines: [], ids: [], nums: new Set() };
+  const clean = hbCardClean((input && input.recipe) || {}); delete clean.which;
+  const key = 'an' + HB_KEY_SEP + (++_hbDdCalc);
+  const D = { key, kind: 'list', crumb: W.label, title: W.label, setLabel: W.label, ids: W.ids, n: W.ids.length, whole: W.whole, fixed: W.fields, chart: clean };
+  const P = hbPlan(D);
+  const title = hbPlainText(clean.title || (W.label + ' · ' + hbSplitWord(P.split)), HB_TITLE_MAX);
+  const src = hbReadOfList(D, key, title, lens);
+  if (!src) return { title, say: `Nothing to count: no contracts in "${W.label}".`, lines: [], ids: [], nums: new Set(['0']) };
+  const sheet = hbFactSheet(src);
+  return { title, say: sheet.text, lines: src.reading.lines, ids: src.cs.map(c => c.id), nums: sheet.nums, cov: sheet.coverage };
+}
+function hbDdPack(input, lens){
+  const name = input && input.name; if (!HB_PACKS.includes(name)) return { title: '?', say: 'No such answer pack.', lines: [], ids: [], nums: new Set() };
+  const src = hbPackSrc('pk:' + name, lens), sheet = hbFactSheet(src);
+  return { title: src.title, say: sheet.text, lines: src.reading.lines, ids: src.cs.map(c => c.id), dig: 'pk:' + name, nums: sheet.nums, cov: sheet.coverage };
+}
+function hbDdRun(id){ const s = hbS(); return (s.an && s.an[id]) || null; }
+function hbDdKeep(run){
+  const s = hbS(); s.an = s.an || {};
+  delete s.an[run.id]; s.an[run.id] = run;
+  const ks = Object.keys(s.an); while (ks.length > HB_DD_KEEP) delete s.an[ks.shift()];
+  hbSave();
+}
+/* THE LOOP: ask, run the step, send it back — at most HB_DD_STEPS + 1 calls */
+async function hbDigDeeper(q){
+  const t = String(q || '').trim(); const s = hbS();
+  if (!t || s.face !== 'board') return null;
+  const id = 'r' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36);
+  const run = { id, q: t.slice(0, 400), steps: [], state: 'busy', summary: '', dropped: 0, cards: [], next: [], err: '', notice: '', at: '' };
+  hbDdKeep(run); _hbDdBusy.add(id);
+  hbDig('an:' + id, false);
+  if (!hbDdLive()){ run.state = 'err'; run.err = i18t('hb_cx_nokey'); _hbDdBusy.delete(id); hbDdKeep(run); hbPaintBoard(); return run; }
+  const lens = s.lens, nums = new Set(), sent = [];
+  try {
+    for (let n = 0; n <= HB_DD_STEPS; n++){
+      const r = await api('board/analyst', 'POST', { question: run.q, guide: hbDataGuide(lens), board: hbBoardNow(), lang: i18t('hb_cx_lang'), steps: sent });
+      if (r && r.notice) run.notice = String(r.notice).slice(0, 300);
+      const st = r && r.step; if (!st) throw new Error('no step');
+      if (st.name === 'finish' || n === HB_DD_STEPS){
+        const f = st.name === 'finish' ? st.input || {} : {};
+        const chk = hbFactCheck(f.summary || '', nums);
+        run.summary = chk.text.slice(0, 1500); run.dropped = chk.dropped;
+        run.cards = (Array.isArray(f.cards) ? f.cards : []).slice(0, 3);
+        run.next = (Array.isArray(f.next) ? f.next : []).map(x => hbPlainText(x, 120)).filter(Boolean).slice(0, 3);
+        break;
+      }
+      const out = st.name === 'pack' ? hbDdPack(st.input, lens) : hbDdCalc(st.input, lens);
+      out.nums.forEach(x => nums.add(x));
+      if (out.cov){ const c = out.cov; [c.n, c.read, c.checked, c.n - c.read, c.n - c.checked].forEach(x => nums.add(String(x))); }
+      run.steps.push({ name: st.name, why: hbPlainText(st.input && st.input.why, 200), title: out.title, lines: (out.lines || []).slice(0, 4).map(l => _hbE(hbFactPlain(l))), ids: out.ids.slice(0, HB_DD_IDS_MAX), n: out.ids.length, dig: out.dig || '' });
+      sent.push({ name: st.name, input: st.input, result: String(out.say).slice(0, HB_DD_SHEET_MAX) });
+      hbDdKeep(run); hbPaintBoard();
+    }
+    run.state = run.summary ? 'done' : 'empty';
+  } catch (e){
+    run.state = 'err';
+    run.err = e && e.needsKey ? i18t('hb_cx_nokey') : e && e.spendLimit ? String(e.message || '').slice(0, 200) : i18t('hb_cx_failed', { why: String((e && e.message) || e || '').slice(0, 160) });
+  } finally {
+    run.at = new Date().toTimeString().slice(0, 5);
+    _hbDdBusy.delete(id); hbDdKeep(run); hbPaintBoard();
+  }
+  return run;
+}
+/* the cards the analyst offered, added on the reader's press */
+function hbDdAddCards(id){
+  const run = hbDdRun(id); if (!run || !run.cards.length || run.added) return null;
+  const r = hbBoardApply(run.cards.map(c => ({ do: 'add_card', which: c.which || { all: true }, recipe: c.recipe || {}, title: c.title })), run.q);
+  run.added = true; hbDdKeep(run); hbPaintBoard();
+  return r;
+}
+function hbDdCardHtml(D){
+  const run = D.run, busy = _hbDdBusy.has(run.id);
+  const steps = run.steps.map((st, i) => {
+    const door = st.dig ? `<button type="button" class="hb-read-n" data-hb-dig="${_hbE(st.dig)}">${_hbE(i18tn('hb_n_contracts', st.n, { n: _hbN(st.n) }))}</button>`
+      : st.n ? `<button type="button" class="hb-read-n" data-hb-open="${_hbE(st.ids.join(','))}" data-hb-what="${_hbE(st.title)}">${_hbE(i18tn('hb_n_contracts', st.n, { n: _hbN(st.n) }))}</button>` : _hbE(i18tn('hb_n_contracts', 0, { n: 0 }));
+    /* a step's reading is words: its own doors pointed at a calculation that
+       is not a card; the step's ONE door is the count beside its name */
+    return `<li class="hb-dd-step"><div class="hb-dd-sh"><span class="hb-dd-i">${i + 1}</span><b>${_hbE(st.title)}</b><span class="hb-grow"></span>${door}</div>
+      ${st.why ? `<div class="hb-quiet">${_hbE(i18t('hb_dd_why', { why: st.why }))}</div>` : ''}${st.lines.length ? `<ul>${st.lines.map(l => `<li>${l}</li>`).join('')}</ul>` : ''}</li>`;
+  }).join('');
+  const working = busy ? `<li class="hb-dd-step is-busy"><span class="hb-quiet">${_hbE(i18t('hb_dd_working', { n: run.steps.length + 1 }))}</span></li>` : '';
+  const how = `<details class="hb-how hb-dd-how"${busy || !run.summary ? ' open' : ''}><summary>${_hbE(i18t('hb_how_title'))} · ${_hbE(i18tn('hb_dd_steps', run.steps.length, { n: run.steps.length }))}</summary><ol class="hb-dd-steps">${steps}${working}</ol></details>`;
+  let ans = '';
+  if (run.state === 'err') ans = `<div class="hb-why is-err"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_dd_answer'))}</span></div><p>${_hbE(run.err)}</p></div>`;
+  else if (run.summary) ans = `<div class="hb-why"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_dd_answer'))}</span><span class="hb-grow"></span><span class="hb-read-src">${_hbE(i18t('hb_cx_when', { at: run.at }))}</span></div>
+    <div class="hb-why-b">${(typeof aiRichText === 'function') ? aiRichText(run.summary) : _hbE(run.summary)}</div>
+    <div class="hb-why-f"><span class="${run.dropped ? 'hb-why-cut' : 'hb-why-ok'}">${_hbE(run.dropped ? i18tn('hb_cx_dropped', run.dropped, { n: run.dropped }) : i18t('hb_cx_ok'))}</span>${run.notice ? `<span>${_hbE(run.notice)}</span>` : ''}</div></div>`;
+  else if (!busy) ans = `<div class="hb-why is-err"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_dd_answer'))}</span></div><p>${_hbE(i18t('hb_dd_empty'))}</p></div>`;
+  const add = run.cards.length ? `<div class="hb-dd-add">${run.added ? `<span class="hb-quiet">${_hbE(i18tn('hb_dd_added', run.cards.length, { n: run.cards.length }))}</span>`
+    : `<button type="button" class="ui-btn ui-btn-sm" data-hb-dd-add="${_hbE(run.id)}">${_hbE(i18tn('hb_dd_add', run.cards.length, { n: run.cards.length }))}</button><span class="hb-quiet">${_hbE(run.cards.map(c => c.title || i18t('hb_dd_card')).join(' · ').slice(0, 200))}</span>`}</div>` : '';
+  const next = run.next.length ? `<div class="hb-nx"><span class="hb-nx-l">${_hbE(i18t('hb_nx_label'))}</span>${run.next.map(q => `<button type="button" class="hb-nx-q" data-hb-next="${_hbE(q)}">${_hbE(q)}</button>`).join('')}</div>` : '';
+  return `<div class="hb-dd" data-hb-dd="${_hbE(run.id)}"><p class="hb-dd-q">${_hbE(run.q)}</p>${ans}${add}${how}${next}</div>`;
 }
 
 /* ============================================================
@@ -5789,6 +5939,8 @@ function hbOnClick(e){
   if (on('[data-hb-obl]')){ if (typeof obwGoFiltered === 'function') obwGoFiltered({ state: 'overdue' }); else setView('obligations'); return; }
   if ((el = on('[data-hb-room]'))){ if (typeof openWorkspace === 'function') openWorkspace(el.getAttribute('data-hb-room')); return; }
   if ((el = on('[data-hb-why]'))){ hbWhyAsk(el.getAttribute('data-hb-why')); return; }
+  if ((el = on('[data-hb-deeper]'))){ if (!el.disabled) hbDigDeeper(el.getAttribute('data-hb-deeper')); return; }
+  if ((el = on('[data-hb-dd-add]'))){ hbDdAddCards(el.getAttribute('data-hb-dd-add')); return; }
   if ((el = on('[data-hb-read-more]'))){ hbReadMoreToggle(el.getAttribute('data-hb-read-more')); return; }
   if ((el = on('[data-hb-why-follow]'))){ hbWhyFollow(el.getAttribute('data-hb-why-follow')); return; }
   if ((el = on('[data-hb-ins]'))){ hbInsAct(el.getAttribute('data-hb-ins'), el.getAttribute('data-hb-ins-k')); return; }
@@ -5884,7 +6036,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

@@ -110,6 +110,43 @@ const check = (name, pass, detail) => { console.log(`${pass ? 'PASS' : 'FAIL'}  
       check('4b its answer is under the top line, checked', !!box && !/37%/.test(box), box && box.slice(0, 140)); }
     await page.screenshot({ path: path.join(OUT, '3-board-summary.png') });
 
+    /* 5 — dig deeper: the analyst, played back (no key in CI); the board's
+       own arithmetic runs every step */
+    await page.evaluate(() => {
+      const real = window.api; window._dd = [];
+      const steps = [
+        { name: 'calculate', input: { why: 'Who holds the value', which: { all: true }, recipe: { pic: 'bars', split: { by: 'counterparty' }, measure: 'value', top: 5 } } },
+        { name: 'pack', input: { why: 'Which of them carry risk', name: 'risks' } },
+        { name: 'finish', input: { summary: 'Nordkemi AB and Baltic Freight hold the risk. Prices rose 37% last year.', cards: [{ which: { all: true }, recipe: { pic: 'ring', split: { by: 'risks' } }, title: 'Risk' }], next: ['Which end first?'] } }];
+      window.api = async (p, m, body) => {
+        if (p === 'ai/graph') return { actions: [{ do: 'add_card', which: { all: true }, recipe: { pic: 'bars', split: { by: 'counterparty' }, measure: 'value' } }], answer: 'Value sits with two suppliers.', note: 'x' };
+        if (p === 'board/analyst'){ window._dd.push(body); return { step: steps[Math.min(window._dd.length - 1, 2)] }; }
+        return real(p, m, body); };
+      state.aiConfigured = true;
+      const s = hbS(); s.path = []; hbSave(); hbPaintBoard(); });
+    await page.evaluate(() => intelAsk('Why is so much value concentrated with so few suppliers?'));
+    const go = await until(() => { const b = document.querySelector('[data-hb-deeper]'); return b ? { t: b.textContent.trim(), cost: (b.parentElement.querySelector('.hb-dd-cost') || {}).textContent || '' } : null; });
+    check('5a "Dig deeper" sits under Copilot\'s board answer, its cost beside it', !!go && go.t === 'Dig deeper' && /up to 5 steps/.test(go.cost), JSON.stringify(go));
+    if (go){
+      await page.evaluate(() => document.querySelector('[data-hb-deeper]').click());
+      const dd = await until(() => { const c = document.querySelector('#hb-focus .hb-dd'); if (!c || !c.querySelector('.hb-why-b')) return null;
+        return { steps: c.querySelectorAll('.hb-dd-step').length, doors: c.querySelectorAll('.hb-dd-step [data-hb-open], .hb-dd-step [data-hb-dig]').length,
+          ans: c.querySelector('.hb-why-b').textContent.replace(/\s+/g, ' ').trim(), add: !!c.querySelector('[data-hb-dd-add]'), sent: window._dd.length,
+          sheet: (window._dd[1] && window._dd[1].steps[0] && window._dd[1].steps[0].result || '').slice(0, 40) }; });
+      check('5b each step is HaTi\'s count, its fact sheet sent back, shown with a door', !!dd && dd.steps === 2 && dd.doors === 2 && dd.sent === 3 && /^FACT SHEET — /.test(dd.sheet), JSON.stringify(dd));
+      check('5c the answer is checked: a number on no sheet never shows', !!dd && /Nordkemi AB/.test(dd.ans) && !/37%/.test(dd.ans), dd && dd.ans);
+      const n0 = await page.evaluate(() => hbS().panels.length);
+      if (dd && dd.add){ await page.evaluate(() => document.querySelector('[data-hb-dd-add]').click());
+        const n1 = await until(n0 => hbS().panels.length > n0 ? hbS().panels.length : null, n0);
+        check('5d the offered card is added on the press, through the one applier', n1 === n0 + 1, `${n0} → ${n1}`); }
+      await page.waitForTimeout(600);
+      await page.screenshot({ path: path.join(OUT, '4-dig-deeper.png') });
+      await page.evaluate(() => { const d = document.querySelector('#hb-focus .hb-dd-how'); if (d) d.open = true; });
+      await page.evaluate(() => { hbS().screen = 'light'; hbSave(); hbApplyScreen(); hbPaintBoard(); });
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: path.join(OUT, '5-dig-deeper-light.png') });
+    }
+
     check('9 no page errors', errors.length === 0, errors.join(' | ') || 'none');
   } catch (e){
     check('the run finished', false, e && e.message);
