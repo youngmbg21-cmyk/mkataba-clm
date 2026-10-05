@@ -138,7 +138,9 @@ describe('f484 (6) both books', () => {
     const I = read('js/i18n.js');
     const keys = new Set((SRC + read('js/views/contract.js') + read('js/triage.js') + read('js/views/negotiation.js'))
       .match(/\b(rk_[a-z_]+|tri_t_risk[a-z_]*|tri_go_risk)\b/g));
-    for (const k of keys)
+    /* RE-POINTED 5 Oct 2026: 'rk_why_' is a PREFIX (riskWhyOf builds
+       rk_why_<rule id> from it), not a key; f506 holds every rule's key. */
+    for (const k of keys) if (!k.endsWith('_'))
       assert.equal((I.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
   });
 });

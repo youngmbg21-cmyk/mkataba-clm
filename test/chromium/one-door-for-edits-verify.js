@@ -139,7 +139,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
         acts: rows.map(r => [...r.querySelectorAll('button')].map(b => b.textContent.trim()).join(' · ')),
         drafting: !!p.querySelector('[data-rk-target], .rk-draft, [data-rk-act="add"]') };
     });
-    check(!!list && list.acts.length && list.acts.every(a => a === 'Add a note · Discard · Edit'), '1a each risk row offers Add a note · Discard · Edit', list && list.acts[0]);
+    check(!!list && list.acts.length && list.acts.every(a => a === 'Add a note · Discard · Edit · Why'), '1a each risk row offers Add a note · Discard · Edit, and Why', list && list.acts[0]);
     check(!!list && !list.drafting, '1b no wording is drafted in the card');
     check(!!list && /· 3$/.test(list.head) && !list.keys.includes('s:t-pay'), '1c the covered Payment risk is not listed or counted', list && list.head + ' ' + list.keys.join(','));
     const tile = await page.evaluate(id => riskOpenOf(getContract(id)).length, ID);
@@ -152,7 +152,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
           fs: k.fontSize, fw: k.fontWeight, col: k.color, mark: !!el.querySelector('svg use') }; };
       const ed = document.querySelector('#rl-changes .rl-card-face [data-rl-cp-editor-row], #rl-changes .rl-card-face [data-rl-edit]');
       const row = document.querySelector('#rl-risks .rk-row[data-rk-key]:not(.is-covered):not(.is-gone)');
-      const vs = row ? [...row.querySelectorAll('[data-rk-act]')] : [];
+      const vs = row ? [...row.querySelectorAll('[data-rk-act]:not([data-rk-act="why"])')] : [];
       const lefts = vs.map(b => Math.round(b.getBoundingClientRect().left));
       return { edit: st(ed), risk: st(row && row.querySelector('[data-rk-act="edit-ce"]')), all: vs.map(st), leftFirst: lefts[0], rowLeft: row ? Math.round(row.getBoundingClientRect().left) : 0, ordered: lefts.every((x, i) => !i || x > lefts[i - 1]) };
     });
@@ -165,6 +165,31 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       const ruby = getComputedStyle(probe).color; probe.remove();
       return d ? { col: getComputedStyle(d).color, ruby, x: /#i-bin/.test(d.innerHTML), word: d.textContent.trim() } : null; });
     check(!!rej && rej.col === rej.ruby && rej.x && rej.word === 'Discard', '1h the dismiss act reads like the redline row\'s Discard: the word, the bin, the ruby', JSON.stringify(rej));
+    /* EVERY CARD ONE SIZE, AND WHY IN PLAIN WORDS (Young, 5 Oct 2026) */
+    const even = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('#rl-risks .rk-row[data-rk-key]:not(.is-covered):not(.is-gone)')];
+      return { hs: rows.map(r => Math.round(r.getBoundingClientRect().height)),
+        oneLine: rows.every(r => { const t = r.querySelector('.rk-t'); const k = getComputedStyle(t); return k.whiteSpace === 'nowrap' && k.textOverflow === 'ellipsis'; }),
+        why: rows.map(r => { const b = r.querySelector('[data-rk-act="why"]'); return b ? b.textContent.trim() : ''; }),
+        whyRight: rows.every(r => { const b = r.querySelector('[data-rk-act="why"]'), sv = r.querySelector('.rk-sev'); return b && sv && Math.abs(b.getBoundingClientRect().right - sv.getBoundingClientRect().right) < 14; }) };
+    });
+    check(even.hs.length > 1 && new Set(even.hs).size === 1 && even.oneLine, '1i every risk card is one size, the title on one line', JSON.stringify(even.hs));
+    check(even.why.every(w => w === 'Why') && even.whyRight, '1j "Why" sits at the bottom right, under the severity', JSON.stringify(even.why));
+    await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="why"]');
+    const opened = await until(page, () => { const w = document.querySelector('#rl-risks [data-rk-key="s:t-liab"] .rk-why');
+      const b = document.querySelector('#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="why"]');
+      return w ? { text: w.textContent.replace(/\s+/g, ' ').trim(), exp: b && b.getAttribute('aria-expanded') } : null; });
+    check(!!opened && /^Why it matters/i.test(opened.text) && /limit what they owe you/.test(opened.text) && !/A data breach could cost/.test(opened.text) && opened.exp === 'true',
+      '1k "Why" opens the plain-English reason for the rule, not the stored wording', opened && opened.text);
+    await shot('1b-why-open.png');
+    await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="why"]');
+    check(!!(await until(page, () => !document.querySelector('#rl-risks [data-rk-key="s:t-liab"] .rk-why') ? true : null)), '1l pressing it again folds the card');
+    /* NO DOTTED LINE AROUND THE CLAUSE (Young, 5 Oct 2026) */
+    await page.evaluate(id => { const c = getContract(id); const ch = (c.changes || [])[0];
+      if (ch && window.rlLinkFocus) rlLinkFocus(c, ch.id, 'card');
+      else { const card = ch && document.querySelector('#rl-changes [data-nego-card="' + ch.id + '"]'); if (card) card.click(); } }, ID);
+    const ring = await until(page, () => { const cl = document.querySelector('.redline-page .rl-clause.is-linked'); return cl ? getComputedStyle(cl).outlineStyle : null; });
+    check(ring === 'none', '1m a linked clause carries no dotted line on the paper', ring);
     await shot('1-the-list.png');
 
     /* ============ 2. COVERED FOLD ============ */

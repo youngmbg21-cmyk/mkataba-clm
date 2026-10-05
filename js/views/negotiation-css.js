@@ -3881,8 +3881,12 @@ function redlineLayoutCss(){
      so it costs the wording no width and moves nothing. Both seats inherit it,
      the same rule. The CARD keeps the accent ring: a row in a column is
      furniture, and there the stronger mark is what makes the pairing findable. */
-  .redline-page .rl-clause.is-linked{outline:1px dotted var(--color-neutral-400);
-    outline-offset:3px}
+  ${''/* ---- AND NOW NO LINE AT ALL ON THE PAPER (Young, 5 Oct 2026: "remove
+         the dotted line around the clause") ----
+         The pairing still lights the CARD (its faint ring, below) and the page
+         still scrolls to the clause; on the paper the ruby margin bar of a
+         redlined clause is the mark. The class stays — the pairing reads it. */}
+  .redline-page .rl-clause.is-linked{outline:none}
   ${''/* ---- AND THE CARD'S RING IS FAINT NOW (owner-asked 26 Aug 2026: "the
          outline on the card should be visible but faint and not like the
          outline thickness currently in the picture") ----

@@ -153,7 +153,7 @@ function riskItemsOf(c){
   scan.filter(_rkDraftable).forEach(f => {
     const quote = (typeof findingQuote === 'function') ? findingQuote(f) : (f.quote || '');
     take({ key: riskKeyOf('scan', f.id), src: 'scan', id: f.id,
-      sev: RK_SEV_RANK[f.sev] ? f.sev : 'med', title: String(f.title || ''),
+      sev: RK_SEV_RANK[f.sev] ? f.sev : 'med', title: String(f.title || ''), kind: String(f.kind || ''),
       say: String(f.what || ''), why: String(f.why || ''), fix: String(f.fix || ''),
       quote, missing: f.kind === 'missing' && !quote, anchor: f.anchor || '',
       dismissed: dis.includes(f.id) });
@@ -216,7 +216,7 @@ function riskDismiss(c, key, back){
    What the list and the walk are showing is a fact about this sitting, never
    about the record; a refresh starts fresh, which costs nothing because
    nothing here was filed. */
-const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, advice: {}, busy: '', err: {}, spent: {} };
+const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, advice: {}, busy: '', err: {}, spent: {}, whyOpen: {} };
 
 /* WHERE A RISK'S WORDING WOULD GO, asked at the PRESS (negoClauseList may
    start a negotiation; a draw never calls this). A finding whose words are on
@@ -561,14 +561,43 @@ function _rkSevHtml(s){
    clause on the paper is Edit with Copilot's. And never at or after the
    signatures. */
 function _rkRowHtml(c, it){
-  return `<div class="rk-row is-${_rkE(it.sev)}" data-rk-key="${_rkE(it.key)}">
-    <div class="rk-top"><b class="rk-t">${_rkE(it.title)}</b>${_rkSevHtml(it.sev)}</div>
+  const why = riskWhyOf(it);
+  /* A Copilot brief item's title IS its long sentence: on the card it is one
+     line, and the whole sentence is read when the card opens. */
+  const long = it.src !== 'scan';
+  const open = !!_rk.whyOpen[it.key];
+  const hasMore = !!(why || long);
+  return `<div class="rk-row is-${_rkE(it.sev)}${open ? ' is-open' : ''}" data-rk-key="${_rkE(it.key)}">
+    <div class="rk-top"><b class="rk-t" title="${_rkE(it.title)}">${_rkE(it.title)}</b>${_rkSevHtml(it.sev)}</div>
     <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>
     <div class="rk-verbs">
       <button type="button" class="rk-verb" data-rk-act="note">${_rkMark('chat')}${_rkE(_rkT('rk_note'))}</button>
       <button type="button" class="rk-verb is-no" data-rk-act="dismiss">${_rkMark('bin')}${_rkE(_rkT('ng_discard'))}</button>
       <button type="button" class="rk-verb is-ai" data-rk-act="edit-ce" title="${_rkE(_rkT('rk_edit_ce_title'))}">${_rkMark('edit')}${_rkE(_rkT('rk_edit_ce'))}</button>
-    </div></div>`;
+      ${hasMore ? `<button type="button" class="rk-why-btn" data-rk-act="why" aria-expanded="${open}" title="${_rkE(_rkT('rk_why_title'))}">${_rkE(_rkT('rk_why_open'))}<svg class="rk-why-i" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>` : ''}
+    </div>
+    ${open && hasMore ? `<div class="rk-why">${long ? `<span class="rk-why-full">${_rkE(it.title)}</span>` : ''}${why ? `<b>${_rkE(_rkT('ai_why_matters'))}</b><span>${_rkE(why)}</span>` : ''}</div>` : ''}
+  </div>`;
+}
+/* ---- WHY IT MATTERS, ALWAYS IN PLAIN ENGLISH (Young, 5 Oct 2026: "make sure
+   the why is always in plain english") ----
+   A risk-scan finding is a fixed rule whose reason was written for lawyers
+   and is STORED with the scan, so an old scan keeps its old words. The card
+   therefore reads the rule's plain sentence by its id (and kind, where one id
+   has variants) from both books — rk_why_<id>[_<kind>] — and falls back to
+   the stored sentence only for a rule the books do not know (f506 holds every
+   rule to having one). A Copilot brief item's reason is already written
+   plainly: the brief is told to, sentence by sentence. */
+function riskWhyOf(it){
+  if (!it) return '';
+  if (it.src === 'scan'){
+    const base = 'rk_why_' + String(it.id || '').replace(/[^a-z0-9]+/gi, '_');
+    for (const k of (it.kind ? [base + '_' + it.kind, base] : [base])){
+      const t = _rkT(k);
+      if (t && t !== k) return t;
+    }
+  }
+  return String(it.why || '').trim();
 }
 /* THE ROW'S VERBS WEAR THE REDLINES ROW'S CLOTHES (Young, 5 Oct 2026: "the
    risk to look at buttons should resemble the ones from the redlines
@@ -677,6 +706,21 @@ function rkEnsureStyle(){
   .rk-acts{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
   .rk-row .rk-acts .ui-link{margin-right:auto}
   .rk-verbs{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:2px}
+  /* EVERY CARD ONE SIZE (Young, 5 Oct 2026): the title on ONE line, its whole
+     text on the hover and in the opened card; "Why" at the bottom right,
+     under the severity, opens a short plain "Why it matters". */
+  .rk-row .rk-top .rk-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rk-why-btn{margin-left:auto;display:inline-flex;align-items:center;gap:3px;height:var(--ctl-h-sm);
+    padding:0 var(--pad-ctl-x-sm);border:0;border-radius:var(--radius);background:transparent;font:inherit;
+    font-size:var(--t-meta);font-weight:var(--w-label);line-height:1;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
+  .rk-why-btn:hover{background:var(--color-neutral-100);color:var(--color-text)}
+  .rk-why-i{flex:none;transition:transform var(--dur-1, .15s)}
+  .rk-why-btn[aria-expanded="true"] .rk-why-i{transform:rotate(180deg)}
+  @media (prefers-reduced-motion:reduce){ .rk-why-i{transition:none} }
+  .rk-why{display:grid;gap:2px;margin-top:2px;padding:7px 9px;border-radius:var(--radius);
+    background:var(--color-neutral-100);font-size:var(--t-meta);line-height:1.5;color:var(--color-text)}
+  .rk-why b{font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)}
+  .rk-why-full{font-weight:var(--w-label);margin-bottom:3px}
   .rk-verb{display:inline-flex;align-items:center;gap:4px;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);
     border:0;border-radius:var(--radius);background:transparent;font:inherit;font-size:var(--t-meta);
     font-weight:var(--w-label);line-height:1;color:var(--accent-ink);cursor:pointer;white-space:nowrap}
@@ -774,6 +818,7 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
     if (act === 'covered'){ const k = String(c.id); _rk.showCovered[k] = !_rk.showCovered[k]; rkRepaint(c); return; }
     if (act === 'cov-go'){ if (typeof rlJumpToClause === 'function') rlJumpToClause(b.getAttribute('data-rk-clause')); return; }
     if (!key) return;
+    if (act === 'why'){ _rk.whyOpen[key] = !_rk.whyOpen[key]; rkRepaint(c); return; }
     if (act === 'dismiss'){ riskDismiss(c, key); rkRepaint(c); return; }
     if (act === 'back'){ riskDismiss(c, key, true); rkRepaint(c); return; }
     if (act === 'note'){ riskNote(c, key); return; }
@@ -790,5 +835,5 @@ Object.assign(window, {
   riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss,
   riskNote, riskMayAct, rlRisksPileHtml, riskMarkFootHtml,
   riskCoverOf, riskEditTarget, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled,
-  riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml, riskAnswerOf, riskChipsHtml, riskWhereHtml,
+  riskProvenance, riskSecondRedline, riskEditorDraft, riskEditorArrive, riskLaneHtml, riskAnswerOf, riskChipsHtml, riskWhereHtml, riskWhyOf,
 });
