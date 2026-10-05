@@ -51,6 +51,15 @@ const check = (name, pass, detail) => { results.push({ name, pass: !!pass }); co
     const s4 = await until(() => { const rows = [...document.querySelectorAll('.hb-rd')]; if (rows.length < 2) return null; return { first: rows[0].classList.contains('is-still') && !rows[0].querySelector('button'), last: !!rows[rows.length - 1].querySelector('button') }; });
     await page.screenshot({ path: path.join(OUT, '4-old-reply-still.png') });
     check('4 an older reply\'s chips are plain; the newest is live', !!s4 && s4.first && s4.last, JSON.stringify(s4));
+    /* THREE NEXT QUESTIONS (Part 5): under the live reply, each draws, free */
+    const s6 = await until(() => { const r = [...document.querySelectorAll('.hb-rd')].pop(); const b = r && [...r.querySelectorAll('[data-hb-next]')]; return b && b.length ? b.map(x => x.textContent.trim()) : null; });
+    await page.screenshot({ path: path.join(OUT, '6-next-questions.png') });
+    check('6a up to three next questions under the live reply', !!s6 && s6.length >= 1 && s6.length <= 3, JSON.stringify(s6));
+    const k6 = await page.evaluate(() => (hbS().path || []).slice(-1)[0]);
+    await page.evaluate(() => { const r = [...document.querySelectorAll('.hb-rd')].pop(); r.querySelector('[data-hb-next]').click(); });
+    const s6b = await until(k0 => { const s = hbS(), k = (s.path || []).slice(-1)[0]; const a = (intel.history || []).filter(m => m.role === 'assistant').pop();
+      return a && /Free/.test(String(a.text)) && k === k0 && (intel.history || []).filter(m => m.role === 'user').length >= 3 ? { k, said: String(a.text).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 160) } : null; }, k6);
+    check('6b pressing one asks it as typed: the open card changes, free', !!s6b, JSON.stringify(s6b));
     check('5 no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');
   } catch (e) { check('stage ran', false, e.message); }
   finally { await browser.close(); await h.stop(); const bad = results.filter(r => !r.pass); console.log(`\n${results.length - bad.length}/${results.length} passed`); process.exit(bad.length ? 1 : 0); }

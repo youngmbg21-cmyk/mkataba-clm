@@ -3986,7 +3986,10 @@ function hbHowWord(P){
     P.compare ? [i18t('hb_cmp_' + P.compare).toLowerCase()] : [], P.trend ? [i18t('hb_edit_trend_on')] : []).join(' · ');
 }
 /* Read a follow-up. Returns what to say, or null when it is not one. */
-function hbFollowUp(qRaw){
+/* WHAT A FOLLOW-UP WOULD DO, writing nothing (the preview, the next
+   questions and the answer read it alike): { key, narrow } — the open chart's
+   contracts, narrowed — or { key, chart } — parts of its recipe — or null */
+function hbFollowUpRead(qRaw){
   const q = String(qRaw || '').trim(); const key = hbOpenListKey(); if (!q || !key) return null;
   const low = ' ' + _hbRcNorm(q) + ' ';
   if (/\b(?:mk|rl)[- ]?\d+\b/i.test(q) || HB_FU.fresh.test(low)) return null;
@@ -3999,9 +4002,7 @@ function hbFollowUp(qRaw){
   /* "only Juno", "show these for Naivas": the open chart's contracts, narrowed */
   if (cq.length && (narrow || refer)){
     const nk = 'qn:' + key + HB_KEY_SEP + cq.map(x => x.hit || x.label).join(' ');
-    const N = hbDigData(nk, s.lens); if (!N) return null;
-    hbDig(nk, true);
-    return _hbE(i18tn('hb_found_n', N.n, { n: _hbN(N.n), what: N.title || '' }));
+    return hbDigData(nk, s.lens) ? { key, narrow: nk } : null;
   }
   const noTrend = HB_FU.noTrend.test(low);
   if (cq.length || !(refer || verb || lead || noTrend)) return null;
@@ -4012,17 +4013,29 @@ function hbFollowUp(qRaw){
     const unitNamed = HB_RC.unit.some(([, re]) => re.test(low)), groupNamed = HB_RC.split.some(([, re]) => re.test(low)), dateNamed = HB_RC.date.some(([, re]) => re.test(low));
     if (R.split && R.split.by === 'date' && (unitNamed || (!groupNamed && P0.split && P0.split.by !== 'date' && R.trend)))
       chart.split = { by: 'date', unit: R.split.unit, date: dateNamed || !(P0.split && P0.split.by === 'date') ? R.split.date : P0.split.date };
-    else if (R.split && R.split.by !== 'date' && groupNamed) chart.split = R.split;
+    else if (R.split && R.split.by !== 'date' && (groupNamed || R.top)) chart.split = R.split;
     if (R.pic) chart.pic = R.pic;
     /* "show them in a graph": the open chart's own contracts and split, drawn
        as bars (Young picked it, 5 Oct 2026) — never a new card */
     else if (R.chartWord && !Object.keys(chart).length && (refer || verb)) chart.pic = 'bars';
     if (R.measure && (R.measure !== 'count' || HB_FU.count.test(low))) chart.measure = R.measure;
     if (R.trend && !noTrend) chart.trend = true;
+    /* the recipe's other parts, said as a follow-up ("top 5 counterparties",
+       "compared with last year", "the last 12 months") — the next questions
+       (Part 5) stand on these */
+    ['top', 'sort', 'window', 'compare'].forEach(k => { if (R[k] != null) chart[k] = R[k]; });
   }
   if (noTrend) chart.trend = false;
-  if (!Object.keys(chart).length) return null;
-  const did = hbBoardEdit(chart); if (!did) return null;
+  return Object.keys(chart).length ? { key, chart } : null;
+}
+function hbFollowUp(qRaw){
+  const r = hbFollowUpRead(qRaw); if (!r) return null;
+  if (r.narrow){
+    const N = hbDigData(r.narrow, hbS().lens); if (!N) return null;
+    hbDig(r.narrow, true);
+    return _hbE(i18tn('hb_found_n', N.n, { n: _hbN(N.n), what: N.title || '' }));
+  }
+  const did = hbBoardEdit(r.chart); if (!did) return null;
   hbPaintBoard({ jump: 'focus' });
   return _hbE(did.said);
 }
@@ -4516,7 +4529,54 @@ function hbReadingHtml(rd, live){
       return `<button type="button" role="menuitemradio" aria-checked="${cur}" data-hb-rdset="${_hbE(p + ':' + x.v)}"${x.on ? '' : ' disabled'}${x.why ? ` title="${_hbE(x.why)}"` : ''}><span>${_hbE(x.word)}</span>${x.why ? `<small>${_hbE(x.why)}</small>` : cur ? `<b aria-hidden="true">${_hbTick}</b>` : ''}</button>`; }).join('')}</div>` : '';
     return `<span class="hb-rd-wrap"><button type="button" class="hb-rd-chip${open ? ' is-open' : ''}" data-hb-rd="${p}" aria-haspopup="menu" aria-expanded="${open}"><i>${_hbE(label(p))}</i>${_hbE(words[p])}${_hbCaret}</button>${menu}</span>`;
   };
-  return `<div class="hb-rd" role="group" data-hb-rd-key="${_hbE(rd.key)}" aria-label="${_hbE(i18t('hb_rd_label'))}">${HB_RD_PARTS.map(chip).join('')}</div>`;
+  return `<div class="hb-rd" role="group" data-hb-rd-key="${_hbE(rd.key)}" aria-label="${_hbE(i18t('hb_rd_label'))}">${HB_RD_PARTS.map(chip).join('')}${hbNextHtml(rd.key)}</div>`;
+}
+/* ============================================================
+   THREE NEXT QUESTIONS (work order "the board that answers right", Part 5,
+   5 Oct 2026; Amazon Q suggests questions beside each answer)
+   ============================================================
+   Under the live reply, up to three follow-ups worked out from the open
+   card's recipe. Each is offered ONLY when the free reader reads it
+   (hbFollowUpRead, which writes nothing), it would change the card, and the
+   checker finds no fault (never empty, never crowded) — so a press always
+   draws and never costs anything. A press asks it as if typed. */
+const HB_NEXT_MAX = 3, HB_NEXT_TOP = 5;
+const HB_NEXT_GROUP_WORD = { counterparty: 'hb_nx_g_party', folder: 'hb_nx_g_stream', owner: 'hb_nx_g_owner', kind: 'hb_nx_g_kind', status: 'hb_nx_g_stage' };
+function hbNextCandidates(D, P){
+  const split = P.split && P.split.by, isDate = split === 'date', out = [];
+  const cs = hbListOf(D.ids || [], hbS().lens);
+  /* ("only suppliers" is not offered: on the board it sets the whole board's
+     lens, not the open card's — a different act from the one it would name) */
+  if (split && !isDate && HB_NEXT_GROUP_WORD[split] && new Set(cs.map(c => hbGroupOf(c, split))).size > HB_NEXT_TOP + 1)
+    out.push(i18t('hb_nx_top', { n: HB_NEXT_TOP, g: i18t(HB_NEXT_GROUP_WORD[split]) }));
+  if (!isDate) out.push(i18t('hb_nx_month'));
+  if (isDate && !P.compare) out.push(i18t('hb_nx_cmp'));
+  out.push(split === 'status' ? i18t('hb_nx_party') : i18t('hb_nx_stage'));
+  /* a pie only over groups: over time it would move the split, not the picture */
+  if ((P.measure === 'count' || P.measure === 'value') && !isDate) out.push(P.pic === 'ring' ? i18t('hb_nx_bars') : i18t('hb_nx_pie'));
+  return out;
+}
+const _hbPlanSig = P => JSON.stringify(['pic', 'split', 'split2', 'measure', 'top', 'sort', 'window', 'compare', 'trend'].map(k => P[k] == null ? null : P[k]));
+function hbNextQuestions(key){
+  const s = hbS(); if (!key || key !== hbOpenListKey()) return [];
+  const D = hbDigData(key, s.lens); if (!D || D.kind !== 'list' || !D.n) return [];
+  const P0 = hbPlan(D), sig0 = _hbPlanSig(P0), out = [];
+  for (const q of hbNextCandidates(D, P0)){
+    if (out.length >= HB_NEXT_MAX) break;
+    let r = null; try { r = hbFollowUpRead(q); } catch (_){ r = null; }
+    if (!r) continue;
+    if (r.narrow){ const N = hbDigData(r.narrow, s.lens); if (N && N.n > 0 && N.n < D.n) out.push(q); continue; }
+    const spec1 = Object.assign({}, hbPlanSpec(D), hbCardClean(r.chart));
+    const P1 = hbCardPlan(spec1, D);
+    if (_hbPlanSig(P1) === sig0) continue;
+    let bad = []; try { bad = hbCardCheck(D, r.chart, spec1); } catch (_){ bad = [{}]; }
+    if (!bad.length) out.push(q);
+  }
+  return out;
+}
+function hbNextHtml(key){
+  const qs = hbNextQuestions(key); if (!qs.length) return '';
+  return `<div class="hb-nx" aria-label="${_hbE(i18t('hb_nx_label'))}"><span class="hb-nx-l">${_hbE(i18t('hb_nx_label'))}</span>${qs.map(q => `<button type="button" class="hb-nx-q" data-hb-next="${_hbE(q)}">${_hbE(q)}</button>`).join('')}</div>`;
 }
 /* a chip's menu, opened or closed (the press, and Escape) */
 function hbRdToggle(key, part){ const p = key && part ? key + '|' + part : null; _hbRdOpen = p && _hbRdOpen !== p ? p : null; return _hbRdOpen; }
@@ -4995,6 +5055,8 @@ function hbOnClick(e){
     hbPreviewSettle(id, out.html, out.undo); return; }
   if ((el = on('[data-hb-undo]'))){ const ok = hbUndo(el.getAttribute('data-hb-undo')); hbPaintBoard();
     if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_gone'), ok ? 'ok' : 'warn'); return; }
+  /* A NEXT QUESTION (Part 5): asked as if typed, through the panel */
+  if ((el = on('[data-hb-next]'))){ const q = el.getAttribute('data-hb-next'); if (q && typeof intelAsk === 'function') intelAsk(q); return; }
   /* THE READING'S CHIPS, in the panel's reply (Part 4) */
   if ((el = on('[data-hb-rd]'))){ const row = el.closest('[data-hb-rd-key]'); if (!row) return; hbRdToggle(row.getAttribute('data-hb-rd-key'), el.getAttribute('data-hb-rd')); hbDockRepaint(); return; }
   if ((el = on('[data-hb-rdset]'))){ if (el.disabled) return; const row = el.closest('[data-hb-rd-key]'); const v = el.getAttribute('data-hb-rdset'), i = v.indexOf(':');
@@ -5116,7 +5178,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

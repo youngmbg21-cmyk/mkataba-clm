@@ -6142,9 +6142,11 @@ function igMsgHTML(m,i){
       ${''/* THE BOARD'S PRESSES (work order Part 5): a big build offered as a list
              with ticks, and Undo for an answer that changed the board */}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
+      ${''/* a choice sits right under the sentence that offers it; then how the
+             question was read, with the next questions; then Undo (Part 4) */}
+      ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm" data-ig-choice="${i}:${j}">${igEsc(c.label)}</button>`).join('')}</div>`:''}
       ${(Number.isInteger(i)&&m.reading&&typeof window.hbReadingHtml==='function')?hbReadingHtml(m.reading,hbReadingLive(i)):''}
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
-      ${(Number.isInteger(i)&&Array.isArray(m.choices)&&m.choices.length)?`<div class="igd-choices" style="display:flex;gap:6px;flex-wrap:wrap">${m.choices.map((c,j)=>`<button type="button" class="ui-btn ui-btn-sm" data-ig-choice="${i}:${j}">${igEsc(c.label)}</button>`).join('')}</div>`:''}
       ${(Number.isInteger(i)&&Array.isArray(m.listIds)&&m.listIds.length)?`<div class="igd-list" style="display:flex;gap:12px;flex-wrap:wrap;padding-left:2px"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:''}
       ${body}
     </div>
