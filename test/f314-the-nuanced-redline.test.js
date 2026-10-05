@@ -324,13 +324,16 @@ describe('f314 (4) — the batch never pastes, and says what it left', () => {
       'and no finding\'s press is filled');
   });
 
-  test('the clause editor\'s scan rail offers the same four wordings under the same names', () => {
+  /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy": "Use the smallest change"
+     is folded into "Use our standard", decision 1). The fourth wording rides
+     the first prepared question; the claims are the same. */
+  test('the clause editor\'s "Use our standard" carries the smallest change', () => {
     const CE = read('js/views/clauseeditor.js');
-    assert.match(CE, /fit: 'ce_use_fit'/, 'the rail names the fourth wording');
-    assert.ok(!/missing:\s*\{[^}]*fit:/.test(CE), 'and only on the here list — an add has nothing to narrow to');
-    assert.match(CE, /it\.fit && it\.fit\.kind === 'figure'\) \? btn\('fit', it\.fit\.text\)/, 'the card draws it');
-    assert.match(CE, /parts\[1\] === 'fit' \? \(it\.fit && it\.fit\.text\)/, 'the press resolves it');
-    assert.match(CE, /ceApply\(fitHtml \|\| words/, 'and applies the clause\'s own markup, not rebuilt lines');
+    const w = CE.match(/function ceStdWording\(it, kind\)\{[\s\S]*?\n\}/)[0];
+    assert.match(w, /kind === 'preferred' && it\.fit && it\.fit\.kind === 'figure'/, 'the figure fit rides "Use our standard"');
+    assert.match(w, /const words = String\(\(fig \? fig\.text : it\[kind\]\) \|\| ''\)\.trim\(\);/, 'the press resolves it');
+    assert.match(w, /const html = fig \? fig\.html :/, 'and applies the clause\'s own markup, not rebuilt lines');
+    assert.match(CE, /const done = ceApply\(words, _cet\('ce_step_playbook'\)\) !== false;/, 'through the one Apply');
   });
 
   test('none of this is a second filing path', () => {
