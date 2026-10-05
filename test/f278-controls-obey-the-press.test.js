@@ -62,7 +62,9 @@ test('f278 (1) the fact row has no second opinion about folding', () => {
     'two scroll listeners in this file: the Thread\'s follow and the signing copy\'s page number');
   assert.ok(/sc\.addEventListener\('scroll',\(\)=>\{\s*if\(_docThreadGlide>=0\)/.test(CODE),
     'the Thread\'s follow, by name');
-  assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; const c=live\(\); if\(c&&docThreadOn\(\)\) docThreadOpen\(c,docThreadAtLine\(\)\); \}\)/.test(CODE),
+  /* RE-POINTED 5 Oct 2026 (the Drawer): it asks whether the clauses are on
+     screen (docThreadLive) and opens the nearest SHOWN clause at the line. */
+  assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; const c=live\(\); if\(c&&docThreadLive\(\)\) docThreadOpen\(c,docThreadLineRow\(\)\); \}\)/.test(CODE),
     'and it opens a row and never touches the head');
   assert.ok(/raf=requestAnimationFrame\(\(\)=>\{ raf=0; scPaintPage\(\); \}\)/.test(CODE),
     'and the signing copy\'s page number, which writes a number and never touches the head');

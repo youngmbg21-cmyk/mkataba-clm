@@ -250,10 +250,13 @@ describe('f335 (7) — a finger scrolls the Plain English column', () => {
     const th = CONTRACT.slice(CONTRACT.indexOf('const DOC_THREAD_LINE'), CONTRACT.indexOf('function wireDocCanvas'));
     assert.ok(!/touchmove|touchstart|'wheel'/.test(th), 'the Thread listens to no gesture of the paper\'s');
   });
-  test('the open row keeps a bounded scroller of its own, the paper keeps the contract\'s', () => {
-    assert.match(HTML, /\.doc-th-row\.is-open \.doc-th-in\{ overflow-y:auto; overflow-x:hidden; max-height:var\(--th-max,420px\)/,
-      'a long reading scrolls inside the row');
-    assert.match(CONTRACT, /const DOC_THREAD_BODY_MIN = 320;/, 'and never below a readable height');
+  /* REVERSED 5 Oct 2026 (the Drawer: "one scroll bar in the clause list; the
+     open clause grows instead of scrolling inside itself"). The bounded
+     scroller inside the open row is gone; the list is the one scroller. */
+  test('the open row grows, the list is its one scroller, the paper keeps the contract\'s', () => {
+    assert.ok(!/\.doc-th-row\.is-open \.doc-th-in\{[^}]*(max-height|overflow-y:auto)/.test(HTML), 'a long reading is not a scroller of its own');
+    assert.ok(!/DOC_THREAD_BODY_MIN/.test(CONTRACT), 'and no floor is computed for one');
+    assert.match(HTML, /\.doc-th-rows\{[^}]*overflow-y:auto/, 'the list scrolls');
   });
 });
 
@@ -504,7 +507,7 @@ describe('f335 (12) — bold from facts, amber from the record', () => {
       'the marking never reaches what is hashed and sent');
   });
   test('computed ONCE per paint, not per scroll', () => {
-    assert.match(CONTRACT, /const rows=docXrayRows\(c\);\n\s*_docThreadRows=rows\.map/,
+    assert.match(CONTRACT, /const rows=on\?docXrayRows\(c\):\[\];[\s\S]{0,900}?_docThreadRows=rows\.map/,
       'the walk happens in docThreadPaint');
     assert.match(CONTRACT, /_docThreadCache=\{ id:String\(c&&c\.id\), rows, plain, sheet \};/,
       'and a scroll reads the cache, or it is O(clauses x findings) on every tick of a 200-clause contract');

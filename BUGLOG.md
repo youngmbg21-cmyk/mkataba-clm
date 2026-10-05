@@ -20342,3 +20342,13 @@ Built on the owner's "Build the recommendation and merge to main". Story in docs
 
 ### Noticed, not fixed
 - The template paper's scan-flag tags ("Deviation", "Check", "High", drawn beside a flagged clause's heading by docBody's clause()) are read into the negotiation copy's text when the negotiation starts, so a flagged template clause reads "3. Quality & Rejection / Deviation / Consignments…" on the paper, in the editor's "Selected" card, and in what Copilot is sent and strikes out. Seen in a-risk-finds-its-clause-verify's photographs on a raw-material agreement.
+
+## 5 Oct 2026 — the Thread becomes a drawer over Form & links; Plain always answers; the colour filter
+
+Built on the owner's "Implement drawer and merge to main". Story in docs/MAP-HISTORY.md under "THE THREAD — A DRAWER OVER FORM & LINKS".
+
+- 5 Oct 2026 — FIXED (the owner's report): the right column squeezed the contract form to 136px of its 1107 (the docs wrapper flexed, and a card with overflow:hidden has no floor), three scroll bars deep; and Plain on a clause the model once answered empty made no call and drew nothing for the life of the wording (the prompt asked for empty readings and the route kept them).
+
+### Noticed, not fixed
+- CLAUDE.md was 82.9 KB before this work (above the owner's "about 80 KB"); the Thread section grew by about 0.4 KB to 83.3 KB.
+- a template form with no title heading turns its FIRST heading into the document's title, so that clause's wording has no row on the Thread (seen on a staged credit application; identical at unmodified main).

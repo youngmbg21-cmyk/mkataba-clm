@@ -7905,15 +7905,42 @@ function readRowsGet(contractId, hashes){
   return out;
 }
 /* INSERT OR IGNORE: a clause already kept is never rewritten, so two jobs that
-   both read one clause cannot flip its reading back and forth under a reader. */
+   both read one clause cannot flip its reading back and forth under a reader.
+   ---- EXCEPT AN EMPTY ONE (5 Oct 2026) ----
+   Until today the route let a clause come back with an EMPTY reading and kept
+   it like any other — so a clause the model once said nothing about was
+   answered "nothing" out of this table for the life of the wording, and the
+   Thread's Plain press made no call and drew nothing (measured on MK-314:
+   press 1 one call, presses 2 and 3 none, "3. Delivery Information" stored
+   empty). A clause row is never kept empty any more (readPage), a stored
+   empty one is not an answer (readEmptyClauseDrop), and a real reading of
+   the same row heals it here. */
 function readRowsKeep(contractId, rows){
   const ins = db.prepare('INSERT OR IGNORE INTO clause_reading_rows (contract_id,hash,json,created_at) VALUES (?,?,?,?)');
+  const heal = db.prepare(`UPDATE clause_reading_rows SET json=?, created_at=? WHERE contract_id=? AND hash=? AND json LIKE '{"plain":""%'`);
   const at = now();
   for (const r of rows) {
     if (!r || !r.hash) continue;
-    try { ins.run(String(contractId), r.hash, JSON.stringify({ plain: String(r.plain || ''), head: String(r.head || '') }), at); } catch (_) {}
+    const json = JSON.stringify({ plain: String(r.plain || ''), head: String(r.head || '') });
+    try {
+      if (String(r.plain || '').trim()) heal.run(json, at, String(contractId), r.hash);
+      ins.run(String(contractId), r.hash, json, at);
+    } catch (_) {}
   }
 }
+/* A KEPT CLAUSE WITH NO READING IS NO ANSWER: dropped from what the table
+   hands back, so the row is asked for again. A SECTION title is empty by
+   design and stays. */
+function readEmptyClauseDrop(have, hashes, list){
+  hashes.forEach((h, i) => {
+    const g = have.get(h);
+    if (g && !String(g.plain || '').trim() && list[i] && list[i].kind !== 'section') have.delete(h);
+  });
+  return have;
+}
+/* …and an edition holding one is never served whole from its cache. */
+const readEditionHasEmptyClause = items => (Array.isArray(items) ? items : [])
+  .some(it => it && it.kind !== 'section' && !String(it.plain || '').trim());
 /* The jobs in flight, by contract and language, and the browser's own name for
    the press it made (`run`), so /progress answers about THAT press and never
    about somebody else's reading of an older wording. A finished job is kept a
@@ -8040,8 +8067,8 @@ const READ_PLAIN_RULE = [
   'A ROW MARKED SECTION',
   'A row marked SECTION is a section title, not a clause. Give it a heading only and leave its reading EMPTY — the clauses underneath it carry the wording.',
   '',
-  'WHEN TO SAY NOTHING',
-  'A few clauses have nothing worth telling a business owner — a cover page, a table of contents, a heading-and-interpretation clause, counterparts, severability. Return an EMPTY reading for those, with a heading. An empty reading is the right answer for them and is far better than padding one out. It is the exception: on an ordinary commercial clause there is always something to say.',
+  'EVERY CLAUSE GETS A READING',
+  'Every row marked CLAUSE gets a reading, however short. A cover page, a table of contents, a definitions clause, counterparts or severability still gets one plain line saying what it does — the reader pressed for this clause and must never be handed an empty answer. Short is right for them; empty never is.',
 ].join('\n');
 
 /* ---- WHAT HAS COME BACK SO FAR (fix 6) ----
@@ -8163,7 +8190,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
          missing; otherwise the press goes on below, where everything already
          read comes out of the per-clause table for nothing and ONLY the missing
          clauses are asked for again. */
-      if (r.inputHash === inputHash && !(Number(r.unmatched) > 0) && !(Number(r.skipped) > 0)) {
+      if (r.inputHash === inputHash && !(Number(r.unmatched) > 0) && !(Number(r.skipped) > 0) && !readEditionHasEmptyClause(r.items)) {
         /* …AND WHAT IT HOLDS IS KEPT A CLAUSE AT A TIME, so an edition read
            before the clauses were kept one by one is not paid for again the
            day one clause changes. INSERT OR IGNORE: nothing already kept is
@@ -8200,7 +8227,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
   /* ---- EVERYTHING ALREADY READ IS KEPT (fix 6) ----
      `covered` is every row the pages reach (the runaway guard still says what
      it left out, in `over`); `pending` is the ones no kept reading answers. */
-  const have = readRowsGet(id, hashes);
+  const have = readEmptyClauseDrop(readRowsGet(id, hashes), hashes, list);
   const covered = [];
   pages.forEach(pg => pg.rows.forEach((_, k) => covered.push(pg.base + k)));
   const wanted = covered.filter(i => !have.has(hashes[i]));
@@ -8223,7 +8250,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
             properties: {
               key: { type: 'string', description: 'The row key in square brackets at the head of the row, e.g. R3 — never the clause\'s own number.' },
               heading: { type: 'string', description: 'The row\'s heading copied exactly as it was given, character for character, including its number. For a row with no heading, the first eight words of its wording instead. This is how your entry is matched to its clause; it is never printed.' },
-              plain: { type: 'string', description: 'The clause translated into plain everyday English, saying everything it says. Empty for a row marked SECTION, and for a clause with nothing worth telling a business owner.' },
+              plain: { type: 'string', description: 'The clause translated into plain everyday English, saying everything it says. Empty ONLY for a row marked SECTION; every CLAUSE gets a reading, however short.' },
             },
             required: ['key', 'heading', 'plain'],
           },
@@ -8327,9 +8354,9 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        the rest) and off the server log, rather than guessed at. */
     let failed = [];
     let recording = true;
-    const refuse = (r, want, i) => {
+    const refuse = (r, want, i, empty) => {
       if (recording && failed.length < READ_MAX_CLAUSES)
-        failed.push({ i: i == null ? -1 : i, key: String((r && r.key) || '').slice(0, 12), echo: String((r && r.heading) || '').slice(0, 140), want: String(want || '').slice(0, 140) });
+        failed.push(Object.assign({ i: i == null ? -1 : i, key: String((r && r.key) || '').slice(0, 12), echo: String((r && r.heading) || '').slice(0, 140), want: String(want || '').slice(0, 140) }, empty ? { empty: true } : {}));
     };
     /* ONE PLACE A READING LANDS: into the edition, into what /progress hands
        the column, and — unless it came from an answer cut short — into the
@@ -8385,6 +8412,14 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
            severability — still has its name in it, and the browser draws the
            PAPER's heading, never one of the model's. Nothing is invented; an
            empty `plain` stays empty. */
+        /* ---- …BUT A CLAUSE IS NEVER LANDED EMPTY (Young, 5 Oct 2026: Plain
+           "always turns the clause into plain English") ----
+           An empty answer for a CLAUSE row is no answer: it is not landed and
+           not kept, so the second pass below asks for it again, and a clause
+           still empty after that is counted with the unmatched — which the
+           Thread says on the row, with Plain to ask again. It does not count
+           against the page as a misfiling. Only a SECTION is empty by design. */
+        if (!plain && list[i].kind !== 'section') { refuse(r, want, i, true); return; }
         got.push({ i, plain, head });
       });
       /* ---- A PAGE MORE THAN A QUARTER MISFILED IS NOT KEPT (fix 6) ----

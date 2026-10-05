@@ -3401,6 +3401,17 @@
      those three are untouched under the ⋯ menu's Export heading. */
   #ws-tabrow-end .ws-focus-door{ width:var(--ctl-h); padding:0; justify-content:center; }
   #ws-tabrow-end .ws-focus-door[aria-pressed="true"]{ background:var(--nav-well); }
+  /* THE CLAUSES DOOR (Young picked "Drawer", 5 Oct 2026): first in the slot,
+     beside the text-size stepper; it carries what is marked in the worst
+     mark's tone and is pressed while the drawer is open. Hidden until
+     docThreadDoorPaint says there is a panel for the drawer to cover. */
+  #ws-tabrow-end .ws-th-door{ gap:8px; }
+  #ws-tabrow-end .ws-th-door[hidden]{ display:none; }
+  #ws-tabrow-end .ws-th-door.is-on{ background:var(--color-accent-50); border-color:var(--accent-ink); color:var(--accent-ink); }
+  .ws-th-door-n:empty{ display:none; }
+  .ws-th-door-sum{ font-size:var(--t-label); font-weight:var(--w-strong); }
+  .ws-th-door-sum.is-ruby{ color:var(--st-ruby-fg); } .ws-th-door-sum.is-amber{ color:var(--st-amber-fg); }
+  .ws-th-door-sum.is-steel{ color:var(--st-steel-fg); }
   /* ---- THE SIGNING COPY'S CONTROLS (25 Sep 2026) ----
      Which copy this is and where its words came from, then the page it is on
      and the zoom — the design's own control row. One rung with the rest of the
@@ -5645,24 +5656,67 @@
 
   /* ══ THE THREAD — the Document tab's facing page (Young picked it 5 Oct 2026) ══
      Every clause a row on one thread; the clause under the reader's eye is
-     the open row. The card takes the column's remaining height (the fill
-     panel above it keeps its own) and never covers anything; the rows scroll
-     inside it, and the open row's body is capped (--th-max, written by
-     docThreadFill) so every row stays in view and the body scrolls on its own.
-     QUIET'S TYPOGRAPHY: no section labels; the reading in the paper's own
-     face and size (--dr-face/--dr-size, measured off the sheet); Worth a look
-     as sentences each with a coloured rule, in the one light-red wash the
-     owner picked; Who does what as the X-ray's own list, its label hidden. */
-  .doc-th{ position:relative; flex:1 1 auto; min-height:420px; min-width:0;
+     the open row. QUIET'S TYPOGRAPHY: the reading in the paper's own face and
+     size (--dr-face/--dr-size, measured off the sheet); Worth a look as
+     sentences each with a coloured rule, in the one light-red wash the owner
+     picked; Who does what as the X-ray's own list, its label hidden.
+     IT IS A DRAWER OVER FORM & LINKS (Young picked "Drawer", 5 Oct 2026).
+     The column lands on the form, the links and the rounds, EACH CARD AT THE
+     HEIGHT OF WHAT IT HOLDS (flex:none — a card with overflow:hidden has no
+     floor of its own, which is how the form was once squeezed to 136px) and
+     the column the one scroller. While the clauses are up (#doc-right
+     .is-clauses) they are the column: the cards step aside, the thread takes
+     the whole height, and THE LIST IS ITS ONE SCROLLER — the open row grows
+     to hold what it says. A section title is a small label (.doc-th-sec). */
+  #doc-right [data-doc-col="docs"] > *{ flex:none; }
+  #doc-right.is-clauses [data-doc-col="docs"]{ flex:1 1 auto; min-height:0; }
+  #doc-right.is-clauses [data-doc-col="docs"] > :not(#doc-thread){ display:none; }
+  .doc-th{ position:relative; display:flex; flex-direction:column; min-height:320px; min-width:0;
     background:var(--color-surface); border:1px solid var(--color-divider);
     border-radius:var(--radius); box-shadow:0 1px 2px rgba(15,23,42,.04); }
+  #doc-right.is-clauses .doc-th{ flex:1 1 auto; }
   .doc-th[hidden]{ display:none; }
-  .doc-th-rows{ position:absolute; inset:0; overflow-y:auto; overflow-x:hidden; padding:6px 12px 18px; }
+  /* over something, it comes in from the side and stands a little proud */
+  .doc-th.is-drawer{ border-color:var(--color-neutral-300); box-shadow:0 6px 22px rgba(15,23,42,.10); animation:docThIn .2s ease; }
+  @keyframes docThIn{ from{ transform:translateX(16px); opacity:0; } to{ transform:none; opacity:1; } }
+  @media (prefers-reduced-motion:reduce){ .doc-th.is-drawer{ animation:none; } }
+  .doc-th-top{ flex:none; border-bottom:1px solid var(--color-divider); }
+  .doc-th-hd{ display:flex; align-items:center; gap:8px; padding:8px 10px 0 14px; min-height:var(--ctl-h); }
+  .doc-th-title{ font-size:var(--t-body); font-weight:var(--w-title); white-space:nowrap; }
+  .doc-th-sum{ font-size:var(--t-label); font-weight:var(--w-strong); white-space:nowrap; }
+  .doc-th-sum.is-ruby{ color:var(--st-ruby-fg); } .doc-th-sum.is-amber{ color:var(--st-amber-fg); }
+  .doc-th-sum.is-steel{ color:var(--st-steel-fg); }
+  .doc-th-x{ margin-left:auto; width:var(--ctl-h-sm); min-width:var(--ctl-h-sm); height:var(--ctl-h-sm); min-height:0; padding:0; }
+  /* THE COLOUR FILTER — All, then one chip per grade, any together */
+  .doc-th-chips{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:8px 14px 9px; }
+  .doc-th-chip{ display:inline-flex; align-items:center; gap:6px; height:var(--ctl-h-sm); padding:0 8px;
+    border:1px solid var(--btn-edge,var(--color-neutral-300)); border-radius:var(--radius); background:var(--color-surface);
+    font:inherit; font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-text); white-space:nowrap; cursor:pointer; }
+  .doc-th-chip:hover{ background:var(--surface-2); }
+  .doc-th-chip:focus-visible{ outline:2px solid var(--color-accent-600); outline-offset:1px; }
+  .doc-th-chip b{ font-weight:var(--w-strong); font-variant-numeric:tabular-nums; }
+  .doc-th-chip i{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .doc-th-chip.is-ruby i{ background:var(--st-ruby-dot); } .doc-th-chip.is-amber i{ background:var(--st-amber-dot); }
+  .doc-th-chip.is-steel i{ background:var(--st-steel-dot); }
+  .doc-th-chip[aria-pressed="true"]{ background:var(--color-text); border-color:var(--color-text); color:var(--color-surface); }
+  .doc-th-chip.is-ruby[aria-pressed="true"]{ background:var(--st-ruby-bg); border-color:var(--st-ruby-dot); color:var(--st-ruby-fg); }
+  .doc-th-chip.is-amber[aria-pressed="true"]{ background:var(--st-amber-bg); border-color:var(--st-amber-dot); color:var(--st-amber-fg); }
+  .doc-th-chip.is-steel[aria-pressed="true"]{ background:var(--st-steel-bg); border-color:var(--st-steel-dot); color:var(--st-steel-fg); }
+  .doc-th-chip[aria-disabled="true"]{ opacity:.5; cursor:default; }
+  .doc-th-chip[aria-disabled="true"]:hover{ background:var(--color-surface); }
+  .doc-th-rows{ position:relative; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding:6px 12px 18px; }
   .doc-th-row{ position:relative; padding-left:24px; }
-  /* the thread: a hairline down the beads, from the first bead to the last */
+  .doc-th-row[hidden],.doc-th-sec[hidden]{ display:none; }
+  /* the thread: a hairline down the beads, from the first bead shown to the last */
   .doc-th-row::before{ content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--color-divider); }
-  .doc-th-row:first-child::before{ top:17px; }
-  .doc-th-row:last-child::before{ bottom:auto; height:17px; }
+  .doc-th-row.is-first::before{ top:17px; }
+  .doc-th-row.is-last::before{ bottom:auto; height:17px; }
+  .doc-th-row.is-first.is-last::before{ display:none; }
+  .doc-th-sec{ position:relative; padding:12px 0 4px 24px; font-size:var(--t-micro); font-weight:var(--w-title);
+    letter-spacing:.08em; text-transform:uppercase; color:var(--color-neutral-500); }
+  .doc-th-sec::before{ content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--color-divider); }
+  .doc-th-rows > .doc-th-sec:first-child::before{ top:14px; }
+  .doc-th-none{ font-size:var(--t-meta); color:var(--color-neutral-500); padding:16px 0 0 24px; }
   .doc-th-bead{ position:absolute; left:1px; top:11px; width:12px; height:12px; border-radius:50%; box-sizing:border-box;
     background:var(--color-surface); border:2px solid var(--color-neutral-300); z-index:1; }
   .doc-th-row.is-ruby .doc-th-bead{ background:var(--st-ruby-dot); border-color:var(--st-ruby-dot); }
@@ -5688,7 +5742,7 @@
   .doc-th-body{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .24s ease; }
   .doc-th-row.is-open .doc-th-body{ grid-template-rows:1fr; }
   .doc-th-in{ min-height:0; overflow:hidden; }
-  .doc-th-row.is-open .doc-th-in{ overflow-y:auto; overflow-x:hidden; max-height:var(--th-max,420px); padding:0 6px 10px 2px; }
+  .doc-th-row.is-open .doc-th-in{ padding:0 6px 10px 2px; }
   .doc-th-row.is-open{ padding-bottom:6px; margin-bottom:4px; border-bottom:1px solid var(--color-divider); }
   @media (prefers-reduced-motion:reduce){ .doc-th-body{ transition:none; } }
   .doc-th-meta{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:var(--t-label); color:var(--color-neutral-500); margin:-2px 0 8px; }
@@ -5703,6 +5757,9 @@
   .doc-th-ask{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:4px 0 12px; }
   .doc-th-cost{ font-size:var(--t-label); color:var(--color-neutral-500); white-space:nowrap; }
   .doc-th-all{ margin-left:auto; }
+  /* A PRESS NEVER ENDS IN SILENCE: the clause Copilot could not read says so */
+  .doc-th-cannot{ font-size:var(--t-meta); line-height:1.5; color:var(--color-neutral-700); margin:2px 0 8px; }
+  .doc-th-cannot b{ color:var(--st-amber-fg); font-weight:var(--w-strong); }
   /* WORTH A LOOK — the one light-red area, only while it holds something */
   .doc-th-look{ padding:2px 0; }
   .doc-th-look.has{ margin:0 0 4px; padding:9px 12px; border:1px solid color-mix(in srgb,var(--st-ruby-dot) 22%,var(--color-surface));
@@ -5811,7 +5868,8 @@
   #doc-thread .doc-th-name{font-size:calc(var(--t-body) * var(--doc-scale,1));}
   #doc-thread .doc-th-state,#doc-thread .doc-th-meta,#doc-thread .doc-th-at,#doc-thread .doc-th-cost,#doc-thread .doc-th-unrun{font-size:calc(var(--t-label) * var(--doc-scale,1));}
   #doc-thread .doc-xr-mk{font-size:calc(var(--t-micro) * var(--doc-scale,1));}
-  #doc-thread .doc-xr-t,#doc-thread .doc-xr-none,#doc-thread .doc-th-look .doc-xr-mark,#doc-thread .doc-th-look .doc-xr-q,#doc-thread .doc-th-wait,#doc-thread .doc-th-argued{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
+  #doc-thread .doc-xr-t,#doc-thread .doc-xr-none,#doc-thread .doc-th-look .doc-xr-mark,#doc-thread .doc-th-look .doc-xr-q,#doc-thread .doc-th-wait,#doc-thread .doc-th-argued,#doc-thread .doc-th-cannot,#doc-thread .doc-th-none{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
+  #doc-thread .doc-th-sec{font-size:calc(var(--t-micro) * var(--doc-scale,1));}
   #doc-thread .doc-xr-wdt{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
   #doc-thread .doc-xr-who,#doc-thread .doc-xr-wdc,#doc-thread .doc-xr-wdo,#doc-thread .doc-xr-balsay,
   #doc-thread .doc-xr-wdmore{font-size:calc(var(--t-label) * var(--doc-scale,1));}
