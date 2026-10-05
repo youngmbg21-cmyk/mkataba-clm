@@ -2187,7 +2187,7 @@ function ceLockBeat(stop){
 /* One keep: the beat's tick, and a new clause the moment it is filed. */
 function ceLockKeepNow(){
   try{
-    if (ceLockable() && ceSide() === 'owner' && window.clauseLockKeep && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
+    if (ceSide() === 'owner' && window.clauseLockKeep && ceLockable() && clauseLockKeep(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
   }catch(_){}
 }
 
@@ -2246,7 +2246,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
     /* A LOCK IS BETWEEN COLLEAGUES, and their page has no colleague of ours
        and no session: the lock route would refuse them, and their copy never
        carries our locks (they never travel). So their seat takes none. */
-    if (ceLockable() && ceSide() === 'owner' && window.clauseLockTake && clauseLockTake(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
+    if (ceSide() === 'owner' && window.clauseLockTake && ceLockable() && clauseLockTake(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId });
   }catch(_){}
   ceLockBeat();
   ceSeedDraft(opts.changeId);
@@ -2445,7 +2445,7 @@ function rlCloseClauseEditor(opts = {}){
      state is cleared, because the release needs to know which clause. */
   ceLockBeat(true);
   try{
-    if (ceLockable() && ceSide() === 'owner' && window.clauseLockRelease && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId, release: true });
+    if (ceSide() === 'owner' && window.clauseLockRelease && ceLockable() && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId, release: true });
   }catch(_){}
   const page = document.getElementById('clause-editor');
   if (page){ try{ if (page._ceRo) page._ceRo.disconnect(); }catch(_){} page.remove(); }
