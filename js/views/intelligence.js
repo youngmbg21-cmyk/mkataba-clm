@@ -197,6 +197,10 @@ function graphPartyLabel(name){
    nothing depends on it: counting one into a blast radius tells the reader a
    dead agreement is at risk. The same reading fxMissing and the sidebar's
    counts use. */
+/* "Showing n of N": N is the book the board counts — archived contracts are
+   off the default lists (the owner's screenshot, 5 Oct 2026: "of 181" beside
+   the board's 178) */
+const igBookTotal = () => (state.contracts||[]).filter(c=>c&&!c.archived).length;
 const graphLiveContract = c => !!(c && c.status!=='Declined' && !c.archived);
 const _gRelWord = k => { const w=(typeof RELATION_LABEL!=='undefined'&&RELATION_LABEL&&RELATION_LABEL[k])||''; return w||String(k||'amendment'); };
 /* Every edge the record supports over the given contracts (default: the whole
@@ -1400,8 +1404,9 @@ function igIdsWhere(conds, base){
 }
 /* ---- THE TOP N: "top 10 by value", "the 3 biggest in each stream" ---- */
 const IG_TOP_BY={ value:c=>igHomeValue(c), payterms:c=>(typeof payDays==='function'?payDays(c):null), obligations:c=>((c.obligations)||[]).filter(o=>o&&!o.completedAt&&!o.done).length, renewal:c=>{ const d=graphDecisionOf(c).days; return d==null?null:-d; } };
+/* an archived contract is off every list, so never in a top N */
 function igTopIds(n, by, per, base){
-  const read=IG_TOP_BY[by]||IG_TOP_BY.value, cs=(base||state.contracts||[]).filter(c=>read(c)!=null);
+  const read=IG_TOP_BY[by]||IG_TOP_BY.value, cs=(base||state.contracts||[]).filter(c=>c&&!c.archived&&read(c)!=null);
   const pickN=list=>list.slice().sort((a,b)=>(read(b)-read(a))).slice(0,n).map(c=>c.id);
   if(!per) return pickN(cs);
   const by2={}; cs.forEach(c=>{ const g=groupLabelOf(c,per,null); (by2[g]||(by2[g]=[])).push(c); });
@@ -1663,7 +1668,7 @@ function igRecipeRun(parsed, opts){
   if(!quiet&&!(opts&&opts.noPush)) igRecipePush();
   for(const a of acts){
     if(a.undo){ said.push(igRecipeUndo()?i18t('int_did_undo'):i18t('int_undo_none')); changed=true; continue; }
-    if(a.everything){ intel.lenses=[]; intel.groups=null; intel.walk=null; const t=(state.contracts||[]).length; said.push(i18t('int_did_showing',{ n:t, t })+'.'); changed=true; continue; }
+    if(a.everything){ intel.lenses=[]; intel.groups=null; intel.walk=null; const t=igBookTotal(); said.push(i18t('int_did_showing',{ n:t, t })+'.'); changed=true; continue; }
     if(a.landing){ igLandingSet(); said.push(i18t('int_did_landing')); changed=true; continue; }
     if(a.save!=null){ const n=igViewSave(a.save); said.push(n?i18t('int_did_saved',{ name:n }):i18t('int_save_failed')); continue; }
     if(a.open){ const v=igViewFind(a.open); if(v){ igRecipeSet(v.recipe); said.push(i18t('int_did_opened',{ name:v.name })); changed=true; }
@@ -1722,13 +1727,13 @@ function igRecipeRun(parsed, opts){
       const hit=igIdsWhere(n.conds);
       if(n.mode==='only') intel.lenses=intel.lenses.filter(l=>l.action!=='filter');
       if(n.mode==='hide'){ const drop=new Set(hit); const keep=(state.contracts||[]).map(c=>c.id).filter(id=>!drop.has(id)); addLens({ label:i18t('int_lens_without',{ x:label }), ids:keep, action:'filter' }); lensNote=i18t('int_did_hidden',{ n:hit.length, x:label }); }
-      else if(n.mode==='highlight'){ addLens({ label, ids:hit, action:'highlight' }); lensNote=i18t('int_did_highlighted',{ n:hit.length, t:(state.contracts||[]).length })+' · '+label; list=hit; listTitle=label; }
-      else { addLens({ label, ids:hit, action:'filter' }); lensNote=hit.length?i18t('int_did_showing',{ n:intelActive().ids?intelActive().ids.size:hit.length, t:(state.contracts||[]).length })+' · '+label:i18t('int_did_nomatch'); list=hit; listTitle=label; }
+      else if(n.mode==='highlight'){ addLens({ label, ids:hit, action:'highlight' }); lensNote=i18t('int_did_highlighted',{ n:hit.length, t:igBookTotal() })+' · '+label; list=hit; listTitle=label; }
+      else { addLens({ label, ids:hit, action:'filter' }); lensNote=hit.length?i18t('int_did_showing',{ n:intelActive().ids?intelActive().ids.size:hit.length, t:igBookTotal() })+' · '+label:i18t('int_did_nomatch'); list=hit; listTitle=label; }
       changed=true; continue; }
     if(a.top){ const t=a.top, base=(()=>{ const act=intelActive(); return (state.contracts||[]).filter(c=>!(act.ids&&act.action==='filter')||act.ids.has(c.id)); })();
       const ids=igTopIds(t.n,t.by,t.per,base), label=i18t('int_top_label',{ n:t.n, x:igSortWord(t.by) })+(t.per?' · '+i18t('int_top_per',{ x:graphGroupingWord(t.per) }):'');
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'||l.kind==='top'?false:true); addLens({ label, ids, action:'filter' });
-      intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:(state.contracts||[]).length })+' · '+label; list=ids; listTitle=label; changed=true; continue; }
+      intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:igBookTotal() })+' · '+label; list=ids; listTitle=label; changed=true; continue; }
     if(a.compare){ const A=igIdsWhere(a.compare.a), B=igIdsWhere(a.compare.b), groups={};
       A.forEach(id=>{ groups[id]=a.compare.aLabel; }); B.forEach(id=>{ if(!groups[id]) groups[id]=a.compare.bLabel; });
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'); addLens({ label:i18t('int_compare_lens',{ a:a.compare.aLabel, b:a.compare.bLabel }), ids:Object.keys(groups), action:'filter' });
@@ -1744,10 +1749,10 @@ function igRecipeRun(parsed, opts){
     if(a.linkedParty){ const ids=(state.contracts||[]).filter(c=>c.counterparty===a.linkedParty).map(c=>c.id), more=new Set(ids);
       buildGraphEdges(state.contracts||[]).filter(e=>e.kind!=='party').forEach(e=>{ if(ids.includes(e.from)) more.add(e.to); if(ids.includes(e.to)) more.add(e.from); });
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'); addLens({ label:i18t('int_linked_lens',{ x:a.linkedParty }), ids:[...more], action:'filter' });
-      lensNote=i18t('int_did_showing',{ n:more.size, t:(state.contracts||[]).length })+' · '+i18t('int_linked_lens',{ x:a.linkedParty }); list=[...more]; changed=true; continue; }
+      lensNote=i18t('int_did_showing',{ n:more.size, t:igBookTotal() })+' · '+i18t('int_linked_lens',{ x:a.linkedParty }); list=[...more]; changed=true; continue; }
     if(a.families){ const kids=new Set(); (state.contracts||[]).forEach(c=>{ if(c.parentId&&getContract(c.parentId)){ kids.add(c.id); kids.add(c.parentId); } });
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'); addLens({ label:i18t('int_families_lens'), ids:[...kids], action:'filter' });
-      lensNote=kids.size?i18t('int_did_showing',{ n:kids.size, t:(state.contracts||[]).length })+' · '+i18t('int_families_lens'):i18t('int_families_none'); list=[...kids]; changed=true; continue; }
+      lensNote=kids.size?i18t('int_did_showing',{ n:kids.size, t:igBookTotal() })+' · '+i18t('int_families_lens'):i18t('int_families_none'); list=[...kids]; changed=true; continue; }
   }
   if(lensNote) said.push(lensNote);
   if(changed) rebuildIntelGraph();
@@ -2049,7 +2054,7 @@ function graphSaysMore(own, note, line){
 }
 function intelGraphApply(q, res, opts){
   res=res||{}; opts=opts||{};
-  const total=(state.contracts||[]).length;
+  const total=igBookTotal();
   const known=new Set((state.contracts||[]).map(c=>c.id));
   let groupBy=res.groupBy?String(res.groupBy):null, groups=null, refused=false;
   if(groupBy==='custom'){
@@ -3420,7 +3425,7 @@ function updateIntelNote(){
      2026): with Copilot the one way to narrow the map, this line is where the
      reader sees what was applied — how many of the book, grouped how, coloured
      and sized by what, and the walk-through's place — with one way back. */
-  const total=(state.contracts||[]).length;
+  const total=igBookTotal();
   const shown=act.ids&&act.action==='filter'?act.ids.size:total;
   const bits=[];
   if(act.ids&&act.action==='filter') bits.push(`<b class="text-ink">${igEsc(i18t('int_did_showing',{ n:shown, t:total }))}</b>`);
