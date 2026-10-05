@@ -82,10 +82,16 @@ describe('f503 (A) already covered', () => {
     c.changes = [{ id: 'CHG-004', status: 'pending', authorSide: 'counterparty', clauseId: 'c33', clauseLabel: '33. Governing law' }];
     assert.ok(w.riskOpenOf(c).some(x => x.key === 's:law'), 'their ask is not our redline');
   });
+  /* RE-POINTED 5 Oct 2026 (Young picked "Find the clause"): insurance became a
+     risk topic (RK_TOPICS), so "Insurance amount not stated" IS covered by an
+     Insurance redline now (f509 (B)). The rule this pins is unchanged, asked of
+     a topic that is still unknown. */
   test('a risk of no known topic is never treated as covered', () => {
     const w = load();
-    const c = { scan: scan(), changes: [mine('CHG-005', { clauseId: 'c9', clauseLabel: '9. Insurance', oldText: 'Supplier shall insure.' })] };
-    assert.equal(J(w.riskItemsOf(c)).find(x => x.key === 's:ins').covered, null);
+    const sc = scan();
+    sc.findings.push({ id: 'aud', sev: 'low', kind: 'risk', title: 'Audit rights not stated', anchor: 'doc' });
+    const c = { scan: sc, changes: [mine('CHG-005', { clauseId: 'c9', clauseLabel: '9. Audit', oldText: 'Supplier shall keep records.' })] };
+    assert.equal(J(w.riskItemsOf(c)).find(x => x.key === 's:aud').covered, null);
   });
   test('the fold lists them, said and counted nowhere else', () => {
     const w = load({ riskMayAct: () => true });

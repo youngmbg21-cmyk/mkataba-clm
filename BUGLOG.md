@@ -20335,3 +20335,10 @@ Built from docs/WORKORDER-selected-card-and-advice-risks.md (owner: "Go, build b
 ### Noticed, not fixed
 - f364 (5) "the Document tab mounts no strand" fails on unmodified main since the Thread merge (bbf15d6), 44 of 45 in that file; not touched by this work.
 - the scan's own open-findings count (openFindings) still counts the upload advice checks (u-legal on every upload), so Insights, the register, the weekly review and the health report count one more "finding" per upload than the Redlines card lists as a risk; the owner's ask was the Redlines card only.
+
+## 5 Oct 2026 — a risk finds its clause; where HaTi cannot tell, the reader points
+
+Built on the owner's "Build the recommendation and merge to main". Story in docs/MAP-HISTORY.md under "A RISK FINDS ITS CLAUSE".
+
+### Noticed, not fixed
+- The template paper's scan-flag tags ("Deviation", "Check", "High", drawn beside a flagged clause's heading by docBody's clause()) are read into the negotiation copy's text when the negotiation starts, so a flagged template clause reads "3. Quality & Rejection / Deviation / Consignments…" on the paper, in the editor's "Selected" card, and in what Copilot is sent and strikes out. Seen in a-risk-finds-its-clause-verify's photographs on a raw-material agreement.

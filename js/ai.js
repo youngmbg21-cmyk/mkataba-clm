@@ -3267,6 +3267,14 @@ async function copilotPropose(opts){
      empty proposedText rather than as a sentence where wording goes. A second
      drafting function would be a second set of those rules to keep in step. */
   if (o.template) return copilotProposeTemplate(o);
+  /* ---- NO WORDING YET IS SAID AS SUCH (Young, 5 Oct 2026) ----
+     A clause that does not exist yet — a risk's new clause, or a new clause
+     held in the editor — has no passage. The request still said "The selected
+     wording is:" over an empty quote, and that the passage came from a named
+     clause, so the model read it as text missing from the request and refused
+     ("the selected wording passage is empty"). Where there is nothing, it is
+     told there is nothing, and to write the clause fresh. */
+  const fresh = !passage.trim();
   const shape = aiStructureOf(passage);
   /* ---- WHAT SHAPE THE ANSWER SHOULD BE IN ----
      For a replacement this is a description of the passage, because the answer
@@ -3316,7 +3324,10 @@ async function copilotPropose(opts){
        the original two-clauses misreading back; an "if" costs nothing when
        false and binds exactly the same when true. The purpose survives: a
        passage that really reads "4.2 … 4.3 …" is still ONE clause. */
-    o.clauseLabel ? `The passage comes from ${o.clauseLabel} and is ONE clause. If it contains `
+    fresh ? 'There is no existing wording: this is a NEW clause the contract does not have yet. '
+      + 'Write it fresh from what the drafter asked — do not ask for existing text to revise, and do '
+      + 'not refuse because no wording is shown. Return the wording only, with no heading and no number.'
+    : o.clauseLabel ? `The passage comes from ${o.clauseLabel} and is ONE clause. If it contains `
       + 'numbered or lettered items (for example 4.2 or (a)), treat them as sub-paragraphs of '
       + 'that one clause, never as separate clauses. Do not ask for sub-paragraphs the passage '
       + 'does not show — what is shown is the whole selection. Your wording acts on the '
@@ -3331,12 +3342,12 @@ async function copilotPropose(opts){
       + 'return the wording only, and do not restate the heading, number it, or add a '
       + 'new one. Match the drafting around it — the same register, the same way of '
       + 'numbering sub-paragraphs, the same way of writing a defined term.' : '',
-    placements
+    fresh ? '' : placements
       ? 'The drafter has selected this wording. It is the ANCHOR — depending on the placement '
         + 'you choose, your wording may replace it, sit after it, sit before it, or become a new '
         + 'clause following the one it sits in:'
       : 'The selected wording is:',
-    '"""', passage, '"""',
+    fresh ? '' : '"""', fresh ? '' : passage, fresh ? '' : '"""',
     '',
     /* The shape note is a REPLACEMENT instruction; see above. */
     placements && shape.html
