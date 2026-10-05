@@ -344,40 +344,47 @@ const VISIBLE = `(el) => {
       !/ a (amendment|addendum|annex)/i.test(child.text));
 
     /* ================= 6 · OBLIGATIONS AS A CHECK ================= */
+    /* RE-POINTED 5 Oct 2026 (the Thread): the Checks card left the Document
+       tab with the Activity & comments card (Young: "get rid of the image 1
+       features as they are essentially redundant"). On the contract's page
+       the checks now speak from the Thread's open row — one quiet "not yet
+       read · Run" line where each result would show, pressing the same
+       data-room-check door the negotiate head's icons press (wireRoomChecks,
+       one act) — and the panel the card opened is still openCheckPanel's. */
     await page.evaluate(id => roomGoTab(getContract(id), 'docs'), cid);
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(1200);
     const rows = await page.evaluate(`(() => {
       const vis = ${VISIBLE};
-      const card = document.getElementById('checks-card');
-      const rs = [...card.querySelectorAll('.check-row')];
-      return { order: rs.map(r => (r.querySelector('.cn') || {}).textContent.trim()),
-        kinds: [...card.querySelectorAll('[data-check]')].map(b => b.getAttribute('data-check')),
-        firstVis: vis(rs[0]),
-        obLabel: (card.querySelector('[data-check="oblig"]') || {}).textContent };
+      const open = document.querySelector('#doc-thread .doc-th-row.is-open');
+      const bs = open ? [...open.querySelectorAll('.doc-th-unrun [data-room-check]')] : [];
+      return { kinds: bs.map(b => b.getAttribute('data-room-check')),
+        firstVis: vis(bs[0]),
+        obLine: ((bs.find(b => b.getAttribute('data-room-check') === 'oblig') || {}).closest ? bs.find(b => b.getAttribute('data-room-check') === 'oblig').closest('.doc-th-unrun').textContent : ''),
+        card: !!document.getElementById('checks-card') };
     })()`);
-    check('the Checks card carries three rows, obligations first',
-      rows.kinds.join(',') === 'oblig,playbook,risk', rows.kinds.join(','));
-    check('named Obligations, and visible', rows.firstVis.on && /Obligation/i.test(rows.order[0]),
-      rows.order.join(' · '));
+    check('the open row offers the three unrun checks, each on the room\'s one door (the Checks card is gone)',
+      rows.kinds.slice().sort().join(',') === 'oblig,playbook,risk' && !rows.card, rows.kinds.join(',') + (rows.card ? ' · a checks card is still drawn' : ''));
+    check('the obligations line names Obligations, and is visible', rows.firstVis.on && /Obligation/i.test(rows.obLine),
+      rows.obLine.replace(/\s+/g, ' ').trim());
 
-    /* Track one, so the row has a verdict to print and a panel to open. */
+    /* Track one, so there is a verdict to say and a panel to open. */
     await page.evaluate(id => {
       const c = getContract(id);
       c.obligations = [
         { id: 'ob_a', desc: 'Quarterly maintenance report', due: '2026-09-30', recurring: 'quarterly', status: 'open', party: 'theirs' },
         { id: 'ob_b', desc: 'Certificate of insurance', due: '2026-08-01', status: 'open', party: 'theirs' },
       ];
-      renderChecksCard(c);
+      docThreadPaint(c);
     }, cid);
     await page.waitForTimeout(400);
-    /* RE-POINTED (21 Sep 2026): the verdict is the row's sub-line (.cs) and the
-       button is one verb; the row is found off its own data-check. */
-    const verdict = await page.evaluate(() => { const b = document.querySelector('[data-check="oblig"]');
-      const row = b && b.closest('.check-row'); const cs = row && row.querySelector('.cs');
-      return ((cs || b || {}).textContent || '').trim(); });
-    check('once anything is tracked the row says how many', /2 tracked/.test(verdict), verdict);
+    const verdict = await page.evaluate(id => {
+      const v = checkVerdict(getContract(id), 'oblig');
+      const open = document.querySelector('#doc-thread .doc-th-row.is-open');
+      return { label: v ? String(v.label) : '', unrun: open ? !!open.querySelector('.doc-th-unrun [data-room-check="oblig"]') : null };
+    }, cid);
+    check('once anything is tracked the verdict says how many, and the "not yet read" line is gone', /2 tracked/.test(verdict.label) && verdict.unrun === false, JSON.stringify(verdict));
 
-    await page.click('[data-check="oblig"]');
+    await page.evaluate(id => openCheckPanel(getContract(id), 'oblig'), cid);
     await page.waitForTimeout(700);
     const panel = await page.evaluate(`(() => {
       const vis = ${VISIBLE};
@@ -393,7 +400,7 @@ const VISIBLE = `(el) => {
         hostInPanel: !!(p && host && p.contains(host)),
         spills: list ? Math.round(list.scrollWidth - list.clientWidth) : 0 };
     })()`);
-    check('the findings open in a panel over the document, at the right edge',
+    check('the findings open in a panel over the document, at the right edge (openCheckPanel, the negotiate head\'s door)',
       panel.panel.on && /Obligation/i.test(panel.title || ''),
       panel.panel.on ? `${panel.panel.w}x${panel.panel.h}` : panel.panel.why);
     check('and it is the SAME card moved whole — both rows, both buttons',
@@ -410,20 +417,22 @@ const VISIBLE = `(el) => {
     /* ================= 7 · THE RULE THE ROW DOES NOT INHERIT ================= */
     /* Checks refuses to re-run once the wording is sealed, which is right for a
        reading of the wording and wrong for a commitment kept beside it: a
-       quarterly report starts mattering AFTER signature. */
+       quarterly report starts mattering AFTER signature. On the Thread: the
+       obligations line is still offered on a signed contract, the two lines
+       that read the wording are not drawn at all. */
     await page.evaluate(id => {
       const c = getContract(id);
       c.status = 'Signed'; c.obligations = [];
-      renderChecksCard(c);
+      docThreadPaint(c);
     }, cid);
     await page.waitForTimeout(400);
     const signed = await page.evaluate(() => {
-      const g = k => document.querySelector(`[data-check="${k}"]`);
-      return { oblig: !g('oblig').disabled, playbook: !g('playbook').disabled,
-        risk: !g('risk').disabled, obOpacity: getComputedStyle(g('oblig')).opacity };
+      const open = document.querySelector('#doc-thread .doc-th-row.is-open');
+      const g = k => open && open.querySelector(`.doc-th-unrun [data-room-check="${k}"]`);
+      return { oblig: !!g('oblig') && !g('oblig').disabled, playbook: !!g('playbook'), risk: !!g('risk') };
     });
-    check('on a SIGNED contract the obligations sweep is still pressable',
-      signed.oblig, `opacity ${signed.obOpacity}`);
+    check('on a SIGNED contract the obligations sweep is still offered',
+      signed.oblig, JSON.stringify(signed));
     check('and the two checks that read the wording are not — the rule is intact',
       !signed.playbook && !signed.risk,
       `playbook ${signed.playbook} · risk ${signed.risk}`);

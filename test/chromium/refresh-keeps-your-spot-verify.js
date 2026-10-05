@@ -92,12 +92,11 @@ const check = (name, pass, detail) => {
     const d1 = await cameBack('doc-scroll', d0);
     check('2a the Document tab comes back on the same contract, scrolled to the same line', d0 >= 800 && d1 === d0 && (await page.evaluate(() => state.activeId)) === 'MK-R3', JSON.stringify({ d0, d1 }));
     await page.screenshot({ path: path.join(OUT, '2a-document-kept.png') });
-    await page.evaluate(() => docViewSet('plain'));
-    await page.waitForTimeout(300);
-    await reload();
-    const pm = await until(() => window.docViewMode ? docViewMode() : null);
-    check('2b the Plain English reading the reader had up survives the reload (a reload is not an arrival)', pm === 'plain', pm);
-    await page.evaluate(() => docViewSet('paper'));
+    /* RE-POINTED 5 Oct 2026 (the Thread): there is no reading mode to keep any
+       more; what comes back is the thread's open row, which follows the line
+       the paper came back to. */
+    const pm = await until(() => { const o = document.querySelector('#doc-thread .doc-th-row.is-open'); return o && window.docThreadAtLine ? { open: Number(o.dataset.thRow), line: docThreadAtLine() } : null; });
+    check('2b the Thread\'s open row is the one at the line the paper came back to', !!pm && pm.open === pm.line && pm.open > 0, JSON.stringify(pm));
     await page.evaluate(() => roomGoTab(getContract('MK-R3'), 'history'));
     await page.waitForTimeout(400);
     await reload();

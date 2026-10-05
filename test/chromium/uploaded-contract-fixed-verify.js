@@ -123,7 +123,9 @@ const BODY =
     check('1d no heading on the paper runs to a sentence', heads === 0, heads + ' long headings');
     await page.screenshot({ path: path.join(OUT, '01-document.png') });
 
-    /* ===== 2. THE X-RAY ===== */
+    /* ===== 2. THE THREAD (was the X-ray) ===== */
+    /* RE-POINTED 5 Oct 2026 (the Thread): the map's blocks are the Thread's
+       rows, the panel is the open row. Same facts staged, same claims. */
     const staged = await page.evaluate(() => {
       const c = getContract(state.activeId);
       c.scan = { at: 'today', on: '2026-09-22', dismissed: [], findings: [
@@ -134,47 +136,46 @@ const BODY =
       c._brief = { at: new Date().toISOString(), data: { overview: 'x',
         watchouts: [{ point: 'Payment takes sixty days.', why: 'Your cash waits two months.', quote: 'Payment is due sixty (60) days' }],
         unusual: [{ point: 'The customer may buy elsewhere.', why: 'Nothing is guaranteed to you.', quote: '' }] } };
-      if (typeof docViewSet !== 'function') return false;
-      docViewSet('xray');
-      if (typeof applyWsTabs === 'function') applyWsTabs(c);
+      if (typeof docThreadPaint !== 'function') return false;
+      docThreadPaint(c);
       return true;
     });
     await page.waitForTimeout(1200);
     const spine = await page.evaluate(() => {
-      const segs = [...document.querySelectorAll('#doc-xr-spine .doc-xr-seg')];
+      const segs = [...document.querySelectorAll('#doc-thread .doc-th-row')];
       return { n: segs.length, ruby: segs.filter(s => s.classList.contains('is-ruby')).length,
         amber: segs.filter(s => s.classList.contains('is-amber')).length };
     });
-    check('2a the map is drawn', staged && spine.n > 0, JSON.stringify(spine));
-    check('2b the clause the scan found is RED on the map', spine.ruby === 1, spine.ruby + ' red');
+    check('2a the thread is drawn', staged && spine.n > 0, JSON.stringify(spine));
+    check('2b the clause the scan found is RED on the thread', spine.ruby === 1, spine.ruby + ' red');
     check('2c and the brief\'s watchout colours its own clause amber', spine.amber >= 1, spine.amber + ' amber');
     const pressed = await page.evaluate(async () => {
-      const seg = document.querySelector('#doc-xr-spine .doc-xr-seg.is-ruby');
+      const seg = document.querySelector('#doc-thread .doc-th-row.is-ruby [data-th-go]');
       if (!seg) return null;
       seg.click();
-      await new Promise(z => setTimeout(z, 700));
-      const panel = document.querySelector('#doc-xray');
+      await new Promise(z => setTimeout(z, 1300));
+      const panel = document.querySelector('#doc-thread .doc-th-row.is-open');
       const mark = panel && [...panel.querySelectorAll('.doc-xr-mark.is-ruby')][0];
       const why = mark && mark.querySelector('.doc-xr-why');
       const wide = panel && panel.querySelector('.doc-xr-sec.is-wide');
-      const look = panel && panel.querySelector('.doc-xr-sec.is-look');
+      const look = panel && panel.querySelector('.doc-th-look');
       const bg = look ? getComputedStyle(look).backgroundColor : '';
-      return { head: (panel.querySelector('.doc-xr-head h4') || {}).textContent || '',
+      return { head: (panel.querySelector('.doc-th-name') || {}).textContent || '',
         mark: mark ? mark.textContent.replace(/\s+/g, ' ').trim() : '',
         why: why ? why.textContent.replace(/\s+/g, ' ').trim() : '',
         wide: wide ? wide.textContent.replace(/\s+/g, ' ').trim() : '', bg,
-        anywhere: panel ? panel.textContent.replace(/\s+/g, ' ') : '' };
+        anywhere: document.getElementById('doc-thread').textContent.replace(/\s+/g, ' ') };
     });
-    check('2d pressing the red segment lands the panel on that clause',
-      !!(pressed && /No suspension/.test(pressed.head + pressed.mark)), pressed ? pressed.head : 'no red segment');
+    check('2d pressing the red row opens it on that clause',
+      !!(pressed && /No suspension/.test(pressed.head + pressed.mark)), pressed ? pressed.head : 'no red row');
     check('2e the scan finding is on it, with its reason under it',
       !!(pressed && /No right to suspend/.test(pressed.mark) && /Your only lever/.test(pressed.why)),
       pressed ? pressed.why : '—');
     /* REVERSED IN PLACE 25 Sep 2026 (Young: "this 'about contract x' portion
        should be excluded from the x-ray"). A finding that lands on no clause
        was said in About this contract; that block is gone and the finding
-       stays on the Risk scan panel. GATED on the panel having drawn its
-       clause, so a build that draws nothing cannot pass it. */
+       stays on the Risk scan panel. GATED on the row having opened, so a
+       build that draws nothing cannot pass it. */
     check('2f About this contract is not drawn, and a finding that lands nowhere is not guessed onto a clause',
       !!(pressed && pressed.head && !pressed.wide && !/Governing law abroad/.test(pressed.anywhere)),
       pressed ? (pressed.wide || '(no block)').slice(0, 90) : '—');
@@ -182,12 +183,9 @@ const BODY =
        browser, and to rgb() in others — both are read. */
     const rgb = (pressed && pressed.bg.match(/[\d.]+/g) || []).map(Number)
       .map(v => /srgb/.test(pressed.bg) ? v * 255 : v);
-    /* RE-POINTED IN PLACE 25 Sep 2026: the same shade, on the clause's own
-       Worth a look — the one light-red area left in the X-ray. */
     check('2g Worth a look, holding the scan finding, is shaded a light red',
       rgb.length >= 3 && rgb[0] > rgb[1] && rgb[0] > rgb[2] && rgb[1] > 200, pressed ? pressed.bg : '—');
-    await page.screenshot({ path: path.join(OUT, '02-xray.png') });
-    await page.evaluate(() => { if (typeof docViewSet === 'function') docViewSet('paper'); });
+    await page.screenshot({ path: path.join(OUT, '02-thread.png') });
 
     /* ===== 3. THE OBLIGATIONS TILE ===== */
     const tile = await page.evaluate(async () => {

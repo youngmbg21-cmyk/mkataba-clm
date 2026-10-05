@@ -58,67 +58,39 @@ function xrayBlock() {
      and against the commit before this one a throw here would collapse a
      section of claims into one unreadable failure. The section's first test
      is what asserts the block is there. */
-  const a = CODE.indexOf('const DOC_XRAY_SPINE_W');
+  /* RE-POINTED 5 Oct 2026 (the Thread): the readings run from the placement
+     floor to the thread's own header; the thread (which presses docReadRun
+     from its Explain door) is a block of its own. */
+  const a = CODE.indexOf('const DOC_XRAY_QUOTE_MIN');
   if (a < 0) return '';
-  const b = CODE.indexOf('function wireDocRead(', a);
+  const b = CODE.indexOf('const DOC_THREAD_LINE', a);
   return b > a ? CODE.slice(a, b) : '';
 }
 
 /* ============================================================================
    1 · THREE POSITIONS, IN THE OWNER'S ORDER
    ==========================================================================*/
-describe('f364 (1) the switch', () => {
-  test('X-ray is the third button, straight after Plain English', () => {
-    const sw = region('docReadSwitchHtml');
-    const order = [...sw.matchAll(/data-doc-read="(\d)"/g)].map(m => m[1]);
-    assert.deepEqual(order, ['0', '1', '2'], 'Contract View, Plain English, X-ray');
-    assert.ok(sw.indexOf("i18t('ct_read_plain')") < sw.indexOf("i18t('xr_switch')"),
-      'and it is drawn after the edition, not before it');
+describe('f364 (1) the switch is gone', () => {
+  /* REVERSED IN PLACE 5 Oct 2026 (Young picked the Thread). The three
+     positions, their store and the press that mapped one to the other are
+     retired; the readings X-ray drew now feed the thread's open row. */
+  test('no switch, no store, no position', () => {
+    assert.ok(!/function docReadSwitchHtml|function wireDocRead\(|function docViewMode|function docViewSet|function docXrayOn|DOC_VIEW_MODES/.test(CODE));
+    assert.ok(!/data-doc-read=/.test(CODE), 'no button carries a position');
   });
-  test('Contract View is lit only when NEITHER layer is up', () => {
-    const sw = region('docReadSwitchHtml');
-    assert.ok(/data-doc-read="0" aria-pressed="\$\{!on&&!xr\}"/.test(sw),
-      'a third position that did not clear the first would light two at once');
-  });
-  test('it is lit off the MODE, never off a reading having been made', () => {
-    const sw = region('docReadSwitchHtml');
-    assert.ok(/const xr=docXrayOn\(\);/.test(sw));
-    assert.ok(!/xr=docXrayOn\(\)&&docReadHeld/.test(sw),
-      'X-ray needs no edition — its panel offers that press where there is none');
-  });
-  test('the press maps a position to a mode, and sets it once', () => {
-    const w = region('wireDocRead');
-    assert.ok(/pos==='1'\?'plain':pos==='2'\?'xray':'paper'/.test(w));
-    assert.equal((w.match(/docViewSet\(/g) || []).length, 1, 'one writer of the store');
+  test('docReadOn keeps its name, and its answer is the thread', () => {
+    assert.ok(/function docReadOn\(\)\{ return docThreadOn\(\); \}/.test(CODE), 'said in terms of the thread, so its callers cannot drift from it');
+    assert.ok((CODE.match(/docReadOn\(\)/g) || []).length >= 2, 'and it has callers');
   });
 });
 
 /* ============================================================================
    2 · ONE STORE, AND YESTERDAY'S CHOICE STILL MEANS WHAT IT MEANT
    ==========================================================================*/
-describe('f364 (2) the store', () => {
-  test("'1' is still Plain English", () => {
-    const m = region('docViewMode');
-    assert.ok(/if\(v==='1'\) return 'plain';/.test(m),
-      'a browser holding the old value opens where it always did');
-  });
-  test('an unknown value reads as the paper, which is where the switch rests', () => {
-    const m = region('docViewMode');
-    assert.ok(/DOC_VIEW_MODES\.indexOf\(v\)>0 \? v : 'paper'/.test(m));
-    assert.ok(/if\(!docReadFits\(\)\) return 'paper';/.test(m),
-      'and a narrow window is the paper, never a layer it cannot draw');
-  });
-  test('docReadOn keeps its name AND its answer', () => {
-    assert.ok(/function docReadOn\(\)\{ return docViewMode\(\)==='plain'; \}/.test(CODE),
-      'said in terms of the mode, so its callers cannot drift from it');
-    /* Its callers are the reason: the painter, the switch, the duty marks and
-       the mirror column all mean "is the edition up". */
-    assert.ok((CODE.match(/docReadOn\(\)/g) || []).length >= 3, 'and it has callers');
-  });
-  test('one key, three values, and only three', () => {
-    const st = region('docViewSet');
-    assert.ok(/m==='plain' \? '1' : \(m==='xray' \? 'xray' : '0'\)/.test(st));
-    assert.ok(/const DOC_VIEW_MODES=\['paper','plain','xray'\];/.test(CODE));
+describe('f364 (2) one facing page, always up', () => {
+  test('up wherever two working columns fit, on the Document tab alone', () => {
+    assert.ok(/const docThreadOn = \(\) => docReadFits\(\) && _wsTab === 'docs';/.test(CODE));
+    assert.ok(/const docReadFits=\(\)=>window\.innerWidth>=DOC_READ_MIN_W;/.test(CODE), 'a narrow window stands it down, never a layer it cannot draw');
   });
 });
 
@@ -179,38 +151,42 @@ describe('f364 (4) the two positions see the same clauses', () => {
      for as long as the X-ray never once showed a reading. The half that was
      right is kept: the panel must BORROW the edition's pairing rather than
      make a second one. What it must borrow it WITH is the entries. */
-  test('the panel takes the edition’s OWN entry rather than making a second', () => {
-    const f = region('docXrayPanelHtml');
-    assert.ok(/docReadAnchors\(c\s*,\s*docReadItems\(c\)\)/.test(f),
+  test('the thread takes the edition’s OWN entry rather than making a second', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): docThreadPlain pairs once per paint. */
+    const f = region('docThreadPlain');
+    assert.ok(/docReadAnchors\(c,\s*docReadItems\(c\),\s*sheet\)/.test(f),
       'paired by the same anchors the edition pairs with, AND handed the same entries');
-    assert.ok(/paired\.find\(a=>a&&a\.row&&a\.row\.el===x\.el\)/.test(f), 'and matched on the element');
+    assert.ok(/out\.set\(p\.row\.el,t\)/.test(f), 'and keyed on the element');
   });
   test('where there is no reading it offers the press, and claims nothing', () => {
-    assert.ok(/i18t\('xr_plain_none'\)/.test(region('docXrayPanelHtml')));
+    const b = region('docThreadBodyHtml');
+    assert.ok(/docThreadExplainHtml\(c,rows,i\)/.test(b), 'Explain this clause');
+    assert.ok(!/xr_plain_none/.test(b), 'never "press Plain View" — there is no such thing to press');
   });
   test('the ladder is drawn only where the clause has an id to be argued about', () => {
-    const f = region('docXrayPanelHtml');
+    const f = region('docThreadBodyHtml');
     assert.ok(/const cid=docXrayClauseId\(x\.row\);/.test(f));
     assert.ok(/if\(cid\)\{[\s\S]{0,120}ladderRungs\(c,cid\)/.test(f),
       'template paper has no stamped ids, and saying "never argued" there would be a claim');
-    assert.ok(/rungs\.length\?docXraySecHtml/.test(f), 'no rungs, no section');
+    assert.ok(/if\(rungs\.length\) parts\.push/.test(f), 'no rungs, no section');
   });
 });
 
 /* ============================================================================
    5 · THE MAP IS MEASURED BEFORE IT IS MOUNTED
    ==========================================================================*/
-describe('f364 (5) the spine takes grey, never paper', () => {
-  test('it is mounted only where the ground will hold it', () => {
-    const f = region('docXrayPaint');
-    assert.ok(/room=canvas\.getBoundingClientRect\(\)\.left-sec\.getBoundingClientRect\(\)\.left/.test(f),
-      'the room is measured against the sheet the reader is looking at');
-    assert.ok(/if\(!\(room>=DOC_XRAY_SPINE_W\+DOC_XRAY_SPINE_GAP\)\) return;/.test(f),
-      'and a verb that cannot work is not drawn');
+describe('f364 (5) the strand left the margin; the thread is the map', () => {
+  /* REVERSED IN PLACE 5 Oct 2026 (the Thread): the Document tab draws no
+     strand — every clause is a row on the thread, with a name. The strand
+     builders stay for the Explorer, which draws them over its own paper. */
+  test('the Document tab mounts no strand', () => {
+    assert.ok(!/function docXrayPaint\(|function docXrayFollow\(|DOC_XRAY_SPINE_W|id='doc-xr-spine'/.test(CODE));
+    assert.ok(!/docXraySpineHtml\(/.test(region('docThreadPaint')), 'the thread paints beads, not blocks');
   });
-  test('it is absolutely positioned and never in the flow', () => {
-    assert.ok(/\.doc-xr-spine\{position:absolute;/.test(INDEX),
-      'nothing in the layout changes, so the contract cannot move');
+  test('the Explorer still does, with the same builders', () => {
+    const IG = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'intelligence.js'), 'utf8');
+    assert.ok(/docXraySpineHtml\(rows,\{ numbers:true \}\)/.test(IG));
+    assert.ok(/\.doc-xr-spine\{position:absolute;/.test(INDEX), 'absolutely positioned and never in the flow');
   });
   test('the paper column gained a position and an id, and nothing else', () => {
     const m = CODE.match(/<section id="doc-paper-col" style="([^"]+)"/);
@@ -218,64 +194,33 @@ describe('f364 (5) the spine takes grey, never paper', () => {
     assert.equal(m[1], 'position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:0',
       'relative with no offsets changes no layout at all');
   });
-  test('the panel is the edition’s OWN card, by one rule and not a copy', () => {
-    /* Young, 22 Sep 2026: "the right hand side of the card should be on a
-       white card just like plain English". That card is the 10 Sep ruling
-       ("let the plain english also sit in a white card and not the grey
-       background") and it is now ONE selector covering both layers — a
-       second copy of those five declarations is a second thing to keep in
-       step. THE CLOTHES FOLLOW THE BUILDER. */
-    assert.ok(/#doc-read,#doc-xray\{[^}]*background:var\(--color-surface\)/.test(INDEX),
-      'one rule dresses both layers');
-    /* NOT PRECEDED BY A COMMA: `#doc-read,#doc-xray{` CONTAINS `#doc-xray{`,
-       so the plain negative tripped on the shared rule it exists to allow. */
-    assert.ok(!/(?<![,\w-])#doc-xray\{[^}]*background:var\(--color-surface\)/.test(INDEX),
-      'and X-ray has no card rule of its OWN to drift with');
-    assert.ok(/#doc-read\[hidden\],#doc-xray\[hidden\]\{ display:none; \}/.test(INDEX),
-      'and both are hidden the same way, or the card outlives its content');
-  });
-  test('the panel is a sibling of the edition’s layer, at the same inset', () => {
-    const r = CODE.match(/<div id="doc-read"[^>]*style="([^"]+)"/);
-    const x = CODE.match(/<div id="doc-xray"[^>]*style="([^"]+)"/);
-    assert.ok(r && x, 'both layers are in the template');
-    assert.equal(x[1], r[1], 'one geometry, so the cards under them are covered the same way');
+  test('the thread is one white card in the column, by one rule', () => {
+    assert.ok(/\.doc-th\{[^}]*background:var\(--color-surface\)/.test(INDEX), 'one rule dresses it');
+    assert.ok(/\.doc-th\[hidden\]\{ display:none; \}/.test(INDEX), 'and it is hidden the same way, or the card outlives its content');
+    assert.ok(!/id="doc-read"|id="doc-xray"/.test(CODE), 'the two layers are gone');
   });
 });
 
 /* ============================================================================
    6 · THE ORDER IS LOAD-BEARING
    ==========================================================================*/
-describe('f364 (6) two writers of one property', () => {
-  test('docXrayPaint runs after docReadPaint at every call site that changes the mode', () => {
-    const lines = CONTRACT.split('\n');
-    /* THE PICK HANDLER IS EXCLUDED BY NAME, and that is the measurement rather
-       than an exemption: pressing a segment of the map repaints the PANEL, it
-       does not change which layer is up, so there is nothing for the edition's
-       painter to hand back. Every other site is a mode or a tab change, and
-       there the order is load-bearing. */
-    const wireA = lines.findIndex(l => /^function docXrayWire\(/.test(l));
-    assert.ok(wireA > 0, 'the wiring is a named function');
-    const wireB = lines.findIndex((l, i) => i > wireA && /^function /.test(l));
-    const inWire = i => i > wireA && (wireB < 0 || i < wireB);
-    const paints = [];
-    lines.forEach((l, i) => {
-      if (/docReadPaint\(/.test(l)) paints.push({ i, kind: 'read' });
-      if (/docXrayPaint\(/.test(l) && !/^function /.test(l)) paints.push({ i, kind: 'xray' });
-    });
-    const xrays = paints.filter(p => p.kind === 'xray' && !inWire(p.i));
-    assert.ok(xrays.length >= 3, 'painted on the canvas funnel, the tab sweep and the press');
-    xrays.forEach(x => {
-      const before = paints.filter(p => p.kind === 'read' && p.i <= x.i && x.i - p.i <= 8);
-      assert.ok(before.length, 'a read paint sits just above line ' + (x.i + 1));
-    });
+describe('f364 (6) one painter', () => {
+  /* REVERSED IN PLACE 5 Oct 2026 (the Thread): where two painters once had
+     to run in order (the edition handing #doc-right back, X-ray covering it
+     again), there is ONE, and it covers nothing. */
+  test('docThreadPaint is painted on the canvas funnel and the tab sweep', () => {
+    const sites = (CODE.match(/^\s*docThreadPaint\(c\);/gm) || []).length;
+    assert.ok(sites >= 2, 'wireDocCanvas and applyWsTabs');
+    assert.ok(!/docXrayPaint\(|docReadPaint\(c\);\s*\n\s*docXrayPaint/.test(CODE), 'and no second painter to order against');
+    assert.ok(/function docReadPaint\(c\)\{ docThreadPaint\(c\); \}/.test(CODE), 'the old name presses the one painter');
   });
-  test('and it takes the cover back when it is the one that is up', () => {
-    assert.ok(/if\(right\) right\.style\.visibility='hidden';/.test(region('docXrayPaint')));
+  test('it covers nothing', () => {
+    assert.ok(!/right\.style\.visibility='hidden'/.test(CODE), 'the column is not covered; the thread is a card in it');
   });
   test('the wiring is armed once per element, on hosts that are rebuilt', () => {
-    const f = region('docXrayWire');
-    assert.ok(/if\(!host\|\|host\.dataset\.xrBound\) return;/.test(f));
-    assert.ok(/host\.dataset\.xrBound='1';/.test(f));
+    const f = region('docThreadWire');
+    assert.ok(/if\(card&&!card\.dataset\.thBound\)\{/.test(f));
+    assert.ok(/if\(col&&!col\.dataset\.thBound\)\{/.test(f));
   });
 });
 
@@ -340,14 +285,16 @@ describe('f364 (8) it speaks both languages', () => {
    then abandoned the press when that purchase failed.
    ==========================================================================*/
 describe('f364 (9) Format A', () => {
-  const PANEL = () => region('docXrayPanelHtml');
-  const WIRE = () => region('wireDocRead');
+  /* RE-POINTED 5 Oct 2026 (the Thread): the pairing is docThreadPlain's, the
+     body is docThreadBodyHtml's, and the "moved" reading is docThreadMovedHtml's. */
+  const PANEL = () => region('docThreadBodyHtml');
+  const WIRE = () => region('docThreadMovedHtml');
 
   /* ---- the pairing gets its entries ---- */
-  test('the panel HANDS THE READINGS OVER — docReadAnchors takes them second', () => {
-    const p = PANEL();
-    assert.ok(/docReadAnchors\(c\s*,\s*docReadItems\(c\)\)/.test(p),
-      'the X-ray pairs against the entries the edition holds, not against nothing');
+  test('the thread HANDS THE READINGS OVER — docReadAnchors takes them second', () => {
+    const p = region('docThreadPlain');
+    assert.ok(/docReadAnchors\(c,\s*docReadItems\(c\),\s*sheet\)/.test(p),
+      'the thread pairs against the entries the edition holds, not against nothing');
     assert.ok(!/docReadAnchors\(c\)/.test(p),
       'and never calls it with the contract alone');
   });
@@ -365,15 +312,13 @@ describe('f364 (9) Format A', () => {
   /* ---- the press ---- */
   test('a MISSING memory is "we do not know", never "it moved"', () => {
     const w = WIRE();
-    assert.ok(/const moved=!!\(sig&&c\._readSig&&c\._readSig!==sig\)/.test(w),
-      'the press asks for a re-read only where the signature is KNOWN to have moved');
-    assert.ok(!/c\._readSig!==sig\)\s*\{\s*if\(!await docReadRun/.test(w),
-      'and never off a bare inequality, which reads an absent memory as a change');
+    assert.ok(/moved=!!\(sig&&c\._readSig&&c\._readSig!==sig\)/.test(w),
+      'the row says stale only where the signature is KNOWN to have moved');
+    assert.ok(/if\(!moved\) return '';/.test(w), 'and says nothing otherwise');
   });
-  test('the painter and the press now read _readSig the same way', () => {
-    const paint = region('docReadPaint');
-    assert.ok(/sig&&c\._readSig&&c\._readSig!==sig/.test(paint), 'the painter, as it always did');
-    assert.ok(/sig&&c\._readSig&&c\._readSig!==sig/.test(WIRE()), 'and the press, which did not');
+  test('there is ONE reading of "moved" now, so nothing can disagree with it', () => {
+    assert.equal((CODE.match(/c\._readSig!==sig/g) || []).length, 1, 'one reader');
+    assert.ok(/c\._readSig!==sig/.test(WIRE()), 'and it is the open row\'s');
   });
   /* RE-POINTED IN PLACE (fix 6, Young's go, 23 Sep 2026: "Each clause
      appears as soon as it is read"). The 22 Sep fault was a refused re-read
@@ -382,15 +327,10 @@ describe('f364 (9) Format A', () => {
      makes that fault impossible by construction — and a reading that brings
      back nothing stands down by itself: with nothing held the column is not
      drawn. */
-  test('a refused re-read does not swallow the press', () => {
-    const w = WIRE();
-    assert.ok(w.indexOf('docViewSet(mode)') > 0 && w.indexOf('docViewSet(mode)') < w.indexOf('await docReadRun(c)'),
-      'the switch is set BEFORE the attempt, so no refusal can skip it');
-    assert.ok(!/if\(!got&&!docReadItems\(c\)\.length\)\s*return;/.test(w),
-      'and there is no early return left between the press and the switch');
-    const held = region('docReadPaint');
-    assert.ok(/const on=docReadOn\(\)&&_wsTab==='docs'&&docReadHeld\(c\);/.test(held),
-      'the column is drawn only where something is held — which is how a reading that brought nothing back stands down');
+  test('a refused re-read cannot swallow the press: the thread is up before any press', () => {
+    assert.ok(!/docReadHeld/.test(region('docThreadPaint')), 'the thread does not wait for a reading to exist');
+    const run = region('docReadRun');
+    assert.ok(/if\(docReadWatching\(id\)\) docThreadPaint\(c\);/.test(run), 'and a press repaints it the moment the reading starts, so the row says Reading…');
   });
   test('[wall] _readSig still has exactly ONE writer, inside docReadRun', () => {
     const hits = (CODE.match(/_readSig\s*=(?!=)/g) || []).length;
@@ -462,8 +402,8 @@ describe('f364 (9) Format A', () => {
        asserted now is that it still reads the list AND that nothing draws it. */
     assert.ok(/docXrayBriefOdd\(c\)\.forEach/.test(region('docXrayWide')),
       'the dormant whole-contract reading still reads the unusual terms, kept whole');
-    assert.ok(!/docXrayWide\(/.test(region('docXrayPanelHtml')),
-      'and the panel no longer draws what lands nowhere');
+    assert.ok(!/docXrayWide\(/.test(region('docThreadBodyHtml')),
+      'and the open row no longer draws what lands nowhere');
   });
   test('docXrayBriefWatch is the ONE reading of that list', () => {
     assert.ok(/function docXrayBriefWatch\(c\)/.test(CODE), 'it exists');
@@ -485,10 +425,12 @@ describe('f364 (9) Format A', () => {
     assert.ok(/const docXrayMarkHtml = \(m, foot\) =>/.test(CODE), 'one builder');
     const p = PANEL();
     /* REVERSED IN PLACE 25 Sep 2026: About this contract left the X-ray, so
-       the builder has ONE home in the panel — the clause's own list. It was
-       two while the contract-level block was drawn. */
+       the builder has ONE home — the clause's own list. 5 Oct 2026: that
+       home is the thread's open row, and the foot is EMPTY: Worth a look
+       carries no "Add a note" (owner). */
     assert.ok((p.match(/docXrayMarkHtml/g) || []).length === 1,
       'drawn by the clause list alone — the contract-level block is no longer drawn');
+    assert.ok(/docXrayMarkHtml\(m,''\)/.test(p), 'with no foot under a mark');
     const b = CODE.slice(CODE.indexOf('const docXrayMarkHtml'), CODE.indexOf('const docXrayMarkHtml') + 400);
     assert.ok(/doc-xr-mk">\$\{esc\(m\.tag\|\|''\)\}/.test(b), 'every mark prints its source tag');
     assert.ok(/is-\$\{esc\(m\.grade\|\|'amber'\)\}/.test(b), 'and wears its own grade');

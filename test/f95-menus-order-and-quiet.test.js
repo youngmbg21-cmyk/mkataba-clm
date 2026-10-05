@@ -183,54 +183,25 @@ describe('F95 — every menu row has a symbol, and the symbols are solid dark gr
   });
 });
 
-describe('F95 — the contract is filled in before it is checked', () => {
-  test('the form comes before Checks in the column', () => {
-    /* The page template is one string in one file; the order in it IS the order
-       on screen, and it is the thing that regressed. */
+describe('F95 — the contract is filled in before it is read', () => {
+  /* REVERSED IN PLACE 5 Oct 2026 (the Thread): the Checks card is gone from
+     the Document tab (owner: redundant). The order that mattered survives —
+     the form first, then what is known about each clause. */
+  test('the form comes before the thread in the column', () => {
     const page = src('js/views/contract.js');
     const doc = page.slice(page.indexOf('id="doc-right"'));
-    assert.ok(doc.indexOf('id="tplform-section"') < doc.indexOf('id="checks-card"'),
-      'reviewing a document that has not been written yet is not a check');
+    assert.ok(doc.indexOf('id="tplform-section"') < doc.indexOf('id="doc-thread"'),
+      'reading a document that has not been written yet comes second');
+    assert.ok(!/id="checks-card"/.test(page), 'and there is no Checks card to order against');
   });
-
-  test('Checks says how many fields are still empty', () => {
-    const { win } = buildWorld({ contractView: true, negotiationView: true });
-    const c = contract({ templateForm: form() });
-    assert.equal(win.tplFormOpenCount(c), 3, 'the optional field is not counted');
-    /* Shortened on 21 Sep 2026: the note sits beside the card's title now. */
-    assert.match(win.checksNoteHtml(c), /Fill the contract form first/);
-    assert.match(win.checksNoteHtml(c), /3 required fields still empty/);
+  test('the Checks card\'s builders went with it', () => {
+    const page = src('js/views/contract.js');
+    assert.ok(!/function checksRowsHtml|function checksNoteHtml|function renderChecksCard|function wireChecksCard/.test(page));
   });
-
-  test('and stops saying it the moment the last one is filled', () => {
-    const { win } = buildWorld({ contractView: true, negotiationView: true });
-    const c = contract({ templateForm: form({ biz: 'Highland Ltd', kra: 'A1', tel: '+254' }) });
-    assert.equal(win.tplFormOpenCount(c), 0);
-    assert.match(win.checksNoteHtml(c), /Run before sending/);
-  });
-
-  test('one left is one field, not one fields', () => {
-    const { win } = buildWorld({ contractView: true, negotiationView: true });
-    const c = contract({ templateForm: form({ biz: 'Highland Ltd', kra: 'A1' }) });
-    assert.match(win.checksNoteHtml(c), /1 required field still empty/);
-  });
-
-  test('a contract with no form says nothing about one', () => {
-    const { win } = buildWorld({ contractView: true, negotiationView: true });
-    assert.equal(win.tplFormOpenCount(contract()), 0,
-      'the common case — a plain template, or an upload that arrived complete');
-    assert.match(win.checksNoteHtml(contract()), /Run before sending/);
-  });
-
-  test('typing in the form repaints the Checks line', () => {
-    /* The count changes under the reader's hands, so the notice cannot be
-       written once at build time and left there. */
+  test('typing in the form repaints the thread, which says where a reading has not been made', () => {
     const lib = src('js/views/templatelib.js');
     const commit = lib.slice(lib.indexOf('function tplFormCommit'));
-    assert.match(commit.slice(0, commit.indexOf('\n}')), /renderChecksCard\(c\)/);
-    const page = src('js/views/contract.js');
-    const render = page.slice(page.indexOf('function renderChecksCard'));
-    assert.match(render.slice(0, render.indexOf('\n}')), /data-checks-note/);
+    assert.match(commit.slice(0, commit.indexOf('\n}')), /docThreadPaint\(c\)/);
   });
 });
 

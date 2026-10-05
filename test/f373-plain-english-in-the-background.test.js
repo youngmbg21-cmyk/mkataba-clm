@@ -298,16 +298,22 @@ describe('f373 (7) the column opens on the press and fills as it is read', () =>
     assert.ok(at > 0, name + ' is there');
     return ROOM.slice(at, ROOM.indexOf('\nfunction ', at + 10));
   };
-  test('the switch is set before the reading, so the reader watches it arrive', () => {
-    const w = region('wireDocRead');
-    assert.ok(w.indexOf('docViewSet(mode)') < w.indexOf('await docReadRun(c)'), 'the column opens first');
-    assert.match(w, /if\(docViewMode\(\)!=='plain'\|\|!docReadWatching\(cur\.id\)\) return;/,
+  test('the thread is up before the reading, so the reader watches it arrive', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): there is no switch to set; the
+       row says Reading… the moment the press lands, and a reader who moved
+       on is not repainted over. */
+    const r = region('docReadRun');
+    assert.ok(r.indexOf('if(docReadWatching(id)) docThreadPaint(c);') < r.indexOf("api('ai/readings','POST'"), 'the row says Reading… first');
+    const w = region('docThreadWire');
+    assert.match(w, /finally\{ ex\.disabled=false; const now=docThreadCur\(cur\); if\(docReadWatching\(now\.id\)\) docThreadPaint\(now\); \}/,
       'and a reader who moved on while it read keeps what they chose');
   });
-  test('one press per contract: a reading already running is joined, never asked for twice', () => {
+  test('one press per contract: a whole reading already running is joined; a one-clause press waits for it', () => {
     const r = region('docReadRun');
-    assert.match(r, /const busy=_docReadJobs\.get\(id\);\s*\n\s*if\(busy\) return busy\.promise;/);
+    assert.match(r, /if\(!only&&!busy\.only\) return busy\.promise;/, 'joined, never asked for twice');
+    assert.match(r, /try\{ await busy\.promise; \}catch\(_\)\{\}/, 'a clause not in the run that is running waits its turn');
     assert.match(r, /run:job\.run/, 'the press carries its own name, so progress is about THIS reading');
+    assert.match(r, /only\?\{only\}:\{\}/, 'and names the rows it wants, by their place in the whole walk');
   });
   test('the column asks how far it has got only while somebody is looking', () => {
     const p = region('docReadPoll');
@@ -315,19 +321,18 @@ describe('f373 (7) the column opens on the press and fills as it is read', () =>
     assert.match(p, /reading-progress\?run=/);
     assert.match(ROOM, /const docReadWatching=id=>state\.view==='workspace'&&state\.activeId===id&&_wsTab==='docs'&&docReadOn\(\);/);
   });
-  test('the head says "Reading N of M" in the slot the moved line uses, never a band', () => {
-    const p = region('docReadPaint');
-    assert.match(p, /running\?`<span class="doc-read-moved doc-read-progress" role="status">/);
-    assert.match(p, /i18t\('ct_read_progress',\{n:prog\.done,m:prog\.total\}\)/);
+  test('the open row says "Reading N of M" in its own line, never a band', () => {
+    const p = region('docThreadProgress');
+    assert.match(p, /i18t\('ct_read_progress',\{n:Number\(r\.done\),m:Number\(r\.total\)\}\)/);
+    assert.match(region('docThreadBodyHtml'), /class="doc-th-wait">\$\{esc\(docThreadProgress\(c\)\)\}/);
     assert.equal((I18N.match(/ct_read_progress: '/g) || []).length, 2, 'in both books');
     assert.match(I18N, /ct_read_progress: 'Reading \{n\} of \{m\}'/);
   });
-  test('a clause still to come keeps its place, with a class of its own', () => {
-    const p = region('docReadPaint');
-    assert.match(p, /class="doc-read-wait" data-doc-read-wait=/);
-    assert.ok(!/doc-read-note[^"]*doc-read-wait|doc-read-wait[^"]*doc-read-note/.test(p), 'never a .doc-read-note — nothing that counts readings may find it');
-    assert.match(p, /waitsUpTo\(Number\(p\.it&&p\.it\.i\)\)/, 'placed in the same pass as the readings, in paper order');
-    assert.match(INDEX, /\.doc-read-wait\{ position:absolute;/);
+  test('a clause still to come says so on its row, with a class of its own', () => {
+    const p = region('docThreadStates');
+    assert.match(p, /class="is-wait">\$\{esc\(i18t\('ct_read_reading'\)\)\}/);
+    assert.match(p, /\(!_docThreadOnly\|\|_docThreadOnly\.has\(i\)\)/, 'only the rows this press asked for');
+    assert.match(INDEX, /\.doc-th-state \.is-wait\{/, 'and the sheet dresses it');
   });
   test('a connection that drops is not a reading that stopped: the page waits for the server, then asks once more', () => {
     const r = region('docReadRun');

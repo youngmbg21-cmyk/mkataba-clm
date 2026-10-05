@@ -239,26 +239,21 @@ describe('f335 (6) — Fill it in opens the box it is looking for', () => {
 });
 
 describe('f335 (7) — a finger scrolls the Plain English column', () => {
-  const near = CONTRACT.slice(CONTRACT.indexOf("layer.dataset.docReadWheel='1'"),
-                              CONTRACT.indexOf("layer.dataset.docReadWheel='1'") + 2200);
-  test('touch is forwarded to the paper, exactly as the wheel is', () => {
-    assert.match(near, /addEventListener\('touchstart'/, 'the finger landing is remembered');
-    assert.match(near, /addEventListener\('touchmove'/, 'and each move pushes the paper');
-    assert.match(near, /getElementById\('doc-scroll'\)/, 'the SAME one surface moves');
+  /* RETIRED IN PLACE 5 Oct 2026 (the Thread). The Plain English column was a
+     clip laid over the paper, so a finger on it had to be forwarded to the
+     paper's scroller or the two columns drifted. The Thread is a card in the
+     right column: the paper is the one scroller for the contract, the open
+     row's body is a bounded scroller of ITS OWN (so a long reading never
+     pushes the next clause off the card), and nothing is forwarded. */
+  test('nothing forwards a wheel or a finger any more', () => {
+    assert.ok(!CONTRACT.includes("docReadWheel"), 'the forwarding latch is gone');
+    const th = CONTRACT.slice(CONTRACT.indexOf('const DOC_THREAD_LINE'), CONTRACT.indexOf('function wireDocCanvas'));
+    assert.ok(!/touchmove|touchstart|'wheel'/.test(th), 'the Thread listens to no gesture of the paper\'s');
   });
-  test('THE EDITION STILL GROWS NO SCROLLER OF ITS OWN', () => {
-    /* The whole reason the two columns cannot drift. A second real scroller
-       here would be two scrollers racing over one reading. */
-    assert.ok(!/layer\.style\.overflow\s*=/.test(near), 'the clip stays a clip');
-    assert.match(near, /layer\.style\.touchAction='pan-y'/,
-      'the browser is told the intent instead');
-  });
-  test('and the press is swallowed only where the paper actually moved', () => {
-    assert.match(near, /if\(s\.scrollTop!==was\) e\.preventDefault\(\)/,
-      'reaching the end hands the gesture back — the wheel\'s own rule');
-  });
-  test('one finger only: a pinch is left alone', () => {
-    assert.match(near, /e\.touches\.length!==1/, 'two fingers are not a pan');
+  test('the open row keeps a bounded scroller of its own, the paper keeps the contract\'s', () => {
+    assert.match(HTML, /\.doc-th-row\.is-open \.doc-th-in\{ overflow-y:auto; overflow-x:hidden; max-height:var\(--th-max,420px\)/,
+      'a long reading scrolls inside the row');
+    assert.match(CONTRACT, /const DOC_THREAD_BODY_MIN = 320;/, 'and never below a readable height');
   });
 });
 
@@ -458,59 +453,61 @@ describe('f335 (11) — one mark, one meaning', () => {
 });
 
 describe('f335 (12) — bold from facts, amber from the record', () => {
+  /* RE-POINTED 5 Oct 2026 (the Thread). docReadFlags, the Plain column's
+     amber bars, went with the column; what the Thread shows beside a clause
+     is the X-ray's own marks (docXrayMarks), which rest on the SAME facts —
+     the playbook verdicts and the risk scan on the record, placed by
+     containment and never by a guess. The bold is unchanged. */
   test('the bold BORROWS the brief\'s own deterministic pass', () => {
     const body = fnBody(CONTRACT, 'docReadMark');
     assert.match(body, /briefMark/, 'it is the brief\'s reading, not a second copy');
     assert.match(body, /return esc\(t\)/, 'and a stage without that module is byte-identical');
   });
-  test('NO MODEL DECIDES WHAT IS EMPHASISED', () => {
-    const body = fnBody(CONTRACT, 'docReadFlags') + fnBody(CONTRACT, 'docReadMark');
+  test('NO MODEL DECIDES WHAT IS EMPHASISED OR MARKED', () => {
+    const body = fnBody(CONTRACT, 'docXrayMarks') + fnBody(CONTRACT, 'docReadMark');
     for (const bad of ['api(', 'fetch(', 'copilot', 'anthropic'])
       assert.ok(!body.includes(bad), 'neither reading spends anything: ' + bad);
   });
-  test('the amber rests on facts HaTi already holds', () => {
-    const body = fnBody(CONTRACT, 'docReadFlags');
-    assert.match(body, /c\.playbook&&Array\.isArray\(c\.playbook\.verdicts\)/, "this workspace's own playbook");
-    assert.match(body, /openFindings\(c\)/, 'and the risk scan already run');
-    assert.match(body, /rlPbFindClause\(c,q,cat\)/,
-      'placed through the ONE reading that refuses rather than guesses');
+  test('the marks rest on facts HaTi already holds', () => {
+    assert.match(CONTRACT, /const _xrVerdicts = c => \(\(c&&c\.playbook&&Array\.isArray\(c\.playbook\.verdicts\)\)/,
+      "this workspace's own playbook");
+    assert.match(fnBody(CONTRACT, '_xrFinds'), /openFindings\(c\)/, 'and the risk scan already run, less what was dismissed');
+    const body = fnBody(CONTRACT, 'docXrayMarks');
+    assert.match(body, /if\(docXrayPlace\(txt,_xrFindQuote\(f\)\)\) out\.push/, 'a finding lands only where its quote is');
+    assert.match(body, /if\(docXrayPlace\(txt,v\.quote\)\) out\.push/, 'so does a verdict');
   });
-  /* RE-POINTED IN PLACE 19 Sep 2026, and this file's own standing lesson is
-     what it cost. The claim is about BEHAVIOUR — a finding rlPbFindClause
-     could not place adds nothing — and it was pinned as the exact one-line
-     shape the guard was written in on the day, `if(!cl||!cl.clauseId`.
-     AND THE HALF IT PINNED WAS THE BUG. Measured in a browser the next day:
-     that clause id was never going to match anything, because docReadSheet
-     walks the PAINTED page and its rows carry no id at all — so the amber this
-     claim was written to protect had never marked a single clause. The keying
-     moved onto the clause's own heading, which both sides really hold, and the
-     claim is pinned as the two REFUSALS it is actually about. */
   test('an unplaceable finding marks NOTHING rather than the wrong paragraph', () => {
-    const body = fnBody(CONTRACT, 'docReadFlags');
-    assert.match(body, /const add\s*=\s*\(cl,\s*why\)\s*=>\s*\{[\s\S]{0,60}?if\(!cl\|\|!why\) return;/,
-      'a null clause adds no flag');
-    assert.match(body, /if\(!k\) return;/,
-      'and a clause it cannot key adds none either, rather than sharing one');
+    const at = CONTRACT.indexOf('function docXrayPlace(rowText, quote){');
+    const body = CONTRACT.slice(at, CONTRACT.indexOf('\n}\n', at));
+    assert.match(body, /if\(q\.length<DOC_XRAY_QUOTE_MIN\) return false;/, 'no quote, or too short a one, no mark');
+    assert.match(body, /return _xrNorm\(rowText\)\.indexOf\(q\)>=0;/, 'containment, never a likeness');
+    assert.ok(!/fuzzy|similar|levenshtein|score/i.test(body));
   });
-  test('RED AND GREEN ARE ABSENT, and that is the ruling', () => {
-    const at = HTML.indexOf('.doc-read-note.dr-watch');
-    assert.ok(at > 0, 'the amber rule exists');
-    const block = HTML.slice(at, at + 200);
-    assert.match(block, /--st-amber-dot/, 'amber only');
-    assert.ok(!/ruby|green/.test(block),
-      'no colour saying "this is bad for you" on nothing, and none clashing with the redline');
+  test('GREEN IS ABSENT, and a clause with no mark wears no colour', () => {
+    /* The three grades are the record\'s own: ruby for a high finding, amber
+       for the rest, steel for an unusual term. Nothing says "fine". */
+    const at = HTML.indexOf('.doc-th-look .doc-xr-mark::before');
+    assert.ok(at > 0, 'the mark\'s rule exists');
+    const block = HTML.slice(at, HTML.indexOf('.doc-th-rule', at));
+    assert.match(block, /--st-amber-dot/, 'amber');
+    assert.match(block, /is-ruby::before\{ background:var\(--st-ruby-dot\)/, 'ruby');
+    assert.match(block, /is-steel::before\{ background:var\(--st-steel-dot\)/, 'steel');
+    assert.ok(!/green/.test(block), 'and no colour saying "this is good for you" on nothing');
+    assert.match(CONTRACT, /const XR_GRADES\s*=\s*\['ruby','amber','steel'\]/, 'the three, worst first');
   });
   test('READING MUST NOT WRITE, and it never sends a byte', () => {
-    const body = fnBody(CONTRACT, 'docReadFlags');
+    const body = fnBody(CONTRACT, 'docXrayMarks') + fnBody(CONTRACT, 'docXrayRows');
     for (const bad of ['negoInit', 'persist(', 'changes.push'])
-      assert.ok(!body.includes(bad), 'the flag reading writes nothing: ' + bad);
+      assert.ok(!body.includes(bad), 'the mark reading writes nothing: ' + bad);
     /* THE WALL: what the route is sent does not move. */
     assert.ok(!fnBody(CONTRACT, 'docReadClauses').includes('docReadMark'),
       'the marking never reaches what is hashed and sent');
   });
-  test('computed ONCE per paint, not per entry', () => {
-    assert.match(CONTRACT, /const flags=docReadFlags\(c\);/,
-      'or it is O(clauses x findings) on every repaint of a 200-clause contract');
+  test('computed ONCE per paint, not per scroll', () => {
+    assert.match(CONTRACT, /const rows=docXrayRows\(c\);\n\s*_docThreadRows=rows\.map/,
+      'the walk happens in docThreadPaint');
+    assert.match(CONTRACT, /_docThreadCache=\{ id:String\(c&&c\.id\), rows, plain, sheet \};/,
+      'and a scroll reads the cache, or it is O(clauses x findings) on every tick of a 200-clause contract');
   });
 });
 

@@ -171,11 +171,16 @@ describe('f366 (B) Plain English reads every clause and says when it could not',
     const lead = ROOM.slice(ROOM.indexOf('const _docReadBoldLead=el=>{'), ROOM.indexOf('const _docReadBoldLeadLoose=el=>{'));
     assert.ok(/at<=num\.length\+3/.test(lead), 'and a title straight after the clause\'s own number counts as its lead-in');
   });
-  test('a short reading is said in the head, which is always on screen', () => {
-    assert.ok(/doc-read-moved doc-read-short/.test(ROOM_RAW), 'the moved line\'s own slot');
-    assert.ok(/:\(partial\|\|over\)\?`<span class="doc-read-moved doc-read-short">/.test(ROOM_RAW));
-    const i = ROOM_RAW.indexOf('doc-read-moved doc-read-short');
-    assert.ok(/data-doc-read-again/.test(ROOM_RAW.slice(i, i + 400)), 'carrying the same Read again door');
+  test('a clause the reading could not reach is offered the press again, on its own row', () => {
+    /* RE-POINTED 5 Oct 2026 (the Thread): a short edition is said per row —
+       a clause without a reading is not "Read", and its open row carries
+       Explain this clause, which asks for that clause alone. */
+    const st = ROOM_RAW.slice(ROOM_RAW.indexOf('function docThreadStates('), ROOM_RAW.indexOf('/* ---------- the open row'));
+    assert.ok(/if\(plain\.has\(x\.el\)\) parts\.push/.test(st), 'Read only where a reading exists');
+    const body = ROOM_RAW.slice(ROOM_RAW.indexOf('function docThreadBodyHtml('), ROOM_RAW.indexOf('function docThreadFill('));
+    assert.ok(/docThreadExplainHtml\(c,rows,i\)/.test(body), 'and the press is there for the rest');
+    const wire = ROOM_RAW.slice(ROOM_RAW.indexOf('function docThreadWire('), ROOM_RAW.indexOf('function docReadPaint('));
+    assert.ok(/docReadRun\(cur,\{only:\[i\]/.test(wire), 'which reads that clause alone');
   });
 });
 
@@ -273,9 +278,10 @@ describe('f366 (C, D, E) every concern is placed on its clause; what lands nowhe
      shade, mixed the same way, moved onto the clause's own Worth a look — and
      only while that list holds something. Nothing draws is-wide any more. */
   test('H · Worth a look carries the very light red, only while it holds something, in both themes', () => {
-    assert.ok(/marks\?'is-look has':'is-look'/.test(ROOM), 'the clause list carries the shade only when it has marks');
+    /* RE-POINTED 5 Oct 2026 (the Thread): the box is the open row's. */
+    assert.ok(/class="doc-th-look\$\{marks\?' has':''\}"/.test(ROOM), 'the clause list carries the shade only when it has marks');
     assert.ok(!/'is-wide'/.test(ROOM), 'and nothing builds the old contract-level block');
-    const at = INDEX.indexOf('.doc-xr-sec.is-look.has{');
+    const at = INDEX.indexOf('.doc-th-look.has{');
     assert.ok(at > 0, 'the rule exists');
     const rule = INDEX.slice(at, INDEX.indexOf('}', at));
     assert.ok(/background:color-mix\(in srgb,var\(--st-ruby-bg\) 55%,var\(--color-surface\)\)/.test(rule),

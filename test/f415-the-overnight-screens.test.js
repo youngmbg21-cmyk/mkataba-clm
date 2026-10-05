@@ -40,8 +40,11 @@ test('f415 (c5 c7) a notice is said once, in amber; the stream keeps the line op
 });
 
 test('f415 (c6) Plain English greys with its reason when Copilot is not connected', () => {
-  assert.match(CV, /state\.aiConfigured===false&&!docReadHeld\(c\)/);
-  assert.ok(inBoth('ct_read_no_ai'));
+  /* RE-POINTED 5 Oct 2026 (the Thread): the switch is gone; "Explain this
+     clause" and "Explain all" are greyed, with why on their hover. */
+  assert.match(CV, /const docThreadNoAi = \(\) => typeof API_MODE==='function'&&API_MODE\(\)&&typeof state!=='undefined'&&state&&state\.aiConfigured===false;/);
+  assert.match(CV, /data-th-explain="\$\{i\}"\$\{dead\?' disabled aria-disabled="true"':''\}/);
+  assert.ok(inBoth('th_no_ai'));
 });
 
 test('f415 (c8 c9 c10) the graph: amended end dates, Copilot’s grouping in the menu, one vocabulary in local mode', () => {
@@ -53,9 +56,13 @@ test('f415 (c8 c9 c10) the graph: amended end dates, Copilot’s grouping in the
 
 test('f415 (c11 c12 c13 c14) the standards tile, X-ray picks, the cover page, justified text', () => {
   assert.match(R('js/triage.js'), /function triagePlaybookNow\(c, p\)/);
-  assert.match(CV, /const at=rows\.findIndex\(r=>r&&r\.el&&r\.el\.contains&&r\.el\.contains\(e\.target\)\);/);
+  /* RE-POINTED 5 Oct 2026 (the Thread): a press on a clause in the paper opens its row */
+  assert.match(CV, /const at=_docThreadRows\.findIndex\(el=>el&&el\.contains&&el\.contains\(e\.target\)\);/);
   assert.match(CV, /const DOC_READ_FURNITURE='[^']*\[data-doc-design-cover\]'/);
-  assert.match(CV, /const DOC_READ_ALIGN=new Set\(\['center','right','justify'\]\);/);
+  /* c14 (justified text mirrored, DOC_READ_ALIGN) RETIRED 5 Oct 2026 (the
+     Thread): the Plain column's mirror of the paper is gone — the Thread is a
+     list of rows, nothing is mirrored. The furniture list above still keeps
+     the cover page out of the clause walk. */
 });
 
 test('f415 (c16 c17) repeated passages are all lit; the old widen choice is carried once', () => {

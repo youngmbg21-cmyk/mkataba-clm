@@ -342,7 +342,7 @@ describe('f342 (4) the marks are painted, so nothing travels', () => {
     const w = fnBody(CONTRACT_CODE, 'wireDocCanvas');
     assert.ok(w, 'wireDocCanvas not found');
     assert.ok(/uploadBlanksPaint\(c\)/.test(w), 'not on the funnel: ' + w);
-    assert.ok(/signSpotsPaint/.test(w) && /docReadPaint/.test(w), 'the precedent it rides with');
+    assert.ok(/signSpotsPaint/.test(w) && /docThreadPaint/.test(w), 'the precedent it rides with');
   });
   test('4c uploadDocBody NAMES the wording, so the walk stays off the signature foot', () => {
     const ud = fnBody(CONTRACT_CODE, 'uploadDocBody');

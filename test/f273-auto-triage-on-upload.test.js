@@ -780,24 +780,37 @@ describe('F273 — auto-triage on upload', () => {
         assert.match(CONTRACT, /ob_proposed_n/, 'and named');
       }
     });
-    test('and BOTH presses treat a held reading as a list to tick', () => {
-      /* The panel shows what is ON the contract, and nothing is yet — so a
-         verdict saying "20 proposed" must press the funnel. Written in one
-         place and not the other, one row behaves two ways. */
-      assert.equal((CONTRACT.match(/if\(ran && !ran\.held\) return openCheckPanel/g) || []).length, 2,
-        'the Checks card and the room header both ask');
+    test('and the ONE press treats a held reading as a list to tick', () => {
+      /* RE-POINTED 5 Oct 2026 (the Thread): the Checks card is gone from the
+         Document tab, so the room header's door is the one press — and the
+         Thread's own "not yet read · Run" line presses that SAME door
+         (data-room-check), so there is still no second path to a scan. A
+         verdict saying "20 proposed" must press the funnel; written in one
+         place, one row cannot behave two ways. */
+      assert.equal((CONTRACT.match(/if\(ran && !ran\.held\) return openCheckPanel/g) || []).length, 1,
+        'the room header asks, once');
+      const un = CONTRACT.slice(CONTRACT.indexOf('function docThreadUnrunHtml'),
+        CONTRACT.indexOf('function docThreadBodyHtml'));
+      assert.match(un, /data-room-check="\$\{k\}"/, 'the Thread presses the room head\'s own door');
+      assert.ok(!/addEventListener|openCheckPanel|runScanAct/.test(un), 'and carries no handler of its own');
       assert.ok(!/const ran=!!checkVerdict/.test(CONTRACT),
         'the verdict is kept as an object — coerced, a held reading is '
         + 'indistinguishable from findings already on the record');
     });
-    test('and the steel tone is drawn, not left to fall through to green', () => {
-      /* RE-POINTED IN PLACE (21 Sep 2026, the redesign's second pass): the
-         tone is a CLASS on the row now and the sheet paints the mark — the
-         same four tones, on the state mark rather than a pill. */
-      assert.match(CONTRACT, /v\.tone==='steel'\?'is-steel'/,
-        'without it the row says this contract is clear when nobody has looked');
-      const HTML = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'index.html'), 'utf8');
-      assert.match(HTML, /\.check-row\.is-steel \.ci\{[^}]*--st-steel-bg/, 'and the sheet paints steel on the mark');
+    test('and a held reading is never drawn as "clear"', () => {
+      /* RE-POINTED 5 Oct 2026 (the Thread): the steel row of the Checks card
+         went with the card. What carries the ruling now: the room head draws a
+         COUNT only off `v.n` (a held reading has none on the record, so no
+         badge claims one), its hover reads the verdict's own label ("2
+         proposed"), and the Thread's "not yet read" line is drawn only where
+         checkVerdict answers NOTHING — a held reading is a verdict, so the row
+         does not say "unread" either. */
+      assert.match(CONTRACT, /const badge=\(v&&v\.n\)\?roomCheckBadge\(v\.n,v\.tone\):'';/,
+        'no badge on a held reading, no "clear" either');
+      assert.match(CONTRACT, /const tip=v\?`\$\{name\} · \$\{v\.label\}`/, 'the hover is the verdict\'s own sentence');
+      const un = CONTRACT.slice(CONTRACT.indexOf('function docThreadUnrunHtml'),
+        CONTRACT.indexOf('function docThreadBodyHtml'));
+      assert.match(un, /if\(v\) return '';/, 'a verdict of any tone silences the unread line');
     });
     test('its words are in both books, with both plural forms', () => {
       for (const k of ['ob_proposed_n_one', 'ob_proposed_n_other'])

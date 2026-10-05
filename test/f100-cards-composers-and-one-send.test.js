@@ -361,7 +361,9 @@ describe('F100c — a message box you can read back', () => {
          roll call has always made: it is a TEXTAREA, not a one-line input. */
       ['js/views/negotiation.js', /<textarea class="chat-field rl-np-in"[^>]*id="nego-ti-/, 'a note in the Notes panel'],
       ['js/discuss.js', /<textarea data-point-body[^>]*class="chat-field"/, 'reply on a point'],
-      ['js/views/contract.js', /<textarea id="comment-input" class="chat-field"/, 'comment on the terms'],
+      /* RETIRED 5 Oct 2026 (the Thread): the Activity & comments card left the
+         Document tab (Young: "essentially redundant"), and its composer with
+         it; the conversation is the Notes panel's, named above. */
       ['js/views/portal.js', /<textarea data-cl-note[^>]*class="chat-field"/, 'the counterparty\'s clause note'],
     ];
     for (const [file, re, what] of boxes)

@@ -149,15 +149,13 @@ describe('f369 (3) "Who else" fills itself with who edited and approved', () => 
   });
 });
 
-describe('f369 (4) the Document tab lands on Contract View', () => {
-  test('arriving on the tab puts the switch back; a repaint of the same tab does not', () => {
-    const ap = code(fnBody(CONTRACT, 'applyWsTabs'));
-    assert.ok(/_wsTab==='docs' && _docViewAt!==here\) docViewSet\('paper'\)/.test(ap));
-    assert.ok(/_docViewAt=here/.test(ap));
-  });
-  test('leaving the page makes the next visit an arrival', () => {
-    assert.ok(/!_sameView && typeof window\.docViewLeave==='function'/.test(APP));
-    assert.ok(/function docViewLeave\(\)\{ _docViewAt=''; \}/.test(CONTRACT));
+describe('f369 (4) the Document tab lands on the thread', () => {
+  /* REVERSED IN PLACE 5 Oct 2026 (the Thread): there is no position to put
+     back on arrival; the one facing page is up whenever the tab is. */
+  test('no arrival rule, no leave hook', () => {
+    assert.ok(!/_docViewAt|docViewSet\(|docViewLeave/.test(CONTRACT));
+    assert.ok(!/docViewLeave/.test(APP));
+    assert.ok(/docThreadPaint\(c\);/.test(code(fnBody(CONTRACT, 'applyWsTabs'))), 'the tab sweep paints the thread');
   });
 });
 
@@ -168,7 +166,9 @@ describe('f369 (5) the X-ray map draws only the marked clauses', () => {
     assert.ok(/const docXraySpineRows = rows => \(rows\|\|\[\]\)\.filter\(x => x && x\.tone\)/.test(CONTRACT));
   });
   test('nothing marked, no map', () => {
-    assert.ok(/if\(!sec\|\|!docXraySpineRows\(rows\)\.length\)/.test(CONTRACT));
+    /* RE-POINTED 5 Oct 2026 (the Thread): the strand is the Explorer's now. */
+    const IG = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'intelligence.js'), 'utf8');
+    assert.ok(/sp\.hidden=!marked\.length;/.test(IG));
   });
 });
 
@@ -181,16 +181,16 @@ describe('f369 (7) Send to counterparty is gone', () => {
   });
 });
 
-describe('f369 (8) the text size reaches the X-ray panel', () => {
-  test('applyDocZoom writes the same ratio on the panel\'s host', () => {
+describe('f369 (8) the text size reaches the thread', () => {
+  test('applyDocZoom writes the same ratio on the thread', () => {
     const z = code(fnBody(CONTRACT, 'applyDocZoom'));
-    assert.ok(/getElementById\('doc-xray'\)/.test(z));
-    assert.ok(/xr\.style\.setProperty\('--doc-scale', pref\.toFixed\(3\)\)/.test(z));
+    assert.ok(/getElementById\('doc-thread'\)/.test(z));
+    assert.ok(/th\.style\.setProperty\('--doc-scale', pref\.toFixed\(3\)\)/.test(z));
   });
-  test('every size in the panel reads it', () => {
-    for (const lit of ['#doc-xray .doc-xr-head h4{font-size:calc(var(--t-card) * var(--doc-scale,1));}',
-      '#doc-xray .doc-xr-t,#doc-xray .doc-xr-none{font-size:calc(var(--t-meta) * var(--doc-scale,1));}',
-      '#doc-xray .doc-xr-k,#doc-xray .doc-xr-mk{font-size:calc(var(--t-micro) * var(--doc-scale,1));}'])
+  test('every size in the thread reads it', () => {
+    for (const lit of ['#doc-thread .doc-th-name{font-size:calc(var(--t-body) * var(--doc-scale,1));}',
+      '#doc-thread .doc-xr-mk{font-size:calc(var(--t-micro) * var(--doc-scale,1));}',
+      '#doc-thread .doc-xr-wdt{font-size:calc(var(--t-meta) * var(--doc-scale,1));}'])
       assert.ok(INDEX.includes(lit), lit);
   });
 });

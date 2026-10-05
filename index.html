@@ -3421,320 +3421,6 @@
   #ws-tabrow-end .sc-step>span{ min-width:3.2em; text-align:center; font-size:var(--t-body); color:var(--color-text);
     font-variant-numeric:tabular-nums; white-space:nowrap; padding:0 4px; }
 
-  /* ---- THE PLAIN-ENGLISH SWITCH (idea 7) ----
-     Contract View first and lit at rest, Plain English second — Young's own
-     order, ruled off a rendered mock. The fill is --accent-fill rather than the
-     raw ramp because white on accent-600 measures 3.74:1, and the ink is
-     --accent-ink, the one accent token with a night answer. */
-  .doc-read-seg{ display:inline-flex; flex:none; overflow:hidden; height:var(--ctl-h);
-    border:1px solid var(--btn-edge); border-radius:var(--radius); }
-  .doc-read-seg button{ display:grid; place-items:center; height:100%; padding:0 12px;
-    border:0; background:none; font:inherit; font-size:var(--t-body);
-    font-weight:var(--w-label); color:var(--accent-ink); white-space:nowrap; cursor:pointer; }
-  /* ONLY THE SHADED ONE IS BOLD — Young's own rule for both of this product's
-     control rows: the row reads at one weight and the lit half is what stands
-     out of it. Since the Compact ladder (26 Sep 2026) that one weight is the
-     LABEL weight every button wears, so the resting halves are 500 beside
-     Export and Share rather than 400; the lit half keeps its 600. */
-  .doc-read-seg button[aria-pressed="true"]{ background:var(--accent-fill); color:#fff;
-    font-weight:var(--w-title); }
-  .doc-read-seg button:disabled{ opacity:.55; cursor:default; }
-  /* ---- D1 -- A LINE BETWEEN EVERY PAIR (Young ruled 22 Sep 2026) ----
-     Three words in one box read as one word wrapped; the owner asked for the
-     three positions to be divided, was shown three treatments drawn at real
-     size, and picked this one.
-
-     THE FRAME'S OWN COLOUR AT 45%, so it needs no new token: on the white
-     halves it is a light navy hairline, and where it meets the filled half
-     the fill shows through it as a slightly deeper navy. Either way it reads
-     as a seam rather than as a second border.
-
-     AND IT IS BETWEEN EVERY PAIR, NOT ONLY THE UNLIT ONES. Dropping the rule
-     beside the filled half is tidier at rest and MOVES THE FURNITURE as the
-     lit half moves, which is the one thing this product does not do.
-     (0,1,2) against the base rule's (0,1,1), so it wins on weight and needs no
-     override of last resort; the aria-pressed rule is (0,2,1) and sets no border.
-     ---- AND THE BOX AND THE SEAMS ARE THE ONE LIGHT GREY EDGE (26 Sep 2026) ----
-     The frame was the accent ink and the seams the accent at 45%; the owner
-     boxed this switch as one of the dark outlines. Both read --btn-edge now,
-     like every button beside it. The lit half is still FILLED, which is what
-     says which position is on — the frame was never needed to say it. */
-  .doc-read-seg button + button{
-    border-left:1px solid var(--btn-edge); }
-
-  /* ---- THE READINGS, IN THE COLUMN THE CARDS OCCUPY ----
-     One note per clause, held at its clause's own top and moved with the paper
-     by a transform rather than a scroller of its own: two columns that scroll
-     apart would put a reading beside the wrong wording, which is the one thing
-     this may never do. */
-  /* ---- A WHITE SHEET, NOT NOTES ON THE PAGE GROUND (Young ruled 10 Sep 2026:
-     "Let the plain english also sit in a white card and not the grey
-     background"). A facing page beside the contract's cream one, which is also
-     what makes the edition read as a document in its own right. */
-  /* ---- AND X-RAY'S PANEL IS THE SAME CARD (Young ruled 22 Sep 2026: "the
-     right hand side of the card should be on a white card just like plain
-     English"). ONE RULE, TWO LAYERS, deliberately: the switch draws both into
-     the same slot, and a second copy of these five declarations is a second
-     thing to keep in step the next time either is retuned. THE CLOTHES FOLLOW
-     THE BUILDER. */
-  #doc-read,#doc-xray{ display:flex; flex-direction:column; padding:0 var(--s-3) var(--s-3);
-    background:var(--color-surface); border:1px solid var(--color-divider);
-    border-radius:var(--radius); box-shadow:0 1px 2px rgba(15,23,42,.04); }
-  #doc-read[hidden],#doc-xray[hidden]{ display:none; }
-  .doc-read-head{ flex:none; display:flex; align-items:center; gap:7px; flex-wrap:wrap;
-    padding:11px 0 8px; border-bottom:1px solid var(--color-divider);
-    font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.09em;
-    text-transform:uppercase; color:var(--accent-ink); }
-  /* The staleness sits ON the caption and keeps the caption's own register:
-     furniture about the reading, never a band over it. It wraps to its own
-     line rather than squeezing the label. */
-  .doc-read-moved{flex-basis:100%;color:var(--st-amber-fg);font-weight:var(--w-body);
-    text-transform:none;letter-spacing:0;}
-  .doc-read-moved button{font-size:inherit;}
-  /* ---- THE CAPTION SLOT IS THE SWITCH (Young ruled 19 Sep 2026) ----
-     The <em> that carried "a reading, not the contract" is STALE — that
-     sentence is the hover on the label now — and the switch takes its exact
-     place and its exact register: pushed right by margin-left:auto, the label
-     size, body weight, no letter-spacing, no upper case. A quiet press, not a
-     button: this row is furniture about the reading, and a filled control here
-     would read as an alarm beside a contract.
-     THE RING IS THE STATE. Hollow at rest, amber when the marks are on — the
-     same amber the marks themselves wear, so the switch and the page say one
-     thing. The word goes with it, so the state is never colour alone. */
-  .doc-read-head em{ margin-left:auto; font-style:normal; font-weight:var(--w-body);
-    letter-spacing:0; text-transform:none; font-size:var(--t-label);
-    color:var(--color-neutral-600); }
-  /* ---- CAPITALS, NOT BOLD, AND A TICK-BOX (Young ruled 19 Sep 2026) ----
-     *"Make Highlight obligations to be in Capital letters but Not [bold]. And
-     instead of having a Circle to [select], make it a Square and [select] with
-     a checkmark."*
-
-     THE CAPITALS ARE THE ROW'S OWN, NOT THREE NEW NUMBERS. This head already
-     states the product's label treatment — `--t-micro`, uppercase, `.09em` —
-     and the switch was opting OUT of all four of its declarations. It opts out
-     of exactly ONE now, the weight, which is the half the owner kept. So the
-     switch is the same label as PLAIN ENGLISH beside it in body weight: a
-     RELATION, and it follows that row the next time the row is retuned. The
-     `<em>` above keeps its own four because it is STALE and nothing draws it.
-     THE TICK-BOX IS THE PLATFORM'S OWN CORNER — `--radius`, the 2px every
-     control in this product carries, which is what "square" means here — and
-     the product's own check symbol. The symbol is in the markup at BOTH
-     states, transparent at rest and inked when pressed, so a press changes no
-     box, loads nothing and moves nothing in the row.
-     THE INK ON THE FILL IS A LITERAL ON PURPOSE: `#2A1B04` is
-     `#hdr-notify-dot`'s own, the one other place this product puts ink on
-     `--st-amber-dot`, borrowed so the two cannot drift into two answers. That
-     token is the SAME colour in both themes, so a theme-aware token above it
-     would be the wrong kind of answer. */
-  /* ---- AND THE CAPITALS HAVE TO BE NAMED, BECAUSE INHERITANCE LOSES ----
-     The compiled Tailwind preflight sets text-transform to none on every
-     button, and INHERITANCE IS NOT A CASCADE CONTEST: any matching
-     declaration beats it, so the head's uppercase never reached this button
-     and it drew in sentence case while the source read perfectly. The third
-     time this codebase has paid for that; --dr-face on the edition's headings
-     was the last. `text-transform:inherit` rather than the word `uppercase`,
-     for the edition's own reason: it says *whatever this row is set in*, so
-     the switch and the label beside it cannot drift. The letter-spacing
-     genuinely inherits — nothing overrides it — and is left to, so it follows
-     the row too. Do not "tidy" that line away.
-     THIS NOTE STAYS OUTSIDE THE BRACES on purpose: a comment written inside a
-     declaration block that quotes a rule of its own carries a closing brace,
-     and every net in this tree that slices one rule out of this sheet stops
-     dead at it. Measured — it cut this rule in half. */
-  .doc-read-duty{ margin-left:auto; font:inherit;
-    font-weight:var(--w-body); text-transform:inherit;
-    color:var(--color-neutral-600); background:none; border:0; padding:2px 0;
-    cursor:pointer; display:inline-flex; align-items:center; gap:6px;
-    border-radius:var(--radius); }
-  .doc-read-duty:hover{ color:var(--color-text); }
-  .doc-read-duty .dr-tick{ width:12px; height:12px; border-radius:var(--radius);
-    border:1px solid var(--color-neutral-400); background:transparent; flex:none;
-    display:grid; place-items:center; color:transparent; }
-  .doc-read-duty .dr-tick svg{ width:10px; height:10px; display:block; }
-  /* COLOUR AND THE TICK, NEVER THE WEIGHT: a heavier word would widen the
-     switch on every press and shuffle the row under the reader's hand. The
-     tick is the signal that is not a colour, and aria-pressed is the one a
-     screen reader hears. */
-  .doc-read-duty[aria-pressed="true"]{ color:var(--st-amber-fg); }
-  .doc-read-duty[aria-pressed="true"] .dr-tick{ background:var(--st-amber-dot);
-    border-color:var(--st-amber-dot); color:#2A1B04; }
-  /* ---- AND THE MARK ITSELF, IN BOTH COLUMNS ----
-     ONE RULE FOR TWO HOMES, because the clothes follow the builder: the
-     reading's own span and the one painted onto the paper are the same claim
-     and must not drift into two ambers.
-     IT COSTS NO LAYOUT, AND THAT IS A REQUIREMENT. The paper half is written
-     into the drafter's own text nodes, so a padding, a margin or a heavier
-     weight here would move the wording — a wash and an underline move nothing.
-     Measured both ways in duty-marks-verify. */
-  .doc-read-note .dr-duty, #doc-canvas .dr-duty-p{
-    background:var(--st-amber-bg);
-    box-shadow:inset 0 -2px 0 0 var(--st-amber-dot);
-    border-radius:1px; }
-  /* ---- A BLANK IN A DOCUMENT SOMEBODY SENT US (item 9, 20 Sep 2026) ----
-     IT COSTS THE CONTRACT NO LAYOUT, and that is a requirement, not a
-     preference: the span is written into the drafter's own text nodes, so a
-     padding, a margin, a border or a heavier weight here would move their
-     wording on the page. A wash and an underline move nothing. Measured both
-     ways with the marks off and on.
-     TWO STATES, TWO MEANINGS. Unanswered is amber and dashed — the product's
-     own word for "this is owed". Answered is the accent with a solid rule
-     under it, because what is printed there is OURS and a reader has to be
-     able to tell it from the words the file arrived with. Neither is green or
-     ruby: those are the redline's own grammar and nothing has been proposed. */
-  #doc-canvas span.up-blank{
-    background:var(--st-amber-bg);
-    box-shadow:inset 0 -2px 0 0 var(--st-amber-dot);
-    border-radius:1px; }
-  #doc-canvas span.up-blank.is-filled{
-    background:transparent; color:var(--accent-ink);
-    box-shadow:inset 0 -1px 0 0 var(--accent-ink); }
-  .doc-read-clip{ position:relative; flex:1; min-height:0; overflow:hidden; }
-  #doc-read-inner{ position:absolute; left:0; right:0; top:0; will-change:transform; }
-  .doc-read-note,.doc-read-mirror{ position:absolute; left:0; right:0; padding-right:4px;
-    /* SET AT THE SIZE THE CONTRACT IS SET AT (Young reported it 10 Sep 2026).
-       --dr-size is MEASURED off the paper by docReadPaint rather than computed
-       from a token here, and that is what makes the claim a RELATION rather
-       than two rules agreeing: --doc-scale is written on the paper's own zoom
-       wrapper in the OTHER column and never reaches this one, and a document
-       style can multiply the size again on top of it (compact-executive takes
-       .94). Reading what the paper actually resolves to follows both. */
-    font-size:var(--dr-size,var(--t-body)); line-height:1.75;
-    /* AND SET IN THE FACE THE CONTRACT IS SET IN (Young asked 11 Sep 2026:
-       "please make the font in the plain english page the same as the contract
-       page"). --dr-face is MEASURED off the paper by docReadPaint, exactly as
-       --dr-size beside it and for the same reason: this layer is a SIBLING of
-       the sheet, so the design's own rules — which read a [data-doc-body]
-       ancestor — cannot reach it, and a list of designs named here would have
-       to be kept in step for ever. The fallback is the document face, which is
-       what every contract with no design set already draws.
-       IT IS ON THE ENTRY, NOT ON #doc-read: the column's own PLAIN ENGLISH
-       caption is furniture ABOUT the reading rather than part of it, and keeps
-       the product's face. */
-    font-family:var(--dr-face,var(--font-doc));
-    color:var(--color-neutral-700); }
-  .doc-read-note p,.doc-read-mirror p{ margin:0; }
-  /* ---- THE PAPER'S OWN FRONT MATTER, MIRRORED (Young ruled 15 Sep 2026) ----
-     Above the first clause there is nothing to translate, and the column was
-     blank for as long as the title page and the contents ran. These entries
-     carry the contract's OWN words so the two columns read together from the
-     top; every part of their shape — centring, weight, case, letter-spacing,
-     size and leading — is MEASURED off the block each one faces and written
-     inline by docReadMirrorStyle, so a document design this stylesheet has
-     never heard of is mirrored correctly. Nothing is declared here that would
-     fight that measurement. */
-  /* The edition's own 1.75 is the leading of a TRANSLATION set beside a
-     clause; a mirror is a copy of the paper and takes the paper's. Where the
-     block's own leading resolves to a number docReadMirrorStyle measures it
-     and writes it inline; this is the answer for a block whose leading
-     computes to 'normal' and so cannot be measured. */
-  .doc-read-mirror{ line-height:1.6; }
-  .doc-read-mirror > p{ white-space:normal; }
-  /* A CONTENTS ROW KEEPS ITS RIGHT-HAND COLUMN. THE CLOTHES FOLLOW THE
-     BUILDER: this is the FOURTH home the document's own markup is drawn in
-     (the Document tab's sheet, the negotiate page's paper and the clause
-     panel's are the other three) and each one carries this same pair, because
-     every one of those rules is scoped to its own sheet and none of them can
-     reach a layer that is a SIBLING of the paper. The declarations are the
-     document's own, restated here rather than re-invented: overflow contains
-     the float so the row's height is its own, and the tail sits at the wall. */
-  .doc-read-mirror > p.hati-toc{ overflow:hidden; }
-  .doc-read-mirror .hati-toc-n{ float:right; padding-left:1.2em; }
-  /* A COPY CUT SHORT ABOVE THE FIRST CLAUSE FADES OUT (26 Sep 2026) rather
-     than stopping on a hard edge that reads like the end of the paragraph.
-     docReadPaint sets the height on a whole line; this only says there is
-     more, and the whole of it is the paper twelve pixels to the left. */
-  .doc-read-mirror.is-cut{
-    -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 1.6em),transparent);
-    mask-image:linear-gradient(to bottom,#000 calc(100% - 1.6em),transparent); }
-  /* The clause's own number, and it is the PAPER'S — read off the sheet, never
-     asked of the model — which is what lets it be printed as a citation. */
-  .doc-read-note .dr-n{ color:var(--accent-ink); font-variant-numeric:tabular-nums; }
-  /* ---- WHAT TO LOOK AT TWICE (19 Sep 2026) ----
-     THE FIGURE is the brief's own treatment, restated here because the brief's
-     rules are scoped to #brief-section and this layer is a sibling of the
-     paper — the clothes follow the builder, and this is a fourth home for that
-     markup. Accent, never amber: a figure is a FACT worth finding, not a
-     warning, and amber on every number would leave nothing for the warning.
-     THE AMBER is a left rule and nothing else — no fill, no badge, no band.
-     The entry is beside a contract and the contract may not move, so the mark
-     is drawn in the gutter the entry already has. It says WHY on the hover;
-     the clause it is about is twelve pixels away, which is the whole point of
-     a column that tracks the paper. */
-  .doc-read-note .br-fig{ font-weight:var(--w-title); color:var(--accent-ink);
-    background:color-mix(in srgb,var(--color-accent) 12%,transparent);
-    border-radius:var(--radius); padding:0 3px; }
-  .doc-read-note.dr-watch{ box-shadow:inset 3px 0 0 0 var(--st-amber-dot); padding-left:10px; }
-  /* ---- AND IT NEVER TOUCHES THE NAME (Young reported it 10 Sep 2026) ----
-     The separator printed beside it is the PAPER'S OWN and may be absent — a
-     heading set "4 Independent Contractor" carries none — so the gap is stated
-     here rather than left to punctuation the drafter may not have used. It is
-     a GUARANTEE where the other half is a quotation.
-     THE TWO GUTTER RULES BELOW TAKE IT BACK, and must: there the number sits in
-     a 2.6em box whose left edge every wrapped line hangs from, so a margin on
-     top of it would push the wording past its own gutter. */
-  .doc-read-note .dr-h .dr-n,.doc-read-note .dr-s .dr-n{ margin-right:.4em; }
-  .doc-read-note.dr-hang > .dr-h .dr-n,.doc-read-note.dr-hang > .dr-s .dr-n{ margin-right:0; }
-  /* ---- THE EDITION IS SET LIKE THE CONTRACT (Young asked 10 Sep 2026: "make
-     the page for plain english have a similar structure so you almost do not
-     notice a difference except plain english will be sitting on a plain white
-     background") ----
-     The same gutter and the same steps as the paper, in the SAME vocabulary —
-     hati-lv-N, which the Word reader writes off a file's own indent, the
-     writing bar writes off a press, and the gutter walk derives from a marker.
-     A second ladder here would be a fourth opinion about how wide a step is. */
-  .doc-read-note.dr-hang > .dr-h,.doc-read-note.dr-hang > .dr-s{
-    padding-left:2.6em; text-indent:-2.6em; }
-  .doc-read-note.dr-hang > .dr-h .dr-n,.doc-read-note.dr-hang > .dr-s .dr-n{
-    display:inline-block; min-width:2.6em; text-indent:0; }
-  .doc-read-note.dr-hang > p:not(.dr-lead){ padding-left:2.6em; }
-  /* A clause with no heading of its own carries its number in the READING's
-     first line, in the same gutter the paper puts it in — never on a line
-     above it. */
-  .doc-read-note > p.dr-lead{ padding-left:2.6em; text-indent:-2.6em; }
-  .doc-read-note > p.dr-lead .dr-n{ display:inline-block; min-width:2.6em; text-indent:0; }
-  .doc-read-note.hati-lv-1{ margin-left:2.6em; }
-  .doc-read-note.hati-lv-2{ margin-left:5.2em; }
-  .doc-read-note.hati-lv-3{ margin-left:7.8em; }
-  /* THE ENTRY'S HEADINGS TAKE THE ENTRY'S OWN FACE, and `inherit` is what says
-     so rather than naming --dr-face a second time — two statements of one fact
-     drift. They are real h3/h4 elements, and index.html sets a face on every
-     heading tag at (0,0,1); INHERITANCE IS NOT A CASCADE CONTEST, so any
-     matching declaration beats it and the entry's measured face never reached
-     these two. Caught by measuring a rendered page (plain-english-verify 15c) —
-     the paragraph beside them was already right, so nothing in the source
-     looked wrong. The paper's own headings escape it because the design rules
-     name h1/h2 by tag; this column has no such rule and never will. */
-  .doc-read-note .dr-h{ margin:0 0 3px; line-height:1.4;
-    font-family:inherit; font-weight:var(--w-strong); color:var(--color-text); }
-  /* ---- ONE SIZE ON BOTH SIDES (D-3b, 11 Sep 2026) ----
-     --dr-hsize is MEASURED off the heading this entry faces — the h2/h3/h4 on
-     the paper, or a clause's bold lead-in — by docReadPaint, and written per
-     note; the ratios here are only the fallback for a note that could not be
-     measured. The same road the measured size and face travel, for the same
-     reason: a typed ratio is a second opinion about the paper's own size.
-     ---- AND A HEADING FILLS ITS LINE BEFORE IT WRAPS (D-4) ----
-     `text-wrap:balance` evened a wrapped title's lines by breaking the first
-     one early — "the sentence does not cover the whole line". The paper wraps
-     at its edge; the edition wraps as the paper does. */
-  .doc-read-note .dr-h{ font-size:var(--dr-hsize,1em); }
-  .doc-read-note .dr-s{ margin:0; font-size:var(--dr-hsize,1.13em); line-height:1.35;
-    font-family:inherit; font-weight:var(--w-title); color:var(--color-text); }
-  .doc-read-over{ position:absolute; left:0; right:0; padding-right:4px;
-    font-size:var(--t-label); color:var(--color-neutral-600); }
-  /* ---- PLAIN ENGLISH READS IN THE BACKGROUND (fix 6, 23 Sep 2026) ----
-     HOW FAR IT HAS GOT sits in the moved line's own slot and register, in the
-     quiet ink rather than the amber: nothing is wrong, it is still reading.
-     A CLAUSE STILL TO COME keeps its place with its own number and a quiet
-     "Reading…". It is furniture ABOUT the reading, like the caption and the
-     foot, so it keeps the product's face and the foot's size — the measured
-     face is the readings' alone. Its own class, never .doc-read-note: nothing
-     that counts readings may find it. */
-  .doc-read-moved.doc-read-progress{ color:var(--color-neutral-600); }
-  .doc-read-wait{ position:absolute; left:0; right:0; padding-right:4px;
-    font-size:var(--t-label); line-height:1.75; color:var(--color-neutral-500); }
-  .doc-read-wait p{ margin:0; }
-  .doc-read-wait .dr-n{ margin-right:.4em; font-variant-numeric:tabular-nums; }
-
   /* The quiet line under the tabs: one sentence saying what this tab is for,
      and at most one button. Not a card — it explains the page, it is not part
      of it. */
@@ -5564,7 +5250,7 @@
   html.dark .hm-map{ --map-made:var(--color-accent-400); }
   /* The sub-line gives before the switch does, and says where it was cut. */
   .hm-map .hm-sec .hm-map-sub{ flex:0 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  /* THE SWITCH IS THE DOCUMENT TAB'S OWN (.doc-read-seg); only its width is
+  /* THE SEGMENTED CONTROL IS THE PRODUCT'S OWN (.doc-read-seg); only its width is
      stated here, so the lit half's bold never moves the control it sits in. */
   .hm-map-seg button{ min-width:72px; }
   /* ---- A QUARTER SHORTER (Young ruled 25 Sep 2026: "reduce the where your
@@ -5920,17 +5606,124 @@
      scrolls. The picked clause keeps its own outline. */
   .doc-xr-seg.is-here::before{content:'';position:absolute;left:-4px;top:2px;bottom:2px;
     width:2px;border-radius:1px;background:var(--accent-ink);}
-  /* The panel wears the reading column's own clothes: one card, its own
-     scroller, the cards beneath it covered rather than rebuilt. */
-  .doc-xr-panel{flex:1 1 auto;min-height:0;overflow-y:auto;padding-right:2px;
-    display:flex;flex-direction:column;gap:0;}
-  /* The card gives no top padding (the edition's caption row carries its own),
-     so this head carries the same 11px and the two columns start level. */
-  .doc-xr-head{padding:11px 0 10px;border-bottom:1px solid var(--color-divider);}
-  .doc-xr-head h4{margin:0;font-size:var(--t-card);font-weight:var(--w-title);
-    letter-spacing:-.01em;line-height:1.25;}
-  .doc-xr-n{display:block;margin-top:4px;font-family:var(--font-mono);
-    font-variant-numeric:tabular-nums;font-size:var(--t-label);color:var(--color-neutral-500);}
+  /* ---- THE SEGMENTED CONTROL ----
+     Born as the Document tab's Plain English switch (idea 7, 9 Sep 2026); the
+     switch is gone since the Thread (5 Oct 2026) and the control lives on in
+     the handover's route and file pickers, which wear it by this name. The
+     fill is --accent-fill rather than the raw ramp because white on accent-600
+     measures 3.74:1, and the ink is --accent-ink, the one accent token with a
+     night answer. Only the lit half is bold; the box and the seams are the one
+     light grey edge every button beside it wears (26 Sep 2026). */
+  .doc-read-seg{ display:inline-flex; flex:none; overflow:hidden; height:var(--ctl-h);
+    border:1px solid var(--btn-edge); border-radius:var(--radius); }
+  .doc-read-seg button{ display:grid; place-items:center; height:100%; padding:0 12px;
+    border:0; background:none; font:inherit; font-size:var(--t-body);
+    font-weight:var(--w-label); color:var(--accent-ink); white-space:nowrap; cursor:pointer; }
+  .doc-read-seg button[aria-pressed="true"]{ background:var(--accent-fill); color:#fff;
+    font-weight:var(--w-title); }
+  .doc-read-seg button:disabled{ opacity:.55; cursor:default; }
+  .doc-read-seg button + button{ border-left:1px solid var(--btn-edge); }
+
+  /* ---- A BLANK IN A DOCUMENT SOMEBODY SENT US (item 9, 20 Sep 2026) ----
+     IT COSTS THE CONTRACT NO LAYOUT, and that is a requirement, not a
+     preference: the span is written into the drafter's own text nodes, so a
+     padding, a margin, a border or a heavier weight here would move their
+     wording on the page. A wash and an underline move nothing. Measured both
+     ways with the marks off and on.
+     TWO STATES, TWO MEANINGS. Unanswered is amber and dashed — the product's
+     own word for "this is owed". Answered is the accent with a solid rule
+     under it, because what is printed there is OURS and a reader has to be
+     able to tell it from the words the file arrived with. Neither is green or
+     ruby: those are the redline's own grammar and nothing has been proposed. */
+  #doc-canvas span.up-blank{
+    background:var(--st-amber-bg);
+    box-shadow:inset 0 -2px 0 0 var(--st-amber-dot);
+    border-radius:1px; }
+  #doc-canvas span.up-blank.is-filled{
+    background:transparent; color:var(--accent-ink);
+    box-shadow:inset 0 -1px 0 0 var(--accent-ink); }
+
+  /* ══ THE THREAD — the Document tab's facing page (Young picked it 5 Oct 2026) ══
+     Every clause a row on one thread; the clause under the reader's eye is
+     the open row. The card takes the column's remaining height (the fill
+     panel above it keeps its own) and never covers anything; the rows scroll
+     inside it, and the open row's body is capped (--th-max, written by
+     docThreadFill) so every row stays in view and the body scrolls on its own.
+     QUIET'S TYPOGRAPHY: no section labels; the reading in the paper's own
+     face and size (--dr-face/--dr-size, measured off the sheet); Worth a look
+     as sentences each with a coloured rule, in the one light-red wash the
+     owner picked; Who does what as the X-ray's own list, its label hidden. */
+  .doc-th{ position:relative; flex:1 1 auto; min-height:420px; min-width:0;
+    background:var(--color-surface); border:1px solid var(--color-divider);
+    border-radius:var(--radius); box-shadow:0 1px 2px rgba(15,23,42,.04); }
+  .doc-th[hidden]{ display:none; }
+  .doc-th-rows{ position:absolute; inset:0; overflow-y:auto; overflow-x:hidden; padding:6px 12px 18px; }
+  .doc-th-row{ position:relative; padding-left:24px; }
+  /* the thread: a hairline down the beads, from the first bead to the last */
+  .doc-th-row::before{ content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--color-divider); }
+  .doc-th-row:first-child::before{ top:17px; }
+  .doc-th-row:last-child::before{ bottom:auto; height:17px; }
+  .doc-th-bead{ position:absolute; left:1px; top:11px; width:12px; height:12px; border-radius:50%; box-sizing:border-box;
+    background:var(--color-surface); border:2px solid var(--color-neutral-300); z-index:1; }
+  .doc-th-row.is-ruby .doc-th-bead{ background:var(--st-ruby-dot); border-color:var(--st-ruby-dot); }
+  .doc-th-row.is-amber .doc-th-bead{ background:var(--st-amber-dot); border-color:var(--st-amber-dot); }
+  .doc-th-row.is-steel .doc-th-bead{ background:var(--st-steel-dot); border-color:var(--st-steel-dot); }
+  .doc-th-row.is-open .doc-th-bead{ box-shadow:0 0 0 2px var(--color-surface),0 0 0 4px var(--accent-ink); }
+  .doc-th-head{ display:flex; align-items:center; gap:6px; }
+  .doc-th-go{ flex:1 1 auto; min-width:0; display:flex; align-items:baseline; gap:10px; padding:7px 6px 7px 2px;
+    border:0; background:none; font:inherit; text-align:left; color:var(--color-text); cursor:pointer; border-radius:var(--radius); }
+  .doc-th-go:hover{ background:var(--surface-2); }
+  .doc-th-go:focus-visible{ outline:2px solid var(--color-accent-600); outline-offset:1px; }
+  .doc-th-name{ flex:1 1 auto; min-width:0; font-size:var(--t-body); font-weight:var(--w-label); line-height:1.35; }
+  .doc-th-row.is-open .doc-th-name{ font-weight:var(--w-title); }
+  .doc-th-state{ flex:none; font-size:var(--t-label); color:var(--color-neutral-500); white-space:nowrap; }
+  .doc-th-state .is-ruby{ color:var(--st-ruby-fg); } .doc-th-state .is-amber{ color:var(--st-amber-fg); }
+  .doc-th-state .is-steel{ color:var(--st-steel-fg); } .doc-th-state .is-read{ color:var(--st-green-fg); }
+  .doc-th-state .is-wait{ color:var(--color-neutral-500); font-style:italic; }
+  /* ‹ › travel with the open row and are drawn on it alone */
+  .doc-th-steps{ display:none; flex:none; gap:4px; }
+  .doc-th-row.is-open .doc-th-steps{ display:inline-flex; }
+  .doc-th-steps .doc-th-step{ width:var(--ctl-h-sm); min-width:var(--ctl-h-sm); height:var(--ctl-h-sm); min-height:0; padding:0; }
+  /* the body unfolds (a grid row from 0fr to 1fr), reduced motion opens it at once */
+  .doc-th-body{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .24s ease; }
+  .doc-th-row.is-open .doc-th-body{ grid-template-rows:1fr; }
+  .doc-th-in{ min-height:0; overflow:hidden; }
+  .doc-th-row.is-open .doc-th-in{ overflow-y:auto; overflow-x:hidden; max-height:var(--th-max,420px); padding:0 6px 10px 2px; }
+  .doc-th-row.is-open{ padding-bottom:6px; margin-bottom:4px; border-bottom:1px solid var(--color-divider); }
+  @media (prefers-reduced-motion:reduce){ .doc-th-body{ transition:none; } }
+  .doc-th-meta{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:var(--t-label); color:var(--color-neutral-500); margin:-2px 0 8px; }
+  /* THE READING, in the paper's face and size — the edition's own rule (11 Sep 2026) */
+  .doc-th-plain{ font-family:var(--dr-face,var(--font-doc)); font-size:var(--dr-size,calc(13.5px * var(--doc-scale,1)));
+    line-height:1.7; color:var(--color-doc-text,var(--color-text)); margin:0 0 4px; }
+  .doc-th-plain .br-fig{ font-weight:var(--w-strong); }
+  .doc-th-at{ font-size:var(--t-label); color:var(--color-neutral-500); margin:0 0 12px; }
+  .doc-th-moved{ color:var(--st-amber-fg); margin-left:6px; }
+  .doc-th-moved button{ font-size:inherit; }
+  .doc-th-wait{ font-size:var(--t-meta); color:var(--color-neutral-500); font-style:italic; margin:4px 0 12px; }
+  .doc-th-ask{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin:4px 0 12px; }
+  .doc-th-cost{ font-size:var(--t-label); color:var(--color-neutral-500); white-space:nowrap; }
+  .doc-th-all{ margin-left:auto; }
+  /* WORTH A LOOK — the one light-red area, only while it holds something */
+  .doc-th-look{ padding:2px 0; }
+  .doc-th-look.has{ margin:0 0 4px; padding:9px 12px; border:1px solid color-mix(in srgb,var(--st-ruby-dot) 22%,var(--color-surface));
+    border-radius:var(--radius-lg); background:color-mix(in srgb,var(--st-ruby-bg) 55%,var(--color-surface)); }
+  .doc-th-look .doc-xr-q{ font-size:var(--t-meta); line-height:1.55; }
+  /* a mark is a sentence with a rule at its left, its source a small word after the lead */
+  .doc-th-look .doc-xr-mark{ position:relative; display:block; padding:4px 0 4px 12px; font-size:var(--t-meta); line-height:1.5; }
+  .doc-th-look .doc-xr-mark::before{ content:''; position:absolute; left:0; top:7px; bottom:7px; width:3px; border-radius:2px; background:var(--st-amber-dot); }
+  .doc-th-look .doc-xr-mark.is-ruby::before{ background:var(--st-ruby-dot); }
+  .doc-th-look .doc-xr-mark.is-steel::before{ background:var(--st-steel-dot); }
+  .doc-th-look .doc-xr-mk{ float:right; margin:1px 0 0 8px; }
+  .doc-th-look .doc-xr-mt{ display:block; }
+  .doc-th-look .doc-xr-mt > span{ display:block; }
+  .doc-th-unrun{ font-size:var(--t-label); color:var(--color-neutral-500); margin-top:6px; }
+  .doc-th-unrun button{ font-size:inherit; }
+  .doc-th-rule{ border-top:1px solid var(--color-divider); margin:10px 0 8px; }
+  /* Who does what wears the X-ray's own rules; the thread hides the label (Quiet) */
+  .doc-th .doc-xr-sec{ padding:4px 0 6px; border-bottom:0; }
+  .doc-th .doc-xr-k{ display:none; }
+  .doc-th-argued{ font-size:var(--t-meta); }
+  .doc-xr-none{ font-size:var(--t-meta); color:var(--color-neutral-500); padding:12px 14px; }
   .doc-xr-sec{padding:11px 0;border-bottom:1px solid var(--color-divider);}
   .doc-xr-sec:last-child{border-bottom:0;}
   .doc-xr-k{margin-bottom:5px;font-size:var(--t-micro);font-weight:var(--w-strong);
@@ -6010,17 +5803,18 @@
   .doc-xr-wdmore{padding:6px 4px 0;font-size:var(--t-label);}
   .doc-xr-wdgo{margin-top:10px;justify-self:start;}
   .doc-xr-none{font-size:var(--t-meta);color:var(--color-neutral-500);}
-  /* THE X-RAY FOLLOWS THE READER'S TEXT SIZE (23 Sep 2026): every size in
-     the panel is its token times --doc-scale, which applyDocZoom writes on
-     #doc-xray from the same stepper the paper reads. Written here, after the
-     rules it scales, at the same weight, so it wins by order. */
-  #doc-xray .doc-xr-head h4{font-size:calc(var(--t-card) * var(--doc-scale,1));}
-  #doc-xray .doc-xr-n{font-size:calc(var(--t-label) * var(--doc-scale,1));}
-  #doc-xray .doc-xr-k,#doc-xray .doc-xr-mk{font-size:calc(var(--t-micro) * var(--doc-scale,1));}
-  #doc-xray .doc-xr-t,#doc-xray .doc-xr-none{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
-  #doc-xray .doc-xr-wdt{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
-  #doc-xray .doc-xr-who,#doc-xray .doc-xr-wdc,#doc-xray .doc-xr-wdo,#doc-xray .doc-xr-balsay,
-  #doc-xray .doc-xr-wdmore{font-size:calc(var(--t-label) * var(--doc-scale,1));}
+  /* THE THREAD FOLLOWS THE READER'S TEXT SIZE (23 Sep 2026, carried over):
+     every size in it is its token times --doc-scale, which applyDocZoom
+     writes on #doc-thread from the same stepper the paper reads. Written
+     here, after the rules it scales, at the same weight, so it wins by order.
+     The reading itself is measured off the paper and needs no multiplying. */
+  #doc-thread .doc-th-name{font-size:calc(var(--t-body) * var(--doc-scale,1));}
+  #doc-thread .doc-th-state,#doc-thread .doc-th-meta,#doc-thread .doc-th-at,#doc-thread .doc-th-cost,#doc-thread .doc-th-unrun{font-size:calc(var(--t-label) * var(--doc-scale,1));}
+  #doc-thread .doc-xr-mk{font-size:calc(var(--t-micro) * var(--doc-scale,1));}
+  #doc-thread .doc-xr-t,#doc-thread .doc-xr-none,#doc-thread .doc-th-look .doc-xr-mark,#doc-thread .doc-th-look .doc-xr-q,#doc-thread .doc-th-wait,#doc-thread .doc-th-argued{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
+  #doc-thread .doc-xr-wdt{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
+  #doc-thread .doc-xr-who,#doc-thread .doc-xr-wdc,#doc-thread .doc-xr-wdo,#doc-thread .doc-xr-balsay,
+  #doc-thread .doc-xr-wdmore{font-size:calc(var(--t-label) * var(--doc-scale,1));}
 
   /* ══ THE RUNWAY — the decision card's one line of time (22 Sep 2026) ══
      Left of TODAY is time already owed against this workspace's own answering
