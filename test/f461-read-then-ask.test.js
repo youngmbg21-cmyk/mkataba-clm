@@ -71,7 +71,8 @@ describe('F461 (A) — Make bigger, Make smaller', () => {
   });
   test('all three places draw it through the builder; the bare icon lives only there', () => {
     const HB = strip(read('js/views/homeboard.js'));
-    assert.equal((HB.match(/hbBigBtnHtml\(/g) || []).length, 4, 'the builder and its three callers');
+    /* the fourth caller is a story's chapter (f536, 6 Oct 2026) */
+    assert.equal((HB.match(/hbBigBtnHtml\(/g) || []).length, 5, 'the builder and its four callers');
     assert.equal((HB.match(/\$\{_hbBigIc\}/g) || []).length, 0, 'nobody draws the icon by hand');
     assert.ok(!/aria-label="\$\{_hbE\(i18t\('hb_p_big'\)\)\}"/.test(HB), 'no label stuck on "Make bigger"');
   });
