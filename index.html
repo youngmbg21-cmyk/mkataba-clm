@@ -7929,7 +7929,15 @@
   .hb-sy-acts .hb-dd-cost,.hb-sy .hb-dd-cost{color:var(--hb-mute)}
   .hb-sy-pill{font-size:var(--t-micro);color:var(--hb-glow);border:1px solid rgba(var(--hb-gw),.45);border-radius:999px;padding:1px 9px;white-space:nowrap}
   .hb-sy-pill.is-amber{color:var(--hb-amber);border-color:color-mix(in srgb,var(--hb-amber) 50%,transparent)}
-  .hb-sy-lead{margin:0;max-width:78ch;font-family:var(--font-doc);font-size:calc(var(--t-body) + 2px);line-height:1.55;color:var(--hb-ink);text-wrap:pretty}
+  .hb-sy-lead{margin:0;font-family:var(--font-doc);font-size:calc(var(--t-body) + 2px);line-height:1.55;color:var(--hb-ink);text-wrap:pretty}
+  /* THE WRITING IS NOT BLAND (Young, 6 Oct 2026): good news green, bad news
+     red, figures bold — the board's own tones, so both screens answer */
+  #hb-head .hb-scr[hidden]{display:none}
+  .hb-good,.hb-bad{font-weight:600;padding:0 3px;border-radius:3px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .hb-good{color:var(--hb-green);background:color-mix(in srgb,var(--hb-green) 13%,transparent)}
+  .hb-bad{color:var(--hb-ruby);background:color-mix(in srgb,var(--hb-ruby) 12%,transparent)}
+  .hb-fig,.hb-sy-lead b,.hb-sy-p b,.hb-why-b b{font-weight:650;color:var(--hb-ink)}
+  .hb-good b,.hb-bad b{color:inherit}
   .hb-sy-lead.is-wait{font-family:inherit;font-size:var(--t-body);color:var(--hb-mute)}
   .hb-sy-lead.is-err p{margin:0;color:var(--hb-ruby);font-size:var(--t-body)}
   .hb-sy-stale{margin:0}

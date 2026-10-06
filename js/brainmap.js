@@ -51,6 +51,8 @@ const BRAIN_PARTS = [
   ['askchoice', 'hbAmbiguity', 'see', 1],
   ['boardwords', 'hbWordsApply', 'see', 1],
   ['readchips', 'hbReadingHtml', 'see', 1],
+  /* Fold all in every view (6 Oct 2026): Floors, Grid and Timeline fold each group into one bubble per cell */
+  ['cellfold', 'igbDrawCells', 'see', 1],
   ['nextq', 'hbNextQuestions', 'see', 1],
   ['boardmarks', 'board_feedback', 'wall', 2, { def: 'CREATE TABLE IF NOT EXISTS board_feedback', men: '\\bboard_feedback\\b' }],
   ['boardjudge', 'runBoardAccuracy', 'ai', 2],
@@ -163,7 +165,7 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved'], ['desknight', 'home', 'insights']] },
-  { id: 'ask', steps: [['explorer', 'chartread', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote'], ['contracts'], ['explorer', 'readchips', 'nextq', 'boardmarks']] }
+  { id: 'ask', steps: [['explorer', 'chartread', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote'], ['contracts'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it

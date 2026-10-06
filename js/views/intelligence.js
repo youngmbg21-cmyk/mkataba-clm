@@ -1130,7 +1130,7 @@ function igRecipeNow(){
     groupBy:intel.groupBy, groups:intel.groups?{ ...intel.groups }:null,
     floorsBy:intel.floorsBy||null, columnsBy:intel.columnsBy||null, colourBy:intel.colourBy||null, sizeBy:intel.sizeBy||null,
     labelBy:intel.labelBy||null, timeBy:intel.timeBy||null, sortBy:intel.sortBy||null, view:igbCam().view,
-    names:intel.names?{ ...intel.names }:null, dotScale:intel.dotScale||1, bubbleBy:intel.bubbleBy||null, folds:{ ...(intel.folds||{}) },
+    names:intel.names?{ ...intel.names }:null, dotScale:intel.dotScale||1, bubbleBy:intel.bubbleBy||null, folds:{ ...(intel.folds||{}) }, cellOpen:{ ...(intel.cellOpen||{}) },
     bundles:Array.isArray(intel.bundles)?intel.bundles.map(x=>({ ...x })):null, edgeNames:intel.edgeNames===true||null, rv:IG_RECIPE_V };
 }
 /* THE RECIPE'S EDITION. A place kept by an older edition is not put back:
@@ -1160,6 +1160,7 @@ function igRecipeSet(r){
   ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy'].forEach(k=>{ intel[k]=r[k]||null; });
   intel.names=r.names?{ ...r.names }:null; intel.dotScale=igDotScaleClamp(r.dotScale||1); intel.bubbleBy=r.bubbleBy||null;
   if(r.folds&&typeof r.folds==='object') intel.folds={ ...r.folds };
+  intel.cellOpen=(r.cellOpen&&typeof r.cellOpen==='object')?{ ...r.cellOpen }:{};
   intel.bundles=Array.isArray(r.bundles)&&r.bundles.length?r.bundles.filter(x=>x&&x.q).slice(0,IG_BUNDLES_MAX).map(x=>({ q:String(x.q), label:String(x.label||x.q) })):null;
   intel.edgeNames=r.edgeNames===true?true:null;
   intel.walk=null;
@@ -1518,12 +1519,21 @@ function igLookRead(q){
   /* the big bubbles' measure: "size the bubbles by value", "bubbles by count" */
   m=q.match(new RegExp('\\b(?:size\\s+)?(?:the\\s+)?(?:group\\s+|big\\s+)?'+IG_DOTS_RE+'\\s+(?:sized\\s+)?(?:by|on|per|efter)\\s+(value|worth|money|amount|count|number|how many|contracts|värde|antal|avtal)\\b'));
   if(m&&/\b(?:big|group|bubbles?|bubblor)\b/.test(q)) return [{ bubbleBy:/value|worth|money|amount|värde/.test(m[1])?'value':'count' }];
-  m=q.match(/^(?:please\s+)?(?:open|unfold|expand|spread)\s+(?:up\s+)?(?:the\s+)?(.+?)(?:\s+(?:bubble|group|again|back))*$/)||q.match(/^(?:öppna|fäll ut)\s+(.+?)(?:\s+(?:igen|bubblan|gruppen))*$/);
-  if(m&&IG&&IG.hubs){ const w=_igNorm(m[1]); const hit=IG.hubs.filter(h=>h.folded&&_igNorm(h.label).includes(w)); if(w.length>=3&&hit.length) return [{ fold:'open', labels:hit.map(h=>h.label) }]; }
+  /* "fold only <group>": that group folds, every other opens (6 Oct 2026) */
+  m=q.match(/^(?:please\s+)?(?:fold|collapse|close|gather)\s+(?:up\s+)?only\s+(?:the\s+)?(.+?)(?:\s+(?:bubbles?|group))*$/)||q.match(/^(?:please\s+)?(?:fold|collapse|close|gather)\s+(?:up\s+)?(?:the\s+)?(.+?)\s+only$/)
+    ||q.match(/^(?:fäll ihop|samla)\s+(?:bara|endast)\s+(.+?)(?:\s+(?:bubblan|gruppen))*$/)||q.match(/^(?:fäll|samla)\s+(?:bara|endast)\s+ihop\s+(.+?)(?:\s+(?:bubblan|gruppen))*$/);
+  if(m&&IG&&IG.hubs){ const w=_igNorm(m[1]); const hit=IG.hubs.filter(h=>_igNorm(h.label).includes(w)); if(w.length>=3) return hit.length?[{ fold:'only', labels:hit.map(h=>h.label) }]:[{ foldUnknown:m[1].trim() }]; }
+  m=q.match(/^(?:please\s+)?(?:open|unfold|expand|spread)\s+(?:up\s+)?(?:the\s+)?(.+?)(?:\s+(?:bubbles?|group|again|back))*$/)||q.match(/^(?:öppna|fäll ut)\s+(.+?)(?:\s+(?:igen|bubblan|bubblorna|gruppen))*$/);
+  /* a group is opened whether it is folded whole, in some bubbles, or not at all */
+  if(m&&IG&&IG.hubs){ const w=_igNorm(m[1]); const hit=IG.hubs.filter(h=>_igNorm(h.label).includes(w)); if(w.length>=3&&hit.length) return [{ fold:'open', labels:hit.map(h=>h.label) }]; }
   if(m&&Array.isArray(intel.bundles)&&intel.bundles.length){ const w=_igNorm(m[1]).replace(/\s+(?:contracts?|avtal(?:en)?)$/,'');
     if(w.length>=3&&intel.bundles.some(b=>_igNorm(b.label).includes(w)||_igNorm(b.q).includes(w))) return [{ unbundle:[w] }]; }
   m=q.match(/^(?:please\s+)?(?:fold|collapse|close|gather)\s+(?:up\s+)?(?:the\s+)?(.+?)(?:\s+(?:bubble|group|into one bubble|into a bubble))*$/)||q.match(/^(?:fäll ihop|samla)\s+(.+?)(?:\s+(?:bubblan|gruppen))*$/);
-  if(m&&IG&&IG.hubs){ const w=_igNorm(m[1]); const hit=IG.hubs.filter(h=>!h.folded&&_igNorm(h.label).includes(w)); if(w.length>=3&&hit.length) return [{ fold:'close', labels:hit.map(h=>h.label) }]; }
+  if(m&&IG&&IG.hubs){ const w=_igNorm(m[1]); const hit=IG.hubs.filter(h=>_igNorm(h.label).includes(w)); if(w.length>=3&&hit.length) return [{ fold:'close', labels:hit.map(h=>h.label) }];
+    /* a group the map does not have is SAID, with the ones it has (6 Oct 2026) */
+    if(w.length>=3&&!/^(?:the )?(?:map|view|legend|panel|kartan|vyn)$/.test(w)) return [{ foldUnknown:m[1].trim() }]; }
+  m=q.match(/^(?:please\s+)?(?:open|unfold|expand)\s+(?:up\s+)?(?:the\s+)?(.+?)\s+(?:bubbles?|group)$/)||q.match(/^(?:please\s+)?unfold\s+(?:the\s+)?(.+?)$/)||q.match(/^(?:öppna|fäll ut)\s+(.+?)\s+(?:bubblan|bubblorna|gruppen)$/);
+  if(m&&IG&&IG.hubs){ const w=_igNorm(m[1]); if(w.length>=3&&!IG.hubs.some(h=>_igNorm(h.label).includes(w))) return [{ foldUnknown:m[1].trim() }]; }
   return null;
 }
 function igRecipeParse(qRaw){
@@ -1674,7 +1684,7 @@ function igViewFind(name){ const n=_igNorm(name); return igViewsRead().slice().r
    no bundle, no names on the edges. The lenses are "everything"'s. */
 function igLandingSet(){
   ['floorsBy','columnsBy','colourBy','sizeBy','labelBy','timeBy','sortBy','lastRole','names','bubbleBy','bundles','edgeNames','foldWant'].forEach(k=>{ intel[k]=null; });
-  intel.dotScale=1; intel.groupBy='folder'; intel.groups=null; intel.folds={};
+  intel.dotScale=1; intel.groupBy='folder'; intel.groups=null; intel.folds={}; intel.cellOpen={};
   if(typeof igPaintGroupSelect==='function') try{ igPaintGroupSelect(); }catch(_){}
 }
 function igRecipeRun(parsed, opts){
@@ -1706,12 +1716,20 @@ function igRecipeRun(parsed, opts){
       said.push(now===was?i18t(now>=IG_DOT_SCALE_MAX?'int_did_dots_max':now<=IG_DOT_SCALE_MIN?'int_did_dots_min':'int_did_dots',{ n:Math.round(now*100) }):i18t('int_did_dots',{ n:Math.round(now*100) })); continue; }
     if(a.bubbleBy){ intel.bubbleBy=a.bubbleBy==='value'&&((typeof canViewValues!=='function')||canViewValues())?'value':'count';
       said.push(i18t(intel.bubbleBy==='value'?'int_did_bubbles_value':'int_did_bubbles_count')); continue; }
+    /* EVERY FOLD GOES THROUGH igFoldHub, the button's own writer, and the
+       reply is COUNTED off the map as drawn after the rebuild (igFoldSaid) —
+       a sentence never says more bubbles than the map draws (6 Oct 2026) */
+    if(a.foldUnknown){ said.push(igFoldUnknownSaid(a.foldUnknown)); continue; }
     if(a.fold){ const F=intel.folds||(intel.folds={});
-      if(a.fold==='all'||a.fold==='none'){ intel.foldWant=a.fold; if(IG&&IG.hubs) IG.hubs.forEach(h=>{ F[h.foldKey]=a.fold==='all'?IG_FOLD_BUBBLE:false; }); if(a.fold==='all') intel.walk=null;
+      if(a.fold==='all'||a.fold==='none'){ intel.foldWant=a.fold; intel.cellOpen={};
+        if(IG&&IG.hubs) IG.hubs.forEach(h=>{ if(h.kind==='hub') igFoldHub(h,a.fold==='all'); else F[h.foldKey]=a.fold==='all'?IG_FOLD_BUBBLE:false; }); if(a.fold==='all') intel.walk=null;
         if(a.fold==='none') intel.bundles=null;
-        said.push(i18t(a.fold==='all'?'int_did_fold_all':'int_did_open_all')); }
-      else { const want=a.fold==='close'; (IG&&IG.hubs||[]).filter(h=>a.labels.includes(h.label)).forEach(h=>{ F[h.foldKey]=want?IG_FOLD_BUBBLE:false; });
-        said.push(i18t(want?'int_did_fold_some':'int_did_open_some',{ x:a.labels.join(', ') })); }
+        said.push(a.fold==='all'?()=>igFoldSaid('all'):i18t('int_did_open_all')); }
+      else { const want=a.fold==='close'||a.fold==='only', only=a.fold==='only';
+        (IG&&IG.hubs||[]).forEach(h=>{ const named=a.labels.includes(h.label); if(!named&&!only) return;
+          const to=named?want:false; if(h.kind==='hub') igFoldHub(h,to); else F[h.foldKey]=to?IG_FOLD_BUBBLE:false; });
+        if(want) intel.walk=null;
+        const labels=a.labels.slice(); said.push(()=>igFoldSaid(want?'close':'open',labels,only)); }
       changed=true; continue; }
     /* ONE BUBBLE FOR CONTRACTS NAMED ACROSS GROUPS ("fold all Juno contracts
        into one bubble"): the grouping is left exactly as it was */
@@ -1735,7 +1753,7 @@ function igRecipeRun(parsed, opts){
       const was=intel.dotScale||1, now=(opened||nb)?Math.min(1,was):was>1?1:igDotScaleClamp(was/IG_DOT_STEP); intel.dotScale=now;
       said.push(opened||nb?i18t('int_did_small_open'):i18t(now<=IG_DOT_SCALE_MIN&&now===was?'int_did_dots_min':'int_did_dots',{ n:Math.round(now*100) })); changed=true; continue; }
     /* "remove the grouping": back to the map's own grouping, every group open, no bundles */
-    if(a.ungroup){ intel.groupBy='folder'; intel.groups=null; intel.bundles=null; intel.foldWant='none'; intel.folds={};
+    if(a.ungroup){ intel.groupBy='folder'; intel.groups=null; intel.bundles=null; intel.foldWant='none'; intel.folds={}; intel.cellOpen={};
       igPaintGroupSelect(); said.push(i18t('int_did_ungroup',{ x:graphGroupingWord('folder') })); changed=true; continue; }
     if(a.view!=null){ igSetView(a.view); changed=true; continue; }
     if(a.sort){ intel.sortBy=a.sort; said.push(i18t('int_says_sort',{ x:igSortWord(a.sort) }).replace(/^./,ch=>ch.toUpperCase())+'.'); changed=true; continue; }
@@ -1775,6 +1793,7 @@ function igRecipeRun(parsed, opts){
   }
   if(lensNote) said.push(lensNote);
   if(changed) rebuildIntelGraph();
+  for(let i=0;i<said.length;i++) if(typeof said[i]==='function'){ try{ said[i]=said[i](); }catch(_){ said[i]=''; } }
   intel.history.push({ role:'assistant', text:igEsc(said.filter(Boolean).join(' ')||i18t('int_did_nothing')), choices:choices||null,
     listIds:list&&list.length?list.slice():null, listTitle:listTitle||null, cardIds:list?list.slice(0,5):[] });
   return opts&&opts.report?{ changed, said }:true;
@@ -1798,7 +1817,7 @@ function igLookActs(look){
   return acts;
 }
 /* A sentence that says the map did something. Printed only where the map did. */
-const IG_CLAIM_RE=/\b(?:hid(?:den|e)?|removed?|now (?:shows?|showing|displays?)|i(?:'ve| have)? (?:updated|changed|set|turned|made|grouped|folded|hidden|removed)|regrouped|grouped|folded|bundled|resized|turned (?:off|on)|switched (?:off|on)|labell?ed|colou?red|sized|dold|gömd|ändrat|grupperat)\b/i;
+const IG_CLAIM_RE=/\b(?:hid(?:den|e)?|removed?|now (?:shows?|showing|displays?)|i(?:'ve| have)? (?:updated|changed|set|turned|made|grouped|folded|hidden|removed)|regrouped|grouped|folded|unfolded|opened (?:up|out)|collapsed|bundled|resized|turned (?:off|on)|switched (?:off|on)|labell?ed|colou?red|sized|dold|gömd|ändrat|grupperat|ihopfälld|ihopfällda|fällt ihop|fällde ihop|utfälld)\b/i;
 /* Returns the part of the sentence still to be asked of Copilot ('' when the
    whole of it was done here), or null when none of it was for here. A
    grouping by something no fact names ("by region") goes to Copilot, which
@@ -2750,12 +2769,28 @@ function igbAxes(G, hubs, order){
     for(const [i,j] of IGB_TL_SPOTS){ const ox=x+i*S, oz=j*SZ; if(Math.abs(oz)>zMax) continue;
       if(!near.some(p=>Math.hypot((p[0]-ox)/S,(p[1]-oz)/SZ)<.95)){ spot=[ox,oz]; break; } }
     mine.push(spot); n.Tt=[spot[0], 0, ly(li)+spot[1]]; });
-  const span2=t1-t0, ticks=[];
-  if(ts.length){ const d0=new Date(t0), step=span2>3*365*864e5?12:span2>400*864e5?3:1;
+  const span2=t1-t0, ticks=[], tStep=span2>3*365*864e5?12:span2>400*864e5?3:1;
+  /* CELL BUBBLES (6 Oct 2026): each contract's cell in each axis view — the
+     floors' and the grid's group × floor cell, the timeline's lane × the
+     timeline's OWN tick stretch (tStep, the step the ticks are drawn at;
+     never a second bucketing), the no-date strip one cell per lane */
+  const stretchOf=t=>{ if(t==null) return 'nd'; const d=new Date(t); return tStep===12?String(d.getFullYear()):d.getFullYear()+'-'+Math.floor(d.getMonth()/tStep); };
+  dated.forEach(([n,t])=>{ n._cell=[null,null,'f'+n._col+'|'+n._floor,'g'+n._col+'|'+n._floor,'t'+stretchOf(t)]; });
+  if(ts.length){ const d0=new Date(t0), step=tStep;
     const d=new Date(d0.getFullYear(), d0.getMonth()-(d0.getMonth()%step), 1);
     for(let i=0;i<60&&d.getTime()<=t1;i++){ if(d.getTime()>=t0) ticks.push({ x:tx(d.getTime()), label:step===12?String(d.getFullYear()):d.toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{ month:'short', year:'numeric' }) }); d.setMonth(d.getMonth()+step); } }
   let nowX=null; const now=Date.now(); if(ts.length&&now>=t0&&now<=t1) nowX=tx(now);
-  G.tl={ key:tKey, ticks, lanes:lanes.map((h,i)=>({ label:h.label, y:ly(i), col:h.col })), undated, nowX, empty:!ts.length };
+  G.tl={ key:tKey, ticks, lanes:lanes.map((h,i)=>({ label:h.label, y:ly(i), col:h.col })), undated, nowX, empty:!ts.length, step:tStep };
+  /* the cells each group's bubbles stand for, per axis view: where the bubble
+     sits (the grid's cell middle; the floors' and timeline's middle of its
+     own dots) and the dots it opens into */
+  G.cellsBy=[null,null,new Map(),new Map(),new Map()];
+  kids.forEach(n=>{ if(!n.hub||!n._cell) return; for(let v=2;v<=4;v++){ const k=n.hub.foldKey+'|'+n._cell[v], M=G.cellsBy[v];
+    let c=M.get(k); if(!c){ c={ k, key:n._cell[v], hub:n.hub, v, kids:[] }; M.set(k,c); } c.kids.push(n); } });
+  G.cellsBy.forEach((M,v)=>{ if(!M) return; M.forEach(c=>{ let x=0,y=0,z=0; const P=v===2?'Lt':'Tt';
+    /* a bubble stays inside its own cell (on the grid a little under the cell's own count), and inside its lane on the timeline */
+    if(v===3){ const n0=c.kids[0]; c.at=[gx0+(n0._col+.5)*gcw, 0, gz0+(n0._floor+.6)*gch]; c.cap=[gcw*.42,gch*.36]; return; }
+    c.kids.forEach(n=>{ x+=n[P][0]; y+=n[P][1]; z+=n[P][2]; }); c.at=[x/c.kids.length, y/c.kids.length, z/c.kids.length]; c.cap=v===2?[gap*.45,.42]:[.32,laneH*.48]; }); });
   hubs.forEach(h=>{ const i=laneIx.get(h)||0, cc=cols.find(c=>c.hub===h); h.hLt=[cc?cc.x:0, 1.08, 0]; h.hGt=[cols.findIndex(c=>c.hub===h)>=0?cols.find(c=>c.hub===h).x:0, 1.08, 0]; h.hTt=[-1.3, 0, ly(i)]; });
 }
 /* COLOUR BY: status at rest; any grouping the map knows on Copilot's word.
@@ -2822,6 +2857,51 @@ function igBubbleRadius(G,h){
   const top=Math.max(IGB_BUBBLE_R[0]+6,IGB_BUBBLE_R[1]*Math.min(1,Math.sqrt(12/Math.max(1,G.hubs.length))));
   return IGB_BUBBLE_R[0]+(top-IGB_BUBBLE_R[0])*Math.sqrt(Math.max(0,v)/t);
 }
+/* ---- CELL BUBBLES: FOLD ALL IN EVERY VIEW (Young picked it, 6 Oct 2026:
+   "fold all only works in the brain and wiring tabs but it should work across
+   all of them") ----
+   Floors, Grid and Timeline draw no cards, so a folded group there is drawn as
+   ONE BUBBLE PER CELL it has contracts in (G.cellsBy, built in igbAxes), in
+   the group's colour, sized like Brain's bubble against the biggest group,
+   its count written in it — always the number of dots it opens into. ONE fold
+   state, intel.folds, written only by igFoldHub; a pressed-open cell is an
+   exception in intel.cellOpen ("<foldKey>|<cell>"), cleared by igFoldHub when
+   the group is folded or opened again. Brain and Wiring keep igbCardW. */
+function igCellFolded(n,v){ const h=n&&n.hub; if(!h||!n._cell||v<2) return false;
+  return (intel.folds||{})[h.foldKey]===IG_FOLD_BUBBLE&&!(intel.cellOpen||{})[h.foldKey+'|'+n._cell[v]]; }
+function igHubCellsOpen(h){ const pre=h&&h.foldKey+'|', O=intel.cellOpen||{}; return !!h&&Object.keys(O).some(k=>k.startsWith(pre)); }
+function igCellRadius(G,c){
+  if(!G._bub) igBubbleRadius(G,c.hub);
+  let v=c.kids.length; if(G._bub.by==='value'){ v=0; c.kids.forEach(n=>{ const hv=n.c?igHomeValue(n.c):null; if(hv) v+=hv; }); }
+  const top=Math.max(IGB_BUBBLE_R[0]+6,IGB_BUBBLE_R[1]*Math.min(1,Math.sqrt(12/Math.max(1,G.hubs.length))));
+  return IGB_BUBBLE_R[0]+(top-IGB_BUBBLE_R[0])*Math.sqrt(Math.max(0,v)/(G._bub.top||1));
+}
+/* the cells a view draws as bubbles now (targets, not the fade): what Fold
+   all's words and Copilot's replies count */
+function igCellsFolded(G,v,hubs){
+  const out=[]; if(!G||!G.cellsBy||!G.cellsBy[v]) return out;
+  G.cellsBy[v].forEach(c=>{ if(hubs&&!hubs.includes(c.hub)) return; const k=c.kids.filter(n=>igCellFolded(n,v)).length; if(k) out.push({ c, n:k }); });
+  return out;
+}
+function igCellOpen(c){
+  if(!c||!c.hub) return;
+  igRecipePush(); (intel.cellOpen||(intel.cellOpen={}))[c.hub.foldKey+'|'+c.key]=true;
+  igPaintFoldAll(); updateIntelNote();
+}
+function igbDrawCells(G,ctx,w,txt){
+  G._cells=[];
+  const zs=Math.sqrt(igbCam().zoom)*(intel.dotScale||1), pj=G.pj;
+  for(let v=2;v<=4;v++){ if(!(w[v]>.05)||!G.cellsBy||!G.cellsBy[v]) continue;
+    G.cellsBy[v].forEach(c=>{ let f=0; c.kids.forEach(n=>{ f+=(n.cf?n.cf[v]:0); }); f=f/c.kids.length*w[v]; if(f<.05) return;
+      const q=pj(c.at), a=pj([c.at[0]+c.cap[0],c.at[1],c.at[2]]), b=pj([c.at[0],c.at[1],c.at[2]+c.cap[1]]);
+      const cap=Math.max(IGB_BUBBLE_R[0]*.6,Math.min(Math.hypot(a[0]-q[0],a[1]-q[1]),Math.hypot(b[0]-q[0],b[1]-q[1])));
+      const r=Math.min(cap,igCellRadius(G,c)*zs)*Math.max(.25,f), col=c.hub.col, n=c.kids.length;
+      igbGlow(ctx,q[0],q[1],r*1.9,col,.32*f);
+      ctx.fillStyle=igbHexA(col,.82*f); ctx.beginPath(); ctx.arc(q[0],q[1],r,0,6.283); ctx.fill();
+      ctx.strokeStyle='rgba(230,242,239,'+(.55*f)+')'; ctx.lineWidth=1.2; ctx.stroke();
+      if(f>.3){ ctx.font='700 11px Geist, system-ui, sans-serif'; ctx.textAlign='center'; ctx.fillStyle='rgba(2,16,17,'+(.9*f)+')'; ctx.fillText(String(n),q[0],q[1]+4); ctx.textAlign='left'; }
+      if(f>.5) G._cells.push({ c, x:q[0], y:q[1], r, n }); }); }
+}
 /* THE BUNDLES' BUBBLES: one per bundle, where its contracts sit (the middle
    of their dots as drawn), sized against the biggest group like a group's
    bubble, its name and count written under it. Only where cards are drawn —
@@ -2871,6 +2951,16 @@ function igBubDoors(G){
     c._label=b.label; const tt=b.label+' · '+i18tn('hb_n_contracts',b.n,{ n:b.n })+' — '+i18t('int_bub_open'); if(c.firstChild.textContent!==tt) c.firstChild.textContent=tt;
     c.style.display=''; igbSet(c,'cx',b.x.toFixed(1)); igbSet(c,'cy',b.y.toFixed(1)); igbSet(c,'r',String(Math.round(Math.max(b.r,tap)))); });
   for(let k=D.length;k<els.length;k++) els[k].style.display='none';
+  /* a cell bubble opens THAT bubble only */
+  const C=G._cells||[], cels=layer._cb||(layer._cb=[]);
+  C.forEach((b,k)=>{ let c=cels[k];
+    if(!c){ c=document.createElementNS(ns,'circle'); c.setAttribute('class','ig-bub ig-bub-cell'); c.setAttribute('fill','transparent'); c.style.cursor='pointer';
+      c.appendChild(document.createElementNS(ns,'title'));
+      c.addEventListener('click',e=>{ e.stopPropagation(); if(IG&&IG.dragMoved) return; if(c._cell) igCellOpen(c._cell); });
+      layer.appendChild(c); cels[k]=c; }
+    c._cell=b.c; c.setAttribute('data-ig-cell',b.c.k); const tt=b.c.hub.label+' · '+i18tn('hb_n_contracts',b.n,{ n:b.n })+' — '+i18t('int_cell_open'); if(c.firstChild.textContent!==tt) c.firstChild.textContent=tt;
+    c.style.display=''; igbSet(c,'cx',b.x.toFixed(1)); igbSet(c,'cy',b.y.toFixed(1)); igbSet(c,'r',String(Math.round(Math.max(b.r,tap)))); });
+  for(let k=C.length;k<cels.length;k++) cels[k].style.display='none';
 }
 /* WHICH NAMES THE MAP PRINTS (Young, 3–4 Oct 2026): all (rest), none ("just
    the bubbles"), only these, or all but these — the set read with the map's
@@ -2943,7 +3033,9 @@ function igbStep(G,dt){
     if(n.kind==='hub'){ for(let i=0;i<3;i++){ n.hA[i]+=(n.hAt[i]-n.hA[i])*glide; n.hL[i]+=(n.hLt[i]-n.hL[i])*glide; }
       n.fold+=((n.folded?1:0)-n.fold)*fe; n.vis+=(1-n.vis)*ve; }
     else { for(let i=0;i<3;i++){ n.A[i]+=(n.At[i]-n.A[i])*glide; n.L[i]+=(n.Lt[i]-n.L[i])*glide; n.G[i]+=(n.Gt[i]-n.G[i])*glide; n.T[i]+=(n.Tt[i]-n.T[i])*glide; } n.r0+=(n.rT-n.r0)*Math.min(1,rm?1:dt*6);
-      n.bd=(n.bd||0)+((igBundleOf(n.id)>=0?1:0)-(n.bd||0))*fe; } });
+      n.bd=(n.bd||0)+((igBundleOf(n.id)>=0?1:0)-(n.bd||0))*fe;
+      if(n._cell){ if(!n.cf) n.cf=[0,0,0,0,0].map((_,v)=>igCellFolded(n,v)?1:0);
+        for(let v=2;v<=4;v++) n.cf[v]+=((igCellFolded(n,v)?1:0)-n.cf[v])*fe; } } });
   /* Turning / Still (the bar's own button, `cam.spin`; a reader who asked for
      less motion starts Still). Holding or pointing at the map holds it. */
   const spin=cam.spin==null?!rm:!!cam.spin;
@@ -2954,7 +3046,10 @@ function igbStep(G,dt){
   const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)); ['rot','rotW','rotL','rotG','rotT'].forEach(k=>{ cam[k]=wrap(cam[k]); });
   const wk=intel.walk;
   if(wk&&wk.playing){ wk.clock=Math.min(wk.ids.length*IGB_STEP_S+1, wk.clock+dt);
-    wk.ids.forEach((id,k)=>{ if(wk.clock>=k*IGB_STEP_S){ const n=G.byId[id]; if(n&&n.hub&&n.hub.folded) igFoldHub(n.hub,false); } });
+    /* a walk reaching a contract in a folded cell opens THAT cell (6 Oct 2026) */
+    wk.ids.forEach((id,k)=>{ if(wk.clock>=k*IGB_STEP_S){ const n=G.byId[id]; if(!n||!n.hub) return;
+      if(cam.view>=2){ if(igCellFolded(n,cam.view)){ const c=G.cellsBy&&G.cellsBy[cam.view].get(n.hub.foldKey+'|'+n._cell[cam.view]); if(c) (intel.cellOpen||(intel.cellOpen={}))[c.hub.foldKey+'|'+c.key]=true; igPaintFoldAll(); } }
+      else if(n.hub.folded) igFoldHub(n.hub,false); } });
     const lit=Math.min(wk.ids.length, Math.floor((wk.clock-IGB_PULSE_S)/IGB_STEP_S)+1);
     if(lit!==G._walkLit){ G._walkLit=lit; updateIntelNote(); } }
 }
@@ -3049,6 +3144,7 @@ function igbDraw(G,t){
         ctx.strokeStyle=igbHexA(h.col,.45*f*vis); ctx.lineWidth=1; ctx.stroke(); } }
     h._bubR=r*f; });
   igbDrawBundles(G,ctx,bw,txt);
+  igbDrawCells(G,ctx,w,txt);
   const P=G.contracts.slice().sort((a,b)=>a.q[3]-b.q[3]);
   P.forEach(n=>{
     if(n._fold>.95) return;
@@ -3073,7 +3169,8 @@ function igbDraw(G,t){
 function igbShade(G){
   const w=igbCam().w, walking=!!intel.walk, zs=Math.sqrt(igbCam().zoom);
   G.contracts.forEach(n=>{
-    const q=n.q, fold=Math.max(n.hub?n.hub.fold*igbCardW(w):0,(n.bd||0)*igbCardW(w)), cl=n.g.classList, lit=igbWalkLit(n.id), front=igbClamp01((q[3]+1.1)/2.2);
+    const cellF=n.cf?w[2]*n.cf[2]+w[3]*n.cf[3]+w[4]*n.cf[4]:0;
+    const q=n.q, fold=Math.max(n.hub?n.hub.fold*igbCardW(w):0,(n.bd||0)*igbCardW(w),cellF), cl=n.g.classList, lit=igbWalkLit(n.id), front=igbClamp01((q[3]+1.1)/2.2);
     n._fold=fold; n._lit=lit; n._r=n.r0*q[2]*zs*(intel.dotScale||1);
     n._a=(walking&&lit<0?.3:1)*(cl.contains('dim')?.22:1)*(cl.contains('passed')?.3:1)*(cl.contains('mut')?.28:1)*(.45+front*.55)*(1-fold); });
 }
@@ -3106,6 +3203,7 @@ function igbPlace(G){
     [document.querySelector('#ig-gwrap .ig-viewbar'),document.getElementById('ig-legend')].forEach(el=>{ if(!el||el.hidden) return; const r=el.getBoundingClientRect(); if(r.width>0) placed.push({ x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height }); }); }
   G.hubs.forEach(h=>{ if(h._bubR>2&&h._bq) placed.push({ x:h._bq[0]-h._bubR, y:h._bq[1]-h._bubR, w:2*h._bubR, h:2*h._bubR }); });
   (G._bundles||[]).forEach(b=>{ if(b.r>2) placed.push({ x:b.x-b.r, y:b.y-b.r, w:2*b.r, h:2*b.r }); });
+  (G._cells||[]).forEach(b=>{ if(b.r>2) placed.push({ x:b.x-b.r, y:b.y-b.r, w:2*b.r, h:2*b.r }); });
   const inside=A=>A.x>=2&&A.y>=2&&A.x+A.w<=W-2&&A.y+A.h<=H-2;
   const clash=A=>placed.some(B=>A.x<B.x+B.w+gap&&B.x<A.x+A.w+gap&&A.y<B.y+B.h+gap&&B.y<A.y+A.h+gap);
   const NR=igNamesRule();
@@ -3177,25 +3275,59 @@ function igFoldHub(h,want){
   h.folded=want==null?!h.folded:!!want;
   /* a fold a person pressed or asked for is a bubble (igHubBubbles) */
   (intel.folds||(intel.folds={}))[h.foldKey]=h.folded?IG_FOLD_BUBBLE:false;
-  h.g.classList.toggle('folded',h.folded);
+  /* folded or opened again, a group's pressed-open cells are forgotten */
+  const O=intel.cellOpen; if(O) Object.keys(O).forEach(k=>{ if(k.startsWith(h.foldKey+'|')) delete O[k]; });
+  if(h.g) h.g.classList.toggle('folded',h.folded);
   if(h.chev) h.chev.setAttribute('d',h.folded?'M-2,-4 L2,0 L-2,4':'M-4,-2 L0,2 L4,-2');
-  h.g.setAttribute('aria-expanded',h.folded?'false':'true');
+  if(h.g) h.g.setAttribute('aria-expanded',h.folded?'false':'true');
   igPaintFoldAll();
+}
+/* EVERYTHING FOLDED, in the view on screen: in Brain and Wiring every card is
+   folded; in Floors, Grid and Timeline every group is a bubble and no cell of
+   this view was pressed open */
+function igAllFolded(){
+  if(!IG||!IG.hubs) return false;
+  const v=igbCam().view;
+  if(v<2) return !IG.hubs.some(h=>!h.folded);
+  return IG.hubs.every(h=>h.folded&&(intel.folds||{})[h.foldKey]===IG_FOLD_BUBBLE)
+    &&!(IG.cellsBy&&[...IG.cellsBy[v].values()].some(c=>c.kids.some(n=>!igCellFolded(n,v))));
+}
+/* COPILOT'S FOLD REPLY, COUNTED OFF THE MAP AS DRAWN (after the rebuild):
+   on Floors, Grid and Timeline the bubbles and the contracts in them; on
+   Brain and Wiring the groups' own bubbles */
+function igFoldSaid(kind,labels,only){
+  const v=igbCam().view, view=i18t(IGB_VIEW_WORD[IGB_VIEWS[v]]), G=IG;
+  const hubs=G&&G.hubs?(labels?G.hubs.filter(h=>labels.includes(h.label)):G.hubs):[];
+  const x=(labels||[]).join(', ');
+  if(kind==='open'){ const n=hubs.reduce((s,h)=>s+(h.kids||[]).length,0); return i18tn('int_did_open_cells',n,{ x, view, n }); }
+  let b=0, n=0;
+  if(v>=2){ igCellsFolded(G,v,hubs).forEach(r=>{ b++; n+=r.n; }); }
+  else hubs.forEach(h=>{ if(igHubBubbles(h)){ b++; n+=h.kids.length; } });
+  const c=i18tn('hb_n_contracts',n,{ n });
+  if(kind==='all') return v>=2?i18tn('int_did_fold_all_cells',b,{ view, b, c }):i18t('int_did_fold_all');
+  if(!b&&v<2) return i18t('int_did_fold_some',{ x })+(only?' '+i18t('int_did_rest_open'):'');
+  return i18tn('int_did_fold_cells',b,{ x, view, b, c })+(only?' '+i18t('int_did_rest_open'):'');
+}
+function igFoldUnknownSaid(x){
+  const names=(IG&&IG.hubs?IG.hubs.map(h=>h.label):[]);
+  const list=names.slice(0,12).join(', ')+(names.length>12?' …':'');
+  return i18t(names.length?'int_fold_unknown':'int_fold_unknown_none',{ x, list });
 }
 function igFoldAll(){
   if(!IG||!IG.hubs) return;
-  const fold=IG.hubs.some(h=>!h.folded);
+  const fold=!igAllFolded();
   if(fold&&intel.walk) intel.walk=null;
   IG.hubs.forEach(h=>igFoldHub(h,fold));
   updateIntelNote();
 }
 function igPaintFoldAll(){
   const b=document.getElementById('ig-foldall'); if(!b||!IG||!IG.hubs) return;
-  const t=i18t(IG.hubs.some(h=>!h.folded)?'int_fold_all':'int_open_all'); if(b.textContent!==t) b.textContent=t;
+  const t=i18t(igAllFolded()?'int_open_all':'int_fold_all'); if(b.textContent!==t) b.textContent=t;
 }
 function igSetView(v){
   const cam=igbCam(); cam.view=Math.max(0,Math.min(IGB_NV-1,Number(v)||0));
   document.querySelectorAll('[data-ig-view]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-ig-view'))===cam.view)));
+  igPaintFoldAll();
 }
 function igSetZoom(z){
   const cam=igbCam(); cam.zoom=Math.max(IGB_ZOOM_MIN,Math.min(IGB_ZOOM_MAX,Number(z)||1));
@@ -6964,7 +7096,7 @@ Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SE
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
 Object.assign(window,{igMapUp,igPageUp,IG_PRE_MS,igPreOn,igPrePaint});
-Object.assign(window,{IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
+Object.assign(window,{igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igCellOpen,igbDrawCells,igAllFolded,igFoldSaid,igFoldUnknownSaid,IG_FOLD_BUBBLE,igHubBubbles,IG_BUNDLES_MAX,igBundleSets,igBundleOf,IG_EDGE_PARTY_KEYS,igEdgeNamesShow,igbDrawBundles,igLandingSet,igLookActs,IG_CLAIM_RE,IG_RECIPE_V,IG_WHOSE_RE,IG_EDGE_RE,igSpanWords,igDecideText,igNamesRule,igNameShows,igHubNamed,igBubbleRadius,igLookRead,igDotScaleClamp,IG_DOT_SCALE_MIN,IG_DOT_SCALE_MAX,graphPartyLabel,igTapCoarse,IG_TAP_R_TOUCH,IG_TAP_SLOP_TOUCH,IG_RECIPE_ROLES,IG_ROLE_FIELD,IG_TIME_KEYS,IG_UNDO_MAX,IG_VIEWS_KEY,IG_NEAREST,IG_FACT_WORDS,IG_STATUS_WORDS,IG_TOP_BY,IGB_NV,igRecipeNow,igRecipeSet,intelPlace,intelPlacePut,igbSpinning,igSetSpin,IGB_SPIN_KEY,igLeftover,IG_CP_STOP,IGB_SWAY,IGB_SWAY_S,igNoteMeasure,igRecipePush,igRecipeUndo,igRecipeSays,igFactFind,igFactAnywhere,igFactOrder,igConditions,igIdsWhere,igTopIds,igRecipeParse,igRecipeRun,igRoleSet,igRoleSays,igChoiceButtons,igViewsRead,igViewsWrite,igViewSave,igViewFind,igViewName,igbAxes,igbTimeOf,igbBuckets,igHomeValue});
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
