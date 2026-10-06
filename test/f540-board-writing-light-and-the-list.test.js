@@ -43,8 +43,8 @@ test('f540 (1) hbSay: marks, figures and plain good/bad words, escaped first', (
   assert.match(h, /<span class="hb-good">Leases signed on time<\/span>/);
   assert.match(h, /is <span class="hb-bad">at risk<\/span>/, 'a plainly bad word is red without a mark');
   const g = w.hbSay('4 contracts expired; 75% grew. No contracts are overdue.');
-  assert.match(g, /<b class="hb-fig">4 contracts<\/b>/);
-  assert.match(g, /<b class="hb-fig">75%<\/b>/);
+  assert.match(g, /<b class="hb-num">4 contracts<\/b>/);
+  assert.match(g, /<b class="hb-num">75%<\/b>/);
   assert.match(g, /<span class="hb-bad">expired<\/span>/);
   assert.match(g, /<span class="hb-good">grew<\/span>/);
   assert.doesNotMatch(g, /hb-bad">overdue/, 'a negated bad word is not red');

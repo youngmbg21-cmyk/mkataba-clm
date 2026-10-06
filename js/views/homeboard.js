@@ -3463,7 +3463,7 @@ function hbSay(text){
   const tone = (re, cls) => seg => seg.replace(re, (m, _w, off, whole) => HB_SAY_NOT.test(whole.slice(0, off)) ? m : `<span class="hb-${cls}">${m}</span>`);
   h = _hbSayWalk(h, tone(HB_SAY_BAD, 'bad'));
   h = _hbSayWalk(h, tone(HB_SAY_GOOD, 'good'));
-  h = _hbSayWalk(h, seg => seg.replace(HB_SAY_FIG, m => /\d/.test(m) ? `<b class="hb-fig">${m}</b>` : m));
+  h = _hbSayWalk(h, seg => seg.replace(HB_SAY_FIG, m => /\d/.test(m) ? `<b class="hb-num">${m}</b>` : m));
   return h;
 }
 /* the plain words, marks taken off (a share, a copy, a hover) */
