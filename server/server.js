@@ -19052,7 +19052,9 @@ app.get('/api/board/accuracy', auth, admin, (req, res) => {
    period, price increases) and run the playbook check across the whole book
    overnight")
    ============================================================
-   An admin's switch, OFF by default — it spends while nobody watches, so it
+   An admin's switch, ON by default for the pilots (Young, 6 Oct 2026: "Make
+   this switched on by default" — off, the new charts read "Not read yet");
+   it spends while nobody watches, so an admin can turn it off and it
    is never on until somebody turns it on (Settings → Platform → Copilot,
    "Read the whole book"), with its cost said there. Once a night, at the
    hour set, it walks the live book (not declined, not archived):
@@ -19077,7 +19079,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS book_readings (
     contract_id TEXT PRIMARY KEY, hash TEXT, at TEXT, terms TEXT, pb TEXT, pb_at TEXT);
 `);
-AGENT_DEFAULTS.book = { on: false, at: 2, max: 50, limit: 3 };
+AGENT_DEFAULTS.book = { on: true, at: 2, max: 50, limit: 3 };
 const BOOK_TERM_STATES = { liabilityCap: ['capped', 'uncapped', 'unclear'], autoRenew: ['yes', 'no', 'unclear'], priceIncrease: ['at_will', 'indexed', 'fixed', 'none', 'unclear'] };
 /* the states that assert something the wording must show */
 const BOOK_TERM_NEEDS_QUOTE = { liabilityCap: ['capped'], autoRenew: ['yes'], priceIncrease: ['at_will', 'indexed', 'fixed'] };
