@@ -2418,10 +2418,11 @@ function hbWinOf(P){
   let prev = null;
   const yBack = iso => (Number(iso.slice(0, 4)) - 1) + iso.slice(4);
   if (P.compare === 'range' && W.vs) prev = { from: W.vs.from, to: W.vs.to, shift: null, range: true };
-  else if (P.compare === 'year') prev = { from: yBack(from), to: yBack(upTo), shift: unit ? { m: 12, q: 4, y: 1 }[unit] : null };
+  else if (P.compare === 'year') prev = { from: yBack(from), to: yBack(upTo), shift: unit ? { m: 12, q: 4, y: 1 }[unit] : null, whole: soFar ? { from: yBack(from), to: yBack(to) } : null };
   else if (P.compare === 'prev'){
     if (b0){ const n = W.last || W.next, pf = hbBucketStart(hbBucketMove(b0, unit, -n), unit);
-      prev = { from: pf, to: soFar ? hbIsoShift(pf, Math.round((Date.parse(today) - Date.parse(from)) / 864e5)) : hbBucketEnd(hbBucketMove(b1, unit, -n), unit), shift: n }; }
+      const pEnd = hbBucketEnd(hbBucketMove(b1, unit, -n), unit);
+      prev = { from: pf, to: soFar ? hbIsoShift(pf, Math.round((Date.parse(today) - Date.parse(from)) / 864e5)) : pEnd, shift: n, whole: soFar ? { from: pf, to: pEnd } : null }; }
     else {
       /* an exact whole month, quarter or year is held against the whole one
          before it (Q3 against Q2, not the 92 days before 1 July) */
@@ -2441,7 +2442,9 @@ function hbWinWord(W){
   if (W.last) return i18t('hb_win_last', { n: W.last, units: i18tn('hb_tr_units_' + u, W.last, { n: W.last }) });
   if (W.next) return i18t('hb_win_next', { n: W.next, units: i18tn('hb_tr_units_' + u, W.next, { n: W.next }) });
   /* a period held against another one is named as an analyst names it */
-  if (W.vs && W.from && W.to) return hbPeriodWord(W.from, W.to);
+  /* a span with both ends is named with its year ("Q3 2026", "1 July 2025
+     to 31 March 2026"): a range can cross a year, and an analyst names it */
+  if (W.from && W.to) return hbPeriodWord(W.from, W.to);
   return i18t('hb_win_range', { from: W.from ? hbReadDay(W.from) : '…', to: W.to ? hbReadDay(W.to) : '…' });
 }
 /* a period named as an analyst names it: a whole year, quarter or month by
@@ -2468,11 +2471,16 @@ function hbBucketGap(fromIso, toIso, unit){
    before). A contract with no such date is in neither — and said. */
 function hbWindowCut(cs, P){
   const Z = hbWinOf(P); if (!Z) return null;
-  const inside = [], prev = []; let undated = 0;
+  const inside = [], prev = [], whole = []; let undated = 0;
+  const W2 = Z.prev && Z.prev.whole;
   cs.forEach(c => { const iso = hbDateOf(c, Z.date); if (!iso){ undated++; return; }
+    if (W2 && iso >= W2.from && iso <= W2.to) whole.push(c);
     if (iso >= Z.from && iso <= Z.to) inside.push(c);
     else if (Z.prev && iso >= Z.prev.from && iso <= Z.prev.to) prev.push(c); });
-  return { cs: inside, prev: Z.prev ? prev : null, undated, total: cs.length, Z };
+  /* a period still running is held against the same days before it; the
+     WHOLE of the period before is said beside it (early in a quarter the
+     same days hold nothing, and the card must not read empty) */
+  return { cs: inside, prev: Z.prev ? prev : null, prevWhole: W2 ? whole : null, undated, total: cs.length, Z };
 }
 /* a dig under a card counts within the card's period: the number on a door
    matches the list behind it */
@@ -2640,7 +2648,11 @@ function hbHeatSvg(D, cs, P){
    Over time: each column beside the same column a period (or a year) back.
    By a group: two bars a group, this period and the one before. The change
    is said in words, and every bar is a door onto its own contracts. */
+/* the figure a change is measured on: a total with nothing in it is 0; an
+   average with nothing in it is NO FIGURE (null), never 0 */
+function hbCmpY(m, side){ const y = side && side.y; return hbAvgMeasure(m) ? (y == null ? null : y) : (y || 0); }
 function hbCmpChange(a, b){
+  if (a == null || b == null) return i18t('hb_cmp_none');
   if (!(b > 0)) return a > 0 ? i18t('hb_cmp_new') : i18t('hb_cmp_same');
   const p = Math.round((a - b) / b * 100);
   return p === 0 ? i18t('hb_cmp_same') : i18t(p > 0 ? 'hb_cmp_up' : 'hb_cmp_down', { p: _hbN(Math.abs(p)) });
@@ -2688,16 +2700,16 @@ function hbCompareSvg(D, cs, P, Wc){
     rows.forEach((r, i) => { const y = Tp + i * rowH;
       const sv = (M, list) => m === 'count' ? _hbN(list.length) : hbMeasureFmt(m, M.y);
       const bar = (yy, v, list, dig, cls, say) => `<g class="hb-sv-cbox hb-in" ${_hbSvgDoor(list.length ? dig : '', say)}><rect x="${LL}" y="${yy}" width="${bw}" height="15" fill="transparent"/><rect x="${LL}" y="${yy}" width="${Math.max(list.length ? 2 : 0, bw * (v || 0) / max).toFixed(1)}" height="15" rx="3" class="${cls}"/><text x="${(LL + bw * (v || 0) / max + 8).toFixed(1)}" y="${yy + 12}" font-size="12" class="hb-sv-ink2">${_hbE(sv(v === r.Mc.y ? r.Mc : r.Mp, list))}</text></g>`;
-      g += `<text x="8" y="${y + 14}" font-size="13" font-weight="600" class="hb-sv-ink">${_hbE(String(r.full).slice(0, 28))}</text><text x="8" y="${y + 31}" font-size="11.5" class="hb-sv-mute">${_hbE(hbCmpChange(r.Mc.y || 0, r.Mp.y || 0))}</text>`
+      g += `<text x="8" y="${y + 14}" font-size="13" font-weight="600" class="hb-sv-ink">${_hbE(String(r.full).slice(0, 28))}</text><text x="8" y="${y + 31}" font-size="11.5" class="hb-sv-mute">${_hbE(hbCmpChange(hbCmpY(m, r.Mc), hbCmpY(m, r.Mp)))}</text>`
         + bar(y + 2, r.Mc.y || 0, r.cur, r.dc, 'hb-sv-col', `${r.full} · ${hbWinWord(P.window)}: ${sv(r.Mc, r.cur)}`) + bar(y + 20, r.Mp.y || 0, r.prev, r.dp, 'hb-sv-colprev', `${r.full} · ${prevWord}: ${sv(r.Mp, r.prev)}`); });
     g = `<svg class="hb-svg hb-cmp" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(i18t('hb_rc_compare'))}"><rect x="${LL}" y="10" width="10" height="10" rx="2" class="hb-sv-col"/><text x="${LL + 15}" y="19" font-size="12" class="hb-sv-ink2">${_hbE(hbWinWord(P.window))}</text><rect x="${LL + 200}" y="10" width="10" height="10" rx="2" class="hb-sv-colprev"/><text x="${LL + 215}" y="19" font-size="12" class="hb-sv-ink2">${_hbE(prevWord)}</text>${g}</svg>`;
   }
   const fmt = (M, list) => m === 'count' ? `<b>${_hbN(list.length)}</b> ${_hbE(i18tn('hb_contracts_word', list.length, { n: list.length }))}` : `<b>${_hbE(hbMeasureFmt(m, M.y))}</b> · ${_hbN(list.length)}`;
   const range = P.compare === 'range';
   const nowWord = (range && P.window.from && P.window.to ? hbPeriodWord(P.window.from, P.window.to) : hbWinWord(P.window)) + (Z && Z.soFar && (P.window.last === 1 || range) ? ' ' + i18t('hb_win_sofar') : '');
-  const lead = `${_hbE(nowWord)}: ${fmt(Mc, cs)} · ${_hbE(prevWord)}: ${fmt(Mp, prevCs)} · <b>${_hbE(hbCmpChange(Mc.y || 0, Mp.y || 0))}</b>`;
+  const lead = `${_hbE(nowWord)}: ${fmt(Mc, cs)} · ${_hbE(prevWord)}: ${fmt(Mp, prevCs)} · <b>${_hbE(hbCmpChange(hbCmpY(m, Mc), hbCmpY(m, Mp)))}</b>`;
   return { body: g, lead, by: (P.split ? hbSplitWord(P.split) + ' · ' : '') + i18t('hb_cmp_' + P.compare).toLowerCase(), note: '',
-    cmp: { cur: { k: cs.length, y: Mc.y }, prev: { k: prevCs.length, y: Mp.y }, word: prevWord, low: range ? i18t('hb_cmp_range_in', { p: prevWord }) : prevWord.toLowerCase(), now: nowWord, rows: rows.map(r => ({ label: r.full, ck: r.cur.length, pk: r.prev.length, cy: r.Mc.y, py: r.Mp.y, dc: r.dc, dp: r.dp })) } };
+    cmp: { cur: { k: cs.length, y: Mc.y }, prev: { k: prevCs.length, y: Mp.y }, whole: Wc && Wc.prevWhole ? { k: Wc.prevWhole.length, y: hbMeasure(Wc.prevWhole, m).y } : null, word: prevWord, low: range ? i18t('hb_cmp_range_in', { p: prevWord }) : prevWord.toLowerCase(), now: nowWord, rows: rows.map(r => ({ label: r.full, ck: r.cur.length, pk: r.prev.length, cy: r.Mc.y, py: r.Mp.y, dc: r.dc, dp: r.dp })) } };
 }
 /* ONE RUN OF A CARD: the period cut, then the picture — the same for the
    card, its reading, the board described to Copilot and the shelf */
@@ -2785,7 +2797,7 @@ function hbReadLine(key, parts, count){
    two-split pictures and the comparison are read here; the rest by
    hbReadingCore; the period and the top N are said after either. */
 function hbReadingOf(D, cs, P, R){
-  if (!cs.length && !(P.compare && R && R.cmp && R.cmp.prev.k)) return null;
+  if (!cs.length && !(P.compare && R && R.cmp && (R.cmp.prev.k || (R.cmp.whole && R.cmp.whole.k)))) return null;
   let r = null;
   if (P.compare && R && R.cmp) r = hbReadCompareOf(D, cs, P, R);
   else if (P.split2 && R && Array.isArray(R.cells)) r = hbReadTwoOf(D, cs, P, R);
@@ -2814,12 +2826,15 @@ function hbReadCompareOf(D, cs, P, R){
   const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l){ lines.push(l); keys.push(key); } };
   const fmt = (k, y) => m === 'count' ? _hbN(k) : hbMeasureFmt(m, y);
   counts.add(C.cur.k); counts.add(C.prev.k);
-  say('hb_read_cmp', { a: C.now || hbWinWord(P.window), x: fmt(C.cur.k, C.cur.y), b: C.low || C.word.toLowerCase(), y: fmt(C.prev.k, C.prev.y), chg: hbCmpChange(C.cur.y || 0, C.prev.y || 0) });
-  const rows = C.rows.filter(x => x.ck || x.pk);
+  say('hb_read_cmp', { a: C.now || hbWinWord(P.window), x: fmt(C.cur.k, C.cur.y), b: C.low || C.word.toLowerCase(), y: fmt(C.prev.k, C.prev.y), chg: hbCmpChange(hbCmpY(m, C.cur), hbCmpY(m, C.prev)) });
+  if (C.whole && C.whole.k !== C.prev.k){ counts.add(C.whole.k); say('hb_read_cmp_whole', { b: C.low || C.word.toLowerCase(), y: fmt(C.whole.k, C.whole.y) }); }
+  /* an average with nothing on one side has no move to name */
+  const avg = hbAvgMeasure(m);
+  const rows = C.rows.filter(x => avg ? (x.cy != null && x.py != null) : (x.ck || x.pk));
   if (rows.length > 1){
     const big = rows.slice().sort((a, b) => Math.abs((b.cy || 0) - (b.py || 0)) - Math.abs((a.cy || 0) - (a.py || 0)))[0];
     counts.add(big.ck); counts.add(big.pk);
-    say('hb_read_cmp_most', { who: big.label, x: { html: hbReadDoor(big.ck, big.dc, fmt(big.ck, big.cy)) }, y: { html: hbReadDoor(big.pk, big.dp, fmt(big.pk, big.py)) }, chg: hbCmpChange(big.cy || 0, big.py || 0) });
+    say('hb_read_cmp_most', { who: big.label, x: { html: hbReadDoor(big.ck, big.dc, fmt(big.ck, big.cy)) }, y: { html: hbReadDoor(big.pk, big.dp, fmt(big.pk, big.py)) }, chg: hbCmpChange(hbCmpY(m, { y: big.cy }), hbCmpY(m, { y: big.py })) });
   }
   return { lines, counts, keys };
 }
@@ -5556,6 +5571,11 @@ const HB_ANALYST_WORDS = [
   [/\b(?:sum|total|aggregate)\s+of\s+/, ' '],
   /* -- rankings: groups (the board draws a top N), contracts (the map's own list) -- */
   [new RegExp('(?<!\\d )\\b(?:who are |which are |what are )?(?:our |the )?(?:biggest|largest|top|highest[- ]value|most valuable|key|main|major)\\s+' + _HB_AW_GRP + '(?:\\s+by\\s+(?:value|spend|size))?\\b'), (m, g) => ` top 10 ${g} by value `],
+  /* "top ten counterparties", "the 10 biggest suppliers": a ranking of
+     groups with no measure named ranks by the money (an analyst's "top" is
+     the biggest, not the busiest); a measure said after it wins */
+  [new RegExp('\\b(?:the\\s+)?(?:top|biggest|largest|most valuable)\\s+(\\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\\s+' + _HB_AW_GRP + '\\b(?!\\s+(?:by|as|in|per|with|on|for)\\b)'), (m, n, g) => ` top ${_hbAwNum(n)} ${g} by value `],
+  [new RegExp('\\b(?:the\\s+)?(\\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\\s+(?:biggest|largest|most valuable)\\s+' + _HB_AW_GRP + '\\b(?!\\s+(?:by|as|in|per|with|on|for)\\b)'), (m, n, g) => ` top ${_hbAwNum(n)} ${g} by value `],
   [new RegExp('\\b(?:the\\s+)?(?:bottom|lowest[- ]value|least valuable)\\s+(\\d+|one|two|three|five|ten)?\\s*' + _HB_AW_GRP + '(?:\\s+by\\s+(?:value|spend|size))?\\b'), (m, n, g) => ` the ${n ? _hbAwNum(n) : 5} smallest ${g} by value `],
   [new RegExp('\\b(?:the\\s+)?bottom\\s+(\\d+|one|two|three|five|ten)\\s+' + _HB_AW_GRP + '\\s+by\\s+(?:value|spend|size)\\b'), (m, n, g) => ` the ${_hbAwNum(n)} smallest ${g} by value `],
   [new RegExp('(?<!\\d )\\b(?:the\\s+)?smallest\\s+' + _HB_AW_GRP + '\\b'), (m, g) => ` the 5 smallest ${g} `],
@@ -6403,7 +6423,7 @@ Object.assign(window, { HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TE
   hbBigBtnHtml, hbReadingOf, hbReadHtml, hbWhySig, hbWhyKept, hbWhyPrompt, hbWhyCheck, hbWhyAsk, hbWhyFollow, HB_WHY_KEEP,
   hbBoardNow, HB_BOARD_NOW_MAX, hbUsefulGroup, hbTrendFmt, HB_WHY_ASK_RE, HB_FU, hbOpenListKey, hbBoardEdit, hbFollowUp, hbBoardTakes, hbAxisTop,
   HB_PICS2, HB_SORTS, HB_DIRS, HB_COMPARES, HB_TOP_MAX, HB_TITLE_MAX, HB_SERIES_MAX, HB_HEAT_MAX, HB_WIN_MAX, HB_RC_GW, HB_RC_NUMS, HB_WIN_PRESETS, HB_SPLIT_WORDS, HB_UNIT_WORDS,
-  hbCardClean, hbCardPlan, hbPlanSpec, hbCardSet, hbCardSetPart, hbSplitClean, hbWindowClean, hbVsClean, hbPeriodWord, hbCmpPrevWord, hbBucketGap, hbPlainText, hbWinOf, hbWinWord, hbWindowCut, hbWinCs,
+  hbCardClean, hbCardPlan, hbPlanSpec, hbCardSet, hbCardSetPart, hbSplitClean, hbWindowClean, hbVsClean, hbPeriodWord, hbCmpPrevWord, hbBucketGap, hbCmpY, hbPlainText, hbWinOf, hbWinWord, hbWindowCut, hbWinCs,
   hbGroupsCut, hbGroupsSorted, hbIsGroupDim, hbRestDig, hbKeptGroups, hbSeriesOf, hbXOf, hbCellDig, hbStackSvg, hbHeatSvg, hbCompareSvg, hbCmpChange, hbChartRun,
   hbCardEdit, hbHowWord, hbRecipeWords, hbSplitModelWord, hbOrderWord, hbReadCompareOf, hbReadTwoOf, hbReadingCore, hbRcCur, hbRcCurHas,
   hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,

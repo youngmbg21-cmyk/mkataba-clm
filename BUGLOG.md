@@ -20401,3 +20401,13 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - "biggest contracts" on the board is drawn as a ring by stage, not a ranked list (the smallest list is a List picture); left as it was.
 - A window given as an exact range with no 'vs' is still named without years ("1 July to 30 September") on the chip and in the reading; only a period held against another names its year.
 - The average/median measures' comparison says "new" when the earlier period has no value at all (e.g. "against — a year earlier — new").
+
+## 6 Oct 2026 — the noticed items, fixed; the next questions on the board's dark screen
+- Fixed: the board's "Next:" question buttons were dark green on the dark screen (contrast 1.82); now the screen's own colours (9.26 dark, 7.51 light).
+- Fixed: "this quarter vs last quarter" read empty early in a quarter; the whole of the quarter before is now said.
+- Fixed: "top ten counterparties" / "the 10 biggest counterparties" ranked by count; now by value unless a measure is named.
+- Fixed: an exact date span now carries its year ("Q2 2026", "1 November 2025 to 28 February 2026").
+- Fixed: an average with no earlier figure said "new"; now "no figure to compare".
+- Withdrawn: "biggest contracts drawn as a ring" was the owner's Chart First rule, not a fault; the smallest list now follows the same rule (chart first, list in ranked order).
+### Noticed, not fixed
+- dark-no-white-patches-verify 2c is red on main: the Document tab's thread filter chips (.doc-th-chip) paint near-white rgb(230,236,234) in dark mode; the file is not in KNOWN_RED.

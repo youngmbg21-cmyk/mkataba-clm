@@ -1673,7 +1673,7 @@ function igLandingSet(){
   if(typeof igPaintGroupSelect==='function') try{ igPaintGroupSelect(); }catch(_){}
 }
 function igRecipeRun(parsed, opts){
-  const said=[]; let choices=null, list=null, listTitle=null, listChart=null, changed=false, lensNote=null;
+  const said=[]; let choices=null, list=null, listTitle=null, changed=false, lensNote=null;
   const acts=parsed.acts||[];
   const quiet=acts.every(a=>a.undo||a.ask||a.unknownFact||a.save!=null||a.namesUnknown);
   if(!quiet&&!(opts&&opts.noPush)) igRecipePush();
@@ -1745,8 +1745,8 @@ function igRecipeRun(parsed, opts){
       const ids=igTopIds(t.n,t.by,t.per,base,t.dir), label=i18t(t.dir==='up'?'int_bottom_label':'int_top_label',{ n:t.n, x:igSortWord(t.by) })+(t.per?' · '+i18t('int_top_per',{ x:graphGroupingWord(t.per) }):'');
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'||l.kind==='top'?false:true); addLens({ label, ids, action:'filter' });
       intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:igBookTotal() })+' · '+label; list=ids; listTitle=label; changed=true;
-      /* the smallest are listed smallest first on the board */
-      if(t.dir==='up') listChart={ pic:'list', sort:{ by:'value', dir:'up' } };
+      /* CHART FIRST on the board (Young, 3 Oct 2026): the list arrives in its
+         ranked order, so the List picture reads biggest (or smallest) first */
       continue; }
     if(a.compare){ const A=igIdsWhere(a.compare.a), B=igIdsWhere(a.compare.b), groups={};
       A.forEach(id=>{ groups[id]=a.compare.aLabel; }); B.forEach(id=>{ if(!groups[id]) groups[id]=a.compare.bLabel; });
@@ -1771,7 +1771,7 @@ function igRecipeRun(parsed, opts){
   if(lensNote) said.push(lensNote);
   if(changed) rebuildIntelGraph();
   intel.history.push({ role:'assistant', text:igEsc(said.filter(Boolean).join(' ')||i18t('int_did_nothing')), choices:choices||null,
-    listIds:list&&list.length?list.slice():null, listTitle:listTitle||null, listChart, cardIds:list?list.slice(0,5):[] });
+    listIds:list&&list.length?list.slice():null, listTitle:listTitle||null, cardIds:list?list.slice(0,5):[] });
   return opts&&opts.report?{ changed, said }:true;
 }
 /* COPILOT'S MAP TOOL KNOWS THE LOOK (Young, 4 Oct 2026: "Remove customer
@@ -2190,7 +2190,7 @@ function intelGraphApply(q, res, opts){
      map" is not said over an answer about the board */
   else if(!line) line=didHere?(ownHtml||igEsc(res.note||'Done.')):(ownHtml&&onBoard?ownHtml:igEsc(i18t('int_did_nothing'))+(ownHtml?(rich?'':'<br>')+ownHtml:''));
   else if(graphSaysMore(own,res.note,parts[0])) line+=(rich?'':'<br>')+ownHtml;
-  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:(res&&res.top&&res.top.dir==='up'?{ pic:'list', sort:{ by:'value', dir:'up' } }:null), choices:choices&&choices.length?choices:null });
+  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
 

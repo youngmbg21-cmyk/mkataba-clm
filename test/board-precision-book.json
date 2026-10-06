@@ -217,6 +217,8 @@
     { "src": "calc", "road": "free", "q": "compare H1 2025 and H2 2026 contracts signed", "want": { "split": { "by": "folder" }, "measure": "count", "compare": "range", "window": { "from": "2026-07-01", "to": "2026-12-31", "vs": { "from": "2025-01-01", "to": "2025-06-30" } }, "set": "Signed" } },
     { "src": "calc", "road": "free", "q": "compare 2023 with 2026 value", "want": { "split": { "by": "folder" }, "measure": "value", "compare": "range", "window": { "from": "2026-01-01", "to": "2026-12-31", "vs": { "from": "2023-01-01", "to": "2023-12-31" } }, "set": "Signed" } },
     { "src": "calc", "road": "free", "q": "compare January 2026 with March 2026", "want": { "split": { "by": "folder" }, "measure": "count", "compare": "range", "window": { "from": "2026-03-01", "to": "2026-03-31", "vs": { "from": "2026-01-01", "to": "2026-01-31" } }, "set": "Signed" } },
-    { "src": "calc", "road": "free", "q": "march 2026 vs september 2026 contracts signed", "want": { "split": { "by": "folder" }, "measure": "count", "compare": "range", "window": { "from": "2026-09-01", "to": "2026-09-30", "vs": { "from": "2026-03-01", "to": "2026-03-31" } }, "set": "Signed" } }
+    { "src": "calc", "road": "free", "q": "march 2026 vs september 2026 contracts signed", "want": { "split": { "by": "folder" }, "measure": "count", "compare": "range", "window": { "from": "2026-09-01", "to": "2026-09-30", "vs": { "from": "2026-03-01", "to": "2026-03-31" } }, "set": "Signed" } },
+    { "src": "noticed", "road": "free", "q": "top ten counterparties", "want": { "split": { "by": "counterparty" }, "measure": "value", "top": 10, "set": "all" } },
+    { "src": "noticed", "road": "free", "q": "the 10 biggest counterparties", "want": { "split": { "by": "counterparty" }, "measure": "value", "top": 10, "set": "all" } }
   ]
 }

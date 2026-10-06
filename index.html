@@ -8122,6 +8122,14 @@
   .hb-nx-q{height:var(--ctl-h-sm);padding:0 10px;border:1px dashed var(--accent-fill,var(--color-accent-600));border-radius:999px;background:transparent;color:var(--accent-ink,var(--color-accent-700));font:inherit;font-size:var(--t-meta);font-weight:500;white-space:nowrap;cursor:pointer}
   .hb-nx-q:hover{background:var(--color-accent-50,rgba(0,0,0,.04))}
   .hb-nx-q:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
+  /* ON THE BOARD'S OWN SCREEN the next questions wear the screen's tokens:
+     the platform's accent ink is a dark green that vanishes on the dark
+     stage (Young, 6 Oct 2026, over a Dig deeper card). The Copilot panel
+     keeps the platform's. */
+  #hb-board .hb-nx-l{color:var(--hb-mute)}
+  #hb-board .hb-nx-q{border-color:var(--hb-glow);color:var(--hb-glow)}
+  #hb-board .hb-nx-q:hover{background:rgba(var(--hb-gw),.14)}
+  #hb-board .hb-nx-q:focus-visible{outline-color:var(--hb-glow)}
   /* right or wrong, at the foot of a board reply (Part 6) */
   .hb-fb{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding-left:2px}
   .hb-fb-said{margin-right:auto;font-size:var(--t-micro);color:var(--accent-ink,var(--color-accent-700))}
