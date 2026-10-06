@@ -1962,16 +1962,19 @@ const dismissNote = async pg => {
        is now ALWAYS drawn — the whole clause from the pencil, the whole
        contract after the ✕ — so "the card is there / is gone" is asked of the
        PASSAGE card: the one that is neither of those two. */
-    const box = document.querySelector('#ce-scope .ce-scope:not(.is-clause):not(.is-whole)');
+    const box = document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-off"])');
     const over = document.getElementById('ce-inline');
     const ask = document.getElementById('ce-ask');
     if (!box) return { on: false, over: !!over };
     const r = box.getBoundingClientRect();
     const paper = document.getElementById('ce-doc').getBoundingClientRect();
-    const q = box.querySelector('q');
-    return { on: r.width > 100 && r.height > 20, over: !!over,
+    /* RE-POINTED 6 Oct 2026 (Young, "one Copilot editor"): the passage card
+       is a TAG in the ask box — its first words, the whole passage on its
+       title — so "on the rail as visible pixels" is a smaller box. */
+    const q = box.querySelector('.w');
+    return { on: r.width > 20 && r.height > 10, over: !!over,
       w: Math.round(r.width), h: Math.round(r.height),
-      quote: q ? q.textContent.trim() : '', title: q ? q.getAttribute('title') : '',
+      quote: q ? q.textContent.trim() : '', title: box.getAttribute('title') || '',
       /* NOT OVER THE PAPER: the whole complaint about the strip was that it
          covered the sentence it was about. */
       clear: r.left >= paper.right - 2,
@@ -2017,7 +2020,7 @@ const dismissNote = async pg => {
     ask.focus();
     ask.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     await new Promise(r => setTimeout(r, 200));
-    return { there: !!document.querySelector('#ce-scope .ce-scope:not(.is-clause):not(.is-whole)'),
+    return { there: !!document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-off"])'),
       focused: document.activeElement === ask };
   });
   ck('18e2 CLICKING INTO THE ASK BOX DOES NOT LET THE PASSAGE GO',
@@ -2046,7 +2049,7 @@ const dismissNote = async pg => {
     await new Promise(r => setTimeout(r, 200));
     const doc = document.getElementById('ce-clausebody');
     return { before, n0, moved: sig() !== sig0,
-      gone: !document.querySelector('#ce-scope .ce-scope:not(.is-clause):not(.is-whole)'),
+      gone: !document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-off"])'),
       del: doc.querySelectorAll('.nego-del').length,
       words: doc.textContent.replace(/\s+/g, ' '),
       filed: (window.CONTRACT.changes || []).length };
@@ -2322,7 +2325,7 @@ const dismissNote = async pg => {
     const before = (window.CONTRACT.changes || []).length;
     const btn = document.querySelector('#ce-scope [data-ce-act="scope-cut"]');
     const found = !!btn;
-    const openBefore = !!document.querySelector('#ce-scope .ce-scope:not(.is-clause):not(.is-whole)');
+    const openBefore = !!document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-off"])');
     const boxVal = (document.getElementById('ce-ask')||{}).value;
     if (btn) btn.click();
     for (let i = 0; i < 40; i++){
@@ -2337,7 +2340,7 @@ const dismissNote = async pg => {
       reading: (window.rlReadMode ? rlReadMode() : '?'),
       typing: doc.getAttribute('contenteditable'),
       html: doc.innerHTML.slice(0, 140),
-      shut: !document.querySelector('#ce-scope .ce-scope:not(.is-clause):not(.is-whole)'),
+      shut: !document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-off"])'),
       filed: (window.CONTRACT.changes || []).length, before };
   });
   await skipNote(p);
@@ -2553,7 +2556,7 @@ const dismissNote = async pg => {
     /* RE-POINTED IN PLACE 31 Aug 2026 (M-1): the passage lands on the rail
        rather than in a box over the paper. The CLAIM is unchanged — a drag made
        while typing must still reach the one control that acts on the passage. */
-    const strip = document.querySelector('#ce-scope .ce-scope:not(.is-clause):not(.is-whole)');
+    const strip = document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-off"])');
     const r = strip ? strip.getBoundingClientRect() : null;
     const sel = window.getSelection();
     const act = document.activeElement;
@@ -2608,7 +2611,7 @@ const dismissNote = async pg => {
     const box = document.getElementById('ce-clausebody');
     if (box) box.dispatchEvent(new Event('input', { bubbles: true }));
     await new Promise(r => setTimeout(r, 200));
-    return { on: !!document.querySelector('#ce-scope .ce-scope:not(.is-clause):not(.is-whole)') };
+    return { on: !!document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-off"])') };
   });
   ck('21g typing in the clause lets the passage go', afterType.on === false, `attached ${afterType.on}`);
 
@@ -2784,7 +2787,7 @@ const dismissNote = async pg => {
     await pause(250); return true;
   };
   const railState = () => p.evaluate(() => ({
-    card: !!document.querySelector('#ce-scope .ce-scope:not(.is-clause):not(.is-whole)'),
+    card: !!document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-off"])'),
     held: document.querySelectorAll('#ce-clausebody .ce-held').length,
     selLive: !((window.getSelection() || { isCollapsed: true }).isCollapsed),
     up: window.__up, down: window.__down }));
@@ -2838,7 +2841,7 @@ const dismissNote = async pg => {
     document.getElementById('ce-doc').dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
     await new Promise(r => setTimeout(r, 350));
     return { say: String((document.getElementById('ce-say') || {}).textContent || '').trim(),
-      card: !!document.querySelector('#ce-scope .ce-scope:not(.is-clause):not(.is-whole)') };
+      card: !!document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-off"])') };
   });
   if (refused23.skip) ck('23f (skipped — the fixture clause is one paragraph)', true, 'n/a');
   else {

@@ -236,9 +236,12 @@ describe('f350 (4) — the clause is named above the rail, not in it', () => {
     assert.ok(!/\.ce-ah-cl\{/.test(CE), 'and its dress went with it');
   });
 
-  test('the top bar and the Selected card still name it, through the one reading', () => {
+  /* RE-POINTED 6 Oct 2026 ("one Copilot editor"): the Selected card is gone;
+     the panel's dropdown and the tag's hover name the clause, through the same reading */
+  test('the top bar and the panel\'s dropdown still name it, through the one reading', () => {
     assert.match(CE, /shellCrumbLayer\(i18t\(ceIsNew\(\) \? 'ce_crumb_new' : 'ce_crumb_edit', \{ clause: ceClauseLabel\(ceClause\(\)\)/);
-    assert.match(CE, /const where = \(sel && sel\.loose\) \? _cet\('ce_scope_words'\) : \(ceClauseLabel\(ceClause\(\)\) \|\| _cet\('ce_this_clause'\)\);/);
+    assert.match(CE, /label: ceIsNew\(\) \? _cet\('ce_pick_new'\) : \(ceClauseLabel\(ceClause\(\)\) \|\| _cet\('ce_this_clause'\)\)/);
+    assert.match(CE, /box\.title = ceClauseLabel\(ceClause\(\)\) \|\| _cet\('ce_this_clause'\);/);
   });
 });
 

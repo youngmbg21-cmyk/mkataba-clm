@@ -2458,10 +2458,24 @@ const AI_ADVICE_FIELD = made => aiStyle() === 'legal'
 /* The contract with the model, written once. Both the server-mediated and the
    browser-direct paths send this exact text, so the two cannot drift into
    accepting different shapes. */
+/* ---- THE EXPLANATION ABOVE THE WORDING IS TWO PLAIN PARTS (Young, 6 Oct 2026) ----
+   The owner's screen showed Copilot's working notes over its wording ("Now I
+   have the context… Let me draft… Wait, I should reconsider…"). What the
+   reader is owed is two short parts in everyday words, addressed to them: why
+   the wording should change, and what the new wording does. The wording itself
+   stays legal drafting. Read by aiExplainOf; never shown raw. */
+const AI_EXPLAIN_FIELDS = () => '  "whyChange": "One or two plain sentences to the reader: why the current wording should '
+  + 'change — what it does to them as it stands. Everyday words; no legal jargon; never about yourself, '
+  + 'the request or the person asking.",\n'
+  + '  "whatItDoes": "One or two plain sentences to the reader: what the new wording does for them. '
+  + 'Everyday words.",\n';
+const AI_NO_NOTES = '\n\nNever write your working notes or thinking anywhere in the reply — no "Now I have", '
+  + '"Let me", "Wait", "I should", no talk about "the user": think silently, then send the ONE final JSON object.';
 const AI_PROPOSAL_FORMAT = () => 'Reply with ONE JSON object and nothing else — no preamble, '
   + 'no commentary outside it, no markdown fence:\n'
   + '{\n'
   + AI_ADVICE_FIELD('changed')
+  + AI_EXPLAIN_FIELDS()
   + '  "proposedText": "The replacement wording for the selected passage, and nothing else — '
   + 'no quotation marks around it, no explanation inside it."\n'
   + '}\n\n'
@@ -2470,7 +2484,7 @@ const AI_PROPOSAL_FORMAT = () => 'Reply with ONE JSON object and nothing else �
   + '— never put a question, an apology, a note about missing context, or a remark about '
   + 'the request itself where wording goes. If the instruction does not match what you '
   + 'were shown, or the point raised is about some other clause, that observation IS the '
-  + 'advice — say it there and return proposedText as an empty string.';
+  + 'advice — say it there and return proposedText as an empty string.' + AI_NO_NOTES;
 
 /* ---------- WHERE THE WORDING GOES ----------
    Every proposal on this path used to do one thing: swap out the passage the
@@ -2527,6 +2541,7 @@ const AI_EDIT_FORMAT = () => 'Reply with ONE JSON object and nothing else — no
   + 'no commentary outside it, no markdown fence:\n'
   + '{\n'
   + AI_ADVICE_FIELD('changed or added')
+  + AI_EXPLAIN_FIELDS()
   + '  "placement": "replace" | "after" | "before" | "newClause",\n'
   + '  "proposedText": "The wording itself and nothing else — no quotation marks around it, '
   + 'no explanation inside it.",\n'
@@ -2552,7 +2567,7 @@ const AI_EDIT_FORMAT = () => 'Reply with ONE JSON object and nothing else — no
   + '— never put a question, an apology, a note about missing context, or a remark about '
   + 'the request itself where wording goes. If the instruction does not match what you '
   + 'were shown, or the point raised is about some other clause, that observation IS the '
-  + 'advice — say it there and return proposedText as an empty string.';
+  + 'advice — say it there and return proposedText as an empty string.' + AI_NO_NOTES;
 
 /* ---------- TYPOGRAPHY SURVIVES THE REWRITE ----------
    A model handed a numbered sub-clause returns prose. It is not wrong about the
@@ -3124,6 +3139,19 @@ function aiSplitReply(text){
    sent is not wording. A caller that gets no proposedText renders the advice
    and no card, which is the honest rendering of "it talked instead of
    drafting" — and, unlike a card holding an apology, it cannot be applied. */
+/* every top-level {...} in a text, braces inside strings ignored */
+function aiJsonObjects(text){
+  const t = String(text || ''), out = [];
+  let depth = 0, start = -1, inStr = false, esc = false;
+  for (let i = 0; i < t.length; i++){
+    const ch = t[i];
+    if (inStr){ if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"'){ if (depth > 0) inStr = true; continue; }
+    if (ch === '{'){ if (depth === 0) start = i; depth++; }
+    else if (ch === '}' && depth > 0){ depth--; if (depth === 0 && start >= 0){ out.push(t.slice(start, i + 1)); start = -1; } }
+  }
+  return out;
+}
 function aiParseProposal(raw){
   const src = String(raw == null ? '' : raw).trim();
   if (!src) return null;
@@ -3145,7 +3173,8 @@ function aiParseProposal(raw){
        behaviour it had before it existed. */
     const placement = aiNormalizePlacement(obj.placement ?? obj.where ?? obj.position);
     const heading = String(obj.headingText ?? obj.heading ?? '').trim();
-    return { advice: merged, proposedText: split.wording, strict: true, placement,
+    const why = String(obj.whyChange ?? obj.why ?? '').trim(), does = String(obj.whatItDoes ?? obj.does ?? '').trim();
+    return { advice: merged, proposedText: split.wording, strict: true, placement, why, does,
       /* Carried only where it means something. A heading on a replacement is a
          field nobody reads, and one left on a placement the reader later flips
          AWAY from newClause would resurface if they flipped back to it — which
@@ -3158,6 +3187,14 @@ function aiParseProposal(raw){
   const a = unfenced.indexOf('{'), b = unfenced.lastIndexOf('}');
   if (a >= 0 && b > a){
     try{ const hit = pick(JSON.parse(unfenced.slice(a, b + 1))); if (hit) return hit; }catch(_){}
+  }
+  /* SEVERAL OBJECTS, NOTES BETWEEN THEM (Young, 6 Oct 2026): a model that
+     drafts, says "Wait, I should reconsider… Let me refine:" and drafts again
+     sends two objects, and the widest slice spans both and parses as neither.
+     Its LAST whole object is its final answer; the notes go nowhere. */
+  const objs = aiJsonObjects(unfenced);
+  for (let k = objs.length - 1; k >= 0; k--){
+    try{ const hit = pick(JSON.parse(objs[k])); if (hit) return hit; }catch(_){}
   }
   /* No JSON at all. Either the model answered with wording and skipped the
      wrapper — in which case the wording is still the answer and only the
@@ -3383,7 +3420,7 @@ async function copilotPropose(opts){
      See aiCleanAddedWording for why an insert must not be measured against the
      passage it sits beside. */
   const placement = placements ? aiNormalizePlacement(parsed.placement) : 'replace';
-  return { ...parsed, placement,
+  return aiExplainSet({ ...parsed, placement,
     headingText: placement === 'newClause' ? String(parsed.headingText || '') : '',
     proposedText: aiIsInsert(placement)
       ? aiCleanAddedWording(passage, parsed.proposedText)
@@ -3392,7 +3429,29 @@ async function copilotPropose(opts){
          restated heading left in place is one line it would try to make the
          wording account for. See aiDropRestatedHeading. */
       : aiPreserveTypography(passage,
-          aiDropRestatedHeading(parsed.proposedText, o.clauseLabel, passage)) };
+          aiDropRestatedHeading(parsed.proposedText, o.clauseLabel, passage)) });
+}
+/* ---- WORKING NOTES ARE NEVER SHOWN (Young, 6 Oct 2026) ----
+   A model that thinks aloud writes it in the first person to itself, or about
+   "the user" / "the drafter". Such text is not an explanation for the reader:
+   aiExplainSet never shows it, and puts one fixed sentence in its place. The
+   wording, which is the answer, is still shown. */
+const AI_WORKING_NOTES_RE = /(^|[\s"“(])(now i (have|see|know|understand)|let me|let's|wait[,.!:]|hmm|i should|i'll|i will|i need to|i think|i notice|i can see|i'm going to|i am going to|actually, )|\bthe (user|drafter|requester)\b/i;
+function aiWorkingNotes(text){ return AI_WORKING_NOTES_RE.test(String(text == null ? '' : text)); }
+/* the two labelled parts, when both came and neither is working notes */
+function aiExplainOf(p){
+  const why = String((p && p.why) || '').replace(/\s+/g, ' ').trim(), does = String((p && p.does) || '').replace(/\s+/g, ' ').trim();
+  return why && does && !aiWorkingNotes(why) && !aiWorkingNotes(does) ? { why, does } : null;
+}
+/* ONE place for both doors (the clause's Suggestions and the risk's): a reply
+   that carries wording carries the two parts, or its advice if that is clean,
+   or the fixed sentence */
+function aiExplainSet(out){
+  if (!out || !String(out.proposedText || '').trim()) return out;
+  out.explain = aiExplainOf(out);
+  if (!out.explain && (!String(out.advice || '').trim() || aiWorkingNotes(out.advice)))
+    out.advice = (typeof i18t === 'function') ? i18t('ce_explain_fallback') : 'Copilot suggested new wording. Read it before you apply it.';
+  return out;
 }
 
 /* ---------- the proposal card ----------
@@ -4827,7 +4886,7 @@ document.addEventListener('keydown',e=>{
 if(typeof window!=='undefined'&&typeof window.addEventListener==='function')
   window.addEventListener('resize',()=>{ if(ai.open) aiSyncDock(); });
 
-Object.assign(window,{scanGoTo,aiContractByRef,
+Object.assign(window,{scanGoTo,aiContractByRef,aiWorkingNotes,aiExplainOf,aiExplainSet,aiJsonObjects,
   AI_PROPOSAL_FORMAT,AI_EDIT_FORMAT,AI_ADVICE_FIELD,AI_KEEP_TAGS,AI_PROPOSAL_OPEN,aiProposals,aiSyncDock,
   AI_PLACEMENTS,AI_PLACEMENT_LABEL,AI_PLACEMENT_SHORT,aiNormalizePlacement,aiIsInsert,
   aiProposalAnchorHtml,aiProposalPlacementHtml,aiProposalSetPlacement,aiCleanAddedWording,

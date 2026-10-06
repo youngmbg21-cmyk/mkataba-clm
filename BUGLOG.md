@@ -20447,3 +20447,12 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed: story chapters had no way to be made bigger.
 - Fixed: a Dig deeper chapter's chart could show something other than its title said; a chapter may now name its picture.
 - Fixed: a chart measuring risk exposure led with the contracts' whole value (logged earlier on 6 Oct as noticed).
+
+## 6 Oct 2026 — one Copilot editor (Part B of the combined job order)
+
+- Fixed: Copilot's working notes ("Now I have the context… Let me draft… Wait…") showed over its suggested wording when a reply carried two drafts; the last draft is read, the explanation is two plain parts, notes are never shown.
+- Fixed: an Escape pressed on HaTi's own dropdown list also reached the page under it (it left Edit with Copilot); the list now keeps its Escape.
+
+### Noticed, not fixed
+- Home board: the risks answer pack names its top risks by `it.title` (the record name), not the new short title `riskTitleOf`.
+- Done (Part C): Insights today cards answer "why" on the card (Read more), not in the side panel; "Ask why" retired.

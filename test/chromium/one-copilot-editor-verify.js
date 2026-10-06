@@ -97,13 +97,15 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     const col = pg.querySelector('.ce-col, .ce-left');
     const r = col ? col.getBoundingClientRect() : null;
     return {
-      disc: vis(pg.querySelector('.ce-disc')),
+      /* RE-POINTED 6 Oct 2026: the panel's dropdown stands where "Written by
+         Copilot…" stood (one-copilot-editor-plain-verify measures it) */
+      disc: vis(pg.querySelector('#ce-pick')),
       read: lane ? [...lane.querySelectorAll('.ce-read b')].map(b => b.textContent.trim()) : [],
       cardName: card ? (card.querySelector('.n span') || {}).textContent : '',
       cardBtns: card ? [...card.querySelectorAll('button')].map(b => b.textContent.trim() || b.getAttribute('aria-label')) : [],
       chips: vis(pg.querySelector('#ce-chips')) ? [...pg.querySelectorAll('#ce-chips button')].map(b => b.textContent.trim()) : null,
       ask: vis(pg.querySelector('#ce-askrow')),
-      scope: vis(pg.querySelector('#ce-scope .ce-scope')),
+      scope: vis(pg.querySelector('#ce-scope.ce-tag:not(:empty)')),
       lane: vis(lane), full: vis(full),
       fullH: vis(full) ? Math.round(full.getBoundingClientRect().height) : 0,
       pvH: card ? Math.round(card.querySelector('.pv').getBoundingClientRect().height) : 0,
@@ -145,11 +147,11 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]');
     const rk = await until(page, () => {
       const lane = document.querySelector('#clause-editor #ce-lane');
-      return lane && /Risk 1 of 1/.test(lane.textContent) && !lane.querySelector('.rk-busy') && lane.querySelector('[data-ce-apply="rk:0"]') ? true : null;
+      return lane && lane.querySelector('.rk-ce-head') && !lane.querySelector('.rk-busy') && lane.querySelector('[data-ce-apply="rk:0"]') ? true : null;
     }, null, 10000);
     check(!!rk, '1- the Risks tab has Copilot\'s answer');
     const R = await railNow();
-    check(!!R && R.disc, '1a "Written by Copilot" stands over the risk as over the clause');
+    check(!!R && R.disc, '1a the panel\'s dropdown stands over the risk as over the clause');
     check(!!R && R.read.length >= 2 && /playbook/i.test(R.read[0]) && R.read.some(x => /wording/i.test(x)), '1b the reading rows the clause screen draws (Our playbook · The wording)', R && R.read.join(' · '));
     check(!!R && R.cardName === 'Suggested wording' && ['Expand', 'Apply', 'Ask for a change'].every(w => R.cardBtns.includes(w)), '1c ONE Suggested wording card: Expand · Apply · Ask for a change · the votes', R && R.cardBtns.join(' · '));
     check(!!R && Array.isArray(R.chips) && R.chips.join(' · ') === 'Make it firmer · Give me a softer version · Shorter · What does our playbook say?', '1d the risk\'s quick asks sit in the rail\'s own chips row', R && String(R.chips));

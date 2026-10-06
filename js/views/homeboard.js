@@ -3163,6 +3163,15 @@ function hbWhyKept(key, sig){
    worked out, so the drawn box and the asked question never differ. */
 function hbReadSrc(key){
   const lens = hbS().lens;
+  /* AN INSIGHTS TODAY CARD's own chart (Young, 6 Oct 2026, Headline order 4a):
+     the same run its thumbnail draws (hbInsChart: its question, the whole
+     book), read the way every chart is read */
+  const ins = /^ins:([a-z]+(?:\.mine)?)$/.exec(String(key || ''));
+  if (ins){
+    const o = hbInsOf(ins[1]); if (!o) return null;
+    const D = hbDigData(hbInsKey(o.k, o.mine), 'all'); if (!D || D.kind !== 'list') return null;
+    return hbReadOfList(D, key, hbInsViewWord(o.k, o.mine), 'all');
+  }
   if (/^pk:\w+$/.test(String(key || ''))) return hbPackSrc(key, lens);
   if (key === HB_BOARD_KEY) return hbBoardSrc(lens);
   const pk = /^hp:(\w+)$/.exec(String(key || ''));
@@ -5080,11 +5089,16 @@ function hbShelfHtml(I){
     return `<article class="hb-ins${tone}" data-hb-ins-card="${_hbE(id)}">
       ${chips ? `<div class="hb-ins-top">${chips}</div>` : ''}<div class="hb-ins-t">${_hbE(x.title)}</div>
       <button type="button" class="hb-ins-pic" data-hb-ins="open" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_open_tip'))}" aria-label="${_hbE(x.title + ' — ' + i18t('hb_ins_open'))}">${hbInsThumb(x.C.R)}</button>
-      <div class="hb-ins-f">${_hbE(x.say)}</div>${x.plain ? '' : `<div class="hb-ins-why">${_hbE(hbInsWhy(x))}</div>`}
+      <div class="hb-ins-f">${_hbE(x.say)}</div>${x.plain ? '' : `<div class="hb-ins-why">${_hbE(hbInsWhy(x))}</div>`}${_hbReadOpen.has('ins:' + id) ? hbReadSrcHtml('ins:' + id) : ''}
       <div class="hb-ins-acts">
         <button type="button" class="hb-btn is-sm" data-hb-ins="keep" data-hb-ins-k="${_hbE(id)}"${isKept ? ` disabled title="${_hbE(i18t('hb_ins_kept_tip'))}"` : ` title="${_hbE(i18t('hb_ins_keep_tip'))}"`}>${_hbE(i18t(isKept ? 'hb_ins_kept' : 'hb_ins_keep'))}</button>
         <button type="button" class="hb-btn is-sm" data-hb-ins="open" data-hb-ins-k="${_hbE(id)}">${_hbE(i18t('hb_ins_open'))}</button>
-        <button type="button" class="hb-link" data-hb-ins="why" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_c_ask_cost'))}">${_hbE(i18t('hb_ins_why'))}</button>
+        ${''/* "ASK WHY" IS RETIRED (Young, 6 Oct 2026): it sent the question to
+               the side panel while every other card asks "What could explain
+               this?" in place — two doors onto one question. The card's
+               finding is its headline; Read more opens its reading here, the
+               same block (hbReadSrcHtml), per sitting (_hbReadOpen).
+               hb_ins_why / hb_ins_why_q are inert in both books. */}<button type="button" class="hb-link hb-head-more" data-hb-read-more="${_hbE('ins:' + id)}" aria-expanded="${_hbReadOpen.has('ins:' + id)}">${_hbE(i18t(_hbReadOpen.has('ins:' + id) ? 'hb_head_less' : 'hb_head_more'))}</button>
         <span class="hb-grow"></span>
         <button type="button" class="hb-ib hb-ins-x" data-hb-ins="go" data-hb-ins-k="${_hbE(id)}" title="${_hbE(i18t('hb_ins_letgo'))}" aria-label="${_hbE(i18t('hb_ins_letgo'))}">${_hbX}</button></div></article>`; }).join('')}${calm}</div>`;
 }
@@ -5118,10 +5132,6 @@ function hbInsAct(act, id){
   const o = hbInsOf(id); if (!o) return;
   const k = o.k;
   if (act === 'open'){ hbInsRecipeOn(k); hbDig(hbInsKey(k, o.mine)); return; }
-  if (act === 'why'){
-    const I = hbInsightsToday(), c = I.concat(hbInsUsual(I)).find(x => x.id === id);
-    hbAskInPanel(i18t('hb_ins_why_q', { what: (c ? c.title : hbInsViewWord(k, o.mine)) + (o.mine ? ' (' + i18t('hb_ins_in_mine') + ')' : '') })); return;
-  }
   if (act === 'keep'){
     const r = hbAddView(k, o.mine);
     s.insKept[k] = Math.min(20, (s.insKept[k] || 0) + 1); hbSave();

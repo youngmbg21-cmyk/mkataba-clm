@@ -98,6 +98,16 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 } });
   const page = await ctx.newPage();
+  /* RE-POINTED 6 Oct 2026 ("one Copilot editor"): the Risks tab no longer
+     prints "Risk k of n" (the panel's dropdown says which risk this is) and
+     its heading wears the short title with the whole one on its hover. The
+     lane's reading for these checks is its text, the hover titles in it and
+     the dropdown's position, said as before. */
+  await page.addInitScript(() => {
+    window.__riskStep = () => { const s = document.getElementById('ce-pick-sel'); if (!s || !document.querySelector('[data-ce-tab="risks"].is-on')) return '';
+      const o = [...s.options].filter(x => !x.disabled); const i = o.findIndex(x => x.selected); return i < 0 ? '' : 'Risk ' + (i + 1) + ' of ' + o.length; };
+    window.__laneText = el => !el ? '' : el.textContent + ' ' + [...el.querySelectorAll('[title]')].map(x => x.getAttribute('title')).join(' ') + ' ' + window.__riskStep();
+  });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   try {
@@ -169,8 +179,11 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
     const why = await until(page, k => { const w = document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] .rk-why'); return w ? w.textContent.replace(/\s+/g, ' ') : null; }, kTerm);
     check(!!why && why.includes(T_SENT) && /You could lose the account/.test(why), '2c Why opens the sentence and why it matters', why);
     const old = await page.evaluate(k => { const r = document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] .rk-t'); if (!r) return null; const cs = getComputedStyle(r);
-      return { text: r.textContent, cut: r.scrollWidth > r.clientWidth, ellipsis: cs.textOverflow, one: cs.whiteSpace }; }, kDeliv);
-    check(!!old && old.text === D_SENT && old.cut && old.ellipsis === 'ellipsis' && old.one === 'nowrap', '2d an old-shape card keeps its sentence on one line ending in "…"', JSON.stringify(old));
+      return { text: r.textContent, hover: r.getAttribute('title'), ellipsis: cs.textOverflow, one: cs.whiteSpace }; }, kDeliv);
+    /* RE-POINTED 6 Oct 2026 (Young picked "Topic and Problem"): a brief from
+       before titles is named from the topic HaTi reads in it, no new call;
+       its whole sentence is on the hover */
+    check(!!old && / · /.test(old.text) && old.text.split(/\s+/).length <= 7 && old.hover === D_SENT && old.ellipsis === 'ellipsis' && old.one === 'nowrap', '2d an old-shape card is named "Topic · problem", its sentence on the hover', JSON.stringify(old));
     await shot(page, '1-titles-light.png');
     await page.evaluate(() => { if (window.setDark) setDark(true); });
     await shot(page, '2-titles-dark.png');
@@ -230,7 +243,7 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
       const viaKey = await until(page, () => { const f = document.querySelector('#rl-doc span.anchor-flash'); const cl = f && f.closest('[data-clause]'); return cl ? /Delivery/.test(cl.textContent) : null; }, null, 6000);
       check(!!viaKey, '4f Enter on the focused head does what a press does');
 
-      const missing = await page.evaluate(() => { const r = [...document.querySelectorAll('#rl-risks .rk-row')].find(x => /injunctive/i.test(x.textContent));
+      const missing = await page.evaluate(() => { const r = [...document.querySelectorAll('#rl-risks .rk-row')].find(x => /injunctive/i.test(x.textContent + ' ' + ((x.querySelector('.rk-t') || {}).title || '')));
         return r ? { door: !!r.querySelector('[data-rk-act="go"]'), cursor: getComputedStyle(r.querySelector('.rk-head') || r).cursor } : null; });
       check(!!missing && !missing.door && missing.cursor !== 'pointer', '4g a risk about something the contract does not say is not a door', JSON.stringify(missing));
 
@@ -257,9 +270,11 @@ async function shot(page, name){ try{ await page.screenshot({ path: path.join(OU
 
     /* 5 — Edit with Copilot's Risks tab */
     await page.evaluate(k => { const b = document.querySelector('#rl-risks .rk-row[data-rk-key="' + CSS.escape(k) + '"] [data-rk-act="edit-ce"]'); if (b) b.click(); }, kTerm);
-    const ce = await until(page, () => { const c = document.querySelector('#clause-editor .rk-ce-card'); if (!c) return null;
-      return { t: (c.querySelector('.rk-t') || {}).textContent, p: (c.querySelector('.rk-p') || {}).textContent || '' }; }, null, 10000);
-    check(!!ce && ce.t === 'Ended on 30 days\' notice' && ce.p.includes('30 days'), '5 Edit with Copilot\'s Risks tab: the title, the sentence under it', JSON.stringify(ce));
+    /* RE-POINTED 6 Oct 2026: the Risks tab's heading (no box) wears the short
+       title with the whole sentence on its hover; Why it matters follows */
+    const ce = await until(page, () => { const c = document.querySelector('#clause-editor .rk-ce-head'); if (!c) return null;
+      const t = c.querySelector('.rk-t') || {}; return { t: t.textContent, p: t.getAttribute ? t.getAttribute('title') || '' : '' }; }, null, 10000);
+    check(!!ce && ce.t === 'Ended on 30 days\' notice' && ce.p.includes('30 days'), '5 Edit with Copilot\'s Risks tab: the title, the sentence on its hover', JSON.stringify(ce));
     await shot(page, '4-edit-risks-tab.png');
     await page.evaluate(() => { try{ if (window.clauseEditorClose) window.clauseEditorClose({ force: true }); }catch(_){} });
     await page.keyboard.press('Escape');

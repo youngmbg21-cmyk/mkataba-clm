@@ -91,6 +91,16 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+  /* RE-POINTED 6 Oct 2026 ("one Copilot editor"): the Risks tab no longer
+     prints "Risk k of n" (the panel's dropdown says which risk this is) and
+     its heading wears the short title with the whole one on its hover. The
+     lane's reading for these checks is its text, the hover titles in it and
+     the dropdown's position, said as before. */
+  await page.addInitScript(() => {
+    window.__riskStep = () => { const s = document.getElementById('ce-pick-sel'); if (!s || !document.querySelector('[data-ce-tab="risks"].is-on')) return '';
+      const o = [...s.options].filter(x => !x.disabled); const i = o.findIndex(x => x.selected); return i < 0 ? '' : 'Risk ' + (i + 1) + ' of ' + o.length; };
+    window.__laneText = el => !el ? '' : el.textContent + ' ' + [...el.querySelectorAll('[title]')].map(x => x.getAttribute('title')).join(' ') + ' ' + window.__riskStep();
+  });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   let shares = 0;
@@ -180,7 +190,9 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     const opened = await until(page, () => { const w = document.querySelector('#rl-risks [data-rk-key="s:t-liab"] .rk-why');
       const b = document.querySelector('#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="why"]');
       return w ? { text: w.textContent.replace(/\s+/g, ' ').trim(), exp: b && b.getAttribute('aria-expanded') } : null; });
-    check(!!opened && /^Why it matters/i.test(opened.text) && /limit what they owe you/.test(opened.text) && !/A data breach could cost/.test(opened.text) && opened.exp === 'true',
+    /* RE-POINTED 6 Oct 2026: the card wears the short title, so the opened
+       Why leads with the rule's whole title, then the plain reason */
+    check(!!opened && /^Liability cap may be too low\s*Why it matters/i.test(opened.text) && /limit what they owe you/.test(opened.text) && !/A data breach could cost/.test(opened.text) && opened.exp === 'true',
       '1k "Why" opens the plain-English reason for the rule, not the stored wording', opened && opened.text);
     await shot('1b-why-open.png');
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="why"]');
@@ -209,8 +221,8 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       const pg = document.getElementById('clause-editor'); if (!pg) return null;
       const tab = pg.querySelector('[data-ce-tab="risks"]');
       const lane = pg.querySelector('#ce-lane');
-      if (!lane || !/Risk 1 of/.test(lane.textContent) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(lane.textContent)) return null;
-      return { on: !!(tab && tab.classList.contains('is-on')), clause: clauseEditorClauseId(), step: lane.querySelector('.rk-ce-step').textContent,
+      if (!lane || !/Risk 1 of/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
+      return { on: !!(tab && tab.classList.contains('is-on')), clause: clauseEditorClauseId(), step: window.__riskStep(),
         card: !!lane.querySelector('.ce-card [data-ce-apply="rk:0"]'), boxNew: /twelve \(12\) months/.test(ceBoxWords()),
         save: (pg.querySelector('[data-ce-act="rk-save"]') || {}).textContent || '' };
     }, null, 10000);
@@ -251,7 +263,9 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     /* ============ 5. THE RIGHT PLACE, AND A NEW CLAUSE ============ */
     const law = await until(page, () => {
       const lane = document.querySelector('#clause-editor #ce-lane');
-      return lane && /Risk 2 of 3/.test(lane.textContent) && /Missing governing law/.test(lane.textContent) && !lane.querySelector('.rk-busy') ? { clause: clauseEditorClauseId() } : null;
+      /* RE-POINTED 6 Oct 2026: the dropdown lists the risks still OPEN, and
+         risk 1 was just saved — so the walk's second risk is 1 of 2 there */
+      return lane && /Risk 1 of 2/.test(window.__laneText(lane)) && /Missing governing law/.test(window.__laneText(lane)) && !lane.querySelector('.rk-busy') ? { clause: clauseEditorClauseId() } : null;
     }, null, 10000);
     const lawClause = await page.evaluate(id => (negoClauseList(getContract(id)).find(x => /Governing law/i.test(x.headingText || x.title || '')) || {}).clauseId, ID);
     check(!!law && law.clause === lawClause, '5a after the note, risk 2 opens: "Missing governing law" changes clause 4, never a second one', law && law.clause);
@@ -263,7 +277,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     const nc = await until(page, () => {
       const pg = document.getElementById('clause-editor'); if (!pg) return null;
       const lane = pg.querySelector('#ce-lane');
-      if (!lane || !/Risk 3 of 3/.test(lane.textContent) || !/No injunctive-relief clause/.test(lane.textContent) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(lane.textContent)) return null;
+      if (!lane || !/Risk 2 of 2/.test(window.__laneText(lane)) || !/No injunctive-relief clause/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
       const ap = lane.querySelector('[data-ce-apply="rk:0"]');
       if (ap && !/interim injunctive relief/.test(ceBoxWords())){ ap.click(); return null; }
       const secs = [...pg.querySelectorAll('#ce-doc [data-clause]')].map(x => x.getAttribute('data-clause'));
@@ -317,7 +331,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     /* ============ 6. LAST RISK DONE ============ */
     const end = await until(page, () => {
       const lane = document.querySelector('#clause-editor #ce-lane');
-      return lane && /That was the last risk/.test(lane.textContent) ? lane.innerText.replace(/\s+/g, ' ') : null;
+      return lane && /That was the last risk/.test(window.__laneText(lane)) ? lane.innerText.replace(/\s+/g, ' ') : null;
     });
     check(!!end && /Saved as unsent redlines: 2 · skipped: 1 · covered by your redlines: 1\. Nothing was sent\./.test(end), '6a "That was the last risk", what was saved, skipped and covered', end);
     check(!!end && !/Need a new clause/.test(end), '6b no risk is left behind for needing a new clause', end);
@@ -372,7 +386,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       /* the wording waits for Apply (5 Oct 2026): press it once it is there */
       const ap = lane && lane.querySelector('[data-ce-apply="rk:0"]');
       if (ap && b && b.disabled){ ap.click(); return null; }
-      return lane && /Exposure ceiling is low/.test(lane.textContent) && !lane.querySelector('.rk-busy') && b && !b.disabled ? true : null;
+      return lane && /Exposure ceiling is low/.test(window.__laneText(lane)) && !lane.querySelector('.rk-busy') && b && !b.disabled ? true : null;
     }, null, 10000);
     check(!!ready, '8- the risk is open on the liability clause with wording to save');
     const n8 = await page.evaluate(id => (getContract(id).changes || []).length, ID);

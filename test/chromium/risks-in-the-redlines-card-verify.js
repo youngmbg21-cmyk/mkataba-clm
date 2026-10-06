@@ -82,6 +82,16 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   const page = await ctx.newPage();
+  /* RE-POINTED 6 Oct 2026 ("one Copilot editor"): the Risks tab no longer
+     prints "Risk k of n" (the panel's dropdown says which risk this is) and
+     its heading wears the short title with the whole one on its hover. The
+     lane's reading for these checks is its text, the hover titles in it and
+     the dropdown's position, said as before. */
+  await page.addInitScript(() => {
+    window.__riskStep = () => { const s = document.getElementById('ce-pick-sel'); if (!s || !document.querySelector('[data-ce-tab="risks"].is-on')) return '';
+      const o = [...s.options].filter(x => !x.disabled); const i = o.findIndex(x => x.selected); return i < 0 ? '' : 'Risk ' + (i + 1) + ' of ' + o.length; };
+    window.__laneText = el => !el ? '' : el.textContent + ' ' + [...el.querySelectorAll('[title]')].map(x => x.getAttribute('title')).join(' ') + ' ' + window.__riskStep();
+  });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   let payloadPuts = 0;
@@ -159,7 +169,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   const open = await until(page, () => {
     const pg = document.getElementById('clause-editor'); if (!pg) return null;
     const lane = pg.querySelector('#ce-lane');
-    if (!lane || !/Payment terms: 60 days/.test(lane.textContent) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(lane.textContent)) return null;
+    if (!lane || !/Payment terms: 60 days/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
     /* the wording waits in the Suggested wording card for Apply (Young, 5 Oct 2026) */
     const ap = lane.querySelector('[data-ce-apply="rk:0"]');
     if (ap && !pg.querySelector('#ce-doc ins, #ce-doc .hati-ins, #ce-doc .nego-ins')){ ap.click(); return null; }
@@ -182,7 +192,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   const nw = await until(page, () => {
     const pg = document.getElementById('clause-editor'); if (!pg) return null;
     const lane = pg.querySelector('#ce-lane');
-    if (!lane || !/No injunctive-relief clause/.test(lane.textContent) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(lane.textContent)) return null;
+    if (!lane || !/No injunctive-relief clause/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
     const sec = pg.querySelector('#ce-doc [data-clause="' + window.CE_NEW_ID + '"]');
     return { held: !!sec, head: sec ? ((sec.querySelector('.rl-clause-h, h4') || {}).textContent || '') : '',
       where: [...lane.querySelectorAll('[data-ce-rk-where] option')].map(o => o.textContent) };
@@ -251,7 +261,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   const noai = await until(page, () => {
     const pg = document.getElementById('clause-editor'); if (!pg) return null;
     const lane = pg.querySelector('#ce-lane');
-    return lane && /not connected/.test(lane.textContent) ? { box: !!pg.querySelector('#ce-doc [data-clause]'), says: lane.textContent } : null;
+    return lane && /not connected/.test(window.__laneText(lane)) ? { box: !!pg.querySelector('#ce-doc [data-clause]'), says: window.__laneText(lane) } : null;
   });
   check(!!noai && noai.box && /write the wording in the box yourself/.test(noai.says), '6a with no key the window says so, and the reader writes in the box');
   await page.screenshot({ path: path.join(OUT, '07-no-copilot.png') });

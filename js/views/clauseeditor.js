@@ -733,11 +733,21 @@ function clauseEditorCss(){
     border-bottom-color:var(--accent-solid)}
   .ce-tabs .n{font-size:var(--t-micro); font-weight:var(--w-title); margin-left:5px; padding:1px 5px;
     background:var(--st-amber-bg); color:var(--st-amber-fg)}
-  .ce-disc{flex:none; display:flex; align-items:center; gap:var(--s-2); padding:var(--s-2) 14px;
-    background:var(--color-surface); border-bottom:1px solid var(--color-divider);
-    font-size:var(--t-label); color:var(--color-neutral-600)}
-  .ce-disc b{color:var(--accent-ink); font-weight:var(--w-title); flex:none}
-  .ce-disc span{min-width:0}
+  .ce-pick{flex:none; position:relative; display:flex; align-items:center; padding:3px 14px 2px;
+    background:var(--color-surface); border-bottom:1px solid var(--color-divider)}
+  .ce-pick[hidden]{display:none}
+  .ce-pick select{flex:1; min-width:0; height:var(--ctl-h); padding:0 26px 0 26px; font:inherit; font-size:var(--t-meta);
+    font-weight:var(--w-strong); color:var(--color-text); background-color:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:var(--radius); text-overflow:ellipsis; cursor:pointer}
+  .ce-pick select:focus-visible{box-shadow:var(--focus); outline:none}
+  .ce-pick-dot{position:absolute; left:24px; top:50%; width:8px; height:8px; margin-top:-4px; border-radius:50%; pointer-events:none}
+  .ce-pick-dot.is-their, .ce-pick-dot.is-med{background:var(--st-amber-fg)}
+  .ce-pick-dot.is-us{background:var(--accent-solid)}
+  .ce-pick-dot.is-done{background:var(--st-green-fg)}
+  .ce-pick-dot.is-high{background:var(--st-ruby-fg)}
+  .ce-pick-dot.is-low, .ce-pick-dot.is-none{background:var(--color-neutral-400)}
+  .ce-aifoot{margin:6px 0 0; font-size:var(--t-label); color:var(--color-neutral-600)}
+  .ce-aifoot b{color:var(--accent-ink); font-weight:var(--w-title)}
 
   /* the chat is WHITE, like HaTi's own Copilot panel — a grey ground made the
      rail read as a sunken well rather than as the panel it is */
@@ -761,6 +771,9 @@ function clauseEditorCss(){
     box-shadow:inset 2px 0 0 color-mix(in srgb, var(--accent-solid) 45%, transparent)}
   .ce-ai p.t{margin:0 0 11px; font-size:var(--t-meta); line-height:1.6}
   .ce-ai p.t:last-child{margin-bottom:0}
+  .ce-explain{margin:0 0 11px}
+  .ce-explain p.t{margin:0 0 6px}
+  .ce-explain p.t b{font-weight:var(--w-strong)}
   .ce-work{display:flex; align-items:center; gap:var(--s-2); font-size:var(--t-label); font-weight:var(--w-strong);
     color:var(--accent-ink); margin:0 0 var(--s-3)}
   .ce-work i{width:12px; height:12px; flex:none; border:2px solid currentColor;
@@ -943,16 +956,31 @@ function clauseEditorCss(){
      with what is typed, up to CE_ASK_LINES lines, then scrolls inside. */
   .ce-ask{flex:none; display:flex; gap:var(--s-2); padding:10px 14px;
     border-top:1px solid var(--color-divider); align-items:flex-end}
-  .ce-ask textarea{flex:1; min-width:0; height:var(--ctl-h); min-height:var(--ctl-h); max-height:none; overflow-y:hidden;
-    padding:4px 10px; font:inherit; font-size:var(--t-meta); line-height:1.5; resize:none;
-    white-space:pre-wrap; overflow-wrap:break-word; background:var(--color-surface);
-    border:1px solid var(--color-divider); color:var(--color-text); outline:none}
-  .ce-ask textarea:focus{box-shadow:var(--focus)}
+  .ce-askbox{flex:1; min-width:0; display:flex; align-items:flex-start; flex-wrap:wrap; gap:0 4px;
+    background:var(--color-surface); border:1px solid var(--color-divider)}
+  .ce-askbox:focus-within{box-shadow:var(--focus)}
+  .ce-ask textarea{flex:1 1 120px; min-width:0; height:calc(var(--ctl-h) - 2px); min-height:calc(var(--ctl-h) - 2px); max-height:none; overflow-y:hidden;
+    padding:3px 10px; font:inherit; font-size:var(--t-meta); line-height:1.5; resize:none;
+    white-space:pre-wrap; overflow-wrap:break-word; background:transparent;
+    border:0; color:var(--color-text); outline:none}
+  .ce-tag:empty{display:none}
+  .ce-tag{display:inline-flex; align-items:center; gap:2px; max-width:100%; margin:3px 0 0 4px; padding:0 2px 0 6px; height:20px;
+    font-size:var(--t-label); color:var(--accent-ink); background:var(--color-accent-50); border-radius:var(--radius); white-space:nowrap}
+  .ce-tag.is-asking{color:#6d28d9; background:#f3effe}
+  html.dark .ce-tag.is-asking{color:#c4b5fd; background:#2a2140}
+  .ce-tag .w{overflow:hidden; text-overflow:ellipsis; min-width:0}
+
   .ce-ask button{flex:none; display:inline-grid; place-items:center; width:var(--ctl-h); height:var(--ctl-h);
     padding:0; background:var(--color-accent-700); border:1px solid var(--color-accent-700);
     color:#fff}
   .ce-ask button svg{width:var(--btn-ic); height:var(--btn-ic); display:block}
   .ce-ask button:hover{background:var(--accent-ink); border-color:var(--accent-ink)}
+  /* the tag's own buttons, scoped past the send button's rules above */
+  .ce-ask .ce-tag button{flex:none; display:inline-grid; place-items:center; width:16px; height:16px; padding:0; border:0;
+    background:none; color:inherit; font:inherit; font-size:var(--t-label); cursor:pointer; border-radius:var(--radius)}
+  .ce-ask .ce-tag button:hover{background:rgba(0,0,0,.08); border:0}
+  .ce-ask .ce-tag button svg{width:12px; height:12px}
+  .ce-ask .ce-tag .cut{width:auto; padding:0 4px; color:var(--st-ruby-fg)}
 
   /* ---- the reason is asked as a STEP, in HaTi's own words ---- */
   /* ---- THE REASON PANEL'S RULES, DRESSING NOTHING ----
@@ -1823,7 +1851,11 @@ function clauseEditorHtml(){
             <button type="button" data-ce-tab="ladder">${_cet('ce_tab_ladder')}</button>
           </span>
         </div>
-        ${ceNoAi() ? '' : `<div class="ce-disc"><b>&#10022;</b><span>${_cet('ce_disclaimer')}</span></div>`}
+        ${''/* THE DROPDOWN TAKES THE DISCLAIMER'S PLACE (Young, 6 Oct 2026, "one
+               Copilot editor"): the clauses with redlines on Suggestions and
+               the Ladder, the open risks on Risks; .ce-disc is STALE and the
+               reminder rides under every Copilot answer (ce_ai_check). */}
+        ${ceNoAi() ? '' : `<div class="ce-pick" id="ce-pick"></div>`}
         <div class="ce-lane" id="ce-lane"></div>
         ${''/* FILL THE PANEL: one Suggested wording card read across the
                whole rail (ceRenderFull). Empty and hidden at rest. */}
@@ -1832,11 +1864,12 @@ function clauseEditorHtml(){
                The passage the reader highlighted on the paper. Painted by
                ceRenderScope and EMPTY when nothing is attached, so this slot
                costs the ordinary rail nothing. */}
-        ${ceNoAi() ? '' : `<div id="ce-scope"></div>
-        <div class="ce-chips" id="ce-chips"></div>
+        ${ceNoAi() ? '' : `<div class="ce-chips" id="ce-chips"></div>
         <div class="ce-ask" id="ce-askrow">
+          <div class="ce-askbox">${''/* THE SELECTED CARD IS GONE (Young, 6 Oct 2026): what it said
+                 rides here, at no height, as a tag in the box (ceRenderScope) */}<span class="ce-tag" id="ce-scope"></span>
           <textarea id="ce-ask" rows="1" aria-label="${_ceea(_cet('ce_ask_label'))}"
-            placeholder="${_ceea(_cet('ce_ask_ph'))}"></textarea>
+            placeholder="${_ceea(_cet('ce_ask_ph'))}"></textarea></div>
           <button type="button" data-ce-act="ask" aria-label="${_ceea(_cet('ce_send'))}"
             title="${_ceea(_cet('ce_send'))}">${CE_SEND_ICON}</button>
         </div>`}
@@ -2379,7 +2412,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
      unless a caller NAMES the Playbook tab. ceClauseFindings stays as a
      reading with no caller here; the Playbook tab's own count still shows
      the findings without moving anybody onto it. */
-  _ceTab = ceNoAi() ? 'ladder' : (opts.tab === 'risks' && ceRisksOn()) ? 'risks' : 'chat';
+  _ceTab = ceNoAi() ? 'ladder' : (opts.tab === 'risks' && ceRisksOn()) ? 'risks' : opts.tab === 'ladder' ? 'ladder' : 'chat';
 
   ceEnsureStyle();
   /* ---- THE PAPER'S OWN SHEET, ASKED FOR RATHER THAN ASSUMED ----
@@ -2443,7 +2476,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
     const ch = (opts && opts.changeId && window.negoChangeById) ? negoChangeById(_ceC, opts.changeId) : null;
     const prep = (ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && window.roundPrepOf) ? roundPrepOf(_ceC, ch) : null;
     if (prep && prep.verdict === 'counter' && prep.wording)
-      _ceThread.push({ who: 'ai', text: String(prep.why || ''), read: [],
+      _ceThread.push({ who: 'ai', ai: true, text: String(prep.why || ''), read: [],
         cards: [{ name: _cet('ce_prep_card'), chip: _cet('ce_chip_copilot'), chipTone: 'wait', line: '',
           rests: prep.standard ? _cet('ag_prep_rests', { what: prep.standard }) : '', text: prep.wording, passage: null, prepared: true }] });
   }catch(_){}
@@ -4355,12 +4388,11 @@ function ceLadderCardHtml(){
     replyHtml = `<div class="k">${_cee(_cet('ce_lc_reply'))}</div><div>${_cee(_cet('ce_lc_accept_line'))}</div>`;
     acts = `<div class="acts"><button type="button" class="ui-btn ui-btn-primary" data-ce-act="ladder-accept" data-id="${_ceea(theirs.id)}">${_cee(_cet('ce_lc_accept', { n: theirs.n }))}</button></div>`;
   }
-  return `<div class="ce-card ce-lcard">
+  return `<div class="ce-card ce-lcard" title="${_ceea(_cet('ce_lc_cost'))}">
     <div class="k">${_cee(_cet('ce_lc_moved'))}</div><div>${_cee(moved)}</div>
     <div class="k">${_cee(_cet('ce_lc_ladder'))}</div><div>${_cee(ladder)}</div>
     <div class="k">${_cee(_cet('ce_lc_settled'))}</div><div>${_cee(prec)}</div>
     ${replyHtml}${acts}
-    <div class="cost">${_cee(_cet('ce_lc_cost'))}</div>
   </div>`;
 }
 /* The Ladder tab: the clause panel's own ladder and its tail, drawn in the
@@ -4374,8 +4406,94 @@ function ceLadderLaneHtml(){
   const tail = (typeof window.rlLadderTailHtml === 'function') ? rlLadderTailHtml(_ceC, cl, ceOnTable(), ceSide(), { noFigure: true, noNotes: true }) : '';
   return `<div class="redline-page rl-cp-src ce-ladder-lane">${sec || `<p class="ce-scan-none">${_cee(_cet('ce_lc_noladder'))}</p>`}${tail}</div>`;
 }
+/* ---- THE PANEL'S DROPDOWN (Young, 6 Oct 2026, "one Copilot editor for
+   redlines and risks": "A plain dropdown at the top of the panel … No ‹ ›
+   arrows and no n of N count") ----
+   ON SUGGESTIONS AND THE LADDER: the contract's redlined clauses by heading,
+   grouped Their asks · Our asks · Settled (a clause on this page with no
+   redline sits first, under This clause), each with a coloured dot and a
+   small state word. ON RISKS: the open risks by their short title
+   (riskTitleOf), worst first, grouped by severity. It starts on the clause or
+   risk being edited; a pick moves the paper and the editor exactly as the
+   pencil or the risk's Edit does (ceGoClause, riskWalkTo), asking first over
+   an unsaved draft (ceLeaveGuard). It is a <select> wearing HaTi's own list
+   (selectMenuSweep, with its groups drawn: data-sm-groups), so the keyboard
+   is the browser's and Escape closes it. It reads RAW and writes nothing. */
+const CE_PICK_ORDER = ['none', 'theirs', 'ours', 'settled', 'high', 'med', 'low'];
+const CE_PICK_TONE = { their: 'their', unsent: 'us', sent: 'us', settled: 'done', none: 'none', new: 'none' };
+const CE_PICK_G = { none: 'ce_pick_g_none', theirs: 'ce_pick_g_theirs', ours: 'ce_pick_g_ours', settled: 'ce_pick_g_settled' };
+const CE_PICK_ST = { their: 'ce_pick_st_their', unsent: 'ce_pick_st_unsent', sent: 'ce_pick_st_sent', settled: 'ce_pick_st_settled', none: 'ce_pick_st_none', new: 'ce_pick_st_new' };
+function cePickClauseRows(){
+  const c = _ceC; if (!c) return [];
+  const side = ceSide() === 'counterparty' ? 'counterparty' : 'owner';
+  let unsent = new Set();
+  try{ unsent = new Set(((window.negoUnsentAsks ? negoUnsentAsks(c, side) : []) || []).map(x => x.id)); }catch(_){}
+  const by = new Map();
+  (Array.isArray(c.changes) ? c.changes : []).forEach(ch => {
+    if (!ch || !ch.clauseId || ch.status === 'superseded') return;
+    const k = String(ch.clauseId); if (!by.has(k)) by.set(k, []); by.get(k).push(ch);
+  });
+  let order = [];
+  try{ order = (window.negoClauseList ? negoClauseList(c) : []).map(cl => String(cl.clauseId)); }catch(_){ order = []; }
+  const at = id => { const i = order.indexOf(id); return i < 0 ? 1e9 : i; };
+  const rows = [...by.keys()].sort((a, b) => at(a) - at(b)).map(id => {
+    const list = by.get(id);
+    const live = list.filter(ch => !ch.withdrawn && (ch.status === 'pending' || ch.status === 'countered'));
+    const theirs = live.some(ch => ch.authorSide !== side);
+    const ours = live.filter(ch => ch.authorSide === side);
+    const st = theirs ? 'their' : ours.length ? (ours.some(ch => unsent.has(ch.id)) ? 'unsent' : 'sent') : 'settled';
+    let cl = null; try{ cl = window.negoClauseNowById ? negoClauseNowById(c, id) : null; }catch(_){ cl = null; }
+    const raw = String(list[0].headingText || list[0].clauseLabel || id);
+    const label = cl ? ceClauseLabel(cl) : (window.negoClauseName ? negoClauseName(raw) : raw);
+    return { v: id, g: theirs ? 'theirs' : ours.length ? 'ours' : 'settled', st, label: label || id };
+  });
+  const me = String(_ceClauseId || '');
+  if (me && !rows.some(r => r.v === me))
+    rows.unshift({ v: me, g: 'none', st: ceIsNew() ? 'new' : 'none', label: ceIsNew() ? _cet('ce_pick_new') : (ceClauseLabel(ceClause()) || _cet('ce_this_clause')) });
+  return rows;
+}
+function cePickRiskRows(){
+  const c = _ceC; if (!c || !window.riskOpenOf) return [];
+  const info = window.riskWalkInfo ? riskWalkInfo(c) : null;
+  let list = riskOpenOf(c);
+  if (info && info.it && !list.some(x => x.key === info.it.key)) list = [info.it].concat(list);
+  return list.map(it => ({ v: it.key, g: it.sev, st: '', label: window.riskTitleOf ? riskTitleOf(it) : it.title, dot: it.sev }));
+}
+function ceRenderPick(){
+  if (!clauseEditorOpen()) return;
+  const host = _ceQ('#ce-pick'); if (!host) return;
+  const risks = _ceTab === 'risks';
+  const rows = risks ? cePickRiskRows() : cePickClauseRows();
+  if (!rows.length){ host.innerHTML = ''; host.hidden = true; return; }
+  host.hidden = false;
+  const info = risks && window.riskWalkInfo ? riskWalkInfo(_ceC) : null;
+  const cur = risks ? (info && !info.done ? info.key : '') : String(_ceClauseId || '');
+  const tone = r => risks ? r.dot : (CE_PICK_TONE[r.st] || 'none');
+  const groups = [];
+  rows.forEach(r => { let g = groups.find(x => x.g === r.g); if (!g){ g = { g: r.g, rows: [] }; groups.push(g); } g.rows.push(r); });
+  groups.sort((a, b) => CE_PICK_ORDER.indexOf(a.g) - CE_PICK_ORDER.indexOf(b.g));
+  const gl = g => risks ? (window.riskSevWord ? riskSevWord(g) : g) : _cet(CE_PICK_G[g] || 'ce_pick_g_none');
+  const on = rows.find(r => r.v === cur) || null;
+  host.innerHTML = `<span class="ce-pick-dot is-${on ? tone(on) : 'none'}" aria-hidden="true"></span><select id="ce-pick-sel" data-sm-groups
+    aria-label="${_ceea(_cet(risks ? 'ce_pick_risk_label' : 'ce_pick_clause_label'))}">${on ? '' : `<option value="" selected disabled>${_cee(_cet('ce_pick_choose'))}</option>`}${
+    groups.map(g => `<optgroup label="${_ceea(gl(g.g) + ' · ' + g.rows.length)}">${g.rows.map(r =>
+      `<option value="${_ceea(r.v)}" data-dot="${_ceea(tone(r))}"${r.st ? ` data-st="${_ceea(_cet(CE_PICK_ST[r.st]))}"` : ''}${r === on ? ' selected' : ''}>${_cee(r.label)}</option>`).join('')}</optgroup>`).join('')}</select>`;
+}
+function cePickGo(v){
+  if (!v || !_ceC) return;
+  if (_ceTab === 'risks'){
+    const info = window.riskWalkInfo ? riskWalkInfo(_ceC) : null;
+    if (info && !info.done && info.key === v) return;
+    const c = _ceC;
+    ceLeaveGuard(() => { if (window.riskWalkTo) riskWalkTo(c, v); });
+    return;
+  }
+  if (v === String(_ceClauseId)) return;
+  ceGoClause(v, { tab: _ceTab === 'ladder' ? 'ladder' : 'chat', risk: undefined, newClause: undefined, changeId: undefined });
+}
 function ceRenderTabs(){
   if (!clauseEditorOpen()) return;
+  ceRenderPick();
   const page = document.getElementById('clause-editor'); if (!page) return;
   page.querySelectorAll('[data-ce-tab]').forEach(b =>
     b.classList.toggle('is-on', b.getAttribute('data-ce-tab') === _ceTab));
@@ -4439,7 +4557,7 @@ function ceRiskAnswerHtml(){
     _ceRiskCard = { key: a.key, name: _cet('ce_suggestion'), chip: _cet('ce_chip_copilot'), chipTone: 'wait',
       line: '', rests: [cePlaybookLine(), cePrecedentLine()].filter(Boolean)[0] || '', text: a.words, passage: null };
   }
-  return ceTurnHtml({ who: 'ai', text: a.advice, read: ceReadList(), cards: [_ceRiskCard] }, 'rk');
+  return ceTurnHtml({ who: 'ai', ai: true, text: a.advice, explain: a.explain || null, read: ceReadList(), cards: [_ceRiskCard] }, 'rk');
 }
 /* ---- FILL THE PANEL (Young picked it 5 Oct 2026, over "Grow in place" and
    "Read it on the paper") ----
@@ -4507,12 +4625,23 @@ function ceTurnHtml(t, i){
                on the whole contract, never on words across two clauses. */}
         ${(ceUnderDeletion() || !t.passage || t.passage.loose) ? '' : `<button type="button" class="p" data-ce-edit-with="${i}">${_cet('ce_edit_with_this')}</button>`}
       </div>
-    </div></div>`;
+    </div>${ceAiFootHtml(t)}</div>`;
   return `<div class="ce-ai">${
-    t.text ? `<p class="t">${_cee(t.text)}</p>` : ''}${
+    t.explain ? ceExplainHtml(t.explain) : t.text ? `<p class="t">${_cee(t.text)}</p>` : ''}${
     (t.read && t.read.length) ? `<ul class="ce-read">${t.read.map(r =>
       `<li><b>${_cee(r[0])}</b><span>${_cee(r[1])}</span></li>`).join('')}</ul>` : ''}${
-    (t.cards || []).map((card, j) => ceCardHtml(card, i, j)).join('')}</div>`;
+    (t.cards || []).map((card, j) => ceCardHtml(card, i, j)).join('')}${ceAiFootHtml(t)}</div>`;
+}
+/* "✦ Copilot · check before sending" under every answer Copilot wrote, and
+   never under one HaTi worked out (the ladder card, a standard's wording) —
+   the reminder the panel's top line used to carry (Young, 6 Oct 2026) */
+const ceAiFootHtml = t => t && t.ai ? `<p class="ce-aifoot"><b>&#10022;</b> ${_cee(_cet('ce_ai_check'))}</p>` : '';
+/* ---- WHY CHANGE IT · WHAT THE NEW WORDING DOES (Young, 6 Oct 2026) ----
+   Copilot's explanation over its wording is two labelled parts in everyday
+   words (aiExplainSet, one place for both doors); the wording under it stays
+   legal drafting. */
+function ceExplainHtml(x){
+  return `<div class="ce-explain"><p class="t"><b>${_cee(_cet('ce_why_change'))}</b> ${_cee(x.why)}</p><p class="t"><b>${_cee(_cet('ce_what_it_does'))}</b> ${_cee(x.does)}</p></div>`;
 }
 /* ---- THE GREETING CARRIES WHAT NOTHING ELSE ON THE PAGE SAYS ----
    (owner-approved 13 Sep 2026, group 1 of the build plan.)
@@ -4959,7 +5088,7 @@ async function ceAsk(question, opts = {}){
     /* NO READING LIST UNDER A QUESTION (Young, 11 Sep 2026, late: "not
        necessary when I am simply asking a question. When I want to edit then
        include it"): the three rows rest wording that is about to move. */
-    _ceThread.push({ who: 'ai', text: advice || wording, read: [], asking: true, passage: scope, whole,
+    _ceThread.push({ who: 'ai', ai: true, text: advice || wording, read: [], asking: true, passage: scope, whole,
       /* Wording the model volunteered anyway is HELD, not offered: Edit with
          this turns it into a card with Apply; until then it is nowhere. Never
          on the whole contract or on loose words, which nothing edits. */
@@ -4994,8 +5123,8 @@ async function ceAsk(question, opts = {}){
       if (window.aiTraceSave) aiTraceSave(_ceC);
     }catch(_){ _trace = null; }
   }
-  _ceThread.push({ who: 'ai',
-    text: String(res.advice || '').trim(),
+  _ceThread.push({ who: 'ai', ai: true,
+    text: String(res.advice || '').trim(), explain: wording ? (res.explain || null) : null,
     read,
     cards: wording ? [{ name: _cet(scope ? 'ce_suggestion_passage' : 'ce_suggestion'),
       chip: _cet('ce_chip_copilot'), chipTone: 'wait',
@@ -5518,66 +5647,45 @@ function ceRenderScope(){
   const ask = _ceQ('#ce-ask');
   const sel = _ceSel;
   const asking = !!(sel && sel.mode === 'ask');
-  /* ---- ONE CARD, FOUR THINGS IT CAN SAY (Young ruled it 23 Sep 2026, fix 5)
-     ---- The pencil used to open a greeting and a highlight a card, so one
-     Copilot wore two looks and a reader could not tell what it was working
-     on. The card now ALWAYS says: the whole clause (the pencil), your words
-     (Edit with Copilot), a question about words (Ask Copilot), or the whole
-     contract (after the ✕). */
+  /* ---- WHAT THE ASK IS ABOUT, AT NO HEIGHT (Young, 6 Oct 2026, "one
+     Copilot editor": "The Selected card at the bottom of the panel is
+     removed") ----
+   The card said four things: the whole clause (the pencil), your words (Edit
+   with Copilot), a question about words (Ask Copilot), or the whole
+   contract. It is now a small tag INSIDE the ask box: the first few words of
+   a highlight, with × back to the whole clause, and "Suggest deleting" (the
+   one press that strikes words out) beside them; "Whole contract" with ×
+   back to the clause; and at rest "This clause", whose × lets go and asks
+   about the whole contract — the card's own ✕ did that, and the act would
+   otherwise have no door. What Copilot is asked about is unchanged.
+   This REVERSES the 5 Oct "Selected card follows the draft" rule (there is no
+   resting card to follow it). */
   const state = sel ? (asking ? 'ask' : 'edit') : (_ceWhole ? 'contract' : 'clause');
   if (ask) ask.placeholder = _ceTab === 'risks' ? _cet('rk_ce_ph') : _cet({ ask: 'ce_ask_ph_question', edit: 'ce_ask_ph_passage',
     contract: 'ce_ask_ph_contract', clause: 'ce_ask_ph_clause' }[state]);
   if (!box) return;
-  const where = (sel && sel.loose) ? _cet('ce_scope_words') : (ceClauseLabel(ceClause()) || _cet('ce_this_clause'));
-  const off = `<button type="button" class="x" data-ce-act="scope-off"
-        title="${_ceea(_cet('ce_scope_to_contract'))}" aria-label="${_ceea(_cet('ce_scope_to_contract'))}">${window.icon ? icon('x','w-3.5 h-3.5') : '&#10005;'}</button>`;
-  if (state === 'contract'){
-    const name = String((_ceC && _ceC.name) || '').trim();
-    box.innerHTML = `<div class="ce-scope is-whole">
-      <div class="eb"><b>&#128214; ${_cee(_cet('ce_scope_contract', { name: name || _cet('ce_this_contract') }))}</b></div>
-      <p class="sm">${_cee(_cet('ce_scope_contract_line'))}</p>
-    </div>`;
-    return;
-  }
+  box.className = 'ce-tag' + (asking ? ' is-asking' : '');
   if (state === 'clause'){
-    /* The clause's WORDS, never its markup: the draft is stored as a rich
-       body, and a card quoting "<p>" is a card quoting nothing a reader wrote.
-       ---- THE CARD FOLLOWS THE DRAFT (Young picked "Follows", 5 Oct 2026) ----
-       It quoted the draft as it stood at its last paint, and nothing repainted
-       it on Apply, Undo, Redo or Discard — so beside a paper showing the new
-       wording it went on quoting the old (the owner's screenshot: "4.2 Monthly
-       Invoicing. Terms are net thirty (30) days." under a paper reading "within
-       two (2) days"). It now reads the draft as the page shows it (ceDraftNow:
-       the box as typed while typing) and is painted wherever the draft moves —
-       ceApply, ceUndo, ceRedo, ceDiscard, ceForgetUnfiled, and a beat behind
-       the typing with the marks (ceMarksSchedule). The card is in the rail,
-       never under the caret, so nothing the reader is typing in is rebuilt. */
-    const raw = String(ceDraftNow() || _ceBase || '');
-    const words = String(window.richToText ? richToText(raw) : raw.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim();
-    box.innerHTML = `<div class="ce-scope is-clause">
-      <div class="eb"><b>&#9998; ${_cee(_cet('ce_scope_in', { where }))}</b><span class="g"></span>${off}</div>
-      ${words ? `<q title="${_ceea(words)}">${_cee(words)}</q>` : ''}
-      <p class="sm">${_cee(_cet('ce_scope_whole_clause'))}</p>
-    </div>`;
+    box.title = ceClauseLabel(ceClause()) || _cet('ce_this_clause');
+    box.innerHTML = `<span class="w">${_cee(_cet('ce_tag_clause'))}</span><button type="button" data-ce-act="scope-contract"
+      title="${_ceea(_cet('ce_scope_to_contract'))}" aria-label="${_ceea(_cet('ce_scope_to_contract'))}">${CE_TAG_X()}</button>`;
     return;
   }
-  box.innerHTML = `<div class="ce-scope${asking ? ' is-asking' : ''}">
-    <div class="eb"><b>${asking ? '&#10024;' : '&#9998;'} ${_cee(_cet(asking ? 'ce_scope_asking' : 'ce_scope_in', { where }))}</b><span class="g"></span>
-      ${off}</div>
-    <q title="${_ceea(sel.text)}">${_cee(sel.text)}</q>
-    ${asking ? `<p class="sm">${_cee(_cet('ce_scope_asking_line'))}</p>` : ''}
-    ${''/* ---- THE ONE VERB THE STRIP CARRIED THAT NOTHING ELSE DOES ----
-           "Suggest deleting these words" was the strip's own &times; and is the
-           only one-press way in the product to strike a sentence out. It is on
-           the passage's own card rather than in the chips row, which is a
-           DEPARTURE FROM THE APPROVED RENDER and is named here: that row holds
-           questions that spend money on Copilot, and an act that reaches the
-           record is a different kind of thing. */}
-    ${asking ? '' : `<button type="button" class="cut" data-ce-act="scope-cut"
-      aria-label="${_ceea(_cet('ce_inline_cut'))}"
-      title="${_ceea(_cet('ce_inline_cut_title'))}">${_cee(_cet('ce_scope_cut'))}</button>`}
-  </div>`;
+  if (state === 'contract'){
+    box.title = _cet('ce_scope_contract', { name: String((_ceC && _ceC.name) || '').trim() || _cet('ce_this_contract') });
+    box.innerHTML = `<span class="w">${_cee(_cet('ce_tag_contract'))}</span><button type="button" data-ce-act="scope-clause"
+      title="${_ceea(_cet('ce_tag_back_clause'))}" aria-label="${_ceea(_cet('ce_tag_back_clause'))}">${CE_TAG_X()}</button>`;
+    return;
+  }
+  const words = String(sel.text || '').replace(/\s+/g, ' ').trim().split(' ');
+  const short = words.slice(0, CE_TAG_WORDS).join(' ') + (words.length > CE_TAG_WORDS ? '…' : '');
+  box.title = sel.text;
+  box.innerHTML = `<span class="w">“${_cee(short)}”</span>${asking ? '' : `<button type="button" class="cut" data-ce-act="scope-cut"
+      aria-label="${_ceea(_cet('ce_inline_cut'))}" title="${_ceea(_cet('ce_inline_cut_title'))}">${_cee(_cet('ce_scope_cut'))}</button>`}<button type="button" data-ce-act="scope-off"
+      title="${_ceea(_cet('ce_tag_back_clause'))}" aria-label="${_ceea(_cet('ce_tag_back_clause'))}">${CE_TAG_X()}</button>`;
 }
+const CE_TAG_WORDS = 3;
+const CE_TAG_X = () => (window.icon ? icon('x', 'w-3 h-3') : '');
 /* ---- THE BAR ACTS ON THE SENTENCE YOU HIGHLIGHTED, WHEREVER THE CARET IS ----
    (owner-approved render, 30 Aug 2026.) This is the price of the strip taking
    the caret, and the whole of it: a document has one selection, so with the
@@ -6650,13 +6758,23 @@ function ceWirePage(page){
          and the one verb that strikes it out. */
       /* THE ✕ LETS GO AND TURNS TO THE WHOLE CONTRACT (fix 5), on every card
          that carries one — the clause, the words or the question. */
-      case 'scope-off': ceDetachPassage(); ceSetWhole(true); break;
+      case 'scope-off': ceDetachPassage(); break;
+      case 'scope-clause': ceSetWhole(false); break;
+      case 'scope-contract': ceSetWhole(true); break;
       case 'scope-cut': ceCutPassage(); break;
       case 'full-close': ceFullClose(); break;
       default: break;
     }
   });
 
+  page.addEventListener('change', ev => {
+    const sel = ev.target && ev.target.closest ? ev.target.closest('#ce-pick-sel') : null;
+    if (!sel) return;
+    cePickGo(sel.value);
+    /* the dropdown keeps showing where the page IS until the move happens
+       (a refused leave changes nothing) */
+    ceRenderPick();
+  });
   const which = page.querySelector('#ce-crumb');
   if (which) which.addEventListener('change', ev => {
     const sel = ev.target && ev.target.closest ? ev.target.closest('#ce-sel') : null;
@@ -6893,7 +7011,7 @@ function ceEditWith(t){
         if (window.aiTraceSave) aiTraceSave(_ceC);
       }
     }catch(_){ trace = null; }
-    _ceThread.push({ who: 'ai', text: '', cards: [{ name: _cet('ce_suggestion_passage'),
+    _ceThread.push({ who: 'ai', ai: true, text: '', cards: [{ name: _cet('ce_suggestion_passage'),
       chip: _cet('ce_chip_copilot'), chipTone: 'wait', line: '', rests: '',
       text: t.held, passage: _ceSel, mode: 'edit', trace }] });
   }

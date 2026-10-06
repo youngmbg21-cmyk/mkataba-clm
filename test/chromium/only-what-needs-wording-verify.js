@@ -85,6 +85,16 @@ const BRIEF = { at: new Date().toISOString(), by: 'Stage', truncated: false, dat
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const page = await (await browser.newContext({ viewport: { width: 1500, height: 1000 } })).newPage();
+  /* RE-POINTED 6 Oct 2026 ("one Copilot editor"): the Risks tab no longer
+     prints "Risk k of n" (the panel's dropdown says which risk this is) and
+     its heading wears the short title with the whole one on its hover. The
+     lane's reading for these checks is its text, the hover titles in it and
+     the dropdown's position, said as before. */
+  await page.addInitScript(() => {
+    window.__riskStep = () => { const s = document.getElementById('ce-pick-sel'); if (!s || !document.querySelector('[data-ce-tab="risks"].is-on')) return '';
+      const o = [...s.options].filter(x => !x.disabled); const i = o.findIndex(x => x.selected); return i < 0 ? '' : 'Risk ' + (i + 1) + ' of ' + o.length; };
+    window.__laneText = el => !el ? '' : el.textContent + ' ' + [...el.querySelectorAll('[title]')].map(x => x.getAttribute('title')).join(' ') + ' ' + window.__riskStep();
+  });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   try {
@@ -102,7 +112,8 @@ const BRIEF = { at: new Date().toISOString(), by: 'Stage', truncated: false, dat
       if (window.renderRedline) renderRedline();
       const p = document.getElementById('rl-risks'); if (!p) return null;
       const rows = [...p.querySelectorAll('.rk-row[data-rk-key]:not(.is-covered):not(.is-gone)')];
-      return rows.length ? { head: (p.querySelector('.rk-h b') || {}).textContent || '', titles: rows.map(r => (r.querySelector('.rk-t') || {}).textContent || '') } : null;
+      /* RE-POINTED 6 Oct 2026: a card wears the short title, its whole name on the hover — both are read */
+      return rows.length ? { head: (p.querySelector('.rk-h b') || {}).textContent || '', titles: rows.map(r => { const t = r.querySelector('.rk-t') || {}; return (t.textContent || '') + ' ' + ((t.getAttribute && t.getAttribute('title')) || ''); }) } : null;
     });
     check(!!list, '1- the Redlines card has its "Risks to look at"');
     const T = list ? list.titles : [];
