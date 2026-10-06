@@ -88,7 +88,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
   const shot = n => page.screenshot({ path: path.join(OUT, n) });
   /* The card as the reader sees it, and the clause as the paper draws it. */
   const cardNow = () => page.evaluate(() => {
-    const q = document.querySelector('#clause-editor #ce-scope .ce-scope.is-clause q');
+    const q = document.querySelector('#clause-editor #ce-scope.ce-tag:has([data-ce-act="scope-contract"]) .w');
     const vis = !!q && q.getClientRects().length > 0;
     return { quote: q ? q.textContent.replace(/\s+/g, ' ').trim() : null, vis,
       box: (window.ceBoxWords ? ceBoxWords() : '').replace(/\s+/g, ' ').trim() };
@@ -143,21 +143,27 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
       const lane = document.querySelector('#clause-editor #ce-lane');
       return lane && !lane.querySelector('.rk-busy') && lane.querySelector('[data-ce-apply="rk:0"]') ? lane.textContent.replace(/\s+/g, ' ') : null;
     }, null, 10000);
-    check(!!r1 && /Risk 1 of 2/.test(r1), '1g the walk counts only the two paper risks', r1 && (r1.match(/Risk \d+ of \d+/) || [''])[0]);
+    /* RE-POINTED 6 Oct 2026 ("one Copilot editor"): the step count is gone;
+       the panel's dropdown lists the open risks the walk goes through */
+    const nRisks = await page.evaluate(() => document.querySelectorAll('#ce-pick-sel option:not([disabled])').length);
+    check(!!r1 && nRisks === 2, '1g the walk counts only the two paper risks', nRisks);
 
-    /* ============ 2. THE CARD FOLLOWS THE DRAFT ============ */
+    /* ============ 2. THE CARD FOLLOWS THE DRAFT ============
+       RE-POINTED 6 Oct 2026 (Young, "one Copilot editor": the Selected card is
+       removed): what it said rides as a tag in the ask box. At rest it says
+       "This clause" and quotes nothing, so nothing can go stale behind the
+       paper — through Apply, Undo and typing alike. */
     const c0 = await cardNow();
-    check(c0.vis && /three \(3\) months/.test(c0.quote || ''), '2a the "Selected" card quotes the clause as it stands', c0.quote);
+    check(c0.vis && c0.quote === 'This clause', '2a the tag in the ask box names the clause and quotes nothing', c0.quote);
     await shot('2a-card-at-rest.png');
     await press(page, '#ce-lane [data-ce-apply="rk:0"]');
     const c1 = await until(page, () => /twelve \(12\) months/.test(ceBoxWords()) ? true : null) && await cardNow();
     check(!!c1 && /twelve \(12\) months/.test(c1.box), '2- Apply moved Copilot\'s wording onto the paper');
-    check(!!c1 && /twelve \(12\) months/.test(c1.quote || '') && !/three \(3\) months/.test(c1.quote || ''),
-      '2b after Apply the card quotes the new wording, as the paper shows it', c1 && c1.quote);
+    check(!!c1 && c1.quote === 'This clause', '2b after Apply nothing on the tag can go stale', c1 && c1.quote);
     await shot('2b-after-apply.png');
     await press(page, '#ce-undo');
     const c2 = await until(page, () => /three \(3\) months/.test(ceBoxWords()) ? true : null) && await cardNow();
-    check(!!c2 && /three \(3\) months/.test(c2.quote || '') && !/twelve/.test(c2.quote || ''), '2c after Undo the card steps back with the paper', c2 && c2.quote);
+    check(!!c2 && c2.quote === 'This clause', '2c after Undo the same', c2 && c2.quote);
 
     /* typing: click into the wording, type at the end, never leave the box */
     const para = await page.evaluate(() => { const p = [...document.querySelectorAll('#ce-doc [data-clause] p')].find(x => /three \(3\) months/.test(x.textContent));
@@ -170,17 +176,17 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
         const r = document.createRange(); r.selectNodeContents(b); r.collapse(false);
         const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r); b.focus(); });
       await page.keyboard.type(' Fraud is never capped.');
-      const c3 = await until(page, () => { const q = document.querySelector('#ce-scope .ce-scope.is-clause q');
-        return q && /Fraud is never capped/.test(q.textContent) ? true : null; }, null, 4000);
+      const c3 = await until(page, () => { const q = document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-contract"]) .w');
+        return q && q.textContent.trim() === 'This clause' ? true : null; }, null, 4000);
       const still = await page.evaluate(() => ({ focus: document.activeElement && document.activeElement.id,
         caretIn: (() => { const s = window.getSelection(); return !!(s && s.anchorNode && document.getElementById('ce-clausebody').contains(s.anchorNode)); })() }));
-      check(!!c3, '2d a beat after typing, the card quotes the typed words');
+      check(!!c3, '2d while typing, the tag still names the clause and quotes nothing');
       check(still.focus === 'ce-clausebody' && still.caretIn, '2e and the box kept its focus and its caret', JSON.stringify(still));
       await shot('2d-while-typing.png');
       await page.keyboard.type(' Nor is wilful default.');
-      const c4 = await until(page, () => { const q = document.querySelector('#ce-scope .ce-scope.is-clause q');
-        return q && /Nor is wilful default/.test(q.textContent) ? true : null; }, null, 4000);
-      check(!!c4, '2f and keeps following as the reader goes on typing');
+      const c4 = await until(page, () => { const q = document.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-contract"]) .w');
+        return q && q.textContent.trim() === 'This clause' ? true : null; }, null, 4000);
+      check(!!c4, '2f and so it stays as the reader goes on typing');
     }
 
     /* back to the walk: Skip twice, never an advice row, never a refusal */
@@ -188,9 +194,10 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
     await press(page, '[data-ce-act="rk-skip"]');
     const r2 = await until(page, () => {
       const lane = document.querySelector('#clause-editor #ce-lane');
-      return lane && /Risk 2 of 2/.test(lane.textContent) && !lane.querySelector('.rk-busy') ? lane.textContent.replace(/\s+/g, ' ') : null;
+      const hd = lane && lane.querySelector('.rk-ce-head');
+      return hd && /data protection/i.test(hd.textContent) && !lane.querySelector('.rk-busy') ? lane.textContent.replace(/\s+/g, ' ') : null;
     }, null, 10000);
-    check(!!r2 && /data-protection|data protection/i.test(r2) && /Where it goes/i.test(r2), '1h Risk 2 of 2 is data protection, held as a new clause', r2 && r2.slice(0, 120));
+    check(!!r2 && /data-protection|data protection/i.test(r2) && /Where it goes/i.test(r2), '1h the second risk is data protection, held as a new clause', r2 && r2.slice(0, 120));
     check(!!r2 && !/could not draft|passage shown is empty/i.test(r2), '1i with no refusal from Copilot');
     await shot('1h-risk-2-of-2.png');
     await press(page, '[data-ce-act="rk-skip"]');

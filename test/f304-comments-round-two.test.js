@@ -300,7 +300,7 @@ describe('f304 (5) — a selection across two sub-paragraphs is one passage', ()
     const sel = p.win.ceSelection();
     p.win.ceAttachPassage(sel, 'edit');
     assert.equal(box.querySelectorAll('.ce-held').length, 2, 'one held piece per paragraph');
-    assert.ok(p.win.document.querySelector('#ce-scope .ce-scope .cut'), 'the cut is offered to an edit');
+    assert.ok(p.win.document.querySelector('#ce-scope .cut'), 'the cut is offered to an edit');
     assert.equal(p.win.ceReplacePassage(sel, 'liable for consequential loss.\nEach side keeps its own'), true);
     same(p.win.ceLines(), ['Neither party is liable for consequential loss.', 'Each side keeps its own insurance in force for the term.']);
     p.win.rlCloseClauseEditor();
@@ -313,8 +313,8 @@ describe('f304 (5) — a selection across two sub-paragraphs is one passage', ()
     p.win.ceAttachPassage(p.win.ceSelection(), 'ask');
     const chips = [...p.win.document.querySelectorAll('#ce-chips button')].map(b => b.textContent);
     same(chips, ['ce_q_words_mean', 'ce_q_words_standard', 'ce_q_words_risk'].map(k => p.win.i18t(k)));
-    assert.equal(p.win.document.querySelector('#ce-scope .ce-scope .cut'), null, 'no cut on a question');
-    assert.ok(p.win.document.querySelector('#ce-scope .ce-scope.is-asking'));
+    assert.equal(p.win.document.querySelector('#ce-scope .cut'), null, 'no cut on a question');
+    assert.ok(p.win.document.querySelector('#ce-scope.ce-tag.is-asking'));
     assert.equal(p.win.document.querySelector('#ce-ask').placeholder, p.win.i18t('ce_ask_ph_question'));
     assert.ok(!/data-ce-apply/.test(p.win.ceCardHtml({ text: 'x', mode: 'ask' }, 0, 0)), 'an ask card offers no Apply');
     /* RE-POINTED 23 Sep 2026 (fix 5): the whole contract is a question too,
@@ -333,11 +333,11 @@ describe('f304 (5) — a selection across two sub-paragraphs is one passage', ()
        live selection is gone; the HELD passage is the record. */
     const passage = p.win.ceHeldPassage();
     assert.ok(passage, 'the passage is held');
-    assert.ok(p.win.document.querySelector('#ce-scope .ce-scope.is-asking'), 'asking first');
+    assert.ok(p.win.document.querySelector('#ce-scope.ce-tag.is-asking'), 'asking first');
     const ok = p.win.ceEditWith({ who: 'ai', asking: true, passage, held: 'liable for consequential loss.\nEach side keeps its own' });
     assert.equal(ok, true);
-    assert.equal(p.win.document.querySelector('#ce-scope .ce-scope.is-asking'), null, 'the edit verb now');
-    assert.ok(p.win.document.querySelector('#ce-scope .ce-scope .cut'), 'the cut comes back with the edit verb');
+    assert.equal(p.win.document.querySelector('#ce-scope.ce-tag.is-asking'), null, 'the edit verb now');
+    assert.ok(p.win.document.querySelector('#ce-scope .cut'), 'the cut comes back with the edit verb');
     assert.ok(p.win.document.querySelector('#ce-lane [data-ce-apply]'), 'the held wording is a card with Apply');
     assert.match(CE, /data-ce-edit-with="\$\{i\}"/, 'the answer card carries the door');
     p.win.rlCloseClauseEditor();
@@ -469,7 +469,8 @@ describe('f304 (8) — round three: the filed pin quotes the change, equal halve
 
   test('under a question the answer carries no reading list; under an edit it still does', () => {
     assert.match(CE, /read: \[\], asking: true, passage: scope,/);
-    assert.match(CE, /_ceThread\.push\(\{ who: 'ai',\n    text: String\(res\.advice \|\| ''\)\.trim\(\),\n    read,/, 'the edit answer keeps its rows');
+    /* RE-POINTED 6 Oct 2026: the turn is marked as Copilot's and carries its two plain parts */
+    assert.match(CE, /_ceThread\.push\(\{ who: 'ai', ai: true,\n    text: String\(res\.advice \|\| ''\)\.trim\(\), explain: wording \? \(res\.explain \|\| null\) : null,\n    read,/, 'the edit answer keeps its rows');
   });
 
   test('a card’s Apply on a passage ends typing; the reader’s own replacement keeps it', () => {

@@ -1608,7 +1608,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     ck('16d4a the drag OFFERS three things — Ask Copilot, Edit with Copilot and Comment — and nothing else (re-pointed 11 Sep 2026, evening)',
        JSON.stringify(offer) === JSON.stringify(['ask', 'edit', 'comment']), JSON.stringify(offer));
     const strip = await p.evaluate(() => {
-      const el = document.querySelector('#ce-scope .ce-scope');
+      const el = document.querySelector('#ce-scope.ce-tag:not(:empty)');
       const r = el ? el.getBoundingClientRect() : null;
       const act = document.activeElement;
       return { on: !!(el && r && r.width > 0 && r.height > 0 && el.offsetParent !== null),

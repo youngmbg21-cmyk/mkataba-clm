@@ -56,9 +56,13 @@ async function bench(){
   try{ win.innerWidth = 1440; }catch(_){}
   return { win, c, doc: win.document };
 }
+/* RE-POINTED 6 Oct 2026 (Young, "one Copilot editor": the Selected card is
+   removed): what the card said rides as a TAG in the ask box. At rest it
+   names the clause and quotes nothing, so there is nothing that can go stale
+   behind the paper — the fault (A) was written for cannot come back. */
 const cardQuote = p => {
-  const q = p.doc.querySelector('#ce-scope .ce-scope.is-clause q');
-  return q ? q.textContent : null;
+  const q = p.doc.querySelector('#ce-scope.ce-tag');
+  return q ? q.textContent.trim() : null;
 };
 
 describe('f508 (A) the card follows the draft', () => {
@@ -67,28 +71,16 @@ describe('f508 (A) the card follows the draft', () => {
     const id = p.win.negoClauseList(p.c)[0].clauseId;
     assert.ok(p.win.rlOpenClauseEditor(p.c, id, {}), 'the page opens');
     const first = cardQuote(p);
-    assert.ok(first && first.length > 0, 'the resting card quotes the clause');
-    assert.ok(!/First go at it/.test(first));
-
+    assert.equal(first, 'This clause', 'the resting tag names the clause and quotes nothing');
     p.win.ceApply('First go at it.', 'one');
-    assert.match(cardQuote(p), /First go at it/, 'Apply: the card quotes the new draft');
-    p.win.ceApply('Second go at it.', 'two');
-    assert.match(cardQuote(p), /Second go at it/, 'a second Apply moves it again');
-
-    p.win.ceUndo();
-    assert.match(cardQuote(p), /First go at it/, 'Undo: the card steps back with the paper');
-    assert.ok(!/Second go at it/.test(cardQuote(p)));
-    p.win.ceRedo();
-    assert.match(cardQuote(p), /Second go at it/, 'Redo: forward again');
-
-    p.win.ceDiscard();
-    assert.equal(cardQuote(p), first, 'Discard: back to the wording as it stands');
+    assert.equal(cardQuote(p), 'This clause', 'Apply: nothing on the tag to go stale');
+    p.win.ceUndo(); p.win.ceRedo(); p.win.ceDiscard();
+    assert.equal(cardQuote(p), first, 'Undo, Redo, Discard: the same');
     p.win.rlCloseClauseEditor();
   });
 
   test('the card reads the draft as the page shows it, and the typing beat paints it', () => {
-    assert.match(fn(CE, 'ceRenderScope'), /const raw = String\(ceDraftNow\(\) \|\| _ceBase \|\| ''\)/,
-      'the box as typed while typing, the draft otherwise');
+    assert.ok(!/ceDraftNow\(/.test(fn(CE, 'ceRenderScope')), 'the tag quotes no draft (re-pointed 6 Oct 2026)');
     assert.match(fn(CE, 'ceMarksSchedule'), /ceRenderScope\(\)/, 'a beat behind the typing, with the marks');
     for (const name of ['ceApply', 'ceUndo', 'ceRedo', 'ceDiscard', 'ceForgetUnfiled'])
       assert.match(fn(CE, name), /ceRenderScope\(\)/, name + ' repaints the card');

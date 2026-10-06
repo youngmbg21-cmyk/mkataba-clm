@@ -113,8 +113,8 @@ const BODY = '<h1>Supply Agreement</h1><p>Between Highland Corporate Ltd and Nor
     check(head.tabs[0] === 'Suggestions' && head.tabs[head.tabs.length - 1] === 'Ladder' && !head.tabs.some(t => /Playbook|Figure/.test(t)),
       '1a the row is Suggestions · (Risks) · Ladder, Ladder last, no Playbook scan or Figure', head.tabs.join(' · '));
     check(!/Payment/.test(head.text), '1b nothing after "Copilot" names the clause', head.text);
-    const named = await page.evaluate(() => { const t = document.body.innerText; return { bar: /Edit\s+(Clause 2 · )?2?\.? ?Payment/i.test(t), scope: /Payment/.test((document.querySelector('#clause-editor #ce-scope') || {}).textContent || '') }; });
-    check(named.bar || named.scope, '1c the clause is still named where the reader looks (top bar or Selected card)', JSON.stringify(named));
+    const named = await page.evaluate(() => { const t = document.body.innerText; return { bar: /Edit\s+(Clause 2 · )?2?\.? ?Payment/i.test(t), scope: /Payment/.test(((document.getElementById('ce-pick-sel') || { options: [], selectedIndex: -1 }).options[(document.getElementById('ce-pick-sel') || {}).selectedIndex] || {}).textContent || '') }; });
+    check(named.bar || named.scope, '1c the clause is still named where the reader looks (top bar or the panel\'s dropdown — re-pointed 6 Oct 2026)', JSON.stringify(named));
     await shot('1-at-rest.png');
 
     /* 2 — at most four, standard first */

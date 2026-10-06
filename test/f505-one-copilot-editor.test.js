@@ -47,7 +47,9 @@ describe('f505 (A) the wording waits for Apply', () => {
   });
   test('the editor draws it with the conversation\'s own builder', () => {
     const h = fn(CE, 'ceRiskAnswerHtml');
-    assert.match(h, /return ceTurnHtml\(\{ who: 'ai', text: a\.advice, read: ceReadList\(\), cards: \[_ceRiskCard\] \}, 'rk'\)/);
+    /* RE-POINTED 6 Oct 2026: the turn also carries Copilot's two plain parts
+       (explain) and is marked as Copilot's (ai: the check line under it) */
+    assert.match(h, /return ceTurnHtml\(\{ who: 'ai', ai: true, text: a\.advice, explain: a\.explain \|\| null, read: ceReadList\(\), cards: \[_ceRiskCard\] \}, 'rk'\)/);
     assert.match(fn(CE, 'ceCardAt'), /parts\[0\] === 'rk'/, 'its Apply, votes and Expand resolve to that card');
     assert.match(fn(CE, 'ceRenderLane'), /riskLaneHtml\(_ceC\) : ''\) \+ ceRiskAnswerHtml\(\)/);
   });
@@ -132,7 +134,9 @@ describe('f505 (E) the second pass', () => {
   test('the ask box is one line and grows to CE_ASK_LINES', () => {
     assert.match(CE, /const CE_ASK_LINES = 5;/);
     assert.match(CE, /ask\.addEventListener\('input', \(\) => ceAskFit\(ask\)\);/);
-    assert.match(read('js/views/clauseeditor.js'), /\.ce-ask textarea\{flex:1; min-width:0; height:var\(--ctl-h\)/);
+    /* RE-POINTED 6 Oct 2026: the box is .ce-askbox (it holds the tag that
+       replaced the Selected card); the textarea inside it is one line high */
+    assert.match(read('js/views/clauseeditor.js'), /\.ce-ask textarea\{flex:1 1 120px; min-width:0; height:calc\(var\(--ctl-h\) - 2px\)/);
   });
 });
 

@@ -7842,7 +7842,7 @@
      picture is the board's own chart drawn small, its words left out (they
      are read on Open). Board tokens only (--hb-*). */
   .hb-ins-row{cursor:default}
-  .hb-shelf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0 var(--s-3) var(--s-3)}
+  .hb-shelf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:start;padding:0 var(--s-3) var(--s-3)}
   @media (max-width:1100px){.hb-shelf{grid-template-columns:minmax(0,1fr)}}
   .hb-ins{position:relative;border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius);background:var(--hb-fig);padding:10px 12px 8px;display:flex;flex-direction:column;gap:6px;overflow:hidden;min-width:0}
   .hb-ins::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--hb-glow)}
@@ -9778,6 +9778,16 @@
   .hati-selmenu-row:hover{background:var(--nav-well);}
   .hati-selmenu-row.on{background:var(--accent-fill);color:#fff;font-weight:var(--w-strong);}
   .hati-selmenu-row:disabled{color:var(--color-neutral-400);cursor:default;background:none;}
+  .hati-selmenu-g{padding:8px 10px 3px;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)}
+  .hati-selmenu.has-groups .hati-selmenu-row{display:flex;align-items:center;gap:8px}
+  .hati-selmenu-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hati-selmenu-st{flex:none;font-size:var(--t-micro);color:var(--color-neutral-600)}
+  .hati-selmenu-row.on .hati-selmenu-st{color:inherit}
+  .hati-selmenu-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--color-neutral-400)}
+  .hati-selmenu-dot.is-their,.hati-selmenu-dot.is-med{background:var(--st-amber-fg)}
+  .hati-selmenu-dot.is-us{background:var(--accent-solid)}
+  .hati-selmenu-dot.is-done{background:var(--st-green-fg)}
+  .hati-selmenu-dot.is-high{background:var(--st-ruby-fg)}
   .reg-filterbar .reg-chip:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
   .reg-filterbar .reg-chip.on{border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong);background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
   .reg-filterbar .reg-chip.on .reg-f-l b{color:var(--accent-ink);}

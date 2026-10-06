@@ -4,7 +4,7 @@
    ============================================================
    Inside Prepared by Copilot on Home: a row and up to three small pictures of
    what is OUTSIDE ITS NORMAL RANGE — the reader's own contracts first, then
-   the company's — each with Keep · Open · Ask why · let go.
+   the company's — each with Keep · Open · Read more · let go.
      1. the shelf is drawn from a book where the reader's own payment days
         left their normal range; the picture is marked "Yours", says the range
         and the company's figure, draws the range on itself, and is one press;
@@ -15,7 +15,9 @@
      4. Keep puts "Your payment days…" on the board, the button says Kept, and
         the brief is told (PUT /api/home/kept);
      5. let go takes it off and it rests;
-     6. Ask why puts the question in the panel on the page;
+     6. Read more opens the card's own reading IN the card (only that card
+        grows), with "What could explain this?" answering in its amber box
+        there; Show less folds it (re-pointed 6 Oct 2026: "Ask why" retired);
      7. a quiet day: nothing outside normal — the row says so, no filler, the
         usual pictures behind one press;
      8. on a narrow window nothing scrolls sideways.
@@ -86,7 +88,7 @@ const check = (name, pass, detail) => {
       const c = document.querySelector('[data-hb-ins-card="pay.mine"]'), band = c && c.querySelector('.hb-ins-pic .hb-sv-band'), lit = c && c.querySelector('.hb-ins-pic .hb-sv-collit');
       const bb = band && band.getBoundingClientRect();
       return { n: cards.length, ids: cards.map(x => x.getAttribute('data-hb-ins-card')), scope: hbS().ins.scope,
-        acts: cards.every(x => x.querySelector('[data-hb-ins="keep"]') && x.querySelector('[data-hb-ins="open"]') && x.querySelector('[data-hb-ins="why"]') && x.querySelector('[data-hb-ins="go"]')),
+        acts: cards.every(x => x.querySelector('[data-hb-ins="keep"]') && x.querySelector('[data-hb-ins="open"]') && x.querySelector('[data-hb-read-more^="ins:"]') && x.querySelector('[data-hb-ins="go"]')),
         doorsInside: document.querySelectorAll('#hm-agents .hb-ins-pic [data-hb-dig], #hm-agents .hb-ins-pic [tabindex]').length,
         chip: c && (c.querySelector('.hb-ins-scope') || {}).textContent, t: c && c.querySelector('.hb-ins-t').textContent, f: c && c.querySelector('.hb-ins-f').textContent,
         why: c && (c.querySelector('.hb-ins-why') || {}).textContent,
@@ -100,7 +102,7 @@ const check = (name, pass, detail) => {
     check('1c it says the month, your normal range and the company\'s figure', /^60 days in .+ · your normal 30–32 days · company \d+ days$/.test(s1.f || ''), s1.f);
     check('1d and why it is here', /Outside the normal range of your own contracts over the past year\./.test(s1.why || ''), s1.why);
     check('1e the picture draws the normal range and lights its month', !!s1.band && s1.band.h > 0 && s1.band.fill !== 'none' && !!s1.lit && !/none/.test(s1.lit), JSON.stringify({ band: s1.band, lit: s1.lit }));
-    check('1f every picture carries Keep · Open · Ask why · let go, and is one press', s1.acts && s1.doorsInside === 0, `${s1.doorsInside} doors inside`);
+    check('1f every picture carries Keep · Open · Read more · let go, and is one press', s1.acts && s1.doorsInside === 0, `${s1.doorsInside} doors inside`);
     check('1g its row says whose', /Today.s insights\s*\d.*in your contracts, then the company.s/.test(s1.row), s1.row);
     await page.waitForTimeout(1500);   /* the columns rise in; photograph them risen */
     await page.screenshot({ path: path.join(OUT, '1-yours-measured.png') });
@@ -149,11 +151,26 @@ const check = (name, pass, detail) => {
     check('4c the daily brief is told what Home counted (PUT /api/home/kept)', !!told && /"at":"\d{4}-\d{2}-\d{2}"/.test(told), (told || 'nothing sent').slice(0, 160));
     await page.screenshot({ path: path.join(OUT, '4-kept.png') });
 
-    /* ================= 6. ASK WHY (before the let-go, while yours is up) ================= */
-    await page.evaluate(() => { intel.dockOpen = true; const b = document.getElementById('igd-input'); if (b) b.value = ''; document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-ins="why"]').click(); });
-    const s6 = await until(() => { const b = document.getElementById('igd-input'); return b && b.value ? { v: b.value, out: window._outsideChat } : null; }, null, 3000);
-    check('6a Ask why puts the question in the Copilot panel on the page, about your contracts', !!s6 && /^What explains this: .*\(in my contracts\)/.test(s6.v) && s6.out === 0, JSON.stringify(s6));
-    await page.evaluate(() => { const b = document.getElementById('igd-input'); if (b) b.value = ''; });
+    /* ================= 6. READ MORE (before the let-go, while yours is up) ================= */
+    const h0 = await page.evaluate(() => [...document.querySelectorAll('.hb-shelf .hb-ins')].map(x => Math.round(x.getBoundingClientRect().height)));
+    await page.evaluate(() => { state.aiConfigured = true; window._shelfAsked = 0;
+      window.copilotAsk = async () => { window._shelfAsked++; return { answer: 'Two late payers explain most of it.' }; };
+      document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-read-more]').click(); });
+    const s6 = await until(() => { const card = document.querySelector('[data-hb-ins-card="pay.mine"]'); const r = card && card.querySelector('.hb-read');
+      return r ? { lines: r.querySelectorAll('li, p').length, ask: !!card.querySelector('[data-hb-why]'), label: card.querySelector('[data-hb-read-more]').textContent.trim(),
+        asked: window._shelfAsked, others: [...document.querySelectorAll('.hb-shelf .hb-ins')].map(x => Math.round(x.getBoundingClientRect().height)),
+        ask2: !!document.querySelector('[data-hb-ins="why"]') } : null; }, null, 4000);
+    check('6a Read more opens the card\'s own reading inside the card, with What could explain this?, and spends nothing', !!s6 && s6.lines > 0 && s6.ask && s6.label === 'Show less' && s6.asked === 0 && !s6.ask2, JSON.stringify(s6));
+    const grew = s6 && s6.others.map((hh, i) => hh - h0[i]);
+    const at = await page.evaluate(() => [...document.querySelectorAll('.hb-shelf .hb-ins')].findIndex(x => x.getAttribute('data-hb-ins-card') === 'pay.mine'));
+    check('6b only the opened card grows', !!grew && grew.every((g, i) => i === at ? g > 0 : Math.abs(g) <= 1), JSON.stringify([h0, s6 && s6.others]));
+    await page.evaluate(() => document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-why]').click());
+    const s6c = await until(() => { const b = document.querySelector('[data-hb-ins-card="pay.mine"] .hb-why .hb-why-b'); return b && /late payers/.test(b.textContent) ? window._shelfAsked : null; }, null, 4000);
+    check('6c What could explain this? answers in the card\'s own amber box', s6c === 1, String(s6c));
+    await page.screenshot({ path: path.join(OUT, '6-read-more.png') });
+    await page.evaluate(() => document.querySelector('[data-hb-ins-card="pay.mine"] [data-hb-read-more]').click());
+    const s6d = await until(() => { const card = document.querySelector('[data-hb-ins-card="pay.mine"]'); return card && !card.querySelector('.hb-read') ? card.querySelector('[data-hb-read-more]').textContent.trim() : null; }, null, 3000);
+    check('6d Show less folds it', s6d === 'Read more', s6d);
 
     /* ================= 5. LET GO, AND IT RESTS ================= */
     const before = await page.evaluate(() => document.querySelectorAll('.hb-shelf .hb-ins:not(.is-plain)').length);

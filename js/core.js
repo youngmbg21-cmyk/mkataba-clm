@@ -3098,10 +3098,24 @@ function selectMenuOpen(sel){
   const box = document.createElement('div');
   box.className = 'hati-selmenu';
   box.setAttribute('role', 'listbox');
-  box.innerHTML = [...sel.options].map((o, i) =>
-    `<button type="button" role="option" aria-selected="${o.selected ? 'true' : 'false'}"
+  const row = (o, i) => `<button type="button" role="option" aria-selected="${o.selected ? 'true' : 'false'}"
       class="hati-selmenu-row${o.selected ? ' on' : ''}"${o.disabled ? ' disabled' : ''}
-      data-sm="${i}">${esc(o.textContent)}</button>`).join('');
+      data-sm="${i}">${o.dataset && o.dataset.dot ? `<i class="hati-selmenu-dot is-${esc(o.dataset.dot)}" aria-hidden="true"></i>` : ''}<span class="hati-selmenu-t">${esc(o.textContent)}</span>${o.dataset && o.dataset.st ? `<span class="hati-selmenu-st">${esc(o.dataset.st)}</span>` : ''}</button>`;
+  /* A LIST THAT ASKS FOR ITS GROUPS (data-sm-groups; Edit with Copilot's
+     dropdown, 6 Oct 2026) draws each <optgroup>'s label as a heading and an
+     option's data-dot / data-st as a coloured dot and a small state word.
+     Every other select draws exactly as before. */
+  if (sel.hasAttribute && sel.hasAttribute('data-sm-groups')){
+    const opts = [...sel.options]; let html = '';
+    [...sel.children].forEach(ch => {
+      if (ch.tagName === 'OPTGROUP'){
+        html += `<div class="hati-selmenu-g" role="presentation">${esc(ch.label)}</div>`;
+        [...ch.children].forEach(o => { html += row(o, opts.indexOf(o)); });
+      } else if (ch.tagName === 'OPTION') html += row(ch, opts.indexOf(ch));
+    });
+    box.classList.add('has-groups');
+    box.innerHTML = html;
+  } else box.innerHTML = [...sel.options].map(row).join('');
   document.body.appendChild(box);
   const r = _selMenuAnchor(sel);
   /* Placed under the control, and flipped above it where there is no room —
@@ -3145,7 +3159,10 @@ function _selMenuArmDoc(){
       && ev.target.closest('label,.reg-chip') === _selMenuAnchorEl(_selMenuFor)) return;
     selectMenuClose();
   }, true);
-  document.addEventListener('keydown', ev => { if (_selMenuEl && ev.key === 'Escape') selectMenuClose(); }, true);
+  /* ESCAPE CLOSES THE LIST, AND ONLY THE LIST (6 Oct 2026): a native select's
+     pane swallows its Escape, so the page under it never hears one. Ours did
+     not, and an Escape on the list in Edit with Copilot left the whole page. */
+  document.addEventListener('keydown', ev => { if (_selMenuEl && ev.key === 'Escape'){ selectMenuClose(); ev.stopPropagation(); ev.preventDefault(); } }, true);
   window.addEventListener('resize', selectMenuClose);
   /* THE MENU'S OWN SCROLL IS NOT A PAGE SCROLL (Young reported it 23 Sep
      2026: "I am unable to scroll in the pop up without the drop down

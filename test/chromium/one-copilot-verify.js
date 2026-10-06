@@ -88,8 +88,10 @@ const pressMenu = async (page, id) => {
 };
 const railState = page => page.evaluate(() => {
   const ed = document.getElementById('clause-editor');
-  const card = document.querySelector('#ce-scope .ce-scope');
-  return { open: !!ed, card: card ? card.className : '', text: card ? card.innerText.replace(/\s+/g, ' ').trim() : '',
+  const card = document.querySelector('#ce-scope.ce-tag:not(:empty)');
+  /* RE-POINTED 6 Oct 2026 ("one Copilot editor"): the card is a tag in the
+     ask box — its words, and what it holds on its hover */
+  return { open: !!ed, card: card ? card.className : '', text: card ? (card.innerText + ' ' + (card.getAttribute('title') || '')).replace(/\s+/g, ' ').trim() : '',
     ph: (document.getElementById('ce-ask') || {}).placeholder || '',
     chips: [...document.querySelectorAll('#ce-chips button')].map(b => b.textContent.trim()),
     label: (document.querySelector('.ce-ah-cl') || {}).textContent || '',
@@ -178,8 +180,8 @@ const closeEditor = async page => {
   await page.evaluate(({ id, cl }) => rlOpenClauseEditor(getContract(id), cl, {}), { id: ID, cl: clauseId });
   await pause(900);
   const railC = await railState(page);
-  check(railC.open && /is-clause/.test(railC.card) && /store and handle the Goods/.test(railC.text) && !/<p>/.test(railC.text),
-    'C1 the pencil opens the same card, holding the whole clause — its words, not its markup', railC.text.slice(0, 100) || 'no card');
+  check(railC.open && /ce-tag/.test(railC.card) && /^This clause\b/.test(railC.text) && !/<p>/.test(railC.text),
+    'C1 the pencil opens on the whole clause: the tag says "This clause", its name on the hover (re-pointed 6 Oct 2026)', railC.text.slice(0, 100) || 'no card');
   check(railC.ph === await page.evaluate(() => i18t('ce_ask_ph_clause')), 'C2 and the box asks what this clause should say', railC.ph);
   check(!/Ask me anything about/.test(railC.lane), 'C3 the greeting sentence is gone', railC.lane.slice(0, 90) || '(empty)');
   await page.screenshot({ path: path.join(OUT, '04-pencil.png') });
@@ -187,12 +189,12 @@ const closeEditor = async page => {
   /* ============ D. THE ✕ TURNS TO THE WHOLE CONTRACT (fix 5) ============ */
   /* PRESSED IN THE PAGE, so a build where the main chat still covers the
      screen (the reported fault) REPORTS rather than times out on a click. */
-  const x = await page.evaluate(() => { const b = document.querySelector('#ce-scope [data-ce-act="scope-off"]'); if (!b) return false; b.click(); return true; });
+  const x = await page.evaluate(() => { const b = document.querySelector('#ce-scope [data-ce-act="scope-contract"]'); if (!b) return false; b.click(); return true; });
   await pause(500);
   const railD = await railState(page);
   const want = await page.evaluate(() => ({ ph: i18t('ce_ask_ph_contract'), label: i18t('ce_whole_contract'),
     chips: [i18t('ce_q_contract_risks'), i18t('ce_q_contract_missing'), i18t('ce_q_contract_end')] }));
-  check(!!x && /is-whole/.test(railD.card) && /Warehousing Agreement/i.test(railD.text),
+  check(!!x && /^Whole contract\b/.test(railD.text) && /Warehousing Agreement/i.test(railD.text),
     'D1 the ✕ turns Copilot to the whole contract, and the card says so', railD.text.slice(0, 100) || 'no card');
   /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the rail head no longer
      carries a name; the card (D1) says "the whole contract". */

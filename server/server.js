@@ -2587,7 +2587,7 @@ const BRIEF_WORDING_MARK = 'True only if dealing with this would mean changing t
    The risk scan names its findings; the brief names its points the same way.
    A brief written before this has no title and the card falls back to the
    sentence (js/risks.js riskItemsOf). */
-const BRIEF_TITLE = 'A short name for this point, two to six words, the way a heading names a clause: what it is about, never a full sentence and never a judgement. For example "Ended on 30 days\' notice" or "12 hours to report delivery problems".';
+const BRIEF_TITLE = 'A short name for this point in the form "Topic · problem", at most six words: the topic first, the way a heading names a clause, then a middle dot (·), then the problem in two or three plain words. Never a full sentence. For example "Audit costs · could fall on us", "Liability cap · below fees" or "Data processing · no agreement".';
 
 /* A REDLINE IS WORDING, NOT A NOTE ABOUT WORDING (owner-reported 26 Aug 2026,
    off a Kenyan equipment lease whose data-protection card offered to file this

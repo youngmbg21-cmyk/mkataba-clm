@@ -1342,7 +1342,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       rail: !!(ed && ed.querySelector('.ce-rail')),
       wording: live ? live.innerText.replace(/\s+/g, ' ').trim().length : 0,
       lane: (ed && ed.querySelector('#ce-lane')) ? ed.querySelector('#ce-lane').childElementCount : 0,
-      scope: (() => { const k = ed && ed.querySelector('#ce-scope .ce-scope.is-clause');
+      scope: (() => { const k = ed && ed.querySelector('#ce-scope.ce-tag:has([data-ce-act="scope-contract"])');
         return k ? k.textContent.replace(/\s+/g, ' ').trim().slice(0, 60) : ''; })(),
       panelHeld: !!document.querySelector('#rl-cp.is-open'),
       dialogs: document.querySelectorAll('.nego-aipop').length,

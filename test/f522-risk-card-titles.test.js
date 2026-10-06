@@ -74,7 +74,9 @@ describe('(1) the card holds the column\'s width', () => {
 
 describe('(2) the brief names each point', () => {
   test('BRIEF_TITLE is one shared description, on both lists, required', () => {
-    assert.match(SRV, /const BRIEF_TITLE = 'A short name for this point, two to six words/);
+    /* RE-POINTED 6 Oct 2026 (Young picked "Topic and Problem"): at most six
+       words, "Topic · problem" */
+    assert.match(SRV, /const BRIEF_TITLE = 'A short name for this point in the form "Topic · problem", at most six words/);
     const i = SRV.indexOf("name: 'contract_brief'");
     const tool = SRV.slice(i, SRV.indexOf('const prompt', i));
     assert.equal((tool.match(/title: \{ type: 'string', description: BRIEF_TITLE \}/g) || []).length, 2);

@@ -157,7 +157,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await pause(300);
   const d2 = await p.evaluate(async () => {
     const held = document.querySelectorAll('#ce-clausebody .ce-held').length;
-    const cut = !!document.querySelector('#ce-scope .ce-scope .cut');
+    const cut = !!document.querySelector('#ce-scope .cut');
     const chips = [...document.querySelectorAll('#ce-chips button')].map(b => b.textContent);
     const active = document.activeElement && document.activeElement.id;
     const lines0 = ceLines().slice();
@@ -177,7 +177,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   const e1 = await p.evaluate(() => {
     ceDetachPassage();
     const ok = ceAttachWords('Termination shall not affect fees', 'ask');
-    return { ok, asking: !!document.querySelector('#ce-scope .ce-scope.is-asking'), cut: !!document.querySelector('#ce-scope .ce-scope .cut'),
+    return { ok, asking: !!document.querySelector('#ce-scope.ce-tag.is-asking'), cut: !!document.querySelector('#ce-scope .cut'),
       chips: [...document.querySelectorAll('#ce-chips button')].map(b => b.textContent), ph: document.querySelector('#ce-ask').placeholder,
       apply: !!document.querySelector('#ce-lane [data-ce-apply]') };
   });
@@ -353,7 +353,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const editBtn = await p.$('.nego-selmenu [data-nego-ai="edit"]');
     if (editBtn) await editBtn.dispatchEvent('mousedown');
     await pause(500);
-    const h3c = await p.evaluate(() => ({ here: clauseEditorClauseId(), cut: !!document.querySelector('#ce-scope .ce-scope .cut'),
+    const h3c = await p.evaluate(() => ({ here: clauseEditorClauseId(), cut: !!document.querySelector('#ce-scope .cut'),
       held: document.querySelectorAll('#ce-clausebody .ce-held').length,
       heldText: [...document.querySelectorAll('#ce-clausebody .ce-held')].map(n => n.textContent).join(' ') }));
     ck('H3c Edit with Copilot moves the page to THAT clause with the words in hand', h3c.here === h3g.id && h3c.cut && h3c.held >= 1, JSON.stringify(h3c));
@@ -583,7 +583,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2);
       await p.mouse.down(); await p.mouse.up();
       await pause(400);
-      const held = await p.evaluate(() => ({ held: !!(window.ceHeldPassage && ceHeldPassage()), scope: !!document.querySelector('#ce-scope .ce-scope'), asking: !!document.querySelector('#ce-scope .ce-scope.is-asking'), focused: document.activeElement === document.getElementById('ce-ask') }));
+      const held = await p.evaluate(() => ({ held: !!(window.ceHeldPassage && ceHeldPassage()), scope: !!document.querySelector('#ce-scope.ce-tag:not(:empty)'), asking: !!document.querySelector('#ce-scope.ce-tag.is-asking'), focused: document.activeElement === document.getElementById('ce-ask') }));
       await p.keyboard.type('make it firmer'); await p.keyboard.press('Enter');
       await pause(900);
       /* The ladder card (.ce-lcard) leads the lane since 14 Sep 2026; the ANSWER's card is the one asked about. */
@@ -627,7 +627,7 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
       await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.mouse.down(); await p.mouse.up();
       await pause(850);
       j1c = await p.evaluate(want => ({ editor: !!document.getElementById('clause-editor'), held: !!(window.ceHeldPassage && ceHeldPassage()),
-        quote: (document.querySelector('#ce-scope .ce-scope q') || {}).textContent || '', want, focused: document.activeElement === document.getElementById('ce-ask') }), j1cg2.text);
+        quote: (document.querySelector('#ce-scope.ce-tag') || { getAttribute: () => '' }).getAttribute('title') || '', want, focused: document.activeElement === document.getElementById('ce-ask') }), j1cg2.text);
     }
   }
   ck('J1c a highlight on the negotiate page with no pencil opens the editor HOLDING those words, caret in the ask box', !!(j1c && j1c.editor && j1c.held && j1c.quote.trim() === j1c.want.trim() && j1c.focused), JSON.stringify(j1c));

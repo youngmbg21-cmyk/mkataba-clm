@@ -295,7 +295,7 @@ function riskDismiss(c, key, back){
    What the list and the walk are showing is a fact about this sitting, never
    about the record; a refresh starts fresh, which costs nothing because
    nothing here was filed. */
-const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, advice: {}, busy: '', err: {}, say: {}, spent: {}, whyOpen: {} };
+const _rk = { showDismissed: {}, showCovered: {}, opts: null, walk: null, words: {}, advice: {}, explain: {}, busy: '', err: {}, say: {}, spent: {}, whyOpen: {} };
 
 /* WHERE A RISK'S WORDING WOULD GO, asked at the PRESS (negoClauseList may
    start a negotiation; a draw never calls this). A finding whose words are on
@@ -470,6 +470,21 @@ function riskEditStart(c, key){
   _rk.walk = { cid: String(c.id), keys, at: keys.indexOf(key), saved: [], skipped: [], newcl: [], key: '', clauseId: '', done: false, choose: {}, picked: {} };
   return _rkEditorOpen(c, key, t);
 }
+/* A PICK IN THE EDITOR'S DROPDOWN (Young, 6 Oct 2026): straight to that
+   risk, the way its card's Edit goes; a walk not yet started starts on it. */
+function riskWalkTo(c, key){
+  const w = _rkWalkOf(c);
+  if (!w || w.done) return riskEditStart(c, key);
+  const it = riskItemsOf(c).find(x => x.key === key);
+  if (!it) return false;
+  const t = riskEditTarget(c, it);
+  if (!t){ if (typeof toast === 'function') toast(_rkT('ce_no_clause'), 'warn'); return false; }
+  if (!w.keys.includes(key)) w.keys.push(key);
+  w.at = w.keys.indexOf(key);
+  return _rkEditorOpen(c, key, t);
+}
+/* the severity's own word, as the card prints it */
+const riskSevWord = s => { const m = _rkSev(s); return m ? m.label : String(s || ''); };
 /* Move along: 'next' after a save, 'skip' without one, 'prev' back. */
 function riskWalkStep(c, how){
   const w = _rkWalkOf(c); if (!w) return false;
@@ -570,7 +585,7 @@ async function riskEditorDraft(c, key, ask){
     if (w && w.key === key){ if (!w.choose) w.choose = {}; if (!w.picked) w.picked = {}; w.choose[key] = true; w.picked[key] = true; }
   }
   else {
-    _rk.words[key] = words; _rk.advice[key] = String((res && res.advice) || '').trim();
+    _rk.words[key] = words; _rk.advice[key] = String((res && res.advice) || '').trim(); _rk.explain[key] = (res && res.explain) || null;
     _rk.spent[key] = (_rk.spent[key] || 0) + 1;
   }
   if (typeof ceRenderLane === 'function') ceRenderLane();
@@ -623,7 +638,7 @@ function riskAnswerOf(c){
   const w = _rkWalkOf(c);
   if (!w || !w.key || w.done || _rk.busy === w.key) return null;
   const words = _rk.words[w.key];
-  return words ? { key: w.key, words, advice: _rk.advice[w.key] || '' } : null;
+  return words ? { key: w.key, words, advice: _rk.advice[w.key] || '', explain: _rk.explain[w.key] || null } : null;
 }
 /* THE RISK'S QUICK ASKS, drawn in the rail's own chips row (the same row the
    clause's questions use), each one Copilot call. */
@@ -661,15 +676,17 @@ function riskLaneHtml(c){
     : _rk.say[it.key] ? `<div class="rk-say"><p class="rk-p rk-quiet">${_rkE(_rkT('rk_failed', { why: _rk.say[it.key] }))}</p>`
       + `<p class="rk-p rk-way"><b>${_rkE(_rkT('rk_ce_refused_way'))}</b></p></div>`
     : _rk.spent[it.key] ? `<p class="rk-cost">&#10022; ${_rkE(_rkT(_rk.spent[it.key] === 1 ? 'rk_ce_wrote' : 'rk_ce_wrote_n', { n: _rk.spent[it.key] }))}</p>` : '';
+  /* THE RISK'S HEADING, NO BOX (Young, 6 Oct 2026, "one Copilot editor"):
+     the short title with the severity word on the right, lined up with the
+     text under it; then Why it matters in plain words. The step count and its
+     dots are gone — the dropdown above says which risk this is. The whole
+     sentence stays on the title's hover. Copilot's two plain parts and the
+     Suggested wording card follow (ceRiskAnswerHtml). */
+  void dots;
+  const why = riskWhyOf(it) || it.say;
   return `<div class="rk-ce" data-rk-key="${_rkE(it.key)}">
-    <div class="rk-ce-step"><span>${_rkE(_rkT('rk_ce_step', { k: info.k, n: info.n }))}</span><span class="rk-ce-dots" aria-hidden="true">${dots}</span></div>
-    <div class="rk-ce-card">
-      <div class="rk-top"><b class="rk-t">${_rkE(it.title)}</b>${_rkSevHtml(it.sev)}</div>
-      <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>
-      ${it.say ? `<p class="rk-p">${_rkE(it.say)}</p>` : ''}
-      ${it.why ? `<p class="rk-p"><b>${_rkE(_rkT('ai_why_matters'))}:</b> ${_rkE(it.why)}</p>` : ''}
-      ${it.fix ? `<p class="rk-p"><b>${_rkE(_rkT('ai_suggested_fix'))}:</b> ${_rkE(it.fix)}</p>` : ''}
-    </div>
+    <div class="rk-ce-head"><b class="rk-t" title="${_rkE(_rkTopicText(it))}">${_rkE(riskTitleOf(it))}</b>${_rkSevHtml(it.sev)}</div>
+    ${why ? `<p class="rk-p rk-ce-why"><b>${_rkE(_rkT('ai_why_matters'))}</b> ${_rkE(why)}</p>` : ''}
     ${_rkWhereHtml(c)}
     ${say}
   </div>`;
@@ -754,12 +771,12 @@ function _rkRowHtml(c, it){
   const why = riskWhyOf(it);
   /* A Copilot brief item's title IS its long sentence: on the card it is one
      line, and the whole sentence is read when the card opens. */
-  const long = it.src !== 'scan';
+  const full = _rkTopicText(it), shown = riskTitleOf(it);
+  const long = full.trim() !== shown;
   const open = !!_rk.whyOpen[it.key];
   const hasMore = !!(why || long);
-  const full = _rkTopicText(it);
   return `<div class="rk-row is-${_rkE(it.sev)}${open ? ' is-open' : ''}" data-rk-key="${_rkE(it.key)}">
-    ${_rkHeadHtml(it, `<div class="rk-top"><b class="rk-t" title="${_rkE(full)}">${_rkE(it.title)}</b>${_rkSevHtml(it.sev)}</div>
+    ${_rkHeadHtml(it, `<div class="rk-top"><b class="rk-t" title="${_rkE(full)}">${_rkE(shown)}</b>${_rkSevHtml(it.sev)}</div>
     <div class="rk-m">${_rkE(_rkT(RK_SRC_KEY[it.src]))}</div>`)}
     <div class="rk-verbs">
       <button type="button" class="rk-verb" data-rk-act="note">${_rkMark('chat')}${_rkE(_rkT('rk_note'))}</button>
@@ -787,6 +804,36 @@ const _rkHeadHtml = (it, inner) => (it && it.missing)
    the stored sentence only for a rule the books do not know (f506 holds every
    rule to having one). A Copilot brief item's reason is already written
    plainly: the brief is told to, sentence by sentence. */
+/* ---- ONE SHORT TITLE, EVERYWHERE (Young, 6 Oct 2026: "Topic and Problem",
+   "Audit costs · could fall on us") ----
+   The card, the editor's dropdown and the editor's heading all read this. A
+   scan rule has a fixed short title in both books (rk_title_<id>[_<kind>]); a
+   Copilot brief item wears Copilot's title, cut at RK_TITLE_WORDS words; an
+   older brief with no title is named from the topic HaTi reads in it, with no
+   new call. it.title is NOT changed: it stays the record's name (dedupe, cover,
+   Edit's lookup, a new clause's heading), and the whole sentence stays on the
+   hover and at the top of the opened Why. */
+const RK_TITLE_WORDS = 6;
+/* a word is a token with a letter or digit in it: the "·" between topic and
+   problem is not one */
+const _rkCut = t => {
+  const w = String(t || '').trim().split(/\s+/).filter(Boolean);
+  let n = 0, i = 0;
+  for (; i < w.length; i++){ if (/[\p{L}\p{N}]/u.test(w[i])) n++; if (n > RK_TITLE_WORDS) break; }
+  return i < w.length ? w.slice(0, i).join(' ') + '…' : w.join(' ');
+};
+function riskTitleOf(it){
+  if (!it) return '';
+  if (it.src === 'scan'){
+    const base = 'rk_title_' + String(it.id || '').replace(/[^a-z0-9]+/gi, '_');
+    for (const k of (it.kind ? [base + '_' + it.kind, base] : [base])){ const t = _rkT(k); if (t && t !== k) return t; }
+    return _rkCut(it.title);
+  }
+  if (it.say) return _rkCut(it.title);
+  const k = _rkKind(it.title);
+  if (k){ const topic = _rkT('rk_topic_' + k); if (topic && topic !== 'rk_topic_' + k) return topic + ' · ' + _rkT(it.src === 'odd' ? 'rk_problem_odd' : 'rk_problem_watch'); }
+  return _rkCut(it.title);
+}
 function riskWhyOf(it){
   if (!it) return '';
   if (it.src === 'scan'){
@@ -815,7 +862,7 @@ function _rkCoveredHtml(c, list){
     const by = _rkT('rk_cov_by', { id: cv.id, clause: (typeof clauseNameShown === 'function' ? clauseNameShown(cv.clause) : cv.clause) || _rkT('ng_this_clause') })
       + (cv.std ? _rkT('rk_cov_from_std') : '');
     return `<div class="rk-row is-covered" data-rk-key="${_rkE(it.key)}">
-      ${_rkHeadHtml(cv.clauseId ? it : { missing: true }, `<div class="rk-top"><span class="rk-t">${_rkE(it.title)}</span><span class="rk-cov">${_rkE(_rkT('rk_covered'))}</span></div>
+      ${_rkHeadHtml(cv.clauseId ? it : { missing: true }, `<div class="rk-top"><span class="rk-t" title="${_rkE(_rkTopicText(it))}">${_rkE(riskTitleOf(it))}</span><span class="rk-cov">${_rkE(_rkT('rk_covered'))}</span></div>
       <div class="rk-m">${_rkE(by)}</div>`)}
       ${cv.clauseId ? `<div class="rk-acts"><button type="button" class="ui-link" data-rk-act="cov-go" data-rk-clause="${_rkE(cv.clauseId)}">${_rkE(_rkT('rk_cov_go', { id: cv.id }))}</button></div>` : ''}
     </div>`;
@@ -853,7 +900,7 @@ function rlRisksPileHtml(c, opts = {}){
     ${gone.length ? `<button type="button" class="ui-link rk-gone-t" data-rk-act="gone">${_rkE(showGone
       ? _rkT('rk_hide_dismissed') : _rkT('rk_show_dismissed', { n: gone.length }))}</button>` : ''}
     ${showGone ? gone.map(it => `<div class="rk-row is-gone" data-rk-key="${_rkE(it.key)}">
-      <div class="rk-top"><span class="rk-t">${_rkE(it.title)}</span>
+      <div class="rk-top"><span class="rk-t" title="${_rkE(_rkTopicText(it))}">${_rkE(riskTitleOf(it))}</span>
       <button type="button" class="rk-verb" data-rk-act="back">${_rkMark('undo')}${_rkE(_rkT('rk_bring_back'))}</button></div></div>`).join('') : ''}
   </div>`;
 }
@@ -962,6 +1009,9 @@ function rkEnsureStyle(){
   .rk-ce-dots i{width:14px;height:4px;border-radius:2px;background:var(--color-divider)}
   .rk-ce-dots i.is-done{background:var(--st-green-fg)} .rk-ce-dots i.is-now{background:var(--color-accent-600, var(--accent))}
   .rk-ce-card{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;background:var(--color-bg)}
+  .rk-ce-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
+  .rk-ce-head .rk-t{min-width:0;font-size:var(--t-body);font-weight:var(--w-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rk-ce-why b{display:block;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:2px}
   .rk-ce-end{border:1px solid var(--st-green-fg);border-radius:var(--radius-lg);padding:12px}
   .doc-xr-rk{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin-top:6px}
   .doc-xr-rk .rk-done{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--st-green-fg)}
@@ -1082,7 +1132,7 @@ if (typeof document !== 'undefined' && document.addEventListener && !document._r
   });
 }
 
-Object.assign(window, {
+Object.assign(window, { riskTitleOf, riskWalkTo, riskSevWord,
   riskItemsOf, riskOpenOf, riskKeyOf, riskKeyDismissed, riskFromScan, riskDismiss, riskIsAdvice, riskNeedsWording, RK_NEEDS_WORDING,
   riskNote, riskMayAct, rlRisksPileHtml, riskMarkFootHtml,
   riskCoverOf, riskEditTarget, riskClauseOf, riskGoClause, riskEditStart, riskWalkStep, riskWalkEnd, riskWalkInfo, riskWalkPress, riskFiled, riskWherePick,

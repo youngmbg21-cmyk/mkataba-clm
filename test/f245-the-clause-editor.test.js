@@ -505,14 +505,15 @@ describe('f245 (16) — the highlighted passage goes to the rail, and it files n
     assert.ok(!/class="ce-inline"/.test(CODE), 'the strip markup is gone');
     assert.ok(!/ceOpenInline|ceCloseInline|ceInlineGo|ceInlineApply|ceInlineFit/.test(CODE),
       'and its five functions with it — deleted, not left unreachable');
-    assert.ok(/<div id="ce-scope"><\/div>/.test(CODE),
+    /* RE-POINTED 6 Oct 2026 (Young, "one Copilot editor": the Selected card
+       is removed): the slot is a TAG INSIDE the ask box, so what is attached
+       and what you are typing are still read together, at no height. */
+    assert.ok(/<span class="ce-tag" id="ce-scope"><\/span>/.test(CODE),
       'the rail carries the slot the passage lands in');
-    /* IT IS BETWEEN THE CONVERSATION AND THE ASK BOX, which is the whole of why
-       Option A was recommended: what is attached and what you are typing are
-       read together, and it cannot scroll away. */
-    assert.ok(CODE.indexOf('id="ce-lane"') < CODE.indexOf('id="ce-scope"')
-      && CODE.indexOf('id="ce-scope"') < CODE.indexOf('id="ce-askrow"'),
-      'and it sits under the conversation and over the ask box');
+    assert.ok(CODE.indexOf('id="ce-lane"') < CODE.indexOf('id="ce-askrow"')
+      && CODE.indexOf('id="ce-askrow"') < CODE.indexOf('id="ce-scope"')
+      && CODE.indexOf('id="ce-scope"') < CODE.indexOf('id="ce-ask"'),
+      'and it sits inside the ask box, before the words typed');
   });
 
   test('the card quotes the passage and offers the two acts on it', () => {
@@ -527,8 +528,12 @@ describe('f245 (16) — the highlighted passage goes to the rail, and it files n
        two looks. The card ALWAYS says what Copilot is working on now: with
        nothing attached that is the WHOLE CLAUSE, and after the ✕ the whole
        contract. */
-    assert.match(r[0], /class="ce-scope is-clause"/, 'with nothing attached it holds the whole clause');
-    assert.match(r[0], /class="ce-scope is-whole"/, 'and after the ✕, the whole contract');
+    /* RE-POINTED 6 Oct 2026: the card is a tag in the ask box. At rest it
+       says "This clause" (its × asks about the whole contract); "Whole
+       contract" has its × back to the clause; a passage's × goes back to the
+       whole clause. */
+    assert.match(r[0], /_cet\('ce_tag_clause'\)[\s\S]*data-ce-act="scope-contract"/, 'with nothing attached it holds the whole clause');
+    assert.match(r[0], /_cet\('ce_tag_contract'\)[\s\S]*data-ce-act="scope-clause"/, 'and after the ✕, the whole contract');
     /* THE ASK BOX STATES THE NARROWING BY BEING SET TO IT — the WHOSE ASKS
        rule, on a placeholder. */
     /* RE-POINTED 11 Sep 2026 (evening): the placeholder also says which VERB
@@ -1899,8 +1904,10 @@ describe('f245 (18) — the Changes tab is gone, and Redlined shows redlines', (
     /* RE-POINTED 28 Sep 2026: their Redlines column stays live beside the
        editor on their page, and a press on it while a draft is unfiled asks
        (the fifth door, ceForgetUnfiled on "Leave and lose it"). */
-    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 6,
-      'five callers and the declaration \u2014 no sixth door written past it');
+    /* RE-POINTED 6 Oct 2026: the panel's dropdown picking a risk is a door
+       out of a draft too (a clause pick goes through ceGoClause's own). */
+    assert.equal((CODE.match(/ceLeaveGuard\(/g) || []).length, 7,
+      'six callers and the declaration \u2014 no seventh door written past it');
     assert.match(CODE, /closest\('#pt-nego #rl-side button[\s\S]{0,300}?ceLeaveGuard\(\(\) => \{ ceForgetUnfiled\(\);/,
       'their column\'s press is the fifth, and it asks');
     assert.match(CODE, /case 'ladder-accept': \{[\s\S]{0,400}?ceLeaveGuard\(/,

@@ -71,6 +71,16 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
 
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const page = await (await browser.newContext({ viewport: { width: 1500, height: 1000 } })).newPage();
+  /* RE-POINTED 6 Oct 2026 ("one Copilot editor"): the Risks tab no longer
+     prints "Risk k of n" (the panel's dropdown says which risk this is) and
+     its heading wears the short title with the whole one on its hover. The
+     lane's reading for these checks is its text, the hover titles in it and
+     the dropdown's position, said as before. */
+  await page.addInitScript(() => {
+    window.__riskStep = () => { const s = document.getElementById('ce-pick-sel'); if (!s || !document.querySelector('[data-ce-tab="risks"].is-on')) return '';
+      const o = [...s.options].filter(x => !x.disabled); const i = o.findIndex(x => x.selected); return i < 0 ? '' : 'Risk ' + (i + 1) + ' of ' + o.length; };
+    window.__laneText = el => !el ? '' : el.textContent + ' ' + [...el.querySelectorAll('[title]')].map(x => x.getAttribute('title')).join(' ') + ' ' + window.__riskStep();
+  });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   let shares = 0;
@@ -82,12 +92,15 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
     const ln = pg.querySelector('#ce-lane');
     const sel = ln && ln.querySelector('[data-ce-rk-where]');
     const where = sel ? sel.closest('.rk-where') : null;
-    return { text: ln ? ln.textContent.replace(/\s+/g, ' ') : '',
-      step: ((ln && ln.textContent.match(/Risk \d+ of \d+/)) || [''])[0],
+    return { text: ln ? window.__laneText(ln).replace(/\s+/g, ' ') : '',
+      step: ((ln && window.__laneText(ln).match(/Risk \d+ of \d+/)) || [''])[0],
       /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the rail head no longer
          names the clause; the top bar's crumb ("Edit …") does. */
       clause: (((document.querySelector('#shell-title .crumb-layer') || {}).textContent || '') + ' '
-        + ((pg.querySelector('#ce-scope .eb, #ce-scope') || {}).textContent || '')).replace(/\s+/g, ' ').trim(),
+        /* RE-POINTED 6 Oct 2026: the Selected card is gone; the clause on the
+           paper the editor holds names it */
+        + (() => { const id = window.clauseEditorClauseId ? clauseEditorClauseId() : ''; const k = id && pg.querySelector('#ce-doc [data-clause="' + id + '"]');
+          return k ? ((k.querySelector('.rl-clause-h, h4') || {}).textContent || '') : ''; })()).replace(/\s+/g, ' ').trim(),
       label: where ? (where.querySelector('.rk-k') || {}).textContent : null,
       value: sel ? sel.value : null,
       opts: sel ? [...sel.options].map(o => ({ v: o.value, t: o.textContent.trim(), d: o.disabled })) : [],
@@ -141,7 +154,7 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
     const n0 = await page.evaluate(() => window._asked.length);
     await press(page, '[data-ce-act="rk-skip"]');
     const L2 = await until(page, async () => { const ln = document.querySelector('#clause-editor #ce-lane');
-      return ln && /Risk 2 of 3/.test(ln.textContent) && ln.querySelector('[data-ce-rk-where]') ? true : null; }, null, 8000) && await lane();
+      return ln && /Risk 2 of 3/.test(window.__laneText(ln)) && ln.querySelector('[data-ce-rk-where]') ? true : null; }, null, 8000) && await lane();
     check(!!L2 && /Which clause is this about\?/i.test(L2.label || ''), '2a a risk HaTi cannot place asks "Which clause is this about?"', L2 && L2.label);
     check(!!L2 && L2.value === '' && L2.opts[0] && L2.opts[0].d, '2b nothing is chosen for the reader', L2 && JSON.stringify(L2.opts[0]));
     const chg = L2 ? L2.opts.filter(o => /^chg:/.test(o.v)) : [], add = L2 ? L2.opts.filter(o => o.v && !/^chg:/.test(o.v)) : [];
@@ -153,7 +166,7 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
     await shot('2-which-clause.png');
     await page.selectOption('#clause-editor #ce-lane [data-ce-rk-where]', chg[0] ? chg[0].v : 'none');
     const L3 = await until(page, async () => { const pg = document.getElementById('clause-editor'); const ln = pg && pg.querySelector('#ce-lane');
-      return ln && /Risk 2 of 3/.test(ln.textContent) && ln.querySelector('[data-ce-apply="rk:0"]') ? true : null; }, null, 10000) && await lane();
+      return ln && /Risk 2 of 3/.test(window.__laneText(ln)) && ln.querySelector('[data-ce-apply="rk:0"]') ? true : null; }, null, 10000) && await lane();
     check(!!L3 && /Supply & Specification/i.test(L3.clause), '2f "Change 1. Supply & Specification" opens that clause', L3 && L3.clause);
     const ask3 = await page.evaluate(() => window._asked.slice(-1)[0] || '');
     check(/Rewrite this contract clause/.test(ask3) && /shall supply an estimated/i.test(ask3), '2g and asks Copilot once, to rewrite it', ask3.slice(0, 90));
@@ -174,7 +187,7 @@ const NEW_CL = 'Each party shall sign this Agreement in the order the Buyer name
     await page.evaluate(() => { if (window.ceForgetUnfiled) ceForgetUnfiled(); });
     await press(page, '[data-ce-act="rk-skip"]');
     const L5 = await until(page, async () => { const ln = document.querySelector('#clause-editor #ce-lane');
-      return ln && /Risk 3 of 3/.test(ln.textContent) && ln.querySelector('.rk-say') ? true : null; }, null, 10000) && await lane();
+      return ln && /Risk 3 of 3/.test(window.__laneText(ln)) && ln.querySelector('.rk-say') ? true : null; }, null, 10000) && await lane();
     check(!!L5 && /Price & Contract Value/i.test(L5.clause), '3- "Price index unnamed" (clause 2) opens on its clause', L5 && L5.clause);
     check(!!L5 && !L5.red && /I need the clause that sets prices/.test(L5.say) && /Choose the clause this is about above/.test(L5.say),
       '3a Copilot\'s answer is said quietly, with the way forward — not in red', L5 && L5.say.slice(0, 140));
