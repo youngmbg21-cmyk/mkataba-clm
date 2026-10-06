@@ -144,15 +144,17 @@ describe('f507 (3) — what the open row holds', () => {
       'the panel\'s face and body size, nothing measured');
     assert.ok(!/function docThreadFace\(/.test(CONTRACT), 'the paper measurer is gone');
   });
-  test('or PLAIN — ONE clause, with "All N clauses in plain English" beside it and the cost said', () => {
+  /* RE-POINTED 6 Oct 2026 (Young: "there should never be an option to
+     translate all clauses"): Plain reads ONE clause and nothing sits beside it. */
+  test('or PLAIN — ONE clause, ONLY, with the cost said', () => {
     const ex = region(CONTRACT, 'docThreadExplainHtml');
     assert.match(ex, /data-th-explain="\$\{i\}"/);
-    assert.match(ex, /data-th-explain-all/);
+    assert.ok(!/data-th-explain-all|th_plain_all/.test(THREAD.replace(/\/\*[\s\S]*?\*\//g, ' ')), 'no "All N clauses" press anywhere in the thread');
     assert.match(ex, /th_cost/, 'the cost is by the button');
     assert.match(ex, /docThreadNoAi\(\)/, 'not connected is known before the press, greyed with why');
     const wire = region(CONTRACT, 'docThreadWire');
-    assert.match(wire, /docReadRun\(cur,\{only:\[i\],force:ex\.hasAttribute\('data-th-force'\)\}\)/, 'one row to the route');
-    assert.match(wire, /docReadRun\(cur,\{\}\)/, 'All N is the whole contract, as before');
+    assert.match(wire, /docReadRun\(cur,\{only:\[i\],force:ex\.hasAttribute\('data-th-force'\),out\}\)/, 'one row to the route');
+    assert.ok(!/docReadRun\(cur,\{\}\)/.test(wire), 'and no press for the whole contract');
   });
   test('WORTH A LOOK: the one light-red area, marks as sentences with a coloured rule, and NO "Add a note"', () => {
     assert.match(body, /<div class="doc-th-look\$\{marks\?' has':''\}">/);
@@ -219,7 +221,7 @@ describe('f507 (5) — the funnel, the words, the narrow window', () => {
       'th_explain_all_one', 'th_explain_all_other', 'th_explain_all_title', 'th_no_ai', 'th_moved', 'th_unrun_scan', 'th_unrun_pb',
       'th_unrun_oblig', 'th_run', 'th_look_n_one', 'th_look_n_other',
       'th_plain', 'th_plain_title', 'th_plain_all_one', 'th_plain_all_other', 'th_plain_all_title', 'th_cannot_state', 'th_cannot_head',
-      'th_cannot_say', 'th_clauses', 'th_door_title', 'th_close', 'th_filter_label', 'th_f_all', 'th_f_ruby', 'th_f_ruby_say',
+      'th_cannot_say', 'th_cannot_empty', 'th_cannot_noai', 'th_cannot_limit', 'th_cannot_failed', 'th_clauses', 'th_door_title', 'th_close', 'th_filter_label', 'th_f_all', 'th_f_ruby', 'th_f_ruby_say',
       'th_f_amber', 'th_f_amber_say', 'th_f_steel', 'th_f_steel_say', 'th_f_zero', 'th_f_empty', 'th_of_shown'])
       assert.equal((I18N.match(new RegExp('^\\s*' + k + ': ', 'gm')) || []).length, 2, k);
   });
@@ -307,10 +309,11 @@ describe('f507 (7) — the colour filter', () => {
 });
 
 describe('f507 (8) — Plain always turns the clause into plain English, and never ends in silence', () => {
-  test('the button says Plain, and All N clauses in plain English sits beside it', () => {
+  /* RE-POINTED 6 Oct 2026: "All N clauses" is gone; th_plain_all_* inert. */
+  test('the button says Plain, and nothing sits beside it', () => {
     const ex = region(CONTRACT, 'docThreadExplainHtml');
     assert.match(ex, /i18t\('th_plain'\)/);
-    assert.match(ex, /i18tn\('th_plain_all',n,\{n\}\)/);
+    assert.ok(!/th_plain_all/.test(ex), 'no "All N clauses in plain English"');
     assert.ok(!/i18t\('th_explain'\)|th_explain_all'/.test(THREAD), 'the old words are drawn nowhere');
   });
   test('the route: every clause gets a reading; an empty one is never landed, kept or served', () => {
@@ -321,12 +324,22 @@ describe('f507 (8) — Plain always turns the clause into plain English, and nev
     assert.match(SERVER, /&& !readEditionHasEmptyClause\(r\.items\)\) \{/, 'nor is an edition holding one');
     assert.match(SERVER, /json LIKE '\{"plain":""%'/, 'and a real reading heals the stored empty row');
   });
-  test('a clause still without a reading after the press says so on its row, with Plain to ask again', () => {
+  /* RE-POINTED 6 Oct 2026 (Young: "Hati keeps having a hard time translating
+     a clause"): the row is marked only after a press that REALLY asked, and
+     says WHY — empty answer, not connected, a limit, or a failed provider. */
+  test('a clause still without a reading after the press says so on its row, says why, with Plain to ask again', () => {
     const wire = region(CONTRACT, 'docThreadWire');
-    assert.match(wire, /docThreadCannotMark\(now,\[i\]\);/);
+    assert.match(wire, /if\(out\.asked\) docThreadCannotMark\(now,\[i\],out\.why\|\|'empty'\);/, 'only after a real ask');
     assert.match(region(CONTRACT, 'docThreadStates'), /i18t\('th_cannot_state'\)/);
-    assert.match(region(CONTRACT, 'docThreadBodyHtml'), /if\(docThreadCannotOf\(c\)\.has\(i\)\)\n\s*parts\.push\(`<p class="doc-th-cannot">/);
-    assert.match(region(CONTRACT, 'docThreadCannotMark'), /if\(cache\.plain\.has\(x\.el\)\) rec\.set\.delete\(i\); else rec\.set\.add\(i\);/);
+    assert.match(region(CONTRACT, 'docThreadBodyHtml'), /if\(docThreadCannotOf\(c\)\.has\(i\)\)\n\s*parts\.push\(`<p class="doc-th-cannot"><b>\$\{esc\(i18t\('th_cannot_head'\)\)\}<\/b> \$\{esc\(i18t\(docThreadCannotWhy\(c,i\)\)\)\}<\/p>`\);/, 'the reason, in words');
+    assert.match(region(CONTRACT, 'docThreadCannotMark'), /if\(cache\.plain\.has\(x\.el\)\) rec\.set\.delete\(i\); else rec\.set\.set\(i, why\|\|'empty'\);/);
+    assert.match(CONTRACT, /const DOC_THREAD_WHY = \{ empty:'th_cannot_empty', noai:'th_cannot_noai', limit:'th_cannot_limit', failed:'th_cannot_failed' \};/);
+    const why = region(CONTRACT, 'docReadWhyOf');
+    assert.match(why, /if\(!err\) return 'empty';/);
+    assert.match(why, /return 'limit';/);
+    assert.match(why, /if\(err\.needsKey\) return 'noai';/);
+    assert.match(why, /return 'failed';/);
+    assert.match(region(CONTRACT, 'docReadRun'), /if\(out\)\{ out\.why=docReadWhyOf\(err\); return false; \}/, 'the row says it; the pop-up stands down');
   });
 });
 

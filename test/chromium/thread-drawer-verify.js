@@ -227,7 +227,9 @@ const answer = say => b => [{ type: 'tool_use', id: 'tu', name: 'clause_readings
       await page.waitForTimeout(3500);
       const s = await read(); return { calls: ai.calls.length - c0, s, row: s.rows.find(r => r.open) || {} }; };
     const s5 = await read();
-    check('4a the button says Plain, with "All N clauses in plain English" beside it', /Plain/.test(s5.openText) && /All 7 clauses in plain English/.test(s5.openText), s5.openText.slice(0, 120));
+    /* RE-POINTED 6 Oct 2026 (Young: "there should never be an option to
+       translate all clauses so please delete"). */
+    check('4a the button says Plain, and NO "All N clauses in plain English" sits beside it', /Plain/.test(s5.openText) && !/clauses in plain English/.test(s5.openText), s5.openText.slice(0, 120));
     ai.script(answer(() => ''), answer(() => ''));
     const p1 = await press();
     check('4b answered empty (twice), the clause says "Could not read" on its row, and why, with Plain to ask again',

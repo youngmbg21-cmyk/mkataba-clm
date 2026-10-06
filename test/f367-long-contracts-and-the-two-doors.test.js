@@ -179,7 +179,7 @@ const answerPage = body => {
   return { content: [{ type: 'tool_use', id: 'tu', name: 'clause_readings',
     input: { readings: rows.map(r => ({ key: r.key, heading: r.heading, plain: `In plain words: ${r.heading}.` })) } }] };
 };
-describe('f367 (2) driven: a 200-clause contract is read whole', () => {
+describe('f367 (2) driven: any clause of a 200-clause contract is read, one at a time', () => {
   let h, ai, W;
   before(async () => {
     ai = await startScriptedAi();
@@ -192,31 +192,33 @@ describe('f367 (2) driven: a 200-clause contract is read whole', () => {
   });
   after(async () => { await h.stop(); await ai.stop(); });
 
-  test('every clause is read; no page is larger than READ_PAGE_CHARS; nothing is reported unread', async () => {
+  /* RE-POINTED 6 Oct 2026 (Young: "the translation is supposed to be one
+     clause at a time only"): a whole-contract press is refused; the claim is
+     now that ANY clause of the owner-sized contract is read, by itself. */
+  test('any clause of a 200-clause, 210,000-character contract is read by itself; the call is one clause\'s size', async () => {
     ai.reset();
-    ai.script(...Array.from({ length: 40 }, () => answerPage));
+    ai.script(answerPage);
     const list = longClauses(200);
     const total = list.reduce((a, x) => a + x.text.length, 0);
     assert.ok(total > 200000, 'the stage is over the old whole-edition ceiling: ' + total);
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F367-1', clauses: list } });
-    assert.equal(out.readings.items.length, 200, 'every clause has an entry');
-    assert.equal(out.readings.over, 0, 'and nothing is left unread');
+    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F367-1', clauses: list, only: [199] } });
+    assert.deepEqual(out.readings.items.map(x => x.i), [199], 'the last clause has its reading');
+    assert.equal(ai.calls.length, 1, 'in one call');
     const limit = Number((SERVER.match(/const READ_PAGE_CHARS = (\d+);/) || [])[1]);
-    const sizes = ai.calls.map(c => (c.body.messages[0].content.split('THE CONTRACT:\n')[1] || '').length);
-    assert.ok(sizes.every(n => n <= limit + 2000), 'no page is larger than a translation can answer: ' + Math.max(...sizes));
+    const sent = ai.calls[0].body.messages[0].content.split('THE CONTRACT:\n')[1] || '';
+    assert.ok(sent.length <= limit, 'carrying one clause, not the contract: ' + sent.length);
     assert.ok(!out.notice || !/shortened/.test(out.notice), 'and the reader is not told the input was shortened');
   });
 
-  test('a page cut short is asked again in two halves, and the halves are kept', async () => {
+  test('a clause whose answer came back cut short and empty is asked once more, and lands', async () => {
     ai.reset();
-    /* The first page comes back CUT SHORT with nothing in it; every call
-       after that answers the page it was sent. */
     let first = true;
-    ai.script(...Array.from({ length: 40 }, () => body => {
+    ai.script(...Array.from({ length: 3 }, () => body => {
       if (first) { first = false; return { content: [{ type: 'tool_use', id: 'tu', name: 'clause_readings', input: { readings: [] } }], stopReason: 'max_tokens' }; }
       return answerPage(body);
     }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F367-2', clauses: longClauses(20), force: true } });
-    assert.equal(out.readings.items.length, 20, 'the cut-short page was re-asked in halves and every clause came back');
+    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F367-2', clauses: longClauses(20), only: [7], force: true } });
+    assert.deepEqual(out.readings.items.map(x => x.i), [7], 'the clause came back');
+    assert.equal(ai.calls.length, 2, 'on the second ask');
   });
 });

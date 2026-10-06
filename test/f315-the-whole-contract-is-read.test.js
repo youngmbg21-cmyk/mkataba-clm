@@ -29,6 +29,18 @@
      3. a page that never answered is counted, said, and NOT cached — the
         cut-short rule, applied to a page;
      4. the total ceiling is still a fact with a number beside it.
+
+   ---- RE-POINTED 6 Oct 2026 (Young: "the translation is supposed to be one
+   clause at a time only" / "there should never be an option to translate all
+   clauses") ----
+   The route now reads exactly ONE named clause per press. What this file
+   still holds is the owner's 15 Sep point in the one-clause world: ANY clause
+   of an entire contract can be read — the 130th as surely as the first —
+   under a key that is its page's own and lands on its global place; a press
+   that never answered is said and kept nowhere; a clause read once is never
+   paid for again; a clause that moves is the only thing asked again. The
+   multi-page claims (every page of a whole press, the first page failing)
+   are RETIRED IN PLACE: no press asks for more than one clause.
    ============================================================ */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -76,84 +88,41 @@ describe('f315 the whole contract is read', () => {
   });
   after(async () => { await h.stop(); await ai.stop(); });
 
-  test('(1) THE REPORTED CASE: a 130-clause agreement comes back whole, not 60 of it', async () => {
+  const ask = (id, list, k, extra) => W.admin.json('/api/ai/readings', { method: 'POST', body: { id, clauses: list, only: [k], ...(extra || {}) } });
+
+  test('(1) THE REPORTED CASE, ONE CLAUSE AT A TIME: the 130th clause of a 130-clause agreement is read as surely as the first', async () => {
     ai.reset();
-    ai.script(answerPage, answerPage, answerPage);
-    const list = clauses(130);
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-1', clauses: list } });
-    const r = out.readings;
-    /* AT THE PARENT: items.length is 60 and over is 70. */
-    assert.equal(r.items.length, 130, 'every clause has an entry');
-    assert.equal(r.over, 0, 'and nothing is reported as left unread');
-    assert.equal(r.unmatched, 0, 'nothing failed the pairing guard');
-    assert.equal(ai.calls.length, 3, 'read in pages of 60, 60 and 10 — three calls, not one');
+    ai.script(answerPage);
+    const out = await ask('MK-F315-1', clauses(130), 129);
+    assert.equal(ai.calls.length, 1, 'one call');
+    assert.deepEqual(out.readings.items.map(x => x.i), [129], 'and it lands on the clause asked');
+    assert.match(out.readings.items[0].plain, /Clause 130/);
   });
 
-  test('(2) a key is the row\'s address IN ITS PAGE, and it is offset back to the whole list', async () => {
-    const r = (await W.admin.json('/api/contracts/MK-F315-1'))._readings;
-    assert.ok(r, 'the whole edition was cached');
-    /* EVERY PAGE ADDRESSES ITS OWN ROWS FROM R0 — the short key space is what
-       makes the pairing reliable, and it is what made the offset necessary. */
-    /* FOUND BY WHAT IT CARRIES, never by its position in the call log: the pages
-       run a few at a time, so which call arrives second is the provider's
-       business and not a fact this claim rests on. */
-    const second = ai.calls.map(c => c.body.messages[0].content).find(t => /CLAUSE 61\n/.test(t));
-    assert.ok(second, 'clause 61 was sent on some page');
-    assert.ok(/\[R0\] CLAUSE 61\n/.test(second), 'the page carrying clause 61 opens at R0');
-    assert.ok(ai.calls.every(c => !/\[R60\]/.test(c.body.messages[0].content)),
-      'no page ever addresses a row beyond its own length');
-    /* AND THE ITEM CARRIES THE GLOBAL INDEX, which is what the browser pairs
-       against its own sheet. An item filed under its page index would draw
-       clause 61's reading under clause 1 — the 11 Sep fault, reintroduced. */
-    assert.deepEqual(r.items.map(x => x.i), Array.from({ length: 130 }, (_, k) => k));
-    const sixtyOne = r.items.find(x => x.i === 60);
-    assert.equal(sixtyOne.heading, '61. Clause 61', 'and it is stamped with its own row');
-    assert.match(sixtyOne.plain, /61\. Clause 61/, 'carrying the reading written for it');
+  test('(2) a key is the row\'s address IN ITS PAGE, and it is offset back to the whole list', () => {
+    const sent = ai.calls[0].body.messages[0].content;
+    assert.ok(/\[R0\] CLAUSE 130\n/.test(sent), 'the one clause sent opens at R0');
+    assert.equal((sent.match(/\[R\d+\] CLAUSE/g) || []).length, 1, 'and it is the only clause sent');
   });
 
-  test('(3) a page that never answered is counted, said, and NOT cached', async () => {
+  test('(3) a press that never answered is refused in words, and nothing is kept', async () => {
     ai.reset();
-    ai.script(answerPage, dead, answerPage);
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-2', clauses: clauses(130) } });
-    const r = out.readings;
-    assert.equal(r.items.length, 70, 'the pages that answered are a real part of the document and are kept');
-    assert.equal(r.over, 60, 'and the page that did not is counted as unread, with a number beside it');
+    ai.script(dead, dead);
+    const r = await W.admin.raw('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-2', clauses: clauses(130), only: [5] } });
+    assert.equal(r.status, 502, 'refused');
+    assert.ok(r.json && r.json.error, 'with the provider\'s reason');
     const c = await W.admin.json('/api/contracts/MK-F315-2');
-    assert.ok(!c._readings, 'a document with a hole in it is not cached, or it is served for the life of the wording');
+    assert.ok(!c._readings, 'and no edition was written');
   });
 
-  /* REVERSED IN PLACE (fix 6, Young's go, 23 Sep 2026: "If one part fails,
-     only that part is tried again. Everything already read is kept."). This
-     claim used to hold that the FIRST page failing refused the whole press —
-     which threw away every page that had come back. What it always meant is
-     kept as (4b): with NOTHING read at all there is no edition to hand over. */
-  test('(4) the first page failing no longer throws away the pages that came back', async () => {
+  test('(4c) a later press for a clause already read asks nothing', async () => {
     ai.reset();
-    ai.script(dead, answerPage);
-    const r = await W.admin.raw('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-3', clauses: clauses(80) } });
-    assert.equal(r.status, 200, 'what was read is handed over');
-    assert.equal(r.json.readings.items.length, 20, 'the page that answered is kept');
-    assert.equal(r.json.readings.over, 60, 'and the page that failed — asked again once, and failing again — is counted as unread');
-    assert.ok(ai.calls.length >= 3, 'the failed page was asked again: ' + ai.calls.length);
-  });
-
-  test('(4b) with nothing read at all the press is refused, and the reader is told why', async () => {
-    ai.reset();
-    ai.script(dead, dead, dead, dead);
-    await put('MK-F315-5');
-    const r = await W.admin.raw('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-5', clauses: clauses(80) } });
-    assert.equal(r.status, 502, 'the reader is told why rather than shown an empty column');
-  });
-
-  test('(4c) a later press asks only for the clauses nobody has read', async () => {
-    ai.reset();
-    ai.script(answerPage, answerPage);
-    const r = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-3', clauses: clauses(80) } });
-    assert.equal(r.readings.items.length, 80, 'the edition is whole now');
-    assert.equal(r.readings.over, 0);
-    const sent = ai.calls.map(c => c.body.messages[0].content.split('THE CONTRACT:\n')[1] || '').join('\n');
-    assert.ok(!/CLAUSE 61\n/.test(sent) && !/CLAUSE 80\n/.test(sent), 'the twenty already read were not sent again');
-    assert.ok(/CLAUSE 1\n/.test(sent) && /CLAUSE 60\n/.test(sent), 'only the sixty that failed');
+    ai.script(answerPage);
+    await ask('MK-F315-3', clauses(80), 61);
+    const before = ai.calls.length;
+    const again = await ask('MK-F315-3', clauses(80), 61);
+    assert.equal(ai.calls.length, before, 'nothing spent');
+    assert.ok(again.readings.items.some(x => x.i === 61), 'and the reading is handed back');
   });
 
   /* RE-POINTED 23 Sep 2026 (Young: "hati seems to not be able to read a long
@@ -171,31 +140,21 @@ describe('f315 the whole contract is read', () => {
     assert.match(SERVER, /over = all\.length - read;/);
   });
 
-  test('(6) one press, one cache row, one hash over exactly what was read', async () => {
+  test('(6) one press, one clause; a clause that moves is the only thing asked again', async () => {
     ai.reset();
     ai.script(answerPage, answerPage);
     const list = clauses(70);
-    const first = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-4', clauses: list } });
-    assert.equal(first.readings.items.length, 70);
-    assert.equal(ai.calls.length, 2);
-    const again = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-4', clauses: list } });
-    assert.equal(again.cached, true, 'the same wording is not paid for twice');
-    assert.equal(ai.calls.length, 2, 'and the provider is not called again');
-    /* THE HASH IS OVER THE WHOLE EDITION, so moving one word anywhere in the
-       document re-asks it — the property the key-inside-the-text note relies
-       on, kept through paging. */
+    await ask('MK-F315-4', list, 65);
+    assert.equal(ai.calls.length, 1);
+    const again = await ask('MK-F315-4', list, 65);
+    assert.equal(ai.calls.length, 1, 'the same wording is not paid for twice');
+    assert.ok(again.readings.items.some(x => x.i === 65));
     const moved = list.slice(); moved[65] = { ...moved[65], text: moved[65].text + ' As amended.' };
-    ai.script(answerPage, answerPage);
-    const third = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F315-4', clauses: moved } });
-    assert.ok(!third.cached, 'a word moved on page two is a different document');
-    /* RE-POINTED IN PLACE (fix 6, 23 Sep 2026: "When one clause changes, only
-       that clause is read again"). This read 4 — the whole document asked
-       again for one moved word. Every clause is kept as it is read now, so
-       the moved clause is the ONLY thing sent. */
-    assert.equal(ai.calls.length, 3, 'one more call, not two');
-    const last = ai.calls[2].body.messages[0].content.split('THE CONTRACT:\n')[1] || '';
+    const third = await ask('MK-F315-4', moved, 65);
+    assert.ok(!third.cached, 'moved wording is a different clause');
+    assert.equal(ai.calls.length, 2, 'one more call');
+    const last = ai.calls[1].body.messages[0].content.split('THE CONTRACT:\n')[1] || '';
     assert.ok(/CLAUSE 66\n/.test(last) && !/CLAUSE 65\n/.test(last) && !/CLAUSE 1\n/.test(last),
       'and that call carried the moved clause alone');
-    assert.equal(third.readings.items.length, 70, 'the edition is still whole');
   });
 });

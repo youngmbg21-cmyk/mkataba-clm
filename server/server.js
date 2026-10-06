@@ -8448,6 +8448,13 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
     .filter(x => x.heading || x.text)
     .slice(0, READ_MAX_CLAUSES);
   if (!list.length) return res.status(400).json({ error: 'There is no wording to read yet' });
+  /* ---- AND NEVER THE WHOLE CONTRACT (Young, 6 Oct 2026: "there should never
+     be an option to translate all clauses") ----
+     The browser's "All N clauses" press is gone; this is the wall behind it.
+     A reading names exactly ONE clause, or it is refused with a sentence —
+     after the scope and the empty-wording answers, which say more. */
+  if (!onlyAsk || onlyAsk.size !== 1)
+    return res.status(400).json({ error: 'Plain English reads one clause at a time. Name the clause to read.', oneClause: true });
   // A CAP IS A FACT, never a silent trim — the standing rule. The reader is told
   // which clauses were left out rather than finding a column that simply stops.
   /* `over` is settled once the pages are built (a page may be left off by the
@@ -8713,13 +8720,25 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
       pg.rows.forEach((_, k) => answered.add(pg.idx ? pg.idx[k] : pg.base + k));
       let refusedN = 0;
       const got = [];
+      /* ---- ONE CLAUSE ASKED, ONE CLAUSE ANSWERED (Young, 6 Oct 2026: "the
+         translation is supposed to be one clause at a time only") ----
+         A page of ONE row cannot be misfiled: whatever comes back is about the
+         only clause asked, so it is paired by being the answer, never thrown
+         away over how the model copied the heading. Measured before: an echo
+         one word off ("on" for "for") lost to a SHORT heading elsewhere in the
+         contract ("Change of Control") whose words it contained, was called a
+         shift, and the row said "Could not read" press after press.
+         ---- AND A PAGE OF SEVERAL IS JUDGED AMONG ITS OWN ROWS ----
+         The echo asks "which row on THIS page does it describe" — a clause on
+         another page was never asked about, so it cannot be the one meant. */
+      const solo = pg.rows.length === 1;
       entries.forEach(r => {
-        const k = readKeyIndex(r && r.key);
+        const k = solo ? 0 : readKeyIndex(r && r.key);
         const i = k < 0 ? -1 : (pg.idx ? (k < pg.idx.length ? pg.idx[k] : -1) : pg.base + k);
         if (k < 0 || k >= pg.rows.length || i < 0 || i >= list.length) { refuse(r, ''); refusedN++; return; }
         if (paired.has(i) || got.some(x => x.i === i)) return;
         const want = readEchoOf(list[i]);
-        if (readEchoJudge(r && r.heading, list, i) === 'shift') { refuse(r, want, i); refusedN++; return; }
+        if (!solo && readEchoJudge(r && r.heading, pg.rows, k) === 'shift') { refuse(r, want, i); refusedN++; return; }
         const plain = String((r && r.plain) || '').trim();
         const head = String((r && r.head) || '').trim();
         /* ---- THE HEADING IS THE DRAFTER'S OWN (Young ruled 10 Sep 2026) ----
@@ -8838,7 +8857,11 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        page that HAD come back. The rule is now what it always meant: with
        nothing read at all there is no edition to hand over, and the reader is
        told why. */
-    if (!items.length && !answered.size && firstErr) return { status: 502, error: firstErr };
+    /* …AND ONE CLAUSE ASKED IS THE WHOLE PRESS (6 Oct 2026): where nothing the
+       press asked for ever got an answer, the press failed — said with the
+       provider's reason, even though clauses read before are still kept and
+       come back on the next press. */
+    if (firstErr && pending.length && pending.every(i => !answered.has(i))) return { status: 502, error: firstErr };
     /* A page cut short whose missing clauses were then read is a WHOLE
        edition: nothing is left out, so nothing is said to be — unless a
        reading on it came from the cut answer itself. */

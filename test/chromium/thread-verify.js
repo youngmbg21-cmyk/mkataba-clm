@@ -15,11 +15,16 @@
      4  PLAIN (was "Explain this clause", renamed 5 Oct 2026) sends ONE
         request carrying ONE clause, the reading lands in the paper's own
         face, and it rides the GET after a reload; "All N clauses in plain
-        English" is still offered
+        English" is GONE (Young, 6 Oct 2026: "there should never be an option
+        to translate all clauses")
      5  Worth a look is the one light-red area, with marks as sentences under a
         coloured rule and NO "Add a note"; Who does what sits under it
      6  the contract does not move (refusal 3), in either theme; the risk door
         lands on the worst-marked clause; below 1024 the Thread stands down
+     8  (6 Oct 2026) a clause Copilot could not read says WHY on its row — the
+        provider failed, or it answered with nothing; and the open clause
+        RISES TO THE TOP of the list on a press or a step, as high as the
+        list allows for the last ones
 
    AT UNMODIFIED MAIN the Thread does not exist: 1 and 2 are red outright and
    every driven half is GUARDED so the rest REPORT rather than hang.
@@ -186,7 +191,9 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
       s1.rows.some(r => /INDEMNIF/.test(r.name) && r.tone === 'ruby') && s1.rows.some(r => /TERM, TERM/.test(r.name) && r.tone === 'amber')
         && s1.rows.some(r => /INSURANCE/.test(r.name) && r.tone === 'steel'),
       s1.rows.map(r => r.name.slice(0, 10) + ':' + (r.tone || '-')).join(' | '));
-    check('1e a row with no reading offers Plain and "All N clauses in plain English"', s1.explain && s1.explainAll, JSON.stringify({ explain: s1.explain, all: s1.explainAll }));
+    /* RE-POINTED 6 Oct 2026 (Young: "there should never be an option to
+       translate all clauses so please delete"). */
+    check('1e a row with no reading offers Plain, and NO "All N clauses in plain English"', s1.explain && !s1.explainAll, JSON.stringify({ explain: s1.explain, all: s1.explainAll }));
     await page.screenshot({ path: path.join(OUT, '01-arrival.png') });
 
     /* ===== 2. SCROLL OPENS THE ROW AT THE LINE ===== */
@@ -258,6 +265,52 @@ const responder = reqBody => tool([...String(reqBody.messages[0].content).matchA
     const s7b = await read();
     check('5e [control] with nothing worth a look (Article VI) the area stays white', !s7b.lookHas && !reddish(s7b.lookBg), s7b.lookBg);
     await page.screenshot({ path: path.join(OUT, '05-worth-a-look.png') });
+
+    /* ===== 8. WHY IT COULD NOT, AND THE OPEN CLAUSE RISES (6 Oct 2026) ===== */
+    const openWhy = () => page.evaluate(() => { const b = document.querySelector('#doc-thread .doc-th-row.is-open .doc-th-cannot');
+      return b ? b.textContent.replace(/\s+/g, ' ').trim() : ''; });
+    await page.evaluate(() => document.querySelector('#doc-thread [data-th-go="3"]').click()); await page.waitForTimeout(1300);
+    ai.script(() => 500, () => 500);
+    await page.click('#doc-thread .doc-th-row.is-open [data-th-explain]');
+    await page.waitForFunction(() => !!document.querySelector('#doc-thread .doc-th-row.is-open .doc-th-cannot'), null, { timeout: 15000 }).catch(() => {});
+    const s9 = await read(); const why9 = await openWhy();
+    check('8a a press the provider failed says so on its row, and why', /Could not read/.test(s9.rows[3] && s9.rows[3].state) && /connection or the provider failed/.test(why9),
+      (s9.rows[3] && s9.rows[3].state) + ' · ' + why9);
+    const emptyAns = reqBody => tool([...String(reqBody.messages[0].content).matchAll(/\[(R\d{1,3})\] (?:CLAUSE|SECTION)[^\n]*\nheading: ([^\n]*)/g)].map(m => ({ key: m[1], heading: m[2], plain: '' })));
+    ai.script(emptyAns, emptyAns);
+    await page.click('#doc-thread .doc-th-row.is-open [data-th-explain]');
+    await page.waitForFunction(() => /answered without/.test((document.querySelector('#doc-thread .doc-th-row.is-open .doc-th-cannot') || {}).textContent || ''), null, { timeout: 15000 }).catch(() => {});
+    const why9b = await openWhy();
+    check('8b a press Copilot answered with nothing says THAT, with Plain to ask again', /answered without a reading/.test(why9b), why9b);
+    await page.screenshot({ path: path.join(OUT, '08-could-not-read.png') });
+
+    /* THE OPEN CLAUSE RISES: measured against the list's own top — as high as
+       the list allows (scrollTo clamps), so the expected place is the
+       smaller of "its head at the top" and "the list scrolled to its end". */
+    const rise = () => page.evaluate(() => {
+      const box = document.querySelector('#doc-thread .doc-th-rows'); const r = box && box.querySelector('.doc-th-row.is-open');
+      if (!box || !r) return null;
+      const pad = parseFloat(getComputedStyle(box).paddingTop) || 0;
+      const gap = r.getBoundingClientRect().top - box.getBoundingClientRect().top - pad;
+      const max = box.scrollHeight - box.clientHeight;
+      return { idx: Number(r.dataset.thRow), gap: Math.round(gap), scroll: Math.round(box.scrollTop), max: Math.round(max), want: Math.round(Math.min(box.scrollTop + gap, max)) };
+    });
+    await page.evaluate(() => document.querySelector('#doc-thread [data-th-go="0"]').click()); await page.waitForTimeout(1400);
+    await page.click('#doc-thread .doc-th-row.is-open [data-th-step="1"]'); await page.waitForTimeout(1500);
+    const r1 = await rise();
+    check('8c › brings the next clause\'s head to the TOP of the list, the ones before it scrolled up', !!r1 && r1.idx === 1 && Math.abs(r1.gap) <= 2 && r1.scroll > 0,
+      JSON.stringify(r1));
+    await page.evaluate(() => { const b = document.querySelector('#doc-thread .doc-th-rows'); b.scrollTop = 0; });
+    await page.waitForTimeout(300);
+    await page.evaluate(() => document.querySelector('#doc-thread [data-th-go="2"]').click()); await page.waitForTimeout(1500);
+    const r2 = await rise();
+    check('8d a press on a row already in sight low down brings it to the top too (as high as the list allows)', !!r2 && r2.idx === 2 && Math.abs(r2.scroll - r2.want) <= 2 && r2.scroll > 0,
+      JSON.stringify(r2));
+    await page.screenshot({ path: path.join(OUT, '08-risen.png') });
+    await page.evaluate(() => document.querySelector('#doc-thread [data-th-go="4"]').click()); await page.waitForTimeout(1500);
+    const r3 = await rise();
+    check('8e [control] the last clause goes as high as the list allows — nothing padded to fake it', !!r3 && r3.idx === 4 && Math.abs(r3.scroll - r3.want) <= 2,
+      JSON.stringify(r3));
 
     /* ===== 6. THE DOORS, THE NARROW WINDOW, THE NIGHT ===== */
     await page.setViewportSize({ width: 1000, height: 800 }); await page.waitForTimeout(600);

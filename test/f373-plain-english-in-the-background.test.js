@@ -67,54 +67,53 @@ describe('f373 (1–3, 5–6) the route keeps every clause as it is read', () =>
   });
   after(async () => { await h.stop(); await ai.stop(); });
 
-  test('(1) THE REPORT: a page that fails no longer loses the pages that came back — they are kept, and the next press asks only for what is missing', async () => {
+  /* RE-POINTED 6 Oct 2026 (Young: "the translation is supposed to be one
+     clause at a time only" / "there should never be an option to translate
+     all clauses"): every press names ONE clause, so each claim below is asked
+     one clause at a time. (5b), a page of several more than a quarter
+     misfiled, is RETIRED IN PLACE — no page holds several rows any more. */
+  const ask = (id, list, k, extra) => W.admin.json('/api/ai/readings', { method: 'POST', body: { id, clauses: list, only: [k], ...(extra || {}) } });
+
+  test('(1) THE REPORT: a press that fails loses nothing already read, and the next press asks only for the clause asked', async () => {
     ai.reset();
-    /* Two pages of sixty and one of ten. The middle one fails, and fails again
-       when it is asked the second time. */
-    ai.script(answerPage, dead, answerPage, dead);
-    const first = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-1', clauses: clauses(130) } });
-    /* AT THE PARENT the 70 that came back were handed over and thrown away:
-       nothing was kept, and the next press sent all 130 again. */
-    assert.equal(first.readings.items.length, 70, 'what came back is handed over');
-    assert.equal(first.readings.over, 60, 'and what did not is counted');
+    const list = clauses(130);
+    ai.script(answerPage, dead, dead);
+    await ask('MK-F373-1', list, 0);
+    const r = await W.admin.raw('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-1', clauses: list, only: [61] } });
+    assert.equal(r.status, 502, 'the failed press says so');
     ai.reset();
-    ai.script(answerPage, answerPage, answerPage);
-    const second = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-1', clauses: clauses(130) } });
-    assert.equal(second.readings.items.length, 130, 'the second press makes the edition whole');
-    const sent = ai.calls.map(sentOf).join('\n');
-    assert.equal(ai.calls.length, 1, 'with ONE call — the sixty that failed, and nothing else');
-    assert.ok(/CLAUSE 61\n/.test(sent) && /CLAUSE 120\n/.test(sent), 'the missing sixty were sent');
-    assert.ok(!/CLAUSE 1\n/.test(sent) && !/CLAUSE 130\n/.test(sent), 'the seventy already read were not');
+    ai.script(answerPage);
+    const second = await ask('MK-F373-1', list, 61);
+    assert.equal(ai.calls.length, 1, 'one call');
+    assert.equal(rowsOf(ai.calls[0].body).length, 1, 'carrying ONE clause');
+    assert.ok(/CLAUSE 62\n/.test(sentOf(ai.calls[0])), 'the one asked');
+    assert.deepEqual(second.readings.items.map(x => x.i), [0, 61], 'and what was read before is still there');
   });
 
   test('(2) when one clause changes, only that clause is read again', async () => {
     ai.reset();
     ai.script(answerPage, answerPage);
     const list = clauses(80);
-    await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-2', clauses: list } });
-    assert.equal(ai.calls.length, 2, 'the first reading is two pages');
+    await ask('MK-F373-2', list, 41);
+    await ask('MK-F373-2', list, 0);
+    assert.equal(ai.calls.length, 2);
     ai.reset();
     ai.script(answerPage);
     const moved = list.slice(); moved[41] = { ...moved[41], text: moved[41].text + ' As amended by the parties.' };
-    const again = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-2', clauses: moved } });
+    const again = await ask('MK-F373-2', moved, 41);
     assert.equal(ai.calls.length, 1, 'one call');
-    const sent = sentOf(ai.calls[0]);
     assert.equal(rowsOf(ai.calls[0].body).length, 1, 'carrying ONE clause');
-    assert.ok(/CLAUSE 42\n/.test(sent) && /As amended by the parties/.test(sent), 'the one that moved');
-    assert.equal(again.readings.items.length, 80, 'and the edition is whole');
+    assert.ok(/CLAUSE 42\n/.test(sentOf(ai.calls[0])) && /As amended by the parties/.test(sentOf(ai.calls[0])), 'the one that moved');
     assert.equal(again.readings.items.find(x => x.i === 0).plain, 'In plain words: 1. Clause 1.',
-      'the other seventy-nine came out of what was kept');
+      'and the clause read before came out of what was kept');
   });
 
-  test('(3) a page that failed is asked again once, by itself, and lands', async () => {
+  test('(3) a press whose first ask failed is asked again once, and lands', async () => {
     ai.reset();
-    ai.script(dead, answerPage, answerPage);
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-3', clauses: clauses(80) } });
-    assert.equal(out.readings.items.length, 80, 'the page that failed was asked again and every clause came back');
-    assert.equal(out.readings.over, 0, 'nothing is counted as unread');
-    assert.equal(ai.calls.length, 3, 'two pages, and the failed one once more — never the page that answered');
-    const c = await W.admin.json('/api/contracts/MK-F373-3');
-    assert.ok(c._readings && c._readings.items.length === 80, 'a whole edition rides the contract as before');
+    ai.script(dead, answerPage);
+    const out = await ask('MK-F373-3', clauses(80), 9);
+    assert.deepEqual(out.readings.items.map(x => x.i), [9], 'the clause came back');
+    assert.equal(ai.calls.length, 2, 'on the second ask');
   });
 
   test('(5a) an answer cut short is shown and never kept: the next press asks for it again', async () => {
@@ -122,58 +121,33 @@ describe('f373 (1–3, 5–6) the route keeps every clause as it is read', () =>
     const one = [{ num: '1', heading: '1. Scope', text: 'The Supplier shall supply the goods set out in each purchase order.', kind: 'clause' }];
     ai.script({ content: [{ type: 'tool_use', id: 'tu', name: 'clause_readings',
       input: { readings: [{ key: 'R0', heading: '1. Scope', plain: 'The supplier provides the goods in each ord' }] } }], stopReason: 'max_tokens' });
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-4', clauses: one } });
+    const out = await ask('MK-F373-4', one, 0);
     assert.equal(out.readings.truncated, true, 'the reader is told it was cut short');
     assert.equal(out.readings.items.length, 1, 'what came back is still shown');
     ai.reset();
     ai.script(answerPage);
-    await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-4', clauses: one } });
+    await ask('MK-F373-4', one, 0);
     assert.equal(ai.calls.length, 1, 'the half sentence was never kept, so the next press asks for it again');
   });
 
-  /* [control] — passes at the parent too, where NOTHING was ever kept. It is
-     here to prove the per-clause keeping has a wall: a doubtful page is not
-     let into it. */
-  test('(5b) [control] a page more than a quarter misfiled is shown but not kept', async () => {
-    ai.reset();
-    const four = clauses(4);
-    /* Two of four entries name the WRONG clause (a shift), so the page is
-       doubtful as a whole. */
-    ai.script({ content: [{ type: 'tool_use', id: 'tu', name: 'clause_readings', input: { readings: [
-      { key: 'R0', heading: four[0].heading, plain: 'About clause one.' },
-      { key: 'R1', heading: four[1].heading, plain: 'About clause two.' },
-      { key: 'R3', heading: four[2].heading, plain: 'About clause three, under four.' },
-    ] } }] });
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-5', clauses: four } });
-    assert.deepEqual(out.readings.items.map(x => x.i), [0, 1], 'the two that paired are shown');
-    ai.reset();
-    ai.script(answerPage);
-    await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-5', clauses: four } });
-    assert.equal(rowsOf(ai.calls[0].body).length, 4,
-      'and none of the doubtful page was kept — all four are asked again');
+  test('(5b) RETIRED IN PLACE: a press for several clauses — the only way a page could be misfiled — is refused', async () => {
+    const r = await W.admin.raw('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-5', clauses: clauses(4), only: [0, 1, 2, 3] } });
+    assert.equal(r.status, 400);
+    assert.match(r.json.error, /one clause at a time/i);
   });
 
-  test('(5c) an edition kept with a hole in it is not served whole: the next press asks for the hole alone', async () => {
+  test('(5c) a clause answered empty twice is said, kept nowhere, and the next press asks for it again', async () => {
     ai.reset();
     const four = clauses(4, ' again');
-    /* One entry missing: below the quarter line, so the edition IS kept with
-       its count (C-6) — and the clause it missed used to stay missing for the
-       life of the wording, because the whole edition answered every press. */
-    ai.script({ content: [{ type: 'tool_use', id: 'tu', name: 'clause_readings', input: { readings: [
-      { key: 'R0', heading: four[0].heading, plain: 'One.' },
-      { key: 'R1', heading: four[1].heading, plain: 'Two.' },
-      { key: 'R2', heading: four[3].heading, plain: 'Four, under three.' },
-      { key: 'R3', heading: four[3].heading, plain: 'Four.' },
-    ] } }] });
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-6', clauses: four } });
-    assert.equal(out.readings.unmatched, 1, 'one clause could not be matched');
+    const empty = { content: [{ type: 'tool_use', id: 'tu', name: 'clause_readings', input: { readings: [{ key: 'R0', heading: four[2].heading, plain: '' }] } }] };
+    ai.script(empty, empty);
+    const out = await ask('MK-F373-6', four, 2);
+    assert.equal(out.readings.unmatched, 1, 'the clause could not be read, and it is counted');
     ai.reset();
     ai.script(answerPage);
-    const again = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-6', clauses: four } });
-    assert.ok(!again.cached, 'the edition with a hole is not served as if it were whole');
-    assert.equal(ai.calls.length, 1, 'one call');
-    assert.deepEqual(rowsOf(ai.calls[0].body).map(r => r.heading), [four[2].heading], 'carrying the missing clause and nothing else');
-    assert.equal(again.readings.items.length, 4, 'and now the edition is whole');
+    const again = await ask('MK-F373-6', four, 2);
+    assert.equal(ai.calls.length, 1, 'the next press asks for it');
+    assert.deepEqual(again.readings.items.map(x => x.i), [2], 'and it lands');
   });
 
   /* [control] — passes at the parent too, where nothing was kept to be left
@@ -183,9 +157,9 @@ describe('f373 (1–3, 5–6) the route keeps every clause as it is read', () =>
     const del = await W.admin.raw('/api/contracts/MK-F373-2', { method: 'DELETE' });
     assert.ok(del.status < 300, 'the contract was deleted: ' + del.status);
     await put('MK-F373-2');
-    ai.script(answerPage, answerPage);
-    await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-2', clauses: clauses(80) } });
-    assert.equal(ai.calls.length, 2, 'a new contract under the old number is read from the start — nothing of the old one was left behind');
+    ai.script(answerPage);
+    await ask('MK-F373-2', clauses(80), 0);
+    assert.equal(ai.calls.length, 1, 'a new contract under the old number is read from the start — nothing of the old one was left behind');
   });
 
   test('(6b) the route is where every one of these readings is written, and the delete clears them', () => {
@@ -232,42 +206,40 @@ describe('f373 (4) the reading is a job the column can watch', () => {
   });
   after(async () => { await h.stop(); await prov.stop(); });
 
-  test('half way through, the column is told what has come back and how many are left', async () => {
-    let release; gate.hold = new Promise(r => { release = r; });
+  /* RE-POINTED 6 Oct 2026 (one clause at a time): the job is one clause's
+     reading; while it is held the column is told it is running and handed
+     what is already kept, and a second press on the same clause JOINS it. */
+  test('while a clause is being read, the column is told it is running; a second press joins it', async () => {
     calls.length = 0;
+    const list = clauses(130);
+    await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-J', clauses: list, only: [0] } });
+    let release; gate.hold = new Promise(r => { release = r; });
     const run = 'f373run0000000001';
-    const pending = W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-J', clauses: clauses(130), run } });
-    /* The first and third pages answer at once; the second is held. */
+    const pending = W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-J', clauses: list, only: [60], run } });
     let p = null;
     for (let k = 0; k < 40; k++) {
       await new Promise(r => setTimeout(r, 50));
       p = await W.admin.json('/api/contracts/MK-F373-J/reading-progress?run=' + run + '&from=0');
-      if (p && p.done >= 70) break;
+      if (p && p.known && calls.length >= 2) break;
     }
     assert.equal(p.running, true, 'it is still running');
-    assert.equal(p.total, 130, 'it knows how many there are');
-    assert.equal(p.done, 70, 'and says how many have come back — "Reading 70 of 130"');
-    assert.equal(p.items.length, 70, 'handing over the entries that have');
-    assert.ok(p.items.every(it => Number.isInteger(it.i) && it.i >= 0 && it.i < 130 && typeof it.plain === 'string'),
-      'each carrying its place in the whole contract');
-    /* `from` is how many the column already holds: only what is new comes back. */
+    assert.equal(p.total, 130, 'it knows how many clauses the contract has');
+    assert.deepEqual(p.items.map(it => it.i), [0], 'and hands over what is already kept, by its place in the whole contract');
     const again = await W.admin.json('/api/contracts/MK-F373-J/reading-progress?run=' + run + '&from=' + p.next);
     assert.equal(again.items.length, 0, 'nothing new yet');
 
-    /* A SECOND PRESS ON THE SAME WORDING JOINS — the reader back from another
-       page, or a colleague — and never pays twice. */
-    const joined = W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-J', clauses: clauses(130), run: 'f373run0000000002' } });
+    const joined = W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F373-J', clauses: list, only: [60], run: 'f373run0000000002' } });
     await new Promise(r => setTimeout(r, 150));
     const asked = calls.length;
     release();
     const [a, b] = await Promise.all([pending, joined]);
-    assert.equal(a.readings.items.length, 130, 'the reading finishes whole');
-    assert.equal(b.readings.items.length, 130, 'and the second press gets the same edition');
+    assert.ok(a.readings.items.some(x => x.i === 60), 'the clause is read');
+    assert.ok(b.readings.items.some(x => x.i === 60), 'and the second press gets the same reading');
     assert.equal(calls.length, asked, 'without one more call');
-    assert.equal(calls.length, 3, 'three pages in all, for two presses');
+    assert.equal(calls.length, 2, 'two calls in all: clause 1, then clause 61 once for two presses');
     const done = await W.admin.json('/api/contracts/MK-F373-J/reading-progress?run=' + run + '&from=' + p.next);
     assert.equal(done.running, false, 'and the column is told it has finished');
-    assert.equal(done.items.length, 60, 'with the entries it had not yet been handed');
+    assert.deepEqual(done.items.map(it => it.i), [60], 'with the entry it had not yet been handed');
     gate.hold = null;
   });
 
@@ -307,12 +279,17 @@ describe('f373 (7) the column opens on the press and fills as it is read', () =>
     const w = region('docThreadWire');
     /* RE-POINTED 5 Oct 2026 (Plain never ends in silence): the row is marked
        when it is still unread, then painted — still only where the reader is. */
-    assert.match(w, /finally\{\n\s*ex\.disabled=false;\n\s*const now=docThreadCur\(cur\);\n\s*if\(docReadWatching\(now\.id\)\)\{ docThreadCannotMark\(now,\[i\]\); docThreadPaint\(now\); \}/,
+    /* RE-POINTED 6 Oct 2026: marked only after a press that REALLY asked
+       (`out.asked`), and with the reason it came back with (`out.why`). */
+    assert.match(w, /finally\{\n\s*ex\.disabled=false;\n\s*const now=docThreadCur\(cur\);\n\s*if\(docReadWatching\(now\.id\)\)\{ if\(out\.asked\) docThreadCannotMark\(now,\[i\],out\.why\|\|'empty'\); docThreadPaint\(now\); \}/,
       'and a reader who moved on while it read keeps what they chose');
   });
-  test('one press per contract: a whole reading already running is joined; a one-clause press waits for it', () => {
+  /* RE-POINTED 6 Oct 2026: there is no whole reading any more — a press that
+     names no clause, or several, is not made; a clause press waits for one
+     already running. */
+  test('one press per contract: one clause only; a clause press waits for one already running', () => {
     const r = region('docReadRun');
-    assert.match(r, /if\(!only&&!busy\.only\) return busy\.promise;/, 'joined, never asked for twice');
+    assert.match(r, /if\(!only\|\|only\.length!==1\) return false;/, 'one clause, only');
     assert.match(r, /try\{ await busy\.promise; \}catch\(_\)\{\}/, 'a clause not in the run that is running waits its turn');
     assert.match(r, /run:job\.run/, 'the press carries its own name, so progress is about THIS reading');
     assert.match(r, /only\?\{only\}:\{\}/, 'and names the rows it wants, by their place in the whole walk');
