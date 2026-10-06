@@ -15,7 +15,9 @@
         chapter's words and the cost line stand off the card);
      5. Share opens the give form on the story;
      6. a refresh lands back on the story with its words, and no new call;
-     7. no page errors.
+     7. no page errors;
+     8. the other seven topics: the quarterly review and one counterparty's
+        story ("brief me on Kevian Kenya Ltd") open with four chapters drawn.
    Copilot is a stub on its routes (no key in CI). Waits ask for the state.
    Run: node test/chromium/board-stories-verify.js */
 const fs = require('node:fs');
@@ -126,6 +128,17 @@ const CARD = { dark: over('rgba(4,25,26,.82)', [2, 16, 17]), light: over('rgba(2
     /* 5. Share */
     await page.click('#hb-board [data-hb-sy-give]');
     check('5 Share opens the give form on the story', !!(await until(() => document.querySelector('#hb-board .hb-sy [data-hb-give-form="sy:friction"], #hb-board .hb-sy .hb-inl') ? true : null, null, 4000)));
+
+    /* 8. the other seven topics: the quarterly review and one counterparty's story */
+    for (const [q, sid, n] of [['build our quarterly contract review', 'quarter', '8a'], ['brief me on Kevian Kenya Ltd before the renewal meeting', 'party~Kevian%20Kenya%20Ltd', '8b']]){
+      await page.evaluate(async q => { await intelAsk(q); }, q);
+      const got = await until(sid => { const p = (hbS().path || []).slice(-1)[0]; const g = document.querySelector('#hb-board .hb-sy-chs');
+        return p === 'sy:' + sid && g ? [...g.children].map(ch => ({ t: (ch.querySelector('h4') || {}).textContent, drawn: !!ch.querySelector('svg, .hb-chart, .hb-quiet') })) : null; }, sid);
+      check(`${n} "${q}" opens its story: four chapters, each drawn`, !!got && got.length === 4 && got.every(c => c.drawn), JSON.stringify(got));
+    }
+    const party = await page.evaluate(() => (document.querySelector('#hb-focus .hb-ct') || {}).textContent || '');
+    check('8c one counterparty\'s story wears their name', /Kevian Kenya Ltd/.test(party), party);
+    await page.screenshot({ path: path.join(OUT, 'story-party.png') });
 
     /* 6. a refresh lands back on the story with its words, and no new call */
     const before = chats;

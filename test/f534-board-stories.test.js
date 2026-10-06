@@ -76,7 +76,7 @@ describe('f534 (1) the ask', () => {
 describe('f534 (2) the chapters', () => {
   test('four per story, each a door that opens', () => {
     const w = world();
-    for (const t of w.HB_STORIES){
+    for (const t of w.HB_STORIES.filter(x => !w.HB_STORY_ARG.includes(x))){
       const S = w.hbStoryData(t, 'all');
       assert.equal(S.chapters.length, 4, t);
       const D = w.hbDigData('sy:' + t, 'all');
@@ -215,7 +215,7 @@ describe('f534 (5) the server', () => {
     assert.deepEqual(out.aside, [{ idea: 'i', why: 'y' }]);
   });
   test('a story can be given: its three names are gift kinds', () => {
-    assert.match(SERVER, /const HOME_GIFT_KINDS = \['obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend'\];/);
+    assert.match(SERVER, /const HOME_GIFT_KINDS = \['obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend', 'sy_pipeline', 'sy_risk', 'sy_payterms', 'sy_obligations', 'sy_party', 'sy_stream', 'sy_quarter'\];/);
   });
 });
 
@@ -244,5 +244,72 @@ describe('f534 (7) one builder, both books', () => {
     const I = read('js/i18n.js');
     for (const k of ['hb_sy_friction', 'hb_sy_renewals', 'hb_sy_spend', 'hb_sy_dd_cost', 'hb_sy_watch', 'hb_sy_aside', 'hb_pre_story', 'hb_sy_nokey'])
       assert.equal((I.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+  });
+});
+
+describe('f534 (8) the other seven topics (Young, 6 Oct 2026: "Build the other seven story topics")', () => {
+  const cases = [
+    ['story of our signing pipeline this quarter', 'pipeline'],
+    ['build a story of our contract risk over the last year', 'risk'],
+    ['story of our payment terms with suppliers', 'payterms'],
+    ['tell me the story of our obligations this quarter', 'obligations'],
+    ['berättelse om våra åtaganden', 'obligations'],
+    ['build our quarterly contract review', 'quarter'],
+    ['brief me on Kevian Kenya before the renewal meeting', 'party~Kevian%20Kenya%20Ltd'],
+    ['a story about Kevian', 'party~Kevian%20Kenya%20Ltd'],
+    ['story of how Procurement did this quarter', 'stream~proc'],
+  ];
+  for (const [q, sid] of cases) test(q, () => { const A = world().hbAskReadingOf(q); assert.equal(A && A.kind, 'story', q); assert.equal(A.story, sid); });
+  test('a named topic wins over a stream named beside it; "brief me" without a name is not a story', () => {
+    const w = world();
+    assert.equal(w.hbStoryOfQ('story of negotiation friction in Procurement'), 'friction');
+    assert.equal(w.hbStoryOfQ('brief me on the weather'), null);
+  });
+  test('every one of the ten opens with four chapters, each a door; the one-name stories count only their own', () => {
+    const w = world();
+    for (const sid of ['pipeline', 'risk', 'payterms', 'obligations', 'quarter', 'party~Kevian%20Kenya%20Ltd', 'stream~proc']){
+      const D = w.hbDigData('sy:' + sid, 'all');
+      assert.equal(D && D.kind, 'story', sid);
+      const S = w.hbStoryData(sid, 'all'); assert.equal(S.chapters.length, 4, sid);
+      S.chapters.filter(k => k.chart).forEach(k => assert.equal((w.hbDigData('sy:' + sid + '.' + k.id, 'all') || {}).kind, 'list', sid + '.' + k.id));
+      assert.ok(textOf(w.hbStoryHtml(D, 'all')).length > 50, sid + ' draws');
+    }
+    const P = w.hbStoryData('party~Kevian%20Kenya%20Ltd', 'all');
+    assert.equal(P.title, 'Kevian Kenya Ltd');
+    assert.ok(P.cs.every(c => c.counterparty === 'Kevian Kenya Ltd'), 'only their contracts');
+    const T = w.hbStoryData('stream~proc', 'all');
+    assert.equal(T.title, 'Procurement & Raw Materials');
+    assert.ok(T.cs.every(c => c.folder === 'proc'), 'only the stream\'s contracts');
+  });
+  test('the obligations story counts the duties themselves, open ones only, each row a door', () => {
+    const w = world();
+    const c = w.state.contracts.find(x => x.status === 'Signed' && !w.contractExpired(x));
+    const d = new Date(); d.setDate(d.getDate() + 20);
+    const soon = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    c.obligations = [{ id: 'o1', desc: 'Report', due: soon, status: 'open', assignee: 'Amina' }, { id: 'o2', desc: 'Done one', due: soon, status: 'done' }];
+    const S = w.hbStoryData('obligations', 'all');
+    const c3 = S.chapters.find(k => k.id === 'c3');
+    assert.deepEqual(J(c3.bars.map(b => [b.label, b.n])), [['Amina', 1]], 'the done duty is not counted');
+    assert.equal((w.hbDigData(c3.bars[0].dig, 'all') || {}).ids.join(), c.id);
+  });
+  test('a one-name story is given with its name in the pid, and opens again on the colleague\'s Home', async () => {
+    const w = world({ key: true });
+    let body = null; w.api = async (r, m, b) => { body = J(b); return { gift: { id: 'g1', pid: b.pid } }; }; w.toast = () => {};
+    await w.hbGive('sy:party~Kevian%20Kenya%20Ltd', 'u2', '');
+    assert.deepEqual([body.kind, body.pid], ['sy_party', 'sy:party~Kevian%20Kenya%20Ltd']);
+    const h = w.hbStoryGiftHtml({ id: 'g2', kind: 'sy_party', pid: 'sy:party~Kevian%20Kenya%20Ltd', fromName: 'Amina' });
+    assert.match(h, /data-hb-dig="sy:party~Kevian%20Kenya%20Ltd"/); assert.match(textOf(h), /Story · Kevian Kenya Ltd/);
+    assert.equal(w.hbStoryGiftHtml({ id: 'g3', kind: 'sy_risk', pid: 'sy:party~X' }), '', 'a pid that does not match its kind is refused');
+  });
+  test('the server keeps a story\'s name in the pid, and knows the ten kinds', () => {
+    const SERVER = read('server/server.js');
+    for (const k of ['sy_pipeline', 'sy_risk', 'sy_payterms', 'sy_obligations', 'sy_party', 'sy_stream', 'sy_quarter']) assert.match(SERVER, new RegExp(`'${k}'`));
+    assert.match(SERVER, /pid: clean\(b\.pid\)\.slice\(0, \/\^sy_\/\.test\(kind\) \? 200 : 40\)/);
+  });
+  test('the seven topics\' words are in both books', () => {
+    const I = read('js/i18n.js');
+    for (const t of ['pipeline', 'risk', 'payterms', 'obligations', 'party', 'stream', 'quarter'])
+      for (const k of ['hb_sy_' + t, 'hb_sy_per_' + t, 'hb_sy_' + t + '_c1', 'hb_sy_' + t + '_c4'])
+        assert.equal((I.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
   });
 });

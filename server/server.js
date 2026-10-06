@@ -17015,7 +17015,7 @@ db.exec(`CREATE TABLE IF NOT EXISTS home_gifts (
   lens TEXT NOT NULL DEFAULT 'all', split INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '',
   pid TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, seen_at TEXT, dismissed_at TEXT)`);
 /* a STORY is given by its name too (sy_<topic>; Young, 6 Oct 2026) */
-const HOME_GIFT_KINDS = ['obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend'];
+const HOME_GIFT_KINDS = ['obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend', 'sy_pipeline', 'sy_risk', 'sy_payterms', 'sy_obligations', 'sy_party', 'sy_stream', 'sy_quarter'];
 const HOME_GIFT_LENSES = ['all', 'suppliers', 'customers'];
 /* A PERSON'S HOME HOLDS AT MOST THIS MANY GIFTS STILL ON IT; one more is
    refused in words, never dropped (a cap is a fact). */
@@ -17044,7 +17044,8 @@ app.post('/api/home/gifts', auth, (req, res) => {
   const open = db.prepare('SELECT COUNT(*) AS n FROM home_gifts WHERE to_id=? AND dismissed_at IS NULL').get(u.id).n;
   if (open >= HOME_GIFT_OPEN_MAX) return res.status(409).json({ error: `${u.name} already has ${HOME_GIFT_OPEN_MAX} panels waiting on their Home. Ask them to clear some first.` });
   const g = { id: 'g_' + rid(8), from_id: req.user.id, to_id: u.id, kind, lens, split: b.split ? 1 : 0,
-    note: clean(b.note).slice(0, 500), pid: clean(b.pid).slice(0, 40), created_at: new Date().toISOString() };
+    /* a story about one counterparty or stream carries its name in its pid */
+    note: clean(b.note).slice(0, 500), pid: clean(b.pid).slice(0, /^sy_/.test(kind) ? 200 : 40), created_at: new Date().toISOString() };
   db.prepare('INSERT INTO home_gifts (id,from_id,to_id,kind,lens,split,note,pid,created_at) VALUES (?,?,?,?,?,?,?,?,?)')
     .run(g.id, g.from_id, g.to_id, g.kind, g.lens, g.split, g.note, g.pid, g.created_at);
   res.json({ ok: true, gift: homeGiftShape(g) });

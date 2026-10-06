@@ -20424,3 +20424,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed
 - The panel's own Dig deeper cost line (.hb-dd-cost under a Copilot answer) wears --accent-ink; it reads on the white panel, but the same class on any dark surface would vanish (the story scopes its own).
 - The other seven story topics on the proposal (pipeline, risk, payment terms, obligations, one counterparty, one stream, quarterly review) are not built; each is a new entry in hbStoryData.
+
+## 6 Oct 2026 — stories: the other seven topics
+- Built: signing pipeline, risk and standards, payment terms, obligations, one counterparty ("brief me on Kevian Kenya"), one value stream, the quarterly review — each four chapters counted by HaTi, words in one Copilot call, Dig deeper and Share as for the first three.
+### Noticed, not fixed
+- "risk exposure by month signed over the last 12 months" throws on the board ("Cannot read properties of undefined (reading 'left')" in hbReadingCore: an edge column carries no M); red on main 13a70a7. The risk story reads money at risk by stream instead.
