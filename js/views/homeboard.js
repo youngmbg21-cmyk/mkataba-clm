@@ -165,7 +165,7 @@ function hbS(){
         ids: Array.isArray(x.ids) ? x.ids.filter(i => typeof i === 'string').slice(0, HB_DD_IDS_MAX) : [], n: Number(x.n) || 0, dig: /^pk:\w+$/.test(String(x.dig || '')) ? x.dig : '' })) };
     if (story){ run.story = story; run.max = HB_STORY_STEPS;
       const n = run.steps.length, st = x => { const k = Number(x); return Number.isInteger(k) && k >= 1 && k <= n ? k : null; };
-      run.chapters = Array.isArray(r.chapters) ? r.chapters.filter(c => c && st(c.step)).slice(0, 6).map(c => ({ step: st(c.step), title: txt(c.title, HB_TITLE_MAX), text: txt(c.text, 700) })) : [];
+      run.chapters = Array.isArray(r.chapters) ? r.chapters.filter(c => c && st(c.step)).slice(0, 6).map(c => ({ step: st(c.step), title: txt(c.title, HB_TITLE_MAX), text: txt(c.text, 700), recipe: hbStoryPicOf(c.recipe) })) : [];
       run.watch = Array.isArray(r.watch) ? r.watch.filter(w => w && typeof w.text === 'string').slice(0, 4).map(w => ({ text: txt(w.text, 300), step: st(w.step) })) : [];
       run.aside = Array.isArray(r.aside) ? r.aside.filter(a => a && typeof a.idea === 'string').slice(0, 4).map(a => ({ idea: txt(a.idea, 160), why: txt(a.why, 300) })) : []; }
     s.an[k] = run; });
@@ -2061,7 +2061,7 @@ function hbColsSvg(D, cs, P){
   if (unsigned.length) note = [note, offV > 0 ? i18tn('hb_cols_unsigned_value', unsigned.length, { n: _hbN(unsigned.length), v: _hbM(offV) }) : i18tn('hb_cols_unsigned', unsigned.length, { n: _hbN(unsigned.length) })].filter(Boolean).join(' ');
   const by = hbSplitWord(P.split);
   const money = hbMoneyOk();
-  const lead = unsigned.length ? `<b>${_hbN(cs.length)}</b> ${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}${money ? ` · <b>${_hbE(_hbM(cs.reduce((a, c) => a + hbValueOfOne(c), 0)))}</b>` : ''}` : '';
+  const lead = unsigned.length ? `<b>${_hbN(cs.length)}</b> ${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}${money ? hbLeadMoneyHtml(cs, m) : ''}` : '';
   return { lead, body: `<svg class="hb-svg hb-cols" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(by)}">${g}</svg>`, by, note, say,
     trend: T ? { y0: T.y0, y1: T.y1, span: T.i1 - T.i0 + 1, unit } : null,
     /* the columns as counted, for the shelf's normal range: the chart's own
@@ -2757,13 +2757,21 @@ function hbChartRun(D, cs0, P){
   R.W = W;
   return { R, cs };
 }
+/* the money beside a chart's count: the value under contract, or — where the
+   chart measures RISK EXPOSURE — the exposure it draws, from the same
+   hbMeasure its reading says (Young, 6 Oct 2026: a card of money at risk led
+   with the contracts' whole value) */
+function hbLeadMoneyHtml(cs, m, total){
+  if (m === 'exposure') return ` · <b>${_hbE(_hbM(hbMeasure(cs, 'exposure').y || 0))}</b> <span class="hb-lead-w">${_hbE(i18t('hb_lead_exposure'))}</span>`;
+  return ` · <b>${_hbE(_hbM(total == null ? cs.reduce((a, c) => a + hbValueOfOne(c), 0) : total))}</b>`;
+}
 function hbChartHtml(D, cs0, big){
   const money = hbMoneyOk();
   const P = hbPlan(D);
   if (!cs0.length && P.measure !== 'live') return `<div class="hb-quiet">${_hbE(i18t('hb_none_here'))}</div>`;
   const { R, cs } = hbChartRun(D, cs0, P);
   const total = money ? cs.reduce((a, c) => a + hbValueOfOne(c), 0) : null;
-  const lead = R.lead || `<b>${_hbN(cs.length)}</b> ${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}${money ? ` · <b>${_hbE(_hbM(total))}</b>` : ''}`;
+  const lead = R.lead || `<b>${_hbN(cs.length)}</b> ${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}${money ? hbLeadMoneyHtml(cs, P.measure, total) : ''}`;
   /* enlarged, the chart opens with HaTi's reading in place of the trend
      line's arithmetic (READ, THEN ASK, below) */
   const read = big ? hbReadHtml(D, cs, P, R) : '';
@@ -4327,13 +4335,60 @@ function hbStoryCardD(topic, id, lens){
   const ids = k.ids.filter(x => hbContract(x));
   return { key: 'sy:' + topic + '.' + id, kind: 'list', crumb: S.title + ' › ' + k.title, title: k.title, ids, n: ids.length, chart: k.chart, fixed: [] };
 }
-/* a deeper chapter's card: the step's own calculation, counted again */
+/* the picture a deeper chapter names for itself (Young, 6 Oct 2026: "Risk
+   exposure arrived suddenly in September" was drawn by counterparty): only
+   the board's own recipe words survive, as for any card; a picture the board
+   cannot draw is dropped and the step's own chart stands */
+function hbStoryPicOf(r){
+  if (!r || typeof r !== 'object') return undefined;
+  const c = hbCardClean(r); delete c.which; delete c.title;
+  return c.pic || c.split ? c : undefined;
+}
+/* a deeper chapter's card: the step's own calculation, counted again, in the
+   chapter's own picture where it named one. A PACK step draws the pack's
+   first chart (its other charts are one press away) */
 function hbStoryDeepD(topic, k, lens){
   const run = hbDdRun((hbStoryKept(topic) || {}).deeper); const st = run && run.steps[k - 1];
-  if (!st || !st.input) return null;
+  if (!st) return null;
+  const key = 'sy:' + topic + '.d' + k, crumb = hbStoryData(topic, lens).title + ' › ' + st.title;
+  if (st.name === 'pack'){
+    const name = String(st.dig || '').slice(3); if (!HB_PACKS.includes(name)) return null;
+    const first = (hbPackData(name, lens).cards || [])[0]; const D = first && hbPackCardD(name, first.id, lens);
+    return D ? Object.assign(D, { key, crumb, title: st.title, pack: name }) : null;
+  }
+  if (!st.input) return null;
   const W = hbWhichOf(st.input.which || { all: true }, lens); if (W.unread) return null;
-  const clean = hbCardClean(st.input.recipe || {}); delete clean.which;
-  return { key: 'sy:' + topic + '.d' + k, kind: 'list', crumb: hbStoryData(topic, lens).title + ' › ' + st.title, title: st.title, setLabel: W.label, ids: W.ids, n: W.ids.length, whole: W.whole, fixed: W.fields, chart: clean };
+  const ch = (run.chapters || []).find(c => c.step === k);
+  const clean = (ch && ch.recipe) ? Object.assign({}, ch.recipe) : hbCardClean(st.input.recipe || {}); delete clean.which;
+  return { key, kind: 'list', crumb, title: st.title, setLabel: W.label, ids: W.ids, n: W.ids.length, whole: W.whole, fixed: W.fields, chart: clean };
+}
+/* A CHAPTER'S FRAME (Young, 6 Oct 2026, over a story whose grid of streams
+   by stage could not be read and whose chapters could not be opened): a
+   chart that needs width (a grid, stacked or grouped, a timeline, more than
+   HB_STORY_WIDE_COLS columns) takes the story's whole row, and no chart's
+   writing is drawn smaller than the board's own small text — a chart that
+   would shrink further scrolls inside its chapter instead */
+const HB_STORY_WIDE_COLS = 12, HB_STORY_TEXT_MIN = 12;
+function hbStoryWide(D, cs){
+  const P = hbPlan(D);
+  if (P.split2 || ['heat', 'stack', 'grouped', 'gantt'].includes(P.pic)) return true;
+  if (P.pic !== 'cols') return false;
+  const { R } = hbChartRun(D, cs, P);
+  return ((R.cols || []).length + (R.edges || []).length) > HB_STORY_WIDE_COLS;
+}
+function hbStoryPicHtml(pic){
+  /* each drawn SVG keeps its writing at least HB_STORY_TEXT_MIN px: its
+     smallest font, scaled to the width it is drawn at, decides the floor */
+  return `<div class="hb-sy-pic">${String(pic).replace(/<svg class="hb-svg([^"]*)" viewBox="0 0 ([\d.]+) [\d.]+"([\s\S]*?)<\/svg>/g, (whole, cls, w) => {
+    const fs = [...whole.matchAll(/font-size="([\d.]+)"/g)].map(x => Number(x[1])).filter(x => x > 0);
+    if (!fs.length) return whole;
+    const minW = Math.ceil(Number(w) * HB_STORY_TEXT_MIN / Math.min(...fs));
+    return whole.replace('<svg class="hb-svg', `<svg style="min-width:${minW}px" class="hb-svg`);
+  })}</div>`;
+}
+function hbStoryChHead(n, title, key){
+  const big = key ? hbBigBtnHtml(false, `data-hb-sy-big="${_hbE(key)}"`) : '';
+  return `<div class="hb-sy-cht"><span class="hb-sy-n">${n}</span><h4>${_hbE(title)}</h4>${big}</div>`;
 }
 function hbStoryDig(topic, sub, lens){
   if (!hbStoryValid(topic)) return null;
@@ -4426,7 +4481,7 @@ function hbStoryFinish(run, f, nums){
   let dropped = 0; const chk = (t, n) => { const c = hbFactCheck(t, nums); dropped += c.dropped; return c.text.slice(0, n); };
   const stepOk = k => Number.isInteger(k) && k >= 1 && k <= run.steps.length;
   run.chapters = (Array.isArray(f.chapters) ? f.chapters : []).filter(c => c && stepOk(Number(c.step))).slice(0, 6)
-    .map(c => ({ step: Number(c.step), title: hbPlainText(c.title, HB_TITLE_MAX) || run.steps[Number(c.step) - 1].title, text: chk(String(c.text || ''), 700) }))
+    .map(c => ({ step: Number(c.step), title: hbPlainText(c.title, HB_TITLE_MAX) || run.steps[Number(c.step) - 1].title, text: chk(String(c.text || ''), 700), recipe: hbStoryPicOf(c.recipe) }))
     .filter((c, i, a) => a.findIndex(x => x.step === c.step) === i);
   run.watch = (Array.isArray(f.watch) ? f.watch : []).slice(0, 4).map(w => ({ text: chk(String((w && w.text) || ''), 300), step: stepOk(Number(w && w.step)) ? Number(w.step) : null })).filter(w => w.text);
   run.aside = (Array.isArray(f.aside) ? f.aside : []).slice(0, 4).map(a => ({ idea: hbPlainText(a && a.idea, 160), why: chk(String((a && a.why) || ''), 300) })).filter(a => a.idea);
@@ -4447,14 +4502,14 @@ function hbDdStepsHtml(run, busy){
 /* THE STORY'S CARD */
 function hbStoryChapterHtml(topic, k, i, n, words, lens, extraCls){
   const r = hbStoryChapterRead(topic, k, lens);
-  let pic = '';
-  if (k.chart){ const D = hbStoryCardD(topic, k.id, lens); pic = D ? hbChartHtml(D, hbListOf(D.ids, lens), false) : ''; }
+  let pic = '', wide = false, D = null;
+  if (k.chart){ D = hbStoryCardD(topic, k.id, lens); if (D){ const cs = hbListOf(D.ids, lens); pic = hbStoryPicHtml(hbChartHtml(D, cs, false)); wide = hbStoryWide(D, cs); } }
   else if (k.bars && k.bars.length) pic = hbChartBarsHtml(k.bars, false);
   else pic = `<p class="hb-quiet">${_hbE(i18t('hb_sy_nothing'))}</p>`;
   const para = words && words.paras && words.paras[k.id];
   /* the chart already says HaTi's reading in its headline; a bar chapter says it here */
   const say = para ? `<p class="hb-sy-p">${_hbE(para)}</p>` : (!k.chart && r && r.lines && r.lines[0] ? `<p class="hb-sy-p is-hati">${r.lines[0]}</p>` : '');
-  return `<section class="hb-sy-ch${extraCls || ''}"><div class="hb-sy-cht"><span class="hb-sy-n">${_hbE(i18t('hb_sy_ch_n', { i: i + 1, n }))}</span><h4>${_hbE(k.title)}</h4></div>${pic}${say}</section>`;
+  return `<section class="hb-sy-ch${wide ? ' is-wide' : ''}${extraCls || ''}">${hbStoryChHead(_hbE(i18t('hb_sy_ch_n', { i: i + 1, n })), k.title, D && D.ids.length ? D.key : '')}${pic}${say}</section>`;
 }
 function hbStoryHtml(D, lens){
   const topic = D.topic, S = hbStoryData(topic, lens), n = S.chapters.length;
@@ -4497,8 +4552,16 @@ function hbStoryDeepHtml(topic, run, n, total, lens, busy){
   const lead = run.summary ? `<p class="hb-sy-lead">${_hbE(run.summary)}</p>` : (run.state === 'empty' ? `<p class="hb-quiet">${_hbE(i18t('hb_dd_empty'))}</p>` : '');
   const chs = (run.chapters || []).map((c, i) => {
     const D = hbStoryDeepD(topic, c.step, lens), st = run.steps[c.step - 1];
-    const pic = D ? hbChartHtml(D, hbListOf(D.ids, lens), false) : (st && st.lines.length ? `<ul class="hb-sy-lines">${st.lines.map(l => `<li>${l}</li>`).join('')}</ul>` : '');
-    return `<section class="hb-sy-ch is-deep"><div class="hb-sy-cht"><span class="hb-sy-n">${_hbE(i18t('hb_sy_ch_n', { i: n + i + 1, n: total }))} · ${_hbE(i18t('hb_sy_deeper'))}</span><h4>${_hbE(c.title)}</h4></div>${pic}${c.text ? `<p class="hb-sy-p">${_hbE(c.text)}</p>` : ''}</section>`;
+    const cs = D ? hbListOf(D.ids, lens) : [];
+    /* never blank: the chart, else the step's own lines, else why not — with
+       the step's contracts one press away when it kept them */
+    const open = st && st.n && st.ids.length ? ` <button type="button" class="hb-read-n" data-hb-open="${_hbE(st.ids.join(','))}" data-hb-what="${_hbE(st.title)}">${_hbE(i18tn('hb_sy_open_n', st.n, { n: _hbN(st.n) }))}</button>` : '';
+    const pack = st && st.dig ? `<button type="button" class="hb-link hb-sy-packdoor" data-hb-dig="${_hbE(st.dig)}">${_hbE(i18t('hb_sy_deep_pack'))}</button>` : '';
+    const pic = D && cs.length ? hbStoryPicHtml(hbChartHtml(D, cs, false)) + pack
+      : st && st.lines.length ? `<ul class="hb-sy-lines">${st.lines.map(l => `<li>${l}</li>`).join('')}</ul>${pack}`
+      : `<p class="hb-quiet hb-sy-none">${_hbE(i18t('hb_sy_deep_none'))}${open}</p>${pack}`;
+    const wide = !!(D && cs.length && hbStoryWide(D, cs));
+    return `<section class="hb-sy-ch is-deep${wide ? ' is-wide' : ''}">${hbStoryChHead(`${_hbE(i18t('hb_sy_ch_n', { i: n + i + 1, n: total }))} · ${_hbE(i18t('hb_sy_deeper'))}`, c.title, D && cs.length ? D.key : '')}${pic}${c.text ? `<p class="hb-sy-p">${_hbE(c.text)}</p>` : ''}</section>`;
   }).join('');
   const aside = (run.aside || []).length ? `<section class="hb-sy-aside"><h4>${_hbE(i18t('hb_sy_aside'))}</h4><ul>${run.aside.map(a => `<li><b>${_hbE(a.idea)}</b>${a.why ? ': ' + _hbE(a.why) : ''}</li>`).join('')}</ul></section>` : '';
   const watch = (run.watch || []).length ? `<section class="hb-sy-watch"><h4>${_hbE(i18t('hb_sy_watch'))}</h4><ul>${run.watch.map(w => { const st = w.step ? run.steps[w.step - 1] : null;
@@ -6757,6 +6820,8 @@ function hbOnClick(e){
   if (on('[data-hb-rinstead]')){ const s = hbS(), key = (s.path || []).slice(-1)[0];
     if (key){ hbRecipeSet(key, 'measure', 'count'); hbRecipeSet(key, 'split', 'd:m:signed'); hbRecipeSet(key, 'trend', true); } hbPaintBoard(); return; }
   if (on('[data-hb-digbig]')){ const s = hbS(); s.digBig = !s.digBig; hbSave(); hbPaintBoard(); return; }
+  /* a story's chapter opens as its own enlarged card; the trail leads back */
+  if (on('[data-hb-sy-big]')){ const s = hbS(); s.digBig = true; hbDig(t.closest('[data-hb-sy-big]').getAttribute('data-hb-sy-big'), true); return; }
   if ((el = on('[data-hb-prep]'))){ const v = el.getAttribute('data-hb-prep'); if (HB_PREP.includes(v)){ hbS().prep = v; hbSave(); hbPaintBoard(); } return; }
   if ((el = on('[data-hb-watch-stop]'))){ const s = hbS(); s.watches.splice(Number(el.getAttribute('data-hb-watch-stop')), 1); hbSave(); hbAlertsChanged(); hbPaintBoard(); return; }
   if ((el = on('[data-hb-watch]'))){ const k = el.getAttribute('data-hb-watch'); _hbWatchForm = _hbWatchForm === k ? null : k; hbPaintBoard(); return; }

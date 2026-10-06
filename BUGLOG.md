@@ -20439,3 +20439,11 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## 6 Oct 2026 — f364 (5) "the Document tab mounts no strand": FIXED (owner-asked)
 - The claim forbade DOC_XRAY_SPINE_W, which the Thread commit (4b3b9ee) kept and published on purpose for the Explorer (f392 (7) pins the read). The test now forbids only the Document tab's painter, follower and mount, and pins that the width stays. Full suite 11,808 / 0 failures.
+
+## 6 Oct 2026 — story chapters (Part A of the combined job order)
+
+- Fixed: a Dig deeper chapter whose step was an answer pack, or whose set of contracts no longer matched, drew nothing and said nothing.
+- Fixed: a story's grid chapter drew its writing at about 5px (three chapters across, every chart drawn 1,000 wide); wide charts now take the row and no chart writing draws under 12px.
+- Fixed: story chapters had no way to be made bigger.
+- Fixed: a Dig deeper chapter's chart could show something other than its title said; a chapter may now name its picture.
+- Fixed: a chart measuring risk exposure led with the contracts' whole value (logged earlier on 6 Oct as noticed).

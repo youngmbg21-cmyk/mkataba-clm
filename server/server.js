@@ -7070,7 +7070,11 @@ function boardAnalystClean(name, input) {
     const next = Array.isArray(i.next) ? i.next.map(x => txt(x, 120)).filter(Boolean).slice(0, 3) : [];
     const out = { summary: String(i.summary == null ? '' : i.summary).replace(/[\u0000-\u0008\u000b-\u001f\u007f<>]/g, ' ').trim().slice(0, 1500), cards, next };
     const step = v => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 1 && n <= BOARD_ANALYST_STORY_STEPS ? n : null; };
-    if (Array.isArray(i.chapters)) out.chapters = i.chapters.slice(0, 6).map(c => c && step(c.step) ? { step: step(c.step), title: txt(c.title, GRAPH_CHART_TITLE_MAX), text: txt(c.text, 700) } : null).filter(Boolean);
+    /* a chapter may name the picture that shows its point (Young, 6 Oct 2026):
+       the board's own recipe words only, cleaned as any card's are */
+    const pic = r => { const c = (r && typeof r === 'object') ? graphChartClean(r) : null; if (!c) return undefined; delete c.target; delete c.which; delete c.title; return c.pic || c.split ? c : undefined; };
+    if (Array.isArray(i.chapters)) out.chapters = i.chapters.slice(0, 6).map(c => { if (!c || !step(c.step)) return null;
+      const o = { step: step(c.step), title: txt(c.title, GRAPH_CHART_TITLE_MAX), text: txt(c.text, 700) }; const r = pic(c.recipe); if (r) o.recipe = r; return o; }).filter(Boolean);
     if (Array.isArray(i.watch)) out.watch = i.watch.slice(0, 4).map(w => w && txt(w.text, 300) ? { text: txt(w.text, 300), step: step(w.step) } : null).filter(Boolean);
     if (Array.isArray(i.aside)) out.aside = i.aside.slice(0, 4).map(a => a && txt(a.idea, 160) ? { idea: txt(a.idea, 160), why: txt(a.why, 300) } : null).filter(Boolean);
     return out;
@@ -7093,7 +7097,7 @@ const boardAnalystHandler = async (req, res) => {
   }).filter(Boolean);
   const must = steps.length >= maxSteps;
   const storyFinish = story ? {
-    chapters: { type: 'array', description: 'The steps whose fact sheet explains the trend, each a deeper chapter: the step number (1 = your first calculate or pack), a short title, and two or three sentences.', items: { type: 'object', properties: { step: { type: 'number' }, title: { type: 'string' }, text: { type: 'string' } } } },
+    chapters: { type: 'array', description: 'The steps whose fact sheet explains the trend, each a deeper chapter: the step number (1 = your first calculate or pack), a short title, two or three sentences, and the picture that shows what the title says (a recipe over that step\'s own contracts, e.g. columns by month when the title is about a month; leave it out when the step\'s own chart already shows it).', items: { type: 'object', properties: { step: { type: 'number' }, title: { type: 'string' }, text: { type: 'string' }, recipe: { type: 'object', properties: { ...GRAPH_CHART_PROPS } } } } },
     watch: { type: 'array', description: 'Up to four things coming up that the reader should watch, each one sentence, with the step whose contracts it is about.', items: { type: 'object', properties: { text: { type: 'string' }, step: { type: 'number' } } } },
     aside: { type: 'array', description: 'Ideas you tested that did NOT hold, each the idea and one sentence on why.', items: { type: 'object', properties: { idea: { type: 'string' }, why: { type: 'string' } } } } } : {};
   const tools = [
