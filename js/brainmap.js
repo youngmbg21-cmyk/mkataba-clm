@@ -58,6 +58,7 @@ const BRAIN_PARTS = [
      from, the four answer packs, Dig deeper, and the whole book read overnight */
   ['factsheet', 'hbFactSheet', 'see', 1],
   ['packs', 'hbPackData', 'see', 1],
+  ['phrasebook', 'hbAnalystWords', 'see', 1],
   ['analyst', 'hbDigDeeper', 'ai', 1],
   ['bookread', 'runBookReading', 'ai', 2],
   ['dealfacts', 'hbDealGroupOf', 'see', 1],
@@ -161,7 +162,7 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved'], ['desknight', 'home', 'insights']] },
-  { id: 'ask', steps: [['explorer', 'chartread', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst'], ['quote'], ['contracts'], ['explorer', 'readchips', 'nextq', 'boardmarks']] }
+  { id: 'ask', steps: [['explorer', 'chartread', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst'], ['quote'], ['contracts'], ['explorer', 'readchips', 'nextq', 'boardmarks']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it

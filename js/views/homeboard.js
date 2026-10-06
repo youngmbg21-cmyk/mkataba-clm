@@ -1543,6 +1543,8 @@ const HB_RC = {
      or a renewal "in the next N" stays the map's reader's set) */
   winLast: new RegExp('\\b(?:in |during |over |for )?(?:the )?(?:last|past|previous|senaste|de senaste|förra)\\s+' + _HB_NUM + '?\\s*' + _HB_UNITW + '\\b'),
   winNext: new RegExp('\\b(?:in |during |over |for )?(?:the )?(?:next|coming|kommande|nästa|de närmaste)\\s+' + _HB_NUM + '?\\s*' + _HB_UNITW + '\\b'),
+  /* an exact range (the analyst's phrasebook writes "Q2 2026" as one) */
+  winRange: /\b(?:from |between )(\d{4}-\d{2}-\d{2}) (?:to|and|until|till) (\d{4}-\d{2}-\d{2})\b/,
   winThis: /\b(?:in |during )?(?:this|the current|det här|detta|denna)\s+(month|quarter|year|månad(?:en)?|kvartal(?:et)?|år(?:et)?)\b|\b(year to date|ytd|i år|hittills i år)\b/,
   /* THE COMPARISON: against the same period a year back, or the one before */
   cmpYear: /\b(?:compared (?:to|with)|against|vs\.?|versus|jämfört med|mot)\s+(?:the same (?:period|time|months?|quarter) )?(?:last year|a year (?:ago|earlier|before)|the year before|previous year|förra året|i fjol|året innan)\b/,
@@ -1603,7 +1605,8 @@ function hbRecipeRead(qRaw){
      reader's set, as it always was) */
   let win = null, winAt = null;
   const endWin = /\b(?:renew\w*|expir\w*|end(?:ing|s)?|förny\w*|löper ut|går ut|upphör\w*)\b[^0-9]*?\b(?:in|within|next|over the next|inom|kommande|de närmaste|nästa|this year|i år)\b/.test(full);
-  { const m = take(HB_RC.winLast); if (m){ const n = num(m[1]); if (n) { win = { last: n, unit: unitOf(m[2]) }; winAt = full.indexOf(m[0].trim()); } } }
+  { const m = take(HB_RC.winRange); if (m && m[1] <= m[2]){ win = { from: m[1], to: m[2] }; winAt = full.indexOf(m[0].trim()); } }
+  if (!win){ const m = take(HB_RC.winLast); if (m){ const n = num(m[1]); if (n) { win = { last: n, unit: unitOf(m[2]) }; winAt = full.indexOf(m[0].trim()); } } }
   if (!win && !endWin){ const m = take(HB_RC.winNext); if (m){ const n = num(m[1]); if (n){ win = { next: n, unit: unitOf(m[2]) }; winAt = full.indexOf(m[0].trim()); } } }
   if (!win && !endWin){ const m = take(HB_RC.winThis); if (m){ win = { last: 1, unit: m[1] ? unitOf(m[1]) : 'y' }; winAt = full.indexOf(m[0].trim()); } }
   if (win && HB_RC.date.some(([, re]) => re.test(full))) win.date = hbRcDateOf(full.trim(), winAt, 'end');
@@ -2399,7 +2402,13 @@ function hbWinOf(P){
   else if (P.compare === 'prev'){
     if (b0){ const n = W.last || W.next, pf = hbBucketStart(hbBucketMove(b0, unit, -n), unit);
       prev = { from: pf, to: soFar ? hbIsoShift(pf, Math.round((Date.parse(today) - Date.parse(from)) / 864e5)) : hbBucketEnd(hbBucketMove(b1, unit, -n), unit), shift: n }; }
-    else { const days = Math.round((Date.parse(upTo) - Date.parse(from)) / 864e5) + 1; prev = { from: hbIsoShift(from, -days), to: hbIsoShift(from, -1), shift: null }; }
+    else {
+      /* an exact whole month, quarter or year is held against the whole one
+         before it (Q3 against Q2, not the 92 days before 1 July) */
+      const whole = (from > '1900' && to < '9000') ? ['m', 'q', 'y'].find(u => { const b = hbBucketOf(from, u); return hbBucketStart(b, u) === from && hbBucketEnd(b, u) === to; }) : null;
+      if (whole){ const pb = hbBucketMove(hbBucketOf(from, whole), whole, -1); prev = { from: hbBucketStart(pb, whole), to: hbBucketEnd(pb, whole), shift: null }; }
+      else { const days = Math.round((Date.parse(upTo) - Date.parse(from)) / 864e5) + 1; prev = { from: hbIsoShift(from, -days), to: hbIsoShift(from, -1), shift: null }; }
+    }
   }
   return { from, to: upTo, date, unit, b0, b1, prev, soFar };
 }
@@ -5342,6 +5351,238 @@ function hbWordPhrase(m){
 const _hbReEsc = t => String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /* the question with every company word swapped; longest words first, so
    "frame agreements" is read before "agreements" */
+/* ============================================================
+   THE ANALYST'S PHRASEBOOK (Young, 6 Oct 2026: "think like an analyst … all
+   the formats and ways an analyst would ask questions when it comes to
+   analysing numbers … teach HaTi. Be expansive")
+   ============================================================
+   An analyst's shorthand — QoQ, trailing twelve months, quarter to date,
+   "breakdown of", "concentration", "deal size", "is it growing", "Q1 vs Q2"
+   — said back in the board's own words, BEFORE the reader reads it, so one
+   reader (hbParse → hbRecipeRead) answers both. Each rule is a plain
+   rewrite; nothing here counts, and a phrase the board cannot answer is left
+   alone for Copilot (which is always given the words as typed, never these).
+   Where a comparison or a growth question names no date, it reads the
+   SIGNING date ("value of our contracts this quarter" = signed this
+   quarter): HB_AW_DATE is put in its place, and becomes "signed" only when
+   the question names no date of its own. Rules run in order, on the
+   question lower-cased with its punctuation kept as spaces. */
+const HB_AW_DATE = ' \u0001 ';
+const _hbAwN = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
+const _hbAwNum = w => /^\d+$/.test(w) ? Number(w) : (_hbAwN[w] || 1);
+const _hbAwUnit = u => /^q/.test(u) ? 'quarter' : /^y/.test(u) ? 'year' : 'month';
+const _hbAwPrev = u => u === 'year' ? 'compared with last year' : 'compared with the previous ' + u;
+const _HB_AW_MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+const _HB_AW_MON = '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+const _hbAwMon = w => _HB_AW_MONTHS.findIndex(m => m.startsWith(String(w).toLowerCase().slice(0, 3))) + 1;
+const _hbAwQ = w => { const x = String(w).toLowerCase(); return /^q/.test(x) ? Number(x.slice(1)) : ['first', 'second', 'third', 'fourth'].indexOf(x.split(' ')[0]) + 1; };
+/* the whole period before this one, as an exact range: "last quarter" is the
+   previous quarter, not the one we are in */
+function _hbAwPrevRange(u){
+  const d = hbToday(), y = Number(d.slice(0, 4)), m = Number(d.slice(5, 7));
+  if (u === 'year') return ` from ${y - 1}-01-01 to ${y - 1}-12-31 `;
+  if (u === 'quarter'){ let q = Math.ceil(m / 3) - 1, yy = y; if (q < 1){ q = 4; yy = y - 1; } return ` from ${_hbAwDay(yy, q * 3 - 2, 1)} to ${_hbAwDay(yy, q * 3, 0)} `; }
+  let mm = m - 1, yy = y; if (mm < 1){ mm = 12; yy = y - 1; } return ` from ${_hbAwDay(yy, mm, 1)} to ${_hbAwDay(yy, mm, 0)} `;
+}
+/* a day as ISO: day 0 is the last day of that month */
+const _hbAwDay = (y, m, d) => { const x = new Date(Date.UTC(Number(y), d === 0 ? Number(m) : Number(m) - 1, d === 0 ? 0 : d)); return x.toISOString().slice(0, 10); };
+const _HB_AW_GRP = '(suppliers?|vendors?|customers?|clients?|counterpart(?:y|ies)|partners?|streams?|value streams?|departments?|business units?|owners?|types?|contract types?|stages?)';
+const _HB_AW_THIS = '(?:this|the current|current)\\s+(month|quarter|year)';
+const _HB_AW_LAST = '(?:last|the last|previous|the previous|prior|the prior|preceding|the preceding)\\s+(month|quarter|year)';
+const _HB_AW_VS = '(?:vs\\.?|versus|against|compared (?:to|with)|compare (?:to|with)|and|to|with|over|relative to)';
+const HB_ANALYST_WORDS = [
+  /* -- politeness and verbs that ask for an analysis, never a set -- */
+  [/^\s*(?:can you |could you |would you |please |pls |kindly )+/, ' '],
+  [/\b(?:i (?:want|would like|'d like|need) to (?:see|know|understand)|i want|i need|let me see|give me|tell me|show me|walk me through|help me understand|i'?m curious about)\b/, ' '],
+  [/\b(?:analy[sz]e|analysis of|analytics on|look at|run (?:the numbers|a report) on|report on|dig into|drill into)\b/, ' '],
+  [/\b(what|who|that|it|how|where|when)['’]s\b/, '$1 is'],
+  [/\bhow\s+(?:did|do|are|have|has|is)\s+(?:we|it|things)\s+(?:do|done|doing|performing|perform|performed|tracking|track|trending|gone|going|look(?:ing)?|fared|faring)\b/, ' '],
+  [/\bwhat\s+(?:does|do|did)\s+(?:our\s+|the\s+)?(?:contracts|portfolio|book)\s+look\s+like\b/, ' contracts '],
+  [/\bhow\s+big\s+(?:is|are)\b|\bhow\s+(?:is|are)\b(?=\s+(?:our\s+|the\s+)?(?:value|contracts|spend|money|portfolio|pipeline))/, ' '],
+  [/\b(?:tied up|locked up|sitting)\s+(?:in|with)\b/, ' in '],
+  [/\b(?:contract|deal|signing)\s+(?:counts?|volumes?)\b|\bvolumes?\s+of\s+(?:contracts|deals|agreements)\b|\bdeal\s+flow\b/, ' contracts signed '],
+  [/\b(?:the\s+|our\s+)?pipeline\b/, ' contracts in negotiation ' + HB_AW_DATE],
+  [/\b(?:the\s+|our\s+)?(?:business|company|organi[sz]ation)\b(?=\s+(?:growing|grow|shrinking|trend|signed))/, ' contracts '],
+  [/\b(?:our|the)\s+book\b/, ' contracts '],
+  [/\bhow\s+much\s+(?:more|less)\b/, ' value '],
+  [/\bhow\s+many\s+(?:more|fewer|less)\b/, ' contracts '],
+  [/\b(?:did|do|have|has|will)\s+we\s+(?:sign|signed)\b/, ' signed '],
+  [/\baverage\s+(?:contract\s+|deal\s+)?(?:worth|size)\b/, ' average contract value '],
+  /* -- the Swedish analyst -- */
+  [/\bjämför(?:t)?\b(?!\s+med)/, ' '],
+  [/\bi\s+år\s+(?:med|mot|jämfört med|kontra)\s+(?:förra året|i fjol|föregående år)\b/, HB_AW_DATE + ' this year compared with last year '],
+  [/\bdetta\s+kvartal\s+(?:med|mot|jämfört med|kontra)\s+(?:förra|föregående)\s+kvartal(?:et)?\b/, HB_AW_DATE + ' this quarter compared with the previous quarter '],
+  [/\b(?:(?:tillväxt(?:en)?|växer|växt|utveckling(?:en)?|trenden)(?:\s+(?:i|av|för|på))?|trend\s+(?:i|av|för|på))\b/, HB_AW_DATE + ' trend '],
+  [/\bvärdet\b/, ' value '],
+  [/\b(månad|kvartal)(?:erna|en)\b/, '$1er'],
+  [/\båren\b/, 'år'],
+  [/\bantal\s+avtal\b/, ' contracts '],
+  [/\b(?:fördelning(?:en)?|uppdelning(?:en)?)\s+(?:av|på)\s+/, ' '],
+  [/\bandel(?:en)?\s+av\s+(?:värdet|värde|value)\s+per\b/, ' value as a share of the total by '],
+  [/\bandel(?:en)?\s+av\s+(?:avtalen|avtal)\s+per\b/, ' contracts as a share of the total by '],
+  /* -- the book itself -- */
+  [/\b(?:our |the )?(?:contract (?:book|portfolio|base)|portfolio|book of contracts|contract estate|deal book)\b/, ' contracts '],
+  [/\b(?:agreements|deals)\b(?! (?:to|getting))/, ' contracts '],
+  [/\bsignings\b/, ' contracts signed '],
+  [/\b(?:new business|bookings|new deals|deals closed|closed deals|contracts closed|contracts won|wins)\b/, ' contracts signed '],
+  /* -- money words an analyst uses for contract value -- */
+  [/\b(?:total contract value|tcv|acv|annual contract value|deal values?|deal sizes?|contract sizes?|ticket sizes?|size of (?:our )?contracts|size of (?:our )?deals|commitments?|committed spend|spend under contract)\b/, ' value '],
+  [/\b(?:average|mean|avg\.?)\s+value\b/, ' average contract value '],
+  [/\b(?:typical|usual|normal|middle)\s+(?:contract\s+)?value\b/, ' median contract value '],
+  [/\b(?:typical|usual)\s+(?:contract|deal)\b/, ' median contract value '],
+  /* -- rolling and to-date periods -- */
+  [/\b(?:last|past|previous|trailing|next|coming)\s+(\d+)\s+days?\b/, (m, n) => ` ${/^(?:next|coming)/.test(m) ? 'next' : 'last'} ${Math.max(1, Math.round(Number(n) / 30))} months `],
+  [/\b(?:ttm|ltm|ntm|trailing twelve months|trailing 12 months|last twelve months|rolling twelve months|rolling 12 months|twelve months trailing|12 months trailing)\b/, m => /ntm/.test(m) ? ' next 12 months ' : HB_AW_DATE + ' last 12 months '],
+  [/\b(?:trailing|rolling)\s+(\d+|one|two|three|four|five|six|nine|twelve)[- ]?(months?|quarters?|years?)\b/, (m, n, u) => HB_AW_DATE + ` last ${_hbAwNum(n)} ${_hbAwUnit(u)}s `],
+  [/\b(over|in|during|from|for|within)\s+the\s+(?:past|last)\s+year\b/, (m, p) => ` ${p} the last 12 months `],
+  [/\b(?:qtd|quarter[- ]to[- ]date)\b/, HB_AW_DATE + ' this quarter '],
+  [/\b(?:mtd|month[- ]to[- ]date)\b/, HB_AW_DATE + ' this month '],
+  [/\b(?:ytd|year[- ]to[- ]date)\b/, HB_AW_DATE + ' this year '],
+  [/\b(?:so far this year|so far in \d{4}|since (?:the )?(?:start|beginning) of (?:the |this )?year|since january|since jan|this calendar year|this financial year|this fiscal year|fytd|fiscal year to date)\b/, HB_AW_DATE + ' this year '],
+  [/\b(?:to date|so far|all time|ever|historically)\b/, ' '],
+  /* -- comparisons of one period with another -- */
+  [/\b(?:qoq|q\/q|q-o-q|quarter[- ]over[- ]quarter|quarter vs\.? quarter|quarterly change|change quarter on quarter)\b/, () => HB_AW_DATE + _hbAwPrevRange('quarter') + ' compared with the previous quarter '],
+  [/\b(?:yoy|y\/y|y-o-y|year[- ]over[- ]year|year vs\.? year|annual change|change year on year|year on year)\b/, HB_AW_DATE + ' this year compared with last year '],
+  [/\b(?:mom|m\/m|m-o-m|month[- ]over[- ]month|month vs\.? month|monthly change|change month on month)\b/, () => HB_AW_DATE + _hbAwPrevRange('month') + ' compared with the previous month '],
+  [new RegExp('\\b(?:between\\s+)?' + _HB_AW_THIS + '\\s+' + _HB_AW_VS + '\\s+' + _HB_AW_LAST + '\\b'), (m, a) => HB_AW_DATE + ` this ${a} ${_hbAwPrev(a)} `],
+  [new RegExp('\\b(?:between\\s+)?' + _HB_AW_LAST + '\\s+' + _HB_AW_VS + '\\s+' + _HB_AW_THIS + '\\b'), (m, a) => HB_AW_DATE + ` this ${a} ${_hbAwPrev(a)} `],
+  [/\b(?:between|across|over|for|in)\s+(?:the\s+)?(?:last|past|previous)\s+(?:2|two)\s+(months|quarters|years)\b/, (m, u, off, str) => {
+    /* "quarterly … for the last 2 years" is a period to draw, not a comparison */
+    if (!/^between/i.test(m) && /\b(?:by|per|each|every)\s+(?:month|quarter|year)\b|\b(?:monthly|quarterly|yearly|annually)\b/i.test(str)) return ` over the last 2 ${u} `;
+    const x = _hbAwUnit(u); return HB_AW_DATE + (x === 'year' ? ` this year ${_hbAwPrev(x)} ` : _hbAwPrevRange(x) + ` ${_hbAwPrev(x)} `); }],
+  [/\b(?:pop|period[- ]over[- ]period|period on period)\b/, () => HB_AW_DATE + _hbAwPrevRange('quarter') + ' compared with the previous quarter '],
+  [/\bthis\s+(month|quarter|year)\s+(?:vs\.?|versus|against|compared (?:to|with)|than)\s+(?:the\s+)?(?:last|previous|prior)(?:\s+one)?\b(?!\s+(?:month|quarter|year))/, (m, u) => HB_AW_DATE + ` this ${u} ${_hbAwPrev(u)} `],
+  [/\b(?:than|vs\.?|versus|against)\s+last\s+(month|quarter|year)\b/, (m, u, off, str) => /\bthis\s+(?:month|quarter|year)\b/i.test(str) ? ` ${_hbAwPrev(u)} ` : HB_AW_DATE + ` this ${u} ${_hbAwPrev(u)} `],
+  [/\b(?:are\s+we\s+|we\s+are\s+)?(?:ahead\s+of|behind|tracking\s+(?:against|vs\.?|versus|to)|on\s+track\s+(?:against|vs\.?|with)|up\s+on|down\s+on)\s+last\s+(month|quarter|year)\b/, (m, u) => HB_AW_DATE + ` this ${u} ${_hbAwPrev(u)} `],
+  [/\b(?:change|difference|delta|movement|variance|swing)\s+(?:in\s+(?:the\s+)?)?(.*?)\s*\b(?:from|since|on|versus|vs\.?|against|over)\s+(?:the\s+)?(?:last|previous|prior)\s+(month|quarter|year)\b/, (m, what, u) => ` ${what} ` + HB_AW_DATE + (u.toLowerCase() === 'year' ? ' this year compared with last year ' : _hbAwPrevRange(u.toLowerCase()) + ` ${_hbAwPrev(u.toLowerCase())} `)],
+  [/\b(?:(?:compared (?:to|with)|vs\.?|versus|against)\s+)?(?:the\s+)?same (?:period|time|months?|quarter) (?:last|a|the previous|previous|the prior|prior) year\b/, ' compared with last year '],
+  [/\b(?:than|from|vs\.?|versus|against|compared (?:to|with))\s+(?:a year ago|a year earlier|the year before|12 months ago)\b/, ' compared with last year '],
+  /* named periods: two quarters, two halves, two years */
+  [/\b(?:compare\s+)?(q[1-4]|first quarter|second quarter|third quarter|fourth quarter)(?:\s+((?:19|20)\d{2}))?\s+(?:and|vs\.?|versus|to|with|against)\s+(q[1-4]|first quarter|second quarter|third quarter|fourth quarter)(?:\s+((?:19|20)\d{2}))?\b/, (m, a, ya, b, yb) => {
+    const y2 = yb || ya || hbToday().slice(0, 4), y1 = ya || y2; let s1 = y1 + '-' + _hbAwQ(a), s2 = y2 + '-' + _hbAwQ(b); if (s1 > s2) [s1, s2] = [s2, s1];
+    const [p1, q1] = s1.split('-'), [p2, q2] = s2.split('-');
+    return HB_AW_DATE + ` by quarter from ${_hbAwDay(p1, q1 * 3 - 2, 1)} to ${_hbAwDay(p2, q2 * 3, 0)} `; }],
+  [/\b(?:compare\s+)?(?:h[12]|first half|second half)\s+(?:and|vs\.?|versus|to|with|against)\s+(?:h[12]|first half|second half)(?:\s+((?:19|20)\d{2}))?\b/, (m, y) => { y = y || hbToday().slice(0, 4); return HB_AW_DATE + ` by quarter from ${y}-01-01 to ${y}-12-31 `; }],
+  [/\b(?:compare\s+)?((?:19|20)\d{2})\s+(?:and|vs\.?|versus|to|with|against)\s+((?:19|20)\d{2})\b/, (m, a, b) => { const lo = a < b ? a : b, hi = a < b ? b : a; return HB_AW_DATE + ` by year from ${lo}-01-01 to ${hi}-12-31 `; }],
+  [/\b(?:by|per|each|every)\s+(?:fiscal\s+|financial\s+|calendar\s+)?(quarter|year|month)\s+(?:and\s+)?(?:compared?(?:\s+(?:to|with))?|vs\.?|versus|against)\s+(?:the\s+)?same\s+(?:quarter|month|period)\s+(?:last|a|the previous|previous)\s+year\b/, (m, u) => ` by ${u} compared with last year `],
+  /* "last quarter" (no number) is the whole quarter before this one */
+  [/\b(?:in\s+|during\s+|for\s+|over\s+)?(?:the\s+)?(?:last|previous|prior)\s+(month|quarter|year)\b/, (m, u, off, str) => {
+    const before = str.slice(Math.max(0, off - 24), off).toLowerCase();
+    if (/(?:compared (?:to|with)|vs\.?|versus|against|than|from|since|on|over)\s*$/.test(before)) return m;
+    return HB_AW_DATE + _hbAwPrevRange(u.toLowerCase()); }],
+  /* a named period is an exact range: Q2 2026, H1, March 2026, January to March */
+  [/\b(?:in |during |for |over |of )?(?:the )?(q[1-4]|first quarter|second quarter|third quarter|fourth quarter)(?: of)? ((?:19|20)\d{2})\b|\b(?:in |during |for |over )(?:the )?(q[1-4])\b/, (m, q1, y1, q2) => { const q = _hbAwQ(q1 || q2), y = y1 || hbToday().slice(0, 4); return HB_AW_DATE + ` from ${_hbAwDay(y, q * 3 - 2, 1)} to ${_hbAwDay(y, q * 3, 0)} `; }],
+  [/\b(?:in |during |for |over |of )?(?:the )?(h[12]|first half|second half)(?: of)?(?: ((?:19|20)\d{2}))?\b/, (m, h, y) => { const two = /2|second/.test(h); y = y || hbToday().slice(0, 4); return HB_AW_DATE + ` from ${_hbAwDay(y, two ? 7 : 1, 1)} to ${_hbAwDay(y, two ? 12 : 6, 0)} `; }],
+  [new RegExp('\\b(?:between|from)\\s+' + _HB_AW_MON + '(?:\\s+((?:19|20)\\d{2}))?\\s+(?:and|to|until|till|through|-)\\s+' + _HB_AW_MON + '(?:\\s+((?:19|20)\\d{2}))?\\b'), (m, a, ya, b, yb) => { const ma = _hbAwMon(a), mb = _hbAwMon(b); const y2 = Number(yb || ya || hbToday().slice(0, 4)); const y1 = Number(ya || (ma > mb ? y2 - 1 : y2)); return HB_AW_DATE + ` from ${_hbAwDay(y1, ma, 1)} to ${_hbAwDay(y2, mb, 0)} `; }],
+  [new RegExp('\\b(?:in|during|for)\\s+' + _HB_AW_MON + '\\s+((?:19|20)\\d{2})\\b'), (m, a, y) => { const ma = _hbAwMon(a); return HB_AW_DATE + ` from ${_hbAwDay(y, ma, 1)} to ${_hbAwDay(y, ma, 0)} `; }],
+  [/^\s*(?:compare|comparison of|contrast|how does|how do|how did)\b/, ' '],
+  [/\b(?:changes?|differences?|delta|movements?|variances?|swings?)\s+(?:in|of)\b/, ' '],
+  [/\bhow\s+(?:fast|quickly|rapidly|steeply)\s+(?:is|are|has|have|did|does|do)\b/, ' '],
+  [/\b(?:are|is)\s+(?:our\s+)?(?:contracts|deals|agreements)\s+getting\s+(?:bigger|larger|smaller)\b|\b(?:contract|deal)\s+sizes?\s+(?:trend|over time)\b/, ' average contract value trend '],
+  [/\b(?:are|is)\s+(?:our\s+)?(?:contracts|deals|agreements)\s+(?:getting\s+)?(?:faster|slower|quicker|longer)\s+to\s+(?:sign|close)\b/, ' time to sign trend '],
+  [/\bcompared?\b(?! (?:to|with))/, ' '],
+  /* -- growth and direction: the trend, read off the signing date -- */
+  [/\b(?:growth rate|rate of growth|growth|growing|grown|grow|grows|trajectory|momentum|evolution|evolving|evolved|development|direction of travel|run rate|velocity of signing|pace of signing|pace|cadence)\b/, HB_AW_DATE + ' trend '],
+  [/\b(?:going up or down|up or down|rising or falling|increasing or decreasing|more or fewer|more or less|higher or lower|than before|than last time|over the period|changed over time|change over time|changes over time|changed|changing|improv\w*|worsen\w*|deteriorat\w*|slowing down|speeding up|picking up|dropping off|declin\w*|accelerat\w*|decelerat\w*)\b/, HB_AW_DATE + ' trend '],
+  [/\b(?:up|down)\s*$/, HB_AW_DATE + ' trend '],
+  [/\b(?:are|is)\s+we\s+signing\s+more\b|\bsigning\s+more\b|\bsigning\s+fewer\b|\bsigning\s+less\b/, ' contracts signed trend '],
+  /* -- totals and counts -- */
+  [/^\s*(?:what is |what s |whats |what are )?(?:the |our )?(?:total|sum|overall|grand total|aggregate)\s+(?:of\s+)?(?:(?:our|all)\s+)?(?:contract\s+)?value(?:\s+of\s+(?:our\s+|all\s+)?contracts)?\s*$/, ' value under contract '],
+  [/\b(?:count|number|tally|volume|quantity|no\.?)\s+of\s+(?:our\s+|all\s+)?(?:contracts|agreements)\b/, ' contracts '],
+  [/\b(?:sum|total|aggregate)\s+of\s+/, ' '],
+  /* -- rankings: groups (the board draws a top N), contracts (the map's own list) -- */
+  [new RegExp('(?<!\\d )\\b(?:who are |which are |what are )?(?:our |the )?(?:biggest|largest|top|highest[- ]value|most valuable|key|main|major)\\s+' + _HB_AW_GRP + '(?:\\s+by\\s+(?:value|spend|size))?\\b'), (m, g) => ` top 10 ${g} by value `],
+  [new RegExp('\\b(?:the\\s+)?(?:bottom|lowest[- ]value|least valuable)\\s+(\\d+|one|two|three|five|ten)?\\s*' + _HB_AW_GRP + '(?:\\s+by\\s+(?:value|spend|size))?\\b'), (m, n, g) => ` the ${n ? _hbAwNum(n) : 5} smallest ${g} by value `],
+  [new RegExp('\\b(?:the\\s+)?bottom\\s+(\\d+|one|two|three|five|ten)\\s+' + _HB_AW_GRP + '\\s+by\\s+(?:value|spend|size)\\b'), (m, n, g) => ` the ${_hbAwNum(n)} smallest ${g} by value `],
+  [new RegExp('(?<!\\d )\\b(?:the\\s+)?smallest\\s+' + _HB_AW_GRP + '\\b'), (m, g) => ` the 5 smallest ${g} `],
+  [new RegExp('\\b(?:rank(?:ed)?|ranking\\s+of|leaderboard\\s+of|league\\s+table\\s+of|order)\\s+(?:the\\s+|our\\s+)?' + _HB_AW_GRP + '\\s+by\\s+(?:(?:the\\s+)?(?:number|count)\\s+of\\s+)?contracts\\b'), (m, g) => ` contracts by ${g} most contracts first `],
+  [new RegExp('\\b(?:rank(?:ed)?|ranking\\s+of|leaderboard\\s+of|league\\s+table\\s+of|order)\\s+(?:the\\s+|our\\s+)?' + _HB_AW_GRP + '(?:\\s+by\\s+(?:value|spend|size|money))?\\b'), (m, g) => ` value by ${g} biggest first `],
+  [new RegExp('\\b(?:which|what)\\s+' + _HB_AW_GRP + '\\s+(?:has|have|holds?|carr(?:y|ies)|owns?|signs?)\\s+(?:the\\s+)?most\\s+(value|spend|money|contracts)\\b'), (m, g, w) => w === 'contracts' ? ` contracts by ${g} most contracts first ` : ` value by ${g} biggest first `],
+  [/\bwho\s+(?:owns|holds|has|manages)\s+the\s+most\s+(value|spend|money|contracts)\b/, (m, w) => w === 'contracts' ? ' contracts by owner most contracts first ' : ' value by owner biggest first '],
+  [new RegExp('\\b(?:which|what)\\s+' + _HB_AW_GRP + '\\s+(?:signs?|closes?|close)\\s+(?:the\\s+)?(?:fastest|quickest|slowest)\\b'), (m, g) => ` time to sign by ${g} `],
+  [new RegExp('\\b(?:which|what)\\s+' + _HB_AW_GRP + '\\s+(?:carr(?:y|ies)|has|have|holds?)\\s+(?:the\\s+)?most\\s+risk\\b'), (m, g) => ` risk exposure by ${g} biggest first `],
+  [/\bhow\s+much\s+(?:value|money|spend)\s+(?:is|sits)\s+at\s+risk\b|^\s*(?:value|money)\s+at\s+risk\s*$/, ' risk exposure by counterparty '],
+  [/\b(?:share|percent(?:age)?|proportion|how many)\s+of\s+(?:our\s+)?contracts\s+(?:that\s+|which\s+)?(?:meet|comply with|are within|follow|are on)\s+(?:our\s+)?standards?\b/, ' contracts by standards as a share of the total '],
+  [/\b(?:what\s+)?(?:share|percent(?:age)?|proportion|portion)\s+of\s+(?:our\s+)?(contracts|value)\s+(?:are|is|that are|that is)\s+(signed|executed|in draft|draft|drafts|in review|under review|expired|live|active)\b/, (m, w) => ` ${w} by stage as a share of the total `],
+  [/\b(?:what\s+)?(?:share|percent(?:age)?|proportion|portion)\s+of\s+(?:our\s+)?(value|contracts|spend)\s+(?:is|are|sits?)\s+(?:in|with)\s+(?!suppliers|customers|vendors|clients|the\s+top|top)(?:the\s+)?[\p{L}&-]+(?:\s+(?:stream|value stream|department))?/u, (m, w) => ` ${w === 'spend' ? 'value' : w} by stream as a share of the total `],
+  [new RegExp('\\bconcentration\\s+(?:in|among|with|of)\\s+(?:the\\s+|our\\s+)?top\\s+(\\d+|three|five|ten)\\s+' + _HB_AW_GRP + '\\b'), (m, n, g) => ` top ${_hbAwNum(n)} ${g} by value as a share of the total `],
+  [/\b(?:up|due|coming up)\s+for\s+renewal\b/, ' renewals in the next 12 months '],
+  [/\b(?:contracts?\s+)?(?:that|which)\s+(?:auto[- ]?renew|renew\s+automatically|renew\s+by\s+themselves|roll\s+over)\b/, ' by auto-renewal '],
+  [/\b(?:price\s+)?(?:indexation|cpi[- ]linked|escalations?|price\s+review)(?:\s+clauses?)?\b/, ' price increases '],
+  [new RegExp('\\bprice\\s+increases\\s+(?:by|per|across)\\s+' + _HB_AW_GRP + '\\b'), (m, g) => ` contracts by ${g} and price increases `],
+  /* -- distribution, mix and share -- */
+  [/\b(?:distribution|spread|range|histogram|dispersion|bands?|bucket(?:s|ed)?|tiers?|sizes?)\s+(?:of\s+)?(?:our\s+)?(?:contract\s+)?(?:values?|sizes?)\b|\b(?:values?|contract sizes?)\s+(?:distribution|spread|bands?|ranges?|buckets?|tiers?)\b|\bby\s+(?:size|value)\s+(?:band|bucket|tier|range)s?\b|\b(?:size|value)\s+(?:bands?|buckets?|tiers?)\b/, ' contracts by value band '],
+  [/\b(?:payment (?:days|terms))\s+(?:distribution|spread|mix|breakdown|profile)\b|\b(?:distribution|spread|mix|breakdown|profile)\s+of\s+payment (?:days|terms)\b/, ' contracts by payment terms '],
+  [new RegExp('\\b(?:a |the )?(?:breakdown|split|mix|composition|segmentation|profile|distribution)\\s+of\\s+(?:contract\\s+)?' + _HB_AW_GRP + '\\b'), (m, g) => ` contracts by ${g} `],
+  [/\b(?:split|spread|distributed|divided|broken\s+down|allocated|spread\s+out|shared)\s+(?:across|by|over|among|between|per)\s+/, ' by '],
+  [/\b(?:a |the )?(?:breakdown|split|mix|composition|segmentation|profile|make[- ]up|makeup|distribution|spread|allocation|cut)\s+(?:of|in|across|for)\s+/, ' '],
+  [/\b(?:breakdown|split|mix|composition|segmentation|profile|make[- ]up|makeup|distribution|allocation)\s+(by|per|across)\b/, ' by '],
+  [/\b(?:breakdown|mix|composition|split)\b/, ' '],
+  [/\b(?:what\s+)?(?:share|percent(?:age)?|proportion|portion|fraction|%)\s+of\s+(value|contracts|spend)\s+(?:is |are |sits |sit |lies |goes )?(?:with|in|from|to)\s+(suppliers|customers|vendors|clients)\b/, (m, w) => ` ${w === 'spend' ? 'value' : w} by side as a share of the total `],
+  [/\b(?:what\s+)?(?:share|percent(?:age)?|proportion|portion|fraction|%)\s+of\s+(?:(?:our|the)\s+)?(value|contracts|spend)\s+(?:by|per|across)\s+/, (m, w) => ` ${w === 'spend' ? 'value' : w} as a share of the total by `],
+  [new RegExp('\\b(?:what\\s+)?(?:share|percent(?:age)?|proportion|portion|fraction|%)\\s+of\\s+(?:(?:our|the)\\s+)?(value|contracts|spend)\\s+(?:sits?\\s+|is\\s+|lies\\s+|goes\\s+)?(?:with|in|to)\\s+(?:the\\s+|our\\s+)?top\\s+(\\d+|three|five|ten)\\s+' + _HB_AW_GRP + '\\b'), (m, w, n, g) => ` top ${_hbAwNum(n)} ${g} by ${w === 'contracts' ? 'contracts' : 'value'} as a share of the total `],
+  [/\b(?:how\s+concentrated\s+(?:is|are)\s+(?:our\s+)?(?:value|spend|contracts)|concentration(?:\s+(?:of|in)\s+(?:our\s+)?(?:value|spend|contracts))?|concentration risk|dependence on|reliance on|pareto(?:\s+of\s+(?:value|spend))?|80\/20)\b/, (m, off, str) => ' value as a share of the total ' + (/\bby\b/.test(str) ? '' : 'by counterparty ')],
+  /* -- running totals -- */
+  [/\b(?:cumulative|cumulatively|accumulated|running total of|running sum of|running|cume)\b(?! total)/, ' running total '],
+  /* -- signing speed -- */
+  [/\b(?:how long (?:do|does|did) (?:our |the )?(?:contracts|it|they|agreements) (?:take|need) to (?:sign|close|execute|get signed)|signing speed|speed of signing|speed to sign|time to close(?: contracts)?|time to execute|time to signature|deal velocity|sales cycle(?: length)?|contract cycle(?: time)?|days to close|lead time|average time to close)\b/, ' time to sign '],
+  [/\bmedian (?:time to sign|days to sign|signing time|cycle time)\b/, ' time to sign '],
+  /* -- endings, renewals and notice -- */
+  [/\b(?:expiries|expirations|maturities|contracts (?:coming|falling) due|roll[- ]?offs?)\b/, ' contracts ending '],
+  [/\b(?:upcoming|forthcoming|pending|due)\s+(renewals?|expiries|expirations|endings?|notice dates?|notice deadlines?|contracts ending|renewal decisions)\b/, (m, w) => ` ${w} over the next 12 months `],
+  [/\b(?:give |the )?notice (?:dates?|deadlines?|windows?|periods? ending)\b/, ' renewal decisions '],
+  [/\b(contracts ending|renewals?|value ending)\s+(?:in\s+)?(?:the\s+)?(?:next|coming)\s+(\d+|twelve|six|three)\s+months\s+by\s+(?:value|spend)\b/, (m, w, n) => ` value ending by month over the next ${_hbAwNum(n)} months `],
+  [/\b(?:contracts that auto[- ]?renew|auto[- ]?renewing contracts|evergreen(?: contracts)?|tacit renewals?|rolling contracts)\b/, ' contracts by auto-renewal '],
+  [new RegExp('\\bauto[- ]?renewals?\\s+(value|contracts)\\s+(?:by|per)\\s+' + _HB_AW_GRP + '\\b'), (m, w, g) => ` ${w} by ${g} and auto-renewal `],
+  /* -- what the wording says, and our standards -- */
+  [/\b(?:standards? breaches|breaches of (?:our )?standards|deviations(?: from (?:our )?standards)?|non[- ]?compliant contracts|off[- ]policy contracts|policy breaches|playbook deviations)\s+(?:by|per|across)\s+/, ' contracts off standard by '],
+  [/\b(?:uncapped liability|unlimited liability|no liability cap|without a liability cap|liability caps?)(?:\s+value)?\b/, m => /value$/i.test(m) ? ' value by liability cap ' : ' by liability cap '],
+  [new RegExp('\\b(?:contracts\\s+)?with\\s+price\\s+(?:increases|escalations?|rises|indexation|review clauses)(?:\\s+clauses)?\\s+(?:by|per|across)\\s+' + _HB_AW_GRP + '\\b'), (m, g) => ` contracts by ${g} and price increases `],
+  [new RegExp('\\bprice\\s+(?:escalations?|rises|indexation|review)(?:\\s+clauses)?\\s+(?:by|per|across)\\s+' + _HB_AW_GRP + '\\b'), (m, g) => ` contracts by ${g} and price increases `],
+  /* -- a matrix of two facts -- */
+  [/\b(?:heat ?map|matrix|grid|cross[- ]?tab(?:ulation)?|pivot(?: table)?)\s+of\s+([a-z]+)\s+(?:by|against|vs\.?|versus|x|and)\s+([a-z]+)\b/, (m, a, b) => /^(?:contracts?|value|agreements|deals|spend)$/i.test(a) ? m
+    : /^(?:month|quarter|year)s?$/i.test(b) ? ` contracts by ${b.replace(/s$/i, '')} and ${a} as a heatmap ` : ` contracts by ${a} and ${b} as a heatmap `],
+  [/\b([a-z]+)\s+(?:by|against|vs\.?|versus|x)\s+([a-z]+)\s+(?:matrix|grid|cross[- ]?tab|pivot(?: table)?)\b/, (m, a, b) => ` contracts by ${a} and ${b} as a heatmap `],
+  /* -- the whole book at a glance -- */
+  [/^\s*(?:(?:our |the |my )?(?:kpis?|key (?:numbers|figures|metrics|stats)|headline (?:numbers|figures)|top[- ]line (?:numbers|figures)|portfolio (?:overview|summary|snapshot)|overview|snapshot|the numbers|numbers|summary of (?:our |the )?contracts|contract summary|scorecard|contracts (?:overview|summary|snapshot)|overview of (?:our |the )?contracts|state of (?:the|our) (?:book|contracts|portfolio)))\s*$/, ' value by stage '],
+  /* -- a stream named by its own word: "the sales stream" -- */
+  [/\b(?!(?:by|per|each|every|the|our|a|value|which|what|that|this|one|any|and|or|then|vs|versus|in|of|to|for|with|against|x)\b)([a-z]+)\s+stream\b/, ' $1 '],
+];
+/* the question in the board's own words (the phrasebook, then the date) */
+const _hbAwCiMemo = new Map();
+const _hbAwCi = re => { let x = _hbAwCiMemo.get(re); if (!x){ x = re.flags.includes('i') ? re : new RegExp(re.source, re.flags + 'i'); _hbAwCiMemo.set(re, x); } return x; };
+function hbAnalystWords(q){
+  const raw = String(q == null ? '' : q);
+  /* the words keep their case (a card's name is read from them as typed);
+     every rule reads them case-blind. A card's own name ("… called
+     Pipeline") is never rewritten: it is set aside and put back. */
+  const nm = /\s(?:called|named|titled|kallad|med namnet|med rubriken)\s.+$/i.exec(raw);
+  const body = nm ? raw.slice(0, nm.index) : raw;
+  let t = ' ' + body.replace(/[?!;()]/g, ' ').replace(/,(?=\s)/g, ' ').replace(/\s+/g, ' ') + ' ';
+  for (const [re, to] of HB_ANALYST_WORDS) t = t.replace(_hbAwCi(re), to).replace(/ {2,}/g, ' ');
+  /* a comparison or a trend with no date of its own reads the signing date */
+  if (t.includes('\u0001')){
+    const plain = t.replace(/\u0001/g, ' ').toLowerCase();
+    const named = HB_RC.date.some(([, re]) => re.test(plain));
+    /* contracts not yet signed have no signing date: they move by the day
+       they were raised */
+    const unsigned = /\b(?:in negotiation|drafts?|in review|under review|unsigned|not signed)\b/.test(plain);
+    t = t.replace(/\s*\u0001\s*/, named ? ' ' : unsigned ? ' created ' : ' signed ').replace(/\u0001/g, ' ');
+  }
+  t = t.replace(/\b(?:delta|variance|movement|going|is\s+(?=contracts|value)|what\s+is\s+our)\b/gi, ' ');
+  /* said once: a second "trend" or "signed" adds nothing; a comparison is
+     the answer, so a trend word beside it steps aside */
+  let seenT = false; t = t.replace(/\btrend\b/gi, w => seenT ? ' ' : (seenT = true, w));
+  if (/\bcompared with\b/i.test(t)) t = t.replace(/\btrend\b/gi, ' ');
+  let seenS = false; t = t.replace(/\bsigned\b/gi, w => seenS ? ' ' : (seenS = true, w));
+  t = t.replace(/\b(contracts?)(\s+\1\b)+/gi, '$1');
+  /* a running total runs over time: by month where no period is named */
+  if (/\brunning total\b/i.test(t) && !/\b(?:by|per|each|every)\s+(?:month|quarter|year)\b|\b(?:monthly|quarterly|yearly)\b/i.test(t))
+    t += /\b(?:sign|signed|end|ending|expir\w*|start|created|renew\w*)\b/i.test(t) ? ' by month' : ' signed by month';
+  t = t.replace(/\s+/g, ' ').trim();
+  if (nm) t += nm[0];
+  return t || raw;
+}
 function hbWordsApply(q){
   let t = String(q || ''); const list = hbWords();
   if (!list.length || !t) return t;
@@ -5605,7 +5846,8 @@ function hbAskReadingOf(qRaw){
   /* AN ANSWER PACK (Charts That Explain, rec 3): the four questions that
      matter most get their ready answer, free, the same way every time */
   if (s.face === 'board'){ const pk = hbPackOfQ(raw); if (pk) return { road: 'free', kind: 'pack', pack: pk, q: raw }; }
-  const q = hbWordsApply(raw);
+  /* the company's own words first, then the analyst's phrasebook */
+  const q = hbAnalystWords(hbWordsApply(raw));
   const fu = hbFollowUpRead(q);
   if (fu) return { road: 'free', kind: 'follow', fu, q };
   const r = hbParse(q);
@@ -6077,7 +6319,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
