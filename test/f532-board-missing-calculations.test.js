@@ -146,20 +146,22 @@ describe('f532 (3) the smallest contracts', () => {
     const all = w.state.contracts.filter(c => !c.archived && w.igHomeValue(c) > 0).map(c => w.igHomeValue(c)).sort((a, b) => a - b);
     assert.equal(vals[0], all[0]);
   });
-  test('on the board it is a list, smallest first', () => {
+  test('on the board: a chart first (the owner\'s rule), and the List picture reads smallest first', () => {
     const w = world();
     const t = w.igRecipeParse('the 5 smallest contracts').acts[0].top;
     const ids = J(w.igTopIds(t.n, t.by, t.per, null, t.dir));
-    w.hbShowFound(ids, 'Smallest 5 by value', { pic: 'list', sort: { by: 'value', dir: 'up' } });
-    const D = w.hbDigData('ls', w.hbS().lens), P = J(w.hbPlan(D));
-    assert.equal(P.pic, 'list'); assert.deepEqual(P.sort, { by: 'value', dir: 'up' });
+    w.hbShowFound(ids, 'Smallest 5 by value', null);
+    let D = w.hbDigData('ls', w.hbS().lens);
+    assert.notEqual(w.hbPlan(D).pic, 'list', 'CHART FIRST (Young, 3 Oct 2026)');
+    w.hbCardSet('ls', { pic: 'list' });
+    D = w.hbDigData('ls', w.hbS().lens);
     const body = textOf(w.hbDigBodyHtml(D, w.hbS().lens, false));
-    const first = w.getContract(ids[0]);
-    assert.ok(body.indexOf(first.id) >= 0 && body.indexOf(first.id) <= body.indexOf(w.getContract(ids[4]).id));
+    const at = ids.map(id => body.indexOf(id + ' '));
+    assert.ok(at.every(x => x >= 0) && at.every((x, i) => !i || x > at[i - 1]), 'in the order the list arrived: smallest first ' + JSON.stringify(at));
   });
-  test('the map hands the board its list picture; the label says smallest, in both books', () => {
+  test('the map hands the board its list in ranked order and nothing else; the label says smallest, in both books', () => {
     const I = read('js/views/intelligence.js');
-    assert.match(I, /if\(t\.dir==='up'\) listChart=\{ pic:'list', sort:\{ by:'value', dir:'up' \} \};/);
+    assert.ok(!/listChart=\{ pic:'list'/.test(I), 'no List picture forced over the chart');
     assert.equal((read('js/i18n.js').match(/\bint_bottom_label:/g) || []).length, 2);
   });
 });
