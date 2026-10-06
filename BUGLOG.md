@@ -20436,3 +20436,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ### Noticed, not fixed
 - Home board: a month-columns card measuring risk exposure leads with the contracts' whole VALUE ("9 contracts · KES 54M") in its head line, not the exposure the columns draw (KES 24M in the same card); the reading line below states the exposure correctly.
+
+## 6 Oct 2026 — f364 (5) "the Document tab mounts no strand": FIXED (owner-asked)
+- The claim forbade DOC_XRAY_SPINE_W, which the Thread commit (4b3b9ee) kept and published on purpose for the Explorer (f392 (7) pins the read). The test now forbids only the Document tab's painter, follower and mount, and pins that the width stays. Full suite 11,808 / 0 failures.

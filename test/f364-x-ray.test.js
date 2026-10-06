@@ -180,7 +180,13 @@ describe('f364 (5) the strand left the margin; the thread is the map', () => {
      strand — every clause is a row on the thread, with a name. The strand
      builders stay for the Explorer, which draws them over its own paper. */
   test('the Document tab mounts no strand', () => {
-    assert.ok(!/function docXrayPaint\(|function docXrayFollow\(|DOC_XRAY_SPINE_W|id='doc-xr-spine'/.test(CODE));
+    /* RE-POINTED 6 Oct 2026 (red on main since the Thread landed): the strip's
+       WIDTH, DOC_XRAY_SPINE_W, was kept and published on purpose in the same
+       commit — the Explorer reads it through window (f392 (7) pins that read)
+       — so naming it here forbade the very thing that commit kept. The
+       claim is the Document tab's: no painter, no follower, no mount. */
+    assert.ok(!/function docXrayPaint\(|function docXrayFollow\(|id='doc-xr-spine'/.test(CODE));
+    assert.match(CODE, /const DOC_XRAY_SPINE_W = 28;/, 'the width stays, for the Explorer');
     assert.ok(!/docXraySpineHtml\(/.test(region('docThreadPaint')), 'the thread paints beads, not blocks');
   });
   test('the Explorer still does, with the same builders', () => {
