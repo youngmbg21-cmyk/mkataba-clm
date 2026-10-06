@@ -2066,9 +2066,9 @@ function hbColsSvg(D, cs, P){
     trend: T ? { y0: T.y0, y1: T.y1, span: T.i1 - T.i0 + 1, unit } : null,
     /* the columns as counted, for the shelf's normal range: the chart's own
        numbers, so a picture can never say what its open chart would not */
-    cols: cols.filter(c => !c.edge).map(c => ({ b: c.b, y: c.M.y, n: c.M.n, sofar: !!c.sofar, hollow: !!c.hollow, k: c.list.length, dig: c.dig })), unit, nowB,
+    cols: cols.filter(c => !c.edge).map(c => ({ b: c.b, y: c.M.y, n: c.M.n, left: c.M.left || 0, sofar: !!c.sofar, hollow: !!c.hollow, k: c.list.length, dig: c.dig })), unit, nowB,
     /* and what the reading says beside them: the edges, the undated, the unsigned */
-    edges: cols.filter(c => c.edge).map(c => ({ b: c.b, y: c.M.y, k: c.list.length, dig: c.dig })), none: none.length, noneDig: door('none'),
+    edges: cols.filter(c => c.edge).map(c => ({ b: c.b, y: c.M.y, left: c.M.left || 0, k: c.list.length, dig: c.dig })), none: none.length, noneDig: door('none'),
     noneY: none.length ? (hbMeasure(none, m).y || 0) : 0,
     unsigned: unsigned.length, unsignedV: offV, date, m, left: leftN };
 }
@@ -2906,7 +2906,7 @@ function hbReadingCore(D, cs, P, R){
       else if (money) say('hb_read_value', { v: _hbM(tot), n: _hbN(counted) }, counted);
       else say('hb_read_counted', { n: _hbN(counted) }, counted);
       /* exposure leaves out what nobody has read, and says so */
-      if (m === 'exposure'){ const unread = cols.reduce((a, c) => a + (c.M.left || 0), 0) + edges.reduce((a, c) => a + (c.M.left || 0), 0);
+      if (m === 'exposure'){ const unread = cols.reduce((a, c) => a + (c.left || 0), 0) + edges.reduce((a, c) => a + (c.left || 0), 0);
         if (unread){ counts.add(unread); say('hb_read_exp_unread', { n: _hbN(unread) }, unread); } }
       /* A RUNNING TOTAL is read as where it ends, never as a busiest month */
       if (P.show === 'running'){ const last = cols.filter(c => !c.edge).slice(-1)[0];
@@ -4270,8 +4270,7 @@ function hbStoryData(sid, lens){
     ch('c4', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'created' }, measure: 'count' }, open);
   }
   if (topic === 'risk'){
-    /* where the money at risk sits (a column chart of exposure over time
-       does not draw today — noticed, logged) */
+    /* where the money at risk sits */
     ch('c1', { pic: 'bars', split: { by: 'folder' }, measure: money ? 'exposure' : 'count' }, live);
     ch('c2', { pic: 'ring', split: { by: 'standards' }, measure: 'count' }, live);
     ch('c3', { pic: 'ring', split: { by: 'liabcap' }, measure: 'count' }, live);
