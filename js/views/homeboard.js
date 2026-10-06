@@ -587,7 +587,7 @@ function hbDigData(key, lens){
       cs = pass(base, field, '~' + kept + mv); fixed.push(field);
     } else {
       const [t1, v1, t2, v2] = tail;
-      if (t1 === 'w'){ ob = base.concat((Wc && Wc.prev) || []); const from = v1 === 'prev' ? ((Wc && Wc.prev) || []) : base; words.push(i18t(v1 === 'prev' ? (Pp.compare === 'year' ? 'hb_cmp_year_word' : 'hb_cmp_prev_word') : 'hb_cmp_cur_word'));
+      if (t1 === 'w'){ ob = base.concat((Wc && Wc.prev) || []); const from = v1 === 'prev' ? ((Wc && Wc.prev) || []) : base; words.push(v1 === 'prev' ? hbCmpPrevWord(Pp) : i18t('hb_cmp_cur_word'));
         cs = pass(from, t2, v2); }
       else cs = pass(pass(base, t1, v1), t2, v2);
       [t1, t2].forEach(t => { if (HB_SPLIT_GROUPS.includes(t)) fixed.push(t); });
@@ -1457,7 +1457,10 @@ function hbBarsFamily(D, cs, mode, field, money){
    HaTi does every count; a trend is a straight line through months that
    carry enough contracts, and with too few it says so instead of drawing. */
 const HB_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', 'stack', 'grouped', 'heat'];
-const HB_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live', 'exposure', 'avgValue', 'medianValue'];
+const HB_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live', 'exposure', 'avgValue', 'medianValue', 'medianDaysToSign'];
+/* the two signing-speed measures: the average and (the analyst's missing
+   calculation, Young, 6 Oct 2026) the MEDIAN days from raised to signed */
+const hbSignM = m => m === 'daysToSign' || m === 'medianDaysToSign';
 /* CHARTS THAT EXPLAIN, Part 1 (Young, 5 Oct 2026): the money measures — risk
    exposure (value × the weight of the worst open risk), the average and the
    median value — obey canViewValues like value; a reader not shown values is
@@ -1479,7 +1482,7 @@ const HB_SPLIT_GROUPS = ['status', 'folder', 'counterparty', 'owner', 'kind', 's
 const HB_PICS2 = ['stack', 'grouped', 'heat'];
 const HB_SORTS = ['value', 'count', 'name'];
 const HB_DIRS = ['down', 'up'];
-const HB_COMPARES = ['prev', 'year'];
+const HB_COMPARES = ['prev', 'year', 'range'];
 const HB_TOP_MAX = 50, HB_TITLE_MAX = 80, HB_SERIES_MAX = 6, HB_HEAT_MAX = 12;
 const HB_WIN_MAX = { m: 120, q: 40, y: 10 };
 const HB_TREND_MIN_N = 3, HB_TREND_MIN_PTS = 6, HB_COLS_MAX = 24;
@@ -1544,6 +1547,8 @@ const HB_RC = {
   winLast: new RegExp('\\b(?:in |during |over |for )?(?:the )?(?:last|past|previous|senaste|de senaste|förra)\\s+' + _HB_NUM + '?\\s*' + _HB_UNITW + '\\b'),
   winNext: new RegExp('\\b(?:in |during |over |for )?(?:the )?(?:next|coming|kommande|nästa|de närmaste)\\s+' + _HB_NUM + '?\\s*' + _HB_UNITW + '\\b'),
   /* an exact range (the analyst's phrasebook writes "Q2 2026" as one) */
+  /* ANY TWO PERIODS: "… from A to B compared with C to D" */
+  cmpRange: /\b(?:compared (?:to|with)|against|vs\.?|versus|jämfört med|mot) (\d{4}-\d{2}-\d{2}) (?:to|and|until|till) (\d{4}-\d{2}-\d{2})\b/,
   winRange: /\b(?:from |between )(\d{4}-\d{2}-\d{2}) (?:to|and|until|till) (\d{4}-\d{2}-\d{2})\b/,
   winThis: /\b(?:in |during )?(?:this|the current|det här|detta|denna)\s+(month|quarter|year|månad(?:en)?|kvartal(?:et)?|år(?:et)?)\b|\b(year to date|ytd|i år|hittills i år)\b/,
   /* THE COMPARISON: against the same period a year back, or the one before */
@@ -1561,6 +1566,7 @@ const HB_RC = {
   m: {
     /* Charts That Explain, Part 1: read before value, which they contain */
     exposure: /\b(?:risk exposure|exposure|value at risk|money at risk|riskexponering|värde i risk)\b/,
+    medianDaysToSign: /\b(?:median (?:time to sign|days to sign|signing time|time to signature|cycle time|turnaround(?: time)?)|median(?:tid)? (?:till|för) signering|mediantid till signering)\b/,
     medianValue: /\b(?:median (?:contract )?value|median|medianvärde)\b/,
     avgValue: /\b(?:average (?:contract )?value|mean (?:contract )?value|average size|genomsnittligt värde|snittvärde)\b/,
     daysToSign: /\b(?:time to sign|days to sign|how (?:long|quickly|fast) (?:does it take |it takes |do they take |do we take |we take )?to (?:sign|get (?:them |it )?signed)|how (?:long|quickly|fast) (?:does|do) signing(?: take)?|signing time|time to signature|cycle time|turnaround(?: time)?|tid till signering|signeringstid)\b/,
@@ -1599,8 +1605,9 @@ function hbRecipeRead(qRaw){
   let title = null;
   { const m = HB_RC.title.exec(String(qRaw || '').trim()); if (m && m[1]){ title = hbPlainText(m[1], HB_TITLE_MAX); take(HB_RC.title); } }
   /* the comparison, before the trend reads "compared with last …" */
-  let compare = null;
-  if (take(HB_RC.cmpYear)) compare = 'year'; else if (take(HB_RC.cmpPrev)) compare = 'prev';
+  let compare = null, vs = null;
+  { const m = take(HB_RC.cmpRange); if (m && m[1] <= m[2]){ compare = 'range'; vs = { from: m[1], to: m[2] }; } }
+  if (!compare){ if (take(HB_RC.cmpYear)) compare = 'year'; else if (take(HB_RC.cmpPrev)) compare = 'prev'; }
   /* the period (an ending or a renewal "in the next N …" stays the map's
      reader's set, as it always was) */
   let win = null, winAt = null;
@@ -1610,6 +1617,7 @@ function hbRecipeRead(qRaw){
   if (!win && !endWin){ const m = take(HB_RC.winNext); if (m){ const n = num(m[1]); if (n){ win = { next: n, unit: unitOf(m[2]) }; winAt = full.indexOf(m[0].trim()); } } }
   if (!win && !endWin){ const m = take(HB_RC.winThis); if (m){ win = { last: 1, unit: m[1] ? unitOf(m[1]) : 'y' }; winAt = full.indexOf(m[0].trim()); } }
   if (win && HB_RC.date.some(([, re]) => re.test(full))) win.date = hbRcDateOf(full.trim(), winAt, 'end');
+  if (compare === 'range'){ if (win && win.from && win.to) win.vs = vs; else compare = null; }
   let unit = null;
   for (const [u, re] of HB_RC.unit){ const m = take(re); if (m){ unit = u; unitAt = full.indexOf(m[0].trim()); break; } }
   /* "risk exposure" is a measure before any split reads it: its "risk" is
@@ -1646,7 +1654,7 @@ function hbRecipeRead(qRaw){
   if (!pic && group2 && stackBy === group2) pic = 'stack';
   const chartWord = !!take(HB_RC.chart);
   let measure = exposure ? 'exposure' : null;
-  if (!measure) for (const k of ['exposure', 'medianValue', 'avgValue', 'daysToSign', 'rounds', 'payDays']){ if (take(HB_RC.m[k])){ measure = k; break; } }
+  if (!measure) for (const k of ['exposure', 'medianDaysToSign', 'medianValue', 'avgValue', 'daysToSign', 'rounds', 'payDays']){ if (take(HB_RC.m[k])){ measure = k; break; } }
   const show = take(HB_RC.running) ? 'running' : take(HB_RC.share) ? 'share' : null;
   /* "payment terms as a pie": a ring shows shares, and an average has none —
      the slices are the payment terms themselves, counted */
@@ -1663,16 +1671,16 @@ function hbRecipeRead(qRaw){
   const more = !!(win || compare || top || sort || title);
   if (!measure && HB_RC.m.value.test(t) && (unit || group || pic || chartWord || trend || gantt || valueLead || more)) measure = 'value';
   if (measure === 'value') for (let k = 0; k < 3 && take(HB_RC.m.value); k++);
-  const isChart = unit || group || gantt || pic || chartWord || trend || when || live || more || show || measure === 'daysToSign' || measure === 'rounds' || (measure === 'value' && valueLead)
+  const isChart = unit || group || gantt || pic || chartWord || trend || when || live || more || show || hbSignM(measure) || measure === 'rounds' || (measure === 'value' && valueLead)
     || measure === 'exposure' || measure === 'avgValue' || measure === 'medianValue';
   if (!isChart) return null;
   /* the time split: asked for, or implied by a trend, a "when" or a measure
      that lives in time; a group said with "by month" is the second split */
   let split = null, split2 = null;
-  const timeAsked = unit || trend || when || live || (measure === 'daysToSign' && !group);
+  const timeAsked = unit || trend || when || live || (hbSignM(measure) && !group);
   if (timeAsked && (!group || unit)){
-    const lean = (measure === 'daysToSign' || measure === 'rounds' || measure === 'payDays' || (trend && !when)) ? 'signed' : 'end';
-    split = { by: 'date', unit: unit || 'm', date: measure === 'daysToSign' ? 'signed' : hbRcDateOf(full.trim(), unitAt, lean) };
+    const lean = (hbSignM(measure) || measure === 'rounds' || measure === 'payDays' || (trend && !when)) ? 'signed' : 'end';
+    split = { by: 'date', unit: unit || 'm', date: hbSignM(measure) ? 'signed' : hbRcDateOf(full.trim(), unitAt, lean) };
     /* "act by", "notice dates": the date itself, read here — they are no
        condition the map's reader knows ("renewal" still is) */
     if (split.date === 'decision') take(/\b(?:act by dates?|must act by|act by|act on|must act|deadlines? to act|notice dates?|give notice dates?|give notice|notice deadlines?|agera senast|uppsägningsdatum)\b/);
@@ -1682,7 +1690,7 @@ function hbRecipeRead(qRaw){
   else if (split && split.by === 'date' && !split2 && (!pic || pic === 'bars')) pic = 'cols';
   /* a compared period over time names its date: the split's own */
   if (win && !win.date && split && split.by === 'date') win.date = split.date;
-  const R = { split, pic, measure: measure || 'count', trend: trend || (measure === 'daysToSign' && !unit && !group), condText: t.trim(), chartWord };
+  const R = { split, pic, measure: measure || 'count', trend: trend || (hbSignM(measure) && !unit && !group), condText: t.trim(), chartWord };
   if (split2) R.split2 = split2;
   if (sort) R.sort = sort;
   if (top) R.top = top;
@@ -1793,6 +1801,7 @@ function hbCardPlan(spec, D){
      period (the last 12 months when none is named — said in the reading) */
   if (P.compare){
     if (P.measure === 'live' || P.pic === 'list' || P.pic === 'gantt') drop('compare');
+    else if (P.compare === 'range' && !(P.window && P.window.vs)) drop('compare');
     else {
       P.pic = P.split && P.split.by === 'date' ? 'cols' : 'bars';
       if (P.split && P.split.by === 'valueBand') P.split = { by: hbNextGroup((D && D.fixed) || []) };
@@ -1805,7 +1814,7 @@ function hbCardPlan(spec, D){
      else the date the measure lives on, else when the contract was created */
   if (P.window){
     if (P.measure === 'live') drop('window');
-    else P.window = Object.assign({}, P.window, { date: P.window.date || (P.split && P.split.by === 'date' ? P.split.date : P.pic === 'gantt' ? 'end' : P.measure === 'daysToSign' ? 'signed' : 'created') });
+    else P.window = Object.assign({}, P.window, { date: P.window.date || (P.split && P.split.by === 'date' ? P.split.date : P.pic === 'gantt' ? 'end' : hbSignM(P.measure) ? 'signed' : 'created') });
   }
   /* THE ORDER AND THE TOP N belong to the split by a group: the first, or —
      when time runs across — the second; a list orders its contracts */
@@ -1836,7 +1845,7 @@ function hbDateOf(c, kind){
 }
 function hbMeasureOne(c, m){
   if (m === 'value') return hbValueOfOne(c);
-  if (m === 'daysToSign'){ const s = hbDateOf(c, 'signed'), r = hbDateOf(c, 'created'); if (!s || !r) return null; const d = Math.round((Date.parse(s) - Date.parse(r)) / 864e5); return d >= 0 ? d : null; }
+  if (hbSignM(m)){ const s = hbDateOf(c, 'signed'), r = hbDateOf(c, 'created'); if (!s || !r) return null; const d = Math.round((Date.parse(s) - Date.parse(r)) / 864e5); return d >= 0 ? d : null; }
   if (m === 'payDays'){ try { const d = (typeof payDays === 'function') ? payDays(c) : null; return d == null ? null : Number(d); } catch (_){ return null; } }
   if (m === 'rounds'){ const r = c.negotiation && Array.isArray(c.negotiation.rounds) ? c.negotiation.rounds.length : 0; return r || null; }
   if (m === 'exposure') return hbExposureOf(c);
@@ -1849,15 +1858,15 @@ function hbMeasure(list, m){
   const ok = list.map(c => hbMeasureOne(c, m)).filter(v => v != null && isFinite(v));
   /* exposure ADDS UP (the unread are left out and said); the median is the middle one */
   if (m === 'exposure') return { y: ok.reduce((a, b) => a + b, 0), n: ok.length, left: list.length - ok.length };
-  if (m === 'medianValue'){ const xs = ok.slice().sort((a, b) => a - b), k = xs.length;
+  if (m === 'medianValue' || m === 'medianDaysToSign'){ const xs = ok.slice().sort((a, b) => a - b), k = xs.length;
     return { y: k ? (k % 2 ? xs[(k - 1) / 2] : (xs[k / 2 - 1] + xs[k / 2]) / 2) : null, n: k, left: list.length - k }; }
   return { y: ok.length ? ok.reduce((a, b) => a + b, 0) / ok.length : null, n: ok.length, left: list.length - ok.length };
 }
-const hbAvgMeasure = m => m === 'daysToSign' || m === 'payDays' || m === 'rounds' || m === 'avgValue' || m === 'medianValue';
+const hbAvgMeasure = m => m === 'daysToSign' || m === 'payDays' || m === 'rounds' || m === 'avgValue' || m === 'medianValue' || m === 'medianDaysToSign';
 function hbMeasureFmt(m, y){
   if (y == null || !isFinite(y)) return '—';
   if (hbMoneyMeasure(m)) return _hbM(y);
-  if (m === 'daysToSign' || m === 'payDays') return i18tn('hb_days_n', Math.round(y), { n: _hbN(Math.round(y)) });
+  if (hbSignM(m) || m === 'payDays') return i18tn('hb_days_n', Math.round(y), { n: _hbN(Math.round(y)) });
   if (m === 'rounds') return (Math.round(y * 10) / 10).toLocaleString((typeof jxLocale === 'function') ? jxLocale() : undefined);
   return _hbN(Math.round(y));
 }
@@ -1904,7 +1913,7 @@ function hbTrendOf(pts){
 function hbTrendDir(m, T){
   const base = Math.max(Math.abs(T.y0), 1e-9), pct = (T.y1 - T.y0) / base;
   if (Math.abs(pct) < 0.05) return i18t('hb_tr_flat');
-  if (m === 'daysToSign') return i18t(pct < 0 ? 'hb_tr_faster' : 'hb_tr_slower');
+  if (hbSignM(m)) return i18t(pct < 0 ? 'hb_tr_faster' : 'hb_tr_slower');
   return i18t(pct > 0 ? 'hb_tr_up' : 'hb_tr_down');
 }
 /* ---- MONTH COLUMNS: one column per month (quarter, year) on the date asked ---- */
@@ -1918,7 +1927,7 @@ function hbColsSvg(D, cs, P){
      dashboard say 851 SEK when we have over 1 billion"): an executed contract
      with no signing date on record IS signed — it stands in the "No date"
      column, never among the "not signed yet" */
-  const unsigned = (date === 'signed' || m === 'daysToSign') ? cs.filter(c => !hbDateOf(c, 'signed') && c.status !== 'Signed') : [];
+  const unsigned = (date === 'signed' || hbSignM(m)) ? cs.filter(c => !hbDateOf(c, 'signed') && c.status !== 'Signed') : [];
   if (unsigned.length){ const out = new Set(unsigned); cs = cs.filter(c => !out.has(c)); }
   const keyed = cs.map(c => ({ c, b: hbBucketOf(hbDateOf(c, date), unit) }));
   const dated = keyed.filter(x => x.b !== 'none').map(x => x.b).sort();
@@ -2179,7 +2188,8 @@ function hbRcOptions(part, P, D){
   }
   if (part === 'compare'){
     const dead = P.split2 ? i18t('hb_why_cmp_split2') : (P.measure === 'live' || P.pic === 'list' || P.pic === 'gantt') ? i18t('hb_why_cmp') : '';
-    return [opt('off', i18t('hb_cmp_off'), true), opt('prev', i18t('hb_cmp_prev'), !dead, dead), opt('year', i18t('hb_cmp_year'), !dead, dead)];
+    return [opt('off', i18t('hb_cmp_off'), true), opt('prev', i18t('hb_cmp_prev'), !dead, dead), opt('year', i18t('hb_cmp_year'), !dead, dead)]
+      .concat(P.compare === 'range' ? [opt('range', i18t('hb_cmp_range'), !dead, dead)] : []);
   }
   return [];
 }
@@ -2266,7 +2276,16 @@ function hbWindowClean(w){
   else if (num('next')){ out.next = num('next'); out.unit = unit; }
   else { const f = iso(w.from), t = iso(w.to); if (!f && !t) return null; if (f && t && f > t) return null; if (f) out.from = f; if (t) out.to = t; }
   if (HB_DATES.includes(w.date)) out.date = w.date;
+  /* ANY TWO PERIODS (Young, 6 Oct 2026): the period a 'range' comparison is
+     held against, two whole days in order */
+  const vs = hbVsClean(w.vs); if (vs) out.vs = vs;
   return out;
+}
+function hbVsClean(v){
+  if (!v || typeof v !== 'object') return null;
+  const iso = x => /^\d{4}-\d{2}-\d{2}$/.test(String(x || '')) ? String(x) : null;
+  const f = iso(v.from), t = iso(v.to);
+  return f && t && f <= t ? { from: f, to: t } : null;
 }
 function hbCardClean(v){
   const r = {};
@@ -2398,7 +2417,8 @@ function hbWinOf(P){
   const upTo = soFar ? today : to;
   let prev = null;
   const yBack = iso => (Number(iso.slice(0, 4)) - 1) + iso.slice(4);
-  if (P.compare === 'year') prev = { from: yBack(from), to: yBack(upTo), shift: unit ? { m: 12, q: 4, y: 1 }[unit] : null };
+  if (P.compare === 'range' && W.vs) prev = { from: W.vs.from, to: W.vs.to, shift: null, range: true };
+  else if (P.compare === 'year') prev = { from: yBack(from), to: yBack(upTo), shift: unit ? { m: 12, q: 4, y: 1 }[unit] : null };
   else if (P.compare === 'prev'){
     if (b0){ const n = W.last || W.next, pf = hbBucketStart(hbBucketMove(b0, unit, -n), unit);
       prev = { from: pf, to: soFar ? hbIsoShift(pf, Math.round((Date.parse(today) - Date.parse(from)) / 864e5)) : hbBucketEnd(hbBucketMove(b1, unit, -n), unit), shift: n }; }
@@ -2420,7 +2440,29 @@ function hbWinWord(W){
   if (W.last === 1 || W.next === 1) return i18t((W.last ? 'hb_win_this_' : 'hb_win_coming_') + u);
   if (W.last) return i18t('hb_win_last', { n: W.last, units: i18tn('hb_tr_units_' + u, W.last, { n: W.last }) });
   if (W.next) return i18t('hb_win_next', { n: W.next, units: i18tn('hb_tr_units_' + u, W.next, { n: W.next }) });
+  /* a period held against another one is named as an analyst names it */
+  if (W.vs && W.from && W.to) return hbPeriodWord(W.from, W.to);
   return i18t('hb_win_range', { from: W.from ? hbReadDay(W.from) : '…', to: W.to ? hbReadDay(W.to) : '…' });
+}
+/* a period named as an analyst names it: a whole year, quarter or month by
+   its name ("Q1 2025"), any other span by its two days, years said */
+function hbPeriodWord(from, to){
+  for (const u of ['y', 'q', 'm']){ const b = hbBucketOf(from, u); if (hbBucketStart(b, u) === from && hbBucketEnd(b, u) === to) return hbBucketLabel(b, u, false); }
+  const day = iso => { try { return new Date(iso + 'T00:00:00').toLocaleDateString((typeof langLocale === 'function') ? langLocale() : undefined, { day: 'numeric', month: 'long', year: 'numeric' }); } catch (_){ return String(iso); } };
+  return i18t('hb_win_range', { from: day(from), to: day(to) });
+}
+/* the words for the period a comparison is held against */
+function hbCmpPrevWord(P){
+  if (P.compare === 'range' && P.window && P.window.vs) return hbPeriodWord(P.window.vs.from, P.window.vs.to);
+  return i18t(P.compare === 'year' ? 'hb_cmp_year_word' : 'hb_cmp_prev_word');
+}
+/* the number of columns between two periods' first days (Q3 2026 sits 6
+   quarters after Q1 2025) */
+function hbBucketGap(fromIso, toIso, unit){
+  let a = hbBucketOf(fromIso, unit), b = hbBucketOf(toIso, unit), sign = 1;
+  if (a > b){ [a, b] = [b, a]; sign = -1; }
+  let n = 0; while (a < b && n < 5000){ a = hbBucketNext(a, unit); n++; }
+  return sign * n;
 }
 /* the contracts whose date falls in the period (and, compared, in the one
    before). A contract with no such date is in neither — and said. */
@@ -2607,7 +2649,7 @@ function hbCompareSvg(D, cs, P, Wc){
   const m = P.measure, money = hbMoneyOk(), Z = Wc && Wc.Z;
   const prevCs = (Wc && Wc.prev) || [];
   const Mc = hbMeasure(cs, m), Mp = hbMeasure(prevCs, m);
-  const prevWord = i18t(P.compare === 'year' ? 'hb_cmp_year_word' : 'hb_cmp_prev_word');
+  const prevWord = hbCmpPrevWord(P);
   const W = 1000, L = 64, R = 18, Tp = 40, B = 52;
   let g = '', rows = [];
   const isDate = P.split && P.split.by === 'date';
@@ -2616,7 +2658,7 @@ function hbCompareSvg(D, cs, P, Wc){
     /* the period's buckets, each against its partner back in time */
     const buckets = []; if (Z && hbWinSpanOk(Z)){ let b = hbBucketOf(Z.from, unit); const last = hbBucketOf(Z.to, unit); while (b <= last && buckets.length < HB_COLS_MAX){ buckets.push(b); b = hbBucketNext(b, unit); } }
     else { const ds = cs.map(c => hbBucketOf(hbDateOf(c, date), unit)).filter(b => b !== 'none').sort(); if (ds.length){ let b = ds[0]; while (b <= ds[ds.length - 1] && buckets.length < HB_COLS_MAX){ buckets.push(b); b = hbBucketNext(b, unit); } } }
-    const back = P.compare === 'year' ? { m: 12, q: 4, y: 1 }[unit] : (Z && Z.prev && Z.prev.shift) || buckets.length || 1;
+    const back = P.compare === 'year' ? { m: 12, q: 4, y: 1 }[unit] : (Z && Z.prev && Z.prev.range) ? hbBucketGap(Z.prev.from, Z.from, unit) : (Z && Z.prev && Z.prev.shift) || buckets.length || 1;
     rows = buckets.map(b => { const pb = hbBucketMove(b, unit, -back);
       const cur = cs.filter(c => hbInBucket(c, unit, date, b)), prev = prevCs.filter(c => hbInBucket(c, unit, date, pb));
       return { b, pb, label: hbBucketLabel(b, unit, true), full: hbBucketLabel(b, unit, false), pfull: hbBucketLabel(pb, unit, false), cur, prev, Mc: hbMeasure(cur, m), Mp: hbMeasure(prev, m),
@@ -2651,10 +2693,11 @@ function hbCompareSvg(D, cs, P, Wc){
     g = `<svg class="hb-svg hb-cmp" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(i18t('hb_rc_compare'))}"><rect x="${LL}" y="10" width="10" height="10" rx="2" class="hb-sv-col"/><text x="${LL + 15}" y="19" font-size="12" class="hb-sv-ink2">${_hbE(hbWinWord(P.window))}</text><rect x="${LL + 200}" y="10" width="10" height="10" rx="2" class="hb-sv-colprev"/><text x="${LL + 215}" y="19" font-size="12" class="hb-sv-ink2">${_hbE(prevWord)}</text>${g}</svg>`;
   }
   const fmt = (M, list) => m === 'count' ? `<b>${_hbN(list.length)}</b> ${_hbE(i18tn('hb_contracts_word', list.length, { n: list.length }))}` : `<b>${_hbE(hbMeasureFmt(m, M.y))}</b> · ${_hbN(list.length)}`;
-  const nowWord = hbWinWord(P.window) + (Z && Z.soFar && P.window.last === 1 ? ' ' + i18t('hb_win_sofar') : '');
+  const range = P.compare === 'range';
+  const nowWord = (range && P.window.from && P.window.to ? hbPeriodWord(P.window.from, P.window.to) : hbWinWord(P.window)) + (Z && Z.soFar && (P.window.last === 1 || range) ? ' ' + i18t('hb_win_sofar') : '');
   const lead = `${_hbE(nowWord)}: ${fmt(Mc, cs)} · ${_hbE(prevWord)}: ${fmt(Mp, prevCs)} · <b>${_hbE(hbCmpChange(Mc.y || 0, Mp.y || 0))}</b>`;
   return { body: g, lead, by: (P.split ? hbSplitWord(P.split) + ' · ' : '') + i18t('hb_cmp_' + P.compare).toLowerCase(), note: '',
-    cmp: { cur: { k: cs.length, y: Mc.y }, prev: { k: prevCs.length, y: Mp.y }, word: prevWord, now: nowWord, rows: rows.map(r => ({ label: r.full, ck: r.cur.length, pk: r.prev.length, cy: r.Mc.y, py: r.Mp.y, dc: r.dc, dp: r.dp })) } };
+    cmp: { cur: { k: cs.length, y: Mc.y }, prev: { k: prevCs.length, y: Mp.y }, word: prevWord, low: range ? i18t('hb_cmp_range_in', { p: prevWord }) : prevWord.toLowerCase(), now: nowWord, rows: rows.map(r => ({ label: r.full, ck: r.cur.length, pk: r.prev.length, cy: r.Mc.y, py: r.Mp.y, dc: r.dc, dp: r.dp })) } };
 }
 /* ONE RUN OF A CARD: the period cut, then the picture — the same for the
    card, its reading, the board described to Copilot and the shelf */
@@ -2771,7 +2814,7 @@ function hbReadCompareOf(D, cs, P, R){
   const say = (key, parts, n) => { const l = hbReadLine(key, parts, n); if (l){ lines.push(l); keys.push(key); } };
   const fmt = (k, y) => m === 'count' ? _hbN(k) : hbMeasureFmt(m, y);
   counts.add(C.cur.k); counts.add(C.prev.k);
-  say('hb_read_cmp', { a: C.now || hbWinWord(P.window), x: fmt(C.cur.k, C.cur.y), b: C.word.toLowerCase(), y: fmt(C.prev.k, C.prev.y), chg: hbCmpChange(C.cur.y || 0, C.prev.y || 0) });
+  say('hb_read_cmp', { a: C.now || hbWinWord(P.window), x: fmt(C.cur.k, C.cur.y), b: C.low || C.word.toLowerCase(), y: fmt(C.prev.k, C.prev.y), chg: hbCmpChange(C.cur.y || 0, C.prev.y || 0) });
   const rows = C.rows.filter(x => x.ck || x.pk);
   if (rows.length > 1){
     const big = rows.slice().sort((a, b) => Math.abs((b.cy || 0) - (b.py || 0)) - Math.abs((a.cy || 0) - (a.py || 0)))[0];
@@ -2824,7 +2867,7 @@ function hbReadingCore(D, cs, P, R){
       const tot = cols.reduce((a, c) => a + (c.y || 0), 0) + edges.reduce((a, c) => a + (c.y || 0), 0) + (R.noneY || 0);
       /* the signed are the dated AND the undated executed ones (the "No date" column) */
       const signedN = counted;
-      if ((R.date === 'signed' || m === 'daysToSign') && R.unsigned){ counts.add(signedN); say('hb_read_signed', { n: _hbN(signedN), t: _hbN(cs.length) }, signedN); }
+      if ((R.date === 'signed' || hbSignM(m)) && R.unsigned){ counts.add(signedN); say('hb_read_signed', { n: _hbN(signedN), t: _hbN(cs.length) }, signedN); }
       else if (m === 'exposure') say('hb_read_exposure', { v: _hbM(tot), n: _hbN(counted) }, counted);
       else if (money) say('hb_read_value', { v: _hbM(tot), n: _hbN(counted) }, counted);
       else say('hb_read_counted', { n: _hbN(counted) }, counted);
@@ -3164,7 +3207,7 @@ function hbRecipeWords(P){
   if (P.sort) more.push(`sort=${P.sort.by} ${P.sort.dir}`);
   if (P.top) more.push('top=' + P.top);
   if (P.window) more.push('window=' + (P.window.last ? `last ${P.window.last} ${HB_UNIT_WORDS[P.window.unit || 'm']}` : P.window.next ? `next ${P.window.next} ${HB_UNIT_WORDS[P.window.unit || 'm']}` : `${P.window.from || '…'} to ${P.window.to || '…'}`) + ` (date ${P.window.date || 'end'})`);
-  if (P.compare) more.push('compare=' + P.compare);
+  if (P.compare) more.push('compare=' + P.compare + (P.compare === 'range' && P.window && P.window.vs ? ` (against ${P.window.vs.from} to ${P.window.vs.to})` : ''));
   if (P.title) more.push(`title="${P.title}"`);
   if (P.show) more.push('show=' + P.show);
   return `pic=${P.pic}; split=${hbSplitModelWord(P.split)}; measure=${P.measure}; trend=${P.trend ? 'on' : 'off'}.` + (more.length ? ' Also: ' + more.join('; ') + '.' : '');
@@ -3258,7 +3301,7 @@ function hbDataGuide(lens, max){
   } else lines.push('- Value: not shown to this reader — do not use measure value or split valueBand.');
   const mk = m => cs.filter(c => { const v = hbMeasureOne(c, m); return v != null && isFinite(v); }).length;
   if (money) lines.push(`- Risk exposure (measure exposure: value weighted by the worst open risk): ${mk('exposure')} of ${n} have their risks read.`);
-  lines.push(`- Days to sign (measure daysToSign): ${mk('daysToSign')} contracts have both a created and a signing date.`);
+  lines.push(`- Days to sign (measure daysToSign): ${mk('daysToSign')} contracts have both a created and a signing date. Also measure medianDaysToSign (the median days to sign).`);
   lines.push(`- Payment days (measure payDays): ${mk('payDays')} contracts state payment terms.`);
   lines.push(`- Negotiation rounds (measure rounds): ${mk('rounds')} contracts have rounds on record.`);
   lines.push(`- Live contracts each month (measure live): ${(_hbSnaps || []).length} monthly pictures kept so far.`);
@@ -4686,7 +4729,7 @@ function hbCardEdit(key, chart){
    whichever other parts it carries */
 function hbHowWord(P){
   return [hbPicWord(P), hbSplitWord(P.split)].concat(P.split2 ? [i18t('hb_then_by', { b: hbSplitWord(P.split2) })] : [], [i18t('hb_ms_' + P.measure).toLowerCase()],
-    P.sort ? [hbOrderWord(P.sort).toLowerCase()] : [], P.top ? [i18t('hb_top_n', { n: P.top }).toLowerCase()] : [], P.window ? [hbWinWord(P.window).toLowerCase()] : [],
+    P.sort ? [hbOrderWord(P.sort).toLowerCase()] : [], P.top ? [i18t('hb_top_n', { n: P.top }).toLowerCase()] : [], P.window ? [P.window.vs ? hbWinWord(P.window) : hbWinWord(P.window).toLowerCase()] : [],
     P.compare ? [i18t('hb_cmp_' + P.compare).toLowerCase()] : [], P.trend ? [i18t('hb_edit_trend_on')] : []).join(' · ');
 }
 /* Read a follow-up. Returns what to say, or null when it is not one. */
@@ -4806,7 +4849,7 @@ function hbCardCheck(D, raw, spec){
     say('pic', { pic: i18t('hb_pic_' + (clean.pic === 'cols' ? 'cols_m' : clean.pic)), split: hbSplitWord(clean.split || P.split).toLowerCase() });
   if (P.dropped && P.dropped.length) say('dropped', { what: P.dropped.map(k => i18t('hb_part_' + k)).join(', ') });
   let run = null; try { run = P.pic === 'list' ? null : hbChartRun(D, cs0, P); } catch (_){ run = null; }
-  if (P.window && run && !run.cs.length) say('period', { what: hbWinWord(P.window).toLowerCase() });
+  if (P.window && run && !run.cs.length) say('period', { what: P.window.vs ? hbWinWord(P.window) : hbWinWord(P.window).toLowerCase() });
   /* too many groups to read, with no top N */
   const field = P.split && P.split.by !== 'date' && P.split.by !== 'valueBand' ? P.split.by : null;
   if (field && !P.top){ const g = new Set((run ? run.cs : cs0).map(c => hbGroupOf(c, field))).size; if (g > HB_CHK_GROUPS_MAX) say('groups', { n: _hbN(g), max: HB_CHK_GROUPS_MAX }); }
@@ -4901,7 +4944,7 @@ function hbAmbiguity(q){
   const full = ' ' + _hbRcNorm(q) + ' ';
   const R = hbRecipeRead(q); const choices = []; let say = '';
   const dateNamed = HB_RC.date.some(([, re]) => re.test(full));
-  if (R && R.split && R.split.by === 'date' && !dateNamed && !['daysToSign', 'rounds', 'payDays', 'live'].includes(R.measure) && !R.trend){
+  if (R && R.split && R.split.by === 'date' && !dateNamed && !['daysToSign', 'medianDaysToSign', 'rounds', 'payDays', 'live'].includes(R.measure) && !R.trend){
     ['end', 'signed', 'created'].filter(d => d !== R.split.date).forEach(d => choices.push({ label: i18t('hb_ch_date', { date: i18t('hb_dtn_' + d) }),
       board: [{ do: 'change_card', card: 'open', recipe: { split: { by: 'date', unit: R.split.unit, date: d } } }] }));
     say = i18t('hb_ch_date_said', { date: i18t('hb_dtn_' + R.split.date) });
@@ -5334,7 +5377,7 @@ const HB_FIX_WINDOW_MS = 30000;
    from translated text. A word the reader already reads is refused in the
    drawer (hbWordClash) — a company word never overrides a built-in one. */
 const HB_WORD_SPLIT = { status: 'stage', folder: 'stream', counterparty: 'counterparty', owner: 'owner', kind: 'type', side: 'side', payterms: 'payment terms', valueBand: 'value band', move: 'whose move', rounds: 'negotiation rounds', overdue: 'overdue duties', decision: 'renewal decision', risks: 'risks found' };
-const HB_WORD_MEASURE = { count: 'how many', value: 'value', daysToSign: 'days to sign', payDays: 'payment days', rounds: 'negotiation rounds', live: 'live contracts' };
+const HB_WORD_MEASURE = { count: 'how many', value: 'value', daysToSign: 'days to sign', medianDaysToSign: 'median days to sign', payDays: 'payment days', rounds: 'negotiation rounds', live: 'live contracts' };
 const HB_WORD_STAGE = { 'Draft': 'drafts', 'Under Review': 'in review', 'Signed': 'signed', 'Declined': 'declined' };
 const HB_WORD_KINDS = ['set', 'split', 'measure', 'stage', 'type', 'side'];
 function hbWords(){ try { const l = state && state.settings && state.settings.boardWords; return Array.isArray(l) ? l.filter(w => w && w.say && w.means) : []; } catch (_){ return []; } }
@@ -5386,6 +5429,19 @@ function _hbAwPrevRange(u){
 }
 /* a day as ISO: day 0 is the last day of that month */
 const _hbAwDay = (y, m, d) => { const x = new Date(Date.UTC(Number(y), d === 0 ? Number(m) : Number(m) - 1, d === 0 ? 0 : d)); return x.toISOString().slice(0, 10); };
+/* TWO NAMED PERIODS (Young, 6 Oct 2026 — "any two periods"): side by side
+   when one runs straight into the other ("Q4 2025 vs Q1 2026"), else the
+   later one held against the earlier with the change said ("Q1 2025 vs Q3
+   2026"); each period is [from, to] */
+const _hbAwNextDay = iso => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10); };
+function _hbAwTwo(a, b, unit){
+  const [x, y] = a[0] <= b[0] ? [a, b] : [b, a];
+  if (x[0] === y[0]) return HB_AW_DATE + ` from ${x[0]} to ${x[1]} `;
+  if (_hbAwNextDay(x[1]) === y[0]) return HB_AW_DATE + ` by ${unit} from ${x[0]} to ${y[1]} `;
+  return HB_AW_DATE + ` from ${y[0]} to ${y[1]} compared with ${x[0]} to ${x[1]} `;
+}
+const _hbAwQRange = (y, q) => [_hbAwDay(y, q * 3 - 2, 1), _hbAwDay(y, q * 3, 0)];
+const _hbAwHRange = (y, h) => { const two = /2|second/.test(String(h).toLowerCase()); return [_hbAwDay(y, two ? 7 : 1, 1), _hbAwDay(y, two ? 12 : 6, 0)]; };
 const _HB_AW_GRP = '(suppliers?|vendors?|customers?|clients?|counterpart(?:y|ies)|partners?|streams?|value streams?|departments?|business units?|owners?|types?|contract types?|stages?)';
 const _HB_AW_THIS = '(?:this|the current|current)\\s+(month|quarter|year)';
 const _HB_AW_LAST = '(?:last|the last|previous|the previous|prior|the prior|preceding|the preceding)\\s+(month|quarter|year)';
@@ -5459,11 +5515,19 @@ const HB_ANALYST_WORDS = [
   [/\b(?:than|from|vs\.?|versus|against|compared (?:to|with))\s+(?:a year ago|a year earlier|the year before|12 months ago)\b/, ' compared with last year '],
   /* named periods: two quarters, two halves, two years */
   [/\b(?:compare\s+)?(q[1-4]|first quarter|second quarter|third quarter|fourth quarter)(?:\s+((?:19|20)\d{2}))?\s+(?:and|vs\.?|versus|to|with|against)\s+(q[1-4]|first quarter|second quarter|third quarter|fourth quarter)(?:\s+((?:19|20)\d{2}))?\b/, (m, a, ya, b, yb) => {
-    const y2 = yb || ya || hbToday().slice(0, 4), y1 = ya || y2; let s1 = y1 + '-' + _hbAwQ(a), s2 = y2 + '-' + _hbAwQ(b); if (s1 > s2) [s1, s2] = [s2, s1];
-    const [p1, q1] = s1.split('-'), [p2, q2] = s2.split('-');
-    return HB_AW_DATE + ` by quarter from ${_hbAwDay(p1, q1 * 3 - 2, 1)} to ${_hbAwDay(p2, q2 * 3, 0)} `; }],
-  [/\b(?:compare\s+)?(?:h[12]|first half|second half)\s+(?:and|vs\.?|versus|to|with|against)\s+(?:h[12]|first half|second half)(?:\s+((?:19|20)\d{2}))?\b/, (m, y) => { y = y || hbToday().slice(0, 4); return HB_AW_DATE + ` by quarter from ${y}-01-01 to ${y}-12-31 `; }],
-  [/\b(?:compare\s+)?((?:19|20)\d{2})\s+(?:and|vs\.?|versus|to|with|against)\s+((?:19|20)\d{2})\b/, (m, a, b) => { const lo = a < b ? a : b, hi = a < b ? b : a; return HB_AW_DATE + ` by year from ${lo}-01-01 to ${hi}-12-31 `; }],
+    const y2 = yb || ya || hbToday().slice(0, 4), y1 = ya || y2;
+    return _hbAwTwo(_hbAwQRange(y1, _hbAwQ(a)), _hbAwQRange(y2, _hbAwQ(b)), 'quarter'); }],
+  [/\b(?:compare\s+)?(h[12]|first half|second half)(?:\s+((?:19|20)\d{2}))?\s+(?:and|vs\.?|versus|to|with|against)\s+(h[12]|first half|second half)(?:\s+((?:19|20)\d{2}))?\b/, (m, a, ya, b, yb) => {
+    const y2 = yb || ya || hbToday().slice(0, 4), y1 = ya || y2;
+    /* the two halves of one year: that year by quarter, as before */
+    if (y1 === y2) return HB_AW_DATE + ` by quarter from ${y1}-01-01 to ${y1}-12-31 `;
+    return _hbAwTwo(_hbAwHRange(y1, a), _hbAwHRange(y2, b), 'quarter'); }],
+  [/\b(?:compare\s+)?((?:19|20)\d{2})\s+(?:and|vs\.?|versus|to|with|against)\s+((?:19|20)\d{2})\b/, (m, a, b) => _hbAwTwo([a + '-01-01', a + '-12-31'], [b + '-01-01', b + '-12-31'], 'year')],
+  /* two named months: "compare January 2026 with March 2026", "Jan vs Jun" */
+  [new RegExp('\\b(?:compare\\s+' + _HB_AW_MON + '(?:\\s+((?:19|20)\\d{2}))?\\s+(?:and|vs\\.?|versus|to|with|against)|' + _HB_AW_MON + '(?:\\s+((?:19|20)\\d{2}))?\\s+(?:vs\\.?|versus|against|compared (?:to|with)))\\s+' + _HB_AW_MON + '(?:\\s+((?:19|20)\\d{2}))?\\b'), (m, a1, ya1, a2, ya2, b, yb) => {
+    const a = a1 || a2, ya = ya1 || ya2, ma = _hbAwMon(a), mb = _hbAwMon(b);
+    const y2 = yb || ya || hbToday().slice(0, 4), y1 = ya || y2;
+    return _hbAwTwo([_hbAwDay(y1, ma, 1), _hbAwDay(y1, ma, 0)], [_hbAwDay(y2, mb, 1), _hbAwDay(y2, mb, 0)], 'month'); }],
   [/\b(?:by|per|each|every)\s+(?:fiscal\s+|financial\s+|calendar\s+)?(quarter|year|month)\s+(?:and\s+)?(?:compared?(?:\s+(?:to|with))?|vs\.?|versus|against)\s+(?:the\s+)?same\s+(?:quarter|month|period)\s+(?:last|a|the previous|previous)\s+year\b/, (m, u) => ` by ${u} compared with last year `],
   /* "last quarter" (no number) is the whole quarter before this one */
   [/\b(?:in\s+|during\s+|for\s+|over\s+)?(?:the\s+)?(?:last|previous|prior)\s+(month|quarter|year)\b/, (m, u, off, str) => {
@@ -5526,7 +5590,7 @@ const HB_ANALYST_WORDS = [
   [/\b(?:cumulative|cumulatively|accumulated|running total of|running sum of|running|cume)\b(?! total)/, ' running total '],
   /* -- signing speed -- */
   [/\b(?:how long (?:do|does|did) (?:our |the )?(?:contracts|it|they|agreements) (?:take|need) to (?:sign|close|execute|get signed)|signing speed|speed of signing|speed to sign|time to close(?: contracts)?|time to execute|time to signature|deal velocity|sales cycle(?: length)?|contract cycle(?: time)?|days to close|lead time|average time to close)\b/, ' time to sign '],
-  [/\bmedian (?:time to sign|days to sign|signing time|cycle time)\b/, ' time to sign '],
+  [/\bmedian (?:time to sign|days to sign|signing time|cycle time)\b/, ' median time to sign '],
   /* -- endings, renewals and notice -- */
   [/\b(?:expiries|expirations|maturities|contracts (?:coming|falling) due|roll[- ]?offs?)\b/, ' contracts ending '],
   [/\b(?:upcoming|forthcoming|pending|due)\s+(renewals?|expiries|expirations|endings?|notice dates?|notice deadlines?|contracts ending|renewal decisions)\b/, (m, w) => ` ${w} over the next 12 months `],
@@ -6319,7 +6383,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
@@ -6339,7 +6403,7 @@ Object.assign(window, { HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TE
   hbBigBtnHtml, hbReadingOf, hbReadHtml, hbWhySig, hbWhyKept, hbWhyPrompt, hbWhyCheck, hbWhyAsk, hbWhyFollow, HB_WHY_KEEP,
   hbBoardNow, HB_BOARD_NOW_MAX, hbUsefulGroup, hbTrendFmt, HB_WHY_ASK_RE, HB_FU, hbOpenListKey, hbBoardEdit, hbFollowUp, hbBoardTakes, hbAxisTop,
   HB_PICS2, HB_SORTS, HB_DIRS, HB_COMPARES, HB_TOP_MAX, HB_TITLE_MAX, HB_SERIES_MAX, HB_HEAT_MAX, HB_WIN_MAX, HB_RC_GW, HB_RC_NUMS, HB_WIN_PRESETS, HB_SPLIT_WORDS, HB_UNIT_WORDS,
-  hbCardClean, hbCardPlan, hbPlanSpec, hbCardSet, hbCardSetPart, hbSplitClean, hbWindowClean, hbPlainText, hbWinOf, hbWinWord, hbWindowCut, hbWinCs,
+  hbCardClean, hbCardPlan, hbPlanSpec, hbCardSet, hbCardSetPart, hbSplitClean, hbWindowClean, hbVsClean, hbPeriodWord, hbCmpPrevWord, hbBucketGap, hbPlainText, hbWinOf, hbWinWord, hbWindowCut, hbWinCs,
   hbGroupsCut, hbGroupsSorted, hbIsGroupDim, hbRestDig, hbKeptGroups, hbSeriesOf, hbXOf, hbCellDig, hbStackSvg, hbHeatSvg, hbCompareSvg, hbCmpChange, hbChartRun,
   hbCardEdit, hbHowWord, hbRecipeWords, hbSplitModelWord, hbOrderWord, hbReadCompareOf, hbReadTwoOf, hbReadingCore, hbRcCur, hbRcCurHas,
   hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,

@@ -20392,3 +20392,12 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed (in scope): a whole quarter compared "with the previous period" was held against the same number of days, not the whole quarter before; now the whole one.
 - Noticed, not fixed: "this quarter vs last quarter" early in a quarter has nothing so far on either side, and the card then shows no reading at all rather than saying "nothing yet this quarter".
 - Noticed, not fixed: "top ten counterparties" (no measure named) ranks by count, not value.
+
+## 6 Oct 2026 — the missing calculations (median time to sign, any two periods, smallest contracts)
+- Fixed: "median time to sign" was read as the average days to sign and said nowhere; now its own measure (medianDaysToSign), both hosts.
+- Fixed: two periods not next to each other ("Q1 2025 vs Q3 2026") drew every quarter between them with no change said; now compare 'range' with window.vs, the change said.
+- Fixed: "smallest contracts" went to Copilot; the map's top N now reads the other end (top.dir 'up') and the board lists them smallest first.
+### Noticed, not fixed
+- "biggest contracts" on the board is drawn as a ring by stage, not a ranked list (the smallest list is a List picture); left as it was.
+- A window given as an exact range with no 'vs' is still named without years ("1 July to 30 September") on the chip and in the reading; only a period held against another names its year.
+- The average/median measures' comparison says "new" when the earlier period has no value at all (e.g. "against — a year earlier — new").

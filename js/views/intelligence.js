@@ -1411,9 +1411,11 @@ function igIdsWhere(conds, base){
 /* ---- THE TOP N: "top 10 by value", "the 3 biggest in each stream" ---- */
 const IG_TOP_BY={ value:c=>igHomeValue(c), payterms:c=>(typeof payDays==='function'?payDays(c):null), obligations:c=>((c.obligations)||[]).filter(o=>o&&!o.completedAt&&!o.done).length, renewal:c=>{ const d=graphDecisionOf(c).days; return d==null?null:-d; } };
 /* an archived contract is off every list, so never in a top N */
-function igTopIds(n, by, per, base){
-  const read=IG_TOP_BY[by]||IG_TOP_BY.value, cs=(base||state.contracts||[]).filter(c=>c&&!c.archived&&read(c)!=null);
-  const pickN=list=>list.slice().sort((a,b)=>(read(b)-read(a))).slice(0,n).map(c=>c.id);
+/* dir 'up' is the other end: the N smallest (Young, 6 Oct 2026); a contract
+   with no value on record is in neither end */
+function igTopIds(n, by, per, base, dir){
+  const read=IG_TOP_BY[by]||IG_TOP_BY.value, cs=(base||state.contracts||[]).filter(c=>c&&!c.archived&&read(c)!=null&&!(dir==='up'&&by==='value'&&!(read(c)>0)));
+  const pickN=list=>list.slice().sort((a,b)=>(dir==='up'?read(a)-read(b):read(b)-read(a))).slice(0,n).map(c=>c.id);
   if(!per) return pickN(cs);
   const by2={}; cs.forEach(c=>{ const g=groupLabelOf(c,per,null); (by2[g]||(by2[g]=[])).push(c); });
   return Object.values(by2).flatMap(pickN);
@@ -1564,13 +1566,16 @@ function igRecipeParse(qRaw){
     const cp=(state.contracts||[]).find(c=>_igNorm(c.counterparty).startsWith(cn[1])); if(cp) return { acts:[{ linkedParty:cp.counterparty }], rest:'' }; }
   if(/(?:^|\s)(?:amendments? with their (?:parents?|masters?)|families|the family tree|contract families|avtalsfamiljer|ändringar med sina huvudavtal)(?:\s|$)/.test(rest)) acts.push({ families:true });
   /* top N / biggest N, optionally per group */
-  const tp=rest.match(/\b(?:top|biggest|largest|highest|smallest|lowest|slowest|de\s+)?\s*(\d+)?\s*(?:biggest|largest|highest|top|slowest[- ]paying|slowest payers|slowest|most obligations|största|högsta|långsammaste|topp)\b/)
-    ||rest.match(/\b(?:top|topp)\s*(\d+)\b/);
-  if(tp&&/\b(top|topp|biggest|largest|highest|slowest|största|högsta|långsammaste)\b/.test(rest)){
+  const tp=rest.match(/\b(?:top|biggest|largest|highest|smallest|lowest|slowest|de\s+)?\s*(\d+)?\s*(?:biggest|largest|highest|top|smallest|lowest|least valuable|bottom|slowest[- ]paying|slowest payers|slowest|most obligations|största|högsta|minsta|lägsta|långsammaste|topp)\b/)
+    ||rest.match(/\b(?:top|topp|bottom)\s*(\d+)\b/);
+  const tpEnd=/\b(?:smallest|lowest|least valuable|bottom|minsta|lägsta)\b/.test(rest)&&!/slow|pay|betal|långsam|obligation|åtagand|renew|förny|soonest/.test(rest);
+  if(tp&&(/\b(top|topp|biggest|largest|highest|slowest|största|högsta|långsammaste)\b/.test(rest)||tpEnd)){
+    /* the other end: "the 5 smallest contracts", "lowest value", "bottom 10" */
+    const up=tpEnd&&!/\b(?:top|topp|biggest|largest|highest|största|högsta)\b/.test(rest);
     const n=Number((rest.match(/\b(\d+)\b/)||[])[1]||IG_TOP_DEFAULT);
     const by=/slow|pay|betal|långsam/.test(rest)?'payterms':/obligation|åtagand/.test(rest)?'obligations':/renew|förny|soonest/.test(rest)?'renewal':'value';
     const perM=rest.match(/\b(?:in each|per|for each|within each|by each|i varje|för varje|per)\s+(.+)$/); const per=perM?igFactFind(perM[1]):null;
-    acts.push({ top:{ n:Math.max(1,Math.min(200,n)), by, per:per?per.key:null } });
+    acts.push({ top:Object.assign({ n:Math.max(1,Math.min(200,n)), by, per:per?per.key:null }, up&&by==='value'?{ dir:'up' }:{}) });
     rest=rest.replace(/\b(?:in each|per|for each|within each|i varje|för varje)\s+.+$/,'');
   }
   /* sort */
@@ -1668,7 +1673,7 @@ function igLandingSet(){
   if(typeof igPaintGroupSelect==='function') try{ igPaintGroupSelect(); }catch(_){}
 }
 function igRecipeRun(parsed, opts){
-  const said=[]; let choices=null, list=null, listTitle=null, changed=false, lensNote=null;
+  const said=[]; let choices=null, list=null, listTitle=null, listChart=null, changed=false, lensNote=null;
   const acts=parsed.acts||[];
   const quiet=acts.every(a=>a.undo||a.ask||a.unknownFact||a.save!=null||a.namesUnknown);
   if(!quiet&&!(opts&&opts.noPush)) igRecipePush();
@@ -1737,9 +1742,12 @@ function igRecipeRun(parsed, opts){
       else { addLens({ label, ids:hit, action:'filter' }); lensNote=hit.length?i18t('int_did_showing',{ n:intelActive().ids?intelActive().ids.size:hit.length, t:igBookTotal() })+' · '+label:i18t('int_did_nomatch'); list=hit; listTitle=label; }
       changed=true; continue; }
     if(a.top){ const t=a.top, base=(()=>{ const act=intelActive(); return (state.contracts||[]).filter(c=>!(act.ids&&act.action==='filter')||act.ids.has(c.id)); })();
-      const ids=igTopIds(t.n,t.by,t.per,base), label=i18t('int_top_label',{ n:t.n, x:igSortWord(t.by) })+(t.per?' · '+i18t('int_top_per',{ x:graphGroupingWord(t.per) }):'');
+      const ids=igTopIds(t.n,t.by,t.per,base,t.dir), label=i18t(t.dir==='up'?'int_bottom_label':'int_top_label',{ n:t.n, x:igSortWord(t.by) })+(t.per?' · '+i18t('int_top_per',{ x:graphGroupingWord(t.per) }):'');
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'||l.kind==='top'?false:true); addLens({ label, ids, action:'filter' });
-      intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:igBookTotal() })+' · '+label; list=ids; listTitle=label; changed=true; continue; }
+      intel.sortBy=t.by; lensNote=i18t('int_did_showing',{ n:ids.length, t:igBookTotal() })+' · '+label; list=ids; listTitle=label; changed=true;
+      /* the smallest are listed smallest first on the board */
+      if(t.dir==='up') listChart={ pic:'list', sort:{ by:'value', dir:'up' } };
+      continue; }
     if(a.compare){ const A=igIdsWhere(a.compare.a), B=igIdsWhere(a.compare.b), groups={};
       A.forEach(id=>{ groups[id]=a.compare.aLabel; }); B.forEach(id=>{ if(!groups[id]) groups[id]=a.compare.bLabel; });
       intel.lenses=intel.lenses.filter(l=>l.action!=='filter'); addLens({ label:i18t('int_compare_lens',{ a:a.compare.aLabel, b:a.compare.bLabel }), ids:Object.keys(groups), action:'filter' });
@@ -1763,7 +1771,7 @@ function igRecipeRun(parsed, opts){
   if(lensNote) said.push(lensNote);
   if(changed) rebuildIntelGraph();
   intel.history.push({ role:'assistant', text:igEsc(said.filter(Boolean).join(' ')||i18t('int_did_nothing')), choices:choices||null,
-    listIds:list&&list.length?list.slice():null, listTitle:listTitle||null, cardIds:list?list.slice(0,5):[] });
+    listIds:list&&list.length?list.slice():null, listTitle:listTitle||null, listChart, cardIds:list?list.slice(0,5):[] });
   return opts&&opts.report?{ changed, said }:true;
 }
 /* COPILOT'S MAP TOOL KNOWS THE LOOK (Young, 4 Oct 2026: "Remove customer
@@ -2126,9 +2134,9 @@ function intelGraphApply(q, res, opts){
   else if(res.floorsBy&&intel.floorsBy===res.floorsBy) igSetView(res.columnsBy?3:2);
   else if(res.columnsBy&&intel.columnsBy===res.columnsBy) igSetView(3);
   if(res.top&&typeof res.top==='object'&&Number(res.top.n)>0){
-    const by=IG_TOP_BY[res.top.by]?res.top.by:'value', per=GRAPH_GROUP_KEYS.includes(res.top.per)?res.top.per:null, n=Math.min(200,Math.round(Number(res.top.n)));
-    const tIds=igTopIds(n,by,per); ids=ids&&ids.length?tIds.filter(id=>ids.includes(id)):tIds;
-    res._top=i18t('int_top_label',{ n, x:igSortWord(by) })+(per?' · '+i18t('int_top_per',{ x:graphGroupingWord(per) }):'');
+    const by=IG_TOP_BY[res.top.by]?res.top.by:'value', per=GRAPH_GROUP_KEYS.includes(res.top.per)?res.top.per:null, n=Math.min(200,Math.round(Number(res.top.n))), dir=res.top.dir==='up'?'up':'down';
+    const tIds=igTopIds(n,by,per,null,dir); ids=ids&&ids.length?tIds.filter(id=>ids.includes(id)):tIds;
+    res._top=i18t(dir==='up'?'int_bottom_label':'int_top_label',{ n, x:igSortWord(by) })+(per?' · '+i18t('int_top_per',{ x:graphGroupingWord(per) }):'');
     res.note=res.note||res._top; intel.sortBy=by; }
   const choices=Array.isArray(res.ask)?res.ask.slice(0,3).filter(o=>o&&IG_RECIPE_ROLES.includes(o.role)&&(o.role==='size'?IGB_SIZE_KEYS.includes(o.fact):o.role==='time'?IG_TIME_KEYS.includes(o.fact):GRAPH_GROUP_KEYS.includes(o.fact)))
     .map(o=>({ label:igRoleSays(o.role,o.fact).replace(/\.$/,''), acts:[{ role:o.role, fact:o.fact }].concat(o.role==='floors'?[{ view:2 }]:o.role==='columns'?[{ view:3 }]:[]) })):null;
@@ -2182,7 +2190,7 @@ function intelGraphApply(q, res, opts){
      map" is not said over an answer about the board */
   else if(!line) line=didHere?(ownHtml||igEsc(res.note||'Done.')):(ownHtml&&onBoard?ownHtml:igEsc(i18t('int_did_nothing'))+(ownHtml?(rich?'':'<br>')+ownHtml:''));
   else if(graphSaysMore(own,res.note,parts[0])) line+=(rich?'':'<br>')+ownHtml;
-  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
+  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:(res&&res.top&&res.top.dir==='up'?{ pic:'list', sort:{ by:'value', dir:'up' } }:null), choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
 

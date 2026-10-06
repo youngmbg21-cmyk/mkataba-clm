@@ -207,6 +207,16 @@
     { "src": "analyst", "road": "free", "q": "tillväxt i antal avtal senaste 12 månaderna", "want": { "split": { "by": "date", "unit": "m", "date": "signed" }, "measure": "count", "trend": true, "window": { "last": 12, "unit": "m" }, "set": "Signed" } },
     { "src": "analyst", "road": "free", "q": "andel av värdet per motpart", "want": { "split": { "by": "counterparty" }, "measure": "value", "show": "share", "set": "all" } },
     { "src": "analyst", "road": "free", "q": "quarterly signed value for the last 2 years", "want": { "split": { "by": "date", "unit": "q", "date": "signed" }, "measure": "value", "window": { "last": 2, "unit": "y" }, "set": "Signed" } },
-    { "src": "analyst", "road": "free", "q": "how much money is tied up in contracts by stream", "want": { "split": { "by": "folder" }, "measure": "value", "set": "all" } }
+    { "src": "analyst", "road": "free", "q": "how much money is tied up in contracts by stream", "want": { "split": { "by": "folder" }, "measure": "value", "set": "all" } },
+    { "src": "calc", "road": "free", "q": "median time to sign", "want": { "split": { "by": "date", "unit": "m", "date": "signed" }, "measure": "medianDaysToSign", "trend": true, "set": "all" } },
+    { "src": "calc", "road": "free", "q": "median days to sign by stream", "want": { "split": { "by": "folder" }, "measure": "medianDaysToSign", "set": "all" } },
+    { "src": "calc", "road": "free", "q": "what is the median cycle time", "want": { "split": { "by": "date", "unit": "m", "date": "signed" }, "measure": "medianDaysToSign", "trend": true, "set": "all" } },
+    { "src": "calc", "road": "free", "q": "median signing time by quarter", "want": { "split": { "by": "date", "unit": "q", "date": "signed" }, "measure": "medianDaysToSign", "set": "all" } },
+    { "src": "calc", "road": "free", "q": "Q1 2025 vs Q3 2026 value", "want": { "split": { "by": "folder" }, "measure": "value", "compare": "range", "window": { "from": "2026-07-01", "to": "2026-09-30", "vs": { "from": "2025-01-01", "to": "2025-03-31" } }, "set": "Signed" } },
+    { "src": "calc", "road": "free", "q": "compare Q1 2025 with Q3 2026", "want": { "split": { "by": "folder" }, "measure": "count", "compare": "range", "window": { "from": "2026-07-01", "to": "2026-09-30", "vs": { "from": "2025-01-01", "to": "2025-03-31" } }, "set": "Signed" } },
+    { "src": "calc", "road": "free", "q": "compare H1 2025 and H2 2026 contracts signed", "want": { "split": { "by": "folder" }, "measure": "count", "compare": "range", "window": { "from": "2026-07-01", "to": "2026-12-31", "vs": { "from": "2025-01-01", "to": "2025-06-30" } }, "set": "Signed" } },
+    { "src": "calc", "road": "free", "q": "compare 2023 with 2026 value", "want": { "split": { "by": "folder" }, "measure": "value", "compare": "range", "window": { "from": "2026-01-01", "to": "2026-12-31", "vs": { "from": "2023-01-01", "to": "2023-12-31" } }, "set": "Signed" } },
+    { "src": "calc", "road": "free", "q": "compare January 2026 with March 2026", "want": { "split": { "by": "folder" }, "measure": "count", "compare": "range", "window": { "from": "2026-03-01", "to": "2026-03-31", "vs": { "from": "2026-01-01", "to": "2026-01-31" } }, "set": "Signed" } },
+    { "src": "calc", "road": "free", "q": "march 2026 vs september 2026 contracts signed", "want": { "split": { "by": "folder" }, "measure": "count", "compare": "range", "window": { "from": "2026-09-01", "to": "2026-09-30", "vs": { "from": "2026-03-01", "to": "2026-03-31" } }, "set": "Signed" } }
   ]
 }
