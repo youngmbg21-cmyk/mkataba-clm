@@ -142,7 +142,7 @@ function hbS(){
   /* STORIES: the words Copilot wrote, with the numbers they were written over,
      and the story's Dig deeper run */
   if (v && v.sy && typeof v.sy === 'object') Object.entries(v.sy).slice(-HB_STORY_KEEP).forEach(([k, r]) => {
-    if (!HB_STORIES.includes(k) || !r || typeof r !== 'object') return;
+    if (!hbStoryValid(k) || !r || typeof r !== 'object') return;
     const txt = (x, n) => String(x == null ? '' : x).slice(0, n);
     const paras = {}; if (r.paras && typeof r.paras === 'object') Object.entries(r.paras).forEach(([c, t]) => { if (/^c\d$/.test(c) && typeof t === 'string') paras[c] = t.slice(0, 900); });
     s.sy[k] = { day: txt(r.day, 10), sig: txt(r.sig, 400), lead: txt(r.lead, 900), paras, dropped: Number(r.dropped) || 0, at: txt(r.at, 5), notice: txt(r.notice, 300),
@@ -154,7 +154,7 @@ function hbS(){
   if (v && v.an && typeof v.an === 'object') Object.entries(v.an).filter(([k], i, all) => held.has(k) || all.filter(([x]) => !held.has(x)).slice(-HB_DD_KEEP).some(([x]) => x === k)).forEach(([k, r]) => {
     if (!/^r[0-9a-z]{1,20}$/.test(k) || !r || typeof r !== 'object' || !Array.isArray(r.steps)) return;
     const txt = (x, n) => String(x == null ? '' : x).slice(0, n);
-    const story = HB_STORIES.includes(r.story) ? r.story : null;
+    const story = hbStoryValid(r.story) ? r.story : null;
     const run = { id: k, q: txt(r.q, 400), state: ['done', 'empty', 'err', 'stopped'].includes(r.state) ? r.state : 'err', summary: txt(r.summary, 1500), dropped: Number(r.dropped) || 0,
       err: r.state === 'busy' ? i18t('hb_dd_stopped') : txt(r.err, 300), notice: txt(r.notice, 300), at: txt(r.at, 5), added: !!r.added,
       cards: Array.isArray(r.cards) ? r.cards.slice(0, 3).filter(c => c && typeof c === 'object').map(c => ({ which: hbCardClean({ which: c.which }).which || { all: true }, recipe: hbCardClean(c.recipe || {}), title: txt(c.title, HB_TITLE_MAX) })) : [],
@@ -4141,62 +4141,180 @@ function hbDdCardHtml(D){
    the button; Stop stops it at the next step.
    SHARE is "give a panel to a colleague": what travels is the story's NAME
    (kind sy_<topic>) and a note, never a figure; their Home counts it again
-   over the contracts they may see. Three topics first (friction · renewals ·
-   spend); a new topic is a new entry in hbStoryData. NOTHING HERE WRITES A
-   CONTRACT. */
-const HB_STORIES = ['friction', 'renewals', 'spend'];
-const HB_STORY_STEPS = 15, HB_STORY_KEEP = 3, HB_STORY_SHEET_MAX = 6000, HB_STORY_CH_SHEET = 1400;
+   over the contracts they may see. Ten topics: friction · renewals ·
+   spend · pipeline · risk · payment terms · obligations · one counterparty ·
+   one value stream · the quarterly review (Young, 6 Oct 2026: "Build the
+   other seven story topics"). A story about ONE counterparty or ONE stream
+   carries its name in its id (`party~<name>`, `stream~<folder>`, hbStoryId);
+   every other piece takes the id as it takes a topic. A new topic is a new
+   entry in hbStoryData. NOTHING HERE WRITES A CONTRACT. */
+const HB_STORIES = ['friction', 'renewals', 'spend', 'pipeline', 'risk', 'payterms', 'obligations', 'party', 'stream', 'quarter'];
+const HB_STORY_ARG = ['party', 'stream'];
+const HB_STORY_STEPS = 15, HB_STORY_KEEP = 6, HB_STORY_SHEET_MAX = 6000, HB_STORY_CH_SHEET = 1400, HB_STORY_BARS = 6;
 const HB_STORY_WORD = /\b(?:story|stories|storyline|narrative|berättelse\w*)\b/;
+/* "brief me on Kevian before the renewal meeting" asks for one counterparty's story */
+const HB_STORY_BRIEF = /\b(?:brief me on|briefing on|brief on|ge mig en genomgång av)\b/;
 const HB_STORY_RE = {
+  /* by its own name; never "board pack", which names cards ("rename this card to Board pack") */
+  quarter: /\b(?:quarterly(?: contract)? review|quarter in review|review of the quarter|kvartalsgenomgång\w*|kvartalsrapport\w*)\b/,
   friction: /\b(?:friction|negotiat\w*|rounds?|redlin\w*|förhandl\w*|friktion)\b/,
   renewals: /\b(?:renew\w*|expir\w*|ending|endings|notice|förny\w*|löper ut|upphör\w*)\b/,
+  pipeline: /\b(?:pipeline|signing pipeline|in (?:draft|review)|drafts?|open deals|deals in progress|gone quiet|stuck deals|pågående avtal|utkast)\b/,
+  risk: /\b(?:risk\w*|exposure|standards?|playbook|liability caps?|riskexponering|standarder)\b/,
+  payterms: /\b(?:payment terms?|payment days|days to pay|payers?|paying|betalningsvillkor|betalningstid)\b/,
+  obligations: /\b(?:obligations?|duties|duty|deliverables?|skyldighet\w*)\b|(?:^|\s)åtagande\w*/,
   spend: /\b(?:spend\w*|value|money|worth|where (?:our|the) money|portfolio|värde\w*|pengar|utgift\w*)\b/,
 };
+const HB_STORY_ORDER = ['quarter', 'friction', 'renewals', 'pipeline', 'risk', 'payterms', 'obligations', 'spend'];
+/* a story's id: a topic, or a topic and the one name it is about */
+function hbStoryId(sid){
+  const s = String(sid || ''), at = s.indexOf('~');
+  const topic = at < 0 ? s : s.slice(0, at);
+  let arg = null; if (at >= 0){ try { arg = decodeURIComponent(s.slice(at + 1)); } catch (_){ arg = null; } }
+  return { topic, arg };
+}
+function hbStorySid(topic, arg){ return arg == null ? topic : topic + '~' + encodeURIComponent(arg).replace(/\./g, '%2E'); }
+function hbStoryValid(sid){
+  const { topic, arg } = hbStoryId(sid);
+  if (!HB_STORIES.includes(topic)) return false;
+  return HB_STORY_ARG.includes(topic) ? !!(arg && String(arg).trim()) : arg == null;
+}
+function hbStoryTitle(sid){
+  const { topic, arg } = hbStoryId(sid);
+  if (topic === 'party') return i18t('hb_sy_party', { who: arg || '' });
+  if (topic === 'stream') return i18t('hb_sy_stream', { what: _hbStreamName(arg) });
+  return i18t('hb_sy_' + topic);
+}
+/* the counterparty or stream a question names: the whole name, or the name
+   without its company ending ("Kevian Kenya" for "Kevian Kenya Ltd") */
+const HB_STORY_SUFFIX = /\s+(?:ltd|limited|plc|inc|llc|ab|oy|as|gmbh|co|company|kenya ltd)\.?$/i;
+function _hbStoryNameIn(t, names){
+  let best = null;
+  names.forEach(([key, name]) => {
+    const n = _hbRcNorm(name).trim(), short = n.replace(HB_STORY_SUFFIX, '').trim(), first = short.split(' ')[0];
+    const hit = (w, len) => w && w.length >= len && t.includes(' ' + w + ' ');
+    const score = hit(n, 3) ? n.length + 1000 : hit(short, 3) ? short.length + 500 : hit(first, 5) ? first.length : 0;
+    if (score && (!best || score > best.score)) best = { key, score };
+  });
+  return best ? best.key : null;
+}
+const _hbStreamName = f => (typeof FOLDERS !== 'undefined' && FOLDERS && FOLDERS[f] && FOLDERS[f].name) || String(f || '');
 function hbStoryOfQ(q){
   const t = ' ' + _hbRcNorm(q) + ' ';
-  if (!HB_STORY_WORD.test(t)) return null;
-  return HB_STORIES.find(k => HB_STORY_RE[k].test(t)) || null;
+  const brief = HB_STORY_BRIEF.test(t);
+  /* "build our quarterly review" is a story by its own name */
+  if (HB_STORY_RE.quarter.test(t)) return 'quarter';
+  if (!HB_STORY_WORD.test(t) && !brief) return null;
+  const book = (window.state && Array.isArray(state.contracts)) ? state.contracts.filter(c => c && !c.archived) : [];
+  const cps = [...new Set(book.map(c => String(c.counterparty || '').trim()).filter(Boolean))].map(n => [n, n]);
+  const streams = [...new Set(book.map(c => c.folder).filter(Boolean))].map(f => [f, _hbStreamName(f)]);
+  const party = _hbStoryNameIn(t, cps); if (party) return hbStorySid('party', party);
+  const topic = HB_STORY_ORDER.find(k => k !== 'quarter' && HB_STORY_RE[k].test(t));
+  const stream = _hbStoryNameIn(t, streams);
+  if (stream && (!topic || brief)) return hbStorySid('stream', stream);
+  return topic || null;
 }
 const _hbStoryMemo = new Map();
 const _hbSyBusy = new Set(), _hbSyErr = new Map();
+/* an obligation still to do, and when it is due */
+function _hbObOpen(o){ return !!o && !o.completedAt && !o.done && o.status !== 'done' && o.status !== 'completed'; }
+function _hbObDue(o){ const d = String((o && o.due) || '').slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(d) ? d : null; }
 /* THE STORY, counted once per paint: its chapters, each a chart card or a
    ranked list, all HaTi's arithmetic */
-function hbStoryData(topic, lens){
-  const memoKey = topic + '|' + (lens || 'all') + '|' + ((window.state && state.contracts) ? state.contracts.length : 0);
+function hbStoryData(sid, lens){
+  const memoKey = sid + '|' + (lens || 'all') + '|' + ((window.state && state.contracts) ? state.contracts.length : 0);
   if (_hbStoryMemo.has(memoKey)) return _hbStoryMemo.get(memoKey);
+  const { topic, arg } = hbStoryId(sid);
   const book = hbBook(lens || 'all'), money = hbMoneyOk();
   const ids = list => list.map(c => c.id);
-  const S = { topic, title: i18t('hb_sy_' + topic), period: i18t('hb_sy_per_' + topic), money, chapters: [], lists: {} };
+  const S = { topic, sid, arg, title: hbStoryTitle(sid), period: i18t('hb_sy_per_' + topic), money, chapters: [], lists: {} };
   const ch = (id, chart, set) => S.chapters.push({ id, title: i18t('hb_sy_' + topic + '_' + id), chart, ids: ids(set) });
+  /* a ranked list as a chapter: each row a door onto its contracts */
+  const barCh = (id, rows, head, top, unit) => {
+    rows = rows.filter(r => r.n).sort((a, b) => b.n - a.n || String(a.label).localeCompare(String(b.label))).slice(0, HB_STORY_BARS);
+    const bars = rows.map((r, i) => { const k = id + '_' + i; S.lists[k] = { title: r.label, ids: [...new Set(r.ids)] };
+      return { g: r.label, label: r.label, n: r.n, v: r.n, say: i18tn(unit || 'hb_n_contracts', r.n, { n: _hbN(r.n) }), dig: 'sy:' + sid + '.k:' + k }; });
+    S.chapters.push({ id, title: i18t('hb_sy_' + topic + '_' + id), bars, top: top || 'hb_sy_bars_most', unit: unit || 'hb_n_contracts',
+      facts: [head, ...rows.map(r => `- ${r.label}: ${r.n}`)], empty: !bars.length });
+  };
   const mv = money ? 'value' : 'count';
+  const live = book.filter(_hbLive);
+  const last12 = { last: 12, unit: 'm', date: 'signed' }, next12 = { next: 12, unit: 'm', date: 'end' };
   if (topic === 'friction'){
-    const yr = { last: 12, unit: 'm', date: 'signed' };
-    ch('c1', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'rounds', trend: true, window: yr }, book);
-    ch('c2', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'medianDaysToSign', trend: true, window: yr }, book);
+    ch('c1', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'rounds', trend: true, window: last12 }, book);
+    ch('c2', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'medianDaysToSign', trend: true, window: last12 }, book);
     /* which clauses get redlined: the friction tab's own ledger, its year */
     let st = null; try { st = (typeof intelFrictionStats === 'function') ? intelFrictionStats({ days: 365 }) : null; } catch (_){ st = null; }
     const inL = new Set(ids(book));
-    const rows = ((st && st.clauses) || []).map((cl, i) => { const cs = (cl.ids || []).filter(x => inL.has(x));
-      S.lists['cl' + i] = { title: cl.label, ids: cs }; return { g: cl.label, label: cl.label, n: cs.length, v: cs.length, say: i18tn('hb_n_contracts', cs.length, { n: _hbN(cs.length) }), dig: 'sy:' + topic + '.k:cl' + i }; })
-      .filter(r => r.n).sort((a, b) => b.n - a.n).slice(0, 6);
-    S.chapters.push({ id: 'c3', title: i18t('hb_sy_friction_c3'), bars: rows,
-      facts: ['Clauses redlined in negotiations active in the last 12 months (clause: contracts):', ...rows.map(r => `- ${r.label}: ${r.n}`)],
-      empty: !rows.length });
-    ch('c4', { pic: 'bars', split: { by: 'counterparty' }, measure: 'rounds', top: 6, sort: { by: 'value', dir: 'down' }, window: yr }, book);
+    barCh('c3', ((st && st.clauses) || []).map(cl => { const cs = (cl.ids || []).filter(x => inL.has(x)); return { label: cl.label, ids: cs, n: cs.length }; }),
+      'Clauses redlined in negotiations active in the last 12 months (clause: contracts):', 'hb_sy_bars_top');
+    ch('c4', { pic: 'bars', split: { by: 'counterparty' }, measure: 'rounds', top: 6, sort: { by: 'value', dir: 'down' }, window: last12 }, book);
   }
   if (topic === 'renewals'){
-    const live = book.filter(_hbLive), yr = { next: 12, unit: 'm', date: 'end' };
-    ch('c1', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'end' }, measure: mv, window: yr }, live);
-    ch('c2', { pic: 'bars', split: { by: 'folder' }, measure: mv, window: yr }, live);
-    ch('c3', { pic: 'ring', split: { by: 'autorenew' }, measure: 'count', window: yr }, live);
+    ch('c1', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'end' }, measure: mv, window: next12 }, live);
+    ch('c2', { pic: 'bars', split: { by: 'folder' }, measure: mv, window: next12 }, live);
+    ch('c3', { pic: 'ring', split: { by: 'autorenew' }, measure: 'count', window: next12 }, live);
     ch('c4', { pic: 'ring', split: { by: 'decision' }, measure: 'count', window: { next: 12, unit: 'm', date: 'decision' } }, live);
   }
   if (topic === 'spend'){
-    const live = book.filter(_hbLive), yr = { last: 12, unit: 'm', date: 'signed' };
     ch('c1', { pic: 'bars', split: { by: 'folder' }, measure: mv }, live);
     ch('c2', { pic: 'bars', split: { by: 'counterparty' }, measure: mv, show: 'share', top: 5 }, live);
-    ch('c3', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: money ? 'avgValue' : 'count', trend: true, window: yr }, book);
+    ch('c3', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: money ? 'avgValue' : 'count', trend: true, window: last12 }, book);
     ch('c4', { pic: 'bars', split: { by: 'folder' }, measure: mv, compare: 'year', window: { last: 1, unit: 'y', date: 'signed' } }, book);
+  }
+  if (topic === 'pipeline'){
+    const open = book.filter(c => c.status === 'Draft' || c.status === 'Under Review');
+    ch('c1', { pic: 'ring', split: { by: 'status' }, measure: 'count' }, open);
+    ch('c2', { pic: 'ring', split: { by: 'move' }, measure: 'count' }, open);
+    ch('c3', { pic: 'bars', split: { by: 'folder' }, measure: 'medianDaysToSign', window: last12 }, book);
+    ch('c4', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'created' }, measure: 'count' }, open);
+  }
+  if (topic === 'risk'){
+    /* where the money at risk sits (a column chart of exposure over time
+       does not draw today — noticed, logged) */
+    ch('c1', { pic: 'bars', split: { by: 'folder' }, measure: money ? 'exposure' : 'count' }, live);
+    ch('c2', { pic: 'ring', split: { by: 'standards' }, measure: 'count' }, live);
+    ch('c3', { pic: 'ring', split: { by: 'liabcap' }, measure: 'count' }, live);
+    ch('c4', { pic: 'bars', split: { by: 'counterparty' }, measure: money ? 'exposure' : 'count', top: 6, sort: { by: 'value', dir: 'down' } }, live);
+  }
+  if (topic === 'payterms'){
+    ch('c1', { pic: 'bars', split: { by: 'payterms' }, measure: 'count' }, live);
+    ch('c2', { pic: 'bars', split: { by: 'counterparty' }, measure: 'payDays', top: 6, sort: { by: 'value', dir: 'down' } }, live);
+    ch('c3', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'payDays', trend: true, window: last12 }, book);
+    ch('c4', { pic: 'bars', split: { by: 'side' }, measure: 'payDays' }, live);
+  }
+  if (topic === 'obligations'){
+    /* the duties themselves, off each contract's own list (open = not done) */
+    const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const today = hbToday(), soon = (() => { const d = new Date(today + 'T00:00:00'); d.setMonth(d.getMonth() + 3); return iso(d); })();
+    const duties = []; live.forEach(c => (Array.isArray(c.obligations) ? c.obligations : []).forEach(o => { if (_hbObOpen(o)) duties.push({ c, o, due: _hbObDue(o) }); }));
+    const late = duties.filter(d => d.due && d.due < today), coming = duties.filter(d => d.due && d.due >= today && d.due <= soon);
+    const group = (list, keyOf) => { const m = new Map(); list.forEach(d => { const k = keyOf(d); const r = m.get(k) || { label: k, ids: [], n: 0 }; r.ids.push(d.c.id); r.n++; m.set(k, r); }); return [...m.values()]; };
+    const who = d => String((d.o && d.o.assignee) || ((typeof contractOwnerName === 'function') ? contractOwnerName(d.c) : '') || i18t('hb_sy_nobody'));
+    ch('c1', { pic: 'ring', split: { by: 'overdue' }, measure: 'count' }, live);
+    barCh('c2', group(coming, d => hbReadMonth(d.due.slice(0, 7))), 'Duties due in the next 3 months, by month (month: duties):', 'hb_sy_bars_duty', 'hb_sy_n_duties');
+    barCh('c3', group(late.concat(coming), who), 'Duties overdue or due in the next 3 months, by who owns them (owner: duties):', 'hb_sy_bars_duty', 'hb_sy_n_duties');
+    barCh('c4', group(late, d => String(d.c.counterparty || '').trim() || i18t('hb_sy_nobody')), 'Overdue duties, by counterparty (counterparty: duties):', 'hb_sy_bars_duty', 'hb_sy_n_duties');
+  }
+  if (topic === 'party'){
+    const theirs = book.filter(c => String(c.counterparty || '').trim() === arg), lv = theirs.filter(_hbLive);
+    ch('c1', { pic: 'bars', split: { by: 'status' }, measure: mv }, theirs);
+    ch('c2', { pic: 'cols', split: { by: 'date', unit: 'q', date: 'signed' }, measure: 'rounds', window: { last: 2, unit: 'y', date: 'signed' } }, theirs);
+    ch('c3', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'end' }, measure: mv, window: next12 }, lv);
+    ch('c4', { pic: 'ring', split: { by: 'standards' }, measure: 'count' }, lv);
+  }
+  if (topic === 'stream'){
+    const mine = book.filter(c => c.folder === arg), lv = mine.filter(_hbLive);
+    ch('c1', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: mv, window: last12 }, mine);
+    ch('c2', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'medianDaysToSign', window: last12 }, mine);
+    ch('c3', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'end' }, measure: mv, window: next12 }, lv);
+    ch('c4', { pic: 'ring', split: { by: 'standards' }, measure: 'count' }, lv);
+  }
+  if (topic === 'quarter'){
+    ch('c1', { pic: 'bars', split: { by: 'folder' }, measure: mv, compare: 'prev', window: { last: 1, unit: 'q', date: 'signed' } }, book);
+    ch('c2', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'signed' }, measure: 'medianDaysToSign', window: { last: 6, unit: 'm', date: 'signed' } }, book);
+    ch('c3', { pic: 'cols', split: { by: 'date', unit: 'm', date: 'end' }, measure: mv, window: { next: 6, unit: 'm', date: 'end' } }, live);
+    ch('c4', { pic: 'ring', split: { by: 'standards' }, measure: 'count' }, live);
   }
   const all = new Map(); S.chapters.forEach(c => (c.ids || []).forEach(x => { const k = hbContract(x); if (k) all.set(x, k); }));
   Object.values(S.lists).forEach(L => L.ids.forEach(x => { const k = hbContract(x); if (k) all.set(x, k); }));
@@ -4219,7 +4337,7 @@ function hbStoryDeepD(topic, k, lens){
   return { key: 'sy:' + topic + '.d' + k, kind: 'list', crumb: hbStoryData(topic, lens).title + ' › ' + st.title, title: st.title, setLabel: W.label, ids: W.ids, n: W.ids.length, whole: W.whole, fixed: W.fields, chart: clean };
 }
 function hbStoryDig(topic, sub, lens){
-  if (!HB_STORIES.includes(topic)) return null;
+  if (!hbStoryValid(topic)) return null;
   const S = hbStoryData(topic, lens);
   if (!sub) return { key: 'sy:' + topic, kind: 'story', topic, crumb: S.title, title: S.title, n: S.cs.length };
   if (/^k:/.test(sub)){ const L = S.lists[sub.slice(2)]; if (!L) return null; const ids = L.ids.filter(x => hbContract(x));
@@ -4234,7 +4352,7 @@ function hbStoryChapterRead(topic, k, lens){
     const src = hbReadOfList(D, D.key, k.title, lens); if (!src) return { lines: [], sheet: null, cs: [] };
     return { lines: src.reading.lines, sheet: hbFactSheet(src), cs: src.cs };
   }
-  const lines = k.bars && k.bars.length ? [hbReadLine('hb_sy_bars_top', { what: k.bars[0].label, n: { html: hbReadDoor(k.bars[0].n, k.bars[0].dig, _hbN(k.bars[0].n)) } }, k.bars[0].n)] : [];
+  const lines = k.bars && k.bars.length ? [hbReadLine(k.top || 'hb_sy_bars_most', { what: k.bars[0].label, n: { html: hbReadDoor(k.bars[0].n, k.bars[0].dig, _hbN(k.bars[0].n)) } }, k.bars[0].n)] : [];
   const text = [`FACT SHEET — ${k.title}`, ...(k.facts || [])].join('\n');
   return { lines, sheet: { text, nums: hbNumsOf(text) }, cs: [] };
 }
@@ -4272,7 +4390,7 @@ function hbStoryParse(text, n){
   return out;
 }
 async function hbStoryWrite(topic){
-  if (!HB_STORIES.includes(topic) || _hbSyBusy.has(topic)) return null;
+  if (!hbStoryValid(topic) || _hbSyBusy.has(topic)) return null;
   if (!(typeof copilotAvailable === 'function' && copilotAvailable())){ _hbSyErr.set(topic, i18t('hb_sy_nokey')); hbPaintBoard(); return null; }
   const s = hbS(), lens = s.lens, S = hbStoryData(topic, lens);
   _hbSyBusy.add(topic); _hbSyErr.delete(topic); hbPaintBoard();
@@ -4393,8 +4511,10 @@ function hbStoryDeepHtml(topic, run, n, total, lens, busy){
 /* a story a colleague gave: its name and their note; it opens counted on
    THIS reader's own Home */
 function hbStoryGiftHtml(g){
-  const topic = String(g.kind || '').slice(3); if (!HB_STORIES.includes(topic)) return '';
-  return `<section class="hb-card hb-panel" data-hb-pid="${_hbE('gift:' + g.id)}"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_sy_gift_title', { what: i18t('hb_sy_' + topic) }))}</span>
+  /* the story's id rides the gift's pid (a one-counterparty story carries its name there) */
+  const topic = /^sy:/.test(String(g.pid || '')) ? String(g.pid).slice(3) : String(g.kind || '').slice(3);
+  if (!hbStoryValid(topic) || 'sy_' + hbStoryId(topic).topic !== g.kind) return '';
+  return `<section class="hb-card hb-panel" data-hb-pid="${_hbE('gift:' + g.id)}"><header class="hb-ch"><span class="hb-ct">${_hbE(i18t('hb_sy_gift_title', { what: hbStoryTitle(topic) }))}</span>
     <span class="hb-given is-from" title="${_hbE(g.note || '')}">${_hbE(i18t('hb_from', { who: g.fromName || '' }))}</span><span class="hb-grow"></span>
     <button type="button" class="hb-ib" data-hb-act="x" title="${_hbE(i18t('hb_sy_gift_away'))}" aria-label="${_hbE(i18t('hb_sy_gift_away'))}">${_hbX}</button></header>
     <div class="hb-cb">${g.note ? `<p class="hb-sy-note">${_hbE(g.note)}</p>` : ''}<p class="hb-quiet">${_hbE(i18t('hb_sy_gift_say'))}</p><button type="button" class="hb-btn" data-hb-dig="sy:${_hbE(topic)}">${_hbE(i18t('hb_sy_open'))}</button></div></section>`;
@@ -6267,7 +6387,7 @@ function hbAskPreviewText(A){
   try {
     if (A.kind === 'verified') return i18t('hb_pre_verified', { what: A.v.title }) + free;
     if (A.kind === 'pack') return i18t('hb_pre_pack', { what: i18t('hb_pk_' + A.pack) }) + free;
-    if (A.kind === 'story') return i18t('hb_pre_story', { what: i18t('hb_sy_' + A.story) });
+    if (A.kind === 'story') return i18t('hb_pre_story', { what: hbStoryTitle(A.story) });
     if (A.kind === 'follow'){
       if (A.fu.narrow){ const N = hbDigData(A.fu.narrow, s.lens); return i18t('hb_pre_narrow', { what: (N && N.title) || '' }) + free; }
       const D = hbDigData(A.fu.key, s.lens); if (!D) return i18t('hb_pre_cmd') + free;
@@ -6467,7 +6587,7 @@ let _hbGifts = { received: [], sent: [], at: 0 };
 function hbGiftsFor(){
   const sent = {};
   (_hbGifts.sent || []).forEach(g => { if (g && g.pid && !sent[g.pid]) sent[g.pid] = g; });
-  return { received: (_hbGifts.received || []).filter(g => g && (HB_KINDS[g.kind] || (/^sy_/.test(g.kind) && HB_STORIES.includes(g.kind.slice(3))))), sent };
+  return { received: (_hbGifts.received || []).filter(g => g && (HB_KINDS[g.kind] || (/^sy_/.test(g.kind) && HB_STORIES.includes(g.kind.slice(3)) && !!hbStoryGiftHtml(g)))), sent };
 }
 function hbGiftsLoad(force){
   if (typeof API_MODE !== 'function' || !API_MODE() || typeof api !== 'function') return;
@@ -6485,8 +6605,8 @@ function hbGiftsLoad(force){
 }
 async function hbGive(pid, to, note){
   /* a story is given by its name (sy_<topic>), like a panel */
-  const story = /^sy:/.test(String(pid)) && HB_STORIES.includes(String(pid).slice(3)) ? String(pid).slice(3) : null;
-  const p = story ? { kind: 'sy_' + story, split: false } : hbS().panels.find(x => x.id === pid); if (!p) return;
+  const story = /^sy:/.test(String(pid)) && hbStoryValid(String(pid).slice(3)) ? String(pid).slice(3) : null;
+  const p = story ? { kind: 'sy_' + hbStoryId(story).topic, split: false } : hbS().panels.find(x => x.id === pid); if (!p) return;
   if (typeof API_MODE !== 'function' || !API_MODE()){ if (typeof toast === 'function') toast(i18t('hb_give_local'), 'warn'); return; }
   try {
     const r = await api('home/gifts', 'POST', { to, kind: p.kind, split: !!p.split, lens: hbS().lens, note: String(note || '').slice(0, 500), pid });
@@ -6762,7 +6882,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { HB_STORIES, HB_STORY_STEPS, HB_STORY_RE, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,
