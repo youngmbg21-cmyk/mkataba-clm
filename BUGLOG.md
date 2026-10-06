@@ -20387,3 +20387,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## 6 Oct 2026 — the whole book on by default; showcase screens
 - Fixed (in scope): the Top risks pack said "no liability cap" twice when a scan finding already said it; the overnight reading's reason is now added only when no finding says it (f527 (7)).
 - Noticed, not fixed: on the dark board the "Next:" question chips (`.hb-nx-q`) are faint — low contrast against the dark card in the pack and Dig deeper screens.
+
+## 6 Oct 2026 — the analyst's phrasebook
+- Fixed (in scope): a whole quarter compared "with the previous period" was held against the same number of days, not the whole quarter before; now the whole one.
+- Noticed, not fixed: "this quarter vs last quarter" early in a quarter has nothing so far on either side, and the card then shows no reading at all rather than saying "nothing yet this quarter".
+- Noticed, not fixed: "top ten counterparties" (no measure named) ranks by count, not value.
