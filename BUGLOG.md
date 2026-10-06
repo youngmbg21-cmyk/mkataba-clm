@@ -20383,3 +20383,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Fixed (in scope): "act by dates by month" / "notice dates by month" fell through to Copilot; the decision-date words are now taken where the date split is made.
 - Fixed (in scope): the fact-sheet number check read a list ("11 and 14, 25") as one number and dropped a true sentence; a run of numbers is now its pieces, in the board and in the weekly judge.
 - Noticed, not fixed: f364 (5) "the Document tab mounts no strand" is red on main 8239802 too (already logged); left red.
+
+## 6 Oct 2026 — the whole book on by default; showcase screens
+- Fixed (in scope): the Top risks pack said "no liability cap" twice when a scan finding already said it; the overnight reading's reason is now added only when no finding says it (f527 (7)).
+- Noticed, not fixed: on the dark board the "Next:" question chips (`.hb-nx-q`) are faint — low contrast against the dark card in the pack and Dig deeper screens.

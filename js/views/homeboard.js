@@ -3728,7 +3728,9 @@ function hbPackData(name, lens){
       const sev = r.risks.slice().sort((a, b) => (HB_RISK_WEIGHT[b.sev] || 0) - (HB_RISK_WEIGHT[a.sev] || 0));
       const why = sev.slice(0, 2).map(it => String(it.title || '').trim()).filter(Boolean);
       const w = (typeof renewalWindow === 'function') ? (() => { try { return renewalWindow(r.c); } catch (_){ return null; } })() : null;
-      if (hbKeyTermOf(r.c, 'liabcap') === 'uncapped') why.push(i18t('hb_pk_why_uncapped'));
+      /* the wording's reading adds the missing cap unless a finding already says it */
+      const unc = i18t('hb_pk_why_uncapped');
+      if (hbKeyTermOf(r.c, 'liabcap') === 'uncapped' && !why.some(x => x.toLowerCase() === unc.toLowerCase())) why.push(unc);
       if (w && !w.decided && w.days != null && w.days <= 183) why.push(i18t(w.auto ? 'hb_pk_why_autorenew' : 'hb_pk_why_renews', { day: hbReadDay(w.decideBy) }));
       return { c: r.c, cells: [money ? _hbM(r.x || 0) : _hbN(r.risks.length)], why: why.join(' · ') };
     });
