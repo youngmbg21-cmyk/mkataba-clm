@@ -142,7 +142,9 @@ const BODY = '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>'
     await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /A\+|A⁺/.test(x.textContent) && x.offsetParent); if (b) { b.click(); b.click(); } });
     await page.waitForTimeout(600);
     const s1 = await sizeOf();
-    check('8 A+ grows the reading in the thread, with the paper', s0 > 0 && s1 > s0, `${s0}px → ${s1}px`);
+    /* RE-POINTED 6 Oct 2026 (Panel Voice, Young: "the A⁻ / A⁺ buttons no
+       longer change them"): the reading keeps the panel's size; only the paper grows. */
+    check('8 A+ grows the paper, never the reading in the thread', s0 > 0 && s1 === s0, `${s0}px → ${s1}px`);
     await page.evaluate(() => { const b = [...document.querySelectorAll('button')].find(x => /A-|A⁻/.test(x.textContent) && x.offsetParent); if (b) { b.click(); b.click(); } });
 
     /* ===== 4. LANDS ON THE PAPER WITH THE THREAD BESIDE IT ===== */

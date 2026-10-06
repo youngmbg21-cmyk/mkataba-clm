@@ -380,11 +380,11 @@ function clauseEditorCss(){
      CSS is holding perfectly well on its own. */
   .ce-grid{flex:1; min-height:0; display:grid; position:relative;
     grid-template-columns:minmax(0,2fr) minmax(340px,1fr); grid-template-rows:minmax(0,1fr)}
-  /* Centred ON the seam rather than beside it: unlike the negotiation page's
-     grid this one has no gap track, so the two columns touch and the grab strip
-     straddles the rail's own border. Its LOOK is the negotiation page's, shared
-     rather than copied — see the unscoped .rl-resizer in negotiation-css.js. */
-  .ce-grid > .rl-resizer{transform:translateX(-50%)}
+  /* BESIDE the seam, on the rail's side (Young, 6 Oct 2026: the divider took
+     presses aimed at the scrollbar). It used to be centred on the seam, and its
+     left half sat over the contract's own scrollbar. Its LOOK is the
+     negotiation page's, shared rather than copied — see the unscoped
+     .rl-resizer in negotiation-css.js. */
   /* ---- THE CONTRACT ALONE (owner-reported 28 Aug 2026: the render carried
      this control and the build did not) ----
      ONE COLUMN, and the rail and the divider stand down with it. The rail is
@@ -809,17 +809,19 @@ function clauseEditorCss(){
      The Suggested wording card and its expanded view draw OUR marks with the
      paper's own tokens — the rl-us rules in negotiation-css.js, mirrored here
      at higher specificity than the card's old green — and the wording in the
-     paper's own face, size and line height (ceWordingFace reads them off the
-     painted sheet, so a contract's own design and the reader's text size
-     follow). The scan's cards (.ce-rule) keep their look. */
+     PANEL's own face and size — see below. The scan's cards (.ce-rule) keep
+     their look. */
   /* THE SMALL CARD SPEAKS THE PANEL'S TYPE, THE EXPANDED VIEW THE PAPER'S
      (Young, 5 Oct 2026: "the font in the suggested wording should be the
      same font type and size as what is on the rest of the panel above it.
      But when you expand it should remain as is"). Both keep the paper's
-     colours for the marks. */
+     colours for the marks.
+     PANEL VOICE (Young, 6 Oct 2026, reversing "the expanded view the paper's"):
+     the expanded view is set in the panel's own face at the panel's body size,
+     and the paper's A-/A+ never reach it — nothing is measured off the sheet. */
   .ce-rail .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
-  .ce-rail .ce-full .ce-full-body .pv{font-family:var(--ce-wd-font, var(--font-doc));
-    font-size:var(--ce-wd-size, var(--t-body)); line-height:var(--ce-wd-lh, 1.65); color:var(--color-doc-text, var(--color-text))}
+  .ce-rail .ce-full .ce-full-body .pv{font-family:var(--font-body);
+    font-size:var(--t-body); line-height:1.6; color:var(--color-text)}
   .ce-rail .ce-card .pv ins.rl-us, .ce-rail .ce-full .ce-full-body .pv ins.rl-us{background:var(--st-steel-bg); color:var(--accent-ink);
     font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
   .ce-rail .ce-card .pv del.rl-us, .ce-rail .ce-full .ce-full-body .pv del.rl-us{background:transparent; color:var(--accent-ink);
@@ -4446,22 +4448,8 @@ function ceRiskAnswerHtml(){
    Ask for a change and the votes pinned under it. The contract on the left
    does not move a pixel; the feet stay. ONE way back (Back to Copilot, or
    Escape); a card that is no longer there closes it by itself. */
-/* THE PAPER'S FACE, READ OFF THE PAINTED SHEET (5 Oct 2026): a contract's
-   own design picks its face, and the reader's text size moves its size, so
-   the rail asks the sheet rather than guessing. Three variables on the rail,
-   nothing else; a sheet not painted yet leaves the fallbacks standing. */
-function ceWordingFace(){
-  const rail = _ceQ('.ce-rail'); if (!rail || typeof getComputedStyle !== 'function') return;
-  const p = [...document.querySelectorAll('#ce-doc .rl-clause p, #ce-doc p')].find(x => x.textContent.trim().length > 20);
-  if (!p) return;
-  const cs = getComputedStyle(p);
-  if (cs.fontFamily) rail.style.setProperty('--ce-wd-font', cs.fontFamily);
-  if (cs.fontSize) rail.style.setProperty('--ce-wd-size', cs.fontSize);
-  if (cs.lineHeight) rail.style.setProperty('--ce-wd-lh', cs.lineHeight);
-}
 function ceRenderFull(){
   if (!clauseEditorOpen()) return;
-  ceWordingFace();
   const full = _ceQ('#ce-full'), rail = _ceQ('.ce-rail');
   if (!full) return;
   const card = _ceFull ? ceCardAt(_ceFull) : null;

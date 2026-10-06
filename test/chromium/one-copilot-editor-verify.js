@@ -194,7 +194,10 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     const ink = await page.evaluate(() => { const pv = document.querySelector('#ce-full .ce-full-body .pv'); const cs = pv && getComputedStyle(pv);
       const ins = pv && pv.querySelector('ins'), del = pv && pv.querySelector('del');
       return cs ? { face: cs.fontFamily, size: cs.fontSize, ins: !!ins, del: !!del, text: pv.textContent } : null; });
-    check(!!ink && ink.face === face.para.f && ink.size === face.para.s && ink.ins && ink.del, '3f in the paper\'s own face and size, marked against what stands', ink && (ink.face.slice(0, 30) + ' ' + ink.size));
+    /* RE-POINTED 6 Oct 2026 (Panel Voice, Young): the expanded view is the
+       PANEL's face at the panel's body size, whatever the paper is set in. */
+    const bodyFace = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--font-body').split(',')[0].replace(/['"]/g, '').trim());
+    check(!!ink && ink.face.split(',')[0].replace(/['"]/g, '').trim() === bodyFace && ink.size === '13px' && ink.ins && ink.del, '3f in the panel\'s own face and size, marked against what stands', ink && (ink.face.slice(0, 30) + ' ' + ink.size));
     check(!!ink && /Each party shall use reasonable endeavours to mitigate/.test(ink.text), '3g the whole redline is there, to its last sentence');
     await shot('3-fill-the-panel-risk.png');
     await page.keyboard.press('Escape');

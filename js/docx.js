@@ -2267,9 +2267,12 @@ const DOCX_PAPER_STYLES = '<w:style w:type="paragraph" w:customStyle="1" w:style
   + '<w:basedOn w:val="HatiPaper"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:keepLines/>'
   + '<w:pBdr><w:top w:val="single" w:sz="6" w:space="4" w:color="auto"/></w:pBdr>'
   + `<w:spacing w:before="720" w:after="0"/><w:ind w:right="${Math.round((11906 - 1134 - 1134) / 2)}"/></w:pPr></w:style>`;
+/* THE WORD FILE IS SET IN ARIAL (Young, 6 Oct 2026): a file that leaves the
+   building names a face every Windows and Mac already has, and the closest
+   common one to the paper's Clean Sans — Word never swaps in a stand-in. */
 const DOCX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles ${DOCX_NS}>
-<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>
 <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:pPr><w:spacing w:after="160" w:line="276" w:lineRule="auto"/></w:pPr></w:style>
 <w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:pPr><w:ind w:left="720"/></w:pPr></w:style>
 ${[1,2,3,4,5,6].map(n => `<w:style w:type="paragraph" w:styleId="Heading${n}"><w:name w:val="heading ${n}"/><w:basedOn w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:before="${360 - n*40}" w:after="120"/><w:outlineLvl w:val="${n-1}"/></w:pPr><w:rPr><w:b/><w:sz w:val="${30 - n*2}"/></w:rPr></w:style>`).join('')}

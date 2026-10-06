@@ -5,7 +5,8 @@
    platform." The prototype makes three decisions and each lands on one token:
      screens            --font-heading / --font-body   Geist
      numbers and codes  --font-mono                    Geist (tabular digits, no typewriter)
-     the contract       --font-doc                     Source Serif 4
+     the contract       --font-doc                     Source Serif 4 (Geist since 6 Oct 2026;
+                        the serif is --font-doc-serif, the signing copy and print)
    IBM Plex Sans stays named SECOND: Geist carries no Greek, and a name written
    in Greek must still read in a designed face (F85's reason).
 
@@ -37,9 +38,17 @@ describe('F377 (1) the three decisions, one token each', () => {
       'the prototype draws figures in its platform face — the two tokens must say the same thing');
     assert.doesNotMatch(token('font-mono'), /JetBrains/);
   });
-  test('the contract reads Source Serif 4, falling back to serifs', () => {
-    assert.match(token('font-doc'), /^'Source Serif 4'/);
-    assert.match(token('font-doc'), /serif\s*$/, 'a paper face that falls back to a sans is not a book face');
+  /* RE-POINTED 6 Oct 2026 (Clean Sans, Young picked it over "HaTi Paper
+     Fonts"): the paper you READ is the platform's face; the book serif is kept
+     as --font-doc-serif for the signing copy and every printed page. */
+  test('the paper you read is Clean Sans: the platform face, Plex second', () => {
+    assert.match(token('font-doc'), /^'Geist',\s*'IBM Plex Sans'/, `--font-doc is ${token('font-doc')}`);
+  });
+  test('the signing copy and the printed page keep Source Serif 4, falling back to serifs', () => {
+    assert.match(token('font-doc-serif'), /^'Source Serif 4'/);
+    assert.match(token('font-doc-serif'), /serif\s*$/, 'a signing face that falls back to a sans is not a book face');
+    assert.match(HTML, /\.pg-sign,#print-root\{--font-doc:var\(--font-doc-serif\);\}/,
+      'the signing copy and the print area put the serif back');
   });
   test('[wall] the SHA-256 fingerprint and the keyboard chip keep a true monospace', () => {
     assert.match(token('font-code'), /monospace\s*$/);

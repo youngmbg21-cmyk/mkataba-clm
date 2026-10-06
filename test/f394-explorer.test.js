@@ -95,7 +95,8 @@ describe('f394 (3) the divider is the other two pages\' own', () => {
   });
   test('the drag is the POINTER\'S POSITION with a grab offset — the clause editor\'s mechanism — and the drag turns the width transition off', () => {
     const w = code(region(IG, 'igWireSplit'));
-    assert.match(w, /grabDx=\(hb\.left\+hb\.width\/2\)-e\.clientX/);
+    /* RE-POINTED 6 Oct 2026: the strip's left edge is the seam now. */
+    assert.match(w, /grabDx=hb\.left-e\.clientX/);
     assert.match(w, /r\.right-\(x\+grabDx\)/);
     assert.match(w, /dock\.style\.transition='none'/);
     assert.match(w, /rez\.dataset\.igSplitBound/, 'bound once per element');
@@ -118,10 +119,12 @@ describe('f394 (3) the divider is the other two pages\' own', () => {
     assert.ok(writes >= 5 && writes === (code(region(IG, 'igWireSplit')).match(/_igDockSave\(/g) || []).length
       + (code(region(IG, '_igDockPref')).match(/_igDockSave\(/g) || []).length + 1, 'every write is inside the wiring or the one-time carry (plus the definition)');
   });
-  test('the one layout pass: the width, the handle on the seam, stood down when folded', () => {
+  /* RE-POINTED 6 Oct 2026 (Young: the divider took presses aimed at the
+     scrollbar): the 14px strip lies wholly on the panel's side of the seam. */
+  test('the one layout pass: the width, the handle beside the seam, stood down when folded', () => {
     const f = code(region(IG, 'igFitSplit'));
     assert.match(f, /dock\.style\.width=w\+'px'/);
-    assert.match(f, /rez\.style\.right=\(w-7\)\+'px'/);
+    assert.match(f, /rez\.style\.right=\(w-14\)\+'px'/);
     assert.match(f, /if\(!intel\.dockOpen\|\|!row\.clientWidth\)\{ rez\.hidden=true; return; \}/);
     assert.match(code(region(IG, 'igSyncDockWidth')), /igFitSplit\(\)/, 'the › goes through the same pass');
   });

@@ -116,10 +116,10 @@ describe('f505 (E) the second pass', () => {
   test('a suggestion reads like the paper: the rl-us tokens, not bold, the paper\'s face', () => {
     const css = read('js/views/clauseeditor.js');
     assert.match(css, /\.ce-rail \.ce-card \.pv ins\.rl-us, \.ce-rail \.ce-full \.ce-full-body \.pv ins\.rl-us\{background:var\(--st-steel-bg\); color:var\(--accent-ink\);\n\s+font-weight:inherit; text-decoration:underline/);
-    assert.match(css, /font-family:var\(--ce-wd-font, var\(--font-doc\)\)/);
-    const f = fn(CE, 'ceWordingFace');
-    assert.match(f, /setProperty\('--ce-wd-font', cs\.fontFamily\)/);
-    assert.match(fn(CE, 'ceRenderFull'), /ceWordingFace\(\);/);
+    /* RE-POINTED 6 Oct 2026 (Panel Voice): the marks keep the paper's
+       colours; the face is the panel's, nothing measured off the sheet. */
+    assert.ok(!/function ceWordingFace\(/.test(CE), 'the sheet measurer is gone');
+    assert.ok(!/ceWordingFace\(\);/.test(fn(CE, 'ceRenderFull')));
   });
   test('one row of small feet', () => {
     assert.equal(CE.split('<div class="ce-feet" id="ce-feet">').length - 1, 1);
@@ -137,10 +137,13 @@ describe('f505 (E) the second pass', () => {
 });
 
 describe('f505 (F) the third pass', () => {
-  test('the small card speaks the panel\'s type; only the expanded view takes the paper\'s', () => {
+  /* RE-POINTED 6 Oct 2026 (Panel Voice, Young): the expanded view speaks the
+     panel's type too, at the panel's body size; A-/A+ never reach it. */
+  test('the small card and the expanded view both speak the panel\'s type', () => {
     const css = read('js/views/clauseeditor.js');
     assert.match(css, /\.ce-rail \.ce-card \.pv\{font-family:inherit; font-size:var\(--t-meta\); line-height:1\.6\}/);
-    assert.match(css, /\.ce-rail \.ce-full \.ce-full-body \.pv\{font-family:var\(--ce-wd-font, var\(--font-doc\)\)/);
+    assert.match(css, /\.ce-rail \.ce-full \.ce-full-body \.pv\{font-family:var\(--font-body\);\n\s+font-size:var\(--t-body\); line-height:1\.6;/);
+    assert.ok(!/--ce-wd-/.test(css), 'nothing measured off the sheet');
   });
   test('"Where it goes" is on the expanded view, from the Risks tab\'s own builder, and both stay in step', () => {
     assert.match(fn(CE, 'ceRenderFull'), /key\.startsWith\('rk:'\) && window\.riskWhereHtml && _ceC\) \? `<div class="ce-full-where">\$\{riskWhereHtml\(_ceC\)\}<\/div>`/);

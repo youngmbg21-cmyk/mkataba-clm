@@ -781,15 +781,14 @@ describe('f277 (10) the edition is a facing page', () => {
   /* SET AT THE SIZE THE CONTRACT IS SET AT, and MEASURED rather than computed
      from a token: --doc-scale is written on the paper's own zoom wrapper in
      the other column, and a document style can multiply the size again. */
-  test('the reading takes its size from the paper itself', () => {
+  /* RE-POINTED 6 Oct 2026 (Panel Voice, Young): the reading is the panel's
+     own size, and nothing is measured off the paper any more. */
+  test('the reading takes the panel\'s own size, never the paper\'s', () => {
     const at = INDEX.indexOf('.doc-th-plain{');
     const css = INDEX.slice(at, INDEX.indexOf('}', at));
-    assert.ok(/font-size:var\(--dr-size,/.test(css), 'a measured value, with a fallback');
-    assert.ok(!/var\(--t-meta\)/.test(css), 'and it is no longer a size smaller than the contract');
-    const face = CONTRACT_JS.slice(CONTRACT_JS.indexOf('function docThreadFace('), CONTRACT_JS.indexOf('/* ---------- the rows'));
-    assert.ok(/getComputedStyle\(paper\)/.test(face), 'the sheet\'s own computed style is read on every paint');
-    assert.ok(/cs\.fontSize/.test(face), 'and the size comes off it');
-    assert.ok(/card\.style\.setProperty\('--dr-size',px\)/.test(face));
+    assert.ok(/font-size:var\(--t-body\)/.test(css), 'the panel\'s body size');
+    assert.ok(!/--dr-size|--doc-scale/.test(css), 'and A-/A+ never reach it');
+    assert.ok(!/function docThreadFace\(/.test(CONTRACT_JS), 'the paper measurer is gone');
   });
 
   test('a row is drawn as the paper names it: the number, then the heading, then the reading under it', () => {
@@ -1247,14 +1246,15 @@ test('f277 (13) — the heading is the drafter’s own', async t => {
       'the older reading is now half of the one reading');
   });
 
-  await t.test('the reading borrows no shape of its own — it is set in the paper’s face', () => {
+  await t.test('the reading borrows no shape of its own — it is set in the panel’s face', () => {
     /* RE-POINTED 5 Oct 2026 (the Thread): the aligned column that copied the
        paper's indents is gone; the reading is a paragraph in the paper's own
        face and size, under the clause's name. */
     const src = rd('js/views/contract.js');
     assert.doesNotMatch(src, /function docReadShape\(/, 'the shape reader went with the column');
     const css = rd('index.html');
-    assert.match(css, /\.doc-th-plain\{ font-family:var\(--dr-face,var\(--font-doc\)\);/);
+    /* RE-POINTED 6 Oct 2026 (Panel Voice): the panel's own face. */
+    assert.match(css, /\.doc-th-plain\{ font-family:var\(--font-body\);/);
   });
 
   await t.test('and the shape is read off the PAGE, never stored in the reading', () => {
@@ -1632,56 +1632,29 @@ describe('f277 (17) the number is not welded to the name', () => {
    that has to be kept in step for ever, and a design added tomorrow would
    dress the contract and not its translation. A measurement is a RELATION.
    ============================================================ */
-describe('f277 (18) the edition is set in the paper’s own face', () => {
-  test('the face is measured off the sheet, on every paint', () => {
-    /* RE-POINTED 5 Oct 2026 (the Thread): docThreadFace is the measurer,
-       called first in docThreadPaint. */
-    const src = _f277rd('js/views/contract.js');
-    const at = src.indexOf('function docThreadFace(');
-    assert.ok(at > 0, 'the measurer is there');
-    const body = src.slice(at, src.indexOf('/* ---------- the rows', at));
-    assert.match(body, /getComputedStyle\(paper\)/, 'the paper’s own computed style');
-    assert.match(body, /cs\.fontFamily/, 'and the face is read off it');
-    assert.match(body, /card\.style\.setProperty\('--dr-face',face\)/,
-      'written onto the thread as --dr-face');
-    assert.match(body, /card\.style\.removeProperty\('--dr-face'\)/,
-      'and removed where there is nothing to measure, never left stale');
-    const paint = src.slice(src.indexOf('function docThreadPaint('), src.indexOf('function docThreadWire('));
-    assert.match(paint, /docThreadFace\(card\);/, 'on every paint');
+describe('f277 (18) the edition is set in the PANEL’s own face (Panel Voice, 6 Oct 2026)', () => {
+  /* RE-POINTED 6 Oct 2026: Young reversed 11 Sep's "the same as the contract
+     page" — the reading is the panel's own face and size, nothing measured. */
+  test('nothing is measured off the sheet any more', () => {
+    const src = _f277rd('js/views/contract.js').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    assert.ok(!/function docThreadFace\(/.test(src), 'the measurer is gone');
+    assert.ok(!/--dr-face|--dr-size/.test(src), 'and nothing writes a measured face or size');
   });
 
-  test('the reading reads it, with the document face as the fallback', () => {
-    const css = _f277rd('index.html');
+  test('the reading names the panel face at the panel body size', () => {
+    const css = _f277rd('index.html').replace(/\/\*[\s\S]*?\*\//g, ' ');
     const at = css.indexOf('.doc-th-plain{');
     const block = css.slice(at, css.indexOf('}', at));
-    assert.match(block, /font-family:var\(--dr-face,var\(--font-doc\)\)/,
-      'a measured value, with the document face as the fallback');
+    assert.match(block, /font-family:var\(--font-body\)/);
+    assert.match(block, /font-size:var\(--t-body\)/);
+    assert.ok(!/var\(--dr-face/.test(css), 'no rule reads a measured face');
   });
 
-  test('the thread’s own furniture keeps the product’s face', () => {
-    /* The row names, the states and the marks are furniture ABOUT the
-       reading; only the reading wears the paper's face. */
-    const css = _f277rd('index.html');
-    const th = css.slice(css.indexOf('.doc-th{'), css.indexOf('.doc-th-plain{'));
-    assert.ok(!/--dr-face/.test(th), 'nothing above the reading names the measured face');
-  });
-
-  /* THE CAPTION IS NOT IN IT — the column's own PLAIN ENGLISH label is
-     furniture ABOUT the reading rather than part of it, and keeps the
-     product's own face. This holds by construction: --dr-face is read by
-     .doc-read-note and by nothing else. */
-  test('the column’s own caption keeps the product’s face', () => {
-    /* RE-POINTED 19 Sep 2026: COMMENTS ARE PROSE AND THIS SWEEP READS CODE.
-       A note written between these two rules that names --dr-face — to say
-       where the measured face DOES belong — read as a declaration and failed
-       this claim. The reading is about what the caption is SET in; strip the
-       prose first, exactly as every other sweep in this tree does. */
+  test('the clause panel does not follow A-/A+ (only the paper does)', () => {
     const css = _f277rd('index.html').replace(/\/\*[\s\S]*?\*\//g, ' ');
-    const reads = (css.match(/var\(--dr-face/g) || []).length;
-    assert.equal(reads, 1, '--dr-face is read in exactly one rule');
-    const at = css.indexOf('.doc-read-head{');
-    const head = css.slice(at, css.indexOf('.doc-read-note,.doc-read-mirror{', at));
-    assert.ok(!/--dr-face/.test(head), 'and it is not that one');
+    assert.ok(!/#doc-thread [^{]*\{font-size:calc\([^}]*--doc-scale/.test(css), 'no thread size is multiplied');
+    const src = _f277rd('js/views/contract.js');
+    assert.ok(!/th\.style\.setProperty\('--doc-scale'/.test(src), 'and the stepper writes nothing on the thread');
   });
 
   /* THE WALL: what the route is sent does not move by a byte. The reading's
@@ -1774,11 +1747,10 @@ describe('f277 (20) Part D', () => {
     assert.match(css, /\.text-\\\[13\\\.5px\\\]\{font-size:15px\}/, 'CONTROL: the blob still resolves the class to a flat 15px, which is the fault');
   });
 
-  test('D-3b the reading’s size is the paper’s measured size, written on the thread', () => {
-    /* RE-POINTED 5 Oct 2026 (the Thread): one measured size for the reading;
-       the thread draws no headings of its own to size. */
+  test('D-3b the reading’s size is the panel’s own body size (Panel Voice, 6 Oct 2026)', () => {
+    /* RE-POINTED 6 Oct 2026 (Panel Voice, Young): nothing measured off the paper. */
     const css = _f277rd('index.html');
-    assert.match(css, /\.doc-th-plain\{[^}]*font-size:var\(--dr-size,calc\(13\.5px \* var\(--doc-scale,1\)\)\)/);
+    assert.match(css, /\.doc-th-plain\{[^}]*font-size:var\(--t-body\);/);
   });
 
   test('D-3c the size press repaints the thread itself, not by way of a resize', () => {
