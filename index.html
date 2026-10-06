@@ -503,7 +503,17 @@
        furniture round it reads Geist. A contract given its own design (Formal
        legal and the rest) still wears that design's face — those rules name
        their own family and win exactly as before. */
-    --font-doc:'Source Serif 4','IBM Plex Serif',Georgia,'Times New Roman',serif;
+    /* SINCE 6 OCT 2026 THE PAPER YOU READ IS CLEAN SANS (Young picked it over
+       "HaTi Paper Fonts": "the paper looks ugly"): the working copy — the
+       Document tab, Negotiate, the clause editor, their page, the Explorer's
+       paper, the fill preview, the phone — wears the product's own face. The
+       SIGNING copy keeps the book serif, and so does every printed page and
+       every signed contract: .pg-sign and #print-root put --font-doc back to
+       --font-doc-serif, so nothing already signed changes how it looks. A
+       design's own face still wins on our paper; a Word file's own face still
+       wins on its signing copy. */
+    --font-doc:'Geist','IBM Plex Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+    --font-doc-serif:'Source Serif 4','IBM Plex Serif',Georgia,'Times New Roman',serif;
     --font-doc-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 
     /* Document text colour. A solid token, deliberately NOT an opacity
@@ -5656,8 +5666,8 @@
 
   /* ══ THE THREAD — the Document tab's facing page (Young picked it 5 Oct 2026) ══
      Every clause a row on one thread; the clause under the reader's eye is
-     the open row. QUIET'S TYPOGRAPHY: the reading in the paper's own face and
-     size (--dr-face/--dr-size, measured off the sheet); Worth a look as
+     the open row. QUIET'S TYPOGRAPHY: the reading in the PANEL's own face and
+     size (Panel Voice, 6 Oct 2026); Worth a look as
      sentences each with a coloured rule, in the one light-red wash the owner
      picked; Who does what as the X-ray's own list, its label hidden.
      IT IS A DRAWER OVER FORM & LINKS (Young picked "Drawer", 5 Oct 2026).
@@ -5702,6 +5712,11 @@
   .doc-th-chip.is-ruby[aria-pressed="true"]{ background:var(--st-ruby-bg); border-color:var(--st-ruby-dot); color:var(--st-ruby-fg); }
   .doc-th-chip.is-amber[aria-pressed="true"]{ background:var(--st-amber-bg); border-color:var(--st-amber-dot); color:var(--st-amber-fg); }
   .doc-th-chip.is-steel[aria-pressed="true"]{ background:var(--st-steel-bg); border-color:var(--st-steel-dot); color:var(--st-steel-fg); }
+  /* NO PALE PATCH IN THE DARK (Young, 6 Oct 2026): the pressed "All" chip
+     inverts to the ink colour, which in dark is a near-white block. In dark it
+     takes the accent's own wash and ink instead; the coloured chips keep
+     their dark status washes. */
+  html.dark .doc-th-chip:not(.is-ruby,.is-amber,.is-steel)[aria-pressed="true"]{ background:var(--color-accent-50); border-color:var(--accent-ink); color:var(--accent-ink); }
   .doc-th-chip[aria-disabled="true"]{ opacity:.5; cursor:default; }
   .doc-th-chip[aria-disabled="true"]:hover{ background:var(--color-surface); }
   .doc-th-rows{ position:relative; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding:6px 12px 18px; }
@@ -5746,9 +5761,9 @@
   .doc-th-row.is-open{ padding-bottom:6px; margin-bottom:4px; border-bottom:1px solid var(--color-divider); }
   @media (prefers-reduced-motion:reduce){ .doc-th-body{ transition:none; } }
   .doc-th-meta{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:var(--t-label); color:var(--color-neutral-500); margin:-2px 0 8px; }
-  /* THE READING, in the paper's face and size — the edition's own rule (11 Sep 2026) */
-  .doc-th-plain{ font-family:var(--dr-face,var(--font-doc)); font-size:var(--dr-size,calc(13.5px * var(--doc-scale,1)));
-    line-height:1.7; color:var(--color-doc-text,var(--color-text)); margin:0 0 4px; }
+  /* THE READING, in the panel's own face and size — Panel Voice (Young, 6 Oct 2026); A-/A+ never reach it */
+  .doc-th-plain{ font-family:var(--font-body); font-size:var(--t-body);
+    line-height:1.6; color:var(--color-doc-text,var(--color-text)); margin:0 0 4px; }
   .doc-th-plain .br-fig{ font-weight:var(--w-strong); }
   .doc-th-at{ font-size:var(--t-label); color:var(--color-neutral-500); margin:0 0 12px; }
   .doc-th-moved{ color:var(--st-amber-fg); margin-left:6px; }
@@ -5860,19 +5875,9 @@
   .doc-xr-wdmore{padding:6px 4px 0;font-size:var(--t-label);}
   .doc-xr-wdgo{margin-top:10px;justify-self:start;}
   .doc-xr-none{font-size:var(--t-meta);color:var(--color-neutral-500);}
-  /* THE THREAD FOLLOWS THE READER'S TEXT SIZE (23 Sep 2026, carried over):
-     every size in it is its token times --doc-scale, which applyDocZoom
-     writes on #doc-thread from the same stepper the paper reads. Written
-     here, after the rules it scales, at the same weight, so it wins by order.
-     The reading itself is measured off the paper and needs no multiplying. */
-  #doc-thread .doc-th-name{font-size:calc(var(--t-body) * var(--doc-scale,1));}
-  #doc-thread .doc-th-state,#doc-thread .doc-th-meta,#doc-thread .doc-th-at,#doc-thread .doc-th-cost,#doc-thread .doc-th-unrun{font-size:calc(var(--t-label) * var(--doc-scale,1));}
-  #doc-thread .doc-xr-mk{font-size:calc(var(--t-micro) * var(--doc-scale,1));}
-  #doc-thread .doc-xr-t,#doc-thread .doc-xr-none,#doc-thread .doc-th-look .doc-xr-mark,#doc-thread .doc-th-look .doc-xr-q,#doc-thread .doc-th-wait,#doc-thread .doc-th-argued,#doc-thread .doc-th-cannot,#doc-thread .doc-th-none{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
-  #doc-thread .doc-th-sec{font-size:calc(var(--t-micro) * var(--doc-scale,1));}
-  #doc-thread .doc-xr-wdt{font-size:calc(var(--t-meta) * var(--doc-scale,1));}
-  #doc-thread .doc-xr-who,#doc-thread .doc-xr-wdc,#doc-thread .doc-xr-wdo,#doc-thread .doc-xr-balsay,
-  #doc-thread .doc-xr-wdmore{font-size:calc(var(--t-label) * var(--doc-scale,1));}
+  /* THE THREAD KEEPS THE PANEL'S OWN SIZES (Panel Voice, Young 6 Oct 2026):
+     the 23 Sep rule that multiplied every size here by --doc-scale is
+     retired — A-/A+ grow the paper only. */
 
   /* ══ THE RUNWAY — the decision card's one line of time (22 Sep 2026) ══
      Left of TODAY is time already owed against this workspace's own answering
@@ -8165,6 +8170,12 @@
   .hb-ink.is-on{pointer-events:auto;cursor:crosshair}
   .hb-laser{position:absolute;left:0;top:0;z-index:7;pointer-events:none;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--st-ruby-dot);box-shadow:0 0 0 3px rgba(217,69,59,.25),0 0 18px 4px rgba(217,69,59,.55)}
   .hb-laser.is-trail{width:9px;height:9px;margin:-4.5px 0 0 -4.5px;box-shadow:none}
+  /* THE POINTER HIDES THE MOUSE (Young, 6 Oct 2026): everything on the page
+     but the chain under a pressable thing (hbPointerHandAt) wears no cursor.
+     Scoped by the page's id so it outranks the board's own class rules by
+     specificity alone; an inline cursor still wins, and every inline one
+     here is a pressable thing. */
+  :is(#ig-page,#hb-page).hb-pointing,:is(#ig-page,#hb-page).hb-pointing :not(.hb-cur-chain){cursor:none}
   .hb-presenting #ig-dock,.hb-presenting #ig-resizer,.hb-presenting .hb-counting,.hb-presenting .hb-scr,.hb-presenting #hero-draft,.hb-presenting #hb-present{display:none}
   .hb-presenting{height:100vh}
   @media (max-width:1180px){ .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-rows,.hb-grid,.hb-cgrid{grid-template-columns:minmax(0,1fr)} }
@@ -8837,6 +8848,8 @@
      inside .doc-surface. The application interface does not. One class is what
      keeps "the product" and "the paper" visually distinct, and it is the one
      place the document faces and the document ink are applied. */
+  /* THE SIGNING COPY AND THE PRINTED PAGE KEEP THE SERIF (6 Oct 2026) */
+  .pg-sign,#print-root{--font-doc:var(--font-doc-serif);}
   .doc-surface{
     font-family:var(--font-doc);
     color:var(--color-doc-text);

@@ -162,7 +162,8 @@ const SHELL_ICONS = [
         s.style.cssText = 'position:absolute;visibility:hidden;font-size:40px;font-family:' + t; document.body.appendChild(s);
         const w = s.getBoundingClientRect().width; s.remove(); return w; };
       const doc = getComputedStyle(document.documentElement).getPropertyValue('--font-doc').trim();
-      return { v, doc, wFace: probe("'Geist'"), wFallback: probe('monospace'), loaded: document.fonts.check("12px 'Geist'") };
+      const serif = getComputedStyle(document.documentElement).getPropertyValue('--font-doc-serif').trim();
+      return { v, doc, serif, wFace: probe("'Geist'"), wFallback: probe('monospace'), loaded: document.fonts.check("12px 'Geist'") };
     });
     /* REVERSED IN PLACE AGAIN 24 Sep 2026 (owner-asked, to match the
        prototype): the prototype sets figures in its platform face, so the
@@ -183,8 +184,12 @@ const SHELL_ICONS = [
         const w = s.getBoundingClientRect().width; s.remove(); return w; };
       return { loaded: document.fonts.check("16px 'Source Serif 4'", 'Agreement'), wFace: probe("'Source Serif 4'"), wFallback: probe('serif') };
     });
-    check('the paper token names Source Serif 4 first',
-      /^'?Source Serif 4'?/.test(mono.doc), mono.doc);
+    /* RE-POINTED 6 Oct 2026 (Clean Sans): the paper you read names the
+       platform face; the signing copy and print keep the serif token. */
+    check('the reading paper token names the platform face (Clean Sans)',
+      /^'?Geist'?/.test(mono.doc), mono.doc);
+    check('the signing-copy token names Source Serif 4 first',
+      /^'?Source Serif 4'?/.test(mono.serif), mono.serif);
     check('and the serif genuinely loaded from fonts/',
       paper.loaded && Math.abs(paper.wFace - paper.wFallback) > 1,
       `loaded ${paper.loaded} · Source Serif 4 ${paper.wFace.toFixed(1)}px vs serif ${paper.wFallback.toFixed(1)}px`);

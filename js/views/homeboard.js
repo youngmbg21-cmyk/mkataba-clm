@@ -6190,7 +6190,33 @@ function hbToolsPaint(){
   t.innerHTML = `<div class="ig-seg">${b('pointer', 'hb_pointer', 'hb_pointer_tip')}${b('pen', 'hb_pen', 'hb_pen_tip')}<button type="button" data-hb-tool="clear" title="${_hbE(i18t('hb_clear_tip'))}">${_hbE(i18t('hb_clear'))}</button></div>${_hbPresenting ? `<div class="ig-seg"><button type="button" data-hb-tool="exit" title="${_hbE(i18t('hb_exit_tip'))}">${_hbE(i18t('hb_exit'))}</button></div>` : ''}`;
   const ink = document.getElementById('hb-ink'); if (ink) ink.classList.toggle('is-on', _hbTool === 'pen');
   const lz = document.getElementById('hb-laser'); if (lz) lz.hidden = _hbTool !== 'pointer';
-  const pg = hbPage(); if (pg) pg.classList.toggle('hb-presenting', _hbPresenting);
+  const pg = hbPage(); if (pg){ pg.classList.toggle('hb-presenting', _hbPresenting); pg.classList.toggle('hb-pointing', _hbTool === 'pointer'); }
+  if (_hbTool !== 'pointer') hbPointerHandAt(null);
+}
+/* ---- THE POINTER IS THE ONLY MARK ON THE SCREEN (Young, 6 Oct 2026: "the
+   mouse tracker should disappear and only have the pointer on screen. It
+   should only turn into a mouse when hovering over a button") ----
+   With the pointer on, the page hides the system cursor (.hb-pointing). Over
+   something you can press it comes back as the hand and the red dot steps
+   aside, so you can see what a click will do. HOW HaTi KNOWS A THING IS
+   PRESSABLE: it asks the page's own cursor rules, not a list kept here. The
+   hovered element and its ancestors are lifted out of the hiding rule
+   (.hb-cur-chain), its own cursor is read, and the lift is kept only where
+   that cursor is the hand (or the element is a control). Asked again only
+   when the element under the mouse changes. */
+let _hbCurAt = null, _hbCurHand = false;
+const HB_CUR_CONTROL = 'a[href],button:not(:disabled),[role="button"],[role="tab"],select,summary,label,input,textarea';
+function hbPointerHandAt(t){
+  const pg = hbPage();
+  if (t === _hbCurAt) return _hbCurHand;
+  if (pg) pg.querySelectorAll('.hb-cur-chain').forEach(n => n.classList.remove('hb-cur-chain'));
+  _hbCurAt = t; _hbCurHand = false;
+  if (!t || !pg || t === pg || !pg.contains(t) || typeof getComputedStyle !== 'function') return false;
+  const chain = []; for (let n = t; n && n !== pg; n = n.parentElement) chain.push(n);
+  chain.forEach(n => n.classList.add('hb-cur-chain'));
+  _hbCurHand = getComputedStyle(t).cursor === 'pointer' || !!(t.closest && t.closest(HB_CUR_CONTROL));
+  if (!_hbCurHand) chain.forEach(n => n.classList.remove('hb-cur-chain'));
+  return _hbCurHand;
 }
 function hbSetTool(k){ _hbTool = (_hbTool === k) ? '' : k; if (_hbTool !== 'pointer') _hbTrail = []; hbToolsPaint(); }
 function hbInkSize(){
@@ -6343,10 +6369,12 @@ function hbOnPointer(e){
   const col = document.getElementById('hb-col'); if (!col || !state || state.view !== 'dashboard') return;
   if (_hbTool === 'pointer'){
     const r = col.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-    const lz = document.getElementById('hb-laser'); if (lz) lz.style.transform = `translate(${x}px,${y}px)`;
+    /* Over a button the hand shows and the dot and its trail step aside. */
+    const hand = hbPointerHandAt(e.target);
+    const lz = document.getElementById('hb-laser'); if (lz){ lz.style.transform = `translate(${x}px,${y}px)`; lz.hidden = hand; }
     _hbTrail.unshift([x, y]); _hbTrail = _hbTrail.slice(0, 10);
     for (let i = 1; i <= 3; i++){ const q = _hbTrail[i * 3]; const d = document.getElementById('hb-laser-' + i);
-      if (d){ d.hidden = !q; if (q){ d.style.transform = `translate(${q[0]}px,${q[1]}px)`; d.style.opacity = String(0.5 - i * 0.14); } } }
+      if (d){ d.hidden = !q || hand; if (q){ d.style.transform = `translate(${q[0]}px,${q[1]}px)`; d.style.opacity = String(0.5 - i * 0.14); } } }
   }
   if (_hbTool === 'pen' && _hbStroke){ const r = col.getBoundingClientRect(); _hbStroke.push([e.clientX - r.left, e.clientY - r.top]); hbInkDraw(); }
 }

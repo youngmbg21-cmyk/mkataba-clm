@@ -340,8 +340,9 @@ describe('f384 (4) the section the builder draws', () => {
     assert.ok(/\.doc-xr-sec\.is-who \.doc-xr-t\{display:grid;grid-template-columns:auto minmax\(0,1fr\) auto/.test(INDEX));
     assert.ok(/\.doc-xr-wd\{display:grid;grid-template-columns:subgrid/.test(INDEX));
   });
-  test('the words follow the reader’s text size, like the rest of the thread', () => {
-    assert.ok(/#doc-thread \.doc-xr-wdt\{font-size:calc\(var\(--t-meta\) \* var\(--doc-scale,1\)\)/.test(INDEX));
+  /* RE-POINTED 6 Oct 2026 (Panel Voice): the thread keeps the panel's sizes. */
+  test('the words keep the panel’s own size, like the rest of the thread', () => {
+    assert.ok(!/#doc-thread \.doc-xr-wdt\{font-size:calc\(var\(--t-meta\) \* var\(--doc-scale,1\)\)/.test(INDEX));
   });
 });
 

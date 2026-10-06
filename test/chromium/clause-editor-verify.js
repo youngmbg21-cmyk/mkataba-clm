@@ -1475,7 +1475,7 @@ const dismissNote = async pg => {
       railFullHeight: Math.round(rr.top) <= Math.round(pr.top) + 1
         && Math.round(rr.bottom) >= Math.round(pr.bottom) - 1,
       /* The handle straddles the seam rather than sitting beside it. */
-      onSeam: zr ? Math.abs(Math.round(zr.left + zr.width / 2) - Math.round(rr.left)) <= 1 : false,
+      onSeam: zr ? Math.abs(Math.round(zr.left) - Math.round(rr.left)) <= 1 : false,
       sideways: Math.round(document.documentElement.scrollWidth)
         <= Math.round(document.documentElement.clientWidth),
       atLimit: rez ? rez.getAttribute('data-rl-at-limit') : null,
@@ -1493,8 +1493,10 @@ const dismissNote = async pg => {
     b0.railFullHeight, `rail ${b0.railTop}-${b0.railBottom} of page ${b0.pageTop}-${b0.pageBottom}`);
   ck('16d the handle claims NO TRACK — the grid is still two columns',
     b0.cols === 2, `${b0.cols} columns`);
-  ck('16e it straddles the seam rather than sitting beside it',
-    b0.onSeam, `handle centre against the rail's left edge`);
+  /* RE-POINTED 6 Oct 2026 (Young: the divider took presses aimed at the
+     contract's scrollbar): it starts AT the seam and lies on the rail's side. */
+  ck('16e it starts at the seam, on the rail\'s side, clear of the contract\'s scrollbar',
+    b0.onSeam, `handle left edge against the rail's left edge`);
   ck('16f at rest the rail is still exactly one third',
     Math.abs(b0.railW / (b0.colW + b0.railW) - 1 / 3) < 0.02,
     `${b0.railW} of ${b0.colW + b0.railW} = ${(b0.railW / (b0.colW + b0.railW)).toFixed(3)}`);

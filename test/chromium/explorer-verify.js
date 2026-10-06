@@ -51,7 +51,7 @@ const check = (name, pass, detail) => {
     const row = document.getElementById('ig-row') || (document.getElementById('ig-dock') && document.getElementById('ig-dock').parentElement), dock = document.getElementById('ig-dock'), rez = document.getElementById('ig-resizer');
     const rr = row.getBoundingClientRect(), dr = dock.getBoundingClientRect(), zr = rez ? rez.getBoundingClientRect() : null;
     return { rowW: Math.round(rr.width), dockW: Math.round(dr.width), dockLeft: Math.round(dr.left),
-      handle: zr ? { hidden: rez.hidden, mid: Math.round(zr.left + zr.width / 2), w: Math.round(zr.width), top: Math.round(zr.top), bottom: Math.round(zr.bottom) } : null,
+      handle: zr ? { hidden: rez.hidden, left: Math.round(zr.left), mid: Math.round(zr.left + zr.width / 2), w: Math.round(zr.width), top: Math.round(zr.top), bottom: Math.round(zr.bottom) } : null,
       limit: rez && rez.getAttribute('data-at-limit'), stored: localStorage.getItem('hati.v1.igDockW') };
   });
 
@@ -142,8 +142,11 @@ const check = (name, pass, detail) => {
 
     /* ================= 4. THE DIVIDER ====================================== */
     const g0 = await geo();
-    check('4a a divider stands on the seam between the column and the panel, the full height of the row',
-      g0.handle && !g0.handle.hidden && Math.abs(g0.handle.mid - g0.dockLeft) <= 1 && g0.handle.w === 14 && g0.handle.bottom - g0.handle.top > 300, JSON.stringify(g0));
+    /* RE-POINTED 6 Oct 2026 (Young: the divider took presses aimed at the
+       board's scrollbar): the strip starts AT the seam and lies on the panel's
+       side, so its left edge is the seam, not its middle. */
+    check('4a a divider stands at the seam between the column and the panel, on the panel\'s side, the full height of the row',
+      g0.handle && !g0.handle.hidden && Math.abs(g0.handle.left - g0.dockLeft) <= 1 && g0.handle.w === 14 && g0.handle.bottom - g0.handle.top > 300, JSON.stringify(g0));
     /* GUARDED: a build without the divider has nothing to drag, and every
        claim below REPORTS that rather than stopping the file. */
     if (!g0.handle) {
@@ -200,7 +203,7 @@ const check = (name, pass, detail) => {
     check('4k folded to its strip by the kept ›, the divider stands down', g6.handle && g6.handle.hidden && g6.dockW === 46, JSON.stringify(g6));
     await page.click('#igd-expand'); await page.waitForTimeout(600);
     const g7 = await geo();
-    check('4l opened again, the divider is back on the seam', g7.handle && !g7.handle.hidden && Math.abs(g7.handle.mid - g7.dockLeft) <= 1, JSON.stringify(g7));
+    check('4l opened again, the divider is back at the seam', g7.handle && !g7.handle.hidden && Math.abs(g7.handle.left - g7.dockLeft) <= 1, JSON.stringify(g7));
 
     /* ================= 5. THE DIVIDER WITH THE PAPER UP ==================== */
     await page.evaluate(() => { igExplain('MK-A2'); });

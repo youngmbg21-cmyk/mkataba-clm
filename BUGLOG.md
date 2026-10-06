@@ -20411,3 +20411,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Withdrawn: "biggest contracts drawn as a ring" was the owner's Chart First rule, not a fault; the smallest list now follows the same rule (chart first, list in ranked order).
 ### Noticed, not fixed
 - dark-no-white-patches-verify 2c is red on main: the Document tab's thread filter chips (.doc-th-chip) paint near-white rgb(230,236,234) in dark mode; the file is not in KNOWN_RED.
+
+## 6 Oct 2026 — dark-mode pale chip on the clause list: FIXED (owner-asked)
+- The pressed "All" filter chip on the Document tab's clause list drew as a near-white block in dark mode (background --color-text). In dark it now takes the accent wash and ink. Covered by clean-sans-and-dividers-verify 8a.
+
+## Noticed, not fixed (6 Oct 2026)
+- f364 (5) "the Document tab mounts no strand" is red on main before this work: DOC_XRAY_SPINE_W is still declared and published in js/views/contract.js (the Explorer's strand uses it), and the test forbids the name outright.

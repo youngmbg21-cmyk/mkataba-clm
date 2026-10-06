@@ -42,7 +42,12 @@ const EXEC = process.env.CHROMIUM_BIN
    typed from memory. Refusal 3 is "no growth", so each is a CEILING. On the
    branch all three read the same to the tenth of a pixel: the rows above the
    paper keep their own heights, so shorter buttons inside them move nothing. */
-const PARENT_INK = { docs: 271.9, nego: 286.7, sign: 301.9 };
+/* RE-MEASURED 6 Oct 2026 (Clean Sans, Young picked it): the Negotiate
+   paper's title is set in Geist now, whose glyphs sit 1px lower inside the
+   SAME line box. Measured against main on this stage: the title (H3
+   .rl-paper-title) is at top 284.7, height 29.8 on both sides — nothing
+   moved down; only the ink of a different face. 286.7 at main → 287.7. */
+const PARENT_INK = { docs: 271.9, nego: 287.7, sign: 301.9 };
 
 let pass = 0, fail = 0;
 const ok = (name, good, detail) => {

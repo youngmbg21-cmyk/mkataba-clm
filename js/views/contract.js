@@ -8845,15 +8845,9 @@ function applyDocZoom(){
      1 and are untouched. */
   const pref=(window.rlDocType?rlDocType():15)/15;
   wrap.style.setProperty('--doc-scale', pref.toFixed(3));
-  /* ---- AND THE X-RAY BESIDE IT (Young ruled 23 Sep 2026: "The font size
-     adjuster should apply to both sides of the page even in x-ray") ----
-     The Plain English column already follows the paper (its size is measured
-     off the sheet); the X-ray panel is a sibling of the paper and read its
-     type off fixed tokens, so the stepper moved one side of the page and not
-     the other. It takes the same RATIO, written on its own host because the
-     host is not inside #doc-zoom. */
-  const th=document.getElementById('doc-thread');
-  if(th) th.style.setProperty('--doc-scale', pref.toFixed(3));
+  /* The clause panel beside the paper does NOT follow the stepper (Panel
+     Voice, Young 6 Oct 2026, reversing 23 Sep's "apply to both sides"): it is
+     furniture, set in the panel's own sizes; only the paper grows. */
 }
 function wireDocResizer(){
   const grid=document.getElementById('doc-grid'), rez=document.getElementById('doc-resizer');
@@ -12718,20 +12712,10 @@ function docThreadCannotMark(c, idxs){
     if(cache.plain.has(x.el)) rec.set.delete(i); else rec.set.add(i);
   });
 }
-/* THE FACE AND THE SIZE ARE MEASURED OFF THE PAPER (Young, 11 Sep 2026: "make
-   the font in the plain english page the same as the contract page"). The
-   reading is set in them; the thread's own furniture keeps the product's face. */
-function docThreadFace(card){
-  try{
-    const canvas=document.getElementById('doc-canvas');
-    const paper=canvas&&(canvas.querySelector('.doc-surface')||canvas);
-    const cs=paper?getComputedStyle(paper):null;
-    const px=cs?cs.fontSize:'';
-    if(px&&parseFloat(px)>0) card.style.setProperty('--dr-size',px); else card.style.removeProperty('--dr-size');
-    const face=cs?cs.fontFamily:'';
-    if(face) card.style.setProperty('--dr-face',face); else card.style.removeProperty('--dr-face');
-  }catch(_){}
-}
+/* PANEL VOICE (Young, 6 Oct 2026, reversing 11 Sep's "make the font in the
+   plain english page the same as the contract page"): the reading is the
+   panel's own face at the panel's own size, and the paper's A-/A+ never
+   reaches it — .doc-th-plain names --font-body and --t-body, nothing measured. */
 
 /* ---------- the head: the title, what is marked, ×, and the filter ---------- */
 const DOC_THREAD_TONE_KEYS = { ruby:['th_f_ruby','th_f_ruby_say'], amber:['th_f_amber','th_f_amber_say'], steel:['th_f_steel','th_f_steel_say'] };
@@ -13021,7 +13005,6 @@ function docThreadPaint(c){
   if(right) right.classList.toggle('is-clauses',up);
   docThreadDoorPaint(rows,has,up);
   if(!up){ card.innerHTML=''; card.removeAttribute('data-th-sig'); _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; return; }
-  docThreadFace(card);
   const sheet=docReadSheet(c)||[];
   _docThreadRows=rows.map(x=>x.el);
   if(!rows.length){

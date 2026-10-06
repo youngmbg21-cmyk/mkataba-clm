@@ -137,11 +137,12 @@ describe('f507 (2) — the line decides the open row', () => {
 
 describe('f507 (3) — what the open row holds', () => {
   const body = region(CONTRACT, 'docThreadBodyHtml');
-  test('the reading, in the paper\'s face and size (Quiet\'s typography)', () => {
+  /* RE-POINTED 6 Oct 2026 (Panel Voice, Young): the panel's face and size. */
+  test('the reading, in the panel\'s own face and size (Panel Voice)', () => {
     assert.match(body, /<div class="doc-th-plain">\$\{docReadMark\(p\)\}<\/div>/, 'the brief\'s own bold');
-    assert.match(INDEX, /\.doc-th-plain\{ font-family:var\(--dr-face,var\(--font-doc\)\); font-size:var\(--dr-size,calc\(13\.5px \* var\(--doc-scale,1\)\)\)/,
-      'the face and size are the paper\'s, measured off it');
-    assert.match(region(CONTRACT, 'docThreadFace'), /--dr-face/, 'measured once per paint');
+    assert.match(INDEX, /\.doc-th-plain\{ font-family:var\(--font-body\); font-size:var\(--t-body\);/,
+      'the panel\'s face and body size, nothing measured');
+    assert.ok(!/function docThreadFace\(/.test(CONTRACT), 'the paper measurer is gone');
   });
   test('or PLAIN — ONE clause, with "All N clauses in plain English" beside it and the cost said', () => {
     const ex = region(CONTRACT, 'docThreadExplainHtml');

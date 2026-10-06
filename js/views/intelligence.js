@@ -724,7 +724,11 @@ function igFitSplit(){
   if(!rez) return;
   if(!intel.dockOpen||!row.clientWidth){ rez.hidden=true; return; }
   rez.hidden=false;
-  rez.style.right=(w-7)+'px';
+  /* THE GRAB STRIP LIES WHOLLY ON THE PANEL'S SIDE OF THE SEAM (Young,
+     6 Oct 2026: "a hard time getting my cursor to choose the scroll button as
+     opposed to the divider"). Centred on the seam, its left half sat over the
+     board's own scrollbar and took every press aimed at it. */
+  rez.style.right=(w-14)+'px';
   const avail=row.clientWidth;
   const atMin=w<=IG_DOCK_MIN, atMax=avail>=IG_LEFT_MIN+IG_DOCK_MIN&&w>=avail-IG_LEFT_MIN;
   if(atMin||atMax) rez.setAttribute('data-at-limit',atMin?'min':'max'); else rez.removeAttribute('data-at-limit');
@@ -751,7 +755,8 @@ function igWireSplit(){
     window.removeEventListener('pointermove',onMove); window.removeEventListener('pointerup',onUp);
     igSplitSettle(); };
   rez.addEventListener('pointerdown',e=>{ e.preventDefault(); rez.dataset.drag='1';
-    const hb=rez.getBoundingClientRect(); grabDx=(hb.left+hb.width/2)-e.clientX;
+    /* the strip's LEFT edge is the seam (it lies on the panel's side) */
+    const hb=rez.getBoundingClientRect(); grabDx=hb.left-e.clientX;
     /* The panel's width transition would make the handle trail the pointer. */
     dock.style.transition='none';
     document.body.style.cursor='col-resize'; document.body.style.userSelect='none';

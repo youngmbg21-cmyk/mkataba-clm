@@ -181,17 +181,18 @@ describe('f369 (7) Send to counterparty is gone', () => {
   });
 });
 
-describe('f369 (8) the text size reaches the thread', () => {
-  test('applyDocZoom writes the same ratio on the thread', () => {
+/* RE-POINTED 6 Oct 2026 (Panel Voice, Young): the 23 Sep rule is reversed —
+   the clause panel keeps the panel's own sizes and only the paper grows. */
+describe('f369 (8) the text size stays on the paper (Panel Voice)', () => {
+  test('applyDocZoom writes no ratio on the thread', () => {
     const z = code(fnBody(CONTRACT, 'applyDocZoom'));
-    assert.ok(/getElementById\('doc-thread'\)/.test(z));
-    assert.ok(/th\.style\.setProperty\('--doc-scale', pref\.toFixed\(3\)\)/.test(z));
+    assert.ok(!/th\.style\.setProperty\('--doc-scale'/.test(z));
   });
-  test('every size in the thread reads it', () => {
+  test('no size in the thread reads it', () => {
     for (const lit of ['#doc-thread .doc-th-name{font-size:calc(var(--t-body) * var(--doc-scale,1));}',
       '#doc-thread .doc-xr-mk{font-size:calc(var(--t-micro) * var(--doc-scale,1));}',
       '#doc-thread .doc-xr-wdt{font-size:calc(var(--t-meta) * var(--doc-scale,1));}'])
-      assert.ok(INDEX.includes(lit), lit);
+      assert.ok(!INDEX.includes(lit), lit);
   });
 });
 
