@@ -20439,3 +20439,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## 6 Oct 2026 — f364 (5) "the Document tab mounts no strand": FIXED (owner-asked)
 - The claim forbade DOC_XRAY_SPINE_W, which the Thread commit (4b3b9ee) kept and published on purpose for the Explorer (f392 (7) pins the read). The test now forbids only the Document tab's painter, follower and mount, and pins that the width stays. Full suite 11,808 / 0 failures.
+
+## 6 Oct 2026 — "Digging deeper · step 16 of up to 15" (owner asked, logged only)
+
+### Noticed, not fixed
+- Home board, the story's "Dig deeper": while the final write-up call runs (after all 15 steps), the amber pill reads "Digging deeper · step 16 of up to 15" — `hbStoryDeepHtml` prints `hb_sy_going` with n = `run.steps.length + 1`, but the loop in `hbDdRun` (n = 0..max) spends its last call (n === max) on the write-up, not a step (the cost line already says 15 steps + 1 call). Nothing extra is spent; only the words are wrong. It should say the answer is being written up (both books) and never print n above max. Seen on hati-clm.onrender.com, owner's screenshot.
