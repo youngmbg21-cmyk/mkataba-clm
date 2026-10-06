@@ -20429,3 +20429,10 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Built: signing pipeline, risk and standards, payment terms, obligations, one counterparty ("brief me on Kevian Kenya"), one value stream, the quarterly review — each four chapters counted by HaTi, words in one Copilot call, Dig deeper and Share as for the first three.
 ### Noticed, not fixed
 - "risk exposure by month signed over the last 12 months" throws on the board ("Cannot read properties of undefined (reading 'left')" in hbReadingCore: an edge column carries no M); red on main 13a70a7. The risk story reads money at risk by stream instead.
+
+## 6 Oct 2026 — risk exposure over time
+
+- Fixed: "risk exposure by month signed over the last 12 months" threw "Cannot read properties of undefined (reading 'left')" on the Home board — the columns and edge columns handed to the reading were copies with no `M`; they now carry `left` and the reading adds that (was noticed 6 Oct, during the seven story topics). Pinned by f535, proved red on main.
+
+### Noticed, not fixed
+- Home board: a month-columns card measuring risk exposure leads with the contracts' whole VALUE ("9 contracts · KES 54M") in its head line, not the exposure the columns draw (KES 24M in the same card); the reading line below states the exposure correctly.
