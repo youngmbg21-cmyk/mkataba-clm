@@ -4,8 +4,8 @@
    period, price increases) and run the playbook check across the whole book
    overnight")
    ============================================================================
-     (1) OFF BY DEFAULT — it spends while nobody watches, so an admin turns
-         it on; off, it reads nothing and spends nothing;
+     (1) ON BY DEFAULT for the pilots (Young, 6 Oct 2026) — an admin can turn
+         it off; off, it reads nothing and spends nothing;
      (2) THE READING — once per wording; a term that asserts something
          (a cap, a renewal, a price rule, a notice period) is believed only
          with a quote that is in the wording, else 'unclear'; the owner pays;
@@ -71,9 +71,11 @@ describe('f529 (1)–(4) the overnight reading, against a real server', () => {
   });
   after(async () => { await h.stop(); await ai.stop(); });
 
-  test('(1) off by default: a run reads nothing and spends nothing', async () => {
+  test('(1) on by default; turned off, a run reads nothing and spends nothing', async () => {
     const st = await W.admin.json('/api/board/reading');
-    assert.equal(st.on, false);
+    assert.equal(st.on, true, 'on for the pilots');
+    await W.admin.json('/api/board/reading', { method: 'PUT', body: { on: false } });
+    assert.equal((await W.admin.json('/api/board/reading')).on, false, 'an admin can turn it off');
     const out = await run();
     assert.equal(out.off, true);
     assert.equal(ai.calls.length, 0);
@@ -210,7 +212,7 @@ describe('f529 (6) the drawer', () => {
     assert.match(srv, /app\.get\('\/api\/board\/reading', auth, admin,/);
     assert.match(srv, /app\.put\('\/api\/board\/reading', auth, admin,/);
     assert.match(srv, /app\.post\('\/api\/board\/reading\/run', auth, admin,/);
-    assert.match(srv, /AGENT_DEFAULTS\.book = \{ on: false,/);
+    assert.match(srv, /AGENT_DEFAULTS\.book = \{ on: true,/);
     const st = read('js/views/settings.js');
     assert.match(st, /st_book_on[\s\S]{0,200}st_book_cost/, 'the cost sits under the switch');
     assert.match(st, /agents:\{[\s\S]{0,1600}id="st-book"[\s\S]{0,200}wire\(\)\{ stAgentsPaint\(\); stBookLoad\(\); \}/, 'it sits with the overnight agents, not a fifth Copilot row');

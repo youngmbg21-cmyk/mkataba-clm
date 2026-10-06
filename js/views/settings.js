@@ -2561,7 +2561,7 @@ const SET_PANELS={
     /* READ THE WHOLE BOOK (Charts That Explain, rec 7, 5 Oct 2026): the
        overnight reading of every contract's key terms and its check against
        our standards is an overnight agent, so it sits with them — under the
-       agents, its own section, OFF by default, its cost said beside the
+       agents, its own section, ON by default (pilots, 6 Oct), its cost said beside the
        switch (GET/PUT /api/board/reading, Run now POST …/run). The Copilot
        group stays four rows (f467). */
     body(){ return `<div id="st-agents-panel"></div>

@@ -150,3 +150,16 @@ describe('f527 (5) summarise my board', () => {
     assert.ok(kept && /You have 9 contracts\./.test(kept.text) && !/37%/.test(kept.text));
   });
 });
+
+describe('f527 (7) a reason is said once', () => {
+  test('a finding that already says "no liability cap" is not joined by the reading saying it again', () => {
+    const { w, cs } = world();
+    cs[0]._book = { terms: { liabilityCap: { state: 'uncapped' } } };
+    cs[1]._book = { terms: { liabilityCap: { state: 'uncapped' } } };
+    w.riskOpenOf = c => c === cs[0] ? [{ sev: 'high', title: 'No liability cap' }] : c && c._rk ? [{ sev: c._rk === 'high' ? 'high' : 'low', title: 'Short warranty' }] : [];
+    const P = w.hbPackData('risks', 'all');
+    const r0 = P.rows.find(r => r.c === cs[0]), r1 = P.rows.find(r => r.c === cs[1]);
+    assert.equal((r0.why.match(/liability cap/gi) || []).length, 1, r0.why);
+    assert.match(r1.why, /Short warranty · no liability cap/, 'the reading adds what no finding said');
+  });
+});
