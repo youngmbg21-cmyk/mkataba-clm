@@ -7045,6 +7045,10 @@ app.post('/api/ai/graph', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, ca
    the finish's sentences are checked against every fact sheet in the
    browser (hbFactCheck) before one reaches the page. */
 const BOARD_ANALYST_STEPS = 5;
+/* DIG DEEPER ON A STORY (Young, 6 Oct 2026): the same act given the story's
+   own fact sheets and a longer allowance; its finish also names which steps
+   became chapters, what to watch and which ideas were set aside */
+const BOARD_ANALYST_STORY_STEPS = 15, BOARD_ANALYST_STORY_MAX = 6000;
 const BOARD_ANALYST_RESULT_MAX = 3500;
 const BOARD_ANALYST_PACKS = ['risks', 'ending', 'standards', 'next12'];
 function boardAnalystClean(name, input) {
@@ -7064,7 +7068,12 @@ function boardAnalystClean(name, input) {
       return o;
     }).filter(Boolean) : [];
     const next = Array.isArray(i.next) ? i.next.map(x => txt(x, 120)).filter(Boolean).slice(0, 3) : [];
-    return { summary: String(i.summary == null ? '' : i.summary).replace(/[\u0000-\u0008\u000b-\u001f\u007f<>]/g, ' ').trim().slice(0, 1500), cards, next };
+    const out = { summary: String(i.summary == null ? '' : i.summary).replace(/[\u0000-\u0008\u000b-\u001f\u007f<>]/g, ' ').trim().slice(0, 1500), cards, next };
+    const step = v => { const n = Math.round(Number(v)); return Number.isFinite(n) && n >= 1 && n <= BOARD_ANALYST_STORY_STEPS ? n : null; };
+    if (Array.isArray(i.chapters)) out.chapters = i.chapters.slice(0, 6).map(c => c && step(c.step) ? { step: step(c.step), title: txt(c.title, GRAPH_CHART_TITLE_MAX), text: txt(c.text, 700) } : null).filter(Boolean);
+    if (Array.isArray(i.watch)) out.watch = i.watch.slice(0, 4).map(w => w && txt(w.text, 300) ? { text: txt(w.text, 300), step: step(w.step) } : null).filter(Boolean);
+    if (Array.isArray(i.aside)) out.aside = i.aside.slice(0, 4).map(a => a && txt(a.idea, 160) ? { idea: txt(a.idea, 160), why: txt(a.why, 300) } : null).filter(Boolean);
+    return out;
   }
   return null;
 }
@@ -7075,12 +7084,18 @@ const boardAnalystHandler = async (req, res) => {
   const question = String(b.question || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 600);
   if (!question) return res.status(400).json({ error: 'question is required' });
   const guide = String(b.guide || '').slice(0, 6000), board = String(b.board || '').slice(0, 4000);
-  const steps = (Array.isArray(b.steps) ? b.steps : []).slice(0, BOARD_ANALYST_STEPS).map(s => {
+  const story = String(b.story || '').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, ' ').slice(0, BOARD_ANALYST_STORY_MAX);
+  const maxSteps = story ? BOARD_ANALYST_STORY_STEPS : BOARD_ANALYST_STEPS;
+  const steps = (Array.isArray(b.steps) ? b.steps : []).slice(0, maxSteps).map(s => {
     if (!s || typeof s !== 'object' || !['calculate', 'pack'].includes(s.name)) return null;
     const input = boardAnalystClean(s.name, s.input); if (!input) return null;
     return { name: s.name, input, result: String(s.result == null ? '' : s.result).slice(0, BOARD_ANALYST_RESULT_MAX) };
   }).filter(Boolean);
-  const must = steps.length >= BOARD_ANALYST_STEPS;
+  const must = steps.length >= maxSteps;
+  const storyFinish = story ? {
+    chapters: { type: 'array', description: 'The steps whose fact sheet explains the trend, each a deeper chapter: the step number (1 = your first calculate or pack), a short title, and two or three sentences.', items: { type: 'object', properties: { step: { type: 'number' }, title: { type: 'string' }, text: { type: 'string' } } } },
+    watch: { type: 'array', description: 'Up to four things coming up that the reader should watch, each one sentence, with the step whose contracts it is about.', items: { type: 'object', properties: { text: { type: 'string' }, step: { type: 'number' } } } },
+    aside: { type: 'array', description: 'Ideas you tested that did NOT hold, each the idea and one sentence on why.', items: { type: 'object', properties: { idea: { type: 'string' }, why: { type: 'string' } } } } } : {};
   const tools = [
     { name: 'calculate', description: 'Ask HaTi to count one chart over the contracts: a set (which) and a recipe. HaTi returns a FACT SHEET with every number. You never count yourself.',
       input_schema: { type: 'object', properties: { why: { type: 'string', description: 'One short sentence: what this step checks, shown to the reader.' },
@@ -7092,10 +7107,11 @@ const boardAnalystHandler = async (req, res) => {
       input_schema: { type: 'object', properties: {
         summary: { type: 'string', description: 'Three to five plain sentences: what the steps showed, why it matters, what to do. Use ONLY numbers that appear on the fact sheets, written as they appear; never work out a new number.' },
         cards: { type: 'array', description: 'Up to three charts worth keeping on the board, each a set, a recipe and a short title.', items: { type: 'object', properties: { which: { type: 'object', properties: { all: { type: 'boolean' }, q: { type: 'string' } } }, recipe: { type: 'object', properties: { ...GRAPH_CHART_PROPS } }, title: { type: 'string' } } } },
-        next: { type: 'array', items: { type: 'string' }, description: 'Up to three short follow-up questions the reader could ask.' } }, required: ['summary'] } },
+        next: { type: 'array', items: { type: 'string' }, description: 'Up to three short follow-up questions the reader could ask.' }, ...storyFinish }, required: ['summary'] } },
   ];
   const lang = String(b.lang || '').replace(/[^\p{L} ]/gu, '').slice(0, 30) || 'English';
-  const prompt = `You are HaTi's analyst on the Home BOARD of a contract portfolio. Work out the reader's question in steps. Each step, ask HaTi for ONE calculation (calculate or pack); HaTi counts and returns a fact sheet. Take at most ${BOARD_ANALYST_STEPS} steps — usually two or three — then call finish. Never state a number that is not on a fact sheet; never add, subtract or divide numbers yourself. If a fact sheet says some contracts were not read or not checked, say the picture may be incomplete. Write in ${lang}.\n\nToday's date: ${new Date().toISOString().slice(0, 10)}\n${board ? `\nThe board now:\n${board}\n` : ''}${guide ? `\nWhat each field holds:\n${guide}\n` : ''}\nThe reader's question: "${question}"`;
+  const storyJob = story ? `\nThis is DIG DEEPER on a story already on the board; its chapters and their fact sheets are below. Find out WHY the story looks the way it does: put forward an idea (what drove it, who drove it, what helped), test it with one calculation, and keep going with the next idea. Take at most ${maxSteps} steps, usually six to ten. In finish: summary says why, in three to five sentences; chapters are the steps that explain it (each a step number, a short title and two or three sentences); watch lists what is coming up that the reader should act on, each tied to the step whose contracts it names; aside lists the ideas that did not hold and why.\n\nTHE STORY:\n${story}\n` : '';
+  const prompt = `You are HaTi's analyst on the Home BOARD of a contract portfolio. Work out the reader's question in steps. Each step, ask HaTi for ONE calculation (calculate or pack); HaTi counts and returns a fact sheet. Take at most ${maxSteps} steps — ${story ? 'as many as the story needs' : 'usually two or three'} — then call finish. Never state a number that is not on a fact sheet; never add, subtract or divide numbers yourself. If a fact sheet says some contracts were not read or not checked, say the picture may be incomplete. Write in ${lang}.\n\nToday's date: ${new Date().toISOString().slice(0, 10)}\n${board ? `\nThe board now:\n${board}\n` : ''}${guide ? `\nWhat each field holds:\n${guide}\n` : ''}${storyJob}\nThe reader's question: "${question}"`;
   const messages = [{ role: 'user', content: prompt }];
   steps.forEach((s, n) => {
     const id = 'step_' + n;
@@ -7104,7 +7120,7 @@ const boardAnalystHandler = async (req, res) => {
   });
   if (must) messages[messages.length - 1].content.push({ type: 'text', text: 'That was the last step: call finish now.' });
   try {
-    const resp = await anthropicMessages(key, 'deep', { max_tokens: 1800, tools, tool_choice: must ? { type: 'tool', name: 'finish' } : { type: 'any' }, messages }, { feature: 'graph', who: aiWho(req) });
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: story ? 3000 : 1800, tools, tool_choice: must ? { type: 'tool', name: 'finish' } : { type: 'any' }, messages }, { feature: 'graph', who: aiWho(req) });
     if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
     const block = (resp.data.content || []).find(x => x.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
@@ -7112,7 +7128,7 @@ const boardAnalystHandler = async (req, res) => {
     /* a step the board cannot run (an unknown pack, a step past the last) is
        turned into a finish with nothing claimed, never run */
     if (!input || (must && name !== 'finish')) { name = 'finish'; input = { summary: '', cards: [], next: [] }; }
-    res.json({ step: { name, input }, steps: steps.length, max: BOARD_ANALYST_STEPS, ...aiNotice(req, resp) });
+    res.json({ step: { name, input }, steps: steps.length, max: maxSteps, ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 };
 app.post('/api/board/analyst', auth, rlAiLight, aiFeature('graph'), aiBudgetGuard, capAiInput, boardAnalystHandler);
@@ -16998,7 +17014,8 @@ db.exec(`CREATE TABLE IF NOT EXISTS home_gifts (
   id TEXT PRIMARY KEY, from_id TEXT NOT NULL, to_id TEXT NOT NULL, kind TEXT NOT NULL,
   lens TEXT NOT NULL DEFAULT 'all', split INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '',
   pid TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, seen_at TEXT, dismissed_at TEXT)`);
-const HOME_GIFT_KINDS = ['obl', 'fric', 'ren', 'pay', 'exp', 'val'];
+/* a STORY is given by its name too (sy_<topic>; Young, 6 Oct 2026) */
+const HOME_GIFT_KINDS = ['obl', 'fric', 'ren', 'pay', 'exp', 'val', 'sy_friction', 'sy_renewals', 'sy_spend'];
 const HOME_GIFT_LENSES = ['all', 'suppliers', 'customers'];
 /* A PERSON'S HOME HOLDS AT MOST THIS MANY GIFTS STILL ON IT; one more is
    refused in words, never dropped (a cap is a fact). */

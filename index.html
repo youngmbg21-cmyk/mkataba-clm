@@ -7919,6 +7919,43 @@
   .hb-dd-sh{display:flex;align-items:center;gap:8px}
   .hb-dd-i{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:rgba(var(--hb-gw),.16);color:var(--hb-glow);font-size:var(--t-meta);font-variant-numeric:tabular-nums}
   .hb-dd-add{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 var(--s-3)}
+  /* STORIES (Young, 6 Oct 2026, "Trend Story Agents" — Quick Story with Dig
+     deeper): the acts row, the lead in the paper's face, the chapters as a
+     two-up grid of ordinary charts, each with its words; the deeper half under
+     them. The board's screen tokens only, so Dark and Light both read. */
+  .hb-sy{display:grid;gap:var(--s-3)}
+  .hb-sy-acts{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px}
+  .hb-sy-acts .hb-btn{display:inline-flex;align-items:center;gap:6px}
+  .hb-sy-acts .hb-btn[disabled]{opacity:.55;cursor:default}
+  .hb-sy-acts .hb-dd-cost,.hb-sy .hb-dd-cost{color:var(--hb-mute)}
+  .hb-sy-pill{font-size:var(--t-micro);color:var(--hb-glow);border:1px solid rgba(var(--hb-gw),.45);border-radius:999px;padding:1px 9px;white-space:nowrap}
+  .hb-sy-pill.is-amber{color:var(--hb-amber);border-color:color-mix(in srgb,var(--hb-amber) 50%,transparent)}
+  .hb-sy-lead{margin:0;max-width:78ch;font-family:var(--font-doc);font-size:calc(var(--t-body) + 2px);line-height:1.55;color:var(--hb-ink);text-wrap:pretty}
+  .hb-sy-lead.is-wait{font-family:inherit;font-size:var(--t-body);color:var(--hb-mute)}
+  .hb-sy-lead.is-err p{margin:0;color:var(--hb-ruby);font-size:var(--t-body)}
+  .hb-sy-stale{margin:0}
+  .hb-sy-chs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:var(--s-3)}
+  .hb-sy-ch{min-width:0;display:grid;gap:8px;align-content:start;border:1px solid rgba(var(--hb-ln),.16);border-radius:var(--radius-lg);padding:10px 12px}
+  .hb-sy-ch.is-deep{border-color:color-mix(in srgb,var(--hb-amber) 35%,transparent)}
+  .hb-sy-cht{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .hb-sy-cht h4{margin:0;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--hb-ink)}
+  .hb-sy-n{font-size:var(--t-micro);color:var(--hb-mute);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .hb-sy-p{margin:0;font-family:var(--font-doc);font-size:var(--t-body);line-height:1.55;color:var(--hb-ink-2)}
+  .hb-sy-p.is-hati{font-family:inherit}
+  .hb-sy-p b{color:var(--hb-ink);font-weight:var(--w-strong)}
+  .hb-sy-lines{margin:0;padding-left:18px;color:var(--hb-ink-2);font-size:var(--t-meta)}
+  .hb-sy-foot{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;font-size:var(--t-meta);color:var(--hb-mute)}
+  .hb-sy-deep{display:grid;gap:var(--s-3);padding-top:var(--s-3);border-top:1px solid rgba(var(--hb-ln),.16)}
+  .hb-sy-dh{display:flex;align-items:center;gap:8px}
+  .hb-sy-two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:var(--s-3)}
+  .hb-sy-two:empty{display:none}
+  .hb-sy-watch,.hb-sy-aside{min-width:0;border-radius:var(--radius-lg);padding:10px 12px;border:1px solid rgba(var(--hb-ln),.16)}
+  .hb-sy-watch{border-color:color-mix(in srgb,var(--hb-amber) 40%,transparent);background:color-mix(in srgb,var(--hb-amber) 5%,transparent)}
+  .hb-sy-watch h4,.hb-sy-aside h4{margin:0 0 6px;font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--hb-mute)}
+  .hb-sy-watch h4{color:var(--hb-amber)}
+  .hb-sy-watch ul,.hb-sy-aside ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:var(--t-body);line-height:1.5;color:var(--hb-ink-2)}
+  .hb-sy-aside b{color:var(--hb-ink);font-weight:var(--w-strong)}
+  .hb-sy-note{margin:0 0 6px;color:var(--hb-ink);font-style:italic}
   /* HEADLINE (Young picked it, 5 Oct 2026): the chart's point in one line on
      the small card, HaTi's teal, with Read more beside it. Board tokens only. */
   .hb-head-line{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 12px;margin:0 0 var(--s-3);padding:6px 12px;border-left:3px solid var(--hb-glow);border-radius:0 var(--radius) var(--radius) 0;background:rgba(var(--hb-gw),.06)}

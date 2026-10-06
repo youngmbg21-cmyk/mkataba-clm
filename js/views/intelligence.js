@@ -4076,7 +4076,7 @@ function intelFrictionStats(filter){
   const ranked=[...per.values()]
     .filter(e=>!f||!f.clause||e.label.toLowerCase().includes(String(f.clause).toLowerCase()))
     .sort((a,b)=>b.ids.size-a.ids.size).slice(0,8)
-    .map(e=>({label:e.label, n:e.ids.size, share:deals?e.ids.size/deals:0, extra:extraOf(e)}));
+    .map(e=>({label:e.label, n:e.ids.size, share:deals?e.ids.size/deals:0, extra:extraOf(e), ids:[...e.ids]}));
   const counterparties=[...cps.values()]
     .map(cp=>({name:cp.name, deals:cp.deals, avgRounds:cp.deals?cp.rounds/cp.deals:0,
       acceptUs:(cp.acc+cp.rej)?cp.acc/(cp.acc+cp.rej):null}))
