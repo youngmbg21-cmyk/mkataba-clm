@@ -20417,3 +20417,10 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## Noticed, not fixed (6 Oct 2026)
 - f364 (5) "the Document tab mounts no strand" is red on main before this work: DOC_XRAY_SPINE_W is still declared and published in js/views/contract.js (the Explorer's strand uses it), and the test forbids the name outright.
+
+## 6 Oct 2026 — stories on the Home board (Quick Story with Dig deeper)
+- Built: "build me a story of our negotiation friction / renewals / spend" opens a four-chapter story; one Copilot call writes the words, every number checked; Dig deeper on the story finds what drove it (up to 15 steps, Stop, chapters / what to watch / ideas set aside); Share gives it to a colleague by name.
+- Departure from the proposal picture, said to the owner: Dig deeper starts on its press with the cost beside it (the board's house rule), not via a separate Start in the Copilot panel.
+### Noticed, not fixed
+- The panel's own Dig deeper cost line (.hb-dd-cost under a Copilot answer) wears --accent-ink; it reads on the white panel, but the same class on any dark surface would vanish (the story scopes its own).
+- The other seven story topics on the proposal (pipeline, risk, payment terms, obligations, one counterparty, one stream, quarterly review) are not built; each is a new entry in hbStoryData.

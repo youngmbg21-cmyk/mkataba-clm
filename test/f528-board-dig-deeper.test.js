@@ -211,7 +211,13 @@ describe('f528 (4) a press, never by itself', () => {
     assert.match(intel, /m\.deeper&&!m\.err&&typeof window\.hbDeeperHtml==='function'\)\?hbDeeperHtml\(m\.deeper\)/, 'drawn by the panel, beside Undo and the marks');
     const hb = read('js/views/homeboard.js').replace(/\/\*[\s\S]*?\*\//g, '');
     const calls = (hb.match(/hbDigDeeper\(/g) || []).length;
-    assert.equal(calls, 2, 'defined once, called once: from the press');
+    /* f534 (Young, 6 Oct 2026, "Use Dig deeper as the name"): a story's Dig
+       deeper is the same act, so it is called from two places — the answer's
+       press and the story's (hbStoryDeeper) — and the story's runs only from
+       its own press too */
+    assert.equal(calls, 3, 'defined once, called twice: from the answer\'s press and the story\'s');
+    assert.equal((hb.match(/hbStoryDeeper\(/g) || []).length, 2, 'the story\'s: defined once, called once, from its press');
+    assert.match(hb, /if \(\(el = on\('\[data-hb-sy-deeper\]'\)\)\)\{ if \(!el\.disabled\) hbStoryDeeper\(/);
   });
   test('a refresh keeps the run; one cut short says so; its lines come back as words', () => {
     const { w } = world();
