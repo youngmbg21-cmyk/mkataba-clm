@@ -10017,6 +10017,13 @@ const STRINGS = {
     th_cannot_state: 'Could not read',
     th_cannot_head: 'Copilot could not read this clause.',
     th_cannot_say: 'HaTi shows nothing rather than a reading it cannot place on this wording. Press Plain to ask again.',
+    /* WHY IT COULD NOT (Young, 6 Oct 2026). th_cannot_say and th_plain_all_*
+       are INERT: the reason replaced the one sentence, and the "All N clauses"
+       press is gone — Plain reads one clause at a time, only. */
+    th_cannot_empty: 'Copilot answered without a reading for it. Press Plain to ask again.',
+    th_cannot_noai: 'Copilot is not connected. An admin connects it in Settings.',
+    th_cannot_limit: 'Copilot has reached its limit for now. Press Plain again in a little while.',
+    th_cannot_failed: 'Copilot did not answer: the connection or the provider failed. Press Plain to ask again.',
     th_clauses: 'Clauses',
     th_door_title: 'Every clause, its plain English and what is worth a look, over the form and links',
     th_close: 'Back to Form & links',
@@ -21770,6 +21777,13 @@ const STRINGS = {
     th_cannot_state: 'Kunde inte läsas',
     th_cannot_head: 'Copilot kunde inte läsa den här klausulen.',
     th_cannot_say: 'HaTi visar hellre ingenting än en läsning den inte kan placera på den här texten. Tryck på Klarspråk för att fråga igen.',
+    /* VARFÖR DEN INTE KUNDE (6 okt 2026). th_cannot_say och th_plain_all_* är
+       VILANDE: skälet ersatte den enda meningen, och "Alla N klausuler" är
+       borta — Klarspråk läser en klausul i taget, bara. */
+    th_cannot_empty: 'Copilot svarade utan en läsning av den. Tryck på Klarspråk för att fråga igen.',
+    th_cannot_noai: 'Copilot är inte anslutet. En administratör ansluter det i Inställningar.',
+    th_cannot_limit: 'Copilot har nått sin gräns för stunden. Tryck på Klarspråk igen om en liten stund.',
+    th_cannot_failed: 'Copilot svarade inte: anslutningen eller leverantören misslyckades. Tryck på Klarspråk för att fråga igen.',
     th_clauses: 'Klausuler',
     th_door_title: 'Varje klausul, dess klarspråk och det som är värt en titt, över formuläret och länkarna',
     th_close: 'Tillbaka till Formulär och länkar',

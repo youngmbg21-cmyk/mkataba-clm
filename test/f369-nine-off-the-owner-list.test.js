@@ -217,7 +217,7 @@ describe('f369 (9) As agreed and With changes are gone', () => {
 /* ============================================================================
    6 · THE WHOLE CONTRACT IS TRANSLATED — driven against the real route
    ==========================================================================*/
-describe('f369 (6) Plain English reads every clause', () => {
+describe('f369 (6) Plain English reads any clause, one at a time', () => {
   let h, ai, W;
   const CL = [
     { num: '48.2', heading: '48.2 Completion of performance of Project Phase.', text: 'The performance of Project Phase shall be deemed to have been completed upon Supplier’s written notification.', kind: 'clause' },
@@ -237,54 +237,45 @@ describe('f369 (6) Plain English reads every clause', () => {
   });
   after(async () => { await h.stop(); await ai.stop(); });
 
+  /* RE-POINTED 6 Oct 2026 (Young: "the translation is supposed to be one
+     clause at a time only"): each press names ONE clause. A tidied echo
+     cannot fail a one-clause answer, a skipped clause is the one asked again,
+     and a reading lands on the clause asked and nowhere else. */
+  const ask = (id, k) => W.admin.json('/api/ai/readings', { method: 'POST', body: { id, clauses: CL, only: [k] } });
   test('an echo the model tidied — straight quotes, a space for a tab, a shortened lead-in — still pairs', async () => {
-    ai.script(tu({ readings: [
-      { key: 'R0', heading: '48.2 Completion of performance of Project Phase', plain: 'The project phase is finished when the supplier says so in writing.' },
-      { key: 'R1', heading: '48.3 Testing Phase', plain: '' },
-      { key: 'R2', heading: 'Scope of testing', plain: 'First the services are tested.' },
-      { key: 'R3', heading: '48.3.2 "Acceptance Test" criteria', plain: 'The test follows the plan.' },
-    ] }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F368-1', clauses: CL } });
-    assert.deepEqual(out.readings.items.map(x => x.i), [0, 1, 2, 3], 'every clause is read');
-    assert.equal(out.readings.unmatched, 0);
-    assert.equal(out.readings.partial, false);
-    const c = await W.admin.json('/api/contracts/MK-F368-1');
-    assert.equal(c._readings && c._readings.items.length, 4, 'and the whole edition is kept');
+    ai.script(tu({ readings: [{ key: 'R0', heading: '48.3.2 "Acceptance Test" criteria', plain: 'The test follows the plan.' }] }),
+      tu({ readings: [{ key: 'R0', heading: 'Scope of testing', plain: 'First the services are tested.' }] }));
+    const a = await ask('MK-F368-1', 3);
+    assert.deepEqual(a.readings.items.map(x => x.i), [3]);
+    const b = await ask('MK-F368-1', 2);
+    assert.deepEqual(b.readings.items.map(x => x.i).sort(), [2, 3], 'both read, each on its own clause');
+    assert.equal(b.readings.unmatched, 0);
   });
 
   test('a clause the model skipped is asked for again by itself, and lands', async () => {
     ai.script(
-      tu({ readings: [
-        { key: 'R0', heading: CL[0].heading, plain: 'Done when the supplier says so.' },
-        { key: 'R1', heading: CL[1].heading, plain: '' },
-        { key: 'R3', heading: CL[3].heading, plain: 'The test follows the plan.' },
-      ] }),
+      tu({ readings: [] }),
       body => {
         const p = body.messages[0].content;
-        assert.ok(/\[R0\] CLAUSE 48\.3\.1/.test(p), 'the second ask carries only the missing clause, under a fresh key');
-        assert.ok(!/48\.2 Completion/.test(p.slice(p.indexOf('THE CONTRACT:'))), 'and nothing already read');
+        assert.ok(/\[R0\] CLAUSE 48\.3\.1/.test(p), 'the second ask carries the clause again');
+        assert.ok(!/48\.2 Completion/.test(p.slice(p.indexOf('THE CONTRACT:'))), 'and nothing else');
         return tu({ readings: [{ key: 'R0', heading: CL[2].heading, plain: 'First the services are tested.' }] });
       });
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F368-2', clauses: CL } });
-    assert.deepEqual(out.readings.items.map(x => x.i), [0, 1, 2, 3]);
+    const out = await ask('MK-F368-2', 2);
+    assert.deepEqual(out.readings.items.map(x => x.i), [2]);
     assert.equal(out.readings.unmatched, 0);
-    assert.equal(out.readings.items.find(x => x.i === 2).heading, CL[2].heading, 'filed under its own clause');
+    assert.equal(out.readings.items[0].heading, CL[2].heading, 'filed under its own clause');
   });
 
-  test('THE WALL STANDS: an entry that names another clause is still refused, and never filed under the wrong one', async () => {
-    ai.script(tu({ readings: [
-      { key: 'R0', heading: CL[0].heading, plain: 'Done when the supplier says so.' },
-      { key: 'R1', heading: CL[1].heading, plain: '' },
-      { key: 'R2', heading: CL[3].heading, plain: 'ABOUT 48.3.2' },
-      { key: 'R3', heading: CL[3].heading, plain: 'The test follows the plan.' },
-    ] }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F368-3', clauses: CL } });
-    assert.ok(!out.readings.items.find(x => x.i === 2 && /48\.3\.2/.test(x.plain)), 'the shifted reading is not filed under 48.3.1');
-    assert.equal(out.readings.unmatched, 1, 'and the clause it left empty is counted');
+  test('THE WALL STANDS: a reading is filed on the clause asked and never on another', async () => {
+    ai.script(tu({ readings: [{ key: 'R0', heading: CL[3].heading, plain: 'ABOUT 48.3.1, echoed under the wrong heading' }] }));
+    const out = await ask('MK-F368-3', 2);
+    assert.deepEqual(out.readings.items.map(x => x.i), [2], 'only clause 48.3.1 — the one asked — carries it');
+    assert.ok(!out.readings.items.some(x => x.i === 3), 'clause 48.3.2 is never handed a reading it was not asked for');
   });
 
-  test('the judge is one function, asked of the whole list', () => {
-    assert.ok(/readEchoJudge\(r && r\.heading, list, i\) === 'shift'/.test(SERVER));
+  test('the judge is one function, asked only among a page\'s own rows, never of a page of one', () => {
+    assert.ok(/if \(!solo && readEchoJudge\(r && r\.heading, pg\.rows, k\) === 'shift'\)/.test(SERVER));
     assert.ok(/const READ_ECHO_AGREE = 0\.6;/.test(SERVER));
   });
 });

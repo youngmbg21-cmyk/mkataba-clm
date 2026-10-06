@@ -436,11 +436,6 @@ describe('f277 (6) the route', () => {
   /* Since C-6 (11 Sep 2026) an entry names its row by an OPAQUE KEY and echoes
      the row's heading; the route pairs on both. */
   const at = i => ({ key: 'R' + i, heading: CLAUSES[i].heading });
-  const ANSWER = { readings: [
-    { ...at(0), plain: 'They deliver on the dates in each order you place.' },
-    { ...at(2), plain: '' },
-    { ...at(1), plain: 'You pay within 30 days of an invoice you are not disputing.' },
-  ] };
 
   before(async () => {
     ai = await startScriptedAi();
@@ -454,54 +449,68 @@ describe('f277 (6) the route', () => {
   });
   after(async () => { await h.stop(); await ai.stop(); });
 
-  test('it reads the clauses it is given and pairs each answer by its own number', async () => {
-    /* RE-POINTED 5 Oct 2026 (Plain always answers): a clause answered EMPTY
-       is no answer — it is asked again, by itself, and lands with a reading.
-       (Until today it was KEPT empty, D-1, and answered empty for ever.) */
+  /* RE-POINTED 6 Oct 2026 (Young: "the translation is supposed to be one
+     clause at a time only" / "there should never be an option to translate
+     all clauses"): the route reads exactly ONE named clause. Every claim below
+     is asked one clause at a time; the whole-contract press is refused. */
+  const one = (k, extra) => ({ id: 'MK-PE-1', clauses: CLAUSES, only: [k], ...(extra || {}) });
+  test('a whole-contract reading is refused in words, and so is one naming two clauses', async () => {
     const before = ai.calls.length;
-    ai.script(tu(ANSWER), tu({ readings: [{ key: 'R0', heading: CLAUSES[2].heading, plain: 'The headings are labels only.' }] }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-PE-1', clauses: CLAUSES } });
-    const items = out.readings.items;
-    assert.equal(ai.calls.length - before, 2, 'the empty one was asked for again');
-    assert.equal((ai.calls[ai.calls.length - 1].raw.match(/\[R\d+\] CLAUSE/g) || []).length, 1, 'by itself');
-    assert.equal(items.length, 3, 'every clause has its entry');
-    assert.equal(items.find(x => x.i === 2).plain, 'The headings are labels only.', 'and the re-asked one carries its reading');
-    assert.equal(items[0].i, 0);
-    assert.equal(items[0].heading, '1. Supply and delivery',
-      'the heading comes from OUR list, never from the answer');
-    const two = items.find(x => x.i === 1);
-    assert.ok(two && /30 days/.test(two.plain),
-      'an answer that arrived out of order still lands on its own clause');
+    for (const body of [{ id: 'MK-PE-1', clauses: CLAUSES }, { id: 'MK-PE-1', clauses: CLAUSES, only: [0, 1] }]) {
+      const r = await W.admin.raw('/api/ai/readings', { method: 'POST', body });
+      assert.equal(r.status, 400, 'refused');
+      assert.match(r.json.error, /one clause at a time/i, 'with the reason in words');
+    }
+    assert.equal(ai.calls.length, before, 'and nothing was spent');
   });
 
-  test('an unchanged contract is paid for once', async () => {
+  test('it reads the clause it is given — an empty answer is asked again, by itself, and lands', async () => {
+    /* RE-POINTED 5 Oct 2026 (Plain always answers): a clause answered EMPTY
+       is no answer — it is asked again, by itself, and lands with a reading. */
     const before = ai.calls.length;
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-PE-1', clauses: CLAUSES } });
-    assert.equal(out.cached, true);
-    assert.equal(ai.calls.length, before, 'and nothing was spent on the second reader');
+    ai.script(tu({ readings: [{ ...at(2), plain: '' }] }),
+      tu({ readings: [{ key: 'R0', heading: CLAUSES[2].heading, plain: 'The headings are labels only.' }] }));
+    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: one(2) });
+    assert.equal(ai.calls.length - before, 2, 'the empty one was asked for again');
+    assert.equal((ai.calls[ai.calls.length - 1].raw.match(/\[R\d+\] CLAUSE/g) || []).length, 1, 'by itself');
+    const it = out.readings.items.find(x => x.i === 2);
+    assert.equal(it && it.plain, 'The headings are labels only.', 'and the re-asked one carries its reading');
+    assert.equal(it.heading, '3. Interpretation', 'the heading comes from OUR list, never from the answer');
+  });
+
+  test('ONE CLAUSE ASKED, ONE ANSWERED: a reworded heading copy still lands on the clause asked', async () => {
+    /* The owner's report (6 Oct 2026): an echo one word off lost to a short
+       heading elsewhere in the contract, and the row said "Could not read". */
+    ai.script(tu({ readings: [{ key: 'R7', heading: 'Price and Payment terms', plain: 'You pay within 30 days.' }] }));
+    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: one(1) });
+    const it = out.readings.items.find(x => x.i === 1);
+    assert.ok(it && /30 days/.test(it.plain), 'paired by being the answer to the only clause asked');
+    assert.ok(!(Number(out.readings.unmatched) > 0), 'nothing counted as unmatched');
+  });
+
+  test('a clause already read is paid for once', async () => {
+    const before = ai.calls.length;
+    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: one(1) });
+    assert.ok(out.readings.items.some(x => x.i === 1 && /30 days/.test(x.plain)), 'served from what was kept');
+    assert.equal(ai.calls.length, before, 'and nothing was spent on the second press');
   });
 
   test('moving a word re-reads it', async () => {
     ai.script(tu({ readings: [{ ...at(0), plain: 'They deliver within two days now.' }] }));
+    const before = ai.calls.length;
     const moved = CLAUSES.map((x, i) => i === 0 ? { ...x, text: x.text + ' Delivery is within two days.' } : x);
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-PE-1', clauses: moved } });
+    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-PE-1', clauses: moved, only: [0] } });
     assert.ok(!out.cached, 'a changed fingerprint is a changed reading');
+    assert.equal(ai.calls.length - before, 1, 'and it was asked');
   });
 
   test('an answer cut short is handed over and NOT kept', async () => {
-    /* RE-POINTED 23 Sep 2026: a page cut short is now asked again in two
-       halves, once — so the stand-in answers all three calls cut short, and
-       the claim is still that nothing half-finished is kept. */
     const cut = { content: tu({ readings: [{ ...at(0), plain: 'Half an answer.' }] }), stopReason: 'max_tokens' };
     ai.script(cut, cut, cut);
-    /* RE-POINTED IN PLACE (fix 6, 23 Sep 2026): every clause is now kept the
-       moment it is read and `force` no longer throws that away ("Everything
-       already read is kept"), so the two clauses read above would come out of
-       the table and nothing would be asked. The claim is about an answer cut
-       SHORT, so it is asked of wording nobody has read. */
+    /* Asked of wording nobody has read: everything already read is kept. */
     const fresh = CLAUSES.slice(0, 2).map(x => ({ ...x, text: x.text + ' As restated.' }));
     const out = await W.admin.json('/api/ai/readings', { method: 'POST',
-      body: { id: 'MK-PE-1', clauses: fresh, force: true } });
+      body: { id: 'MK-PE-1', clauses: fresh, only: [0], force: true } });
     assert.equal(out.readings.truncated, true, 'the reader is told where they are looking');
     const c = await W.admin.json('/api/contracts/MK-PE-1');
     assert.ok(!(c._readings && c._readings.truncated),
@@ -509,8 +518,7 @@ describe('f277 (6) the route', () => {
   });
 
   test('it rides the contract on the way out and is stripped on the way back', async () => {
-    ai.script(tu(ANSWER));
-    await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-PE-1', clauses: CLAUSES, force: true } });
+    await W.admin.json('/api/ai/readings', { method: 'POST', body: one(1, { force: true }) });
     const c = await W.admin.json('/api/contracts/MK-PE-1');
     assert.ok(c._readings && c._readings.items.length, 'handed back with the contract');
     await W.admin.json('/api/contracts/MK-PE-1', { method: 'PUT',
@@ -531,12 +539,12 @@ describe('f277 (6) the route', () => {
       rounds: [], versions: [], signatures: [], comments: [], searchText: 'out',
     } } });
     const r = await W.restricted.raw('/api/ai/readings', { method: 'POST',
-      body: { id: 'MK-PE-2', clauses: CLAUSES } });
+      body: { id: 'MK-PE-2', clauses: CLAUSES, only: [0] } });
     assert.equal(r.status, 404, 'out of scope reads exactly like does not exist');
   });
 
   test('nothing to read is refused in words rather than read as an empty contract', async () => {
-    const r = await W.admin.raw('/api/ai/readings', { method: 'POST', body: { id: 'MK-PE-1', clauses: [] } });
+    const r = await W.admin.raw('/api/ai/readings', { method: 'POST', body: { id: 'MK-PE-1', clauses: [], only: [0] } });
     assert.equal(r.status, 400);
     assert.match(r.json.error, /no wording/i);
   });

@@ -1,8 +1,12 @@
 # WORK ORDER — Plain reads one clause and always answers; the open clause rises to the top of the list
 
-**Status: NOT BUILT. Written 6 Oct 2026 from two owner reports over screenshots
-of the Clauses drawer (the Thread) on the Document tab. Do not build until the
-owner says go.**
+**Status: DONE (built 6 Oct 2026 on the owner's "Go, build all three parts").
+Written the same day from two owner reports over screenshots of the Clauses
+drawer (the Thread) on the Document tab. Tests: f536 (new) and
+test/chromium/thread-verify.js 1e, 8a–8e. Story in docs/MAP-HISTORY.md under
+"THE THREAD — PLAIN READS ONE CLAUSE, ONLY, AND SAYS WHY". The live server's
+log was not available to read, so the cause was confirmed by reproducing it
+(f536 (A) red at unmodified main) rather than off the owner's own records.**
 
 Three parts. Part 1 and Part 2 belong together (both are about Plain); Part 3
 stands on its own.

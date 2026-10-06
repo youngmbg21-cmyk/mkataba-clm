@@ -19,6 +19,16 @@
    against the parent commit the same script produces the shifted pairing,
    which is what proves (1) is a net rather than a description.
 
+   ---- RE-POINTED 6 Oct 2026 (Young: "the translation is supposed to be one
+   clause at a time only") ----
+   The route now reads exactly ONE named clause per press, so a page holds one
+   row and cannot be misfiled: whatever comes back is the answer to that
+   clause, and it lands there and NOWHERE ELSE — which is the wall these claims
+   always stood for. The whole-page shift, quarter-misfiled and partial
+   claims are RETIRED IN PLACE (a page of several rows is no longer asked);
+   (R) proves the judge that guarded them now asks only among a page's own
+   rows, and is not asked at all of a page of one.
+
    Run: node --test test/f300-readings-pair-on-the-heading.test.js */
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -46,192 +56,73 @@ const right = k => ({ i: k, key: 'R' + k, heading: CLAUSES[k].heading, plain: PL
    k's heading and translates row k's wording — arrives under row k+1's key. */
 const shifted = k => ({ i: k + 1, key: 'R' + (k + 1), heading: CLAUSES[k].heading, plain: PLAIN[k] });
 
-describe('f300 the readings pair on the heading, never on a number a clause could carry', () => {
-  let h, ai, W;
-  const put = (id, extra = {}) => W.admin.json('/api/contracts/' + id, { method: 'PUT', body: { baseVersion: 0, contract: {
-    id, name: 'Packaging Supply Agreement', counterparty: 'Nordkust', folder: FOLDER_A,
-    status: 'Draft', redlineText: '<h1>Packaging Supply Agreement</h1><h2>1. Scope of Supply</h2><p>The Supplier shall manufacture.</p>',
-    fields: {}, obligations: [], audit: [], rounds: [], versions: [], signatures: [], comments: [], searchText: 'packaging',
-    ...extra,
-  } } });
+const fs = require('node:fs');
+const path = require('node:path');
+const SERVER = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
 
-  before(async () => {
-    ai = await startScriptedAi();
-    h = await startHati({ ANTHROPIC_BASE_URL: ai.base });
-    W = await seedWorkspace(h, { contracts: [] });
-    await put('MK-F300-1');
-    await put('MK-F300-2');
-    await put('MK-F300-3');
-    await put('MK-F300-4');
-    await put('MK-F300-5');
-  });
-  after(async () => { await h.stop(); await ai.stop(); });
-
-  test('(1) THE OBSERVED FAULT: keys one row high draw nothing under the wrong clause, are counted, refused whole, and cached nowhere', async () => {
-    ai.script(tu({ readings: CLAUSES.map((_, k) => shifted(k)) }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-1', clauses: CLAUSES } });
-    const items = out.readings.items;
-    /* Against the parent this is where it fails: items[0] is {i:1, plain about
-       clause 1} — clause 1's reading stamped with "2. Price & Contract Value". */
-    const wrong = items.find(x => x.i === 1 && /about clause 1/.test(x.plain));
-    assert.equal(wrong, undefined, 'clause 1’s reading is never filed under clause 2');
-    assert.equal(items.length, 0, 'nothing in a wholly shifted answer can be paired');
-    assert.equal(out.readings.unmatched, 4, 'every entry that failed is counted — the three whose echo disagreed and the one out of range');
-    assert.equal(out.readings.partial, true, 'and the answer is handed over as partial');
-    const c = await W.admin.json('/api/contracts/MK-F300-1');
-    assert.ok(!c._readings, 'NOTHING was written to clause_readings — a misfiled reading served for the life of the wording is the worst outcome');
-  });
-
-  test('(1b) what the route sent carries the opaque key inside the hashed text, so every stale pairing is re-asked by construction', () => {
-    const call = ai.calls[ai.calls.length - 1];
-    const prompt = call.body.messages[0].content;
-    assert.ok(/\[R0\] SECTION|\[R0\] CLAUSE/.test(prompt), 'rows are addressed R0 … Rn-1');
-    assert.ok(/\[R3\] CLAUSE/.test(prompt));
-    assert.ok(!/\n\[0\] /.test(prompt) && !/^\[0\] /m.test(prompt), 'and never by a bare integer a clause number could be mistaken for');
-    assert.ok(/The key in brackets is the row's address for your answer\. It is not the clause number, which is part of the heading and is the contract's own\./.test(prompt),
-      'the prompt says it once, plainly');
-    const tool = call.body.tools[0];
-    assert.equal(tool.input_schema.properties.readings.items.properties.key.type, 'string');
-    assert.equal(tool.input_schema.properties.readings.items.properties.i, undefined, 'the integer field is gone');
-    assert.deepEqual(tool.input_schema.properties.readings.items.required, ['key', 'heading', 'plain']);
-  });
-
-  /* RE-POINTED IN PLACE (Young, the third report, 23 Sep 2026: "Hati is still
-     not translating the entire contract to plain english"). This claim used
-     to refuse an echo that named NO heading on the page, and that refusal —
-     repeated across a Word contract whose headings the model tidied as it
-     copied them — is what threw away 56 clauses. The echo now guards against
-     a SHIFT only: an echo that describes another row on the page is refused
-     (2b, 6b); one that describes no row is taken on its key, which is HaTi's
-     own address. The case that still drops a row is the shift, below. */
-  test('(2) right keys with one wrong echoed heading: that row is dropped and counted, the rest pair, and the reading is kept', async () => {
-    ai.script(tu({ readings: [right(0), right(1), { ...right(2), heading: CLAUSES[3].heading }, right(3)] }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-2', clauses: CLAUSES } });
-    const items = out.readings.items;
-    assert.deepEqual(items.map(x => x.i).sort(), [0, 1, 3], 'three paired, the mismatched one gone');
-    assert.ok(!items.find(x => x.i === 2), 'an echo that names a different heading pairs with nothing');
-    assert.equal(items.find(x => x.i === 3).heading, '4. Term', 'the heading STORED is still our own list’s');
-    assert.equal(out.readings.unmatched, 1);
-    assert.equal(out.readings.partial, false, 'one of four is exactly a quarter, and a quarter is not MORE than a quarter');
-    const c = await W.admin.json('/api/contracts/MK-F300-2');
-    assert.equal(c._readings && c._readings.items.length, 3, 'a reading below the line is cached, with its count');
-    assert.equal(c._readings.unmatched, 1, 'and the count rides with it, so the column can still say so');
-  });
-
-  test('(2b) more than a quarter — two of four — is refused whole: the pairs that held are handed over, nothing is kept', async () => {
-    ai.script(tu({ readings: [right(0), right(1), shifted(2), shifted(3)] }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-3', clauses: CLAUSES } });
-    assert.deepEqual(out.readings.items.map(x => x.i), [0, 1], 'what could be paired still comes back');
-    assert.equal(out.readings.unmatched, 2);
-    assert.equal(out.readings.partial, true);
-    const c = await W.admin.json('/api/contracts/MK-F300-3');
-    assert.ok(!c._readings, 'and the table stays empty');
-  });
-
-  test('(3) the echo is compared after the browser’s own folding — case and whitespace do not fail a row', async () => {
-    ai.script(tu({ readings: [
-      { ...right(0), heading: '  1.   scope OF supply ' },
-      { ...right(1), heading: CLAUSES[1].heading.toUpperCase() },
-      right(2), right(3),
-    ] }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-4', clauses: CLAUSES } });
-    assert.deepEqual(out.readings.items.map(x => x.i).sort(), [0, 1, 2, 3]);
-    assert.equal(out.readings.unmatched, 0);
-    assert.equal(out.readings.partial, false);
-  });
-
-  test('(4) a row with no heading pairs on its key plus the first eight words of its wording echoed', async () => {
-    const bare = [
-      { heading: '', text: 'The Supplier shall deliver each consignment to the plant named in the order, carriage paid.' },
-      { heading: '', text: 'The Buyer shall inspect each consignment within three days of its arrival at the plant.' },
-    ];
-    ai.script(tu({ readings: [
-      { i: 0, key: 'R0', heading: 'The Supplier shall deliver each consignment to the', plain: 'The supplier brings each delivery to the plant.' },
-      { i: 1, key: 'R1', heading: 'The Buyer shall inspect each consignment within three days', plain: 'You have three days to check each delivery.' },
-    ] }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-4', clauses: bare, force: true } });
-    /* RE-POINTED IN PLACE (23 Sep 2026): the echo is a sense check now, not
-       a spelling test, so an echo that runs one word past the eight it was
-       asked for still names its own row and pairs. */
-    assert.deepEqual(out.readings.items.map(x => x.i), [0, 1], 'eight words pair, and so does an echo that runs one word on');
-    assert.equal(out.readings.unmatched, 0);
-  });
-
-  test('(5) a key that is not exactly R<n> — the clause number itself, a bare integer, a stray word — resolves to nothing', async () => {
-    ai.script(tu({ readings: [
-      { i: 0, key: '1', heading: CLAUSES[0].heading, plain: PLAIN[0] },
-      { i: 1, key: 1, heading: CLAUSES[1].heading, plain: PLAIN[1] },
-      { i: 2, key: 'row R2', heading: CLAUSES[2].heading, plain: PLAIN[2] },
-      { i: 3, key: 'R3', heading: CLAUSES[3].heading, plain: PLAIN[3] },
-    ] }));
-    /* RE-POINTED IN PLACE (fix 6, 23 Sep 2026): every clause is now KEPT the
-       moment it is read, and `force` no longer throws that away — "Everything
-       already read is kept" is the owner's own ruling. MK-F300-4's four were
-       read in (3), so this claim, which is about KEYS, is asked on a contract
-       nobody has read. */
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-5', clauses: CLAUSES, force: true } });
-    assert.deepEqual(out.readings.items.map(x => x.i), [3]);
-    assert.equal(out.readings.unmatched, 3);
-    assert.equal(out.readings.partial, true);
-  });
-});
-
-/* ---------------------------------------------------------------------------
-   D-2c (11 Sep 2026) — A LABEL THE ROUTE ITSELF WROTE DOES NOT COUNT AGAINST
-   THE MODEL, AND A REFUSED PAIRING SAYS WHY
-   The doc line read `[R0] SECTION 1. Purpose` while the prompt said "copied
-   exactly as it was given after the key": a model that took that literally
-   echoed `SECTION 1. Purpose` and failed EVERY row on a contract whose rows
-   are all headings — an executed template contract ("8 clauses could not be
-   matched"). The heading is on its own `heading:` line now, the comparison
-   folds the label on both sides, and each refused entry is NAMED.
-   --------------------------------------------------------------------------- */
-describe('f300 (6) the row label is folded, and a refusal is named', () => {
+describe('f300 one clause asked, one clause answered — and never filed under another', () => {
   let h, ai, W;
   const put = id => W.admin.json('/api/contracts/' + id, { method: 'PUT', body: { baseVersion: 0, contract: {
     id, name: 'Packaging Supply Agreement', counterparty: 'Nordkust', folder: FOLDER_A,
     status: 'Draft', redlineText: '<h1>Packaging Supply Agreement</h1><h2>1. Scope of Supply</h2><p>The Supplier shall manufacture.</p>',
     fields: {}, obligations: [], audit: [], rounds: [], versions: [], signatures: [], comments: [], searchText: 'packaging',
   } } });
+  const ask = (id, k, extra) => W.admin.json('/api/ai/readings', { method: 'POST', body: { id, clauses: CLAUSES, only: [k], ...(extra || {}) } });
+
   before(async () => {
     ai = await startScriptedAi();
     h = await startHati({ ANTHROPIC_BASE_URL: ai.base });
     W = await seedWorkspace(h, { contracts: [] });
-    await put('MK-F300-6'); await put('MK-F300-7'); await put('MK-F300-8');
+    for (const id of ['MK-F300-1', 'MK-F300-2', 'MK-F300-5', 'MK-F300-8']) await put(id);
   });
   after(async () => { await h.stop(); await ai.stop(); });
 
-  test('(6) an echo carrying the row label — SECTION, CLAUSE 1.1 —, heading: — still pairs', async () => {
-    ai.script(tu({ readings: [
-      { ...right(0), heading: 'SECTION ' + CLAUSES[0].heading },
-      { ...right(1), heading: 'CLAUSE 2 — ' + CLAUSES[1].heading },
-      { ...right(2), heading: 'heading: ' + CLAUSES[2].heading },
-      right(3),
-    ] }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-6', clauses: CLAUSES } });
-    assert.deepEqual(out.readings.items.map(x => x.i).sort(), [0, 1, 2, 3], 'all four pair');
-    assert.equal(out.readings.unmatched, 0);
-    assert.deepEqual(out.readings.failed, [], 'and nothing is named as refused');
+  test('(1) THE OBSERVED FAULT CANNOT LAND: an entry under the next row\'s key is the answer to the one clause asked, filed there and nowhere else', async () => {
+    ai.script(tu({ readings: [shifted(0)] }));
+    const out = await ask('MK-F300-1', 0);
+    const items = out.readings.items;
+    assert.deepEqual(items.map(x => x.i), [0], 'only the clause asked carries a reading');
+    assert.match(items[0].plain, /about clause 1/, 'and it is that clause\'s own reading');
+    assert.equal(items[0].heading, CLAUSES[0].heading, 'drawn under OUR heading');
   });
 
-  test('(6b) the wall stands: a shifted echo still fails, and the refusal names the key, the echo and what was wanted', async () => {
-    ai.script(tu({ readings: [right(0), right(1), shifted(2), shifted(3)] }));
-    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-7', clauses: CLAUSES } });
-    assert.equal(out.readings.partial, true);
-    assert.equal(out.readings.failed.length, 2);
-    const f = out.readings.failed.find(x => x.key === 'R3');
-    assert.ok(f, 'the refused entry is named by its key');
-    assert.equal(f.echo, CLAUSES[2].heading, 'what the model echoed');
-    assert.equal(f.want, CLAUSES[3].heading, 'and what the row it named actually carries');
-    const c = await W.admin.json('/api/contracts/MK-F300-7');
-    assert.ok(!c._readings, 'a partial answer is still cached nowhere');
+  test('(1b) one row is sent, addressed by an opaque key inside the hashed text', () => {
+    const call = ai.calls[ai.calls.length - 1];
+    const prompt = call.body.messages[0].content;
+    assert.equal((prompt.match(/\[R\d+\] (?:CLAUSE|SECTION)/g) || []).length, 1, 'one clause, by itself');
+    assert.ok(/\[R0\] CLAUSE/.test(prompt), 'addressed R0');
+    assert.ok(!/\n\[0\] /.test(prompt) && !/^\[0\] /m.test(prompt), 'never by a bare integer a clause number could be mistaken for');
+    assert.ok(/The key in brackets is the row's address for your answer\. It is not the clause number, which is part of the heading and is the contract's own\./.test(prompt));
+    const tool = call.body.tools[0];
+    assert.equal(tool.input_schema.properties.readings.items.properties.i, undefined, 'the integer field is gone');
+    assert.deepEqual(tool.input_schema.properties.readings.items.required, ['key', 'heading', 'plain']);
+  });
+
+  test('(2) THE OWNER\'S REPORT, 6 Oct 2026: an echo one word off is not thrown away for a short heading elsewhere', async () => {
+    const SHORT = [...CLAUSES, { heading: '5. Approvals', text: 'Approvals are given in writing.' }];
+    ai.script(tu({ readings: [{ key: 'R0', heading: '3. Approval and Media', plain: PLAIN[2] }] }));
+    const out = await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-2', clauses: SHORT, only: [2] } });
+    assert.deepEqual(out.readings.items.map(x => x.i), [2], 'it lands on clause 3, the one asked');
+    assert.ok(!(Number(out.readings.unmatched) > 0), 'nothing refused');
+  });
+
+  test('(5) REVERSED: on a one-clause page the key is not what pairs it — even the clause number lands on the clause asked', async () => {
+    ai.script(tu({ readings: [{ key: '3', heading: CLAUSES[2].heading, plain: PLAIN[2] }] }));
+    const out = await ask('MK-F300-5', 2);
+    assert.deepEqual(out.readings.items.map(x => x.i), [2]);
   });
 
   test('(6c) the heading the model is asked to copy sits on its own line, so "copy it" has one reading', async () => {
-    ai.script(tu({ readings: [right(0), right(1), right(2), right(3)] }));
-    await W.admin.json('/api/ai/readings', { method: 'POST', body: { id: 'MK-F300-8', clauses: CLAUSES } });
+    ai.script(tu({ readings: [right(0)] }));
+    await ask('MK-F300-8', 0);
     const sent = ai.calls[ai.calls.length - 1].body.messages[0].content;
     assert.match(String(sent), /\[R0\] CLAUSE\nheading: 1\. Scope of Supply\n/, 'the label on one line, the heading on the next');
     assert.match(sent, /the line that begins "heading:"/, 'and the rule names that line');
+  });
+
+  test('(R) RETIREMENT PROOF: the echo judge is asked only of a page of several, and only among that page\'s own rows', () => {
+    assert.match(SERVER, /const solo = pg\.rows\.length === 1;/);
+    assert.match(SERVER, /if \(!solo && readEchoJudge\(r && r\.heading, pg\.rows, k\) === 'shift'\)/);
+    assert.ok(!/readEchoJudge\(r && r\.heading, list, i\)/.test(SERVER), 'never against the whole contract');
   });
 });

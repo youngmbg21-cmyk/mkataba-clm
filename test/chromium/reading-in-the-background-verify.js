@@ -18,6 +18,13 @@
    became the Thread — one row per clause in the right column, the reading in
    the open row. Same claims, read off the rows.
 
+   RE-POINTED 6 Oct 2026 (Young: "the translation is supposed to be one clause
+   at a time only" / "there should never be an option to translate all
+   clauses"): "Explain all" is gone. The claims are now asked of ONE clause's
+   Plain press, on the held clause 61: the row says Reading… at once and only
+   that row does; leaving and coming back finds it still going with no second
+   call; when it lands that row shows its reading — one call in all.
+
    AT THE PARENT 8 of 16 are red — the report reproduced: `{"open":false}` and
    `aria-pressed false · disabled true` a moment after the press, because the
    column waited for the whole contract. The eight that pass there are the
@@ -109,12 +116,11 @@ function startProvider(){
       await page.waitForTimeout(1200);
     };
     const pressPlain = async () => {
-      const b = await page.$('#doc-thread .doc-th-row.is-open [data-th-explain-all]');
+      const b = await page.$('#doc-thread .doc-th-row.is-open [data-th-explain]');
       if (!b) return false;
       try { await b.click({ timeout: 3000 }); return true; } catch (_) { return false; }
     };
-    /* clause 61 is the one the stand-in holds back: its row is where the
-       progress is read, since a row that has its reading shows the reading */
+    /* clause 61 is the one the stand-in holds back */
     const open61 = async () => {
       await page.evaluate(() => {
         const r = [...document.querySelectorAll('#doc-thread .doc-th-row')].find(x => /^61\. Clause 61/.test((x.querySelector('.doc-th-name') || {}).textContent || ''));
@@ -129,7 +135,6 @@ function startProvider(){
       const rows = th ? [...th.querySelectorAll('.doc-th-row')] : [];
       const txt = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
       const waits = rows.filter(r => r.querySelector('.doc-th-state .is-wait'));
-      /* ON ITS OWN ROW: the wait for clause 61 sits on the row named "61. Clause 61". */
       const r61 = rows.find(r => /^61\. Clause 61/.test(txt(r.querySelector('.doc-th-name'))));
       return {
         open: !!th && !th.hidden && !!open,
@@ -138,40 +143,26 @@ function startProvider(){
         waits: waits.length,
         waitText: r61 ? txt(r61.querySelector('.doc-th-name')) + ' ' + txt(r61.querySelector('.doc-th-state')) : '',
         onRow: !!(r61 && r61.querySelector('.doc-th-state .is-wait')),
-        explain: open ? !!open.querySelector('[data-th-explain-all]') : null,
+        all: !!(th && th.querySelector('[data-th-explain-all]')),
         openText: txt(open && open.querySelector('.doc-th-plain')),
       };
-    }).catch(() => ({ open: false, head: '', notes: -1, waits: -1, waitText: '', onRow: null, explain: null, openText: '' }));
+    }).catch(() => ({ open: false, head: '', notes: -1, waits: -1, waitText: '', onRow: null, all: null, openText: '' }));
 
-    /* ===== 1. THE READING STARTS ON THE PRESS ===== */
+    /* ===== 1. THE READING STARTS ON THE PRESS — FOR THE ONE CLAUSE ===== */
     await openDocs();
+    await open61();
+    const before = await read();
+    check('1- there is no "Explain all" press anywhere in the thread', before.all === false, String(before.all));
     const pressed = await pressPlain();
-    check('1- "Explain all" could be pressed on the open row', pressed);
+    check('1-b Plain could be pressed on clause 61', pressed);
     await page.waitForTimeout(700);
     const early = await read();
-    check('1a the rows say so within a moment of the press — it does not wait for the whole contract',
-      early.open && early.waits > 0 && early.notes < N, JSON.stringify({ open: early.open, waits: early.waits, read: early.notes }));
-    check('1b and the press is not offered twice while it runs', early.explain === false,
-      `explain-all drawn ${early.explain}`);
-
-    /* ===== 2. HALF WAY THROUGH ===== */
-    let mid = early;
-    for (let k = 0; k < 20 && !(mid.notes >= 70); k++) { await page.waitForTimeout(400); mid = await read(); }
-    await open61();
-    mid = await read();
-    await page.screenshot({ path: path.join(OUT, '02-half-way.png') }).catch(() => {});
-    check('2a a row still to come, opened, says how far it has got', /Reading 70 of 130/i.test(mid.head), mid.head.slice(0, 80));
-    check('2b seventy rows say Read', mid.notes === 70, mid.notes);
-    check('2c and a quiet "Reading…" on each of the sixty still to come', mid.waits === 60, mid.waits);
-    check('2d the "Reading…" for clause 61 is on the row that carries its number', /^61\. Clause 61 .*Reading/.test(mid.waitText), mid.waitText);
-    check('2e and on no other row\'s', mid.onRow === true, String(mid.onRow));
-    await page.evaluate(() => {
-      const h = [...document.querySelectorAll('#doc-canvas h2')].find(x => /^59\. Clause 59/.test(x.textContent.trim()));
-      const sc = document.getElementById('doc-scroll');
-      if (h && sc) sc.scrollTop += h.getBoundingClientRect().top - sc.getBoundingClientRect().top - 40;
-    }).catch(() => {});
-    await page.waitForTimeout(500);
-    await page.screenshot({ path: path.join(OUT, '02b-still-to-come.png') }).catch(() => {});
+    await page.screenshot({ path: path.join(OUT, '01-reading.png') }).catch(() => {});
+    check('1a its row says Reading… within a moment of the press', early.open && /Reading/.test(early.head) && early.onRow === true,
+      JSON.stringify({ head: early.head, onRow: early.onRow }));
+    check('1b and ONLY that row does — no other clause is being read', early.waits === 1, early.waits);
+    check('1c one call, carrying one clause', prov.calls.length === 1
+      && ([...String(prov.calls[0].messages[0].content).matchAll(/\[R\d+\] CLAUSE/g)].length === 1), prov.calls.length + ' call(s)');
 
     /* ===== 3. LEAVE, COME BACK, AND IT IS STILL GOING ===== */
     await page.evaluate(() => setView('register')).catch(() => {});
@@ -180,23 +171,23 @@ function startProvider(){
     await openDocs();
     const back = await read();
     check('3- coming back, the thread is up with the paper (no mode to land on)', back.open, JSON.stringify({ open: back.open }));
-    await page.waitForTimeout(2200);
+    await page.waitForTimeout(1200);
     await open61();
     const joined = await read();
-    check('3a and clause 61\'s row shows the reading still going, with no second press', joined.open && /Reading 70 of 130/i.test(joined.head),
-      joined.head.slice(0, 80));
+    check('3a and clause 61\'s row shows the reading still going, with no second press', joined.open && /Reading/.test(joined.head) && joined.onRow === true,
+      joined.head.slice(0, 80) + ' · ' + joined.waitText);
     check('3b and the provider was not asked again', prov.calls.length === callsBefore,
       `${prov.calls.length - callsBefore} new call(s), ${posts - postsBefore} press(es) sent`);
 
-    /* ===== 4. IT FINISHES WHOLE ===== */
+    /* ===== 4. IT LANDS ===== */
     prov.release();
     let end = joined;
-    for (let k = 0; k < 25 && !(end.notes >= N); k++) { await page.waitForTimeout(400); end = await read(); }
-    await page.screenshot({ path: path.join(OUT, '04-whole.png') }).catch(() => {});
-    check('4a every row says Read', end.notes === N, end.notes);
+    for (let k = 0; k < 25 && !(end.notes >= 1 && !end.waits); k++) { await page.waitForTimeout(400); end = await read(); }
+    await page.screenshot({ path: path.join(OUT, '04-landed.png') }).catch(() => {});
+    check('4a clause 61\'s row says Read, and only it', end.notes === 1 && /Read/.test(end.waitText), end.notes + ' · ' + end.waitText);
     check('4b no "Reading…" is left', end.waits === 0, end.waits);
-    check('4c and clause 61\'s row no longer says it is reading — it shows its reading', end.head === '' && /Clause 61 asks for care/.test(end.openText || ''), (end.head || end.openText || '').slice(0, 80));
-    check('4d three pages were read in all, for one press', prov.calls.length === 3, prov.calls.length);
+    check('4c and the open row shows its reading', end.head === '' && /Clause 61 asks for care/.test(end.openText || ''), (end.head || end.openText || '').slice(0, 80));
+    check('4d one call in all, for one press', prov.calls.length === 1, prov.calls.length);
   } catch (e) {
     check('the run completed', false, e && e.message);
   } finally {

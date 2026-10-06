@@ -11666,6 +11666,16 @@ function docDutyPaperPaint(on){
   }
   return marks;
 }
+/* WHY A PRESS GOT NO READING, in one word the Thread turns into a sentence:
+   'noai' (Copilot is not connected), 'limit' (a spending or rate limit
+   answered), 'failed' (the provider or the connection failed), 'empty'
+   (Copilot answered, with no reading for the clause). */
+function docReadWhyOf(err){
+  if(!err) return 'empty';
+  if(Number(err.status)===429||err.spendLimit||err.dailyLimit||err.allowanceExhausted) return 'limit';
+  if(err.needsKey) return 'noai';
+  return 'failed';
+}
 async function docReadRun(c,opts){
   const id=c&&c.id;
   if(id==null) return false;
@@ -11679,6 +11689,9 @@ async function docReadRun(c,opts){
      it — the clause it wants is not in the run it would join — and a press
      for the whole joins a whole already running, as before. */
   const only=(opts&&Array.isArray(opts.only))?opts.only.filter(Number.isInteger):null;
+  /* ONE CLAUSE, ONLY (Young, 6 Oct 2026): a press that names no clause, or
+     more than one, is not a reading HaTi makes — the route refuses it too. */
+  if(!only||only.length!==1) return false;
   if(busy){
     if(!only&&!busy.only) return busy.promise;
     try{ await busy.promise; }catch(_){}
@@ -11691,6 +11704,12 @@ async function docReadRun(c,opts){
      can be repainted while it is in flight and a signature read afterwards
      would claim a reading of wording nobody read. */
   const sig=docReadSig(c);
+  /* WHAT THIS PRESS DID, for the row that asked (6 Oct 2026): `out.asked` is
+     raised only here, where the press really goes to the route, and `out.why`
+     names a refusal or failure — so the Thread marks a row "Could not read"
+     only after a real ask, and says why. */
+  const out=(opts&&opts.out&&typeof opts.out==='object')?opts.out:null;
+  if(out){ out.asked=true; out.why=''; }
   const job={ run:docReadRunName(), got:new Map(), from:0, total:clauses.length, prev:c._readings, only };
   _docReadJobs.set(id,job);
   _docThreadOnly=only?new Set(only):null;
@@ -11748,6 +11767,9 @@ async function docReadRun(c,opts){
       }
       /* Nothing arrived: whatever the column held before the press is put back. */
       if(job.prev) c._readings=job.prev; else delete c._readings;
+      /* A ROW THAT ASKED SAYS WHY ON ITSELF — the place the reader is looking —
+         so the pop-up stands down for it (the pop-up diet). */
+      if(out){ out.why=docReadWhyOf(err); return false; }
       if(err) toast((err&&err.message)||i18t('ct_read_failed'),'err');
       else toast(i18t('ct_read_nothing_back'),'warn');
       return false;
@@ -12696,20 +12718,26 @@ function docThreadPlain(c, sheet){
    that still have no reading are marked, for this sitting and this walk of
    the paper, and each says so on its row with Plain to ask again. A row
    that has its reading is never marked. */
+/* The marks are a Map row → why ('empty' · 'noai' · 'limit' · 'failed'), so
+   `.has(i)` still asks "is it marked" and docThreadCannotWhy asks why. */
 function docThreadCannotOf(c){
   const card=document.getElementById('doc-thread');
   const rec=_docThreadCannot.get(String(c&&c.id));
-  return (rec&&card&&rec.sig===card.getAttribute('data-th-sig')) ? rec.set : new Set();
+  return (rec&&card&&rec.sig===card.getAttribute('data-th-sig')) ? rec.set : new Map();
 }
-function docThreadCannotMark(c, idxs){
+const DOC_THREAD_WHY = { empty:'th_cannot_empty', noai:'th_cannot_noai', limit:'th_cannot_limit', failed:'th_cannot_failed' };
+function docThreadCannotWhy(c, i){
+  return DOC_THREAD_WHY[docThreadCannotOf(c).get(i)] || DOC_THREAD_WHY.empty;
+}
+function docThreadCannotMark(c, idxs, why){
   const cache=_docThreadCache, card=document.getElementById('doc-thread');
   if(!c||!card||!cache||cache.id!==String(c.id)||docReadRunning(c)) return;
   const sig=card.getAttribute('data-th-sig')||'';
   let rec=_docThreadCannot.get(cache.id);
-  if(!rec||rec.sig!==sig){ rec={ sig, set:new Set() }; _docThreadCannot.set(cache.id,rec); }
+  if(!rec||rec.sig!==sig){ rec={ sig, set:new Map() }; _docThreadCannot.set(cache.id,rec); }
   (idxs||[]).forEach(i=>{
     const x=cache.rows[i]; if(!x||docThreadIsSec(x)) return;
-    if(cache.plain.has(x.el)) rec.set.delete(i); else rec.set.add(i);
+    if(cache.plain.has(x.el)) rec.set.delete(i); else rec.set.set(i, why||'empty');
   });
 }
 /* PANEL VOICE (Young, 6 Oct 2026, reversing 11 Sep's "make the font in the
@@ -12834,18 +12862,17 @@ function docThreadProgress(c){
    where the server says Copilot is not connected the press is greyed and says
    why on its own hover, never a passing pop-up after a dead press. */
 const docThreadNoAi = () => typeof API_MODE==='function'&&API_MODE()&&typeof state!=='undefined'&&state&&state.aiConfigured===false;
-/* PLAIN, AND ALL N CLAUSES IN PLAIN ENGLISH (Young, 5 Oct 2026) — the one
-   press that turns this clause into plain English, its cost beside it, and
-   the same route for every clause. */
+/* PLAIN (Young, 5 Oct 2026) — the one press that turns THIS clause into
+   plain English, its cost beside it. ONE CLAUSE AT A TIME, ONLY (Young, 6 Oct
+   2026: "there should never be an option to translate all clauses"): the
+   "All N clauses in plain English" press is gone (`th_plain_all*` inert) and
+   the route refuses a reading that does not name exactly one clause. */
 function docThreadExplainHtml(c,rows,i){
   const dead=docThreadNoAi();
-  const n=rows.filter(x=>!docThreadIsSec(x)).length;
   return `<div class="doc-th-ask">
     <button type="button" class="ui-btn" data-th-explain="${i}"${dead?' disabled aria-disabled="true"':''}
       title="${esc(i18t(dead?'th_no_ai':'th_plain_title'))}">${esc(i18t('th_plain'))}</button>
     <span class="doc-th-cost">${esc(i18t('th_cost'))}</span>
-    <button type="button" class="ui-btn ui-btn-plain doc-th-all" data-th-explain-all${dead?' disabled aria-disabled="true"':''}
-      title="${esc(i18t(dead?'th_no_ai':'th_plain_all_title'))}">${esc(i18tn('th_plain_all',n,{n}))}</button>
   </div>`;
 }
 /* A MISSING MEMORY IS "WE DO NOT KNOW", NEVER "IT MOVED" (22 Sep 2026):
@@ -12896,7 +12923,7 @@ function docThreadBodyHtml(c,rows,i,plain,sheet){
     parts.push(`<div class="doc-th-wait">${esc(docThreadProgress(c))}</div>`);
   } else {
     if(docThreadCannotOf(c).has(i))
-      parts.push(`<p class="doc-th-cannot"><b>${esc(i18t('th_cannot_head'))}</b> ${esc(i18t('th_cannot_say'))}</p>`);
+      parts.push(`<p class="doc-th-cannot"><b>${esc(i18t('th_cannot_head'))}</b> ${esc(i18t(docThreadCannotWhy(c,i)))}</p>`);
     parts.push(docThreadExplainHtml(c,rows,i));
   }
   /* WORTH A LOOK — the one light-red area (Young ruled 25 Sep 2026), only
@@ -12942,13 +12969,21 @@ function docThreadFill(c,rows,i,opts){
   if(i===_docThreadRevealed&&!o.reveal) return;
   _docThreadRevealed=i;
   const instant=!!o.instant||docThreadReduce();
+  /* ---- THE OPEN CLAUSE RISES TO THE TOP OF THE LIST (Young, 6 Oct 2026:
+     "when i click on the next topic, it should go to the top pushing all the
+     ones before it up the scroll so it is then the first one") ----
+     It used to move only when the row was out of sight, so › walked the open
+     row down the drawer and its reading opened below the fold. Now every
+     CHANGE of open row glides the list until that row's head is the first
+     thing under the drawer's head; a row near the end goes as high as the
+     list allows (scrollTo clamps; nothing is padded to fake it). A reading
+     landing in the same row still moves nothing (`_docThreadRevealed`). */
   setTimeout(()=>{
     try{
-      const top=r.offsetTop;
-      if(top<box.scrollTop+4||top>box.scrollTop+box.clientHeight-120){
-        const to=Math.max(0,top-40);
-        if(instant) box.scrollTop=to; else box.scrollTo({top:to,behavior:'smooth'});
-      }
+      const pad=parseFloat(getComputedStyle(box).paddingTop)||0;
+      const to=Math.max(0,Math.round(box.scrollTop+r.getBoundingClientRect().top-box.getBoundingClientRect().top-pad));
+      if(Math.abs(to-box.scrollTop)<1) return;
+      if(instant) box.scrollTop=to; else box.scrollTo({top:to,behavior:'smooth'});
     }catch(_){}
   }, instant?0:260);
 }
@@ -13074,26 +13109,14 @@ function docThreadWire(c){
         if(ex.disabled) return;
         ex.disabled=true;
         const i=Number(ex.getAttribute('data-th-explain'));
-        try{ await docReadRun(cur,{only:[i],force:ex.hasAttribute('data-th-force')}); }
+        /* A row is marked only after a press that REALLY ASKED (`out.asked`),
+           and with the reason the press came back with (`out.why`). */
+        const out={ asked:false, why:'' };
+        try{ await docReadRun(cur,{only:[i],force:ex.hasAttribute('data-th-force'),out}); }
         finally{
           ex.disabled=false;
           const now=docThreadCur(cur);
-          if(docReadWatching(now.id)){ docThreadCannotMark(now,[i]); docThreadPaint(now); }
-        }
-        return;
-      }
-      const all=t.closest('[data-th-explain-all]');
-      if(all){
-        if(all.disabled) return;
-        all.disabled=true;
-        try{ await docReadRun(cur,{}); }
-        finally{
-          all.disabled=false;
-          const now=docThreadCur(cur);
-          if(docReadWatching(now.id)){
-            docThreadCannotMark(now,((_docThreadCache&&_docThreadCache.rows)||[]).map((_,k)=>k));
-            docThreadPaint(now);
-          }
+          if(docReadWatching(now.id)){ if(out.asked) docThreadCannotMark(now,[i],out.why||'empty'); docThreadPaint(now); }
         }
         return;
       }
@@ -16217,7 +16240,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
   /* the Drawer, the colour filter and Plain (Young, 5 Oct 2026) */
   docPanelHas,docThreadLanding,docThreadShowsClauses,docThreadDrawerShowing,docThreadDrawerSet,docThreadPlace,docThreadPlacePut,
   docThreadPanelMoved,docThreadShown,docThreadVisible,docThreadNearest,docThreadFilterSet,docThreadTopHtml,docThreadDoorPaint,
-  docThreadCannotOf,docThreadCannotMark,docThreadIsSec,DOC_THREAD_TONE_KEYS,
+  docThreadCannotOf,docThreadCannotMark,docThreadCannotWhy,docReadWhyOf,docThreadIsSec,DOC_THREAD_TONE_KEYS,
   DOC_XRAY_QUOTE_MIN,docXrayPlace,docXrayMarks,docXrayTone,docXrayClauseId,docXrayRows,
   riskViewOpen,XR_GRADES,XR_SEV_GRADE,docXrayBriefWatch,docXrayBriefOdd,docXrayRowText,docXrayWide,docXrayMarkHtml,
   XR_WD_MAX,XR_WD_WORDS,XR_WD_SIDES,XR_WD_CHIPS,XR_WD_BAL,XR_MODAL_RE,XR_RIGHT_RE,XR_LIMIT_RE,XR_BOTH_RE,xrSentences,xrClauseBlocks,xrPartyNames,xrSideByName,xrActOf,xrPlaceObligations,docXrayWho,docXrayWhoHtml,xrWhoChip,xrWhoTracked,

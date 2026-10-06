@@ -370,21 +370,28 @@ const drive = async (page, fn, arg, fallback) => {
     check('5c and no sentence about a promise is left on the bar',
       !(put.whys || []).some(w => /promise|åtagande/i.test(w)), (put.whys || []).join(' | '));
 
-    /* NOW THE PAINT. The whole contract is explained from the open row's
-       "Explain all" (the Thread, 5 Oct 2026), and no row may then wear a
-       mark for the promise — a tone is a class on the row. */
-    ai.script(body => {
+    /* NOW THE PAINT. RE-POINTED 6 Oct 2026 (Young: "there should never be an
+       option to translate all clauses"): three clauses are read, ONE AT A
+       TIME through their own Plain, and no row may then wear a mark for the
+       promise — a tone is a class on the row. */
+    const readOne = body => {
       const txt = JSON.stringify(body).slice(0, 200000);
       const keys = [...txt.matchAll(/\[R(\d+)\]/g)].map(m => +m[1]);
       const uniq = [...new Set(keys)];
       return [{ type: 'tool_use', id: 'tu_read', name: 'clause_readings', input: {
         readings: uniq.map(k => ({ i: k, key: 'R' + k, heading: (rows[k] || {}).heading || '',
           plain: 'In plain words, this clause says what it says.' })) } }];
-    });
+    };
+    ai.script(readOne, readOne, readOne);
     await drive(page, async () => {
-      const b = document.querySelector('#doc-thread [data-th-explain-all]');
-      if (b) b.click();
-      await new Promise(r => setTimeout(r, 4200));
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const idx = Array.from(document.querySelectorAll('#doc-thread .doc-th-row[data-th-row]')).map(r => r.getAttribute('data-th-row')).slice(0, 3);
+      for (const k of idx) {
+        const go = document.querySelector('#doc-thread [data-th-go="' + k + '"]'); if (go) go.click();
+        await wait(1300);
+        const b = document.querySelector('#doc-thread .doc-th-row.is-open [data-th-explain]'); if (b) b.click();
+        await wait(2200);
+      }
     }, undefined, null);
     await pause(1200);
 
