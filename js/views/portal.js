@@ -741,7 +741,8 @@ function portalSetBusy(pressedId, label){
 }
 function portalSetIdle(){
   for(const b of portalActionButtons()){
-    b.disabled=false; b.style.opacity=''; b.style.cursor='';
+    /* A Sign button held for a reason stays held (O-5/O-6). */
+    b.disabled=!!b.dataset.ptHold; b.style.opacity=''; b.style.cursor='';
     if(b.dataset.idle){ b.innerHTML=b.dataset.idle; delete b.dataset.idle; }
   }
 }
@@ -767,9 +768,85 @@ function portalSetDone(pressedId, label){
    biggest thing on the screen went on instructing someone to do the thing they
    had just done. The buttons were correctly spent; the page still said
    otherwise, and on a page this long that is what a reader takes away. */
+/* ---- THE SIGNATURES THE PAPER CARRIES ON THIS PAGE (O-1) ----
+   The live list the share route serves, plus the one this reader gave a moment
+   ago (held until the next fetch brings it back from the server). Where the
+   route served none, the copy's own list. */
+let _ptJustSigned=null;
+function portalLiveSignatures(c){
+  const live=Array.isArray(PORTAL_OPTS&&PORTAL_OPTS.signatures)?PORTAL_OPTS.signatures.slice():((c&&c.signatures)||[]).slice();
+  if(_ptJustSigned && !live.some(x=>x&&x.name===_ptJustSigned.name&&(x.side==='theirs'||x.party==='counterparty'))) live.push(_ptJustSigned);
+  return live;
+}
+/* Paint the marks onto whatever signing copy this page is showing. `preview`
+   is their own mark, faint, while the email code is being entered. */
+function portalPaintSignMarks(c, preview){
+  if(!window.pagesSignMarks||!window.pagesSignRows) return;
+  const sigs=portalLiveSignatures(c);
+  if(preview) sigs.push({ ...preview, side:'theirs', preview:true });
+  document.querySelectorAll('#pt-doc .pg-sign article, #doc-canvas').forEach(root=>{
+    if(!root.closest('.pg-sign')) return;
+    try{ pagesSignMarks(root, pagesSignRows(c, sigs)); }catch(_){}
+  });
+}
+/* ---- THE FORM BECOMES A RECEIPT (7 Oct 2026, work order O-2) ----
+   Once this link's answer was a signature, the sign step stops being a form
+   with an "already submitted" note over it: it says what they did, as whom,
+   when and how it was checked, and what happens next. Read from the server's
+   own record of their answer (lastResponse, which carries the title now), or
+   from the signature given a moment ago on this page. */
+/* WAS THIS LINK'S ANSWER A SIGNATURE? Then the page says what happened
+   (signed, the wording is final), never "ask for a fresh link" (O-3). */
+function portalSignedHere(){
+  return !!(_ptJustSigned || (PORTAL_OPTS && PORTAL_OPTS.lastResponse && PORTAL_OPTS.lastResponse.action==='sign'));
+}
+function portalSignedRecord(opts){
+  if(_ptJustSigned) return _ptJustSigned;
+  const lr=opts&&opts.lastResponse;
+  if(lr&&lr.action==='sign') return { name:lr.name||'', title:lr.title||'', at:lr.at||null, verified:lr.verified!==false&&lr.verified!==null };
+  return null;
+}
+function portalReceiptHtml(p, rec){
+  const row=(k,v)=>v?`<div style="display:contents"><dt style="color:var(--color-neutral-600)">${esc(k)}</dt><dd style="margin:0;min-width:0;overflow-wrap:anywhere">${v}</dd></div>`:'';
+  const who=esc(rec.name||'')+(rec.title?', '+esc(rec.title):'');
+  const party=esc((p&&p.contract&&p.contract.counterparty)||'');
+  const when=rec.at?esc(window.fmtDT?fmtDT(rec.at):String(rec.at)):'';
+  const mail=(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail)||'';
+  const check=rec.verified?esc(i18t('po_rc_checked',{email:mail||i18t('po_rc_your_address')})):esc(i18t('po_rc_unchecked'));
+  const done=!!portalExecuted();
+  /* What happens next, said from the order the page already holds. */
+  let next=i18t('po_rc_next_told',{who:(p&&p.sharedBy)||i18t('po_the_sender')});
+  const order=Array.isArray(PORTAL_OPTS.signingOrder)?PORTAL_OPTS.signingOrder:[];
+  const waiting=[]; order.forEach(st=>(st.rows||[]).forEach(r=>{ if(!r.signed&&!r.you) waiting.push(r.name||r.party); }));
+  if(!done&&waiting.length) next=i18t('po_rc_next_waiting',{who:waiting.filter(Boolean).slice(0,2).join(', ')});
+  return `<div class="ps-receipt" role="status" aria-live="polite">
+    <div style="display:flex;align-items:center;gap:8px;font-size:var(--t-card);font-weight:var(--w-title);color:var(--st-green-fg);margin-bottom:10px">${icon('check2','w-4 h-4')} ${esc(i18t('po_rc_you_signed'))}</div>
+    <dl style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 14px;margin:0 0 12px;font-size:var(--t-label);line-height:1.45">
+      ${row(i18t('po_rc_as'),who)}${row(i18t('po_rc_for'),party)}${row(i18t('po_rc_when'),when)}${row(i18t('po_rc_check'),check)}
+    </dl>
+    ${done
+      ? `<div style="border-radius:var(--radius);background:var(--st-green-bg);color:var(--st-green-fg);padding:9px 11px;font-size:var(--t-label);line-height:1.5;margin-bottom:10px"><b>${esc(i18t('po_rc_all_signed'))}</b> ${esc(i18t('po_rc_final',{who:(p&&p.sharedBy)||i18t('po_the_sender')}))}</div>
+         <button type="button" id="pt-rc-pdf" class="ui-btn ui-btn-primary" style="width:100%">${icon('download','w-3.5 h-3.5')} ${esc(i18t('po_rc_download'))}</button>`
+      : `<p style="margin:0;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-700)">${esc(next)}</p>`}
+  </div>`;
+}
+/* After a signature lands: hold it for the paper, paint it into their box,
+   and turn the sign step into the receipt. */
+function portalAfterSign(p, info){
+  _ptJustSigned={ side:'theirs', name:info.name||'', title:info.title||'', at:(window.nowISO?nowISO():new Date().toISOString()),
+    image:(info.sig&&info.sig.image)||'', typedName:(info.sig&&info.sig.typedName)||'', font:(info.sig&&info.sig.font)||'',
+    verified:!!info.verified };
+  try{ portalPaintSignMarks(p.contract); }catch(_){}
+  const body=document.getElementById('pt-sign-body');
+  if(body) body.innerHTML=portalReceiptHtml(p,_ptJustSigned);
+  document.getElementById('pt-rc-pdf')?.addEventListener('click',()=>portalExportPdf(p.contract));
+}
 function portalMarkSigned(p, info){
+  /* The band this wrote into (#pt-agreed) was removed; the receipt is the
+     sign step itself now (portalAfterSign). Kept as a name so a caller that
+     still reaches it does the right thing. */
+  if(!document.getElementById('pt-agreed')){ portalAfterSign(p, info); return; }
   const band=document.getElementById('pt-agreed');
-  if(!band) return;
   const who=esc((info&&info.name)||'You');
   /* ---- AND IT IS SPOKEN ---- (25 Aug 2026)
      This is the single most consequential moment on the counterparty's page —
@@ -1891,6 +1968,7 @@ function portalNegoFootHtml(p){
     portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
     : portalSigningStarted() ? i18t('po_signing_started_ro')
     : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
+    : portalSignedHere() ? i18t('po_ro_signed')
     : PORTAL_OPTS.responded ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
     : 'This copy has no channel back — reply to the email you received, or ask the sender for a live link.')}</span>`;
   /* ---- THE DEAL-LEVEL VERBS LIVE HERE NOW ----
@@ -2326,7 +2404,52 @@ function portalSignStyle(){
    used here and must not be: its overlays are our readings — a hold and its
    reason (internal), "Counterparty ready to sign" (our view of them), a
    hand-over's wait — none of which this page may say. */
+/* ---- WHAT STANDS BETWEEN THIS READER AND SIGNING (7 Oct 2026, O-5/O-6) ----
+   Two things only, both facts the page already holds: an ask of ours still
+   waiting on their answer (O-5, the server refuses the same), and a signer
+   before them on the order who has not signed yet (O-6). Either one greys the
+   Sign button with its reason, takes "Sign here" off the paper and sets the
+   head's pill, so the order and the button can never disagree. */
+function portalOpenAsks(p){
+  const ch=(p&&p.contract&&Array.isArray(p.contract.changes))?p.contract.changes:[];
+  const sent=(typeof PORTAL_NEGO_SENT!=='undefined'&&PORTAL_NEGO_SENT)||{};
+  return ch.filter(x=>x&&x.status==='pending'&&!x.withdrawn&&x.authorSide==='owner'&&!sent[x.id]);
+}
+function portalTurnWait(){
+  const order=Array.isArray(PORTAL_OPTS&&PORTAL_OPTS.signingOrder)?PORTAL_OPTS.signingOrder:null;
+  if(!order) return null;
+  const at=order.findIndex(st=>(st.rows||[]).some(r=>r&&r.you));
+  if(at<0) return null;
+  const before=[];
+  order.slice(0,at).forEach(st=>(st.rows||[]).forEach(r=>{ if(r&&!r.signed) before.push(r.name||r.party||''); }));
+  return before.filter(Boolean).length?before.filter(Boolean):null;
+}
+function portalSignHold(p){
+  if(portalExecuted()||portalSignedHere()) return null;
+  const wait=portalTurnWait();
+  if(wait) return { kind:'wait', names:wait, why:i18t('po_hold_wait',{who:wait.slice(0,2).join(', ')}) };
+  const asks=portalOpenAsks(p);
+  if(asks.length) return { kind:'points', asks, why:i18t('po_hold_points') };
+  return null;
+}
 function portalStatusWordHtml(c){
+  /* ON A SIGNING LINK THE PILL SAYS WHERE THE SIGNING STANDS (O-6): the
+     contract's own status word said "Under Review" on a page whose one job is
+     a signature. */
+  try{
+    if(PORTAL_OPTS && (PORTAL_OPTS.purpose==='sign' || Array.isArray(PORTAL_OPTS.signingOrder)) && PORTAL_OPTS.payload){
+      const pill=(bg,fg,t)=>`<span class="pw-id-stat room-stat" style="display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:11px;font-weight:var(--w-strong);background:${bg};color:${fg}">${esc(t)}</span>`;
+      const G=['var(--st-green-bg)','var(--st-green-fg)'], A=['var(--st-amber-bg)','var(--st-amber-fg)'], B=['var(--color-accent-50)','var(--accent-ink)'];
+      const ex=portalExecuted();
+      if(ex) return pill(...G, i18t('po_pill_fully')+(ex.at?' · '+(window.portalDayWords?portalDayWords(ex.at):String(ex.at).slice(0,10)):''));
+      if(portalSignedHere()){ const w=[]; (PORTAL_OPTS.signingOrder||[]).forEach(st=>(st.rows||[]).forEach(r=>{ if(r&&!r.signed&&!r.you) w.push(r.name||r.party); }));
+        return pill(...G, w.filter(Boolean).length?i18t('po_pill_signed_wait',{who:w.filter(Boolean)[0]}):i18t('po_pill_signed')); }
+      const h=portalSignHold(PORTAL_OPTS.payload);
+      if(h&&h.kind==='wait') return pill(...A, i18t('po_pill_waiting',{who:h.names[0]}));
+      if(h&&h.kind==='points') return pill(...A, i18tn('po_pill_points',h.asks.length,{n:h.asks.length}));
+      return pill(...B, i18t('po_pill_turn'));
+    }
+  }catch(_){}
   const meta = (window.STATUS_META && c && STATUS_META[c.status]) || null;
   if(!meta) return '';
   return `<span class="pw-id-stat room-stat" style="color:${meta.tx}">${esc(meta.label)}</span>`;
@@ -2465,6 +2588,7 @@ function wirePortalNego(c, p){
         portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
         : portalSigningStarted() ? i18t('po_signing_started_ro')
         : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you.'
+        : portalSignedHere() ? i18t('po_ro_signed')
         : 'This copy is read-only.')}</span></div>`;
   redlineEmbed(host, c, {
     side:'counterparty',
@@ -2489,6 +2613,7 @@ function wirePortalNego(c, p){
         ? (portalExecuted() ? 'This contract has been executed and sealed — the wording is final.'
           : portalSigningStarted() ? i18t('po_signing_started_ro')
           : PORTAL_OPTS.superseded ? 'This copy has been superseded — a newer link was sent to you. Open that one to answer.'
+          : portalSignedHere() ? i18t('po_ro_signed')
           : PORTAL_OPTS.responded ? 'This link has already been answered. Ask the sender for a fresh one if you need to reply again.'
           /* NOT the no-channel case any more — that state is no longer read-only,
              and the wall line above says how the answer travels instead. */
@@ -2714,6 +2839,9 @@ function portalRenderOpts(token, d){
     /* Read live like `executed`: the signing order, sign links only — see
        shareSigningOrder on the server for what it carries and what it never does. */
     signingOrder:Array.isArray(d.signingOrder)?d.signingOrder:null,
+    /* Read live like the order: every signature made so far, for the paper
+       (work order O-1). Null where the route serves none. */
+    signatures:Array.isArray(d.signatures)?d.signatures:null,
     emailConfigured:d.emailConfigured!==false, messages:d.messages||[],
     /* The server states it on the envelope as well as inside the payload, and
        the render reads whichever arrives — a reader who may do nothing must not
@@ -2758,6 +2886,8 @@ function portalSignature(d){
        and it flips exactly once per round. Left out, the sentence saying
        "waiting to be picked up" would go on saying it after it had been. */
     (d.lastResponse&&d.lastResponse.applied!=null)?`ap${d.lastResponse.applied?1:0}`:'',
+    /* A signature landing anywhere puts a mark on the paper. */
+    Array.isArray(d.signatures)?'sg'+d.signatures.length:'',
   ].join('');
   let h=0; for(let i=0;i<parts.length;i++) h=(h*31+parts.charCodeAt(i))>>>0;
   return parts.length+'.'+h.toString(16);
@@ -2862,6 +2992,13 @@ async function portalRefreshNow(reason){
        repainted on every tick would flicker for nobody's benefit — and the
        poll carries on, because this page's whole promise is that it notices
        the turn arriving by itself. */
+    /* An early signer's page is the real one now (O-29): it repaints like any
+       other when something moves, and the turn arriving turns it live. */
+    if(d.dormant && d.payload){
+      const what=(reason==='asked') ? 'repaint' : portalPollDecide(d, _ptPollSig);
+      if(what!=='same'){ portalRepaint(_ptPollToken, d); return 'repaint'; }
+      return 'dormant';
+    }
     if(d.dormant){
       if(!document.getElementById('pt-dormant')) renderSharePortal(null,{ dormant:d.dormant, token:_ptPollToken });
       return 'dormant';
@@ -2917,7 +3054,7 @@ async function portalEntry(encoded){
       /* A dormant bound link (W7): show the waiting page AND start polling —
          the poll is what turns it into the signing page when the earlier
          signer signs. */
-      if(d.dormant){ renderSharePortal(null,{ dormant:d.dormant, token }); portalStartPolling(token, d); return; }
+      if(d.dormant && !d.payload){ renderSharePortal(null,{ dormant:d.dormant, token }); portalStartPolling(token, d); return; }
       renderSharePortal(d.payload, portalRenderOpts(token, d));
       portalStartPolling(token, d);
     }catch(e){ renderSharePortal(null); }
@@ -3170,7 +3307,7 @@ function portalAlerts(c, p){
   if (portalSigningStarted()) return [{ kind:'closed', tone:'green', text:i18t('pa_signing_started'),
     go: document.getElementById('pt-tab-signing') ? () => portalSetTab('signing') : null }];
   if (PORTAL_OPTS.superseded) return [{ kind:'closed', tone:'amber', text:i18t('pa_superseded'), go:null }];
-  if (PORTAL_OPTS.responded) return [{ kind:'closed', tone:'gray', text:i18t('pa_answered'), go:null }];
+  if (PORTAL_OPTS.responded) return [{ kind:'closed', tone:'gray', text:portalSignedHere()?i18t('po_ro_signed'):i18t('pa_answered'), go:null }];
 
   const changes = (c && Array.isArray(c.changes)) ? c.changes : [];
   /* 1. WHAT IS WAITING ON THEIR ANSWER — the other side's live asks that this
@@ -4621,13 +4758,24 @@ function renderSharePortal(p, opts={}){
                 wore a different title but was filled from the sender's own
                 textarea in the share dialog, so leaving it would have meant
                 the note was still on their screen. */}
+        <div id="pt-sign-body">${portalSignedRecord(opts)?portalReceiptHtml(p, portalSignedRecord(opts)):`
         ${opts.responded?`<div style="margin-bottom:14px;border-radius:var(--radius);background:var(--st-steel-bg);border:1px solid var(--color-divider);padding:9px 11px;font-size:var(--t-label);color:var(--st-steel-fg);display:flex;align-items:center;gap:6px;">${icon('check2','w-3.5 h-3.5')} A response was already submitted for this link.</div>`:''}
         <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 14px;line-height:1.5;">${opts.token?`Your response is delivered to ${esc(p.sharedBy)} automatically — nothing to send back.`:`Your response is packaged as a secure code — send it back to ${esc(p.sharedBy)} to record it on the contract.`}</p>
         ${input('pt-name','Full name *','e.g. Grace Njeri')}
         ${input('pt-title','Title / role','e.g. Legal Counsel')}
-        ${input('pt-email','Work email','you@company.co.ke')}
-        <label style="display:block;margin-bottom:var(--s-3);"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${i18t('po_comment')}</span>
-        <textarea id="pt-comment" rows="3" placeholder="${i18t('po_optional_for_signing')}" style="${TA}"></textarea></label>
+        ${''/* THE EMAIL IS SAID, NOT ASKED (7 Oct 2026, O-4): the code always goes
+               to the address this link was sent to (W8), so a box to type in
+               changed nothing. Where the link records an address it is
+               printed, with where the code goes; an old link with none keeps
+               the box. THE COMMENT BOX LEFT THIS STEP (owner's D1): what was
+               typed while signing reached no screen. A reason is asked where
+               it matters, under "Not ready to sign?". */}
+        ${(opts.share&&opts.share.recipientEmail)
+          ? `<div style="margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${i18t('po_work_email')}</span>
+              <span style="display:block;font-size:var(--t-body);color:var(--color-text);overflow-wrap:anywhere">${esc(opts.share.recipientEmail)}</span>
+              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${i18t('po_code_goes_here')}</span>
+              <input type="hidden" id="pt-email" value="${esc(opts.share.recipientEmail)}"/></div>`
+          : input('pt-email','Work email','you@company.co.ke')}
         ${''/* ---- "PROPOSE A DIFFERENT VALUE" IS GONE (removed 2026-08-11, on
                request, for every contract) ----
                It sat at the top level of this panel, between the reader's own
@@ -4689,10 +4837,17 @@ function renderSharePortal(p, opts={}){
                  button's "Sign as X", kept in step with the name box below as it
                  is typed (see renderSharePortal's wiring). The code the server
                  sends first is said beside it, because a cost stays by its button. */}
-          <button id="pt-sign" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} <span id="pt-sign-word">${i18t('po_sign_this_contract')}</span></button>
+          ${(()=>{ const h=portalSignHold(p); if(!h||h.kind!=='points') return ''; const a=h.asks[0];
+            const lab=esc(String((a&&a.clauseLabel)||'')||i18t('po_a_clause'));
+            return `<div style="border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg);padding:9px 11px;font-size:var(--t-label);line-height:1.5"><b style="display:block">${esc(i18tn('po_hold_points_head',h.asks.length,{n:h.asks.length}))}</b><span style="color:var(--color-text)">${lab}</span></div>
+              <button id="pt-go-point" type="button" class="ui-btn" style="width:100%">${esc(i18t('po_go_to_point'))}</button>`; })()}
+          <button id="pt-sign" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%"${portalSignHold(p)?' disabled data-pt-hold="1"':''}>${icon('finger','w-4 h-4')} <span id="pt-sign-word">${i18t('po_sign_this_contract')}</span></button>
+          ${portalSignHold(p)?`<span class="ps-why" style="display:block;text-align:center;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${esc(portalSignHold(p).why)}</span>`:''}
           ${(opts.token&&PORTAL_OPTS.emailConfigured!==false&&!portalExecuted())?`<span class="ps-code">${esc(i18t('po_code_first'))}</span>`:''}
           <button id="pt-other-toggle" type="button" aria-expanded="false" aria-controls="pt-other" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:0">${i18t('po_not_ready_sign')}</button>
           <div id="pt-other" class="hidden" style="display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--color-divider);padding-top:11px">
+            <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${esc(i18t('po_reason_label',{who:(p&&p.sharedBy)||i18t('po_the_sender')}))}</span>
+            <textarea id="pt-comment" rows="3" placeholder="${esc(i18t('po_why_ph'))}" style="${TA}"></textarea></label>
             ${''/* ---- A BUTTON THAT OPENS NOTHING IS WORSE THAN NO BUTTON ----
                    "Change the wording yourself" opens #portal-redline, and W6
                    deliberately stops that editor being built on a link the
@@ -4712,8 +4867,8 @@ function renderSharePortal(p, opts={}){
                  'Edit the clauses you want changed. They see exactly what you altered and accept or reject each one.']]),
                ['pt-changes','alert','Tell them what you want changed',
                  signingSeat
-                   ? `Describe it in the comment box above. This link was sent to you for signature, so the wording cannot be edited on it — ${esc((p&&p.org)||'the sender')} will send you a link you can redline on.`
-                   : 'Describe it in the comment box above. The wording stays as it is for now.'],
+                   ? `Describe it in the box above. This link was sent to you for signature, so the wording cannot be edited on it — ${esc((p&&p.org)||'the sender')} will send you a link you can redline on.`
+                   : 'Describe it in the box above. The wording stays as it is for now.'],
                ['pt-accept','check2','Agree to the wording — but don’t sign yet','Tells them you are happy with the text. Nothing is signed and nothing is binding.']]
               .map(([id,ic,label,why])=>`<div>
                 <button id="${id}" class="ui-btn" style="width:100%;text-align:left;display:flex;align-items:center">${icon(ic,'w-3.5 h-3.5')} ${label}</button>
@@ -4724,7 +4879,7 @@ function renderSharePortal(p, opts={}){
               <span style="display:block;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:var(--s-1) 2px 0">${i18t('po_ends_the_deal')}</span>
             </div>
           </div>
-        </div>
+        </div>`}</div>
         </div></li></ol>
         <div id="portal-result" style="margin:var(--s-3) var(--s-4) 0;"></div>
       </aside>
@@ -4739,9 +4894,13 @@ function renderSharePortal(p, opts={}){
     e.currentTarget.setAttribute('aria-expanded',open?'true':'false');
     e.currentTarget.textContent=open?'Hide the other options':'Not ready to sign?';
   });
-  document.getElementById('pt-sign').addEventListener('click',()=>portalRespond(p,'sign'));
-  document.getElementById('pt-changes').addEventListener('click',()=>portalRespond(p,'changes'));
-  document.getElementById('pt-accept').addEventListener('click',()=>portalRespond(p,'accept'));
+  /* Optional: on a link already signed the sign step is the receipt
+     (portalReceiptHtml) and these buttons are not drawn. */
+  document.getElementById('pt-sign')?.addEventListener('click',()=>portalRespond(p,'sign'));
+  document.getElementById('pt-go-point')?.addEventListener('click',()=>{ if(window.portalSetTab) portalSetTab('redlines'); });
+  document.getElementById('pt-changes')?.addEventListener('click',()=>portalRespond(p,'changes'));
+  document.getElementById('pt-accept')?.addEventListener('click',()=>portalRespond(p,'accept'));
+  document.getElementById('pt-rc-pdf')?.addEventListener('click',()=>portalExportPdf(c));
   portalWireRevisedBanner(p);
   document.getElementById('pt-compare')?.addEventListener('click',()=>openPortalVersionCompare(p));
   document.getElementById('pt-hist')?.addEventListener('click',()=>openPortalHistory(p));
@@ -4762,7 +4921,8 @@ function renderSharePortal(p, opts={}){
   try{
     const sh=document.querySelector('#pt-doc .pg-sheet');
     if(sh&&window.signCopyWatch){
-      if(!portalExecuted()&&window.pagesSignFlags) pagesSignFlags(sh.querySelector('article'),1);
+      if(!portalExecuted()&&window.pagesSignFlags) pagesSignFlags(sh.querySelector('article'),portalSignHold(p)?-1:1);
+      portalPaintSignMarks(c);
       signCopyWatch(sh,c,()=>{ if(window.signCopyFit) signCopyFit(sh); });
     }
   }catch(_){}
@@ -4770,7 +4930,7 @@ function renderSharePortal(p, opts={}){
     for(const b of portalActionButtons()){ b.disabled=true; b.style.opacity='.4'; b.style.cursor='default'; }
     const rl=document.getElementById('pt-redline-text'); if(rl) rl.readOnly=true;
   }
-  document.getElementById('pt-decline').addEventListener('click',()=>portalRespond(p,'decline'));
+  document.getElementById('pt-decline')?.addEventListener('click',()=>portalRespond(p,'decline'));
   // E2: the redline editor takes over the main column, so the document being
   // rewritten and the box you rewrite it in are the same size.
   /* HOW MANY CLAUSES THEY HAVE REWRITTEN AND NOT SENT. */
@@ -4846,6 +5006,12 @@ function renderSharePortal(p, opts={}){
   if(opts.share){
     setIf('pt-name',opts.share.recipientName); setIf('pt-email',opts.share.recipientEmail);
   }
+  /* THE TITLE THE SENDER ALREADY KNOWS (7 Oct 2026, O-4): the signing route
+     names this signer's title, so the box starts with it rather than empty. */
+  try{
+    const me=(Array.isArray(opts.signingOrder)?opts.signingOrder:[]).flatMap(st=>st.rows||[]).find(r=>r&&r.you);
+    if(me&&me.title) setIf('pt-title',me.title);
+  }catch(_){}
   /* ---- AND THE NAME THIS BROWSER ALREADY GAVE ----
      Under the share's own name, never over it: the sender addressed this to
      somebody, and that is who it is for. Below that, a reader who has typed
@@ -4916,6 +5082,9 @@ async function portalRespond(p, action, extra){
      request rather than after it. Only an explicit false refuses: a payload
      built before this field existed carries nothing, and guessing on their
      behalf would refuse signatures the sender fully intended. */
+  /* THE SAME HOLD THE BUTTON SHOWS (O-5/O-6): a button re-enabled by an
+     idle reset still cannot sign over an open point or out of turn. */
+  if(action==='sign' && p){ const h=portalSignHold(p); if(h){ toast(h.why,'err'); return; } }
   if(action==='sign' && p && p.signingOpen===false){
     toast(i18t('po_no_signers_toast',{org:(p&&p.org)||'the sender'}),'err');
     return;
@@ -4935,7 +5104,9 @@ async function portalRespond(p, action, extra){
      unpassable. Declining requires a reason, so a decline pressed in the room
      failed on a box nobody could reach. The room asks for it and passes it in
      here, and everything reached from the panel still reads the panel. */
-  const comment=(extra&&extra.comment!=null)?String(extra.comment):fval('pt-comment');
+  /* A SIGNATURE CARRIES NO COMMENT (owner's D1, 7 Oct 2026): the box lives
+     under "Not ready to sign?" and is the reason for a change or a decline. */
+  const comment=action==='sign'?'':((extra&&extra.comment!=null)?String(extra.comment):fval('pt-comment'));
   if(!name){
     /* They were ASKED and said no — portalEnsureResponderName put the question
        in front of them rather than pointing at a box somewhere on the page,
@@ -5338,6 +5509,7 @@ function wirePortalTemplateForm(p){
         const html=renderDocHtml(p.contract.redlineText, window.RICH_FORMAT||'rich');
         doc.innerHTML=(window.docSignBodyHtml&&doc.closest('.pg-sign'))?docSignBodyHtml(html):readOnlyDocHtml(html);
         if(doc.closest('.pg-sign')&&!portalExecuted()&&window.pagesSignFlags) pagesSignFlags(doc,1);
+        if(doc.closest('.pg-sign')) portalPaintSignMarks(p.contract);
       }
     }
     if(PORTAL_OPTS.token){
@@ -5453,7 +5625,7 @@ async function portalSignUnverified(p, info){
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
       portalSetDone('pt-sign','Signed and sent');
-      portalMarkSigned(p, info);
+      portalMarkSigned(p, { ...info, verified:false });
       box.innerHTML=`
         <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:var(--radius);padding:var(--s-4);text-align:center;">
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:var(--s-1);">${icon('check2','w-4 h-4')} Signed</div>
@@ -5508,6 +5680,9 @@ async function portalStartOtp(p, info){
       <button id="pt-otp-resend" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:6px 0 0">${i18t('po_resend_code')}</button>
     </div>`;
   document.getElementById('pt-otp-go').addEventListener('click',()=>portalVerifyAndSign(p, info));
+  /* THEIR MARK, FAINT, IN THEIR BOX while the code is entered (O-1, picture
+     6): they see where it goes before they confirm. */
+  try{ portalPaintSignMarks(p.contract, { name:info.name, title:info.title, image:info.sig&&info.sig.image }); }catch(_){}
   /* L1: a 30-second cooldown on Resend, with a live countdown, so rapid taps do
      not fire repeated sends (each of which silently resets the code and the
      input) and the signer gets an acknowledgement rather than nothing. */
@@ -5558,7 +5733,7 @@ async function portalVerifyAndSign(p, info){
     try{
       await api('shares/'+PORTAL_OPTS.token+'/respond','POST',response);
       portalSetDone('pt-sign','Signed and sent');
-      portalMarkSigned(p, info);
+      portalMarkSigned(p, { ...info, verified:true });
       document.getElementById('portal-result').innerHTML=`
         <div style="border:1px solid color-mix(in srgb,var(--st-green-dot) 30%,transparent);background:var(--st-green-bg);border-radius:var(--radius);padding:var(--s-4);text-align:center;">
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:var(--s-1);">${icon('check2','w-4 h-4')} Signed &amp; verified</div>
@@ -5917,6 +6092,6 @@ async function refreshStats(){
     if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
-Object.assign(window,{portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalOpenAsks,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

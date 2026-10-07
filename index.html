@@ -9634,6 +9634,24 @@
   .pg-sheet.pg-sign .rl-sigline.pg-mine.pg-flag-right[data-pg-flag]::before{left:auto;right:-80px;
     padding-left:0;padding-right:9px;justify-content:flex-end;
     clip-path:polygon(16% 0,100% 0,100% 100%,16% 100%,0 50%)}
+  /* ---- A SIGNATURE GIVEN IS ON THE PAPER (7 Oct 2026, O-1) ----
+     pagesSignMarks paints the mark into its party's box after the paper is
+     drawn: the box becomes the signed line itself, the mark sitting on it, and
+     the name, title, date and check under it. A preview (their mark while the
+     email code is being entered) is the same, faint. Literal paper inks, like
+     the boxes above: the paper does not follow the theme. */
+  .pg-sheet.pg-sign .rl-sigline.pg-signed .rl-sigrule,
+  .pg-sheet.pg-sign .rl-sigline.pg-preview .rl-sigrule{position:relative;height:66px;box-sizing:border-box;
+    border:0;border-bottom:1px solid #1B2A28;border-radius:0;background:none;box-shadow:none}
+  .pg-sheet.pg-sign .rl-sigline.pg-preview .rl-sigrule{border:1.5px dashed var(--accent-fill);border-radius:var(--radius);
+    background:color-mix(in srgb,var(--accent-fill) 6%,#fff)}
+  .rl-sigmark{position:absolute;left:10px;right:10px;bottom:4px;height:56px;display:flex;align-items:flex-end;pointer-events:none}
+  .rl-sigmark img{max-height:56px;max-width:100%;object-fit:contain;object-position:left bottom}
+  .rl-sigmark-typed{font-family:'Segoe Script','Bradley Hand','Snell Roundhand','Apple Chancery',cursive;
+    font-size:calc(26px * var(--doc-scale,1));line-height:1;color:#15324a;white-space:nowrap;overflow:hidden}
+  .rl-sigline.pg-preview .rl-sigmark{opacity:.45}
+  .rl-sigby{display:block;margin-top:3px;font-size:calc(11px * var(--doc-scale,1));line-height:1.4;color:#5F6D6B}
+  .rl-sigby b{color:#1B2A28;font-weight:600}
   @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
 
   /* ============ document designs — body typography ============

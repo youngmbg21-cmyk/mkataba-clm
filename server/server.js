@@ -14308,10 +14308,19 @@ function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang })
   const L = langForEmail(signer.email, senderLang);
   const posText = signer.order && total
     ? tFor(L, 'mail_turn_pos', { n: signer.order, total }) : '';
+  /* THE WHOLE ORDER, NAMED (7 Oct 2026, O-28): who signs before and after
+     them, for which side, so nobody opens a link expecting to sign and finds
+     somebody else's turn. Names and sides only; never an address. */
+  const them = (payload && payload.contract && payload.contract.counterparty) || '';
+  const rows = (plan || []).slice().sort((a, b) => srvSignStep(a) - srvSignStep(b) || (a.order || 0) - (b.order || 0));
+  const orderLine = rows.length > 1 ? '\n\n' + tFor(L, 'mail_turn_order', { list: rows.map((r, i) =>
+    `${i + 1}. ${String(r.id) === String(signer.id) ? tFor(L, 'mail_turn_you') : (r.name || '—')}`
+    + ` (${r.party === 'counterparty' ? (them || '—') : org})`).join(' · ') }) : '';
   return {
     subject: tFor(L, 'mail_turn_subject', { name: cName }),
     body: `${tFor(L, 'mail_hello')}${signer.name ? ' ' + signer.name : ''},\n\n`
       + tFor(L, 'mail_turn_body', { name: cName, org, pos: posText })
+      + orderLine
       + `\n\n${tFor(L, 'mail_open_link')}\n${link}\n\n`
       + tFor(L, 'mail_code_note')
       + (expiresAt ? `\n\n${tFor(L, 'mail_link_expires', { date: String(expiresAt).slice(0, 10) })}` : '')
@@ -15312,6 +15321,63 @@ function shareSigningOrder(s) {
     })),
   }));
 }
+/* ---- THE SIGNATURES SO FAR, FOR THE PAPER ON THEIR PAGE (O-1) ----
+   What the signed copy itself would print in each party's box: the mark, the
+   name, the title, the moment, whether a code checked it. Never an email
+   address, an IP or a browser. The link's OWN answer is added while our side
+   has not yet applied it, so the person who has just signed sees their
+   signature on the paper at once and after any refresh. */
+/* The asks still waiting on THIS link's reader: pending on the stored
+   contract, written by our side, and in the copy they were sent. */
+function srvSignOpenAsks(s) {
+  if (!s || !s.contract_id) return [];
+  let p = null; try { p = JSON.parse(s.payload); } catch (_) { p = null; }
+  const sent = new Set(((p && p.contract && Array.isArray(p.contract.changes)) ? p.contract.changes : [])
+    .filter(Boolean).map(x => String(x.id)));
+  if (!sent.size) return [];
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
+  let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
+  if (!c) return [];
+  return srvDsLive(c).filter(x => x && x.status === 'pending' && x.authorSide === 'owner' && sent.has(String(x.id)));
+}
+function shareLiveSignatures(s, lastR) {
+  if (!s || !s.contract_id) return null;
+  if ((s.purpose || '') !== 'sign' && !shareRetiredBySigning(s)) return null;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
+  let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
+  if (!c) return null;
+  const parties = srvContractParties(c);
+  const ours = parties.find(p => p.side === 'ours');
+  const theirs = parties.filter(p => p.side !== 'ours');
+  const img = v => (typeof v === 'string' && sigImageOk(v) && v) ? v : null;
+  const cut = (v, n) => v == null ? null : String(v).slice(0, n);
+  const out = (Array.isArray(c.signatures) ? c.signatures : []).filter(Boolean).map(x => {
+    const side = x.party === 'counterparty' ? 'theirs' : 'ours';
+    const hit = side === 'theirs' && x.partyId ? theirs.find(p => p.id === String(x.partyId)) : null;
+    return { side, partyId: hit ? hit.id : null,
+      party: side === 'ours' ? ((ours && ours.name) || '') : ((hit || theirs[0] || {}).name || ''),
+      name: cut(x.name, 120) || '', title: cut(x.title || x.role || x.capacity, 120) || null,
+      at: x.at || null, image: img(x.image), typedName: cut(x.typedName, 120), font: cut(x.font, 60),
+      verified: x.verified !== false };
+  });
+  if (lastR && lastR.applied !== 1 && lastR.applied !== true) {
+    let r = null; try { r = JSON.parse(lastR.response); } catch (_) { r = null; }
+    if (r && r.action === 'sign' && !out.some(x => x.side === 'theirs' && x.name === r.name && x.at === r.at)) {
+      let partyId = null;
+      if (s.signer_id) {
+        const rt = signerRouteFor(s.contract_id);
+        const sr = rt && rt.plan.find(q => String(q.id) === String(s.signer_id));
+        if (sr && sr.partyId) partyId = String(sr.partyId);
+      }
+      const hit = partyId ? theirs.find(p => p.id === partyId) : null;
+      out.push({ side: 'theirs', partyId: hit ? hit.id : null, party: (hit || theirs[0] || {}).name || '',
+        name: cut(r.name, 120) || '', title: cut(r.title, 120), at: r.at || lastR.at || null,
+        image: img(r.signatureImage), typedName: cut(r.signatureTypedName, 120), font: cut(r.signatureFont, 60),
+        verified: !!(r.verify || r.verified === true), pending: true });
+    }
+  }
+  return out;
+}
 function contractExecution(contractId) {
   if (!contractId) return null;
   const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
@@ -15479,7 +15545,16 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
         contractName: (p && p.contract && p.contract.name) || '',
         org: (p && p.org) || '',
         expiresAt: s.expires_at || null,
-      } });
+      },
+      /* ---- AN EARLY SIGNER SEES THE REAL PAGE (7 Oct 2026, O-29) ----
+         Not a bare waiting notice: the contract, the order and a Sign button
+         held with its reason ("X signs first"). The same facts a sign link
+         serves once its turn comes, minus nothing the reader could act on —
+         the respond route still refuses a signature out of turn. */
+      payload: p, purpose: s.purpose || null, signingOrder: shareSigningOrder(s),
+      signatures: shareLiveSignatures(s, null), emailConfigured: EMAIL_ON(),
+      share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
+        expiresAt: s.expires_at || null, channel: s.channel || 'link' } });
     }
   }
   // E5-T4 engagement: log every open (server-side only, no third-party analytics)
@@ -15568,7 +15643,12 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     : (s.response ? { response: s.response, at: s.responded_at || null, applied: s.applied } : null);
   let lastResponse = null;
   if (lastR) { try { const r = JSON.parse(lastR.response);
+    /* The title and whether it was checked travel too (7 Oct 2026, O-2): the
+       reader's own receipt says "You signed as Grace Njeri, Legal Counsel ·
+       checked by email code", and both are their own words about their own act. */
     lastResponse = { action: r.action, at: lastR.at, name: r.name,
+      title: r.title ? String(r.title).slice(0, 120) : null,
+      verified: r.action === 'sign' ? !!(r.verify || r.verified === true) : null,
       applied: lastR.applied == null ? null : lastR.applied === 1 }; } catch (_) {} }
   res.json({
     payload: JSON.parse(s.payload),
@@ -15590,6 +15670,12 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        goes on inviting redlines on a sealed contract. */
     executed: contractExecution(s.contract_id),
     signingOrder: shareSigningOrder(s),
+    /* THE SIGNATURES SO FAR, read live (7 Oct 2026, work order O-1). Their
+       page draws the contract from the copy frozen when the link went out, so
+       a signature made since never reached their paper, not even their own.
+       Signing links only, like the order above, which already names the same
+       people and titles. */
+    signatures: shareLiveSignatures(s, lastR),
     /* ---- THE AGREED WORDS WERE HANDED OVER (26 Sep 2026) ----
        Read live, like `executed` beside it: once the lead hands the agreed
        wording over as a Word file, this page turns read-only and offers that
@@ -16822,6 +16908,22 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     if (stored && (srvSignApprovalRefusal(stored)
       || (!saStarted(stored, { responded: srvSaResponded(s.contract_id) }) && srvApprovalChainOpenOf(stored).length)))
       return res.status(409).json({ error: SC_NOT_READY, notReady: true });
+  }
+  /* ---- NOBODY SIGNS OVER A POINT STILL WAITING ON THEM (7 Oct 2026, O-5) ----
+     Our own Sign button waits for every change to be decided (signBlockers).
+     Theirs did not: only the pre-signing check, and only when an admin had set
+     it to "require", stood in the way, so a counterparty could sign a
+     contract with one of our asks still undecided. The same rule now holds on
+     their side, asked of the STORED contract and only of asks they were SENT
+     (an ask still on our desk is not theirs to answer). Neutral words: the
+     clause by its label, nothing internal. */
+  if (r.action === 'sign') {
+    const open = srvSignOpenAsks(s);
+    const names = open.map(srvDsClause).filter(Boolean).slice(0, 3);
+    if (open.length) return res.status(409).json({
+      error: 'Answer the open point' + (open.length === 1 ? '' : 's') + ' first'
+        + (names.length ? ' (' + names.join(', ') + ')' : '') + '. Then you can sign.',
+      openPoints: open.length });
   }
   if (r.action === 'sign') {
     /* ---- W7: A SIGNATURE LANDS ON ITS OWN ROW, OR NOT AT ALL ----

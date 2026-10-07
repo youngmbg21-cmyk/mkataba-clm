@@ -13337,6 +13337,15 @@ function wireDocCanvas(c){
     const cv=document.getElementById('doc-canvas');
     if(cv) pagesSignFlags(cv, PORTAL_MODE?1:0);
   }
+  /* ---- AND EVERY SIGNATURE GIVEN, IN ITS BOX (7 Oct 2026, O-1) ----
+     Painted after the flags, so a signed box drops its "Sign here". Their
+     page reads the live list (portalLiveSignatures); our seat reads the
+     contract's own. Display only: never part of the document's HTML. */
+  if(_signCopy&&!_theySign&&window.pagesSignMarks&&window.pagesSignRows){
+    const cv=document.getElementById('doc-canvas');
+    const sigs=(PORTAL_MODE&&window.portalLiveSignatures)?portalLiveSignatures(c):(c.signatures||[]);
+    if(cv) try{ pagesSignMarks(cv, pagesSignRows(c, sigs)); }catch(_){}
+  }
   /* ---- THE PAGES, AFTER EVERYTHING THAT ADDS HEIGHT AND BEFORE EVERYTHING
      THAT MEASURES (25 Sep 2026) ---- the places to sign above are in the
      flow, so they have to be in before a page is broken; Plain English and
