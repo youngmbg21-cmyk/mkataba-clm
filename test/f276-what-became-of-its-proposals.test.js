@@ -411,15 +411,16 @@ describe('F276 (8) where a proposal is recorded', () => {
       'using our own standard instead is exactly a refusal of the draft');
   });
 
-  test('obligations record every proposal shown, and unticking is an explicit no', () => {
+  /* RE-POINTED 7 Oct 2026 (work order O-32, the Review desk): the explicit no
+     is SKIP now — a proposal left alone stays offered, an added one is taken. */
+  test('obligations record every proposal shown, and a Skip is an explicit no', () => {
     const code = strip(OB);
     assert.ok(/feature: 'obligations'/.test(code));
-    assert.ok(/aiTraceRefuse\(c, id, i18t\('ob_trace_untick'\)\)/.test(code));
+    assert.ok(/aiTraceRefuse\(c, trace\[sel\], i18t\('ob_trace_untick'\)\)/.test(code), 'Skip is the refusal');
     assert.ok(/if \(dupe\[i\] \|\| !window\.aiTraceNote\) return null/.test(code),
       'a duplicate is neither taken nor refused — there was no decision to make');
-    assert.ok(/else if \(!ticked\.has\(i\) && window\.aiTraceRefuse\)/.test(code),
-      'and a proposal ticked but not added — one that became a duplicate while the '
-      + 'window was open — is left as offered rather than read as a refusal');
+    assert.ok(/if \(trace\[i\] && window\.aiTraceTaken\) try \{ aiTraceTaken\(c, trace\[i\]\); \}/.test(code),
+      'and an add is taken, at the one writer');
   });
 
   test('draft from a sentence is deliberately not recorded, and the file says why', () => {

@@ -97,7 +97,10 @@ describe('f277 (1) the switch is gone — the thread is the Document tab\'s one 
     assert.ok(!/data-doc-read=/.test(CONTRACT_JS), 'no button carries a position');
     const end = CONTRACT_JS.slice(CONTRACT_JS.indexOf('function wsTabRowEndHtml('), CONTRACT_JS.indexOf('function wsPaintTabRowEnd('));
     /* RE-POINTED 5 Oct 2026 (the Drawer): the Clauses door leads the slot. */
-    assert.match(end, /return clauses\+step\+focus\+door;/, 'the tab row ends with the Clauses door, the stepper, Focus and the negotiate door — and no switch');
+    /* RE-POINTED 7 Oct 2026 (work order O-17): Original | As amended leads the
+       slot on an agreement with a signed amendment — a view of the paper, not
+       the plain-English switch this test retires. */
+    assert.match(end, /return amended\+clauses\+step\+focus\+door;/, 'the tab row ends with the Clauses door, the stepper, Focus and the negotiate door — and no switch');
   });
 
   test('it stands down on a window too narrow to hold two working columns', () => {

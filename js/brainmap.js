@@ -151,9 +151,9 @@ const BRAIN_PARTS = [
   ['arrivalowed', 'intakeLaneArrivals', 'in', 1],
   ['wordmark', 'richListMark', 'out', 3],
   ['paperdrop', 'docxIsPaperPara', 'read', 1],
-  ['asks', 'askOpen', 'sign', 1]
-  /* the work order of 7 Oct 2026: Overview 2's Time Machine, the obligations
-     review desk, and the board's charts drawn at their real size */
+  ['asks', 'askOpen', 'sign', 1],
+  /* the work order of 7 Oct 2026: the Time Machine on Overview 2, the
+     obligations review desk, and the board charts drawn at their real size */
   ['timemachine', 'paintOverview2', 'see', 1],
   ['obdesk', 'obReviewTally', 'time', 1],
   ['chartsize', 'hbFitMeasure', 'see', 1],

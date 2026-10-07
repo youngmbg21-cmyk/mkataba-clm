@@ -1455,7 +1455,7 @@ function openObligationsReview(c, found, back){
     return true;
   };
   const settled = (n, skipped) => {
-    if (n) logAudit(c, 'Obligation', `Added ${n} obligation${n === 1 ? '' : 's'} from Copilot scan` + (skipped ? ` — ${skipped} already on the contract` : ''));
+    if(n) logAudit(c,'Obligation',`Added ${n} obligation${n === 1 ? '' : 's'} from Copilot scan` + (skipped ? ` — ${skipped} already on the contract` : ''));
     persist(c); renderObligationsSection(c); obligationSurfacesChanged();
     if (window.roomPaintObligations) roomPaintObligations(c);
   };

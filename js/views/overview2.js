@@ -244,7 +244,7 @@ function ov2FamHtml(c){
   const stWord = x => { try { return (typeof contractStatusMeta === 'function') ? contractStatusMeta(x).label : (x.status || ''); } catch (_){ return x.status || ''; } };
   const relWord = x => x.parentId ? ((window.RELATION_DOC_WORD && window.RELATION_DOC_WORD[x.relation]) || x.relation || '') : i18t('ov2_fam_main');
   const rows = order.length > 1 ? order.map(e => { const x = e.doc, me = String(x.id) === String(c.id);
-    return `<div class="fam-row${me ? ' is-this' : ''}"><span class="ref">${_ov2E(ref(x))}</span><div><button type="button" class="ov2-famopen" data-ov2-open="${_ov2E(x.id)}"><b>${_ov2E(x.name || x.id)}</b></button><small>${_ov2E(relWord(x))}${me ? ' · ' + _ov2E(i18t('ov2_this_one')) : ''}</small></div><span class="pill t-${tone(x)}"><i></i>${_ov2E(stWord(x))}</span></div>`; }).join('') : '';
+    return `<div class="fam-row${me ? ' is-this' : ''}"><span class="ref">${_ov2E(ref(x))}</span><div><button type="button" class="ov2-famopen" data-ov2-open="${_ov2E(x.id)}"><b>${_ov2E(x.name || x.id)}</b></button><small>${_ov2E(relWord(x))}${me ? ' · ' + _ov2E(i18t('ov2_this_doc')) : ''}</small></div><span class="pill t-${tone(x)}"><i></i>${_ov2E(stWord(x))}</span></div>`; }).join('') : '';
   let win = '';
   if (rows){
     const held = new Map();

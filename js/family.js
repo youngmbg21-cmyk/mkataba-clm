@@ -1088,7 +1088,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
     note: String((opts && opts.note) || '').slice(0, 600), expiry: '', items: [], picks: new Set(), addNew: false,
     skeleton: true, facts: null, mentions: [], aiNotice: '' };
   const aiOn = !!(window.API_MODE && API_MODE() && window.state && state.aiConfigured && window.api);
-  const CHIPS = ['fa_chip_extend', 'fa_chip_price', 'fa_chip_pay', 'fa_chip_add', 'fa_chip_notice', 'fa_chip_other'];
+  const CHIPS = ['fa_chip_extend', 'fa_chip_price', 'fa_chip_pay', 'fa_chip_add', 'fa_chip_notice', 'fa_chip_else'];
   const relSel = () => `<select id="am-rel" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:3px 6px;font:inherit;font-size:var(--t-label)">${
     CONTRACT_RELATIONS.map(r=>`<option value="${r.k}" ${r.k===S.rel?'selected':''} title="${_famAttr(r.blurb)}">${_famEsc(r.label)}</option>`).join('')}</select>`;
   const head = (t, sub) => `<div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('filenew','w-4 h-4')}</span>
@@ -1290,7 +1290,7 @@ async function unlinkContract(c, onDone){
   if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
 }
 
-Object.assign(window,{asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,familyOrder,familyCheck,FAMILY_TERMS,familyAgreement,familyAgreeLine,
+Object.assign(window,{familyOrder,familyCheck,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
   openLinkModal,unlinkContract,renderFamilySection,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,
