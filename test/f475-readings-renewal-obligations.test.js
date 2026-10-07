@@ -229,7 +229,10 @@ describe('f475 (2) a renewal answer starts its act and carries it until done', (
     assert.match(start, /answer==='renegotiate'&&window\.openRedlineWorkbench/, 'renegotiating lands on the negotiation');
     const act = fnOf(AI, 'renewalDecisionAct');
     assert.match(act, /openNoticeDialog\(c\)/, 'letting it lapse opens the notice desk');
-    assert.match(fnOf(FAM, 'openCreateAmendmentModal'), /id="am-note" value="\$\{_famAttr\(String\(\(opts&&opts\.note\)/);
+    /* The note is the dialog's one question since O-10 (7 Oct 2026): a box
+       prefilled from the renewal card's reason. */
+    assert.match(fnOf(FAM, 'openCreateAmendmentModal'), /note: String\(\(opts && opts\.note\) \|\| ''\)/);
+    assert.match(fnOf(FAM, 'openCreateAmendmentModal'), /<textarea id="am-note"[^>]*>\$\{_famEsc\(S\.note\)\}<\/textarea>/);
   });
 });
 

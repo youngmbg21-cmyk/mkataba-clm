@@ -437,7 +437,9 @@ describe('f193 · the word that had to change', () => {
     const I = require('../js/i18n.js');
     assert.equal(I.STRINGS.en.fa_add_amendment, undefined, 'gone from English');
     assert.equal(I.STRINGS.sv.fa_add_amendment, undefined, 'and from Swedish');
-    assert.equal(I.STRINGS.en.fa_link_existing, 'Link an existing document');
+    /* Renamed by the owner's work order (O-9, 7 Oct 2026): it adds a document
+       already signed elsewhere, and says so. */
+    assert.equal(I.STRINGS.en.fa_link_existing, 'Add a signed document');
     assert.ok(I.STRINGS.sv.fa_link_existing, 'in both languages');
     assert.ok(!/fa_add_amendment/.test(SRC), 'and nothing still asks for it');
   });

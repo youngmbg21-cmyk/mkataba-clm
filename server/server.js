@@ -2858,6 +2858,7 @@ const AI_FEATURE_LABEL = {
   // spending never lands in the Other bucket the way conversion's once did.
   brief: 'Contract brief',
   renewal: 'Renewal adviser',   // W2-4
+  amend: 'Amendment drafting',  // work order O-12, named on arrival
   /* The template builder's outline (Prompt & Build). Named on arrival for
      the reason conversion's absence taught: an unnamed feature spends into
      the Other bucket, where the one figure an admin wants is unreadable.
@@ -8022,6 +8023,86 @@ Quote the clause each came from. Return via list_obligations.\n\nDOCUMENT:\n${ai
        screen prints the first as a fact about the contract. */
     if (!list.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could list the obligations. Try again.' });
     res.json({ obligations: list, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ---------- DRAFTING AN AMENDMENT FROM A SENTENCE (7 Oct 2026, O-12) ----------
+   The person says what should change; Copilot reads the SIGNED agreement and
+   returns, per affected clause, the signed wording QUOTED, the amended
+   wording, and the record facts that would move. Nothing is filed here: the
+   browser shows the proposal and the person presses Create, which files
+   through createAmendment like every other draft.
+
+   THE QUOTE IS CHECKED, NOT TRUSTED. A replace or delete whose quote of the
+   signed wording does not appear in the agreement (whitespace and case
+   folded) is dropped and counted, so the screen can say so — a proposal
+   resting on words the contract does not contain is never shown as one. */
+const amendNorm = t => String(t || '').toLowerCase().replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/\s+/g, ' ').trim();
+app.post('/api/ai/amend', auth, rlAiDeep, aiFeature('amend'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const { text, ask, facts } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  if (!ask || typeof ask !== 'string' || !ask.trim()) return res.status(400).json({ error: 'Say what should change.' });
+  const tool = {
+    name: 'draft_amendment',
+    description: 'Propose the clause-by-clause changes an amendment needs to make what the person asked.',
+    input_schema: { type: 'object', properties: {
+      kind: { type: 'string', enum: ['amendment', 'renewal', 'addendum', 'variation', 'sow', 'annex', 'side-letter'],
+        description: 'The kind of document this is. Changing existing terms is an amendment; extending the term only can be a renewal.' },
+      items: { type: 'array', maxItems: 12, items: { type: 'object', properties: {
+        clauseNumber: { type: 'string', description: 'The clause number as the agreement prints it, e.g. "3.1". Empty for a new clause with no number.' },
+        clauseLabel: { type: 'string', description: 'The clause number and heading as printed, e.g. "3.1 Term".' },
+        op: { type: 'string', enum: ['replace', 'insert', 'delete'] },
+        signed: { type: 'string', description: 'For replace or delete: the CURRENT wording of that clause, quoted verbatim from the document.' + AI_QUOTE_RULE },
+        amended: { type: 'string', description: 'For replace or insert: the full new wording of the clause, in the same style as the agreement.' },
+        why: { type: 'string', description: 'One short plain sentence: what this item changes.' },
+      }, required: ['op'] } },
+      facts: { type: 'object', description: 'Record facts the amendment would change once signed; leave a field empty when it does not change.', properties: {
+        expiry: { type: 'string', description: 'New end date, ISO yyyy-mm-dd, or empty.' },
+        value: { type: 'number', description: 'New annual value as a number in the contract currency, or 0.' },
+        effectiveDate: { type: 'string', description: 'When the changes take effect, ISO yyyy-mm-dd, or empty.' },
+      } },
+      mentions: { type: 'array', maxItems: 5, items: { type: 'object', properties: {
+        clause: { type: 'string', description: 'Another clause or schedule that mentions the same thing, e.g. "Schedule 2, Price list".' },
+        why: { type: 'string', description: 'Why the person should check it, in a few words.' },
+      } } },
+    }, required: ['items'] },
+  };
+  const f = facts && typeof facts === 'object' ? facts : {};
+  const prompt = `A signed agreement needs an amendment. The person responsible wrote what should change:
+
+"${String(ask).slice(0, 2000)}"
+
+Read the WHOLE agreement below and propose the smallest set of clause changes that does exactly that and nothing more. For each changed clause quote its CURRENT wording verbatim and give the full new wording in the agreement's own style. Use a new clause only where no existing clause covers the change. Do not change anything the person did not ask for. Name any other clause or schedule that mentions the same thing (a price list, a defined term) so they can check it. Fill the record facts only where the change moves them.
+
+Current record facts: end date ${String(f.expiry || 'unknown')}, value ${Number(f.value) || 'unknown'}${f.currency ? ' ' + String(f.currency).slice(0, 5) : ''}.
+
+Return via draft_amendment.\n\nAGREEMENT:\n${aiDocText(req, text)}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'draft_amendment' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'amend', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const inp = block.input || {};
+    const body = amendNorm(text);
+    let dropped = 0;
+    const items = (Array.isArray(inp.items) ? inp.items : []).filter(it => {
+      if (!it || !['replace', 'insert', 'delete'].includes(it.op)) { dropped++; return false; }
+      if (it.op === 'insert') return !!String(it.amended || '').trim() || (dropped++, false);
+      const q = amendNorm(it.signed);
+      if (!q || body.indexOf(q) < 0) { dropped++; return false; }
+      if (it.op === 'replace' && !String(it.amended || '').trim()) { dropped++; return false; }
+      return true;
+    }).map(it => ({ clauseNumber: String(it.clauseNumber || '').slice(0, 20), clauseLabel: String(it.clauseLabel || '').slice(0, 200),
+      op: it.op, signed: String(it.signed || '').slice(0, 4000), amended: String(it.amended || '').slice(0, 4000), why: String(it.why || '').slice(0, 300) }));
+    if (!items.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could draft the amendment. Try again.' });
+    const fx = inp.facts && typeof inp.facts === 'object' ? inp.facts : {};
+    const isoOk = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
+    res.json({ kind: inp.kind || null, items, dropped, truncated: !!resp.truncated,
+      facts: { expiry: isoOk(fx.expiry), value: Number(fx.value) > 0 ? Number(fx.value) : 0, effectiveDate: isoOk(fx.effectiveDate) },
+      mentions: (Array.isArray(inp.mentions) ? inp.mentions : []).slice(0, 5).map(m => ({ clause: String((m && m.clause) || '').slice(0, 120), why: String((m && m.why) || '').slice(0, 160) })),
+      ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 

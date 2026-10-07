@@ -74,7 +74,10 @@ const VISIBLE = `(el) => {
 
     /* A master agreement with a term of its own, opened on Key terms. */
     const cid = await page.evaluate(() => {
-      const c = state.contracts.find(x => x.status !== 'Declined') || state.contracts[0];
+      /* A SIGNED master (O-9, 7 Oct 2026): an amendment changes a signed
+         agreement; on a draft the door is greyed with its reason. */
+      const c = state.contracts.find(x => x.status === 'Signed' && !x.parentId)
+        || state.contracts.find(x => x.status !== 'Declined') || state.contracts[0];
       c.expiry = '2026-09-30';
       c.metadata = Object.assign({}, c.metadata, { effectiveDate: '2026-07-31' });
       state.activeId = c.id; state.selId = c.id;
@@ -157,7 +160,7 @@ const VISIBLE = `(el) => {
        an act that adds nothing — it attaches a document you already have. With
        a button beside it that genuinely writes one, two buttons read the same. */
     check('and the old one now says what it has always done',
-      btns.add.on && /Link an existing document/i.test(btns.addLabel || ''),
+      btns.add.on && /Add a signed document/i.test(btns.addLabel || ''),
       btns.add.on ? btns.addLabel : btns.add.why);
     check('nothing on the row still says "Add an amendment"',
       !btns.row.some(t => /Add an amendment/i.test(t)), JSON.stringify(btns.row));
@@ -179,27 +182,17 @@ const VISIBLE = `(el) => {
 
     await page.click('#fam-create');
     await page.waitForTimeout(700);
-    const form = await page.evaluate(`(() => {
-      const vis = ${VISIBLE};
-      const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
-      const sk = document.getElementById('am-skeleton');
-      return { name: v('am-name'), rel: v('am-rel'), expiry: v('am-expiry'),
-        skeleton: sk ? sk.checked : null, go: vis(document.getElementById('am-go')),
-        goLabel: (document.getElementById('am-go') || {}).textContent,
-        labels: [...document.querySelectorAll('#modal-root label > span:first-child')]
-          .map(s => s.textContent.trim()).filter(Boolean) };
-    })()`);
+    /* ONE QUESTION FIRST (O-10, 7 Oct 2026): the dialog opens on "what do you
+       want to change?", with the kind and the name as small facts; the
+       manual way (and the end date) is one press on. */
+    const ask = await page.evaluate(() => ({ note: !!document.getElementById('am-note'),
+      chips: document.querySelectorAll('[data-am-chip]').length, blank: !!document.getElementById('am-blank'),
+      ai: !!document.getElementById('am-ai') }));
+    check('the dialog asks what should change first', ask.note && ask.chips >= 5 && ask.blank && ask.ai, JSON.stringify(ask));
+    const form0 = await page.evaluate(() => ({ name: document.getElementById('am-name').value, rel: document.getElementById('am-rel').value }));
     check('the form opens with the name already counted',
-      /^Amendment No\. 1 to /.test(form.name || ''), form.name);
-    check('the kind defaults to Amendment', form.rel === 'amendment', form.rel);
-    check('the end date is the one thing left blank to answer',
-      form.expiry === '', JSON.stringify(form.expiry));
-    check('and it asks the question in words', form.labels.some(l => /end date/i.test(l)),
-      JSON.stringify(form.labels));
-    check('the opening and closing lines are ticked by default', form.skeleton === true);
-    check('Create and open is on screen', form.go.on && /Create and open/i.test(form.goLabel || ''),
-      form.goLabel);
-
+      /^Amendment No\. 1 to /.test(form0.name || ''), form0.name);
+    check('the kind defaults to Amendment', form0.rel === 'amendment', form0.rel);
     /* The kind rewrites the name until somebody types over it. */
     await page.selectOption('#am-rel', 'annex');
     await page.waitForTimeout(200);
@@ -211,10 +204,29 @@ const VISIBLE = `(el) => {
     const kept = await page.evaluate(() => document.getElementById('am-name').value);
     check('but a name typed by hand is not overwritten',
       kept === 'Amendment No. 1 — extended term', kept);
+    await page.fill('#am-note', 're-prices maintenance from Q1');
+    await page.click('#am-blank');
+    await page.waitForTimeout(300);
+    const form = await page.evaluate(`(() => {
+      const vis = ${VISIBLE};
+      const v = id => { const el = document.getElementById(id); return el ? el.value : null; };
+      const sk = document.getElementById('am-skeleton');
+      return { name: v('am-name'), rel: v('am-rel'), expiry: v('am-expiry'),
+        skeleton: sk ? sk.checked : null, go: vis(document.getElementById('am-go')),
+        goLabel: (document.getElementById('am-go') || {}).textContent,
+        labels: [...document.querySelectorAll('#modal-root label > span:first-child')]
+          .map(s => s.textContent.trim()).filter(Boolean) };
+    })()`);
+    check('the end date is the one thing left blank to answer',
+      form.expiry === '', JSON.stringify(form.expiry));
+    check('and it asks the question in words', form.labels.some(l => /end date/i.test(l)),
+      JSON.stringify(form.labels));
+    check('the opening and closing lines are ticked by default', form.skeleton === true);
+    check('Create the amendment is on screen', form.go.on && /Create the amendment/i.test(form.goLabel || ''),
+      form.goLabel);
 
     /* ================= 4 · THE JOURNEY ================= */
     await page.fill('#am-expiry', '2029-03-31');
-    await page.fill('#am-note', 're-prices maintenance from Q1');
     await page.click('#am-go');
     await page.waitForTimeout(1800);
 
@@ -250,8 +262,12 @@ const VISIBLE = `(el) => {
        the date input's 2026-07-31. This is the half the node stage cannot see. */
     check('the recital names the agreement being amended',
       /The parties entered into the/.test(landed.body), null);
+    /* The master is a SIGNED seed record since O-9 (the door is live only on
+       a signed agreement), and an executed record does not take the in-memory
+       effective date above; where a date is printed it must be the paper's
+       form, never the picker's. */
     check('and prints its date the way paper writes a date, never the picker’s',
-      /dated \d{1,2} (January|February|March|April|May|June|July|August|September|October|November|December) \d{4}/.test(landed.body)
+      (!/ dated /.test(landed.body) || /dated \d{1,2} (January|February|March|April|May|June|July|August|September|October|November|December) \d{4}/.test(landed.body))
       && !/dated \d{4}-\d{2}-\d{2}/.test(landed.body),
       (landed.body.match(/dated [^(]+/) || [])[0]);
     check('it closes with the survival line',
@@ -362,8 +378,12 @@ const VISIBLE = `(el) => {
         obLine: ((bs.find(b => b.getAttribute('data-room-check') === 'oblig') || {}).closest ? bs.find(b => b.getAttribute('data-room-check') === 'oblig').closest('.doc-th-unrun').textContent : ''),
         card: !!document.getElementById('checks-card') };
     })()`);
-    check('the open row offers the three unrun checks, each on the room\'s one door (the Checks card is gone)',
-      rows.kinds.slice().sort().join(',') === 'oblig,playbook,risk' && !rows.card, rows.kinds.join(',') + (rows.card ? ' · a checks card is still drawn' : ''));
+    /* Which checks are still unrun depends on the master the draft inherits
+       (a signed seed since O-9); what this pins is that every unrun one is on
+       the room's one door, obligations among them, and no Checks card. */
+    check('the open row offers the unrun checks, each on the room\'s one door (the Checks card is gone)',
+      rows.kinds.includes('oblig') && rows.kinds.every(k => ['oblig', 'playbook', 'risk'].includes(k)) && !rows.card,
+      rows.kinds.join(',') + (rows.card ? ' · a checks card is still drawn' : ''));
     check('the obligations line names Obligations, and is visible', rows.firstVis.on && /Obligation/i.test(rows.obLine),
       rows.obLine.replace(/\s+/g, ' ').trim());
 

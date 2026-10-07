@@ -9634,6 +9634,16 @@
   .pg-sheet.pg-sign .rl-sigline.pg-mine.pg-flag-right[data-pg-flag]::before{left:auto;right:-80px;
     padding-left:0;padding-right:9px;justify-content:flex-end;
     clip-path:polygon(16% 0,100% 0,100% 100%,16% 100%,0 50%)}
+  /* ---- THE AGREEMENT AS AMENDED (7 Oct 2026, O-17): a reading copy. Struck
+     words in the one red ink of every crossed-out word, new words in the
+     accent, each change labelled with the amendment it came from. */
+  .am-read .am-h{font-family:var(--font-doc);font-size:calc(15px * var(--doc-scale,1));font-weight:600;margin:16px 0 4px;color:var(--color-doc-text)}
+  .am-read .am-p{font-family:var(--font-doc);font-size:calc(14px * var(--doc-scale,1));line-height:1.65;margin:0 0 8px;color:var(--color-doc-text)}
+  .am-read .am-del{color:var(--rl-del-ink,var(--st-ruby-fg));text-decoration:line-through}
+  .am-read .am-ins{color:var(--accent-ink);text-decoration:underline;text-decoration-color:var(--accent-fill);text-underline-offset:2px}
+  .am-read .am-tag{display:inline-block;margin-left:6px;font-family:var(--font-body);font-size:var(--t-label);line-height:1.4;padding:0 6px;border-radius:var(--radius);background:var(--color-accent-50);color:var(--accent-ink);white-space:nowrap}
+  .am-read .am-foot{margin-top:18px;font-family:var(--font-body);font-size:var(--t-label);color:var(--color-neutral-600)}
+  .seg-am .ui-btn[aria-pressed="true"]{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong)}
   /* ---- A SIGNATURE GIVEN IS ON THE PAPER (7 Oct 2026, O-1) ----
      pagesSignMarks paints the mark into its party's box after the paper is
      drawn: the box becomes the signed line itself, the mark sitting on it, and
