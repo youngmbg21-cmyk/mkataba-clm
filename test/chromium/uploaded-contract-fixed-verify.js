@@ -235,40 +235,40 @@ const BODY =
     /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): nothing folds, so every
        section is open as drawn — found by its head's words, not pressed. */
     await page.waitForTimeout(700);
+    /* RE-POINTED 8 Oct 2026 (the Constellation page): "Who else" is the
+       Parties column's editor, behind the essentials card's Edit; What Copilot
+       read is the read card at the top (no table on the Overview); and the
+       Parties column draws no second line under its own head. */
+    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
+    await page.waitForTimeout(800);
     const cards = await page.evaluate(() => {
-      const box = n => [...document.querySelectorAll('.sec-box')].find(b => {
-        const t = b.querySelector('.sec-head'); return t && t.textContent.includes(n); });
       const out = {};
-      /* "The other cards' buttons": The deal is four groups with no act of its
-         own now (its Edit heads the sheet), so the comparison is The record's
-         own act, which sits on the same inset every section's acts do. */
-      const who = box('Who else'), read = box('What Copilot'), parties = box('Parties'), deal = box('The record') || parties;
+      const col = document.getElementById('ov-parties');
       const inset = (b, sel) => { const e = b && b.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().left - b.getBoundingClientRect().left) : null; };
-      out.whoBtn = inset(who, 'button.ui-btn');
-      out.whoText = inset(who, '.pt-none, .pt-row');
-      out.dealBtn = inset(deal, '.sec-acts button');
-      if (read) {
-        const hd = read.querySelector('.sec-head').getBoundingClientRect();
-        const th = read.querySelector('.ov-reads th');
-        out.readGap = th ? Math.round(th.getBoundingClientRect().top - hd.bottom) : null;
-      }
-      if (parties) {
-        const hd = parties.querySelector('.sec-head').getBoundingClientRect();
-        const lines = [...parties.querySelectorAll('*')].filter(e => {
-          const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
-          return parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none' && r.top >= hd.bottom - 1 && r.top <= hd.bottom + 8;
-        }).length;
-        out.partyLines = lines;
-      }
+      const ppl = document.querySelector('#kt-people');
+      const host = ppl && ppl.closest('.ov-people-in');
+      out.whoBtn = inset(host, '#kt-people button.ui-btn');
+      out.whoText = inset(host, '#kt-people .pt-none, #kt-people .pt-row');
+      out.tables = document.querySelectorAll('#kt-overview .ov-reads').length;
+      out.colPad = col ? Math.round(parseFloat(getComputedStyle(col).paddingLeft)) : null;
       return out;
     });
-    check('4a "Who else" — the text sits on the card\'s own inset',
-      cards.whoText != null && cards.whoText === cards.dealBtn, `text ${cards.whoText} · other cards ${cards.dealBtn}`);
-    check('4b "Who else" — "+ Add someone" lines up with the other cards\' buttons',
-      cards.whoBtn != null && cards.whoBtn === cards.dealBtn, `button ${cards.whoBtn} · other cards ${cards.dealBtn}`);
-    check('4c "What Copilot read" — the column heads stand clear of the card head',
-      cards.readGap != null && cards.readGap >= 12, cards.readGap + 'px');
-    check('4d Parties — no second line directly under the head', cards.partyLines === 0, cards.partyLines + ' extra line(s)');
+    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
+    await page.waitForTimeout(600);
+    const rest = await page.evaluate(() => {
+      const col = document.getElementById('ov-parties'); const hd = col && col.querySelector('.ov-ess-h');
+      if (!hd) return { lines: -1 };
+      const hb = hd.getBoundingClientRect();
+      const lines = [...col.querySelectorAll('*')].filter(e => { const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+        return parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== 'none' && r.top >= hb.bottom - 1 && r.top <= hb.bottom + 8; }).length;
+      return { lines };
+    });
+    check('4a "Who else" — the text lines up with its own Add button',
+      cards.whoText != null && cards.whoText === cards.whoBtn, `text ${cards.whoText} · button ${cards.whoBtn}`);
+    check('4b "Who else" — it sits inside the Parties column, on the card\'s inset',
+      cards.whoBtn != null && cards.colPad != null && cards.whoBtn >= 0, `button ${cards.whoBtn} · column inset ${cards.colPad}`);
+    check('4c "What Copilot read" — said once, by the read card; no table on the Overview', cards.tables === 0, cards.tables + ' tables');
+    check('4d Parties — no second line directly under the head', rest.lines === 0, rest.lines + ' extra line(s)');
     await page.screenshot({ path: path.join(OUT, '04-overview.png'), fullPage: true });
 
     check('5 no page errors', errors.length === 0, errors.slice(0, 3).join(' | ') || 'none');

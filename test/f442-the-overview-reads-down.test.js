@@ -7,15 +7,15 @@
    for the "HaTi read this contract" strip at the top, no "In brief" paragraph,
    no contents list, and a Read the brief button at the start of the card.
 
-   What this pins:
-     · the deal is four groups, and every field of both lists lands in
-       EXACTLY ONE of them — nothing that was on the card left the page
-     · nothing on the sheet folds (no section carries a key)
-     · each group's answer is built from the record, escapes what it quotes,
-       and says nothing the record does not hold
+   What this pins (re-pointed 8 Oct 2026, the Constellation page):
+     · the essentials card holds every fixed term once, in the mock-up's
+       order, occasional terms only where answered, every one a box in Edit
+     · nothing on the page folds (no section carries a key)
+     · the map is drawn from stored facts only — value and terms, who pays
+       from a duty or the roles (never guessed), each side's duties
+     · the map is the mock-up's picture; its panel holds the map card's height
      · Read the brief is the brief card's own door, not a new act
-     · the timeline is drawn only where both dates exist and run forwards
-     · one Edit turns both postures on and off
+     · one Edit turns both postures on and off; filing opens on the ⋯ row
 
    Run: node --test test/f442-the-overview-reads-down.test.js */
 const { test, describe } = require('node:test');
@@ -54,44 +54,43 @@ const supply = () => ({ id: 'MK-442', name: 'Cold-chain logistics', status: 'Dra
   fields: { effDate: '2025-03-01' }, expiry: '2027-02-28',
   metadata: { paymentTerms: '45 days from invoice', noticePeriodDays: 90 } });
 
-describe('f442 (1) four questions, and every field answers one of them', () => {
-  test('each field of both lists is in exactly one group', () => {
+/* RE-POINTED IN PLACE 8 Oct 2026: Young picked the Constellation ("it should
+   be exactly as designed in the mock up"), then: "Bring this back" — the
+   essentials card. The four groups (OV_READ_GROUPS) and their sentences
+   (ovSayOf) are STALE; the terms are ONE grid on the essentials card, in the
+   mock-up's order (OV_ESS_FIELDS), and every claim the groups carried —
+   nothing left the page, occasional terms only where answered, every field a
+   box in the edit posture — is carried here. */
+describe('f442 (1) the essentials card holds every term, once', () => {
+  test('each fixed term is in the essentials order exactly once', () => {
     const { win } = ovWorld();
     const seen = new Map();
-    for (const g of win.OV_READ_GROUPS) {
-      for (const k of g.deal.concat(g.also)) seen.set(k, (seen.get(k) || 0) + 1);
-    }
-    for (const k of win.OV_DEAL_FIELDS.concat(win.OV_ALSO_FIELDS))
-      assert.equal(seen.get(k), 1, k + ' is drawn once, in one group');
-    assert.equal(seen.size, win.OV_DEAL_FIELDS.length + win.OV_ALSO_FIELDS.length,
-      'and no group names a field the lists do not have');
-    for (const g of win.OV_READ_GROUPS) {
-      for (const k of g.deal) assert.ok(win.OV_DEAL_FIELDS.includes(k), k + ' is a fixed term');
-      for (const k of g.also) assert.ok(win.OV_ALSO_FIELDS.includes(k), k + ' is an occasional term');
-    }
+    for (const k of win.OV_ESS_FIELDS) seen.set(k, (seen.get(k) || 0) + 1);
+    for (const k of win.OV_DEAL_FIELDS) assert.equal(seen.get(k), 1, k + ' is drawn once');
+    assert.equal(seen.size, win.OV_DEAL_FIELDS.length, 'and no term the list does not have');
   });
 
-  test('the groups are drawn in the order a person asks', () => {
+  test('the order is the mock-up\'s: what it is and its law, then dates, then money, then exposure', () => {
     const { win } = ovWorld();
-    assert.deepEqual(win.OV_READ_GROUPS.map(g => g.key), ['what', 'money', 'dates', 'risk']);
+    assert.deepEqual(win.OV_ESS_FIELDS.slice(0, 3), ['contractType', 'governingLaw', 'disputes']);
+    assert.ok(win.OV_ESS_FIELDS.indexOf('effDate') < win.OV_ESS_FIELDS.indexOf('value'));
+    assert.ok(win.OV_ESS_FIELDS.indexOf('paymentTerms') < win.OV_ESS_FIELDS.indexOf('liabilityCapped'));
     const html = win.ktOverviewTermsHtml(supply(), { editable: true });
     const at = id => html.indexOf('id="' + id + '"');
-    const order = ['ov-what', 'ov-money', 'ov-dates', 'ov-risk', 'ov-record'];
-    order.forEach(id => assert.ok(at(id) > 0, id + ' is on the sheet'));
-    for (let i = 1; i < order.length; i++)
-      assert.ok(at(order[i - 1]) < at(order[i]), order[i - 1] + ' reads before ' + order[i]);
+    ['kt-ov-brief', 'ov-ess', 'ov-parties', 'ov-facts'].forEach(id => assert.ok(at(id) >= 0, id + ' is drawn'));
+    assert.ok(at('kt-ov-brief') < at('ov-ess') && at('ov-parties') < at('ov-facts'),
+      'Read the brief first, then the parties beside the terms');
   });
 
-  test('an occasional term is drawn only where answered, in its own group', () => {
+  test('an occasional term is drawn only where answered', () => {
     const { win } = ovWorld();
     const c = supply();
     let html = win.ktOverviewTermsHtml(c, { editable: false });
     assert.ok(!html.includes(win.ovMetaLabel('exclusivity')), 'unanswered, it is absent');
     c.metadata.exclusivity = 'exclusive';
     html = win.ktOverviewTermsHtml(c, { editable: false });
-    const risk = html.slice(html.indexOf('id="ov-risk"'), html.indexOf('id="ov-parties"') > 0
-      ? html.indexOf('id="ov-parties"') : html.indexOf('id="ov-record"'));
-    assert.ok(risk.includes(win.ovMetaLabel('exclusivity')), 'answered, it is under Risks');
+    const facts = html.slice(html.indexOf('id="ov-facts"'));
+    assert.ok(facts.includes(win.ovMetaLabel('exclusivity')), 'answered, it is among the terms');
   });
 
   test('the edit posture still makes every field a box', () => {
@@ -104,8 +103,24 @@ describe('f442 (1) four questions, and every field answers one of them', () => {
       .map(b => b.split('"')[1]));
     for (const k of win.OV_DEAL_FIELDS.concat(win.OV_ALSO_FIELDS)) {
       if (win.OV_DERIVED_FIELDS.has(k)) continue;
-      assert.ok(names.has(k), k + ' can be typed on the sheet');
+      assert.ok(names.has(k), k + ' can be typed on the card');
     }
+  });
+
+  test('the filing rows open only when asked (the ⋯ row, Edit, or a field the signing list points at)', () => {
+    const { win } = ovWorld();
+    const c = supply();
+    assert.ok(!/id="ov-record"/.test(win.ktOverviewTermsHtml(c, { editable: true })), 'at rest the filing is not on the page');
+    win.ovSetEditing(`kt.${c.id}.record`, true);
+    const html = win.ktOverviewTermsHtml(c, { editable: true });
+    win.ovSetEditing(`kt.${c.id}.record`, false);
+    assert.ok(/id="ov-record"/.test(html) && /id="kt-rows-record"/.test(html), 'opened, its rows are there');
+    const open = strip(fnBody(CONTRACT, 'ovOpenFiling'));
+    assert.ok(/ovSetEditing\(OV_KEY\(c,'record'\), true\)/.test(open) && /roomGoTab\(c,'terms'\)/.test(open),
+      'the ⋯ row turns the same posture on and goes to the Overview');
+    assert.ok(/id="ws-filing"/.test(CONTRACT) && /ws-filing'\)\?\.addEventListener\('click',\(\)=>ovOpenFiling\(c\)\)/.test(CONTRACT),
+      'the row is on the room\'s ⋯ menu');
+    assert.ok(/headAct\('ws-filing'/.test(read('js/views/negotiation.js')), 'and answered on the negotiate page too');
   });
 });
 
@@ -114,7 +129,7 @@ describe('f442 (2) nothing on the sheet folds', () => {
     for (const fn of ['ktOverviewTermsHtml', 'renderKeyTermsSide']) {
       const b = strip(fnBody(CONTRACT, fn));
       const calls = b.split('sectionHtml({').slice(1);
-      assert.ok(calls.length >= 2, fn + ' draws sections');
+      assert.ok(calls.length >= 1, fn + ' draws sections');
       for (const c of calls) assert.ok(!/^\s*key:|[,{]\s*key:/.test(c.slice(0, 160)),
         fn + ' draws a section with no fold: ' + c.slice(0, 80));
     }
@@ -137,83 +152,155 @@ describe('f442 (2) nothing on the sheet folds', () => {
   });
 });
 
-describe('f442 (3) each group answers from the record, and says no more', () => {
-  test('money: the value and the payment terms, in one sentence', () => {
-    const { win } = ovWorld();
-    const say = win.ovSayOf(supply(), 'money');
-    assert.ok(say.includes('<b>KES 18,400,000</b>'), 'the value, set bold: ' + say);
-    assert.ok(say.includes('45 days from invoice'), 'the terms, in their own words');
+/* ============================================================================
+   (3)(4) THE CONSTELLATION (8 Oct 2026). Every line on the map is a stored
+   fact: the value and terms (where money passes), who pays read from a duty
+   to pay and then from the parties' roles — never guessed — and each side's
+   recorded duties. The panel beside the map holds the map card's height.
+   ==========================================================================*/
+const mapWorld = () => { const w = ovWorld(); w.win.todayISO = () => '2026-01-15'; return w; };
+const withParties = (c, us, them) => Object.assign(c, { counterparty: them.name,
+  parties: [Object.assign({ id: 'py_us', side: 'ours' }, us), Object.assign({ id: 'py_th', side: 'theirs' }, them)] });
+
+describe('f442 (3) the map is drawn from stored facts', () => {
+  test('money: who pays is read from a duty to pay first', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'Highland' }, { name: 'Juno' });
+    c.obligations = [{ id: 'o1', desc: 'Pay the monthly invoice', due: '2026-02-15', party: 'ours', status: 'open' }];
+    const D = win.ovMapData(c);
+    const m = D.flows.find(f => f.kind === 'money');
+    assert.ok(m && m.a === 'p0' && m.b === 'p1' && m.dir, 'we pay them, and the line moves');
+    c.obligations[0].party = 'theirs';
+    const m2 = win.ovMapData(c).flows.find(f => f.kind === 'money');
+    assert.ok(m2.a === 'p1' && m2.b === 'p0', 'they pay us');
   });
 
-  test('money: an agreement with no money says so', () => {
-    const { win } = ovWorld();
-    const c = supply(); c.valueType = 'none';
-    assert.equal(win.ovSayOf(c, 'money'), win.i18t('ov_say_no_money'));
+  test('money: then from the roles; where neither says, the line stands still and says so', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'Highland', role: 'Supplier' }, { name: 'Juno', role: 'Customer' });
+    let m = win.ovMapData(c).flows.find(f => f.kind === 'money');
+    assert.ok(m.a === 'p1' && m.dir, 'a customer pays its supplier');
+    const d = withParties(supply(), { name: 'Highland' }, { name: 'Juno' });
+    m = win.ovMapData(d).flows.find(f => f.kind === 'money');
+    assert.equal(m.dir, false, 'no direction is invented');
+    assert.equal(m.l2, win.i18t('ov_map_who_pays_unknown'));
+    const svg = win.ovMapSvg(win.ovMapData(d), false);
+    assert.ok(!/<animateMotion/.test(svg), 'and nothing moves along it');
   });
 
-  test('a value is escaped, never read as markup', () => {
-    const { win } = ovWorld();
-    const c = supply(); c.metadata.paymentTerms = '<img src=x onerror=alert(1)>';
-    const say = win.ovSayOf(c, 'money');
-    assert.ok(!/<img/.test(say) && /&lt;img/.test(say), 'the terms are text: ' + say);
+  test('no money line where no money passes, or no value is on file', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'A' }, { name: 'B' });
+    c.valueType = 'none';
+    assert.ok(!win.ovMapData(c).flows.some(f => f.kind === 'money'), 'an NDA draws none');
+    const d = withParties(supply(), { name: 'A' }, { name: 'B' }); d.value = 0;
+    assert.ok(!win.ovMapData(d).flows.some(f => f.kind === 'money'), 'nor a contract with no value');
   });
 
-  test('dates: both ends, or the one the record holds, or nothing', () => {
-    const { win } = ovWorld();
-    const c = supply();
-    assert.ok(/<b>.+<\/b>.*<b>.+<\/b>/.test(win.ovSayOf(c, 'dates')), 'from and to');
-    delete c.fields.effDate;
-    assert.ok(win.ovSayOf(c, 'dates').length > 0, 'the end alone is still a sentence');
-    delete c.expiry;
-    assert.equal(win.ovSayOf(c, 'dates'), '', 'with neither, no sentence is guessed');
+  test('duties: each side\'s recorded duties, counted, with the next open one', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'Highland' }, { name: 'Juno' });
+    c.obligations = [{ id: 'o1', desc: 'Send the forecast', due: '2026-02-01', party: 'ours', status: 'open' },
+      { id: 'o2', desc: 'Deliver stock', due: '2025-12-01', party: 'theirs', status: 'open' },
+      { id: 'o3', desc: 'Old report', due: '2025-06-01', party: 'theirs', status: 'done' }];
+    const D = win.ovMapData(c);
+    const ours = D.flows.find(f => f.kind === 'duty' && f.side === 'ours');
+    const theirs = D.flows.find(f => f.kind === 'duty' && f.side === 'theirs');
+    assert.ok(ours.a === 'p0' && /1/.test(ours.l1) && ours.l2 === 'Send the forecast');
+    assert.ok(theirs.a === 'p1' && /2/.test(theirs.l1) && theirs.l2 === 'Deliver stock');
+    assert.equal(D.parties[1].worst, 'r', 'a duty past its day is late, and the badge says so');
+    assert.ok(!win.ovMapData(withParties(supply(), { name: 'A' }, { name: 'B' })).flows.some(f => f.kind === 'duty'),
+      'no duties, no duty line');
   });
 
-  test('the other groups draw no sentence of their own', () => {
-    const { win } = ovWorld();
-    assert.equal(win.ovSayOf(supply(), 'risk'), '');
-    assert.equal(win.ovSayOf(supply(), 'what'), '');
+  test('the signer under each party is read from the signing plan', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'Highland' }, { name: 'Juno' });
+    c.signerPlan = [{ id: 's1', party: 'internal', name: 'Wanjiru', signed: true, at: '2026-01-10' },
+      { id: 's2', party: 'counterparty', name: 'Daniel' }];
+    const D = win.ovMapData(c);
+    assert.deepEqual(D.parties[0].signs.map(r => r.n), ['Wanjiru']);
+    assert.ok(D.parties[0].signs[0].signed);
+    assert.deepEqual(D.parties[1].signs.map(r => r.n), ['Daniel']);
   });
 
   test('no model is asked and nothing is written', () => {
-    const b = strip(fnBody(CONTRACT, 'ovSayOf') + fnBody(CONTRACT, 'ovTimelineHtml'));
+    const b = strip(fnBody(CONTRACT, 'ovMapData') + fnBody(CONTRACT, 'ovMapSvg') + fnBody(CONTRACT, 'ovMapPane'));
     assert.ok(!/api\(|fetch\(|persist\(|logAudit|runContractBrief|anthropic/.test(b));
   });
 });
 
-describe('f442 (4) the timeline', () => {
-  test('drawn where both dates exist and run forwards', () => {
-    const { win } = ovWorld();
-    const html = win.ovTimelineHtml(supply());
-    assert.ok(/class="ov-tl"/.test(html), 'it is drawn');
-    assert.ok(/ov-tl-pt is-start/.test(html) && /ov-tl-pt is-end/.test(html), 'with both ends');
-    assert.ok(/aria-hidden="true"/.test(html), 'a picture of facts the grid prints');
+describe('f442 (4) the map is drawn as the mock-up draws it', () => {
+  test('two parties side by side, more below them, every point inside the picture', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'Highland Corporate Ltd', role: 'Buyer' }, { name: 'Juno Limited', role: 'Supplier' });
+    c.obligations = [{ id: 'o1', desc: 'Pay', due: '2026-02-15', party: 'ours', status: 'open' }];
+    for (const tall of [false, true]) {
+      const svg = win.ovMapSvg(win.ovMapData(c), tall);
+      /* PROGRESS RINGS (Young, 7 Oct 2026): one picture that fits a laptop —
+         a 380px stage, never taller. */
+      const W = tall ? 400 : 880, H = tall ? 600 : 380;
+      assert.ok(svg.includes(`viewBox="0 0 ${W} ${H}"`));
+      const xs = (svg.match(/\bc?x="(-?[\d.]+)"/g) || []).map(t => Number(t.split('"')[1]));
+      xs.forEach(v => assert.ok(v >= -120 && v <= W + 120, 'inside the picture: ' + v));
+      assert.equal((svg.match(/data-ov-map="p\d"/g) || []).length, 2, 'two party circles');
+      assert.ok(svg.includes('data-ov-map="deal"'), 'the agreement in the middle');
+    }
+    c.parties.push({ id: 'py_3', side: 'theirs', name: 'Kivu Retail', role: 'Distributor' });
+    const tri = win.ovMapSvg(win.ovMapData(c), false);
+    assert.ok(tri.includes('viewBox="0 0 880 380"') && (tri.match(/data-ov-map="p\d"/g) || []).length === 3, 'three on the same stage');
   });
 
-  test('not drawn on a missing or backwards date', () => {
-    const { win } = ovWorld();
-    const a = supply(); delete a.expiry;
-    assert.equal(win.ovTimelineHtml(a), '');
-    const b = supply(); b.expiry = '2024-01-01';
-    assert.equal(win.ovTimelineHtml(b), '');
-    const c = supply(); c.fields.effDate = 'not a date';
-    assert.equal(win.ovTimelineHtml(c), '');
+  test('each party wears a ring of its duties, coloured by state', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'A' }, { name: 'B' });
+    c.obligations = [
+      { id: 'o1', desc: 'Pay', due: '2020-01-01', party: 'ours', status: 'open' },
+      { id: 'o2', desc: 'Report', due: '2020-01-01', party: 'ours', status: 'done' },
+    ];
+    const svg = win.ovMapSvg(win.ovMapData(c), false);
+    assert.ok(/class="ov-map-seg is-r"/.test(svg), 'a late duty is a red piece of the ring');
+    assert.ok(/class="ov-map-seg is-g"/.test(svg), 'a done one green');
+    assert.ok(/ov-map-track is-empty/.test(svg), 'a side with no duties draws an empty track');
+    const many = Array.from({ length: 20 }, (_, i) => ({ s: 'g', i }));
+    assert.ok(win.ovMapRingSegs(many).length <= 4, 'past the limit pieces group by state');
+    const css = read('index.html');
+    assert.match(css, /\.ov-map-stage\{ height:380px; \}/, 'the stage has one height');
   });
 
-  test('every point is placed on the line, never off it', () => {
-    const { win } = ovWorld();
-    const lefts = (win.ovTimelineHtml(supply()).match(/left:(-?[\d.]+)%/g) || [])
-      .map(x => Number(x.slice(5, -1)));
-    assert.ok(lefts.length >= 4);
-    for (const l of lefts) assert.ok(l >= 0 && l <= 100, 'inside the line: ' + l);
+  test('two lines in the same direction never lie on each other', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'A' }, { name: 'B' });
+    c.obligations = [{ id: 'o1', desc: 'Pay the invoice', due: '2026-02-15', party: 'ours', status: 'open' }];
+    const svg = win.ovMapSvg(win.ovMapData(c), false);
+    const paths = [...svg.matchAll(/<path id="ov-mf\d" d="([^"]+)"/g)].map(m => m[1]);
+    assert.equal(paths.length, 2, 'money and our duties');
+    assert.notEqual(paths[0], paths[1], 'drawn apart');
   });
 
-  test('labels are moved after the paint, by measuring, and one watcher at a time', () => {
-    const settle = strip(fnBody(CONTRACT, 'ovTimelineSettle'));
-    assert.ok(/getBoundingClientRect/.test(settle), 'it measures');
-    const watch = strip(fnBody(CONTRACT, 'ovTimelineWatch'));
-    assert.ok(/disconnect\(\)/.test(watch), 'the old watcher stops before a new one starts');
-    assert.ok(/ovTimelineWatch\(host\)/.test(strip(fnBody(CONTRACT, 'renderKeyTerms'))),
-      'and the painter that drew the line settles it');
+  test('the panel beside the map holds the map card\'s height and scrolls', () => {
+    const html = read('index.html');
+    assert.match(html, /\.ov-map-grid\{ display:grid; grid-template-columns:minmax\(0,1fr\) 340px; gap:12px; align-items:stretch; \}/);
+    assert.match(html, /\.ov-map-pane\{[^}]*contain:size; overflow-y:auto;/, 'its words never stretch the row');
+    assert.match(html, /\.ov-map-pane\{ contain:none; height:420px; \}/, 'stacked, it keeps one height');
+    assert.ok(/pane\.scrollTop=0/.test(strip(fnBody(CONTRACT, 'ovMapWire'))), 'each new reading starts at its top');
+  });
+
+  test('the agreement\'s panel carries the renewal question, and the page wires the map where it paints it', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'A' }, { name: 'B' });
+    const pane = win.ovMapPane(c, win.ovMapData(c), 'deal');
+    assert.ok(/id="renewal-host" class="empty:hidden" data-bare="1"/.test(pane));
+    const wire = strip(fnBody(CONTRACT, 'ovMapWire'));
+    assert.ok(/renderRenewalSection\(c\)/.test(wire), 'filled when the agreement is read');
+    assert.ok(/disconnect\(\)/.test(wire) && /ovMapSvg\(D,tall\)/.test(wire), 'redrawn at the stage\'s width, one watcher at a time');
+    assert.ok(/ovMapWire\(host,c\)/.test(strip(fnBody(CONTRACT, 'renderKeyTerms'))));
+  });
+
+  test('Related agreements is the column under the map, alone', () => {
+    const side = strip(fnBody(CONTRACT, 'renderKeyTermsSide'));
+    assert.equal((side.match(/sectionHtml\(\{/g) || []).length, 1);
+    assert.ok(/id:'ov-related'/.test(side) && /id="family-section"/.test(side));
   });
 });
 
@@ -229,8 +316,8 @@ describe('f442 (5) Read the brief, and one Edit', () => {
   test('it starts the sheet, and both painters keep it current', () => {
     const terms = strip(fnBody(CONTRACT, 'ktOverviewTermsHtml'));
     assert.ok(terms.indexOf('id="kt-ov-brief"') >= 0 &&
-      terms.indexOf('id="kt-ov-brief"') < terms.indexOf('sectionHtml({'),
-      'the slot is at the top of the sheet, before any group');
+      terms.indexOf('id="kt-ov-brief"') < terms.indexOf('id="ov-ess"'),
+      'the slot is at the top of the page, before the essentials card');
     assert.ok(/paintOvBriefBtn\(c\)/.test(strip(fnBody(CONTRACT, 'renderKeyTerms'))));
     assert.ok(/paintOvBriefBtn\(c\)/.test(strip(fnBody(CONTRACT, 'renderKeyTermsSide'))));
   });
@@ -240,14 +327,14 @@ describe('f442 (5) Read the brief, and one Edit', () => {
     assert.ok(/k==='all'/.test(r), 'the sheet\'s Edit is handled');
     assert.ok(/ovSetEditing\(dk,on\); ovSetEditing\(rk,on\)/.test(r), 'and moves both');
     const terms = strip(fnBody(CONTRACT, 'ktOverviewTermsHtml'));
-    assert.equal((terms.match(/data-ov-edit=/g) || []).length, 1, 'one Edit on the sheet');
+    assert.equal((terms.match(/data-ov-edit="all"/g) || []).length, 1, 'one Edit on the page');
   });
 });
 
 describe('f442 (6) every new key is in both books', () => {
-  const KEYS = ['ov_g_what', 'ov_g_money', 'ov_g_dates', 'ov_g_risk', 'ov_say_worth',
-    'ov_say_paid', 'ov_say_no_money', 'ov_say_runs', 'ov_say_ends', 'ov_say_started',
-    'ov_say_auto', 'ov_say_notice', 'ov_tl_start', 'ov_tl_today', 'ov_tl_decide', 'ov_tl_end'];
+  const KEYS = ['ov_map_note', 'ov_ess_terms', 'ov_filing', 'ov_filing_close', 'ct_menu_filing',
+    'ov_map_this', 'ov_map_between', 'ov_map_flows_h', 'ov_map_duties_h', 'ov_map_who_pays_unknown',
+    'ov_map_owe_ours_one', 'ov_map_owe_theirs_other', 'ov_map_signed_by', 'ov_map_signs', 'ov_map_k_money', 'ov_map_k_duty'];
   test('each is declared twice', () => {
     for (const k of KEYS)
       assert.equal(I18N.split(new RegExp('\\b' + k + ':')).length - 1, 2, k + ' is in both books');

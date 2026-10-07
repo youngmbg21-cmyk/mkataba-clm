@@ -347,7 +347,9 @@ describe('f366 (G) the brief carries a reason for every concern', () => {
    ==========================================================================*/
 describe('f366 (I, J, K) the Overview cards line up', () => {
   test('I · "Who else" takes the card\'s own inset', () => {
-    assert.ok(/body:`<div class="sec-body"><div id="kt-people">\$\{people\}<\/div>\$\{ovAddressBookHtml\(addrs\)\}<\/div>`/.test(ROOM));
+    /* Re-pointed 7 Oct 2026 ("Fold them in"): the list sits inside the one
+       Parties list, and still carries the card's own inset. */
+    assert.ok(/`<div class="sec-body ov-people-in"><div id="kt-people">\$\{people\}<\/div>\$\{ovAddressBookHtml\(addrs\)\}<\/div>`/.test(ROOM));
   });
   test('J · "What Copilot read" stands its head row 14px clear of the card head', () => {
     assert.ok(/\.ov-reads\{ width:100%; border-collapse:collapse; margin:14px 0 4px;/.test(INDEX));

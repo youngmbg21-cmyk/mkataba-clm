@@ -68,8 +68,11 @@ const openSec = async (page) => { await page.waitForTimeout(300); };
    risks — read together, so every claim about "the deal card" is still asked
    of every field that card carried. */
 const SEC = (suffix) => {
-  const IDS = { deal: ['ov-what', 'ov-money', 'ov-dates', 'ov-risk'], record: ['ov-record'],
-    copilot: ['ov-copilot'], parties: ['ov-parties'], people: ['ov-people'] };
+  /* RE-POINTED 8 Oct 2026 (the Constellation page): the terms are the
+     essentials card's grid (#ov-facts), the filing opens on the ⋯ row
+     (#ov-record), and the people are inside the Parties column. */
+  const IDS = { deal: ['ov-facts'], record: ['ov-record'],
+    copilot: [], parties: ['ov-parties'], people: ['ov-parties'] };
   const ids = IDS[String(suffix).replace(/^\./, '')] || [];
   const boxes = ids.map(id => document.getElementById(id)).filter(Boolean);
   if (!boxes.length) return null;
@@ -90,6 +93,7 @@ const SEC = (suffix) => {
   });
   return {
     cells,
+    text: boxes.map(b => b.innerText || '').join(' '),
     labels: cells.map(c => c.label),
     acts,
     /* THE THING THE OWNER OBJECTED TO: an editable box inside the section. */
@@ -183,6 +187,12 @@ const SEC = (suffix) => {
       JSON.stringify(firstParty));
 
     /* ============ 1. THE RECORD IS THE ARTIFACT'S GRID ============ */
+    /* RE-POINTED 8 Oct 2026: the filing is not on the resting page — it
+       opens on the ⋯ menu's "Filing and stream" row (Young's yes). So "no
+       editable box at rest" is asked of the page before it is opened. */
+    const restRec = await page.evaluate(() => !document.getElementById('ov-record'));
+    await page.evaluate(() => { const b = document.getElementById('ws-filing'); if (b) b.click(); });
+    await page.waitForTimeout(900);
     await openSec(page, '.record');
     let rec = await page.evaluate(SEC, '.record');
     check('1a The record is drawn at all', !!rec, rec ? rec.cells.length + ' cells' : 'section missing');
@@ -192,13 +202,14 @@ const SEC = (suffix) => {
        the card keeps the ruled twelve. */
     const WANT = ['Reference', 'Counterparty', 'Their email', 'Value stream',
       'Template', 'Owner', 'Status', 'Raised', 'Signed', 'Filed by', 'Last updated'];
-    const missing = WANT.filter(w => !rec.labels.some(l => l.trim().toLowerCase() === w.toLowerCase()));
+    const missing = rec ? WANT.filter(w => !rec.labels.some(l => l.trim().toLowerCase() === w.toLowerCase())
+      && !rec.text.toLowerCase().includes(w.toLowerCase())) : WANT;
     check('1b it carries the artifact\'s filing attributes', missing.length === 0,
       missing.length ? 'missing ' + missing.join(', ') : rec.labels.length + ' cells: ' + rec.labels.join(' · '));
     /* THE FAULT THE OWNER REPORTED, stated as a measurement: not one editable
        box on the resting card. */
-    check('1c and NOT ONE editable box at rest', rec.boxes === 0 && rec.rows === 0,
-      rec.boxes + ' boxes, ' + rec.rows + ' rows');
+    check('1c and NOT ONE editable box at rest — the filing is not on the resting page at all', restRec,
+      restRec ? 'opened only by the ⋯ row' : 'drawn at rest');
     /* A GRID IS COLUMNS, and only a painted page knows that: four cells
        sharing one top edge is the artifact's four-column row. */
     const topRow = rec.cells.filter(x => x.y === rec.cells[0].y).length;
@@ -216,7 +227,7 @@ const SEC = (suffix) => {
     /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down, owner's yes): ONE Edit for
        the whole sheet, at its head, instead of one per card. */
     const topEdit = await page.evaluate(() => {
-      const b = document.querySelector('#kt-overview .ov-top [data-ov-edit="all"]');
+      const b = document.querySelector('#kt-overview #ov-ess [data-ov-edit="all"]');
       const r = b && b.getBoundingClientRect();
       return b ? { text: (b.textContent || '').trim(), w: Math.round(r.width), h: Math.round(r.height) } : null;
     });
@@ -225,6 +236,9 @@ const SEC = (suffix) => {
       JSON.stringify(topEdit) + ' · record acts: ' + actNames);
     check('2b Move to another stream is on it, as real pixels',
       rec.acts.some(a => /move to another stream/i.test(a.text) && a.w > 2 && a.h > 2), actNames);
+    /* Closed again by its own Close, so the page is back at rest for 3. */
+    await page.evaluate(() => { const x = document.querySelector('#ov-record .sec-acts [data-ov-edit]:not([data-ov-edit="all"])'); if (x) x.click(); });
+    await page.waitForTimeout(600);
 
     /* ============ 3. THE DEAL CARRIES ITS FOUR AS CELLS ============ */
     let deal = await page.evaluate(SEC, '.deal');
@@ -274,6 +288,8 @@ const SEC = (suffix) => {
       dealBack.boxes + ' boxes, ' + dealBack.labels.length + ' cells');
 
     /* ============ 5. MOVE TO ANOTHER STREAM LANDS ON THE PICKER ============ */
+    await page.evaluate(() => { const b = document.getElementById('ws-filing'); if (b) b.click(); });
+    await page.waitForTimeout(900);
     await page.click('[data-ov-move-stream]');
     await page.waitForTimeout(900);
     const picker = await page.evaluate(() => {
@@ -367,7 +383,7 @@ const SEC = (suffix) => {
        painted amber, and whether the grid moves when a mark clears, are
        questions only a laid-out page can answer. */
     const cellAt = async (label) => page.evaluate((lab) => {
-      const f = [...document.querySelectorAll('#kt-overview :is(#ov-what,#ov-money,#ov-dates,#ov-risk) .sec-f')]
+      const f = [...document.querySelectorAll('#kt-overview #ov-facts .sec-f')]
         .find(x => ((x.querySelector('.sec-f-l') || {}).textContent || '').trim().toLowerCase() === lab);
       if (!f) return null;
       const cs = getComputedStyle(f), r = f.getBoundingClientRect();
@@ -391,9 +407,8 @@ const SEC = (suffix) => {
       !!marked && !!marked.note && marked.tag === 'BUTTON' && marked.door,
       marked ? JSON.stringify({ note: marked.note, tag: marked.tag, door: marked.door }) : 'none');
     const headChip = await page.evaluate(() => {
-      /* The value is in Money, so Money's head counts it. */
-      const h = document.querySelector('#ov-money .sec-head');
-      const chip = h && h.querySelector('.sec-chip');
+      /* The terms' head counts it (the essentials card, 8 Oct 2026). */
+      const chip = document.querySelector('#ov-facts .ov-ess-hold');
       return chip ? (chip.textContent || '').trim() : '';
     });
     check('10c the head counts the same thing', /\d/.test(headChip), headChip || 'no chip');
@@ -405,7 +420,7 @@ const SEC = (suffix) => {
        the body face against a figure in the mono one, which really is two
        pixels and is nothing to do with the mark.) */
     const lineHeights = await page.evaluate(() => {
-      const ns = [...document.querySelectorAll('#kt-overview :is(#ov-what,#ov-money,#ov-dates,#ov-risk) .sec-f-n')];
+      const ns = [...document.querySelectorAll('#kt-overview #ov-facts .sec-f-n')];
       const hold = ns.find(n => n.classList.contains('is-hold'));
       const plain = ns.find(n => !n.classList.contains('is-hold'));
       if (!hold || !plain) return null;
@@ -432,7 +447,7 @@ const SEC = (suffix) => {
     });
     await page.waitForTimeout(600);
     const asDraft = await page.evaluate(() =>
-      document.querySelectorAll('#kt-overview :is(#ov-what,#ov-money,#ov-dates,#ov-risk) .sec-f-n').length);
+      document.querySelectorAll('#kt-overview #ov-facts .sec-f-n').length);
     check('10f CONTROL — a draft keeps its old shape to the byte', asDraft === 0,
       asDraft + ' reserved lines');
 
@@ -447,8 +462,12 @@ const SEC = (suffix) => {
       window.renderKeyTerms(c);
     });
     await page.waitForTimeout(500);
+    /* RE-POINTED 8 Oct 2026: the people list is the Parties column's editor,
+       opened by the card's one Edit (the map draws the people at rest). */
+    await page.click('[data-ov-edit="all"]');
+    await page.waitForTimeout(700);
     const pplHead = await page.evaluate(() => {
-      const h = document.querySelector('#ov-people .sec-head');
+      const h = document.querySelector('#ov-parties #kt-people') && document.querySelector('#ov-parties .ov-ess-h');
       if (!h) return null;
       return (h.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60);
     });
@@ -490,13 +509,15 @@ const SEC = (suffix) => {
       !!said && said.access && said.stored === 1,
       said ? 'access box ' + said.access + ' \u00b7 ' + said.stored + ' on the record' : 'none');
 
-    /* ============ 6. WHAT COPILOT READ IS ONE TABLE OF FIVE ============ */
-    await openSec(page, '.copilot');
-    const cop = await page.evaluate(SEC, '.copilot');
-    check('6a every reading is one table of five rows', cop && cop.readRows === 5,
-      cop ? cop.readRows + ' rows' : 'section missing');
-    check('6b each carries the date it was made', cop && cop.readDates === 5, cop && cop.readDates + ' date cells');
-    check('6c and a door into it where there is one', cop && cop.readDoors >= 4, cop && cop.readDoors + ' doors');
+    await page.click('[data-ov-edit="all"]');
+    await page.waitForTimeout(700);
+    /* ============ 6. WHAT COPILOT READ IS THE READ CARD NOW ============
+       RE-POINTED 8 Oct 2026 (the Constellation page, Young's yes): the table
+       of five readings left the Overview; the read card at the top carries
+       the same five. The claim kept is that there is ONE place, not two. */
+    const cop = await page.evaluate(() => ({ table: document.querySelectorAll('#kt-overview .ov-reads').length }));
+    check('6a what Copilot read is said once — no second table on the Overview', cop.table === 0,
+      cop.table + ' tables');
 
     /* ═══ 8 · THE NAME OF A FIELD IS NOT BOLD; ITS ANSWER IS ═══
        (Young ruled 20 Sep 2026: "the names of the fields are currently in bold
@@ -504,7 +525,7 @@ const SEC = (suffix) => {
        should stay in black bold letters.") Measured as PAINTED WEIGHTS — the
        source reads a token either way. */
     const ty = await page.evaluate(() => {
-      const box = document.getElementById('ov-money');
+      const box = document.getElementById('ov-facts');
       if (!box) return null;
       const f = box.querySelector('.sec-fields .sec-f');
       const answered = [...box.querySelectorAll('.sec-f-v')].find(v => !v.classList.contains('is-none'));
@@ -551,47 +572,40 @@ const SEC = (suffix) => {
     await page.waitForTimeout(1400);
     await page.click('#ws-tabs [data-ws-tab="terms"]');
     await page.waitForTimeout(1200);
+    /* RE-POINTED 8 Oct 2026 (the Constellation page): the parties are the
+       essentials card's left column — one row per party at rest, the block
+       and its editors behind the card's Edit — beside the terms and above
+       the map. Every claim below is still painted pixels on a page nobody
+       has clicked. */
     const py = await page.evaluate(() => {
       const sec = document.getElementById('ov-parties');
-      const box = sec && sec.querySelector('.sec-head');
-      const blk = document.querySelector('#kt-parties');
-      const r = blk ? blk.getBoundingClientRect() : null;
-      const order = [...document.querySelectorAll('#kt-overview .sec-box[id]')]
-        .map(x => String(x.id).replace(/^ov-/, ''));
+      const rows = sec ? [...sec.querySelectorAll('.ov-pty')] : [];
+      const r = sec ? sec.getBoundingClientRect() : null;
+      const order = [...document.querySelectorAll('#kt-overview [id^="ov-"]')].map(x => String(x.id).replace(/^ov-/, ''));
       return {
-        drawn: !!blk,
-        /* PAINTED, not merely present: a rect is not a painted pixel. */
-        painted: !!(blk && getComputedStyle(blk).display !== 'none' && r.height > 0 && r.width > 0),
-        /* NOTHING FOLDS (Read Down): open means a head with no fold control
-           and a body drawn under it. */
-        open: box ? String(!box.hasAttribute('data-sec-toggle') && !!sec.querySelector('#kt-parties')) : null,
-        rows: blk ? blk.querySelectorAll('.py-row').length : 0,
+        drawn: !!sec && rows.length > 0,
+        painted: !!(sec && getComputedStyle(sec).display !== 'none' && r.height > 0 && r.width > 0),
+        open: sec ? String(!sec.querySelector('[data-sec-toggle]') && rows.length > 0) : null,
+        rows: rows.length,
         text: sec ? (sec.innerText || '').replace(/\s+/g, ' ') : '',
-        add: !!document.querySelector('.sec-acts [data-py-add]'),
-        /* NULL IS NOT ZERO: with no section there is nothing to count, and
-           reporting 0 would make 12f pass on a page that has no parties at
-           all. It says -1 so the claim can refuse it. */
+        add: !!(sec && sec.querySelector('[data-py-add]')),
         heads: sec ? sec.querySelectorAll('.py-head').length : -1,
         order,
       };
     });
     check('12a the parties are drawn on the page nobody has clicked',
-      py.drawn && py.painted, py.drawn ? ('painted ' + py.painted) : 'no #kt-parties at all');
-    check('12b and the section they are in is OPEN at rest', py.open === 'true',
-      'aria-expanded ' + py.open);
-    check('12c one row per party, ours included', py.rows === 2,
-      py.rows + ' rows');
-    check('12d each names its party and what it may do',
-      py.text.includes(c.counterparty) && /NEGOTIATES AND SIGNS|OURS/i.test(py.text),
-      py.text.slice(0, 160));
+      py.drawn && py.painted, py.drawn ? ('painted ' + py.painted) : 'no parties column at all');
+    check('12b and nothing about them is folded away', py.open === 'true', 'open ' + py.open);
+    check('12c one row per party, ours included', py.rows === 2, py.rows + ' rows');
+    check('12d each names its party, and ours says it is us',
+      py.text.includes(c.counterparty) && /\bus\b/.test(py.text), py.text.slice(0, 160));
     check('12e the one door onto naming another party is on it',
-      py.add, py.add ? 'in the section acts' : 'no + Add a party');
-    check('12f the name is said ONCE — the section carries it, not the block',
-      py.heads === 0, py.heads < 0 ? 'no parties section at all' : (py.heads + ' block heads inside it'));
-    /* IT SITS ABOVE THE RECORD, which is where the artifact drew it. */
-    check('12g it reads above The record',
-      py.order.indexOf('parties') > -1 && py.order.indexOf('parties') < py.order.indexOf('record'),
-      py.order.join(' \u00b7 '));
+      py.add, py.add ? 'on the Parties column' : 'no + Add a party');
+    check('12f the name is said ONCE — the column carries it, not a block head',
+      py.heads === 0, py.heads < 0 ? 'no parties column at all' : (py.heads + ' block heads inside it'));
+    check('12g it reads beside the terms and above the map',
+      py.order.indexOf('parties') > -1 && py.order.indexOf('parties') < py.order.indexOf('facts')
+        && py.order.indexOf('facts') < py.order.indexOf('map'), py.order.join(' \u00b7 '));
 
     /* ===== 13. THE WORD THE PAPER USES IS A DROPDOWN OF CHOICES =====
        Young, 22 September 2026: *"contract type should be a drop down of
@@ -750,6 +764,11 @@ const SEC = (suffix) => {
       !ct.none && ct.first === '' && ct.lead === 'Master Services Agreement'
         && ct.value === 'Master Services Agreement',
       ct.none ? 'not reached' : 'first "' + ct.first + '" · lead "' + ct.lead + '" · value "' + ct.value + '"');
+    /* Brought to the middle of the window first (7 Oct 2026): the parties
+       now lead the card, so the box sits low, and a list with no room under
+       it rightly opens above. The claim is where it opens WITH room. */
+    await page.evaluate(() => { const el = document.querySelector('[data-ktm="contractType"]'); if (el) el.scrollIntoView({ block: 'center' }); });
+    await page.waitForTimeout(300);
     const cm = await page.evaluate(() => {
       const el = document.querySelector('[data-ktm="contractType"]');
       if (!el || el.tagName !== 'SELECT') return null;

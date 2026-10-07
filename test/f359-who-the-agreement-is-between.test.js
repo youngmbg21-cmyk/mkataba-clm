@@ -572,19 +572,23 @@ describe('f359 (10) the parties are a section of their own', () => {
      four groups now and the sheet ends on the record. The claim is the same —
      the parties are their own section, read after the deal and before the
      record — and so is the fault it guards: a body nobody can see. */
+  /* RE-POINTED IN PLACE 8 Oct 2026 (the Constellation page, then "Bring this
+     back"): the parties LEAD the essentials card, beside the terms and before
+     the filing rows. The claim is the same — the parties are drawn open, as
+     their own named part of the page, never inside a shut section. */
   test('it is in the stack, above The record', () => {
     const b = stack();
-    assert.ok(/return top\+groups\+parties\+peopleSec\+record;/.test(b),
-      'the parties read between the deal and the record: ' + (b.match(/return top[^;]*/) || [''])[0]);
+    assert.ok(/\$\{parties\}\$\{facts\}<\/div>\$\{record\}/.test(b),
+      'the parties lead the essentials card, before the filing: ' + (b.match(/return [^;]*/) || [''])[0]);
   });
 
   test('and it opens OPEN — the fault was a section that draws no body', () => {
     /* On the sheet nothing folds: a section with no key cannot be shut, so its
        body is always drawn. */
     const b = stack();
-    const sec = b.slice(b.indexOf('const parties='), b.indexOf('const record='));
-    assert.ok(sec.includes('sectionHtml({') && !/\bkey:/.test(sec),
-      'the section has no fold to shut: ' + sec.slice(0, 200));
+    const sec = b.slice(b.indexOf('const parties='), b.indexOf('const hold='));
+    assert.ok(sec.includes('id="ov-parties"') && !/\bkey:/.test(sec) && !/sectionHtml\(\{/.test(sec),
+      'the parties are drawn as the card\'s own column, with no fold to shut: ' + sec.slice(0, 200));
   });
 
   /* THE FOLD DIES IF THE ROUTER DOES NOT NAME IT — this page has paid for
@@ -629,7 +633,7 @@ describe('f359 (10) the parties are a section of their own', () => {
      summarised the open body under it would say the names twice. */
   test('an open section does not repeat its body in its head', () => {
     const b = stack();
-    const sec = b.slice(b.indexOf('const parties='), b.indexOf('const record='));
+    const sec = b.slice(b.indexOf('const parties='), b.indexOf('const tmCard='));
     assert.ok(!/summary:/.test(sec), 'no summary on a section that cannot shut');
   });
 

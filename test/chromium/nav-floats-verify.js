@@ -60,8 +60,9 @@ const READ = `(() => {
     navPos: getComputedStyle(nav).position,
     content: b(document.getElementById('content-scroll')),
     scrim: !(document.getElementById('nav-scrim') || {}).hidden,
-    chev: (document.querySelector('#cmd-rail .rail-chev') || {}).getAttribute
-      ? document.querySelector('#cmd-rail .rail-chev').getAttribute('d') : '',
+    /* RE-POINTED 7 Oct 2026 (work order W-2): the chevron became the
+       "Collapse menu" row at the foot; its own words now say which way it goes. */
+    chev: ((document.querySelector('#cmd-rail .rf-label') || {}).textContent || '').trim(),
     /* NOTHING IN THE STRIP MAY PAINT OUTSIDE IT — the language toggle is
        posted in here below 900 and used to overflow it by 34px. */
     spill: nav.scrollWidth - nav.clientWidth,
@@ -138,8 +139,8 @@ const RAIL_KEY = 'hati.v1.railCollapsed';
         /* THE DOOR SAYS WHICH WAY IT GOES — it used to be painted off the
            rail's LOOK, which is on down here whatever happens, so it offered
            to show labels that were already showing. */
-        check(`${w}: and its chevron now offers to close, not to open again`,
-          /^M14\.5/.test(open.chev), open.chev);
+        check(`${w}: and its foot row now offers to close, not to open again`,
+          open.chev === 'Collapse menu', open.chev);
         /* READ, NEVER WRITTEN: flipping a preference the width is not
            honouring would silently change what they get on a big screen. */
         const pref = await page.evaluate(k => localStorage.getItem(k), RAIL_KEY);

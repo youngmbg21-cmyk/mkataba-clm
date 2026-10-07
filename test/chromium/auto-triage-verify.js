@@ -513,10 +513,9 @@ const SEED = t => {
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
     await pause(600);
-    /* THE BRIEF CARD IS INSIDE `What Copilot read`, which opens shut (16 Sep
-       2026 — the Overview's own rule: reference opens shut, and the strip
-       above it is what carries the news). The claims below are about the two
-       boxes AGREEING, so the second box has to be on screen to be read. */
+    /* THE SECOND BOX IS READ THE BRIEF'S OWN SLOT (re-pointed 8 Oct 2026:
+       the brief's card left the Overview with the Constellation page). The
+       claims below are about the two boxes AGREEING. */
     await drive(() => { const h = document.querySelector('[data-sec-toggle$=".copilot"]');
       if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); });
     await pause(500);
@@ -524,7 +523,7 @@ const SEED = t => {
     /* ONE PROBE, BOTH BOXES. Read apart they can each look right. */
     const both = await drive(() => {
       const e = document.getElementById('kt-triage');
-      const card = document.getElementById('brief-card');
+      const card = document.getElementById('kt-ov-brief');
       const tile = e ? e.querySelectorAll('.kt-tri-tile')[0] : null;
       const t = x => (x ? x.textContent.replace(/\s+/g, ' ').trim() : '');
       return {
@@ -574,16 +573,15 @@ const SEED = t => {
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
     await pause(600);
-    /* THE BRIEF CARD IS INSIDE `What Copilot read`, which opens shut (16 Sep
-       2026 — the Overview's own rule: reference opens shut, and the strip
-       above it is what carries the news). The claims below are about the two
-       boxes AGREEING, so the second box has to be on screen to be read. */
+    /* THE SECOND BOX IS READ THE BRIEF'S OWN SLOT (re-pointed 8 Oct 2026:
+       the brief's card left the Overview with the Constellation page). The
+       claims below are about the two boxes AGREEING. */
     await drive(() => { const h = document.querySelector('[data-sec-toggle$=".copilot"]');
       if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); });
     await pause(500);
     const both2 = await drive(() => {
       const e = document.getElementById('kt-triage');
-      const card = document.getElementById('brief-card');
+      const card = document.getElementById('kt-ov-brief');
       const tile = e ? e.querySelectorAll('.kt-tri-tile')[0] : null;
       const t = x => (x ? x.textContent.replace(/\s+/g, ' ').trim() : '');
       return { head: t(tile && tile.querySelector('.kt-tri-th')),
@@ -635,16 +633,15 @@ const SEED = t => {
     await drive(() => { const b = document.querySelector('#ws-tabs [data-ws-tab="terms"]');
       if (b) b.click(); });
     await pause(600);
-    /* THE BRIEF CARD IS INSIDE `What Copilot read`, which opens shut (16 Sep
-       2026 — the Overview's own rule: reference opens shut, and the strip
-       above it is what carries the news). The claims below are about the two
-       boxes AGREEING, so the second box has to be on screen to be read. */
+    /* THE SECOND BOX IS READ THE BRIEF'S OWN SLOT (re-pointed 8 Oct 2026:
+       the brief's card left the Overview with the Constellation page). The
+       claims below are about the two boxes AGREEING. */
     await drive(() => { const h = document.querySelector('[data-sec-toggle$=".copilot"]');
       if (h && h.getAttribute('aria-expanded') !== 'true') h.click(); });
     await pause(500);
     const read11 = () => drive(() => {
       const e = document.getElementById('kt-triage');
-      const card = document.getElementById('brief-card');
+      const card = document.getElementById('kt-ov-brief');
       const tile = e ? e.querySelectorAll('.kt-tri-tile')[0] : null;
       const t = x => (x ? x.textContent.replace(/\s+/g, ' ').trim() : '');
       return { head: t(tile && tile.querySelector('.kt-tri-th')),
@@ -668,7 +665,7 @@ const SEED = t => {
         data: { overview: 'A haulage contract for the northern route, running a year.',
           watchouts: [], unusual: [], term: {}, money: {} } },
         notice: 'The Copilot answer was longer than the space allowed.' }) }));
-    await drive(() => { const b = document.querySelector('#brief-card [data-kt-brief="run"]');
+    await drive(() => { const b = document.querySelector('#kt-ov-brief [data-kt-brief="run"]');
       if (b) b.click(); });
     await pause(1400);
     await page.screenshot({ path: path.join(OUT, '11-partial-brief.png'), fullPage: false });
@@ -681,9 +678,14 @@ const SEED = t => {
     check('11d · and it says the answer was cut short rather than serving half a memo whole',
       !!(after11 && /cut short|klipptes/i.test(after11.detail)),
       after11 && after11.detail);
+    /* RE-POINTED 8 Oct 2026 (the Constellation page): the brief's card left
+       the Overview; the second box is Read the brief's own slot, and a cut
+       short brief puts Rewrite the brief beside it, saying why on the hover. */
+    const cutSaid = await drive(() => { const b = document.querySelector('#kt-ov-brief [data-kt-brief="run"]');
+      return b ? (b.getAttribute('title') || '') : ''; }, undefined, '');
     check('11e · the card beside it says it too, in the same breath',
-      !!(after11 && /cut short|Part of this|klipptes|En del av/i.test(after11.cardTxt)),
-      after11 && after11.cardTxt.slice(0, 120));
+      !!(/cut short|Part of this|klipptes|En del av/i.test(cutSaid)),
+      cutSaid || (after11 && after11.cardTxt.slice(0, 120)));
     check('11f · and the way forward is ON the card — write it again',
       !!(after11 && after11.cardWrite === true && after11.cardOpen === true),
       after11 && { write: after11.cardWrite, open: after11.cardOpen });

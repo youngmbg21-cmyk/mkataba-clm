@@ -4072,8 +4072,18 @@
      Scoped to #kt-overview, so the other screens that draw sections do not
      move. The renewal card leading the stack (#kt-ov-lead) is STALE: it is
      the end of "Dates and renewal" now. */
-  #kt-overview{ background:var(--color-surface); border:1px solid var(--color-divider);
-    border-radius:var(--radius-lg); }
+  /* THE CONSTELLATION PAGE (Young picked it, 8 Oct 2026): cards in one
+     column — the Read the brief row, the essentials card (.ov-ess), the map
+     and its panel (.ov-map-grid), and #kt-side's Related agreements. The Time
+     Machine card (.ov-tm-card) is STALE. */
+  #kt-overview{ display:flex; flex-direction:column; gap:12px; }
+  #kt-overview > .ov-card, #kt-overview > #kt-side, #kt-ov-terms > .ov-card{ background:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
+  #kt-ov-terms{ display:flex; flex-direction:column; gap:12px; }
+  #kt-ov-terms:empty{ display:none; }
+  #kt-overview > #kt-side:empty{ display:none; }
+  #kt-overview .ov-card > .sec-box:first-child, #kt-overview #kt-side > .sec-box:first-child{ border-top:0; }
+  #kt-overview .ov-people-in{ padding-top:8px; }
   #kt-overview .sec-box{ background:none; border:0; border-radius:0; margin:0;
     border-top:1px solid var(--color-divider); }
   #kt-overview .sec-head{ padding:16px 16px 2px; }
@@ -4086,6 +4096,7 @@
   .sec-ans b{ font-weight:var(--w-strong); }
   /* The sheet's own row: Read the brief, what the grid is, Edit and Fill. */
   .ov-top{ display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; padding:12px 16px; }
+  .ov-top-brief{ display:inline-flex; gap:8px; flex-wrap:wrap; }
   .ov-top-brief:empty{ display:none; }
   .ov-top-note{ flex:1 1 220px; min-width:0; font-size:var(--t-label); color:var(--color-neutral-600); }
   .ov-top-acts{ display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
@@ -4113,6 +4124,148 @@
   .ov-tl-tx.is-decide b{ color:var(--st-amber-fg); }
   .ov-tl-tx.is-missed b{ color:var(--st-ruby-fg); }
   .ov-tl-tx.is-gone{ visibility:hidden; }
+  /* THE ESSENTIALS CARD (ktOverviewTermsHtml, 8 Oct 2026): who it is between
+     on the left, the terms on the right; stacked when the pane is narrow. */
+  .ov-ess-body{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); }
+  .ov-ess-p{ padding:12px 16px; border-right:1px solid var(--color-divider); min-width:0; }
+  .ov-ess-g{ min-width:0; }
+  .ov-ess-g > .ov-ess-h{ padding:12px 16px 0; }
+  .ov-ess-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-height:28px; margin-bottom:4px; }
+  .ov-ess-cap{ font-size:var(--t-micro); text-transform:uppercase; letter-spacing:var(--cap-ls); color:var(--cap-ink); }
+  .ov-ess-acts{ display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
+  .ov-ess-p .ov-ess-h > [data-py-add]{ margin-left:auto; }
+  .ov-ess-lock, .ov-ess-hold{ display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:999px;
+    font-size:var(--t-micro); font-weight:var(--w-strong); }
+  .ov-ess-lock{ background:var(--st-gray-bg); color:var(--st-gray-fg); }
+  .ov-ess-hold{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  .ov-ess-more{ margin-top:10px; }
+  .ov-pty{ display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--color-divider); }
+  .ov-ess-h + .ov-pty{ border-top:0; }
+  .ov-pty-av{ flex:none; width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
+    font-size:var(--t-micro); font-weight:var(--w-title); }
+  .ov-pty > div{ min-width:0; }
+  .ov-pty b{ display:block; font-weight:var(--w-strong); color:var(--color-text); overflow-wrap:anywhere; }
+  .ov-pty small{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); overflow-wrap:anywhere; }
+  .ov-pty small.ov-pty-sg.is-done{ color:var(--st-green-fg); }
+  #kt-overview .ov-ess .sec-box{ border-top:1px solid var(--color-divider); }
+  @container ovpane (max-width:900px){
+    .ov-ess-body{ grid-template-columns:minmax(0,1fr); }
+    .ov-ess-p{ border-right:0; border-bottom:1px solid var(--color-divider); }
+  }
+  #kt-overview{ container:ovpane / inline-size; }
+  /* THE CONSTELLATION (ovMapSvg / ovMapWire): the mock-up's map, in HaTi's
+     tokens. The panel beside the map card HOLDS THE CARD'S HEIGHT (Young,
+     8 Oct 2026: "Never gets bigger or small"): `contain:size` keeps its
+     words out of the row, so the map alone sets the height and the panel
+     scrolls. Stacked under a narrow map it keeps one height and scrolls. */
+  .ov-map-grid{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:12px; align-items:stretch; }
+  .ov-map-card, .ov-map-pane{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
+  .ov-map-card{ overflow:hidden; min-width:0; }
+  .ov-map-pane{ padding:16px 18px; min-width:0; contain:size; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
+  @container ovpane (max-width:1100px){
+    .ov-map-grid{ grid-template-columns:minmax(0,1fr); }
+    .ov-map-pane{ contain:none; height:420px; }
+  }
+  .ov-map-top{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:10px 12px; border-bottom:1px solid var(--color-divider); }
+  .ov-map-chipt{ height:26px; padding:0 10px; border-radius:13px; border:1px solid var(--color-divider); background:var(--color-surface);
+    font:inherit; font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-text); display:inline-flex; align-items:center; gap:6px; white-space:nowrap; cursor:pointer; }
+  .ov-map-chipt i{ width:8px; height:8px; border-radius:50%; }
+  .ov-map-chipt[aria-pressed="false"]{ opacity:.5; }
+  .ov-map-chipt[aria-pressed="false"] span{ text-decoration:line-through; }
+  .ov-map-stage{ background:radial-gradient(circle,var(--color-accent-100) 1px,transparent 1.3px) 0 0/22px 22px,var(--color-surface); }
+  /* THE STAGE FITS A LAPTOP (Young, 8 Oct 2026: "Make it so you do not have to
+     scroll up and down on your laptop to see the full circle of movement"): one
+     fixed height, the picture drawn to fit it; a narrow stage stands it tall. */
+  /* THE FILL BUTTONS WEAR LIGHT BLUE (Young, 7 Oct 2026): the Overview's
+     "Fill from document" and the Document tab's "Fill the document" — pale
+     wash, accent ink and edge; Read the brief stays the one filled button. */
+  .ui-btn.hati-fill-btn{ background:var(--color-accent-50); color:var(--accent-ink); border-color:var(--color-accent-100); }
+  .ui-btn.hati-fill-btn:hover:not(:disabled){ background:var(--color-accent-100); }
+  .ui-btn.hati-fill-btn:disabled{ opacity:.6; cursor:default; }
+  .tplf-foot{ position:sticky; bottom:0; display:flex; justify-content:flex-end; padding:10px 14px;
+    border-top:1px solid var(--color-divider); background:var(--color-surface); }
+  .ov-map-stage{ height:380px; }
+  .ov-map-stage > svg{ width:100%; height:100%; }
+  .ov-map-stage.is-tall{ height:auto; }
+  .ov-map-stage.is-tall > svg{ height:auto; }
+  .ov-map-key{ display:inline-flex; flex-wrap:wrap; gap:4px 12px; margin-left:auto; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .ov-map-key > span{ display:inline-flex; align-items:center; gap:5px; }
+  .ov-map-key .ov-map-dot{ margin-top:0; }
+  .ov-map-svg .ov-map-ini{ font-weight:700; }
+  .ov-map-svg .ov-map-track{ fill:none; stroke:var(--color-divider); stroke-width:7; }
+  .ov-map-svg .ov-map-track.is-empty{ stroke-dasharray:2 6; }
+  .ov-map-svg .ov-map-seg{ fill:none; stroke-width:7; animation:ov-map-grow 1.2s cubic-bezier(.2,.8,.2,1) .2s forwards; }
+  .ov-map-svg .ov-map-seg.is-g{ stroke:var(--st-green-dot); } .ov-map-svg .ov-map-seg.is-a{ stroke:var(--st-amber-dot); }
+  .ov-map-svg .ov-map-seg.is-r{ stroke:var(--st-ruby-dot); } .ov-map-svg .ov-map-seg.is-s{ stroke:var(--st-steel-dot); }
+  .ov-map-svg .ov-map-dash{ stroke:var(--color-divider); stroke-width:2; stroke-dasharray:4 7; }
+  .ov-map-svg .ov-map-fl.is-b{ animation-delay:0s, -3s; }
+  @keyframes ov-map-grow{ to{ stroke-dashoffset:0; } }
+  @media (prefers-reduced-motion:reduce){ .ov-map-svg .ov-map-seg{ animation:none; stroke-dashoffset:0; } }
+  .ov-map-list{ display:flex; flex-direction:column; gap:6px; padding:0 12px; }
+  .ov-map-list:not(:empty){ padding:10px 12px 12px; }
+  .ov-map-list button{ display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:7px 10px; font:inherit;
+    font-size:var(--t-label); color:var(--color-text); border:1px solid var(--color-divider); border-radius:var(--radius); background:var(--color-surface); cursor:pointer; }
+  .ov-map-list button span{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .ov-map-svg{ display:block; width:100%; height:auto; }
+  .ov-map-svg text{ font-family:var(--font-body); }
+  .ov-map-svg .ov-map-nd{ cursor:pointer; transform-box:fill-box; transform-origin:center; animation:ov-map-pop .55s cubic-bezier(.2,.8,.2,1) both; transition:opacity .2s; }
+  .ov-map-svg .ov-map-fl{ animation:ov-map-pop .55s cubic-bezier(.2,.8,.2,1) both, ov-map-float 6s ease-in-out .7s infinite; }
+  .ov-map-svg.is-dim .ov-map-nd:not(.is-lit){ opacity:.18; }
+  .ov-map-svg .is-off{ opacity:0; pointer-events:none; }
+  .ov-map-svg .ov-map-ringp{ transform-box:fill-box; transform-origin:center; animation:ov-map-ring 1.8s ease-out infinite; }
+  .ov-map-svg .ov-map-halo{ animation:ov-map-breathe 5s ease-in-out infinite; }
+  .ov-map-svg .ov-map-cap{ font-size:10.5px; letter-spacing:.06em; fill:var(--cap-ink); }
+  .ov-map-svg .ov-map-nm{ font-size:12.5px; font-weight:700; fill:var(--color-text); }
+  .ov-map-svg .ov-map-doc{ fill:var(--color-surface); stroke:var(--color-accent-200); stroke-width:1.5; }
+  .ov-map-svg .ov-map-lines{ stroke:var(--color-divider); stroke-width:2; stroke-linecap:round; fill:none; }
+  .ov-map-svg .ov-map-ref{ font:600 11px var(--font-ref); fill:var(--accent-ink); }
+  .ov-map-svg .ov-map-sm{ font-size:11px; fill:var(--color-neutral-600); }
+  .ov-map-svg .ov-map-av{ font-size:10px; font-weight:700; }
+  .ov-map-svg .ov-map-chip{ fill:var(--color-surface); stroke:var(--color-divider); }
+  .ov-map-svg .ov-map-big{ font-size:13px; font-weight:700; fill:var(--color-text); }
+  .ov-map-svg .ov-map-badge{ stroke:var(--color-surface); stroke-width:2; }
+  .ov-map-svg .ov-map-badge.is-r{ fill:var(--st-ruby-dot); } .ov-map-svg .ov-map-badge.is-a{ fill:var(--st-amber-dot); }
+  .ov-map-svg .ov-map-badge.is-s{ fill:var(--st-steel-dot); } .ov-map-svg .ov-map-badge.is-g{ fill:var(--st-green-dot); }
+  .ov-map-svg .ov-map-bn{ font-size:11px; font-weight:700; fill:#fff; }
+  .ov-map-svg .is-sel .ov-map-chip, .ov-map-svg .is-sel .ov-map-doc{ stroke:var(--accent-fill); stroke-width:2; }
+  .ov-map-svg .is-sel > circle:nth-child(2){ stroke-width:5; }
+  .ov-map-svg [tabindex]:focus{ outline:none; }
+  .ov-map-svg [tabindex]:focus-visible .ov-map-chip, .ov-map-svg [tabindex]:focus-visible .ov-map-doc{ stroke:var(--accent-fill); stroke-width:2.5; }
+  @keyframes ov-map-pop{ from{ opacity:0; transform:scale(.86); } }
+  @keyframes ov-map-float{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-4px); } }
+  @keyframes ov-map-ring{ from{ transform:scale(1); opacity:.75; } to{ transform:scale(2.6); opacity:0; } }
+  @keyframes ov-map-breathe{ 50%{ opacity:.45; } }
+  @keyframes ov-map-rise{ from{ opacity:0; transform:translateY(10px); } }
+  @media (prefers-reduced-motion:reduce){ .ov-map-svg .ov-map-nd, .ov-map-svg .ov-map-fl, .ov-map-svg .ov-map-halo, .ov-map-svg .ov-map-ringp, .ov-map-rise{ animation:none; } }
+  .ov-map-rise{ animation:ov-map-rise .45s cubic-bezier(.2,.8,.2,1) both; }
+  .ov-map-pane h3{ margin:2px 0 4px; font-size:var(--t-section); font-weight:var(--w-title); color:var(--color-text); }
+  .ov-map-pane h4{ margin:14px 0 6px; font-size:var(--t-micro); font-weight:var(--cap-w); letter-spacing:var(--cap-ls); text-transform:uppercase; color:var(--cap-ink); }
+  .ov-map-pcap{ font-size:var(--t-micro); letter-spacing:var(--cap-ls); text-transform:uppercase; color:var(--cap-ink); }
+  .ov-map-lede{ margin:0 0 10px; color:var(--color-neutral-600); font-size:var(--t-card); }
+  .ov-map-none{ margin:4px 0; color:var(--color-neutral-600); font-size:var(--t-label); }
+  .ov-map-ob{ display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-top:1px solid var(--color-divider); width:100%; }
+  button.ov-map-ob{ border-left:0; border-right:0; border-bottom:0; background:none; font:inherit; color:inherit; text-align:left; cursor:pointer; }
+  button.ov-map-ob:hover b{ text-decoration:underline; }
+  .ov-map-ob > div{ flex:1; min-width:0; }
+  .ov-map-ob b{ display:block; font-weight:var(--w-strong); font-size:var(--t-card); color:var(--color-text); }
+  .ov-map-ob small{ display:block; color:var(--color-neutral-600); font-size:var(--t-label); }
+  .ov-map-dot{ flex:none; width:8px; height:8px; border-radius:50%; margin-top:6px; background:var(--st-gray-dot); }
+  .ov-map-dot.is-r{ background:var(--st-ruby-dot); } .ov-map-dot.is-a{ background:var(--st-amber-dot); }
+  .ov-map-dot.is-s{ background:var(--st-steel-dot); } .ov-map-dot.is-g{ background:var(--st-green-dot); }
+  .ov-map-kr{ display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-top:1px solid var(--color-divider); font-size:var(--t-card); }
+  .ov-map-kr span{ color:var(--color-neutral-600); min-width:0; }
+  .ov-map-kr b{ font-weight:var(--w-strong); text-align:right; display:inline-flex; align-items:center; gap:6px; }
+  .ov-map-pill{ display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:11px; font-size:var(--t-label); font-weight:var(--w-strong); white-space:nowrap; }
+  .ov-map-pill i{ width:6px; height:6px; border-radius:50%; }
+  .ov-map-pill.is-green{ background:var(--st-green-bg); color:var(--st-green-fg); } .ov-map-pill.is-green i{ background:var(--st-green-dot); }
+  .ov-map-pill.is-amber{ background:var(--st-amber-bg); color:var(--st-amber-fg); } .ov-map-pill.is-amber i{ background:var(--st-amber-dot); }
+  .ov-map-pill.is-ruby{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); } .ov-map-pill.is-ruby i{ background:var(--st-ruby-dot); }
+  .ov-map-pill.is-steel{ background:var(--st-steel-bg); color:var(--st-steel-fg); } .ov-map-pill.is-steel i{ background:var(--st-steel-dot); }
+  .ov-map-sg{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  .ov-map-sg.is-done{ color:var(--st-green-fg); }
+  .ov-map-quote{ margin:8px 0 0; padding:8px 10px; border-left:2px solid var(--color-accent-200); background:var(--color-accent-50); font-size:var(--t-card); color:var(--color-text); }
+  .ov-map-acts{ margin-top:12px; }
+  .ov-map-pane #renewal-host:not(:empty){ margin:0 0 12px; }
   /* A HEAD THAT CANNOT BE OPENED HAS NOWHERE ELSE TO PUT ITS SENTENCE, so it
      wraps rather than elides. The ellipsis is right on a foldable head — the
      rest is one press away — and wrong here, where the press does not exist:
@@ -8048,6 +8201,7 @@
   .hb-sy-cht [data-hb-sy-big]{align-self:center;margin-left:auto}
   .hb-sy-ch.is-wide{grid-column:1/-1}
   .hb-sy-pic{min-width:0;overflow-x:auto}
+  .hb-sy-pic .hb-ring.is-tall{max-width:520px;margin-left:auto;margin-right:auto}
   .hb-sy-pic > .hb-svg:last-child{margin-bottom:0}
   .hb-sy-none{margin:0}
   .hb-sy-packdoor{justify-self:start}
@@ -9740,6 +9894,22 @@
   :root:not(.dark) #top-header .cmd-search:focus-within{background:rgba(0,0,0,.16);}
   #top-header .hdr-icon-btn{width:var(--ctl-h);height:var(--ctl-h);color:var(--bar-ink-2);border-radius:var(--radius);}
   #top-header .hdr-icon-btn:hover{background:var(--bar-hover);color:var(--bar-ink);}
+  /* ---- THE MENU BUTTON AND THE ONE COPILOT DOOR (Young, 7 Oct 2026, work
+     order W-1/W-3, off the HaTi Platform mockup) ---- ☰ sits at the bar's left
+     edge at every width and hides the whole menu; the Copilot spark is bigger
+     and in the bar's full ink, because it is now the only Copilot door. */
+  #top-header #nav-toggle{display:grid;width:36px;height:36px;margin-left:-10px;color:var(--bar-ink);}
+  #top-header #cmd-ai{width:36px;height:36px;color:var(--bar-ink);}
+  #top-header #cmd-ai svg{width:20px;height:20px;}
+  #side-nav .nav-foot{flex:none;border-top:1px solid var(--color-divider);padding:6px 10px;}
+  #side-nav #cmd-rail{width:100%;height:36px;display:flex;align-items:center;gap:10px;padding:0 10px;border:0;border-radius:var(--radius);background:transparent;color:var(--nav-ink-rest,var(--color-neutral-600));font-weight:var(--w-label);font-size:var(--t-body);cursor:pointer;white-space:nowrap;}
+  #side-nav #cmd-rail:hover{background:var(--nav-well);color:var(--color-text);}
+  #side-nav #cmd-rail:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
+  #app-shell.rail #side-nav .nav-foot{padding:6px;}
+  #app-shell.rail #side-nav #cmd-rail{justify-content:center;padding:0;}
+  #app-shell.rail #side-nav #cmd-rail .rf-label{display:none;}
+  #app-shell.rail #side-nav.open #cmd-rail{justify-content:flex-start;padding:0 10px;}
+  #app-shell.rail #side-nav.open #cmd-rail .rf-label{display:inline;}
   #top-header .sh-div{background:var(--bar-line);}
   #top-header #shell-title{font-weight:var(--w-strong);color:var(--bar-ink);font-size:var(--t-body);}
   #top-header #brand-block,#top-header #brand-wordmark{color:var(--bar-ink);}
@@ -10325,7 +10495,7 @@
      in bold letters"; kept over the mockup's 600, so a value always outranks
      its label by weight as well as by ink) */
   :root{ --cap-ink:var(--color-neutral-400); --cap-w:var(--w-body); --cap-ls:.07em; }
-  :root :is(.sec-f-l,.room-facet .l,.ins-kv dt,.ins-facts dt,.ins-lbl,.ag-facts dt,.ag-kv dt,.ag-flow-l,.ag-kind,.ag-list-h,.ag-ps-h,.doc-th-sec,.doc-xr-k,.ds-h,.ds-facts span,.exp-pg-lbl,.hati-selmenu-g,.hm-map-lab,.hm-rw-sidehead,.ho-ex-k,.ho-route-h,.igf-led-lbl,.na-sec-label,.ob-rl-group,.py-h,.rail-head-label,.sr-mh,.st-att-h,.st-grp-h,.tpl-gl-l,.tpl-sec-label,.sc-stage-t,#ai-feed .ai-target-head,.reg-dp-h,.std-cat,.std-lab,.br-ph h3,.rk-why b,.rk-ce-why b,.mig-table th,.ht .ht-f){
+  :root :is(.sec-f-l,.room-facet .l,.ins-kv dt,.ins-facts dt,.ins-lbl,.ag-facts dt,.ag-kv dt,.ag-flow-l,.ag-kind,.ag-list-h,.ag-ps-h,.doc-th-sec,.doc-xr-k,.ds-h,.ds-facts span,.exp-pg-lbl,.hati-selmenu-g,.hm-map-lab,.hm-rw-sidehead,.ho-ex-k,.ho-route-h,.igf-led-lbl,.na-sec-label,.ob-rl-group,.py-h,.ov-ess-cap,.ov-map-pcap,.rail-head-label,.sr-mh,.st-att-h,.st-grp-h,.tpl-gl-l,.tpl-sec-label,.sc-stage-t,#ai-feed .ai-target-head,.reg-dp-h,.std-cat,.std-lab,.br-ph h3,.rk-why b,.rk-ce-why b,.mig-table th,.ht .ht-f){
     font-weight:var(--cap-w); color:var(--cap-ink); letter-spacing:var(--cap-ls); }
   /* every list's column heads are caps micro labels, as the mockup draws them */
   :root :is(.ins-lt th,.reg-table th,.ap-table th,.ov-docs thead th,.igf-led-table th,.igf-led-bytable th){
@@ -10940,8 +11110,8 @@
        could not have reached past it. -->
   <header id="top-header" style="grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 20px;background:var(--nav-bg);color:var(--bar-ink);border-bottom:1px solid var(--nav-line);min-width:0;">
 
-    <button id="nav-toggle" class="hdr-icon-btn" title="Menu" data-i18n-title="sh_menu" aria-label="Open navigation" data-i18n-aria="sh_open_nav" aria-expanded="false" style="display:none;flex:none;">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><use href="#i-grid"/></svg>
+    <button id="nav-toggle" class="hdr-icon-btn" title="Hide menu" data-i18n-title="sh_nav_hide" aria-label="Hide menu" data-i18n-aria="sh_nav_hide" aria-expanded="true" style="flex:none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
 
     <div id="brand-block" style="align-items:center;gap:var(--s-2);flex:none;">
@@ -11073,9 +11243,6 @@
       <span class="rail-mark" aria-hidden="true">Ha</span>
       <span class="rail-head-label">HaTi</span>
       <span class="rail-ws" id="rail-ws"></span>
-      <button id="cmd-rail" class="rail-toggle" title="Show the sidebar labels" data-i18n-title="sh_rail_show" aria-pressed="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path class="rail-chev" d="M9.5 6 15.5 12l-6 6"/></svg>
-      </button>
     </div>
 
     <nav id="nav" style="flex:1;overflow-y:auto;padding:var(--s-3);display:flex;flex-direction:column;gap:2px;" class="scroll-thin">
@@ -11295,12 +11462,15 @@
          re-dressed to the design's own: a full-width flat accent block with the
          keyboard hint at its right. The gradient and the soft drop shadow went
          with the rest of them: this shell draws depth in 1px lines. -->
-    <div class="copilot-wrap">
-      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" data-i18n-title="nav_copilot_title">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
-        <span class="sc-label" data-i18n="sh_ask_copilot">Ask Copilot</span>
-        <span class="sc-kb" aria-hidden="true">⌘K</span>
-        <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:3px;right:3px;width:9px;height:9px;border-radius:50%;background:#f59e0b;"></span>
+    <!-- ---- THE FOOT OF THE MENU FOLDS IT (Young, 7 Oct 2026, work order W-2/W-3) ----
+         The Copilot block that stood here is gone: Copilot has ONE door, the
+         spark in the bar (#cmd-ai), and ⌘K still opens the palette. This row
+         shrinks the menu to its icons and back; it replaced the small arrow at
+         the top of the menu, so there is one way to do it. -->
+    <div class="nav-foot">
+      <button id="cmd-rail" type="button" title="Collapse menu" data-i18n-title="sh_rail_hide" aria-pressed="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 3v18"/></svg>
+        <span class="rf-label" data-i18n="sh_rail_collapse">Collapse menu</span>
       </button>
     </div>
 

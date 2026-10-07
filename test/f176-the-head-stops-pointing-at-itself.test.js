@@ -289,17 +289,22 @@ describe('F176 — Key terms and the card beside it square off', () => {
        card in the column is a kt-side-card (so they are one family and the
        column can size them), and an EMPTY one draws nothing rather than an
        empty bordered box. */
-    assert.match(side[0], /ktBriefCardHtml\(c,CARD,/,
-      'the Contract Brief is composed into the column by its own builder');
+    /* RE-POINTED IN PLACE 8 Oct 2026 (the Constellation page): the column is
+       Related agreements ALONE — the brief is read in its panel through Read
+       the brief, and what Copilot read is the read card at the top. The
+       brief's card keeps its own family class for the readers that draw it. */
+    assert.ok(!/ktBriefCardHtml\(/.test(side[0]), 'the brief card is no longer composed into the column');
     assert.match(SRC, /id="brief-card" class="kt-side-card"/,
-      'and it is a card of the column\'s own family, so the column can size it');
+      'and its builder still makes a card of the column\'s own family');
     /* A SHELL WRITTEN BEFORE ITS CONTENT MUST HIDE WHEN THE CONTENT DOES NOT
        ARRIVE — the empty bordered box reported on 20 Aug. The brief card needs
        no such rule: its content is built in the same breath as its box. */
     assert.match(side[0], /id="family-section" class="kt-side-card empty:hidden"/,
       'the family shell draws nothing when it is empty');
-    /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down): the renewal host is drawn
-       under the dates by ktOverviewTermsHtml now. It still hides when empty. */
+    /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down), and again 8 Oct (the
+       Constellation page): the renewal host is drawn at the top of the map's
+       agreement panel (ovMapPane), or under the terms where no map is drawn.
+       It still hides when empty. */
     assert.match(SRC, /id="renewal-host" class="empty:hidden" data-bare="1"/,
       'and so does the renewal host, which draws only inside its window');
   });
