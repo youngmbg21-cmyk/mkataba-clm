@@ -8300,6 +8300,25 @@
   .hb-in{animation:hbIn .5s cubic-bezier(.22,.61,.36,1) both}
   @keyframes hbIn{from{opacity:0}}
   .hb-dig.is-big .hb-svg{max-height:72vh}
+  /* A CHART AT ITS REAL SIZE, IN THREE STEPS (work order O-22): the drawer
+     drew at the card's measured width, so the picture is not stretched; the
+     type comes from the step (board 11/12/12 · opened 12/13/13 · full
+     13/14/14), never from the width. Text never wears a series colour (O-23). */
+  .hb-svg[data-hb-step]{max-height:none}
+  .hb-svg[data-hb-step="board"]{--hb-fs-ax:11px;--hb-fs-cat:12px;--hb-fs-val:12px}
+  .hb-svg[data-hb-step="open"]{--hb-fs-ax:12px;--hb-fs-cat:13px;--hb-fs-val:13px}
+  .hb-svg[data-hb-step="full"]{--hb-fs-ax:13px;--hb-fs-cat:14px;--hb-fs-val:14px}
+  .hb-svg[data-hb-step] text.hb-sv-mute{font-size:var(--hb-fs-ax);font-weight:400}
+  .hb-svg[data-hb-step] text.hb-sv-ink2{font-size:var(--hb-fs-cat);font-weight:400}
+  .hb-svg[data-hb-step] text.hb-sv-ink{font-size:var(--hb-fs-val);font-weight:600}
+  .hb-svg[data-hb-step] text.hb-sv-glow{fill:var(--hb-ink)}
+  .hb-ring[data-hb-step] text.hb-sv-ink[font-size="44"]{font-size:28px;font-weight:700}
+  .hb-sv-hatchbg{fill:rgba(var(--hb-ln),.05)} .hb-sv-hatch{stroke:var(--hb-glow);stroke-opacity:.55} .hb-sv-colsofar{stroke:var(--hb-glow);stroke-width:1;stroke-opacity:.7}
+  .hb-open-tools{display:flex;gap:var(--s-4);justify-content:flex-end;margin:0 0 var(--s-2)}
+  .hb-ctab{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:var(--s-3)}
+  .hb-ctab th{text-align:left;font-weight:400;color:var(--hb-mute);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1px solid rgba(var(--hb-ln),.2)}
+  .hb-ctab td{padding:6px 8px;border-bottom:1px solid rgba(var(--hb-ln),.1);color:var(--hb-ink);font-variant-numeric:tabular-nums}
+  .hb-dig.is-full{position:fixed;inset:16px;z-index:70;overflow:auto;max-width:none;margin:0;box-shadow:0 12px 48px rgba(0,0,0,.35)}
   .hb-dig-big #ig-dock,.hb-dig-big #ig-resizer{display:none}
   /* THE RECIPE ROW: four dropdowns and the trend switch under the card's title */
   .hb-recipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid rgba(var(--hb-ln),.12)}
