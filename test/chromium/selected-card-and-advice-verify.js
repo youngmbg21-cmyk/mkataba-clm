@@ -17,6 +17,8 @@
    Every driven half is GUARDED — a build without the feature REPORTS.
    Screenshots: test/chromium/shots/selected-card-and-advice/ (or HATI_SHOT_DIR).
    Run: node test/chromium/selected-card-and-advice-verify.js */
+/* RE-POINTED 7 Oct 2026 (Young, "Risk Walk Options" — One footer): on the risk
+   walk the Suggested wording's Apply is the feet's top row, #ce-rksug. */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -141,7 +143,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]');
     const r1 = await until(page, () => {
       const lane = document.querySelector('#clause-editor #ce-lane');
-      return lane && !lane.querySelector('.rk-busy') && lane.querySelector('[data-ce-apply="rk:0"]') ? lane.textContent.replace(/\s+/g, ' ') : null;
+      return lane && !lane.querySelector('.rk-busy') && document.querySelector('#ce-rksug [data-ce-apply="rk:0"]') ? lane.textContent.replace(/\s+/g, ' ') : null;
     }, null, 10000);
     /* RE-POINTED 6 Oct 2026 ("one Copilot editor"): the step count is gone;
        the panel's dropdown lists the open risks the walk goes through */
@@ -156,7 +158,7 @@ const SCAN = { at: '5 Oct 2026, 15:10', on: '2026-10-05', lang: 'en', dismissed:
     const c0 = await cardNow();
     check(c0.vis && c0.quote === 'This clause', '2a the tag in the ask box names the clause and quotes nothing', c0.quote);
     await shot('2a-card-at-rest.png');
-    await press(page, '#ce-lane [data-ce-apply="rk:0"]');
+    await press(page, '#ce-rksug [data-ce-apply="rk:0"]');
     const c1 = await until(page, () => /twelve \(12\) months/.test(ceBoxWords()) ? true : null) && await cardNow();
     check(!!c1 && /twelve \(12\) months/.test(c1.box), '2- Apply moved Copilot\'s wording onto the paper');
     check(!!c1 && c1.quote === 'This clause', '2b after Apply nothing on the tag can go stale', c1 && c1.quote);

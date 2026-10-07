@@ -538,35 +538,22 @@ const VERDICTS = [
   }, ID);
   await pause(900);
   /* RE-POINTED 5 Oct 2026: the scan card's "more" is gone with its tab; a
-     standard question's card is the ordinary Suggested wording card, and its
-     whole wording opens across the panel through Expand. */
+     standard question's card is the ordinary Suggested wording card.
+     RE-POINTED 7 Oct 2026 (Young, "Copilot Panel Tidy-up" — Sticky bar):
+     the card is printed whole in the panel's one scroll; Expand is retired. */
   await page.evaluate(() => { const b = document.querySelector('#clause-editor #ce-chips [data-ce-std]'); if (b) b.click(); });
   await pause(500);
   const pv0 = await page.evaluate(() => {
     const card = [...document.querySelectorAll('#clause-editor #ce-lane .ce-card')].pop();
     const pv = card && card.querySelector('.pv');
-    const b = card && card.querySelector('[data-ce-expand]');
     if (!pv) return { none: true };
-    return { none: false, h: Math.round(pv.getBoundingClientRect().height), full: pv.scrollHeight,
-      live: !!b, shown: !!(b && b.getClientRects().length), word: b ? b.textContent.trim() : null };
+    return { none: false, h: Math.round(pv.getBoundingClientRect().height), over: pv.scrollHeight - pv.clientHeight,
+      expand: document.querySelectorAll('[data-ce-expand]').length, full: !!document.getElementById('ce-full') };
   });
-  check(!pv0.none && pv0.live && pv0.shown,
-    '8c the card a standard question fills offers Expand', JSON.stringify(pv0));
-  const pv1 = await page.evaluate(async () => {
-    const card = [...document.querySelectorAll('#clause-editor #ce-lane .ce-card')].pop();
-    const b = card && card.querySelector('[data-ce-expand]');
-    if (!b) return { none: true };
-    b.click(); await new Promise(r => setTimeout(r, 400));
-    const full = document.getElementById('ce-full');
-    const pv = full && full.querySelector('.pv');
-    return { none: false, open: !!(full && !full.hidden && full.getClientRects().length), h: pv ? Math.round(pv.getBoundingClientRect().height) : 0,
-      back: !!(full && full.querySelector('[data-ce-act="full-close"]')) };
-  });
-  check(!pv1.none && pv1.open && pv1.h >= pv0.h,
-    '8d and Expand shows the whole wording across the panel', `${pv0.h}px → ${pv1.h}px`);
-  check(!pv1.none && pv1.back,
-    '8e with its own way back', String(pv1.back));
-  await page.evaluate(() => { const x = document.querySelector('#ce-full [data-ce-act="full-close"]'); if (x) x.click(); });
+  check(!pv0.none && pv0.over <= 1,
+    '8c the card a standard question fills is printed whole (nothing in it scrolls)', JSON.stringify(pv0));
+  check(!pv0.none && pv0.expand === 0 && !pv0.full,
+    '8d with no Expand and no full view to open', JSON.stringify(pv0));
   await page.screenshot({ path: path.join(OUT, '09-open-preview.png') });
 
   await page.evaluate(() => { if (typeof rlCloseClauseEditor === 'function') rlCloseClauseEditor(); });

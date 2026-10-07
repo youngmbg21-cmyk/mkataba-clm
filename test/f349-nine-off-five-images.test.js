@@ -247,8 +247,10 @@ test('F349 (8) — the scan rail\'s preview can be opened', async t => {
   /* RE-POINTED 5 Oct 2026 ("Copilot Panel Tidy"): the scan cards are gone;
      a standard question's wording lands on the ordinary Suggested wording
      card, which opens across the whole panel through Expand (ceRenderFull). */
-  await t.test('(8b) a standard question\'s card is the ordinary card, with Expand', () => {
-    assert.match(CE, /data-ce-expand="\$\{i\}:\$\{j\}"/);
+  /* RE-POINTED 7 Oct 2026 (Sticky bar): the card is printed whole, so it
+     needs no Expand to be read. */
+  await t.test('(8b) a standard question\'s card is the ordinary card, printed whole', () => {
+    assert.match(CE, /\.ce-rail \.ce-card\.ce-sug \.pv\{max-height:none; overflow:visible;/);
     const press = /function ceStdPress\(kind\)\{[\s\S]*?\n\}/.exec(CE)[0];
     assert.match(press, /cards: \[\{ name: _cet\('ce_suggestion'\)/, 'through the card builder Copilot\'s answers use');
   });
