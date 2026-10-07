@@ -288,7 +288,7 @@ function folderRowsHtml(cs){
         <span style="width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:var(--radius);border:1px solid var(--color-divider);background:${isUpload(c)?'var(--color-accent-200)':'var(--color-bg)'};color:${isUpload(c)?'var(--color-accent-800)':'var(--color-neutral-600)'}" ${isUpload(c)?`title="${i18t('reg_uploaded_from_cp')}"`:''}>${icon(cIcon(c),'w-3.5 h-3.5')}</span>
         <span style="min-width:0">
           <span style="display:block;font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.name)}</span>
-          <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-mono)">${esc((window.contractRef?contractRef(c):c.id))}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
+          <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:var(--font-ref)">${esc((window.contractRef?contractRef(c):c.id))}</span> · ${esc(c.counterparty||'No counterparty yet')}</span>
         </span>
       </div></td>
       <td style="font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
@@ -1949,9 +1949,11 @@ function regRowsHtml(cs){
        page wherever a title held an ampersand (26 Sep 2026, the list options'
        floor: "names print &, never &amp;"). */
     CELL.counterparty=`<td class="reg-cell-title" style="${c._famChild?'padding-left:30px':''}" title="${esc(pyAll||cpName)} · ${regTitleOf(c)} · ${esc(kindRound)}">
+        <span class="reg-id">${regAvatarHtml(cpName)}<span class="reg-id-txt">
         <span style="display:flex;align-items:center;gap:9px;min-width:0">
         <span class="reg-title" style="min-width:0;flex:1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c._famChild?`<span style="color:var(--color-neutral-400);font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body)" title="${esc(RELATION_LABEL[c.relation]||'Amendment')} of ${esc((()=>{ const pc=c.parentId&&getContract(c.parentId); return pc&&window.contractRef?contractRef(pc):c.parentId; })())}">↳ </span>`:''}${esc(cpName)}${pyTag}${c._famKids?`<button type="button" data-fam-toggle="${c.id}" title="${R.collapsed&&R.collapsed[c.id]?'Show':'Hide'} the ${c._famKids} linked document${c._famKids===1?'':'s'}" style="margin-left:6px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:0;font:inherit;font-weight:var(--w-body);font-size:var(--t-body);font-family:var(--font-mono);padding:1px 7px;cursor:pointer;color:var(--color-neutral-700)">${R.collapsed&&R.collapsed[c.id]?'+':'−'}${c._famKids}</button>`:''}</span>
         </span><span class="reg-sub">${regTitleOf(c)}</span>
+        </span></span>
       </td>`;
     /* THE KIND AND THE ROUND ARE A COLUMN ON THE NEGOTIATIONS SEAT ALONE,
           built only where it is drawn (the `acts` column's own rule): a round
@@ -1995,6 +1997,23 @@ function regRowsHtml(cs){
 }
 // W2-1: converted to the workspace currency, so one column total is one currency
 function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&!c.archived&&isMonetary(c)).reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0); }
+/* ---- THE COUNTERPARTY'S INITIALS (Young, 7 Oct 2026, off the HaTi Platform
+   mockup) ---- a small soft square beside the name, so a scanned column has a
+   shape per company. THE COLOUR IS THE NAME'S, NOT THE ROW'S: a hash of the
+   name picks one of five washes, so "Juno" wears the same colour on every
+   page, sort and filter. Decoration only — the name beside it says it all. */
+const REG_AV_TONES = 5;
+const regInitials = name => {
+  const words = String(name || '').replace(/[^\p{L}\p{N} ]/gu, ' ').split(/\s+/).filter(Boolean);
+  return words.slice(0, 2).map(w => w[0]).join('').toUpperCase() || '·';
+};
+const regAvatarTone = name => {
+  let h = 0;
+  for (const ch of String(name || '').trim().toLowerCase()) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+  return h % REG_AV_TONES;
+};
+const regAvatarHtml = name => `<span class="reg-av av-${regAvatarTone(name)}" aria-hidden="true">${esc(regInitials(name))}</span>`;
+
 function renderRegisterBody(){
   const cs=regFiltered();
   /* The stagger intro belongs to arriving at the page; this body re-renders on
@@ -2683,7 +2702,7 @@ function renderRegister(opts){
              of links that each did the same thing as the row around them. The
              row's own quiet ink now, and the accent only on the SELECTED row,
              where it marks which contract the panel is describing. */}
-      .reg-mk{font-family:var(--font-mono);font-size:var(--t-body);font-weight:var(--w-body);
+      .reg-mk{font-family:var(--font-ref);font-size:var(--t-body);font-weight:var(--w-body);
         color:var(--color-neutral-600);white-space:nowrap;font-variant-numeric:tabular-nums}
       /* The status chip, flattened HERE and not at .badge — that class dresses
          every card, list and panel in the product, and this is a decision about
@@ -2881,7 +2900,7 @@ function renderRegister(opts){
          scrolling sideways. */
       .reg-f{display:flex;flex-direction:column;min-width:0}
       .reg-f-l{font-size:var(--t-label);color:var(--color-neutral-600);margin-bottom:3px;white-space:nowrap}
-      .reg-stg{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;font-weight:var(--w-body);vertical-align:middle}
+      .reg-stg{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-weight:var(--w-label);vertical-align:middle}
       .reg-stg i{width:8px;height:8px;border-radius:50%;flex:none;background:currentColor}
       /* THE REASON, IN THE ROW'S OWN SECONDARY INK (19 Sep 2026). It rides the
          stage rather than taking a column, so it costs the table no width; the
@@ -2939,7 +2958,7 @@ function renderRegister(opts){
         ${''/* THE DOOR TO THE REST. A link rather than a button, because it
                opens a chooser rather than acting on the list — the same
                weight Fiori gives it. */}
-        <button id="reg-adapt" type="button" class="reg-chip reg-chip-btn" title="${esc(i18t('reg_adapt_title'))}">${icon('plus','w-3.5 h-3.5')}${esc(i18t('reg_adapt'))}</button>
+        <button id="reg-adapt" type="button" class="reg-chip reg-chip-btn reg-chip-add" title="${esc(i18t('reg_adapt_title'))}">${icon('plus','w-3.5 h-3.5')}${esc(i18t('reg_adapt'))}</button>
         <span id="reg-clear-slot">${regClearHtml()}</span>
         <span style="flex:1;min-width:8px"></span>
         ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:

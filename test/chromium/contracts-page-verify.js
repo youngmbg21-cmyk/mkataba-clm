@@ -505,8 +505,12 @@ const check = (name, ok, detail) => {
        reads `null` and proves nothing. The tokens are what the two controls
        actually read. */
     const btnEdge = await page.evaluate(RESOLVE, '--btn-edge');
-    check('12b and it is a PILL, which is what tells it from a button',
-      parseFloat(rest.stage.r) >= 100, `radius ${rest.stage.r} vs button edge ${btnEdge}`);
+    /* RE-POINTED 7 Oct 2026 (Young, off the HaTi Platform mockup): the filter
+       chips took the mockup's soft corners — the control radius, --radius —
+       and the caret is what says it opens a list. */
+    const ctlRadius = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--radius').trim());
+    check('12b and it wears the soft control corner, as the mockup draws it',
+      parseFloat(rest.stage.r) === parseFloat(ctlRadius), `radius ${rest.stage.r} vs --radius ${ctlRadius}`);
     check('12c the button\'s own edge is a real colour',
       /^(rgba?|color)\(/.test(btnEdge), btnEdge);
 

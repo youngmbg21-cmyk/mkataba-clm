@@ -5742,8 +5742,11 @@ function ktTriageStripHtml(c){
        the tone wherever there is one, and the three old states answer for a
        tile that carries none — which is every tile that carried none before,
        so nothing else moved. */
+    /* A COUNT WEARS WHAT IT MEANS (Young, 7 Oct 2026, off the HaTi Platform
+       mockup): obligations found are information (the helper colour), risks
+       found are ruby, every other count stays amber. */
     const tone=x.working?'is-busy'
-      :((x.count!=null&&x.count>0)?'is-warn':(x.none?'is-none':(x.ok?'is-ok':'is-no')));
+      :((x.count!=null&&x.count>0)?(x.key==='oblig'?'is-info':(x.key==='risk'?'is-no':'is-warn')):(x.none?'is-none':(x.ok?'is-ok':'is-no')));
     /* A READING IN FLIGHT TURNS (Young ruled 17 Sep 2026) — the strip repaints
        only when a step LANDS, so a static mark left the page looking stuck for
        most of a minute. The product's own spinner, not a second one; its
@@ -9590,7 +9593,7 @@ function roomHeadSubHtml(c, opts = {}){
   if (c && F[c.folder]) bits.push(`<span class="room-sub-stream"><i style="background:${esc(F[c.folder].color||'var(--color-neutral-400)')}"></i>${esc(F[c.folder].name)}</span>`);
   if (c && c.archived) bits.push(esc(i18t('ct_archived_tag')));
   const owner = (typeof contractOwnerName === 'function') ? contractOwnerName(c) : '';
-  if (owner) bits.push(`${esc(i18t('ov_f_owner'))} ${esc(owner)}`);
+  if (owner) bits.push(`${esc(i18t('ov_f_owner'))} <b class="room-sub-owner">${esc(owner)}</b>`);
   if (c && c.lastAction) bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
   const needs = opts.needs ? `<span id="ws-round-needs-slot">${negoRoundNeedsHtml(c)}</span>` : '';
   /* ---- WHO ELSE HAS THIS OPEN (idea 5, 4 Oct 2026) ----

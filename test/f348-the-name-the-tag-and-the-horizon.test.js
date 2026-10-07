@@ -112,7 +112,8 @@ test('F348 — the name, the tag, the choices and the horizon', async t => {
     assert.ok(!/color:transparent/.test(rule[0]),
       'opacity hides the box; a transparent colour is inherited by the popup');
     assert.match(rule[0], /opacity:0/);
-    assert.match(rule[0], /border-radius:999px/, 'the control takes the chip\'s own corner');
+    /* since 7 Oct 2026 the chip's own corner is the control radius (the mockup) */
+    assert.match(rule[0], /border-radius:var\(--radius\)/, 'the control takes the chip\'s own corner');
     assert.match(CSS, /\.reg-filterbar \.reg-chip-sel option\{[^}]*color:var\(--color-text\)/);
     assert.match(CSS, /\.reg-filterbar \.reg-chip-sel option\{[^}]*background:var\(--color-surface\)/);
   });

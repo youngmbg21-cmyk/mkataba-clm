@@ -17,7 +17,7 @@
      error every audit probe printed. The rail's own mark (the "Ha" square),
      drawn inline so there is no file to serve. A standalone image carries no
      :root, so the colour is a literal: the teal brand's accent. -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E5F58'/%3E%3Ctext x='16' y='21.5' font-family='system-ui,-apple-system,Segoe UI,sans-serif' font-size='15' font-weight='600' fill='%23fff' text-anchor='middle'%3EHa%3C/text%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2312796D'/%3E%3Ctext x='16' y='21.5' font-family='system-ui,-apple-system,Segoe UI,sans-serif' font-size='15' font-weight='600' fill='%23fff' text-anchor='middle'%3EHa%3C/text%3E%3C/svg%3E" />
 <script>
   // Apply the saved appearance BEFORE first paint. This runs ahead of the
   // stylesheet on purpose: set it any later and every visitor on Navy or Dark
@@ -142,6 +142,8 @@
      Greek, which Geist does not carry. -->
 <link rel="stylesheet" href="fonts/geist.css">
 <link rel="stylesheet" href="fonts/source-serif-4.css">
+<!-- 7 Oct 2026: Geist Mono, the reference face ("MK-441"), Young off the mockup. -->
+<link rel="stylesheet" href="fonts/geist-mono.css">
 </head>
 <body>
 <!-- Inter throughout — the product's own chrome and the contract paper alike.
@@ -345,9 +347,9 @@
     --color-neutral-400:#6B7876; --color-neutral-500:#5A6866; --color-neutral-600:#5A6866;
     --color-neutral-700:#141F1D; --color-neutral-800:#141F1D; --color-neutral-900:#141F1D;
 
-    --color-accent-100:#E1F0ED; --color-accent-200:#C2E1DB; --color-accent-300:#9CCFC6;
-    --color-accent-400:#5EC2B3; --color-accent-500:#2E8C82; --color-accent-600:#0E5F58;
-    --color-accent-700:#0B4A45; --color-accent-800:#093733; --color-accent-900:#062825;
+    --color-accent-100:#E3F3EF; --color-accent-200:#BCE2D9; --color-accent-300:#9CCFC6;
+    --color-accent-400:#5EC2B3; --color-accent-500:#2E8C82; --color-accent-600:#12796D;
+    --color-accent-700:#0E5F58; --color-accent-800:#093733; --color-accent-900:#062825;
     /* ---- THE SAME RAMP, AS CHANNELS ----
        Tailwind compiles `bg-brand-600` to `rgb(var(--color-accent-600-rgb)/var(--tw-bg-opacity))`
        so that `/60` opacity modifiers work. A hex cannot go inside that; the
@@ -355,16 +357,16 @@
        what makes 493 utility classes follow the theme instead of ignoring it.
        They are the SAME colours as the hex ramp above — change both together,
        or the platform will disagree with itself about what its colour is. */
-    --color-accent-50:#F0F7F5;
-    --color-accent-50-rgb:240 247 245;   --color-accent-100-rgb:225 240 237;
-    --color-accent-200-rgb:194 225 219;  --color-accent-300-rgb:156 207 198;
+    --color-accent-50:#F1F9F7;
+    --color-accent-50-rgb:241 249 247;   --color-accent-100-rgb:227 243 239;
+    --color-accent-200-rgb:188 226 217;  --color-accent-300-rgb:156 207 198;
     --color-accent-400-rgb:94 194 179;   --color-accent-500-rgb:46 140 130;
-    --color-accent-600-rgb:14 95 88;     --color-accent-700-rgb:11 74 69;
+    --color-accent-600-rgb:18 121 109;    --color-accent-700-rgb:14 95 88;
     --color-accent-800-rgb:9 55 51;      --color-accent-900-rgb:6 40 37;
 
     /* solid brand fills that must NOT flip with the theme (nav active, primary
        buttons, the Copilot header) — always teal, always white-on-top */
-    --accent-solid:var(--color-accent-600); --accent-solid-hover:var(--color-accent-700);
+    --accent-solid:var(--color-accent-600); --accent-solid-hover:#0E6A5F;
     /* The gradient's second colour is a cyan that is not on the accent ramp —
        it is the brand's companion hue, so it gets a name of its own rather than
        being hidden inside a gradient nobody can find. */
@@ -482,6 +484,11 @@
        SHA-256 fingerprint and a keyboard chip. Courier New by the owner's own
        spec — the two deliberate exceptions to the platform face. */
     --font-code:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    /* THE REFERENCE FACE (Young, 7 Oct 2026, off the HaTi Platform mockup): a
+       contract's reference number ("MK-441") reads in Geist Mono, every
+       character one width. ONLY the reference — dates, money and counts stay
+       on --font-mono, the 24 Sep ruling. */
+    --font-ref:'Geist Mono','JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 
     /* The DOCUMENT faces. These apply to contract text only — the pane you
        read a contract in, the counterparty portal, the template preview and
@@ -1691,7 +1698,8 @@
   /* WHITE ON accent-600 MEASURED 3.74:1 on the old ramp — under the 4.5 AA
      floor, on 114 elements — so this read accent-700 by name. THE RAMP MOVED
      ON 20 Sep 2026 (the redesign order): accent-600 is the reference's own
-     teal, #0E5F58, and white on it measures 7.5:1 (8.8:1 on navy's #24488f).
+     teal, #0E5F58, and white on it measured 7.5:1. SINCE 7 OCT 2026 it is the
+     brighter #12796D (5.3:1; navy #264C9E 8.1:1), still AA.
      The fill therefore reads --accent-fill, the ONE token for white-on-accent,
      and f238 computes the contrast of whichever rung that token resolves to
      rather than pinning the rung's name — the claim is AA, not a number.
@@ -1942,7 +1950,7 @@
      Deeper than the accent ramp reaches, and it always was: a navigation column
      is a ground, not an accent. Four values, named here so a theme sets them in
      one place instead of four files finding their own dark green. */
-  :root{ --nav-bg:#093733; --nav-line:#0C4741; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff;
+  :root{ --nav-bg:#12796D; --nav-line:#0E6A5F; --nav-ink:#9fd8d1; --nav-ink-strong:#ffffff;
          --nav-deep:#0f4c46; }
 
   /* ============================================================
@@ -1963,22 +1971,25 @@
      platform, because those two are not brand — they are the redline's
      grammar, and a lawyer reads them before they read anything else. */
   :root[data-brand="navy"]{
-    --color-accent-50:#eef3fb;   --color-accent-100:#dce5f7;
-    --color-accent-200:#b8caf0;  --color-accent-300:#8aa8e2;
+    --color-accent-50:#f0f4fb;   --color-accent-100:#e1e9f7;
+    --color-accent-200:#b6c8eb;  --color-accent-300:#8aa8e2;
     --color-accent-400:#5b82cf;  --color-accent-500:#3560b4;
-    --color-accent-600:#24488f;  --color-accent-700:#1c3872;
+    --color-accent-600:#264c9e;  --color-accent-700:#1c3872;
     --color-accent-800:#16295a;  --color-accent-900:#111f45;
-    --color-accent-50-rgb:238 243 251;   --color-accent-100-rgb:220 229 247;
-    --color-accent-200-rgb:184 202 240;  --color-accent-300-rgb:138 168 226;
+    --color-accent-50-rgb:240 244 251;   --color-accent-100-rgb:225 233 247;
+    --color-accent-200-rgb:182 200 235;  --color-accent-300-rgb:138 168 226;
     --color-accent-400-rgb:91 130 207;   --color-accent-500-rgb:53 96 180;
-    --color-accent-600-rgb:36 72 143;    --color-accent-700-rgb:28 56 114;
+    --color-accent-600-rgb:38 76 158;    --color-accent-700-rgb:28 56 114;
     --color-accent-800-rgb:22 41 90;     --color-accent-900-rgb:17 31 69;
     /* The companion hue and the hero's deep stop, stepped to match: on green
        these lean cyan, on navy they lean a lighter, cleaner blue. */
     --brand-cyan:#3f7ac4; --brand-cyan-600:#2f63a8; --brand-cyan-700:#2b5c9e;
     --brand-hero-deep:#0f2447;
-    /* The sidebar's own ground, deeper than the ramp reaches. */
-    --nav-bg:#0F2648; --nav-line:#1A3A66; --nav-ink:#a5bde0; --nav-deep:#17376b;
+    /* The bar's ground. Since 7 Oct 2026 it is the brand's own bright blue,
+       the same colour as the main button (Young, off the HaTi Platform mockup:
+       "more vibrant"); white on it is 8.1:1. */
+    --accent-solid-hover:#1F4088;
+    --nav-bg:#264C9E; --nav-line:#1F4088; --nav-ink:#a5bde0; --nav-deep:#17376b;
     /* Navy wore the green band's pale teal second line, because that colour was
        typed into the dashboard rather than named. Now that it has a name, navy
        answers it. */
@@ -2044,7 +2055,7 @@
      --accent-solid ITSELF IS DELIBERATELY UNTOUCHED: it is the nav's fill and
      a brand colour this rulebook records as one that must not flip. This is a
      second token for a second job, not a redefinition of the first. */
-  :root{ --accent-fill:var(--color-accent-600); } /* 20 Sep 2026: accent-600 is the reference's #0E5F58 — 7.5:1 under white; see .ui-btn-primary */
+  :root{ --accent-fill:var(--color-accent-600); } /* 7 Oct 2026: accent-600 is the bright #12796D (5.3:1 under white; navy #264C9E 8.1:1); see .ui-btn-primary */
   :root{ --accent-ink:var(--color-accent-700); --accent-ink-700:var(--color-accent-700); }
   html.dark{ --accent-ink:var(--color-accent-400); --accent-ink-700:var(--color-accent-400); }
 
@@ -2078,6 +2089,20 @@
     --color-accent-50:rgb(var(--color-accent-500-rgb)/.08);
     --color-accent-100:rgb(var(--color-accent-500-rgb)/.16);
   }
+
+  /* ═══ THE BRIGHT BRAND, AND ITS HELPER COLOUR (Young, 7 Oct 2026, off the
+     HaTi Platform mockup) ══════════════════════════════════════════════════
+     The bar and the main button now wear ONE bright colour per brand (green
+     #12796D 5.3:1 under white, blue #264C9E 8.1:1), set on the ramp above.
+     Blue gets its own faintly blue page ground; at night the dark ground stands.
+     THE HELPER COLOUR (--alt) is the OTHER brand's colour, borrowed for a few
+     informational marks — the stream tag, an information count — so a page has
+     two colours without inventing a third. -soft is its wash, -ink its text. */
+  :root{ --alt:#3A64C4; --alt-soft:#E9EFFB; --alt-ink:#24488F; }
+  :root[data-brand="navy"]{ --alt:#12796D; --alt-soft:#E3F3EF; --alt-ink:#0E5F58; }
+  :root[data-brand="navy"]:not(.dark){ --color-bg:#F4F6FA; }
+  :root.dark{ --alt:#7C9BE0; --alt-soft:rgba(124,155,224,.16); --alt-ink:#A9C0F0; }
+  :root.dark[data-brand="navy"]{ --alt:#5EC2B3; --alt-soft:rgba(94,194,179,.16); --alt-ink:#8FD9CC; }
 
   /* ═══ THREE MORE TOKENS THAT CARRY INK OR A RULE AND HAD NO DARK ANSWER ══
      MEASURED on the night panel (#0f172a):
@@ -6020,6 +6045,7 @@
     font-weight:var(--w-title);padding:1px 5px;border-radius:var(--radius);}
   .kt-tri-chip.is-ok{background:var(--st-green-bg);color:var(--st-green-fg);}
   .kt-tri-chip.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  .kt-tri-chip.is-info{background:var(--alt-soft);color:var(--alt-ink);}
   .kt-tri-chip.is-no{background:var(--st-ruby-bg);color:var(--st-ruby-fg);}
   /* ---- NOTHING TO DO IS NOT AN OUTCOME (Young reported it 20 Sep 2026) ----
      The fill reading has a third answer its neighbours do not have: it looked,
@@ -9611,6 +9637,22 @@
     --bar-well:rgba(255,255,255,.10);
     --bar-hover:rgba(255,255,255,.15);
   }
+  /* ---- ON THE BRIGHT BRAND, A WELL GOES DEEPER, NOT PALER (7 Oct 2026) ----
+     The bar moved from the deep brand ground to the bright one (Young, off the
+     HaTi Platform mockup), and a white veil over #12796D lifts it to about
+     3.6:1 under white text — under AA (contrast-verify). So by day a well and
+     a hover DARKEN the ground, the quiet ink comes up to .94 (4.8:1 on the
+     green), and a pressed choice (English, Light) is the mockup's white pill
+     with the page's own ink. At night the bar is near-black and keeps the
+     white veils above. */
+  :root:not(.dark) #top-header{
+    --bar-ink-2:rgba(255,255,255,.94);
+    --bar-well:rgba(0,0,0,.12);
+    --bar-hover:rgba(0,0,0,.16);
+  }
+  :root:not(.dark) #top-header .sh-grp button[aria-pressed="true"],
+  :root:not(.dark) #top-header .lang-btn[aria-pressed="true"]{background:#fff;color:var(--color-text);}
+  :root:not(.dark) #top-header .cmd-search:focus-within{background:rgba(0,0,0,.16);}
   #top-header .hdr-icon-btn{width:var(--ctl-h);height:var(--ctl-h);color:var(--bar-ink-2);border-radius:var(--radius);}
   #top-header .hdr-icon-btn:hover{background:var(--bar-hover);color:var(--bar-ink);}
   #top-header .sh-div{background:var(--bar-line);}
@@ -9765,7 +9807,7 @@
      control. A popup's own frame is the platform's to draw. */
   .reg-filterbar .reg-chip-sel{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;
     background:none;font:inherit;opacity:0;cursor:pointer;appearance:none;-webkit-appearance:none;
-    border-radius:999px;}
+    border-radius:var(--radius);}
   .reg-filterbar .reg-chip-sel option{color:var(--color-text);background:var(--color-surface);
     font-size:var(--t-body);}
   /* ---- HaTi's OWN DROPDOWN LIST (Young ruled 21 Sep 2026: "the drop downs
@@ -9800,9 +9842,31 @@
   .reg-filterbar .reg-chip.on{border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong);background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
   .reg-filterbar .reg-chip.on .reg-f-l b{color:var(--accent-ink);}
   .reg-filterbar .reg-chip:hover{border-color:var(--color-accent);}
+  /* ---- THE MOCKUP'S FILTER BUTTONS (Young, 7 Oct 2026, off the HaTi Platform
+     mockup) ---- white boxes with soft corners and a quiet border that only
+     darkens on hover; a lit (narrowing) chip keeps the accent. "More filters"
+     reads as ADD rather than PICK: a dashed border in the brand's line colour
+     over its palest tint. */
+  .reg-filterbar .reg-chip{border-radius:var(--radius);}
+  .reg-filterbar .reg-chip:not(.on):hover{border-color:var(--color-neutral-300);background:var(--surface-2);}
+  .reg-filterbar .reg-chip.reg-chip-add{border:1px dashed var(--color-accent-200);background:var(--color-accent-50);
+    color:var(--accent-ink);font-weight:var(--w-strong);}
+  .reg-filterbar .reg-chip.reg-chip-add:hover{border-color:var(--color-accent);background:var(--color-accent-100);}
   .reg-filterbar .reg-chip-btn{font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);padding:0 var(--pad-ctl-x);align-self:auto;display:inline-flex;align-items:center;gap:var(--btn-gap);}
   .reg-filterbar .reg-chip-btn > svg{width:var(--btn-ic);height:var(--btn-ic);flex:none;}
   .reg-table td.reg-cell-title{line-height:1.3;padding-top:3px;padding-bottom:3px;}
+  /* THE COUNTERPARTY'S INITIALS (Young, 7 Oct 2026): a soft square, one of five
+     washes picked by the name (regAvatarTone), each with a night answer. */
+  .reg-table .reg-id{display:flex;align-items:center;gap:10px;min-width:0;}
+  .reg-table .reg-id-txt{display:block;min-width:0;flex:1;}
+  .reg-av{flex:none;width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;
+    font-size:11px;font-weight:var(--w-strong);letter-spacing:.02em;line-height:1;font-family:var(--font-body);}
+  .reg-av.av-0{background:var(--color-accent-100);color:var(--accent-ink);}
+  .reg-av.av-1{background:var(--alt-soft);color:var(--alt-ink);}
+  .reg-av.av-2{background:var(--st-amber-bg);color:var(--st-amber-fg);}
+  .reg-av.av-3{background:#F1ECFA;color:#5B3F9A;}
+  .reg-av.av-4{background:var(--st-gray-bg);color:var(--st-gray-fg);}
+  html.dark .reg-av.av-3{background:rgba(167,139,250,.16);color:#C4B5FD;}
   .reg-table .reg-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* The Negotiations seat's Type column (21 Sep 2026). It reads at the
      sub-line's own size and shade, because it IS the sub-line's words, moved
@@ -9853,7 +9917,7 @@
     box-shadow:var(--shadow-sm);min-height:0;overflow:auto;overscroll-behavior:contain;font-size:var(--t-body);color:var(--color-text);}
   .ins-h{padding:18px 20px 16px;border-bottom:1px solid var(--color-divider);}
   .ins-eb{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .ins-eb .ins-ref{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+  .ins-eb .ins-ref{font-family:var(--font-ref);font-variant-numeric:tabular-nums;}
   .ins-cp{margin:4px 0 0;font-size:var(--t-section);font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.25;color:var(--color-text);
     display:flex;align-items:center;gap:4px;min-width:0;}
   .ins-cp-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -9870,6 +9934,11 @@
   .ins-cp-p + .ins-cp-p{margin-top:2px;}
   .ins-cp-r{flex:none;font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;color:var(--color-neutral-600);white-space:nowrap;}
   .ins-st{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;min-width:0;}
+  /* THE STAGE IS A PALE PILL OF ITS OWN TONE (Young, 7 Oct 2026, off the HaTi
+     Platform mockup): contractStatusDotHtml's dot and word stay, its own wash
+     (inline, from the stage's meta) goes behind them. Here rather than in the
+     register's sheet because the inspector panel draws it on six pages. */
+  .reg-stg{padding:2px 9px 2px 7px;border-radius:999px;max-width:100%;box-sizing:border-box;}
   .ins-mv{font-weight:var(--w-label);white-space:nowrap;}
   .ins-mv.is-you{color:var(--st-amber-fg);}
   .ins-mv.is-them{color:var(--color-neutral-600);}
@@ -10584,14 +10653,34 @@
      and every figure in the data face, the stream with its colour bar, and
      the Copilot fact's dot — grey unread, amber with something to look at,
      green clear. Furniture, so none of it follows the reader's text size. */
-  .room-head .room-sub-id{font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600);}
-  .room-head .room-sub-stream{display:inline-flex;align-items:center;gap:5px;}
-  .room-head .room-sub-stream i{display:inline-block;width:3px;height:11px;border-radius:1px;flex:none;}
+  /* THE QUIET LINE, DRESSED AS THE MOCKUP DRAWS IT (Young, 7 Oct 2026): the
+     reference in the reference face and the brand's ink, the stream as a small
+     tag in the helper colour, the owner's name in the strong ink. */
+  .room-head .room-sub-id{font-family:var(--font-ref);font-size:var(--t-label);font-weight:var(--w-label);color:var(--accent-ink);}
+  .room-head .room-sub-stream{display:inline-flex;align-items:center;gap:5px;padding:1px 8px;border-radius:var(--radius);
+    background:var(--alt-soft);color:var(--alt-ink);font-weight:var(--w-strong);font-size:var(--t-label);}
+  .room-head .room-sub-stream i{display:none;}
+  .room-head .room-sub-owner{color:var(--color-text);font-weight:var(--w-strong);}
   .room-head .room-facet .v{font-family:var(--font-mono);font-size:var(--t-body);}
   .room-head .room-facet-sub{font-family:var(--font-mono);font-weight:var(--w-body);color:var(--color-neutral-600);}
   .room-head .room-facet-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px;background:var(--st-gray-dot);}
   .room-head .room-facet-dot.is-look{background:var(--st-amber-dot);}
   .room-head .room-facet-dot.is-ok{background:var(--st-green-dot);}
+  /* ---- THE FACTS SIT ON ONE WHITE CARD (Young, 7 Oct 2026, off the HaTi
+     Platform mockup; this brings back the frame the 21 Sep "no long lines"
+     ruling took off, on the owner's later word) ---- one card, parted by its
+     own hairlines, and NO TALLER THAN THE ROW IT REPLACES: the row's 8px above
+     and below move inside the card as 7px plus the 1px frame, so the first
+     line of the wording does not move. A fact that is a status keeps its dot
+     and takes its tone in the word as well (Copilot amber with something to
+     look at, green when clear). */
+  .room-facts .room-facets{background:var(--color-surface);border:1px solid var(--color-divider);
+    border-radius:var(--radius-lg);overflow:hidden;row-gap:0;}
+  .room-facts .room-facet{margin-right:0;padding:7px 18px;border-right:1px solid var(--color-divider);}
+  .room-facts .room-facet:last-child{border-right:0;padding-right:18px;}
+  .room-facts:not(.is-folded){padding-top:0;padding-bottom:0;}
+  .room-head .room-facet .v:has(> .room-facet-dot.is-look){color:var(--st-amber-fg);}
+  .room-head .room-facet .v:has(> .room-facet-dot.is-ok){color:var(--st-green-fg);}
   /* The rail's foot: the person. */
   #side-nav .rail-user{flex:none;display:flex;align-items:center;gap:10px;padding:12px 14px;border-top:1px solid var(--color-divider);min-width:0;}
   #side-nav .rail-user-av{flex:none;width:30px;height:30px;border-radius:50%;background:var(--color-accent-100);color:var(--accent-ink);
@@ -10730,8 +10819,8 @@
          sees, and a control that repaints the whole workspace does not belong
          one stray click from the search box for every member. -->
     <div class="sh-grp" role="group" aria-label="Appearance">
-      <button id="brand-green" class="sh-sw" type="button" data-brand-pick="green" hidden><i style="background:#0d9488"></i></button>
-      <button id="brand-navy" class="sh-sw" type="button" data-brand-pick="navy" hidden><i style="background:#24488f"></i></button>
+      <button id="brand-green" class="sh-sw" type="button" data-brand-pick="green" hidden><i style="background:#12796D"></i></button>
+      <button id="brand-navy" class="sh-sw" type="button" data-brand-pick="navy" hidden><i style="background:#264c9e"></i></button>
       <button id="theme-btn" class="sh-theme" type="button" aria-pressed="false" title="Theme" data-i18n-title="sh_theme"></button>
     </div>
 

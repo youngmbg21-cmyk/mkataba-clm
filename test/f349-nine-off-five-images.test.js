@@ -117,7 +117,8 @@ test('F349 (2) — a nothing-to-do tile may still carry a number', async t => {
   });
   await t.test('(2d) the strip asks the number before the three old states', () => {
     const s = strip(CT);
-    assert.match(s, /const tone=x\.working\?'is-busy'\s*\n?\s*:\(\(x\.count!=null&&x\.count>0\)\?'is-warn'/);
+    /* since 7 Oct 2026 the count's tone says what it counts; the count still asks first */
+    assert.match(s, /const tone=x\.working\?'is-busy'\s*\n?\s*:\(\(x\.count!=null&&x\.count>0\)\?\(x\.key==='oblig'\?'is-info':\(x\.key==='risk'\?'is-no':'is-warn'\)\)/);
     assert.match(s, /const mark=x\.working\?[^\n]*\n\s*:\(\(x\.count!=null&&x\.count>0\)\?String\(x\.count\)/);
   });
 });
