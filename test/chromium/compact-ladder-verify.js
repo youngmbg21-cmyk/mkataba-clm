@@ -240,7 +240,8 @@ const HELPERS = `(() => {
     await page.screenshot({ path: path.join(OUT, '05-negotiate.png') });
     const c5 = await page.evaluate(() => {
       const m = window.__m;
-      const row = [...document.querySelectorAll('.redline-page .rl-head .rl-segwrap:not(.rl-readwrap), .redline-page .rl-head .rl-type-step, .redline-page .rl-focus-door, .redline-page .rl-boardseg')].filter(m.vis).map(m.box);
+      /* Deal board is a TAB since 7 Oct 2026 (it stands the row's height beside Redlined), so it left this list of controls */
+      const row = [...document.querySelectorAll('.redline-page .rl-head .rl-segwrap:not(.rl-readwrap), .redline-page .rl-head .rl-type-step, .redline-page .rl-focus-door')].filter(m.vis).map(m.box);
       const seat = [...document.querySelectorAll('.redline-page .rl-head .rl-segwrap:not(.rl-readwrap) .rl-seg')].filter(m.vis)
         .map(b => ({ t: b.innerText.trim(), on: b.classList.contains('on'), fw: getComputedStyle(b).fontWeight }));
       const verbs = [...document.querySelectorAll('.redline-page .rl-card-d .rl-card-face button')].filter(m.vis).map(m.box);

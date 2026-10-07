@@ -6334,8 +6334,8 @@ function redlineLayoutCss(){
     box-shadow:inset 0 -2px var(--accent-solid)}
   #view-redline .rl-actions .rl-segwrap{background:var(--color-surface);border:1px solid var(--btn-edge);
     border-radius:var(--radius);height:var(--ctl-h);overflow:hidden}
-  #view-redline .rl-actions .rl-segwrap .rl-seg{color:var(--color-neutral-600);font-weight:var(--w-strong);background:none}
-  #view-redline .rl-actions .rl-segwrap .rl-seg.on{background:var(--color-accent-100);color:var(--accent-ink)}
+  #view-redline .rl-actions .rl-segwrap .rl-seg{color:var(--color-neutral-600);font-weight:var(--w-label);background:none}
+  #view-redline .rl-actions .rl-segwrap .rl-seg.on{background:var(--color-accent-100);color:var(--accent-ink);font-weight:var(--w-strong)}
   #view-redline .rl-head .rl-needs,#view-redline .rl-head .rl-livelist{height:var(--ctl-h);min-height:0;
     padding:0 var(--pad-ctl-x);border:1px solid var(--btn-edge);background:var(--color-surface);
     border-radius:var(--radius);font-size:var(--t-body);font-weight:var(--w-strong);align-self:center}
