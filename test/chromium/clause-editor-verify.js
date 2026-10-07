@@ -534,9 +534,11 @@ const dismissNote = async pg => {
      side's colour; the deletion is struck and the insertion underlined. What
      3d has always been for — that the rule really reaches the marks — is the
      colour differing from the paper's own ink. */
-  ck('3d the marks are COLOURED by author and the deletion is struck — the rule really reaches them',
-     !!marked && marked.insColour && marked.insColour === marked.delColour && marked.insColour !== marked.bodyInk
-       && marked.delLine === 'line-through',
+  /* RE-POINTED 7 Oct 2026 (the one-build work order part G): every crossed-
+     out word is red, words and line; the insertion alone says who. */
+  ck('3d the insertion is COLOURED by author, the deletion is red and struck — the rule really reaches them',
+     !!marked && marked.insColour && marked.delColour && marked.insColour !== marked.delColour && marked.insColour !== marked.bodyInk
+       && marked.delColour !== marked.bodyInk && marked.delLine === 'line-through',
      marked && `ins ${marked.insColour} ${marked.insLine} · del ${marked.delColour} ${marked.delLine} · ink ${marked.bodyInk}`);
 
   /* ---- 4. THE READY-MADE QUESTIONS ARE ONE LINE ---- */

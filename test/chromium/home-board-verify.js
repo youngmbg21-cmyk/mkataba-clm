@@ -371,7 +371,9 @@ const CONTRACTS = [
     await page.keyboard.press('Escape');
     ok('15c Escape closes it and gives the keyboard back to the dropdown', await until(page, () => !document.querySelector('#hb-focus .hb-rmenu') && (document.activeElement || {}).getAttribute && document.activeElement.getAttribute('data-hb-rc') === 'pic'));
     await pick('pic', 'gantt');
-    ok('15d one press turns the same set into contract bars, and it is kept for this card', await until(page, () => !!document.querySelector('#hb-focus .hb-tl [data-hb-dig^="c:"]') && (hbS().recipe['q:Show Juno contracts by month'] || {}).pic === 'gantt'));
+    ok('15d one press turns the same set into contract bars, and it is kept for this card', await until(page, () => !!document.querySelector('#hb-focus .hb-tl [data-hb-dig^="c:"]') && (hbS().recipe[(hbS().path || []).slice(-1)[0]] || {}).pic === 'gantt'));
+    /* RE-POINTED 7 Oct 2026 (the one-build work order A2): the opening word
+       "Show" is read away, so the card's key is its own — read off the trail */
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
     await ask(page, 'Is time to sign getting faster?');
     ok('15e a trend question draws columns with the trend on — a line and its sentence, or the plain reason there is not enough history', await until(page, () =>
