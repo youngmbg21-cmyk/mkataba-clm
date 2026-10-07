@@ -1,4 +1,4 @@
-# N — BLUE BY DEFAULT, PRESENT MODE THAT STAYS ON, SMALLER REFERENCES, A BOARD THAT WEARS THE BRAND, A SUMMARY BUTTON, A LEANER SUGGESTION CARD
+# N — BLUE BY DEFAULT, PRESENT MODE THAT STAYS ON, SMALLER REFERENCES, A BOARD THAT WEARS THE BRAND, A SUMMARY BUTTON, A LEANER SUGGESTION CARD, A CLAUSES BUTTON YOU CANNOT MISS
 
 **Owner-instructed 7 Oct 2026**, off two screenshots and the second HaTi Platform
 mockup (`HaTi_Platform_2.html`): *"When you are in presentation mode in home page
@@ -10,7 +10,7 @@ be first. Then when changing colors the theme also per the attached mock up html
 the under tones in terms of colors should change in the board screen. Create a
 work order... no coding yet."*
 
-Seven parts. Each says what is wrong today, why, what to build, and how to prove
+Eight parts. Each says what is wrong today, why, what to build, and how to prove
 it. Nothing here is built yet.
 
 ---
@@ -220,6 +220,45 @@ thumb appears on the trace record and in the admin's results after a reload
 
 ---
 
+## N-8 — THE CLAUSES BUTTON IS "TONED" (owner picked it by name, 7 Oct 2026)
+
+**Owner:** *"provide proposals to me [to make] the highlighted button more in
+focus or important so that users do not miss it"*, then, off three drawn options
+(Toned · Leading · Arrival glow, artifact "Clauses Button Options"): *"add toned
+to the work order."*
+
+**Today.** The Document tab's Clauses button (`#ws-th-door`, painted by
+`docThreadDoorPaint` in js/views/contract.js) is a plain outlined button; only
+its small count words ("1 to look at") carry a colour, so with the clause list
+closed it is easy to miss.
+
+**Build — the button wears the worst flag's colour.**
+- When any clause is flagged, the WHOLE button takes the tone of the worst mark
+  — the same reading the count already uses (`docThreadWorst(rows)`: red ·
+  amber · blue): the tone's pale wash as its background, the tone's line as its
+  edge, its icon in the tone's ink, the word "Clauses" in the page ink.
+- The count becomes a SOLID pill in the tone's dot colour with white figures
+  ("1 to look at"), so the number is the first thing seen.
+- Add the clause-list icon before the word (a drawn icon, not a glyph).
+- When no clause is flagged it is the plain outlined button it is today — it
+  only stands out when there is something to look at.
+- While the list is OPEN (`is-on`) it keeps its pressed look; the tone stays so
+  the reader still sees how serious it is.
+- Night mode uses each tone's night answers (`--st-*-bg/-fg/-dot`), checked
+  with contrast-verify.
+- Size, place and height unchanged: nothing on the row moves, the contract's
+  first line does not move (measure before/after), no band, no motion.
+- The Negotiate page's own needs-you button keeps its dress (out of scope; named
+  to the owner if they want it to match).
+
+**Prove it.** A browser check on a contract with one amber clause: the button's
+painted background and edge are the amber tokens and its count is a filled pill;
+on a red clause they are the ruby tokens; on a contract with nothing flagged the
+button is the plain outlined control. Run against unmodified main first: the
+tone assertions must fail there.
+
+---
+
 ## QUESTIONS FOR THE OWNER BEFORE BUILDING
 
 1. **People who already chose Green** — keep their Green (recommended), or move
@@ -231,5 +270,5 @@ thumb appears on the trace record and in the admin's results after a reload
 
 ## ORDER OF WORK
 
-N-1 (a fault, smallest) → N-6 → N-7 → N-2 → N-5 → N-3 → N-4, one branch, each part checked in the
+N-1 (a fault, smallest) → N-6 → N-7 → N-8 → N-2 → N-5 → N-3 → N-4, one branch, each part checked in the
 browser before the next. Full suite once at the end; merge on the owner's word.
