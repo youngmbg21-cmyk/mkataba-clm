@@ -302,12 +302,15 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     assert.ok(!/past your/.test(b.$('#ins-panel .ins-table').textContent), 'a day-old ask is not past it');
   });
 
-  test('3c the negotiation is the lead act, the contract the second; the row opens the negotiation', () => {
+  /* RE-POINTED 7 Oct 2026 (Young, the HaTi Platform mockup's panel): "Open
+     contract" leads, FILLED, on both seats, with "Open negotiation" beside it;
+     the row still opens the negotiation. */
+  test('3c the contract is the lead act (filled), the negotiation the second; the row opens the negotiation', () => {
     const b = world(nw(), { ins: true, nego: true });
     b.win.openNegotiations({ list: true });
     const acts = b.$$('#ins-panel [data-ins-act]').map(x => x.getAttribute('data-ins-act'));
-    assert.deepEqual(acts, ['nego', 'open']);
-    assert.ok(b.$('#ins-panel [data-ins-act="nego"]').classList.contains('ui-btn-accent'), 'accent ink, never a second filled button');
+    assert.deepEqual(acts, ['open', 'nego']);
+    assert.ok(b.$('#ins-panel [data-ins-act="open"]').classList.contains('ui-btn-primary'), 'the lead act is the filled one');
     b.$('#reg-tbody tr[data-row="MK-7"]').dispatchEvent(evt(b.win, 'dblclick'));
     assert.deepEqual(b.calls.pop(), ['nego', 'MK-7']);
   });

@@ -20467,3 +20467,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - At 1024px on Home's Explorer the folded LEGEND tab sits under the view bar (Brain · Wiring · …) at the stage's foot.
 - A "fold <anything>" sentence that names no group now gets HaTi's "no group called …" reply instead of going to Copilot ("collapse the side panel" would be answered that way).
 - Noticed, not fixed: #154 ("the board lands light") moved the Home screen's colours without re-recording the colour census; the bright-brand merge re-recorded it (only dashboard--light/--dark changed, all board inks).
+- Noticed, not fixed (7 Oct 2026, the type formula): room-order-and-notices-verify (3 checks) and dark-no-white-patches-verify 2c (the board's light legend/book at night) are red on main at 198f11d too.

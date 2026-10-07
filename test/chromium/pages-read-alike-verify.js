@@ -466,8 +466,10 @@ const SEED = async () => {
       !chipRoom.absent && !chipNego.absent, { room: chipRoom, nego: chipNego });
     check('6 and says the same thing on both',
       chipRoom.text === chipNego.text, { room: chipRoom.text, nego: chipNego.text });
-    check('6 with no box round it — no border, no fill',
-      chipRoom.bd === '0px' && chipRoom.bg === 'rgba(0, 0, 0, 0)',
+    /* RE-POINTED 7 Oct 2026 (Young, the HaTi Platform mockup): the lead is a
+       soft WHITE capsule with a hairline — still never the grey box of 22 Aug. */
+    check('6 a white capsule with a hairline — never a grey box',
+      chipRoom.bd === '1px' && chipRoom.bg === 'rgb(255, 255, 255)',
       { border: chipRoom.bd, background: chipRoom.bg });
     check('6 and it is dressed identically on both pages',
       chipRoom.bd === chipNego.bd && chipRoom.bg === chipNego.bg

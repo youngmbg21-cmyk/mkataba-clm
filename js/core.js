@@ -624,7 +624,9 @@ const contractStatusTextHtml = c => {
   /* out with them, the head says for how long — "With them for signature ·
      6 days" — because the wait is the fact a reader opens it to learn */
   const wait = (m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? handoverWaitWords(c) : '';
-  return `<span class="room-stat" style="color:${m.tx}">${m.label}${wait ? ` \u00b7 ${_holdEsc(wait)}` : ''}</span>`;
+  /* a PILL in its own tone since 7 Oct 2026 (the HaTi Platform mockup): the
+     stage's wash behind, its dot before the word */
+  return `<span class="room-stat" style="color:${m.tx};background:${m.bg || 'transparent'}"><i style="background:${m.dot}"></i>${m.label}${wait ? ` \u00b7 ${_holdEsc(wait)}` : ''}</span>`;
 };
 /* THE TABLE'S DRESS. The dot is what a scanned column needs — the shape the
    chip used to give it — and the word beside it is what stops the colour being

@@ -4654,12 +4654,49 @@ function hbFocusFind(root, key){
   const scope = key.pid ? root.querySelector(`[data-hb-pid="${(window.CSS && CSS.escape) ? CSS.escape(key.pid) : key.pid}"]`) : root;
   return scope ? scope.querySelector(sel) : null;
 }
+/* ---- A CHART THAT IS DRAWN STAYS DRAWN (Young, 7 Oct 2026: "the board
+   charts flicker when copilot is working ... once chart has been built, it
+   should not flicker") ----
+   Every step Copilot takes repaints the board, and a repaint used to replace
+   the whole board's markup — so every chart was a NEW element and played its
+   grow-in animation again, once per step. Now the new markup is laid over the
+   old one node by node: a node whose markup is unchanged is KEPT (its
+   animation already played), a node whose tag and attributes match but whose
+   inside moved is walked into, anything else is replaced. Only what changed
+   is new, so only what changed animates. Handlers are delegated on document,
+   so a kept node loses nothing. */
+function hbMorph(host, html){
+  const next = document.createElement(host.tagName === 'TBODY' ? 'tbody' : 'div');
+  next.innerHTML = html;
+  hbMorphKids(host, next);
+}
+function hbMorphSameShell(a, b){
+  if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) return false;
+  if (a.nodeType !== 1) return true;
+  if (a.attributes.length !== b.attributes.length) return false;
+  for (const at of b.attributes) if (a.getAttribute(at.name) !== at.value) return false;
+  return true;
+}
+function hbMorphKids(cur, next){
+  const want = [...next.childNodes];
+  for (let i = 0; i < want.length; i++){
+    const w = want[i], c = cur.childNodes[i];
+    if (!c){ cur.appendChild(w); continue; }
+    if (c.nodeType === 1 && w.nodeType === 1 && c.outerHTML === w.outerHTML) continue;
+    if (c.nodeType === 3 && w.nodeType === 3){ if (c.nodeValue !== w.nodeValue) c.nodeValue = w.nodeValue; continue; }
+    /* a form control's live value is the reader's, not the markup's: replace
+       rather than walk into one whose shell moved */
+    if (hbMorphSameShell(c, w) && w.nodeType === 1 && !/^(INPUT|TEXTAREA|SELECT|CANVAS)$/.test(w.nodeName)){ hbMorphKids(c, w); continue; }
+    cur.replaceChild(w, c);
+  }
+  while (cur.childNodes.length > want.length) cur.removeChild(cur.lastChild);
+}
 function hbPaintBoard(opts){
   const host = hbHost(); if (!host) return;
   const top = host.scrollTop;
   const act = document.activeElement;
   const had = (act && host.contains(act)) ? hbFocusKey(act) : null;
-  host.innerHTML = hbBoardHtml();
+  hbMorph(host, hbBoardHtml());
   hbPaintHead();
   /* an expanded chart takes the room: the dock steps aside, as it does in
      Present, and comes back on the same button */

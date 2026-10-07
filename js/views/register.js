@@ -2050,9 +2050,12 @@ function regInsActs(c){
      the panel offered "Open negotiation" on a contract nobody had argued
      (measured on the night screenshot, 26 Sep 2026). Two doors, one answer. */
   const started=!!(c.negotiation&&Array.isArray(c.changes)&&c.changes.length);
-  const openC={ k:'open', label:i18t('ins_open_contract'), run:x=>selectContract(x.id) };
-  const openN={ k:'nego', label:i18t('ins_open_nego'), run:x=>regOpenRow(x.id,true) };
-  if(neg) return mayNego ? [Object.assign({kind:'accent'},openN), openC] : [Object.assign({kind:'accent'},openC)];
+  const openC={ k:'open', label:i18t('ins_open_contract'), iconEnd:'chevR', run:x=>selectContract(x.id) };
+  const openN={ k:'nego', label:i18t('ins_open_nego'), icon:'msg', run:x=>regOpenRow(x.id,true) };
+  /* BOTH SEATS LEAD WITH THE CONTRACT, FILLED, AND OFFER THE NEGOTIATION
+     BESIDE IT (Young, 7 Oct 2026, the mockup's own panel). A press on the row
+     itself still opens the negotiation on that seat (regOpenRow). */
+  if(neg) return mayNego ? [Object.assign({kind:'accent'},openC), openN] : [Object.assign({kind:'accent'},openC)];
   return (started&&mayNego&&typeof openRedlineWorkbench==='function')
     ? [Object.assign({kind:'accent'},openC), openN] : [Object.assign({kind:'accent'},openC)];
 }
@@ -2712,7 +2715,7 @@ function renderRegister(opts){
          reference's own title cell is 13/500, one step up from the cells
          beside it, so the eye runs down the names. The 23 Aug one-size,
          one-weight ruling was about SIZE — every cell is still 13px. */
-      .reg-title{font-weight:var(--w-label);color:var(--color-text);line-height:var(--row-line-1)}
+      .reg-title{font-weight:var(--w-strong);color:var(--color-text);line-height:var(--row-line-1)}
       /* HOW MANY MORE PARTIES. A figure, so it is in the figure face, and it
          takes no press — the list is on the cell's own hover. */
       .reg-py-n{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);

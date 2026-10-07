@@ -5122,7 +5122,7 @@ function redlineLayoutCss(){
          MEASUREMENT against the room's card, not derived: this box pads where
          the room's band does not. Pinned as a RELATION — the browser file
          measures the two heads against each other and fails if either moves. */}
-  .redline-page #ws-head{background:var(--color-surface);padding:var(--page-pad-t) 24px 0;margin:0;
+  .redline-page #ws-head{background:transparent;padding:var(--page-pad-t) 24px 0;margin:0;
     ${''/* THE ROW GAP IS THE ROOM'S OWN 6px. It was 0 while this head was one
            line and had no rows to space; with the crumb and the quiet line it
            has three, and zero here left the card 14px shorter than the room's
@@ -5451,7 +5451,7 @@ function redlineLayoutCss(){
   .rl-readwrap .rl-seg{height:auto;padding:0 14px;font-size:var(--t-body);font-weight:var(--w-label);
     color:var(--color-neutral-600);display:flex;align-items:center;gap:7px;box-shadow:none;background:none}
   .rl-readwrap .rl-seg:hover{color:var(--color-text)}
-  .rl-readwrap .rl-seg.on{font-weight:var(--w-strong);color:var(--color-text);
+  .rl-readwrap .rl-seg.on{font-weight:var(--w-title);color:var(--color-text);
     background:none;box-shadow:inset 0 -2px var(--accent-solid)}
   html.dark .rl-readwrap .rl-seg.on{background:none}
   .rl-readwrap .rl-seg-n{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);

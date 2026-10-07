@@ -167,7 +167,10 @@ const ok = (name, good, detail) => {
     ok('1m no idle sort arrows', !floor.idle);
     ok('1n the resting reference is not an accent; the selected one is', floor.mkInk && floor.mkInk !== floor.accent && floor.selInk === floor.accent,
       `resting ${floor.mkInk} · selected ${floor.selInk} · accent ${floor.accent}`);
-    ok('1o one filled button on the page', floor.filled.length === 1, floor.filled.join(' | '));
+    /* RE-POINTED 7 Oct 2026 (Young, the mockup's panel): one filled button PER
+       AREA — the page head's Draft new agreement and the panel's lead act. */
+    ok('1o one filled button in each area: the page head and the panel', floor.filled.length === 2
+      && floor.filled.some(t => /draft/i.test(t)) && floor.filled.some(t => /open/i.test(t)), floor.filled.join(' | '));
     ok('1p the filters are the list’s own card’s top row; the band paints no ground', floor.barInCard && /rgba\(0, 0, 0, 0\)|transparent/.test(String(floor.bandBg)),
       `bar in card ${floor.barInCard} · band ${floor.bandBg}`);
 
