@@ -12,11 +12,14 @@
 
 Asked which numbers, the owner picked **"References only"**: every contract reference uses the highlighted font on every page; values, dates and counts stay in the normal font.
 
-**What this order holds (four parts, one build):**
+**Added again (owner, a screenshot of a "[icon] Focus" button):** "all focus buttons should say Focus. Add this".
+
+**What this order holds (five parts, one build):**
 - **Part A — The board draws what you ask, however you say it.** The Home board work order written earlier today (branch `claude/board-draws-what-you-ask`, docs/WORKORDER-board-draws-what-you-ask.md), carried here WHOLE and renumbered A0–A6. This file SUPERSEDES that one; that branch is not merged.
 - **Part B — A suggestion shows only the clause or sub-clause it changes** (owner's image 1).
 - **Part C — The prepared questions are shaded in the platform's colour** (owner's image 2).
 - **Part D — Every reference wears the reference font, on every page.**
+- **Part E — Every Focus button says "Focus".**
 
 "All remaining work" was checked against everything raised in this session. Everything else is built and merged (#159, #160). One idea was raised but never decided, so it is NOT in this order: making "Why it matters" the first row of the shaded facts (Risk Walk Options, left as an open question). It needs the owner's yes first.
 
@@ -321,14 +324,36 @@ row must come out the SAME for all five openings when this order is done.
 
 ---
 
+## PART E — EVERY FOCUS BUTTON SAYS "FOCUS"
+
+**What the owner showed:** a button with the focus mark and the word **Focus**. That is the model for every Focus button.
+
+**What they say today (read 7 Oct, grep again before building):**
+- Document tab control row (`.ws-focus-door`, `data-ws-focus-door`): the mark ONLY, no word.
+- Negotiate control row (`.rl-focus-door`, `data-ws-focus`): the mark ONLY, no word.
+- The counterparty's page (`#pt-focus`, `data-rl-focus`): "Focus mode" (`po_focus_mode`).
+- The contract's ⋯ menu row (`ct_menu_focus`, painted in contract.js): "Focus mode".
+- A second ⋯ menu row (`#ws-focus` in contract.js): "Focus mode" typed in ENGLISH straight into the markup — it never follows Swedish. Check whether this row is still drawn; if it is, it takes the key.
+- Explorer's Analyze-contract paper (`data-ig-focus`, `int_focus`): already "Focus" — the model.
+
+**The rule:**
+- Every control that TURNS ON focus shows the focus mark and the one word **Focus** (Swedish **Fokus**), through ONE key (`int_focus` already says it; use it or one shared key — never a new English literal). While focus is on, the same toggle stays "Focus", lit (`aria-pressed`, the existing `.on` look). The fuller sentence ("Focus mode — hide the header and give the room to the document", "Esc to leave") stays on the HOVER (`title`) and for screen readers (`aria-label`), so nothing a reader relied on is lost.
+- The separate EXIT controls drawn while in focus ("Exit focus", `ng_exit_focus`, `.rl-focus-exit`) are a different act and keep their words.
+- THE COST: the two control rows that show only the mark grow by one word. Measure both rows before and after at 1024px and 1440px: the row must stay ONE line, nothing may wrap or be pushed off, and the contract's first line of wording must not move down (Six Questions, 3). If a row cannot take the word at 1024px, say so to the owner rather than squeezing it.
+- Everywhere: the room's Document tab, Negotiate (both seats — ours and the counterparty's), the ⋯ menu, Explorer's Analyze paper, and the phone if it draws a Focus control. Retired keys (`po_focus_mode`, `ct_menu_focus` if no longer called) are left inert in BOTH books.
+
+**Tests:** browser (extend `focus-mimics-document-verify` or a new `focus-says-focus-verify`): on each surface the Focus control's visible text is exactly "Focus" (and "Fokus" in Swedish), with the mark; pressing it still enters focus and the exit still leaves it; the control rows stay one line at 1024px; the first line of wording does not move. Must FAIL on unmodified main.
+
+---
+
 ## ONE BUILD — ORDER OF WORK AND CHECKS
 
-1. One branch from the LATEST main. One commit per part (A, B, C, D), then one pull request for all four.
+1. One branch from the LATEST main. One commit per part (A, B, C, D, E), then one pull request for all five.
 2. Read CLAUDE.md, then grep docs/MAP-HISTORY.md for "HOME — THE BOARD AND THE MAP", "EDIT WITH COPILOT — PANEL TIDY-UP", "THE PIN QUOTES WHAT MOVED" and "changedOnly", and read each.
-3. Run the Six Questions for B, C and D (they change what a person sees). B restores a stated rule; C and D are the owner's exact instructions. Neither should bite; if one does, say so before building.
+3. Run the Six Questions for B, C, D and E (they change what a person sees). B restores a stated rule; C, D and E are the owner's exact instructions. Neither should bite; if one does, say so before building.
 4. `npm run lint` first, zero errors. Run the affected test files together until green; the full suite ONCE at the end.
 5. Every new check runs against a worktree at unmodified main first and must FAIL there.
-6. PHOTOGRAPH WHAT YOU BUILT: the board after each A0 phrase; the Suggested wording on both tabs before and after B (owner's lease example: only 2.1 shown); the chips in light and dark, green and navy brands; Approvals, Obligations, Calendar and Home with their references before and after.
+6. PHOTOGRAPH WHAT YOU BUILT: the board after each A0 phrase; the Suggested wording on both tabs before and after B (owner's lease example: only 2.1 shown); the chips in light and dark, green and navy brands; Approvals, Obligations, Calendar and Home with their references before and after; every Focus button before and after.
 7. Update THE MAP in CLAUDE.md (four lines at most per area) and append the story to docs/MAP-HISTORY.md under the same headings. Mark the old board work order as superseded by this one.
 
 ## OUT OF SCOPE (BUGLOG line, never a fix)
