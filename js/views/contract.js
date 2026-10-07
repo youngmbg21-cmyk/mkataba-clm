@@ -9657,7 +9657,7 @@ function roomHeadHtml(c,opts={}){
          22 Aug flat head for exactly one act): the reference fills the send
          and nothing else on the row. Only that kind; every other next act
          keeps its outline, so a page still carries at most one filled act. */
-      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn${na.kind==='share'?' ui-btn-primary':''}">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
+      : (na && !na.noButton) ? `<button id="ws-next-action" data-na="${na.kind}" class="ui-btn ui-btn-primary">${icon(na.ic,'w-3.5 h-3.5')} ${na.label}</button>`
       : '';
   }
   /* ---- DRAFT NEW AGREEMENT SITS AFTER THE CONTRACT'S OWN NEXT ACT ----
@@ -10050,8 +10050,11 @@ function roomHeadHtml(c,opts={}){
              this is a per-page choice rather than a rewrite of both. */}
       ${opts.primaryFirst?(typeof opts.primary==='string'?opts.primary:primary):''}
       ${may?`<button id="ws-share" class="ui-btn" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
-      ${opts.primaryFirst?'':(opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary))}
+      ${''/* THE CONTRACT'S NEXT ACT IS LAST AND FILLED (Young, 7 Oct 2026, off the
+             HaTi Platform mockup): Share · Draft new · then the next act, the
+             one filled button, at the right-hand end where the eye finishes. */}
       ${newBtn}
+      ${opts.primaryFirst?'':(opts.primary===false?'':(typeof opts.primary==='string'?opts.primary:primary))}
       ${''/* ---- THE THREE CHECKS, AT THE END OF THE ROW THAT OWNS THEM
              (Young ruled 15 Sep 2026) ----
              They were at the right wall of the FACT row, a line below and a

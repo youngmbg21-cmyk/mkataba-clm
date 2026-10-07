@@ -5122,7 +5122,7 @@ function redlineLayoutCss(){
          MEASUREMENT against the room's card, not derived: this box pads where
          the room's band does not. Pinned as a RELATION — the browser file
          measures the two heads against each other and fails if either moves. */}
-  .redline-page #ws-head{background:var(--color-surface);padding:var(--page-pad-t) 24px 0;margin:0;
+  .redline-page #ws-head{background:transparent;padding:var(--page-pad-t) 24px 0;margin:0;
     ${''/* THE ROW GAP IS THE ROOM'S OWN 6px. It was 0 while this head was one
            line and had no rows to space; with the crumb and the quiet line it
            has three, and zero here left the card 14px shorter than the room's

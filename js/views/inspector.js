@@ -259,7 +259,11 @@ function insReadsHtml(c){
   const tick = (typeof icon === 'function') ? icon('check2', '', 2.4) : '';
   return insSecHtml(i18t('ins_read'), '', `<div class="ins-read">${rows.map(r => {
     const tone = INS_READ_TONE[r.state] || '';
-    return `<i class="ins-dot${tone ? ' is-' + tone : ''}" aria-hidden="true">${tone === 'green' ? tick : ''}</i><span data-ins-read="${esc(r.k)}"><b>${esc(r.name)}</b> · ${esc(r.said)}</span>`;
+    /* A READING THAT WANTS A LOOK IS ITS OWN TINTED ROW (Young, 7 Oct 2026, off
+       the HaTi Platform mockup): the amber or ruby wash behind the line, a "!"
+       in its dot, the finding in the tone's ink. A clear reading stays plain. */
+    const mark = tone === 'green' ? tick : (tone === 'amber' || tone === 'ruby') ? '!' : '';
+    return `<div class="ins-rr${tone ? ' is-' + tone : ''}"><i class="ins-dot${tone ? ' is-' + tone : ''}" aria-hidden="true">${mark}</i><span data-ins-read="${esc(r.k)}"><b>${esc(r.name)}</b> <em>· ${esc(r.said)}</em></span></div>`;
   }).join('')}</div>`, 'ins-reads');
 }
 function insLatestHtml(c, st){
@@ -283,9 +287,14 @@ function insLatestHtml(c, st){
    the product's own rule for what it can know before the press. */
 function insActsHtml(list, menuHtml, moreAria){
   const acts = (list || []).map(a => {
-    const cls = a.kind === 'accent' ? 'ui-btn ui-btn-accent' : (a.kind === 'plain' ? 'ui-btn ui-btn-plain' : 'ui-btn');
+    /* THE PANEL'S LEAD ACT IS FILLED (Young, 7 Oct 2026, off the HaTi Platform
+       mockup: "Open contract" solid, the other doors outlined) — on every
+       page this panel is drawn, because the builder is one. `iconEnd` draws
+       its mark after the word (the mockup's "Open contract ›"). */
+    const cls = a.kind === 'accent' ? 'ui-btn ui-btn-primary ins-lead' : (a.kind === 'plain' ? 'ui-btn ui-btn-plain' : 'ui-btn');
+    const ic = n => (n && typeof icon === 'function') ? icon(n, 'w-3.5 h-3.5') : '';
     return `<button type="button" class="${cls}" data-ins-act="${esc(a.k)}"${a.title ? ` title="${esc(a.title)}"` : ''}${a.disabled ? ' disabled' : ''}${a.attrs ? ' ' + a.attrs : ''}>${
-      a.icon && typeof icon === 'function' ? icon(a.icon, 'w-3.5 h-3.5') : ''}${esc(a.label)}</button>`;
+      ic(a.icon)}${esc(a.label)}${ic(a.iconEnd)}</button>`;
   }).join('');
   const more = menuHtml ? `<span class="ins-more-wrap">
       <button type="button" class="ui-btn ui-btn-icon ins-more" data-ins-more aria-haspopup="true" aria-expanded="false"

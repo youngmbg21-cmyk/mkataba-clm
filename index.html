@@ -746,7 +746,7 @@
        which is the whole reason .font-medium was pinned to 400 and the pin's
        own comment called it "one edit to undo when somebody wants Medium on
        purpose". See the .font-medium rule below. */
-    --w-body:400; --w-label:500; --w-strong:600; --w-title:600;
+    --w-body:400; --w-label:500; --w-strong:600; --w-title:700; /* title 700 since 7 Oct 2026 (the type formula below) */
 
     /* LEADING — the largest gap this audit found: 78.2% of the product's 2,300
        font-size declarations carried none, and the only base leading in the
@@ -2168,8 +2168,13 @@
      whole reason this is a wrapper rather than a background on each strip:
      painting them separately leaves the 8px flex gap grey and gives three
      bars instead of one band. */
+  /* ---- AND SINCE 7 OCT 2026 IT SITS ON THE PAGE GROUND (Young, off the HaTi
+     Platform mockup: "make them the same") ---- the mockup draws the title,
+     the quiet line and the tabs on the page's own grey, with the facts on one
+     WHITE card; the 23 Aug white band is reversed. The margins stay, so
+     nothing in the head moves. */
   .room-band{ display:flex; flex-direction:column; gap:var(--s-2); flex:none;
-    background:var(--color-surface);
+    background:transparent;
     /* CANCEL THE VIEW'S OWN TOP AND SIDES, PUT THEM BACK INSIDE. Read from the
        tokens rather than typed: this pair has to equal the wrapper's padding
        exactly or the crumb moves, and the wrapper reads --page-pad-t since
@@ -2317,6 +2322,11 @@
   /* Status as words. The tone comes inline from STATUS_META, so this rule
      carries only the shape — see contractStatusTextHtml. */
   .room-stat{ font-size:var(--t-body); font-weight:var(--w-title); white-space:nowrap; flex:none; }
+  /* THE HEAD'S STATUS IS A PILL (Young, 7 Oct 2026, off the mockup): the stage's
+     wash and dot, the word at 600 — the same dress as the list's stage. */
+  :root .room-stat{ display:inline-flex; align-items:center; gap:6px; padding:2px 10px 2px 8px; border-radius:999px;
+    font-weight:var(--w-strong); line-height:var(--lh-tight); vertical-align:middle; }
+  .room-stat > i{ width:7px; height:7px; border-radius:50%; flex:none; }
   /* ---- THE FACT ROW ----
      Label above value, divided by hairlines, four across. The same treatment
      Key terms uses one screen down, which is the point: a reader who learns to
@@ -2682,6 +2692,12 @@
      The focus ring stays for the one case that still takes focus — a keyboard
      reader tabbing past it. */
   .dk-chip:focus-visible{ outline:2px solid var(--color-accent); outline-offset:2px; }
+  /* THE LEAD IS A PILL (Young, 7 Oct 2026, off the HaTi Platform mockup): the
+     faces and the words inside one soft white capsule at the control height,
+     instead of a word behind a divider. Still a label — no hover, no press. */
+  :root .room-head .dk-chip{ height:var(--ctl-h); padding:0 12px 0 3px; margin-right:4px; border:1px solid var(--color-divider);
+    border-radius:999px; background:var(--color-surface); color:var(--color-neutral-600); }
+  :root .room-head .dk-chip.dk-chip-empty{ padding:0 12px; }
   /* ---- THE CLAIMED CHIP IS A LABEL, AND HAS TO LOOK LIKE ONE ----
      It stopped being a door (see deskChipHtml). A thing that lights up under
      the pointer is a thing a reader will try to press, so the hover the shared
@@ -9943,6 +9959,8 @@
   .ins-mv.is-you{color:var(--st-amber-fg);}
   .ins-mv.is-them{color:var(--color-neutral-600);}
   .ins-acts{display:flex;align-items:center;gap:var(--btn-group-gap);margin-top:14px;flex-wrap:wrap;}
+  /* the lead act takes the row's spare width, as the mockup draws it */
+  .ins-acts .ins-lead{flex:1 1 auto;}
   /* WHAT THIS CONTRACT NEEDS FROM YOU — THE CHECKLIST (Young picked it by
      name, 27 Sep 2026). A frame in the worst row's colour, a head that counts,
      one row per thing owed with its own button. Every colour is the product's
@@ -9989,9 +10007,16 @@
   .ins-ask span{display:block;color:var(--color-neutral-600);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .ins-ask em{display:block;font-style:normal;color:var(--color-neutral-600);font-size:var(--t-meta);margin-top:1px;}
   .ins-ask em .over{color:var(--st-amber-fg);font-weight:var(--w-label);}
-  .ins-read{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 10px;align-items:center;}
+  .ins-read{display:flex;flex-direction:column;gap:2px;}
+  .ins-rr{display:flex;align-items:center;gap:10px;padding:5px 8px;margin:0 -8px;border-radius:var(--radius);}
+  .ins-rr.is-amber{background:var(--st-amber-bg);}
+  .ins-rr.is-ruby{background:var(--st-ruby-bg);}
   .ins-read span{min-width:0;color:var(--color-neutral-700);}
-  .ins-read span b{font-weight:var(--w-label);color:var(--color-text);}
+  .ins-read span b{font-weight:var(--w-strong);color:var(--color-text);}
+  .ins-read span em{font-style:normal;color:var(--color-neutral-600);}
+  .ins-rr.is-amber span em{color:var(--st-amber-fg);}
+  .ins-rr.is-ruby span em{color:var(--st-ruby-fg);}
+  .ins-dot{flex:none;font-size:11px;font-weight:var(--w-title);line-height:1;}
   .ins-dot{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-style:normal;color:#fff;box-sizing:border-box;
     border:1.5px solid var(--rule-strong);background:transparent;}
   .ins-dot.is-green{background:var(--st-green-dot);border-color:var(--st-green-dot);}
@@ -10077,7 +10102,9 @@
   .ins-g{display:flex;align-items:center;gap:8px;min-width:0;}
   .ins-g .n{color:var(--color-neutral-600);font-weight:var(--w-label);font-variant-numeric:tabular-nums;}
   .ins-g-r{margin-left:auto;min-width:0;font-weight:var(--w-body);color:var(--color-neutral-600);font-size:var(--t-label);overflow:hidden;text-overflow:ellipsis;}
-  .ins-lt tr.ins-empty td{height:120px;text-align:center;color:var(--color-neutral-600);white-space:normal;}
+  /* THE EMPTY MESSAGE IS NOT A ROW, SO IT DRAWS NO ROW'S RULE (Young, 7 Oct 2026:
+     "the empty obligations page has a line in it for no reason"). */
+  .ins-lt tr.ins-empty td{height:120px;text-align:center;color:var(--color-neutral-600);white-space:normal;border-bottom:0;}
   .ins-dot2{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none;background:var(--st-gray-dot);}
   .ins-dot2.is-ruby{background:var(--st-ruby-dot);}
   .ins-dot2.is-amber{background:var(--st-amber-dot);}
@@ -10205,6 +10232,41 @@
   .room-tab{color:var(--color-neutral-600);font-weight:var(--w-label);}
   .room-tab:hover{color:var(--color-text);}
   .room-tab.on{color:var(--color-text);font-weight:var(--w-strong);}
+
+  /* ═══ THE TYPE FORMULA (Young, 7 Oct 2026, off the HaTi Platform mockup:
+     "a theme that should apply across the platform ... almost like a
+     mathematical formula") ════════════════════════════════════════════════
+     SIZES ARE HaTi's OWN AND DO NOT MOVE (Young chose "mockup type, nothing
+     moves"); what follows the mockup is WHICH TEXT IS BOLD and WHICH INK IT
+     WEARS. Four weights, four inks, one job each:
+       400 --w-body    reading text, sub-lines
+       500 --w-label   a RESTING control: a tab, a nav door, a filter chip
+       600 --w-strong  a name, a value, a button, a pill, a caps label, the lit nav door
+       700 --w-title   a page / room / card title, the lit tab
+       ink --color-text      names, values, titles
+           --color-neutral-600 sub-lines, resting tabs
+           --cap-ink (neutral-400) every UPPERCASE micro label and table head
+     The mockup draws its caps labels a shade lighter (#7A8784, 3.9:1 on
+     white); neutral-400 is the nearest grey that clears AA at 11px.
+     :root raises each rule one class so it outranks the sheets the views
+     inject later, without !important. */
+  :root{ --cap-ink:var(--color-neutral-400); --cap-w:var(--w-strong); --cap-ls:.07em; }
+  :root :is(.sec-f-l,.room-facet .l,.ins-kv dt,.ins-facts dt,.ins-lbl,.ins-need-h,.ag-facts dt,.ag-kv dt,.ag-flow-l,.ag-kind,.ag-list-h,.ag-ps-h,.doc-th-sec,.doc-xr-k,.ds-h,.ds-facts span,.exp-pg-lbl,.hati-selmenu-g,.hm-map-lab,.hm-rw-sidehead,.ho-ex-k,.ho-route-h,.igf-led-lbl,.na-sec-label,.ob-rl-group,.py-h,.rail-head-label,.sr-mh,.st-att-h,.st-grp-h,.tpl-gl-l,.tpl-sec-label,.sc-stage-t,#ai-feed .ai-target-head,.reg-dp-h,.std-cat,.std-lab,.br-ph h3,.rk-why b,.rk-ce-why b,.mig-table th,.ht .ht-f){
+    font-weight:var(--cap-w); color:var(--cap-ink); letter-spacing:var(--cap-ls); }
+  /* every list's column heads are caps micro labels, as the mockup draws them */
+  :root :is(.ins-lt th,.reg-table th,.ap-table th,.ov-docs thead th,.igf-led-table th,.igf-led-bytable th){
+    font-size:var(--t-micro); text-transform:uppercase; font-weight:var(--cap-w);
+    color:var(--cap-ink); letter-spacing:var(--cap-ls); }
+  /* a card's title is a title */
+  :root .sec-t{ font-weight:var(--w-title); }
+  /* a button's word is 600 — the fill still says which one is the main one */
+  :root .ui-btn{ font-weight:var(--w-strong); }
+  /* the lit tab is the title weight; its count is a pill in the tab's tone */
+  .room-tab.on{ font-weight:var(--w-title); }
+  :root .room-tab-n{ display:inline-flex; align-items:center; height:17px; padding:0 6px; border-radius:999px;
+    font-size:var(--t-micro); font-weight:var(--w-strong); background:var(--color-neutral-100); color:var(--color-neutral-600); }
+  :root .room-tab.on .room-tab-n{ background:var(--color-accent-100); color:var(--accent-ink); }
+  :root .room-tab-n.is-late{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
 
   /* ═══ A TAB IS ONE CONTROL ON EVERY PAGE (20 Sep 2026) ═══ the reference's
      `.tabs button{color:var(--ink-2);font-weight:500}` and
@@ -10737,6 +10799,28 @@
     font-weight:var(--w-label);min-height:32px;}
   #side-nav #side-copilot:hover{background:var(--surface-2);border-color:var(--rule-strong);}
   #side-nav .foot-handle{color:var(--color-neutral-500);}
+  /* ═══ THE MENU, DRESSED AS THE MOCKUP DRAWS IT (Young, 7 Oct 2026: "the nav
+     panels need to look the same") ═══ a resting door in the soft ink at 500;
+     the lit door on the PALEST brand tint, in the brand's ink at 600, with a
+     3px brand bar at the column's edge (back, as the mockup draws it); every
+     count a small pill — neutral, amber where work is owed (NAV_COUNT_TONE's
+     rule stands), the brand's soft wash on the lit door. Rows 36px so the
+     column breathes like the mockup's; type sizes unchanged. */
+  :root{ --nav-ink-rest:#44524F; }
+  html.dark{ --nav-ink-rest:#C3CCCA; }
+  #side-nav .nav-item{min-height:36px;position:relative;color:var(--nav-ink-rest);}
+  #side-nav .nav-item:hover{background:var(--surface-2);color:var(--color-text);}
+  #side-nav .nav-item.active{background:var(--color-accent-50);color:var(--accent-ink);}
+  #side-nav .nav-item.active::before{content:"";position:absolute;left:-8px;top:8px;bottom:8px;width:3px;
+    border-radius:0 3px 3px 0;background:var(--accent-solid);}
+  #side-nav .nav-count{display:inline-flex;align-items:center;height:18px;padding:0 7px;border-radius:999px;
+    background:var(--color-neutral-100);color:var(--color-neutral-600);font-weight:var(--w-strong);}
+  #side-nav .nav-count:empty{display:none;}
+  /* a zero or an untoned number is a quiet figure, not a pill (no tone = nothing waits) */
+  #side-nav .nav-count:not([data-tone]){background:none;padding:0;font-weight:var(--w-body);color:var(--color-neutral-400);}
+  #side-nav .nav-count[data-tone="teal"]{background:var(--color-accent-100);color:var(--accent-ink);}
+  #side-nav .nav-count[data-tone="amber"]{background:var(--st-amber-bg);color:var(--st-amber-fg);padding:0 7px;}
+  #app-shell.rail #side-nav .nav-item.active::before{left:-8px;}
 </style>
 
 
