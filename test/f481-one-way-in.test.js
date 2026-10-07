@@ -36,9 +36,21 @@ const CT = read('js/views/contract.js');
 const EN = read('js/i18n.js');
 
 describe('f481 (1) importing is reached from the upload door', () => {
-  test('the rail carries no Import door', () => {
+  /* REVERSED BY THE OWNER, 7 Oct 2026 (work order O-27): "we need a side menu
+     to get to this page. Otherwise there is no easy way for a user to know how
+     to get to it." The rail carries ONE Import door again, in Library after
+     Our paper, counting what needs review (quiet at zero) and shown only to
+     people who can import. The upload dialog's link below stays. */
+  test('the rail carries one Import door, counted and for editors only', () => {
     assert.ok(RAIL.length > 1000, 'the rail was found');
-    assert.ok(!/data-view="migration"/.test(RAIL));
+    const doors = RAIL.match(/data-view="migration"/g) || [];
+    assert.equal(doors.length, 1, 'exactly one Import door');
+    assert.match(RAIL, /data-view="migration" data-edit-only[^>]*data-i18n-title="nav_import_title"/);
+    assert.match(RAIL, /data-i18n="nav_import"[^<]*<\/span><span class="nav-count" data-count="migration" data-count-quiet-zero><\/span>/);
+    assert.ok(RAIL.indexOf('data-view="templates"') < RAIL.indexOf('data-view="migration"'), 'after Our paper');
+    const app = read('js/app.js');
+    assert.match(app, /hasAttribute\('data-count-quiet-zero'\)/);
+    assert.match(app, /\.nav-item\[data-edit-only\]/);
   });
   test('the upload door says it plainly, opens the importer and carries the waiting count', () => {
     const up = strip(fnBody(CT, 'openUploadModal'));

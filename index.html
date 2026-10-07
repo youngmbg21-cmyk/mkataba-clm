@@ -11379,6 +11379,18 @@
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-tpl"/></svg>
             <span style="flex:1;" data-i18n="nav_tpl_std">Our paper</span><span class="nav-count" data-count="templates"></span>
           </button>
+          <!-- IMPORT CONTRACTS HAS A DOOR (owner-asked 7 Oct 2026: "we need a side
+               menu to get to this page. Otherwise there is no easy way for a
+               user to know how to get to it"). The page was reached only through
+               the + New menu, the upload dialog, a Home tile and Copilot's work;
+               the phone menu already had it. Its count is the page's own "Need
+               review" figure (navCounts' migration), drawn only above zero, and
+               the door is for people who can import (data-edit-only). -->
+          <button data-view="migration" data-edit-only class="nav-item" title="Import contracts — bring a whole back-catalogue in at once, with Copilot extraction and a human review pass" data-i18n-title="nav_import_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-import"/></svg>
+            <span style="flex:1;" data-i18n="nav_import">Import contracts</span><span class="nav-count" data-count="migration" data-count-quiet-zero></span>
+          </button>
           <!-- THE INTAKE FRONT DOOR (W2-2), MOVED UNDER TEMPLATES (owner-asked
                19 Aug 2026, off a screenshot with the row ringed: "move requests
                to under Templates").

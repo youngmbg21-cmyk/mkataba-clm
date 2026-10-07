@@ -971,7 +971,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
     if(made.error){ err.textContent=made.error; return; }
     closeModal();
     toast(i18t('fa_created',{ id:(window.contractRef?contractRef(made.contract):made.contract.id), pid:(window.contractRef?contractRef(parent):parent.id),
-      rel:(RELATION_LABEL[made.contract.relation]||'Amendment').toLowerCase() }));
+      rel:(RELATION_LABEL[made.contract.relation]||'Amendment').toLowerCase() }),'ok');
     if(typeof updateSidebarCounts==='function') updateSidebarCounts();
     if(onDone) onDone(made.contract);
     else if(typeof openWorkspace==='function') openWorkspace(made.contract.id);

@@ -765,7 +765,11 @@ function updateSidebarCounts(){
   const NAV_COUNT_TONE={register:'teal',calendar:'amber',migration:'amber',pipeline:'amber',negotiations:'amber',intake:'amber',obligations:'amber',approvals:'amber',agents:'amber'};
   document.querySelectorAll('[data-count]').forEach(el=>{
     const k=el.getAttribute('data-count'); const v=counts[k];
-    el.textContent=(v==null||v==='')?'':Number(v).toLocaleString(jxLocale());
+    /* A door that only counts WORK says nothing at zero (the Import door,
+       7 Oct 2026): "0 need review" is not news, and a blank is the honest
+       picture of an empty queue. */
+    const quiet=el.hasAttribute('data-count-quiet-zero') && !Number(v);
+    el.textContent=(v==null||v===''||quiet)?'':Number(v).toLocaleString(jxLocale());
     const tone=(Number(v)>0&&NAV_COUNT_TONE[k])||'';
     if(tone) el.setAttribute('data-tone',tone); else el.removeAttribute('data-tone');
   });
@@ -787,6 +791,12 @@ function updateSidebarCounts(){
      toggle flipping off must never leave the reader on a page whose nav
      item has vanished), and the "New" tag rides on Insights from the render
      where it is earned until its first visit. */
+  /* A DOOR ONLY FOR PEOPLE WHO CAN USE IT: a viewer is not shown a door
+     whose page would refuse them (Import contracts, 7 Oct 2026). */
+  document.querySelectorAll('.nav-item[data-edit-only]').forEach(b=>{
+    let may=true; try{ may=(typeof canEdit!=='function') || !!canEdit(); }catch(_){ may=true; }
+    b.classList.toggle('hidden', !may);
+  });
   if(typeof NAV_EARN_AT!=='undefined'){
     document.querySelectorAll('.nav-item[data-view]').forEach(b=>{
       const v=b.getAttribute('data-view');
