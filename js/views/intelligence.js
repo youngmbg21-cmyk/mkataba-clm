@@ -2410,7 +2410,7 @@ async function intelComplianceScan(q){
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
         <button data-ig-ws="${r.c.id}" data-ig-hoverid="${r.c.id}" title="Open ${igEsc(r.c.name)}" style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--accent-ink);background:none;border:0;padding:0;cursor:pointer;text-align:left">${igEsc(r.c.name)}</button>
         ${sevPill(r.worst)}
-        <span style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">${igEsc(window.contractRef?contractRef(r.c):r.c.id)}</span>
+        <span style="font-size:var(--t-label);color:var(--color-neutral-500)">${window.refHtml?refHtml(r.c):igEsc(r.c.id)}</span>
       </div>
       <ul style="margin:0;padding-left:var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.45">${items}</ul>${more}
     </div>`;
@@ -3434,7 +3434,7 @@ function makeIntelGraph(model){
       const chip=igbEl('rect',{ class:'ig-chip', x:-4, y:-2, rx:3, height:27 },tag);
       const l1=igbEl('text',{ class:'ig-lab', x:0, y:9 },tag);
       n.walkNo=igbEl('tspan',{ fill:'#FFFFFF' },l1);
-      const r1=igbEl('tspan',{ 'font-weight':'700' },l1); r1.textContent=ref;
+      const r1=igbEl('tspan',{ 'font-weight':'700', class:'hati-ref' },l1); r1.textContent=ref;
       const n1=igbEl('tspan',{},l1); n1.textContent='  '+name;
       const l2=igbEl('text',{ class:'ig-facts', x:0, y:21 },tag);
       let twoLen=money.length;
@@ -6162,7 +6162,7 @@ function intelPayTermsHtml(){
 
   const rowHtml = r => `<button data-pt-open="${E(r.id)}" title="${E(r.name || r.ref || r.id)}"
       style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:8px 0;${RULE};font:inherit;cursor:pointer">
-    ${cell(E(r.ref || r.id), 'font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink);font-weight:var(--w-title)')}
+    ${cell(E(r.ref || r.id), 'font-family:var(--font-ref);font-size:var(--t-label);color:var(--accent-ink);font-weight:var(--w-title)')}
     ${cell(E(r.counterparty || r.name), 'font-size:var(--t-meta);color:var(--color-text)')}
     ${cell(E(streamOf(r)), 'font-size:var(--t-label);color:var(--color-neutral-600)')}
     ${cell(i18t(r.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp'), `font-size:var(--t-label);color:${r.side === 'customer' ? OB_OURS : OB_THEIRS}`)}
@@ -6234,7 +6234,7 @@ function igMiniCard(id, extra){
     ${extra||''}<span class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3 h-3')}</span>
     <span class="min-w-0 flex-1">
       <span class="block truncate text-[12px] font-medium text-brand-900">${igEsc(c.name)}</span>
-      <span class="block text-[10px] font-mono text-ink/45">${(window.contractRef?contractRef(c):c.id)}${isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''} · ${statusLabel(c.status)}</span>
+      <span class="block text-[10px] font-mono text-ink/45">${window.refHtml?refHtml(c):igEsc(c.id)}${isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''} · ${statusLabel(c.status)}</span>
     </span>
   </button>`;
 }
@@ -6256,7 +6256,7 @@ function igExplainCard(id){
     <div class="flex items-center gap-2 mb-1.5">
       <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3.5 h-3.5')}</span>
       <div class="min-w-0"><div class="ig-card-name text-[12.5px] font-600 text-brand-900 truncate">${igEsc(c.name)}</div>
-      <div class="text-[10px] font-mono text-ink/45">${(window.contractRef?contractRef(c):c.id)}</div></div>
+      <div class="text-[10px] font-mono text-ink/45">${window.refHtml?refHtml(c):igEsc(c.id)}</div></div>
     </div>
     ${row('Type',igEsc(cKind(c)))}
     ${row('Counterparty',igEsc(c.counterparty||'—'))}
@@ -6824,7 +6824,7 @@ function igStripHtml(c,p){
       <button type="button" data-ig-mode="graph" aria-pressed="${up?'false':'true'}">${igEsc(i18t('int_paper_graph'))}</button>
       <button type="button" data-ig-mode="paper" aria-pressed="${up?'true':'false'}">${igEsc(i18t('int_paper_paper'))}</button>
     </div>
-    <span class="ig-strip-ref" title="${igEsc(c.name)}"><span class="ig-strip-dot" style="background:${dot}"></span><b>${igEsc(ref)}</b><span class="q"> · </span>${igEsc(c.name)}<span class="q"> · ${igEsc(c.counterparty||'—')} · ${igEsc(st)}</span></span>
+    <span class="ig-strip-ref" title="${igEsc(c.name)}"><span class="ig-strip-dot" style="background:${dot}"></span><b class="hati-ref">${igEsc(ref)}</b><span class="q"> · </span>${igEsc(c.name)}<span class="q"> · ${igEsc(c.counterparty||'—')} · ${igEsc(st)}</span></span>
     <span class="ig-strip-sp"></span>
     ${up&&n?`<span class="ig-strip-pins">${igEsc(i18tn('int_pins',n,{n}))}</span><button type="button" class="ui-link" data-ig-pins-clear title="${igEsc(i18t('int_pins_clear_title'))}">${igEsc(i18t('int_pins_clear'))}</button>`:''}
     ${up?`<button type="button" class="ui-btn ui-btn-sm" data-ig-focus aria-pressed="${p.focus?'true':'false'}" title="${igEsc(i18t(p.focus?'int_focus_exit_title':'int_focus_title'))}">${icon(p.focus?'x':'scan','w-3.5 h-3.5')}${igEsc(i18t(p.focus?'int_focus_exit':'int_focus'))}</button>`:''}

@@ -1492,7 +1492,7 @@ function commandPaletteResults(q){
   cs.slice(0,q?12:6).forEach(c=>out.push({kind:'contract',id:c.id,
     // an archived row stays findable HERE (filing, not deleting — WO-5) and
     // says so, since no list would explain how it got here otherwise
-    title:c.name, sub:`${(window.contractRef?contractRef(c):c.id)}${c.counterparty?' · '+c.counterparty:''}${c.archived?' · '+i18t('ct_archived_tag'):''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
+    title:c.name, ref:(window.contractRef?contractRef(c):c.id), sub:`${c.counterparty?' · '+c.counterparty:''}${c.archived?' · '+i18t('ct_archived_tag'):''}`, ic:(window.cIcon?cIcon(c):'file'), status:c.status}));
   return out.slice(0,14);
 }
 function openCommandPalette(){
@@ -1598,7 +1598,7 @@ function openCommandPalette(){
         <span style="width:28px;height:28px;flex:none;display:grid;place-items:center;border-radius:var(--radius);border:1px solid var(--color-divider);background:var(--color-bg);color:var(--color-neutral-600)">${icon(r.ic,'w-3.5 h-3.5')}</span>
         <span style="min-width:0;flex:1">
           <span style="display:block;font-size:var(--t-body);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
-          <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.sub||'').replace(/</g,'&lt;')}</span>
+          <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.ref?(window.refHtml?refHtml(r.ref):String(r.ref).replace(/</g,'&lt;')):''}${(r.sub||'').replace(/</g,'&lt;')}</span>
         </span>
         ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:var(--t-micro);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
       </button>`).join('');
@@ -3059,7 +3059,7 @@ function activityPanelHtml(){
                  printed raw, an <img onerror> in it ran in the admin's session
                  the moment the panel opened (measured). */''}
               <span style="display:block;font-size:var(--t-meta);line-height:1.4;">${esc(a.txt)}</span>
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;font-family:var(--font-mono);">${esc(a.ref||a.id)} · ${esc(a.when)}</span>
+              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);margin-top:1px;">${window.refHtml?refHtml(a.ref||a.id):esc(a.ref||a.id)} · ${esc(a.when)}</span>
             </span>
           </button>`).join(''):`<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:var(--s-3) 2px;">${i18t('ap_no_activity')}</div>`}
       </div>`;
@@ -3093,7 +3093,7 @@ function alertsPanelHtml(){
               <span class="al-t" style="display:block;font-size:var(--t-meta);line-height:1.4;font-weight:var(--w-strong);">${esc(a.text)}</span>
               ${a.sub?`<span class="al-sub" style="display:block;font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);margin-top:2px;">${esc(a.sub)}</span>`:''}
               ${a.name?`<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>`:''}
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono);">${esc(a.ref||a.id)}</span>
+              <span class="hati-ref" style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);">${esc(a.ref||a.id)}</span>
             </span>
           </button>`).join(''):`
           <div style="padding:26px 6px;text-align:center;">

@@ -79,7 +79,9 @@ describe('f240 (1) — an alert names its contract once', () => {
     /* RE-POINTED 26 Sep 2026 — a contract signed outside takes its number when it is
        filed, so what a row PRINTS is `contractRef` (carried on the row as `ref`); the id
        stays the row's key and is the fallback where no reference was carried. */
-    assert.match(rows, /\$\{esc\(a\.ref\|\|a\.id\)\}/, 'the reference itself still prints');
+    /* RE-POINTED 7 Oct 2026 — every reference wears the one reference face
+       (refHtml, which escapes), the one-build work order part D. */
+    assert.match(rows, /\$\{(?:esc|window\.refHtml\?refHtml)\(a\.ref\|\|a\.id\)/, 'the reference itself still prints');
   });
 });
 

@@ -2413,7 +2413,7 @@ function renderObligationsList(){
         <span class="obw-txt">
           <span class="obw-what${o.band === 'waiting' ? ' is-wait' : ''}"
             title="${_obEsc(o.desc || '')}">${_obEsc(o.desc || '')}</span>
-          <span class="obw-meta">${_obEsc(o.cname || (window.contractRef && o._c ? contractRef(o._c) : o.cid))} &middot; ${_obEsc(window.contractRef && o._c ? contractRef(o._c) : o.cid)}${
+          <span class="obw-meta">${o.cname ? _obEsc(o.cname) : (window.refHtml ? refHtml(o._c || o.cid) : _obEsc(o.cid))} &middot; ${window.refHtml ? refHtml(o._c || o.cid) : _obEsc(o.cid)}${
             step ? ' &middot; ' + _obEsc(i18t('ob_step_n', { n: step.n, of: step.of })) : ''}${
             o.band === 'waiting' && step ? ' &middot; ' + _obEsc(i18t('ob_waiting_on', { n: step.n - 1 })) : ''}</span>
         </span></span></td>
@@ -2767,7 +2767,7 @@ function obMoneyLeftHtml(m){
    step, how often, the document, when it was chased, who closed it. */
 function obPageLine2(o, c){
   const bits = [ _obEsc(o.counterparty || (c && c.counterparty) || ''),
-    _obEsc(window.contractRef && c ? contractRef(c) : (o.cid || (c && c.id) || '')) ].filter(Boolean);
+    (window.refHtml && (c || o.cid) ? refHtml(c || o.cid) : _obEsc(o.cid || (c && c.id) || '')) ].filter(Boolean);
   const s = obligationStepNo(o, c);
   if(s) bits.push(_obEsc(i18t('ob_step_low', { n: s.n, of: s.of })));
   return bits.join(' · ');
@@ -3086,7 +3086,7 @@ function obPanelOpts(o, c, i, ctx){
   let kind = ''; try{ kind = (typeof window.cKind === 'function') ? cKind(c) : ''; }catch(_){ kind = ''; }
   const ref = _obEsc(window.contractRef ? contractRef(c) : c.id);
   const eyebrow = ctx === 'page'
-    ? `<span class="ins-ref">${ref}</span>${kind ? ' · ' + _obEsc(kind) : ''}`
+    ? `<span class="ins-ref hati-ref">${ref}</span>${kind ? ' · ' + _obEsc(kind) : ''}`
     : `${_obEsc(theirs ? i18t('ob_side_theirs') : i18t('ob_side_ours'))} · ${_obEsc(obRepeatsWord(o))}`;
   const sub = theirs ? _obEsc(i18t('ob_sub_theirs', { cp: o.counterparty || c.counterparty || i18t('ob_side_theirs') }))
     : _obEsc(i18t('ob_sub_ours', { cp: c.counterparty || i18t('ob_side_theirs') }));

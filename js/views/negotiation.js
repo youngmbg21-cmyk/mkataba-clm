@@ -1965,7 +1965,7 @@ function negoCompareDocHtml(c, cmp, whichSide){
   }).join('');
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
-    <div class="nego-meta">${_ne([(window.contractRef ? contractRef(c) : c.id), v ? v.label : '', v && v.sub ? v.sub : ''].filter(Boolean).join(' · '))}</div>
+    <div class="nego-meta">${[window.refHtml ? refHtml(c) : _ne(c.id), v ? _ne(v.label) : '', v && v.sub ? _ne(v.sub) : ''].filter(Boolean).join(' · ')}</div>
     ${body || `<p style="color:var(--n-ink-soft)">${i18t('ng_version_no_wording')}</p>`}
   </article>`;
 }
@@ -16841,7 +16841,7 @@ function rlChatPanelHtml(c, opts = {}){
   return `<div class="rl-np rl-chat" data-rl-chat="${_nea(c.id)}">
     <div class="rl-np-which is-static">
       <span class="t">
-        <span class="id">${_ne((window.contractRef ? contractRef(c) : c.id))}${c.name ? ` <em>· ${_ne(c.name)}</em>` : ''}</span>
+        <span class="id">${window.refHtml ? refHtml(c) : _ne(c.id)}${c.name ? ` <em>· ${_ne(c.name)}</em>` : ''}</span>
         <span class="s">${i18tn('ng_chat_n', all.length, { n: all.length })}</span>
       </span>
     </div>

@@ -6759,7 +6759,7 @@ function ktRecordFactsHtml(c,opts={}){
        working file has taken one, with the working reference it was
        negotiated under beside it — both still find it; and a working file
        says it is one until it is filed. */
-    ['reference', i18t('ov_f_reference'), esc(String((c&&(window.contractRef?contractRef(c):c.id))||''))
+    ['reference', i18t('ov_f_reference'), (c&&window.refHtml?refHtml(c):esc(String((c&&c.id)||'')))
       +(c&&c.contractNo&&c.contractNo!==c.id?` <span style="color:var(--color-neutral-600);font-weight:var(--w-body)">· ${esc(i18t('ho_ref_was',{id:c.id}))}</span>`
       :(c&&window.contractIsWorkingFile&&contractIsWorkingFile(c)?` <span style="color:var(--color-neutral-600);font-weight:var(--w-body)">· ${esc(i18t('ho_ref_working'))}</span>`:''))],
     ['name', i18t('ov_f_name'), R.name],
@@ -9784,7 +9784,7 @@ function roomHeadHtml(c,opts={}){
       ${backC ? `<button id="ws-back" type="button" class="room-crumb-back" data-back="contract"
         data-crumb="${esc(c.id)}"
         title="${esc(backTitle)}" aria-label="${esc(backTitle)}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><use href="#i-left"/></svg></button>
-      <i aria-hidden="true">/</i>` : ''}<span class="room-crumb-here">${esc((window.contractRef?contractRef(c):c.id))}</span>
+      <i aria-hidden="true">/</i>` : ''}<span class="room-crumb-here">${window.refHtml?refHtml(c):esc(c.id)}</span>
     </nav>
     <div class="room-id">
       <div class="room-name">

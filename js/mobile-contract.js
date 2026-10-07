@@ -50,7 +50,7 @@ function mContractHeadHtml(c){
           <div style="font-size:var(--t-section);font-weight:var(--w-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(c.name||(window.contractRef?contractRef(c):c.id))}</div>
           <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:1px">
             ${mPill(c)}
-            <span style="flex:1;min-width:0;font-size:var(--t-card);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mEsc(window.contractRef?contractRef(c):c.id)} · ${mEsc(party)}</span>
+            <span style="flex:1;min-width:0;font-size:var(--t-card);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${window.refHtml?refHtml(c):mEsc(c.id)} · ${mEsc(party)}</span>
           </div>
           ${mDeskLineHtml(c)}
         </div>

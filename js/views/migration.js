@@ -985,7 +985,7 @@ function renderMigQueue(){
            <div style="display:flex;align-items:center;gap:9px">
             <span ${active?'class="scan-pulse"':''} style="width:7px;height:7px;border-radius:50%;background:${s.c};flex:none"></span>
             <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(q.name)}</span>
-            ${q.id?`<button data-open="${q.id}" style="border:0;background:none;cursor:pointer;font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink-700);padding:0">${(window.contractRef?contractRef(getContract(q.id)||{id:q.id}):q.id)}</button>`:''}
+            ${q.id?`<button data-open="${q.id}" style="border:0;background:none;cursor:pointer;font-size:var(--t-label);color:var(--accent-ink-700);padding:0">${window.refHtml?refHtml(getContract(q.id)||{id:q.id}):q.id}</button>`:''}
             <span style="flex:none;font-size:var(--t-label);font-weight:var(--w-strong);color:${s.c}">${s.t}</span>
             ${q.note?`<span style="flex:none;font-size:var(--t-label);color:var(--color-neutral-600);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${migEsc(q.note)}">${migEsc(q.note)}</span>`:''}
            </div>
@@ -1008,7 +1008,7 @@ function migDupeRowHtml(q, i){
   const pending = q.status==='dupe' && (M.pending||{})[i];
   const hit=d=>{ const c=getContract(d.id);
     return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:var(--t-label);color:var(--color-neutral-700);background:var(--color-bg);border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px 7px">
-      <b style="font-family:var(--font-mono)">${(window.contractRef&&c?contractRef(c):d.id)}</b>
+      <b class="hati-ref">${(window.contractRef&&c?contractRef(c):d.id)}</b>
       <span style="max-width:170px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c?c.name:'')}</span>
       <span style="color:var(--color-neutral-500)">${DUP_LABEL[d.kind]}${d.distance!=null&&d.kind!=='exact'&&d.kind!=='text'?` · distance ${d.distance}`:''}</span></span>`; };
   const btn='font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:3px 9px;cursor:pointer';
@@ -1188,7 +1188,7 @@ function renderMigration(){
               ${cs.map(c=>{ const m=c.metadata||{};
                 const need=c.migration.needsReview;
                 return `<tr data-row="${c.id}" style="cursor:pointer">
-                <td style="padding-left:var(--s-3);font-family:var(--font-mono);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap">${(window.contractRef?contractRef(c):c.id)}</td>
+                <td style="padding-left:var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap">${window.refHtml?refHtml(c):c.id}</td>
                 <td style="max-width:250px">
                   <span style="display:block;font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.parentId?`<span style="color:var(--color-neutral-500);font-family:var(--font-mono);font-size:var(--t-label)">↳ ${RELATION_LABEL[c.relation]||'Amendment'} of ${(window.contractRef?contractRef(getContract(c.parentId)||{id:c.parentId}):c.parentId)} · </span>`:''}${migEsc(c.name)}</span>
                   <span style="display:block;font-size:var(--t-label);color:${c.counterparty?'var(--color-neutral-600)':'var(--st-ruby-fg)'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${migEsc(c.counterparty)||'No counterparty'} · ${migEsc((c.upload&&c.upload.fileName)||'')}</span>

@@ -522,6 +522,8 @@ function hbPanelData(kind, lens){
    the same reading asked again — today's figures, never a remembered list. */
 function hbContract(id){ try { return (typeof getContract === 'function') ? getContract(id) : (state.contracts || []).find(c => c.id === id); } catch (_){ return null; } }
 function hbRef(c){ return c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : ''; }
+/* the reference DRAWN on the board wears the reference face (refHtml) */
+const _hbRefH = c => (typeof refHtml === 'function') ? refHtml(c && typeof c === 'object' ? hbRef(c) : c) : _hbE(c && typeof c === 'object' ? hbRef(c) : c);
 function hbListOf(ids, lens){
   const inL = hbLensIds(lens || 'all');
   return (ids || []).map(id => hbContract(id)).filter(c => c && inL.has(c.id));
@@ -1071,7 +1073,7 @@ function hbPrepHtml(A, since){
 /* ---- ONE CONTRACT ROW, in every list on the board ---- */
 function hbRowHtml(c, right){
   return `<button type="button" class="hb-row" data-hb-dig="c:${_hbE(c.id)}" title="${_hbE(i18t('hb_open_card'))}">
-    <span class="hb-row-a">${_hbE(hbRef(c))} · ${_hbE(c.name || '')}</span><span class="hb-row-r">${right || ''}</span>
+    <span class="hb-row-a">${_hbRefH(c)} · ${_hbE(c.name || '')}</span><span class="hb-row-r">${right || ''}</span>
     <span class="hb-row-b">${_hbE(c.counterparty || i18t('home_no_counterparty'))}${(typeof contractOwnerName === 'function' && contractOwnerName(c)) ? ' · ' + _hbE(contractOwnerName(c)) : ''}</span></button>`;
 }
 function hbRightOf(c, fig){
@@ -1353,7 +1355,7 @@ function hbBlocksSvg(D, cs, field, money, P){
       r.forEach(t => { const tw = r.length === 1 ? innerW : innerW * (0.15 + 0.85 * t.v / sum) / (0.15 * r.length + 0.85);
         const ttl = t.more ? i18t('hb_chart_more', { n: _hbN(t.more) }) + ' · ' + _hbM(t.v) : hbRef(t.c) + ' · ' + String(t.c.name || '') + (t.c.counterparty ? ' · ' + t.c.counterparty : '') + ': ' + _hbM(t.v);
         out += `<g class="hb-sv-tile hb-in" style="animation-delay:${gi * 40}ms" ${_hbSvgDoor(t.more ? dig : 'c:' + t.c.id, ttl)}><rect x="${(tx + 2).toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(0, tw - 4).toFixed(1)}" height="${Math.max(0, rowH - 6).toFixed(1)}" rx="4" style="fill:${hue}" fill-opacity="${t.more ? 0.3 : (0.5 + 0.45 * t.v / vmax).toFixed(2)}"/>
-          ${tw > 64 && rowH > 30 ? `<text x="${(tx + 10).toFixed(1)}" y="${(y + 17).toFixed(1)}" font-size="12" font-weight="600" fill="${HB_TILE_INK}">${_hbE(t.more ? '+' + _hbN(t.more) : hbRef(t.c))}</text>${rowH > 44 ? `<text x="${(tx + 10).toFixed(1)}" y="${(y + 33).toFixed(1)}" font-size="11" fill="${HB_TILE_INK}" opacity=".8">${_hbE(_hbM(t.v))}</text>` : ''}` : ''}</g>`;
+          ${tw > 64 && rowH > 30 ? `<text x="${(tx + 10).toFixed(1)}" y="${(y + 17).toFixed(1)}" font-size="12" font-weight="600" fill="${HB_TILE_INK}"${t.more ? '' : ' class="hati-ref"'}>${_hbE(t.more ? '+' + _hbN(t.more) : hbRef(t.c))}</text>${rowH > 44 ? `<text x="${(tx + 10).toFixed(1)}" y="${(y + 33).toFixed(1)}" font-size="11" fill="${HB_TILE_INK}" opacity=".8">${_hbE(_hbM(t.v))}</text>` : ''}` : ''}</g>`;
         tx += tw; });
       y += rowH; });
     x += w;
@@ -3039,7 +3041,7 @@ function hbReadingCore(D, cs, P, R){
 }
 /* one contract, as a door onto its card */
 function hbReadCDoor(c){
-  return `<button type="button" class="hb-read-n" data-hb-dig="c:${_hbE(c.id)}" title="${_hbE(hbRef(c) + ' · ' + String(c.name || '') + (c.counterparty ? ' · ' + c.counterparty : ''))}">${_hbE(hbRef(c))}</button>${c.counterparty ? ' (' + _hbE(c.counterparty) + ')' : ''}`;
+  return `<button type="button" class="hb-read-n" data-hb-dig="c:${_hbE(c.id)}" title="${_hbE(hbRef(c) + ' · ' + String(c.name || '') + (c.counterparty ? ' · ' + c.counterparty : ''))}">${_hbRefH(c)}</button>${c.counterparty ? ' (' + _hbE(c.counterparty) + ')' : ''}`;
 }
 /* a month in words, in full: "September 2026" */
 function hbReadMonth(ym){
@@ -3702,7 +3704,7 @@ function hbCardHtml(K){
   const row = (l, v) => `<div class="hb-crow"><span>${_hbE(l)}</span><span>${v}</span></div>`;
   const q = K.move === 'you' && K.holding.length ? i18t('hb_c_ask_stuck', { cp: K.cp, name: K.name, clause: K.holding[0] })
     : K.expired ? i18t('hb_c_ask_past', { name: K.name }) : i18t('hb_c_ask_risks', { name: K.name });
-  return `<div class="hb-chead"><div><div class="hb-cref">${_hbE(K.ref)}${K.side ? ' · ' + _hbE(i18t('hb_side_' + K.side)) : ''}</div>
+  return `<div class="hb-chead"><div><div class="hb-cref">${_hbRefH(K.ref)}${K.side ? ' · ' + _hbE(i18t('hb_side_' + K.side)) : ''}</div>
       <div class="hb-cname">${_hbE(K.name)}</div><div class="hb-quiet">${_hbE(K.cp || i18t('home_no_counterparty'))}${K.owner ? ' · ' + _hbE(i18t('hb_c_owned', { who: K.owner })) : ''}</div></div>
     <div class="hb-acts"><button type="button" class="hb-btn is-primary" data-hb-room="${_hbE(K.id)}">${_hbE(i18t('hb_c_open'))}</button>
       <button type="button" class="hb-btn" data-hb-analyze="${_hbE(K.id)}" title="${_hbE(i18t('int_analyze_title'))}">${_hbE(i18t('int_analyze'))}</button>
@@ -4002,7 +4004,7 @@ function hbPackHtml(D, lens, big){
     + (P.bars && P.bars.length ? `<section class="hb-pack-card"><h4>${_hbE(i18t('hb_pk_c_broken'))}</h4>${hbChartBarsHtml(P.bars, true)}</section>` : '');
   const rows = P.concerns
     ? P.concerns.map((x, i) => `<tr><td class="hb-pk-i">${i + 1}</td><td><button type="button" class="hb-read-n" data-hb-dig="${_hbE(x.dig)}">${_hbE(x.word)}</button></td><td class="hb-pk-n">${_hbE(P.money ? _hbM(x.v) + ' · ' + _hbN(x.n) : _hbN(x.n))}</td><td>${_hbE(x.earliest ? hbReadDay(x.earliest) : '—')}</td></tr>`).join('')
-    : (P.rows || []).map((r, i) => `<tr><td class="hb-pk-i">${i + 1}</td><td><button type="button" class="hb-read-n" data-hb-dig="c:${_hbE(r.c.id)}">${_hbE(hbRef(r.c))}</button> <span class="hb-quiet">${_hbE(r.c.counterparty || r.c.name || '')}</span></td><td class="hb-pk-n">${_hbE(r.cells[0])}</td><td>${_hbE(r.why || '—')}</td></tr>`).join('');
+    : (P.rows || []).map((r, i) => `<tr><td class="hb-pk-i">${i + 1}</td><td><button type="button" class="hb-read-n" data-hb-dig="c:${_hbE(r.c.id)}">${_hbRefH(r.c)}</button> <span class="hb-quiet">${_hbE(r.c.counterparty || r.c.name || '')}</span></td><td class="hb-pk-n">${_hbE(r.cells[0])}</td><td>${_hbE(r.why || '—')}</td></tr>`).join('');
   const table = rows ? `<div class="hb-pack-list"><h4>${_hbE(i18t('hb_pk_ranked'))}</h4><table class="hb-pk-t"><thead><tr><th></th>${P.cols.map(c => `<th>${_hbE(c)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>` : '';
   const cov = P.coverage;
   const work = `<details class="hb-how"><summary>${_hbE(i18t('hb_how_title'))}</summary><ol>${P.steps.map(s => `<li>${_hbE(s)}</li>`).join('')}</ol>
@@ -6708,12 +6710,12 @@ function hbAsk(q){
   if (r.act === 'card'){
     const c = hbContract(r.id); const K = hbCardData(c);
     hbDig('c:' + c.id, false);
-    return say(`<b>${_hbE(K.ref)} · ${_hbE(K.name)}</b> — ${_hbE(_hbStatus(K.status))}${K.cp ? ' · ' + _hbE(K.cp) : ''}${K.expiry ? ' · ' + _hbE(i18t('hb_c_ends', { day: K.expiry })) : ''}. ${_hbE(i18t('hb_card_said'))}`, { noPaint: true });
+    return say(`<b>${_hbRefH(K.ref)} · ${_hbE(K.name)}</b> — ${_hbE(_hbStatus(K.status))}${K.cp ? ' · ' + _hbE(K.cp) : ''}${K.expiry ? ' · ' + _hbE(i18t('hb_c_ends', { day: K.expiry })) : ''}. ${_hbE(i18t('hb_card_said'))}`, { noPaint: true });
   }
   if (r.act === 'analyze'){
     const c = hbContract(r.id); const K = hbCardData(c);
     hbAnalyze(c.id);
-    return say(`<b>${_hbE(K.ref)} · ${_hbE(K.name)}</b> — ${_hbE(i18t('hb_analyze_said'))}`, { noPaint: true });
+    return say(`<b>${_hbRefH(K.ref)} · ${_hbE(K.name)}</b> — ${_hbE(i18t('hb_analyze_said'))}`, { noPaint: true });
   }
   if (r.act === 'noref') return say(_hbE(i18t('hb_no_ref', { ref: r.ref })), { noPaint: true });
   if (r.act === 'reset'){

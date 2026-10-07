@@ -147,7 +147,9 @@ test('F348 — the name, the tag, the choices and the horizon', async t => {
        and money only where the reader may see it. */
     /* RE-POINTED 26 Sep 2026 — the reference is PRINTED through `contractRef` since a
        contract signed outside takes its number when it is filed; the id is the fallback. */
-    assert.match(CAL, /r\.c\.counterparty\?_esc\(r\.c\.counterparty\):'', _esc\(window\.contractRef\?contractRef\(r\.c\):r\.c\.id\)/);
+    /* RE-POINTED 7 Oct 2026 — and it wears the one reference face (refHtml,
+       which escapes and calls contractRef), the one-build work order part D. */
+    assert.match(CAL, /r\.c\.counterparty\?_esc\(r\.c\.counterparty\):'', \(window\.refHtml\?refHtml\(r\.c\):_esc\(r\.c\.id\)\)/);
     assert.match(CAL, /typeof canViewValues!=='function'\|\|canViewValues\(\)/);
   });
 

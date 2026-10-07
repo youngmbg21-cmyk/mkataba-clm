@@ -4069,7 +4069,7 @@ function renderShareWorkbench(p, opts={}){
       <span class="pw-id-badge">HT</span>
       <span class="pw-id-main">
         <span class="pw-id-titlerow"><h1>${esc(c.name||'Contract')}</h1>${portalStatusWordHtml(c)}<span id="pt-turn"></span></span>
-        <span class="pw-id-sub">${esc((window.contractRef?contractRef(c):c.id)||'')} &middot; ${esc(i18t('po_from_org',{org}))}
+        <span class="pw-id-sub">${window.refHtml?refHtml(c):esc(c.id||'')} &middot; ${esc(i18t('po_from_org',{org}))}
           &middot; shared by ${esc(p.sharedBy||org)}${opts.share&&opts.share.expiresAt
             ?` &middot; ${esc(i18t('po_link_open_until',{when:portalDayWords(opts.share.expiresAt)}))}`:''}</span>
       </span>
@@ -4298,7 +4298,7 @@ function renderShareHistory(p, opts={}){
               <span style="display:block;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name||'Contract')}</span>
               <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono);
-                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc((window.contractRef?contractRef(c):c.id)||'')}${
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.refHtml?refHtml(c):esc(c.id||'')}${
                 c.counterparty?` &middot; with ${esc(c.counterparty)}`:''} &middot; shared by ${esc(p.sharedBy||org)}${expires}</span>
             </span>
           </section>
@@ -4546,7 +4546,7 @@ function renderSharePortal(p, opts={}){
       <span class="pw-id-badge">HT</span>
       <span class="pw-id-main">
         <span class="pw-id-titlerow"><h1>${esc(c.name||'Contract')}</h1>${portalStatusWordHtml(c)}</span>
-        <span class="pw-id-sub">${esc((window.contractRef?contractRef(p.contract):p.contract.id))} &middot; ${esc(i18t('po_from_org',{org:(p&&p.org)||''}))}
+        <span class="pw-id-sub">${window.refHtml?refHtml(p.contract):esc(p.contract.id)} &middot; ${esc(i18t('po_from_org',{org:(p&&p.org)||''}))}
           &middot; shared by ${esc(p.sharedBy)} &middot; ${fmtDT(p.at)}${opts.share&&opts.share.expiresAt?` &middot; ${esc(i18t('po_link_open_until',{when:portalDayWords(opts.share.expiresAt)}))}`:''}</span>
       </span>
       ${portalReadingBtnsHtml()}

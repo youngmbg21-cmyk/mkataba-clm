@@ -423,7 +423,7 @@ function nsOpenContract() {
   if (!all.length) { toast(i18t('lib_pick_none'), 'warn'); return; }
   let pick = null; let q = '';
   const row = c => `<button type="button" class="ns-row${pick === c.id ? ' on' : ''}" data-ns-c="${nsEsc(c.id)}" aria-pressed="${pick === c.id}">
-    <span class="n">${nsEsc(c.name || (window.contractRef ? contractRef(c) : c.id))}</span><span class="s">${nsEsc([(window.contractRef ? contractRef(c) : c.id), c.counterparty, typeof statusLabel === 'function' ? statusLabel(c.status) : c.status].filter(Boolean).join(' · '))}</span></button>`;
+    <span class="n">${nsEsc(c.name || (window.contractRef ? contractRef(c) : c.id))}</span><span class="s">${[window.refHtml ? refHtml(c) : nsEsc(c.id), nsEsc(c.counterparty || ''), nsEsc(typeof statusLabel === 'function' ? statusLabel(c.status) : c.status)].filter(Boolean).join(' · ')}</span></button>`;
   const rows = () => {
     const f = q.toLowerCase();
     const hit = all.filter(c => !f || [c.name, c.id, c.contractNo, c.counterparty].some(x => String(x || '').toLowerCase().includes(f)));
