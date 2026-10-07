@@ -36,6 +36,7 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
   'int_span_days',   /* "{n} d": the day's mark reads alike in both, as int_fact_decide always did */
+  'rk_tt_fm',   /* "Force majeure": the same legal term in Swedish (6 Oct 2026) */
   /* the board work order (5 Oct 2026): placeholders and punctuation only */
   'st_acc_wanted_chart', 'st_acc_got_chart', 'hb_pre_chart',
   /* stories about one name (6 Oct 2026): the title IS the counterparty's or the stream's name */
