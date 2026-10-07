@@ -1,9 +1,9 @@
-# O — SIGNING WITH THE OTHER SIDE, CREATING AN AMENDMENT, A PLAYBOOK THAT LEARNS
+# O — SIGNING WITH THE OTHER SIDE, CREATING AN AMENDMENT, A PLAYBOOK THAT LEARNS, THE BOARD'S CHARTS (INSTRUMENT)
 
 **Owner-instructed 7 Oct 2026**: *"add this artifact and the signing journey to
 one work order to implement in hati. Do not code yet."*
 
-Three design pages are the source. Each picture there is the target screen.
+Four design pages are the source. Each picture there is the target screen.
 Build what they show; where this order and a picture disagree, the picture wins,
 except where a numbered **OWNER DECISION** below says otherwise.
 
@@ -11,13 +11,17 @@ except where a numbered **OWNER DECISION** below says otherwise.
   (creating an amendment): https://claude.ai/artifact/WiS9vfKeujm1TfJnwFnRcL
 - **Playbook That Learns** (Our paper → Our standards → a standard's panel):
   https://claude.ai/artifact/X1y56jF9qJbdXR7rYTk7bK
+- **Board Chart Standard**, option **Instrument** (owner's pick, 7 Oct 2026;
+  the page recommended Spotlight, and the owner chose Instrument):
+  https://claude.ai/artifact/WP5rowC4AupFgsPR4xaAYE
 
-Three parts, twenty-one items. Each says what is wrong today, why (found in the
+Four parts, twenty-six items. Each says what is wrong today, why (found in the
 code), what to build, and how to prove it. **Nothing here is built yet.**
 
 Before touching any area: read its MAP section in CLAUDE.md and grep
 docs/MAP-HISTORY.md for its heading (COUNTERPARTY'S PAGE, SIGNING, SIGN LINKS,
-AN AMENDMENT IS WRITTEN HERE, OUR STANDARDS, THE AI'S READING RULES).
+AN AMENDMENT IS WRITTEN HERE, OUR STANDARDS, THE AI'S READING RULES, HOME —
+THE BOARD AND THE MAP, LOOKS).
 New tests start at **f543**.
 
 ---
@@ -33,6 +37,7 @@ New tests start at **f543**.
 | D5 | Which figure does the playbook propose: the WORST figure settled more than once (today's rule, `stdHeld`) or the MOST COMMON one (the mockup)? | O-18 | Keep today's rule. The worst repeated figure is one you have actually signed more than once; the most common can hide a worse deal. |
 | D6 | Adopting a new PREFERRED: write it after one confirm (mockup), or open the clause editor first (today's rule, 9 Sep 2026)? | O-19 | Confirm in place, with the redline shown under "What we ask for". This reverses a written rule, so it needs your explicit yes. |
 | D7 | "Keep it as it is" stops the proposal for how long, and who may press it? | O-20 | Six months, or until the pattern gets stronger. Anyone who may edit standards. |
+| D8 | Instrument cards show the title and a quiet facts line, with no headline figure. The board's own rule (HEADLINE on a small card, `hbHeadlineOf`) puts a one-line headline there. Keep the headline under Instrument? | O-23 | Keep it, as plain ink text. It is your earlier ruling, and Instrument governs how the chart is DRAWN, not the words above it. |
 
 ---
 
@@ -370,6 +375,110 @@ figure and the trail line; Undo restores both; Keep hides it until its date;
 
 ---
 
+# PART 4 — THE BOARD'S CHARTS: THE CHART STANDARD, IN THE INSTRUMENT LOOK
+
+**The owner chose Instrument**: calm and exact, one brand colour, thin marks,
+hairline grid, labels only on the values that count. The sizing rule, type
+sizes, marks and colours on the page are the standard every chart keeps.
+Scope: every chart drawn on the Home board (the small cards, an opened card,
+full screen, Insights today, stories). Explorer's canvas is NOT in scope
+(it is always dark and has its own drawing). Present and the Pointer are
+unchanged.
+
+## O-22 — A CHART IS DRAWN AT ITS REAL SIZE, IN THREE STEPS
+
+**Today.** Every board drawer builds a fixed 1000-wide picture (`const W = 1000`
+in the column, trend, stack, heat, ring, blocks, timeline, bubbles and compare
+drawers) and the page stretches it to the card (`.hb-svg{width:100%;height:auto}`,
+`.hb-dig.is-big .hb-svg{max-height:72vh}`). So the words stretch too: about 7px
+on a half-width card, oversized when opened, and a tall list (the stream heat
+table) can run past the bottom of the screen.
+
+**Build.**
+- Each drawer takes the card's REAL width and a height from the STEP:
+  board **196px** chart height; opened **42% of the window, between 280 and
+  380px**; full screen **the window minus 230px**, never more. Width follows the
+  card; stretching a card never makes a chart taller. No card is taller than the
+  window at any step.
+- Text sizes come from the step, never from the width (whole pixels):
+
+  | Text | Board | Opened | Full | Weight |
+  |---|---|---|---|---|
+  | Axis numbers and dates | 11 | 12 | 13 | 400, muted |
+  | Category names | 12 | 13 | 14 | 400, second ink |
+  | Values on marks | 12 | 13 | 14 | 600, main ink |
+  | Card title | 15 | 15 | 15 | 600 |
+  | Headline figure | 24 | 28 | 28 | 700 |
+
+- A width change redraws the chart; it is not a stretch. The repaint keeps the
+  board's MORPH rule (`hbMorph`): a chart that did not change does not replay.
+- Every drawer is found and moved (Rule 2). A drawer left on the old way is
+  named to the owner.
+
+**Prove.** board-chart-standard-verify: at card widths 320, 560 and 1180 the
+axis text measures 11px on the board, the chart is 196px tall, and no card is
+taller than the window. The same check against unmodified main must fail.
+
+## O-23 — THE INSTRUMENT LOOK (needs D8 for the card head)
+
+**Build.**
+- **One brand colour** for a single series (`--hb-*` per brand, first hue from
+  `hbHueOf`). Status colours never move.
+- **Thin, flat marks**: bars sit on the baseline with a small rounded top
+  (radius 2), about 62% of their slot; stacked pieces have a 2px gap.
+- **Hairline grid**: 3 lines on the board, 4–5 once opened. No outer box.
+  One axis only; two measures get two charts.
+- **Labels pick their moments**: the biggest value and the latest one, never a
+  number on every bar.
+- **A part-month says so**: hatched and labelled "so far", never drawn as a drop.
+- **Text never wears a series colour**: colour marks identity; ink carries words.
+- **Every mark is a door**, with a hover note and a hit area bigger than the mark
+  (the existing dig doors, `hbDigData`).
+- The card head: title, then the quiet facts line ("Nov 2025 – Oct 2026 ·
+  239 signed"), and the headline per D8.
+
+## O-24 — SERIES COLOURS THAT PASS FOR COLOUR-BLIND READERS
+
+**Today.** The dark board's series colours are too pale, and two are hard to
+tell apart; they fail three of the five palette checks.
+
+**Build.** Two sets, both passing all five checks (lightness, strength,
+colour-blind separation, normal-vision separation, contrast):
+light board `#2F5FC4 #1A9C8A #B87A0F #9A5CC8`; dark board
+`#4F82E6 #1C9E8B #C08518 #9E68D2`. They become the board's series tokens. The
+first hue still follows the brand, so check the Green brand's first hue against
+the same five checks; if it fails, say so to the owner rather than shipping it.
+Pages that carry no `:root` (exports, emails, the health report) get literal
+values. The colour census is re-recorded by this change, audited as a set
+difference first.
+
+## O-25 — OPENED AND FULL SCREEN: DETAIL IS EARNED, NOTHING RUNS OFF
+
+**Build.**
+- Pressing a card opens it full width (step 2): all gridlines, the axis title,
+  more labels, and a **Show as table** link that draws the same numbers as a
+  table (the number on the card is the number in the list behind it).
+  **Full screen** goes to step 3; **Back to board** and Esc return one step at a
+  time.
+- **A long list is cut, and the cut is said**: "+3 more streams · Open the chart
+  to see all 9", with the full list one press away. Counting is never capped,
+  only drawing (`rowsThatFit`).
+
+## O-26 — THE STANDARD IS WRITTEN DOWN
+
+**Build.** The type table, the mark rules and the two colour sets are added to
+THE MAP's HOME — THE BOARD section (four lines) and the long form to
+MAP-HISTORY.md under the same heading, so the next chart drawn follows them.
+`test/tokens.js` pins the RELATIONS (board text < opened text < full text; the
+chart height comes from the step, not the width), not the numbers.
+
+**Prove (Part 4 as a whole).** Photograph the board Light and Dark, each brand,
+at 1280 and 1920 wide and at phone width: every card is fully visible, the text
+is readable, nothing overlaps, and the part-month is hatched. f549–f552 for the
+drawing rules; board-chart-standard-verify for the sizes.
+
+---
+
 ## BUILD ORDER
 
 1. **O-8** (one line), **O-5**, **O-6** (rule fixes with tests first; prove each
@@ -380,7 +489,9 @@ figure and the trail line; Undo restores both; Keep hides it until its date;
    to end).
 4. **O-12, O-13** (Copilot, after D2).
 5. **O-18 → O-21** (the playbook, after D5–D7).
-6. **O-16**, then **O-17** last (the widest and the largest).
+6. **O-22 → O-26** (the board's charts). This is independent of Parts 1–3, so it
+   can run alongside them; O-22 (sizes) before O-23 (look).
+7. **O-16**, then **O-17** last (the widest and the largest).
 
 ## FOR EVERY ITEM
 
