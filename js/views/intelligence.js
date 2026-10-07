@@ -1880,6 +1880,20 @@ async function intelAsk(qRaw){
     intel.busy=false; renderIntelDock();
     return;
   }
+  /* ---- COPILOT PREPARES, YOU PRESS (Young, 7 Oct 2026) ----
+     Sending a contract to a colleague (@ a person, # a contract) and drafting
+     one from a sentence are read here, from the words alone, and answered
+     with a card that waits for a press (js/copilotacts.js). Nothing spends,
+     nothing is sent; anything else goes on exactly as before. */
+  if(typeof window.caActOf==='function'){
+    let act=null; try{ act=caActOf(q); }catch(_){ act=null; }
+    if(act){
+      intel.history.push({role:'user', text:q});
+      intel.history.push({role:'assistant', text:i18t(act.kind==='draft'?'ca_intro_draft':'ca_intro_send'), act});
+      renderIntelDock();
+      return;
+    }
+  }
   /* ON HOME THE BOARD'S FREE READER ANSWERS FIRST (3 Oct 2026): a figure, a
      panel, a contract by its reference, the lens, the side of the screen.
      What it does not understand goes on exactly as on the map. No spend. */
@@ -6320,6 +6334,7 @@ function igMsgHTML(m,i){
              the two or three things it could mean, as presses. */}
       ${''/* THE BOARD'S PRESSES (work order Part 5): a big build offered as a list
              with ticks, and Undo for an answer that changed the board */}
+      ${(Number.isInteger(i)&&m.act&&typeof window.caCardHtml==='function')?caCardHtml(m.act,i):''}
       ${(Number.isInteger(i)&&m.preview&&typeof window.hbPreviewHtml==='function')?hbPreviewHtml(m.preview):''}
       ${''/* a choice sits right under the sentence that offers it; then how the
              question was read, with the next questions; then Undo (Part 4) */}

@@ -13172,6 +13172,47 @@ app.post('/api/contracts/:id/escalate', auth, editor, async (req, res) => {
   res.json({ ok: true, told: true, name: u.name, to, ...mailReport(r3), emailConfigured: EMAIL_ON() });
 });
 
+/* ---------- PASS A CONTRACT TO A COLLEAGUE, FROM THE COPILOT BOX (7 Oct 2026) ----------
+   Young: "I should be able to type @ and names of people begin to appear and
+   then I can choose a person and say send this contract number and add a
+   note." Copilot prepares the card in the browser; THIS route is the press.
+   The escalate route's own rules: ids in, addresses never (a body address is
+   refused); the colleague is a `users` row, in scope for this contract, never
+   the sender; the link is the app's own URL into the contract (never a share
+   token); what was sent is said by mailReport. Nothing is written to the
+   record here — the browser writes the History line after a real send. */
+app.post('/api/contracts/:id/pass', auth, editor, async (req, res) => {
+  const b = req.body || {};
+  if (b.email || b.to || b.address || b.emails)
+    return res.status(400).json({ error: 'This route resolves the colleague’s address from the workspace’s own records. Send a member id, not an email address.' });
+  const row = db.prepare('SELECT json, folder FROM contracts WHERE id=?').get(req.params.id);
+  if (!row || !inScope(folderScopeFor(req.user), row.folder)) return res.status(404).json({ error: 'Contract not found' });
+  let c = {}; try { c = JSON.parse(row.json) || {}; } catch (_) { c = {}; }
+  const memberId = String(b.memberId || '').trim();
+  if (!memberId) return res.status(400).json({ error: 'memberId is required' });
+  if (memberId === String(req.user.id)) return res.status(400).json({ error: 'A contract is passed to somebody else' });
+  const u = db.prepare('SELECT * FROM users WHERE id=?').get(memberId);
+  if (!u) return res.status(404).json({ error: 'That colleague is not on this workspace' });
+  if (!inScope(folderScopeFor(u), row.folder))
+    return res.status(403).json({ error: `${u.name} cannot open this contract`, why: 'no-access', name: u.name });
+  const to = String(u.email || '').trim();
+  const note = clean(b.note).slice(0, 600);
+  const cName = c.name || req.params.id;
+  const ref = clean(c.contractNo || req.params.id).slice(0, 40);
+  const link = contractUrl(req, req.params.id, 'terms');
+  if (!/.+@.+\..+/.test(to)) return res.json({ ok: true, told: false, why: 'no-address', name: u.name, emailConfigured: EMAIL_ON() });
+  const L = langForEmail(to);
+  const r3 = await sendEmail(to,
+    tFor(L, 'mail_pass_subject', { who: req.user.name, name: cName }),
+    `${tFor(L, 'mail_hello')} ${u.name},\n\n`
+      + tFor(L, 'mail_pass_line', { who: req.user.name, ref, name: cName })
+      + (note ? `\n\n"${note}"\n` : '\n')
+      + `\n${tFor(L, 'mail_at_open')}\n${link}\n`
+      + `\n${tFor(L, 'mail_automated_notice')}`,
+    `pass: ${req.params.id} -> ${to}`);
+  res.json({ ok: true, told: true, name: u.name, to, ...mailReport(r3), emailConfigured: EMAIL_ON() });
+});
+
 /* ---------- APPROVAL BEFORE SIGNING: WHO IS TOLD (23 Sep 2026) ----------
    The browser writes the request, the decision and the withdrawal through the
    ordinary save (srvSignApprovalMerge guards them); this route only TELLS the

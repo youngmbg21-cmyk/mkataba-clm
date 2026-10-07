@@ -75,7 +75,8 @@ import './views/approvalsview.js'; // Approvals & signing: a door onto two readi
 import './brainmap.js';           // the Brain's catalogue and its reader of the code, one for both hosts (27 Sep 2026)
 import './views/brain.js';         // the Brain: HaTi as a network of neurons, read from its own code (27 Sep 2026)
 import './agentruns.js';           // Copilot's agents' engine room: runs, settings, the page's quiet refresh (27 Sep 2026)
-import './views/agents.js';        // Copilot's work: the six agents — what each found, prepared and did (27 Sep 2026)
+import './views/agents.js';
+import './copilotacts.js';         // Copilot prepares, you press: @ people, # contracts, the send and draft cards (7 Oct 2026)        // Copilot's work: the six agents — what each found, prepared and did (27 Sep 2026)
 import './views/register.js';
 import './ocr.js';
 import './dedupe.js';
