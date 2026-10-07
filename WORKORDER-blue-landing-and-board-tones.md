@@ -10,7 +10,7 @@ be first. Then when changing colors the theme also per the attached mock up html
 the under tones in terms of colors should change in the board screen. Create a
 work order... no coding yet."*
 
-Eight parts. Each says what is wrong today, why, what to build, and how to prove
+Nine parts. Each says what is wrong today, why, what to build, and how to prove
 it. Nothing here is built yet.
 
 ---
@@ -259,6 +259,40 @@ tone assertions must fail there.
 
 ---
 
+## N-9 — "YOUR MOVE" STANDS IN ONE STRAIGHT LINE ON THE CONTRACTS LIST
+
+**Owner, 7 Oct 2026** (off a screenshot of the Contracts list): *"the your move
+should be in a straight line."*
+
+**Today.** In the Stage column, "· your move" / "· their move" is written straight
+after the stage pill (`stageMove` beside `contractStatusDotHtml` in
+`renderRegister`, js/views/register.js). The pills are different widths
+("Drafting" is shorter than "In Review"), so the words start at a different
+place on every row and zig-zag down the page.
+
+**Build.**
+- The stage pill sits in a slot of ONE fixed width per page, wide enough for the
+  longest stage word drawn on that page in the reader's language (measured, not
+  typed — Swedish words are longer), and "· your move" starts right after that
+  slot. Every row's move word then starts at the same x.
+- The pill itself does not stretch; only its slot is fixed, so short pills keep
+  their own size and the column reads as two neat sub-columns.
+- A row with no move (nothing waiting) leaves the slot's right side empty; a
+  row with "lives in Negotiations" (`lives`) lines up the same way.
+- Nothing else moves: column widths, row heights and the contract's paper are
+  unchanged. The Negotiations seat already puts whose-move in its own column and
+  is not touched.
+- The pill must never be cut off by the column: if the slot plus the move words
+  are wider than the column, the move words shorten with "…" (whole word on the
+  hover), never the pill.
+
+**Prove it.** contracts-page-verify measures the left edge of every visible
+"· your move" on the page and asserts they are equal (to the pixel), in English
+and Swedish; and that no stage pill is clipped (its painted width equals its
+own content width).
+
+---
+
 ## QUESTIONS FOR THE OWNER BEFORE BUILDING
 
 1. **People who already chose Green** — keep their Green (recommended), or move
@@ -270,5 +304,5 @@ tone assertions must fail there.
 
 ## ORDER OF WORK
 
-N-1 (a fault, smallest) → N-6 → N-7 → N-8 → N-2 → N-5 → N-3 → N-4, one branch, each part checked in the
+N-1 (a fault, smallest) → N-6 → N-7 → N-8 → N-9 → N-2 → N-5 → N-3 → N-4, one branch, each part checked in the
 browser before the next. Full suite once at the end; merge on the owner's word.
