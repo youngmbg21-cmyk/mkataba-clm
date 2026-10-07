@@ -16,13 +16,16 @@ Asked which numbers, the owner picked **"References only"**: every contract refe
 
 **And again (owner, 7 Oct 2026):** "In the home page in board and explorer. When you choose pointer, it seizes to become a cursor and only works as a pointer and therefore across the screens. You can then exit pointer to get back to cursor mode."
 
-**What this order holds (six parts, one build):**
+**And again (owner, 7 Oct 2026):** "for both risk as scan, any rejected or crossed words during the redline process, both the words and the line crossing it should be in red just like in word documents. This includes inputs in the copilot panel."
+
+**What this order holds (seven parts, one build):**
 - **Part A — The board draws what you ask, however you say it.** The Home board work order written earlier today (branch `claude/board-draws-what-you-ask`, docs/WORKORDER-board-draws-what-you-ask.md), carried here WHOLE and renumbered A0–A6. This file SUPERSEDES that one; that branch is not merged.
 - **Part B — A suggestion shows only the clause or sub-clause it changes** (owner's image 1).
 - **Part C — The prepared questions are shaded in the platform's colour** (owner's image 2).
 - **Part D — Every reference wears the reference font, on every page.**
 - **Part E — Every Focus button says "Focus".**
 - **Part F — On Home, the Pointer is a pointer only, until you exit it.**
+- **Part G — Every crossed-out word is red: the words and the line, like Word.**
 
 "All remaining work" was checked against everything raised in this session. Everything else is built and merged (#159, #160). One idea was raised but never decided, so it is NOT in this order: making "Why it matters" the first row of the shaded facts (Risk Walk Options, left as an open question). It needs the owner's yes first.
 
@@ -365,14 +368,30 @@ row must come out the SAME for all five openings when this order is done.
 
 ---
 
+## PART G — EVERY CROSSED-OUT WORD IS RED: THE WORDS AND THE LINE, LIKE WORD
+
+**Today (read 7 Oct; grep again):** a struck run wears its AUTHOR's side colour, not red: ours `--accent-ink` (green or navy), theirs `--st-amber-fg` (`del.rl-us` / `del.rl-them` in negotiation-css.js and the mirror block in index.html, around "rl-doc del.rl-them"; the Copilot panel's own copy `.ce-rail .ce-card .pv del.rl-us` in clauseeditor.js; the clause editor's box paints struck runs with `data-ce-mark="del"`). The line through the words is `currentColor`, so it follows the same colour. Only the older `.nego-del` pills are ruby (`--n-del-fg`).
+
+**The owner's rule:** ANY crossed-out or rejected words in the redline process — on the Risks tab and the Suggestions tab, on the paper, and in the Copilot panel, ours or theirs — are RED: the words red AND the line through them red, the way Word shows a deletion. Insertions keep their author's colour, so who wrote a change is still told by the inserted words, the margin bar and the hover. This REVERSES, for deletions only, "every mark wears its author's side (`rlSideWho`, `rl-us`/`rl-them`)" in THE MAP (NEGOTIATE IS A PLACE): say so in the summary and replace that line.
+
+- ONE RED, from the tokens: `--st-ruby-fg` for the words and the line (it has a dark answer), no fill behind the words (the Word look is red text and a red strike, no box). Do not invent a new red.
+- ONE DEFINITION: the deletion's colour is set in ONE place and every surface takes it — make `del.rl-us` and `del.rl-them` (and their `ins > del` stacked forms) read the same red in the shared rule, rather than a new rule per page. Remove the per-side colours for `del` from both mirrors (negotiation-css.js and index.html) and from the Copilot panel's copy, so nothing is left disagreeing.
+- EVERYWHERE IT APPEARS (Bug Fix Rule 1), at least: the Negotiate paper (our seat and the counterparty's page), the Document tab's marks, the clause editor's paper AND its typing box (`data-ce-mark="del"`, struck runs are atoms — keep them atoms), the Copilot panel's Suggested wording on the Suggestions tab and the Risks tab (and a standard question's card), the Redlines column and its clause panel (`.rl-col`, `.rl-cp-src`), the Deal board, the Notes pin's quote (`rlNpChangeQuote`), the preview sheet (`.pv-sheet`), Copilot's work (`.ag-words`), the History tab's records, and the phone where it draws marks. "Rejected" words: where a rejected change is drawn struck, it is red too.
+- NOT changed: the SIGNING copy and print (no marks there), the Word file we write (Word colours tracked changes itself), PDFs of the record (say in the summary what they show).
+- Light and dark, both brands: the struck red must stay readable on white and on the dark paper (contrast-verify's way), and dark-no-white-patches-verify stays green.
+
+**Tests:** browser (new, e.g. `deletions-are-red-verify`): on the Negotiate paper (a struck run of OURS and one of THEIRS), the clause editor's box, the Copilot panel's Suggested wording on both tabs, and the Deal board, a `del` computes `color` = the ruby token and `text-decoration-color` = the same (or `currentColor` resolving to it) with `text-decoration-line` including `line-through`, in light and dark; an `ins` on the same paper still wears its side's colour. Node: no `del.rl-us`/`del.rl-them` rule sets a colour other than the shared red. Must FAIL on unmodified main.
+
+---
+
 ## ONE BUILD — ORDER OF WORK AND CHECKS
 
-1. One branch from the LATEST main. One commit per part (A, B, C, D, E, F), then one pull request for all six.
+1. One branch from the LATEST main. One commit per part (A–G), then one pull request for all seven.
 2. Read CLAUDE.md, then grep docs/MAP-HISTORY.md for "HOME — THE BOARD AND THE MAP", "EDIT WITH COPILOT — PANEL TIDY-UP", "THE PIN QUOTES WHAT MOVED" and "changedOnly", and read each.
-3. Run the Six Questions for B–F (they change what a person sees). B restores a stated rule; C, D, E and F are the owner's exact instructions (F reverses the 6 Oct pointer ruling on the owner's own word). Neither should bite; if one does, say so before building.
+3. Run the Six Questions for B–G (they change what a person sees). B restores a stated rule; C–G are the owner's exact instructions (F reverses the 6 Oct pointer ruling and G the side-coloured deletions, both on the owner's own word). Neither should bite; if one does, say so before building.
 4. `npm run lint` first, zero errors. Run the affected test files together until green; the full suite ONCE at the end.
 5. Every new check runs against a worktree at unmodified main first and must FAIL there.
-6. PHOTOGRAPH WHAT YOU BUILT: the board after each A0 phrase; the Suggested wording on both tabs before and after B (owner's lease example: only 2.1 shown); the chips in light and dark, green and navy brands; Approvals, Obligations, Calendar and Home with their references before and after; every Focus button before and after; Present with Pointer on, on the Board and on Explorer.
+6. PHOTOGRAPH WHAT YOU BUILT: the board after each A0 phrase; the Suggested wording on both tabs before and after B (owner's lease example: only 2.1 shown); the chips in light and dark, green and navy brands; Approvals, Obligations, Calendar and Home with their references before and after; every Focus button before and after; Present with Pointer on, on the Board and on Explorer; struck words on the paper, in the editor box and in the Copilot panel, ours and theirs, light and dark.
 7. Update THE MAP in CLAUDE.md (four lines at most per area) and append the story to docs/MAP-HISTORY.md under the same headings. Mark the old board work order as superseded by this one.
 
 ## OUT OF SCOPE (BUGLOG line, never a fix)
