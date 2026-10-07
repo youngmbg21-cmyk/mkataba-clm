@@ -808,31 +808,62 @@ const _rkHeadHtml = (it, inner) => (it && it.missing)
    "Audit costs · could fall on us") ----
    The card, the editor's dropdown and the editor's heading all read this. A
    scan rule has a fixed short title in both books (rk_title_<id>[_<kind>]); a
-   Copilot brief item wears Copilot's title, cut at RK_TITLE_WORDS words; an
+   Copilot brief item wears Copilot's title where it is RK_TITLE_WORDS words or
+   fewer, and is NAMED where it is longer (never cut); an
    older brief with no title is named from the topic HaTi reads in it, with no
    new call. it.title is NOT changed: it stays the record's name (dedupe, cover,
    Edit's lookup, a new clause's heading), and the whole sentence stays on the
    hover and at the top of the opened Why. */
 const RK_TITLE_WORDS = 6;
+/* A TITLE IS NEVER A CUT SENTENCE (Young, 6 Oct 2026: "switch these to short
+   titles not cut off sentences"). Briefs written before Copilot was asked for
+   "Topic · problem" carry a whole sentence as their title; cutting it at six
+   words left "Either party can walk away from…". Such a title is NAMED
+   instead, from what HaTi reads in it: a topic (these first, then the clause
+   kinds and RK_TOPICS) and, where the words say one, a problem. Title only —
+   RK_TOPICS stays the cover and Edit lookups' table. */
+const RK_TITLE_TOPICS = [
+  { key: 'notices', re: /\b(notices?|notif\w*)\b/i },
+  { key: 'assign', re: /\b(assign\w*|transfer\w*|novat\w*)\b/i },
+  { key: 'renewal', re: /\b(renew\w*|roll(?:s|ing)? over|extend\w*)\b/i },
+  { key: 'term', re: /\b(walk away|terminat\w*|end (?:the|this) (?:contract|agreement)|cancel\w*)\b/i },
+  { key: 'indemnity', re: /\b(indemn\w*|hold harmless)\b/i },
+  { key: 'audit', re: /\b(audit\w*|inspection rights?)\b/i },
+  { key: 'price', re: /\b(pric\w*|fees?|rent|charges?|invoice\w*)\b/i },
+  { key: 'dispute', re: /\b(disputes?|arbitrat\w*|courts?|jurisdiction)\b/i },
+  { key: 'fm', re: /\b(force majeure|acts? of god)\b/i },
+];
+const RK_TITLE_PROBLEMS = [
+  { key: 'uncapped', re: /\b(unlimited|uncapped|no (?:cap|limit))\b/i },
+  { key: 'ondus', re: /\b(fall on us|at our (?:cost|expense)|we (?:must |would |will )?pay|our cost)\b/i },
+  { key: 'easyend', re: /\b(walk away|at any time|without (?:cause|reason)|for convenience)\b/i },
+  { key: 'auto', re: /\b(automatic\w*|by itself|unless (?:we|you|either) )/i },
+  { key: 'email', re: /\b(e-?mail)\b/i },
+  { key: 'restricted', re: /\b(cannot|can ?not|may not|must not|prohibit\w*|without (?:the )?(?:other|their|prior) \w* ?consent)\b/i },
+  { key: 'missing', re: /\b(not (?:stated|specified|defined|set|clear)|no (?:deadline|date|time ?limit|period)|silent|missing|unclear)\b/i },
+];
 /* a word is a token with a letter or digit in it: the "·" between topic and
    problem is not one */
-const _rkCut = t => {
-  const w = String(t || '').trim().split(/\s+/).filter(Boolean);
-  let n = 0, i = 0;
-  for (; i < w.length; i++){ if (/[\p{L}\p{N}]/u.test(w[i])) n++; if (n > RK_TITLE_WORDS) break; }
-  return i < w.length ? w.slice(0, i).join(' ') + '…' : w.join(' ');
-};
+const _rkWords = t => String(t || '').trim().split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length;
+function _rkNamedTitle(it){
+  const text = String(it.title || '') + ' ' + String(it.say || '');
+  const kindName = src => { const k = _rkKind(src); const t = k ? _rkT('rk_topic_' + k) : ''; return (t && t !== 'rk_topic_' + k) ? t : ''; };
+  const tableName = src => { const tk = RK_TITLE_TOPICS.find(x => x.re.test(src)); const t = tk ? _rkT('rk_tt_' + tk.key) : ''; return (t && t !== 'rk_tt_' + tk.key) ? t : ''; };
+  /* the title before the sentence, a clause kind before the title table */
+  const topic = kindName(it.title || '') || tableName(it.title || '') || kindName(text) || tableName(text) || _rkT('rk_tt_misc');
+  const pk = RK_TITLE_PROBLEMS.find(x => x.re.test(text));
+  const prob = pk ? _rkT('rk_tp_' + pk.key) : '';
+  return topic + ' · ' + ((prob && prob !== 'rk_tp_' + pk.key) ? prob : _rkT(it.src === 'odd' ? 'rk_problem_odd' : 'rk_problem_watch'));
+}
 function riskTitleOf(it){
   if (!it) return '';
   if (it.src === 'scan'){
     const base = 'rk_title_' + String(it.id || '').replace(/[^a-z0-9]+/gi, '_');
     for (const k of (it.kind ? [base + '_' + it.kind, base] : [base])){ const t = _rkT(k); if (t && t !== k) return t; }
-    return _rkCut(it.title);
+    return _rkWords(it.title) > RK_TITLE_WORDS ? _rkNamedTitle(it) : String(it.title || '').trim();
   }
-  if (it.say) return _rkCut(it.title);
-  const k = _rkKind(it.title);
-  if (k){ const topic = _rkT('rk_topic_' + k); if (topic && topic !== 'rk_topic_' + k) return topic + ' · ' + _rkT(it.src === 'odd' ? 'rk_problem_odd' : 'rk_problem_watch'); }
-  return _rkCut(it.title);
+  if (it.say && _rkWords(it.title) <= RK_TITLE_WORDS) return String(it.title || '').trim();
+  return _rkNamedTitle(it);
 }
 function riskWhyOf(it){
   if (!it) return '';

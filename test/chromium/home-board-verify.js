@@ -85,10 +85,12 @@ const CONTRACTS = [
     const landed = await until(page, () => document.querySelectorAll('#hb-board .hb-fig').length === 6);
     ok('1a Home lands on the board with six figures', landed);
     const L = await page.evaluate(() => ({ face: typeof hbS === 'function' && hbS().face,
-      dark: !!document.querySelector('#ig-page.hb-dark'), up: typeof igMapUp === 'function' ? igMapUp() : null,
+      dark: !!document.querySelector('#ig-page.hb-dark'), light: !!document.querySelector('#ig-page.hb-light'),
+      order: [...document.querySelectorAll('#hb-head [data-hb-screen]')].map(b => b.getAttribute('data-hb-screen')).join(','), up: typeof igMapUp === 'function' ? igMapUp() : null,
       nums: [...document.querySelectorAll('.hb-fig .hb-fig-n')].map(e => e.textContent.trim()),
       want: typeof hbBookData === 'function' ? hbBookData('all').figs : null }));
-    ok('1b the board side, on the Dark screen', L.face === 'board' && L.dark, JSON.stringify([L.face, L.dark]));
+    /* the Board LANDS LIGHT, Light before Dark (Young, 6 Oct 2026) */
+    ok('1b the board side, on the Light screen, Light first', L.face === 'board' && L.light && !L.dark && L.order === 'light,dark', JSON.stringify([L.face, L.light, L.order]));
     ok('1c the map is not built while the board covers it', L.up === false);
     ok('1d live, ending, past and overdue print the book\'s own counts',
       !!L.want && L.nums[0] === String(L.want.live.n) && L.nums[2] === String(L.want.ending.n)
@@ -189,9 +191,14 @@ const CONTRACTS = [
     const toolsAtRest = await page.evaluate(() => getComputedStyle(document.getElementById('hb-tools')).display);
     ok('8a the tools are not drawn outside Present', toolsAtRest === 'none', toolsAtRest);
     await page.click('#hb-present');
-    ok('8b Present puts the page in presenting, the pointer on', await until(page, () =>
-      document.getElementById('ig-page').classList.contains('hb-presenting') && !document.getElementById('hb-laser').hidden
+    /* the pointer waits for its button (Young, 6 Oct 2026) */
+    ok('8b Present puts the page in presenting, the pointer OFF', await until(page, () =>
+      document.getElementById('ig-page').classList.contains('hb-presenting') && document.getElementById('hb-laser').hidden
+      && !document.getElementById('ig-page').classList.contains('hb-pointing')
       && getComputedStyle(document.getElementById('hb-tools')).display !== 'none'));
+    await page.click('[data-hb-tool="pointer"]').catch(() => {});
+    ok('8b2 Pointer turns it on', await until(page, () => !document.getElementById('hb-laser').hidden
+      && document.getElementById('ig-page').classList.contains('hb-pointing')));
     await page.click('[data-hb-tool="pen"]').catch(() => {});
     await page.mouse.move(400, 300); await page.mouse.down();
     for (let i = 1; i <= 10; i++) await page.mouse.move(400 + i * 20, 300 + i * 8);

@@ -20460,3 +20460,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## 7 Oct 2026 — the bright brand (noticed, not fixed)
 - Noticed, not fixed: theme-tokens-verify was already red at the parent (20/40) — its baseline was stale from earlier unrelated work (night-mode wells, rgba(160,220,210,…), rgba(4,25,26,…) and others). The bright-brand re-record absorbs that drift; the set difference attributable to the bright brand alone is in MAP-HISTORY "THE BRIGHT BRAND".
 - Noticed, not fixed: counterparty-leads-verify 5b ("the top bar or the Selected card names the clause it is working on") is red at the parent too — it reads `.ce-ah-cl` / `#ce-scope`, which the one-Copilot-editor rail retired.
+## 6 Oct 2026 — evening order (risk titles, list, board writing, light board, present, fold in every view)
+### Noticed, not fixed
+- The Contracts/Negotiations inspector's "What Copilot read" list still calls one row "Plain View" (ov_r_plain), the old three-view name; the Thread calls it Plain.
+- An uploaded Word file whose structure WAS read still shows "Text not machine-readable" in amber on its file strip (seen on a test upload with stored wording).
+- At 1024px on Home's Explorer the folded LEGEND tab sits under the view bar (Brain · Wiring · …) at the stage's foot.
+- A "fold <anything>" sentence that names no group now gets HaTi's "no group called …" reply instead of going to Copilot ("collapse the side panel" would be answered that way).

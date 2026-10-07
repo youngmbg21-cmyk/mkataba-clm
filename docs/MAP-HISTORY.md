@@ -27392,6 +27392,32 @@ STALE: `RK_ADVICE_IDS`, `riskGoDraft`, `riskAfterPaint`, `riskDraft`, `riskFile`
 Tests: f460 (requests), f461, f463, f466, f467, f470–f473, f475, f477–f481, f485–f495, editor-lock-words-verify, lane-drafts-verify, advice-is-a-request-verify.
 
 
+## EXPLORER — FOLD IN EVERY VIEW (CELL BUBBLES) (6 Oct 2026)
+
+Young: "fold all only works in the brain and wiring tabs but it should work across all of them." Young picked CELL BUBBLES by name from the mock-up.
+
+Why it did nothing: every fold was multiplied by `igbCardW(w) = max(0, 1 - w[2] - w[3] - w[4])`, the weight of the views that draw cards, so on Floors, Grid and Timeline the hub fold, the bubble and the card glow all came to zero. Only the button's words changed.
+
+What was built:
+- `igbAxes` gives every contract a cell per axis view (`n._cell`): the floors' and grid's column × floor, and the timeline's lane × the timeline's OWN tick stretch (`tStep`, the same month/quarter/year the ticks use — never a second bucketing). The no-date strip is one cell per lane.
+- `G.cellsBy[v]` holds one entry per group × cell, with where the bubble sits: the middle of its own dots on Floors and Timeline, the cell middle (a little under the cell's own count) on the Grid. A bubble is capped to its cell, or to its lane on the Timeline.
+- `igbStep` eases each contract's per-view fold (`n.cf`) with Brain's own easing (reduced motion jumps). `igbShade` takes the axis views' fold from it. Brain and Wiring keep `igbCardW` exactly.
+- `igbDrawCells` paints each bubble in the group's colour, sized like Brain's (`igCellRadius` against the biggest group, by count or by value), with its count inside. `igBubDoors` makes each one a press target (touch-sized on a finger) that opens THAT bubble only (`igCellOpen` → `intel.cellOpen`).
+- ONE fold store: `intel.folds`, written by `igFoldHub`, which also forgets a group's opened cells whenever the group is folded or opened again. Fold all asks `igAllFolded` for the view on screen. A walk-through reaching a folded cell opens that cell.
+- Copilot's words, read free in `igLookRead` before any call: "fold everything" / "open everything", "fold <group>", "open <group>", "fold only <group>", in both books. Every fold goes through `igFoldHub`. The reply is counted after the rebuild (`igFoldSaid`): "Folded X on Floors: 4 bubbles holding 31 contracts." An unknown group is said with the groups that exist. `IG_CLAIM_RE` now also catches "unfolded", "collapsed", "opened up" and the Swedish "fällt ihop".
+- `BRAIN_PARTS` names it `cellfold` (igbDrawCells) in the ask flow beside the Explorer.
+
+Tests: f539 (cells per view add up to the book; Fold all, one press, kept across views; Brain/Wiring unchanged; every phrase acts and its reply's numbers match the drawn bubbles; both books; the walk). fold-every-view-verify (22 checks, real presses, painted pixels, 1500 and 1024 wide).
+
+## THE SAME EVENING'S SMALLER ORDERS (6 Oct 2026)
+
+- RISK TITLES, NEVER CUT: briefs written before Copilot was asked for "Topic · problem" carry a whole sentence as their title, and cutting it at six words left "Either party can walk away from…". A title over six words is now NAMED (`_rkNamedTitle`): a topic from the clause kinds, then a title-only table (`RK_TITLE_TOPICS`: notices, assignment, renewal, termination, indemnity, audit, price, disputes, force majeure), and a problem where the words say one (`RK_TITLE_PROBLEMS`), else "worth a look" / "unusual term". "Either party can walk away…" → "Termination · easy to end". `_rkCut` was removed. f537 re-pointed.
+- THE LIST THAT STAYED OPEN: HaTi's select list lives on document.body, and its outside-press check compared the press's label with the select's label — both null for a select with no label round it, so no outside press ever closed it, and it stayed over the next page after leaving Edit with Copilot. The check now runs only where there is such a label. `rlCloseClauseEditor` closes the list itself.
+- THE BOARD'S WRITING (`hbSay`): Young — "colour highlights and bold letters where necessary … green where all is well and red where things are bad". Copilot marks good and bad news (`HB_SAY_RULE`; on the server `BOARD_SAY_RULE` for Dig deeper's finish). HaTi escapes first, draws only those marks, bolds figures, and colours a short list of plainly good or bad words outside a negation, so writing kept from before reads the same way. The sentence split also starts a sentence at "[".
+- THE STORY'S LEAD fills the card's width (its 78ch cap is gone). Cards side by side stay the same size.
+- THE BOARD LANDS LIGHT, with Light before Dark. A screen chosen before the ruling (no `scr2`) is not kept, so everyone opens light once. Explorer is always dark and draws no Light/Dark buttons (`hbScreenNow`).
+- PRESENT opens with no tool; the Pointer button turns the laser on.
+- UPLOADED CONTRACTS (asked off two screenshots): on the current code an upload's Document tab already lands on Form & Links / the Clauses thread (no Contract · Plain · Risk View switch, retired 5 Oct), and the dotted line round a linked clause was removed 5 Oct. Both were photographed for an upload and a HaTi-built contract side by side, and they matched. The screenshots show the serif paper and the "R1 · Your ask" label, both older than 5–6 Oct, so they came from an older build. Nothing was changed.
 ## THE BRIGHT BRAND (Young, 7 Oct 2026, off the HaTi Platform mockup)
 
 Young shared a mockup ("HaTi Platform") and circled the filter buttons, the initials badges, the stage pills, the Open contract button, the line under the title and the facts strip, adding that its green and blue "are more vibrant compared to the darker green and blue in HaTi". The measured cause: HaTi's bar (`--nav-bg` #093733 / #0F2648) sat two or three shades below its buttons (#0E5F58 / #24488F); the mockup paints both in one bright colour (#12796D / #264C9E). Young said yes to everything except the Open contract button, which is HELD for a later go.

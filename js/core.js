@@ -3155,8 +3155,13 @@ function _selMenuArmDoc(){
     if (_selMenuEl.contains(ev.target)) return;
     /* A press on the control the menu belongs to is its own toggle and is
        answered there; anything else simply shuts it. */
-    if (_selMenuFor && ev.target && ev.target.closest
-      && ev.target.closest('label,.reg-chip') === _selMenuAnchorEl(_selMenuFor)) return;
+    /* Only where there IS such a control: a select with no label or chip
+       round it answers null, and so did every press outside one, which kept
+       the list up over the next page (Young, 6 Oct 2026). */
+    const anchor = _selMenuFor && _selMenuFor.isConnected ? _selMenuAnchorEl(_selMenuFor) : null;
+    if (anchor && ev.target && ev.target.closest
+      && ev.target.closest('label,.reg-chip') === anchor) return;
+    if (_selMenuFor && _selMenuFor.isConnected && ev.target === _selMenuFor) return;
     selectMenuClose();
   }, true);
   /* ESCAPE CLOSES THE LIST, AND ONLY THE LIST (6 Oct 2026): a native select's

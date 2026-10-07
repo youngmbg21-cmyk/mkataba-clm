@@ -7,7 +7,7 @@
          "whatItDoes"; a reply whose explanation is notes shows one fixed
          sentence; both doors draw the two labelled parts;
      (2) B2 ONE SHORT TITLE — riskTitleOf: a scan rule's fixed title in both
-         books (every rule that needs wording has one), Copilot's title cut at
+         books (every rule that needs wording has one), Copilot's title kept at six words or fewer and NAMED (never cut) above; formerly cut at
          six words, an older brief named "Topic · problem" from its topic; the
          brief is asked for "Topic · problem"; the stored title is not changed;
      (3) B3 THE DROPDOWN — it takes the disclaimer's place; clauses grouped
@@ -98,12 +98,18 @@ describe('f537 (1) B1 plain words over the wording', () => {
 
 describe('f537 (2) B2 one short title', () => {
   const rk = () => stage(['js/i18n.js', 'js/clausemodel.js', 'js/risks.js']);
-  test('a scan rule wears its fixed title; Copilot\'s is cut at six words; an older brief is named from its topic', () => {
+  test('a scan rule wears its fixed title; Copilot\'s is never cut; an older brief is named from its topic', () => {
     const w = rk();
     assert.equal(w.riskTitleOf({ src: 'scan', id: 'rm-index', title: 'Price review clause references commodity indices without naming one' }), 'Price index · not named');
     assert.equal(w.riskTitleOf({ src: 'scan', id: 't-law', kind: 'missing', title: 'No governing law clause' }), 'Governing law · missing');
     assert.equal(w.riskTitleOf({ src: 'brief', title: 'Audit costs · could fall on us', say: 'Long sentence.' }), 'Audit costs · could fall on us');
-    assert.equal(w.riskTitleOf({ src: 'brief', title: 'Maersk can audit the supplier performance including site visits', say: 'Long.' }), 'Maersk can audit the supplier performance…');
+    /* never a cut sentence (Young, 6 Oct 2026): a long title is NAMED */
+    assert.equal(w.riskTitleOf({ src: 'brief', title: 'Maersk can audit the supplier performance including site visits', say: 'Long.' }), 'Audit · worth a look');
+    assert.equal(w.riskTitleOf({ src: 'brief', title: 'Either party can walk away from this contract at any time', say: 'Long.' }), 'Termination · easy to end');
+    assert.equal(w.riskTitleOf({ src: 'brief', title: 'Notices sent by email are only valid once confirmed in writing', say: 'Long.' }), 'Notices · by email');
+    assert.equal(w.riskTitleOf({ src: 'brief', title: 'You cannot transfer or assign this contract to anyone else', say: 'Long.' }), 'Assignment · restricted');
+    for (const t of ['Maersk can audit the supplier performance including site visits', 'A long sentence about nothing a table knows at all here'])
+      assert.doesNotMatch(w.riskTitleOf({ src: 'brief', title: t, say: 'x' }), /…/);
     assert.equal(w.riskTitleOf({ src: 'brief', title: 'The liability cap leaves out indirect losses only.', say: '' }), 'Liability · worth a look');
     assert.equal(w.riskTitleOf({ src: 'odd', title: 'Payment is due within ninety days of the invoice date.', say: '' }), 'Payment terms · unusual term');
   });

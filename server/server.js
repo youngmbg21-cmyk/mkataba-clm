@@ -2587,6 +2587,10 @@ const BRIEF_WORDING_MARK = 'True only if dealing with this would mean changing t
    The risk scan names its findings; the brief names its points the same way.
    A brief written before this has no title and the card falls back to the
    sentence (js/risks.js riskItemsOf). */
+/* THE BOARD'S WRITING MARKS ITS GOOD AND BAD NEWS (Young, 6 Oct 2026): the
+   same rule the browser gives Copilot (homeboard.js HB_SAY_RULE); the board
+   escapes the text and draws only these marks. */
+const BOARD_SAY_RULE = 'Mark the reader\'s good news [[good:like this]] and bad news [[bad:like this]] (a few words each, at most two of each per paragraph), and the one key phrase **like this**. No other formatting.';
 const BRIEF_TITLE = 'A short name for this point in the form "Topic · problem", at most six words: the topic first, the way a heading names a clause, then a middle dot (·), then the problem in two or three plain words. Never a full sentence. For example "Audit costs · could fall on us", "Liability cap · below fees" or "Data processing · no agreement".';
 
 /* A REDLINE IS WORDING, NOT A NOTE ABOUT WORDING (owner-reported 26 Aug 2026,
@@ -7109,12 +7113,12 @@ const boardAnalystHandler = async (req, res) => {
       input_schema: { type: 'object', properties: { why: { type: 'string' }, name: { type: 'string', enum: BOARD_ANALYST_PACKS } }, required: ['why', 'name'] } },
     { name: 'finish', description: 'The answer: a short summary, up to three cards to draw on the board, up to three next questions.',
       input_schema: { type: 'object', properties: {
-        summary: { type: 'string', description: 'Three to five plain sentences: what the steps showed, why it matters, what to do. Use ONLY numbers that appear on the fact sheets, written as they appear; never work out a new number.' },
+        summary: { type: 'string', description: 'Three to five plain sentences: what the steps showed, why it matters, what to do. Use ONLY numbers that appear on the fact sheets, written as they appear; never work out a new number. ' + BOARD_SAY_RULE },
         cards: { type: 'array', description: 'Up to three charts worth keeping on the board, each a set, a recipe and a short title.', items: { type: 'object', properties: { which: { type: 'object', properties: { all: { type: 'boolean' }, q: { type: 'string' } } }, recipe: { type: 'object', properties: { ...GRAPH_CHART_PROPS } }, title: { type: 'string' } } } },
         next: { type: 'array', items: { type: 'string' }, description: 'Up to three short follow-up questions the reader could ask.' }, ...storyFinish }, required: ['summary'] } },
   ];
   const lang = String(b.lang || '').replace(/[^\p{L} ]/gu, '').slice(0, 30) || 'English';
-  const storyJob = story ? `\nThis is DIG DEEPER on a story already on the board; its chapters and their fact sheets are below. Find out WHY the story looks the way it does: put forward an idea (what drove it, who drove it, what helped), test it with one calculation, and keep going with the next idea. Take at most ${maxSteps} steps, usually six to ten. In finish: summary says why, in three to five sentences; chapters are the steps that explain it (each a step number, a short title and two or three sentences); watch lists what is coming up that the reader should act on, each tied to the step whose contracts it names; aside lists the ideas that did not hold and why.\n\nTHE STORY:\n${story}\n` : '';
+  const storyJob = story ? `\nThis is DIG DEEPER on a story already on the board; its chapters and their fact sheets are below. Find out WHY the story looks the way it does: put forward an idea (what drove it, who drove it, what helped), test it with one calculation, and keep going with the next idea. Take at most ${maxSteps} steps, usually six to ten. In finish: summary says why, in three to five sentences; chapters are the steps that explain it (each a step number, a short title and two or three sentences); watch lists what is coming up that the reader should act on, each tied to the step whose contracts it names; aside lists the ideas that did not hold and why. In the summary, the chapters and watch, ${BOARD_SAY_RULE}\n\nTHE STORY:\n${story}\n` : '';
   const prompt = `You are HaTi's analyst on the Home BOARD of a contract portfolio. Work out the reader's question in steps. Each step, ask HaTi for ONE calculation (calculate or pack); HaTi counts and returns a fact sheet. Take at most ${maxSteps} steps — ${story ? 'as many as the story needs' : 'usually two or three'} — then call finish. Never state a number that is not on a fact sheet; never add, subtract or divide numbers yourself. If a fact sheet says some contracts were not read or not checked, say the picture may be incomplete. Write in ${lang}.\n\nToday's date: ${new Date().toISOString().slice(0, 10)}\n${board ? `\nThe board now:\n${board}\n` : ''}${guide ? `\nWhat each field holds:\n${guide}\n` : ''}${storyJob}\nThe reader's question: "${question}"`;
   const messages = [{ role: 'user', content: prompt }];
   steps.forEach((s, n) => {

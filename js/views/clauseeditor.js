@@ -2525,6 +2525,7 @@ function rlCloseClauseEditor(opts = {}){
   try{
     if (ceSide() === 'owner' && window.clauseLockRelease && ceLockable() && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId, release: true });
   }catch(_){}
+  try{ if (window.selectMenuClose) selectMenuClose(); }catch(_){}   // the list lives on body: it leaves with the page (6 Oct 2026)
   const page = document.getElementById('clause-editor');
   if (page){ try{ if (page._ceRo) page._ceRo.disconnect(); }catch(_){} page.remove(); }
   try{ if (window.spellUnderlineClear) spellUnderlineClear(); }catch(_){}
