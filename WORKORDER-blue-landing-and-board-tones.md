@@ -297,9 +297,8 @@ own content width).
 
 1. **People who already chose Green** — keep their Green (recommended), or move
    everyone to Blue once?
-2. **The counterparty's page** — land on Blue too, or keep whatever our side
-   uses? (Recommended: Blue, the same as ours.)
-3. **Explorer** — follow the brand like the board (recommended), or stay teal?
+2. ~~The counterparty's page~~ — decided (owner, 7 Oct 2026): **yes, it lands on Blue too.**
+3. ~~Explorer~~ — decided (owner, 7 Oct 2026): **yes, it follows the brand like the board.**
 4. ~~The thumbs (N-7)~~ — decided: remove them.
 
 ## ORDER OF WORK
