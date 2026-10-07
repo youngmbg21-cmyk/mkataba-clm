@@ -3685,7 +3685,7 @@ function portalNotesDoorHtml(){
    delegated listener in wirePortalMore. */
 function portalFocusBtnHtml(){
   return `<button type="button" id="pt-focus" class="ui-btn pw-id-verb" data-rl-focus aria-pressed="false"
-    title="${esc(i18t('ct_focus_mode'))} · ${esc(i18t('ct_esc_to_leave'))}">${icon('scan','w-3.5 h-3.5')}${esc(i18t('po_focus_mode'))}</button>`;
+    title="${esc(i18t('ct_focus_mode'))} · ${esc(i18t('ct_esc_to_leave'))}">${icon('scan','w-3.5 h-3.5')}${esc(i18t('ct_focus_word'))}</button>`;
 }
 /* WHAT HAS COME FROM THE OTHER SIDE, as a fingerprint: their changes and the
    state each stands in, the round, and how many notes they have written. The
