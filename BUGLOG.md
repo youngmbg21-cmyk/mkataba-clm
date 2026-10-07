@@ -20475,3 +20475,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ### Noticed, not fixed (7 Oct 2026, the one build)
 - home-board-verify 15b "the Picture dropdown is painted on top" is red on unmodified main too ({"onTop":false}); not in KNOWN_RED. Left alone.
+- standards-page-verify 2b2 ("narrow the page and the same row clips") is red in CI on main too (PR #161's own run, shard 3). Left alone.
