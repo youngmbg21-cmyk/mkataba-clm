@@ -2073,8 +2073,8 @@ async function intelGraphAsk(q){
   /* CHECK AND REPAIR (work order Part 4): Copilot's cards are checked before
      they are applied; what fails goes back ONCE, at the cost of one more
      call, and the panel says so */
+  const retry=payload?(note=>api('ai/graph','POST',Object.assign({},payload,{ query:q+'\n\n'+note, screen:graphAskScreen() }))):null;
   if(res&&igBoardNow()&&typeof window.hbBoardTakes==='function'){
-    const retry=payload?(note=>api('ai/graph','POST',Object.assign({},payload,{ query:q+'\n\n'+note, screen:graphAskScreen() }))):null;
     let said=null; try{ said=(typeof window.hbBoardTakesChecked==='function')?await hbBoardTakesChecked(res,retry,q):hbBoardTakes(res,q); }catch(_){ said=null; }
     /* DIG DEEPER (Charts That Explain, rec 4): under Copilot's board answer,
        the press that hands the question to the analyst, its cost beside it */
@@ -2084,6 +2084,15 @@ async function intelGraphAsk(q){
     /* The built-in reader understood nothing: say what the map can do, as
        presses, rather than leave a sentence and nothing to act on. */
     if(!res.groupBy&&!res.visibleIds) res.ask=[{ role:'group', fact:'counterparty' },{ role:'floors', fact:'payterms' },{ role:'colour', fact:'risk' }]; }
+  /* ON THE BOARD A MAP ANSWER NEVER TOUCHES THE HIDDEN MAP (the one-build
+     work order A3, 7 Oct 2026): an answer with no board actions is read by
+     the board — a card, one retry, or one plain line — and the map behind it
+     stays exactly as it was. Only a set (drawn as a list) or a question that
+     asks for the map goes on to intelGraphApply. */
+  if(res&&igBoardNow()&&typeof window.hbBoardNoMap==='function'){
+    let said=null; try{ said=await hbBoardNoMap(res,retry,q); }catch(_){ said=null; }
+    if(said){ intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice) }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); return; }
+  }
   igRecipePush();
   intelGraphApply(q, res, { capped });
 }
@@ -2166,7 +2175,9 @@ function intelGraphApply(q, res, opts){
     .map(o=>({ label:igRoleSays(o.role,o.fact).replace(/\.$/,''), acts:[{ role:o.role, fact:o.fact }].concat(o.role==='floors'?[{ view:2 }]:o.role==='columns'?[{ view:3 }]:[]) })):null;
   const action=res.action==='highlight'?'highlight':'filter';
   /* a request about the look narrows nothing unless its words narrow */
-  if(lookActs.length&&ids&&!/\b(?:only|just|which|what|show me|among|bara|endast|vilka|vilket)\b/i.test(q)) ids=null;
+  /* the opening words never decide it (the one-build work order A2): "show
+     me" is read away like any other opening, so it narrows nothing itself */
+  if(lookActs.length&&ids&&!/\b(?:only|just|which|what|among|bara|endast|vilka|vilket)\b/i.test(q)) ids=null;
   if(ids&&ids.length)
     addLens({ label:igBoardTitle(q,res)||res.note||ids.length+' matches', ids, action, badges:res.badges||null });
   /* Composed off the built model — counts, never a sentence the model wrote. */

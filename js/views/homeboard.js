@@ -838,6 +838,8 @@ function hbFindContract(q){
   if (b && b[1]){
     const w = b[1].trim().toLowerCase();
     if (w.length < 4 || HB_RX.map.test(w) || HB_RX.board.test(w)) return null;
+    /* "show me Amani Foods by month" is a chart of their contracts (A2) */
+    if (hbRecipeRead(w)) return null;
     let hit = cs.filter(c => String(c.name || '').toLowerCase() === w);
     if (!hit.length) hit = cs.filter(c => String(c.name || '').toLowerCase().includes(w) || String(c.counterparty || '').toLowerCase() === w);
     if (hit.length === 1) return { c: hit[0] };
@@ -1584,6 +1586,9 @@ const HB_RC = {
   /* THE COMPARISON: against the same period a year back, or the one before */
   cmpYear: /\b(?:compared (?:to|with)|against|vs\.?|versus|jämfört med|mot)\s+(?:the same (?:period|time|months?|quarter) )?(?:last year|a year (?:ago|earlier|before)|the year before|previous year|förra året|i fjol|året innan)\b/,
   cmpPrev: /\b(?:compared (?:to|with)|against|vs\.?|versus|jämfört med|mot)\s+(?:the )?(?:previous|prior|last|preceding|förra|föregående)\s+(?:period|quarter|month|perioden|kvartalet|månaden)\b|\b(?:compared (?:to|with)|against)\s+the (?:period|one) before\b/,
+  /* THE BUBBLES PICTURE'S OWN WORDS (one-build work order A1, 7 Oct 2026):
+     "value against time left" is what the bubbles picture draws */
+  timeLeft: /\b(?:(?:against|versus|vs\.?|by|over|mot)\s+)?(?:the\s+)?(?:time left|time remaining|months left|time to expiry|time until expiry|time to end|tid kvar)\b/,
   running: /\b(?:running total|cumulative(?:ly)?|add(?:ed|ing)? up over time|ackumulerat|löpande summa)\b/,
   share: /\b(?:share of (?:the )?total|percent(?:age)? of (?:the )?total|as (?:a )?(?:share|percentage)|andel av (?:det )?totala?)\b/,
   title: /\b(?:called|named|titled|kallad|med namnet|med rubriken)\s+["“']?([^"”']{2,80}?)["”']?\s*$/,
@@ -1607,7 +1612,7 @@ const HB_RC = {
   },
   trend: /\b(?:trend\w*|over time|over the (?:last|past)|getting (?:faster|slower|longer|shorter|better|worse|bigger|smaller)|faster|slower|grow(?:s|ing)?|shrink\w*|increas\w*|decreas\w*|rising|falling|going (?:up|down)|month on month|year on year|quarter on quarter|compared (?:to|with) last|utveckling|ökar|minskar|snabbare|långsammare)\b/,
   /* words a chart question may carry that name nothing to count */
-  filler: /\b(?:and|then|first|with|add|och|sedan|when|how|much|total|overall|sum|average|avg|sign|what|whats|do|does|did|will|by|per|each|every|over|time|as|an?|on|in|at|into|getting|draw|make|create|build|plot|me|it|them|these|they|we|our|take|takes|took|is|are|was|were|been|be|end|ends|ended|ending|expir\w*|start|starts|starting|started|signed|signing|created|raised|renewal|renewals|renew|renewing|decision|decisions|date|dates|new|month|months|quarter|quarters|year|years|chart|graph|than|then|so|far|has|have|had|live|active|under|managed|management|altogether|faster|slower|more|fewer|less|längre|när|per|varje|som|av|på|i)\b/g,
+  filler: /\b(?:and|then|first|with|add|och|sedan|when|how|much|total|overall|sum|average|avg|sign|what|whats|do|does|did|will|by|per|each|every|over|time|as|an?|on|in|at|into|getting|draw|make|create|build|plot|me|it|them|these|they|we|our|take|takes|took|is|are|was|were|been|be|end|ends|ended|ending|expir\w*|start|starts|starting|started|signed|signing|created|raised|renewal|renewals|renew|renewing|decision|decisions|date|dates|new|month|months|quarter|quarters|year|years|chart|graph|than|then|so|far|has|have|had|live|active|under|managed|management|altogether|faster|slower|more|fewer|less|längre|när|per|varje|som|av|på|i|of)\b/g,
 };
 const _hbRcNorm = s => (typeof _igNorm === 'function') ? _igNorm(s) : String(s || '').toLowerCase().replace(/[?!.,;:()]/g, ' ').replace(/\s+/g, ' ').trim();
 /* the date a split by time reads: the one named nearest the time words, else
@@ -1679,8 +1684,10 @@ function hbRecipeRead(qRaw){
   if (top && group2 === null && group !== 'valueBand'){ const vb = HB_RC.split.find(([g]) => g === 'valueBand'); if (vb && vb[1].test(t)){ take(vb[1]); t += ' value '; } }
   for (const [k, re] of HB_RC.sort){ if (take(re)){ const [by, dir] = k.split(':'); sort = { by, dir }; break; } }
   const gantt = !!take(HB_RC.gantt);
+  const timeLeft = !!take(HB_RC.timeLeft);
   let pic = null;
   for (const [p, re] of HB_RC.pic){ if (take(re)){ pic = p; break; } }
+  if (!pic && timeLeft) pic = 'bubbles';
   if (!pic && group2 && stackBy === group2) pic = 'stack';
   const chartWord = !!take(HB_RC.chart);
   let measure = exposure ? 'exposure' : null;
@@ -5328,6 +5335,8 @@ const HB_FU = {
   fresh: /\b(?:all contracts|every contract|all agreements|whole book|the book|everything|all of them|alla avtal|hela)\b/,
   noTrend: /\b(?:no trend|without (?:a |the )?trend|remove (?:the )?trend|hide (?:the )?trend|trend off|turn off (?:the )?trend|utan trend)\b/,
   count: /\b(?:count|how many|number of|antal)\b/,
+  /* a bare measure is "show value" said without its verb (A2) */
+  bare: /^\s*(?:the\s+)?(?:value|count|number|money|amount|average|days to sign|trend|värde|antal)\s*$/,
 };
 function hbOpenListKey(){
   const s = hbS(); if (s.face !== 'board') return null;
@@ -5370,7 +5379,7 @@ function hbFollowUpRead(qRaw){
   if (/\b(?:mk|rl)[- ]?\d+\b/i.test(q) || HB_FU.fresh.test(low)) return null;
   /* the board's own commands win: a panel, a figure, a contract, the lens… */
   const pr = hbParse(q); if (pr && !(pr.act === 'dig' && /^q:/.test(pr.key))) return null;
-  const refer = HB_FU.refer.test(low), verb = HB_FU.verb.test(low), lead = HB_FU.lead.test(low), narrow = HB_FU.narrow.test(low);
+  const refer = HB_FU.refer.test(low), verb = HB_FU.verb.test(low) || HB_FU.bare.test(low), lead = HB_FU.lead.test(low), narrow = HB_FU.narrow.test(low);
   const s = hbS(); const D = hbDigData(key, s.lens), P0 = hbPlan(D);
   const R = hbRecipeRead(q);
   let cq = []; try { cq = (typeof igConditions === 'function') ? igConditions(R ? R.condText : q) : []; } catch (_){ cq = []; }
@@ -5532,7 +5541,7 @@ async function hbBoardTakesChecked(res, retry, q){
   /* Copilot was unsure: up to three readings, each a press (nothing applied) */
   if ((!Array.isArray(res.actions) || !res.actions.length) && Array.isArray(res.choices) && res.choices.length){
     const ch = res.choices.slice(0, HB_CHOICES_MAX).map(c => ({ label: hbPlainText(c && c.label, 60), board: Array.isArray(c && c.actions) ? c.actions : [], q: _hbAskQ })).filter(c => c.label && c.board.length);
-    if (ch.length){ _hbMeta = { choices: ch }; const own = String(res.answer || '').trim();
+    if (ch.length){ _hbMeta = { choices: ch }; const own = hbProseChecked(String(res.answer || '').trim(), { nothingDrawn: true }).text;
       return _hbE(i18t('hb_ch_copilot_said')) + (own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : ''); }
   }
   if (!Array.isArray(res.actions) || !res.actions.length){ const u0 = hbUndoTop(); const said = hbBoardTakes(res, _hbAskQ); return said ? said + hbNoteUndo(u0) : said; }
@@ -5555,6 +5564,56 @@ async function hbBoardTakesChecked(res, retry, q){
   if (ran) lines.push(i18tn('hb_chk_retried', bad.length, { n: _hbN(bad.length) }));
   still.forEach(b => lines.push(i18t(b.a && b.a.do === 'change_card' ? 'hb_chk_not_changed' : 'hb_chk_not_added', { what: hbActionTitle(b.a), why: b.problems.map(p => p.say).join('; ') })));
   return hbBoardAnswer(res, good.concat(fixed), lines);
+}
+/* ============================================================
+   ON THE BOARD A MAP ANSWER NEVER TOUCHES THE HIDDEN MAP (one-build work
+   order A3, 7 Oct 2026)
+   ============================================================
+   "bubble chart of value against time left" came back from Copilot in the
+   map's language (groupBy, sizeBy, timeBy…) with no board actions; the map
+   behind the board was rearranged and "Grouped 180 contracts…" was said over
+   an empty board. Now, asked on the board, an answer with no actions and no
+   chart is read here and intelGraphApply is never reached:
+     - the reader asked for the map ("the map", "show these on the map") →
+       null, the map's road as before;
+     - the answer names a SET (visibleIds, where, a top N) → the map's fields
+       are taken off and null: the set rides the list road onto the board;
+     - the question carried picture words HaTi read (_hbPendingRecipe) →
+       that recipe is a card over the contracts it named, through the one
+       writer;
+     - else Copilot is asked ONCE more for board actions (the check-and-repair
+       retry), and what still has none is one plain line. Returns what to say,
+       or null for the map's road. */
+const HB_MAP_FIELDS = ['groupBy', 'groups', 'floorsBy', 'columnsBy', 'colourBy', 'sizeBy', 'labelBy', 'timeBy', 'view', 'look', 'ask'];
+const HB_NO_MAP_NOTE = 'This was asked on the BOARD. The map\'s fields (groupBy, floorsBy, columnsBy, colourBy, sizeBy, labelBy, timeBy, view, look) are not drawn there. Answer with board actions: add_card with a recipe (for example "bubble chart of value against time left" is add_card {which:{all:true}, recipe:{pic:"bubbles", measure:"value"}}).';
+function hbMapAsked(q){ const t = String(q || ''); return HB_RX.map.test(t) || HB_RX.showThese.test(t); }
+function hbRecipeOfRead(R){
+  const c = {};
+  ['pic', 'split', 'split2', 'measure', 'trend', 'sort', 'top', 'window', 'compare', 'title', 'show'].forEach(k => { if (R[k] != null && R[k] !== false) c[k] = R[k]; });
+  return c;
+}
+async function hbBoardNoMap(res, retry, q){
+  if (q != null) _hbAskQ = String(q);
+  const s = hbS(); if (s.face !== 'board' || !res) return null;
+  if (hbMapAsked(_hbAskQ)) return null;
+  const hasSet = (Array.isArray(res.visibleIds) && res.visibleIds.length) || (res.where && typeof res.where === 'object' && Object.keys(res.where).length) || !!res.top;
+  if (hasSet){ HB_MAP_FIELDS.forEach(k => { delete res[k]; }); return null; }
+  const R = _hbPendingRecipe; _hbPendingRecipe = null;
+  if (R && (R.pic || R.chartWord || R.split)){
+    /* the contracts it named, in the words HaTi read ("suppliers"), else the book */
+    const which = R.conds && R.conds.length ? { q: R.conds.join(' and ') } : { all: true };
+    const u0 = hbUndoTop();
+    const r = hbBoardApply([{ do: 'add_card', which, recipe: hbRecipeOfRead(R) }]);
+    if (r.did.length) return r.html + hbNoteUndo(u0);
+  }
+  if (typeof retry === 'function'){
+    let res2 = null; try { res2 = await retry(HB_NO_MAP_NOTE); } catch (_){ res2 = null; }
+    if (res2 && Array.isArray(res2.actions) && res2.actions.length){
+      const said = await hbBoardTakesChecked(res2, null, _hbAskQ);
+      if (said) return said;
+    }
+  }
+  return _hbE(i18t(R ? 'hb_no_map_pic' : 'hb_no_map_said'));
 }
 /* ============================================================
    CHOICES WHEN A QUESTION IS UNCLEAR (work order Part 6; the NL4DV pattern)
@@ -5657,7 +5716,7 @@ function hbActionWords(raw){
 }
 /* what the panel says for an answer: applied at once, or offered as a list */
 function hbBoardAnswer(res, applied, lines){
-  const tail = hbCopilotTail(res.answer, _hbAskQ);
+  const tail = hbCopilotTail(res.answer, _hbAskQ, { nothingDrawn: !applied.length });
   const extra = (lines || []).map(l => _hbE(l)).join('<br>');
   if (applied.length && hbIsBig(applied)){
     const id = 'pv' + (++_hbPvSeq);
@@ -6078,6 +6137,12 @@ const HB_ANALYST_WORDS = [
   /* -- politeness and verbs that ask for an analysis, never a set -- */
   [/^\s*(?:can you |could you |would you |please |pls |kindly )+/, ' '],
   [/\b(?:i (?:want|would like|'d like|need) to (?:see|know|understand)|i want|i need|let me see|give me|tell me|show me|walk me through|help me understand|i'?m curious about)\b/, ' '],
+  /* THE OPENING WORDS NEVER DECIDE THE ROAD (one-build work order A2, 7 Oct
+     2026): "draw", "plot", "display", "put up", a bare "show" — read away
+     the same as "show me". "show it", "show these", "show all" stay: they
+     are about the open chart, the map or the whole book. */
+  [/^\s*(?:draw|plot|display|put up|visa mig|visa|rita)\s+(?:me\s+|up\s+)?/, ' '],
+  [/^\s*show\s+(?!it\b|this\b|them\b|these\b|those\b|the chart\b|all\b)/, ' '],
   [/\b(?:analy[sz]e|analysis of|analytics on|look at|run (?:the numbers|a report) on|report on|dig into|drill into)\b/, ' '],
   [/\b(what|who|that|it|how|where|when)['’]s\b/, '$1 is'],
   [/\bhow\s+(?:did|do|are|have|has|is)\s+(?:we|it|things)\s+(?:do|done|doing|performing|perform|performed|tracking|track|trending|gone|going|look(?:ing)?|fared|faring)\b/, ' '],
@@ -6374,7 +6439,17 @@ const HB_PIC_CLAIM_RE = /\b(?:as an?|shown as an?|drawn as an?|now an?|into an?|
 const HB_PIC_OF = { pie: 'ring', ring: 'ring', doughnut: 'ring', donut: 'ring', bar: 'bars', bars: 'bars', column: 'cols', columns: 'cols', timeline: 'gantt', gantt: 'gantt', heatmap: 'heat', 'heat map': 'heat', blocks: 'blocks', treemap: 'blocks', 'tree map': 'blocks' };
 const HB_SPLIT_CLAIM_RE = /\b(?:split|grouped|broken down|shown|drawn|now)\b[^.]{0,30}?\bby (stage|stream|value stream|counterparty|owner|type|side|payment terms|month|quarter|year)\b/i;
 const HB_SPLIT_OF = { stage: 'status', stream: 'folder', 'value stream': 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', 'payment terms': 'payterms', month: 'date', quarter: 'date', year: 'date' };
-function hbProseChecked(text){
+/* A4 (one-build work order, 7 Oct 2026): a sentence that names a picture
+   while no card landed is dropped — "This bubble chart plots…" over an empty
+   board was the reported fault */
+const HB_NAMES_CHART_RE = /\b(?:chart|graph|plot(?:s|ted)?|diagram|bubbles?|pie|doughnut|donut|treemap|tree map|heat ?map|timeline|gantt|histogram|scatter)\b/i;
+function hbProseChecked(text, opts){
+  if (opts && opts.nothingDrawn){
+    const all = String(text || '').split(/(?<=[.!?])\s+(?=[A-ZÅÄÖ0-9*"(])/);
+    const keep = all.filter(snt => !HB_NAMES_CHART_RE.test(snt));
+    if (keep.length < all.length) hbFeedbackSend({ kind: 'disconnect', q: _hbAskQ, said: String(text || '').slice(0, 600) });
+    text = keep.join(' ');
+  }
   const s = hbS(); const key = hbOpenListKey();
   const D = key ? hbDigData(key, s.lens) : null, P = D ? hbPlan(D) : null;
   const counts = new Set();
@@ -6395,9 +6470,9 @@ function hbProseChecked(text){
 }
 /* Copilot's own sentence, as the reply may carry it: only for a why or
    explain question, checked against the open chart, formatted */
-function hbCopilotTail(own, q){
+function hbCopilotTail(own, q, opts){
   const o = String(own || '').trim(); if (!o || !hbCopilotMaySay(q)) return '';
-  const chk = hbProseChecked(o); if (!chk.text) return '';
+  const chk = hbProseChecked(o, opts); if (!chk.text) return '';
   return '<br>' + ((typeof aiRichText === 'function') ? aiRichText(chk.text) : _hbE(chk.text));
 }
 /* THE REVIEW RECORD (Part 6): a mark, a quick fix or a caught disconnect,
@@ -6532,6 +6607,13 @@ async function hbVerSave(pid, title, phrasesText, remove){
    and nothing written (no hbDig, no hbCardSet, no hbSave). hbAsk takes this
    as its first step, so the line over the ask box and the answer are the
    same reading. (Named hbAskReadingOf: hbReadingOf is the chart's reading.) */
+function hbOpenOne(raw){
+  const t = String(raw || '').replace(/^\s*(?:(?:can|could|would) you |please )+/i, '').trim();
+  const b = HB_RX.bring.exec(t); if (!b || !b[1]) return null;
+  if (hbRecipeRead(b[1])) return null;
+  const f = hbFindContract(t);
+  return f && f.c ? f.c : null;
+}
 function hbAskReadingOf(qRaw){
   const raw = String(qRaw == null ? '' : qRaw);
   if (!raw.trim()) return null;
@@ -6545,6 +6627,10 @@ function hbAskReadingOf(qRaw){
   if (s.face === 'board'){ const pk = hbPackOfQ(raw); if (pk) return { road: 'free', kind: 'pack', pack: pk, q: raw }; }
   /* A STORY: its chapters free, its words one Copilot call (the ask is the press) */
   if (s.face === 'board'){ const sy = hbStoryOfQ(raw); if (sy) return { road: 'free', kind: 'story', story: sy, q: raw }; }
+  /* ONE CONTRACT ASKED FOR BY NAME ("show me Amani Foods", "bring up
+     MK-104"): read off the words as typed, before the opening words are read
+     away — and only when they carry no chart words (A2) */
+  if (s.face === 'board'){ const one = hbOpenOne(raw); if (one) return { road: 'free', kind: 'card', r: { act: 'card', id: one.id }, q: raw }; }
   /* the company's own words first, then the analyst's phrasebook */
   const q = hbAnalystWords(hbWordsApply(raw));
   const fu = hbFollowUpRead(q);
@@ -7098,6 +7184,6 @@ Object.assign(window, { hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES,
   hbCardEdit, hbHowWord, hbRecipeWords, hbSplitModelWord, hbOrderWord, hbReadCompareOf, hbReadTwoOf, hbReadingCore, hbRcCur, hbRcCurHas,
   hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,
   HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide,
-  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked,
+  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked, hbBoardNoMap, hbMapAsked, hbRecipeOfRead, hbOpenOne, HB_MAP_FIELDS, HB_NAMES_CHART_RE,
   HB_UNDO_MAX, hbShapeOf, hbUndoMark, hbUndoTop, hbUndo, hbNoteUndo, hbUndoHtml, hbTakeMeta, hbPreviewHtml, hbIsBig, hbActionWords, hbBoardAnswer, hbPreviewPress, hbPreviewSettle,
   HB_CHOICES_MAX, hbAmbiguity, hbChoicePress });
