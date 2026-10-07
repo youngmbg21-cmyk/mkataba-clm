@@ -33,10 +33,10 @@ New tests start at **f543**.
 
 ---
 
-## OWNER DECISIONS — D1–D8 DECIDED (7 Oct 2026); D9–D10 OPEN
+## OWNER DECISIONS — ALL TEN DECIDED (7 Oct 2026)
 
 The owner accepted every recommendation: *"go with your recommendations on all
-eight decisions"*. The **Decided** column is the ruling. D6 REVERSES the
+eight decisions"* (D1–D8), then *"go with your recommendations on D9 and D10"*. The **Decided** column is the ruling. D6 REVERSES the
 9 Sep 2026 rule that adopting a new preferred opens the clause editor first:
 the ruling REPLACES that line in THE MAP when O-19 lands, and the reversal's
 story goes to MAP-HISTORY.md.
@@ -50,8 +50,8 @@ story goes to MAP-HISTORY.md.
 | D5 | Which figure does the playbook propose: the WORST figure settled more than once (today's rule, `stdHeld`) or the MOST COMMON one (the mockup)? | O-18 | Keep today's rule. The worst repeated figure is one you have actually signed more than once; the most common can hide a worse deal. |
 | D6 | Adopting a new PREFERRED: write it after one confirm (mockup), or open the clause editor first (today's rule, 9 Sep 2026)? | O-19 | Confirm in place, with the redline shown under "What we ask for". This reverses a written rule; the owner said yes. |
 | D7 | "Keep it as it is" stops the proposal for how long, and who may press it? | O-20 | Six months, or until the pattern gets stronger. Anyone who may edit standards. |
-| D9 | The Time Machine's "What you can do on this date" rows and its coloured windows ("Prices fixed", "Exit fee applies", "Secrecy continues") come from the WORDING, which HaTi does not store as dates today. Add one more step to the reading HaTi already does on arrival (`TRIAGE_STEPS`), once per wording, to read those dated windows with their clause numbers? | O-40 | **Open: owner to answer.** Recommended: yes. Without it the tab still works but shows only what the record holds (signed, start, end, notice deadline, renewal, obligations) and says the rest could not be read. |
-| D10 | The Related agreements card in the picture has three equal buttons. O-9 (decided) makes "Create an amendment" the one filled button, "Add a signed document" plain, and the parent link a small question set apart. Which does Overview 2 follow? | O-41 | **Open: owner to answer.** Recommended: O-9, so the same card is drawn the same way on both Overview tabs (one builder). Everything else on the card is as in the picture. |
+| D9 | The Time Machine's "What you can do on this date" rows and its coloured windows ("Prices fixed", "Exit fee applies", "Secrecy continues") come from the WORDING, which HaTi does not store as dates today. Add one more step to the reading HaTi already does on arrival (`TRIAGE_STEPS`), once per wording, to read those dated windows with their clause numbers? | O-40 | **Yes.** Without it (no key, refused, cut short) the tab still works but shows only what the record holds (signed, start, end, notice deadline, renewal, obligations) and says the rest could not be read. |
+| D10 | The Related agreements card in the picture has three equal buttons. O-9 (decided) makes "Create an amendment" the one filled button, "Add a signed document" plain, and the parent link a small question set apart. Which does Overview 2 follow? | O-41 | **Follow O-9**, so the same card is drawn the same way on both Overview tabs (one builder). Everything else on the card is as in the picture. |
 | D8 | Instrument cards show the title and a quiet facts line, with no headline figure. The board's own rule (HEADLINE on a small card, `hbHeadlineOf`) puts a one-line headline there. Keep the headline under Instrument? | O-23 | Keep it, as plain ink text. It is your earlier ruling, and Instrument governs how the chart is DRAWN, not the words above it. |
 
 ---
@@ -727,7 +727,7 @@ names are examples; everything on the tab comes from the record.
 - A refresh lands on Overview 2 if that is where the reader was (`PLACE_PARTS`).
 - Desktop only for now: the phone keeps its own screens (THE PHONE rule). Named
   to the owner.
-- The tab writes nothing and spends nothing (except O-40's reading, if D9 is yes).
+- The tab writes nothing and spends nothing (O-40's reading runs once per wording, on arrival).
 - Add it to `BRAIN_PARTS`.
 
 ## O-37 — THE ESSENTIALS CARD (the summary card above it)
@@ -782,7 +782,7 @@ names are examples; everything on the tab comes from the record.
   deadline and renewal year (`renewalWindow`, `noticePeriodDays`), amendments'
   signing dates, every obligation's due dates including future repeats
   (projected for drawing only, never stored; `obligationNextInstance`'s rule),
-  and, if D9 is yes, the dated windows O-40 reads.
+  and the dated windows O-40 reads.
 
 ## O-39 — THE "NOW" ROW AND THE THREE CARDS
 
@@ -811,19 +811,19 @@ names are examples; everything on the tab comes from the record.
 - **Motion** as designed: rows rise in, numbers count over 0.24–0.5s, the ring
   and meter slide; all of it off under reduced motion.
 
-## O-40 — THE DATED WINDOWS FROM THE WORDING (decided: D9 open)
+## O-40 — THE DATED WINDOWS FROM THE WORDING (decided: D9)
 
-**Build** (only with D9 yes). One more step in the arrival reading
+**Build** (D9: yes). One more step in the arrival reading
 (`TRIAGE_STEPS`), run once per wording (`triageNeedsRead`), returning dated
 windows with their clause numbers and quoted wording: price-fixed periods,
 exit-fee periods, lock-in, probation, no-hire, secrecy after the end, and the
 "you may / may not" rule for each window. Quotes are checked against the
 wording; anything unchecked is dropped. Kept on the contract like the brief,
-never travels. Without it (D9 no, no key, refused, cut short), the tab draws
+never travels. Without it (no key, refused, cut short), the tab draws
 only the record's dates and says once, in the card's muted line, that the
 wording's own windows were not read. Never a guess.
 
-## O-41 — RELATED AGREEMENTS, LAST (decided: D10 open)
+## O-41 — RELATED AGREEMENTS, LAST (decided: D10)
 
 **Build**, as in the design's card (`.fam`): head "Related agreements" with its
 buttons on the right; one row per document in the family (reference in the
@@ -833,7 +833,9 @@ where they differ: Price: Amendment 1 (MK-219-A1). Everything else: the main
 agreement."** built from the family reading (`familyOrder`, `familyAgreement`,
 `expirySource`). A contract with no family says "A standalone agreement. No
 amendments or addenda are linked to it." Same builder and the same doors as the
-Overview's family section (`renderFamilySection`); the buttons follow D10.
+Overview's family section (`renderFamilySection`); the buttons follow O-9
+(D10): "Create an amendment" filled, "Add a signed document" plain, and the
+parent link as a small question set apart.
 
 ## O-42 — THE COLOURS AND TYPE, EXACTLY
 
@@ -891,7 +893,7 @@ colours equal the table. Then the side-by-side photographs above.
 | Playbook That Learns | O-18 (row line, Proposed pill, sentence, chart, three figures, the rounds) · O-19 (three choices, redline preview, confirm, Undo) · O-20 (Keep remembered) · O-21 (trail, Copilot line, Copilot and ladder follow) |
 | Board Chart Standard, Instrument chosen | O-22 (three sizes, type table) · O-23 (the Instrument marks) · O-24 (series colours) · O-25 (opened, full screen, table, long lists) · O-26 (written down). Spotlight and Glow are NOT built. Scope is the board's charts, not the whole app's look. |
 | Side-menu door to Import contracts | O-27 |
-| Overview 2 tab with the Time Machine | O-36 (the tab) · O-37 (essentials card above) · O-38 (the timeline) · O-39 (now row, three cards) · O-40 (windows from the wording, D9) · O-41 (Related agreements last, D10) · O-42 (exact colours and type). Constellation, Balance, Story and What-if are NOT built. |
+| Overview 2 tab with the Time Machine | O-36 (the tab) · O-37 (essentials card above) · O-38 (the timeline) · O-39 (now row, three cards) · O-40 (windows from the wording, D9 yes) · O-41 (Related agreements last, buttons per O-9, D10) · O-42 (exact colours and type). Constellation, Balance, Story and What-if are NOT built. |
 | Obligations Review desk | O-31 (Copilot sorts and says whose job) · O-32 (the desk window) · O-33 (Edit before adding) · O-34 (whose job is kept) · O-35 (skips remembered, tile and door counts). "One at a time" and "On the Obligations tab" are NOT built. |
 | The eight decisions | Decided (table above) |
 
@@ -912,7 +914,7 @@ colours equal the table. Then the side-by-side photographs above.
 7. **O-31 → O-35** (the review desk): O-31 first, since the desk needs its facts.
    Independent of the other parts.
 8. **O-36 → O-42** (Overview 2). O-36, O-37, O-41 first, then O-38 and O-39 on the
-   record's own dates; O-40 after D9 is answered. Independent of the other parts.
+   record's own dates; then O-40. Independent of the other parts.
 9. **O-16**, then **O-17** last (the widest and the largest).
 
 ## FOR EVERY ITEM
