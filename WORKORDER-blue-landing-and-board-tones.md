@@ -203,7 +203,9 @@ not counted on any report, and never fed back to Copilot. It is gone when the
 editor closes. A control that looks like feedback and goes nowhere is the
 "dead button wearing a live one's clothes" fault this codebase already names.
 
-**Two ways forward — the owner picks:**
+**DECIDED (owner, 7 Oct 2026): "okay remove the thumbs up and down."** Build the first way below; the second is kept only as the record of what was weighed.
+
+**The two ways that were weighed:**
 - **Remove them (recommended).** Delete both thumbs from both card kinds, their
   handler and their CSS; nothing else reads them, so nothing else changes.
 - **Make them real.** Write the vote onto the suggestion's trace record
@@ -225,8 +227,7 @@ thumb appears on the trace record and in the admin's results after a reload
 2. **The counterparty's page** — land on Blue too, or keep whatever our side
    uses? (Recommended: Blue, the same as ours.)
 3. **Explorer** — follow the brand like the board (recommended), or stay teal?
-4. **The thumbs (N-7)** — remove them (recommended), or make them a usefulness
-   report for admins?
+4. ~~The thumbs (N-7)~~ — decided: remove them.
 
 ## ORDER OF WORK
 
