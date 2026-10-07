@@ -8854,7 +8854,9 @@
      to the top one. Nothing that reads it (the hero's gradient, the phone)
      needs to know. --nav-well is new and belongs to the WHITE column: the
      ground a hovered or live door sits on. */
-  :root{ --shell-head-h:48px; --nav-w:224px; --nav-well:#EEF2F0; }
+  /* the menu is 244 since 7 Oct 2026 (Young: "there should be no text wrap in the
+     nav panel so extend the nav panel") — "Approvals & signing" and its count fit one line */
+  :root{ --shell-head-h:48px; --nav-w:244px; --nav-well:#EEF2F0; }
   #panel-scrim{
     position:fixed;left:0;right:0;bottom:0;top:var(--shell-head-h,64px);z-index:45;
     background:color-mix(in srgb,#020617 45%,transparent);
@@ -10740,7 +10742,13 @@
      and takes its tone in the word as well (Copilot amber with something to
      look at, green when clear). */
   .room-facts .room-facets{background:var(--color-surface);border:1px solid var(--color-divider);
-    border-radius:var(--radius-lg);overflow:hidden;row-gap:0;}
+    border-radius:var(--radius-lg);overflow:hidden;row-gap:0;
+    /* THE BOXES SHARE THE WIDTH EQUALLY (Young, 7 Oct 2026, off the mockup:
+       "boxes spread equally across the top") — one row, every fact the same
+       width however many the contract has; a long value ellipsises. */
+    display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);}
+  .room-facts .room-facets > .room-facet{min-width:0;}
+  .room-facts .room-facets > .room-facet .v{max-width:none;}
   .room-facts .room-facet{margin-right:0;padding:7px 18px;border-right:1px solid var(--color-divider);}
   .room-facts .room-facet:last-child{border-right:0;padding-right:18px;}
   .room-facts:not(.is-folded){padding-top:0;padding-bottom:0;}
@@ -10811,7 +10819,8 @@
      column breathes like the mockup's; type sizes unchanged. */
   :root{ --nav-ink-rest:#44524F; }
   html.dark{ --nav-ink-rest:#C3CCCA; }
-  #side-nav .nav-item{min-height:36px;position:relative;color:var(--nav-ink-rest);}
+  #side-nav .nav-item{min-height:36px;position:relative;color:var(--nav-ink-rest);white-space:nowrap;}
+  #side-nav .nav-item .nav-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
   #side-nav .nav-item:hover{background:var(--surface-2);color:var(--color-text);}
   #side-nav .nav-item.active{background:var(--color-accent-50);color:var(--accent-ink);}
   #side-nav .nav-item.active::before{content:"";position:absolute;left:-8px;top:8px;bottom:8px;width:3px;
@@ -10834,7 +10843,7 @@
 
 <!-- startApp() shows this with style.display='grid' (js/core.js), so the shell
      stays a grid: a 64px header row spanning both columns, then sidebar + main. -->
-<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:var(--nav-w,224px) minmax(0,1fr);grid-template-rows:var(--shell-head-h,48px) minmax(0,1fr);background:var(--color-bg);">
+<div id="app-shell" style="display:none;position:fixed;inset:0;grid-template-columns:var(--nav-w,244px) minmax(0,1fr);grid-template-rows:var(--shell-head-h,48px) minmax(0,1fr);background:var(--color-bg);">
 
   <!-- ================= SHELL BAR (44px, spans both columns) =================
        THE DARK GROUND MOVED UP HERE FROM THE LEFT EDGE (owner-ruled 24 Aug

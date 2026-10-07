@@ -177,8 +177,9 @@ const SHOT = (rowSel) => {
        That is a check passing on the wrong thing, and this file exists to
        catch exactly that build. `standing` is the gate. */
     const standing = !foc.err && !!foc.row && foc.row.h > 0;
-    check('3a the row paints white, never the page grey',
-      standing && foc.bg === 'rgb(255, 255, 255)',
+    /* RE-POINTED 7 Oct 2026 (Young, the mockup): both rows sit on the PAGE GROUND now — the Document tab's band went transparent and Negotiate's row follows it. */
+    check('3a the row paints no band of its own — the page ground shows through',
+      standing && foc.bg === 'rgba(0, 0, 0, 0)',
       foc.err || (standing ? String(foc.bg) : 'the row is not standing'));
     check('3b its white starts directly under the dark bar',
       standing && !!foc.bar && foc.bar.h > 0 && Math.abs(foc.row.top - foc.bar.bottom) <= 1,
@@ -268,8 +269,8 @@ const SHOT = (rowSel) => {
        things a reader can actually see are compared instead — where the white
        begins, and where the controls begin. */
     const ctrlTop = s => (s && s.row) ? s.row.top + parseFloat(s.padTop || '0') : null;
-    check('5b white is painted directly under the bar on both pages',
-      same && foc.underBar === 'rgb(255, 255, 255)' && docFoc.underBar === 'rgb(255, 255, 255)',
+    check('5b the same ground is painted directly under the bar on both pages',
+      same && foc.underBar === docFoc.underBar,
       same ? `negotiate ${foc.underBar} / document ${docFoc.underBar}` : 'blocked');
     check('5c and the controls sit at the same height on both',
       same && ctrlTop(foc) !== null && ctrlTop(foc) === ctrlTop(docFoc),

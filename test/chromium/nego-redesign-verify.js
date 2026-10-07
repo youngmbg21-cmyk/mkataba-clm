@@ -120,15 +120,17 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
           .sort((a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left)
           .map(e => (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 22)) };
     }, SEEN);
-    check('1 the head is a white band', head.bg === 'rgb(255, 255, 255)', head.bg);
+    /* RE-POINTED 7 Oct 2026 (Young, the HaTi Platform mockup): the head sits on the page ground, as the room's does. */
+    check('1 the head sits on the page ground, as the room\'s does', head.bg === 'rgba(0, 0, 0, 0)', head.bg);
     /* REVERSED IN PLACE 25 Aug 2026 — this pinned the literal `9px 24px`, and
        the vertical half of that is not a claim about anything: it is whatever
        lands this head's title on the same vertical as every other page's, and
        pages-read-alike section 8 owns that. The horizontal IS the claim, and
        it is a RELATION — the band's own inset, read off the token, so a change
        to the measure costs no edit here. */
-    check('1 with a hairline under it and the band measure inside it',
-      /inset/.test(head.rule || '')
+    /* no line across it (Young ruled 21 Sep 2026: "remove the line going across the card"); the band measure stays */
+    check('1 with the band measure inside it and no line across it',
+      !/inset/.test(head.rule || '')
         && head.padX === head.bandX && head.padXR === head.bandX,
       `${head.pad} · x ${head.padX}/${head.padXR} vs --band-pad-x ${head.bandX} · ${head.rule}`);
     /* ---- REVERSED IN PLACE 24 Aug 2026 (owner-approved render) ----
@@ -287,8 +289,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         allCount: (() => { const f = document.querySelector('.rl-idx-title');
           return f ? ((f.textContent.match(/(\d+)\s*$/) || [])[1] || null) : null; })() }; /* a plain count since 21 Sep 2026 */
     });
-    check('2 the control bar is a white band 44px tall',
-      tabs.bg === 'rgb(255, 255, 255)' && tabs.h === 44, `${tabs.bg} ${tabs.h}px`);
+    check('2 the control bar sits on the page ground, 44px tall, like the Document tab\'s row',
+      tabs.bg === 'rgba(0, 0, 0, 0)' && tabs.h === 44, `${tabs.bg} ${tabs.h}px`);
     /* THE SIZE IS THE BODY RUNG, resolved from the token rather than typed
        (re-pointed 20 Sep 2026, when the redesign order moved --t-body to
        13px and this line went red for the wrong reason). */
@@ -304,9 +306,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     /* BOLD is the strong rung (600 since the redesign order — the reference's
        own live-tab weight), read off the token, never typed. */
     const strongW = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--w-strong').trim());
-    check('2 the live one is bold and carries a 2px underline',
-      live && live.weight === strongW && /inset/.test(live.shadow) && /-2px/.test(live.shadow),
-      live && `${live.weight} (strong ${strongW}) ${live.shadow}`);
+    /* RE-POINTED 7 Oct 2026 (Young: the Negotiate control row "needs to be like" the Document tab's, the HaTi Platform mockup's dress). */
+    const titleW = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--w-title').trim());
+    check('2 the live one is the title weight and carries a 2px underline',
+      live && live.weight === titleW && /inset/.test(live.shadow) && /-2px/.test(live.shadow),
+      live && `${live.weight} (title ${titleW}, strong ${strongW}) ${live.shadow}`);
     check('2 and the resting ones are flat — no chip, no tray',
       tabs.segs.filter(s => !s.on).every(s => s.bg === 'rgba(0, 0, 0, 0)' && s.shadow === 'none'),
       tabs.segs.filter(s => !s.on).map(s => s.bg).join(', '));
@@ -339,13 +343,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
           .map(e => e.className.split(' ')[0]),
         backBox: s('#view-redline .rl-livelist') };
     }, SEEN);
-    check('3 the seat switch FILLS on the live half', ctrls.seatInk === 'rgb(255, 255, 255)'
+    /* RE-POINTED 7 Oct 2026 (Young: the Negotiate control row "needs to be like" the Document tab's, the HaTi Platform mockup's dress). */
+    check('3 the seat switch\'s live half takes the brand\'s soft wash, never a dark fill', ctrls.seatInk !== 'rgb(255, 255, 255)'
       && ctrls.seatBg !== 'rgba(0, 0, 0, 0)', `${ctrls.seatBg} / ${ctrls.seatInk}`);
-    check('3 "needs you" is a way in, not an act — no box round it',
-      parseFloat(ctrls.needsBorder) === 0 && ctrls.needsBg === 'rgba(0, 0, 0, 0)',
+    check('3 "needs you" is the everyday outlined button, as on the Document tab',
+      parseFloat(ctrls.needsBorder) === 1 && ctrls.needsBg === 'rgb(255, 255, 255)',
       `${ctrls.needsBorder} on ${ctrls.needsBg}`);
-    check('3 the way back is plain words — no chip',
-      parseFloat(ctrls.backBorder) === 0 && ctrls.backBg === 'rgba(0, 0, 0, 0)',
+    check('3 the way back is the everyday outlined button too',
+      parseFloat(ctrls.backBorder) === 1 && ctrls.backBg === 'rgb(255, 255, 255)',
       `${ctrls.backBorder} on ${ctrls.backBg}`);
     /* ONE BOX — the two presses are kept (they are the control, and the
        Document tab draws the same builder) and read as a single 28px box. */
