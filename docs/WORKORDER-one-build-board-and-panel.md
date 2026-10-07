@@ -6,10 +6,17 @@
 
 > "build the board draws what you ask work order and all remaining work as one build. Image 1, i have stated this before, always show ONLY the clause or sub-clause that is impact not all the clauses. We need to better utilize the space and be targeted. Image 2, the predetermined questions should be slightly shaded based on the platform color them in place. Add all these to one work order and do not code yet"
 
-**What this order holds (three parts, one build):**
+**Added the same day (owner, off two screenshots — Approvals & signing and Negotiations, the REF column circled):**
+
+> "add this as well, the font for numbers do not seem to be the same across the platform. Unify the font to be the same one as the highlighted font across the platform."
+
+Asked which numbers, the owner picked **"References only"**: every contract reference uses the highlighted font on every page; values, dates and counts stay in the normal font.
+
+**What this order holds (four parts, one build):**
 - **Part A — The board draws what you ask, however you say it.** The Home board work order written earlier today (branch `claude/board-draws-what-you-ask`, docs/WORKORDER-board-draws-what-you-ask.md), carried here WHOLE and renumbered A0–A6. This file SUPERSEDES that one; that branch is not merged.
 - **Part B — A suggestion shows only the clause or sub-clause it changes** (owner's image 1).
 - **Part C — The prepared questions are shaded in the platform's colour** (owner's image 2).
+- **Part D — Every reference wears the reference font, on every page.**
 
 "All remaining work" was checked against everything raised in this session. Everything else is built and merged (#159, #160). One idea was raised but never decided, so it is NOT in this order: making "Why it matters" the first row of the shaded facts (Risk Walk Options, left as an open question). It needs the owner's yes first.
 
@@ -296,14 +303,32 @@ row must come out the SAME for all five openings when this order is done.
 
 ---
 
+## PART D — EVERY REFERENCE WEARS THE REFERENCE FONT, ON EVERY PAGE
+
+**What the owner saw:** on Negotiations the REF column (MK-441, RL-001) is in Geist Mono, the reference font the bright brand (7 Oct) gave references (`--font-ref`, fonts/geist-mono.css: "References read `--font-ref` — refs only"). On Approvals & signing the same references (MK-117, MK-107) are in the ordinary face. Today only three places use `--font-ref`: the Contracts/Negotiations table (`.reg-mk`), the inspector's eyebrow (`.ins-eb .ins-ref`) and the room head (`.room-head .room-sub-id`).
+
+**The rule (owner's pick, "References only"):**
+- A REFERENCE is the printed name of a record: a contract's `contractRef(c)` (`c.contractNo || c.id`, e.g. MK-117, RL-001, HZ-0), a change's id (CHG-009), and any other id HaTi prints as a reference (a request's, an obligation's, an approval's, if it prints one). Every one wears `--font-ref` with tabular digits, at the size and weight the place already uses — only the FACE changes.
+- NOT references, and they stay in the ordinary face: values (SEK 44M), dates, day counts ("85 days"), badges and counters, clause numbers ("2.1"), and anything inside the contract's own wording (the paper never changes face for this).
+- ONE WAY TO DRESS IT: one shared class (e.g. `.hati-ref`, defined once in index.html: `font-family:var(--font-ref); font-variant-numeric:tabular-nums`) or one small helper that wraps a reference in it, used by EVERY surface. The three existing rules either become that class or are left as they are, so there is ONE definition of what a reference looks like. Never a second copy per page.
+- EVERYWHERE IT APPEARS (Bug Fix Rule 1): grep every printer — `contractRef(`, `hbRef(`, change ids (`CHG-`, `ch.id` where printed), and any `c.id` printed to the screen — across js/ and js/views/ (about 190 call sites in about 30 files, many of them not printing, e.g. used as keys or in sentences sent to Copilot). Account for each: print → dress it; key, sentence to Copilot, email, PDF, Word file, CSV → leave it. At least: Approvals & signing (both tabs), Obligations (page and room tab), Calendar (month, horizon, agenda), Home (board cards, lists, stories), Copilot's work, Requests, Insights, Explorer's cards, the Notes drawer, the Deal board, the Redlines column, notifications and the bell, search (Cmd/Ctrl+K), the phone (js/mobile*.js).
+- A STANDALONE DOCUMENT CARRIES NO `:root` (CLAUDE.md): the PDF, print, Word, emails, the health report and exports do not load Geist Mono. Leave their references as they are, and say so in the summary.
+- Light and dark, both brands: the face does not change colour; check nothing else moves (no row grows taller — Geist Mono's digits are wider, so check narrow columns do not wrap or clip a reference: measure row heights before and after on Approvals and Obligations).
+
+**Tests:**
+- Browser (new, e.g. `test/chromium/one-reference-face-verify.js`): on each page listed above, every element that prints a reference computes `font-family` starting with Geist Mono; a value, a date and a day count on the same rows do NOT; row heights unchanged on Approvals and Obligations; a reference is not cut off at 1024px wide. Must FAIL on unmodified main (Approvals does today).
+- Node: one class/helper exists and the pages listed call it (pin the RELATION — the helper is used — not a count of call sites).
+
+---
+
 ## ONE BUILD — ORDER OF WORK AND CHECKS
 
-1. One branch from the LATEST main. One commit per part (A, B, C), then one pull request for the three.
+1. One branch from the LATEST main. One commit per part (A, B, C, D), then one pull request for all four.
 2. Read CLAUDE.md, then grep docs/MAP-HISTORY.md for "HOME — THE BOARD AND THE MAP", "EDIT WITH COPILOT — PANEL TIDY-UP", "THE PIN QUOTES WHAT MOVED" and "changedOnly", and read each.
-3. Run the Six Questions for B and C (they change what a person sees). B restores a stated rule; C is the owner's exact instruction. Neither should bite; if one does, say so before building.
+3. Run the Six Questions for B, C and D (they change what a person sees). B restores a stated rule; C and D are the owner's exact instructions. Neither should bite; if one does, say so before building.
 4. `npm run lint` first, zero errors. Run the affected test files together until green; the full suite ONCE at the end.
 5. Every new check runs against a worktree at unmodified main first and must FAIL there.
-6. PHOTOGRAPH WHAT YOU BUILT: the board after each A0 phrase; the Suggested wording on both tabs before and after B (owner's lease example: only 2.1 shown); the chips in light and dark, green and navy brands.
+6. PHOTOGRAPH WHAT YOU BUILT: the board after each A0 phrase; the Suggested wording on both tabs before and after B (owner's lease example: only 2.1 shown); the chips in light and dark, green and navy brands; Approvals, Obligations, Calendar and Home with their references before and after.
 7. Update THE MAP in CLAUDE.md (four lines at most per area) and append the story to docs/MAP-HISTORY.md under the same headings. Mark the old board work order as superseded by this one.
 
 ## OUT OF SCOPE (BUGLOG line, never a fix)
@@ -312,4 +337,4 @@ Anything else found on the way. Not in this order: "Why it matters" as the first
 
 ## THE SUMMARY TO THE OWNER (plain English)
 
-For each part, what changed and whether it is changed everywhere it appears; the A0 phrase table before and after (counts only); the lease example before and after; the chips in both brands; anything left alone and why.
+For each part, what changed and whether it is changed everywhere it appears; the A0 phrase table before and after (counts only); the lease example before and after; the chips in both brands; which pages' references changed font and which documents (PDF, Word, emails) were left alone; anything left alone and why.
