@@ -88,7 +88,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     await page.fill('#li-pass', 'adminpassword1');
     await page.click('#li-go');
     await until(page, () => !!(window.state && state.contracts && state.contracts.length));
-    if (!(await page.evaluate(() => typeof riskAnswerOf === 'function' && typeof ceFullOpen === 'function'))) throw new Error('there is no one Copilot editor on this build');
+    if (!(await page.evaluate(() => typeof riskAnswerOf === 'function'))) throw new Error('there is no one Copilot editor on this build');
     await page.evaluate(({ LIAB_NEW, QUAL_NEW }) => {
       state.aiConfigured = true;
       window._ocAsked = [];
@@ -115,7 +115,8 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     check(!!card && card.t === 'Liability · may favour them' && /Liability cap may be too low/.test(card.full || ''), '5 the card in the Redlines column wears the short title, the whole one on its hover', card && JSON.stringify(card));
     await press(page, '#rl-risks [data-rk-key="s:t-liab"] [data-rk-act="edit-ce"]');
     const rk = await until(page, () => { const lane = document.querySelector('#clause-editor #ce-lane');
-      return lane && !lane.querySelector('.rk-busy') && lane.querySelector('[data-ce-apply="rk:0"]') ? true : null; }, null, 10000);
+      /* RE-POINTED 7 Oct 2026 (One footer): the risk's Apply is the feet's top row */
+      return lane && !lane.querySelector('.rk-busy') && lane.querySelector('.ce-card .pv') && document.querySelector('#ce-rksug [data-ce-apply="rk:0"]') ? true : null; }, null, 10000);
     check(!!rk, '1- the Risks tab has Copilot\'s answer');
     const H = await page.evaluate(() => {
       const h = document.querySelector('#ce-lane .rk-ce-head'), k = h && getComputedStyle(h), why = document.querySelector('#ce-lane .rk-ce-why');

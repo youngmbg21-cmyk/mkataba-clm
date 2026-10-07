@@ -328,12 +328,17 @@ const check = (name, ok, detail) => {
     const R = await page.evaluate(() => {
       const head = document.querySelector('.ce-ah');
       const crumb = document.querySelector('#shell-title .crumb-layer');
-      const scope = document.querySelector('#ce-scope .eb, #ce-scope');
-      return { name: !!document.querySelector('.ce-ah-cl'), crumb: (crumb ? crumb.textContent.trim() : '') || (scope ? scope.textContent.replace(/\s+/g, ' ').trim() : ''),
+      /* RE-POINTED 7 Oct 2026: the Selected card is gone (6 Oct, "one Copilot
+         editor"); the panel's dropdown names the clause it is working on,
+         as copilot-panel-tidy-verify 1c already reads it */
+      const sel = document.getElementById('ce-pick-sel');
+      const picked = sel && sel.selectedIndex >= 0 ? (sel.options[sel.selectedIndex].textContent || '').replace(/\s+/g, ' ').trim() : '';
+      return { name: !!document.querySelector('.ce-ah-cl'), crumb: (crumb ? crumb.textContent.trim() : '') || picked,
         headH: head ? Math.round(head.getBoundingClientRect().height) : null };
     });
     check('5a the rail head names no clause', !!opened && !R.name, String(R.name));
-    check('5b the top bar or the Selected card names the clause it is working on', /^(Edit|✎ Selected|Selected)\b/.test(R.crumb), R.crumb || 'not drawn');
+    const clName = await page.evaluate(i => { const c = state.contracts.find(x => x.id === i); const cl = negoClauseList(c)[0]; return (cl && (cl.headingText || cl.title)) || ''; }, id);
+    check('5b the top bar or the panel\'s dropdown names the clause it is working on', /^Edit\b/.test(R.crumb) || (!!clName && R.crumb.includes(clName.replace(/\s+/g, ' ').trim())), (R.crumb || 'not drawn') + ' / ' + clName);
     check('5e and the head row is one line', R.headH != null && R.headH <= 44, `${R.headH}px`);
 
     check('no page error along the way', errors.length === 0, errors.join(' | ') || 'clean');

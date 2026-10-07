@@ -78,29 +78,26 @@ describe('f505 (B) one set of rows', () => {
   });
 });
 
-describe('f505 (C) fill the panel', () => {
-  test('every Suggested wording card carries Expand', () => {
-    assert.match(fn(CE, 'ceCardHtml'), /card\.text \? `<button type="button" class="ce-x" data-ce-expand="\$\{i\}:\$\{j\}"/);
+/* RE-POINTED 7 Oct 2026 (Young, "Copilot Panel Tidy-up" — Sticky bar,
+   reversing 5 Oct "Fill the panel"): the suggestion is printed whole in the
+   panel's one scroll, so Expand, #ce-full and its machinery are retired.
+   test/chromium/panel-tidy-and-risk-footer-verify.js measures it in a browser. */
+describe('f505 (C) fill the panel is retired', () => {
+  test('no Suggested wording card carries Expand', () => {
+    assert.ok(!/data-ce-expand/.test(CE), 'no Expand press');
+    assert.ok(!/function ceFullOpen\(/.test(CE), 'no way into a full view');
+    assert.match(fn(CE, 'ceCardHtml'), /<div class="ce-card ce-sug">/);
   });
-  test('one slot, one way back, drawn by one function', () => {
-    assert.equal(CE.split('id="ce-full"').length - 1, 1, 'one slot');
-    const r = fn(CE, 'ceRenderFull');
-    assert.match(r, /data-ce-act="full-close"/);
-    assert.match(r, /rail\.classList\.add\('is-full'\)/);
-    assert.match(r, /if \(!card \|\| !card\.text\)\{\n\s+_ceFull = '';/, 'a card that is gone closes it');
+  test('no slot and nothing drawn in its place', () => {
+    assert.equal(CE.split('id="ce-full"').length - 1, 0, 'no slot');
+    assert.match(CE, /function ceRenderFull\(\)\{\}/);
+    assert.match(CE, /function ceFullClose\(\)\{ return false; \}/);
   });
-  test('Escape, Apply, Ask for a change and a tab change close it', () => {
-    assert.match(CE, /if \(document\.querySelector\('\[data-top-overlay\]'\)\) return;\n\s+if \(ceFullClose\(\)\) return;/, 'Escape closes the full view before the window');
-    /* RE-POINTED 5 Oct 2026: a standard card's Apply takes its own line first */
-    assert.match(CE, /ceFullClose\(\);\n\s+if \(card\.std\)\{ ceStdApply\(card\); return; \}\n\s+if \(card\.passage\) ceReplacePassage/, 'Apply');
-    assert.match(CE, /if \(refine\)\{ ev\.preventDefault\(\);\n\s+ceFullClose\(\);/, 'Ask for a change');
-    assert.match(CE, /_ceFull = '';\n\s+ceRenderTabs\(\); ceRenderLane\(\); ceRenderFull\(\); return; \}/, 'a tab change');
-  });
-  test('the lane, chips and ask box step aside; nothing else does', () => {
+  test('the wording is not a window: no max-height, no scroll of its own; its buttons stick', () => {
     const css = read('js/views/clauseeditor.js');
-    assert.match(css, /\.ce-rail\.is-full > \.ce-lane, \.ce-rail\.is-full > #ce-scope,\n\s+\.ce-rail\.is-full > \.ce-chips, \.ce-rail\.is-full > \.ce-ask\{display:none\}/);
-    assert.ok(!/is-full[^{]*ce-railfoot/.test(css), 'the feet stay');
-    assert.ok(!/is-full[^{]*(ce-col|ce-left|ce-grid)/.test(css), 'the contract column is never touched');
+    assert.match(css, /\.ce-rail \.ce-card\.ce-sug \.pv\{max-height:none; overflow:visible;/);
+    assert.match(css, /\.ce-card\.ce-sug > \.av\{position:sticky;/);
+    assert.ok(!/is-full[^{]*\{display:none\}/.test(css), 'nothing steps aside any more');
   });
 });
 
@@ -117,11 +114,11 @@ describe('f505 (D) both books', () => {
 describe('f505 (E) the second pass', () => {
   test('a suggestion reads like the paper: the rl-us tokens, not bold, the paper\'s face', () => {
     const css = read('js/views/clauseeditor.js');
-    assert.match(css, /\.ce-rail \.ce-card \.pv ins\.rl-us, \.ce-rail \.ce-full \.ce-full-body \.pv ins\.rl-us\{background:var\(--st-steel-bg\); color:var\(--accent-ink\);\n\s+font-weight:inherit; text-decoration:underline/);
+    /* RE-POINTED 7 Oct 2026: the expanded view is retired; the card keeps the rule */
+    assert.match(css, /\.ce-rail \.ce-card \.pv ins\.rl-us\{background:var\(--st-steel-bg\); color:var\(--accent-ink\);\n\s+font-weight:inherit; text-decoration:underline/);
     /* RE-POINTED 6 Oct 2026 (Panel Voice): the marks keep the paper's
        colours; the face is the panel's, nothing measured off the sheet. */
     assert.ok(!/function ceWordingFace\(/.test(CE), 'the sheet measurer is gone');
-    assert.ok(!/ceWordingFace\(\);/.test(fn(CE, 'ceRenderFull')));
   });
   test('one row of small feet', () => {
     assert.equal(CE.split('<div class="ce-feet" id="ce-feet">').length - 1, 1);
@@ -136,21 +133,25 @@ describe('f505 (E) the second pass', () => {
     assert.match(CE, /ask\.addEventListener\('input', \(\) => ceAskFit\(ask\)\);/);
     /* RE-POINTED 6 Oct 2026: the box is .ce-askbox (it holds the tag that
        replaced the Selected card); the textarea inside it is one line high */
-    assert.match(read('js/views/clauseeditor.js'), /\.ce-ask textarea\{flex:1 1 120px; min-width:0; height:calc\(var\(--ctl-h\) - 2px\)/);
+    /* RE-POINTED 7 Oct 2026 (Header line): the tag has its own line, so the
+       textarea takes the box's whole width */
+    assert.match(read('js/views/clauseeditor.js'), /\.ce-ask textarea\{flex:none; width:100%; min-width:0; height:calc\(var\(--ctl-h\) - 2px\)/);
   });
 });
 
 describe('f505 (F) the third pass', () => {
   /* RE-POINTED 6 Oct 2026 (Panel Voice, Young): the expanded view speaks the
      panel's type too, at the panel's body size; A-/A+ never reach it. */
-  test('the small card and the expanded view both speak the panel\'s type', () => {
+  /* RE-POINTED 7 Oct 2026: the expanded view is retired (Sticky bar) */
+  test('the suggestion speaks the panel\'s type', () => {
     const css = read('js/views/clauseeditor.js');
     assert.match(css, /\.ce-rail \.ce-card \.pv\{font-family:inherit; font-size:var\(--t-meta\); line-height:1\.6\}/);
-    assert.match(css, /\.ce-rail \.ce-full \.ce-full-body \.pv\{font-family:var\(--font-body\);\n\s+font-size:var\(--t-body\); line-height:1\.6;/);
     assert.ok(!/--ce-wd-/.test(css), 'nothing measured off the sheet');
   });
-  test('"Where it goes" is on the expanded view, from the Risks tab\'s own builder, and both stay in step', () => {
-    assert.match(fn(CE, 'ceRenderFull'), /key\.startsWith\('rk:'\) && window\.riskWhereHtml && _ceC\) \? `<div class="ce-full-where">\$\{riskWhereHtml\(_ceC\)\}<\/div>`/);
+  /* RE-POINTED 7 Oct 2026: "Where it goes" lives in the Risks tab's lane
+     alone now that the expanded view is retired */
+  test('"Where it goes" is drawn by the Risks tab\'s own builder, and stays in step', () => {
+    assert.match(fn(RK, 'riskLaneHtml'), /\$\{_rkWhereHtml\(c\)\}/);
     assert.match(fn(RK, 'riskWhereHtml'), /return _rkWhereHtml\(c\);/);
     assert.match(fn(CE, 'ceSetNewPlace'), /querySelectorAll\('#clause-editor \[data-ce-rk-where\]'\)\.forEach/);
   });

@@ -22,6 +22,8 @@
    Every driven half is GUARDED — a build without the feature REPORTS.
    Screenshots: test/chromium/shots/risks-in-the-redlines-card/.
    Run: node test/chromium/risks-in-the-redlines-card-verify.js */
+/* RE-POINTED 7 Oct 2026 (Young, "Risk Walk Options" — One footer): on the risk
+   walk the Suggested wording's Apply is the feet's top row, #ce-rksug. */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -171,7 +173,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
     const lane = pg.querySelector('#ce-lane');
     if (!lane || !/Payment terms: 60 days/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
     /* the wording waits in the Suggested wording card for Apply (Young, 5 Oct 2026) */
-    const ap = lane.querySelector('[data-ce-apply="rk:0"]');
+    const ap = document.querySelector('#ce-rksug [data-ce-apply="rk:0"]');
     if (ap && !pg.querySelector('#ce-doc ins, #ce-doc .hati-ins, #ce-doc .nego-ins')){ ap.click(); return null; }
     return { ins: !!pg.querySelector('#ce-doc ins, #ce-doc .hati-ins, #ce-doc .nego-ins'), del: !!pg.querySelector('#ce-doc del, #ce-doc .hati-del, #ce-doc .nego-del'),
       clause: clauseEditorClauseId(), cost: (lane.querySelector('.rk-cost') || {}).textContent || '' };
@@ -222,7 +224,7 @@ const INJ_NEW = 'Each party acknowledges that a breach of clause 3 may cause irr
   await page.screenshot({ path: path.join(OUT, '05-new-clause.png') });
   const n2 = await page.evaluate(id => (getContract(id).changes || []).length, ID);
   /* the new clause's wording waits in the card for Apply (Young, 5 Oct 2026) */
-  await press(page, '#ce-lane [data-ce-apply="rk:0"]');
+  await press(page, '#ce-rksug [data-ce-apply="rk:0"]');
   await until(page, () => { const b = document.querySelector('[data-ce-act="rk-save"]'); return b && !b.disabled ? true : null; });
   await press(page, '[data-ce-act="rk-save"]');
   const ins = await until(page, ({ id, n }) => {

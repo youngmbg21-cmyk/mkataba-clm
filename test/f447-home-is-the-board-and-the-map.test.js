@@ -443,7 +443,9 @@ describe('F447 (5) — a watch is a bell row only while its line is crossed', ()
 
 describe('F447 (6) — the board is the person\'s own record', () => {
   test('it survives a reload, and what this version does not know falls back', () => {
-    const stored = JSON.stringify({ face: 'explorer', lens: 'nonsense', screen: 'light', prep: 'folded',
+    /* RE-POINTED 7 Oct 2026 ("Follow dark mode"): a screen is kept only when
+       the reader pressed it (scrPick) */
+    const stored = JSON.stringify({ face: 'explorer', lens: 'nonsense', screen: 'light', scrPick: 1, prep: 'folded',
       panels: [{ id: 'p1', kind: 'obl' }, { id: 'p2', kind: 'bogus' }], watches: [{ k: 'live', dir: 'sideways', n: 1 }] });
     const { sb } = world({ stored });
     const s = sb.hbS();
@@ -456,10 +458,13 @@ describe('F447 (6) — the board is the person\'s own record', () => {
   });
   /* lands LIGHT since 6 Oct 2026 (Young: "the landing mode for the Board
      should be light mode") */
-  test('the screen lands on Light, the board side, the whole book, Prepared by Copilot open', () => {
+  /* RE-POINTED 7 Oct 2026 (Young, "Follow dark mode"): no screen of the
+     reader's own, so the board is Light by day */
+  test('the screen lands on Light by day, the board side, the whole book, Prepared by Copilot open', () => {
     const { sb } = world();
+    sb.darkNow = () => false;
     const s = sb.hbS();
-    assert.deepEqual([s.face, s.screen, s.lens, s.prep], ['board', 'light', 'all', 'open']);
+    assert.deepEqual([s.face, s.screen, sb.hbScreenNow(), s.lens, s.prep], ['board', null, 'light', 'all', 'open']);
   });
 });
 

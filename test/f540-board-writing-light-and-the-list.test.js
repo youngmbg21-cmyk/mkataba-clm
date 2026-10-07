@@ -64,10 +64,19 @@ test('f540 (1) hbSay: marks, figures and plain good/bad words, escaped first', (
   assert.doesNotMatch(read('index.html'), /\.hb-sy-lead\{[^}]*max-width:78ch/);
 });
 
-test('f540 (2) the board lands Light, Light first; Explorer is always dark', () => {
+/* RE-POINTED 7 Oct 2026 (Young, "Follow dark mode"): with no screen of the
+   reader's own the board is Light by day and Dark at night; a press on the
+   board's Light | Dark is kept and wins. */
+test('f540 (2) the board lands Light by day, Dark at night, the reader\'s press wins; Explorer is always dark', () => {
   const w = board();
-  assert.equal(w.hbS().screen, 'light');
-  assert.equal(w.hbScreenNow(), 'light');
+  w.darkNow = () => false;
+  assert.equal(w.hbS().screen, null, 'no screen of the reader\'s own');
+  assert.equal(w.hbScreenNow(), 'light', 'by day');
+  w.darkNow = () => true;
+  assert.equal(w.hbScreenNow(), 'dark', 'at night');
+  w.hbS().screen = 'light'; w.hbS().scrPick = 1;
+  assert.equal(w.hbScreenNow(), 'light', 'a pressed Light holds at night');
+  w.hbS().screen = null; w.hbS().scrPick = 0; w.darkNow = () => false;
   w.hbS().face = 'explorer';
   assert.equal(w.hbScreenNow(), 'dark', 'Explorer is dark whatever the board wears');
   const head = w.hbHeadHtml('');
@@ -75,8 +84,8 @@ test('f540 (2) the board lands Light, Light first; Explorer is always dark', () 
   w.hbS().face = 'board';
   const h2 = w.hbHeadHtml('');
   assert.ok(h2.indexOf('data-hb-screen="light"') < h2.indexOf('data-hb-screen="dark"'), 'Light before Dark');
-  /* a Dark chosen before the ruling is not kept; one chosen after it is */
-  assert.match(code(region(HB, 'hbS')), /HB_SCREENS\.includes\(v\.screen\) && v\.scr2 === 1/);
+  /* a screen saved before the ruling is not kept; one the reader pressed is */
+  assert.match(code(region(HB, 'hbS')), /HB_SCREENS\.includes\(v\.screen\) && v\.scrPick === 1/);
   assert.match(read('index.html'), /#hb-head \.hb-scr\[hidden\]\{display:none\}/);
 });
 

@@ -116,7 +116,6 @@ let _ceThread = [];         /* the conversation, this sitting only */
 /* FILL THE PANEL (Young picked it 5 Oct 2026): the key ('i:j', or 'rk:0' for
    the risk's card) of the Suggested wording card read across the whole rail,
    or '' when the rail is its ordinary self. Per sitting, never stored. */
-let _ceFull = '';
 /* The Risks tab's answer card, kept so a vote on it survives a repaint. */
 let _ceRiskCard = null;
 let _ceBusy = false;
@@ -476,6 +475,16 @@ function clauseEditorCss(){
   .ce-railfoot button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
   .ce-railfoot button[disabled]{opacity:.45}
+  /* ONE FOOTER: the suggestion's row takes the whole width over the walk's */
+  .ce-feet > .ce-rksug{flex:1 1 100%; justify-content:flex-start; padding-bottom:8px;
+    border-bottom:1px solid var(--color-divider)}
+  .ce-feet > .ce-rksug[hidden]{display:none}
+  .ce-rksug .k{font-size:var(--t-label); color:var(--color-neutral-500); margin-right:2px}
+  .ce-rksug .g{flex:1; min-width:4px}
+  .ce-rksug .ce-vote{width:26px; padding:0; color:var(--color-neutral-600)}
+  .ce-rksug .ce-vote svg{display:block; margin:auto}
+  .ce-rksug .ce-vote.is-on{color:var(--accent-ink); border-color:var(--accent-solid)}
+  .ce-railfoot button.is-done[disabled]{opacity:1; border-color:transparent; background:none; color:var(--st-green-fg)}
 
   /* ---- THE MIDDLE OF THE PAGE IS THE CONTRACT (owner-asked 26 Aug 2026) ----
      "There is no current wording vs proposed wording windows. Just one screen
@@ -783,11 +792,17 @@ function clauseEditorCss(){
 
   /* what Copilot read before it answered — the facts, named, so the answer
      rests on something a reader can check */
-  .ce-read{margin:0 0 var(--s-4); padding:0; display:flex; flex-direction:column; gap:var(--s-2)}
-  .ce-read li{list-style:none; display:flex; gap:9px; font-size:var(--t-meta); line-height:1.5}
-  .ce-read li b{flex:none; width:96px; color:var(--color-neutral-600); font-weight:var(--w-title);
-    font-size:var(--t-micro); letter-spacing:.05em; text-transform:uppercase; padding-top:2px}
-  .ce-read li span{flex:1; min-width:0}
+  /* SHADED COLUMN (Young, 7 Oct 2026, "Copilot Panel Tidy-up"): the labels
+     on a pale accent column in normal case, a 2px line between them and the
+     explanations, faint lines between rows, one thin border round the block. */
+  .ce-read{margin:0 0 var(--s-4); padding:0; display:flex; flex-direction:column;
+    border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden}
+  .ce-read li{list-style:none; display:flex; font-size:var(--t-meta); line-height:1.5}
+  .ce-read li + li{border-top:1px solid var(--color-divider)}
+  .ce-read li b{flex:none; width:112px; padding:6px 10px; color:var(--accent-ink); font-weight:var(--w-title);
+    font-size:var(--t-label); background:var(--color-accent-50);
+    border-right:2px solid var(--color-accent-100)}
+  .ce-read li span{flex:1; min-width:0; padding:6px 10px; background:var(--color-surface)}
 
   /* ONE CARD SHAPE, whether it comes from the chat or from the scan. On a
      white lane a white card needs its edge to do the work the ground used to
@@ -833,11 +848,9 @@ function clauseEditorCss(){
      the expanded view is set in the panel's own face at the panel's body size,
      and the paper's A-/A+ never reach it — nothing is measured off the sheet. */
   .ce-rail .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
-  .ce-rail .ce-full .ce-full-body .pv{font-family:var(--font-body);
-    font-size:var(--t-body); line-height:1.6; color:var(--color-text)}
-  .ce-rail .ce-card .pv ins.rl-us, .ce-rail .ce-full .ce-full-body .pv ins.rl-us{background:var(--st-steel-bg); color:var(--accent-ink);
+  .ce-rail .ce-card .pv ins.rl-us{background:var(--st-steel-bg); color:var(--accent-ink);
     font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
-  .ce-rail .ce-card .pv del.rl-us, .ce-rail .ce-full .ce-full-body .pv del.rl-us{background:transparent; color:var(--accent-ink);
+  .ce-rail .ce-card .pv del.rl-us{background:transparent; color:var(--accent-ink);
     font-weight:inherit; text-decoration:line-through; text-decoration-thickness:1.5px; text-decoration-color:currentColor}
   .ce-card .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap; align-items:center}
   .ce-card .av button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label);
@@ -849,6 +862,18 @@ function clauseEditorCss(){
   .ce-card .av .ce-vote{width:26px; padding:0; color:var(--color-neutral-600)}
   .ce-card .av .ce-vote.is-on{color:var(--accent-ink); border-color:var(--accent-solid)}
   .ce-card .av .g{flex:1; min-width:4px}
+  /* ---- STICKY BAR (Young, 7 Oct 2026, "Copilot Panel Tidy-up") ----
+     The Suggested wording is not a card: no fill, no box, no window. It is
+     printed whole on the panel under a 2px accent line, and the panel scrolls
+     as ONE. Its buttons stick to the lane's bottom edge while any of the
+     suggestion is on screen (sticky inside the card, so they leave with it). */
+  .ce-card.ce-sug{background:none; border:0; border-left:2px solid var(--accent-solid);
+    padding:0 0 0 11px; margin-bottom:var(--s-3)}
+  .ce-rail .ce-card.ce-sug .pv{max-height:none; overflow:visible; border:0; padding:0;
+    background:none; margin-top:var(--s-2)}
+  .ce-card.ce-sug > .av{position:sticky; bottom:-14px; z-index:1; margin:10px 0 0 -11px;
+    padding:8px 0 8px 11px; background:var(--color-surface); border-top:1px solid var(--color-divider);
+    box-shadow:0 -6px 10px -8px rgba(0,0,0,.18)}
   /* EXPAND, in the card's own head (Fill the panel, 5 Oct 2026): a quiet
      control on the compact ladder, never a second filled button. */
   .ce-card .n .ce-x{flex:none; display:inline-flex; align-items:center; gap:5px; height:var(--ctl-h-sm);
@@ -856,30 +881,9 @@ function clauseEditorCss(){
     background:var(--color-surface); color:var(--accent-ink); border:1px solid var(--color-divider);
     border-radius:var(--radius); cursor:pointer; white-space:nowrap}
   .ce-card .n .ce-x:hover{border-color:var(--accent-solid)}
-  /* FILL THE PANEL: the rail's lane, passage card, chips and ask box step
-     aside; the head, the disclaimer and both feet stay where they are. */
-  .ce-rail.is-full > .ce-lane, .ce-rail.is-full > #ce-scope,
-  .ce-rail.is-full > .ce-chips, .ce-rail.is-full > .ce-ask{display:none}
-  .ce-rail > .ce-full{flex:1; min-height:0; display:flex; flex-direction:column; margin:0;
-    padding:0; border:0; border-top:1px solid var(--color-divider); background:var(--color-surface)}
-  .ce-rail > .ce-full[hidden]{display:none}
-  .ce-full .ce-full-h{flex:none; display:flex; align-items:center; gap:var(--s-2); padding:10px 14px;
-    border-bottom:1px solid var(--color-divider); font-size:var(--t-body); min-width:0}
-  .ce-full .ce-full-h b{flex:none; font-weight:var(--w-title)}
-  .ce-full .ce-full-h .g{flex:1; min-width:4px}
-  .ce-full .ce-full-cl{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    font-size:var(--t-meta); color:var(--color-neutral-600)}
-  .ce-full .ce-full-back{flex:none; height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit;
-    font-size:var(--t-meta); font-weight:var(--w-label); background:var(--color-surface); color:var(--accent-ink);
-    border:1px solid var(--color-divider); border-radius:var(--radius); cursor:pointer; white-space:nowrap}
-  .ce-full .ce-full-back:hover{border-color:var(--accent-solid)}
-  .ce-full .ce-full-body{flex:1; min-height:0; overflow:auto; padding:16px 20px}
-  .ce-full .ce-full-body .pv{display:block; margin:0; padding:0; border:0; background:transparent;
-    max-height:none; overflow:visible}
-  .ce-full .ce-full-where{flex:none; padding:10px 14px; border-top:1px solid var(--color-divider)}
-  .ce-full .ce-full-where:empty{display:none}
-  .ce-full > .av{flex:none; margin:0; padding:10px 14px; border-top:1px solid var(--color-divider);
-    background:var(--color-neutral-100)}
+  /* FILL THE PANEL IS RETIRED (Young, 7 Oct 2026, Sticky bar): .ce-full,
+     .ce-full-h, .ce-full-body, .ce-full-where, .ce-full-back and .is-full
+     are STALE. */
 
   /* the scan reads as a list of verdicts, then the same cards */
   .ce-rule{background:var(--color-surface); border:1px solid var(--color-divider);
@@ -956,18 +960,28 @@ function clauseEditorCss(){
      with what is typed, up to CE_ASK_LINES lines, then scrolls inside. */
   .ce-ask{flex:none; display:flex; gap:var(--s-2); padding:10px 14px;
     border-top:1px solid var(--color-divider); align-items:flex-end}
-  .ce-askbox{flex:1; min-width:0; display:flex; align-items:flex-start; flex-wrap:wrap; gap:0 4px;
+  /* HEADER LINE (Young, 7 Oct 2026): the tag on its own slim line, the
+     question under it at the full width. ONE quiet focus mark — a 2px accent
+     line along the bottom edge — where there were two rings (the box's own
+     and the app-wide textarea ring inside it, the line between tag and text). */
+  .ce-askbox{flex:1; min-width:0; display:flex; flex-direction:column; align-items:stretch;
     background:var(--color-surface); border:1px solid var(--color-divider)}
-  .ce-askbox:focus-within{box-shadow:var(--focus)}
-  .ce-ask textarea{flex:1 1 120px; min-width:0; height:calc(var(--ctl-h) - 2px); min-height:calc(var(--ctl-h) - 2px); max-height:none; overflow-y:hidden;
+  .ce-askbox:focus-within{box-shadow:inset 0 -2px 0 var(--accent-solid)}
+  .ce-ask .ce-askbox textarea:focus-visible{outline:none; box-shadow:none}
+  .ce-tagline{display:flex; align-items:center; gap:6px; min-width:0; padding:4px 6px 0 9px;
+    font-size:var(--t-label); color:var(--color-neutral-500)}
+  .ce-tagline:has(> .ce-tag:empty){display:none}
+  .ce-tag-k{flex:none; white-space:nowrap}
+  .ce-ask textarea{flex:none; width:100%; min-width:0; height:calc(var(--ctl-h) - 2px); min-height:calc(var(--ctl-h) - 2px); max-height:none; overflow-y:hidden;
     padding:3px 10px; font:inherit; font-size:var(--t-meta); line-height:1.5; resize:none;
     white-space:pre-wrap; overflow-wrap:break-word; background:transparent;
     border:0; color:var(--color-text); outline:none}
   .ce-tag:empty{display:none}
-  .ce-tag{display:inline-flex; align-items:center; gap:2px; max-width:100%; margin:3px 0 0 4px; padding:0 2px 0 6px; height:20px;
-    font-size:var(--t-label); color:var(--accent-ink); background:var(--color-accent-50); border-radius:var(--radius); white-space:nowrap}
-  .ce-tag.is-asking{color:#6d28d9; background:#f3effe}
-  html.dark .ce-tag.is-asking{color:#c4b5fd; background:#2a2140}
+  /* a FILLED pill with a white × the hand can find (Young, 7 Oct 2026: "more
+     visible maybe colored with an x to press") */
+  .ce-tag{display:inline-flex; align-items:center; gap:2px; min-width:0; max-width:100%; padding:0 2px 0 8px; height:20px;
+    font-size:var(--t-label); font-weight:var(--w-label); color:#fff; background:var(--accent-solid); border-radius:var(--radius); white-space:nowrap}
+  .ce-tag.is-asking{color:#fff; background:#6d28d9}
   .ce-tag .w{overflow:hidden; text-overflow:ellipsis; min-width:0}
 
   .ce-ask button{flex:none; display:inline-grid; place-items:center; width:var(--ctl-h); height:var(--ctl-h);
@@ -978,9 +992,9 @@ function clauseEditorCss(){
   /* the tag's own buttons, scoped past the send button's rules above */
   .ce-ask .ce-tag button{flex:none; display:inline-grid; place-items:center; width:16px; height:16px; padding:0; border:0;
     background:none; color:inherit; font:inherit; font-size:var(--t-label); cursor:pointer; border-radius:var(--radius)}
-  .ce-ask .ce-tag button:hover{background:rgba(0,0,0,.08); border:0}
+  .ce-ask .ce-tag button:hover{background:rgba(255,255,255,.25); border:0}
   .ce-ask .ce-tag button svg{width:12px; height:12px}
-  .ce-ask .ce-tag .cut{width:auto; padding:0 4px; color:var(--st-ruby-fg)}
+  .ce-ask .ce-tag .cut{width:auto; padding:0 5px; margin-left:4px; background:rgba(255,255,255,.18)}
 
   /* ---- the reason is asked as a STEP, in HaTi's own words ---- */
   /* ---- THE REASON PANEL'S RULES, DRESSING NOTHING ----
@@ -1857,9 +1871,6 @@ function clauseEditorHtml(){
                reminder rides under every Copilot answer (ce_ai_check). */}
         ${ceNoAi() ? '' : `<div class="ce-pick" id="ce-pick"></div>`}
         <div class="ce-lane" id="ce-lane"></div>
-        ${''/* FILL THE PANEL: one Suggested wording card read across the
-               whole rail (ceRenderFull). Empty and hidden at rest. */}
-        <div class="ce-full ce-card" id="ce-full" hidden></div>
         ${''/* ---- WHAT IS ATTACHED, DIRECTLY OVER THE BOX YOU TYPE IN ----
                The passage the reader highlighted on the paper. Painted by
                ceRenderScope and EMPTY when nothing is attached, so this slot
@@ -1867,7 +1878,10 @@ function clauseEditorHtml(){
         ${ceNoAi() ? '' : `<div class="ce-chips" id="ce-chips"></div>
         <div class="ce-ask" id="ce-askrow">
           <div class="ce-askbox">${''/* THE SELECTED CARD IS GONE (Young, 6 Oct 2026): what it said
-                 rides here, at no height, as a tag in the box (ceRenderScope) */}<span class="ce-tag" id="ce-scope"></span>
+                 rides here as a tag in the box (ceRenderScope).
+                 HEADER LINE (Young, 7 Oct 2026, "Copilot Panel Tidy-up",
+                 reversing "at no height"): the tag sits on its own slim line
+                 at the top of the box, so the question uses the full width. */}<div class="ce-tagline" id="ce-tagline"><span class="ce-tag-k">${_cee(_cet('ce_tag_about'))}</span><span class="ce-tag" id="ce-scope"></span></div>
           <textarea id="ce-ask" rows="1" aria-label="${_ceea(_cet('ce_ask_label'))}"
             placeholder="${_ceea(_cet('ce_ask_ph'))}"></textarea></div>
           <button type="button" data-ce-act="ask" aria-label="${_ceea(_cet('ce_send'))}"
@@ -1877,6 +1891,9 @@ function clauseEditorHtml(){
                (28 Sep 2026). Empty unless a Save found something. */}
         <div class="ce-spell" id="ce-spell"></div>
         <div class="ce-feet" id="ce-feet">
+          ${''/* ONE FOOTER (Young, 7 Oct 2026, "Risk Walk Options"): on the risk
+                 walk the suggestion's own buttons are this footer's top row
+                 (ceRenderRiskSug); empty and hidden everywhere else. */}<div class="ce-railfoot ce-rksug" id="ce-rksug" hidden></div>
           <div class="ce-railfoot ce-rkfoot" id="ce-rkfoot" hidden></div>
           <div class="ce-railfoot" id="ce-railfoot"></div>
         </div>
@@ -2377,7 +2394,7 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   _ceEditing = !ceUnderDeletion()
     && (wantTyping || (_ceText === _ceBase && _ceHead === _ceHeadBase));
   _ceThread = []; _ceBusy = false; _ceSel = null; _ceWhole = false;
-  _ceFull = ''; _ceRiskCard = null;
+  _ceRiskCard = null;
   _ceScan = null;
   _ceSpellList = []; _ceSpellFor = null;
   /* ---- THE RAIL OPENS ON THE FINDING IT IS ALREADY HOLDING ----
@@ -2538,7 +2555,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceRead0 = null;
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null; _ceNew = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null; _ceWhole = false;
-  _ceFull = ''; _ceRiskCard = null;
+  _ceRiskCard = null;
   _ceSpellList = []; _ceSpellFor = null;
   _ceRendering = false; _ceZoom = 100;
   _ceOpenText = '';
@@ -2765,7 +2782,6 @@ function ceGoClause(clauseId, extra){
    Hairline, in the button's own ink (currentColor), 14px like every other
    mark on a button. */
 const CE_THUMB_PATH = '<path d="M2 7.5h3V14H2z"/><path d="M5 7.5 7.8 2.6c.9 0 1.9.8 1.6 2L9 7h4.1c.9 0 1.5.8 1.3 1.6l-1.1 4.5c-.2.6-.6.9-1.2.9H5"/>';
-const CE_EXPAND_ICON = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9"/></svg>';
 const CE_THUMB_UP = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true">${CE_THUMB_PATH}</svg>`;
 const CE_THUMB_DOWN = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(180 8 8)">${CE_THUMB_PATH}</g></svg>`;
 function clauseEditorLeaveAsk(){
@@ -4506,6 +4522,7 @@ function ceRenderTabs(){
      ceRenderRiskFoot leaves the walk's row empty. */
   const rf = _ceQ('#ce-rkfoot'), mf = _ceQ('#ce-railfoot');
   if (rf) rf.hidden = false;
+  ceRenderRiskSug();
   if (mf) mf.style.display = '';
   /* The ask box belongs to the conversation. The scan has nothing to be asked.
      THE PASSAGE CARD GOES WITH IT: it is the subject of the next question, and
@@ -4516,7 +4533,7 @@ function ceRenderTabs(){
      in the chips row and its typed ask in the same box, so both screens wear
      one face. The passage card shows there only over the whole clause — a
      risk's ask is always about the clause it opened on. */
-  const ask = _ceQ('#ce-askrow'), chips = _ceQ('#ce-chips'), scope = _ceQ('#ce-scope');
+  const ask = _ceQ('#ce-askrow'), chips = _ceQ('#ce-chips'), scope = _ceQ('#ce-tagline');
   const rk = _ceTab === 'risks' && ceRiskAsking();
   if (ask) ask.style.display = (_ceTab === 'chat' || rk) ? '' : 'none';
   if (chips) chips.style.display = (_ceTab === 'chat' || rk) ? '' : 'none';
@@ -4560,54 +4577,12 @@ function ceRiskAnswerHtml(){
   }
   return ceTurnHtml({ who: 'ai', ai: true, text: a.advice, explain: a.explain || null, read: ceReadList(), cards: [_ceRiskCard] }, 'rk');
 }
-/* ---- FILL THE PANEL (Young picked it 5 Oct 2026, over "Grow in place" and
-   "Read it on the paper") ----
-   Expand on a Suggested wording card turns the whole rail into a reading of
-   that one card: the marked wording in the contract's own face, with Apply,
-   Ask for a change and the votes pinned under it. The contract on the left
-   does not move a pixel; the feet stay. ONE way back (Back to Copilot, or
-   Escape); a card that is no longer there closes it by itself. */
-function ceRenderFull(){
-  if (!clauseEditorOpen()) return;
-  const full = _ceQ('#ce-full'), rail = _ceQ('.ce-rail');
-  if (!full) return;
-  const card = _ceFull ? ceCardAt(_ceFull) : null;
-  if (!card || !card.text){
-    _ceFull = '';
-    if (!full.hidden){ full.hidden = true; full.innerHTML = ''; }
-    if (rail) rail.classList.remove('is-full');
-    return;
-  }
-  const key = _ceFull;
-  const marked = ceRedlineHtml(card.passage ? card.passage.text : _ceText, card.text || '');
-  const offerWording = !ceUnderDeletion() && card.mode !== 'ask';
-  const vote = card.vote || '';
-  const where = card.passage ? _cet('ce_scope_words') : (ceClauseLabel(ceClause()) || _cet('ce_this_clause'));
-  full.innerHTML = `<div class="ce-full-h">
-      <button type="button" class="ce-full-back" data-ce-act="full-close">&#8249; ${_cee(_cet('ce_full_back'))}</button>
-      <b>${_cee(card.name || _cet('ce_suggestion'))}</b><span class="ce-full-cl" title="${_ceea(where)}">${_cee(where)}</span><span class="g"></span>${
-      card.chip ? `<span class="chip ${_ceea(card.chipTone || 'wait')}">${_cee(card.chip)}</span>` : ''}</div>
-    <div class="ce-full-body"><span class="pv">${marked}</span></div>
-    ${''/* A NEW CLAUSE'S PLACE IS CHOSEN BEFORE APPLY (Young, 5 Oct 2026):
-           the Risks tab's own "Where it goes", over the buttons it decides. */}
-    ${(key.startsWith('rk:') && window.riskWhereHtml && _ceC) ? `<div class="ce-full-where">${riskWhereHtml(_ceC)}</div>` : ''}
-    <div class="av">
-      ${offerWording ? `<button type="button" class="p" data-ce-apply="${key}">${_cet('ce_apply')}</button>` : ''}
-      ${offerWording ? `<button type="button" data-ce-refine="${key}">${_cet('ce_refine')}</button>` : ''}
-      <span class="g"></span>
-      <button type="button" class="ce-vote${vote === 'up' ? ' is-on' : ''}" data-ce-vote="${key}:up"
-        aria-pressed="${vote === 'up' ? 'true' : 'false'}"
-        title="${_ceea(_cet('ce_vote_up'))}" aria-label="${_ceea(_cet('ce_vote_up'))}">${CE_THUMB_UP}</button>
-      <button type="button" class="ce-vote${vote === 'down' ? ' is-on' : ''}" data-ce-vote="${key}:down"
-        aria-pressed="${vote === 'down' ? 'true' : 'false'}"
-        title="${_ceea(_cet('ce_vote_down'))}" aria-label="${_ceea(_cet('ce_vote_down'))}">${CE_THUMB_DOWN}</button>
-    </div>`;
-  full.hidden = false;
-  if (rail) rail.classList.add('is-full');
-}
-function ceFullOpen(key){ _ceFull = String(key || ''); ceRenderFull();
-  const back = _ceQ('#ce-full .ce-full-back'); if (back){ try{ back.focus(); }catch(_){} } }
-function ceFullClose(){ if (!_ceFull) return false; _ceFull = ''; ceRenderFull(); return true; }
+/* RETIRED (Young, 7 Oct 2026, "Copilot Panel Tidy-up" — Sticky bar): the
+   suggestion is printed whole in the panel's one scroll, so there is nothing
+   to expand. Kept as names the lane and the tab change still call; #ce-full,
+   ceFullOpen and the Expand press (data-ce-expand) are STALE. */
+function ceRenderFull(){}
+function ceFullClose(){ return false; }
 function ceTurnHtml(t, i){
   if (t.who === 'you') return `<div class="ce-you"><span>${_cee(t.text)}</span></div>`;
   if (t.greeting) return ceGreetingHtml();
@@ -4694,15 +4669,23 @@ function ceCardHtml(card, i, j){
      a verb that cannot work is not drawn, and a card offering Refine over an
      Apply that refuses is the same dead press one step further away. */
   const offerWording = !!card.text && !ceUnderDeletion() && card.mode !== 'ask';
-  return `<div class="ce-card">
+  /* ---- STICKY BAR (Young, 7 Oct 2026, "Copilot Panel Tidy-up", reversing
+     5 Oct "Fill the panel") ----
+     No card round the wording and no window inside it: the wording is printed
+     whole, marks and all, and the panel scrolls as ONE. Apply · Ask for a
+     change · the votes stick to the panel's bottom edge while the suggestion
+     is on screen. Expand is gone — there is nothing left to read elsewhere.
+     ON THE RISK WALK the buttons dock into the walk's own footer instead
+     (ONE FOOTER, ceRenderRiskSug), so the card draws none of its own. */
+  const docked = String(i) === 'rk' && ceRiskDocks();
+  return `<div class="ce-card ce-sug">
     <div class="n"><span>${_cee(card.name || _cet('ce_suggestion'))}</span><span class="g"></span>${
-      card.chip ? `<span class="chip ${_ceea(card.chipTone || 'wait')}">${_cee(card.chip)}</span>` : ''}${
-      card.text ? `<button type="button" class="ce-x" data-ce-expand="${i}:${j}" title="${_ceea(_cet('ce_expand_title'))}">${CE_EXPAND_ICON}${_cee(_cet('ce_expand'))}</button>` : ''}</div>
+      card.chip ? `<span class="chip ${_ceea(card.chipTone || 'wait')}">${_cee(card.chip)}</span>` : ''}</div>
     ${card.line ? `<span class="l">${_cee(card.line)}</span>` : ''}
     ${card.cost ? `<span class="cost">${_cee(card.cost)}</span>` : ''}
     ${card.rests ? `<span class="r">${_cee(_cet('ce_rests_on', { on: card.rests }))}</span>` : ''}
     ${card.text ? `<span class="pv">${marked}</span>` : ''}
-    <div class="av">
+    ${docked ? '' : `<div class="av">
       ${offerWording ? `<button type="button" class="p" data-ce-apply="${i}:${j}">${_cet('ce_apply')}</button>` : ''}
       ${offerWording ? `<button type="button" data-ce-refine="${i}:${j}">${_cet('ce_refine')}</button>` : ''}
       <span class="g"></span>
@@ -4712,7 +4695,7 @@ function ceCardHtml(card, i, j){
       <button type="button" class="ce-vote${vote === 'down' ? ' is-on' : ''}" data-ce-vote="${i}:${j}:down"
         aria-pressed="${vote === 'down' ? 'true' : 'false'}"
         title="${_ceea(_cet('ce_vote_down'))}" aria-label="${_ceea(_cet('ce_vote_down'))}">${CE_THUMB_DOWN}</button>
-    </div>
+    </div>`}
   </div>`;
 }
 function ceRenderChips(){
@@ -6100,7 +6083,51 @@ function ceBoxWords(){
 }
 /* The walk's foot, patched in place like the rail foot (a row rewritten under
    a reader's finger is a dead press). */
+/* ---- ONE FOOTER (Young, 7 Oct 2026, "Risk Walk Options") ----
+   On the risk walk the Suggested wording's Apply · Ask for a change · votes
+   are the walk footer's TOP ROW, over ‹ Previous · Skip · Save & next and
+   Discard · Save — every button of the walk in one fixed place, never a
+   pinned bar over a second bar. Before Apply, Save is grey; once the draft
+   holds the suggestion the row says "Applied" and Save & next is the green
+   press. The same data attributes as the card's, so the same handlers.
+   PATCHED IN PLACE, NEVER REWRITTEN under a finger (the foot's own rule). */
+function ceRiskDocks(){ return _ceTab === 'risks' && ceRiskAsking(); }
+const _cePlain = h => String(h == null ? '' : h).replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+/* Whether the draft already holds this card's wording (an undo un-applies it). */
+function ceCardApplied(card){
+  if (!card || !card.text) return false;
+  const now = ceBoxNow(); const draft = _cePlain(now ? now.text : _ceText), want = _cePlain(card.text);
+  if (!want) return false;
+  return card.passage ? draft.includes(want) : draft === want;
+}
+function ceRenderRiskSug(){
+  const row = _ceQ('#ce-rksug'); if (!row) return;
+  const card = ceRiskDocks() ? _ceRiskCard : null;
+  if (!card || !card.text){ if (!row.hidden){ row.hidden = true; row.innerHTML = ''; } return; }
+  const offer = !ceUnderDeletion() && card.mode !== 'ask';
+  if (!row.querySelector('[data-ce-vote]')){
+    row.innerHTML = `<span class="k">${_cee(_cet('ce_sug_dock'))}</span>`
+      + `<button type="button" class="p" data-ce-apply="rk:0"></button>`
+      + `<button type="button" data-ce-refine="rk:0">${_cee(_cet('ce_refine'))}</button><span class="g"></span>`
+      + `<button type="button" class="ce-vote" data-ce-vote="rk:0:up" title="${_ceea(_cet('ce_vote_up'))}" aria-label="${_ceea(_cet('ce_vote_up'))}">${CE_THUMB_UP}</button>`
+      + `<button type="button" class="ce-vote" data-ce-vote="rk:0:down" title="${_ceea(_cet('ce_vote_down'))}" aria-label="${_ceea(_cet('ce_vote_down'))}">${CE_THUMB_DOWN}</button>`;
+  }
+  const apply = row.querySelector('[data-ce-apply]'), refine = row.querySelector('[data-ce-refine]');
+  const done = ceCardApplied(card);
+  const word = done ? _cet('ce_sug_applied') : _cet('ce_apply');
+  if (apply.textContent !== word) apply.textContent = word;
+  apply.disabled = done;
+  apply.classList.toggle('p', !done);
+  apply.classList.toggle('is-done', done);
+  apply.style.display = offer ? '' : 'none';
+  refine.style.display = offer ? '' : 'none';
+  row.querySelectorAll('[data-ce-vote]').forEach(b => {
+    const on = card.vote === b.getAttribute('data-ce-vote').split(':')[2];
+    b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  row.hidden = false;
+}
 function ceRenderRiskFoot(){
+  ceRenderRiskSug();
   const foot = _ceQ('#ce-rkfoot'); if (!foot) return;
   const info = (window.riskWalkInfo && _ceC) ? riskWalkInfo(_ceC) : null;
   if (!info || info.done || !info.it){ if (foot.innerHTML) foot.innerHTML = ''; return; }
@@ -6532,7 +6559,6 @@ function ceWirePage(page){
     if (tab){ ev.preventDefault();
       const want = tab.getAttribute('data-ce-tab');
       _ceTab = ceNoAi() ? 'ladder' : ['ladder', 'risks'].includes(want) ? want : 'chat';
-      _ceFull = '';
       ceRenderTabs(); ceRenderLane(); ceRenderFull(); return; }
 
 
@@ -6544,9 +6570,6 @@ function ceWirePage(page){
 
     const chip = hit('[data-ce-chip]');
     if (chip){ ev.preventDefault(); if (!ceNoAi()) ceAsk(chip.getAttribute('data-ce-chip')); return; }
-
-    const ex = hit('[data-ce-expand]');
-    if (ex){ ev.preventDefault(); ceFullOpen(ex.getAttribute('data-ce-expand')); return; }
 
     const ew = hit('[data-ce-edit-with]');
     if (ew){ ev.preventDefault(); ceEditWith(_ceThread[Number(ew.getAttribute('data-ce-edit-with'))]); return; }
@@ -7067,7 +7090,7 @@ Object.assign(window, {
   clauseEditorLeaveAsk,
   clauseEditorHtml, clauseEditorRefusal, clauseEditorFits,
   rlOpenClauseEditor, rlCloseClauseEditor, ceAttachLoose, ceSetWhole,
-  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceBoxWords, ceRenderLane, ceRiskSave, ceRisksOn, ceFullOpen, ceFullClose,
+  ceApply, ceUndo, ceDiscard, ceFile, ceAsk, ceBoxWords, ceRenderLane, ceRiskSave, ceRisksOn, ceFullClose,
   CE_NEW_ID, ceIsNew, ceNewPlace, ceSetNewPlace, ceScanItems, ceScanGroups, ceStdItem, ceStdWording, ceStdChips, ceStdPress, ceStdApply, CE_CHIPS_MAX,
   ceBoxDirty,
   ceHeldPassage, ceSelection, ceSelectionRead, ceAttachPassage, ceDetachPassage, ceOfferPassage, ceAttachWords, ceRenderScope, ceRenderChips,
