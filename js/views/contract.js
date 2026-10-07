@@ -6247,47 +6247,70 @@ function ovMapData(c){
     law:String(m.governingLaw||'').trim(), disputes:String(m.disputes||'').trim(), parties, flows, duties };
 }
 function ovMapEdge(A,T,r){ const dx=T[0]-A[0], dy=T[1]-A[1], l=Math.hypot(dx,dy)||1; return [A[0]+dx/l*r, A[1]+dy/l*r]; }
-/* THE PICTURE, AS THE MOCK-UP DRAWS IT: two parties side by side, three in a
-   triangle (more round a ring), the agreement in the middle, every line a
-   bowed path with its label in a chip, moving marks along it where the
-   direction is known, the party's duty count as a badge in its tone. A narrow
-   stage stands the picture tall and lists the lines underneath. */
+/* THE PICTURE: PROGRESS RINGS (Young picked it by name, 8 Oct 2026, off the
+   map artifact). It FITS A LAPTOP: drawn into a fixed 880x380 stage (the
+   stage is 380px tall, index.html .ov-map-stage), so the whole map and its
+   movement are on screen at once with the tabs above it. Each party is a
+   circle in its own tint wearing a RING OF ITS DUTIES — one piece per duty in
+   its state (green done, amber due soon, ruby late, steel later), grouped by
+   state once there are too many to count — drawn in on arrival. The pair the
+   lines run between sits side by side; any further party sits below the
+   middle with no line of its own; with a party below, every line bows ABOVE
+   the pair, one lane each. Nothing recorded between the parties is drawn as
+   a dashed line saying so. A narrow stage stands the picture tall and lists
+   the lines underneath. */
+const OV_MAP_RING_EACH=12;
+function ovMapRingSegs(duties){
+  const ord=['r','a','s','g'];
+  if(duties.length<=OV_MAP_RING_EACH) return duties.map(d=>({ st:d.st, n:1 })).sort((a,b)=>ord.indexOf(a.st)-ord.indexOf(b.st));
+  return ord.map(st=>({ st, n:duties.filter(d=>d.st===st).length })).filter(s=>s.n);
+}
 function ovMapSvg(D,tall){
-  const N=D.parties.length, W=tall?400:860, H=tall?(N>2?700:640):(N>2?690:520), R=tall?46:58;
-  let pos;
-  if(N===2) pos=tall?[[200,110],[200,H-120]]:[[230,H/2],[630,H/2]];
-  else if(N===3) pos=tall?[[200,150],[110,H-170],[290,H-170]]:[[430,170],[250,H-160],[610,H-160]];
-  else { const cx0=W/2, cy0=H/2, rr=Math.min(W,H)/2-R-40;
-    pos=D.parties.map((_,i)=>{ const a=-Math.PI/2+i*2*Math.PI/N; return [cx0+rr*Math.cos(a), cy0+rr*Math.sin(a)]; }); }
-  const cx=pos.reduce((s,p)=>s+p[0],0)/N, cy=pos.reduce((s,p)=>s+p[1],0)/N, P={};
-  D.parties.forEach((p,i)=>{ P[p.k]=pos[i]; });
-  const bow=tall?(N>2?45:120):(N>2?60:120), f1=v=>(+v).toFixed(1);
-  let s=`<svg class="ov-map-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(i18t('ov_map_aria'))}">`;
+  const N=D.parties.length, W=tall?400:880, H=tall?600:380, R=tall?40:(N>2?36:50), f1=v=>(+v).toFixed(1);
+  let P;
+  if(tall) P=[[200,120],[200,390]].concat(D.parties.slice(2).map((_,k,a)=>[200+(k-(a.length-1)/2)*130,530]));
+  else if(N===2) P=[[W*.26,H*.5],[W*.74,H*.5]];
+  else P=[[W*.24,H*.5],[W*.76,H*.5]].concat(D.parties.slice(2).map((_,k,a)=>[W*(.5+(k-(a.length-1)/2)*.22),H*.79]));
+  const PK={}; D.parties.forEach((p,i)=>{ PK[p.k]=P[i]; });
+  const cx=(P[0][0]+P[1][0])/2, cy=(P[0][1]+P[1][1])/2;
+  let s=`<svg class="ov-map-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(i18t('ov_map_aria'))}">`;
+  if(!D.flows.length){
+    const a=ovMapEdge(P[0],P[1],R+14), b=ovMapEdge(P[1],P[0],R+14), lx=(a[0]+b[0])/2, ly=tall?cy:cy-62;
+    s+=`<line class="ov-map-dash" x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}"/>
+      <rect x="${f1(lx-120)}" y="${f1(ly-13)}" width="240" height="26" rx="13" class="ov-map-chip"/><text x="${f1(lx)}" y="${f1(ly+4)}" text-anchor="middle" class="ov-map-sm">${esc(i18t('ov_map_nothing'))}</text>`;
+  }
   const seen={};
-  D.flows.forEach((f,i)=>{ const A=P[f.a], B=P[f.b]; if(!A||!B) return;
-    const mx=(A[0]+B[0])/2, my=(A[1]+B[1])/2, dx=B[0]-A[0], dy=B[1]-A[1], L=Math.hypot(dx,dy)||1; let nx=dy/L, ny=-dx/L;
-    /* Two parties: a line bows to its own side by its direction, so money one
-       way and duties the other part naturally; a second line in the SAME
-       direction bows further out rather than lying on the first. */
-    const pk=N>2?[f.a,f.b].sort().join('|'):f.a+'>'+f.b, nth=seen[pk]=(seen[pk]||0)+1; let bw=bow;
-    if(N>2){ if(nx*(cx-mx)+ny*(cy-my)>0){ nx=-nx; ny=-ny; } bw=nth>1?bow*2.1:bow*.75; }
-    else if(nth>1) bw=bow*(1+.6*(nth-1));
-    const C=[mx+nx*bw*2, my+ny*bw*2], a=ovMapEdge(A,C,R+6), b=ovMapEdge(B,C,R+6);
+  D.flows.forEach((f,i)=>{ const A=PK[f.a], B=PK[f.b]; if(!A||!B) return;
+    const above=!tall&&N>2, pk=above?'pair':f.a+'>'+f.b, nth=seen[pk]=(seen[pk]||0)+1;
+    const mx=(A[0]+B[0])/2, my=(A[1]+B[1])/2;
+    let C;
+    if(above){ const bw=[40,82,124][Math.min(nth,3)-1]; C=[mx,my-bw*2]; }
+    else { const bw=(tall?60:70)*(nth>1?1.7:1), dx=B[0]-A[0], dy=B[1]-A[1], L=Math.hypot(dx,dy)||1; C=[mx+dy/L*bw*2, my-dx/L*bw*2]; }
+    const a=ovMapEdge(A,C,R+12), b=ovMapEdge(B,C,R+12);
     const d=`M${f1(a[0])},${f1(a[1])} Q${f1(C[0])},${f1(C[1])} ${f1(b[0])},${f1(b[1])}`;
-    const lx=.25*a[0]+.5*C[0]+.25*b[0], ly=.25*a[1]+.5*C[1]+.25*b[1], col=OV_MAP_KINDS[f.kind], cw=tall?118:170;
-    s+=`<g class="ov-map-nd ov-map-ed" data-ov-map="f${i}" data-l="${f.kind}" tabindex="0" role="button" aria-label="${esc(f.l1)}"><path id="ov-mf${i}" d="${d}" style="fill:none;stroke:${col};stroke-width:10;stroke-linecap:round;opacity:.16"/><path d="${d}" style="fill:none;stroke:${col};stroke-width:1.6;stroke-dasharray:2 7;stroke-linecap:round"/>`;
-    if(f.dir) for(let j=0;j<5;j++){ const m=`<animateMotion dur="4s" repeatCount="indefinite" begin="${(-0.8*j).toFixed(1)}s"><mpath href="#ov-mf${i}"/></animateMotion>`;
-      s+=f.kind==='duty'?`<rect x="-6" y="-4.5" width="12" height="9" rx="2.5" style="fill:${col}">${m}</rect>`:`<circle r="5" style="fill:${col};stroke:var(--color-surface);stroke-width:1.5">${m}</circle>`; }
-    s+=`<rect x="${f1(lx-cw/2)}" y="${f1(ly-19)}" width="${cw}" height="38" rx="6" class="ov-map-chip"/><text x="${f1(lx)}" y="${f1(ly-3)}" text-anchor="middle" class="ov-map-big">${esc(f.l1)}</text><text x="${f1(lx)}" y="${f1(ly+12)}" text-anchor="middle" class="ov-map-sm">${esc(f.l2)}</text></g>`; });
-  s+=`<g class="ov-map-nd" data-ov-map="deal" tabindex="0" role="button" aria-label="${esc(i18t('ov_map_this'))}"><rect x="${f1(cx-26)}" y="${f1(cy-32)}" width="52" height="64" rx="3" class="ov-map-doc"/><path d="M${f1(cx-15)},${f1(cy-15)}h30M${f1(cx-15)},${f1(cy-6)}h30M${f1(cx-15)},${f1(cy+3)}h22M${f1(cx-15)},${f1(cy+12)}h26" class="ov-map-lines"/><text x="${f1(cx)}" y="${f1(cy+48)}" text-anchor="middle" class="ov-map-ref">${esc(D.ref)}</text></g>`;
-  D.parties.forEach(p=>{ const [x,y]=P[p.k], t=p.tone, n=p.duties.length, wt=p.worst;
-    s+=`<g class="ov-map-nd ov-map-fl" data-ov-map="${p.k}" tabindex="0" role="button" aria-label="${esc(p.name)}"><circle class="ov-map-halo" cx="${f1(x)}" cy="${f1(y)}" r="${R+11}" style="fill:${t[3]}"/><circle cx="${f1(x)}" cy="${f1(y)}" r="${R}" style="fill:var(--color-surface);stroke:${t[0]};stroke-width:3"/>
-      <text x="${f1(x)}" y="${f1(y-14)}" text-anchor="middle" class="ov-map-cap">${esc((p.role||(p.us?i18t('ov_map_us'):'')).toUpperCase())}</text><text x="${f1(x)}" y="${f1(y+4)}" text-anchor="middle" class="ov-map-nm">${esc(p.l1)}</text><text x="${f1(x)}" y="${f1(y+20)}" text-anchor="middle" class="ov-map-nm">${esc(p.l2)}</text>
-      ${p.where?`<text x="${f1(x)}" y="${f1(y+R+24)}" text-anchor="middle" class="ov-map-sm">${esc(p.where)}</text>`:''}
-      ${n?`${wt==='r'?`<circle class="ov-map-ringp" cx="${f1(x+R*.72)}" cy="${f1(y-R*.72)}" r="11" style="fill:var(--st-ruby-dot)"/>`:''}<circle cx="${f1(x+R*.72)}" cy="${f1(y-R*.72)}" r="11" class="ov-map-badge is-${wt}"/><text x="${f1(x+R*.72)}" y="${f1(y-R*.72+4)}" text-anchor="middle" class="ov-map-bn">${n}</text>`:''}</g>`;
-    if(!tall){ const ux=x-cx, uy=y-cy, ul=Math.hypot(ux,uy)||1, ox=ux/ul, oy=uy/ul, ppl=p.people.slice(0,OV_MAP_PEOPLE_MAX);
-      ppl.forEach((q,j)=>{ const off=(j-(ppl.length-1)/2)*34, px=x+ox*(R+36)-oy*off, py=y+oy*(R+36)+ox*off;
-        s+=`<g class="ov-map-nd ov-map-ppl" data-ov-map="${q.i}" data-l="ppl" tabindex="0" role="button" aria-label="${esc(q.n)}"><circle cx="${f1(px)}" cy="${f1(py)}" r="15" style="fill:${t[1]};stroke:var(--color-surface);stroke-width:2"/><text x="${f1(px)}" y="${f1(py+3.5)}" text-anchor="middle" class="ov-map-av" style="fill:${t[2]}">${esc(q.ini)}</text></g>`; }); } });
+    const lx=.25*a[0]+.5*C[0]+.25*b[0], ly=.25*a[1]+.5*C[1]+.25*b[1], col=OV_MAP_KINDS[f.kind], cw=tall?150:168;
+    s+=`<g class="ov-map-nd ov-map-ed" data-ov-map="f${i}" data-l="${f.kind}" tabindex="0" role="button" aria-label="${esc(f.l1)}"><path id="ov-mf${i}" d="${d}" style="fill:none;stroke:${col};stroke-width:10;stroke-linecap:round;opacity:.1"/><path d="${d}" style="fill:none;stroke:${col};stroke-width:2.2;stroke-linecap:round"/>`;
+    if(f.dir) for(let j=0;j<4;j++){ const m=`<animateMotion dur="4s" repeatCount="indefinite" begin="${(-j).toFixed(1)}s"><mpath href="#ov-mf${i}"/></animateMotion>`;
+      s+=f.kind==='duty'?`<rect x="-5" y="-4" width="10" height="8" rx="2" style="fill:${col}">${m}</rect>`:`<circle r="4.5" style="fill:${col};stroke:var(--color-surface);stroke-width:1.5">${m}</circle>`; }
+    s+=`<rect x="${f1(lx-cw/2)}" y="${f1(ly-18)}" width="${cw}" height="36" rx="18" class="ov-map-chip"/><text x="${f1(lx)}" y="${f1(ly-2)}" text-anchor="middle" class="ov-map-big">${esc(f.l1)}</text><text x="${f1(lx)}" y="${f1(ly+12)}" text-anchor="middle" class="ov-map-sm">${esc(f.l2)}</text></g>`; });
+  s+=`<g class="ov-map-nd" data-ov-map="deal" tabindex="0" role="button" aria-label="${esc(i18t('ov_map_this'))}"><rect x="${f1(cx-19)}" y="${f1(cy-24)}" width="38" height="48" rx="3" class="ov-map-doc"/><path d="M${f1(cx-11)},${f1(cy-11)}h22M${f1(cx-11)},${f1(cy-4)}h22M${f1(cx-11)},${f1(cy+3)}h16M${f1(cx-11)},${f1(cy+10)}h19" class="ov-map-lines"/><text x="${f1(cx)}" y="${f1(cy+40)}" text-anchor="middle" class="ov-map-ref">${esc(D.ref)}</text></g>`;
+  D.parties.forEach((p,i)=>{ const [x,y]=PK[p.k], t=p.tone, n=p.duties.length, wt=p.worst, rr=R+9, C=2*Math.PI*rr;
+    const ini=(typeof deskInitials==='function')?deskInitials(p.name):String(p.name||'?').slice(0,2).toUpperCase();
+    let ring=`<circle cx="${f1(x)}" cy="${f1(y)}" r="${rr}" class="ov-map-track${n?'':' is-empty'}"/>`;
+    if(n){ const segs=ovMapRingSegs(p.duties), gap=segs.length>1?5:0, per=(C-gap*segs.length)/n; let at=0;
+      segs.forEach(sg=>{ const len=Math.max(per*sg.n,1);
+        ring+=`<circle cx="${f1(x)}" cy="${f1(y)}" r="${rr}" class="ov-map-seg is-${sg.st}" style="--len:${f1(len)};stroke-dasharray:${f1(len)} ${f1(C-len)};stroke-dashoffset:${f1(len)}" transform="rotate(${f1(-90+at/C*360)} ${f1(x)} ${f1(y)})"/>`;
+        at+=len+gap; }); }
+    const fl=i%2?'ov-map-fl is-b':'ov-map-fl';
+    const ly=y+R+(tall?24:28), sub=[p.role, p.us?i18t('ov_map_us'):'', p.where].filter(Boolean).join(' · ');
+    s+=`<g class="ov-map-nd ${fl}" data-ov-map="${p.k}" tabindex="0" role="button" aria-label="${esc(p.name)}"><circle cx="${f1(x)}" cy="${f1(y)}" r="${R}" style="fill:${t[1]};stroke:${t[0]};stroke-width:2.5"/>
+      <text x="${f1(x)}" y="${f1(y+R*.16)}" text-anchor="middle" class="ov-map-ini" style="font-size:${f1(R*.42)}px;fill:${t[2]}">${esc(ini)}</text>${ring}
+      ${n?`${wt==='r'?`<circle class="ov-map-ringp" cx="${f1(x+R*.74)}" cy="${f1(y-R*.74)}" r="10" style="fill:var(--st-ruby-dot)"/>`:''}<circle cx="${f1(x+R*.74)}" cy="${f1(y-R*.74)}" r="10" class="ov-map-badge is-${wt}"/><text x="${f1(x+R*.74)}" y="${f1(y-R*.74+4)}" text-anchor="middle" class="ov-map-bn">${n}</text>`:''}
+      <text x="${f1(x)}" y="${f1(ly)}" text-anchor="middle" class="ov-map-nm">${esc(p.name.length>28?p.name.slice(0,27)+'…':p.name)}</text>
+      ${sub?`<text x="${f1(x)}" y="${f1(ly+14)}" text-anchor="middle" class="ov-map-cap">${esc(sub.toUpperCase())}</text>`:''}</g>`;
+    const ox=x<cx-1?-1:x>cx+1?1:1, ppl=p.people.slice(0,OV_MAP_PEOPLE_MAX);
+    ppl.forEach((q,j)=>{ const off=(j-(ppl.length-1)/2)*30, px=x+ox*(R+46), py=y+off;
+      s+=`<g class="ov-map-nd ov-map-ppl" data-ov-map="${q.i}" data-l="ppl" tabindex="0" role="button" aria-label="${esc(q.n)}"><circle cx="${f1(px)}" cy="${f1(py)}" r="13" style="fill:${t[1]};stroke:var(--color-surface);stroke-width:2"/><text x="${f1(px)}" y="${f1(py+3.5)}" text-anchor="middle" class="ov-map-av" style="fill:${t[2]}">${esc(q.ini)}</text></g>`; }); });
   return s+'</svg>';
 }
 const OV_MAP_TONE_WORD={ g:'ov_map_t_g', a:'ov_map_t_a', r:'ov_map_t_r', s:'ov_map_t_s' };
@@ -6339,7 +6362,11 @@ function ovMapHtml(c){
   const anyPpl=D.parties.some(p=>p.people.length);
   return `<div class="ov-map-grid" id="ov-map"><div class="ov-map-card"><div class="ov-map-top">${kinds.map(k=>
       `<button type="button" class="ov-map-chipt" data-ov-map-l="${k}" aria-pressed="true"><i style="background:${OV_MAP_KINDS[k]}"></i><span>${esc(i18t(k==='money'?'ov_map_k_money':'ov_map_k_duty'))}</span></button>`).join('')}${
-      anyPpl?`<button type="button" class="ov-map-chipt" data-ov-map-l="ppl" aria-pressed="true"><i style="background:var(--st-steel-dot)"></i><span>${esc(i18t('ov_map_k_people'))}</span></button>`:''}</div>
+      anyPpl?`<button type="button" class="ov-map-chipt" data-ov-map-l="ppl" aria-pressed="true"><i style="background:var(--st-steel-dot)"></i><span>${esc(i18t('ov_map_k_people'))}</span></button>`:''}${
+      /* THE RING'S KEY: what each colour on a party's ring means. A key, not
+         a filter, so it is words beside a dot rather than a button. */
+      D.parties.some(p=>p.duties.length)?`<span class="ov-map-key">${[['g','ov_map_l_done'],['a','ov_map_l_soon'],['r','ov_map_l_late'],['s','ov_map_l_later']].map(([t,k])=>
+        `<span><i class="ov-map-dot is-${t}"></i>${esc(i18t(k))}</span>`).join('')}</span>`:''}</div>
     <div class="ov-map-stage" data-ov-map-stage></div><div class="ov-map-list" data-ov-map-list></div></div>
     <aside class="ov-map-pane" data-ov-map-pane aria-live="polite"></aside></div>`;
 }
@@ -6371,7 +6398,7 @@ function ovMapWire(host,c){
   const applyOff=()=>{ if(!svg) return; svg.querySelectorAll('[data-l]').forEach(n=>n.classList.toggle('is-off',off.has(n.getAttribute('data-l')))); };
   const draw=()=>{ const w=Math.round(st.clientWidth||0); if(!w) return; const tall=w<640;
     if(w===lastW&&tall===lastTall) return; lastW=w; lastTall=tall;
-    st.innerHTML=ovMapSvg(D,tall); svg=st.querySelector('svg'); applyOff();
+    st.classList.toggle('is-tall',tall); st.innerHTML=ovMapSvg(D,tall); svg=st.querySelector('svg'); applyOff();
     list.innerHTML=tall?D.flows.map((f,i)=>`<button type="button" data-ov-map-go="f${i}"><span style="background:${OV_MAP_KINDS[f.kind]}"></span>${esc(D.parties.find(p=>p.k===f.a).name+' → '+D.parties.find(p=>p.k===f.b).name+': '+f.l1)}</button>`).join(''):'';
     if(reduce&&svg&&svg.pauseAnimations) svg.pauseAnimations();
     if(svg) svg.querySelectorAll('[data-ov-map]').forEach(n=>n.classList.toggle('is-sel',n.getAttribute('data-ov-map')===_ovMapSel.k)); };
@@ -7175,7 +7202,7 @@ function ktOverviewTermsHtml(c,opts={}){
   const mayMove=(typeof mayReFile==='function')&&mayReFile()&&!PORTAL_MODE;
   const dealEd=ed&&ovEditing(dealK), recEd=(ed||mayMove)&&ovEditing(recK);
   const fill=(ed&&readable)
-    ? `<button id="kt-fill" class="ui-btn ui-btn-sm" title="${
+    ? `<button id="kt-fill" class="ui-btn ui-btn-sm hati-fill-btn" title="${
         i18t('ct_read_out_details')}">${icon('sparkle','w-3 h-3')} ${i18t('ct_fill_from_doc')}</button>`
     : '';
   /* ---- THE ARTIFACT'S SHAPE IS THE RESTING SHAPE (17 Sep 2026) ----
@@ -15808,6 +15835,10 @@ function signBlockers(c){
         'fill the remaining fields');
     }
   }catch(_){}
+  /* Answers kept but not yet put into the wording — see tplFormPending. */
+  try{
+    if(window.tplFormPending && tplFormPending(c)) add('form-fill', i18t('tl_fill_doc_first'), i18t('tl_fill_doc'));
+  }catch(_){}
   /* ---- HOW MUCH THIS PERSON MAY SIGN FOR ----
      It joins THIS list rather than becoming a gate of its own, so the disabled
      button and the refusal read the same sentence — a hidden verb is only a
@@ -16353,7 +16384,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
      Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
      with it: the same guard-and-miss is waiting for both. */
   wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
-  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_ESS_FIELDS,ovOpenFiling,ktReadingsRowsHtml,ktBriefCardHtml,ovMapData,ovMapSvg,ovMapPane,ovMapHtml,ovMapWire,ovMapRoleKey,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
+  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_ESS_FIELDS,ovOpenFiling,ktReadingsRowsHtml,ktBriefCardHtml,ovMapData,ovMapSvg,ovMapRingSegs,ovMapPane,ovMapHtml,ovMapWire,ovMapRoleKey,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
   OV_DEAL_FIELDS,OV_ALSO_FIELDS,OV_KT_FIELDS,OV_DERIVED_FIELDS,ovMetaBoxHtml,ovMetaField,ovMetaLabel,
   OV_MARK_ALIAS,ovFieldMarkOf,ovFieldNoteHtml,ovSignMarks,
   /* THE PARTIES BLOCK. f232's net: every `window.foo` read must be a
