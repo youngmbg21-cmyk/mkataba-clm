@@ -8069,7 +8069,7 @@ const amendNorm = t => String(t || '').toLowerCase().replace(/[\u2018\u2019]/g, 
    The Time Machine (Overview 2) draws the record's own dates; this reading
    adds the periods only the wording states — prices fixed, an exit fee, a
    lock-in, probation, no-hire, secrecy after the end — each with its clause
-   and its rule. Asked once per wording on arrival (js/triage.js) and kept on
+   and its rule. Asked once per wording on arrival (the browser's arrival reading) and kept on
    the contract; it never travels. THE QUOTE IS CHECKED: a window whose quote
    is not in the wording is dropped and counted, never shown; a date that is
    not a real day is dropped. Nothing is guessed. */
