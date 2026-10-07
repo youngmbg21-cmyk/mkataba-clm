@@ -6318,6 +6318,29 @@ function redlineLayoutCss(){
   .redline-page .rl-figrow{margin-top:10px}
   .redline-page .rl-figrow input[type=number]{width:90px}
 
+  ${''/* ---- THE CONTROL ROW READS LIKE THE DOCUMENT TAB'S (Young, 7 Oct 2026:
+         "image 1 needs to be like image 2") ---- the row sits on the page
+         ground, not a white band; Deal board is a TAB beside Redlined (resting
+         grey, lit with the accent rule), not an accent link; the seat switch
+         is a quiet outlined pair whose lit half takes the brand's soft wash
+         rather than a dark fill; "needs you" and "All negotiations" are the
+         outlined everyday buttons the Document tab's row uses. The id lifts
+         each rule over the scoped ones above without !important. */}
+  #view-redline .rl-tabrow{background:transparent}
+  #view-redline .rl-boardseg{height:auto;align-self:stretch;padding:0 14px;color:var(--color-neutral-600);
+    font-weight:var(--w-label);background:none;border-radius:0;box-shadow:none}
+  #view-redline .rl-boardseg:hover{color:var(--color-text);background:none}
+  #view-redline .rl-boardseg.on{color:var(--color-text);font-weight:var(--w-title);background:none;
+    box-shadow:inset 0 -2px var(--accent-solid)}
+  #view-redline .rl-actions .rl-segwrap{background:var(--color-surface);border:1px solid var(--btn-edge);
+    border-radius:var(--radius);height:var(--ctl-h);overflow:hidden}
+  #view-redline .rl-actions .rl-segwrap .rl-seg{color:var(--color-neutral-600);font-weight:var(--w-strong);background:none}
+  #view-redline .rl-actions .rl-segwrap .rl-seg.on{background:var(--color-accent-100);color:var(--accent-ink)}
+  #view-redline .rl-head .rl-needs,#view-redline .rl-head .rl-livelist{height:var(--ctl-h);min-height:0;
+    padding:0 var(--pad-ctl-x);border:1px solid var(--btn-edge);background:var(--color-surface);
+    border-radius:var(--radius);font-size:var(--t-body);font-weight:var(--w-strong);align-self:center}
+  #view-redline .rl-head .rl-needs:hover,#view-redline .rl-head .rl-livelist:hover{border-color:var(--color-accent);
+    text-decoration:none;background:var(--color-surface)}
   `;
   document.head.appendChild(s);
 }
