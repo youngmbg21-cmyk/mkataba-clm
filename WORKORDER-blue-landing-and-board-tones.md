@@ -1,4 +1,4 @@
-# N — BLUE BY DEFAULT, PRESENT MODE THAT STAYS ON, SMALLER REFERENCES, A BOARD THAT WEARS THE BRAND
+# N — BLUE BY DEFAULT, PRESENT MODE THAT STAYS ON, SMALLER REFERENCES, A BOARD THAT WEARS THE BRAND, A SUMMARY BUTTON
 
 **Owner-instructed 7 Oct 2026**, off two screenshots and the second HaTi Platform
 mockup (`HaTi_Platform_2.html`): *"When you are in presentation mode in home page
@@ -10,7 +10,7 @@ be first. Then when changing colors the theme also per the attached mock up html
 the under tones in terms of colors should change in the board screen. Create a
 work order... no coding yet."*
 
-Four parts. Each says what is wrong today, why, what to build, and how to prove
+Five parts. Each says what is wrong today, why, what to build, and how to prove
 it. Nothing here is built yet.
 
 ---
@@ -136,6 +136,34 @@ dark-no-white-patches-verify still clean.
 
 ---
 
+## N-5 — "SUMMARISE MY BOARD" IS A BUTTON
+
+**Owner, 7 Oct 2026** (off a screenshot of the board's top line): *"summarise my
+board should be a button."*
+
+**Today.** It is drawn as a text link (`.hb-link hb-bs-go` in js/views/homeboard.js,
+label `hb_bs_btn`): the sparkle and the words in the glow colour on nothing, so
+it reads as a caption rather than something to press.
+
+**Build.**
+- Draw it as the board's own outlined button (`.hb-btn`: the control height,
+  a hairline edge, the board's card wash), keeping its sparkle, its words, its
+  cost on the hover and its greyed state with the reason when there is no
+  Copilot key or a summary is already running. The same press, the same
+  handler (`data-hb-why`) — only the dress changes.
+- It stays where it is (the right end of the LIVE · COUNTED line), so nothing
+  on the board moves; the line's height does not grow (measure before/after).
+- It follows N-4: on the Blue workspace its edge and ink are the board's blue.
+- Any other board action still drawn as a bare link and doing the same kind of
+  job (asking Copilot to write something) is listed for the owner rather than
+  changed on the way past.
+
+**Prove it.** A browser check finds the control, asserts it is a button with a
+painted border at the control height, presses it (with a stubbed Copilot) and
+sees the summary start; and greys it with its reason when no key is set.
+
+---
+
 ## QUESTIONS FOR THE OWNER BEFORE BUILDING
 
 1. **People who already chose Green** — keep their Green (recommended), or move
@@ -146,5 +174,5 @@ dark-no-white-patches-verify still clean.
 
 ## ORDER OF WORK
 
-N-1 (a fault, smallest) → N-2 → N-3 → N-4, one branch, each part checked in the
+N-1 (a fault, smallest) → N-2 → N-5 → N-3 → N-4, one branch, each part checked in the
 browser before the next. Full suite once at the end; merge on the owner's word.
