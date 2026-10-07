@@ -1,9 +1,9 @@
-# O — SIGNING WITH THE OTHER SIDE, CREATING AN AMENDMENT, A PLAYBOOK THAT LEARNS, THE BOARD'S CHARTS (INSTRUMENT), A MENU DOOR TO IMPORT
+# O — SIGNING WITH THE OTHER SIDE, CREATING AN AMENDMENT, A PLAYBOOK THAT LEARNS, THE BOARD'S CHARTS (INSTRUMENT), A MENU DOOR TO IMPORT, THE OBLIGATIONS REVIEW DESK
 
 **Owner-instructed 7 Oct 2026**: *"add this artifact and the signing journey to
 one work order to implement in hati. Do not code yet."*
 
-Four design pages are the source. Each picture there is the target screen.
+Five design pages are the source. Each picture there is the target screen.
 Build what they show; where this order and a picture disagree, the picture wins,
 except where a numbered **OWNER DECISION** below says otherwise.
 
@@ -14,8 +14,11 @@ except where a numbered **OWNER DECISION** below says otherwise.
 - **Board Chart Standard**, option **Instrument** (owner's pick, 7 Oct 2026;
   the page recommended Spotlight, and the owner chose Instrument):
   https://claude.ai/artifact/WP5rowC4AupFgsPR4xaAYE
+- **Sorting the obligations Copilot finds**, option **Review desk** (owner's
+  pick, 7 Oct 2026; also the page's recommendation):
+  https://claude.ai/artifact/PZxLE9ySD39gNQVX3ZsSTn
 
-Five parts, thirty items. Each says what is wrong today, why (found in the
+Six parts, thirty-five items. Each says what is wrong today, why (found in the
 code), what to build, and how to prove it. **Nothing here is built yet.**
 
 Before touching any area: read its MAP section in CLAUDE.md and grep
@@ -570,6 +573,123 @@ floating menu at 1280.
 
 ---
 
+# PART 6 — THE OBLIGATIONS REVIEW DESK
+
+**Owner-chosen 7 Oct 2026**: the **Review desk**. "One at a time" and "On the
+Obligations tab" are NOT built. Choosing it is taken as the owner's yes to the
+three things that page asked for: the bigger window (920 wide, over the page,
+never over the contract's own space), the Obligations tab's door reading
+"Review N proposed" while proposals wait, and Copilot's reading asking for more
+facts. No new band: the only sentence is the window's own one-line instruction.
+
+**Today.** The "Obligations found" tile on the Overview (and "Find
+obligations" on the Obligations tab) opens ONE window, `openObligationsReview`
+(js/obligations.js): a flat list of tick boxes, every item alike, with a
+description and a quote. The reading (POST /api/ai/obligations) returns only
+`desc`, `due`, `recurring`, `quote`. Nothing says whose job it is or what kind
+of duty it is, and an added item is pushed with no `party`, so it lands as
+OURS even when it is clearly the other side's. Nothing remembers a skip, so the
+same items come back on every scan.
+
+## O-31 — COPILOT SORTS WHAT IT FINDS, AND SAYS WHOSE JOB IT IS
+
+**Build.**
+- The same one reading, at the same price, also returns per item: its **kind**
+  (`dated` = has a date or repeats · `event` = only when something happens ·
+  `standing` = always true while the contract runs), **whose job** (us · them ·
+  both sides), the **clause number** it came from, and an **amount** where the
+  wording states one, plus whether it is a **document they must hold**
+  (`doc`, the existing required-document shape).
+- Where Copilot cannot tell, the item says **"Not sure"**. Nothing is guessed.
+  The heuristic fallback (`heuristicObligations`) returns kind and whose job as
+  unknown.
+- "Both sides" items are tracked as OURS, with the line "Both sides owe this.
+  It is tracked as ours, because we are the ones who need the reminder."
+- The browser and the server use one list of kinds and one list of whose-job
+  words; tool-name and schema sets stay equal on both hosts.
+
+**Prove.** f554 with a stubbed model: the four new facts reach the window;
+missing facts show "Not sure"; the heuristic path still works.
+
+## O-32 — THE REVIEW DESK WINDOW
+
+**Build** (the page's Review desk, picture by picture). It REPLACES
+`openObligationsReview`, so both doors (the arrival's held list and Find
+obligations) still come through one window.
+- **Title** "Proposed obligations", with one line: "Copilot found N in this
+  agreement and sorted them. Nothing is saved until you add it." Width 920.
+- **Left: the list.** Filters All · Dated · On an event · Standing · Already on,
+  each with its count. Grouped under three headings (Dated or repeating · Only
+  when something happens · Standing promises), each with "N to decide" and a
+  tick box that ticks the whole group. Each row: tick box, description, then
+  small chips for whose job, when ("05 Nov 2026 · Monthly", "When it happens",
+  "Always") and its state (Added · Skipped). Duplicates sit last under "Already
+  on this contract", nothing to decide (`obligationAlreadyOn` stays the one
+  reading).
+- **Right: the chosen item.** Clause number and group, the description, the
+  quote, then: Whose job (Us | the other side, a switch), Due, Repeats, Amount,
+  Document; the "both sides" line where it applies; and one line "Why <group>:
+  <reason>". Actions: **Add** (filled) · **Edit before adding…** · **Skip**.
+  An added item shows "Added" and "See it on the Obligations tab"; a skipped one
+  shows "Skipped" and Undo.
+- **Foot.** "N to decide · N added · N skipped", then Close · **Add all N** ·
+  **Add N ticked** (filled; greyed "Tick to add" at zero). The add label is
+  still written by ONE painter (`obPaintAdd`'s rule).
+- **Nothing comes pre-ticked** (the standing rule). "Add all" is the reader's
+  press.
+- Copilot's proposals are still recorded at the draw (`aiTraceNote`) and
+  settled by the reader's adds and skips.
+- Below 900 wide the list stacks above the item. On the phone the existing
+  phone screens draw it (THE PHONE rule); no change filed by the phone itself.
+
+**Prove.** review-desk-verify: the three groups and counts; a group tick then
+"Add N ticked" adds exactly those; Skip then Undo; duplicates are never added;
+the window never covers the contract's own space.
+
+## O-33 — "EDIT BEFORE ADDING" OPENS THE WINDOW YOU KNOW
+
+**Build.** It opens the existing Edit obligation window (`openObligationForm`),
+filled from Copilot's reading: description, due date, recurring, document,
+amount (in the contract's own currency), whose job, assign to. Its button reads
+**"Add obligation"**; Cancel reads **"Back to the list"** and returns to the
+desk on the same item, scroll kept. No second form is built.
+
+**Prove.** Edit an item, change whose job and the date, Add: the stored
+obligation carries the edits. Edit then Back: the desk is where it was.
+
+## O-34 — AN ADDED ITEM KEEPS WHOSE JOB IT IS
+
+**Build.** The add writes `party` from whose job (theirs when it is the other
+side's), the amount through `obligationAmount`'s currency rule, and the
+document shape where ticked, through the same writer as today (the
+`obligationAlreadyOn` wall is asked again at the add). The Obligations tab and
+the Obligations page then show "AIT…" under Whose, not "Us"; our reminders
+(`runOurPromises`) and theirs (`runReminders`) each pick up the right ones.
+
+**Prove.** f555: an item Copilot marks as theirs is stored as theirs and
+appears in their reminder run, not ours.
+
+## O-35 — SKIPPED STAYS SKIPPED; THE TILE AND THE DOOR COUNT ONLY WHAT IS LEFT
+
+**Build.**
+- The desk's decisions are kept on the contract for THIS wording (keyed by the
+  wording fingerprint the triage already uses, `triageWordingHash`): which items
+  were added and which skipped. A new scan of the same wording does not bring a
+  skipped item back; changed wording starts fresh. Internal only: it never
+  travels to the other side (stripped from every share payload).
+- The Overview tile reads **"N to review"** with the split "9 dated · 4 on an
+  event · 3 standing", and becomes **"Obligations sorted · 9 added · 7
+  skipped"** when all are decided (the triage strip's tile, same height).
+- The Obligations tab's door reads **"Review N proposed"** while any wait and
+  opens the same desk; it goes back to **"Find obligations"** once all are
+  decided. The number on each door equals the desk's "to decide".
+
+**Prove.** f556: skip 3, close, rescan the same wording: those 3 stay skipped
+and the tile says 3 fewer. f557: the door label changes with the count and
+both doors open the same window.
+
+---
+
 ## EVERYTHING THE OWNER ASKED FOR, AND WHERE IT IS
 
 | Asked | Where |
@@ -588,6 +708,7 @@ floating menu at 1280.
 | Playbook That Learns | O-18 (row line, Proposed pill, sentence, chart, three figures, the rounds) · O-19 (three choices, redline preview, confirm, Undo) · O-20 (Keep remembered) · O-21 (trail, Copilot line, Copilot and ladder follow) |
 | Board Chart Standard, Instrument chosen | O-22 (three sizes, type table) · O-23 (the Instrument marks) · O-24 (series colours) · O-25 (opened, full screen, table, long lists) · O-26 (written down). Spotlight and Glow are NOT built. Scope is the board's charts, not the whole app's look. |
 | Side-menu door to Import contracts | O-27 |
+| Obligations Review desk | O-31 (Copilot sorts and says whose job) · O-32 (the desk window) · O-33 (Edit before adding) · O-34 (whose job is kept) · O-35 (skips remembered, tile and door counts). "One at a time" and "On the Obligations tab" are NOT built. |
 | The eight decisions | Decided (table above) |
 
 ---
@@ -604,7 +725,9 @@ floating menu at 1280.
 5. **O-18 → O-21** (the playbook; D5–D7 decided).
 6. **O-22 → O-26** (the board's charts). This is independent of Parts 1–3, so it
    can run alongside them; O-22 (sizes) before O-23 (look).
-7. **O-16**, then **O-17** last (the widest and the largest).
+7. **O-31 → O-35** (the review desk): O-31 first, since the desk needs its facts.
+   Independent of the other parts.
+8. **O-16**, then **O-17** last (the widest and the largest).
 
 ## FOR EVERY ITEM
 
