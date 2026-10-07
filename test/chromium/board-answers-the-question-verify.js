@@ -94,13 +94,17 @@ const check = (name, pass, detail) => {
 
     /* ================= 2. WHY DOES IT SAY … ================= */
     await page.evaluate(() => { intel.history = []; });
+    const path2 = await page.evaluate(() => JSON.stringify(hbS().path || []));
     await ask('why does the dashboard say 851 SEK when we have over 1 billion sek under management');
     const s2 = await until(() => { const a = (intel.history || []).filter(m => m.role === 'assistant'); return a.length ? a.map(m => String(m.text || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()).join(' / ') : null; });
     const board = (sent[sent.length - 1] && sent[sent.length - 1].screen && sent[sent.length - 1].screen.board) || '';
     check('2a the question went to Copilot with the board: Your book, the open card, its headline and what is left off', /Your book \(the six figures at the top\)/.test(board) && /Open card: "All contracts"/.test(board) && /Headline over the chart: 9 contracts · KES 6M/.test(board) && /14 contracts not signed yet \(KES 520M\)/.test(board), board.slice(0, 300));
     check('2b the answer is printed without "Nothing changed on the map"', !!s2 && /counts only the 9 signed contracts/.test(s2) && !/Nothing changed on the map/.test(s2), s2);
     check('2c a sentence with a count the board does not show is left out', !!s2 && !/77 contracts/.test(s2), s2);
-    check('2d the board is as it was: the question drew no new card', await page.evaluate(() => (hbS().path || []).slice(-1)[0] === 'q:show contract value over time'));
+    /* RE-POINTED 7 Oct 2026 (the one-build work order A2): the opening words
+       are read away, so the open card's key no longer carries "show" — the
+       claim is that the board did not move */
+    check('2d the board is as it was: the question drew no new card', await page.evaluate(p => JSON.stringify(hbS().path || []) === p, path2), await page.evaluate(() => JSON.stringify(hbS().path)));
     await page.waitForTimeout(500);
     await page.screenshot({ path: path.join(OUT, '2-why-answered.png') });
 

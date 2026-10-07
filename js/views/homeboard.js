@@ -5578,6 +5578,8 @@ async function hbBoardTakesChecked(res, retry, q){
    chart is read here and intelGraphApply is never reached:
      - the reader asked for the map ("the map", "show these on the map") →
        null, the map's road as before;
+     - a question about what the board shows ("why…") → Copilot's words,
+       checked against the open chart, and nothing drawn;
      - the answer names a SET (visibleIds, where, a top N) → the map's fields
        are taken off and null: the set rides the list road onto the board;
      - the question carried picture words HaTi read (_hbPendingRecipe) →
@@ -5600,6 +5602,13 @@ async function hbBoardNoMap(res, retry, q){
   if (hbMapAsked(_hbAskQ)) return null;
   const hasSet = (Array.isArray(res.visibleIds) && res.visibleIds.length) || (res.where && typeof res.where === 'object' && Object.keys(res.where).length) || !!res.top;
   if (hasSet){ HB_MAP_FIELDS.forEach(k => { delete res[k]; }); return null; }
+  /* A QUESTION ABOUT WHAT THE BOARD SHOWS is answered in words, checked
+     against the open chart, and draws nothing (the prompt's own rule) */
+  if (hbCopilotMaySay(_hbAskQ)){
+    _hbPendingRecipe = null;
+    const t = hbProseChecked(String(res.answer || '').trim()).text;
+    return t ? ((typeof aiRichText === 'function') ? aiRichText(t) : _hbE(t)) : _hbE(i18t('hb_no_map_said'));
+  }
   const R = _hbPendingRecipe; _hbPendingRecipe = null;
   if (R && (R.pic || R.chartWord || R.split)){
     /* the contracts it named, in the words HaTi read ("suppliers"), else the book */
