@@ -1,8 +1,8 @@
 'use strict';
 /* F543 — THE MENU, THE ONE COPILOT DOOR, TWO BOARD FAULTS (Young, 7 Oct 2026,
    WORKORDER-menu-copilot-board-fixes.md)
-     (W-1) ☰ is always in the bar and hides the whole menu; the choice is
-           remembered (NAV_HIDE_KEY), read but never written below the float line.
+     (W-1) ☰ is always in the bar and hides the whole menu at every width
+           (8 Oct 2026); the choice is remembered (NAV_HIDE_KEY).
      (W-2) "Collapse menu" is a row at the foot of the menu; the small arrow
            at the top is gone.
      (W-3) the Copilot block at the foot is deleted; the bar's spark is the
@@ -36,10 +36,15 @@ test('(W-1) the menu button is in the bar at every width and names what it does'
   assert.match(btn, /data-i18n-title="sh_nav_hide"/);
   assert.match(html, /#top-header #nav-toggle\{display:grid/);
   const t = region(app, 'toggleNavHidden');
-  assert.match(t, /navDrawerActive\(\)/, 'below the float line it opens the floating menu');
-  assert.match(t, /localStorage\.setItem\(NAV_HIDE_KEY/, 'above it the choice is remembered');
+  /* RE-POINTED 8 Oct 2026 (Young: the menu must "completely remove from the
+     screen as the mock up designed it"): ☰ hides the menu at EVERY width; below
+     the float line it also closes the floating layer, never opens it. */
+  assert.match(t, /localStorage\.setItem\(NAV_HIDE_KEY/, 'the choice is remembered at every width');
+  assert.match(t, /if\(hide&&navDrawerActive\(\)\) setNavDrawer\(false\)/, 'hiding below the line also shuts the floating menu');
+  assert.doesNotMatch(t, /setNavDrawer\(!/, 'it no longer opens the floating menu');
   const a = region(app, 'applyRail');
-  assert.match(a, /gone=!navDrawerActive\(\)&&navHidden\(\)/, 'hidden only above the line');
+  assert.match(a, /const gone=navHidden\(\);/, 'hidden at every width');
+  assert.match(region(app, 'paintNavToggle'), /const shown=!navHidden\(\);/, 'and its words follow that one answer');
   assert.match(a, /'0px'/, 'a hidden menu gives its whole column back');
   assert.match(a, /sideNav\.style\.display=gone\?'none':'flex'/);
   for (const k of ['sh_nav_hide', 'sh_nav_show', 'sh_rail_collapse', 'sh_rail_expand'])

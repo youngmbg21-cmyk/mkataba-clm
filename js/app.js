@@ -2543,16 +2543,26 @@ function navHidden(){
 }
 function paintNavToggle(){
   const btn=document.getElementById('nav-toggle'); if(!btn) return;
-  const nav=document.getElementById('side-nav');
-  const shown=navDrawerActive()?!!(nav&&nav.classList.contains('open')):!navHidden();
+  /* ☰ answers one question at every width: is the menu on the screen at all
+     (Young, 8 Oct 2026). Below the float line the floating layer is opened
+     from the strip's foot row, not from here. */
+  const shown=!navHidden();
   const k=shown?'sh_nav_hide':'sh_nav_show';
   btn.setAttribute('aria-expanded',shown?'true':'false');
   btn.setAttribute('data-i18n-title',k); btn.setAttribute('data-i18n-aria',k);
   btn.title=i18t(k); btn.setAttribute('aria-label',i18t(k));
 }
+/* ☰ REMOVES THE MENU AT EVERY WIDTH (Young, 8 Oct 2026: "the other feature
+   was supposed to completely remove the menu from the screen as the mock up
+   designed it"). It used to open the floating menu below the float line, so on
+   a laptop or an iPad the icon strip never went away. Now one press takes the
+   whole menu off the screen — strip, floating layer and all — and the next
+   brings it back as it was: the full menu above the line, the icon strip below
+   it (whose foot row still opens the floating menu). Remembered either way. */
 function toggleNavHidden(){
-  if(navDrawerActive()){ const nav=document.getElementById('side-nav'); setNavDrawer(!(nav&&nav.classList&&nav.classList.contains('open'))); return; }
-  try { localStorage.setItem(NAV_HIDE_KEY, navHidden()?'0':'1'); } catch(e){}
+  const hide=!navHidden();
+  try { localStorage.setItem(NAV_HIDE_KEY, hide?'1':'0'); } catch(e){}
+  if(hide&&navDrawerActive()) setNavDrawer(false);
   applyRail();
 }
 function railCollapsed(){
@@ -2566,7 +2576,7 @@ function applyRail(){
      is read, not written — see railCollapsed — so it is waiting unchanged when
      they are back on a wide screen. */
   const on=railCollapsed()||navDrawerActive();
-  const gone=!navDrawerActive()&&navHidden();
+  const gone=navHidden();
   shell.classList.toggle('rail',on);
   shell.classList.toggle('nav-hidden',gone);
   /* The aside states display:flex inline, so the hiding is said inline too —
