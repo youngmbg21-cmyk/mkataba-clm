@@ -234,15 +234,24 @@ let H;
     const landed = await P.page.evaluate(() => {
       location.hash = '#contract=MK-A2&tab=sign&go=approval';
       openFromHash();
-      return new Promise(r => setTimeout(() => {
-        const c = document.getElementById('sa-card');
-        if (!c) return r({ card: false });
-        const b = c.getBoundingClientRect();
-        r({ card: true, lit: c.classList.contains('is-landed'),
-          inView: b.top >= 0 && b.bottom <= (window.innerHeight || 0) + 2,
-          approve: !!c.querySelector('[data-sa-approve]'),
-          hash: location.hash });
-      }, 1400));
+      /* A WAIT ASKS FOR THE STATE, BOUNDED (7 Oct 2026): a fixed 1.4s look
+         missed the light on CI's slower runner. Ask every 100ms, up to 4s,
+         and stop the moment the card is there AND lit. */
+      return new Promise(r => { const t0 = Date.now(); let wasLit = false;
+        const look = () => {
+          const c = document.getElementById('sa-card');
+          if (c && c.classList.contains('is-landed')) wasLit = true;
+          if ((c && wasLit) || Date.now() - t0 > 4000){
+            if (!c) return r({ card: false });
+            const b = c.getBoundingClientRect();
+            return r({ card: true, lit: wasLit,
+              inView: b.top >= 0 && b.bottom <= (window.innerHeight || 0) + 2,
+              approve: !!c.querySelector('[data-sa-approve]'),
+              hash: location.hash });
+          }
+          setTimeout(look, 100);
+        };
+        setTimeout(look, 100); });
     });
     check('4L1 the link lands on the approval card itself, not just the tab',
       landed.card && landed.inView, JSON.stringify(landed));
