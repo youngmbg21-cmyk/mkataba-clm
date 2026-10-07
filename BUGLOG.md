@@ -20488,3 +20488,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (my own Part 2): with "As amended" pressed on the Document tab, the Clauses thread reads the as-amended sheet, so an amendment's tag ("Amendment No. 1") and struck words can appear in a clause's plain reading. The thread should read the original sheet.
 - Noticed, not fixed: CLAUDE.md is 87 KB after this work order's MAP lines (the house limit is about 80 KB); a trim needs the owner's word.
 - Noticed, not fixed: nine-jobs-verify 2, 3, 3b (our party row's email; "Who else" naming the colleague who filed or approved) fail on main at 8307c0b too, and the file is not on KNOWN_RED. Left alone.
+- Noticed, not fixed: share-recipient-verify "Key terms shows the route address when the two disagree" (three checks) fails on main at 8307c0b too. Left alone.
