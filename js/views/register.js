@@ -1924,11 +1924,11 @@ function regRowsHtml(cs){
        reading is the same (regMoveWord); only where it is printed moves. */
     const insOn=regInspecting();
     const stageMove=(!neg&&insOn&&mv&&mv.k!=='clear')
-      ? `<span class="ins-mv is-${mv.k}">· ${esc(i18t(mv.k==='you'?'ins_your_move':'ins_their_move'))}</span>` : '';
+      ? `<span class="ins-mv is-${mv.k}" title="${esc(i18t(mv.k==='you'?'ins_your_move':'ins_their_move'))}">· ${esc(i18t(mv.k==='you'?'ins_your_move':'ins_their_move'))}</span>` : '';
     /* A WORKING FILE FOUND BY A SEARCH HERE SAYS WHERE IT LIVES (26 Sep 2026). */
     const lives=(!neg&&window.contractIsWorkingFile&&contractIsWorkingFile(c))
       ? `<span class="ins-mv" style="color:var(--color-neutral-600)">· ${esc(i18t('ho_lives_nego'))}</span>` : '';
-    CELL.stage=`<td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%">${window.questionDot?questionDot(c.id):''}${window.contractStatusDotHtml?contractStatusDotHtml(c):(window.contractStatusChip?contractStatusChip(c):statusChip(c.status))}${stageMove}${lives}</span></td>`;
+    CELL.stage=`<td style="white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px;min-width:0;max-width:100%">${window.questionDot?questionDot(c.id):''}<span class="reg-stg-slot">${window.contractStatusDotHtml?contractStatusDotHtml(c):(window.contractStatusChip?contractStatusChip(c):statusChip(c.status))}</span>${stageMove}${lives}</span></td>`;
     CELL.move=neg ? (insOn&&typeof insMoveCellHtml==='function'
         ? `<td style="white-space:nowrap">${insMoveCellHtml(c)}</td>`
         : `<td style="text-align:right;white-space:nowrap">${negoMovePillHtml(c)}</td>`)
@@ -2059,7 +2059,21 @@ function regInsActs(c){
   return (started&&mayNego&&typeof openRedlineWorkbench==='function')
     ? [Object.assign({kind:'accent'},openC), openN] : [Object.assign({kind:'accent'},openC)];
 }
+/* ---- "YOUR MOVE" STANDS IN ONE STRAIGHT LINE (Young, 7 Oct 2026) ----
+   The stage pills are different widths ("Drafting", "In Review", and longer
+   in Swedish), and the move words followed each pill, so they zig-zagged down
+   the page. Every pill now sits in a slot as wide as the WIDEST pill drawn on
+   this page, measured after the paint (so the reader's language is measured,
+   never guessed), and the move words start after the slot. */
+function regStageSlotFit(){
+  const tb=document.getElementById('reg-tbody'); if(!tb) return;
+  const table=tb.closest('table'); if(!table) return;
+  table.style.removeProperty('--reg-stg-w');
+  let w=0; tb.querySelectorAll('.reg-stg-slot > .reg-stg').forEach(p=>{ w=Math.max(w,Math.ceil(p.getBoundingClientRect().width)); });
+  if(w>0) table.style.setProperty('--reg-stg-w',w+'px');
+}
 function regInsPaint(){
+  regStageSlotFit();
   const tb=document.getElementById('reg-tbody'); if(!tb) return;
   if(!regInspecting()||typeof insPaintPanel!=='function'){ if(typeof insListOff==='function') insListOff(tb); return; }
   const seat=regInsSeat();
@@ -2705,7 +2719,8 @@ function renderRegister(opts){
              of links that each did the same thing as the row around them. The
              row's own quiet ink now, and the accent only on the SELECTED row,
              where it marks which contract the panel is describing. */}
-      .reg-mk{font-family:var(--font-ref);font-size:var(--t-body);font-weight:var(--w-body);
+      ${''/* one size smaller, at 500, as the second mockup draws it (Young, 7 Oct 2026) */}
+      .reg-mk{font-family:var(--font-ref);font-size:var(--t-label);font-weight:var(--w-label);
         color:var(--color-neutral-600);white-space:nowrap;font-variant-numeric:tabular-nums}
       /* The status chip, flattened HERE and not at .badge — that class dresses
          every card, list and panel in the product, and this is a decision about
@@ -2904,6 +2919,8 @@ function renderRegister(opts){
       .reg-f{display:flex;flex-direction:column;min-width:0}
       .reg-f-l{font-size:var(--t-label);color:var(--color-neutral-600);margin-bottom:3px;white-space:nowrap}
       .reg-stg{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-weight:var(--w-label);vertical-align:middle}
+      .reg-stg-slot{display:inline-flex;flex:none;min-width:var(--reg-stg-w,0)}
+      td > span > .ins-mv{min-width:0;overflow:hidden;text-overflow:ellipsis}
       .reg-stg i{width:8px;height:8px;border-radius:50%;flex:none;background:currentColor}
       /* THE REASON, IN THE ROW'S OWN SECONDARY INK (19 Sep 2026). It rides the
          stage rather than taking a column, so it costs the table no width; the

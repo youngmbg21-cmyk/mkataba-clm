@@ -86,14 +86,24 @@ const check = (name, pass, detail) => {
   try {
     await signIn();
 
-    /* ============ 1. CONTROL — green is what a fresh browser gets ============
-       If it were not, everything below would be measuring a product that was
-       always navy rather than one that remembers a choice. */
+    /* ============ 1. A FRESH BROWSER LANDS ON BLUE (REVERSED IN PLACE, 7 Oct 2026) ============
+       Young: "Move everyone to Blue once. On the next visit, everyone switches
+       to Blue, even if they had picked Green. They can still press Green again
+       afterwards." So the control is Blue, stored with its one-time marker, and
+       a Green pressed after that must survive a refresh — the move happens ONCE. */
     const rest = await look();
-    check('1a CONTROL — a fresh browser opens green, with nothing stored',
-      rest.brand === null && rest.dark === false && rest.keys.brand === null,
-      `brand=${rest.brand} dark=${rest.dark} stored=${JSON.stringify(rest.keys)}`);
-    const greenNav = rest.navBg;
+    const once = await page.evaluate(() => localStorage.getItem('hati-brand-blue-once'));
+    check('1a CONTROL — a fresh browser opens Blue, and the move is marked as done',
+      rest.brand === 'navy' && rest.dark === false && rest.keys.brand === 'navy' && once === '1',
+      `brand=${rest.brand} dark=${rest.dark} stored=${JSON.stringify(rest.keys)} once=${once}`);
+    await page.evaluate(() => setBrand('green'));
+    await page.waitForTimeout(600);
+    await reload();
+    const green = await look();
+    check('1b a Green pressed after the move stands after a refresh — the move is once',
+      green.brand === null && green.keys.brand === 'green',
+      `brand=${green.brand} stored=${green.keys.brand}`);
+    const greenNav = green.navBg;
 
     /* ============ 2. THE OWNER'S REPORT, DRIVEN ============ */
     await page.evaluate(() => setBrand('navy'));

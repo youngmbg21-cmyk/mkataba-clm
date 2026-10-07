@@ -75,12 +75,16 @@ function stage(saved){
 }
 
 describe('F96 — three themes, and what each one sets', () => {
-  test('Green is the default and sets nothing', () => {
+  /* REVERSED IN PLACE, 7 Oct 2026 (Young: "Move everyone to Blue once"):
+     HaTi lands on Blue, and every browser is moved to Blue once on its next
+     visit; a Green pressed afterwards is stored and stands. */
+  test('Green sets nothing; Blue is where a fresh browser lands', () => {
     const s = stage();
+    assert.equal(s.win.themeNow(), 'navy', 'HaTi lands on Blue');
     s.win.applyTheme('green');
     assert.equal(s.root.classList.contains('dark'), false);
     assert.equal(s.root.hasAttribute('data-brand'), false,
-      'the default theme is the stylesheet as written — no attribute to undo');
+      'Green is the stylesheet as written — no attribute to undo');
   });
 
   test('Navy sets the brand and leaves the lights on', () => {
@@ -94,7 +98,7 @@ describe('F96 — three themes, and what each one sets', () => {
     const s = stage();
     s.win.applyTheme('dark');
     assert.equal(s.root.classList.contains('dark'), true);
-    assert.equal(s.root.hasAttribute('data-brand'), false);
+    assert.equal(s.root.getAttribute('data-brand'), 'navy', 'the brand (Blue since the move) is left as it was');
   });
 
   test('switching back cleans up after itself', () => {
@@ -113,9 +117,14 @@ describe('F96 — the choice is remembered, and old choices still mean something
     assert.equal(s.win.themeNow(), 'navy');
   });
 
-  test('"light" from the old two-position switch means Green', () => {
+  /* REVERSED IN PLACE, 7 Oct 2026 (Young: "Move everyone to Blue once"):
+     HaTi lands on Blue, and every browser is moved to Blue once on its next
+     visit; a Green pressed afterwards is stored and stands. */
+  test('"light" from the old two-position switch is moved to Blue with everyone', () => {
     const s = stage('light');
-    assert.equal(s.win.themeNow(), 'green', 'nobody is reset for having used the old control');
+    assert.equal(s.win.themeNow(), 'navy');
+    s.win.setBrand('green');
+    assert.equal(s.win.brandNow(), 'green', 'a Green pressed after the move stands');
   });
 
   test('"dark" from the old switch still means Dark', () => {
@@ -125,7 +134,7 @@ describe('F96 — the choice is remembered, and old choices still mean something
 
   test('a theme that no longer exists falls back rather than breaking', () => {
     const s = stage('chartreuse');
-    assert.equal(s.win.themeNow(), 'green');
+    assert.equal(s.win.themeNow(), 'navy');
   });
 
   /* ---- REVERSED IN PLACE, 10 Sep 2026 — AND MADE THE RELATION IT ALWAYS
@@ -315,7 +324,9 @@ describe('F96 — brand and theme are two controls, not three rows', () => {
   test('NOTHING STORED IN ANYBODY\'S BROWSER MOVES', () => {
     /* The single legacy key is the only thing an existing reader has. Each of
        its three values still opens exactly the workspace it always did. */
-    for (const [saved, brand, dark] of [['green','green',false],['navy','navy',false],['dark','green',true]]){
+    /* except the brand, moved to Blue once by the owner's word (7 Oct 2026):
+       the lights a reader chose still stand */
+    for (const [saved, brand, dark] of [['green','navy',false],['navy','navy',false],['dark','navy',true]]){
       const s = stage(saved);
       assert.equal(s.win.brandNow(), brand, saved + ' -> brand');
       assert.equal(s.win.darkNow(), dark, saved + ' -> dark');
@@ -335,9 +346,10 @@ describe('F96 — brand and theme are two controls, not three rows', () => {
 
   test('the old toggle still works, and steps through all three', () => {
     const s = stage();
-    s.win.toggleTheme(); assert.equal(s.win.themeNow(), 'navy');
+    /* Blue first since 7 Oct 2026 */
+    s.win.toggleTheme(); assert.equal(s.win.themeNow(), 'green');
     s.win.toggleTheme(); assert.equal(s.win.themeNow(), 'dark');
-    s.win.toggleTheme(); assert.equal(s.win.themeNow(), 'green', 'the phone presses this one');
+    s.win.toggleTheme(); assert.equal(s.win.themeNow(), 'navy', 'the phone presses this one');
   });
 });
 

@@ -4830,7 +4830,7 @@ function wsTabRowEndHtml(c){
      whether it is drawn at all (only while there is a panel for the drawer
      to cover) and what it carries. */
   const clauses=`<button type="button" id="ws-th-door" class="ui-btn ws-th-door" hidden aria-expanded="false" aria-controls="doc-thread"
-    title="${esc(i18t('th_door_title'))}"><span>${esc(i18t('th_clauses'))}</span><span class="ws-th-door-n" data-th-door-n></span></button>`;
+    title="${esc(i18t('th_door_title'))}">${icon('list','w-3.5 h-3.5')}<span class="ws-th-door-w">${esc(i18t('th_clauses'))}</span><span class="ws-th-door-n" data-th-door-n></span></button>`;
   return clauses+step+focus+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
@@ -12793,6 +12793,11 @@ function docThreadDoorPaint(rows, has, up){
   door.setAttribute('aria-expanded',show&&up?'true':'false');
   const n=door.querySelector('[data-th-door-n]');
   if(n) n.innerHTML=show?docThreadSumHtml(rows,'ws-th-door-sum'):'';
+  /* TONED (Young picked it by name, 7 Oct 2026): with anything marked the
+     whole door wears the worst mark's tone — the same reading as its count —
+     and goes back to the plain outlined door when every clause is clear. */
+  const tone=(show&&docThreadMarks(rows))?(docThreadWorst(rows)||'amber'):'';
+  if(tone) door.setAttribute('data-tone',tone); else door.removeAttribute('data-tone');
 }
 
 /* ---------- the rows ---------- */

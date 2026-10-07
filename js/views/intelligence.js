@@ -2547,7 +2547,20 @@ const IGB_FLOOR_STATUS=['Draft','Under Review','Signed','Declined'];
 const IGB_STATUS_COL={'Draft':'#A9C2BD','Under Review':'#F2B24C','Signed':'#62D291','Declined':'#F0726A'};
 const IGB_PALETTE=['#AC9CFA','#E0CB8F','#38CDB8','#86B8EA','#F09274','#A7E8D8','#9FB9C9','#E6A09A','#CFE3A0','#C9A0DC','#7FD1E8','#E8C07F'];
 const IGB_IDLE='#2F6C63', IGB_WALK='#F2B24C', IGB_OTHER='#9FB9C9';
-const IGB_FACT_TONE={amber:'#F2B24C',ruby:'#F0726A',ink:'#E6F2EF',mute:'#8FB5AD'};
+/* ---- THE MAP'S CANVAS WEARS THE BOARD'S TOKENS (Young, 7 Oct 2026: Explorer
+   follows the brand) ---- the glow, the lines and the quiet words drawn on the
+   canvas read --hb-gw / --hb-ln / --hb-mute / --hb-ink off the page, so the
+   Blue workspace draws a blue map. Read at most every 250ms (a frame draws many
+   times); teal is the fallback where the page has no tokens. */
+let _igbToneAt=0, _igbTone=null;
+function igbTone(){
+  const now=Date.now(); if(_igbTone&&now-_igbToneAt<250) return _igbTone;
+  const pg=document.getElementById('ig-page'); let cs=null; try{ cs=pg?getComputedStyle(pg):null; }catch(_){}
+  const v=(k,d)=>{ const x=cs&&cs.getPropertyValue(k).trim(); return x||d; };
+  _igbTone={ gw:v('--hb-gw','56,205,184'), ln:v('--hb-ln','160,220,210'), mute:v('--hb-mute','#8FB5AD'), ink:v('--hb-ink','#E6F2EF') };
+  _igbToneAt=now; return _igbTone;
+}
+const IGB_FACT_TONE={amber:'#F2B24C',ruby:'#F0726A',get ink(){ return igbTone().ink; },get mute(){ return igbTone().mute; }};
 /* A group this small starts folded, where the map has more groups than
    IGB_FOLD_MANY — the design's own rule, so a long tail of one-contract groups
    does not bury the big ones. Folds are per sitting, in memory. */
@@ -3078,7 +3091,7 @@ function igbDraw(G,t){
   if(w[2]>.05){
     (G.floors||[]).forEach(f=>{ const y=f.y, a=pj([-1.7,y,-.5]), b=pj([1.7,y,-.5]), c=pj([1.7,y,.5]), d=pj([-1.7,y,.5]);
       ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.lineTo(c[0],c[1]); ctx.lineTo(d[0],d[1]); ctx.closePath();
-      ctx.fillStyle='rgba(56,205,184,'+(.035*w[2])+')'; ctx.fill(); ctx.strokeStyle='rgba(56,205,184,'+(.16*w[2])+')'; ctx.lineWidth=1; ctx.stroke();
+      ctx.fillStyle='rgba('+igbTone().gw+','+(.035*w[2])+')'; ctx.fill(); ctx.strokeStyle='rgba('+igbTone().gw+','+(.16*w[2])+')'; ctx.lineWidth=1; ctx.stroke();
       const lab=igbTrim(String(f.label).toUpperCase(),22); ctx.font='600 10px Geist, system-ui, sans-serif';
       edgeTxt(G.floorKey, lab, Math.max(6,d[0]-8-ctx.measureText(lab).width), d[1]+4, f.col, .9*w[2]); });
     (G.cols||[]).forEach((c,k)=>{ if(!c.label) return; const q=pj([c.x,(G.floors&&G.floors.length?G.floors[G.floors.length-1].y:-.78),.62]);
@@ -3094,17 +3107,17 @@ function igbDraw(G,t){
     (G.cols||[]).forEach((c,ci)=>(G.floors||[]).forEach((f,fi)=>{ const x0=g.x0+ci*g.cw, z0=g.z0+fi*g.ch, P=[pj([x0+.01,0,z0+.01]),pj([x0+g.cw-.01,0,z0+.01]),pj([x0+g.cw-.01,0,z0+g.ch-.01]),pj([x0+.01,0,z0+g.ch-.01])];
       const cell=g.cells[ci+'|'+fi];
       ctx.beginPath(); P.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1])); ctx.closePath();
-      ctx.fillStyle='rgba(56,205,184,'+((cell?.06:.015)*a3)+')'; ctx.fill(); ctx.strokeStyle='rgba(160,220,210,'+(.18*a3)+')'; ctx.lineWidth=1; ctx.stroke();
-      if(cell){ ctx.font='700 12px Geist, system-ui, sans-serif'; const nw=ctx.measureText(String(cell.n)).width; txt(String(cell.n), P[0][0]+6, P[0][1]+13, '#FFFFFF', .95*a3, 12, 700); if(money&&cell.v>0) txt(fmt(cell.v), P[0][0]+6+nw+6, P[0][1]+13, '#8FB5AD', .9*a3, 10, 500); } }));
+      ctx.fillStyle='rgba('+igbTone().gw+','+((cell?.06:.015)*a3)+')'; ctx.fill(); ctx.strokeStyle='rgba('+igbTone().ln+','+(.18*a3)+')'; ctx.lineWidth=1; ctx.stroke();
+      if(cell){ ctx.font='700 12px Geist, system-ui, sans-serif'; const nw=ctx.measureText(String(cell.n)).width; txt(String(cell.n), P[0][0]+6, P[0][1]+13, '#FFFFFF', .95*a3, 12, 700); if(money&&cell.v>0) txt(fmt(cell.v), P[0][0]+6+nw+6, P[0][1]+13, igbTone().mute, .9*a3, 10, 500); } }));
   }
   /* THE TIMELINE: dates along, one lane per group, today marked, the undated counted. */
   if(w[4]>.05&&G.tl){ const tl=G.tl, a4=w[4];
-    tl.lanes.forEach(l=>{ line2(pj([-1.15,0,l.y]),pj([1.4,0,l.y]),'rgba(160,220,210,'+(.14*a4)+')'); const q=pj([-1.17,0,l.y]); edgeTxt(intel.groups?'custom':intel.groupBy, igbTrim(String(l.label),20), q[0], q[1]+3, l.col, .9*a4, 10, 600, 'right'); });
+    tl.lanes.forEach(l=>{ line2(pj([-1.15,0,l.y]),pj([1.4,0,l.y]),'rgba('+igbTone().ln+','+(.14*a4)+')'); const q=pj([-1.17,0,l.y]); edgeTxt(intel.groups?'custom':intel.groupBy, igbTrim(String(l.label),20), q[0], q[1]+3, l.col, .9*a4, 10, 600, 'right'); });
     const za=(tl.lanes.length?tl.lanes[tl.lanes.length-1].y:.8)+.16;
-    line2(pj([-1.1,0,za]),pj([1.35,0,za]),'rgba(207,227,222,'+(.4*a4)+')');
-    tl.ticks.forEach(k=>{ const q=pj([k.x,0,za]), q2=pj([k.x,0,za+.04]); line2(q,q2,'rgba(207,227,222,'+(.5*a4)+')'); txt(k.label, q[0], q[1]+15, '#8FB5AD', .9*a4, 10, 500, 'center'); });
+    line2(pj([-1.1,0,za]),pj([1.35,0,za]),'rgba('+igbTone().ln+','+(.4*a4)+')');
+    tl.ticks.forEach(k=>{ const q=pj([k.x,0,za]), q2=pj([k.x,0,za+.04]); line2(q,q2,'rgba('+igbTone().ln+','+(.5*a4)+')'); txt(k.label, q[0], q[1]+15, igbTone().mute, .9*a4, 10, 500, 'center'); });
     if(tl.nowX!=null){ const q0=pj([tl.nowX,0,-.92]), q1=pj([tl.nowX,0,za]); line2(q0,q1,'rgba(242,178,76,'+(.55*a4)+')'); txt(i18t('int_tl_today'), q0[0], q0[1]-4, IGB_WALK, .95*a4, 10, 600, 'center'); }
-    const qu=pj([1.55,0,-.94]); txt(i18t('int_tl_undated',{ n:tl.undated }), qu[0], qu[1], '#8FB5AD', .9*a4, 10, 600, 'center');
+    const qu=pj([1.55,0,-.94]); txt(i18t('int_tl_undated',{ n:tl.undated }), qu[0], qu[1], igbTone().mute, .9*a4, 10, 600, 'center');
     if(tl.empty){ const qm=pj([0,0,0]); txt(i18t('int_tl_empty',{ x:i18t('int_time_'+tl.key) }), qm[0], qm[1], '#CFE3DE', .9*a4, 12, 500, 'center'); }
   }
   const T=igbTissue(), H0=G.hubs, nh=H0.length, FL=(G.floors&&G.floors.length)?G.floors:[{ y:0 }], flat=w[3]+w[4];
@@ -3460,7 +3473,7 @@ function makeIntelGraph(model){
         if(n.flow) ln.setAttribute('data-ig-flow',i);
         ln.textContent=t.length>38?t.slice(0,37)+'…':t; });
       if(share){ const yb=(ys.length?ys[ys.length-1]:27)+5, bw=n.w-20;
-        igbEl('rect',{ x:10, y:yb, width:bw, height:3, rx:1.5, fill:'rgba(143,181,173,.25)', 'pointer-events':'none' },card);
+        igbEl('rect',{ x:10, y:yb, width:bw, height:3, rx:1.5, fill:'rgba('+igbTone().ln+',.25)', 'pointer-events':'none' },card);
         igbEl('rect',{ class:'ig-cp-share', x:10, y:yb, width:Math.max(2,Math.round(bw*Math.min(1,n.party.share))), height:3, rx:1.5, fill:n.col, 'pointer-events':'none' },card); }
     }
     gNodes.appendChild(g);
@@ -3673,7 +3686,7 @@ function renderIntelLegend(model){
   if(model&&model.flow){
     const F=Object.values(model.flow); const miss=F.reduce((a,S)=>a+Object.values(S.missing||{}).reduce((x,y)=>x+y,0),0), uns=F.reduce((a,S)=>a+(S.unsided||0),0);
     html+=`<div class="igl-k igl-gap">${i18t('int_flow_legend')}</div>
-      <div data-ig-legend-flow="in" class="igl-row"><span class="igl-sw" style="background:#38CDB8"></span>${i18t('int_flow_in_word')}</div>
+      <div data-ig-legend-flow="in" class="igl-row"><span class="igl-sw" style="background:var(--hb-glow,#38CDB8)"></span>${i18t('int_flow_in_word')}</div>
       <div data-ig-legend-flow="out" class="igl-row"><span class="igl-sw" style="background:${IGB_FACT_TONE.amber}"></span>${i18t('int_flow_out_word')}</div>
       ${(miss||uns)?`<div data-ig-legend-flow="left" class="igl-row igl-note">${i18t('int_flow_left_out',{m:miss,u:uns})}</div>`:''}`;
   }

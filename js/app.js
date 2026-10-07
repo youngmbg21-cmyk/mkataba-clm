@@ -3127,9 +3127,11 @@ function alertsPanelHtml(){
    night already works in the stylesheet and is one row away in the menu if
    anybody asks. The menu offers three because three is what was asked for and
    three is what is easy to explain. */
+/* Blue first since 7 Oct 2026 (HaTi lands on Blue); Dark keeps whichever
+   brand is worn rather than writing one (brand:null → brandNow()). */
 const THEMES = [
-  { k:'green', get label(){ return i18t('ap_theme_green'); },      get note(){ return i18t('ap_theme_green_note'); },        brand:null,   dark:false },
   { k:'navy',  get label(){ return i18t('ap_theme_navy'); },       get note(){ return i18t('ap_theme_navy_note'); },   brand:'navy', dark:false },
+  { k:'green', get label(){ return i18t('ap_theme_green'); },      get note(){ return i18t('ap_theme_green_note'); },        brand:'green', dark:false },
   { k:'dark',  get label(){ return i18t('ap_theme_dark'); },       get note(){ return i18t('ap_theme_dark_note'); },         brand:null,   dark:true  },
 ];
 const THEME_KEY = 'hati-theme';
@@ -3142,17 +3144,19 @@ const THEME_KEY = 'hati-theme';
    legacy key answers only while neither half of the pair has been written. */
 function themeNow(){
   const b=brandRead(BRAND_KEY), d=brandRead(DARK_KEY);
-  if(b!==null || d!==null) return d==='1' ? 'dark' : (b==='navy' ? 'navy' : 'green');
   let v=''; try{ v=localStorage.getItem(THEME_KEY)||''; }catch(e){}
+  /* the move to Blue writes the brand key for everyone, so an old Dark that
+     never wrote 'hati-dark' still answers while that half is silent */
+  if(b!==null || d!==null) return (d==='1' || (d===null && v==='dark')) ? 'dark' : (b==='green' ? 'green' : 'navy');
   if(v==='light') v='green';
-  return THEMES.some(t=>t.k===v) ? v : 'green';
+  return THEMES.some(t=>t.k===v) ? v : 'navy';      /* HaTi lands on Blue (7 Oct 2026) */
 }
 /* applyTheme still answers to a WHOLE-THEME name because boot and several
    callers pass one. It writes through the pair below rather than keeping its
    own reading, so there is one painter and it cannot drift. */
 function applyTheme(mode){
   const t=THEMES.find(x=>x.k===mode);
-  if(t){ brandWrite(BRAND_KEY, t.brand||'green'); brandWrite(DARK_KEY, t.dark?'1':'0'); }
+  if(t){ brandWrite(BRAND_KEY, t.brand||brandNow()); brandWrite(DARK_KEY, t.dark?'1':'0'); }
   applyAppearance();
 }
 function setTheme(mode){
@@ -3160,7 +3164,7 @@ function setTheme(mode){
   /* The legacy key is still written so a browser that downgrades, or any
      reader that has not been repointed, finds what it expects. */
   try{ localStorage.setItem(THEME_KEY, t.k); }catch(e){}
-  brandWrite(BRAND_KEY, t.brand||'green');
+  brandWrite(BRAND_KEY, t.brand||brandNow());
   brandWrite(DARK_KEY, t.dark?'1':'0');
   applyAppearance();
   repaintForAppearance();
@@ -3218,8 +3222,17 @@ function brandWrite(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function brandNow(){
   const v=brandRead(BRAND_KEY);
   if(BRANDS.includes(v)) return v;
-  return themeNow()==='navy' ? 'navy' : 'green';     /* legacy key, read never written */
+  return themeNow()==='green' ? 'green' : 'navy';    /* legacy key, read never written; Blue otherwise */
 }
+/* ---- EVERYONE MOVES TO BLUE ONCE (Young, 7 Oct 2026) ---- the pre-paint
+   script at the top of index.html does this before the first frame; this is
+   the same switch for a page that loads the app without that script. A Green
+   pressed afterwards is stored and stands, because the marker stays. */
+const BRAND_BLUE_ONCE_KEY='hati-brand-blue-once';
+function brandBlueOnce(){
+  try{ if(!localStorage.getItem(BRAND_BLUE_ONCE_KEY)){ localStorage.setItem(BRAND_KEY,'navy'); localStorage.setItem(BRAND_BLUE_ONCE_KEY,'1'); } }catch(e){}
+}
+brandBlueOnce();
 /* THEIR PAGE KEEPS ITS OWN LIGHT AND DARK (Young, 3 Oct 2026): a share or
    adviser link reads and writes its own key and never falls back to ours —
    the pre-paint script in index.html asks the same question. */

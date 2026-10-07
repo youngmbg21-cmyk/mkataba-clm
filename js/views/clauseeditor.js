@@ -481,9 +481,6 @@ function clauseEditorCss(){
   .ce-feet > .ce-rksug[hidden]{display:none}
   .ce-rksug .k{font-size:var(--t-label); color:var(--color-neutral-500); margin-right:2px}
   .ce-rksug .g{flex:1; min-width:4px}
-  .ce-rksug .ce-vote{width:26px; padding:0; color:var(--color-neutral-600)}
-  .ce-rksug .ce-vote svg{display:block; margin:auto}
-  .ce-rksug .ce-vote.is-on{color:var(--accent-ink); border-color:var(--accent-solid)}
   .ce-railfoot button.is-done[disabled]{opacity:1; border-color:transparent; background:none; color:var(--st-green-fg)}
 
   /* ---- THE MIDDLE OF THE PAGE IS THE CONTRACT (owner-asked 26 Aug 2026) ----
@@ -858,9 +855,6 @@ function clauseEditorCss(){
   .ce-card .av button.p{background:var(--color-accent-700); border-color:var(--accent-ink-700);
     color:#fff}
   .ce-card .av button:hover{border-color:var(--accent-solid)}
-  /* a thumb is a mark on ONE suggestion, so it sits on the card that made it */
-  .ce-card .av .ce-vote{width:26px; padding:0; color:var(--color-neutral-600)}
-  .ce-card .av .ce-vote.is-on{color:var(--accent-ink); border-color:var(--accent-solid)}
   .ce-card .av .g{flex:1; min-width:4px}
   /* ---- STICKY BAR (Young, 7 Oct 2026, "Copilot Panel Tidy-up") ----
      The Suggested wording is not a card: no fill, no box, no window. It is
@@ -2776,14 +2770,6 @@ function ceGoClause(clauseId, extra){
 
    THE FALLBACK IS ALWAYS THE OLD SENTENCE, never nothing: a guard that says
    less because a lookup failed is worse than the guard that prompted this. */
-/* ---- THE TWO VOTES ARE DRAWN MARKS, NOT EMOJI (26 Sep 2026, the overnight
-   clean-up) ---- The Compact ladder's rule is "drawn icons only"; these two were
-   written as HTML entities, which the sweep for literal emoji did not catch.
-   Hairline, in the button's own ink (currentColor), 14px like every other
-   mark on a button. */
-const CE_THUMB_PATH = '<path d="M2 7.5h3V14H2z"/><path d="M5 7.5 7.8 2.6c.9 0 1.9.8 1.6 2L9 7h4.1c.9 0 1.5.8 1.3 1.6l-1.1 4.5c-.2.6-.6.9-1.2.9H5"/>';
-const CE_THUMB_UP = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true">${CE_THUMB_PATH}</svg>`;
-const CE_THUMB_DOWN = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(180 8 8)">${CE_THUMB_PATH}</g></svg>`;
 function clauseEditorLeaveAsk(){
   const tail = _cet('ce_leave_body');
   const bits = [];
@@ -4661,7 +4647,6 @@ function ceCardHtml(card, i, j){
      as a proposal to delete the clause. Marked against the passage it names, it
      reads as the change it is. */
   const marked = ceRedlineHtml(card.passage ? card.passage.text : _ceText, card.text || '');
-  const vote = card.vote || '';
   /* ---- ON A CLAUSE UNDER DELETION A CARD IS A READING ---- (10 Sep 2026)
      Copilot may still advise — that is the whole of what this page owes the
      reader there — but its answer cannot be moved into the wording, because
@@ -4687,14 +4672,9 @@ function ceCardHtml(card, i, j){
     ${card.text ? `<span class="pv">${marked}</span>` : ''}
     ${docked ? '' : `<div class="av">
       ${offerWording ? `<button type="button" class="p" data-ce-apply="${i}:${j}">${_cet('ce_apply')}</button>` : ''}
-      ${offerWording ? `<button type="button" data-ce-refine="${i}:${j}">${_cet('ce_refine')}</button>` : ''}
-      <span class="g"></span>
-      <button type="button" class="ce-vote${vote === 'up' ? ' is-on' : ''}" data-ce-vote="${i}:${j}:up"
-        aria-pressed="${vote === 'up' ? 'true' : 'false'}"
-        title="${_ceea(_cet('ce_vote_up'))}" aria-label="${_ceea(_cet('ce_vote_up'))}">${CE_THUMB_UP}</button>
-      <button type="button" class="ce-vote${vote === 'down' ? ' is-on' : ''}" data-ce-vote="${i}:${j}:down"
-        aria-pressed="${vote === 'down' ? 'true' : 'false'}"
-        title="${_ceea(_cet('ce_vote_down'))}" aria-label="${_ceea(_cet('ce_vote_down'))}">${CE_THUMB_DOWN}</button>
+      ${''/* NO "ASK FOR A CHANGE", NO THUMBS (Young, 7 Oct 2026): the first only
+             put the cursor in the ask box already below the card; the thumbs
+             lit up and recorded nothing. Apply is the card's one act. */}
     </div>`}
   </div>`;
 }
@@ -6105,14 +6085,11 @@ function ceRenderRiskSug(){
   const card = ceRiskDocks() ? _ceRiskCard : null;
   if (!card || !card.text){ if (!row.hidden){ row.hidden = true; row.innerHTML = ''; } return; }
   const offer = !ceUnderDeletion() && card.mode !== 'ask';
-  if (!row.querySelector('[data-ce-vote]')){
+  if (!row.querySelector('[data-ce-apply]')){
     row.innerHTML = `<span class="k">${_cee(_cet('ce_sug_dock'))}</span>`
-      + `<button type="button" class="p" data-ce-apply="rk:0"></button>`
-      + `<button type="button" data-ce-refine="rk:0">${_cee(_cet('ce_refine'))}</button><span class="g"></span>`
-      + `<button type="button" class="ce-vote" data-ce-vote="rk:0:up" title="${_ceea(_cet('ce_vote_up'))}" aria-label="${_ceea(_cet('ce_vote_up'))}">${CE_THUMB_UP}</button>`
-      + `<button type="button" class="ce-vote" data-ce-vote="rk:0:down" title="${_ceea(_cet('ce_vote_down'))}" aria-label="${_ceea(_cet('ce_vote_down'))}">${CE_THUMB_DOWN}</button>`;
+      + `<button type="button" class="p" data-ce-apply="rk:0"></button><span class="g"></span>`;
   }
-  const apply = row.querySelector('[data-ce-apply]'), refine = row.querySelector('[data-ce-refine]');
+  const apply = row.querySelector('[data-ce-apply]');
   const done = ceCardApplied(card);
   const word = done ? _cet('ce_sug_applied') : _cet('ce_apply');
   if (apply.textContent !== word) apply.textContent = word;
@@ -6120,10 +6097,6 @@ function ceRenderRiskSug(){
   apply.classList.toggle('p', !done);
   apply.classList.toggle('is-done', done);
   apply.style.display = offer ? '' : 'none';
-  refine.style.display = offer ? '' : 'none';
-  row.querySelectorAll('[data-ce-vote]').forEach(b => {
-    const on = card.vote === b.getAttribute('data-ce-vote').split(':')[2];
-    b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
   row.hidden = false;
 }
 function ceRenderRiskFoot(){
@@ -6609,20 +6582,6 @@ function ceWirePage(page){
         aiTraceApplied(_ceC, card.trace, _ceText);
         if (window.aiTraceSave) aiTraceSave(_ceC);
       } }catch(_){}
-      return; }
-
-    const refine = hit('[data-ce-refine]');
-    if (refine){ ev.preventDefault();
-      ceFullClose();
-      const box = _ceQ('#ce-ask');
-      if (box){ try{ box.focus(); }catch(_){} }
-      ceSay(_cet('ce_refine_hint')); return; }
-
-    const vote = hit('[data-ce-vote]');
-    if (vote){ ev.preventDefault();
-      const parts = String(vote.getAttribute('data-ce-vote')).split(':');
-      const card = ceCardAt(parts[0] + ':' + parts[1]);
-      if (card){ card.vote = card.vote === parts[2] ? '' : parts[2]; ceRenderLane(); ceRenderFull(); }
       return; }
 
     /* A STANDARD QUESTION (5 Oct 2026): the company's wording on a card,

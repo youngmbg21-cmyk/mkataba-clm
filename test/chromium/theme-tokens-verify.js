@@ -217,8 +217,14 @@ const CENSUS = () => {
      which is a build that may not have setTheme yet — and a save run that
      crashes half way leaves no baseline at all, which is how the last one was
      lost. Recording is only ever a census. */
+  /* RE-POINTED 7 Oct 2026 (Young: HaTi lands on Blue): the census above is
+     the product as a fresh browser sees it, which is Blue now; this pass starts
+     from Green ON PURPOSE, pressed as a person would, so it still measures the
+     switch rather than Blue against itself. */
   for (const [name, go] of (SAVE ? [] : SCREENS)){
     const { ctx, page } = await open();
+    await page.evaluate(() => setTheme('green'));
+    await pause(500);
     await go(page);
     await page.addStyleTag({ content:
       '*,*::before,*::after{animation:none!important;transition:none!important}' });
