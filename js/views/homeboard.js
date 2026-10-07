@@ -82,7 +82,7 @@ function hbUid(){
 }
 let _hbS = null, _hbSUid = null;
 function hbFresh(){
-  return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: 'light', scr2: 1,
+  return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: null, scrPick: 0,
     watches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
     ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {} };
 }
@@ -98,10 +98,13 @@ function hbS(){
   if (v && typeof v === 'object'){
     if (HB_FACES.includes(v.face)) s.face = v.face;
     if (HB_LENSES.includes(v.lens)) s.lens = v.lens;
-    /* THE BOARD LANDS LIGHT (Young, 6 Oct 2026): a screen chosen before that
-       ruling (no scr2) is not kept — every board opens light once, and a
-       Dark chosen after it is kept like any other choice. */
-    if (HB_SCREENS.includes(v.screen) && v.scr2 === 1) s.screen = v.screen;
+    /* THE BOARD FOLLOWS DAY AND NIGHT (Young, 7 Oct 2026, "Follow dark
+       mode", refining 6 Oct's "the board lands light"): with no screen of
+       the reader's own the board is Light by day and Dark when the app is
+       dark (hbScreenNow). A press on the board's Light | Dark is the
+       reader's choice and is kept (scrPick); a screen saved before this
+       ruling carries no scrPick and is not kept. */
+    if (HB_SCREENS.includes(v.screen) && v.scrPick === 1){ s.screen = v.screen; s.scrPick = 1; }
     if (HB_PREP.includes(v.prep)) s.prep = v.prep;
     /* a kept view is a question (q:) or a card Copilot built (cd:, its set in `which`) */
     if (Array.isArray(v.panels)) s.panels = v.panels.filter(p => p && (HB_KINDS[p.kind] || (p.kind === 'view' && typeof p.key === 'string' && /^(q|cd):/.test(p.key))))
@@ -967,7 +970,7 @@ function hbHelloInner(){
 function hbHeadHtml(groupSel){
   const s = hbS();
   const face = f => `<button type="button" role="tab" data-hb-face="${f}" aria-selected="${s.face === f}">${_hbE(i18t('hb_face_' + f))}</button>`;
-  const scr = m => `<button type="button" data-hb-screen="${m}" aria-pressed="${s.screen === m}">${_hbE(i18t('hb_screen_' + m))}</button>`;
+  const scr = m => `<button type="button" data-hb-screen="${m}" aria-pressed="${hbScreenNow() === m}">${_hbE(i18t('hb_screen_' + m))}</button>`;
   return `<style>#page-head{background:var(--color-surface)}</style>
   <header id="hb-head" class="hb-head">
     <div class="hb-hello">${hbHelloInner()}</div>
@@ -4721,7 +4724,7 @@ function hbPaintHead(){
   const s = hbS();
   const hello = document.querySelector('#hb-head .hb-hello'); if (hello){ const h = hbHelloInner(); if (hello.innerHTML !== h) hello.innerHTML = h; }
   document.querySelectorAll('[data-hb-face]').forEach(b => b.setAttribute('aria-selected', String(b.getAttribute('data-hb-face') === s.face)));
-  document.querySelectorAll('[data-hb-screen]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-hb-screen') === s.screen)));
+  document.querySelectorAll('[data-hb-screen]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-hb-screen') === hbScreenNow())));
   const gb = document.getElementById('hb-groupby'); if (gb) gb.hidden = s.face !== 'explorer';
   const scr = document.querySelector('#hb-head .hb-scr'); if (scr) scr.hidden = s.face === 'explorer';
   const chip = document.querySelector('.hb-counting');
@@ -4730,11 +4733,26 @@ function hbPaintHead(){
 /* EXPLORER IS ALWAYS DARK (Young, 6 Oct 2026: "no option to make it
    light"): the Light/Dark choice is the Board's alone, and its buttons are
    not drawn on Explorer's face. */
-function hbScreenNow(){ const s = hbS(); return s.face === 'explorer' ? 'dark' : s.screen; }
+/* Explorer is always dark; the board is the reader's own screen when they
+   pressed one, else the app's day or night (see hbS). */
+function hbScreenNow(){
+  const s = hbS(); if (s.face === 'explorer') return 'dark';
+  if (s.screen && HB_SCREENS.includes(s.screen)) return s.screen;
+  let night = false; try { night = (typeof darkNow === 'function') ? !!darkNow() : document.documentElement.classList.contains('dark'); } catch (_){ night = false; }
+  return night ? 'dark' : 'light';
+}
 function hbApplyScreen(){
   const pg = hbPage(); if (!pg) return;
   pg.classList.toggle('hb-light', hbScreenNow() === 'light');
   pg.classList.toggle('hb-dark', hbScreenNow() !== 'light');
+}
+/* The app turning dark or light while Home is open repaints the board's
+   screen at once (only when the reader has not chosen one of their own). */
+if (typeof document !== 'undefined' && typeof MutationObserver === 'function' && !document._hbNightWired){
+  document._hbNightWired = true;
+  try { new MutationObserver(() => { try { const s = hbS(); if (!s.scrPick){ hbApplyScreen();
+      document.querySelectorAll('[data-hb-screen]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-hb-screen') === hbScreenNow()))); } } catch (_){} })
+    .observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); } catch (_){}
 }
 function hbApplyFace(){
   const s = hbS(), host = hbHost(); if (!host) return;
@@ -6603,7 +6621,7 @@ function hbAsk(q){
   }
   if (r.act === 'noref') return say(_hbE(i18t('hb_no_ref', { ref: r.ref })), { noPaint: true });
   if (r.act === 'reset'){
-    const keep = { screen: s.screen, watches: s.watches, saved: s.saved, seen: s.seen, seq: s.seq, undo: s.undo, undoSeq: s.undoSeq };
+    const keep = { screen: s.screen, scrPick: s.scrPick, watches: s.watches, saved: s.saved, seen: s.seen, seq: s.seq, undo: s.undo, undoSeq: s.undoSeq };
     Object.assign(s, hbFresh(), keep); hbSave(); hbLensOnMap();
     hbMount();
     return say(_hbE(i18t('hb_reset_said')), { noPaint: true });
@@ -6878,7 +6896,7 @@ function hbOnClick(e){
   const on = sel => t.closest(sel);
   let el;
   if ((el = on('[data-hb-face]'))){ hbSetFace(el.getAttribute('data-hb-face')); return; }
-  if ((el = on('[data-hb-screen]'))){ const m = el.getAttribute('data-hb-screen'); if (HB_SCREENS.includes(m)){ hbS().screen = m; hbSave(); hbApplyScreen(); hbPaintHead(); if (typeof igRender === 'function') try { igRender(); } catch (_){} } return; }
+  if ((el = on('[data-hb-screen]'))){ const m = el.getAttribute('data-hb-screen'); if (HB_SCREENS.includes(m)){ hbS().screen = m; hbS().scrPick = 1; hbSave(); hbApplyScreen(); hbPaintHead(); if (typeof igRender === 'function') try { igRender(); } catch (_){} } return; }
   if ((el = on('[data-hb-lens]'))){ hbSetLens(el.getAttribute('data-hb-lens')); return; }
   if (on('#hb-present')){ hbPresent(!_hbPresenting); return; }
   if ((el = on('[data-hb-tool]'))){ const k = el.getAttribute('data-hb-tool');
