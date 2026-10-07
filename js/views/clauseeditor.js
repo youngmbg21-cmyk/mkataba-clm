@@ -865,6 +865,7 @@ function clauseEditorCss(){
     padding:0 0 0 11px; margin-bottom:var(--s-3)}
   .ce-rail .ce-card.ce-sug .pv{max-height:none; overflow:visible; border:0; padding:0;
     background:none; margin-top:var(--s-2)}
+  .ce-card.ce-sug .pv .ce-sug-left{display:block; margin-top:6px; font-size:var(--t-label); color:var(--color-neutral-500); font-style:italic}
   .ce-card.ce-sug > .av{position:sticky; bottom:-14px; z-index:1; margin:10px 0 0 -11px;
     padding:8px 0 8px 11px; background:var(--color-surface); border-top:1px solid var(--color-divider);
     box-shadow:0 -6px 10px -8px rgba(0,0,0,.18)}
@@ -1540,12 +1541,23 @@ function ceShapeMap(){
     return cl ? rlClauseShape(cl) : null;
   }catch(_){ return null; }
 }
-function ceRedlineHtml(a, b){
+function ceRedlineHtml(a, b, opts){
   const ops = ceOps(a, b);
   if (!ops) return `<p>${_cee(ceWords(b))}</p>`;
   try{
     /* THE DRAFT IS OURS: this page is our seat's by construction, so a mark
        drawn here wears the accent (14 Sep 2026). */
+    /* ONLY WHAT MOVED (Young, 7 Oct 2026: "always show ONLY the clause or
+       sub-clause that is impact"): a Suggested wording asks for the touched
+       blocks and the sub-clause heading over them — the same reading the
+       Notes pin and the Deal board use — and SAYS how many it left out. The
+       paper (ceMarkedHtml) never asks, so it stays whole. */
+    if (opts && opts.changedOnly && window.redlineOpsBlocksHtml && window.redlineShownBlocks && window.redlineDrawnBlocks){
+      const all = redlineDrawnBlocks(ops).length, shown = redlineShownBlocks(ops, { changedOnly: true, heads: true }).length;
+      const left = Math.max(0, all - shown);
+      return redlineOpsBlocksHtml(ops, { who: 'us', shape: ceShapeMap(), changedOnly: true, heads: true })
+        + (left ? `<span class="ce-sug-left">${_cee(i18tn('ng_cb_unchanged', left, { n: left }))}</span>` : '');
+    }
     if (window.redlineOpsBlocksHtml) return redlineOpsBlocksHtml(ops, { who: 'us', shape: ceShapeMap() });
     if (window.redlineOpsHtml) return `<p>${redlineOpsHtml(ops, { who: 'us' })}</p>`;
   }catch(_){}
@@ -4646,7 +4658,7 @@ function ceCardHtml(card, i, j){
      against the whole clause would strike out every sentence around it and read
      as a proposal to delete the clause. Marked against the passage it names, it
      reads as the change it is. */
-  const marked = ceRedlineHtml(card.passage ? card.passage.text : _ceText, card.text || '');
+  const marked = ceRedlineHtml(card.passage ? card.passage.text : _ceText, card.text || '', { changedOnly: true });
   /* ---- ON A CLAUSE UNDER DELETION A CARD IS A READING ---- (10 Sep 2026)
      Copilot may still advise — that is the whole of what this page owes the
      reader there — but its answer cannot be moved into the wording, because

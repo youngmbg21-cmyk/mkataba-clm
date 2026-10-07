@@ -930,11 +930,25 @@ function redlineBlockStats(ops){
    the email. It was written inline here, and a second copy deciding for itself
    which blocks a change shows is how the panel and the message about it come
    to disagree about what changed. The drawing may differ; the reading may not. */
+/* A SUB-CLAUSE KEEPS ITS NAME (Young, 7 Oct 2026: "always show ONLY the
+   clause or sub-clause that is impact"): with opts.heads, an untouched
+   heading line directly over a touched block ("2.1 Base Rent.") is kept, so
+   the reader knows where the change sits. Off by default, like changedOnly. */
+function redlineBlockIsHead(group){
+  const t = String(redlineBlockShown(group) || '').trim();
+  if (!t || t.length > 80 || t.split(/\s+/).length > 8) return false;
+  /* one short line, never a sentence that runs on after a full stop */
+  if (/[.;:!?]\s+\S/.test(t.replace(/^\d+(?:\.\d+)*[.)]?\s*/, ''))) return false;
+  const k = redlineLineKind(t);
+  return k === 'heading' || k === 'clause';
+}
 function redlineShownBlocks(ops, opts = {}){
   const blocks = redlineDrawnBlocks(ops);
   if (!opts.changedOnly) return blocks;
-  const only = blocks.filter(redlineBlockTouched);
-  return only.length ? only : blocks;
+  const keep = blocks.map(redlineBlockTouched);
+  if (!keep.some(Boolean)) return blocks;
+  if (opts.heads) blocks.forEach((g, i) => { if (keep[i] && i > 0 && !keep[i - 1] && redlineBlockIsHead(blocks[i - 1])) keep[i - 1] = true; });
+  return blocks.filter((g, i) => keep[i]);
 }
 /* ============================================================
    THE CONTRACT KEEPS ITS SHAPE WHETHER OR NOT A CLAUSE IS MARKED
@@ -1388,7 +1402,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineShapeMap, redlineOpsStructured,
-  redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats, redlineShownBlocks,
+  redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats, redlineShownBlocks, redlineBlockIsHead,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
   redlineLineKind, redlineSplitMarker, redlineMarkerDepth, redlineHangHtml,
@@ -1399,7 +1413,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = {
   redlineLayerOps, redlineWholesale, redlineReplacementHtml, redlineWords,
   redlineBlocks, redlineBlocksHtml, redlineStructuredHtml,
   redlineOpsBlocks, redlineOpsBlocksHtml, redlineOpsStructured,
-  redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats, redlineShownBlocks,
+  redlineBlockShown, redlineBlockTouched, redlineDrawnBlocks, redlineBlockStats, redlineShownBlocks, redlineBlockIsHead,
   redlineAttributeOps, redlineAttributedHtml, REDLINE_ATTRIB_MIN,
   redlineDeletedSpans, redlineDeletionCovering,
   redlineLineKind, redlineSplitMarker, redlineMarkerDepth, redlineHangHtml, REDLINE_INS_CLASS, REDLINE_DEL_CLASS,
