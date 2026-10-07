@@ -177,7 +177,7 @@ describe('f106 — repair on open (render sandbox)', () => {
     assert.deepEqual(saves, ['MK-X'], 'the repair persists');
   });
 
-  test('tplFormCommit routes every door through one path: value lands, wording regenerates', () => {
+  test('tplFormCommit keeps the answer; Fill the document (tplFormApply) writes the wording', () => {
     const sandbox = loadViews(['js/fieldlib.js', 'js/templateform.js', 'js/views/templatelib.js', 'js/views/templatebuilder.js'], {
       persist() {}, renderDocHtml: h => h, canEdit: () => true,
       api: async () => ({}), openModal() {}, closeModal() {}, confirmDialog: async () => true, toast() {},
@@ -190,6 +190,13 @@ describe('f106 — repair on open (render sandbox)', () => {
     } };
     sandbox.tplFormCommit(c, 0, 'Wanjiru Catering Ltd');
     assert.equal(c.templateForm.values.client_name, 'Wanjiru Catering Ltd');
+    /* REVERSED 7 Oct 2026 (Young: "they need to press this button so that the
+       platform fills in the document"). An answer is kept at once; the wording
+       waits for the press, and the press is owed until it comes. */
+    assert.ok(!c.redlineText.includes('Wanjiru Catering Ltd'), 'an answer alone does not rewrite the wording');
+    assert.equal(sandbox.tplFormPending(c), true, 'the press is owed');
+    assert.equal(sandbox.tplFormApply(c), true);
+    assert.equal(sandbox.tplFormPending(c), false, 'and paid once pressed');
     assert.ok(c.redlineText.includes('Wanjiru Catering Ltd'));
     /* REVERSED IN PLACE 20 Sep 2026 — see the note above the EITHER WAY claim.
        A filled blank stops being a BLANK (it gives up hati-field and every bit

@@ -1140,7 +1140,7 @@ function renderTemplateFormSection(c) {
     <div style="display:flex;align-items:center;gap:var(--s-2);padding:11px 14px;border-bottom:1px solid var(--color-divider)">
       <h6 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-meta);margin:0;flex:1">Contract form
         <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">${i18t('tl_from_template_v',{name:esc(form.templateName || '')})}${form.versionNumber || ''}</span></h6>
-      <span style="font-size:var(--t-label);color:${filled.length === required.length ? 'var(--st-green-fg)' : 'var(--st-amber-fg)'};font-weight:var(--w-strong)">${filled.length}/${required.length} required filled</span>
+      <span data-tplf-progress style="font-size:var(--t-label);color:${filled.length === required.length ? 'var(--st-green-fg)' : 'var(--st-amber-fg)'};font-weight:var(--w-strong)">${filled.length}/${required.length} required filled</span>
     </div>
     <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px">
       ${locked ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('tl_executed_sealed')}</div>` : ''}
@@ -1157,8 +1157,10 @@ function renderTemplateFormSection(c) {
             <span data-tplf-err="${idx}" style="display:${problem ? 'block' : 'none'};font-size:var(--t-label);color:var(--st-ruby-fg);margin-top:2px">${esc(problem || '')}</span>
           </label>`;
         }).join('')}`).join('')}
-    </div>`;
+    </div>${editable ? `<div class="tplf-foot"><button type="button" class="ui-btn ui-btn-sm hati-fill-btn" data-tplf-fill="1"></button></div>` : ''}`;
   if (!editable) return;
+  tplFormPaintFill(c);
+  host.querySelector('[data-tplf-fill]')?.addEventListener('click', () => tplFormApply(c));
 
   const commit = (idx, value) => tplFormCommit(c, idx, value);
   host.querySelectorAll('[data-tplf]').forEach(el => {
@@ -1191,30 +1193,98 @@ function renderTemplateFormSection(c) {
   }
 }
 
-/* One commit for every door into a field — the side panel, the in-document
-   popover, whatever comes later. Values land on the form, the wording
-   regenerates (the document IS the rendering of the form), the debounced
-   autosave runs, and the panel repaints its progress. */
+/* ---- ANSWERS ARE KEPT AS YOU TYPE; THE DOCUMENT FILLS ON A PRESS ----
+   (Young, 7 Oct 2026: "once someone has filled out a form they need to press
+   this button so that the platform fills in the document.") A panel answer
+   lands on the form and is saved at once, but the wording is rewritten only
+   by "Fill the document" (tplFormApply) — the ONE writer of a form's wording
+   from the panel. The in-paper popover is a door IN the document, so it
+   fills as it closes.
+
+   AND IT IS ONE PRESS TO THE NEXT BOX. The commit used to repaint the whole
+   panel, so the box a reader had just clicked was thrown away under their
+   pointer and needed a second click. Now nothing is repainted: the count and
+   the field's own error line are written in place (tplFormPaintRow).
+
+   WHAT IS STILL OWED: `form.filledSig` remembers which answers the wording
+   last carried; an answer moved since, whose wording would differ, is owed
+   (tplFormPending). Signing and every link carrying wording ask it, so a
+   forgotten press never travels. */
+function tplFormSig(form) {
+  const v = (form && form.values) || {};
+  return JSON.stringify(Object.keys(v).sort().map(k => [k, v[k]]));
+}
+function tplFormLocked(c) {
+  return c.status === 'Signed' || !!(c.execution && c.execution.at) || !!c.hash;
+}
+function tplFormPending(c) {
+  const form = c && c.templateForm;
+  if (!form || form.filledSig == null || tplFormLocked(c) || !window.templateFormDocHtml) return false;
+  if (tplFormSig(form) === form.filledSig) return false;
+  try { return templateFormDocHtml(form) !== String(c.redlineText || ''); } catch (_) { return false; }
+}
+function tplFormPaintFill(c) {
+  const btn = document.querySelector('#tplform-section [data-tplf-fill]');
+  if (!btn) return;
+  const owed = tplFormPending(c);
+  btn.disabled = !owed;
+  btn.innerHTML = `${icon('sparkle', 'w-3 h-3')} ${esc(i18t(owed ? 'tl_fill_doc' : 'tl_fill_doc_done'))}`;
+  btn.title = owed ? i18t('tl_fill_doc_hint') : i18t('tl_fill_doc_none');
+}
+function tplFormPaintRow(c, idx) {
+  const host = document.getElementById('tplform-section');
+  const form = c.templateForm;
+  if (!host || !form) return;
+  const fields = (form.fields || []).filter(f => f.fieldType !== 'signature_name_title');
+  const values = form.values || {};
+  const required = fields.filter(f => f.required);
+  const filled = required.filter(f => String(values[f.fieldKey] || '').trim() !== '').length;
+  const prog = host.querySelector('[data-tplf-progress]');
+  if (prog) {
+    prog.textContent = `${filled}/${required.length} required filled`;
+    prog.style.color = filled === required.length ? 'var(--st-green-fg)' : 'var(--st-amber-fg)';
+  }
+  const f = form.fields[idx];
+  const err = host.querySelector(`[data-tplf-err="${idx}"]`);
+  if (f && err) {
+    const problems = window.templateFormProblems ? templateFormProblems(form) : [];
+    const p = String(values[f.fieldKey] || '').trim() !== '' ? problems.find(x => x.fieldKey === f.fieldKey) : null;
+    err.textContent = p ? p.problem : '';
+    err.style.display = p ? 'block' : 'none';
+  }
+  tplFormPaintFill(c);
+}
 function tplFormCommit(c, idx, value) {
   const form = c.templateForm;
   const f = form && form.fields[idx];
   if (!f) return;
   const s = value == null ? '' : String(value).trim();
   form.values = form.values || {};
+  /* The first answer on a record made before this marker: the wording carries
+     what the form held a moment ago. */
+  if (form.filledSig == null) form.filledSig = tplFormSig(form);
   if (s === '') delete form.values[f.fieldKey]; else form.values[f.fieldKey] = s;
-  if (window.templateFormDocHtml) {
-    c.redlineText = templateFormDocHtml(form);
-    const canvas = document.getElementById('doc-canvas');
-    if (canvas && window.renderDocHtml) canvas.innerHTML = renderDocHtml(c.redlineText, window.RICH_FORMAT || 'rich');
-  }
   c.lastAction = (typeof todayStr === 'function') ? todayStr() : c.lastAction;
   persist(c); // debounced autosave — a closed tab loses nothing past 400ms
-  renderTemplateFormSection(c);
-  /* The Checks card sits directly under this form and counts what is still
-     empty. Filling the last required field has to clear its notice in the same
-     breath, or the card goes on asking for work that is finished. Guarded:
-     this file is loaded on pages that have no Checks card at all. */
+  tplFormPaintRow(c, idx);
+  /* A file input's row shows what it holds — that one row is redrawn. */
+  const lib = (window.FIELD_LIB || {})[f.fieldType] || {};
+  if (lib.input === 'file' || lib.input === 'image') renderTemplateFormSection(c);
   if (window.docThreadPaint && (!window.contractOnScreen || contractOnScreen(c))) docThreadPaint(c);
+}
+function tplFormApply(c) {
+  const form = c && c.templateForm;
+  if (!form || tplFormLocked(c) || !window.templateFormDocHtml) return false;
+  c.redlineText = templateFormDocHtml(form);
+  form.filledSig = tplFormSig(form);
+  const canvas = document.getElementById('doc-canvas');
+  if (canvas && window.renderDocHtml) canvas.innerHTML = renderDocHtml(c.redlineText, window.RICH_FORMAT || 'rich');
+  c.lastAction = (typeof todayStr === 'function') ? todayStr() : c.lastAction;
+  persist(c);
+  tplFormPaintFill(c);
+  /* The Checks card sits under this form and counts what is still empty. */
+  if (window.docThreadPaint && (!window.contractOnScreen || contractOnScreen(c))) docThreadPaint(c);
+  return true;
 }
 
 /* Click a blank in the document: typed input right there. Signatures route
@@ -1282,6 +1352,7 @@ function tplFormPopover(c, idx, anchor) {
     }
     close();
     tplFormCommit(c, idx, v);
+    tplFormApply(c); // a door in the paper fills the paper
   };
   input?.addEventListener('change', commitPop);
   input?.addEventListener('keydown', e => { if (e.key === 'Enter') commitPop(); if (e.key === 'Escape') close(); });
@@ -1298,6 +1369,7 @@ Object.assign(window, { newPaperBlocked, newPaperBlockLine, newPaperBlock, tplLi
   openTemplateLibDetail, tplLibEdit, tplLibCanManage, tplLibCancelPending,
   tplLibSheetHtml, tplLibRestore, tplLibArchivedAsk,
   tplLibNewContract, renderTemplateFormSection, openTemplateConfirm,
+  tplFormPending, tplFormApply, tplFormSig,
   tplFormCommit, tplFormBlankClick,
   TPLLIB_CATEGORIES, TPLLIB_STATUS, templateCategories, tplCategoryName, tplCatSaved, tplLibStreamPick,
   addTemplateCategory, renameTemplateCategory, removeTemplateCategory,

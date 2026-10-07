@@ -4173,6 +4173,34 @@
   .ov-map-chipt[aria-pressed="false"]{ opacity:.5; }
   .ov-map-chipt[aria-pressed="false"] span{ text-decoration:line-through; }
   .ov-map-stage{ background:radial-gradient(circle,var(--color-accent-100) 1px,transparent 1.3px) 0 0/22px 22px,var(--color-surface); }
+  /* THE STAGE FITS A LAPTOP (Young, 8 Oct 2026: "Make it so you do not have to
+     scroll up and down on your laptop to see the full circle of movement"): one
+     fixed height, the picture drawn to fit it; a narrow stage stands it tall. */
+  /* THE FILL BUTTONS WEAR LIGHT BLUE (Young, 7 Oct 2026): the Overview's
+     "Fill from document" and the Document tab's "Fill the document" — pale
+     wash, accent ink and edge; Read the brief stays the one filled button. */
+  .ui-btn.hati-fill-btn{ background:var(--color-accent-50); color:var(--accent-ink); border-color:var(--color-accent-100); }
+  .ui-btn.hati-fill-btn:hover:not(:disabled){ background:var(--color-accent-100); }
+  .ui-btn.hati-fill-btn:disabled{ opacity:.6; cursor:default; }
+  .tplf-foot{ position:sticky; bottom:0; display:flex; justify-content:flex-end; padding:10px 14px;
+    border-top:1px solid var(--color-divider); background:var(--color-surface); }
+  .ov-map-stage{ height:380px; }
+  .ov-map-stage > svg{ width:100%; height:100%; }
+  .ov-map-stage.is-tall{ height:auto; }
+  .ov-map-stage.is-tall > svg{ height:auto; }
+  .ov-map-key{ display:inline-flex; flex-wrap:wrap; gap:4px 12px; margin-left:auto; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .ov-map-key > span{ display:inline-flex; align-items:center; gap:5px; }
+  .ov-map-key .ov-map-dot{ margin-top:0; }
+  .ov-map-svg .ov-map-ini{ font-weight:700; }
+  .ov-map-svg .ov-map-track{ fill:none; stroke:var(--color-divider); stroke-width:7; }
+  .ov-map-svg .ov-map-track.is-empty{ stroke-dasharray:2 6; }
+  .ov-map-svg .ov-map-seg{ fill:none; stroke-width:7; animation:ov-map-grow 1.2s cubic-bezier(.2,.8,.2,1) .2s forwards; }
+  .ov-map-svg .ov-map-seg.is-g{ stroke:var(--st-green-dot); } .ov-map-svg .ov-map-seg.is-a{ stroke:var(--st-amber-dot); }
+  .ov-map-svg .ov-map-seg.is-r{ stroke:var(--st-ruby-dot); } .ov-map-svg .ov-map-seg.is-s{ stroke:var(--st-steel-dot); }
+  .ov-map-svg .ov-map-dash{ stroke:var(--color-divider); stroke-width:2; stroke-dasharray:4 7; }
+  .ov-map-svg .ov-map-fl.is-b{ animation-delay:0s, -3s; }
+  @keyframes ov-map-grow{ to{ stroke-dashoffset:0; } }
+  @media (prefers-reduced-motion:reduce){ .ov-map-svg .ov-map-seg{ animation:none; stroke-dashoffset:0; } }
   .ov-map-list{ display:flex; flex-direction:column; gap:6px; padding:0 12px; }
   .ov-map-list:not(:empty){ padding:10px 12px 12px; }
   .ov-map-list button{ display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:7px 10px; font:inherit;
@@ -4186,8 +4214,8 @@
   .ov-map-svg .is-off{ opacity:0; pointer-events:none; }
   .ov-map-svg .ov-map-ringp{ transform-box:fill-box; transform-origin:center; animation:ov-map-ring 1.8s ease-out infinite; }
   .ov-map-svg .ov-map-halo{ animation:ov-map-breathe 5s ease-in-out infinite; }
-  .ov-map-svg .ov-map-cap{ font-size:10px; letter-spacing:.08em; fill:var(--cap-ink); }
-  .ov-map-svg .ov-map-nm{ font-size:13px; font-weight:700; fill:var(--color-text); }
+  .ov-map-svg .ov-map-cap{ font-size:10.5px; letter-spacing:.06em; fill:var(--cap-ink); }
+  .ov-map-svg .ov-map-nm{ font-size:12.5px; font-weight:700; fill:var(--color-text); }
   .ov-map-svg .ov-map-doc{ fill:var(--color-surface); stroke:var(--color-accent-200); stroke-width:1.5; }
   .ov-map-svg .ov-map-lines{ stroke:var(--color-divider); stroke-width:2; stroke-linecap:round; fill:none; }
   .ov-map-svg .ov-map-ref{ font:600 11px var(--font-ref); fill:var(--accent-ink); }

@@ -231,13 +231,15 @@ describe('f442 (3) the map is drawn from stored facts', () => {
 });
 
 describe('f442 (4) the map is drawn as the mock-up draws it', () => {
-  test('two parties side by side, three in a triangle, every point inside the picture', () => {
+  test('two parties side by side, more below them, every point inside the picture', () => {
     const { win } = mapWorld();
     const c = withParties(supply(), { name: 'Highland Corporate Ltd', role: 'Buyer' }, { name: 'Juno Limited', role: 'Supplier' });
     c.obligations = [{ id: 'o1', desc: 'Pay', due: '2026-02-15', party: 'ours', status: 'open' }];
     for (const tall of [false, true]) {
       const svg = win.ovMapSvg(win.ovMapData(c), tall);
-      const W = tall ? 400 : 860, H = tall ? 640 : 520;
+      /* PROGRESS RINGS (Young, 7 Oct 2026): one picture that fits a laptop —
+         a 380px stage, never taller. */
+      const W = tall ? 400 : 880, H = tall ? 600 : 380;
       assert.ok(svg.includes(`viewBox="0 0 ${W} ${H}"`));
       const xs = (svg.match(/\bc?x="(-?[\d.]+)"/g) || []).map(t => Number(t.split('"')[1]));
       xs.forEach(v => assert.ok(v >= -120 && v <= W + 120, 'inside the picture: ' + v));
@@ -246,7 +248,24 @@ describe('f442 (4) the map is drawn as the mock-up draws it', () => {
     }
     c.parties.push({ id: 'py_3', side: 'theirs', name: 'Kivu Retail', role: 'Distributor' });
     const tri = win.ovMapSvg(win.ovMapData(c), false);
-    assert.ok(tri.includes('viewBox="0 0 860 690"') && (tri.match(/data-ov-map="p\d"/g) || []).length === 3, 'three in a triangle');
+    assert.ok(tri.includes('viewBox="0 0 880 380"') && (tri.match(/data-ov-map="p\d"/g) || []).length === 3, 'three on the same stage');
+  });
+
+  test('each party wears a ring of its duties, coloured by state', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'A' }, { name: 'B' });
+    c.obligations = [
+      { id: 'o1', desc: 'Pay', due: '2020-01-01', party: 'ours', status: 'open' },
+      { id: 'o2', desc: 'Report', due: '2020-01-01', party: 'ours', status: 'done' },
+    ];
+    const svg = win.ovMapSvg(win.ovMapData(c), false);
+    assert.ok(/class="ov-map-seg is-r"/.test(svg), 'a late duty is a red piece of the ring');
+    assert.ok(/class="ov-map-seg is-g"/.test(svg), 'a done one green');
+    assert.ok(/ov-map-track is-empty/.test(svg), 'a side with no duties draws an empty track');
+    const many = Array.from({ length: 20 }, (_, i) => ({ s: 'g', i }));
+    assert.ok(win.ovMapRingSegs(many).length <= 4, 'past the limit pieces group by state');
+    const css = read('index.html');
+    assert.match(css, /\.ov-map-stage\{ height:380px; \}/, 'the stage has one height');
   });
 
   test('two lines in the same direction never lie on each other', () => {

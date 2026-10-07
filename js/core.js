@@ -6215,8 +6215,16 @@ function linkRefusal(c, opts={}){
     const rowMail=String((row&&row.email)||'').trim().toLowerCase();
     if(rowMail && String(opts.email).trim().toLowerCase()!==rowMail) return { kind:'address', why:i18t('srv_signer_other_address') };
   }
+  /* A FORM ANSWERED BUT NOT YET IN THE DOCUMENT (7 Oct 2026). Answers wait for
+     "Fill the document" (tplFormPending); a link carrying wording asks it, so
+     a forgotten press never sends blanks the sender thinks are filled. Not in
+     LINK_ASKS: the server cannot know a press is owed, and nobody is walled
+     out by it — it is the sender's own unfinished step, with its way forward. */
+  if(!opts.keep && WORDING_PURPOSES.includes(purpose) && ask(()=>window.tplFormPending&&tplFormPending(c)))
+    return { kind:'form', why:i18t('tl_fill_doc_first') };
   return null;
 }
+const WORDING_PURPOSES=['sign','negotiate','view','history'];
 async function issueSigningRouteLinks(c){
   if(!API_MODE() || !window.signerPlan) return null;
   /* THE ONE CHECK FIRST (4 Oct 2026). `heldForApproval` is kept for the
