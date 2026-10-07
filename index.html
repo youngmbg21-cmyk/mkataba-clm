@@ -927,6 +927,10 @@
     --st-amber-bg:#FBEEDB; --st-amber-fg:#A24E07; --st-amber-dot:#E8A317; --st-amber-line:#EBCB8E;
     --st-green-bg:#DFF2E7; --st-green-fg:#1A6F45; --st-green-dot:#2E9E63; --st-green-line:#A9D6BC;
     --st-ruby-bg:#FBE5E3;  --st-ruby-fg:#B3261E;  --st-ruby-dot:#D9453B;  --st-ruby-line:#ECBAB5;
+    /* A STRUCK WORD IS RED, ours or theirs, the words and the line (Young,
+       7 Oct 2026: "just like in word documents"): every del.rl-us / del.rl-them
+       rule reads this one token; an INSERTION still says who by its colour. */
+    --rl-del-ink:var(--st-ruby-fg);
     --st-steel-bg:#E6ECF6; --st-steel-fg:#48639A; --st-steel-dot:#6F86BF; --st-steel-line:#BFCBE6;
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
@@ -1694,8 +1698,8 @@
      a deletion of ours inside an insertion of theirs is drawn nested: their
      tint kept, our strike over it. Scoped to the two sheets so the utility
      classes on every mark lose the fight by specificity, never by order. */
-  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them,.ag-words del.rl-them{background:transparent;color:var(--st-amber-fg)}
-  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us,.ag-words del.rl-us{background:transparent;color:var(--accent-ink)}
+  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them,.ag-words del.rl-them{background:transparent;color:var(--rl-del-ink)}
+  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us,.ag-words del.rl-us{background:transparent;color:var(--rl-del-ink)}
   .rl-doc ins.rl-them,.nego-doc ins.rl-them,.rl-cp-src ins.rl-them,.rl-col ins.rl-them,.pv-sheet ins.rl-them,.ag-words ins.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us,.ag-words ins.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
   /* AN ADDED RUN IS UNDERLINED AND A STRUCK ONE IS STRUCK, so the colour can
@@ -1704,8 +1708,8 @@
      green/red it always had. */
   .rl-doc ins.rl-them,.rl-doc ins.rl-us,.nego-doc ins.rl-them,.nego-doc ins.rl-us,.rl-cp-src ins.rl-them,.rl-cp-src ins.rl-us,.rl-col ins.rl-them,.rl-col ins.rl-us,.pv-sheet ins.rl-them,.pv-sheet ins.rl-us,.ag-words ins.rl-them,.ag-words ins.rl-us{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;text-decoration-color:currentColor}
   .rl-doc del.rl-them,.rl-doc del.rl-us,.nego-doc del.rl-them,.nego-doc del.rl-us,.rl-cp-src del.rl-them,.rl-cp-src del.rl-us,.rl-col del.rl-them,.rl-col del.rl-us,.pv-sheet del.rl-them,.pv-sheet del.rl-us,.ag-words del.rl-them,.ag-words del.rl-us{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:currentColor}
-  .rl-doc ins.rl-them>del.rl-us,.nego-doc ins.rl-them>del.rl-us,.rl-cp-src ins.rl-them>del.rl-us{background:transparent;color:var(--accent-ink)}
-  .rl-doc ins.rl-us>del.rl-them,.nego-doc ins.rl-us>del.rl-them,.rl-cp-src ins.rl-us>del.rl-them{background:transparent;color:var(--st-amber-fg)}
+  .rl-doc ins.rl-them>del.rl-us,.nego-doc ins.rl-them>del.rl-us,.rl-cp-src ins.rl-them>del.rl-us{background:transparent;color:var(--rl-del-ink)}
+  .rl-doc ins.rl-us>del.rl-them,.nego-doc ins.rl-us>del.rl-them,.rl-cp-src ins.rl-us>del.rl-them{background:transparent;color:var(--rl-del-ink)}
   .rl-repl-on{font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;font-style:italic;line-height:1.45}
   /* The one filled act. Its glow came off with the tint above — a filled
      accent face is already the strongest thing on any of these pages, and the

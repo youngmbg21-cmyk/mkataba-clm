@@ -389,7 +389,9 @@ describe('f314 (5) — the fill means arriving, and nothing else', () => {
   test('the ONE change is the fill — the sided grammar itself is untouched', () => {
     /* A deletion of ours nested inside an insertion of theirs still reads. */
     for (const src of [CSS, INDEX])
-      assert.match(src, /ins\.rl-them>del\.rl-us[^{]*\{background:transparent;color:var\(--accent-ink\)\}/);
+      /* RE-POINTED 7 Oct 2026 — every crossed-out word is red, ours and
+         theirs (the one-build work order part G): the nested form too. */
+      assert.match(src, /ins\.rl-them>del\.rl-us[^{]*\{background:transparent;color:var\(--rl-del-ink\)\}/);
   });
 });
 

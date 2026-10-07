@@ -847,7 +847,7 @@ function clauseEditorCss(){
   .ce-rail .ce-card .pv{font-family:inherit; font-size:var(--t-meta); line-height:1.6}
   .ce-rail .ce-card .pv ins.rl-us{background:var(--st-steel-bg); color:var(--accent-ink);
     font-weight:inherit; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:2px; text-decoration-color:currentColor}
-  .ce-rail .ce-card .pv del.rl-us{background:transparent; color:var(--accent-ink);
+  .ce-rail .ce-card .pv del.rl-us{background:transparent; color:var(--rl-del-ink);
     font-weight:inherit; text-decoration:line-through; text-decoration-thickness:1.5px; text-decoration-color:currentColor}
   .ce-card .av{display:flex; gap:var(--s-2); margin-top:9px; flex-wrap:wrap; align-items:center}
   .ce-card .av button{height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label);

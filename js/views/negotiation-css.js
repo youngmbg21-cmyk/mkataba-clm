@@ -4544,8 +4544,8 @@ function redlineLayoutCss(){
        carries --n-del-bg at (0,1,0); merely dropping the background declaration
        from these (0,2,1) rules would have let that red fill back through on
        every struck run. Measured, not assumed. */
-  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them{background:transparent;color:var(--st-amber-fg)}
-  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us{background:transparent;color:var(--accent-ink)}
+  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them{background:transparent;color:var(--rl-del-ink)}
+  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us{background:transparent;color:var(--rl-del-ink)}
   .rl-doc ins.rl-them,.nego-doc ins.rl-them,.rl-cp-src ins.rl-them,.rl-col ins.rl-them,.pv-sheet ins.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
   /* AN ADDED RUN IS UNDERLINED AND A STRUCK ONE IS STRUCK, so the colour can
@@ -4554,8 +4554,8 @@ function redlineLayoutCss(){
      green/red it always had. */
   .rl-doc ins.rl-them,.rl-doc ins.rl-us,.nego-doc ins.rl-them,.nego-doc ins.rl-us,.rl-cp-src ins.rl-them,.rl-cp-src ins.rl-us,.rl-col ins.rl-them,.rl-col ins.rl-us,.pv-sheet ins.rl-them,.pv-sheet ins.rl-us{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;text-decoration-color:currentColor}
   .rl-doc del.rl-them,.rl-doc del.rl-us,.nego-doc del.rl-them,.nego-doc del.rl-us,.rl-cp-src del.rl-them,.rl-cp-src del.rl-us,.rl-col del.rl-them,.rl-col del.rl-us,.pv-sheet del.rl-them,.pv-sheet del.rl-us{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:currentColor}
-  .rl-doc ins.rl-them>del.rl-us,.nego-doc ins.rl-them>del.rl-us,.rl-cp-src ins.rl-them>del.rl-us{background:transparent;color:var(--accent-ink)}
-  .rl-doc ins.rl-us>del.rl-them,.nego-doc ins.rl-us>del.rl-them,.rl-cp-src ins.rl-us>del.rl-them{background:transparent;color:var(--st-amber-fg)}
+  .rl-doc ins.rl-them>del.rl-us,.nego-doc ins.rl-them>del.rl-us,.rl-cp-src ins.rl-them>del.rl-us{background:transparent;color:var(--rl-del-ink)}
+  .rl-doc ins.rl-us>del.rl-them,.nego-doc ins.rl-us>del.rl-them,.rl-cp-src ins.rl-us>del.rl-them{background:transparent;color:var(--rl-del-ink)}
   .rl-repl-on{font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;font-style:italic;line-height:1.45}
   .redline-page .rl-cp-wd{font-size:var(--t-card);line-height:1.6;color:var(--color-text)}
   .redline-page .rl-cp-why{display:block;margin-top:var(--s-1);font-size:var(--t-body);font-style:italic;

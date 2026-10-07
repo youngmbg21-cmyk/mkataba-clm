@@ -2770,8 +2770,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('28c and every added word still does — the fill now says one thing only',
     ins28.length > 0 && ins28.every(r => !clear28(r.bg)),
     [...new Set(ins28.map(r => r.side + ' ' + r.bg))].join(' · '));
-  check('28d a deletion still says WHOSE it is — the same ink as that side\'s insertions',
-    del28.every(d => { const m = ins28.find(i => i.side === d.side); return !m || m.color === d.color; }),
+  /* REVERSED 7 Oct 2026 (Young, the one-build work order part G): "any
+     rejected or crossed words … both the words and the line crossing it
+     should be in red just like in word documents". Every struck word is the
+     ONE red, ours and theirs; the insertion still says whose. */
+  check('28d every deletion is the one red, whoever struck it — the insertion still says whose',
+    del28.length > 0 && new Set(del28.map(d => d.color)).size === 1 && ins28.every(i => !del28.some(d => d.color === i.color)),
     [...new Set(fill28.filter(r => r.seen).map(r => r.side + ' ' + r.kind + ' ' + r.color))].join(' · '));
   check('28e and the LINE still says what — underline arrives, strike leaves',
     ins28.every(r => /underline/.test(r.line)) && del28.every(r => /line-through/.test(r.line)),
