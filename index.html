@@ -8460,7 +8460,10 @@
   .hb-ctab{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:var(--s-3)}
   .hb-ctab th{text-align:left;font-weight:400;color:var(--hb-mute);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-bottom:1px solid rgba(var(--hb-ln),.2)}
   .hb-ctab td{padding:6px 8px;border-bottom:1px solid rgba(var(--hb-ln),.1);color:var(--hb-ink);font-variant-numeric:tabular-nums}
-  .hb-dig.is-full{position:fixed;inset:16px;z-index:70;overflow:auto;max-width:none;margin:0;box-shadow:0 12px 48px rgba(0,0,0,.35)}
+  .hb-dig.is-full{position:fixed;inset:16px;z-index:95;overflow:auto;max-width:none;margin:0;box-shadow:0 12px 48px rgba(0,0,0,.35);background:#FFFFFF;backdrop-filter:none}
+  .hb-board:has(.hb-dig.is-full){z-index:95}
+  .hb-dark .hb-dig.is-full{background:#06171A}
+  [data-brand="navy"] .hb-dark .hb-dig.is-full{background:#06101F}
   .hb-dig-big #ig-dock,.hb-dig-big #ig-resizer{display:none}
   /* THE RECIPE ROW: four dropdowns and the trend switch under the card's title */
   .hb-recipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid rgba(var(--hb-ln),.12)}

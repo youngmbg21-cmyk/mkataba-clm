@@ -112,6 +112,9 @@ const check = (name, pass, detail) => {
     m = await svgOf(fsel);
     check('3a. full screen is the window less 230', m && Math.abs(m.h - 670) <= 2, m && Math.round(m.h));
     check('3b. axis words are 13px', m && m.ax === '13px', m && m.ax);
+    const top = await page.evaluate(() => { const d = document.querySelector('.hb-dig.is-full'), r = d.getBoundingClientRect();
+      const e = document.elementFromPoint(r.left + 30, r.top + 30); let z = [], a = d; while (a && a !== document.body){ const cs = getComputedStyle(a); if (cs.zIndex !== 'auto' || cs.isolation === 'isolate') z.push((a.id || a.className.toString().slice(0, 30)) + ':' + cs.zIndex + ':' + cs.position); a = a.parentElement; } return { left: !!e && d.contains(e), bg: getComputedStyle(d).backgroundColor, hit: e ? (e.id || e.className.toString().slice(0, 40)) : '', z: z.join(' / ') }; });
+    check('3b2. full screen sits on top of the menu, on a solid ground', top.left && !/rgba\(.*, 0\.\d+\)$/.test(top.bg), JSON.stringify(top));
     await page.screenshot({ path: path.join(OUT, '3-full.png') });
     await page.keyboard.press('Escape');
     check('3c. Esc: back to opened', !!(await until(() => !document.querySelector('.hb-dig.is-full') && !!document.querySelector('#hb-focus svg[data-hb-step="open"]'))));
