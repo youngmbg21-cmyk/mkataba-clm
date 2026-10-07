@@ -672,6 +672,14 @@ async function triageRun(c, opts = {}){
       }
     }catch(e){ t.steps.oblig = triageFail(e); }
 
+    /* 4b — THE DATED WINDOWS IN THE WORDING (work order O-40, D9). Read once
+       per wording for Overview 2's Time Machine and kept on the contract
+       (c.datedWindows); not a tile and not one of the five steps, so a
+       stage without js/views/overview2.js reads exactly as it did. It never
+       throws and never fails the run: without it the tab draws the record's
+       own dates and says once that the wording's windows were not read. */
+    try{ if (typeof runDatedWindows === 'function') await runDatedWindows(c, { quiet: true, fresh: !!(opts && opts.fresh) }); }catch(_){}
+
     /* 5 — FILL THE OPEN BLANKS. Last, because it is the one reading that
        CHANGES the paper — see TRIAGE_STEPS. The record answers first and for
        free; a model is asked only about what is left, and only where there is

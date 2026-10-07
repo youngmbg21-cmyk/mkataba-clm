@@ -710,7 +710,7 @@ function renderFamilySection(c,opts){
   document.getElementById('fam-confirm')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'child'}));
   document.getElementById('fam-add')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'parent'}));
   document.getElementById('fam-create')?.addEventListener('click',()=>{ if(amendmentExecuted(c)) openCreateAmendmentModal(c); });
-  document.getElementById('fam-edit')?.addEventListener('click',()=>{ if(window.roomGoTab) roomGoTab('document'); });
+  document.getElementById('fam-edit')?.addEventListener('click',()=>{ if(window.roomGoTab) roomGoTab(c,'docs'); });
   amendChangesWire(c, again);
   /* CHECK THE FAMILY (S12). One press, one reading, nothing written and
      nothing spent — so it answers in a plain dialog rather than filing a

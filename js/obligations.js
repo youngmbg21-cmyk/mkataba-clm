@@ -1448,6 +1448,7 @@ function openObligationsReview(c, found, back){
       assignee: '', status: 'open', quote: o.quote || '', party: w === 'them' ? 'theirs' : 'ours' };
     if (Number(o.amount) > 0) rec.amount = Number(o.amount);
     if (o.doc === true) rec.doc = {};
+    if (o.clause) rec.clause = String(o.clause).slice(0, 20);
     c.obligations.push(rec);
     obReviewMark(c, o, 'added');
     if (trace[i] && window.aiTraceTaken) try { aiTraceTaken(c, trace[i]); } catch (_){}

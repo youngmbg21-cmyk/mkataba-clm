@@ -97,6 +97,7 @@ import './views/negotiation-css.js'; // that page's stylesheets, lifted out of t
 import './views/negotiation.js';  // the three-pane redline, rendered for whichever side is looking
 import './views/clauseeditor.js'; // the clause editor: one clause, its redline, and Copilot beside it
 import './views/contract.js';
+import './views/overview2.js'; // Overview 2: the Time Machine tab (work order O-36..O-42, 7 Oct 2026)
 import './views/handover.js'; // redline here, sign there: the handover, the wait and filing the signed copy (26 Sep 2026)
 import './pdfrich.js';
 import './workshape.js';       // which shapes this business has, and what it calls a piece of work

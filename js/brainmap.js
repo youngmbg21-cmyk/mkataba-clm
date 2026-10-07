@@ -152,13 +152,18 @@ const BRAIN_PARTS = [
   ['wordmark', 'richListMark', 'out', 3],
   ['paperdrop', 'docxIsPaperPara', 'read', 1],
   ['asks', 'askOpen', 'sign', 1]
+  /* the work order of 7 Oct 2026: Overview 2's Time Machine, the obligations
+     review desk, and the board's charts drawn at their real size */
+  ['timemachine', 'paintOverview2', 'see', 1],
+  ['obdesk', 'obReviewTally', 'time', 1],
+  ['chartsize', 'hbFitMeasure', 'see', 1],
 ].map((a, i) => ({ id: a[0], code: a[1], reg: a[2], floor: a[3], def: (a[4] || {}).def || '', men: (a[4] || {}).men || '', i }));
 
 /* The six flows: which parts each step lands on. The sentences are
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'book'], ['docx'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'risk'], ['model'], ['blanks'], ['overview', 'constellation', 'bell', 'request', 'kinds', 'laneowner']] },
+  { id: 'upload', steps: [['upload', 'book'], ['docx'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk'], ['model'], ['blanks'], ['overview', 'constellation', 'timemachine', 'bell', 'request', 'kinds', 'laneowner']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
@@ -167,7 +172,7 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved'], ['desknight', 'home', 'insights']] },
-  { id: 'ask', steps: [['explorer', 'chartread', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote'], ['contracts'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
+  { id: 'ask', steps: [['explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote'], ['contracts'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it

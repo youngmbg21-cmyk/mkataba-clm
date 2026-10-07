@@ -2859,6 +2859,7 @@ const AI_FEATURE_LABEL = {
   brief: 'Contract brief',
   renewal: 'Renewal adviser',   // W2-4
   amend: 'Amendment drafting',  // work order O-12, named on arrival
+  windows: 'Dated windows',     // work order O-40, the Time Machine's periods
   /* The template builder's outline (Prompt & Build). Named on arrival for
      the reason conversion's absence taught: an unnamed feature spends into
      the Other bucket, where the one figure an admin wants is unreadable.
@@ -8064,6 +8065,51 @@ Quote the clause each came from. For each, say its kind (dated, on an event, or 
    folded) is dropped and counted, so the screen can say so — a proposal
    resting on words the contract does not contain is never shown as one. */
 const amendNorm = t => String(t || '').toLowerCase().replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/\s+/g, ' ').trim();
+/* ---------- THE DATED WINDOWS IN THE WORDING (7 Oct 2026, work order O-40) ----------
+   The Time Machine (Overview 2) draws the record's own dates; this reading
+   adds the periods only the wording states — prices fixed, an exit fee, a
+   lock-in, probation, no-hire, secrecy after the end — each with its clause
+   and its rule. Asked once per wording on arrival (js/triage.js) and kept on
+   the contract; it never travels. THE QUOTE IS CHECKED: a window whose quote
+   is not in the wording is dropped and counted, never shown; a date that is
+   not a real day is dropped. Nothing is guessed. */
+const WINDOW_KINDS = ['fixed', 'fee', 'lockin', 'probation', 'nohire', 'secrecy', 'other'];
+app.post('/api/ai/windows', auth, rlAiDeep, aiFeature('windows'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const { text, start, end } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  const day = v => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) && !isNaN(Date.parse(v))) ? String(v) : '';
+  const tool = { name: 'list_windows', description: 'List the dated periods the contract wording sets.',
+    input_schema: { type: 'object', properties: { windows: { type: 'array', maxItems: 12, items: { type: 'object', properties: {
+      label: { type: 'string', description: 'A short plain name, at most 5 words, e.g. "Prices fixed", "Exit fee applies", "Secrecy continues".' },
+      kind: { type: 'string', enum: WINDOW_KINDS },
+      from: { type: 'string', description: 'First day, yyyy-mm-dd. Work it out from the contract\'s start and end dates where the wording counts from them.' },
+      to: { type: 'string', description: 'Last day, yyyy-mm-dd.' },
+      clause: { type: 'string', description: 'The clause number as printed, e.g. "13.3".' },
+      rule: { type: 'string', description: 'One plain sentence: what you may or may not do during it.' },
+      quote: { type: 'string', description: 'The words that set it, verbatim.' + AI_QUOTE_RULE },
+    }, required: ['label', 'from', 'to', 'quote'] } } }, required: ['windows'] } };
+  const prompt = `List the dated periods this contract sets: prices fixed, an exit fee or early-termination fee, a lock-in or minimum term, probation, no-hire or non-solicit, confidentiality that continues after the end, and any similar window with a start and an end.${day(start) ? ` The contract starts on ${day(start)}.` : ''}${day(end) ? ` It ends on ${day(end)}.` : ''} Give real calendar dates; leave a window out rather than guess its dates. Quote the words that set each one. Return via list_windows.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'list_windows' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'windows', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const hay = amendNorm(text);
+    let dropped = 0;
+    const windows = (Array.isArray(block.input && block.input.windows) ? block.input.windows : []).map(w => {
+      if (!w || !w.label || !w.quote) { dropped++; return null; }
+      const from = day(w.from), to = day(w.to);
+      if (!from || !to || to < from || !hay.includes(amendNorm(w.quote))) { dropped++; return null; }
+      return { label: String(w.label).slice(0, 60), kind: WINDOW_KINDS.includes(w.kind) ? w.kind : 'other', from, to,
+        clause: String(w.clause || '').slice(0, 20), rule: String(w.rule || '').slice(0, 240), quote: String(w.quote).slice(0, 400) };
+    }).filter(Boolean);
+    if (!windows.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could list the windows. Try again.' });
+    res.json({ windows, dropped, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
 app.post('/api/ai/amend', auth, rlAiDeep, aiFeature('amend'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
