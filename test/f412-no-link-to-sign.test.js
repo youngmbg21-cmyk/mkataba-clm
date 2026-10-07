@@ -339,8 +339,10 @@ function stage(){
 describe('f412 (3) — the sixth agent, "No link to sign"', () => {
   test('3a it is the sixth agent and sits SECOND, under "Their round came back", with its own steps', () => {
     const { win } = stage();
-    /* Seven since 28 Sep 2026: Our promises after Late promises; this one stays second. */
-    assert.equal(Array.from(win.AG_KEYS).join(','), 'round,link,renew,paper,late,ours,import');
+    /* Seven since 28 Sep 2026: Our promises after Late promises; this one stays second among
+       the agents that prepare. Since 7 Oct 2026 four readings (approvals, requests, the week,
+       quiet threads) come first on the board. */
+    assert.equal(Array.from(win.AG_KEYS).join(','), 'approve,request,week,quiet,round,link,renew,paper,late,ours,import');
     assert.equal(Array.from(win.AG_DEF.link.steps).join(','), 'ag_st_find_stuck,ag_st_check_link,ag_st_review,ag_st_link_sent');
     assert.equal(win.AG_DEF.link.review, 2);
     for (const k of ['ag_link', 'ag_link_does', 'ag_link_runs', 'ag_link_who', 'ag_link_pays', 'ag_link_idle', 'ag_a_fresh',
@@ -489,12 +491,12 @@ describe('f412 (4) — the list is drawn once; a press repaints the right side',
     const { win } = mount();
     const doc = win.document;
     const rows = [...doc.querySelectorAll('[data-ag-agent]')];
-    assert.equal(rows.length, 7);
+    assert.equal(rows.length, 11, 'eleven agents: four readings, then the seven that prepare');
     rows.forEach(b => { b.dataset.probe = '1'; });
     const main = doc.getElementById('ag-main');
     for (const k of ['renew', 'link', 'import', 'round']) {
       doc.querySelector(`[data-ag-agent="${k}"]`).click();
-      assert.equal(doc.querySelectorAll('[data-ag-agent][data-probe="1"]').length, 7, 'the same rows after pressing ' + k);
+      assert.equal(doc.querySelectorAll('[data-ag-agent][data-probe="1"]').length, 11, 'the same rows after pressing ' + k);
       assert.equal(doc.getElementById('ag-main'), main, 'the right side is the same element, repainted');
       assert.equal(doc.querySelector('.ag-row.on').getAttribute('data-ag-agent'), k);
       assert.equal(doc.querySelector('[data-ag-agent="' + k + '"]').getAttribute('aria-current'), 'true');
@@ -507,7 +509,7 @@ describe('f412 (4) — the list is drawn once; a press repaints the right side',
     doc.querySelectorAll('[data-ag-agent]').forEach(b => { b.dataset.probe = '1'; });
     c._reach = { reply: 'live' };
     win.agRepaint();
-    assert.equal(doc.querySelectorAll('[data-ag-agent][data-probe="1"]').length, 7);
+    assert.equal(doc.querySelectorAll('[data-ag-agent][data-probe="1"]').length, 11);
     assert.match(doc.querySelector('[data-ag-agent="link"]').textContent, /1 ready/);
   });
   test('4c the page owns its height above 900px: the right side scrolls, the list does not ride with it', () => {

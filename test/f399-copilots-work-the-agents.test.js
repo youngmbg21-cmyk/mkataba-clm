@@ -304,13 +304,13 @@ describe('f399 (4) — the readings', () => {
 describe('f399 (5) — the page, drawn', () => {
   /* SIX since 27 Sep 2026: "No link to sign" sits second (f412). */
   /* Seven since 27 Sep 2026: Our promises joined the list. */
-  test('5a seven agents, the page opens on the first with work ready, cards are doors', async () => {
+  test('5a eleven agents, the page opens on the first with work ready, cards are doors', async () => {
     const { win } = await staged();
     const doc = win.document;
     let host = doc.getElementById('content');
     if (!host){ host = doc.createElement('div'); host.id = 'content'; doc.body.appendChild(host); }
     win.renderAgentsPage();
-    assert.equal(host.querySelectorAll('[data-ag-agent]').length, 7);
+    assert.equal(host.querySelectorAll('[data-ag-agent]').length, 11);
     const on = host.querySelector('.ag-row.on');
     assert.equal(on && on.getAttribute('data-ag-agent'), 'round', 'the first agent with something ready');
     assert.ok(host.querySelectorAll('#ag-main [data-ag-open]').length >= 2, 'every ready item is a press');
