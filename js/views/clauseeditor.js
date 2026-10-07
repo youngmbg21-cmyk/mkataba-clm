@@ -945,10 +945,14 @@ function clauseEditorCss(){
   .ce-chips{flex:none; display:flex; gap:6px; flex-wrap:wrap;
     padding:0 14px 9px; background:var(--color-surface)}
   .ce-chips:empty{padding:0}
+  /* SHADED IN THE PLATFORM'S COLOUR (Young, 7 Oct 2026: "the predetermined
+     questions should be slightly shaded based on the platform color"): the
+     brand's own pale wash and ink, so green on Green and blue on Blue, and
+     the pale rungs' dark answer at night. */
   .ce-chips button{flex:none; height:var(--ctl-h-sm); padding:0 var(--pad-ctl-x-sm); font:inherit; font-size:var(--t-meta); font-weight:var(--w-label);
-    white-space:nowrap; background:var(--color-surface); color:var(--color-neutral-600);
-    border:1px solid var(--color-divider)}
-  .ce-chips button:hover{color:var(--color-text); border-color:var(--accent-solid)}
+    white-space:nowrap; background:var(--color-accent-50); color:var(--accent-ink);
+    border:1px solid var(--color-accent-100)}
+  .ce-chips button:hover{background:var(--color-accent-100); border-color:var(--accent-solid)}
 
   /* THE BOX YOU TYPE IN IS ONE LINE AT REST (Young, 5 Oct 2026: "one line
      space but if your prompt is long then it will then wrap text"): it grows
