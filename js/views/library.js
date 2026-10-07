@@ -2863,7 +2863,7 @@ function renderPlaybookPage(){
     <button data-dev-open="${esc(x.c.id)}" style="display:flex;align-items:center;gap:var(--s-2);width:100%;padding:6px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
       <span style="flex:1;min-width:0">
         <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.c.name||'')}</span>
-        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${esc(window.contractRef?contractRef(x.c):x.c.id)} · ${esc(x.c.counterparty||'—')}</span>
+        <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${window.refHtml?refHtml(x.c):esc(x.c.id)} · ${esc(x.c.counterparty||'—')}</span>
       </span>
       <span class="badge" style="background:var(--st-amber-bg);color:var(--st-amber-fg);flex:none">${x.s.dev+x.s.miss} deviation${x.s.dev+x.s.miss===1?'':'s'}</span>
     </button>`).join('')+(devMore>0?`<p class="dev-more" style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 2px 0">${esc(i18t('st_attention_more',{n:devMore}))}</p>`:'')

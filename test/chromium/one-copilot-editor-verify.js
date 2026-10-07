@@ -178,7 +178,10 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     const panelType = await page.evaluate(() => { const t = document.querySelector('#ce-lane .ce-ai p.t'); const k = t && getComputedStyle(t); return k ? { f: k.fontFamily, s: k.fontSize } : null; });
     check(!!face && !!panelType && face.pv.f === panelType.f && face.pv.s === panelType.s, '5c the card is in the panel\'s own face and size', face && JSON.stringify([panelType, face.pv.f.slice(0, 20), face.pv.s]));
     check(!!face && face.ins.col === face.paperIns.col && face.ins.bg === face.paperIns.bg && /underline/.test(face.ins.dec) && Number(face.ins.w) < 500, '5d an added run wears the paper\'s colour, underlined, not bold', face && JSON.stringify([face.ins, face.paperIns]));
-    check(!!face && face.del.col === face.paperIns.col && /line-through/.test(face.del.dec), '5e a struck run wears the same colour, struck', face && JSON.stringify(face.del));
+    /* RE-POINTED 7 Oct 2026 (the one-build work order part G): a struck run
+       is red, words and line — the ruby token — never the side's colour */
+    const ruby5e = await page.evaluate(() => { const x = document.createElement('span'); x.style.color = 'var(--st-ruby-fg)'; document.body.appendChild(x); const v = getComputedStyle(x).color; x.remove(); return v; });
+    check(!!face && face.del.col === ruby5e && face.del.col !== face.paperIns.col && /line-through/.test(face.del.dec), '5e a struck run is red, struck', face && JSON.stringify(face.del));
     const ask0 = await page.evaluate(() => Math.round(document.querySelector('#ce-ask').getBoundingClientRect().height));
     await page.fill('#ce-ask', 'Please raise the cap and carve out confidentiality, data protection, fraud, personal injury and anything that cannot be limited at law, and keep it to one paragraph that reads cleanly in the contract and leaves the rest of the clause as it stands today with no other edits at all please. '.repeat(3));
     const ask1 = await page.evaluate(() => { const b = document.querySelector('#ce-ask'); return { h: Math.round(b.getBoundingClientRect().height), lh: parseFloat(getComputedStyle(b).lineHeight), ov: getComputedStyle(b).overflowY }; });

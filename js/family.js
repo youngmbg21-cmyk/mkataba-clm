@@ -447,7 +447,7 @@ function openLinkModal(c, onDone, opts={}){
         <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);margin-bottom:5px">${i18t('fa_hati_suggests')}</div>
         ${suggested.map(x=>`<label style="display:flex;align-items:flex-start;gap:var(--s-2);font-size:var(--t-meta);padding:3px 0;cursor:pointer">
           <input type="radio" name="lk-sug" value="${_famAttr(x.id)}" style="margin-top:3px;accent-color:var(--color-accent)"/>
-          <span><b style="font-family:var(--font-mono)">${_famEsc(window.contractRef?contractRef(x.c):x.id)}</b> ${_famEsc(x.c.name)}
+          <span><b class="hati-ref">${_famEsc(window.contractRef?contractRef(x.c):x.id)}</b> ${_famEsc(x.c.name)}
           <span style="display:block;color:var(--color-neutral-600)">${_famEsc(x.why||'')}</span></span></label>`).join('')}
       </div>`:''}
       <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${mode==='child'?'Parent agreement':'Document to attach'}</span>
@@ -470,7 +470,7 @@ function openLinkModal(c, onDone, opts={}){
     const t=String(q||'').toLowerCase();
     const list=candidates.filter(x=>!t || (x.name+' '+(x.counterparty||'')+' '+x.id+' '+(x.contractNo||'')).toLowerCase().includes(t)).slice(0,40);
     results.innerHTML=list.length?list.map(x=>`<button type="button" data-lk-pick="${_famAttr(x.id)}" style="display:flex;width:100%;gap:var(--s-2);align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);background:${picked===x.id?'var(--color-accent-100)':'none'};padding:6px 9px;cursor:pointer;font:inherit;font-size:var(--t-meta)">
-        <b style="font-family:var(--font-mono);flex:none">${_famEsc(window.contractRef?contractRef(x):x.id)}</b>
+        <b class="hati-ref" style="flex:none">${_famEsc(window.contractRef?contractRef(x):x.id)}</b>
         <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
         <span style="flex:none;color:var(--color-neutral-600)">${_famEsc(x.counterparty||'')}</span></button>`).join('')
       :`<div style="padding:var(--s-2) 9px;font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('fa_no_matching')}</div>`;
@@ -555,7 +555,7 @@ function renderFamilySection(c,opts){
      document above it. A parent row is not compared with itself. */
   const signed=x=>{ try{ return (window.contractSignedLabel&&contractSignedLabel(x))||''; }catch(_){ return ''; } };
   const row=(x,note,against)=>`<button type="button" data-fam-open="${_famAttr(x.id)}" style="display:flex;width:100%;gap:var(--s-2);align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;padding:6px 0;cursor:pointer;font:inherit;font-size:var(--t-meta);color:inherit">
-      <b style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink-700);flex:none">${_famEsc(window.contractRef?contractRef(x):x.id)}</b>
+      <b class="hati-ref" style="font-size:var(--t-label);color:var(--accent-ink-700);flex:none">${_famEsc(window.contractRef?contractRef(x):x.id)}</b>
       <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
       ${signed(x)?`<span style="flex:none;font-size:var(--t-label);color:var(--color-neutral-600)">${_famEsc(signed(x))}</span>`:''}
       ${against?`<span style="flex:none;font-size:var(--t-label);color:${familyAgreement(against,x).moved.length?'var(--st-amber-fg)':'var(--color-neutral-600)'};max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${_famAttr(familyAgreeLine(against,x))}">${_famEsc(familyAgreeLine(against,x))}</span>`:''}

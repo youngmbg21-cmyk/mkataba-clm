@@ -522,6 +522,8 @@ function hbPanelData(kind, lens){
    the same reading asked again — today's figures, never a remembered list. */
 function hbContract(id){ try { return (typeof getContract === 'function') ? getContract(id) : (state.contracts || []).find(c => c.id === id); } catch (_){ return null; } }
 function hbRef(c){ return c ? ((typeof contractRef === 'function') ? contractRef(c) : c.id) : ''; }
+/* the reference DRAWN on the board wears the reference face (refHtml) */
+const _hbRefH = c => (typeof refHtml === 'function') ? refHtml(c && typeof c === 'object' ? hbRef(c) : c) : _hbE(c && typeof c === 'object' ? hbRef(c) : c);
 function hbListOf(ids, lens){
   const inL = hbLensIds(lens || 'all');
   return (ids || []).map(id => hbContract(id)).filter(c => c && inL.has(c.id));
@@ -838,6 +840,8 @@ function hbFindContract(q){
   if (b && b[1]){
     const w = b[1].trim().toLowerCase();
     if (w.length < 4 || HB_RX.map.test(w) || HB_RX.board.test(w)) return null;
+    /* "show me Amani Foods by month" is a chart of their contracts (A2) */
+    if (hbRecipeRead(w)) return null;
     let hit = cs.filter(c => String(c.name || '').toLowerCase() === w);
     if (!hit.length) hit = cs.filter(c => String(c.name || '').toLowerCase().includes(w) || String(c.counterparty || '').toLowerCase() === w);
     if (hit.length === 1) return { c: hit[0] };
@@ -1069,7 +1073,7 @@ function hbPrepHtml(A, since){
 /* ---- ONE CONTRACT ROW, in every list on the board ---- */
 function hbRowHtml(c, right){
   return `<button type="button" class="hb-row" data-hb-dig="c:${_hbE(c.id)}" title="${_hbE(i18t('hb_open_card'))}">
-    <span class="hb-row-a">${_hbE(hbRef(c))} · ${_hbE(c.name || '')}</span><span class="hb-row-r">${right || ''}</span>
+    <span class="hb-row-a">${_hbRefH(c)} · ${_hbE(c.name || '')}</span><span class="hb-row-r">${right || ''}</span>
     <span class="hb-row-b">${_hbE(c.counterparty || i18t('home_no_counterparty'))}${(typeof contractOwnerName === 'function' && contractOwnerName(c)) ? ' · ' + _hbE(contractOwnerName(c)) : ''}</span></button>`;
 }
 function hbRightOf(c, fig){
@@ -1351,7 +1355,7 @@ function hbBlocksSvg(D, cs, field, money, P){
       r.forEach(t => { const tw = r.length === 1 ? innerW : innerW * (0.15 + 0.85 * t.v / sum) / (0.15 * r.length + 0.85);
         const ttl = t.more ? i18t('hb_chart_more', { n: _hbN(t.more) }) + ' · ' + _hbM(t.v) : hbRef(t.c) + ' · ' + String(t.c.name || '') + (t.c.counterparty ? ' · ' + t.c.counterparty : '') + ': ' + _hbM(t.v);
         out += `<g class="hb-sv-tile hb-in" style="animation-delay:${gi * 40}ms" ${_hbSvgDoor(t.more ? dig : 'c:' + t.c.id, ttl)}><rect x="${(tx + 2).toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(0, tw - 4).toFixed(1)}" height="${Math.max(0, rowH - 6).toFixed(1)}" rx="4" style="fill:${hue}" fill-opacity="${t.more ? 0.3 : (0.5 + 0.45 * t.v / vmax).toFixed(2)}"/>
-          ${tw > 64 && rowH > 30 ? `<text x="${(tx + 10).toFixed(1)}" y="${(y + 17).toFixed(1)}" font-size="12" font-weight="600" fill="${HB_TILE_INK}">${_hbE(t.more ? '+' + _hbN(t.more) : hbRef(t.c))}</text>${rowH > 44 ? `<text x="${(tx + 10).toFixed(1)}" y="${(y + 33).toFixed(1)}" font-size="11" fill="${HB_TILE_INK}" opacity=".8">${_hbE(_hbM(t.v))}</text>` : ''}` : ''}</g>`;
+          ${tw > 64 && rowH > 30 ? `<text x="${(tx + 10).toFixed(1)}" y="${(y + 17).toFixed(1)}" font-size="12" font-weight="600" fill="${HB_TILE_INK}"${t.more ? '' : ' class="hati-ref"'}>${_hbE(t.more ? '+' + _hbN(t.more) : hbRef(t.c))}</text>${rowH > 44 ? `<text x="${(tx + 10).toFixed(1)}" y="${(y + 33).toFixed(1)}" font-size="11" fill="${HB_TILE_INK}" opacity=".8">${_hbE(_hbM(t.v))}</text>` : ''}` : ''}</g>`;
         tx += tw; });
       y += rowH; });
     x += w;
@@ -1584,6 +1588,9 @@ const HB_RC = {
   /* THE COMPARISON: against the same period a year back, or the one before */
   cmpYear: /\b(?:compared (?:to|with)|against|vs\.?|versus|jämfört med|mot)\s+(?:the same (?:period|time|months?|quarter) )?(?:last year|a year (?:ago|earlier|before)|the year before|previous year|förra året|i fjol|året innan)\b/,
   cmpPrev: /\b(?:compared (?:to|with)|against|vs\.?|versus|jämfört med|mot)\s+(?:the )?(?:previous|prior|last|preceding|förra|föregående)\s+(?:period|quarter|month|perioden|kvartalet|månaden)\b|\b(?:compared (?:to|with)|against)\s+the (?:period|one) before\b/,
+  /* THE BUBBLES PICTURE'S OWN WORDS (one-build work order A1, 7 Oct 2026):
+     "value against time left" is what the bubbles picture draws */
+  timeLeft: /\b(?:(?:against|versus|vs\.?|by|over|mot)\s+)?(?:the\s+)?(?:time left|time remaining|months left|time to expiry|time until expiry|time to end|tid kvar)\b/,
   running: /\b(?:running total|cumulative(?:ly)?|add(?:ed|ing)? up over time|ackumulerat|löpande summa)\b/,
   share: /\b(?:share of (?:the )?total|percent(?:age)? of (?:the )?total|as (?:a )?(?:share|percentage)|andel av (?:det )?totala?)\b/,
   title: /\b(?:called|named|titled|kallad|med namnet|med rubriken)\s+["“']?([^"”']{2,80}?)["”']?\s*$/,
@@ -1607,7 +1614,7 @@ const HB_RC = {
   },
   trend: /\b(?:trend\w*|over time|over the (?:last|past)|getting (?:faster|slower|longer|shorter|better|worse|bigger|smaller)|faster|slower|grow(?:s|ing)?|shrink\w*|increas\w*|decreas\w*|rising|falling|going (?:up|down)|month on month|year on year|quarter on quarter|compared (?:to|with) last|utveckling|ökar|minskar|snabbare|långsammare)\b/,
   /* words a chart question may carry that name nothing to count */
-  filler: /\b(?:and|then|first|with|add|och|sedan|when|how|much|total|overall|sum|average|avg|sign|what|whats|do|does|did|will|by|per|each|every|over|time|as|an?|on|in|at|into|getting|draw|make|create|build|plot|me|it|them|these|they|we|our|take|takes|took|is|are|was|were|been|be|end|ends|ended|ending|expir\w*|start|starts|starting|started|signed|signing|created|raised|renewal|renewals|renew|renewing|decision|decisions|date|dates|new|month|months|quarter|quarters|year|years|chart|graph|than|then|so|far|has|have|had|live|active|under|managed|management|altogether|faster|slower|more|fewer|less|längre|när|per|varje|som|av|på|i)\b/g,
+  filler: /\b(?:and|then|first|with|add|och|sedan|when|how|much|total|overall|sum|average|avg|sign|what|whats|do|does|did|will|by|per|each|every|over|time|as|an?|on|in|at|into|getting|draw|make|create|build|plot|me|it|them|these|they|we|our|take|takes|took|is|are|was|were|been|be|end|ends|ended|ending|expir\w*|start|starts|starting|started|signed|signing|created|raised|renewal|renewals|renew|renewing|decision|decisions|date|dates|new|month|months|quarter|quarters|year|years|chart|graph|than|then|so|far|has|have|had|live|active|under|managed|management|altogether|faster|slower|more|fewer|less|längre|när|per|varje|som|av|på|i|of)\b/g,
 };
 const _hbRcNorm = s => (typeof _igNorm === 'function') ? _igNorm(s) : String(s || '').toLowerCase().replace(/[?!.,;:()]/g, ' ').replace(/\s+/g, ' ').trim();
 /* the date a split by time reads: the one named nearest the time words, else
@@ -1679,8 +1686,10 @@ function hbRecipeRead(qRaw){
   if (top && group2 === null && group !== 'valueBand'){ const vb = HB_RC.split.find(([g]) => g === 'valueBand'); if (vb && vb[1].test(t)){ take(vb[1]); t += ' value '; } }
   for (const [k, re] of HB_RC.sort){ if (take(re)){ const [by, dir] = k.split(':'); sort = { by, dir }; break; } }
   const gantt = !!take(HB_RC.gantt);
+  const timeLeft = !!take(HB_RC.timeLeft);
   let pic = null;
   for (const [p, re] of HB_RC.pic){ if (take(re)){ pic = p; break; } }
+  if (!pic && timeLeft) pic = 'bubbles';
   if (!pic && group2 && stackBy === group2) pic = 'stack';
   const chartWord = !!take(HB_RC.chart);
   let measure = exposure ? 'exposure' : null;
@@ -3032,7 +3041,7 @@ function hbReadingCore(D, cs, P, R){
 }
 /* one contract, as a door onto its card */
 function hbReadCDoor(c){
-  return `<button type="button" class="hb-read-n" data-hb-dig="c:${_hbE(c.id)}" title="${_hbE(hbRef(c) + ' · ' + String(c.name || '') + (c.counterparty ? ' · ' + c.counterparty : ''))}">${_hbE(hbRef(c))}</button>${c.counterparty ? ' (' + _hbE(c.counterparty) + ')' : ''}`;
+  return `<button type="button" class="hb-read-n" data-hb-dig="c:${_hbE(c.id)}" title="${_hbE(hbRef(c) + ' · ' + String(c.name || '') + (c.counterparty ? ' · ' + c.counterparty : ''))}">${_hbRefH(c)}</button>${c.counterparty ? ' (' + _hbE(c.counterparty) + ')' : ''}`;
 }
 /* a month in words, in full: "September 2026" */
 function hbReadMonth(ym){
@@ -3695,7 +3704,7 @@ function hbCardHtml(K){
   const row = (l, v) => `<div class="hb-crow"><span>${_hbE(l)}</span><span>${v}</span></div>`;
   const q = K.move === 'you' && K.holding.length ? i18t('hb_c_ask_stuck', { cp: K.cp, name: K.name, clause: K.holding[0] })
     : K.expired ? i18t('hb_c_ask_past', { name: K.name }) : i18t('hb_c_ask_risks', { name: K.name });
-  return `<div class="hb-chead"><div><div class="hb-cref">${_hbE(K.ref)}${K.side ? ' · ' + _hbE(i18t('hb_side_' + K.side)) : ''}</div>
+  return `<div class="hb-chead"><div><div class="hb-cref">${_hbRefH(K.ref)}${K.side ? ' · ' + _hbE(i18t('hb_side_' + K.side)) : ''}</div>
       <div class="hb-cname">${_hbE(K.name)}</div><div class="hb-quiet">${_hbE(K.cp || i18t('home_no_counterparty'))}${K.owner ? ' · ' + _hbE(i18t('hb_c_owned', { who: K.owner })) : ''}</div></div>
     <div class="hb-acts"><button type="button" class="hb-btn is-primary" data-hb-room="${_hbE(K.id)}">${_hbE(i18t('hb_c_open'))}</button>
       <button type="button" class="hb-btn" data-hb-analyze="${_hbE(K.id)}" title="${_hbE(i18t('int_analyze_title'))}">${_hbE(i18t('int_analyze'))}</button>
@@ -3995,7 +4004,7 @@ function hbPackHtml(D, lens, big){
     + (P.bars && P.bars.length ? `<section class="hb-pack-card"><h4>${_hbE(i18t('hb_pk_c_broken'))}</h4>${hbChartBarsHtml(P.bars, true)}</section>` : '');
   const rows = P.concerns
     ? P.concerns.map((x, i) => `<tr><td class="hb-pk-i">${i + 1}</td><td><button type="button" class="hb-read-n" data-hb-dig="${_hbE(x.dig)}">${_hbE(x.word)}</button></td><td class="hb-pk-n">${_hbE(P.money ? _hbM(x.v) + ' · ' + _hbN(x.n) : _hbN(x.n))}</td><td>${_hbE(x.earliest ? hbReadDay(x.earliest) : '—')}</td></tr>`).join('')
-    : (P.rows || []).map((r, i) => `<tr><td class="hb-pk-i">${i + 1}</td><td><button type="button" class="hb-read-n" data-hb-dig="c:${_hbE(r.c.id)}">${_hbE(hbRef(r.c))}</button> <span class="hb-quiet">${_hbE(r.c.counterparty || r.c.name || '')}</span></td><td class="hb-pk-n">${_hbE(r.cells[0])}</td><td>${_hbE(r.why || '—')}</td></tr>`).join('');
+    : (P.rows || []).map((r, i) => `<tr><td class="hb-pk-i">${i + 1}</td><td><button type="button" class="hb-read-n" data-hb-dig="c:${_hbE(r.c.id)}">${_hbRefH(r.c)}</button> <span class="hb-quiet">${_hbE(r.c.counterparty || r.c.name || '')}</span></td><td class="hb-pk-n">${_hbE(r.cells[0])}</td><td>${_hbE(r.why || '—')}</td></tr>`).join('');
   const table = rows ? `<div class="hb-pack-list"><h4>${_hbE(i18t('hb_pk_ranked'))}</h4><table class="hb-pk-t"><thead><tr><th></th>${P.cols.map(c => `<th>${_hbE(c)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>` : '';
   const cov = P.coverage;
   const work = `<details class="hb-how"><summary>${_hbE(i18t('hb_how_title'))}</summary><ol>${P.steps.map(s => `<li>${_hbE(s)}</li>`).join('')}</ol>
@@ -4724,6 +4733,23 @@ function hbPaintBoard(opts){
   else host.scrollTop = top;
   _hbFocusNew = false; _hbNewPanel = null;
   hbPaintHead();
+  hbRcMenuPlace(host);
+}
+/* AN OPEN DROPDOWN IS ON THE SCREEN (7 Oct 2026, owner: "fix the 2 older
+   failures"): a card low on the board opened its Picture list below the
+   board's own bottom edge, out of sight. Like any dropdown it opens UPWARD
+   when there is more room above, and its height never passes the room it
+   has; the board is not scrolled under the reader. */
+function hbRcMenuPlace(host){
+  const m = host && host.querySelector('.hb-rmenu'); if (!m) return;
+  m.classList.remove('is-up'); m.style.maxHeight = '';
+  const box = host.getBoundingClientRect(), w = m.parentElement.getBoundingClientRect();
+  const bottom = Math.min(box.bottom, window.innerHeight), top = Math.max(box.top, 0);
+  const below = bottom - w.bottom - 8, above = w.top - top - 8;
+  const want = m.scrollHeight;
+  if (want > below && above > below) m.classList.add('is-up');
+  const room = m.classList.contains('is-up') ? above : below;
+  if (room > 0 && want > room) m.style.maxHeight = Math.max(120, Math.floor(room)) + 'px';
 }
 /* The head's parts that follow the board — the lens chip and the faces —
    repainted in place, so the head row is never rebuilt under the reader. */
@@ -5328,6 +5354,8 @@ const HB_FU = {
   fresh: /\b(?:all contracts|every contract|all agreements|whole book|the book|everything|all of them|alla avtal|hela)\b/,
   noTrend: /\b(?:no trend|without (?:a |the )?trend|remove (?:the )?trend|hide (?:the )?trend|trend off|turn off (?:the )?trend|utan trend)\b/,
   count: /\b(?:count|how many|number of|antal)\b/,
+  /* a bare measure is "show value" said without its verb (A2) */
+  bare: /^\s*(?:the\s+)?(?:value|count|number|money|amount|average|days to sign|trend|värde|antal)\s*$/,
 };
 function hbOpenListKey(){
   const s = hbS(); if (s.face !== 'board') return null;
@@ -5370,7 +5398,7 @@ function hbFollowUpRead(qRaw){
   if (/\b(?:mk|rl)[- ]?\d+\b/i.test(q) || HB_FU.fresh.test(low)) return null;
   /* the board's own commands win: a panel, a figure, a contract, the lens… */
   const pr = hbParse(q); if (pr && !(pr.act === 'dig' && /^q:/.test(pr.key))) return null;
-  const refer = HB_FU.refer.test(low), verb = HB_FU.verb.test(low), lead = HB_FU.lead.test(low), narrow = HB_FU.narrow.test(low);
+  const refer = HB_FU.refer.test(low), verb = HB_FU.verb.test(low) || HB_FU.bare.test(low), lead = HB_FU.lead.test(low), narrow = HB_FU.narrow.test(low);
   const s = hbS(); const D = hbDigData(key, s.lens), P0 = hbPlan(D);
   const R = hbRecipeRead(q);
   let cq = []; try { cq = (typeof igConditions === 'function') ? igConditions(R ? R.condText : q) : []; } catch (_){ cq = []; }
@@ -5532,7 +5560,7 @@ async function hbBoardTakesChecked(res, retry, q){
   /* Copilot was unsure: up to three readings, each a press (nothing applied) */
   if ((!Array.isArray(res.actions) || !res.actions.length) && Array.isArray(res.choices) && res.choices.length){
     const ch = res.choices.slice(0, HB_CHOICES_MAX).map(c => ({ label: hbPlainText(c && c.label, 60), board: Array.isArray(c && c.actions) ? c.actions : [], q: _hbAskQ })).filter(c => c.label && c.board.length);
-    if (ch.length){ _hbMeta = { choices: ch }; const own = String(res.answer || '').trim();
+    if (ch.length){ _hbMeta = { choices: ch }; const own = hbProseChecked(String(res.answer || '').trim(), { nothingDrawn: true }).text;
       return _hbE(i18t('hb_ch_copilot_said')) + (own ? '<br>' + ((typeof aiRichText === 'function') ? aiRichText(own) : _hbE(own)) : ''); }
   }
   if (!Array.isArray(res.actions) || !res.actions.length){ const u0 = hbUndoTop(); const said = hbBoardTakes(res, _hbAskQ); return said ? said + hbNoteUndo(u0) : said; }
@@ -5555,6 +5583,65 @@ async function hbBoardTakesChecked(res, retry, q){
   if (ran) lines.push(i18tn('hb_chk_retried', bad.length, { n: _hbN(bad.length) }));
   still.forEach(b => lines.push(i18t(b.a && b.a.do === 'change_card' ? 'hb_chk_not_changed' : 'hb_chk_not_added', { what: hbActionTitle(b.a), why: b.problems.map(p => p.say).join('; ') })));
   return hbBoardAnswer(res, good.concat(fixed), lines);
+}
+/* ============================================================
+   ON THE BOARD A MAP ANSWER NEVER TOUCHES THE HIDDEN MAP (one-build work
+   order A3, 7 Oct 2026)
+   ============================================================
+   "bubble chart of value against time left" came back from Copilot in the
+   map's language (groupBy, sizeBy, timeBy…) with no board actions; the map
+   behind the board was rearranged and "Grouped 180 contracts…" was said over
+   an empty board. Now, asked on the board, an answer with no actions and no
+   chart is read here and intelGraphApply is never reached:
+     - the reader asked for the map ("the map", "show these on the map") →
+       null, the map's road as before;
+     - a question about what the board shows ("why…") → Copilot's words,
+       checked against the open chart, and nothing drawn;
+     - the answer names a SET (visibleIds, where, a top N) → the map's fields
+       are taken off and null: the set rides the list road onto the board;
+     - the question carried picture words HaTi read (_hbPendingRecipe) →
+       that recipe is a card over the contracts it named, through the one
+       writer;
+     - else Copilot is asked ONCE more for board actions (the check-and-repair
+       retry), and what still has none is one plain line. Returns what to say,
+       or null for the map's road. */
+const HB_MAP_FIELDS = ['groupBy', 'groups', 'floorsBy', 'columnsBy', 'colourBy', 'sizeBy', 'labelBy', 'timeBy', 'view', 'look', 'ask'];
+const HB_NO_MAP_NOTE = 'This was asked on the BOARD. The map\'s fields (groupBy, floorsBy, columnsBy, colourBy, sizeBy, labelBy, timeBy, view, look) are not drawn there. Answer with board actions: add_card with a recipe (for example "bubble chart of value against time left" is add_card {which:{all:true}, recipe:{pic:"bubbles", measure:"value"}}).';
+function hbMapAsked(q){ const t = String(q || ''); return HB_RX.map.test(t) || HB_RX.showThese.test(t); }
+function hbRecipeOfRead(R){
+  const c = {};
+  ['pic', 'split', 'split2', 'measure', 'trend', 'sort', 'top', 'window', 'compare', 'title', 'show'].forEach(k => { if (R[k] != null && R[k] !== false) c[k] = R[k]; });
+  return c;
+}
+async function hbBoardNoMap(res, retry, q){
+  if (q != null) _hbAskQ = String(q);
+  const s = hbS(); if (s.face !== 'board' || !res) return null;
+  if (hbMapAsked(_hbAskQ)) return null;
+  const hasSet = (Array.isArray(res.visibleIds) && res.visibleIds.length) || (res.where && typeof res.where === 'object' && Object.keys(res.where).length) || !!res.top;
+  if (hasSet){ HB_MAP_FIELDS.forEach(k => { delete res[k]; }); return null; }
+  /* A QUESTION ABOUT WHAT THE BOARD SHOWS is answered in words, checked
+     against the open chart, and draws nothing (the prompt's own rule) */
+  if (hbCopilotMaySay(_hbAskQ)){
+    _hbPendingRecipe = null;
+    const t = hbProseChecked(String(res.answer || '').trim()).text;
+    return t ? ((typeof aiRichText === 'function') ? aiRichText(t) : _hbE(t)) : _hbE(i18t('hb_no_map_said'));
+  }
+  const R = _hbPendingRecipe; _hbPendingRecipe = null;
+  if (R && (R.pic || R.chartWord || R.split)){
+    /* the contracts it named, in the words HaTi read ("suppliers"), else the book */
+    const which = R.conds && R.conds.length ? { q: R.conds.join(' and ') } : { all: true };
+    const u0 = hbUndoTop();
+    const r = hbBoardApply([{ do: 'add_card', which, recipe: hbRecipeOfRead(R) }]);
+    if (r.did.length) return r.html + hbNoteUndo(u0);
+  }
+  if (typeof retry === 'function'){
+    let res2 = null; try { res2 = await retry(HB_NO_MAP_NOTE); } catch (_){ res2 = null; }
+    if (res2 && Array.isArray(res2.actions) && res2.actions.length){
+      const said = await hbBoardTakesChecked(res2, null, _hbAskQ);
+      if (said) return said;
+    }
+  }
+  return _hbE(i18t(R ? 'hb_no_map_pic' : 'hb_no_map_said'));
 }
 /* ============================================================
    CHOICES WHEN A QUESTION IS UNCLEAR (work order Part 6; the NL4DV pattern)
@@ -5657,7 +5744,7 @@ function hbActionWords(raw){
 }
 /* what the panel says for an answer: applied at once, or offered as a list */
 function hbBoardAnswer(res, applied, lines){
-  const tail = hbCopilotTail(res.answer, _hbAskQ);
+  const tail = hbCopilotTail(res.answer, _hbAskQ, { nothingDrawn: !applied.length });
   const extra = (lines || []).map(l => _hbE(l)).join('<br>');
   if (applied.length && hbIsBig(applied)){
     const id = 'pv' + (++_hbPvSeq);
@@ -6078,6 +6165,12 @@ const HB_ANALYST_WORDS = [
   /* -- politeness and verbs that ask for an analysis, never a set -- */
   [/^\s*(?:can you |could you |would you |please |pls |kindly )+/, ' '],
   [/\b(?:i (?:want|would like|'d like|need) to (?:see|know|understand)|i want|i need|let me see|give me|tell me|show me|walk me through|help me understand|i'?m curious about)\b/, ' '],
+  /* THE OPENING WORDS NEVER DECIDE THE ROAD (one-build work order A2, 7 Oct
+     2026): "draw", "plot", "display", "put up", a bare "show" — read away
+     the same as "show me". "show it", "show these", "show all" stay: they
+     are about the open chart, the map or the whole book. */
+  [/^\s*(?:draw|plot|display|put up|visa mig|visa|rita)\s+(?:me\s+|up\s+)?/, ' '],
+  [/^\s*show\s+(?!it\b|this\b|them\b|these\b|those\b|the chart\b|all\b)/, ' '],
   [/\b(?:analy[sz]e|analysis of|analytics on|look at|run (?:the numbers|a report) on|report on|dig into|drill into)\b/, ' '],
   [/\b(what|who|that|it|how|where|when)['’]s\b/, '$1 is'],
   [/\bhow\s+(?:did|do|are|have|has|is)\s+(?:we|it|things)\s+(?:do|done|doing|performing|perform|performed|tracking|track|trending|gone|going|look(?:ing)?|fared|faring)\b/, ' '],
@@ -6374,7 +6467,17 @@ const HB_PIC_CLAIM_RE = /\b(?:as an?|shown as an?|drawn as an?|now an?|into an?|
 const HB_PIC_OF = { pie: 'ring', ring: 'ring', doughnut: 'ring', donut: 'ring', bar: 'bars', bars: 'bars', column: 'cols', columns: 'cols', timeline: 'gantt', gantt: 'gantt', heatmap: 'heat', 'heat map': 'heat', blocks: 'blocks', treemap: 'blocks', 'tree map': 'blocks' };
 const HB_SPLIT_CLAIM_RE = /\b(?:split|grouped|broken down|shown|drawn|now)\b[^.]{0,30}?\bby (stage|stream|value stream|counterparty|owner|type|side|payment terms|month|quarter|year)\b/i;
 const HB_SPLIT_OF = { stage: 'status', stream: 'folder', 'value stream': 'folder', counterparty: 'counterparty', owner: 'owner', type: 'kind', side: 'side', 'payment terms': 'payterms', month: 'date', quarter: 'date', year: 'date' };
-function hbProseChecked(text){
+/* A4 (one-build work order, 7 Oct 2026): a sentence that names a picture
+   while no card landed is dropped — "This bubble chart plots…" over an empty
+   board was the reported fault */
+const HB_NAMES_CHART_RE = /\b(?:chart|graph|plot(?:s|ted)?|diagram|bubbles?|pie|doughnut|donut|treemap|tree map|heat ?map|timeline|gantt|histogram|scatter)\b/i;
+function hbProseChecked(text, opts){
+  if (opts && opts.nothingDrawn){
+    const all = String(text || '').split(/(?<=[.!?])\s+(?=[A-ZÅÄÖ0-9*"(])/);
+    const keep = all.filter(snt => !HB_NAMES_CHART_RE.test(snt));
+    if (keep.length < all.length) hbFeedbackSend({ kind: 'disconnect', q: _hbAskQ, said: String(text || '').slice(0, 600) });
+    text = keep.join(' ');
+  }
   const s = hbS(); const key = hbOpenListKey();
   const D = key ? hbDigData(key, s.lens) : null, P = D ? hbPlan(D) : null;
   const counts = new Set();
@@ -6395,9 +6498,9 @@ function hbProseChecked(text){
 }
 /* Copilot's own sentence, as the reply may carry it: only for a why or
    explain question, checked against the open chart, formatted */
-function hbCopilotTail(own, q){
+function hbCopilotTail(own, q, opts){
   const o = String(own || '').trim(); if (!o || !hbCopilotMaySay(q)) return '';
-  const chk = hbProseChecked(o); if (!chk.text) return '';
+  const chk = hbProseChecked(o, opts); if (!chk.text) return '';
   return '<br>' + ((typeof aiRichText === 'function') ? aiRichText(chk.text) : _hbE(chk.text));
 }
 /* THE REVIEW RECORD (Part 6): a mark, a quick fix or a caught disconnect,
@@ -6532,6 +6635,13 @@ async function hbVerSave(pid, title, phrasesText, remove){
    and nothing written (no hbDig, no hbCardSet, no hbSave). hbAsk takes this
    as its first step, so the line over the ask box and the answer are the
    same reading. (Named hbAskReadingOf: hbReadingOf is the chart's reading.) */
+function hbOpenOne(raw){
+  const t = String(raw || '').replace(/^\s*(?:(?:can|could|would) you |please )+/i, '').trim();
+  const b = HB_RX.bring.exec(t); if (!b || !b[1]) return null;
+  if (hbRecipeRead(b[1])) return null;
+  const f = hbFindContract(t);
+  return f && f.c ? f.c : null;
+}
 function hbAskReadingOf(qRaw){
   const raw = String(qRaw == null ? '' : qRaw);
   if (!raw.trim()) return null;
@@ -6545,6 +6655,10 @@ function hbAskReadingOf(qRaw){
   if (s.face === 'board'){ const pk = hbPackOfQ(raw); if (pk) return { road: 'free', kind: 'pack', pack: pk, q: raw }; }
   /* A STORY: its chapters free, its words one Copilot call (the ask is the press) */
   if (s.face === 'board'){ const sy = hbStoryOfQ(raw); if (sy) return { road: 'free', kind: 'story', story: sy, q: raw }; }
+  /* ONE CONTRACT ASKED FOR BY NAME ("show me Amani Foods", "bring up
+     MK-104"): read off the words as typed, before the opening words are read
+     away — and only when they carry no chart words (A2) */
+  if (s.face === 'board'){ const one = hbOpenOne(raw); if (one) return { road: 'free', kind: 'card', r: { act: 'card', id: one.id }, q: raw }; }
   /* the company's own words first, then the analyst's phrasebook */
   const q = hbAnalystWords(hbWordsApply(raw));
   const fu = hbFollowUpRead(q);
@@ -6622,12 +6736,12 @@ function hbAsk(q){
   if (r.act === 'card'){
     const c = hbContract(r.id); const K = hbCardData(c);
     hbDig('c:' + c.id, false);
-    return say(`<b>${_hbE(K.ref)} · ${_hbE(K.name)}</b> — ${_hbE(_hbStatus(K.status))}${K.cp ? ' · ' + _hbE(K.cp) : ''}${K.expiry ? ' · ' + _hbE(i18t('hb_c_ends', { day: K.expiry })) : ''}. ${_hbE(i18t('hb_card_said'))}`, { noPaint: true });
+    return say(`<b>${_hbRefH(K.ref)} · ${_hbE(K.name)}</b> — ${_hbE(_hbStatus(K.status))}${K.cp ? ' · ' + _hbE(K.cp) : ''}${K.expiry ? ' · ' + _hbE(i18t('hb_c_ends', { day: K.expiry })) : ''}. ${_hbE(i18t('hb_card_said'))}`, { noPaint: true });
   }
   if (r.act === 'analyze'){
     const c = hbContract(r.id); const K = hbCardData(c);
     hbAnalyze(c.id);
-    return say(`<b>${_hbE(K.ref)} · ${_hbE(K.name)}</b> — ${_hbE(i18t('hb_analyze_said'))}`, { noPaint: true });
+    return say(`<b>${_hbRefH(K.ref)} · ${_hbE(K.name)}</b> — ${_hbE(i18t('hb_analyze_said'))}`, { noPaint: true });
   }
   if (r.act === 'noref') return say(_hbE(i18t('hb_no_ref', { ref: r.ref })), { noPaint: true });
   if (r.act === 'reset'){
@@ -6816,35 +6930,39 @@ function hbToolsPaint(){
   const b = (k, word, tip) => `<button type="button" data-hb-tool="${k}" aria-pressed="${_hbTool === k}" title="${_hbE(i18t(tip))}">${_hbE(i18t(word))}</button>`;
   t.innerHTML = `<div class="ig-seg">${b('pointer', 'hb_pointer', 'hb_pointer_tip')}${b('pen', 'hb_pen', 'hb_pen_tip')}<button type="button" data-hb-tool="clear" title="${_hbE(i18t('hb_clear_tip'))}">${_hbE(i18t('hb_clear'))}</button></div>${_hbPresenting ? `<div class="ig-seg"><button type="button" data-hb-tool="exit" title="${_hbE(i18t('hb_exit_tip'))}">${_hbE(i18t('hb_exit'))}</button></div>` : ''}`;
   const ink = document.getElementById('hb-ink'); if (ink) ink.classList.toggle('is-on', _hbTool === 'pen');
-  const lz = document.getElementById('hb-laser'); if (lz) lz.hidden = _hbTool !== 'pointer';
+  hbVeilPaint();
   const pg = hbPage(); if (pg){ pg.classList.toggle('hb-presenting', _hbPresenting); pg.classList.toggle('hb-pointing', _hbTool === 'pointer'); }
-  if (_hbTool !== 'pointer') hbPointerHandAt(null);
 }
-/* ---- THE POINTER IS THE ONLY MARK ON THE SCREEN (Young, 6 Oct 2026: "the
-   mouse tracker should disappear and only have the pointer on screen. It
-   should only turn into a mouse when hovering over a button") ----
-   With the pointer on, the page hides the system cursor (.hb-pointing). Over
-   something you can press it comes back as the hand and the red dot steps
-   aside, so you can see what a click will do. HOW HaTi KNOWS A THING IS
-   PRESSABLE: it asks the page's own cursor rules, not a list kept here. The
-   hovered element and its ancestors are lifted out of the hiding rule
-   (.hb-cur-chain), its own cursor is read, and the lift is kept only where
-   that cursor is the hand (or the element is a control). Asked again only
-   when the element under the mouse changes. */
-let _hbCurAt = null, _hbCurHand = false;
-const HB_CUR_CONTROL = 'a[href],button:not(:disabled),[role="button"],[role="tab"],select,summary,label,input,textarea';
-function hbPointerHandAt(t){
-  const pg = hbPage();
-  if (t === _hbCurAt) return _hbCurHand;
-  if (pg) pg.querySelectorAll('.hb-cur-chain').forEach(n => n.classList.remove('hb-cur-chain'));
-  _hbCurAt = t; _hbCurHand = false;
-  if (!t || !pg || t === pg || !pg.contains(t) || typeof getComputedStyle !== 'function') return false;
-  const chain = []; for (let n = t; n && n !== pg; n = n.parentElement) chain.push(n);
-  chain.forEach(n => n.classList.add('hb-cur-chain'));
-  _hbCurHand = getComputedStyle(t).cursor === 'pointer' || !!(t.closest && t.closest(HB_CUR_CONTROL));
-  if (!_hbCurHand) chain.forEach(n => n.classList.remove('hb-cur-chain'));
-  return _hbCurHand;
+/* ---- THE POINTER ONLY POINTS, UNTIL YOU EXIT IT (Young, 7 Oct 2026: "When
+   you choose pointer, it seizes to become a cursor and only works as a
+   pointer and therefore across the screens. You can then exit pointer to get
+   back to cursor mode") — REVERSING 6 Oct's "turn into a mouse when hovering
+   over a button" ----
+   With Pointer on, ONE layer lies over the whole screen (#hb-veil, fixed,
+   inset 0): it wears no cursor and takes every press, so nothing under it can
+   be opened by accident, on the Board or on Explorer alike. It carries the red
+   dot and its trail (#hb-laser, #hb-laser-1..3, drawn at the mouse in screen
+   coordinates) and the ONE thing that still takes a press: "Exit pointer"
+   (data-hb-tool="pointer", the same toggle as the Pointer button). Escape
+   exits too (hbOnKey). The layer lives in the full-screen host (#content), so
+   it survives Board ⇄ Explorer like the presentation does. hbPointerHandAt,
+   .hb-cur-chain and HB_CUR_CONTROL are STALE. */
+function hbVeilHost(){ return document.fullscreenElement || document.getElementById('content') || hbPage() || document.body; }
+function hbVeilPaint(){
+  if (typeof document === 'undefined') return;
+  let v = document.getElementById('hb-veil');
+  if (_hbTool !== 'pointer'){ if (v) v.remove(); _hbTrail = []; return; }
+  const host = hbVeilHost(); if (!host) return;
+  if (!v){
+    v = document.createElement('div'); v.id = 'hb-veil'; v.className = 'hb-veil';
+    v.innerHTML = `<div id="hb-laser" class="hb-laser" hidden></div><div id="hb-laser-1" class="hb-laser is-trail" hidden></div><div id="hb-laser-2" class="hb-laser is-trail" hidden></div><div id="hb-laser-3" class="hb-laser is-trail" hidden></div>`
+      + `<button type="button" class="hb-veil-exit" data-hb-tool="pointer" title="${_hbE(i18t('hb_pointer_exit_tip'))}">${_hbE(i18t('hb_pointer_exit'))}</button>`;
+  }
+  if (v.parentElement !== host) host.appendChild(v);
+  /* the dot stands where the mouse last was, or waits for it */
+  const lz = document.getElementById('hb-laser'); if (lz && _hbLastXY) { lz.style.transform = `translate(${_hbLastXY[0]}px,${_hbLastXY[1]}px)`; lz.hidden = false; }
 }
+let _hbLastXY = null;
 function hbSetTool(k){ _hbTool = (_hbTool === k) ? '' : k; if (_hbTool !== 'pointer') _hbTrail = []; hbToolsPaint(); }
 function hbInkSize(){
   const ink = document.getElementById('hb-ink'); if (!ink) return null;
@@ -7008,15 +7126,18 @@ function hbOnSubmit(e){
   }
 }
 function hbOnPointer(e){
+  /* a page left by the keyboard takes the veil with it */
+  if (_hbTool === 'pointer' && (!window.state || state.view !== 'dashboard')){ _hbTool = ''; hbVeilPaint(); return; }
   const col = document.getElementById('hb-col'); if (!col || !state || state.view !== 'dashboard') return;
   if (_hbTool === 'pointer'){
-    const r = col.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-    /* Over a button the hand shows and the dot and its trail step aside. */
-    const hand = hbPointerHandAt(e.target);
-    const lz = document.getElementById('hb-laser'); if (lz){ lz.style.transform = `translate(${x}px,${y}px)`; lz.hidden = hand; }
+    /* the whole screen: the dot is drawn in screen coordinates on the veil;
+       over the exit control the dot steps aside so its words can be read */
+    const x = e.clientX, y = e.clientY; _hbLastXY = [x, y];
+    const onExit = !!(e.target && e.target.closest && e.target.closest('.hb-veil-exit'));
+    const lz = document.getElementById('hb-laser'); if (lz){ lz.style.transform = `translate(${x}px,${y}px)`; lz.hidden = onExit; }
     _hbTrail.unshift([x, y]); _hbTrail = _hbTrail.slice(0, 10);
     for (let i = 1; i <= 3; i++){ const q = _hbTrail[i * 3]; const d = document.getElementById('hb-laser-' + i);
-      if (d){ d.hidden = !q || hand; if (q){ d.style.transform = `translate(${q[0]}px,${q[1]}px)`; d.style.opacity = String(0.5 - i * 0.14); } } }
+      if (d){ d.hidden = !q || onExit; if (q){ d.style.transform = `translate(${q[0]}px,${q[1]}px)`; d.style.opacity = String(0.5 - i * 0.14); } } }
   }
   if (_hbTool === 'pen' && _hbStroke){ const r = col.getBoundingClientRect(); _hbStroke.push([e.clientX - r.left, e.clientY - r.top]); hbInkDraw(); }
 }
@@ -7098,6 +7219,6 @@ Object.assign(window, { hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES,
   hbCardEdit, hbHowWord, hbRecipeWords, hbSplitModelWord, hbOrderWord, hbReadCompareOf, hbReadTwoOf, hbReadingCore, hbRcCur, hbRcCurHas,
   hbBucketPrev, hbBucketMove, hbBucketStart, hbBucketEnd, hbWinSpanOk,
   HB_BOARD_ACTIONS, HB_ACTIONS_MAX, hbWhichOf, hbAddCard, hbPanelAct, hbCrumb, hbArrange, hbPanelName, hbActionClean, hbCardRef, hbBoardApply, hbRcMoreToggle, HB_GUIDE_TOP, HB_GUIDE_MAX, hbDataGuide,
-  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked,
+  HB_CHK_GROUPS_MAX, HB_CHK_EMPTY_SHARE, hbCardCheck, hbActionCheck, hbActionsCheck, hbRepairNote, hbActionTitle, hbBoardTakesChecked, hbBoardNoMap, hbMapAsked, hbRecipeOfRead, hbOpenOne, HB_MAP_FIELDS, HB_NAMES_CHART_RE,
   HB_UNDO_MAX, hbShapeOf, hbUndoMark, hbUndoTop, hbUndo, hbNoteUndo, hbUndoHtml, hbTakeMeta, hbPreviewHtml, hbIsBig, hbActionWords, hbBoardAnswer, hbPreviewPress, hbPreviewSettle,
   HB_CHOICES_MAX, hbAmbiguity, hbChoicePress });

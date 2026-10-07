@@ -425,7 +425,9 @@ function calMonthGridHtml(y, m, byDay, opts){
            ("choose from N on 30 August"), which is where the press really
            lands. */
         const t=cids.length===1?` title="${_esc(ev.label+': '+(e.note||e.cname))}"`:'';
-        return `<span class="cal-chip${e.done?' is-done':''}"${t} style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${_esc(calChipText(e))}</span>`;
+        /* the chip's reference wears the reference face (calChipText stays the text) */
+        const chip=e.type==='obligation'?_esc(calChipText(e)):_esc(CAL_EVENT[e.type].short)+' · '+(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid));
+        return `<span class="cal-chip${e.done?' is-done':''}"${t} style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${chip}</span>`;
       }).join('')+(more>0?`<span class="cal-more">${i18t('cal_n_more',{n:more})}</span>`:'')+`</span>`;
     }
     cells.push(`<div class="cal-day${today?' is-today':''}"${attrs}><span class="cal-dn">${dnum}</span>${inner}</div>`);
@@ -594,7 +596,7 @@ function calHorizonHtml(){
                what a reader scanning a wall of expiry dates is looking for,
                and the money only where they may see it (the product's own
                rule, borrowed rather than re-asked). */}
-        <span class="m">${[r.c.counterparty?_esc(r.c.counterparty):'', _esc(window.contractRef?contractRef(r.c):r.c.id),
+        <span class="m">${[r.c.counterparty?_esc(r.c.counterparty):'', (window.refHtml?refHtml(r.c):_esc(r.c.id)),
           ((typeof canViewValues!=='function'||canViewValues())&&Number(r.c.value)>0)
             ? _esc(window.fmtMoneyShortOf?fmtMoneyShortOf(r.c):fmtMoneyShort(r.c.value)) : ''
           ].filter(Boolean).join(' · ')}</span>
@@ -662,7 +664,7 @@ function calPanelHtml(evs){
       <span class="dt"><b>${_esc(dd)}</b><i>${_esc(mo)}</i></span>
       <button class="g" data-sel="${_esc(e.cid)}">
         <span class="n2">${_esc(ev.label)} — ${_esc(e.cname)}</span>
-        <span class="m3">${_esc(e.type==='obligation'?(e.note||'')+' · '+(e.owner||i18t('cal_unassigned')):(e.note||e.cref||e.cid))}</span>
+        <span class="m3">${e.type==='obligation'?_esc((e.note||'')+' · '+(e.owner||i18t('cal_unassigned'))):(e.note?_esc(e.note):(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid)))}</span>
       </button>${theirs}${done}
       <span class="lft" style="color:${ev.fg}">${_esc(when)}</span>
     </div>`;

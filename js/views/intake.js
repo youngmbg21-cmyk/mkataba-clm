@@ -1083,7 +1083,7 @@ function ikBookHtml(r){
   const kind=c=>{ try{ return (typeof cKind==='function')?cKind(c):''; }catch(_){ return ''; } };
   const st=c=>{ try{ return (typeof contractStatusMeta==='function'&&contractStatusMeta(c)&&contractStatusMeta(c).label)||c.status||''; }catch(_){ return c.status||''; } };
   return insSecHtml(i18t('ik_sec_book',{cp}), cs.length, `<ul class="ins-gl">${shown.map(c=>`<li><button type="button" class="ins-gi" data-ik-cgo="${esc(c.id)}"><b>${
-    esc((window.contractRef?contractRef(c):c.id)+' · '+(c.name||''))}</b><span>${esc(kind(c))}</span><span class="r">${esc(st(c))}</span></button></li>`).join('')}</ul>${
+    (window.refHtml?refHtml(c):esc(c.id))+' · '+esc(c.name||'')}</b><span>${esc(kind(c))}</span><span class="r">${esc(st(c))}</span></button></li>`).join('')}</ul>${
     cs.length>shown.length?`<p class="ins-note" style="margin-top:6px">${esc(i18tn('ik_book_more',cs.length-shown.length,{n:cs.length-shown.length}))}</p>`:''}`, 'ik-book');
 }
 function ikHistoryHtml(r, asker){

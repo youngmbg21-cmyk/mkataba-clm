@@ -927,6 +927,10 @@
     --st-amber-bg:#FBEEDB; --st-amber-fg:#A24E07; --st-amber-dot:#E8A317; --st-amber-line:#EBCB8E;
     --st-green-bg:#DFF2E7; --st-green-fg:#1A6F45; --st-green-dot:#2E9E63; --st-green-line:#A9D6BC;
     --st-ruby-bg:#FBE5E3;  --st-ruby-fg:#B3261E;  --st-ruby-dot:#D9453B;  --st-ruby-line:#ECBAB5;
+    /* A STRUCK WORD IS RED, ours or theirs, the words and the line (Young,
+       7 Oct 2026: "just like in word documents"): every del.rl-us / del.rl-them
+       rule reads this one token; an INSERTION still says who by its colour. */
+    --rl-del-ink:var(--st-ruby-fg);
     --st-steel-bg:#E6ECF6; --st-steel-fg:#48639A; --st-steel-dot:#6F86BF; --st-steel-line:#BFCBE6;
 
     /* tone tiles (icon tiles: tile-bg / tile-fg) */
@@ -1694,8 +1698,8 @@
      a deletion of ours inside an insertion of theirs is drawn nested: their
      tint kept, our strike over it. Scoped to the two sheets so the utility
      classes on every mark lose the fight by specificity, never by order. */
-  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them,.ag-words del.rl-them{background:transparent;color:var(--st-amber-fg)}
-  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us,.ag-words del.rl-us{background:transparent;color:var(--accent-ink)}
+  .rl-doc del.rl-them,.nego-doc del.rl-them,.rl-cp-src del.rl-them,.rl-col del.rl-them,.pv-sheet del.rl-them,.ag-words del.rl-them{background:transparent;color:var(--rl-del-ink)}
+  .rl-doc del.rl-us,.nego-doc del.rl-us,.rl-cp-src del.rl-us,.rl-col del.rl-us,.pv-sheet del.rl-us,.ag-words del.rl-us{background:transparent;color:var(--rl-del-ink)}
   .rl-doc ins.rl-them,.nego-doc ins.rl-them,.rl-cp-src ins.rl-them,.rl-col ins.rl-them,.pv-sheet ins.rl-them,.ag-words ins.rl-them{background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .rl-doc ins.rl-us,.nego-doc ins.rl-us,.rl-cp-src ins.rl-us,.rl-col ins.rl-us,.pv-sheet ins.rl-us,.ag-words ins.rl-us{background:var(--st-steel-bg);color:var(--accent-ink)}
   /* AN ADDED RUN IS UNDERLINED AND A STRUCK ONE IS STRUCK, so the colour can
@@ -1704,8 +1708,8 @@
      green/red it always had. */
   .rl-doc ins.rl-them,.rl-doc ins.rl-us,.nego-doc ins.rl-them,.nego-doc ins.rl-us,.rl-cp-src ins.rl-them,.rl-cp-src ins.rl-us,.rl-col ins.rl-them,.rl-col ins.rl-us,.pv-sheet ins.rl-them,.pv-sheet ins.rl-us,.ag-words ins.rl-them,.ag-words ins.rl-us{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;text-decoration-color:currentColor}
   .rl-doc del.rl-them,.rl-doc del.rl-us,.nego-doc del.rl-them,.nego-doc del.rl-us,.rl-cp-src del.rl-them,.rl-cp-src del.rl-us,.rl-col del.rl-them,.rl-col del.rl-us,.pv-sheet del.rl-them,.pv-sheet del.rl-us,.ag-words del.rl-them,.ag-words del.rl-us{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:currentColor}
-  .rl-doc ins.rl-them>del.rl-us,.nego-doc ins.rl-them>del.rl-us,.rl-cp-src ins.rl-them>del.rl-us{background:transparent;color:var(--accent-ink)}
-  .rl-doc ins.rl-us>del.rl-them,.nego-doc ins.rl-us>del.rl-them,.rl-cp-src ins.rl-us>del.rl-them{background:transparent;color:var(--st-amber-fg)}
+  .rl-doc ins.rl-them>del.rl-us,.nego-doc ins.rl-them>del.rl-us,.rl-cp-src ins.rl-them>del.rl-us{background:transparent;color:var(--rl-del-ink)}
+  .rl-doc ins.rl-us>del.rl-them,.nego-doc ins.rl-us>del.rl-them,.rl-cp-src ins.rl-us>del.rl-them{background:transparent;color:var(--rl-del-ink)}
   .rl-repl-on{font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;font-style:italic;line-height:1.45}
   /* The one filled act. Its glow came off with the tint above — a filled
      accent face is already the strongest thing on any of these pages, and the
@@ -3471,7 +3475,7 @@
      export button from the document page") — it was a second door whose rows
      only pressed the ⋯ menu's own PDF, Word and Record buttons by id, and
      those three are untouched under the ⋯ menu's Export heading. */
-  #ws-tabrow-end .ws-focus-door{ width:var(--ctl-h); padding:0; justify-content:center; }
+  #ws-tabrow-end .ws-focus-door{ gap:6px; padding:0 var(--pad-ctl-x); justify-content:center; white-space:nowrap; }
   #ws-tabrow-end .ws-focus-door[aria-pressed="true"]{ background:var(--nav-well); }
   /* THE CLAUSES DOOR (Young picked "Drawer", 5 Oct 2026): first in the slot,
      beside the text-size stepper; it carries what is marked in the worst
@@ -8153,6 +8157,7 @@
   .hb-rc-more{border-style:dashed;color:var(--hb-ink-2)} .hb-rc-more[aria-expanded="true"]{border-style:solid}
   .hb-rc:focus-visible,.hb-tg:focus-visible,.hb-rmenu button:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px}
   .hb-rmenu{position:absolute;top:calc(100% + 4px);left:0;z-index:20;min-width:260px;max-height:360px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid rgba(var(--hb-ln),.35);background:var(--hb-card);backdrop-filter:blur(var(--hb-blur));box-shadow:0 18px 40px -12px rgba(0,0,0,.6)}
+  .hb-rmenu.is-up{top:auto;bottom:calc(100% + 4px)}
   .hb-rmenu button{display:flex;align-items:center;gap:10px;width:100%;padding:7px 9px;border:0;border-radius:var(--radius);background:none;color:var(--hb-ink);font:inherit;font-size:var(--t-body);text-align:left;cursor:pointer}
   .hb-rmenu button:hover:not(:disabled){background:rgba(var(--hb-ln),.1)}
   .hb-rmenu button[aria-checked="true"]{background:rgba(var(--hb-ln),.14)}
@@ -8313,14 +8318,22 @@
   .hb-tools .ig-seg button[aria-pressed="true"]{background:rgba(217,69,59,.22);color:var(--hb-ink)}
   .hb-ink{position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none;touch-action:none}
   .hb-ink.is-on{pointer-events:auto;cursor:crosshair}
-  .hb-laser{position:absolute;left:0;top:0;z-index:7;pointer-events:none;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--st-ruby-dot);box-shadow:0 0 0 3px rgba(217,69,59,.25),0 0 18px 4px rgba(217,69,59,.55)}
+  .hb-laser{position:absolute;left:0;top:0;z-index:2;pointer-events:none;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--st-ruby-dot);box-shadow:0 0 0 3px rgba(217,69,59,.25),0 0 18px 4px rgba(217,69,59,.55)}
   .hb-laser.is-trail{width:9px;height:9px;margin:-4.5px 0 0 -4.5px;box-shadow:none}
   /* THE POINTER HIDES THE MOUSE (Young, 6 Oct 2026): everything on the page
      but the chain under a pressable thing (hbPointerHandAt) wears no cursor.
      Scoped by the page's id so it outranks the board's own class rules by
      specificity alone; an inline cursor still wins, and every inline one
      here is a pressable thing. */
-  :is(#ig-page,#hb-page).hb-pointing,:is(#ig-page,#hb-page).hb-pointing :not(.hb-cur-chain){cursor:none}
+  /* THE POINTER ONLY POINTS (Young, 7 Oct 2026, reversing 6 Oct's hand over
+     buttons): one veil over the whole screen wears no cursor and takes every
+     press; the dot and the one Exit control ride on it (hbVeilPaint). */
+  .hb-veil{position:fixed;inset:0;z-index:2147483000;cursor:none;background:transparent;touch-action:none}
+  .hb-veil .hb-laser{position:fixed}
+  .hb-veil-exit{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:3;cursor:pointer;
+    height:var(--ctl-h);padding:0 var(--pad-ctl-x);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);
+    color:#fff;background:var(--st-ruby-dot);border:0;border-radius:999px;box-shadow:0 6px 18px -8px rgba(0,0,0,.5)}
+  .hb-veil-exit:focus-visible{outline:2px solid #fff;outline-offset:2px}
   .hb-presenting #ig-dock,.hb-presenting #ig-resizer,.hb-presenting .hb-counting,.hb-presenting .hb-scr,.hb-presenting #hero-draft,.hb-presenting #hb-present{display:none}
   .hb-presenting{height:100vh}
   /* the page's host is what goes full screen (it survives Board ⇄ Explorer) */
@@ -9989,6 +10002,8 @@
     box-shadow:var(--shadow-sm);min-height:0;overflow:auto;overscroll-behavior:contain;font-size:var(--t-body);color:var(--color-text);}
   .ins-h{padding:18px 20px 16px;border-bottom:1px solid var(--color-divider);}
   .ins-eb{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  /* ONE REFERENCE FACE (Young, 7 Oct 2026): every reference drawn by refHtml */
+  .hati-ref{font-family:var(--font-ref);font-variant-numeric:tabular-nums;}
   .ins-eb .ins-ref{font-family:var(--font-ref);font-variant-numeric:tabular-nums;}
   .ins-cp{margin:4px 0 0;font-size:var(--t-section);font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.25;color:var(--color-text);
     display:flex;align-items:center;gap:4px;min-width:0;}
@@ -10525,7 +10540,7 @@
   .ag-stage.is-working{color:var(--accent-ink);}
   .ag-item-top{display:flex;align-items:center;gap:8px;margin-top:2px;}
   .ag-kind{font-size:var(--t-micro);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600);font-weight:var(--w-label);}
-  .ag-ref{margin-left:auto;font-family:var(--font-mono);font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .ag-ref{margin-left:auto;font-family:var(--font-ref);font-variant-numeric:tabular-nums;font-size:var(--t-meta);color:var(--color-neutral-600);}
   .ag-cp{font-weight:var(--w-title);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ag-cn{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .ag-sum{font-size:var(--t-meta);color:var(--color-text);margin-top:3px;}

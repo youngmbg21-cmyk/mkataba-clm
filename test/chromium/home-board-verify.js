@@ -193,12 +193,16 @@ const CONTRACTS = [
     await page.click('#hb-present');
     /* the pointer waits for its button (Young, 6 Oct 2026) */
     ok('8b Present puts the page in presenting, the pointer OFF', await until(page, () =>
-      document.getElementById('ig-page').classList.contains('hb-presenting') && document.getElementById('hb-laser').hidden
+      document.getElementById('ig-page').classList.contains('hb-presenting')
+      && !(document.getElementById('hb-laser') && !document.getElementById('hb-laser').hidden)
       && !document.getElementById('ig-page').classList.contains('hb-pointing')
       && getComputedStyle(document.getElementById('hb-tools')).display !== 'none'));
     await page.click('[data-hb-tool="pointer"]').catch(() => {});
-    ok('8b2 Pointer turns it on', await until(page, () => !document.getElementById('hb-laser').hidden
+    /* THE POINTER ONLY POINTS (Young, 7 Oct 2026): a veil over the whole
+       screen carries the dot; its Exit is the one thing that takes a click */
+    ok('8b2 Pointer turns it on', await until(page, () => !!document.getElementById('hb-veil')
       && document.getElementById('ig-page').classList.contains('hb-pointing')));
+    await page.click('#hb-veil .hb-veil-exit').catch(() => {});
     await page.click('[data-hb-tool="pen"]').catch(() => {});
     await page.mouse.move(400, 300); await page.mouse.down();
     for (let i = 1; i <= 10; i++) await page.mouse.move(400 + i * 20, 300 + i * 8);
@@ -367,7 +371,9 @@ const CONTRACTS = [
     await page.keyboard.press('Escape');
     ok('15c Escape closes it and gives the keyboard back to the dropdown', await until(page, () => !document.querySelector('#hb-focus .hb-rmenu') && (document.activeElement || {}).getAttribute && document.activeElement.getAttribute('data-hb-rc') === 'pic'));
     await pick('pic', 'gantt');
-    ok('15d one press turns the same set into contract bars, and it is kept for this card', await until(page, () => !!document.querySelector('#hb-focus .hb-tl [data-hb-dig^="c:"]') && (hbS().recipe['q:Show Juno contracts by month'] || {}).pic === 'gantt'));
+    ok('15d one press turns the same set into contract bars, and it is kept for this card', await until(page, () => !!document.querySelector('#hb-focus .hb-tl [data-hb-dig^="c:"]') && (hbS().recipe[(hbS().path || []).slice(-1)[0]] || {}).pic === 'gantt'));
+    /* RE-POINTED 7 Oct 2026 (the one-build work order A2): the opening word
+       "Show" is read away, so the card's key is its own — read off the trail */
     await page.click('[data-hb-crumb="-1"]').catch(() => {});
     await ask(page, 'Is time to sign getting faster?');
     ok('15e a trend question draws columns with the trend on — a line and its sentence, or the plain reason there is not enough history', await until(page, () =>

@@ -4822,7 +4822,7 @@ function wsTabRowEndHtml(c){
      on this tab (wsPaintTabRowEnd), so the act is never offered twice forty
      pixels apart; on every other tab the head's square is what it was. */
   const focus=(PORTAL_MODE)?'':`<button type="button" class="ui-btn ws-focus-door" data-ws-focus-door aria-pressed="${_wsFocus?'true':'false'}"
-    title="${esc(i18t('ct_focus_mode'))}" aria-label="${esc(i18t('ct_focus_mode'))}" aria-pressed="false">${icon('scan','w-3.5 h-3.5')}</button>`;
+    title="${esc(i18t('ct_focus_mode'))}" aria-label="${esc(i18t('ct_focus_mode'))}" aria-pressed="false">${icon('scan','w-3.5 h-3.5')}${esc(i18t('ct_focus_word'))}</button>`;
   /* ---- THE CLAUSES DOOR, BESIDE THE TEXT-SIZE STEPPER (Young picked
      "Drawer", 5 Oct 2026) ---- "form and links is the landing panel but you
      click on a button above which then brings you the clauses." Drawn shut
@@ -6759,7 +6759,7 @@ function ktRecordFactsHtml(c,opts={}){
        working file has taken one, with the working reference it was
        negotiated under beside it — both still find it; and a working file
        says it is one until it is filed. */
-    ['reference', i18t('ov_f_reference'), esc(String((c&&(window.contractRef?contractRef(c):c.id))||''))
+    ['reference', i18t('ov_f_reference'), (c&&window.refHtml?refHtml(c):esc(String((c&&c.id)||'')))
       +(c&&c.contractNo&&c.contractNo!==c.id?` <span style="color:var(--color-neutral-600);font-weight:var(--w-body)">· ${esc(i18t('ho_ref_was',{id:c.id}))}</span>`
       :(c&&window.contractIsWorkingFile&&contractIsWorkingFile(c)?` <span style="color:var(--color-neutral-600);font-weight:var(--w-body)">· ${esc(i18t('ho_ref_working'))}</span>`:''))],
     ['name', i18t('ov_f_name'), R.name],
@@ -9197,7 +9197,9 @@ function applyWsFocus(){
        elements, and textContent replaces every child with one text node. This
        runs on every render, so Focus mode was the one line in the menu with no
        symbol beside it and no hint after it, from the moment it was built. */
-    b.innerHTML=`${icon('scan','w-3.5 h-3.5')}${esc(i18t(_wsFocus?'ct_menu_exit_focus':'ct_menu_focus'))}<span class="mnote">${i18t('ct_esc_to_leave')}</span>`;
+    /* EVERY FOCUS BUTTON SAYS "FOCUS" (Young, 7 Oct 2026): the one word, the
+       mark beside it; the long sentence rides the hover. */
+    b.innerHTML=`${icon('scan','w-3.5 h-3.5')}${esc(i18t(_wsFocus?'ct_menu_exit_focus':'ct_focus_word'))}<span class="mnote">${i18t('ct_esc_to_leave')}</span>`;
     b.title=_wsFocus?i18t('ct_exit_focus'):i18t('ct_focus_mode');
   }
   /* THE SECOND DOOR IS THE SAME DOOR (19 Sep 2026): the head's own button says
@@ -9784,7 +9786,7 @@ function roomHeadHtml(c,opts={}){
       ${backC ? `<button id="ws-back" type="button" class="room-crumb-back" data-back="contract"
         data-crumb="${esc(c.id)}"
         title="${esc(backTitle)}" aria-label="${esc(backTitle)}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><use href="#i-left"/></svg></button>
-      <i aria-hidden="true">/</i>` : ''}<span class="room-crumb-here">${esc((window.contractRef?contractRef(c):c.id))}</span>
+      <i aria-hidden="true">/</i>` : ''}<span class="room-crumb-here">${window.refHtml?refHtml(c):esc(c.id)}</span>
     </nav>
     <div class="room-id">
       <div class="room-name">
@@ -10001,7 +10003,7 @@ function roomHeadHtml(c,opts={}){
           ${(window.printIsHatiExecuted&&printIsHatiExecuted(c))?`<button type="button" id="ws-pdf-record" title="The full record for your own file — the document plus HaTi's seal and the audit trail">${icon('shield','w-3.5 h-3.5')}Record<span class="mnote">sealed + audit</span></button>`:''}
           <hr>
           <div class="mgroup">${i18t('ct_view')}</div>
-          <button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}Focus mode<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
+          <button type="button" id="ws-focus" aria-pressed="false" title="${i18t('ct_hide_header')}">${icon('scan','w-3.5 h-3.5')}${esc(i18t('ct_focus_word'))}<span class="mnote">${i18t('ct_esc_to_leave')}</span></button>
           ${may?`<hr>
           ${''/* THE SAME SENTENCE AS THE CONTRACTS ROW (21 Sep 2026, the
                  process review's sixth item): endStateSays is the one place

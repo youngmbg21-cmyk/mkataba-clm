@@ -179,7 +179,10 @@ describe('F95 — every menu row has a symbol, and the symbols are solid dark gr
     const b = h.win.document.getElementById('ws-focus');
     assert.ok(b.querySelector('svg'), 'the icon survived the relabel');
     assert.ok(b.querySelector('.mnote'), 'and so did the hint');
-    assert.match(b.textContent, /Focus mode/);
+    /* RE-POINTED 7 Oct 2026 — every Focus button says "Focus" (the one-build
+       work order part E); the long sentence rides the hover. */
+    assert.match(b.textContent, /^Focus/);
+    assert.match(b.title, /Focus mode/);
   });
 });
 

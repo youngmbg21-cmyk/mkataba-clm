@@ -3366,7 +3366,7 @@ function ftsSearch(q){
       const r=await api('search?q='+encodeURIComponent(q)+'&limit=12');
       if(!r.hits||!r.hits.length){ box.innerHTML=`<div style="padding:10px var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('reg_no_fulltext')}</div>`; box.classList.remove('hidden'); return; }
       box.innerHTML=r.hits.map(h=>`<button data-fts-open="${h.id}" style="display:block;width:100%;text-align:left;padding:var(--s-2) var(--s-3);border:0;border-bottom:1px solid var(--color-divider);background:none;cursor:pointer;font:inherit">
-        <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span style="font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-500)">${esc(h.contractNo||h.id)}</span></div>
+        <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(h.name||h.id)} <span class="hati-ref" style="font-size:var(--t-label);color:var(--color-neutral-500)">${esc(h.contractNo||h.id)}</span></div>
         ${h.snippet?`<div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${h.snippet.replace(/</g,'&lt;').replace(/\[/g,'<mark style="background:var(--st-amber-bg);border-radius:var(--radius);padding:0 2px">').replace(/\]/g,'</mark>')}</div>`:(h.counterparty?`<div style="font-size:var(--t-label);color:var(--color-neutral-500)">${h.counterparty}</div>`:'')}
       </button>`).join('');
       box.classList.remove('hidden');

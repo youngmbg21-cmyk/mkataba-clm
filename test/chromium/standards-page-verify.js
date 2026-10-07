@@ -163,11 +163,22 @@ const SEED = () => {
       return { h: Math.round(r.height), line: Math.round(parseFloat(s.lineHeight)),
         clipped: e.scrollWidth > e.clientWidth + 1, w: Math.round(r.width) };
     });
+    /* WIDE ENOUGH ON ANY MACHINE (7 Oct 2026): at 1500px the sentence fitted
+       here but not on CI's runner, whose glyphs come out a little wider
+       ({"wide":{"w":1158,"clipped":true}}). The claim is the RELATION — the
+       same row clips when narrow and not when it has the room — so the room
+       is measured where it surely fits. */
+    await page.setViewportSize({ width: 2400, height: 1000 });
+    await pause(400);
+    const roomy = await page.evaluate(() => {
+      const e = document.querySelector('[data-std-row="cl-law"] .std-clip');
+      return e ? { w: Math.round(e.getBoundingClientRect().width), clipped: e.scrollWidth > e.clientWidth + 1 } : null;
+    });
     await page.setViewportSize({ width: 1500, height: 1000 });
     await pause(400);
     check('2b2 · narrow the page and the same row clips — the cut follows the width',
-      narrow && clip && narrow.clipped && narrow.h <= narrow.line + 3 && !clip.clipped,
-      { wide: clip && { w: clip.w, clipped: clip.clipped }, narrow });
+      narrow && roomy && narrow.clipped && narrow.h <= narrow.line + 3 && !roomy.clipped,
+      { roomy, narrow });
     check('2c · nothing was cut in the MARKUP — the whole sentence is there to hover',
       clip && clip.titleLen === clip.textLen && clip.textLen > 140,
       { text: clip && clip.textLen, title: clip && clip.titleLen });

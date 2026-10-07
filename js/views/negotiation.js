@@ -1965,7 +1965,7 @@ function negoCompareDocHtml(c, cmp, whichSide){
   }).join('');
   return `<article class="nego-doc">
     <h1>${_ne(title)}</h1>
-    <div class="nego-meta">${_ne([(window.contractRef ? contractRef(c) : c.id), v ? v.label : '', v && v.sub ? v.sub : ''].filter(Boolean).join(' · '))}</div>
+    <div class="nego-meta">${[window.refHtml ? refHtml(c) : _ne(c.id), v ? _ne(v.label) : '', v && v.sub ? _ne(v.sub) : ''].filter(Boolean).join(' · ')}</div>
     ${body || `<p style="color:var(--n-ink-soft)">${i18t('ng_version_no_wording')}</p>`}
   </article>`;
 }
@@ -8330,7 +8330,7 @@ function rlPaintFocusBtn(){
     b.classList.toggle('on', _rlFocus);
     b.setAttribute('aria-pressed', _rlFocus ? 'true' : 'false');
     /* In the reader's language (26 Sep 2026, the overnight clean-up). */
-    b.setAttribute('aria-label', _rlFocus ? i18t('ct_exit_focus') : i18t('po_focus_mode'));
+    b.setAttribute('aria-label', _rlFocus ? i18t('ct_exit_focus') : i18t('ct_focus_mode'));
     b.title = _rlFocus ? i18t('ct_exit_focus') : i18t('ct_focus_mode');
   };
   document.querySelectorAll('[data-rl-focus]').forEach(face);
@@ -10308,7 +10308,7 @@ function renderRedline(){
                    More menu's row answers it and rlPaintFocusBtn paints its
                    state; the head's square is gone on both heads. */}
             <button type="button" class="ui-btn rl-focus-door" data-ws-focus aria-pressed="false"
-              title="${_nea(i18t('ct_focus_mode'))}" aria-label="${_nea(i18t('ct_focus_mode'))}">${window.icon ? icon('scan','w-3.5 h-3.5') : ''}</button>
+              title="${_nea(i18t('ct_focus_mode'))}" aria-label="${_nea(i18t('ct_focus_mode'))}">${window.icon ? icon('scan','w-3.5 h-3.5') : ''}${_ne(i18t('ct_focus_word'))}</button>
             ${''/* A PREVIEW OF WHAT THE OTHER SIDE WILL SEE is a question about
                    the round, and the round is not the reviewer's job. It also
                    mounts a whole second surface for somebody whose task is one
@@ -16841,7 +16841,7 @@ function rlChatPanelHtml(c, opts = {}){
   return `<div class="rl-np rl-chat" data-rl-chat="${_nea(c.id)}">
     <div class="rl-np-which is-static">
       <span class="t">
-        <span class="id">${_ne((window.contractRef ? contractRef(c) : c.id))}${c.name ? ` <em>· ${_ne(c.name)}</em>` : ''}</span>
+        <span class="id">${window.refHtml ? refHtml(c) : _ne(c.id)}${c.name ? ` <em>· ${_ne(c.name)}</em>` : ''}</span>
         <span class="s">${i18tn('ng_chat_n', all.length, { n: all.length })}</span>
       </span>
     </div>

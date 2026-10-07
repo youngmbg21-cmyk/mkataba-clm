@@ -2073,8 +2073,8 @@ async function intelGraphAsk(q){
   /* CHECK AND REPAIR (work order Part 4): Copilot's cards are checked before
      they are applied; what fails goes back ONCE, at the cost of one more
      call, and the panel says so */
+  const retry=payload?(note=>api('ai/graph','POST',Object.assign({},payload,{ query:q+'\n\n'+note, screen:graphAskScreen() }))):null;
   if(res&&igBoardNow()&&typeof window.hbBoardTakes==='function'){
-    const retry=payload?(note=>api('ai/graph','POST',Object.assign({},payload,{ query:q+'\n\n'+note, screen:graphAskScreen() }))):null;
     let said=null; try{ said=(typeof window.hbBoardTakesChecked==='function')?await hbBoardTakesChecked(res,retry,q):hbBoardTakes(res,q); }catch(_){ said=null; }
     /* DIG DEEPER (Charts That Explain, rec 4): under Copilot's board answer,
        the press that hands the question to the analyst, its cost beside it */
@@ -2084,6 +2084,15 @@ async function intelGraphAsk(q){
     /* The built-in reader understood nothing: say what the map can do, as
        presses, rather than leave a sentence and nothing to act on. */
     if(!res.groupBy&&!res.visibleIds) res.ask=[{ role:'group', fact:'counterparty' },{ role:'floors', fact:'payterms' },{ role:'colour', fact:'risk' }]; }
+  /* ON THE BOARD A MAP ANSWER NEVER TOUCHES THE HIDDEN MAP (the one-build
+     work order A3, 7 Oct 2026): an answer with no board actions is read by
+     the board — a card, one retry, or one plain line — and the map behind it
+     stays exactly as it was. Only a set (drawn as a list) or a question that
+     asks for the map goes on to intelGraphApply. */
+  if(res&&igBoardNow()&&typeof window.hbBoardNoMap==='function'){
+    let said=null; try{ said=await hbBoardNoMap(res,retry,q); }catch(_){ said=null; }
+    if(said){ intel.history.push(Object.assign({ role:'assistant', text:said+igNoticeHtml(res.notice) }, typeof window.hbTakeMeta==='function'?hbTakeMeta():{})); return; }
+  }
   igRecipePush();
   intelGraphApply(q, res, { capped });
 }
@@ -2166,7 +2175,9 @@ function intelGraphApply(q, res, opts){
     .map(o=>({ label:igRoleSays(o.role,o.fact).replace(/\.$/,''), acts:[{ role:o.role, fact:o.fact }].concat(o.role==='floors'?[{ view:2 }]:o.role==='columns'?[{ view:3 }]:[]) })):null;
   const action=res.action==='highlight'?'highlight':'filter';
   /* a request about the look narrows nothing unless its words narrow */
-  if(lookActs.length&&ids&&!/\b(?:only|just|which|what|show me|among|bara|endast|vilka|vilket)\b/i.test(q)) ids=null;
+  /* the opening words never decide it (the one-build work order A2): "show
+     me" is read away like any other opening, so it narrows nothing itself */
+  if(lookActs.length&&ids&&!/\b(?:only|just|which|what|among|bara|endast|vilka|vilket)\b/i.test(q)) ids=null;
   if(ids&&ids.length)
     addLens({ label:igBoardTitle(q,res)||res.note||ids.length+' matches', ids, action, badges:res.badges||null });
   /* Composed off the built model — counts, never a sentence the model wrote. */
@@ -2399,7 +2410,7 @@ async function intelComplianceScan(q){
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:3px;flex-wrap:wrap">
         <button data-ig-ws="${r.c.id}" data-ig-hoverid="${r.c.id}" title="Open ${igEsc(r.c.name)}" style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--accent-ink);background:none;border:0;padding:0;cursor:pointer;text-align:left">${igEsc(r.c.name)}</button>
         ${sevPill(r.worst)}
-        <span style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">${igEsc(window.contractRef?contractRef(r.c):r.c.id)}</span>
+        <span style="font-size:var(--t-label);color:var(--color-neutral-500)">${window.refHtml?refHtml(r.c):igEsc(r.c.id)}</span>
       </div>
       <ul style="margin:0;padding-left:var(--s-4);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.45">${items}</ul>${more}
     </div>`;
@@ -3423,7 +3434,7 @@ function makeIntelGraph(model){
       const chip=igbEl('rect',{ class:'ig-chip', x:-4, y:-2, rx:3, height:27 },tag);
       const l1=igbEl('text',{ class:'ig-lab', x:0, y:9 },tag);
       n.walkNo=igbEl('tspan',{ fill:'#FFFFFF' },l1);
-      const r1=igbEl('tspan',{ 'font-weight':'700' },l1); r1.textContent=ref;
+      const r1=igbEl('tspan',{ 'font-weight':'700', class:'hati-ref' },l1); r1.textContent=ref;
       const n1=igbEl('tspan',{},l1); n1.textContent='  '+name;
       const l2=igbEl('text',{ class:'ig-facts', x:0, y:21 },tag);
       let twoLen=money.length;
@@ -3978,7 +3989,7 @@ function renderIntel(){
         </div>
         ${onHome?`<div id="hb-board" class="hb-board scroll-thin"></div>
           <div id="hb-tools" class="hb-tools"></div><canvas id="hb-ink" class="hb-ink" aria-hidden="true"></canvas>
-          <div id="hb-laser" class="hb-laser" hidden></div><div id="hb-laser-1" class="hb-laser is-trail" hidden></div><div id="hb-laser-2" class="hb-laser is-trail" hidden></div><div id="hb-laser-3" class="hb-laser is-trail" hidden></div>`:''}
+          ${''/* the red dot lives on the pointer's veil (hbVeilPaint) */}`:''}
       </div>
       <aside id="ig-dock" class="shrink-0 flex flex-col min-h-0 overflow-hidden" style="width:${igDockWidth()}px;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35);transition:width var(--dur-3) cubic-bezier(.22,.61,.36,1)"></aside>
       <div id="ig-resizer" class="ig-resizer" role="separator" aria-orientation="vertical" tabindex="0" aria-valuemin="${IG_DOCK_MIN}"
@@ -6151,7 +6162,7 @@ function intelPayTermsHtml(){
 
   const rowHtml = r => `<button data-pt-open="${E(r.id)}" title="${E(r.name || r.ref || r.id)}"
       style="display:grid;grid-template-columns:${PT_COLS};gap:4px 14px;align-items:baseline;width:100%;text-align:left;border:0;background:none;padding:8px 0;${RULE};font:inherit;cursor:pointer">
-    ${cell(E(r.ref || r.id), 'font-family:var(--font-mono);font-size:var(--t-label);color:var(--accent-ink);font-weight:var(--w-title)')}
+    ${cell(E(r.ref || r.id), 'font-family:var(--font-ref);font-size:var(--t-label);color:var(--accent-ink);font-weight:var(--w-title)')}
     ${cell(E(r.counterparty || r.name), 'font-size:var(--t-meta);color:var(--color-text)')}
     ${cell(E(streamOf(r)), 'font-size:var(--t-label);color:var(--color-neutral-600)')}
     ${cell(i18t(r.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp'), `font-size:var(--t-label);color:${r.side === 'customer' ? OB_OURS : OB_THEIRS}`)}
@@ -6223,7 +6234,7 @@ function igMiniCard(id, extra){
     ${extra||''}<span class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3 h-3')}</span>
     <span class="min-w-0 flex-1">
       <span class="block truncate text-[12px] font-medium text-brand-900">${igEsc(c.name)}</span>
-      <span class="block text-[10px] font-mono text-ink/45">${(window.contractRef?contractRef(c):c.id)}${isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''} · ${statusLabel(c.status)}</span>
+      <span class="block text-[10px] font-mono text-ink/45">${window.refHtml?refHtml(c):igEsc(c.id)}${isMonetary(c)&&c.value?' · '+(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):''} · ${statusLabel(c.status)}</span>
     </span>
   </button>`;
 }
@@ -6245,7 +6256,7 @@ function igExplainCard(id){
     <div class="flex items-center gap-2 mb-1.5">
       <span class="h-7 w-7 shrink-0 grid place-items-center rounded-lg bg-brand-50 text-brand-500">${icon(cIcon(c),'w-3.5 h-3.5')}</span>
       <div class="min-w-0"><div class="ig-card-name text-[12.5px] font-600 text-brand-900 truncate">${igEsc(c.name)}</div>
-      <div class="text-[10px] font-mono text-ink/45">${(window.contractRef?contractRef(c):c.id)}</div></div>
+      <div class="text-[10px] font-mono text-ink/45">${window.refHtml?refHtml(c):igEsc(c.id)}</div></div>
     </div>
     ${row('Type',igEsc(cKind(c)))}
     ${row('Counterparty',igEsc(c.counterparty||'—'))}
@@ -6813,7 +6824,7 @@ function igStripHtml(c,p){
       <button type="button" data-ig-mode="graph" aria-pressed="${up?'false':'true'}">${igEsc(i18t('int_paper_graph'))}</button>
       <button type="button" data-ig-mode="paper" aria-pressed="${up?'true':'false'}">${igEsc(i18t('int_paper_paper'))}</button>
     </div>
-    <span class="ig-strip-ref" title="${igEsc(c.name)}"><span class="ig-strip-dot" style="background:${dot}"></span><b>${igEsc(ref)}</b><span class="q"> · </span>${igEsc(c.name)}<span class="q"> · ${igEsc(c.counterparty||'—')} · ${igEsc(st)}</span></span>
+    <span class="ig-strip-ref" title="${igEsc(c.name)}"><span class="ig-strip-dot" style="background:${dot}"></span><b class="hati-ref">${igEsc(ref)}</b><span class="q"> · </span>${igEsc(c.name)}<span class="q"> · ${igEsc(c.counterparty||'—')} · ${igEsc(st)}</span></span>
     <span class="ig-strip-sp"></span>
     ${up&&n?`<span class="ig-strip-pins">${igEsc(i18tn('int_pins',n,{n}))}</span><button type="button" class="ui-link" data-ig-pins-clear title="${igEsc(i18t('int_pins_clear_title'))}">${igEsc(i18t('int_pins_clear'))}</button>`:''}
     ${up?`<button type="button" class="ui-btn ui-btn-sm" data-ig-focus aria-pressed="${p.focus?'true':'false'}" title="${igEsc(i18t(p.focus?'int_focus_exit_title':'int_focus_title'))}">${icon(p.focus?'x':'scan','w-3.5 h-3.5')}${igEsc(i18t(p.focus?'int_focus_exit':'int_focus'))}</button>`:''}

@@ -769,7 +769,7 @@ function openSignApprovalDialog(c){
   try{ const ours=(typeof contractParty==='function')?contractParty(c):''; if(ours && !partiesShown.includes(ours)) partiesShown.unshift(ours); }catch(_){}
   openModal(`<div class="sa-dlg">
     <h3 class="sa-h">${e(i18t('sa_dlg_title'))}</h3>
-    <div class="sa-sub">${e([(window.contractRef?contractRef(c):c.id),c.name,c.counterparty].filter(Boolean).join(' · '))}</div>
+    <div class="sa-sub">${[window.refHtml?refHtml(c):e(c.id), e(c.name||''), e(c.counterparty||'')].filter(Boolean).join(' · ')}</div>
     ${needs}
     <div class="sa-box">
       <div class="sa-boxh">${e(i18t('sa_dlg_exactly',{who:apName}))}</div>

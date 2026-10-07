@@ -211,8 +211,11 @@ const HELPERS = `(() => {
     ok('3c the Thread\'s text buttons (Explain all, Run) are the text button: accent, 600, no underline',
       c3.run.length > 0 && c3.run.every(b => b.fw === '600' && b.td === 'none' && b.color === c3.accent),
       JSON.stringify(c3.run.map(b => ({ h: b.h, fw: b.fw, td: b.td, ink: b.color === c3.accent }))));
-    ok('3e an icon alone is a square of its row\'s rung (the Focus door)',
-      c3.squares.length > 0 && c3.squares.every(b => near(b.w, b.h) && near(b.h, 28)), JSON.stringify(c3.squares.map(b => b.w + '×' + b.h)));
+    /* RE-POINTED 7 Oct 2026 (the one-build work order part E): the Focus
+       door carries its mark AND the word "Focus" — it is no longer a square,
+       but it stays on its row's rung */
+    ok('3e the Focus door sits on its row\'s rung (28), mark and word',
+      c3.squares.length > 0 && c3.squares.every(b => near(b.h, 28) && b.w > b.h), JSON.stringify(c3.squares.map(b => b.w + '×' + b.h)));
     ok('3d REFUSAL 3: the contract\'s first line on the Document tab did not move down',
       c3.ink != null && (PARENT_INK.docs == null || c3.ink <= PARENT_INK.docs + 0.5),
       `first ink ${c3.ink} · parent ${PARENT_INK.docs}`);

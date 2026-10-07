@@ -116,6 +116,14 @@ const _agE = s => (typeof esc === 'function') ? esc(s)
   : String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 const _agIc = (name, cls) => `<svg class="${cls || ''}" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const _agRef = c => (typeof window !== 'undefined' && window.contractRef) ? contractRef(c) : (c && c.id) || '';
+/* A printed reference wears the one reference face (--font-ref); the rest of
+   the line stays in the reading face. */
+const _agWhatHtml = (what, c) => {
+  const r = c ? _agRef(c) : '';
+  const s = String(what || '');
+  if (!r || !s.endsWith(r)) return _agE(s);
+  return _agE(s.slice(0, s.length - r.length)) + '<span class="hati-ref">' + _agE(r) + '</span>';
+};
 /* A DAY IN THE READER'S OWN WORDS, off the history tab's one printer — never
    fmtDocDate, which is the contract's formatter and writes English months. */
 function _agDay(iso){
@@ -932,7 +940,7 @@ function agDoneRow(it){
   }
   const door = it.kind === 'answered'
     ? `<button type="button" class="ui-link" data-ag-go="nego" data-ag-cid="${_agE(it.cid)}">${_agE(_agT('ag_send_there'))}</button>` : '';
-  return `<tr><td class="w">${_agE(_agDay(it.at))}</td><td class="t" title="${_agE(what)}">${_agE(what)}</td>
+  return `<tr><td class="w">${_agE(_agDay(it.at))}</td><td class="t" title="${_agE(what)}">${_agWhatHtml(what, c)}</td>
     <td>${_agE(result)}${door ? ' ' + door : ''}</td><td class="b">${_agE(it.by || '—')}</td></tr>`;
 }
 function agDoneHtml(a){

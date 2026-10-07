@@ -58,6 +58,16 @@ function workingIdOf(n){
   return WORKING_PREFIX + String(k).padStart(3, '0');
 }
 function contractRef(c){ return c ? String(c.contractNo || c.id || '') : ''; }
+/* A REFERENCE ON THE SCREEN WEARS THE REFERENCE FACE (Young, 7 Oct 2026:
+   "Unify the font … across the platform"; asked, "References only"): ONE
+   wrapper, so every page draws a reference alike (.hati-ref, index.html).
+   Takes a contract or the printed reference itself; escapes what it prints.
+   Text-only places (a toast, a hover, a sentence to Copilot, an email, a
+   file) keep the plain contractRef. */
+function refHtml(c){
+  const r = (c && typeof c === 'object') ? contractRef(c) : String(c == null ? '' : c);
+  return '<span class="hati-ref">' + r.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]) + '</span>';
+}
 /* A working file is one that has not taken its contract number yet. A
    contract that was numbered from the day it was made (every MK record) is
    never a working file, whichever route it is signed by. */
@@ -1008,7 +1018,7 @@ function outsideBlanksIn(text){
 }
 
 const OUTSIDE_API = { WORKING_PREFIX, HANDOVER_REMIND_WORKDAYS, HANDOVER_REMIND_EVERY_DAYS, HANDOVER_LIVE_DAYS,
-  SIGNED_VIA, HANDOVER_FROZEN, isWorkingId, workingIdOf, contractRef, contractIsWorkingFile, contractRefMatches,
+  SIGNED_VIA, HANDOVER_FROZEN, isWorkingId, workingIdOf, contractRef, refHtml, contractIsWorkingFile, contractRefMatches,
   signRouteOf, handoverOf, handoverActive, outsideListed, ohWorkdays, ohAddWorkdays, handoverDays,
   handoverFirstReminderAt, handoverReminderKey, handoverNextReminderAt, handoverLiveFrom, handoverStillLiveDue,
   handoverStage, handoverLastCheck, outsideSignatory, outsideFileIds, ohStripMarker, ohNorm, ohChunks, ohAgreedParas, ohSignedStream, ohLcsOps,
