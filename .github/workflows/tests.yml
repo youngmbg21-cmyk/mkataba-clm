@@ -22,9 +22,23 @@
 # keeps a red run meaningful: there is nowhere for a new failure to hide.
 name: tests
 
+# TEST EACH COMMIT ONCE. A push to a branch with an open pull request used to
+# start the whole set twice (once for the push, once for the pull request) —
+# twelve machines for one commit, and the second set waited in line behind
+# the first. Branch work is tested through its pull request; main is tested
+# on every push to it.
 on:
   push:
+    branches: [main]
   pull_request:
+
+# A NEWER COMMIT REPLACES THE OLDER RUN. When another commit lands on the same
+# pull request, the run still testing the old one is cancelled so the machines
+# go to the latest code. Runs on main are never cancelled: each merge keeps its
+# own result.
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   # The proofreader runs first and alone: it takes seconds, needs no browser,
