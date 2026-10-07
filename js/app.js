@@ -2532,6 +2532,29 @@ const RAIL_KEY = 'hati.v1.railCollapsed';
    and the strip stays a 64px rail whatever this answers, exactly as before.
    A stored value always wins — `null` means "never chosen", not "chose no" —
    so anybody who had already collapsed it keeps their rail. */
+/* ---- ☰ HIDES THE MENU COMPLETELY (Young, 7 Oct 2026, work order W-1:
+   "disappear completely") ---- A second remembered choice beside the rail:
+   above the float line the menu leaves the grid and the page takes the whole
+   width. Below the line the same button opens and closes the floating menu
+   and this choice is read, never written (the rail's own rule). */
+const NAV_HIDE_KEY = 'hati.v1.navHidden';
+function navHidden(){
+  try { return localStorage.getItem(NAV_HIDE_KEY) === '1'; } catch(e){ return false; }
+}
+function paintNavToggle(){
+  const btn=document.getElementById('nav-toggle'); if(!btn) return;
+  const nav=document.getElementById('side-nav');
+  const shown=navDrawerActive()?!!(nav&&nav.classList.contains('open')):!navHidden();
+  const k=shown?'sh_nav_hide':'sh_nav_show';
+  btn.setAttribute('aria-expanded',shown?'true':'false');
+  btn.setAttribute('data-i18n-title',k); btn.setAttribute('data-i18n-aria',k);
+  btn.title=i18t(k); btn.setAttribute('aria-label',i18t(k));
+}
+function toggleNavHidden(){
+  if(navDrawerActive()){ const nav=document.getElementById('side-nav'); setNavDrawer(!(nav&&nav.classList&&nav.classList.contains('open'))); return; }
+  try { localStorage.setItem(NAV_HIDE_KEY, navHidden()?'0':'1'); } catch(e){}
+  applyRail();
+}
 function railCollapsed(){
   try { const v = localStorage.getItem(RAIL_KEY); return v === null ? false : v === '1'; }
   catch(e){ return false; }
@@ -2543,7 +2566,12 @@ function applyRail(){
      is read, not written — see railCollapsed — so it is waiting unchanged when
      they are back on a wide screen. */
   const on=railCollapsed()||navDrawerActive();
+  const gone=!navDrawerActive()&&navHidden();
   shell.classList.toggle('rail',on);
+  shell.classList.toggle('nav-hidden',gone);
+  /* The aside states display:flex inline, so the hiding is said inline too —
+     a stylesheet rule would lose to the attribute (the cascade, not a shout). */
+  const sideNav=document.getElementById('side-nav'); if(sideNav&&sideNav.style) sideNav.style.display=gone?'none':'flex';
   /* The columns are set inline in index.html, so they are answered inline
      here — a stylesheet rule would lose to the attribute it is arguing with.
 
@@ -2563,8 +2591,8 @@ function applyRail(){
      this one line and 240 in the shell's own grid, which is two answers to one
      question waiting to disagree; --nav-w is the single one. */
   if(shell.style) shell.style.gridTemplateColumns=
-    (navDrawerActive()?'64px':(on?'64px':'var(--nav-w,240px)'))+' minmax(0,1fr)';
-  paintRailToggle();
+    (gone?'0px':navDrawerActive()?'64px':(on?'64px':'var(--nav-w,240px)'))+' minmax(0,1fr)';
+  paintRailToggle(); paintNavToggle();
   /* THE PAGE HAS TO BE TOLD. The negotiation panel writes its own column
      widths from a measurement (rlLayoutResizer) — it solves how much the round's
      queue may take before the contract loses its measure — and 192px arriving
@@ -2599,8 +2627,9 @@ function paintRailToggle(){
   /* THE CHEVRON POINTS THE WAY THE PRESS GOES, not the way the sidebar
      currently is. Pointing at the state rather than the act is how a toggle
      comes to describe the wrong half of itself. */
-  const chev=btn.querySelector('.rail-chev');
-  if(chev) chev.setAttribute('d',up?'M14.5 6 8.5 12l6 6':'M9.5 6 15.5 12l-6 6');
+  /* the foot row's own words: "Collapse menu" / "Expand menu" (W-2) */
+  const lab=btn.querySelector('.rf-label');
+  if(lab){ const lk=up?'sh_rail_collapse':'sh_rail_expand'; lab.setAttribute('data-i18n',lk); lab.textContent=i18t(lk); }
 }
 function toggleRail(){
   /* ONE BUTTON, TWO JOBS, AND THE PAGE DECIDES WHICH. Below the line the
@@ -2842,6 +2871,7 @@ function setNavDrawer(open){
   if(nav&&nav.classList) nav.classList.toggle('open', !!open);
   if(scrim) scrim.hidden = !open;
   if(btn) btn.setAttribute('aria-expanded', open?'true':'false');
+  paintNavToggle();
   /* The sidebar's own chevron is the door down here, so it has to answer for
      the state it just put the layer in. */
   paintRailToggle();
@@ -2859,7 +2889,7 @@ function closeNavDrawer(){ setNavDrawer(false); }
    working exactly as it did. */
 function placeLanguageSwitch(){
   const sw=document.getElementById('lang-switch');
-  const drawerHome=document.querySelector('#side-nav .copilot-wrap');
+  const drawerHome=document.querySelector('#side-nav .nav-foot');
   const headerHome=document.getElementById('brand-block');
   if(!sw||!drawerHome||!headerHome||!headerHome.parentElement) return;
   const wantDrawer=navHeaderTight();
@@ -3424,8 +3454,7 @@ function wireShell(){
      because the sidebar is a column again. */
   document.getElementById('nav-toggle')?.addEventListener('click',e=>{
     e.stopPropagation();
-    const nav=document.getElementById('side-nav');
-    setNavDrawer(!(nav&&nav.classList.contains('open')));
+    toggleNavHidden();
   });
   document.getElementById('nav-scrim')?.addEventListener('click',closeNavDrawer);
   document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !document.querySelector('[data-top-overlay]')) closeNavDrawer(); });
@@ -3529,7 +3558,6 @@ function wireShell(){
   document.addEventListener('click',e=>{
     if(e.target.closest?.('#cmd-ai,[data-copilot-proxy]')) openAI();
   });
-  document.getElementById('side-copilot')?.addEventListener('click',()=>openAI());
   /* THE WORKSPACE-STATUS FOOT FOLDS (owner-asked 20 Aug 2026): the handle
      toggles the sheet that slides up over the nav; Escape closes it. Open
      state is per sitting, on the element — a posture, never a setting. */
@@ -3799,5 +3827,5 @@ if (typeof window !== 'undefined' && window.addEventListener){
 }
 
 Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
-  buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
+  buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,navHidden,toggleNavHidden,paintNavToggle,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

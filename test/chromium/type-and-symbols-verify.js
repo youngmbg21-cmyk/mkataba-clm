@@ -72,7 +72,7 @@ const SHELL_ICONS = [
      Templates & standards, and importing is reached from the upload door. */
   /* [data-view="advice"] left the rail on 4 Oct 2026 too (the process
      review, gap F, f495): the Advice desk is the Advice tab of Requests. */
-  ['#side-copilot',              'i-spark'],
+  ['#cmd-ai',                    'i-spark'],   /* the one Copilot door since 7 Oct 2026 (W-3) */
 ];
 
 (async () => {
