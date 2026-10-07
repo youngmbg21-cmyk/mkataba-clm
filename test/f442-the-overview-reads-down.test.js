@@ -14,7 +14,7 @@
      · each group's answer is built from the record, escapes what it quotes,
        and says nothing the record does not hold
      · Read the brief is the brief card's own door, not a new act
-     · the timeline is drawn only where both dates exist and run forwards
+     · the Time Machine is drawn only off stored dates (7 Oct 2026)
      · one Edit turns both postures on and off
 
    Run: node --test test/f442-the-overview-reads-down.test.js */
@@ -89,8 +89,9 @@ describe('f442 (1) four questions, and every field answers one of them', () => {
     assert.ok(!html.includes(win.ovMetaLabel('exclusivity')), 'unanswered, it is absent');
     c.metadata.exclusivity = 'exclusive';
     html = win.ktOverviewTermsHtml(c, { editable: false });
-    const risk = html.slice(html.indexOf('id="ov-risk"'), html.indexOf('id="ov-parties"') > 0
-      ? html.indexOf('id="ov-parties"') : html.indexOf('id="ov-record"'));
+    /* The parties lead the essentials card since 7 Oct 2026, so Risks runs
+       to The record. */
+    const risk = html.slice(html.indexOf('id="ov-risk"'), html.indexOf('id="ov-record"'));
     assert.ok(risk.includes(win.ovMetaLabel('exclusivity')), 'answered, it is under Risks');
   });
 
@@ -175,45 +176,112 @@ describe('f442 (3) each group answers from the record, and says no more', () => 
   });
 
   test('no model is asked and nothing is written', () => {
-    const b = strip(fnBody(CONTRACT, 'ovSayOf') + fnBody(CONTRACT, 'ovTimelineHtml'));
+    const b = strip(fnBody(CONTRACT, 'ovSayOf') + fnBody(CONTRACT, 'ovTmData') + fnBody(CONTRACT, 'ovTmHtml') + fnBody(CONTRACT, 'ovTmPaint'));
     assert.ok(!/api\(|fetch\(|persist\(|logAudit|runContractBrief|anthropic/.test(b));
   });
 });
 
-describe('f442 (4) the timeline', () => {
-  test('drawn where both dates exist and run forwards', () => {
-    const { win } = ovWorld();
-    const html = win.ovTimelineHtml(supply());
-    assert.ok(/class="ov-tl"/.test(html), 'it is drawn');
-    assert.ok(/ov-tl-pt is-start/.test(html) && /ov-tl-pt is-end/.test(html), 'with both ends');
-    assert.ok(/aria-hidden="true"/.test(html), 'a picture of facts the grid prints');
+/* RE-POINTED IN PLACE 7 Oct 2026: Young picked "Time Machine under the
+   essentials card" and "Fold them in". The thin line (ovTimelineHtml) is
+   STALE; the Time Machine replaces it, and every claim the line carried is
+   carried here — drawn only off stored dates, every point on the track, labels
+   settled by measuring, one watcher — plus what the machine adds. The day is
+   pinned, never read off the clock. */
+const tmWorld = () => { const w = ovWorld(); w.win.todayISO = () => '2026-01-15'; return w; };
+const utc = s => Date.parse(s + 'T00:00:00Z');
+
+describe('f442 (4) the Time Machine', () => {
+  test('drawn where the dates exist and run forwards, with both ends and today', () => {
+    const { win } = tmWorld();
+    const html = win.ovTmHtml(supply());
+    assert.ok(/class="ov-tm"/.test(html), 'it is drawn');
+    assert.ok(/ov-tm-mk is-start/.test(html) && /ov-tm-mk is-end/.test(html) && /ov-tm-mk is-now/.test(html));
+    assert.ok(/class="ov-tm-track" aria-hidden="true"/.test(html), 'the track is a picture; the read-outs speak');
+    assert.ok(/type="range"[^>]*aria-label=/.test(html), 'the drag is a labelled control');
   });
 
-  test('not drawn on a missing or backwards date', () => {
-    const { win } = ovWorld();
-    const a = supply(); delete a.expiry;
-    assert.equal(win.ovTimelineHtml(a), '');
+  test('not drawn on no dates or a backwards pair; drawn on a start alone', () => {
+    const { win } = tmWorld();
+    const a = supply(); delete a.expiry; delete a.fields.effDate;
+    assert.equal(win.ovTmHtml(a), '');
     const b = supply(); b.expiry = '2024-01-01';
-    assert.equal(win.ovTimelineHtml(b), '');
-    const c = supply(); c.fields.effDate = 'not a date';
-    assert.equal(win.ovTimelineHtml(c), '');
+    assert.equal(win.ovTmHtml(b), '');
+    const job = supply(); delete job.expiry;
+    const html = win.ovTmHtml(job);
+    assert.ok(/ov-tm-line is-open/.test(html), 'a contract with no end (employment) draws an open line');
+    assert.ok(!/ov-tm-mk is-end/.test(html), 'and invents no end');
   });
 
-  test('every point is placed on the line, never off it', () => {
-    const { win } = ovWorld();
-    const lefts = (win.ovTimelineHtml(supply()).match(/left:(-?[\d.]+)%/g) || [])
-      .map(x => Number(x.slice(5, -1)));
-    assert.ok(lefts.length >= 4);
-    for (const l of lefts) assert.ok(l >= 0 && l <= 100, 'inside the line: ' + l);
+  test('every point is placed on the track, never off it', () => {
+    const { win } = tmWorld();
+    const c = supply();
+    c.obligations = [{ id: 'o1', desc: 'Quarterly report', due: '2025-06-30', status: 'done', completedAt: '2025-06-28' },
+      { id: 'o2', desc: 'Insurance certificate', due: '2025-12-31', status: 'open' }];
+    const track = win.ovTmHtml(c).split('class="ov-tm-range"')[0];
+    const lefts = (track.match(/left:(-?[\d.]+)%/g) || []).map(x => Number(x.slice(5, -1)));
+    assert.ok(lefts.length >= 6);
+    for (const l of lefts) assert.ok(l >= 0 && l <= 100, 'inside the track: ' + l);
+  });
+
+  test('a duty is late only on a day already behind us; an undated duty is not on the track', () => {
+    const { win } = tmWorld();
+    const c = supply();
+    c.obligations = [{ id: 'o1', desc: 'Late one', due: '2025-12-31', status: 'open' },
+      { id: 'o2', desc: 'Coming', due: '2026-03-01', status: 'open' },
+      { id: 'o3', desc: 'No day', due: '', status: 'open' }];
+    const T = win.ovTmData(c);
+    assert.deepEqual(T.occ.map(o => o.t), ['Late one', 'Coming'], 'the undated duty stays on the Obligations tab');
+    assert.equal(win.ovTmAt(T, T.today).late, 1, 'today: the December duty is late');
+    const later = win.ovTmAt(T, utc('2026-06-01'));
+    assert.equal(later.late, 1, 'on a future day, a duty still to do is not called late');
+    assert.equal(win.ovTmOccState(T.occ[1], utc('2026-06-01'), T.today), 'p');
+    assert.equal(win.ovTmAt(T, T.today).next.t, 'Coming', 'the next deadline after the day');
+  });
+
+  test('a signed amendment is a mark from the day it was signed; an unsigned one is not', () => {
+    const { win } = tmWorld();
+    const c = supply();
+    win.familyOrder = () => [{ doc: c }, { doc: { id: 'MK-442-A1' }, signed: '2025-09-01' }, { doc: { id: 'MK-442-A2' }, signed: '' }];
+    win.contractRef = d => d.id;
+    const T = win.ovTmData(c);
+    assert.deepEqual(T.marks.filter(m => m.k === 'amend').map(m => m.word), ['MK-442-A1']);
+    assert.equal(T.kids.length, 2, 'both are listed under "in force on this date"');
+    assert.equal(T.kids[1].signed, null);
+  });
+
+  test('the renewal deadline is on the track, and its question sits under it', () => {
+    const { win } = tmWorld();
+    const c = supply();
+    win.renewalWindow = () => ({ notice: 90, decideBy: '2026-11-30', missed: false, auto: true });
+    const T = win.ovTmData(c);
+    assert.ok(T.marks.some(m => m.k === 'decide' && m.at === utc('2026-11-30')));
+    assert.ok(T.marks.some(m => m.k === 'end' && /Renew/.test(m.word)), 'an auto-renewing end says so');
+    const html = win.ktOverviewTermsHtml(c, { editable: false });
+    const card = html.slice(html.indexOf('ov-tm-card'));
+    assert.ok(/id="renewal-host" class="empty:hidden" data-bare="1"/.test(card), 'the one host, in the machine');
+    assert.equal((html.match(/id="renewal-host"/g) || []).length, 1, 'and only one');
+  });
+
+  test('the jump on the shown day is the pressed one', () => {
+    const { win } = tmWorld();
+    const html = win.ovTmHtml(supply());
+    const pressed = html.match(/data-tm-j="(\d+)" aria-pressed="true"/g) || [];
+    assert.equal(pressed.length, 1, 'exactly one lit at rest');
+    assert.ok(pressed[0].includes(String(utc('2026-01-15'))), 'and it is Today');
+    assert.ok(/aria-pressed',String\(\+b\.getAttribute\('data-tm-j'\)===d\)/.test(strip(fnBody(CONTRACT, 'ovTmWire'))),
+      'every move re-lights the jump standing on the day');
+    assert.ok(/\.ov-tm-ctl \.ui-btn\[aria-pressed="true"\]\{ background:var\(--color-text\)/.test(read('index.html')),
+      'and the lit one is filled, so you can see which you pressed');
   });
 
   test('labels are moved after the paint, by measuring, and one watcher at a time', () => {
     const settle = strip(fnBody(CONTRACT, 'ovTimelineSettle'));
     assert.ok(/getBoundingClientRect/.test(settle), 'it measures');
-    const watch = strip(fnBody(CONTRACT, 'ovTimelineWatch'));
-    assert.ok(/disconnect\(\)/.test(watch), 'the old watcher stops before a new one starts');
-    assert.ok(/ovTimelineWatch\(host\)/.test(strip(fnBody(CONTRACT, 'renderKeyTerms'))),
-      'and the painter that drew the line settles it');
+    const wire = strip(fnBody(CONTRACT, 'ovTmWire'));
+    assert.ok(/disconnect\(\)/.test(wire), 'the old watcher stops before a new one starts');
+    assert.ok(/ovTmWire\(host,c\)/.test(strip(fnBody(CONTRACT, 'renderKeyTerms'))),
+      'and the painter that drew the machine wires it');
+    assert.ok(/isConnected/.test(wire), 'Play stops when the machine leaves the page');
   });
 });
 

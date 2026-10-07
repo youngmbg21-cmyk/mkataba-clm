@@ -242,10 +242,14 @@ const BODY =
       /* "The other cards' buttons": The deal is four groups with no act of its
          own now (its Edit heads the sheet), so the comparison is The record's
          own act, which sits on the same inset every section's acts do. */
-      const who = box('Who else'), read = box('What Copilot'), parties = box('Parties'), deal = box('The record') || parties;
+      /* RE-POINTED 7 Oct 2026 ("Fold them in"): "Who else" is inside the
+         one Parties list now, so it is found by its own list (#kt-people)
+         and measured against the card that holds it. */
+      const ppl = document.querySelector('#kt-people');
+      const who = ppl && ppl.closest('.sec-box'), read = box('What Copilot'), parties = box('Parties'), deal = box('The record') || parties;
       const inset = (b, sel) => { const e = b && b.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().left - b.getBoundingClientRect().left) : null; };
-      out.whoBtn = inset(who, 'button.ui-btn');
-      out.whoText = inset(who, '.pt-none, .pt-row');
+      out.whoBtn = inset(who, '#kt-people button.ui-btn');
+      out.whoText = inset(who, '#kt-people .pt-none, #kt-people .pt-row');
       out.dealBtn = inset(deal, '.sec-acts button');
       if (read) {
         const hd = read.querySelector('.sec-head').getBoundingClientRect();

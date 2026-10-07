@@ -572,17 +572,22 @@ describe('f359 (10) the parties are a section of their own', () => {
      four groups now and the sheet ends on the record. The claim is the same —
      the parties are their own section, read after the deal and before the
      record — and so is the fault it guards: a body nobody can see. */
+  /* RE-POINTED IN PLACE 7 Oct 2026 (Young picked "Time Machine under the
+     essentials card" and "Fold them in"): the parties LEAD the essentials
+     card, with the people and the signers in the same list. The claim is
+     the same — the parties are a section of their own, drawn open, before
+     The record. */
   test('it is in the stack, above The record', () => {
     const b = stack();
-    assert.ok(/return top\+groups\+parties\+peopleSec\+record;/.test(b),
-      'the parties read between the deal and the record: ' + (b.match(/return top[^;]*/) || [''])[0]);
+    assert.ok(/<div class="ov-card ov-ess">\$\{top\+parties\+groups\+record\}<\/div>/.test(b),
+      'the parties lead the essentials card, before the record: ' + (b.match(/return [^;]*/) || [''])[0]);
   });
 
   test('and it opens OPEN — the fault was a section that draws no body', () => {
     /* On the sheet nothing folds: a section with no key cannot be shut, so its
        body is always drawn. */
     const b = stack();
-    const sec = b.slice(b.indexOf('const parties='), b.indexOf('const record='));
+    const sec = b.slice(b.indexOf('const parties='), b.indexOf('const tmCard='));
     assert.ok(sec.includes('sectionHtml({') && !/\bkey:/.test(sec),
       'the section has no fold to shut: ' + sec.slice(0, 200));
   });
@@ -629,7 +634,7 @@ describe('f359 (10) the parties are a section of their own', () => {
      summarised the open body under it would say the names twice. */
   test('an open section does not repeat its body in its head', () => {
     const b = stack();
-    const sec = b.slice(b.indexOf('const parties='), b.indexOf('const record='));
+    const sec = b.slice(b.indexOf('const parties='), b.indexOf('const tmCard='));
     assert.ok(!/summary:/.test(sec), 'no summary on a section that cannot shut');
   });
 
