@@ -14,12 +14,15 @@ Asked which numbers, the owner picked **"References only"**: every contract refe
 
 **Added again (owner, a screenshot of a "[icon] Focus" button):** "all focus buttons should say Focus. Add this".
 
-**What this order holds (five parts, one build):**
+**And again (owner, 7 Oct 2026):** "In the home page in board and explorer. When you choose pointer, it seizes to become a cursor and only works as a pointer and therefore across the screens. You can then exit pointer to get back to cursor mode."
+
+**What this order holds (six parts, one build):**
 - **Part A — The board draws what you ask, however you say it.** The Home board work order written earlier today (branch `claude/board-draws-what-you-ask`, docs/WORKORDER-board-draws-what-you-ask.md), carried here WHOLE and renumbered A0–A6. This file SUPERSEDES that one; that branch is not merged.
 - **Part B — A suggestion shows only the clause or sub-clause it changes** (owner's image 1).
 - **Part C — The prepared questions are shaded in the platform's colour** (owner's image 2).
 - **Part D — Every reference wears the reference font, on every page.**
 - **Part E — Every Focus button says "Focus".**
+- **Part F — On Home, the Pointer is a pointer only, until you exit it.**
 
 "All remaining work" was checked against everything raised in this session. Everything else is built and merged (#159, #160). One idea was raised but never decided, so it is NOT in this order: making "Why it matters" the first row of the shaded facts (Risk Walk Options, left as an open question). It needs the owner's yes first.
 
@@ -346,14 +349,30 @@ row must come out the SAME for all five openings when this order is done.
 
 ---
 
+## PART F — ON HOME, THE POINTER IS A POINTER ONLY, UNTIL YOU EXIT IT
+
+**Today (read 7 Oct; grep again):** Present on Home offers Pointer · Pen · Clear (`hbToolsPaint`, `data-hb-tool`, `_hbTool`, `hbSetTool`). With Pointer on, `.hb-pointing` hides the cursor and a red dot with a short trail follows the mouse (`#hb-laser`, `hbOnPointer`) — but only over the board's column (`#hb-col`). Over anything pressable the HAND comes back, the dot steps aside and a click still works (`hbPointerHandAt`, `.hb-cur-chain`, `HB_CUR_CONTROL`). That last behaviour was the owner's 6 Oct ruling ("It should only turn into a mouse when hovering over a button").
+
+**The owner's new rule REVERSES the 6 Oct hand-over-buttons ruling** (say so in the summary; replace the line in CLAUDE.md, story to MAP-HISTORY):
+- With Pointer chosen, there is NO cursor anywhere on the screen, and the mouse ONLY points: the red dot and its trail, never the hand, over the board, over Explorer's map, over the Copilot panel, the page head and every button. A click does NOTHING — no dig, no card, no tab, no button — so a presenter can point at anything without opening it by accident.
+- It works the same on the BOARD and on EXPLORER, and across the WHOLE screen, not only the board's column (the dot is drawn on a layer over the whole page, sized to the window).
+- ONE WAY BACK, always visible and always pressable: a small "Exit pointer" control (the Pointer button itself, lit, in the Present tools) is the single element that still takes a click while pointing; Escape also exits (already: `hbOnKey` clears `_hbTool`). Exiting brings the normal cursor straight back, and nothing that was pointed at was pressed.
+- The Pen keeps its own behaviour; Clear still clears. Leaving Present, a page change, or a refresh ends pointing (nothing kept), as today.
+- Where Pointer can be chosen does NOT change: today it is in Present's tools. If the owner meant it to be available outside Present too, that is a new door — ASK before adding it.
+- Remove what the reversal makes dead: `hbPointerHandAt`'s hand-over-buttons lift (`.hb-cur-chain`, `HB_CUR_CONTROL`) if nothing else uses it; flag the names STALE in the MAP.
+
+**Tests:** browser (extend the Present check, or a new `pointer-only-verify`): Present → Pointer on, on the Board then on Explorer: over a figure, a chart bar, a tab and the Copilot panel the computed cursor is `none` and the dot is drawn at the mouse; a click on a figure opens nothing and changes no state (board path, open card, tab unchanged); the Exit control and Escape each bring the cursor back; after exit a click works again. Must FAIL on unmodified main (today a click over a button works while pointing, and the dot is hidden there).
+
+---
+
 ## ONE BUILD — ORDER OF WORK AND CHECKS
 
-1. One branch from the LATEST main. One commit per part (A, B, C, D, E), then one pull request for all five.
+1. One branch from the LATEST main. One commit per part (A, B, C, D, E, F), then one pull request for all six.
 2. Read CLAUDE.md, then grep docs/MAP-HISTORY.md for "HOME — THE BOARD AND THE MAP", "EDIT WITH COPILOT — PANEL TIDY-UP", "THE PIN QUOTES WHAT MOVED" and "changedOnly", and read each.
-3. Run the Six Questions for B, C, D and E (they change what a person sees). B restores a stated rule; C, D and E are the owner's exact instructions. Neither should bite; if one does, say so before building.
+3. Run the Six Questions for B–F (they change what a person sees). B restores a stated rule; C, D, E and F are the owner's exact instructions (F reverses the 6 Oct pointer ruling on the owner's own word). Neither should bite; if one does, say so before building.
 4. `npm run lint` first, zero errors. Run the affected test files together until green; the full suite ONCE at the end.
 5. Every new check runs against a worktree at unmodified main first and must FAIL there.
-6. PHOTOGRAPH WHAT YOU BUILT: the board after each A0 phrase; the Suggested wording on both tabs before and after B (owner's lease example: only 2.1 shown); the chips in light and dark, green and navy brands; Approvals, Obligations, Calendar and Home with their references before and after; every Focus button before and after.
+6. PHOTOGRAPH WHAT YOU BUILT: the board after each A0 phrase; the Suggested wording on both tabs before and after B (owner's lease example: only 2.1 shown); the chips in light and dark, green and navy brands; Approvals, Obligations, Calendar and Home with their references before and after; every Focus button before and after; Present with Pointer on, on the Board and on Explorer.
 7. Update THE MAP in CLAUDE.md (four lines at most per area) and append the story to docs/MAP-HISTORY.md under the same headings. Mark the old board work order as superseded by this one.
 
 ## OUT OF SCOPE (BUGLOG line, never a fix)
