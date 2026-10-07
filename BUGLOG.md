@@ -20466,3 +20466,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - An uploaded Word file whose structure WAS read still shows "Text not machine-readable" in amber on its file strip (seen on a test upload with stored wording).
 - At 1024px on Home's Explorer the folded LEGEND tab sits under the view bar (Brain · Wiring · …) at the stage's foot.
 - A "fold <anything>" sentence that names no group now gets HaTi's "no group called …" reply instead of going to Copilot ("collapse the side panel" would be answered that way).
+- Noticed, not fixed: #154 ("the board lands light") moved the Home screen's colours without re-recording the colour census; the bright-brand merge re-recorded it (only dashboard--light/--dark changed, all board inks).

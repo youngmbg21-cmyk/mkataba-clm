@@ -205,8 +205,13 @@ const CENSUS = () => {
   /* RE-POINTED 20 Sep 2026 to the redesign order's teal ramp (accent 500–900
      and 100 of the reference): a list of the OLD greens would pass on navy
      for the wrong reason, because nothing draws them any more. */
-  const GREENS = ['rgb(46, 140, 130)', 'rgb(14, 95, 88)', 'rgb(11, 74, 69)',
-                  'rgb(9, 55, 51)', 'rgb(6, 40, 37)', 'rgb(225, 240, 237)',
+  /* RE-POINTED 7 Oct 2026 (the bright brand): navy now BORROWS green as its
+     helper colour (--alt #12796D, --alt-soft #E3F3EF, --alt-ink #0E5F58 — the
+     stream tag, one initials wash), so those three shades are meant to stay on
+     a navy screen. The list is every OTHER green on the ramp: the 500, the
+     hover, the 800/900, the tint, the line and the 400. */
+  const GREENS = ['rgb(46, 140, 130)', 'rgb(14, 106, 95)', 'rgb(9, 55, 51)',
+                  'rgb(6, 40, 37)', 'rgb(241, 249, 247)', 'rgb(188, 226, 217)',
                   'rgb(94, 194, 179)'];
   /* Skipped while recording: a baseline is taken from the code BEFORE a change,
      which is a build that may not have setTheme yet — and a save run that
