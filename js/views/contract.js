@@ -6302,7 +6302,7 @@ function ovMapDutyRow(x){
    renderRenewalSection's own card — no new band). */
 function ovMapPane(c,D,k){
   const pOf=key=>D.parties.find(p=>p.k===key);
-  const flowRow=(f,i)=>`<button type="button" class="ov-map-ob ov-map-go" data-ov-map-go="f${i}"><span class="ov-map-dot" style="background:${OV_MAP_KINDS[f.kind]}"></span><div><b>${esc(f.l1)}</b><small>${esc(pOf(f.a).name)} → ${esc(pOf(f.b).name)} · ${esc(f.l2)}</small></div></button>`;
+  const flowRow=(f,i)=>`<button type="button" class="ov-map-ob ov-map-go" data-ov-map-go="f${i}"><span class="ov-map-dot" style="background:${OV_MAP_KINDS[f.kind]}"></span><div><b>${esc(f.l1)}</b><small>${esc(pOf(f.a).name+' → '+pOf(f.b).name+' · '+f.l2)}</small></div></button>`;
   if(k==='deal'){
     const sub=[D.law?i18t('ov_map_law',{ law:D.law }):'', D.disputes].filter(Boolean).join(' · ');
     return `<div id="renewal-host" class="empty:hidden" data-bare="1"></div><span class="ov-map-pcap">${esc(i18t('ov_map_this'))} · ${esc(D.ref)}</span>
@@ -6372,7 +6372,7 @@ function ovMapWire(host,c){
   const draw=()=>{ const w=Math.round(st.clientWidth||0); if(!w) return; const tall=w<640;
     if(w===lastW&&tall===lastTall) return; lastW=w; lastTall=tall;
     st.innerHTML=ovMapSvg(D,tall); svg=st.querySelector('svg'); applyOff();
-    list.innerHTML=tall?D.flows.map((f,i)=>`<button type="button" data-ov-map-go="f${i}"><span style="background:${OV_MAP_KINDS[f.kind]}"></span>${esc(D.parties.find(p=>p.k===f.a).name)} → ${esc(D.parties.find(p=>p.k===f.b).name)}: ${esc(f.l1)}</button>`).join(''):'';
+    list.innerHTML=tall?D.flows.map((f,i)=>`<button type="button" data-ov-map-go="f${i}"><span style="background:${OV_MAP_KINDS[f.kind]}"></span>${esc(D.parties.find(p=>p.k===f.a).name+' → '+D.parties.find(p=>p.k===f.b).name+': '+f.l1)}</button>`).join(''):'';
     if(reduce&&svg&&svg.pauseAnimations) svg.pauseAnimations();
     if(svg) svg.querySelectorAll('[data-ov-map]').forEach(n=>n.classList.toggle('is-sel',n.getAttribute('data-ov-map')===_ovMapSel.k)); };
   st.addEventListener('pointerover',e=>{ const n=e.target.closest('[data-ov-map]'); if(n) light(n.getAttribute('data-ov-map')); });
