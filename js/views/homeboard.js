@@ -6904,35 +6904,39 @@ function hbToolsPaint(){
   const b = (k, word, tip) => `<button type="button" data-hb-tool="${k}" aria-pressed="${_hbTool === k}" title="${_hbE(i18t(tip))}">${_hbE(i18t(word))}</button>`;
   t.innerHTML = `<div class="ig-seg">${b('pointer', 'hb_pointer', 'hb_pointer_tip')}${b('pen', 'hb_pen', 'hb_pen_tip')}<button type="button" data-hb-tool="clear" title="${_hbE(i18t('hb_clear_tip'))}">${_hbE(i18t('hb_clear'))}</button></div>${_hbPresenting ? `<div class="ig-seg"><button type="button" data-hb-tool="exit" title="${_hbE(i18t('hb_exit_tip'))}">${_hbE(i18t('hb_exit'))}</button></div>` : ''}`;
   const ink = document.getElementById('hb-ink'); if (ink) ink.classList.toggle('is-on', _hbTool === 'pen');
-  const lz = document.getElementById('hb-laser'); if (lz) lz.hidden = _hbTool !== 'pointer';
+  hbVeilPaint();
   const pg = hbPage(); if (pg){ pg.classList.toggle('hb-presenting', _hbPresenting); pg.classList.toggle('hb-pointing', _hbTool === 'pointer'); }
-  if (_hbTool !== 'pointer') hbPointerHandAt(null);
 }
-/* ---- THE POINTER IS THE ONLY MARK ON THE SCREEN (Young, 6 Oct 2026: "the
-   mouse tracker should disappear and only have the pointer on screen. It
-   should only turn into a mouse when hovering over a button") ----
-   With the pointer on, the page hides the system cursor (.hb-pointing). Over
-   something you can press it comes back as the hand and the red dot steps
-   aside, so you can see what a click will do. HOW HaTi KNOWS A THING IS
-   PRESSABLE: it asks the page's own cursor rules, not a list kept here. The
-   hovered element and its ancestors are lifted out of the hiding rule
-   (.hb-cur-chain), its own cursor is read, and the lift is kept only where
-   that cursor is the hand (or the element is a control). Asked again only
-   when the element under the mouse changes. */
-let _hbCurAt = null, _hbCurHand = false;
-const HB_CUR_CONTROL = 'a[href],button:not(:disabled),[role="button"],[role="tab"],select,summary,label,input,textarea';
-function hbPointerHandAt(t){
-  const pg = hbPage();
-  if (t === _hbCurAt) return _hbCurHand;
-  if (pg) pg.querySelectorAll('.hb-cur-chain').forEach(n => n.classList.remove('hb-cur-chain'));
-  _hbCurAt = t; _hbCurHand = false;
-  if (!t || !pg || t === pg || !pg.contains(t) || typeof getComputedStyle !== 'function') return false;
-  const chain = []; for (let n = t; n && n !== pg; n = n.parentElement) chain.push(n);
-  chain.forEach(n => n.classList.add('hb-cur-chain'));
-  _hbCurHand = getComputedStyle(t).cursor === 'pointer' || !!(t.closest && t.closest(HB_CUR_CONTROL));
-  if (!_hbCurHand) chain.forEach(n => n.classList.remove('hb-cur-chain'));
-  return _hbCurHand;
+/* ---- THE POINTER ONLY POINTS, UNTIL YOU EXIT IT (Young, 7 Oct 2026: "When
+   you choose pointer, it seizes to become a cursor and only works as a
+   pointer and therefore across the screens. You can then exit pointer to get
+   back to cursor mode") — REVERSING 6 Oct's "turn into a mouse when hovering
+   over a button" ----
+   With Pointer on, ONE layer lies over the whole screen (#hb-veil, fixed,
+   inset 0): it wears no cursor and takes every press, so nothing under it can
+   be opened by accident, on the Board or on Explorer alike. It carries the red
+   dot and its trail (#hb-laser, #hb-laser-1..3, drawn at the mouse in screen
+   coordinates) and the ONE thing that still takes a press: "Exit pointer"
+   (data-hb-tool="pointer", the same toggle as the Pointer button). Escape
+   exits too (hbOnKey). The layer lives in the full-screen host (#content), so
+   it survives Board ⇄ Explorer like the presentation does. hbPointerHandAt,
+   .hb-cur-chain and HB_CUR_CONTROL are STALE. */
+function hbVeilHost(){ return document.fullscreenElement || document.getElementById('content') || hbPage() || document.body; }
+function hbVeilPaint(){
+  if (typeof document === 'undefined') return;
+  let v = document.getElementById('hb-veil');
+  if (_hbTool !== 'pointer'){ if (v) v.remove(); _hbTrail = []; return; }
+  const host = hbVeilHost(); if (!host) return;
+  if (!v){
+    v = document.createElement('div'); v.id = 'hb-veil'; v.className = 'hb-veil';
+    v.innerHTML = `<div id="hb-laser" class="hb-laser" hidden></div><div id="hb-laser-1" class="hb-laser is-trail" hidden></div><div id="hb-laser-2" class="hb-laser is-trail" hidden></div><div id="hb-laser-3" class="hb-laser is-trail" hidden></div>`
+      + `<button type="button" class="hb-veil-exit" data-hb-tool="pointer" title="${_hbE(i18t('hb_pointer_exit_tip'))}">${_hbE(i18t('hb_pointer_exit'))}</button>`;
+  }
+  if (v.parentElement !== host) host.appendChild(v);
+  /* the dot stands where the mouse last was, or waits for it */
+  const lz = document.getElementById('hb-laser'); if (lz && _hbLastXY) { lz.style.transform = `translate(${_hbLastXY[0]}px,${_hbLastXY[1]}px)`; lz.hidden = false; }
 }
+let _hbLastXY = null;
 function hbSetTool(k){ _hbTool = (_hbTool === k) ? '' : k; if (_hbTool !== 'pointer') _hbTrail = []; hbToolsPaint(); }
 function hbInkSize(){
   const ink = document.getElementById('hb-ink'); if (!ink) return null;
@@ -7096,15 +7100,18 @@ function hbOnSubmit(e){
   }
 }
 function hbOnPointer(e){
+  /* a page left by the keyboard takes the veil with it */
+  if (_hbTool === 'pointer' && (!window.state || state.view !== 'dashboard')){ _hbTool = ''; hbVeilPaint(); return; }
   const col = document.getElementById('hb-col'); if (!col || !state || state.view !== 'dashboard') return;
   if (_hbTool === 'pointer'){
-    const r = col.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-    /* Over a button the hand shows and the dot and its trail step aside. */
-    const hand = hbPointerHandAt(e.target);
-    const lz = document.getElementById('hb-laser'); if (lz){ lz.style.transform = `translate(${x}px,${y}px)`; lz.hidden = hand; }
+    /* the whole screen: the dot is drawn in screen coordinates on the veil;
+       over the exit control the dot steps aside so its words can be read */
+    const x = e.clientX, y = e.clientY; _hbLastXY = [x, y];
+    const onExit = !!(e.target && e.target.closest && e.target.closest('.hb-veil-exit'));
+    const lz = document.getElementById('hb-laser'); if (lz){ lz.style.transform = `translate(${x}px,${y}px)`; lz.hidden = onExit; }
     _hbTrail.unshift([x, y]); _hbTrail = _hbTrail.slice(0, 10);
     for (let i = 1; i <= 3; i++){ const q = _hbTrail[i * 3]; const d = document.getElementById('hb-laser-' + i);
-      if (d){ d.hidden = !q || hand; if (q){ d.style.transform = `translate(${q[0]}px,${q[1]}px)`; d.style.opacity = String(0.5 - i * 0.14); } } }
+      if (d){ d.hidden = !q || onExit; if (q){ d.style.transform = `translate(${q[0]}px,${q[1]}px)`; d.style.opacity = String(0.5 - i * 0.14); } } }
   }
   if (_hbTool === 'pen' && _hbStroke){ const r = col.getBoundingClientRect(); _hbStroke.push([e.clientX - r.left, e.clientY - r.top]); hbInkDraw(); }
 }

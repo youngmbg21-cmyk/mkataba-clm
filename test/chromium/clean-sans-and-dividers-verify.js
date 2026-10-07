@@ -8,7 +8,8 @@
    time in getting my cursor to choose the scroll button as opposed to the
    divider" → no divider's grab strip lies over a scrollbar. "the mouse
    tracker should disappear and only have the pointer on screen" → with the
-   pointer on, the page wears no cursor except the hand over a button. And the
+   pointer on, the page wears no cursor (7 Oct 2026: not even over a button —
+   the pointer only points; see pointer-only-verify). And the
    pressed "All" chip on the clause list is no longer a pale block in dark.
 
    WHY A BROWSER FILE: every claim is a measurement — a computed face, a
@@ -157,10 +158,8 @@ const login = async page => {
     await page.screenshot({ path: path.join(OUT, '03-home.png') });
 
     await page.evaluate(() => hbPresent(true));
-    /* Present opens with the pointer off; its button turns it on (6 Oct 2026) */
-    await page.click('[data-hb-tool="pointer"]').catch(() => {});
-    await page.waitForTimeout(700);
-    /* A quiet spot on the board, and a button. */
+    /* A quiet spot on the board, and a button — found BEFORE the pointer is
+       on, since with it on nothing on the board is under the hand. */
     const spots = await page.evaluate(() => {
       const col = document.getElementById('hb-col'); if (!col) return null;
       const r = col.getBoundingClientRect();
@@ -173,6 +172,9 @@ const login = async page => {
       return { quiet: [Math.round(r.left + 6), Math.round(r.top + r.height / 2)],
         btn: br ? [Math.round(br.left + br.width / 2), Math.round(br.top + br.height / 2)] : null };
     });
+    /* Present opens with the pointer off; its button turns it on (6 Oct 2026) */
+    await page.click('[data-hb-tool="pointer"]').catch(() => {});
+    await page.waitForTimeout(700);
     if (!spots || !spots.btn) check('7a the board has a spot and a button to aim at', false, JSON.stringify(spots));
     else {
       await page.mouse.move(spots.quiet[0], spots.quiet[1]);
@@ -189,8 +191,10 @@ const login = async page => {
         return { cur: el ? getComputedStyle(el).cursor : null, dot: !!lz && !lz.hidden }; }, spots.btn);
       onBtn.dbg = await page.evaluate(([x, y]) => { const el = document.elementFromPoint(x, y); const lz = document.getElementById('hb-laser');
         return { view: state.view, el: el && (el.tagName + '.' + el.className), chain: document.querySelectorAll('.hb-cur-chain').length, tr: lz && lz.style.transform }; }, spots.btn);
-      check('7c over a button the hand comes back', onBtn.cur === 'pointer', JSON.stringify(onBtn));
-      check('7d and the red dot steps aside', !onBtn.dot, JSON.stringify(onBtn));
+      /* REVERSED 7 Oct 2026 (Young): "it seizes to become a cursor and only
+         works as a pointer" — over a button the hand does NOT come back. */
+      check('7c over a button there is still no cursor', onBtn.cur === 'none', JSON.stringify(onBtn));
+      check('7d and the red dot stays on', onBtn.dot, JSON.stringify(onBtn));
       await page.mouse.move(spots.quiet[0], spots.quiet[1]);
       await page.waitForTimeout(120);
       const back = await page.evaluate(([x, y]) => { const el = document.elementFromPoint(x, y); return el ? getComputedStyle(el).cursor : null; }, spots.quiet);

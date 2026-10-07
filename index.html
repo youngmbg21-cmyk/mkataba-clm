@@ -8313,14 +8313,22 @@
   .hb-tools .ig-seg button[aria-pressed="true"]{background:rgba(217,69,59,.22);color:var(--hb-ink)}
   .hb-ink{position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none;touch-action:none}
   .hb-ink.is-on{pointer-events:auto;cursor:crosshair}
-  .hb-laser{position:absolute;left:0;top:0;z-index:7;pointer-events:none;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--st-ruby-dot);box-shadow:0 0 0 3px rgba(217,69,59,.25),0 0 18px 4px rgba(217,69,59,.55)}
+  .hb-laser{position:absolute;left:0;top:0;z-index:2;pointer-events:none;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--st-ruby-dot);box-shadow:0 0 0 3px rgba(217,69,59,.25),0 0 18px 4px rgba(217,69,59,.55)}
   .hb-laser.is-trail{width:9px;height:9px;margin:-4.5px 0 0 -4.5px;box-shadow:none}
   /* THE POINTER HIDES THE MOUSE (Young, 6 Oct 2026): everything on the page
      but the chain under a pressable thing (hbPointerHandAt) wears no cursor.
      Scoped by the page's id so it outranks the board's own class rules by
      specificity alone; an inline cursor still wins, and every inline one
      here is a pressable thing. */
-  :is(#ig-page,#hb-page).hb-pointing,:is(#ig-page,#hb-page).hb-pointing :not(.hb-cur-chain){cursor:none}
+  /* THE POINTER ONLY POINTS (Young, 7 Oct 2026, reversing 6 Oct's hand over
+     buttons): one veil over the whole screen wears no cursor and takes every
+     press; the dot and the one Exit control ride on it (hbVeilPaint). */
+  .hb-veil{position:fixed;inset:0;z-index:2147483000;cursor:none;background:transparent;touch-action:none}
+  .hb-veil .hb-laser{position:fixed}
+  .hb-veil-exit{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:3;cursor:pointer;
+    height:var(--ctl-h);padding:0 var(--pad-ctl-x);font:inherit;font-size:var(--t-meta);font-weight:var(--w-strong);
+    color:#fff;background:var(--st-ruby-dot);border:0;border-radius:999px;box-shadow:0 6px 18px -8px rgba(0,0,0,.5)}
+  .hb-veil-exit:focus-visible{outline:2px solid #fff;outline-offset:2px}
   .hb-presenting #ig-dock,.hb-presenting #ig-resizer,.hb-presenting .hb-counting,.hb-presenting .hb-scr,.hb-presenting #hero-draft,.hb-presenting #hb-present{display:none}
   .hb-presenting{height:100vh}
   /* the page's host is what goes full screen (it survives Board ⇄ Explorer) */
