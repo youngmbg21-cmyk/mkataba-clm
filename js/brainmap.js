@@ -27,8 +27,8 @@ const BRAIN_PARTS = [
   ['bell', 'buildAlerts', 'see', 0],
   ['contracts', 'renderRegister', 'see', 0],
   ['overview', 'ktOverviewTermsHtml', 'see', 0],
-  /* the Time Machine (7 Oct 2026): the contract's life as a track of stored days, under the essentials card */
-  ['timemachine', 'ovTmHtml', 'see', 1],
+  /* the Constellation (8 Oct 2026): the deal as a map of its parties and what passes between them, on the Overview */
+  ['constellation', 'ovMapSvg', 'see', 1],
   ['negpage', 'renderRedline', 'see', 0],
   ['signtab', 'renderSignButton', 'see', 0],
   ['explorer', 'intelGraphApply', 'see', 0],
@@ -158,7 +158,7 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'book'], ['docx'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'risk'], ['model'], ['blanks'], ['overview', 'timemachine', 'bell', 'request', 'kinds', 'laneowner']] },
+  { id: 'upload', steps: [['upload', 'book'], ['docx'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'risk'], ['model'], ['blanks'], ['overview', 'constellation', 'bell', 'request', 'kinds', 'laneowner']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are

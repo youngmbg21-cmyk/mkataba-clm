@@ -10443,6 +10443,7 @@ function renderRedline(){
   headAct('ws-pdf', () => window.exportPDF && exportPDF(c));
   headAct('ws-word', () => window.exportWordTracked && exportWordTracked(c));
   headAct('ws-pdf-record', () => window.exportPDF && exportPDF(c, { record: true }));
+  headAct('ws-filing', () => window.ovOpenFiling && ovOpenFiling(c));
   /* ws-tpl is GONE from the room's menu (one door to standards, 24 Sep 2026):
      "From one of our contracts" behind the Templates page's one button. */
   headAct('ws-focus', () => rlSetFocus(!rlFocusOn()));
