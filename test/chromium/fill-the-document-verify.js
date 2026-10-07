@@ -140,7 +140,12 @@ const owed = (page, id) => page.evaluate(x => {
       await page.click(b1);
       await page.keyboard.type('Juno Limited');
       await page.click('#tplform-section [data-tplf-fill]').catch(() => {});
-      await page.waitForTimeout(500);
+      /* A WAIT ASKS FOR THE STATE, BOUNDED (7 Oct 2026): a fixed 500ms was
+         too short on a loaded CI runner, where the press had not finished
+         repainting the paper when the reading was taken. */
+      await waitFor(page, () => { const b = document.querySelector('#tplform-section [data-tplf-fill]');
+        const t = (document.getElementById('doc-canvas') || {}).textContent || '';
+        return !!b && b.disabled && t.includes('Juno Limited'); }, undefined, 10000);
     }
     const t4 = await paperText(page);
     check('4a the paper carries both answers', t4.includes('Wanjiru Catering Ltd') && t4.includes('Juno Limited'));
