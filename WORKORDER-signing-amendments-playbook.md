@@ -1,4 +1,4 @@
-# O — SIGNING WITH THE OTHER SIDE, CREATING AN AMENDMENT, A PLAYBOOK THAT LEARNS, THE BOARD'S CHARTS (INSTRUMENT)
+# O — SIGNING WITH THE OTHER SIDE, CREATING AN AMENDMENT, A PLAYBOOK THAT LEARNS, THE BOARD'S CHARTS (INSTRUMENT), A MENU DOOR TO IMPORT
 
 **Owner-instructed 7 Oct 2026**: *"add this artifact and the signing journey to
 one work order to implement in hati. Do not code yet."*
@@ -15,7 +15,7 @@ except where a numbered **OWNER DECISION** below says otherwise.
   the page recommended Spotlight, and the owner chose Instrument):
   https://claude.ai/artifact/WP5rowC4AupFgsPR4xaAYE
 
-Four parts, twenty-six items. Each says what is wrong today, why (found in the
+Five parts, twenty-seven items. Each says what is wrong today, why (found in the
 code), what to build, and how to prove it. **Nothing here is built yet.**
 
 Before touching any area: read its MAP section in CLAUDE.md and grep
@@ -479,9 +479,50 @@ drawing rules; board-chart-standard-verify for the sizes.
 
 ---
 
+# PART 5 — A MENU DOOR TO IMPORT CONTRACTS
+
+**Owner-asked 7 Oct 2026**: *"we need a side menu to get to this page.
+Otherwise there is no easy way for a user to know how to get to it."*
+
+## O-27 — "IMPORT CONTRACTS" IN THE SIDE MENU
+
+**Today.** The Import contracts page (`setView('migration')`, js/views/migration.js)
+has no door in the desktop side menu. It is reached only through places a
+person has to know about: the "+ New" menu's "Import many at once" row
+(`#menu-migrate`), a link inside the upload dialog (`#up-bulk`,
+`#up-route-import`), the new-agreement doors (`#na-import`), a Home tile
+(`#fr-import`), and Copilot's work page. The page already calls
+`setActiveNav('migration')`, but no menu door exists to light. The PHONE menu
+already has one (js/mobile.js, `m_import_contracts`), so the two shells
+disagree.
+
+**Build.**
+- One door in the rail's **Library** group, after "Our paper": icon + "Import
+  contracts" (`nav_import`, the word the bar's crumb already uses), 36px like
+  every door. It lights when the page is open (the existing
+  `setActiveNav('migration')`).
+- **A count only when there is work**: the number of imported contracts that
+  need review (the page's own "Need review" figure, the same reading), amber
+  above zero, nothing at zero (`NAV_COUNT_TONE`). The number on the door
+  matches the page's tile.
+- Shown to people who can import (`canEdit()`); a viewer does not see a door
+  that would refuse them.
+- The existing doors stay (the "+ New" row, the upload dialog link, Home,
+  Copilot's work). They are ways into the same page, not second ways to do
+  the act, so THE ONE DOOR is kept.
+- Below 1440px the rail floats; the door must be in the floating menu too.
+- The Brain: add the door to `BRAIN_PARTS` under the import flow.
+
+**Prove.** f553: the door is drawn for an editor and not for a viewer; pressing
+it opens the import page with the door lit; its count equals the page's "Need
+review" tile, and none is drawn at zero. Photograph the rail at 1920 and in the
+floating menu at 1280.
+
+---
+
 ## BUILD ORDER
 
-1. **O-8** (one line), **O-5**, **O-6** (rule fixes with tests first; prove each
+1. **O-8** (one line), **O-27** (the menu door), **O-5**, **O-6** (rule fixes with tests first; prove each
    red at the parent).
 2. **O-1, O-2, O-3** together (one change to what the share route returns, three
    screens that read it), then **O-4**, **O-7**.
