@@ -1,0 +1,150 @@
+# N — BLUE BY DEFAULT, PRESENT MODE THAT STAYS ON, SMALLER REFERENCES, A BOARD THAT WEARS THE BRAND
+
+**Owner-instructed 7 Oct 2026**, off two screenshots and the second HaTi Platform
+mockup (`HaTi_Platform_2.html`): *"When you are in presentation mode in home page
+when you move from board to explorer or the other way round, you should stay in
+presentation mode unless you choose to exit. Also, per the attached mock up, and
+in image 1, make the REF or contract numbers smaller in font size. Make the
+landing color theme for the platform blue and move the blue button at the top to
+be first. Then when changing colors the theme also per the attached mock up html,
+the under tones in terms of colors should change in the board screen. Create a
+work order... no coding yet."*
+
+Four parts. Each says what is wrong today, why, what to build, and how to prove
+it. Nothing here is built yet.
+
+---
+
+## N-1 — PRESENT MODE SURVIVES THE BOARD ⇄ EXPLORER SWITCH
+
+**Today.** On Home, press Present, then switch between Board and Explorer: the
+screen drops out of presentation (full screen ends, the pointer/pen tools go).
+
+**Why (found in the code).** Present asks the browser to make the Home page's
+own element full screen (`hbPresent` → `hbPage().requestFullscreen()`).
+Switching sides (`hbSetFace` → `hbMount` → `renderIntel`) REDRAWS the page, so
+the element that was full screen is thrown away. The browser then ends full
+screen by itself, and HaTi's own listener (`fullscreenchange` →
+`hbPresent(false)`) reads that as "the reader chose to exit".
+
+**Build.**
+- Make full screen belong to something that SURVIVES the redraw — the content
+  host the page is drawn into (or the document), not the page element itself.
+- Keep `_hbPresenting` across the switch and re-dress the new page on arrival
+  (`hbAfterMount` already calls `hbToolsPaint`, which applies `hb-presenting`).
+- Exit only on the reader's act: the Present button, Escape, or the browser's
+  own full-screen exit — never on a side switch. A browser exit that happens
+  BECAUSE of our own redraw must not count (one flag raised around the swap).
+- The pen's drawing is cleared on a side switch (it was drawn over the other
+  side); the chosen tool is kept.
+
+**Prove it.** A browser check: Present on Board → switch to Explorer → still
+presenting (full-screen element set, `hb-presenting` on the page, tools shown)
+→ switch back → still presenting → Escape → out. Run it against unmodified main
+first: the middle step must FAIL there.
+
+---
+
+## N-2 — REFERENCE NUMBERS ONE SIZE SMALLER
+
+**Today.** On the Contracts and Negotiations lists, "MK-441" is 13px (the body
+size). The mockup draws it at 12.5px, weight 500, in Geist Mono.
+
+**Build.**
+- Every reference number drops to the label size, **12px** (HaTi uses whole
+  pixels only, so the mockup's 12.5 becomes 12), keeping Geist Mono and 500.
+- One rule, every place a reference is printed in a list or panel: the list's
+  REF column (`.reg-mk`, both seats), the side panel's eyebrow (`.ins-ref`),
+  the contract header's quiet line (`.room-sub-id`, already 12 — check), the
+  stream drawer's rows, and any other list that prints `contractRef(c)` in the
+  reference face. Find them all by searching for `--font-ref` and
+  `contractRef(` in list builders before changing anything.
+- Row heights must not change (measure a row before and after).
+
+**Prove it.** contracts-page-verify reads the REF cell's computed size as the
+label token (a relation, not "12px"); inspector-verify the same for the panel.
+
+---
+
+## N-3 — HaTi LANDS ON BLUE, AND BLUE COMES FIRST
+
+**Today.** A browser that has never chosen a colour gets Green. The two colour
+swatches in the top bar are Green then Blue.
+
+**Where the choice lives.** In each browser (`hati-brand` in local storage),
+read by `brandNow()` / `themeNow()` in js/app.js and, before the first paint, by
+the small script at the top of index.html. Both fall back to green today.
+
+**Build.**
+- The fallback becomes **Blue** (`navy` inside the code) in all three places
+  together — `brandNow()`, `themeNow()`, and the pre-paint script — or the first
+  frame flashes green before turning blue (the 10 Sep fault, f96).
+- Someone who has ALREADY picked Green keeps Green (their stored choice wins).
+  **Open question for the owner below.**
+- Swap the two swatches so Blue is first, in the top bar and in the phone's
+  appearance menu (`M_THEME_SWATCH` order in js/mobile.js).
+- Places that print a fixed brand colour because they have no theme to read —
+  the browser-tab icon, the status-link page's bar, e-mails — follow the
+  landing brand: the blue `#264C9E`.
+- The counterparty's own page: decide with the owner whether it lands blue too
+  (it reads the same key today).
+
+**Prove it.** f96 (the pre-paint script mirrors the app) updated to the new
+fallback; a browser check in a fresh profile lands blue with no green frame;
+theme-tokens-verify re-recorded as a set difference (the default screens move
+from the green ramp to the blue one — expected, and audited before saving).
+
+---
+
+## N-4 — THE BOARD'S UNDERTONES FOLLOW THE BRAND
+
+**Today.** Under the Blue workspace the Home board is still teal-green: the
+dotted ground, the KPI tiles' top edges, the glow, the lines and the frosted
+cards (screenshot 2). The board has its own colour set (`--hb-*` in index.html,
+one for the Dark screen and one for the Light "Frosted" screen), and every
+value in it is a typed teal.
+
+**How the mockup does it.** Everything is drawn from a handful of brand tokens
+(`--acc`, `--acc-soft`, `--acc-tint`, `--acc-line`, `--ground`); switching to
+Blue changes those tokens, so every tint underneath turns blue with them.
+
+**Build.**
+- Give each board screen a Blue answer: `#hb-page.hb-light` and `.hb-dark`
+  under `:root[data-brand="navy"]` set the same `--hb-*` names to blue
+  equivalents. Glow, lines, card washes, the dotted ground, the gradient stops
+  and the shadow tint all move to the blue ramp. Status colours (amber, ruby,
+  green) DO NOT change — they mean something.
+- Where the board's own JavaScript types a teal (`HB_HUES[0]` `#38CDB8` for
+  the first series, the tile edge colours), read the brand instead, so a chart's
+  lead colour is the brand's.
+- Light board, blue: ground from `#F4F6FA` to white, accent ink `#1C3872`,
+  glow `#264C9E`. Dark board, blue: a deep navy stage (in the family of
+  `#0F2448` → `#060C18`) with a lighter blue glow. Final values are picked by
+  measuring contrast (every word on its own ground clears AA, as contrast-verify
+  asks) and shown to the owner as a photo of both screens before merging.
+- **Explorer** is always dark and shares the Dark screen's tokens; it follows
+  the brand with them. Its canvas also types teal in js/views/intelligence.js
+  (the hub glow and grid lines, `rgba(56,205,184,…)`); those read the board's
+  `--hb-gw` / `--hb-ln` instead. **Open question below** in case the owner wants
+  Explorer to stay teal.
+
+**Prove it.** A browser check switches the brand on Home and asserts the
+board's ground, glow and a tile edge each MOVE to a blue value and back,
+measured as painted colours; contrast-verify on both board screens in both
+brands; theme-tokens-verify re-recorded as an audited set difference;
+dark-no-white-patches-verify still clean.
+
+---
+
+## QUESTIONS FOR THE OWNER BEFORE BUILDING
+
+1. **People who already chose Green** — keep their Green (recommended), or move
+   everyone to Blue once?
+2. **The counterparty's page** — land on Blue too, or keep whatever our side
+   uses? (Recommended: Blue, the same as ours.)
+3. **Explorer** — follow the brand like the board (recommended), or stay teal?
+
+## ORDER OF WORK
+
+N-1 (a fault, smallest) → N-2 → N-3 → N-4, one branch, each part checked in the
+browser before the next. Full suite once at the end; merge on the owner's word.
