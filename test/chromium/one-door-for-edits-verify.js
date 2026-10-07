@@ -28,6 +28,8 @@
    Every driven half is GUARDED — a build without the feature REPORTS.
    Screenshots: test/chromium/shots/one-door-for-edits/ (or HATI_SHOT_DIR).
    Run: node test/chromium/one-door-for-edits-verify.js */
+/* RE-POINTED 7 Oct 2026 (Young, "Risk Walk Options" — One footer): on the risk
+   walk the Suggested wording's Apply is the feet's top row, #ce-rksug. */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
@@ -223,7 +225,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       const lane = pg.querySelector('#ce-lane');
       if (!lane || !/Risk 1 of/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
       return { on: !!(tab && tab.classList.contains('is-on')), clause: clauseEditorClauseId(), step: window.__riskStep(),
-        card: !!lane.querySelector('.ce-card [data-ce-apply="rk:0"]'), boxNew: /twelve \(12\) months/.test(ceBoxWords()),
+        card: !!document.querySelector('#ce-rksug [data-ce-apply="rk:0"]'), boxNew: /twelve \(12\) months/.test(ceBoxWords()),
         save: (pg.querySelector('[data-ce-act="rk-save"]') || {}).textContent || '' };
     }, null, 10000);
     check(!!ed && ed.on, '3a Edit with Copilot opens the window with the Risks tab lit', ed && JSON.stringify(ed));
@@ -232,7 +234,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     check(!!ed && /Risk 1 of 3/.test(ed.step), '3c "Risk 1 of 3"', ed && ed.step);
     check(!!ed && ed.card && !ed.boxNew, '3d Copilot\'s wording waits in the Suggested wording card; the box is untouched', ed && JSON.stringify(ed));
     await shot('3-edit-with-copilot.png');
-    await press(page, '#ce-lane [data-ce-apply="rk:0"]');
+    await press(page, '#ce-rksug [data-ce-apply="rk:0"]');
     const applied = await until(page, () => /twelve \(12\) months/.test(ceBoxWords())
       && !!document.querySelector('#ce-doc ins, #ce-doc .hati-ins, #ce-doc .nego-ins') ? true : null);
     check(!!applied, '3d2 Apply moves it into the box as tracked changes');
@@ -242,7 +244,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       && /save for breach of confidentiality/.test((document.querySelector('#ce-lane .ce-card .pv') || {}).textContent || '')
       && !/save for breach of confidentiality/.test(ceBoxWords()) ? true : null, n0);
     check(!!firm, '3e "Make it firmer" asks Copilot once and redrafts the card, the box waits, nothing saved');
-    await press(page, '#ce-lane [data-ce-apply="rk:0"]');
+    await press(page, '#ce-rksug [data-ce-apply="rk:0"]');
     check(!!(await until(page, () => /save for breach of confidentiality/.test(ceBoxWords()) ? true : null)), '3f Apply takes the firmer wording into the box');
     const unsaved = await page.evaluate(id => (getContract(id).changes || []).length, ID);
 
@@ -278,7 +280,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       const pg = document.getElementById('clause-editor'); if (!pg) return null;
       const lane = pg.querySelector('#ce-lane');
       if (!lane || !/Risk 2 of 2/.test(window.__laneText(lane)) || !/No injunctive-relief clause/.test(window.__laneText(lane)) || lane.querySelector('.rk-busy') || !/Copilot suggested/.test(window.__laneText(lane))) return null;
-      const ap = lane.querySelector('[data-ce-apply="rk:0"]');
+      const ap = document.querySelector('#ce-rksug [data-ce-apply="rk:0"]');
       if (ap && !/interim injunctive relief/.test(ceBoxWords())){ ap.click(); return null; }
       const secs = [...pg.querySelectorAll('#ce-doc [data-clause]')].map(x => x.getAttribute('data-clause'));
       const heads = [...pg.querySelectorAll('#ce-doc [data-clause]')].map(x => (x.querySelector('.rl-clause-h, h4') || {}).textContent || '');
@@ -293,21 +295,19 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
     check(!!nc && /^New clause$/i.test(nc.badge.trim()), '5d2 marked "New clause", not as a step on the ladder, until it is saved', nc && nc.badge);
     check(!!nc && nc.opts.length > 0 && nc.opts.every(o => /^New clause after/.test(o)) && !nc.opts.some(o => /Signatures/.test(o)) && /Never after .*Signatures/.test(nc.never), '5e "Where it goes" offers only places before the signatures', nc && (nc.opts.join(' | ') + ' / ' + nc.never));
     await shot('5b-new-clause.png');
-    /* move it: after Confidentiality — chosen ON THE EXPANDED VIEW (Young,
-       5 Oct 2026: "where it goes should also be on this panel so you can
-       choose before you apply") */
-    await page.evaluate(() => { const b = document.querySelector('#ce-lane [data-ce-expand="rk:0"]'); if (b) b.click(); });
+    /* move it: after Confidentiality — chosen BEFORE APPLY (Young, 5 Oct
+       2026: "where it goes should also be on this panel so you can choose
+       before you apply"). RE-POINTED 7 Oct 2026 (Sticky bar, One footer):
+       there is no expanded view; the Risks tab's own "Where it goes" sits in
+       the lane, above the footer's Apply. */
     const fw = await until(page, () => {
-      const sel = document.querySelector('#ce-full:not([hidden]) [data-ce-rk-where]');
-      return sel ? { n: sel.options.length, apply: !!document.querySelector('#ce-full [data-ce-apply]'),
-        before: !!(sel.compareDocumentPosition(document.querySelector('#ce-full [data-ce-apply]')) & Node.DOCUMENT_POSITION_FOLLOWING) } : null;
+      const sel = document.querySelector('#ce-lane [data-ce-rk-where]'), ap = document.querySelector('#ce-rksug [data-ce-apply]');
+      return sel && ap ? { n: sel.options.length, apply: true, before: !!(sel.compareDocumentPosition(ap) & Node.DOCUMENT_POSITION_FOLLOWING) } : null;
     });
-    check(!!fw && fw.n === (nc && nc.opts.length) && fw.apply && fw.before, '5e2 "Where it goes" is on the expanded view too, above Apply', fw && JSON.stringify(fw));
-    await shot('5b2-where-on-expanded.png');
-    await page.evaluate(() => { const sel = document.querySelector('#ce-full [data-ce-rk-where]'); const o = [...sel.options].find(x => /Confidentiality/.test(x.textContent)); sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); });
+    check(!!fw && fw.n === (nc && nc.opts.length) && fw.apply && fw.before, '5e2 "Where it goes" stands above Apply', fw && JSON.stringify(fw));
+    await page.evaluate(() => { const sel = document.querySelector('#ce-lane [data-ce-rk-where]'); const o = [...sel.options].find(x => /Confidentiality/.test(x.textContent)); sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); });
     const synced = await until(page, () => { const s = document.querySelector('#ce-lane [data-ce-rk-where]'); return s && /Confidentiality/.test(s.options[s.selectedIndex].textContent) ? true : null; });
-    check(!!synced, '5e3 the Risks tab\'s own "Where it goes" says the same place');
-    await page.keyboard.press('Escape');
+    check(!!synced, '5e3 the Risks tab\'s "Where it goes" says the place chosen');
     const moved = await until(page, () => {
       const heads = [...document.querySelectorAll('#ce-doc [data-clause]')].map(x => [x.getAttribute('data-clause'), (x.querySelector('.rl-clause-h, h4') || {}).textContent || '']);
       const at = heads.findIndex(h => h[0] === window.CE_NEW_ID);
@@ -384,7 +384,7 @@ const LIAB_FIRM = 'Each party\'s total liability under this Agreement shall not 
       const lane = document.querySelector('#clause-editor #ce-lane');
       const b = document.querySelector('[data-ce-act="rk-save"]');
       /* the wording waits for Apply (5 Oct 2026): press it once it is there */
-      const ap = lane && lane.querySelector('[data-ce-apply="rk:0"]');
+      const ap = lane && document.querySelector('#ce-rksug [data-ce-apply="rk:0"]');
       if (ap && b && b.disabled){ ap.click(); return null; }
       return lane && /Exposure ceiling is low/.test(window.__laneText(lane)) && !lane.querySelector('.rk-busy') && b && !b.disabled ? true : null;
     }, null, 10000);
