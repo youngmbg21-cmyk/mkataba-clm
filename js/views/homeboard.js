@@ -1297,7 +1297,15 @@ function hbRingSvg(D, cs, field, money, P){
   const cut = hbGroupsCut(hbGroupsOf(cs, field, money), P || {}, HB_RING_MAX, P && P.measure === 'value' && money ? 'value' : 'count', field);
   const rows = cut.rest ? cut.rows.concat([cut.rest]) : cut.rows;
   const whole = rows.reduce((a, r) => a + (money ? r.v : r.n), 0) || 1;
-  const rowH = 38, H = Math.max(300, 40 + rows.length * rowH + 16), W = 1000, R = 118, r = 84, cx = 150, cy = H / 2;
+  /* ---- A RING IN A NARROW CARD STANDS TALL (Young, 7 Oct 2026, work order
+     W-5: "graph cards not utilizing the space") ---- in a chapter that does
+     not take the whole row the legend goes UNDER the ring, full width, so
+     nothing is cut off and no scroll strip appears; elsewhere it stays beside. */
+  const tall = !!(D && D.narrow);
+  const rowH = 38, W = tall ? 440 : 1000, R = tall ? 104 : 118, r = tall ? 74 : 84, cx = tall ? W / 2 : 150;
+  const legY = tall ? 2 * R + 44 : 40, H = tall ? legY + rows.length * rowH + 4 : Math.max(300, 40 + rows.length * rowH + 16), cy = tall ? R + 14 : H / 2;
+  const legX = tall ? 16 : 360, rowW = tall ? 408 : 636, barX = tall ? 252 : 380, barW = tall ? 156 : 240;
+  const fit = t => tall && t.length > 26 ? t.slice(0, 25) + '…' : t;
   let a0 = -Math.PI / 2, slices = '', legend = '';
   rows.forEach((g, i) => {
     const share = (money ? g.v : g.n) / whole; const a1 = a0 + share * Math.PI * 2; const big = (a1 - a0) > Math.PI ? 1 : 0;
@@ -1310,19 +1318,19 @@ function hbRingSvg(D, cs, field, money, P){
     const d = share >= 0.999 ? `M${cx},${cy - R} A${R},${R} 0 1 1 ${cx - 0.01},${cy - R} L${cx - 0.01},${cy - r} A${r},${r} 0 1 0 ${cx},${cy - r} Z`
       : `M${x0.toFixed(1)},${y0.toFixed(1)} A${R},${R} 0 ${big} 1 ${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${r},${r} 0 ${big} 0 ${x3.toFixed(1)},${y3.toFixed(1)} Z`;
     slices += `<g class="hb-sv-slice hb-in" style="animation-delay:${i * 40}ms" ${_hbSvgDoor(dig, title)}><path d="${d}" style="fill:${hue}"/></g>`;
-    const y = 40 + i * rowH;
-    legend += `<g class="hb-sv-row hb-in" style="animation-delay:${i * 40}ms" transform="translate(360,${y})" ${_hbSvgDoor(dig, title)}>
-      <rect x="-8" y="-4" width="636" height="${rowH}" fill="transparent"/><rect x="0" y="2" width="10" height="10" rx="2" style="fill:${hue}"/>
-      <text x="20" y="12" font-size="14" font-weight="600" class="hb-sv-ink">${_hbE(g.label)}</text>
+    const y = legY + i * rowH;
+    legend += `<g class="hb-sv-row hb-in" style="animation-delay:${i * 40}ms" transform="translate(${legX},${y})" ${_hbSvgDoor(dig, title)}>
+      <rect x="-8" y="-4" width="${rowW}" height="${rowH}" fill="transparent"/><rect x="0" y="2" width="10" height="10" rx="2" style="fill:${hue}"/>
+      <text x="20" y="12" font-size="14" font-weight="600" class="hb-sv-ink">${_hbE(fit(g.label))}</text>
       <text x="20" y="29" font-size="12" class="hb-sv-ink2">${_hbE(sayOf(g.n, g.v))} · ${Math.round(share * 100)}%</text>
-      <rect x="380" y="5" width="240" height="8" rx="4" class="hb-sv-track"/><rect x="380" y="5" width="${(240 * share).toFixed(1)}" height="8" rx="4" style="fill:${hue}" opacity=".9"/></g>`;
+      <rect x="${barX}" y="5" width="${barW}" height="8" rx="4" class="hb-sv-track"/><rect x="${barX}" y="5" width="${(barW * share).toFixed(1)}" height="8" rx="4" style="fill:${hue}" opacity=".9"/></g>`;
     a0 = a1;
   });
   const total = cs.reduce((a, c) => a + hbValueOfOne(c), 0);
   const centre = `<text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="44" font-weight="700" class="hb-sv-ink">${_hbN(cs.length)}</text>
     <text x="${cx}" y="${cy + 16}" text-anchor="middle" font-size="13" class="hb-sv-ink2">${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}</text>
     ${money ? `<text x="${cx}" y="${cy + 38}" text-anchor="middle" font-size="15" font-weight="600" class="hb-sv-glow">${_hbE(_hbM(total))}</text>` : ''}`;
-  return { body: `<svg class="hb-svg hb-ring" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(hbGroupWord(field))}">${slices}${centre}${legend}</svg>`, by: hbGroupWord(field), note: '' };
+  return { body: `<svg class="hb-svg hb-ring${tall ? ' is-tall' : ''}" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(hbGroupWord(field))}">${slices}${centre}${legend}</svg>`, by: hbGroupWord(field), note: '' };
 }
 function hbBlocksSvg(D, cs, field, money, P){
   let groups = hbGroupsOf(cs.filter(c => hbValueOfOne(c) > 0), field, true);
@@ -4552,6 +4560,13 @@ function hbStoryFinish(run, f, nums){
   run.aside = (Array.isArray(f.aside) ? f.aside : []).slice(0, 4).map(a => ({ idea: hbPlainText(a && a.idea, 160), why: chk(String((a && a.why) || ''), 300) })).filter(a => a.idea);
   run.dropped += dropped;
 }
+/* ---- A COUNTER NEVER PASSES ITS LIMIT (Young, 7 Oct 2026, work order W-4:
+   "step 16 of up to 15") ---- the step in progress is done + 1, so once every
+   step is used the run is WRITING, and says so; one reading for both counters. */
+function hbStepInProgress(run){
+  const m = run.max || HB_DD_STEPS, n = run.steps.length + 1;
+  return n > m ? null : n;
+}
 /* the steps, as "How HaTi worked this out" lists them — one builder for the
    analyst's card and the story's */
 function hbDdStepsHtml(run, busy){
@@ -4561,14 +4576,15 @@ function hbDdStepsHtml(run, busy){
     return `<li class="hb-dd-step"><div class="hb-dd-sh"><span class="hb-dd-i">${i + 1}</span><b>${_hbE(st.title)}</b><span class="hb-grow"></span>${door}</div>
       ${st.why ? `<div class="hb-quiet">${_hbE(i18t('hb_dd_why', { why: st.why }))}</div>` : ''}${st.lines.length ? `<ul>${st.lines.map(l => `<li>${l}</li>`).join('')}</ul>` : ''}</li>`;
   }).join('');
-  const working = busy ? `<li class="hb-dd-step is-busy"><span class="hb-quiet">${_hbE(i18t('hb_dd_working', { n: run.steps.length + 1 }))}</span></li>` : '';
+  const now = hbStepInProgress(run);
+  const working = busy ? `<li class="hb-dd-step is-busy"><span class="hb-quiet">${_hbE(now ? i18t('hb_dd_working', { n: now }) : i18t('hb_dd_writing'))}</span></li>` : '';
   return `<ol class="hb-dd-steps">${steps}${working}</ol>`;
 }
 /* THE STORY'S CARD */
 function hbStoryChapterHtml(topic, k, i, n, words, lens, extraCls){
   const r = hbStoryChapterRead(topic, k, lens);
   let pic = '', wide = false, D = null;
-  if (k.chart){ D = hbStoryCardD(topic, k.id, lens); if (D){ const cs = hbListOf(D.ids, lens); pic = hbStoryPicHtml(hbChartHtml(D, cs, false)); wide = hbStoryWide(D, cs); } }
+  if (k.chart){ D = hbStoryCardD(topic, k.id, lens); if (D){ const cs = hbListOf(D.ids, lens); wide = hbStoryWide(D, cs); D.narrow = !wide; pic = hbStoryPicHtml(hbChartHtml(D, cs, false)); } }
   else if (k.bars && k.bars.length) pic = hbChartBarsHtml(k.bars, false);
   else pic = `<p class="hb-quiet">${_hbE(i18t('hb_sy_nothing'))}</p>`;
   const para = words && words.paras && words.paras[k.id];
@@ -4611,7 +4627,7 @@ function hbStoryHtml(D, lens){
    watch and how it was worked out */
 function hbStoryDeepHtml(topic, run, n, total, lens, busy){
   const how = `<details class="hb-how hb-dd-how"${busy ? ' open' : ''}><summary>${_hbE(i18t('hb_how_title'))} · ${_hbE(i18tn('hb_dd_steps', run.steps.length, { n: run.steps.length }))}</summary>${hbDdStepsHtml(run, busy)}</details>`;
-  if (busy) return `<div class="hb-sy-deep is-busy"><div class="hb-sy-dh"><span class="hb-sy-pill is-amber">${_hbE(i18t('hb_sy_going', { n: run.steps.length + 1, m: run.max || HB_STORY_STEPS }))}</span></div>${how}</div>`;
+  if (busy) return `<div class="hb-sy-deep is-busy"><div class="hb-sy-dh"><span class="hb-sy-pill is-amber">${_hbE(hbStepInProgress(run) ? i18t('hb_sy_going', { n: hbStepInProgress(run), m: run.max || HB_STORY_STEPS }) : i18t('hb_sy_deep_writing'))}</span></div>${how}</div>`;
   if (run.state === 'err') return `<div class="hb-sy-deep"><div class="hb-why is-err"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_dd_btn'))}</span></div><p>${_hbE(run.err)}</p></div>${run.steps.length ? how : ''}</div>`;
   const stopped = run.state === 'stopped' ? `<p class="hb-quiet">${_hbE(i18tn('hb_sy_stopped', run.steps.length, { n: run.steps.length }))}</p>` : '';
   const lead = run.summary ? `<p class="hb-sy-lead">${hbSay(run.summary)}</p>` : (run.state === 'empty' ? `<p class="hb-quiet">${_hbE(i18t('hb_dd_empty'))}</p>` : '');
@@ -4622,10 +4638,11 @@ function hbStoryDeepHtml(topic, run, n, total, lens, busy){
        the step's contracts one press away when it kept them */
     const open = st && st.n && st.ids.length ? ` <button type="button" class="hb-read-n" data-hb-open="${_hbE(st.ids.join(','))}" data-hb-what="${_hbE(st.title)}">${_hbE(i18tn('hb_sy_open_n', st.n, { n: _hbN(st.n) }))}</button>` : '';
     const pack = st && st.dig ? `<button type="button" class="hb-link hb-sy-packdoor" data-hb-dig="${_hbE(st.dig)}">${_hbE(i18t('hb_sy_deep_pack'))}</button>` : '';
+    const wide = !!(D && cs.length && hbStoryWide(D, cs));
+    if (D) D.narrow = !wide;
     const pic = D && cs.length ? hbStoryPicHtml(hbChartHtml(D, cs, false)) + pack
       : st && st.lines.length ? `<ul class="hb-sy-lines">${st.lines.map(l => `<li>${l}</li>`).join('')}</ul>${pack}`
       : `<p class="hb-quiet hb-sy-none">${_hbE(i18t('hb_sy_deep_none'))}${open}</p>${pack}`;
-    const wide = !!(D && cs.length && hbStoryWide(D, cs));
     return `<section class="hb-sy-ch is-deep${wide ? ' is-wide' : ''}">${hbStoryChHead(`${_hbE(i18t('hb_sy_ch_n', { i: n + i + 1, n: total }))} · ${_hbE(i18t('hb_sy_deeper'))}`, c.title, D && cs.length ? D.key : '')}${pic}${c.text ? `<p class="hb-sy-p">${hbSay(c.text)}</p>` : ''}</section>`;
   }).join('');
   const aside = (run.aside || []).length ? `<section class="hb-sy-aside"><h4>${_hbE(i18t('hb_sy_aside'))}</h4><ul>${run.aside.map(a => `<li><b>${_hbE(a.idea)}</b>${a.why ? ': ' + hbSay(a.why) : ''}</li>`).join('')}</ul></section>` : '';
@@ -7194,7 +7211,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

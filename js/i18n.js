@@ -10278,6 +10278,10 @@ const STRINGS = {
     sh_logout_aria: 'Log out',
     sh_rail_show: 'Show the sidebar labels',
     sh_rail_hide: 'Collapse the sidebar to icons',
+    sh_rail_collapse: 'Collapse menu',
+    sh_rail_expand: 'Expand menu',
+    sh_nav_hide: 'Hide menu',
+    sh_nav_show: 'Show menu',
 
     // ---- INTERNAL REVIEW: the step between writing a redline and sending it ----
     /* Platform wording, so it translates. The RECORD's words for a verdict do
@@ -12375,6 +12379,7 @@ const STRINGS = {
     hb_sy_nothing: "Nothing to count here yet.",
     hb_sy_bars_top: "{what} is redlined most: in {n} contracts.",
     hb_sy_going: "Digging deeper · step {n} of up to {m}",
+    hb_sy_deep_writing: "Digging deeper · writing the answer",
     hb_sy_stopped_one: "Stopped after {n} step. What was found is kept below.",
     hb_sy_stopped_other: "Stopped after {n} steps. What was found is kept below.",
     hb_sy_aside: "Ideas set aside",
@@ -12518,6 +12523,7 @@ const STRINGS = {
     hb_dd_crumb: "Dug deeper",
     hb_dd_why: "Why: {why}",
     hb_dd_working: "Step {n}: Copilot is choosing what to count…",
+    hb_dd_writing: "Writing the answer…",
     hb_dd_steps_one: "{n} step",
     hb_dd_steps_other: "{n} steps",
     hb_dd_answer: "What the steps show",
@@ -22147,6 +22153,10 @@ const STRINGS = {
     sh_logout_aria: 'Logga ut',
     sh_rail_show: 'Visa sidomenyns text',
     sh_rail_hide: 'Fäll ihop sidomenyn till ikoner',
+    sh_rail_collapse: 'Fäll ihop menyn',
+    sh_rail_expand: 'Fäll ut menyn',
+    sh_nav_hide: 'Dölj menyn',
+    sh_nav_show: 'Visa menyn',
 
     // ---- INTERN GRANSKNING: steget mellan att skriva en ändring och att skicka den ----
     rv_v_cleared: 'Klar',
@@ -24162,6 +24172,7 @@ const STRINGS = {
     hb_sy_nothing: "Inget att räkna här ännu.",
     hb_sy_bars_top: "{what} redlinas mest: i {n} avtal.",
     hb_sy_going: "Gräver djupare · steg {n} av upp till {m}",
+    hb_sy_deep_writing: "Gräver djupare · skriver svaret",
     hb_sy_stopped_one: "Stoppades efter {n} steg. Det som hittades finns kvar nedan.",
     hb_sy_stopped_other: "Stoppades efter {n} steg. Det som hittades finns kvar nedan.",
     hb_sy_aside: "Idéer som lades åt sidan",
@@ -24305,6 +24316,7 @@ const STRINGS = {
     hb_dd_crumb: 'Grävt djupare',
     hb_dd_why: 'Varför: {why}',
     hb_dd_working: 'Steg {n}: Copilot väljer vad som ska räknas…',
+    hb_dd_writing: 'Skriver svaret…',
     hb_dd_steps_one: '{n} steg',
     hb_dd_steps_other: '{n} steg',
     hb_dd_answer: 'Vad stegen visar',

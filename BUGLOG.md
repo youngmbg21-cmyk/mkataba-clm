@@ -20477,3 +20477,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - home-board-verify 15b "the Picture dropdown is painted on top" is red on unmodified main too ({"onTop":false}); not in KNOWN_RED. Left alone.
 - standards-page-verify 2b2 ("narrow the page and the same row clips") is red in CI on main too (PR #161's own run, shard 3). Left alone.
 - FIXED the same day on the owner's word ("fix the 2 older failures too"): home-board-verify 15b — the Picture dropdown opened below the board's bottom edge; it now opens upward when there is more room above (`hbRcMenuPlace`, `.hb-rmenu.is-up`). standards-page-verify 2b2 — the page was right; the check assumed one sentence fits at 1500px, which CI's wider glyphs broke; it now measures the roomy case at 2400px.
+
+### 7 Oct 2026 — menu, Copilot door, board work order
+- Noticed, not fixed: theme-tokens-verify's dashboard census drops and regains the ruby rgb(217,69,59) between runs (what the Home board draws varies), so dashboard--light/--dark flap red without any colour change.

@@ -8048,6 +8048,7 @@
   .hb-sy-cht [data-hb-sy-big]{align-self:center;margin-left:auto}
   .hb-sy-ch.is-wide{grid-column:1/-1}
   .hb-sy-pic{min-width:0;overflow-x:auto}
+  .hb-sy-pic .hb-ring.is-tall{max-width:520px;margin-left:auto;margin-right:auto}
   .hb-sy-pic > .hb-svg:last-child{margin-bottom:0}
   .hb-sy-none{margin:0}
   .hb-sy-packdoor{justify-self:start}
@@ -9740,6 +9741,22 @@
   :root:not(.dark) #top-header .cmd-search:focus-within{background:rgba(0,0,0,.16);}
   #top-header .hdr-icon-btn{width:var(--ctl-h);height:var(--ctl-h);color:var(--bar-ink-2);border-radius:var(--radius);}
   #top-header .hdr-icon-btn:hover{background:var(--bar-hover);color:var(--bar-ink);}
+  /* ---- THE MENU BUTTON AND THE ONE COPILOT DOOR (Young, 7 Oct 2026, work
+     order W-1/W-3, off the HaTi Platform mockup) ---- ☰ sits at the bar's left
+     edge at every width and hides the whole menu; the Copilot spark is bigger
+     and in the bar's full ink, because it is now the only Copilot door. */
+  #top-header #nav-toggle{display:grid;width:36px;height:36px;margin-left:-10px;color:var(--bar-ink);}
+  #top-header #cmd-ai{width:36px;height:36px;color:var(--bar-ink);}
+  #top-header #cmd-ai svg{width:20px;height:20px;}
+  #side-nav .nav-foot{flex:none;border-top:1px solid var(--color-divider);padding:6px 10px;}
+  #side-nav #cmd-rail{width:100%;height:36px;display:flex;align-items:center;gap:10px;padding:0 10px;border:0;border-radius:var(--radius);background:transparent;color:var(--nav-ink-rest,var(--color-neutral-600));font-weight:var(--w-label);font-size:var(--t-body);cursor:pointer;white-space:nowrap;}
+  #side-nav #cmd-rail:hover{background:var(--nav-well);color:var(--color-text);}
+  #side-nav #cmd-rail:focus-visible{outline:2px solid var(--color-accent-600);outline-offset:-2px;}
+  #app-shell.rail #side-nav .nav-foot{padding:6px;}
+  #app-shell.rail #side-nav #cmd-rail{justify-content:center;padding:0;}
+  #app-shell.rail #side-nav #cmd-rail .rf-label{display:none;}
+  #app-shell.rail #side-nav.open #cmd-rail{justify-content:flex-start;padding:0 10px;}
+  #app-shell.rail #side-nav.open #cmd-rail .rf-label{display:inline;}
   #top-header .sh-div{background:var(--bar-line);}
   #top-header #shell-title{font-weight:var(--w-strong);color:var(--bar-ink);font-size:var(--t-body);}
   #top-header #brand-block,#top-header #brand-wordmark{color:var(--bar-ink);}
@@ -10940,8 +10957,8 @@
        could not have reached past it. -->
   <header id="top-header" style="grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 20px;background:var(--nav-bg);color:var(--bar-ink);border-bottom:1px solid var(--nav-line);min-width:0;">
 
-    <button id="nav-toggle" class="hdr-icon-btn" title="Menu" data-i18n-title="sh_menu" aria-label="Open navigation" data-i18n-aria="sh_open_nav" aria-expanded="false" style="display:none;flex:none;">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true"><use href="#i-grid"/></svg>
+    <button id="nav-toggle" class="hdr-icon-btn" title="Hide menu" data-i18n-title="sh_nav_hide" aria-label="Hide menu" data-i18n-aria="sh_nav_hide" aria-expanded="true" style="flex:none;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
 
     <div id="brand-block" style="align-items:center;gap:var(--s-2);flex:none;">
@@ -11073,9 +11090,6 @@
       <span class="rail-mark" aria-hidden="true">Ha</span>
       <span class="rail-head-label">HaTi</span>
       <span class="rail-ws" id="rail-ws"></span>
-      <button id="cmd-rail" class="rail-toggle" title="Show the sidebar labels" data-i18n-title="sh_rail_show" aria-pressed="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path class="rail-chev" d="M9.5 6 15.5 12l-6 6"/></svg>
-      </button>
     </div>
 
     <nav id="nav" style="flex:1;overflow-y:auto;padding:var(--s-3);display:flex;flex-direction:column;gap:2px;" class="scroll-thin">
@@ -11295,12 +11309,15 @@
          re-dressed to the design's own: a full-width flat accent block with the
          keyboard hint at its right. The gradient and the soft drop shadow went
          with the rest of them: this shell draws depth in 1px lines. -->
-    <div class="copilot-wrap">
-      <button id="side-copilot" title="Open HaTi Copilot — your contract-intelligence assistant" data-i18n-title="nav_copilot_title">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
-        <span class="sc-label" data-i18n="sh_ask_copilot">Ask Copilot</span>
-        <span class="sc-kb" aria-hidden="true">⌘K</span>
-        <span id="ai-badge" data-ai-badge class="ai-badge-dot hidden" style="position:absolute;top:3px;right:3px;width:9px;height:9px;border-radius:50%;background:#f59e0b;"></span>
+    <!-- ---- THE FOOT OF THE MENU FOLDS IT (Young, 7 Oct 2026, work order W-2/W-3) ----
+         The Copilot block that stood here is gone: Copilot has ONE door, the
+         spark in the bar (#cmd-ai), and ⌘K still opens the palette. This row
+         shrinks the menu to its icons and back; it replaced the small arrow at
+         the top of the menu, so there is one way to do it. -->
+    <div class="nav-foot">
+      <button id="cmd-rail" type="button" title="Collapse menu" data-i18n-title="sh_rail_hide" aria-pressed="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 3v18"/></svg>
+        <span class="rf-label" data-i18n="sh_rail_collapse">Collapse menu</span>
       </button>
     </div>
 
