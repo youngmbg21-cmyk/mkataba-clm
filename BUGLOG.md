@@ -20480,3 +20480,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ### 7 Oct 2026 — menu, Copilot door, board work order
 - Noticed, not fixed: theme-tokens-verify's dashboard census drops and regains the ruby rgb(217,69,59) between runs (what the Home board draws varies), so dashboard--light/--dark flap red without any colour change.
+- Noticed, not fixed (8 Oct 2026, Constellation build): the Overview's Contract type cell can read the template's label ("Raw Material Supply") while `metadata.contractType` holds a different typed word ("Supply agreement", "Mutual NDA") — ktFieldCell's reading, unchanged by this build.

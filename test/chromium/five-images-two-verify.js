@@ -245,27 +245,13 @@ const ok = (name, good, detail) => {
       });
       return { rows, headRule: getComputedStyle(t.querySelector('th')).borderBottomWidth };
     });
-    if (!tbl) { ok('4 the What Copilot read table is drawn', false,
-      await page.evaluate(()=>({tab:(typeof roomCurrentTab==='function')?roomCurrentTab():null,
-        secs:[...document.querySelectorAll('.sec-head')].map(e=>e.textContent.trim().slice(0,24)+':'+e.getAttribute('aria-expanded')),
-        stack:!!document.querySelector('.ov-stack')})).then(JSON.stringify)); }
-    else {
-      ok('4 no rule runs across the card',
-        tbl.rows.every(r => r.rule === '0px') && tbl.headRule === '0px',
-        tbl.rows.map(r => r.rule).join(',') + ' head ' + tbl.headRule);
-      ok('4b what it found is bold', tbl.rows.every(r => Number(r.w) >= 600),
-        tbl.rows.map(r => r.w).join(','));
-      /* THE COLOUR IS THE RESULT: with one row clear, one with departures, one
-         with a high finding and one unread, four different inks must appear —
-         the fault was that every row that had run drew ONE colour. */
-      ok('4c and its colour follows the result, not merely that it ran',
-        new Set(tbl.rows.map(r => r.c)).size >= 3,
-        tbl.rows.map(r => `${(r.n || '').trim()}:${r.said}=${r.c}`).join(' · '));
-      const doors = tbl.rows.filter(r => r.btn);
-      ok('4d every open door is an outlined button',
-        doors.length > 0 && doors.every(r => parseFloat(r.btn.edge) >= 1 && !r.btn.plain),
-        doors.map(r => r.btn.edge).join(','));
-    }
+    /* RE-POINTED 8 Oct 2026 (the Constellation page, Young's yes): the What
+       Copilot read table left the Overview — the read card at the top carries
+       the same five readings — so its styling claims retire with it, and what
+       is asked is that it is gone, not drawn twice. */
+    ok('4 the What Copilot read table has left the Overview (the read card carries it)', !tbl,
+      tbl ? tbl.rows.length + ' rows still drawn' : 'not drawn');
+
 
     /* ════════ 3. THE ARRIVAL STRIP'S TWO TILES ════════ */
     const tiles = await page.evaluate(() => {

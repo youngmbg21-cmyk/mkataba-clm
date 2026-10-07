@@ -92,9 +92,12 @@ const openKeyTerms = async (page, id) => {
        the row already open and its read button hidden. On an executed contract
        only the move is drawn — `ed` is false there and filing is still an
        admin's housekeeping — so that is the fallback. */
-    /* The sheet's one Edit (Read Down) is the record's Edit now. */
+    /* The sheet's one Edit (Read Down) is the record's Edit now. RE-POINTED
+       8 Oct 2026: where Edit is not drawn (an executed contract) the way to
+       the filing is the ⋯ menu's "Filing and stream" row, which opens the
+       same rows with the admin's stream picker live. */
     const b = document.querySelector('[data-ov-edit="all"]')
-      || document.querySelector('[data-ov-move-stream]');
+      || document.getElementById('ws-filing');
     if (b) b.click();
   });
   await page.waitForTimeout(900);
