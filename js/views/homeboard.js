@@ -4733,6 +4733,23 @@ function hbPaintBoard(opts){
   else host.scrollTop = top;
   _hbFocusNew = false; _hbNewPanel = null;
   hbPaintHead();
+  hbRcMenuPlace(host);
+}
+/* AN OPEN DROPDOWN IS ON THE SCREEN (7 Oct 2026, owner: "fix the 2 older
+   failures"): a card low on the board opened its Picture list below the
+   board's own bottom edge, out of sight. Like any dropdown it opens UPWARD
+   when there is more room above, and its height never passes the room it
+   has; the board is not scrolled under the reader. */
+function hbRcMenuPlace(host){
+  const m = host && host.querySelector('.hb-rmenu'); if (!m) return;
+  m.classList.remove('is-up'); m.style.maxHeight = '';
+  const box = host.getBoundingClientRect(), w = m.parentElement.getBoundingClientRect();
+  const bottom = Math.min(box.bottom, window.innerHeight), top = Math.max(box.top, 0);
+  const below = bottom - w.bottom - 8, above = w.top - top - 8;
+  const want = m.scrollHeight;
+  if (want > below && above > below) m.classList.add('is-up');
+  const room = m.classList.contains('is-up') ? above : below;
+  if (room > 0 && want > room) m.style.maxHeight = Math.max(120, Math.floor(room)) + 'px';
 }
 /* The head's parts that follow the board — the lens chip and the faces —
    repainted in place, so the head row is never rebuilt under the reader. */
