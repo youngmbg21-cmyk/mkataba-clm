@@ -1,4 +1,4 @@
-# N — BLUE BY DEFAULT, PRESENT MODE THAT STAYS ON, SMALLER REFERENCES, A BOARD THAT WEARS THE BRAND, A SUMMARY BUTTON
+# N — BLUE BY DEFAULT, PRESENT MODE THAT STAYS ON, SMALLER REFERENCES, A BOARD THAT WEARS THE BRAND, A SUMMARY BUTTON, A LEANER SUGGESTION CARD
 
 **Owner-instructed 7 Oct 2026**, off two screenshots and the second HaTi Platform
 mockup (`HaTi_Platform_2.html`): *"When you are in presentation mode in home page
@@ -10,7 +10,7 @@ be first. Then when changing colors the theme also per the attached mock up html
 the under tones in terms of colors should change in the board screen. Create a
 work order... no coding yet."*
 
-Five parts. Each says what is wrong today, why, what to build, and how to prove
+Seven parts. Each says what is wrong today, why, what to build, and how to prove
 it. Nothing here is built yet.
 
 ---
@@ -164,6 +164,60 @@ sees the summary start; and greys it with its reason when no key is set.
 
 ---
 
+## N-6 — "ASK FOR A CHANGE" GOES FROM COPILOT'S SUGGESTION CARD
+
+**Owner, 7 Oct 2026** (off a screenshot of Edit with Copilot): *"ask for change
+seems redundant when you already have the asking about below it. Put work order
+to delete it."*
+
+**What it does today (found in the code).** Nothing of its own. Pressing it
+(`data-ce-refine` in js/views/clauseeditor.js) closes the expanded view, puts the
+cursor in the ask box at the foot of the panel and prints "Say what to change
+about it in the box below." The ask box is already there, already scoped to the
+clause ("Asking about · This clause"), one glance below the card.
+
+**Build.**
+- Remove the button from BOTH places the card builder draws it: a suggestion
+  card and a risk card (two call sites, one label `ce_refine`). The suggestion
+  card's foot then holds Apply alone (plus N-7's answer on the thumbs).
+- Delete its handler and retire `ce_refine` / `ce_refine_hint` by leaving them
+  inert in both language books (the house rule for a retired key).
+- The template builder has its OWN "Ask for a change" (`tb_pb_refine`,
+  `tb_ph_refine`) on a different screen. Not touched; named to the owner in the
+  summary in case the same reasoning applies there.
+
+**Prove it.** clause-editor-verify (and one-copilot-editor-verify) assert no
+`[data-ce-refine]` on either card kind, Apply still files through
+`negoEditClause`, and the ask box still takes a follow-up about the suggestion.
+
+---
+
+## N-7 — THE THUMBS UP / DOWN: THEY RECORD NOTHING TODAY
+
+**Owner, 7 Oct 2026:** *"how do the thumbs up or down add value?"*
+
+**The honest answer (found in the code): today they don't.** A press only lights
+the thumb on screen (`card.vote` in js/views/clauseeditor.js). The mark is not
+saved, not sent to the server, not written to Copilot's trace (`js/aitrace.js`),
+not counted on any report, and never fed back to Copilot. It is gone when the
+editor closes. A control that looks like feedback and goes nowhere is the
+"dead button wearing a live one's clothes" fault this codebase already names.
+
+**Two ways forward — the owner picks:**
+- **Remove them (recommended).** Delete both thumbs from both card kinds, their
+  handler and their CSS; nothing else reads them, so nothing else changes.
+- **Make them real.** Write the vote onto the suggestion's trace record
+  (`aiTraceSave`), show the counts where Copilot's results are already reported
+  (Settings → Copilot engine → results), and say so on the hover ("Tells your
+  admin how useful this suggestion was"). It still would not retrain Copilot —
+  HaTi has no way to do that — so its value is a usefulness report for admins.
+
+**Prove it.** Whichever is chosen: no thumb on a card (remove), or a pressed
+thumb appears on the trace record and in the admin's results after a reload
+(make real).
+
+---
+
 ## QUESTIONS FOR THE OWNER BEFORE BUILDING
 
 1. **People who already chose Green** — keep their Green (recommended), or move
@@ -171,8 +225,10 @@ sees the summary start; and greys it with its reason when no key is set.
 2. **The counterparty's page** — land on Blue too, or keep whatever our side
    uses? (Recommended: Blue, the same as ours.)
 3. **Explorer** — follow the brand like the board (recommended), or stay teal?
+4. **The thumbs (N-7)** — remove them (recommended), or make them a usefulness
+   report for admins?
 
 ## ORDER OF WORK
 
-N-1 (a fault, smallest) → N-2 → N-5 → N-3 → N-4, one branch, each part checked in the
+N-1 (a fault, smallest) → N-6 → N-7 → N-2 → N-5 → N-3 → N-4, one branch, each part checked in the
 browser before the next. Full suite once at the end; merge on the owner's word.
