@@ -135,7 +135,7 @@ describe('f475 (1) a reading the wording moved past says so on the strip', () =>
 
   test('1f a fresh obligations read does not hand back the list held from the old wording', async () => {
     const fn = fnOf(OB, 'runFindObligations');
-    assert.match(fn, /const held = \(!fresh &&/, 'the held offer stands aside for a fresh read');
+    assert.match(fn, /const held0 = \(!fresh &&/, 'the held offer stands aside for a fresh read');
     const { win, c } = stage();
     c.triage = { steps: { oblig: { ok: true, found: [{ desc: 'An old promise from older wording' }] } } };
     let shown = null;
@@ -242,7 +242,7 @@ describe('f475 (3) obligation proposals arrive unticked', () => {
     const fn = fnOf(OB, 'openObligationsReview');
     assert.ok(!/data-ob-pick="\$\{i\}"[^>]*checked/.test(fn), 'no proposal arrives ticked');
     assert.match(fn, /const n = obPicks\(\)\.filter\(cb => cb\.checked\)\.length;/);
-    assert.match(fn, /btn\.disabled = !n && fresh;/, 'grey until something is ticked');
+    assert.match(fn, /btn\.disabled = !n && fresh && leftN\(\) > 0;/, 'grey until something is ticked');
   });
 });
 

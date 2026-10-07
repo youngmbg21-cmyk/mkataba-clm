@@ -141,7 +141,7 @@ describe('f263 (2) — a duplicate obligation is refused at the form too', () =>
   test('and the scan\'s own guard is untouched', () => {
     assert.match(OB, /const dupe = found\.map\(o => obligationAlreadyOn\(c, o\)\)/,
       'shown unticked with a word saying why, never silently dropped');
-    assert.match(OB, /if\(obligationAlreadyOn\(c,o\)\) return;/,
+    assert.match(OB, /if \(!o \|\| obligationAlreadyOn\(c, o\)\) return false;/,
       'and asked again at the add, so a proposal cannot slip in between');
   });
 

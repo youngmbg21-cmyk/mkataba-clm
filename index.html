@@ -4303,6 +4303,54 @@
      sentence, because the eye takes a half-height row of letters as clipping
      rather than as an invitation. Three holds the common obligation whole:
      the ones in the panel run to about 150 characters. */
+  /* THE REVIEW DESK (work order O-32): a list grouped by kind beside the
+     chosen item, a foot that counts what is left. 920 wide; below 900 the
+     list stacks above the item. */
+  .obd{display:flex;flex-direction:column;max-height:86vh}
+  .obd-top{padding:20px 24px 8px}
+  .obd-title{font-family:var(--font-body);font-weight:var(--w-title,700);font-size:17px;color:var(--color-ink);margin:0}
+  .obd-sub{margin:4px 0 0;font-size:13px;color:var(--color-ink-2,#475467)}
+  .obd-filters{display:flex;gap:6px;flex-wrap:wrap;padding:4px 24px 10px;border-bottom:1px solid var(--color-line)}
+  .obd-filters button{height:var(--ctl-h,28px);padding:0 10px;border:1px solid var(--color-line);border-radius:999px;background:var(--color-surface,#fff);font-size:12.5px;color:var(--color-ink-2,#475467);font-weight:500}
+  .obd-filters button span{color:var(--cap-ink,#98A2B3);margin-left:2px;font-variant-numeric:tabular-nums}
+  .obd-filters button[aria-pressed="true"]{background:var(--color-accent-50);border-color:var(--color-accent);color:var(--accent-ink,var(--color-accent));font-weight:600}
+  .obd-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);min-height:0;flex:1 1 auto}
+  .obd-list{overflow:auto;border-right:1px solid var(--color-line);max-height:56vh;padding:6px 0}
+  .obd-item{overflow:auto;max-height:56vh;padding:16px 24px}
+  .obd-grp{padding:4px 0 8px}
+  .obd-gh{display:flex;align-items:center;gap:10px;padding:8px 16px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--cap-ink,#98A2B3);font-weight:400}
+  .obd-gh .obd-gn{margin-left:auto;text-transform:none;letter-spacing:0;font-size:12px}
+  .obd-row{display:flex;gap:10px;align-items:flex-start;padding:8px 16px;cursor:pointer;border-left:3px solid transparent}
+  .obd-row:hover{background:var(--color-accent-50)}
+  .obd-row.is-sel{background:var(--color-accent-50);border-left-color:var(--color-accent)}
+  .obd-row.is-done .obd-desc{color:var(--color-ink-2,#475467)}
+  .obd-tick,.obd-gh input{width:15px;height:15px;margin-top:2px;accent-color:var(--color-accent);flex:none}
+  .obd-tick-gap{width:15px;flex:none}
+  .obd-rtx{min-width:0;display:flex;flex-direction:column;gap:4px}
+  .obd-desc{font-size:13px;color:var(--color-ink);line-height:1.4}
+  .obd-chips{display:flex;gap:4px;flex-wrap:wrap}
+  .obd-chip{font-size:11px;line-height:18px;padding:0 7px;border-radius:999px;background:var(--color-neutral-100,#F2F4F7);color:var(--color-ink-2,#475467)}
+  .obd-chip.is-added{background:var(--st-emerald-bg,#E7F6EE);color:var(--st-emerald-fg,#0E7A44)}
+  .obd-chip.is-skipped{background:var(--color-neutral-100,#F2F4F7);color:var(--cap-ink,#98A2B3)}
+  .obd-meta{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--cap-ink,#98A2B3)}
+  .obd-ih{font-size:15px;font-weight:600;color:var(--color-ink);margin:6px 0 10px;line-height:1.4}
+  .obd-quote{margin:0 0 12px;padding:8px 12px;border-left:2px solid var(--color-line);font-size:12.5px;color:var(--color-ink-2,#475467);font-style:italic}
+  .obd-facts{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 12px;margin:0 0 12px;font-size:13px}
+  .obd-facts dt{color:var(--cap-ink,#98A2B3);font-size:12px}
+  .obd-facts dd{margin:0;color:var(--color-ink)}
+  .obd-switch{display:inline-flex;border:1px solid var(--color-line);border-radius:var(--radius,4px);overflow:hidden}
+  .obd-switch button{height:24px;padding:0 10px;font-size:12px;background:var(--color-surface,#fff);color:var(--color-ink-2,#475467)}
+  .obd-switch button[aria-pressed="true"]{background:var(--color-accent);color:#fff;font-weight:600}
+  .obd-ns{font-size:12px;color:var(--st-amber-fg,#B54708)}
+  .obd-note{font-size:12.5px;color:var(--color-ink-2,#475467);margin:0 0 10px}
+  .obd-note.is-ok{color:var(--st-emerald-fg,#0E7A44)}
+  .obd-why{font-size:12.5px;color:var(--color-ink-2,#475467);margin:0 0 12px}
+  .obd-acts{display:flex;gap:8px;flex-wrap:wrap}
+  .obd-empty{padding:16px;font-size:13px;color:var(--cap-ink,#98A2B3)}
+  .obd-foot{display:flex;align-items:center;gap:8px;padding:12px 24px;border-top:1px solid var(--color-line)}
+  .obd-count{font-size:12.5px;color:var(--color-ink-2,#475467);font-variant-numeric:tabular-nums}
+  .obd-sp{flex:1}
+  @media (max-width:900px){ .obd-grid{grid-template-columns:1fr} .obd-list{border-right:0;border-bottom:1px solid var(--color-line);max-height:34vh} .obd-item{max-height:none} }
   .of-desc{ resize:vertical; min-height:79px; max-height:140px; line-height:1.5;
     overflow-y:auto; font:inherit; font-size:var(--t-card); }
   /* 11px, not 10, and neutral-600 rather than an opacity — opacity multiplies

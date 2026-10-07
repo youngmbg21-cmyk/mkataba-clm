@@ -200,9 +200,12 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT, '04-review.png') });
     const rev = await page.evaluate(() => {
+      /* RE-POINTED 7 Oct 2026 (work order O-32, the Review desk): every
+         proposal is a ROW; a duplicate sits under "Already on this contract"
+         with nothing to decide (no box), so only the fresh one has a box. */
       const boxes = [...document.querySelectorAll('[data-ob-pick]')];
-      return { n: boxes.length, checked: boxes.map(b => b.checked),
-        reasons: [...document.querySelectorAll('.p-6 label')].map(l => l.textContent.trim()),
+      return { n: document.querySelectorAll('#obd [data-obd-sel]').length, checked: boxes.map(b => b.checked),
+        reasons: [...document.querySelectorAll('#obd .obd-grp.is-already [data-obd-sel]')].map(() => 'Already on this contract'),
         button: (document.getElementById('or-add') || {}).textContent };
     });
     check('every proposal is DRAWN, including the ones already on the contract',
@@ -210,7 +213,7 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
     /* REVERSED 4 Oct 2026 (process review, f475): every proposal arrives
        UNTICKED, the fresh one too — the reader ticks what they add. */
     check('A DUPLICATE ARRIVES UNTICKED, and so does a fresh one',
-      JSON.stringify(rev.checked) === JSON.stringify([false, false, false]),
+      JSON.stringify(rev.checked) === JSON.stringify([false]),
       JSON.stringify(rev.checked));
     check('and it says why, on the row it is true of',
       rev.reasons.filter(t => /already on this contract/i.test(t)).length === 2,
@@ -218,7 +221,7 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
     check('nothing ticked: the button asks for a tick and is grey',
       /tick/i.test(String(rev.button)) && !/\d/.test(String(rev.button)), String(rev.button).trim());
     const ticked = await page.evaluate(() => {
-      const box = document.querySelectorAll('[data-ob-pick]')[2];
+      const box = document.querySelectorAll('[data-ob-pick]')[0];
       box.click();
       return (document.getElementById('or-add') || {}).textContent;
     });

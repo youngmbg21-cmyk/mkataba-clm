@@ -7952,11 +7952,28 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
    Propose obligations (payment milestones, notice deadlines, deliverables,
    reporting duties) from a contract's text, each with a clause quote. The
    human confirms before any are saved; no key -> the client heuristic. */
+/* ONE LIST OF KINDS AND ONE OF WHOSE-JOB WORDS, the browser's OB_KINDS and
+   OB_WHOSE (js/obligations.js) — f554 pins them equal */
+const OB_KINDS_SRV = ['dated', 'event', 'standing'];
+const OB_WHOSE_SRV = ['us', 'them', 'both'];
+function obSrvClean(o){
+  if (!o || typeof o !== 'object' || !o.desc) return null;
+  const out = { desc: String(o.desc).slice(0, 500), due: /^\d{4}-\d{2}-\d{2}$/.test(String(o.due || '')) ? o.due : '',
+    recurring: ['none', 'monthly', 'quarterly', 'annual'].includes(o.recurring) ? o.recurring : 'none', quote: String(o.quote || '').slice(0, 600) };
+  if (OB_KINDS_SRV.includes(o.kind)) out.kind = o.kind;
+  if (OB_WHOSE_SRV.includes(o.party)) out.party = o.party;
+  if (o.clause) out.clause = String(o.clause).slice(0, 20);
+  if (Number(o.amount) > 0) out.amount = Number(o.amount);
+  if (typeof o.doc === 'boolean') out.doc = o.doc;
+  if (o.why) out.why = String(o.why).slice(0, 240);
+  return out;
+}
 app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
-  const { text } = req.body || {};
+  const { text, ours, theirs } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  const side = (typeof ours === 'string' && ours.trim()) ? `\n\n"Us" is ${ours.trim().slice(0, 120)}${typeof theirs === 'string' && theirs.trim() ? '; "them" is ' + theirs.trim().slice(0, 120) : ''}.` : '';
   const tool = {
     name: 'list_obligations',
     description: 'List the ongoing obligations the contract places on either party.',
@@ -7968,6 +7985,15 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
           due: { type: 'string', description: 'ISO yyyy-mm-dd if a concrete date is stated, else empty.' },
           recurring: { type: 'string', enum: ['none','monthly','quarterly','annual'], description: 'Recurrence if periodic.' },
           quote: { type: 'string', description: 'The verbatim clause snippet this came from, under 200 characters.' + AI_QUOTE_RULE },
+          /* THE DESK'S FIVE FACTS (work order O-31): kind, whose job, the
+             clause, an amount, a document they must hold. "unsure" is a
+             real answer and the screen says "Not sure"; nothing is guessed. */
+          kind: { type: 'string', enum: OB_KINDS_SRV.concat(['unsure']), description: 'dated = has a date or repeats; event = only when something happens; standing = always true while the contract runs; unsure if you cannot tell.' },
+          party: { type: 'string', enum: OB_WHOSE_SRV.concat(['unsure']), description: 'Whose job this is: us, them, or both sides; unsure if the wording does not say.' },
+          clause: { type: 'string', description: 'The clause number as the contract prints it, e.g. "7.2". Empty if none.' },
+          amount: { type: 'number', description: 'The amount the wording states for this obligation, as a plain number. Omit if none is stated.' },
+          doc: { type: 'boolean', description: 'True if this is a document the obliged party must hold or deliver (a certificate, a policy, a report).' },
+          why: { type: 'string', description: 'One short plain sentence: why it is this kind.' },
         }, required: ['desc'] } },
       },
       required: ['obligations'],
@@ -8004,7 +8030,7 @@ A long agreement carries its obligations across the whole document, and the ones
 
 Only list what the wording actually imposes: never invent one, and never list a definition or a recital as an obligation. An empty list is the right answer only where the contract genuinely imposes no continuing duty on either side, which is rare in a commercial agreement — if you are returning an empty list, check that you read to the end first.
 
-Quote the clause each came from. Return via list_obligations.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
+Quote the clause each came from. For each, say its kind (dated, on an event, or standing), whose job it is (us, them or both), the clause number, any amount stated, and whether it is a document to hold; say unsure rather than guess.${side} Return via list_obligations.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
   try {
     /* ROOM FOR THE ANSWER THE SCHEMA ALLOWS. maxItems is 12 and each item
        carries a description AND a verbatim quote, which is roughly 100 tokens
@@ -8018,7 +8044,7 @@ Quote the clause each came from. Return via list_obligations.\n\nDOCUMENT:\n${ai
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    const list = Array.isArray(block.input?.obligations) ? block.input.obligations : [];
+    const list = (Array.isArray(block.input?.obligations) ? block.input.obligations : []).map(obSrvClean).filter(Boolean);
     /* "None" and "cut off before it could say" are different answers, and the
        screen prints the first as a fact about the contract. */
     if (!list.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could list the obligations. Try again.' });
