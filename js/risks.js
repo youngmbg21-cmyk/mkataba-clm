@@ -850,7 +850,7 @@ function _rkNamedTitle(it){
   const kindName = src => { const k = _rkKind(src); const t = k ? _rkT('rk_topic_' + k) : ''; return (t && t !== 'rk_topic_' + k) ? t : ''; };
   const tableName = src => { const tk = RK_TITLE_TOPICS.find(x => x.re.test(src)); const t = tk ? _rkT('rk_tt_' + tk.key) : ''; return (t && t !== 'rk_tt_' + tk.key) ? t : ''; };
   /* the title before the sentence, a clause kind before the title table */
-  const topic = kindName(it.title || '') || tableName(it.title || '') || kindName(text) || tableName(text) || _rkT('rk_tt_other');
+  const topic = kindName(it.title || '') || tableName(it.title || '') || kindName(text) || tableName(text) || _rkT('rk_tt_misc');
   const pk = RK_TITLE_PROBLEMS.find(x => x.re.test(text));
   const prob = pk ? _rkT('rk_tp_' + pk.key) : '';
   return topic + ' · ' + ((prob && prob !== 'rk_tp_' + pk.key) ? prob : _rkT(it.src === 'odd' ? 'rk_problem_odd' : 'rk_problem_watch'));
