@@ -27540,3 +27540,7 @@ What was built:
 - The Brain names it (`constellation`, `ovMapSvg`) in the upload flow.
 
 Tests: f442 rewritten in place for the essentials card and the map (its map claims fail at the parent: no `ovMapData`); f359 (10) and f176 re-pointed; browser: overview-as-drawn (64/64), refile-a-contract (26/26), uploaded-contract-fixed 4a–4d, auto-triage 10–11 (the second box is Read the brief's slot), five-images-two 4 (the readings table has left the Overview).
+
+### The colour census, re-recorded with Young's yes (8 Oct 2026)
+
+Audited as a set difference before saving: keyterms, signing and history each ADD only `--alt` (rgb(18,121,109) by day, rgb(94,194,179) at night — the map's duty lines; the Overview pane stays in the page on the other tabs) and LOSE the old timeline's track greys (rgba(160,172,169,.14), rgb(27,34,33) at night). The dashboard's three ruby dot colours (rgb(217,69,59) and its .25/.55 washes) are the flapping already in BUGLOG — the save recorded the run where they were absent, because the census file cannot be edited by hand in this setup (`--save` is the only writer allowed). If the dashboard goes red on those three again, it is that same flap, not a palette change.
