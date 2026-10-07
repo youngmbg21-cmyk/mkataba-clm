@@ -448,7 +448,10 @@ const SEC = (suffix) => {
     });
     await page.waitForTimeout(500);
     const pplHead = await page.evaluate(() => {
-      const h = document.querySelector('#ov-people .sec-head');
+      /* RE-POINTED 7 Oct 2026 ("Fold them in"): the people list is inside
+         the one Parties list at the head of the essentials card. The door
+         is the same list, still with its own Add. */
+      const h = document.querySelector('#ov-parties #kt-people') && document.querySelector('#ov-parties .sec-head');
       if (!h) return null;
       return (h.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 60);
     });
@@ -750,6 +753,11 @@ const SEC = (suffix) => {
       !ct.none && ct.first === '' && ct.lead === 'Master Services Agreement'
         && ct.value === 'Master Services Agreement',
       ct.none ? 'not reached' : 'first "' + ct.first + '" · lead "' + ct.lead + '" · value "' + ct.value + '"');
+    /* Brought to the middle of the window first (7 Oct 2026): the parties
+       now lead the card, so the box sits low, and a list with no room under
+       it rightly opens above. The claim is where it opens WITH room. */
+    await page.evaluate(() => { const el = document.querySelector('[data-ktm="contractType"]'); if (el) el.scrollIntoView({ block: 'center' }); });
+    await page.waitForTimeout(300);
     const cm = await page.evaluate(() => {
       const el = document.querySelector('[data-ktm="contractType"]');
       if (!el || el.tagName !== 'SELECT') return null;

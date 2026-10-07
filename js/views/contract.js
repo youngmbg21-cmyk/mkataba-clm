@@ -5855,7 +5855,7 @@ function renderKeyTerms(c){
      the sheet, and the timeline's labels, which only the page can measure. */
   try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(_){}
   paintOvBriefBtn(c);
-  ovTimelineWatch(host);
+  ovTmWire(host,c);
   /* ---- PRESSING A MARKED FIELD IS THE SAME ACT AS `Fix on Overview` ----
      focusKeyTerms is the one door: it opens the right section, turns its rows
      on and lands the caret in the box. TWO PLACES, ONE ACT — the signing list
@@ -6168,70 +6168,269 @@ function ovSayOf(c,key){
   }catch(_){}
   return '';
 }
-/* THE CONTRACT'S LIFE AS ONE LINE: start, today, the last day to give notice,
-   the end — drawn to scale off the two dates on the record and the renewal
-   reading, and only where both dates exist and run forwards. A picture of
-   facts the grid below prints in full, so it is hidden from a screen reader. */
+/* ---- THE TIME MACHINE (Young picked it, 7 Oct 2026: "Time Machine under the
+   essentials card", and "Fold them in") ----
+   The contract's life as one track a reader can drag along: the start, the
+   end, the last day to give notice, each signed amendment, every duty's due
+   day — and under it what stands on the chosen date. It REPLACES the thin
+   line that was here (ovTimelineHtml, STALE), and the renewal question moved
+   in with it as its deadline (the #renewal-host under the track).
+   EVERY POINT IS A STORED FACT: the two dates on the record (an executed
+   amendment's end through effectiveExpiry), the renewal reading, the
+   obligations' due and completion days, the family's signing days
+   (familyOrder). Nothing is guessed, nothing is asked of a model, nothing is
+   written; the only arithmetic is counting days. A record with no start and
+   no end draws no machine. */
 function ovIsoDay(v){ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(v||'')); return m?Date.UTC(+m[1],+m[2]-1,+m[3]):null; }
-function ovTimelineHtml(c){
-  const effIso=c&&c.fields&&c.fields.effDate, endIso=c&&c.expiry;
-  const f=ovIsoDay(effIso), t=ovIsoDay(endIso);
-  if(f==null||t==null||t<=f) return '';
-  const pct=d=>Math.max(0,Math.min(100,(d-f)/(t-f)*100)).toFixed(2);
-  const pts=[{at:f,cls:'is-start',row:'dn',word:'ov_tl_start',iso:effIso},
-    {at:t,cls:'is-end',row:'dn',word:'ov_tl_end',iso:endIso}];
+const OV_DAY_MS=86400000;
+function ovIsoOf(ms){ return new Date(ms).toISOString().slice(0,10); }
+function ovTmData(c){
+  if(!c) return null;
+  const effIso=c.fields&&c.fields.effDate;
+  let endIso=null; try{ endIso=(typeof effectiveExpiry==='function')?effectiveExpiry(c):null; }catch(_){}
+  endIso=endIso||c.expiry||null;
+  const f=ovIsoDay(effIso), e=ovIsoDay(endIso);
+  if(f==null&&e==null) return null;
+  if(f!=null&&e!=null&&e<=f) return null;
   const todayIso=(typeof todayISO==='function')?todayISO():'';
   const n=ovIsoDay(todayIso);
-  if(n!=null&&n>=f&&n<=t) pts.push({at:n,cls:'is-now',row:'up',word:'ov_tl_today',iso:todayIso});
   let w=null; try{ w=(typeof renewalWindow==='function')?renewalWindow(c):null; }catch(_){}
-  const d=(w&&w.notice>0)?ovIsoDay(w.decideBy):null;
-  if(d!=null&&d>f&&d<t) pts.push({at:d,cls:'is-decide'+(w.missed?' is-missed':''),row:'up',word:'ov_tl_decide',iso:w.decideBy});
-  const done=n==null?'0':pct(Math.min(Math.max(n,f),t));
-  return `<div class="ov-tl" aria-hidden="true"><div class="ov-tl-bar"><i style="width:${done}%"></i></div>${
-    pts.map(p=>`<span class="ov-tl-pt ${p.cls}" style="left:${pct(p.at)}%"></span>`).join('')}${
-    pts.map(p=>`<span class="ov-tl-tx ${p.cls} is-${p.row}" data-row="${p.row}" style="left:${pct(p.at)}%"><b>${
-      esc(ovDay(p.iso))}</b> ${esc(i18t(p.word))}</span>`).join('')}</div>`;
-}
-/* NO TWO WORDS ON ONE SPOT. Measured after the paint, because only the page
-   knows how wide a date is in this language: a label that would touch one
-   already placed tries the other side of the line, and where both sides are
-   taken it steps back (its point stays; its date is a field below). The start
-   and the end are placed first, so they are never the ones that give way. */
-function ovTimelineSettle(el){
-  if(!el||!el.isConnected) return;
-  const box=el.getBoundingClientRect(); if(!box||!box.width) return;
-  const tx=[...el.querySelectorAll('.ov-tl-tx')];
-  tx.forEach(x=>{ const row=x.getAttribute('data-row')||'dn';
-    x.classList.remove('is-gone','is-al','is-ar','is-up','is-dn'); x.classList.add('is-'+row); });
-  tx.forEach(x=>{ if(x.classList.contains('is-start')||x.classList.contains('is-end')) return;
-    const r=x.getBoundingClientRect();
-    if(r.left<box.left) x.classList.add('is-al'); else if(r.right>box.right) x.classList.add('is-ar'); });
-  const placed={up:[],dn:[]};
-  const hit=(a,b)=>a.left<b.right+8&&b.left<a.right+8;
-  tx.forEach(x=>{
-    const row=x.classList.contains('is-up')?'up':'dn';
-    const r=x.getBoundingClientRect();
-    if(!placed[row].some(p=>hit(p,r))){ placed[row].push(r); return; }
-    const other=row==='up'?'dn':'up';
-    x.classList.remove('is-'+row); x.classList.add('is-'+other);
-    const r2=x.getBoundingClientRect();
-    if(!placed[other].some(p=>hit(p,r2))){ placed[other].push(r2); return; }
-    x.classList.add('is-gone');
-  });
-}
-/* Settled on paint and again whenever the line changes width (the pane shown
-   after a hidden paint, a window resized). One watcher, moved to each new
-   line, so a repaint never leaves an old one listening. */
-let _ovTlWatch=null;
-function ovTimelineWatch(host){
-  const el=host&&host.querySelector('.ov-tl');
-  if(_ovTlWatch){ try{ _ovTlWatch.disconnect(); }catch(_){} _ovTlWatch=null; }
-  if(!el) return;
-  ovTimelineSettle(el);
-  if(typeof ResizeObserver==='function'){
-    _ovTlWatch=new ResizeObserver(()=>ovTimelineSettle(el));
-    _ovTlWatch.observe(el);
+  const decide=(w&&w.notice>0)?ovIsoDay(w.decideBy):null;
+  /* A DUTY WITH NO DAY IS NOT ON A TRACK OF DAYS: it stays on the
+     Obligations tab, where it always was. A duty marked done with no day
+     recorded counts as done from its due day and says "Done" without one. */
+  const occ=(Array.isArray(c.obligations)?c.obligations:[]).map(o=>{
+    const due=ovIsoDay(o&&o.due); if(due==null) return null;
+    const isDone=o.status==='done', at=isDone?ovIsoDay(o.completedAt):null;
+    return { id:o.id, t:String(o.desc||o.title||'').trim()||i18t('ov_tm_duty'), due, done:isDone?(at!=null?at:due):null, undated:isDone&&at==null };
+  }).filter(Boolean).sort((a,b)=>a.due-b.due);
+  /* THE FAMILY, READ THE WAY RELATED AGREEMENTS READS IT: an amendment is in
+     force from the day it was signed; an unsigned one changes nothing yet. */
+  let kids=[];
+  try{
+    if(!c.parentId&&typeof familyOrder==='function') kids=familyOrder(c).slice(1).map(x=>({
+      id:x.doc.id, ref:(typeof contractRef==='function'?contractRef(x.doc):x.doc.id), signed:ovIsoDay(x.signed) }));
+  }catch(_){ kids=[]; }
+  const pts=[f,e,decide,n].concat(occ.map(o=>o.due),kids.map(k=>k.signed)).filter(x=>x!=null);
+  let t0=f!=null?Math.min(f,n!=null?n:f):Math.min(...pts);
+  let t1=e!=null?Math.max(e,n!=null?n:e):Math.max(...pts)+365*OV_DAY_MS;
+  /* AN AUTO-RENEWING END SHOWS THE YEAR IT RENEWS INTO, dashed, as the
+     artifact draws it: a year past the end, or one term where the term is
+     shorter. Nothing on it is a stored fact but the end itself. */
+  const autoOn=!!(w&&w.auto);
+  if(autoOn&&e!=null) t1=Math.max(t1,e+Math.min(365*OV_DAY_MS,f!=null?e-f:365*OV_DAY_MS));
+  if(e==null&&f!=null&&t1<f+365*OV_DAY_MS) t1=f+365*OV_DAY_MS;
+  if(f==null&&t0>e-365*OV_DAY_MS) t0=e-365*OV_DAY_MS;
+  if(t1<=t0) t1=t0+OV_DAY_MS;
+  /* `tone` is the artifact's colour per mark: green a start, ruby the last
+     day to give notice, steel a change point or the end. */
+  const marks=[];
+  if(f!=null) marks.push({ k:'start', tone:'g', at:f, word:i18t('ov_tl_start') });
+  const decideIn=decide!=null&&(f==null||decide>f)&&(e==null||decide<e);
+  if(decideIn) marks.push({ k:w.missed?'missed':'decide', tone:'r', at:decide, word:i18t('ov_tm_last_notice') });
+  kids.forEach(k=>{ if(k.signed!=null&&k.signed>=t0&&k.signed<=t1) marks.push({ k:'amend', tone:'s', at:k.signed, word:String(k.ref) }); });
+  if(e!=null) marks.push({ k:'end', tone:'s', at:e, word:i18t(autoOn?'ov_tm_ends_renews':'ov_tm_ends') });
+  /* THE BANDS OVER THE LINE, each a stretch the record itself marks out:
+     in force until the notice deadline (green), past it until the end
+     (amber), the year it renews into if nobody acts (dashed steel); a
+     contract with no end runs on, open (steel). */
+  const bands=[];
+  if(f!=null){
+    const z=decideIn?decide:(e!=null?e:null);
+    if(z!=null) bands.push({ a:f, b:z, tone:'g', word:i18t('ov_tm_b_force') });
+    if(decideIn&&e!=null) bands.push({ a:decide, b:e, tone:'a', word:i18t('ov_tm_b_late') });
+    if(e==null) bands.push({ a:f, b:t1, tone:'s', word:i18t('ov_tm_b_open') });
   }
+  if(autoOn&&e!=null&&t1>e) bands.push({ a:e, b:t1, tone:'s', dash:true, word:i18t('ov_tm_b_renew') });
+  return { t0, t1, start:f, end:e, today:n, decide, auto:autoOn, occ, kids, marks, bands };
+}
+/* WHAT STANDS ON A DAY: each duty's state measured against the chosen day,
+   and the next deadline after it. A duty open past its day is LATE only where
+   that day is already behind us; on a future day it is a duty still to do. */
+function ovTmOccState(o,d,today){
+  if(o.done!=null&&o.done<=d) return 'g';
+  if(o.due<d) return (o.due<today||o.done!=null)?'r':'p';
+  const n=Math.round((o.due-d)/OV_DAY_MS); return n<=21?'a':n<=60?'s':'f';
+}
+function ovTmAt(T,d){
+  const late=T.occ.filter(o=>ovTmOccState(o,d,T.today)==='r');
+  const next=T.occ.filter(o=>o.due>=d&&!(o.done!=null&&o.done<=d)).map(o=>({ t:o.t, at:o.due }))
+    .concat(T.decide!=null&&T.decide>=d?[{ t:i18t('ov_tl_decide'), at:T.decide }]:[],
+      T.end!=null&&T.end>=d?[{ t:i18t('ov_tl_end'), at:T.end }]:[])
+    .sort((a,b)=>a.at-b.at)[0]||null;
+  const rows=T.occ.map(o=>({ o, s:ovTmOccState(o,d,T.today) }))
+    .filter(r=>r.s==='r'||r.s==='a'||r.s==='s'||(r.s==='g'&&r.o.done!=null&&(d-r.o.done)<=30*OV_DAY_MS));
+  const ord={r:0,a:1,s:2,g:3};
+  rows.sort((a,b)=>ord[a.s]-ord[b.s]||a.o.due-b.o.due);
+  return { late:late.length, next, rows:rows.slice(0,6) };
+}
+function ovTmSpan(days){
+  const a=Math.abs(days);
+  if(a<60) return i18tn('ov_tm_days',a,{n:a});
+  if(a<730){ const m=Math.round(a/30.44); return i18tn('ov_tm_months',m,{n:m}); }
+  const y=Math.round(a/365.25); return i18tn('ov_tm_years',y,{n:y});
+}
+/* THE TRACK, DRAWN AS THE ARTIFACT DRAWS IT (Young: "only merge if the
+   Time Machine has been built exactly as it was designed"): one picture W
+   wide — the years with their rules, the bands over the line, the line with
+   its elapsed part, an open arrow or a dashed renewal past the end, a tick
+   per dated duty under it, the labels in two rows below with a leader each
+   (a label with no room in either row is left off; its day is a jump), the
+   marks as diamonds in their colour, today as a dashed rule with a pulse,
+   and the cursor: a rule, a ring on the line, the day in a pill. Redrawn at
+   the track's own width (ovTmWire); the cursor is moved by ovTmPaint. */
+/* Play the life / Pause, with the drawn mark the artifact gives it. */
+function ovTmPlayFace(on){
+  return (on?'<svg class="ov-tm-pm" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9" rx="1"/><rect x="7" y="1.5" width="3" height="9" rx="1"/></svg>'
+    :'<svg class="ov-tm-pm" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z"/></svg>')+esc(i18t(on?'ov_tm_pause':'ov_tm_play'));
+}
+function ovTmTrackSvg(T,W){
+  W=Math.max(300,Math.round(W||900));
+  const H=150, P=10, X=d=>P+(W-2*P)*(d-T.t0)/(T.t1-T.t0);
+  const x=v=>(+v).toFixed(1), day=ms=>esc(ovDay(ovIsoOf(ms)));
+  const tone=t=>({ g:'green', a:'amber', s:'steel', r:'ruby' }[t]||'gray');
+  const lineA=T.start!=null?T.start:T.t0, LAST=T.end!=null?T.end:T.t1;
+  let s=`<svg class="ov-tm-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+  for(let y=new Date(T.t0).getUTCFullYear()+1;y<=new Date(T.t1).getUTCFullYear();y++){
+    const xd=X(Date.UTC(y,0,1));
+    if(xd>P+20&&xd<W-P-10) s+=`<line class="ov-tm-yr" x1="${x(xd)}" y1="36" x2="${x(xd)}" y2="112"/><text class="ov-tm-yrt" x="${x(xd+5)}" y="46">${y}</text>`;
+  }
+  (T.bands||[]).forEach(b=>{ const a=X(b.a), z=X(b.b), w=z-a; if(w<=0) return;
+    s+=`<rect class="ov-tm-band is-${tone(b.tone)}${b.dash?' is-dash':''}" x="${x(a)}" y="52" width="${x(w)}" height="20" rx="4"/>`;
+    if(w>b.word.length*6.3+12) s+=`<text class="ov-tm-bandt is-${tone(b.tone)}" x="${x(a+8)}" y="66">${esc(b.word)}</text>`; });
+  s+=`<line class="ov-tm-line${T.end==null?' is-open':''}" x1="${x(X(lineA))}" y1="92" x2="${x(X(LAST))}" y2="92"/><line class="ov-tm-el" data-tm-el x1="${x(X(lineA))}" y1="92" x2="${x(X(lineA))}" y2="92"/>`;
+  if(T.end!=null&&T.t1>T.end) s+=`<line class="ov-tm-after" x1="${x(X(T.end)+6)}" y1="92" x2="${x(X(T.t1))}" y2="92"/>`;
+  else if(T.end==null) s+=`<path class="ov-tm-arrow" d="M${W-P-2},86 l8,6 -8,6"/>`;
+  T.occ.forEach(o=>{ const xo=X(o.due); if(xo<P||xo>W-P) return;
+    s+=`<line class="ov-tm-oc${o.done!=null?' is-done':''}" x1="${x(xo)}" y1="99" x2="${x(xo)}" y2="105"/>`; });
+  const rows=[-1e9,-1e9], labs=[];
+  T.marks.map(m=>({ x:X(m.at), l:m.word, at:m.at }))
+    .concat(T.today!=null?[{ x:X(T.today), l:i18t('ov_tl_today'), at:T.today, today:1 }]:[])
+    .sort((a,b)=>a.x-b.x).forEach(m=>{
+      const w=m.l.length*6.2+10, r=rows[0]<m.x-w/2?0:rows[1]<m.x-w/2?1:-1; if(r<0) return; rows[r]=m.x+w/2;
+      const cx=Math.min(Math.max(m.x,w/2),W-w/2);
+      labs.push(`<line class="ov-tm-lead" x1="${x(m.x)}" y1="100" x2="${x(m.x)}" y2="${r?128:114}"/><text class="ov-tm-lbl${m.today?' is-today':''}" x="${x(cx)}" y="${r?141:127}" text-anchor="middle"><title>${day(m.at)}</title>${esc(m.l)}</text>`); });
+  s+=labs.join('');
+  T.marks.forEach(m=>{ const xm=X(m.at);
+    s+=`<rect class="ov-tm-mk is-${m.k} is-${tone(m.tone)}" x="${x(xm-5)}" y="87" width="10" height="10" transform="rotate(45 ${x(xm)} 92)"/>`; });
+  if(T.today!=null){ const xt=X(T.today);
+    s+=`<line class="ov-tm-today" x1="${x(xt)}" y1="36" x2="${x(xt)}" y2="112"/><circle class="ov-tm-pulse" cx="${x(xt)}" cy="92" r="6"/><circle class="ov-tm-mk is-now" cx="${x(xt)}" cy="92" r="5"/>`; }
+  s+=`<g class="ov-tm-cur" data-tm-cur><line x1="0" y1="26" x2="0" y2="112"/><circle cx="0" cy="92" r="9"/><rect data-tm-cb x="-48" y="2" width="96" height="22" rx="11"/><text data-tm-ct x="0" y="17" text-anchor="middle"></text></g></svg>`;
+  return s;
+}
+function ovTmHtml(c){
+  const T=ovTmData(c); if(!T) return '';
+  const lineA=T.start!=null?T.start:T.t0;
+  /* Every jump is a stored day; the one lit is the day the cursor stands on
+     (ovTmWire keeps aria-pressed true on exactly that one). */
+  const jumps=(T.today!=null?[{ at:T.today, word:i18t('ov_tl_today') }]:[]).concat(T.marks);
+  const startAt=T.today!=null?T.today:lineA;
+  /* THE LINE UNDER THE TITLE, as the artifact has it: the stored dates in
+     one sentence (started · runs to · renews unless notice by). */
+  const day=ms=>ovDay(ovIsoOf(ms)), sub=[];
+  if(T.start!=null) sub.push(i18t('ov_tm_sub_start',{ date:day(T.start) }));
+  if(T.end!=null) sub.push(i18t('ov_tm_sub_runs',{ date:day(T.end) })); else sub.push(i18t('ov_tm_sub_open'));
+  if(T.decide!=null) sub.push(i18t(T.auto?'ov_tm_sub_renews':'ov_tm_sub_notice',{ date:day(T.decide) }));
+  return `<div class="ov-tm" data-tm-t0="${T.t0}" data-tm-t1="${T.t1}">
+    <p class="ov-tm-sub">${esc(sub.join(' · '))}</p>
+    <div class="ov-tm-track"><div class="ov-tm-pic" data-tm-svg aria-hidden="true">${ovTmTrackSvg(T,900)}</div>
+      <input class="ov-tm-range" type="range" min="0" max="${Math.round((T.t1-T.t0)/OV_DAY_MS)}" step="1"
+        value="${Math.round((startAt-T.t0)/OV_DAY_MS)}" aria-label="${esc(i18t('ov_tm_range'))}"></div>
+    <div class="ov-tm-ctl"><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-tm-play>${ovTmPlayFace(false)}</button>${
+      jumps.map(j=>`<button type="button" class="ui-btn ui-btn-sm" data-tm-j="${j.at}" aria-pressed="${j.at===startAt}">${esc(j.word)}</button>`).join('')}</div>
+    <div class="ov-tm-now"><div><div class="ov-tm-date"><b data-tm-d></b> <span data-tm-rel></span></div><p class="ov-tm-say" data-tm-say></p></div>
+      <div class="ov-tm-ring" data-tm-ring></div></div>
+    <div class="ov-tm-panes">
+      <div class="ov-tm-pane"><span class="ov-tm-cap">${esc(i18t('ov_tm_cap_time'))}</span><b class="ov-tm-big" data-tm-big></b><small data-tm-sub></small><div class="ov-tm-meter"${T.end==null?' hidden':''}><i data-tm-meter></i></div></div>
+      <div class="ov-tm-pane"><span class="ov-tm-cap">${esc(i18t('ov_tm_cap_duties'))}</span><div data-tm-obs></div></div>
+      <div class="ov-tm-pane"><span class="ov-tm-cap">${esc(i18t('ov_tm_cap_docs'))}</span><div data-tm-docs></div></div>
+    </div></div>`;
+}
+/* THE READ-OUTS FOR ONE DAY, written into the machine's own slots. */
+function ovTmPaint(el,T,d,c){
+  const q=s=>el.querySelector(s), day=ms=>ovDay(ovIsoOf(ms));
+  /* THE CURSOR, as the artifact moves it: the group slides to the day, the
+     pill holds the day and stays inside the picture at both ends, and the
+     elapsed part of the line runs from the start to the day. */
+  const svg=q('.ov-tm-svg');
+  if(svg){
+    const W=+(svg.getAttribute('width')||900), P=10, X=v=>P+(W-2*P)*(v-T.t0)/(T.t1-T.t0), xc=X(d);
+    const g=q('[data-tm-cur]'); if(g) g.setAttribute('transform',`translate(${xc.toFixed(1)},0)`);
+    const bx=Math.min(Math.max(-48,10-xc),W-10-xc-96);
+    const cb=q('[data-tm-cb]'), ct=q('[data-tm-ct]');
+    if(cb) cb.setAttribute('x',bx.toFixed(1));
+    if(ct){ ct.setAttribute('x',(bx+48).toFixed(1)); ct.textContent=day(d); }
+    const lineA=T.start!=null?T.start:T.t0, LAST=T.end!=null?T.end:T.t1;
+    const el2=q('[data-tm-el]'); if(el2) el2.setAttribute('x2',X(Math.min(Math.max(d,lineA),LAST)).toFixed(1));
+  }
+  const rel=T.today==null?'':(d===T.today?i18t('ov_tm_rel_today')
+    :i18t(d>T.today?'ov_tm_in':'ov_tm_ago',{ t:ovTmSpan(Math.round((d-T.today)/OV_DAY_MS)) }));
+  q('[data-tm-d]').textContent=day(d); q('[data-tm-rel]').textContent=rel;
+  const A=ovTmAt(T,d);
+  q('[data-tm-say]').textContent=(A.late?i18tn('ov_tm_late',A.late,{n:A.late}):i18t('ov_tm_none_late'))+' '
+    +(A.next?i18t('ov_tm_next',{ what:A.next.t, date:day(A.next.at) }):i18t('ov_tm_nothing_next'));
+  const nd=A.next?Math.round((A.next.at-d)/OV_DAY_MS):null, R=22, C=2*Math.PI*R, fr=nd==null?0:1-Math.min(nd,90)/90;
+  q('[data-tm-ring]').innerHTML=`<svg width="56" height="56" viewBox="0 0 56 56" aria-hidden="true"><circle cx="28" cy="28" r="${R}" class="ov-tm-rg0"/><circle cx="28" cy="28" r="${R}" transform="rotate(-90 28 28)" class="ov-tm-rg1${nd!=null&&nd<=21?' is-near':''}" style="stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:${(C*(1-fr)).toFixed(1)}"/><text x="28" y="33" text-anchor="middle">${nd==null?'–':nd}</text></svg><div><b>${
+    esc(i18t(nd==null?'ov_tm_ring_none':nd===0?'ov_tm_ring_today':'ov_tm_ring_days'))}</b>${A.next?`<small>${esc(A.next.t)} · ${esc(day(A.next.at))}</small>`:''}</div>`;
+  /* HOW FAR ALONG: day x of y between the two dates, or how long it has run. */
+  let big='', sub='', fr2=0;
+  if(T.start!=null&&d<T.start){ big=i18t('ov_tm_not_started'); sub=i18t('ov_tm_in',{ t:ovTmSpan(Math.round((T.start-d)/OV_DAY_MS)) }); }
+  else if(T.end!=null&&d>T.end){ big=i18t('ov_tm_ended',{ date:day(T.end) }); fr2=1; }
+  else if(T.start!=null&&T.end!=null){
+    const x=Math.round((d-T.start)/OV_DAY_MS)+1, y=Math.round((T.end-T.start)/OV_DAY_MS)+1;
+    big=i18t('ov_tm_day_of',{ x:x.toLocaleString(), y:y.toLocaleString() }); sub=i18t('ov_tm_ends_in',{ date:day(T.end) }); fr2=x/y;
+  } else if(T.start!=null){ big=i18t('ov_tm_running',{ t:ovTmSpan(Math.round((d-T.start)/OV_DAY_MS)) }); sub=i18t('ov_tm_no_end'); }
+  else { big=i18t('ov_tm_ends_in',{ date:day(T.end) }); }
+  q('[data-tm-big]').textContent=big; q('[data-tm-sub]').textContent=sub;
+  const m=q('[data-tm-meter]'); if(m) m.style.width=(Math.max(0,Math.min(1,fr2))*100).toFixed(1)+'%';
+  const said=s=>s==='g'?'ov_tm_done':s==='r'?'ov_tm_was_due':'ov_tm_due';
+  q('[data-tm-obs]').innerHTML=A.rows.length?A.rows.map(r=>`<div class="ov-tm-ob"><span class="ov-tm-dot is-${r.s}"></span><div>${esc(r.o.t)}<small>${
+    esc(r.s==='g'&&r.o.undated?i18t('ov_tm_done_undated'):i18t(said(r.s),{ date:day(r.s==='g'?r.o.done:r.o.due) }))}</small></div></div>`).join('')
+    :`<p class="ov-tm-none">${esc(i18t('ov_tm_no_duties'))}</p>`;
+  /* WHICH PAPER GOVERNS ON THE DAY: this agreement, then each amendment by
+     Related agreements' own reading — signed by then, signed later, unsigned. */
+  const self=(T.start!=null&&d<T.start)?i18t('ov_tm_not_started'):(T.end!=null&&d>T.end)?i18t('ov_tm_ended',{ date:day(T.end) }):i18t('ov_tm_in_force');
+  const selfTone=(T.start!=null&&d<T.start)||(T.end!=null&&d>T.end)?'f':'g';
+  q('[data-tm-docs]').innerHTML=`<div class="ov-tm-ob"><span class="ov-tm-dot is-${selfTone}"></span><div>${esc(i18t('ov_tm_this'))}<small>${esc(self)}</small></div></div>`
+    +(T.kids.length?T.kids.map(k=>{
+      const s=k.signed==null?'f':k.signed<=d?'g':'s';
+      const w=k.signed==null?i18t('ov_tm_unsigned'):k.signed<=d?i18t('ov_tm_signed_on',{ date:day(k.signed) }):i18t('ov_tm_signed_later',{ date:day(k.signed) });
+      return `<div class="ov-tm-ob"><span class="ov-tm-dot is-${s}"></span><div>${esc(String(k.ref))}<small>${esc(w)}</small></div></div>`;
+    }).join(''):`<p class="ov-tm-none">${esc(i18t('ov_tm_alone'))}</p>`);
+}
+/* WIRED WHERE IT IS PAINTED (renderKeyTerms). The drag, the jumps and Play
+   move one cursor; the jump standing on the shown day is the lit one. Play
+   walks the whole life in twelve seconds and stops the moment the machine
+   leaves the page. The labels are settled by measuring, as the old line's
+   were, and again when the track changes width. */
+let _ovTmWatch=null;
+function ovTmWire(host,c){
+  if(_ovTmWatch){ try{ _ovTmWatch.disconnect(); }catch(_){} _ovTmWatch=null; }
+  const el=host&&host.querySelector('.ov-tm'); if(!el) return;
+  const T=ovTmData(c); if(!T) return;
+  const rng=el.querySelector('.ov-tm-range'), play=el.querySelector('[data-tm-play]');
+  const dayAt=()=>T.t0+(+rng.value)*OV_DAY_MS;
+  const lit=()=>{ const d=dayAt(); el.querySelectorAll('[data-tm-j]').forEach(b=>b.setAttribute('aria-pressed',String(+b.getAttribute('data-tm-j')===d))); };
+  const show=()=>{ ovTmPaint(el,T,dayAt(),c); lit(); };
+  let raf=0, on=false;
+  const setPlay=v=>{ on=v; play.innerHTML=ovTmPlayFace(v);
+    cancelAnimationFrame(raf); if(!v) return;
+    const max=+rng.max; if(+rng.value>=max-1) rng.value=0;
+    let last=performance.now();
+    const step=t=>{ if(!el.isConnected){ on=false; return; }
+      rng.value=Math.min(max,+rng.value+(t-last)*max/12000); last=t; show();
+      if(+rng.value>=max){ setPlay(false); return; } raf=requestAnimationFrame(step); };
+    raf=requestAnimationFrame(step); };
+  rng.addEventListener('input',()=>{ if(on) setPlay(false); show(); });
+  play.addEventListener('click',()=>setPlay(!on));
+  el.querySelectorAll('[data-tm-j]').forEach(b=>b.addEventListener('click',()=>{
+    setPlay(false); rng.value=Math.round((+b.getAttribute('data-tm-j')-T.t0)/OV_DAY_MS); show(); }));
+  /* Drawn at the track's own width, and again when that width changes. */
+  const track=el.querySelector('.ov-tm-track'), pic=el.querySelector('[data-tm-svg]');
+  let lastW=0;
+  const draw=()=>{ const w=Math.round(track.clientWidth||0); if(!w||w===lastW) return; lastW=w; pic.innerHTML=ovTmTrackSvg(T,w); show(); };
+  show(); draw();
+  if(typeof ResizeObserver==='function'){ _ovTmWatch=new ResizeObserver(draw); _ovTmWatch.observe(track); }
 }
 /* "READ THE BRIEF" STARTS THE SHEET (owner-asked 1 Oct 2026: "add the Read
    Brief button somewhere at the start of the card so that someone can click
@@ -7069,13 +7268,18 @@ function ktOverviewTermsHtml(c,opts={}){
      its host sits under the dates it is worked out from and is drawn bare, so
      it reads as the end of that group rather than a card of its own. Still
      renderRenewalSection's, still empty outside the window. */
+  /* THE RENEWAL QUESTION IS THE TIME MACHINE'S DEADLINE (Young, 7 Oct 2026,
+     "Fold them in"): where the machine is drawn the host sits under its
+     track; on a record with no dates to draw it stays at the end of the
+     dates group, as before. One host either way. */
+  const renewalHost='<div id="renewal-host" class="empty:hidden" data-bare="1"></div>';
+  const tm=ovTmHtml(c);
   const groups=OV_READ_GROUPS.map(g=>sectionHtml({
     id:'ov-'+g.key, title:i18t(g.title), say:ovSayOf(c,g.key),
     chip: ed?holdChip(holdsIn(g.deal)):(g.key==='what'?{ text:i18t('ct_confirmed'), tone:'green' }:null),
     body:(g.key==='what'?'<div id="kt-rows"></div>':'')
-      + (g.key==='dates'?ovTimelineHtml(c):'')
       + ktDealFactsHtml(c,{edit:dealEd,marks,keys:g.deal,also:g.also})
-      + (g.key==='dates'?'<div id="renewal-host" class="empty:hidden" data-bare="1"></div>':'') })).join('');
+      + (g.key==='dates'&&!tm?renewalHost:'') })).join('');
   /* MOVE TO ANOTHER STREAM IS NOT A SECOND DOOR. The stream picker is
      ktStreamRowHtml's, with its admin guard, its 'Re-filed' audit line and its
      own repaint; this button opens the rows that hold it and puts the reader
@@ -7108,11 +7312,7 @@ function ktOverviewTermsHtml(c,opts={}){
       esc(i18t('py_add'))}</button>`:'';
   /* NO FOLD ON THE SHEET: every group is open and says what it holds, so a
      head that also summarised its own body would say it twice. */
-  const parties=pyBody?sectionHtml({
-    id:'ov-parties', title:i18t('py_parties'),
-    chip: pyLocked?{ text:i18t('py_locked'), tone:'gray' }:null,
-    body:`<div id="kt-parties-host">${pyBody}</div>`,
-    acts: pyAdd }):'';
+
   const record=sectionHtml({
     id:'ov-record', title:i18t('ov_record'),
     chip: holdChip(recHold),
@@ -7141,18 +7341,29 @@ function ktOverviewTermsHtml(c,opts={}){
      others rather than hiding them: two of the four may differ on purpose. */
   const addrs=(typeof contractAddressBook==='function')?contractAddressBook(c, c&&c._shareFetch):null;
   const anySigner=(typeof participantSignerRows==='function')&&participantSignerRows(c).length>0;
-  const peopleSec=people?sectionHtml({
-    id:'ov-people', title:i18t('ppl_title'),
-    /* THE BODY TAKES THE CARD'S OWN INSET (I, Young reported it 22 Sep 2026:
-       the text and "+ Add someone" sat on the card's edge). sectionHtml leaves
-       the inset to its caller, and this caller never gave one. */
-    body:`<div class="sec-body"><div id="kt-people">${people}</div>${ovAddressBookHtml(addrs)}</div>`,
-    acts: (ed&&anySigner)?`<button type="button" class="ui-btn ui-btn-sm" data-ov-signers="1">${
-      esc(i18t('ppl_open_signers'))}</button>`:'' }):'';
-  /* READ DOWN'S ORDER: the sheet's own row of acts, the four questions,
-     then who is on it and how it is filed. The paperwork, the family and what
-     Copilot read follow in #kt-side. */
-  return top+groups+parties+peopleSec+record;
+  /* ---- ONE PARTIES LIST (Young, 7 Oct 2026, "Fold them in") ----
+     The parties, the people on the contract and the signers were three
+     sections; they are one now, at the head of the essentials card, because
+     they answer one question — who is this agreement between, and who acts
+     for them. Every builder is the one it was (ktPartiesBlockHtml,
+     participantsPanelHtml, ovAddressBookHtml) and every door is the one it
+     was (+ Add a party, the signing order's editor), so nothing gains a
+     second way in. The people list keeps its own inset (I, 22 Sep 2026). */
+  const signersBtn=(ed&&anySigner)?`<button type="button" class="ui-btn ui-btn-sm" data-ov-signers="1">${
+      esc(i18t('ppl_open_signers'))}</button>`:'';
+  const peopleBody=people?`<div class="sec-body ov-people-in"><div id="kt-people">${people}</div>${ovAddressBookHtml(addrs)}</div>`:'';
+  const parties=(pyBody||peopleBody)?sectionHtml({
+    id:'ov-parties', title:i18t('py_parties'),
+    chip: pyLocked?{ text:i18t('py_locked'), tone:'gray' }:null,
+    body:(pyBody?`<div id="kt-parties-host">${pyBody}</div>`:'')+peopleBody,
+    acts: pyAdd+signersBtn }):'';
+  /* ESSENTIALS, THEN THE TIME MACHINE (Young picked it, 7 Oct 2026): one
+     card with the sheet's own acts, who it is between, the four questions
+     and how it is filed; under it the life of the agreement. The paperwork,
+     the family and what Copilot read follow in #kt-side. */
+  const tmCard=tm?`<div class="ov-card ov-tm-card">${sectionHtml({
+    id:'ov-time', title:i18t('ov_tm_title'), body:tm+renewalHost })}</div>`:'';
+  return `<div class="ov-card ov-ess">${top+parties+groups+record}</div>${tmCard}`;
 }
 
 /* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----
@@ -16224,7 +16435,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
      Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
      with it: the same guard-and-miss is waiting for both. */
   wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
-  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_READ_GROUPS,ovSayOf,ovTimelineHtml,ovTimelineSettle,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
+  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_READ_GROUPS,ovSayOf,ovTmData,ovTmHtml,ovTmAt,ovTmOccState,ovTmWire,ovTmTrackSvg,ovTmPlayFace,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
   OV_DEAL_FIELDS,OV_ALSO_FIELDS,OV_KT_FIELDS,OV_DERIVED_FIELDS,ovMetaBoxHtml,ovMetaField,ovMetaLabel,
   OV_MARK_ALIAS,ovFieldMarkOf,ovFieldNoteHtml,ovSignMarks,
   /* THE PARTIES BLOCK. f232's net: every `window.foo` read must be a
