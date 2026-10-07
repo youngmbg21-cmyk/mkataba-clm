@@ -39,7 +39,10 @@
    picture of its numbers — every paint counts it again, so a board opened on
    Monday shows Monday's figures. */
 const HB_LS = 'hati.v1.homeBoard.';
-const HB_FACES = ['board', 'explorer'];
+/* THE PAPER IS A THIRD SIDE OF HOME (Young, 7 Oct 2026: "there should be
+   another button that says paper ... the same paper currently on screen when
+   you analyse a contract"; Explorer loses its own Graph | Paper switch). */
+const HB_FACES = ['board', 'explorer', 'paper'];
 const HB_LENSES = ['all', 'suppliers', 'customers'];
 const HB_SCREENS = ['dark', 'light'];
 const HB_PREP = ['open', 'folded', 'closed'];
@@ -978,12 +981,12 @@ function hbHeadHtml(groupSel){
   return `<style>#page-head{background:var(--color-surface)}</style>
   <header id="hb-head" class="hb-head">
     <div class="hb-hello">${hbHelloInner()}</div>
-    <div class="hb-seg" role="tablist" aria-label="${_hbE(i18t('hb_show'))}">${face('board')}${face('explorer')}</div>
+    <div class="hb-seg" role="tablist" aria-label="${_hbE(i18t('hb_show'))}">${face('board')}${face('explorer')}${face('paper')}</div>
     <span class="hb-grow"></span>
     <label class="hb-groupby" id="hb-groupby"${s.face === 'explorer' ? '' : ' hidden'}>${_hbE(i18t('hb_group_by'))} ${groupSel || ''}</label>
     <span class="hb-counting">${hbCountChipHtml()}</span>
     <button type="button" class="ui-btn ui-btn-sm" id="hb-present" title="${_hbE(i18t('hb_present_tip'))}">${_hbE(i18t('hb_present'))}</button>
-    <div class="hb-seg hb-scr" role="group"${s.face === 'explorer' ? ' hidden' : ''} aria-label="${_hbE(i18t('hb_screen_label'))}" title="${_hbE(i18t('hb_screen_tip'))}">${scr('light')}${scr('dark')}</div>
+    <div class="hb-seg hb-scr" role="group"${s.face !== 'board' ? ' hidden' : ''} aria-label="${_hbE(i18t('hb_screen_label'))}" title="${_hbE(i18t('hb_screen_tip'))}">${scr('light')}${scr('dark')}</div>
     <button id="hero-draft" class="hm-primary">${(typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5', 2) : '+'} ${_hbE(i18t('home_draft_new'))}</button>
   </header>`;
 }
@@ -1065,7 +1068,6 @@ function hbPrepHtml(A, since){
   return `<section class="hb-card hb-prep${folded ? ' is-folded' : ''}" id="hm-agents"><header class="hb-ch">
     <button type="button" class="hb-ib" data-hb-prep="${folded ? 'open' : 'folded'}" aria-expanded="${!folded}" title="${_hbE(i18t(folded ? 'hb_prep_open' : 'hb_prep_fold'))}" style="transform:rotate(${folded ? '-90' : '0'}deg)">${_hbChev}</button>
     <span class="hb-ct">${_hbE(i18t('hm_ag_title'))}</span><span class="hb-cs">${_hbE(sub)}</span>
-    <button type="button" class="hb-link" data-hm-agent="">${_hbE(i18t('nav_agents'))}</button>
     <button type="button" class="hb-ib hb-x" data-hb-prep="closed" title="${_hbE(i18t('hb_prep_close'))}" aria-label="${_hbE(i18t('hb_prep_close'))}">${_hbX}</button></header>
     ${done}${rows || insOn ? `<div class="hb-ags">${folded ? '' : hbInsRowHtml(I)}${rows}</div>` : ''}${folded ? '' : hbShelfHtml(I)}</section>`;
 }
@@ -3757,6 +3759,7 @@ function hbDigBodyHtml(D, lens, big){
       ${D.gone.length ? `<div class="hb-lab">${_hbE(i18tn('hb_moved_gone', D.gone.length, { n: _hbN(D.gone.length) }))}</div>${show(D.gone)}` : ''}
       ${(!isOb && D.added.length) ? `<div class="hb-foot"><span>${_hbE(i18t('hb_moved_note'))}</span><button type="button" class="hb-btn" data-hb-map="${_hbE(D.added.join(','))}" data-hb-what="${_hbE(i18t('hb_moved_crumb', { what: i18t(D.word) }))}">${_hbE(i18t('hb_show_map'))}</button></div>` : ''}`;
   }
+  if (D.kind === 'agent' && typeof agFind === 'function' && typeof agPanelBody === 'function') return hbAgentWorkHtml(D);
   if (D.kind === 'agent' || D.kind === 'done'){
     const rows = D.items.map(it => `<button type="button" class="hb-row" ${it.cid ? `data-hb-dig="c:${_hbE(it.cid)}"` : 'disabled'}>
       <span class="hb-row-a">${_hbE(it.who || '')}</span><span class="hb-row-r">${it.urg ? `<span class="hb-chip ${it.tone === 'ruby' ? 'is-bad' : 'is-warn'}">${_hbE(it.urg)}</span>` : (it.at ? `<span class="hb-quiet">${_hbE(String(it.at).slice(0, 10))}</span>` : '')}</span>
@@ -3766,6 +3769,66 @@ function hbDigBodyHtml(D, lens, big){
   }
   if (D.kind === 'card') return hbCardHtml(D.card);
   return '';
+}
+/* ---- COPILOT'S WORK, BELOW THE CARD (Young, 7 Oct 2026: "Go with Below the
+   card") ----
+   Review on a Prepared by Copilot row opens THAT agent's work here, whole: the
+   same head, body and acts the Copilot's work page drew in its side panel
+   (agPanelHeadHtml / agPanelBody / agPanelActs), one per item, so the work is
+   read and done on the board and nothing sends the reader to a second page.
+   The acts are the page's own (agRunAct) — the board adds no act of its own.
+   A CAP IS A FACT: past HB_AG_WORK_MAX items the rest are counted, and each
+   item's whole record is fetched once per sitting so its body can fill in. */
+const HB_AG_WORK_MAX = 8;
+const _hbAgLoaded = new Set();
+function hbAgentWorkHtml(D){
+  const its = D.items.map(x => agFind(x.key)).filter(Boolean);
+  const shown = its.slice(0, HB_AG_WORK_MAX);
+  shown.forEach(it => {
+    const c = it.c; if (!c || _hbAgLoaded.has(c.id) || typeof agLoadWhole !== 'function') return;
+    _hbAgLoaded.add(c.id);
+    let p = null; try { p = agLoadWhole(c); } catch (_){ p = null; }
+    if (p && p.then) p.then(() => { if (typeof hbPaintBoard === 'function') try { hbPaintBoard(); } catch (_){} }, () => {});
+  });
+  const cards = shown.map(it => `<div class="ag-panel hb-ag-work" data-hb-ag-item="${_hbE(it.key)}">
+      ${agPanelHeadHtml(it)}
+      <div class="ag-p-body">${agPanelBody(it)}</div>
+      <div class="ag-p-foot"><div class="ag-p-acts">${agPanelActs(it)}</div>
+        <p class="ag-p-line">${_hbE(i18t('ag_panel_line'))}</p></div></div>`).join('');
+  const more = its.length - shown.length;
+  return `<div class="hb-say">${_hbE(i18t('hb_agent_say'))}</div><div class="hb-ag-works">${cards}</div>
+    ${more > 0 ? `<div class="hb-foot"><span>${_hbE(i18t('hb_showing', { k: _hbN(shown.length), n: _hbN(its.length) }))}</span></div>` : ''}`;
+}
+/* The panel's presses, read off the element at press time (one delegated
+   listener on the board, see hbBoardClick): an act runs the page's own
+   function; Send back with a note opens, cancels and sends its one box. */
+function hbAgentWorkPress(el){
+  const host = el.closest('[data-hb-ag-item]'); if (!host) return false;
+  const key = host.getAttribute('data-hb-ag-item');
+  const act = el.closest('[data-ag-act]');
+  if (act){ if (typeof agRunAct === 'function') agRunAct(key, act.getAttribute('data-ag-act')); return true; }
+  const sb = el.closest('[data-ag-sb]'); if (!sb) return false;
+  const box = sb.querySelector('.ag-sb-box');
+  if (el.closest('[data-ag-sb-open]')){ if (box){ box.hidden = false; const n = box.querySelector('textarea'); if (n) n.focus(); } return true; }
+  if (el.closest('[data-ag-sb-cancel]')){ if (box) box.hidden = true; return true; }
+  if (el.closest('[data-ag-sb-go]')){ if (typeof agSendBackPress === 'function') agSendBackPress(key, sb); return true; }
+  return false;
+}
+/* EVERY OLD DOOR ONTO COPILOT'S WORK LANDS HERE: the Board, the card open, and
+   that agent's work below it (an item, when one is named, scrolled into view). */
+function hbOpenAgent(k, itemKey){
+  const s = hbS();
+  s.face = 'board';
+  if (s.prep === 'closed') s.prep = 'open';
+  const keys = Array.isArray(window.AG_KEYS) ? AG_KEYS : [];
+  s.path = (k && keys.includes(k) && hbAgentsData(null).rows.some(r => r.k === k)) ? ['ag:' + k] : [];
+  hbSave();
+  if (typeof setView === 'function') setView('dashboard');
+  setTimeout(() => {
+    const el = (itemKey && document.querySelector(`[data-hb-ag-item="${CSS.escape(itemKey)}"]`))
+      || document.querySelector('.hb-ag-works') || document.getElementById('hm-agents');
+    if (el && el.scrollIntoView) try { el.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (_){}
+  }, 120);
 }
 function hbWatchFormHtml(k){
   const d = hbBookData('all', { whole: true }); const v = hbFigNumber(d, k);
@@ -4892,7 +4955,7 @@ function hbPaintHead(){
   document.querySelectorAll('[data-hb-face]').forEach(b => b.setAttribute('aria-selected', String(b.getAttribute('data-hb-face') === s.face)));
   document.querySelectorAll('[data-hb-screen]').forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute('data-hb-screen') === hbScreenNow())));
   const gb = document.getElementById('hb-groupby'); if (gb) gb.hidden = s.face !== 'explorer';
-  const scr = document.querySelector('#hb-head .hb-scr'); if (scr) scr.hidden = s.face === 'explorer';
+  const scr = document.querySelector('#hb-head .hb-scr'); if (scr) scr.hidden = s.face !== 'board';
   const chip = document.querySelector('.hb-counting');
   if (chip){ const h = hbCountChipHtml(); if (chip.innerHTML !== h) chip.innerHTML = h; }
 }
@@ -4903,7 +4966,8 @@ function hbPaintHead(){
    pressed one, else the app's day or night (see hbS). */
 function hbScreenNow(){
   const s = hbS(); if (s.face === 'explorer') return 'dark';
-  if (s.screen && HB_SCREENS.includes(s.screen)) return s.screen;
+  /* the paper follows the app's own day or night, never the board's screen */
+  if (s.face !== 'paper' && s.screen && HB_SCREENS.includes(s.screen)) return s.screen;
   let night = false; try { night = (typeof darkNow === 'function') ? !!darkNow() : document.documentElement.classList.contains('dark'); } catch (_){ night = false; }
   return night ? 'dark' : 'light';
 }
@@ -4958,7 +5022,8 @@ function hbRender(){
    door stays Explorer's own igAnalyze; this only takes the reader there. */
 function hbAnalyze(id){
   if (!id || !hbContract(id)) return;
-  const s = hbS(); s.face = 'explorer'; hbSave();
+  /* the paper has its own side now (7 Oct 2026) */
+  const s = hbS(); s.face = 'paper'; hbSave();
   hbMount();
   if (typeof igAnalyze === 'function') Promise.resolve(igAnalyze(id)).then(() => {
     const box = document.getElementById('igd-input'); if (box) try { box.focus({ preventScroll: true }); } catch (_){}
@@ -7165,6 +7230,7 @@ function hbOnClick(e){
   if (_hbMoreMenu && !t.closest('.hb-more-w')){ _hbMoreMenu = null; hbPaintBoard(); }
   const on = sel => t.closest(sel);
   let el;
+  if (on('[data-hb-ag-item]') && hbAgentWorkPress(t)){ e.stopPropagation(); return; }
   if ((el = on('[data-hb-face]'))){ hbSetFace(el.getAttribute('data-hb-face')); return; }
   if ((el = on('[data-hb-screen]'))){ const m = el.getAttribute('data-hb-screen'); if (HB_SCREENS.includes(m)){ hbS().screen = m; hbS().scrPick = 1; hbSave(); hbApplyScreen(); hbPaintHead(); if (typeof igRender === 'function') try { igRender(); } catch (_){} } return; }
   if ((el = on('[data-hb-lens]'))){ hbSetLens(el.getAttribute('data-hb-lens')); return; }
@@ -7235,8 +7301,7 @@ function hbOnClick(e){
   if ((el = on('[data-hb-why-follow]'))){ hbWhyFollow(el.getAttribute('data-hb-why-follow')); return; }
   if ((el = on('[data-hb-ins]'))){ hbInsAct(el.getAttribute('data-hb-ins'), el.getAttribute('data-hb-ins-k')); return; }
   if ((el = on('[data-hb-ai]'))){ hbAskInPanel(el.getAttribute('data-hb-ai'), el.getAttribute('data-hb-ai-id')); return; }
-  if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); const k = el.getAttribute('data-hm-agent');
-    if (k && typeof agSetSel === 'function') agSetSel(k); setView('agents'); return; }
+  if ((el = on('[data-hm-agent]'))){ e.stopPropagation(); hbOpenAgent(el.getAttribute('data-hm-agent')); return; }
   if ((el = on('[data-hb-dig]'))){ if (el.disabled) return; hbDig(el.getAttribute('data-hb-dig'), !!el.closest('.hb-dig'), true); return; }
   if (on('#hero-draft')){ e.stopPropagation(); if (typeof openNewMenu === 'function') openNewMenu(on('#hero-draft')); else { const nb = document.getElementById('cmd-new'); if (nb) nb.click(); } }
 }
@@ -7334,7 +7399,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

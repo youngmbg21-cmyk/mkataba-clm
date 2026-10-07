@@ -92,8 +92,10 @@ describe('f399 (1) — the walls', () => {
 
 describe('f399 (2) — registered everywhere a view must be', () => {
   test('2a the rail door, the import, the branch, the title, the label, the restore list, Copilot\'s page name', () => {
-    assert.match(HTML, /<button data-view="agents" class="nav-item"[^>]*data-i18n-title="nav_agents_title">/);
-    assert.match(HTML, /data-i18n="nav_agents">Copilot&rsquo;s work<\/span><span class="nav-count" data-count="agents">/);
+    /* THE RAIL DOOR IS GONE (Young, 7 Oct 2026: "Go with Below the card"): the
+       work is on the Board, and every way in that names the page lands there. */
+    assert.doesNotMatch(HTML, /<button data-view="agents" class="nav-item"/);
+    assert.match(APP, /if\(view==='agents' && typeof window!=='undefined' && typeof window\.hbOpenAgent==='function'\)\{/);
     assert.match(APP, /import '\.\/views\/agents\.js';/);
     assert.match(APP, /else if\(view==='agents'\) renderAgentsPage\(\);/);
     assert.match(APP, /case 'agents':\s*return \[i18t\('nav_agents'\), ''\];/);
@@ -111,11 +113,9 @@ describe('f399 (2) — registered everywhere a view must be', () => {
     assert.match(VIEW, /function agentsDoorCount\(\)\{\s*try \{ return agentsData\(\)\.ready; \}/);
     assert.match(VIEW, /D\.ready \? _agTn\('ag_head_ready', D\.ready/, 'and the head prints the same D.ready');
   });
-  test('2d the door sits in the Work group, directly after Home (Young, 27 Sep 2026: "move it to be after the home page")', () => {
+  test('2d the door is no longer in the Work group: Copilot\'s work lives on the Board (7 Oct 2026)', () => {
     const work = HTML.slice(HTML.indexOf('data-section="work"'), HTML.indexOf('data-section="library"'));
-    assert.ok(work.includes('data-view="agents"'), 'Copilot\'s work is a Work door');
-    const doors = [...work.matchAll(/data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
-    assert.equal(doors[doors.indexOf('dashboard') + 1], 'agents', doors.join(' · '));
+    assert.ok(!work.includes('data-view="agents"'), 'no Copilot\'s work door');
   });
   test('2e and Insights sits below Calendar ("then move insights to below calendar")', () => {
     const work = HTML.slice(HTML.indexOf('data-section="work"'), HTML.indexOf('data-section="library"'));
@@ -434,8 +434,10 @@ describe('f399 (6) — the cards and panels are as full as the drawing, off the 
     const it = win.agentsData(win.state.contracts).agents.paper.ready[0];
     const body = win.agPanelBody(it);
     assert.match(body, /An audit engagement for FY2026\./, 'the brief as it was written');
-    assert.match(body, /Fees rise with scope/, 'and what is worth watching');
-    assert.match(body, /Why it matters/, 'and why');
+    /* THE WARNINGS ARE SAID IN ONE PLACE, THE BRIEF (Young, 7 Oct 2026): the
+       panel counts them, and Read the brief leads the foot. */
+    assert.doesNotMatch(body, /Fees rise with scope/, 'the warning itself is in the brief, not the panel');
+    assert.match(body, /data-ag-brief-count><b>1 worth watching<\/b> — read them in the brief\./, 'the panel counts it');
     assert.equal((body.match(/class="ag-dep"/g) || []).length, 2, 'the two open standards, each drawn — the met one is not');
     assert.match(body, /Their words[\s\S]*Neither party(&#39;|')s liability is limited\./, 'their words, quoted');
     assert.match(body, /Your standard[\s\S]*12 months/, 'beside your standard');
@@ -444,6 +446,7 @@ describe('f399 (6) — the cards and panels are as full as the drawing, off the 
     assert.match(body, /Deliver the audit plan[\s\S]*Theirs/, 'the obligations found, whose each is');
     const acts = win.agPanelActs(it);
     assert.match(acts, /data-ag-act="obs"[^>]*>Review 2 obligations</, 'with the one door onto adding them');
+    assert.match(acts, /^<button type="button" class="ui-btn ui-btn-primary" data-ag-act="brief">Read the brief</, 'Read the brief is the lead act');
     assert.match(CODE, /if \(act === 'obs'\)[\s\S]*?runFindObligations\(c\)/, 'which is runFindObligations — the review dialog, where each is ticked');
   });
   test('6f a renewal\'s panel carries how it went and Copilot\'s stored memo — never a new call', async () => {

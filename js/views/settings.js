@@ -5222,12 +5222,22 @@ async function stAgentsPaint(){
       ${f.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:9px">${f.join('')}</div>`:''}
       <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
         <button type="button" data-st-ag-save="${k}" style="${ST_BTN_SM}">${esc(i18t('act_save'))}</button>
+        ${a.on?`<button type="button" data-st-ag-run="${k}" style="${ST_BTN_SM}"${a.running?' disabled aria-disabled="true"':''}>${esc(i18t(a.running?'ag_running':'ag_runnow'))}</button>`:''}
         ${AG_MONEY_NOTE_KEYS.includes(k)?`<span class="st-note" style="margin:0">${esc(i18t('st_agents_money_note'))}</span>`:''}
-      </div></section>`;
+      </div>
+      ${''/* RUN NOW AND THE EARLIER RUNS MOVED HERE when Copilot's work moved onto
+             the Board (Young, 7 Oct 2026): the work is done on the Board, and how
+             an agent runs is a setting's business. The table is the page's own. */}
+      ${typeof agRunsHtml==='function'?agRunsHtml(k):''}</section>`;
   }).join('');
   if(host.dataset.stAgWired) return;
   host.dataset.stAgWired='1';
   host.addEventListener('click',async ev=>{
+    const run=ev.target&&ev.target.closest?ev.target.closest('[data-st-ag-run]'):null;
+    if(run){
+      if(typeof agRunNowPress==='function'){ await agRunNowPress(run.getAttribute('data-st-ag-run')); stAgentsPaint(); }
+      return;
+    }
     const b=ev.target&&ev.target.closest?ev.target.closest('[data-st-ag-save]'):null;
     if(!b) return;
     const k=b.getAttribute('data-st-ag-save');

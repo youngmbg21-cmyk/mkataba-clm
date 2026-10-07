@@ -109,6 +109,9 @@ function agSel(D){
   return lead || AG_KEYS[0];
 }
 function agSetSel(k){ _agSel = AG_KEYS.includes(k) ? k : AG_KEYS[0]; }
+/* The agent last chosen, for a door that lands on the Board instead (the
+   page moved there, 7 Oct 2026): null when nobody has chosen one. */
+function agSelKey(){ return _agSel; }
 
 const _agT = (k, v) => (typeof i18t === 'function') ? i18t(k, v || {}) : String(k);
 const _agTn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, v || {}) : String(n);
@@ -1062,6 +1065,16 @@ function renderAgentsPage(){
    act the counts move, so every row's words are rewritten in place and the
    right side is redrawn under its own scroll — never the page around them. */
 function agRepaint(){
+  /* ---- COPILOT'S WORK LIVES ON THE BOARD (Young, 7 Oct 2026: "Go with Below
+     the card") ---- An act pressed in the panel under Prepared by Copilot
+     repaints the board it was pressed on: the counts and the panel move, the
+     reader's place stays (hbPaintBoard keeps the scroll). */
+  if (typeof state !== 'undefined' && state && state.view === 'dashboard'){
+    _agData = null;
+    if (typeof hbPaintBoard === 'function') try { hbPaintBoard(); } catch (_){}
+    if (typeof updateSidebarCounts === 'function') try { updateSidebarCounts(); } catch (_){}
+    return;
+  }
   if (typeof state === 'undefined' || !state || state.view !== 'agents') return;
   _agData = null;
   const root = document.querySelector('[data-ag-root]');
@@ -1162,7 +1175,6 @@ function agKv(rows){
    spend per person and per day, never per item), editing the letter or the
    message in the panel (the letter's own dialog and the chase route are the
    doors), and answering an ask here (the negotiation page is). */
-const AG_WATCH_MAX = 4;     // watchouts drawn from the brief, then counted
 const AG_DEP_MAX = 6;       // departures drawn from the standards review, then counted
 const AG_OBS_MAX = 8;       // obligations drawn from what auto-triage holds, then counted
 const AG_LIST_MAX = 8;      // names drawn from an import batch, then counted
@@ -1450,11 +1462,16 @@ function agBriefInner(c){
   if (!d) return (c && c._hasBrief && agLoading(c)) ? agSkelHtml() : '';
   const mark = s => (typeof briefMark === 'function') ? briefMark(String(s || '')) : _agE(s);
   const watch = (Array.isArray(d.watchouts) ? d.watchouts : []).filter(w => w && w.point);
-  const shown = watch.slice(0, AG_WATCH_MAX);
+  const odd = (Array.isArray(d.unusual) ? d.unusual : []).filter(u => u && (u.point || typeof u === 'string'));
+  /* ---- THE WARNINGS ARE SAID IN ONE PLACE: THE BRIEF (Young, 7 Oct 2026: "there
+     should be a button to click to read a brief which would then appear as a
+     side panel as it does today") ---- The panel keeps the opening lines and
+     COUNTS what is worth watching; Read the brief (the foot's lead act) opens
+     the whole brief in the side panel the contract's own button opens. */
+  const parts = [watch.length ? _agTn('ag_brief_watch', watch.length, { n: watch.length }) : '',
+    odd.length ? _agTn('ag_brief_odd', odd.length, { n: odd.length }) : ''].filter(Boolean);
   return `${d.overview ? `<p class="ag-brief-o">${mark(d.overview)}</p>` : ''}
-    ${shown.length ? `<ul class="ag-watch">${shown.map(w => `<li><span class="ag-watch-p">${mark(w.point)}</span>${
-      w.why ? `<span class="ag-watch-w"><b>${_agE(_agT('xr_why'))}</b> ${mark(w.why)}</span>` : ''}</li>`).join('')}</ul>` : ''}
-    ${_agMore(watch.length - shown.length)}
+    ${parts.length ? `<p class="ag-p-note" data-ag-brief-count><b>${_agE(parts.join(' · '))}</b> ${_agE(_agT('ag_brief_in_brief'))}</p>` : ''}
     ${b.truncated ? `<p class="ag-p-note is-amber">${_agE(_agT('ag_brief_cut'))}</p>` : ''}`;
 }
 /* THE DEPARTURES are the stored standards review's open verdicts — their words
@@ -1656,8 +1673,10 @@ function agPanelActs(it){
        runFindObligations opens on the list auto-triage holds — and it is drawn
        only where something is held and the reader may add it. */
     const obs = ed ? agHeldCount(it.c) : 0;
-    return B('overview', _agT('ag_a_overview'), 'lead') + (obs ? B('obs', _agTn('ag_a_obs', obs, { n: obs }), '') : '')
-      + (hasBrief ? B('brief', _agT('ag_a_brief'), '') : '') + (ed ? B('seen', _agT('ag_a_seen'), 'link') : '');
+    /* READ THE BRIEF LEADS where there is one (Young, 7 Oct 2026); the
+       Overview stays one press away beside it. */
+    return (hasBrief ? B('brief', _agT('ag_a_brief'), 'lead') : '') + B('overview', _agT('ag_a_overview'), hasBrief ? '' : 'lead')
+      + (obs ? B('obs', _agTn('ag_a_obs', obs, { n: obs }), '') : '') + (ed ? B('seen', _agT('ag_a_seen'), 'link') : '');
   }
   if (it.kind === 'chase') return (it.noAddress || !ed ? '' : B('chase', _agT('desk_chase_send'), 'lead'))
     + B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '') + (ed ? B('away', _agT('desk_discard'), 'link') : '');
@@ -1840,7 +1859,11 @@ async function agRunAct(key, act){
     const load = agLoadWhole(c);
     if (load) await load;
     if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
-    if (typeof selectContract === 'function') selectContract(c.id);
+    /* ON THE BOARD THE BRIEF OPENS OVER THE BOARD: the side panel is the same
+       one the contract's own Read the brief opens, and closing it leaves the
+       reader where they pressed. Elsewhere the room is opened first, as it was. */
+    const onBoard = typeof state !== 'undefined' && state && state.view === 'dashboard';
+    if (!onBoard && typeof selectContract === 'function') selectContract(c.id);
     if (typeof openCheckPanel === 'function') setTimeout(() => { try { openCheckPanel(getContract(c.id) || c, 'brief'); } catch (_){} }, 0);
     return;
   }
@@ -1942,7 +1965,7 @@ async function agFreshLink(key){
   }
 }
 
-Object.assign(window, { AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
+Object.assign(window, { agSelKey, AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
   agRoundItems, agRoundDone, agRenewItems, agRenewDone, agLateItems, agLateDone, agPaperItems, agPaperWorking, agPaperDone,
   agImportBatches, agImportItems, agImportDone, agImportWorking, agFind, agCardParts, agCardHtml, agPageHtml, agListHtml,
   agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agDrawPanel, agWarmUp, AG_NEEDS_WHOLE, AG_OPEN_WAIT_MS, agRunAct, agPaintHead, agRepaint, renderAgentsPage,

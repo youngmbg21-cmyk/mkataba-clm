@@ -6730,7 +6730,15 @@ async function igAnalyze(id){
   if(!intel.paper||intel.paper.id!==id) intel.paper={ id, mode:'paper', focus:false, pins:[], seq:0, on:null, ...igPaperCost(c) };
   else intel.paper.mode='paper';
   if(!intel.dockOpen){ intel.dockOpen=true; igSyncDockWidth(); }
+  /* ON HOME THE PAPER HAS ITS OWN SIDE (Young, 7 Oct 2026): analysing a
+     contract turns Home to Paper, which draws it; Explorer keeps the map. */
+  if(igHomePaperFace()===false&&typeof hbSetFace==='function'){ hbSetFace('paper'); renderIntelDock(); igPaintIds([id]); return; }
   igPaintPaper(); renderIntelDock(); igPaintIds([id]);
+}
+/* null off Home; true on Home's Paper side; false on Home's other sides. */
+function igHomePaperFace(){
+  if(!(window.state&&state.view==='dashboard'&&typeof window.hbFace==='function')) return null;
+  return hbFace()==='paper';
 }
 function igQuoteLabel(text){
   const w=String(text||'').replace(/\s+/g,' ').trim().split(' ');
@@ -6820,15 +6828,55 @@ function igStripHtml(c,p){
   const dot=((typeof STATUS_META==='object'&&STATUS_META&&STATUS_META[c.status])||{}).dot||'var(--st-gray-dot)';
   const st=(typeof statusLabel==='function')?statusLabel(c.status):(c.status||'');
   const n=p.pins.length;
-  return `<div class="ig-sw" role="group" aria-label="${igEsc(i18t('int_paper_switch'))}">
+  /* ON HOME THE SWITCH IS GONE (7 Oct 2026): Paper is Home's own side, so the
+     strip offers another contract instead of a second way onto the map. */
+  const onHome=igHomePaperFace()!==null;
+  return `${onHome?'':`<div class="ig-sw" role="group" aria-label="${igEsc(i18t('int_paper_switch'))}">
       <button type="button" data-ig-mode="graph" aria-pressed="${up?'false':'true'}">${igEsc(i18t('int_paper_graph'))}</button>
       <button type="button" data-ig-mode="paper" aria-pressed="${up?'true':'false'}">${igEsc(i18t('int_paper_paper'))}</button>
-    </div>
+    </div>`}
     <span class="ig-strip-ref" title="${igEsc(c.name)}"><span class="ig-strip-dot" style="background:${dot}"></span><b class="hati-ref">${igEsc(ref)}</b><span class="q"> · </span>${igEsc(c.name)}<span class="q"> · ${igEsc(c.counterparty||'—')} · ${igEsc(st)}</span></span>
     <span class="ig-strip-sp"></span>
     ${up&&n?`<span class="ig-strip-pins">${igEsc(i18tn('int_pins',n,{n}))}</span><button type="button" class="ui-link" data-ig-pins-clear title="${igEsc(i18t('int_pins_clear_title'))}">${igEsc(i18t('int_pins_clear'))}</button>`:''}
     ${up?`<button type="button" class="ui-btn ui-btn-sm" data-ig-focus aria-pressed="${p.focus?'true':'false'}" title="${igEsc(i18t(p.focus?'int_focus_exit_title':'int_focus_title'))}">${icon(p.focus?'x':'scan','w-3.5 h-3.5')}${igEsc(i18t(p.focus?'int_focus_exit':'int_focus'))}</button>`:''}
+    ${onHome?`<button type="button" class="ui-btn ui-btn-sm" data-ig-pick-again>${igEsc(i18t('int_pick_change'))}</button>`:''}
     <button type="button" class="ui-btn ui-btn-sm" data-ig-ws="${c.id}">${igEsc(i18t('int_open_workspace'))}${icon('chevR','w-3.5 h-3.5')}</button>`;
+}
+/* ---- WHICH CONTRACT TO READ (Home's Paper side, nothing chosen yet) ----
+   The book, most recently touched first, narrowed by what is typed; a press
+   is igAnalyze — the one door onto a contract's paper. A CAP IS A FACT: the
+   rest are counted and typing narrows them. */
+const IG_PICK_MAX=12;
+function igPickRows(q){
+  const t=String(q||'').trim().toLowerCase();
+  const all=(state.contracts||[]).filter(c=>c&&!c.archived&&c.status!=='Declined');
+  const hit=t?all.filter(c=>[c.name,c.counterparty,(window.contractRef?contractRef(c):c.id),c.id].some(v=>String(v||'').toLowerCase().includes(t))):all;
+  const when=c=>String(c.updatedAt||c.updated_at||c.createdAt||'');
+  return hit.slice().sort((a,b)=>when(b).localeCompare(when(a)));
+}
+function igPickListHtml(q){
+  const rows=igPickRows(q), shown=rows.slice(0,IG_PICK_MAX);
+  if(!rows.length) return `<p class="ig-pick-none">${igEsc(i18t('int_pick_none'))}</p>`;
+  return `<div class="ig-pick-list" role="list">${shown.map(c=>`<button type="button" role="listitem" class="ig-pick-row" data-ig-pick="${igEsc(c.id)}">
+      <b class="hati-ref">${igEsc(window.contractRef?contractRef(c):c.id)}</b><span class="n">${igEsc(c.name||'')}</span><span class="q">${igEsc(c.counterparty||'—')} · ${igEsc((typeof statusLabel==='function')?statusLabel(c.status):(c.status||''))}</span></button>`).join('')}</div>
+    ${rows.length>shown.length?`<p class="ig-pick-more">${igEsc(i18t('int_pick_more',{k:shown.length,n:rows.length}))}</p>`:''}`;
+}
+function igPickHtml(q){
+  return `<div class="ig-pick"><div class="ig-pick-card">
+    <h2>${igEsc(i18t('int_pick_title'))}</h2><p class="ig-pick-sub">${igEsc(i18t('int_pick_sub'))}</p>
+    <input type="search" class="ig-pick-find" data-ig-pick-find value="${igEsc(q||'')}" placeholder="${igEsc(i18t('int_pick_find'))}" aria-label="${igEsc(i18t('int_pick_find'))}">
+    <div data-ig-pick-rows>${igPickListHtml(q)}</div></div></div>`;
+}
+function igPickWire(host){
+  if(host.dataset.igPickBound) return; host.dataset.igPickBound='1';
+  host.addEventListener('click',e=>{
+    const b=e.target.closest&&e.target.closest('[data-ig-pick]'); if(!b) return;
+    igAnalyze(b.getAttribute('data-ig-pick'));
+  });
+  host.addEventListener('input',e=>{
+    const f=e.target.closest&&e.target.closest('[data-ig-pick-find]'); if(!f) return;
+    const rows=host.querySelector('[data-ig-pick-rows]'); if(rows) rows.innerHTML=igPickListHtml(f.value);
+  });
 }
 function igStripWire(){
   const strip=document.getElementById('ig-strip'); if(!strip||strip.dataset.igBound) return;
@@ -6838,6 +6886,7 @@ function igStripWire(){
     const mode=e.target.closest('[data-ig-mode]');
     if(mode){ p.mode=mode.getAttribute('data-ig-mode')==='paper'?'paper':'graph'; if(p.mode!=='paper') p.focus=false; igPaintPaper(); renderIntelDock(); return; }
     if(e.target.closest('[data-ig-pins-clear]')){ p.pins=[]; p.on=null; igPaintPaper(); renderIntelDock(); return; }
+    if(e.target.closest('[data-ig-pick-again]')){ intel.paper=null; igPaintPaper(); renderIntelDock(); igPaintIds(null); return; }
     if(e.target.closest('[data-ig-focus]')){ p.focus=!p.focus; igPaintPaper(); return; }
     const ws=e.target.closest('[data-ig-ws]'); if(ws){ openWorkspace(ws.getAttribute('data-ig-ws')); }
   });
@@ -6868,13 +6917,20 @@ function igPaintPaper(){
   const strip=document.getElementById('ig-strip'), host=document.getElementById('ig-paper'), page=document.getElementById('ig-page');
   if(!strip||!host) return;
   const p=intel.paper; const c=p?getContract(p.id):null;
+  const homePaper=igHomePaperFace();
   if(!c){
     intel.paper=null;
     strip.hidden=true; strip.innerHTML='';
-    host.hidden=true; host.innerHTML=''; delete host.dataset.for;
     if(page) page.classList.remove('ig-focus');
+    /* HOME'S PAPER SIDE WITH NOTHING CHOSEN YET asks which contract to read */
+    if(homePaper){ host.innerHTML=igPickHtml(''); host.dataset.for='__pick'; host.hidden=false; igPickWire(host); return; }
+    host.hidden=true; host.innerHTML=''; delete host.dataset.for;
     return;
   }
+  /* The side decides: Paper draws the paper; Explorer is the map's alone. */
+  if(homePaper===true) p.mode='paper';
+  else if(homePaper===false){ p.mode='graph'; p.focus=false; }
+  if(homePaper===false){ strip.hidden=true; strip.innerHTML=''; host.hidden=true; if(page) page.classList.remove('ig-focus'); return; }
   strip.hidden=false; strip.innerHTML=igStripHtml(c,p); igStripWire();
   const up=p.mode==='paper';
   const focus=!!(up&&p.focus);
@@ -7115,7 +7171,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
