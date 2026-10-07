@@ -1,9 +1,9 @@
-# O — SIGNING WITH THE OTHER SIDE, CREATING AN AMENDMENT, A PLAYBOOK THAT LEARNS, THE BOARD'S CHARTS (INSTRUMENT), A MENU DOOR TO IMPORT, THE OBLIGATIONS REVIEW DESK
+# O — SIGNING WITH THE OTHER SIDE, CREATING AN AMENDMENT, A PLAYBOOK THAT LEARNS, THE BOARD'S CHARTS (INSTRUMENT), A MENU DOOR TO IMPORT, THE OBLIGATIONS REVIEW DESK, OVERVIEW 2 (THE TIME MACHINE)
 
 **Owner-instructed 7 Oct 2026**: *"add this artifact and the signing journey to
 one work order to implement in hati. Do not code yet."*
 
-Five design pages are the source. Each picture there is the target screen.
+Six design pages are the source. Each picture there is the target screen.
 Build what they show; where this order and a picture disagree, the picture wins,
 except where a numbered **OWNER DECISION** below says otherwise.
 
@@ -17,8 +17,12 @@ except where a numbered **OWNER DECISION** below says otherwise.
 - **Sorting the obligations Copilot finds**, option **Review desk** (owner's
   pick, 7 Oct 2026; also the page's recommendation):
   https://claude.ai/artifact/PZxLE9ySD39gNQVX3ZsSTn
+- **HaTi Overview Ideas**, option **2 · Time Machine**, built as a NEW tab
+  "Overview 2" (owner, 7 Oct 2026; the page itself had picked Constellation for
+  the Overview, which this does NOT build):
+  https://claude.ai/artifact/BWK7rYcdkTZuW9iBJvEe4m
 
-Six parts, thirty-five items. Each says what is wrong today, why (found in the
+Seven parts, forty-two items. Each says what is wrong today, why (found in the
 code), what to build, and how to prove it. **Nothing here is built yet.**
 
 Before touching any area: read its MAP section in CLAUDE.md and grep
@@ -29,7 +33,7 @@ New tests start at **f543**.
 
 ---
 
-## OWNER DECISIONS — ALL EIGHT DECIDED (7 Oct 2026)
+## OWNER DECISIONS — D1–D8 DECIDED (7 Oct 2026); D9–D10 OPEN
 
 The owner accepted every recommendation: *"go with your recommendations on all
 eight decisions"*. The **Decided** column is the ruling. D6 REVERSES the
@@ -46,6 +50,8 @@ story goes to MAP-HISTORY.md.
 | D5 | Which figure does the playbook propose: the WORST figure settled more than once (today's rule, `stdHeld`) or the MOST COMMON one (the mockup)? | O-18 | Keep today's rule. The worst repeated figure is one you have actually signed more than once; the most common can hide a worse deal. |
 | D6 | Adopting a new PREFERRED: write it after one confirm (mockup), or open the clause editor first (today's rule, 9 Sep 2026)? | O-19 | Confirm in place, with the redline shown under "What we ask for". This reverses a written rule; the owner said yes. |
 | D7 | "Keep it as it is" stops the proposal for how long, and who may press it? | O-20 | Six months, or until the pattern gets stronger. Anyone who may edit standards. |
+| D9 | The Time Machine's "What you can do on this date" rows and its coloured windows ("Prices fixed", "Exit fee applies", "Secrecy continues") come from the WORDING, which HaTi does not store as dates today. Add one more step to the reading HaTi already does on arrival (`TRIAGE_STEPS`), once per wording, to read those dated windows with their clause numbers? | O-40 | **Open: owner to answer.** Recommended: yes. Without it the tab still works but shows only what the record holds (signed, start, end, notice deadline, renewal, obligations) and says the rest could not be read. |
+| D10 | The Related agreements card in the picture has three equal buttons. O-9 (decided) makes "Create an amendment" the one filled button, "Add a signed document" plain, and the parent link a small question set apart. Which does Overview 2 follow? | O-41 | **Open: owner to answer.** Recommended: O-9, so the same card is drawn the same way on both Overview tabs (one builder). Everything else on the card is as in the picture. |
 | D8 | Instrument cards show the title and a quiet facts line, with no headline figure. The board's own rule (HEADLINE on a small card, `hbHeadlineOf`) puts a one-line headline there. Keep the headline under Instrument? | O-23 | Keep it, as plain ink text. It is your earlier ruling, and Instrument governs how the chart is DRAWN, not the words above it. |
 
 ---
@@ -690,6 +696,183 @@ both doors open the same window.
 
 ---
 
+# PART 7 — "OVERVIEW 2": THE TIME MACHINE TAB
+
+**Owner-instructed 7 Oct 2026**: *"add a new tab in the contract page called
+"Overview 2". In this tab, add the time machine proposal ... it has to be exactly
+as designed in the artifact especially with the colors, the graphics and the card
+above it that summarizes contents from the contract. Related agreements card
+should be the last card in the page."*
+
+**The page, top to bottom** (nothing else on it):
+1. The **essentials card** (the summary card above the Time Machine).
+2. The **Time Machine**: one card with the timeline, the controls and the "now"
+   row, then three cards in a row under it.
+3. The **Related agreements** card, LAST.
+
+**Exactly as designed** means: the same layout, sizes, colours, shapes, motion
+and words as option 2 of the design page, drawn from the real contract instead
+of the sample. Build it, then photograph it next to the design page at the same
+width (Blue brand, light and dark, 1440 and 1920 wide and at phone width) and
+fix every difference before calling it done. The sample's numbers and party
+names are examples; everything on the tab comes from the record.
+
+## O-36 — THE TAB
+
+**Build.**
+- A new room tab **"Overview 2"**, placed right after Overview, added to
+  `ROOM_TABS` (js/views/contract.js) and reached through `roomGoTab()` like every
+  tab. Never a second tab row. The existing Overview is untouched.
+- Swedish label in the Swedish book (the label is a word, not a record).
+- A refresh lands on Overview 2 if that is where the reader was (`PLACE_PARTS`).
+- Desktop only for now: the phone keeps its own screens (THE PHONE rule). Named
+  to the owner.
+- The tab writes nothing and spends nothing (except O-40's reading, if D9 is yes).
+- Add it to `BRAIN_PARTS`.
+
+## O-37 — THE ESSENTIALS CARD (the summary card above it)
+
+**Build**, as in the design (`.ess`): one white card, 8px corners, 1px line,
+16px below it, in two columns (1 : 2), stacking to one under 1000px wide.
+- **Left: "PARTIES · N"** (caps label). One row per party
+  (`contractParties(c)`): a 30px round avatar with the party's initials (700,
+  11px) in the party's colour pair (our side: accent; the first other party:
+  teal `--alt`; a third: purple; a fourth: the fourth colour); the party's name
+  (600); a small line "Role · us · Country · Registration no." (only what the
+  record holds, never guessed); and, once signed, a green line "✓ Signed by
+  Name, Title · 22 Jan 2026".
+- **Right: a grid of facts** (cells at least 200px wide, hairline borders, caps
+  label over a 600 value): Contract type · Governing law · Disputes · Term
+  (start – end) · Renewal (with the notice deadline) · Value (in the contract's
+  own currency, a year and in all) · Payment terms · Liability. Read from the ONE
+  reading (`ktFactReads`); an empty fact is left out, never filled with a guess.
+- Read-only. Editing stays on the Overview.
+
+## O-38 — THE TIMELINE (the main graphic)
+
+**Build**, as in the design (`initTime` / `drawTrack`), inside one card:
+- **Head:** "The life of this agreement" (15px, 700), then a muted line built
+  from the record: "Signed 22 Jan 2026 · runs to 31 Jan 2028 · renews unless
+  notice by 02 Nov 2027" (or "permanent, no end date", "no automatic renewal").
+- **The track** (SVG, 150 high, drawn at the card's real width):
+  - year lines (faint, y 36–112) with the year at the top;
+  - **coloured windows** at y 52, 20 high, 4px corners, in the status
+    backgrounds (green, amber, red, slate; a slate window is dashed) with their
+    name inside when it fits: e.g. "Prices fixed", "Exit fee applies", "Renewal
+    year, if nobody acts", "Probation", "Secrecy continues after the end";
+  - **the life line** at y 92, 4px, grey, from start to end; the part already
+    lived drawn in the accent; after the end a dashed grey line (renewal), or an
+    arrow when there is no end date;
+  - **small ticks** under the line for every duty that falls due (accent when
+    done, pale accent when not);
+  - **diamonds** (10px, turned 45°, white edge) for each milestone in its status
+    colour, with its label on one of two rows under the line and a thin leader:
+    Signed · Starts · Free to leave · No exit fee · Last day for notice · Ends,
+    or renews;
+  - **Today**: an amber dashed line with a pulsing amber dot, labelled "Today";
+  - **the cursor**: an accent line with a white circle ringed in accent and an
+    accent pill above it holding the date in white (12px, 600).
+- **Moving through time:** drag anywhere on the track (an invisible range over
+  it); **Play the life** (filled small button, with a play/pause icon) runs from
+  the start to the end in 14 seconds; **Today** and the contract's own jump
+  buttons ("Free to leave", "Last day for notice", "The end"…) jump there; the
+  pressed one is shown pressed.
+- **Where the dates come from:** signed (`contractSignedAt`), start and end
+  (`effectiveExpiry`, so a signed amendment's end date counts), the notice
+  deadline and renewal year (`renewalWindow`, `noticePeriodDays`), amendments'
+  signing dates, every obligation's due dates including future repeats
+  (projected for drawing only, never stored; `obligationNextInstance`'s rule),
+  and, if D9 is yes, the dated windows O-40 reads.
+
+## O-39 — THE "NOW" ROW AND THE THREE CARDS
+
+**Build**, as in the design, following the cursor's date:
+- **The now row** (under the controls, a hairline above): the date in 28px 700
+  ("05 Nov 2026") with "in 4 weeks from today" (or "today") beside it; one plain
+  sentence "1 duty is late on this date. Next: We pay the Sep 2026 invoice, 14
+  Nov 2026." (or "Nothing is late on this date."); and on the right a 64px ring
+  counting **days to the next deadline** (accent; amber at 21 days or fewer),
+  the number in the middle, with the duty's name and date beside it.
+- **Three cards in a row** (one column under 1000 wide):
+  1. **The measure card**: a caps label, a big number (24px 700) that counts
+     to its new value, a small line, and an 8px meter. Which measure: money
+     paid by this date where the contract carries money and payment obligations
+     with amounts ("Paid to Juno", "of KES 148.0M"; past = paid, future =
+     expected); otherwise the days left on the key period ("Secrecy left · 1,765
+     days"). A measure HaTi cannot work out is not drawn; it is never guessed.
+  2. **Duties around this date**: up to six, late first, then due soon (≤21
+     days), coming up (≤60 days), then done in the last 30 days; each with its
+     coloured dot, name, "Due 15 Oct 2026 · cl. 5.2" (clause in the reference
+     face, accent).
+  3. **What you can do on this date**: rows with a coloured dot, a bold head and
+     a small line with its clause: leaving early, stopping the renewal (from the
+     notice deadline the record holds), whether anything is late, and the
+     wording's own windows from O-40.
+- **Motion** as designed: rows rise in, numbers count over 0.24–0.5s, the ring
+  and meter slide; all of it off under reduced motion.
+
+## O-40 — THE DATED WINDOWS FROM THE WORDING (decided: D9 open)
+
+**Build** (only with D9 yes). One more step in the arrival reading
+(`TRIAGE_STEPS`), run once per wording (`triageNeedsRead`), returning dated
+windows with their clause numbers and quoted wording: price-fixed periods,
+exit-fee periods, lock-in, probation, no-hire, secrecy after the end, and the
+"you may / may not" rule for each window. Quotes are checked against the
+wording; anything unchecked is dropped. Kept on the contract like the brief,
+never travels. Without it (D9 no, no key, refused, cut short), the tab draws
+only the record's dates and says once, in the card's muted line, that the
+wording's own windows were not read. Never a guess.
+
+## O-41 — RELATED AGREEMENTS, LAST (decided: D10 open)
+
+**Build**, as in the design's card (`.fam`): head "Related agreements" with its
+buttons on the right; one row per document in the family (reference in the
+reference face, name, relation, "this one" on the current contract, which is
+tinted, and a status pill on the right); then one line **"Which document wins
+where they differ: Price: Amendment 1 (MK-219-A1). Everything else: the main
+agreement."** built from the family reading (`familyOrder`, `familyAgreement`,
+`expirySource`). A contract with no family says "A standalone agreement. No
+amendments or addenda are linked to it." Same builder and the same doors as the
+Overview's family section (`renderFamilySection`); the buttons follow D10.
+
+## O-42 — THE COLOURS AND TYPE, EXACTLY
+
+**Build.** The tab's colours are the design page's own values, as tokens scoped
+to Overview 2 (named `--ov2-*`), defined on `:root` and again for dark (both dark
+blocks), never `!important`. On the **Blue** brand every value below is used as
+is; on the **Green** brand the accent family takes Green's own ladder and
+everything else stays.
+
+| Token | Light | Dark |
+|---|---|---|
+| Card surface | #FFFFFF | #151B1A |
+| Text · muted · faint | #141F1D · #5A6866 · #6B7876 | #E6ECEA · #A0ACA9 · #8B9895 |
+| Line · hairline | #E2E7E5 · #EEF2F0 | #26302E · #1B2221 |
+| Accent fill · ink | #264C9E · #1C3872 | #3560B4 · #A9C0F0 |
+| Accent 50 · 100 · 200 | #F0F4FB · #E1E9F7 · #B6C8EB | 12% · 22% of #3560B4 · 38% of #8AA8E2 |
+| Teal (second party) | #12796D, soft #E3F3EF, ink #0E5F58 | #5EC2B3, 16%, #8FD9CC |
+| Purple (third party) | #6E4BB8, soft #EFE9FA, ink #4E318A | #B39BEA, 16%, #CDBDF3 |
+| Green (done) | bg #DFF2E7, text #1A6F45, dot #2E9E63 | #153224, #5CC48E |
+| Amber (due soon, today) | bg #FBEEDB, text #A24E07, dot #E8A317 | #3A2A0F, #EBAD46 |
+| Red (late, last day) | bg #FBE5E3, text #B3261E, dot #D9453B | #3F1C19, #F0857B |
+| Slate (coming up) | bg #E6ECF6, text #48639A, dot #6F86BF | #1D2637, #8FA8DE |
+
+Type: Geist for everything, Geist Mono (600) for references and clause numbers.
+Sizes as designed: card titles 15/700, caps labels 11/400 with 0.07em spacing,
+the date 28/700 (22 on a phone), the measure 24/700, body 13, small lines 12,
+track text 11 (labels 500, Today 700). Corners: cards 8px, buttons 4px, pills
+round. The colour census is re-recorded by this change, audited as a set
+difference first.
+
+**Prove (Part 7 as a whole).** overview-two-verify: the tab exists after
+Overview and lands on refresh; the three blocks are in order with Related
+agreements last; the cursor, Play, Today and the jumps move the date; a late
+obligation turns the sentence and its row red; a contract with no end date
+draws the arrow; a contract with no family says it is standalone; measured
+colours equal the table. Then the side-by-side photographs above.
+
+---
+
 ## EVERYTHING THE OWNER ASKED FOR, AND WHERE IT IS
 
 | Asked | Where |
@@ -708,6 +891,7 @@ both doors open the same window.
 | Playbook That Learns | O-18 (row line, Proposed pill, sentence, chart, three figures, the rounds) · O-19 (three choices, redline preview, confirm, Undo) · O-20 (Keep remembered) · O-21 (trail, Copilot line, Copilot and ladder follow) |
 | Board Chart Standard, Instrument chosen | O-22 (three sizes, type table) · O-23 (the Instrument marks) · O-24 (series colours) · O-25 (opened, full screen, table, long lists) · O-26 (written down). Spotlight and Glow are NOT built. Scope is the board's charts, not the whole app's look. |
 | Side-menu door to Import contracts | O-27 |
+| Overview 2 tab with the Time Machine | O-36 (the tab) · O-37 (essentials card above) · O-38 (the timeline) · O-39 (now row, three cards) · O-40 (windows from the wording, D9) · O-41 (Related agreements last, D10) · O-42 (exact colours and type). Constellation, Balance, Story and What-if are NOT built. |
 | Obligations Review desk | O-31 (Copilot sorts and says whose job) · O-32 (the desk window) · O-33 (Edit before adding) · O-34 (whose job is kept) · O-35 (skips remembered, tile and door counts). "One at a time" and "On the Obligations tab" are NOT built. |
 | The eight decisions | Decided (table above) |
 
@@ -727,7 +911,9 @@ both doors open the same window.
    can run alongside them; O-22 (sizes) before O-23 (look).
 7. **O-31 → O-35** (the review desk): O-31 first, since the desk needs its facts.
    Independent of the other parts.
-8. **O-16**, then **O-17** last (the widest and the largest).
+8. **O-36 → O-42** (Overview 2). O-36, O-37, O-41 first, then O-38 and O-39 on the
+   record's own dates; O-40 after D9 is answered. Independent of the other parts.
+9. **O-16**, then **O-17** last (the widest and the largest).
 
 ## FOR EVERY ITEM
 
