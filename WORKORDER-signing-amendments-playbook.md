@@ -15,7 +15,7 @@ except where a numbered **OWNER DECISION** below says otherwise.
   the page recommended Spotlight, and the owner chose Instrument):
   https://claude.ai/artifact/WP5rowC4AupFgsPR4xaAYE
 
-Five parts, twenty-seven items. Each says what is wrong today, why (found in the
+Five parts, thirty items. Each says what is wrong today, why (found in the
 code), what to build, and how to prove it. **Nothing here is built yet.**
 
 Before touching any area: read its MAP section in CLAUDE.md and grep
@@ -93,8 +93,10 @@ from `opts.responded` alone, which does not say WHAT the answer was.
   already carries `action`, `at`, `name`).
 - When this link's answer was a signature, the Sign step draws "You signed"
   (as, for, when, how checked) instead of the form, plus "Download the signed
-  copy" once the contract is fully signed. This happens inside the panel, so it
-  is not a new band.
+  copy (PDF)" and "Download the signing certificate" once the contract is fully
+  signed (picture 7). Both use the existing print pipeline and certificate; the
+  certificate is the one our side already produces. This happens inside the
+  panel, so it is not a new band.
 - `portalMarkSigned` is rewritten to repaint this panel, or retired. Never
   leave a writer pointing at a removed element.
 
@@ -154,7 +156,8 @@ yet "Awaiting you: 1") fits this. **Confirm with a test before building.**
   plain sentence naming the clause) while the STORED contract has a change
   awaiting that party's decision. Neutral words; nothing internal is named.
 - Their page: Sign is grey with "Answer the open point first", plus a "Go to
-  clause N" button (picture 3). Grey both ways, with the reason.
+  clause N" button (picture 3). Grey both ways, with the reason. The head's
+  status pill reads "1 point waiting on you".
 
 **Prove.** f544: refused with an open change, allowed once it is decided. Run
 the refusal half against unmodified main: it must fail there.
@@ -169,7 +172,10 @@ with two different people.**
 **Build.** When it is not this signer's turn (`signStepOf`, `shareSigningOrder`):
 no "Sign here" arrow, the box reads "Your place · signs second", and the Sign
 button is grey with "X signs first. We will email you as soon as it is your
-turn." (picture 2). The server already refuses out-of-order; this makes the
+turn." (picture 2). The head's status pill follows the turn: "Waiting for X"
+(picture 2), "Your turn to sign" (picture 4), "Fully signed" (picture 7). The
+order list marks each signer done with the time ("Signed 7 Oct, 10:14" with a
+tick), "Signing now" or "Next". The server already refuses out-of-order; this makes the
 page say so first.
 
 **Prove.** Two signers, second opens first: grey button, no arrow; first signs:
@@ -185,6 +191,41 @@ for that act (signed / declined / asked for changes), quoted. `c.comments` stops
 being a destination nobody reads; leave it in place for old records.
 
 **Prove.** Decline with a reason → our History tab shows it in quotes.
+
+## O-28 — THE SIGNING EMAIL SAYS THE ORDER (picture 1)
+
+**Today.** Not yet checked whether the "please sign" email tells a second signer
+that someone signs first. A signer whose turn has not come may open a waiting
+("dormant") page.
+
+**Build.** Read the current invitation and turn emails first. The invitation
+names who is asking, the contract and its reference, and the signing order
+("Young Mbagaya first, then you. We will email you again when it is your
+turn."). The turn email (`releaseNextSignerLink`) says plainly "It is your turn
+to sign". The line "Before you sign, we send a one-time code to this address"
+stays. No secret goes to our own staff's inbox (the existing rule).
+
+**Prove.** The mail stub captures both emails; each contains the order line.
+
+## O-29 — AN EARLY SIGNER SEES THE REAL PAGE (picture 2)
+
+**Build.** A signer who opens their link before their turn sees the signing page
+of picture 2 (the contract, the order, the grey Sign button with its reason),
+not a bare waiting notice. It comes alive by itself when their turn comes (the
+page already polls). If the "dormant" answer stays, it must draw this page.
+
+**Prove.** Second signer opens early: the contract and order are visible, Sign
+is grey. The first signer signs: the second page turns live without a reload.
+
+## O-30 — OUR HISTORY TELLS THE WHOLE SIGNING STORY (picture 10)
+
+**Build.** Check, and add where missing, one History line each for: each
+signature (name, title, company, time, how it was checked); "X told it is their
+turn to sign"; "Contract sealed. Both parties have signed. Signed copy sent to
+everyone."; and any decline or change request in the person's own words (O-7).
+Newest first, as the History tab already draws.
+
+**Prove.** Run the two-signer journey; History holds every line above, in order.
 
 ---
 
@@ -346,6 +387,7 @@ only, no model. **Build on these; do not write a second reading.**
     clause). Where one cannot be measured it is not drawn; it is never guessed;
   - "See the N rounds": each contract, reference and settled figure, each a
     door to that contract.
+- The section's heading carries a small "Proposed" pill while a proposal stands.
 - The figure is `stdHeld`'s (D5).
 
 ## O-19 — DECIDE IN PLACE, SEE THE CHANGE FIRST (decided: D6)
@@ -374,6 +416,8 @@ section says when it will speak again.
 - After a change, Copilot's suggestions (`pbStandardsFor`, the clause editor's
   standards chips), the ladder and Prepare redlines read the new figure. They
   already read the clause library; prove it, do not add a copy.
+- Under the choices, one quiet line says so: "Copilot reads this too. Once you
+  decide, Copilot's suggestions and the negotiation ladder use the new figure."
 
 **Prove.** f548: a proposal shows at ≥ floor and not below; Move writes the
 figure and the trail line; Undo restores both; Keep hides it until its date;
@@ -526,12 +570,34 @@ floating menu at 1280.
 
 ---
 
+## EVERYTHING THE OWNER ASKED FOR, AND WHERE IT IS
+
+| Asked | Where |
+|---|---|
+| Signing Q1: where do signing comments go, and are they needed? | O-4 (box removed), O-7 and O-30 (their words reach History) |
+| Signing Q2: signature not on the paper; the title disappears | O-1, O-2 |
+| Signing Q3: "read-only" and "ask for a fresh link" after a refresh | O-3 |
+| Review bug 4: can sign while a change is open | O-5 |
+| Review bug 5: the order says wait, the button says sign | O-6, O-29 |
+| Review bug 6: an email box that changes nothing | O-4 |
+| Review bug 7: their copy never catches up | O-1 |
+| Review bug 8: "Page 2 of 3" vs "Page 2 of 2" | **Left as it is, on purpose**: two copies by design (the working copy and the signing copy). Say if you want a note on the Redlines tab. |
+| Signing Journey pictures 1–10 | 1 O-28 · 2 O-6, O-29 · 3 O-5 · 4 O-4, O-6 · 5 no change (works today) · 6 O-1 · 7 O-1, O-2 · 8 O-3 · 9 O-4 · 10 O-7, O-30 |
+| Amendment gaps A1–A10 | A1 O-10 · A2 O-11, O-12, O-14 · A3 O-12, O-13 · A4 O-10 · A5 O-9 · A6 O-10, O-12, O-13 · A7 O-15 · A8 O-8 · A9 O-16, O-17 · A10 O-9 |
+| Amendment pictures A1–A9 | A1 O-9 · A2 O-10 · A3 O-12 · A4 O-11, O-15 · A5 O-13 · A6 O-15 · A7 O-16 · A8 O-17 · A9 O-14 |
+| Playbook That Learns | O-18 (row line, Proposed pill, sentence, chart, three figures, the rounds) · O-19 (three choices, redline preview, confirm, Undo) · O-20 (Keep remembered) · O-21 (trail, Copilot line, Copilot and ladder follow) |
+| Board Chart Standard, Instrument chosen | O-22 (three sizes, type table) · O-23 (the Instrument marks) · O-24 (series colours) · O-25 (opened, full screen, table, long lists) · O-26 (written down). Spotlight and Glow are NOT built. Scope is the board's charts, not the whole app's look. |
+| Side-menu door to Import contracts | O-27 |
+| The eight decisions | Decided (table above) |
+
+---
+
 ## BUILD ORDER
 
 1. **O-8** (one line), **O-27** (the menu door), **O-5**, **O-6** (rule fixes with tests first; prove each
    red at the parent).
-2. **O-1, O-2, O-3** together (one change to what the share route returns, three
-   screens that read it), then **O-4**, **O-7**.
+2. **O-1, O-2, O-3, O-29** together (one change to what the share route returns, three
+   screens that read it), then **O-4**, **O-7**, **O-28**, **O-30**.
 3. **O-9, O-10, O-11, O-14, O-15** (the amendment flow without Copilot works end
    to end).
 4. **O-12, O-13** (Copilot; D2 decided yes).
