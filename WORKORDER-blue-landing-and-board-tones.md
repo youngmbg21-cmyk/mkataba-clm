@@ -79,15 +79,21 @@ the small script at the top of index.html. Both fall back to green today.
 - The fallback becomes **Blue** (`navy` inside the code) in all three places
   together — `brandNow()`, `themeNow()`, and the pre-paint script — or the first
   frame flashes green before turning blue (the 10 Sep fault, f96).
-- Someone who has ALREADY picked Green keeps Green (their stored choice wins).
-  **Open question for the owner below.**
+- **EVERYONE MOVES TO BLUE ONCE (owner, 7 Oct 2026: "Move everyone to Blue once.
+  On the next visit, everyone switches to Blue, even if they had picked Green.
+  They can still press Green again afterwards.")** A one-time switch per browser:
+  a new marker key (e.g. `hati-brand-blue-once`) that, when ABSENT, sets the
+  stored brand to Blue and writes the marker; when present, the stored choice
+  stands, so pressing Green afterwards sticks. The pre-paint script at the top
+  of index.html runs the SAME switch before the first frame (or the first visit
+  flashes green), and `brandNow()` agrees with it. The marker is never cleared
+  by the swatches. The counterparty's page does the same on its own key.
 - Swap the two swatches so Blue is first, in the top bar and in the phone's
   appearance menu (`M_THEME_SWATCH` order in js/mobile.js).
 - Places that print a fixed brand colour because they have no theme to read —
   the browser-tab icon, the status-link page's bar, e-mails — follow the
   landing brand: the blue `#264C9E`.
-- The counterparty's own page: decide with the owner whether it lands blue too
-  (it reads the same key today).
+- The counterparty's own page lands on Blue too (owner: yes).
 
 **Prove it.** f96 (the pre-paint script mirrors the app) updated to the new
 fallback; a browser check in a fresh profile lands blue with no green frame;
@@ -125,8 +131,7 @@ Blue changes those tokens, so every tint underneath turns blue with them.
 - **Explorer** is always dark and shares the Dark screen's tokens; it follows
   the brand with them. Its canvas also types teal in js/views/intelligence.js
   (the hub glow and grid lines, `rgba(56,205,184,…)`); those read the board's
-  `--hb-gw` / `--hb-ln` instead. **Open question below** in case the owner wants
-  Explorer to stay teal.
+  `--hb-gw` / `--hb-ln` instead. Owner: yes, Explorer follows the brand.
 
 **Prove it.** A browser check switches the brand on Home and asserts the
 board's ground, glow and a tile edge each MOVE to a blue value and back,
@@ -293,10 +298,9 @@ own content width).
 
 ---
 
-## QUESTIONS FOR THE OWNER BEFORE BUILDING
+## QUESTIONS FOR THE OWNER BEFORE BUILDING — ALL ANSWERED
 
-1. **People who already chose Green** — keep their Green (recommended), or move
-   everyone to Blue once?
+1. ~~People who already chose Green~~ — decided (owner, 7 Oct 2026): **move everyone to Blue once**; a Green press afterwards sticks.
 2. ~~The counterparty's page~~ — decided (owner, 7 Oct 2026): **yes, it lands on Blue too.**
 3. ~~Explorer~~ — decided (owner, 7 Oct 2026): **yes, it follows the brand like the board.**
 4. ~~The thumbs (N-7)~~ — decided: remove them.
