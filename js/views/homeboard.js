@@ -1263,7 +1263,12 @@ const HB_RING_MAX = 7, HB_BLOCK_GROUPS = 6, HB_BLOCK_TILES = 9, HB_TL_MONTHS = 3
 const HB_ATTENTION_RE = /^(move|owner|overdue|not read yet|off standard|liability)/;
 const HB_HUES = ['#38CDB8', '#86B8EA', '#E0CB8F', '#C9A0E8', '#F0A58F', '#8FD39A', '#E8B4C8', '#9FB3C8'];
 const HB_TILE_INK = '#021011';
-function hbHueOf(field, g, i){ return (field === 'status' && typeof hmStageTone === 'function') ? hmStageTone(g) : HB_HUES[i % HB_HUES.length]; }
+// The first hue is the brand's own: teal on Green, a bright blue on Blue (N-4).
+function hbHueOf(field, g, i){
+  if (field === 'status' && typeof hmStageTone === 'function') return hmStageTone(g);
+  const k = i % HB_HUES.length;
+  return (k === 0 && document.documentElement.getAttribute('data-brand') === 'navy') ? '#7FA6EE' : HB_HUES[k];
+}
 function hbStartOf(c){
   const d = c.effectiveDate || (c.fields && c.fields.effDate) || ((typeof contractSignedAt === 'function') ? contractSignedAt(c) : c.signedAt) || c.createdAt || null;
   const s = d ? String(d).slice(0, 10) : '';
@@ -4027,7 +4032,9 @@ function hbBoardSumHtml(){
   const src = hbBoardSrc(); const key = HB_BOARD_KEY;
   const kept = hbWhyKept(key, src.sig), busy = _hbWhyBusy.has(key), err = _hbWhyErr.get(key);
   const live = typeof copilotAvailable === 'function' && copilotAvailable();
-  const btn = `<button type="button" class="hb-link hb-bs-go" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? ` title="${_hbE(i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) }))}"` : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
+  /* A BUTTON, NOT A LINK (Young, 7 Oct 2026: "summarise my board should be a
+     button") — the board's own small outlined control; same press, same hover. */
+  const btn = `<button type="button" class="hb-btn is-sm hb-bs-go" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? ` title="${_hbE(i18tn('hb_cx_cost', src.cs.length, { n: _hbN(src.cs.length) }))}"` : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(kept ? 'hb_bs_again' : 'hb_bs_btn'))}</button>`;
   let box = '';
   if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div><p class="hb-quiet">${_hbE(i18t('hb_bs_busy'))}</p></div>`;
   else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_bs_title'))}</span></div><p>${_hbE(err)}</p></div>`;
@@ -4829,6 +4836,9 @@ function hbSetFace(f){
   const s = hbS(); if (s.face === f) return;
   const kb = document.activeElement && document.activeElement.getAttribute && document.activeElement.getAttribute('data-hb-face') != null;
   s.face = f; hbSave();
+  /* a presentation carries on across the turn; the pen's marks were drawn
+     over the other side, so they go */
+  if (_hbPresenting){ _hbStroke = null; hbInkClear(); }
   /* turning to the map is an ARRIVAL, like pressing its tab on Insights was:
      the legend comes in closed (renderIntel's own rule for an arrival) */
   if (f === 'explorer' && window.intel){ intel.legendFolded = true; hbLensOnMap(); }
@@ -6857,7 +6867,14 @@ function hbPresent(on){
   const pg = hbPage();
   /* THE POINTER WAITS FOR ITS BUTTON (Young, 6 Oct 2026): Present opens with
      the ordinary cursor; Pointer turns the laser on */
-  if (on){ _hbTool = ''; if (pg && pg.requestFullscreen) pg.requestFullscreen().catch(() => {}); }
+  /* FULL SCREEN BELONGS TO THE PAGE'S HOST, NOT THE PAGE (Young, 7 Oct 2026:
+     "when you move from board to explorer or the other way round, you should
+     stay in presentation mode unless you choose to exit"). Turning to the other
+     side redraws the page, and a full-screen element that is thrown away ends
+     full screen by itself — which the listener below then read as the reader
+     leaving. #content survives the redraw, so the presentation does too. */
+  const fsHost = document.getElementById('content') || pg;
+  if (on){ _hbTool = ''; if (fsHost && fsHost.requestFullscreen) fsHost.requestFullscreen().catch(() => {}); }
   else { _hbTool = ''; hbInkClear(); if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {}); }
   hbToolsPaint();
   if (typeof igSyncDockWidth === 'function') setTimeout(() => { try { if (typeof igFitSplit === 'function') igFitSplit(); } catch (_){} }, 60);

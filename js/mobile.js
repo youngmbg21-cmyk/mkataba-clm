@@ -721,13 +721,13 @@ function mHeadHtml(){
      button is a swatch of the theme you are wearing and pressing it steps to
      the next — the same three, in the same order, as the menu on the desktop.
      Same function underneath (toggleTheme), so the two shells cannot drift. */
-  const themeNow = (typeof window.themeNow === 'function') ? window.themeNow() : 'green';
+  const themeNow = (typeof window.themeNow === 'function') ? window.themeNow() : 'navy';
   const M_THEME_SWATCH = {
-    green:'linear-gradient(135deg,#12796D,#06b6d4)',
     navy:'linear-gradient(135deg,#264c9e,#3f7ac4)',
+    green:'linear-gradient(135deg,#12796D,#06b6d4)',
     dark:'linear-gradient(135deg,#1e293b,#0f172a)',
   };
-  const themeLabel = { green:'Green', navy:'Navy', dark:'Dark' }[themeNow] || 'Green';
+  const themeLabel = { navy:'Navy', green:'Green', dark:'Dark' }[themeNow] || 'Navy';
   const initials = String(name).trim().split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || 'HT';
   return `
     <div class="m-head">

@@ -157,7 +157,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     check(!!R && R.disc, '1a the panel\'s dropdown stands over the risk as over the clause');
     check(!!R && R.read.length >= 2 && /playbook/i.test(R.read[0]) && R.read.some(x => /wording/i.test(x)), '1b the reading rows the clause screen draws (Our playbook · The wording)', R && R.read.join(' · '));
     /* RE-POINTED 7 Oct 2026 (One footer): on the walk the card's buttons are the feet's top row */
-    check(!!R && R.cardName === 'Suggested wording' && R.cardBtns.length === 0 && ['Apply', 'Ask for a change'].every(w => R.dock.includes(w)) && !R.dock.includes('Expand'), '1c ONE Suggested wording; its Apply · Ask for a change · the votes are the footer\'s top row, no Expand', R && (R.cardBtns.join(' · ') + ' | ' + R.dock.join(' · ')));
+    check(!!R && R.cardName === 'Suggested wording' && R.cardBtns.length === 0 && R.dock.includes('Apply') && !R.dock.includes('Ask for a change') && !R.dock.includes('Expand'), '1c ONE Suggested wording; its Apply is the footer\'s top row — no Ask for a change, no votes (Young, 7 Oct 2026), no Expand', R && (R.cardBtns.join(' · ') + ' | ' + R.dock.join(' · ')));
     check(!!R && Array.isArray(R.chips) && R.chips.join(' · ') === 'Make it firmer · Give me a softer version · Shorter · What does our playbook say?', '1d the risk\'s quick asks sit in the rail\'s own chips row', R && String(R.chips));
     check(!!R && R.ask, '1e and the typed ask in the rail\'s own box');
     check(!!R && R.scope, '1f with the clause card over it, as from a clause');
@@ -218,7 +218,7 @@ const QUAL_NEW = 'The Supplier shall supply the goods to the agreed specificatio
     const ch = await until(page, () => document.querySelector('#ce-lane .ce-card.ce-sug [data-ce-apply]:not([data-ce-apply^="rk"])') ? true : null, null, 10000);
     check(!!ch, '2- the conversation has a Suggested wording card');
     const C = await railNow();
-    check(!!C && C.disc && C.cardName === 'Suggested wording' && ['Apply', 'Ask for a change'].every(w => C.cardBtns.includes(w)) && !C.cardBtns.includes('Expand') && C.dock.length === 0, '2a the same wording, its own Apply · Ask for a change on this tab, no Expand', C && C.cardBtns.join(' · '));
+    check(!!C && C.disc && C.cardName === 'Suggested wording' && C.cardBtns.includes('Apply') && !C.cardBtns.includes('Ask for a change') && !C.cardBtns.includes('Expand') && C.dock.length === 0, '2a the same wording, its own Apply on this tab — no Ask for a change, no Expand', C && C.cardBtns.join(' · '));
     check(!!C && C.read.length >= 2 && /playbook/i.test(C.read[0]), '2b the same reading rows', C && C.read.join(' · '));
     check(!!C && Array.isArray(C.chips) && C.chips.length > 0 && C.ask, '2c the chips row and the ask box in the same places');
     check(!!C && C.feet.length === 2, '2d the same two feet while the walk is on', C && C.feet.join(' | '));

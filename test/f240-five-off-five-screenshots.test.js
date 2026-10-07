@@ -264,12 +264,17 @@ describe('f240 (5) — the rows read at one size and one weight', () => {
      reads at the ROW's size, whatever that size is. Pinned as the row's own
      value rather than a literal, so the next density ruling costs no test edit:
      that is the lesson the 1,994-size sweep of 22 Aug paid five times. */
-  test('the reference is regular weight, and the row draws no verb', () => {
+  /* REVERSED IN PLACE 7 Oct 2026 (Young, off the HaTi Platform mockup: "make
+     the REF or contract numbers smaller"): the reference reads at the LABEL
+     token, one step under the row, at the resting-control weight. Still a
+     token, never a literal. */
+  test('the reference reads one step under the row, and the row draws no verb', () => {
     const rowSize = tokenPx(css.match(/\.reg-table\{[^}]*(font-size:[^;}]+)/)[1]);
     const r = css.match(/\.reg-mk\{[\s\S]*?\}/)[0];
-    assert.equal(tokenPx((r.match(/font-size:[^;}]+/) || [])[0]), rowSize,
-      'the reference reads at the row\'s own size');
-    assert.match(r, /font-weight:var\(--w-body\)/);
+    const refSize = tokenPx((r.match(/font-size:[^;}]+/) || [])[0]);
+    assert.match(r, /font-size:var\(--t-label\)/, 'the reference reads the label token');
+    assert.ok(refSize < rowSize, 'the reference reads smaller than the row');
+    assert.match(r, /font-weight:var\(--w-label\)/);
     assert.ok(!/class="reg-actlink"/.test(rowsFn), 'the row carries no text verb');
     assert.ok(!/\.reg-actlink\{/.test(css), 'and no rule is left dressing one');
   });
