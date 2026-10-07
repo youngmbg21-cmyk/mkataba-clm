@@ -131,11 +131,13 @@ const SWEEP = (bright) => {
         lum(d.a50) == null && lum(d.a100) == null, say(brand + '/dark'));
     }
     /* DAYLIGHT MUST NOT HAVE MOVED: these are the values main paints. */
+    /* RE-PINNED 7 Oct 2026: the day values are the HaTi Platform mockup's tint
+       and soft rungs (Young's palette move); the night answer is unchanged. */
     ok('1c teal by day is exactly what it was',
-      rungs['green/light'].a50 === 'rgb(240, 247, 245)' && rungs['green/light'].a100 === 'rgb(225, 240, 237)',
+      rungs['green/light'].a50 === 'rgb(241, 249, 247)' && rungs['green/light'].a100 === 'rgb(227, 243, 239)',
       say('green/light'));
     ok('1d navy by day is exactly what it was',
-      rungs['navy/light'].a50 === 'rgb(238, 243, 251)' && rungs['navy/light'].a100 === 'rgb(220, 229, 247)',
+      rungs['navy/light'].a50 === 'rgb(240, 244, 251)' && rungs['navy/light'].a100 === 'rgb(225, 233, 247)',
       say('navy/light'));
 
     /* ===== 2. A WALK OF THE PLATFORM, IN THE DARK ===== */

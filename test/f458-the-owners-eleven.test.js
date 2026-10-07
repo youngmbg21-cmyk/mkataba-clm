@@ -260,9 +260,12 @@ describe('f458 (9) — the two pale accent rungs have a dark answer', () => {
   });
 
   test('daylight is untouched: the light values are where they were', () => {
-    assert.match(HTML, /--color-accent-50:#F0F7F5;/);
-    assert.match(HTML, /--color-accent-100:#E1F0ED;/);
-    assert.match(HTML, /--color-accent-50:#eef3fb;/);
+    /* RE-PINNED 7 Oct 2026: Young moved the palette to the HaTi Platform
+       mockup's brighter brand (#12796D / #264C9E), whose tint and soft rungs
+       these are. The claim stands — the dark answer leaves daylight alone. */
+    assert.match(HTML, /--color-accent-50:#F1F9F7;/);
+    assert.match(HTML, /--color-accent-100:#E3F3EF;/);
+    assert.match(HTML, /--color-accent-50:#f0f4fb;/);
   });
 
   test('and the inks that sat ON the wash read the accent ink, not a dark rung', () => {

@@ -20456,3 +20456,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed
 - Home board: the risks answer pack names its top risks by `it.title` (the record name), not the new short title `riskTitleOf`.
 - Done (Part C): Insights today cards answer "why" on the card (Read more), not in the side panel; "Ask why" retired.
+
+## 7 Oct 2026 — the bright brand (noticed, not fixed)
+- Noticed, not fixed: theme-tokens-verify was already red at the parent (20/40) — its baseline was stale from earlier unrelated work (night-mode wells, rgba(160,220,210,…), rgba(4,25,26,…) and others). The bright-brand re-record absorbs that drift; the set difference attributable to the bright brand alone is in MAP-HISTORY "THE BRIGHT BRAND".

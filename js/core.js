@@ -660,7 +660,7 @@ const contractStatusDotHtml = c => {
     : (m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? handoverWaitWords(c) : '';
   const full = (m === READY_META || m === HANDOVER_META || m === HANDOVER_SIGNED_META) ? m.label
     : (m === HOLD_META && (c && c.hold && c.hold.why)) ? String(c.hold.why) : '';
-  return `<span class="reg-stg" style="color:${m.tx}"${full?` title="${_holdEsc(full)}"`:''}`
+  return `<span class="reg-stg" style="color:${m.tx};background:${m.bg||'transparent'}"${full?` title="${_holdEsc(full)}"`:''}`
     + `><i style="background:${m.dot}"></i>${short.label}${
       why?` <span class="reg-stg-why">\u00b7 ${_holdEsc(why)}</span>`:''}</span>`;
 };

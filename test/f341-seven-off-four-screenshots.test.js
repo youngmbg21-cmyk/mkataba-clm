@@ -426,7 +426,9 @@ describe('f341 (6) — why there were no blanks, not merely whether', () => {
     assert.match(b, /\(x\.none\?'&mdash;':\(x\.ok\?'&#10003;'/, 'and a dash, never a tick');
     /* AND THE NUMBER OUTRANKS BOTH, in the mark and in the tone alike, so the
        two cannot come to different answers about one tile. */
-    assert.match(b, /const tone=x\.working\?'is-busy'\s*\n?\s*:\(\(x\.count!=null&&x\.count>0\)\?'is-warn'/);
+    /* Since 7 Oct 2026 the count's tone says what it counts (obligations the
+       helper colour, risks ruby, the rest amber) — the count still asks first. */
+    assert.match(b, /const tone=x\.working\?'is-busy'\s*\n?\s*:\(\(x\.count!=null&&x\.count>0\)\?\(x\.key==='oblig'\?'is-info':\(x\.key==='risk'\?'is-no':'is-warn'\)\)/);
     assert.match(b, /const mark=x\.working\?[^\n]*\n\s*:\(\(x\.count!=null&&x\.count>0\)\?String\(x\.count\)/);
     assert.match(HTML, /\.kt-tri-chip\.is-none\{[\s\S]*?--st-steel-bg/,
       'the tone this product already uses for "nothing is owed"');

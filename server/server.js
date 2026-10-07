@@ -9815,7 +9815,7 @@ function dealPageHtml(D, org) {
   <meta name="robots" content="noindex,nofollow">
   <title>Where the deal stands</title></head>
   <body style="margin:0;background:#EDF1F2;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">
-    <div style="background:#093733;color:#fff;padding:0 26px;height:46px;display:flex;align-items:center;gap:12px;font-size:12px">
+    <div style="background:#12796D;color:#fff;padding:0 26px;height:46px;display:flex;align-items:center;gap:12px;font-size:12px">
       <b style="font-size:15px">HaTi</b>
       <span style="border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:1px 9px;font-size:10px;letter-spacing:.06em;text-transform:uppercase">Read only</span>
       <span style="flex:1"></span>

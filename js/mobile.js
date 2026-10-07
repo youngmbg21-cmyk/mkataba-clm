@@ -723,8 +723,8 @@ function mHeadHtml(){
      Same function underneath (toggleTheme), so the two shells cannot drift. */
   const themeNow = (typeof window.themeNow === 'function') ? window.themeNow() : 'green';
   const M_THEME_SWATCH = {
-    green:'linear-gradient(135deg,#0d9488,#06b6d4)',
-    navy:'linear-gradient(135deg,#24488f,#3f7ac4)',
+    green:'linear-gradient(135deg,#12796D,#06b6d4)',
+    navy:'linear-gradient(135deg,#264c9e,#3f7ac4)',
     dark:'linear-gradient(135deg,#1e293b,#0f172a)',
   };
   const themeLabel = { green:'Green', navy:'Navy', dark:'Dark' }[themeNow] || 'Green';
