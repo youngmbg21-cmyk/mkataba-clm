@@ -1030,7 +1030,8 @@ describe('f184 — the negotiation card is the contract workspace\'s', () => {
        declaration and the check failed on a comment. The house rule about
        never writing a comment terminator inside a comment applies here too —
        the first draft of THIS note broke the test file itself. */
-    assert.match(NCSS, /\.redline-page #ws-head\{background:var\(--color-surface\);padding:var\(--page-pad-t\) 24px 0/,
+    /* the head sits on the page ground since 7 Oct 2026, as the room's does (the mockup) */
+    assert.match(NCSS, /\.redline-page #ws-head\{background:transparent;padding:var\(--page-pad-t\) 24px 0/,
       'the top is the room\'s own — the calc() that used to compensate for a one-line head put the first glyph 4px high');
     /* REVERSED IN HALF, 21 Sep 2026 (Young: "first remove the line going
        across the card"). This pinned the row gap and the head's own inset rule

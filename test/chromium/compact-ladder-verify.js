@@ -181,8 +181,9 @@ const HELPERS = `(() => {
       c2.acts.length >= 3 && c2.acts.every(b => near(b.h, 28)), JSON.stringify(c2.acts.map(b => (b.t || 'icon') + ':' + b.h)));
     /* A CONTROL here — the room's own head already read 500 at the parent;
        the same Share on the Negotiate page read 400, and 5b is that measure. */
-    ok('2b CONTROL every word in that row is one weight (500) — the filled face says which leads, never the weight',
-      c2.acts.filter(b => b.t && !b.sq).every(b => b.fw === '500'), JSON.stringify(c2.acts.filter(b => b.t && !b.sq).map(b => b.t + ':' + b.fw)));
+    /* RE-POINTED 7 Oct 2026 (Young's type formula, off the HaTi Platform mockup): a button's word is 600 — still ONE weight for every button. */
+    ok('2b CONTROL every word in that row is one weight (600) — the filled face says which leads, never the weight',
+      c2.acts.filter(b => b.t && !b.sq).every(b => b.fw === '600'), JSON.stringify(c2.acts.filter(b => b.t && !b.sq).map(b => b.t + ':' + b.fw)));
     await sweep('room');
 
     /* ════════ 3. THE DOCUMENT TAB ════════ */
@@ -206,8 +207,9 @@ const HELPERS = `(() => {
     ok('3b the Thread\'s ‹ › are squares of the small rung (22)',
       c3.segs.length === 2 && c3.segs.every(b => near(b.w, b.h) && near(b.h, 22)),
       JSON.stringify(c3.segs.map(b => b.w + '×' + b.h)));
-    ok('3c the Thread\'s text buttons (Explain all, Run) are the text button: accent, 500, no underline',
-      c3.run.length > 0 && c3.run.every(b => b.fw === '500' && b.td === 'none' && b.color === c3.accent),
+    /* RE-POINTED 7 Oct 2026 (Young's type formula, off the HaTi Platform mockup): a button's word is 600 — still ONE weight for every button. */
+    ok('3c the Thread\'s text buttons (Explain all, Run) are the text button: accent, 600, no underline',
+      c3.run.length > 0 && c3.run.every(b => b.fw === '600' && b.td === 'none' && b.color === c3.accent),
       JSON.stringify(c3.run.map(b => ({ h: b.h, fw: b.fw, td: b.td, ink: b.color === c3.accent }))));
     ok('3e an icon alone is a square of its row\'s rung (the Focus door)',
       c3.squares.length > 0 && c3.squares.every(b => near(b.w, b.h) && near(b.h, 28)), JSON.stringify(c3.squares.map(b => b.w + '×' + b.h)));
@@ -228,7 +230,7 @@ const HELPERS = `(() => {
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(OUT, '04-signing.png') });
     ok('4a the Sign button is the one large act (32)', !!c4.sign && near(c4.sign.h, 32), JSON.stringify(c4.sign));
-    ok('4b and it reads at the same weight as every other button', !!c4.sign && c4.sign.fw === '500', c4.sign && c4.sign.fw);
+    ok('4b and it reads at the same weight as every other button', !!c4.sign && c4.sign.fw === '600', c4.sign && c4.sign.fw);
     await sweep('signing');
 
     /* ════════ 5. THE NEGOTIATE PAGE ════════ */

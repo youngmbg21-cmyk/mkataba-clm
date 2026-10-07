@@ -10241,17 +10241,20 @@
      WEARS. Four weights, four inks, one job each:
        400 --w-body    reading text, sub-lines
        500 --w-label   a RESTING control: a tab, a nav door, a filter chip
-       600 --w-strong  a name, a value, a button, a pill, a caps label, the lit nav door
+       600 --w-strong  a name, a value, a button, a pill, the lit nav door
        700 --w-title   a page / room / card title, the lit tab
        ink --color-text      names, values, titles
            --color-neutral-600 sub-lines, resting tabs
-           --cap-ink (neutral-400) every UPPERCASE micro label and table head
+           --cap-ink (neutral-400) every UPPERCASE micro label and table head, at 400
      The mockup draws its caps labels a shade lighter (#7A8784, 3.9:1 on
      white); neutral-400 is the nearest grey that clears AA at 11px.
      :root raises each rule one class so it outranks the sheets the views
      inject later, without !important. */
-  :root{ --cap-ink:var(--color-neutral-400); --cap-w:var(--w-strong); --cap-ls:.07em; }
-  :root :is(.sec-f-l,.room-facet .l,.ins-kv dt,.ins-facts dt,.ins-lbl,.ins-need-h,.ag-facts dt,.ag-kv dt,.ag-flow-l,.ag-kind,.ag-list-h,.ag-ps-h,.doc-th-sec,.doc-xr-k,.ds-h,.ds-facts span,.exp-pg-lbl,.hati-selmenu-g,.hm-map-lab,.hm-rw-sidehead,.ho-ex-k,.ho-route-h,.igf-led-lbl,.na-sec-label,.ob-rl-group,.py-h,.rail-head-label,.sr-mh,.st-att-h,.st-grp-h,.tpl-gl-l,.tpl-sec-label,.sc-stage-t,#ai-feed .ai-target-head,.reg-dp-h,.std-cat,.std-lab,.br-ph h3,.rk-why b,.rk-ce-why b,.mig-table th,.ht .ht-f){
+  /* CAPS LABELS ARE NOT BOLD (Young ruled 20 Sep 2026: field names "should not be
+     in bold letters"; kept over the mockup's 600, so a value always outranks
+     its label by weight as well as by ink) */
+  :root{ --cap-ink:var(--color-neutral-400); --cap-w:var(--w-body); --cap-ls:.07em; }
+  :root :is(.sec-f-l,.room-facet .l,.ins-kv dt,.ins-facts dt,.ins-lbl,.ag-facts dt,.ag-kv dt,.ag-flow-l,.ag-kind,.ag-list-h,.ag-ps-h,.doc-th-sec,.doc-xr-k,.ds-h,.ds-facts span,.exp-pg-lbl,.hati-selmenu-g,.hm-map-lab,.hm-rw-sidehead,.ho-ex-k,.ho-route-h,.igf-led-lbl,.na-sec-label,.ob-rl-group,.py-h,.rail-head-label,.sr-mh,.st-att-h,.st-grp-h,.tpl-gl-l,.tpl-sec-label,.sc-stage-t,#ai-feed .ai-target-head,.reg-dp-h,.std-cat,.std-lab,.br-ph h3,.rk-why b,.rk-ce-why b,.mig-table th,.ht .ht-f){
     font-weight:var(--cap-w); color:var(--cap-ink); letter-spacing:var(--cap-ls); }
   /* every list's column heads are caps micro labels, as the mockup draws them */
   :root :is(.ins-lt th,.reg-table th,.ap-table th,.ov-docs thead th,.igf-led-table th,.igf-led-bytable th){

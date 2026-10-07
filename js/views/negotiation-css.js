@@ -5451,7 +5451,7 @@ function redlineLayoutCss(){
   .rl-readwrap .rl-seg{height:auto;padding:0 14px;font-size:var(--t-body);font-weight:var(--w-label);
     color:var(--color-neutral-600);display:flex;align-items:center;gap:7px;box-shadow:none;background:none}
   .rl-readwrap .rl-seg:hover{color:var(--color-text)}
-  .rl-readwrap .rl-seg.on{font-weight:var(--w-strong);color:var(--color-text);
+  .rl-readwrap .rl-seg.on{font-weight:var(--w-title);color:var(--color-text);
     background:none;box-shadow:inset 0 -2px var(--accent-solid)}
   html.dark .rl-readwrap .rl-seg.on{background:none}
   .rl-readwrap .rl-seg-n{font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-body);
