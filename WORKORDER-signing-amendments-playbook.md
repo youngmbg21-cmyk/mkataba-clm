@@ -26,16 +26,22 @@ New tests start at **f543**.
 
 ---
 
-## OWNER DECISIONS — answer these before the parts they block
+## OWNER DECISIONS — ALL EIGHT DECIDED (7 Oct 2026)
 
-| # | Question | Blocks | Recommendation |
+The owner accepted every recommendation: *"go with your recommendations on all
+eight decisions"*. The **Decided** column is the ruling. D6 REVERSES the
+9 Sep 2026 rule that adopting a new preferred opens the clause editor first:
+the ruling REPLACES that line in THE MAP when O-19 lands, and the reversal's
+story goes to MAP-HISTORY.md.
+
+| # | Question | Blocks | Decided |
 |---|---|---|---|
 | D1 | Remove the Comment box from the signing panel (O-4), or keep it and send what is typed to History? | O-4 | Remove it. Reasons are collected only on "Not ready to sign?". |
 | D2 | May Copilot draft amendment wording (a new paid AI call, priced on the press)? | O-12, O-13 | Yes. Nothing is filed until the person presses Create. |
 | D3 | Should a signed amendment update the agreement's live facts beyond the end date (value, payment terms, notice)? | O-16 | Yes, as a READING. Stored values are never rewritten. |
 | D4 | Build the "As amended" reading on the Document tab? | O-17 | Yes, read-only, labelled as a reading copy. It is the largest piece; it can ship last. |
 | D5 | Which figure does the playbook propose: the WORST figure settled more than once (today's rule, `stdHeld`) or the MOST COMMON one (the mockup)? | O-18 | Keep today's rule. The worst repeated figure is one you have actually signed more than once; the most common can hide a worse deal. |
-| D6 | Adopting a new PREFERRED: write it after one confirm (mockup), or open the clause editor first (today's rule, 9 Sep 2026)? | O-19 | Confirm in place, with the redline shown under "What we ask for". This reverses a written rule, so it needs your explicit yes. |
+| D6 | Adopting a new PREFERRED: write it after one confirm (mockup), or open the clause editor first (today's rule, 9 Sep 2026)? | O-19 | Confirm in place, with the redline shown under "What we ask for". This reverses a written rule; the owner said yes. |
 | D7 | "Keep it as it is" stops the proposal for how long, and who may press it? | O-20 | Six months, or until the pattern gets stronger. Anyone who may edit standards. |
 | D8 | Instrument cards show the title and a quiet facts line, with no headline figure. The board's own rule (HEADLINE on a small card, `hbHeadlineOf`) puts a one-line headline there. Keep the headline under Instrument? | O-23 | Keep it, as plain ink text. It is your earlier ruling, and Instrument governs how the chart is DRAWN, not the words above it. |
 
@@ -117,7 +123,7 @@ spent.
 **Prove.** Sign → refresh → no "fresh link" sentence, no "Awaiting you",
 "Fully signed" pill.
 
-## O-4 — THE SIGN STEP ASKS ONLY WHAT IT NEEDS (needs D1)
+## O-4 — THE SIGN STEP ASKS ONLY WHAT IT NEEDS (decided: D1)
 
 **Today.** The Comment box sits above Sign ("Optional for signing; required
 for changes or decline"). What is typed while signing is pushed to
@@ -242,7 +248,7 @@ it changes (`amends: [{ clauseId, op: 'replace'|'insert'|'delete' }]` on the
 amendment). The panel lists "What this amendment changes", with "See in the
 original".
 
-## O-12 — COPILOT DRAFTS THE ITEMS (needs D2)
+## O-12 — COPILOT DRAFTS THE ITEMS (decided: D2)
 
 **Build** (picture A3).
 - One new AI route reads the signed parent (under `aiDocChars`) and the
@@ -287,7 +293,7 @@ effective date and value from the items' words. Each one is confirmed by a
 person, never applied silently. The Overview's facts show where each came
 from ("from item 2", "from MK-318").
 
-## O-16 — SIGNED: THE AGREEMENT'S LIVE FACTS UPDATE (needs D3)
+## O-16 — SIGNED: THE AGREEMENT'S LIVE FACTS UPDATE (decided: D3)
 
 **Today.** Only the end date flows up (`effectiveExpiry`, executed children in
 `TERM_CHANGING`). A new price shows as "different" (`familyAgreement`) while
@@ -304,7 +310,7 @@ This is the widest change in the order.
 **Prove.** f547: sign an amendment raising the value → the parent's lists and
 Insights read the new figure; the stored parent value is unchanged.
 
-## O-17 — READ THE AGREEMENT AS AMENDED (needs D4)
+## O-17 — READ THE AGREEMENT AS AMENDED (decided: D4)
 
 **Build** (picture A8). A switch on the parent's Document tab: Original | As
 amended. "As amended" draws the parent's clauses with each EXECUTED item
@@ -326,7 +332,7 @@ section (`sd_sec_settled`): the preferred opens the clause editor
 (`stdOpenPreferred`), the fallback adopts through `precedentAdopt`. Counting
 only, no model. **Build on these; do not write a second reading.**
 
-## O-18 — THE ROW SAYS IT, THE PANEL SHOWS THE EVIDENCE (needs D5)
+## O-18 — THE ROW SAYS IT, THE PANEL SHOWS THE EVIDENCE (decided: D5)
 
 **Build.**
 - The list row of a standard with a proposal carries one small line: "You
@@ -342,7 +348,7 @@ only, no model. **Build on these; do not write a second reading.**
     door to that contract.
 - The figure is `stdHeld`'s (D5).
 
-## O-19 — DECIDE IN PLACE, SEE THE CHANGE FIRST (needs D6)
+## O-19 — DECIDE IN PLACE, SEE THE CHANGE FIRST (decided: D6)
 
 **Build.** Three choices as one group: Move the preferred to X · Move the
 fallback to X · Keep it as it is. Choosing one shows a confirm line, and the
@@ -352,7 +358,7 @@ as a redline before anything is written. "Change the standard" writes it;
 After writing: an 'ok' toast with Undo. The section reads "The preferred is now
 X" and "HaTi keeps watching".
 
-## O-20 — "KEEP IT" IS REMEMBERED (needs D7)
+## O-20 — "KEEP IT" IS REMEMBERED (decided: D7)
 
 **Build.** Keep stores a dated decision on the standard (company record, through
 the standards' own save route), so the proposal does not return until the date
@@ -419,7 +425,7 @@ table) can run past the bottom of the screen.
 axis text measures 11px on the board, the chart is 196px tall, and no card is
 taller than the window. The same check against unmodified main must fail.
 
-## O-23 — THE INSTRUMENT LOOK (needs D8 for the card head)
+## O-23 — THE INSTRUMENT LOOK (decided: D8)
 
 **Build.**
 - **One brand colour** for a single series (`--hb-*` per brand, first hue from
@@ -528,8 +534,8 @@ floating menu at 1280.
    screens that read it), then **O-4**, **O-7**.
 3. **O-9, O-10, O-11, O-14, O-15** (the amendment flow without Copilot works end
    to end).
-4. **O-12, O-13** (Copilot, after D2).
-5. **O-18 → O-21** (the playbook, after D5–D7).
+4. **O-12, O-13** (Copilot; D2 decided yes).
+5. **O-18 → O-21** (the playbook; D5–D7 decided).
 6. **O-22 → O-26** (the board's charts). This is independent of Parts 1–3, so it
    can run alongside them; O-22 (sizes) before O-23 (look).
 7. **O-16**, then **O-17** last (the widest and the largest).
