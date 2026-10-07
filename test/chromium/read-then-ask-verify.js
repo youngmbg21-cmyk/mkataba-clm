@@ -45,10 +45,14 @@ const SOON = [20, 30, 40].map((n, k) => { const c = fixtureContract('MK-S' + k, 
 const BOOK = FIXTURES.concat(SIGNED, SOON);
 const KEY = 'q:contracts by month signed';
 
-/* amber: red high, green middling, blue low — read from rgb() or from the
-   color(srgb …) a color-mix() computes to */
+/* amber: red leads, green about half to four-fifths of it, blue far below —
+   read from rgb() or from the color(srgb …) a color-mix() computes to.
+   RE-POINTED 7 Oct 2026: by HUE, not brightness — the board lands Light
+   (6 Oct), whose amber is the deep #A24E07 that reads on white; the Dark
+   screen's is the bright #F2B24C. Teal (green over red) is never amber. */
 const isAmber = c => { const m = /rgba?\((\d+), (\d+), (\d+)/.exec(c) || /color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)/.exec(c); if (!m) return false;
-  const k = /srgb/.test(c) ? 255 : 1, [r, g, b] = [m[1], m[2], m[3]].map(x => Number(x) * k); return r > 200 && g > 130 && g < 200 && b < 110; };
+  const k = /srgb/.test(c) ? 255 : 1, [r, g, b] = [m[1], m[2], m[3]].map(x => Number(x) * k);
+  return r > 120 && g / r >= 0.35 && g / r <= 0.85 && r - b > 100; };
 const results = [];
 const check = (name, pass, detail) => {
   results.push({ name, pass: !!pass, detail: detail == null ? '' : String(detail) });
