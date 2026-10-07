@@ -10481,6 +10481,49 @@
   .ins-body[hidden]{display:none;}
   .ins-c2 > b.is-req{font-weight:var(--w-title);}
   .sd-moves{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  /* ---- WHAT YOU HAVE SETTLED FOR: THE EVIDENCE AND THE DECISION (7 Oct 2026, O-18–O-21) ----
+     The settled-at figure wears the helper colour (--alt), the preferred
+     line the accent, the fallback grey; text never wears a series colour. */
+  .sd-learn-tag{display:inline-flex;align-items:center;gap:5px;margin-top:2px;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--alt-ink,var(--accent-ink))}
+  .sd-learn-tag i{width:6px;height:6px;border-radius:50%;background:var(--alt,var(--accent-fill));display:inline-block}
+  .sd-proposed{float:right;font-size:var(--t-label);font-weight:var(--w-strong);padding:1px 8px;border-radius:999px;background:var(--color-accent-50);color:var(--accent-ink)}
+  .sd-learn-lead{font-size:var(--t-body);line-height:1.55}
+  .sd-learn-chart svg{display:block;width:100%;height:auto;margin-top:6px}
+  .sd-learn-chart .sd-ch-t{font-family:var(--font-ref,var(--font-mono));font-size:10px;fill:var(--color-neutral-600)}
+  .sd-learn-chart .sd-ln-pref{stroke:var(--accent-fill);stroke-width:1.3;stroke-dasharray:4 3}
+  .sd-learn-chart .sd-ln-fb{stroke:var(--color-neutral-500);stroke-width:1.3;stroke-dasharray:2 3}
+  .sd-learn-chart .sd-dot{fill:var(--color-surface);stroke:var(--color-neutral-500);stroke-width:1.5}
+  .sd-learn-chart .sd-dot-at{fill:var(--alt,var(--accent-fill));stroke:var(--alt,var(--accent-fill));stroke-width:1.5}
+  .sd-learn-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:var(--t-label);color:var(--color-neutral-700);margin-top:2px}
+  .sd-learn-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  .sd-learn-legend .sd-k-at{background:var(--alt,var(--accent-fill))}
+  .sd-learn-legend .sd-k-else{background:var(--color-surface);border:1.5px solid var(--color-neutral-500)}
+  .sd-learn-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--color-divider);border:1px solid var(--color-divider);border-radius:var(--radius);margin-top:10px}
+  .sd-learn-stats div{background:var(--color-surface);padding:7px 9px;display:flex;flex-direction:column}
+  .sd-learn-stats b{font-size:15px;font-weight:var(--w-title);font-variant-numeric:tabular-nums}
+  .sd-learn-stats span{font-size:var(--t-label);color:var(--color-neutral-600)}
+  .sd-learn-why{margin-top:8px;font-size:var(--t-label)}
+  .sd-learn-why summary{cursor:pointer;color:var(--accent-ink);font-weight:var(--w-label)}
+  .sd-learn-why ul{list-style:none;margin:6px 0 0;padding:0}
+  .sd-learn-why li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-top:1px solid var(--color-divider)}
+  .sd-pill{font-size:var(--t-label);font-weight:var(--w-strong);padding:1px 8px;border-radius:999px;background:var(--color-bg);color:var(--color-neutral-700);white-space:nowrap}
+  .sd-pill.is-at{background:var(--alt-soft,var(--color-accent-50));color:var(--alt-ink,var(--accent-ink))}
+  .sd-moves-3{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+  .sd-mv{display:grid;grid-template-columns:16px minmax(0,1fr);gap:8px;text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:8px 10px;cursor:pointer;font:inherit;color:inherit}
+  .sd-mv:hover{background:var(--color-bg)}
+  .sd-mv[aria-pressed="true"]{border-color:var(--accent-fill);background:var(--color-accent-50)}
+  .sd-mv .rb{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--color-neutral-500);margin-top:2px}
+  .sd-mv[aria-pressed="true"] .rb{border-color:var(--accent-fill);background:var(--accent-fill);box-shadow:inset 0 0 0 3px var(--color-surface)}
+  .sd-mv b{display:block;font-weight:var(--w-strong)}
+  .sd-mv small{display:block;color:var(--color-neutral-700);font-size:var(--t-label)}
+  .sd-learn-confirm{border:1px solid var(--color-accent-100,var(--color-divider));background:var(--color-accent-50);border-radius:var(--radius);padding:10px;margin-top:8px}
+  .sd-learn-row{display:flex;gap:10px;align-items:center;margin-top:8px}
+  .sd-learn-prev{margin:8px 0 0}
+  .sd-learn-cop{margin-top:10px}
+  .sd-learn-done{color:var(--st-green-fg);font-weight:var(--w-strong)}
+  .sd-trail{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .sd-trail li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;font-size:var(--t-meta)}
+  .sd-trail .when{color:var(--color-neutral-600);font-size:var(--t-label);white-space:nowrap}
 
   /* ═══ THE CONTRACT ROOM'S HEAD CARD (20 Sep 2026, step 4 of the redesign
      order) — ONE builder, roomHeadHtml, dresses both heads, so every rule

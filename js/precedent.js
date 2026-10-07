@@ -152,7 +152,11 @@ function precedentMine(opts={}){
   for(const t of PRECEDENT_TOPICS)
     out[t.key]={ key:t.key, category:t.category, clause:t.clause, unit:t.unit||null,
       ours:{accepted:0,refused:0}, theirs:{accepted:0,refused:0},
-      numbers:{oursAccepted:[],theirsAccepted:[]}, examples:[], contracts:new Set() };
+      numbers:{oursAccepted:[],theirsAccepted:[]}, examples:[], contracts:new Set(),
+      /* EVERY SETTLED FIGURE WITH WHERE IT CAME FROM (7 Oct 2026, O-18): the
+         standard's panel draws them as a chart and lists them, each a door to
+         its contract. Additive: the counts above are read exactly as before. */
+      settledRounds:[] };
   for(const c of cs){
     if(!c||!Array.isArray(c.changes)||!c.changes.length) continue;
     if(only && String(c.counterparty||'').trim().toLowerCase()!==only) continue;
@@ -169,7 +173,11 @@ function precedentMine(opts={}){
       row.contracts.add(c.id);
       if(outcome==='accepted' && t.num){
         const n=t.num(ch.newText||'');
-        if(n!=null&&isFinite(n)) row.numbers[side==='ours'?'oursAccepted':'theirsAccepted'].push(n);
+        if(n!=null&&isFinite(n)){
+          row.numbers[side==='ours'?'oursAccepted':'theirsAccepted'].push(n);
+          row.settledRounds.push({ contractId:c.id, ref:(window.contractRef?contractRef(c):c.id),
+            counterparty:c.counterparty||'', figure:n, side, at:ch.updatedAt||ch.createdAt||null });
+        }
       }
       if(row.examples.length<PRECEDENT_EXAMPLES)
         row.examples.push({ contractId:c.id, contractName:c.name||(window.contractRef?contractRef(c):c.id),

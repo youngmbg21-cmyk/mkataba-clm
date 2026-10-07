@@ -192,6 +192,61 @@ function stdHistoryFor(cl){
   return h ? Object.assign({ key: t.key, category: t.category }, h) : null;
 }
 
+/* ---- THE ROUNDS BEHIND A STANDARD'S SETTLED FIGURE (7 Oct 2026, O-18) ----
+   The same window and the same mining as stdLearned, for ONE standard: every
+   settled figure, oldest first, with the contract it came from. Counting only;
+   nothing is asked of a model. Null where the standard carries no figure. */
+function stdRoundsFor(cl, opts = {}){
+  if (!cl || typeof precedentMine !== 'function' || !Array.isArray(window.PRECEDENT_TOPICS)) return null;
+  const t = PRECEDENT_TOPICS.find(x => x.clause === cl.id || _stdSame(x.category, cl.category));
+  if (!t || !t.num || !t.unit) return null;
+  const win = stdWindow(opts.days);
+  let mined = null;
+  try { mined = precedentMine({ since: win.from.toISOString() }); } catch (_) { mined = null; }
+  const row = mined && mined[t.key];
+  if (!row) return null;
+  const rounds = (row.settledRounds || []).slice()
+    .sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')));
+  return { key: t.key, unit: t.unit, dir: t.dir || null, rounds, contracts: (row.contracts || []).length };
+}
+/* A "KEEP IT AS IT IS" IS REMEMBERED (O-20): the standard carries the dated
+   decision, and the proposal stays quiet until the date passes or the pattern
+   gets stronger (more rounds at the figure than when it was kept). */
+const STD_KEEP_DAYS = 182;
+function stdKeptQuiet(cl, p){
+  const k = cl && cl.learnKept;
+  if (!k || !p) return false;
+  const until = Date.parse(k.until || '');
+  if (!isFinite(until) || until < Date.now()) return false;
+  return !(Number(p.seen) > Number(k.seen || 0)) || Number(p.figure) !== Number(k.figure);
+}
+/* THE FIGURE IN THE WORDING, MOVED (O-19): "thirty (30) days" becomes
+   "forty-five (45) days", in the wording's own style. Null where the wording
+   carries no such figure, and then the clause editor is the way to change it. */
+const STD_WORDS = ['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+const STD_TENS = ['', '', 'twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+function stdNumberWords(n){
+  n = Math.floor(Number(n));
+  if (!isFinite(n) || n < 0 || n > 999) return null;
+  if (n < 20) return STD_WORDS[n];
+  if (n < 100) return STD_TENS[Math.floor(n / 10)] + (n % 10 ? '-' + STD_WORDS[n % 10] : '');
+  const r = n % 100;
+  return STD_WORDS[Math.floor(n / 100)] + ' hundred' + (r ? ' and ' + stdNumberWords(r) : '');
+}
+function stdSwapFigure(text, from, to){
+  const src = String(text || '');
+  if (from == null || to == null) return null;
+  const fw = stdNumberWords(from), tw = stdNumberWords(to);
+  if (fw) {
+    const re = new RegExp('\\b' + fw.replace(/-/g, '[- ]') + '\\s*\\(\\s*' + from + '\\s*\\)', 'i');
+    if (re.test(src)) return src.replace(re, m => {
+      const cap = /^[A-Z]/.test(m) ? tw.charAt(0).toUpperCase() + tw.slice(1) : tw;
+      return `${cap} (${to})`;
+    });
+  }
+  const bare = new RegExp('\\b' + from + '\\b');
+  return bare.test(src) ? src.replace(bare, String(to)) : null;
+}
 function stdWindow(days){
   const n = Number(days) > 0 ? Number(days) : STD_WINDOW_DAYS;
   const to = new Date();
@@ -512,7 +567,7 @@ function stdOpenToChange(c){
   return true;
 }
 
-Object.assign(window, { STD_WINDOW_DAYS, STD_MIN_ROUNDS, STD_DRAFT_MIN, STD_DRAFT_SHARE,
+Object.assign(window, { stdRoundsFor, stdKeptQuiet, STD_KEEP_DAYS, stdNumberWords, stdSwapFigure, STD_WINDOW_DAYS, STD_MIN_ROUNDS, STD_DRAFT_MIN, STD_DRAFT_SHARE,
   STD_STANCE_RANK, STD_DRAFT_SUBJECTS, STD_DRAFT_UNREADABLE,
   stdStanceOf, stdFigureIn, stdFallbackOf, stdPreferredFigure,
   stdWindow, stdHeld, stdHistoryFor, stdLearned, stdSignedBook, stdDraftFromSigned,
