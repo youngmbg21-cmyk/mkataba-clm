@@ -623,5 +623,82 @@ function pagesSignFlags(root, mine){
   });
   return n;
 }
-if(typeof window !== 'undefined') Object.assign(window, { pagesLetterheadName, pagesSignFoot, pagesSignFlags });
+/* ---- THE SIGNATURES, IN THEIR BOXES (7 Oct 2026, work order O-1) ----
+   A signature given was never drawn on the paper: the boxes stayed empty on
+   every screen, theirs included, even after both sides had signed. This paints
+   each mark into its party's box with the name, title, date and how it was
+   checked under it, AFTER the paper is drawn, like the "Sign here" flags above
+   and the marks on the paper (signSpotsPaint). It is never part of the
+   document's HTML, so no fingerprint, freeze or seal can move because a
+   signature appeared.
+
+   pagesSignRows(c, sigs) is the ONE reading of which signature belongs in
+   which box: the boxes run in the order rlPaperFootHtml draws them (ours,
+   then each other party), a signature on our side fills ours, and the other
+   side's fill theirs by party where the signature names one, else in order.
+   `sigs` is the contract's own list (our seat) or the live list the share
+   route serves (their page): both shapes are read. */
+function pagesSignRows(c, sigs){
+  const list = (Array.isArray(sigs) ? sigs : []).filter(Boolean).map(x => ({
+    theirs: x.side ? x.side === 'theirs' : x.party === 'counterparty',
+    partyId: x.partyId ? String(x.partyId) : '', party: String(x.party && x.side ? x.party : ''),
+    name: String(x.name || ''), title: String(x.title || x.role || x.capacity || ''),
+    at: x.at || '', image: x.image || '', typedName: x.typedName || '', font: x.font || '',
+    verified: x.verified !== false, pending: !!x.pending, preview: !!x.preview }));
+  let lines = null;
+  try{
+    if(c && typeof window.contractParties === 'function'){
+      const OURS = window.PARTY_SIDE_OURS || 'ours';
+      const rows = window.contractParties(c).filter(p => p.name && (p.side === OURS || p.involvement !== 'none'));
+      if(rows.length > 2) lines = rows.map(p => ({ ours: p.side === OURS, id: String(p.id || ''), name: p.name }));
+    }
+  }catch(_){ lines = null; }
+  if(!lines) lines = [{ ours: true }, { ours: false }];
+  const used = new Set();
+  return lines.map(L => {
+    let i = -1;
+    if(L.ours) i = list.findIndex((x, k) => !used.has(k) && !x.theirs);
+    else {
+      i = list.findIndex((x, k) => !used.has(k) && x.theirs && ((L.id && x.partyId === L.id) || (L.name && x.party && x.party === L.name)));
+      if(i < 0) i = list.findIndex((x, k) => !used.has(k) && x.theirs && !x.partyId && !x.party);
+      if(i < 0 && !(lines.length > 2)) i = list.findIndex((x, k) => !used.has(k) && x.theirs);
+    }
+    if(i < 0) return null;
+    used.add(i);
+    return list[i];
+  });
+}
+function pagesSignMarks(root, rows){
+  if(!root) return 0;
+  const T = k => (window.i18t ? window.i18t(k) : k);
+  const day = v => { try{ return window.fmtDT ? window.fmtDT(v) : String(v || ''); }catch(_){ return String(v || ''); } };
+  let n = 0;
+  root.querySelectorAll('.rl-paper-foot .rl-sigline').forEach((el, i) => {
+    el.querySelectorAll('.rl-sigmark,.rl-sigby').forEach(x => x.remove());
+    el.classList.remove('pg-signed', 'pg-preview');
+    const r = rows && rows[i];
+    if(!r) return;
+    el.classList.add(r.preview ? 'pg-preview' : 'pg-signed');
+    if(!r.preview){ el.removeAttribute('data-pg-flag'); el.classList.remove('pg-mine', 'pg-flag-right'); }
+    const src = window.sigImageSrc ? window.sigImageSrc(r.image) : '';
+    const face = String(r.font || '').replace(/[^\w\s,'-]/g, '');
+    const mark = src
+      ? `<img src="${_pgAttr(src)}" alt="${_pgAttr(T('pg_signature_of').replace('{who}', r.name))}"/>`
+      : `<span class="rl-sigmark-typed"${face ? ` style="font-family:${_pgAttr(face)},cursive"` : ''}>${_pgAttr(r.typedName || r.name)}</span>`;
+    const rule = el.querySelector('.rl-sigrule');
+    if(rule) rule.insertAdjacentHTML('beforeend', `<span class="rl-sigmark" aria-hidden="true">${mark}</span>`);
+    const bits = [`<b>${_pgAttr(r.name)}</b>${r.title ? ', ' + _pgAttr(r.title) : ''}`];
+    if(r.preview) bits.push(_pgAttr(T('pg_not_yet_signed')));
+    else {
+      if(r.at) bits.push(_pgAttr(day(r.at)));
+      if(r.verified) bits.push(_pgAttr(T('pg_verified_by_email')));
+    }
+    const forEl = el.querySelector('.rl-sigfor');
+    const by = `<span class="rl-sigby">${bits.join(' · ')}</span>`;
+    if(forEl) forEl.insertAdjacentHTML('afterend', by); else el.insertAdjacentHTML('beforeend', by);
+    n++;
+  });
+  return n;
+}
+if(typeof window !== 'undefined') Object.assign(window, { pagesLetterheadName, pagesSignFoot, pagesSignFlags, pagesSignRows, pagesSignMarks });
 if(typeof module !== 'undefined' && module.exports) Object.assign(module.exports, { pagesSignFoot, pagesLetterheadName });

@@ -505,7 +505,9 @@ async function extractObligations(c,opts={}){
        the reader returned NOTHING at all on every truncated one. The ceiling
        is aiDocChars on the server now: one number, set above any real
        contract, and it tells the reader when it bites. */
-    try{ const r=await api('ai/obligations','POST',{ text }, { quiet:!!opts.quiet });
+    /* who "us" and "them" are, so whose job it is can be said (O-31) */
+    const ours = (typeof contractParty==='function' ? contractParty(c) : '') || (typeof FIRST_PARTY!=='undefined' ? FIRST_PARTY : '');
+    try{ const r=await api('ai/obligations','POST',{ text, ours, theirs: c.counterparty||'' }, { quiet:!!opts.quiet });
       if(r&&r.notice) opts.notice=r.notice;
       return r.obligations||[]; }
     /* THE TOAST IS WHAT IS SUPPRESSED, never the fallback: the loud path
@@ -791,8 +793,11 @@ function renderObligationsSection(c){
   document.getElementById('ob-add')?.addEventListener('click',()=>openObligationForm(c));
   document.getElementById('ob-find')?.addEventListener('click',()=>runFindObligations(c));
 }
-function openObligationForm(c, seed){
+function openObligationForm(c, seed, opts){
   seed=seed||{desc:'',due:'',recurring:'none',assignee:'',quote:'',amount:''};
+  /* THE DESK'S "Edit before adding" (O-33) passes its own two words and its
+     way back; every other caller passes nothing and gets the form it knew */
+  opts=opts||{};
   const members=(getUsers()||[]).map(u=>u.name);
   openModal(`
     <div class="p-6">
@@ -893,8 +898,8 @@ function openObligationForm(c, seed){
         <datalist id="of-members">${members.map(m=>`<option value="${m}">`).join('')}</datalist></label>
       <p id="of-theirs-note" class="mb-4 text-[11px] text-ink/55 leading-relaxed ${seed.party==='theirs'?'':'hidden'}">This is something ${(c.counterparty||'the counterparty').replace(/</g,'&lt;')} owes. It appears on your calendar and dashboard as something to chase rather than something to do.</p>
       <div class="flex justify-end gap-2">
-        <button id="of-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="of-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
+        <button id="of-cancel" class="ui-btn">${_obEsc(opts.cancelLabel||i18t('act_cancel'))}</button>
+        <button id="of-save" class="ui-btn ui-btn-primary">${_obEsc(opts.saveLabel||i18t('act_save'))}</button>
       </div>
     </div>`);
   let party=(seed.party==='theirs')?'theirs':'ours';
@@ -910,7 +915,7 @@ function openObligationForm(c, seed){
     party=b.getAttribute('data-of-party')==='theirs'?'theirs':'ours'; paintParty(); }));
   document.getElementById('of-isdoc')?.addEventListener('change',e=>{
     document.getElementById('of-doc-wrap')?.classList.toggle('hidden', !e.target.checked); });
-  document.getElementById('of-cancel').addEventListener('click',closeModal);
+  document.getElementById('of-cancel').addEventListener('click',()=>{ if(typeof opts.onCancel==='function') opts.onCancel(); else closeModal(); });
   document.getElementById('of-save').addEventListener('click',()=>{
     /* ---- AN EDIT KEEPS WHAT THE FORM DOES NOT OWN (26 Sep 2026, the
        overnight clean-up) ----
@@ -1012,6 +1017,7 @@ function openObligationForm(c, seed){
       +` — ${party==='theirs'?`${c.counterparty||'the counterparty'}'s to deliver`:`ours${o.assignee?`, assigned to ${o.assignee}`:''}`}`
       +(afterOb?` — comes after "${afterOb.desc||afterOb.id}"`:''));
     persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
+    if(typeof opts.onSaved==='function') opts.onSaved(o);
   });
 }
 /* ---- THE SCAN SAYS IT IS WORKING, AT EVERY DOOR (M-3) ----
@@ -1084,8 +1090,11 @@ async function runFindObligations(c, opts){
      held from the OLD wording is exactly what they are asking past, so it is
      not offered in place of the reading. Absent on every other caller. */
   const fresh = !!(opts && opts.fresh);
-  const held = (!fresh && typeof window!=='undefined' && typeof window.triageHeldObligations==='function')
+  const held0 = (!fresh && typeof window!=='undefined' && typeof window.triageHeldObligations==='function')
     ? triageHeldObligations(c) : [];
+  /* THE DESK OPENS ON THE HELD LIST WHILE ANY OF IT WAITS (O-35); once every
+     item is decided the door is "Find obligations" again and reads anew */
+  const held = held0.some(o => !obReviewDecision(c, o)) ? held0 : [];
   if(held.length){ openObligationsReview(c, held); return; }
   if(obFinding(c)){ obFindBusy(true); return; }
   _obFinding.add(String(c.id));
@@ -1217,24 +1226,101 @@ function obligationAlreadyOn(c, proposal){
   if(!k) return false;
   return ((c && c.obligations) || []).some(o => _obKey(o && o.desc) === k);
 }
-function openObligationsReview(c, found){
+/* ============================================================
+   THE REVIEW DESK (work order O-31..O-35, 7 Oct 2026; the owner picked
+   "Review desk" by name)
+   ============================================================
+   Copilot's one reading also says, per item, its KIND (dated · on an event ·
+   standing), WHOSE JOB it is (us · them · both), the clause it came from, an
+   amount where the wording states one, and whether it is a document they
+   must hold. Where Copilot could not tell, the desk says "Not sure"; nothing
+   is guessed. The desk is the ONE window both doors open (the arrival's held
+   list and Find obligations): a list grouped by kind on the left, the chosen
+   item on the right, and a foot that counts what is left to decide.
+   NOTHING ARRIVES TICKED (the standing rule); "Add all" is the reader's press.
+   DECISIONS ARE KEPT FOR THIS WORDING (`c.obReview`, keyed by the triage's
+   wording fingerprint): a skipped item stays skipped on a re-read of the same
+   wording, and a changed wording starts fresh. Internal: the share payload is
+   a list of named fields, and this is not one of them. */
+const OB_KINDS = ['dated', 'event', 'standing'];
+const OB_WHOSE = ['us', 'them', 'both'];
+function obKindOf(o){
+  if (o && OB_KINDS.includes(o.kind)) return o.kind;
+  /* a stated date or a repeat IS what "dated" means — read, not guessed */
+  if (o && (o.due || (o.recurring && o.recurring !== 'none'))) return 'dated';
+  return 'unsure';
+}
+function obWhoseOf(o){ return o && OB_WHOSE.includes(o.party) ? o.party : 'unsure'; }
+function obReviewHash(c){
+  try { return (typeof window !== 'undefined' && typeof window.triageWordingHash === 'function') ? String(window.triageWordingHash(c) || '') : ''; } catch (_){ return ''; }
+}
+/* the desk's decisions for THIS wording; a moved wording reads as none */
+function obReviewOf(c){
+  const h = obReviewHash(c), r = c && c.obReview;
+  if (r && r.hash === h) return { hash: h, added: (r.added || []).slice(), skipped: (r.skipped || []).slice() };
+  return { hash: h, added: [], skipped: [] };
+}
+function obReviewMark(c, o, how){
+  const r = obReviewOf(c), k = _obKey(o && o.desc); if (!k) return;
+  r.added = r.added.filter(x => x !== k); r.skipped = r.skipped.filter(x => x !== k);
+  if (how === 'added') r.added.push(k); else if (how === 'skipped') r.skipped.push(k);
+  c.obReview = r;
+}
+function obReviewDecision(c, o){
+  const r = obReviewOf(c), k = _obKey(o && o.desc);
+  if (r.skipped.includes(k)) return 'skipped';
+  if (r.added.includes(k) || obligationAlreadyOn(c, o)) return r.added.includes(k) ? 'added' : 'already';
+  return null;
+}
+/* THE ONE COUNT the tile, the door and the desk's foot all read */
+function obReviewTally(c, found){
+  const list = Array.isArray(found) ? found.filter(Boolean) : [];
+  const t = { total: list.length, left: 0, added: 0, skipped: 0, already: 0, kinds: { dated: 0, event: 0, standing: 0, unsure: 0 } };
+  list.forEach(o => { const d = obReviewDecision(c, o);
+    if (d === 'added') t.added++; else if (d === 'skipped') t.skipped++; else if (d === 'already') t.already++;
+    else { t.left++; t.kinds[obKindOf(o)]++; } });
+  return t;
+}
+/* what the arrival read and the desk has not settled: the Obligations tab's
+   door reads "Review N proposed" while any wait */
+/* the door's word: "Review N proposed" while the desk has work, the number
+   the desk's own foot says (O-35) */
+function obFindWord(c){
+  const n = obReviewWaiting(c).length;
+  return _obEsc(n ? i18tn('obd_review_n', n, { n }) : i18t('ob_find'));
+}
+function obReviewWaiting(c){
+  const held = (typeof window !== 'undefined' && typeof window.triageHeldObligations === 'function') ? window.triageHeldObligations(c) : [];
+  return held.filter(o => !obReviewDecision(c, o));
+}
+function obKindSplitText(t){
+  return ['dated', 'event', 'standing', 'unsure'].filter(k => t.kinds[k]).map(k => i18t('obd_split_' + k, { n: t.kinds[k] })).join(' · ');
+}
+/* a day in the reader's language (obDay, the page's own printer) */
+function obDeskDay(iso){ try { return obDay(iso); } catch (_){ return iso; } }
+function obWhenChip(o){
+  const k = obKindOf(o);
+  if (k === 'event') return i18t('obd_when_event');
+  if (k === 'standing') return i18t('obd_when_always');
+  const parts = [];
+  if (o.due) parts.push(obDeskDay(o.due));
+  if (o.recurring && o.recurring !== 'none') parts.push(obRecurLabel(o.recurring));
+  return parts.join(' · ') || (k === 'unsure' ? i18t('obd_not_sure') : i18t('obd_when_dated'));
+}
+function obWhoseWord(c, w){
+  if (w === 'them') return (c && c.counterparty) || i18t('obd_them');
+  if (w === 'both') return i18t('obd_both');
+  if (w === 'us') return i18t('obd_us');
+  return i18t('obd_not_sure');
+}
+function openObligationsReview(c, found, back){
   const dupe = found.map(o => obligationAlreadyOn(c, o));
   const fresh = dupe.filter(d => !d).length;
   /* ---- WHAT COPILOT PROPOSED HERE GOES ON THE RECORD (idea 22) ----
      RECORDED AT THE DRAW, so the denominator is every proposal the reader was
-     SHOWN rather than only the ones they got round to answering. Recorded at
-     the confirm instead, a reader who reads the list and closes the window
-     would vanish from the arithmetic entirely and this feature's acceptance
-     rate would flatter itself by exactly the proposals nobody wanted.
-
-     A DUPLICATE IS NEITHER, and is not recorded at all. Copilot proposed
-     something the contract already carries: there is no decision for a person
-     to make, so there is no outcome to keep — and counting it as taken would
-     credit the model for wording that was already there.
-
-     THE TICKS SETTLE IT below: ticked is taken, unticked is a refusal, and a
-     window that is simply closed leaves every entry `proposed`, which the two
-     readers print as "not taken" rather than as a refusal. */
+     SHOWN. A duplicate is neither taken nor refused and is not recorded. The
+     reader's adds settle as taken, a Skip as a refusal; an item left alone
+     stays `proposed`, which the readers print as "not taken". */
   const trace = found.map((o, i) => {
     if (dupe[i] || !window.aiTraceNote) return null;
     try{
@@ -1243,131 +1329,193 @@ function openObligationsReview(c, found){
     }catch(_){ return null; }
   });
   try{ if (trace.some(Boolean) && window.aiTraceSave) aiTraceSave(c); }catch(_){}
+  /* the reader's own changes to an item before it is added: whose job */
+  const whoseNow = found.map(o => { const w = obWhoseOf(o); return w === 'them' ? 'them' : w === 'unsure' ? 'unsure' : 'us'; });
+  /* `back` is the desk as the reader left it (Edit before adding → Back to
+     the list): the same item, the same filter, the list's scroll */
+  let filter = (back && back.filter) || 'all', sel = back && back.sel != null ? back.sel : found.findIndex((o, i) => !dupe[i] && !obReviewDecision(c, o));
+  if (sel < 0) sel = 0;
+  const decision = i => dupe[i] && !obReviewOf(c).added.includes(_obKey(found[i].desc)) ? 'already' : obReviewDecision(c, found[i]);
+  const GROUPS = [['dated', 'obd_g_dated'], ['event', 'obd_g_event'], ['standing', 'obd_g_standing'], ['unsure', 'obd_g_unsure']];
+  const counts = () => {
+    const n = { all: 0, dated: 0, event: 0, standing: 0, unsure: 0, already: 0 };
+    found.forEach((o, i) => { if (decision(i) === 'already'){ n.already++; return; } n.all++; n[obKindOf(o)]++; });
+    return n;
+  };
+  const rowHtml = i => {
+    const o = found[i], d = decision(i);
+    const state = d === 'added' ? `<span class="obd-chip is-added">${_obEsc(i18t('obd_added'))}</span>` : d === 'skipped' ? `<span class="obd-chip is-skipped">${_obEsc(i18t('obd_skipped'))}</span>` : '';
+    return `<div class="obd-row${i === sel ? ' is-sel' : ''}${d ? ' is-done' : ''}" data-obd-sel="${i}">
+      ${d === 'already' ? '<span class="obd-tick-gap"></span>' : `<input type="checkbox" data-ob-pick="${i}" class="obd-tick" aria-label="${_obEsc(o.desc || '')}"${d ? ' disabled' : ''}/>`}
+      <span class="obd-rtx"><span class="obd-desc">${_obEsc(o.desc || '')}</span>
+      <span class="obd-chips"><span class="obd-chip">${_obEsc(obWhoseWord(c, whoseNow[i] === 'unsure' ? 'unsure' : (obWhoseOf(o) === 'both' && whoseNow[i] === 'us' ? 'both' : whoseNow[i])))}</span><span class="obd-chip">${_obEsc(obWhenChip(o))}</span>${state}</span></span></div>`;
+  };
+  const listHtml = () => {
+    const shown = i => filter === 'all' ? decision(i) !== 'already' : filter === 'already' ? decision(i) === 'already' : (decision(i) !== 'already' && obKindOf(found[i]) === filter);
+    let out = '';
+    GROUPS.forEach(([k, w]) => {
+      const ids = found.map((_, i) => i).filter(i => shown(i) && decision(i) !== 'already' && obKindOf(found[i]) === k);
+      if (!ids.length) return;
+      const left = ids.filter(i => !decision(i)).length;
+      out += `<div class="obd-grp"><label class="obd-gh"><input type="checkbox" data-obd-group="${k}" aria-label="${_obEsc(i18t(w))}"${left ? '' : ' disabled'}/><span>${_obEsc(i18t(w))}</span><span class="obd-gn">${_obEsc(i18tn('obd_to_decide', left, { n: left }))}</span></label>${ids.map(rowHtml).join('')}</div>`;
+    });
+    const al = found.map((_, i) => i).filter(i => decision(i) === 'already' && (filter === 'all' || filter === 'already'));
+    if (al.length) out += `<div class="obd-grp is-already"><div class="obd-gh"><span class="obd-tick-gap"></span><span>${_obEsc(i18t('obd_g_already'))}</span><span class="obd-gn">${_obEsc(i18t('obd_nothing_to_decide'))}</span></div>${al.map(rowHtml).join('')}</div>`;
+    return out || `<p class="obd-empty">${_obEsc(i18t('obd_none_here'))}</p>`;
+  };
+  const itemHtml = () => {
+    const o = found[sel]; if (!o) return '';
+    const d = decision(sel), k = obKindOf(o), w = whoseNow[sel];
+    const cur = typeof window.contractCurrency === 'function' ? contractCurrency(c) : '';
+    const amt = Number(o.amount) > 0 ? (cur ? cur + ' ' : '') + Number(o.amount).toLocaleString() : '—';
+    const both = obWhoseOf(o) === 'both';
+    const acts = d === 'already' ? `<p class="obd-note">${_obEsc(i18t('ob_already_on'))}</p>`
+      : d === 'added' ? `<p class="obd-note is-ok">${_obEsc(i18t('obd_added'))} · <button type="button" class="ui-link" data-obd-go-tab>${_obEsc(i18t('obd_see_tab'))}</button></p>`
+      : d === 'skipped' ? `<p class="obd-note">${_obEsc(i18t('obd_skipped'))} · <button type="button" class="ui-link" data-obd-undo>${_obEsc(i18t('obd_undo'))}</button></p>`
+      : `<div class="obd-acts"><button type="button" class="ui-btn ui-btn-primary" data-obd-add>${_obEsc(i18t('obd_add'))}</button><button type="button" class="ui-btn" data-obd-edit>${_obEsc(i18t('obd_edit'))}</button><button type="button" class="ui-btn" data-obd-skip>${_obEsc(i18t('obd_skip'))}</button></div>`;
+    return `<div class="obd-meta">${_obEsc([o.clause ? i18t('obd_clause', { n: o.clause }) : '', i18t(GROUPS.find(g => g[0] === k)[1])].filter(Boolean).join(' · '))}</div>
+      <h4 class="obd-ih">${_obEsc(o.desc || '')}</h4>
+      ${o.quote ? `<blockquote class="obd-quote">&ldquo;${_obEsc(o.quote)}&rdquo;</blockquote>` : ''}
+      <dl class="obd-facts">
+        <dt>${_obEsc(i18t('obd_whose'))}</dt><dd><span class="obd-switch" role="group">${['us', 'them'].map(x => `<button type="button" data-obd-whose="${x}" aria-pressed="${w === x}"${d ? ' disabled' : ''}>${_obEsc(obWhoseWord(c, x))}</button>`).join('')}</span>${w === 'unsure' ? ` <span class="obd-ns">${_obEsc(i18t('obd_not_sure'))}</span>` : ''}</dd>
+        <dt>${_obEsc(i18t('ob_due_date'))}</dt><dd>${_obEsc(o.due ? obDeskDay(o.due) : (k === 'event' ? i18t('obd_when_event') : k === 'standing' ? i18t('obd_when_always') : '—'))}</dd>
+        <dt>${_obEsc(i18t('ob_recurring'))}</dt><dd>${_obEsc(o.recurring && o.recurring !== 'none' ? obRecurLabel(o.recurring) : '—')}</dd>
+        <dt>${_obEsc(i18t('obd_amount'))}</dt><dd>${_obEsc(amt)}</dd>
+        <dt>${_obEsc(i18t('obd_document'))}</dt><dd>${_obEsc(o.doc === true ? i18t('obd_doc_yes') : o.doc === false ? i18t('obd_doc_no') : '—')}</dd>
+      </dl>
+      ${both ? `<p class="obd-note">${_obEsc(i18t('obd_both_line'))}</p>` : ''}
+      ${o.why ? `<p class="obd-why">${_obEsc(i18t('obd_why', { g: i18t(GROUPS.find(g => g[0] === k)[1]).toLowerCase(), why: o.why }))}</p>` : ''}
+      ${acts}`;
+  };
+  const footCount = () => { const t = obReviewTally(c, found); return i18t('obd_foot', { left: t.left, added: t.added, skipped: t.skipped }); };
+  const filtersHtml = () => { const n = counts();
+    return [['all', 'obd_f_all'], ['dated', 'obd_f_dated'], ['event', 'obd_f_event'], ['standing', 'obd_f_standing'], ['already', 'obd_f_already']]
+      .filter(([k]) => k === 'all' || n[k]).map(([k, w]) => `<button type="button" data-obd-filter="${k}" aria-pressed="${filter === k}">${_obEsc(i18t(w))} <span>${n[k]}</span></button>`).join(''); };
+  const leftN = () => obReviewTally(c, found).left;
   openModal(`
-    <div class="p-6">
-      <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
-        <h3 class="font-serif font-600 text-lg text-ink">${i18t('ob_proposed')}</h3></div>
-      <p class="text-xs text-ink/60 mb-3">${i18t('ob_tick_to_add')}</p>
-      <div class="space-y-2 max-h-[45vh] overflow-y-auto scroll-thin mb-4">
-        ${found.map((o,i)=>`<label class="flex gap-2.5 rounded-lg border border-line bg-white px-3 py-2.5 cursor-pointer${dupe[i]?' opacity-70':''}">
-          <input type="checkbox" data-ob-pick="${i}" class="mt-0.5 h-4 w-4 rounded border-brand-200 accent-brand-700"/>
-          <span class="min-w-0"><span class="block text-[12.5px] font-normal text-ink">${(o.desc||'').replace(/</g,'&lt;')}</span>
-          ${dupe[i]
-            ? `<span class="block text-[10px] text-gold-700 mt-0.5">${_obEsc(i18t('ob_already_on'))}</span>`
-            : (o.quote?`<span class="block text-[10px] text-ink/50 italic mt-0.5">&ldquo;${o.quote.replace(/</g,'&lt;')}&rdquo;</span>`:'')}</span></label>`).join('')}
-      </div>
-      <div class="flex justify-end gap-2">
-        <button id="or-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        ${''/* THE BUTTON COUNTS WHAT WILL ACTUALLY BE ADDED, so a press on a
-               second scan that finds nothing new says so before it is pressed
-               rather than afterwards. Its LABEL is written by obPaintAdd and
-               never here — see the note on that painter. */}
+    <div class="obd" id="obd">
+      <div class="obd-top"><div class="flex items-center gap-2"><span class="text-gold-600">${icon('sparkle','w-4 h-4')}</span>
+        <h3 class="obd-title">${i18t('ob_proposed')}</h3></div>
+        <p class="obd-sub">${_obEsc(i18tn('obd_sub', found.length, { n: found.length }))}</p></div>
+      <div class="obd-filters" role="group" id="obd-filters">${filtersHtml()}</div>
+      <div class="obd-grid"><div class="obd-list scroll-thin" id="obd-list">${listHtml()}</div><div class="obd-item" id="obd-item">${itemHtml()}</div></div>
+      <div class="obd-foot"><span class="obd-count" id="obd-count">${_obEsc(footCount())}</span><span class="obd-sp"></span>
+        <button id="or-cancel" class="ui-btn">${i18t('obd_close')}</button>
+        <button id="obd-all" class="ui-btn">${_obEsc(i18tn('obd_add_all', leftN(), { n: leftN() }))}</button>
+        ${''/* THE BUTTON COUNTS WHAT WILL ACTUALLY BE ADDED. Its LABEL is
+               written by obPaintAdd and never here — one painter. */}
         <button id="or-add" class="ui-btn ui-btn-primary"></button>
       </div>
-    </div>`);
-  /* ---- THE COUNT FOLLOWS THE TICKS, LIVE (owner-reported 1 Sep 2026) ----
-     *"as I exclude or include any obligations, the count in the highlighted
-     button should in live reflect the number of obligations checked only."*
-
-     IT WAS WRITTEN ONCE, AT THE DRAW. The count was right the moment the window
-     opened — it already left duplicates out, which is what J-5.3 built it for —
-     and then never moved again, so untick fifteen of twenty and the button
-     still offered to add twenty.
-
-     ONE PAINTER AND NO SECOND COPY. The label is not written into the markup
-     above at all: this function is the only thing that writes it, so the first
-     paint and every repaint go through one reading and cannot come to disagree
-     about what the number means.
-
-     AND ZERO IS TWO DIFFERENT SENTENCES, which is why the state is read rather
-     than the number alone. Nothing ticked because the scan found nothing new is
-     a fact about the scan; nothing ticked because the reader untied everything
-     is their own choice, and telling them "nothing new to add" over a list full
-     of new proposals would be the window arguing with itself. Either way the
-     button is DISABLED — this product's own rule: grey where it can be known
-     before the press, rather than a refusal after it. */
+    </div>`, { maxWidth: '920px', label: i18t('ob_proposed') });
+  const modal = document.getElementById('modal-root');
   const obPicks = () => Array.prototype.slice.call(
     document.querySelectorAll('#modal-root [data-ob-pick]'));
+  /* ---- THE COUNT FOLLOWS THE TICKS, LIVE (owner-reported 1 Sep 2026) ----
+     ONE PAINTER AND NO SECOND COPY: the label is not written into the markup
+     above at all. Zero is two sentences (nothing new to add is a live Done;
+     "tick to add" over fresh proposals is greyed, its label says what to do). */
   function obPaintAdd(){
     const btn = document.getElementById('or-add');
     if (!btn) return;
     const n = obPicks().filter(cb => cb.checked).length;
     btn.textContent = n
       ? i18tn('ob_add_n', n, { n })
-      : i18t(fresh ? 'ob_add_pick' : 'ob_add_none');
-    /* "NOTHING NEW TO ADD" IS A LIVE PRESS (owner-reported 13 Sep 2026:
-       "nothing new to add button is not working"). Where the scan found
-       nothing new there is nothing to tick, so a greyed primary was a dead end
-       dressed as the main act. It is the window's Done now: the press goes
-       down the same path (nothing added, the fact said in the toast, the
-       read recorded). "Tick one to add" over fresh proposals stays greyed —
-       its label says what to do. */
-    btn.disabled = !n && fresh;
+      : i18t(fresh && leftN() ? 'ob_add_pick' : 'ob_add_none');
+    btn.disabled = !n && fresh && leftN() > 0;
+    const all = document.getElementById('obd-all');
+    if (all){ const l = leftN(); all.textContent = i18tn('obd_add_all', l, { n: l }); all.disabled = !l; }
+    const cnt = document.getElementById('obd-count'); if (cnt) cnt.textContent = footCount();
   }
+  /* repaint the list and the item, keeping the ticks and the list's scroll */
+  const repaint = () => {
+    const ticked = new Set(obPicks().filter(cb => cb.checked).map(cb => cb.getAttribute('data-ob-pick')));
+    const L = document.getElementById('obd-list'), top = L ? L.scrollTop : 0;
+    if (L){ L.innerHTML = listHtml(); L.scrollTop = top; }
+    obPicks().forEach(cb => { if (ticked.has(cb.getAttribute('data-ob-pick')) && !cb.disabled) cb.checked = true; });
+    const I = document.getElementById('obd-item'); if (I) I.innerHTML = itemHtml();
+    const F = document.getElementById('obd-filters'); if (F) F.innerHTML = filtersHtml();
+    obPaintAdd();
+  };
   obPaintAdd();
-  /* ONE DELEGATED LISTENER on the window rather than one per row: the list runs
-     to twenty on a real agreement, and a listener per box is twenty things to
-     keep in step with a row that is redrawn. */
-  const modal = document.getElementById('modal-root');
+  if (back && back.top){ const L = document.getElementById('obd-list'); if (L) L.scrollTop = back.top; }
+  /* the one writer an add goes through, asked again at the wall */
+  const addOne = i => {
+    const o = found[i];
+    if (!o || obligationAlreadyOn(c, o)) return false;
+    c.obligations = c.obligations || [];
+    const w = whoseNow[i];
+    const rec = { id: 'ob_' + Math.random().toString(36).slice(2, 8), desc: o.desc, due: o.due || '', recurring: o.recurring || 'none',
+      assignee: '', status: 'open', quote: o.quote || '', party: w === 'them' ? 'theirs' : 'ours' };
+    if (Number(o.amount) > 0) rec.amount = Number(o.amount);
+    if (o.doc === true) rec.doc = {};
+    if (o.clause) rec.clause = String(o.clause).slice(0, 20);
+    c.obligations.push(rec);
+    obReviewMark(c, o, 'added');
+    if (trace[i] && window.aiTraceTaken) try { aiTraceTaken(c, trace[i]); } catch (_){}
+    return true;
+  };
+  const settled = (n, skipped) => {
+    if(n) logAudit(c,'Obligation',`Added ${n} obligation${n === 1 ? '' : 's'} from Copilot scan` + (skipped ? ` — ${skipped} already on the contract` : ''));
+    persist(c); renderObligationsSection(c); obligationSurfacesChanged();
+    if (window.roomPaintObligations) roomPaintObligations(c);
+  };
   if (modal) modal.addEventListener('change', ev => {
-    if (ev.target && ev.target.closest && ev.target.closest('[data-ob-pick]')) obPaintAdd();
+    const t = ev.target;
+    if (t && t.closest && t.closest('[data-obd-group]')){
+      const k = t.getAttribute('data-obd-group');
+      obPicks().forEach(cb => { const i = Number(cb.getAttribute('data-ob-pick')); if (!cb.disabled && obKindOf(found[i]) === k) cb.checked = t.checked; });
+      obPaintAdd(); return;
+    }
+    if (t && t.closest && t.closest('[data-ob-pick]')) obPaintAdd();
   });
-  document.getElementById('or-cancel').addEventListener('click',closeModal);
-  document.getElementById('or-add').addEventListener('click',()=>{
-    c.obligations=c.obligations||[];
-    /* WHAT WAS ALREADY THERE IS COUNTED OFF THE PROPOSALS, not off the boxes.
-       The dialog unticks a duplicate on the reader's behalf, so counting only
-       the ticked ones would report "1 added" and say nothing at all about the
-       two it had set aside — which is the silent half of the reported bug
-       returning in politer clothes. */
-    let n=0, skipped=dupe.filter(d=>d).length;
-    const picked=new Set();
-    document.querySelectorAll('[data-ob-pick]').forEach(cb=>{ if(!cb.checked) return;
-      const o=found[Number(cb.getAttribute('data-ob-pick'))];
-      /* ASKED AGAIN AT THE ADD, not only at the draw. The dialog can be open
-         while another surface files an obligation, and this is the wall — the
-         checkbox is the sign. */
-      /* And the wall: a proposal the reader ticked anyway, or one that became
-         a duplicate while the dialog was open, is still not added twice. */
-      if(obligationAlreadyOn(c,o)) return;
-      c.obligations.push({ id:'ob_'+Math.random().toString(36).slice(2,8), desc:o.desc, due:o.due||'', recurring:o.recurring||'none', assignee:'', status:'open', quote:o.quote||'' }); n++;
-      picked.add(Number(cb.getAttribute('data-ob-pick'))); });
-    /* AND WHAT WAS LEFT UNTICKED IS AN EXPLICIT NO — the one surface in the
-       product where a reader says so about a Copilot proposal in as many
-       words. Taken is `as-is` and never `edited`: this window offers no way to
-       change the wording before it is added, so an edited outcome here would
-       be a state the screen cannot produce. */
-    try{
-      const ticked = new Set();
-      document.querySelectorAll('[data-ob-pick]').forEach(cb => {
-        if (cb.checked) ticked.add(Number(cb.getAttribute('data-ob-pick'))); });
-      if (window.aiTraceTaken) trace.forEach((id, i) => {
-        if (!id) return;
-        if (picked.has(i)) aiTraceTaken(c, id);
-        /* TICKED AND NOT ADDED is the one that became a duplicate while the
-           window was open. The reader said yes, so it is not a refusal; the
-           contract already carries the wording, so it is not a fresh
-           acceptance either. It is left as offered, which is the only one of
-           the five that is true of it. */
-        else if (!ticked.has(i) && window.aiTraceRefuse)
-          aiTraceRefuse(c, id, i18t('ob_trace_untick'));
-      });
-    }catch(_){}
-    /* NOTHING ADDED IS NOT AN ADDITION (the owner's list, 27 Sep 2026): the
-       trail read "Added 0 obligations … already on the contract". It says what
-       happened, and a press that changed nothing and skipped nothing writes no
-       line at all. */
-    if(n) logAudit(c,'Obligation',`Added ${n} obligation${n===1?'':'s'} from Copilot scan`
-      +(skipped?` — ${skipped} already on the contract`:''));
-    else if(skipped) logAudit(c,'Obligation',`Nothing added from Copilot scan — the ${skipped===1?'one it found is':skipped+' it found are'} already on the contract`);
-    persist(c); closeModal(); renderObligationsSection(c); obligationSurfacesChanged();
-    if(window.roomPaintObligations) roomPaintObligations(c);
-    /* AND IT SAYS SO OUT LOUD. A bare toast prints NOTHING in this product, so
-       the one act on this dialog that changes the record said nothing at all.
-       'ok' because something arrived; 'warn' when nothing did, because a
-       confirmation reading "0 added" is a refusal wearing a receipt's clothes. */
-    /* ZERO IS A DIFFERENT SENTENCE, NOT A PLURAL FORM — tn knows only _one and
-       _other, so a _zero suffix would be a key nothing ever reads. */
+  if (modal) modal.addEventListener('click', ev => {
+    const t = ev.target && ev.target.closest ? ev.target : null; if (!t || !t.closest('#obd')) return;
+    const f = t.closest('[data-obd-filter]'); if (f){ filter = f.getAttribute('data-obd-filter'); repaint(); return; }
+    const row = t.closest('[data-obd-sel]');
+    if (row && !t.closest('[data-ob-pick]')){ sel = Number(row.getAttribute('data-obd-sel')); repaint(); return; }
+    const ws = t.closest('[data-obd-whose]'); if (ws){ whoseNow[sel] = ws.getAttribute('data-obd-whose'); repaint(); return; }
+    if (t.closest('[data-obd-add]')){ if (addOne(sel)){ settled(1, 0); toast(i18tn('ob_added_n', 1, { n: 1 }), 'ok'); } repaint(); return; }
+    if (t.closest('[data-obd-skip]')){
+      obReviewMark(c, found[sel], 'skipped');
+      if (trace[sel] && window.aiTraceRefuse) try { aiTraceRefuse(c, trace[sel], i18t('ob_trace_untick')); } catch (_){}
+      persist(c); if (window.paintKtTriage && document.getElementById('kt-triage-slot')) try { paintKtTriage(c); } catch (_){}
+      const next = found.findIndex((o, i) => i !== sel && !decision(i)); if (next >= 0) sel = next;
+      repaint(); return;
+    }
+    if (t.closest('[data-obd-undo]')){ obReviewMark(c, found[sel], null); persist(c); repaint(); return; }
+    if (t.closest('[data-obd-go-tab]')){ closeModal(); if (window.roomGoTab) try { roomGoTab(c, 'oblig'); } catch (_){} return; }
+    if (t.closest('[data-obd-edit]')){
+      /* EDIT BEFORE ADDING OPENS THE WINDOW YOU KNOW (O-33): the existing
+         form, filled from Copilot's reading; "Back to the list" returns here
+         on the same item. No second form. */
+      const o = found[sel], at = sel, L0 = document.getElementById('obd-list');
+      const back = { sel: at, filter, top: L0 ? L0.scrollTop : 0 };
+      openObligationForm(c, { desc: o.desc || '', due: o.due || '', recurring: o.recurring || 'none', assignee: '', quote: o.quote || '',
+        amount: Number(o.amount) > 0 ? Number(o.amount) : '', party: whoseNow[at] === 'them' ? 'theirs' : 'ours', doc: o.doc === true ? {} : undefined },
+        { saveLabel: i18t('obd_add_ob'), cancelLabel: i18t('obd_back'),
+          onSaved: () => { obReviewMark(c, o, 'added'); if (trace[at] && window.aiTraceTaken) try { aiTraceTaken(c, trace[at]); } catch (_){} persist(c); openObligationsReview(c, found, back); },
+          onCancel: () => { openObligationsReview(c, found, back); } });
+      return;
+    }
+    if (t.closest('#obd-all')){
+      /* "Add all" is the reader's press: it ticks what is left, then adds */
+      obPicks().forEach(cb => { if (!cb.disabled) cb.checked = true; });
+      document.getElementById('or-add').click(); return;
+    }
+  });
+  document.getElementById('or-cancel').addEventListener('click', () => {
+    if (window.paintKtTriage && document.getElementById('kt-triage-slot')) try { paintKtTriage(c); } catch (_){}
+    closeModal(); });
+  document.getElementById('or-add').addEventListener('click', () => {
+    let n = 0; const skipped = dupe.filter(d => d).length;
+    obPicks().forEach(cb => { if (!cb.checked) return;
+      /* ASKED AGAIN AT THE ADD: the wall, not the sign */
+      if (addOne(Number(cb.getAttribute('data-ob-pick')))) n++; });
+    if (n || skipped) settled(n, 0);
+    if (!n && skipped) logAudit(c, 'Obligation', `Nothing added from Copilot scan — the ${skipped === 1 ? 'one it found is' : skipped + ' it found are'} already on the contract`);
+    persist(c); closeModal(); renderObligationsSection(c);
+    if (window.paintKtTriage && document.getElementById('kt-triage-slot')) try { paintKtTriage(c); } catch (_){}
+    /* AND IT SAYS SO OUT LOUD: 'ok' when something arrived, 'warn' when not */
     toast(n === 0
       ? (skipped ? i18t('ob_added_none_dupes', { d: skipped }) : i18t('ob_added_none'))
       : (skipped ? i18tn('ob_added_n_dupes', n, { n, d: skipped }) : i18tn('ob_added_n', n, { n })),
@@ -1726,7 +1874,7 @@ function roomObligationsHtml(c){
       ${moneyLine}
       ${editable ? `<span class="obt-acts">
         <button type="button" id="obt-add" class="ui-btn">${_obEsc(i18t('ob_add'))}</button>
-        ${obFindDoorHtml(c, _obEsc(i18t('ob_find')))}
+        ${obFindDoorHtml(c, obFindWord(c))}
       </span>` : ''}
     </div>`;
 
@@ -3291,7 +3439,7 @@ function roomObligationsInspector(c, host){
       <span class="facts">${facts}</span>
       <span class="sp"></span>
       ${editable ? `<button type="button" id="obt-add" class="ui-btn">${plus}${_obEsc(i18t('ob_add'))}</button>
-      ${obFindDoorHtml(c, find + _obEsc(i18t('ob_find')))}` : ''}
+      ${obFindDoorHtml(c, (obReviewWaiting(c).length ? '' : find) + obFindWord(c))}` : ''}
     </div>
     <div class="ins-body">
       <section class="ins-card" aria-label="${_obEsc(i18t('tab_obligations'))}">
@@ -3429,4 +3577,4 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
   OBW_VIEWS,OBW_CHIPS,obwPlace,obwPlacePut,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
-  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalRecordedOf,renewalDecisionStale,renewalDecided,RENEWAL_PAPER_KINDS,renewalNextStep,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview});
+  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalRecordedOf,renewalDecisionStale,renewalDecided,RENEWAL_PAPER_KINDS,renewalNextStep,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview,OB_KINDS,OB_WHOSE,obKindOf,obWhoseOf,obReviewOf,obReviewMark,obReviewDecision,obReviewTally,obReviewWaiting,obKindSplitText,obFindWord});

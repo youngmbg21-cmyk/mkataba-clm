@@ -62,6 +62,8 @@ describe('f260 (1) — the dedupe, and it is one reading', () => {
     assert.equal(win.obligationAlreadyOn(null, { desc: 'x' }), false);
   });
 
+  /* RE-POINTED 7 Oct 2026 (work order O-32): the window is the Review desk
+     now; the same walls, written in its own shape. */
   test('it is asked at the DRAW and again at the ADD', () => {
     /* The dialog can be open while another surface files an obligation. The
        checkbox is the sign; the check inside the handler is the wall. */
@@ -74,8 +76,8 @@ describe('f260 (1) — the dedupe, and it is one reading', () => {
        the PROPOSALS, because the dialog unticks a duplicate on the reader's
        behalf and counting the ticked ones alone reported "1 added" and said
        nothing about the two it had set aside. */
-    assert.match(body, /if\(obligationAlreadyOn\(c,o\)\) return;/, 'and at the add');
-    assert.match(body, /let n=0, skipped=dupe\.filter\(d=>d\)\.length;/,
+    assert.match(body, /if \(!o \|\| obligationAlreadyOn\(c, o\)\) return false;/, 'and at the add');
+    assert.match(body, /let n = 0; const skipped = dupe\.filter\(d => d\)\.length;/,
       'and the count is off the proposals, not off the boxes');
   });
 });
@@ -142,12 +144,12 @@ describe('f260 (2b) — the count follows the ticks', () => {
        scan; nothing ticked because the reader untied everything is their own
        choice. Telling them "nothing new to add" over a list full of new
        proposals would be the window arguing with itself. */
-    assert.match(body, /i18t\(fresh \? 'ob_add_pick' : 'ob_add_none'\)/,
+    assert.match(body, /i18t\(fresh && leftN\(\) \? 'ob_add_pick' : 'ob_add_none'\)/,
       'the state is read, not the number alone');
     /* RE-POINTED 13 Sep 2026: "Nothing new to add" is a live press that closes
        the window (nothing added, said in the toast); only "Tick one to add"
        over fresh proposals stays greyed. */
-    assert.match(body, /btn\.disabled = !n && fresh;/,
+    assert.match(body, /btn\.disabled = !n && fresh && leftN\(\) > 0;/,
       'greyed only where the label tells the reader what to do; a scan with nothing new offers Done');
   });
 

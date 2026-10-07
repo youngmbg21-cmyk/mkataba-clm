@@ -3137,10 +3137,14 @@ const sdIdCmp=(a,b)=>String(sdRef(a)).localeCompare(String(sdRef(b)),undefined,{
 /* ---- 1 · THE CLAUSE LIBRARY ---- */
 function sdClauseListHtml(d){
   const cols=[{t:i18t('sd_col_standard')},{t:i18t('sd_col_firm'),w:230},{t:i18t('sd_col_fallback'),w:140},{t:i18t('sd_col_departing'),w:150}];
+  let LL=null; try{ LL=(typeof stdLearned==='function')?stdLearned():null; }catch(_){ LL=null; }
+  /* THE ROW SAYS IT (7 Oct 2026, O-18): one small line where this standard's
+     settled rounds propose a move — no band, no column of its own. */
+  const learnTag=cl=>{ const p=sdLearnProposal(cl, LL); return p?`<span class="sd-learn-tag"><i aria-hidden="true"></i>${esc(i18t('sd_learn_tag',{figure:p.figure,unit:p.unit}))}</span>`:''; };
   const body=d.lib.map(cl=>{
     const f=sdFirm(cl), fb=sdFbShort(cl), off=stdDepartsFrom(cl.category, d.book);
     return `<tr data-ins-row data-sd-row="${esc(String(cl.id))}" tabindex="-1">
-      <td><span class="ins-c2"><b title="${esc(cl.name||'')}">${esc(cl.name||'')}</b><span>${esc(cl.category||'')}</span></span></td>
+      <td><span class="ins-c2"><b title="${esc(cl.name||'')}">${esc(cl.name||'')}</b><span>${esc(cl.category||'')}</span>${learnTag(cl)}</span></td>
       <td><span class="ins-c2"><b class="${f.req?'is-req':''}">${esc(f.word)}</b><span title="${esc(f.where)}">${esc(f.where)}</span></span></td>
       <td><span class="${fb.none?'ins-quiet':''}">${esc(fb.text)}</span></td>
       <td>${d.book.length?sdCountCell(off):`<span class="ins-quiet">—</span>`}</td></tr>`;
@@ -3152,25 +3156,144 @@ function sdClauseListHtml(d){
    move (and the two buttons the card has always carried, pressing the same
    two acts), a line that is holding, the all-time history, or the honest
    absence. */
+/* ---- WHAT YOU HAVE SETTLED FOR: THE EVIDENCE, AND THE DECISION IN PLACE ----
+   (7 Oct 2026, work order O-18 to O-21; the owner's D5–D7)
+   The quarter's settled rounds for THIS standard: one sentence, the rounds as
+   a chart against the preferred and fallback lines, three counted figures,
+   and the rounds themselves, each a door to its contract. Then three
+   choices — move the preferred, move the fallback, keep it — and the chosen
+   one shows the wording it would write, marked, before anything is saved
+   (D6: confirm in place; it reverses the 9 Sep rule that opened the editor
+   first). Keep is remembered for six months (D7). Every change lands on the
+   standard's own trail. The figure is stdHeld's, the worst repeated one (D5).
+   Counting only; nothing here asks a model. */
+let _sdLearnPick=null;          // { id, move } — the choice being confirmed, this sitting
+const _sdLearnDone={};          // id → the sentence said once a move is made, this sitting
+function sdLearnProposal(cl, L){
+  if(!cl) return null;
+  const mine=x=>!!x&&(x.clause===cl.id||sdSame(x.category,cl.category));
+  const p=L&&(L.proposals||[]).find(mine);
+  if(!p) return null;
+  return (typeof stdKeptQuiet==='function'&&stdKeptQuiet(cl,p))?null:p;
+}
+function sdLearnChartHtml(R, p){
+  const vals=R.rounds.map(r=>Number(r.figure)).filter(v=>isFinite(v));
+  if(!vals.length) return '';
+  const lines=[];
+  if(p.preferredFigure!=null) lines.push({ v:p.preferredFigure, cls:'sd-ln-pref', t:i18t('sd_learn_pref_line',{figure:p.preferredFigure,unit:p.unit}) });
+  if(p.fallbackFigure!=null&&p.fallbackFigure!==p.preferredFigure) lines.push({ v:p.fallbackFigure, cls:'sd-ln-fb', t:i18t('sd_learn_fb_line',{figure:p.fallbackFigure,unit:p.unit}) });
+  const all=vals.concat(lines.map(l=>l.v));
+  const lo=Math.min(...all), hi=Math.max(...all), pad=(hi-lo)*0.25||5, a=lo-pad, b=hi+pad;
+  const W=380, H=124, x0=34, x1=W-8, y0=14, y1=H-22;
+  const y=v=>y1-(v-a)/(b-a)*(y1-y0), x=i=>x0+(vals.length===1?(x1-x0)/2:i*(x1-x0)/(vals.length-1));
+  let g='';
+  lines.forEach(l=>{ g+=`<line x1="${x0}" x2="${x1}" y1="${y(l.v).toFixed(1)}" y2="${y(l.v).toFixed(1)}" class="${l.cls}"/><text x="${x0-5}" y="${(y(l.v)+3).toFixed(1)}" text-anchor="end" class="sd-ch-t">${esc(String(l.v))}</text>`; });
+  if(lines[0]) g+=`<text x="${x1}" y="${(y(lines[0].v)-5).toFixed(1)}" text-anchor="end" class="sd-ch-t">${esc(lines[0].t)}</text>`;
+  R.rounds.forEach((r,i)=>{ const at=Number(r.figure)===Number(p.figure);
+    g+=`<circle cx="${x(i).toFixed(1)}" cy="${y(Number(r.figure)).toFixed(1)}" r="${at?5:4}" class="${at?'sd-dot-at':'sd-dot'}"><title>${esc((r.counterparty||r.ref)+': '+r.figure+' '+p.unit)}</title></circle>`; });
+  g+=`<text x="${x0}" y="${H-6}" class="sd-ch-t">${esc(i18t('sd_learn_oldest'))}</text><text x="${x1}" y="${H-6}" text-anchor="end" class="sd-ch-t">${esc(i18t('sd_learn_latest'))}</text>`;
+  return `<div class="sd-learn-chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(i18t('sd_learn_chart_aria',{n:vals.length}))}">${g}</svg>
+    <div class="sd-learn-legend"><span><i class="sd-k-at"></i>${esc(i18t('sd_learn_settled_at',{figure:p.figure,unit:p.unit}))}</span><span><i class="sd-k-else"></i>${esc(i18t('sd_learn_elsewhere'))}</span></div></div>`;
+}
+/* The wording a move would write, or null where the wording carries no such
+   figure (then the clause editor is the way, as before). */
+function sdLearnNewText(cl, p, move){
+  if(move==='preferred') return (typeof stdSwapFigure==='function')?stdSwapFigure(cl.preferred, p.preferredFigure, p.figure):null;
+  if(move==='fallback'){
+    const cur=String(cl.fallback||'').trim();
+    if(!cur) return i18t('pc_fallback_text',{figure:p.figure,unit:p.unit,category:p.category});
+    return (typeof stdSwapFigure==='function')?stdSwapFigure(cur, p.fallbackFigure, p.figure):null;
+  }
+  return null;
+}
 function sdSettledHtml(cl, mayAdopt){
   let L=null; try{ L=(typeof stdLearned==='function')?stdLearned():null; }catch(_){ L=null; }
   const mine=x=>!!x&&(x.clause===cl.id||sdSame(x.category,cl.category));
-  const p=L&&(L.proposals||[]).find(mine);
+  const raw=L&&(L.proposals||[]).find(mine);
+  const id=String(cl.id);
+  if(_sdLearnDone[id]) return `<p class="ins-p sd-learn-done">✓ ${esc(_sdLearnDone[id])}</p><p class="ins-note">${esc(i18t('sd_learn_watching'))}</p>`;
+  if(raw && typeof stdKeptQuiet==='function' && stdKeptQuiet(cl,raw)){
+    const k=cl.learnKept||{};
+    return `<p class="ins-p">${esc(i18t('sd_learn_kept_line',{figure:raw.preferredFigure!=null?raw.preferredFigure:raw.fallbackFigure,unit:raw.unit,date:window.fmtDocDate?fmtDocDate(String(k.until).slice(0,10)):String(k.until).slice(0,10)}))}</p>`;
+  }
+  const p=raw;
   if(p){
+    const R=(typeof stdRoundsFor==='function')?stdRoundsFor(cl):null;
     const says=[ p.preferredFigure!=null?i18t('std_learn_pref_says',{figure:p.preferredFigure,unit:p.unit}):'',
       p.fallbackFigure!=null?i18t('std_learn_fb_says',{figure:p.fallbackFigure,unit:p.unit}):'' ].filter(Boolean).join(' ');
-    const btns=mayAdopt?[
-      p.moves.includes('preferred')?`<button type="button" class="ui-btn ui-btn-sm" data-sd-pref="${esc(p.key)}">${esc(i18t('std_learn_move_pref',{figure:p.figure,unit:p.unit}))}</button>`:'',
-      p.moves.includes('fallback')?`<button type="button" class="ui-btn ui-btn-sm" data-sd-fb="${esc(p.key)}">${esc(i18t('std_learn_move_fb',{figure:p.figure,unit:p.unit}))}</button>`:''
-    ].join(''):'';
-    return `<p class="ins-p">${esc(i18t('std_learn_line',{category:p.category,figure:p.figure,unit:p.unit,seen:p.seen,settled:p.settled}))}</p>${
-      says?`<p class="ins-note">${esc(says)}</p>`:''}${btns?`<div class="sd-moves">${btns}</div>`:''}`;
+    const stats=R?`<div class="sd-learn-stats">
+        <div><b>${R.rounds.length}</b><span>${esc(i18t('sd_learn_stat_rounds'))}</span></div>
+        <div><b>${p.seen}</b><span>${esc(i18t('sd_learn_stat_at',{figure:p.figure,unit:p.unit}))}</span></div>
+        <div><b>${R.contracts}</b><span>${esc(i18t('sd_learn_stat_contracts'))}</span></div></div>`:'';
+    const list=R&&R.rounds.length?`<details class="sd-learn-why"><summary>${esc(i18tn('sd_learn_see_n',R.rounds.length,{n:R.rounds.length}))}</summary><ul>${
+      R.rounds.slice().reverse().map(r=>`<li><button type="button" class="ui-link" data-sd-open-c="${esc(r.contractId)}">${esc(r.counterparty||r.ref)} <span class="hati-ref">${esc(r.ref)}</span></button><span class="sd-pill${Number(r.figure)===Number(p.figure)?' is-at':''}">${esc(r.figure+' '+p.unit)}</span></li>`).join('')}</ul></details>`:'';
+    const pick=_sdLearnPick&&_sdLearnPick.id===id?_sdLearnPick.move:null;
+    const choice=(move,label,sub)=>`<button type="button" class="sd-mv" data-sd-move="${move}" aria-pressed="${pick===move}"><span class="rb" aria-hidden="true"></span><span><b>${esc(label)}</b><small>${esc(sub)}</small></span></button>`;
+    const choices=mayAdopt?`<div class="sd-moves-3" role="group" aria-label="${esc(i18t('sd_learn_what_changes'))}">
+        ${p.moves.includes('preferred')?choice('preferred',i18t('std_learn_move_pref',{figure:p.figure,unit:p.unit}),i18t('sd_learn_pref_sub')):''}
+        ${p.moves.includes('fallback')?choice('fallback',i18t('std_learn_move_fb',{figure:p.figure,unit:p.unit}),i18t('sd_learn_fb_sub',{pref:p.preferredFigure!=null?p.preferredFigure:'—',figure:p.figure,unit:p.unit})):''}
+        ${choice('keep',i18t('sd_learn_keep',{figure:p.preferredFigure!=null?p.preferredFigure:(p.fallbackFigure!=null?p.fallbackFigure:''),unit:p.unit}),i18t('sd_learn_keep_sub'))}</div>`:'';
+    let confirm='';
+    if(pick){
+      const cur=pick==='preferred'?String(cl.preferred||''):String(cl.fallback||'');
+      const next=pick==='keep'?null:sdLearnNewText(cl,p,pick);
+      const prev=(pick!=='keep'&&next!=null&&window.diffHtml)?`<blockquote class="ins-q sd-learn-prev">${diffHtml(cur,next)}</blockquote>`:'';
+      const msg=pick==='keep'?i18t('sd_learn_confirm_keep',{date:window.fmtDocDate?fmtDocDate(new Date(Date.now()+(window.STD_KEEP_DAYS||182)*864e5).toISOString().slice(0,10)):''})
+        : next==null?i18t('sd_learn_no_figure'):i18t(pick==='preferred'?'sd_learn_confirm_pref':'sd_learn_confirm_fb');
+      confirm=`<div class="sd-learn-confirm"><p class="ins-p">${esc(msg)}</p>${prev}<div class="sd-learn-row">
+        <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-sd-move-go>${esc(i18t(pick==='keep'?'sd_learn_keep_go':next==null?'std_edit_wording':'sd_learn_change'))}</button>
+        <button type="button" class="ui-link" data-sd-move-cancel>${esc(i18t('act_cancel'))}</button></div></div>`;
+    }
+    return `<span class="sd-proposed">${esc(i18t('sd_learn_proposed'))}</span>
+      <p class="ins-p sd-learn-lead">${esc(i18t('std_learn_line',{category:p.category,figure:p.figure,unit:p.unit,seen:p.seen,settled:p.settled}))}${says?' '+esc(says):''}</p>
+      ${R?sdLearnChartHtml(R,p):''}${stats}${list}${choices}${confirm}
+      <p class="ins-note sd-learn-cop">✦ ${esc(i18t('sd_learn_copilot'))}</p>`;
   }
   const h=L&&(L.holding||[]).find(mine);
   if(h) return `<p class="ins-p">${esc(i18t('std_learn_hold_line',{figure:h.figure,unit:h.unit,seen:h.seen,settled:h.settled}))}</p>`;
   let hist=null; try{ hist=(typeof stdHistoryFor==='function')?stdHistoryFor(cl):null; }catch(_){ hist=null; }
   if(hist) return `<p class="ins-p"><b>${esc(i18t('std_your_history'))}</b> ${esc(i18t('std_hist_line',{figure:hist.figure,unit:hist.unit,seen:hist.seen,settled:hist.settled}))}</p>`;
   return `<p class="ins-note">${esc(i18t('sd_settled_none',{category:cl.category||''}))}</p>`;
+}
+/* THE ONE WRITER of a learned move: the library row is copied (its seeds are
+   getters), the wording or the kept decision written, a line added to the
+   standard's own trail, saved through saveClauseLibrary like any hand edit,
+   and an Undo offered that puts the row back as it was. Signed contracts are
+   never touched — the standard is what future drafts and checks read. */
+function sdLearnApply(cl, move){
+  let L=null; try{ L=(typeof stdLearned==='function')?stdLearned():null; }catch(_){ L=null; }
+  const mine=x=>!!x&&(x.clause===cl.id||sdSame(x.category,cl.category));
+  const p=L&&(L.proposals||[]).find(mine);
+  if(!p) return;
+  const lib=clauseLibrary().slice();
+  const i=lib.findIndex(x=>String(x.id)===String(cl.id));
+  if(i<0){ toast(i18t('pc_no_clause'),'err'); return; }
+  const before={ ...lib[i] };
+  const rec={ ...lib[i] };
+  const who=(typeof currentUser==='function'&&currentUser()&&currentUser().name)||'';
+  const day=(window.todayISO?todayISO():new Date().toISOString().slice(0,10));
+  let text='', done='';
+  if(move==='keep'){
+    const until=new Date(Date.now()+(window.STD_KEEP_DAYS||182)*864e5).toISOString().slice(0,10);
+    const fig=p.preferredFigure!=null?p.preferredFigure:p.fallbackFigure;
+    rec.learnKept={ figure:p.figure, seen:p.seen, at:day, until };
+    text=i18t('sd_trail_keep',{who,fig,unit:p.unit,seen:p.seen,settled:p.settled,figure:p.figure});
+    done=i18t('sd_learn_done_keep',{fig,unit:p.unit});
+  } else {
+    const next=sdLearnNewText(cl,p,move);
+    if(next==null){ if(move==='preferred'&&window.stdOpenPreferred) stdOpenPreferred(p); else if(window.openClauseEditor) openClauseEditor(i); return; }
+    if(move==='preferred'){ rec.preferred=next; text=i18t('sd_trail_pref',{who,from:p.preferredFigure,figure:p.figure,unit:p.unit,seen:p.seen,settled:p.settled}); done=i18t('sd_learn_done_pref',{figure:p.figure,unit:p.unit}); }
+    else { rec.fallback=next; text=i18t('sd_trail_fb',{who,from:p.fallbackFigure!=null?p.fallbackFigure:'—',figure:p.figure,unit:p.unit,seen:p.seen,settled:p.settled}); done=i18t('sd_learn_done_fb',{figure:p.figure,unit:p.unit}); }
+  }
+  rec.learnTrail=[{ at:day, text }].concat(Array.isArray(rec.learnTrail)?rec.learnTrail:[]).slice(0,20);
+  lib[i]=rec;
+  saveClauseLibrary(lib);
+  _sdLearnPick=null; _sdLearnDone[String(cl.id)]=done;
+  sdRepaint();
+  toast(done,'ok',{ action:{ label:i18t('sd_learn_undo'), run:()=>{
+    const l2=clauseLibrary().slice(); const j=l2.findIndex(x=>String(x.id)===String(cl.id));
+    if(j<0) return; l2[j]=before; saveClauseLibrary(l2); delete _sdLearnDone[String(cl.id)]; sdRepaint();
+  } } });
 }
 function sdVerdictWord(v){
   if(v.accepted) return { cls:'ins-ok', word:i18t('sd_accepted') };
@@ -3206,6 +3329,9 @@ function sdClausePanelOpts(cl, d, mayEdit){
       off.length>shown.length?`<button type="button" class="ui-link" data-sd-devcat="${esc(cl.category)}" style="margin-top:6px">${esc(i18t('sd_show_all_dev',{n:off.length}))}</button>`:''}`;
   body+=insSecHtml(i18t('sd_sec_where'),d.book.length?off.length:'',where,'sd-where');
   body+=insSecHtml(i18t('sd_sec_settled'),'',sdSettledHtml(cl, mayEdit),'sd-settled');
+  /* EVERY CHANGE TO THIS STANDARD, ON ITS OWN TRAIL (O-21). */
+  if(Array.isArray(cl.learnTrail)&&cl.learnTrail.length)
+    body+=insSecHtml(i18t('sd_sec_changes'),'',`<ul class="sd-trail">${cl.learnTrail.map(t=>`<li><span class="when">${esc(window.fmtDocDate?fmtDocDate(String(t.at).slice(0,10)):String(t.at))}</span><span>${esc(t.text)}</span></li>`).join('')}</ul>`,'sd-changes');
   const acts=[];
   if(mayEdit) acts.push({ k:'edit', kind:'accent', label:i18t('std_edit_wording'), icon:'pencil',
     run:()=>{ const i=clauseLibrary().findIndex(x=>String(x.id)===String(cl.id)); if(i>=0) openClauseEditor(i); } });
@@ -3527,6 +3653,8 @@ function sdWireList(tab){
 }
 /* The doors inside a panel: to another tab, to a contract, and the two
    learned moves — each of them an act that already exists. */
+/* Which standard the panel is showing: the inspector stamps it on its host. */
+function sdPanelClauseId(pan){ const h=pan&&(pan.hasAttribute('data-ins-id')?pan:pan.closest('[data-ins-id]')); return h?h.getAttribute('data-ins-id'):null; }
 function sdWirePanel(hostId){
   const pan=document.getElementById(hostId); if(!pan) return;
   pan.querySelectorAll('[data-sd-godev]').forEach(b=>b.addEventListener('click',()=>
@@ -3543,6 +3671,17 @@ function sdWirePanel(hostId){
   const learned=()=>{ if(!L){ try{ L=stdLearned(); }catch(_){ L=null; } } return L; };
   const row=k=>((learned()||{}).proposals||[]).find(p=>p.key===k)||null;
   pan.querySelectorAll('[data-sd-pref]').forEach(b=>b.addEventListener('click',()=>{ const x=row(b.getAttribute('data-sd-pref')); if(x) stdOpenPreferred(x); }));
+  /* THE THREE CHOICES, the confirm, and the doors to the rounds (O-19). */
+  pan.querySelectorAll('[data-sd-move]').forEach(b=>b.addEventListener('click',()=>{
+    const id=sdPanelClauseId(pan); if(!id) return;
+    _sdLearnPick={ id, move:b.getAttribute('data-sd-move') }; sdRepaint();
+  }));
+  pan.querySelector('[data-sd-move-cancel]')?.addEventListener('click',()=>{ _sdLearnPick=null; sdRepaint(); });
+  pan.querySelector('[data-sd-move-go]')?.addEventListener('click',()=>{
+    const id=sdPanelClauseId(pan); const cl=id&&clauseLibrary().find(x=>String(x.id)===String(id));
+    if(cl&&_sdLearnPick) sdLearnApply(cl,_sdLearnPick.move);
+  });
+  pan.querySelectorAll('[data-sd-open-c]').forEach(b=>b.addEventListener('click',()=>sdOpenContract(b.getAttribute('data-sd-open-c'))));
   pan.querySelectorAll('[data-sd-fb]').forEach(b=>b.addEventListener('click',()=>{
     const x=row(b.getAttribute('data-sd-fb')); if(!x) return;
     const cl=(typeof clauseById==='function')?clauseById(x.clause):null;
@@ -3574,7 +3713,7 @@ function sdWire(d, mayEdit){
   PB_PAGE_TABS.forEach(sdWireList);
 }
 
-Object.assign(window,{tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
+Object.assign(window,{sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
   PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

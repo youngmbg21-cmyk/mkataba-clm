@@ -290,6 +290,17 @@ function triageTiles(c){
        with nothing under it — a number the reader cannot act on. */
     o.ok ? found.map(x => x && x.desc).filter(Boolean).slice(0, 3).join(' · ') : (o.why || ''),
     o.ok ? found.length : null);
+  /* ---- THE TILE COUNTS ONLY WHAT IS LEFT (work order O-35) ----
+     "N to review" with the split by kind while the review desk has work, and
+     "Obligations sorted · 9 added · 7 skipped" once every item is decided.
+     The number is the desk's own "to decide" (obReviewTally, one count). */
+  if (o.ok && found.length && typeof obReviewTally === 'function' && out.length && out[out.length - 1].key === 'oblig'){
+    const T = obReviewTally(c, found), tile = out[out.length - 1];
+    if (!tile.working){
+      if (T.left){ tile.headKey = 'tri_t_oblig_review'; tile.count = T.left; tile.detail = [obKindSplitText(T), tile.detail].filter(Boolean).join(' — '); }
+      else if (T.added || T.skipped){ tile.headKey = 'tri_t_oblig_sorted'; tile.count = null; tile.detail = i18t('obd_sorted_line', { added: T.added, skipped: T.skipped }); }
+    }
+  }
 
   /* ---- WHAT WAS FILLED IN, NAMED AND NEVER VALUED ----
      The names of the boxes that were answered, and not one of their values.
@@ -660,6 +671,14 @@ async function triageRun(c, opts = {}){
         }
       }
     }catch(e){ t.steps.oblig = triageFail(e); }
+
+    /* 4b — THE DATED WINDOWS IN THE WORDING (work order O-40, D9). Read once
+       per wording for Overview 2's Time Machine and kept on the contract
+       (c.datedWindows); not a tile and not one of the five steps, so a
+       stage without js/views/overview2.js reads exactly as it did. It never
+       throws and never fails the run: without it the tab draws the record's
+       own dates and says once that the wording's windows were not read. */
+    try{ if (typeof runDatedWindows === 'function') await runDatedWindows(c, { quiet: true, fresh: !!(opts && opts.fresh) }); }catch(_){}
 
     /* 5 — FILL THE OPEN BLANKS. Last, because it is the one reading that
        CHANGES the paper — see TRIAGE_STEPS. The record answers first and for

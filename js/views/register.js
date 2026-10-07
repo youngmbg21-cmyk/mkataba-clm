@@ -292,7 +292,8 @@ function folderRowsHtml(cs){
         </span>
       </div></td>
       <td style="font-size:var(--t-meta);color:var(--color-neutral-700);white-space:nowrap"><span style="display:inline-flex;align-items:center;gap:6px">${icon(cIcon(c),'w-4 h-4')}${cKind(c)}</span>${scan}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(c.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(c):fmtMoneyShort(c.value)):'—')}</td>
+      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:var(--w-body);white-space:nowrap;${isMonetary(c)?'':'color:var(--color-neutral-400)'}" ${!isMonetary(c)?`title="${i18t('reg_non_monetary')}"`:''}>${!isMonetary(c)?'n/m':(()=>{ /* AS AMENDED (O-16): a signed amendment's value, never the stored one rewritten */
+        const cv=window.effectiveValueView?effectiveValueView(c):c; return cv.value?(window.fmtMoneyShortOf?fmtMoneyShortOf(cv):fmtMoneyShort(cv.value)):'—'; })()}</td>
       <td style="font-size:var(--t-meta);font-variant-numeric:tabular-nums;white-space:nowrap">${folderExpiryCell(c)}</td>
       <td style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap">${c.lastAction||'—'}</td>
       ${''/* Same split as the register: the link mark to its own column, the

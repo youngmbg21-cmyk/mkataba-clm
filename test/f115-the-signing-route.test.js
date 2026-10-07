@@ -107,7 +107,11 @@ describe('f115 — the signing route, server side', () => {
     const r = await h.client('md-early').raw('/api/shares/' + md.token);
     assert.equal(r.status, 200, 'dormant is a state, not an error — the page polls and comes alive');
     assert.ok(r.json.dormant, 'the answer is the waiting notice');
-    assert.equal(r.json.payload, undefined, 'and carries none of the contract');
+    /* REVERSED 7 Oct 2026 (work order O-29, owner-approved): an early signer
+       sees the real signing page — the contract, the order and a grey Sign —
+       so the dormant answer now carries the copy. What stays: it is still
+       dormant, and an early open still stamps nothing. */
+    assert.ok(r.json.payload, 'and carries the copy, so the page can be drawn');
     assert.equal(r.json.dormant.waitingOnParty, 'internal');
     const row = (await W.admin.json('/api/contracts/MK-R1/shares')).shares.find(s => s.token === md.token);
     assert.ok(!row.firstOpenedAt, 'an early click on the waiting notice is not "they saw the contract"');

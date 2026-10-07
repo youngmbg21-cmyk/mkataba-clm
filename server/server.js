@@ -2858,6 +2858,8 @@ const AI_FEATURE_LABEL = {
   // spending never lands in the Other bucket the way conversion's once did.
   brief: 'Contract brief',
   renewal: 'Renewal adviser',   // W2-4
+  amend: 'Amendment drafting',  // work order O-12, named on arrival
+  windows: 'Dated windows',     // work order O-40, the Time Machine's periods
   /* The template builder's outline (Prompt & Build). Named on arrival for
      the reason conversion's absence taught: an unnamed feature spends into
      the Other bucket, where the one figure an admin wants is unreadable.
@@ -7951,11 +7953,28 @@ app.post('/api/ai/outline', auth, editor, rlAiLight, aiFeature('outline'), aiBud
    Propose obligations (payment milestones, notice deadlines, deliverables,
    reporting duties) from a contract's text, each with a clause quote. The
    human confirms before any are saved; no key -> the client heuristic. */
+/* ONE LIST OF KINDS AND ONE OF WHOSE-JOB WORDS, the browser's OB_KINDS and
+   OB_WHOSE (js/obligations.js) — f554 pins them equal */
+const OB_KINDS_SRV = ['dated', 'event', 'standing'];
+const OB_WHOSE_SRV = ['us', 'them', 'both'];
+function obSrvClean(o){
+  if (!o || typeof o !== 'object' || !o.desc) return null;
+  const out = { desc: String(o.desc).slice(0, 500), due: /^\d{4}-\d{2}-\d{2}$/.test(String(o.due || '')) ? o.due : '',
+    recurring: ['none', 'monthly', 'quarterly', 'annual'].includes(o.recurring) ? o.recurring : 'none', quote: String(o.quote || '').slice(0, 600) };
+  if (OB_KINDS_SRV.includes(o.kind)) out.kind = o.kind;
+  if (OB_WHOSE_SRV.includes(o.party)) out.party = o.party;
+  if (o.clause) out.clause = String(o.clause).slice(0, 20);
+  if (Number(o.amount) > 0) out.amount = Number(o.amount);
+  if (typeof o.doc === 'boolean') out.doc = o.doc;
+  if (o.why) out.why = String(o.why).slice(0, 240);
+  return out;
+}
 app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudgetGuard, capAiInput, async (req, res) => {
   const key = aiKey();
   if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
-  const { text } = req.body || {};
+  const { text, ours, theirs } = req.body || {};
   if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  const side = (typeof ours === 'string' && ours.trim()) ? `\n\n"Us" is ${ours.trim().slice(0, 120)}${typeof theirs === 'string' && theirs.trim() ? '; "them" is ' + theirs.trim().slice(0, 120) : ''}.` : '';
   const tool = {
     name: 'list_obligations',
     description: 'List the ongoing obligations the contract places on either party.',
@@ -7967,6 +7986,15 @@ app.post('/api/ai/obligations', auth, rlAiDeep, aiFeature('obligations'), aiBudg
           due: { type: 'string', description: 'ISO yyyy-mm-dd if a concrete date is stated, else empty.' },
           recurring: { type: 'string', enum: ['none','monthly','quarterly','annual'], description: 'Recurrence if periodic.' },
           quote: { type: 'string', description: 'The verbatim clause snippet this came from, under 200 characters.' + AI_QUOTE_RULE },
+          /* THE DESK'S FIVE FACTS (work order O-31): kind, whose job, the
+             clause, an amount, a document they must hold. "unsure" is a
+             real answer and the screen says "Not sure"; nothing is guessed. */
+          kind: { type: 'string', enum: OB_KINDS_SRV.concat(['unsure']), description: 'dated = has a date or repeats; event = only when something happens; standing = always true while the contract runs; unsure if you cannot tell.' },
+          party: { type: 'string', enum: OB_WHOSE_SRV.concat(['unsure']), description: 'Whose job this is: us, them, or both sides; unsure if the wording does not say.' },
+          clause: { type: 'string', description: 'The clause number as the contract prints it, e.g. "7.2". Empty if none.' },
+          amount: { type: 'number', description: 'The amount the wording states for this obligation, as a plain number. Omit if none is stated.' },
+          doc: { type: 'boolean', description: 'True if this is a document the obliged party must hold or deliver (a certificate, a policy, a report).' },
+          why: { type: 'string', description: 'One short plain sentence: why it is this kind.' },
         }, required: ['desc'] } },
       },
       required: ['obligations'],
@@ -8003,7 +8031,7 @@ A long agreement carries its obligations across the whole document, and the ones
 
 Only list what the wording actually imposes: never invent one, and never list a definition or a recital as an obligation. An empty list is the right answer only where the contract genuinely imposes no continuing duty on either side, which is rare in a commercial agreement — if you are returning an empty list, check that you read to the end first.
 
-Quote the clause each came from. Return via list_obligations.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
+Quote the clause each came from. For each, say its kind (dated, on an event, or standing), whose job it is (us, them or both), the clause number, any amount stated, and whether it is a document to hold; say unsure rather than guess.${side} Return via list_obligations.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
   try {
     /* ROOM FOR THE ANSWER THE SCHEMA ALLOWS. maxItems is 12 and each item
        carries a description AND a verbatim quote, which is roughly 100 tokens
@@ -8017,11 +8045,136 @@ Quote the clause each came from. Return via list_obligations.\n\nDOCUMENT:\n${ai
     const data = resp.data;
     const block = (data.content || []).find(b => b.type === 'tool_use');
     if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
-    const list = Array.isArray(block.input?.obligations) ? block.input.obligations : [];
+    const list = (Array.isArray(block.input?.obligations) ? block.input.obligations : []).map(obSrvClean).filter(Boolean);
     /* "None" and "cut off before it could say" are different answers, and the
        screen prints the first as a fact about the contract. */
     if (!list.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could list the obligations. Try again.' });
     res.json({ obligations: list, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+/* ---------- DRAFTING AN AMENDMENT FROM A SENTENCE (7 Oct 2026, O-12) ----------
+   The person says what should change; Copilot reads the SIGNED agreement and
+   returns, per affected clause, the signed wording QUOTED, the amended
+   wording, and the record facts that would move. Nothing is filed here: the
+   browser shows the proposal and the person presses Create, which files
+   through createAmendment like every other draft.
+
+   THE QUOTE IS CHECKED, NOT TRUSTED. A replace or delete whose quote of the
+   signed wording does not appear in the agreement (whitespace and case
+   folded) is dropped and counted, so the screen can say so — a proposal
+   resting on words the contract does not contain is never shown as one. */
+const amendNorm = t => String(t || '').toLowerCase().replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/\s+/g, ' ').trim();
+/* ---------- THE DATED WINDOWS IN THE WORDING (7 Oct 2026, work order O-40) ----------
+   The Time Machine (Overview 2) draws the record's own dates; this reading
+   adds the periods only the wording states — prices fixed, an exit fee, a
+   lock-in, probation, no-hire, secrecy after the end — each with its clause
+   and its rule. Asked once per wording on arrival (the browser's arrival reading) and kept on
+   the contract; it never travels. THE QUOTE IS CHECKED: a window whose quote
+   is not in the wording is dropped and counted, never shown; a date that is
+   not a real day is dropped. Nothing is guessed. */
+const WINDOW_KINDS = ['fixed', 'fee', 'lockin', 'probation', 'nohire', 'secrecy', 'other'];
+app.post('/api/ai/windows', auth, rlAiDeep, aiFeature('windows'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const { text, start, end } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  const day = v => (/^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) && !isNaN(Date.parse(v))) ? String(v) : '';
+  const tool = { name: 'list_windows', description: 'List the dated periods the contract wording sets.',
+    input_schema: { type: 'object', properties: { windows: { type: 'array', maxItems: 12, items: { type: 'object', properties: {
+      label: { type: 'string', description: 'A short plain name, at most 5 words, e.g. "Prices fixed", "Exit fee applies", "Secrecy continues".' },
+      kind: { type: 'string', enum: WINDOW_KINDS },
+      from: { type: 'string', description: 'First day, yyyy-mm-dd. Work it out from the contract\'s start and end dates where the wording counts from them.' },
+      to: { type: 'string', description: 'Last day, yyyy-mm-dd.' },
+      clause: { type: 'string', description: 'The clause number as printed, e.g. "13.3".' },
+      rule: { type: 'string', description: 'One plain sentence: what you may or may not do during it.' },
+      quote: { type: 'string', description: 'The words that set it, verbatim.' + AI_QUOTE_RULE },
+    }, required: ['label', 'from', 'to', 'quote'] } } }, required: ['windows'] } };
+  const prompt = `List the dated periods this contract sets: prices fixed, an exit fee or early-termination fee, a lock-in or minimum term, probation, no-hire or non-solicit, confidentiality that continues after the end, and any similar window with a start and an end.${day(start) ? ` The contract starts on ${day(start)}.` : ''}${day(end) ? ` It ends on ${day(end)}.` : ''} Give real calendar dates; leave a window out rather than guess its dates. Quote the words that set each one. Return via list_windows.\n\nDOCUMENT:\n${aiDocText(req, text)}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 4000, tools: [tool], tool_choice: { type: 'tool', name: 'list_windows' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'windows', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const hay = amendNorm(text);
+    let dropped = 0;
+    const windows = (Array.isArray(block.input && block.input.windows) ? block.input.windows : []).map(w => {
+      if (!w || !w.label || !w.quote) { dropped++; return null; }
+      const from = day(w.from), to = day(w.to);
+      if (!from || !to || to < from || !hay.includes(amendNorm(w.quote))) { dropped++; return null; }
+      return { label: String(w.label).slice(0, 60), kind: WINDOW_KINDS.includes(w.kind) ? w.kind : 'other', from, to,
+        clause: String(w.clause || '').slice(0, 20), rule: String(w.rule || '').slice(0, 240), quote: String(w.quote).slice(0, 400) };
+    }).filter(Boolean);
+    if (!windows.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could list the windows. Try again.' });
+    res.json({ windows, dropped, ...aiNotice(req, resp) });
+  } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
+});
+
+app.post('/api/ai/amend', auth, rlAiDeep, aiFeature('amend'), aiBudgetGuard, capAiInput, async (req, res) => {
+  const key = aiKey();
+  if (!key) return res.status(400).json({ error: 'Copilot engine not configured', needsKey: true, kind: 'noKey' });
+  const { text, ask, facts } = req.body || {};
+  if (!text || typeof text !== 'string') return res.status(400).json({ error: 'text is required' });
+  if (!ask || typeof ask !== 'string' || !ask.trim()) return res.status(400).json({ error: 'Say what should change.' });
+  const tool = {
+    name: 'draft_amendment',
+    description: 'Propose the clause-by-clause changes an amendment needs to make what the person asked.',
+    input_schema: { type: 'object', properties: {
+      kind: { type: 'string', enum: ['amendment', 'renewal', 'addendum', 'variation', 'sow', 'annex', 'side-letter'],
+        description: 'The kind of document this is. Changing existing terms is an amendment; extending the term only can be a renewal.' },
+      items: { type: 'array', maxItems: 12, items: { type: 'object', properties: {
+        clauseNumber: { type: 'string', description: 'The clause number as the agreement prints it, e.g. "3.1". Empty for a new clause with no number.' },
+        clauseLabel: { type: 'string', description: 'The clause number and heading as printed, e.g. "3.1 Term".' },
+        op: { type: 'string', enum: ['replace', 'insert', 'delete'] },
+        signed: { type: 'string', description: 'For replace or delete: the CURRENT wording of that clause, quoted verbatim from the document.' + AI_QUOTE_RULE },
+        amended: { type: 'string', description: 'For replace or insert: the full new wording of the clause, in the same style as the agreement.' },
+        why: { type: 'string', description: 'One short plain sentence: what this item changes.' },
+      }, required: ['op'] } },
+      facts: { type: 'object', description: 'Record facts the amendment would change once signed; leave a field empty when it does not change.', properties: {
+        expiry: { type: 'string', description: 'New end date, ISO yyyy-mm-dd, or empty.' },
+        value: { type: 'number', description: 'New annual value as a number in the contract currency, or 0.' },
+        effectiveDate: { type: 'string', description: 'When the changes take effect, ISO yyyy-mm-dd, or empty.' },
+      } },
+      mentions: { type: 'array', maxItems: 5, items: { type: 'object', properties: {
+        clause: { type: 'string', description: 'Another clause or schedule that mentions the same thing, e.g. "Schedule 2, Price list".' },
+        why: { type: 'string', description: 'Why the person should check it, in a few words.' },
+      } } },
+    }, required: ['items'] },
+  };
+  const f = facts && typeof facts === 'object' ? facts : {};
+  const prompt = `A signed agreement needs an amendment. The person responsible wrote what should change:
+
+"${String(ask).slice(0, 2000)}"
+
+Read the WHOLE agreement below and propose the smallest set of clause changes that does exactly that and nothing more. For each changed clause quote its CURRENT wording verbatim and give the full new wording in the agreement's own style. Use a new clause only where no existing clause covers the change. Do not change anything the person did not ask for. Name any other clause or schedule that mentions the same thing (a price list, a defined term) so they can check it. Fill the record facts only where the change moves them.
+
+Current record facts: end date ${String(f.expiry || 'unknown')}, value ${Number(f.value) || 'unknown'}${f.currency ? ' ' + String(f.currency).slice(0, 5) : ''}.
+
+Return via draft_amendment.\n\nAGREEMENT:\n${aiDocText(req, text)}`;
+  try {
+    const resp = await anthropicMessages(key, 'deep', { max_tokens: 6000, tools: [tool], tool_choice: { type: 'tool', name: 'draft_amendment' }, messages: [{ role: 'user', content: prompt }] }, { feature: 'amend', who: aiWho(req) });
+    if (!resp.ok) return res.status(502).json({ error: 'Copilot provider error (' + resp.status + '): ' + String(resp.error).slice(0, 300) });
+    const block = (resp.data.content || []).find(b => b.type === 'tool_use');
+    if (!block) return res.status(502).json({ error: 'Copilot returned no structured result' });
+    const inp = block.input || {};
+    const body = amendNorm(text);
+    let dropped = 0;
+    const items = (Array.isArray(inp.items) ? inp.items : []).filter(it => {
+      if (!it || !['replace', 'insert', 'delete'].includes(it.op)) { dropped++; return false; }
+      if (it.op === 'insert') return !!String(it.amended || '').trim() || (dropped++, false);
+      const q = amendNorm(it.signed);
+      if (!q || body.indexOf(q) < 0) { dropped++; return false; }
+      if (it.op === 'replace' && !String(it.amended || '').trim()) { dropped++; return false; }
+      return true;
+    }).map(it => ({ clauseNumber: String(it.clauseNumber || '').slice(0, 20), clauseLabel: String(it.clauseLabel || '').slice(0, 200),
+      op: it.op, signed: String(it.signed || '').slice(0, 4000), amended: String(it.amended || '').slice(0, 4000), why: String(it.why || '').slice(0, 300) }));
+    if (!items.length && resp.truncated) return res.status(502).json({ error: 'Copilot ran out of room before it could draft the amendment. Try again.' });
+    const fx = inp.facts && typeof inp.facts === 'object' ? inp.facts : {};
+    const isoOk = v => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
+    res.json({ kind: inp.kind || null, items, dropped, truncated: !!resp.truncated,
+      facts: { expiry: isoOk(fx.expiry), value: Number(fx.value) > 0 ? Number(fx.value) : 0, effectiveDate: isoOk(fx.effectiveDate) },
+      mentions: (Array.isArray(inp.mentions) ? inp.mentions : []).slice(0, 5).map(m => ({ clause: String((m && m.clause) || '').slice(0, 120), why: String((m && m.why) || '').slice(0, 160) })),
+      ...aiNotice(req, resp) });
   } catch (e) { res.status(502).json({ error: 'Copilot request failed: ' + e.message }); }
 });
 
@@ -14308,10 +14461,19 @@ function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang })
   const L = langForEmail(signer.email, senderLang);
   const posText = signer.order && total
     ? tFor(L, 'mail_turn_pos', { n: signer.order, total }) : '';
+  /* THE WHOLE ORDER, NAMED (7 Oct 2026, O-28): who signs before and after
+     them, for which side, so nobody opens a link expecting to sign and finds
+     somebody else's turn. Names and sides only; never an address. */
+  const them = (payload && payload.contract && payload.contract.counterparty) || '';
+  const rows = (plan || []).slice().sort((a, b) => srvSignStep(a) - srvSignStep(b) || (a.order || 0) - (b.order || 0));
+  const orderLine = rows.length > 1 ? '\n\n' + tFor(L, 'mail_turn_order', { list: rows.map((r, i) =>
+    `${i + 1}. ${String(r.id) === String(signer.id) ? tFor(L, 'mail_turn_you') : (r.name || '—')}`
+    + ` (${r.party === 'counterparty' ? (them || '—') : org})`).join(' · ') }) : '';
   return {
     subject: tFor(L, 'mail_turn_subject', { name: cName }),
     body: `${tFor(L, 'mail_hello')}${signer.name ? ' ' + signer.name : ''},\n\n`
       + tFor(L, 'mail_turn_body', { name: cName, org, pos: posText })
+      + orderLine
       + `\n\n${tFor(L, 'mail_open_link')}\n${link}\n\n`
       + tFor(L, 'mail_code_note')
       + (expiresAt ? `\n\n${tFor(L, 'mail_link_expires', { date: String(expiresAt).slice(0, 10) })}` : '')
@@ -15312,6 +15474,63 @@ function shareSigningOrder(s) {
     })),
   }));
 }
+/* ---- THE SIGNATURES SO FAR, FOR THE PAPER ON THEIR PAGE (O-1) ----
+   What the signed copy itself would print in each party's box: the mark, the
+   name, the title, the moment, whether a code checked it. Never an email
+   address, an IP or a browser. The link's OWN answer is added while our side
+   has not yet applied it, so the person who has just signed sees their
+   signature on the paper at once and after any refresh. */
+/* The asks still waiting on THIS link's reader: pending on the stored
+   contract, written by our side, and in the copy they were sent. */
+function srvSignOpenAsks(s) {
+  if (!s || !s.contract_id) return [];
+  let p = null; try { p = JSON.parse(s.payload); } catch (_) { p = null; }
+  const sent = new Set(((p && p.contract && Array.isArray(p.contract.changes)) ? p.contract.changes : [])
+    .filter(Boolean).map(x => String(x.id)));
+  if (!sent.size) return [];
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
+  let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
+  if (!c) return [];
+  return srvDsLive(c).filter(x => x && x.status === 'pending' && x.authorSide === 'owner' && sent.has(String(x.id)));
+}
+function shareLiveSignatures(s, lastR) {
+  if (!s || !s.contract_id) return null;
+  if ((s.purpose || '') !== 'sign' && !shareRetiredBySigning(s)) return null;
+  const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
+  let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
+  if (!c) return null;
+  const parties = srvContractParties(c);
+  const ours = parties.find(p => p.side === 'ours');
+  const theirs = parties.filter(p => p.side !== 'ours');
+  const img = v => (typeof v === 'string' && sigImageOk(v) && v) ? v : null;
+  const cut = (v, n) => v == null ? null : String(v).slice(0, n);
+  const out = (Array.isArray(c.signatures) ? c.signatures : []).filter(Boolean).map(x => {
+    const side = x.party === 'counterparty' ? 'theirs' : 'ours';
+    const hit = side === 'theirs' && x.partyId ? theirs.find(p => p.id === String(x.partyId)) : null;
+    return { side, partyId: hit ? hit.id : null,
+      party: side === 'ours' ? ((ours && ours.name) || '') : ((hit || theirs[0] || {}).name || ''),
+      name: cut(x.name, 120) || '', title: cut(x.title || x.role || x.capacity, 120) || null,
+      at: x.at || null, image: img(x.image), typedName: cut(x.typedName, 120), font: cut(x.font, 60),
+      verified: x.verified !== false };
+  });
+  if (lastR && lastR.applied !== 1 && lastR.applied !== true) {
+    let r = null; try { r = JSON.parse(lastR.response); } catch (_) { r = null; }
+    if (r && r.action === 'sign' && !out.some(x => x.side === 'theirs' && x.name === r.name && x.at === r.at)) {
+      let partyId = null;
+      if (s.signer_id) {
+        const rt = signerRouteFor(s.contract_id);
+        const sr = rt && rt.plan.find(q => String(q.id) === String(s.signer_id));
+        if (sr && sr.partyId) partyId = String(sr.partyId);
+      }
+      const hit = partyId ? theirs.find(p => p.id === partyId) : null;
+      out.push({ side: 'theirs', partyId: hit ? hit.id : null, party: (hit || theirs[0] || {}).name || '',
+        name: cut(r.name, 120) || '', title: cut(r.title, 120), at: r.at || lastR.at || null,
+        image: img(r.signatureImage), typedName: cut(r.signatureTypedName, 120), font: cut(r.signatureFont, 60),
+        verified: !!(r.verify || r.verified === true), pending: true });
+    }
+  }
+  return out;
+}
 function contractExecution(contractId) {
   if (!contractId) return null;
   const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(contractId);
@@ -15479,7 +15698,16 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
         contractName: (p && p.contract && p.contract.name) || '',
         org: (p && p.org) || '',
         expiresAt: s.expires_at || null,
-      } });
+      },
+      /* ---- AN EARLY SIGNER SEES THE REAL PAGE (7 Oct 2026, O-29) ----
+         Not a bare waiting notice: the contract, the order and a Sign button
+         held with its reason ("X signs first"). The same facts a sign link
+         serves once its turn comes, minus nothing the reader could act on —
+         the respond route still refuses a signature out of turn. */
+      payload: p, purpose: s.purpose || null, signingOrder: shareSigningOrder(s),
+      signatures: shareLiveSignatures(s, null), emailConfigured: EMAIL_ON(),
+      share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
+        expiresAt: s.expires_at || null, channel: s.channel || 'link' } });
     }
   }
   // E5-T4 engagement: log every open (server-side only, no third-party analytics)
@@ -15568,7 +15796,12 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     : (s.response ? { response: s.response, at: s.responded_at || null, applied: s.applied } : null);
   let lastResponse = null;
   if (lastR) { try { const r = JSON.parse(lastR.response);
+    /* The title and whether it was checked travel too (7 Oct 2026, O-2): the
+       reader's own receipt says "You signed as Grace Njeri, Legal Counsel ·
+       checked by email code", and both are their own words about their own act. */
     lastResponse = { action: r.action, at: lastR.at, name: r.name,
+      title: r.title ? String(r.title).slice(0, 120) : null,
+      verified: r.action === 'sign' ? !!(r.verify || r.verified === true) : null,
       applied: lastR.applied == null ? null : lastR.applied === 1 }; } catch (_) {} }
   res.json({
     payload: JSON.parse(s.payload),
@@ -15590,6 +15823,12 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
        goes on inviting redlines on a sealed contract. */
     executed: contractExecution(s.contract_id),
     signingOrder: shareSigningOrder(s),
+    /* THE SIGNATURES SO FAR, read live (7 Oct 2026, work order O-1). Their
+       page draws the contract from the copy frozen when the link went out, so
+       a signature made since never reached their paper, not even their own.
+       Signing links only, like the order above, which already names the same
+       people and titles. */
+    signatures: shareLiveSignatures(s, lastR),
     /* ---- THE AGREED WORDS WERE HANDED OVER (26 Sep 2026) ----
        Read live, like `executed` beside it: once the lead hands the agreed
        wording over as a Word file, this page turns read-only and offers that
@@ -16822,6 +17061,22 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     if (stored && (srvSignApprovalRefusal(stored)
       || (!saStarted(stored, { responded: srvSaResponded(s.contract_id) }) && srvApprovalChainOpenOf(stored).length)))
       return res.status(409).json({ error: SC_NOT_READY, notReady: true });
+  }
+  /* ---- NOBODY SIGNS OVER A POINT STILL WAITING ON THEM (7 Oct 2026, O-5) ----
+     Our own Sign button waits for every change to be decided (signBlockers).
+     Theirs did not: only the pre-signing check, and only when an admin had set
+     it to "require", stood in the way, so a counterparty could sign a
+     contract with one of our asks still undecided. The same rule now holds on
+     their side, asked of the STORED contract and only of asks they were SENT
+     (an ask still on our desk is not theirs to answer). Neutral words: the
+     clause by its label, nothing internal. */
+  if (r.action === 'sign') {
+    const open = srvSignOpenAsks(s);
+    const names = open.map(srvDsClause).filter(Boolean).slice(0, 3);
+    if (open.length) return res.status(409).json({
+      error: 'Answer the open point' + (open.length === 1 ? '' : 's') + ' first'
+        + (names.length ? ' (' + names.join(', ') + ')' : '') + '. Then you can sign.',
+      openPoints: open.length });
   }
   if (r.action === 'sign') {
     /* ---- W7: A SIGNATURE LANDS ON ITS OWN ROW, OR NOT AT ALL ----

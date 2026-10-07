@@ -233,6 +233,79 @@ function proposedExpiry(c){
   if(!date || date===effectiveExpiry(c)) return null;   // proposing what already stands is not a proposal
   return { date, from:win, id:win.id };
 }
+/* ---- THE DEAL AS AMENDED: VALUE, PAYMENT TERMS, NOTICE (7 Oct 2026, O-16) ----
+   effectiveExpiry's rule, for three more facts: the latest EXECUTED child that
+   states the fact wins, otherwise the agreement's own. A READING ONLY: the
+   parent's stored value is never rewritten, so the original figure stays in
+   its history and the moment an amendment is unsigned or declined the reading
+   goes back by itself. Returns { v, from } where `from` is the child that set
+   it (null when the agreement's own figure stands). */
+const EFFECTIVE_TERMS = {
+  value:   x => (Number(x && x.value) > 0 ? Number(x.value) : null),
+  payment: x => (String((x && x.metadata && x.metadata.paymentTerms) || '').trim() || null),
+  notice:  x => { const n = Number(x && x.metadata && x.metadata.noticePeriodDays); return isFinite(n) && n > 0 ? n : null; },
+};
+function effectiveTerm(c, key){
+  const read = EFFECTIVE_TERMS[key];
+  if(!c || !read) return { v:null, from:null };
+  if(c.parentId) return { v:read(c), from:null };
+  let kids = [];
+  try{ kids = familyChildren(c.id).filter(k => k.status !== 'Declined' && amendmentExecuted(k) && read(k) != null); }catch(_){ kids = []; }
+  if(!kids.length) return { v:read(c), from:null };
+  const win = kids.slice().sort((a, b) => String(amendmentDate(a)).localeCompare(String(amendmentDate(b))))[kids.length - 1];
+  const v = read(win);
+  return (v != null && v !== read(c)) ? { v, from:win } : { v:read(c), from:null };
+}
+/* The same contract wearing its effective value, for a printer that reads
+   c.value (fmtMoneyOf, fmtMoneyShortOf): a copy, never the record. */
+function effectiveValueView(c){
+  const e = effectiveTerm(c, 'value');
+  return (e.from && e.v != null) ? { ...c, value:e.v } : c;
+}
+/* ---- READ THE AGREEMENT AS AMENDED (7 Oct 2026, O-17) ----
+   The original's clauses with every SIGNED amendment's items applied, each
+   change marked (struck and inserted words) and labelled with the amendment it
+   came from. A reading copy only: it writes nothing and says plainly that the
+   signed originals are what bind. Where an item cannot be placed (its clause
+   changed shape since), it is drawn after the clause rather than guessed into
+   it. Null when there is nothing signed to apply. */
+function asAmendedItems(c){
+  if(!c || c.parentId) return [];
+  let kids = [];
+  try{ kids = familyChildren(c.id).filter(k => k.status !== 'Declined' && amendmentExecuted(k) && Array.isArray(k.amends) && k.amends.length); }catch(_){ kids = []; }
+  kids.sort((a, b) => String(amendmentDate(a)).localeCompare(String(amendmentDate(b))));
+  const out = [];
+  kids.forEach(k => k.amends.forEach(it => out.push({ ...it, from:k })));
+  return out;
+}
+function asAmendedHtml(c){
+  const items = asAmendedItems(c);
+  if(!items.length) return null;
+  const cls = amendParentClauses(c);
+  const esc = _famEsc;
+  const diff = (a, b) => (window.wordDiff ? wordDiff(a, b) : [{ t:'del', text:a }, { t:'add', text:b }]).map(p =>
+    p.t === 'eq' ? esc(p.text) : p.t === 'add' ? `<ins class="am-ins">${esc(p.text)}</ins>` : `<del class="am-del">${esc(p.text)}</del>`).join('');
+  const tag = k => `<span class="am-tag">${esc(k.name || (window.contractRef ? contractRef(k) : k.id))}</span>`;
+  const used = new Set();
+  const matchOf = cl => items.filter((it, i) => !used.has(i) && it.op !== 'insert' && (
+    (it.clauseId && cl.id && it.clauseId === cl.id) || (it.clauseNumber && cl.num && String(it.clauseNumber) === String(cl.num))
+    || (!it.clauseId && !it.clauseNumber && it.clauseLabel && it.clauseLabel === cl.label)));
+  const body = cls.map(cl => {
+    const hits = matchOf(cl);
+    hits.forEach(h => used.add(items.indexOf(h)));
+    let text = esc(cl.text);
+    let tags = '';
+    hits.forEach(h => {
+      if(h.op === 'delete'){ text = `<del class="am-del">${esc(cl.text)}</del>`; }
+      else text = diff(cl.text, h.amended || cl.text);
+      tags += tag(h.from);
+    });
+    return `<h4 class="am-h">${esc(cl.label)}</h4><p class="am-p">${text}${tags}</p>`;
+  }).join('');
+  const rest = items.filter((it, i) => !used.has(i)).map(it =>
+    `<h4 class="am-h">${esc(it.clauseLabel || i18t('fa_new_clause'))}</h4><p class="am-p"><ins class="am-ins">${esc(it.amended || '')}</ins>${tag(it.from)}</p>`).join('');
+  return `<div class="am-read">${body}${rest}<p class="am-foot">${esc(i18t('fa_as_amended_foot'))}</p></div>`;
+}
 /* Which contract supplied the effective expiry — so the UI can say "expiry from
    MK-123 (Amendment No. 2)" instead of quietly showing a different date. */
 /* ============================================================
@@ -572,11 +645,22 @@ function renderFamilySection(c,opts){
      already refuses it for a master ("it already has N amendments of its own"),
      and a control whose only outcome is a refusal is furniture. A child gets
      neither: families are one level deep, so the only act on it is Unlink. */
+  /* ---- THE DOOR, ONLY ON A SIGNED AGREEMENT (7 Oct 2026, O-9) ----
+     An amendment changes a SIGNED agreement; a draft is simply edited. On a
+     draft the button stays where it is, greyed, with the reason and the way
+     forward beside it — a dead button never wears a live one's clothes. The
+     act that goes the OTHER way (this agreement is itself somebody's
+     amendment) is a small question set apart, not a third equal button. */
   const acts=[];
+  let reverse='';
   if(canEdit() && !parent){
-    acts.push(`<button id="fam-create" class="ui-btn ui-btn-sm ui-btn-primary">${icon('filenew','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`);
+    const signedHere=amendmentExecuted(c);
+    acts.push(signedHere
+      ? `<button id="fam-create" class="ui-btn ui-btn-sm ui-btn-primary">${icon('filenew','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`
+      : `<button id="fam-create" class="ui-btn ui-btn-sm ui-btn-primary" disabled title="${_famAttr(i18t('fa_draft_no_amend'))}">${icon('filenew','w-3 h-3')} ${i18t('fa_create_amendment')}</button>`);
     acts.push(`<button id="fam-add" style="${btn}">${i18t('fa_link_existing')}</button>`);
-    if(!kids.length) acts.push(`<button id="fam-link" style="${btn}">${i18t('fa_link_parent')}</button>`);
+    if(!signedHere) acts.push(`<span class="fam-why" style="font-size:var(--t-label);color:var(--color-neutral-600);align-self:center">${i18t('fa_draft_no_amend')} <button type="button" id="fam-edit" class="ui-link">${i18t('fa_edit_draft')}</button></span>`);
+    if(!kids.length) reverse=`<p class="fam-rev" style="font-size:var(--t-label);color:var(--color-neutral-600);margin:var(--s-2) 0 0">${i18t('fa_is_itself')} <button type="button" id="fam-link" class="ui-link">${i18t('fa_link_parent')}</button></p>`;
   }
   /* ---- CHECK THE FAMILY (S12), the third act the artifact names ----
      Drawn only where there is a family to check: on a lone agreement the press
@@ -597,6 +681,7 @@ function renderFamilySection(c,opts){
       </div>
       ${acts.length?`<div class="fam-acts">${acts.join('')}</div>`:''}
       ${familyPrecedenceLineHtml(c)}
+      ${amendChangesHtml(c)}
       ${parent
         /* The label is NOT lowercased here any more, and the sentence lost its
            indefinite article with it: English wants a/an by the following word
@@ -610,6 +695,7 @@ function renderFamilySection(c,opts){
            ${prop?`<p style="font-size:var(--t-meta);color:var(--st-amber-fg);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_proposed_term',{date:_famEsc(prop.date),id:_famEsc(window.contractRef?contractRef(prop.from):prop.id)})}</p>`:''}
            <div class="fam-list">${kids.map(k=>row(k, `${RELATION_LABEL[k.relation]||'Amendment'}${ownExpiry(k)?' · term to '+ownExpiry(k):''}`, c)).join('')}</div>`
         : `<p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55">${i18t('fa_standalone_desc')}</p>`}
+      ${reverse}
       ${(suggested.length&&!c.parentId&&!c.linkConfirmed)?`
         <div style="margin-top:10px;border:1px solid var(--st-amber-line);background:var(--st-amber-bg);border-radius:var(--radius);padding:9px 11px">
           <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--st-amber-fg);margin-bottom:3px">${i18t('fa_reads_like_amendment')}</div>
@@ -623,7 +709,9 @@ function renderFamilySection(c,opts){
   document.getElementById('fam-link')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'child'}));
   document.getElementById('fam-confirm')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'child'}));
   document.getElementById('fam-add')?.addEventListener('click',()=>openLinkModal(c, again, {mode:'parent'}));
-  document.getElementById('fam-create')?.addEventListener('click',()=>openCreateAmendmentModal(c));
+  document.getElementById('fam-create')?.addEventListener('click',()=>{ if(amendmentExecuted(c)) openCreateAmendmentModal(c); });
+  document.getElementById('fam-edit')?.addEventListener('click',()=>{ if(window.roomGoTab) roomGoTab(c,'docs'); });
+  amendChangesWire(c, again);
   /* CHECK THE FAMILY (S12). One press, one reading, nothing written and
      nothing spent — so it answers in a plain dialog rather than filing a
      finding anywhere. confirmDialog is the product's own window; there is no
@@ -643,6 +731,63 @@ function renderFamilySection(c,opts){
   });
 }
 
+/* ---- WHAT THIS AMENDMENT CHANGES, AND WHAT IS STILL TO FILL (7 Oct 2026, O-11, O-15) ----
+   Drawn on an amendment that was written here with items. Each item names the
+   clause of the signed agreement it changes, with "See in <ref>" showing that
+   clause's signed wording. Under it, the facts signing will ask for, each with
+   a suggestion taken from the parent or from what the person asked for —
+   applied only when a person presses Confirm, never silently. */
+function amendSuggestions(c){
+  const parent = c && c.parentId ? getContract(c.parentId) : null;
+  if(!parent) return [];
+  const F = c.amendFacts || {};
+  const out = [];
+  const plan = (c.signerPlan || []).length ? null : (parent.signerPlan || []).filter(r => r && r.name);
+  if(plan && plan.length) out.push({ k:'signers', label:i18t('fa_sf_signers'), say:plan.map(r=>r.name).join(', '), rows:plan });
+  if(F.effectiveDate && !((c.metadata||{}).effectiveDate)) out.push({ k:'effective', label:i18t('fa_mv_effective'), say:F.effectiveDate, v:F.effectiveDate });
+  if(F.value && !(Number(c.value) > 0)) out.push({ k:'value', label:i18t('fa_mv_value'), say:(window.fmtMoneyOf?fmtMoneyOf({...c,value:F.value}):String(F.value)), v:F.value });
+  if(F.expiry && !c.expiry) out.push({ k:'expiry', label:i18t('fa_mv_end'), say:F.expiry, v:F.expiry });
+  return out;
+}
+function amendChangesHtml(c){
+  const items = (c && Array.isArray(c.amends)) ? c.amends : [];
+  const parent = c && c.parentId ? getContract(c.parentId) : null;
+  if(!items.length || !parent) return '';
+  const pref = _famEsc(window.contractRef ? contractRef(parent) : parent.id);
+  const sug = amendSuggestions(c);
+  return `<div class="fam-changes" style="margin:var(--s-2) 0 var(--s-3);border:1px solid var(--color-divider);border-radius:var(--radius-lg,8px);padding:10px 12px">
+    <div style="font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:6px">${i18t('fa_what_changes')}</div>
+    ${items.map((it,i)=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:var(--t-meta);padding:4px 0;border-top:${i?'1px dashed var(--color-divider)':'0'}">
+      <span>${_famEsc(it.clauseLabel || i18t('fa_new_clause'))} <span style="color:var(--color-neutral-600)">· ${_famEsc(i18t('fa_op_'+(it.op||'replace')))}</span></span>
+      ${it.op==='insert'?'':`<button type="button" class="ui-link" data-fam-see="${i}">${i18t('fa_see_in',{ref:pref})}</button>`}</div>`).join('')}
+    ${sug.length?`<div style="font-size:var(--t-label);font-weight:var(--w-strong);margin:10px 0 6px">${i18t('fa_still_to_fill')}</div>
+      ${sug.map(x=>`<div style="display:flex;justify-content:space-between;gap:10px;font-size:var(--t-meta);padding:3px 0"><span>${_famEsc(x.label)}</span><span style="color:var(--color-neutral-600);text-align:right">${_famEsc(x.say)}</span></div>`).join('')}
+      ${canEdit()?`<button type="button" id="fam-confirm-fill" class="ui-btn ui-btn-sm" style="margin-top:6px">${i18t('fa_confirm_these')}</button>`:''}`:''}
+  </div>`;
+}
+function amendChangesWire(c, again){
+  const parent = c && c.parentId ? getContract(c.parentId) : null;
+  document.querySelectorAll('[data-fam-see]').forEach(b=>b.addEventListener('click',()=>{
+    const it = (c.amends||[])[Number(b.getAttribute('data-fam-see'))]; if(!it||!parent) return;
+    const body = it.signed || ((amendParentClauses(parent).find(x=>x.id&&x.id===it.clauseId)||{}).text) || '';
+    if(window.confirmDialog) confirmDialog({ title:`${window.contractRef?contractRef(parent):parent.id} · ${it.clauseLabel||''}`,
+      message:body||i18t('fa_pick_none'), multiline:true, confirmLabel:i18t('ct_close')||'Close', cancelLabel:'' });
+  }));
+  document.getElementById('fam-confirm-fill')?.addEventListener('click',()=>{
+    const sug = amendSuggestions(c);
+    sug.forEach(x=>{
+      if(x.k==='signers' && window.saveSignerPlan) saveSignerPlan(c, x.rows.map(r=>({ party:r.party, name:r.name, role:r.role, email:r.email,
+        memberId:r.memberId, step:r.step, partyId:r.partyId })));
+      if(x.k==='effective') c.metadata = { ...(c.metadata||{}), effectiveDate:x.v };
+      if(x.k==='value') c.value = Number(x.v);
+      if(x.k==='expiry') c.expiry = x.v;
+    });
+    if(window.logAudit) logAudit(c,'Edited',`Confirmed from the amendment's proposal: ${sug.map(x=>x.label+' '+x.say).join(' · ')}`);
+    persist(c);
+    toast(i18t('fa_confirmed_these'),'ok');
+    if(again) again();
+  });
+}
 /* ============================================================
    WRITING AN AMENDMENT FROM BLANK PAPER
    ============================================================
@@ -771,15 +916,39 @@ function amendmentSkeletonBody(parent, opts={}){
      before, which every test of this skeleton rests on. Escaped: it is typed
      text going onto paper, never markup. */
   const says = String(opts.says||'').trim();
+  /* ---- ONE NUMBERED ITEM PER CHANGE (7 Oct 2026, O-11) ----
+     Where the person said what changes (Copilot's proposal or their own
+     picks), each change is written as the item a lawyer would write — "1.
+     Term. Clause 3.1 is deleted and replaced with: "…"" — between the lead
+     and the close. Each is an ordinary paragraph on the record, so the
+     pencil, the clause editor, Send and signing all work on it unchanged. */
+  const items = (Array.isArray(opts.items) ? opts.items : []).filter(Boolean);
   return [
     `<p>This ${word} No. ${ord} is made on ____________${between}.</p>`,
     `<p>The parties entered into the ${pname?`<strong>${pname}</strong>`:'agreement'}${dated} (the &ldquo;Agreement&rdquo;). The parties ${W.wish}.</p>`,
     `<p>${W.lead}</p>`,
     says ? `<p>${_famEsc(says)}</p>` : '',
+    ...items.map((it, i) => amendmentItemHtml(it, i + 1)),
     `<p>${W.close}</p>`,
   ].filter(Boolean).join('');
 }
 
+/* The wording of one item, in English like the rest of the skeleton (a
+   record keeps English). The clause is named by its number and heading as the
+   signed agreement prints them. */
+function amendmentItemHtml(it, n){
+  const label = String((it && it.clauseLabel) || '').replace(/\s+/g,' ').trim();
+  const m = /^((?:\d+(?:\.\d+)*\.?)|(?:[A-Z]\.)|(?:[IVXLC]+\.))\s*(.*)$/.exec(label);
+  const num = String((it && it.clauseNumber) || (m ? m[1] : '')).replace(/\.$/, '');
+  const heading = (m ? m[2] : label).replace(/[.:]\s*$/, '') || 'Change';
+  const q = t => `&ldquo;${_famEsc(String(t || '').trim() || '____________')}&rdquo;`;
+  const where = num ? `Clause ${_famEsc(num)}` : (label ? `The clause headed &ldquo;${_famEsc(label)}&rdquo;` : 'A clause');
+  const op = (it && it.op) || 'replace';
+  const say = op === 'insert' ? `A new clause${num ? ' ' + _famEsc(num) : ''} is added: ${q(it.amended)}`
+    : op === 'delete' ? `${where} is deleted.`
+    : `${where} is deleted and replaced with: ${q(it.amended)}`;
+  return `<p><strong>${n}. ${_famEsc(heading)}.</strong> ${say}</p>`;
+}
 /* Mint the draft. No UI, no navigation — returns the contract so the dialog can
    open it and a test can read it. Throws nothing: a refusal comes back as a
    string on `.error` rather than as an exception, because both callers want to
@@ -838,9 +1007,29 @@ function createAmendment(parent, opts={}){
       window.contactSet(c, { main:true, email:cpMail, ...(m && m.name ? { name:m.name } : {}) });
     } else c.counterpartyEmail = cpMail;
   }
-  c.redlineText = (opts.skeleton===false)
+  const items = (Array.isArray(opts.items) ? opts.items : []).filter(Boolean);
+  c.redlineText = (opts.skeleton===false && !items.length)
     ? FAMILY_BLANK_BODY
-    : amendmentSkeletonBody(parent, { relation:rel, ordinal:ord, says:opts.says });
+    : amendmentSkeletonBody(parent, { relation:rel, ordinal:ord, says:opts.says, items });
+  /* WHAT THIS AMENDMENT CHANGES, remembered per item (O-11): the clause of
+     the signed agreement it changes, the op, the signed wording it replaces and
+     the wording it proposes. Read by the panel ("See in the original"), by the
+     facts reading once it is signed (O-16) and by the As amended view (O-17).
+     A record of ours: it never travels. */
+  if(items.length) c.amends = items.map(it => ({ clauseId:it.clauseId||'', clauseLabel:String(it.clauseLabel||'').slice(0,200),
+    clauseNumber:String(it.clauseNumber||'').slice(0,20), op:['replace','insert','delete'].includes(it.op)?it.op:'replace',
+    signed:String(it.signed||'').slice(0,4000), amended:String(it.amended||'').slice(0,4000) }));
+  /* THE FACTS IT PROPOSES (O-15): suggestions for a person to confirm, never
+     written onto the record by themselves. */
+  if(opts.facts && typeof opts.facts === 'object'){
+    const f = opts.facts, out = {};
+    if(f.expiry && /^\d{4}-\d{2}-\d{2}$/.test(String(f.expiry))) out.expiry = String(f.expiry);
+    if(f.effectiveDate && /^\d{4}-\d{2}-\d{2}$/.test(String(f.effectiveDate))) out.effectiveDate = String(f.effectiveDate);
+    if(Number(f.value) > 0) out.value = Number(f.value);
+    if(Object.keys(out).length) c.amendFacts = out;
+  }
+  if(opts.byCopilot && c.audit && c.audit[0]) c.audit[0].detail += ` — ${items.length} item${items.length===1?'':'s'} drafted by Copilot from: “${String(opts.note||'').slice(0,300)}”`;
+  else if(items.length && c.audit && c.audit[0]) c.audit[0].detail += ` — ${items.length} clause${items.length===1?'':'s'} picked to change`;
   /* FILED AGAINST THE PARENT IN THE SAME BREATH — there is no second step and
      no window in which this exists as a loose contract. applyParentLink writes
      its own audit line under the Created one above. */
@@ -881,101 +1070,211 @@ function openCreateAmendmentModal(parent, onDone, opts){
   if(!canEdit()){ toast(i18t('fa_viewers_no_change'),'err'); return; }
   if(!parent) return;
   if(parent.parentId){ toast(i18t('fa_child_cannot_amend'),'err'); return; }
+  /* ---- ONE QUESTION FIRST: WHAT DO YOU WANT TO CHANGE? (7 Oct 2026, O-10) ----
+     The form used to ask for paperwork — which of seven kinds, a name, an end
+     date, a note, a tick box — and never for the change itself, then opened
+     a page that said "amended as follows:" and stopped. It asks for the change
+     now, in the person's own words, and offers two ways on: Copilot reads the
+     signed agreement and proposes the clause-by-clause wording for them to
+     check (O-12), or they pick the clauses themselves (O-14). Either way the
+     draft opens already written, one numbered item per change (O-11).
+     The kind and the name are filled in from what they wrote and are one
+     press away to change. ONE DOOR: the renewal adviser opens this same
+     dialog (`opts.relation`, `opts.note`). */
   const relOpen = (opts && isRelation(opts.relation)) ? opts.relation : 'amendment';
-  /* READS THE ONE PAIR (25 Aug 2026). It was a local copy on its own
-     padding and type; seven such copies in three flavours is how a form ends
-     up two pixels off the form beside it. Through window because this is a
-     module and a bare cross-module read throws. */
-  const FLD=window.HATI_FLD;
-  const SEL='width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px var(--s-2);font:inherit;font-size:var(--t-body)';
-  const LBL=window.HATI_LBL;
-  const HINT='display:block;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);margin-top:var(--s-1);line-height:1.45';
-  const kids=familyChildren(parent.id).length;
-  openModal(`
-    <div style="padding:20px 22px">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('filenew','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('fa_create_amendment')}</h3></div>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${i18t('fa_create_sub',{ref:`<b>${_famEsc(window.contractRef?contractRef(parent):parent.id)} ${_famEsc(parent.name||'')}</b>`})}</p>
-
-      <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_kind_q')}</span>
-        <select id="am-rel" style="${SEL}">${CONTRACT_RELATIONS.map(r=>
-          `<option value="${r.k}" ${r.k===relOpen?'selected':''}>${r.label} — ${r.blurb}</option>`).join('')}</select></label>
-
-      <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_name')}</span>
-        <input id="am-name" value="${_famAttr(amendmentDefaultName(parent,relOpen))}" style="${FLD}"/>
-        ${kids?`<span style="${HINT}" id="am-name-hint">${i18tn('fa_name_hint',kids,{n:kids})}</span>`:''}</label>
-
-      ${''/* ---- AND THE HINT TELLS THE TRUTH FOR THIS KIND (audit finding 10) ----
-             The field promised that a date typed here becomes the family's live
-             expiry and moves the renewal reminder. That is only true for the
-             four relations in TERM_CHANGING; on an annex, a statement of work or
-             a side letter the date is stored and never read, so somebody set it,
-             was told the reminder would move, and it did not. The field stays —
-             recording when a schedule runs out is a reasonable thing to want —
-             and the sentence under it changes with the kind. Repainted by the
-             same handler that renames the document. */}
-      <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_end_q')}</span>
-        <input id="am-expiry" type="date" placeholder="${_famAttr(i18t('fa_end_unchanged'))}" style="${FLD}"/>
-        <span style="${HINT}" id="am-end-hint">${i18t(TERM_CHANGING.has('amendment')?'fa_end_hint':'fa_end_hint_kept')}</span></label>
-
-      <label style="display:block;margin-bottom:10px"><span style="${LBL}">${i18t('fa_note_optional')}</span>
-        <input id="am-note" value="${_famAttr(String((opts&&opts.note)||'').slice(0,240))}" placeholder="${_famAttr(i18t('fa_note_ph'))}" style="${FLD}"/></label>
-
-      ${''/* THE ONE DECISION THAT WAS LEFT OPEN, PUT ON THE FORM RATHER THAN
-             BAKED IN. Blank paper was asked for; the four-line skeleton is what
-             a real amendment opens with and what HaTi reads to recognise one.
-             Both are one press, the skeleton leads because it is the safer
-             default, and unticking gives exactly the blank page. */}
-      <label style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;margin-bottom:14px;cursor:pointer">
-        <input type="checkbox" id="am-skeleton" checked style="margin-top:2px;flex:none;accent-color:var(--color-accent)"/>
-        <span style="font-size:var(--t-meta)"><b>${i18t('fa_skeleton')}</b>
-          <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('fa_skeleton_hint')}</span></span>
-      </label>
-
-      <div id="am-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-bottom:var(--s-2)"></div>
-      <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
+  const ref = window.contractRef ? contractRef(parent) : parent.id;
+  const FLD = window.HATI_FLD, LBL = window.HATI_LBL;
+  const S = { rel: relOpen, name: amendmentDefaultName(parent, relOpen), nameTouched: false,
+    note: String((opts && opts.note) || '').slice(0, 600), expiry: '', items: [], picks: new Set(), addNew: false,
+    skeleton: true, facts: null, mentions: [], aiNotice: '' };
+  const aiOn = !!(window.API_MODE && API_MODE() && window.state && state.aiConfigured && window.api);
+  const CHIPS = ['fa_chip_extend', 'fa_chip_price', 'fa_chip_pay', 'fa_chip_add', 'fa_chip_notice', 'fa_chip_else'];
+  const relSel = () => `<select id="am-rel" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:3px 6px;font:inherit;font-size:var(--t-label)">${
+    CONTRACT_RELATIONS.map(r=>`<option value="${r.k}" ${r.k===S.rel?'selected':''} title="${_famAttr(r.blurb)}">${_famEsc(r.label)}</option>`).join('')}</select>`;
+  const head = (t, sub) => `<div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('filenew','w-4 h-4')}</span>
+      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${t}</h3></div>
+    ${sub?`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${sub}</p>`:''}`;
+  const endField = () => `<label style="display:block;margin:var(--s-3) 0 0"><span style="${LBL}">${i18t('fa_end_q')}</span>
+      <input id="am-expiry" type="date" value="${_famAttr(S.expiry)}" style="${FLD};max-width:220px"/>
+      <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:var(--s-1)">${i18t(TERM_CHANGING.has(S.rel)?'fa_end_hint':'fa_end_hint_kept')}</span></label>`;
+  const foot = inner => `<div id="am-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin:var(--s-2) 0"></div>
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:var(--s-2);flex-wrap:wrap">${inner}</div>`;
+  function askPane(){
+    return `${head(i18t('fa_amend_title',{ref:`${_famEsc(ref)} ${_famEsc(parent.name||'')}`}), i18t(aiOn?'fa_amend_sub_ai':'fa_amend_sub'))}
+      <div class="am-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--s-2)">${CHIPS.map(k=>
+        `<button type="button" data-am-chip="${k}" class="ui-btn ui-btn-sm" style="border-radius:999px">${_famEsc(i18t(k))}</button>`).join('')}</div>
+      <textarea id="am-note" rows="4" placeholder="${_famAttr(i18t('fa_amend_ph'))}" style="${FLD};width:100%;resize:vertical;line-height:1.5">${_famEsc(S.note)}</textarea>
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:var(--s-2);font-size:var(--t-label);color:var(--color-neutral-600)">
+        <label style="display:inline-flex;align-items:center;gap:6px">${i18t('fa_type')} ${relSel()}</label>
+        <label style="display:inline-flex;align-items:center;gap:6px;flex:1;min-width:220px">${i18t('fa_name')}
+          <input id="am-name" value="${_famAttr(S.name)}" style="${FLD};padding:3px 6px;font-size:var(--t-label)"/></label>
+        <span>${i18t('fa_same_parties',{ref:_famEsc(ref)})}</span></div>
+      ${foot(`<button id="am-blank" type="button" class="ui-link" style="margin-right:auto">${i18t('fa_start_blank')}</button>
         <button id="am-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="am-go" class="ui-btn ui-btn-primary">${i18t('fa_create_open')}</button>
+        ${aiOn?`<span style="font-size:var(--t-label);color:var(--color-neutral-600)">✦ ${i18t('fa_ai_reads',{ref:_famEsc(ref)})}</span>`:''}
+        <button id="am-ai" class="ui-btn ui-btn-primary"${aiOn?'':' disabled'} title="${_famAttr(aiOn?'':i18t('fa_ai_off'))}">${i18t('fa_draft_with_copilot')}</button>`)}
+      ${aiOn?'':`<p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;text-align:right">${i18t('fa_ai_off')}</p>`}`;
+  }
+  function itemRowHtml(it, i){
+    const del = it.op === 'insert' ? '' : _famEsc(it.signed || '');
+    return `<div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
+      <label style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--color-bg);font-size:var(--t-label);font-weight:var(--w-strong);cursor:pointer">
+        <input type="checkbox" data-am-item="${i}" ${it.on!==false?'checked':''} style="accent-color:var(--color-accent)"/>${_famEsc(it.clauseLabel||i18t('fa_new_clause'))}
+        <span style="font-weight:var(--w-body);color:var(--color-neutral-600)">· ${_famEsc(i18t('fa_op_'+(it.op||'replace')))}</span></label>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+        ${it.op==='insert'?'':`<div style="padding:8px 10px;font-family:var(--font-doc);font-size:var(--t-meta);line-height:1.5;min-width:0"><span style="display:block;font-family:var(--font-body);font-size:var(--t-micro,10px);letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600)">${i18t('fa_signed_wording')}</span><del style="color:var(--st-ruby-fg)">${del}</del></div>`}
+        ${it.op==='delete'?'':`<div style="padding:8px 10px;font-family:var(--font-doc);font-size:var(--t-meta);line-height:1.5;min-width:0;border-left:1px solid var(--color-divider)"><span style="display:block;font-family:var(--font-body);font-size:var(--t-micro,10px);letter-spacing:.07em;text-transform:uppercase;color:var(--color-neutral-600)">${i18t('fa_amended_wording')}</span><ins style="color:var(--accent-ink);text-decoration-color:var(--color-accent)">${_famEsc(it.amended||'')}</ins></div>`}
+      </div></div>`;
+  }
+  function reviewPane(){
+    const F = S.facts || {};
+    const moves = [];
+    if(F.expiry && F.expiry !== ownExpiry(parent)) moves.push([i18t('fa_mv_end'), `${_famEsc(ownExpiry(parent)||'—')} → <b>${_famEsc(F.expiry)}</b>`]);
+    if(F.value && Number(F.value) !== Number(parent.value||0)) moves.push([i18t('fa_mv_value'), `${_famEsc(window.fmtMoneyOf?fmtMoneyOf(parent):String(parent.value||'—'))} → <b>${_famEsc(window.fmtMoneyOf?fmtMoneyOf({...parent,value:Number(F.value)}):String(F.value))}</b>`]);
+    if(F.effectiveDate) moves.push([i18t('fa_mv_effective'), `<b>${_famEsc(F.effectiveDate)}</b>`]);
+    (S.mentions||[]).forEach(m=>moves.push([i18t('fa_mv_mentions'), `${_famEsc(m.clause||'')} · <span style="color:var(--st-amber-fg)">${_famEsc(m.why||i18t('fa_check_it'))}</span>`]));
+    return `${head(i18tn('fa_found_n',S.items.length,{n:S.items.length}), i18t('fa_found_sub'))}
+      <div style="display:grid;gap:10px;max-height:46vh;overflow:auto;padding-right:2px" class="scroll-thin">${S.items.map(itemRowHtml).join('')}</div>
+      ${moves.length?`<div style="display:grid;gap:4px;margin-top:var(--s-3);font-size:var(--t-label)">${moves.map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--color-divider);padding-bottom:4px"><span>${_famEsc(k)}</span><span style="text-align:right">${v}</span></div>`).join('')}</div>`:''}
+      ${S.aiNotice?`<p style="font-size:var(--t-label);color:var(--st-amber-fg);margin:var(--s-2) 0 0">${_famEsc(S.aiNotice)}</p>`:''}
+      ${endField()}
+      ${foot(`<span style="font-size:var(--t-label);color:var(--color-neutral-600);margin-right:auto">✦ ${i18t('fa_check_before')}</span>
+        <button id="am-back" class="ui-btn">${i18t('fa_back')}</button>
+        <button id="am-go" class="ui-btn ui-btn-primary">${i18t('fa_create_amendment_go')}</button>`)}`;
+  }
+  function pickPane(){
+    const cls = amendParentClauses(parent);
+    return `${head(i18t('fa_pick_title'), i18t('fa_pick_sub'))}
+      <div style="display:grid;gap:2px;max-height:40vh;overflow:auto" class="scroll-thin">
+        ${cls.length?cls.map((x,i)=>`<label style="display:flex;gap:8px;align-items:flex-start;padding:6px 4px;border-bottom:1px dashed var(--color-divider);cursor:pointer;font-size:var(--t-meta)">
+          <input type="checkbox" data-am-pick="${i}" ${S.picks.has(i)?'checked':''} style="margin-top:3px;accent-color:var(--color-accent)"/>
+          <span style="min-width:0"><b style="font-weight:var(--w-strong)">${_famEsc(x.label||i18t('fa_clause_n',{n:i+1}))}</b>
+          <span style="display:block;color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc((x.text||'').slice(0,140))}</span></span></label>`).join('')
+          :`<p style="font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('fa_pick_none')}</p>`}
+        <label style="display:flex;gap:8px;align-items:center;padding:6px 4px;cursor:pointer;font-size:var(--t-meta)"><input type="checkbox" id="am-pick-new" ${S.addNew?'checked':''} style="accent-color:var(--color-accent)"/>${i18t('fa_add_new_clause')}</label>
       </div>
-    </div>`, {maxWidth:'520px'});
-
-  const $=id=>document.getElementById(id);
-  /* The name follows the kind until somebody types over it — an "Annex No. 1"
-     called "Amendment No. 3" is a worse default than no default. Once the field
-     has been edited by hand it is theirs and the kind stops rewriting it. */
-  let nameTouched=false;
-  $('am-name')?.addEventListener('input',()=>{ nameTouched=true; });
-  const paintEndHint=()=>{
-    const h=$('am-end-hint'); if(!h) return;
-    const moves = TERM_CHANGING.has($('am-rel').value);
-    h.textContent = i18t(moves?'fa_end_hint':'fa_end_hint_kept');
-  };
-  paintEndHint();
-  $('am-rel')?.addEventListener('change',()=>{
-    paintEndHint();
-    if(nameTouched) return;
-    $('am-name').value = amendmentDefaultName(parent, $('am-rel').value);
-  });
-  $('am-cancel')?.addEventListener('click',closeModal);
-  $('am-go')?.addEventListener('click',()=>{
-    const err=$('am-err');
-    const name=String($('am-name').value||'').trim();
-    if(!name){ err.textContent=i18t('fa_needs_name'); return; }
-    const expiry=String($('am-expiry').value||'').trim();
-    if(expiry && !(window.dateOnly?dateOnly(expiry):/^\d{4}-\d{2}-\d{2}$/.test(expiry))){
-      err.textContent=i18t('fa_bad_date'); return; }
-    const made=createAmendment(parent,{
-      relation:$('am-rel').value, name, expiry:expiry||null,
-      note:String($('am-note').value||'').trim(),
-      skeleton: !!$('am-skeleton').checked });
-    if(made.error){ err.textContent=made.error; return; }
-    closeModal();
-    toast(i18t('fa_created',{ id:(window.contractRef?contractRef(made.contract):made.contract.id), pid:(window.contractRef?contractRef(parent):parent.id),
-      rel:(RELATION_LABEL[made.contract.relation]||'Amendment').toLowerCase() }));
-    if(typeof updateSidebarCounts==='function') updateSidebarCounts();
-    if(onDone) onDone(made.contract);
-    else if(typeof openWorkspace==='function') openWorkspace(made.contract.id);
-  });
+      ${aiOn?'':`<p style="font-size:var(--t-label);color:var(--st-amber-fg);margin:var(--s-2) 0 0">${i18t('fa_ai_off_manual')}</p>`}
+      <label style="display:flex;align-items:flex-start;gap:var(--s-2);border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;margin-top:var(--s-3);cursor:pointer">
+        <input type="checkbox" id="am-skeleton" ${S.skeleton?'checked':''} style="margin-top:2px;flex:none;accent-color:var(--color-accent)"/>
+        <span style="font-size:var(--t-meta)"><b>${i18t('fa_skeleton')}</b>
+          <span style="display:block;color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${i18t('fa_skeleton_hint')}</span></span></label>
+      ${endField()}
+      ${foot(`<button id="am-back" class="ui-btn">${i18t('fa_back')}</button>
+        <button id="am-go" class="ui-btn ui-btn-primary">${i18t('fa_create_amendment_go')}</button>`)}`;
+  }
+  openModal(`<div style="padding:20px 22px" id="am-dlg"></div>`, {maxWidth:'680px'});
+  const $ = id => document.getElementById(id);
+  const err = t => { const e=$('am-err'); if(e) e.textContent=t||''; };
+  function keep(){
+    const n=$('am-note'); if(n) S.note=n.value;
+    const r=$('am-rel'); if(r) S.rel=r.value;
+    const nm=$('am-name'); if(nm) S.name=nm.value;
+    const x=$('am-expiry'); if(x) S.expiry=x.value;
+    const sk=$('am-skeleton'); if(sk) S.skeleton=!!sk.checked;
+    document.querySelectorAll('[data-am-item]').forEach(cb=>{ const it=S.items[Number(cb.getAttribute('data-am-item'))]; if(it) it.on=cb.checked; });
+    if(document.querySelector('[data-am-pick]')||$('am-pick-new')){
+      S.picks=new Set([...document.querySelectorAll('[data-am-pick]')].filter(cb=>cb.checked).map(cb=>Number(cb.getAttribute('data-am-pick'))));
+      S.addNew=!!($('am-pick-new')&&$('am-pick-new').checked);
+    }
+  }
+  function show(step){
+    const host=$('am-dlg'); if(!host) return;
+    host.innerHTML = step==='review' ? reviewPane() : step==='pick' ? pickPane() : askPane();
+    host.dataset.step = step;
+    wire(step);
+  }
+  function wire(step){
+    $('am-cancel')?.addEventListener('click',closeModal);
+    $('am-back')?.addEventListener('click',()=>{ keep(); show('ask'); });
+    $('am-name')?.addEventListener('input',()=>{ S.nameTouched=true; });
+    $('am-rel')?.addEventListener('change',()=>{ S.rel=$('am-rel').value; if(!S.nameTouched){ S.name=amendmentDefaultName(parent,S.rel); const nm=$('am-name'); if(nm) nm.value=S.name; } });
+    document.querySelectorAll('[data-am-chip]').forEach(b=>b.addEventListener('click',()=>{
+      const t=$('am-note'); if(!t) return;
+      const add=i18t(b.getAttribute('data-am-chip')+'_say');
+      t.value=(t.value.trim()?t.value.trim()+' ':'')+add; t.focus();
+      /* "Extend the term" makes this a renewal unless the reader chose otherwise. */
+      if(b.getAttribute('data-am-chip')==='fa_chip_extend' && S.rel==='amendment' && !S.nameTouched){ /* stays an amendment: an extension IS an amendment of the term */ }
+    }));
+    $('am-blank')?.addEventListener('click',()=>{ keep(); show('pick'); });
+    $('am-ai')?.addEventListener('click',async()=>{
+      keep();
+      if(!String(S.note||'').trim()){ err(i18t('fa_say_first')); return; }
+      const b=$('am-ai'); b.disabled=true; b.textContent=i18t('fa_reading');
+      try{
+        const text=amendParentText(parent);
+        const r=await api('ai/amend','POST',{ text, ask:S.note, ref, facts:{ expiry:ownExpiry(parent)||'', value:Number(parent.value)||0,
+          currency:(window.contractCurrency?contractCurrency(parent):'') } });
+        const items=(r&&Array.isArray(r.items)?r.items:[]).map(x=>({ ...x, on:true }));
+        if(!items.length){ err((r&&r.error)||i18t('fa_ai_nothing')); b.disabled=false; b.textContent=i18t('fa_draft_with_copilot'); return; }
+        const cls=amendParentClauses(parent);
+        items.forEach(it=>{ const hit=cls.find(x=>x.num&&it.clauseNumber&&String(x.num)===String(it.clauseNumber)); if(hit){ it.clauseId=hit.id; if(!it.clauseLabel) it.clauseLabel=hit.label; } });
+        S.items=items; S.facts=r.facts||null; S.mentions=Array.isArray(r.mentions)?r.mentions:[];
+        S.aiNotice=(r.dropped?i18tn('fa_dropped_n',r.dropped,{n:r.dropped}):'')+(r.truncated?' '+i18t('fa_cut_short'):'');
+        if(S.facts&&S.facts.expiry&&!S.expiry) S.expiry=S.facts.expiry;
+        if(r.kind&&isRelation(r.kind)&&!S.nameTouched){ S.rel=r.kind; S.name=amendmentDefaultName(parent,S.rel); }
+        show('review');
+      }catch(e){
+        /* EVERY FAILURE IS SAID WHERE THE READER LOOKS, with the manual way
+           on the same screen (no key, a refusal, the cap, a dropped line). */
+        err((e&&e.message)||i18t('fa_ai_failed')); b.disabled=false; b.textContent=i18t('fa_draft_with_copilot');
+        const bl=$('am-blank'); if(bl) bl.style.fontWeight='600';
+      }
+    });
+    $('am-go')?.addEventListener('click',()=>{
+      keep();
+      const name=String(S.name||'').trim();
+      if(!name){ err(i18t('fa_needs_name')); return; }
+      const expiry=String(S.expiry||'').trim();
+      if(expiry && !(window.dateOnly?dateOnly(expiry):/^\d{4}-\d{2}-\d{2}$/.test(expiry))){ err(i18t('fa_bad_date')); return; }
+      let items=[];
+      if(step==='review') items=S.items.filter(it=>it.on!==false);
+      else {
+        const cls=amendParentClauses(parent);
+        items=[...S.picks].sort((a,b)=>a-b).map(i=>cls[i]).filter(Boolean).map(x=>({ clauseId:x.id, clauseLabel:x.label, clauseNumber:x.num,
+          op:'replace', signed:x.text, amended:x.text, manual:true }));
+        if(S.addNew) items.push({ clauseLabel:'', op:'insert', amended:'', manual:true });
+      }
+      const made=createAmendment(parent,{ relation:S.rel, name, expiry:expiry||null, note:String(S.note||'').trim(),
+        skeleton:S.skeleton!==false || items.length>0, items, facts:step==='review'?S.facts:null,
+        byCopilot:step==='review' });
+      if(made.error){ err(made.error); return; }
+      closeModal();
+      toast(i18t('fa_created',{ id:(window.contractRef?contractRef(made.contract):made.contract.id), pid:ref,
+        rel:(RELATION_LABEL[made.contract.relation]||'Amendment').toLowerCase() }),'ok');
+      if(typeof updateSidebarCounts==='function') updateSidebarCounts();
+      if(onDone) onDone(made.contract);
+      else if(typeof openWorkspace==='function') openWorkspace(made.contract.id);
+    });
+  }
+  show('ask');
+}
+/* THE SIGNED AGREEMENT'S CLAUSES, for the picker and for matching Copilot's
+   items to clause ids. Read off the wording the parent is drawn from; READS,
+   never writes (no negotiation is initialised). */
+function amendParentHtml(parent){
+  if(!parent) return '';
+  try{
+    if(parent.redlineText && window.isRich && isRich(parent.format)) return String(parent.redlineText);
+    if(window.isUpload && isUpload(parent)){
+      const t=String((parent.upload&&parent.upload.extractedText)||parent.redlineText||'');
+      return t.split(/\n+/).filter(Boolean).map(l=>`<p>${_famEsc(l)}</p>`).join('');
+    }
+    if(parent.redlineText) return String(parent.redlineText).split(/\n+/).filter(Boolean).map(l=>`<p>${_famEsc(l)}</p>`).join('');
+    if(window.docBody) return String(docBody(parent)||'');
+  }catch(_){}
+  return '';
+}
+function amendParentClauses(parent){
+  const html=amendParentHtml(parent);
+  if(!html||!window.clauseSegment) return [];
+  let cl=[]; try{ cl=clauseSegment(html)||[]; }catch(_){ cl=[]; }
+  return cl.map(x=>({ id:x.clauseId||'', num:String(x.num||''), title:x.title||'',
+    label:String(x.headingText||'').replace(/\s+/g,' ').trim(), text:String(x.text||'').replace(/\s+/g,' ').trim() }))
+    .filter(x=>x.label||x.text);
+}
+function amendParentText(parent){
+  const html=amendParentHtml(parent);
+  try{ return window.richToText?richToText(html):html.replace(/<[^>]+>/g,' '); }catch(_){ return ''; }
 }
 
 async function unlinkContract(c, onDone){
@@ -991,7 +1290,7 @@ async function unlinkContract(c, onDone){
   if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
 }
 
-Object.assign(window,{familyOrder,familyCheck,FAMILY_TERMS,familyAgreement,familyAgreeLine,
+Object.assign(window,{familyOrder,familyCheck,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
   openLinkModal,unlinkContract,renderFamilySection,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,

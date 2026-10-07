@@ -27554,3 +27554,27 @@ Young, over two screenshots: *"Implement progress ring. Also, add the button in 
 - A FORGOTTEN PRESS NEVER TRAVELS: `linkRefusal` returns kind `form` for every link carrying wording (sign · negotiate · view · history), and `signBlockers` adds `form-fill`. Kept out of LINK_ASKS on purpose: the server cannot know a press is owed, and it walls nobody out — it is the sender's own unfinished step with its way forward in the sentence.
 - LIGHT BLUE: `.ui-btn.hati-fill-btn` (accent-50 wash, `--accent-ink`, accent-100 edge) on the Overview's `#kt-fill` and the panel's button. Read the brief stays the one filled button.
 - PROGRESS RINGS: `ovMapSvg` redrawn on an 880×380 stage (400×600 stacked), two parties side by side, more below with lanes bowing above; each party a tinted circle with a ring of its duties in state colours (`ovMapRingSegs`, grouped by state past `OV_MAP_RING_EACH`), a key over the map. Card measured 429px with the panel at 429px at 1440. f442 (4) re-pointed.
+
+---
+
+# WORK ORDER O — SIGNING, AMENDMENTS, PLAYBOOK, CHARTS, REVIEW DESK, OVERVIEW 2 (built overnight 7 Oct 2026)
+
+The owner's words: "Start the build as an autonomous work order building all the jobs we have discussed for the night. Build everything as I am going to bed, merge to main then create an artifact that summarizes everything you built and how they look like in Hati." The work order is WORKORDER-signing-amendments-playbook.md (O-1..O-42, decisions D1–D10 all taken as recommended).
+
+## SIGNING — ONE LIST BEFORE THE SIGNATURE (signing with the other side)
+Reported off screenshots of the counterparty's signing: comments typed at signing went nowhere visible, the signature never appeared on the paper, the title box emptied, a refresh read "read-only, ask for a fresh link", Sign stayed live while a point was still open and while the order said wait. Built: the share route returns the live signatures (also on a dormant link) so the page paints them as marks after the render (`pagesSignMarks`), never inside the paper's HTML, because the paper's HTML is fingerprinted; the respond route refuses a signature while an owner's ask that was in the payload is still open (409, `srvSignOpenAsks`); the Sign button greys with the reason (`portalSignHold`); the comment box was removed (D1) and the reason box lives in "Something else"; the page ends on a receipt.
+
+## AN AMENDMENT IS WRITTEN HERE (creating one)
+Gaps A1–A10: an amendment could be started on a draft; the dialog asked for a name and nothing else; nothing said which clauses changed; the value and end date never followed a signed amendment. Built: Create only on an executed agreement; a dialog that asks what should change and offers blank or Copilot (D2, quotes checked against the signed wording, dropped ones counted); one numbered item per change remembered as `c.amends`; the proposed facts kept as suggestions to confirm, never applied by themselves; the deal as amended read live (D3) on the list and the Overview; an "As amended" view on the Document tab (D4). Found on the way and fixed in the same work: the "change the wording directly" link went to a tab key that does not exist.
+
+## OUR STANDARDS, THE PLAYBOOK (a playbook that learns)
+From the Playbook That Learns artifact. Where the same figure keeps being settled away from a standard, the standard's panel says so with the evidence (each round a door to its contract), and offers three choices: make it preferred, make it the fallback, or keep it (remembered six months, D7). The change is confirmed IN PLACE with the wording marked (D6, reversing the earlier rule that sent it elsewhere), written through the library's one save, with a trail line and Undo. The "rounds to agree" figure from the design was not built: the record does not keep it measurably; the panel shows rounds, the figure and contracts instead.
+
+## HOME — THE BOARD AND THE MAP (the chart standard, Instrument)
+The owner chose Instrument. Every board drawer built a 1000-wide picture and the page stretched it (7px words on a half card). Now the card's width is measured after the paint and the chart is drawn again at that width, height and type from the step. Series colours changed to the checked light and dark sets. Opened charts gained Show as table and Full screen; Esc steps back. Left on the old way on purpose: the Insights shelf pictures, packs and the description sent to Copilot (they are not cards); the ring and the timeline keep their content height.
+
+## OBLIGATIONS (the review desk)
+The owner picked "Review desk". The reading now also returns kind, whose job, clause, amount and document. The window became a two-pane desk; Edit before adding opens the existing form with its own two words; decisions are kept per wording so a skip stays skipped; the tile and the door count only what is left. The old window's source-shape tests (f260, f263, f475) and the amount-and-window browser check were re-pointed to the desk's shape — same walls, new markup.
+
+## OVERVIEW 2 — THE TIME MACHINE
+Owner-instructed tab, exactly as option 2 of the Overview ideas page. Built from the record's dates with the design's colours as `--ov2-*` tokens. The dated windows (D9) are read by a new arrival reading; it was NOT added to TRIAGE_STEPS, because the five steps are pinned by tests and drawn as five tiles — it runs inside triageRun after the obligations reading and never fails the run. The record holds no country or registration number for a party, so those are not drawn (never guessed); Disputes is drawn only where the record holds it.

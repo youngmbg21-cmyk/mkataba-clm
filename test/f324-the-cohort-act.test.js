@@ -360,7 +360,8 @@ describe('f324 (9) the register is what decides, so the two cannot drift', () =>
     });
   });
   test('9d the skeleton\'s `says` is carried by createAmendment and nowhere else', () => {
-    assert.match(FAM, /amendmentSkeletonBody\(parent, \{ relation:rel, ordinal:ord, says:opts\.says \}\)/);
+    /* `items` rides beside it since the work order's O-11 (7 Oct 2026). */
+    assert.match(FAM, /amendmentSkeletonBody\(parent, \{ relation:rel, ordinal:ord, says:opts\.says(, items)? \}\)/);
     assert.equal((FAM.match(/says:opts\.says/g)||[]).length, 1);
   });
 });

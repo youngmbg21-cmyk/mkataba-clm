@@ -20481,3 +20481,11 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### 7 Oct 2026 — menu, Copilot door, board work order
 - Noticed, not fixed: theme-tokens-verify's dashboard census drops and regains the ruby rgb(217,69,59) between runs (what the Home board draws varies), so dashboard--light/--dark flap red without any colour change.
 - Noticed, not fixed (8 Oct 2026, Constellation build): the Overview's Contract type cell can read the template's label ("Raw Material Supply") while `metadata.contractType` holds a different typed word ("Supply agreement", "Mutual NDA") — ktFieldCell's reading, unchanged by this build.
+
+### 7 Oct 2026 — overnight work order O (signing, amendments, playbook, charts, review desk, Overview 2)
+- Noticed, not fixed: renewal-decision-verify 6b ("and the nags start again on their own — 0") is red on main too (measured at the merge base before this work). Left alone.
+- Noticed, not fixed: signing-on-paper-verify is on KNOWN_RED and stays red here as on main. Left alone.
+- Noticed, not fixed (my own Part 2): with "As amended" pressed on the Document tab, the Clauses thread reads the as-amended sheet, so an amendment's tag ("Amendment No. 1") and struck words can appear in a clause's plain reading. The thread should read the original sheet.
+- Noticed, not fixed: CLAUDE.md is 87 KB after this work order's MAP lines (the house limit is about 80 KB); a trim needs the owner's word.
+- Noticed, not fixed: nine-jobs-verify 2, 3, 3b (our party row's email; "Who else" naming the colleague who filed or approved) fail on main at 8307c0b too, and the file is not on KNOWN_RED. Left alone.
+- Noticed, not fixed: share-recipient-verify "Key terms shows the route address when the two disagree" (three checks) fails on main at 8307c0b too. Left alone.

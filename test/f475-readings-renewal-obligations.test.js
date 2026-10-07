@@ -135,7 +135,7 @@ describe('f475 (1) a reading the wording moved past says so on the strip', () =>
 
   test('1f a fresh obligations read does not hand back the list held from the old wording', async () => {
     const fn = fnOf(OB, 'runFindObligations');
-    assert.match(fn, /const held = \(!fresh &&/, 'the held offer stands aside for a fresh read');
+    assert.match(fn, /const held0 = \(!fresh &&/, 'the held offer stands aside for a fresh read');
     const { win, c } = stage();
     c.triage = { steps: { oblig: { ok: true, found: [{ desc: 'An old promise from older wording' }] } } };
     let shown = null;
@@ -229,7 +229,10 @@ describe('f475 (2) a renewal answer starts its act and carries it until done', (
     assert.match(start, /answer==='renegotiate'&&window\.openRedlineWorkbench/, 'renegotiating lands on the negotiation');
     const act = fnOf(AI, 'renewalDecisionAct');
     assert.match(act, /openNoticeDialog\(c\)/, 'letting it lapse opens the notice desk');
-    assert.match(fnOf(FAM, 'openCreateAmendmentModal'), /id="am-note" value="\$\{_famAttr\(String\(\(opts&&opts\.note\)/);
+    /* The note is the dialog's one question since O-10 (7 Oct 2026): a box
+       prefilled from the renewal card's reason. */
+    assert.match(fnOf(FAM, 'openCreateAmendmentModal'), /note: String\(\(opts && opts\.note\) \|\| ''\)/);
+    assert.match(fnOf(FAM, 'openCreateAmendmentModal'), /<textarea id="am-note"[^>]*>\$\{_famEsc\(S\.note\)\}<\/textarea>/);
   });
 });
 
@@ -239,7 +242,7 @@ describe('f475 (3) obligation proposals arrive unticked', () => {
     const fn = fnOf(OB, 'openObligationsReview');
     assert.ok(!/data-ob-pick="\$\{i\}"[^>]*checked/.test(fn), 'no proposal arrives ticked');
     assert.match(fn, /const n = obPicks\(\)\.filter\(cb => cb\.checked\)\.length;/);
-    assert.match(fn, /btn\.disabled = !n && fresh;/, 'grey until something is ticked');
+    assert.match(fn, /btn\.disabled = !n && fresh && leftN\(\) > 0;/, 'grey until something is ticked');
   });
 });
 

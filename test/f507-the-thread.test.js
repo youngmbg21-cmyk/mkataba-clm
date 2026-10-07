@@ -253,7 +253,8 @@ describe('f507 (6) — the Drawer: Form & links lands, the Clauses door brings t
   test('the Clauses door leads the tab row\'s slot, drawn shut, and only docThreadPaint says whether it shows', () => {
     const end = region(CONTRACT, 'wsTabRowEndHtml');
     assert.match(end, /id="ws-th-door" class="ui-btn ws-th-door" hidden aria-expanded="false" aria-controls="doc-thread"/);
-    assert.match(end, /return clauses\+step\+focus\+door;/);
+    /* Re-pointed 7 Oct 2026 (O-17): Original | As amended leads, only on an agreement with a signed amendment */
+    assert.match(end, /return amended\+clauses\+step\+focus\+door;/);
     assert.match(region(CONTRACT, 'wsPaintTabRowEnd'), /#ws-th-door'\)\?\.addEventListener\('click',\(\)=>docThreadDrawerSet\(c,!docThreadDrawerShowing\(\),\{from:'door'\}\)\)/);
     const door = region(CONTRACT, 'docThreadDoorPaint');
     assert.match(door, /const show=docThreadOn\(\)&&has&&\(rows\|\|\[\]\)\.length>0;/, 'only where there is a panel to cover and a clause to show');

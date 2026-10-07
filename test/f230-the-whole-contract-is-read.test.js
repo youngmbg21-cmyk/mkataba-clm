@@ -100,7 +100,8 @@ describe('F230 — the whole contract is read', () => {
        bracket, so adding a fourth argument for something unrelated read as the
        wording no longer being posted. What has to hold is that the WHOLE text
        goes in the body — the check one test up already fails on any slice. */
-    assert.match(OBLIG, /api\('ai\/obligations','POST',\{ text \}/);
+    /* Re-pointed 7 Oct 2026 (O-31): who "us" and "them" are rides after it. */
+    assert.match(OBLIG, /api\('ai\/obligations','POST',\{ text, ours, theirs:/);
     assert.match(AI, /api\('ai\/brief','POST',\{ id:c\.id, text:String\(text\|\|''\), force/);
     /* Re-pointed 23 Sep 2026: the check now sends EVERY standard on Our
        standards (the library's positions folded with the book's), so the
@@ -313,7 +314,8 @@ describe('F230 — the whole contract is read', () => {
 
   test('"none" and "cut off before it could say" are different answers', () => {
     const at = SERVER_CODE.indexOf("app.post('/api/ai/obligations'");
-    const body = SERVER_CODE.slice(at, at + 4000);
+    /* the route's own region, not a byte count (the schema grew, O-31) */
+    const body = SERVER_CODE.slice(at, SERVER_CODE.indexOf('app.post(', at + 10));
     assert.match(body, /if \(!list\.length && resp\.truncated\)/,
       'an empty list from a cut-off call is reported as a fact about the contract');
     /* The screen prints an empty list as "No obligations found in this

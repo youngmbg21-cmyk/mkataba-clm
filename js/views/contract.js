@@ -2981,8 +2981,20 @@ function docSignPaperParts(b){
    the article's id (the room keeps #doc-canvas; the graph's paper is
    #ig-canvas, so scanCanvas can tell the two apart), `readOnly` the projection
    whatever docFillable says (a reading copy is never typed in). */
+/* ---- ORIGINAL | AS AMENDED (7 Oct 2026, O-17) ----
+   One switch on the Document tab of an agreement that a signed amendment has
+   changed. Remembered for the sitting only, per contract; the paper itself is
+   never touched. */
+const _docAsAmended=new Set();
+function docAsAmendedOn(c){ return !!(c&&_docAsAmended.has(c.id)&&window.asAmendedItems&&asAmendedItems(c).length); }
+function docAsAmendedSet(c,on){ if(!c) return; if(on) _docAsAmended.add(c.id); else _docAsAmended.delete(c.id); docRepaintSheet(c); wsPaintTabRowEnd(c); }
 function docSheetHtml(c, o){
   o=o||{};
+  if(docAsAmendedOn(c) && window.asAmendedHtml){
+    const html=asAmendedHtml(c);
+    if(html) return `<div class="blueprint pg-sheet pg-work" data-copy="amended" style="padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0">
+      <article id="${o.canvasId||'doc-canvas'}" class="doc-surface" style="background:transparent">${html}</article></div>`;
+  }
   const mode=o.copy||docCopyOf(c);
   const up=isUpload(c);
   const b=(!up&&window.resolveDocBranding)?resolveDocBranding(c):null;
@@ -4667,6 +4679,11 @@ const ROOM_TABS=[
      one-column Key terms tab: it was left alone on purpose, and this is a
      desktop RENDERER, so nothing here reaches it. */
   ['terms','tab_overview'],
+  /* ---- OVERVIEW 2, THE TIME MACHINE (work order O-36, 7 Oct 2026) ----
+     Owner-instructed, right after the Overview, which is untouched. Painted
+     on arrival by paintOverview2 (js/views/overview2.js); it writes nothing
+     and spends nothing. Desktop only: the phone keeps its own screens. */
+  ['ov2','tab_overview_2'],
   /* ---- WHERE WE ARE, SECOND (idea 15, built 4 Oct 2026) ----
      The shared page the other parties read, drawn here too — one reading on
      three surfaces, never three readings that happen to agree. It sits SECOND
@@ -4848,7 +4865,11 @@ function wsTabRowEndHtml(c){
      to cover) and what it carries. */
   const clauses=`<button type="button" id="ws-th-door" class="ui-btn ws-th-door" hidden aria-expanded="false" aria-controls="doc-thread"
     title="${esc(i18t('th_door_title'))}">${icon('list','w-3.5 h-3.5')}<span class="ws-th-door-w">${esc(i18t('th_clauses'))}</span><span class="ws-th-door-n" data-th-door-n></span></button>`;
-  return clauses+step+focus+door;
+  const amended=(window.asAmendedItems&&asAmendedItems(c).length)
+    ? `<span class="seg-am" role="group" aria-label="${esc(i18t('fa_as_amended'))}" style="display:inline-flex;border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden;flex:none">
+        <button type="button" data-doc-am="0" class="ui-btn" style="border:0;border-radius:0" aria-pressed="${docAsAmendedOn(c)?'false':'true'}">${esc(i18t('fa_original'))}</button>
+        <button type="button" data-doc-am="1" class="ui-btn" style="border:0;border-radius:0;border-left:1px solid var(--color-divider)" aria-pressed="${docAsAmendedOn(c)?'true':'false'}">${esc(i18t('fa_as_amended'))}</button></span>` : '';
+  return amended+clauses+step+focus+door;
 }
 /* ---- THE ROOM'S OWN FLOATING NOTICES ----
    The two strips that used to band the top of the contract, in the SAME stack
@@ -4961,6 +4982,7 @@ function wsPaintTabRowEnd(c){
   if(fd) fd.addEventListener('click',wsFocusToggle);
   /* The Clauses door: open the drawer, or shut it — the door says which. */
   end.querySelector('#ws-th-door')?.addEventListener('click',()=>docThreadDrawerSet(c,!docThreadDrawerShowing(),{from:'door'}));
+  end.querySelectorAll('[data-doc-am]').forEach(b=>b.addEventListener('click',()=>docAsAmendedSet(c,b.getAttribute('data-doc-am')==='1')));
 }
 let _wsTabApplied=null;   /* the tab applyWsTabs last painted — "arrived" is a change of it */
 function applyWsTabs(c){
@@ -5004,6 +5026,9 @@ function applyWsTabs(c){
   /* THE SHARED PAGE IS PAINTED ON ARRIVAL, never built with the room: what it
      says moves every time a change is filed or answered. */
   if(_wsTab==='stands') try{ paintStandsPane(c); }catch(_){}
+  /* OVERVIEW 2 is painted on arrival too, and its clock stops on the way out */
+  if(_wsTab==='ov2'){ if(window.paintOverview2) try{ paintOverview2(c); }catch(e){ console.error(e); } }
+  else if(window.ov2Stop) try{ ov2Stop(); }catch(_){}
   /* ---- THE DOCUMENT AND SIGNING TABS SHOW TWO COPIES OF ONE CONTRACT (Young
      ruled 25 Sep 2026) ---- one sheet pane, two builders: arriving on the
      other tab swaps the working copy for the signing copy, or back. A signed
@@ -5230,6 +5255,13 @@ function ktReadValue(c,key){
   if(key==='counterparty') return c.counterparty?esc(c.counterparty):dash;
   if(key==='cpEmail'){ const em=ctTheirEmail(c); return em?esc(em):dash; }
   // W2-1: a contract states its OWN currency; only REPORTING converts
+  /* AS AMENDED (O-16): where a signed amendment states another value, that is
+     the deal now, said with the document it comes from. The stored value is
+     not touched; editing still writes this agreement's own figure. */
+  const _amFrom=(k)=>{ const e=window.effectiveTerm?effectiveTerm(c,k):null; return (e&&e.from)?e:null; };
+  const _amTag=e=>` <span class="kt-from" style="font-family:var(--font-body);font-size:var(--t-label);color:var(--accent-ink)">${esc(i18t('ct_from_doc',{ref:window.contractRef?contractRef(e.from):e.from.id}))}</span>`;
+  if(key==='value'){ const e=_amFrom('value'); if(e&&isMonetary(c)) return `<span style="font-family:var(--font-mono)">${esc(window.fmtMoneyOf?fmtMoneyOf({...c,value:e.v}):fmtMoney(e.v))}</span>${_amTag(e)}`; }
+  if(key==='notice'){ const e=_amFrom('notice'); if(e) return `<span style="font-family:var(--font-mono)">${i18tn('ct_notice_n_days',e.v,{n:e.v})}</span>${_amTag(e)}`; }
   if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
   if(key==='effDate') return day(c.fields&&c.fields.effDate);
   if(key==='expiry') return day(c.expiry);
@@ -10948,6 +10980,12 @@ function renderWorkspace(){
            markup: the reading moves whenever a change is filed or answered, so
            it is painted by applyWsTabs on arrival rather than built once per
            render (wire where you PAINT). */}
+    ${''/* OVERVIEW 2 — the Time Machine. A SLOT, painted by applyWsTabs on
+           arrival (paintOverview2), never built with the room. */}
+    <div data-ws-pane="ov2" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
+      <div id="ws-ov2-pane" style="align-self:start;width:100%;margin:0 auto"></div>
+    </div>
+
     <div data-ws-pane="stands" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
       <div id="ws-stands-pane" style="align-self:start;max-width:var(--room-measure);width:100%;margin:0 auto"></div>
     </div>
@@ -13336,6 +13374,15 @@ function wireDocCanvas(c){
   if(_signCopy&&!_theySign&&!docSealedCopy(c)&&window.pagesSignFlags){
     const cv=document.getElementById('doc-canvas');
     if(cv) pagesSignFlags(cv, PORTAL_MODE?1:0);
+  }
+  /* ---- AND EVERY SIGNATURE GIVEN, IN ITS BOX (7 Oct 2026, O-1) ----
+     Painted after the flags, so a signed box drops its "Sign here". Their
+     page reads the live list (portalLiveSignatures); our seat reads the
+     contract's own. Display only: never part of the document's HTML. */
+  if(_signCopy&&!_theySign&&window.pagesSignMarks&&window.pagesSignRows){
+    const cv=document.getElementById('doc-canvas');
+    const sigs=(PORTAL_MODE&&window.portalLiveSignatures)?portalLiveSignatures(c):(c.signatures||[]);
+    if(cv) try{ pagesSignMarks(cv, pagesSignRows(c, sigs)); }catch(_){}
   }
   /* ---- THE PAGES, AFTER EVERYTHING THAT ADDS HEIGHT AND BEFORE EVERYTHING
      THAT MEASURES (25 Sep 2026) ---- the places to sign above are in the

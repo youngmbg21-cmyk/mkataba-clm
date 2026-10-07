@@ -8020,7 +8020,10 @@ async function applyResponse(c, r, opts={}){
     // checked that this signer holds that address. The trail says so rather
     // than reading like every other verified counterparty signature.
     const unverified = r.verified===false;
-    logAudit(c,'Countersigned',`${who} signed via share link (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${boundRow?` — step ${boundRow.order} of the signing route, on their own bound link`:''}${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}${routeNote}`);
+    /* THE TRAIL TELLS THE WHOLE STORY (7 Oct 2026, O-30): the company they
+       signed for and whether a code checked it, beside the name and title. */
+    const forCo=(window.partyOfSigner&&boundRow)?((partyOfSigner(c,boundRow)||{}).name||c.counterparty):c.counterparty;
+    logAudit(c,'Countersigned',`${who}${forCo?` for ${forCo}`:''} signed via share link${r.verify?' — checked by email code':''} (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${boundRow?` — step ${boundRow.order} of the signing route, on their own bound link`:''}${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}${routeNote}`);
     /* NEWS, SAID WHERE THE READER LOOKS (4 Oct 2026): a bare toast prints
        nothing, so every arrival that moves whose move it is names a kind. */
     toast(i18t('co_arr_signed',{ who:r.name }),'ok');
@@ -8243,7 +8246,9 @@ async function applyResponse(c, r, opts={}){
       // changes on the review screen rather than read as one lump
       clauseNotes: Array.isArray(r.clauseNotes)&&r.clauseNotes.length ? r.clauseNotes.slice(0,60) : null,
       status:'open', resolution:null });
-    logAudit(c,'Changes requested',`${who} requested changes${hasRedline?' with proposed edits (redline)':''}${r.proposedValue?` (proposed value ${fmtMoney(r.proposedValue)})`:''}`);
+    /* THEIR WORDS ON THE TRAIL (O-7): the reason they gave reached a list no
+       screen draws; the History tab reads this line. */
+    logAudit(c,'Changes requested',`${who} requested changes${hasRedline?' with proposed edits (redline)':''}${r.proposedValue?` (proposed value ${fmtMoney(r.proposedValue)})`:''}${r.comment?` — “${String(r.comment).slice(0,600)}”`:''}`);
     /* The same redline, ALSO filed as fingerprinted changes so it can be worked
        clause by clause in the Negotiation tab. The round record above is
        untouched and still carries the whole-document pair — every existing
@@ -8273,7 +8278,7 @@ async function applyResponse(c, r, opts={}){
   } else if(r.action==='decline'){
     c.status='Declined';
     c.comments.push({ author:r.name, role:'Counterparty — Declined', side:'external', text:r.comment, at:r.at, ts:fmtDT(r.at) });
-    logAudit(c,'Declined',`${who} declined via share link`);
+    logAudit(c,'Declined',`${who} declined via share link${r.comment?` — “${String(r.comment).slice(0,600)}”`:''}`);
     toast(`${r.name} declined the agreement`,'err');
   } else { if(!opts.background) toast(i18t('co_unknown_response'),'err'); return false; }
   c.lastAction=todayStr(); persist(c);

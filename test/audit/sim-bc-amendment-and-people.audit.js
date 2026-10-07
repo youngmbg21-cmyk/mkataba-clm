@@ -66,8 +66,9 @@ const login = async (page, base, email, pass) => {
 
     await page.click('#fam-create');
     await page.waitForTimeout(700);
-    await page.fill('#am-expiry', '2029-12-31');
     await page.fill('#am-note', 'extends the term and re-prices haulage');
+    await page.click('#am-blank');   // the manual way (O-10, 7 Oct 2026)
+    await page.fill('#am-expiry', '2029-12-31');
     await page.click('#am-go');
     await page.waitForTimeout(1800);
 
