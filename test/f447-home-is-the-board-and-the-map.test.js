@@ -454,10 +454,12 @@ describe('F447 (6) — the board is the person\'s own record', () => {
     assert.deepEqual(s.panels.map(p => p.kind), ['obl'], 'an unknown panel kind is dropped');
     assert.equal(s.watches.length, 0, 'a watch with no direction is dropped');
   });
-  test('the screen lands on Dark, the board side, the whole book, Prepared by Copilot open', () => {
+  /* lands LIGHT since 6 Oct 2026 (Young: "the landing mode for the Board
+     should be light mode") */
+  test('the screen lands on Light, the board side, the whole book, Prepared by Copilot open', () => {
     const { sb } = world();
     const s = sb.hbS();
-    assert.deepEqual([s.face, s.screen, s.lens, s.prep], ['board', 'dark', 'all', 'open']);
+    assert.deepEqual([s.face, s.screen, s.lens, s.prep], ['board', 'light', 'all', 'open']);
   });
 });
 

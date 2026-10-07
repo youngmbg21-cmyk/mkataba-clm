@@ -157,6 +157,8 @@ const login = async page => {
     await page.screenshot({ path: path.join(OUT, '03-home.png') });
 
     await page.evaluate(() => hbPresent(true));
+    /* Present opens with the pointer off; its button turns it on (6 Oct 2026) */
+    await page.click('[data-hb-tool="pointer"]').catch(() => {});
     await page.waitForTimeout(700);
     /* A quiet spot on the board, and a button. */
     const spots = await page.evaluate(() => {

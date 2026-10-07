@@ -2525,6 +2525,10 @@ function rlCloseClauseEditor(opts = {}){
   try{
     if (ceSide() === 'owner' && window.clauseLockRelease && ceLockable() && clauseLockRelease(_ceC, _ceClauseId) && window.clauseLockSave) clauseLockSave(_ceC, { clauseId: _ceClauseId, release: true });
   }catch(_){}
+  /* THE LIST GOES WITH THE PAGE IT HANGS FROM (Young, 6 Oct 2026: the
+     dropdown "still lags into the next landing page"). HaTi's list lives on
+     document.body, not inside the editor, so removing the editor left it. */
+  try{ if (window.selectMenuClose) selectMenuClose(); }catch(_){}
   const page = document.getElementById('clause-editor');
   if (page){ try{ if (page._ceRo) page._ceRo.disconnect(); }catch(_){} page.remove(); }
   try{ if (window.spellUnderlineClear) spellUnderlineClear(); }catch(_){}

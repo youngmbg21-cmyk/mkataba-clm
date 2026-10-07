@@ -20456,3 +20456,10 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ### Noticed, not fixed
 - Home board: the risks answer pack names its top risks by `it.title` (the record name), not the new short title `riskTitleOf`.
 - Done (Part C): Insights today cards answer "why" on the card (Read more), not in the side panel; "Ask why" retired.
+
+## 6 Oct 2026 — evening order (risk titles, list, board writing, light board, present, fold in every view)
+### Noticed, not fixed
+- The Contracts/Negotiations inspector's "What Copilot read" list still calls one row "Plain View" (ov_r_plain), the old three-view name; the Thread calls it Plain.
+- An uploaded Word file whose structure WAS read still shows "Text not machine-readable" in amber on its file strip (seen on a test upload with stored wording).
+- At 1024px on Home's Explorer the folded LEGEND tab sits under the view bar (Brain · Wiring · …) at the stage's foot.
+- A "fold <anything>" sentence that names no group now gets HaTi's "no group called …" reply instead of going to Copilot ("collapse the side panel" would be answered that way).
