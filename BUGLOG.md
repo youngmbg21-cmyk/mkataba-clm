@@ -20459,3 +20459,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 
 ## 7 Oct 2026 — the bright brand (noticed, not fixed)
 - Noticed, not fixed: theme-tokens-verify was already red at the parent (20/40) — its baseline was stale from earlier unrelated work (night-mode wells, rgba(160,220,210,…), rgba(4,25,26,…) and others). The bright-brand re-record absorbs that drift; the set difference attributable to the bright brand alone is in MAP-HISTORY "THE BRIGHT BRAND".
+- Noticed, not fixed: counterparty-leads-verify 5b ("the top bar or the Selected card names the clause it is working on") is red at the parent too — it reads `.ce-ah-cl` / `#ce-scope`, which the one-Copilot-editor rail retired.

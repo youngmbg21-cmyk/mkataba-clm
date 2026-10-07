@@ -783,7 +783,9 @@ const SEED = t => {
       if (typeof paintKtTriage === 'function') paintKtTriage(c);
       const chip = document.querySelector('.kt-tri-chip.is-busy');
       const sp = chip && chip.querySelector('.ob-spin');
-      const done = document.querySelector('.kt-tri-chip.is-ok, .kt-tri-chip.is-warn');
+      /* since 7 Oct 2026 a finished count may also be risks (is-no) or
+         obligations (is-info) — the tone says what it counts */
+      const done = document.querySelector('.kt-tri-chip.is-ok, .kt-tri-chip.is-warn, .kt-tri-chip.is-no, .kt-tri-chip.is-info');
       const cs = sp ? getComputedStyle(sp) : null;
       const out = {
         chip: !!chip,
