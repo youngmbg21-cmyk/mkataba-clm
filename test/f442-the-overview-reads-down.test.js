@@ -184,8 +184,9 @@ describe('f442 (3) each group answers from the record, and says no more', () => 
 /* RE-POINTED IN PLACE 7 Oct 2026: Young picked "Time Machine under the
    essentials card" and "Fold them in". The thin line (ovTimelineHtml) is
    STALE; the Time Machine replaces it, and every claim the line carried is
-   carried here — drawn only off stored dates, every point on the track, labels
-   settled by measuring, one watcher — plus what the machine adds. The day is
+   carried here — drawn only off stored dates, every point on the track, no
+   label on another, one watcher — plus what the machine adds. The track is
+   the artifact's own picture (Young: built exactly as designed). The day is
    pinned, never read off the clock. */
 const tmWorld = () => { const w = ovWorld(); w.win.todayISO = () => '2026-01-15'; return w; };
 const utc = s => Date.parse(s + 'T00:00:00Z');
@@ -196,7 +197,7 @@ describe('f442 (4) the Time Machine', () => {
     const html = win.ovTmHtml(supply());
     assert.ok(/class="ov-tm"/.test(html), 'it is drawn');
     assert.ok(/ov-tm-mk is-start/.test(html) && /ov-tm-mk is-end/.test(html) && /ov-tm-mk is-now/.test(html));
-    assert.ok(/class="ov-tm-track" aria-hidden="true"/.test(html), 'the track is a picture; the read-outs speak');
+    assert.ok(/class="ov-tm-pic" data-tm-svg aria-hidden="true"><svg class="ov-tm-svg"/.test(html), 'the track is a picture; the read-outs speak');
     assert.ok(/type="range"[^>]*aria-label=/.test(html), 'the drag is a labelled control');
   });
 
@@ -217,10 +218,28 @@ describe('f442 (4) the Time Machine', () => {
     const c = supply();
     c.obligations = [{ id: 'o1', desc: 'Quarterly report', due: '2025-06-30', status: 'done', completedAt: '2025-06-28' },
       { id: 'o2', desc: 'Insurance certificate', due: '2025-12-31', status: 'open' }];
-    const track = win.ovTmHtml(c).split('class="ov-tm-range"')[0];
-    const lefts = (track.match(/left:(-?[\d.]+)%/g) || []).map(x => Number(x.slice(5, -1)));
-    assert.ok(lefts.length >= 6);
-    for (const l of lefts) assert.ok(l >= 0 && l <= 100, 'inside the track: ' + l);
+    const svg = win.ovTmTrackSvg(win.ovTmData(c), 900);
+    const xs = (svg.replace(/<g class="ov-tm-cur"[\s\S]*$/, '').match(/\bx[12]?="(-?[\d.]+)"|\bcx="(-?[\d.]+)"/g) || [])
+      .map(t => Number(t.split('"')[1]));
+    assert.ok(xs.length >= 10);
+    for (const v of xs) assert.ok(v >= 0 && v <= 900, 'inside the picture: ' + v);
+  });
+
+  test('drawn as the artifact draws it: years, bands, line, ticks, labels with leaders, diamonds, today, cursor', () => {
+    const { win } = tmWorld();
+    const c = supply();
+    c.obligations = [{ id: 'o1', desc: 'Report', due: '2025-06-30', status: 'open' }];
+    win.renewalWindow = () => ({ notice: 90, decideBy: '2026-11-30', missed: false, auto: true });
+    const T = win.ovTmData(c), svg = win.ovTmTrackSvg(T, 900);
+    for (const part of ['ov-tm-yr', 'ov-tm-band is-green', 'ov-tm-band is-amber', 'ov-tm-band is-steel is-dash',
+      'ov-tm-line', 'ov-tm-el', 'ov-tm-after', 'ov-tm-oc', 'ov-tm-lead', 'ov-tm-lbl is-today',
+      'ov-tm-mk is-start is-green', 'ov-tm-mk is-decide is-ruby', 'ov-tm-mk is-end is-steel',
+      'ov-tm-today', 'ov-tm-pulse', 'ov-tm-cur'])
+      assert.ok(svg.includes('class="' + part), part + ' is drawn');
+    assert.ok(T.t1 > T.end, 'an auto-renewing end shows the year it renews into');
+    const job = supply(); delete job.expiry;
+    const open = win.ovTmTrackSvg(win.ovTmData(job), 900);
+    assert.ok(open.includes('class="ov-tm-arrow"') && open.includes('ov-tm-band is-steel'), 'no end: an open arrow, a band that runs on');
   });
 
   test('a duty is late only on a day already behind us; an undated duty is not on the track', () => {
@@ -255,7 +274,7 @@ describe('f442 (4) the Time Machine', () => {
     win.renewalWindow = () => ({ notice: 90, decideBy: '2026-11-30', missed: false, auto: true });
     const T = win.ovTmData(c);
     assert.ok(T.marks.some(m => m.k === 'decide' && m.at === utc('2026-11-30')));
-    assert.ok(T.marks.some(m => m.k === 'end' && /Renew/.test(m.word)), 'an auto-renewing end says so');
+    assert.ok(T.marks.some(m => m.k === 'end' && /renew/i.test(m.word)), 'an auto-renewing end says so');
     const html = win.ktOverviewTermsHtml(c, { editable: false });
     const card = html.slice(html.indexOf('ov-tm-card'));
     assert.ok(/id="renewal-host" class="empty:hidden" data-bare="1"/.test(card), 'the one host, in the machine');
@@ -274,10 +293,23 @@ describe('f442 (4) the Time Machine', () => {
       'and the lit one is filled, so you can see which you pressed');
   });
 
-  test('labels are moved after the paint, by measuring, and one watcher at a time', () => {
-    const settle = strip(fnBody(CONTRACT, 'ovTimelineSettle'));
-    assert.ok(/getBoundingClientRect/.test(settle), 'it measures');
+  test('labels never sit on each other, and the picture is drawn at the track\'s width', () => {
+    const { win } = tmWorld();
+    const c = supply();
+    win.familyOrder = () => [{ doc: c }, { doc: { id: 'A-1' }, signed: '2026-01-14' }, { doc: { id: 'A-2' }, signed: '2026-01-16' }];
+    win.contractRef = d => d.id;
+    const svg = win.ovTmTrackSvg(win.ovTmData(c), 400);
+    const rows = {};
+    for (const m of svg.matchAll(/<text class="ov-tm-lbl[^"]*" x="([\d.]+)" y="(\d+)"[^>]*><title>[^<]*<\/title>([^<]*)<\/text>/g)) {
+      const w = m[3].length * 6.2 + 10, x = Number(m[1]);
+      (rows[m[2]] = rows[m[2]] || []).push([x - w / 2, x + w / 2]);
+    }
+    for (const r of Object.values(rows)) {
+      r.sort((a, b) => a[0] - b[0]);
+      for (let i = 1; i < r.length; i++) assert.ok(r[i][0] >= r[i - 1][1] - 0.5, 'two labels in one row overlap');
+    }
     const wire = strip(fnBody(CONTRACT, 'ovTmWire'));
+    assert.ok(/ovTmTrackSvg\(T,w\)/.test(wire) && /clientWidth/.test(wire), 'redrawn at the track\'s own width');
     assert.ok(/disconnect\(\)/.test(wire), 'the old watcher stops before a new one starts');
     assert.ok(/ovTmWire\(host,c\)/.test(strip(fnBody(CONTRACT, 'renderKeyTerms'))),
       'and the painter that drew the machine wires it');

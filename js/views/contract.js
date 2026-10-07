@@ -6214,16 +6214,35 @@ function ovTmData(c){
   const pts=[f,e,decide,n].concat(occ.map(o=>o.due),kids.map(k=>k.signed)).filter(x=>x!=null);
   let t0=f!=null?Math.min(f,n!=null?n:f):Math.min(...pts);
   let t1=e!=null?Math.max(e,n!=null?n:e):Math.max(...pts)+365*OV_DAY_MS;
+  /* AN AUTO-RENEWING END SHOWS THE YEAR IT RENEWS INTO, dashed, as the
+     artifact draws it: a year past the end, or one term where the term is
+     shorter. Nothing on it is a stored fact but the end itself. */
+  const autoOn=!!(w&&w.auto);
+  if(autoOn&&e!=null) t1=Math.max(t1,e+Math.min(365*OV_DAY_MS,f!=null?e-f:365*OV_DAY_MS));
   if(e==null&&f!=null&&t1<f+365*OV_DAY_MS) t1=f+365*OV_DAY_MS;
   if(f==null&&t0>e-365*OV_DAY_MS) t0=e-365*OV_DAY_MS;
   if(t1<=t0) t1=t0+OV_DAY_MS;
+  /* `tone` is the artifact's colour per mark: green a start, ruby the last
+     day to give notice, steel a change point or the end. */
   const marks=[];
-  if(f!=null) marks.push({ k:'start', at:f, word:i18t('ov_tl_start') });
-  if(decide!=null&&(f==null||decide>f)&&(e==null||decide<e))
-    marks.push({ k:w.missed?'missed':'decide', at:decide, word:i18t('ov_tl_decide') });
-  kids.forEach(k=>{ if(k.signed!=null&&k.signed>=t0&&k.signed<=t1) marks.push({ k:'amend', at:k.signed, word:String(k.ref) }); });
-  if(e!=null) marks.push({ k:'end', at:e, word:i18t(w&&w.auto?'ov_tm_renews':'ov_tl_end') });
-  return { t0, t1, start:f, end:e, today:n, decide, auto:!!(w&&w.auto), occ, kids, marks };
+  if(f!=null) marks.push({ k:'start', tone:'g', at:f, word:i18t('ov_tl_start') });
+  const decideIn=decide!=null&&(f==null||decide>f)&&(e==null||decide<e);
+  if(decideIn) marks.push({ k:w.missed?'missed':'decide', tone:'r', at:decide, word:i18t('ov_tm_last_notice') });
+  kids.forEach(k=>{ if(k.signed!=null&&k.signed>=t0&&k.signed<=t1) marks.push({ k:'amend', tone:'s', at:k.signed, word:String(k.ref) }); });
+  if(e!=null) marks.push({ k:'end', tone:'s', at:e, word:i18t(autoOn?'ov_tm_ends_renews':'ov_tm_ends') });
+  /* THE BANDS OVER THE LINE, each a stretch the record itself marks out:
+     in force until the notice deadline (green), past it until the end
+     (amber), the year it renews into if nobody acts (dashed steel); a
+     contract with no end runs on, open (steel). */
+  const bands=[];
+  if(f!=null){
+    const z=decideIn?decide:(e!=null?e:null);
+    if(z!=null) bands.push({ a:f, b:z, tone:'g', word:i18t('ov_tm_b_force') });
+    if(decideIn&&e!=null) bands.push({ a:decide, b:e, tone:'a', word:i18t('ov_tm_b_late') });
+    if(e==null) bands.push({ a:f, b:t1, tone:'s', word:i18t('ov_tm_b_open') });
+  }
+  if(autoOn&&e!=null&&t1>e) bands.push({ a:e, b:t1, tone:'s', dash:true, word:i18t('ov_tm_b_renew') });
+  return { t0, t1, start:f, end:e, today:n, decide, auto:autoOn, occ, kids, marks, bands };
 }
 /* WHAT STANDS ON A DAY: each duty's state measured against the chosen day,
    and the next deadline after it. A duty open past its day is LATE only where
@@ -6251,34 +6270,73 @@ function ovTmSpan(days){
   if(a<730){ const m=Math.round(a/30.44); return i18tn('ov_tm_months',m,{n:m}); }
   const y=Math.round(a/365.25); return i18tn('ov_tm_years',y,{n:y});
 }
+/* THE TRACK, DRAWN AS THE ARTIFACT DRAWS IT (Young: "only merge if the
+   Time Machine has been built exactly as it was designed"): one picture W
+   wide — the years with their rules, the bands over the line, the line with
+   its elapsed part, an open arrow or a dashed renewal past the end, a tick
+   per dated duty under it, the labels in two rows below with a leader each
+   (a label with no room in either row is left off; its day is a jump), the
+   marks as diamonds in their colour, today as a dashed rule with a pulse,
+   and the cursor: a rule, a ring on the line, the day in a pill. Redrawn at
+   the track's own width (ovTmWire); the cursor is moved by ovTmPaint. */
+/* Play the life / Pause, with the drawn mark the artifact gives it. */
+function ovTmPlayFace(on){
+  return (on?'<svg class="ov-tm-pm" viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="1.5" width="3" height="9" rx="1"/><rect x="7" y="1.5" width="3" height="9" rx="1"/></svg>'
+    :'<svg class="ov-tm-pm" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.5v9l7.5-4.5z"/></svg>')+esc(i18t(on?'ov_tm_pause':'ov_tm_play'));
+}
+function ovTmTrackSvg(T,W){
+  W=Math.max(300,Math.round(W||900));
+  const H=150, P=10, X=d=>P+(W-2*P)*(d-T.t0)/(T.t1-T.t0);
+  const x=v=>(+v).toFixed(1), day=ms=>esc(ovDay(ovIsoOf(ms)));
+  const tone=t=>({ g:'green', a:'amber', s:'steel', r:'ruby' }[t]||'gray');
+  const lineA=T.start!=null?T.start:T.t0, LAST=T.end!=null?T.end:T.t1;
+  let s=`<svg class="ov-tm-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">`;
+  for(let y=new Date(T.t0).getUTCFullYear()+1;y<=new Date(T.t1).getUTCFullYear();y++){
+    const xd=X(Date.UTC(y,0,1));
+    if(xd>P+20&&xd<W-P-10) s+=`<line class="ov-tm-yr" x1="${x(xd)}" y1="36" x2="${x(xd)}" y2="112"/><text class="ov-tm-yrt" x="${x(xd+5)}" y="46">${y}</text>`;
+  }
+  (T.bands||[]).forEach(b=>{ const a=X(b.a), z=X(b.b), w=z-a; if(w<=0) return;
+    s+=`<rect class="ov-tm-band is-${tone(b.tone)}${b.dash?' is-dash':''}" x="${x(a)}" y="52" width="${x(w)}" height="20" rx="4"/>`;
+    if(w>b.word.length*6.3+12) s+=`<text class="ov-tm-bandt is-${tone(b.tone)}" x="${x(a+8)}" y="66">${esc(b.word)}</text>`; });
+  s+=`<line class="ov-tm-line${T.end==null?' is-open':''}" x1="${x(X(lineA))}" y1="92" x2="${x(X(LAST))}" y2="92"/><line class="ov-tm-el" data-tm-el x1="${x(X(lineA))}" y1="92" x2="${x(X(lineA))}" y2="92"/>`;
+  if(T.end!=null&&T.t1>T.end) s+=`<line class="ov-tm-after" x1="${x(X(T.end)+6)}" y1="92" x2="${x(X(T.t1))}" y2="92"/>`;
+  else if(T.end==null) s+=`<path class="ov-tm-arrow" d="M${W-P-2},86 l8,6 -8,6"/>`;
+  T.occ.forEach(o=>{ const xo=X(o.due); if(xo<P||xo>W-P) return;
+    s+=`<line class="ov-tm-oc${o.done!=null?' is-done':''}" x1="${x(xo)}" y1="99" x2="${x(xo)}" y2="105"/>`; });
+  const rows=[-1e9,-1e9], labs=[];
+  T.marks.map(m=>({ x:X(m.at), l:m.word, at:m.at }))
+    .concat(T.today!=null?[{ x:X(T.today), l:i18t('ov_tl_today'), at:T.today, today:1 }]:[])
+    .sort((a,b)=>a.x-b.x).forEach(m=>{
+      const w=m.l.length*6.2+10, r=rows[0]<m.x-w/2?0:rows[1]<m.x-w/2?1:-1; if(r<0) return; rows[r]=m.x+w/2;
+      const cx=Math.min(Math.max(m.x,w/2),W-w/2);
+      labs.push(`<line class="ov-tm-lead" x1="${x(m.x)}" y1="100" x2="${x(m.x)}" y2="${r?128:114}"/><text class="ov-tm-lbl${m.today?' is-today':''}" x="${x(cx)}" y="${r?141:127}" text-anchor="middle"><title>${day(m.at)}</title>${esc(m.l)}</text>`); });
+  s+=labs.join('');
+  T.marks.forEach(m=>{ const xm=X(m.at);
+    s+=`<rect class="ov-tm-mk is-${m.k} is-${tone(m.tone)}" x="${x(xm-5)}" y="87" width="10" height="10" transform="rotate(45 ${x(xm)} 92)"/>`; });
+  if(T.today!=null){ const xt=X(T.today);
+    s+=`<line class="ov-tm-today" x1="${x(xt)}" y1="36" x2="${x(xt)}" y2="112"/><circle class="ov-tm-pulse" cx="${x(xt)}" cy="92" r="6"/><circle class="ov-tm-mk is-now" cx="${x(xt)}" cy="92" r="5"/>`; }
+  s+=`<g class="ov-tm-cur" data-tm-cur><line x1="0" y1="26" x2="0" y2="112"/><circle cx="0" cy="92" r="9"/><rect data-tm-cb x="-48" y="2" width="96" height="22" rx="11"/><text data-tm-ct x="0" y="17" text-anchor="middle"></text></g></svg>`;
+  return s;
+}
 function ovTmHtml(c){
   const T=ovTmData(c); if(!T) return '';
-  const pct=d=>Math.max(0,Math.min(100,(d-T.t0)/(T.t1-T.t0)*100)).toFixed(2);
-  const day=ms=>esc(ovDay(ovIsoOf(ms)));
-  const lineA=T.start!=null?T.start:T.t0, lineZ=T.end!=null?T.end:T.t1;
-  let yrs='';
-  for(let y=new Date(T.t0).getUTCFullYear()+1;y<=new Date(T.t1).getUTCFullYear();y++){
-    const p=+pct(Date.UTC(y,0,1)); if(p>3&&p<97) yrs+=`<span class="ov-tm-yr" style="left:${p}%">${y}</span>`;
-  }
-  const occ=T.occ.filter(o=>o.due>=T.t0&&o.due<=T.t1).map(o=>
-    `<span class="ov-tm-oc${o.done!=null?' is-done':''}" style="left:${pct(o.due)}%"></span>`).join('');
-  const lbl=T.marks.concat(T.today!=null?[{ k:'now', at:T.today, word:i18t('ov_tl_today') }]:[]);
-  const row=k=>(k==='start'||k==='end'||k==='amend')?'dn':'up';
+  const lineA=T.start!=null?T.start:T.t0;
   /* Every jump is a stored day; the one lit is the day the cursor stands on
      (ovTmWire keeps aria-pressed true on exactly that one). */
   const jumps=(T.today!=null?[{ at:T.today, word:i18t('ov_tl_today') }]:[]).concat(T.marks);
   const startAt=T.today!=null?T.today:lineA;
+  /* THE LINE UNDER THE TITLE, as the artifact has it: the stored dates in
+     one sentence (started · runs to · renews unless notice by). */
+  const day=ms=>ovDay(ovIsoOf(ms)), sub=[];
+  if(T.start!=null) sub.push(i18t('ov_tm_sub_start',{ date:day(T.start) }));
+  if(T.end!=null) sub.push(i18t('ov_tm_sub_runs',{ date:day(T.end) })); else sub.push(i18t('ov_tm_sub_open'));
+  if(T.decide!=null) sub.push(i18t(T.auto?'ov_tm_sub_renews':'ov_tm_sub_notice',{ date:day(T.decide) }));
   return `<div class="ov-tm" data-tm-t0="${T.t0}" data-tm-t1="${T.t1}">
-    <div class="ov-tm-track" aria-hidden="true">${yrs}
-      <div class="ov-tm-line${T.end==null?' is-open':''}" style="left:${pct(lineA)}%;width:${(+pct(lineZ)-+pct(lineA)).toFixed(2)}%"><i data-tm-el></i></div>
-      ${occ}
-      ${lbl.map(m=>`<span class="ov-tm-mk is-${m.k}" style="left:${pct(m.at)}%"></span>`).join('')}
-      ${lbl.map(m=>`<span class="ov-tl-tx ov-tm-tx is-${m.k==='missed'?'decide is-missed':m.k}" data-row="${row(m.k)}" style="left:${pct(m.at)}%"><b>${day(m.at)}</b> ${esc(m.word)}</span>`).join('')}
-      <span class="ov-tm-cur" data-tm-cur style="left:${pct(startAt)}%"><b data-tm-bub>${day(startAt)}</b></span>
-    </div>
-    <input class="ov-tm-range" type="range" min="0" max="${Math.round((T.t1-T.t0)/OV_DAY_MS)}" step="1"
-      value="${Math.round((startAt-T.t0)/OV_DAY_MS)}" aria-label="${esc(i18t('ov_tm_range'))}">
-    <div class="ov-tm-ctl"><button type="button" class="ui-btn ui-btn-sm" data-tm-play>${esc(i18t('ov_tm_play'))}</button>${
+    <p class="ov-tm-sub">${esc(sub.join(' · '))}</p>
+    <div class="ov-tm-track"><div class="ov-tm-pic" data-tm-svg aria-hidden="true">${ovTmTrackSvg(T,900)}</div>
+      <input class="ov-tm-range" type="range" min="0" max="${Math.round((T.t1-T.t0)/OV_DAY_MS)}" step="1"
+        value="${Math.round((startAt-T.t0)/OV_DAY_MS)}" aria-label="${esc(i18t('ov_tm_range'))}"></div>
+    <div class="ov-tm-ctl"><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-tm-play>${ovTmPlayFace(false)}</button>${
       jumps.map(j=>`<button type="button" class="ui-btn ui-btn-sm" data-tm-j="${j.at}" aria-pressed="${j.at===startAt}">${esc(j.word)}</button>`).join('')}</div>
     <div class="ov-tm-now"><div><div class="ov-tm-date"><b data-tm-d></b> <span data-tm-rel></span></div><p class="ov-tm-say" data-tm-say></p></div>
       <div class="ov-tm-ring" data-tm-ring></div></div>
@@ -6291,12 +6349,20 @@ function ovTmHtml(c){
 /* THE READ-OUTS FOR ONE DAY, written into the machine's own slots. */
 function ovTmPaint(el,T,d,c){
   const q=s=>el.querySelector(s), day=ms=>ovDay(ovIsoOf(ms));
-  const p=Math.max(0,Math.min(100,(d-T.t0)/(T.t1-T.t0)*100));
-  const cur=q('[data-tm-cur]'); if(cur) cur.style.left=p.toFixed(2)+'%';
-  /* The date over the cursor stays inside the card at both ends. */
-  const bub=q('[data-tm-bub]'); if(bub){ bub.textContent=day(d); bub.style.transform=p<8?'none':p>92?'translateX(-100%)':''; }
-  const lineA=T.start!=null?T.start:T.t0, lineZ=T.end!=null?T.end:T.t1;
-  const elp=q('[data-tm-el]'); if(elp) elp.style.width=(Math.max(0,Math.min(1,(d-lineA)/(lineZ-lineA)))*100).toFixed(1)+'%';
+  /* THE CURSOR, as the artifact moves it: the group slides to the day, the
+     pill holds the day and stays inside the picture at both ends, and the
+     elapsed part of the line runs from the start to the day. */
+  const svg=q('.ov-tm-svg');
+  if(svg){
+    const W=+(svg.getAttribute('width')||900), P=10, X=v=>P+(W-2*P)*(v-T.t0)/(T.t1-T.t0), xc=X(d);
+    const g=q('[data-tm-cur]'); if(g) g.setAttribute('transform',`translate(${xc.toFixed(1)},0)`);
+    const bx=Math.min(Math.max(-48,10-xc),W-10-xc-96);
+    const cb=q('[data-tm-cb]'), ct=q('[data-tm-ct]');
+    if(cb) cb.setAttribute('x',bx.toFixed(1));
+    if(ct){ ct.setAttribute('x',(bx+48).toFixed(1)); ct.textContent=day(d); }
+    const lineA=T.start!=null?T.start:T.t0, LAST=T.end!=null?T.end:T.t1;
+    const el2=q('[data-tm-el]'); if(el2) el2.setAttribute('x2',X(Math.min(Math.max(d,lineA),LAST)).toFixed(1));
+  }
   const rel=T.today==null?'':(d===T.today?i18t('ov_tm_rel_today')
     :i18t(d>T.today?'ov_tm_in':'ov_tm_ago',{ t:ovTmSpan(Math.round((d-T.today)/OV_DAY_MS)) }));
   q('[data-tm-d]').textContent=day(d); q('[data-tm-rel]').textContent=rel;
@@ -6347,7 +6413,7 @@ function ovTmWire(host,c){
   const lit=()=>{ const d=dayAt(); el.querySelectorAll('[data-tm-j]').forEach(b=>b.setAttribute('aria-pressed',String(+b.getAttribute('data-tm-j')===d))); };
   const show=()=>{ ovTmPaint(el,T,dayAt(),c); lit(); };
   let raf=0, on=false;
-  const setPlay=v=>{ on=v; play.textContent=i18t(v?'ov_tm_pause':'ov_tm_play'); play.setAttribute('aria-pressed',String(v));
+  const setPlay=v=>{ on=v; play.innerHTML=ovTmPlayFace(v);
     cancelAnimationFrame(raf); if(!v) return;
     const max=+rng.max; if(+rng.value>=max-1) rng.value=0;
     let last=performance.now();
@@ -6359,40 +6425,13 @@ function ovTmWire(host,c){
   play.addEventListener('click',()=>setPlay(!on));
   el.querySelectorAll('[data-tm-j]').forEach(b=>b.addEventListener('click',()=>{
     setPlay(false); rng.value=Math.round((+b.getAttribute('data-tm-j')-T.t0)/OV_DAY_MS); show(); }));
-  show();
-  const track=el.querySelector('.ov-tm-track');
-  ovTimelineSettle(track);
-  if(typeof ResizeObserver==='function'){ _ovTmWatch=new ResizeObserver(()=>ovTimelineSettle(track)); _ovTmWatch.observe(track); }
+  /* Drawn at the track's own width, and again when that width changes. */
+  const track=el.querySelector('.ov-tm-track'), pic=el.querySelector('[data-tm-svg]');
+  let lastW=0;
+  const draw=()=>{ const w=Math.round(track.clientWidth||0); if(!w||w===lastW) return; lastW=w; pic.innerHTML=ovTmTrackSvg(T,w); show(); };
+  show(); draw();
+  if(typeof ResizeObserver==='function'){ _ovTmWatch=new ResizeObserver(draw); _ovTmWatch.observe(track); }
 }
-/* NO TWO WORDS ON ONE SPOT. Measured after the paint, because only the page
-   knows how wide a date is in this language: a label that would touch one
-   already placed tries the other side of the line, and where both sides are
-   taken it steps back (its point stays; its date is a jump button). The start
-   and the end are placed first, so they are never the ones that give way. */
-function ovTimelineSettle(el){
-  if(!el||!el.isConnected) return;
-  const box=el.getBoundingClientRect(); if(!box||!box.width) return;
-  const tx=[...el.querySelectorAll('.ov-tl-tx')];
-  tx.forEach(x=>{ const row=x.getAttribute('data-row')||'dn';
-    x.classList.remove('is-gone','is-al','is-ar','is-up','is-dn'); x.classList.add('is-'+row); });
-  tx.forEach(x=>{ if(x.classList.contains('is-start')||x.classList.contains('is-end')) return;
-    const r=x.getBoundingClientRect();
-    if(r.left<box.left) x.classList.add('is-al'); else if(r.right>box.right) x.classList.add('is-ar'); });
-  const placed={up:[],dn:[]};
-  const hit=(a,b)=>a.left<b.right+8&&b.left<a.right+8;
-  const order=tx.slice().sort((a,b)=>(/is-(start|end)\b/.test(b.className)?1:0)-(/is-(start|end)\b/.test(a.className)?1:0));
-  order.forEach(x=>{
-    const row=x.classList.contains('is-up')?'up':'dn';
-    const r=x.getBoundingClientRect();
-    if(!placed[row].some(p=>hit(p,r))){ placed[row].push(r); return; }
-    const other=row==='up'?'dn':'up';
-    x.classList.remove('is-'+row); x.classList.add('is-'+other);
-    const r2=x.getBoundingClientRect();
-    if(!placed[other].some(p=>hit(p,r2))){ placed[other].push(r2); return; }
-    x.classList.add('is-gone');
-  });
-}
-
 /* "READ THE BRIEF" STARTS THE SHEET (owner-asked 1 Oct 2026: "add the Read
    Brief button somewhere at the start of the card so that someone can click
    in it and read the whole brief"). NOT A NEW ACT: it is the brief card's own
@@ -16396,7 +16435,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
      Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
      with it: the same guard-and-miss is waiting for both. */
   wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
-  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_READ_GROUPS,ovSayOf,ovTmData,ovTmHtml,ovTmAt,ovTmOccState,ovTmWire,ovTimelineSettle,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
+  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_READ_GROUPS,ovSayOf,ovTmData,ovTmHtml,ovTmAt,ovTmOccState,ovTmWire,ovTmTrackSvg,ovTmPlayFace,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
   OV_DEAL_FIELDS,OV_ALSO_FIELDS,OV_KT_FIELDS,OV_DERIVED_FIELDS,ovMetaBoxHtml,ovMetaField,ovMetaLabel,
   OV_MARK_ALIAS,ovFieldMarkOf,ovFieldNoteHtml,ovSignMarks,
   /* THE PARTIES BLOCK. f232's net: every `window.foo` read must be a

@@ -4128,29 +4128,46 @@
      the old line's .ov-tl-tx and ovTimelineSettle; the jump on the shown day
      is the pressed one. */
   .ov-tm{ padding:4px 16px 16px; }
-  .ov-tm-track{ position:relative; height:96px; margin:4px 0 0; }
-  .ov-tm-yr{ position:absolute; top:22px; height:50px; border-left:1px solid var(--color-divider);
-    padding-left:4px; font-size:var(--t-label); line-height:14px; color:var(--cap-ink, var(--color-neutral-500)); }
-  .ov-tm-line{ position:absolute; top:46px; height:4px; border-radius:2px; background:var(--color-neutral-100); }
-  .ov-tm-line > i{ display:block; height:100%; border-radius:2px; background:var(--color-accent); width:0; }
-  .ov-tm-line.is-open{ background:linear-gradient(90deg,var(--color-neutral-100) 85%,transparent); }
-  .ov-tm-oc{ position:absolute; top:53px; width:2px; height:7px; margin-left:-1px; background:var(--color-accent-200); }
-  .ov-tm-oc.is-done{ background:var(--color-accent); }
-  .ov-tm-mk{ position:absolute; top:43px; width:10px; height:10px; margin-left:-5px; transform:rotate(45deg);
-    box-sizing:border-box; border:2px solid var(--color-surface); background:var(--color-accent); }
-  .ov-tm-mk.is-decide{ background:var(--st-amber-dot); }
-  .ov-tm-mk.is-missed{ background:var(--st-ruby-dot); }
-  .ov-tm-mk.is-amend{ background:var(--st-steel-dot); }
-  .ov-tm-mk.is-now{ transform:none; border-radius:50%; background:var(--st-amber-dot); width:12px; height:12px; margin-left:-6px; top:42px; }
-  .ov-tm-track .ov-tm-tx.is-up{ top:24px; }
-  .ov-tm-track .ov-tm-tx.is-dn{ top:60px; }
-  .ov-tm-tx.is-now b{ color:var(--st-amber-fg); }
-  .ov-tm-tx.is-amend b{ color:var(--st-steel-fg); }
-  .ov-tm-cur{ position:absolute; top:0; bottom:20px; width:2px; margin-left:-1px; background:var(--accent-fill); pointer-events:none; }
-  .ov-tm-cur > b{ position:absolute; top:0; left:50%; transform:translateX(-50%); white-space:nowrap; padding:1px 8px;
-    border-radius:999px; background:var(--accent-fill); color:#fff; font-size:var(--t-label);
-    font-weight:var(--w-strong); line-height:18px; }
-  .ov-tm-range{ display:block; width:100%; margin:0 0 10px; accent-color:var(--color-accent); }
+  .ov-tm-sub{ margin:-2px 0 6px; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .ov-tm-pm{ width:12px; height:12px; margin-right:6px; fill:currentColor; flex:none; }
+  .ov-tm-ctl [data-tm-play]{ display:inline-flex; align-items:center; }
+  .ov-tm-track{ position:relative; margin:4px 0 0; }
+  .ov-tm-pic{ min-height:150px; }
+  .ov-tm-svg{ display:block; max-width:100%; height:auto; overflow:visible; }
+  .ov-tm-svg text{ font-family:var(--font-body); font-size:11px; }
+  /* The drag is the track itself, as in the artifact: the range lies over
+     the picture, unseen, and still takes the keyboard and a screen reader. */
+  .ov-tm-range{ position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:ew-resize; }
+  .ov-tm-track:has(.ov-tm-range:focus-visible){ outline:2px solid var(--accent-fill); outline-offset:4px; border-radius:var(--radius); }
+  .ov-tm-yr{ stroke:var(--color-divider); }
+  .ov-tm-yrt{ fill:var(--cap-ink); }
+  .ov-tm-band.is-green{ fill:var(--st-green-bg); } .ov-tm-bandt.is-green{ fill:var(--st-green-fg); }
+  .ov-tm-band.is-amber{ fill:var(--st-amber-bg); } .ov-tm-bandt.is-amber{ fill:var(--st-amber-fg); }
+  .ov-tm-band.is-steel{ fill:var(--st-steel-bg); } .ov-tm-bandt.is-steel{ fill:var(--st-steel-fg); }
+  .ov-tm-band.is-ruby{ fill:var(--st-ruby-bg); } .ov-tm-bandt.is-ruby{ fill:var(--st-ruby-fg); }
+  .ov-tm-band.is-dash{ stroke:var(--st-steel-dot); stroke-dasharray:4 3; }
+  .ov-tm-bandt{ font-weight:var(--w-strong); }
+  .ov-tm-line{ stroke:var(--color-neutral-200); stroke-width:4; stroke-linecap:round; }
+  .ov-tm-el{ stroke:var(--accent-fill); stroke-width:4; stroke-linecap:round; }
+  .ov-tm-after{ stroke:var(--color-neutral-200); stroke-width:3; stroke-dasharray:3 5; }
+  .ov-tm-arrow{ fill:none; stroke:var(--cap-ink); stroke-width:2; }
+  .ov-tm-oc{ stroke:var(--color-accent-200); stroke-width:1.5; }
+  .ov-tm-oc.is-done{ stroke:var(--accent-fill); }
+  .ov-tm-lead{ stroke:var(--color-neutral-200); }
+  .ov-tm-lbl{ fill:var(--color-neutral-600); font-weight:var(--w-label); }
+  .ov-tm-lbl.is-today{ fill:var(--st-amber-fg); font-weight:var(--w-title); }
+  .ov-tm-mk{ stroke:var(--color-surface); stroke-width:2; }
+  .ov-tm-mk.is-green{ fill:var(--st-green-dot); } .ov-tm-mk.is-amber{ fill:var(--st-amber-dot); }
+  .ov-tm-mk.is-steel{ fill:var(--st-steel-dot); } .ov-tm-mk.is-ruby{ fill:var(--st-ruby-dot); }
+  .ov-tm-mk.is-now{ fill:var(--st-amber-dot); }
+  .ov-tm-today{ stroke:var(--st-amber-dot); stroke-width:1.5; stroke-dasharray:3 3; }
+  .ov-tm-pulse{ fill:var(--st-amber-dot); transform-box:fill-box; transform-origin:center; animation:ov-tm-ring 1.8s ease-out infinite; }
+  @keyframes ov-tm-ring{ from{ transform:scale(1); opacity:.75; } to{ transform:scale(2.6); opacity:0; } }
+  @media (prefers-reduced-motion:reduce){ .ov-tm-pulse{ animation:none; opacity:0; } }
+  .ov-tm-cur line{ stroke:var(--accent-fill); stroke-width:2; }
+  .ov-tm-cur circle{ fill:var(--color-surface); stroke:var(--accent-fill); stroke-width:3; }
+  .ov-tm-cur rect{ fill:var(--accent-fill); }
+  .ov-tm-cur text{ fill:#fff; font-size:12px; font-weight:var(--w-strong); }
   .ov-tm-ctl{ display:flex; flex-wrap:wrap; gap:6px; }
   .ov-tm-ctl .ui-btn[aria-pressed="true"]{ background:var(--color-text); border-color:var(--color-text); color:var(--color-surface); }
   .ov-tm-now{ display:flex; align-items:center; justify-content:space-between; gap:12px 20px; flex-wrap:wrap;
