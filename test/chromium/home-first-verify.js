@@ -121,6 +121,14 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     const wide = await page.evaluate(() => ({ sheet: Math.round((document.querySelector('#ig-paper .pg-sheet') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width),
       ws: !!document.querySelector('#ig-strip [data-ig-ws]'), ask: !!document.getElementById('igd-input') }));
     ok('3d the paper keeps its width, "Open workspace" is gone from Home, the ask box stays under every tab', wide.sheet >= 760 && !wide.ws && wide.ask, JSON.stringify(wide));
+    /* ONE BAR (Young, 8 Oct 2026): the strip and the panel's symbols share one top, one
+       bottom and one colour, side by side; the sheet starts where it always did (56px under
+       the bar's top), so the wording did not move */
+    const bar = await page.evaluate(() => { const R = e => e.getBoundingClientRect();
+      const s = document.getElementById('ig-strip'), hd = document.querySelector('#ig-dock > .igd-head'), sh = document.querySelector('#ig-paper .pg-sheet');
+      const a = R(s), b = R(hd); return { st: Math.round(a.top), sb: Math.round(a.bottom), ht: Math.round(b.top), hb: Math.round(b.bottom), gap: Math.round(b.left - a.right),
+        same: getComputedStyle(s).backgroundColor === getComputedStyle(hd).backgroundColor, sheet: Math.round(R(sh).top - a.top) }; });
+    ok('3f the strip and the symbols are one bar, and the wording has not moved', bar.st === bar.ht && bar.sb === bar.hb && Math.abs(bar.gap) <= 1 && bar.same && bar.sheet === 56, JSON.stringify(bar));
     await page.screenshot({ path: path.join(OUT, '3-desk.png') });
     await page.click('#ig-dock [data-pd-tab="copilot"]');
     ok('3e Copilot\'s symbol brings the conversation back', await page.evaluate(() => !!document.querySelector('#igd-feed:not([hidden])') && !document.getElementById('pd-body')));
@@ -145,6 +153,12 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
       chase: [...document.querySelectorAll('#pd-body button')].some(b => /Chase/.test(b.textContent)) }));
     ok('5b it lands on the contract at Obligations, with the chase there', l.face === 'paper' && l.id === 'MK-HF4' && l.tab === 'oblig' && l.chase, JSON.stringify(l));
     await page.screenshot({ path: path.join(OUT, '5-late.png') });
+
+    /* ===== 5c. A WORK CARD NAMES ITS CONTRACT (Young, 8 Oct 2026: "no contract number in the card") ===== */
+    await page.evaluate(() => hbOpenAgent('late'));
+    await page.waitForSelector('.hb-ag-work .ag-p-sub', { timeout: 8000 }).catch(() => {});
+    const refd = await page.evaluate(() => [...document.querySelectorAll('.hb-ag-work .ag-p-sub')].map(e => (e.querySelector('.hati-ref') || {}).textContent || ''));
+    ok('5c Copilot\'s work card leads its contract line with the reference', refd.length > 0 && refd[0] === 'MK-HF4', JSON.stringify(refd));
 
     /* ===== 6. THE ANSWER FIRST ===== */
     const src = fs.readFileSync(path.join(__dirname, '..', '..', 'js', 'views', 'intelligence.js'), 'utf8');

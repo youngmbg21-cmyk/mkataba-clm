@@ -1939,8 +1939,9 @@ function agPanelActs(it){
   }
   return '';
 }
-/* THE PANEL'S HEAD is the drawing's: what the work IS, whose contract, and
-   which agent did it, when, for whom. */
+/* THE PANEL'S HEAD is the drawing's: what the work IS, whose contract (its
+   reference first — Young, 8 Oct 2026: "there is no contract number in the
+   card for reference"), and which agent did it, when, for whom. */
 function agPanelTitle(it){
   if (it.kind === 'answer') return _agT('ag_pt_answer', { n: it.round || 1 });
   if (it.kind === 'notice') return _agT(it.noticeKind === 'non-renewal' ? 'ag_pt_nonren' : 'ag_pt_term');
@@ -1968,7 +1969,7 @@ function agPanelHeadHtml(it){
   const who = agForName(it), when = agWhen(it);
   const meta = [_agT('ag_' + it.agent), when, who ? agForWords(who, true) : ''].filter(Boolean).map(_agE).join(' · ');
   const sub = it.c
-    ? `<div class="ag-p-sub"><b class="ag-p-who">${_agE(p.who)}</b>${p.name ? `<span class="ag-p-name">${_agE(p.name)}</span>` : ''}</div>`
+    ? `<div class="ag-p-sub">${typeof refHtml === 'function' ? `<span class="ag-p-ref">${refHtml(it.c)}</span>` : ''}<b class="ag-p-who">${_agE(p.who)}</b>${p.name ? `<span class="ag-p-name">${_agE(p.name)}</span>` : ''}</div>`
     : (it.batch != null ? `<div class="ag-p-sub"><b class="ag-p-who">${_agE(_agT('ag_batch', { b: it.batch }))}</b></div>`
       : `<div class="ag-p-sub"><b class="ag-p-who">${_agE(p.who)}</b>${it.r && it.r.title ? `<span class="ag-p-name">${_agE(it.r.title)}</span>` : ''}</div>`);
   return `<div class="ag-p-head">${title ? `<div class="ag-p-title">${_agE(title)}</div>` : ''}${sub}<div class="ag-p-agent">${meta}</div></div>`;

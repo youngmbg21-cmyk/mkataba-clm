@@ -7995,6 +7995,19 @@
   #ig-dock:has(> .igd-head[data-pd-head="paper"])::before{content:"";position:absolute;inset:10px 10px 10px 2px;background:var(--color-surface);border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);pointer-events:none}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) > *{position:relative;z-index:1}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{padding:8px 4px 6px;gap:0}
+  /* ONE BAR (Young, 8 Oct 2026: "this highlighted area should be merged into one bar"):
+     on Home's Paper the contract's strip and the panel's symbols are ONE white bar of one
+     height under one line, the panel's card lifted below it. The bar's extra height is taken
+     from the ground above the sheet, so the wording does not move (Six Questions 3). */
+  #ig-page{--ig-bar-h:47px}
+  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #ig-strip{height:var(--ig-bar-h)}
+  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #ig-paper-scroll{padding-top:calc(56px - var(--ig-bar-h))}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"]){padding:0 0 10px}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"])::before{inset:calc(var(--ig-bar-h) + 10px) 10px 10px 2px}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"]) > *:not(.igd-head){margin:0 10px 0 2px}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head + *{margin-top:10px}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{height:var(--ig-bar-h);padding:0 6px 0 4px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);flex:none}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"]) .pd-tab.on::after{bottom:-1px}
   /* CHASE MANY AT ONCE (8 Oct 2026): a ticked list over the late promises' work */
   .hb-cm{border:1px solid var(--hb-line,var(--color-neutral-200));border-radius:var(--radius-lg);padding:10px 12px;margin:0 0 10px;display:grid;gap:4px}
   .hb-cm-h{font-weight:var(--w-strong);font-size:12.5px;margin-bottom:2px}
@@ -11220,6 +11233,8 @@
   .ag-p-sub{display:flex;flex-wrap:wrap;gap:0 6px;min-width:0;color:var(--color-neutral-600);}
   .ag-p-sub .ag-p-who{font-family:var(--font-body);font-size:var(--t-body);font-weight:var(--w-title);color:var(--color-text);}
   .ag-p-sub .ag-p-name::before{content:"· ";color:var(--rule-strong);}
+  .ag-p-sub .ag-p-ref{color:var(--color-text);font-weight:var(--w-strong);}
+  .ag-p-sub .ag-p-ref + .ag-p-who::before{content:"· ";color:var(--rule-strong);font-weight:400;}
   .ag-ps{display:grid;gap:8px;}
   .ag-ps-h{margin:0;display:flex;align-items:center;gap:8px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);font-weight:var(--w-label);}
   .ag-ps-h .d{width:7px;height:7px;flex:none;border-radius:50%;background:var(--color-neutral-500);}
