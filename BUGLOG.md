@@ -20514,3 +20514,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (8 Oct 2026): agents-page-verify fails 25 of 48 on main at a4afc3a as well (10c–10e and others); not touched by this build.
 - Noticed, not fixed (8 Oct 2026): in Home's Copilot chat, a contract reference inside the reader's own question bubble (e.g. "Put MK-203 on hold") is drawn dark blue on the dark navy bubble and is almost unreadable.
 - Noticed, not fixed (8 Oct 2026): "Send back with a note" on the standards check answers OK and the page says "Sent back — Copilot has done it again" when the server did nothing — a Signed contract (`executed`) or one too short to read (`noText`) fall through POST /api/agents/paper/sendback's refusals to `ok:true`.
+- Noticed, not fixed (8 Oct 2026): in the clause editor, Copilot's "Prepared when their round arrived" card reads "Rests on: Rests on: Governing law" — the label is said twice.
+- Noticed, not fixed (8 Oct 2026): theme-tokens-verify fails 4 of 40 ("every colour unchanged" on dashboard and register) on main at 0fc3b49 as well — the colour census is out of date; left for whoever owns the palette.

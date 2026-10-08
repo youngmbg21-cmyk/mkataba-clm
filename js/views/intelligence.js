@@ -6327,7 +6327,7 @@ function igExportList(ids){
 }
 function igMsgHTML(m,i){
   if(m.role==='user')
-    return `<div class="ai-msg flex justify-end"><div class="ai-bub max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
+    return `<div class="ai-msg flex justify-end"><div class="ai-bub ig-bub-me max-w-[85%] rounded-2xl rounded-br-md bg-brand-900 text-white px-3.5 py-2 text-[13px]">${igEsc(m.text)}</div></div>`;
   // Q&A answers stay text-only — the matching contracts are still highlighted on
   // the graph (igPaintIds), but we no longer append a card list under the answer.
   const body = m.ranked ? m.ranked.map((r,i)=>igRankCard(r,i)).join('')
