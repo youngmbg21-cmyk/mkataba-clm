@@ -2457,7 +2457,7 @@ const SET_PANELS={
     title:()=>i18t('st_p_folders'),
     sub:()=>i18t('st_p_folders_sub'),
     state(){ const n=Object.keys(FOLDERS).length;
-      return { dot:'ok', text:i18tn('st_p_folders_count',n,{n})+' · '+Object.values(FOLDERS).slice(0,3).map(f=>esc(f.name)).join(', ')+(n>3?'…':'') }; },
+      return { dot:'ok', text:i18tn('st_p_folders_n',n,{n})+' · '+Object.values(FOLDERS).slice(0,3).map(f=>esc(f.name)).join(', ')+(n>3?'…':'') }; },
     body(){ return `<div id="st-folder-list"></div>
       <div style="display:flex;gap:var(--s-2);margin-top:10px;align-items:flex-end">
         <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_p_folders_add'))}</span>
@@ -2641,7 +2641,7 @@ const SET_PANELS={
     sub:()=>i18t('rv_set_sub'),
     state(){ const c=(window.reviewGateCfg?reviewGateCfg():{on:false});
       return { dot:c.on?'ok':'off', text:`${i18t('rv_set_on')} — ${c.on?stOn():stOff()}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('rv_set_sub')}</p><div id="rv-gate-panel"></div>`; },
+    body(){ return `<div id="rv-gate-panel"></div>`; },
     wire(){ renderReviewGatePanel(); },
   },
 
@@ -2666,7 +2666,7 @@ const SET_PANELS={
        contract gets to signed — and a row of its own made this group five long,
        where the page's own rule is that no group is a wall (settings-groups 1c).
        `find` puts its words in the search, so it is found by what it says. */
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('sc_set_sub')}</p><div id="sc-gate-panel"></div>`; },
+    body(){ return `<div id="sc-gate-panel"></div>`; },
     wire(){ renderSignCheckGatePanel(); },
   },
 
@@ -2679,8 +2679,7 @@ const SET_PANELS={
     sub:()=>i18t('sc_rule_sub'),
     state(){ const on=(typeof signCapEnforced==='function')&&signCapEnforced();
       return { dot:on?'ok':'off', text:`${esc(i18t('sc_rule_on'))} — ${on?stOn():stOff()}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('sc_rule_sub'))}</p>
-      <label class="st-toggle" style="margin-bottom:var(--s-2)">
+    body(){ return `<label class="st-toggle" style="margin-bottom:var(--s-2)">
         <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
         <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span></span></label>
       <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
@@ -2708,8 +2707,7 @@ const SET_PANELS={
     sub:()=>i18t('sf_rule_sub'),
     state(){ const on=(typeof signFolderEnforced==='function')&&signFolderEnforced();
       return { dot:on?'ok':'off', text:`${esc(i18t('sf_rule_on'))} — ${on?stOn():stOff()}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('sf_rule_sub'))}</p>
-      <label class="st-toggle" style="margin-bottom:var(--s-2)">
+    body(){ return `<label class="st-toggle" style="margin-bottom:var(--s-2)">
         <input id="sf-rule-on" type="checkbox"${((typeof signFolderEnforced==='function')&&signFolderEnforced())?' checked':''}/>
         <span><span class="st-role-name">${esc(i18t('sf_rule_on'))}</span></span></label>
       <div id="sf-people"></div>`; },
@@ -2736,7 +2734,7 @@ const SET_PANELS={
     sub:()=>i18t('ho_set_sub'),
     state(){ const out=(state.settings&&state.settings.signRouteDefault)==='outside';
       return { dot:'ok', text:esc(i18t(out?'ho_route_out':'ho_route_in')) }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('ho_set_sub')}</p><div id="ho-route-panel"></div>`; },
+    body(){ return `<div id="ho-route-panel"></div>`; },
     wire(){ renderSignRouteDefaultPanel(); },
   },
 
@@ -2764,7 +2762,7 @@ const SET_PANELS={
     sub:()=>i18t('dk_set_sub'),
     state(){ const c=(window.deskCfg?deskCfg():{on:false});
       return { dot:c.on?'ok':'off', text:`${i18t('dk_set_on')} — ${c.on?stOn():stOff()}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('dk_set_sub')}</p><div id="dk-rule-panel"></div>`; },
+    body(){ return `<div id="dk-rule-panel"></div>`; },
     wire(){ renderDeskRulePanel(); },
   },
 
@@ -2796,8 +2794,7 @@ const SET_PANELS={
       const m=(state.settings&&state.settings.mailroom)||{};
       const streams=(typeof visibleFolders==='function')?visibleFolders():[];
       const url=(()=>{ try{ return location.origin+'/api/mailroom'; }catch(_){ return '/api/mailroom'; } })();
-      return `<p class="st-note" style="margin-bottom:var(--s-3)">${i18t('set_mailroom_sub')}</p>
-      <label style="display:block;margin-bottom:var(--s-3)"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_url'))}</span>
+      return `<label style="display:block;margin-bottom:var(--s-3)"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_url'))}</span>
         <input id="st-mr-url" type="text" readonly value="${esc(url)}" style="${window.RV_FLD||ST_INPUT}width:100%;font-family:var(--font-mono)"/></label>
       <label style="display:block;margin-bottom:var(--s-3)"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_key'))}</span>
         <input id="st-mr-key" type="text" value="${esc(m.key||'')}" placeholder="${esc(i18t('set_mailroom_key_ph'))}" style="${window.RV_FLD||ST_INPUT}width:100%;font-family:var(--font-mono)"/></label>
@@ -2915,8 +2912,7 @@ const SET_PANELS={
             <span>${esc(i18t('set_lane_known'))}</span></label>
         </div>
       </div>`;
-      return `<p class="st-note" style="margin-bottom:var(--s-3)">${i18t('set_lanes_sub')}</p>
-        <div id="st-lanes" style="display:flex;flex-direction:column;gap:var(--s-3)">${L.map(row).join('')}</div>
+      return `<div id="st-lanes" style="display:flex;flex-direction:column;gap:var(--s-3)">${L.map(row).join('')}</div>
         <div style="display:flex;gap:var(--s-2);margin-top:var(--s-3)">
           <button id="st-lane-add" style="${ST_BTN_SM}">${esc(i18t('set_lane_add'))}</button>
           <button id="st-lane-save" style="${ST_BTN_SM}">${i18t('act_save')}</button>
@@ -2985,8 +2981,7 @@ const SET_PANELS={
     title:()=>i18t('st_p_renewals'),
     sub:()=>i18t('set_renewal_sub'),
     state(){ return { dot:'ok', text:[90,60,30].map(d=>i18t('set_days_out',{n:d})).join(' · ') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_renewal_sub')}</p>
-      <div style="display:flex;gap:6px">${[90,60,30].map(d=>`<span style="${ST_TAG}">${i18t('set_days_out',{n:d})}</span>`).join('')}</div>
+    body(){ return `<div style="display:flex;gap:6px">${[90,60,30].map(d=>`<span style="${ST_TAG}">${i18t('set_days_out',{n:d})}</span>`).join('')}</div>
       <p class="st-note" style="margin-top:var(--s-2)">${i18t('set_delivered_resend')}</p>`; },
     wire(){},
   },
@@ -3026,8 +3021,7 @@ const SET_PANELS={
         <input id="${id}" type="number" min="1" max="365" step="1" inputmode="numeric" value="${val==null?'':val}" placeholder="—"
           style="${window.RV_FLD||ST_INPUT}width:92px;font-family:var(--font-mono);text-align:right"/>
         <span style="font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)">${esc(i18t('set_pay_days'))}</span></label>`;
-      return `<p class="st-note" style="margin-bottom:var(--s-3)">${i18t('set_paydays_sub')}</p>
-      <div style="display:flex;flex-direction:column;gap:var(--s-3)">
+      return `<div style="display:flex;flex-direction:column;gap:var(--s-3)">
         ${box('st-pay-in',i18t('set_pay_in'),t.customer)}
         ${box('st-pay-out',i18t('set_pay_out'),t.supplier)}
       </div>
@@ -3080,8 +3074,7 @@ const SET_PANELS={
         <input type="checkbox" data-ws-shape="${k}" ${cfg.shapes.includes(k)?'checked':''} style="margin-top:2px;flex:none"/>
         <span style="min-width:0"><span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong)">${title}</span>
         <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
-      return `<p class="st-note" style="margin-bottom:10px">${i18t('set_workshape_sub')}</p>
-      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:var(--s-3)">
+      return `<div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:var(--s-3)">
         ${box('standing',i18t('set_shape_standing'),i18t('set_shape_standing_sub'))}
         ${box('project',i18t('set_shape_project'),i18t('set_shape_project_sub'))}
       </div>
@@ -3156,8 +3149,7 @@ const SET_PANELS={
     body(){
       const ob=(typeof window!=='undefined'&&window.ORG_BRANDING)||null;
       const d=ob&&ob.designId&&window.docDesignById?docDesignById(ob.designId):null;
-      return `<p class="st-note" style="margin-bottom:10px">${i18t('set_design_sub')}</p>
-      <div style="display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap">
+      return `<div style="display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap">
         <div style="width:74px;height:42px;border:1px dashed var(--color-divider);border-radius:var(--radius);display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
           ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:var(--t-figure);color:var(--color-neutral-500)">${i18t('set_no_logo')}</span>`}
         </div>
@@ -3178,8 +3170,7 @@ const SET_PANELS={
     title:()=>i18t('st_p_report'),
     sub:()=>i18t('set_monthly_report_sub'),
     state(){ return { dot:'off', text:i18t('set_monthly_report_sub') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_monthly_report_sub')}</p>
-      <div id="mr-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+    body(){ return `<div id="mr-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
       <label class="st-toggle" style="margin-bottom:var(--s-2)">
         <input id="mr-enabled" type="checkbox"/><span><span class="st-role-name">${i18t('set_monthly_report_on')}</span></span></label>
       <div style="display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap">
@@ -3208,8 +3199,7 @@ const SET_PANELS={
       return { dot: n?(bad?'warn':'ok'):'off',
         text: n? i18tn('st_hooks_count',n,{n})+(bad?` · ${i18t('st_hooks_failing',{n:bad})}`:'') : i18t('st_hooks_none') };
     },
-    body(){ return `<p class="st-note" style="margin-bottom:9px">${i18t('st_hooks_sub')}</p>
-      <div id="wh-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
+    body(){ return `<div id="wh-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
       <label style="display:block;margin-bottom:var(--s-2)"><span style="${window.RV_LBL||''}">${esc(i18t('st_hooks_url'))}</span>
         <input id="wh-url" type="url" placeholder="https://example.com/hooks/hati" style="${window.RV_FLD||ST_INPUT}"/></label>
       ${''/* AN ENDPOINT IS TOLD WHAT IT SUBSCRIBED TO. The server treats an
@@ -3234,8 +3224,7 @@ const SET_PANELS={
     title:()=>i18t('st_p_backup'),
     sub:()=>API_MODE()?i18t('set_backup_server'):i18t('set_backup_local'),
     state(){ const at=stLastBackup(); return { dot:at?'ok':'off', text:at?`${i18t('set_export_backup')} · ${fmtDT(at)}`:i18t('st_not_set') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${API_MODE()?i18t('set_backup_server'):i18t('set_backup_local')}</p>
-      <div style="display:flex;flex-wrap:wrap;gap:var(--s-2)">
+    body(){ return `<div style="display:flex;flex-wrap:wrap;gap:var(--s-2)">
         <button id="bk-export" style="${ST_BTN2}">${icon('download','w-3.5 h-3.5')} ${i18t('set_export_backup')}</button>
         ${API_MODE()?`<a id="bk-zip" href="api/export/workspace.zip" style="${ST_BTN2};text-decoration:none">${icon('download','w-3.5 h-3.5')} ${i18t('set_full_workspace_zip')}</a>`:`
         <label style="${ST_BTN2};cursor:pointer">${icon('upload','w-3.5 h-3.5')} ${i18t('set_restore_backup')}<input id="bk-import" type="file" accept=".json,application/json" style="display:none"/></label>`}
@@ -3256,8 +3245,7 @@ const SET_PANELS={
         text: done===l.length ? i18t('st_b_golive_done',{n:done,n2:l.length})
           : i18tn('st_b_golive_left', l.length-done, {n:done,n2:l.length,left:l.length-done}) }; },
     chip(){ const l=stGoLive(); return `${l.filter(r=>r.ok).length}/${l.length}`; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('st_b_golive_sub')}</p>
-      <div class="st-rows" id="st-golive">${stGoLive().map(r=>`
+    body(){ return `<div class="st-rows" id="st-golive">${stGoLive().map(r=>`
         <button class="st-row" ${r.go?`data-st-go="${r.go}"`:''}${r.go?'':' disabled'}>
           <span class="st-dot" style="background:${r.ok?ST_DOT.ok:ST_DOT.warn}"></span>
           <span class="st-row-main"><span class="st-row-name">${esc(r.label)}</span>
@@ -3312,8 +3300,7 @@ const SET_PANELS={
     title:()=>i18t('st_b_pilot'),
     sub:()=>i18t('set_activation_sub'),
     state(){ return { dot:'off', text:i18t('set_activation_sub') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_activation_sub')}</p>
-      <div id="activation-funnel" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('set_loading')}</div>`; },
+    body(){ return `<div id="activation-funnel" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('set_loading')}</div>`; },
     wire(){ stLoadActivation(); },
   },
 
@@ -3332,8 +3319,7 @@ const SET_PANELS={
       return { dot:n?'warn':'ok', text:n?i18tn('set_demo_still_here',n,{n}):i18t('set_demo_cleared') }; },
     chip(){ const n=stSampleContracts().length; return n?String(n):''; },
     body(){ const s=stSampleContracts();
-      return `<p class="st-note" style="margin-bottom:10px">${i18t('set_demo_samples_sub')}</p>
-      ${s.length?`<div class="st-quiet"><b>${i18tn('set_demo_still_here',s.length,{n:s.length})}</b><br>
+      return `${s.length?`<div class="st-quiet"><b>${i18tn('set_demo_still_here',s.length,{n:s.length})}</b><br>
         ${s.slice(0,8).map(c=>esc(c.name)).join('<br>')}${s.length>8?`<br>+${s.length-8}`:''}</div>
         <div class="st-danger"><button id="st-samples-clear" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('set_demo_clear')}</button></div>`
         :`<div class="st-quiet">${i18t('set_demo_cleared')}</div>`}`; },
@@ -3355,8 +3341,7 @@ const SET_PANELS={
     state(){ const r=_stIntegrity;
       return { dot: r? (r.faults? 'warn':'ok') : 'off',
         text: r? i18t('set_integrity_result',{checked:r.checked,clean:r.clean,faults:r.faults}) : i18t('set_integrity_never') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_integrity_sub')}</p>
-      ${(typeof sha256IsReal==='function'&&!sha256IsReal())?`<div class="st-refusal" style="display:block">${i18t('set_integrity_weak')}</div>`:''}
+    body(){ return `${(typeof sha256IsReal==='function'&&!sha256IsReal())?`<div class="st-refusal" style="display:block">${i18t('set_integrity_weak')}</div>`:''}
       <div id="st-integrity-out" class="st-quiet">${_stIntegrity?stIntegrityHtml(_stIntegrity):i18t('set_integrity_never')}</div>
       <button id="st-integrity-run" style="margin-top:10px;${ST_BTN_SM}">${i18t('set_integrity_run')}</button>`; },
     wire(){ document.getElementById('st-integrity-run')?.addEventListener('click',()=>stRunIntegrity()); },
