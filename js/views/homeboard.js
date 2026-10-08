@@ -42,7 +42,7 @@ const HB_LS = 'hati.v1.homeBoard.';
 /* THE PAPER IS A THIRD SIDE OF HOME (Young, 7 Oct 2026: "there should be
    another button that says paper ... the same paper currently on screen when
    you analyse a contract"; Explorer loses its own Graph | Paper switch). */
-const HB_FACES = ['board', 'explorer', 'paper'];
+const HB_FACES = ['board', 'paper', 'explorer'];
 const HB_LENSES = ['all', 'suppliers', 'customers'];
 const HB_SCREENS = ['dark', 'light'];
 const HB_PREP = ['open', 'folded', 'closed'];
@@ -981,7 +981,7 @@ function hbHeadHtml(groupSel){
   return `<style>#page-head{background:var(--color-surface)}</style>
   <header id="hb-head" class="hb-head">
     <div class="hb-hello">${hbHelloInner()}</div>
-    <div class="hb-seg" role="tablist" aria-label="${_hbE(i18t('hb_show'))}">${face('board')}${face('explorer')}${face('paper')}</div>
+    <div class="hb-seg" role="tablist" aria-label="${_hbE(i18t('hb_show'))}">${face('board')}${face('paper')}${face('explorer')}</div>
     <span class="hb-grow"></span>
     <label class="hb-groupby" id="hb-groupby"${s.face === 'explorer' ? '' : ' hidden'}>${_hbE(i18t('hb_group_by'))} ${groupSel || ''}</label>
     <span class="hb-counting">${hbCountChipHtml()}</span>
