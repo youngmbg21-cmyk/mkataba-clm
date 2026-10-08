@@ -4187,6 +4187,23 @@ function wireNegotiationTab(c, opts = {}){
     const contact = (live && live.email) ? live : opts.contact;
     if (side === 'owner' && contact && contact.email
         && typeof opts.onSendDirect === 'function'){
+      /* ---- SEND ALL SAYS WHAT TRAVELS (the 9 Oct 2026 review) ----
+         A card's own Send is one change and goes on the press. A BATCH send
+         to an address on file went at once with no word of what was going; it
+         now asks once, naming the changes — a dialog, because it is the one
+         decision here that cannot be taken back. */
+      if (!_rlSoloSendId && typeof window.confirmDialog === 'function'){
+        const list = rlUnsentList(c);
+        if (list.length){
+          const n = list.length, who = c.counterparty || i18t('ng_the_counterparty');
+          confirmDialog({ title: i18tn('ng_sendall_q_title', n, { n, who }),
+            message: list.map(x => '• ' + [x.clauseLabel ? (window.clauseNameShown ? (clauseNameShown(x.clauseLabel) || x.clauseLabel) : x.clauseLabel) : '',
+              String(x.summary || '').trim()].filter(Boolean).join(' — ')).join('\n'),
+            confirmLabel: i18tn('ng_sendall_go', n, { n }), cancelLabel: i18t('act_cancel'), multiline: true })
+            .then(yes => { if (yes) opts.onSendDirect(c); });
+          return;
+        }
+      }
       opts.onSendDirect(c);
       return;
     }
@@ -5997,6 +6014,11 @@ function rlUnsentCount(c, opts = {}){
      thing that knows about the first, which is why it hands the numbers in. */
   if (side === 'counterparty')
     return Math.max(0, Number(opts.pendingDecisions || 0) + Number(opts.pendingProposals || 0));
+  return rlUnsentList(c).length;
+}
+/* WHAT "SEND ALL" CARRIES ON OUR SEAT — the count on the button and the list
+   its confirmation names are this one reading. */
+function rlUnsentList(c){
   const unsent = window.negoUnsentAsks ? negoUnsentAsks(c, 'owner') : [];
   /* WHAT THE PAYLOAD SUBTRACTS, THE BUTTON SUBTRACTS: a reviewer's hold, a
      change still out with one, and a colleague's open suggestion (4 Oct 2026 —
@@ -6005,7 +6027,7 @@ function rlUnsentCount(c, opts = {}){
   const back = new Set();
   try{ if (window.reviewWithheldIds) for (const id of reviewWithheldIds(c)) back.add(id); }catch(_){}
   try{ if (window.deskSuggestedIds) for (const id of deskSuggestedIds(c)) back.add(id); }catch(_){}
-  return Math.max(0, unsent.filter(x => !back.has(x.id)).length);
+  return (unsent || []).filter(x => x && !back.has(x.id));
 }
 /* ---- THE CO-PILOT'S FIRST PASS, DRAWN (W3-1) ----
    A folded band over the change column: how many of their asks sit inside
@@ -21111,7 +21133,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlPrepCounterOf, rlPrepBoxHtml,
+if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlPrepCounterOf, rlPrepBoxHtml, rlUnsentList,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
