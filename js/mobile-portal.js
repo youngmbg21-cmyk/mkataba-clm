@@ -132,7 +132,42 @@ const M_PORTAL_CSS = `
   .sig-pad, canvas.sig-canvas, [data-sig-canvas]{
     width:100%!important; height:200px!important; touch-action:none;
   }
+  /* THE PAD DRAWS canvas#sig-canvas (js/signature.js), so the rule above
+     never reached it and the box measured 105px on a 390px phone (9 Oct
+     2026). The real element, by id; the pad maps a finger through the box's
+     own measured size, so the mark lands where it is drawn. */
+  #sig-pad #sig-canvas{ width:100%!important; height:200px!important; touch-action:none; }
+  /* The two ticks were 15px boxes: the row is the press area now, 44px tall,
+     and the box itself a size a thumb can see it land in. */
+  #sig-pad #sig-intent-row{ min-height:44px; align-items:center!important; }
+  #sig-pad #sig-intent, #sig-pad #sig-adopt{ width:22px!important; height:22px!important; }
+  #sig-pad label:has(#sig-adopt){ min-height:44px; }
+  #sig-pad .ui-btn, #sig-pad .ui-link{ min-height:44px!important; font-size:var(--t-card)!important; }
   .sig-tabs button, [data-sig-tab]{ min-height:44px!important; font-size:var(--t-card)!important; }
+
+  /* ---- THE HEAD, THE TABS AND THE NOTES (9 Oct 2026) ----
+     The title shared its row with the status and the turn pill, so a long
+     name broke one word per line beside them: the title takes the row and the
+     pills wrap under it. The tabs and "Write in Notes" drew 32px and 24px;
+     the tabs are a thumb's 44px, and the inline link keeps its line and takes
+     a 44px press area around it. */
+  .pw-id-titlerow{ display:flex!important; flex-wrap:wrap!important; align-items:center; column-gap:var(--s-2); row-gap:var(--s-1); }
+  .pw-id-titlerow > h1{ flex:1 1 100%!important; min-width:0!important; }
+  .pw-tabs .pw-tab{ min-height:44px!important; font-size:var(--t-card)!important; }
+  .pw-page .ds-mine .ui-link{ position:relative; }
+  .pw-page .ds-mine .ui-link::after{ content:''; position:absolute; inset:-10px -6px; }
+  /* THE NOTES DRAWER IS THE WHOLE SCREEN. Below 768 the portal hides its
+     alerts aside (no bell on a phone), and the Notes drawer wears the same
+     class — so "Notes" opened nothing (its textarea measured 0x0). The notes
+     face comes back, full-width; the alerts aside stays hidden. */
+  .pt-alerts.pt-notes{ display:flex!important; width:100%!important; max-width:none!important; border-left:0!important; }
+  .pt-alerts.pt-notes .pt-alerts-x{ min-width:44px; min-height:44px; }
+  .pt-alerts.pt-notes .ui-btn, .pt-alerts.pt-notes button.rl-np-send{ min-height:44px!important; font-size:var(--t-card)!important; }
+  .pt-alerts.pt-notes textarea{ font-size:16px!important; }
+  /* The signing link's page (.ps-page) had no phone pass at all: the name
+     boxes 28px, Sign 32px. */
+  .ps-page .ui-btn, .ps-page .ui-link{ min-height:44px!important; font-size:var(--t-card)!important; }
+  .ps-page input[type=text], .ps-page input[type=email], .ps-page input:not([type]), .ps-page textarea{ min-height:44px!important; font-size:16px!important; }
 }`;
 
 let _mPortalCssDone = false;

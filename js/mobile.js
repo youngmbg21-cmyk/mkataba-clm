@@ -513,6 +513,20 @@ const M_CSS = `
   .m-share-kind.on .m-radio{ border-color:var(--accent-solid); }
   .m-radio-dot{ width:8px; height:8px; border-radius:50%; }
 
+  /* ---- NOTHING UNDER 14px INSIDE THE PHONE SHELL (9 Oct 2026) ----
+     The rule is labels floored at 14px on the phone. The Obligations tab's
+     dates and captions, the account sheet's sessions and the band heads drew
+     at --t-meta / --t-label / --t-body (12–13px), tokens sized for a desk.
+     Re-said by SCOPE, not per element: inside the phone's root the three
+     small steps are the card's size, so whatever the shell borrows — the
+     desktop's own sessions list among it — reads at 14px too. */
+  body.m-on #m-root,
+  body.m-on.m-redline #view-redline{ --t-meta:var(--t-card); --t-label:var(--t-card); --t-body:var(--t-card);
+    --t-micro:var(--t-card); --t-figure:var(--t-card); }
+  body.m-on #m-root #sessions-list .ui-link{ min-height:44px; font-size:var(--t-card); }
+  body.m-on #m-root .m-ob-act{ min-height:44px; }
+  body.m-on #m-root .m-input{ min-height:44px; }
+
   /* ---- THE NEGOTIATION WORKBENCH, ON A PHONE ----
      The one screen the phone does NOT redraw. The workbench is where wording is
      argued over, and it already collapses to a single column with its index as
@@ -589,6 +603,25 @@ const M_CSS = `
   body.m-on.m-redline .nego-pane.index .nego-index-scroll{ overflow-y:auto!important; }
   body.m-on.m-redline .nego-doc{ font-size:var(--t-card)!important; line-height:1.7; }
   body.m-on.m-redline .nego-pane.working .nego-doc{ padding-left:14px!important; }
+  /* ---- THE HEAD AND THE CONTROL ROW FIT THE PHONE (9 Oct 2026) ----
+     The workbench's head is the room's, built for a desk: its acts held
+     nowrap, so More, Share and the checks sat at x 394–566 on a 390px
+     screen, and the facts strip cut every value to "N…". The same pass
+     M_PORTAL_CSS gives the counterparty's page: the acts and the control row
+     wrap, the facts strip steps out (the phone's own contract screen carries
+     those facts), and every control is a finger's 44px. Layout only — what
+     each control does is the workbench's. */
+  body.m-on.m-redline #ws-head .room-acts,
+  body.m-on.m-redline .redline-page .rl-actions{
+    flex:1 1 100%!important; flex-wrap:wrap!important; min-width:0!important; max-width:100%!important; row-gap:var(--s-2);
+  }
+  body.m-on.m-redline .redline-page .rl-head{ flex-wrap:wrap!important; min-width:0!important; max-width:100%!important; }
+  body.m-on.m-redline #ws-facts{ display:none!important; }
+  body.m-on.m-redline #ws-head .room-sub{ font-size:var(--t-card)!important; white-space:normal!important; overflow-wrap:anywhere; }
+  body.m-on.m-redline #view-redline :is(.ui-btn,.rl-seg,.room-check,.rl-pb-btn,.rl-focus-door,.room-title-back,.rl-livelist){ min-height:44px!important; }
+  body.m-on.m-redline #view-redline .room-check{ min-width:44px!important; }
+  body.m-on.m-redline #view-redline .rl-type-step button{ min-height:44px!important; min-width:44px!important; }
+  body.m-on.m-redline #view-redline .rl-segwrap{ height:auto!important; }
 
   .m-backbar{
     flex:none; display:flex; align-items:center; gap:6px; height:44px; padding:0 var(--s-1);

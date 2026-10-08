@@ -59,19 +59,12 @@ function mNeedsYou(D){
   };
   const TONE = { ruby:['var(--st-ruby-dot)','var(--st-ruby-fg)'], amber:['var(--st-amber-dot)','var(--st-amber-fg)'],
     green:['var(--st-green-dot)','var(--st-green-fg)'], quiet:['var(--st-green-dot)','var(--color-neutral-600)'] };
-  if(typeof needsYouOf==='function'){
-    (D.cs||[]).forEach(c=>{
-      let items=[]; try{ items = needsYouOf(c)||[]; }catch(_){ items=[]; }
-      items.forEach(it=>{
-        let w=null; try{ w = (typeof insNeedWords==='function') ? insNeedWords(c, it) : null; }catch(_){ w=null; }
-        const title = (w && w.title) || '';
-        const line = (w && w.plain) ? title + ' · ' + w.plain : title;
-        const t = it.urgent ? TONE.ruby : it.kind==='sign' ? TONE.green : it.kind==='renewal' ? TONE.quiet : TONE.amber;
-        push(c, it.kind, t[0], line, t[1]);
-      });
-    });
-  }
+  const had = c => out.some(r => r.c === c);
 
+  /* An approval first, in the phone's own words: its row opens the phone's
+     Approvals card, so "the pack is on the Signing tab" would name a tab the
+     phone does not have. needsYouOf's own approval row (below) then repeats
+     nothing. */
   (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>{
     /* Off the ROW, not the trail — HEAVY strips `audit` in server mode, so this
        silently dropped the name on every real workspace. Same reading as the
@@ -80,6 +73,19 @@ function mNeedsYou(D){
     push(x.c, 'approval', 'var(--st-amber-dot)',
       i18t('m_waiting_your_approval') + (whoName?i18t('m_requested_by',{who:whoName}):''), 'var(--st-amber-fg)');
   });
+
+  if(typeof needsYouOf==='function'){
+    (D.cs||[]).forEach(c=>{
+      let items=[]; try{ items = needsYouOf(c)||[]; }catch(_){ items=[]; }
+      items.forEach(it=>{
+        let w=null; try{ w = (typeof insNeedWords==='function') ? insNeedWords(c, it) : null; }catch(_){ w=null; }
+        const title = (w && w.title) || '';
+        const line = (w && w.plain && it.kind!=='approval') ? title + ' · ' + w.plain : title;
+        const t = it.urgent ? TONE.ruby : it.kind==='sign' ? TONE.green : it.kind==='renewal' ? TONE.quiet : TONE.amber;
+        push(c, it.kind, t[0], line, t[1]);
+      });
+    });
+  }
 
   /* ---- THEY HAVE BEEN WAITING ON US (the owner's list, 27 Sep 2026) ----
      Home's first decision on the desktop — a negotiation where the other side
@@ -103,7 +109,11 @@ function mNeedsYou(D){
     else if(na && (na.kind==='sign'||na.kind==='sign-scroll')) push(c,'sign','var(--st-green-dot)', na.guide, 'var(--st-green-fg)');
   });
 
+  /* The two weak reasons stay one per contract, as they always were: a
+     contract already on this list for something to do is not repeated for
+     having gone quiet. */
   (D.cs||[]).filter(c=>c.status==='Declined').forEach(c=>{
+    if(had(c)) return;
     push(c,'declined','var(--st-ruby-dot)',i18t('m_declined_read_reason'),'var(--st-ruby-fg)');
   });
 
@@ -113,6 +123,7 @@ function mNeedsYou(D){
   });
 
   (D.waitingLongest||[]).filter(x=>x.idle>14).forEach(x=>{
+    if(had(x.c)) return;
     push(x.c,'idle','var(--st-amber-dot)',i18tn('m_in_review_no_movement',x.idle,{n:x.idle}),'var(--color-neutral-600)');
   });
 
@@ -453,7 +464,8 @@ function mNewSheetHtml(){
       <span style="flex:1;min-width:0">
         <span class="m-row-name" style="font-weight:var(--w-body)">${i18t('m_draft_from_template')}</span>
         <span class="m-row-sub">${i18t('m_hati_standard')}</span>
-      </span>${M_CHEV}
+      </span>
+      <span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600)">${i18t('m_computer')}</span>
     </button>
     <button class="m-row" data-m-act="new-upload">
       <span style="flex:1;min-width:0">
@@ -630,7 +642,13 @@ function mScreenAct(k, btn){
     }
     mRender(); return;
   }
-  if(k==='new-wizard'){ mCloseSheet(); if(window.openWizard) openWizard(); return; }
+  /* A NEW DRAFT IS A COMPUTER'S WORK, SAID (9 Oct 2026): the agreement it
+     makes is filled from the side panel's form, and the phone's paper is read,
+     never typed into — so the row says "Computer" like Import many, and the
+     press says so rather than opening a desktop dialog the phone cannot
+     finish. Upload stays: its dialog fits a phone, and a received paper is
+     often in the reader's pocket. */
+  if(k==='new-wizard'){ mCloseSheet(); if(window.toast) toast(i18t('mc_desk_msg'),'warn'); return; }
   if(k==='new-upload'){ mCloseSheet(); if(window.openUploadModal) openUploadModal(); return; }
   if(k==='new-import'){ mGo('handoff',{ deskView:'migration' }); return; }
   if(typeof mContractAct==='function') mContractAct(k, btn);
