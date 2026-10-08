@@ -4920,6 +4920,7 @@ function wireNegotiationTab(c, opts = {}){
        this mount's contract and options — re-hung on every wiring, so it is
        never a stale copy. */
     host._rlOpenEditor = openEditor;
+    if (side !== 'counterparty' && !(opts && opts.preview)) _rlEditorDoor = { id: c.id, open: openEditor };
     /* CLICK, TYPE, SAVE ON THE PAPER (change 5): one listener per host, reading
        this wiring's contract and options at the press. */
     host._rlInlineCtx = { c, opts, side, again };
@@ -7005,6 +7006,13 @@ function rlClausePanelBodyHtml(c, cl, chs, side, opts = {}){
            was — see rlLockedBtn. The panel's other acts are untouched: reading
            a clause, its history and its notes is not something a lock refuses. */
         ? rlLockedBtn(rlLockSign(c, cl.clauseId), 'rl-cp-act rl-cp-act-ai', i18t('ng_cp_copilot'))
+        /* A DEAD BUTTON NEVER WEARS A LIVE ONE'S CLOTHES (the 9 Oct 2026
+           review, at 820px): where the editor cannot open — a window too
+           narrow for it — the door is greyed with the reason, not offered and
+           then refused. */
+        : !rlEditorTakesIt(side, opts)
+        ? `<button type="button" class="rl-cp-act rl-cp-act-ai" disabled aria-disabled="true" data-rl-dead="1"
+        title="${_nea(i18t(opts.preview ? 'ng_preview_dead' : 'ce_too_narrow'))}">&#10024; ${i18t('ng_cp_copilot')}</button>`
         : `<button type="button" class="rl-cp-act rl-cp-act-ai"
         data-nego-ai-clause="${id}" data-rl-cp-ai="1" data-rl-cp-editor="1"
         title="${_nea(i18t('ng_cp_copilot_title'))}">&#10024; ${i18t('ng_cp_copilot')}</button>`)}
@@ -10159,7 +10167,9 @@ function renderRedline(){
      on hover, where it can be known before the press: the counterparty
      preview, wording frozen by a signature, or nothing readable to check (the
      playbook runner's own floor, asked through playbookText). */
-    + (mayMenu && !(window.negoExecuted && negoExecuted(c)) ? rlPrepareRowHtml(c, preview) : '');
+    + (mayMenu && !(window.negoExecuted && negoExecuted(c)) ? rlPrepareRowHtml(c, preview) : '')
+    /* AND "ADD A CLAUSE" — the plain door for a new clause (9 Oct 2026). */
+    + (mayMenu && !(window.negoExecuted && negoExecuted(c)) ? rlAddClauseBtnHtml(c, { preview }, 'owner') : '');
   host.innerHTML = `
     <!-- The reference is lg:h-full: the workbench fills the window and each of
          its three columns scrolls inside itself, rather than the page growing
@@ -11947,6 +11957,11 @@ function rlWireClauseTools(c, host, opts){
      that knows how its host repaints, which is the rule stated at its top. */
   host.querySelectorAll('[data-rl-prepare]').forEach(b => b.addEventListener('click', () =>
     rlPrepareRedlines(c, again)));
+  host.querySelectorAll('[data-rl-add-clause]').forEach(b => b.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    if (b.disabled) return;
+    rlAddClause(c);
+  }));
   /* "Edit a clause", the empty column's other door, is wired in
      wireNegotiationTab beside the paper's pencil — NOT here. It has to reach
      the editor through `openEditor`, the one named reading of what a press
@@ -14503,8 +14518,31 @@ function rlEmptyColumnActsHtml(c, opts = {}, side = 'owner'){
   /* ONE LINE, UNDER THE BUTTONS, SAYING WHAT THE FIRST ONE SPENDS AND THAT
      NOTHING TRAVELS. It is not a band: it explains the control it sits under
      and it is drawn only on the one screen that has nothing else on it. */
-  return `<div class="rl-empty-acts">${prepare}${edit}</div>
+  return `<div class="rl-empty-acts">${prepare}${edit}${executed ? '' : rlAddClauseBtnHtml(c, opts, side, 'rl-empty-edit')}</div>
     <span class="rl-empty-lead">${i18t('ng_empty_lead')}</span>`;
+}
+/* ---- "ADD A CLAUSE" (the 9 Oct 2026 review: there was no plain door for a
+   new clause on Negotiate) ---- Beside "Edit a clause" in the empty column
+   and in the page's More menu; it ends in the clause editor's own new-clause
+   path (rlOpenClauseEditor newClause → ceFileNew → negoAddNamedClause), after
+   the last clause. Our seat only. Where the editor cannot open (a window too
+   narrow, our preview of their seat) it is greyed with the reason — a dead
+   button never wears a live one's clothes. */
+function rlAddClauseBtnHtml(c, opts = {}, side = 'owner', cls = ''){
+  if (side === 'counterparty' || rlOnTheirPage()) return '';
+  const why = opts.preview ? i18t('ng_preview_dead')
+    : !rlEditorTakesIt(side, opts) ? i18t('ce_too_narrow') : '';
+  return `<button type="button"${cls ? ` class="${cls}"` : ''} data-rl-add-clause${why ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
+      title="${_nea(why || i18t('ng_add_clause_title'))}">${icon('plus', 'w-3.5 h-3.5')}${i18t('ng_add_clause')}</button>`;
+}
+/* THROUGH THE MOUNT'S OWN DOOR (openEditor) — the one place a press onto the
+   editor is decided (f245) — the latest wiring of this contract's page. */
+let _rlEditorDoor = null;
+function rlAddClause(c){
+  if (!c || !_rlEditorDoor || _rlEditorDoor.id !== c.id || typeof _rlEditorDoor.open !== 'function') return false;
+  const list = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
+  const last = (list || []).filter(x => x && x.clauseId).pop();
+  return _rlEditorDoor.open(null, { newClause: { afterClauseId: last ? String(last.clauseId) : '', heading: '' } });
 }
 /* THE FIRST CLAUSE OF THE AGREEMENT, asked at the press and never at the draw.
    negoClauseList initialises the negotiation and stamps the ids, which is
@@ -21133,7 +21171,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlPrepCounterOf, rlPrepBoxHtml, rlUnsentList,
+if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlPrepCounterOf, rlPrepBoxHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,

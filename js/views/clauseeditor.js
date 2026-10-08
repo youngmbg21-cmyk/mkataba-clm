@@ -4687,6 +4687,7 @@ function ceTurnHtml(t, i){
     </div>${ceAiFootHtml(t)}</div>`;
   return `<div class="ce-ai">${
     t.explain ? ceExplainHtml(t.explain) : t.text ? `<p class="t">${_cee(t.text)}</p>` : ''}${
+    t.retry ? `<div class="av ce-retry"><button type="button" data-ce-retry="${i}">${_cee(_cet('ce_ask_retry'))}</button></div>` : ''}${
     (t.read && t.read.length) ? `<ul class="ce-read">${t.read.map(r =>
       `<li><b>${_cee(r[0])}</b><span>${_cee(r[1])}</span></li>`).join('')}</ul>` : ''}${
     (t.cards || []).map((card, j) => ceCardHtml(card, i, j)).join('')}${ceAiFootHtml(t)}</div>`;
@@ -5171,6 +5172,13 @@ async function ceAsk(question, opts = {}){
   if (err || !res){
     _ceThread.push({ who: 'ai', text: err ? _cet('ce_ask_failed', { why: (err && err.message) || String(err) })
       : _cet('ce_ask_nothing') });
+    ceRenderLane();
+    return;
+  }
+  /* ITS OWN SENTENCE, AND ITS OWN WAY ON (9 Oct 2026, the review): Copilot
+     ran out before it answered — said about this clause, with Try again. */
+  if (res.unfinished){
+    _ceThread.push({ who: 'ai', text: _cet('ce_ask_unfinished'), retry: q });
     ceRenderLane();
     return;
   }
@@ -6690,6 +6698,9 @@ function ceWirePage(page){
     const chip = hit('[data-ce-chip]');
     if (chip){ ev.preventDefault(); if (!ceNoAi()) ceAsk(chip.getAttribute('data-ce-chip')); return; }
 
+    const rt = hit('[data-ce-retry]');
+    if (rt){ ev.preventDefault(); const t = _ceThread[Number(rt.getAttribute('data-ce-retry'))];
+      if (t && t.retry && !_ceBusy && !ceNoAi()){ const again = t.retry; t.retry = ''; ceAsk(again, { silent: true }); } return; }
     const ew = hit('[data-ce-edit-with]');
     if (ew){ ev.preventDefault(); ceEditWith(_ceThread[Number(ew.getAttribute('data-ce-edit-with'))]); return; }
 

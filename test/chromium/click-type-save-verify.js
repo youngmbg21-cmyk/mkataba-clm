@@ -91,6 +91,18 @@ const endOf = (page, sel) => page.evaluate(sel => {
     ok('1a no pen on the paper', p1.pens === 0, String(p1.pens));
     ok('1b the paper\'s column takes no colour of its own (Negotiate)', p1.grid === 'rgba(0, 0, 0, 0)' && p1.root === 'rgba(0, 0, 0, 0)', JSON.stringify(p1));
 
+    /* ===== 1c. "ADD A CLAUSE" — a plain door for a new clause (review item) ===== */
+    const add = await page.evaluate(() => ({ empty: !!document.querySelector('.redline-page .rl-empty-acts [data-rl-add-clause]:not([disabled])'),
+      menu: document.querySelectorAll('.redline-page [data-rl-add-clause]').length }));
+    ok('1c "Add a clause" sits beside "Edit a clause" in the empty column, and in the More menu', add.empty && add.menu >= 2, JSON.stringify(add));
+    if (add.empty) {
+      await page.click('.redline-page .rl-empty-acts [data-rl-add-clause]');
+      const opened = await until(page, () => !!document.querySelector('#clause-editor') && typeof ceIsNew === 'function' && ceIsNew(), null, 5000);
+      ok('1d it opens the clause editor on a new clause', !!opened);
+      await page.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
+      await page.waitForTimeout(400);
+    } else ok('1d it opens the clause editor on a new clause', false, 'no door');
+
     /* ===== 2. A CLICK PUTS THE CARET THERE, NOTHING ELSE ===== */
     const at = await endOf(page, sec(ids[1]));
     if (at) await page.mouse.click(at.x, at.y);
@@ -178,6 +190,17 @@ const endOf = (page, sel) => page.evaluate(sel => {
       ok('7b a press on one goes to its box in the side panel\'s form', !!s7b, s7b);
     } else ok('7b a press on one goes to its box in the side panel\'s form', false, 'no blanks');
     await page.screenshot({ path: path.join(OUT, '7-document.png') });
+
+    /* ===== 7c. A TABLET (820px): THE PANEL'S "EDIT WITH COPILOT" IS GREYED WITH ITS REASON (review item) ===== */
+    await page.setViewportSize({ width: 820, height: 1000 });
+    await page.evaluate(() => openRedlineWorkbench('MK-CT1'));
+    await until(page, () => !!document.querySelector('.redline-page .rl-paper [data-nego-working]'), null, 8000);
+    const s7c = await until(page, id => { if (window.rlCpSetShown) rlCpSetShown(document.querySelector('.redline-page') || document, id);
+      const b = document.querySelector(`.rl-cp-src[data-rl-cp-for="${id}"] .rl-cp-act-ai`);
+      return b ? { disabled: b.disabled, title: b.getAttribute('title') || '', door: b.hasAttribute('data-nego-ai-clause') } : null; }, ids[0], 5000);
+    ok('7c at 820px the clause panel\'s Edit with Copilot is greyed with the reason, not offered then refused',
+      !!s7c && s7c.disabled && /too narrow/i.test(s7c.title) && !s7c.door, JSON.stringify(s7c));
+    await page.setViewportSize({ width: 1440, height: 900 });
 
     /* ===== 8. THEIR PAGE: CLICK, TYPE, SAVE — "WHY THIS CHANGE?" ===== */
     const tok = await page.evaluate(async () => {
