@@ -925,6 +925,21 @@ function viewLayersClosed(view){
       return false;
     }
   }
+  /* TYPING ON THE PAPER IS A DRAFT TOO (no pen, click · type · save, Young
+     9 Oct 2026): words typed straight into a clause on Negotiate and not yet
+     saved are asked about on the way off the page, in the editor's own words,
+     exactly as the clause editor's unfiled draft is. Nothing typed, no ask. */
+  if(!_leavingCe && window.rlInlineDirty && rlInlineDirty() && window.confirmDialog){
+    confirmDialog({ title:i18t('ce_leave_title'), message:i18t('ce_leave_body'),
+      confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('act_cancel'), danger:true })
+      .then(ok=>{
+        if(!ok) return;
+        if(window.rlInlineEnd) rlInlineEnd(true);
+        _leavingCe = true;
+        try{ setView(view); } finally { _leavingCe = false; }
+      }).catch(()=>{});
+    return false;
+  }
   if(!(typeof window!=='undefined' && window.clauseEditorOpen && clauseEditorOpen())) return true;
   if(_leavingCe) return true;
   if(!(window.clauseEditorDirty && clauseEditorDirty())){
@@ -1288,6 +1303,9 @@ if(typeof window!=='undefined'&&!window._placeWired&&typeof window.addEventListe
   window._placeWired=true;
   window.addEventListener('pagehide',placeSave);
   window.addEventListener('beforeunload',placeSave);
+  /* Closing the tab or reloading with words typed on the paper and not saved:
+     the browser's own question, the only one a closing tab may ask. */
+  window.addEventListener('beforeunload',e=>{ try{ if(window.rlInlineDirty && rlInlineDirty()){ e.preventDefault(); e.returnValue=''; } }catch(_){} });
   document.addEventListener('visibilitychange',()=>{ if(document.hidden) placeSave(); });
   let _placeT=0;
   document.addEventListener('scroll',()=>{ clearTimeout(_placeT); _placeT=setTimeout(placeSave,PLACE_SAVE_WAIT); },{ capture:true, passive:true });
