@@ -5,6 +5,7 @@ issue where the drop down goes behind the cards. Do not fix yet but add all to
 a work order"*. Build only when the owner says so.
 Part 5 (the Board balances its cards) was added the same day, owner-asked: *"add this to the work order"*.
 Part 6 (Show as table turns the chart into a table) was added the same day, owner-asked: *"one more thing to add to the work order. fix this highlighted button so that when you click, it turn the chart to a table."*
+Part 7 (the clause strip on the Paper becomes the TRACK) was added the same day, owner-asked: *"I want to add the implementation of track for the paper page from this artifact"* (artifact "Clause Strip Options", https://claude.ai/artifact/Jpi4zqQH8fzQ2Be8B7u4Xf, option 3 "Track", picked by name).
 
 **What the owner asked for, in their words, before this:**
 *"please check why there is a lag when i try to get into the home page and also
@@ -329,6 +330,100 @@ the chart with a table whose rows equal the chart's pieces in labels and
 counts; pressing a row opens what the piece opens; pressing "Show as chart"
 puts the same chart back. Measured in a browser, light and dark.
 
+## Part 7 — THE TRACK: the clause strip on the Paper (owner picked "Track" by name, 8 Oct 2026)
+
+**What the owner picked.** The drawn options were Wider · Index · Track (the
+artifact "Clause Strip Options"). The owner picked **Track**. Build only
+that one, as the artifact draws it.
+
+**What is there today (read only; grep, never trust a line number):**
+- Home's Paper draws a coloured strip down the left edge of the paper's
+  column: `#ig-spine` (`.doc-xr-spine .ig-spine`), painted by
+  `igStrandPaint` in js/views/intelligence.js from `docXraySpineHtml(rows,
+  {numbers:true})` and `docXraySpineRows` in js/views/contract.js. It is
+  `DOC_XRAY_SPINE_W` = 28 px wide, so numbers like 3.4.1, 16.1 and 24.8 are
+  cut off. Blocks share the strip's height by weight (`docXraySegH`,
+  `XR_SEG_MIN`/`XR_SEG_MAX`); the strip follows the paper
+  (`igStrandFollow`); hover shows the card (`igStrandTip`); a press glides
+  the paper to the clause and puts a question in Copilot's box, sending
+  nothing (`igStrandPress`, the 28 Sep "Ask" ruling).
+- **The artifact's note that the strip is also on the Document tab is out
+  of date.** The Document tab has drawn no strip since the Thread (5 Oct
+  2026); `docXraySpineHtml`'s own comment says so. So Part 7 reaches Home's
+  Paper only (and Explorer's "Analyze contract", if it draws `#ig-spine` —
+  check, and fix there too or tell the owner).
+
+**What the Track is (as the artifact draws it):**
+1. **One thin rail for the whole contract.** A grey rail, 6 px wide, runs
+   from the top of the paper's column to its bottom. The top of the rail is
+   the start of the contract and the bottom is its end. It never scrolls and
+   never passes the bottom of the screen (the 24 Sep ruling still holds).
+2. **Each flagged clause sits where it really is.** A short coloured mark on
+   the rail, in the clause's grade (ruby · amber · steel, worst on top as
+   today), placed at that clause's TRUE position in the contract: its offset
+   down the paper divided by the paper's full height, measured off the
+   painted paper (the rows `docXrayRows` already returns carry the element).
+   Never guessed from the clause number. A longer clause gets a slightly
+   taller mark (the same `docXraySegH` weight). Only the marked clauses are
+   drawn (the 23 Sep "only the coloured ones" ruling still holds).
+3. **Every number reads whole.** Beside the rail, each mark has a small
+   label with its clause number (18 px high, white ground, 1 px line, the
+   grade as a 2 px coloured edge on its left, the number always dark,
+   tabular figures). Labels never overlap: they are pushed apart (at least
+   20 px between centres) and pulled back inside the column; a thin leader
+   line joins each label to its mark, so a label pushed off its spot still
+   points at it.
+4. **A window shows what is on screen.** A soft accent-tinted box on the
+   rail, outlined in the accent, covers the part of the contract currently
+   visible in the paper's column. It moves as the reader scrolls (this
+   replaces today's `igStrandFollow` marking). The clause being read has its
+   label in bold accent ink.
+5. **Same hover, same press.** Hovering or focusing a label shows today's
+   card (`igStrandTip`: which clause, how serious, why, "Click to go there
+   and ask Copilot"). Pressing a label does exactly today's act
+   (`igStrandPress`): the paper glides to the clause, lights it for a
+   moment, and a question about it goes in Copilot's box. Nothing is sent
+   and nothing is spent until the reader presses Ask. The pressed label is
+   shown as on. Labels are buttons: Tab reaches them, Enter presses.
+6. **The contract does not move (Six Questions, 3).** The Track is 70 px
+   wide and lives only in the grey margin to the left of the sheet (73 px
+   on a 1440 px screen with the panel open). Measure the sheet's left edge
+   and the first line of wording before and after: they must not move.
+   Where the margin is narrower than the Track (a smaller window, Focus,
+   the panel wider), the Track does NOT push the paper: it falls back to
+   today's thin strip. Say which in the summary, with the widths measured.
+7. Light and dark from the app's own tokens (`--st-*` status colours never
+   move); `prefers-reduced-motion` respected for the glide and the window.
+
+**Retire, do not leave half-alive:** the 28 px blocks on Home's Paper stop
+being drawn where the Track draws. `docXraySpineHtml` stays only if the
+fallback uses it; otherwise retire it the house way (and `DOC_XRAY_SPINE_W`
+with it) after a grep proves no other caller. The hover card, the press and
+the Ask question are KEPT, not rewritten.
+
+**Rules that bite:** NO NEW BAND; the Track draws nothing when no clause is
+marked (as today); a refresh lands at the same spot (the paper's scroll, so
+the window comes back in the same place); READING MUST NOT WRITE (the Track
+reads the painted paper and the marks, saves nothing). The Brain (rule 9):
+no new file or route is expected; if one is added it is named in
+`BRAIN_PARTS` with its area and lane in the same change.
+
+Accept, in a real browser at 1440 × 900 with the panel open, light and
+dark, on a long contract with marks spread through it:
+- every flagged clause has one label, every label's number is whole (its
+  text is not clipped: `scrollWidth <= clientWidth`), and no two labels
+  overlap;
+- each mark's place on the rail, as a share of the rail, matches its
+  clause's position on the paper, as a share of the paper (within 2 %);
+- the window's top and height match the paper's visible part, and move
+  when the paper scrolls;
+- hovering a label shows the card; pressing one glides the paper to that
+  clause and fills Copilot's box without sending anything;
+- the sheet's left edge and first line of wording are in the same place as
+  at unmodified main (to the pixel);
+- at a window narrower than the Track needs, today's strip is drawn and
+  the paper still does not move.
+
 ---
 
 ## Tests to add (each run at unmodified main first: it must FAIL there)
@@ -348,6 +443,11 @@ puts the same chart back. Measured in a browser, light and dark.
   every dropdown on a card that has a card below it.
 - **show-as-table-verify** (new, Chromium): Part 6's acceptance. It must
   be red at unmodified main on the bars and columns cases.
+- **track-on-the-paper-verify** (new, Chromium): Part 7's acceptance.
+  Red at unmodified main (no rail, numbers cut off).
+- A unit test of the Track's label spacing: given mark positions that
+  crowd together, the labels come out in order, at least 20 px apart, all
+  inside the column, and each leader joins its own mark.
 - A unit test of `hbChartTableHtml` over a bars body, a columns body and an
   SVG body: each gives one row per enabled piece, with the piece's label,
   count and door.
