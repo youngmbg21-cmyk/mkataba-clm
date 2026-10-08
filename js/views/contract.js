@@ -1740,7 +1740,10 @@ function triageOptInHtml(ext){
     <input type="checkbox" id="up-triage" checked style="width:16px;height:16px;margin-top:1px;accent-color:var(--accent-fill)">
     <span>
       <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong)">${esc(i18t('ct_triage_optin'))}</span>
-      <span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${esc(i18t('ct_triage_optin_sub'))}</span>
+      <span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${esc(i18t(
+        /* NO PROMISE COPILOT CANNOT KEEP (9 Oct 2026 review): with no key the
+           line promised "about three Copilot calls" and the brief then failed. */
+        (typeof copilotAvailable==='function' && !copilotAvailable())?'ct_triage_optin_sub_noai':'ct_triage_optin_sub'))}</span>
     </span>
   </label>`;
 }

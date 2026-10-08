@@ -9107,6 +9107,7 @@ const STRINGS = {
     /* ---- auto-triage on upload (9 Sep 2026) ---- */
     ct_triage_optin: 'Read this contract now',
     ct_triage_optin_sub: 'Writes the brief, checks it against Our standards, scans for risk and finds the obligations — the four things you would otherwise press one at a time. About three Copilot calls. Untick to file it without reading; every check is still there to run by hand.',
+    ct_triage_optin_sub_noai: 'Copilot is not connected, so the brief and the other Copilot readings will not run — the local risk scan still does. Untick to file it without reading.',
     tri_row: '{who} sent a contract — read and ready for you',
     /* AND THE HEADLINE FOLLOWS WHAT ACTUALLY HAPPENED. A card whose title
        says a contract was read, over a sub-line saying no text came out of
@@ -21933,6 +21934,7 @@ const STRINGS = {
     /* ---- automatisk genomgång vid uppladdning (9 sep 2026) ---- */
     ct_triage_optin: 'Läs avtalet nu',
     ct_triage_optin_sub: 'Skriver sammanfattningen, stämmer av mot Våra standarder, gör riskgenomgången och hittar åtagandena — de fyra sakerna ni annars trycker på en i taget. Cirka tre Copilot-anrop. Avmarkera för att arkivera utan att läsa; varje kontroll finns kvar att köra för hand.',
+    ct_triage_optin_sub_noai: 'Copilot är inte anslutet, så sammanfattningen och Copilots övriga läsningar körs inte — den lokala riskgenomgången körs ändå. Avmarkera för att arkivera utan att läsa.',
     tri_row: '{who} har skickat ett avtal — läst och klart för er',
     tri_row_unread: '{who} har skickat ett avtal — det gick inte att läsa',
     tri_tag_arrived: 'Inkommet',
