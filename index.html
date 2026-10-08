@@ -8295,6 +8295,17 @@
   .hb-ag-b{min-width:0;display:flex;flex-direction:column;gap:1px}
   .hb-ag-t{font-weight:var(--w-strong);font-size:var(--t-body);display:flex;align-items:center;gap:6px;color:var(--hb-ink)}
   .hb-ag-s{font-size:var(--t-meta);color:var(--hb-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* COPILOT'S WORK BELOW THE CARD WEARS THE BOARD (Young, 8 Oct 2026: dark
+     board words unreadable; "clear where one contract starts and the other
+     ends"). The panel is the agents page's own builder, dressed in the app's
+     tokens; here those tokens are answered from the board's (--hb-*), so the
+     words follow Light | Dark. Each item is its own card with a gap between,
+     and its foot sits in the card — never sticky, which floated it over the
+     next item. */
+  .hb-ag-works{display:flex;flex-direction:column;gap:var(--s-4)}
+  .hb-ag-work{--color-text:var(--hb-ink);--color-neutral-600:var(--hb-ink-2);--color-neutral-500:var(--hb-mute);--color-neutral-200:rgba(var(--hb-ln),.2);--color-divider:rgba(var(--hb-ln),.16);--rule-strong:rgba(var(--hb-ln),.4);--color-surface:var(--hb-fig);--surface-2:rgba(var(--hb-ln),.06);--accent-ink:var(--hb-glow);--accent-ink-700:var(--hb-glow);
+    min-height:0;padding:var(--s-4) var(--s-4) 0;border:1px solid rgba(var(--hb-ln),.28);border-radius:var(--radius-lg);background:var(--hb-fig);box-shadow:var(--hb-shadow);color:var(--hb-ink)}
+  .hb-ag-work .ag-p-foot{position:static;bottom:auto;padding-bottom:var(--s-4);background:transparent}
   .hb-done{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:7px var(--s-3);border-bottom:1px solid rgba(var(--hb-ln),.1);font-size:var(--t-meta);color:var(--hb-mute)}
   .hb-done button{border:0;background:none;font:inherit;font-weight:var(--w-strong);color:var(--hb-ink-2);cursor:pointer;padding:1px 5px;border-radius:3px}
   .hb-done button:hover{background:rgba(var(--hb-gw),.12);color:var(--hb-ink)}
