@@ -3302,6 +3302,9 @@ const STRINGS = {
        drawn and never what is on the record. */
     ng_read_group: 'How the contract reads',
     ng_published_not_emailed: 'Published to {who}\u2019s link — not emailed.',
+    ng_round_not_reached: 'Not sent to {who} — {why} Nothing was handed over: it is still your move.',
+    ng_round_why_outbox: 'email isn\u2019t set up, so it is waiting in the outbox.',
+    ng_by_hand_link: 'Copy link — I\u2019ll send it',
     /* ---- A ROUND ON A STANDING LINK IS DELIVERED (owner-reported 27 Aug
        2026) ----
        The audit trail has said this since `quiet` was introduced — "the
@@ -3901,7 +3904,7 @@ const STRINGS = {
     co_note_goes_with_file: 'This goes in the email the file is attached to. It is not shown on their page.',
     co_file_sent: 'The file is on its way.',
     co_file_sent_body: 'Sent to {who} with your changes tracked and your notes as comments. This round is recorded as sent — as a file, so no link went with it.',
-    co_file_not_delivered: 'The round is recorded as sent, but {who} has not received anything.',
+    co_file_not_delivered: 'Nothing was recorded as sent: {who} has not received anything.',
     co_file_outbox: 'This server has no mail provider set up, so the file did not leave HaTi. An admin can find the message in the outbox under Settings.',
     /* What came back, in one line, on the alert row that already says the
        round arrived (13 Sep 2026). Every figure is read off the record. */
@@ -4402,6 +4405,12 @@ const STRINGS = {
     co_link_held_where: 'It is listed in the Shares panel if you need it — but it opens a holding page until their turn, so it is not one to forward.',
     co_round_on_standing_link: 'The new round is on {who}\'s existing link — nothing was emailed, by design.',
     co_queued_not_sent: 'Queued, not sent.',
+    co_send_queued_btn: 'Queued — email isn\'t set up',
+    co_send_failed_btn: 'Not sent — see below',
+    co_by_hand_link: 'Copy link — I\'ll send it myself',
+    co_by_hand_file: 'Download the file — I\'ll send it myself',
+    co_by_hand_done: 'Handed over — pass it to {who} yourself; it is their move now.',
+    co_not_handed_over: 'Nothing was handed over: the contract stays a draft and the move stays with you until it really goes.',
     co_link_updated_not_sent: 'Link updated — but not sent',
     co_if_they_open: 'if they open their link',
     co_send_again: 'Send it again',
@@ -16575,6 +16584,9 @@ const STRINGS = {
     ng_the_contract: 'Avtalet',
     ng_read_group: 'Så här läses avtalet',
     ng_published_not_emailed: 'Publicerad till {who}s länk — inte mejlad.',
+    ng_round_not_reached: 'Inte skickad till {who} — {why} Inget lämnades över: draget är fortfarande ditt.',
+    ng_round_why_outbox: 'e-post är inte konfigurerad, så meddelandet väntar i utkorgen.',
+    ng_by_hand_link: 'Kopiera länken — jag skickar den',
     ng_round_sent_standing: 'Rundan skickad till {who} — den ligger på länken de redan har',
     ng_turn_emailed: 'Skickad till {who} — de har fått ett mejl om att det är deras tur',
     ng_turn_mail_outbox: 'Skickad till {who} på deras länk — mejlet ”er tur” ligger i utkorgen (ingen e-postleverantör är inställd)',
@@ -17071,7 +17083,7 @@ const STRINGS = {
     co_note_goes_with_file: 'Det här hamnar i mejlet som filen bifogas i. Det visas inte på deras sida.',
     co_file_sent: 'Filen är på väg.',
     co_file_sent_body: 'Skickad till {who} med dina ändringar spårade och dina anteckningar som kommentarer. Rundan är registrerad som skickad — som fil, så ingen länk följde med.',
-    co_file_not_delivered: 'Rundan är registrerad som skickad, men {who} har inte fått något.',
+    co_file_not_delivered: 'Inget registrerades som skickat: {who} har inte fått något.',
     co_file_outbox: 'Den här servern har ingen mejlleverantör, så filen lämnade aldrig HaTi. En administratör hittar meddelandet i utkorgen under Inställningar.',
     ng_round_accepted_one: 'de godtog {n} av dina',
     ng_round_accepted_other: 'de godtog {n} av dina',
@@ -17534,6 +17546,12 @@ const STRINGS = {
     co_link_held_where: 'Den finns i delningspanelen om du behöver den — men den öppnar en väntsida fram till deras tur, så den bör inte vidarebefordras.',
     co_round_on_standing_link: 'Den nya rundan ligger på {who}s befintliga länk — inget e-postmeddelande skickades, helt enligt plan.',
     co_queued_not_sent: 'Köat, inte skickat.',
+    co_send_queued_btn: 'Köat — e-post är inte konfigurerad',
+    co_send_failed_btn: 'Inte skickat — se nedan',
+    co_by_hand_link: 'Kopiera länken — jag skickar den själv',
+    co_by_hand_file: 'Ladda ned filen — jag skickar den själv',
+    co_by_hand_done: 'Överlämnad — skicka den själv till {who}; nu är det deras drag.',
+    co_not_handed_over: 'Inget lämnades över: avtalet förblir ett utkast och draget ligger kvar hos dig tills det verkligen har skickats.',
     co_link_updated_not_sent: 'Länken uppdaterad — men inte skickad',
     co_if_they_open: 'om de öppnar sin länk',
     co_send_again: 'Skicka igen',

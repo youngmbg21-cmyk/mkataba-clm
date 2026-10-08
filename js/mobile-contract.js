@@ -999,12 +999,15 @@ async function mShareCreate(){
        adviser copy and a signing link both put this wording in front of
        somebody outside the building, which is what the rule is about. */
     let left=false;
-    if(window.contractLeavesDrafting) left=contractLeavesDrafting(c, `shared with ${email}`);
+    /* D1 (9 Oct 2026): only once the email really went — a link queued in
+       the outbox or refused reached nobody, so the contract stays a draft. */
+    if(r && r.emailSent && window.contractLeavesDrafting) left=contractLeavesDrafting(c, `shared with ${email}`);
     if(left && window.persist) persist(c);
     mCloseSheet();
     if(window.toast) toast(r && r.emailSent
       ? `${s.share==='view'?'Read-only':s.share==='sign'?'Signing':'Negotiation'} link sent to ${email}`
-      : `Link created for ${email} — it was not emailed from here`);
+      : `Link created for ${email} — it was not emailed (${(r && r.emailConfigured===false) ? 'email isn\u2019t set up' : ((r && r.emailError) || 'not delivered')}). Nothing was handed over.`,
+      r && r.emailSent ? 'ok' : 'warn');
     if(window.refreshShareOverview) refreshShareOverview();
   }catch(e){
     s.shareErr = (e && e.message) || 'The link could not be created.';

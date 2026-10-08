@@ -3210,10 +3210,18 @@ async function sendEmail(to, subject, body, devHint, opts = {}) {
     // visible anywhere in the product.
     if (detail) detail += ` · sent from ${from}`;
   }
-  if (attachments.length) detail = [detail, 'attachments: ' + attachments.map(a => a.filename).join(', ')].filter(Boolean).join(' · ');
+  /* THE ATTACHMENT NAMES ARE THE OUTBOX ROW'S NOTE, NOT AN ERROR (9 Oct 2026).
+     They used to be folded into the returned `detail`, which every caller
+     reads as "why it did not go" — so a Word-file share stored
+     "attachments: x.docx" as its send_error and the signing card read a
+     delivered file as failed. The row keeps the names; the caller gets the
+     refusal alone (null when there was none) and the names on their own. */
+  const rowDetail = attachments.length
+    ? [detail, 'attachments: ' + attachments.map(a => a.filename).join(', ')].filter(Boolean).join(' · ')
+    : detail;
   db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at) VALUES (?,?,?,?,?,?,?,?,?)')
-    .run(id, to || '', subject, body, sent, provider, EMAIL_ON() ? null : (devHint || null), detail, at);
-  return { id, sent, provider, detail };
+    .run(id, to || '', subject, body, sent, provider, EMAIL_ON() ? null : (devHint || null), rowDetail, at);
+  return { id, sent, provider, detail, attached: attachments.map(a => a.filename) };
 }
 
 /* WHAT A ROUTE SAYS ABOUT A MESSAGE IT JUST TRIED TO SEND — one shape, named
@@ -15273,26 +15281,9 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      for a Shared entry already describing this send and adds one only where
      there is none. The append-only audit guard on the save route is what
      protects both from being rewritten afterwards. */
-  if (shareId) {
-    try {
-      const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId);
-      if (row) {
-        const cj = JSON.parse(row.json);
-        const trail = Array.isArray(cj.audit) ? cj.audit : [];
-        const recent = Date.now() - 120000;
-        const already = trail.some(a => a && /^Shared$/i.test(String(a.action || ''))
-          && Date.parse(a.at || '') >= recent);
-        if (!already) {
-          const who = String(rec.name || email || phone || 'a recipient');
-          cj.audit = trail.concat([{
-            at: now(), user: (req.user && req.user.name) || 'System', action: 'Shared',
-            detail: `${purp === 'sign' ? 'Signing' : purp === 'view' ? 'Read-only' : 'Negotiation'} link sent to ${who} by ${ch}`,
-          }]);
-          db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), shareId);
-        }
-      }
-    } catch (_) { /* the share is made; a missing line must never fail the send */ }
-  }
+  /* D1 (9 Oct 2026): the line is written AFTER delivery was tried (below),
+     so it says what happened — never "sent by email" ahead of an email that
+     then waits in the outbox. */
   const link = shareUrl(req, token);
   let emailSent = false, emailError = null;
   /* A bound link whose turn has not come yet is created but NOT delivered —
@@ -15355,7 +15346,10 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
         `${req.user.name} at ${payload.org || 'HaTi'} has sent you "${cName}"${rec.name ? `, ${rec.name}` : ''} as a Word file.`,
         message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
         `\nThe attached document carries their proposed changes as Word tracked changes, and their notes as Word comments.`,
-        `\nMark it up in Word and reply to this email with the file — ${req.user.name} will read your changes straight back into HaTi.`,
+        /* D5 (owner, 9 Oct 2026): nothing reads a reply automatically, so the
+           mail promises only what happens — the file goes back to the sender,
+           who brings it into HaTi. This channel carries no link to send it on. */
+        `\nMark it up in Word and send the file back to ${req.user.name} — they will bring your changes into HaTi.`,
         `\nReplies to this email reach ${req.user.name} directly.`,
       ].filter(Boolean).join('\n');
       const r = await sendEmail(email,
@@ -15397,6 +15391,31 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     if (r.sent) db.prepare('UPDATE shares SET sent_at=?, send_error=NULL WHERE token=?').run(now(), token);
     else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
       .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), token);
+  }
+  if (shareId) {
+    try {
+      const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId);
+      if (row) {
+        const cj = JSON.parse(row.json);
+        const trail = Array.isArray(cj.audit) ? cj.audit : [];
+        const recent = Date.now() - 120000;
+        const already = trail.some(a => a && /^Shared$/i.test(String(a.action || ''))
+          && Date.parse(a.at || '') >= recent);
+        if (!already) {
+          const who = String(rec.name || email || phone || 'a recipient');
+          cj.audit = trail.concat([{
+            at: now(), user: (req.user && req.user.name) || 'System', action: 'Shared',
+            detail: `${purp === 'sign' ? 'Signing' : purp === 'view' ? 'Read-only' : 'Negotiation'} ${({ word: 'Word file' })[ch] || 'link'}${
+              heldForTurn ? ` for ${who} made — held until their turn to sign`
+              : ['email', 'word'].includes(ch)
+                ? (emailSent ? ` sent to ${who} by email`
+                  : ` for ${who} NOT sent by email — ${emailError || (EMAIL_ON() ? 'the email provider refused the message' : 'email is not set up on this server; the message is in the outbox')}`)
+                : ` made for ${who} to send by ${ch === 'whatsapp' ? 'WhatsApp' : 'link'}`}`,
+          }]);
+          db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), shareId);
+        }
+      }
+    } catch (_) { /* the share is made; a missing line must never fail the send */ }
   }
   res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable,
     signerId: signerId || undefined, heldForTurn: signerId ? heldForTurn : undefined,

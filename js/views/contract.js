@@ -8148,8 +8148,9 @@ function openNegotiationOwnerRoom(c){
         /* handOver: a round send — where it hands the table to them, one
            "it is your turn" email rides with it (roundTurnMail). */
         const out=await reshareToLastRecipient(c,{ purpose:'negotiate', handOver:true });
-        if(!negoHandOver(c,{ to:'counterparty', by:currentUser()?.name })) { persist(c); }
-        else persist(c);
+        /* D1 (9 Oct 2026): the turn moves only once the round reached them. */
+        if(out.reached!==false) negoHandOver(c,{ to:'counterparty', by:currentUser()?.name });
+        persist(c);
         /* Three honest outcomes. quiet: the standing link took the round and no
            email goes — by design, the platform is the channel after the first
            send. delivered: the FIRST send, which emails the link. Otherwise the
@@ -8160,6 +8161,10 @@ function openNegotiationOwnerRoom(c){
            MK-255, where the round published and the counterparty reloaded the
            link they actually had to find nothing had moved. */
         /* The turn email's own three outcomes come first where one was tried. */
+        if(out.reached===false){
+          toast(i18t('ng_round_not_reached',{ who:to, why:(out.outbox||out.emailConfigured===false)?i18t('ng_round_why_outbox'):`${out.emailError||''}.` }),'warn',
+            out.link ? { action:{ label:i18t('ng_by_hand_link'), onClick:async()=>{ await roundReachedByHand(c, out); } } } : undefined);
+        } else
         if(out.turnMail && !out.stranded){
           toast(out.delivered ? i18t('ng_turn_emailed',{who:to})
             : out.outbox ? i18t('ng_turn_mail_outbox',{who:to})

@@ -1817,6 +1817,11 @@ function openReviewAskModal(c, opts = {}){
     }
     const note = (document.getElementById('rv-note') || {}).value || '';
     const dueV = (document.getElementById('rv-due') || {}).value || '';
+    /* READ BEFORE THE DIALOG CLOSES (9 Oct 2026): closeModal takes the
+       tick-box with it, and reading it afterwards always answered "unticked"
+       — so "Email them as well" never emailed anybody and the trail blamed
+       the requester for choosing to tell them themselves. */
+    const wantMail = !!(document.getElementById('rv-email') || {}).checked;
     const rv = reviewAsk(c, { reviewer: u || {}, note, due: dueV, ids: chosen() });
     if (!rv) return;
     _rvSave(c);
@@ -1833,7 +1838,6 @@ function openReviewAskModal(c, opts = {}){
        before sending — not a member, no access to this value stream — arrives
        as a thrown error carrying its own sentence, and that sentence is what
        gets filed. See reviewNoteDelivery. */
-    const wantMail = !!(document.getElementById('rv-email') || {}).checked;
     let out = { wanted: wantMail, sent: false, outbox: false, to: (u && u.email) || null, why: null };
     if (wantMail && window.API_MODE && window.API_MODE() && window.api){
       try{
