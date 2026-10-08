@@ -369,7 +369,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       const col = document.querySelector('#view-redline #rl-doc');
       const wrap = paper.closest('.rl-zoom');
       const p = paper.getBoundingClientRect(), c = col.getBoundingClientRect();
-      const line = paper.querySelector('p');
+      const line = paper.querySelector('.nego-body p') || paper.querySelector('p');
       return { paper: Math.round(p.width), col: Math.round(c.width),
         zoom: Number(getComputedStyle(wrap).zoom) || 1,
         pad: getComputedStyle(paper).padding,
@@ -378,11 +378,13 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         scrollPad: getComputedStyle(document.getElementById('redline-host')).paddingRight,
         headPad: getComputedStyle(document.querySelector('#view-redline #ws-head')).paddingRight };
     });
-    check('4 the sheet fills its column', sheet.paper >= sheet.col - 12,
+    /* REVERSED IN PLACE, 8 Oct 2026. THE HOME PAPER (owner, 8 Oct 2026: "i am choosing the home paper"): every
+           paper is Home Redlined's — 720px, centred, 14px — so this pins that. */
+    check('4 the sheet is the Home paper\'s 720, inside its column', sheet.paper === Math.min(720, sheet.col),
       `${sheet.paper} of ${sheet.col}`);
     check('4 and is not magnified to do it', sheet.zoom === 1, `zoom ${sheet.zoom}`);
-    check('4 the contract reads at 14px on the render\'s own margins',
-      sheet.body === '14px' && sheet.pad === '30px 56px 34px', `${sheet.body} · ${sheet.pad}`);
+    check('4 the contract reads at 14px on the Home paper\'s margins',
+      sheet.body === '14px' && sheet.pad === '34px 38px 44px', `${sheet.body} · ${sheet.pad}`);
     /* ---- ONE INSET, SHARED WITH THE BANDS ABOVE (owner-reported 22 Aug 2026:
        "the tracked changes cards are leaving space on the right hand side") ----
        This asserted 48px — the render's own .h-content measure, which the

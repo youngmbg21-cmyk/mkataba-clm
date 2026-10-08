@@ -2505,9 +2505,18 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
     if (prep && prep.verdict === 'counter' && prep.wording)
       _ceThread.push({ who: 'ai', ai: true, text: String(prep.why || ''), read: [],
         cards: [{ name: _cet('ce_prep_card'), chip: _cet('ce_chip_copilot'), chipTone: 'wait', line: '',
-          rests: prep.standard ? _cet('ag_prep_rests', { what: prep.standard }) : '', text: prep.wording, passage: null, prepared: true }] });
+          rests: prep.standard ? _cet('ag_prep_rests', { what: prep.standard }) : '', text: prep.wording, passage: null, prepared: true, sentBack: !!prep.sentBack }] });
   }catch(_){}
   ceRenderAll();
+  /* AN ANSWER THE READER ASKED COPILOT FOR ARRIVES APPLIED (owner, 8 Oct
+     2026: "the copilot should then apply the change to the paper"). The
+     glowing Counter opened this page; its card's own Apply is pressed for the
+     reader — the one door wording takes into the box — and Save still files,
+     and nothing is sent. */
+  try{
+    const btn = [...document.querySelectorAll('[data-ce-apply]')].find(b => { const cd = ceCardAt(b.getAttribute('data-ce-apply')); return cd && cd.prepared && cd.sentBack; });
+    if (btn) btn.click();
+  }catch(_){}
   /* A RISK OPENED HERE (work order Part 8): Copilot's wording goes into the
      box on arrival — one call, said in the Risks tab. */
   if (opts && opts.risk && window.riskEditorArrive){ try{ riskEditorArrive(_ceC, opts.risk); }catch(_){} }

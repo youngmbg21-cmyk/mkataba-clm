@@ -166,7 +166,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       /* The working copy's own page shadow, resolved on THIS page (25 Sep
          2026): a probe wearing the token, read back the way the paper is. */
       pageShadow: (() => { const p = document.createElement('div');
-        p.style.boxShadow = 'var(--shadow-page)'; paper.appendChild(p);
+        p.style.boxShadow = 'var(--n-shadow-card)'; paper.appendChild(p);
         const v = getComputedStyle(p).boxShadow; p.remove(); return v; })(),
       paperBg: getComputedStyle(paper).backgroundColor,
       colBorder: getComputedStyle(col).borderTopWidth,
@@ -216,7 +216,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      RELATION: the paper wears the working copy's own token, resolved here, so
      the Document tab and this page cannot disagree about what a page looks
      like. The probe is asked for a real shadow first, or two 'none's agree. */
-  check('2 and it lies on the desk like a page in Word — the working copy\'s own shadow',
+  /* RE-POINTED, 8 Oct 2026: the token is the Home paper's card shadow
+     (owner: "i am choosing the home paper"). */
+  check('2 and it lies on the desk like a page in Word — the Home paper\'s own shadow',
     !!sheet.pageShadow && sheet.pageShadow !== 'none' && sheet.paperShadow === sheet.pageShadow,
     `${sheet.paperShadow} · the token resolves to ${sheet.pageShadow}`);
   check('2 the sheet reads as paper against the column behind it',
@@ -250,10 +252,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      the owner chose. So the claim is now the BOUND plus the centring, and the
      centring check below — which was already the regression net for a sheet
      pinned to one side — is what carries the weight. */
-  check('2 the sheet fills its column up to its readable measure, then stops',
-    sheet.paperWidth > 720
-      && (sheet.paperWidth >= sheet.colWidth - 12 || Math.round(sheet.paperWidth) === 860)
-      && sheet.paperWidth <= sheet.colWidth + 1,
+  /* REVERSED IN PLACE, 8 Oct 2026. The Home paper (owner: "i am choosing the
+     home paper") is 720px on every screen, centred, its column's width if
+     narrower. */
+  check('2 the sheet is the Home paper\'s 720 (its column, if narrower), then stops',
+    Math.abs(sheet.paperWidth - Math.min(720, sheet.colWidth)) <= 1,
     `${Math.round(sheet.paperWidth)} of ${Math.round(sheet.colWidth)}px`);
   /* THE REGRESSION THIS SECTION IS NOW FOR. 6662667: the type-scale rule
      out-specified the centring rule and pinned the sheet to the left of the
@@ -343,8 +346,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
      affordance. */
   check('2b the clause tool row is gone from the paper',
     inset.toolRows === 0, `${inset.toolRows} tool elements found`);
+  /* The Home paper's clause gap is 22 (owner, 8 Oct 2026); even is the claim. */
   check('2b the gaps between clauses are even and tight',
-    inset.gaps.length >= 3 && inset.gaps.every(g => g <= 20),
+    inset.gaps.length >= 3 && inset.gaps.every(g => g === inset.gaps[0] && g <= 24),
     `${JSON.stringify(inset.gaps)} · ${inset.pageBreaks} page break(s) between clauses, not counted`);
   /* ---- REVERSED IN PLACE, 26 Aug 2026 (owner-asked: "you should only see the
      highlighted edit button when you hover over a respective clause. And the
@@ -435,7 +439,7 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       cardScale: getComputedStyle(document.querySelector('.redline-page')).getPropertyValue('--rl-type').trim(),
       meta: meta ? getComputedStyle(meta).fontSize : null };
   });
-  check('7 the contract body reads at the Doc page scale', type.body === '15px', type.body);
+  check('7 the contract body reads at the Home paper\'s 14px (owner, 8 Oct 2026)', type.body === '14px', type.body);
   check('7 the retired card token declares nothing', type.cardScale === '', type.cardScale || 'gone');
   /* THE CLAIM IS THE RELATION, NOT THE NUMBER, and it is asserted as one now.
      This read 12px, then 13 after the platform-wide one-step type lift (22 Aug

@@ -120,7 +120,7 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     ok('3c Signing is the Sign button\'s own list; Send stays grey while it holds anything', sign.n > 0 && sign.send && sign.grey, JSON.stringify(sign));
     const wide = await page.evaluate(() => ({ sheet: Math.round((document.querySelector('#ig-paper .pg-sheet') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width),
       ws: !!document.querySelector('#ig-strip [data-ig-ws]'), ask: !!document.getElementById('igd-input') }));
-    ok('3d the paper keeps its width, "Open workspace" is gone from Home, the ask box stays under every tab', wide.sheet >= 760 && !wide.ws && wide.ask, JSON.stringify(wide));
+    ok('3d the paper keeps its width (the Home paper\'s 720, owner 8 Oct 2026), "Open workspace" is gone from Home, the ask box stays under every tab', wide.sheet >= 700 && !wide.ws && wide.ask, JSON.stringify(wide));
     /* ONE BAR (Young, 8 Oct 2026): the strip and the panel's symbols share one top, one
        bottom and one colour, side by side; the sheet starts where it always did (56px under
        the bar's top), so the wording did not move */
