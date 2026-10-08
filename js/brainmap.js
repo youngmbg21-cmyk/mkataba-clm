@@ -178,6 +178,15 @@ const BRAIN_PARTS = [
      asker told when it is done; the server writes the trail */
   ['lookask', 'asksLookFor', 'sign', 1],
   ['looktell', 'lookTell', 'wall', 2],
+  /* the rest of Home first (8 Oct 2026, "build all the steps"): approvals open
+     on the Paper from the bell and checklist; the Deal tab's redlined paper;
+     chasing many late promises at once; Copilot's jobs ending in their own
+     doors; a reply drafted for a dropped thread */
+  ['approvalpaper', 'pdOpenOnHome', 'see', 1],
+  ['dealpaper', 'igRedOn', 'see', 1],
+  ['chasemany', 'hbChaseManyRun', 'time', 1],
+  ['copilotdoors', 'caReadDoor', 'ai', 1],
+  ['draftreply', 'agDraftReply', 'ai', 1],
 ].map((a, i) => ({ id: a[0], code: a[1], reg: a[2], floor: a[3], def: (a[4] || {}).def || '', men: (a[4] || {}).men || '', i }));
 
 /* The six flows: which parts each step lands on. The sentences are
@@ -190,10 +199,10 @@ const BRAIN_FLOWS = [
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
   { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
-  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
-  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
-  { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell'], ['desknight', 'home', 'insights', 'readings']] },
-  { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'passroute', 'lookask'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
+  { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale', 'dealpaper'], ['webhook']] },
+  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks', 'approvalpaper'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
+  { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell'], ['desknight', 'home', 'insights', 'readings', 'chasemany', 'draftreply']] },
+  { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it

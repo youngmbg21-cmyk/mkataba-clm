@@ -50,7 +50,8 @@ function negoStyleHtml(){
      layers keep reading from the same ramp as the room they belong to, and
      they stay inside the component's own namespace — nothing here is declared
      on :root, which would restyle the whole product from inside a component. */
-.nego-room, #nego-root, .nego-selmenu, .nego-aipop{
+/* .nego-onpaper: Home's Paper drawing this canvas read-only (8 Oct 2026) takes the same tokens */
+.nego-room, #nego-root, .nego-selmenu, .nego-aipop, .nego-onpaper{
     --n-slate:#33475c; --n-slate-deep:#26374a; --n-slate-soft:#456a8f;
     --n-badge-bg:#eef2f6;
     --n-ins-bg:#e4f1ea; --n-ins-fg:var(--st-green-fg);

@@ -1412,9 +1412,66 @@ function agWeekBody(it){
 function agQuietBody(it){
   const m = it.note || {};
   const where = it.ch ? (it.ch.clauseLabel || it.ch.clauseId || '') : _agT('ag_qt_contract');
+  const r = _agReplies.get(it.key);
+  const draft = !r ? '' : r.state === 'busy' ? `<p class="ag-p-note">${_agE(_agT('ag_qt_drafting'))}</p>`
+    : r.state === 'err' ? `<p class="ag-p-note is-warn">${_agE(r.why || _agT('ag_qt_draft_failed'))}</p>`
+    : agSecHtml(_agT('ag_qt_draft'), `<p class="ag-p-text">${_agE(r.text)}</p><p class="ag-p-note">${_agE(_agT('ag_qt_draft_foot'))}</p>`);
   return agKv([[_agT('ag_l_last_from'), [m.who, _agDay(m.at)].filter(Boolean).join(', ')], [_agT('ag_l_quiet'), _agTn('desk_days', it.days, { n: it.days })], [_agT('ag_l_about'), where]])
     + agSecHtml(_agT('ag_qt_note'), `<p class="ag-p-text">“${_agE(_agCut(m.text, 600))}”</p>`)
-    + `<p class="ag-p-note">${_agE(_agT('ag_qt_hint'))}</p>`;
+    + draft
+    + (r ? '' : `<p class="ag-p-note">${_agE(_agT('ag_qt_hint'))}</p>`);
+}
+/* ---- A REPLY DRAFTED FOR A DROPPED THREAD (step 6, Young 8 Oct 2026) ----
+   Copilot writes a short reply on a press (the Copilot chat route, its cost
+   on that route's own meter); nothing is filed or sent. "Use this reply"
+   opens the notes drawer in the note's OWN room, opens the reply box under
+   the note and puts the words in it — the drawer's own Send reply is the one
+   way out (rule 2), and the person presses it (rule 7). Kept per sitting. */
+const _agReplies = new Map();
+const AG_REPLY_WAIT_MS = 4000;
+function agReplyPrompt(it){
+  const c = it.c || {}, m = it.note || {}, ch = it.ch || null;
+  const us = (typeof contractParty === 'function' && contractParty(c)) || 'our company';
+  const clause = ch ? [ch.clauseLabel || '', String(ch.newText || ch.oldText || '').slice(0, 2000)].filter(Boolean).join('\n') : '';
+  return 'Draft a short reply, on behalf of ' + us + ', to this note from ' + (c.counterparty || 'the other side') + ' about the contract "' + (c.name || '') + '".\n\n'
+    + 'Their note:\n<<<\n' + String(m.text || '').slice(0, 2000) + '\n>>>\n\n'
+    + (clause ? 'The clause it is about, as it stands:\n<<<\n' + clause + '\n>>>\n\n' : '')
+    + 'Rules: three sentences at most; polite and plain; acknowledge their point; promise nothing that changes money, dates, liability or the wording, and say we will come back on any wording in our next round; no greeting line, no sign-off, no headings, no markdown. Write the reply only.';
+}
+async function agDraftReply(key){
+  const it = agFind(key); if (!it) return;
+  /* the spend lives with Copilot's other acts (caDraftReply): this page reads */
+  if (typeof caDraftReply !== 'function'){ _agReplies.set(key, { state: 'err', why: _agT('ag_qt_draft_failed') }); agRepaint(); return; }
+  _agReplies.set(key, { state: 'busy' }); agRepaint();
+  const r = await caDraftReply(agReplyPrompt(it), it.cid);
+  _agReplies.set(key, r.text ? { state: 'done', text: r.text }
+    : { state: 'err', why: r.why === 'nokey' ? _agT('ag_qt_draft_nokey') : r.why === 'empty' ? _agT('ag_qt_draft_empty') : _agT('ag_qt_draft_failed') + (r.msg ? ' — ' + r.msg : '') });
+  agRepaint();
+}
+function agUseReply(key){
+  const it = agFind(key); const r = _agReplies.get(key);
+  if (!it || !r || r.state !== 'done' || typeof openNotesPanel !== 'function') return;
+  const c = (typeof getContract === 'function' && getContract(it.cid)) || it.c;
+  const m = it.note || {};
+  const nkey = (typeof negoNoteKey === 'function') ? negoNoteKey(m) : String(m.id || m.at || '');
+  const room = (typeof negoNoteRoomKey === 'function') ? negoNoteRoomKey(c, m) : '';
+  openNotesPanel(c.id, it.ch ? it.ch.id : null, { force: true });
+  const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v).replace(/"/g, '\\"');
+  const t0 = Date.now();
+  const tick = () => {
+    const host = document.getElementById('panel-body');
+    if (host){
+      const tab = room ? host.querySelector(`[data-rl-np-room="${css(room)}"]:not(.on)`) : null;
+      if (tab) tab.click();
+      const box = host.querySelector(`[data-rl-np-rin="${css(nkey)}"]`);
+      if (box){ box.value = r.text; box.dispatchEvent(new Event('input', { bubbles: true })); try { box.focus(); } catch (_){} return; }
+      const reply = host.querySelector(`[data-rl-np-reply="${css(nkey)}"]`);
+      if (reply && !reply._agPressed){ reply._agPressed = true; reply.click(); }
+    }
+    if (Date.now() - t0 < AG_REPLY_WAIT_MS) setTimeout(tick, 120);
+    else if (typeof toast === 'function') toast(_agT('ag_qt_use_lost'), 'warn');
+  };
+  setTimeout(tick, 80);
 }
 
 /* ---- THEIR ROUND: every ask, the co-pilot's answer, and THEIR WORDING one
@@ -1875,7 +1932,11 @@ function agPanelActs(it){
   if (it.kind === 'request') return (ed ? B('ikdraft', _agT('ik_act_draft'), 'lead') : '') + B('ikopen', _agT('ag_a_request'), ed ? '' : 'lead');
   if (it.kind === 'lane') return B('overview', _agT('ag_a_draft_open'), 'lead') + B('ikopen', _agT('ag_a_request'), '');
   if (it.kind === 'week') return B('calendar', _agT('ag_a_calendar'), 'lead') + B('ics', _agT('ag_a_ics'), '');
-  if (it.kind === 'quiet') return B('notes', _agT('ag_a_answer_note'), 'lead') + B('overview', _agT('ag_a_overview'), '');
+  if (it.kind === 'quiet'){
+    const r = _agReplies.get(it.key);
+    if (r && r.state === 'done') return B('usereply', _agT('ag_a_use_reply'), 'lead') + B('draftreply', _agT('ag_a_redraft'), '') + B('notes', _agT('ag_a_answer_note'), 'link');
+    return (ed ? B('draftreply', _agT('ag_a_draft_reply'), r && r.state === 'busy' ? '' : 'lead') : '') + B('notes', _agT('ag_a_answer_note'), ed ? '' : 'lead') + B('overview', _agT('ag_a_overview'), '');
+  }
   return '';
 }
 /* THE PANEL'S HEAD is the drawing's: what the work IS, whose contract, and
@@ -1988,6 +2049,8 @@ async function agRunAct(key, act){
     return;
   }
   if (act === 'ikdraft'){ if (it.r && typeof intakeDraft === 'function') intakeDraft(it.r.id); return; }
+  if (act === 'draftreply') return agDraftReply(key);
+  if (act === 'usereply') return agUseReply(key);
   if (act === 'ikopen'){ if (it.r && typeof intakeGoTo === 'function') intakeGoTo(it.r.id); return; }
   if (act === 'calendar'){ if (typeof setView === 'function') setView('calendar'); return; }
   if (act === 'ics'){
@@ -2172,7 +2235,7 @@ async function agFreshLink(key){
   }
 }
 
-Object.assign(window, { agLevelOf, AG_READINGS, AG_WEEK_DAYS, AG_QUIET_DAYS, agApproveItems, agRequestItems, agWeekItems, agQuietItems, agApproveBody, agRequestBody, agWeekBody, agQuietBody, agSelKey, AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
+Object.assign(window, { AG_REPLY_WAIT_MS, agReplyPrompt, agDraftReply, agUseReply, agLevelOf, AG_READINGS, AG_WEEK_DAYS, AG_QUIET_DAYS, agApproveItems, agRequestItems, agWeekItems, agQuietItems, agApproveBody, agRequestBody, agWeekBody, agQuietBody, agSelKey, AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
   agRoundItems, agRoundDone, agRenewItems, agRenewDone, agLateItems, agLateDone, agPaperItems, agPaperWorking, agPaperDone,
   agImportBatches, agImportItems, agImportDone, agImportWorking, agFind, agCardParts, agCardHtml, agPageHtml, agListHtml,
   agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agDrawPanel, agWarmUp, AG_NEEDS_WHOLE, AG_OPEN_WAIT_MS, agRunAct, agPaintHead, agRepaint, renderAgentsPage,

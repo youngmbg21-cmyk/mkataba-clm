@@ -73,8 +73,8 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
         small: [...document.querySelectorAll('#ig-dock .igd-small .ui-link')].map(b => b.textContent.trim()),
         smallAfter: !!(row && row.nextElementSibling && row.nextElementSibling.classList.contains('igd-small')) };
     });
-    ok('1a the answer leads with Read them on Paper (filled), then Show on the Board',
-      doors.btns.join('|') === 'Read them on Paper*|Show on the Board', JSON.stringify(doors));
+    ok('1a the answer leads with Read all 3 on Paper (filled), then Show on the Board',
+      doors.btns.join('|') === 'Read all 3 on Paper*|Show on the Board', JSON.stringify(doors));
     ok('1b the Contracts page and Export are small links after them', doors.smallAfter && doors.small.length === 2 && /Contracts page/.test(doors.small[0]), JSON.stringify(doors.small));
     await page.screenshot({ path: path.join(OUT, '1-answer.png') });
 
@@ -88,28 +88,34 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     const w2 = await page.evaluate(() => ({ id: intel.paper && intel.paper.id, walk: (document.querySelector('#ig-strip .ig-walk b') || {}).textContent }));
     ok('2b Next moves to the second, "2 of 3"', w2.id === 'MK-HF2' && w2.walk === '2 of 3', JSON.stringify(w2));
 
-    /* ===== 3. THE PAPER'S DESK ===== */
-    const fold = await page.$('#ig-desk [data-pd-fold="0"]'); if (fold) await fold.click();
-    await page.waitForSelector('#ig-desk .pd-tabs', { timeout: 5000 }).catch(() => {});
+    /* ===== 3. THE PAPER'S DESK — HEADER ICONS (8 Oct 2026) ===== */
+    await page.waitForSelector('#ig-dock [data-pd-tab="facts"]', { timeout: 5000 }).catch(() => {});
+    const head = await page.evaluate(() => ({ title: /Intelligence panel/.test((document.querySelector('#ig-dock .igd-head') || {}).textContent || ''), desk: !!document.getElementById('ig-desk'),
+      tabs: [...document.querySelectorAll('#ig-dock .igd-head [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')) }));
+    ok('3a0 the title row is the tabs: Copilot then the room\'s six; no "Intelligence panel", no column beside the paper',
+      !head.title && !head.desk && head.tabs.join(',') === 'copilot,facts,doc,sign,oblig,hist,deal', JSON.stringify(head));
     const tabs = {};
-    for (const t of ['facts', 'oblig', 'sign', 'hist', 'deal']) {
-      const b = await page.$(`#ig-desk [data-pd-tab="${t}"]`); if (b) await b.click();
+    for (const t of ['facts', 'doc', 'oblig', 'sign', 'hist', 'deal']) {
+      const b = await page.$(`#ig-dock [data-pd-tab="${t}"]`); if (b) await b.click();
+      await page.waitForSelector(`#ig-dock [data-pd-tab="${t}"].on`, { timeout: 3000 }).catch(() => {});
       tabs[t] = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
     }
-    ok('3a five tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
-    const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-desk .pd-tab')].map(b => ({ txt: b.textContent.trim(), icon: !!b.querySelector('svg use'), name: b.getAttribute('title') })));
-    ok('3a2 the tabs are symbols, each named on hover', sym.length === 5 && sym.every(s => !s.txt && s.icon && s.name), JSON.stringify(sym));
-    ok('3b Facts carries the parties', /Kabras Logistics/.test(tabs.facts), tabs.facts.slice(0, 120));
-    await page.click('#ig-desk [data-pd-tab="sign"]');
+    ok('3a six contract tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
+    const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => ({ k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: b.textContent.trim(), icon: !!b.querySelector('svg use'), name: b.getAttribute('title') })));
+    ok('3a2 symbols, each named on hover; only the lit one says its name', sym.length === 7 && sym.every(s => s.icon && s.name && (s.on ? s.txt === 'History' || s.txt === 'Deal' || s.txt.length > 2 : !s.txt)) && sym.filter(s => s.on).length === 1, JSON.stringify(sym));
+    await page.click('#ig-dock [data-pd-tab="facts"]');
+    const facts = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
+    ok('3b Overview carries the parties', /Kabras Logistics/.test(facts), facts.slice(0, 120));
+    await page.click('#ig-dock [data-pd-tab="sign"]');
     const sign = await page.evaluate(() => { const b = [...document.querySelectorAll('#pd-body button')].find(x => /Send for signing/.test(x.textContent));
       return { n: (signBlockers(getContract('MK-HF2')) || []).length, send: !!b, grey: !!(b && b.disabled) }; });
     ok('3c Signing is the Sign button\'s own list; Send stays grey while it holds anything', sign.n > 0 && sign.send && sign.grey, JSON.stringify(sign));
-    const over = await page.evaluate(() => { const d = document.getElementById('ig-desk'), dock = document.getElementById('ig-dock');
-      const a = d.getBoundingClientRect(), b = dock.getBoundingClientRect(); return { over: d.classList.contains('is-over'), same: Math.abs(a.left - b.left) < 2 && Math.abs(a.width - b.width) < 2,
-        sheet: Math.round((document.querySelector('#ig-paper .pg-sheet') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width) }; });
-    ok('3d on a laptop the desk lies over the Copilot panel and the paper keeps its width', over.over && over.same && over.sheet >= 760, JSON.stringify(over));
+    const wide = await page.evaluate(() => ({ sheet: Math.round((document.querySelector('#ig-paper .pg-sheet') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width),
+      ws: !!document.querySelector('#ig-strip [data-ig-ws]'), ask: !!document.getElementById('igd-input') }));
+    ok('3d the paper keeps its width, "Open workspace" is gone from Home, the ask box stays under every tab', wide.sheet >= 760 && !wide.ws && wide.ask, JSON.stringify(wide));
     await page.screenshot({ path: path.join(OUT, '3-desk.png') });
-    await page.click('#ig-desk [data-pd-fold="1"]');
+    await page.click('#ig-dock [data-pd-tab="copilot"]');
+    ok('3e Copilot\'s symbol brings the conversation back', await page.evaluate(() => !!document.querySelector('#igd-feed:not([hidden])') && !document.getElementById('pd-body')));
 
     /* ===== 4. A REFERENCE IN AN ANSWER IS A DOOR ===== */
     await page.evaluate(() => { intel.history.push({ role: 'assistant', text: 'The lease, MK-HF3, ends first.' }); renderIntelDock(); });

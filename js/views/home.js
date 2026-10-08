@@ -1542,7 +1542,7 @@ function hmDecisionItems(S, deskRows){
    owns is theirs to decide. The drawing is inspector.js's (insNeedsHtml).
    READING MUST NOT WRITE: every source reads, and a source a stage does not
    load says nothing rather than throwing. */
-const NEEDS_YOU_ORDER = ['quiet','review','look','note','suggest','join','sign','renewal'];
+const NEEDS_YOU_ORDER = ['quiet','review','look','approval','note','suggest','join','sign','renewal'];
 function needsYouOf(c){
   if(!c || c.archived) return [];
   const me=(typeof currentUser==='function')?currentUser():null;
@@ -1580,6 +1580,10 @@ function needsYouOf(c){
     const a=mine[mine.length-1];
     out.push({ kind:'look', urgent:!!(window.saWorkdays && a.at && saWorkdays(a.at)>=(window.SA_REMIND_WORKDAYS||2)),
       n:mine.length, who:(a.by&&a.by.name)||'', note:a.note||'', review:!!(a.stamp&&a.stamp.review), at:a.at||null }); });
+  /* AN APPROVAL WAITING ON YOU (rule 6, 8 Oct 2026): work owed lives here, in
+     the bell and on the phone — no longer on the Board. The approvals' own
+     reading; it opens on Home's Paper with the pack. */
+  take(()=>{ if(window.approvalDecidableNow && approvalDecidableNow(c)) out.push({ kind:'approval', urgent:false }); });
   take(()=>hmMySignings(one).forEach(x=>out.push({ kind:'sign', urgent:false, n:x.n||0 })));
   take(()=>{ const r=hmRenewalDue(c);
     if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))
@@ -1621,6 +1625,7 @@ function needsYouGo(kind, id){
   const c=(typeof getContract==='function')?getContract(id):null;
   if(!c) return false;
   if(kind==='look') return lookDone(c);
+  if(kind==='approval'){ if(window.pdOpenOnHome&&pdOpenOnHome(c.id,'sign')) return true; openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
   /* AND A SUGGESTION IS ADOPTED WHERE IT IS DRAWN — the negotiate page, where
      the strip and its two verbs are. On this branch rather than below, with
      the two rows that already land there, so the reader is not taken through

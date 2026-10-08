@@ -2108,8 +2108,9 @@ function buildAlerts(){
         bell and the Home card cannot disagree. And 4/5 ride on the same read. */
   let D=null; try{ D=(window.hmDashSlices?hmDashSlices():null); }catch(_){ D=null; }
   if(D){
+    /* rule 6 (8 Oct 2026): the bell opens it on Home's Paper, the pack on Signing */
     (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>push('approval',x.c,
-      i18t('al_approval'),()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} }));
+      i18t('al_approval'),()=>{ if(window.pdOpenOnHome&&pdOpenOnHome(x.c.id,'sign')) return; openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} }));
     /* AND A REFUSAL COMES BACK TO THE PERSON WHO ASKED (23 Sep 2026): the
        approval before signing was refused, and the reason is on the Signing
        tab. Read off their own contracts' rows above — nothing new is walked. */

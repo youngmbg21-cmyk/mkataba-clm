@@ -11387,7 +11387,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
       working.push({ role: 'assistant', content });
       if (!toolUses.length) { // model replied as plain text without the tool — accept it
         const txt = content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
-        final = { answer: txt || COPILOT_EMPTY_ANSWER, citations: [], compare: null };
+        final = { answer: txt || COPILOT_EMPTY_ANSWER, citations: [], compare: null, empty: !txt };
         break;
       }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
@@ -11399,7 +11399,10 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
         ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) })) })));
       working.push({ role: 'user', content: results });
     }
-    if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };
+    /* A NON-ANSWER SAYS SO (8 Oct 2026): `unfinished`/`empty` ride the reply so a
+       caller that uses the words for something (a drafted note) never takes this
+       sentence for an answer. The chat itself still prints it as before. */
+    if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null, unfinished: true };
     // Resolve cited ids (and any compare columns) into render-ready cards.
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
@@ -11414,7 +11417,7 @@ app.post('/api/ai/chat', auth, rlAiLight, aiFeature('chat'), aiBudgetGuard, capA
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ...notice });
+    res.json({ answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
   } catch (e) {
     logCopilotTurn(req, { question, answer: 'Copilot request failed: ' + e.message, toolsUsed, model: usedModel, steps });
     res.status(502).json({ error: 'Copilot request failed: ' + e.message });
@@ -11721,7 +11724,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
       working.push({ role: 'assistant', content });
       if (!toolUses.length) {
         const txt = content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
-        final = { answer: txt || COPILOT_EMPTY_ANSWER, citations: [], compare: null };
+        final = { answer: txt || COPILOT_EMPTY_ANSWER, citations: [], compare: null, empty: !txt };
         break;
       }
       const deliver = toolUses.find(t => t.name === 'deliver_answer');
@@ -11733,7 +11736,10 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
         ({ type: 'tool_result', tool_use_id: t.id, content: JSON.stringify(await runCopilotTool(cx, t.name, t.input, { key, clientCtx: context, who: aiWho(req) })) })));
       working.push({ role: 'user', content: results });
     }
-    if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null };
+    /* A NON-ANSWER SAYS SO (8 Oct 2026): `unfinished`/`empty` ride the reply so a
+       caller that uses the words for something (a drafted note) never takes this
+       sentence for an answer. The chat itself still prints it as before. */
+    if (!final) final = { answer: "I wasn't able to finish that — try narrowing the question or naming a specific contract.", citations: [], compare: null, unfinished: true };
     const cardIds = [];
     final.citations.forEach(c => { if (!cardIds.includes(c.id)) cardIds.push(c.id); });
     if (final.compare) final.compare.columns.forEach(col => { if (!cardIds.includes(col.id)) cardIds.push(col.id); });
@@ -11747,7 +11753,7 @@ app.post('/api/ai/chat/stream', auth, rlAiLight, aiFeature('chat'), aiBudgetGuar
     }
     logCopilotTurn(req, { question, answer: final.answer, citedIds: cardIds, toolsUsed,
       quoteDrops: final.quoteDrops || 0, model: usedModel, steps });
-    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ...notice });
+    send('final', { answer: final.answer, citations: final.citations, compare: final.compare, wholeBook: !!final.wholeBook, cards, ...(final.unfinished ? { unfinished: true } : {}), ...(final.empty || final.answer === COPILOT_EMPTY_ANSWER ? { empty: true } : {}), ...notice });
     res.end();
   } catch (e) {
     if (clientGone || e.name === 'AbortError') {

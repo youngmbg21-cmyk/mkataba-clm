@@ -34,7 +34,7 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
-const SAME_IN_BOTH = new Set([
+const SAME_IN_BOTH = new Set([ 'pd_tab_copilot', 'pd_doc_pdf',
   'pd_back_copilot',   /* "‹ Copilot": the product's name, alike in both (8 Oct 2026) */
   'ag_wk_range',   /* "{from} – {to}": the week ahead's two dates, placeholders only (7 Oct 2026) */
   'int_span_days',   /* "{n} d": the day's mark reads alike in both, as int_fact_decide always did */
