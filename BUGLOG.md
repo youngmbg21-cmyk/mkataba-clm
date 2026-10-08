@@ -20508,3 +20508,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (same day): on the Signing tab at a 1100px window the control row (Signing copy · Page 1 of 3 · zoom) runs past the right edge — the zoom's minus button is cut off, and the owner's screenshot shows "Signing copy" cut at the left.
 - Noticed, not fixed (same day): an amendment's blanks can only be filled from the panel while nothing has been filed in Negotiate; after the first change the date is changed through Negotiate's editor like any other wording, and nothing holds signing on a still-empty ruled line.
 - Noticed, not fixed (same day): a standards check stored on an amendment before this fix keeps its old "missing" verdicts (and the head's count) until the check is run again.
+- Noticed, not fixed (8 Oct 2026, Home first): f308 (1) "the stamp is written where the review is BUILT, not at the stores" fails on main at ef24c87 too. Left alone.

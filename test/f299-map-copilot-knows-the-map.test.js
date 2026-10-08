@@ -181,12 +181,17 @@ test('f299 (5b) Copilot\'s sentence rides as a second line only where it says so
      it says something the numbers do not. */
   assert.ok(!/<br>|<p/.test(last(win).text), 'a restatement is not printed');
   win.intelGraphApply('group by status', { groupBy: 'status', note: 'By status', answer: 'MK-3 and MK-6 are the drafts still to send.' });
-  assert.match(last(win).text, /^Grouped 6 contracts into 3 groups by status<p class="ai-p">MK-3 and MK-6 are the drafts still to send\.<\/p>$/);
+  /* RE-POINTED 8 Oct 2026 (Young, "Home first": the answer's first line is
+     always the plain answer): Copilot's sentence IS the answer, and what the
+     map did rides the hover of "How this was drawn" (m.how). */
+  assert.match(last(win).text, /^<p class="ai-p">MK-3 and MK-6 are the drafts still to send\.<\/p>$/);
+  assert.equal(last(win).how, 'Grouped 6 contracts into 3 groups by status');
   // a filter line: showing N of T · label, and the cap is a fact
   win.eval('intel.lenses=[]; intel.groupBy="folder";');
   win.intelGraphApply('leases', { visibleIds: ['MK-1', 'MK-2'], note: 'Leases', action: 'filter', answer: 'Two leases, MK-1 the larger.' }, { capped: { sent: 600, total: 700 } });
   assert.equal(win.eval('intel.lenses.length'), 1);
-  assert.equal(last(win).text, 'Showing 2 of 6 · Leases · Copilot read the first 600 of 700 contracts<p class="ai-p">Two leases, MK-1 the larger.</p>');
+  assert.equal(last(win).text, '<p class="ai-p">Two leases, MK-1 the larger.</p><p class="ai-p igd-cap">Copilot read the first 600 of 700 contracts</p>', 'a cap is a fact: it stays on the screen');
+  assert.equal(last(win).how, 'Showing 2 of 6 · Leases');
   win.eval('intel.lenses=[]');
   win.intelGraphApply('which expire soon', { visibleIds: ['MK-2'], note: 'Expiring', action: 'highlight', answer: '' });
   assert.match(last(win).text, /^Highlighted 1 of 6 · Expiring$/);

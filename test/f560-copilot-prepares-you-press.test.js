@@ -238,6 +238,6 @@ describe('f560 (5) — every point is a door onto the paper (Young, 8 Oct 2026)'
     assert.equal(ctx.igCiteOfText('Liability (5.1) — the cap is "the royalties paid in the twelve (12) months"', quotes), 1);
     assert.equal(ctx.igCiteOfText('Royalty — "six percent (6%) of Gross Sales" every month', quotes), 0);
     assert.equal(ctx.igCiteOfText('Nothing here is quoted at all.', quotes), -1);
-    assert.match(IG, /igCiteRowsMark\(dock\);\s*dock\.querySelectorAll\('\[data-ig-cite\]'\)/, 'rows are marked before the doors are wired');
+    assert.match(IG, /igCiteRowsMark\(dock\);[\s\S]{0,2000}?dock\.querySelectorAll\('\[data-ig-cite\]'\)/, 'rows are marked before the doors are wired');
   });
 });

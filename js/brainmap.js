@@ -166,6 +166,9 @@ const BRAIN_PARTS = [
   ['papermark', 'caRiskMark', 'see', 1],
   ['homepaper', 'igHomePaperFace', 'see', 0],
   ['citedoor', 'igCiteGo', 'see', 1],
+  /* Home first (8 Oct 2026): a set walked on the Paper, the Paper's desk beside it */
+  ['walkset', 'igWalk', 'see', 1],
+  ['paperdesk', 'pdPaint', 'see', 1],
   ['passroute', 'POST /api/contracts/:id/pass', 'wall', 2],
   ['agentlevel', 'agentLevel', 'wall', 2],
   ['linkkeep', 'srvShareExtend', 'wall', 2],
@@ -190,7 +193,7 @@ const BRAIN_FLOWS = [
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
   { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
   { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell'], ['desknight', 'home', 'insights', 'readings']] },
-  { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor'], ['contracts', 'passroute', 'lookask'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
+  { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'passroute', 'lookask'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it
@@ -201,7 +204,7 @@ const BRAIN_FILE_REGION = [
   /* The page every party reads is a reading, not a view file, so without this
      line it would default to the wall — which is where a reading that spends
      nothing and touches no route does not belong. */
-  [/^js\/dealstands\.js$/, 'see'],
+  [/^js\/(dealstands|paperdesk)\.js$/, 'see'],
   /* the process review's two new files (4 Oct 2026) and the address book */
   [/^js\/(signgate|asks)\.js$/, 'sign'],
   [/^js\/(intakelanes|participants)\.js$/, 'in'],
