@@ -372,12 +372,16 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
   await page.evaluate(() => { document.documentElement.removeAttribute('data-theme');
     document.documentElement.classList.remove('dark'); });
   await pause(200);
+  /* THE HOME PAPER (owner, 8 Oct 2026: "i am choosing the home paper"): the
+     step line is plain words on every paper, alike in both themes; the WORDS
+     ("your ask" / "their ask") tell the sides apart, and the marks keep their
+     side's colour (15c). */
   for (const t of ['light', 'dark']){
     const v = themes[t];
-    check(`13${t === 'light' ? 'a' : 'b'} in ${t}, a move of ours and a move of theirs are different colours`,
-      !!v.you && !!v.them && v.you !== v.them, JSON.stringify(v));
-    check(`13${t === 'light' ? 'c' : 'd'} and neither is transparent in ${t}`,
-      !/rgba\(0, 0, 0, 0\)/.test(String(v.you)) && !/rgba\(0, 0, 0, 0\)/.test(String(v.them)), JSON.stringify(v));
+    check(`13${t === 'light' ? 'a' : 'b'} in ${t}, the step line is plain words, ours and theirs alike`,
+      !!v.you && !!v.them && v.you === v.them && v.youInk === v.themInk, JSON.stringify(v));
+    check(`13${t === 'light' ? 'c' : 'd'} and it lies on the paper with no pill ground in ${t}`,
+      /rgba\(0, 0, 0, 0\)/.test(String(v.you)) && /rgba\(0, 0, 0, 0\)/.test(String(v.them)), JSON.stringify(v));
   }
 
   /* ---- 14 · THE BOARD IS OUR SEAT'S ----
@@ -432,10 +436,12 @@ const check = (n, pass, d) => { results.push({n, pass: !!pass}); console.log(`${
     const el = sec && sec.querySelector('.rl-rung'); const h = sec && sec.querySelector('.rl-clause-h');
     if (!el || !h) return null;
     const a = el.getBoundingClientRect(), b = h.getBoundingClientRect();
-    return { text: el.textContent.trim(), gap: Math.round(a.left - b.right), sameLine: Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)) < 8 };
+    return { text: el.textContent.trim(), under: Math.round(a.top - b.bottom), left: Math.round(a.left - b.left) };
   }, staged.c4);
   check('16a our unsent top move says so on the chip', !!chip16 && /not sent/i.test(chip16.text), chip16 && chip16.text);
-  check('16b the chip sits beside the heading, not at the far end of the row', !!chip16 && chip16.gap >= 0 && chip16.gap <= 24 && chip16.sameLine, JSON.stringify(chip16));
+  /* The Home paper sets the step line under the heading, where the heading's
+     words start (owner, 8 Oct 2026). */
+  check('16b the chip sits right under the heading, where its words start', !!chip16 && chip16.under >= -2 && chip16.under <= 12 && Math.abs(chip16.left) <= 2, JSON.stringify(chip16));
 
   /* 17 · the line under a stacked clause */
   const base17 = await page.evaluate(o => {

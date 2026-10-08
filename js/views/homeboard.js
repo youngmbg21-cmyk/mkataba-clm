@@ -2908,14 +2908,22 @@ function hbChartRun(D, cs0, P){
 /* THE SAME NUMBERS AS A TABLE (O-25): read off the chart's own doors — each
    piece's hover note is "label: what it counts" — so the table can never say
    what the chart does not; every row is the same door. */
+/* EVERY CHART THE BOARD DRAWS (work order "Home speed", Part 6, 8 Oct 2026:
+   "fix this highlighted button so that when you click, it turn the chart to a
+   table"): the SVG charts name a piece in a <title> ELEMENT, the bars and the
+   month columns (hbChartBarsHtml, hbChartColsHtml) in a title ATTRIBUTE on the
+   button. It read only the first, so a bar chart gave no rows and stayed a
+   chart while its button said "Show as chart". ONE reader for both; a piece
+   with nothing behind it (disabled, no door) is not a row. */
 function hbChartTableHtml(svgHtml){
   if (typeof document === 'undefined') return '';
   const box = document.createElement('div'); box.innerHTML = svgHtml;
   const seen = new Set(), rows = [];
   box.querySelectorAll('[data-hb-dig]').forEach(el => {
-    const t = el.querySelector('title'); const txt = t ? t.textContent : ''; const dig = el.getAttribute('data-hb-dig');
+    if (el.disabled) return;
+    const t = el.querySelector('title'); const txt = t ? t.textContent : (el.getAttribute('title') || ''); const dig = el.getAttribute('data-hb-dig');
     if (!txt || seen.has(dig + txt)) return; seen.add(dig + txt);
-    const at = txt.indexOf(': ');
+    const at = txt.lastIndexOf(': ');
     rows.push({ label: at > 0 ? txt.slice(0, at) : txt, val: at > 0 ? txt.slice(at + 2) : '', dig });
   });
   if (!rows.length) return '';
@@ -2941,9 +2949,12 @@ function hbChartHtml(D, cs0, big){
     R.body = String(R.body || '').replace(/<svg class="hb-svg/g, `<svg data-hb-fit="${_hbE(at.key + '|' + at.step)}" data-hb-w="${w}" data-hb-step="${at.step}" class="hb-svg`);
     /* OPENED, DETAIL IS EARNED (O-25): the same numbers as a table, and full screen */
     if (at.step !== 'board' && /data-hb-dig=/.test(R.body)){
-      const tab = _hbTableOn.has(at.key);
-      if (tab){ const t = hbChartTableHtml(R.body); if (t) R.body = t; }
-      R.body = `<div class="hb-open-tools"><button type="button" class="hb-link" data-hb-table="${_hbE(at.key)}" aria-pressed="${tab}">${_hbE(i18t(tab ? 'hb_show_chart' : 'hb_show_table'))}</button>`
+      /* THE BUTTON NEVER LIES (Part 6): it is drawn only where the chart has
+         rows to show, and says "Show as chart" only while a table IS showing */
+      const t = hbChartTableHtml(R.body);
+      const tab = !!t && _hbTableOn.has(at.key);
+      if (tab) R.body = t;
+      R.body = `<div class="hb-open-tools">${t ? `<button type="button" class="hb-link" data-hb-table="${_hbE(at.key)}" aria-pressed="${tab}">${_hbE(i18t(tab ? 'hb_show_chart' : 'hb_show_table'))}</button>` : ''}`
         + `<button type="button" class="hb-link" data-hb-full aria-pressed="${_hbFull}">${_hbE(i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen'))}</button></div>` + R.body;
     }
   }
@@ -4073,6 +4084,32 @@ function hbPanelHtml(p, lens, gift){
     <div class="hb-cb">${_hbGiveForm === p.id ? hbGiveFormHtml(p) : ''}${body}</div></section>`;
 }
 
+/* ---- THE BOARD BALANCES ITS CARDS (work order "Home speed", Part 5; Young,
+   8 Oct 2026: "train the Board tab to understand symmetry and the use of
+   space to balance the board") ----
+   Two cards share a row and end at the same height (index.html: .hb-grid
+   stretches its rows; a card's inside stays at its top, the spare room at its
+   bottom). A card that would stand ALONE on a row — the only card, the last of
+   an odd count, the one left when its partner closes, the one after a big
+   card — is marked `is-lone` and spans the row. Marked HERE, in the board's
+   own markup, so every paint (hbMorph, a face coming back) carries it and a
+   lone card's chart is measured at its full width (hbFitMeasure). A card the
+   reader made big stays big. At 1180px and narrower the grid is one column,
+   so every card already takes the full width. */
+const HB_CARD_HEAD_RE = /^(\s*<section class="hb-card hb-panel)/;
+function hbGridBalanced(html){
+  const parts = String(html || '').split(/(?=<section class="hb-card hb-panel)/).filter(x => x.trim());
+  const big = h => /^\s*<section class="hb-card hb-panel[^"]*\bis-big\b/.test(h);
+  let col = 0;
+  return parts.map((h, i) => {
+    if (!HB_CARD_HEAD_RE.test(h) || big(h)){ col = 0; return h; }
+    if (col === 1){ col = 0; return h; }
+    const next = parts[i + 1];
+    const lone = !next || !HB_CARD_HEAD_RE.test(next) || big(next);
+    col = lone ? 0 : 1;
+    return lone ? h.replace(HB_CARD_HEAD_RE, '$1 is-lone') : h;
+  }).join('');
+}
 /* ---- THE BOARD ---- */
 function hbBoardHtml(){
   const s = hbS();
@@ -4082,7 +4119,13 @@ function hbBoardHtml(){
   const A = hbAgentsData(base && base.at);
   let time = ''; try { time = new Date().toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); } catch (_){}
   const gifts = hbGiftsFor();
-  _hbInsMemo = new Map();
+  /* REMEMBERED UNTIL THE BOOK CHANGES (work order "Home speed", Part 3):
+     the shelf's candidates were worked out again on every paint; they are
+     kept while the day, the book (ids, versions, stages) and the board's own
+     recipes are the same. */
+  const insSig = hbInsMemoSig();
+  /* and whenever the shelf is to choose again (no choice kept for today) */
+  if (_hbInsMemoSig !== insSig || !hbS().ins){ _hbInsMemo = new Map(); _hbInsMemoSig = insSig; }
   _hbPackMemo.clear();
   _hbStoryMemo.clear();
   hbKeptSync();
@@ -4098,7 +4141,7 @@ function hbBoardHtml(){
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
     ${hbFocusHtml()}
-    <div class="hb-grid">${received}${panels || (received ? '' : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}${hbSetupDoorHtml()}</div>`)}</div>`;
+    <div class="hb-grid">${(received || panels) ? hbGridBalanced(received + panels) : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}${hbSetupDoorHtml()}</div>`}</div>`;
 }
 /* ---- FINISH SETTING UP (9 Oct 2026, the overnight run) ----
    A brand-new Home said nothing about what to do first while the admin's
@@ -5015,6 +5058,7 @@ function hbMorphKids(cur, next){
 }
 function hbPaintBoard(opts){
   const host = hbHost(); if (!host) return;
+  _hbBoardPaintedAt = Date.now(); _hbBoardMissed = false;
   const top = host.scrollTop;
   const act = document.activeElement;
   const had = (act && host.contains(act)) ? hbFocusKey(act) : null;
@@ -5118,7 +5162,7 @@ function hbRender(){
   const pg = hbPage(), s = hbS();
   const lang = (typeof langId === 'function') ? langId() : '';
   if (pg && hbHost() && pg.getAttribute('data-hb-side') === s.face && pg.getAttribute('data-hb-lang') === lang){
-    if (s.face === 'board') hbPaintBoard(); else hbPaintHead();
+    if (s.face === 'board') hbPaintBoard(); else { _hbBoardMissed = true; hbPaintHead(); }
     return;
   }
   hbMount();
@@ -5175,6 +5219,23 @@ function hbSetFace(f){
   /* turning to the map is an ARRIVAL, like pressing its tab on Insights was:
      the legend comes in closed (renderIntel's own rule for an arrival) */
   if (f === 'explorer' && window.intel){ intel.legendFolded = true; hbLensOnMap(); }
+  /* ---- THE FACE TURNS IN PLACE (work order "Home speed", Part 2, 8 Oct
+     2026; measured at 430 contracts, every press rebuilt the whole page and
+     the Copilot panel twice) ----
+     Where the page is up, in this language, only what differs is painted:
+     the stage shows the other side (hbApplyFace), the head's face buttons
+     repaint where they stand, the board only when something it shows moved
+     while it was hidden (hbBoardStale), and Explorer's side — the map, the
+     paper and the panel, ONCE — through igTurnFace. */
+  const pg = hbPage(), lang = (typeof langId === 'function') ? langId() : '';
+  if (pg && hbHost() && document.getElementById('ig-svg') && pg.getAttribute('data-hb-lang') === lang && typeof window.igTurnFace === 'function'){
+    hbApplyFace();
+    if (f === 'board' && hbBoardStale()) hbPaintBoard();
+    hbPaintHead();
+    igTurnFace();
+    hbToolsPaint();
+    return;
+  }
   hbMount();
   /* the ask box says what it asks about: the paper's contract on Paper, the
      portfolio elsewhere — read after the side has set the paper's mode */
@@ -5182,6 +5243,12 @@ function hbSetFace(f){
   /* the whole page is drawn again: the pressed half keeps the keyboard */
   if (kb){ const b = document.querySelector(`[data-hb-face="${f}"]`); if (b) try { b.focus({ preventScroll: true }); } catch (_){} }
 }
+/* WHETHER THE HIDDEN BOARD MISSED A PAINT: a book change repaints the board
+   only while it shows (hbRender), so one landing on another side marks it;
+   and its clock line is counted again after a minute. */
+let _hbBoardPaintedAt = 0, _hbBoardMissed = true;
+const HB_BOARD_FRESH_MS = 60000;
+function hbBoardStale(){ return _hbBoardMissed || Date.now() - _hbBoardPaintedAt > HB_BOARD_FRESH_MS; }
 function hbSetLens(lens){
   if (!HB_LENSES.includes(lens)) return;
   const s = hbS(); s.lens = lens; hbSave();
@@ -5434,7 +5501,15 @@ function hbInsCandidate(k){
 }
 /* worked out once per paint: hbBoardHtml empties it, so every picture and
    every sentence is counted off the book as it stands now */
-let _hbInsMemo = new Map();
+let _hbInsMemo = new Map(), _hbInsMemoSig = '';
+function hbInsMemoSig(){
+  const s = hbS(), cs = (window.state && state.contracts) || [];
+  let h = 5381;
+  for (const c of cs){ const t = String((c && c.id) || '') + ':' + String((c && (c.version || c.updatedAt || c.updated_at)) || '') + ':' + String((c && c.status) || '');
+    for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; }
+  let r = ''; try { r = JSON.stringify([s.recipe || {}, s.lens || '', s.insKept || {}, s.insRest || null]); } catch (_){ r = String(Math.random()); }
+  return [hbToday(), hbInsBookSig(), h.toString(36), r].join('|');
+}
 function hbInsCandidateMemo(k){
   if (!_hbInsMemo.has(k)){ let v = null; try { v = hbInsCandidate(k); } catch (_){ v = null; } _hbInsMemo.set(k, v); }
   return _hbInsMemo.get(k);

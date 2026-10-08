@@ -152,8 +152,10 @@ const SHEET = () => {
            SO: fills, or has reached its own cap. And zoom is pinned at 1 —
            asserted, because a fit creeping back in is exactly the kind of thing
            that would look right in a screenshot and be wrong. */
-        check(`${w} · owner: THE SHEET FILLS ITS COLUMN (or has hit its measure cap)`,
-          own.paper >= own.col - 12 || own.paper >= 858,
+        /* REVERSED IN PLACE, 8 Oct 2026. THE HOME PAPER (owner, 8 Oct 2026: "i am choosing the home paper"): every
+           paper is Home Redlined's — 720px, centred, 14px — so this pins that. */
+        check(`${w} · owner: THE SHEET IS THE HOME PAPER'S 720 (or its whole column, if narrower)`,
+          Math.abs(own.paper - Math.min(720, own.col)) <= 1,
           `${own.paper} of ${own.col}, zoom ${own.zoom}`);
         check(`${w} · owner: it is WIDENED, not scaled — the words hold their size`,
           own.zoom === 1, `zoom ${own.zoom}`);
@@ -164,7 +166,7 @@ const SHEET = () => {
       await pause(500);
       const cp = await page.evaluate(SHEET);
       check(`${w} · counterparty: ONE FIX REACHES BOTH MOUNTS`,
-        !!cp && cp.zoom === 1 && (cp.paper >= cp.col - 12 || cp.paper >= 858),
+        !!cp && cp.zoom === 1 && Math.abs(cp.paper - Math.min(720, cp.col)) <= 1,
         cp ? `${cp.paper} of ${cp.col}, zoom ${cp.zoom}` : 'no sheet');
     }
     await page.setViewportSize({ width: 1920, height: 940 });
@@ -359,8 +361,10 @@ const SHEET = () => {
        the page floating in white space — is unchanged, and the second half of
        it (the sheet's width does not move with the type) is the load-bearing
        one either way. */
-    check('5 AND THE PAGE STILL FILLS ITS COLUMN — the reported half',
-      (stepped.wAfter[0] >= stepped.wAfter[1] - 12 || stepped.wAfter[0] >= 858)
+    /* RE-POINTED, 8 Oct 2026: the Home paper (owner: "i am choosing the home
+       paper") is 720 wide, and the stepper still never moves the page. */
+    check('5 AND THE PAGE HOLDS THE HOME PAPER\'S WIDTH — the reported half',
+      Math.abs(stepped.wAfter[0] - Math.min(720, stepped.wAfter[1])) <= 1
       && stepped.wAfter[0] === stepped.wBefore[0],
       `${stepped.wBefore[0]} of ${stepped.wBefore[1]} → ${stepped.wAfter[0]} of ${stepped.wAfter[1]}`);
     check('5 and the front matter followed the body, so the sheet is one document',
@@ -397,8 +401,8 @@ const SHEET = () => {
     check('5b the wording really is smaller at 8 than at 15',
       floored.at8 > 0 && floored.at8 < floored.at15 * 0.62,
       `${floored.at15}px → ${floored.at8}px`);
-    check('5b AND THE PAGE STILL FILLS THE COLUMN — the whole point of the ask',
-      floored.sheet >= floored.col - 12 || floored.sheet >= 858,
+    check('5b AND THE PAGE DOES NOT SHRINK WITH THE WORDS — the whole point of the ask',
+      Math.abs(floored.sheet - Math.min(720, floored.col)) <= 1,
       `${floored.sheet} of ${floored.col}, zoom ${floored.zoom}`);
     await page.screenshot({ path: path.join(OUT, '04-owner-floor-8.png') });
 

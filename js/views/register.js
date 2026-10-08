@@ -1816,6 +1816,8 @@ function negoMoveSay(c){
      so there is nothing for this reader to DECIDE and "N needs you" would send
      them to a column of their own drafting. See negWhoseMove. */
   if(m.why==='unsent') return out('you',MINE,i18tn('ng_not_sent_yet',m.n,{n:m.n}));
+  /* our answers to their asks, decided and not yet sent back (8 Oct 2026) */
+  if(m.why==='decided') return out('you',MINE,i18tn('ng_decided_not_sent',m.n,{n:m.n,who:c.counterparty||i18t('ng_door_them')}));
   if(m.k==='you') return out('you',MINE,i18tn('ng_needs_you',m.n,{n:m.n}));
   if(m.why==='handover') return out('them',i18t('ngl_move_theirs'),
     i18t('ho_move_say',{who:c.counterparty||i18t('ng_door_them'),wait:window.handoverWaitWords?handoverWaitWords(c):''}));

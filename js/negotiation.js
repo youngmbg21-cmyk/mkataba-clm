@@ -5165,6 +5165,20 @@ function negoWithheldNow(c){
   try{ if (window.deskSuggestedIds) for (const id of deskSuggestedIds(c)) out.add(id); }catch(_){}
   return out;
 }
+/* ---- OUR DECISIONS THAT HAVE NOT GONE BACK (8 Oct 2026) ----
+   Their asks we have accepted or refused since work last left our desk
+   (`turnAt`), while the turn is ours. Nothing is pending, yet the move is
+   still ours: they cannot see the answer until we send. Without this the
+   room said "Whose move: Neither" and the page offered no visible send.
+   RAW — it feeds the list's bands and the column head, and READING MUST NOT
+   WRITE. */
+function negoUnsentDecisions(c){
+  const n = c && c.negotiation;
+  if (!n || n.turn === 'counterparty') return [];
+  const at = String(n.turnAt || '');
+  return (Array.isArray(c.changes) ? c.changes : []).filter(x => x && x.authorSide === 'counterparty'
+    && !x.withdrawn && (x.status === 'accepted' || x.status === 'rejected') && String(x.resolvedAt || '') > at);
+}
 function negoUnsentAsks(c, side){
   const me = side === 'counterparty' ? 'counterparty' : 'owner';
   const at = (c && c.negotiation && c.negotiation.turnAt) || null;
@@ -5663,7 +5677,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoCopilotRecord, NEGO_COPILOT_CHARS,
   negoVersionOptions, negoVersionChoices, negoVersionByKey, negoVersionRound,
   negoIsLivePair, negoCompareVersions,
-  negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks,
+  negoTurn, negoHandOver, negoTurnBanner, negoUnsentAsks, negoUnsentDecisions,
   negoHeldBackIds, negoHoldOthers, negoReleaseHold, negoKeptIds, negoWithheldNow,
   negoRoundWasSent, negoRoundSince, negoRoundClosesForSigning,
   negoAdvanceRound, negoAllChanges, negoRevisionAt,

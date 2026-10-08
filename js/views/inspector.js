@@ -136,6 +136,7 @@ function insMove(c){
   if (m.k === 'you'){
     const word = m.why === 'unsent' ? i18t('ins_yours_unsent')
       : m.why === 'nocopy' ? i18t('ins_yours_nocopy')
+      : m.why === 'decided' ? i18t('ins_yours_decided')
       : i18tn('ins_yours_n', m.n || 0, { n: m.n || 0 });
     return { k: 'you', word, say: m.say };
   }

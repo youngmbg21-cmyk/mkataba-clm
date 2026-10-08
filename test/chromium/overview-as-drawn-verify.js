@@ -227,7 +227,9 @@ const SEC = (suffix) => {
     /* RE-POINTED IN PLACE 1 Oct 2026 (Read Down, owner's yes): ONE Edit for
        the whole sheet, at its head, instead of one per card. */
     const topEdit = await page.evaluate(() => {
-      const b = document.querySelector('#kt-overview #ov-ess [data-ov-edit="all"]');
+      /* RE-POINTED IN PLACE 8 Oct 2026 (the Overview redesign): Edit and Fill
+         ride the top row; the Terms heading holds its caption alone. */
+      const b = document.querySelector('#kt-overview .ov-top [data-ov-edit="all"]');
       const r = b && b.getBoundingClientRect();
       return b ? { text: (b.textContent || '').trim(), w: Math.round(r.width), h: Math.round(r.height) } : null;
     });
@@ -242,13 +244,15 @@ const SEC = (suffix) => {
 
     /* ============ 3. THE DEAL CARRIES ITS FOUR AS CELLS ============ */
     let deal = await page.evaluate(SEC, '.deal');
-    const dealWant = ['Contract value', 'Effective', 'Expiry', 'Notice (days)'];
+    /* RE-POINTED IN PLACE 8 Oct 2026 (the Overview redesign): the eight at
+       rest — the dates are the Term cell and the notice rides Renewal. */
+    const dealWant = ['Value', 'Term', 'Renewal'];
     const dealMissing = dealWant.filter(w => !deal.labels.some(l => l.trim().toLowerCase() === w.toLowerCase()));
     check('3a the four the owner saw as rows are CELLS now', dealMissing.length === 0,
       dealMissing.length ? 'missing ' + dealMissing.join(', ') : deal.labels.length + ' cells');
     check('3b and the deal has no editable box at rest either', deal.boxes === 0 && deal.rows === 0,
       deal.boxes + ' boxes, ' + deal.rows + ' rows');
-    const val = (deal.cells.find(x => /contract value/i.test(x.label)) || {}).value;
+    const val = (deal.cells.find(x => /^\s*value\s*$/i.test(x.label)) || {}).value;
     check('3c the value is the record\'s own, printed in the cell', !!val && /62/.test(val), val);
 
     /* ============ 4. EDIT BRINGS THE ROWS BACK ============
@@ -328,7 +332,9 @@ const SEC = (suffix) => {
     const stray = SUPPLY.filter(w => dealNow.labels.some(l => l.trim().toLowerCase() === w.toLowerCase()));
     check('9a no supply-only term is drawn on every contract', stray.length === 0,
       stray.length ? 'still on the card: ' + stray.join(', ') : dealNow.labels.length + ' cells, none of the five');
-    const UNIVERSAL = ['Confidentiality', 'Disputes', 'Assignment'];
+    /* RE-POINTED IN PLACE 8 Oct 2026: at rest the card is the eight; the
+       other fixed terms (Confidentiality, Assignment…) wait in Edit (9g). */
+    const UNIVERSAL = ['Disputes', 'Payment terms'];
     const gone = UNIVERSAL.filter(w => !dealNow.labels.some(l => l.trim().toLowerCase() === w.toLowerCase()));
     check('9b and the three nearly every agreement has are', gone.length === 0,
       gone.length ? 'missing: ' + gone.join(', ') : UNIVERSAL.join(' · '));
@@ -352,11 +358,11 @@ const SEC = (suffix) => {
     });
     await page.waitForTimeout(500);
     const after = await alsoAt();
-    check('9d record one and it appears', after.drawn, after.drawn ? after.head : 'still not drawn');
-    check('9e holding only the one that is answered', after.fields === 1,
-      after.fields + ' field' + (after.fields === 1 ? '' : 's'));
-    check('9f and it can never be a row of em-dashes', after.drawn && after.dashes === 0,
-      after.dashes + ' unanswered fields drawn');
+    /* RE-POINTED IN PLACE 8 Oct 2026 (Young: "the terms should be exactly like
+       the highlighted area and nothing more"): an answered occasional term
+       stays off the resting card; it is a box in Edit (9g). */
+    check('9d record one and the resting card still holds only the eight', !after.drawn,
+      after.drawn ? 'drawn: ' + after.head : 'not on the resting card');
     /* EVERY FIELD CAN BE TYPED — counted against the card's own cells. */
     /* THE SHEET'S ONE EDIT IS A TOGGLE OVER BOTH POSTURES (Read Down), and
        Move to another stream (stage 5) left The record's on — so the first
@@ -399,7 +405,7 @@ const SEC = (suffix) => {
       window.renderKeyTerms(c);
     });
     await page.waitForTimeout(600);
-    const marked = await cellAt('contract value');
+    const marked = await cellAt('value');
     check('10a the field holding the signature is marked, as painted pixels',
       !!marked && marked.left !== '0px' && marked.bg !== 'rgba(0, 0, 0, 0)',
       marked ? 'bg ' + marked.bg + ' · left rule ' + marked.left : 'no value cell');
@@ -437,7 +443,7 @@ const SEC = (suffix) => {
       window.renderKeyTerms(c);
     });
     await page.waitForTimeout(600);
-    const cleared = await cellAt('contract value');
+    const cleared = await cellAt('value');
     check('10d CONTROL — answering it clears the mark', !!cleared && cleared.left === '0px',
       cleared ? 'left rule ' + cleared.left + ' · note "' + (cleared.note || '') + '"' : 'gone');
     /* AND A DRAFT DRAWS NO LINE AT ALL — the card a reader sees every day. */

@@ -7,7 +7,9 @@
    exist yet then. Written once, here, so the two hosts cannot come to key the
    same ask differently.
    Like js/graphwhere.js: globals in the browser, a require on the server. */
-const ROUND_PREP_VERDICTS = ['accept', 'counter', 'escalate'];
+/* 'reject' (8 Oct 2026): their change is refused and our wording stands — the
+   answer the owner can now ask Copilot for ("simply said reject"). */
+const ROUND_PREP_VERDICTS = ['accept', 'counter', 'reject', 'escalate'];
 /* FNV-1a over the clause id and the proposed words with their whitespace
    folded — the ask, not its layout. Short and stable; nothing secret rides
    on it (the table it keys is walled per contract). */

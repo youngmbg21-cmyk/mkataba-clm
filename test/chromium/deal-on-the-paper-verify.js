@@ -91,8 +91,16 @@ const DOC = ['SUPPLY AGREEMENT', '', 'Article 1 Term', '', 'This Agreement runs 
 
     /* ===== 3. ANSWER ON NEGOTIATE, AND BACK TO CLEAN ===== */
     await page.evaluate(() => document.querySelector('#ig-strip [data-ig-red="0"]').click());
-    const clean = await page.evaluate(() => ({ red: !!document.querySelector('#ig-paper .ig-redpaper'), lit: (document.querySelector('#ig-strip .ig-red [aria-pressed="true"]') || {}).textContent }));
-    ok('3a Clean puts the clean paper back', !clean.red && clean.lit === 'Clean', JSON.stringify(clean));
+    /* Clean is the SAME paper with the marks taken away (owner, 8 Oct 2026:
+       "the clean paper should look the same exact way but without the
+       redlines"): the shell stays, marked is-clean, with no struck or inserted
+       words and no step labels showing. */
+    const clean = await page.evaluate(() => { const w = document.querySelector('#ig-paper .ig-redpaper');
+      const shown = el => el && el.getClientRects().length > 0;
+      return { shell: !!w, isClean: !!(w && w.classList.contains('is-clean')),
+        marks: w ? [...w.querySelectorAll('del, ins, .rl-rung')].filter(shown).length : -1,
+        lit: (document.querySelector('#ig-strip .ig-red [aria-pressed="true"]') || {}).textContent }; });
+    ok('3a Clean puts the clean paper back: the same paper, no marks', clean.shell && clean.isClean && clean.marks === 0 && clean.lit === 'Clean', JSON.stringify(clean));
     const b = (await page.$$('#pd-body button')).find(async x => /Answer on Negotiate/.test(await x.textContent()));
     const answer = await page.$('xpath=//div[@id="pd-body"]//button[normalize-space(.)="Answer on Negotiate"]');
     if (answer) await answer.click(); else if (b) await b.click();

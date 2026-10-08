@@ -1868,6 +1868,7 @@ function negoVerifyPill(c, ch){
    briefly. */
 function negoAfterPaint(c, opts, host){
   try { if (host && c) rlPaintNoteMarks(host, c, opts || {}); } catch (e){}
+  try { if (host && c) rlPaintCopilotAnswers(host, c, opts || {}); } catch (e){}
   try { if (host && c) rlPaginate(host, c); } catch (e){}
   if (!host || !window.negoRefreshVerification) return;
   if (window.negoVerifyCached && negoVerifyCached(c)) return;
@@ -6095,9 +6096,24 @@ function rlUnsentBandHtml(){ return ''; }
    new. It is still a PROXY onto the page's one postbox (#nego-send, or the
    counterparty's #nego-send-decisions) and never a second transport, so the
    delegated proxy listener picks it up wherever it is drawn. */
+/* ---- AND OUR ANSWERS, WHEN THEY ARE ALL THAT WAITS (8 Oct 2026) ----
+   Their asks decided, nothing of ours unsent: the hand-back is the move, and
+   its one door (#nego-send in the turn banner) sits in a wrapper drawn off
+   screen. This is its visible face, a proxy onto that same button — never a
+   second transport. Our seat only; the banner draws #nego-send on exactly
+   these terms (our turn, nothing held, not a reviewer, not read-only). */
+function rlDecisionsSendHtml(c, opts = {}){
+  if (opts.side === 'counterparty' || opts.readonly || opts.preview) return '';
+  const d = window.negoUnsentDecisions ? negoUnsentDecisions(c).length : 0;
+  if (!d || rlActorHeld(c, opts)) return '';
+  if (window.negoUnsentAsks && negoUnsentAsks(c, 'owner').length) return '';
+  const who = c.counterparty || i18t('ng_the_counterparty');
+  return `<button type="button" class="rl-unsent-go" data-redline-proxy="nego-send" data-rl-decided="${d}"
+    title="${_nea(i18tn('ng_decided_not_sent', d, { n: d, who }))}">${_ne(i18t('ng_send_to_who', { who }))}</button>`;
+}
 function rlUnsentSendHtml(c, opts = {}){
   const n = rlUnsentCount(c, opts);
-  if (!n) return '';
+  if (!n) return rlDecisionsSendHtml(c, opts);
   /* A reviewer holding somebody's clause cannot publish a round, so offering
      them the batch send would be a control whose one outcome is a refusal. */
   if (rlActorHeld(c, opts)) return '';
@@ -9123,7 +9139,11 @@ function negWhoseMove(c){
   if (needs) return { k: 'you', n: needs };
   const open = (Array.isArray(c && c.changes) ? c.changes : [])
     .filter(x => x && x.status === 'pending' && !x.withdrawn).length;
+  /* OUR ANSWERS NOT YET SENT BACK (8 Oct 2026): nothing is pending, but the
+     move is ours until they go — see negoUnsentDecisions. */
   if (!open){
+    const d = (window.negoUnsentDecisions ? negoUnsentDecisions(c).length : 0);
+    if (d) return { k: 'you', n: d, why: 'decided' };
     /* ---- THEIR FIRST LOOK (9 Oct 2026) ----
        After the first send nothing is pending, and this answered "clear" —
        the room said Neither, the bell nothing, while their page said "With
@@ -12767,6 +12787,17 @@ function rlWireResizer(host){
    The DATA is the engine's throughout — negoClauseList, negoChanges, the
    fingerprints and the ops diff — so nothing here invents a change, a decision
    or an id. */
+/* ---- THE PAPER'S SUBTITLE AS TEXT (8 Oct 2026, one paper everywhere) ----
+   The line under the title on this paper: the template's name, then the
+   contract's own governing law where HaTi has read one. The Document tab's
+   sheet prints the same line (docSheetHtml), so both papers say one thing. */
+function rlPaperSubText(c){
+  const tmpl = (window.TEMPLATES && c && c.template && TEMPLATES[c.template] && TEMPLATES[c.template].name) || 'Contract';
+  const law = (typeof window.contractGoverningLaw === 'function')
+    ? contractGoverningLaw(c)
+    : String((c && c.metadata && c.metadata.governingLaw) || '').replace(/\s+/g, ' ').trim();
+  return tmpl + (law ? ' · ' + i18t('ng_paper_law', { law }) : '');
+}
 function redlineDocHtml(c, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   const clauses = (typeof negoClauseList === 'function') ? negoClauseList(c) : [];
@@ -17708,6 +17739,92 @@ function rlRoundPrepLineHtml(c, ch, theirs, side){
   return `<div class="rl-card-sum rl-card-prep" data-rl-prep="${_nea(a.verdict)}"${tip ? ` title="${_nea(tip)}"` : ''}><span class="rl-prep-v is-${_nea(a.verdict)}">${
     _ne(i18t('ag_prep_' + a.verdict))}</span>${why ? ` <span class="rl-prep-why">${_ne(why)}</span>` : ''}</div>`;
 }
+/* ════ COPILOT'S ANSWER ON THE PAPER, AND THE BUTTON THAT GLOWS ═══════════
+   (owner, 8 Oct 2026: "After asking copilot to counter or whatever you ask
+   for, the copilot should then apply the change to the paper but not send
+   anything … the respective button should be flashing"; "the note is already
+   in the redline card. Remove the note in the paper".)
+   An answer YOU asked Copilot to redo (roundPrepOf … sentBack) is drawn on the
+   paper as a SUGGESTION — dashed marks, no words — and the verb that would
+   make it yours glows on their row. Nothing is filed: the glowing press is the
+   existing act through its existing door, and nothing reaches them before
+   Send. PAINTED AFTER THE RENDER, never written into the paper's HTML, so no
+   fingerprint moves. Our seat only; never on their page. Per sitting: a press
+   on any verb of that row puts its glow out. */
+const RL_SUG_VERB = {
+  counter: id => `[data-rl-cp-editor-change="${id}"]`,
+  reject: id => `[data-nego-reject="${id}"]`,
+  accept: id => `[data-nego-accept="${id}"]`,
+  escalate: () => '[data-rl-review]',
+};
+const _rlGlowDone = new Set();
+/* RAW: their pending asks carrying an answer the reader sent back. */
+function rlCopilotAnswers(c){
+  if (!c || typeof roundPrepOf !== 'function') return [];
+  return (Array.isArray(c.changes) ? c.changes : []).filter(x => x && x.authorSide === 'counterparty'
+    && x.status === 'pending' && !x.withdrawn && !x.superseded).map(ch => ({ ch, a: roundPrepOf(c, ch) }))
+    .filter(r => r.a && r.a.sentBack && RL_SUG_VERB[r.a.verdict]);
+}
+/* Copilot's counter beside theirs: its wording, the words that differ from
+   theirs marked (a word LCS — what moved, nothing more). */
+function rlSugWordsHtml(from, to){
+  const A = String(from || '').split(/(\s+)/), B = String(to || '').split(/(\s+)/);
+  const n = A.length, m = B.length;
+  if (n * m > 400000) return _ne(String(to || ''));
+  const L = Array.from({ length: n + 1 }, () => new Int32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  let i = 0, j = 0, out = '';
+  while (j < m){
+    if (i < n && A[i] === B[j]){ out += _ne(B[j]); i++; j++; }
+    else if (i < n && L[i + 1][j] >= L[i][j + 1]) i++;
+    else { out += /^\s+$/.test(B[j]) ? B[j] : `<span class="rl-sug-new">${_ne(B[j])}</span>`; j++; }
+  }
+  return out;
+}
+function rlPaintCopilotAnswers(root, c, opts = {}){
+  if (!root || !c) return 0;
+  root.querySelectorAll('.rl-sug-box').forEach(e => e.remove());
+  root.querySelectorAll('.rl-sug').forEach(e => e.classList.remove('rl-sug', 'rl-sug-counter', 'rl-sug-reject', 'rl-sug-accept', 'rl-sug-escalate'));
+  const scope = opts.verbsIn || document;
+  if (!opts.noGlow) scope.querySelectorAll('.rl-glow').forEach(e => e.classList.remove('rl-glow'));
+  if (opts.side === 'counterparty' || rlOnTheirPage()) return 0;
+  const css = v => (window.CSS && CSS.escape) ? CSS.escape(v) : String(v).replace(/"/g, '\\"');
+  let n = 0;
+  for (const { ch, a } of rlCopilotAnswers(c)){
+    const sec = root.querySelector(`section[data-nego-card-anchor~="${css(ch.id)}"]`)
+      || root.querySelector(`section[data-clause="${css(ch.clauseId)}"]`);
+    if (sec && a.verdict !== 'escalate'){
+      sec.classList.add('rl-sug', 'rl-sug-' + a.verdict);
+      if (a.verdict === 'counter' && a.wording){
+        const box = document.createElement('div');
+        box.className = 'rl-sug-box';
+        box.setAttribute('data-rl-sug', ch.id);
+        box.setAttribute('aria-label', i18t('ag_prep_counter'));
+        box.innerHTML = rlSugWordsHtml(ch.newText, a.wording);
+        const body = sec.querySelector('.nego-body') || sec.lastElementChild;
+        (body || sec).after ? (body || sec).after(box) : sec.appendChild(box);
+      }
+      if (ch.changeType === 'deleteClause') sec.classList.add('rl-sug-whole');
+      n++;
+    }
+    if (opts.noGlow || _rlGlowDone.has(ch.id)) continue;
+    const v = scope.querySelector(RL_SUG_VERB[a.verdict](css(ch.id)));
+    if (v){ v.classList.add('rl-glow'); v.setAttribute('data-rl-glow-for', ch.id); }
+  }
+  return n;
+}
+/* A press on any verb of a glowing row puts that row's glow out, for the
+   sitting. Delegated once, at load. */
+if (typeof document !== 'undefined' && !document._rlGlowWired){
+  document._rlGlowWired = true;
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest && e.target.closest('[data-nego-accept],[data-nego-reject],[data-rl-cp-editor-change],[data-rl-review]');
+    if (!t) return;
+    const id = t.getAttribute('data-nego-accept') || t.getAttribute('data-nego-reject') || t.getAttribute('data-rl-cp-editor-change') || t.getAttribute('data-rl-glow-for');
+    if (id) _rlGlowDone.add(id);
+    document.querySelectorAll(`.rl-glow[data-rl-glow-for="${id}"]`).forEach(x => x.classList.remove('rl-glow'));
+  }, true);
+}
 /* ---- COPILOT'S COUNTER, ON THE PAPER (Young, 9 Oct 2026, the Paper and
    Counter review, change 2) ---- Where Copilot answered their ask with a
    counter, its wording sits under their wording in a DASHED box: our seat
@@ -21247,7 +21364,7 @@ if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, 
   rlCpOpenId, rlCpSetOpen, rlCpSetShown, rlCpPaint, rlCpNotesOn, rlCpSetNotes, rlCpLadderOnly, rlCpNarrowSeat,
   rlEditorTakesIt,
   rlCpTypePx, rlCpSetType, rlCpZoom,
-  rlUnsentBandHtml, rlUnsentSendHtml, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
+  rlUnsentBandHtml, rlUnsentSendHtml, rlDecisionsSendHtml, rlPaperSubText, RL_SUG_VERB, rlCopilotAnswers, rlSugWordsHtml, rlPaintCopilotAnswers, rlUnsentCount, rlCloseRoundHtml, rlRoundLabelHtml,
   rlFitTabRow, rlWireFitTabRow, rlObserveTabRow,
   redlineHeldId, redlineEvict, openRedlineWorkbench,
   rlRungPeekHtml, rlPeekShow, rlPeekHide, rlPeekLater, rlPeekOpenId, RL_PEEK_MS,
