@@ -13,8 +13,7 @@
      3. sitting on a still, settled Explorer keeps the browser busy under 5%
         of the time (the frame loop rests)
      4. no frame of the map is drawn while the Board shows
-     5. a second visit to Home freezes no longer than the first, give or take
-        a quarter (the shelf's readings are remembered)
+     (5. a second visit to Home remembering the shelf is pinned in f567)
      6. no page errors
    A "freeze" is a browser long task; "busy" is the main thread's task time
    (CDP Performance.getMetrics TaskDuration). Waits ask for the state, bounded.
@@ -90,11 +89,9 @@ const check = (name, pass, detail) => {
     check('4. no frame of the map is drawn while the Board shows', onBoard.frames === 0, `${onBoard.frames} frames (and ${back.frames} on the way out)`);
     const ex2 = await act(() => hbSetFace('explorer'), onFace('explorer'));
     check('2. the second Explorer arrival freezes under half of the first', ex2.max < Math.max(60, ex1.max / 2), `first ${ex1.max} · second ${ex2.max} ms`);
-    await page.evaluate(() => { if (typeof igSetSpin === 'function') igSetSpin(true); });
-    await act(() => hbSetFace('board'), onFace('board'));
-    await act(() => setView('contracts'), quiet(800));
-    const home2 = await act(() => setView('dashboard'), () => until(() => !!document.querySelector('#hb-board .hb-note')).then(() => page.waitForTimeout(600)));
-    check('5. a second visit to Home freezes no longer than the first (±25%)', home2.max <= Math.max(60, home1.max * 1.25), `first ${home1.max} · second ${home2.max} ms`);
+    /* (5, a second visit to Home, is pinned in f567 rather than timed: the
+       first visit measured anywhere from 41 to 191 ms busy run to run, so a
+       relation between the two was a coin toss.) */
     check('6. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
     await browser.close(); await h.stop();

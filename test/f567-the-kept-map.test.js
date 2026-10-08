@@ -59,3 +59,12 @@ test('f567 (3) settled off the press, at rest when still, measured once, turned 
   assert.match(face, /igTurnFace\(\);/, 'the face turns in place');
   assert.equal((region(SRC, 'igTurnFace').match(/renderIntelDock\(\)/g) || []).length, 1, 'the panel is built once');
 });
+
+test('f567 (4) the shelf\'s readings are remembered until the book changes (Part 3)', () => {
+  const board = region(HB, 'hbBoardHtml');
+  assert.doesNotMatch(board, /\n\s*_hbInsMemo = new Map\(\);\n/, 'no longer thrown away on every paint');
+  assert.match(board, /if \(_hbInsMemoSig !== insSig \|\| !hbS\(\)\.ins\)\{ _hbInsMemo = new Map\(\); _hbInsMemoSig = insSig; \}/);
+  const sig = region(HB, 'hbInsMemoSig');
+  assert.match(sig, /c\.version \|\| c\.updatedAt/, 'a changed contract is a new book');
+  assert.match(sig, /hbToday\(\)/, 'and a new day');
+});
