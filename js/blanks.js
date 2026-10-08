@@ -508,7 +508,9 @@ function contractOpenFieldNames(c){
   if(!c) return [];
   if(c.templateForm){
     let fs=[];
-    try{ fs=(typeof tplFormOpenFields==='function')?tplFormOpenFields(c):[]; }catch(_){ fs=[]; }
+    /* Every open field, required or not (9 Oct 2026): an optional blank left
+       empty still reads as its label on the paper, so it is open too. */
+    try{ fs=(typeof tplFormOpenFields==='function')?tplFormOpenFields(c,{ all:true }):[]; }catch(_){ fs=[]; }
     return fs.map(f=>String((f&&(f.label||f.fieldKey))||'').trim()).filter(Boolean);
   }
   try{ return contractBlanksOpen(c).map(b=>String((b&&b.label)||'').trim()).filter(Boolean); }

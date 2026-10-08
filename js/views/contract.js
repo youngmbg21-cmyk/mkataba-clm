@@ -8224,8 +8224,9 @@ function openNegotiationOwnerRoom(c){
         /* handOver: a round send — where it hands the table to them, one
            "it is your turn" email rides with it (roundTurnMail). */
         const out=await reshareToLastRecipient(c,{ purpose:'negotiate', handOver:true });
-        if(!negoHandOver(c,{ to:'counterparty', by:currentUser()?.name })) { persist(c); }
-        else persist(c);
+        /* D1 (9 Oct 2026): the turn moves only once the round reached them. */
+        if(out.reached!==false) negoHandOver(c,{ to:'counterparty', by:currentUser()?.name });
+        persist(c);
         /* Three honest outcomes. quiet: the standing link took the round and no
            email goes — by design, the platform is the channel after the first
            send. delivered: the FIRST send, which emails the link. Otherwise the
@@ -8236,6 +8237,10 @@ function openNegotiationOwnerRoom(c){
            MK-255, where the round published and the counterparty reloaded the
            link they actually had to find nothing had moved. */
         /* The turn email's own three outcomes come first where one was tried. */
+        if(out.reached===false){
+          toast(i18t('ng_round_not_reached',{ who:to, why:(out.outbox||out.emailConfigured===false)?i18t('ng_round_why_outbox'):`${out.emailError||''}.` }),'warn',
+            out.link ? { action:{ label:i18t('ng_by_hand_link'), onClick:async()=>{ await roundReachedByHand(c, out); } } } : undefined);
+        } else
         if(out.turnMail && !out.stranded){
           toast(out.delivered ? i18t('ng_turn_emailed',{who:to})
             : out.outbox ? i18t('ng_turn_mail_outbox',{who:to})
@@ -8514,12 +8519,21 @@ function checkVerdict(c,kind){
    NAME them had to write the filter a second time — and a second copy of a
    filter is two readings that drift. `tplFormOpenCount` keeps its name and
    every caller it had. */
-function tplFormOpenFields(c){
+/* opts.all (9 Oct 2026): every field still OPEN, required or not — empty, or
+   still reading as its own label on the paper ("between Our company (the
+   Client)" went to the other side because only required fields were ever
+   asked). The default stays the required list every existing caller reads. */
+function tplFormOpenFields(c, opts){
   const form=c&&c.templateForm;
   if(!form||!Array.isArray(form.fields)) return [];
   const values=form.values||{};
-  return form.fields.filter(f=>f&&f.required&&f.fieldType!=='signature_name_title'
-    && String(values[f.fieldKey]||'').trim()==='');
+  const all=!!(opts&&opts.all);
+  return form.fields.filter(f=>{
+    if(!f||f.fieldType==='signature_name_title') return false;
+    if(!all && !f.required) return false;
+    const v=String(values[f.fieldKey]||'').trim();
+    return v==='' || (all && !!f.label && v===String(f.label).trim());
+  });
 }
 function tplFormOpenCount(c){ return tplFormOpenFields(c).length; }
 /* ============================================================
@@ -9876,7 +9890,12 @@ function roomHeadSubHtml(c, opts = {}){
   if (c && c.archived) bits.push(esc(i18t('ct_archived_tag')));
   const owner = (typeof contractOwnerName === 'function') ? contractOwnerName(c) : '';
   if (owner) bits.push(`${esc(i18t('ov_f_owner'))} <b class="room-sub-owner">${esc(owner)}</b>`);
-  if (c && c.lastAction) bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
+  /* "updated" ONLY BEFORE A DATE (9 Oct 2026): a company standard's contract
+     was born with lastAction "Created from template" — words, not a day — and
+     the head read "updated Created from template". A stored value is never
+     rewritten; one that names no year is simply not printed here. */
+  if (c && c.lastAction && /\b(19|20)\d{2}\b/.test(String(c.lastAction)))
+    bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
   const needs = opts.needs ? `<span id="ws-round-needs-slot">${negoRoundNeedsHtml(c)}</span>` : '';
   /* ---- WHO ELSE HAS THIS OPEN (idea 5, 4 Oct 2026) ----
      A SLOT, painted by the beat rather than built here, because this is the

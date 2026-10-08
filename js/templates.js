@@ -300,7 +300,11 @@ const TEMPLATE_BASE_FIELDS = [
      later from the wording. The two that do write land on the SAME field the
      upload path writes, so paySide has one reading and not two. */
   { key:'side', get label(){ return i18t('tf_our_side'); }, type:'select', maps:'category', required:false, def:'',
-    get opts(){ return [ { v:'', l:i18t('tf_side_none') },
+    /* NO SIDE IS PRESELECTED (9 Oct 2026): the empty answer read "Neither —
+       no one pays", a claim, even with a value typed beside it. It writes
+       nothing either way, so it now says what it is — not recorded — and
+       HaTi never guesses who pays. tf_side_none is inert in both books. */
+    get opts(){ return [ { v:'', l:i18t('tf_side_unset') },
                          { v:'customer', l:i18t('tf_side_customer') },
                          { v:'supplier', l:i18t('tf_side_supplier') } ]; } },
   { key:'effDate',      label:'Start date', type:'date', maps:'effDate', required:false, def:'' },

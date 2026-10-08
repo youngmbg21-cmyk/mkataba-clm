@@ -1122,6 +1122,10 @@ function renderTemplateFormSection(c) {
     if (editable) persist(c);
   }
   const fields = (form.fields || []).filter(f => f.fieldType !== 'signature_name_title');
+  /* A TEMPLATE WITH NO QUESTIONS DRAWS NO CARD (9 Oct 2026): an empty
+     "Contract form" box is a band about an absence. Signatures are not
+     questions — the signing flow captures them. */
+  if (!fields.length) { host.innerHTML = ''; return; }
   const values = form.values || {};
   const problems = window.templateFormProblems ? templateFormProblems(form) : [];
   const problemOf = k => { const p = problems.find(x => x.fieldKey === k); return p ? p.problem : null; };

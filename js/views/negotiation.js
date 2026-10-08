@@ -9081,7 +9081,18 @@ function negWhoseMove(c){
   if (needs) return { k: 'you', n: needs };
   const open = (Array.isArray(c && c.changes) ? c.changes : [])
     .filter(x => x && x.status === 'pending' && !x.withdrawn).length;
-  if (!open) return { k: 'clear', n: 0 };
+  if (!open){
+    /* ---- THEIR FIRST LOOK (9 Oct 2026) ----
+       After the first send nothing is pending, and this answered "clear" —
+       the room said Neither, the bell nothing, while their page said "With
+       you". Handed to them AND a live copy in their hands (the server's
+       reading, never guessed) is their move: the next thing that has to
+       happen is that they read it. Anything less stays clear. */
+    const handed = !!(c && c.negotiation && c.negotiation.turn === 'counterparty');
+    if (handed && window.negoTheirCopy && negoTheirCopy(c) === 'live')
+      return { k: 'them', n: 0, why: 'firstlook', reach: 'live' };
+    return { k: 'clear', n: 0 };
+  }
   /* ---- AND "WITH THE OTHER SIDE" HAS TO BE TRUE TO BE SAID ----
      (owner-reported on MK-255, 13 Aug 2026.) This answered 'them' whenever
      anything was pending, without ever asking whether they could SEE it — and
@@ -10734,7 +10745,11 @@ function renderRedline(){
            timestamp. Moving it first and sending after would put the word
            "Sent" on a card while the send was still in flight, and leave it
            there if the send failed. */
-        const handed = negoHandOver(c, { to: 'counterparty',
+        /* D1 (9 Oct 2026): a round that reached nobody — queued in the outbox
+           or refused — hands nothing over; the toast below offers the
+           sender's own hand-over (roundReachedByHand). */
+        const reached = !(out && out.reached === false);
+        const handed = reached && negoHandOver(c, { to: 'counterparty',
           by: opts.by || (window.currentUser && currentUser()?.name),
           /* Drafts a solo send once held back read as SENT the moment the
              hold lifts (their createdAt predates the last turn stamp), so
@@ -10799,7 +10814,13 @@ function renderRedline(){
            tried to tell them it is their turn, the toast says whether that
            email went, is waiting in the outbox, or was refused and why. */
         const tm = !!(out && out.turnMail && !out.stranded);
-        if (window.toast && tm) toast(delivered
+        if (!reached){
+          const why = (out && out.outbox) || (out && out.emailConfigured === false)
+            ? i18t('ng_round_why_outbox') : `${(out && out.emailError) || ''}.`;
+          if (window.toast) toast(i18t('ng_round_not_reached', { who: to, why }), 'warn',
+            (link && window.roundReachedByHand) ? { action: { label: i18t('ng_by_hand_link'),
+              onClick: async () => { await roundReachedByHand(c, out); renderRedline(); } } } : undefined);
+        } else if (window.toast && tm) toast(delivered
           ? `${i18t('ng_turn_emailed', { who: to })}${keptLine}`
           : out.outbox
           ? `${i18t('ng_turn_mail_outbox', { who: to })}${keptLine}`

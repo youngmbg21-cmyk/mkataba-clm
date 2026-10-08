@@ -1070,7 +1070,9 @@ async function mShareCreate(){
        adviser copy and a signing link both put this wording in front of
        somebody outside the building, which is what the rule is about. */
     let left=false;
-    if(window.contractLeavesDrafting) left=contractLeavesDrafting(c, `shared with ${email}`);
+    /* D1 (9 Oct 2026): only once the email really went — a link queued in
+       the outbox or refused reached nobody, so the contract stays a draft. */
+    if(r && r.emailSent && window.contractLeavesDrafting) left=contractLeavesDrafting(c, `shared with ${email}`);
     if(left && window.persist) persist(c);
     mCloseSheet();
     if(window.toast) toast(r && r.emailSent

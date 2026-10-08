@@ -361,6 +361,7 @@ function openWizard(preTid, prefill){
       </div>
       ${_pv?fillPreviewPaneHtml(vars.filter(v=>!String(v.def||'').trim()).length):''}
       </div>
+      ${WZ_ERR_HTML}
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:20px;">
         <button id="wz-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <span style="flex:1"></span>
@@ -407,6 +408,9 @@ function openWizard(preTid, prefill){
       .catch(()=>{});
   }
 }
+/* The line a refusal is printed on, under the boxes — dressed as the
+   essentials form's #ce-err, with the list's own line breaks kept. */
+const WZ_ERR_HTML=`<div id="wz-err" role="alert" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-top:var(--s-2);white-space:pre-line"></div>`;
 function createFromWizard(tid, vars, opts){
   const t=TEMPLATES[tid], u=currentUser();
   const skip=!!(opts&&opts.skip);
@@ -443,7 +447,18 @@ function createFromWizard(tid, vars, opts){
   /* U-10: show ALL the problems at once, not just the first. The full list is
      already collected here; toasting errs[0] alone forced a fix-resubmit-discover
      loop through fields the user could have corrected in one pass. */
-  if(errs.length){ toast(errs.length===1?errs[0]:`${errs.length} things need fixing:\n• ${errs.join('\n• ')}`,'err'); return; }
+  /* SAID WHERE THE BOXES ARE (9 Oct 2026): a toast sat on top of the
+     dialog's own buttons. The answer step and the New agreement card both
+     carry #wz-err under the boxes — the essentials form's #ce-err, the same
+     line — and the toast stays only for a caller with no such line. */
+  const errLine=document.getElementById('wz-err');
+  if(errs.length){
+    const msg=errs.length===1?errs[0]:`${errs.length} things need fixing:\n• ${errs.join('\n• ')}`;
+    if(errLine){ errLine.textContent=msg; try{ errLine.scrollIntoView({ block:'nearest' }); }catch(_){} }
+    else toast(msg,'err');
+    return;
+  }
+  if(errLine) errLine.textContent='';
   const cp=values.counterparty||'';
   /* THE NAME THEY TYPED IS THE COUNTERPARTY, not just a word in the title.
      This wrote `counterparty:''` and folded `cp` into the display name only,
@@ -544,7 +559,7 @@ function wizardFormMount(o, tid, prefill){
   const t=TEMPLATES[tid]; if(!t || !o || !o.host) return null;
   const vars=(prefill && typeof draftApplyPrefill==='function')
     ? draftApplyPrefill(templateVars(tid), prefill) : templateVars(tid);
-  o.host.innerHTML=`<div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')};">${vars.map(wzFieldHtml).join('')}${wzEmailHtml(prefill&&prefill.cpemail)}</div>`;
+  o.host.innerHTML=`<div class="field-grid" style="${(typeof FIELD_GRID_CSS==='string'?FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-3)')};">${vars.map(wzFieldHtml).join('')}${wzEmailHtml(prefill&&prefill.cpemail)}</div>${WZ_ERR_HTML}`;
   if(typeof bindFolderSelect==='function')
     vars.filter(v=>v.type==='stream').forEach(v=>{
       const el=document.getElementById('wz-'+String(v.key).replace(/[:]/g,'_'));
@@ -768,6 +783,23 @@ function openNewAgreement(o){
       .map(t=>({ kind:'tid', id:t.id, name:t.kind, sub:t.blurb||'', stream:sName(t.folder), cat:t.category })),
   ];
   let sel=null, api=null;
+  /* The answers typed in this sitting, by the box's key — see pick. */
+  const kept={};
+  /* ---- NOTHING TYPED IS LOST WITHOUT A QUESTION (9 Oct 2026) ----
+     Cancel, the ✕, Escape and the scrim all closed the pop-up and threw away
+     every answer typed into the card and the sentence above it. Each way out
+     asks first while anything holds text; nothing typed, nothing asked. */
+  const naTyped=()=>{
+    const say=document.getElementById('dr-say');
+    if(say && String(say.value||'').trim()) return true;
+    const host=document.getElementById('na-form');
+    return !!host && Object.keys(naCarryRead(host, {})).length>0;
+  };
+  const naAskLeave=async()=>{
+    if(!naTyped()) return true;
+    return !!(await confirmDialog({ title:i18t('na_leave_q'), message:i18t('na_leave_body'),
+      confirmLabel:i18t('na_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true }));
+  };
   /* ---- THE PAPER IS A LIST, NOT A WALL OF CARDS (Young chose proposal C,
      22 Sep 2026) ----
      ONE ROW BUILDER FOR ALL THREE SHELVES, where there were two — a card for
@@ -873,7 +905,9 @@ function openNewAgreement(o){
       <button type="button" id="wz-pick-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button type="button" id="na-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('na_skip')}</button>
       <button type="button" id="na-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
-    </div></div>`, { maxWidth: NA_FRAME_NARROW_W+'px', label: i18t('na_title') });
+    </div></div>`, { maxWidth: NA_FRAME_NARROW_W+'px', label: i18t('na_title'),
+      /* ESCAPE AND THE SCRIM ASK TOO (9 Oct 2026) — see naAskLeave below. */
+      onBeforeClose: ()=>naAskLeave() });
   /* A STAGE WITHOUT REAL ELEMENTS (a sandbox that only records the markup)
      stops here: the markup is the whole of what it can read. */
   const root=document.getElementById('na-root');
@@ -911,21 +945,33 @@ function openNewAgreement(o){
   };
   const pick=(kind,id,prefill)=>{
     const host=document.getElementById('na-form'); if(!host) return;
+    /* WHAT WAS TYPED GOES WITH THE READER TO THE NEXT ROW (9 Oct 2026): the
+       three doors' forms name their boxes by the same keys (counterparty,
+       cpemail, value, the dates …), so an answer typed on one row lands in the
+       same box on the next instead of being thrown away with the card. */
+    naCarryRead(host, kept);
     /* NO PAPER HOST, SO NO PAPER. All three forms ask for one before they
        draw an agreement, so handing them null is the one line that takes it
        off this screen and leaves their own dialogs exactly as they were. */
     const hostOpts={ host, paperHost:null, root:document.getElementById('na-body') };
-    sel={kind,id}; api=null; let name='', ver='';
+    sel={kind,id}; api=null; let name='', ver='', follow=0;
     if(kind==='tid'){ api=wizardFormMount(hostOpts, id, prefill); const t=TEMPLATES[id]; name=t?t.kind:id; }
     else if(kind==='lib'){ const t=libOf().find(x=>x.id===id); name=t?t.name:id; ver='v'+((t&&t.publishedVersion)||1);
+      follow=Number(t&&t.questionCount)||0;
       api=(typeof tplLibNewContract==='function')?tplLibNewContract(id, prefill, hostOpts):null; }
     else { const t=mineOf().find(x=>x.id===id); name=t?t.name:id; ver=t?verOf(t):'';
       api=(typeof createFromCustomTemplate==='function')?createFromCustomTemplate(id, prefill, hostOpts):null; }
     const n=api?api.count:0;
     dress(host);
+    naCarryWrite(host, kept);
     const nm=document.getElementById('na-card-name'), sb=document.getElementById('na-card-sub');
     if(nm) nm.textContent=name;
-    if(sb) sb.textContent=`${ver?ver+' · ':''}${i18tn('na_questions', n, {n})}`;
+    /* A COMPANY STANDARD'S BOXES HERE ARE THE ESSENTIALS, and its own
+       questions follow on the Document tab — so the card says both rather
+       than calling the essentials "questions" (9 Oct 2026). */
+    if(sb) sb.textContent=`${ver?ver+' · ':''}${kind==='lib'
+      ? i18tn('na_details', n, {n})+(follow?' · '+i18tn('na_tpl_q_follow', follow, {n:follow}):'')
+      : i18tn('na_questions', n, {n})}`;
     light();
   };
   root._naPick=pick;
@@ -975,7 +1021,7 @@ function openNewAgreement(o){
       ob.observe(mr,{childList:true,subtree:true});
     }
   }catch(_){}
-  const leave=()=>{ dropHeld(); closeModal(); };
+  const leave=async()=>{ if(!(await naAskLeave())) return; dropHeld(); closeModal(); };
   document.getElementById('wz-pick-cancel')?.addEventListener('click', leave);
   document.getElementById('na-x')?.addEventListener('click', leave);
   /* CREATING IS THE ONE WAY OUT THAT KEEPS THEM: the record is minted in the
@@ -1015,6 +1061,37 @@ function openNewAgreement(o){
     tplLibReady().then(()=>{ if(document.getElementById('na-root')===root && libOf().length!==before) paintLists(); }).catch(()=>{});
   }
 }
+/* ---- THE CARD'S TYPED ANSWERS, BY KEY (9 Oct 2026) ----
+   The three doors' forms prefix their boxes wz- / ce- / tf- and then use the
+   same key for the same fact. Read: every text box whose value differs from
+   what it was drawn with (a default or a Copilot prefill is not "typed").
+   Write: only into a box of the same key that is still at its drawn value —
+   what the reader typed outranks a drawn default. Selects are left alone:
+   their first option is a real answer, not an empty box. */
+const NA_CARRY_SEL='input[id]:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]),textarea[id]';
+const naCarryKey=id=>{ const m=/^(?:wz|ce|tf)-(.+)$/.exec(String(id||'')); return m?m[1]:null; };
+function naCarryRead(host, into){
+  const out=into||{};
+  if(!host||typeof host.querySelectorAll!=='function') return out;
+  host.querySelectorAll(NA_CARRY_SEL).forEach(el=>{
+    const k=naCarryKey(el.id); if(!k) return;
+    const v=String(el.value||'');
+    if(v.trim() && v!==String(el.defaultValue||'')) out[k]=v;
+    else if(into && Object.prototype.hasOwnProperty.call(out,k) && !v.trim()) delete out[k];
+  });
+  return out;
+}
+function naCarryWrite(host, kept){
+  if(!host||!kept||typeof host.querySelectorAll!=='function') return 0;
+  let n=0;
+  host.querySelectorAll(NA_CARRY_SEL).forEach(el=>{
+    const k=naCarryKey(el.id); if(!k || !Object.prototype.hasOwnProperty.call(kept,k)) return;
+    if(String(el.value||'')!==String(el.defaultValue||'')) return;
+    el.value=kept[k]; n++;
+    try{ el.dispatchEvent(new Event('input',{ bubbles:true })); }catch(_){}
+  });
+  return n;
+}
 /* The draft-from-a-sentence hand-off lands in the open pop-up: the chosen
    paper lights and its questions arrive pre-filled in the card. Answers false
    where no pop-up is open, and draftHandOff then opens the door itself. */
@@ -1026,4 +1103,4 @@ function naPickFromDraft(pick, prefill){
   return true;
 }
 
-Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_FRAME_NARROW_W});
+Object.assign(window,{openNewDoors,TEMPLATE_PRIMARY,TEMPLATE_STARTERS,INDUSTRY_TEMPLATES,INDUSTRY_LABEL,FOR_YOU_MAX,FOR_YOU_LOB_MIN,forYouPick,workspaceIndustry,builtinUsageCount,builtinUsageRows,forYouTemplates,templateVars,templateRoles,templateAllowedForRole,myCreatableTemplates,openWizard,createFromWizard,wzFieldHtml,wzEmailHtml,wizardFormMount,openNewAgreement,naPickFromDraft,naCarryRead,naCarryWrite,naHit,naCardSub,naCardHint,naCardTitle,naSayFit,NA_SAY_MAX_LINES,NA_RAIL_W,NA_FRAME_NARROW_W});
