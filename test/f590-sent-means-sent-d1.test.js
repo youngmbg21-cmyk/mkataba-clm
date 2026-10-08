@@ -238,3 +238,18 @@ describe('f590 (4) — the review request reads its tick-box before the dialog c
       'the tick-box is read while it still exists');
   });
 });
+
+describe('f590 (5) — C7: a Sign link with nobody named greys Send before the press', () => {
+  test('Sign with no route: Send greyed with the reason; Negotiate lifts it', async () => {
+    const c = draft();
+    const d = await shareDialog(c, { emailSent: true, emailConfigured: true });
+    /* The route's own reading (js/approvals.js is not on this stage): no signer named. */
+    d.win.signingRouteOpen = () => false;
+    d.pick('#share-purpose [data-share-purpose="sign"]');
+    const b = d.$('#share-send');
+    assert.equal(b.disabled, true, 'greyed before the press');
+    assert.equal(b.title, d.win.i18t('co_send_needs_signers_short'), 'with the reason on its hover');
+    d.pick('#share-purpose [data-share-purpose="negotiate"]');
+    assert.equal(b.disabled, false, 'and live again on a purpose that needs no signer');
+  });
+});

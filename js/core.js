@@ -6819,6 +6819,21 @@ async function openShareModal(c, opts={}){
   /* THE PURPOSE PICKER. Repainting the two buttons in place rather than
      re-rendering step 1: the summary textarea sits in that step and the sender
      may already have edited it, and rebuilding would throw their words away. */
+  /* ---- A SIGN LINK WITH NOBODY TO SIGN IS GREYED BEFORE THE PRESS (9 Oct
+     2026) ----
+     The refusal ("name who signs first") used to arrive only after Send was
+     pressed. The who-signs block above already says it in amber with its door
+     (Add signers → the route editor); Send now greys with the same reason on
+     its hover, and comes back the moment the purpose or the route changes.
+     Only a greying this gate made is ever lifted here. */
+  const shareSendGate=()=>{
+    const no=purposeSel==='sign' && shareNeedsSigners(c);
+    for(const b of [document.getElementById('share-send'), document.getElementById('qs-send')]){
+      if(!b || typeof b.setAttribute!=='function') continue;
+      if(no){ b.disabled=true; b.title=i18t('co_send_needs_signers_short'); b.setAttribute('data-gate','signers'); }
+      else if(b.getAttribute('data-gate')==='signers'){ b.disabled=false; b.removeAttribute('title'); b.removeAttribute('data-gate'); }
+    }
+  };
   const paintPurpose=()=>{
     document.querySelectorAll('#share-purpose [data-share-purpose]').forEach(b=>{
       const on=b.getAttribute('data-share-purpose')===purposeSel;
@@ -6864,6 +6879,7 @@ async function openShareModal(c, opts={}){
        asked for here. `setKind` already stands the readiness panel down on the
        record; this is the same rule for the same reason. */
     document.getElementById('share-readiness-wrap')?.classList.toggle('hidden', purposeSel==='advise');
+    shareSendGate();
   };
   /* The row this link is for, or null for the free-typed recipient. Held here
      rather than read off the DOM at send time, so a repaint cannot lose it. */
@@ -7537,6 +7553,7 @@ async function openShareModal(c, opts={}){
   });
   document.getElementById('qs-cancel')?.addEventListener('click',closeModal);
   document.getElementById('qs-details')?.addEventListener('click',()=>step(1));
+  shareSendGate();
 }
 
 /* Nothing left the building. Say so plainly and hand over the link, rather
