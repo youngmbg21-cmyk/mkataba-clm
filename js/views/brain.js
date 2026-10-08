@@ -886,7 +886,7 @@ function brEnsureCss(){
     '.br-ln-scroll{position:absolute;left:' + BR_LN.label + 'px;right:0;top:0;bottom:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:rgba(160,220,210,.25) transparent}',
     '.br-ln-stage{fill:#8FB3AC;font-size:10.5px;letter-spacing:.1em}',
     '.br-lb{cursor:pointer;outline:none}',
-    '.br-lb .br-lb-r{fill:rgba(255,255,255,.05);stroke:#3B5F5A;stroke-width:1.3;transition:stroke .2s,opacity .2s}',
+    '.br-lb .br-lb-r{fill:rgba(255,255,255,.05);stroke:#3B5F5A;stroke-width:1.3;transition:stroke var(--dur-2),opacity var(--dur-2)}',
     '.br-lb.is-hati .br-lb-r{fill:#0C3A34;stroke:#2BA897}',
     '.br-lb.is-gate .br-lb-r{fill:rgba(232,163,23,.12);stroke:#E8A317;stroke-dasharray:5 3}',
     '.br-lb.is-pb .br-lb-r{fill:rgba(217,69,59,.16);stroke:#D9453B}',
