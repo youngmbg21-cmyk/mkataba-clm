@@ -157,22 +157,35 @@ const BRAIN_PARTS = [
   ['timemachine', 'paintOverview2', 'see', 1],
   ['obdesk', 'obReviewTally', 'time', 1],
   ['chartsize', 'hbFitMeasure', 'see', 1],
+  /* Copilot prepares, you press (8 Oct 2026): the ask box reads @ people and
+     # contracts with no model and answers with a card; one press runs the
+     product's own act. Agents live on the Board, each with a level. */
+  ['copilotask', 'caActOf', 'ai', 1],
+  ['draftcard', 'caDraftRun', 'ai', 1],
+  ['paperjobs', 'caReadJob', 'ai', 1],
+  ['papermark', 'caRiskMark', 'see', 1],
+  ['homepaper', 'igHomePaperFace', 'see', 0],
+  ['citedoor', 'igCiteGo', 'see', 1],
+  ['passroute', 'POST /api/contracts/:id/pass', 'wall', 2],
+  ['agentlevel', 'agentLevel', 'wall', 2],
+  ['linkkeep', 'srvShareExtend', 'wall', 2],
+  ['readings', 'agApproveItems', 'see', 1],
 ].map((a, i) => ({ id: a[0], code: a[1], reg: a[2], floor: a[3], def: (a[4] || {}).def || '', men: (a[4] || {}).men || '', i }));
 
 /* The six flows: which parts each step lands on. The sentences are
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'book'], ['docx'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk'], ['model'], ['blanks'], ['overview', 'constellation', 'timemachine', 'bell', 'request', 'kinds', 'laneowner']] },
+  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'papermark'], ['model'], ['blanks'], ['overview', 'constellation', 'timemachine', 'bell', 'request', 'kinds', 'laneowner']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
   { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove'], ['bell', 'home', 'negpage', 'stands', 'stale'], ['webhook']] },
-  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
-  { id: 'night', steps: [['reminders', 'lanes'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved'], ['desknight', 'home', 'insights']] },
-  { id: 'ask', steps: [['explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote'], ['contracts'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
+  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
+  { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved'], ['desknight', 'home', 'insights', 'readings']] },
+  { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor'], ['contracts', 'passroute'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
 ];
 
 /* Where a part the catalogue does not name yet sits: the area by the file it
@@ -187,7 +200,7 @@ const BRAIN_FILE_REGION = [
   /* the process review's two new files (4 Oct 2026) and the address book */
   [/^js\/(signgate|asks)\.js$/, 'sign'],
   [/^js\/(intakelanes|participants)\.js$/, 'in'],
-  [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|draft)\.js$/, 'ai'],
+  [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|draft|copilotacts)\.js$/, 'ai'],
   [/^js\/(docx|pdf|pdfrich|ocr|clausemodel|blanks|uploadblanks|richdoc|redline|templateform)\.js$/, 'read'],
   [/^js\/(signcheck|signapproval|approvals|signature|assurance|outside)\.js$|^js\/views\/(handover|approvalsview)\.js$/, 'sign'],
   [/^js\/(obligations|desknight|notice|payterms|runway)\.js$|^js\/views\/calendar\.js$/, 'time'],
