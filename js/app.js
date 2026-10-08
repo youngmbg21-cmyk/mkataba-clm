@@ -1808,6 +1808,11 @@ const ALERT_KINDS = [
      that NAME you and remembers per browser; this counts notes somebody
      handed you, reads the record, and clears when the note is done. */
   { k:'note-mine',   tone:'amber', ic:'&#128221;' },
+  /* ---- A NOTE FROM THE OTHER SIDE (8 Oct 2026) ----
+     The conversations their side spoke last in (GET /api/messages/waiting),
+     newer than the last time this reader had the notes drawer open
+     (c.notesRead). Amber: a question waits on us. */
+  { k:'note-theirs', tone:'amber', ic:'&#128172;' },
   /* ---- WHAT A COLLEAGUE HANDED BACK, AND WHAT WAITS ON THE LEAD (4 Oct 2026) ----
      Three more colleagues waiting on this reader by name, so they rank with
      the others, after the note (the join stays pinned beside review-mine):
@@ -2104,6 +2109,17 @@ function buildAlerts(){
         ()=>{ if(window.openNotesPanel) openNotesPanel(c.id,null,{force:true}); });
     });
   }
+  /* 3c. A note from the other side nobody here has read: their side spoke
+         last, after this reader last opened the drawer. Reading the notes is
+         what clears it (negoMarkNotesRead stamps c.notesRead). */
+  { const wq=(state.waitingQuestions&&Array.isArray(state.waitingQuestions.items))?state.waitingQuestions.items:[];
+    wq.forEach(x=>{
+      const c=x&&cs.find(y=>y.id===x.contractId); if(!c) return;
+      const at=String((x.latest&&x.latest.at)||''), seen=window.negoNotesReadAt?negoNotesReadAt(c, me):null;
+      if(seen && at && at<=seen) return;
+      push('note-theirs',c,i18tn('al_note_theirs',x.count||1,{ n:x.count||1, who:(x.latest&&x.latest.author)||c.counterparty||'' }),
+        ()=>{ if(window.openNotesPanel) openNotesPanel(c.id,null,{force:true}); });
+    }); }
   /* 4. Approvals sitting with this person — the dashboard's own queue, so the
         bell and the Home card cannot disagree. And 4/5 ride on the same read. */
   let D=null; try{ D=(window.hmDashSlices?hmDashSlices():null); }catch(_){ D=null; }

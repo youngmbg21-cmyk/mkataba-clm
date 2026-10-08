@@ -2235,6 +2235,10 @@ function portalOpenNotes(o){
   _ptNotesKey=key;
   portalNotesPaint();
   panel.classList.add('open'); panel.setAttribute('aria-hidden','false');
+  /* Reading the notes is what marks them seen: the bell row and the door's
+     count go with it. */
+  portalNotesMarkSeen();
+  try{ if(_ptNotes&&_ptNotes.c) portalPaintAlerts(_ptNotes.c, _ptNotes.p); }catch(_){}
   /* NO SCRIM (4 Oct 2026): our drawer leaves the contract lit and pressable
      (notes-two-rooms-verify: "the scrim does not come up"); theirs now does
      the same. Escape, the × and the door shut it. */
@@ -3396,6 +3400,12 @@ function portalAlerts(c, p){
     if (replied.length) push('reply', 'gray', i18tn('pa_reply', replied.length, { n:replied.length }),
       () => portalGoToChange(replied[0].id));
   }
+  /* 4b. A NOTE FROM THE SENDER they have not read — the press opens the
+         drawer, and opening it is what clears the row. */
+  const notes = portalNotesUnread();
+  if (notes.length) push('note', 'gray', i18tn('pa_note', notes.length,
+    { n:notes.length, who:(PORTAL_OPTS.payload && PORTAL_OPTS.payload.org) || i18t('pt_the_sender') }),
+    () => portalOpenNotes({}));
   /* 5. YOU CAN TELL THEM YOU ARE READY TO SIGN — only where this page actually
         offers the act, read off the button's own gate rather than recomputed. A
         second copy of negoAlignment here would be free to disagree with the
@@ -3538,6 +3548,8 @@ function portalPaintAlerts(c, p){
      wear a number. */
   const n=rows.filter(r=>r.kind!=='closed').length;
   if(dot){ dot.textContent=n>9?'9+':String(n); dot.hidden=!n; }
+  const nn=document.getElementById('pt-notes-n'), un=portalNotesUnread().length;
+  if(nn){ nn.textContent=un>9?'9+':String(un); nn.hidden=!un; }
   /* AND THE BELL ITSELF STANDS DOWN WHEN THERE IS NOTHING AT ALL, which is
      what stops it being furniture on a finished contract. */
   /* A NOTICE IS NOT A COUNT, but it is still something to read — so it keeps
@@ -3588,6 +3600,10 @@ function portalAlertsStyle(){
   const el=document.createElement('style'); el.id='pt-alerts-style';
   el.textContent=`
     .pt-bell{position:relative;}
+    .pt-notes-n{display:inline-block;min-width:16px;height:16px;margin-left:5px;padding:0 var(--s-1);border-radius:var(--radius);
+      background:var(--st-amber-fg);color:var(--color-surface);font-family:var(--font-mono);font-size:var(--t-label);
+      font-weight:var(--w-title);line-height:16px;text-align:center;}
+    .pt-notes-n[hidden]{display:none;}
     .pt-bell-dot{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 var(--s-1);
       border-radius:var(--radius);background:var(--st-amber-fg);color:var(--color-surface);
       font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-title);line-height:16px;text-align:center;}
@@ -3850,7 +3866,30 @@ function portalTabsHtml(){
    handler (wirePortalNotes), same drawer. */
 function portalNotesDoorHtml(){
   return `<button type="button" id="pt-notes-door" class="ui-btn pw-id-verb" title="${esc(i18t('po_notes_title'))}">${
-    icon('msg','w-3.5 h-3.5')}${esc(i18t('po_notes'))}</button>`;
+    icon('msg','w-3.5 h-3.5')}${esc(i18t('po_notes'))}<span id="pt-notes-n" class="pt-notes-n" hidden>0</span></button>`;
+}
+/* ---- A NOTE FROM THE SENDER RINGS THEIR BELL (8 Oct 2026) ----
+   Their notes from our side that this reader has not seen: our side's
+   messages on the contract's own thread (a reply on a change is the bell's
+   'reply' row already). Seen = the newest such note's server time when they
+   last opened the drawer, kept in THIS browser for THIS link — they have no
+   account, so the per-viewer store is the only one there is. Internal notes
+   never reach this list: the server scopes the channel, and our own thread
+   never travels. */
+const PT_NOTES_SEEN = 'hati.ptNotesSeen.';
+function portalNotesSeenAt(){
+  try{ return (PORTAL_OPTS.token && localStorage.getItem(PT_NOTES_SEEN+PORTAL_OPTS.token)) || ''; }catch(_){ return ''; }
+}
+function portalNotesUnread(){
+  if(!PORTAL_OPTS.token) return [];
+  const seen=portalNotesSeenAt();
+  return (Array.isArray(PORTAL_OPTS.messages)?PORTAL_OPTS.messages:[]).filter(m=>m&&m.side==='owner'
+    &&!/^change:/.test(String(m.topic||''))&&m.at&&(!seen||String(m.at)>seen));
+}
+function portalNotesMarkSeen(){
+  const at=(Array.isArray(PORTAL_OPTS.messages)?PORTAL_OPTS.messages:[]).map(m=>String((m&&m.at)||'')).sort().pop();
+  if(!at||!PORTAL_OPTS.token) return;
+  try{ if(at>portalNotesSeenAt()) localStorage.setItem(PT_NOTES_SEEN+PORTAL_OPTS.token, at); }catch(_){}
 }
 /* Focus, beside the text size (it was a row in More). Pressed through the
    delegated listener in wirePortalMore. */

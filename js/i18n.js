@@ -7762,6 +7762,8 @@ const STRINGS = {
     al_nego_other: '{n} changes are waiting on your answer',
     al_note_mine_one: '{who} gave you a note',
     al_note_mine_other: '{who} and others gave you {n} notes',
+    al_note_theirs_one: '{who} wrote a note',
+    al_note_theirs_other: '{who} wrote {n} notes',
     al_review_mine: '{who} asked you to review changes',
     al_review_out: 'Out for review with {who}',
     al_review_back: '{who} handed your review back',
@@ -8351,6 +8353,8 @@ const STRINGS = {
     pa_wording_changed: 'The wording changed since you opened this',
     pa_reply_one: 'A reply arrived on a clause',
     pa_reply_other: 'Replies arrived on {n} clauses',
+    pa_note_one: 'A note arrived from {who}',
+    pa_note_other: '{n} notes arrived from {who}',
     /* STALE (27 Sep 2026): their bell's sign row prints po_ready_tell_title, the
        Ready to sign button's own sentence. Left inert, per the retirement rule. */
     pa_ready_to_sign: 'They are waiting for you to sign',
@@ -20657,6 +20661,8 @@ const STRINGS = {
     al_nego_other: '{n} ändringar väntar på ditt svar',
     al_note_mine_one: '{who} gav dig en anteckning',
     al_note_mine_other: '{who} med flera gav dig {n} anteckningar',
+    al_note_theirs_one: '{who} skrev en anteckning',
+    al_note_theirs_other: '{who} skrev {n} anteckningar',
     al_review_mine: '{who} bad dig granska ändringar',
     al_review_out: 'Ute på granskning hos {who}',
     al_review_back: '{who} lämnade tillbaka din granskning',
@@ -21218,6 +21224,8 @@ const STRINGS = {
     pa_wording_changed: 'Lydelsen har ändrats sedan du öppnade den här',
     pa_reply_one: 'Ett svar har kommit på en klausul',
     pa_reply_other: 'Svar har kommit på {n} klausuler',
+    pa_note_one: 'En anteckning kom från {who}',
+    pa_note_other: '{n} anteckningar kom från {who}',
     /* STALE (27 Sep 2026) — see the English book. */
     pa_ready_to_sign: 'De väntar på att du ska skriva under',
     pa_expires_one: 'Länken går ut i morgon ({when})',
