@@ -414,6 +414,7 @@ const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
   dropSittingKeys(x);
   if (x.execution) x.execution = { ...x.execution, html: undefined };
+  x.sealPrep = undefined;   // the frozen copy waiting for the seal: the record's, never the list's
   if (x.upload) x.upload = { ...x.upload, dataUrl: undefined, extractedText: undefined };
   /* THE STORED OWNER WINS. `_raisedBy` was the stop-gap that made the
      dashboard true before a contract had an owner field; it stays for every
@@ -4653,6 +4654,25 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      `here`: a browser holding the record from before the claim would echo the
      flag back and owe the reading twice, and no save may invent one. */
   if (prev && prev.arrivalOwed) c.arrivalOwed = prev.arrivalOwed; else delete c.arrivalOwed;
+  /* ---- THE FROZEN COPY THE SERVER SEALS FROM (D4, 8 Oct 2026) ----
+     A save may bring a NEW prep (sealPrepStamp, at a signature of ours); this
+     server stamps it with the fingerprint of the wording it was drawn from.
+     A save without one (a list row, an older page) keeps the stored one. A
+     sealed record carries none. */
+  {
+    const bare = x => { if (!x || typeof x !== 'object') return null; const y = { ...x }; delete y.basis; return y; };
+    if (prev && isExecutedRow(prev)) delete c.sealPrep;
+    else if (c.sealPrep && typeof c.sealPrep === 'object') {
+      if (prev && prev.sealPrep && stable(bare(prev.sealPrep)) === stable(bare(c.sealPrep))) c.sealPrep = prev.sealPrep;
+      else c.sealPrep = { ...bare(c.sealPrep), basis: srvWordingBasis(c) };
+    } else if (prev && prev.sealPrep) c.sealPrep = prev.sealPrep;
+    else delete c.sealPrep;
+  }
+  /* The copies the SERVER sent are filed on the stored record without moving
+     its version (srvSendExecutedCopies); a page holding the record from
+     before that does not unfile them. A newer send (Send again) wins. */
+  if (prev && prev.distribution && (!c.distribution || String(c.distribution.at || '') < String(prev.distribution.at || '')))
+    c.distribution = prev.distribution;
   /* What a send kept back stays kept back through a save — see rvKeptCarry. */
   rvKeptCarry(prev, c);
   /* ---- A CHASE ALREADY SENT IS NOT UNDONE BY A SAVE (27 Sep 2026) ----
@@ -5561,6 +5581,19 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     at: now(), user: req.user.name || 'System', action: 'Looked at it',
     detail: `${req.user.name || ''} marked done what ${(a.by && a.by.name) || 'a colleague'} sent${a.stamp && a.stamp.review ? ' for review' : ''}` })));
 
+  /* ---- D4: THE SAVE THAT CARRIES THE LAST SIGNATURE IS SEALED HERE ----
+     By HaTi, from the prepared frozen copy (srvSealNow) — a browser no longer
+     seals, and whatever seal an older page computed for itself is replaced by
+     the server's. A page that sends its own frozen copy (older pages did, on
+     c.execution) is taken as the prep. */
+  let sealedNow = false;
+  if (prev && !isExecutedRow(prev) && srvSealWanted(c)) {
+    if (!c.sealPrep && c.execution && c.execution.html && c.execution.textHash)
+      c.sealPrep = { html: c.execution.html, format: c.execution.format, hashMode: c.execution.hashMode, textHash: c.execution.textHash,
+        firstParty: c.execution.firstParty, esignature: c.execution.esignature, tzOffsetMin: c.execution.tzOffsetMin,
+        tzLabel: c.execution.tzLabel, basis: srvWordingBasis(c) };
+    if (srvSealPrepOk(c)) { delete c.execution; delete c.hash; delete c.sealVersion; srvSealNow(c, now()); sealedNow = true; }
+  }
   if (existing) { const r = db.prepare('SELECT seq FROM contracts WHERE id=?').get(req.params.id); c._seq = r.seq; }
   else c._seq = nextSeq();
   /* ---- WO N7: the four activation moments, observed where they land ----
@@ -5662,7 +5695,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   } catch (_) {}
   /* A REQUEST DRAFTED AS THIS CONTRACT IS DONE once the contract leaves Drafting. */
   try { srvIntakeCloseOn(prev, c, req); } catch (_) {}
-  res.json({ ok: true, version: next, signNeeds,
+  if (sealedNow) srvSendExecutedCopies(c.id, srvAppUrl(req));
+  res.json({ ok: true, version: next, signNeeds, ...(sealedNow ? { sealed: true } : {}),
     /* The one ask record as stored — the browser takes it as given
        (asksTakeServer); money in a stamp masked for whoever may not see it. */
     ...(Array.isArray(c.asks) ? { asks: canViewValues(req.user) ? c.asks : asksMasked(c.asks) } : {}),
@@ -12513,6 +12547,12 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   if (c.status !== 'Signed') return res.status(400).json({ error: 'Contract is not executed yet' });
   const recipients = Array.isArray(req.body && req.body.recipients) ? req.body.recipients : [];
   const appUrl = (req.body && req.body.appUrl) || `${req.protocol}://${req.get('host')}/`;
+  res.json(await srvDistributeTo(c, recipients, appUrl));
+});
+/* THE SEND ITSELF, shared by the route above (the owner's "Send again") and by
+   the server's own seal (srvSealAndSend), which sends the copies the moment the
+   last signature lands — whether or not anybody on our side is online. */
+async function srvDistributeTo(c, recipients, appUrl) {
   const seal = c.hash && c.hash !== 'PRE-SEEDED' ? c.hash : '(sealed)';
   const st = signedParties(c);
   const who = st.ours && !st.theirs ? st.ourName : st.theirs && !st.ours ? st.theirName : '';
@@ -12580,8 +12620,254 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
     out.push({ name: r.name || email, email, role: r.role || '', party: r.party || '',
       status, ...(why ? { detail: why } : {}), attached: !!attachment, via: sent.provider, at: now() });
   }
-  res.json({ at: now(), fullyExecuted: st.fully, attached: !!attachment, recipients: out });
-});
+  return { at: now(), fullyExecuted: st.fully, attached: !!attachment, recipients: out };
+}
+
+/* ============================================================
+   THE SEAL IS THE SERVER'S (D4, the owner's decision, 8 Oct 2026)
+   ============================================================
+   "Seal on the server, recorded as HaTi (System), not whoever opened the
+   app." The seal, the trail lines and the executed copies used to wait for
+   whichever colleague's browser next polled — and named THAT person as the
+   signatory. Now the moment the last signature lands (the counterparty's on
+   POST /api/shares/:token/respond, or ours on the save that carries it) THIS
+   file seals the record, writes the lines and sends the copies.
+
+   WHAT THE SERVER CANNOT DRAW IT IS GIVEN, AHEAD OF TIME. The frozen copy is
+   the paper as the browser draws it (freezeContractHtml), so the browser
+   prepares it at every signature of ours (sealPrepStamp) and the save stores
+   it as `sealPrep`; this server stamps it with a fingerprint of the wording it
+   was drawn from (`basis`) and seals from it only while that still matches.
+   The wording cannot move after the first signature (SIGNED_WORDING_FROZEN),
+   so a prep made at a signature stands until the seal. The seal string is
+   sealString's, byte for byte (js/core.js), so verifySeal agrees. */
+const srvSha256 = s => crypto.createHash('sha256').update(String(s), 'utf8').digest('hex');
+function srvSealString(c) {
+  const content = c.source === 'upload' ? 'file:' + ((c.upload && c.upload.fileHash) || '')
+    : 'text:' + ((c.execution && c.execution.textHash) || '');
+  const base = { id: c.id, firstParty: (c.execution && c.execution.firstParty) || '', counterparty: c.counterparty,
+    value: c.value, valueType: c.valueType, content, signedAt: (c.execution && c.execution.at) || '' };
+  if (Number(c.sealVersion || 0) >= 2)
+    base.sigs = (c.signatures || []).map(s => ({ name: s.name || '', at: s.at || '', form: s.form || s.method || '', imageHash: s.imageHash || '' }));
+  return JSON.stringify(base);
+}
+/* What the frozen copy was drawn from: the stored wording, or — where the
+   paper is built from the record — the terms that paper prints. */
+function srvWordingBasis(c) {
+  if (!c) return '';
+  const pick = c.source === 'upload' ? { file: (c.upload && c.upload.fileHash) || '' }
+    : c.redlineText ? { t: c.redlineText, f: c.format || '' }
+    : { body: c.body || null, form: c.templateForm || null,
+      ...Object.fromEntries(PAPER_TERMS_FROZEN.map(k => [k, paperTerm(c, k) === undefined ? null : paperTerm(c, k)])) };
+  return srvSha256(JSON.stringify(pick));
+}
+/* Is this record one the last signature has just completed? The route's
+   answer where there is a route (every named signer has signed); with no
+   route, ours — the single-signer path, which has always sealed on our mark.
+   Never a record signed somewhere else: those are sealed by their own door. */
+function srvSealWanted(c) {
+  if (!c) return false;
+  const ex = c.execution || {};
+  if (ex.offPlatform || ex.method === 'outside' || ex.method === 'paper') return false;
+  if (c.hash === 'MIGRATED' || c.hash === 'PRE-SEEDED' || (c.migration && c.migration.executedOutside)) return false;
+  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(Boolean);
+  if (plan.length) return plan.every(s => s.signed);
+  return (Array.isArray(c.signatures) ? c.signatures : []).some(s => s && s.party !== 'counterparty' && s.party !== 'external');
+}
+const srvSealPrepOk = c => !!c && (c.source === 'upload'
+  || !!(c.sealPrep && c.sealPrep.html && c.sealPrep.textHash && c.sealPrep.basis && c.sealPrep.basis === srvWordingBasis(c)));
+/* THE ACT. Writes onto `c` (the caller stores it): the execution record, the
+   seal, the status, the 'Signed & sealed' version and the trail line — by
+   HaTi. The signatory is OUR last signer, never a bystander. */
+function srvSealNow(c, at) {
+  const p = c.sealPrep || {};
+  const J = orgJx();
+  const exec = { at, method: 'session-authenticated', consent: true, ua: '', ip: null, by: 'HaTi', sealedBy: 'server',
+    firstParty: String(p.firstParty || c.party || ((getSetting('org') || {}).name) || 'this workspace'),
+    esignature: p.esignature || J.esignatureShort || '',
+    tzOffsetMin: Number(p.tzOffsetMin) || 0, tzLabel: p.tzLabel || '' };
+  if (c.source !== 'upload') {
+    exec.html = p.html; exec.format = p.format || 'text'; exec.hashMode = p.hashMode || 'text'; exec.textHash = p.textHash;
+  }
+  if (p.branding && p.branding.designId && !(c.branding && c.branding.designId)) c.branding = { ...p.branding };
+  c.execution = exec;
+  c.signedAt = at;
+  c.lastAction = String(at).slice(0, 10);
+  const isTheirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
+  const ours = (Array.isArray(c.signatures) ? c.signatures : []).filter(s => s && !isTheirs(s));
+  const last = ours[ours.length - 1];
+  if (last && last.name) c.signatory = last.title ? `${last.name} (${last.title})` : last.name;
+  c.signatures = Array.isArray(c.signatures) ? c.signatures : [];
+  c.sealVersion = 2;
+  c.hash = srvSha256(srvSealString(c));
+  c.status = 'Signed';
+  /* The wording as it was sealed, kept as a version — prepared in the browser
+     by the same captureVersion every other version comes from. */
+  if (c.source !== 'upload' && p.ver && p.ver.text) {
+    const vs = Array.isArray(c.versions) ? c.versions : (c.versions = []);
+    const lastV = vs[vs.length - 1];
+    if (lastV && lastV.text === p.ver.text) { lastV.listed = true; lastV.kind = 'auto'; lastV.label = 'Signed & sealed'; }
+    else vs.push({ ...p.ver, n: vs.length + 1, at, by: 'HaTi', label: 'Signed & sealed', kind: 'auto', listed: true });
+  }
+  delete c.sealPrep;
+  c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at, user: 'HaTi', action: 'Signed',
+    detail: `Executed & sealed by HaTi the moment the last signature landed — ${c.signatures.length} signature(s) · `
+      + `${c.source === 'upload' ? 'file' : 'text'} hash ${String(exec.textHash || (c.upload && c.upload.fileHash) || '').slice(0, 16)}…` }]);
+  return c;
+}
+/* Everyone who gets the executed copy — distributionRecipients' twin
+   (js/approvals.js): the route, the recorded signatures, and the records
+   mailbox an admin set. */
+function srvDistRecipients(c) {
+  const seen = new Set(), out = [];
+  const add = (name, email, role, party) => { const e = String(email || '').trim().toLowerCase();
+    if (!/.+@.+\..+/.test(e) || seen.has(e)) return; seen.add(e); out.push({ name: name || e, email: e, role: role || '', party: party || '' }); };
+  (Array.isArray(c.signerPlan) ? c.signerPlan : []).forEach(s => s && add(s.name, s.email, s.role, s.party));
+  (Array.isArray(c.signatures) ? c.signatures : []).forEach(s => s && add(s.name, s.email, s.title || s.role, s.party));
+  const cc = String(((getSetting('appSettings') || {}).recordsMailbox) || '');
+  if (cc) add('Records archive', cc, '', 'cc');
+  return out;
+}
+/* THE TRAIL SAYS WHAT HAPPENED TO EACH MESSAGE (B16): sent, waiting in the
+   outbox because email is not set up, or failed — never "emailed" for a
+   message that did not go. */
+function srvDistributionLine(fully, recs) {
+  const n = k => recs.filter(r => r && r.status === k).length;
+  const sent = n('delivered') + n('sent') + n('queued'), outbox = n('outbox'), failed = n('failed') + n('bounced');
+  const what = fully ? 'Executed copy' : 'Part-signed progress notice';
+  const parts = [];
+  if (sent) parts.push(`sent to ${sent} recipient(s)`);
+  if (outbox) parts.push(`waiting in the outbox for ${outbox} recipient(s) — email is not set up on this server`);
+  if (failed) parts.push(`could not be sent to ${failed} recipient(s)`);
+  return `${what} ${parts.join('; ') || 'not sent — nobody on the record has an email address'}`;
+}
+/* Sends the copies for a contract this server has just sealed, then files
+   what happened on the record — the stored record, re-read after the mail,
+   written without moving its version (a browser holding it is not made to
+   resolve a conflict over a delivery receipt; the PUT keeps the stored one). */
+async function srvSendExecutedCopies(contractId, appUrl) {
+  try {
+    const row0 = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(contractId));
+    if (!row0) return;
+    const c0 = JSON.parse(row0.json);
+    if (c0.status !== 'Signed' || !signedParties(c0).fully) return;
+    if (c0.distribution && c0.distribution.fully === true) return;
+    const recipients = srvDistRecipients(c0);
+    if (!recipients.length) return;
+    const res = await srvDistributeTo(c0, recipients, appUrl);
+    const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(contractId));
+    if (!row) return;
+    const c = JSON.parse(row.json);
+    c.distribution = { at: res.at, triggeredBy: 'auto', by: 'HaTi', fully: !!res.fullyExecuted, recipients: res.recipients };
+    c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Distributed',
+      detail: srvDistributionLine(!!res.fullyExecuted, res.recipients) }]);
+    db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c), String(contractId));
+  } catch (e) { console.warn('[hati] executed-copy distribution failed: ' + (e && e.message)); }
+}
+const srvAppUrl = req => (APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : `http://localhost:${PORT}`)) + '/';
+/* THE COUNTERPARTY'S SIGNATURE, WRITTEN BY THE SERVER. applyResponse's sign
+   branch (js/core.js), on the stored record: every signature that has arrived
+   and not yet been filed, oldest first, each on its own bound row (or, unbound,
+   on the next counterparty step only where the address agrees). Each answer is
+   marked applied=2 — filed by the server, not yet seen by a browser — so the
+   poller repaints instead of filing it twice (responseFiledOnServer). An
+   answer carrying something only a browser can file (a template form typed
+   into on their side) leaves the whole lot to applyResponse, as before. */
+function srvSignResponsesWaiting(contractId) {
+  const out = [];
+  for (const r of db.prepare(`SELECT token, response, responded_at AS at FROM shares
+      WHERE contract_id=? AND durable=0 AND response IS NOT NULL AND applied=0 AND revoked_at IS NULL`).all(String(contractId))) {
+    let resp = null; try { resp = JSON.parse(r.response); } catch (_) { continue; }
+    if (resp && resp.action === 'sign') out.push({ token: r.token, id: null, at: r.at, resp });
+  }
+  for (const r of db.prepare(`SELECT sr.id, sr.token, sr.response, sr.at FROM share_responses sr JOIN shares s ON s.token=sr.token
+      WHERE s.contract_id=? AND sr.applied=0`).all(String(contractId))) {
+    let resp = null; try { resp = JSON.parse(r.response); } catch (_) { continue; }
+    if (resp && resp.action === 'sign') out.push({ token: r.token, id: r.id, at: r.at, resp });
+  }
+  return out.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+}
+function srvFileSignature(c, r) {
+  const plan = Array.isArray(c.signerPlan) ? c.signerPlan : [];
+  const form = c.templateForm;
+  if (r.templateValues && form) {
+    const had = form.values || {};
+    for (const [k, v] of Object.entries(r.templateValues)) {
+      const s = v == null ? '' : String(v).trim();
+      if (s && String(had[k] == null ? '' : had[k]).trim() !== s) return false;   // a browser's to file
+    }
+  }
+  let boundRow = null, routeNote = '';
+  if (r.signerId && plan.length) {
+    boundRow = plan.find(x => x && String(x.id) === String(r.signerId)) || null;
+    if (boundRow && boundRow.signed) return true;   // already on its row: nothing to file
+    if (!boundRow) routeNote = ' — NOTE: the signing-route step this link was bound to no longer exists on the route; the signature is recorded, and no step was marked signed';
+  }
+  const sig = { form: r.signatureForm || null, image: r.signatureImage || null, imageHash: r.signatureImageHash || null,
+    typedName: r.signatureTypedName || null, font: r.signatureFont || null };
+  const isTheirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
+  const oursBefore = (Array.isArray(c.signatures) ? c.signatures : []).some(s => s && !isTheirs(s))
+    || plan.some(s => s && s.party !== 'counterparty' && s.signed);
+  c.signatures = Array.isArray(c.signatures) ? c.signatures : [];
+  c.signatures.push({ party: 'counterparty', name: r.name, title: r.title || '', email: r.email || '', at: r.at,
+    method: r.method || 'share-link', verified: r.verified !== false, ip: r.ip || null, ua: r.ua || null, docHash: r.docHash,
+    assurance: (r.verify || (r.verified !== false && r.verifyToken)) ? 'email-code' : 'typed',
+    form: sig.form, image: sig.image, imageHash: sig.imageHash, typedName: sig.typedName, font: sig.font });
+  if (boundRow) { boundRow.signed = true; boundRow.at = r.at; boundRow.by = r.name; boundRow.signature = sig; }
+  else if (!r.signerId) {
+    const ns = plan.filter(x => x && !x.signed).sort((a, b) => (a.order || 0) - (b.order || 0))[0] || null;
+    const nsMail = String((ns && ns.email) || '').trim().toLowerCase(), rMail = String(r.email || '').trim().toLowerCase();
+    if (ns && ns.party === 'counterparty') {
+      if (!nsMail || !rMail || nsMail === rMail) { ns.signed = true; ns.at = r.at; ns.by = r.name; ns.signature = sig; }
+      else routeNote = ` — NOTE: this signature came from ${r.email}, which is not the address on the next signing step (${ns.name || 'the next signer'}); the signature is recorded, and no step was marked signed`;
+    }
+  }
+  c.comments = Array.isArray(c.comments) ? c.comments : [];
+  c.comments.push({ author: r.name, role: 'Counterparty — Signed', side: 'external', text: r.comment || 'Approved and signed via secure share link.', at: r.at, ts: r.at });
+  const who = r.name + (r.title ? ', ' + r.title : '');
+  const forCo = (() => { if (!boundRow) return c.counterparty || '';
+    const ps = Array.isArray(c.parties) ? c.parties : []; const p = ps.find(x => x && String(x.id) === String(boundRow.partyId || ''));
+    return (p && p.name) || c.counterparty || ''; })();
+  /* B17: "Countersigned" only when somebody on our side signed first. */
+  c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: r.at || now(), user: 'HaTi', action: oursBefore ? 'Countersigned' : 'Signature',
+    detail: `${who}${forCo ? ` for ${forCo}` : ''} signed via share link${r.verify ? ' — checked by email code' : ''} (${r.method || 'share-link'}${sig.form ? ', ' + sig.form + ' signature' : ''})`
+      + `${boundRow ? ` — step ${boundRow.order} of the signing route, on their own bound link` : ''}`
+      + `${r.verified === false ? ' — NOT independently verified: this workspace cannot send verification codes' : ''}${routeNote}` }]);
+  return true;
+}
+function srvSealAfterTheirSignature(req, contractId) {
+  const row = db.prepare('SELECT json, version, seq FROM contracts WHERE id=?').get(String(contractId));
+  if (!row) return null;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return null; }
+  if (isExecutedRow(c) || (c.hold && c.hold.at)) return null;
+  const waiting = srvSignResponsesWaiting(contractId);
+  if (!waiting.length) return null;
+  const turnOf = s => (Array.isArray(s.signerPlan) ? s.signerPlan : []).filter(x => x && x.id != null)
+    .slice().sort((a, b) => (a.order || 0) - (b.order || 0)).find(x => !x.signed) || null;
+  const before = turnOf(c);
+  for (const w of waiting) if (!srvFileSignature(c, w.resp)) return null;
+  let sealed = false;
+  if (srvSealWanted(c)) {
+    if (srvSealPrepOk(c)) { srvSealNow(c, now()); sealed = true; }
+    else c.audit = c.audit.concat([{ at: now(), user: 'HaTi', action: 'Seal waiting',
+      detail: 'Every signature is in. The sealed copy has to be drawn again before HaTi can seal it — that happens the next time anyone on our side opens HaTi.' }]);
+  }
+  c._seq = row.seq;
+  withWriteRetry(() => {
+    upsertContract(c, (row.version || 0) + 1);
+    for (const w of waiting) {
+      if (w.id) db.prepare('UPDATE share_responses SET applied=2 WHERE id=? AND applied=0').run(w.id);
+      else db.prepare('UPDATE shares SET applied=2 WHERE token=? AND applied=0').run(w.token);
+    }
+  });
+  if (sealed) {
+    logActivation('signed', c.id, 'HaTi');
+    webhookQueue('contract.signed', () => ({ contractId: c.id, status: 'Signed' }));
+    srvSendExecutedCopies(c.id, srvAppUrl(req));
+  }
+  const after = sealed ? null : turnOf(c);
+  return { sealed, ourTurn: !!(after && after.party !== 'counterparty' && (!before || String(before.id) !== String(after.id))) };
+}
 
 /* "It's your turn to sign" — the internal signer's nudge, and the RESEND door.
    See notifyInternalSignerTurn, which is the one place this is composed, sent
@@ -15417,24 +15703,31 @@ app.get('/api/shares/pending', auth, (req, res) => {         // owner side: resp
   const fs = scopeFrag(scope, 'c.folder');
   // Left join so a share whose contract row is gone still surfaces for an
   // unrestricted caller, exactly as it did before.
-  const rows = db.prepare(`SELECT s.token, s.response FROM shares s LEFT JOIN contracts c ON c.id = s.contract_id
-    ${whereOf('s.durable=0', 's.response IS NOT NULL', 's.applied=0', fs.sql)}`).all(...fs.args);
+  /* applied=2 is an answer the SERVER has already filed (a signature —
+     srvSealAfterTheirSignature). It is listed for three days, so every page
+     holding the contract catches up and says so (responseFiledOnServer), and
+     no page acknowledges it — one tab's acknowledgement must not leave another
+     tab drawing a contract that has since been signed and sealed. */
+  const filedSince = new Date(Date.now() - 3 * 86400000).toISOString();
+  const rows = db.prepare(`SELECT s.token, s.response, s.applied FROM shares s LEFT JOIN contracts c ON c.id = s.contract_id
+    ${whereOf('s.durable=0', 's.response IS NOT NULL', `(s.applied=0 OR (s.applied=2 AND s.responded_at > '${filedSince}'))`, fs.sql)}`).all(...fs.args);
   /* A durable link's answers live in their own table — one row per round — so
      that a second round is not mistaken for the first one being re-delivered.
      Each is applied to the contract independently and marked off by id. */
-  const durableRows = db.prepare(`SELECT r.id, r.token, r.response FROM share_responses r
+  const durableRows = db.prepare(`SELECT r.id, r.token, r.response, r.applied FROM share_responses r
     JOIN shares s ON s.token = r.token
     LEFT JOIN contracts c ON c.id = s.contract_id
-    ${whereOf('r.applied=0', fs.sql)} ORDER BY r.id`).all(...fs.args);
-  const shape = (token, raw, responseId) => {
+    ${whereOf(`(r.applied=0 OR (r.applied=2 AND r.at > '${filedSince}'))`, fs.sql)} ORDER BY r.id`).all(...fs.args);
+  const shape = (token, raw, responseId, applied) => {
     const response = JSON.parse(raw);
     // a counter-proposed amount is a monetary figure like any other
     if (!money && response && response.proposedValue != null) response.proposedValue = null;
-    return responseId ? { token, responseId, response } : { token, response };
+    const filed = Number(applied) === 2 ? { serverFiled: true } : {};
+    return responseId ? { token, responseId, response, ...filed } : { token, response, ...filed };
   };
   res.json([
-    ...rows.map(r => shape(r.token, r.response)),
-    ...durableRows.map(r => shape(r.token, r.response, r.id)),
+    ...rows.map(r => shape(r.token, r.response, null, r.applied)),
+    ...durableRows.map(r => shape(r.token, r.response, r.id, r.applied)),
   ]);
 });
 
@@ -15952,7 +16245,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     lastResponse = { action: r.action, at: lastR.at, name: r.name,
       title: r.title ? String(r.title).slice(0, 120) : null,
       verified: r.action === 'sign' ? !!(r.verify || r.verified === true) : null,
-      applied: lastR.applied == null ? null : lastR.applied === 1 }; } catch (_) {} }
+      applied: lastR.applied == null ? null : (lastR.applied === 1 || lastR.applied === 2) }; } catch (_) {} }   // 2: filed by the server (D4)
   res.json({
     payload: JSON.parse(s.payload),
     // whether this server can send a verification code at all — the portal
@@ -17333,6 +17626,18 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     }
   });
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
+  /* D4: THE SIGNATURE IS FILED, AND THE LAST ONE SEALS, HERE — not when some
+     colleague's browser next polls (srvSealAfterTheirSignature). */
+  if (r.action === 'sign' && s.contract_id) {
+    try {
+      const out = srvSealAfterTheirSignature(req, s.contract_id);
+      /* A bound link's next turn is announced by releaseNextSignerLink below;
+         an unbound one's was announced by the owner's save, which no longer
+         carries it — so it is announced here. */
+      if (out && out.ourTurn && !s.signer_id) notifyInternalSignerTurn(req, s.contract_id);
+    }
+    catch (e) { console.warn('[hati] filing a signature on the server failed: ' + (e && e.message)); }
+  }
   /* THEIR ROUND CAME BACK — Copilot starts preparing our answers now, from
      the answer as it arrived, whether or not anybody on our side is online. */
   if (s.contract_id && r && Array.isArray(r.negoProposed) && r.negoProposed.length) roundPrepKick(s.contract_id);

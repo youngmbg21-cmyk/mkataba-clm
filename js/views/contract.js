@@ -16053,8 +16053,22 @@ async function signDocument(c){
         ? assuranceAtSigning({ method:'session-authenticated', twoStep:!!(u&&u.twoStep) }) : undefined,
       form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
     logAudit(c,'Signature',`${ns.name} signed (${ordLabel(ns.order)} of ${plan.length}) — ${sig.form} signature${signerProvenance(meta.ip,navigator.userAgent)}`);
+    /* D4: THE SERVER SEALS. Every signature of ours carries the frozen copy
+       the server will seal from — whether the last signature is this one or
+       the counterparty's, landing later on their link. */
+    if(API_MODE()) await sealPrepStamp(c);
     if(!allSigned(c)){
-      persist(c); renderSignButton(c); renderAuditSection(c);
+      persist(c);
+      /* AND THEIR LINK IS ISSUED ONLY ONCE OURS IS ON FILE (B8): a refused
+         save puts the page back, and a link minted over a signature the
+         server never took would invite the other side to sign after a
+         signature that does not exist. */
+      if(API_MODE()){
+        try{ await flushSaves(); }catch(_){}
+        const mine=signerPlan(c).find(x=>x&&String(x.id)===String(ns.id));
+        if(!mine || !mine.signed){ renderSignButton(c); renderAuditSection(c); return; }
+      }
+      renderSignButton(c); renderAuditSection(c);
       const nxt=nextSigner(c);
       if(nxt && nxt.party==='counterparty' && internalAllSigned(c)){
         /* W7 fault 2, closed: this used to open the share dialog for the owner
@@ -16069,7 +16083,7 @@ async function signDocument(c){
           const first=out.links.find(x=>!x.heldForTurn);
           toast(`Internal signing complete — ${first&&first.emailSent
             ? `${first.signer.name} has been emailed their own signing link`
-            : 'the signing links are issued from the route'}${out.links.length>1?'; the rest release automatically as each signer signs':''}`);
+            : 'the signing links are issued from the route'}${out.links.length>1?'; the rest release automatically as each signer signs':''}`,'ok');
           renderSignButton(c); renderAuditSection(c);
         } else {
           if(out && out.refused)
@@ -16077,23 +16091,87 @@ async function signDocument(c){
           else if(out && out.missingEmails)
             toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it, or share a link by hand`,'err');
           else
-            toast(i18t('ct_internal_complete'));
+            toast(i18t('ct_internal_complete'),'ok');
           setTimeout(()=>{ try{ openShareModal(c); }catch(e){} },500);
         }
       } else {
-        toast(`Recorded — ${signersRemaining(c)} signer(s) remaining`);
+        toast(`Recorded — ${signersRemaining(c)} signer(s) remaining`,'ok');
         notifyNextSigner(c, nxt);
       }
       return;
     }
-    await finalizeExecution(c, { by:u, meta });   // last signer is internal
+    if(API_MODE()){ await sealOnServer(c); return; }   // last signer is internal: the server seals
+    await finalizeExecution(c, { by:u, meta });   // static mode: there is no server
     return;
   }
   // Single-signer path (no route): capture the first party's mark, then seal.
   const sig=await captureSignature(u.name);
   if(!sig) return;
   signConsentStamp(c,sig);
+  if(API_MODE()){
+    c.signatures=c.signatures||[];
+    c.signatures.push({ party:'first', name:u.name, email:u.email, title:(typeof signerTitle==='function'?signerTitle(u):''), at,
+      method:'session-authenticated', ip:meta.ip||null, ua:navigator.userAgent,
+      assurance:(typeof assuranceAtSigning==='function')
+        ? assuranceAtSigning({ method:'session-authenticated', twoStep:!!(u&&u.twoStep) }) : undefined,
+      form:sig.form, image:sig.image, imageHash:sig.imageHash, typedName:sig.typedName, font:sig.font });
+    await sealPrepStamp(c);
+    await sealOnServer(c);
+    return;
+  }
   await finalizeExecution(c, { by:u, meta, firstPartySig:sig });
+}
+/* ---- D4: THE FROZEN COPY, PREPARED FOR THE SERVER TO SEAL (8 Oct 2026) ----
+   What finalizeExecution used to compute at the moment of sealing, computed
+   at each signature of ours instead and carried on the save as `sealPrep`:
+   the paper as this page draws it (the server cannot draw it), its
+   fingerprint, the first-party name and the statute as they stand, the
+   design being worn, and the 'Signed & sealed' version. Nothing on the
+   record moves here except the prep itself. The server checks it against
+   the wording it was drawn from and seals from it (srvSealNow) — as HaTi. */
+async function sealPrepOf(c){
+  const prep={
+    firstParty:(typeof contractParty==='function'?contractParty(c):'')||(typeof FIRST_PARTY!=='undefined'?FIRST_PARTY:''),
+    esignature:(typeof jxEsignatureShort==='function'?jxEsignatureShort():''),
+    tzOffsetMin:(typeof signedTzOffsetMin==='function'?signedTzOffsetMin():0),
+    tzLabel:(typeof signedTzLabel==='function'?signedTzLabel():'') };
+  if(window.resolveDocBranding){
+    const worn=resolveDocBranding(c);
+    if(worn&&worn.designId&&!(c.branding&&c.branding.designId)) prep.branding={...worn};
+  }
+  if(!isUpload(c)){
+    prep.html=freezeContractHtml(c);
+    const richBody=!!(window.isRich&&isRich(c.format)&&c.redlineText);
+    prep.format=richBody?'rich':'text';
+    prep.hashMode=richBody?'rich':'text';
+    prep.textHash=await sha256(window.execHashInput?execHashInput(prep):normText(prep.html));
+    if(window.captureVersion){
+      const tmp={ ...c, versions:(c.versions||[]).map(v=>({ ...v })) };
+      const v=captureVersion(tmp,'Signed & sealed','HaTi',{ auto:true, listed:true });
+      if(v) prep.ver={ text:v.text, canon:v.canon, roundN:v.roundN, format:v.format, body:v.body };
+    }
+  }
+  return prep;
+}
+async function sealPrepStamp(c){ if(c) c.sealPrep=await sealPrepOf(c); return c&&c.sealPrep; }
+/* The save that carries the last signature of ours: the server seals it in
+   that save and the sealed record comes back (saveContract reads it). This
+   page repaints and says what happened — the seal is HaTi's, not ours. */
+async function sealOnServer(c){
+  const btn=document.getElementById('sign-btn'); if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ct_sealing')}</span>`; }
+  persist(c);
+  try{ await flushSaves(); }catch(_){}
+  try{
+    docRepaintSheet(c);
+    if(typeof updateStatusUI==='function') updateStatusUI(c);
+    if(typeof renderActionBar==='function') renderActionBar(c);
+    renderSignButton(c); renderAuditSection(c);
+  }catch(e){ /* not on screen — fine */ }
+  if(c.status!=='Signed'){ toast(i18t('ct_signed_seal_pending'),'warn'); return; }
+  const waiting = window.bothPartiesSigned && !bothPartiesSigned(c);
+  toast(waiting
+    ? `Sealed with your signature — ${c.counterparty||'the counterparty'} still has to sign. Copies go out when their signature lands.`
+    : 'Signed & sealed — the exact text is frozen and fingerprinted', 'ok');
 }
 
 /* Open the free-choice signature pad; falls back to a metadata-only signature
@@ -16226,7 +16304,9 @@ async function finalizeExecution(c, opts={}){
   if(_sealingInFlight.has(c.id)) return;
   _sealingInFlight.add(c.id);
   try{
-  const u=opts.by||currentUser();
+  /* NEVER THE READER (D4): a poll or a pasted response code seals with
+     nobody's name on it — the signatory is our own last signature. */
+  const u=opts.by||null;
   const at=(opts.meta&&opts.meta.at)||nowISO();
   const ip=(opts.meta&&opts.meta.ip)||null;
   const btn=document.getElementById('sign-btn'); if(btn){ btn.disabled=true; btn.innerHTML=`<span class="animate-pulse">${i18t('ct_sealing')}</span>`; }
@@ -16280,7 +16360,9 @@ async function finalizeExecution(c, opts={}){
   // The capacity someone signed in, not the permissions they hold. With no
   // title recorded this is just their name — which is true — rather than a
   // claim about authority that the workspace never captured.
-  c.signatory=u?(signerTitle(u)?`${u.name} (${signerTitle(u)})`:u.name):(c.signatory||'Authorized signatory');
+  const ourLast=(c.signatures||[]).filter(s=>s&&s.party!=='counterparty'&&s.party!=='external').slice(-1)[0];
+  c.signatory=u?(signerTitle(u)?`${u.name} (${signerTitle(u)})`:u.name)
+    :(ourLast&&ourLast.name?(ourLast.title?`${ourLast.name} (${ourLast.title})`:ourLast.name):(c.signatory||'Authorized signatory'));
   c.signatures=c.signatures||[];
   // Single-signer path records the first-party mark here; a route already
   // recorded each signer's mark as they signed.
@@ -16295,8 +16377,8 @@ async function finalizeExecution(c, opts={}){
   c.sealVersion=2;                       // fold the marks into the seal (see sealString)
   c.hash=await sha256(sealString(c));
   c.status='Signed';
-  if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'System',{auto:true,listed:true});
-  logAudit(c,'Signed',`Executed & sealed — ${(c.signatures||[]).length} signature(s) · ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…${signerProvenance(ip,exec.ua)}`);
+  if(!isUpload(c)) captureVersion(c,'Signed & sealed',u?u.name:'HaTi',{auto:true,listed:true});
+  logAudit(c,'Signed',`Executed & sealed — ${(c.signatures||[]).length} signature(s) · ${isUpload(c)?'file':'text'} hash ${(exec.textHash||c.upload?.fileHash||'').slice(0,16)}…${signerProvenance(ip,exec.ua)}`, u?undefined:'HaTi');
   persist(c);                            // critical state saved before any DOM work
   /* AND ACTUALLY WRITTEN, before anything reads it back off the server.
 
@@ -16330,7 +16412,7 @@ async function finalizeExecution(c, opts={}){
     const waiting = window.bothPartiesSigned && !bothPartiesSigned(c);
     toast(waiting
       ? `Sealed with your signature — ${c.counterparty||'the counterparty'} still has to sign. Copies go out when their signature lands.`
-      : 'Signed & sealed — the exact text is frozen and fingerprinted');
+      : 'Signed & sealed — the exact text is frozen and fingerprinted', 'ok');
   }
   distributeExecuted(c);                 // email a sealed copy to every party
   } finally { _sealingInFlight.delete(c.id); }   // H-5: release the seal lock
@@ -16374,10 +16456,22 @@ async function distributeExecuted(c, opts={}){
   } else {
     c.distribution={ at:nowISO(), triggeredBy:'manual', fully, recipients:recipients.map(r=>({...r,status:'mailto'})) };
   }
-  logAudit(c,'Distributed',fully
-    ? `Executed copy ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s)`
-    : `Part-signed progress notice ${API_MODE()?'emailed to':'prepared for'} ${recipients.length} recipient(s) — no copy and no seal were sent, because not every party has signed`);
+  logAudit(c,'Distributed',distributionLine(fully, c.distribution.recipients||[]));
   persist(c); renderSignButton(c);
+}
+
+/* THE TRAIL SAYS WHAT HAPPENED TO EACH MESSAGE (B16) — the server's
+   srvDistributionLine, read the same way: sent, in the outbox because email
+   is not set up, failed, or (static mode) ready to email by hand. */
+function distributionLine(fully, recs){
+  const n=k=>recs.filter(r=>r&&r.status===k).length;
+  const sent=n('delivered')+n('sent')+n('queued'), outbox=n('outbox'), failed=n('failed')+n('bounced'), hand=n('mailto');
+  const parts=[];
+  if(sent) parts.push(`sent to ${sent} recipient(s)`);
+  if(outbox) parts.push(`waiting in the outbox for ${outbox} recipient(s) — email is not set up on this server`);
+  if(failed) parts.push(`could not be sent to ${failed} recipient(s)`);
+  if(hand) parts.push(`prepared for ${hand} recipient(s) to email by hand`);
+  return `${fully?'Executed copy':'Part-signed progress notice'} ${parts.join('; ')||'not sent'}${fully?'':' — no copy and no seal were sent, because not every party has signed'}`;
 }
 
 /* ---- THE TURN EMAIL IS THE SERVER'S JOB NOW, AND THIS IS THE BELT ----
@@ -16460,7 +16554,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
   docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
   scApplyZoom,scZoomStep,scPaintPage,scPageGo,scSourceLine,scControlsHtml,scWireControls,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,sealPrepOf,sealPrepStamp,sealOnServer,distributionLine,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

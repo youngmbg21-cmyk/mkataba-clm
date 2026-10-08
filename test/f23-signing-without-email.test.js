@@ -151,7 +151,7 @@ describe('F23 — the owner sees the difference', () => {
       method: 'unverified — this server cannot send verification codes', verified: false,
       at: new Date().toISOString() });
 
-    const entry = (c.audit || []).find(e => /Countersigned/.test(e.action));
+    const entry = (c.audit || []).find(e => /^(Countersigned|Signature)$/.test(e.action));   // B17: a first signature is not a countersignature
     assert.ok(entry, 'the signature must be recorded');
     assert.match(entry.detail, /NOT independently verified/,
       'the trail must not read like an ordinary verified counterparty signature');
@@ -164,7 +164,7 @@ describe('F23 — the owner sees the difference', () => {
       name: 'Erik Lindqvist', email: 'erik@nordkust.se',
       method: 'email one-time code', verified: true, at: new Date().toISOString() });
 
-    const entry = (c.audit || []).find(e => /Countersigned/.test(e.action));
+    const entry = (c.audit || []).find(e => /^(Countersigned|Signature)$/.test(e.action));   // B17: a first signature is not a countersignature
     assert.ok(!/NOT independently verified/.test(entry.detail));
     assert.equal(c.signatures[0].verified, true);
   });
@@ -176,6 +176,6 @@ describe('F23 — the owner sees the difference', () => {
       name: 'Erik Lindqvist', email: 'erik@nordkust.se',
       method: 'email one-time code', at: new Date().toISOString() });
     assert.equal(c.signatures[0].verified, true);
-    assert.ok(!/NOT independently verified/.test(c.audit.find(e => /Countersigned/.test(e.action)).detail));
+    assert.ok(!/NOT independently verified/.test(c.audit.find(e => /^(Countersigned|Signature)$/.test(e.action)).detail));
   });
 });
