@@ -3418,6 +3418,14 @@
      stretch inside it and pull their own underline down onto that rule. */
   .room-tabrow{ display:flex; align-items:stretch; gap:14px; flex:none;
     border-bottom:1px solid var(--color-divider); }
+  /* A TABLET'S ROW WRAPS (9 Oct 2026): at 820px the slot on the right — Focus,
+     Start negotiating, the signing copy's page and zoom steps — held nowrap and
+     ran off the window, so the whole page scrolled sideways. Below 1024 the
+     slot may take a second line under the tabs; nothing in it changes. */
+  @media (max-width:1023px){
+    .room-tabrow{ flex-wrap:wrap; row-gap:var(--s-2); }
+    #ws-tabrow-end{ flex:1 1 auto!important; flex-wrap:wrap!important; justify-content:flex-end; min-width:0; row-gap:var(--s-2); padding-bottom:6px; }
+  }
   .room-tabs{ display:flex; align-items:stretch; align-self:stretch; gap:22px; flex:none; }
   /* WEIGHT IS HALF THE ACTIVE STATE (20 Aug 2026, measured against the SAP
      render, which sets every tab `active ? 700 : 400`). Every tab here used to
@@ -7805,6 +7813,9 @@
      fit beside the panel, drawn only where they do (INS_MIN_W). A floor meant
      for the nine-column table pushed its value column out of sight. */
   #reg-scroll>table.reg-table.is-ins{min-width:0;}
+  /* NOR DOES A TABLET'S (9 Oct 2026): below REG_NARROW_W of page the table
+     draws its narrow column set (regNarrowTable), sized to fit, not floored. */
+  #reg-scroll>table.reg-table.is-narrow{min-width:0;}
 
   /* ---- ANCHORED POPOVERS STAY ON SCREEN ----
      Row menus and the export menu are position:absolute with a fixed width, so

@@ -75,3 +75,22 @@ describe('f631 (G12–G14) the counterparty on a phone', () => {
     assert.match(PORTAL, /\.pt-alerts\.pt-notes\{ display:flex!important; width:100%!important;/);
   });
 });
+
+describe('f631 (G15) a tablet at 820px does not pan sideways', () => {
+  test('the room tab row\'s right-hand slot may wrap below 1024', () => {
+    const I = read('index.html');
+    assert.match(I, /@media \(max-width:1023px\)\{\s*\.room-tabrow\{ flex-wrap:wrap; row-gap:var\(--s-2\); \}\s*#ws-tabrow-end\{ flex:1 1 auto!important; flex-wrap:wrap!important;/);
+  });
+  test('the Contracts table draws a narrow column set that sums to 100, and drops its floor', () => {
+    const R = read('js/views/register.js');
+    const get = n => JSON.parse(R.match(new RegExp('const ' + n + '\\s*=\\s*(\\[[^\\]]*\\]);'))[1].replace(/'/g, '"'));
+    const k = get('REG_COL_KEYS_NARROW'), w = get('REG_COL_W_NARROW');
+    const kn = get('REG_COL_KEYS_NEGO_NARROW'), wn = get('REG_COL_W_NEGO_NARROW');
+    assert.equal(k.length, w.length); assert.equal(kn.length, wn.length);
+    assert.equal(w.reduce((a, b) => a + b, 0), 100); assert.equal(wn.reduce((a, b) => a + b, 0), 100);
+    assert.ok(!k.includes('signed') && !k.includes('owner') && k.includes('counterparty') && k.includes('acts'));
+    assert.match(R, /if\(!ins && regNarrowTable\(\)\) return neg \? REG_COL_KEYS_NEGO_NARROW : REG_COL_KEYS_NARROW;/);
+    assert.match(R, /regColStoreKey\(\)/, 'a drag on the narrow table is stored apart from the wide one');
+    assert.match(read('index.html'), /#reg-scroll>table\.reg-table\.is-narrow\{min-width:0;\}/);
+  });
+});
