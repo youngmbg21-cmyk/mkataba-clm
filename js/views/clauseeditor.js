@@ -856,6 +856,14 @@ function clauseEditorCss(){
     color:#fff}
   .ce-card .av button:hover{border-color:var(--accent-solid)}
   .ce-card .av .g{flex:1; min-width:4px}
+  /* Copilot's counter in the box (change 2): the state, its one way back, and
+     the note to the other side under it. */
+  .ce-card .ce-prep-in .ce-inbox{color:var(--st-green-fg); font-size:var(--t-meta); font-weight:var(--w-label)}
+  .ce-card .ce-prep-note{display:flex; flex-direction:column; gap:var(--s-1); margin-top:var(--s-3)}
+  .ce-card .ce-prep-note .k{font-size:var(--t-label); color:var(--cap-ink); text-transform:uppercase; letter-spacing:.04em}
+  .ce-card .ce-prep-note textarea{font:inherit; font-size:var(--t-meta); line-height:1.5; padding:var(--s-2); resize:vertical; min-height:64px;
+    background:var(--color-surface); color:var(--color-neutral-900); border:1px solid var(--color-divider); border-radius:var(--radius)}
+  .ce-card .ce-prep-note .h{font-size:var(--t-label); color:var(--color-neutral-600)}
   /* ---- STICKY BAR (Young, 7 Oct 2026, "Copilot Panel Tidy-up") ----
      The Suggested wording is not a card: no fill, no box, no window. It is
      printed whole on the panel under a 2px accent line, and the panel scrolls
@@ -2502,12 +2510,18 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
   try{
     const ch = (opts && opts.changeId && window.negoChangeById) ? negoChangeById(_ceC, opts.changeId) : null;
     const prep = (ch && ch.authorSide === 'counterparty' && ch.status === 'pending' && window.roundPrepOf) ? roundPrepOf(_ceC, ch) : null;
-    if (prep && prep.verdict === 'counter' && prep.wording)
+    _cePrep = null;
+    if (prep && prep.verdict === 'counter' && prep.wording){
+      /* ONE "Rests on:" — the card's own line says it (ce_rests_on); the
+         standard's name is all it is handed. */
       _ceThread.push({ who: 'ai', ai: true, text: String(prep.why || ''), read: [],
-        cards: [{ name: _cet('ce_prep_card'), chip: _cet('ce_chip_copilot'), chipTone: 'wait', line: '',
-          rests: prep.standard ? _cet('ag_prep_rests', { what: prep.standard }) : '', text: prep.wording, passage: null, prepared: true }] });
+        cards: [{ name: _cet('ce_prep_counter'), chip: _cet('ce_chip_copilot'), chipTone: 'wait', line: '',
+          rests: String(prep.standard || ''), text: prep.wording, passage: null, prepared: true }] });
+      _cePrep = { wording: String(prep.wording), before: null, inBox: false, note: String(prep.why || '').trim() };
+    }
   }catch(_){}
   ceRenderAll();
+  if (_cePrep) cePrepPut({ quiet: true });
   /* A RISK OPENED HERE (work order Part 8): Copilot's wording goes into the
      box on arrival — one call, said in the Risks tab. */
   if (opts && opts.risk && window.riskEditorArrive){ try{ riskEditorArrive(_ceC, opts.risk); }catch(_){} }
@@ -2566,6 +2580,7 @@ function rlCloseClauseEditor(opts = {}){
   _ceC = null; _ceClauseId = null; _ceOpts = null; _ceAgain = null; _ceNew = null;
   _ceThread = []; _ceSteps = []; _ceStep = 0; _ceSel = null; _ceLead = null; _ceWhole = false;
   _ceRiskCard = null;
+  _cePrep = null;
   _ceSpellList = []; _ceSpellFor = null;
   _ceRendering = false; _ceZoom = 100;
   _ceOpenText = '';
@@ -4079,6 +4094,7 @@ function ceRenderFoot(){
     save = foot.querySelector('[data-ce-act="save"]');
   }
   const label = (_ceSpellList.length && _ceSpellFor === ceSpellKey()) ? _cet('spl_save_as_written')
+    : (_cePrep && _cePrep.inBox) ? _cet('ce_save_counter')
     : _ceLead ? _cet('ce_save_to', { id: _ceLead.id }) : _cet('ce_file_as_change');
   /* ---- THE TWO BUTTONS ANSWER TWO DIFFERENT QUESTIONS ----
      DISCARD asks "has the wording moved from what STANDS in the contract" —
@@ -4334,6 +4350,14 @@ function ceDiscard(){
    model is asked only when the reader types a question, as before. */
 let _ceHeldNote = '';
 let _ceLadderReply = null;
+/* ---- COPILOT'S COUNTER, ALREADY IN THE BOX (Young, 9 Oct 2026, the Paper
+   and Counter review, change 2) ---- Where Counter was pressed on an ask
+   Copilot answered with a counter, the wording goes into the box on arrival
+   and the ONE card says so ("In the box", with "Take it out"); the note to
+   the other side is drafted from Copilot's reason and travels WITH the
+   counter as its reason (`why`, the field they read). Per sitting:
+   { wording, before, inBox, note }. */
+let _cePrep = null;
 function ceLadderRow(){
   if (!_ceC || !_ceClauseId || typeof window.ladderStand !== 'function') return null;
   try{ return ladderStand(_ceC, String(_ceClauseId), ceSide()); }catch(_){ return null; }
@@ -4558,7 +4582,7 @@ function ceRenderLane(){
   /* THE LADDER CARD LEADS THE CONVERSATION (14 Sep 2026): what moved, where
      it sits on our ladder, what we settled for, and the reply that follows —
      worked out, not asked for. */
-  lane.innerHTML = ceLadderCardHtml() + _ceThread.map(ceTurnHtml).join('')
+  lane.innerHTML = (_cePrep ? '' : ceLadderCardHtml()) + _ceThread.map(ceTurnHtml).join('')
     + (_ceBusy ? `<p class="ce-work"><i></i>${_cee(_cet('ce_thinking'))}</p>` : '');
   const last = lane.lastElementChild;
   if (last) lane.scrollTop = Math.max(0, last.offsetTop - lane.offsetTop - 4);
@@ -4686,13 +4710,44 @@ function ceCardHtml(card, i, j){
     ${card.cost ? `<span class="cost">${_cee(card.cost)}</span>` : ''}
     ${card.rests ? `<span class="r">${_cee(_cet('ce_rests_on', { on: card.rests }))}</span>` : ''}
     ${card.text ? `<span class="pv">${marked}</span>` : ''}
-    ${docked ? '' : `<div class="av">
+    ${card.prepared && _cePrep && _cePrep.inBox ? cePrepInBoxHtml() : docked ? '' : `<div class="av">
       ${offerWording ? `<button type="button" class="p" data-ce-apply="${i}:${j}">${_cet('ce_apply')}</button>` : ''}
       ${''/* NO "ASK FOR A CHANGE", NO THUMBS (Young, 7 Oct 2026): the first only
              put the cursor in the ask box already below the card; the thumbs
              lit up and recorded nothing. Apply is the card's one act. */}
     </div>`}
   </div>`;
+}
+/* COPILOT'S COUNTER IS IN THE BOX: no Apply to press — the state, the one
+   way back ("Take it out"), and the note to the other side, drafted from
+   Copilot's reason and theirs to change. */
+function cePrepInBoxHtml(){
+  const who = String((_ceC && _ceC.counterparty) || '').trim() || _cet('ce_prep_them');
+  return `<div class="av ce-prep-in"><span class="ce-inbox">&#10003; ${_cee(_cet('ce_prep_inbox'))}</span>
+      <button type="button" data-ce-act="prep-out">${_cee(_cet('ce_prep_out'))}</button></div>
+    <label class="ce-prep-note"><span class="k">${_cee(_cet('ce_prep_note_to', { who }))}</span>
+      <textarea id="ce-prep-note" rows="3" maxlength="1000">${_cee(_cePrep.note || '')}</textarea>
+      <span class="h">${_cee(_cet('ce_prep_note_hint'))}</span></label>`;
+}
+/* Copilot's counter goes into the box — on arrival and on Apply — through
+   ceApply, the one door into the wording. Its refusals stand (a clause under
+   deletion, a reading that hides the marks): the card then keeps its Apply. */
+function cePrepPut(opts = {}){
+  if (!_cePrep || !clauseEditorOpen()) return false;
+  const before = _ceText;
+  if (ceRich(_cePrep.wording) === _ceText){ _cePrep.inBox = true; }
+  else if (ceApply(_cePrep.wording, _cet('ce_step_copilot'), { quiet: !!opts.quiet })){ _cePrep.before = before; _cePrep.inBox = true; }
+  if (_cePrep.inBox){ ceRenderLane(); ceRenderFoot(); }
+  return _cePrep.inBox;
+}
+function cePrepOut(){
+  if (!_cePrep || !_cePrep.inBox) return false;
+  const back = _cePrep.before != null ? _cePrep.before : _ceBase;
+  if (back !== _ceText && !ceApply(back, _cet('ce_step_prep_out'), { quiet: true })) return false;
+  _cePrep.inBox = false;
+  ceRenderLane(); ceRenderFoot();
+  ceSay(_cet('ce_prep_taken_out'), 'ok');
+  return true;
 }
 function ceRenderChips(){
   if (!clauseEditorOpen()) return;
@@ -6202,6 +6257,10 @@ async function ceFileNew(why){
   return ch;
 }
 async function ceFile(why){
+  /* COPILOT'S COUNTER CARRIES ITS NOTE TO THEM as its reason — the field the
+     other side reads (change 2). */
+  const prepFiling = !!(_cePrep && _cePrep.inBox);
+  if (!why && prepFiling && String(_cePrep.note || '').trim()) why = String(_cePrep.note).trim();
   /* A note kept from the ladder card rides the filing as its reason. */
   if (!why && _ceHeldNote) why = _ceHeldNote;
   if (_ceBusy) return null;
@@ -6269,6 +6328,17 @@ async function ceFile(why){
      touches no element — and the note dialog reads the contract and the change
      and none of what the seed writes. So the DOM sequence is what it always
      was, and both filing doors can then run one identical tail. */
+  /* ---- "SAVE COUNTER" GOES BACK TO NEGOTIATE (Young, 9 Oct 2026, change 2,
+     step 5) ---- Copilot's counter is filed as our unsent draft, its note
+     already riding it as the reason — so no note drawer opens, and the page
+     closes onto the negotiation, where Send all is how it leaves. */
+  if (prepFiling){
+    if (window.toast) toast(_cet('ce_filed', { id: ch.id }), 'ok');
+    _cePrep = null;
+    ceFiled(c);
+    rlCloseClauseEditor();
+    return ch;
+  }
   ceSeedDraft(ch.id);
   /* ---- AND THEN IT ASKS FOR A NOTE (owner-ruled 31 Aug 2026) ----
      The dialog's own lead sentence begins "Filed." and its heading names the
@@ -6587,6 +6657,7 @@ function ceWirePage(page){
         ceSay(i18t('tb_not_wording'), 'warn'); return; }
       ceFullClose();
       if (card.std){ ceStdApply(card); return; }
+      if (card.prepared && _cePrep){ cePrepPut(); return; }
       if (card.passage) ceReplacePassage(card.passage, card.text, { keepView: false });
       else ceApply(card.text, _cet('ce_step_copilot'));
       /* WHAT THE DRAFT BECAME, so the funnel can later say whether the reader
@@ -6710,6 +6781,7 @@ function ceWirePage(page){
       case 'close': ceLeaveGuard(() => rlCloseClauseEditor()); break;
       case 'undo': ceUndo(); break;
       case 'discard': ceDiscard(); break;
+      case 'prep-out': cePrepOut(); break;
       /* ---- HAND THE CLAUSE TO WHOEVER ASKED FOR IT (idea 12, 4 Oct 2026) ----
          IT ASKS FIRST, because it is the one act here that gives something
          away: the clause goes to a colleague and this reader can no longer
@@ -6766,6 +6838,11 @@ function ceWirePage(page){
     }
   });
 
+  /* The note to the other side is the reader's to change; it is read at Save. */
+  page.addEventListener('input', ev => {
+    const t = ev.target;
+    if (t && t.id === 'ce-prep-note' && _cePrep) _cePrep.note = String(t.value || '');
+  });
   page.addEventListener('change', ev => {
     const sel = ev.target && ev.target.closest ? ev.target.closest('#ce-pick-sel') : null;
     if (!sel) return;

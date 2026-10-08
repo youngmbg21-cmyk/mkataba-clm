@@ -10926,6 +10926,8 @@ let _rlLiveTimer = null, _rlLiveBusy = false;
    close before it is drawn. Per sitting, in memory: a reload shows the fresh
    record anyway, because the row was already replaced. */
 let _rlLivePending = false;
+/* The last `prepAt` the probe read, per contract (Copilot's answers, change 1). */
+const _rlPrepAt = new Map();
 /* Is somebody typing into a clause right now? [data-nego-editor] is the one
    marker the engine puts on the live editor holder, on the paper and in the
    clause panel alike, so this asks the same question both homes answer. */
@@ -10976,6 +10978,27 @@ function rlStartLivePoll(c){
          next tick draws it the moment they stop. */
       if (st && cur && window.clauseLockMerge && clauseLockMerge(cur, st.locks || {})
           && !rlEditorOpen() && state.view === 'redline' && state.activeId === id) renderRedline();
+      /* ---- COPILOT'S ANSWERS TO THEIR ROUND RIDE THE SAME PROBE (Young, 9 Oct
+         2026, change 1) ---- A redo — here, in another tab, by a colleague —
+         writes its own table and moves no version, so it never reached the
+         branch below. The probe's `prepAt` stamp moving fetches the record
+         and takes ONLY those answers (`_roundPrep`), quietly: nothing about
+         the agreement changed. The first sighting measures against the
+         newest answer this page already holds. */
+      if (st && cur && Object.prototype.hasOwnProperty.call(st, 'prepAt')){
+        const held = Object.values((cur._roundPrep && typeof cur._roundPrep === 'object') ? cur._roundPrep : {})
+          .map(a => String((a && a.at) || '')).sort().pop() || '';
+        const was = _rlPrepAt.has(id) ? _rlPrepAt.get(id) : held;
+        _rlPrepAt.set(id, st.prepAt || '');
+        if (was !== (st.prepAt || '') && !(st.version != null && cur._v != null && st.version !== cur._v)){
+          const fresh = await api('contracts/' + id, 'GET', undefined, { quiet: true });
+          if (fresh){
+            if (fresh._roundPrep) cur._roundPrep = fresh._roundPrep; else delete cur._roundPrep;
+            if (rlEditorOpen()) _rlLivePending = true;
+            else if (state.view === 'redline' && state.activeId === id) renderRedline();
+          }
+        }
+      }
       /* Our own saves move the version too — but persist writes the new
          version back onto the record (c._v), so only SOMEBODY ELSE's write
          leaves the two numbers apart. */
@@ -13161,6 +13184,7 @@ function redlineDocHtml(c, opts = {}){
           </div>
           ${''/* A formatting-only ask read "as agreed" is simply the clause. */}
           ${clean == null ? richBody(cl) : clean}
+          ${rlPrepBoxHtml(c, chs, side)}
           ${cpPush(cl, chs)}
         </section>${after}`;
       }
@@ -13200,6 +13224,7 @@ function redlineDocHtml(c, opts = {}){
           ${pillFor(cl)}
         </div>
         ${clean == null ? richBody(cl) : clean}
+        ${rlPrepBoxHtml(c, chs, side)}
         ${cpPush(cl, chs)}
       </section>${baselineFor(cl)}${after}`;
     }
@@ -17563,6 +17588,30 @@ function rlRoundPrepLineHtml(c, ch, theirs, side){
   return `<div class="rl-card-sum rl-card-prep" data-rl-prep="${_nea(a.verdict)}"${tip ? ` title="${_nea(tip)}"` : ''}><span class="rl-prep-v is-${_nea(a.verdict)}">${
     _ne(i18t('ag_prep_' + a.verdict))}</span>${why ? ` <span class="rl-prep-why">${_ne(why)}</span>` : ''}</div>`;
 }
+/* ---- COPILOT'S COUNTER, ON THE PAPER (Young, 9 Oct 2026, the Paper and
+   Counter review, change 2) ---- Where Copilot answered their ask with a
+   counter, its wording sits under their wording in a DASHED box: our seat
+   only, never their page, only while the ask is still on the table. NOTHING
+   IS FILED — it is a reading of `_roundPrep`; Counter takes it into the
+   editor. The words it adds to theirs are underlined, nothing is struck. */
+function rlPrepCounterOf(c, ch, side){
+  if (!c || !ch || ch.authorSide !== 'counterparty' || ch.status !== 'pending' || ch.withdrawn) return null;
+  if (side === 'counterparty' || rlOnTheirPage()) return null;
+  const a = (typeof roundPrepOf === 'function') ? roundPrepOf(c, ch) : null;
+  return (a && a.verdict === 'counter' && String(a.wording || '').trim()) ? a : null;
+}
+function rlPrepBoxHtml(c, chs, side){
+  const ch = (chs || []).slice().reverse().find(x => rlPrepCounterOf(c, x, side));
+  const a = ch ? rlPrepCounterOf(c, ch, side) : null;
+  if (!a) return '';
+  let body = '';
+  try{
+    const ops = (typeof redlineOps === 'function') ? redlineOps(String(ch.newText || ''), String(a.wording)) : null;
+    body = ops ? ops.filter(o => o.op !== 'del').map(o => o.op === 'ins'
+      ? `<span class="rl-prep-ins">${_ne(o.text)}</span>` : _ne(o.text)).join('') : _ne(a.wording);
+  }catch(_){ body = _ne(a.wording); }
+  return `<div class="rl-prep-box" data-rl-prep-box="${_nea(ch.id)}" title="${_nea(i18t('ng_prep_box_title'))}"><p class="rl-clause-p">${body}</p></div>`;
+}
 function rlOnTheirPage(){
   if (typeof window === 'undefined') return false;
   const p = window.PORTAL_MODE;
@@ -19141,7 +19190,11 @@ function redlineChangeCardsHtml(c, opts = {}){
          on a draft of ours; Ladder on every row. THE WHOLE of `verbs` in that
          order — see rlRowFaceVerbs — plus the requester's Cancel, which is a
          verb like any other and rode in the body's bar until the body went. */
-      const face = rlRowFaceVerbs(verbs, ch, theirs, rvCancel);
+      /* COPILOT'S COUNTER WAITS ON THIS ASK (Young, 9 Oct 2026, change 2):
+         Counter glows — the one press that takes it into the editor. */
+      const face = rlPrepCounterOf(c, ch, side)
+        ? rlRowFaceVerbs(verbs, ch, theirs, rvCancel).replace(/(<button\b[^>]*?)(data-rl-cp-editor-row=)/, '$1data-rl-glow="1" $2')
+        : rlRowFaceVerbs(verbs, ch, theirs, rvCancel);
       /* `info` is the caution captions; the other three are the sentences and
          buttons that used to ride in the body's action bar. Built above, in the
          one place that decides them, and only re-homed here. */
@@ -20845,7 +20898,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml,
+if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlPrepCounterOf, rlPrepBoxHtml,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
   rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,
