@@ -4084,6 +4084,32 @@ function hbPanelHtml(p, lens, gift){
     <div class="hb-cb">${_hbGiveForm === p.id ? hbGiveFormHtml(p) : ''}${body}</div></section>`;
 }
 
+/* ---- THE BOARD BALANCES ITS CARDS (work order "Home speed", Part 5; Young,
+   8 Oct 2026: "train the Board tab to understand symmetry and the use of
+   space to balance the board") ----
+   Two cards share a row and end at the same height (index.html: .hb-grid
+   stretches its rows; a card's inside stays at its top, the spare room at its
+   bottom). A card that would stand ALONE on a row — the only card, the last of
+   an odd count, the one left when its partner closes, the one after a big
+   card — is marked `is-lone` and spans the row. Marked HERE, in the board's
+   own markup, so every paint (hbMorph, a face coming back) carries it and a
+   lone card's chart is measured at its full width (hbFitMeasure). A card the
+   reader made big stays big. At 1180px and narrower the grid is one column,
+   so every card already takes the full width. */
+const HB_CARD_HEAD_RE = /^(\s*<section class="hb-card hb-panel)/;
+function hbGridBalanced(html){
+  const parts = String(html || '').split(/(?=<section class="hb-card hb-panel)/).filter(x => x.trim());
+  const big = h => /^\s*<section class="hb-card hb-panel[^"]*\bis-big\b/.test(h);
+  let col = 0;
+  return parts.map((h, i) => {
+    if (!HB_CARD_HEAD_RE.test(h) || big(h)){ col = 0; return h; }
+    if (col === 1){ col = 0; return h; }
+    const next = parts[i + 1];
+    const lone = !next || !HB_CARD_HEAD_RE.test(next) || big(next);
+    col = lone ? 0 : 1;
+    return lone ? h.replace(HB_CARD_HEAD_RE, '$1 is-lone') : h;
+  }).join('');
+}
 /* ---- THE BOARD ---- */
 function hbBoardHtml(){
   const s = hbS();
@@ -4109,7 +4135,7 @@ function hbBoardHtml(){
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
     ${hbFocusHtml()}
-    <div class="hb-grid">${received}${panels || (received ? '' : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}</div>`)}</div>`;
+    <div class="hb-grid">${(received || panels) ? hbGridBalanced(received + panels) : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}</div>`}</div>`;
 }
 
 /* ============================================================

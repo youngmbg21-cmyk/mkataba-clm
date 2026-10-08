@@ -8731,6 +8731,13 @@
   /* THE RECIPE ROW: four dropdowns and the trend switch under the card's title */
   .hb-recipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid rgba(var(--hb-ln),.12)}
   .hb-rwrap{position:relative;display:inline-flex}
+  /* A CARD'S OPEN LIST SITS ON TOP OF THE CARDS (work order "Home speed",
+     Part 4, 8 Oct 2026): every .hb-card makes its own layer (its frosted
+     backdrop-filter), so the next card painted over an earlier card's list
+     whatever the list's z-index. While its list is open the card itself is
+     raised above its neighbours — by scope, one rule for every board list
+     (Contracts, Split, Picture, Measure, More), never !important. */
+  .hb-card:has(.hb-rmenu,.hb-pmenu){z-index:6}
   .hb-rc{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 8px 0 9px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:var(--hb-fig);color:var(--hb-ink);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
   .hb-rc i{font-style:normal;font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--hb-mute)}
   .hb-rc.is-open{border-color:var(--hb-glow);box-shadow:0 0 0 1px var(--hb-glow) inset}
@@ -8821,8 +8828,11 @@
   .hb-bar-f.is-bad{background:var(--hb-ruby)}
   @keyframes hbGrow{from{width:0}}
   .hb-bar-n{text-align:right;font-weight:var(--w-strong);color:var(--hb-ink);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .hb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3);align-items:start}
-  .hb-grid>.hb-panel.is-big{grid-column:1 / -1}
+  /* THE BOARD BALANCES ITS CARDS (Part 5, 8 Oct 2026): a row's two cards
+     end at the same height (stretch; the spare room is at the shorter card's
+     bottom), and a card alone on its row spans it (hbGridBalanced marks it). */
+  .hb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3);align-items:stretch}
+  .hb-grid>.hb-panel.is-big,.hb-grid>.hb-panel.is-lone{grid-column:1 / -1}
   .hb-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3) var(--s-6)}
   .hb-split>div{display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
   .hb-empty{grid-column:1 / -1;border:1px dashed rgba(var(--hb-ln),.3);border-radius:var(--radius-lg);padding:22px;text-align:center;color:var(--hb-mute);font-size:var(--t-body)}
