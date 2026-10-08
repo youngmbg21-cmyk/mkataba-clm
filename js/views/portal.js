@@ -1388,7 +1388,20 @@ function portalResponderName(){
      the remembered name above it, which the reader's own typing sets. */
   return fval('nego-cp-name') || fval('pt-name')
     || (window.negoRememberedName ? negoRememberedName() : '')
-    || (PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientName) || '';
+    || portalRecipientPerson();
+}
+/* ---- A COMPANY IS NOT A PERSON (8 Oct 2026) ----
+   The recipient field often holds the counterparty COMPANY, and the trail then
+   read "accepted by Juno Limited". Where it names a party (or our own org)
+   rather than a person, it is no answer: portalEnsureResponderName asks the
+   reader's name once, at their first Send, and remembers it. */
+function portalRecipientPerson(){
+  const n=String((PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientName)||'').trim();
+  if(!n) return '';
+  const fold=s=>String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
+  const p=PORTAL_OPTS.payload||{}, ct=p.contract||{};
+  const firms=[ct.counterparty, p.org, ct.party].concat(Array.isArray(ct.parties)?ct.parties.map(x=>x&&x.name):[]).map(fold).filter(Boolean);
+  return firms.includes(fold(n)) ? '' : n;
 }
 /* ---- ASKED ONCE, WHEN IT MATTERS ----
    The box that used to stand in the header for the whole sitting collected one

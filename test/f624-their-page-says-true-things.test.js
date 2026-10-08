@@ -11,7 +11,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadViews, STUB_TEMPLATES, STUB_FOLDERS } = require('./dom');
 const PORTAL = fs.readFileSync(path.join(__dirname, '..', 'js/views/portal.js'), 'utf8');
-const portal = () => loadViews(['js/views/portal.js'], { TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS });
+const portal = () => loadViews(['js/views/portal.js'], { TEMPLATES: STUB_TEMPLATES, FOLDERS: STUB_FOLDERS, fval: () => '' });
 
 describe('f624 (F6) — HaTi could not be reached', () => {
   test('a dropped connection is said in words, and a held answer is said kept', () => {
@@ -60,5 +60,31 @@ describe('f624 (F8) — no promise of email when email is off', () => {
     for (const k of ['po_hold_wait_nomail', 'po_code_goes_here_nomail', 'po_rc_next_told_nomail', 'po_rc_next_waiting_nomail'])
       assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
     assert.ok(!/email/i.test(I18N.match(/po_hold_wait_nomail: '([^']*)'/)[1]));
+  });
+});
+
+/* (F9) The trail recorded the company as the person: the recipient field held
+   "Juno Limited" and portalResponderName answered with it. A recipient that
+   names a party (or our org) is no answer, so the existing ask at their first
+   Send (portalEnsureResponderName) runs and the name they type is recorded. */
+describe('f624 (F9) — a company is not a person', () => {
+  const opts = name => ({ share: { recipientName: name },
+    payload: { org: 'Highland Corporate Ltd', contract: { counterparty: 'Juno Limited',
+      parties: [{ name: 'Nordfrakt AB', side: 'theirs' }] } } });
+  test('the company in the recipient field is not taken as the reader\'s name', () => {
+    const w = portal();
+    for (const firm of ['Juno Limited', ' juno  limited ', 'Nordfrakt AB', 'Highland Corporate Ltd']){
+      w.PORTAL_OPTS = opts(firm);
+      assert.equal(w.portalResponderName(), '', firm);
+    }
+  });
+  test('a person in the recipient field still answers, as it always did', () => {
+    const w = portal();
+    w.PORTAL_OPTS = opts('Lars Berg');
+    assert.equal(w.portalResponderName(), 'Lars Berg');
+  });
+  test('with no person known, the Send asks once', () => {
+    const f = PORTAL.slice(PORTAL.indexOf('async function portalEnsureResponderName'), PORTAL.indexOf('async function portalEnsureResponderName') + 600);
+    assert.match(f, /const have=portalResponderName\(\);\s*if\(have\) return have;[\s\S]*promptDialog/);
   });
 });
