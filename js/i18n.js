@@ -6416,6 +6416,8 @@ const STRINGS = {
        format that carries no structure. What was missing is that nobody was
        told which they were looking at. */
     ct_struct_inferred: 'Structure read from the wording',
+    ct_struct_flat: 'No headings or numbering found — read as plain paragraphs',
+    ct_struct_flat_title: 'Neither the file nor its wording carries headings or clause numbers HaTi can read, so the document is shown as plain paragraphs and there are no clauses to list.',
     ct_struct_inferred_title: 'This file carries no headings or numbering HaTi can read — a PDF knows where ink sits on a page and a scan knows less. The headings and clause numbers on screen are read from the wording itself, so they follow the document’s own conventions rather than its own statement of them.',
     /* A record filed before the structured reader existed carries no reading
        of its own, so what is on screen really is worked out from the wording —
@@ -19413,6 +19415,8 @@ const STRINGS = {
     ct_struct_unnumbered_other: '{n} nummer kunde inte läsas',
     ct_struct_unnumbered_title: 'Dokumentet numrerar automatiskt och HaTi kunde inte läsa definitionen för dessa stycken. De visas utan nummer i stället för med ett gissat — ett felaktigt klausulnummer är en felaktig hänvisning.',
     ct_struct_inferred: 'Struktur tolkad ur texten',
+    ct_struct_flat: 'Inga rubriker eller numrering hittades — läses som löpande stycken',
+    ct_struct_flat_title: 'Varken filen eller texten har rubriker eller klausulnummer som HaTi kan läsa, så dokumentet visas som löpande stycken och det finns inga klausuler att lista.',
     ct_struct_inferred_title: 'Filen har inga rubriker eller numrering som HaTi kan läsa — en PDF vet var bläcket sitter på sidan och en inskanning vet ännu mindre. Rubrikerna och klausulnumren på skärmen är tolkade ur själva texten och följer alltså dokumentets konventioner snarare än dess egen uppgift om dem.',
     ct_struct_inferred_old_title: 'Det här avtalet lades in innan HaTi läste ett dokuments egna rubriker och numrering. Orden är de som lästes ur filen; rubrikerna och klausulnumren på skärmen är tolkade ur texten. Läs om dokumentet för att läsa in dess struktur.',
     ct_spots_stale_one: '{n} plats pekar inte längre någonstans i avtalet:',

@@ -2640,12 +2640,12 @@ function uploadDocBody(c){
         if(!st){
           const guessed=(u.textChars||0)>200;
           return guessed?`<span style="opacity:.5;flex:none">·</span>
-            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis" title="${esc(i18t('ct_struct_inferred_old_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`:'';
+            <span data-up-struct="inferred" style="min-width:0;overflow:hidden;text-overflow:ellipsis" title="${esc(i18t('ct_struct_inferred_old_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`:'';
         }
         const got=(st.headings||0)+(st.numbered||0)+(st.tables||0);
         const bad=st.unnumbered||0;
         if(!got && !bad) return `<span style="opacity:.5;flex:none">·</span>
-          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis" title="${esc(i18t('ct_struct_inferred_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`;
+          <span data-up-struct="inferred" style="min-width:0;overflow:hidden;text-overflow:ellipsis" title="${esc(i18t('ct_struct_inferred_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`;
         const parts=[];
         if(st.headings) parts.push(i18tn('ct_struct_headings', st.headings, {n:st.headings}));
         if(st.numbered) parts.push(i18tn('ct_struct_numbers', st.numbered, {n:st.numbered}));
@@ -13354,12 +13354,20 @@ function docThreadPaint(c){
   card.classList.toggle('is-drawer',up&&has);
   if(right) right.classList.toggle('is-clauses',up);
   docThreadDoorPaint(rows,has,up);
+  /* ONE SENTENCE FOR A FLAT FILE (9 Oct 2026 review): the file strip said
+     "Structure read from the wording" while this thread said nothing reads as
+     a clause. Where the wording-read finds no clause either, the strip's
+     phrase becomes the thread's — read off the same painted sheet. */
+  const flat=on&&!rows.length&&!!(c&&c.upload);
+  if(flat) document.querySelectorAll('[data-up-struct="inferred"]').forEach(el=>{
+    el.textContent=i18t('ct_struct_flat'); el.title=i18t('ct_struct_flat_title');
+  });
   if(!up){ card.innerHTML=''; card.removeAttribute('data-th-sig'); _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; return; }
   const sheet=docReadSheet(c)||[];
   _docThreadRows=rows.map(x=>x.el);
   if(!rows.length){
     _docThreadWant='';
-    card.innerHTML=`<div class="doc-th-top">${docThreadTopHtml(c,rows,has)}</div><div class="doc-xr-none">${esc(i18t('xr_no_clauses'))}</div>`;
+    card.innerHTML=`<div class="doc-th-top">${docThreadTopHtml(c,rows,has)}</div><div class="doc-xr-none">${esc(i18t(flat?'ct_struct_flat':'xr_no_clauses'))}</div>`;
     card.removeAttribute('data-th-sig'); _docThreadCache=null; return;
   }
   /* ARRIVING FROM A RISK DOOR (riskViewOpen): the first clause carrying the
