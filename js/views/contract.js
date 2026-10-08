@@ -1429,16 +1429,43 @@ function findingsFromText(c, text){
     if(fh&&!hk&&!foreignSen){ foreignSen=sen; foreignHit=fh; }
     if(hk&&!homeSen) homeSen=sen;
   }
+  /* The law a governing-law sentence NAMES, read off the sentence's own
+     capitalised words ("the laws of the State of California" → California),
+     where no pack's marker matched. Null when nothing is named ("governing
+     law as stated below"). */
+  let govNamed=null;
+  if(!foreignSen&&!homeSen) for(const idx of [...new Set(cands)].sort((a,b)=>a-b)){
+    const sen=sentenceAround(text,idx);
+    const m=sen.match(/\b(?:laws?|courts?|jurisdiction)\s+of\s+(?:the\s+)?(?:(?:State|Republic|Commonwealth|Province|Kingdom|Federal Republic|Emirate|Canton|District)\s+of\s+(?:the\s+)?)?([A-Z][A-Za-z.'-]*(?:\s+(?:of\s+)?[A-Z][A-Za-z.'-]*){0,3})/)
+      ||sen.match(/\bgoverned\s+by\s+(?:the\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\s+law\b/);
+    const law=m&&m[1].replace(/[.,;]+$/,'').trim();
+    if(law&&!/^(?:This|That|Such|Any|Its|Their|The|Agreement|Parties|Party)$/.test(law)){ govNamed={law,sen}; break; }
+  }
   if(foreignSen) add('t-law','high','risk','Foreign governing law detected',foreignSen,
     `A ${foreignHit.replace(/\b\w/g,x=>x.toUpperCase())} governing law or forum makes enforcement slow and costly for a ${homeAdj} business and may bypass ${homeAdj} protections.`,
     `Negotiate ${homeAdj} governing law and forum, or budget for foreign enforcement before signing.`,'high');
   else if(homeSen) add('t-law','low','ambiguity',`Governing law: ${homeName} (found in text)`,homeSen,
     `${homeAdj} governing law keeps enforcement local and predictable.`,'No change needed — confirm the forum (courts vs. arbitration) suits you.','high');
+  /* A LAW NAMED THAT NO PACK KNOWS IS STILL A LAW NAMED (9 Oct 2026 review):
+     "governed by the laws of the State of California" read as "not stated",
+     because only the packs' marker lists were asked. The sentence names it,
+     so the finding says what it names — and that it is not home. */
+  else if(govNamed) add('t-law','med','risk',`Governing law: ${govNamed.law} — not your home market`,govNamed.sen,
+    `A governing law or forum outside ${homeName} makes enforcement slower and costlier for a ${homeAdj} business and may bypass ${homeAdj} protections.`,
+    `Negotiate ${homeAdj} governing law and forum, or budget for enforcement under ${govNamed.law} before signing.`,'medium');
   else add('t-law','med','missing','Governing law / jurisdiction not clearly stated','',
     'No clause naming a governing law or forum was found in the extracted text — every high-value or cross-border contract needs a clear governing law and forum.',`Locate or add the governing-law clause and confirm it names ${homeName}.`,'low');
   // 2) payment terms
-  const pm=low.match(/(?:within|net)\s*(\d{1,3})\s*days/);
-  if(pm){ const i=low.indexOf(pm[0]), d=Number(pm[1]);
+  /* ANCHORED TO PAYMENT WORDING (9 Oct 2026 review): the first "within N
+     days" anywhere was read as the payment term — a notice or a cure period
+     answered for it. Now only a "net N" or a "within N days" whose sentence
+     speaks of invoices or payment counts; "within thirty (30) days" is read
+     too. Nothing found → no finding, never a guess. */
+  let pm=null;
+  for(const m of low.matchAll(/\b(net|within)\s*(?:[a-z-]+\s*)?\(?(\d{1,3})\)?\s*(?:calendar\s+|business\s+|working\s+)?days/g)){
+    if(m[1]==='net'||/invoice|payment|payable|\bpaid\b|\bpay\b|remit/.test(sentenceAround(low,m.index).toLowerCase())){ pm=[m[0],m[2]]; pm.index=m.index; break; }
+  }
+  if(pm){ const i=pm.index, d=Number(pm[1]);
     add('t-pay', d>45?'med':'low', d>45?'risk':'ambiguity', `Payment terms: ${d} days`, sentenceAround(text,i),
       d>45?`${d}-day terms tie up working capital and raise exposure if the payer delays.`:'Payment terms look within a healthy range.',
       d>45?'Negotiate toward 30–45 days, or price the extended terms into the deal.':'Confirm this matches what was agreed.','high'); }
