@@ -5683,6 +5683,14 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
        contract's owner. Before this nobody was told at all. */
     else if (chainCleared) notifyInternalSignerTurn(req, c.id);
     if (chainCleared) ruleChainClearedTell(req, c, req.params.id);
+    /* A REFUSED RULE STEP REACHES THE OWNER (B5, 8 Oct 2026): only the
+       Signing tab said so before — no mail, no bell, no checklist. Asked as a
+       difference: a step this save moved to rejected. */
+    if (prev) {
+      const was = new Map((Array.isArray(prev.approvalChain) ? prev.approvalChain : []).filter(Boolean).map(s => [String(s.ruleId), s.status]));
+      for (const s of (Array.isArray(c.approvalChain) ? c.approvalChain : []))
+        if (s && s.status === 'rejected' && was.get(String(s.ruleId)) !== 'rejected') ruleStepRefusedTell(req, c, s);
+    }
     /* A RULE STEP THAT HAS BECOME SOMEBODY'S TO DECIDE is mailed to them —
        the named-yes rule, now the rule steps' too. See ruleStepDue. */
     const due = prev ? ruleStepDue(prev, c) : null;
@@ -13832,6 +13840,23 @@ async function ruleChainClearedTell(req, c, id) {
     return { n: sent && sent.sent ? 1 : 0, ...mailReport(sent) };
   } catch (_) { return { n: 0 }; }
 }
+/* A rule step refused: the owner hears it, with the reason, and what to do —
+   revise and send it back (B5). Never the person who refused it; "sent"
+   only where it went (mailReport). */
+async function ruleStepRefusedTell(req, c, step) {
+  try {
+    const own = contractOwnerRecipient(c, c.folder);
+    if (!own || !own.row || (req && req.user && String(own.row.id) === String(req.user.id))) return { n: 0 };
+    const L = langForEmail(own.email, own.lang);
+    const cName = c.name || c.id;
+    const v = { name: cName, step: step.name || '', who: step.by || '', why: String(step.comment || '').slice(0, 500) };
+    const body = `${tFor(L, 'mail_hello')} ${own.name || ''},\n\n`
+      + [tFor(L, 'mail_ar_refused_line', v), v.why ? `\n“${v.why}”` : '', '', `${cName} (${contractRef(c)})`, '', tFor(L, 'mail_at_open'), contractUrl(req, c.id, 'sign')].join('\n')
+      + `\n\n${tFor(L, 'mail_automated_notice')}`;
+    const sent = await sendEmail(own.email, tFor(L, 'mail_ar_refused_subject', v), body, `approval step refused: ${c.id} -> ${own.email}`);
+    return { n: sent && sent.sent ? 1 : 0, ...mailReport(sent) };
+  } catch (_) { return { n: 0 }; }
+}
 /* ---- A COLLEAGUE ASKED TO LOOK (8 Oct 2026, the nine flow rules) ----
    The `look` questions the pass route opens. A save that moved one from open
    to yes is found by difference (srvLooksDone); the asker is told once
@@ -13882,9 +13907,12 @@ async function runLookReminders() {
 }
 /* THE NAMED YES'S CADENCE, FOR A RULE STEP: reminded after
    SA_REMIND_WORKDAYS working days, the admins told after
-   SA_ESCALATE_WORKDAYS, each once per time the step fell due. A step that
-   fell due before this shipped has no clock and is not chased — a deploy
-   must not mail every approver in the workspace at once. */
+   SA_ESCALATE_WORKDAYS, each once per time the step fell due.
+   A STEP WITH NO CLOCK IS ONE NOBODY WAS EVER TOLD ABOUT (B5, 8 Oct 2026): a
+   rule saved after the contract was already Under Review is due without any
+   save having made it so, and the approver was never mailed. The sweep opens
+   its question on the record and tells the approver ONCE (ruleStepTell 'due'
+   writes the clock it is then reminded from). */
 async function runRuleStepReminders() {
   if (!srvApprovalRules().length) return { checked: 0, sent: 0 };
   const rows = db.prepare("SELECT id, json FROM contracts WHERE status NOT IN ('Draft','Signed','Declined')").all();
@@ -13910,7 +13938,20 @@ async function runRuleStepReminders() {
     const clock = ask ? { rkey: `ask:${c.id}:${ask.id}`, created_at: ask.at }
       : db.prepare('SELECT rkey, created_at FROM reminders WHERE rkey LIKE ? ORDER BY created_at DESC LIMIT 1')
         .get(`ar:${c.id}:${step.ruleId}:due:%`);
-    if (!clock) continue;
+    if (!clock) {
+      if (!once(`ar:${c.id}:${step.ruleId}:first`)) continue;
+      try {
+        const rule = srvApprovalRules().find(r => r && r.id === step.ruleId);
+        const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(c.id));
+        const cj = fresh ? JSON.parse(fresh.json) : null;
+        if (rule && cj && !asksDerive(cj).some(a => a.kind === 'rule' && a.state === 'open' && String(a.of && a.of[0]) === String(step.ruleId))) {
+          askRuleFor(cj, step.ruleId, { approver: rule.approver, keepStep: true, at: now() });
+          db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), String(c.id));
+        }
+      } catch (_) { /* the mail is the thing that matters */ }
+      sent += (await ruleStepTell(null, c, step, 'due')).n || 0;
+      continue;
+    }
     const waited = saWorkdays(clock.created_at);
     if (waited >= SA_REMIND_WORKDAYS && once(`${clock.rkey}:remind`)) sent += (await ruleStepTell(null, c, step, 'remind')).n || 0;
     if (waited >= SA_ESCALATE_WORKDAYS && once(`${clock.rkey}:escalate`)) sent += (await ruleStepTell(null, c, step, 'escalate', { days: waited })).n || 0;
