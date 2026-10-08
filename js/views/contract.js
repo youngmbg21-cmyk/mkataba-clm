@@ -13341,6 +13341,17 @@ function docThreadFilterSet(c, tone){
    while a reading runs does not reset the thread's own scroll. It also says
    whether the clauses are on screen at all — the drawer — and paints the
    door that opens it. */
+/* ONE SENTENCE FOR A FLAT FILE (9 Oct 2026 review): the file strip said
+   "Structure read from the wording" while the thread said nothing reads as a
+   clause. Where the painted sheet holds no clause either, the strip's phrase
+   becomes the thread's own. True when the upload is flat. */
+function docThreadFlatSay(c,on,rows){
+  const flat=!!(on&&!rows.length&&c&&c.upload);
+  if(flat) document.querySelectorAll('[data-up-struct="inferred"]').forEach(el=>{
+    el.textContent=i18t('ct_struct_flat'); el.title=i18t('ct_struct_flat_title');
+  });
+  return flat;
+}
 function docThreadPaint(c){
   const card=document.getElementById('doc-thread');
   if(!card) return;
@@ -13354,14 +13365,7 @@ function docThreadPaint(c){
   card.classList.toggle('is-drawer',up&&has);
   if(right) right.classList.toggle('is-clauses',up);
   docThreadDoorPaint(rows,has,up);
-  /* ONE SENTENCE FOR A FLAT FILE (9 Oct 2026 review): the file strip said
-     "Structure read from the wording" while this thread said nothing reads as
-     a clause. Where the wording-read finds no clause either, the strip's
-     phrase becomes the thread's — read off the same painted sheet. */
-  const flat=on&&!rows.length&&!!(c&&c.upload);
-  if(flat) document.querySelectorAll('[data-up-struct="inferred"]').forEach(el=>{
-    el.textContent=i18t('ct_struct_flat'); el.title=i18t('ct_struct_flat_title');
-  });
+  const flat=docThreadFlatSay(c,on,rows);
   if(!up){ card.innerHTML=''; card.removeAttribute('data-th-sig'); _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; return; }
   const sheet=docReadSheet(c)||[];
   _docThreadRows=rows.map(x=>x.el);
