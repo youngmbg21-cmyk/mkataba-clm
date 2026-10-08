@@ -13571,7 +13571,7 @@ async function docAiRead(c,action,text){
   const quote=`<div style="font-size:var(--t-label);margin-top:var(--s-1);opacity:.85;font-style:italic;max-height:76px;overflow-y:auto">“${esc(text)}”</div>`;
   if(window.aiPush) aiPush('user',{text:`${esc(action.label)}${quote}`});
   if(!window.copilotAvailable||!copilotAvailable()){
-    if(window.aiPush) aiPush('assistant',{text:'The Copilot is not connected yet. Connect it under Team &amp; Settings &rarr; Copilot engine, then try again.'});
+    if(window.aiPush) aiPush('assistant',{text:'The Copilot is not connected yet. Connect it under Settings &amp; Rules &rarr; Copilot engine, then try again.'});
     if(window.renderAIFeed) renderAIFeed();
     return;
   }

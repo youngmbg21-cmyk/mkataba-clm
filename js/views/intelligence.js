@@ -2380,7 +2380,7 @@ async function intelChatAsk(q){
       if(cmp){ intel.history.push({role:'assistant', text:'Side-by-side from your live contract data.'+(cmp.verdict?' '+igEsc(cmp.verdict):''), compare:cmp, cardIds:ids.filter(id=>getContract(id))}); igPaintIds(ids); return; }
     }
     intel.history.push({role:'assistant', err:true,
-      text:'For free-form questions I need an Anthropic API key (Team &amp; Settings → Copilot engine). Meanwhile I can still filter, highlight and regroup the map — or compare specific contracts, e.g. "compare MK-101 and MK-104".'});
+      text:'For free-form questions I need an Anthropic API key (Settings &amp; Rules → Copilot engine). Meanwhile I can still filter, highlight and regroup the map — or compare specific contracts, e.g. "compare MK-101 and MK-104".'});
     return;
   }
   try{
@@ -4715,7 +4715,7 @@ function intelFrictionCopilotHtml(st){
   }else{
     const stale=!!(ai&&ai.html);
     const hint=!on
-      ?'Add an Anthropic key in Team &amp; Settings → Copilot engine to turn this on. The counted report below works without it.'
+      ?'Add an Anthropic key in Settings &amp; Rules → Copilot engine to turn this on. The counted report below works without it.'
       :stale?'The figures below have changed since the last read — generate a fresh one. Nothing runs until you click.'
       :'Copilot explains what is behind the figures below and what to do this week. Nothing runs until you click — the counted report never depends on it.';
     body=`<div style="display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap">
@@ -4771,7 +4771,7 @@ async function intelFrictionAsk(){
       at:new Date().toLocaleTimeString(jxLocale(),{hour:'2-digit',minute:'2-digit'})};
   }catch(e){
     intel.frictionAI={busy:false,key,
-      err:(e&&e.needsKey)?'No Copilot key configured — add one in Team & Settings → Copilot engine.':'Copilot was unavailable — '+(e&&e.message?e.message:String(e))};
+      err:(e&&e.needsKey)?'No Copilot key configured — add one in Settings & Rules → Copilot engine.':'Copilot was unavailable — '+(e&&e.message?e.message:String(e))};
   }
   if(state.view==='intel'&&intel.tab==='friction') intelFrictionRepaintAI();
 }

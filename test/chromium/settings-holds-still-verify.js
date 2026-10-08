@@ -15,11 +15,11 @@
    description: the card does not move, the page does not change height, and
    the control the reader just used keeps its focus. A rebuild fails all three.
 
-   AND THE ONE CASE THAT IS STILL A REBUILD: a reader who has never chosen a
-   language reads the one that goes with the market, so moving the market moves
-   every word on the page. Patching three lines there would leave a
-   half-translated screen. It redraws — and the panels hold their height while
-   they refill, so even that does not lurch.
+   AND THE CASE THAT USED TO BE A REBUILD: a reader who has never chosen a
+   language reads the one that goes with the market, so moving the market used
+   to move every word on the page. The owner reversed that on 9 Oct 2026 —
+   the market is the company's, the language the person's — so jxSet keeps the
+   language they were reading, and this case now holds still like the rest.
 
    Run: node test/chromium/settings-holds-still-verify.js */
 const fs = require('node:fs');
@@ -243,7 +243,7 @@ async function watch(page, press) {
       (await page.evaluate(() => langId())) === 'en'
       && /Currency/.test(facts), `lang ${await page.evaluate(() => langId())}`);
 
-    /* ---------- 6. the one case that is still a redraw ---------- */
+    /* ---------- 6. nobody chose a language: the market still does not move it ---------- */
     await page.evaluate(() => {
       /* Nobody has chosen a language: the market decides it. */
       currentUser().lang = null;
@@ -263,15 +263,13 @@ async function watch(page, press) {
       elsewhere: document.querySelector('#set-page .st-tab') ? document.querySelector('#set-page .st-tab').textContent : '',
       facts: document.getElementById('set-market-facts').textContent,
     }));
-    check('a market that changes the language redraws the WHOLE page, not three lines',
-      flipped.lang === 'sv' && /Personer/.test(flipped.elsewhere) && /Valuta/.test(flipped.facts),
+    check('a market that would have changed the language keeps the reader\'s own (owner, 9 Oct 2026)',
+      flipped.lang === 'en' && /People/.test(flipped.elsewhere) && /Currency/.test(flipped.facts),
       `lang ${flipped.lang} · elsewhere "${flipped.elsewhere.trim()}"`);
-    /* Not the total drift here: the page really is being redrawn into another
-       language and longer sentences push what is under them down. What must
-       not happen is the collapse — the panels emptying, the page losing height
-       and the dropdown snapping UP before walking back. That is the direction
-       this measures, and before the fix it was 234px up and 703px lost. */
-    check('and even that redraw holds its panels, so nothing collapses under the reader',
+    check('and their language is now theirs, kept on their record',
+      await page.evaluate(() => currentUser().lang === 'en'));
+    /* The page holds still: no collapse, no dropdown snapping up. */
+    check('and nothing collapses under the reader',
       r.mktUp <= DRIFT_OK && r.hLost <= DRIFT_OK,
       `dropdown rose ${r.mktUp}px (was 234) · page lost ${r.hLost}px (was 703) · settled ${r.last.mktTop - r.base.mktTop}px lower on longer Swedish`);
 

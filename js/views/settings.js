@@ -2384,11 +2384,11 @@ const SET_PANELS={
         const langWas=(typeof langId==='function'?langId():null);
         if(!window.jxSet || !jxSet(e.target.value)) return;
         if(window.setRegion && window.regionCodeFor) setRegion(regionCodeFor(jxId()),{silent:true});
-        /* THE ONE CASE THAT IS NOT A PATCH. A reader who has never chosen a
-           language reads the one that goes with the market, so moving the
-           market moves every word on the screen — patching three lines would
-           leave a half-translated one. The page redraws (holding its panel
-           heights) and the drawer is rebuilt in the new language on top of it. */
+        /* THE ONE CASE THAT IS NOT A PATCH. Since 9 Oct 2026 jxSet keeps the
+           reader's own language when the market moves (the market is the
+           company's, the language the person's), so this redraw is only for a
+           language that moved some other way — patching three lines would
+           leave a half-translated screen. */
         if((typeof langId==='function'?langId():null)!==langWas){
           toast(i18t('set_market_saved')); renderTeam(); stDrawerOpen('company'); return;
         }
