@@ -132,6 +132,13 @@ function presenceHere(c){
 async function presenceSay(cid){
   const id = String(cid || '');
   if (!id || !presenceOn() || _pzBusy) return null;
+  /* NOT BEFORE THE RECORD IS ON THE SERVER (9 Oct 2026 review): a fresh upload
+     opened its room before its first save landed, and the beat drew a 404 in
+     the console every time. A record the server has sent or saved carries its
+     version (`_v`); without one there is nobody to be in the room with yet,
+     and the next beat asks again. */
+  const rec = (typeof window.getContract === 'function') ? window.getContract(id) : null;
+  if (rec && rec._v == null) return null;
   _pzBusy = true;
   try {
     /* WHERE THIS READER IS LOOKING rides the beat that was already going
