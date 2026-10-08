@@ -15802,6 +15802,18 @@ function shareDoorOtpOk(token, t) {
     && crypto.timingSafeEqual(Buffer.from(want), Buffer.from(got));
 }
 
+/* ---- A DEAD LINK STILL SAYS WHOSE IT WAS (8 Oct 2026) ----
+   The withdrawn / expired page named nobody: "Ask the sender to reshare". The
+   410 now carries the contract's title and the sender's name off the stored
+   copy — the two facts the holder needs to ask for a new link, and nothing
+   else about the deal. */
+function shareGoneWho(s) {
+  try {
+    const p = JSON.parse((s && s.payload) || 'null') || {};
+    return { contractName: String((p.contract && p.contract.name) || '').slice(0, 200),
+      sender: String(p.sharedBy || '').slice(0, 120), org: String(p.org || '').slice(0, 160) };
+  } catch (_) { return {}; }
+}
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
@@ -15814,8 +15826,8 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
      other kind. The wall is here, where the payload is, not in the browser. */
   if (shareIsStatus(s)) return res.status(403).json({
     error: 'This is a status link. It opens a read-only page at /deal/' + req.params.token + ' and carries no copy of the contract.' });
-  if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked' });
-  if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired' });
+  if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked', ...shareGoneWho(s) });
+  if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired', ...shareGoneWho(s) });
   /* ---- AND A NAMED GUEST'S LINK ASKS WHO IS OPENING IT (idea 8, 4 Oct 2026)
      ---- The wall is HERE, on the route that hands over the contract, and not
      in the browser: a page can be skipped, a payload cannot. It answers with
@@ -15840,13 +15852,13 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   if (s.parent_token){
     const p = db.prepare('SELECT revoked_at, expires_at FROM shares WHERE token=?').get(s.parent_token);
     if (!p || p.revoked_at || shareExpired(p))
-      return res.status(410).json({ error: 'The link this reading copy was created from is no longer active, so this copy has closed with it.', gone: 'revoked' });
+      return res.status(410).json({ error: 'The link this reading copy was created from is no longer active, so this copy has closed with it.', gone: 'revoked', ...shareGoneWho(s) });
   }
   // The payload carries its own copy of the contract, so a link outlives the
   // record unless this is checked: without it, a deleted contract keeps being
   // served here — still offering "Approve & sign" — to anyone holding the link.
   if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
-    return res.status(410).json({ error: 'This contract is no longer available. Ask the sender for an up-to-date copy.', gone: 'revoked' });
+    return res.status(410).json({ error: 'This contract is no longer available. Ask the sender for an up-to-date copy.', gone: 'revoked', ...shareGoneWho(s) });
   /* ---- W7: A BOUND LINK OPENS IN ITS TURN, AND NOT BEFORE ----
      Signer n+1 holds a real link — created up front so the whole route exists
      the moment it is issued — but until signer n has signed, it answers with a
@@ -15860,9 +15872,9 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   if (s.signer_id && !s.response) {
     const turn = signerTurn(s.contract_id, s.signer_id);
     if (turn.reason === 'unknown')
-      return res.status(410).json({ error: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.', gone: 'revoked' });
+      return res.status(410).json({ error: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.', gone: 'revoked', ...shareGoneWho(s) });
     if (turn.reason === 'already-signed')
-      return res.status(410).json({ error: 'This signing step has already been completed — nothing on this link is left to do.', gone: 'revoked' });
+      return res.status(410).json({ error: 'This signing step has already been completed — nothing on this link is left to do.', gone: 'revoked', ...shareGoneWho(s) });
     if (turn.reason === 'awaiting') {
       let p = null; try { p = JSON.parse(s.payload); } catch (_) {}
       const w = turn.waitingOn;

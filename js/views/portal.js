@@ -3040,7 +3040,7 @@ async function portalRefreshNow(reason){
     const { status, ok, d }=await portalFetchShare(_ptPollToken);
     /* The link died while they held it open — withdrawn by the sender, or
        expired. That is a whole-page answer and it is shown immediately. */
-    if(status===410){ portalStopPolling(); renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return 'gone'; }
+    if(status===410){ portalStopPolling(); renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error, goneWho:d }); return 'gone'; }
     if(!ok || !d) return 'error';
     /* Still waiting for an earlier signer. Painted once — a waiting page that
        repainted on every tick would flicker for nobody's benefit — and the
@@ -3097,7 +3097,7 @@ async function portalEntry(encoded){
     const token=encoded.slice(2);
     try{
       const { status, ok, d }=await portalFetchShare(token);
-      if(status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
+      if(status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error, goneWho:d }); return; }
       /* ---- A NAMED GUEST'S LINK ASKS WHO IS OPENING IT (idea 8, 4 Oct 2026)
          ---- The server refused the payload, so there is nothing of the deal
          on this screen to be skipped past: the page cannot show the contract
@@ -4724,7 +4724,11 @@ function renderSharePortal(p, opts={}){
     root.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 var(--s-4);">
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:var(--s-8);text-align:center;max-width:24rem;">
         <div style="color:${gone?'var(--st-amber-dot)':'var(--st-ruby-dot)'};margin-bottom:var(--s-3);display:flex;justify-content:center;">${icon(gone?'clock':'ban','w-8 h-8')}</div>
-        <h1 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:20px;color:var(--color-text);margin:0;">${gone==='revoked'?'Link withdrawn':gone==='expired'?'Link expired':'Invalid share link'}</h1>
+        <h1 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:20px;color:var(--color-text);margin:0;">${gone==='revoked'?'Link withdrawn':gone==='expired'?'Link expired':'Invalid share link'}</h1>${
+          ''/* WHOSE IT WAS (8 Oct 2026): the contract and who sent it, off the 410. */}${
+          gone&&opts.goneWho&&(opts.goneWho.contractName||opts.goneWho.sender)?`<p id="pt-gone-who" style="font-size:var(--t-body);color:var(--color-text);margin:8px 0 0;line-height:1.5;">${
+            opts.goneWho.contractName?`<b>${esc(opts.goneWho.contractName)}</b>`:''}${opts.goneWho.contractName&&opts.goneWho.sender?' · ':''}${
+            opts.goneWho.sender?esc(i18t('po_gone_from',{ who:opts.goneWho.sender+(opts.goneWho.org?', '+opts.goneWho.org:'') })):''}</p>`:''}
         <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin-top:6px;line-height:1.5;">${opts.goneMsg||(gone?'This share link is no longer active. Ask the sender to reshare the contract.':'This link is malformed or truncated. Ask the sender to generate a fresh one.')}</p>
       </div></div>`;
     return;

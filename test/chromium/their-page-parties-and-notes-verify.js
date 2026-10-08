@@ -147,6 +147,12 @@ const DEAL = {
     await page.evaluate(() => openNotesPanel('MK-F1', null, { force: true }));
     const quiet = await until(page, () => !buildAlerts().some(a => a.kind === 'note-theirs' && a.id === 'MK-F1'), null, 6000);
     ok('4c opening the notes drawer clears it', quiet);
+    /* ===== 5: a withdrawn link still says whose it was (F13) ===== */
+    await page.evaluate(async t => { await api('shares/' + t + '/revoke', 'POST', {}); }, tokA);
+    await j.goto(h.base + '/#share=t:' + tokA, { waitUntil: 'networkidle' });
+    const who = await until(j, () => !!document.getElementById('pt-gone-who'), null, 10000)
+      ? await j.evaluate(() => document.getElementById('pt-gone-who').textContent.replace(/\s+/g, ' ').trim()) : '';
+    ok('5a the withdrawn page names the contract and who sent it', /Three-way Haulage/.test(who) && /Amina Otieno/.test(who), who);
     ok('no page errors', !errs.length, errs.slice(0, 3).join(' | '));
   } catch (e) {
     ok('the stage ran to the end', false, e.stack || e.message);
