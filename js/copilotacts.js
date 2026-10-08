@@ -206,6 +206,7 @@ function caActOf(q){
   const t = String(q || '').trim(); if (!t) return null;
   const send = caReadSend(t); if (send) return send;
   const job = caReadJob(t); if (job) return job;
+  const door = caReadDoor(t); if (door) return door;
   if (typeof caReadDraft === 'function'){ const d = caReadDraft(t); if (d){ setTimeout(() => { caDraftRun(d); }, 0); return d; } }
   return null;
 }
@@ -223,6 +224,7 @@ function caCardHtml(a, i){
   if (!a || !Number.isInteger(i)) return '';
   if (a.kind === 'draft' && typeof caDraftCardHtml === 'function') return caDraftCardHtml(a, i);
   if (CA_JOBS.includes(a.kind)) return caJobCardHtml(a, i);
+  if (a.kind === 'door') return caDoorCardHtml(a, i);
   if (a.kind !== 'send') return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
@@ -256,6 +258,7 @@ async function caCardPress(i, act, btn){
   const m = caTurn(i); const a = m && m.act; if (!a) return;
   if (a.kind === 'draft' && typeof caDraftPress === 'function') return caDraftPress(i, act, btn);
   if (CA_JOBS.includes(a.kind)) return caJobPress(i, act, btn);
+  if (a.kind === 'door') return caDoorPress(i, act);
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (act === 'sendscreen'){ if (c && typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'note'){
@@ -530,6 +533,92 @@ async function caJobPress(i, act, btn){
   a.state = 'done';
   if (typeof renderIntelDock === 'function') renderIntelDock();
 }
+/* ============================================================
+   MORE JOBS, EACH ENDING IN ITS OWN DOOR (step 5 of the Home-first build,
+   Young 8 Oct 2026: "build all the steps")
+   ============================================================
+   Read from the words alone (no model, nothing spent). Each card names the
+   contract and what ONE press will open; the press opens HaTi's own screen for
+   that act — the send screen, the Signing tab's approval card, the hold
+   question, the filing rows, the amendment dialog, the negotiation memo, the
+   Paper's own tabs, the Negotiate page — and the person decides there (rule
+   7). Copilot sends, holds, files and signs nothing by itself, and no second
+   form is built for any of it (rule 2). A job that changes the wording or a
+   lock opens the Negotiate page (Home first: wording stays there). */
+const CA_DOORS = [
+  ['sendback', /\b(?:send|hand)\b[^.?!]*\b(?:round|it|this|them|changes)\b[^.?!]*\bback\b|\bsend (?:what is|what's) waiting\b/i],
+  ['signlink', /\b(?:send|share|issue)\b[^.?!]*\bfor sign(?:ing|ature)\b|\bsigning link\b/i],
+  ['resend', /\b(?:re-?send|send again)\b[^.?!]*\blink\b|\bfresh link\b|\blink\b[^.?!]*\bexpired\b/i],
+  ['adviser', /\b(?:share|send|show)\b[^.?!]*\b(?:lawyer|adviser|advisor|counsel)\b/i],
+  ['word', /\bword (?:version|file|copy|document)\b|\btracked changes\b/i],
+  ['approval', /\b(?:ask|request|get)\b[^.?!]*\bapproval\b|\bremind\b[^.?!]*\bapprov/i],
+  ['chase', /^\s*(?:please\s+)?chase\b/i],
+  ['done', /\bmark\b[^.?!]*\b(?:done|paid|complete|completed|delivered)\b/i],
+  ['hold', /\b(?:put|place)\b[^.?!]*\bon hold\b/i],
+  ['refile', /\b(?:move|re-?file)\b[^.?!]*\b(?:stream|folder)\b/i],
+  ['amend', /\b(?:make|create|start|draft)\b[^.?!]*\bamendment\b|\bamend (?:it|this|the)\b/i],
+  ['memo', /\bstatus (?:note|update|memo|report)\b|\bnegotiation memo\b/i],
+  ['open', /\bwhat(?:'s| is)? (?:still )?open\b|\bwhere (?:does|do) (?:the deal|we|it) stand\b/i],
+  ['minor', /\baccept\b[^.?!]*\b(?:small|minor|wording)\b/i],
+  ['counter', /^\s*(?:please\s+)?counter\b/i],
+  ['lock', /\b(?:hand|give|pass)\b[^.?!]*\block\b/i],
+];
+function caReadDoor(q){
+  const hit = CA_DOORS.find(([, re]) => re.test(q)); if (!hit) return null;
+  const c = caFindContract(q); if (!c) return null;
+  return { kind: 'door', door: hit[0], cid: c.id, state: 'ready' };
+}
+/* the Signing tab's own approval card (#sa-card): asked and reminded there */
+function caRoomSign(c){ if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof roomGoTab === 'function') try { roomGoTab(getContract(c.id) || c, 'sign'); } catch (_){} }
+const CA_DOOR_GO = {
+  sendback: c => (typeof pdSendWaiting === 'function') ? pdSendWaiting(c) : (typeof openRedlineWorkbench === 'function' && openRedlineWorkbench(c.id)),
+  signlink: c => openShareModal(c, { purpose: 'sign' }),
+  resend: c => openShareModal(c, { purpose: 'negotiate' }),
+  adviser: c => openShareModal(c, { purpose: 'advise' }),
+  word: c => openShareModal(c, { purpose: 'negotiate' }),
+  approval: c => caRoomSign(c),
+  chase: c => pdOpenOnHome(c.id, 'oblig'),
+  done: c => pdOpenOnHome(c.id, 'oblig'),
+  hold: async c => {
+    if (typeof contractSetHold !== 'function' || typeof promptDialog !== 'function') return false;
+    const why = await promptDialog({ title: _caT('hd_ask_title'), message: _caT('hd_ask_msg'), placeholder: _caT('hd_ask_ph'), confirmLabel: _caT('hd_hold'), multiline: true });
+    if (why == null) return false;
+    return contractSetHold(getContract(c.id) || c, true, why);
+  },
+  refile: c => { if (typeof openWorkspace === 'function') openWorkspace(c.id); if (typeof ovOpenFiling === 'function') ovOpenFiling(getContract(c.id) || c); },
+  amend: c => openCreateAmendmentModal(getContract(c.id) || c),
+  memo: c => openNegoMemo(getContract(c.id) || c),
+  open: c => pdOpenOnHome(c.id, 'deal'),
+  minor: c => pdOpenOnHome(c.id, 'deal'),
+  counter: c => openRedlineWorkbench(c.id),
+  lock: c => openRedlineWorkbench(c.id),
+};
+/* the function each door needs, so a stage that does not load it greys the card in words */
+const CA_DOOR_NEEDS = { sendback: 'openRedlineWorkbench', signlink: 'openShareModal', resend: 'openShareModal', adviser: 'openShareModal', word: 'openShareModal',
+  approval: 'openWorkspace', chase: 'pdOpenOnHome', done: 'pdOpenOnHome', hold: 'contractSetHold', refile: 'ovOpenFiling', amend: 'openCreateAmendmentModal',
+  memo: 'openNegoMemo', open: 'pdOpenOnHome', minor: 'pdOpenOnHome', counter: 'openRedlineWorkbench', lock: 'openRedlineWorkbench' };
+function caDoorCardHtml(a, i){
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  const B = (act, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
+  const head = c ? `<dl class="ca-dl"><dt>${_caE(_caT('ca_l_contract'))}</dt><dd>${_caE(caRef(c) + ' · ' + (c.name || ''))}</dd></dl>` : '';
+  const may = !!(c && typeof window[CA_DOOR_NEEDS[a.door]] === 'function');
+  return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_door_' + a.door))}</div>${head}
+    <p class="ca-foot" style="margin-top:0">${_caE(_caT('ca_door_' + a.door + '_says'))}</p>
+    ${a.state === 'done' ? `<p class="ca-said is-ok">${_caE(_caT('ca_job_opened'))}</p>`
+      : may ? `<div class="ca-acts">${B('door', _caT('ca_door_' + a.door + '_go'), true)}</div>`
+      : `<p class="ca-why">${_caE(_caT('ca_door_cannot'))}</p>`}</div>`;
+}
+async function caDoorPress(i, act){
+  const m = caTurn(i); const a = m && m.act; if (!a || act !== 'door') return;
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
+  const go = CA_DOOR_GO[a.door]; if (typeof go !== 'function') return;
+  let r = null;
+  try { r = await go(c); } catch (e){ if (typeof toast === 'function') toast((e && e.message) || String(e), 'err'); return; }
+  if (r === false) return;
+  a.state = 'done';
+  if (typeof renderIntelDock === 'function') try { renderIntelDock(); } catch (_){}
+}
+
 /* THE PREPARED ASKS on Home's Paper side, while the conversation is empty:
    one press each. Send for review writes "Send #REF to @" into the box and
    opens the people list — the person is the reader's to choose. */
@@ -671,6 +760,7 @@ if (typeof document !== 'undefined' && !document._caSelArmed){
   document.addEventListener('mousedown', e => { if (!e.target.closest || !e.target.closest('.nego-selmenu')) { if (document.querySelector('#ig-canvas') ) caSelKill(); } }, true);
 }
 
+Object.assign(window, { CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress,

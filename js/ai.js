@@ -2188,7 +2188,7 @@ async function aiLocalClaude(messages, context){
       const txt=content.filter(b=>b.type==='text').map(b=>b.text).join('').trim();
       /* NEVER a bare "could not produce an answer": say what to try instead.
          The blank version taught a real user that reports were impossible. */
-      final={answer:txt||AI_EMPTY_ANSWER,citations:[],compare:null}; break;
+      final={answer:txt||AI_EMPTY_ANSWER,citations:[],compare:null,empty:!txt}; break;
     }
     const deliver=toolUses.find(t=>t.name==='deliver_answer');
     if(deliver){
@@ -2201,7 +2201,7 @@ async function aiLocalClaude(messages, context){
     }
     working.push({role:'user',content:toolUses.map(t=>({type:'tool_result',tool_use_id:t.id,content:JSON.stringify(_localToolRun(t.name,t.input))}))});
   }
-  if(!final) final={answer:"I wasn't able to finish that — try narrowing the question or naming a specific contract.",citations:[],compare:null};
+  if(!final) final={answer:"I wasn't able to finish that — try narrowing the question or naming a specific contract.",citations:[],compare:null,unfinished:true};
   const ids=[]; final.citations.forEach(c=>{ if(!ids.includes(c.id)) ids.push(c.id); });
   if(final.compare) final.compare.columns.forEach(col=>{ if(col&&col.id&&!ids.includes(col.id)) ids.push(col.id); });
   final.cards=ids.map(id=>{ const c=aiContractByRef(id); return c?{id:c.id}:null; }).filter(Boolean);
