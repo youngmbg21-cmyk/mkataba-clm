@@ -9061,7 +9061,18 @@ function negWhoseMove(c){
   if (needs) return { k: 'you', n: needs };
   const open = (Array.isArray(c && c.changes) ? c.changes : [])
     .filter(x => x && x.status === 'pending' && !x.withdrawn).length;
-  if (!open) return { k: 'clear', n: 0 };
+  if (!open){
+    /* ---- THEIR FIRST LOOK (9 Oct 2026) ----
+       After the first send nothing is pending, and this answered "clear" —
+       the room said Neither, the bell nothing, while their page said "With
+       you". Handed to them AND a live copy in their hands (the server's
+       reading, never guessed) is their move: the next thing that has to
+       happen is that they read it. Anything less stays clear. */
+    const handed = !!(c && c.negotiation && c.negotiation.turn === 'counterparty');
+    if (handed && window.negoTheirCopy && negoTheirCopy(c) === 'live')
+      return { k: 'them', n: 0, why: 'firstlook', reach: 'live' };
+    return { k: 'clear', n: 0 };
+  }
   /* ---- AND "WITH THE OTHER SIDE" HAS TO BE TRUE TO BE SAID ----
      (owner-reported on MK-255, 13 Aug 2026.) This answered 'them' whenever
      anything was pending, without ever asking whether they could SEE it — and

@@ -16176,6 +16176,11 @@ function srvReachWanted(c) {
   if (!c || c.archived || c.status === 'Declined' || reachExecuted(c)) return false;
   const pending = Array.isArray(c.changes) && c.changes.some(x => x && x.status === 'pending' && !x.withdrawn);
   if (pending) return true;
+  /* HANDED TO THEM WITH NOTHING PENDING — their first look (9 Oct 2026). After
+     a first send nothing is proposed yet, and without this the room, the bell
+     and their page gave three answers to "whose move": whether they hold a
+     live copy is exactly what says it is theirs (negWhoseMove). */
+  if (c.negotiation && c.negotiation.turn === 'counterparty') return true;
   return Array.isArray(c.signerPlan) && c.signerPlan.some(s => s && s.party === 'counterparty' && !s.signed);
 }
 /* THE ONE READING. `rows` may be handed in (the list reads every contract's

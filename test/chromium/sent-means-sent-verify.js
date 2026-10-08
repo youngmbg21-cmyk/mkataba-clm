@@ -92,6 +92,14 @@ async function run(mode) {
         check(tag(`${ch}: the contract left Drafting`), f.status === 'Under Review', f.status);
         check(tag(`${ch}: the move is theirs`), f.turn === 'counterparty', f.turn);
         check(tag(`${ch}: the trail says sent`), /^Sent to/.test(f.last), f.last);
+        /* C4: after the first send nothing is pending — the room still says
+           whose move it is, and it is theirs (their first look). */
+        if (ch === 'email') {
+          const mv = await page.evaluate(id => { const c = state.contracts.find(x => x.id === id);
+            const m = negWhoseMove(c); const s = negoMoveSay(c); return { k: m.k, why: m.why, word: s.word, say: s.say }; }, id);
+          check(tag('after the first send the move reads as theirs'), mv.k === 'them' && mv.why === 'firstlook' && /Nandi Dairy/.test(mv.say),
+            JSON.stringify(mv));
+        }
       } else {
         check(tag(`${ch}: the button says Queued — email isn't set up`), /Queued/.test(lbl || ''), lbl);
         check(tag(`${ch}: the contract is still a draft`), f.status === 'Draft', f.status);
