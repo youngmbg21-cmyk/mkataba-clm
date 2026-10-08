@@ -1165,9 +1165,30 @@ function renderTemplateFormSection(c) {
      object in state; a press bound to the drawn object then wrote to a copy
      nobody keeps, and the next repaint showed the press as lost. */
   const live = () => (typeof getContract === 'function' && getContract(c.id)) || c;
-  host.querySelector('[data-tplf-fill]')?.addEventListener('click', () => tplFormApply(live()));
-
   const commit = (idx, value) => tplFormCommit(live(), idx, value);
+  /* THE PRESS ACTS WHEN IT LANDS (8 Oct 2026). Leaving a box for this button
+     commits the answer, and that commit repaints the panel between the mouse
+     going down and coming up; on CI's browser the click was then dropped and
+     the paper never filled. So a pointer press does the whole act on the way
+     down — the box still being typed in is committed first, by the same
+     writer — and the click that follows is let go; a keyboard press (Enter,
+     Space) still arrives as a click. */
+  const fillBtn = host.querySelector('[data-tplf-fill]');
+  if (fillBtn) {
+    let downDone = false;
+    fillBtn.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || fillBtn.disabled) return;
+      const box = host.querySelector('[data-tplf]:focus');
+      if (box) commit(Number(box.getAttribute('data-tplf')), box.value);
+      downDone = true;
+      setTimeout(() => { downDone = false; }, 1500);   // a press dragged off the button sends no click
+      tplFormApply(live());
+    });
+    fillBtn.addEventListener('click', () => {
+      if (downDone) { downDone = false; return; }
+      tplFormApply(live());
+    });
+  }
   host.querySelectorAll('[data-tplf]').forEach(el => {
     el.addEventListener('change', () => commit(Number(el.getAttribute('data-tplf')), el.value));
   });
@@ -1233,7 +1254,17 @@ function tplFormPaintFill(c) {
   if (!btn) return;
   const owed = tplFormPending(c);
   btn.disabled = !owed;
-  btn.innerHTML = `${icon('sparkle', 'w-3 h-3')} ${esc(i18t(owed ? 'tl_fill_doc' : 'tl_fill_doc_done'))}`;
+  /* THE PRESS MUST SURVIVE THE ANSWER IT CLOSES (8 Oct 2026): leaving a box
+     for this button commits the answer and repaints the button between the
+     mouse going down and coming up. Rewriting its insides then took the icon
+     the press began on out of the page, and the browser dropped the click
+     (CI's fonts put the centre on the icon). It is rewritten only when what
+     it says changes; its insides never take the press (.hati-fill-btn > *). */
+  const say = i18t(owed ? 'tl_fill_doc' : 'tl_fill_doc_done');
+  if (btn.dataset.say !== say) {
+    btn.innerHTML = `${icon('sparkle', 'w-3 h-3')} ${esc(say)}`;
+    btn.dataset.say = say;
+  }
   btn.title = owed ? i18t('tl_fill_doc_hint') : i18t('tl_fill_doc_none');
 }
 function tplFormPaintRow(c, idx) {

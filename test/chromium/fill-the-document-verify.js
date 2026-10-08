@@ -153,7 +153,15 @@ const owed = (page, id) => page.evaluate(x => {
         if (!b) return 'no button'; const r = b.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
         return { disabled: b.disabled, onTop: at === b || b.contains(at) ? 'button' : (at ? (at.id || at.className || at.tagName) : 'nothing'),
           y: Math.round(r.top), vh: innerHeight, focused: (document.activeElement || {}).getAttribute ? document.activeElement.getAttribute('data-tplf') : null }; });
-      await page.click('#tplform-section [data-tplf-fill]', { timeout: 8000 }).catch(e => { press.error = String(e.message).split('\n')[0].slice(0, 160); });
+      /* THE PRESS BEGINS ON THE ICON, every run (8 Oct 2026): CI's fonts put
+         the button's centre on its icon, and the commit that leaving the box
+         makes repainted the button's insides between mouse-down and mouse-up,
+         so the click was dropped. Pressing there stages it here. */
+      const spot = await page.evaluate(() => { const b = document.querySelector('#tplform-section [data-tplf-fill]');
+        const i = b && (b.querySelector('svg') || b.firstElementChild); const r = (i || b).getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+      try { await page.mouse.move(spot.x, spot.y); await page.mouse.down(); await page.mouse.up(); }
+      catch (e) { press.error = String(e.message).split('\n')[0].slice(0, 160); }
       /* A WAIT ASKS FOR THE STATE, BOUNDED (7 Oct 2026): a fixed 500ms was
          too short on a loaded CI runner, where the press had not finished
          repainting the paper when the reading was taken. */
