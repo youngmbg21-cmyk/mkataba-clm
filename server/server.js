@@ -21206,7 +21206,12 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
   const uid = (Number(getSetting('uid')) || 100) + 1;
   const c = {
     id: 'MK-' + uid,
-    name: clean(b.name).slice(0, 200) || t.name,
+    /* ONE NAME, WHICHEVER DOOR (9 Oct 2026): HaTi's own templates name a
+       draft "<Template> — <Counterparty>" (createFromWizard); this door named
+       it the template alone, so two contracts with two counterparties read
+       alike on every list. Stored names are never rewritten. */
+    name: clean(b.name).slice(0, 200)
+      || (clean(b.counterparty).slice(0, 120) ? `${t.name} — ${clean(b.counterparty).slice(0, 120)}` : t.name),
     /* ASKED AT CREATION, NOT LEFT BLANK. These five were hardcoded empty, so a
        contract born from a company standard template arrived with no
        counterparty for the register to filter on, no value for the reports to
@@ -21248,7 +21253,10 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
     ...(Number(b.value) > 0 ? { valueType: 'estimated' }
       : String(t.category || '') === 'nda' ? { valueType: 'none' } : {}),
     status: 'Draft', template: null, folder, source: null,
-    lastAction: 'Created from template',
+    /* A DAY, like every other creation door writes (9 Oct 2026): this was the
+       words "Created from template", which the room head printed as
+       "updated Created from template". The trail says how it was made. */
+    lastAction: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
     expiry: /^\d{4}-\d{2}-\d{2}$/.test(String(b.expiry || '')) ? String(b.expiry) : null,
     hash: null, signedAt: null,
     format: 'rich', redlineText: templateFormDocHtml(form),

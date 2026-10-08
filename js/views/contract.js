@@ -9814,7 +9814,12 @@ function roomHeadSubHtml(c, opts = {}){
   if (c && c.archived) bits.push(esc(i18t('ct_archived_tag')));
   const owner = (typeof contractOwnerName === 'function') ? contractOwnerName(c) : '';
   if (owner) bits.push(`${esc(i18t('ov_f_owner'))} <b class="room-sub-owner">${esc(owner)}</b>`);
-  if (c && c.lastAction) bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
+  /* "updated" ONLY BEFORE A DATE (9 Oct 2026): a company standard's contract
+     was born with lastAction "Created from template" — words, not a day — and
+     the head read "updated Created from template". A stored value is never
+     rewritten; one that names no year is simply not printed here. */
+  if (c && c.lastAction && /\b(19|20)\d{2}\b/.test(String(c.lastAction)))
+    bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
   const needs = opts.needs ? `<span id="ws-round-needs-slot">${negoRoundNeedsHtml(c)}</span>` : '';
   /* ---- WHO ELSE HAS THIS OPEN (idea 5, 4 Oct 2026) ----
      A SLOT, painted by the beat rather than built here, because this is the

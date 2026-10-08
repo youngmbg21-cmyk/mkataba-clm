@@ -2279,6 +2279,7 @@ const STRINGS = {
     hd_not_yours: 'Putting a contract on hold is a permission an admin grants person by person.',
     tf_our_side: 'Which side are we on?',
     tf_side_none: 'Neither — no one pays',   /* as long as its two siblings, so the box never cuts it (the owner's list, 27 Sep 2026) */
+    tf_side_unset: 'Not recorded — choose who pays',
     tf_side_customer: 'We are the customer — we pay them',
     tf_side_supplier: 'We are the supplier — they pay us',
     ov_f_name_ph: 'What this agreement is called',
@@ -15719,6 +15720,7 @@ const STRINGS = {
     hd_not_yours: 'Att pausa ett avtal är en behörighet som en administratör ger person för person.',
     tf_our_side: 'Vilken sida står vi på?',
     tf_side_none: 'Ingen — ingen betalar',
+    tf_side_unset: 'Inte angivet — välj vem som betalar',
     tf_side_customer: 'Vi är kunden — vi betalar dem',
     tf_side_supplier: 'Vi är leverantören — de betalar oss',
     ov_f_name_ph: 'Vad detta avtal heter',

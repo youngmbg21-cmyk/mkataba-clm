@@ -310,8 +310,11 @@ describe('f332 (6) which side of the money we are on is asked at creation', () =
       'the same field the upload path fills — one reading, not two');
   });
 
-  test('6b "neither" writes nothing at all', () => {
-    assert.match(read('js/templatefields.js'), /v:'', l:i18t\('tf_side_none'\)/);
+  test('6b "not recorded" writes nothing at all', () => {
+    /* RE-POINTED 9 Oct 2026 (functional review C12): the empty answer used to
+       read "Neither — no one pays", a claim; it reads "not recorded" now and
+       still writes nothing. */
+    assert.match(read('js/templatefields.js'), /v:'', l:i18t\('tf_side_unset'\)/);
     assert.match(read('js/templatefields.js'), /if\(v==='' \|\| v==null\) continue;/,
       'applyTemplateValues skips an empty answer, so no category is claimed');
   });
