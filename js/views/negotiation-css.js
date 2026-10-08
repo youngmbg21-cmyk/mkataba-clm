@@ -6146,6 +6146,13 @@ function redlineLayoutCss(){
          .nego-grid draws no frame — the paper sits on the page ground and
          the column's own left hairline is the only line. */}
   .redline-page #rl-grid.nego-work{border:0;border-radius:0}
+  ${''/* NO GREY SHEET UNDER THE PAPER (Young, 9 Oct 2026, the Paper and
+         Counter review, change 3): the column took the canvas's own grey
+         (--n-canvas), which read as a second sheet under the white one. On
+         this page the column takes no colour of its own — the paper lies on
+         the page ground with its soft shadow; width, gap and type unchanged.
+         Home's Paper is not this page and keeps its ground. */}
+  .redline-page #nego-root,.redline-page #rl-grid.nego-work{background:transparent}
   .redline-page .rl-side{padding:0}
   .redline-page .rl-idx{padding:12px var(--s-4);border-bottom:2px solid var(--accent-solid)}
   .redline-page .rl-idx-top{align-items:center;gap:8px;border-bottom:0;margin-bottom:0}
