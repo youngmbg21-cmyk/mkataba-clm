@@ -61,6 +61,13 @@ const KNOWN_RED = {
     'verify (Review opens the work below the card), agents-do-the-work-verify and ' +
     'no-link-to-sign-verify (the readings and panels). Take it off when it is ported ' +
     'to the Board (BUGLOG, 8 Oct 2026).',
+  'clause-door-verify.js':
+    'STALE AFTER A DELIBERATE CHANGE, 9 Oct 2026: Young ruled "No pen on any paper" (the ' +
+    'Paper and Counter review, change 5) — at an editor-taking width the clause carries no ' +
+    'pencil and a click in the wording types in place. This file measures that pencil ' +
+    '(sections 1, 2, 15–17) and opens the clause panel through it, so it stops at section 1. ' +
+    'The new door is measured by click-type-save-verify; the panel still lives under 1024px. ' +
+    'Take it off when its panel sections are re-staged at a narrow width.',
   'white-band-and-tabs-verify.js':
     '36 of 38 PASS. The two that do not are 5d/5e. WIDENED 24 Aug 2026 (WO-16): ' +
     'the list titles are now deliberately ONE RUNG under the reference on the ' +
