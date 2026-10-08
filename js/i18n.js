@@ -3363,7 +3363,7 @@ const STRINGS = {
     ng_read_note_k: 'How you are reading it',
     ng_read_note_agreed: 'Reading the wording as it stands today — proposals are not applied.',
     ng_read_note_proposed: 'Reading with every proposed change folded in — this is the contract you would have if you accepted the round.',
-    ng_read_back: 'Back to redlined',
+    ng_read_back: 'Back to Redline',
     ng_reading_no_edit: 'Reading only — go back to Redline to make a change.',
     ng_notices_fab: 'Internal alerts — press to open',
     ng_notices_fab_ready: 'The counterparty is ready to sign — open to read it',
