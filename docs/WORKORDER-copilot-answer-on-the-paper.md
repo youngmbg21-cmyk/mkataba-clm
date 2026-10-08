@@ -1,6 +1,6 @@
 # WORK ORDER — Copilot's answer on the paper, the button that glows, and one paper on Home
 
-**Status: APPROVED — NOT BUILT; Part C's look waits on the owner's pick (owner, 8 Oct 2026: "yes to both. Now add this to the work order … Note this but do not code yet").**
+**Status: APPROVED — NOT BUILT; Part C's look picked: Home paper (owner, 8 Oct 2026: "yes to both. Now add this to the work order … Note this but do not code yet").**
 
 **What the owner has seen:** "Ask Copilot to Redo"
 (https://claude.ai/artifact/FfgMUDhPkfMLxgVv8ZPE5j), its "Proposed · not built"
@@ -185,11 +185,41 @@ with corner marks. Pin this as a RELATION (`test/tokens.js`), never a number:
 the paper area's background, the sheet's width and the gap equal Home
 Redlined's on every screen. The round's queue tab stays on the Negotiate page
 and their page. The owner's drawings were made with the Home paper selected;
-confirm that this is the pick before building.
+**PICKED: Home paper (owner, 8 Oct 2026: "i am choosing the home paper").** Build only the Home paper look; the Negotiate paper is not built.
 
 **Check:** on all five screens, the same paper width, the same title block and
 the same clause-heading size and weight. The clean ones carry zero `del`/`ins`
 and no step labels, and show the standing wording. Red at the parent.
 
-**Order:** Part B first (a defect on a live screen), then Part C (the paper
+## Part D · Remove the Focus button from Home's Paper (owner, 8 Oct 2026)
+
+**The owner's words:** "add the removal of the focus button from the paper tab
+to the list of fixes."
+
+Home's Paper strip carries Focus (`data-ig-focus`, toggling `intel.paper.focus`,
+drawn in `igPaintPaper`'s strip next to Clean | Redlined). Remove the button
+and its press handler. A stored `focus: true` from an earlier sitting must not
+leave the paper stuck full size: read it as false.
+
+**This reverses part of decision 10 (8 Oct 2026, "One view, two sizes": Focus
+was the full-size door on Home, and "Open workspace" was removed for it).**
+After this, Home's Paper has no full-size view of its own. The room stays
+reachable through the panel's tabs and their "Open the …" links. Say this
+reversal in the summary and replace the HOME FIRST line in CLAUDE.md's MAP
+("Focus is the full size") in the same change.
+
+Only Home's Paper loses it. The Document tab's Focus, the Negotiate page's
+Focus and their page's Focus stay: they are other screens, and nothing was
+asked of them. Find every place `data-ig-focus` and `int_focus*` appear before
+removing (Bug Fix Rule 2). Retire the i18n keys by leaving them inert in BOTH
+books.
+
+**Check:** Home's Paper strip has no Focus button. Clean | Redlined and
+"Another contract" stay where they are. An old stored focus does not open
+full size. Red at the parent.
+
+**Order:** Part D (small, alone), Part B, Part C, then Part A. Part D was asked
+last but touches nothing the others need.
+
+**Order (as first written):** Part B first (a defect on a live screen), then Part C (the paper
 both other parts draw on), then Part A.
