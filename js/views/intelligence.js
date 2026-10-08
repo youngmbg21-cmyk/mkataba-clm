@@ -7099,8 +7099,9 @@ function igRedOn(c){ const p=intel.paper; if(!p) return false;
   return !!(want&&window.pdRedOk&&pdRedOk(c)&&typeof window.redlineDocHtml==='function'); }
 /* ONE PAPER ON HOME (owner, 8 Oct 2026: "the clean paper should look the same
    exact way but without the redlines"): where Redlined is offered, Clean is
-   the SAME canvas with every change hidden — the wording that stands, no
-   marks, no step labels — so pressing Clean | Redlined never moves the page. */
+   the SAME canvas with every change still open hidden — the wording that
+   stands (an agreed change keeps its words, its marks taken off in the
+   stylesheet), no step labels — so pressing Clean | Redlined never moves the page. */
 function igCleanOnRed(c){ return !igRedOn(c)&&igHomePaperFace()!==null&&!!(window.pdRedOk&&pdRedOk(c))&&typeof window.redlineDocHtml==='function'; }
 function igPaperKey(c){ return c.id+(igRedOn(c)?':red':igCleanOnRed(c)?':clean':''); }
 function igPaperHtml(c){
@@ -7109,7 +7110,7 @@ function igPaperHtml(c){
   if(igRedOn(c)||clean){
     if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }
     if(typeof window.redlineLayoutCss==='function') try{ redlineLayoutCss(); }catch(_){ }
-    const hide=clean?(Array.isArray(c.changes)?c.changes:[]).filter(Boolean).map(x=>x.id):null;
+    const hide=clean?(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.status!=='accepted').map(x=>x.id):null;
     let body=''; try{ body=redlineDocHtml(c,{ side:'owner', readonly:true, ...(hide?{ hiddenIds:hide }:{}) }); }catch(_){ body=''; }
     sheet=`<div class="ig-redpaper nego-onpaper${clean?' is-clean':''}" style="padding:20px 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
   }

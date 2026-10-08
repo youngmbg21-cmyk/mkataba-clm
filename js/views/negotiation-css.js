@@ -6375,18 +6375,21 @@ function redlineLayoutCss(){
   .redline-page #rl-doc{background:var(--desk-ground)}
   .redline-page #rl-doc .nego-scroll{padding-top:29px}
   .redline-page .nego-pane article.nego-doc.rl-paper,.redline-page article.nego-doc.rl-paper{--rl-paper-pad:38px;max-width:720px;padding:34px 38px 44px;
-    box-shadow:var(--n-shadow-card);font-size:calc(14px * var(--doc-scale,1));line-height:1.72;color:#222a33}
-  html.dark .redline-page article.nego-doc.rl-paper{color:var(--n-ink)}
+    box-shadow:var(--n-shadow-card)}
+  ${''/* The type is Home's too, except where the contract wears a design ([data-doc-body]): a design keeps its own type. */}
+  .redline-page :not([data-doc-body]) > article.nego-doc.rl-paper{font-size:calc(14px * var(--doc-scale,1));line-height:1.72;color:#222a33}
+  html.dark .redline-page :not([data-doc-body]) > article.nego-doc.rl-paper{color:var(--n-ink)}
   .redline-page article.nego-doc .pg-corner{display:none}
-  .redline-page article.nego-doc .rl-paper-title{font-size:calc(20px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:-.01em}
-  .redline-page article.nego-doc .rl-paper-sub{font-size:calc(13px * var(--doc-scale,1))}
-  .redline-page article.nego-doc .rl-clause{margin:0 0 22px;padding:10px var(--s-3)}
+  .redline-page :not([data-doc-body]) > article.nego-doc .rl-paper-title{font-size:calc(20px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:-.01em}
+  .redline-page :not([data-doc-body]) > article.nego-doc .rl-paper-sub{font-size:calc(13px * var(--doc-scale,1))}
+  .redline-page article.nego-doc .nego-clause.rl-clause{margin:0 0 22px;padding:10px var(--s-3)}
   .redline-page article.nego-doc .rl-clause.is-changed::after,
   .redline-page article.nego-doc .rl-front.is-changed::after{display:none}
   .redline-page article.nego-doc .rl-clause-top{display:block}
-  .redline-page article.nego-doc .rl-clause-h{margin:0;letter-spacing:-.01em;line-height:1.72;color:var(--color-doc-text)}
-  .redline-page article.nego-doc :is(.rl-front,.nego-body,.rl-paper-foot,.rl-sigline,.rl-sigrule){font-size:calc(14px * var(--doc-scale,1));line-height:1.72;color:inherit}
-  .redline-page article.nego-doc :is(.rl-line,.nego-body p){line-height:1.72;color:inherit}
+  .redline-page article.nego-doc .rl-clause-h{margin:0;line-height:1.72}
+  .redline-page :not([data-doc-body]) > article.nego-doc .rl-clause-h{letter-spacing:-.01em;color:var(--color-doc-text)}
+  .redline-page :not([data-doc-body]) > article.nego-doc :is(.rl-front,.nego-body,.rl-paper-foot,.rl-sigline,.rl-sigrule){font-size:calc(14px * var(--doc-scale,1));line-height:1.72;color:inherit}
+  .redline-page :not([data-doc-body]) > article.nego-doc :is(.rl-line,.nego-body p){line-height:1.72;color:inherit}
   .redline-page article.nego-doc .rl-rung{display:inline-block;margin:0;padding:0;border-radius:0;background:none;
     font:inherit;font-weight:var(--w-body,400);letter-spacing:normal;text-transform:none;color:inherit;max-width:none}
   ${''/* Reading an older move is a live state, not decoration: its label keeps the ruby. */}

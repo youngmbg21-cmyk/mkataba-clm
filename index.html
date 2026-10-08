@@ -8023,6 +8023,8 @@
   .ig-redpaper{background:transparent}
   /* Clean on the same canvas: the wording that stands, no step labels (8 Oct 2026) */
   .ig-redpaper.is-clean .rl-rung{display:none}
+  .ig-redpaper.is-clean del{display:none}
+  .ig-redpaper.is-clean ins{text-decoration:none;background:none;color:inherit}
   /* ---- ONE PAPER EVERYWHERE: THE HOME PAPER ON THE DOCUMENT TAB (owner, 8 Oct
      2026, "i am choosing the home paper … No differences at all") ----
      The Document tab's sheet, and Home's own sheet for a contract with no
@@ -8032,7 +8034,7 @@
      clause rhythm). The wording and every control on the Document tab are its
      own; only the clothes match. A contract that wears a design keeps it
      ([data-doc-body]). Sizes run on --doc-scale, so A⁻/A⁺ still scale. */
-  #doc-paper-col{background:var(--desk-ground);--doc-scroll-pad:29px 2px var(--s-6)}
+  #doc-paper-col:has(.pg-sheet.pg-work){background:var(--desk-ground);--doc-scroll-pad:29px 2px var(--s-6)}
   :is(#doc-paper-col,#ig-paper){--doc-sheet-max:720px;--doc-sheet-pad:34px calc(38px + var(--s-3)) 44px}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]){box-shadow:var(--n-shadow-card,0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07))}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work .pg-corner{display:none}
