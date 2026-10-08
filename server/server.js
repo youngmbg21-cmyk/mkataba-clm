@@ -1955,12 +1955,26 @@ function srvRuleMatches(rule, c) {
     default: return false;
   }
 }
-/* approvalStamp's twin: the amount, and a cheap hash of the words. */
+/* approvalStamp's twin (js/approvals.js, v2 since 8 Oct 2026 — B6): the
+   amount, a cheap hash of the WORDS, the terms that were filled in, the
+   parties — and `legacy`, the v1 hash a stamp from before is compared with. */
+const srvApHash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h.toString(16); };
 function srvApprovalStamp(c) {
-  const doc = String((c && c.redlineText) || '') + '\u0000' + JSON.stringify((c && c.fields) || {})
-    + '\u0000' + String((c && c.upload && c.upload.fileHash) || '');
-  let h = 0; for (let i = 0; i < doc.length; i++) h = (h * 31 + doc.charCodeAt(i)) >>> 0;
-  return { value: Number((c && c.value) || 0), doc: h.toString(16) };
+  const f = (c && c.fields) || {}, fields = {};
+  Object.keys(f).sort().forEach(k => { const v = f[k]; if (v != null && String(v).trim() !== '') fields[k] = String(v); });
+  return { v: 2, value: Number((c && c.value) || 0),
+    doc: srvApHash(String((c && c.redlineText) || '') + '\u0000' + String((c && c.upload && c.upload.fileHash) || '')),
+    fields, parties: srvApHash([c && c.party, c && c.counterparty].map(x => String(x || '').trim().toLowerCase()).join('|')),
+    legacy: srvApHash(String((c && c.redlineText) || '') + '\u0000' + JSON.stringify((c && c.fields) || {})
+      + '\u0000' + String((c && c.upload && c.upload.fileHash) || '')) };
+}
+/* A filled blank is not a change; a filled term that moved is (approvalDrift). */
+function srvApprovalStampMoved(st, n) {
+  if (!st || !n) return false;
+  if (Number(st.value || 0) !== n.value) return true;
+  if (Number(st.v || 0) < 2) return String(st.doc || '') !== n.legacy;
+  if (String(st.doc || '') !== n.doc || String(st.parties || '') !== n.parties) return true;
+  return Object.keys(st.fields || {}).some(k => String((n.fields || {})[k] == null ? '' : n.fields[k]) !== String(st.fields[k]));
 }
 /* Every matched rule whose step is not a live approval: pending, refused, or
    approved over a contract that has moved since. */
@@ -1983,8 +1997,7 @@ function srvApprovalChainOpen(c) {
 function srvRuleYesLapsed(step, now) {
   const st = step && step.stamp;
   const n = now || null;
-  return askLapsed({ state: 'yes' }, { drift: () => (st && n && (Number(st.value || 0) !== n.value
-    || String(st.doc || '') !== n.doc)) ? ['stamp'] : [] }).lapsed;
+  return askLapsed({ state: 'yes' }, { drift: () => srvApprovalStampMoved(st, n) ? ['stamp'] : [] }).lapsed;
 }
 /* ---- THE APPROVAL RULES ARE A WALL, NOT ONLY A SCREEN (the owner's list,
    27 Sep 2026) ----

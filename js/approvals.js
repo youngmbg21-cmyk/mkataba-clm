@@ -82,11 +82,29 @@ function userCanApprove(a, u){
    amount, and the words. `null` for a record that was approved before stamps
    existed, which is treated as "we cannot know" and left alone rather than
    invalidated retroactively. */
+/* ---- A FILLED BLANK IS NOT A CHANGE (B6, 8 Oct 2026) ----
+   The stamp hashed every field, so filling in the blanks the Signing tab
+   itself demands lapsed the approval just given (the 9 Oct review). v2 keeps
+   the WORDS (the stored wording, the file) in `doc` and the terms filled in
+   at the moment of approval in `fields`: a term that was filled and has since
+   moved or been emptied is a change; a blank filled in afterwards is not —
+   the rule the outside route keeps (ohBlankHits). The parties are stamped
+   too. A v1 stamp (no `v`) is compared the way it always was, so no approval
+   given before this lapses on deploy. srvApprovalStamp is the server's twin. */
+function _apHash(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h.toString(16); }
 function approvalStamp(c){
-  const doc=String((c&&c.redlineText)||'')+'\u0000'+JSON.stringify((c&&c.fields)||{})
-    +'\u0000'+String((c&&c.upload&&c.upload.fileHash)||'');
-  let h=0; for(let i=0;i<doc.length;i++) h=(h*31+doc.charCodeAt(i))>>>0;
-  return { value:Number((c&&c.value)||0), doc:h.toString(16) };
+  /* self-contained on purpose: f409, f466 and f488 lift this one function
+     out and run it as the stamp a press records */
+  const hash=s=>{ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h.toString(16); };
+  const f=(c&&c.fields)||{}, fields={};
+  Object.keys(f).sort().forEach(k=>{ const v=f[k]; if(v!=null && String(v).trim()!=='') fields[k]=String(v); });
+  const words=String((c&&c.redlineText)||'')+'\u0000'+String((c&&c.upload&&c.upload.fileHash)||'');
+  return { v:2, value:Number((c&&c.value)||0), doc:hash(words), fields,
+    parties:hash([c&&c.party, c&&c.counterparty].map(x=>String(x||'').trim().toLowerCase()).join('|')) };
+}
+function _apLegacyDoc(c){
+  return _apHash(String((c&&c.redlineText)||'')+'\u0000'+JSON.stringify((c&&c.fields)||{})
+    +'\u0000'+String((c&&c.upload&&c.upload.fileHash)||''));
 }
 /* What moved since this step was approved, in the words a person would use.
    Empty means nothing did. An unstamped approval reports nothing moved, because
@@ -97,7 +115,12 @@ function approvalDrift(step, c){
   const out=[];
   if(Number(was.value||0)!==now.value)
     out.push(`the value changed from ${fmtMoneyShort(was.value||0)} to ${fmtMoneyShort(now.value)}`);
-  if(String(was.doc||'')!==now.doc) out.push('the wording changed');
+  if(Number(was.v||0)>=2){
+    if(String(was.doc||'')!==now.doc) out.push('the wording changed');
+    const moved=Object.keys(was.fields||{}).filter(k=>String((now.fields||{})[k]==null?'':now.fields[k])!==String(was.fields[k]));
+    if(moved.length) out.push(`a term filled in at approval changed (${moved.slice(0,3).join(', ')})`);
+    if(String(was.parties||'')!==now.parties) out.push('the parties changed');
+  } else if(String(was.doc||'')!==_apLegacyDoc(c)) out.push('the wording changed');
   return out;
 }
 
