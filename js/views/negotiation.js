@@ -4152,7 +4152,13 @@ function wireNegotiationTab(c, opts = {}){
        words the send itself will refuse with. */
     if (window.linkRefusal){
       let no = null; try{ no = linkRefusal(c, { purpose: 'negotiate' }); }catch(_){ no = null; }
-      if (no){ if (window.toast) toast(no.why, 'err'); return; }
+      if (no){
+        /* …with the Review door where changes nobody was asked about are the
+           reason (9 Oct 2026 review). */
+        const act = (no.kind === 'review' && window.reviewGateAskAction) ? reviewGateAskAction(c) : null;
+        if (window.toast) toast(no.why, 'err', act ? { action: act } : undefined);
+        return;
+      }
     }
     /* ---- AND THE SOFTER CASE: SOME OF THIS IS STILL BEING LOOKED AT ----
        With the rule off, sending wording that is sitting with a colleague is
@@ -7289,7 +7295,9 @@ function rlLadderSectionHtml(c, cl, side, opts = {}){
       } else if (unsent){
         acts.push(door(i18t('act_edit'), ''));
         acts.push(`<button type="button" data-rl-send="${_nea(r.id)}">${_ne(i18t('ng_send'))}</button>`);
-        acts.push(`<button type="button" class="grey" data-rl-retract="${_nea(r.id)}">${_ne(i18t('ng_discard'))}</button>`);
+        /* Discard only for those who may (D3, 9 Oct 2026) — read RAW off c.changes. */
+        if (!window.negoMayDiscard || negoMayDiscard(c, (Array.isArray(c.changes) ? c.changes : []).find(x => x && x.id === r.id) || r))
+          acts.push(`<button type="button" class="grey" data-rl-retract="${_nea(r.id)}">${_ne(i18t('ng_discard'))}</button>`);
       }
     }
     /* ---- WHY THERE IS NO "ACCEPT THIS EARLIER ASK" VERB ----
@@ -12148,11 +12156,18 @@ function rlWireClauseTools(c, host, opts){
     openReviewAskModal(c, { ids: [btn.getAttribute('data-rl-ask-review')], after: () => again() });
   }));
 
-  host.querySelectorAll('[data-rl-retract]').forEach(btn => btn.addEventListener('click', ev => {
+  host.querySelectorAll('[data-rl-retract]').forEach(btn => btn.addEventListener('click', async ev => {
     ev.preventDefault(); ev.stopPropagation();
     const chId = btn.getAttribute('data-rl-retract');
     if (!window.negoRetractDraft) return;
     const side = (opts && opts.side) === 'counterparty' ? 'counterparty' : 'owner';
+    /* ALWAYS ASKED FIRST (owner decision D3, 9 Oct 2026): one press used to
+       delete a draft with no way back. */
+    const was = (Array.isArray(c.changes) ? c.changes : []).find(x => x && x.id === chId) || {};
+    if (window.confirmDialog && !(await confirmDialog({ danger: true,
+      title: i18t('ng_discard_confirm_title', { id: chId }),
+      message: i18t('ng_discard_confirm_msg', { what: was.summary || was.clauseLabel || chId }),
+      confirmLabel: i18t('ng_discard') }))) return;
     /* THE BUTTON AND THE RULE HAVE TO ASK ONE QUESTION. This card is drawn from
        opts.unsentIds where the mount supplies them (the counterparty's page
        does), so the engine is handed the same list rather than deriving a
@@ -18829,7 +18844,10 @@ function redlineChangeCardsHtml(c, opts = {}){
     /* …but not while it is inside an open review (26 Sep 2026, the overnight
        clean-up): a reviewer's row offered Discard on the colleague's draft
        they had just cleared, and one press deleted it under an open review. */
-    if (editable && (mineUnsent || rvHeld) && !(window.reviewInOpen && reviewInOpen(c, ch))) verbs.push(`<button class="rl-rej" data-rl-retract="${_nea(ch.id)}"
+    /* …and only for those who may discard it (owner decision D3, 9 Oct 2026):
+       the draft's author, the lead or an admin — negoMayDiscard. */
+    if (editable && (mineUnsent || rvHeld) && !(window.reviewInOpen && reviewInOpen(c, ch))
+        && (!window.negoMayDiscard || negoMayDiscard(c, ch))) verbs.push(`<button class="rl-rej" data-rl-retract="${_nea(ch.id)}"
         title="${_nea(i18t('ng_retract_title',{who:c.counterparty || i18t('ng_the_counterparty')}))}">${i18t('ng_retract')}</button>`);
     /* The one verb on this card that reaches the other company, so the one the
        reviewer's posture takes away. Retract above stays: taking your own draft

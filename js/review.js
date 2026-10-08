@@ -1055,12 +1055,50 @@ function reviewSendWarning(c){
    send door calls this and prints exactly what it returns, so the workbench,
    the share dialog and the readiness panel cannot each invent their own account
    of the same rule. */
+/* ---- A CHANGE NOBODY WAS ASKED ABOUT IS SAID BY ITS OWN NAME (9 Oct 2026
+   review) ----
+   Measured: with the gate on, Send all refused a brand-new, never-reviewed
+   change with "These changes are with <reviewer> for internal review" — the
+   reviewer of an OLD request still open on another change — and gave no way
+   forward. The unsent changes nobody has been asked about and nobody has ever
+   ruled on are named first, with the Review door (reviewGateAskAction); a
+   reviewer is named only for the changes actually with them. */
+function reviewGateFresh(c, g){
+  const gate = g || reviewGate(c);
+  return (gate.unreviewed || []).filter(x => x && !reviewOutFor(c, x) && !(x.review && x.review.verdict));
+}
+function reviewGateRefs(list){
+  const ids = list.map(x => '#' + x.id);
+  if (ids.length === 1) return ids[0];
+  if (ids.length === 2) return i18t('rv_two_names', { a: ids[0], b: ids[1] });
+  return i18t('rv_many_names', { a: ids[0], b: ids[1], n: ids.length - 2 });
+}
+/* The way forward that goes with the refusal: the review dialog, opened on the
+   changes nobody was asked about. Null where there are none (or the dialog is
+   not on this page). Shaped for toast()'s own action. */
+function reviewGateAskAction(c){
+  if (typeof window === 'undefined' || !window.openReviewAskModal) return null;
+  let fresh = [];
+  try { const g = reviewGate(c); if (!g.ok) fresh = reviewGateFresh(c, g); } catch (_){ fresh = []; }
+  if (!fresh.length) return null;
+  return { label: i18t('rv_card_ask'), onClick: () => window.openReviewAskModal(c, { ids: fresh.map(x => x.id) }) };
+}
 function reviewGateMessage(c){
   const g = reviewGate(c);
   if (g.ok) return null;
   if (g.reason === 'all-held')
     return i18tn('rv_gate_all_held', g.held.length, { n: g.held.length,
       who: reviewVerdictByFor(g.held[0], null, c) || i18t('rv_your_reviewer') });
+  const fresh = (g.reason === 'with-reviewer' || g.reason === 'never-requested' || g.reason === 'not-cleared')
+    ? reviewGateFresh(c, g) : [];
+  if (fresh.length){
+    const out = reviewAwaiting(c);
+    const freshIds = new Set(fresh.map(x => x.id)), outIds = new Set(out.map(x => x.id));
+    const moved = (g.unreviewed || []).filter(x => !freshIds.has(x.id) && !outIds.has(x.id));
+    return [i18tn('rv_gate_fresh', fresh.length, { refs: reviewGateRefs(fresh) }),
+      out.length ? i18tn('rv_gate_rest_with', out.length, { n: out.length, who: reviewWaitingOn(c) }) : '',
+      moved.length ? i18tn('rv_gate_not_cleared', moved.length, { n: moved.length }) : ''].filter(Boolean).join(' ');
+  }
   if (g.reason === 'with-reviewer')
     return i18t('rv_gate_with_reviewer', { who: reviewWaitingOn(c) });
   if (g.reason === 'never-requested')
@@ -2132,7 +2170,7 @@ Object.assign(window, {
   reviewAsk, reviewCancel, reviewMark, reviewReturn,
   reviewNoteDelivery, reviewDeliveryState, reviewDaysWaiting, reviewRemind,
   reviewCardCancelHtml, reviewCancelCost, reviewWantsAttention,
-  reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage,
+  reviewGateCfg, saveReviewGateCfg, reviewGateApplies, reviewGate, reviewGateMessage, reviewGateAskAction,
   reviewChecked, reviewStandingReviewerFor, reviewUncheckedPeople,
   reviewState, reviewProgress, reviewInboxFor, reviewWhen,
   reviewSeatShowsReview, reviewChipHtml, reviewVerbsHtml, reviewBannerHtml,

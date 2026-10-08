@@ -282,7 +282,9 @@ describe('f154 · the gate on sending', () => {
     assert.equal(g.required, true);
     assert.equal(g.ok, false);
     assert.equal(g.reason, 'never-requested');
-    assert.match(win.reviewGateMessage(c), /needs an internal review/i);
+    /* RE-WORDED 9 Oct 2026 (review, E9): the change nobody was asked about is
+       named, with the way forward. */
+    assert.match(win.reviewGateMessage(c), /#CHG-\d+ has not been reviewed — ask a colleague/);
   });
 
   test('it holds while the review is out, and lifts when everything is cleared', async () => {

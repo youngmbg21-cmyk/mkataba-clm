@@ -787,6 +787,30 @@ const PDF_HEAD_MAX=120;
    is what decides whether the body is stored at all. */
 const PDF_NUM_LINE=/^\s*(?:\d+(?:\.\d+)+[.)]?|\d+[.)])\s+\S/;
 
+/* ---- A CLAUSE NUMBER KEEPS ITS SPACE, AND A SHORT NUMBERED ALL-CAPS LINE IS
+   A HEADING (9 Oct 2026 review) ----
+   Measured on an uploaded PDF: "1.DEFINITIONS" — the page draws the number and
+   the word as two runs, the line joins them with no space — and none of the
+   headings came back, because the file set them in the body's own size and
+   weight. THE STORED TEXT IS NOT TOUCHED (extractPdfText stays byte-identical,
+   the rule f233-10a holds): the space is put back in the STRUCTURE only. And
+   a line that is a clause number followed by a few words in capitals —
+   "1. DEFINITIONS", "12. GOVERNING LAW" — is a heading by the page's own
+   convention, which is the one place the capitals are asked: a NUMBER first,
+   at most eight words, no sentence punctuation at its end. */
+const PDF_NUM_GLUED=/^(\s*\d+(?:\.\d+)*[.)])(?=[A-Za-z])/;
+const pdfNumSpaced=t=>String(t||'').replace(PDF_NUM_GLUED,'$1 ');
+const pdfNumSpacedHtml=h=>String(h||'').replace(/^((?:<[^>]+>)*\s*\d+(?:\.\d+)*[.)])(?=(?:<[^>]+>)*[A-Za-z])/,'$1 ');
+function pdfNumCapsHead(t){
+  const m=/^\s*(?:\d+(?:\.\d+)+[.)]?|\d+[.)])\s+(.+)$/.exec(pdfNumSpaced(t));
+  if(!m) return false;
+  const rest=m[1].trim();
+  if(rest.length>80 || /[,;:]$/.test(rest)) return false;
+  if(rest.split(/\s+/).length>8) return false;
+  const letters=rest.replace(/[^A-Za-z]/g,'');
+  return letters.length>=3 && letters===letters.toUpperCase();
+}
+
 /* Lines → a structured body, the way docxXmlToRich builds one out of Word's own
    styles. Same shape out: { html, report }, so submitUpload stores a PDF on
    exactly the terms it already stores a Word file on.
@@ -821,7 +845,7 @@ function docPdfStructure(pages){
   const isHead=l=>{
     const t=String(l.text||'').trim();
     if(!t||t.length>PDF_HEAD_MAX) return false;
-    return !!l.bold || l.size>=body*1.15;
+    return !!l.bold || l.size>=body*1.15 || pdfNumCapsHead(t);
   };
   const sz=l=>Math.round(l.size*10)/10;
   const sizes=[...new Set(all.filter(isHead).map(sz))].sort((a,b)=>b-a);
@@ -854,10 +878,10 @@ function docPdfStructure(pages){
            document's own and is kept. */
         const lvl=rank(l);
         const m=/^<strong>([\s\S]*)<\/strong>$/.exec(l.html);
-        const inner=(m && m[1].indexOf('<strong>')<0) ? m[1] : l.html;
+        const inner=pdfNumSpacedHtml((m && m[1].indexOf('<strong>')<0) ? m[1] : l.html);
         out.push('<h'+lvl+'>'+inner+'</h'+lvl+'>'); report.headings++; return;
       }
-      const numbered=PDF_NUM_LINE.test(l.text);
+      const numbered=PDF_NUM_LINE.test(pdfNumSpaced(l.text));
       if(numbered) report.numbered++;
       /* THE PARAGRAPH BOUNDARY IS THE TEXT PROJECTION'S OWN (pdfParaBreak), so
          the stored wording and the plain text cannot disagree about where one
@@ -866,7 +890,7 @@ function docPdfStructure(pages){
          which is what makes this read as a document rather than as a column of
          short lines. */
       const brk = i===0 || numbered || open==null || pdfParaBreak(lines[i-1], l, median);
-      if(brk){ flush(); open=l.html; }
+      if(brk){ flush(); open=numbered?pdfNumSpacedHtml(l.html):l.html; }
       else open+=' '+l.html;
     });
   });
@@ -1429,16 +1453,43 @@ function findingsFromText(c, text){
     if(fh&&!hk&&!foreignSen){ foreignSen=sen; foreignHit=fh; }
     if(hk&&!homeSen) homeSen=sen;
   }
+  /* The law a governing-law sentence NAMES, read off the sentence's own
+     capitalised words ("the laws of the State of California" → California),
+     where no pack's marker matched. Null when nothing is named ("governing
+     law as stated below"). */
+  let govNamed=null;
+  if(!foreignSen&&!homeSen) for(const idx of [...new Set(cands)].sort((a,b)=>a-b)){
+    const sen=sentenceAround(text,idx);
+    const m=sen.match(/\b(?:laws?|courts?|jurisdiction)\s+of\s+(?:the\s+)?(?:(?:State|Republic|Commonwealth|Province|Kingdom|Federal Republic|Emirate|Canton|District)\s+of\s+(?:the\s+)?)?([A-Z][A-Za-z.'-]*(?:\s+(?:of\s+)?[A-Z][A-Za-z.'-]*){0,3})/)
+      ||sen.match(/\bgoverned\s+by\s+(?:the\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\s+law\b/);
+    const law=m&&m[1].replace(/[.,;]+$/,'').trim();
+    if(law&&!/^(?:This|That|Such|Any|Its|Their|The|Agreement|Parties|Party)$/.test(law)){ govNamed={law,sen}; break; }
+  }
   if(foreignSen) add('t-law','high','risk','Foreign governing law detected',foreignSen,
     `A ${foreignHit.replace(/\b\w/g,x=>x.toUpperCase())} governing law or forum makes enforcement slow and costly for a ${homeAdj} business and may bypass ${homeAdj} protections.`,
     `Negotiate ${homeAdj} governing law and forum, or budget for foreign enforcement before signing.`,'high');
   else if(homeSen) add('t-law','low','ambiguity',`Governing law: ${homeName} (found in text)`,homeSen,
     `${homeAdj} governing law keeps enforcement local and predictable.`,'No change needed — confirm the forum (courts vs. arbitration) suits you.','high');
+  /* A LAW NAMED THAT NO PACK KNOWS IS STILL A LAW NAMED (9 Oct 2026 review):
+     "governed by the laws of the State of California" read as "not stated",
+     because only the packs' marker lists were asked. The sentence names it,
+     so the finding says what it names — and that it is not home. */
+  else if(govNamed) add('t-law','med','risk',`Governing law: ${govNamed.law} — not your home market`,govNamed.sen,
+    `A governing law or forum outside ${homeName} makes enforcement slower and costlier for a ${homeAdj} business and may bypass ${homeAdj} protections.`,
+    `Negotiate ${homeAdj} governing law and forum, or budget for enforcement under ${govNamed.law} before signing.`,'medium');
   else add('t-law','med','missing','Governing law / jurisdiction not clearly stated','',
     'No clause naming a governing law or forum was found in the extracted text — every high-value or cross-border contract needs a clear governing law and forum.',`Locate or add the governing-law clause and confirm it names ${homeName}.`,'low');
   // 2) payment terms
-  const pm=low.match(/(?:within|net)\s*(\d{1,3})\s*days/);
-  if(pm){ const i=low.indexOf(pm[0]), d=Number(pm[1]);
+  /* ANCHORED TO PAYMENT WORDING (9 Oct 2026 review): the first "within N
+     days" anywhere was read as the payment term — a notice or a cure period
+     answered for it. Now only a "net N" or a "within N days" whose sentence
+     speaks of invoices or payment counts; "within thirty (30) days" is read
+     too. Nothing found → no finding, never a guess. */
+  let pm=null;
+  for(const m of low.matchAll(/\b(net|within)\s*(?:[a-z-]+\s*)?\(?(\d{1,3})\)?\s*(?:calendar\s+|business\s+|working\s+)?days/g)){
+    if(m[1]==='net'||/invoice|payment|payable|\bpaid\b|\bpay\b|remit/.test(sentenceAround(low,m.index).toLowerCase())){ pm=[m[0],m[2]]; pm.index=m.index; break; }
+  }
+  if(pm){ const i=pm.index, d=Number(pm[1]);
     add('t-pay', d>45?'med':'low', d>45?'risk':'ambiguity', `Payment terms: ${d} days`, sentenceAround(text,i),
       d>45?`${d}-day terms tie up working capital and raise exposure if the payer delays.`:'Payment terms look within a healthy range.',
       d>45?'Negotiate toward 30–45 days, or price the extended terms into the deal.':'Confirm this matches what was agreed.','high'); }
@@ -1713,7 +1764,10 @@ function triageOptInHtml(ext){
     <input type="checkbox" id="up-triage" checked style="width:16px;height:16px;margin-top:1px;accent-color:var(--accent-fill)">
     <span>
       <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong)">${esc(i18t('ct_triage_optin'))}</span>
-      <span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${esc(i18t('ct_triage_optin_sub'))}</span>
+      <span style="display:block;margin-top:2px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5">${esc(i18t(
+        /* NO PROMISE COPILOT CANNOT KEEP (9 Oct 2026 review): with no key the
+           line promised "about three Copilot calls" and the brief then failed. */
+        (typeof copilotAvailable==='function' && !copilotAvailable())?'ct_triage_optin_sub_noai':'ct_triage_optin_sub'))}</span>
     </span>
   </label>`;
 }
@@ -2593,12 +2647,12 @@ function uploadDocBody(c){
         if(!st){
           const guessed=(u.textChars||0)>200;
           return guessed?`<span style="opacity:.5;flex:none">·</span>
-            <span style="min-width:0;overflow:hidden;text-overflow:ellipsis" title="${esc(i18t('ct_struct_inferred_old_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`:'';
+            <span data-up-struct="inferred" style="min-width:0;overflow:hidden;text-overflow:ellipsis" title="${esc(i18t('ct_struct_inferred_old_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`:'';
         }
         const got=(st.headings||0)+(st.numbered||0)+(st.tables||0);
         const bad=st.unnumbered||0;
         if(!got && !bad) return `<span style="opacity:.5;flex:none">·</span>
-          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis" title="${esc(i18t('ct_struct_inferred_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`;
+          <span data-up-struct="inferred" style="min-width:0;overflow:hidden;text-overflow:ellipsis" title="${esc(i18t('ct_struct_inferred_title'))}">${esc(i18t('ct_struct_inferred'))}</span>`;
         const parts=[];
         if(st.headings) parts.push(i18tn('ct_struct_headings', st.headings, {n:st.headings}));
         if(st.numbered) parts.push(i18tn('ct_struct_numbers', st.numbered, {n:st.numbered}));
@@ -2610,7 +2664,13 @@ function uploadDocBody(c){
       })()}
       <span style="flex:1 1 auto"></span>
       <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 9px;display:inline-flex;align-items:center;gap:5px;flex:none">${icon('download','w-3.5 h-3.5')} Download original</a>
-      ${canEdit()?`<button type="button" data-reread class="ui-btn ui-btn-sm" style="display:inline-flex;align-items:center;flex:none" title="${i18t('ct_read_original_again')}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
+      ${canEdit()?(()=>{
+        /* GREY WITH ITS REASON ONCE THE WORDING IS SOMEBODY'S (9 Oct 2026
+           review): a re-read never replaces redlined wording, so on a record
+           with changes the press did nothing anyone could see. */
+        const kept=rereadKeepsWording(c);
+        return `<button type="button" data-reread class="ui-btn ui-btn-sm" style="display:inline-flex;align-items:center;flex:none"${kept?' disabled aria-disabled="true"':''} title="${esc(i18t(kept?'ct_reread_kept_title':'ct_read_original_again'))}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`;
+      })():''}
     </div>`}
     <!-- Everything above is the owner's own handling of the file: the Word
          round-trip control, who uploaded it and when, and how well the text
@@ -2653,7 +2713,7 @@ function uploadDocBody(c){
     ${c.redlineText?`
     ${((isDocx||isPdf) && !(window.uploadWordingEdited ? uploadWordingEdited(c)
         : ((c.changes||[]).length || (c.versions||[]).length)))
-      ? `<div class="up-caption" style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>` : ''}
+      ? `<div class="up-caption" style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t(isPdf?'ct_reading_view_pdf':'ct_reading_view')}</div>` : ''}
     ${''/* `data-upwording` NAMES THE AGREEMENT INSIDE THIS TAB, and nothing else
          on it. The placeholder marks are painted into text nodes, and the two
          things on this page ruled with underscores that are NOT blanks in the
@@ -2671,6 +2731,12 @@ function uploadDocBody(c){
    time; the file itself is still on record, so re-reading repairs them in place
    without a re-upload. Safe on executed contracts too — an upload's seal binds
    the file's own hash, not this text (see sealString). */
+/* Does a re-read leave the wording as it is? Once anybody has redlined the
+   document (changes or versions on the record) the wording is theirs and a
+   re-read of the file never replaces it — see guard 2 below. */
+function rereadKeepsWording(c){
+  return !!(c && ((Array.isArray(c.changes) && c.changes.length) || (Array.isArray(c.versions) && c.versions.length)));
+}
 async function rereadUploadText(c, btn){
   if(!canEdit()){ toast(i18t('ct_viewers_no_change'),'err'); return; }
   const u=c.upload||{};
@@ -2753,6 +2819,7 @@ async function rereadUploadText(c, btn){
           (a signature spot, a note) points at an id that no longer exists. */
     const sealed = !!(c.status==='Signed' || c.hash || (c.execution && c.execution.at)
       || (window.negoExecuted && negoExecuted(c)));
+    const keptWording=rereadKeepsWording(c);
     if(html && !sealed && window.docxHasStructure && docxHasStructure(rep) && window.sanitizeRich
        && !c.changes?.length && !c.versions?.length){
       let body=sanitizeRich(html);
@@ -2767,7 +2834,9 @@ async function rereadUploadText(c, btn){
     c.lastAction=todayStr();
     logAudit(c,'Document',`Re-read the original file — ${text.length.toLocaleString()} characters extracted (was ${before.toLocaleString()})`);
     persist(c);
-    toast(`Document re-read — ${text.length.toLocaleString()} characters`);
+    /* SAID, AND SAID HONESTLY (9 Oct 2026 review): a bare toast(msg) prints
+       nothing, and where the redlined wording was kept the reader is told so. */
+    toast(i18t(keptWording?'ct_reread_done_kept':'ct_reread_done', { n: text.length.toLocaleString() }), 'ok');
     renderWorkspace();
   }catch(e){
     toast(i18t('ct_could_not_reread')+e.message,'err');
@@ -5830,7 +5899,7 @@ function ktTriageStripHtml(c){
     if(door) return `<button type="button" class="kt-tri-tile is-door${door==='reread'?' is-stale':''}" data-kt-tri-go="${door}"${
       door==='reread'?` data-kt-tri-key="${esc(x.key)}"`:''}
       title="${esc(door==='reread'?i18t('tri_reread_title')
-        :i18t(door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':door==='risk'?'tri_go_risk':'tri_go_oblig'))}">
+        :i18t(door==='retry'?'tri_go_retry':door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':door==='risk'?'tri_go_risk':'tri_go_oblig'))}">
       ${head}${body}
     </button>`;
     return `<div class="kt-tri-tile${x.working?' is-busy':''}"${x.working?' aria-busy="true"':''}>
@@ -13279,6 +13348,17 @@ function docThreadFilterSet(c, tone){
    while a reading runs does not reset the thread's own scroll. It also says
    whether the clauses are on screen at all — the drawer — and paints the
    door that opens it. */
+/* ONE SENTENCE FOR A FLAT FILE (9 Oct 2026 review): the file strip said
+   "Structure read from the wording" while the thread said nothing reads as a
+   clause. Where the painted sheet holds no clause either, the strip's phrase
+   becomes the thread's own. True when the upload is flat. */
+function docThreadFlatSay(c,on,rows){
+  const flat=!!(on&&!rows.length&&c&&c.upload);
+  if(flat) document.querySelectorAll('[data-up-struct="inferred"]').forEach(el=>{
+    el.textContent=i18t('ct_struct_flat'); el.title=i18t('ct_struct_flat_title');
+  });
+  return flat;
+}
 function docThreadPaint(c){
   const card=document.getElementById('doc-thread');
   if(!card) return;
@@ -13292,12 +13372,13 @@ function docThreadPaint(c){
   card.classList.toggle('is-drawer',up&&has);
   if(right) right.classList.toggle('is-clauses',up);
   docThreadDoorPaint(rows,has,up);
+  const flat=docThreadFlatSay(c,on,rows);
   if(!up){ card.innerHTML=''; card.removeAttribute('data-th-sig'); _docThreadRows=[]; _docThreadCache=null; _docThreadRevealed=-1; return; }
   const sheet=docReadSheet(c)||[];
   _docThreadRows=rows.map(x=>x.el);
   if(!rows.length){
     _docThreadWant='';
-    card.innerHTML=`<div class="doc-th-top">${docThreadTopHtml(c,rows,has)}</div><div class="doc-xr-none">${esc(i18t('xr_no_clauses'))}</div>`;
+    card.innerHTML=`<div class="doc-th-top">${docThreadTopHtml(c,rows,has)}</div><div class="doc-xr-none">${esc(i18t(flat?'ct_struct_flat':'xr_no_clauses'))}</div>`;
     card.removeAttribute('data-th-sig'); _docThreadCache=null; return;
   }
   /* ARRIVING FROM A RISK DOOR (riskViewOpen): the first clause carrying the
@@ -16467,7 +16548,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
   docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
   scApplyZoom,scZoomStep,scPaintPage,scPageGo,scSourceLine,scControlsHtml,scWireControls,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfNumCapsHead,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign

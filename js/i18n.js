@@ -1828,6 +1828,7 @@ const STRINGS = {
        sheet itself, so this says where the words came from in one quiet line
        instead of heading a bordered box. */
     ct_reading_view: 'Text read out of the Word file',
+    ct_reading_view_pdf: 'Text read out of the PDF',
     ct_cant_preview: "This file type can't preview in the browser — download the original to review it.",
     ct_executed_outside: 'executed outside HaTi',
     ct_paper_sig_line: 'Recorded as executed outside HaTi — no electronic signature is taken.',
@@ -6464,6 +6465,8 @@ const STRINGS = {
        format that carries no structure. What was missing is that nobody was
        told which they were looking at. */
     ct_struct_inferred: 'Structure read from the wording',
+    ct_struct_flat: 'No headings or numbering found — read as plain paragraphs',
+    ct_struct_flat_title: 'Neither the file nor its wording carries headings or clause numbers HaTi can read, so the document is shown as plain paragraphs and there are no clauses to list.',
     ct_struct_inferred_title: 'This file carries no headings or numbering HaTi can read — a PDF knows where ink sits on a page and a scan knows less. The headings and clause numbers on screen are read from the wording itself, so they follow the document’s own conventions rather than its own statement of them.',
     /* A record filed before the structured reader existed carries no reading
        of its own, so what is on screen really is worked out from the wording —
@@ -7656,6 +7659,9 @@ const STRINGS = {
     // ---- contract room (chrome and actions) ----
     ct_uploaded_document: 'Uploaded document',
     ct_read_original_again: 'Read the original file again — use this if the extracted text looks garbled',
+    ct_reread_kept_title: 'This document has been redlined — re-reading the file would not change its wording, so it is kept as it is',
+    ct_reread_done: 'Document re-read — {n} characters',
+    ct_reread_done_kept: 'Document re-read — {n} characters. The redlined wording was kept as it is',
     ct_counterparty_name: 'Counterparty name',
     ct_who_is_this_with: 'Who is this with?',
     ct_changes_straight: 'changes go straight to them',
@@ -7851,6 +7857,9 @@ const STRINGS = {
     ne_retract_decided: 'This change already has an answer, so it can\'t be retracted',
     ne_retract_already_sent: 'This change has already gone to the other side, so it can\'t be retracted — withdraw it instead',
     ne_retract_in_review: 'This change is with a colleague for review — it can be discarded once the review is handed back or cancelled',
+    ne_discard_not_yours: 'You can discard only your own drafts — the person leading this negotiation, or an admin, can discard a colleague\'s',
+    ng_discard_confirm_title: 'Discard #{id}?',
+    ng_discard_confirm_msg: '“{what}” has not been sent. Discarding removes it from your drafts; nothing is withdrawn from the other side.',
     ng_retract_revision: '#{id}: the unsent revision was discarded — the wording already on the table stands again',
     ng_retract_never_sent: '#{id} retracted — it was never sent, so nothing left your desk',
     ov_paper_frozen: 'Signing has started — the terms printed on this paper are fixed until the signing route is restarted',
@@ -9154,6 +9163,7 @@ const STRINGS = {
     /* ---- auto-triage on upload (9 Sep 2026) ---- */
     ct_triage_optin: 'Read this contract now',
     ct_triage_optin_sub: 'Writes the brief, checks it against Our standards, scans for risk and finds the obligations — the four things you would otherwise press one at a time. About three Copilot calls. Untick to file it without reading; every check is still there to run by hand.',
+    ct_triage_optin_sub_noai: 'Copilot is not connected, so the brief and the other Copilot readings will not run — the local risk scan still does. Untick to file it without reading.',
     tri_row: '{who} sent a contract — read and ready for you',
     /* AND THE HEADLINE FOLLOWS WHAT ACTUALLY HAPPENED. A card whose title
        says a contract was read, over a sub-line saying no text came out of
@@ -9216,6 +9226,7 @@ const STRINGS = {
        reserves for what was FOUND. */
     tri_go_brief: 'Read the contract brief',
     tri_go_oblig: 'Open the obligations',
+    tri_go_retry: 'Run this reading again',
     tri_stale: 'The wording moved since this was read',
     tri_reread: 'Read again',
     tri_reread_title: 'Read this again against the wording as it stands now. Copilot reads it on this press, and it is spent only then.',
@@ -11287,6 +11298,10 @@ const STRINGS = {
     rv_gate_all_held_one: 'The one unsent change is held back by {who}, so there is nothing to send.',
     rv_gate_all_held_other: 'All {n} unsent changes are held back by {who}, so there is nothing to send.',
     rv_gate_with_reviewer: 'These changes are with {who} for internal review. They go out once the review comes back.',
+    rv_gate_fresh_one: '{refs} has not been reviewed — ask a colleague to look at it before it goes out.',
+    rv_gate_fresh_other: '{refs} have not been reviewed — ask a colleague to look at them before they go out.',
+    rv_gate_rest_with_one: 'The other change is with {who} for internal review.',
+    rv_gate_rest_with_other: 'The other {n} changes are with {who} for internal review.',
     rv_gate_never_requested_one: 'This contract needs an internal review before changes go out — {n} change has not been looked at.',
     rv_gate_never_requested_other: 'This contract needs an internal review before changes go out — {n} changes have not been looked at.',
     rv_gate_not_cleared_one: '{n} change has not been cleared by an internal reviewer — it was either never looked at, or the wording has moved since it was.',
@@ -15356,6 +15371,7 @@ const STRINGS = {
     ct_you_replied: 'Du svarade:',
     ct_document_preview: 'Förhandsgranskning av dokument',
     ct_reading_view: 'Text uppläst ur Word-filen',
+    ct_reading_view_pdf: 'Text uppläst ur PDF-filen',
     ct_cant_preview: 'Den här filtypen kan inte förhandsgranskas i webbläsaren — ladda ner originalet för att granska det.',
     ct_executed_outside: 'undertecknat utanför HaTi',
     ct_paper_sig_line: 'Registreras som undertecknat utanför HaTi — ingen elektronisk underskrift tas.',
@@ -19531,6 +19547,8 @@ const STRINGS = {
     ct_struct_unnumbered_other: '{n} nummer kunde inte läsas',
     ct_struct_unnumbered_title: 'Dokumentet numrerar automatiskt och HaTi kunde inte läsa definitionen för dessa stycken. De visas utan nummer i stället för med ett gissat — ett felaktigt klausulnummer är en felaktig hänvisning.',
     ct_struct_inferred: 'Struktur tolkad ur texten',
+    ct_struct_flat: 'Inga rubriker eller numrering hittades — läses som löpande stycken',
+    ct_struct_flat_title: 'Varken filen eller texten har rubriker eller klausulnummer som HaTi kan läsa, så dokumentet visas som löpande stycken och det finns inga klausuler att lista.',
     ct_struct_inferred_title: 'Filen har inga rubriker eller numrering som HaTi kan läsa — en PDF vet var bläcket sitter på sidan och en inskanning vet ännu mindre. Rubrikerna och klausulnumren på skärmen är tolkade ur själva texten och följer alltså dokumentets konventioner snarare än dess egen uppgift om dem.',
     ct_struct_inferred_old_title: 'Det här avtalet lades in innan HaTi läste ett dokuments egna rubriker och numrering. Orden är de som lästes ur filen; rubrikerna och klausulnumren på skärmen är tolkade ur texten. Läs om dokumentet för att läsa in dess struktur.',
     ct_spots_stale_one: '{n} plats pekar inte längre någonstans i avtalet:',
@@ -20626,6 +20644,9 @@ const STRINGS = {
     // ---- contract room (chrome and actions) ----
     ct_uploaded_document: 'Uppladdat dokument',
     ct_read_original_again: 'Läs originalfilen igen — använd detta om den utlästa texten ser trasig ut',
+    ct_reread_kept_title: 'Dokumentet har redan ändringar — att läsa om filen skulle inte ändra lydelsen, så den behålls som den är',
+    ct_reread_done: 'Dokumentet har lästs om — {n} tecken',
+    ct_reread_done_kept: 'Dokumentet har lästs om — {n} tecken. Den ändrade lydelsen behölls som den är',
     ct_counterparty_name: 'Motpartens namn',
     ct_who_is_this_with: 'Vem gäller det?',
     ct_changes_straight: 'ändringar går direkt till dem',
@@ -20821,6 +20842,9 @@ const STRINGS = {
     ne_retract_decided: 'Den här ändringen har redan fått ett svar och kan därför inte återkallas',
     ne_retract_already_sent: 'Den här ändringen har redan gått till motparten och kan därför inte återkallas — dra tillbaka den i stället',
     ne_retract_in_review: 'Den här ändringen granskas av en kollega — den kan kasseras när granskningen har lämnats tillbaka eller avbrutits',
+    ne_discard_not_yours: 'Du kan bara kasta dina egna utkast — den som leder förhandlingen, eller en administratör, kan kasta en kollegas',
+    ng_discard_confirm_title: 'Kasta #{id}?',
+    ng_discard_confirm_msg: '”{what}” har inte skickats. Om du kastar den tas den bort från dina utkast; inget dras tillbaka från motparten.',
     ng_retract_revision: '#{id}: den ändring som inte hade skickats kasserades — lydelsen som redan ligger på bordet gäller igen',
     ng_retract_never_sent: '#{id} återkallad — den skickades aldrig, så inget lämnade ditt skrivbord',
     ov_paper_frozen: 'Signeringen har börjat — villkoren som står i det här avtalet är låsta tills signeringsordningen startas om',
@@ -22052,6 +22076,7 @@ const STRINGS = {
     /* ---- automatisk genomgång vid uppladdning (9 sep 2026) ---- */
     ct_triage_optin: 'Läs avtalet nu',
     ct_triage_optin_sub: 'Skriver sammanfattningen, stämmer av mot Våra standarder, gör riskgenomgången och hittar åtagandena — de fyra sakerna ni annars trycker på en i taget. Cirka tre Copilot-anrop. Avmarkera för att arkivera utan att läsa; varje kontroll finns kvar att köra för hand.',
+    ct_triage_optin_sub_noai: 'Copilot är inte anslutet, så sammanfattningen och Copilots övriga läsningar körs inte — den lokala riskgenomgången körs ändå. Avmarkera för att arkivera utan att läsa.',
     tri_row: '{who} har skickat ett avtal — läst och klart för er',
     tri_row_unread: '{who} har skickat ett avtal — det gick inte att läsa',
     tri_tag_arrived: 'Inkommet',
@@ -22089,6 +22114,7 @@ const STRINGS = {
     tri_fill_theirs: 'De sköter underskriften, så de tomma fälten fylls i på deras egen kopia.',
     tri_go_brief: 'Läs avtalssammanfattningen',
     tri_go_oblig: 'Öppna åtagandena',
+    tri_go_retry: 'Kör den här läsningen igen',
     tri_stale: 'Formuleringen har ändrats sedan detta lästes',
     tri_reread: 'Läs igen',
     tri_reread_title: 'Läs detta igen mot formuleringen som den står nu. Copilot läser det när du trycker, och först då kostar det något.',
@@ -24052,6 +24078,10 @@ const STRINGS = {
     rv_gate_all_held_one: 'Den enda oskickade ändringen hålls kvar av {who}, så det finns inget att skicka.',
     rv_gate_all_held_other: 'Alla {n} oskickade ändringar hålls kvar av {who}, så det finns inget att skicka.',
     rv_gate_with_reviewer: 'Ändringarna ligger hos {who} för intern granskning. De går i väg när granskningen kommer tillbaka.',
+    rv_gate_fresh_one: '{refs} har inte granskats — be en kollega titta på den innan den skickas.',
+    rv_gate_fresh_other: '{refs} har inte granskats — be en kollega titta på dem innan de skickas.',
+    rv_gate_rest_with_one: 'Den andra ändringen ligger hos {who} för intern granskning.',
+    rv_gate_rest_with_other: 'De andra {n} ändringarna ligger hos {who} för intern granskning.',
     rv_gate_never_requested_one: 'Avtalet kräver intern granskning innan ändringar skickas — {n} ändring har inte setts över.',
     rv_gate_never_requested_other: 'Avtalet kräver intern granskning innan ändringar skickas — {n} ändringar har inte setts över.',
     rv_gate_not_cleared_one: '{n} ändring har inte släppts av en intern granskare — den har antingen aldrig setts över, eller så har lydelsen ändrats sedan dess.',
