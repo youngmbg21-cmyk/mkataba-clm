@@ -171,6 +171,22 @@ five screens in the artifact's "One paper everywhere" section:
 
 Build only the one picked by name.
 
+**THE BACKGROUND IS HOME'S, EXACTLY (owner, 8 Oct 2026, on the Home paper
+drawings of the Document tab, Negotiate page and their page: "the background
+also needs to be exactly like the home page redlined version. No differences
+at all").** Around the sheet, every screen takes Home Redlined's paper area:
+- the ground colour (rgb 238,242,240 in light);
+- the 41px gap from the area's top edge to the sheet;
+- the 720px sheet, centred in its column, with its shadow.
+
+Today, the Document tab sits its sheet on the page's own lighter ground at the
+left of the column. The Negotiate page and their page sit theirs at the top
+with corner marks. Pin this as a RELATION (`test/tokens.js`), never a number:
+the paper area's background, the sheet's width and the gap equal Home
+Redlined's on every screen. The round's queue tab stays on the Negotiate page
+and their page. The owner's drawings were made with the Home paper selected;
+confirm that this is the pick before building.
+
 **Check:** on all five screens, the same paper width, the same title block and
 the same clause-heading size and weight. The clean ones carry zero `del`/`ins`
 and no step labels, and show the standing wording. Red at the parent.
