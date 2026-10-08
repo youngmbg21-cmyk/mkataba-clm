@@ -2517,11 +2517,16 @@ function rlOpenClauseEditor(c, clauseId, opts = {}){
       _ceThread.push({ who: 'ai', ai: true, text: String(prep.why || ''), read: [],
         cards: [{ name: _cet('ce_prep_counter'), chip: _cet('ce_chip_copilot'), chipTone: 'wait', line: '',
           rests: String(prep.standard || ''), text: prep.wording, passage: null, prepared: true }] });
-      _cePrep = { wording: String(prep.wording), before: null, inBox: false, note: String(prep.why || '').trim() };
+      _cePrep = { wording: String(prep.wording), before: null, inBox: false, note: String(prep.why || '').trim(), sentBack: !!prep.sentBack };
     }
   }catch(_){}
   ceRenderAll();
-  if (_cePrep) cePrepPut({ quiet: true });
+  /* AN ANSWER THE READER ASKED COPILOT FOR ARRIVES IN THE BOX (owner, 8 Oct
+     2026: "the copilot should then apply the change to the paper"): the one
+     the Negotiate paper drew dashed and whose Counter glowed
+     (rlPaintCopilotAnswers — `sentBack` answers only). An answer Copilot
+     prepared on its own keeps its Apply. Save still files; nothing is sent. */
+  if (_cePrep && _cePrep.sentBack) cePrepPut({ quiet: true });
   /* A RISK OPENED HERE (work order Part 8): Copilot's wording goes into the
      box on arrival — one call, said in the Risks tab. */
   if (opts && opts.risk && window.riskEditorArrive){ try{ riskEditorArrive(_ceC, opts.risk); }catch(_){} }

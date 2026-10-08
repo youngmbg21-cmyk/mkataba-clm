@@ -13312,7 +13312,6 @@ function redlineDocHtml(c, opts = {}){
           </div>
           ${''/* A formatting-only ask read "as agreed" is simply the clause. */}
           ${clean == null ? richBody(cl) : clean}
-          ${rlPrepBoxHtml(c, chs, side)}
           ${cpPush(cl, chs)}
         </section>${after}`;
       }
@@ -13352,7 +13351,6 @@ function redlineDocHtml(c, opts = {}){
           ${pillFor(cl)}
         </div>
         ${clean == null ? richBody(cl) : clean}
-        ${rlPrepBoxHtml(c, chs, side)}
         ${cpPush(cl, chs)}
       </section>${baselineFor(cl)}${after}`;
     }
@@ -17800,6 +17798,7 @@ function rlPaintCopilotAnswers(root, c, opts = {}){
         box.className = 'rl-sug-box';
         box.setAttribute('data-rl-sug', ch.id);
         box.setAttribute('aria-label', i18t('ag_prep_counter'));
+        box.setAttribute('title', i18t('ng_prep_box_title'));
         box.innerHTML = rlSugWordsHtml(ch.newText, a.wording);
         const body = sec.querySelector('.nego-body') || sec.lastElementChild;
         (body || sec).after ? (body || sec).after(box) : sec.appendChild(box);
@@ -17824,30 +17823,6 @@ if (typeof document !== 'undefined' && !document._rlGlowWired){
     if (id) _rlGlowDone.add(id);
     document.querySelectorAll(`.rl-glow[data-rl-glow-for="${id}"]`).forEach(x => x.classList.remove('rl-glow'));
   }, true);
-}
-/* ---- COPILOT'S COUNTER, ON THE PAPER (Young, 9 Oct 2026, the Paper and
-   Counter review, change 2) ---- Where Copilot answered their ask with a
-   counter, its wording sits under their wording in a DASHED box: our seat
-   only, never their page, only while the ask is still on the table. NOTHING
-   IS FILED — it is a reading of `_roundPrep`; Counter takes it into the
-   editor. The words it adds to theirs are underlined, nothing is struck. */
-function rlPrepCounterOf(c, ch, side){
-  if (!c || !ch || ch.authorSide !== 'counterparty' || ch.status !== 'pending' || ch.withdrawn) return null;
-  if (side === 'counterparty' || rlOnTheirPage()) return null;
-  const a = (typeof roundPrepOf === 'function') ? roundPrepOf(c, ch) : null;
-  return (a && a.verdict === 'counter' && String(a.wording || '').trim()) ? a : null;
-}
-function rlPrepBoxHtml(c, chs, side){
-  const ch = (chs || []).slice().reverse().find(x => rlPrepCounterOf(c, x, side));
-  const a = ch ? rlPrepCounterOf(c, ch, side) : null;
-  if (!a) return '';
-  let body = '';
-  try{
-    const ops = (typeof redlineOps === 'function') ? redlineOps(String(ch.newText || ''), String(a.wording)) : null;
-    body = ops ? ops.filter(o => o.op !== 'del').map(o => o.op === 'ins'
-      ? `<span class="rl-prep-ins">${_ne(o.text)}</span>` : _ne(o.text)).join('') : _ne(a.wording);
-  }catch(_){ body = _ne(a.wording); }
-  return `<div class="rl-prep-box" data-rl-prep-box="${_nea(ch.id)}" title="${_nea(i18t('ng_prep_box_title'))}"><p class="rl-clause-p">${body}</p></div>`;
 }
 /* ============================================================================
    NO PEN ON THE PAPER — CLICK, TYPE, SAVE (Young, 9 Oct 2026, the Paper and
@@ -17920,7 +17895,7 @@ function rlInlineClick(ev, host){
   if (!t || !t.closest) return;
   if (t.closest('.rl-inline-acts')){ rlInlineAct(ev, t); return; }
   if (_rlInline && _rlInline.box.contains(t)) return;           /* typing: the browser places the caret */
-  if (t.closest('button, a, input, textarea, select, .rl-clause-top, .rl-prep-box, [data-nego-editor]')) return;
+  if (t.closest('button, a, input, textarea, select, .rl-clause-top, .rl-sug-box, [data-nego-editor]')) return;
   const sel = window.getSelection && window.getSelection();
   if (sel && !sel.isCollapsed) return;                          /* a highlight is its own gesture */
   const section = t.closest('[data-nego-working]');
@@ -17946,7 +17921,7 @@ function rlInlineClick(ev, host){
   if (!seed) return;
   if (seed.proposed){ if (typeof host._rlOpenEditor === 'function') host._rlOpenEditor(clauseId); return; }
   if (seed.under){ if (window.toast) toast(i18t('ce_under_deletion'), 'warn'); return; }
-  const saved = [...section.children].filter(n => !(n.matches && n.matches('.rl-clause-top, .rl-prep-box')));
+  const saved = [...section.children].filter(n => !(n.matches && n.matches('.rl-clause-top, .rl-sug-box')));
   if (!saved.length) return;
   let at = null;
   try{
@@ -19630,11 +19605,9 @@ function redlineChangeCardsHtml(c, opts = {}){
          on a draft of ours; Ladder on every row. THE WHOLE of `verbs` in that
          order — see rlRowFaceVerbs — plus the requester's Cancel, which is a
          verb like any other and rode in the body's bar until the body went. */
-      /* COPILOT'S COUNTER WAITS ON THIS ASK (Young, 9 Oct 2026, change 2):
-         Counter glows — the one press that takes it into the editor. */
-      const face = rlPrepCounterOf(c, ch, side)
-        ? rlRowFaceVerbs(verbs, ch, theirs, rvCancel).replace(/(<button\b[^>]*?)(data-rl-cp-editor-row=)/, '$1data-rl-glow="1" $2')
-        : rlRowFaceVerbs(verbs, ch, theirs, rvCancel);
+      /* Copilot's answer to this ask lights its verb AFTER the render
+         (rlPaintCopilotAnswers) — the one glow; nothing is written here. */
+      const face = rlRowFaceVerbs(verbs, ch, theirs, rvCancel);
       /* `info` is the caution captions; the other three are the sentences and
          buttons that used to ride in the body's action bar. Built above, in the
          one place that decides them, and only re-homed here. */
@@ -21344,7 +21317,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlPrepCounterOf, rlPrepBoxHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause,
+if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,

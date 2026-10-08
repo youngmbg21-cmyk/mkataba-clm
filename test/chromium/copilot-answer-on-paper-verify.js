@@ -114,9 +114,11 @@ function answer(body){
     await page.waitForFunction(() => state.view === 'redline' && document.querySelector('.rl-glow'), null, { timeout: 10000 }).catch(() => {});
     /* 2 the press */
     await page.click('.rl-glow');
-    const applied = await page.waitForFunction(() => /60 days/.test([...document.querySelectorAll('.rl-paper, [contenteditable]')].map(e => e.innerText).join(' ')) && !!document.querySelector('[data-ce-apply]'), null, { timeout: 10000 }).then(() => true, () => false);
+    /* The owner's Paper and Counter review (9 Oct 2026, S3): the ONE card says
+       "In the box" — no Apply left to press. */
+    const applied = await page.waitForFunction(() => /60 days/.test([...document.querySelectorAll('.rl-paper, [contenteditable]')].map(e => e.innerText).join(' ')) && !!document.querySelector('#ce-lane .ce-inbox') && !document.querySelector('#ce-lane [data-ce-apply]'), null, { timeout: 10000 }).then(() => true, () => false);
     const filed2 = await page.evaluate(() => (getContract('MK-CP1').changes || []).length);
-    ok('2 Counter opens the clause editor with the wording applied; nothing filed yet', applied && filed2 === 1, String(filed2));
+    ok('2 Counter opens the clause editor with the wording in the box (one card, no Apply); nothing filed yet', applied && filed2 === 1, String(filed2));
     await page.screenshot({ path: path.join(OUT, '2-editor.png') });
 
     /* 3 reject */
