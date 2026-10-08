@@ -4098,7 +4098,31 @@ function hbBoardHtml(){
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
     ${hbFocusHtml()}
-    <div class="hb-grid">${received}${panels || (received ? '' : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}</div>`)}</div>`;
+    <div class="hb-grid">${received}${panels || (received ? '' : `<div class="hb-empty">${_hbE(i18t('hb_empty'))}${hbSetupDoorHtml()}</div>`)}</div>`;
+}
+/* ---- FINISH SETTING UP (9 Oct 2026, the overnight run) ----
+   A brand-new Home said nothing about what to do first while the admin's
+   go-live checklist waited in Settings. NO BAND: one door inside the board's
+   own empty slot, for an admin, while the book holds no contract and the
+   checklist has rows left — its count is stGoLive's, the list it opens
+   (Settings → Build & launch → Before going live). Nothing at all once
+   either is done. The ceiling row reads the Copilot config, so that is read
+   first and the door repainted where it stands. */
+let _hbSetupAsked = false;
+function hbSetupDoorHtml(){
+  try {
+    if (!(typeof isAdmin === 'function' && isAdmin())) return '';
+    if ((state.contracts || []).length) return '';
+    if (typeof window.stGoLive !== 'function') return '';
+    if (!state.aiCfg && !_hbSetupAsked && typeof window.stLoadAiCfgOnce === 'function'){ _hbSetupAsked = true;
+      window.stLoadAiCfgOnce().then(() => {
+        const el = document.querySelector('[data-hb-setup-slot]');
+        if (el) el.outerHTML = hbSetupDoorHtml() || '<span data-hb-setup-slot hidden></span>';
+      }).catch(() => {}); }
+    const left = window.stGoLive().filter(r => !r.ok).length;
+    if (!left) return '<span data-hb-setup-slot hidden></span>';
+    return `<div data-hb-setup-slot style="margin-top:12px"><button type="button" class="ui-btn" data-hb-setup>${_hbE(i18tn('hb_setup_left', left, { n: left }))}</button></div>`;
+  } catch (_){ return ''; }
 }
 
 /* ============================================================
@@ -7334,6 +7358,7 @@ function hbOnClick(e){
   if (_hbMoreMenu && !t.closest('.hb-more-w')){ _hbMoreMenu = null; hbPaintBoard(); }
   const on = sel => t.closest(sel);
   let el;
+  if (on('[data-hb-setup]')){ e.preventDefault(); if (typeof window.openSettingsAt === 'function') window.openSettingsAt('build', 'golive'); return; }
   if (on('[data-hb-chase-many]')){ e.preventDefault(); hbChaseManyRun(t.closest('[data-hb-chase-many-box]')); return; }
   if (on('[data-hb-chase-key]')){ setTimeout(() => hbChaseManyCount(t.closest('[data-hb-chase-many-box]')), 0); return; }
   if (on('[data-hb-ag-item]') && hbAgentWorkPress(t)){ e.stopPropagation(); return; }

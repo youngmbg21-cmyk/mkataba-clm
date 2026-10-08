@@ -245,10 +245,12 @@ async function watch(page, press) {
 
     /* ---------- 6. nobody chose a language: the market still does not move it ---------- */
     await page.evaluate(() => {
-      /* Nobody has chosen a language: the market decides it. */
+      /* Back home first, THEN nobody has chosen a language (jxSet keeps the
+         language being read, so clearing it first would pin Swedish). */
+      jxSet('kenya');
       currentUser().lang = null;
       try { lsSet(I18N_LS, null); } catch (e) {}
-      jxSet('kenya'); renderTeam();
+      renderTeam();
       settingsGoTab('platform'); stDrawerOpen('company');
     });
     await page.waitForTimeout(1600);

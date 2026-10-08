@@ -108,3 +108,23 @@ describe('f603 (D13) — a good sign-in clears what the bad tries left', () => {
     assert.equal(n, 5, 'setup (server and local), sign-in (server and local), the two-step code');
   });
 });
+
+describe('f603 (D12) — a brand-new Home has one door to finish setting up', () => {
+  const HB = fs.readFileSync(path.join(ROOT, 'js/views/homeboard.js'), 'utf8');
+  test('it lives inside the board\'s own empty slot, not a band', () => {
+    assert.match(HB, /<div class="hb-empty">\$\{_hbE\(i18t\('hb_empty'\)\)\}\$\{hbSetupDoorHtml\(\)\}<\/div>/);
+  });
+  test('admin only, no contracts, rows left — the count is stGoLive\'s', () => {
+    const at = HB.indexOf('function hbSetupDoorHtml(){');
+    const body = HB.slice(at, HB.indexOf('\n}\n', at));
+    assert.match(body, /isAdmin\(\)/);
+    assert.match(body, /\(state\.contracts \|\| \[\]\)\.length\) return ''/);
+    assert.match(body, /window\.stGoLive\(\)\.filter\(r => !r\.ok\)\.length/);
+  });
+  test('the door opens the go-live checklist through the one named door', () => {
+    assert.match(HB, /on\('\[data-hb-setup\]'\)\)\{ e\.preventDefault\(\); if \(typeof window\.openSettingsAt === 'function'\) window\.openSettingsAt\('build', 'golive'\)/);
+  });
+  test('both books carry the words', () => {
+    for (const lang of ['en', 'sv']) assert.ok(BOOKS[lang].hb_setup_left_other, lang);
+  });
+});

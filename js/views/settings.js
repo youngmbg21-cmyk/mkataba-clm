@@ -5540,7 +5540,7 @@ Object.assign(window,{renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
-  settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
+  settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
   stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,
   stOverseerSectionHtml,stOverseerRead,
