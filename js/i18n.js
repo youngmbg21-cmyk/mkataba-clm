@@ -1791,6 +1791,7 @@ const STRINGS = {
        sheet itself, so this says where the words came from in one quiet line
        instead of heading a bordered box. */
     ct_reading_view: 'Text read out of the Word file',
+    ct_reading_view_pdf: 'Text read out of the PDF',
     ct_cant_preview: "This file type can't preview in the browser — download the original to review it.",
     ct_executed_outside: 'executed outside HaTi',
     ct_paper_sig_line: 'Recorded as executed outside HaTi — no electronic signature is taken.',
@@ -15248,6 +15249,7 @@ const STRINGS = {
     ct_you_replied: 'Du svarade:',
     ct_document_preview: 'Förhandsgranskning av dokument',
     ct_reading_view: 'Text uppläst ur Word-filen',
+    ct_reading_view_pdf: 'Text uppläst ur PDF-filen',
     ct_cant_preview: 'Den här filtypen kan inte förhandsgranskas i webbläsaren — ladda ner originalet för att granska det.',
     ct_executed_outside: 'undertecknat utanför HaTi',
     ct_paper_sig_line: 'Registreras som undertecknat utanför HaTi — ingen elektronisk underskrift tas.',

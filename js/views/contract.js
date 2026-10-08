@@ -787,6 +787,30 @@ const PDF_HEAD_MAX=120;
    is what decides whether the body is stored at all. */
 const PDF_NUM_LINE=/^\s*(?:\d+(?:\.\d+)+[.)]?|\d+[.)])\s+\S/;
 
+/* ---- A CLAUSE NUMBER KEEPS ITS SPACE, AND A SHORT NUMBERED ALL-CAPS LINE IS
+   A HEADING (9 Oct 2026 review) ----
+   Measured on an uploaded PDF: "1.DEFINITIONS" — the page draws the number and
+   the word as two runs, the line joins them with no space — and none of the
+   headings came back, because the file set them in the body's own size and
+   weight. THE STORED TEXT IS NOT TOUCHED (extractPdfText stays byte-identical,
+   the rule f233-10a holds): the space is put back in the STRUCTURE only. And
+   a line that is a clause number followed by a few words in capitals —
+   "1. DEFINITIONS", "12. GOVERNING LAW" — is a heading by the page's own
+   convention, which is the one place the capitals are asked: a NUMBER first,
+   at most eight words, no sentence punctuation at its end. */
+const PDF_NUM_GLUED=/^(\s*\d+(?:\.\d+)*[.)])(?=[A-Za-z])/;
+const pdfNumSpaced=t=>String(t||'').replace(PDF_NUM_GLUED,'$1 ');
+const pdfNumSpacedHtml=h=>String(h||'').replace(/^((?:<[^>]+>)*\s*\d+(?:\.\d+)*[.)])(?=(?:<[^>]+>)*[A-Za-z])/,'$1 ');
+function pdfNumCapsHead(t){
+  const m=/^\s*(?:\d+(?:\.\d+)+[.)]?|\d+[.)])\s+(.+)$/.exec(pdfNumSpaced(t));
+  if(!m) return false;
+  const rest=m[1].trim();
+  if(rest.length>80 || /[,;:]$/.test(rest)) return false;
+  if(rest.split(/\s+/).length>8) return false;
+  const letters=rest.replace(/[^A-Za-z]/g,'');
+  return letters.length>=3 && letters===letters.toUpperCase();
+}
+
 /* Lines → a structured body, the way docxXmlToRich builds one out of Word's own
    styles. Same shape out: { html, report }, so submitUpload stores a PDF on
    exactly the terms it already stores a Word file on.
@@ -821,7 +845,7 @@ function docPdfStructure(pages){
   const isHead=l=>{
     const t=String(l.text||'').trim();
     if(!t||t.length>PDF_HEAD_MAX) return false;
-    return !!l.bold || l.size>=body*1.15;
+    return !!l.bold || l.size>=body*1.15 || pdfNumCapsHead(t);
   };
   const sz=l=>Math.round(l.size*10)/10;
   const sizes=[...new Set(all.filter(isHead).map(sz))].sort((a,b)=>b-a);
@@ -854,10 +878,10 @@ function docPdfStructure(pages){
            document's own and is kept. */
         const lvl=rank(l);
         const m=/^<strong>([\s\S]*)<\/strong>$/.exec(l.html);
-        const inner=(m && m[1].indexOf('<strong>')<0) ? m[1] : l.html;
+        const inner=pdfNumSpacedHtml((m && m[1].indexOf('<strong>')<0) ? m[1] : l.html);
         out.push('<h'+lvl+'>'+inner+'</h'+lvl+'>'); report.headings++; return;
       }
-      const numbered=PDF_NUM_LINE.test(l.text);
+      const numbered=PDF_NUM_LINE.test(pdfNumSpaced(l.text));
       if(numbered) report.numbered++;
       /* THE PARAGRAPH BOUNDARY IS THE TEXT PROJECTION'S OWN (pdfParaBreak), so
          the stored wording and the plain text cannot disagree about where one
@@ -866,7 +890,7 @@ function docPdfStructure(pages){
          which is what makes this read as a document rather than as a column of
          short lines. */
       const brk = i===0 || numbered || open==null || pdfParaBreak(lines[i-1], l, median);
-      if(brk){ flush(); open=l.html; }
+      if(brk){ flush(); open=numbered?pdfNumSpacedHtml(l.html):l.html; }
       else open+=' '+l.html;
     });
   });
@@ -2682,7 +2706,7 @@ function uploadDocBody(c){
     ${c.redlineText?`
     ${((isDocx||isPdf) && !(window.uploadWordingEdited ? uploadWordingEdited(c)
         : ((c.changes||[]).length || (c.versions||[]).length)))
-      ? `<div class="up-caption" style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t('ct_reading_view')}</div>` : ''}
+      ? `<div class="up-caption" style="font-size:var(--t-label);color:var(--color-neutral-600);margin:0 0 14px">${i18t(isPdf?'ct_reading_view_pdf':'ct_reading_view')}</div>` : ''}
     ${''/* `data-upwording` NAMES THE AGREEMENT INSIDE THIS TAB, and nothing else
          on it. The placeholder marks are painted into text nodes, and the two
          things on this page ruled with underscores that are NOT blanks in the
@@ -2790,7 +2814,7 @@ async function rereadUploadText(c, btn){
       || (window.negoExecuted && negoExecuted(c)));
     const keptWording=rereadKeepsWording(c);
     if(html && !sealed && window.docxHasStructure && docxHasStructure(rep) && window.sanitizeRich
-       && !keptWording){
+       && !c.changes?.length && !c.versions?.length){
       let body=sanitizeRich(html);
       if(window.clauseStampIds && window.clauseCarryIds && c.redlineText){
         try{
@@ -16505,7 +16529,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
   docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
   scApplyZoom,scZoomStep,scPaintPage,scPageGo,scSourceLine,scControlsHtml,scWireControls,
-  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
+  wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfNumCapsHead,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,
   /* ---- THE ROWS WERE NOT CLICKABLE IN A REAL BROWSER ----
      Key terms became read-first, edit-on-click, and the binder for that never
      reached the window. This file's globals are not automatic; the assign
