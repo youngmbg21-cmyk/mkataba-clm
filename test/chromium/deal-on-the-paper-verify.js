@@ -71,7 +71,7 @@ const DOC = ['SUPPLY AGREEMENT', '', 'Article 1 Term', '', 'This Agreement runs 
 
     /* ===== 1. CLEAN | REDLINED, AND THE DEAL TAB TURNS IT ON ===== */
     const sw = await page.evaluate(() => [...document.querySelectorAll('#ig-strip .ig-red button')].map(b => b.textContent.trim() + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')));
-    ok('1a the strip offers Clean | Redlined · 2, Clean at rest', sw.join('|') === 'Clean*|Redlined · 2', JSON.stringify(sw));
+    ok('1a the strip offers Clean | Redline · 2, Clean at rest', sw.join('|') === 'Clean*|Redline · 2', JSON.stringify(sw));
     await page.click('#ig-dock [data-pd-tab="deal"]');
     await page.waitForFunction(() => !!document.querySelector('#ig-paper .ig-redpaper'), null, { timeout: 8000 }).catch(() => {});
     const red = await page.evaluate(() => {
@@ -79,7 +79,7 @@ const DOC = ['SUPPLY AGREEMENT', '', 'Article 1 Term', '', 'This Agreement runs 
       return { paper: !!document.querySelector('#ig-paper .ig-redpaper'), lit: (document.querySelector('#ig-strip .ig-red [aria-pressed="true"]') || {}).textContent,
         both: /twelve/.test(t) && /six/.test(t), marks: cv ? cv.querySelectorAll('del, ins, .rl-del, .rl-ins, [class*="del"], [class*="ins"]').length : 0 };
     });
-    ok('1b the Deal tab draws the paper Redlined: their words struck and inserted', red.paper && /Redlined/.test(red.lit || '') && red.both && red.marks > 0, JSON.stringify(red));
+    ok('1b the Deal tab draws the paper Redlined: their words struck and inserted', red.paper && /Redline/.test(red.lit || '') && red.both && red.marks > 0, JSON.stringify(red));
     await page.screenshot({ path: path.join(OUT, '1-redlined.png') });
 
     /* ===== 2. THEIR CHANGES, SORTED ===== */
