@@ -1308,7 +1308,7 @@ function mWire(){
             if(r&&r.user) Object.assign(u,r.user); else u.title=title.trim();
           } else { u.title=title.trim(); if(window.saveUsers) saveUsers(getUsers()); }
           if(window.settingsMirrorDirectory) settingsMirrorDirectory(u.name,u.email,title.trim());
-          if(window.toast) toast(i18t('st_acct_saved'));
+          if(window.toast) toast(i18t('st_acct_saved'),'ok');
         }catch(err){ if(window.toast) toast(err.message,'err'); }
       })();
       return;
@@ -1316,7 +1316,7 @@ function mWire(){
     if(k==='acct-nav-all'){
       if(typeof navSetShowEverything==='function' && typeof navShowEverything==='function'){
         const on=!navShowEverything(); navSetShowEverything(on);
-        if(window.toast) toast(on?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'));
+        if(window.toast) toast(on?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'),'ok');
       }
       mRender(); return;
     }
@@ -1358,6 +1358,7 @@ function mBack(){
    Called on load, on every resize across the breakpoint, and after every
    setView. It is the only thing that turns the phone on or off. */
 function mSync(){
+  mHookRoomTab();
   const root = document.getElementById('m-root');
   const body = document.body;
   if(!root || !body || !body.classList) return;
@@ -1414,12 +1415,49 @@ function mHookSetView(){
            on yet. Sync turns it on and paints; a bare paint would draw into a
            root that is still hidden. */
         mSync();
+        /* A contract reached through setView (an email link, a search) is
+           fetched whole too, as mGo's door does — else its History and its
+           upload stay the light row's. */
+        if(mapped==='contract') mHydrate(state.activeId);
       }
     }catch(e){ try{ console.error('[hati] phone repaint failed', e); }catch(_){} }
     return r;
   };
   wrapped._mHooked = true;
   window.setView = wrapped;
+  mHookRoomTab();
+}
+
+/* ---- A LINK LANDS ON WHAT IT CAME FOR, ON THE PHONE TOO (9 Oct 2026) ----
+   An email's #contract=ID&tab=… link is read by openFromHash, which opens the
+   room and then asks the room's own router, roomGoTab, for the tab. The phone
+   drew the Document tab whatever was asked. Wrapped like setView, and only on
+   the phone: Overview and History are the phone's own tabs; Signing is the
+   phone's Approvals card for that contract where this reader has an approval
+   waiting there (the approval email's link), else the Document tab with its
+   Sign bar; the negotiation ('redline') goes through as it always did. */
+const M_TAB_FOR_ROOM = { terms:'terms', ov2:'terms', stands:'terms', history:'hist', docs:'doc', oblig:'oblig' };
+function mHookRoomTab(){
+  if(typeof window==='undefined' || typeof window.roomGoTab!=='function' || window.roomGoTab._mHooked) return;
+  const inner = window.roomGoTab;
+  const wrapped = function(c, k){
+    if(!mPhone() || !c || k==='redline') return inner.apply(this, arguments);
+    try{
+      const s = mS();
+      if(k==='sign'){
+        const mine = (typeof window.mApprovalItems==='function') ? mApprovalItems() : [];
+        if(mine.some(x=>x && x.c && x.c.id===c.id)){
+          mGo('approvals',{ apprOpen:c.id, apprReject:null, apprWhy:'', apprErr:false, apprNote:'' });
+          return;
+        }
+        s.tab = 'doc';
+      } else if(M_TAB_FOR_ROOM[k]) s.tab = M_TAB_FOR_ROOM[k];
+      else return inner.apply(this, arguments);
+      if(s.screen==='contract') mRender(); else mGo('contract');
+    }catch(e){ try{ console.error('[hati] phone tab landing failed', e); }catch(_){} }
+  };
+  wrapped._mHooked = true;
+  window.roomGoTab = wrapped;
 }
 
 function mBoot(){

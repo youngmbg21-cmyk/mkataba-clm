@@ -290,12 +290,14 @@ describe('f242 · the seven that speak, because greying is impossible', () => {
 describe('f242 · the phone talks, because touch has no hover', () => {
   test('the three dimmed rows keep their tap and explain themselves', () => {
     const src = read('js/mobile-contract.js');
-    assert.match(src, /toast\(M_DESK_MSG,'warn'\)/);
+    /* RE-POINTED 9 Oct 2026: the sentence is in the reader's language now
+       (mc_desk_msg), no longer an English constant. */
+    assert.match(src, /toast\(i18t\('mc_desk_msg'\),'warn'\)/);
     assert.match(src, /toast\(i18t\('mc_sealed_no_edit'\),'warn'\)/);
     assert.match(src, /toast\(i18t\('mc_never_renumber'\),'warn'\)/);
     /* 'warn' rather than 'err': nothing failed and nothing was refused
        unexpectedly — this is a rule, stated. */
-    assert.ok(!/toast\(M_DESK_MSG\)/.test(src));
+    assert.ok(!/toast\(i18t\('mc_desk_msg'\)\)/.test(src));
   });
 
   test('and the phone still files no changes of its own', () => {

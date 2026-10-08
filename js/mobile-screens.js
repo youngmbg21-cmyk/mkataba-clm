@@ -39,19 +39,45 @@ function mSlices(){
 function mNeedsYou(D){
   if(!D) return [];
   const out = [];
+  /* ---- ONE FACT, ONE READING (flow rule 1, 9 Oct 2026) ----
+     The rows the desktop's checklist and bell draw come from needsYouOf(c),
+     every kind of them, and SEVERAL PER CONTRACT: this list used to keep one
+     reason per contract and build its own, so a colleague's "look at this"
+     vanished behind an approval on the same contract, and a note, a
+     suggestion, a review or a request to join never showed at all. The words
+     are the inspector's own (insNeedWords). The phone's older slices below
+     stay for what needsYouOf does not carry — their redlines waiting, paper
+     they declined, a review gone quiet — and a contract repeats only where
+     the REASON differs. */
   const seen = new Set();
-  const push = (c, dot, reason, tone) => {
-    if(!c || seen.has(c.id)) return;
-    seen.add(c.id);
-    out.push({ c, dot, reason, tone });
+  const push = (c, kind, dot, reason, tone) => {
+    if(!c || !reason) return;
+    const k = c.id + '|' + kind;
+    if(seen.has(k)) return;
+    seen.add(k);
+    out.push({ c, kind, dot, reason, tone });
   };
+  const TONE = { ruby:['var(--st-ruby-dot)','var(--st-ruby-fg)'], amber:['var(--st-amber-dot)','var(--st-amber-fg)'],
+    green:['var(--st-green-dot)','var(--st-green-fg)'], quiet:['var(--st-green-dot)','var(--color-neutral-600)'] };
+  if(typeof needsYouOf==='function'){
+    (D.cs||[]).forEach(c=>{
+      let items=[]; try{ items = needsYouOf(c)||[]; }catch(_){ items=[]; }
+      items.forEach(it=>{
+        let w=null; try{ w = (typeof insNeedWords==='function') ? insNeedWords(c, it) : null; }catch(_){ w=null; }
+        const title = (w && w.title) || '';
+        const line = (w && w.plain) ? title + ' · ' + w.plain : title;
+        const t = it.urgent ? TONE.ruby : it.kind==='sign' ? TONE.green : it.kind==='renewal' ? TONE.quiet : TONE.amber;
+        push(c, it.kind, t[0], line, t[1]);
+      });
+    });
+  }
 
   (D.myApprovals||[]).filter(x=>x.mine).forEach(x=>{
     /* Off the ROW, not the trail — HEAVY strips `audit` in server mode, so this
        silently dropped the name on every real workspace. Same reading as the
        Approvals card below. */
     const whoName = (typeof contractOwnerName==='function') ? contractOwnerName(x.c) : null;
-    push(x.c, 'var(--st-amber-dot)',
+    push(x.c, 'approval', 'var(--st-amber-dot)',
       i18t('m_waiting_your_approval') + (whoName?i18t('m_requested_by',{who:whoName}):''), 'var(--st-amber-fg)');
   });
 
@@ -61,7 +87,7 @@ function mNeedsYou(D){
      (hmDashSlices' myStaleDesks, the desk's own reading), in the same words. */
   (D.myStaleDesks||[]).forEach(x=>{
     const st = x.stale||{};
-    push(x.c,'var(--st-amber-dot)',
+    push(x.c,'quiet','var(--st-amber-dot)',
       i18t('dk_stale_card',{who:x.c.counterparty||i18t('home_no_counterparty')})+((window.deskWaitDays&&deskWaitDays(st)!=null)?' · '+i18t('dk_stale_tag',{n:deskWaitDays(st)}):''),
       'var(--st-amber-fg)');
   });
@@ -73,33 +99,21 @@ function mNeedsYou(D){
   (D.cs||[]).forEach(c=>{
     if(c.status==='Signed'||c.status==='Declined') return;
     let na=null; try{ na = (typeof wsNextAction==='function') ? wsNextAction(c) : null; }catch(_){ na=null; }
-    if(na && na.kind==='review-changes') push(c,'var(--st-amber-dot)', na.guide, 'var(--st-amber-fg)');
-    else if(na && (na.kind==='sign'||na.kind==='sign-scroll')) push(c,'var(--st-green-dot)', na.guide, 'var(--st-green-fg)');
+    if(na && na.kind==='review-changes') push(c,'redlines','var(--st-amber-dot)', na.guide, 'var(--st-amber-fg)');
+    else if(na && (na.kind==='sign'||na.kind==='sign-scroll')) push(c,'sign','var(--st-green-dot)', na.guide, 'var(--st-green-fg)');
   });
 
-  /* A colleague passed you a contract to look at (8 Oct 2026) — the same
-     reading as the desktop checklist and bell (asksLookFor). */
-  if(typeof asksLookFor==='function' && typeof currentUser==='function'){
-    const me = currentUser();
-    if(me) (D.cs||[]).forEach(c=>{
-      let mine=[]; try{ mine = asksLookFor(c, me)||[]; }catch(_){ mine=[]; }
-      if(!mine.length) return;
-      const a = mine[mine.length-1];
-      push(c,'var(--st-amber-dot)', i18t(a.stamp&&a.stamp.review?'al_look_review':'al_look',{ who:(a.by&&a.by.name)||'' }),'var(--st-amber-fg)');
-    });
-  }
-
   (D.cs||[]).filter(c=>c.status==='Declined').forEach(c=>{
-    push(c,'var(--st-ruby-dot)',i18t('m_declined_read_reason'),'var(--st-ruby-fg)');
+    push(c,'declined','var(--st-ruby-dot)',i18t('m_declined_read_reason'),'var(--st-ruby-fg)');
   });
 
   (D.decisions||[]).forEach(x=>{
-    push(x.c,'var(--st-green-dot)',
+    push(x.c,'renewal','var(--st-green-dot)',
       x.d===0?i18t('m_renewal_due_today'):i18tn('m_renewal_due_in',x.d,{n:x.d}), 'var(--color-neutral-600)');
   });
 
   (D.waitingLongest||[]).filter(x=>x.idle>14).forEach(x=>{
-    push(x.c,'var(--st-amber-dot)',i18tn('m_in_review_no_movement',x.idle,{n:x.idle}),'var(--color-neutral-600)');
+    push(x.c,'idle','var(--st-amber-dot)',i18tn('m_in_review_no_movement',x.idle,{n:x.idle}),'var(--color-neutral-600)');
   });
 
   return out;
@@ -154,7 +168,7 @@ function mHomeHtml(){
     <div class="m-lbl" style="margin:0 var(--s-4) 6px">${i18t('m_needs_you',{n:needs.length})}</div>
     <div class="m-card m-list" style="margin:0 var(--s-4)">
       ${needs.map(n=>`
-        <button class="m-row" data-m-open="${mEsc(n.c.id)}" style="align-items:flex-start">
+        <button class="m-row" data-m-open="${mEsc(n.c.id)}" data-m-need="${mEsc(n.kind||'')}" style="align-items:flex-start">
           <span style="width:10px;height:10px;border-radius:50%;flex:none;margin-top:6px;background:${n.dot}"></span>
           <span style="flex:1;min-width:0">
             <span class="m-row-name">${mEsc(n.c.name||(window.contractRef?contractRef(n.c):n.c.id))}</span>
@@ -630,6 +644,11 @@ function mWireScreen(root){
   root.querySelectorAll('[data-m-open]').forEach(b=>b.addEventListener('click',()=>{
     const id = b.getAttribute('data-m-open');
     state.activeId = id; state.selId = id;
+    /* An approval is decided on the phone's own Approvals card, opened on
+       that contract — the place an approval email lands too. */
+    if(b.getAttribute('data-m-need')==='approval' && mApprovalItems().some(x=>x.c && x.c.id===id)){
+      mGo('approvals',{ apprOpen:id, apprReject:null, apprWhy:'', apprErr:false, apprNote:'' }); return;
+    }
     mGo('contract',{ tab:'doc' });
   }));
 

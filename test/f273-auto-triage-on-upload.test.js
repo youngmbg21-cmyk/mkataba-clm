@@ -1025,8 +1025,10 @@ describe('F273 — auto-triage on upload', () => {
         'the desktop send-for-review press starts the readings');
       const phoneAt = MOBILE_CODE.indexOf("if(kind==='review')");
       const phone = MOBILE_CODE.slice(phoneAt, MOBILE_CODE.indexOf('if(kind===', phoneAt + 10));
-      assert.match(phone, /window\.triageAndPaint\) triageAndPaint\(c\)/,
-        'and so does the phone s');
+      /* RE-POINTED 9 Oct 2026: the phone's press is the ONE act now
+         (contractLeavesDrafting), which asks the reading itself. */
+      assert.match(phone, /contractLeavesDrafting\(c, 'sent for review'\)/,
+        'and so does the phone, through the one act');
     });
     test('the two stage moves that are NOT a person sending are left alone', () => {
       /* keyTermsProgress promotes a Draft the moment a counterparty and a value
