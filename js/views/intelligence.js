@@ -7241,12 +7241,26 @@ function igStrandPaint(c){
   if(!marked.length){ sp.innerHTML=''; _igStrandRows=[]; return; }
   /* The strip's width is the Document tab's own number, written on the
      element as that tab writes it (the sheet's rule states none). */
-  sp.style.width=(Number(window.DOC_XRAY_SPINE_W)||28)+'px';
-  sp.innerHTML=docXraySpineHtml(rows,{ numbers:true });
+  /* THE TRACK where the margin has room for it, today's strip where it does
+     not — the paper never moves for it (igTrackFits). */
+  _igStrandC=c;
+  const track=igTrackFits(sp, canvas);
+  sp.classList.toggle('is-track', track);
+  if(track){ sp.style.width=IG_TRACK_W+'px'; sp.innerHTML=igTrackHtml(rows); }
+  else { sp.style.width=(Number(window.DOC_XRAY_SPINE_W)||28)+'px'; sp.innerHTML=docXraySpineHtml(rows,{ numbers:true }); }
   sp.querySelectorAll('.doc-xr-seg.is-on').forEach(b=>{ b.classList.remove('is-on'); b.setAttribute('aria-pressed','false'); });
   _igStrandRows=rows.map(x=>x.el);
   _igStrandData=rows;
   igStrandFollow();
+  if(track) igTrackPlace();
+  /* the margin and the paper's length move with the window and the panel:
+     the Track is laid out again (and the strip chosen again) when they do */
+  const wrap=sp.parentElement;
+  if(wrap&&!wrap.dataset.igTrackWatch&&typeof ResizeObserver==='function'){ wrap.dataset.igTrackWatch='1'; let raf2=0;
+    const again=()=>{ if(raf2) return; raf2=requestAnimationFrame(()=>{ raf2=0; const s2=document.getElementById('ig-spine');
+      if(!s2||s2.hidden||!_igStrandC) return; const fits=igTrackFits(s2, document.getElementById('ig-canvas'));
+      if(fits!==s2.classList.contains('is-track')) igStrandPaint(_igStrandC); else if(fits) igTrackPlace(); }); };
+    const ro=new ResizeObserver(again); ro.observe(wrap); ro.observe(canvas); }
   if(sc&&!sc.dataset.igFollowBound){ sc.dataset.igFollowBound='1'; let raf=0;
     sc.addEventListener('scroll',()=>{ igStrandTip(null); if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; igStrandFollow(); }); },{passive:true}); }
   if(!sp.dataset.igBound){ sp.dataset.igBound='1';
@@ -7333,9 +7347,88 @@ function igStrandTip(b){
   const top=Math.max(4, Math.min(wrap.clientHeight-tip.offsetHeight-4, br.top-wr.top-4));
   tip.style.top=top+'px';
 }
+/* ---- THE TRACK (the owner picked "Track" by name, 8 Oct 2026, off the
+   "Clause Strip Options" artifact; work order "Home speed", Part 7) ----
+   The 28px strip cut numbers like 3.4.1 and 24.8 off. The Track is one thin
+   rail for the WHOLE contract — its top the contract's start, its bottom the
+   end — with each flagged clause a short mark in its grade WHERE IT REALLY
+   IS (its place down the painted paper, never guessed from its number), its
+   number whole on a label beside the rail (labels pushed apart so none
+   overlap, a leader joining each to its mark), and a soft window over the
+   part of the contract on screen. The hover card, the press and the Ask
+   question are the strip's own (igStrandTip, igStrandPress): the labels carry
+   the same `data-xr-seg`. IT LIVES IN THE GREY MARGIN ONLY: where the margin
+   left of the sheet is narrower than the Track, today's strip is drawn
+   instead, so the contract never moves. Nothing here writes or spends. */
+const IG_TRACK_W=70, IG_TRACK_GAP=20, IG_TRACK_PAD=14, IG_TRACK_X=10;
+let _igStrandC=null;
+function igTrackFits(sp, canvas){
+  const wrap=sp&&sp.parentElement; if(!wrap||!canvas) return false;
+  /* the sheet the paper is drawn on: the white page round the wording, or
+     the redlined paper, which is the canvas itself */
+  const sheet=canvas.closest('.pg-sheet')||canvas;
+  const room=sheet.getBoundingClientRect().left-wrap.getBoundingClientRect().left;
+  return room>=IG_TRACK_W+4;
+}
+/* LABELS NEVER OVERLAP: in order, each at least `gap` below the one before;
+   then pulled back inside [top, bot] from the bottom up. A pure function of
+   the marks' places, so it is pinned by a unit test. */
+function igTrackLayout(ys, top, bot, gap){
+  const ly=ys.slice();
+  for(let i=1;i<ly.length;i++) if(ly[i]<ly[i-1]+gap) ly[i]=ly[i-1]+gap;
+  if(ly.length&&ly[ly.length-1]>bot) ly[ly.length-1]=bot;
+  for(let i=ly.length-2;i>=0;i--) if(ly[i]>ly[i+1]-gap) ly[i]=ly[i+1]-gap;
+  if(ly.length&&ly[0]<top){ ly[0]=top; for(let i=1;i<ly.length;i++) if(ly[i]<ly[i-1]+gap) ly[i]=ly[i-1]+gap; }
+  return ly;
+}
+function igTrackHtml(rows){
+  const marked=docXraySpineRows(rows);
+  const labs=marked.map(x=>{ const g=IG_GRADE_RANK.includes(x.tone)?x.tone:'steel';
+    const num=String(x.cite||'').replace(/\.$/,'')||String(x.i+1);
+    return `<button type="button" class="doc-xr-seg ig-trk-lab is-${g}" data-xr-seg="${x.i}" aria-pressed="false" aria-label="${igEsc(typeof docXrayLabel==='function'?docXrayLabel(x):num)}"><span class="doc-xr-num">${igEsc(num)}</span></button>`; }).join('');
+  return `<svg class="ig-trk-svg" aria-hidden="true"></svg>${labs}`;
+}
+/* Laid out off the painted paper: each mark's top and height are its
+   clause's share of the paper, the rail the spine's own height. */
+function igTrackPlace(){
+  const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
+  if(!sp||!sp.classList.contains('is-track')||!sc) return;
+  const svg=sp.querySelector('.ig-trk-svg'); if(!svg) return;
+  const H=sp.clientHeight, top=IG_TRACK_PAD, bot=H-IG_TRACK_PAD, span=Math.max(1,bot-top), total=Math.max(1,sc.scrollHeight);
+  const scTop=sc.getBoundingClientRect().top-sc.scrollTop;
+  const labs=[...sp.querySelectorAll('.ig-trk-lab')];
+  const marks=labs.map(b=>{ const i=Number(b.getAttribute('data-xr-seg')), el=_igStrandRows[i];
+    let y=0, h=0; try{ const r=el.getBoundingClientRect(); y=(r.top-scTop)/total; h=r.height/total; }catch(_){}
+    return { b, g:(b.className.match(/is-(ruby|amber|steel)/)||[])[1]||'steel', y:top+Math.max(0,Math.min(1,y))*span, h:Math.max(5,h*span) }; });
+  const ly=igTrackLayout(marks.map(m=>m.y), top+9, bot-9, IG_TRACK_GAP);
+  const x=IG_TRACK_X, col={ ruby:'var(--st-ruby-dot)', amber:'var(--st-amber-dot)', steel:'var(--st-steel-dot)' };
+  let g=`<rect class="ig-trk-rail" x="${x-3}" y="${top}" width="6" height="${span}" rx="3"/><rect class="ig-trk-win" x="${x-7}" y="${top}" width="14" height="0" rx="3"/>`;
+  marks.forEach((m,k)=>{ g+=`<rect x="${x-3}" y="${(m.y).toFixed(1)}" width="6" height="${m.h.toFixed(1)}" rx="1.5" style="fill:${col[m.g]}"/>`
+    +`<path class="ig-trk-lead" d="M${x+4} ${(m.y+Math.min(m.h,6)/2).toFixed(1)} C ${x+9} ${(m.y).toFixed(1)}, ${x+9} ${ly[k].toFixed(1)}, 22 ${ly[k].toFixed(1)}"/>`;
+    m.b.style.top=ly[k].toFixed(1)+'px'; });
+  svg.innerHTML=g;
+  igTrackWindow();
+}
+/* The window over the part on screen, and the label of the clause being read. */
+function igTrackWindow(){
+  const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
+  if(!sp||!sc) return;
+  const win=sp.querySelector('.ig-trk-win'); if(!win) return;
+  const H=sp.clientHeight, top=IG_TRACK_PAD, span=Math.max(1,H-2*IG_TRACK_PAD), total=Math.max(1,sc.scrollHeight);
+  win.setAttribute('y',(top+sc.scrollTop/total*span).toFixed(1));
+  win.setAttribute('height',Math.max(6,sc.clientHeight/total*span).toFixed(1));
+}
 function igStrandFollow(){
   const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
   if(!sp||sp.hidden||!sc||!_igStrandRows.length) return;
+  if(sp.classList.contains('is-track')){
+    igTrackWindow();
+    const at=sc.getBoundingClientRect().top+24; let here=-1;
+    _igStrandRows.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=at) here=i; }catch(_){} });
+    let lab=null; sp.querySelectorAll('.ig-trk-lab').forEach(b=>{ b.classList.remove('is-here'); if(Number(b.getAttribute('data-xr-seg'))<=here) lab=b; });
+    if(lab) lab.classList.add('is-here');
+    return;
+  }
   const top=sc.getBoundingClientRect().top+24;
   let here=0;
   _igStrandRows.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=top) here=i; }catch(_){} });
@@ -7406,4 +7499,5 @@ Object.assign(window,{igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igC
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
 Object.assign(window,{igDockStepAside});
+Object.assign(window,{igTrackLayout,igTrackFits,igTrackHtml,igTrackPlace,IG_TRACK_W,igStrandPaint});
 Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
