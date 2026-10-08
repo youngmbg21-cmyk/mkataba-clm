@@ -85,8 +85,225 @@ function contractHasBlanks(c){
     if(typeof isUpload==='function' && isUpload(c))
       return !!(typeof uploadBlanksLive==='function' && uploadBlanksLive(c));
   }catch(_){ return false; }
+  /* Our own amendment's ruled lines — see ownBlanksLive. */
+  if(ownBlanksOn(c)) return ownBlanksLive(c);
   if(c.redlineText) return false;                         // stored wording — see above
   return !!(typeof TEMPLATES!=='undefined' && TEMPLATES[c.template]);
+}
+
+/* ════════ THE BLANKS IN PAPER HATI WROTE ITSELF — AN AMENDMENT ════════
+   (Young, 8 Oct 2026: "when you are creating amendments and so forth, you will
+   have fields that need to be updated. In a draft contract, usually there is a
+   field on the right panel that appears for you to fill in. That needs to
+   happen for amendment process as well.")
+
+   An amendment's paper is written ONCE, as wording (amendmentSkeletonBody):
+   "This Amendment No. 1 is made on ____________". It is neither a template
+   (no boxes drawn from `c.fields`) nor somebody else's upload, so both
+   readings above refused it and the date had no box anywhere.
+
+   IT IS OUR PAPER, SO THE ANSWER GOES INTO IT — unlike an upload's working
+   note. A ruled line is a blank; answering it writes the answer INTO the
+   wording as the same keyed span a company standard's answered blank is
+   (`hati-field-done` + `data-field-key`, both already on the rich sanitiser's
+   allow-list), so the answer is what the other side reads and what is signed.
+   An unanswered one, once any is answered, is the `hati-field` gap.
+
+   ONLY WHILE NOTHING IS ON THE TABLE (ownBlanksLive): a Draft, an editor, not
+   their page, no change filed, no round closed, no fingerprint issued — the
+   guards negoFreshenBaseline uses for "the baseline may still move", read RAW
+   (reading must not write). Past that the wording has been measured against
+   and is changed in Negotiate, where every change is a tracked one.
+
+   NOT A SIGNING HOLD (contractBoxesOpen keeps to `field`): once this paper
+   leaves Draft the panel stands down, and a hold whose way forward is a panel
+   nobody can open is a door onto nothing. */
+const OWN_RULE_RE = /(?<![A-Za-z0-9])_{3,}(?![A-Za-z0-9])/g;
+const OWN_KEY_RE = /^own_(\d{1,3})$/;
+const OWN_GAP = '____________';
+const OWN_SKIP_SEL = '.rl-paper-head,.rl-paper-foot,header,.seal-in,[data-doc-design-cover],input,textarea,select,button,script,style';
+const ownBlanksOn = c => {
+  if(!c || c.templateForm || c.source !== 'amendment') return false;
+  try{ if(typeof isUpload === 'function' && isUpload(c)) return false; }catch(_){ return false; }
+  return !!String(c.redlineText || '').trim();
+};
+/* Something on the table — RAW, never through negoInit. */
+const ownBlanksTouched = c => {
+  if(Array.isArray(c && c.changes) && c.changes.length) return true;
+  const n = c && c.negotiation;
+  return !!(n && ((Array.isArray(n.rounds) && n.rounds.length) || (n.round && n.round !== 1) || n.chainHead));
+};
+function ownBlanksLive(c){
+  if(!ownBlanksOn(c)) return false;
+  if(typeof PORTAL_MODE !== 'undefined' && PORTAL_MODE) return false;
+  if(c.status !== 'Draft' || (Array.isArray(c.signatures) && c.signatures.length)) return false;
+  try{ if(typeof canEdit === 'function' && !canEdit()) return false; }catch(_){ }
+  return !ownBlanksTouched(c);
+}
+/* ONE WALK, the stored wording's and the painted canvas's alike: every keyed
+   span we wrote and every ruled line not inside one, in document order, with
+   a ruled line's key MINTED after the highest key already written — so the
+   read, the paint and the write name the same blank the same key. */
+function ownBlanksWalk(root){
+  const out = [];
+  if(!root || typeof document === 'undefined') return out;
+  let top = 0;
+  root.querySelectorAll('span[data-field-key]').forEach(sp => {
+    const m = OWN_KEY_RE.exec(sp.getAttribute('data-field-key') || '');
+    if(m) top = Math.max(top, Number(m[1]));
+  });
+  const skip = n => { const el = n.nodeType === 1 ? n : n.parentElement;
+    try{ return !!(el && el.closest && el.closest(OWN_SKIP_SEL)); }catch(_){ return false; } };
+  const tw = document.createTreeWalker(root, 5 /* SHOW_ELEMENT | SHOW_TEXT */);
+  for(let n = tw.nextNode(); n; n = tw.nextNode()){
+    if(skip(n)) continue;
+    if(n.nodeType === 1){
+      const k = n.tagName === 'SPAN' ? n.getAttribute('data-field-key') : null;
+      if(k && OWN_KEY_RE.test(k)) out.push({ key: k, el: n });
+      continue;
+    }
+    const host = n.parentElement;
+    if(host && host.closest && host.closest('span[data-field-key]')) continue;
+    OWN_RULE_RE.lastIndex = 0;
+    let m;
+    while((m = OWN_RULE_RE.exec(n.data))) out.push({ key: 'own_' + (++top), node: n, s: m.index, e: m.index + m[0].length, raw: m[0] });
+  }
+  return out;
+}
+const OWN_LEAD_SKIP = new Set(['is','are','be','the','a','an','and','of','to','has','have','was','no']);
+/* The words in front of the blank, inside its own paragraph: "made on". */
+function ownBlankLead(hit){
+  const at = hit.el || hit.node;
+  const para = at && at.parentElement && at.parentElement.closest ? at.parentElement.closest('p,li,div,h1,h2,h3,h4') : null;
+  if(!para || typeof document === 'undefined') return '';
+  let before = '';
+  try{
+    const r = document.createRange();
+    r.setStart(para, 0);
+    if(hit.el) r.setEndBefore(hit.el); else r.setEnd(hit.node, hit.s);
+    before = r.toString();
+  }catch(_){ return ''; }
+  /* The last three words, less a leading little word or number: "…No. 1 is
+     made on" reads "Made on", "…deleted and replaced with:" "Replaced with". */
+  const words = before.replace(/[^A-Za-z0-9\s]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean).slice(-3);
+  while(words.length > 1 && (/^\d+$/.test(words[0]) || OWN_LEAD_SKIP.has(words[0].toLowerCase()))) words.shift();
+  const t = words.join(' ');
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
+}
+const ownBlankIsDate = lead => /\b(?:on|dated|date)$/i.test(String(lead || '').trim());
+function ownBlankHost(c){
+  if(typeof document === 'undefined') return null;
+  const host = document.createElement('div');
+  try{ host.innerHTML = String(c.redlineText || ''); }catch(_){ return null; }
+  return host;
+}
+function ownBlanksRead(c){
+  if(!ownBlanksOn(c)) return [];
+  const host = ownBlankHost(c);
+  if(!host) return [];
+  const fields = (c && c.fields) || {};
+  return ownBlanksWalk(host).slice(0, BLANK_MAX).map(h => {
+    const lead = ownBlankLead(h);
+    const stored = fields[h.key];
+    const shown = h.el && h.el.classList.contains('hati-field-done') ? String(h.el.textContent || '').trim() : '';
+    return { key: h.key, kind: 'own', type: ownBlankIsDate(lead) ? 'date' : 'text', money: false,
+      label: lead, ph: h.raw || OWN_GAP, value: String(stored == null ? shown : stored),
+      section: '', declared: false };
+  });
+}
+/* How the answer is printed on the paper: a date the way the paper writes one
+   ("8 October 2026", fmtDocDate — a record keeps English), anything else as
+   typed. */
+const ownBlankPrint = (b, v) => (b && b.type === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(v) && typeof fmtDocDate === 'function')
+  ? (fmtDocDate(v) || v) : v;
+/* THE ONE WRITER for these blanks: the wording, the answer on `c.fields` (so
+   a date box can show its own value back) and one audit line. */
+function ownBlankSet(c, key, value){
+  if(!ownBlanksLive(c) || !key) return false;
+  const host = ownBlankHost(c);
+  if(!host) return false;
+  const walk = ownBlanksWalk(host);
+  const b = ownBlanksRead(c).find(x => x.key === key);
+  if(!b || !walk.some(h => h.key === key)) return false;
+  const v = String(value == null ? '' : value).trim();
+  if(v === String(b.value || '').trim()) return false;         // nothing changed is not an edit
+  /* Every ruled line becomes its keyed gap first, from the last backwards so
+     an earlier offset in the same text node never moves. */
+  for(const h of walk.slice().reverse()){
+    if(!h.node) continue;
+    const sp = document.createElement('span');
+    sp.className = 'hati-field';
+    sp.setAttribute('data-field-key', h.key);
+    sp.textContent = h.raw;
+    const tail = h.node.splitText(h.s);
+    tail.data = tail.data.slice(h.e - h.s);
+    tail.parentNode.insertBefore(sp, tail);
+  }
+  const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(key) : key;
+  const sp = host.querySelector(`span[data-field-key="${q}"]`);
+  if(!sp) return false;
+  sp.className = v ? 'hati-field-done' : 'hati-field';
+  sp.textContent = v ? ownBlankPrint(b, v) : (b.ph || OWN_GAP);
+  c.redlineText = host.innerHTML;
+  c.fields = c.fields || {};
+  if(v) c.fields[key] = v; else delete c.fields[key];
+  if(typeof todayStr === 'function') c.lastAction = todayStr();
+  if(typeof logAudit === 'function') logAudit(c, 'Edited', `Filled in "${b.label || key}" on the paper`);
+  if(typeof persist === 'function') persist(c);
+  ownBlankPaint(key, sp.className, sp.textContent);
+  return true;
+}
+/* ---- THE MARK ON THE PAINTED PAPER ----
+   Before any answer the wording carries bare ruled lines, so the canvas gets
+   the same keyed gap painted on (never stored — it dies with every repaint),
+   which is what lets the panel light the spot and a press on the spot open
+   its box. The painted walk must find exactly the stored walk's blanks, in
+   order, or it paints nothing (uploadBlanksPaint's wall). */
+function ownBlanksPaint(c){
+  if(typeof document === 'undefined') return 0;
+  const canvas = document.getElementById('doc-canvas');
+  if(!canvas || !ownBlanksLive(c)) return 0;
+  const host = ownBlankHost(c);
+  const want = host ? ownBlanksWalk(host) : [];
+  const got = ownBlanksWalk(canvas);
+  if(!want.length || got.length !== want.length) return 0;
+  for(let i = 0; i < got.length; i++) if(got[i].key !== want[i].key) return 0;
+  let n = 0;
+  for(const h of got.slice().reverse()){
+    if(!h.node){ n++; continue; }
+    const sp = document.createElement('span');
+    sp.className = 'hati-field';
+    sp.setAttribute('data-field-key', h.key);
+    sp.setAttribute('data-ownmade', '1');
+    sp.textContent = h.raw;
+    const tail = h.node.splitText(h.s);
+    tail.data = tail.data.slice(h.e - h.s);
+    tail.parentNode.insertBefore(sp, tail);
+    n++;
+  }
+  if(!canvas.dataset.ownBlanksWired){
+    canvas.dataset.ownBlanksWired = '1';
+    /* A press on the gap opens its box in the panel — resolved at press time. */
+    canvas.addEventListener('click', e => {
+      const sp = e.target && e.target.closest ? e.target.closest('span[data-field-key]') : null;
+      const k = sp && sp.getAttribute('data-field-key');
+      if(!k || !OWN_KEY_RE.test(k)) return;
+      const box = (typeof contractFieldPeer === 'function') ? contractFieldPeer(k, 'panel') : null;
+      if(box){ try{ box.scrollIntoView({ block: 'center' }); box.focus(); }catch(_){ } }
+    });
+  }
+  return n;
+}
+/* The paper reads back what the panel holds, in place — no repaint under the
+   reader's hand. */
+function ownBlankPaint(key, cls, text){
+  if(typeof document === 'undefined') return 0;
+  const canvas = document.getElementById('doc-canvas');
+  if(!canvas) return 0;
+  const q = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(key) : key;
+  let n = 0;
+  canvas.querySelectorAll(`span[data-field-key="${q}"]`).forEach(sp => { sp.className = cls; sp.textContent = text; n++; });
+  return n;
 }
 
 /* ════════ WHY A CONTRACT HAS NO BLANKS TO FILL ════════
@@ -159,6 +376,7 @@ function contractBlanksNone(c){
      handed over), asked through window; the status is the fallback on a stage
      without the change model. */
   try{ if(c.status === 'Signed' || (typeof negoWordingFrozen === 'function' && negoWordingFrozen(c))) return 'sealed'; }catch(_){}
+  if(ownBlanksOn(c) && ownBlanksLive(c)) return contractBlanksOpen(c).length ? null : 'none';
   if(c.redlineText) return 'nego';
   if(!contractHasBlanks(c)) return 'none';
   /* It looked, and every blank is answered. The honest "none". */
@@ -207,6 +425,7 @@ function contractBlanks(c){
     if(typeof isUpload === 'function' && isUpload(c) && typeof uploadBlanksRead === 'function')
       return uploadBlanksRead(c);
   }catch(_){ return []; }
+  if(ownBlanksOn(c)) return ownBlanksRead(c);
   if(typeof document === 'undefined' || typeof docBody !== 'function') return [];
   let host;
   try{
@@ -445,4 +664,6 @@ if(typeof window !== 'undefined') Object.assign(window, {
   contractHasBlanks, contractBlanks, contractBlanksOpen, contractBoxesOpen, blankLabel,
   BLANK_NONE_REASONS, contractBlanksNone, contractOpenFieldNames,
   contractBlankSet, contractBlankUsual, fillBlanksFromRecord, blanksAskPayload,
+  OWN_RULE_RE, OWN_KEY_RE, ownBlanksOn, ownBlanksTouched, ownBlanksLive, ownBlanksWalk, ownBlanksRead,
+  ownBlankSet, ownBlanksPaint, ownBlankPaint,
 });

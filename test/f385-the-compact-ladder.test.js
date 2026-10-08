@@ -175,7 +175,8 @@ describe('f385 (4) text buttons have one look', () => {
       ['js/views/intelligence.js', /<button type="button" class="igx-fig exp-pg-fig[ "]/],
       ['js/views/register.js', /id="reg-clear-filters" type="button" class="ui-link"/],
       ['js/views/settings.js', /data-sess-revoke="\$\{s\.id\}" type="button" class="ui-link ui-link-danger"/],
-      ['js/views/contract.js', /id="sign-paper" type="button" class="ui-link"/],
+      /* + ui-link-say (8 Oct 2026): the same look, and a sentence that wraps. */
+      ['js/views/contract.js', /id="sign-paper" type="button" class="ui-link ui-link-say"/],
       ['js/views/portal.js', /id="pt-otp-resend" type="button" class="ui-link"/],
       ['js/ai.js', /data-scan-dismiss="\$\{x\.id\}" type="button" class="ui-link"/],
     ];

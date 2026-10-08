@@ -8517,7 +8517,11 @@ function renderBlankFormSection(c){
      contract — which is what makes an `||` safe here rather than a second
      door onto one act. Asserted as a wall. */
   const up = !!(typeof uploadBlanksLive === 'function' && uploadBlanksLive(c));
-  if(!(typeof contractHasBlanks === 'function' && contractHasBlanks(c)) || !(docFillable(c) || up)){
+  /* AND OUR OWN AMENDMENT'S RULED LINES (8 Oct 2026, js/blanks.js
+     ownBlanksLive) — the third reading, refusing everything that is not
+     HaTi-written amendment paper, so it can never draw beside the other two. */
+  const ownp = !!(typeof ownBlanksLive === 'function' && ownBlanksLive(c));
+  if(!(typeof contractHasBlanks === 'function' && contractHasBlanks(c)) || !(docFillable(c) || up || ownp)){
     host.innerHTML = ''; return;
   }
   const groups = blankFormSectionsOf(c);
@@ -8592,6 +8596,10 @@ function wireBlankForm(c){
       if(paper && paper.hasAttribute('data-sync')){
         paper.value = el.value;
         paper.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if(window.ownBlanksLive && ownBlanksLive(c)){
+        /* Our own amendment: the answer is written INTO the wording and the
+           paper patched in place (ownBlankSet). */
+        ownBlankSet(c, key, el.value);
       } else {
         if(window.contractBlankSet) contractBlankSet(c, key, el.value);
         if(paper) paper.value = el.value;
@@ -11440,6 +11448,22 @@ const _docReadLead=el=>{
    that was nothing but a number is the number again — printed, that is the
    reported duplication. */
 const _docReadName=t=>{ const s=String(t||'').trim(); return /[A-Za-zÀ-ÿ]/.test(s)?s:''; };
+/* ---- OUR OWN AMENDMENT IS READ PARAGRAPH BY PARAGRAPH (Young, 8 Oct 2026:
+   "this amendment was found to have 4 risks but they are not appearing on the
+   side panel") ----
+   The paper HaTi writes for an amendment (amendmentSkeletonBody, js/family.js)
+   has no headings and numbers its changes "1. Term." — a single number, which
+   the paragraph rule above refuses on purpose — so the walk found no clause,
+   the thread said "Nothing on this page reads as a clause", and every risk,
+   which is placed by its quote on a clause, had nowhere to land. On THIS paper
+   the shape is ours and known: every paragraph is a part (the parties and
+   date, the agreement it amends, each change, what stays), and a bold "N." in
+   front of a change is its number. Uploaded paper is never read this way. */
+const docReadOwnPaper = c => !!(c && c.source==='amendment' && !(typeof isUpload==='function' && isUpload(c)));
+const _docReadItemNum = el => {
+  const m=/^\s*(\d{1,3})[.)]\s+\S/.exec(_docReadBoldLead(el)||'');
+  return m?m[1]:'';
+};
 /* `root` (26 Sep 2026, the graph's Analyze contract) is ADDITIVE: the walk
    reads the canvas it is handed, and #doc-canvas where it is handed none —
    every older caller passes none. */
@@ -11456,6 +11480,7 @@ function docReadSheet(c, root){
      model and the anchors the entries hang on cannot disagree by construction. */
   let seenName=false;
   const isMark=el=>{ try{ return !!(el.matches&&el.matches(DOC_READ_TXT_NUM)); }catch(_){ return false; } };
+  const ownPaper=docReadOwnPaper(c);
   let rows=Array.from(canvas.querySelectorAll(
       DOC_READ_HEADS+',p,li,div,'+DOC_READ_TXT_HEAD+','+DOC_READ_TXT_NUM))
     .filter(el=>!el.closest(DOC_READ_FURNITURE))
@@ -11478,8 +11503,9 @@ function docReadSheet(c, root){
            mark IS its number, so the character after it is the whole of it. */
         return n?{el,isHead:false,isMark:true,num:n,sep:_docReadSepOf(raw,n)}:null;
       }
-      const num=head?'':_docReadNumOf(el);
-      if(!head&&!num) return null;
+      const num=head?'':(_docReadNumOf(el)||(ownPaper?_docReadItemNum(el):''));
+      /* OUR OWN AMENDMENT'S PARAGRAPHS ARE ITS PARTS — see docReadOwnPaper. */
+      if(!head&&!num&&!(ownPaper&&el.tagName==='P'&&/\S/.test(el.textContent||''))) return null;
       return {el,isHead:head,isMark:false,num,
         sep:num?_docReadSepOf(String(el.textContent||''),num):''};
     })
@@ -11538,6 +11564,9 @@ function docReadSheet(c, root){
          way it is the BOLD lead-in or nothing — never the eight-word reading. */
       const lead=row.isMark?_docReadBoldLead(leadEl):_docReadBoldLead(row.el);
       ownHead=lead?_docReadName(_docReadHeadCut(lead).rest):'';
+      /* A paragraph of our own amendment with no title of its own is named by
+         its own opening words — the paper's words, never a name made up. */
+      if(ownPaper&&!ownHead&&!row.num) ownHead=_docReadName(own.split(' ').slice(0,6).join(' ')+(own.split(' ').length>6?'\u2026':''));
     }
     let text=(row.isHead||row.isMark)?after:(after?own+' '+after:own);
     /* ---- A HEADING THAT IS A WHOLE CLAUSE IS READ AS ONE (22 Sep 2026) ----
@@ -13409,6 +13438,8 @@ function wireDocCanvas(c){
      phone — and an upload is the other side's paper. Painted here it dies with
      every re-render and cannot be serialised by anything. */
   try{ if(window.uploadBlanksPaint) uploadBlanksPaint(c); }catch(_){ }
+  /* And our own amendment's ruled lines, keyed so the panel can find them. */
+  try{ if(window.ownBlanksPaint) ownBlanksPaint(c); }catch(_){ }
   /* ---- AND WHERE THE WORDING IS CHANGED, WHEN SOMEBODY TRIES TO CHANGE IT
      HERE (21 Sep 2026, the process review's eighth item) ----
 
@@ -14220,7 +14251,7 @@ function renderSignButton(c){
      link says so and switches the route; it is offered for as long as the
      route can still change: nobody has signed and nothing is handed over. */
   const paperRoute = (window.outsideMayChangeRoute && outsideMayChangeRoute(c))
-    ? `<button id="sign-paper" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:8px 0 0">${i18t('ho_they_sign_q')}</button>`
+    ? `<button id="sign-paper" type="button" class="ui-link ui-link-say" style="display:flex;width:100%;justify-content:center;margin:8px 0 0">${i18t('ho_they_sign_q')}</button>`
     : '';
   const wirePaper = () => document.getElementById('sign-paper')?.addEventListener('click',()=>{
     if(window.outsideSetRoute) outsideSetRoute(c,'outside'); });

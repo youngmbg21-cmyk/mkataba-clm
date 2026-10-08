@@ -10205,6 +10205,15 @@ app.post('/api/ai/renewal', auth, editor, rlAiDeep, aiFeature('renewal'), aiBudg
 const PB_REVIEW_TOKENS_BASE = 1200, PB_REVIEW_TOKENS_EACH = 700, PB_REVIEW_TOKENS_MAX = 8000;
 const pbReviewTokens = n => Math.min(PB_REVIEW_TOKENS_MAX,
   PB_REVIEW_TOKENS_BASE + PB_REVIEW_TOKENS_EACH * Math.max(4, Number(n) || 0));
+/* AN AMENDMENT IS NOT MISSING WHAT ITS AGREEMENT SAYS (8 Oct 2026) — the
+   browser's pbInParentVerdicts, the same rule for every check this server
+   stores: a document filed under an agreement repeats nothing else, so a
+   standard it does not mention is "doesn't apply" (it lives in the agreement)
+   rather than missing; a deviation still counts. */
+function srvInParentVerdicts(c, verdicts){
+  if (!Array.isArray(verdicts) || !(c && c.parentId && c.relation)) return verdicts;
+  return verdicts.map(v => (v && v.status === 'missing') ? { ...v, status: 'na', inParent: true, escalate: false } : v);
+}
 async function aiPlaybookVerdicts(key, { text, playbook, kind, note, before }, meter) {
   /* Read BEFORE the tool, because the redline rule names the jurisdiction. */
   const J = orgJx();
@@ -18471,7 +18480,7 @@ async function runPlaybookPrep() {
       if (!fresh) { bump('failed'); continue; }
       let cur = {}; try { cur = JSON.parse(fresh.json) || {}; } catch (_) { bump('failed'); continue; }
       if (isExecutedRow(cur)) { bump('executed'); continue; }
-      cur.playbook = { key: pkey, label: resolved.label, verdicts: res.verdicts, source: 'ai', overnight: true, at: now() };
+      cur.playbook = { key: pkey, label: resolved.label, verdicts: srvInParentVerdicts(cur, res.verdicts), source: 'ai', overnight: true, at: now() };
       cur.audit = (Array.isArray(cur.audit) ? cur.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Playbook',
         detail: `Playbook review prepared overnight — ${res.verdicts.length} position${res.verdicts.length === 1 ? '' : 's'} checked (Copilot-assisted), charged to ${owner.name || owner.id}` }]);
       db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cur), now(), r.id);
@@ -19103,7 +19112,7 @@ async function runImportQueue() {
       const f = MIG_READ.folderFromType(meta.contractType);
       if (f && f !== c.folder) c.folder = f;
     }
-    if (standards && !(c.playbook && Array.isArray(c.playbook.verdicts) && c.playbook.verdicts.length)) { c.playbook = standards; out.checked++; }
+    if (standards && !(c.playbook && Array.isArray(c.playbook.verdicts) && c.playbook.verdicts.length)) { c.playbook = { ...standards, verdicts: srvInParentVerdicts(c, standards.verdicts) }; out.checked++; }
     c.migration = { ...(c.migration || {}), reading: null, readAt: now(), aiSource: 'ai',
       needsReview: MIG_READ.migReadNeedsReview(meta, { valueNone: c.valueType === 'none', ocr: !!q.ocr }) };
     c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Migrated',
@@ -19234,7 +19243,7 @@ async function paperRedo(cid, note, who) {
   const row = db.prepare('SELECT json, version FROM contracts WHERE id=?').get(String(cid));
   let c = null; try { c = row ? JSON.parse(row.json) : null; } catch (_) { c = null; }
   if (!c || isExecutedRow(c)) return { gone: true };
-  c.playbook = { key: pkey, label: resolved.label, verdicts: v.verdicts, source: 'ai', at: now(),
+  c.playbook = { key: pkey, label: resolved.label, verdicts: srvInParentVerdicts(c, v.verdicts), source: 'ai', at: now(),
     sentBack: { note: String(note).slice(0, SENDBACK_NOTE_MAX), by: (who && who.name) || '' } };
   c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: (who && who.name) || 'HaTi', action: 'Playbook',
     detail: `Standards check sent back to Copilot with a note — "${String(note).slice(0, 200)}" — and done again (${v.verdicts.length} position${v.verdicts.length === 1 ? '' : 's'} checked)` }]);
@@ -19686,7 +19695,7 @@ async function runBookReading() {
         streak = 0;
         const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(r.id);
         let cur = {}; try { cur = JSON.parse((fresh && fresh.json) || '{}') || {}; } catch (_) { bump('failed'); continue; }
-        const rec = { key: pkey, label: resolved.label, verdicts: res.verdicts, source: 'ai', overnight: true, at: now() };
+        const rec = { key: pkey, label: resolved.label, verdicts: srvInParentVerdicts(cur, res.verdicts), source: 'ai', overnight: true, at: now() };
         if (isExecutedRow(cur)) {
           /* a sealed record is never written: the check is kept beside it */
           db.prepare(`INSERT INTO book_readings (contract_id,pb,pb_at) VALUES (?,?,?)
