@@ -182,3 +182,57 @@ describe('f560 (4) — the Paper\'s jobs are read with no model', () => {
     assert.ok(!/api\(|fetch\(/.test(job), 'the card spends nothing');
   });
 });
+
+describe('f560 (5) — every point is a door onto the paper (Young, 8 Oct 2026)', () => {
+  const SRC = R('js/copilotacts.js');
+  const IG = R('js/views/intelligence.js');
+  const stage = ({ up = true, risks = [], obligations = [] } = {}) => {
+    const contracts = [{ id: 'MK-9', contractNo: 'MK-9', name: 'Supply', status: 'Under Review', obligations }];
+    const ctx = { intel: { paper: { id: 'MK-9' }, history: [] } };
+    Object.assign(ctx, {
+      getContract: id => contracts.find(c => c.id === id) || null, contractRef: c => c.contractNo || c.id,
+      getUsers: () => [], state: { contracts }, i18t: k => k, setTimeout: () => 0,
+      igPaperUp: () => up, riskItemsOf: () => risks, riskTitleOf: it => it.title, riskWhyOf: it => it.why || '',
+    });
+    ctx.window = ctx; vm.createContext(ctx); vm.runInContext(SRC, ctx);
+    return ctx;
+  };
+  test('5a "what are the risks?" on the paper lists the ONE risk list, each worded row carrying its passage', () => {
+    const ctx = stage({ risks: [
+      { title: 'Royalty on gross sales', sev: 'high', quote: 'six percent (6%) of Gross Sales' },
+      { title: 'Fixed territory', sev: 'med', quote: '' },
+      { title: 'Handled', sev: 'low', quote: 'x y z w q', dismissed: true }] });
+    const a = ctx.caActOf('What are the risks?');
+    assert.equal(a.kind, 'risks'); assert.equal(a.rows.length, 2, 'open ones only while any is open');
+    assert.equal(a.quotes.length, 1); assert.equal(a.rows[0].qk, 0); assert.equal(a.rows[1].qk, -1);
+    const html = ctx.caCardHtml(a, 4);
+    assert.match(html, /class="ca-row is-door" data-ig-cite="4:0"/, 'the worded row is the answer chips\' own door');
+    assert.equal((html.match(/data-ig-cite=/g) || []).length, 1, 'a row with no words on the paper is no door');
+  });
+  test('5b nothing recorded → no card, Copilot reads the paper and quotes it', () => {
+    assert.equal(stage({ risks: [] }).caActOf('What are the risks?'), null);
+  });
+  test('5c obligations: the recorded ones, else the find card', () => {
+    const a = stage({ obligations: [{ desc: 'Pay the royalty', party: 'ours', quote: 'payable monthly in arrears' }] }).caActOf('show the obligations');
+    assert.equal(a.kind, 'obls'); assert.equal(a.quotes[0].text, 'payable monthly in arrears');
+    assert.equal(stage({ obligations: [] }).caActOf('what are its obligations?').kind, 'oblig');
+  });
+  test('5d off the paper (the Board, a paper left on the map) the lists stay quiet', () => {
+    assert.equal(stage({ up: false, risks: [{ title: 'r', quote: 'q q q q' }] }).caActOf('what are the risks?'), null);
+  });
+  test('5e on Home\'s Paper side a question reaches the paper, not the board\'s reader', () => {
+    const body = IG.slice(IG.indexOf('async function intelAsk'), IG.indexOf('C-1 · THE CARD CARRIES'));
+    assert.match(body, /const onPaperSide=igHomePaperFace\(\)===true&&igPaperUp\(\);/);
+    assert.match(body, /state\.view==='dashboard' && !onPaperSide && typeof window\.hbAsk==='function'/);
+  });
+  test('5f a point in an answer is tied to the passage whose words it carries', () => {
+    const fn = IG.slice(IG.indexOf('function igCiteNorm'), IG.indexOf('function igCiteRowsMark'));
+    const ctx = {}; vm.createContext(ctx); vm.runInContext(fn + '\nthis.igCiteOfText = igCiteOfText;', ctx);
+    const quotes = [{ text: 'The Franchisee shall pay a royalty of six percent (6%) of Gross Sales monthly.' },
+      { text: "Neither party's total liability shall exceed the royalties paid in the twelve (12) months before the claim." }];
+    assert.equal(ctx.igCiteOfText('Liability (5.1) — the cap is "the royalties paid in the twelve (12) months"', quotes), 1);
+    assert.equal(ctx.igCiteOfText('Royalty — "six percent (6%) of Gross Sales" every month', quotes), 0);
+    assert.equal(ctx.igCiteOfText('Nothing here is quoted at all.', quotes), -1);
+    assert.match(IG, /igCiteRowsMark\(dock\);\s*dock\.querySelectorAll\('\[data-ig-cite\]'\)/, 'rows are marked before the doors are wired');
+  });
+});
