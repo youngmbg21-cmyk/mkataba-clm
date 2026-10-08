@@ -56,8 +56,8 @@ describe('f580 — the seal is the server\'s', () => {
       docHash: 'h1', purpose: 'sign', purposeChosen: 'sign',
       contract: { id, name: 'Supply Agreement', counterparty: 'Juno Limited', fields: {}, redlineText: DOC, format: 'text', docText: DOC, versions: [], changes: [] } },
     channel: 'link', purpose: 'sign', signerId, recipient: { name: 'Grace Njeri', email: 'grace@client.co.ke' } } });
-  const theySign = async (token) => h.client('them-' + token.slice(0, 6)).raw('/api/shares/' + token + '/respond', { method: 'POST', body: {
-    v: 1, kind: 'hati-response', action: 'sign', name: 'Grace Njeri', title: 'Legal Counsel', email: 'grace@client.co.ke',
+  const theySign = async (token, email) => h.client('them-' + token.slice(0, 6)).raw('/api/shares/' + token + '/respond', { method: 'POST', body: {
+    v: 1, kind: 'hati-response', action: 'sign', name: 'Grace Njeri', title: 'Legal Counsel', email: email || 'grace@client.co.ke',
     at: new Date().toISOString(), signatureForm: 'drawn', signatureImage: PNG, signatureImageHash: sha(PNG) } });
   const contract = (id, plan, extra) => ({ ...fixtureContract(id, 'Supply Agreement', 'Juno Limited', FOLDER_A, 480000, 'Under Review', DOC),
     signerPlan: plan, ...(extra || {}) });
@@ -204,5 +204,34 @@ describe('f580 — the seal is the server\'s', () => {
     assert.equal(y.execution.by, 'HaTi'); assert.notEqual(y.hash, 'computed-in-a-browser');
     assert.equal(y.hash, sha(sealString(y)));
     assert.equal(y.signatory, 'Amina Otieno (Director)', 'never the bystander the page named');
+  });
+
+  /* B17 (8 Oct 2026): after the counterparty signed, the owner's bell said
+     "they cannot answer your changes — their link stopped working". The
+     signing link closes the negotiation copy on purpose; once somebody has
+     signed that is not a stuck way back. */
+  test('(7) after their signature, the closed negotiation link is not a stuck way back (B17)', async () => {
+    const c = contract('MK-SL6', [
+      { id: 'sg-cp', party: 'counterparty', order: 1, name: 'Grace Njeri', email: 'grace@client.co.ke', signed: false },
+      { id: 'sg-us', party: 'internal', order: 2, name: 'Amina Otieno', email: 'admin@example.co.ke', signed: false }]);
+    await put(c, 0);
+    await W.admin.json('/api/shares', { method: 'POST', body: {
+      payload: { v: 1, kind: 'hati-share', org: 'Highland Corporate Ltd', sharedBy: 'Amina Otieno', at: new Date().toISOString(),
+        docHash: 'h1', purpose: 'negotiate', purposeChosen: 'negotiate',
+        contract: { id: 'MK-SL6', name: 'Supply Agreement', counterparty: 'Juno Limited', fields: {}, redlineText: DOC, format: 'text', docText: DOC, versions: [], changes: [] } },
+      channel: 'link', purpose: 'negotiate', recipient: { name: 'Grace Njeri', email: 'grace@client.co.ke' } } });
+    const s = await mint('MK-SL6', 'sg-cp');
+    /* an ask of ours filed AFTER the signing link went — the one way a
+       negotiation can still look open once signing has started */
+    const x0 = await get('MK-SL6'); const v0 = x0._v; delete x0._v;
+    x0.changes = [{ id: 'CHG-9', clauseId: 'c2', clauseLabel: '2. Payment', status: 'pending', authorSide: 'owner', createdAt: new Date().toISOString() }];
+    await put(x0, v0);
+    assert.equal((await theySign(s.token)).status, 200);
+    const x = await get('MK-SL6');
+    assert.ok(x._reach && x._reach.signing === true, 'the reading says signing has begun: ' + JSON.stringify(x._reach));
+    const AG = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'views', 'agents.js'), 'utf8');
+    assert.match(AG, /if \(move && move\.why === 'nocopy' && !R\.signing\)\{/, 'and the bell\'s reader stands down on it');
+    const line = x.audit.find(a => /Grace Njeri/.test(a.detail || '') && /share link/.test(a.detail || ''));
+    assert.equal(line && line.action, 'Signature', 'their first signature is not called a countersignature');
   });
 });

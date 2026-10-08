@@ -16515,7 +16515,7 @@ const REACH_RECENT_DAYS = 14;   // "Link sent" looks back this far — the agent
    contract and is fetched only where a wording comparison needs it. */
 const REACH_COLS = `token, contract_id, created_at, created_by, channel, durable, purpose, signer_id,
   party_id, recipient_name, recipient_email, sent_at, expires_at, revoked_at, responded_at, send_error,
-  (response IS NOT NULL) AS answered`;
+  (response IS NOT NULL) AS answered, (response LIKE '%"action":"sign"%') AS signed_on`;
 /* ---- A LINK WHOSE EMAIL WAS REFUSED NEVER REACHED THEM (Young ruled 27 Sep
    2026: "yes" — a bounced email counts as stuck) ----
    The provider refused the message and it was never sent again: `send_error`
@@ -16534,6 +16534,11 @@ function shareFate(s) {
   if (!s) return null;
   if (s.revoked_at) return { how: 'revoked', at: s.revoked_at };
   const answered = ('response' in s) ? !!s.response : !!s.answered;
+  /* A ONE-TIME LINK USED FOR ITS SIGNATURE DID ITS JOB (B17, 8 Oct 2026): it
+     is not a link that "stopped working" — after they signed, the owner's
+     bell said they could no longer answer. */
+  const signedOn = ('response' in s) ? /"action"\s*:\s*"sign"/.test(String(s.response || '')) : !!s.signed_on;
+  if (!s.durable && signedOn) return { how: 'signed', at: s.responded_at || null };
   if (shareBounced(s) && !(!s.durable && answered)) return { how: 'bounced', at: s.created_at || null };
   if ((s.channel || 'link') === 'word') {
     if (!s.sent_at) return { how: 'undelivered', at: s.created_at || null };
@@ -16620,6 +16625,13 @@ function srvReach(c, opts = {}) {
     if (other) out.last = { how: 'readonly', at: other.created_at || null, ...reachWho(other),
       sentAt: other.sent_at || other.created_at || null, word: false };
   }
+  /* ---- ONCE SOMEBODY HAS SIGNED, THE CLOSED NEGOTIATION LINK IS NOT A STUCK
+     WAY BACK (B17, 8 Oct 2026) ---- A signing link retires the negotiation
+     copies on purpose, so after a signature "they cannot answer your
+     changes — their link stopped working" was a false alarm on the owner's
+     bell. Said as a fact beside `reply`; the bell's reader stands down on it. */
+  if (anySignatureRow(c) || rows.some(s => sharePurposeOf(s) === 'sign'
+    && (s.signed_on || /"action"\s*:\s*"sign"/.test(String(s.response || ''))))) out.signing = true;
   /* ---- EVERY PARTY THAT NEGOTIATES (27 Sep 2026, the blind spot closed) ----
      `reply` stays ONE answer per contract — any party's live copy makes it
      live, so the Negotiations list's bands are unchanged — but on a deal with

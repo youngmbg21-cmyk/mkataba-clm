@@ -263,7 +263,9 @@ function agLinkItems(cs){
     let move = null;
     try { move = (typeof negoIsLive === 'function' && negoIsLive(c) && typeof negWhoseMove === 'function') ? negWhoseMove(c) : null; }
     catch (_){ move = null; }
-    if (move && move.why === 'nocopy'){
+    /* …but not once somebody has signed: the signing link closed the
+       negotiation copy on purpose (`signing`, srvReach — B17). */
+    if (move && move.why === 'nocopy' && !R.signing){
       const L = R.last || null;
       const turnAt = (c.negotiation && c.negotiation.turnAt) || '';
       const since = [L && L.at, turnAt].filter(Boolean).map(String).sort().pop() || '';
