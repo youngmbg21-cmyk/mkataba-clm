@@ -5,6 +5,7 @@ issue where the drop down goes behind the cards. Do not fix yet but add all to
 a work order"*. Build only when the owner says so.
 Part 5 (the Board balances its cards) was added the same day, owner-asked: *"add this to the work order"*.
 Part 6 (Show as table turns the chart into a table) was added the same day, owner-asked: *"one more thing to add to the work order. fix this highlighted button so that when you click, it turn the chart to a table."*
+Part 8 (the language switch goes back beside the theme switch) was added after Parts 1–7 were built and merged (#180), owner-asked: *"You also moved the language toggle. Move it back to where it was. No coding yet but add to the work order"* — **Part 8 is NOT BUILT.**
 Part 7 (the clause strip on the Paper becomes the TRACK) was added the same day, owner-asked: *"I want to add the implementation of track for the paper page from this artifact"* (artifact "Clause Strip Options", https://claude.ai/artifact/Jpi4zqQH8fzQ2Be8B7u4Xf, option 3 "Track", picked by name).
 
 **What the owner asked for, in their words, before this:**
@@ -424,6 +425,46 @@ dark, on a long contract with marks spread through it:
 - at a window narrower than the Track needs, today's strip is drawn and
   the paper still does not move.
 
+## Part 8 — The language switch goes back beside the theme switch (owner-asked 8 Oct 2026; NOT BUILT)
+
+**What the owner sees.** The English · Svenska switch sits at the top left of
+the blue bar, next to the HaTi logo. It used to sit next to the switch for the
+page's colour theme (Light / Dark), on the right of the search box.
+
+**What was found (read only; grep, never trust a line number).** Parts 1–7
+did not touch it: the top bar's markup still places `#lang-switch` between
+`.cmd-search` and the theme switch, and the page LOADS with it there. The
+fault is `placeLanguageSwitch` in js/app.js (added 5 Oct 2026, the narrow
+shell work): below `NAV_HEADER_TIGHT_W` (900 px) it moves the switch into the
+side menu, above `.nav-foot`; when the window widens again it puts it back
+with `headerHome.parentElement.insertBefore(sw, headerHome.nextSibling)`,
+where `headerHome` is `#brand-block` — the logo. So once a window has been
+narrower than 900 px (a half-screen window, a small laptop, the browser's
+own side tools opening), the switch lands top left and stays there.
+Measured in Chromium: 1440 on load → beside the theme switch; 800 → in the
+side menu; back to 1440 → after `#brand-block`, x = 118 px.
+
+**The build:**
+1. Put the switch back WHERE IT CAME FROM, not after the logo: remember its
+   own place in the bar (the node it sat before, read once before the first
+   move) and return it there, so it lands between the search box and the theme
+   switch whatever the bar holds.
+2. Nothing else about it changes: the words shorten to EN · SV between 900
+   and 1180 px as today; below 900 px it still moves into the side menu where
+   the full words fit; the click listener is kept (the node is moved, never
+   rebuilt).
+3. **Every place:** the switch is drawn once (the top bar) and moved by this
+   one function; check the phone shell (below 768 px, js/mobile*.js) and the
+   rail-collapsed menu (`#app-shell.rail`) still show it as today.
+
+**Rules that bite:** no new band; a refresh lands at the same spot; the bar's
+order on every width is pinned by a test, not by a pixel count.
+
+Accept, in a real browser: load at 1440 → the switch is the theme switch's
+neighbour; shrink to 800 → it is in the side menu; widen to 1440 → it is the
+theme switch's neighbour again (same previous and next element as on load),
+and pressing Svenska still switches the language.
+
 ---
 
 ## Tests to add (each run at unmodified main first: it must FAIL there)
@@ -445,6 +486,8 @@ dark, on a long contract with marks spread through it:
   be red at unmodified main on the bars and columns cases.
 - **track-on-the-paper-verify** (new, Chromium): Part 7's acceptance.
   Red at unmodified main (no rail, numbers cut off).
+- **language-switch-stays-verify** (new, Chromium): Part 8's acceptance.
+  Red at main f31da55 (after a narrow window it lands after the logo).
 - A unit test of the Track's label spacing: given mark positions that
   crowd together, the labels come out in order, at least 20 px apart, all
   inside the column, and each leader joins its own mark.
