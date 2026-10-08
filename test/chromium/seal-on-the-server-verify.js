@@ -95,6 +95,10 @@ const until = async (fn, ms = 8000, step = 150) => { const end = Date.now() + ms
       const list = Array.isArray(r) ? r : (r.shares || []);
       return list.find(s => String(s.signerId || s.signer_id || '') === 'sg_cp' && !s.revokedAt && !s.revoked_at) || null; });
     check('1b  their signing link is issued once our signature is on file (B8)', !!shares, shares ? 'token ' + String(shares.token).slice(0, 6) : 'none');
+    const row = await until(async () => page.evaluate(() => { const t = document.body.innerText;
+      return /IN OUTBOX/.test(t) ? { outbox: true, notSent: /NOT SENT YET/.test(t) } : null; }), 6000);
+    check('1d  the signing order says their link is issued and its email in the outbox — not "NOT SENT YET" (B8)',
+      row && row.outbox && !row.notSent, JSON.stringify(row));
     const t1 = await until(async () => page.__toasts.find(t => /Internal signing complete|signing links|Recorded/.test(t.m)));
     check('1c  the confirmation is painted, not a silent bare toast (B7)', !!t1, JSON.stringify(t1 || page.__toasts.slice(-3)));
 

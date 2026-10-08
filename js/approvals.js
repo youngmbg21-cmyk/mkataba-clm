@@ -1084,6 +1084,10 @@ function signerLinkState(c, s){
     /* An automatic send that the provider refused: sent_at was honestly NOT
        stamped, and the reason is on the share. Say "failed", not "held" —
        their turn is live and their inbox has nothing. */
+    /* ISSUED, AND WAITING IN THE OUTBOX (B8): email is not set up on this
+       server, so the message is filed there — the link exists and is not a
+       failure, and the row says where it is. */
+    if(links.some(x=>x.sendError && /not configured/i.test(String(x.sendError)))) return 'outbox';
     if(links.some(x=>x.sendError)) return 'failed';
     return 'held';
   }
@@ -2241,6 +2245,7 @@ function signerRouteHtml(c, opts){
             : ls==='opened' ? `${ord(s.order)} · contract opened — awaiting their signature`
             : ls==='sent' ? `${ord(s.order)} · contract sent — not opened yet`
             : ls==='failed' ? `${ord(s.order)} · the automatic email did not go — resend it below`
+            : ls==='outbox' ? `${ord(s.order)} · ${i18t('sp_link_outbox')}`
             : ls==='held' ? `${ord(s.order)} · link ready — it goes out when their turn arrives`
             : gated ? `${ord(s.order)} · link opens once internal signing is complete`
             : ls==='unsent' ? (isCur
@@ -2262,6 +2267,7 @@ function signerRouteHtml(c, opts){
             : ls==='opened' ? tag('bg-gold-100 text-gold-700','OPENED')
             : ls==='sent' ? tag('bg-gold-100 text-gold-700','SENT')
             : ls==='failed' ? tag('bg-rose-50 text-rose-600','SEND FAILED')
+            : ls==='outbox' ? tag('bg-slate-100 text-ink/50','IN OUTBOX')
             : ls==='held' ? tag('bg-slate-100 text-ink/50','LINK READY')
             : (ls==='unsent'&&isCur&&!gated) ? tag('bg-rose-50 text-rose-600','NOT SENT YET')
             : (ls==='unknown'||ls==='internal')&&isCur ? tag('bg-gold-100 text-gold-700','SIGNING NOW') : '';
