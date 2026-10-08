@@ -19307,7 +19307,7 @@ const AGENT_KEYS = ['round', 'link', 'renew', 'paper', 'late', 'ours', 'import']
 const AGENT_SCHEDULED = ['link', 'late', 'ours', 'renew', 'paper'];
 const AGENT_DEFAULTS = {
   round:  { on: true, max: 25, limit: 3 },
-  link:   { on: true, at: 7, soonDays: 3, level: 'auto' },
+  link:   { on: true, at: 7, soonDays: 3, level: 'ask' },   // Ask me first by default (Young, 8 Oct 2026); Just do it is offered, never assumed
   renew:  { on: true, max: RENEWAL_PREP_MAX, at: 2, limit: 2 },
   paper:  { on: true, max: RENEWAL_PREP_MAX, at: 2, limit: 3 },
   late:   { on: true, at: 7, secondAfter: 7 },

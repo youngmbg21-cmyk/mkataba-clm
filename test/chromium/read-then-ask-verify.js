@@ -106,8 +106,11 @@ const check = (name, pass, detail) => {
     check('2a enlarged, the button says Make smaller, arrows in — to the hand and a screen reader', !!big && b2 && b2.title === 'Make smaller' && b2.aria === 'Make smaller' && b2.pressed === 'true' && /^M6 2v4H2/.test(b2.path), JSON.stringify(b2));
     const r2 = await page.evaluate(() => { const r = document.querySelector('#hb-focus .hb-read'); const dock = document.getElementById('ig-dock');
       return { lines: [...r.querySelectorAll('li')].map(li => li.textContent.replace(/\s+/g, ' ').trim()), say: !!document.querySelector('#hb-focus .hb-tr-say'),
-        dock: dock ? getComputedStyle(dock).display : 'none', bg: getComputedStyle(r).backgroundColor, border: getComputedStyle(r).borderTopColor }; });
-    check('2b the Copilot panel steps aside', r2.dock === 'none', r2.dock);
+        dock: dock ? getComputedStyle(dock).display : 'none', door: !!document.getElementById('igd-expand'), bg: getComputedStyle(r).backgroundColor, border: getComputedStyle(r).borderTopColor }; });
+    /* STEPS ASIDE TO ITS DOOR (Young, 8 Oct 2026: "no clear door"): the
+       panel folds — it is no longer hidden — so the way back to Copilot
+       stays on screen (copilot-door-verify drives the door itself). */
+    check('2b the Copilot panel steps aside to its door', r2.dock !== 'none' && r2.door, JSON.stringify({ dock: r2.dock, door: r2.door }));
     check('2c HaTi\'s reading opens the card, in place of the trend line\'s arithmetic', r2.lines.length >= 3 && !r2.say, JSON.stringify(r2.lines));
     check('2d it says the owner\'s picture plainly', r2.lines.some(l => /^\d+ of the \d+ contracts here have been signed\.$/.test(l)) && r2.lines.some(l => /^Most of them are in .+: 11 and 14, 25 in all\.$/.test(l)) && r2.lines.some(l => /^Nothing at all for \d+ months/.test(l)), JSON.stringify(r2.lines));
     await page.waitForTimeout(1200);

@@ -4912,11 +4912,12 @@ function hbPaintBoard(opts){
   const had = (act && host.contains(act)) ? hbFocusKey(act) : null;
   hbMorph(host, hbBoardHtml());
   hbPaintHead();
-  /* an expanded chart takes the room: the dock steps aside, as it does in
-     Present, and comes back on the same button */
+  /* an expanded chart takes the room: the dock FOLDS to its door (it is not
+     hidden — the door is the way to Copilot), and opens again when the card
+     is made small (igDockStepAside) */
   const pg = hbPage();
   if (pg){ const big = !!document.querySelector('#hb-focus .hb-dig.is-big');
-    if (pg.classList.contains('hb-dig-big') !== big){ pg.classList.toggle('hb-dig-big', big); if (typeof igFitSplit === 'function') setTimeout(() => { try { igFitSplit(); } catch (_){} }, 60); } }
+    if (pg.classList.contains('hb-dig-big') !== big){ pg.classList.toggle('hb-dig-big', big); if (typeof igDockStepAside === 'function') igDockStepAside(big); if (typeof igFitSplit === 'function') setTimeout(() => { try { igFitSplit(); } catch (_){} }, 60); } }
   if (had){
     const dig = (opts && opts.jump === 'focus') ? document.querySelector('#hb-focus [data-hb-crumb]') : null;
     const back = dig || hbFocusFind(host, had);

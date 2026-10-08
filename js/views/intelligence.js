@@ -6366,14 +6366,34 @@ function igPrePaint(){
   let t=''; try{ t=hbAskPreviewText(hbAskReadingOf(inp.value)); }catch(_){ t=''; }
   el.textContent=t; el.title=t;
 }
+/* THE FOLDED PANEL IS A DOOR THAT LOOKS LIKE ONE (Young, 8 Oct 2026: "there
+   is no clear door" back to the panel). The same 46px strip, the same press —
+   now a tinted button with the mark in the accent and "Ask Copilot" in words
+   a person can read, top to bottom. Width unchanged, so the board does not move. */
+/* AN ENLARGED BOARD CARD TAKES THE ROOM, AND THE DOOR STAYS (8 Oct 2026).
+   It used to hide the whole dock, door and all, so the way back to Copilot
+   was gone while a chart was big. Now the panel FOLDS to its door instead;
+   when the card is made small again a panel that was open opens again. */
+function igDockStepAside(big){
+  if(big){ if(intel.dockOpen){ intel._dockBack=true; intel.dockOpen=false; renderIntelDock(); igSyncDockWidth(); } }
+  else if(intel._dockBack){ intel._dockBack=false; intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); }
+}
 function renderIntelDock(){
   const dock=document.getElementById('ig-dock'); if(!dock) return;
   if(!intel.dockOpen){
     dock.innerHTML=`
-      <button id="igd-expand" title="${i18t('int_open_panel')}" class="h-full w-full flex flex-col items-center pt-3 gap-2 text-gold-500 hover:bg-brand-50/60 transition">
-        ${icon('sparkle','w-4 h-4')}<span class="text-[9px] font-mono text-ink/40 [writing-mode:vertical-rl]">${i18t('int_copilot_panel')}</span>
+      <button id="igd-expand" class="igd-door" title="${i18t('int_open_panel')}" aria-label="${i18t('int_open_panel')}">
+        ${icon('sparkle','w-5 h-5')}<span class="igd-door-w">${i18t('int_copilot_panel')}</span>
       </button>`;
-    document.getElementById('igd-expand').addEventListener('click',()=>{ intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); });
+    document.getElementById('igd-expand').addEventListener('click',()=>{
+      /* AN ENLARGED CHART HANDS THE ROOM BACK (8 Oct 2026): the card's own
+         "Make smaller" is pressed first, so the panel opens beside the board
+         the way it always stands there — never over a chart drawn for the
+         whole width. */
+      const small=document.querySelector('.hb-dig-big #hb-focus .hb-dig.is-big .hb-bigbtn.is-big');
+      intel._dockBack=false;
+      if(small) small.click();
+      intel.dockOpen=true; renderIntelDock(); igSyncDockWidth(); });
     return;
   }
   /* ---- WHAT THE READER IS TYPING SURVIVES A REPAINT (26 Sep 2026, the
@@ -7253,4 +7273,5 @@ Object.assign(window,{igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igC
 
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
+Object.assign(window,{igDockStepAside});
 Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
