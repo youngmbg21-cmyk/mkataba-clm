@@ -5,8 +5,8 @@
    ============================================================
    One contract (two open asks of theirs), five screens: Home Redlined (the
    reference), Home Clean, the Document tab, the Negotiate page, their page.
-     1  every screen's paper equals the reference: ground colour, gap above
-        the sheet, sheet width, shadow, title, first clause heading position
+     1  every screen's paper equals the reference: gap above the sheet,
+        sheet width, shadow, title, first clause heading position
         and type, body type, colour and indent; no corner marks
      2  Home Clean is the same canvas without marks (zero del/ins, no step
         labels, the standing wording) — Clean ⇄ Redlined does not move the page
@@ -36,7 +36,9 @@ const M = () => {
   const h = [...sheet.querySelectorAll('h2,h3,h4')].find(e => /^1\.\s*Supply/.test(e.textContent.trim()));
   const b = [...sheet.querySelectorAll('p,div')].find(e => /^The Supplier shall/.test(e.textContent.trim()) && e.children.length < 3);
   const cs = e => getComputedStyle(e);
-  return { ground: g ? cs(g).backgroundColor : null, gap: g ? Math.round(r.top - g.getBoundingClientRect().top) : null, w: Math.round(r.width), shadow: cs(sheet).boxShadow,
+  const col = sheet.closest('#doc-paper-col, #rl-doc, #ig-paper');
+  return { ground: g ? cs(g).backgroundColor : null, page: cs(document.body).backgroundColor, col: col ? cs(col).backgroundColor : null,
+    gap: col ? Math.round(r.top - col.getBoundingClientRect().top) : null, w: Math.round(r.width), shadow: cs(sheet).boxShadow,
     title: t ? [Math.round(t.getBoundingClientRect().top - r.top), cs(t).fontSize, cs(t).fontWeight].join('/') : null,
     head: h ? [Math.round(h.getBoundingClientRect().top - r.top), Math.round(h.getBoundingClientRect().left - r.left), cs(h).fontSize, cs(h).fontWeight].join('/') : null,
     body: b ? [cs(b).fontSize, cs(b).lineHeight, cs(b).color, Math.round(b.getBoundingClientRect().left - r.left)].join('/') : null,
@@ -84,7 +86,19 @@ const M = () => {
     out.theirs = await at(async () => { await cp.evaluate(() => { if (typeof portalSetTab === 'function') portalSetTab('redlines'); }).catch(() => {}); }, cp);
 
     const ref = out.homeRed;
-    const keys = ['ground', 'gap', 'w', 'shadow', 'title', 'head', 'body', 'corners'];
+    /* NO GREY SHEET UNDER THE PAPER (Young, 9 Oct 2026, the Paper and Counter
+       review, change 3): the Document tab and Negotiate (ours and theirs) keep
+       Home's paper but NOT its ground — the column takes no colour, the sheet
+       lies on the page ground. Home's Paper keeps its own. */
+    const keys = ['gap', 'w', 'shadow', 'title', 'head', 'body', 'corners'];
+    const homeGround = out.homeRed && out.homeRed.col;
+    ok('1g Home\'s Paper keeps its ground (Redline and Clean)', !!homeGround && homeGround !== 'rgba(0, 0, 0, 0)' && homeGround !== out.homeRed.page
+      && out.homeClean && out.homeClean.col === homeGround, JSON.stringify({ red: homeGround, clean: out.homeClean && out.homeClean.col, page: out.homeRed && out.homeRed.page }));
+    for (const k of ['document', 'negotiate', 'theirs']){
+      const v = out[k];
+      ok(`1h ${k}: the column takes no colour — the sheet lies on the page ground`, !!v && v.col === 'rgba(0, 0, 0, 0)' && v.ground === v.page && v.ground !== homeGround,
+        v && JSON.stringify({ col: v.col, ground: v.ground, page: v.page }));
+    }
     for (const k of ['homeClean', 'document', 'negotiate', 'theirs']){
       const v = out[k]; const diff = v ? keys.filter(q => v[q] !== ref[q]).map(q => `${q}: ${v[q]} ≠ ${ref[q]}`) : ['no paper'];
       ok(`1 ${k}: the same paper as Home Redlined`, !diff.length, diff.join(' | ') || null);

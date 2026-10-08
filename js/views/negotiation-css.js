@@ -6166,11 +6166,12 @@ function redlineLayoutCss(){
   .redline-page #rl-grid.nego-work{border:0;border-radius:0}
   ${''/* NO GREY SHEET UNDER THE PAPER (Young, 9 Oct 2026, the Paper and
          Counter review, change 3): the column took the canvas's own grey
-         (--n-canvas), which read as a second sheet under the white one. On
+         (--n-canvas), then Home's ground (--desk-ground, 8 Oct), which read
+         as a second sheet under the white one. Their page is this page. On
          this page the column takes no colour of its own — the paper lies on
          the page ground with its soft shadow; width, gap and type unchanged.
          Home's Paper is not this page and keeps its ground. */}
-  .redline-page #nego-root,.redline-page #rl-grid.nego-work{background:transparent}
+  .redline-page #nego-root,.redline-page #rl-grid.nego-work,.redline-page #rl-doc{background:transparent}
   .redline-page .rl-side{padding:0}
   .redline-page .rl-idx{padding:12px var(--s-4);border-bottom:2px solid var(--accent-solid)}
   .redline-page .rl-idx-top{align-items:center;gap:8px;border-bottom:0;margin-bottom:0}
@@ -6382,10 +6383,10 @@ function redlineLayoutCss(){
          WITHOUT the .redline-page rules; measured element by element on
          8 Oct, these are the properties those rules changed. Here they are
          put back to Home's values, on our seat and theirs (.redline-page wraps
-         both), so the paper reads the same on every screen. The ground and
-         the gap above the sheet are Home's too (--desk-ground; 29px). The
+         both), so the paper reads the same on every screen. The gap above
+         the sheet is Home's too (29px); the ground is NOT
+         (Young, 9 Oct 2026, change 3 — see "NO GREY SHEET" above). The
          reader's A⁻/A⁺ still scales it: every size runs on --doc-scale. */}
-  .redline-page #rl-doc{background:var(--desk-ground)}
   .redline-page #rl-doc .nego-scroll{padding-top:29px}
   .redline-page .nego-pane article.nego-doc.rl-paper,.redline-page article.nego-doc.rl-paper{--rl-paper-pad:38px;max-width:720px;padding:34px 38px 44px;
     box-shadow:var(--n-shadow-card)}

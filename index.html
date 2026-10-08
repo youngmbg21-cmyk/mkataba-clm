@@ -8083,7 +8083,11 @@
      clause rhythm). The wording and every control on the Document tab are its
      own; only the clothes match. A contract that wears a design keeps it
      ([data-doc-body]). Sizes run on --doc-scale, so A⁻/A⁺ still scale. */
-  #doc-paper-col:has(.pg-sheet.pg-work){background:var(--desk-ground);--doc-scroll-pad:29px 2px var(--s-6)}
+  /* NO GREY SHEET UNDER THE PAPER (Young, 9 Oct 2026, the Paper and Counter
+     review, change 3): the column takes no colour of its own — the white sheet
+     lies on the page ground with its soft shadow. Home's Paper keeps its ground
+     (#ig-paper); the gap, width, type and shadow below are unchanged. */
+  #doc-paper-col:has(.pg-sheet.pg-work){--doc-scroll-pad:29px 2px var(--s-6)}
   :is(#doc-paper-col,#ig-paper){--doc-sheet-max:720px;--doc-sheet-pad:34px calc(38px + var(--s-3)) 44px}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]){box-shadow:var(--n-shadow-card,0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07))}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work .pg-corner{display:none}
