@@ -371,7 +371,7 @@ function agRenewDone(cs){
     let d = null;
     try { d = renewalDecisionOf(c); } catch (_){ d = null; }
     if (!d || !_agRecent(d.at)) continue;
-    out.push({ agent: 'renew', kind: 'decided', key: 'decided:' + c.id, cid: c.id, c, at: d.at, by: d.by || '',
+    out.push({ agent: 'renew', kind: 'decided', key: 'decided:' + c.id, cid: c.id, c, at: d.at, by: (d.by && typeof d.by === 'object') ? (d.by.name || '') : (d.by || ''),
       answer: d.answer, served: !!d.served });
   }
   return out;
