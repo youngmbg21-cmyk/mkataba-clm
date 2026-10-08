@@ -3497,7 +3497,7 @@ async function negoAiPropose(c, ctx){
     place();
   };
   if (!window.copilotAvailable || !copilotAvailable()){
-    fail('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Team & Settings, then try again — the wording you selected is untouched.');
+    fail('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Settings & Rules, then try again — the wording you selected is untouched.');
     return;
   }
 
@@ -3551,7 +3551,7 @@ async function negoAiPropose(c, ctx){
     if (raw && typeof raw !== 'string') raw = String(raw);
   }catch(err){
     fail(err && err.needsKey
-      ? 'The Copilot needs an API key. Add one under Team & Settings, then try again.'
+      ? 'The Copilot needs an API key. Add one under Settings & Rules, then try again.'
       : `The Copilot couldn't answer: ${(err && err.message) || err}. Try again.`);
     return;
   }
@@ -11259,7 +11259,7 @@ async function rlAiPropose(ctx){
   if (window.renderAIFeed) renderAIFeed(!action.converse);
 
   if (!window.copilotAvailable || !copilotAvailable() || !window.copilotPropose){
-    rlSayInPanel('The Copilot is not connected yet. Connect it under Team & Settings, then try again.');
+    rlSayInPanel('The Copilot is not connected yet. Connect it under Settings & Rules, then try again.');
     return;
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;

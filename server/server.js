@@ -2028,7 +2028,7 @@ function srvApprovalChainRefusal(c, prev) {
    role. */
 function srvUserCanApprove(a, u) {
   if (!u || !a) return false;
-  if (a.kind === 'member') return String(a.name || '') === String(u.name || '');
+  if (a.kind === 'member') return a.id ? String(a.id) === String(u.id || '') : String(a.name || '') === String(u.name || '');
   if (a.role === 'admin') return u.role === 'admin';
   if (a.role === 'legal') return u.role === 'legal' || u.role === 'admin';
   return u.role === a.role;
@@ -3105,7 +3105,27 @@ const code6 = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
    Without it, mail is queued to the outbox table so the flow still works and
    an admin can read what would have been sent (including dev codes) — the
    single place a key turns this from demo into production email. */
-const EMAIL_ON = () => !!process.env.RESEND_API_KEY;
+/* THE KEY AN ADMIN SAVES FROM THE SCREEN (9 Oct 2026). "Email delivery —
+   REQUIRED" had no way forward inside the product: it asked for an
+   environment variable on the server. An admin can now save the mail key in
+   Settings → Email delivery, stored here exactly as the Copilot key is — on
+   the server, never sent back to a browser (only its last four characters).
+   THE SERVER'S OWN ENVIRONMENT STILL WINS where it is set, so a deployment
+   configured the old way behaves exactly as it did. The From address follows
+   the same order. */
+const MAIL_FROM_DEFAULT = 'HaTi <onboarding@resend.dev>';
+const mailKey = () => process.env.RESEND_API_KEY || getSetting('mailKey') || '';
+const mailFrom = () => process.env.EMAIL_FROM || getSetting('mailFrom') || MAIL_FROM_DEFAULT;
+const EMAIL_ON = () => !!mailKey();
+/* What the Email delivery drawer may know: where the key lives and its last
+   four characters, never the key. */
+function mailCfgOf() {
+  const env = !!process.env.RESEND_API_KEY, stored = getSetting('mailKey') || '';
+  const k = mailKey();
+  return { configured: !!k, source: env ? 'env' : stored ? 'settings' : null, envKey: env,
+    hint: k ? '…' + k.slice(-4) : '', from: mailFrom(),
+    fromSource: process.env.EMAIL_FROM ? 'env' : getSetting('mailFrom') ? 'settings' : 'default' };
+}
 /* When Resend refuses a message it says why, in a plain sentence — the address
    is suppressed, the domain is unverified, the key is restricted, the plan's
    daily quota is spent. Keeping only the status code threw that sentence away
@@ -3189,13 +3209,13 @@ async function sendEmail(to, subject, body, devHint, opts = {}) {
         .map(a => ({ filename: String(a.filename).slice(0, 120), content: String(a.content) }))
     : [];
   if (EMAIL_ON()) {
-    const from = process.env.EMAIL_FROM || 'HaTi <onboarding@resend.dev>';
+    const from = mailFrom();
     try {
       // Base URL overridable exactly as ANTHROPIC_BASE_URL is, so the refusal
       // paths can be exercised against a stub instead of live-firing at Resend.
       const r = await fetch((process.env.RESEND_BASE_URL || 'https://api.resend.com') + '/emails', {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        headers: { Authorization: 'Bearer ' + mailKey(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ from, to: [to], subject, text: body,
           ...(opts.html ? { html: String(opts.html) } : {}),
           ...(attachments.length ? { attachments } : {}) }),
@@ -13470,7 +13490,7 @@ function ruleStepDue(prev, c) {
    decides who is TOLD. */
 function ruleStepPeople(rule, users) {
   const a = (rule && rule.approver) || {};
-  if (a.kind === 'member') return users.filter(u => String(u.name || '') === String(a.name || ''));
+  if (a.kind === 'member') return users.filter(u => a.id ? String(u.id) === String(a.id) : String(u.name || '') === String(a.name || ''));
   if (a.role === 'admin') return users.filter(u => u.role === 'admin');
   if (a.role === 'legal') {
     const legal = users.filter(u => u.role === 'legal');
@@ -13969,12 +13989,19 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* WHO MAY MAKE NEW PAPER is an admin's grant for the plainest reason of all:
      somebody who could tick their own box is not governed by the rule. */
   const hasPaper = b.newPaper !== undefined;
-  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper)
+  /* RE-FILE AND HOLD ARE GRANTS OF THEIR OWN (9 Oct 2026). They were written
+     only inside the new-paper block and this check never counted them, so a
+     tick on either alone was refused "Nothing to change". */
+  const hasReFile = b.reFile !== undefined, hasHold = b.holdContracts !== undefined;
+  /* A NAME IS AN ADMIN'S TO CHANGE (9 Oct 2026): the browser said "Saved" and
+     kept it in its own memory only, so a refresh brought the old name back. */
+  const hasName = b.name !== undefined;
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasName)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   // Only a title may be set by a non-admin, and only on their own account.
   if (req.user.role !== 'admin'
-    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper))
+    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasName))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -13989,6 +14016,30 @@ app.patch('/api/users/:id', auth, (req, res) => {
   }
   const target = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!target) return res.status(404).json({ error: 'User not found' });
+  if (hasName) {
+    const nm = clean(b.name).slice(0, 120);
+    if (!nm) return res.status(400).json({ error: 'Name is required' });
+    /* A named approver is matched by name where a rule has no id, so two
+       members sharing one name could answer each other's approvals. */
+    const clash = db.prepare('SELECT id FROM users WHERE lower(name)=lower(?) AND id<>?').get(nm, req.params.id);
+    if (clash) return res.status(409).json({ error: 'Another member already has that name.' });
+    if (nm !== target.name) {
+      db.prepare('UPDATE users SET name=? WHERE id=?').run(nm, req.params.id);
+      /* The approval rules follow the person: a rule that names them by their
+         old name is repointed, and from now on carries their id too. */
+      const st = getSetting('appSettings');
+      if (st && Array.isArray(st.approvalRules)) {
+        let moved = false;
+        st.approvalRules.forEach(r => {
+          const a = r && r.approver;
+          if (a && a.kind === 'member' && (String(a.id || '') === req.params.id || (!a.id && String(a.name || '') === String(target.name || '')))) {
+            r.approver = { kind: 'member', name: nm, id: req.params.id }; moved = true;
+          }
+        });
+        if (moved) setSetting('appSettings', st);
+      }
+    }
+  }
   if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
   if (hasRole) db.prepare('UPDATE users SET role=? WHERE id=?').run(b.role, req.params.id);
   if (hasClear2) db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.params.id);
@@ -14072,29 +14123,32 @@ app.patch('/api/users/:id', auth, (req, res) => {
       return res.status(400).json({ error: 'Admins always see contract values. Change the role first if this member should not.' });
     db.prepare('UPDATE users SET can_view_values=? WHERE id=?').run(b.canViewValues ? 1 : 0, req.params.id);
   }
-  if (hasPaper) {
-    /* The same refusal shape the values grant uses, and for the same reason:
-       an admin holds this by rank, so a stored "no" on an admin row would be a
-       fact the product then ignores — two places saying different things about
-       one person. Change the role first if that is what was meant. */
+  if (hasHold || hasReFile) {
     const role = hasRole ? b.role : target.role;
     /* The re-filing grant, on the same terms as the one above it: an admin's
        to give, never self-service, and meaningless on the two roles that
        already answer for themselves. */
-    if (b.holdContracts !== undefined) {
+    if (hasHold) {
       if (role === 'admin' && !b.holdContracts)
         return res.status(400).json({ error: 'An admin can always put a contract on hold — the tick cannot be removed from them.' });
       if (role === 'viewer' && b.holdContracts)
         return res.status(400).json({ error: 'A viewer cannot change a contract at all, so they cannot put one on hold.' });
       db.prepare('UPDATE users SET hold_contracts=? WHERE id=?').run(b.holdContracts ? 1 : 0, req.params.id);
     }
-    if (b.reFile !== undefined) {
+    if (hasReFile) {
       if (role === 'admin' && !b.reFile)
         return res.status(400).json({ error: 'An admin may always re-file a contract.' });
       if (role === 'viewer' && b.reFile)
         return res.status(400).json({ error: 'A viewer may not edit a contract, so it cannot be re-filed by them.' });
       db.prepare('UPDATE users SET re_file=? WHERE id=?').run(b.reFile ? 1 : 0, req.params.id);
     }
+  }
+  if (hasPaper) {
+    /* The same refusal shape the values grant uses, and for the same reason:
+       an admin holds this by rank, so a stored "no" on an admin row would be a
+       fact the product then ignores — two places saying different things about
+       one person. Change the role first if that is what was meant. */
+    const role = hasRole ? b.role : target.role;
     if (role === 'admin' && !b.newPaper)
       return res.status(400).json({ error: 'Admins may always write new paper. Change the role first if this member should not.' });
     if (role === 'viewer' && b.newPaper)
@@ -17717,7 +17771,23 @@ app.get('/api/outbox', auth, admin, (req, res) => {
      HaTi" and handing them the platform's front door. What cannot be read
      back cannot be checked. */
   const rows = db.prepare('SELECT id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
-  res.json({ emailConfigured: EMAIL_ON(), items: rows, health: emailHealth() });
+  res.json({ emailConfigured: EMAIL_ON(), items: rows, health: emailHealth(), mail: mailCfgOf() });
+});
+/* SAVE OR REMOVE THE MAIL KEY (and the From address) from the screen — the
+   PUT /api/ai/config pattern: admin only, stored server-side, never returned.
+   A key is one word starting "re_" (a browser-filled password must never be
+   stored as one); a From is an address, optionally with a name before it. */
+const MAIL_FROM_RE = /^(?:[^<>\r\n@]{1,80}<[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>|[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+)$/;
+app.put('/api/mail/config', auth, admin, (req, res) => {
+  const { key, from, clear } = req.body || {};
+  if (clear) { setSetting('mailKey', ''); return res.json({ ok: true, mail: mailCfgOf() }); }
+  if (typeof key === 'string' && key.trim() && !/^re_[A-Za-z0-9_-]{8,}$/.test(key.trim()))
+    return res.status(400).json({ error: 'That does not look like a mail key. A Resend key starts with “re_”.' });
+  if (typeof from === 'string' && from.trim() && !MAIL_FROM_RE.test(from.trim()))
+    return res.status(400).json({ error: 'The From address should look like hello@yourcompany.com or Your Company <hello@yourcompany.com>.' });
+  if (typeof key === 'string' && key.trim()) setSetting('mailKey', key.trim());
+  if (typeof from === 'string') setSetting('mailFrom', from.trim());
+  res.json({ ok: true, mail: mailCfgOf() });
 });
 
 /* IS THE MAIL ACTUALLY GETTING OUT? — a different question from "is a provider

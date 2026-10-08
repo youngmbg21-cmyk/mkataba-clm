@@ -871,6 +871,13 @@ function approvalLabel(c){
 
    THE RULE IS NOW ABSOLUTE: every kind has a dwell, and dwell:0 is not a
    value any of them may take. f209 pins that. */
+/* A SIGN-IN OR A SETUP THAT WORKED CLEARS WHAT THE FAILED TRIES LEFT (9 Oct
+   2026): a refusal from a short password stayed over the new Home after the
+   second, good try. */
+function toastsClear(){
+  const root=document.getElementById('toast-root');
+  if(root) [...root.children].forEach(el=>el.remove());
+}
 const TOAST_KINDS = {
   ok:   { bg:'var(--color-accent-900)', ic:'check2', dwell:2600 },
   warn: { bg:'#b45309',                 ic:'alert',  dwell:8000 },
@@ -2145,7 +2152,7 @@ async function doSetup(){
       await api('setup','POST',{ org:name, name:uname, title:utitle, email, password:pass,
         data:{ uid, contracts:sample?state.contracts.map(migrateContract):[], view:'dashboard', activeId:null, folderId:null } });
       await loadBootstrap();
-      startApp();
+      toastsClear(); startApp();
       toast(`Workspace "${name}" created — karibu!`);
     }catch(e){ toast(e.message,'err'); }
     return;
@@ -2158,7 +2165,7 @@ async function doSetup(){
   if(!document.getElementById('su-sample').checked) state.contracts=[];
   else state.contracts=sampleContracts().map(c=>(c.owner?c:Object.assign(c,{ owner:{ id:admin.id, name:admin.name } })));   // same reason as the server branch above; the founder owns the sample book (the owner's list, 27 Sep 2026)
   persist();
-  startApp();
+  toastsClear(); startApp();
   toast(`Workspace "${name}" created — karibu!`);
 }
 /* ONE SIGN-IN AT A TIME (26 Sep 2026, the overnight clean-up): a double
@@ -2179,7 +2186,7 @@ async function doLogin(){
       // session — the code turns it into one
       if(r&&r.twoStep) return doLoginTotp(r.ticket, err);
       await loadBootstrap();
-      startApp();
+      toastsClear(); startApp();
       toast(`Karibu tena, ${REMOTE.me.name.split(' ')[0]}`);
     }catch(e){ err.textContent=e.message; err.classList.remove('hidden'); }
     finally{ _loginBusy=false; const g=document.getElementById('li-go'); if(g) g.disabled=false; }
@@ -2188,7 +2195,7 @@ async function doLogin(){
   const u=getUsers().find(x=>x.email===email);
   if(!u || (await hashPassword(pass,u.salt))!==u.hash){ err.textContent='Email or password is incorrect.'; err.classList.remove('hidden'); return; }
   lsSet(LS.session,{ userId:u.id, at:nowISO() });
-  startApp();
+  toastsClear(); startApp();
   toast(`Karibu tena, ${u.name.split(' ')[0]}`);
 }
 /* The second step (WO-6). Cancel falls back to the sign-in form; a wrong code
@@ -2202,7 +2209,7 @@ async function doLoginTotp(ticket, err){
   try{
     await api('login/totp','POST',{ ticket, code:String(code).trim() });
     await loadBootstrap();
-    startApp();
+    toastsClear(); startApp();
     toast(`Karibu tena, ${REMOTE.me.name.split(' ')[0]}`);
   }catch(e){
     if(err){ err.textContent=e.message; err.classList.remove('hidden'); }
@@ -7286,7 +7293,7 @@ async function openShareModal(c, opts={}){
              non-attempt stops being reported as a refusal. */
           resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:0;padding:var(--s-3);font-size:var(--t-meta);color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_not_delivered')}</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:var(--t-label);line-height:1.5">${esc(r.emailError)}</span>`:''}${link}</span></div>`);
         } else {
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:var(--radius);padding:var(--s-3);font-size:var(--t-meta);color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_queued_not_sent')}</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Team &amp; Settings.${link}</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:var(--radius);padding:var(--s-3);font-size:var(--t-meta);color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_queued_not_sent')}</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Settings &amp; Rules.${link}</span></div>`);
         }
       } else if(ch==='word'){
         /* THE SAME THREE OUTCOMES THE EMAIL CHANNEL REPORTS, because they are

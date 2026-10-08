@@ -290,7 +290,7 @@ describe('f335 (8) — a hold is a per-person grant, and it is on the row menu',
       'and is stripped from a colleague\'s copy');
   });
   test('PATCH refuses a stored no on an admin and a stored yes on a viewer', () => {
-    const at = SERVER.indexOf('if (b.holdContracts !== undefined)');
+    const at = SERVER.indexOf('if (hasHold) {');
     assert.ok(at > 0, 'the admin grant exists');
     const block = SERVER.slice(at, at + 600);
     assert.match(block, /role === 'admin' && !b\.holdContracts/, 'an admin cannot be un-ticked');
