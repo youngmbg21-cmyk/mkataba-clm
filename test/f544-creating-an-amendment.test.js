@@ -117,7 +117,10 @@ test('f544 (5) a signed amendment sets the value the agreement reads, stored val
   const w = world();
   const p = parent(w);
   const kid = { id: 'MK-318-A1', parentId: 'MK-318', relation: 'amendment', name: 'Amendment No. 1', status: 'Signed', hash: 'k',
-    value: 1320000, metadata: { effectiveDate: '2027-01-01' }, amends: [] };
+    value: 1320000, metadata: { effectiveDate: '2027-01-01' }, amends: [],
+    /* B12 (8 Oct 2026): the amendment SAYS it moves the money — a value set on
+       it by a person (or read off what they asked for, amendFacts). */
+    valueSetHere: true };
   w.state.contracts.push(kid);
   if (w.familyIndexDirty) w.familyIndexDirty();
   const e = w.effectiveTerm(p, 'value');

@@ -335,6 +335,11 @@ const VISIBLE = `(el) => {
       liveLine);
     check('and it stops being described as a proposal',
       !/proposes/i.test(signedCard));
+    /* B13 (8 Oct 2026): the Overview's own Expiry cell says the same date as
+       the family card, and which document set it. */
+    const essCell = await page.evaluate(() => ((document.getElementById('ov-ess') || {}).textContent || '').replace(/\s+/g, ' '));
+    check('the Overview\'s own Expiry cell reads the amended date, and names the amendment',
+      new RegExp('as amended by ' + childIdEarly).test(essCell) && /2029|31 Mar/.test(essCell), essCell.slice(0, 220));
     check('"Link to a parent agreement" stands down on a master — it could only refuse',
       master.create && !master.link);
 

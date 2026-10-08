@@ -4091,7 +4091,9 @@ function contractReadiness(c){
   if(!c) return p;
   const add=(severity,key,label,extra)=>p.push({ severity, key, label, ...(extra||{}) });
   if(!String(c.counterparty||'').trim()) add('block','counterparty','No counterparty is set.');
-  if(isMonetary(c) && !(Number(c.value)>0))
+  /* An amendment, addendum or other child of a signed agreement carries the
+     parent's money unless it changes it (B12): a blank value holds nothing. */
+  if(isMonetary(c) && !(Number(c.value)>0) && !c.parentId)
     add('block','value','No contract value is set, and this contract type carries one.');
   if(!c.expiry && !(c.fields&&c.fields.expiry) && (c.metadata||{}).renewalType!=='evergreen')
     add('warn','term','No expiry or term end is recorded, so no renewal reminder can be scheduled.');

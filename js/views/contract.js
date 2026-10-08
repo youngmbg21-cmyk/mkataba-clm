@@ -2810,7 +2810,7 @@ function uploadScanRules(c){
     'No counterparty name is recorded against this uploaded document.',
     'A signed contract with no recorded party is hard to enforce and clutters the register.',
     'Add the counterparty’s full registered name (as on the BRS certificate) in the deal details.');
-  if(isMonetary(c) && !(Number(c.value)>0)) add('u-val','med','missing','Contract value not recorded',
+  if(isMonetary(c) && !(Number(c.value)>0) && !c.parentId) add('u-val','med','missing','Contract value not recorded',
     'The value field is empty for a document marked as monetary.',
     'Value drives approval thresholds, stamp-duty assessment and portfolio reporting.',
     `Record the agreed ${jxCurrency()} value, or mark the contract non-monetary if none passes.`);
@@ -5264,7 +5264,9 @@ function ktReadValue(c,key){
   if(key==='notice'){ const e=_amFrom('notice'); if(e) return `<span style="font-family:var(--font-mono)">${i18tn('ct_notice_n_days',e.v,{n:e.v})}</span>${_amTag(e)}`; }
   if(key==='value') return `<span style="font-family:var(--font-mono)">${isMonetary(c)?(c.value?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):dash):`<span class="kt-none">${i18t('ct_non_monetary')}</span>`}</span>`;
   if(key==='effDate') return day(c.fields&&c.fields.effDate);
-  if(key==='expiry') return day(c.expiry);
+  if(key==='expiry'){ let e=null; try{ e=window.effectiveExpiryFrom?effectiveExpiryFrom(c):null; }catch(_){ e=null; }
+    if(e) return `${day(e.date)} <span class="kt-from" style="font-family:var(--font-body);font-size:var(--t-label);color:var(--accent-ink)">${esc(i18t('ct_as_amended_by',{ref:window.contractRef?contractRef(e.from):e.from.id}))}</span>`;
+    return day(c.expiry); }
   /* Same reading as the row's own builder, and the same "0 is not a notice
      period" rule — this is what wireDocumentSync writes back into .kt-read
      after a blank on the paper was typed in. */
@@ -5416,6 +5418,9 @@ function ktFactReads(c){
   const tmpl=c.template?((window.TEMPLATES&&TEMPLATES[c.template]&&TEMPLATES[c.template].name)||c.template)
     :(isUpload(c)?'Uploaded document':'');
   const d=v=>v?esc((window.fmtDocDate&&fmtDocDate(v))||v):'';
+  /* THE END DATE AS AMENDED (B13): a signed amendment that moved the term is
+     the live date — drawn here, with the document it comes from. */
+  let exAm=null; try{ exAm=window.effectiveExpiryFrom?effectiveExpiryFrom(c):null; }catch(_){ exAm=null; }
   return {
     noticeDays,
     monetary: isMonetary(c),
@@ -5431,7 +5436,8 @@ function ktFactReads(c){
     cpEmail: ctTheirEmail(c)?esc(ctTheirEmail(c)):'',
     money: (isMonetary(c)&&c.value)?(window.fmtMoneyOf?fmtMoneyOf(c):fmtMoney(c.value)):'',
     effDate: d(c.fields&&c.fields.effDate),
-    expiry: d(c.expiry),
+    expiry: d(exAm?exAm.date:c.expiry),
+    expiryFrom: exAm?esc(window.contractRef?contractRef(exAm.from):exAm.from.id):'',
     notice: noticeDays>0?esc(i18tn('ct_notice_n_days',noticeDays,{n:noticeDays})):'',
     template: tmpl?esc(tmpl):'',
     /* THE STREAM'S NAME IS THE REGISTER'S OWN, so the cell here and the cell
@@ -6591,7 +6597,8 @@ function ktFieldCell(c,k,edit,marks){
     case 'effDate': return [i18t('ov_f_effective'), edit
       ? `<input data-kt="effDate" type="date" value="${(c.fields&&c.fields.effDate)||''}" style="${OV_IN}"/>` : R.effDate];
     case 'expiry': return [i18t('ov_f_expiry'), edit
-      ? `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${OV_IN}"/>` : R.expiry];
+      ? `<input data-kt="expiry" type="date" value="${c.expiry||''}" style="${OV_IN}"/>` : R.expiry,
+      (!edit&&R.expiryFrom)?i18t('ct_as_amended_by',{ref:R.expiryFrom}):undefined];
     case 'notice': return [i18t('me_notice_days'), edit
       ? `<input data-kt="notice" type="number" min="0" max="3650" step="1" value="${R.noticeDays>0?R.noticeDays:''}" placeholder="0" style="${OV_IN};font-family:var(--font-mono)"/>`
       : (R.notice?mono(R.notice):'')];
@@ -13645,7 +13652,8 @@ function wireDocumentSync(c){
   canvas.querySelectorAll('[data-sync]').forEach(inp=>{
     inp.addEventListener('input',()=>{
       const key=inp.getAttribute('data-sync');
-      if(key==='value') c.value=inp.value===''?0:Number(inp.value);
+      if(key==='value'){ c.value=inp.value===''?0:Number(inp.value);
+        if(c.parentId){ if(c.value>0) c.valueSetHere=true; else delete c.valueSetHere; } }   // B12, as the Overview's own box
       else if(key==='counterparty') c.counterparty=inp.value;
       syncKeyTermsUI(c, inp);
       /* The read-out beside the field has to agree with what was just typed. */
@@ -13903,6 +13911,9 @@ function wireKeyTerms(c){
       else if(key==='value'){
         const digits=String(inp.value).replace(/[^\d]/g,'');
         c.value=digits===''?0:Number(digits);
+        /* On an amendment, a value typed HERE is the amendment moving the
+           money (amendSetsValue, B12); cleared, it moves nothing. */
+        if(c.parentId){ if(c.value>0) c.valueSetHere=true; else delete c.valueSetHere; }
       }
       else if(key==='nonmonetary'){
         c.valueType=inp.checked?'none':(c.valueType==='none'?'estimated':c.valueType||'estimated');
