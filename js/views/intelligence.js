@@ -2214,7 +2214,8 @@ function intelGraphApply(q, res, opts){
   }
   if(ids&&ids.length) parts.push(i18t(action==='highlight'?'int_did_highlighted':'int_did_showing',{ n:ids.length, t:total })+(res.note?' · '+String(res.note):''));
   else if(ids&&!ids.length&&!groupBy) parts.push(i18t('int_did_nomatch'));
-  if(opts.capped&&opts.capped.total>opts.capped.sent) parts.push(i18t('int_did_capped',{ n:opts.capped.sent, t:opts.capped.total }));
+  const capSaid=(opts.capped&&opts.capped.total>opts.capped.sent)?i18t('int_did_capped',{ n:opts.capped.sent, t:opts.capped.total }):'';
+  if(capSaid) parts.push(capSaid);
   roleSaid.forEach(x=>parts.push(x.replace(/\.$/,'')));
   let line=parts.map(igEsc).join(' · ');
   /* THE COUNT IS HATI'S, NEVER THE MODEL'S (the owner's screenshot, 3 Oct
@@ -2252,7 +2253,8 @@ function intelGraphApply(q, res, opts){
      what the map did ("Grouped 2 contracts into 2 groups…") rides the hover
      of a small "How this was drawn" under it. Counts alone stay the answer. */
   let how='';
-  if(line&&ownHtml&&graphSaysMore(own,res.note,parts[0])){ how=parts.join(' · '); line=ownHtml; }
+  /* A CAP IS A FACT: a cut stays on the screen under the answer, never only on a hover */
+  if(line&&ownHtml&&graphSaysMore(own,res.note,parts[0])){ how=parts.filter(x=>x!==capSaid).join(' · '); line=ownHtml+(capSaid?`<p class="ai-p igd-cap">${igEsc(capSaid)}</p>`:''); }
   intel.history.push({ role:'assistant', text:line, how, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }

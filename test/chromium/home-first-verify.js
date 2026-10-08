@@ -133,7 +133,7 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     /* ===== 6. THE ANSWER FIRST ===== */
     const src = fs.readFileSync(path.join(__dirname, '..', '..', 'js', 'views', 'intelligence.js'), 'utf8');
     ok('6 the map\'s own summary moves to the hover where Copilot wrote the answer',
-      /if\(line&&ownHtml&&graphSaysMore\(own,res\.note,parts\[0\]\)\)\{ how=parts\.join\(' · '\); line=ownHtml; \}/.test(src) && /class="igd-how" title=/.test(src));
+/if\(line&&ownHtml&&graphSaysMore\(own,res\.note,parts\[0\]\)\)\{ how=parts\.filter\(x=>x!==capSaid\)/.test(src) && /class="igd-how" title=/.test(src));
 
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {
