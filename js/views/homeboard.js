@@ -4124,7 +4124,8 @@ function hbBoardHtml(){
      kept while the day, the book (ids, versions, stages) and the board's own
      recipes are the same. */
   const insSig = hbInsMemoSig();
-  if (_hbInsMemoSig !== insSig){ _hbInsMemo = new Map(); _hbInsMemoSig = insSig; }
+  /* and whenever the shelf is to choose again (no choice kept for today) */
+  if (_hbInsMemoSig !== insSig || !hbS().ins){ _hbInsMemo = new Map(); _hbInsMemoSig = insSig; }
   _hbPackMemo.clear();
   _hbStoryMemo.clear();
   hbKeptSync();
