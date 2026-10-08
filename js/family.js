@@ -217,7 +217,10 @@ function effectiveExpiry(c){
   if(c.parentId) return ownExpiry(c);          // a child speaks only for itself
   const signed=_termKids(c).filter(amendmentExecuted);
   const win=_latestTerm(signed);
-  return win ? ownExpiry(win) : ownExpiry(c);
+  const base = win ? ownExpiry(win) : ownExpiry(c);
+  /* …and an automatic renewal the server recorded with its new end date (B15) */
+  const ar=(Array.isArray(c.autoRenewed)?c.autoRenewed:[]).filter(x=>x&&x.to).map(x=>String(x.to).slice(0,10)).sort().pop();
+  return (ar && (!base || ar > base)) ? ar : base;
 }
 /* WHICH SIGNED AMENDMENT SET THE LIVE END DATE (B13, 8 Oct 2026) — the same
    reading as effectiveExpiry, with its document, so the Overview's own expiry

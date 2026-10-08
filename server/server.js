@@ -4711,6 +4711,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      older copy cannot lift a handover, and no client can give itself a
      number. A brand-new record starts with neither. */
   if (prev && prev.handover) c.handover = prev.handover; else delete c.handover;
+  /* A RENEWAL THE SERVER RECORDED (B15) is the server's, like the handover. */
+  if (prev && prev.autoRenewed) c.autoRenewed = prev.autoRenewed; else delete c.autoRenewed;
   if (prev && prev.handoverHistory) c.handoverHistory = prev.handoverHistory; else delete c.handoverHistory;
   if (prev && prev.contractNo) c.contractNo = prev.contractNo; else delete c.contractNo;
   /* A new record may not take an id that is already somebody's number. */
@@ -18235,6 +18237,73 @@ function obligationRecipient(assignee, folder) {
     return { email: u.email, name: u.name || assignee, lang: u.lang || null };
   return null;
 }
+/* ---- AN AUTO-RENEWING CONTRACT NOBODY DECIDED ON RENEWED ITSELF (B15,
+   8 Oct 2026) ----
+   After its end date passes with no notice served and no "let it lapse" on
+   file, an auto-renewing contract has renewed — it did not expire, and it
+   read "Expired" with nobody told. Once per end date: where the renewal term
+   is recorded (metadata.renewalTermMonths) the end date rolls on by it, as a
+   reading (`autoRenewed`, server-owned; the signed `expiry` is never
+   rewritten); where it is not, nothing is guessed — the owner is told it has
+   probably renewed and the new end date is not recorded. A trail line either
+   way, by HaTi; "sent" only where the mail went (mailReport). */
+function runAutoRenewals(nowMs) {
+  const today = new Date(Number.isFinite(nowMs) ? nowMs : Date.now()).toISOString().slice(0, 10);
+  const rows = db.prepare(`SELECT id, json, folder, parent_id FROM contracts WHERE status='Signed' AND parent_id IS NULL AND json LIKE '%auto-renew%'`).all();
+  if (!rows.length) return { checked: 0, renewed: 0 };
+  const all = db.prepare("SELECT id, name, counterparty, expiry, status, parent_id, folder, json FROM contracts WHERE status!='Declined'").all();
+  const parsed = new Map();
+  for (const r of all) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const { eff } = effExpiryReader(all, parsed);
+  let renewed = 0;
+  for (const row of rows) {
+    const c = parsed.get(row.id); if (!c || c.archived) continue;
+    const m = c.metadata || {};
+    if (m.renewalType !== 'auto-renew') continue;
+    const end = eff(all.find(r => r.id === row.id) || { id: row.id });
+    if (!end || end >= today) continue;
+    if (c.notice && c.notice.servedOn) continue;                       // a notice was served: it ends
+    const dec = srvRenewalDecision(c, end);
+    if (dec && dec.answer === 'lapse') continue;                       // they decided to let it lapse
+    const hist = Array.isArray(c.autoRenewed) ? c.autoRenewed : [];
+    if (hist.some(x => x && String(x.from) === String(end))) continue; // already said, once
+    const months = Number(m.renewalTermMonths) || 0;
+    let to = null;
+    if (months > 0) {
+      const d = new Date(end + 'T00:00:00Z');
+      for (let i = 0; i < 600 && d.toISOString().slice(0, 10) < today; i++) d.setUTCMonth(d.getUTCMonth() + months);
+      to = d.toISOString().slice(0, 10);
+    }
+    c.autoRenewed = hist.concat([{ from: end, to, at: now(), months: months || null }]);
+    c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Renewed',
+      detail: to ? `Renewed itself on ${end} — no notice was served. The end date is now ${to} (a renewal term of ${months} month${months === 1 ? '' : 's'}).`
+        : `The end date ${end} passed with no notice served, so it has probably renewed itself. The renewal term is not recorded, so the new end date is not known — record it on the Overview.` }]);
+    db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c), row.id);
+    renewed++;
+    const own = contractOwnerRecipient(c, row.folder);
+    const to2 = own ? [own] : [];
+    if (!to2.length) continue;
+    (async () => {
+      for (const u of to2) {
+        const L = langForEmail(u.email, u.lang);
+        const v = { name: c.name || contractRef(c), ref: contractRef(c), end, to: to || '' };
+        const body = `${tFor(L, 'mail_hello')} ${u.name || ''},\n\n${tFor(L, to ? 'mail_autorenew_line' : 'mail_autorenew_unknown_line', v)}\n\n${tFor(L, 'mail_at_open')}\n${contractUrl(null, c.id, 'terms')}\n\n${tFor(L, 'mail_automated_notice')}`;
+        try {
+          const r = await sendEmail(u.email, tFor(L, to ? 'mail_autorenew_subject' : 'mail_autorenew_unknown_subject', v), body, `auto-renewed: ${c.id} -> ${u.email}`);
+          const rep = mailReport(r);
+          const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(row.id);
+          if (fresh) { const cj = JSON.parse(fresh.json);
+            cj.audit = (Array.isArray(cj.audit) ? cj.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Renewed',
+              detail: rep.emailSent ? `${u.name || 'The owner'} was emailed about it.` : rep.outbox
+                ? `The email to ${u.name || 'the owner'} is waiting in the outbox — email is not set up on this server.`
+                : `The email to ${u.name || 'the owner'} could not be sent${rep.emailError ? ` — ${rep.emailError}` : ''}.` }]);
+            db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), row.id); }
+        } catch (_) { /* the trail already says it renewed */ }
+      }
+    })();
+  }
+  return { checked: rows.length, renewed };
+}
 /* Family-aware term resolution over one query's rows — mirrored from
    js/family.js, and since WO-3 shared by BOTH sweeps (renewal reminders and
    the daily brief). ONE implementation on purpose: a third copy is how the
@@ -18260,13 +18329,18 @@ function effExpiryReader(rows, parsed) {
   for (const r of rows) { if (!r.parent_id) continue; if (!kidsOf.has(r.parent_id)) kidsOf.set(r.parent_id, []); kidsOf.get(r.parent_id).push(r); }
   const executedKid = (k) => { const f = parsed.get(k.id) || {};
     return !!(k.status === 'Signed' || f.hash || (f.execution && f.execution.at)); };
+  /* AN AUTOMATIC RENEWAL THIS SERVER RECORDED (B15) carries the end date on
+     when it knew the renewal term — never earlier than the date it rolled. */
+  const rolled = (r, base) => { const f = parsed.get(r.id) || {};
+    const ar = (Array.isArray(f.autoRenewed) ? f.autoRenewed : []).filter(x => x && x.to).map(x => dateOnly(x.to)).filter(Boolean).sort().pop();
+    return (ar && (!base || ar > base)) ? ar : base; };
   const eff = (r) => {
     if (r.parent_id) return ownExp(r);
     const kids = (kidsOf.get(r.id) || []).filter(k => TERM_CHANGING.has((parsed.get(k.id) || {}).relation)
       && ownExp(k) && executedKid(k));
-    if (!kids.length) return ownExp(r);
+    if (!kids.length) return rolled(r, ownExp(r));
     kids.sort((a, b) => String(amendDate(a)).localeCompare(String(amendDate(b))) || String(ownExp(a)).localeCompare(String(ownExp(b))));
-    return ownExp(kids[kids.length - 1]);
+    return rolled(r, ownExp(kids[kids.length - 1]));
   };
   return { eff, ownExp, kidsOf };
 }
@@ -18296,6 +18370,7 @@ function contractOwnerRecipient(full, folder) {
 function runReminders() {
   // Share nudges go to counterparties, so they run regardless of admin setup.
   const nudged = runShareNudges();
+  try { runAutoRenewals(); } catch (e) { console.warn('[hati] auto-renewal sweep failed: ' + (e && e.message)); }
   // Pull full JSON so we can also see E1 metadata (notice period) and E3
   // obligations, not just the indexed expiry column.
   /* `folder` joins the row because the renewal mail is addressed to the

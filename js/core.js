@@ -451,6 +451,10 @@ function contractExpired(c){
     || (c.metadata&&c.metadata.expiryDate) || c.expiry;
   const day=window.dateOnly?dateOnly(raw):raw;
   if(!day) return false;                       // no term recorded — not a claim we can make
+  /* AN AUTO-RENEWING CONTRACT WHOSE END DATE PASSED UNANSWERED RENEWED (B15):
+     the server recorded it (autoRenewed) — with no new date known it is not
+     "Expired", it has probably renewed, and the owner was told so. */
+  if((Array.isArray(c.autoRenewed)?c.autoRenewed:[]).some(x=>x&&String(x.from)===String(day)&&!x.to)) return false;
   const d=window.daysUntil?daysUntil(day):null;
   return d!=null && !isNaN(d) && d<0;
 }
