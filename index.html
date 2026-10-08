@@ -4136,7 +4136,13 @@
   /* THE ESSENTIALS CARD (ktOverviewTermsHtml, 8 Oct 2026): who it is between
      on the left, the terms on the right; stacked when the pane is narrow. */
   .ov-ess-body{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,2fr); }
-  .ov-ess-p{ padding:12px 16px; border-right:1px solid var(--color-divider); min-width:0; }
+  .ov-ess-p{ padding:12px 16px; border-right:1px solid var(--color-divider); min-width:0; display:flex; flex-direction:column; }
+  /* MORE PARTIES SCROLL, THE CARD NEVER GROWS (Young, 8 Oct 2026: "the
+     additional parties should not increase the size of the card, they should
+     go on a scroll"). contain:size keeps the list out of the row's height, so
+     the Terms column alone sets it; the floor fits two parties. */
+  .ov-pty-list{ flex:1 1 0; min-height:136px; contain:size; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; }
+  .ov-pty-list > .ov-pty:first-child{ border-top:0; }
   .ov-ess-g{ min-width:0; }
   .ov-ess-g > .ov-ess-h{ padding:12px 16px 0; }
   .ov-ess-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-height:28px; margin-bottom:4px; }
@@ -4161,6 +4167,7 @@
   @container ovpane (max-width:900px){
     .ov-ess-body{ grid-template-columns:minmax(0,1fr); }
     .ov-ess-p{ border-right:0; border-bottom:1px solid var(--color-divider); }
+    .ov-pty-list{ contain:none; flex:none; min-height:0; max-height:150px; }
   }
   #kt-overview{ container:ovpane / inline-size; }
   /* THE CONSTELLATION (ovMapSvg / ovMapWire): the mock-up's map, in HaTi's
@@ -4195,10 +4202,36 @@
   .ui-btn.hati-fill-btn > *{ pointer-events:none; }
   .tplf-foot{ position:sticky; bottom:0; display:flex; justify-content:flex-end; padding:10px 14px;
     border-top:1px solid var(--color-divider); background:var(--color-surface); }
-  .ov-map-stage{ height:380px; }
-  .ov-map-stage > svg{ width:100%; height:100%; }
-  .ov-map-stage.is-tall{ height:auto; }
-  .ov-map-stage.is-tall > svg{ height:auto; }
+  /* THE DUTIES MAP (8 Oct 2026): one 900x310 picture, scaled to the card;
+     the dotted ground fills the card under it. */
+  .ov-map-card{ display:flex; flex-direction:column; }
+  .ov-map-stage{ flex:1; display:flex; align-items:center; background:radial-gradient(circle,var(--color-divider) 1px,transparent 1.3px) 0 0/22px 22px,var(--color-surface); }
+  .ov-map-stage > svg{ width:100%; height:auto; }
+  .ov-map-top .ov-map-chipt{ cursor:default; font-weight:var(--w-strong); }
+  .ov-map-top .ov-map-chipt i{ background:var(--accent-fill); }
+  .ov-map-svg .ov-map-halo-ln{ fill:none; stroke:var(--color-accent-100); stroke-width:12; stroke-linecap:round; }
+  .ov-map-svg .ov-map-ln{ fill:none; stroke:var(--accent-fill); stroke-width:2.5; }
+  .ov-map-svg .ov-map-sq{ fill:var(--accent-fill); }
+  .ov-map-svg .ov-map-hit{ fill:none; stroke:transparent; stroke-width:16; }
+  .ov-map-svg .ov-map-arc .ov-map-dash{ fill:none; stroke:var(--rule-strong); }
+  .ov-map-svg .ov-map-us-c{ fill:var(--color-accent-100); stroke:var(--accent-fill); stroke-width:2.5; }
+  .ov-map-svg .ov-map-them-c{ fill:var(--alt-soft); stroke:var(--alt); stroke-width:2.5; }
+  .ov-map-svg .ov-map-ini{ font-size:26px; }
+  .ov-map-svg .ov-map-ini.is-us{ fill:var(--accent-ink); } .ov-map-svg .ov-map-ini.is-them{ fill:var(--alt-ink); }
+  .ov-map-svg .ov-map-ticks line{ stroke:var(--color-divider); stroke-width:2; }
+  .ov-map-svg .ov-map-late-halo{ fill:var(--st-ruby-bg); opacity:.8; }
+  .ov-map-svg .ov-map-us .ov-map-track{ stroke-width:9; stroke:var(--rule-faint); }
+  .ov-map-svg .ov-map-us .ov-map-seg{ stroke-width:9; }
+  .ov-map-svg .ov-map-nm{ font-size:15px; }
+  .ov-map-svg .ov-map-cap{ font-size:12px; }
+  .ov-map-svg .ov-map-big{ font-size:15px; }
+  .ov-map-svg .ov-map-sm{ font-size:12px; }
+  .ov-map-svg .ov-map-ref{ font-size:12px; }
+  .ov-map-svg .ov-map-doc{ stroke:var(--accent-fill); stroke-width:2; }
+  .ov-map-svg .ov-map-lines{ stroke:var(--color-accent-200); }
+  .ov-map-svg .is-sel .ov-map-us-c, .ov-map-svg .is-sel .ov-map-them-c{ stroke:var(--accent-fill); stroke-width:4; }
+  .ov-map-svg [tabindex]:focus-visible .ov-map-us-c, .ov-map-svg [tabindex]:focus-visible .ov-map-them-c{ stroke:var(--accent-fill); stroke-width:4; stroke-dasharray:6 4; }
+  .ov-map-cl{ font-family:var(--font-code); color:var(--accent-ink); }
   .ov-map-key{ display:inline-flex; flex-wrap:wrap; gap:4px 12px; margin-left:auto; font-size:var(--t-label); color:var(--color-neutral-600); }
   .ov-map-key > span{ display:inline-flex; align-items:center; gap:5px; }
   .ov-map-key .ov-map-dot{ margin-top:0; }
@@ -4239,7 +4272,6 @@
   .ov-map-svg .ov-map-badge.is-s{ fill:var(--st-steel-dot); } .ov-map-svg .ov-map-badge.is-g{ fill:var(--st-green-dot); }
   .ov-map-svg .ov-map-bn{ font-size:11px; font-weight:700; fill:#fff; }
   .ov-map-svg .is-sel .ov-map-chip, .ov-map-svg .is-sel .ov-map-doc{ stroke:var(--accent-fill); stroke-width:2; }
-  .ov-map-svg .is-sel > circle:nth-child(2){ stroke-width:5; }
   .ov-map-svg [tabindex]:focus{ outline:none; }
   .ov-map-svg [tabindex]:focus-visible .ov-map-chip, .ov-map-svg [tabindex]:focus-visible .ov-map-doc{ stroke:var(--accent-fill); stroke-width:2.5; }
   @keyframes ov-map-pop{ from{ opacity:0; transform:scale(.86); } }
@@ -8147,6 +8179,27 @@
      measured under 2:1. */
   .ig-spine .doc-xr-num{font-family:var(--font-body);font-size:var(--t-figure);font-weight:var(--w-strong);line-height:1;color:#fff;font-variant-numeric:tabular-nums;max-width:100%;overflow:hidden;white-space:nowrap;pointer-events:none}
   .ig-spine .doc-xr-seg.is-amber .doc-xr-num{color:#3B2503}
+  /* THE TRACK (owner-picked 8 Oct 2026; intelligence.js igTrackHtml): the
+     whole contract as one rail in the grey margin, each flag where it really
+     is, its number whole on a label beside it. Scoped to .is-track so the
+     strip it falls back to keeps every rule above. */
+  .ig-spine.is-track{background:none;border-right:0;display:block;padding:0;overflow:visible}
+  .ig-spine.is-track .ig-trk-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+  .ig-trk-svg .ig-trk-rail{fill:var(--st-gray-dot);opacity:.55}
+  .ig-trk-svg .ig-trk-win{fill:color-mix(in srgb,var(--accent-fill) 16%,transparent);stroke:var(--accent-fill);stroke-width:1}
+  .ig-trk-svg .ig-trk-lead{fill:none;stroke:var(--rule-strong);stroke-width:1}
+  .ig-spine.is-track .doc-xr-seg.ig-trk-lab{position:absolute;left:22px;top:0;flex:none;min-height:0;height:18px;transform:translateY(-50%);
+    display:flex;align-items:center;padding:0 5px;border-radius:3px;background:var(--color-surface);border:1px solid var(--color-divider);
+    color:var(--color-text);font-family:var(--font-body);font-size:var(--t-figure);font-weight:var(--w-label);line-height:1;
+    font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer}
+  .ig-spine.is-track .doc-xr-seg.ig-trk-lab.is-amber{box-shadow:inset 2px 0 0 var(--st-amber-dot)}
+  .ig-spine.is-track .doc-xr-seg.ig-trk-lab.is-ruby{box-shadow:inset 2px 0 0 var(--st-ruby-dot)}
+  .ig-spine.is-track .doc-xr-seg.ig-trk-lab.is-steel{box-shadow:inset 2px 0 0 var(--st-steel-dot)}
+  .ig-spine.is-track .doc-xr-seg.ig-trk-lab:hover,.ig-spine.is-track .doc-xr-seg.ig-trk-lab.is-on{background:var(--color-accent-50);border-color:var(--accent-fill);color:var(--accent-ink);outline:0}
+  .ig-spine.is-track .doc-xr-seg.ig-trk-lab.is-here{font-weight:var(--w-title);color:var(--accent-ink)}
+  .ig-spine.is-track .doc-xr-seg.ig-trk-lab.is-here::before{content:none}
+  .ig-spine.is-track .doc-xr-seg .doc-xr-num{color:inherit;font-size:inherit;font-weight:inherit;overflow:visible}
+  @media (prefers-reduced-motion:reduce){ .ig-trk-svg .ig-trk-win{transition:none} }
   .ig-spine-tip{position:absolute;z-index:6;width:260px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;padding:9px 11px;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-md);font-size:var(--t-meta);line-height:1.45;pointer-events:none}
   .ig-spine-tip[hidden]{display:none}
   .ig-tip-h{font-size:var(--t-body);font-weight:var(--w-strong)}
@@ -8699,6 +8752,13 @@
   /* THE RECIPE ROW: four dropdowns and the trend switch under the card's title */
   .hb-recipe{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid rgba(var(--hb-ln),.12)}
   .hb-rwrap{position:relative;display:inline-flex}
+  /* A CARD'S OPEN LIST SITS ON TOP OF THE CARDS (work order "Home speed",
+     Part 4, 8 Oct 2026): every .hb-card makes its own layer (its frosted
+     backdrop-filter), so the next card painted over an earlier card's list
+     whatever the list's z-index. While its list is open the card itself is
+     raised above its neighbours — by scope, one rule for every board list
+     (Contracts, Split, Picture, Measure, More) — by scope, not by force. */
+  .hb-card:has(.hb-rmenu,.hb-pmenu){z-index:6}
   .hb-rc{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 8px 0 9px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:var(--hb-fig);color:var(--hb-ink);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
   .hb-rc i{font-style:normal;font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--hb-mute)}
   .hb-rc.is-open{border-color:var(--hb-glow);box-shadow:0 0 0 1px var(--hb-glow) inset}
@@ -8789,8 +8849,11 @@
   .hb-bar-f.is-bad{background:var(--hb-ruby)}
   @keyframes hbGrow{from{width:0}}
   .hb-bar-n{text-align:right;font-weight:var(--w-strong);color:var(--hb-ink);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .hb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3);align-items:start}
-  .hb-grid>.hb-panel.is-big{grid-column:1 / -1}
+  /* THE BOARD BALANCES ITS CARDS (Part 5, 8 Oct 2026): a row's two cards
+     end at the same height (stretch; the spare room is at the shorter card's
+     bottom), and a card alone on its row spans it (hbGridBalanced marks it). */
+  .hb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3);align-items:stretch}
+  .hb-grid>.hb-panel.is-big,.hb-grid>.hb-panel.is-lone{grid-column:1 / -1}
   .hb-split{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3) var(--s-6)}
   .hb-split>div{display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
   .hb-empty{grid-column:1 / -1;border:1px dashed rgba(var(--hb-ln),.3);border-radius:var(--radius-lg);padding:22px;text-align:center;color:var(--hb-mute);font-size:var(--t-body)}
@@ -8861,6 +8924,13 @@
   .hb-tools{position:absolute;right:12px;bottom:12px;z-index:6;display:none;gap:6px}
   .hb-presenting .hb-tools{display:flex}
   #ig-page[data-hb-side="explorer"] .hb-tools{top:10px;bottom:auto}
+  /* THE KEPT MAP RESTS UNSEEN (work order "Home speed", Part 2): the map is no
+     longer thrown away when Home turns to the Board or the Paper, so its
+     layers are hidden there — the side looks as it did when no map was drawn,
+     and the browser paints nothing under it. visibility keeps their size, so
+     the map comes back where it was. */
+  #ig-page[data-hb-side="board"] #ig-gwrap > :is(#ig-cv,#ig-svg,#ig-legend,#ig-note,.ig-viewbar),
+  #ig-page[data-hb-side="paper"] #ig-gwrap > :is(#ig-cv,#ig-svg,#ig-legend,#ig-note,.ig-viewbar){visibility:hidden}
   .hb-tools .ig-seg{display:inline-flex;align-items:center;border:1px solid rgba(var(--hb-ln),.25);border-radius:var(--radius);overflow:hidden;background:var(--hb-card)}
   .hb-tools .ig-seg button{all:unset;cursor:pointer;height:var(--ctl-h-sm);padding:0 9px;font-size:12px;font-weight:500;color:var(--hb-ink-2);display:inline-flex;align-items:center;white-space:nowrap}
   .hb-tools .ig-seg button:hover{color:var(--hb-ink)}

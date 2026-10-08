@@ -3253,8 +3253,12 @@ function igbPlace(G){
   const w=igbCam().w, bw=igbCardW(w), W=G.W, H=G.H, placed=(G.reserve||[]).slice(), gap=2;
   /* the stage's own furniture — the view bar and the legend — is not a place
      for a card, and every group bubble is kept clear before any card is set */
-  if(G.svg){ const sr=G.svg.getBoundingClientRect();
-    [document.querySelector('#ig-gwrap .ig-viewbar'),document.getElementById('ig-legend')].forEach(el=>{ if(!el||el.hidden) return; const r=el.getBoundingClientRect(); if(r.width>0) placed.push({ x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height }); }); }
+  /* MEASURED ONCE (work order "Home speed", Part 1): read after a write,
+     these two rects forced a full layout on every frame; they are read when
+     the stage changed size or the reader touched the page (igWake). */
+  if(G.svg&&!G._furn){ const sr=G.svg.getBoundingClientRect(); G._furn=[];
+    [document.querySelector('#ig-gwrap .ig-viewbar'),document.getElementById('ig-legend')].forEach(el=>{ if(!el||el.hidden) return; const r=el.getBoundingClientRect(); if(r.width>0) G._furn.push({ x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height }); }); }
+  (G._furn||[]).forEach(r=>placed.push(r));
   G.hubs.forEach(h=>{ if(h._bubR>2&&h._bq) placed.push({ x:h._bq[0]-h._bubR, y:h._bq[1]-h._bubR, w:2*h._bubR, h:2*h._bubR }); });
   (G._bundles||[]).forEach(b=>{ if(b.r>2) placed.push({ x:b.x-b.r, y:b.y-b.r, w:2*b.r, h:2*b.r }); });
   (G._cells||[]).forEach(b=>{ if(b.r>2) placed.push({ x:b.x-b.r, y:b.y-b.r, w:2*b.r, h:2*b.r }); });
@@ -3378,7 +3382,7 @@ function igPaintFoldAll(){
   const b=document.getElementById('ig-foldall'); if(!b||!IG||!IG.hubs) return;
   const t=i18t(igAllFolded()?'int_open_all':'int_fold_all'); if(b.textContent!==t) b.textContent=t;
 }
-function igSetView(v){
+function igSetView(v){ igWake();
   const cam=igbCam(); cam.view=Math.max(0,Math.min(IGB_NV-1,Number(v)||0));
   document.querySelectorAll('[data-ig-view]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-ig-view'))===cam.view)));
   igPaintFoldAll();
@@ -3570,6 +3574,7 @@ function igApplyView(){ IG.vp.setAttribute('transform',`translate(${IG.view.x},$
    alone. */
 function igFitView(){
   if(!IG||!IG.svg) return;
+  igWake();
   const r=IG.svg.getBoundingClientRect();
   if(r.width>0&&r.height>0){ IG.W=r.width; IG.H=r.height; }
   IG.view={x:0,y:0,k:1}; igApplyView();
@@ -3597,11 +3602,18 @@ function igTick(){
 }
 /* ONE FRAME: time moves on, every node is projected once, the canvas paints,
    the words are placed. */
+let _igFrames=0;
+/* how many frames of the map have been drawn — read by home-speed-verify to
+   prove no frame is drawn while another side of Home shows */
+function igFramesDrawn(){ return _igFrames; }
 function igRender(){
   if(!IG) return;
+  _igFrames++;
   const now=((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())/1000;
-  const dt=IG._last==null?0:Math.min(.05,Math.max(0,now-IG._last)); IG._last=now;
-  if(IG.svg){ const r=IG.svg.getBoundingClientRect(); if(r.width>0&&r.height>0){ IG.W=r.width; IG.H=r.height; } }
+  /* a step as long as a resting frame (IG_SPIN_FPS), so a map turning at rest
+     turns at its own speed; a longer gap (a woken loop) still starts gently */
+  const dt=IG._last==null?0:Math.min(.12,Math.max(0,now-IG._last)); IG._last=now;
+  if(IG.svg&&IG._sizeDirty!==false){ const r=IG.svg.getBoundingClientRect(); if(r.width>0&&r.height>0){ IG.W=r.width; IG.H=r.height; IG._sizeDirty=false; } }
   igbStep(IG,dt); igbWiring(IG);
   const w=igbCam().w; IG.pj=igbProjector(IG);
   IG.hubs.forEach(h=>{ h.q=IG.pj(igbHeart(h,w)); });
@@ -3630,16 +3642,100 @@ function igPaintGroupSelect(){
   if(has) has.remove();
   if(GRAPH_GROUP_KEYS.includes(intel.groupBy) && sel.value!==intel.groupBy) sel.value=intel.groupBy;
 }
+/* ---- HOME IS QUICK: THE MAP IS KEPT, SETTLES OFF THE PRESS, AND RESTS
+   (work order "Home speed", Part 1, 8 Oct 2026; measured at 430 contracts:
+   the switch to Explorer froze for 1.2–2.4 s, 688 ms of it the 220 settling
+   rounds, which compare every node with every other; and a still map kept the
+   browser busy half of every second) ----
+   KEPT: the laid-out map is reused between visits while what it draws is the
+   same — the book (ids and when each was last changed), the grouping,
+   Copilot's grouping and the lenses (igKeptKey). A changed book, grouping or
+   lens lays it out afresh. SETTLED OFF THE PRESS: a fresh layout draws its
+   first frame at once from the rough seed, and the 220 rounds run in slices
+   of IG_SETTLE_SLICE across the next frames. AT REST: the frame loop stops
+   drawing once nothing moves — no settling, no pointer on the map, no walk,
+   no glide since IG_AWAKE_MS — and any press, drag, wheel, hover, view
+   change, fold, lens or new answer wakes it (igWake). A map left turning
+   keeps turning at IG_SPIN_FPS. MEASURED ONCE: the stage's size is read on
+   a ResizeObserver, never inside a frame after the canvas was written. */
+const IG_SETTLE_ROUNDS=220, IG_SETTLE_SLICE=20, IG_SETTLE_MS=10, IG_AWAKE_MS=2000, IG_SPIN_FPS=12;
+let _igKept={ key:'', nodes:null }, _igWokeAt=0, _igKick=null, _igTimer=0, _igSizeWatch=null;
+function igKeptKey(cs, groupBy, groups, lenses){
+  const book=(cs||[]).map(c=>c&&(c.id+':'+(c.updatedAt||c.updated_at||c.version||''))).join('|');
+  const ls=(lenses||[]).filter(l=>l&&l.on!==false).map(l=>(l.action||'')+':'+[...(l.ids||[])].slice().sort().join(',')).join(';');
+  return [groupBy||'', groups?JSON.stringify(groups):'', ls, book].join('#');
+}
+function igWake(){ _igWokeAt=Date.now(); if(IG){ IG._furn=null; }
+  if(_igKick){ const k=_igKick; _igKick=null; if(_igTimer){ clearTimeout(_igTimer); _igTimer=0; } requestAnimationFrame(k); } }
 function rebuildIntelGraph(){
   const model=buildGraphModel();
+  const key=igKeptKey(window.state&&state.contracts, intel.groupBy, intel.groups, intel.lenses);
+  const old=(_igKept.key===key&&_igKept.nodes)?new Map(_igKept.nodes.map(n=>[n.id,n])):null;
   IG=makeIntelGraph(model); if(!IG) return;
-  // pre-settle the wiring's physics
-  for(let i=0;i<220;i++) igTick();
-  igFitView(); igRender();
+  IG._model=model;
+  if(old&&IG.nodes.every(n=>old.has(n.id))){
+    /* the same map: every node back where it settled, and the camera kept */
+    IG.nodes.forEach(n=>{ const o=old.get(n.id); n.x=o.x; n.y=o.y; n.vx=o.vx||0; n.vy=o.vy||0; });
+    IG._settle=0; IG._kept=true;
+  } else IG._settle=IG_SETTLE_ROUNDS;
+  _igKept={ key, nodes:IG.nodes };
+  if(_igSizeWatch){ try{ _igSizeWatch.disconnect(); }catch(_){} _igSizeWatch=null; }
+  if(IG.svg&&typeof ResizeObserver==='function'){ const G=IG; _igSizeWatch=new ResizeObserver(()=>{ G._sizeDirty=true; igWake(); }); _igSizeWatch.observe(IG.svg); }
+  IG._sizeDirty=true;
+  if(!IG._kept) igFitView();
+  igRender();
   updateIntelNote(); renderIntelLegend(model); igPaintGroupSelect(); igPaintFoldAll(); igSetView(igbCam().view);
   if(model.linear) igApplyCliff(Number(intel.cliffDays)||0);
+  igWake();
+}
+/* ANY PRESS, DRAG, WHEEL, HOVER OR KEY ON THE MAP WAKES IT; bound once per
+   stage (the stage is rebuilt with the page). */
+function igWakeWire(){
+  if(!document.documentElement.dataset.igWakeVis){ document.documentElement.dataset.igWakeVis='1';
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) igWake(); }); }
+  const st=document.getElementById('ig-page'); if(!st||st.dataset.igWake) return; st.dataset.igWake='1';
+  ['pointermove','pointerdown','wheel','keydown','click','focusin'].forEach(ev=>st.addEventListener(ev,igWake,{ passive:true }));
+}
+/* ---- HOME TURNS A FACE IN PLACE (work order "Home speed", Part 2) ----
+   The head, the ask box, the Copilot panel and the page frame stay; the
+   loop of the face left is retired, the map is (re)built only when Explorer
+   is showing and its book, grouping or lens changed, the paper is painted
+   for its side, and the panel is built ONCE. */
+function igTurnFace(){
+  intelRAF++; const myRAF=intelRAF;
+  if(igMapUp()){
+    if(typeof hbLensOnMap==='function') hbLensOnMap();
+    const key=igKeptKey(window.state&&state.contracts, intel.groupBy, intel.groups, intel.lenses);
+    if(!IG||_igKept.key!==key||IG.svg!==document.getElementById('ig-svg')) rebuildIntelGraph();
+    /* the kept map: an arrival still draws the legend afresh (it comes in
+       closed, renderIntel's own rule for an arrival) and the head line */
+    else { if(IG._model) renderIntelLegend(IG._model); updateIntelNote(); igWake(); }
+    igLoopStart(myRAF); igWakeWire();
+  }
+  igPaintPaper(); renderIntelDock();
+}
+/* THE FRAME LOOP, one per arrival (intelRAF retires the one before). */
+function igLoopStart(myRAF){
+  let f=0;
+  const step=()=>{ if(!igMapUp()||myRAF!==intelRAF||!IG) return;
+    if(document.hidden){ _igKick=step; return; }
+    const cw=intel.cam&&intel.cam.w, wiring=!!(cw&&cw[1]>.01);
+    if(IG._settle>0){ const t0=performance.now(); let n=0;
+      /* at most IG_SETTLE_SLICE rounds, and never past IG_SETTLE_MS of a frame */
+      while(IG._settle>0&&n<IG_SETTLE_SLICE&&(n===0||performance.now()-t0<IG_SETTLE_MS)){ igTick(); IG._settle--; n++; }
+      if(IG._settle<=0&&!IG._kept) igFitView(); }
+    else if(wiring&&(f++%4===0)) igTick();
+    igRender();
+    const awake=IG._settle>0||Date.now()-_igWokeAt<IG_AWAKE_MS||!!intel.walk;
+    if(awake){ requestAnimationFrame(step); return; }
+    _igKick=step;
+    if(igbSpinning()||wiring) _igTimer=setTimeout(()=>{ _igTimer=0; if(_igKick===step){ _igKick=null; requestAnimationFrame(step); } }, 1000/IG_SPIN_FPS);
+  };
+  if(_igTimer){ clearTimeout(_igTimer); _igTimer=0; }
+  _igKick=null; _igWokeAt=Date.now(); step();
 }
 function updateIntelNote(){
+  igWake();
   const el=document.getElementById('ig-note'); if(!el) return;
   const on=intel.lenses.filter(l=>l.on);
   const act=intelActive();
@@ -4105,10 +4201,10 @@ function renderIntel(){
   /* The physics only SHOWS on the Wiring view; elsewhere it idles at a
      quarter of the frames — enough to keep its drift alive for the moment the
      reader turns to the wiring, and a third of each frame back on a big book. */
-  let _igF=0;
-  (function loop(){ if(!igMapUp()||myRAF!==intelRAF||!IG) return;
-    const cw=intel.cam&&intel.cam.w; if((cw&&cw[1]>.01)||(_igF++%4===0)) igTick();
-    igRender(); requestAnimationFrame(loop); })();
+  /* (work order "Home speed", Part 1) the physics runs only while the Wiring
+     view shows it, and the loop rests when nothing moves — igLoopStart. */
+  igLoopStart(myRAF);
+  igWakeWire();
   setActiveNav(onHome?'dashboard':'intel');
   if(onHome) hbAfterMount();
 }
@@ -7241,12 +7337,26 @@ function igStrandPaint(c){
   if(!marked.length){ sp.innerHTML=''; _igStrandRows=[]; return; }
   /* The strip's width is the Document tab's own number, written on the
      element as that tab writes it (the sheet's rule states none). */
-  sp.style.width=(Number(window.DOC_XRAY_SPINE_W)||28)+'px';
-  sp.innerHTML=docXraySpineHtml(rows,{ numbers:true });
+  /* THE TRACK where the margin has room for it, today's strip where it does
+     not — the paper never moves for it (igTrackFits). */
+  _igStrandC=c;
+  const track=igTrackFits(sp, canvas);
+  sp.classList.toggle('is-track', track);
+  if(track){ sp.style.width=IG_TRACK_W+'px'; sp.innerHTML=igTrackHtml(rows); }
+  else { sp.style.width=(Number(window.DOC_XRAY_SPINE_W)||28)+'px'; sp.innerHTML=docXraySpineHtml(rows,{ numbers:true }); }
   sp.querySelectorAll('.doc-xr-seg.is-on').forEach(b=>{ b.classList.remove('is-on'); b.setAttribute('aria-pressed','false'); });
   _igStrandRows=rows.map(x=>x.el);
   _igStrandData=rows;
   igStrandFollow();
+  if(track) igTrackPlace();
+  /* the margin and the paper's length move with the window and the panel:
+     the Track is laid out again (and the strip chosen again) when they do */
+  const wrap=sp.parentElement;
+  if(wrap&&!wrap.dataset.igTrackWatch&&typeof ResizeObserver==='function'){ wrap.dataset.igTrackWatch='1'; let raf2=0;
+    const again=()=>{ if(raf2) return; raf2=requestAnimationFrame(()=>{ raf2=0; const s2=document.getElementById('ig-spine');
+      if(!s2||s2.hidden||!_igStrandC) return; const fits=igTrackFits(s2, document.getElementById('ig-canvas'));
+      if(fits!==s2.classList.contains('is-track')) igStrandPaint(_igStrandC); else if(fits) igTrackPlace(); }); };
+    const ro=new ResizeObserver(again); ro.observe(wrap); ro.observe(canvas); }
   if(sc&&!sc.dataset.igFollowBound){ sc.dataset.igFollowBound='1'; let raf=0;
     sc.addEventListener('scroll',()=>{ igStrandTip(null); if(raf) return; raf=requestAnimationFrame(()=>{ raf=0; igStrandFollow(); }); },{passive:true}); }
   if(!sp.dataset.igBound){ sp.dataset.igBound='1';
@@ -7333,9 +7443,88 @@ function igStrandTip(b){
   const top=Math.max(4, Math.min(wrap.clientHeight-tip.offsetHeight-4, br.top-wr.top-4));
   tip.style.top=top+'px';
 }
+/* ---- THE TRACK (the owner picked "Track" by name, 8 Oct 2026, off the
+   "Clause Strip Options" artifact; work order "Home speed", Part 7) ----
+   The 28px strip cut numbers like 3.4.1 and 24.8 off. The Track is one thin
+   rail for the WHOLE contract — its top the contract's start, its bottom the
+   end — with each flagged clause a short mark in its grade WHERE IT REALLY
+   IS (its place down the painted paper, never guessed from its number), its
+   number whole on a label beside the rail (labels pushed apart so none
+   overlap, a leader joining each to its mark), and a soft window over the
+   part of the contract on screen. The hover card, the press and the Ask
+   question are the strip's own (igStrandTip, igStrandPress): the labels carry
+   the same `data-xr-seg`. IT LIVES IN THE GREY MARGIN ONLY: where the margin
+   left of the sheet is narrower than the Track, today's strip is drawn
+   instead, so the contract never moves. Nothing here writes or spends. */
+const IG_TRACK_W=70, IG_TRACK_GAP=20, IG_TRACK_PAD=14, IG_TRACK_X=10;
+let _igStrandC=null;
+function igTrackFits(sp, canvas){
+  const wrap=sp&&sp.parentElement; if(!wrap||!canvas) return false;
+  /* the sheet the paper is drawn on: the white page round the wording, or
+     the redlined paper, which is the canvas itself */
+  const sheet=canvas.closest('.pg-sheet')||canvas;
+  const room=sheet.getBoundingClientRect().left-wrap.getBoundingClientRect().left;
+  return room>=IG_TRACK_W+4;
+}
+/* LABELS NEVER OVERLAP: in order, each at least `gap` below the one before;
+   then pulled back inside [top, bot] from the bottom up. A pure function of
+   the marks' places, so it is pinned by a unit test. */
+function igTrackLayout(ys, top, bot, gap){
+  const ly=ys.slice();
+  for(let i=1;i<ly.length;i++) if(ly[i]<ly[i-1]+gap) ly[i]=ly[i-1]+gap;
+  if(ly.length&&ly[ly.length-1]>bot) ly[ly.length-1]=bot;
+  for(let i=ly.length-2;i>=0;i--) if(ly[i]>ly[i+1]-gap) ly[i]=ly[i+1]-gap;
+  if(ly.length&&ly[0]<top){ ly[0]=top; for(let i=1;i<ly.length;i++) if(ly[i]<ly[i-1]+gap) ly[i]=ly[i-1]+gap; }
+  return ly;
+}
+function igTrackHtml(rows){
+  const marked=docXraySpineRows(rows);
+  const labs=marked.map(x=>{ const g=IG_GRADE_RANK.includes(x.tone)?x.tone:'steel';
+    const num=String(x.cite||'').replace(/\.$/,'')||String(x.i+1);
+    return `<button type="button" class="doc-xr-seg ig-trk-lab is-${g}" data-xr-seg="${x.i}" aria-pressed="false" aria-label="${igEsc(typeof docXrayLabel==='function'?docXrayLabel(x):num)}"><span class="doc-xr-num">${igEsc(num)}</span></button>`; }).join('');
+  return `<svg class="ig-trk-svg" aria-hidden="true"></svg>${labs}`;
+}
+/* Laid out off the painted paper: each mark's top and height are its
+   clause's share of the paper, the rail the spine's own height. */
+function igTrackPlace(){
+  const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
+  if(!sp||!sp.classList.contains('is-track')||!sc) return;
+  const svg=sp.querySelector('.ig-trk-svg'); if(!svg) return;
+  const H=sp.clientHeight, top=IG_TRACK_PAD, bot=H-IG_TRACK_PAD, span=Math.max(1,bot-top), total=Math.max(1,sc.scrollHeight);
+  const scTop=sc.getBoundingClientRect().top-sc.scrollTop;
+  const labs=[...sp.querySelectorAll('.ig-trk-lab')];
+  const marks=labs.map(b=>{ const i=Number(b.getAttribute('data-xr-seg')), el=_igStrandRows[i];
+    let y=0, h=0; try{ const r=el.getBoundingClientRect(); y=(r.top-scTop)/total; h=r.height/total; }catch(_){}
+    return { b, g:(b.className.match(/is-(ruby|amber|steel)/)||[])[1]||'steel', y:top+Math.max(0,Math.min(1,y))*span, h:Math.max(5,h*span) }; });
+  const ly=igTrackLayout(marks.map(m=>m.y), top+9, bot-9, IG_TRACK_GAP);
+  const x=IG_TRACK_X, col={ ruby:'var(--st-ruby-dot)', amber:'var(--st-amber-dot)', steel:'var(--st-steel-dot)' };
+  let g=`<rect class="ig-trk-rail" x="${x-3}" y="${top}" width="6" height="${span}" rx="3"/><rect class="ig-trk-win" x="${x-7}" y="${top}" width="14" height="0" rx="3"/>`;
+  marks.forEach((m,k)=>{ g+=`<rect x="${x-3}" y="${(m.y).toFixed(1)}" width="6" height="${m.h.toFixed(1)}" rx="1.5" style="fill:${col[m.g]}"/>`
+    +`<path class="ig-trk-lead" d="M${x+4} ${(m.y+Math.min(m.h,6)/2).toFixed(1)} C ${x+9} ${(m.y).toFixed(1)}, ${x+9} ${ly[k].toFixed(1)}, 22 ${ly[k].toFixed(1)}"/>`;
+    m.b.style.top=ly[k].toFixed(1)+'px'; });
+  svg.innerHTML=g;
+  igTrackWindow();
+}
+/* The window over the part on screen, and the label of the clause being read. */
+function igTrackWindow(){
+  const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
+  if(!sp||!sc) return;
+  const win=sp.querySelector('.ig-trk-win'); if(!win) return;
+  const H=sp.clientHeight, top=IG_TRACK_PAD, span=Math.max(1,H-2*IG_TRACK_PAD), total=Math.max(1,sc.scrollHeight);
+  win.setAttribute('y',(top+sc.scrollTop/total*span).toFixed(1));
+  win.setAttribute('height',Math.max(6,sc.clientHeight/total*span).toFixed(1));
+}
 function igStrandFollow(){
   const sp=document.getElementById('ig-spine'), sc=document.getElementById('ig-paper-scroll');
   if(!sp||sp.hidden||!sc||!_igStrandRows.length) return;
+  if(sp.classList.contains('is-track')){
+    igTrackWindow();
+    const at=sc.getBoundingClientRect().top+24; let here=-1;
+    _igStrandRows.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=at) here=i; }catch(_){} });
+    let lab=null; sp.querySelectorAll('.ig-trk-lab').forEach(b=>{ b.classList.remove('is-here'); if(Number(b.getAttribute('data-xr-seg'))<=here) lab=b; });
+    if(lab) lab.classList.add('is-here');
+    return;
+  }
   const top=sc.getBoundingClientRect().top+24;
   let here=0;
   _igStrandRows.forEach((el,i)=>{ try{ if(el&&el.getBoundingClientRect().top<=top) here=i; }catch(_){} });
@@ -7406,4 +7595,6 @@ Object.assign(window,{igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igC
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
 Object.assign(window,{igDockStepAside});
+Object.assign(window,{igFramesDrawn,igKeptKey,igWake,igTurnFace,igLoopStart,IG_SETTLE_ROUNDS,IG_SETTLE_SLICE,IG_AWAKE_MS});
+Object.assign(window,{igTrackLayout,igTrackFits,igTrackHtml,igTrackPlace,IG_TRACK_W,igStrandPaint});
 Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});

@@ -82,15 +82,44 @@ describe('f442 (1) the essentials card holds every term, once', () => {
       'Read the brief first, then the parties beside the terms');
   });
 
-  test('an occasional term is drawn only where answered', () => {
+  /* RE-POINTED IN PLACE 8 Oct 2026 (the Overview redesign; Young: "the terms
+     should be exactly like the highlighted area and nothing more"): AT REST the
+     Terms column draws the eight and nothing else — an occasional term, even
+     answered, waits in Edit; a field a check holds is never hidden. */
+  test('at rest the terms are the eight, in the redesign\'s order, and nothing else', () => {
+    const { win } = ovWorld();
+    assert.deepEqual(win.OV_ESS_REST, ['contractType', 'governingLaw', 'disputes', 'value', 'term', 'renewalType', 'paymentTerms', 'liabilityCapped']);
+    const c = supply();
+    c.metadata.exclusivity = 'exclusive';
+    const html = win.ktOverviewTermsHtml(c, { editable: false });
+    const facts = html.slice(html.indexOf('id="ov-facts"'));
+    assert.ok(!facts.includes(win.ovMetaLabel('exclusivity')), 'an answered occasional term is not on the resting card');
+    assert.equal((win.ovEssRestHtml(c, null).match(/class="sec-f-l"/g) || []).length, 8, 'eight cells');
+    assert.ok(!/ov-reads|what-copilot-read/i.test(facts), 'no readings table');
+  });
+
+  test('the renewal cell says the notice and its day; Edit and Fill ride the top row', () => {
+    const { win } = ovWorld();
+    win.todayISO = () => '2026-10-08';
+    const c = supply(); c.metadata.renewalType = 'auto-renew';
+    const cell = win.ovEssRestHtml(c, null);
+    assert.ok(cell.includes(win.i18t('ov_f_renewal')));
+    assert.ok(/90/.test(cell), 'the notice period is in the renewal cell');
+    const html = win.ktOverviewTermsHtml(c, { editable: true, readable: true });
+    const top = html.slice(0, html.indexOf('id="ov-ess"'));
+    assert.ok(/data-ov-edit="all"/.test(top) && /id="kt-fill"/.test(top), 'Edit and Fill are on the top row');
+    const head = html.slice(html.indexOf('id="ov-facts"'), html.indexOf('id="kt-rows"'));
+    assert.ok(!/data-ov-edit|kt-fill/.test(head), 'the Terms heading holds only its caption and the hold chip');
+  });
+
+  test('more parties scroll inside their column; the card never grows', () => {
     const { win } = ovWorld();
     const c = supply();
-    let html = win.ktOverviewTermsHtml(c, { editable: false });
-    assert.ok(!html.includes(win.ovMetaLabel('exclusivity')), 'unanswered, it is absent');
-    c.metadata.exclusivity = 'exclusive';
-    html = win.ktOverviewTermsHtml(c, { editable: false });
-    const facts = html.slice(html.indexOf('id="ov-facts"'));
-    assert.ok(facts.includes(win.ovMetaLabel('exclusivity')), 'answered, it is among the terms');
+    c.parties = [{ id: 'a', side: 'ours', name: 'A' }, { id: 'b', side: 'theirs', name: 'B' }, { id: 'c', side: 'theirs', name: 'C' }, { id: 'd', side: 'theirs', name: 'D' }];
+    const html = win.ktOverviewTermsHtml(c, { editable: false });
+    const list = html.slice(html.indexOf('class="ov-pty-list"'));
+    assert.equal((list.slice(0, list.indexOf('id="ov-facts"')).match(/class="ov-pty"/g) || []).length, 4, 'all four are in the list');
+    assert.match(read('index.html'), /\.ov-pty-list\{ flex:1 1 0; min-height:136px; contain:size; overflow-y:auto;/, 'the list is kept out of the row\'s height and scrolls');
   });
 
   test('the edit posture still makes every field a box', () => {
@@ -162,55 +191,41 @@ const mapWorld = () => { const w = ovWorld(); w.win.todayISO = () => '2026-01-15
 const withParties = (c, us, them) => Object.assign(c, { counterparty: them.name,
   parties: [Object.assign({ id: 'py_us', side: 'ours' }, us), Object.assign({ id: 'py_th', side: 'theirs' }, them)] });
 
+/* RE-POINTED IN PLACE 8 Oct 2026 (the Overview redesign): the Constellation's
+   money lines and people are STALE; the map is the DUTIES map — our ring of
+   duties, the first outside party, the contract between, an arc for what we
+   owe and a dashed arc for what they owe — and its panel reads the renewal,
+   our duties or theirs. */
 describe('f442 (3) the map is drawn from stored facts', () => {
-  test('money: who pays is read from a duty to pay first', () => {
-    const { win } = mapWorld();
-    const c = withParties(supply(), { name: 'Highland' }, { name: 'Juno' });
-    c.obligations = [{ id: 'o1', desc: 'Pay the monthly invoice', due: '2026-02-15', party: 'ours', status: 'open' }];
-    const D = win.ovMapData(c);
-    const m = D.flows.find(f => f.kind === 'money');
-    assert.ok(m && m.a === 'p0' && m.b === 'p1' && m.dir, 'we pay them, and the line moves');
-    c.obligations[0].party = 'theirs';
-    const m2 = win.ovMapData(c).flows.find(f => f.kind === 'money');
-    assert.ok(m2.a === 'p1' && m2.b === 'p0', 'they pay us');
-  });
-
-  test('money: then from the roles; where neither says, the line stands still and says so', () => {
-    const { win } = mapWorld();
-    const c = withParties(supply(), { name: 'Highland', role: 'Supplier' }, { name: 'Juno', role: 'Customer' });
-    let m = win.ovMapData(c).flows.find(f => f.kind === 'money');
-    assert.ok(m.a === 'p1' && m.dir, 'a customer pays its supplier');
-    const d = withParties(supply(), { name: 'Highland' }, { name: 'Juno' });
-    m = win.ovMapData(d).flows.find(f => f.kind === 'money');
-    assert.equal(m.dir, false, 'no direction is invented');
-    assert.equal(m.l2, win.i18t('ov_map_who_pays_unknown'));
-    const svg = win.ovMapSvg(win.ovMapData(d), false);
-    assert.ok(!/<animateMotion/.test(svg), 'and nothing moves along it');
-  });
-
-  test('no money line where no money passes, or no value is on file', () => {
-    const { win } = mapWorld();
-    const c = withParties(supply(), { name: 'A' }, { name: 'B' });
-    c.valueType = 'none';
-    assert.ok(!win.ovMapData(c).flows.some(f => f.kind === 'money'), 'an NDA draws none');
-    const d = withParties(supply(), { name: 'A' }, { name: 'B' }); d.value = 0;
-    assert.ok(!win.ovMapData(d).flows.some(f => f.kind === 'money'), 'nor a contract with no value');
-  });
-
-  test('duties: each side\'s recorded duties, counted, with the next open one', () => {
+  test('duties: each side\'s recorded duties, their states, and the next open one', () => {
     const { win } = mapWorld();
     const c = withParties(supply(), { name: 'Highland' }, { name: 'Juno' });
     c.obligations = [{ id: 'o1', desc: 'Send the forecast', due: '2026-02-01', party: 'ours', status: 'open' },
       { id: 'o2', desc: 'Deliver stock', due: '2025-12-01', party: 'theirs', status: 'open' },
       { id: 'o3', desc: 'Old report', due: '2025-06-01', party: 'theirs', status: 'done' }];
     const D = win.ovMapData(c);
-    const ours = D.flows.find(f => f.kind === 'duty' && f.side === 'ours');
-    const theirs = D.flows.find(f => f.kind === 'duty' && f.side === 'theirs');
-    assert.ok(ours.a === 'p0' && /1/.test(ours.l1) && ours.l2 === 'Send the forecast');
-    assert.ok(theirs.a === 'p1' && /2/.test(theirs.l1) && theirs.l2 === 'Deliver stock');
-    assert.equal(D.parties[1].worst, 'r', 'a duty past its day is late, and the badge says so');
-    assert.ok(!win.ovMapData(withParties(supply(), { name: 'A' }, { name: 'B' })).flows.some(f => f.kind === 'duty'),
-      'no duties, no duty line');
+    assert.equal(D.duties.ours.length, 1); assert.equal(D.duties.theirs.length, 2);
+    assert.equal(D.next.ours.t, 'Send the forecast');
+    assert.equal(D.duties.ours[0].st, 'a', 'due within 21 days is due soon');
+    assert.equal(D.parties[1].worst, 'r', 'a duty past its day is late');
+    assert.ok(!('flows' in D), 'no money line is read any more');
+  });
+
+  test('due soon is the same 21 days Overview 2 counts', () => {
+    assert.match(CONTRACT, /const OV_MAP_SOON_DAYS=21;/);
+  });
+
+  test('the renewal is read off the record: end, notice by, type, and the wording HaTi read', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'A' }, { name: 'B' });
+    c.metadata.renewalType = 'auto-renew';
+    c.metadata.sourceSpans = { renewalType: 'This Agreement shall automatically renew.' };
+    const R = win.ovMapRenewal(c);
+    assert.equal(R.end, '2027-02-28'); assert.equal(R.next, '2027-03-01'); assert.equal(R.notice, 90);
+    assert.ok(R.by, 'a notice day'); assert.ok(R.auto);
+    assert.equal(R.quote, 'This Agreement shall automatically renew.');
+    delete c.metadata.sourceSpans;
+    assert.equal(win.ovMapRenewal(c).quote, '', 'no wording kept, none invented');
   });
 
   test('the signer under each party is read from the signing plan', () => {
@@ -225,57 +240,41 @@ describe('f442 (3) the map is drawn from stored facts', () => {
   });
 
   test('no model is asked and nothing is written', () => {
-    const b = strip(fnBody(CONTRACT, 'ovMapData') + fnBody(CONTRACT, 'ovMapSvg') + fnBody(CONTRACT, 'ovMapPane'));
+    const b = strip(fnBody(CONTRACT, 'ovMapData') + fnBody(CONTRACT, 'ovMapSvg') + fnBody(CONTRACT, 'ovMapPane') + fnBody(CONTRACT, 'ovMapRenewal'));
     assert.ok(!/api\(|fetch\(|persist\(|logAudit|runContractBrief|anthropic/.test(b));
   });
 });
 
-describe('f442 (4) the map is drawn as the mock-up draws it', () => {
-  test('two parties side by side, more below them, every point inside the picture', () => {
+describe('f442 (4) the map is drawn as the redesign draws it', () => {
+  test('one 900x310 picture: our node, theirs, the contract, an arc above and a dashed arc below', () => {
     const { win } = mapWorld();
-    const c = withParties(supply(), { name: 'Highland Corporate Ltd', role: 'Buyer' }, { name: 'Juno Limited', role: 'Supplier' });
+    const c = withParties(supply(), { name: 'Highland Corporate Ltd' }, { name: 'Juno Limited' });
     c.obligations = [{ id: 'o1', desc: 'Pay', due: '2026-02-15', party: 'ours', status: 'open' }];
-    for (const tall of [false, true]) {
-      const svg = win.ovMapSvg(win.ovMapData(c), tall);
-      /* PROGRESS RINGS (Young, 7 Oct 2026): one picture that fits a laptop —
-         a 380px stage, never taller. */
-      const W = tall ? 400 : 880, H = tall ? 600 : 380;
-      assert.ok(svg.includes(`viewBox="0 0 ${W} ${H}"`));
-      const xs = (svg.match(/\bc?x="(-?[\d.]+)"/g) || []).map(t => Number(t.split('"')[1]));
-      xs.forEach(v => assert.ok(v >= -120 && v <= W + 120, 'inside the picture: ' + v));
-      assert.equal((svg.match(/data-ov-map="p\d"/g) || []).length, 2, 'two party circles');
-      assert.ok(svg.includes('data-ov-map="deal"'), 'the agreement in the middle');
-    }
-    c.parties.push({ id: 'py_3', side: 'theirs', name: 'Kivu Retail', role: 'Distributor' });
-    const tri = win.ovMapSvg(win.ovMapData(c), false);
-    assert.ok(tri.includes('viewBox="0 0 880 380"') && (tri.match(/data-ov-map="p\d"/g) || []).length === 3, 'three on the same stage');
+    const svg = win.ovMapSvg(win.ovMapData(c));
+    assert.ok(svg.includes('viewBox="0 0 900 310"'));
+    assert.ok(/translate\(250 160\)/.test(svg) && /translate\(650 160\)/.test(svg), 'the two nodes where the handoff puts them');
+    assert.ok(svg.includes('M318 112 Q450 20 582 112') && svg.includes('M318 208 Q450 300 582 208'), 'the two arcs');
+    assert.equal((svg.match(/data-ov-map="ours"/g) || []).length, 2, 'our node and the upper arc both read our duties');
+    assert.equal((svg.match(/data-ov-map="theirs"/g) || []).length, 2, 'their node and the lower arc read theirs');
+    assert.equal((svg.match(/data-ov-map="renewal"/g) || []).length, 1, 'the contract reads the renewal');
+    c.parties.push({ id: 'py_3', side: 'theirs', name: 'Kivu Retail' });
+    assert.ok(!/Kivu/.test(win.ovMapSvg(win.ovMapData(c))), 'a third party has no node: duties name only us and the first outside party');
   });
 
-  test('each party wears a ring of its duties, coloured by state', () => {
+  test('our ring has one piece per duty, coloured by state, with a badge only when one is late', () => {
     const { win } = mapWorld();
     const c = withParties(supply(), { name: 'A' }, { name: 'B' });
     c.obligations = [
       { id: 'o1', desc: 'Pay', due: '2020-01-01', party: 'ours', status: 'open' },
       { id: 'o2', desc: 'Report', due: '2020-01-01', party: 'ours', status: 'done' },
     ];
-    const svg = win.ovMapSvg(win.ovMapData(c), false);
-    assert.ok(/class="ov-map-seg is-r"/.test(svg), 'a late duty is a red piece of the ring');
-    assert.ok(/class="ov-map-seg is-g"/.test(svg), 'a done one green');
-    assert.ok(/ov-map-track is-empty/.test(svg), 'a side with no duties draws an empty track');
-    const many = Array.from({ length: 20 }, (_, i) => ({ s: 'g', i }));
-    assert.ok(win.ovMapRingSegs(many).length <= 4, 'past the limit pieces group by state');
-    const css = read('index.html');
-    assert.match(css, /\.ov-map-stage\{ height:380px; \}/, 'the stage has one height');
-  });
-
-  test('two lines in the same direction never lie on each other', () => {
-    const { win } = mapWorld();
-    const c = withParties(supply(), { name: 'A' }, { name: 'B' });
-    c.obligations = [{ id: 'o1', desc: 'Pay the invoice', due: '2026-02-15', party: 'ours', status: 'open' }];
-    const svg = win.ovMapSvg(win.ovMapData(c), false);
-    const paths = [...svg.matchAll(/<path id="ov-mf\d" d="([^"]+)"/g)].map(m => m[1]);
-    assert.equal(paths.length, 2, 'money and our duties');
-    assert.notEqual(paths[0], paths[1], 'drawn apart');
+    let svg = win.ovMapSvg(win.ovMapData(c));
+    assert.equal((svg.match(/class="ov-map-seg is-/g) || []).length, 2);
+    assert.ok(/ov-map-seg is-r/.test(svg) && /ov-map-seg is-g/.test(svg));
+    assert.ok(/ov-map-badge is-r/.test(svg), 'a late duty raises the badge');
+    c.obligations = [];
+    svg = win.ovMapSvg(win.ovMapData(c));
+    assert.ok(/ov-map-track is-empty/.test(svg) && !/ov-map-badge/.test(svg), 'no duties: an empty track and no badge');
   });
 
   test('the panel beside the map holds the map card\'s height and scrolls', () => {
@@ -286,14 +285,18 @@ describe('f442 (4) the map is drawn as the mock-up draws it', () => {
     assert.ok(/pane\.scrollTop=0/.test(strip(fnBody(CONTRACT, 'ovMapWire'))), 'each new reading starts at its top');
   });
 
-  test('the agreement\'s panel carries the renewal question, and the page wires the map where it paints it', () => {
+  test('the renewal panel carries the renewal question, and the page wires the map where it paints it', () => {
     const { win } = mapWorld();
     const c = withParties(supply(), { name: 'A' }, { name: 'B' });
-    const pane = win.ovMapPane(c, win.ovMapData(c), 'deal');
+    const D = win.ovMapData(c);
+    const pane = win.ovMapPane(c, D, 'renewal');
     assert.ok(/id="renewal-host" class="empty:hidden" data-bare="1"/.test(pane));
+    assert.ok(pane.includes(win.i18t('ov_map_rn_ends_k')), 'when it ends');
+    assert.ok(win.ovMapPane(c, D, 'ours').includes(win.i18t('ov_map_ours_h')));
+    assert.ok(win.ovMapPane(c, D, 'theirs').includes(win.i18t('ov_map_theirs_h')));
     const wire = strip(fnBody(CONTRACT, 'ovMapWire'));
-    assert.ok(/renderRenewalSection\(c\)/.test(wire), 'filled when the agreement is read');
-    assert.ok(/disconnect\(\)/.test(wire) && /ovMapSvg\(D,tall\)/.test(wire), 'redrawn at the stage\'s width, one watcher at a time');
+    assert.ok(/renderRenewalSection\(c\)/.test(wire), 'filled when the renewal is read');
+    assert.ok(/'renewal'/.test(wire), 'the renewal is the default reading');
     assert.ok(/ovMapWire\(host,c\)/.test(strip(fnBody(CONTRACT, 'renderKeyTerms'))));
   });
 
