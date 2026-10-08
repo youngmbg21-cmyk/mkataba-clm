@@ -3610,7 +3610,9 @@ function igRender(){
   if(!IG) return;
   _igFrames++;
   const now=((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())/1000;
-  const dt=IG._last==null?0:Math.min(.05,Math.max(0,now-IG._last)); IG._last=now;
+  /* a step as long as a resting frame (IG_SPIN_FPS), so a map turning at rest
+     turns at its own speed; a longer gap (a woken loop) still starts gently */
+  const dt=IG._last==null?0:Math.min(.12,Math.max(0,now-IG._last)); IG._last=now;
   if(IG.svg&&IG._sizeDirty!==false){ const r=IG.svg.getBoundingClientRect(); if(r.width>0&&r.height>0){ IG.W=r.width; IG.H=r.height; IG._sizeDirty=false; } }
   igbStep(IG,dt); igbWiring(IG);
   const w=igbCam().w; IG.pj=igbProjector(IG);
@@ -3670,6 +3672,7 @@ function rebuildIntelGraph(){
   const key=igKeptKey(window.state&&state.contracts, intel.groupBy, intel.groups, intel.lenses);
   const old=(_igKept.key===key&&_igKept.nodes)?new Map(_igKept.nodes.map(n=>[n.id,n])):null;
   IG=makeIntelGraph(model); if(!IG) return;
+  IG._model=model;
   if(old&&IG.nodes.every(n=>old.has(n.id))){
     /* the same map: every node back where it settled, and the camera kept */
     IG.nodes.forEach(n=>{ const o=old.get(n.id); n.x=o.x; n.y=o.y; n.vx=o.vx||0; n.vy=o.vy||0; });
@@ -3704,7 +3707,9 @@ function igTurnFace(){
     if(typeof hbLensOnMap==='function') hbLensOnMap();
     const key=igKeptKey(window.state&&state.contracts, intel.groupBy, intel.groups, intel.lenses);
     if(!IG||_igKept.key!==key||IG.svg!==document.getElementById('ig-svg')) rebuildIntelGraph();
-    else { updateIntelNote(); igWake(); }
+    /* the kept map: an arrival still draws the legend afresh (it comes in
+       closed, renderIntel's own rule for an arrival) and the head line */
+    else { if(IG._model) renderIntelLegend(IG._model); updateIntelNote(); igWake(); }
     igLoopStart(myRAF); igWakeWire();
   }
   igPaintPaper(); renderIntelDock();
