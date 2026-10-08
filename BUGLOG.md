@@ -20489,3 +20489,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed: CLAUDE.md is 87 KB after this work order's MAP lines (the house limit is about 80 KB); a trim needs the owner's word.
 - Noticed, not fixed: nine-jobs-verify 2, 3, 3b (our party row's email; "Who else" naming the colleague who filed or approved) fail on main at 8307c0b too, and the file is not on KNOWN_RED. Left alone.
 - Noticed, not fixed: share-recipient-verify "Key terms shows the route address when the two disagree" (three checks) fails on main at 8307c0b too. Left alone.
+- Noticed, not fixed (8 Oct 2026, Copilot prepares, you press): agents-page-verify walks the old Copilot's work page screen by screen; the page has no door since its work moved onto the Board, so the file is on KNOWN_RED with the reason. It wants porting to the Board's "below the card" panels.
+- Noticed, not fixed: the old Copilot's work page renderer (renderAgentsPage, agListHtml, agPageHtml) is now reached only by tests; it could be retired once agents-page-verify is ported.
+- Noticed, not fixed: the Paper side's sheet does not mark which clause a passage sits in (data-anchor is "redline" for the whole sheet), so a Comment made from a highlight there quotes the words instead of pinning to a clause.
+- Noticed, not fixed: CLAUDE.md is 88.8 KB after this build's MAP lines (house limit about 80 KB); a trim needs the owner's word.

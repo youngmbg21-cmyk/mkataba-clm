@@ -149,13 +149,14 @@ describe('f338 (3) — markup order, and nothing else', () => {
      directly after Home went to Copilot's work, and Insights closes the Work
      group below Calendar. It is still an everyday door, and the move is still
      markup order and nothing else. */
-  test('3a Insights sits below Calendar, at the foot of Work; Copilot\'s work sits directly after Home; Requests is Library', () => {
+  test('3a Insights sits below Calendar, at the foot of Work; Copilot\'s work has no rail door; Requests is Library', () => {
     assert.ok(at('calendar') > 0 && at('intel') > at('calendar'),
       'Calendar leads Insights in the markup');
     assert.ok(at('templates') > at('intel'), 'and Insights is the last Work door, before Library begins');
     assert.equal(grp('intel'), 'work', 'Insights is an everyday door');
     const doors = [...nav.matchAll(/data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
-    assert.equal(doors[doors.indexOf('dashboard') + 1], 'agents', 'Copilot\'s work is the door directly after Home');
+    /* RE-POINTED 7 Oct 2026: Copilot's work lives on the Board ("Below the card") — no rail door */
+    assert.equal(doors.indexOf('agents'), -1, 'Copilot\'s work has no rail door of its own');
     assert.equal(grp('intake'), 'library', 'Requests is a Library door');
   });
   test('3b Work leads Library — Obligations (Work) is drawn before Templates (Library)', () => {

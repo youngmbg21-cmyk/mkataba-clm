@@ -5213,6 +5213,11 @@ async function stAgentsPaint(){
     if('max' in cfg) f.push(num(k,'max',cfg.max,1,500));
     if('limit' in cfg) f.push(num(k,'limit',cfg.limit,0,1000,0.01));
     if('soonDays' in cfg) f.push(num(k,'soonDays',cfg.soonDays,1,30));
+    /* HOW FAR IT MAY GO (the permission ladder, 7 Oct 2026). Just do it is
+       offered only where the act stays inside and can be undone; elsewhere it
+       is drawn grey with the reason on its hover. */
+    if(a.level) f.push(`<label style="display:block;min-width:0">${lab(i18t('st_agents_f_level'))}<select data-st-ag-f="level" style="${ST_INPUT}" title="${esc(a.autoOk?'':i18t('st_agents_auto_no'))}">${
+      ['auto','ask','mine'].map(v=>`<option value="${v}"${a.level===v?' selected':''}${v==='auto'&&!a.autoOk?' disabled':''}>${esc(i18t('st_agents_lv_'+v))}</option>`).join('')}</select></label>`);
     if('secondAfter' in cfg) f.push(num(k,'secondAfter',cfg.secondAfter,1,90));
     return `<section class="st-sec" data-st-agent="${k}" style="padding-top:12px;border-top:1px solid var(--color-divider);margin-top:12px">
       <label style="display:flex;gap:9px;align-items:center;font-size:var(--t-meta);cursor:pointer">
@@ -5222,12 +5227,22 @@ async function stAgentsPaint(){
       ${f.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:9px">${f.join('')}</div>`:''}
       <div style="display:flex;align-items:center;gap:10px;margin-top:9px;flex-wrap:wrap">
         <button type="button" data-st-ag-save="${k}" style="${ST_BTN_SM}">${esc(i18t('act_save'))}</button>
+        ${a.on?`<button type="button" data-st-ag-run="${k}" style="${ST_BTN_SM}"${a.running?' disabled aria-disabled="true"':''}>${esc(i18t(a.running?'ag_running':'ag_runnow'))}</button>`:''}
         ${AG_MONEY_NOTE_KEYS.includes(k)?`<span class="st-note" style="margin:0">${esc(i18t('st_agents_money_note'))}</span>`:''}
-      </div></section>`;
+      </div>
+      ${''/* RUN NOW AND THE EARLIER RUNS MOVED HERE when Copilot's work moved onto
+             the Board (Young, 7 Oct 2026): the work is done on the Board, and how
+             an agent runs is a setting's business. The table is the page's own. */}
+      ${typeof agRunsHtml==='function'?agRunsHtml(k):''}</section>`;
   }).join('');
   if(host.dataset.stAgWired) return;
   host.dataset.stAgWired='1';
   host.addEventListener('click',async ev=>{
+    const run=ev.target&&ev.target.closest?ev.target.closest('[data-st-ag-run]'):null;
+    if(run){
+      if(typeof agRunNowPress==='function'){ await agRunNowPress(run.getAttribute('data-st-ag-run')); stAgentsPaint(); }
+      return;
+    }
     const b=ev.target&&ev.target.closest?ev.target.closest('[data-st-ag-save]'):null;
     if(!b) return;
     const k=b.getAttribute('data-st-ag-save');

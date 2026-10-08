@@ -75,7 +75,8 @@ import './views/approvalsview.js'; // Approvals & signing: a door onto two readi
 import './brainmap.js';           // the Brain's catalogue and its reader of the code, one for both hosts (27 Sep 2026)
 import './views/brain.js';         // the Brain: HaTi as a network of neurons, read from its own code (27 Sep 2026)
 import './agentruns.js';           // Copilot's agents' engine room: runs, settings, the page's quiet refresh (27 Sep 2026)
-import './views/agents.js';        // Copilot's work: the six agents — what each found, prepared and did (27 Sep 2026)
+import './views/agents.js';
+import './copilotacts.js';         // Copilot prepares, you press: @ people, # contracts, the send and draft cards (7 Oct 2026)        // Copilot's work: the six agents — what each found, prepared and did (27 Sep 2026)
 import './views/register.js';
 import './ocr.js';
 import './dedupe.js';
@@ -962,6 +963,14 @@ function viewPaint(what, fn){
   catch(e){ try{ console.error('[hati] '+what+' failed after a view change', e); }catch(_){} }
 }
 function setView(view){
+  /* ---- COPILOT'S WORK IS ON THE BOARD NOW (Young, 7 Oct 2026) ----
+     The page's own door is gone; any way in that still names it (a refresh
+     restoring it, an old link, a test) lands on the Board with that agent's
+     work open under Prepared by Copilot. */
+  if(view==='agents' && typeof window!=='undefined' && typeof window.hbOpenAgent==='function'){
+    window.hbOpenAgent(typeof window.agSelKey==='function'?window.agSelKey():null);
+    return;
+  }
   /* The layer over the page area is asked about BEFORE anything is drawn — a
      page rendered behind a guard the reader then cancels is a navigation that
      half happened. */
@@ -2182,6 +2191,8 @@ function buildAlerts(){
         : it.kind==='soon-sign' ? i18tn('al_link_soon_sign',it.left||0,{n:it.left||0,who:X.signer||X.to||''})
         : i18t('al_link_reply');
       push('link',c,text,()=>{
+        /* the work is on the Board, below Prepared by Copilot (7 Oct 2026) */
+        if(window.hbOpenAgent){ try{ hbOpenAgent('link', it.key); }catch(_){} return; }
         if(typeof setView==='function') setView('agents');
         if(window.agShowAgent) try{ agShowAgent('link'); }catch(_){}
         if(window.agOpenItem) setTimeout(()=>{ try{ agOpenItem(it.key); }catch(_){} },0);

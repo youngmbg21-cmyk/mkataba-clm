@@ -112,8 +112,12 @@ const answer = body => {
     ok('the stage: four deals are in the book, and one run is on the log', await page.evaluate(() =>
       ['MK-DW1', 'MK-DW2', 'MK-DW3', 'MK-DW4'].every(id => !!getContract(id))) && run1.prepared === 1, JSON.stringify(run1));
 
+    /* COPILOT'S WORK LIVES ON THE BOARD (Young, 7 Oct 2026, "Below the card"):
+   the page has no door any more and its address lands on the Board. Its
+   readings and panels are the ones the Board draws below the card, so this
+   check MOUNTS the page's own renderer to read them where it always did. */
     const openAgent = async k => {
-      await page.evaluate(async k => { setView('agents'); await new Promise(r => setTimeout(r, 400));
+      await page.evaluate(async k => { (state.view = 'agents', renderAgentsPage()); await new Promise(r => setTimeout(r, 400));
         if (window.agentsBeat) await agentsBeat(true); if (window.agShowAgent) agShowAgent(k); await new Promise(r => setTimeout(r, 300)); }, k);
     };
 

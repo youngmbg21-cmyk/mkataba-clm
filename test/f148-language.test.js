@@ -35,6 +35,7 @@ const { STRINGS, I18N_DEFAULT, LANGUAGES } = i18n;
 /* Words that are legitimately identical in both languages, so an equal-to-
    English value is a real translation rather than a forgotten one. */
 const SAME_IN_BOTH = new Set([
+  'ag_wk_range',   /* "{from} – {to}": the week ahead's two dates, placeholders only (7 Oct 2026) */
   'int_span_days',   /* "{n} d": the day's mark reads alike in both, as int_fact_decide always did */
   'rk_tt_fm',   /* "Force majeure": the same legal term in Swedish (6 Oct 2026) */
   /* the board work order (5 Oct 2026): placeholders and punctuation only */

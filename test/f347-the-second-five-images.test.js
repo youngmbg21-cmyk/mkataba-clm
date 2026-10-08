@@ -62,11 +62,11 @@ test('F347 — the second five images', async t => {
      then move insights to below calendar"): Copilot's work took the place
      directly after Home, and Insights moved below Calendar. Still markup
      order and nothing else. */
-  await t.test('(1c) Copilot\'s work sits directly after Home, and Insights below Calendar, in the rail markup', () => {
+  await t.test('(1c) Copilot\'s work has no rail door, and Insights sits below Calendar, in the rail markup', () => {
     const rail = CSS.slice(CSS.indexOf('data-section="work"'), CSS.indexOf('data-section="library"'));
     const doors = [...rail.matchAll(/data-view="([a-z]+)" class="nav-item/g)].map(m => m[1]);
-    assert.equal(doors[doors.indexOf('dashboard') + 1], 'agents',
-      'Home, then Copilot\'s work — markup order is the whole of it');
+    /* RE-POINTED 7 Oct 2026: Copilot's work lives on the Board — no rail door */
+    assert.equal(doors.indexOf('agents'), -1, 'Copilot\'s work has no rail door of its own');
     assert.equal(doors[doors.indexOf('calendar') + 1], 'intel', 'and Insights directly below Calendar');
     assert.equal(doors[doors.length - 1], 'intel', 'at the foot of the Work group');
   });

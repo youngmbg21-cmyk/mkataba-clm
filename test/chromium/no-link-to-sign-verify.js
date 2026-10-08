@@ -146,7 +146,7 @@ const inRound = (id, name, cp) => {
     ok('1e the contract\'s own head says the same: whose move is mine', fact === 'Mine', String(fact));
 
     /* ===== 2. THE SIXTH AGENT ===== */
-    await page.evaluate(() => setView('agents'));
+    await page.evaluate(() => (state.view = 'agents', renderAgentsPage()));
     await page.waitForTimeout(900);
     const lst = await page.evaluate(() => ({
       rows: [...document.querySelectorAll('[data-ag-agent]')].map(b => b.getAttribute('data-ag-agent')),
@@ -154,10 +154,13 @@ const inRound = (id, name, cp) => {
       rail: ((document.querySelector('[data-count="agents"]') || {}).textContent || '').trim(),
       ready: (typeof agentsData === 'function') ? agentsData().ready : null,
     }));
-    ok('2a "No link to sign" is the sixth agent and sits second, under "Their round came back"',
-      /* Seven agents since 27 Sep 2026 (Our promises); this one stays second. */
-      lst.rows[0] === 'round' && lst.rows[1] === 'link' && lst.rows.length === 7 && lst.name === 'No link to sign', JSON.stringify(lst));
-    ok('2b the rail\'s door counts what is ready here, this agent\'s work included', lst.rail === String(lst.ready) && lst.ready >= 2,
+    /* Eleven since 7 Oct 2026: four readings first (approvals, requests, the
+       week, quiet threads), then the seven that prepare — this one second among
+       them. Copilot's work lives on the Board, so there is no rail door to count;
+       the Board's Prepared card counts it (home-prepared-by-copilot-verify 2c). */
+    ok('2a "No link to sign" is the sixth agent and sits second among those that prepare, under "Their round came back"',
+      lst.rows.slice(4, 6).join(',') === 'round,link' && lst.rows.length === 11 && lst.name === 'No link to sign', JSON.stringify(lst));
+    ok('2b there is no rail door; this agent\'s work is counted with the rest', lst.rail === '' && lst.ready >= 2,
       JSON.stringify({ rail: lst.rail, ready: lst.ready }));
     const agentRow = await page.$('[data-ag-agent="link"]');
     if (agentRow) { await agentRow.click(); await page.waitForTimeout(500); }
@@ -209,7 +212,7 @@ const inRound = (id, name, cp) => {
     ok('2j and the Negotiations list says theirs now', (rows['MK-NL1'] || {}).word === 'Theirs', JSON.stringify(rows['MK-NL1']));
 
     /* The fresh link for a signature: asks first, then the Signing tab's own act. */
-    await page.evaluate(() => setView('agents'));
+    await page.evaluate(() => (state.view = 'agents', renderAgentsPage()));
     await page.waitForTimeout(700);
     const linkRow = await page.$('[data-ag-agent="link"]'); if (linkRow) { await linkRow.click(); await page.waitForTimeout(400); }
     let signAsk = null, signed = null;
@@ -232,7 +235,7 @@ const inRound = (id, name, cp) => {
     await page.screenshot({ path: path.join(OUT, 'signing-tab.png') });
 
     /* ===== 3. THE LIST STAYS STILL ===== */
-    await page.evaluate(() => setView('agents'));
+    await page.evaluate(() => (state.view = 'agents', renderAgentsPage()));
     await page.waitForTimeout(900);
     const measure = () => page.evaluate(() => {
       const l = document.querySelector('.ag-list');

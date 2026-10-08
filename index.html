@@ -7910,6 +7910,53 @@
   .ig-strip-sp{flex:1}
   .ig-strip-pins{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap}
   .ig-paper{position:absolute;inset:0;z-index:3;background:var(--color-bg)}
+  /* HOME'S PAPER SIDE, NOTHING CHOSEN YET (7 Oct 2026): one card, the book's
+     contracts as rows, most recently touched first. */
+  .ig-pick{height:100%;overflow:auto;padding:28px 24px 48px}
+  .ig-pick-card{max-width:720px;margin:0 auto;background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);padding:20px 22px}
+  .ig-pick-card h2{margin:0;font-size:var(--t-title,18px);font-weight:var(--w-title);color:var(--color-text)}
+  .ig-pick-sub{margin:4px 0 14px;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  .ig-pick-find{width:100%;height:var(--field-h);border:1px solid var(--field-line,var(--color-neutral-300));border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--field-size,13px);background:var(--color-surface);color:var(--color-text);margin-bottom:10px}
+  .ig-pick-list{display:flex;flex-direction:column}
+  .ig-pick-row{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;text-align:left;border:0;border-top:1px solid var(--color-neutral-200);background:none;padding:9px 6px;font:inherit;color:var(--color-text);cursor:pointer;border-radius:0}
+  .ig-pick-row:first-child{border-top:0}
+  .ig-pick-row:hover,.ig-pick-row:focus-visible{background:var(--color-accent-50)}
+  .ig-pick-row .n{font-weight:var(--w-strong);font-size:var(--t-body)}
+  .ig-pick-row .q{grid-column:2;font-size:var(--t-meta);color:var(--color-neutral-600)}
+  /* COPILOT PREPARES, YOU PRESS (7 Oct 2026): the @ / # list over the ask box,
+     and the card an act answers with. */
+  #ig-dock{position:relative}
+  .ca-pop{position:absolute;left:12px;right:12px;z-index:30;background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);box-shadow:0 10px 28px rgba(0,0,0,.16);padding:6px;max-height:60%;overflow:auto}
+  .ca-pop h5{margin:4px 8px 6px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--cap-ink);font-weight:400}
+  .ca-opt{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 8px;border-radius:var(--radius);font-size:13px;cursor:pointer;color:var(--color-text)}
+  .ca-opt.on,.ca-opt:hover{background:var(--color-accent-50)}
+  .ca-opt .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:var(--w-strong);background:var(--color-accent-100);color:var(--accent-ink)}
+  .ca-opt .who{min-width:0}
+  .ca-opt .who b{font-weight:var(--w-strong)}
+  .ca-opt small{display:block;color:var(--color-neutral-600);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ca-opt em{font-style:normal;font-size:11px;color:var(--cap-ink)}
+  .ca-none,.ca-hint{margin:6px 8px 4px;font-size:11.5px;color:var(--color-neutral-600)}
+  .ca-card{background:var(--color-surface);border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);padding:12px 14px;font-size:12.5px;color:var(--color-text)}
+  .ca-ct{font-size:13.5px;font-weight:var(--w-title);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .ca-dl{display:grid;grid-template-columns:92px 1fr;gap:5px 10px;margin:0 0 10px}
+  .ca-dl dt{color:var(--color-neutral-600)} .ca-dl dd{margin:0;min-width:0;overflow-wrap:anywhere}
+  .ca-acts{display:flex;gap:8px;flex-wrap:wrap}
+  .ca-foot{margin:10px 0 0;font-size:11.5px;color:var(--color-neutral-600)}
+  .ca-why{margin:0 0 10px;padding:8px 10px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--color-text)}
+  .ca-said{margin:6px 0 0;font-weight:var(--w-strong)}
+  .ca-gaps{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+  .ca-gap{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-top:1px solid var(--color-hair,#e5e7eb)}
+  .ca-gap > span{flex:1;min-width:0}
+  .ca-gap > .ui-btn{flex:none}
+  .ca-said.is-ok{color:var(--st-green-fg)} .ca-said.is-warn{color:var(--st-amber-fg)} .ca-said.is-bad{color:var(--st-ruby-fg)}
+  .ca-opt-card{border:1px solid var(--color-neutral-300);border-radius:var(--radius-lg);padding:10px 12px;margin:0 0 8px;background:var(--color-surface)}
+  .ca-opt-card.is-best{border-color:var(--accent-solid);box-shadow:0 0 0 1px var(--accent-solid) inset}
+  .ca-oc-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+  .ca-oc-h b{font-weight:var(--w-strong)}
+  .ca-opt-card p{margin:4px 0 8px;font-size:12px;color:var(--color-neutral-600);line-height:1.45}
+  .ca-oc-f{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .ca-oc-f small{font-size:11.5px;color:var(--color-neutral-600)}
+  .ig-pick-none,.ig-pick-more{font-size:var(--t-meta);color:var(--color-neutral-600);margin:8px 0 0}
   .ig-paper[hidden]{display:none}
   .ig-paper-wrap{position:relative;height:100%;display:flex;min-height:0}
   .ig-paper-wrap .ig-spine[hidden]{display:none}
@@ -10966,6 +11013,10 @@
      dialog's buttons, applied to the panel's own scroller. */
   .ag-panel{display:flex;flex-direction:column;gap:14px;min-height:100%;}
   .ag-p-head{display:grid;gap:2px;}
+  /* WEEK AHEAD's rows (7 Oct 2026): the day, what is due and on what, its door */
+  .ag-wk{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-neutral-200);font-size:var(--t-body)}
+  .ag-wk:last-child{border-bottom:0}
+  .ag-wk b{font-weight:var(--w-strong)} .ag-wk small{display:block;color:var(--color-neutral-600);font-size:var(--t-meta)}
   .ag-p-who{font-weight:var(--w-title);color:var(--color-text);}
   .ag-p-name{color:var(--color-neutral-600);}
   .ag-p-agent{font-size:var(--t-label);color:var(--color-neutral-600);}
@@ -11525,11 +11576,10 @@
                person to look at. Its count is what is ready for review, the
                page head's own number. It takes the place directly after Home
                that Insights held from 21 to 27 Sep 2026. -->
-          <button data-view="agents" class="nav-item" title="Copilot's work — what the agents have ready for you to review" data-i18n-title="nav_agents_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-spark"/></svg>
-            <span style="flex:1;" data-i18n="nav_agents">Copilot&rsquo;s work</span><span class="nav-count" data-count="agents"></span>
-          </button>
+          <!-- COPILOT'S WORK HAS NO DOOR OF ITS OWN (Young, 7 Oct 2026: "Go with
+               Below the card"): the agents' work is done on the Board, under
+               Prepared by Copilot. Every old way in (a refresh, the bell, a
+               link) lands there through hbOpenAgent. -->
           <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-folder"/></svg>

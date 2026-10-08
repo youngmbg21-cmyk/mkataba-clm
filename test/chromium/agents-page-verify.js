@@ -106,41 +106,37 @@ const ok = (name, good, detail) => {
     /* RE-POINTED 27 Sep 2026: a SIXTH agent, "No link to sign" (f412), and
        nothing in the sample book is stuck without a link — so its count is 0
        and the other five hold one each, as before. */
+    /* RE-POINTED 7 Oct 2026: four READINGS come first (approvals, requests,
+       the week, quiet threads) and read the sample book as it stands — they
+       are counted, not staged; the seven that prepare hold what they did. */
+    const READS = ['approve', 'request', 'week', 'quiet'];
+    const reads = staged ? READS.reduce((n, k) => n + (staged.per[k] || 0), 0) : 0;
     ok('the stage: one of each kind of work, through the product\'s own acts',
-      !!staged && staged.ready === 5 && Object.entries(staged.per).every(([k, n]) => n === ((k === 'link' || k === 'ours') ? 0 : 1)), JSON.stringify(staged));
+      !!staged && staged.ready === 5 + reads && Object.entries(staged.per).filter(([k]) => !READS.includes(k))
+        .every(([k, n]) => n === ((k === 'link' || k === 'ours') ? 0 : 1)), JSON.stringify(staged));
 
-    /* ---- 1. the door ---- */
-    const door = await page.$('[data-view="agents"]');
-    ok('1a the rail carries the door', !!door);
-    if (door) { await door.click(); await page.waitForTimeout(900); }
+    /* ---- 1. NO DOOR: COPILOT'S WORK LIVES ON THE BOARD (Young, 7 Oct 2026,
+       "Below the card") ---- The page's address lands on the Board; the page's
+       own renderer is MOUNTED here to read the readings and panels the Board
+       draws below the card. */
+    ok('1a the rail carries no door of its own', !(await page.$('#side-nav [data-view="agents"]')));
+    await page.evaluate(() => setView('agents')); await page.waitForTimeout(900);
+    const atBoard = await page.evaluate(() => state.view);
+    ok('1b the old address lands on the Board', atBoard === 'dashboard', atBoard);
+    await page.evaluate(() => { state.view = 'agents'; agSetSel('round'); renderAgentsPage(); }); await page.waitForTimeout(600);
     const head = await page.evaluate(() => ({
-      view: state.view,
       title: (document.querySelector('#page-head h1') || document.querySelector('h1') || {}).textContent || '',
       facts: (document.getElementById('page-head-facts') || {}).textContent || '',
-      rail: (document.querySelector('[data-count="agents"]') || {}).textContent || '',
       rows: [...document.querySelectorAll('[data-ag-agent]')].map(b => b.getAttribute('data-ag-agent')),
       on: (document.querySelector('.ag-row.on') || { getAttribute: () => null }).getAttribute('data-ag-agent'),
+      ready: agentsData().ready,
       over: document.documentElement.scrollWidth - innerWidth,
     }));
-    ok('1b a press on the door opens the page', head.view === 'agents', head.view);
-    ok('1c the page names itself', /Copilot.s work/.test(head.title), head.title);
-    /* Seven since 27 Sep 2026: Our promises sits after Late promises. */
-    ok('1d seven agents, in the drawing\'s order with "No link to sign" second', head.rows.join(',') === 'round,link,renew,paper,late,ours,import', head.rows.join(','));
-    ok('1e THE NUMBER ON THE DOOR IS THE NUMBER ON THE PAGE', head.rail === '5' && /^5 ready for review/.test(head.facts), `door ${head.rail} · head "${head.facts}"`);
-    ok('1f it opens on the first agent with work ready', head.on === 'round', head.on);
+    ok('1d eleven agents: the four readings, then the drawing\'s order with "No link to sign" second',
+      head.rows.join(',') === 'approve,request,week,quiet,round,link,renew,paper,late,ours,import', head.rows.join(','));
+    ok('1e the number in the head is the number of things ready', new RegExp('^' + head.ready + ' ready for review').test(head.facts), `ready ${head.ready} · head "${head.facts}"`);
+    ok('1f it shows the agent asked for', head.on === 'round', head.on);
     ok('1g no sideways scroll at 1440', head.over <= 0, head.over + 'px');
-    /* THE DOOR'S PLACE, read off the pixels (Young, 27 Sep 2026: "move it to
-       be after the home page then move insights to below calendar"). */
-    const railOrder = await page.evaluate(() => {
-      const items = [...document.querySelectorAll('#side-nav .nav-item[data-view]')]
-        .filter(b => getComputedStyle(b).display !== 'none')
-        .map(b => ({ v: b.getAttribute('data-view'), top: Math.round(b.getBoundingClientRect().top) }))
-        .sort((a, b) => a.top - b.top).map(x => x.v);
-      return items;
-    });
-    ok('1h the door is painted directly below Home, and Insights directly below Calendar',
-      railOrder[railOrder.indexOf('dashboard') + 1] === 'agents' && railOrder[railOrder.indexOf('calendar') + 1] === 'intel',
-      railOrder.slice(0, 9).join(' · '));
     await page.screenshot({ path: path.join(OUT, '1-round.png') });
 
     const openFirst = async () => { const it = await page.$('#ag-main [data-ag-open]'); if (!it) return false; await it.click(); await page.waitForTimeout(450); return !!(await page.$('#side-panel [data-ag-panel]')); };

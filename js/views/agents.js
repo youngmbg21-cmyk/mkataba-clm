@@ -67,12 +67,22 @@
 
 /* The five, in the drawing's order. KEYS ARE STABLE ENGLISH; every word a
    reader sees is a dictionary key. */
-const AG_KEYS = ['round', 'link', 'renew', 'paper', 'late', 'ours', 'import'];
+/* FOUR MORE ON THE BOARD (Young, 7 Oct 2026: yes to Approvals, Requests, Week
+   ahead and Dropped threads), first in the card's order. Each is a READING over
+   the product's own readings — nothing runs on the server, nothing spends,
+   nothing is stored — so they have no Settings row (ST_AGENT_KEYS is the
+   server's seven). */
+const AG_KEYS = ['approve', 'request', 'week', 'quiet', 'round', 'link', 'renew', 'paper', 'late', 'ours', 'import'];
+const AG_READINGS = ['approve', 'request', 'week', 'quiet'];
 /* What each agent is. `steps` are the drawing's own, and `review` is the index
    of the step where a person looks — everything before it is the agent's own
    work, the step after it is what is finished. `door` names where its rules
    live, and is drawn only where a person can actually go there. */
 const AG_DEF = {
+  approve: { icon: 'check', review: 1, door: null, steps: ['ag_st_ap_find', 'ag_st_ap_pack', 'ag_st_review', 'ag_st_ap_decided'] },
+  request: { icon: 'req',   review: 1, door: null, steps: ['ag_st_rq_find', 'ag_st_rq_paper', 'ag_st_review', 'ag_st_rq_drafted'] },
+  week:    { icon: 'cal',   review: 1, door: null, steps: ['ag_st_wk_find', 'ag_st_review'] },
+  quiet:   { icon: 'chat',  review: 1, door: null, steps: ['ag_st_qt_find', 'ag_st_review', 'ag_st_qt_answered'] },
   round:  { icon: 'nego',   review: 4, door: 'standards',
             steps: ['ag_st_read_theirs', 'ag_st_check_std', 'ag_st_past', 'ag_st_prepare', 'ag_st_review', 'ag_st_answered'] },
   link:   { icon: 'out',    review: 2, door: null,
@@ -109,6 +119,9 @@ function agSel(D){
   return lead || AG_KEYS[0];
 }
 function agSetSel(k){ _agSel = AG_KEYS.includes(k) ? k : AG_KEYS[0]; }
+/* The agent last chosen, for a door that lands on the Board instead (the
+   page moved there, 7 Oct 2026): null when nobody has chosen one. */
+function agSelKey(){ return _agSel; }
 
 const _agT = (k, v) => (typeof i18t === 'function') ? i18t(k, v || {}) : String(k);
 const _agTn = (k, n, v) => (typeof i18tn === 'function') ? i18tn(k, n, v || {}) : String(n);
@@ -530,17 +543,102 @@ function agImportWorking(batches){
   return out;
 }
 
+/* ============================================================
+   THE FOUR READINGS (7 Oct 2026)
+   ============================================================ */
+/* APPROVALS: what waits on THIS reader's yes — the Approvals page's own rows
+   (apApprovalRows, the reader's own only), so the board and that page cannot
+   disagree. The pack is read off the record; Approve and Refuse are the
+   page's own acts (approvalDecideAsk), drawn only where approvalDecidableNow. */
+function agApproveItems(){
+  let rows = [];
+  try { rows = (typeof apApprovalRows === 'function' ? apApprovalRows() : []) || []; } catch (_){ rows = []; }
+  return rows.filter(r => r && r.mine && r.c).map(r => ({ agent: 'approve', kind: 'approve', key: 'approve:' + r.c.id, cid: r.c.id, c: r.c,
+    days: r.idle || 0, rule: r.rule && r.rule !== '—' ? r.rule : '', asker: r.who || '', notAsked: !!r.notAsked, tone: (r.idle || 0) >= 3 ? 'amber' : '' }));
+}
+/* REQUESTS: the bell's own two readings — a request nobody holds yet, and a
+   draft a lane made for you (intakeAlertRows / intakeLaneDraftRows). Draft it
+   is the Requests page's own door (intakeDraft: the paper suggested, the
+   form opened pre-filled; Create is still the person's press). */
+function agRequestItems(){
+  let open = [], lane = [];
+  try { open = (typeof intakeAlertRows === 'function' ? intakeAlertRows() : []) || []; } catch (_){ open = []; }
+  try { lane = (typeof intakeLaneDraftRows === 'function' ? intakeLaneDraftRows() : []) || []; } catch (_){ lane = []; }
+  const cOf = id => (id && typeof getContract === 'function') ? getContract(id) || null : null;
+  return [
+    ...lane.map(r => ({ agent: 'request', kind: 'lane', key: 'lane:' + r.id, r, cid: r.contractId, c: cOf(r.contractId), at: r.createdAt || '', days: _agDaysSince(r.createdAt) })),
+    ...open.map(r => ({ agent: 'request', kind: 'request', key: 'request:' + r.id, r, cid: null, c: null, at: r.createdAt || '', days: _agDaysSince(r.createdAt),
+      tone: (_agDaysSince(r.createdAt) || 0) >= 3 ? 'amber' : '' })),
+  ];
+}
+/* WEEK AHEAD: the next AG_WEEK_DAYS days of the reader's own dates, off the
+   Calendar's ONE reading (calendarEvents + calEventMine) — expiries, renewal
+   decisions and duties, never a negotiation round — each with the door that
+   deals with it. One item, so the card says "N dates" once. */
+const AG_WEEK_DAYS = 7;
+function agWeekItems(){
+  if (typeof calendarEvents !== 'function') return [];
+  let evs = [];
+  try { evs = calendarEvents() || []; } catch (_){ evs = []; }
+  const today = (typeof todayISO === 'function') ? todayISO() : new Date().toISOString().slice(0, 10);
+  const t = new Date(today + 'T00:00:00'); t.setDate(t.getDate() + AG_WEEK_DAYS);
+  const end = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+  const mine = evs.filter(e => e && e.type !== 'round' && !e.done && e.date >= today && e.date <= end
+    && (typeof calEventMine !== 'function' || calEventMine(e)))
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (!mine.length) return [];
+  return [{ agent: 'week', kind: 'week', key: 'week:' + today, evs: mine, from: today, to: end, cid: null, c: null, at: today, n: mine.length }];
+}
+/* DROPPED THREADS: a note from the other side that nobody on ours has
+   answered for AG_QUIET_DAYS or more — the newest note in its thread is
+   theirs and not marked done. READ RAW: `c.thread` and each change's
+   `thread`, never negoNoteHome (it mints a list). One per contract, the
+   oldest wait. */
+const AG_QUIET_DAYS = 5;
+function agQuietItems(cs){
+  const out = [];
+  for (const c of cs){
+    if (!c || (typeof negoExecuted === 'function' && negoExecuted(c))) continue;
+    let worst = null;
+    const look = (list, ch) => {
+      const L = (Array.isArray(list) ? list : []).filter(m => m && m.at).slice().sort((a, b) => String(a.at).localeCompare(String(b.at)));
+      const last = L[L.length - 1];
+      if (!last || last.side !== 'counterparty' || last.done) return;
+      const d = _agDaysSince(last.at);
+      if (d == null || d < AG_QUIET_DAYS) return;
+      if (!worst || d > worst.days) worst = { m: last, ch, days: d };
+    };
+    look(c.thread, null);
+    (Array.isArray(c.changes) ? c.changes : []).forEach(ch => look(ch && ch.thread, ch));
+    if (worst) out.push({ agent: 'quiet', kind: 'quiet', key: 'quiet:' + c.id, cid: c.id, c, note: worst.m, ch: worst.ch, days: worst.days, at: worst.m.at, tone: worst.days >= 10 ? 'amber' : '' });
+  }
+  return out.sort((a, b) => b.days - a.days);
+}
+
 /* ---- EVERYTHING, ONCE ----
    ONE READING PER TURN, and it is dropped on a microtask — navCounts' own
    idiom — because the rail's count and the page both ask it inside one paint,
    and nothing that happens afterwards may be answered from it. */
 let _agData = null;
+/* The level an admin set for an agent ('auto' · 'ask' · 'mine'), read off
+   the status the page already holds; absent = 'ask'. */
+function agLevelOf(k){
+  try {
+    const s = (typeof agentsStatus === 'function') ? agentsStatus() : null;
+    const a = s && s.agents && s.agents[k];
+    return a && a.level ? String(a.level) : 'ask';
+  } catch (_){ return 'ask'; }
+}
 function agentsData(list){
   if (!list && _agData) return _agData;
   const cs = agBook(list);
   const desk = agDeskRows(cs);
   const batches = agImportBatches(cs);
   const agents = {
+    approve: { ready: agApproveItems(), working: [], done: [] },
+    request: { ready: agRequestItems(), working: [], done: [] },
+    week:    { ready: agWeekItems(), working: [], done: [] },
+    quiet:   { ready: agQuietItems(cs), working: [], done: [] },
     round:  { ready: agRoundItems(cs), working: [], done: agRoundDone(cs) },
     link:   { ready: agLinkItems(cs), working: [], done: agLinkDone(cs) },
     renew:  { ready: agRenewItems(desk), working: [], done: agRenewDone(cs) },
@@ -549,6 +647,10 @@ function agentsData(list){
     ours:   { ready: agOursItems(cs), working: [], done: agOursDone(cs) },
     import: { ready: agImportItems(batches), working: agImportWorking(batches), done: agImportDone(batches) },
   };
+  /* LEAVE IT TO ME (the permission ladder, 7 Oct 2026): an agent an admin
+     has set so prepares nothing on the Board — it still watches and tells by
+     email, as its own runner does. */
+  AG_KEYS.forEach(k => { if (agLevelOf(k) === 'mine'){ agents[k].ready = []; agents[k].leftToYou = true; } });
   /* The finished lists are newest first, and bounded. */
   AG_KEYS.forEach(k => {
     const a = agents[k];
@@ -811,8 +913,33 @@ function agCardParts(it){
     sum = _agT('ag_firm_sum', { what: String((it.ob && it.ob.desc) || ''), date: _agDay(it.ob && it.ob.chasedAt) });
     urg = _agTn('desk_late', it.days, { n: it.days }) + (it.noAddress ? ' · ' + _agT('desk_chase_noaddr') : '');
   }
+  let whoNow = who;
+  if (it.kind === 'approve'){
+    kind = _agT('ag_k_approve');
+    const v = (c && typeof fmtMoneyShortOf === 'function' && (typeof canViewValues !== 'function' || canViewValues()) && c.value) ? fmtMoneyShortOf(c) : '';
+    sum = [name, v, it.notAsked ? _agT('sa_pg_not_asked') : _agT('ag_ap_pack')].filter(Boolean).join(' · ');
+    urg = it.days ? _agTn('ag_waiting_days', it.days, { n: it.days }) : _agT('ag_waiting_today');
+  } else if (it.kind === 'request' || it.kind === 'lane'){
+    const R = it.r || {};
+    kind = _agT('ag_k_request');
+    whoNow = (c && c.counterparty) || R.counterparty || (R.by && R.by.name) || '';
+    sum = it.kind === 'lane' ? _agT('ag_rq_lane', { title: R.title || (c && c.name) || '' })
+      : _agT('ag_rq_open', { title: R.title || '', who: (R.by && R.by.name) || '' });
+    urg = it.days ? _agTn('ag_waiting_days', it.days, { n: it.days }) : _agT('ag_rq_new');
+  } else if (it.kind === 'week'){
+    kind = _agT('ag_k_week');
+    whoNow = _agT('ag_wk_range', { from: _agDay(it.from), to: _agDay(it.to) });
+    const by = t => it.evs.filter(e => e.type === t).length;
+    sum = [_agTn('ag_wk_n', it.n, { n: it.n }), by('obligation') ? _agTn('ag_wk_duties', by('obligation'), { n: by('obligation') }) : '',
+      by('renewal') ? _agTn('ag_wk_decisions', by('renewal'), { n: by('renewal') }) : '', by('expiry') ? _agTn('ag_wk_ends', by('expiry'), { n: by('expiry') }) : ''].filter(Boolean).join(' · ');
+    urg = _agT('ag_wk_first', { date: _agDay(it.evs[0].date) });
+  } else if (it.kind === 'quiet'){
+    kind = _agT('ag_k_quiet');
+    sum = _agT('ag_qt_sum', { who: (it.note && it.note.who) || who });
+    urg = _agTn('ag_qt_days', it.days, { n: it.days });
+  }
   if (it.kind === 'answer' && it.prepared) sum = [_agTn('ag_prepared_n', it.prepared, { n: it.prepared }), sum].join(' · ');
-  return { kind, who, name, sum, urg };
+  return { kind, who: whoNow, name, sum, urg };
 }
 /* Whose turn it is to sign, and how many more on the step are stuck with them. */
 function agSignTurnWords(it, fallback){
@@ -1062,6 +1189,16 @@ function renderAgentsPage(){
    act the counts move, so every row's words are rewritten in place and the
    right side is redrawn under its own scroll — never the page around them. */
 function agRepaint(){
+  /* ---- COPILOT'S WORK LIVES ON THE BOARD (Young, 7 Oct 2026: "Go with Below
+     the card") ---- An act pressed in the panel under Prepared by Copilot
+     repaints the board it was pressed on: the counts and the panel move, the
+     reader's place stays (hbPaintBoard keeps the scroll). */
+  if (typeof state !== 'undefined' && state && state.view === 'dashboard'){
+    _agData = null;
+    if (typeof hbPaintBoard === 'function') try { hbPaintBoard(); } catch (_){}
+    if (typeof updateSidebarCounts === 'function') try { updateSidebarCounts(); } catch (_){}
+    return;
+  }
   if (typeof state === 'undefined' || !state || state.view !== 'agents') return;
   _agData = null;
   const root = document.querySelector('[data-ag-root]');
@@ -1162,7 +1299,6 @@ function agKv(rows){
    spend per person and per day, never per item), editing the letter or the
    message in the panel (the letter's own dialog and the chase route are the
    doors), and answering an ask here (the negotiation page is). */
-const AG_WATCH_MAX = 4;     // watchouts drawn from the brief, then counted
 const AG_DEP_MAX = 6;       // departures drawn from the standards review, then counted
 const AG_OBS_MAX = 8;       // obligations drawn from what auto-triage holds, then counted
 const AG_LIST_MAX = 8;      // names drawn from an import batch, then counted
@@ -1232,7 +1368,53 @@ function agPanelBody(it){
   if (['reply', 'sign', 'party', 'soon', 'soon-sign'].includes(it.kind)) return agLinkBody(it);
   if (it.kind === 'chase-firm') return agChaseBody(it);
   if (it.kind === 'ours') return agOursBody(it);
+  if (it.kind === 'approve') return agApproveBody(it);
+  if (it.kind === 'request' || it.kind === 'lane') return agRequestBody(it);
+  if (it.kind === 'week') return agWeekBody(it);
+  if (it.kind === 'quiet') return agQuietBody(it);
   return '';
+}
+/* THE APPROVAL PACK: what an approver needs to say yes in a minute — the
+   value against their own signing limit, the rule that asked, who asked and
+   since when, the departures from our standards (the stored review's own
+   verdicts, agStandardsInner) and the brief's opening (agBriefInner). */
+function agApproveBody(it){
+  const c = it.c;
+  const me = (typeof currentUser === 'function') ? currentUser() : null;
+  const showMoney = typeof canViewValues !== 'function' || canViewValues();
+  const v = (showMoney && c && c.value && typeof fmtMoneyOf === 'function') ? fmtMoneyOf(c) : '';
+  /* the reader's own signing limit, in the roster's own sentence */
+  let capWords = '';
+  try { capWords = (showMoney && me && typeof signCapText === 'function') ? String(signCapText(me) || '') : ''; } catch (_){ capWords = ''; }
+  const facts = agKv([[_agT('ag_l_value'), v], [_agT('ag_l_your_limit'), capWords], [_agT('ap_pg_rule'), it.rule],
+    [_agT('ap_pg_asked_by'), it.asker], [_agT('ap_pg_waiting'), it.days ? _agTn('ag_waiting_days', it.days, { n: it.days }) : _agT('ag_waiting_today')]]);
+  const dep = agStandardsInner(c);
+  const brief = agBriefInner(c);
+  return facts + agSecHtml(_agT('ag_ap_dep'), dep || `<p class="ag-p-note">${_agE(_agT('ag_ap_no_review'))}</p>`) + agSecHtml(_agT('ag_ap_brief'), brief);
+}
+function agRequestBody(it){
+  const R = it.r || {};
+  const facts = agKv([[_agT('ag_l_asked_by'), (R.by && R.by.name) || ''], [_agT('ag_l_asked_on'), _agDay(R.createdAt)],
+    [_agT('ag_l_counterparty'), R.counterparty || ''], [_agT('ag_l_value'), R.value ? String(R.value) : ''],
+    [_agT('ag_l_needed_by'), R.neededBy ? _agDay(R.neededBy) : ''], [_agT('ag_l_lane'), R.lane ? String(R.lane) : '']]);
+  const need = String(R.need || R.description || R.details || '').trim();
+  return facts + (need ? agSecHtml(_agT('ag_rq_what'), `<p class="ag-p-text">${_agE(need)}</p>`) : '')
+    + `<p class="ag-p-note">${_agE(_agT(it.kind === 'lane' ? 'ag_rq_lane_note' : 'ag_rq_note'))}</p>`;
+}
+function agWeekBody(it){
+  const word = e => _agT(e.type === 'obligation' ? 'ag_wk_t_duty' : e.type === 'renewal' ? 'ag_wk_t_decide' : 'ag_wk_t_ends');
+  const act = e => e.type === 'obligation' ? 'oblig' : 'terms';
+  const rows = it.evs.map(e => `<div class="ag-wk"><b>${_agE(_agDay(e.date))}</b><span><span class="ag-wk-w">${_agE(e.type === 'obligation' ? (e.note || word(e)) : word(e))}</span><small>${_agE([e.cname, e.cref].filter(Boolean).join(' · '))}</small></span>
+      <button type="button" class="ui-btn ui-btn-sm" data-ag-act="go|${_agE(e.cid)}|${act(e)}">${_agE(_agT(act(e) === 'oblig' ? 'ag_a_oblig' : 'ag_a_overview'))}</button></div>`).join('');
+  return `<section class="ag-ps"><h4 class="ag-ps-h">${_agE(_agTn('ag_wk_head', it.n, { n: it.n }))}</h4>${rows}</section>
+    <p class="ag-p-note">${_agE(_agT('ag_wk_note'))}</p>`;
+}
+function agQuietBody(it){
+  const m = it.note || {};
+  const where = it.ch ? (it.ch.clauseLabel || it.ch.clauseId || '') : _agT('ag_qt_contract');
+  return agKv([[_agT('ag_l_last_from'), [m.who, _agDay(m.at)].filter(Boolean).join(', ')], [_agT('ag_l_quiet'), _agTn('desk_days', it.days, { n: it.days })], [_agT('ag_l_about'), where]])
+    + agSecHtml(_agT('ag_qt_note'), `<p class="ag-p-text">“${_agE(_agCut(m.text, 600))}”</p>`)
+    + `<p class="ag-p-note">${_agE(_agT('ag_qt_hint'))}</p>`;
 }
 
 /* ---- THEIR ROUND: every ask, the co-pilot's answer, and THEIR WORDING one
@@ -1450,11 +1632,16 @@ function agBriefInner(c){
   if (!d) return (c && c._hasBrief && agLoading(c)) ? agSkelHtml() : '';
   const mark = s => (typeof briefMark === 'function') ? briefMark(String(s || '')) : _agE(s);
   const watch = (Array.isArray(d.watchouts) ? d.watchouts : []).filter(w => w && w.point);
-  const shown = watch.slice(0, AG_WATCH_MAX);
+  const odd = (Array.isArray(d.unusual) ? d.unusual : []).filter(u => u && (u.point || typeof u === 'string'));
+  /* ---- THE WARNINGS ARE SAID IN ONE PLACE: THE BRIEF (Young, 7 Oct 2026: "there
+     should be a button to click to read a brief which would then appear as a
+     side panel as it does today") ---- The panel keeps the opening lines and
+     COUNTS what is worth watching; Read the brief (the foot's lead act) opens
+     the whole brief in the side panel the contract's own button opens. */
+  const parts = [watch.length ? _agTn('ag_brief_watch', watch.length, { n: watch.length }) : '',
+    odd.length ? _agTn('ag_brief_odd', odd.length, { n: odd.length }) : ''].filter(Boolean);
   return `${d.overview ? `<p class="ag-brief-o">${mark(d.overview)}</p>` : ''}
-    ${shown.length ? `<ul class="ag-watch">${shown.map(w => `<li><span class="ag-watch-p">${mark(w.point)}</span>${
-      w.why ? `<span class="ag-watch-w"><b>${_agE(_agT('xr_why'))}</b> ${mark(w.why)}</span>` : ''}</li>`).join('')}</ul>` : ''}
-    ${_agMore(watch.length - shown.length)}
+    ${parts.length ? `<p class="ag-p-note" data-ag-brief-count><b>${_agE(parts.join(' · '))}</b> ${_agE(_agT('ag_brief_in_brief'))}</p>` : ''}
     ${b.truncated ? `<p class="ag-p-note is-amber">${_agE(_agT('ag_brief_cut'))}</p>` : ''}`;
 }
 /* THE DEPARTURES are the stored standards review's open verdicts — their words
@@ -1656,8 +1843,10 @@ function agPanelActs(it){
        runFindObligations opens on the list auto-triage holds — and it is drawn
        only where something is held and the reader may add it. */
     const obs = ed ? agHeldCount(it.c) : 0;
-    return B('overview', _agT('ag_a_overview'), 'lead') + (obs ? B('obs', _agTn('ag_a_obs', obs, { n: obs }), '') : '')
-      + (hasBrief ? B('brief', _agT('ag_a_brief'), '') : '') + (ed ? B('seen', _agT('ag_a_seen'), 'link') : '');
+    /* READ THE BRIEF LEADS where there is one (Young, 7 Oct 2026); the
+       Overview stays one press away beside it. */
+    return (hasBrief ? B('brief', _agT('ag_a_brief'), 'lead') : '') + B('overview', _agT('ag_a_overview'), hasBrief ? '' : 'lead')
+      + (obs ? B('obs', _agTn('ag_a_obs', obs, { n: obs }), '') : '') + (ed ? B('seen', _agT('ag_a_seen'), 'link') : '');
   }
   if (it.kind === 'chase') return (it.noAddress || !ed ? '' : B('chase', _agT('desk_chase_send'), 'lead'))
     + B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '') + (ed ? B('away', _agT('desk_discard'), 'link') : '');
@@ -1678,6 +1867,15 @@ function agPanelActs(it){
   if (it.kind === 'chase-firm') return (it.noAddress || !ed ? '' : B('chasefirm', _agT('ag_a_chase_firm'), 'lead'))
     + B('oblig', _agT('ag_a_oblig'), it.noAddress ? 'lead' : '');
   if (it.kind === 'ours') return B('oblig', _agT('ag_a_oblig'), 'lead');
+  if (it.kind === 'approve'){
+    let may = null; try { may = (typeof approvalDecidableNow === 'function') ? approvalDecidableNow(it.c) : null; } catch (_){ may = null; }
+    return may ? B('approve', _agT('ap_pg_approve'), 'lead') + B('refuse', _agT('ag_a_refuse'), '') + B('overview', _agT('ins_open_contract'), 'link')
+      : B('signing', _agT('ap_pg_open_gate'), 'lead') + B('overview', _agT('ins_open_contract'), '');
+  }
+  if (it.kind === 'request') return (ed ? B('ikdraft', _agT('ik_act_draft'), 'lead') : '') + B('ikopen', _agT('ag_a_request'), ed ? '' : 'lead');
+  if (it.kind === 'lane') return B('overview', _agT('ag_a_draft_open'), 'lead') + B('ikopen', _agT('ag_a_request'), '');
+  if (it.kind === 'week') return B('calendar', _agT('ag_a_calendar'), 'lead') + B('ics', _agT('ag_a_ics'), '');
+  if (it.kind === 'quiet') return B('notes', _agT('ag_a_answer_note'), 'lead') + B('overview', _agT('ag_a_overview'), '');
   return '';
 }
 /* THE PANEL'S HEAD is the drawing's: what the work IS, whose contract, and
@@ -1696,6 +1894,11 @@ function agPanelTitle(it){
   if (it.kind === 'soon-sign') return _agT('ag_pt_soon_sign');
   if (it.kind === 'chase-firm') return _agT('ag_pt_chase_firm');
   if (it.kind === 'ours') return _agT('ag_pt_ours');
+  if (it.kind === 'approve') return _agT('ag_pt_approve');
+  if (it.kind === 'request') return _agT('ag_pt_request');
+  if (it.kind === 'lane') return _agT('ag_pt_lane');
+  if (it.kind === 'week') return _agT('ag_pt_week');
+  if (it.kind === 'quiet') return _agT('ag_pt_quiet');
   return '';
 }
 function agPanelHeadHtml(it){
@@ -1705,7 +1908,8 @@ function agPanelHeadHtml(it){
   const meta = [_agT('ag_' + it.agent), when, who ? agForWords(who, true) : ''].filter(Boolean).map(_agE).join(' · ');
   const sub = it.c
     ? `<div class="ag-p-sub"><b class="ag-p-who">${_agE(p.who)}</b>${p.name ? `<span class="ag-p-name">${_agE(p.name)}</span>` : ''}</div>`
-    : `<div class="ag-p-sub"><b class="ag-p-who">${_agE(_agT('ag_batch', { b: it.batch }))}</b></div>`;
+    : (it.batch != null ? `<div class="ag-p-sub"><b class="ag-p-who">${_agE(_agT('ag_batch', { b: it.batch }))}</b></div>`
+      : `<div class="ag-p-sub"><b class="ag-p-who">${_agE(p.who)}</b>${it.r && it.r.title ? `<span class="ag-p-name">${_agE(it.r.title)}</span>` : ''}</div>`);
   return `<div class="ag-p-head">${title ? `<div class="ag-p-title">${_agE(title)}</div>` : ''}${sub}<div class="ag-p-agent">${meta}</div></div>`;
 }
 let _agOpenKey = null;
@@ -1775,6 +1979,28 @@ async function agRunAct(key, act){
   const it = agFind(key);
   if (!it) return;
   const c = it.c ? ((typeof getContract === 'function' && getContract(it.cid)) || it.c) : null;
+  /* a row's own door: "go|<contract>|<tab>" (Week ahead's rows) */
+  if (String(act).startsWith('go|')){ const [, cid, tab] = String(act).split('|'); return agGo(tab === 'oblig' ? 'oblig' : 'terms', cid); }
+  if (act === 'approve' || act === 'refuse'){
+    if (!c || typeof approvalDecideAsk !== 'function') return agGo('sign', it.cid);
+    const ok = await approvalDecideAsk(c, act === 'approve' ? 'approved' : 'refused');
+    if (ok) agRepaint();
+    return;
+  }
+  if (act === 'ikdraft'){ if (it.r && typeof intakeDraft === 'function') intakeDraft(it.r.id); return; }
+  if (act === 'ikopen'){ if (it.r && typeof intakeGoTo === 'function') intakeGoTo(it.r.id); return; }
+  if (act === 'calendar'){ if (typeof setView === 'function') setView('calendar'); return; }
+  if (act === 'ics'){
+    if (typeof calIcsFor !== 'function' || typeof downloadFile !== 'function' || !it.evs) return;
+    downloadFile('hati-week-ahead.ics', calIcsFor(it.evs), 'text/calendar');
+    if (typeof toast === 'function') toast(_agTn('ag_ics_done', it.evs.length, { n: it.evs.length }), 'ok');
+    return;
+  }
+  if (act === 'notes'){
+    if (!c) return;
+    agGo('nego', c.id);
+    return;
+  }
   if (act === 'nego') return agGo('nego', it.cid);
   if (act === 'overview') return agGo('terms', it.cid);
   if (act === 'oblig') return agGo('oblig', it.cid);
@@ -1840,7 +2066,11 @@ async function agRunAct(key, act){
     const load = agLoadWhole(c);
     if (load) await load;
     if (typeof closeModal === 'function') try { closeModal(); } catch (_){}
-    if (typeof selectContract === 'function') selectContract(c.id);
+    /* ON THE BOARD THE BRIEF OPENS OVER THE BOARD: the side panel is the same
+       one the contract's own Read the brief opens, and closing it leaves the
+       reader where they pressed. Elsewhere the room is opened first, as it was. */
+    const onBoard = typeof state !== 'undefined' && state && state.view === 'dashboard';
+    if (!onBoard && typeof selectContract === 'function') selectContract(c.id);
     if (typeof openCheckPanel === 'function') setTimeout(() => { try { openCheckPanel(getContract(c.id) || c, 'brief'); } catch (_){} }, 0);
     return;
   }
@@ -1942,7 +2172,7 @@ async function agFreshLink(key){
   }
 }
 
-Object.assign(window, { AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
+Object.assign(window, { agLevelOf, AG_READINGS, AG_WEEK_DAYS, AG_QUIET_DAYS, agApproveItems, agRequestItems, agWeekItems, agQuietItems, agApproveBody, agRequestBody, agWeekBody, agQuietBody, agSelKey, AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
   agRoundItems, agRoundDone, agRenewItems, agRenewDone, agLateItems, agLateDone, agPaperItems, agPaperWorking, agPaperDone,
   agImportBatches, agImportItems, agImportDone, agImportWorking, agFind, agCardParts, agCardHtml, agPageHtml, agListHtml,
   agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agDrawPanel, agWarmUp, AG_NEEDS_WHOLE, AG_OPEN_WAIT_MS, agRunAct, agPaintHead, agRepaint, renderAgentsPage,

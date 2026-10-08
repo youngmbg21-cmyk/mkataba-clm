@@ -149,7 +149,9 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     ok('1b it sits on the SAME LINE as the sentence', desk.sameLine === true, JSON.stringify(desk));
     ok('1c and at the RIGHT of it', desk.rightOfText === true,
       'gap to the wall ' + desk.gapToWall + 'px');
-    ok('1d the card\'s own act opens Copilot\'s work', /Copilot/i.test(desk.door || ''), desk.door);
+    /* RE-POINTED 7 Oct 2026 ("Below the card"): Review is the one door — it
+       opens the agent's work below the card; the head carries no second link. */
+    ok('1d Review is the card\'s one door — no second link to a separate page', !desk.door && desk.verbs.length >= 1, String(desk.door));
 
     /* ════════ 3. THE HORIZON'S DECISION COLUMN ════════ */
     await page.evaluate(() => {
