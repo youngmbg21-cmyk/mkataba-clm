@@ -462,6 +462,14 @@ describe('f413 (4) — their round came back: Copilot prepares the answers on ar
     assert.equal(rn.prepared, 1, JSON.stringify(rn));
     assert.equal(rn.advice.sentBack.note, 'They paid late twice.');
   });
+  test('4f a redo that did nothing is never answered as done — a signed contract\'s standards check is refused in words (8 Oct 2026)', async () => {
+    const c = fixtureContract('MK-RD-3', 'Signed lease', 'Nandi Dairy', FOLDER_A, 900000, 'Signed');
+    c.hash = 'x'; c.source = 'upload'; c.upload = { fileName: 'x.pdf', extractedText: LONG };
+    await W.admin.json('/api/contracts/MK-RD-3', { method: 'PUT', body: { contract: c, baseVersion: 0 } });
+    const r = await W.admin.raw('/api/agents/paper/sendback', { method: 'POST', body: { contractId: 'MK-RD-3', note: 'Check again.' } });
+    assert.equal(r.status, 409, r.text);
+    assert.match(r.text, /signed, so its standards check is not redone/);
+  });
 });
 
 /* ============================================================

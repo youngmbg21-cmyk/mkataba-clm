@@ -19272,11 +19272,16 @@ app.post('/api/agents/:k/sendback', auth, editor, async (req, res) => {
   const out = await runAgent(k, 'sendback', who, go, { subject: cid });
   if (out.busy) return res.status(409).json({ error: 'Copilot is already working on this one. Try again in a moment.', busy: true });
   if (out.ceiling || out.agentLimit) return res.status(429).json({ error: out.ceiling
-    ? 'Today’s Copilot budget is used up, so it was not sent back. An admin can raise it in Settings.'
-    : 'This agent has spent its limit for today, so it was not sent back. An admin can raise it in its settings.', ...out });
+    ? 'Today’s Copilot budget is used up, so Copilot did not redo it. An admin can raise it in Settings.'
+    : 'This agent has spent its limit for today, so Copilot did not redo it. An admin can raise it in its settings.', ...out });
   if (out.gone) return res.status(409).json({ error: 'That is no longer waiting — it may have been answered already.', ...out });
   if (out.failed || out.error) return res.status(502).json({ error: 'Copilot could not do it again just now. Nothing was changed — try again.', ...out });
   if (out.noStandards) return res.status(409).json({ error: 'There are no standards written down for this kind of contract to check it against.', ...out });
+  if (out.executed) return res.status(409).json({ error: 'This contract is signed, so its standards check is not redone. Nothing was changed.', ...out });
+  if (out.noText) return res.status(409).json({ error: 'There is not enough wording on this contract for Copilot to check. Nothing was changed.', ...out });
+  /* "Done again" is said only where an answer was written (8 Oct 2026): any
+     other ending, named above or not, is a refusal the page shows in words. */
+  if (!out.prepared) return res.status(409).json({ error: 'Copilot did not redo it. Nothing was changed.', ...out });
   res.json({ ok: true, ...out });
 });
 /* ============================================================================
