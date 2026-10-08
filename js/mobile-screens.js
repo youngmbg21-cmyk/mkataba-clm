@@ -801,25 +801,29 @@ function mWireScreen(root){
     s.apprReject = null; s.apprWhy=''; s.apprErr=false; s.apprNote='';
     mRender();
   }));
-  root.querySelectorAll('[data-m-approve]').forEach(b=>b.addEventListener('click',()=>{
+  root.querySelectorAll('[data-m-approve]').forEach(b=>b.addEventListener('click',async()=>{
     const c = getContract(b.getAttribute('data-m-approve'));
     if(!c) return;
     /* The note box is drawn for a personal approval only, so every other
        approval reaches approveContract exactly as it always did. */
     const noteBox = root.querySelector('#m-appr-note');
     const note = noteBox ? String(noteBox.value||'').trim() : '';
-    try{ approveContract(c, note||undefined); }catch(e){ if(window.toast) toast(e.message||i18t('m_could_not_approve'),'err'); }
+    /* The decision is async since 9 Oct 2026 (it re-reads the record and is
+       said only once the server has it): the sheet repaints after it lands. */
+    b.disabled = true;
+    try{ await approveContract(c, note||undefined); }catch(e){ if(window.toast) toast(e.message||i18t('m_could_not_approve'),'err'); }
     s.apprOpen=null; s.apprNote=''; mRender();
   }));
   root.querySelectorAll('[data-m-reject]').forEach(b=>b.addEventListener('click',()=>{
     s.apprReject = b.getAttribute('data-m-reject'); s.apprErr=false; mRender();
   }));
-  root.querySelectorAll('[data-m-reject-send]').forEach(b=>b.addEventListener('click',()=>{
+  root.querySelectorAll('[data-m-reject-send]').forEach(b=>b.addEventListener('click',async()=>{
     const why = (root.querySelector('#m-reject-why')||{}).value || '';
     if(!String(why).trim()){ s.apprWhy=''; s.apprErr=true; mRender(); return; }
     const c = getContract(b.getAttribute('data-m-reject-send'));
     if(!c) return;
-    try{ rejectApprovalStep(c, String(why).trim()); }
+    b.disabled = true;
+    try{ await rejectApprovalStep(c, String(why).trim()); }
     catch(e){ if(window.toast) toast(e.message||i18t('m_could_not_reject'),'err'); }
     s.apprReject=null; s.apprOpen=null; s.apprWhy=''; s.apprErr=false;
     mRender();
