@@ -1574,6 +1574,10 @@ const REG_ROW_ACTIONS=[
   {k:'decline',ic:'ban',       get label(){ return i18t('reg_decline_close'); },
    get says(){ return i18t('end_decline_says'); }, ruby:true,
    when:c=>c.status!=='Signed'&&c.status!=='Declined'&&(typeof canEdit!=='function'||canEdit())},
+  /* AND BACK AGAIN (B14): the owner or an admin, with a reason. */
+  {k:'reopen', ic:'history',   get label(){ return i18t('end_reopen'); },
+   get says(){ return i18t('end_reopen_says'); },
+   when:c=>!!(window.contractMayReopen&&contractMayReopen(c))},
   /* the archive shelf (WO-5): reversible filing, editor-and-up — the same
      level as re-filing between streams, and audited the same way */
   {k:'archive', ic:'folder',  get label(){ return i18t('reg_archive'); },
@@ -1630,6 +1634,14 @@ function regDeclineAsk(c){
     .then(why=>{ if(why==null) return;
       contractDecline(c, why).then(ok=>{ if(ok) regRepaint(); }); });
 }
+/* Reopening asks its reason the same way (B14). */
+function regReopenAsk(c, after){
+  if(!c || !window.contractReopen || !window.promptDialog) return;
+  Promise.resolve(promptDialog({ title:i18t('end_reopen_q'), message:i18t('end_reopen_says'),
+    label:i18t('end_reopen_why'), placeholder:i18t('end_reopen_ph'), confirmLabel:i18t('end_reopen'), multiline:true }))
+    .then(why=>{ if(why==null) return;
+      contractReopen(c, why).then(ok=>{ if(ok) (after||regRepaint)(); }); });
+}
 /* ---- THE ROW'S MENU, AS MARKUP — ONE BUILDER, TWO HOMES (26 Sep 2026) ----
    The full table's ⋯ and the list inspector's panel draw the same rows, so a
    verb added tomorrow reaches both and neither can drift. THE SENTENCE RIDES
@@ -1654,6 +1666,7 @@ function regRunRowAct(act, id){
     if(window.contractSetArchived) contractSetArchived(c,act==='archive').then(ok=>{ if(ok) regRepaint(); });
   }
   else if(act==='decline') regDeclineAsk(c);
+  else if(act==='reopen') regReopenAsk(c);
   /* THE REASON IS COMPULSORY, so the press asks for it before anything is
      written — `contractSetHold` refuses an empty one, and a dialog is the
      only honest way to collect it. Releasing needs none. Both go through the
@@ -3375,7 +3388,7 @@ function ftsSearch(q){
     }catch(e){ box.classList.add('hidden'); }
   },220);
 }
-Object.assign(window,{regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
+Object.assign(window,{regReopenAsk,regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
   REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
   /* the list inspector (26 Sep 2026) */
   REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regInsSeat,regInsActs,regInsPaint,

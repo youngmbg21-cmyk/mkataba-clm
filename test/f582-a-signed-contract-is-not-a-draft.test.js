@@ -62,3 +62,53 @@ describe('f582 (2) one reading for every Delete door', () => {
     assert.match(fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'register.js'), 'utf8'), /k:'delete'[^\n]*when:c=>\(window\.contractDeletable\?contractDeletable\(c\)/);
   });
 });
+
+/* ---------------------------------------------------------------- B14
+   DECLINED IS NOT A ONE-WAY DOOR (B14, 8 Oct 2026): Hold has Release, Archive
+   has Restore, and Decline now has Reopen — the owner's or an admin's act,
+   with a reason, checked on the server; a closed deal offers no Share or Hold. */
+describe('f582 (3) a closed deal can be reopened, by the right person, with a reason', () => {
+  let h, W, ownerId;
+  before(async () => {
+    h = await startHati(); W = await seedWorkspace(h, { approvalRules: [] });
+    ownerId = W.users.unrestricted.id;
+    const c = fixtureContract('MK-RO1', 'Supply Agreement', 'Juno Limited', FOLDER_A, 480000, 'Under Review', 'Words.');
+    c.owner = { id: ownerId, name: 'Unrestricted Legal' };
+    await W.admin.json('/api/contracts/MK-RO1', { method: 'PUT', body: { contract: c, baseVersion: 0 } });
+    const x = await W.admin.json('/api/contracts/MK-RO1'); const v = x._v; delete x._v;
+    await W.admin.json('/api/contracts/MK-RO1', { method: 'PUT', body: { contract: { ...x, status: 'Declined' }, baseVersion: v } });
+  });
+  after(async () => { await h.stop(); });
+  const reopen = async (client, who, why) => { const x = await client.json('/api/contracts/MK-RO1'); const v = x._v; delete x._v;
+    return client.raw('/api/contracts/MK-RO1', { method: 'PUT', body: { contract: { ...x, status: 'Under Review',
+      reopened: { at: new Date().toISOString(), by: who, why } }, baseVersion: v } }); };
+  test('the server remembers the stage it was declined from', async () => {
+    assert.equal((await W.admin.json('/api/contracts/MK-RO1')).declinedFrom, 'Under Review');
+  });
+  test('somebody who is neither its owner nor an admin cannot reopen it', async () => {
+    const r = await reopen(W.novalues, { id: 'x', name: 'No Values Legal' }, 'because');
+    assert.equal(r.status, 403, r.text);
+    assert.equal((await W.admin.json('/api/contracts/MK-RO1')).status, 'Declined');
+  });
+  test('the owner cannot reopen it without a reason in their own name', async () => {
+    const r = await reopen(W.unrestricted, { id: ownerId, name: 'Unrestricted Legal' }, '  ');
+    assert.equal(r.status, 400, r.text);
+  });
+  test('the owner reopens it with a reason; it goes back to where it was', async () => {
+    const r = await reopen(W.unrestricted, { id: ownerId, name: 'Unrestricted Legal' }, 'They came back with a better offer.');
+    assert.equal(r.status, 200, r.text);
+    const x = await W.admin.json('/api/contracts/MK-RO1');
+    assert.equal(x.status, 'Under Review'); assert.ok(!x.declinedFrom);
+  });
+  test('the browser: one act, one row in each menu, and a closed deal offers no Share or Hold', () => {
+    const CORE = fs.readFileSync(path.join(__dirname, '..', 'js', 'core.js'), 'utf8');
+    const CV = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
+    const RG = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'register.js'), 'utf8');
+    assert.match(CORE, /\{ k:'reopen',\s+get label\(\)\{ return i18t\('end_reopen'\)/);
+    assert.match(CORE, /async function contractReopen\(c,why\)\{[\s\S]{0,400}end_reopen_needs_why/);
+    assert.match(RG, /\{k:'reopen', ic:'history'[\s\S]{0,200}contractMayReopen\(c\)/);
+    assert.match(CV, /id="ws-reopen"/);
+    assert.match(CV, /\(may&&c\.status!=='Declined'\)\?`<button id="ws-share"/);
+    assert.match(CV, /if\(c\.status==='Declined'\) return '';\s*const held=/);
+  });
+});

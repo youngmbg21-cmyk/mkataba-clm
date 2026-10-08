@@ -4897,6 +4897,23 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     return res.status(409).json({ immutable: ['status'], signedFreeze: true,
       error: `${contractRef(prev)} has been signed by at least one person, so it cannot go back to Draft. `
         + 'Restart the signing on the Signing tab first if the wording has to be worked on again.' });
+  /* ---------- A CLOSED DEAL IS REOPENED BY ITS OWNER OR AN ADMIN (B14) ----------
+     Declining stamps the stage it was declined from (`declinedFrom`, the
+     server's to write); reopening must come from the contract's owner or an
+     admin, name them, carry a reason, and go back to Draft or Under Review. */
+  if (prev && prev.status !== 'Declined' && c.status === 'Declined') c.declinedFrom = prev.status;
+  else if (prev && prev.status === 'Declined' && c.status === 'Declined') { if (prev.declinedFrom) c.declinedFrom = prev.declinedFrom; else delete c.declinedFrom; }
+  if (prev && prev.status === 'Declined' && c.status !== 'Declined') {
+    const owns = !!(prev.owner && prev.owner.id && String(prev.owner.id) === String(req.user.id));
+    if (req.user.role !== 'admin' && !owns)
+      return res.status(403).json({ error: `Only the contract's owner or an admin can reopen ${contractRef(prev)}.`, reopen: true });
+    const ro = c.reopened || {};
+    if (!String(ro.why || '').trim() || !ro.by || String(ro.by.id) !== String(req.user.id))
+      return res.status(400).json({ error: 'Reopening a closed contract needs a reason, in your own name.', reopen: true });
+    if (!['Draft', 'Under Review'].includes(c.status))
+      return res.status(409).json({ error: 'A closed contract reopens to Draft or Under Review.', reopen: true });
+    delete c.declinedFrom;
+  }
   /* ---------- WHO RUNS THE SIGNING MOVES ONLY BEFORE ANYBODY SIGNS ----------
      (26 Sep 2026.) Once one person has signed in HaTi, the signing HaTi runs
      has begun, and handing the words over to be signed somewhere else would

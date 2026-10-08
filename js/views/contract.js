@@ -10236,7 +10236,10 @@ function roomHeadHtml(c,opts={}){
                  person being asked a different question, and the screen has to
                  ask which clauses. */}
           <button type="button" id="ws-advice" title="${i18t('asl_title')}">${icon('users','w-3.5 h-3.5')}${i18t('asl_menu_row')}</button>
+          ${(window.contractMayReopen&&contractMayReopen(c))?`<button type="button" id="ws-reopen" title="${esc(i18t('end_reopen_says'))}">${icon('history','w-3.5 h-3.5')}${i18t('end_reopen')}</button>`:''}
           ${(()=>{ if(typeof mayHoldContract==='function'&&!mayHoldContract()) return '';
+            /* a closed deal has nothing to freeze (B14) — Reopen is its door */
+            if(c.status==='Declined') return '';
             const held=!!(window.contractOnHold&&contractOnHold(c));
             return `<button type="button" id="ws-hold" title="${esc(held?i18t('hd_release_title'):((typeof endStateSays==='function'&&endStateSays('hold'))||i18t('hd_hold_title')))}">${icon(held?'history':'shield','w-3.5 h-3.5')}${held?i18t('hd_release'):i18t('hd_hold')}</button>`; })()}`:''}
           ${(may&&(window.contractDeletable?contractDeletable(c):(c.status==='Draft'||c.status==='Under Review')))?`<hr>
@@ -10264,7 +10267,7 @@ function roomHeadHtml(c,opts={}){
              (the owner's own screenshot of it asked only for the borders), so
              this is a per-page choice rather than a rewrite of both. */}
       ${opts.primaryFirst?(typeof opts.primary==='string'?opts.primary:primary):''}
-      ${may?`<button id="ws-share" class="ui-btn" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
+      ${(may&&c.status!=='Declined')?`<button id="ws-share" class="ui-btn" title="${esc(i18t('ct_share_with_cp'))}">${icon('share','w-3.5 h-3.5')} ${i18t('ct_share')}</button>`:''}
       ${''/* THE CONTRACT'S NEXT ACT IS LAST AND FILLED (Young, 7 Oct 2026, off the
              HaTi Platform mockup): Share · Draft new · then the next act, the
              one filled button, at the right-hand end where the eye finishes. */}
@@ -10559,6 +10562,10 @@ function wireRoomHead(c){
      this tab before, because the click never arrived. */
   document.getElementById('ws-delete')?.addEventListener('click',()=>
     deleteContract(c.id).then(ok=>{ if(ok) setView('register'); }));
+  /* REOPEN A CLOSED DEAL (B14): the same act and question as the Contracts row. */
+  document.getElementById('ws-reopen')?.addEventListener('click',()=>{
+    if(window.regReopenAsk) regReopenAsk(c, ()=>{ try{ renderWorkspace(); }catch(_){} });
+  });
   /* the archive shelf (WO-5): the same act as the register row's, repainting
      the room so the menu's word and the sub-line's tag both turn over */
   document.getElementById('ws-archive')?.addEventListener('click',()=>{
