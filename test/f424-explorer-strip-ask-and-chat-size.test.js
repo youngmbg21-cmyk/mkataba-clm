@@ -61,8 +61,9 @@ test('f424 (4) both chats\' text is the body size on the desktop, the phone unto
   /* AND EXPLORER'S GREETING, TITLE AND CARD NAME (Young, same day: "you have
      not decreased the font size in the copilot in the explorer page"). */
   assert.match(IG, /class="ig-welcome /);
-  /* the title is the lit symbol's name since Header Icons (8 Oct 2026) */
-  assert.match(R('js/paperdesk.js'), /class="ig-dock-title /);
+  /* the title was the lit symbol's name under Header Icons (8 Oct 2026); since
+     Lifted the same day every symbol carries its word, small, under it */
+  assert.match(R('js/paperdesk.js'), /<span class="pd-tab-w">/);
   assert.match(IG, /class="ig-card-name /);
   const rule = /@media \(min-width:768px\)\{\s*\.ai-msg \.ai-bub,#ig-dock \.ig-welcome\{font-size:var\(--t-body\);line-height:1\.55\}\s*#ig-dock \.ig-dock-title,#ig-dock \.ig-card-name\{font-size:var\(--t-body\)\}\s*#ai-panel #ai-input,#ig-dock #igd-input\{font-size:var\(--t-body\)\}\s*\}/;
   assert.match(HTML, rule);

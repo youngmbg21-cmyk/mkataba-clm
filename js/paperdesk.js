@@ -50,9 +50,18 @@ function pdContract(){
 }
 let _pdSeq = 0;
 function pdAct(fn){ const id = 'a' + (++_pdSeq); _pdActs.set(id, fn); return id; }
+/* LIFTED (Young picked it by name off the side-panel proposal, 8 Oct 2026,
+   "build Lifted, and yes to words under the symbols"): the panel is a white
+   card lifted off a soft grey ground, each symbol carries its word and, where
+   work waits, its count, and every tab opens the same way — its name, a status
+   pill, then tidy lists whose rows end in a link, the one filled button last.
+   A ROW'S ACT IS A LINK (o.go); a button stays a button where it decides
+   (Approve) or leads the tab. */
+const PD_GO_ARROW = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-right"/></svg>';
 function pdBtn(label, fn, o){
   o = o || {};
   const dis = o.disabled ? ` disabled aria-disabled="true"${o.why ? ` title="${_pdE(o.why)}"` : ''}` : (o.title ? ` title="${_pdE(o.title)}"` : '');
+  if (o.go && !o.lead) return `<button type="button" class="pd-go" data-pd-act="${o.disabled ? '' : pdAct(fn)}"${dis}>${_pdE(label)}${PD_GO_ARROW}</button>`;
   return `<button type="button" class="ui-btn ui-btn-sm${o.lead ? ' ui-btn-primary' : ''}" data-pd-act="${o.disabled ? '' : pdAct(fn)}"${dis}>${_pdE(label)}</button>`;
 }
 /* the room, on a tab — the way out where the work needs its own page */
@@ -62,6 +71,37 @@ function pdRoom(c, tab){
 }
 const pdH = t => `<div class="pd-h">${_pdE(t)}</div>`;
 const pdNote = t => `<p class="pd-note">${_pdE(t)}</p>`;
+/* the tab's own head: its name and where it stands */
+const pdPill = (tone, t) => `<span class="pd-pill is-${tone}"><i></i>${_pdE(t)}</span>`;
+const pdTop = (tab, pill) => `<div class="pd-top"><h3>${_pdE(_pdT(PD_TAB_NAME[tab]))}</h3>${pill || ''}</div>`;
+/* rows sit in one bordered list */
+const pdList = rows => rows ? `<div class="pd-list">${rows}</div>` : '';
+/* an empty tab says so in the product's one empty state */
+function pdEmpty(title, ic){
+  if (typeof emptyStateHtml === 'function') try { return `<div class="pd-empty">${emptyStateHtml({ title, icon: ic })}</div>`; } catch (_){}
+  return pdNote(title);
+}
+/* THE COUNT ON A SYMBOL is the length of the list behind it, read the same
+   way the tab reads it: Signing = the Sign button's list, Document = the
+   blanks plus a form owed, Obligations = the duties recorded, Deal = their
+   changes still open. Nothing is counted that the tab does not draw. */
+function pdTabCount(t, c){
+  if (!c) return null;
+  try {
+    if (t === 'sign'){
+      if ((typeof contractSignedAt === 'function' && contractSignedAt(c)) || /^(Signed|Executed|Active|Expired|Terminated)$/.test(String(c.status || ''))) return null;
+      const n = (typeof signBlockers === 'function') ? (signBlockers(c) || []).length : 0; return n ? { n, tone: 'warn' } : null;
+    }
+    if (t === 'doc'){
+      const b = (typeof contractBlanksOpen === 'function') ? (contractBlanksOpen(c) || []).length : 0;
+      const f = (typeof tplFormPending === 'function' && tplFormPending(c)) ? 1 : 0;
+      return (b + f) ? { n: b + f, tone: 'warn' } : null;
+    }
+    if (t === 'oblig'){ const n = Array.isArray(c.obligations) ? c.obligations.filter(Boolean).length : 0; return n ? { n, tone: 'quiet' } : null; }
+    if (t === 'deal'){ const n = pdTheirOpen(c).length; return n ? { n, tone: 'warn' } : null; }
+  } catch (_){}
+  return null;
+}
 
 /* ---- FACTS: the Overview's own reading ---- */
 function pdFactsHtml(c){
@@ -69,18 +109,18 @@ function pdFactsHtml(c){
   const parties = (typeof contractParties === 'function') ? (contractParties(c) || []) : [];
   const pr = parties.length ? parties : [{ name: (typeof contractParty === 'function' ? contractParty(c) : ''), side: 'ours' }, { name: c.counterparty || '', side: 'theirs' }];
   const ini = n => String(n || '').split(/\s+/).filter(Boolean).map(x => x[0]).slice(0, 2).join('').toUpperCase();
-  const who = pr.filter(p => p && p.name).map(p => `<div class="pd-party"><i>${_pdE(ini(p.name))}</i><span>${_pdE(p.name)}<small>${_pdE(_pdT(p.side === 'theirs' ? 'pd_side_theirs' : 'pd_side_ours'))}</small></span></div>`).join('');
+  const who = `<div class="pd-parties">${pr.filter(p => p && p.name).map(p => `<div class="pd-party"><i>${_pdE(ini(p.name))}</i><span>${_pdE(p.name)}<small>${_pdE(_pdT(p.side === 'theirs' ? 'pd_side_theirs' : 'pd_side_ours'))}</small></span></div>`).join('')}</div>`;
   /* ktFactReads returns escaped words already */
   const rows = [
     ['pd_f_type', F.contractType], ['pd_f_value', F.money], ['pd_f_eff', F.effDate], ['pd_f_expiry', F.expiry],
     ['pd_f_notice', F.notice], ['pd_f_stage', _pdE((typeof statusLabel === 'function') ? statusLabel(c.status) : (c.status || ''))],
     ['pd_f_owner', _pdE((typeof contractOwnerName === 'function' ? contractOwnerName(c) : '') || '')], ['pd_f_stream', F.stream],
   ].filter(([, v]) => v);
-  const kv = `<dl class="pd-kv">${rows.map(([k, v]) => `<dt>${_pdE(_pdT(k))}</dt><dd>${v}</dd>`).join('')}</dl>`;
+  const kv = `<dl class="pd-kv">${rows.map(([k, v]) => `<div><dt>${_pdE(_pdT(k))}</dt><dd>${v}</dd></div>`).join('')}</dl>`;
   let blanks = [];
   try { blanks = (typeof contractBlanksOpen === 'function') ? (contractBlanksOpen(c) || []) : []; } catch (_){ blanks = []; }
   const missing = blanks.length ? pdH(_pdTn('pd_missing', blanks.length, { n: blanks.length }))
-    + blanks.slice(0, 6).map(b => `<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(b.label || b.name || b.key || '')}</span>${pdBtn(_pdT('pd_fill'), pdRoom(c, 'terms'))}</div>`).join('')
+    + pdList(blanks.slice(0, 6).map(b => `<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(b.label || b.name || b.key || '')}</span>${pdBtn(_pdT('pd_fill'), pdRoom(c, 'terms'), { go: true })}</div>`).join(''))
     + (blanks.length > 6 ? pdNote(_pdT('pd_more_n', { n: blanks.length - 6 })) : '') : '';
   /* THE RENEWAL, where its window is open: the notice desk's own dialog */
   let renew = '';
@@ -88,14 +128,15 @@ function pdFactsHtml(c){
     const win = (typeof renewalWindow === 'function') ? renewalWindow(c) : null;
     if (win && win.inWindow && typeof openNoticeDialog === 'function'){
       const say = win.decided ? _pdT('pd_renewal_decided') : _pdT('pd_renewal_by', { date: String(win.decideBy || '').slice(0, 10) });
-      renew = pdH(_pdT('pd_renewal')) + `<div class="pd-row"><i class="${win.decided ? 'is-ok' : 'is-warn'}">${win.decided ? '✓' : '!'}</i><span>${_pdE(say)}</span>${pdBtn(_pdT('pd_notice'), () => openNoticeDialog(getContract(c.id) || c))}</div>`;
+      renew = pdH(_pdT('pd_renewal')) + pdList(`<div class="pd-row"><i class="${win.decided ? 'is-ok' : 'is-warn'}">${win.decided ? '✓' : '!'}</i><span>${_pdE(say)}</span>${pdBtn(_pdT('pd_notice'), () => openNoticeDialog(getContract(c.id) || c), { go: true })}</div>`);
     }
   } catch (_){ renew = ''; }
   const brief = (typeof openCheckPanel === 'function') ? pdBtn(_pdT('pd_read_brief'), async () => {
     const cc = getContract(c.id) || c;
     try { if (cc._light && !cc._loaded && typeof ensureFull === 'function') await ensureFull(cc); } catch (_){}
     openCheckPanel(getContract(c.id) || cc, 'brief'); }, { lead: true }) : '';
-  return pdH(_pdT('pd_parties')) + who + pdH(_pdT('pd_terms')) + kv + missing + renew
+  const top = pdTop('facts', blanks.length ? pdPill('warn', _pdTn('pd_missing', blanks.length, { n: blanks.length })) : pdPill('ok', _pdT('pd_st_complete')));
+  return top + pdH(_pdT('pd_parties')) + who + pdH(_pdT('pd_terms')) + kv + missing + renew
     + `<div class="pd-acts">${brief}${pdBtn(_pdT('pd_edit_facts'), pdRoom(c, 'terms'))}</div>`
     + pdNote(_pdT('pd_facts_foot'));
 }
@@ -113,12 +154,13 @@ function pdObligHtml(c){
     let acts = [];
     try { acts = (typeof obPanelActs === 'function') ? obPanelActs(o, c, i, 'tab').filter(a => a.k !== 'reopen') : []; } catch (_){ acts = []; }
     const words = (o.quote && typeof igQuoteGo === 'function') ? pdBtn(_pdT('pd_show_words'), () => igQuoteGo(o.quote, true)) : '';
-    return `<div class="pd-ob"><div class="pd-ob-h"><span class="pd-tag ${theirs ? 'is-theirs' : 'is-ours'}">${_pdE(_pdT(theirs ? 'pd_theirs' : 'pd_ours'))}</span><b>${_pdE(o.desc || o.title || '')}</b></div>
+    return `<div class="pd-ob ${theirs ? 'is-theirs' : 'is-ours'}"><div class="pd-ob-h"><span class="pd-tag ${theirs ? 'is-theirs' : 'is-ours'}">${_pdE(_pdT(theirs ? 'pd_theirs' : 'pd_ours'))}</span><b>${_pdE(o.desc || o.title || '')}</b></div>
       ${due ? `<small>${_pdE(due)}</small>` : ''}<div class="pd-acts">${acts.map(a => pdBtn(a.label, a.run, { lead: a.kind === 'accent', title: a.title })).join('')}${words}</div></div>`;
   }).join('');
-  const head = obs.length ? pdH(_pdTn('pd_obs_n', obs.length, { n: obs.length })) : pdNote(_pdT('pd_obs_none'));
+  const n = obs.filter(Boolean).length;
+  const head = pdTop('oblig', n ? pdPill('quiet', _pdTn('pd_obs_n', n, { n })) : '') + (n ? '' : pdEmpty(_pdT('pd_obs_none'), 'flag'));
   const add = may ? `<div class="pd-acts">${typeof openObligationForm === 'function' ? pdBtn(_pdT('pd_ob_add'), () => openObligationForm(getContract(c.id) || c)) : ''}${typeof runFindObligations === 'function' ? pdBtn(_pdT('pd_ob_find'), () => runFindObligations(getContract(c.id) || c)) : ''}</div>` : '';
-  return head + rows + add;
+  return head + pdList(rows) + add;
 }
 
 /* ---- DOCUMENT: what is still to fill on the paper, the form, the files ----
@@ -131,12 +173,13 @@ function pdDocHtml(c){
   let formOwed = false;
   try { formOwed = (typeof tplFormPending === 'function') ? !!tplFormPending(c) : false; } catch (_){ formOwed = false; }
   const fill = blanks.length ? pdH(_pdTn('pd_missing', blanks.length, { n: blanks.length }))
-    + blanks.slice(0, 8).map(b => `<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(b.label || b.name || b.key || '')}</span>${pdBtn(_pdT('pd_fill'), pdRoom(c, 'contract'))}</div>`).join('')
+    + pdList(blanks.slice(0, 8).map(b => `<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(b.label || b.name || b.key || '')}</span>${pdBtn(_pdT('pd_fill'), pdRoom(c, 'contract'), { go: true })}</div>`).join(''))
     + (blanks.length > 8 ? pdNote(_pdT('pd_more_n', { n: blanks.length - 8 })) : '')
     : pdNote(_pdT('pd_doc_no_blanks'));
-  const form = formOwed ? pdH(_pdT('pd_doc_form')) + `<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(_pdT('pd_doc_form_owed'))}</span>${pdBtn(_pdT('pd_doc_form_go'), pdRoom(c, 'contract'), { lead: true })}</div>` : '';
+  const form = formOwed ? pdH(_pdT('pd_doc_form')) + pdList(`<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(_pdT('pd_doc_form_owed'))}</span>${pdBtn(_pdT('pd_doc_form_go'), pdRoom(c, 'contract'), { lead: true })}</div>`) : '';
   const files = pdH(_pdT('pd_doc_files')) + `<div class="pd-acts">${typeof exportPDF === 'function' ? pdBtn(_pdT('pd_doc_pdf'), () => exportPDF(getContract(c.id) || c)) : ''}${pdBtn(_pdT('pd_doc_open'), pdRoom(c, 'contract'))}</div>`;
-  return form + fill + files + pdNote(_pdT('pd_doc_foot'));
+  const owed = blanks.length + (formOwed ? 1 : 0);
+  return pdTop('doc', owed ? pdPill('warn', _pdTn('pd_missing', owed, { n: owed })) : pdPill('ok', _pdT('pd_st_complete'))) + form + fill + files + pdNote(_pdT('pd_doc_foot'));
 }
 
 /* ---- OPEN ONE CONTRACT ON HOME'S PAPER, ON A TAB, FROM ANYWHERE (the nine
@@ -173,24 +216,24 @@ function pdSignDoor(c, b){
   if ((k === 'approval' || k === 'signapproval') && typeof approvalDecidableNow === 'function' && approvalDecidableNow(c) && typeof approvalDecideAsk === 'function')
     return pdBtn(_pdT('pd_approve'), () => approvalDecideAsk(getContract(c.id) || c, 'approved'), { lead: true })
       + pdBtn(_pdT('pd_refuse'), () => approvalDecideAsk(getContract(c.id) || c, 'refused'));
-  if (k === 'signers' && typeof openSignerPlanEditor === 'function') return pdBtn(_pdT('pd_name_signers'), () => openSignerPlanEditor(getContract(c.id) || c));
-  if (k === 'negotiation' && typeof openRedlineWorkbench === 'function') return pdBtn(_pdT('pd_negotiate'), () => openRedlineWorkbench(c.id));
+  if (k === 'signers' && typeof openSignerPlanEditor === 'function') return pdBtn(_pdT('pd_name_signers'), () => openSignerPlanEditor(getContract(c.id) || c), { go: true });
+  if (k === 'negotiation' && typeof openRedlineWorkbench === 'function') return pdBtn(_pdT('pd_negotiate'), () => openRedlineWorkbench(c.id), { go: true });
   const door = (typeof caReadyDoor === 'function') ? caReadyDoor(k) : 'sign';
-  return pdBtn(_pdT('ca_ready_go_' + door), door === 'nego' ? () => openRedlineWorkbench(c.id) : pdRoom(c, door === 'contract' ? 'contract' : door === 'terms' ? 'terms' : 'sign'));
+  return pdBtn(_pdT('ca_ready_go_' + door), door === 'nego' ? () => openRedlineWorkbench(c.id) : pdRoom(c, door === 'contract' ? 'contract' : door === 'terms' ? 'terms' : 'sign'), { go: true });
 }
 function pdSignHtml(c){
   const signed = (typeof contractSignedAt === 'function') ? contractSignedAt(c) : null;
   if (signed || /^(Signed|Executed|Active|Expired|Terminated)$/.test(String(c.status || '')))
-    return pdNote(signed ? _pdT('pd_signed', { when: (typeof fmtDocDate === 'function' && fmtDocDate(String(signed).slice(0, 10))) || String(signed).slice(0, 10) }) : _pdT('pd_signed_nodate')) + `<div class="pd-acts">${pdBtn(_pdT('pd_open_copy'), pdRoom(c, 'sign'))}</div>`;
+    return pdTop('sign', pdPill('ok', _pdT('pd_st_signed'))) + pdNote(signed ? _pdT('pd_signed', { when: (typeof fmtDocDate === 'function' && fmtDocDate(String(signed).slice(0, 10))) || String(signed).slice(0, 10) }) : _pdT('pd_signed_nodate')) + `<div class="pd-acts">${pdBtn(_pdT('pd_open_copy'), pdRoom(c, 'sign'))}</div>`;
   let bl = [];
   try { bl = (typeof signBlockers === 'function') ? signBlockers(c) : []; } catch (_){ bl = []; }
-  const rows = bl.map(b => `<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(b.label)}</span><span class="pd-row-acts">${pdSignDoor(c, b)}</span></div>`).join('');
+  const rows = pdList(bl.map(b => `<div class="pd-row"><i class="is-warn">!</i><span>${_pdE(b.label)}</span><span class="pd-row-acts">${pdSignDoor(c, b)}</span></div>`).join(''));
   const plan = (typeof signerPlan === 'function') ? signerPlan(c) : [];
-  const signers = plan.length ? plan.map(s => `<div class="pd-row"><i class="${s.signed ? 'is-ok' : ''}">${s.signed ? '✓' : '·'}</i><span>${_pdE(s.name || '')}<small>${_pdE(_pdT(s.party === 'internal' ? 'pd_side_ours' : 'pd_side_theirs'))}</small></span><span></span></div>`).join('')
+  const signers = plan.length ? pdList(plan.map(s => `<div class="pd-row"><i class="${s.signed ? 'is-ok' : ''}">${s.signed ? '✓' : '·'}</i><span>${_pdE(s.name || '')}<small>${_pdE(_pdT(s.party === 'internal' ? 'pd_side_ours' : 'pd_side_theirs'))}</small></span><span></span></div>`).join(''))
     : pdNote(_pdT('pd_no_signers'));
   const send = (typeof openShareModal === 'function') ? pdBtn(_pdT('pd_send_sign'), () => openShareModal(getContract(c.id) || c, { purpose: 'sign' }),
     { lead: !bl.length, disabled: !!bl.length, why: _pdTn('pd_settle_first', bl.length, { n: bl.length }) }) : '';
-  return pdApprovalPackHtml(c) + pdH(bl.length ? _pdTn('pd_to_settle', bl.length, { n: bl.length }) : _pdT('pd_ready_to_sign')) + rows
+  return pdTop('sign', bl.length ? pdPill('warn', _pdT('pd_st_notready')) : pdPill('ok', _pdT('pd_st_ready'))) + pdApprovalPackHtml(c) + pdH(bl.length ? _pdTn('pd_to_settle', bl.length, { n: bl.length }) : _pdT('pd_ready_to_sign')) + rows
     + pdH(_pdT('pd_signers')) + signers
     + `<div class="pd-acts">${send}${pdBtn(_pdT('pd_open_copy'), pdRoom(c, 'sign'))}</div>`
     + pdNote(_pdT('pd_sign_foot'));
@@ -200,15 +243,15 @@ function pdSignHtml(c){
 function pdHistHtml(c){
   let ev = [];
   try { ev = (typeof roomHistoryEvents === 'function') ? roomHistoryEvents(c).slice().reverse() : []; } catch (_){ ev = []; }
-  if (!ev.length) return pdNote(_pdT('pd_hist_none'));
+  if (!ev.length) return pdTop('hist', '') + pdEmpty(_pdT('pd_hist_none'), 'clock');
   const shown = ev.slice(0, PD_HIST_MAX);
   const rows = shown.map(e => {
     let w = { day: String(e.at || '').slice(0, 10), time: '' };
     try { if (typeof histWhen === 'function') w = histWhen(e.at) || w; } catch (_){}
-    return `<div class="pd-ev"><small>${_pdE([w.day, w.time].filter(Boolean).join(' · '))}</small><span>${_pdE(e.text || e.summary || '')}</span>${e.actor ? `<small>${_pdE(e.actor)}</small>` : ''}</div>`;
+    return `<div class="pd-ev"><small class="pd-ev-when">${_pdE([w.day, w.time].filter(Boolean).join(' · '))}</small><span>${_pdE(e.text || e.summary || '')}</span>${e.actor ? `<small>${_pdE(e.actor)}</small>` : ''}</div>`;
   }).join('');
   const more = ev.length > shown.length ? pdNote(_pdT('pd_hist_more', { k: shown.length, n: ev.length })) + `<div class="pd-acts">${pdBtn(_pdT('pd_hist_all'), pdRoom(c, 'history'))}</div>` : '';
-  return pdH(_pdTn('pd_hist_n', ev.length, { n: ev.length })) + rows + more;
+  return pdTop('hist', pdPill('quiet', _pdTn('pd_hist_n', ev.length, { n: ev.length }))) + `<div class="pd-trail">${rows}</div>` + more;
 }
 
 /* ---- DEAL: where the deal stands, their changes sorted, the round sent ----
@@ -268,7 +311,7 @@ function pdDealHtml(c){
   const live = !!(c.negotiation && typeof c.negotiation === 'object') || (Array.isArray(c.changes) && c.changes.length);
   const may = (typeof negoMayStart !== 'function') || !!(negoMayStart(c) || {}).ok;
   const go = (may && typeof openRedlineWorkbench === 'function') ? pdBtn(_pdT('pd_negotiate'), () => openRedlineWorkbench(c.id)) : '';
-  if (!live) return pdNote(_pdT('pd_deal_none')) + (go ? `<div class="pd-acts">${go}</div>` : '');
+  if (!live) return pdTop('deal', pdPill('quiet', _pdT('pd_st_notyet'))) + pdEmpty(_pdT('pd_deal_none'), 'nego') + (go ? `<div class="pd-acts pd-acts-c">${go}</div>` : '');
   let sheet = '';
   try { sheet = (typeof standsHtml === 'function') ? standsHtml(c, { lately: false }) : ''; } catch (_){ sheet = ''; }
   let unsent = 0;
@@ -277,14 +320,15 @@ function pdDealHtml(c){
   const theirs = pdTheirOpen(c);
   const name = ch => { const raw = ch.clauseLabel || ch.headingText || ''; return (typeof clauseNameShown === 'function' && raw) ? clauseNameShown(raw) : raw; };
   const row = ch => `<div class="pd-row pd-chg"><i class="${pdChangeKind(ch) === 'look' ? 'is-warn' : 'is-ok'}">${pdChangeKind(ch) === 'look' ? '!' : '·'}</i><span>${_pdE(name(ch) || _pdT('pd_a_clause'))}${ch.summary ? `<small>${_pdE(ch.summary)}</small>` : ''}</span>${
-    may ? pdBtn(_pdT('pd_answer_nego'), () => pdGoClause(getContract(c.id) || c, ch.clauseId)) : ''}</div>`;
+    may ? pdBtn(_pdT('pd_answer_nego'), () => pdGoClause(getContract(c.id) || c, ch.clauseId), { go: true }) : ''}</div>`;
   const minor = theirs.filter(ch => pdChangeKind(ch) === 'minor'), look = theirs.filter(ch => pdChangeKind(ch) !== 'minor');
   const changes = theirs.length
-    ? (minor.length ? pdH(_pdTn('pd_minor_n', minor.length, { n: minor.length })) + minor.map(row).join('') : '')
-      + (look.length ? pdH(_pdTn('pd_look_n', look.length, { n: look.length })) + look.map(row).join('') : '')
+    ? (minor.length ? pdH(_pdTn('pd_minor_n', minor.length, { n: minor.length })) + pdList(minor.map(row).join('')) : '')
+      + (look.length ? pdH(_pdTn('pd_look_n', look.length, { n: look.length })) + pdList(look.map(row).join('')) : '')
       + pdNote(_pdT('pd_sort_foot'))
     : '';
-  return (send ? `<div class="pd-acts">${send}</div>` : '') + `<div class="pd-deal">${sheet}</div>` + changes + (go ? `<div class="pd-acts">${go}</div>` : '');
+  const dealTop = pdTop('deal', theirs.length ? pdPill('warn', _pdTn('pd_st_answer', theirs.length, { n: theirs.length })) : pdPill('quiet', _pdT('pd_st_quiet')));
+  return dealTop + (send ? `<div class="pd-acts">${send}</div>` : '') + `<div class="pd-deal">${sheet}</div>` + changes + (go ? `<div class="pd-acts">${go}</div>` : '');
 }
 
 const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, sign: pdSignHtml, oblig: pdObligHtml, hist: pdHistHtml, deal: pdDealHtml };
@@ -293,11 +337,12 @@ const PD_BODY = { facts: pdFactsHtml, doc: pdDocHtml, sign: pdSignHtml, oblig: p
 function pdHeadHtml(brain){
   const tabs = pdOnPaper() ? PD_TABS : ['copilot'];
   const lit = tabs.includes(_pdTab) ? _pdTab : 'copilot';
+  const c = pdOnPaper() ? pdContract() : null;
   return tabs.map(t => {
     const name = _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
-    const on = t === lit;
-    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(name)}" title="${_pdE(tip)}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-${PD_TAB_ICON[t]}"/></svg>${on ? `<span class="ig-dock-title pd-tab-w">${_pdE(name)}</span>` : ''}</button>`;
+    const on = t === lit, cnt = pdTabCount(t, c);
+    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(cnt ? _pdT('pd_tab_n', { name, n: cnt.n }) : name)}" title="${_pdE(tip)}"><span class="pd-tab-i"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-${PD_TAB_ICON[t]}"/></svg>${cnt ? `<span class="pd-tab-n is-${cnt.tone}">${cnt.n > 99 ? '99+' : cnt.n}</span>` : ''}</span><span class="pd-tab-w">${_pdE(name)}</span></button>`;
   }).join('');
 }
 function pdBodyHtml(c){
@@ -343,5 +388,5 @@ if (typeof document !== 'undefined' && !document._pdWired){
   });
 }
 
-Object.assign(window, { PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdApprovalPackHtml, PD_TAB_ICON, PD_TAB_NAME, PD_TABS, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
+Object.assign(window, { PD_LOOK_RE, pdRedOk, pdTheirOpen, pdMovedWords, pdChangeKind, PD_NEGO_WAIT_MS, pdNegoThen, pdGoClause, pdSendWaiting, PD_ROOM_TAB, pdOpenOnHome, pdApprovalPackHtml, PD_TAB_ICON, PD_TAB_NAME, PD_TABS, pdTabCount, pdTop, pdPill, pdList, pdEmpty, PD_GO_ARROW, PD_HIST_MAX, pdSetTab, pdTab, pdOnPaper, pdShowsDesk, pdHeadHtml, pdBodyHtml, pdDocHtml, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdSignDoor, pdSignHtml, pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint });
