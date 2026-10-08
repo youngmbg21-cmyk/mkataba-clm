@@ -851,8 +851,8 @@ async function runPlaybookReview(c,opts={}){
   if(!text || text.length<PB_TEXT_MIN){
     if(opts.quiet) return { error:i18t('pb_no_readable_clause') };
     toast(i18t('pb_no_readable_clause'),'err'); return null; }
-  const stamp = r => (r && !r.error)
-    ? { ...pbCarryDecisions(c && c.playbook, pbInParentVerdicts(c, r)), wordingHash:playbookHashOf(text), checkedAt:new Date().toISOString() } : r;
+  const stamp = r0 => { const r = pbInParentVerdicts(c, r0); return (r && !r.error)
+    ? { ...pbCarryDecisions(c && c.playbook, r), wordingHash:playbookHashOf(text), checkedAt:new Date().toISOString() } : r; };
   if(API_MODE() && state.aiConfigured){
     /* A HALF-FINISHED CHECK IS NEVER SAVED (fix 3, 23 Sep 2026). A cut-short
        answer and an empty one are refusals in words, handed back the way this
