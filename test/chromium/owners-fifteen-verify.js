@@ -212,19 +212,21 @@ const check = (name, pass, detail) => {
     check('13a the Board\'s contract card carries "Analyze contract"', !!cardBtn,
       await page.evaluate(() => [...document.querySelectorAll('#hb-focus .hb-acts button')].map(b => b.textContent.trim()).join(' | ')));
     if (cardBtn) await page.click('#hb-focus [data-hb-analyze="MK-A2"]');
-    const up = await until(() => { const p = document.getElementById('ig-paper'); return hbS().face === 'explorer' && intel.paper && intel.paper.id === 'MK-A2' && p && !p.hidden && !!p.querySelector('.pg-sheet'); }, null, 10000);
-    check('13b pressed, Explorer opens with that contract\'s paper up', !!up);
+    /* the paper has its own side on Home (Young, 7–8 Oct 2026: Board · Paper · Explorer) — hbAnalyze lands there */
+    const up = await until(() => { const p = document.getElementById('ig-paper'); return hbS().face === 'paper' && intel.paper && intel.paper.id === 'MK-A2' && p && !p.hidden && !!p.querySelector('.pg-sheet'); }, null, 10000);
+    check('13b pressed, Home\'s Paper side opens with that contract\'s paper up', !!up);
     check('13c and the question box is ready for the first question', await until(() => document.activeElement && document.activeElement.id === 'igd-input', null, 3000));
     await page.screenshot({ path: path.join(OUT, '13-analyze-from-board.png') });
     /* asked in words, from the board */
     await page.evaluate(() => { intel.paper = null; igPaintPaper(); hbSetFace('board'); });
     await until(() => hbS().face === 'board');
     await page.fill('#igd-input', 'let me ask questions about MK-A2'); await page.keyboard.press('Enter');
-    const said = await until(() => { const p = document.getElementById('ig-paper'); return hbS().face === 'explorer' && intel.paper && intel.paper.id === 'MK-A2' && p && !p.hidden; }, null, 10000);
+    const said = await until(() => { const p = document.getElementById('ig-paper'); return hbS().face === 'paper' && intel.paper && intel.paper.id === 'MK-A2' && p && !p.hidden; }, null, 10000);
     check('13d "let me ask questions about MK-A2" opens the same paper, spending nothing', !!said,
       await page.evaluate(() => (document.querySelector('#igd-feed .hb-cost') || {}).textContent || ''));
     /* a finger: a bigger target, and a wobble is still a press */
-    await page.evaluate(() => { intel.paper = null; igPaintPaper(); igSetSpin && igSetSpin(false); });
+    await page.evaluate(() => { intel.paper = null; igPaintPaper(); hbSetFace('explorer'); igSetSpin && igSetSpin(false); });
+    await until(() => hbS().face === 'explorer' && IG && IG.contracts && IG.contracts.length > 0, null, 8000);
     const coarse = await page.evaluate(() => igTapCoarse());
     /* a dot nothing else is drawn over, so the press is the dot's to answer —
        read once the map has stopped gliding (two reads 300ms apart agree) */

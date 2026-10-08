@@ -204,7 +204,10 @@ const ROUTE = [
          behind `Edit these details`. What this file is here to prove is that
          the disagreement is on screen at all — it may never be quiet — so it
          looks for whichever shape is drawn and measures that. */
-      const row = document.querySelector('[data-kt-row="cpRouteEmail"]')
+      /* THE CONSTELLATION (8 Oct 2026): the record's rows rest behind "Filing
+         and stream"; at rest the disagreement is said on the outside party's
+         own row, under the address it differs from (`[data-ov-route]`). */
+      const row = document.querySelector('[data-ov-route]') || document.querySelector('[data-kt-row="cpRouteEmail"]')
         || [...document.querySelectorAll('.sec-fields .sec-f')].find(f =>
           /signing route|route address/i.test((f.querySelector('.sec-f-l') || {}).textContent || ''));
       if (!row) return { there: false };
@@ -226,7 +229,7 @@ const ROUTE = [
       const c = getContract(id);
       c.counterpartyEmail = yahoo; persist(c);
       if (window.renderKeyTerms) renderKeyTerms(c);
-      return !document.querySelector('[data-kt-row="cpRouteEmail"]');
+      return !document.querySelector('[data-kt-row="cpRouteEmail"]') && !document.querySelector('[data-ov-route]');
     }, [cid, YAHOO]);
     check('and it is absent when the two records agree', agreed);
 

@@ -44,7 +44,7 @@
 
    It spends nothing, calls no route and paints nothing. */
 
-const ASK_KINDS = ['rule', 'named', 'review', 'suggest'];
+const ASK_KINDS = ['rule', 'named', 'review', 'suggest', 'look'];
 const ASK_STATES = ['open', 'yes', 'no', 'lapsed', 'returned', 'withdrawn'];
 const ASK_KEEP = 300;          // rows kept on one record; an open one is never the one dropped
 const ASK_WHY_MAX = 600;       // a reason travels by email, so it is kept to a paragraph
@@ -236,6 +236,13 @@ const AK_MIRROR = {
     },
     part(){},
   },
+  /* A COLLEAGUE ASKED TO LOOK (8 Oct 2026, the nine flow rules' rule 3: "an
+     email alone is never a hand-off"). Passing a contract to a colleague —
+     Copilot's Send card, POST /api/contracts/:id/pass — opens one of these.
+     It has NO older field to mirror: the list is its only record, so opening
+     and answering write nothing else. `stamp.review` says it was asked as a
+     review; the colleague answers `yes` ("Done") and the asker is told. */
+  look: { open(){}, answer(){}, part(){} },
 };
 
 /* ════ ADOPTION — the list brought up to what its mirrors say ════════════
@@ -456,6 +463,11 @@ function asksWaitingOn(c, u){
 }
 /* What the server's answer to a save says the list is, taken as given — with
    anything written here since the save left kept on top. */
+/* A colleague's open "please look" questions waiting on this person — the
+   checklist, the bell and the phone read this one list. */
+function asksLookFor(c, u){
+  return asksWaitingOn(c, u).filter(a => a.kind === 'look');
+}
 function asksTakeServer(local, server){
   if (!Array.isArray(server)) return Array.isArray(local) ? local : [];
   const ids = new Set(server.map(a => a && a.id));
@@ -545,6 +557,6 @@ function askRuleFor(c, ruleId, o){
 
 const ASKS_API = { ASK_KINDS, ASK_STATES, ASK_KEEP, ASK_WHY_MAX, askLapsed, askSamePerson, askRuleTo: _akRuleTo,
   asksReconcile, asksDerive, asksAdopt, asksBound, asksOf, askById, askOpenFor, asksLatestFor,
-  asksWaitingOn, asksTakeServer, askOpen, askAnswer, askLapse, askRuleFor };
+  asksWaitingOn, asksLookFor, asksTakeServer, askOpen, askAnswer, askLapse, askRuleFor };
 if (typeof window !== 'undefined') Object.assign(window, ASKS_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = ASKS_API;

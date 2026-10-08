@@ -77,6 +77,18 @@ function mNeedsYou(D){
     else if(na && (na.kind==='sign'||na.kind==='sign-scroll')) push(c,'var(--st-green-dot)', na.guide, 'var(--st-green-fg)');
   });
 
+  /* A colleague passed you a contract to look at (8 Oct 2026) — the same
+     reading as the desktop checklist and bell (asksLookFor). */
+  if(typeof asksLookFor==='function' && typeof currentUser==='function'){
+    const me = currentUser();
+    if(me) (D.cs||[]).forEach(c=>{
+      let mine=[]; try{ mine = asksLookFor(c, me)||[]; }catch(_){ mine=[]; }
+      if(!mine.length) return;
+      const a = mine[mine.length-1];
+      push(c,'var(--st-amber-dot)', i18t(a.stamp&&a.stamp.review?'al_look_review':'al_look',{ who:(a.by&&a.by.name)||'' }),'var(--st-amber-fg)');
+    });
+  }
+
   (D.cs||[]).filter(c=>c.status==='Declined').forEach(c=>{
     push(c,'var(--st-ruby-dot)',i18t('m_declined_read_reason'),'var(--st-ruby-fg)');
   });

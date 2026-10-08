@@ -72,13 +72,15 @@ const BODY = '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>'
     /* ===== 2 and 3. THE OVERVIEW ===== */
     await page.evaluate(() => roomGoTab(getContract('MK-N1'), 'terms'));
     await page.waitForTimeout(1200);
-    const parties = await page.evaluate(() => {
-      const rows = [...document.querySelectorAll('#kt-parties .py-row')];
-      return rows.map(r => (r.querySelector('.py-ct') || {}).textContent || '');
-    });
+    /* THE CONSTELLATION OVERVIEW (Young, 8 Oct 2026): at rest the parties are
+       the `.ov-pty` rows of #ov-parties; the people on the contract and the
+       party editors open with the ONE Edit (data-ov-edit="all"). */
+    await page.waitForFunction(() => document.querySelectorAll('#ov-parties .ov-pty').length > 0, null, { timeout: 8000 }).catch(() => {});
+    const parties = await page.evaluate(() =>
+      [...document.querySelectorAll('#ov-parties .ov-pty')].map(r => (r.querySelector('small') || {}).textContent || ''));
     check('2 our party row prints an email', /@/.test(parties[0] || ''), JSON.stringify(parties));
-    await page.evaluate(() => { const b = document.querySelector('[data-sec-toggle$="people"][aria-expanded="false"]'); if (b) b.click(); });
-    await page.waitForTimeout(700);
+    await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
+    await page.waitForFunction(() => document.querySelectorAll('[data-pt-auto]').length > 0, null, { timeout: 8000 }).catch(() => {});
     const people = await page.evaluate(() => [...document.querySelectorAll('[data-pt-auto]')].map(r => r.textContent.replace(/\s+/g, ' ').trim()));
     check('3 "Who else" names the colleague who filed a change', people.some(t => /Unrestricted Legal/.test(t) && /added by HaTi/i.test(t)), JSON.stringify(people));
     check('3b and the one who approved', people.some(t => /Amina Otieno/.test(t)), '');

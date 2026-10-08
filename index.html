@@ -4147,6 +4147,7 @@
   .ov-pty b{ display:block; font-weight:var(--w-strong); color:var(--color-text); overflow-wrap:anywhere; }
   .ov-pty small{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); overflow-wrap:anywhere; }
   .ov-pty small.ov-pty-sg.is-done{ color:var(--st-green-fg); }
+  .ov-pty small.ov-pty-route{ color:var(--st-amber-fg); }
   #kt-overview .ov-ess .sec-box{ border-top:1px solid var(--color-divider); }
   @container ovpane (max-width:900px){
     .ov-ess-body{ grid-template-columns:minmax(0,1fr); }
@@ -4182,6 +4183,7 @@
   .ui-btn.hati-fill-btn{ background:var(--color-accent-50); color:var(--accent-ink); border-color:var(--color-accent-100); }
   .ui-btn.hati-fill-btn:hover:not(:disabled){ background:var(--color-accent-100); }
   .ui-btn.hati-fill-btn:disabled{ opacity:.6; cursor:default; }
+  .ui-btn.hati-fill-btn > *{ pointer-events:none; }
   .tplf-foot{ position:sticky; bottom:0; display:flex; justify-content:flex-end; padding:10px 14px;
     border-top:1px solid var(--color-divider); background:var(--color-surface); }
   .ov-map-stage{ height:380px; }
