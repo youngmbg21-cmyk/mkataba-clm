@@ -1,6 +1,6 @@
 # WORK ORDER — Copilot's answer on the paper, the button that glows, and one paper on Home
 
-**Status: APPROVED — NOT BUILT (owner, 8 Oct 2026: "yes to both. Now add this to the work order … Note this but do not code yet").**
+**Status: APPROVED — NOT BUILT; Part C's look waits on the owner's pick (owner, 8 Oct 2026: "yes to both. Now add this to the work order … Note this but do not code yet").**
 
 **What the owner has seen:** "Ask Copilot to Redo"
 (https://claude.ai/artifact/FfgMUDhPkfMLxgVv8ZPE5j), its "Proposed · not built"
@@ -142,6 +142,38 @@ same title position (±1px) and the same clause-heading font. Clean has zero
 `del`/`ins`/step labels. Red at the parent (778 vs 860).
 
 ---
+
+## Part C, widened · One paper on EVERY screen (owner, 8 Oct 2026)
+
+**The owner's words:** "Take the same approach for the document paper and the
+negotiation papers as well. Let me see all of them drawn in the artifact."
+
+Part C now covers five screens: Home Clean, Home Redlined, the Document tab,
+the Negotiate page, and their page's Redlines tab. A contract looks the same on
+all of them. The redlines are the only thing that comes and goes. Clean shows
+the wording that STANDS (their pending asks are not taken in).
+
+**Measured 8 Oct 2026 (MK-369, two pending asks of theirs):**
+- Home Clean and the Document tab use the Document sheet (`.pg-sheet`): no
+  subtitle, clause headings 16px/600, tight spacing, corner marks.
+- The Negotiate page and their page use the Negotiate paper
+  (`article.nego-doc.rl-paper`): subtitle and divider, headings 14px/700,
+  "Step 1" pills (`.rl-rung`), a red bar on a changed clause, corner marks.
+- Home Redlined is the SAME markup as the Negotiate paper (`redlineDocHtml`).
+  It is drawn without the Negotiate page's styling, so it has plain step lines,
+  no red bar, no corner marks, and a 720px sheet.
+
+**THE LOOK IS THE OWNER'S PICK, NOT YET MADE.** Both looks are drawn on all
+five screens in the artifact's "One paper everywhere" section:
+- **Negotiate paper** (recommended): every screen takes the Negotiate paper.
+  Clean drops the marks.
+- **Home paper**: every screen takes Home Redlined's quieter look.
+
+Build only the one picked by name.
+
+**Check:** on all five screens, the same paper width, the same title block and
+the same clause-heading size and weight. The clean ones carry zero `del`/`ins`
+and no step labels, and show the standing wording. Red at the parent.
 
 **Order:** Part B first (a defect on a live screen), then Part C (the paper
 both other parts draw on), then Part A.
