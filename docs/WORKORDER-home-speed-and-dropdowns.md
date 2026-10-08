@@ -1,8 +1,9 @@
-# WORK ORDER — Home is quick, and a board dropdown is never behind a card
+# WORK ORDER — Home is quick, a board dropdown is never behind a card, and the Board balances its cards
 
 **Status: WRITTEN 8 Oct 2026. NOT BUILT.** Owner: *"yes fix all three and this
 issue where the drop down goes behind the cards. Do not fix yet but add all to
 a work order"*. Build only when the owner says so.
+Part 5 (the Board balances its cards) was added the same day, owner-asked: *"add this to the work order"*.
 
 **What the owner asked for, in their words, before this:**
 *"please check why there is a lag when i try to get into the home page and also
@@ -189,6 +190,88 @@ Accept: on a board with two cards stacked, the open SPLIT list of the upper
 card is the element under the pointer at every choice it shows
 (`elementFromPoint`), in light and dark, at 1440 and 1100 wide. Pressing
 the lowest visible choice applies it.
+
+---
+
+## Part 5 — THE BOARD BALANCES ITS CARDS (owner-asked 8 Oct 2026)
+
+**What the owner wants (their words):** *"train the Board tab to understand
+symmetry and the use of space to balance the board."* When a card is summoned
+and it is the only card on its row, it uses the space to its right. Two cards
+side by side are always equal in height. If one is dug into and grows, the
+one beside it grows with it, and the extra space stays empty.
+
+**The owner said YES to all four of these:**
+1. An odd card at the end (for example the third of three) stretches full
+   width.
+2. On a very wide screen, if three cards share a row, all three match the
+   tallest.
+3. When one card of a pair is closed, the remaining card spreads to fill the
+   whole row at once.
+4. On a narrow screen, each card takes the full width, one under another.
+
+**What was found (check it yourself; line numbers drift, so grep):**
+- The Board's cards sit in `.hb-grid`. Its rule is in index.html, in HaTi's
+  own sheet (not the Tailwind blob): two columns with `align-items:start`.
+  That is why the cards in a pair end at different heights.
+- `.hb-grid>.hb-panel.is-big{grid-column:1 / -1}` is the only full-width
+  rule. So a lone card that is not "big" stays in the left half (the owner's
+  screenshot: "Where negotiations slow…" with empty space to its right).
+- At ≤1180px `.hb-grid` already drops to one column (`@media
+  (max-width:1180px)`), so rule 4 may already hold. Prove it in a browser.
+- **There is no three-column Board today** (checked 8 Oct: `.hb-grid` is
+  `repeat(2, …)` at every width). Rule 2 therefore has nothing to apply to.
+  See D.
+- The grid is drawn in js/views/homeboard.js (grep `class="hb-grid"`).
+  Cards are `.hb-card.hb-panel` (and `.hb-view`). `is-big` comes from
+  `p.big || p.split`.
+
+**The build:**
+- **A. Equal height per row.** The cards in a row stretch to the tallest.
+  The card's inside stays at the top, and the empty space is at the BOTTOM of
+  the shorter card: no centring, no stretched charts.
+- **B. A lone card fills its row.** A card that ends up alone on a row spans
+  the full width. That covers one card on its own, the last card of an odd
+  count, a card left behind when its partner closes, and a card after a
+  "big" one. Prefer a pure-CSS rule if one does it reliably. Otherwise write
+  one function in homeboard.js that marks the lone card on every paint,
+  including repaints through `hbMorph`. A card the reader made big stays big.
+- **C. Charts redraw at the new width.** The Board draws charts at their
+  MEASURED width (`hbFitMeasure`/`_hbFitAt`), so a widened card must redraw
+  them. Check that a lone card's bars and charts fill the wider card and are
+  not left at half-width.
+- **D. Three across.** Only if the Board already allows three columns on wide
+  screens; do not ADD a third column. It does not exist today, so say so in
+  the summary and leave it.
+
+**Rules to follow (CLAUDE.md):**
+- Before starting, grep MAP-HISTORY.md for "HOME — THE BOARD" and for the
+  chart standard.
+- Find EVERY place Board cards are laid out side by side: the Board face,
+  the dig/focus view `.hb-focus`, packs `.hb-pack-cards`, and story chapters
+  `.hb-sy-chs`/`.hb-sy-two`. Decide for each whether the rule applies. Tell
+  the owner in plain English which you changed, which you left alone, and
+  why.
+- No new bands. Do not change the phone (it keeps old Home). Fix cascade
+  fights by scope, never `!important`.
+- Part 2's one-part face switch must not undo this: the balance is
+  re-marked on every paint, including a face coming back.
+
+**Proving it (test where the owner looks):**
+- In a real browser, test the Board with: 1 card; 2 cards; 3 cards; 2 cards
+  where one is dug into until it grows; a pair where one is closed; a narrow
+  window. Measure the card boxes: each row's bottom edges are equal, and a
+  lone card's width equals the grid's width. Take screenshots.
+- Add a browser check for these cases (**board-balance-verify**), guarded so
+  a missing feature reports instead of timing out. Run it against unmodified
+  main first to show it is red there.
+- Run `npm run lint` first, only the Board's test files while working, and
+  the full suite once at the end.
+- Add one short line to THE MAP's Home section in CLAUDE.md, naming the rule,
+  its function or class, and the new test. Append the story to
+  docs/MAP-HISTORY.md.
+
+Finish with a short plain-English summary for the owner.
 
 ---
 
