@@ -20519,3 +20519,38 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (8 Oct 2026): on the Negotiate page, after refusing the other side's only change (here their deletion of a whole clause), the head says "Whose move: Neither" and the "Send to Nandi Dairy" button (#nego-send in .nego-turn) is drawn UNDER the paper — elementFromPoint at its centre is the paper sheet — so the refusal cannot be seen to be sent from this screen. Measured on main at bad42f3.
 - Noticed, not fixed (8 Oct 2026, Home speed work order): the first switch to Explorer at 430 contracts still freezes ~0.87 s (the order asks under 0.3 s) — the cost is the browser's first layout of the map's 430 SVG nodes and word cards; the second switch is 0.31 s (asks under 0.1 s). Needs the map's DOM built lazily; left for its own order.
 - Noticed, not fixed (8 Oct 2026, Overview redesign): the handoff draws a clause chip ("19.1") after Governing law, but HaTi stores no clause reference for that term (`sourceSpans` keeps wording, not a number), so no chip is drawn rather than one guessed.
+
+### 9 Oct 2026 — the overnight run: the Paper and Counter Review and the 70 review issues (owner: "fix all the 70 issues")
+- Fixed (owner-asked): the six Paper and Counter changes and every item in docs/OVERNIGHT-REVIEW-2026-10-09.md (top 10, the 50 more, the 11 map problems, the stale f308 test). The summary page and MAP-HISTORY "THE OVERNIGHT RUN, 9 OCT 2026" carry the list.
+- Noticed, not fixed: approval-rule Save/Remove toasts are bare (set_rule_saved, set_rule_removed), so nothing confirms the press.
+- Noticed, not fixed: the setup and sign-in welcome toasts ("Workspace … created — karibu!", "Karibu tena") are bare and hard-coded English, so they never show.
+- Noticed, not fixed: POST /api/users still accepts a name another member already has (PATCH now refuses it 409); a legacy approval rule without an id still matches its approver by name.
+- Noticed, not fixed: an open rule-step ask in c.asks made before a rename keeps the old name, so it leaves the renamed approver's list until the step is asked again (deciding still works).
+- Noticed, not fixed: PATCH /api/users/:id writes its fields one by one, not in one transaction; a later refusal leaves earlier writes in place.
+- Noticed, not fixed: POST /api/setup does not carry the market; the server learns it only through startApp's heal.
+- Noticed, not fixed: the desktop's "Send for review" (kind==='review' in contract.js) moves the stage by hand instead of contractLeavesDrafting (the phone's now uses it).
+- Noticed, not fixed: needsYouOf shows "Your approval is asked for" on Signed contracts that still have an open approval-rule step (seeded MK-A1, MK-B1).
+- Noticed, not fixed: the Sign label's count (signReadiness().n, "Sign · 5 to settle") disagrees with signBlockers (3) on the same contract.
+- Noticed, not fixed: phone-verify's obligations check uses fixed 2026 dates, so its answer depends on the day it runs.
+- Noticed, not fixed: the Contracts page's Quick filter tabs (.reg-views) scroll inside themselves at 820px and "Save view" sits off their right edge.
+- Noticed, not fixed: the phone action bar's "You have viewer access…", "Closed — this contract is a record now.", "All key terms are set.", the verify toasts and the renumber sheet are still English.
+- Noticed, not fixed: on a phone the 200px signature box stretches the pad's 520×170 canvas, so the saved mark is about 0.55× as tall as drawn.
+- Noticed, not fixed: portalNegoComment's "Comment sent to … — the contract is unchanged" is a bare toast(msg) and prints nothing.
+- Noticed, not fixed: dealStands `agreed` is true when every point is answered even if one was refused and not withdrawn, so the journey can light "Agreed" over a contested point.
+- Noticed, not fixed: on a multi-party round, a counterparty-written change carries no author party id; their page credits it to the reader's party (nothing visible is wrong today; Lately is off there).
+- Noticed, not fixed: js/discuss.js wireDiscussDiscard/discussDiscardBtnHtml have no caller (a Doc Lab leftover — stale), with hard-coded English "Discard" and bare toasts.
+- Noticed, not fixed: rereadUploadText keeps a dead `cur=null` branch with a silent toast naming an undefined `text`.
+- Noticed, not fixed: the "Re-read document" and "Download original" button labels are hard-coded English.
+- Noticed, not fixed: with no Copilot key, the brief tile shows as a failed reading (with the no-key reason) rather than as skipped.
+- Noticed, not fixed: change records carry the author's name, not an id, so after a rename a person's own unsent drafts no longer read as theirs for Discard.
+- Noticed, not fixed: tplLibCreate's "created from …" and createFromWizard's "Draft created — …" toasts, and the reshare callers' co_round_on_standing_link toasts, have no kind and print nothing.
+- Noticed, not fixed: approveContract is defined in both js/core.js (an old single-step version) and js/approvals.js, and both publish it on window.
+- Noticed, not fixed: right after the server seals, a background save in the owner's open tab hits a version conflict; it now takes the sealed record, but which save it is was not found.
+- Noticed, not fixed: there is no field for a renewal term (metadata.renewalTermMonths), so the auto-renewal roll-forward cannot run; it is Brain known problem 2.
+- Noticed, not fixed: the approval stamp's document hash covers only the stored wording and the uploaded file; for paper drawn from the record, wording reaches it only through the fields.
+- Noticed, not fixed: the first nightly sweep after this deploy will mail, once each, every auto-renewing contract already past its end date and every rule step that was due but never told — honest, but a burst.
+- Noticed, not fixed: term-and-fields-verify (6), settled-ask-reopen-verify (2) and upload-structure-verify 2a/2b fail on the commit before tonight's work as well.
+- Noticed, not fixed: the retired round queue's CSS is still in negotiation-css.js (f386 pins one of its rules).
+- Noticed, not fixed: an open click-to-type box on Negotiate, even untouched, holds back the page's live repaint and may show the "held for editor" toast.
+- Noticed, not fixed: theme-tokens-verify's dashboard and register screens differ from the census on main as well (Home board chart tones; an amber on the Contracts page); left for whoever owns those palettes.
+- Noticed, not fixed: CLAUDE.md is about 85 KB before tonight's MAP lines (house limit about 80 KB); a trim needs the owner's word.
