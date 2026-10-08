@@ -329,21 +329,18 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     check('4d Paper brings it all back as it was: the words lit, the pin in the margin, the box asking about MK-A2',
       !back.hidden && back.marks >= 1 && back.pins === 1 && /MK-A2/.test(back.placeholder), JSON.stringify(back));
 
-    /* ================= 5. FOCUS =========================================== */
-    const before = await page.evaluate(() => document.getElementById('ig-gwrap').getBoundingClientRect().height);
-    await page.click('#ig-strip [data-ig-focus]');
-    await page.waitForTimeout(500);
-    const fo = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById('ig-head')||document.getElementById('hb-head')).display,
-      cls: document.getElementById('ig-page').classList.contains('ig-focus'), h: document.getElementById('ig-gwrap').getBoundingClientRect().height,
-      dock: !!document.getElementById('igd-input'), bar: !!document.getElementById('top-header') && getComputedStyle(document.getElementById('top-header')).display !== 'none',
-      word: document.querySelector('#ig-strip [data-ig-focus]').textContent.trim() }));
-    check('5a Focus folds the page head away and the paper takes the column\'s full height; the panel and the shell stay',
-      fo.head === 'none' && fo.cls && fo.h > before + 40 && fo.dock && fo.bar, `${Math.round(before)} → ${Math.round(fo.h)}px`);
-    await page.screenshot({ path: path.join(OUT, '05-focus.png') });
-    await page.keyboard.press('Escape');
-    await page.waitForTimeout(400);
-    const fx = await page.evaluate(() => ({ head: getComputedStyle(document.getElementById('ig-head')||document.getElementById('hb-head')).display, cls: document.getElementById('ig-page').classList.contains('ig-focus') }));
-    check('5b Escape puts the head back', fx.head !== 'none' && !fx.cls, JSON.stringify(fx));
+    /* ================= 5. NO FOCUS ON HOME'S PAPER ======================
+       Owner, 8 Oct 2026: "add the removal of the focus button from the paper
+       tab". Home's Paper strip carries no Focus, and a focus left stored from
+       an earlier sitting does not fold the page head away. */
+    const nf = await page.evaluate(() => {
+      intel.paper.focus = true; if (window.igPaintPaper) igPaintPaper();
+      return { btn: !!document.querySelector('#ig-strip [data-ig-focus]'),
+        cls: document.getElementById('ig-page').classList.contains('ig-focus'),
+        head: getComputedStyle(document.getElementById('ig-head')||document.getElementById('hb-head')).display };
+    });
+    check('5a Home\'s Paper has no Focus button, and a stored focus does not open it full size',
+      !nf.btn && !nf.cls && nf.head !== 'none', JSON.stringify(nf));
 
     /* ================= 6. THE BIN ENDS IT ================================== */
     await page.click('#igd-history-clear');

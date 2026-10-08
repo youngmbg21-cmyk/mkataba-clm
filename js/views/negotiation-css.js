@@ -6384,11 +6384,13 @@ function redlineLayoutCss(){
   .redline-page article.nego-doc .rl-clause.is-changed::after,
   .redline-page article.nego-doc .rl-front.is-changed::after{display:none}
   .redline-page article.nego-doc .rl-clause-top{display:block}
-  .redline-page article.nego-doc .rl-clause-h{margin:0;padding-right:0;letter-spacing:-.01em;line-height:1.72;color:var(--color-doc-text)}
+  .redline-page article.nego-doc .rl-clause-h{margin:0;letter-spacing:-.01em;line-height:1.72;color:var(--color-doc-text)}
   .redline-page article.nego-doc :is(.rl-front,.nego-body,.rl-paper-foot,.rl-sigline,.rl-sigrule){font-size:calc(14px * var(--doc-scale,1));line-height:1.72;color:inherit}
   .redline-page article.nego-doc :is(.rl-line,.nego-body p){line-height:1.72;color:inherit}
   .redline-page article.nego-doc .rl-rung{display:inline-block;margin:0;padding:0;border-radius:0;background:none;
     font:inherit;font-weight:var(--w-body,400);letter-spacing:normal;text-transform:none;color:inherit;max-width:none}
+  ${''/* Reading an older move is a live state, not decoration: its label keeps the ruby. */}
+  .redline-page article.nego-doc .rl-rung.rl-rung-reading{padding:0 4px;border-radius:var(--radius);background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   `;
   document.head.appendChild(s);
 }
