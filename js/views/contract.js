@@ -2992,7 +2992,7 @@ function docSheetHtml(c, o){
   o=o||{};
   if(docAsAmendedOn(c) && window.asAmendedHtml){
     const html=asAmendedHtml(c);
-    if(html) return `<div class="blueprint pg-sheet pg-work" data-copy="amended" style="padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0">
+    if(html) return `<div class="blueprint pg-sheet pg-work" data-copy="amended" style="padding:var(--doc-sheet-pad,34px var(--s-10) 44px);max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0">
       <article id="${o.canvasId||'doc-canvas'}" class="doc-surface" style="background:transparent">${html}</article></div>`;
   }
   const mode=o.copy||docCopyOf(c);
@@ -3004,7 +3004,10 @@ function docSheetHtml(c, o){
     /* The design's TYPEFACE comes (docDesignBodyAttr); its structure and its
        page decorations do not — the working copy looks the same whatever the
        design, apart from the typeface. */
-    return `<div class="blueprint pg-sheet pg-work" data-copy="work"${b&&window.docDesignBodyAttr?docDesignBodyAttr(b):''} style="padding:34px var(--s-10) 44px;max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0;${accent}">
+    /* the paper's subtitle, as the Negotiate paper prints it (one paper everywhere, 8 Oct 2026): carried as a string for the sheet's title rule to draw */
+    const sub=(typeof window.rlPaperSubText==='function')?rlPaperSubText(c):'';
+    const subVar=sub?`--doc-sub:'${String(sub).replace(/['"\\]/g,' ').replace(/[<>&]/g,' ')}';`:'';
+    return `<div class="blueprint pg-sheet pg-work" data-copy="work"${b&&window.docDesignBodyAttr?docDesignBodyAttr(b):''} style="padding:var(--doc-sheet-pad,34px var(--s-10) 44px);max-width:var(--doc-sheet-max,${DOC_PAGE_W}px);margin:0 auto;border-radius:0;${subVar}${accent}">
       <article id="${o.canvasId||'doc-canvas'}" class="doc-surface" style="background:transparent">${body}</article>
     </div>`;
   }
@@ -10755,7 +10758,7 @@ function renderWorkspace(){
              without the paper moving by a pixel. */}
       <section id="doc-paper-col" style="position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:0">
         <!-- document body (scrolls within the left pane) -->
-        <div id="doc-scroll" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:var(--s-1) 2px var(--s-6)">
+        <div id="doc-scroll" class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:var(--doc-scroll-pad,var(--s-1) 2px var(--s-6))">
           <!-- THE SHEET DOES NOT MAGNIFY (29 Aug 2026): it is capped at
                --doc-sheet-max and centres, exactly as the negotiation page's
                is, and the surplus either side is the page's own ground. The

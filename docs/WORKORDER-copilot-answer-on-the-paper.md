@@ -1,6 +1,6 @@
 # WORK ORDER — Copilot's answer on the paper, the button that glows, and one paper on Home
 
-**Status: APPROVED — NOT BUILT; Part C's look picked: Home paper (owner, 8 Oct 2026: "yes to both. Now add this to the work order … Note this but do not code yet").**
+**Status: BUILT 8 Oct 2026 (owner: "build all of them in one go and merge to main"); Part C's look picked: Home paper. Story: MAP-HISTORY "ONE PAPER EVERYWHERE, OUR ANSWERS GO BACK, COPILOT'S ANSWER ON THE PAPER". Earlier status: APPROVED — NOT BUILT (owner, 8 Oct 2026: "yes to both. Now add this to the work order … Note this but do not code yet").**
 
 **What the owner has seen:** "Ask Copilot to Redo"
 (https://claude.ai/artifact/FfgMUDhPkfMLxgVv8ZPE5j), its "Proposed · not built"

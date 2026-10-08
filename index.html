@@ -8021,6 +8021,34 @@
   .ig-red button+button{border-left:1px solid var(--color-neutral-300)}
   .ig-red button[aria-pressed="true"]{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong)}
   .ig-redpaper{background:transparent}
+  /* Clean on the same canvas: the wording that stands, no step labels (8 Oct 2026) */
+  .ig-redpaper.is-clean .rl-rung{display:none}
+  /* ---- ONE PAPER EVERYWHERE: THE HOME PAPER ON THE DOCUMENT TAB (owner, 8 Oct
+     2026, "i am choosing the home paper … No differences at all") ----
+     The Document tab's sheet, and Home's own sheet for a contract with no
+     negotiation, take Home Redlined's paper: its ground and the 29px above the
+     sheet, the 720px sheet with its padding and shadow, no corner marks, and
+     its type (title 20/600, clause headings 14/700, body 14 at 1.72, the
+     clause rhythm). The wording and every control on the Document tab are its
+     own; only the clothes match. A contract that wears a design keeps it
+     ([data-doc-body]). Sizes run on --doc-scale, so A⁻/A⁺ still scale. */
+  #doc-paper-col{background:var(--desk-ground);--doc-scroll-pad:29px 2px var(--s-6)}
+  :is(#doc-paper-col,#ig-paper){--doc-sheet-max:720px;--doc-sheet-pad:34px calc(38px + var(--s-3)) 44px}
+  :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]){box-shadow:var(--n-shadow-card,0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07))}
+  :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work .pg-corner{display:none}
+  :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface{font-size:calc(14px * var(--doc-scale,1));line-height:1.72;color:#222a33}
+  html.dark :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface{color:var(--color-doc-text)}
+  :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface h1{font-size:calc(20px * var(--doc-scale,1));
+    font-weight:var(--w-strong);letter-spacing:-.01em;line-height:1.72;margin:10px 0 13px;text-align:center}
+  :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface h1:first-of-type + :is(h2,h3,h4){margin-top:33px}
+  /* the title's subtitle and the short rule under it, as on the Negotiate paper (rl-paper-sub, rl-paper-head::after) */
+  :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface h1:first-of-type::after{content:var(--doc-sub,none);display:block;
+    margin:var(--s-2) auto 0;padding-bottom:22px;font:400 calc(13px * var(--doc-scale,1))/1.72 var(--font-doc);letter-spacing:normal;color:var(--color-doc-muted);
+    background:linear-gradient(var(--color-doc-rule),var(--color-doc-rule)) center bottom/46px 1px no-repeat}
+  :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface :is(h2,h3,h4){font-size:calc(14px * var(--doc-scale,1));
+    font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.72;margin:42px 0 0}
+  :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface p{font-size:calc(14px * var(--doc-scale,1));line-height:1.72;margin:0;color:#222a33}
+  html.dark :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]) .doc-surface p{color:var(--color-doc-text)}
   .pd-chg span{min-width:0}
   /* LIFTED TABS: each opens the same way — its name and a status pill, then bordered
      lists whose rows end in a link; the one filled button comes last */
