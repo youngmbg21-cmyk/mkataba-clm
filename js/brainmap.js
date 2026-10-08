@@ -205,6 +205,55 @@ const BRAIN_FLOWS = [
   { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
 ];
 
+/* THE LANES (Young picked "Swimlane", 8 Oct 2026, and approved its rule): the
+   Brain's fourth view draws a flow as a process map, one row per kind of
+   person and one for HaTi itself. WHO does a part is the part's own fact, so
+   every part a flow names sits in exactly one lane here. WHEN is the step's
+   fact (the bell rings in several stages of several flows), so every flow
+   step has a stage in BRAIN_FLOW_STAGES, one per step. Words: brn_lane_<k>,
+   brn_stage_<k>. f564 fails on a part in no lane, a part in two, a name that
+   is not a part, or a flow whose stages do not match its steps. */
+const BRAIN_LANES = ['req', 'own', 'hati', 'them'];
+const BRAIN_STAGES = ['ask', 'create', 'prepare', 'nego', 'approve', 'sign', 'keep'];
+const BRAIN_LANE_OF = {
+  /* a colleague: the requester, the reviewer, the contributor, the approver */
+  req: ['request', 'kinds', 'review', 'suggest', 'approvals', 'namedyes', 'decide', 'approvalpaper', 'lookask'],
+  /* the person working the contract: what they see and press */
+  own: ['upload', 'book', 'draftcard', 'overview', 'constellation', 'timemachine', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'here', 'follow',
+    'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'signtab', 'pad', 'calendar', 'desknight', 'insights', 'readings',
+    'chasemany', 'copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
+    'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'cellfold',
+    'readchips', 'nextq'],
+  /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
+  hati: ['docx', 'clauses', 'putguard', 'db', 'triage', 'arrivalowed', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
+    'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
+    'respond', 'audit', 'apply', 'wordback', 'paperdrop', 'stale', 'webhook', 'readiness', 'signgate', 'rules', 'paperjobs', 'rulestep', 'seal',
+    'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
+    'boardmoved', 'looktell', 'draftreply', 'dataguide', 'analyst', 'story', 'quote', 'passroute', 'copilotdoors', 'factsheet', 'dealfacts',
+    'boardmarks'],
+  /* the counterparty: their link, the code that proves it is them */
+  them: ['cplink', 'guestcode']
+};
+const BRAIN_FLOW_STAGES = {
+  upload: ['create', 'create', 'create', 'create', 'prepare', 'prepare', 'prepare', 'prepare', 'prepare'],
+  redline: ['nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego'],
+  round: ['nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego'],
+  sign: ['sign', 'sign', 'approve', 'approve', 'sign', 'sign', 'sign', 'keep', 'keep'],
+  night: ['keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep'],
+  ask: ['ask', 'ask', 'ask', 'ask', 'ask', 'ask']
+};
+/* KNOWN PROBLEMS: a step that does not yet do what the process needs. Each is
+   a numbered line here on the part it sits on, its words brn_pb_<n> (the short
+   label drawn on the board), brn_pb_<n>_why and brn_pb_<n>_fix in both books.
+   Fixing it takes its line off this list, and the red label goes with it.
+   Numbers are never reused. */
+const BRAIN_PROBLEMS = [
+  /* Home first, step 7 ("answering HaTi from an email reply") was agreed as
+     later on 8 Oct 2026 and is not built */
+  { n: 1, part: 'email' }
+];
+function brainLaneOf(id){ return BRAIN_LANES.find(k => BRAIN_LANE_OF[k].includes(id)) || null; }
+
 /* Where a part the catalogue does not name yet sits: the area by the file it
    lives in, the floor by where that file runs. First match wins. */
 const BRAIN_FILE_REGION = [
@@ -375,7 +424,7 @@ function brainDiff(prev, next){
   };
 }
 
-const BRAIN_API = { BRAIN_REGIONS, BRAIN_FLOORS, BRAIN_PARTS, BRAIN_FLOWS, BRAIN_FILE_REGION, BRAIN_BODY_MAX, BRAIN_DIFF_MAX,
+const BRAIN_API = { BRAIN_REGIONS, BRAIN_FLOORS, BRAIN_PARTS, BRAIN_FLOWS, BRAIN_LANES, BRAIN_STAGES, BRAIN_LANE_OF, BRAIN_FLOW_STAGES, BRAIN_PROBLEMS, brainLaneOf, BRAIN_FILE_REGION, BRAIN_BODY_MAX, BRAIN_DIFF_MAX,
   brainRegionOfFile, brainFloorOfFile, brainDefs, brainMention, brainBody, brainRead, brainKey, brainDiff };
 if (typeof window !== 'undefined') Object.assign(window, BRAIN_API);
 if (typeof module !== 'undefined' && module.exports) module.exports = BRAIN_API;

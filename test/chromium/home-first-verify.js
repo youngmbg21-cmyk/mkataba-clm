@@ -101,8 +101,16 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
       tabs[t] = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
     }
     ok('3a six contract tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
-    const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => ({ k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: b.textContent.trim(), icon: !!b.querySelector('svg use'), name: b.getAttribute('title') })));
-    ok('3a2 symbols, each named on hover; only the lit one says its name', sym.length === 7 && sym.every(s => s.icon && s.name && (s.on ? s.txt === 'History' || s.txt === 'Deal' || s.txt.length > 2 : !s.txt)) && sym.filter(s => s.on).length === 1, JSON.stringify(sym));
+    /* LIFTED (Young, 8 Oct 2026: "yes to words under the symbols"): every symbol
+       carries its word, whole — a word cut to "Docu…" is not a word */
+    const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => { const w = b.querySelector('.pd-tab-w');
+      return { k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, icon: !!b.querySelector('svg use'), name: b.getAttribute('title') }; }));
+    ok('3a2 symbols, each with its word under it, whole; one lit', sym.length === 7 && sym.every(s => s.icon && s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.txt + (s.whole ? '' : ' (cut)'))));
+    const cnt = await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd-tab[data-pd-tab="sign"] .pd-tab-n'); return { badge: b ? +b.textContent : 0, list: (signBlockers(getContract('MK-HF2')) || []).length }; });
+    ok('3a3 the count on Signing is the length of the Sign button\'s list', cnt.badge > 0 && cnt.badge === cnt.list, JSON.stringify(cnt));
+    const lifted = await page.evaluate(() => { const d = document.getElementById('ig-dock'), p = document.getElementById('ig-paper');
+      return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').backgroundColor, ground: p ? getComputedStyle(p).backgroundColor : '' }; });
+    ok('3a4 Lifted: the panel is a card of its own colour on the paper\'s ground', lifted.card !== lifted.dock && lifted.dock === lifted.ground, JSON.stringify(lifted));
     await page.click('#ig-dock [data-pd-tab="facts"]');
     const facts = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
     ok('3b Overview carries the parties', /Kabras Logistics/.test(facts), facts.slice(0, 120));

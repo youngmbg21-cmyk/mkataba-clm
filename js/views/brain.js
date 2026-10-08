@@ -440,7 +440,7 @@ function brFrame(now){
   const b = _br;
   if (!b || !b.cv || !b.cv.isConnected || (typeof state !== 'undefined' && state && state.view !== 'brain')){ if (b) b.raf = 0; return; }
   const dt = Math.min(.05, (now - b.last) / 1000); b.last = now;
-  brUpdate(dt); brDraw();
+  brUpdate(dt); if (_brView === BRAIN_LANES_VIEW) brLanesFrame(); else brDraw();
   b.raf = requestAnimationFrame(brFrame);
 }
 
@@ -526,9 +526,16 @@ function brWireCanvas(cv){
 }
 function brSetView(k){
   const b = _br; _brView = k; if (!b) return;
-  b.wFrom = b.w.slice(); b.wTo = [0, 0, 0]; b.wTo[k] = 1; b.wT = b.RM ? 1 : 0; if (b.RM) b.w = b.wTo.slice();
+  const lanes = k === BRAIN_LANES_VIEW;
+  /* the lanes are drawn over the stage; the canvas keeps the arrangement it had */
+  if (!lanes){ b.wFrom = b.w.slice(); b.wTo = [0, 0, 0]; b.wTo[k] = 1; b.wT = b.RM ? 1 : 0; if (b.RM) b.w = b.wTo.slice(); }
+  const root = document.querySelector('[data-br-root]'); if (root) root.classList.toggle('is-lanes', lanes);
+  const host = document.getElementById('br-lanes'); if (host){ host.hidden = !lanes; if (!lanes){ host.innerHTML = ''; host.dataset.key = ''; } }
   document.querySelectorAll('[data-br-view]').forEach(x => x.setAttribute('aria-pressed', String(+x.getAttribute('data-br-view') === k)));
-  const t = document.getElementById('br-ov-t'); if (t) t.textContent = _brT('brn_ov_' + BRAIN_VIEWS[k]);
+  const t = document.getElementById('br-ov-t'); if (t) t.textContent = _brT('brn_ov_' + BR_VIEW_KEYS[k]);
+  const h = document.querySelector('.br-bar .hint'); if (h) h.textContent = _brT(lanes ? 'brn_hint_lanes' : 'brn_hint');
+  if (!lanes) brPaintUpdates();
+  brPbClose();
   brPaintSteps();
 }
 
@@ -546,7 +553,8 @@ function brStepTags(st, fid, i){
     const gone = gaps.some(g => g.flow === fid && g.step === i + 1 && g.part === id);
     return '<span class="br-tag' + (gone ? ' is-gone' : '') + '"' + (gone ? ' title="' + _brEsc(_brT('brn_gap', { part: _brT('brn_p_' + id) })) + '"' : '') + '><i style="background:' + BRAIN_REG_COLOR[p.reg] + '"></i>' + _brEsc(_brT('brn_p_' + id)) + (gone ? ' · ' + _brEsc(_brT('brn_gap_tag')) : '') + '</span>'
       + (_brView === 1 ? '<span class="br-tag br-tag-code">' + _brEsc(p.code) + '</span>' : '')
-      + (_brView === 2 ? '<span class="br-tag">' + _brEsc(_brT('brn_floor_' + p.floor)) + '</span>' : '');
+      + (_brView === 2 ? '<span class="br-tag">' + _brEsc(_brT('brn_floor_' + p.floor)) + '</span>' : '')
+      + (BR_LANE_GATES[id] && !BR_LANE_GATES[id]() ? '<span class="br-tag is-off">' + _brEsc(_brT('brn_lanes_off_tag')) + '</span>' : '');
   }).join('');
 }
 function brPaintSteps(){
@@ -558,8 +566,10 @@ function brPaintSteps(){
   ol.innerHTML = f.steps.map((s, i) => {
     const cls = (pl.done || i < pl.i) ? ' is-done' : (i === pl.i ? ' is-now' : '');
     return '<li><button type="button" class="br-st' + cls + '" data-br-step="' + i + '"' + (i === pl.i && !pl.done ? ' aria-current="step"' : '') + '><span class="br-st-k">' + (i + 1) + '</span>'
-      + '<span><span class="br-st-x">' + _brEsc(_brT('brn_step_' + f.id + '_' + (i + 1))) + '</span><span class="br-tags">' + brStepTags(s, f.id, i) + '</span></span></button></li>';
+      + '<span><span class="br-st-x">' + _brEsc(_brT('brn_step_' + f.id + '_' + (i + 1))) + '</span><span class="br-tags">' + brStepTags(s, f.id, i) + '</span></span></button>'
+      + brStepProblems(s).map(pb => '<button type="button" class="br-st-pb" data-br-pb="' + pb.n + '" aria-label="' + _brEsc(_brT('brn_pb_head', { n: pb.n }) + ': ' + _brT('brn_pb_' + pb.n)) + '">! ' + _brEsc(_brT('brn_pb_' + pb.n)) + '</button>').join('') + '</li>';
   }).join('');
+  brLanesPaint();
 }
 function brPaintCap(){
   const b = _br; if (!b || !b.player.f) return;
@@ -568,6 +578,159 @@ function brPaintCap(){
   const k = document.getElementById('br-cap-k');
   if (k) k.textContent = pl.done ? _brT('brn_cap_flow_done', { flow: _brT('brn_f_' + f.id) }) : _brT('brn_cap_step', { flow: _brT('brn_f_' + f.id), i: pl.i + 1, n: f.steps.length });
   const t = document.getElementById('br-cap-t'); if (t) t.textContent = pl.done ? _brT('brn_cap_done') : _brT('brn_step_' + f.id + '_' + (pl.i + 1));
+}
+/* ---------- THE LANES: the fourth view (Young picked "Swimlane" off the
+   Brain Lanes proposal, 8 Oct 2026) ----------
+   The playing flow drawn as a process map: one row per kind of person and one
+   for HaTi (BRAIN_LANE_OF, the part's own fact), one column per step, the
+   stage over each run of columns (BRAIN_FLOW_STAGES), and the same player as
+   the other three views walking it. A box is the step; it sits in the lane of
+   the step's first part. Three colours are READ, never typed in: a gate that
+   an admin has switched off (the setting's own reader), a known problem
+   (BRAIN_PROBLEMS; its red label opens its reason), and a part the code
+   changed in the last BRAIN_NEW_DAYS (the server's own reading). SVG over the
+   stage, so the canvas sleeps while it shows. */
+const BRAIN_LANES_VIEW = 3;
+const BR_VIEW_KEYS = BRAIN_VIEWS.concat('lanes');
+/* the lane names stand in their own column that never scrolls; the steps scroll beside it */
+const BR_LN = { label: 140, top: 56, band: 26, laneMin: 88, boxH: 60, colMin: 150, foot: 78 };
+/* the admin switches a step can stand behind: on = the gate is live */
+const BR_LANE_GATES = {
+  review: () => typeof reviewGateCfg === 'function' && !!(reviewGateCfg() || {}).on,
+  desk: () => typeof deskEnforced === 'function' && !!deskEnforced(),
+  suggest: () => typeof deskEnforced === 'function' && !!deskEnforced(),
+  guestcode: () => typeof linkCodeCfg === 'function' && !!(linkCodeCfg() || {}).on
+};
+function brStepGatesOff(st){ return st.filter(id => BR_LANE_GATES[id] && !BR_LANE_GATES[id]()); }
+function brStepProblems(st){ return BRAIN_PROBLEMS.filter(p => st.includes(p.part)); }
+/* a part the code changed lately: found again, or wired anew, in a reading of the last week */
+function brStepChanged(st){
+  const builds = ((_brMap && _brMap.builds) || []).filter(u => u && u.at && (Date.now() - Date.parse(u.at)) < BRAIN_NEW_DAYS * 86400000);
+  return builds.some(u => { const d = u.diff || {}; return (d.found || []).some(id => st.includes(id)) || (d.edgesAdded || []).some(([a, c]) => st.includes(a) || st.includes(c)); });
+}
+function brLaneSay(k){ return _brT('brn_lane_' + k); }
+function brLaneWrap(s, max){
+  const out = []; let cur = '';
+  String(s).split(/\s+/).forEach(w => { if (cur && (cur + ' ' + w).length > max){ out.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w; });
+  if (cur) out.push(cur);
+  return out.length > 2 ? [out[0], out.slice(1).join(' ').slice(0, max - 1) + '…'] : out;
+}
+function brLanesHtml(f, W, H){
+  const L = Object.assign({}, BR_LN, { label: 8 }), n = f.steps.length, stages = BRAIN_FLOW_STAGES[f.id] || [];
+  const avail = W - BR_LN.label;
+  const colW = Math.max(L.colMin, Math.floor((avail - 20) / n));
+  const laneTop = L.top + L.band;
+  L.laneH = Math.max(L.laneMin, Math.floor(((H || 0) - laneTop - L.foot) / BRAIN_LANES.length));
+  const w = Math.max(avail, L.label + n * colW + 20), h = laneTop + BRAIN_LANES.length * L.laneH + L.foot;
+  const col = BRAIN_REG_COLOR[brFlowTone(f)];
+  const pos = f.steps.map((st, i) => { const lane = Math.max(0, BRAIN_LANES.indexOf(brainLaneOf(st[0]))); const x = L.label + i * colW + 12, y = laneTop + lane * L.laneH + (L.laneH - L.boxH) / 2; return { x, y, w: colW - 24, h: L.boxH, lane }; });
+  let s = '<svg class="br-ln" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" role="img" aria-label="' + _brEsc(_brT('brn_ov_lanes') + ' · ' + _brT('brn_f_' + f.id)) + '">'
+    + '<defs><marker id="br-ln-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4F8079"/></marker>'
+    + '<marker id="br-ln-ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="' + col + '"/></marker>'
+    + '<filter id="br-ln-glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+  BRAIN_LANES.forEach((k, li) => {
+    const y = laneTop + li * L.laneH;
+    s += '<rect x="0" y="' + (y + 2) + '" width="' + (w - 6) + '" height="' + (L.laneH - 4) + '" rx="8" fill="' + (li % 2 ? 'rgba(255,255,255,.018)' : 'rgba(255,255,255,.04)') + '" stroke="rgba(160,220,210,.10)"/>';
+  });
+  /* the stage over each run of columns */
+  for (let i = 0; i < n;){
+    let j = i; while (j + 1 < n && stages[j + 1] === stages[i]) j++;
+    const x0 = L.label + i * colW, x1 = L.label + (j + 1) * colW;
+    s += '<text x="' + ((x0 + x1) / 2) + '" y="' + (L.top + 16) + '" text-anchor="middle" class="br-ln-stage">' + _brEsc(_brT('brn_stage_' + (stages[i] || 'nego')).toUpperCase()) + '</text>';
+    if (i) s += '<line x1="' + x0 + '" y1="' + (L.top + 4) + '" x2="' + x0 + '" y2="' + (h - L.foot + 4) + '" stroke="rgba(160,220,210,.16)" stroke-dasharray="2 4"/>';
+    i = j + 1;
+  }
+  /* the hand-offs: an elbow from each step to the next */
+  for (let i = 1; i < n; i++){
+    const a = pos[i - 1], c = pos[i], sx = a.x + a.w, sy = a.y + a.h / 2, ex = c.x, ey = c.y + c.h / 2, mx = (sx + ex) / 2;
+    const d = sy === ey ? 'M' + sx + ',' + sy + ' L' + ex + ',' + ey : 'M' + sx + ',' + sy + ' L' + mx + ',' + sy + ' L' + mx + ',' + ey + ' L' + ex + ',' + ey;
+    s += '<path id="br-le-' + i + '" class="br-le" d="' + d + '" fill="none" stroke="#2F5A54" stroke-width="1.5" marker-end="url(#br-ln-ah)"/>';
+  }
+  f.steps.forEach((st, i) => {
+    const p = pos[i], lane = BRAIN_LANES[p.lane], pbs = brStepProblems(st), off = brStepGatesOff(st), chg = brStepChanged(st);
+    const kind = pbs.length ? 'pb' : off.length ? 'gate' : lane === 'hati' ? 'hati' : 'person';
+    const title = brLaneWrap(_brT('brn_p_' + st[0]), Math.max(14, Math.floor(p.w / 7.4)));
+    const sub = off.length ? _brT('brn_lanes_off') : st.length > 1 ? _brT('brn_lanes_more', { name: _brT('brn_p_' + st[1]), n: st.length - 1 }) : '';
+    const ty = p.y + p.h / 2 - (title.length * 15 + (sub ? 13 : 0)) / 2 + 12;
+    s += '<g class="br-lb is-' + kind + '" data-br-step="' + i + '" tabindex="0" role="button" aria-label="' + _brEsc((i + 1) + '. ' + _brT('brn_step_' + f.id + '_' + (i + 1))) + '">'
+      + '<rect class="br-lb-r" x="' + p.x + '" y="' + p.y + '" width="' + p.w + '" height="' + p.h + '" rx="6"/>'
+      + '<text x="' + (p.x + 8) + '" y="' + (p.y + 13) + '" class="br-lb-n">' + (i + 1) + '</text>'
+      + title.map((t, j) => '<text x="' + (p.x + p.w / 2) + '" y="' + (ty + j * 15) + '" text-anchor="middle" class="br-lb-t">' + _brEsc(t) + '</text>').join('')
+      + (sub ? '<text x="' + (p.x + p.w / 2) + '" y="' + (ty + title.length * 15) + '" text-anchor="middle" class="br-lb-s">' + _brEsc(brLaneWrap(sub, Math.floor(p.w / 6.2))[0]) + '</text>' : '')
+      + (chg ? '<circle cx="' + (p.x + p.w - 6) + '" cy="' + (p.y + 6) + '" r="4" fill="' + BRAIN_GOLD + '"><title>' + _brEsc(_brT('brn_lanes_new')) + '</title></circle>' : '')
+      + '</g>';
+    pbs.forEach((pb, k) => {
+      const label = _brT('brn_pb_' + pb.n), lw = Math.min(p.w + 16, Math.round(label.length * 6.3 + 30)), cx = p.x + p.w / 2, y = p.y + p.h - 4 + k * 22;
+      s += '<g class="br-lpb" data-br-pb="' + pb.n + '" tabindex="0" role="button" aria-label="' + _brEsc(_brT('brn_pb_head', { n: pb.n }) + ': ' + label) + '">'
+        + '<rect x="' + (cx - lw / 2) + '" y="' + y + '" width="' + lw + '" height="19" rx="9.5"/>'
+        + '<text x="' + cx + '" y="' + (y + 13.3) + '" text-anchor="middle">! ' + _brEsc(label) + '</text></g>';
+    });
+  });
+  s += '<g id="br-ldot" style="pointer-events:none"><circle r="8" fill="' + col + '" filter="url(#br-ln-glow)"/><circle r="3" fill="#fff"/></g>';
+  /* the names column, level with the lanes it names */
+  const names = BRAIN_LANES.map((k, li) => '<div class="br-ln-lane" style="top:' + (laneTop + li * L.laneH + 2) + 'px;height:' + (L.laneH - 4) + 'px">' + _brEsc(brLaneSay(k)) + '</div>').join('');
+  return { html: s + '</svg>', names, pos };
+}
+/* the sub-title says what the board draws: the same counts the boxes carry */
+function brLanesSub(f){
+  const s = document.getElementById('br-ov-s'); if (!s || !f) return;
+  const pb = f.steps.reduce((k, st) => k + brStepProblems(st).length, 0), off = f.steps.filter(st => brStepGatesOff(st).length).length;
+  s.textContent = _brT('brn_lanes_sub', { n: f.steps.length, p: pb, g: off });
+}
+function brLanesPaint(){
+  const b = _br, host = document.getElementById('br-lanes');
+  if (!b || !host || _brView !== BRAIN_LANES_VIEW || !b.player.f) return;
+  const f = b.player.f, W = host.clientWidth || b.W || 900, H = host.clientHeight || b.H || 600, key = f.id + ':' + Math.round(W / 40) + ':' + Math.round(H / 40);
+  if (host.dataset.key !== key){
+    const r = brLanesHtml(f, W, H);
+    host.innerHTML = '<div class="br-ln-names">' + r.names + '</div><div class="br-ln-scroll" id="br-ln-scroll">' + r.html + '</div>';
+    host.dataset.key = key; b.lanePos = r.pos; b.laneAt = -1; brLanesSub(f);
+  }
+  const pl = b.player;
+  /* the board follows the light: the step being played is brought into view once, when it starts */
+  const sc = document.getElementById('br-ln-scroll'), q = b.lanePos[Math.max(0, pl.i)];
+  if (sc && q && b.laneAt !== pl.i){
+    b.laneAt = pl.i;
+    if (q.x < sc.scrollLeft + 20 || q.x + q.w > sc.scrollLeft + sc.clientWidth - 20)
+      sc.scrollTo({ left: Math.max(0, q.x - sc.clientWidth / 3), behavior: b.RM ? 'auto' : 'smooth' });
+  }
+  host.querySelectorAll('.br-lb').forEach(g => { const i = +g.getAttribute('data-br-step'); g.classList.toggle('is-now', !pl.done && i === pl.i); g.classList.toggle('is-done', pl.done || i < pl.i); });
+  host.querySelectorAll('.br-le').forEach(p => { const i = +p.id.slice(6); const on = pl.done || i <= pl.i; p.setAttribute('stroke', on ? BRAIN_REG_COLOR[brFlowTone(f)] : '#2F5A54'); p.setAttribute('marker-end', on ? 'url(#br-ln-ah2)' : 'url(#br-ln-ah)'); p.setAttribute('stroke-opacity', on ? '.9' : '1'); });
+  brLanesFrame();
+}
+/* the light travels the hand-off into the step being played, as the pulses do in the other views */
+function brLanesFrame(){
+  const b = _br, dot = document.getElementById('br-ldot'); if (!b || !dot || !b.lanePos) return;
+  const pl = b.player, i = Math.max(0, pl.i);
+  const at = q => [q.x, q.y + q.h / 2];
+  let x, y;
+  const path = i > 0 ? document.getElementById('br-le-' + i) : null;
+  const u = (pl.done || b.RM) ? 1 : Math.min(1, pl.t / BRAIN_PULSE_S);
+  if (path && u < 1 && path.getTotalLength){ const L = path.getTotalLength(), q = path.getPointAtLength(L * u); x = q.x; y = q.y; }
+  else if (b.lanePos[i]) [x, y] = at(b.lanePos[i]);
+  if (x != null) dot.setAttribute('transform', 'translate(' + x + ',' + y + ')');
+}
+/* a known problem's reason, beside the label that was pressed */
+function brPbOpen(n, from){
+  const pb = BRAIN_PROBLEMS.find(x => x.n === n); const box = document.getElementById('br-pbpop'); if (!pb || !box) return;
+  const p = BRAIN_PARTS.find(x => x.id === pb.part);
+  box.innerHTML = '<div class="br-pb-h"><span class="br-pb-k">' + _brEsc(_brT('brn_pb_head', { n })) + '</span><button type="button" class="br-pb-x" data-br-pbx="1" aria-label="' + _brEsc(_brT('brn_pb_close')) + '">×</button></div>'
+    + '<b>' + _brEsc(_brT('brn_pb_' + n)) + '</b>'
+    + '<div class="br-pb-w">' + _brEsc((p ? _brT('brn_p_' + p.id) : '') + (p ? ' · ' + brLaneSay(brainLaneOf(p.id) || 'hati') : '')) + '</div>'
+    + '<div class="br-pb-c">' + _brEsc(_brT('brn_pb_why')) + '</div><p>' + _brEsc(_brT('brn_pb_' + n + '_why')) + '</p>'
+    + '<div class="br-pb-c">' + _brEsc(_brT('brn_pb_fix')) + '</div><p>' + _brEsc(_brT('brn_pb_' + n + '_fix')) + '</p>';
+  box.hidden = false; box._from = from || null;
+  const r = from && from.getBoundingClientRect ? from.getBoundingClientRect() : { left: innerWidth / 2, right: innerWidth / 2, top: innerHeight / 2, bottom: innerHeight / 2, width: 0 };
+  const bw = box.offsetWidth, bh = box.offsetHeight;
+  const left = Math.min(Math.max(12, r.left + r.width / 2 - bw / 2), innerWidth - bw - 12);
+  let top = r.bottom + 8; if (top + bh > innerHeight - 12) top = Math.max(12, r.top - bh - 8);
+  box.style.left = left + 'px'; box.style.top = top + 'px';
+  const x = box.querySelector('[data-br-pbx]'); if (x) x.focus();
+}
+function brPbClose(back){
+  const box = document.getElementById('br-pbpop'); if (!box || box.hidden) return false;
+  box.hidden = true; if (back && box._from && box._from.focus) try { box._from.focus(); } catch (_){}
+  return true;
 }
 const BR_IC_PLAY = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.5 3v10l8-5z"/></svg>';
 const BR_IC_PAUSE = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4" y="3" width="3" height="10"/><rect x="9" y="3" width="3" height="10"/></svg>';
@@ -601,7 +764,8 @@ function brPaintUpdates(){
   const s = document.getElementById('br-ov-s');
   if (s && b){
     const top = _brMap && _brMap.builds && _brMap.builds[0];
-    s.textContent = top ? _brT('brn_counts_read', { n: b.S.P.length.toLocaleString(), p: b.S.hubs.length, build: brUpdName(top) }) : _brT('brn_counts', { n: b.S.P.length.toLocaleString(), p: b.S.hubs.length });
+    if (_brView === BRAIN_LANES_VIEW) brLanesSub(b.player.f);
+    else s.textContent = top ? _brT('brn_counts_read', { n: b.S.P.length.toLocaleString(), p: b.S.hubs.length, build: brUpdName(top) }) : _brT('brn_counts', { n: b.S.P.length.toLocaleString(), p: b.S.hubs.length });
   }
 }
 /* Ask the server what the code says. Once per sitting; the new parts join the
@@ -712,6 +876,46 @@ function brEnsureCss(){
     '.br-upd b{font-size:13.5px;font-weight:600;color:var(--color-text)}',
     '.br-upd-2{font-size:12px;color:var(--color-neutral-600)}',
     '.br-upd-note,.br-pfoot{font-size:12px;color:var(--color-neutral-500);margin:8px 0 0}',
+    /* THE LANES (8 Oct 2026): drawn over the stage; the canvas and its turn and zoom step aside */
+    '.br-lanes{position:absolute;inset:0;overflow:hidden;background:radial-gradient(ellipse at 40% 30%,#0B312C 0%,#05201D 50%,#021011 100%)}',
+    '.br-lanes[hidden]{display:none}',
+    '.br-root.is-lanes .br-stage canvas,.br-root.is-lanes #br-rot,.br-root.is-lanes .br-zoom,.br-root.is-lanes .br-tip{display:none}',
+    '.br-ln{display:block;font-family:Geist,"IBM Plex Sans",system-ui,sans-serif}',
+    '.br-ln-names{position:absolute;left:0;top:0;bottom:0;width:' + BR_LN.label + 'px;pointer-events:none;z-index:1}',
+    '.br-ln-names .br-ln-lane{position:absolute;left:8px;right:0;display:flex;align-items:center;justify-content:flex-end;text-align:right;color:#CFE1DD;font-size:12.5px;font-weight:500;line-height:1.3;border-radius:8px 0 0 8px;background:rgba(255,255,255,.03);padding:0 12px 0 6px}',
+    '.br-ln-scroll{position:absolute;left:' + BR_LN.label + 'px;right:0;top:0;bottom:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:rgba(160,220,210,.25) transparent}',
+    '.br-ln-stage{fill:#8FB3AC;font-size:10.5px;letter-spacing:.1em}',
+    '.br-lb{cursor:pointer;outline:none}',
+    '.br-lb .br-lb-r{fill:rgba(255,255,255,.05);stroke:#3B5F5A;stroke-width:1.3;transition:stroke .2s,opacity .2s}',
+    '.br-lb.is-hati .br-lb-r{fill:#0C3A34;stroke:#2BA897}',
+    '.br-lb.is-gate .br-lb-r{fill:rgba(232,163,23,.12);stroke:#E8A317;stroke-dasharray:5 3}',
+    '.br-lb.is-pb .br-lb-r{fill:rgba(217,69,59,.16);stroke:#D9453B}',
+    '.br-lb-t{fill:#EAF2F0;font-size:12.5px;font-weight:600}',
+    '.br-lb-s{fill:#9FC2BB;font-size:11px}',
+    '.br-lb.is-gate .br-lb-s{fill:#EBAD46}',
+    '.br-lb-n{fill:#7FA59E;font-size:10.5px;font-family:"Geist Mono",ui-monospace,monospace}',
+    '.br-lb:not(.is-now):not(.is-done){opacity:.62}',
+    '.br-lb.is-now .br-lb-r{stroke:#F2F7F6;stroke-width:2.4;filter:drop-shadow(0 0 8px rgba(127,211,198,.55))}',
+    '.br-lb:hover .br-lb-r,.br-lb:focus-visible .br-lb-r{stroke:#F2F7F6}',
+    '.br-lpb{cursor:pointer;outline:none}',
+    '.br-lpb rect{fill:#D9453B;stroke:#021011;stroke-width:2}',
+    '.br-lpb text{fill:#fff;font-size:11px;font-weight:600}',
+    '.br-lpb:hover rect,.br-lpb:focus-visible rect{fill:#E8584E;stroke:#fff}',
+    '.br-tag.is-off{border-color:var(--st-amber-line);color:var(--st-amber-fg);background:var(--st-amber-bg)}',
+    '.br-st-pb{all:unset;box-sizing:border-box;cursor:pointer;margin:2px 0 6px 38px;display:inline-flex;align-items:center;height:20px;padding:0 9px;border-radius:999px;background:var(--st-ruby-dot);color:#fff;font-size:11.5px;font-weight:600;white-space:nowrap}',
+    '.br-st-pb:hover{filter:brightness(1.1)}',
+    '.br-st-pb:focus-visible{outline:2px solid var(--accent-fill);outline-offset:2px}',
+    '.br-pbpop{position:fixed;z-index:60;width:min(340px,calc(100vw - 24px));background:var(--color-surface);color:var(--color-text);border:1px solid var(--st-ruby-line);border-radius:var(--radius-lg,8px);box-shadow:var(--shadow-lg);padding:12px 14px;display:flex;flex-direction:column;gap:5px}',
+    '.br-pbpop[hidden]{display:none}',
+    '.br-pbpop b{font-size:15px;font-weight:600}',
+    '.br-pbpop p{margin:0;font-size:13px;color:var(--color-neutral-700)}',
+    '.br-pb-h{display:flex;justify-content:space-between;align-items:center}',
+    '.br-pb-k{font-family:var(--font-mono);font-size:11.5px;color:var(--st-ruby-fg);background:var(--st-ruby-bg);border-radius:var(--radius,4px);padding:1px 7px}',
+    '.br-pb-x{all:unset;cursor:pointer;width:24px;height:24px;display:grid;place-items:center;border-radius:var(--radius,4px);color:var(--color-neutral-600);font-size:16px}',
+    '.br-pb-x:hover{background:var(--color-bg)}',
+    '.br-pb-x:focus-visible{outline:2px solid var(--accent-fill)}',
+    '.br-pb-w{font-size:12px;color:var(--color-neutral-600)}',
+    '.br-pb-c{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--cap-ink,var(--color-neutral-600));margin-top:6px}',
     '@media (max-width:1100px){.br-root{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;height:auto;min-height:var(--view-h)}.br-stagecard{height:calc(var(--view-h) - 24px)}.br-panel{height:auto;min-height:0;max-height:70vh}}',
     '@media (max-width:760px){.br-bar .hint{display:none}.br-seg kbd{display:none}.br-cap-in{max-width:none}}'
   ].join('\n');
@@ -727,18 +931,19 @@ function renderBrainPage(){
     + '<div class="br-stagecard">'
     + '<div class="br-stage" id="br-stage">'
     + '<canvas id="br-cv" aria-label="' + _brEsc(_brT('brn_aria')) + '"></canvas>'
+    + '<div class="br-lanes" id="br-lanes" hidden></div>'
     + '<div class="br-ov-tl"><div class="t" id="br-ov-t"></div><div class="s" id="br-ov-s"></div></div>'
     + '<div class="br-ov-tr"><button class="br-chip" id="br-chip-new" type="button" hidden><i></i><span></span></button></div>'
     + '<div class="br-cap"><div class="br-cap-in"><div class="br-cap-k"><i id="br-cap-dot"></i><span id="br-cap-k"></span></div><div class="br-cap-t" id="br-cap-t"></div></div></div>'
     + '<div class="br-tip" id="br-tip" hidden></div>'
     + '</div>'
     + '<div class="br-bar">'
-    + '<div class="br-seg" role="group" aria-label="' + _brEsc(_brT('brn_view_group')) + '">' + BRAIN_VIEWS.map((v, i) => '<button type="button" data-br-view="' + i + '" aria-pressed="false">' + _brEsc(_brT('brn_view_' + v)) + ' <kbd>' + (i + 1) + '</kbd></button>').join('') + '</div>'
+    + '<div class="br-seg" role="group" aria-label="' + _brEsc(_brT('brn_view_group')) + '">' + BR_VIEW_KEYS.map((v, i) => '<button type="button" data-br-view="' + i + '" aria-pressed="false">' + _brEsc(_brT('brn_view_' + v)) + ' <kbd>' + (i + 1) + '</kbd></button>').join('') + '</div>'
     + '<button class="br-btn" id="br-play" type="button"></button>'
     + '<button class="br-btn" id="br-replay" type="button"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 8a5 5 0 1 0 1.5-3.5M3 2.5V5h2.5"/></svg>' + _brEsc(_brT('brn_replay')) + '</button>'
     + '<div class="br-seg is-mono" role="group" aria-label="' + _brEsc(_brT('brn_speed')) + '">' + [.5, 1, 2].map(s => '<button type="button" data-br-speed="' + s + '">' + s + '×</button>').join('') + '</div>'
     + '<button class="br-btn" id="br-rot" type="button"></button>'
-    + '<div class="br-seg is-mono" role="group" aria-label="' + _brEsc(_brT('brn_zoom_label')) + '"><button type="button" id="br-zout" aria-label="' + _brEsc(_brT('brn_zoom_out')) + '">−</button><button type="button" id="br-zfit" title="' + _brEsc(_brT('brn_zoom_fit')) + '">100%</button><button type="button" id="br-zin" aria-label="' + _brEsc(_brT('brn_zoom_in')) + '">+</button></div>'
+    + '<div class="br-seg is-mono br-zoom" role="group" aria-label="' + _brEsc(_brT('brn_zoom_label')) + '"><button type="button" id="br-zout" aria-label="' + _brEsc(_brT('brn_zoom_out')) + '">−</button><button type="button" id="br-zfit" title="' + _brEsc(_brT('brn_zoom_fit')) + '">100%</button><button type="button" id="br-zin" aria-label="' + _brEsc(_brT('brn_zoom_in')) + '">+</button></div>'
     + '<span class="sp"></span><span class="hint">' + _brEsc(_brT('brn_hint')) + '</span>'
     + '</div></div>'
     + '<aside class="br-panel" id="br-panel">'
@@ -746,7 +951,8 @@ function renderBrainPage(){
     + '<div class="br-psec"><div class="br-fh"><h2 id="br-fl-title"></h2><span id="br-fl-count"></span></div><p class="br-flead" id="br-fl-lead"></p><ol class="br-steps" id="br-steps"></ol></div>'
     + '<div class="br-psec" id="br-upd-sec"><div class="br-ph" title="' + _brEsc(_brT('brn_updates_title')) + '"><h3>' + _brEsc(_brT('brn_updates')) + '</h3><span>' + _brEsc(_brT('brn_updates_sub')) + '</span></div>'
     + '<div class="br-upds" id="br-upds"></div><p class="br-pfoot">' + _brEsc(_brT('brn_upd_foot')) + '</p></div>'
-    + '</aside></div>';
+    + '</aside>'
+    + '<div class="br-pbpop" id="br-pbpop" role="dialog" aria-label="' + _brEsc(_brT('brn_pb_dialog')) + '" hidden></div></div>';
 
   const prevView = _brView;
   _br = brFresh();
@@ -758,7 +964,7 @@ function renderBrainPage(){
   if (typeof ResizeObserver === 'function') new ResizeObserver(fit).observe(stage);
   brWireCanvas(b.cv);
   brWirePage(host.querySelector('[data-br-root]'));
-  b.w = [0, 0, 0]; b.w[prevView] = 1; b.wFrom = b.w.slice(); b.wTo = b.w.slice();
+  b.w = [0, 0, 0]; b.w[prevView < BRAIN_LANES_VIEW ? prevView : 0] = 1; b.wFrom = b.w.slice(); b.wTo = b.w.slice();
   brSetView(prevView);
   brPaintRot(); brPaintSpeed(); brPaintZoom(); brPaintUpdates();
   brPlayFlow(BRAIN_FLOWS[0]);
@@ -772,6 +978,10 @@ function brWirePage(root){
   root.dataset.brBound = '1';
   root.addEventListener('click', ev => {
     const t = ev.target && ev.target.closest ? ev.target : null; if (!t || !_br) return;
+    const pb = t.closest('[data-br-pb]'); if (pb){ ev.stopPropagation(); brPbOpen(+pb.getAttribute('data-br-pb'), pb); return; }
+    if (t.closest('[data-br-pbx]')){ brPbClose(true); return; }
+    if (t.closest('#br-pbpop')) return;
+    brPbClose();
     const v = t.closest('[data-br-view]'); if (v){ brSetView(+v.getAttribute('data-br-view')); return; }
     const fl = t.closest('[data-br-flow]'); if (fl){ const f = BRAIN_FLOWS.find(x => x.id === fl.getAttribute('data-br-flow')); if (f) brPlayFlow(f); return; }
     const st = t.closest('[data-br-step]'); if (st){ if (_br.player.f) brPlayFlow(_br.player.f, +st.getAttribute('data-br-step')); return; }
@@ -796,10 +1006,14 @@ function brKeys(e){
   if (!_br || typeof state === 'undefined' || !state || state.view !== 'brain') return;
   if (e.target && e.target.closest && e.target.closest('input,textarea,select,[contenteditable="true"]')) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
-  const k = e.key;
-  if (k === '1' || k === '2' || k === '3') brSetView(+k - 1);
-  else if (k === 'ArrowRight'){ brSetView((_brView + 1) % 3); e.preventDefault(); }
-  else if (k === 'ArrowLeft'){ brSetView((_brView + 2) % 3); e.preventDefault(); }
+  const k = e.key, nv = BR_VIEW_KEYS.length;
+  if (k === 'Escape' && brPbClose(true)){ e.preventDefault(); return; }
+  /* a box or a red label on the lanes is pressed by Enter or Space too */
+  const g = e.target && e.target.closest ? e.target.closest('.br-lb,.br-lpb') : null;
+  if (g && (k === 'Enter' || k === ' ')){ e.preventDefault(); g.dispatchEvent(new MouseEvent('click', { bubbles: true })); return; }
+  if (k >= '1' && k <= String(nv)) brSetView(+k - 1);
+  else if (k === 'ArrowRight'){ brSetView((_brView + 1) % nv); e.preventDefault(); }
+  else if (k === 'ArrowLeft'){ brSetView((_brView + nv - 1) % nv); e.preventDefault(); }
   else if (k === '+' || k === '='){ brZoomAt(1.25, _br.W / 2, _br.H * _br.CY); }
   else if (k === '-'){ brZoomAt(1 / 1.25, _br.W / 2, _br.H * _br.CY); }
   else if (k === '0'){ brZoomReset(); }
@@ -808,4 +1022,5 @@ function brKeys(e){
 if (typeof document !== 'undefined' && !document._brKeysWired){ document._brKeysWired = true; document.addEventListener('keydown', brKeys); }
 
 Object.assign(window, { renderBrainPage, brPendingParts, brBuild, brUpdWhat, brUpdTitle, brUpdatesHtml, brLoadMap, brSetView, brPlayFlow, brShowUpdate,
-  BRAIN_REG_COLOR, BRAIN_NEW_DAYS, BRAIN_PENDING_MAX, BRAIN_STEP_S });
+  BRAIN_REG_COLOR, BRAIN_NEW_DAYS, BRAIN_PENDING_MAX, BRAIN_STEP_S,
+  BRAIN_LANES_VIEW, BR_VIEW_KEYS, BR_LANE_GATES, brStepGatesOff, brStepProblems, brStepChanged, brLanesHtml, brLanesPaint, brLanesSub, brPbOpen, brPbClose });

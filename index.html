@@ -287,6 +287,8 @@
        changes a colour on screen, so each one is a decision somebody has to
        look at. */
     --surface-2:#EEF2F0;
+    /* the ground the Paper's lifted panel stands on (Lifted, 8 Oct 2026) */
+    --desk-ground:var(--surface-2);
     --surface-3:#ffffff;
     /* THE COPILOT'S CONVERSATION AREA IS ITS OWN SURFACE. It was --color-bg,
        which is the PAGE's background — so the panel's feed was painted the
@@ -963,6 +965,7 @@
        lighter one, which is the opposite of daylight and is why these are two
        tokens rather than one with an alpha. */
     --surface-2:#1B2221;
+    --desk-ground:var(--color-bg);
     --surface-3:#212A28;
     /* Dark had the same fault and worse: page and feed were both #020617, the
        darkest tone in the theme, so the panel simply merged with the page.
@@ -7933,7 +7936,7 @@
   .ig-pick-row .q{grid-column:2;font-size:var(--t-meta);color:var(--color-neutral-600)}
   /* COPILOT PREPARES, YOU PRESS (7 Oct 2026): the @ / # list over the ask box,
      and the card an act answers with. */
-  #ig-dock{position:relative}
+  #ig-dock{position:relative;background:var(--color-bg);border-left:1px solid var(--color-neutral-300);box-shadow:-10px 0 28px -20px rgba(43,43,45,.35)}
   /* THE FOLDED PANEL IS A DOOR THAT LOOKS LIKE ONE (8 Oct 2026): tinted, the mark in the accent, "Ask Copilot" readable top to bottom */
   #ig-dock .igd-door{height:100%;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:14px;background:var(--color-accent-50);border:0;border-left:1px solid var(--color-accent-100);color:var(--accent-ink);cursor:pointer;transition:background var(--dur-2)}
   #ig-dock .igd-door:hover{background:var(--color-accent-100)}
@@ -7966,12 +7969,28 @@
   #ig-dock .ig-ref-go:hover{text-decoration-color:var(--accent-ink)}
   .ig-walk{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:none;margin-right:8px;font-size:12.5px}
   .ig-walk b{font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
-  /* HEADER ICONS (8 Oct 2026): the panel's title row is its tabs; the lit one says its name */
+  /* HEADER ICONS (8 Oct 2026), LIFTED the same day (Young: "yes to words under the symbols"):
+     the title row is the panel's tabs; every symbol carries its word under it and, where
+     work waits, the count of the list behind it; the lit one is underlined in the bar's colour */
   .pd-tabs{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid var(--color-neutral-200);flex:none}
-  .pd-tab{border:0;background:none;height:var(--ctl-h,28px);min-width:var(--ctl-h,28px);padding:0 6px;color:var(--color-neutral-600);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius);white-space:nowrap;flex:none}
+  .pd-tab{border:0;background:none;flex:1 1 auto;min-width:0;max-width:80px;padding:5px 1px 4px;color:var(--color-neutral-700);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:var(--radius);position:relative}
   .pd-tab:hover{color:var(--color-text);background:var(--color-accent-50)}
-  .pd-tab.on{color:var(--accent-ink);background:var(--color-accent-50);padding:0 9px 0 7px}
-  .pd-tab-w{font-size:12px;font-weight:var(--w-strong)}
+  .pd-tab:focus-visible{outline:2px solid var(--accent-ink);outline-offset:-2px}
+  .pd-tab.on{color:var(--accent-ink)}
+  .pd-tab.on::after{content:"";position:absolute;left:16%;right:16%;bottom:-7px;height:2px;border-radius:2px;background:var(--nav-bg)}
+  .pd-tab-i{position:relative;display:grid;place-items:center;width:22px;height:22px}
+  .pd-tab-w{font-size:10px;letter-spacing:-.01em;font-weight:var(--w-label);line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pd-tab.on .pd-tab-w{font-weight:var(--w-strong)}
+  .pd-tab-n{position:absolute;top:-6px;left:13px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;font-size:10px;font-weight:700;line-height:16px;text-align:center;border:2px solid var(--color-surface)}
+  .pd-tab-n.is-warn{background:var(--st-amber-dot);color:#fff}
+  .pd-tab-n.is-quiet{background:var(--color-neutral-200);color:var(--color-neutral-700)}
+  /* LIFTED: on Home's Paper the panel is a card lifted off a soft ground, so it never
+     blends into the page. Its width is the panel's own; the paper keeps every pixel. */
+  body:has(#ig-dock > .igd-head[data-pd-head="paper"]) .ig-paper{background:var(--desk-ground)}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"]){background:var(--desk-ground);border-left:0;box-shadow:none;padding:10px 10px 10px 2px}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"])::before{content:"";position:absolute;inset:10px 10px 10px 2px;background:var(--color-surface);border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);pointer-events:none}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"]) > *{position:relative;z-index:1}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{padding:8px 4px 6px;gap:0}
   /* CHASE MANY AT ONCE (8 Oct 2026): a ticked list over the late promises' work */
   .hb-cm{border:1px solid var(--hb-line,var(--color-neutral-200));border-radius:var(--radius-lg);padding:10px 12px;margin:0 0 10px;display:grid;gap:4px}
   .hb-cm-h{font-weight:var(--w-strong);font-size:12.5px;margin-bottom:2px}
@@ -7986,26 +8005,56 @@
   .ig-red button[aria-pressed="true"]{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong)}
   .ig-redpaper{background:transparent}
   .pd-chg span{min-width:0}
-  .pd-body{padding:12px 14px 20px;overflow:auto;font-size:12.5px;flex:1;min-height:0}
-  .pd-h{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--cap-ink);margin:14px 0 6px}
-  .pd-h:first-child{margin-top:0}
-  .pd-kv{display:grid;grid-template-columns:96px 1fr;gap:6px 10px;margin:0}
-  .pd-kv dt{color:var(--cap-ink)} .pd-kv dd{margin:0;font-weight:var(--w-strong);min-width:0;overflow-wrap:anywhere}
-  .pd-party{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--color-neutral-200)}
-  .pd-party i{width:24px;height:24px;flex:none;border-radius:999px;display:grid;place-items:center;font-style:normal;font-size:10.5px;font-weight:700;background:var(--color-accent-50);color:var(--accent-ink)}
-  .pd-party small,.pd-row small,.pd-ev small,.pd-ob small{display:block;color:var(--cap-ink);font-size:11.5px}
-  .pd-row{display:grid;grid-template-columns:16px 1fr auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--color-neutral-200)}
-  .pd-row i{font-style:normal;font-weight:700;text-align:center}
-  .pd-row i.is-warn{color:var(--st-amber-fg)} .pd-row i.is-ok{color:var(--st-green-fg)}
+  /* LIFTED TABS: each opens the same way — its name and a status pill, then bordered
+     lists whose rows end in a link; the one filled button comes last */
+  .pd-body{padding:16px 16px 20px;overflow:auto;font-size:12.5px;flex:1;min-height:0}
+  .pd-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px}
+  .pd-top h3{margin:0;font-size:16px;font-weight:var(--w-title);color:var(--color-text);min-width:0}
+  .pd-pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:var(--w-label);white-space:nowrap;flex:none}
+  .pd-pill i{width:6px;height:6px;border-radius:50%}
+  .pd-pill.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg)} .pd-pill.is-warn i{background:var(--st-amber-dot)}
+  .pd-pill.is-ok{background:var(--st-green-bg);color:var(--st-green-fg)} .pd-pill.is-ok i{background:var(--st-green-dot)}
+  .pd-pill.is-quiet{background:var(--st-gray-bg);color:var(--st-gray-fg)} .pd-pill.is-quiet i{background:var(--st-gray-dot)}
+  .pd-h{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--cap-ink);margin:18px 0 7px}
+  .pd-h:first-child,.pd-top+.pd-h{margin-top:0}
+  .pd-list{border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);overflow:hidden;background:var(--color-surface)}
+  .pd-list>.pd-row,.pd-list>.pd-ob{padding:10px 12px;border-bottom:1px solid var(--color-neutral-200)}
+  .pd-list>:last-child{border-bottom:0}
+  .pd-row{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-neutral-200)}
+  .pd-row>span:not(.pd-row-acts){font-weight:var(--w-label);color:var(--color-text);line-height:1.4;min-width:0;overflow-wrap:anywhere}
+  .pd-row i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:700;font-size:12px;background:var(--st-gray-bg);color:var(--st-gray-fg)}
+  .pd-row i.is-warn{background:var(--st-amber-bg);color:var(--st-amber-fg)} .pd-row i.is-ok{background:var(--st-green-bg);color:var(--st-green-fg)}
   .pd-row-acts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+  .pd-party small,.pd-row small,.pd-ev small,.pd-ob small{display:block;color:var(--cap-ink);font-size:11.5px;font-weight:400}
+  .pd-go{border:0;background:none;color:var(--accent-ink);font-weight:var(--w-label);font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:4px 6px;border-radius:var(--radius);white-space:nowrap}
+  .pd-go:hover{background:var(--color-accent-50)}
+  .pd-go:focus-visible{outline:2px solid var(--accent-ink);outline-offset:1px}
+  .pd-parties{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+  .pd-party{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);background:var(--color-surface);min-width:0}
+  .pd-party i{width:30px;height:30px;flex:none;border-radius:999px;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700;background:var(--color-accent-50);color:var(--accent-ink)}
+  .pd-party span{font-weight:var(--w-strong);min-width:0;overflow-wrap:anywhere;line-height:1.3}
+  .pd-kv{display:grid;grid-template-columns:1fr 1fr;margin:0;border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);overflow:hidden;background:var(--color-surface)}
+  .pd-kv>div{padding:9px 12px;border-bottom:1px solid var(--color-neutral-200);margin-bottom:-1px;min-width:0}
+  .pd-kv>div:nth-child(odd){border-right:1px solid var(--color-neutral-200)}
+  .pd-kv dt{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--cap-ink)}
+  .pd-kv dd{margin:2px 0 0;font-weight:var(--w-strong);min-width:0;overflow-wrap:anywhere}
   .pd-ob{padding:8px 0;border-bottom:1px solid var(--color-neutral-200)}
-  .pd-ob-h{display:flex;align-items:flex-start;gap:6px}
+  .pd-ob-h{display:flex;align-items:flex-start;gap:8px}
+  .pd-ob-h b{font-weight:var(--w-strong);line-height:1.4}
+  .pd-ob>small{margin:3px 0 0}
   .pd-tag{flex:none;font-size:10.5px;font-weight:var(--w-strong);padding:1px 7px;border-radius:999px;margin-top:1px}
   .pd-tag.is-theirs{background:var(--color-accent-50);color:var(--accent-ink)} .pd-tag.is-ours{background:var(--st-amber-bg);color:var(--st-amber-fg)}
-  .pd-ev{padding:6px 0;border-bottom:1px solid var(--color-neutral-200)}
-  .pd-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-  .pd-ob .pd-acts{margin-top:6px}
-  .pd-note{font-size:11.5px;color:var(--cap-ink);margin:10px 0 0}
+  .pd-trail{position:relative;padding-left:20px}
+  .pd-trail::before{content:"";position:absolute;left:5px;top:6px;bottom:8px;width:1.5px;background:var(--color-neutral-200)}
+  .pd-ev{position:relative;padding:0 0 13px}
+  .pd-ev::before{content:"";position:absolute;left:-19px;top:3px;width:8px;height:8px;border-radius:50%;background:var(--color-surface);border:2px solid var(--nav-bg)}
+  .pd-ev>span{display:block;color:var(--color-text);font-weight:var(--w-label);line-height:1.4}
+  .pd-ev-when{font-variant-numeric:tabular-nums}
+  .pd-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .pd-acts-c{justify-content:center}
+  .pd-ob .pd-acts{margin-top:8px}
+  .pd-note{font-size:11.5px;color:var(--cap-ink);margin:12px 0 0}
+  .pd-empty{padding:14px 8px 4px}
   .pd-deal{font-size:12.5px}
   .ca-rows{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column}
   .ca-row{display:flex;align-items:flex-start;gap:8px;padding:7px 6px;border-top:1px solid var(--color-divider);border-radius:var(--radius)}
