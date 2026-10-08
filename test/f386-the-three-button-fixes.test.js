@@ -62,7 +62,10 @@ describe('f386 (1) a button\'s words never wrap', () => {
     for (const [f, s] of Object.entries(sheets))
       for (const fam of FAMILIES)
         for (const m of s.matchAll(new RegExp('\\.' + fam + '(?![a-z0-9-])[^{}]*\\{[^}]*white-space:normal', 'g')))
-          hits.push(f + ': ' + m[0].slice(0, 80));
+          /* ONE NAMED EXCEPTION (Young, 8 Oct 2026: "When narrowing the panel,
+             wrap the words so they do not disappear on the sides"): a text
+             button whose label is a SENTENCE wears .ui-link-say and wraps. */
+          if (!/^\.ui-link\.ui-link-say\{/.test(m[0])) hits.push(f + ': ' + m[0].slice(0, 80));
     assert.deepEqual(hits, []);
   });
   test('the everyday button no longer promises a two-line label', () => {

@@ -1526,6 +1526,12 @@
      button. */
   :is(.ui-btn,.ui-link,.hm-rverb,.hm-tri-b,.hm-cz,.sc-stage-act,.cg,.sec-f-n,.reg-chip,.reg-seg,.cal-seg,.cal-link,
       .tpl-btn-xs,.std-open,.sh-theme,.nav-section-head,.rl-btn,.rl-livelist,.rl-pb-btn){white-space:nowrap;}
+  /* A LINK THAT IS A SENTENCE WRAPS (Young, 8 Oct 2026: "When narrowing the
+     panel, wrap the words so they do not disappear on the sides"). The rule
+     above is for a labelled button; a question with its act in it ("Signing it
+     their way …? Hand it over instead") is a line of text, and held on one line
+     in a narrow panel it ran off both edges. Centred, as it is drawn. */
+  .ui-link.ui-link-say{white-space:normal;text-align:center;overflow-wrap:anywhere;}
   /* A ONE-LINE BOX IS THE BUTTON'S HEIGHT (the Compact ladder, 26 Sep 2026 —
      rule 2 of the button review: a button, a text box and a dropdown placed
      side by side are one height). For the forms still written in the older
