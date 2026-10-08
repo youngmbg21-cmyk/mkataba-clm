@@ -86,6 +86,8 @@ const check = (name, pass, detail) => {
     const btn = page.locator(`[data-rl-retract="${staged.id}"]`).first();
     const had = await btn.count();
     if (had){ await btn.scrollIntoViewIfNeeded(); await btn.click(); }
+    /* Discard asks "Discard #id?" first (owner decision D3, 9 Oct 2026). */
+    await page.waitForSelector('#confirm-overlay #cf-ok', { timeout: 3000 }).then(() => page.click('#confirm-overlay #cf-ok'), () => {});
     await page.waitForTimeout(500);
     const after = await page.evaluate(id => {
       const c = window.CONTRACT;

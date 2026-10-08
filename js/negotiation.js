@@ -3174,6 +3174,32 @@ function negoSentVersionOf(c, ch){
     if (revs[i] && String(revs[i].createdAt || '') <= String(at)) return { i, rev: revs[i] };
   return null;
 }
+/* ---- WHO MAY DISCARD OUR UNSENT DRAFT (owner decision D3, 9 Oct 2026) ----
+   "A Contributor may discard only their own drafts; the Lead or an admin may
+   discard anyone's." Measured before: a contributor's row offered Discard on
+   the lead's draft and one press deleted it. The person is the change's
+   author (by the suggestion stamp's id where one exists, else by name), and a
+   draft a colleague has since revised is no longer only yours. The desk's
+   lead may; where the desk rule is off (or nobody leads a desk) the
+   contract's owner may too. Nobody
+   signed in (a local workspace) answers true — there is nobody to tell apart.
+   The server asks the same question of the stored record (srvMayDiscard). */
+function negoMayDiscard(c, ch, u){
+  const me = u || (window.currentUser ? window.currentUser() : null);
+  if (!ch || ch.authorSide === 'counterparty') return true;
+  if (!me || (!me.id && !me.name)) return true;
+  if (me.role === 'admin') return true;
+  const sg0 = ch.suggested;
+  const sg = (sg0 && typeof sg0 === 'object') ? sg0 : null;
+  const authorMine = (sg && sg.byId && me.id) ? String(sg.byId) === String(me.id)
+    : !!me.name && String(ch.author || '') === String(me.name);
+  const revisedByOther = ch.revisedBy && String(ch.revisedBy) !== String(me.name || '');
+  if (authorMine && !revisedByOther) return true;
+  const deskOn = !!(window.deskIsOpen && deskIsOpen(c));
+  if (deskOn && window.deskIsLead && deskIsLead(c, me)) return true;
+  if (deskOn && window.deskEnforced && deskEnforced()) return false;
+  return !!(window.contractOwnedBy && contractOwnedBy(c, me));
+}
 function negoRetractDraft(c, id, opts = {}){
   negoInit(c);
   const ch = negoChangeById(c, id);
@@ -3181,6 +3207,10 @@ function negoRetractDraft(c, id, opts = {}){
   const side = opts.side === 'counterparty' ? 'counterparty' : 'owner';
   if (ch.authorSide !== side){
     if (window.toast) toast(i18t('ne_only_drafter_retract'), 'err');
+    return null;
+  }
+  if (side === 'owner' && !negoMayDiscard(c, ch)){
+    if (window.toast) toast(i18t('ne_discard_not_yours'), 'err');
     return null;
   }
   if (ch.status !== 'pending'){
@@ -5615,7 +5645,7 @@ if (typeof window !== 'undefined') Object.assign(window, {
   negoClauseNameKey, negoClauseNamed, negoDupClauseStop, negoAddNamedClause,
   negoNoteFor, negoProposedBodyFromText, negoBodyFromText, negoFileProposal, negoBundleFollow, negoParkedUnder, negoResolvedBody, negoResolvedText, negoCommitBody, negoCommitText,
   negoImportReturnedDocx, negoTopicForQuote, negoOriginalBaselineText, negoClauseJourney,
-  negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft,
+  negoResolve, negoResolveAll, negoWithdraw, negoUnwithdraw, negoRetractDraft, negoMayDiscard,
   negoNormalizeText, negoFindPassage, negoResolvePassage, negoPassageIsWhole,
   negoPostComment, negoTagPeople, negoMentionsIn, negoCommentIsStale, negoTopicFor, negoThreadOf, negoNoteHome, negoMergedThread, negoThreadUnread,
   negoNoteAuthoredBy, negoNoteIsMine, negoMyNote, negoEditNote, negoDeleteNote, negoNoteDelivered,

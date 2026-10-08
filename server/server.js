@@ -1201,6 +1201,46 @@ function dkSuggestionRefusal(prev, next, user) {
   }
   return null;
 }
+/* ---- WHO MAY DISCARD OUR UNSENT DRAFT — THE SERVER'S OWN READING ----
+   (Owner decision D3, 9 Oct 2026.) js/negotiation.js's negoMayDiscard, repeated
+   here for the reason deskRuleOn gives above. The draft's author (the
+   suggestion stamp's id where there is one, else the name), unless a colleague
+   has revised it since; the desk's lead; an admin; and where the desk rule
+   is off (or nobody leads a desk), the contract's owner too. Asked of the STORED record. */
+function srvMayDiscard(c, ch, user) {
+  if (!ch || !user) return false;
+  if (user.role === 'admin') return true;
+  const g = dkSuggestion(ch);
+  const mine = (g && g.byId) ? String(g.byId) === String(user.id)
+    : !!user.name && String(ch.author || '') === String(user.name);
+  if (mine && !(ch.revisedBy && String(ch.revisedBy) !== String(user.name || ''))) return true;
+  if (deskIsClaimed(c) && deskSeatOf(c, user) === 'lead') return true;
+  if (deskIsClaimed(c) && deskRuleOn()) return false;
+  const o = c && c.owner;
+  return !!(o && (o.id ? String(o.id) === String(user.id) : (o.name && o.name === user.name)));
+}
+/* The refusal, or null — asked as a DIFFERENCE: one of our pending changes on
+   the stored record that is gone from this save (neither live nor in a closed
+   round), or whose unsent revisions were cut back. */
+function srvDiscardRefusal(prev, next, user) {
+  if (!prev || !user || user.role === 'admin') return null;
+  const nowById = new Map((Array.isArray(next && next.changes) ? next.changes : [])
+    .filter(x => x && x.id).map(x => [String(x.id), x]));
+  const inRounds = new Set();
+  for (const r of ((next && next.negotiation && Array.isArray(next.negotiation.rounds)) ? next.negotiation.rounds : []))
+    for (const x of (Array.isArray(r && r.changes) ? r.changes : [])) if (x && x.id) inRounds.add(String(x.id));
+  for (const ch of (Array.isArray(prev.changes) ? prev.changes : [])) {
+    if (!ch || !ch.id || ch.authorSide === 'counterparty' || String(ch.status || '') !== 'pending') continue;
+    const now = nowById.get(String(ch.id));
+    const gone = !now && !inRounds.has(String(ch.id));
+    const cut = now && (Array.isArray(now.revisions) ? now.revisions.length : 0)
+      < (Array.isArray(ch.revisions) ? ch.revisions.length : 0);
+    if (!gone && !cut) continue;
+    if (!srvMayDiscard(prev, ch, user))
+      return `#${ch.id} — you can discard only your own drafts. The person leading this negotiation, or an admin, can discard a colleague's.`;
+  }
+  return null;
+}
 /* Did this save add, remove or reword one of OUR changes? Their proposals are
    not this rule's business — those arrive through the share routes, which have
    their own wall — so only owner-side records are compared. The hash is the
@@ -5079,6 +5119,9 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      the whole feature is one request wide — delete the stamp, then send. */
   const sgWhy = dkSuggestionRefusal(prev, c, req.user);
   if (sgWhy) return res.status(403).json({ error: sgWhy, desk: 'suggestion' });
+  /* ---- AND A COLLEAGUE'S UNSENT DRAFT IS NOT YOURS TO DISCARD (D3, 9 Oct 2026) ---- */
+  const dcWhy = srvDiscardRefusal(prev, c, req.user);
+  if (dcWhy) return res.status(403).json({ error: dcWhy, discard: 'not-yours' });
 
   /* ---- AND A CLAUSE A COLLEAGUE IS TYPING IN IS NOT YOURS TO FILE AGAINST ----
      (Young asked 10 Sep 2026.) The browser refuses at the editor's door and
