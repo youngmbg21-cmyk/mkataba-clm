@@ -75,9 +75,12 @@ describe('f560 (1)(2)(3) — the pass route, the ladder, and Just do it', () => 
     assert.match(m.body, /MK-PS-1/);
     assert.ok(!/\/s\/|token/i.test(m.body.replace(/automated/i, '')), 'an app link, never a share token');
   });
-  test('2a the status says each agent\'s level; keeping links is Just do it by default, the rest ask', async () => {
+  /* EVERY AGENT STARTS AT ASK ME FIRST (Young, 8 Oct 2026: "set the link
+     agent to Ask me first") — Just do it is OFFERED for keeping links open
+     (autoOk), never assumed. */
+  test('2a the status says each agent\'s level; every one starts at Ask me first, and only keeping links may be set to Just do it', async () => {
     const s = await W.admin.json('/api/agents/status');
-    assert.equal(s.agents.link.level, 'auto'); assert.equal(s.agents.link.autoOk, true);
+    assert.equal(s.agents.link.level, 'ask'); assert.equal(s.agents.link.autoOk, true);
     for (const k of ['round', 'renew', 'paper', 'late', 'ours', 'import']) {
       assert.equal(s.agents[k].level, 'ask', k); assert.equal(s.agents[k].autoOk, false, k);
     }
@@ -96,6 +99,8 @@ describe('f560 (1)(2)(3) — the pass route, the ladder, and Just do it', () => 
     assert.equal(notAdmin.status, 403);
   });
   test('3a Just do it: a link about to run out is kept open by the agent, the trail says so, the owner is told', async () => {
+    const lv = await W.admin.json('/api/agents/link/settings', { method: 'PUT', body: { level: 'auto' } });
+    assert.equal(lv.ok, true, 'an admin may choose Just do it for keeping links');
     await put(inRound('MK-AK-1'));
     const s = await mint('MK-AK-1');
     sql('UPDATE shares SET expires_at=? WHERE token=?', iso(1), s.token);
