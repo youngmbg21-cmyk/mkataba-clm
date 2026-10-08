@@ -2630,7 +2630,13 @@ function uploadDocBody(c){
       })()}
       <span style="flex:1 1 auto"></span>
       <a href="${fileUrl}" download="${(u.fileName||'contract').replace(/"/g,'')}" class="ui-btn" style="font-size:var(--t-label);padding:var(--s-1) 9px;display:inline-flex;align-items:center;gap:5px;flex:none">${icon('download','w-3.5 h-3.5')} Download original</a>
-      ${canEdit()?`<button type="button" data-reread class="ui-btn ui-btn-sm" style="display:inline-flex;align-items:center;flex:none" title="${i18t('ct_read_original_again')}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`:''}
+      ${canEdit()?(()=>{
+        /* GREY WITH ITS REASON ONCE THE WORDING IS SOMEBODY'S (9 Oct 2026
+           review): a re-read never replaces redlined wording, so on a record
+           with changes the press did nothing anyone could see. */
+        const kept=rereadKeepsWording(c);
+        return `<button type="button" data-reread class="ui-btn ui-btn-sm" style="display:inline-flex;align-items:center;flex:none"${kept?' disabled aria-disabled="true"':''} title="${esc(i18t(kept?'ct_reread_kept_title':'ct_read_original_again'))}">${icon('history','w-3.5 h-3.5')} Re-read document</button>`;
+      })():''}
     </div>`}
     <!-- Everything above is the owner's own handling of the file: the Word
          round-trip control, who uploaded it and when, and how well the text
@@ -2691,6 +2697,12 @@ function uploadDocBody(c){
    time; the file itself is still on record, so re-reading repairs them in place
    without a re-upload. Safe on executed contracts too — an upload's seal binds
    the file's own hash, not this text (see sealString). */
+/* Does a re-read leave the wording as it is? Once anybody has redlined the
+   document (changes or versions on the record) the wording is theirs and a
+   re-read of the file never replaces it — see guard 2 below. */
+function rereadKeepsWording(c){
+  return !!(c && ((Array.isArray(c.changes) && c.changes.length) || (Array.isArray(c.versions) && c.versions.length)));
+}
 async function rereadUploadText(c, btn){
   if(!canEdit()){ toast(i18t('ct_viewers_no_change'),'err'); return; }
   const u=c.upload||{};
@@ -2773,8 +2785,9 @@ async function rereadUploadText(c, btn){
           (a signature spot, a note) points at an id that no longer exists. */
     const sealed = !!(c.status==='Signed' || c.hash || (c.execution && c.execution.at)
       || (window.negoExecuted && negoExecuted(c)));
+    const keptWording=rereadKeepsWording(c);
     if(html && !sealed && window.docxHasStructure && docxHasStructure(rep) && window.sanitizeRich
-       && !c.changes?.length && !c.versions?.length){
+       && !keptWording){
       let body=sanitizeRich(html);
       if(window.clauseStampIds && window.clauseCarryIds && c.redlineText){
         try{
@@ -2787,7 +2800,9 @@ async function rereadUploadText(c, btn){
     c.lastAction=todayStr();
     logAudit(c,'Document',`Re-read the original file — ${text.length.toLocaleString()} characters extracted (was ${before.toLocaleString()})`);
     persist(c);
-    toast(`Document re-read — ${text.length.toLocaleString()} characters`);
+    /* SAID, AND SAID HONESTLY (9 Oct 2026 review): a bare toast(msg) prints
+       nothing, and where the redlined wording was kept the reader is told so. */
+    toast(i18t(keptWording?'ct_reread_done_kept':'ct_reread_done', { n: text.length.toLocaleString() }), 'ok');
     renderWorkspace();
   }catch(e){
     toast(i18t('ct_could_not_reread')+e.message,'err');

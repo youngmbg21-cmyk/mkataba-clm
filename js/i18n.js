@@ -7607,6 +7607,9 @@ const STRINGS = {
     // ---- contract room (chrome and actions) ----
     ct_uploaded_document: 'Uploaded document',
     ct_read_original_again: 'Read the original file again — use this if the extracted text looks garbled',
+    ct_reread_kept_title: 'This document has been redlined — re-reading the file would not change its wording, so it is kept as it is',
+    ct_reread_done: 'Document re-read — {n} characters',
+    ct_reread_done_kept: 'Document re-read — {n} characters. The redlined wording was kept as it is',
     ct_counterparty_name: 'Counterparty name',
     ct_who_is_this_with: 'Who is this with?',
     ct_changes_straight: 'changes go straight to them',
@@ -20501,6 +20504,9 @@ const STRINGS = {
     // ---- contract room (chrome and actions) ----
     ct_uploaded_document: 'Uppladdat dokument',
     ct_read_original_again: 'Läs originalfilen igen — använd detta om den utlästa texten ser trasig ut',
+    ct_reread_kept_title: 'Dokumentet har redan ändringar — att läsa om filen skulle inte ändra lydelsen, så den behålls som den är',
+    ct_reread_done: 'Dokumentet har lästs om — {n} tecken',
+    ct_reread_done_kept: 'Dokumentet har lästs om — {n} tecken. Den ändrade lydelsen behölls som den är',
     ct_counterparty_name: 'Motpartens namn',
     ct_who_is_this_with: 'Vem gäller det?',
     ct_changes_straight: 'ändringar går direkt till dem',
