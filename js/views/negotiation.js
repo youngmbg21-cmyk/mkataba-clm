@@ -4152,7 +4152,13 @@ function wireNegotiationTab(c, opts = {}){
        words the send itself will refuse with. */
     if (window.linkRefusal){
       let no = null; try{ no = linkRefusal(c, { purpose: 'negotiate' }); }catch(_){ no = null; }
-      if (no){ if (window.toast) toast(no.why, 'err'); return; }
+      if (no){
+        /* …with the Review door where changes nobody was asked about are the
+           reason (9 Oct 2026 review). */
+        const act = (no.kind === 'review' && window.reviewGateAskAction) ? reviewGateAskAction(c) : null;
+        if (window.toast) toast(no.why, 'err', act ? { action: act } : undefined);
+        return;
+      }
     }
     /* ---- AND THE SOFTER CASE: SOME OF THIS IS STILL BEING LOOKED AT ----
        With the rule off, sending wording that is sitting with a colleague is

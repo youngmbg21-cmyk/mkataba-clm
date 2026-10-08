@@ -5803,7 +5803,10 @@ function reviewSendBlock(c, purpose){
   let no=null;
   try{ no=linkRefusal(c,{ purpose:purpose||'negotiate' }); }catch(_){ no=null; }
   if(!no) return false;
-  toast(no.why,'err');
+  /* A refusal carries its way forward: the review dialog, on the changes
+     nobody was asked about (9 Oct 2026 review). */
+  const act=(no.kind==='review'&&window.reviewGateAskAction)?reviewGateAskAction(c):null;
+  toast(no.why,'err',act?{ action:act }:undefined);
   return true;
 }
 /* ---- A CONTRACT STOPS BEING A DRAFT WHEN IT GOES TO THE OTHER SIDE ----
