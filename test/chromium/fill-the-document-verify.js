@@ -136,6 +136,7 @@ const owed = (page, id) => page.evaluate(x => {
       && (await page.evaluate(s => (document.querySelector(s) || {}).value, b0)) === 'Wanjiru Catering Ltd');
 
     /* ===== 4. THE PRESS FILLS THE PAPER ===== */
+    const press = {};
     /* THE RECORD THAT ARRIVES LATE (8 Oct 2026): on a loaded runner the full
        record lands after the panel was drawn and REPLACES the contract object
        in state. The panel's listeners must act on the record as it is at the
@@ -145,7 +146,14 @@ const owed = (page, id) => page.evaluate(x => {
     if (await page.evaluate(s => !!document.querySelector(s), b1)) {
       await page.click(b1);
       await page.keyboard.type('Juno Limited');
-      await page.click('#tplform-section [data-tplf-fill]').catch(() => {});
+      /* WHAT THE PRESS MET, said in 4a's detail when it fails (8 Oct 2026):
+         CI failed this step on runs that pass locally, so the reading is
+         taken where the runner is, not guessed at. */
+      press.before = await page.evaluate(() => { const b = document.querySelector('#tplform-section [data-tplf-fill]');
+        if (!b) return 'no button'; const r = b.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return { disabled: b.disabled, onTop: at === b || b.contains(at) ? 'button' : (at ? (at.id || at.className || at.tagName) : 'nothing'),
+          y: Math.round(r.top), vh: innerHeight, focused: (document.activeElement || {}).getAttribute ? document.activeElement.getAttribute('data-tplf') : null }; });
+      await page.click('#tplform-section [data-tplf-fill]', { timeout: 8000 }).catch(e => { press.error = String(e.message).split('\n')[0].slice(0, 160); });
       /* A WAIT ASKS FOR THE STATE, BOUNDED (7 Oct 2026): a fixed 500ms was
          too short on a loaded CI runner, where the press had not finished
          repainting the paper when the reading was taken. */
@@ -154,7 +162,11 @@ const owed = (page, id) => page.evaluate(x => {
         return !!b && b.disabled && t.includes('Juno Limited'); }, undefined, 10000);
     }
     const t4 = await paperText(page);
-    check('4a the paper carries both answers', t4.includes('Wanjiru Catering Ltd') && t4.includes('Juno Limited'));
+    press.after = await page.evaluate(() => { const c = state.contracts.find(k => k.id === 'MK-FD1');
+      return { vals: c && c.templateForm && c.templateForm.values, sigSet: !!(c && c.templateForm && c.templateForm.filledSig),
+        juno: String((c && c.redlineText) || '').includes('Juno'), loaded: !!(c && c._loaded) }; });
+    const p4 = t4.includes('Wanjiru Catering Ltd') && t4.includes('Juno Limited');
+    check('4a the paper carries both answers', p4, p4 ? '' : JSON.stringify(press));
     const fb4 = await fillBtn(page);
     check('4b and the button goes quiet', !!fb4 && fb4.disabled && /Document filled/.test(fb4.text), fb4 && fb4.text);
     const o4 = await owed(page, 'MK-FD1');
