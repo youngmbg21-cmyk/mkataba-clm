@@ -8757,7 +8757,7 @@
      backdrop-filter), so the next card painted over an earlier card's list
      whatever the list's z-index. While its list is open the card itself is
      raised above its neighbours — by scope, one rule for every board list
-     (Contracts, Split, Picture, Measure, More), never !important. */
+     (Contracts, Split, Picture, Measure, More) — by scope, not by force. */
   .hb-card:has(.hb-rmenu,.hb-pmenu){z-index:6}
   .hb-rc{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 8px 0 9px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:var(--hb-fig);color:var(--hb-ink);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
   .hb-rc i{font-style:normal;font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--hb-mute)}
@@ -8924,6 +8924,13 @@
   .hb-tools{position:absolute;right:12px;bottom:12px;z-index:6;display:none;gap:6px}
   .hb-presenting .hb-tools{display:flex}
   #ig-page[data-hb-side="explorer"] .hb-tools{top:10px;bottom:auto}
+  /* THE KEPT MAP RESTS UNSEEN (work order "Home speed", Part 2): the map is no
+     longer thrown away when Home turns to the Board or the Paper, so its
+     layers are hidden there — the side looks as it did when no map was drawn,
+     and the browser paints nothing under it. visibility keeps their size, so
+     the map comes back where it was. */
+  #ig-page[data-hb-side="board"] #ig-gwrap > :is(#ig-cv,#ig-svg,#ig-legend,#ig-note,.ig-viewbar),
+  #ig-page[data-hb-side="paper"] #ig-gwrap > :is(#ig-cv,#ig-svg,#ig-legend,#ig-note,.ig-viewbar){visibility:hidden}
   .hb-tools .ig-seg{display:inline-flex;align-items:center;border:1px solid rgba(var(--hb-ln),.25);border-radius:var(--radius);overflow:hidden;background:var(--hb-card)}
   .hb-tools .ig-seg button{all:unset;cursor:pointer;height:var(--ctl-h-sm);padding:0 9px;font-size:12px;font-weight:500;color:var(--hb-ink-2);display:inline-flex;align-items:center;white-space:nowrap}
   .hb-tools .ig-seg button:hover{color:var(--hb-ink)}

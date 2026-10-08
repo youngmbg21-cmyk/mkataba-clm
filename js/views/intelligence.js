@@ -3253,8 +3253,12 @@ function igbPlace(G){
   const w=igbCam().w, bw=igbCardW(w), W=G.W, H=G.H, placed=(G.reserve||[]).slice(), gap=2;
   /* the stage's own furniture — the view bar and the legend — is not a place
      for a card, and every group bubble is kept clear before any card is set */
-  if(G.svg){ const sr=G.svg.getBoundingClientRect();
-    [document.querySelector('#ig-gwrap .ig-viewbar'),document.getElementById('ig-legend')].forEach(el=>{ if(!el||el.hidden) return; const r=el.getBoundingClientRect(); if(r.width>0) placed.push({ x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height }); }); }
+  /* MEASURED ONCE (work order "Home speed", Part 1): read after a write,
+     these two rects forced a full layout on every frame; they are read when
+     the stage changed size or the reader touched the page (igWake). */
+  if(G.svg&&!G._furn){ const sr=G.svg.getBoundingClientRect(); G._furn=[];
+    [document.querySelector('#ig-gwrap .ig-viewbar'),document.getElementById('ig-legend')].forEach(el=>{ if(!el||el.hidden) return; const r=el.getBoundingClientRect(); if(r.width>0) G._furn.push({ x:r.left-sr.left, y:r.top-sr.top, w:r.width, h:r.height }); }); }
+  (G._furn||[]).forEach(r=>placed.push(r));
   G.hubs.forEach(h=>{ if(h._bubR>2&&h._bq) placed.push({ x:h._bq[0]-h._bubR, y:h._bq[1]-h._bubR, w:2*h._bubR, h:2*h._bubR }); });
   (G._bundles||[]).forEach(b=>{ if(b.r>2) placed.push({ x:b.x-b.r, y:b.y-b.r, w:2*b.r, h:2*b.r }); });
   (G._cells||[]).forEach(b=>{ if(b.r>2) placed.push({ x:b.x-b.r, y:b.y-b.r, w:2*b.r, h:2*b.r }); });
@@ -3378,7 +3382,7 @@ function igPaintFoldAll(){
   const b=document.getElementById('ig-foldall'); if(!b||!IG||!IG.hubs) return;
   const t=i18t(igAllFolded()?'int_open_all':'int_fold_all'); if(b.textContent!==t) b.textContent=t;
 }
-function igSetView(v){
+function igSetView(v){ igWake();
   const cam=igbCam(); cam.view=Math.max(0,Math.min(IGB_NV-1,Number(v)||0));
   document.querySelectorAll('[data-ig-view]').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.getAttribute('data-ig-view'))===cam.view)));
   igPaintFoldAll();
@@ -3570,6 +3574,7 @@ function igApplyView(){ IG.vp.setAttribute('transform',`translate(${IG.view.x},$
    alone. */
 function igFitView(){
   if(!IG||!IG.svg) return;
+  igWake();
   const r=IG.svg.getBoundingClientRect();
   if(r.width>0&&r.height>0){ IG.W=r.width; IG.H=r.height; }
   IG.view={x:0,y:0,k:1}; igApplyView();
@@ -3597,11 +3602,16 @@ function igTick(){
 }
 /* ONE FRAME: time moves on, every node is projected once, the canvas paints,
    the words are placed. */
+let _igFrames=0;
+/* how many frames of the map have been drawn — read by home-speed-verify to
+   prove no frame is drawn while another side of Home shows */
+function igFramesDrawn(){ return _igFrames; }
 function igRender(){
   if(!IG) return;
+  _igFrames++;
   const now=((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())/1000;
   const dt=IG._last==null?0:Math.min(.05,Math.max(0,now-IG._last)); IG._last=now;
-  if(IG.svg){ const r=IG.svg.getBoundingClientRect(); if(r.width>0&&r.height>0){ IG.W=r.width; IG.H=r.height; } }
+  if(IG.svg&&IG._sizeDirty!==false){ const r=IG.svg.getBoundingClientRect(); if(r.width>0&&r.height>0){ IG.W=r.width; IG.H=r.height; IG._sizeDirty=false; } }
   igbStep(IG,dt); igbWiring(IG);
   const w=igbCam().w; IG.pj=igbProjector(IG);
   IG.hubs.forEach(h=>{ h.q=IG.pj(igbHeart(h,w)); });
@@ -3630,16 +3640,97 @@ function igPaintGroupSelect(){
   if(has) has.remove();
   if(GRAPH_GROUP_KEYS.includes(intel.groupBy) && sel.value!==intel.groupBy) sel.value=intel.groupBy;
 }
+/* ---- HOME IS QUICK: THE MAP IS KEPT, SETTLES OFF THE PRESS, AND RESTS
+   (work order "Home speed", Part 1, 8 Oct 2026; measured at 430 contracts:
+   the switch to Explorer froze for 1.2–2.4 s, 688 ms of it the 220 settling
+   rounds, which compare every node with every other; and a still map kept the
+   browser busy half of every second) ----
+   KEPT: the laid-out map is reused between visits while what it draws is the
+   same — the book (ids and when each was last changed), the grouping,
+   Copilot's grouping and the lenses (igKeptKey). A changed book, grouping or
+   lens lays it out afresh. SETTLED OFF THE PRESS: a fresh layout draws its
+   first frame at once from the rough seed, and the 220 rounds run in slices
+   of IG_SETTLE_SLICE across the next frames. AT REST: the frame loop stops
+   drawing once nothing moves — no settling, no pointer on the map, no walk,
+   no glide since IG_AWAKE_MS — and any press, drag, wheel, hover, view
+   change, fold, lens or new answer wakes it (igWake). A map left turning
+   keeps turning at IG_SPIN_FPS. MEASURED ONCE: the stage's size is read on
+   a ResizeObserver, never inside a frame after the canvas was written. */
+const IG_SETTLE_ROUNDS=220, IG_SETTLE_SLICE=20, IG_SETTLE_MS=10, IG_AWAKE_MS=2000, IG_SPIN_FPS=12;
+let _igKept={ key:'', nodes:null }, _igWokeAt=0, _igKick=null, _igTimer=0, _igSizeWatch=null;
+function igKeptKey(cs, groupBy, groups, lenses){
+  const book=(cs||[]).map(c=>c&&(c.id+':'+(c.updatedAt||c.updated_at||c.version||''))).join('|');
+  const ls=(lenses||[]).filter(l=>l&&l.on!==false).map(l=>(l.action||'')+':'+[...(l.ids||[])].slice().sort().join(',')).join(';');
+  return [groupBy||'', groups?JSON.stringify(groups):'', ls, book].join('#');
+}
+function igWake(){ _igWokeAt=Date.now(); if(IG){ IG._furn=null; }
+  if(_igKick){ const k=_igKick; _igKick=null; if(_igTimer){ clearTimeout(_igTimer); _igTimer=0; } requestAnimationFrame(k); } }
 function rebuildIntelGraph(){
   const model=buildGraphModel();
+  const key=igKeptKey(window.state&&state.contracts, intel.groupBy, intel.groups, intel.lenses);
+  const old=(_igKept.key===key&&_igKept.nodes)?new Map(_igKept.nodes.map(n=>[n.id,n])):null;
   IG=makeIntelGraph(model); if(!IG) return;
-  // pre-settle the wiring's physics
-  for(let i=0;i<220;i++) igTick();
-  igFitView(); igRender();
+  if(old&&IG.nodes.every(n=>old.has(n.id))){
+    /* the same map: every node back where it settled, and the camera kept */
+    IG.nodes.forEach(n=>{ const o=old.get(n.id); n.x=o.x; n.y=o.y; n.vx=o.vx||0; n.vy=o.vy||0; });
+    IG._settle=0; IG._kept=true;
+  } else IG._settle=IG_SETTLE_ROUNDS;
+  _igKept={ key, nodes:IG.nodes };
+  if(_igSizeWatch){ try{ _igSizeWatch.disconnect(); }catch(_){} _igSizeWatch=null; }
+  if(IG.svg&&typeof ResizeObserver==='function'){ const G=IG; _igSizeWatch=new ResizeObserver(()=>{ G._sizeDirty=true; igWake(); }); _igSizeWatch.observe(IG.svg); }
+  IG._sizeDirty=true;
+  if(!IG._kept) igFitView();
+  igRender();
   updateIntelNote(); renderIntelLegend(model); igPaintGroupSelect(); igPaintFoldAll(); igSetView(igbCam().view);
   if(model.linear) igApplyCliff(Number(intel.cliffDays)||0);
+  igWake();
+}
+/* ANY PRESS, DRAG, WHEEL, HOVER OR KEY ON THE MAP WAKES IT; bound once per
+   stage (the stage is rebuilt with the page). */
+function igWakeWire(){
+  if(!document.documentElement.dataset.igWakeVis){ document.documentElement.dataset.igWakeVis='1';
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) igWake(); }); }
+  const st=document.getElementById('ig-page'); if(!st||st.dataset.igWake) return; st.dataset.igWake='1';
+  ['pointermove','pointerdown','wheel','keydown','click','focusin'].forEach(ev=>st.addEventListener(ev,igWake,{ passive:true }));
+}
+/* ---- HOME TURNS A FACE IN PLACE (work order "Home speed", Part 2) ----
+   The head, the ask box, the Copilot panel and the page frame stay; the
+   loop of the face left is retired, the map is (re)built only when Explorer
+   is showing and its book, grouping or lens changed, the paper is painted
+   for its side, and the panel is built ONCE. */
+function igTurnFace(){
+  intelRAF++; const myRAF=intelRAF;
+  if(igMapUp()){
+    if(typeof hbLensOnMap==='function') hbLensOnMap();
+    const key=igKeptKey(window.state&&state.contracts, intel.groupBy, intel.groups, intel.lenses);
+    if(!IG||_igKept.key!==key||IG.svg!==document.getElementById('ig-svg')) rebuildIntelGraph();
+    else { updateIntelNote(); igWake(); }
+    igLoopStart(myRAF); igWakeWire();
+  }
+  igPaintPaper(); renderIntelDock();
+}
+/* THE FRAME LOOP, one per arrival (intelRAF retires the one before). */
+function igLoopStart(myRAF){
+  let f=0;
+  const step=()=>{ if(!igMapUp()||myRAF!==intelRAF||!IG) return;
+    if(document.hidden){ _igKick=step; return; }
+    const cw=intel.cam&&intel.cam.w, wiring=!!(cw&&cw[1]>.01);
+    if(IG._settle>0){ const t0=performance.now(); let n=0;
+      /* at most IG_SETTLE_SLICE rounds, and never past IG_SETTLE_MS of a frame */
+      while(IG._settle>0&&n<IG_SETTLE_SLICE&&(n===0||performance.now()-t0<IG_SETTLE_MS)){ igTick(); IG._settle--; n++; }
+      if(IG._settle<=0&&!IG._kept) igFitView(); }
+    else if(wiring&&(f++%4===0)) igTick();
+    igRender();
+    const awake=IG._settle>0||Date.now()-_igWokeAt<IG_AWAKE_MS||!!intel.walk;
+    if(awake){ requestAnimationFrame(step); return; }
+    _igKick=step;
+    if(igbSpinning()||wiring) _igTimer=setTimeout(()=>{ _igTimer=0; if(_igKick===step){ _igKick=null; requestAnimationFrame(step); } }, 1000/IG_SPIN_FPS);
+  };
+  if(_igTimer){ clearTimeout(_igTimer); _igTimer=0; }
+  _igKick=null; _igWokeAt=Date.now(); step();
 }
 function updateIntelNote(){
+  igWake();
   const el=document.getElementById('ig-note'); if(!el) return;
   const on=intel.lenses.filter(l=>l.on);
   const act=intelActive();
@@ -4105,10 +4196,10 @@ function renderIntel(){
   /* The physics only SHOWS on the Wiring view; elsewhere it idles at a
      quarter of the frames — enough to keep its drift alive for the moment the
      reader turns to the wiring, and a third of each frame back on a big book. */
-  let _igF=0;
-  (function loop(){ if(!igMapUp()||myRAF!==intelRAF||!IG) return;
-    const cw=intel.cam&&intel.cam.w; if((cw&&cw[1]>.01)||(_igF++%4===0)) igTick();
-    igRender(); requestAnimationFrame(loop); })();
+  /* (work order "Home speed", Part 1) the physics runs only while the Wiring
+     view shows it, and the loop rests when nothing moves — igLoopStart. */
+  igLoopStart(myRAF);
+  igWakeWire();
   setActiveNav(onHome?'dashboard':'intel');
   if(onHome) hbAfterMount();
 }
@@ -7499,5 +7590,6 @@ Object.assign(window,{igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igC
 /* The Reminder Line (28 Sep 2026): the one reminder predicate, its first
    milestone, and the tab's press wiring. */
 Object.assign(window,{igDockStepAside});
+Object.assign(window,{igFramesDrawn,igKeptKey,igWake,igTurnFace,igLoopStart,IG_SETTLE_ROUNDS,IG_SETTLE_SLICE,IG_AWAKE_MS});
 Object.assign(window,{igTrackLayout,igTrackFits,igTrackHtml,igTrackPlace,IG_TRACK_W,igStrandPaint});
 Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});

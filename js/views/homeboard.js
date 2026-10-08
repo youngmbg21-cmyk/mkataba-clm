@@ -4119,7 +4119,12 @@ function hbBoardHtml(){
   const A = hbAgentsData(base && base.at);
   let time = ''; try { time = new Date().toLocaleTimeString(langLocale(), { hour: '2-digit', minute: '2-digit' }); } catch (_){}
   const gifts = hbGiftsFor();
-  _hbInsMemo = new Map();
+  /* REMEMBERED UNTIL THE BOOK CHANGES (work order "Home speed", Part 3):
+     the shelf's candidates were worked out again on every paint; they are
+     kept while the day, the book (ids, versions, stages) and the board's own
+     recipes are the same. */
+  const insSig = hbInsMemoSig();
+  if (_hbInsMemoSig !== insSig){ _hbInsMemo = new Map(); _hbInsMemoSig = insSig; }
   _hbPackMemo.clear();
   _hbStoryMemo.clear();
   hbKeptSync();
@@ -5028,6 +5033,7 @@ function hbMorphKids(cur, next){
 }
 function hbPaintBoard(opts){
   const host = hbHost(); if (!host) return;
+  _hbBoardPaintedAt = Date.now(); _hbBoardMissed = false;
   const top = host.scrollTop;
   const act = document.activeElement;
   const had = (act && host.contains(act)) ? hbFocusKey(act) : null;
@@ -5131,7 +5137,7 @@ function hbRender(){
   const pg = hbPage(), s = hbS();
   const lang = (typeof langId === 'function') ? langId() : '';
   if (pg && hbHost() && pg.getAttribute('data-hb-side') === s.face && pg.getAttribute('data-hb-lang') === lang){
-    if (s.face === 'board') hbPaintBoard(); else hbPaintHead();
+    if (s.face === 'board') hbPaintBoard(); else { _hbBoardMissed = true; hbPaintHead(); }
     return;
   }
   hbMount();
@@ -5188,6 +5194,23 @@ function hbSetFace(f){
   /* turning to the map is an ARRIVAL, like pressing its tab on Insights was:
      the legend comes in closed (renderIntel's own rule for an arrival) */
   if (f === 'explorer' && window.intel){ intel.legendFolded = true; hbLensOnMap(); }
+  /* ---- THE FACE TURNS IN PLACE (work order "Home speed", Part 2, 8 Oct
+     2026; measured at 430 contracts, every press rebuilt the whole page and
+     the Copilot panel twice) ----
+     Where the page is up, in this language, only what differs is painted:
+     the stage shows the other side (hbApplyFace), the head's face buttons
+     repaint where they stand, the board only when something it shows moved
+     while it was hidden (hbBoardStale), and Explorer's side — the map, the
+     paper and the panel, ONCE — through igTurnFace. */
+  const pg = hbPage(), lang = (typeof langId === 'function') ? langId() : '';
+  if (pg && hbHost() && document.getElementById('ig-svg') && pg.getAttribute('data-hb-lang') === lang && typeof window.igTurnFace === 'function'){
+    hbApplyFace();
+    if (f === 'board' && hbBoardStale()) hbPaintBoard();
+    hbPaintHead();
+    igTurnFace();
+    hbToolsPaint();
+    return;
+  }
   hbMount();
   /* the ask box says what it asks about: the paper's contract on Paper, the
      portfolio elsewhere — read after the side has set the paper's mode */
@@ -5195,6 +5218,12 @@ function hbSetFace(f){
   /* the whole page is drawn again: the pressed half keeps the keyboard */
   if (kb){ const b = document.querySelector(`[data-hb-face="${f}"]`); if (b) try { b.focus({ preventScroll: true }); } catch (_){} }
 }
+/* WHETHER THE HIDDEN BOARD MISSED A PAINT: a book change repaints the board
+   only while it shows (hbRender), so one landing on another side marks it;
+   and its clock line is counted again after a minute. */
+let _hbBoardPaintedAt = 0, _hbBoardMissed = true;
+const HB_BOARD_FRESH_MS = 60000;
+function hbBoardStale(){ return _hbBoardMissed || Date.now() - _hbBoardPaintedAt > HB_BOARD_FRESH_MS; }
 function hbSetLens(lens){
   if (!HB_LENSES.includes(lens)) return;
   const s = hbS(); s.lens = lens; hbSave();
@@ -5447,7 +5476,15 @@ function hbInsCandidate(k){
 }
 /* worked out once per paint: hbBoardHtml empties it, so every picture and
    every sentence is counted off the book as it stands now */
-let _hbInsMemo = new Map();
+let _hbInsMemo = new Map(), _hbInsMemoSig = '';
+function hbInsMemoSig(){
+  const s = hbS(), cs = (window.state && state.contracts) || [];
+  let h = 5381;
+  for (const c of cs){ const t = String((c && c.id) || '') + ':' + String((c && (c.version || c.updatedAt || c.updated_at)) || '') + ':' + String((c && c.status) || '');
+    for (let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; }
+  let r = ''; try { r = JSON.stringify([s.recipe || {}, s.lens || '', s.insKept || {}, s.insRest || null]); } catch (_){ r = String(Math.random()); }
+  return [hbToday(), hbInsBookSig(), h.toString(36), r].join('|');
+}
 function hbInsCandidateMemo(k){
   if (!_hbInsMemo.has(k)){ let v = null; try { v = hbInsCandidate(k); } catch (_){ v = null; } _hbInsMemo.set(k, v); }
   return _hbInsMemo.get(k);
