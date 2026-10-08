@@ -7103,7 +7103,7 @@ function igPaperHtml(c){
     if(typeof window.negoEnsureStyle==='function') try{ negoEnsureStyle(); }catch(_){ }
     if(typeof window.redlineLayoutCss==='function') try{ redlineLayoutCss(); }catch(_){ }
     let body=''; try{ body=redlineDocHtml(c,{ side:'owner', readonly:true }); }catch(_){ body=''; }
-    sheet=`<div class="ig-redpaper" style="padding:20px 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
+    sheet=`<div class="ig-redpaper nego-onpaper" style="padding:20px 0 40px"><article id="ig-canvas" class="doc-surface rl-paper" style="max-width:var(--doc-sheet-max,860px);margin:0 auto">${body}</article></div>`;
   }
   else if(typeof docSheetHtml==='function') sheet=docSheetHtml(c,{ copy:'work', canvasId:'ig-canvas', readOnly:true });
   else {

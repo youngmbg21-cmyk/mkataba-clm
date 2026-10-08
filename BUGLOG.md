@@ -20509,3 +20509,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (same day): an amendment's blanks can only be filled from the panel while nothing has been filed in Negotiate; after the first change the date is changed through Negotiate's editor like any other wording, and nothing holds signing on a still-empty ruled line.
 - Noticed, not fixed (same day): a standards check stored on an amendment before this fix keeps its old "missing" verdicts (and the head's count) until the check is run again.
 - Noticed, not fixed (8 Oct 2026, Home first): f308 (1) "the stamp is written where the review is BUILT, not at the stores" fails on main at ef24c87 too. Left alone.
+
+- Noticed, not fixed (8 Oct 2026, Home first build): f308 (1) "the stamp is written where the review is BUILT" is red on main at a4afc3a too — it looks for `const stamp = r =>` in the playbook code, which is no longer written that way. Left red.
+- Noticed, not fixed (8 Oct 2026): agents-page-verify fails 25 of 48 on main at a4afc3a as well (10c–10e and others); not touched by this build.

@@ -74,6 +74,10 @@ const ok = (name, good, detail) => {
     /* ---- the stage ---- */
     const staged = await page.evaluate(async () => {
       const me = currentUser();
+      /* approvals joined this checklist (owner's rule 6, 8 Oct 2026) and the
+         sample book's spend rule asks the admin on most contracts; this
+         stage is about the other kinds, so the rule is set aside for it */
+      state.settings = state.settings || {}; state.settings.approvalRules = [];
       const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
       const w = getContract('MK-149'), s = getContract('MK-158'), r = getContract('MK-143');
       if (!w || !s || !r) return null;

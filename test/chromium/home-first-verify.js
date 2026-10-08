@@ -90,7 +90,7 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
 
     /* ===== 3. THE PAPER'S DESK — HEADER ICONS (8 Oct 2026) ===== */
     await page.waitForSelector('#ig-dock [data-pd-tab="facts"]', { timeout: 5000 }).catch(() => {});
-    const head = await page.evaluate(() => ({ title: !!document.querySelector('#ig-dock .ig-dock-title'), desk: !!document.getElementById('ig-desk'),
+    const head = await page.evaluate(() => ({ title: /Intelligence panel/.test((document.querySelector('#ig-dock .igd-head') || {}).textContent || ''), desk: !!document.getElementById('ig-desk'),
       tabs: [...document.querySelectorAll('#ig-dock .igd-head [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')) }));
     ok('3a0 the title row is the tabs: Copilot then the room\'s six; no "Intelligence panel", no column beside the paper',
       !head.title && !head.desk && head.tabs.join(',') === 'copilot,facts,doc,sign,oblig,hist,deal', JSON.stringify(head));

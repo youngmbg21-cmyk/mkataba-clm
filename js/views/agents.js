@@ -1440,17 +1440,12 @@ function agReplyPrompt(it){
 }
 async function agDraftReply(key){
   const it = agFind(key); if (!it) return;
-  if (typeof copilotAsk !== 'function'){ _agReplies.set(key, { state: 'err', why: _agT('ag_qt_draft_failed') }); agRepaint(); return; }
+  /* the spend lives with Copilot's other acts (caDraftReply): this page reads */
+  if (typeof caDraftReply !== 'function'){ _agReplies.set(key, { state: 'err', why: _agT('ag_qt_draft_failed') }); agRepaint(); return; }
   _agReplies.set(key, { state: 'busy' }); agRepaint();
-  try {
-    const res = await copilotAsk([{ role: 'user', content: agReplyPrompt(it) }], { view: 'intel', activeContractId: it.cid }, null, { quiet: true });
-    const text = String((res && (res.answer || res.reply || res.text)) || '').replace(/^\s*["“]|["”]\s*$/g, '').trim();
-    /* a non-answer (the route's own unfinished/empty marks) is never a draft */
-    const none = !text || !!(res && (res.unfinished || res.empty));
-    _agReplies.set(key, none ? { state: 'err', why: _agT('ag_qt_draft_empty') } : { state: 'done', text });
-  } catch (e){
-    _agReplies.set(key, { state: 'err', why: (e && e.needsKey) ? _agT('ag_qt_draft_nokey') : _agT('ag_qt_draft_failed') + ((e && e.message) ? ' — ' + e.message : '') });
-  }
+  const r = await caDraftReply(agReplyPrompt(it), it.cid);
+  _agReplies.set(key, r.text ? { state: 'done', text: r.text }
+    : { state: 'err', why: r.why === 'nokey' ? _agT('ag_qt_draft_nokey') : r.why === 'empty' ? _agT('ag_qt_draft_empty') : _agT('ag_qt_draft_failed') + (r.msg ? ' — ' + r.msg : '') });
   agRepaint();
 }
 function agUseReply(key){

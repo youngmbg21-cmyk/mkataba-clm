@@ -760,6 +760,22 @@ if (typeof document !== 'undefined' && !document._caSelArmed){
   document.addEventListener('mousedown', e => { if (!e.target.closest || !e.target.closest('.nego-selmenu')) { if (document.querySelector('#ig-canvas') ) caSelKill(); } }, true);
 }
 
+/* A DRAFTED REPLY (step 6, 8 Oct 2026): the one Copilot call behind "Draft a
+   reply" on a dropped thread. It writes words to show, files and sends
+   nothing; a non-answer (the route's unfinished/empty marks) is never a draft.
+   Returns { text } or { why: 'nokey' | 'empty' | 'failed', msg }. */
+async function caDraftReply(prompt, cid){
+  if (typeof copilotAsk !== 'function') return { why: 'failed' };
+  try {
+    const res = await copilotAsk([{ role: 'user', content: prompt }], { view: 'intel', activeContractId: cid }, null, { quiet: true });
+    const text = String((res && (res.answer || res.reply || res.text)) || '').replace(/^\s*["“]|["”]\s*$/g, '').trim();
+    if (!text || (res && (res.unfinished || res.empty))) return { why: 'empty' };
+    return { text };
+  } catch (e){
+    return (e && e.needsKey) ? { why: 'nokey' } : { why: 'failed', msg: (e && e.message) || '' };
+  }
+}
+Object.assign(window, { caDraftReply });
 Object.assign(window, { CA_DOORS, caReadDoor, caRoomSign, CA_DOOR_GO, CA_DOOR_NEEDS, caDoorCardHtml, caDoorPress });
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,

@@ -297,7 +297,7 @@ function pdHeadHtml(brain){
     const name = _pdT(PD_TAB_NAME[t]);
     const tip = t === 'copilot' && brain ? name + ' · ' + brain : name;
     const on = t === lit;
-    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(name)}" title="${_pdE(tip)}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-${PD_TAB_ICON[t]}"/></svg>${on ? `<span class="pd-tab-w">${_pdE(name)}</span>` : ''}</button>`;
+    return `<button type="button" role="tab" class="pd-tab${on ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${on}" aria-label="${_pdE(name)}" title="${_pdE(tip)}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-${PD_TAB_ICON[t]}"/></svg>${on ? `<span class="ig-dock-title pd-tab-w">${_pdE(name)}</span>` : ''}</button>`;
   }).join('');
 }
 function pdBodyHtml(c){

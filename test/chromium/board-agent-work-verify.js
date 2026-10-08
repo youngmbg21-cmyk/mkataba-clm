@@ -4,8 +4,10 @@
    light board "it should be clear where one contract starts and the other
    ends").
    ============================================================
-   Three approvals waiting on the admin; the approvals agent's work opened
-   below its card, on the Dark board and then the Light one:
+   Three late promises; the Late promises agent's work opened below its card,
+   on the Dark board and then the Light one (approvals LEFT the Board for the
+   bell and the checklist, owner's rule 6, 8 Oct 2026 — the packs are the
+   same builder for every agent):
      1. the pack's title and its fields read against the card (contrast ≥ 4.5);
      2. the buttons' strip sits in its pack — not sticky, no white band on the
         dark board;
@@ -23,8 +25,11 @@ const { startHati, seedWorkspace, fixtureContract, FIXTURES } = require('../help
 const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'board-agent-work');
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+const day = n => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 const PACKS = ['Muranga Distributors Ltd', 'Orbit Products Africa Ltd', 'Royal Media Services']
-  .map((cp, i) => fixtureContract('MK-AP' + i, 'Supply ' + i, cp, 'proc', 4e7, 'Under Review'));
+  .map((cp, i) => Object.assign(fixtureContract('MK-AP' + i, 'Supply ' + i, cp, 'proc', 4e7, 'Signed'), {
+    hash: 'x', counterpartyEmail: 'ops' + i + '@example.com',
+    obligations: [{ id: 'o1', desc: 'Deliver the insurance certificate', party: 'theirs', due: day(-6 - i), status: 'open' }] }));
 
 let failures = 0;
 const check = (name, pass, detail) => {
@@ -50,11 +55,12 @@ const check = (name, pass, detail) => {
     await page.click('#li-go');
     await page.waitForFunction(ids => window.state && state.contracts && ids.every(id => state.contracts.some(c => c.id === id)), PACKS.map(c => c.id), { timeout: 20000 });
     await page.evaluate(() => setView('dashboard'));
-    if (!(await until(() => typeof hbOpenAgent === 'function' && typeof agApproveItems === 'function'))) throw new Error('this build has no approvals work on the board');
-    check('0. three approvals wait on the admin', (await until(() => agApproveItems().length >= 3)) === true || (await page.evaluate(() => agApproveItems().length)) >= 3);
+    if (!(await until(() => typeof hbOpenAgent === 'function' && typeof agentsData === 'function'))) throw new Error('this build has no agents work on the board');
+    const lateN = () => { const a = agentsData(state.contracts).agents.late; return ((a && a.ready) || []).filter(x => /^MK-AP/.test(x.cid)).length; };
+    check('0. three late promises wait', (await until(n => (new Function('return (' + n + ')()'))() >= 3, lateN.toString())) === true);
 
     for (const scr of ['dark', 'light']) {
-      await page.evaluate(scr => { const s = hbS(); s.screen = scr; hbSave(); hbOpenAgent('approve'); try { hbApplyScreen(); } catch (_) {} }, scr);
+      await page.evaluate(scr => { const s = hbS(); s.screen = scr; hbSave(); hbOpenAgent('late'); try { hbApplyScreen(); } catch (_) {} }, scr);
       const ready = await until(scr => { const pg = document.querySelector('#hb-page, #ig-page'); return !!pg && pg.classList.contains('hb-' + scr) && document.querySelectorAll('.hb-ag-work').length >= 3; }, scr);
       check(`${scr} 0. the packs are drawn below the card`, !!ready);
       if (!ready) continue;
