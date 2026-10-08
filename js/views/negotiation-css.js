@@ -2189,6 +2189,25 @@ function redlineLayoutCss(){
   .rl-card-prep .rl-prep-v.is-accept{color:var(--st-green-fg)}
   .rl-card-prep .rl-prep-v.is-counter{color:var(--st-amber-fg)}
   .rl-card-prep .rl-prep-v.is-escalate{color:var(--st-ruby-fg)}
+  .rl-card-prep .rl-prep-v.is-reject{color:var(--st-ruby-fg)}
+  ${''/* COPILOT'S ANSWER ON THE PAPER (8 Oct 2026): dashed accent marks, no words
+         (see rlPaintCopilotAnswers). Counter: its wording in a dashed box under
+         theirs, the words that moved marked. Reject: a dashed line through their
+         words; a whole deleted clause, a dashed frame. Accept: a dashed tick. */}
+  .rl-sug-box{margin:6px 0 0;padding:2px 6px;border:1.5px dashed var(--color-accent-600);border-radius:3px;
+    background:var(--color-accent-50);color:var(--accent-ink)}
+  .rl-sug-box .rl-sug-new{text-decoration:underline dashed;text-underline-offset:3px;font-weight:var(--w-strong)}
+  .rl-sug-reject :is(ins,.nego-ins){text-decoration:line-through dashed var(--color-accent-600);text-decoration-thickness:2px;
+    outline:1.5px dashed var(--color-accent-600);outline-offset:2px}
+  .rl-sug-reject.rl-sug-whole{outline:1.5px dashed var(--color-accent-600);outline-offset:6px}
+  .rl-sug-accept :is(ins,.nego-ins):last-of-type::after{content:'\\2713';display:inline-block;margin-left:4px;padding:0 3px;
+    border:1.5px dashed var(--color-accent-600);border-radius:3px;color:var(--st-green-fg);background:var(--color-accent-50);text-decoration:none}
+  ${''/* THE BUTTON THAT GLOWS: three slow pulses, then a steady ring until a
+         press; still for anyone with reduced motion. Not a band. */}
+  .rl-glow{box-shadow:0 0 0 2px var(--color-accent-600);background:var(--color-accent-50);border-radius:var(--radius);
+    animation:rl-glow 1.2s ease-in-out 3}
+  @keyframes rl-glow{0%,100%{box-shadow:0 0 0 2px var(--color-accent-600)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--color-accent-600) 22%,transparent)}}
+  @media (prefers-reduced-motion:reduce){.rl-glow{animation:none}}
   .rl-card-prep .rl-prep-why{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rl-paper-foot.rl-foot-many{flex-wrap:wrap;gap:var(--s-6) var(--s-8)}
   .rl-paper-foot.rl-foot-many .rl-sigline{flex:1 1 200px}
@@ -6342,6 +6361,39 @@ function redlineLayoutCss(){
     border-radius:var(--radius);font-size:var(--t-body);font-weight:var(--w-strong);align-self:center}
   #view-redline .rl-head .rl-needs:hover,#view-redline .rl-head .rl-livelist:hover{border-color:var(--color-accent);
     text-decoration:none;background:var(--color-surface)}
+
+  ${''/* ---- ONE PAPER EVERYWHERE: THE HOME PAPER (owner, 8 Oct 2026: "i am
+         choosing the home paper" … "the background also needs to be exactly
+         like the home page redlined version. No differences at all") ----
+         Home's Redlined paper is this page's own markup (redlineDocHtml) drawn
+         WITHOUT the .redline-page rules; measured element by element on
+         8 Oct, these are the properties those rules changed. Here they are
+         put back to Home's values, on our seat and theirs (.redline-page wraps
+         both), so the paper reads the same on every screen. The ground and
+         the gap above the sheet are Home's too (--desk-ground; 29px). The
+         reader's A⁻/A⁺ still scales it: every size runs on --doc-scale. */}
+  .redline-page #rl-doc{background:var(--desk-ground)}
+  .redline-page #rl-doc .nego-scroll{padding-top:29px}
+  .redline-page .nego-pane article.nego-doc.rl-paper,.redline-page article.nego-doc.rl-paper{--rl-paper-pad:38px;max-width:720px;padding:34px 38px 44px;
+    box-shadow:var(--n-shadow-card)}
+  ${''/* The type is Home's too, except where the contract wears a design ([data-doc-body]): a design keeps its own type. */}
+  .redline-page :not([data-doc-body]) > article.nego-doc.rl-paper{font-size:calc(14px * var(--doc-scale,1));line-height:1.72;color:#222a33}
+  html.dark .redline-page :not([data-doc-body]) > article.nego-doc.rl-paper{color:var(--n-ink)}
+  .redline-page article.nego-doc .pg-corner{display:none}
+  .redline-page :not([data-doc-body]) > article.nego-doc .rl-paper-title{font-size:calc(20px * var(--doc-scale,1));font-weight:var(--w-strong);letter-spacing:-.01em}
+  .redline-page :not([data-doc-body]) > article.nego-doc .rl-paper-sub{font-size:calc(13px * var(--doc-scale,1))}
+  .redline-page article.nego-doc .nego-clause.rl-clause{margin:0 0 22px;padding:10px var(--s-3)}
+  .redline-page article.nego-doc .rl-clause.is-changed::after,
+  .redline-page article.nego-doc .rl-front.is-changed::after{display:none}
+  .redline-page article.nego-doc .rl-clause-top{display:block}
+  .redline-page article.nego-doc .rl-clause-h{margin:0;line-height:1.72}
+  .redline-page :not([data-doc-body]) > article.nego-doc .rl-clause-h{letter-spacing:-.01em;color:var(--color-doc-text)}
+  .redline-page :not([data-doc-body]) > article.nego-doc :is(.rl-front,.nego-body,.rl-paper-foot,.rl-sigline,.rl-sigrule){font-size:calc(14px * var(--doc-scale,1));line-height:1.72;color:inherit}
+  .redline-page :not([data-doc-body]) > article.nego-doc :is(.rl-line,.nego-body p){line-height:1.72;color:inherit}
+  .redline-page article.nego-doc .rl-rung{display:inline-block;margin:0;padding:0;border-radius:0;background:none;
+    font:inherit;font-weight:var(--w-body,400);letter-spacing:normal;text-transform:none;color:inherit;max-width:none}
+  ${''/* Reading an older move is a live state, not decoration: its label keeps the ruby. */}
+  .redline-page article.nego-doc .rl-rung.rl-rung-reading{padding:0 4px;border-radius:var(--radius);background:var(--st-ruby-bg);color:var(--st-ruby-fg)}
   `;
   document.head.appendChild(s);
 }

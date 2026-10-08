@@ -1296,10 +1296,13 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
   await pause(600);
   /* SCROLLED INTO VIEW FIRST. elementFromPoint only answers about the visible
      viewport, and the proposed clause is the last thing in the document — a
-     pill below the fold reads as unreachable when it is merely off-screen. */
+     pill below the fold reads as unreachable when it is merely off-screen.
+     INSTANT, because the column glides (scroll-behavior:smooth); on the
+     720px Home paper (owner, 8 Oct 2026) the clause lies further down and the
+     glide had not arrived when the check looked. */
   await p.evaluate(id => {
     const sec = document.querySelector(`.redline-page .nego-clause[data-clause="${id}"]`);
-    if (sec) sec.scrollIntoView({ block: 'center' });
+    if (sec) sec.scrollIntoView({ block: 'center', behavior: 'instant' });
   }, ins.clauseId);
   await pause(400);
   ck('14a the fixture proposes a clause the way the playbook does', !!ins.id, ins.id);

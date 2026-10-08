@@ -47,7 +47,13 @@ const EXEC = process.env.CHROMIUM_BIN
    SAME line box. Measured against main on this stage: the title (H3
    .rl-paper-title) is at top 284.7, height 29.8 on both sides — nothing
    moved down; only the ink of a different face. 286.7 at main → 287.7. */
-const PARENT_INK = { docs: 271.9, nego: 287.7, sign: 301.9 };
+/* MOVED BY THE OWNER, 8 Oct 2026 ("the background also needs to be exactly
+   like the home page redlined version. No differences at all"): the Document
+   tab and the Negotiate page take Home Redlined's 29px above the sheet and its
+   34px top margin, so their first line sits lower by that gap and no more
+   (271.9 → 297.0, 287.7 → 317.8, measured on this stage). The Signing tab was
+   not asked and keeps its line. */
+const PARENT_INK = { docs: 297.0, nego: 317.8, sign: 301.9 };
 
 let pass = 0, fail = 0;
 const ok = (name, good, detail) => {

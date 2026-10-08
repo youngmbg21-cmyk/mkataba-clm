@@ -1524,9 +1524,9 @@ function agAnswerBody(it){
    standard it rests on. NOTHING IS FILED FROM HERE — answering is the
    negotiation page's own act, where Counter opens the clause editor with this
    wording as a card to Apply. Send back asks Copilot again with a note. */
-const AG_PREP_TONE = { accept: 'is-green', counter: 'is-amber', escalate: 'is-ruby' };
+const AG_PREP_TONE = { accept: 'is-green', counter: 'is-amber', reject: 'is-ruby', escalate: 'is-ruby' };
 /* Copilot's three answers, in the co-pilot's own words for the card's tally. */
-const AG_PREP_PLAN = { accept: 'accept', counter: 'push', escalate: 'escalate' };
+const AG_PREP_PLAN = { accept: 'accept', counter: 'push', reject: 'push', escalate: 'escalate' };
 function agPrepHtml(c, ch){
   const a = (typeof roundPrepOf === 'function' && ch) ? roundPrepOf(c, ch) : null;
   if (!a) return '';
