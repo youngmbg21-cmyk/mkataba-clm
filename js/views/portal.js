@@ -4561,10 +4561,14 @@ function renderShareHistory(p, opts={}){
 function portalCodeScreen(token, d){
   const root=document.getElementById('share-root')||document.body;
   const to=(d&&d.to)||'';
+  /* NO EMAIL, SO THE CODE WAITS WITH THE SENDER (8 Oct 2026): the page says
+     who to ask rather than claiming it was sent. */
+  const noMail=!!(d&&d.emailConfigured===false);
+  const asker=(d&&d.sharedBy)||i18t('pt_the_sender');
   root.innerHTML=`<div class="pt-code-wrap"><div class="pt-code">
     <p class="pt-code-brand">HaTi</p>
     <h1>${esc(i18t('po_code_title'))}</h1>
-    <p class="pt-code-sub" id="pt-code-sub">${esc(to?i18t('po_code_sub',{to}):i18t('po_code_sub_plain'))}</p>
+    <p class="pt-code-sub" id="pt-code-sub">${esc(noMail?i18t('po_code_sub_ask',{who:asker}):to?i18t('po_code_sub',{to}):i18t('po_code_sub_plain'))}</p>
     <div class="pt-code-row">
       <input id="pt-code-in" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
         aria-label="${esc(i18t('po_code_title'))}" placeholder="000000">
@@ -4612,12 +4616,12 @@ function portalCodeScreen(token, d){
       markSent();
       const sub=document.getElementById('pt-code-sub');
       const to=(j&&j.sentTo)?portalMaskAddress(j.sentTo):'';
-      if(sub&&to) sub.textContent=i18t('po_code_sub',{to});
+      if(sub&&to&&!noMail&&!(j&&j.emailConfigured===false)) sub.textContent=i18t('po_code_sub',{to});
       /* "SENT" MUST MEAN SENT: mailReportPublic's own four states, and the
          outbox is honest delivery rather than a failure. */
       const queued=!!(j&&!j.emailSent&&!j.emailConfigured);
       say(j&&j.emailSent?i18t('po_code_sent',{n:PT_CODE_MINUTES})
-        :queued?i18t('po_code_outbox')
+        :queued?i18t('po_code_outbox_ask',{who:asker})
         :((j&&j.emailError)||i18t('po_code_send_failed')),
         !!(j&&(j.emailSent||queued)));
       if(box) box.focus();
@@ -4644,7 +4648,7 @@ function portalCodeScreen(token, d){
      just opened a link they were emailed has already asked for it by opening
      it. A refresh does not ask again — it says the code is already out and
      waits for the press. */
-  if(sentAlready()) say(i18t('po_code_already'), true); else send();
+  if(sentAlready()) say(noMail?i18t('po_code_outbox_ask',{who:asker}):i18t('po_code_already'), true); else send();
 }
 
 function renderSharePortal(p, opts={}){

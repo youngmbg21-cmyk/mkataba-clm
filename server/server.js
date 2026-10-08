@@ -5860,6 +5860,12 @@ app.put('/api/settings', auth, admin, (req, res) => {
   /* WHO SAVED A LANE, AND WHO IT NAMES, ARE THE SERVER'S WORD — see
      srvLanesStamp. */
   if (Array.isArray(incoming.intakeLanes)) incoming.intakeLanes = srvLanesStamp(incoming.intakeLanes, stored.intakeLanes, req.user);
+  /* ---- A CODE NOBODY CAN MAIL LOCKS THE GUEST OUT (8 Oct 2026) ----
+     Switching the link code ON while email is not set up is refused — as a
+     DIFFERENCE against the stored rule, so a rule already on (or a save that
+     leaves it alone) never blocks an unrelated setting. */
+  if (((incoming.linkCode || {}).on) && !((stored.linkCode || {}).on) && !EMAIL_ON())
+    return res.status(409).json({ error: 'Email is not set up, so a guest could never receive the code. Set up email first, then switch this on.', linkCodeNeedsEmail: true });
   setSetting('appSettings', incoming);
   res.json({ ok: true, ...(Array.isArray(incoming.intakeLanes) ? { intakeLanes: incoming.intakeLanes } : {}) });
 });
@@ -15822,7 +15828,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
      asks for a key to a room that is not there. Dead first, then who. */
   if (shareNeedsCode(s) && !shareDoorOtpOk(s.token, req.query && req.query.t))
     return res.status(401).json({ error: 'Check it is you before this opens.', needsCode: true,
-      to: shareCodeMask(s.recipient_email) });
+      to: shareCodeMask(s.recipient_email),
+      /* With email off the code waits in the sender's outbox, so the page
+         says who to ask (8 Oct 2026): whether mail goes, and the sender's
+         name — nothing else about the deal. */
+      emailConfigured: EMAIL_ON(), sharedBy: (() => { try { return String((JSON.parse(s.payload) || {}).sharedBy || '').slice(0, 120); } catch (_) { return ''; } })() });
   /* WP-1.6: a derived view link dies with its parent — checked live, on every
      open, because a cascade WRITE at revoke time would miss a parent that
      merely expired. A derived ticket is strictly weaker than its source, and
