@@ -64,8 +64,8 @@ describe('f490 (1) one table, both hosts', () => {
     for (const k of ['sign', 'negotiate', 'view', 'history', 'status']) assert.ok(T[k].includes('desk'), `${k} asks the desk`);
     assert.deepEqual(T.advise, ['hold'], 'an adviser link asks the hold alone');
     assert.ok(!T.status.includes('reviewgate'), 'a status page carries no wording for the gate to hold');
-    assert.deepEqual(T.sign, ['hold', 'desk', 'reviewer', 'reviewgate', 'signapproval', 'approval', 'signcheck', 'address'],
-      'the sign row is the list signLinkRefusal always asked, in its order');
+    assert.deepEqual(T.sign, ['hold', 'desk', 'reviewer', 'reviewgate', 'asks', 'signapproval', 'approval', 'signcheck', 'address'],
+      'the sign row is the list signLinkRefusal always asked, in its order — and, since 8 Oct 2026 (B2), our asks still open with them');
   });
 });
 

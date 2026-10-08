@@ -118,6 +118,12 @@ describe('f412 (1) — can the other side still answer: the server works it out'
     const dur = await mint('MK-R3', { durable: true });
     assert.equal((await listReach('MK-R3')).reply, 'live');
     const signer = await nameASigner(W.admin, 'MK-R3');
+    /* B2 (8 Oct 2026): a signing link is refused while one of our asks is
+       still open with them — so the round's ask is answered first, as it is
+       in life before anybody sends a signing link. */
+    { const full = await W.admin.json('/api/contracts/MK-R3'); const v = full._v; delete full._v;
+      full.changes = full.changes.map(x => ({ ...x, status: 'accepted' }));
+      await W.admin.json('/api/contracts/MK-R3', { method: 'PUT', body: { contract: full, baseVersion: v } }); }
     await mint('MK-R3', { purpose: 'sign', signerId: signer.id, recipient: { name: signer.name, email: signer.email } });
     const r = await listReach('MK-R3');
     assert.equal(r.reply, 'none', 'nothing sent on a retired link is accepted — the respond route\'s own wall');

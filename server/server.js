@@ -15180,7 +15180,7 @@ async function releaseOneSignerLink(req, contractId, rt, next) {
    are asked of a sealed record as this route always asked them; on one there
    is nothing unsent for them to find. */
 const SRV_LINK_ASKS = Object.freeze({
-  sign:      ['hold', 'desk', 'reviewer', 'reviewgate', 'signapproval', 'approval', 'signcheck', 'address'],
+  sign:      ['hold', 'desk', 'reviewer', 'reviewgate', 'asks', 'signapproval', 'approval', 'signcheck', 'address'],
   negotiate: ['hold', 'desk', 'reviewer', 'reviewgate'],
   view:      ['hold', 'desk', 'reviewer', 'reviewgate'],
   history:   ['hold', 'desk', 'reviewer', 'reviewgate'],
@@ -15229,6 +15229,20 @@ function srvLinkRefusal(req, rvStored, purpose, opts) {
       return { status: 403, body: { error: `You are reviewing ${n} change${n === 1 ? '' : 's'} on this contract`
         + ` for ${holding[0].by || 'a colleague'}. Hand the review back before sending anything to the counterparty.`,
         reviewing: holding.map(r => r.id) } };
+    }
+  }
+  /* A POINT STILL OPEN WITH THEM (B2, 8 Oct 2026): a signing link over one
+     of our asks leaves them a page that cannot answer it and a negotiation
+     link that has closed. Refused at the mint, named by clause, with the way
+     forward — the asks srvSignOpenAsks refuses their signature over. */
+  if (asks.has('asks') && !sealed) {
+    const open = srvLinkOpenAsks(rvStored);
+    if (open.length) {
+      const names = [...new Set(open.map(srvDsClause).filter(Boolean))].slice(0, 3).join(', ');
+      return { status: 409, body: { openAsks: open.map(x => x.id), error: (open.length === 1
+        ? `One of our changes${names ? ` (${names})` : ''} is still waiting for their answer.`
+        : `${open.length} of our changes${names ? ` (${names})` : ''} are still waiting for their answer.`)
+        + ' Get their answer on the negotiation link, or withdraw the change, before a signing link goes out — a signing page cannot answer it.' } };
     }
   }
   /* 2. THE GATE, where an admin has turned it on. A change nobody has looked
@@ -15925,6 +15939,15 @@ function shareSigningOrder(s) {
    signature on the paper at once and after any refresh. */
 /* The asks still waiting on THIS link's reader: pending on the stored
    contract, written by our side, and in the copy they were sent. */
+/* Our asks still waiting on their answer, off the STORED record: pending,
+   ours, not withdrawn, and not what never travels (a held change, a
+   colleague's unadopted suggestion). linkOpenAsks is the browser's twin. */
+function srvLinkOpenAsks(c) {
+  if (!c) return [];
+  const keep = new Set([...dkSuggestedIds(c)].map(String));
+  return srvDsLive(c).filter(x => x && x.status === 'pending' && x.authorSide !== 'counterparty'
+    && !rvHeld(x) && !keep.has(String(x.id)));
+}
 function srvSignOpenAsks(s) {
   if (!s || !s.contract_id) return [];
   let p = null; try { p = JSON.parse(s.payload); } catch (_) { p = null; }
