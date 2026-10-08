@@ -822,6 +822,22 @@ function pbCarryDecisions(prev, next){
   });
   return next;
 }
+/* ---- AN AMENDMENT IS NOT MISSING WHAT ITS AGREEMENT SAYS (Young, 8 Oct
+   2026: "this amendment was found to have 4 risks" — the head said 7, and the
+   other 3 were standards "not in this document") ----
+   A document filed UNDER an agreement (an amendment, an addendum, a statement
+   of work…) changes or adds to that agreement and repeats nothing else, so a
+   standard it does not mention is in the agreement it amends — never missing.
+   Said as "Doesn't apply", with where it lives; a DEVIATION still counts,
+   because an amendment that moves the liability cap off our standard is the
+   very thing the check is for. Applied once, in this runner's stamp, which
+   every caller that stores a check goes through. */
+const pbAmendsAnother = c => !!(c && c.parentId && c.relation);
+function pbInParentVerdicts(c, r){
+  if(!pbAmendsAnother(c) || !r || !Array.isArray(r.verdicts)) return r;
+  return { ...r, verdicts: r.verdicts.map(v => (v && v.status === 'missing')
+    ? { ...v, status:'na', inParent:true, escalate:false } : v) };
+}
 async function runPlaybookReview(c,opts={}){
   let text = playbookText(c);
   /* A LIGHT ROW IS NOT AN EMPTY CONTRACT (the owner's list, 27 Sep 2026): in
@@ -835,8 +851,8 @@ async function runPlaybookReview(c,opts={}){
   if(!text || text.length<PB_TEXT_MIN){
     if(opts.quiet) return { error:i18t('pb_no_readable_clause') };
     toast(i18t('pb_no_readable_clause'),'err'); return null; }
-  const stamp = r => (r && !r.error)
-    ? { ...pbCarryDecisions(c && c.playbook, r), wordingHash:playbookHashOf(text), checkedAt:new Date().toISOString() } : r;
+  const stamp = r0 => { const r = pbInParentVerdicts(c, r0); return (r && !r.error)
+    ? { ...pbCarryDecisions(c && c.playbook, r), wordingHash:playbookHashOf(text), checkedAt:new Date().toISOString() } : r; };
   if(API_MODE() && state.aiConfigured){
     /* A HALF-FINISHED CHECK IS NEVER SAVED (fix 3, 23 Sep 2026). A cut-short
        answer and an empty one are refusals in words, handed back the way this
@@ -950,7 +966,7 @@ function pbVerdictWords(v){
   const pos=String((v&&v.position)||'').trim();
   const st=(v&&v.status)||'';
   if(st==='aligned') return pos ? `Matches Our standards · ${pos}` : 'Matches Our standards';
-  if(st==='na') return i18t('pb_na_line');
+  if(st==='na') return i18t(v.inParent ? 'pb_na_in_parent' : 'pb_na_line');
   if(st==='deviation') return pos ? `Our standard is ${pos}` : 'Off Our standard';
   return pos ? `Not in this document · Our standard is ${pos}` : 'Not in this document';
 }
@@ -1486,4 +1502,4 @@ function openClausePicker(c, opts){
   document.querySelectorAll('[data-cl-ins]').forEach(b=>b.addEventListener('click',()=>{ const cl=clauseById(b.getAttribute('data-cl-ins')); closeModal(); if(onPick) onPick(cl); }));
 }
 
-Object.assign(window,{PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
+Object.assign(window,{pbAmendsAnother,pbInParentVerdicts,PB_TYPE_PATTERNS,PB_STEM_SAYS,pbTypeWords,DEFAULT_CLAUSE_LIBRARY,DEFAULT_PLAYBOOK,pbCarryDecisions,PB_TEXT_MIN,playbookText,PB_RANGE_READERS,pbRangeRead,PB_QUOTE_MIN,PB_QUOTE_LEAD,pbClauseBlocks,pbQuoteBlock,pbSwapBlock,pbPositionFigure,pbFitWording,pbFitInto,pbUnquotedLoss,pbClauseHeadWords,pbDropRepeatedHeading,playbookKeyFor,clauseLibrary,playbook,savePlaybook,resolvePlaybook,clauseById,pbStandardsFor,pbStandardsSent,PB_SETTLED_STATUSES,pbVerdictOpen,pbAlignVerdicts,pbReviewComplete,pbReviewUsable,playbookReviewHeuristic,runPlaybookReview,playbookStale,playbookHashOf,deviationSummary,renderPlaybookSection,pbProposedClauses,applyClauseRedline,pbShowInsert,openClausePicker,jumpToInsertedClause,clauseInsertNote,pbVerdictWords,pbVerdictLine,pbHeadPill,pbFoldKey,_clauseTextSpan,_rangeFromOffsets,_clauseFlashClear});
