@@ -4477,6 +4477,7 @@ const STRINGS = {
     mail_turn_body: "It's your turn to sign \"{name}\" with {org}{pos}. Every signer before you has signed; the agreement now waits on you.",
     mail_open_link: "Open your personal signing link — no account is needed:",
     mail_code_note: "A one-time code will be emailed to this address to confirm it's you before your signature is recorded. This link was issued to you personally and should not be forwarded — a forwarded copy cannot be used to sign.",
+    mail_link_personal: 'This link was issued to you personally — please do not forward it.',
     mail_link_expires: "This link expires on {date}.",
     /* ---- the INTERNAL signer's turn ----
        One wording for every trigger (route issued, a colleague signed, the
@@ -17612,6 +17613,7 @@ const STRINGS = {
     mail_turn_body: "Det är din tur att underteckna \"{name}\" med {org}{pos}. Alla undertecknare före dig har skrivit under; avtalet väntar nu på dig.",
     mail_open_link: "Öppna din personliga signeringslänk — inget konto behövs:",
     mail_code_note: "En engångskod skickas till den här adressen för att bekräfta att det är du innan din underskrift registreras. Länken utfärdades personligen till dig och bör inte vidarebefordras — en vidarebefordrad kopia kan inte användas för att underteckna.",
+    mail_link_personal: 'Länken utfärdades personligen till dig — vidarebefordra den inte.',
     mail_link_expires: "Länken slutar gälla den {date}.",
     mail_int_turn_subject: "Din underskrift behövs — \"{name}\"",
     mail_int_turn_pos: " (undertecknare {n} av {total} i den överenskomna ordningen)",

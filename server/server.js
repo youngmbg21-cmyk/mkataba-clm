@@ -14982,7 +14982,9 @@ function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang })
       + tFor(L, 'mail_turn_body', { name: cName, org, pos: posText })
       + orderLine
       + `\n\n${tFor(L, 'mail_open_link')}\n${link}\n\n`
-      + tFor(L, 'mail_code_note')
+      /* ONLY WHAT IS TRUE (B9, 8 Oct 2026): the code is sent only where this
+         server can send mail (the respond route asks for it exactly then). */
+      + tFor(L, EMAIL_ON() ? 'mail_code_note' : 'mail_link_personal')
       + (expiresAt ? `\n\n${tFor(L, 'mail_link_expires', { date: String(expiresAt).slice(0, 10) })}` : '')
       + `\n\n${tFor(L, 'mail_automated_notice')}`,
   };
