@@ -9989,7 +9989,7 @@ function dealPageHtml(D, org) {
     <div style="font-size:15px;font-weight:600;color:#1B2A28">${e(v)}</div></td>`;
   const clauseOf = p => (p && p.clause) || 'a clause';
   const li = (mark, a, b) => `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #F1F4F3;font-size:14px">
-    <span style="flex:none;color:${mark === 'o' ? '#E8B84B' : '#0C5D55'};line-height:1.5">${mark === 'o' ? '○' : '✓'}</span>
+    <span style="flex:none;color:${mark === 'o' ? '#E8B84B' : mark === 'x' ? '#9B2C2C' : '#0C5D55'};line-height:1.5">${mark === 'o' ? '○' : mark === 'x' ? '✕' : '✓'}</span>
     <span><b style="font-weight:600">${e(a)}</b>${b ? `<i style="font-style:normal;display:block;color:#5F6D6B;font-size:12.5px;margin-top:1px">${e(b)}</i>` : ''}</span></div>`;
   /* THE SHARED SHEET (4 Oct 2026): one row of facts — the round, how much is
      settled, what waits on each party — in place of "Whose move — X for 0 days". */
@@ -10015,8 +10015,8 @@ function dealPageHtml(D, org) {
       <table style="width:100%;border-collapse:collapse;margin:16px 0 18px"><tr>${D.steps.map(step).join('')}</tr></table>
       <table style="width:100%;border-collapse:collapse"><tr style="vertical-align:top">
         <td style="width:50%;padding-right:12px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Agreed &middot; ${D.settled}</div>
-          ${D.settledPoints.length ? D.settledPoints.map(p => li('t', clauseOf(p), '')).join('')
+          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Settled &middot; ${D.settled}</div>
+          ${D.settledPoints.length ? D.settledPoints.map(p => p.settled ? li('t', clauseOf(p), '') : li('x', clauseOf(p), 'not taken')).join('')
             + (D.settled > D.settledPoints.length ? `<div style="font-size:13px;color:#8A9693;padding:5px 0">and ${D.settled - D.settledPoints.length} more</div>` : '')
             : '<div style="font-size:14px;color:#8A9693;padding:5px 0">Nothing has been settled yet</div>'}</td>
         <td style="width:50%;padding-left:12px">

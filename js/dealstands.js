@@ -342,7 +342,11 @@ function standsHtml(c, opts = {}){
     facts.push([mine ? dsT('ds_waiting_you') : dsT('ds_waiting_on', { who: w.party }), String(w.n), mine && w.n ? 'ds-warn' : '']);
   });
   const agreedList = (D.settledPoints && D.settledPoints.length)
-    ? D.settledPoints.map(p => `<div class="ds-li"><span class="ds-tick" aria-hidden="true">\u2713</span><span><b>${dsEsc(dsClauseWord(p))}</b></span></div>`).join('')
+    /* A REFUSED POINT IS SETTLED, NOT AGREED (8 Oct 2026): the list is headed
+       "Settled" and each row carries its own mark — a tick where the change
+       was taken, a cross and "not taken" where it was refused. */
+    ? D.settledPoints.map(p => `<div class="ds-li${p.settled ? '' : ' is-refused'}"><span class="ds-tick" aria-hidden="true">${p.settled ? '\u2713' : '\u2715'}</span><span><b>${dsEsc(dsClauseWord(p))}</b>${
+        p.settled ? '' : `<i>${dsEsc(dsT('ds_not_taken'))}</i>`}</span></div>`).join('')
       + (D.settled > D.settledPoints.length
         ? `<div class="ds-li ds-quiet">${dsEsc(dsTn('ds_and_more', D.settled - D.settledPoints.length, { n: D.settled - D.settledPoints.length }))}</div>` : '')
     : `<div class="ds-li ds-quiet">${dsEsc(dsT('ds_settled_none'))}</div>`;
@@ -368,7 +372,7 @@ function standsHtml(c, opts = {}){
     <div class="ds-facts">${facts.map(([k, v, cls]) => `<div><span>${dsEsc(k)}</span><b${cls ? ` class="${cls}"` : ''}>${dsEsc(v)}</b></div>`).join('')}</div>
     ${wantJourney ? `<ol class="ds-j">${steps}</ol>` : ''}
     <div class="ds-cols">
-      <div><div class="ds-h">${dsEsc(dsT('ds_agreed_n', { n: D.settled }))}</div>${agreedList}</div>
+      <div><div class="ds-h">${dsEsc(dsT('ds_settled_n', { n: D.settled }))}</div>${agreedList}</div>
       <div><div class="ds-h">${dsEsc(dsT('ds_still_open_n', { n: D.open }))}</div>${points}</div>
     </div>
     ${wantLately ? `<div class="ds-h ds-h-late">${dsEsc(dsT('ds_lately'))}</div>${lately}` : ''}
