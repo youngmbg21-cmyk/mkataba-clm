@@ -51,6 +51,16 @@ const DIR = __dirname;
  * keep earning its place or it becomes the furniture. */
 const KNOWN_RED = {
   /* --- stale after a deliberate change: the product moved, the file did not --- */
+  'agents-page-verify.js':
+    'STALE AFTER A DELIBERATE CHANGE, 7 Oct 2026: Young moved Copilot\'s work onto the ' +
+    'Board ("Below the card") — the page this file walks screen by screen has no door ' +
+    'and its address lands on the Board. Its door checks were re-pointed and pass (no ' +
+    'rail door, the address lands on the Board, eleven agents in order); the walk ' +
+    'through the page\'s list and side panel does not, because that page is no longer ' +
+    'drawn. The same acts are checked where they now live: home-prepared-by-copilot-' +
+    'verify (Review opens the work below the card), agents-do-the-work-verify and ' +
+    'no-link-to-sign-verify (the readings and panels). Take it off when it is ported ' +
+    'to the Board (BUGLOG, 8 Oct 2026).',
   'white-band-and-tabs-verify.js':
     '36 of 38 PASS. The two that do not are 5d/5e. WIDENED 24 Aug 2026 (WO-16): ' +
     'the list titles are now deliberately ONE RUNG under the reference on the ' +

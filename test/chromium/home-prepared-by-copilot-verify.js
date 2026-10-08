@@ -118,25 +118,31 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     ok('2a one row per agent with work ready, in Copilot\'s work\'s order, each with that agent\'s count',
       rows.want.length >= 3 && rows.got.join(',') === rows.want.join(','), JSON.stringify(rows));
     ok('2b the rows are the three staged agents', ['round', 'late', 'ours'].every(k => rows.got.some(g => g.startsWith(k + ':'))), rows.got.join(','));
-    ok('2c the head counts what Copilot\'s work counts, and the side menu agrees',
-      new RegExp('^' + rows.ready + ' ready').test(rows.sub.trim()) && rows.rail === String(rows.ready), JSON.stringify({ sub: rows.sub, rail: rows.rail, ready: rows.ready }));
+    /* COPILOT'S WORK LIVES ON THE BOARD (Young, 7 Oct 2026): no rail door, so
+       the head's count is the one number. */
+    ok('2c the head counts what Copilot\'s work counts, and there is no second door in the side menu',
+      new RegExp('^' + rows.ready + ' ready').test(rows.sub.trim()) && rows.rail === ''
+        && !(await page.$('#sidebar [data-view="agents"], nav [data-view="agents"]')), JSON.stringify({ sub: rows.sub, rail: rows.rail, ready: rows.ready }));
     const oursRow = await page.evaluate(() => { const r = document.querySelector('[data-hm-agent-row="ours"]'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
     ok('2d a row says the agent and its first item', /Our promises/.test(oursRow) && /Pay the storage deposit/.test(oursRow) && /due in 3 days/.test(oursRow), oursRow);
     await page.locator('#hm-agents').screenshot({ path: path.join(OUT, '2-card.png') });
 
-    /* ===== 3. REVIEW OPENS THAT AGENT ===== */
+    /* ===== 3. REVIEW OPENS THAT AGENT'S WORK BELOW THE CARD (Young, 7 Oct 2026) ===== */
     await page.click('[data-hm-agent-row="ours"] .hb-btn');
-    ok('3 Review digs in: the board lists that agent\'s work first', await page.waitForFunction(() =>
-      !!document.querySelector('#hb-board .hb-dig [data-hm-agent="ours"]'), null, { timeout: 8000 }).then(() => true, () => false));
-    await page.click('#hb-board .hb-dig [data-hm-agent="ours"]');
-    await page.waitForFunction(() => state.view === 'agents' && !!document.querySelector('.ag-row.on'), null, { timeout: 8000 }).catch(() => {});
-    const landed = await page.evaluate(() => ({ view: state.view, on: (document.querySelector('.ag-row.on') || { getAttribute: () => '' }).getAttribute('data-ag-agent') }));
-    ok('3a and its button opens Copilot\'s work on that agent', landed.view === 'agents' && landed.on === 'ours', JSON.stringify(landed));
+    const shown = () => page.evaluate(() => ({ view: state.view,
+      want: agentsData().agents.ours.ready.map(x => x.key).slice(0, 8),
+      got: [...document.querySelectorAll('#hb-board [data-hb-ag-item]')].map(x => x.getAttribute('data-hb-ag-item')),
+      acts: document.querySelectorAll('#hb-board [data-hb-ag-item] [data-ag-act]').length }));
+    await page.waitForFunction(() => !!document.querySelector('#hb-board [data-hb-ag-item]'), null, { timeout: 8000 }).catch(() => {});
+    const s3 = await shown();
+    ok('3 Review opens that agent\'s whole work below the card, on the Board, with its own buttons',
+      s3.view === 'dashboard' && s3.got.length > 0 && s3.got.join(',') === s3.want.join(',') && s3.acts > 0, JSON.stringify(s3));
+    await page.evaluate(() => setView('agents'));
+    await page.waitForFunction(() => !!document.querySelector('#hb-board [data-hb-ag-item]'), null, { timeout: 8000 }).catch(() => {});
+    const s3b = await page.evaluate(() => state.view);
+    ok('3b the old page\'s address lands on the Board', s3b === 'dashboard', s3b);
     await page.evaluate(() => setView('dashboard'));
     await page.waitForSelector('#hm-agents', { timeout: 8000 }).catch(() => {});
-    await page.click('#hm-agents [data-hm-agent=""]');
-    await page.waitForFunction(() => state.view === 'agents', null, { timeout: 8000 }).catch(() => {});
-    ok('3b the head\'s link opens Copilot\'s work', await page.evaluate(() => state.view === 'agents'));
 
     /* ===== 4. NOTHING READY, NO CARD ===== */
     const empty = await page.evaluate(() => {

@@ -5213,6 +5213,11 @@ async function stAgentsPaint(){
     if('max' in cfg) f.push(num(k,'max',cfg.max,1,500));
     if('limit' in cfg) f.push(num(k,'limit',cfg.limit,0,1000,0.01));
     if('soonDays' in cfg) f.push(num(k,'soonDays',cfg.soonDays,1,30));
+    /* HOW FAR IT MAY GO (the permission ladder, 7 Oct 2026). Just do it is
+       offered only where the act stays inside and can be undone; elsewhere it
+       is drawn grey with the reason on its hover. */
+    if(a.level) f.push(`<label style="display:block;min-width:0">${lab(i18t('st_agents_f_level'))}<select data-st-ag-f="level" style="${ST_INPUT}" title="${esc(a.autoOk?'':i18t('st_agents_auto_no'))}">${
+      ['auto','ask','mine'].map(v=>`<option value="${v}"${a.level===v?' selected':''}${v==='auto'&&!a.autoOk?' disabled':''}>${esc(i18t('st_agents_lv_'+v))}</option>`).join('')}</select></label>`);
     if('secondAfter' in cfg) f.push(num(k,'secondAfter',cfg.secondAfter,1,90));
     return `<section class="st-sec" data-st-agent="${k}" style="padding-top:12px;border-top:1px solid var(--color-divider);margin-top:12px">
       <label style="display:flex;gap:9px;align-items:center;font-size:var(--t-meta);cursor:pointer">

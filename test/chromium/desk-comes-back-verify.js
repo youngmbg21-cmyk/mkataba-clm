@@ -94,14 +94,14 @@ const R = 'MK-9701', Q = 'MK-9702', KID = 'MK-9703';
       return { today: new Date().toISOString().slice(0, 10), rows, items,
         stamps: Object.fromEntries(ids.map(id => [id, stamp(id)])) };
     }, [R, Q]);
+    /* COPILOT'S WORK LIVES ON THE BOARD (Young, 7 Oct 2026, "Below the card"):
+       the renewals agent's work is opened below the Prepared card. */
     const agents = async () => {
-      const door = await page.$('[data-view="agents"]');
-      if (!door) return null;
-      await door.click(); await page.waitForTimeout(900);
-      const renew = await page.$('[data-ag-agent="renew"]');
-      if (renew) { await renew.click(); await page.waitForTimeout(600); }
-      return page.evaluate(() => [...document.querySelectorAll('#ag-main [data-ag-open]')]
-        .map(b => b.getAttribute('data-ag-open')));
+      const can = await page.evaluate(() => typeof hbOpenAgent === 'function');
+      if (!can) return null;
+      await page.evaluate(() => hbOpenAgent('renew')); await page.waitForTimeout(1200);
+      return page.evaluate(() => [...document.querySelectorAll('[data-hb-ag-item]')]
+        .map(b => b.getAttribute('data-hb-ag-item')));
     };
 
     /* ---- the stage: May 2027, two signed agreements ending in June ---- */
@@ -130,7 +130,6 @@ const R = 'MK-9701', Q = 'MK-9702', KID = 'MK-9703';
     /* ---- 1. Put each away on Copilot's work, and the stamps survive the server ---- */
     const all = await page.evaluate(async () => {
       if (typeof agentsData !== 'function' || typeof agRunAct !== 'function') return false;
-      setView('agents');
       for (const it of agentsData().agents.renew.ready.slice()) await agRunAct(it.key, 'away');
       await flushSaves(); setView('dashboard');
       return true;
@@ -154,7 +153,7 @@ const R = 'MK-9701', Q = 'MK-9702', KID = 'MK-9703';
         && !s2.items.includes(R + ':renewal') && !s2.items.includes(Q + ':renewal'),
       JSON.stringify({ today: s2.today, items: s2.items }));
     const a2 = await agents();
-    ok('2b and on the Copilot\'s work page', !!a2 && !a2.includes('desk:' + R + ':renewal') && !a2.includes('desk:' + Q + ':renewal'),
+    ok('2b and in Copilot\'s work on the Board', !!a2 && !a2.includes('desk:' + R + ':renewal') && !a2.includes('desk:' + Q + ':renewal'),
       a2 ? (a2.join(' | ') || '(nothing ready)') : 'no door');
 
     /* ---- 3. May 2028: one of them was renewed for a year ---- */
@@ -185,7 +184,7 @@ const R = 'MK-9701', Q = 'MK-9702', KID = 'MK-9703';
     ok('3d CONTROL — the agreement whose term did not move stays away',
       !s3.items.includes(Q + ':renewal') && !s3.rows.some(x => x.startsWith(Q)), s3.items.join(' | ') || '(none)');
     const a3 = await agents();
-    ok('3b and it is ready again on the Copilot\'s work page, under Renewals (RED at 8f330c7)',
+    ok('3b and it is ready again in Copilot\'s work on the Board, under Renewals (RED at 8f330c7)',
       !!a3 && a3.includes('desk:' + R + ':renewal'), a3 ? (a3.join(' | ') || '(nothing ready)') : 'no door');
     ok('3d2 CONTROL — while the one that did not move is not', !!a3 && !a3.includes('desk:' + Q + ':renewal'),
       a3 ? (a3.join(' | ') || '(nothing ready)') : 'no door');

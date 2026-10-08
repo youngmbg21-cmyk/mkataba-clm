@@ -16766,7 +16766,14 @@ app.post('/api/shares/:token/extend', auth, editor, (req, res) => {
      keeping rows only, the hold and the desk, because nothing new travels. */
   { const no = srvLinkRefusal(req, srvStoredContract(s.contract_id), sharePurposeOf(s), { keep: true, contractId: s.contract_id });
     if (no) return res.status(no.status).json(no.body); }
-  const days = Math.min(90, Math.max(1, Number((req.body || {}).days) || SHARE_EXPIRY_DEFAULT_DAYS));
+  const until = srvShareExtend(s, (req.body || {}).days, req.user.name || 'System');
+  res.json({ ok: true, expiresAt: until, reach: srvReachOf(s.contract_id) });
+});
+/* THE ONE WRITER OF MORE TIME ON A LINK — the press above, and the link
+   agent when an admin has left it to "Just do it" (runLinkWatch). The
+   caller has asked the refusals; this moves the date and writes the trail. */
+function srvShareExtend(s, daysAsked, who) {
+  const days = Math.min(90, Math.max(1, Number(daysAsked) || SHARE_EXPIRY_DEFAULT_DAYS));
   const was = Date.parse(String(s.expires_at || '')) || 0;
   const until = new Date(Math.max(was, Date.now() + days * 86400000)).toISOString();
   db.prepare('UPDATE shares SET expires_at=? WHERE token=?').run(until, s.token);
@@ -16774,13 +16781,13 @@ app.post('/api/shares/:token/extend', auth, editor, (req, res) => {
     const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(s.contract_id);
     if (row) {
       const cj = JSON.parse(row.json);
-      cj.audit = (Array.isArray(cj.audit) ? cj.audit : []).concat([{ at: now(), user: req.user.name || 'System',
+      cj.audit = (Array.isArray(cj.audit) ? cj.audit : []).concat([{ at: now(), user: who || 'System',
         action: 'Shared', detail: `Link for ${s.recipient_name || s.recipient_email || 'the other side'} kept open until ${until.slice(0, 10)}` }]);
       db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cj), now(), s.contract_id);
     }
   } catch (_) { /* the link is extended; a missing trail line must never undo it */ }
-  res.json({ ok: true, expiresAt: until, reach: srvReachOf(s.contract_id) });
-});
+  return until;
+}
 
 app.post('/api/shares/:token/resend', auth, editor, rlShareSend, async (req, res) => {
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
@@ -18408,7 +18415,7 @@ function linkStuckOf(c, R) {
   if (R.sign) out.push({ kind: 'sign', how: R.sign.how, at: R.sign.at || R.sign.sentAt || '', to: R.sign.signer || R.sign.to || '' });
   for (const s of (R.soon || []))
     if (s.kind === 'sign' || (ours && !theirs))
-      out.push({ kind: s.kind === 'sign' ? 'soon-sign' : 'soon', at: s.ends || '', ends: s.ends || '', to: s.signer || s.to || s.email || '' });
+      out.push({ kind: s.kind === 'sign' ? 'soon-sign' : 'soon', at: s.ends || '', ends: s.ends || '', to: s.signer || s.to || s.email || '', token: s.token || '' });
   return out;
 }
 /* One line of mail, in the reader's language. */
@@ -18418,6 +18425,7 @@ function linkStuckLine(L, name, it) {
   if (it.kind === 'reply') return tFor(L, 'mail_lw_reply', { name, how, to: it.to });
   if (it.kind === 'party') return tFor(L, 'mail_lw_party', { name, party: it.party || it.to, how });
   if (it.kind === 'sign') return tFor(L, 'mail_lw_sign', { name, who: it.to, how });
+  if (it.kept) return tFor(L, 'mail_lw_kept', { name, who: it.to, date: String(it.kept).slice(0, 10) });
   if (it.kind === 'soon-sign') return tFor(L, 'mail_lw_soon_sign', { name, who: it.to, date: String(it.ends).slice(0, 10) });
   return tFor(L, 'mail_lw_soon', { name, who: it.to, date: String(it.ends).slice(0, 10) });
 }
@@ -18444,6 +18452,22 @@ async function runLinkWatch() {
     for (const it of items) { if (it.kind.startsWith('soon')) out.soon++; else out.stuck++; }
     const owner = c.owner && c.owner.id ? c.owner : null;
     if (!owner) { bump('noOwner'); continue; }
+    /* "JUST DO IT" (Young, 7 Oct 2026): a link about to run out is kept open
+       by the agent itself — nothing is sent, the other side's link simply
+       keeps working, the trail says so and the owner is told. Asked through
+       the SAME refusals as the owner's own press. */
+    if (agentLevel('link') === 'auto') for (const it of items) {
+      if (!it.kind.startsWith('soon') || !it.token) continue;
+      const sh = db.prepare('SELECT * FROM shares WHERE token=?').get(it.token);
+      if (!sh || sh.revoked_at || shareExpired(sh) || (sh.response && !sh.durable)) continue;
+      const u0 = db.prepare('SELECT * FROM users WHERE id=?').get(String(owner.id));
+      if (!u0) continue;
+      const no = srvLinkRefusal({ user: u0 }, srvStoredContract(sh.contract_id), sharePurposeOf(sh), { keep: true, contractId: sh.contract_id });
+      if (no) { bump('autoRefused'); continue; }
+      it.kept = srvShareExtend(sh, SHARE_EXPIRY_DEFAULT_DAYS, 'Copilot (keep links working)');
+      it.at = it.kept;
+      out.kept = (out.kept || 0) + 1;
+    }
     for (const it of items) {
       const rkey = `linkwatch:${c.id}:${it.kind}:${it.partyId || ''}:${it.at || ''}`;
       if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(rkey)) { bump('toldBefore'); continue; }
@@ -19189,7 +19213,7 @@ const AGENT_KEYS = ['round', 'link', 'renew', 'paper', 'late', 'ours', 'import']
 const AGENT_SCHEDULED = ['link', 'late', 'ours', 'renew', 'paper'];
 const AGENT_DEFAULTS = {
   round:  { on: true, max: 25, limit: 3 },
-  link:   { on: true, at: 7, soonDays: 3 },
+  link:   { on: true, at: 7, soonDays: 3, level: 'auto' },
   renew:  { on: true, max: RENEWAL_PREP_MAX, at: 2, limit: 2 },
   paper:  { on: true, max: RENEWAL_PREP_MAX, at: 2, limit: 3 },
   late:   { on: true, at: 7, secondAfter: 7 },
@@ -19210,6 +19234,19 @@ function agentCfg(k) {
      disagree. */
   if (k === 'renew') { cfg.on = renewalPrepOn(); cfg.max = renewalPrepMax(); }
   return cfg;
+}
+/* HOW FAR AN AGENT MAY GO (Young, 7 Oct 2026, the permission ladder):
+   'auto' Just do it · 'ask' Ask me first · 'mine' Leave it to me (it watches
+   and tells; nothing is prepared on the Board). Switched off is `on`.
+   JUST DO IT IS OFFERED ONLY WHERE THE ACT STAYS INSIDE AND CAN BE UNDONE —
+   today, keeping a link open (AGENT_AUTO_OK). Sending, chasing, approving and
+   signing never go past Ask me first. */
+const AGENT_LEVELS = ['auto', 'ask', 'mine'];
+const AGENT_AUTO_OK = ['link'];
+function agentLevel(k) {
+  const v = String(agentCfg(k).level || '');
+  if (v === 'auto' && !AGENT_AUTO_OK.includes(k)) return 'ask';
+  return AGENT_LEVELS.includes(v) ? v : 'ask';
 }
 function agentSetCfg(k, patch) {
   if (k === 'renew') {
@@ -19639,7 +19676,7 @@ app.get('/api/agents/status', auth, (req, res) => {
     const rows = db.prepare('SELECT * FROM agent_runs WHERE agent=? ORDER BY started_at DESC LIMIT ?').all(k, AGENT_RUNS_SHOWN + 1);
     const total = db.prepare('SELECT COUNT(*) AS n FROM agent_runs WHERE agent=?').get(k).n;
     const runs = rows.slice(0, AGENT_RUNS_SHOWN).map(r => agentRunRow(r, money));
-    const a = { on: !!cfg.on, next: agentNextRun(k), running: [..._agentBusy].some(b => b.startsWith(k + ':')),
+    const a = { on: !!cfg.on, level: agentLevel(k), autoOk: AGENT_AUTO_OK.includes(k), next: agentNextRun(k), running: [..._agentBusy].some(b => b.startsWith(k + ':')),
       runs, more: Math.max(0, total - runs.length) };
     if (k === 'late') a.secondAfter = Number(cfg.secondAfter) || 7;
     if (money) { a.cfg = cfg; a.spentToday = agentSpentToday(k); }
@@ -19677,6 +19714,10 @@ app.put('/api/agents/:k/settings', auth, admin, (req, res) => {
     patch[name] = n;
   };
   if (b.on !== undefined) patch.on = !!b.on;
+  if (b.level !== undefined) {
+    const v = String(b.level);
+    if (!AGENT_LEVELS.includes(v) || (v === 'auto' && !AGENT_AUTO_OK.includes(k))) bad.push('level'); else patch.level = v;
+  }
   if (AGENT_SCHEDULED.includes(k)) int('at', 0, 23);
   if ('max' in AGENT_DEFAULTS[k]) int('max', 1, 500);
   if ('soonDays' in AGENT_DEFAULTS[k]) int('soonDays', 1, 30);

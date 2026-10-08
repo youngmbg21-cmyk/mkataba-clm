@@ -620,6 +620,15 @@ function agQuietItems(cs){
    idiom — because the rail's count and the page both ask it inside one paint,
    and nothing that happens afterwards may be answered from it. */
 let _agData = null;
+/* The level an admin set for an agent ('auto' · 'ask' · 'mine'), read off
+   the status the page already holds; absent = 'ask'. */
+function agLevelOf(k){
+  try {
+    const s = (typeof agentsStatus === 'function') ? agentsStatus() : null;
+    const a = s && s.agents && s.agents[k];
+    return a && a.level ? String(a.level) : 'ask';
+  } catch (_){ return 'ask'; }
+}
 function agentsData(list){
   if (!list && _agData) return _agData;
   const cs = agBook(list);
@@ -638,6 +647,10 @@ function agentsData(list){
     ours:   { ready: agOursItems(cs), working: [], done: agOursDone(cs) },
     import: { ready: agImportItems(batches), working: agImportWorking(batches), done: agImportDone(batches) },
   };
+  /* LEAVE IT TO ME (the permission ladder, 7 Oct 2026): an agent an admin
+     has set so prepares nothing on the Board — it still watches and tells by
+     email, as its own runner does. */
+  AG_KEYS.forEach(k => { if (agLevelOf(k) === 'mine'){ agents[k].ready = []; agents[k].leftToYou = true; } });
   /* The finished lists are newest first, and bounded. */
   AG_KEYS.forEach(k => {
     const a = agents[k];
@@ -2159,7 +2172,7 @@ async function agFreshLink(key){
   }
 }
 
-Object.assign(window, { AG_READINGS, AG_WEEK_DAYS, AG_QUIET_DAYS, agApproveItems, agRequestItems, agWeekItems, agQuietItems, agApproveBody, agRequestBody, agWeekBody, agQuietBody, agSelKey, AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
+Object.assign(window, { agLevelOf, AG_READINGS, AG_WEEK_DAYS, AG_QUIET_DAYS, agApproveItems, agRequestItems, agWeekItems, agQuietItems, agApproveBody, agRequestBody, agWeekBody, agQuietBody, agSelKey, AG_KEYS, AG_DEF, AG_RECENT_DAYS, AG_DONE_MAX, agSel, agSetSel, agBook, agentsData, agentsDoorCount,
   agRoundItems, agRoundDone, agRenewItems, agRenewDone, agLateItems, agLateDone, agPaperItems, agPaperWorking, agPaperDone,
   agImportBatches, agImportItems, agImportDone, agImportWorking, agFind, agCardParts, agCardHtml, agPageHtml, agListHtml,
   agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agDrawPanel, agWarmUp, AG_NEEDS_WHOLE, AG_OPEN_WAIT_MS, agRunAct, agPaintHead, agRepaint, renderAgentsPage,
