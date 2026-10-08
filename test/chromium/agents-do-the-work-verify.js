@@ -173,17 +173,17 @@ const answer = body => {
         && /sixty \(60\)/.test(await page.evaluate(() => (document.querySelector('[data-ag-panel] .ag-prep .ag-words-b') || {}).textContent || '')), prep);
       const opened = await page.evaluate(() => { const b = document.querySelector('[data-ag-panel] [data-ag-sb-open]'); if (!b) return false; b.click();
         const box = document.querySelector('[data-ag-panel] .ag-sb-box'); return !!box && !box.hidden; });
-      ok('3c "Send back with a note" opens its one box — the note is the question', opened);
+      ok('3c "Ask Copilot to redo this" opens its one box — the note is the question', opened);
       await page.screenshot({ path: path.join(OUT, '3-round-panel.png') });
       if (opened) {
         await page.fill('[data-ag-panel] .ag-sb-note', 'For this buyer our fallback is 45 days.');
         await page.click('[data-ag-panel] [data-ag-sb-go]');
         await page.waitForTimeout(1800);
         const note = await page.evaluate(() => { const p = document.querySelector('[data-ag-panel] .ag-prep'); return p ? p.textContent.replace(/\s+/g, ' ') : ''; });
-        ok('3d sent back: Copilot answered again and the panel says who sent it back and why', /Sent back by Amina Otieno: “For this buyer our fallback is 45 days\.”/.test(note), note.slice(0, 220));
+        ok('3d sent back: Copilot answered again and the panel says who sent it back and why', /Redone at Amina Otieno’s request: “For this buyer our fallback is 45 days\.”/.test(note), note.slice(0, 220));
       } else ok('3d sent back: Copilot answered again and the panel says who sent it back and why', false, 'no box');
       await page.keyboard.press('Escape'); await page.waitForTimeout(300);
-    } else { ok('3b the panel shows Copilot\'s answer, what it rests on and its wording', false, 'no card'); ok('3c "Send back with a note" opens its one box — the note is the question', false); ok('3d sent back: Copilot answered again and the panel says who sent it back and why', false); }
+    } else { ok('3b the panel shows Copilot\'s answer, what it rests on and its wording', false, 'no card'); ok('3c "Ask Copilot to redo this" opens its one box — the note is the question', false); ok('3d sent back: Copilot answered again and the panel says who sent it back and why', false); }
     const row = await page.evaluate(async () => {
       openRedlineWorkbench('MK-DW1'); await new Promise(r => setTimeout(r, 1800));
       const l = document.querySelector('.rl-card-prep');
