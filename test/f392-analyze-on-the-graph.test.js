@@ -127,7 +127,9 @@ describe('f392 (2) the press puts the paper where the nodes were, and nothing is
     const d = region(CT, 'docSheetHtml');
     assert.match(d, /const mode=o\.copy\|\|docCopyOf\(c\);/);
     assert.match(d, /id="\$\{o\.canvasId\|\|'doc-canvas'\}"/);
-    assert.match(d, /\(!o\.readOnly&&docFillable\(c\)\)\?docBody\(c\):readOnlyDocHtml\(docBody\(c\)\)/);
+    /* 9 Oct 2026 (change 5): the Document tab is never typed in — a fillable
+       Draft's paper shows the answers (docPaperAnswersHtml). */
+    assert.match(d, /\(!o\.readOnly&&docFillable\(c\)\)\?docPaperAnswersHtml\(docBody\(c\)\):readOnlyDocHtml\(docBody\(c\)\)/);
   });
   test('[wall] the room\'s own call is unchanged: docSheetHtml(c) still draws #doc-canvas and decides the copy by the tab', () => {
     assert.match(CT, /docSheetHtml\(c\)/);

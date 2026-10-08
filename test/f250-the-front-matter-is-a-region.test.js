@@ -236,8 +236,13 @@ describe('f250 (8) — one control, the pencil every clause already has', () => 
     const sink = [];
     const html = win.redlineDocHtml(c, { side: 'owner', cpSink: sink });
     const head = (html.match(/<header class="rl-paper-head[\s\S]*?<\/header>/) || [''])[0];
-    assert.match(head, /data-rl-cp-editor="front"/, 'the same door every clause has');
-    assert.match(head, /class="rl-cp-pill"/, 'and the same control');
+    /* RE-POINTED 9 Oct 2026 (no pen on the paper, change 5): the door every
+       clause has is its own wording, and the region's is too — a click in the
+       title or the recital opens the editor on it (rlInlineClick). */
+    assert.ok(!/class="rl-cp-pill"/.test(head), 'no pen on the region either');
+    assert.match(head, /data-nego-working="front"/, 'the region is a door like every clause');
+    const SRCN = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/negotiation.js'), 'utf8');
+    assert.match(SRCN, /rl-paper-head'\)[^\n]*\n\s*if \(typeof host\._rlOpenEditor === 'function'\) host\._rlOpenEditor\(clauseId\)/, 'a click in it opens the editor on it');
     assert.ok(sink.some(x => /data-rl-cp-for="front"/.test(x)),
       'with a body waiting for it in the panel');
   });

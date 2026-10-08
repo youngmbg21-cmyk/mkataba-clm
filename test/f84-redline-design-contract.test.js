@@ -390,7 +390,9 @@ describe('F84 — how the contract reads, as three words', () => {
     assert.equal(p.$('[data-rl-read="agreed"]'), null, 'As agreed is gone');
     assert.equal(p.$('[data-rl-read="proposed"]'), null, 'With changes is gone');
     assert.equal(p.$('.rl-side.is-reading'), null, 'the column is live');
-    assert.ok(p.$('.rl-cp-pill'), 'and the clause offers its edit');
+    /* RE-POINTED 9 Oct 2026 (no pen on the paper, change 5): the clause's own
+       wording is its edit — a click puts the caret there. */
+    assert.ok(p.$('#rl-doc section.rl-clause[data-nego-working]') && !p.$('#rl-doc .rl-cp-pill'), 'and the clause offers its edit — its own wording');
   });
 
   test('nothing about the record moves when the reading tab is pressed', async () => {
@@ -781,7 +783,10 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
     const labels = [...clause.querySelectorAll('button')].map(b => b.textContent.trim());
     assert.ok(!labels.some(t => /AI Assist|Add Note|Propose deletion/i.test(t)),
       'none of the retired labels came back');
-    assert.ok(clause.querySelector('.rl-cp-pill'), 'the Edit pill is the door');
+    /* RE-POINTED 9 Oct 2026 (no pen on the paper, change 5): the door is the
+       clause's own wording (rlInlineClick), not a pill. */
+    assert.equal(clause.querySelector('.rl-cp-pill'), null, 'no pen on the clause');
+    assert.ok(clause.hasAttribute('data-nego-working'), 'the clause itself is the door');
     const css = (p.doc.getElementById('redline-layout-css') || { textContent: '' }).textContent;
     assert.ok(!/\.rl-tool\b/.test(css.replace(/\/\*[\s\S]*?\*\//g, '')),
       'and no rule dresses the retired row');
@@ -858,7 +863,9 @@ describe('F84 — the clause toolbar files against the contract, not the sandbox
        pill is what sits on the clause — the claim did not.) */
     const p = await page();
     assert.ok(openSel(p), 'the menu must open');
-    const tool = p.$('#rl-doc .rl-cp-pill');
+    /* RE-POINTED 9 Oct 2026: the pen is gone from the paper (change 5), so the
+       control pressed is one the page still draws — a verb in the column. */
+    const tool = p.$('#rl-changes button') || p.$('#rl-side button');
     tool.dispatchEvent(new p.win.MouseEvent('mouseup', { bubbles: true }));
     await new Promise(r => setTimeout(r, 30));
     assert.ok(p.$('.nego-selmenu'),

@@ -346,7 +346,12 @@ describe('f245 (7) — it files through the funnel and nothing else', () => {
      rather than for the expression, and the next door costs no test edit. */
   test('filing keeps the page, and re-reads it from the record', () => {
     const file = CODE.match(/async function ceFile\([\s\S]*?\n\}/)[0];
-    assert.ok(!/rlCloseClauseEditor\(/.test(file),
+    /* ONE EXCEPTION, the owner's (9 Oct 2026, the Paper and Counter review,
+       change 2): "Save counter" — Copilot's counter in the box — goes back to
+       Negotiate, where Send all is how it leaves. Every other filing stays. */
+    const prep = (file.match(/if \(prepFiling\)\{[\s\S]*?return ch;\n  \}/) || [''])[0];
+    assert.ok(prep && /rlCloseClauseEditor\(/.test(prep), 'Save counter goes back to Negotiate');
+    assert.ok(!/rlCloseClauseEditor\(/.test(file.replace(prep, '')),
       'filing does not close the editor — leaving is its own button');
     assert.match(file, /ceSeedDraft\(ch\.id\)/,
       'the record has moved, so the draft is re-read from it — the same seeding '

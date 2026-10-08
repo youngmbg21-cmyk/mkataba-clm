@@ -4903,6 +4903,13 @@ function wireNegotiationTab(c, opts = {}){
        this mount's contract and options — re-hung on every wiring, so it is
        never a stale copy. */
     host._rlOpenEditor = openEditor;
+    /* CLICK, TYPE, SAVE ON THE PAPER (change 5): one listener per host, reading
+       this wiring's contract and options at the press. */
+    host._rlInlineCtx = { c, opts, side, again };
+    if (!host._rlInlineBound){
+      host._rlInlineBound = true;
+      host.addEventListener('click', ev => rlInlineClick(ev, host));
+    }
 
     /* ---- THE COPILOT BUTTON ON A CLAUSE ----
        Everything the selection path works out from a drag, worked out from the
@@ -6545,6 +6552,11 @@ function rlClauseEditPillHtml(cl, opts = {}){
      pencil is their Save. Empty unless somebody is waiting. */
   const mineSign = rlLockMineSignHtml(opts.c, cl.clauseId);
   if (say(pill && pill.skip, false) === true) return mineSign;
+  /* NO PEN ON THE PAPER (Young, 9 Oct 2026, the Paper and Counter review,
+     change 5): where the paper itself takes the typing (rlInlineClick), the
+     wording is the door — the lock sign above still stands in this corner, and
+     Discard · Save appear here once somebody types. */
+  if (opts.inline) return mineSign;
   const label = say(pill && pill.label, i18t('ng_cp_edit'));
   /* THE WORDS FOLLOW THE DOOR (owner-reported 30 Aug 2026, off a screenshot of
      this tooltip). The default said "Open this clause — what it says now, what
@@ -12835,7 +12847,7 @@ function redlineDocHtml(c, opts = {}){
      caller's own pill (the editor's) is untouched. */
   const pillFor = cl => rlLadderChipHtml(c, cl, side, { pill: opts.pill })
     + ((opts.noPaperPencil && !opts.pill) ? '' : rlClauseEditPillHtml(cl, { c, editable, hasPanel, pill: opts.pill,
-    toEditor: editorTakesIt && !opts.pill }));
+    toEditor: editorTakesIt && !opts.pill, inline: editorTakesIt && !opts.pill && !opts.readonly }));
   const cpPush = (cl, chs, cpOpts) => {
     if (!hasPanel) return '';
     /* The notes options ride through because the panel now renders each
@@ -17612,6 +17624,201 @@ function rlPrepBoxHtml(c, chs, side){
   }catch(_){ body = _ne(a.wording); }
   return `<div class="rl-prep-box" data-rl-prep-box="${_nea(ch.id)}" title="${_nea(i18t('ng_prep_box_title'))}"><p class="rl-clause-p">${body}</p></div>`;
 }
+/* ============================================================================
+   NO PEN ON THE PAPER — CLICK, TYPE, SAVE (Young, 9 Oct 2026, the Paper and
+   Counter review, change 5; it overturns "a press in the wording does nothing
+   — the pencil and Edit are the doors")
+   ----------------------------------------------------------------------------
+   A click in a clause's wording on the Negotiate paper (our seat and theirs)
+   puts the caret there: the clause's body becomes ONE box holding the draft,
+   with the marks painted INTO it by the clause editor's own painter
+   (ceMarksPaintBox, over ceInlineSeed's reading of what the draft stands on),
+   so the picture does not move. Before a keystroke nothing else changes. The
+   first keystroke takes the clause lock (our seat, the existing route), draws
+   the dashed outline and puts Discard · Save at the clause's top right. Save
+   files through negoEditClause — the one funnel, every guard in negoFileChange
+   — and nothing is sent until Send all; their Save asks "Why this change?"
+   (portalAskReason, through rlNoteAskAfterFile). A colleague holding the lock
+   keeps the box shut: the lock sign and its "Ask for it" stand in the corner.
+   Copilot is one step away: a highlight's Edit with Copilot, or the row's
+   Edit, opens the full editor. The Document tab is never edited.
+   ========================================================================== */
+let _rlInline = null;   // { host, section, box, saved:[nodes], seed, start, typed, ctx, keptAt }
+function rlInlineOn(){ return !!(_rlInline && _rlInline.box && _rlInline.box.isConnected); }
+function rlInlineDirty(){
+  if (!rlInlineOn()) return false;
+  const now = rlInlineHtml(_rlInline.box);
+  return now !== _rlInline.start;
+}
+function rlInlineHtml(box){
+  let raw = '';
+  try{ raw = window.ceBoxHtml ? ceBoxHtml(box) : String(box.innerHTML || ''); }catch(_){ raw = ''; }
+  return window.sanitizeRich ? sanitizeRich(raw) : raw;
+}
+/* The live characters before a point in the clause as drawn — struck runs are
+   not the draft, so they are not counted. */
+function rlInlineCountTo(nodes, range){
+  let n = 0;
+  if (!range) return null;
+  for (const root of nodes){
+    if (!root || typeof document === 'undefined') continue;
+    const walker = document.createTreeWalker(root, 4 /* SHOW_TEXT */, null);
+    let t;
+    while ((t = walker.nextNode())){
+      const p = t.parentElement;
+      if (p && p.closest && p.closest('del, .nego-del, .hati-del')) continue;
+      if (t === range.startContainer) return n + Math.min(range.startOffset, t.data.length);
+      try{ if (range.comparePoint(t, 0) > 0) return n; }catch(_){ return n; }
+      n += t.data.length;
+    }
+  }
+  return n;
+}
+function rlInlineEnd(restore){
+  const st = _rlInline; _rlInline = null;
+  if (!st) return;
+  try{
+    if (st.typed && st.ctx.side !== 'counterparty' && window.clauseLockRelease && clauseLockRelease(st.ctx.c, st.seed.clauseId) && window.clauseLockSave)
+      clauseLockSave(st.ctx.c, { clauseId: st.seed.clauseId, release: true });
+  }catch(_){}
+  if (restore && st.box && st.box.isConnected){
+    st.saved.forEach(n => st.box.before(n));
+    st.box.remove();
+    if (st.acts) st.acts.remove();
+    st.section.classList.remove('rl-inline-typing');
+  }
+}
+function rlInlineClick(ev, host){
+  const ctx = host && host._rlInlineCtx;
+  if (!ctx || !ctx.c || ev.button) return;
+  const t = ev.target;
+  if (!t || !t.closest) return;
+  if (t.closest('.rl-inline-acts')){ rlInlineAct(ev, t); return; }
+  if (_rlInline && _rlInline.box.contains(t)) return;           /* typing: the browser places the caret */
+  if (t.closest('button, a, input, textarea, select, .rl-clause-top, .rl-prep-box, [data-nego-editor]')) return;
+  const sel = window.getSelection && window.getSelection();
+  if (sel && !sel.isCollapsed) return;                          /* a highlight is its own gesture */
+  const section = t.closest('[data-nego-working]');
+  if (!section || !host.contains(section) || !section.closest('.rl-paper')) return;
+  const o = ctx.opts || {};
+  if (o.preview || o.readonly || o.editable === false || rlReadOnlyReading()) return;
+  if (typeof rlEditorTakesIt !== 'function' || !rlEditorTakesIt(ctx.side, o)) return;
+  if (typeof window.ceInlineSeed !== 'function' || typeof window.ceMarksPaintBox !== 'function') return;
+  if (window.negoWordingFrozen && negoWordingFrozen(ctx.c)) return;
+  if (_rlInline){
+    if (rlInlineDirty()){ if (window.toast) toast(i18t('ng_inline_finish_first'), 'warn'); return; }
+    rlInlineEnd(true);
+  }
+  const clauseId = section.getAttribute('data-nego-working');
+  if (ctx.side !== 'counterparty' && rlLockSign(ctx.c, clauseId)) return;   /* the sign and its Ask for it say so */
+  /* THE TITLE AND RECITAL are a region drawn as a document, not a clause body:
+     a click there opens the editor on it, as the pen did. */
+  if (section.classList.contains('rl-paper-head') || clauseId === (window.CLAUSE_FRONT_ID || 'front')){
+    if (typeof host._rlOpenEditor === 'function') host._rlOpenEditor(clauseId);
+    return;
+  }
+  const seed = ceInlineSeed(ctx.c, clauseId, ctx.side);
+  if (!seed) return;
+  if (seed.proposed){ if (typeof host._rlOpenEditor === 'function') host._rlOpenEditor(clauseId); return; }
+  if (seed.under){ if (window.toast) toast(i18t('ce_under_deletion'), 'warn'); return; }
+  const saved = [...section.children].filter(n => !(n.matches && n.matches('.rl-clause-top, .rl-prep-box')));
+  if (!saved.length) return;
+  let at = null;
+  try{
+    const r = document.caretRangeFromPoint ? document.caretRangeFromPoint(ev.clientX, ev.clientY) : null;
+    at = rlInlineCountTo(saved, r);
+  }catch(_){ at = null; }
+  const box = document.createElement('div');
+  box.className = 'nego-body rl-inline-box';
+  box.setAttribute('contenteditable', 'true');
+  box.setAttribute('role', 'textbox');
+  box.setAttribute('spellcheck', 'true');
+  box.setAttribute('data-nego-editor', 'inline');
+  box.setAttribute('aria-label', i18t('ng_inline_aria'));
+  const draft = window.sanitizeRich ? sanitizeRich(seed.text || '') : String(seed.text || '');
+  box.innerHTML = window.rlHangRichHtml ? rlHangRichHtml(draft) : draft;
+  saved[0].before(box);
+  saved.forEach(n => n.remove());
+  _rlInline = { host, section, box, saved, seed, start: '', typed: false, ctx, keptAt: 0, acts: null };
+  _rlInline.start = rlInlineHtml(box);
+  try{ box.focus({ preventScroll: true }); }catch(_){ try{ box.focus(); }catch(_e){} }
+  try{ ceMarksPaintBox(box, seed, { caret: at == null ? 0 : at }); }catch(_){}
+  box.addEventListener('beforeinput', e => { if (window.ceAtomWall) ceAtomWall(box, e); });
+  box.addEventListener('keydown', e => {
+    if ((e.key === 'Backspace' || e.key === 'Delete') && window.ceAtomSkipIn && ceAtomSkipIn(box, e.key === 'Backspace' ? -1 : 1)) e.preventDefault();
+    if (e.key === 'Escape' && !rlInlineDirty()){ e.preventDefault(); rlInlineEnd(true); }
+    if ((e.ctrlKey || e.metaKey) && String(e.key || '').toLowerCase() === 's'){ e.preventDefault(); if (rlInlineDirty()) rlInlineSave(); }
+  });
+  box.addEventListener('input', () => rlInlineTyped());
+}
+/* THE FIRST KEYSTROKE: the lock, the outline, Discard · Save. Every one after
+   it repaints the marks a beat later and keeps the lock warm. */
+let _rlInlineTimer = null;
+function rlInlineTyped(){
+  const st = _rlInline; if (!st) return;
+  const ctx = st.ctx;
+  if (!st.typed){
+    st.typed = true;
+    if (ctx.side !== 'counterparty'){
+      try{ if (window.clauseLockTake && clauseLockTake(ctx.c, st.seed.clauseId) && window.clauseLockSave) clauseLockSave(ctx.c, { clauseId: st.seed.clauseId }); }catch(_){}
+      st.keptAt = Date.now();
+    }
+    st.section.classList.add('rl-inline-typing');
+    const top = st.section.querySelector('.rl-clause-top');
+    const acts = document.createElement('span');
+    acts.className = 'rl-inline-acts';
+    acts.innerHTML = `<button type="button" class="ui-btn" data-rl-inline="discard">${_ne(i18t('ce_discard'))}</button>`
+      + `<button type="button" class="ui-btn ui-btn-primary" data-rl-inline="save">${_ne(i18t('ce_save_to'))}</button>`;
+    if (top) top.appendChild(acts); else st.section.prepend(acts);
+    st.acts = acts;
+  } else if (ctx.side !== 'counterparty' && Date.now() - st.keptAt > 40000){
+    st.keptAt = Date.now();
+    try{ if (window.clauseLockKeep && clauseLockKeep(ctx.c, st.seed.clauseId) && window.clauseLockSave) clauseLockSave(ctx.c, { clauseId: st.seed.clauseId }); }catch(_){}
+  }
+  clearTimeout(_rlInlineTimer);
+  _rlInlineTimer = setTimeout(() => { if (_rlInline === st && st.box.isConnected) try{ ceMarksPaintBox(st.box, st.seed); }catch(_){} },
+    window.CE_MARKS_MS || 300);
+}
+function rlInlineAct(ev, t){
+  const b = t.closest('[data-rl-inline]');
+  if (!b) return;
+  ev.preventDefault(); ev.stopPropagation();
+  if (b.getAttribute('data-rl-inline') === 'save') rlInlineSave();
+  else { const st = _rlInline; rlInlineEnd(true); if (st && typeof st.ctx.again === 'function') try{ st.ctx.again(); }catch(_){} }
+}
+let _rlInlineBusy = false;
+async function rlInlineSave(){
+  const st = _rlInline;
+  if (!st || _rlInlineBusy) return null;
+  const ctx = st.ctx, c = ctx.c, o = ctx.opts || {};
+  const html = rlInlineHtml(st.box);
+  if (html === st.start){ rlInlineEnd(true); return null; }
+  if (typeof window.negoEditClause !== 'function') return null;
+  _rlInlineBusy = true;
+  const fo = { side: ctx.side, author: o.by || undefined, note: i18t('ng_inline_note') };
+  if (st.seed.on) fo.onTop = st.seed.on.id;
+  let ch = null, err = null;
+  try{ ch = await negoEditClause(c, st.seed.clauseId, html, fo); }catch(e){ err = e; }
+  _rlInlineBusy = false;
+  if (err){ if (window.toast) toast(i18t('ce_file_failed', { why: (err && err.message) || String(err) }), 'err'); return null; }
+  if (!ch){
+    const why = fo.refused ? String(fo.refused.message || fo.refused) : i18t('ng_nothing_changed_no_fp');
+    if (window.toast) toast(why, 'warn');
+    return null;
+  }
+  rlInlineEnd(false);
+  try{ if (window.negoInvalidateVerification) negoInvalidateVerification(c); }catch(_){}
+  try{ if (o.persist !== false && window.persist) persist(c); }catch(_){}
+  if (window.toast) toast(i18t('ce_filed', { id: ch.id }), 'ok');
+  try{ if (typeof ctx.again === 'function') ctx.again(); }catch(_){}
+  /* THEIR SAVE ASKS "WHY THIS CHANGE?" — and ours opens the note on the
+     change — through the one reading every filing door asks. */
+  try{
+    const ask = rlNoteAskAfterFile(c, ch, { side: ctx.side, author: o.by || undefined, persist: o.persist });
+    if (ask && ask.then) ask.then(out => { if (out && typeof ctx.again === 'function') try{ ctx.again(); }catch(_){} });
+  }catch(_){}
+  return ch;
+}
 function rlOnTheirPage(){
   if (typeof window === 'undefined') return false;
   const p = window.PORTAL_MODE;
@@ -20905,6 +21112,7 @@ function redlineSyncProxies(host){
 }
 
 if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlPrepCounterOf, rlPrepBoxHtml,
+  rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,
   rlDocType, rlDocScale, rlSetDocType, rlTypeStepHtml, rlWireTypeStep,

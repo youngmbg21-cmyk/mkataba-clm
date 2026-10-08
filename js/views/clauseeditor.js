@@ -3512,8 +3512,11 @@ function ceCaretRestore(box, n){
    ask to stand on — or null where the draft is what stands. The same three
    answers ceMarkedHtml gives the clause at rest, so the box being typed in
    and the clause beside it cannot disagree about what a counter looks like. */
-function ceMarksOps(ours){
-  const on = ceStacksOn();
+function ceMarksOps(ours){ return ceMarksPlanOf(ceStacksOn(), _ceBase, ours); }
+/* ONE PLAN FOR BOTH BOXES (Young, 9 Oct 2026, change 5): this page's box and
+   the Negotiate paper's own click-to-type box ask the same question of the
+   same two facts — the ask the draft stands on, and what stands. */
+function ceMarksPlanOf(on, base0, ours){
   if (on && Array.isArray(on.ops) && on.ops.length && window.redlineLayerOps && window.redlineOpsStructured){
     const theirs = ceWords(on.newText);
     if (window.redlineWholesale && ours !== theirs && redlineWholesale(theirs, ours)) return { wholesale: true, theirs };
@@ -3522,7 +3525,7 @@ function ceMarksOps(ours){
       if (ops) return { ops };
     }catch(_){}
   }
-  const base = ceWords(_ceBase);
+  const base = ceWords(base0);
   if (ours === base) return null;
   try{
     const ops = window.redlineOpsStructured ? redlineOpsStructured(base, ours)
@@ -3736,16 +3739,43 @@ function ceMarksApply(box, events){
    painter could not own the box and the caller must draw the reading under it. */
 function ceMarksPaint(o = {}){
   if (!clauseEditorOpen() || !ceIsTyping()) return false;
-  const box = _ceQ('#ce-clausebody');
-  if (!box || typeof window._lineUnits !== 'function') return false;
-  const caret = o.fresh ? null : ceCaretSave(box);
+  return ceMarksPaintBox(_ceQ('#ce-clausebody'), { on: ceStacksOn(), base: _ceBase }, o);
+}
+/* ---- WHAT A CLICK-TO-TYPE BOX ON THE NEGOTIATE PAPER STANDS ON (Young, 9 Oct
+   2026, change 5) ---- This page's own readings, asked for one clause without
+   opening the page: what stands, the lead change, the draft it proposes, the
+   ask a counter would stand on, and whether the clause is under deletion. The
+   page's state is borrowed for the one synchronous read and put back; while the
+   page is open it owns that state and nothing is borrowed. */
+function ceInlineSeed(c, clauseId, side){
+  if (!c || !clauseId || _ceClauseId) return null;
+  const was = { c: _ceC, o: _ceOpts, l: _ceLead, b: _ceBase, n: _ceNew };
+  _ceC = c; _ceClauseId = String(clauseId); _ceNew = null;
+  _ceOpts = { side: side === 'counterparty' ? 'counterparty' : 'owner' };
+  try{
+    if (!ceClause()) return null;
+    /* A clause WE proposed is revised through its own path (negoReviseInsert):
+       the paper hands it to this page instead. */
+    if (ceIsProposed()) return { clauseId: String(clauseId), proposed: true };
+    _ceBase = ceStanding();
+    _ceLead = ceLeadChange('');
+    return { clauseId: String(clauseId), side: ceSide(), base: _ceBase, text: ceWordingOf(_ceLead),
+      lead: _ceLead, on: ceStacksOn(), under: ceUnderDeletion() };
+  }catch(_){ return null; }
+  finally { _ceC = was.c; _ceClauseId = null; _ceOpts = was.o; _ceLead = was.l; _ceBase = was.b; _ceNew = was.n; }
+}
+/* THE ONE PAINTER, for any box: this page's, and the Negotiate paper's
+   click-to-type box (change 5). `seed` names what the draft stands on. */
+function ceMarksPaintBox(box, seed, o = {}){
+  if (!box || !seed || typeof window._lineUnits !== 'function') return false;
+  const caret = o.caret != null ? o.caret : (o.fresh ? null : ceCaretSave(box));
   ceMarksClear(box);
   let drawn = false;
   try{
     const units = _lineUnits(box);
     if (units.length && !units.some(u => u.opaque)){
       const ours = units.map(u => u.line).join('\n');
-      const plan = ceMarksOps(ours);
+      const plan = ceMarksPlanOf(seed.on || null, seed.base || '', ours);
       drawn = !plan ? true : ceMarksDraw(box, units, plan);
       if (!drawn) ceMarksClear(box);
     }
@@ -3820,6 +3850,33 @@ function ceSpanOverAtoms(box, sel, ev){
   }
   return true;
 }
+/* THE WALL, for any box whose marks ceMarksPaintBox drew — this page's and
+   the Negotiate paper's click-to-type box (change 5): nothing is typed into a
+   struck run, and a selection across struck words loses only its live words. */
+function ceAtomWall(box, ev){
+  const sel = (typeof window.getSelection === 'function') ? window.getSelection() : null;
+    /* ---- TYPING OVER A SELECTION THAT CROSSES STRUCK WORDS (the owner's
+       list, 27 Sep 2026) ----
+       The browser deleted the whole selection, struck runs included, and they
+       came back only at the next paint — so the other side's struck words
+       vanished for a moment under the reader's hand. The live words in the
+       selection go; the struck runs stay where they are; the typed text lands
+       where the selection began. */
+    if (box && sel && sel.rangeCount && !sel.isCollapsed && ceSpanOverAtoms(box, sel, ev)) return false;
+    if (!box || !sel || !sel.rangeCount || !sel.isCollapsed) return false;
+    const atom = ceAtomAt(sel.anchorNode);
+    if (!atom || !box.contains(atom)) return false;
+    try{
+      const r = document.createRange(); r.setStartAfter(atom); r.collapse(true);
+      sel.removeAllRanges(); sel.addRange(r);
+    }catch(_){ return false; }
+    if (/^delete/.test(String(ev.inputType || ''))){ ev.preventDefault(); return false; }
+    if (ev.inputType === 'insertText' && ev.data != null){
+      ev.preventDefault();
+      try{ document.execCommand('insertText', false, ev.data); }catch(_){}
+    }
+  return true;
+}
 function ceAtomAt(node){
   const el = node ? (node.nodeType === 1 ? node : node.parentElement) : null;
   return (el && el.closest) ? el.closest(`[${CE_MARK_ATTR}="del"]`) : null;
@@ -3827,8 +3884,8 @@ function ceAtomAt(node){
 /* Backspace before a struck run and Delete after it step the caret across it,
    as Word does; a caret INSIDE one steps out on the side the key deletes
    towards. True where the key was spent on the step. */
-function ceAtomSkip(dir){
-  const box = _ceQ('#ce-clausebody');
+function ceAtomSkip(dir){ return ceAtomSkipIn(_ceQ('#ce-clausebody'), dir); }
+function ceAtomSkipIn(box, dir){
   const sel = (typeof window.getSelection === 'function') ? window.getSelection() : null;
   if (!box || !sel || !sel.rangeCount || !sel.isCollapsed || !box.contains(sel.anchorNode)) return false;
   const node = sel.anchorNode, off = sel.anchorOffset;
@@ -6260,6 +6317,9 @@ async function ceFile(why){
   /* COPILOT'S COUNTER CARRIES ITS NOTE TO THEM as its reason — the field the
      other side reads (change 2). */
   const prepFiling = !!(_cePrep && _cePrep.inBox);
+  /* The note is the reader's to change; it is read off its box at Save. */
+  const noteBox = prepFiling ? _ceQ('#ce-prep-note') : null;
+  if (noteBox) _cePrep.note = String(noteBox.value || '');
   if (!why && prepFiling && String(_cePrep.note || '').trim()) why = String(_cePrep.note).trim();
   /* A note kept from the ladder card rides the filing as its reason. */
   if (!why && _ceHeldNote) why = _ceHeldNote;
@@ -6838,11 +6898,6 @@ function ceWirePage(page){
     }
   });
 
-  /* The note to the other side is the reader's to change; it is read at Save. */
-  page.addEventListener('input', ev => {
-    const t = ev.target;
-    if (t && t.id === 'ce-prep-note' && _cePrep) _cePrep.note = String(t.value || '');
-  });
   page.addEventListener('change', ev => {
     const sel = ev.target && ev.target.closest ? ev.target.closest('#ce-pick-sel') : null;
     if (!sel) return;
@@ -6943,28 +6998,7 @@ function ceWirePage(page){
   page.addEventListener('beforeinput', ev => {
     const t = ev.target;
     if (!t || !t.closest || !t.closest('#ce-clausebody')) return;
-    const box = _ceQ('#ce-clausebody');
-    const sel = (typeof window.getSelection === 'function') ? window.getSelection() : null;
-    /* ---- TYPING OVER A SELECTION THAT CROSSES STRUCK WORDS (the owner's
-       list, 27 Sep 2026) ----
-       The browser deleted the whole selection, struck runs included, and they
-       came back only at the next paint — so the other side's struck words
-       vanished for a moment under the reader's hand. The live words in the
-       selection go; the struck runs stay where they are; the typed text lands
-       where the selection began. */
-    if (box && sel && sel.rangeCount && !sel.isCollapsed && ceSpanOverAtoms(box, sel, ev)) return;
-    if (!box || !sel || !sel.rangeCount || !sel.isCollapsed) return;
-    const atom = ceAtomAt(sel.anchorNode);
-    if (!atom || !box.contains(atom)) return;
-    try{
-      const r = document.createRange(); r.setStartAfter(atom); r.collapse(true);
-      sel.removeAllRanges(); sel.addRange(r);
-    }catch(_){ return; }
-    if (/^delete/.test(String(ev.inputType || ''))){ ev.preventDefault(); return; }
-    if (ev.inputType === 'insertText' && ev.data != null){
-      ev.preventDefault();
-      try{ document.execCommand('insertText', false, ev.data); }catch(_){}
-    }
+    ceAtomWall(_ceQ('#ce-clausebody'), ev);
   });
 
   /* ---- ONE SENTENCE AT A TIME, AND IT NO LONGER WAITS ITS TURN ----
@@ -7154,4 +7188,5 @@ Object.assign(window, {
   ceFitSplit, ceWireSplit, ceStacked, ceSplit, ceSplitLeft, CE_LEFT_MIN, CE_RIGHT_MIN, CE_FMIN, CE_FMAX, CE_SPLIT_KEY,
   ceLadderCardHtml, ceLadderLaneHtml, ceLadderRow,
   ceMarksPaint, ceMarksClear, ceMarksOps, ceMarksMount, ceLiveTextNodes, ceCaretSave, ceCaretRestore, ceAtomSkip, ceAtomAt, ceDraftNow, CE_MARK_ATTR, CE_MARKS_MS, CE_PAINT_SEL,
+  ceMarksPlanOf, ceMarksPaintBox, ceAtomWall, ceAtomSkipIn, ceInlineSeed, ceBoxHtml,
 });

@@ -2196,6 +2196,12 @@ function redlineLayoutCss(){
     background:var(--color-accent-50);color:var(--accent-ink)}
   .rl-prep-box .rl-clause-p{margin:0;color:inherit}
   .rl-prep-box .rl-prep-ins{font-weight:var(--w-strong);text-decoration:underline dashed;text-underline-offset:3px}
+  /* CLICK, TYPE, SAVE (change 5): the box is the clause; the dashed outline and
+     Discard · Save arrive with the first keystroke. */
+  .rl-inline-box{outline:none;cursor:text}
+  .rl-clause.rl-inline-typing{outline:1px dashed var(--accent-solid);outline-offset:6px;border-radius:var(--radius)}
+  .rl-clause-top .rl-inline-acts{display:inline-flex;gap:var(--s-1);margin-left:auto;flex:none}
+  .rl-inline-acts .ui-btn{height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font-size:var(--t-meta)}
   [data-rl-glow]{box-shadow:0 0 0 2px var(--accent-solid),0 0 8px 1px var(--color-accent-100);border-radius:var(--radius)}
   .rl-paper-foot.rl-foot-many{flex-wrap:wrap;gap:var(--s-6) var(--s-8)}
   .rl-paper-foot.rl-foot-many .rl-sigline{flex:1 1 200px}
