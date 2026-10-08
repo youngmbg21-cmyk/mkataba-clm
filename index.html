@@ -7966,17 +7966,19 @@
   #ig-dock .ig-ref-go:hover{text-decoration-color:var(--accent-ink)}
   .ig-walk{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:none;margin-right:8px;font-size:12.5px}
   .ig-walk b{font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
-  .ig-desk{width:340px;flex:none;border-left:1px solid var(--color-neutral-300);background:var(--color-surface,#fff);display:flex;flex-direction:column;min-height:0}
-  .ig-desk.is-folded{width:auto;background:transparent;border-left:0;padding:10px 10px 0 0}
-  .pd-unfold{border:1px solid var(--color-neutral-300);background:var(--color-surface,#fff);border-radius:var(--radius);padding:6px 10px;font-size:12.5px;cursor:pointer;writing-mode:vertical-rl;color:var(--color-text)}
-  .pd-tabs{display:flex;align-items:center;gap:2px;padding:6px 8px 0;border-bottom:1px solid var(--color-neutral-200);flex:none}
-  .pd-tab{border:0;background:none;padding:8px 10px 7px;color:var(--color-neutral-600);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;display:inline-grid;place-items:center;border-radius:var(--radius) var(--radius) 0 0}
+  /* HEADER ICONS (8 Oct 2026): the panel's title row is its tabs; the lit one says its name */
+  .pd-tabs{display:flex;align-items:center;gap:2px;padding:6px 8px;border-bottom:1px solid var(--color-neutral-200);flex:none}
+  .pd-tab{border:0;background:none;height:var(--ctl-h,28px);min-width:var(--ctl-h,28px);padding:0 6px;color:var(--color-neutral-600);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--radius);white-space:nowrap;flex:none}
   .pd-tab:hover{color:var(--color-text);background:var(--color-accent-50)}
-  .pd-tab.on{color:var(--accent-ink);border-bottom-color:var(--nav-bg)}
-  .pd-sp{flex:1}
-  .ig-desk.is-over{border-left:1px solid var(--color-neutral-300);box-shadow:-8px 0 24px rgba(0,0,0,.08)}
-  .pd-back{border:0;background:none;color:var(--accent-ink);font-size:12.5px;font-weight:var(--w-strong);padding:7px 8px 7px 2px;cursor:pointer;white-space:nowrap}
-  .pd-x{border:0;background:none;font-size:16px;line-height:1;color:var(--cap-ink);cursor:pointer;padding:4px 6px}
+  .pd-tab.on{color:var(--accent-ink);background:var(--color-accent-50);padding:0 9px 0 7px}
+  .pd-tab-w{font-size:12px;font-weight:var(--w-strong)}
+  /* REDLINED ON HOME'S PAPER (8 Oct 2026): Clean | Redlined, the page's own segmented look */
+  .ig-red{display:inline-flex;border:1px solid var(--color-neutral-300);border-radius:var(--radius);overflow:hidden;flex:none;margin-right:6px}
+  .ig-red button{border:0;background:var(--color-surface,#fff);font-size:12px;padding:3px 10px;color:var(--color-neutral-600);cursor:pointer;white-space:nowrap}
+  .ig-red button+button{border-left:1px solid var(--color-neutral-300)}
+  .ig-red button[aria-pressed="true"]{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong)}
+  .ig-redpaper{background:transparent}
+  .pd-chg span{min-width:0}
   .pd-body{padding:12px 14px 20px;overflow:auto;font-size:12.5px;flex:1;min-height:0}
   .pd-h{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--cap-ink);margin:14px 0 6px}
   .pd-h:first-child{margin-top:0}
