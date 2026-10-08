@@ -6397,6 +6397,8 @@ function igWalk(ids,at,opts){
   const k=Math.max(0,Math.min(L.length-1,Number(at)||0));
   intel.walk=L.length>1?{ ids:L, at:k, title:(opts&&opts.title)||'' }:null;
   if(opts&&opts.tab&&typeof window.pdSetTab==='function') pdSetTab(opts.tab);
+  /* a walk opened on the Deal tab shows their changes on the paper too */
+  intel._redFor=(opts&&opts.tab==='deal')?L.slice():(intel.walk?intel._redFor:null);
   igAnalyze(L[k]);
 }
 function igWalkStep(d){
@@ -7029,7 +7031,7 @@ function igStripHtml(c,p){
     <span class="ig-strip-ref" title="${igEsc(c.name)}"><span class="ig-strip-dot" style="background:${dot}"></span><b class="hati-ref">${igEsc(ref)}</b><span class="q"> · </span>${igEsc(c.name)}<span class="q"> · ${igEsc(c.counterparty||'—')} · ${igEsc(st)}</span></span>
     <span class="ig-strip-sp"></span>
     ${up&&n?`<span class="ig-strip-pins">${igEsc(i18tn('int_pins',n,{n}))}</span><button type="button" class="ui-link" data-ig-pins-clear title="${igEsc(i18t('int_pins_clear_title'))}">${igEsc(i18t('int_pins_clear'))}</button>`:''}
-    ${up&&onHome&&window.pdRedOk&&pdRedOk(c)?(()=>{ const n=c.changes.filter(x=>x&&x.status==='pending').length, red=!!p.red;
+    ${up&&onHome&&window.pdRedOk&&pdRedOk(c)?(()=>{ const n=c.changes.filter(x=>x&&x.status==='pending').length, red=igRedOn(c);
       return `<span class="ig-red" role="group" aria-label="${igEsc(i18t('int_red_label'))}"><button type="button" data-ig-red="0" aria-pressed="${red?'false':'true'}">${igEsc(i18t('int_red_clean'))}</button><button type="button" data-ig-red="1" aria-pressed="${red?'true':'false'}">${igEsc(i18t('int_red_marked',{ n }))}</button></span>`; })():''}
     ${up?`<button type="button" class="ui-btn ui-btn-sm" data-ig-focus aria-pressed="${p.focus?'true':'false'}" title="${igEsc(i18t(p.focus?'int_focus_exit_title':'int_focus_title'))}">${icon(p.focus?'x':'scan','w-3.5 h-3.5')}${igEsc(i18t(p.focus?'int_focus_exit':'int_focus'))}</button>`:''}
     ${onHome?`<button type="button" class="ui-btn ui-btn-sm" data-ig-pick-again>${igEsc(i18t('int_pick_change'))}</button>`:''}
@@ -7091,7 +7093,9 @@ function igStripWire(){
    own canvas, read-only — their changes struck and underlined exactly as they
    are drawn there. Offered only while a live negotiation has something open
    (pdRedOk), so drawing it never starts one. */
-function igRedOn(c){ return !!(intel.paper&&intel.paper.red&&window.pdRedOk&&pdRedOk(c)&&typeof window.redlineDocHtml==='function'); }
+function igRedOn(c){ const p=intel.paper; if(!p) return false;
+  const want=p.red===true||(p.red!==false&&Array.isArray(intel._redFor)&&intel._redFor.includes(p.id));
+  return !!(want&&window.pdRedOk&&pdRedOk(c)&&typeof window.redlineDocHtml==='function'); }
 function igPaperKey(c){ return c.id+(igRedOn(c)?':red':''); }
 function igPaperHtml(c){
   let sheet='';
