@@ -1818,6 +1818,11 @@ const ALERT_KINDS = [
   { k:'suggest',     tone:'amber', ic:'&#128161;' },
   { k:'review-back', tone:'amber', ic:'&#8617;'  },
   { k:'suggest-back',tone:'amber', ic:'&#8617;'  },
+  /* A COLLEAGUE PASSED YOU A CONTRACT TO LOOK AT (8 Oct 2026, the nine flow
+     rules' rule 3): one row per contract off the one ask record, until the
+     reader marks it done. The press opens the contract; Done is on its
+     checklist, so a bell press never answers for them. */
+  { k:'look',        tone:'amber', ic:'&#128064;' },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
   /* ---- EVERY APPROVAL RULE STEP IS GIVEN (4 Oct 2026, the process review) ----
      To the contract's OWNER, beside the approvals it ends: the last rule step
@@ -2071,6 +2076,19 @@ function buildAlerts(){
         who:(wait[0].suggested&&wait[0].suggested.by)||'' }),go);
       if(back.length) push('suggest-back',c,i18tn('al_suggest_back',back.length,{ n:back.length,
         who:(back[0].suggested&&back[0].suggested.returnedBy)||'' }),go);
+    });
+  }
+  /* 3a2. A contract a colleague passed this reader to look at (js/asks.js,
+          kind `look`), read off the stored list — reading never writes. */
+  if(window.asksLookFor){
+    const meL=(typeof currentUser==='function')?currentUser():null;
+    if(meL) cs.forEach(c=>{
+      let mine=[]; try{ mine=asksLookFor(c, meL)||[]; }catch(_){ mine=[]; }
+      if(!mine.length) return;
+      const a=mine[mine.length-1];
+      push('look',c,i18t(a.stamp&&a.stamp.review?'al_look_review':'al_look',{ who:(a.by&&a.by.name)||'' }),
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(getContract(c.id)||c,'terms'); }catch(_){} },
+        a.note?{ sub:'\u201c'+a.note+'\u201d' }:null);
     });
   }
   /* 3b. Notes a colleague gave this reader. negoNotesForMe reads c.thread and

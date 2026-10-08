@@ -136,6 +136,12 @@ const owed = (page, id) => page.evaluate(x => {
       && (await page.evaluate(s => (document.querySelector(s) || {}).value, b0)) === 'Wanjiru Catering Ltd');
 
     /* ===== 4. THE PRESS FILLS THE PAPER ===== */
+    /* THE RECORD THAT ARRIVES LATE (8 Oct 2026): on a loaded runner the full
+       record lands after the panel was drawn and REPLACES the contract object
+       in state. The panel's listeners must act on the record as it is at the
+       press, not the one they were drawn with — staged here every run. */
+    await page.evaluate(() => { const i = state.contracts.findIndex(k => k.id === 'MK-FD1');
+      if (i >= 0) state.contracts[i] = JSON.parse(JSON.stringify(state.contracts[i])); });
     if (await page.evaluate(s => !!document.querySelector(s), b1)) {
       await page.click(b1);
       await page.keyboard.type('Juno Limited');

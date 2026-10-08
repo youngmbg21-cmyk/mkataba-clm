@@ -1542,7 +1542,7 @@ function hmDecisionItems(S, deskRows){
    owns is theirs to decide. The drawing is inspector.js's (insNeedsHtml).
    READING MUST NOT WRITE: every source reads, and a source a stage does not
    load says nothing rather than throwing. */
-const NEEDS_YOU_ORDER = ['quiet','review','note','suggest','join','sign','renewal'];
+const NEEDS_YOU_ORDER = ['quiet','review','look','note','suggest','join','sign','renewal'];
 function needsYouOf(c){
   if(!c || c.archived) return [];
   const me=(typeof currentUser==='function')?currentUser():null;
@@ -1572,6 +1572,14 @@ function needsYouOf(c){
     if(!sg.length) return;
     const g=(window.deskSuggestion?deskSuggestion(sg[0]):null)||{};
     out.push({ kind:'suggest', urgent:false, n:sg.length, who:g.by||'' }); });
+  /* A COLLEAGUE ASKED YOU TO LOOK (8 Oct 2026, the nine flow rules' rule 3):
+     a contract passed to this reader, from the one ask record. Quiet until it
+     has waited as long as a named yes waits before it is chased. */
+  take(()=>{ const mine=(window.asksLookFor?asksLookFor(c, me):[])||[];
+    if(!mine.length) return;
+    const a=mine[mine.length-1];
+    out.push({ kind:'look', urgent:!!(window.saWorkdays && a.at && saWorkdays(a.at)>=(window.SA_REMIND_WORKDAYS||2)),
+      n:mine.length, who:(a.by&&a.by.name)||'', note:a.note||'', review:!!(a.stamp&&a.stamp.review), at:a.at||null }); });
   take(()=>hmMySignings(one).forEach(x=>out.push({ kind:'sign', urgent:false, n:x.n||0 })));
   take(()=>{ const r=hmRenewalDue(c);
     if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))
@@ -1594,9 +1602,25 @@ function needsYouOf(c){
    rows and the bell's renewal and join rows, which opened the contract on
    whatever tab it last showed. It answers whether it found the contract, so a
    caller can fall back to plain opening rather than leave a press dead. */
+/* "DONE" ON A COLLEAGUE'S LOOK — the reader answers every look waiting on
+   them on this contract through the one ask writer; the save carries it, the
+   server writes the trail line and tells whoever asked. */
+function lookDone(c){
+  const me=(typeof currentUser==='function')?currentUser():null;
+  if(!c || !me || !window.asksLookFor || !window.askAnswer) return false;
+  const mine=asksLookFor(c, me);
+  if(!mine.length) return false;
+  mine.forEach(a=>askAnswer(c, a.id, { state:'yes', by:{ id:String(me.id), name:me.name||'' } }));
+  if(typeof persist==='function') persist(c);
+  document.querySelectorAll('[data-ins-need-row="look"]').forEach(r=>{ const s=r.closest('.ins-need'); r.remove();
+    if(s && !s.querySelector('.ins-need-r')) s.remove(); });
+  if(typeof toast==='function') toast(i18t('look_done_toast',{ who:(mine[0].by&&mine[0].by.name)||'' }),'ok');
+  return true;
+}
 function needsYouGo(kind, id){
   const c=(typeof getContract==='function')?getContract(id):null;
   if(!c) return false;
+  if(kind==='look') return lookDone(c);
   /* AND A SUGGESTION IS ADOPTED WHERE IT IS DRAWN — the negotiate page, where
      the strip and its two verbs are. On this branch rather than below, with
      the two rows that already land there, so the reader is not taken through
@@ -1957,5 +1981,5 @@ function renderDashboard(){
   setActiveNav('dashboard');
 }
 
-Object.assign(window,{renderDashboard,hmAgentsCardHtml,hmDashSlices,hmDecisionItems,HM_DD_ROWS,hmRenewalDue,HM_SOON_DAYS,hmReviewLate,hmNoteDue,needsYouOf,NEEDS_YOU_ORDER,needsYouGo,hmStageTone,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
+Object.assign(window,{renderDashboard,hmAgentsCardHtml,hmDashSlices,hmDecisionItems,HM_DD_ROWS,hmRenewalDue,HM_SOON_DAYS,hmReviewLate,hmNoteDue,needsYouOf,NEEDS_YOU_ORDER,needsYouGo, lookDone,hmStageTone,hmMySignings,hmMapData,hmMapInnerHtml,hmMapWire,hmMeasure,hmSetMeasure,hmOwed,hmSecHtml,HM_MAP_MONTHS,HM_MAP_STAGES,copilotRead,copilotCoverage,gsSteps,gettingStartedHtml,gsIsSeed,
   KPI_META,currentKpiSel,setKpiSel,kpiCatalogOrder,DEFAULT_KPI_SEL,KPI_MAX,kpiAtMax,readyToSignItems});

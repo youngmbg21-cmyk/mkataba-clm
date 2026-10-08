@@ -361,9 +361,9 @@ function insPartiesHtml(list){
    The row's colour is its urgency (ruby late, amber owed), the frame takes the
    worst row's, and a button wears the platform's one light edge (26 Sep 2026)
    with the row's colour on its word. */
-const INS_NEED_VERB = { quiet: 'home_verb_answer', review: 'home_verb_review', join: 'home_verb_answer',
+const INS_NEED_VERB = { quiet: 'home_verb_answer', review: 'home_verb_review', look: 'ins_need_v_look', join: 'home_verb_answer',
   note: 'home_verb_answer', suggest: 'home_verb_answer', sign: 'home_verb_sign', renewal: 'home_verb_decide' };
-const INS_NEED_GO = { quiet: 'ins_need_go_nego', review: 'ins_need_go_nego', join: 'ins_need_go_desk',
+const INS_NEED_GO = { quiet: 'ins_need_go_nego', review: 'ins_need_go_nego', look: 'ins_need_go_look', join: 'ins_need_go_desk',
   note: 'ins_need_go_notes', suggest: 'ins_need_go_nego', sign: 'ins_need_go_sign', renewal: 'ins_need_go_terms' };
 /* One row's words: a title, and a line under it as HTML (`sub`) with the same
    words plain on its hover (`plain`) — the line is cut to one line, never the
@@ -380,6 +380,12 @@ function insNeedWords(c, it){
     plain: acc.plain ? acc.plain + ' · ' + p.plain : p.plain }), { sub: '', plain: '' });
   const bit = (text, isLate, hover) => ({ html: isLate ? late(text) : esc(text), plain: text, hover: !!hover });
   const cp = c.counterparty || i18t('ng_door_them');
+  if (it.kind === 'look'){
+    const d = _insDaysSince(it.at);
+    return Object.assign({ title: i18t(it.review ? 'ins_need_look_review' : 'ins_need_look', { who: it.who || '' }) },
+      lineOf([it.note ? bit('\u201c' + it.note + '\u201d', false) : null,
+        d == null ? null : bit(i18t('ins_need_waiting', { days: _insDaysWord(d) }), !!it.urgent)]));
+  }
   if (it.kind === 'quiet'){
     const d = _insDaysSince(it.since);
     let std = 0; try { std = (typeof deskCfg === 'function') ? Number(deskCfg().staleDays || 0) : 0; } catch (_) { std = 0; }

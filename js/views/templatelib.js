@@ -1160,9 +1160,14 @@ function renderTemplateFormSection(c) {
     </div>${editable ? `<div class="tplf-foot"><button type="button" class="ui-btn ui-btn-sm hati-fill-btn" data-tplf-fill="1"></button></div>` : ''}`;
   if (!editable) return;
   tplFormPaintFill(c);
-  host.querySelector('[data-tplf-fill]')?.addEventListener('click', () => tplFormApply(c));
+  /* A LISTENER ACTS ON THE RECORD AS IT IS AT THE PRESS (8 Oct 2026): the
+     full record can land after this panel was drawn and replace the contract
+     object in state; a press bound to the drawn object then wrote to a copy
+     nobody keeps, and the next repaint showed the press as lost. */
+  const live = () => (typeof getContract === 'function' && getContract(c.id)) || c;
+  host.querySelector('[data-tplf-fill]')?.addEventListener('click', () => tplFormApply(live()));
 
-  const commit = (idx, value) => tplFormCommit(c, idx, value);
+  const commit = (idx, value) => tplFormCommit(live(), idx, value);
   host.querySelectorAll('[data-tplf]').forEach(el => {
     el.addEventListener('change', () => commit(Number(el.getAttribute('data-tplf')), el.value));
   });
@@ -1188,7 +1193,7 @@ function renderTemplateFormSection(c) {
     canvas._tplFormWired = true;
     canvas.addEventListener('click', e => {
       const span = e.target.closest?.('.hati-field[data-field-key]');
-      if (span) tplFormBlankClick(c, span);
+      if (span) tplFormBlankClick((typeof getContract === 'function' && getContract(c.id)) || c, span);
     });
   }
 }

@@ -238,6 +238,8 @@ function caCardHtml(a, i){
   let foot = '', acts = '';
   if (a.state === 'sent') foot = `<p class="ca-said is-ok">${_caE(_caT('ca_sent', { who: a.person.name }))}</p>`;
   else if (a.state === 'outbox') foot = `<p class="ca-said is-warn">${_caE(_caT('ca_outbox', { who: a.person.name }))}</p>`;
+  else if (a.state === 'asked') foot = `<p class="ca-said is-warn">${_caE(_caT('ca_no_address', { who: a.person.name }))}</p>`;
+  else if (a.state === 'mailfail') foot = `<p class="ca-said is-warn">${_caE(_caT('ca_mail_failed', { who: a.person.name, why: a.why || '' }))}</p>`;
   else if (a.state === 'failed') foot = `<p class="ca-said is-bad">${_caE(a.why || _caT('ca_failed'))}</p>`;
   else if (a.state === 'sending') acts = `<button type="button" class="ui-btn ui-btn-sm ui-btn-primary" disabled aria-disabled="true">${_caE(_caT('ca_sending'))}</button>`;
   else if (blocked){
@@ -267,19 +269,27 @@ async function caCardPress(i, act, btn){
   if (act !== 'send' || a.state !== 'ready' || caSendBlock(a) || !c) return;
   a.state = 'sending'; if (typeof renderIntelDock === 'function') renderIntelDock();
   let r = null;
-  try { r = await api('contracts/' + encodeURIComponent(c.id) + '/pass', 'POST', { memberId: a.person.id, note: a.note || '' }); }
+  try { r = await api('contracts/' + encodeURIComponent(c.id) + '/pass', 'POST', { memberId: a.person.id, note: a.note || '', review: !!a.review }); }
   catch (e){ a.state = 'failed'; a.why = (e && e.message) || String(e); if (typeof renderIntelDock === 'function') renderIntelDock(); if (typeof toast === 'function') toast(a.why, 'err'); return; }
-  if (!r || !r.told){ a.state = 'failed'; a.why = _caT(r && r.why === 'no-address' ? 'ca_no_address' : 'ca_failed', { who: a.person.name }); }
-  else if (r.emailSent){ a.state = 'sent'; }
-  else { a.state = r.emailConfigured ? 'failed' : 'outbox'; if (r.emailConfigured) a.why = r.emailError || _caT('ca_failed'); }
-  /* A REAL SEND IS WRITTEN IN THE CONTRACT'S HISTORY, and says it was asked of
-     Copilot; a refused one writes nothing. The outbox is a real send that is
-     waiting for email to be set up, so it is written too. */
-  if ((a.state === 'sent' || a.state === 'outbox') && typeof logAudit === 'function'){
-    logAudit(c, 'Sent to a colleague', _caT('ca_audit', { who: a.person.name, note: a.note ? ` — “${a.note}”` : '' }));
-    if (typeof persist === 'function') try { persist(c); } catch (_){}
-  }
-  if (typeof toast === 'function') toast(a.state === 'sent' ? _caT('ca_sent', { who: a.person.name }) : a.state === 'outbox' ? _caT('ca_outbox', { who: a.person.name }) : a.why, a.state === 'sent' ? 'ok' : a.state === 'outbox' ? 'warn' : 'err');
+  /* A PASS IS A HAND-OFF, AND THE SERVER KEEPS ITS RECORD (8 Oct 2026, the
+     nine flow rules 3 and 8): the route opened a `look` question for the
+     colleague and wrote the History line itself, whether or not the email
+     went. Nothing is written to the record here; what the server wrote is
+     taken onto the copy on screen so the trail and the list show it now. */
+  if (!r || !r.asked){ a.state = 'failed'; a.why = _caT('ca_failed', { who: a.person.name }); }
+  else if (r.emailSent) a.state = 'sent';
+  else if (!r.told) a.state = 'asked';
+  else if (!r.emailConfigured) a.state = 'outbox';
+  else { a.state = 'mailfail'; a.why = r.emailError || ''; }
+  const live = (typeof getContract === 'function' && getContract(c.id)) || c;
+  if (r && Array.isArray(r.asks)) live.asks = (typeof asksTakeServer === 'function') ? asksTakeServer(live.asks, r.asks) : r.asks;
+  if (r && r.audit && Array.isArray(live.audit)) live.audit = live.audit.concat([r.audit]);
+  const said = a.state === 'sent' ? _caT('ca_sent', { who: a.person.name })
+    : a.state === 'asked' ? _caT('ca_no_address', { who: a.person.name })
+    : a.state === 'outbox' ? _caT('ca_outbox', { who: a.person.name })
+    : a.state === 'mailfail' ? _caT('ca_mail_failed', { who: a.person.name, why: a.why || '' })
+    : a.why;
+  if (typeof toast === 'function') toast(said, a.state === 'sent' ? 'ok' : a.state === 'failed' ? 'err' : 'warn');
   if (typeof renderIntelDock === 'function') renderIntelDock();
 }
 

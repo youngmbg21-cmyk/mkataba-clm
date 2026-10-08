@@ -39,7 +39,7 @@ const { sgDepartures, sgBriefReadOwed } = require('../js/signgate.js');
    older records through it, guards `c.asks` as a difference (srvAsksMerge),
    and every kind's lapse is its one rule (askLapsed). */
 const { ASK_KINDS, ASK_STATES, ASK_WHY_MAX, askLapsed, askSamePerson, askRuleTo, asksReconcile, asksDerive,
-  asksAdopt, asksBound, askAnswer, askRuleFor } = require('../js/asks.js');
+  asksAdopt, asksBound, askAnswer, askRuleFor, askOpen } = require('../js/asks.js');
 /* Redline here, sign there (26 Sep 2026): the working reference, the contract
    number, the handover's clock and the word check. ONE reading for both hosts,
    the signapproval.js pattern — the screen and this wall cannot disagree about
@@ -1779,7 +1779,7 @@ function srvAskLapses(c, a) {
   }
   return false;   // a review and a suggestion are never lapsed whole
 }
-const ASK_ANSWERS = { rule: ['yes', 'no'], named: ['yes', 'no'], review: ['returned'], suggest: ['yes', 'returned'] };
+const ASK_ANSWERS = { rule: ['yes', 'no'], named: ['yes', 'no'], review: ['returned'], suggest: ['yes', 'returned'], look: ['yes'] };
 function srvAsksMerge(prev, c, user) {
   const base = prev ? asksDerive(prev) : [];
   const out = base.map(a => ({ ...a }));
@@ -1873,6 +1873,11 @@ function srvAsksMerge(prev, c, user) {
       if (deskRuleOn() && deskIsClaimed(prev) && !dkMayRuleSuggestion(prev, ch, user))
         return { status: 403, error: `Only ${deskLeadName(prev)}, or an admin, can answer a colleague's suggestion.` };
       if (to === 'returned' && !why) return { status: 400, error: 'A suggestion handed back says why.' };
+    } else if (b.kind === 'look') {
+      /* A COLLEAGUE ASKED TO LOOK answers it themselves — nobody marks
+         somebody else's look done (8 Oct 2026). */
+      if (!(b.to && askSamePerson(b.to, me)))
+        return { status: 403, error: `Only ${(b.to && b.to.name) || 'the colleague who was asked'} can mark this done.` };
     }
     if (to === 'no' && !why) return { status: 400, error: 'A refusal says why — the reason is what goes back.' };
     Object.assign(b, { state: to, answeredAt: now(), answeredBy: me, why: why || null },
@@ -5548,6 +5553,13 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     c.audit = keptPrefix ? incoming : prev.audit.concat(incoming.filter(a =>
       !prev.audit.some(b => stable(a) === stable(b))));
   }
+  /* A COLLEAGUE'S LOOK, ANSWERED (8 Oct 2026, the nine flow rules 3 and 8):
+     the trail line is the SERVER's, written off the difference this save
+     made to the one ask record; the asker is mailed after the save. */
+  const looksDone = srvLooksDone(prev, c);
+  if (looksDone.length) c.audit = (Array.isArray(c.audit) ? c.audit : []).concat(looksDone.map(a => ({
+    at: now(), user: req.user.name || 'System', action: 'Looked at it',
+    detail: `${req.user.name || ''} marked done what ${(a.by && a.by.name) || 'a colleague'} sent${a.stamp && a.stamp.review ? ' for review' : ''}` })));
 
   if (existing) { const r = db.prepare('SELECT seq FROM contracts WHERE id=?').get(req.params.id); c._seq = r.seq; }
   else c._seq = nextSeq();
@@ -5633,6 +5645,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
        the named-yes rule, now the rule steps' too. See ruleStepDue. */
     const due = prev ? ruleStepDue(prev, c) : null;
     if (due) ruleStepTell(req, c, due, 'due');
+    looksDone.forEach(a => lookTell(req, c, a, 'done'));
   } catch (_) { /* the save is the thing that matters */ }
   /* The save may have moved who is on the route, so the server's reading of
      the approvals it needs rides back with the answer — read with the whole
@@ -13179,8 +13192,15 @@ app.post('/api/contracts/:id/escalate', auth, editor, async (req, res) => {
    The escalate route's own rules: ids in, addresses never (a body address is
    refused); the colleague is a `users` row, in scope for this contract, never
    the sender; the link is the app's own URL into the contract (never a share
-   token); what was sent is said by mailReport. Nothing is written to the
-   record here — the browser writes the History line after a real send. */
+   token); what was sent is said by mailReport.
+   THE NINE FLOW RULES (8 Oct 2026): a pass is a HAND-OFF, so it opens a
+   `look` question on the one ask record (js/asks.js) — in the colleague's
+   checklist and bell until they mark it done, reminded, the asker told on the
+   answer (rule 3) — and the SERVER writes its History line, whether or not
+   the email went (rule 8). Both are written to the stored record here, the
+   way srvShareExtend writes its trail: no version bump, and the ordinary
+   save keeps both (the ask list and the trail are merged against the stored
+   record). */
 app.post('/api/contracts/:id/pass', auth, editor, async (req, res) => {
   const b = req.body || {};
   if (b.email || b.to || b.address || b.emails)
@@ -13197,20 +13217,44 @@ app.post('/api/contracts/:id/pass', auth, editor, async (req, res) => {
     return res.status(403).json({ error: `${u.name} cannot open this contract`, why: 'no-access', name: u.name });
   const to = String(u.email || '').trim();
   const note = clean(b.note).slice(0, 600);
+  const review = !!b.review;
   const cName = c.name || req.params.id;
   const ref = clean(c.contractNo || req.params.id).slice(0, 40);
   const link = contractUrl(req, req.params.id, 'terms');
-  if (!/.+@.+\..+/.test(to)) return res.json({ ok: true, told: false, why: 'no-address', name: u.name, emailConfigured: EMAIL_ON() });
-  const L = langForEmail(to);
-  const r3 = await sendEmail(to,
-    tFor(L, 'mail_pass_subject', { who: req.user.name, name: cName }),
-    `${tFor(L, 'mail_hello')} ${u.name},\n\n`
-      + tFor(L, 'mail_pass_line', { who: req.user.name, ref, name: cName })
-      + (note ? `\n\n"${note}"\n` : '\n')
-      + `\n${tFor(L, 'mail_at_open')}\n${link}\n`
-      + `\n${tFor(L, 'mail_automated_notice')}`,
-    `pass: ${req.params.id} -> ${to}`);
-  res.json({ ok: true, told: true, name: u.name, to, ...mailReport(r3), emailConfigured: EMAIL_ON() });
+  let r3 = null;
+  if (/.+@.+\..+/.test(to)) {
+    const L = langForEmail(to);
+    r3 = await sendEmail(to,
+      tFor(L, 'mail_pass_subject', { who: req.user.name, name: cName }),
+      `${tFor(L, 'mail_hello')} ${u.name},\n\n`
+        + tFor(L, review ? 'mail_pass_line_review' : 'mail_pass_line', { who: req.user.name, ref, name: cName })
+        + (note ? `\n\n"${note}"\n` : '\n')
+        + `\n${tFor(L, 'mail_at_open')}\n${link}\n`
+        + `\n${tFor(L, 'mail_automated_notice')}`,
+      `pass: ${req.params.id} -> ${to}`);
+  }
+  const mail = r3 ? mailReport(r3) : { emailSent: false };
+  /* THE QUESTION AND THE TRAIL, ON THE STORED RECORD — read again here, so a
+     save that landed while the email was out is not written over. */
+  let ask = null, line = null, asks = null;
+  try {
+    const now0 = db.prepare('SELECT json FROM contracts WHERE id=?').get(req.params.id);
+    const cj = JSON.parse((now0 && now0.json) || row.json) || {};
+    if (!cj.id) cj.id = req.params.id;
+    ask = askOpen(cj, { kind: 'look', of: [String(req.params.id)], by: { id: String(req.user.id), name: req.user.name || '' },
+      to: { id: String(u.id), name: u.name || '' }, note: note || null, stamp: { review } });
+    /* A trail line is a RECORD, so it is kept in English (the trail's own
+       rule); the browser's History tab draws it as it draws every line. */
+    const how = !r3 ? 'no email address on file; it is in their list in HaTi'
+      : mail.emailSent ? 'emailed' : EMAIL_ON() ? 'the email did not go; it is in their list in HaTi' : 'email waiting in the outbox';
+    line = { at: now(), user: req.user.name || 'System', action: 'Sent to a colleague',
+      detail: `To ${u.name || ''}${review ? ' for review' : ''} (asked Copilot) — ${how}${note ? ` — “${note}”` : ''}` };
+    cj.audit = (Array.isArray(cj.audit) ? cj.audit : []).concat([line]);
+    asks = cj.asks;
+    db.prepare('UPDATE contracts SET json=?, updated_at=? WHERE id=?').run(JSON.stringify(cj), now(), req.params.id);
+  } catch (_) { /* the email is said either way; a lost trail line is the one thing this cannot undo */ }
+  res.json({ ok: true, told: !!r3, why: r3 ? undefined : 'no-address', name: u.name, to: r3 ? to : undefined,
+    ...mail, emailConfigured: EMAIL_ON(), asked: !!ask, askId: ask ? ask.id : null, asks: asks || undefined, audit: line || undefined });
 });
 
 /* ---------- APPROVAL BEFORE SIGNING: WHO IS TOLD (23 Sep 2026) ----------
@@ -13338,7 +13382,9 @@ async function runSignApprovalReminders() {
   const named = await runNamedYesReminders();
   let ruleSteps = null;
   try { ruleSteps = await runRuleStepReminders(); } catch (e) { ruleSteps = { error: (e && e.message) || String(e) }; }
-  return { ...named, sent: (named.sent || 0) + ((ruleSteps && ruleSteps.sent) || 0), ruleSteps };
+  let looks = null;
+  try { looks = await runLookReminders(); } catch (e) { looks = { error: (e && e.message) || String(e) }; }
+  return { ...named, sent: (named.sent || 0) + ((ruleSteps && ruleSteps.sent) || 0) + ((looks && looks.sent) || 0), ruleSteps, looks };
 }
 async function runNamedYesReminders() {
   const rows = db.prepare("SELECT id, folder, json FROM contracts WHERE status!='Declined' AND status!='Signed' AND json LIKE '%signApprovals%'").all();
@@ -13467,6 +13513,54 @@ async function ruleChainClearedTell(req, c, id) {
     const sent = await sendEmail(own.email, tFor(L, 'mail_ar_clear_subject', { name: cName }), body, `approval rules cleared: ${id} -> ${own.email}`);
     return { n: sent && sent.sent ? 1 : 0, ...mailReport(sent) };
   } catch (_) { return { n: 0 }; }
+}
+/* ---- A COLLEAGUE ASKED TO LOOK (8 Oct 2026, the nine flow rules) ----
+   The `look` questions the pass route opens. A save that moved one from open
+   to yes is found by difference (srvLooksDone); the asker is told once
+   (lookTell 'done'); one still open after SA_REMIND_WORKDAYS working days
+   reminds the colleague once (runLookReminders, on the sign-approval sweep). */
+function srvLooksDone(prev, c) {
+  if (!prev || !c) return [];
+  const was = new Map(asksDerive(prev).filter(a => a.kind === 'look').map(a => [String(a.id), a.state]));
+  return (Array.isArray(c.asks) ? c.asks : []).filter(a => a && a.kind === 'look' && a.state === 'yes'
+    && was.get(String(a.id)) === 'open');
+}
+async function lookTell(req, c, a, kind) {
+  try {
+    const who = kind === 'done' ? a.by : a.to;
+    const u = who && who.id ? db.prepare('SELECT * FROM users WHERE id=?').get(String(who.id)) : null;
+    if (!u || !/.+@.+\..+/.test(String(u.email || '')) || !inScope(folderScopeFor(u), c.folder)) return { n: 0 };
+    const L = langForEmail(u.email);
+    const cName = c.name || c.id;
+    const v = { who: kind === 'done' ? ((a.answeredBy && a.answeredBy.name) || (a.to && a.to.name) || '') : ((a.by && a.by.name) || ''),
+      name: cName, ref: contractRef(c) };
+    const body = `${tFor(L, 'mail_hello')} ${u.name || ''},\n\n`
+      + [tFor(L, `mail_look_${kind}_line`, v), a.note && kind === 'remind' ? `\n"${a.note}"` : '', '',
+        `${cName} (${contractRef(c)})`, '', tFor(L, 'mail_at_open'), contractUrl(req, c.id, 'terms')].join('\n')
+      + `\n\n${tFor(L, 'mail_automated_notice')}`;
+    const sent = await sendEmail(u.email, tFor(L, `mail_look_${kind}_subject`, v), body, `look ${kind}: ${c.id} -> ${u.email}`);
+    return { n: sent && sent.sent ? 1 : 0, ...mailReport(sent) };
+  } catch (_) { return { n: 0 }; }
+}
+async function runLookReminders() {
+  const rows = db.prepare(`SELECT id, folder, json FROM contracts WHERE status!='Declined' AND json LIKE '%"look"%'`).all();
+  let sent = 0, checked = 0;
+  const once = key => {
+    if (db.prepare('SELECT rkey FROM reminders WHERE rkey=?').get(key)) return false;
+    db.prepare('INSERT INTO reminders (rkey,created_at) VALUES (?,?)').run(key, now());
+    return true;
+  };
+  for (const row of rows) {
+    let c; try { c = JSON.parse(row.json) || {}; } catch (_) { continue; }
+    if (!c.id) c.id = row.id;
+    if (c.archived) continue;
+    for (const a of asksDerive(c).filter(x => x.kind === 'look' && x.state === 'open' && x.at)) {
+      checked++;
+      if (saWorkdays(a.at) >= SA_REMIND_WORKDAYS && once(`ask:${c.id}:${a.id}:remind`))
+        sent += (await lookTell(null, c, a, 'remind')).n || 0;
+    }
+  }
+  return { checked, sent };
 }
 /* THE NAMED YES'S CADENCE, FOR A RULE STEP: reminded after
    SA_REMIND_WORKDAYS working days, the admins told after

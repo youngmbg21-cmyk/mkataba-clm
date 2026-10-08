@@ -7300,10 +7300,20 @@ function ktOverviewTermsHtml(c,opts={}){
   const signersBtn=(ed&&anySigner)?`<button type="button" class="ui-btn ui-btn-sm" data-ov-signers="1">${
       esc(i18t('ppl_open_signers'))}</button>`:'';
   const D=ovMapData(c);
+  /* TWO ADDRESSES MAY DIFFER; THEY MAY NEVER DIFFER QUIETLY (16 Sep 2026).
+     The Constellation (8 Oct) moved the record's rows behind "Filing and
+     stream", which made a signing route that names another address than the
+     contact row quiet at rest. It is said where the address already is: on
+     the first outside party's row, under the email it disagrees with, and
+     only while the two really differ (ktRouteEmailRead). */
+  const rtSay=ktRouteEmailRead(c);
+  const rtParty=rtSay&&D?D.parties.find(p=>!p.us):null;
+  const rtLine=rtSay?`<small class="ov-pty-route" data-ov-route="1"><span style="font-weight:var(--w-strong)">${esc(i18t('ct_signing_route_email'))}:</span> ${esc(rtSay.email)}${
+      rtSay.who?' \u00b7 '+esc(rtSay.who):''} \u00b7 ${esc(i18t('ct_signing_route_email_note'))}</small>`:'';
   const pyRows=(D?D.parties:[]).map(p=>`<div class="ov-pty"><span class="ov-pty-av" style="background:${p.tone[1]};color:${p.tone[2]}">${
       esc(typeof deskInitials==='function'?deskInitials(p.name):String(p.name).slice(0,2))}</span><div><b>${esc(p.name)}</b><small>${
       esc([p.role, p.us?i18t('ov_map_us_word'):'', p.where, p.email].filter(Boolean).join(' · '))}</small>${
-      p.signs.map(r=>`<small class="ov-pty-sg${r.signed?' is-done':''}">${esc(r.signed?(r.at?i18t('ov_map_signed_by',{ name:r.n, date:ovDay(r.at) }):i18t('ov_map_signed_by_nodate',{ name:r.n })):i18t('ov_map_signs',{ name:r.n }))}</small>`).join('')}</div></div>`).join('');
+      (p===rtParty?rtLine:'')+p.signs.map(r=>`<small class="ov-pty-sg${r.signed?' is-done':''}">${esc(r.signed?(r.at?i18t('ov_map_signed_by',{ name:r.n, date:ovDay(r.at) }):i18t('ov_map_signed_by_nodate',{ name:r.n })):i18t('ov_map_signs',{ name:r.n }))}</small>`).join('')}</div></div>`).join('');
   /* IN THE EDIT POSTURE THE PARTIES ARE THEIR EDITORS — the block every party
      act already lives on (drawn bare, the name said once), the people on the
      contract, every address a round uses, and the signing order's door. */

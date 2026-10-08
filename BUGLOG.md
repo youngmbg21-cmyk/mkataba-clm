@@ -20493,3 +20493,10 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed: the old Copilot's work page renderer (renderAgentsPage, agListHtml, agPageHtml) is now reached only by tests; it could be retired once agents-page-verify is ported.
 - Noticed, not fixed: the Paper side's sheet does not mark which clause a passage sits in (data-anchor is "redline" for the whole sheet), so a Comment made from a highlight there quotes the words instead of pinning to a clause.
 - Noticed, not fixed: CLAUDE.md is 88.8 KB after this build's MAP lines (house limit about 80 KB); a trim needs the owner's word.
+
+### 8 Oct 2026 — the nine flow rules 3 and 8 mended; the four red browser checks
+- Fixed (owner-asked): nine-jobs-verify 2/3/3b and owners-fifteen-verify 13b/d/e were tests behind the Constellation Overview and Home's Paper side; ported to what is drawn now.
+- Fixed (owner-asked): share-recipient-verify 4 was real — a signing route naming another address than the contact row was quiet at rest after the Constellation; now said on the outside party's row.
+- Fixed (owner-asked): fill-the-document-verify 4 was real — the form panel's listeners acted on the contract object as drawn, so a press after the full record landed was lost. They act on the live record now.
+- Noticed, not fixed: phone-verify (on KNOWN_RED) still fails the same two checks as on main ("offers no menu", obligation bands). Left alone.
+- Noticed, not fixed: other panels that bind listeners to the contract object they were drawn with may lose a press the same way the form panel did; only the form panel was changed.
