@@ -65,7 +65,7 @@ function _rkHash(s){
 /* THE KEY OF A MARK, the same on every surface: a scan finding by its id, a
    brief line by its own words. */
 const riskKeyOf = (src, idOrSay) => (src === 'scan' ? 's:' + String(idOrSay)
-  : (src === 'odd' ? 'o:' : 'b:') + _rkHash(idOrSay));
+  : (src === 'odd' ? 'o:' : src === 'mine' ? 'm:' : 'b:') + _rkHash(idOrSay));
 
 function _rkStore(c){
   const r = c && c.risks && typeof c.risks === 'object' ? c.risks : null;
@@ -243,6 +243,13 @@ function riskItemsOf(c){
       missing: false, anchor: '', dismissed: st.dismissed.includes(key) });
   });
   try{ if (typeof docXrayBriefWatch === 'function') brief('brief', docXrayBriefWatch(c), 'med'); }catch(_){}
+  /* A RISK A PERSON MARKED on the Paper (caRiskMark, 7 Oct 2026): their own
+     words are the title, the highlighted passage the quote. */
+  const marked = c.risks && Array.isArray(c.risks.marked) ? c.risks.marked : [];
+  marked.forEach(m => { if (!m || !m.title) return;
+    const key = riskKeyOf('mine', m.title + '|' + (m.quote || ''));
+    take({ key, src: 'mine', sev: 'med', title: String(m.title), say: String(m.title), why: '', fix: '', quote: String(m.quote || ''),
+      missing: false, anchor: '', dismissed: st.dismissed.includes(key) }); });
   try{ if (typeof docXrayBriefOdd === 'function') brief('odd', docXrayBriefOdd(c), 'low'); }catch(_){}
   const live = new Set((Array.isArray(c.changes) ? c.changes : [])
     .filter(x => x && !x.withdrawn).map(x => String(x.id)));
@@ -758,7 +765,7 @@ function riskMayAct(c, opts = {}){
 }
 
 /* ================= THE LIST IN THE REDLINES COLUMN ================= */
-const RK_SRC_KEY = { scan: 'rk_src_scan', brief: 'rk_src_brief', odd: 'rk_src_odd' };
+const RK_SRC_KEY = { scan: 'rk_src_scan', brief: 'rk_src_brief', odd: 'rk_src_odd', mine: 'rk_src_mine' };
 const _rkSev = s => (typeof SEV_META !== 'undefined' && SEV_META[s]) ? SEV_META[s] : null;
 function _rkSevHtml(s){
   const m = _rkSev(s);

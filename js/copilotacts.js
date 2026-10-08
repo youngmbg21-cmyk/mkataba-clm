@@ -205,6 +205,7 @@ function caReadSend(q){
 function caActOf(q){
   const t = String(q || '').trim(); if (!t) return null;
   const send = caReadSend(t); if (send) return send;
+  const job = caReadJob(t); if (job) return job;
   if (typeof caReadDraft === 'function'){ const d = caReadDraft(t); if (d){ setTimeout(() => { caDraftRun(d); }, 0); return d; } }
   return null;
 }
@@ -221,6 +222,7 @@ function caSendBlock(a){
 function caCardHtml(a, i){
   if (!a || !Number.isInteger(i)) return '';
   if (a.kind === 'draft' && typeof caDraftCardHtml === 'function') return caDraftCardHtml(a, i);
+  if (CA_JOBS.includes(a.kind)) return caJobCardHtml(a, i);
   if (a.kind !== 'send') return '';
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   const B = (act, label, cls) => `<button type="button" class="ui-btn ui-btn-sm${cls === 'lead' ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
@@ -251,6 +253,7 @@ function caTurn(i){ try { return intel.history[i] || null; } catch (_){ return n
 async function caCardPress(i, act, btn){
   const m = caTurn(i); const a = m && m.act; if (!a) return;
   if (a.kind === 'draft' && typeof caDraftPress === 'function') return caDraftPress(i, act, btn);
+  if (CA_JOBS.includes(a.kind)) return caJobPress(i, act, btn);
   const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
   if (act === 'sendscreen'){ if (c && typeof openShareModal === 'function') openShareModal(c); return; }
   if (act === 'note'){
@@ -369,6 +372,226 @@ function caDraftPress(i, act, btn){
   if (typeof draftHandOff === 'function') draftHandOff(pick, prefill);
 }
 
+/* ============================================================
+   THE PAPER'S JOBS (Young, 7 Oct 2026 — the "one-stop shop" proposals)
+   ============================================================
+   Three jobs a person can ASK for on a contract — typed, or one press on the
+   Paper's prepared asks — each answered with a CARD that names what it will do
+   and carries the product's OWN act. Read here, no model call:
+   - READY: "get it ready to sign" — signBlockers(c), the ONE list the Sign
+     button reads, one row per gap with a door to where it is settled. Read
+     LIVE at every paint, so a gap settled elsewhere leaves the card.
+   - OBLIG: "find its obligations" — runFindObligations(c): a reading already
+     made is offered, not paid for again; nothing is filed for the reader.
+   - STD: "draft redlines from our standards" — rlPrepareRedlines(c) on the
+     negotiation page, which asks first and sends nothing.
+   The contract is a chosen #, a typed reference, or the paper that is up. */
+const CA_JOBS = ['ready', 'oblig', 'std'];
+const CA_JOB_RE = {
+  ready: /\b(?:ready to sign|ready for signing|ready for signature|what(?:'s| is)? (?:left|stopping|blocking)\b.*\bsign)/i,
+  oblig: /\b(?:find|read|pull out|extract)\s+(?:its|the|all|this contract'?s)?\s*obligations\b/i,
+  std: /\b(?:draft|prepare|propose|make)\b.*\b(?:redlines?|changes)\b.*\b(?:standards?|playbook)\b|\bdraft from our standards\b/i,
+};
+function caReadJob(q){
+  const kind = CA_JOBS.find(k => CA_JOB_RE[k].test(q)); if (!kind) return null;
+  /* NO CONTRACT, NO CARD: "find obligations due next week" on the Board is
+     a question for the board, not a job — it goes on as before. */
+  const c = caFindContract(q); if (!c) return null;
+  return { kind, cid: c.id, state: 'ready' };
+}
+/* Where each gap is settled — the room's own tabs and pages, nothing new. */
+function caReadyDoor(key){
+  if (key === 'negotiation') return 'nego';
+  if (key === 'form-fill' || key === 'ho-blanks') return 'contract';
+  if (key === 'hold' || key === 'fields' || (typeof READINESS_FIELD_KEYS !== 'undefined' && READINESS_FIELD_KEYS.includes(key))) return 'terms';
+  return 'sign';
+}
+function caJobCardHtml(a, i){
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null;
+  const B = (act, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
+  if (!c) return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_job_' + a.kind))}</div><p class="ca-why">${_caE(_caT('ca_send_which'))}</p></div>`;
+  const head = `<dl class="ca-dl"><dt>${_caE(_caT('ca_l_contract'))}</dt><dd>${_caE(caRef(c) + ' · ' + (c.name || ''))}</dd></dl>`;
+  if (a.kind === 'ready'){
+    const done = /^(Signed|Executed|Active|Expired|Terminated)$/.test(String(c.status || ''));
+    const bl = done ? [] : ((typeof signBlockers === 'function') ? signBlockers(c) : []);
+    const rows = bl.map((b, k) => `<li class="ca-gap"><span>${_caE(b.label)}</span>${B('gap:' + k, _caT('ca_ready_go_' + caReadyDoor(b.key)), false)}</li>`).join('');
+    const title = done ? _caT('ca_ready_signed') : bl.length ? _caT(bl.length === 1 ? 'ca_ready_n_one' : 'ca_ready_n_other', { n: bl.length }) : _caT('ca_ready_none');
+    return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(title)}</div>${head}
+      ${rows ? `<ul class="ca-gaps">${rows}</ul>` : ''}
+      ${done ? '' : `<div class="ca-acts">${B('gap:sign', _caT('ca_ready_open_sign'), !bl.length)}</div>`}
+      <p class="ca-foot">${_caE(_caT('ca_ready_foot'))}</p></div>`;
+  }
+  const lead = a.kind === 'oblig' ? 'ca_oblig_go' : 'ca_std_go';
+  const frozen = a.kind === 'std' && typeof negoExecuted === 'function' && negoExecuted(c);
+  return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_job_' + a.kind))}</div>${head}
+    <p class="ca-foot" style="margin-top:0">${_caE(_caT(frozen ? 'ca_std_frozen' : 'ca_' + a.kind + '_says'))}</p>
+    ${frozen || a.state === 'done' ? '' : `<div class="ca-acts">${B('run', _caT(lead), true)}</div>`}
+    ${a.state === 'done' ? `<p class="ca-said is-ok">${_caE(_caT('ca_job_opened'))}</p>` : ''}</div>`;
+}
+async function caJobPress(i, act, btn){
+  const m = caTurn(i); const a = m && m.act; if (!a) return;
+  const c = a.cid && typeof getContract === 'function' ? getContract(a.cid) : null; if (!c) return;
+  if (a.kind === 'ready' && String(act).startsWith('gap:')){
+    const k = act.slice(4);
+    const bl = (typeof signBlockers === 'function') ? signBlockers(c) : [];
+    const b = k === 'sign' ? null : bl[Number(k)];
+    const door = b ? caReadyDoor(b.key) : 'sign';
+    if (b && door === 'terms' && typeof openWorkspace === 'function' && typeof focusKeyTerms === 'function'){
+      openWorkspace(c.id); try { focusKeyTerms(getContract(c.id), (b.fields && b.fields[0]) || b.key); } catch (_){}
+      return;
+    }
+    if (typeof agGo === 'function') agGo(door, c.id);
+    return;
+  }
+  if (act !== 'run') return;
+  if (a.kind === 'oblig'){
+    if (typeof runFindObligations !== 'function') return;
+    await runFindObligations(c);
+  } else if (a.kind === 'std'){
+    if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(c.id);
+    if (typeof rlPrepareRedlines === 'function'){ const cc = getContract(c.id); setTimeout(() => { try { rlPrepareRedlines(cc); } catch (_){} }, 0); }
+  }
+  a.state = 'done';
+  if (typeof renderIntelDock === 'function') renderIntelDock();
+}
+/* THE PREPARED ASKS on Home's Paper side, while the conversation is empty:
+   one press each. Send for review writes "Send #REF to @" into the box and
+   opens the people list — the person is the reader's to choose. */
+function caPaperChips(){
+  const p = (typeof intel === 'object' && intel) ? intel.paper : null;
+  const c = p && typeof getContract === 'function' ? getContract(p.id) : null;
+  if (!c || typeof igHomePaperFace !== 'function' || igHomePaperFace() !== true) return null;
+  return [
+    { ask: _caT('ca_chip_ready') },
+    { ask: _caT('ca_chip_oblig') },
+    { ask: _caT('ca_chip_std') },
+    { fill: `${_caT('ca_chip_send_word')} #${caRef(c)} ${_caT('ca_chip_send_to')} @`, label: _caT('ca_chip_send') },
+  ];
+}
+function caChipsHtml(){
+  const L = caPaperChips(); if (!L) return '';
+  return L.map(x => x.fill
+    ? `<button type="button" data-ca-fill="${_caE(x.fill)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
+    : `<button type="button" data-igsug="${_caE(x.ask)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.ask)}</button>`).join('');
+}
+if (typeof document !== 'undefined') document.addEventListener('click', e => {
+  const b = e.target && e.target.closest ? e.target.closest('[data-ca-fill]') : null; if (!b) return;
+  const inp = document.getElementById('igd-input'); if (!inp) return;
+  inp.value = b.getAttribute('data-ca-fill');
+  try { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } catch (_){}
+  if (typeof chatFieldGrow === 'function') chatFieldGrow(inp);
+  caPopRead(inp);
+});
+
+/* ============================================================
+   A HIGHLIGHT ON THE PAPER (Home's Paper side)
+   ============================================================
+   The negotiation page's own menu (rlSelMenu, its markup, anchoring and
+   one-at-a-time rule) with the Paper's four verbs:
+   - Ask Copilot — the words go into the ask box, quoted; the reader asks.
+   - Make it an obligation — the product's own obligation form, the words as
+     its description and quote; Add is the reader's press (openObligationForm).
+   - Mark a risk — a risk the READER names, kept in c.risks.marked (never
+     travels, like the rest of c.risks) and counted by riskItemsOf like any other.
+   - Comment — an INTERNAL note on the contract, anchored to the clause the
+     words sit in where the paper says which (negoPostComment, the one writer).
+   Never on an executed contract's wording? Reading and noting still are. */
+const CA_SEL_ACTIONS = () => [
+  { id: 'ask', label: _caT('ca_sel_ask') },
+  { id: 'oblig', label: _caT('ca_sel_oblig') },
+  { id: 'risk', label: _caT('ca_sel_risk') },
+  { id: 'note', label: _caT('ca_sel_note') },
+];
+function caSelKill(){ document.querySelectorAll('.nego-selmenu').forEach(n => n.remove()); }
+function caSelClauseId(node){
+  const el = node && (node.nodeType === 1 ? node : node.parentElement);
+  const at = el && el.closest ? el.closest('[data-anchor]') : null;
+  const id = at ? String(at.getAttribute('data-anchor') || '') : '';
+  /* only a clause the record holds (read RAW, never initialised) */
+  const p = (typeof intel === 'object' && intel) ? intel.paper : null;
+  const c = p && typeof getContract === 'function' ? getContract(p.id) : null;
+  let known = [];
+  try { known = (c && c.negotiation && c.negotiation.baselineBody && typeof clauseSegment === 'function') ? clauseSegment(c.negotiation.baselineBody) : []; } catch (_){ known = []; }
+  return id && known.some(x => x && String(x.id) === id) ? id : '';
+}
+function caSelOpen(){
+  const sel = window.getSelection && window.getSelection();
+  if (!sel || sel.isCollapsed){ caSelKill(); return; }
+  const within = n => { const el = n && (n.nodeType === 1 ? n : n.parentElement); return !!(el && el.closest && el.closest('#ig-canvas')); };
+  if (!within(sel.anchorNode) || !within(sel.focusNode)){ return; }
+  const text = String(sel.toString()).replace(/\s+/g, ' ').trim();
+  if (text.length < 3){ caSelKill(); return; }
+  let rect; try { rect = sel.getRangeAt(0).getBoundingClientRect(); } catch (_){ return; }
+  if (!rect || (!rect.width && !rect.height)) return;
+  const p = (typeof intel === 'object' && intel) ? intel.paper : null;
+  const c = p && typeof getContract === 'function' ? getContract(p.id) : null; if (!c) return;
+  const clauseId = caSelClauseId(sel.anchorNode);
+  if (typeof negoEnsureStyle === 'function') negoEnsureStyle();
+  if (typeof rlSelMenu !== 'function') return;
+  rlSelMenu({ text, rect, actions: CA_SEL_ACTIONS(), onPick: act => caSelPick(c, act, text, clauseId) });
+}
+async function caSelPick(c, act, text, clauseId){
+  caSelKill();
+  const quote = text.slice(0, 600);
+  if (act.id === 'ask'){
+    const inp = document.getElementById('igd-input'); if (!inp) return;
+    inp.value = _caT('ca_sel_ask_fill', { q: quote.length > 240 ? quote.slice(0, 240) + '…' : quote });
+    try { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } catch (_){}
+    if (typeof chatFieldGrow === 'function') chatFieldGrow(inp);
+    return;
+  }
+  if (act.id === 'oblig'){
+    if (typeof canEdit === 'function' && !canEdit()){ if (typeof toast === 'function') toast(_caT('ca_send_viewer'), 'err'); return; }
+    if (typeof openObligationForm === 'function') openObligationForm(c, { desc: quote, due: '', recurring: 'none', assignee: '', quote, amount: '' });
+    return;
+  }
+  if (typeof canEdit === 'function' && !canEdit()){ if (typeof toast === 'function') toast(_caT('ca_send_viewer'), 'err'); return; }
+  if (act.id === 'risk'){
+    if (typeof promptDialog !== 'function') return;
+    const v = await promptDialog({ title: _caT('ca_risk_title'), message: _caT('ca_risk_msg'), value: '' });
+    if (v == null || !String(v).trim()) return;
+    caRiskMark(c, String(v).trim(), quote);
+    if (typeof toast === 'function') toast(_caT('ca_risk_done'), 'ok');
+    return;
+  }
+  if (act.id === 'note'){
+    if (typeof promptDialog !== 'function' || typeof negoPostComment !== 'function') return;
+    const v = await promptDialog({ title: _caT('ca_note_on_title'), message: _caT('ca_note_on_msg'), value: '', multiline: true });
+    if (v == null || !String(v).trim()) return;
+    /* The paper the Paper side draws does not always say which clause a
+       passage sits in; where it does not, the note quotes the words itself. */
+    const body = clauseId ? String(v).trim() : `“${quote.length > 240 ? quote.slice(0, 240) + '…' : quote}” — ${String(v).trim()}`;
+    const msg = negoPostComment(c, null, body, { visibility: 'internal', anchor: clauseId ? { clauseId, quote } : null });
+    if (!msg){ if (typeof toast === 'function') toast(_caT('ca_failed'), 'err'); return; }
+    if (typeof persist === 'function') try { persist(c); } catch (_){}
+    if (typeof toast === 'function') toast(_caT('ca_note_done'), 'ok');
+  }
+}
+/* THE ONE WRITER of a risk a person marks by hand. */
+const CA_RISK_MAX = 120;
+function caRiskMark(c, title, quote){
+  if (!c) return null;
+  if (!c.risks || typeof c.risks !== 'object') c.risks = {};
+  if (!Array.isArray(c.risks.marked)) c.risks.marked = [];
+  const me = (typeof currentUser === 'function' && currentUser()) || null;
+  const row = { title: String(title).slice(0, CA_RISK_MAX), quote: String(quote || '').slice(0, 600), by: me ? me.name : '', at: (typeof nowISO === 'function') ? nowISO() : new Date().toISOString() };
+  c.risks.marked.push(row);
+  if (typeof logAudit === 'function') try { logAudit(c, 'Risk marked', row.title); } catch (_){}
+  if (typeof persist === 'function') try { persist(c); } catch (_){}
+  return row;
+}
+if (typeof document !== 'undefined' && !document._caSelArmed){
+  document._caSelArmed = true;
+  document.addEventListener('mouseup', e => {
+    const t = e.target; if (!t || !t.closest || !t.closest('#ig-canvas')) return;
+    if (t.closest('button, a, input, textarea, select, .nego-selmenu')) return;
+    setTimeout(caSelOpen, 0);
+  });
+  document.addEventListener('mousedown', e => { if (!e.target.closest || !e.target.closest('.nego-selmenu')) { if (document.querySelector('#ig-canvas') ) caSelKill(); } }, true);
+}
+
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
-  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress });
+  CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress,
+  CA_JOBS, CA_JOB_RE, caReadJob, caReadyDoor, caJobCardHtml, caJobPress, caPaperChips, caChipsHtml,
+  CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });

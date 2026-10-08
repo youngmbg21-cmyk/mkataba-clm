@@ -1889,7 +1889,7 @@ async function intelAsk(qRaw){
     let act=null; try{ act=caActOf(q); }catch(_){ act=null; }
     if(act){
       intel.history.push({role:'user', text:q});
-      intel.history.push({role:'assistant', text:i18t(act.kind==='draft'?'ca_intro_draft':'ca_intro_send'), act});
+      intel.history.push({role:'assistant', text:i18t(act.kind==='draft'?'ca_intro_draft':act.kind==='send'?'ca_intro_send':'ca_intro_job'), act});
       renderIntelDock();
       return;
     }
@@ -6410,7 +6410,7 @@ function renderIntelDock(){
     ${(()=>{ const v=igViewsRead(); return v.length?`<div class="px-3.5 pb-1.5 shrink-0 flex flex-wrap items-center gap-1.5" data-ig-views><span class="text-[10.5px] uppercase tracking-wider text-ink/40">${i18t('int_saved_views')}</span>${v.slice(-4).reverse().map(x=>`<button type="button" data-ig-saved="${igEsc(x.name)}" title="${igEsc(x.name)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 px-2.5 py-1 text-brand-700 transition text-left" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.name)}</button>`).join('')}</div>`:''; })()}
     ${!intel.history.length?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5">
-      ${((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||IG_SUGGESTIONS.slice(0,3)).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
+      ${(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||IG_SUGGESTIONS.slice(0,3)).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}
     </div>`:''}
     ${intel.compareSel.length?`
     <div class="px-3.5 py-2 border-t border-hair shrink-0 flex items-center gap-2 bg-brand-50/40">
