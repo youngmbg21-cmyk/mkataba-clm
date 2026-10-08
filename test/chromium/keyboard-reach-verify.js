@@ -147,6 +147,9 @@ async function tabAround(page, sel, n = 25) {
     check('Enter on Home\'s Board | Explorer switch really switches it', v.pressed === 'true', JSON.stringify(v));
     check('and focus stays on the half that was pressed, not the top of the page',
       v.at === 'explorer', JSON.stringify(v));
+    /* Paper sits between Board and Explorer since 8 Oct 2026 (Young: "make the
+       paper to be after the Board"), so two steps back reach Board */
+    await page.keyboard.press('Shift+Tab'); await pause(150);
     await page.keyboard.press('Shift+Tab'); await pause(150);
     await page.keyboard.press('Space'); await pause(900);
     const c = await page.evaluate(() => {
