@@ -451,6 +451,10 @@ function contractExpired(c){
     || (c.metadata&&c.metadata.expiryDate) || c.expiry;
   const day=window.dateOnly?dateOnly(raw):raw;
   if(!day) return false;                       // no term recorded — not a claim we can make
+  /* AN AUTO-RENEWING CONTRACT WHOSE END DATE PASSED UNANSWERED RENEWED (B15):
+     the server recorded it (autoRenewed) — with no new date known it is not
+     "Expired", it has probably renewed, and the owner was told so. */
+  if((Array.isArray(c.autoRenewed)?c.autoRenewed:[]).some(x=>x&&String(x.from)===String(day)&&!x.to)) return false;
   const d=window.daysUntil?daysUntil(day):null;
   return d!=null && !isNaN(d) && d<0;
 }
@@ -1104,12 +1108,21 @@ function persist(c){
 }
 /* Permanently delete a contract. Restricted to Draft / Under Review — executed
    (signed) and closed records are never destroyed. Returns true if deleted. */
+/* WHO MAY THROW A CONTRACT AWAY — a draft or one in review that nobody has
+   signed (B4, 8 Oct 2026). Every Delete door draws itself off this. */
+function contractDeletable(c){
+  if(!c || (c.status!=='Draft' && c.status!=='Under Review')) return false;
+  if(Array.isArray(c.signatures) && c.signatures.length) return false;
+  return !(Array.isArray(c.signerPlan) ? c.signerPlan : []).some(s=>s && s.signed);
+}
 async function deleteContract(id){
   const c=getContract(id); if(!c) return false;
   if(!canEdit()){ toast(i18t('co_viewers_no_delete'),'err'); return false; }
   if(c.status!=='Draft' && c.status!=='Under Review'){
     toast(i18t('co_only_draft_delete'),'err'); return false;
   }
+  /* A SIGNATURE IS EVIDENCE (B4): the server refuses it too. */
+  if(!contractDeletable(c)){ toast(i18t('co_signed_no_delete'),'err'); return false; }
   const label=(c.name||c.id).split(' —')[0];
   if(!await confirmDialog({ title:`Delete “${c.name}”?`,
       message:`This permanently removes ${(window.contractRef?contractRef(c):c.id)} and its history from the workspace. This cannot be undone.`,
@@ -1222,6 +1235,38 @@ async function contractDecline(c,why){
   logAudit(c,'Declined',`Declined and closed by ${(currentUser()||{}).name||'System'} — “${text}”`);
   persist(c);
   toast(i18t('end_declined_toast'),'ok');
+  if(window.updateSidebarCounts) updateSidebarCounts();
+  return true;
+}
+/* ---- DECLINED IS NOT A ONE-WAY DOOR (B14, 8 Oct 2026) ----
+   Hold has Release and Archive has Restore; Decline had nothing, so a deal
+   closed by mistake — or one that came back to life — had to be drafted from
+   scratch. Reopen is the owner's or an admin's act, with a reason, on the
+   trail; the server checks the same three things (PUT /api/contracts/:id). It
+   goes back to the stage it was declined from (`declinedFrom`, written by the
+   server), else Under Review where a negotiation was under way, else Draft. */
+function contractMayReopen(c){
+  if(!c || c.status!=='Declined') return false;
+  const me=currentUser();
+  if(!me) return false;
+  return (typeof isAdmin==='function'&&isAdmin()) || (typeof contractOwnedBy==='function'&&contractOwnedBy(c, me));
+}
+async function contractReopen(c,why){
+  if(!c) return false;
+  if(c.status!=='Declined'){ toast(i18t('end_reopen_not_closed'),'warn'); return false; }
+  if(!contractMayReopen(c)){ toast(i18t('end_reopen_who'),'err'); return false; }
+  const text=String(why==null?'':why).trim().slice(0,HOLD_WHY_MAX);
+  if(!text){ toast(i18t('end_reopen_needs_why'),'warn'); return false; }
+  try{ await ensureFull(c); }catch(_){}
+  const me=currentUser()||{};
+  const back=['Draft','Under Review'].includes(c.declinedFrom) ? c.declinedFrom
+    : ((Array.isArray(c.changes)&&c.changes.length)||(Array.isArray(c.rounds)&&c.rounds.length)||(c.negotiation&&c.negotiation.turnAt)) ? 'Under Review' : 'Draft';
+  c.status=back; c.lastAction=todayStr();
+  c.reopened={ at:nowISO(), by:{ id:String(me.id||''), name:me.name||'' }, why:text };
+  delete c.declinedFrom;
+  logAudit(c,'Reopened',`Reopened by ${me.name||'System'} — back to ${back} — “${text}”`);
+  persist(c);
+  toast(i18t('end_reopened_toast'),'ok');
   if(window.updateSidebarCounts) updateSidebarCounts();
   return true;
 }
@@ -1443,6 +1488,7 @@ async function saveContract(c){
   try{
     const r=await api('contracts/'+c.id,'PUT',{ contract:payload, baseVersion:c._v||0, uid, rlUid });
     c._v=r.version; c._loaded=true; c._light=false;
+    if(_decisionSave.has(c.id)) _decisionOutcome.set(c.id,{ ok:true });
     /* ---- THE NUMBER THE SERVER GAVE, TAKEN AS GIVEN (26 Sep 2026) ----
        A working file takes its contract number in the save that files it, and
        the server is the one that gives it. The line recording it is the
@@ -1463,7 +1509,20 @@ async function saveContract(c){
        answers it accepted — taken as given, with anything asked here since
        the save left kept on top (js/asks.js asksTakeServer). */
     if(r && Array.isArray(r.asks)) c.asks=(typeof asksTakeServer==='function')?asksTakeServer(c.asks,r.asks):r.asks;
+    /* D4: THE SERVER SEALED IT IN THIS SAVE — the seal, the trail lines and
+       the version are the server's, so the record is read back as it stored
+       it rather than guessed at here. */
+    if(r && r.sealed){
+      try{ const fresh=await api('contracts/'+c.id);
+        if(fresh){ Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false; } }catch(_){}
+    }
   }catch(e){
+    /* A DECISION IS NOT AN EDIT TO MERGE (B3): an approval pressed in a tab
+       left open meets the newer record, and "Keep mine / Load theirs" would
+       either drop the decision or overwrite the owner's resubmission. The
+       decider re-reads and re-applies it instead (saveDecision). */
+    if(_decisionSave.has(c.id) && /conflict|version/i.test(e.message)){ _decisionOutcome.set(c.id,{ ok:false, conflict:true }); return; }
+    if(_decisionSave.has(c.id)) _decisionOutcome.set(c.id,{ ok:false, refused:e.message||'' });
     if(/conflict|version/i.test(e.message)){
       /* H-4: someone else saved this contract while it was being edited. The old
          behaviour overwrote the in-progress edit with the server copy and showed
@@ -1472,6 +1531,16 @@ async function saveContract(c){
          server's version. A background flush (not the open contract) never pops a
          modal over unrelated work — it keeps the edit in memory and warns once. */
       let fresh=null; try{ fresh=await api('contracts/'+c.id); }catch(_){}
+      /* D4: WHAT MOVED ON THE SERVER WAS THE SEAL. The last signature landed
+         and HaTi sealed the record; nothing typed here can be saved over a
+         sealed record, so there is nothing to choose between — the page takes
+         the sealed record and says so. */
+      if(fresh && fresh.status==='Signed' && c.status!=='Signed'){
+        Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false;
+        try{ if(window.contractOnScreen && contractOnScreen(c) && typeof renderWorkspace==='function') renderWorkspace(); }catch(_){}
+        toast(i18t('co_sealed_meanwhile',{ ref:(window.contractRef?contractRef(c):c.id) }),'ok');
+        return;
+      }
       if(state.activeId===c.id){
         const keepMine=await confirmDialog({
           get title(){ return i18t('co_just_changed'); },
@@ -1504,6 +1573,30 @@ async function saveContract(c){
       toast(i18t('co_save_refused',{why:e.message}),'err');
     } else toast(i18t('co_save_failed')+e.message,'err');
   }
+}
+/* ---- A DECISION WAITS FOR THE SERVER'S YES (B3, 8 Oct 2026) ----
+   saveDecision saves the record now and answers what the server said: ok, a
+   version conflict (somebody saved in between — the caller re-reads and
+   re-applies its decision to the newer record), or refused (the reason was
+   already said and the page put back). decisionFreshen reads the record the
+   decision is about as the server holds it, before anybody decides. */
+const _decisionSave=new Set(), _decisionOutcome=new Map();
+async function saveDecision(c){
+  if(!API_MODE()){ persist(c); return { ok:true }; }
+  _decisionSave.add(c.id); _decisionOutcome.delete(c.id);
+  try{ persist(c); await flushSaves(); }
+  finally{ _decisionSave.delete(c.id); }
+  const out=_decisionOutcome.get(c.id)||{ ok:!dirty.has(c.id) };
+  _decisionOutcome.delete(c.id);
+  return out;
+}
+async function decisionFreshen(c){
+  if(!API_MODE() || !c || contractSavePending(c)) return false;
+  let fresh=null; try{ fresh=await api('contracts/'+c.id,'GET',undefined,{ quiet:true }); }catch(_){ return false; }
+  if(!fresh || Number(fresh._v)===Number(c._v)) return false;
+  Object.keys(c).forEach(k=>{ if(!(k in fresh) && k.charAt(0)!=='_') delete c[k]; });
+  Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false;
+  return true;
 }
 async function saveSettings(){
   if(API_MODE()){
@@ -4041,7 +4134,9 @@ function contractReadiness(c){
   if(!c) return p;
   const add=(severity,key,label,extra)=>p.push({ severity, key, label, ...(extra||{}) });
   if(!String(c.counterparty||'').trim()) add('block','counterparty','No counterparty is set.');
-  if(isMonetary(c) && !(Number(c.value)>0))
+  /* An amendment, addendum or other child of a signed agreement carries the
+     parent's money unless it changes it (B12): a blank value holds nothing. */
+  if(isMonetary(c) && !(Number(c.value)>0) && !c.parentId)
     add('block','value','No contract value is set, and this contract type carries one.');
   if(!c.expiry && !(c.fields&&c.fields.expiry) && (c.metadata||{}).renewalType!=='evergreen')
     add('warn','term','No expiry or term end is recorded, so no renewal reminder can be scheduled.');
@@ -6223,7 +6318,7 @@ function signLinkRefusal(c, opts={}){
    `keep` asks only the keeping rows (hold, desk): more time on a link, or a
    reminder, sends nothing new. Returns null, or { kind, why }. */
 const LINK_ASKS=Object.freeze({
-  sign:      ['hold','desk','reviewer','reviewgate','signapproval','approval','signcheck','address'],
+  sign:      ['hold','desk','reviewer','reviewgate','asks','signapproval','approval','signcheck','address'],
   negotiate: ['hold','desk','reviewer','reviewgate'],
   view:      ['hold','desk','reviewer','reviewgate'],
   history:   ['hold','desk','reviewer','reviewgate'],
@@ -6261,6 +6356,19 @@ function linkRefusal(c, opts={}){
     const gate=ask(()=>window.reviewGateMessage&&reviewGateMessage(c));
     if(gate) return { kind:'review', why:gate };
   }
+  /* A POINT STILL OPEN WITH THEM (B2, 8 Oct 2026). Their signing page cannot
+     answer an ask — it has no Accept or Reject — and their negotiation link
+     closes the moment a signing link exists, so a link sent over one open
+     ask left them two doors, both shut (the 9 Oct review, finding 2). The
+     same asks their signature is refused over (srvSignOpenAsks): ours,
+     pending, the ones that travel. Named by clause, with the way forward. */
+  if(asks.has('asks')){
+    const open=linkOpenAsks(c);
+    if(open.length){
+      const what=(window.negoBlockerClauses?negoBlockerClauses(open):'')||open.slice(0,3).map(x=>x.clauseLabel||x.clauseId||'').filter(Boolean).join(', ');
+      return { kind:'asks', why:i18tn('sl_open_asks', open.length, { n:open.length, what }) };
+    }
+  }
   if(asks.has('signapproval')){
     const sa=ask(()=>window.signApprovalHoldsLinks&&signApprovalHoldsLinks(c));
     if(sa) return { kind:'signapproval', why:sa };
@@ -6296,6 +6404,16 @@ function linkRefusal(c, opts={}){
   return null;
 }
 const WORDING_PURPOSES=['sign','negotiate','view','history'];
+/* Our asks still waiting on the other side's answer — read RAW (reading must
+   not write), leaving out what does not travel: a held change and a
+   colleague's unadopted suggestion. The server's twin is srvLinkOpenAsks. */
+function linkOpenAsks(c){
+  let keep=new Set();
+  try{ if(window.deskSuggestedIds) keep=new Set([...deskSuggestedIds(c)].map(String)); }catch(_){}
+  try{ if(window.reviewHeldIds) for(const id of reviewHeldIds(c)) keep.add(String(id)); }catch(_){}
+  return (Array.isArray(c&&c.changes)?c.changes:[]).filter(x=>x && x.status==='pending'
+    && x.authorSide!=='counterparty' && !x.withdrawn && !keep.has(String(x.id)));
+}
 async function issueSigningRouteLinks(c){
   if(!API_MODE() || !window.signerPlan) return null;
   /* THE ONE CHECK FIRST (4 Oct 2026). `heldForApproval` is kept for the
@@ -6338,6 +6456,7 @@ async function issueSigningRouteLinks(c){
     logAudit(c,'Shared',`Signing links issued from the route — ${links.map(bit).join(', ')}. Each link is bound to its signer and released in order.`);
     persist(c);
   }
+  try{ await sharesRefresh(c); }catch(_){}
   return { links };
 }
 
@@ -7767,6 +7886,15 @@ function ensureSharesCached(c){
    all. Read by signerNoticeState in js/approvals.js. */
 const _noticeCache=new Map();
 const cachedSignerNotices = c => _noticeCache.get(c&&c.id)||[];
+/* THE LINKS AS THE SERVER NOW HOLDS THEM (B8, 8 Oct 2026): read into the one
+   cache the signing order reads (signerLinkState), whether or not the shares
+   panel is on screen — so a row never says "not sent yet" about a link this
+   page has just issued. */
+async function sharesRefresh(c){
+  if(!c || !c.id || !API_MODE()) return;
+  try{ const r=await api('contracts/'+c.id+'/shares'); _shareCache.set(c.id, r.shares||[]); _noticeCache.set(c.id, r.signerNotices||[]); reachTake(c, r); }
+  catch(_){ /* the next paint asks again */ }
+}
 async function renderSharesSection(c){
   const host=document.getElementById('shares-section'); if(!host) return;
   if(!API_MODE()){ host.innerHTML=''; return; }
@@ -8157,7 +8285,10 @@ async function applyResponse(c, r, opts={}){
     /* THE TRAIL TELLS THE WHOLE STORY (7 Oct 2026, O-30): the company they
        signed for and whether a code checked it, beside the name and title. */
     const forCo=(window.partyOfSigner&&boundRow)?((partyOfSigner(c,boundRow)||{}).name||c.counterparty):c.counterparty;
-    logAudit(c,'Countersigned',`${who}${forCo?` for ${forCo}`:''} signed via share link${r.verify?' — checked by email code':''} (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${boundRow?` — step ${boundRow.order} of the signing route, on their own bound link`:''}${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}${routeNote}`);
+    /* "Countersigned" only where somebody on our side signed first (B17). */
+    const oursFirst=(c.signatures||[]).some(s=>s&&s.party!=='counterparty'&&s.party!=='external')
+      || (window.signerPlan?signerPlan(c):[]).some(s=>s&&s.party!=='counterparty'&&s.signed);
+    logAudit(c,oursFirst?'Countersigned':'Signature',`${who}${forCo?` for ${forCo}`:''} signed via share link${r.verify?' — checked by email code':''} (${r.method||'share-link'}${sig.form?', '+sig.form+' signature':''})${boundRow?` — step ${boundRow.order} of the signing route, on their own bound link`:''}${signerProvenance(r.ip,r.ua)}${unverified?' — NOT independently verified: this workspace cannot send verification codes':''}${routeNote}`);
     /* NEWS, SAID WHERE THE READER LOOKS (4 Oct 2026): a bare toast prints
        nothing, so every arrival that moves whose move it is names a kind. */
     toast(i18t('co_arr_signed',{ who:r.name }),'ok');
@@ -8172,6 +8303,15 @@ async function applyResponse(c, r, opts={}){
        a plan exists, only its completion seals. */
     const bothDone = (!window.signerPlan || !signerPlan(c).length)
       && window.bothPartiesSigned && bothPartiesSigned(c);
+    if((routeDone || bothDone) && c.status!=='Signed' && API_MODE() && window.sealPrepStamp){
+      /* D4: THE SERVER SEALS, as HaTi. This page only hands it the frozen copy
+         it draws, on the save that carries the last signature. */
+      c.lastAction=todayStr();
+      try{ await sealPrepStamp(c); }catch(_){}
+      persist(c);
+      try{ await flushSaves(); }catch(_){}
+      return true;
+    }
     if((routeDone || bothDone) && c.status!=='Signed' && window.finalizeExecution){
       c.lastAction=todayStr(); persist(c);
       await finalizeExecution(c, { silent:!!opts.background });
@@ -8733,6 +8873,36 @@ const _pollStuck   = new Map();   // answer key -> {key,id,name,who} for the pan
    without reaching into a Map that belongs to the poller, and a screen that
    derived its own answer from _pollTrouble would count the first miss too. */
 function pollStuckAnswers(){ return [..._pollStuck.values()]; }
+/* ---- A SIGNATURE THE SERVER FILED (D4, 8 Oct 2026) ----
+   The record is read back once per answer per sitting; a record that did not
+   move since this page read it is simply current, and nothing is said. Where
+   every signature is in but the server could not seal (its frozen copy was
+   drawn from wording that has since moved), this page draws it again and
+   saves it, and the server seals on that save — as HaTi, never as the reader. */
+const _filedSeen=new Set();
+async function responseFiledOnServer(c, item){
+  const r=(item&&item.response)||{};
+  const key=String(item.responseId||item.token||'')+'|'+String(r.at||'');
+  if(!c || _filedSeen.has(key)) return false;
+  if(typeof contractSavePending==='function' && contractSavePending(c)) return false;
+  let fresh=null;
+  try{ fresh=await api('contracts/'+c.id,'GET',undefined,{ quiet:true }); }catch(_){ return false; }
+  if(!fresh || _filedSeen.has(key)) return false;
+  _filedSeen.add(key);
+  if(Number(fresh._v)<=Number(c._v||0) && (fresh.status===c.status)) return false;
+  Object.assign(c,fresh); c._v=fresh._v; c._loaded=true; c._light=false;
+  if(c.status!=='Signed' && canEdit() && window.allSigned && allSigned(c) && window.sealPrepStamp
+     && !(c.execution&&c.execution.at)){
+    try{ await sealPrepStamp(c); persist(c); await flushSaves(); }catch(_){}
+  }
+  toast(i18t(c.status==='Signed'?'co_arr_signed_sealed':'co_arr_signed',{ who:r.name||c.counterparty||'' }),'ok');
+  try{
+    if(window.contractOnScreen && contractOnScreen(c) && typeof renderWorkspace==='function') renderWorkspace();
+    else if(state.view==='redline' && window.redlineHeldId && String(redlineHeldId())===String(c.id) && window.renderRedline) renderRedline();
+    if(window.updateAlertBadge) updateAlertBadge();
+  }catch(_){}
+  return true;
+}
 async function pollPendingResponses(){
   if(!API_MODE() || !canEdit()) return;
   let list;
@@ -8742,6 +8912,10 @@ async function pollPendingResponses(){
   for(const item of list){
     const key=String(item.responseId||item.token||'');
     const c=getContract(item.response&&item.response.id);
+    /* D4: a signature the SERVER filed (and, if it was the last, sealed). This
+       page catches up with the record and says so; it files nothing, and it
+       acknowledges nothing, so every other tab catches up too. */
+    if(item.serverFiled){ if(c) { try{ await responseFiledOnServer(c, item); }catch(_){} } continue; }
     let ok=false;
     if(c){ try{ ok=await applyResponse(c, item.response, {background:true}); }
            catch(e){ ok=false; } }
@@ -8911,10 +9085,12 @@ function schedulePolling(){
    half that was missing; the rows were not. */
 const END_STATES = [
   { k:'decline', get label(){ return i18t('end_decline'); }, get says(){ return i18t('end_decline_says'); } },
+  /* …and the way back from it (B14): Hold has Release, Archive has Restore. */
+  { k:'reopen',  get label(){ return i18t('end_reopen'); },  get says(){ return i18t('end_reopen_says'); } },
   { k:'archive', get label(){ return i18t('end_archive'); }, get says(){ return i18t('end_archive_says'); } },
   { k:'hold',    get label(){ return i18t('end_hold'); },    get says(){ return i18t('end_hold_says'); } },
 ];
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen});

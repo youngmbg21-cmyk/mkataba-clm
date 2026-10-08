@@ -263,7 +263,9 @@ function agLinkItems(cs){
     let move = null;
     try { move = (typeof negoIsLive === 'function' && negoIsLive(c) && typeof negWhoseMove === 'function') ? negWhoseMove(c) : null; }
     catch (_){ move = null; }
-    if (move && move.why === 'nocopy'){
+    /* …but not once somebody has signed: the signing link closed the
+       negotiation copy on purpose (`signing`, srvReach — B17). */
+    if (move && move.why === 'nocopy' && !R.signing){
       const L = R.last || null;
       const turnAt = (c.negotiation && c.negotiation.turnAt) || '';
       const since = [L && L.at, turnAt].filter(Boolean).map(String).sort().pop() || '';
@@ -371,7 +373,7 @@ function agRenewDone(cs){
     let d = null;
     try { d = renewalDecisionOf(c); } catch (_){ d = null; }
     if (!d || !_agRecent(d.at)) continue;
-    out.push({ agent: 'renew', kind: 'decided', key: 'decided:' + c.id, cid: c.id, c, at: d.at, by: d.by || '',
+    out.push({ agent: 'renew', kind: 'decided', key: 'decided:' + c.id, cid: c.id, c, at: d.at, by: (d.by && typeof d.by === 'object') ? (d.by.name || '') : (d.by || ''),
       answer: d.answer, served: !!d.served });
   }
   return out;
@@ -1858,9 +1860,10 @@ function agChaseMail(c, o, firm){
   const vars = { desc: (o && o.desc) || '', name: c.name || ref, id: ref, due: (o && o.due) || '' };
   /* THE FIRMER ONE is the route's own `firm` keys, with the day the first went. */
   if (firm) vars.first = String((o && o.chasedAt) || '').slice(0, 10);
+  const soon = (o && o.due && String(o.due).slice(0, 10) > new Date().toISOString().slice(0, 10)) ? '_soon' : '';   // the route's own rule (B11)
   const line = firm
-    ? T((o && o.due) ? 'mail_ob_chase_firm_line' : 'mail_ob_chase_firm_line_nodate', vars)
-    : T((o && o.due) ? 'mail_ob_chase_line' : 'mail_ob_chase_line_nodate', vars);
+    ? T((o && o.due) ? 'mail_ob_chase_firm_line' + soon : 'mail_ob_chase_firm_line_nodate', vars)
+    : T((o && o.due) ? 'mail_ob_chase_line' + soon : 'mail_ob_chase_line_nodate', vars);
   return { to, subject: T(firm ? 'mail_ob_chase_firm_subject' : 'mail_ob_chase_subject', vars), body: `${T('mail_hello')},\n\n${line}\n\n${T('mail_automated_notice')}` };
 }
 function agChaseMailHtml(c, o, firm){

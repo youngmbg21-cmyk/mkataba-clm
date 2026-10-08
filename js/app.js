@@ -1847,6 +1847,11 @@ const ALERT_KINDS = [
      reader marks it done. The press opens the contract; Done is on its
      checklist, so a bell press never answers for them. */
   { k:'look',        tone:'amber', ic:'&#128064;' },
+  /* ---- A REFUSED APPROVAL RULE STEP COMES BACK TO THE OWNER (B5, 8 Oct
+     2026) ---- The refusal was said on the Signing tab alone. Just above the
+     approvals it answers (approval, ap-cleared and request stay one run — f461); amber: work owed — revise and send it back. The
+     server mails the same moment (ruleStepRefusedTell). */
+  { k:'ap-refused',  tone:'amber', ic:'&#8617;'  },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
   /* ---- EVERY APPROVAL RULE STEP IS GIVEN (4 Oct 2026, the process review) ----
      To the contract's OWNER, beside the approvals it ends: the last rule step
@@ -2155,6 +2160,16 @@ function buildAlerts(){
       if(bad) push('approval',x.c,i18t('al_sa_refused',{who:bad.by||''}),
         ()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} });
     });
+    /* ---- AND A REFUSED RULE STEP IS THE OWNER'S TO REVISE (B5) ---- */
+    if(meNow) cs.forEach(c=>{
+      if(c.status==='Signed'||c.status==='Declined') return;
+      if(!(typeof contractOwnedBy==='function'&&contractOwnedBy(c, meNow))) return;
+      const bad=(Array.isArray(c.approvalChain)?c.approvalChain:[]).find(s=>s&&s.status==='rejected');
+      if(!bad) return;
+      push('ap-refused',c,i18t('al_ap_refused',{ step:bad.name||'', who:bad.by||'' }),
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        bad.comment?{ sub:'“'+String(bad.comment).slice(0,140)+'”' }:undefined);
+    });
     /* ---- AND WHEN THE LAST RULE STEP IS GIVEN, THE OWNER IS TOLD ----
        Read off approvalRulesCleared (js/approvals.js); only rule chains (a named
        person's yes already tells whoever asked), only before anyone signs. */
@@ -2270,7 +2285,14 @@ function buildAlerts(){
          the record is a register row, so the two hash-based rows are never
          guessed off stripped wording. */
       let n=0; try{ n=window.signReadinessFor?signReadinessFor(c).n:(window.signReadiness?signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n:0); }catch(_){ n=0; }
-      push('signature',c,i18t('al_signature'),
+      /* NOT "YOUR TURN" WHILE SOMETHING HOLDS IT (B5, 8 Oct 2026): the one
+         list the Sign button reads (signBlockers) is asked first. A refused
+         approval is said on its own row above, so it does not ring twice. */
+      let held=[]; try{ held=window.signBlockers?(signBlockers(c)||[]):[]; }catch(_){ held=[]; }
+      if(held.some(b=>b&&b.key==='approval') && (c.approvalChain||[]).some(s=>s&&s.status==='rejected')
+        && typeof contractOwnedBy==='function' && contractOwnedBy(c, me)) return;
+      if(held.length && !n) n=held.length;
+      push('signature',c,held.length?i18tn('ins_need_sign',n,{n}):i18t('al_signature'),
         ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
         n?{ sub:i18tn('al_sign_sub',n,{n}) }:undefined);
     });

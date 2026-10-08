@@ -194,10 +194,13 @@ function saStamp(c){
   const d = _saDates(c);
   /* `body` is the older field a contract's wording lived in (the server's
      SIGNED_WORDING_FROZEN names both); read where redlineText is empty. */
-  const wording = saHash(saText(c.redlineText || c.body) + '\u0000' + _saFieldsText(c.fields)
+  /* v2 (B6, 8 Oct 2026): the WORDS here, and the terms filled in at the
+     moment of asking beside them — a blank filled in afterwards is not a
+     change (the rule the outside route keeps), a filled term that moved is. */
+  const wording = saHash(saText(c.redlineText || c.body)
     + '\u0000' + String((c.upload && c.upload.fileHash) || '') + '\u0000' + String(c.template || ''));
   return {
-    v: 1, wording,
+    v: 2, wording, fields: _saFilled(c.fields),
     value: String(c.valueType === 'none' ? 'none' : (Number(c.value || 0) || 0)),
     currency: _saCurrency(c), start: d.start, end: d.end,
     parties: saHash(_saPartyNames(c).map(_saFold).join('|')),
@@ -220,11 +223,26 @@ function saShows(c, round){
    currency · dates · parties · signers. Empty means nothing did. A request
    with no stamp cannot say, and reports nothing rather than everything. */
 const SA_DRIFT_KEYS = ['wording', 'value', 'currency', 'dates', 'parties', 'signers'];
+function _saFilled(f){
+  const out = {};
+  if (f && typeof f === 'object') Object.keys(f).sort().forEach(k => { const v = saText(f[k] == null ? '' : String(f[k])); if (v.trim() !== '') out[k] = v; });
+  return out;
+}
+/* The v1 wording hash, for a stamp made before v2 — compared exactly as it
+   always was, so nothing asked before lapses on deploy. */
+function _saWordingV1(c){
+  return saHash(saText(c.redlineText || c.body) + '\u0000' + _saFieldsText(c.fields)
+    + '\u0000' + String((c.upload && c.upload.fileHash) || '') + '\u0000' + String(c.template || ''));
+}
 function saDrift(stamp, c){
   if (!stamp || !c) return [];
   const now = saStamp(c);
   const out = [];
-  if (String(stamp.wording) !== now.wording) out.push('wording');
+  if (Number(stamp.v || 0) >= 2){
+    if (String(stamp.wording) !== now.wording
+      || Object.keys(stamp.fields || {}).some(k => String((now.fields || {})[k] == null ? '' : now.fields[k]) !== String(stamp.fields[k])))
+      out.push('wording');
+  } else if (String(stamp.wording) !== _saWordingV1(c)) out.push('wording');
   if (String(stamp.value) !== now.value) out.push('value');
   if (String(stamp.currency || '') !== now.currency) out.push('currency');
   if (String(stamp.start || '') !== now.start || String(stamp.end || '') !== now.end) out.push('dates');

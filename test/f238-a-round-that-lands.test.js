@@ -207,7 +207,8 @@ describe('f238 (2) — a failure that repeats says so', () => {
 describe('f238 (3) — their page learns whether the round landed', () => {
   test('the server reports `applied` off the answer\'s own row', () => {
     assert.match(SERVER, /SELECT response, at, applied FROM share_responses/);
-    assert.match(SERVER, /applied: lastR\.applied == null \? null : lastR\.applied === 1/);
+    /* 2 = filed by the server itself (D4, 8 Oct 2026) — applied all the same */
+    assert.match(SERVER, /applied: lastR\.applied == null \? null : \(lastR\.applied === 1 \|\| lastR\.applied === 2\)/);
   });
 
   test('and a ONE-SHOT link gets the same fact — it had none at all before', () => {

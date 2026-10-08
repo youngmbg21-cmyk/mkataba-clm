@@ -217,7 +217,23 @@ function effectiveExpiry(c){
   if(c.parentId) return ownExpiry(c);          // a child speaks only for itself
   const signed=_termKids(c).filter(amendmentExecuted);
   const win=_latestTerm(signed);
-  return win ? ownExpiry(win) : ownExpiry(c);
+  const base = win ? ownExpiry(win) : ownExpiry(c);
+  /* …and an automatic renewal the server recorded with its new end date (B15) */
+  const ar=(Array.isArray(c.autoRenewed)?c.autoRenewed:[]).filter(x=>x&&x.to).map(x=>String(x.to).slice(0,10)).sort().pop();
+  return (ar && (!base || ar > base)) ? ar : base;
+}
+/* WHICH SIGNED AMENDMENT SET THE LIVE END DATE (B13, 8 Oct 2026) — the same
+   reading as effectiveExpiry, with its document, so the Overview's own expiry
+   cell can say "as amended by <ref>" instead of printing the stored date
+   beside a family card that says otherwise. Null where the agreement's own
+   date stands. */
+function effectiveExpiryFrom(c){
+  if(!c || c.parentId) return null;
+  let win = null;
+  try{ win = _latestTerm(_termKids(c).filter(amendmentExecuted)); }catch(_){ win = null; }
+  if(!win) return null;
+  const date = ownExpiry(win);
+  return (date && date !== ownExpiry(c)) ? { date, from:win } : null;
 }
 /* What a DRAFT amendment is asking the term to become, and which document is
    asking. Null where nothing unsigned proposes a different date — so a screen
@@ -245,12 +261,23 @@ const EFFECTIVE_TERMS = {
   payment: x => (String((x && x.metadata && x.metadata.paymentTerms) || '').trim() || null),
   notice:  x => { const n = Number(x && x.metadata && x.metadata.noticePeriodDays); return isFinite(n) && n > 0 ? n : null; },
 };
+/* ---- A VALUE THE AMENDMENT DID NOT CHANGE IS NOT ITS VALUE (B12, 8 Oct
+   2026) ----
+   A term-only amendment was held for "no value" and the figure typed to get
+   past it became the deal's value. A child's value is the deal's only where
+   the amendment SAYS it moves the money: Copilot read a value off what the
+   person asked for (amendFacts), or a person set it on the amendment itself
+   (valueSetHere, stamped by the Overview's value box). */
+function amendSetsValue(k){
+  return Number(k && k.value) > 0 && !!(k.valueSetHere || (k.amendFacts && Number(k.amendFacts.value) > 0));
+}
 function effectiveTerm(c, key){
   const read = EFFECTIVE_TERMS[key];
   if(!c || !read) return { v:null, from:null };
   if(c.parentId) return { v:read(c), from:null };
   let kids = [];
-  try{ kids = familyChildren(c.id).filter(k => k.status !== 'Declined' && amendmentExecuted(k) && read(k) != null); }catch(_){ kids = []; }
+  try{ kids = familyChildren(c.id).filter(k => k.status !== 'Declined' && amendmentExecuted(k) && read(k) != null
+    && (key !== 'value' || amendSetsValue(k))); }catch(_){ kids = []; }
   if(!kids.length) return { v:read(c), from:null };
   const win = kids.slice().sort((a, b) => String(amendmentDate(a)).localeCompare(String(amendmentDate(b))))[kids.length - 1];
   const v = read(win);
@@ -1290,7 +1317,7 @@ async function unlinkContract(c, onDone){
   if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
 }
 
-Object.assign(window,{familyOrder,familyCheck,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
+Object.assign(window,{amendSetsValue,effectiveExpiryFrom,familyOrder,familyCheck,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
   openLinkModal,unlinkContract,renderFamilySection,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,

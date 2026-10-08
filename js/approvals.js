@@ -88,11 +88,29 @@ function userCanApprove(a, u){
    amount, and the words. `null` for a record that was approved before stamps
    existed, which is treated as "we cannot know" and left alone rather than
    invalidated retroactively. */
+/* ---- A FILLED BLANK IS NOT A CHANGE (B6, 8 Oct 2026) ----
+   The stamp hashed every field, so filling in the blanks the Signing tab
+   itself demands lapsed the approval just given (the 9 Oct review). v2 keeps
+   the WORDS (the stored wording, the file) in `doc` and the terms filled in
+   at the moment of approval in `fields`: a term that was filled and has since
+   moved or been emptied is a change; a blank filled in afterwards is not —
+   the rule the outside route keeps (ohBlankHits). The parties are stamped
+   too. A v1 stamp (no `v`) is compared the way it always was, so no approval
+   given before this lapses on deploy. srvApprovalStamp is the server's twin. */
+function _apHash(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h.toString(16); }
 function approvalStamp(c){
-  const doc=String((c&&c.redlineText)||'')+'\u0000'+JSON.stringify((c&&c.fields)||{})
-    +'\u0000'+String((c&&c.upload&&c.upload.fileHash)||'');
-  let h=0; for(let i=0;i<doc.length;i++) h=(h*31+doc.charCodeAt(i))>>>0;
-  return { value:Number((c&&c.value)||0), doc:h.toString(16) };
+  /* self-contained on purpose: f409, f466 and f488 lift this one function
+     out and run it as the stamp a press records */
+  const hash=s=>{ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return h.toString(16); };
+  const f=(c&&c.fields)||{}, fields={};
+  Object.keys(f).sort().forEach(k=>{ const v=f[k]; if(v!=null && String(v).trim()!=='') fields[k]=String(v); });
+  const words=String((c&&c.redlineText)||'')+'\u0000'+String((c&&c.upload&&c.upload.fileHash)||'');
+  return { v:2, value:Number((c&&c.value)||0), doc:hash(words), fields,
+    parties:hash([c&&c.party, c&&c.counterparty].map(x=>String(x||'').trim().toLowerCase()).join('|')) };
+}
+function _apLegacyDoc(c){
+  return _apHash(String((c&&c.redlineText)||'')+'\u0000'+JSON.stringify((c&&c.fields)||{})
+    +'\u0000'+String((c&&c.upload&&c.upload.fileHash)||''));
 }
 /* What moved since this step was approved, in the words a person would use.
    Empty means nothing did. An unstamped approval reports nothing moved, because
@@ -103,7 +121,12 @@ function approvalDrift(step, c){
   const out=[];
   if(Number(was.value||0)!==now.value)
     out.push(`the value changed from ${fmtMoneyShort(was.value||0)} to ${fmtMoneyShort(now.value)}`);
-  if(String(was.doc||'')!==now.doc) out.push('the wording changed');
+  if(Number(was.v||0)>=2){
+    if(String(was.doc||'')!==now.doc) out.push('the wording changed');
+    const moved=Object.keys(was.fields||{}).filter(k=>String((now.fields||{})[k]==null?'':now.fields[k])!==String(was.fields[k]));
+    if(moved.length) out.push(`a term filled in at approval changed (${moved.slice(0,3).join(', ')})`);
+    if(String(was.parties||'')!==now.parties) out.push('the parties changed');
+  } else if(String(was.doc||'')!==_apLegacyDoc(c)) out.push('the wording changed');
   return out;
 }
 
@@ -236,25 +259,55 @@ function approvalState(c){
    behind somebody else's step would email an approver who then cannot act.
    The phone, the gate card and the Approvals page all press this, so none of
    them needs to know which kind of step it is. */
-function approveContract(c, comment){
+/* ---- THE DECISION LANDS ON THE RECORD THE SERVER HOLDS (B3, 8 Oct 2026) ----
+   An approver working from a tab left open was told "signing unlocked" before
+   the save went, and the save then met a newer record (the owner's
+   resubmission) with the dialog meant for typing conflicts — Keep mine would
+   overwrite the resubmission, Load theirs drop the approval. Now: the record
+   is read fresh first, the decision is written, and the success is said only
+   when the server took it; on a conflict the newer record is read and the
+   SAME decision applied to it, once; where that step is no longer this
+   reader's to decide, that is said plainly. */
+async function approvalDecisionLands(c, ruleId, write){
+  const repaint=()=>{ try{ renderSignButton(c); renderAuditSection(c); }catch(_){} };
+  write(c);
+  let out=(typeof saveDecision==='function') ? await saveDecision(c) : (persist(c), { ok:true });
+  if(out.conflict){
+    try{ if(typeof decisionFreshen==='function') await decisionFreshen(c); }catch(_){}
+    const st=approvalState(c);
+    if(!(st.next && !st.next.sa && st.canApproveNext && st.next.ruleId===ruleId)){
+      repaint(); toast(i18t('ap_step_moved'),'warn'); return false;
+    }
+    write(c);
+    out=await saveDecision(c);
+  }
+  repaint();
+  if(!out.ok){ if(out.conflict) toast(i18t('ap_step_moved'),'warn'); return false; }
+  return true;
+}
+async function approveContract(c, comment){
+  try{ if(typeof decisionFreshen==='function') await decisionFreshen(c); }catch(_){}
   const st=approvalState(c);
   if(!st.required){ return; }
   if(st.next && !st.next.sa && st.canApproveNext){
     const u=currentUser();
-    const stamp=approvalStamp(c);
-    const was=st.next.status;
+    const ruleId=st.next.ruleId;
     /* The personal steps are DRAWN on this chain and never stored on it —
        their decisions live on c.signApprovals. THE ANSWER IS WRITTEN BY THE
        ONE ASK WRITER (js/asks.js, 4 Oct 2026): the step's own question on
        c.asks — a stale yes lapsed first — and the step on this chain, its
        mirror, in the same breath. */
-    c.approvalChain=st.chain.filter(s=>!s.sa).map(s=>({ ...s }));
-    const ask=askRuleFor(c, st.next.ruleId, { approver:st.next.approver, keepStep:true });
-    askAnswer(c, ask.id, { state:'yes', by:u, why:comment||null, stamp });
-    logAudit(c,'Approved',`Step "${st.next.name}" approved by ${u.name} (${ROLE_LABEL[u.role]})`
-      +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
-      +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
-    persist(c); renderSignButton(c); renderAuditSection(c);
+    const write=x=>{
+      const s=approvalState(x), step=s.next;
+      const stamp=approvalStamp(x), was=step.status;
+      x.approvalChain=s.chain.filter(q=>!q.sa).map(q=>({ ...q }));
+      const ask=askRuleFor(x, step.ruleId, { approver:step.approver, keepStep:true });
+      askAnswer(x, ask.id, { state:'yes', by:u, why:comment||null, stamp });
+      logAudit(x,'Approved',`Step "${step.name}" approved by ${u.name} (${ROLE_LABEL[u.role]})`
+        +` — for ${fmtMoneyShort(stamp.value)} and the wording as it stands`
+        +(was==='stale'?' · re-approved after the contract changed':was==='rejected'?' · previously refused':''));
+    };
+    if(!(await approvalDecisionLands(c, ruleId, write))) return false;
     const done=approvalState(c).ok;
     /* NOTHING NOTIFIES THE NEXT APPROVER of a RULE step (no mail, no message —
        only a personal approval is mailed), so the sentence may not say it does
@@ -262,14 +315,15 @@ function approveContract(c, comment){
        Approvals page and bell. */
     /* 'ok', and in the reader's language (27 Sep 2026): bare, it printed nothing. */
     toast(i18t(done?'ap_all_approved':'ap_step_approved_next'),'ok');
-    return;
+    return true;
   }
   const mine=signApprovalDecidable(c);
   if(mine.length) return signApprovalDecide(c, mine[0].req.id, 'approved', comment);
   if(!st.next){ toast(i18t('ap_chain_complete'),'ok'); return; }
   toast(i18t('ap_step_needs',{who:approverLabelOf(st.next.approver)}),'err');
 }
-function rejectApprovalStep(c, comment){
+async function rejectApprovalStep(c, comment){
+  try{ if(typeof decisionFreshen==='function') await decisionFreshen(c); }catch(_){}
   const st=approvalState(c); if(!st.required) return;
   if(st.next && !st.next.sa && st.canApproveNext){
     /* A REFUSAL SAYS WHY (4 Oct 2026, the process review): one set of rules
@@ -278,16 +332,19 @@ function rejectApprovalStep(c, comment){
        srvApprovalDecisionRefusal is the wall; this says it in words first. */
     if(!String(comment||'').trim()){ toast(i18t('ap_refuse_needs_why'),'warn'); return; }
     const u=currentUser();
-    c.approvalChain=st.chain.filter(s=>!s.sa).map(s=>({ ...s }));
-    const ask=askRuleFor(c, st.next.ruleId, { approver:st.next.approver, keepStep:true });
-    askAnswer(c, ask.id, { state:'no', by:u, why:comment||null });
-    if(c.status!=='Signed') c.status='Under Review';
-    logAudit(c,'Approval rejected',`Step "${st.next.name}" rejected by ${u.name}`
-      +(comment?` — “${String(comment).slice(0,500)}”`:'')
-      +' — the contract goes back to its owner to revise and resubmit');
-    persist(c); renderSignButton(c); renderAuditSection(c);
+    const write=x=>{
+      const s=approvalState(x), step=s.next;
+      x.approvalChain=s.chain.filter(q=>!q.sa).map(q=>({ ...q }));
+      const ask=askRuleFor(x, step.ruleId, { approver:step.approver, keepStep:true });
+      askAnswer(x, ask.id, { state:'no', by:u, why:comment||null });
+      if(x.status!=='Signed') x.status='Under Review';
+      logAudit(x,'Approval rejected',`Step "${step.name}" rejected by ${u.name}`
+        +(comment?` — “${String(comment).slice(0,500)}”`:'')
+        +' — the contract goes back to its owner to revise and resubmit');
+    };
+    if(!(await approvalDecisionLands(c, st.next.ruleId, write))) return false;
     toast(i18t('ap_step_rejected'),'ok');
-    return;
+    return true;
   }
   const mine=signApprovalDecidable(c);
   if(mine.length) return signApprovalDecide(c, mine[0].req.id, 'refused', comment);
@@ -346,9 +403,9 @@ async function approvalDecideAsk(c, verdict){
   const d=approvalDecidableNow(c);
   if(!d){ toast(i18t('sa_gone'),'warn'); return false; }
   if(d.kind==='rule'){
-    if(verdict==='approved'){ approveContract(c); return true; }
+    if(verdict==='approved') return !!(await approveContract(c));
     const why=await approvalRefuseWhy(); if(why==null) return false;
-    rejectApprovalStep(c, why); return true;
+    return !!(await rejectApprovalStep(c, why));
   }
   if(verdict!=='approved') return openSignApprovalRefuse(c, d.row.req.id);
   /* An admin deciding in the approver's place says why — signApprovalDecide's
@@ -648,14 +705,28 @@ async function signApprovalDecide(c, reqId, verdict, note){
   if(as==='admin' && !text){ toast(i18t('sa_admin_needs_why',{who:row.req.approverName||i18t('sa_admins')}),'warn'); return false; }
   const live=(c.signApprovals||[]).find(x=>x&&x.id===reqId);
   if(!live){ toast(i18t('sa_gone'),'warn'); return false; }
-  /* The answer, through the one ask writer: the list and the request. */
-  askAnswer(c, reqId, { state:verdict==='approved'?'yes':'no', by:me, role:me.role||'', as, why:text||null });
   const cap=as==='backup'?` as the backup for ${row.req.approverName}`:as==='admin'?` as an admin, in ${row.req.approverName||'the approver'}’s place`:'';
-  if(verdict==='approved') logAudit(c,'Approved',
-    `Signing approved by ${me.name}${cap} — for ${saShowsLine(c,live.shows)}, the wording as it stands`+(text?` — “${text}”`:''));
-  else logAudit(c,'Approval rejected',
-    `Signing approval refused by ${me.name}${cap} — “${text}” — it goes back to ${asker||'whoever asked'} to revise and send again`);
-  persist(c);
+  /* The answer, through the one ask writer: the list and the request — and,
+     like a rule step's, said only once the server took it (B3). */
+  const write=x=>{
+    const lv=(x.signApprovals||[]).find(q=>q&&q.id===reqId)||live;
+    askAnswer(x, reqId, { state:verdict==='approved'?'yes':'no', by:me, role:me.role||'', as, why:text||null });
+    if(verdict==='approved') logAudit(x,'Approved',
+      `Signing approved by ${me.name}${cap} — for ${saShowsLine(x,lv.shows)}, the wording as it stands`+(text?` — “${text}”`:''));
+    else logAudit(x,'Approval rejected',
+      `Signing approval refused by ${me.name}${cap} — “${text}” — it goes back to ${asker||'whoever asked'} to revise and send again`);
+  };
+  write(c);
+  if(typeof saveDecision==='function'){
+    let out=await saveDecision(c);
+    if(out.conflict){
+      try{ if(typeof decisionFreshen==='function') await decisionFreshen(c); }catch(_){}
+      const again=signApprovalStateOf(c).rows.find(r=>r.req&&r.req.id===reqId);
+      if(!again || again.status!=='pending' || !saMayDecide(again.req, me)){ saRepaint(c); toast(i18t('ap_step_moved'),'warn'); return false; }
+      write(c); out=await saveDecision(c);
+    }
+    if(!out.ok){ saRepaint(c); if(out.conflict) toast(i18t('ap_step_moved'),'warn'); return false; }
+  } else persist(c);
   const out=await signApprovalNotify(c,'decided',live);
   toast(verdict==='approved'?i18t('sa_approved_toast',{who:asker}):i18t('sa_refused_toast',{who:asker}),'ok');
   if(out && !out.local && !out.emailSent) toast(i18t(out.outbox?'sa_told_outbox':'sa_told_nomail',{who:asker}),'warn');
@@ -1019,6 +1090,10 @@ function signerLinkState(c, s){
     /* An automatic send that the provider refused: sent_at was honestly NOT
        stamped, and the reason is on the share. Say "failed", not "held" —
        their turn is live and their inbox has nothing. */
+    /* ISSUED, AND WAITING IN THE OUTBOX (B8): email is not set up on this
+       server, so the message is filed there — the link exists and is not a
+       failure, and the row says where it is. */
+    if(links.some(x=>x.sendError && /not configured/i.test(String(x.sendError)))) return 'outbox';
     if(links.some(x=>x.sendError)) return 'failed';
     return 'held';
   }
@@ -2176,6 +2251,7 @@ function signerRouteHtml(c, opts){
             : ls==='opened' ? `${ord(s.order)} · contract opened — awaiting their signature`
             : ls==='sent' ? `${ord(s.order)} · contract sent — not opened yet`
             : ls==='failed' ? `${ord(s.order)} · the automatic email did not go — resend it below`
+            : ls==='outbox' ? `${ord(s.order)} · ${i18t('sp_link_outbox')}`
             : ls==='held' ? `${ord(s.order)} · link ready — it goes out when their turn arrives`
             : gated ? `${ord(s.order)} · link opens once internal signing is complete`
             : ls==='unsent' ? (isCur
@@ -2197,6 +2273,7 @@ function signerRouteHtml(c, opts){
             : ls==='opened' ? tag('bg-gold-100 text-gold-700','OPENED')
             : ls==='sent' ? tag('bg-gold-100 text-gold-700','SENT')
             : ls==='failed' ? tag('bg-rose-50 text-rose-600','SEND FAILED')
+            : ls==='outbox' ? tag('bg-slate-100 text-ink/50','IN OUTBOX')
             : ls==='held' ? tag('bg-slate-100 text-ink/50','LINK READY')
             : (ls==='unsent'&&isCur&&!gated) ? tag('bg-rose-50 text-rose-600','NOT SENT YET')
             : (ls==='unknown'||ls==='internal')&&isCur ? tag('bg-gold-100 text-gold-700','SIGNING NOW') : '';
@@ -2275,7 +2352,8 @@ function wireApprovalPanel(c){
         ? `${first.signer.name} has been emailed their signing link`
         : first
         ? `Signing link ready for ${first.signer.name}${first.emailConfigured===false?' — email is not configured, copy it from the Shares panel':''}`
-        : 'Signing links issued — each is released when its turn arrives');
+        : 'Signing links issued — each is released when its turn arrives',
+        first&&!first.emailSent?'warn':'ok');
     } else if(out&&out.missingEmails){
       toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it via edit route`,'err');
     } else {

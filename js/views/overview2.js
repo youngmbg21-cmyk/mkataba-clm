@@ -205,7 +205,10 @@ function ov2Facts(c, M){
   const law = (typeof contractGoverningLaw === 'function') ? contractGoverningLaw(c) : meta.governingLaw;
   if (law) f.push([i18t('ov2_f_law'), law]);
   if (meta.disputes) f.push([i18t('ov2_f_disputes'), String(meta.disputes)]);
-  if (M.start || M.end) f.push([i18t('ov2_f_term'), (M.start ? ov2Day(M.start) : '…') + ' – ' + (M.end ? ov2Day(M.end) : i18t('ov2_no_end'))]);
+  /* the end is effectiveExpiry's (ov2Model); where an amendment set it, it says which (B13) */
+  let amEnd = null; try { amEnd = (typeof effectiveExpiryFrom === 'function') ? effectiveExpiryFrom(c) : null; } catch (_){ amEnd = null; }
+  if (M.start || M.end) f.push([i18t('ov2_f_term'), (M.start ? ov2Day(M.start) : '…') + ' – ' + (M.end ? ov2Day(M.end) : i18t('ov2_no_end'))
+    + (amEnd && M.end ? ' · ' + i18t('ct_as_amended_by', { ref: (typeof contractRef === 'function') ? contractRef(amEnd.from) : amEnd.from.id }) : '')]);
   if (meta.renewalType && meta.renewalType !== 'unknown'){
     const word = (typeof metaOptLabel === 'function') ? metaOptLabel(meta.renewalType) : meta.renewalType;
     f.push([i18t('ov2_f_renewal'), word + (M.noticeBy && M.auto ? ' · ' + i18t('ov2_f_notice_by', { n: M.notice, d: ov2Day(M.noticeBy) }) : '')]);
