@@ -815,10 +815,13 @@ function portalReceiptHtml(p, rec){
   const check=rec.verified?esc(i18t('po_rc_checked',{email:mail||i18t('po_rc_your_address')})):esc(i18t('po_rc_unchecked'));
   const done=!!portalExecuted();
   /* What happens next, said from the order the page already holds. */
-  let next=i18t('po_rc_next_told',{who:(p&&p.sharedBy)||i18t('po_the_sender')});
+  /* NO EMAIL, NO PROMISE OF ONE (8 Oct 2026): with email off the copy is on
+     this link, so that is what is said. */
+  const mailOn=PORTAL_OPTS.emailConfigured!==false;
+  let next=i18t(mailOn?'po_rc_next_told':'po_rc_next_told_nomail',{who:(p&&p.sharedBy)||i18t('po_the_sender')});
   const order=Array.isArray(PORTAL_OPTS.signingOrder)?PORTAL_OPTS.signingOrder:[];
   const waiting=[]; order.forEach(st=>(st.rows||[]).forEach(r=>{ if(!r.signed&&!r.you) waiting.push(r.name||r.party); }));
-  if(!done&&waiting.length) next=i18t('po_rc_next_waiting',{who:waiting.filter(Boolean).slice(0,2).join(', ')});
+  if(!done&&waiting.length) next=i18t(mailOn?'po_rc_next_waiting':'po_rc_next_waiting_nomail',{who:waiting.filter(Boolean).slice(0,2).join(', ')});
   return `<div class="ps-receipt" role="status" aria-live="polite">
     <div style="display:flex;align-items:center;gap:8px;font-size:var(--t-card);font-weight:var(--w-title);color:var(--st-green-fg);margin-bottom:10px">${icon('check2','w-4 h-4')} ${esc(i18t('po_rc_you_signed'))}</div>
     <dl style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 14px;margin:0 0 12px;font-size:var(--t-label);line-height:1.45">
@@ -2439,7 +2442,7 @@ function portalTurnWait(){
 function portalSignHold(p){
   if(portalExecuted()||portalSignedHere()) return null;
   const wait=portalTurnWait();
-  if(wait) return { kind:'wait', names:wait, why:i18t('po_hold_wait',{who:wait.slice(0,2).join(', ')}) };
+  if(wait) return { kind:'wait', names:wait, why:i18t(PORTAL_OPTS.emailConfigured===false?'po_hold_wait_nomail':'po_hold_wait',{who:wait.slice(0,2).join(', ')}) };
   const asks=portalOpenAsks(p);
   if(asks.length) return { kind:'points', asks, why:i18t('po_hold_points') };
   return null;
@@ -4853,7 +4856,7 @@ function renderSharePortal(p, opts={}){
         ${(opts.share&&opts.share.recipientEmail)
           ? `<div style="margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${i18t('po_work_email')}</span>
               <span style="display:block;font-size:var(--t-body);color:var(--color-text);overflow-wrap:anywhere">${esc(opts.share.recipientEmail)}</span>
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${i18t('po_code_goes_here')}</span>
+              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${i18t(opts.emailConfigured===false?'po_code_goes_here_nomail':'po_code_goes_here')}</span>
               <input type="hidden" id="pt-email" value="${esc(opts.share.recipientEmail)}"/></div>`
           : input('pt-email','Work email','you@company.co.ke')}
         ${''/* ---- "PROPOSE A DIFFERENT VALUE" IS GONE (removed 2026-08-11, on

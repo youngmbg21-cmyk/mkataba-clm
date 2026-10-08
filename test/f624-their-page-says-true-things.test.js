@@ -36,3 +36,29 @@ describe('f624 (F6) — HaTi could not be reached', () => {
     assert.ok(!/esc\(e\.message/.test(slice), 'and none painted into the page');
   });
 });
+
+/* (F8) Three promises of email were printed while email is off. Each now
+   says what is true: keep this link, it comes alive / the copy is here. */
+describe('f624 (F8) — no promise of email when email is off', () => {
+  const rec = { name: 'Grace Njeri', title: 'Director', at: '2026-10-08T09:00:00.000Z', verified: false };
+  const p = { sharedBy: 'Amina Otieno', org: 'Highland', contract: { counterparty: 'Nordbygg AB' } };
+  test('the receipt promises the signed copy by email only where email goes', () => {
+    const w = portal();
+    w.PORTAL_OPTS = { emailConfigured: false, signingOrder: [{ step: 1, rows: [{ name: 'Elin', signed: false }] }] };
+    const off = w.portalReceiptHtml(p, rec);
+    assert.ok(!/by email/.test(off), off);
+    assert.match(off, /Keep this link/);
+    w.PORTAL_OPTS = { emailConfigured: true, signingOrder: [{ step: 1, rows: [{ name: 'Elin', signed: false }] }] };
+    assert.match(w.portalReceiptHtml(p, rec), /by email/);
+    w.PORTAL_OPTS = { emailConfigured: false, signingOrder: [] };
+    assert.ok(!/by email/.test(w.portalReceiptHtml(p, rec)));
+  });
+  test('the hold and the code line choose their sentence by whether email goes', () => {
+    assert.match(PORTAL, /PORTAL_OPTS\.emailConfigured===false\?'po_hold_wait_nomail':'po_hold_wait'/);
+    assert.match(PORTAL, /opts\.emailConfigured===false\?'po_code_goes_here_nomail':'po_code_goes_here'/);
+    const I18N = fs.readFileSync(path.join(__dirname, '..', 'js/i18n.js'), 'utf8');
+    for (const k of ['po_hold_wait_nomail', 'po_code_goes_here_nomail', 'po_rc_next_told_nomail', 'po_rc_next_waiting_nomail'])
+      assert.equal((I18N.match(new RegExp('\\b' + k + ':', 'g')) || []).length, 2, k);
+    assert.ok(!/email/i.test(I18N.match(/po_hold_wait_nomail: '([^']*)'/)[1]));
+  });
+});
