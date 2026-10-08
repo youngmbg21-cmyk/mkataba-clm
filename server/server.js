@@ -3105,7 +3105,27 @@ const code6 = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
    Without it, mail is queued to the outbox table so the flow still works and
    an admin can read what would have been sent (including dev codes) — the
    single place a key turns this from demo into production email. */
-const EMAIL_ON = () => !!process.env.RESEND_API_KEY;
+/* THE KEY AN ADMIN SAVES FROM THE SCREEN (9 Oct 2026). "Email delivery —
+   REQUIRED" had no way forward inside the product: it asked for an
+   environment variable on the server. An admin can now save the mail key in
+   Settings → Email delivery, stored here exactly as the Copilot key is — on
+   the server, never sent back to a browser (only its last four characters).
+   THE SERVER'S OWN ENVIRONMENT STILL WINS where it is set, so a deployment
+   configured the old way behaves exactly as it did. The From address follows
+   the same order. */
+const MAIL_FROM_DEFAULT = 'HaTi <onboarding@resend.dev>';
+const mailKey = () => process.env.RESEND_API_KEY || getSetting('mailKey') || '';
+const mailFrom = () => process.env.EMAIL_FROM || getSetting('mailFrom') || MAIL_FROM_DEFAULT;
+const EMAIL_ON = () => !!mailKey();
+/* What the Email delivery drawer may know: where the key lives and its last
+   four characters, never the key. */
+function mailCfgOf() {
+  const env = !!process.env.RESEND_API_KEY, stored = getSetting('mailKey') || '';
+  const k = mailKey();
+  return { configured: !!k, source: env ? 'env' : stored ? 'settings' : null, envKey: env,
+    hint: k ? '…' + k.slice(-4) : '', from: mailFrom(),
+    fromSource: process.env.EMAIL_FROM ? 'env' : getSetting('mailFrom') ? 'settings' : 'default' };
+}
 /* When Resend refuses a message it says why, in a plain sentence — the address
    is suppressed, the domain is unverified, the key is restricted, the plan's
    daily quota is spent. Keeping only the status code threw that sentence away
@@ -3189,13 +3209,13 @@ async function sendEmail(to, subject, body, devHint, opts = {}) {
         .map(a => ({ filename: String(a.filename).slice(0, 120), content: String(a.content) }))
     : [];
   if (EMAIL_ON()) {
-    const from = process.env.EMAIL_FROM || 'HaTi <onboarding@resend.dev>';
+    const from = mailFrom();
     try {
       // Base URL overridable exactly as ANTHROPIC_BASE_URL is, so the refusal
       // paths can be exercised against a stub instead of live-firing at Resend.
       const r = await fetch((process.env.RESEND_BASE_URL || 'https://api.resend.com') + '/emails', {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        headers: { Authorization: 'Bearer ' + mailKey(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ from, to: [to], subject, text: body,
           ...(opts.html ? { html: String(opts.html) } : {}),
           ...(attachments.length ? { attachments } : {}) }),
@@ -17751,7 +17771,23 @@ app.get('/api/outbox', auth, admin, (req, res) => {
      HaTi" and handing them the platform's front door. What cannot be read
      back cannot be checked. */
   const rows = db.prepare('SELECT id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
-  res.json({ emailConfigured: EMAIL_ON(), items: rows, health: emailHealth() });
+  res.json({ emailConfigured: EMAIL_ON(), items: rows, health: emailHealth(), mail: mailCfgOf() });
+});
+/* SAVE OR REMOVE THE MAIL KEY (and the From address) from the screen — the
+   PUT /api/ai/config pattern: admin only, stored server-side, never returned.
+   A key is one word starting "re_" (a browser-filled password must never be
+   stored as one); a From is an address, optionally with a name before it. */
+const MAIL_FROM_RE = /^(?:[^<>\r\n@]{1,80}<[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>|[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+)$/;
+app.put('/api/mail/config', auth, admin, (req, res) => {
+  const { key, from, clear } = req.body || {};
+  if (clear) { setSetting('mailKey', ''); return res.json({ ok: true, mail: mailCfgOf() }); }
+  if (typeof key === 'string' && key.trim() && !/^re_[A-Za-z0-9_-]{8,}$/.test(key.trim()))
+    return res.status(400).json({ error: 'That does not look like a mail key. A Resend key starts with “re_”.' });
+  if (typeof from === 'string' && from.trim() && !MAIL_FROM_RE.test(from.trim()))
+    return res.status(400).json({ error: 'The From address should look like hello@yourcompany.com or Your Company <hello@yourcompany.com>.' });
+  if (typeof key === 'string' && key.trim()) setSetting('mailKey', key.trim());
+  if (typeof from === 'string') setSetting('mailFrom', from.trim());
+  res.json({ ok: true, mail: mailCfgOf() });
 });
 
 /* IS THE MAIL ACTUALLY GETTING OUT? — a different question from "is a provider

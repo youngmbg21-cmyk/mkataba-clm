@@ -3287,6 +3287,7 @@ const SET_PANELS={
         return { dot:'warn', text:i18tn('set_email_failing', emailFailedCount(), { n:emailFailedCount() }) };
       return { dot:'ok', text:i18t('set_email_configured') }; },
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_email_sub')}</p>
+      ${stMailKeyHtml()}
       <div style="display:flex;flex-wrap:wrap;gap:var(--s-2);margin-bottom:10px">
         <button id="rem-run" style="${ST_BTN2}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_check_renewals')}</button>
         <button id="ob-refresh" style="${ST_BTN2}">${icon('history','w-3.5 h-3.5')} ${i18t('set_refresh_outbox')}</button>
@@ -4129,6 +4130,9 @@ function stWireEngine(){
       fill('ai-model-fast',c.tiers?.fast?.override); fill('ai-model-deep',c.tiers?.deep?.override); fill('ai-model-global',c.globalOverride);
       const lim=c.limits||{}, spend=c.spend||{};
       state.aiCfg=c;   // migration's pre-flight estimate reads rates from here
+      /* The engine row and the go-live ceiling read this reading — repainted
+         where they stand after every save or removal (9 Oct 2026). */
+      stRepaintRow('engine'); stRepaintRow('golive');
       const money=n=>'$'+Number(n||0).toFixed(2);
       const budget=Number(lim.dailySpendLimit||0);
       const spent=Number(spend.cost||0);
@@ -4294,6 +4298,7 @@ function stLoadOutbox(){
          the route's own health reading rather than a second copy of it — and
          it NAMES the provider's reason, which is the thing an admin can act on
          ("the domain is not verified" tells them exactly what to go and do). */
+      stPaintMailCfg(r.mail);
       const hp=r.health||{}, failing=!!(r.emailConfigured&&hp.failing);
       host.innerHTML=`<div class="mb-2 text-[11px] ${r.emailConfigured&&!failing?'text-brand-600':'text-gold-600'}">${
           !r.emailConfigured ? i18t('set_email_not_configured')
@@ -4331,8 +4336,75 @@ function stLoadOutbox(){
    So each one now: goes busy while it works, and answers with 'ok' when it is
    done. The refusal path is unchanged and still lands in the drawer's foot,
    which is where this page puts a refusal. */
+/* ---- THE MAIL KEY, SAVED FROM THE SCREEN (9 Oct 2026) ----
+   "Email delivery — REQUIRED" offered no way forward inside the product. The
+   box works the way the Copilot key's does: the key goes to the server
+   (PUT /api/mail/config), is never read back — only its last four characters
+   — and a key set in the server's own environment cannot be removed from
+   here (stKeyRemovable says so on the button). */
+function stMailKeyHtml(){
+  return `<div id="mail-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:var(--s-2);align-items:flex-end">
+      <label style="min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_mail_key')}</span>
+        <input id="mail-key" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" spellcheck="false" placeholder="re_…" style="${window.RV_FLD||ST_INPUT}"/></label>
+      <label style="min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_mail_from')}</span>
+        <input id="mail-from" type="text" autocomplete="off" spellcheck="false" placeholder="${esc(i18t('set_mail_from_ph'))}" style="${window.RV_FLD||ST_INPUT}"/></label>
+      <button id="mail-key-save" style="${ST_BTN}">${i18t('set_mail_save')}</button>
+    </div>
+    <p class="st-note" style="margin:6px 0 0">${esc(i18t('set_mail_get_key'))}</p>
+    <button id="mail-key-clear" type="button" disabled aria-disabled="true" class="ui-link ui-link-danger" style="margin:6px 0 12px;cursor:default;opacity:.5">${i18t('set_remove_key')}</button>`;
+}
+let _stMailCfg=null;
+function stPaintMailCfg(m){
+  if(!m) return;
+  _stMailCfg=m;
+  const el=document.getElementById('mail-cfg-status');
+  if(el) el.innerHTML=m.configured
+    ? `<span class="text-brand-600">${i18t('set_configured')}</span> · ${i18t('set_key')} ${esc(m.hint||'')}${m.source==='env'?i18t('set_key_from_env'):''}`
+    : `<span class="text-gold-600">${i18t('set_not_configured')}</span>`;
+  const f=document.getElementById('mail-from');
+  if(f && document.activeElement!==f) f.value=m.fromSource==='default'?'':(m.from||'');
+  if(f) f.disabled=m.fromSource==='env';
+  const b=document.getElementById('mail-key-clear'); if(!b) return;
+  const r=stKeyRemovable(m.source);
+  b.disabled=!r.can; b.style.opacity=r.can?'':'.5'; b.style.cursor=r.can?'pointer':'default';
+  b.title=r.why; b.setAttribute('aria-disabled', r.can?'false':'true');
+}
+/* After a save or a removal the whole page answers at once: the row, the
+   go-live checklist and every "email is not set up" reading take the server's
+   word (state.emailConfigured is what emailOff() reads). */
+function stMailCfgSaved(m){
+  if(m) state.emailConfigured=!!m.configured;
+  stPaintMailCfg(m);
+  stRepaintRow('mail'); stRepaintRow('golive');
+  stLoadOutbox();
+}
+function stWireMailKey(){
+  document.getElementById('mail-key-save')?.addEventListener('click',async()=>{
+    const key=(document.getElementById('mail-key')?.value||'').trim();
+    const fromEl=document.getElementById('mail-from');
+    const from=fromEl&&!fromEl.disabled?fromEl.value.trim():undefined;
+    const fromWas=_stMailCfg&&_stMailCfg.fromSource!=='default'?(_stMailCfg.from||''):'';
+    const fromMoved=from!==undefined && from!==fromWas;
+    if(!key && !fromMoved){ stDrawerRefuse(i18t('set_enter_key')); return; }
+    if(key && !/^re_[A-Za-z0-9_-]{8,}$/.test(key)){ stDrawerRefuse(i18t('set_mail_not_a_key')); return; }
+    const body={}; if(key) body.key=key; if(fromMoved) body.from=from;
+    try{ const r=await api('mail/config','PUT',body);
+      const k=document.getElementById('mail-key'); if(k) k.value='';
+      stDrawerClearRefusal(); toast(i18t(key?'set_mail_saved':'set_mail_from_saved'),'ok'); stMailCfgSaved(r&&r.mail); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+  document.getElementById('mail-key-clear')?.addEventListener('click',async()=>{
+    if(!await confirmDialog({title:i18t('set_mail_remove_q'),
+        message:(_stMailCfg&&_stMailCfg.envKey)?i18t('set_mail_remove_to_env'):i18t('set_mail_remove_msg'),
+        confirmLabel:i18t('st_key_remove_go'), danger:true})) return;
+    try{ const r=await api('mail/config','PUT',{ clear:true }); toast(i18t('set_mail_removed'),'ok'); stMailCfgSaved(r&&r.mail); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+}
 function stWireOutbox(){
   stLoadOutbox();
+  stWireMailKey();
   const busy=(btn,word,fn)=>async()=>{
     const held=btn.innerHTML;
     btn.disabled=true; btn.innerHTML=esc(i18t(word));
@@ -4452,11 +4524,26 @@ function renderTeam(){
      that list panels; stWireList is a no-op on the other two and binds once
      per element, never once per render. */
   stWireList();
+  stLoadAiCfgOnce();
   if(tab==='you') stAccountWire();
   /* A door may have asked for one panel. Consumed on arrival, exactly once, so
      a later repaint does not re-open something the reader closed. */
   if(_stWantPanel){ const want=_stWantPanel; _stWantPanel=null; stDrawerOpen(want); }
   setActiveNav('team');
+}
+/* THE ENGINE ROW AND THE GO-LIVE CEILING READ state.aiCfg, which only the
+   engine drawer used to fill — so both read "not set" until that drawer had
+   been opened once (9 Oct 2026). Read once when the page opens, in a
+   workspace, for an admin; the rows are repainted where they stand. */
+let _stAiCfgAsking=false;
+async function stLoadAiCfgOnce(){
+  if(state.aiCfg || _stAiCfgAsking || !(typeof API_MODE==='function' && API_MODE())) return;
+  _stAiCfgAsking=true;
+  try{ const c=await api('ai/config');
+    if(c && typeof c==='object'){ state.aiCfg=c; state.aiConfigured=!!c.configured;
+      stRepaintRow('engine'); stRepaintRow('golive'); } }
+  catch(_){ /* the drawer's own read says why when it is opened */ }
+  finally{ _stAiCfgAsking=false; }
 }
 /* A non-admin's whole settings page: their own account, drawn in the page
    rather than in the drawer, because arriving at a view and being handed a
