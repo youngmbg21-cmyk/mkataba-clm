@@ -82,9 +82,11 @@ test('(W-4) a step counter never passes its limit', () => {
 
 test('(W-5) a ring in a narrow chapter stands tall, legend under it', () => {
   const r = region(hb, 'hbRingSvg');
-  /* Re-pointed 7 Oct 2026 (work order O-22): a card under 760 wide stands
-     tall too, and both shapes take the card's measured width where it has one */
-  assert.match(r, /const tall = !!\(D && D\.narrow\) \|\| \(fw > 0 && fw < 760\)/);
+  /* Re-pointed 7 Oct 2026 (work order O-22): both shapes take the card's
+     measured width where it has one. Re-pointed again 8 Oct 2026: a ring ON
+     A BOARD CARD keeps the step's height, so it sits beside its legend there;
+     off a card (a story chapter) a narrow ring still stands tall. */
+  assert.match(r, /const tall = !fitted && \(!!\(D && D\.narrow\) \|\| \(fw > 0 && fw < 760\)\)/);
   assert.match(r, /W = tall \? \(fw \|\| 440\) : \(fw \|\| 1000\)/, 'narrow enough to fit a chapter at the board’s 12px floor');
   assert.match(r, /legY = tall \? 2 \* R \+ 44/, 'the legend starts under the ring');
   const ch = region(hb, 'hbStoryChapterHtml');

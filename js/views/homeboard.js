@@ -1361,11 +1361,27 @@ function hbRingSvg(D, cs, field, money, P){
   /* drawn at the card's real width (O-22): a card under 760 wide stands
      tall; wider, the legend sits beside and takes what the card gives */
   const fw = _hbFit ? _hbFit.w : 0;
-  const tall = !!(D && D.narrow) || (fw > 0 && fw < 760);
-  const rowH = 38, W = tall ? (fw || 440) : (fw || 1000), R = tall ? 104 : 118, r = tall ? 74 : 84, cx = tall ? W / 2 : 150;
-  const legY = tall ? 2 * R + 44 : 40, H = tall ? legY + rows.length * rowH + 4 : Math.max(_hbFit ? 280 : 300, 40 + rows.length * rowH + 16), cy = tall ? R + 14 : H / 2;
-  const legX = tall ? 16 : 360, rowW = tall ? W - 32 : Math.min(636, W - 376), barW = tall ? Math.min(156, Math.round(W * 0.35)) : 240, barX = rowW - barW - (tall ? 0 : 16);
-  const chars = Math.max(10, Math.floor((barX - 34) / 7.6));
+  /* ON A CARD THE RING FITS THE STEP (O-22, 8 Oct 2026): the height is the
+     step's, never the rows'. The ring sits left, sized to that height; the
+     legend fills the rest, one line a row when two lines do not fit, and a
+     legend past even that is cut and the cut said (every slice is still
+     drawn, and each one is a door). Off a card it is drawn as before. */
+  const fitted = !!_hbFit;
+  const tall = !fitted && (!!(D && D.narrow) || (fw > 0 && fw < 760));
+  let rowH = 38, W = tall ? (fw || 440) : (fw || 1000), R = tall ? 104 : 118, r = tall ? 74 : 84, cx = tall ? W / 2 : 150;
+  let legY = tall ? 2 * R + 44 : 40, H = tall ? legY + rows.length * rowH + 4 : Math.max(300, 40 + rows.length * rowH + 16), cy = tall ? R + 14 : H / 2;
+  let legX = tall ? 16 : 360, rowW = tall ? W - 32 : Math.min(636, W - 376), barW = tall ? Math.min(156, Math.round(W * 0.35)) : 240, barX = rowW - barW - (tall ? 0 : 16);
+  let oneLine = false, drawn = rows.length;
+  if (fitted){
+    H = hbFH(0); R = Math.round(Math.max(40, Math.min(140, (H - 16) / 2, W * 0.22))); r = Math.round(R * 0.71); cx = R + 12; cy = H / 2;
+    legX = 2 * R + 36; rowW = W - legX - 8;
+    barW = rowW >= 260 ? Math.min(156, Math.round(rowW * 0.35)) : 0; barX = barW ? rowW - barW - 8 : rowW;
+    const room = H - 8, n = Math.max(1, rows.length);
+    if (room / n >= 36) rowH = Math.min(44, room / n);
+    else { oneLine = true; rowH = Math.max(22, Math.min(30, room / n)); if (rows.length * rowH > room) drawn = Math.max(1, Math.floor((room - 22) / 22)); }
+    legY = Math.max(4, (H - (drawn + (drawn < rows.length ? 1 : 0)) * rowH) / 2);
+  }
+  const chars = Math.max(oneLine ? 6 : 10, Math.floor((barX - 34) / 7.6) - (oneLine ? 9 : 0));
   const fit = t => t.length > chars ? t.slice(0, chars - 1) + '…' : t;
   let a0 = -Math.PI / 2, slices = '', legend = '';
   rows.forEach((g, i) => {
@@ -1378,15 +1394,22 @@ function hbRingSvg(D, cs, field, money, P){
     const dig = g.rest ? hbRestDig(D, field, cut.kept, money) : 'qg:' + D.key + HB_KEY_SEP + field + HB_KEY_SEP + g.g;
     const d = share >= 0.999 ? `M${cx},${cy - R} A${R},${R} 0 1 1 ${cx - 0.01},${cy - R} L${cx - 0.01},${cy - r} A${r},${r} 0 1 0 ${cx},${cy - r} Z`
       : `M${x0.toFixed(1)},${y0.toFixed(1)} A${R},${R} 0 ${big} 1 ${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${r},${r} 0 ${big} 0 ${x3.toFixed(1)},${y3.toFixed(1)} Z`;
-    slices += `<g class="hb-sv-slice hb-in" style="animation-delay:${i * 40}ms" ${_hbSvgDoor(dig, title)}><path d="${d}" style="fill:${hue}"/></g>`;
+    slices += `<g class="hb-sv-slice hb-in" style="animation-delay:${i * 40}ms" ${_hbSvgDoor(dig, title)}><path d="${d}" style="fill:${hue}${fitted ? `;transform-origin:${cx}px ${cy}px` : ''}"/></g>`;
+    a0 = a1;
+    if (i >= drawn) return;
     const y = legY + i * rowH;
-    legend += `<g class="hb-sv-row hb-in" style="animation-delay:${i * 40}ms" transform="translate(${legX},${y})" ${_hbSvgDoor(dig, title)}>
+    const bar = barW ? `<rect x="${barX}" y="${oneLine ? (rowH / 2 - 4).toFixed(1) : 5}" width="${barW}" height="8" rx="4" class="hb-sv-track"/><rect x="${barX}" y="${oneLine ? (rowH / 2 - 4).toFixed(1) : 5}" width="${(barW * share).toFixed(1)}" height="8" rx="4" style="fill:${hue}" opacity=".9"/>` : '';
+    legend += oneLine
+      ? `<g class="hb-sv-row hb-in" style="animation-delay:${i * 40}ms" transform="translate(${legX},${y.toFixed(1)})" ${_hbSvgDoor(dig, title)}>
+      <rect x="-8" y="0" width="${rowW + 8}" height="${rowH.toFixed(1)}" fill="transparent"/><rect x="0" y="${(rowH / 2 - 5).toFixed(1)}" width="10" height="10" rx="2" style="fill:${hue}"/>
+      <text x="18" y="${(rowH / 2 + 4).toFixed(1)}" font-size="13" font-weight="600" class="hb-sv-ink">${_hbE(fit(g.label))}</text>
+      <text x="${barX - 8}" y="${(rowH / 2 + 4).toFixed(1)}" text-anchor="end" font-size="12" class="hb-sv-ink2">${_hbE(rowW >= 200 ? sayOf(g.n, g.v) + ' · ' : '')}${Math.round(share * 100)}%</text>${bar}</g>`
+      : `<g class="hb-sv-row hb-in" style="animation-delay:${i * 40}ms" transform="translate(${legX},${y.toFixed(1)})" ${_hbSvgDoor(dig, title)}>
       <rect x="-8" y="-4" width="${rowW}" height="${rowH}" fill="transparent"/><rect x="0" y="2" width="10" height="10" rx="2" style="fill:${hue}"/>
       <text x="20" y="12" font-size="14" font-weight="600" class="hb-sv-ink">${_hbE(fit(g.label))}</text>
-      <text x="20" y="29" font-size="12" class="hb-sv-ink2">${_hbE(sayOf(g.n, g.v))} · ${Math.round(share * 100)}%</text>
-      <rect x="${barX}" y="5" width="${barW}" height="8" rx="4" class="hb-sv-track"/><rect x="${barX}" y="5" width="${(barW * share).toFixed(1)}" height="8" rx="4" style="fill:${hue}" opacity=".9"/></g>`;
-    a0 = a1;
+      <text x="20" y="29" font-size="12" class="hb-sv-ink2">${_hbE(sayOf(g.n, g.v))} · ${Math.round(share * 100)}%</text>${bar}</g>`;
   });
+  if (drawn < rows.length) legend += `<text x="${legX}" y="${(legY + drawn * rowH + rowH / 2 + 4).toFixed(1)}" font-size="12" class="hb-sv-mute">${_hbE(i18t(_hbFit.step === 'full' ? 'hb_more_rows_full' : 'hb_more_rows', { n: _hbN(rows.length - drawn), all: _hbN(rows.length) }))}</text>`;
   const total = cs.reduce((a, c) => a + hbValueOfOne(c), 0);
   const centre = `<text x="${cx}" y="${cy - 8}" text-anchor="middle" font-size="44" font-weight="700" class="hb-sv-ink">${_hbN(cs.length)}</text>
     <text x="${cx}" y="${cy + 16}" text-anchor="middle" font-size="13" class="hb-sv-ink2">${_hbE(i18tn('hb_contracts_word', cs.length, { n: cs.length }))}</text>
@@ -1406,7 +1429,7 @@ function hbBlocksSvg(D, cs, field, money, P){
     const title = g.label + ': ' + _hbM(g.v) + ' · ' + _hbN(g.n) + ' · ' + Math.round(g.v / whole * 100) + '%';
     const dig = g.rest ? hbRestDig(D, field, cut.kept, 'b') : 'qg:' + D.key + HB_KEY_SEP + field + HB_KEY_SEP + g.g;
     out += `<g class="hb-sv-block hb-in" style="animation-delay:${gi * 40}ms" ${_hbSvgDoor(dig, title)}><rect x="${(x + 2).toFixed(1)}" y="2" width="${Math.max(0, w - 4).toFixed(1)}" height="${H - 4}" rx="6" style="fill:${hue};stroke:${hue}" fill-opacity=".16" stroke-opacity=".5"/>
-      ${w > 90 ? `<text x="${(x + 14).toFixed(1)}" y="26" font-size="12" font-weight="600" letter-spacing=".06em" style="fill:${hue}">${_hbE(String(g.label).toUpperCase().slice(0, Math.floor(w / 8)))}</text>
+      ${w > 90 ? `<text x="${(x + 14).toFixed(1)}" y="26" font-size="12" font-weight="600" letter-spacing=".06em" class="hb-sv-ink2">${_hbE(String(g.label).toUpperCase().slice(0, Math.floor(w / 8)))}</text>
       <text x="${(x + 14).toFixed(1)}" y="50" font-size="18" font-weight="700" class="hb-sv-ink">${_hbE(_hbM(g.v))}</text><text x="${(x + 14).toFixed(1)}" y="68" font-size="12" class="hb-sv-ink2">${_hbE(_hbN(g.n))} · ${Math.round(g.v / whole * 100)}%</text>` : ''}</g>`;
     /* tiles: the biggest contracts as strips of rows sized by value; the rest one tile */
     const sorted = g.list.slice().sort((a, b) => hbValueOfOne(b) - hbValueOfOne(a));
@@ -1439,7 +1462,12 @@ function hbTimelineSvg(D, cs, money){
   const ends = items.map(i => i.end).filter(Boolean).map(mIdx), starts = items.map(i => i.start).filter(Boolean).map(mIdx);
   let m0 = Math.floor(Math.min(-3, ...starts.map(s => Math.max(s, -12)))); let m1 = Math.ceil(Math.max(9, ...ends.map(e => Math.min(e, 30))));
   if (m1 - m0 > HB_TL_MONTHS) m0 = m1 - HB_TL_MONTHS;
-  const months = m1 - m0; const W = hbFW(), L = Math.min(190, Math.round(hbFW() * 0.28)), Rm = 16, axisY = 34, laneGap = 14;
+  /* ON A CARD THE TIMELINE FITS THE STEP (O-22, 8 Oct 2026): the height is
+     the step's; rows are packed only as far as that height holds, a lane
+     with no room is not drawn, and every pill left out is counted and said
+     under the chart. Off a card it is drawn as before. */
+  const fitted = !!_hbFit, tight = fitted && _hbFit.step === 'board';
+  const months = m1 - m0; const W = hbFW(), L = Math.min(190, Math.round(hbFW() * 0.28)), Rm = 16, axisY = tight ? 28 : 34, laneGap = tight ? 8 : 14;
   const X = m => L + (W - L - Rm) * (Math.max(m0, Math.min(m1, m)) - m0) / months;
   const keyOf = m => { const y = tY + Math.floor((tM + m) / 12), mo = ((tM + m) % 12 + 12) % 12; return y + '-' + String(mo + 1).padStart(2, '0'); };
   const order = HB_STATUS_ORDER.concat([...new Set(items.map(i => i.status))].filter(s => !HB_STATUS_ORDER.includes(s)));
@@ -1448,20 +1476,23 @@ function hbTimelineSvg(D, cs, money){
   const span = (it, short) => { const e = it.end ? mIdx(it.end) : null; let s = it.start ? mIdx(it.start) : (e != null ? e - 1 : 0); if (short && e != null) s = Math.max(s, e - HB_TL_SHORT); return [s, e != null ? e : s + 1.5]; };
   /* pills pack into rows per lane; a crowded set keeps only the last months
      of each pill so the lanes stay short, and past the cap the rest is said */
-  const pack = short => { const placed = []; let rowsUsed = 0, left = 0;
+  const pack = (short, cap) => { const placed = []; let rowsUsed = 0, left = 0;
     lanes.forEach(l => { l.list.sort((a, b) => span(a, short)[0] - span(b, short)[0]); const rows = [];
       l.list.forEach(it => { const [s, e] = span(it, short); let ri = rows.findIndex(last => last + 0.35 < s);
-        if (ri < 0){ if (rowsUsed + rows.length + 1 > HB_TL_ROWS){ left++; return; } rows.push(e); ri = rows.length - 1; } else rows[ri] = e;
+        if (ri < 0){ if (rowsUsed + rows.length + 1 > cap){ left++; return; } rows.push(e); ri = rows.length - 1; } else rows[ri] = e;
         placed.push([l, ri, it, s, e]); });
       l.n = rows.length; rowsUsed += rows.length; });
     return { placed, rowsUsed, left }; };
-  let P = pack(false); if (P.left || P.rowsUsed > HB_TL_PACK) P = pack(true);
-  const placed = P.placed, left = P.left;
+  let P = pack(false, HB_TL_ROWS); if (P.left || P.rowsUsed > HB_TL_PACK) P = pack(true, HB_TL_ROWS);
   /* a crowded chart takes tighter rows and a smaller face; the word "past end" is a key drawn once */
-  const rowH = P.rowsUsed > HB_TL_PACK ? 16 : 20, fs = rowH > 16 ? 10.5 : 9, ty = rowH / 2 + 3.5; let anyPast = false;
-  const H = axisY + 14 + lanes.reduce((a, l) => a + l.n * rowH + laneGap, 0) + 36;
+  const rowH = fitted ? (tight ? 18 : 20) : (P.rowsUsed > HB_TL_PACK ? 16 : 20), fs = rowH > 16 ? 10.5 : 9, ty = rowH / 2 + 3.5; let anyPast = false;
+  const laneTall = () => lanes.reduce((a, l) => a + (l.n ? l.n * rowH + laneGap : 0), 0);
+  if (fitted){ const room = hbFH(0) - axisY - 14 - 36; let cap = Math.min(HB_TL_ROWS, P.rowsUsed);
+    while (cap > 1 && laneTall() > room){ cap--; P = pack(true, cap); } }
+  const placed = P.placed, left = P.left;
+  const H = fitted ? hbFH(0) : axisY + 14 + lanes.reduce((a, l) => a + l.n * rowH + laneGap, 0) + 36;
   /* a long span names every second or third month, so the names never run together */
-  const nameEvery = Math.max(1, Math.ceil(months / 14));
+  const nameEvery = Math.max(1, Math.ceil(months / 14), fitted ? Math.ceil(52 / ((W - L - Rm) / months)) : 1);
   for (let i = 0; i < months; i++){ const m = m0 + i; const x = X(m), x2 = X(m + 1); const k = keyOf(m); const mo = ((tM + m) % 12 + 12) % 12;
     const n = items.filter(it => it.end && it.end.slice(0, 7) === k).length;
     out += `<rect x="${x.toFixed(1)}" y="${axisY}" width="${(x2 - x).toFixed(1)}" height="${H - axisY - 30}" class="${Math.floor(mo / 3) % 2 ? 'hb-sv-qtr' : ''}" fill="${Math.floor(mo / 3) % 2 ? '' : 'transparent'}"/>`;
@@ -1469,9 +1500,9 @@ function hbTimelineSvg(D, cs, money){
     const label = hbMonthLabel(k, false); const ttl = label + (n ? ': ' + i18tn('hb_tl_end_n', n, { n: _hbN(n) }) : '');
     out += `<g class="hb-sv-month" ${_hbSvgDoor(n ? 'qm:' + D.key + HB_KEY_SEP + 'm' + HB_KEY_SEP + k : '', ttl)}><rect x="${x.toFixed(1)}" y="${axisY - 24}" width="${(x2 - x).toFixed(1)}" height="22" fill="transparent"/>${i % nameEvery === 0 ? `<text x="${(x + 4).toFixed(1)}" y="${axisY - 8}" font-size="11" class="hb-sv-ink2">${_hbE(label)}</text>` : ''}
       ${n && i % nameEvery === 0 ? `<text x="${((x + x2) / 2).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="11" font-weight="600" class="hb-sv-ink2">${_hbE(i18tn('hb_tl_end_n', n, { n: _hbN(n) }))}</text>` : ''}</g>`; }
-  lanes.forEach(l => { const top = y; const lv = l.list.reduce((a, it) => a + hbValueOfOne(it.c), 0); const hue = hbHueOf('status', l.s, 0);
+  lanes.filter(l => !fitted || l.n).forEach(l => { const top = y; const lv = l.list.reduce((a, it) => a + hbValueOfOne(it.c), 0); const hue = hbHueOf('status', l.s, 0);
     lanesOut += `<g class="hb-sv-lane" ${_hbSvgDoor('qg:' + D.key + HB_KEY_SEP + 'status' + HB_KEY_SEP + l.s, l.label + ': ' + (money ? _hbM(lv) + ' · ' : '') + _hbN(l.list.length))}><rect x="0" y="${top - 2}" width="${L - 10}" height="${l.n * rowH}" fill="transparent"/><rect x="4" y="${top - 2}" width="3" height="${l.n * rowH}" rx="1.5" style="fill:${hue}"/>
-      <text x="12" y="${top + 14}" font-size="13" font-weight="600" class="hb-sv-ink">${_hbE(l.label)}</text><text x="12" y="${top + 30}" font-size="11" class="hb-sv-ink2">${_hbE(_hbN(l.list.length))}${money ? ' · ' + _hbE(_hbM(lv)) : ''}</text></g>`;
+      <text x="12" y="${top + 14}" font-size="13" font-weight="600" class="hb-sv-ink">${_hbE(l.label)}</text>${!fitted || l.n * rowH >= 30 ? `<text x="12" y="${top + 30}" font-size="11" class="hb-sv-ink2">${_hbE(_hbN(l.list.length))}${money ? ' · ' + _hbE(_hbM(lv)) : ''}</text>` : ''}</g>`;
     placed.filter(p => p[0] === l).forEach(([, ri, it, s, e]) => { const yy = top + ri * rowH; const xs = X(s), past = it.end && it.end < today && it.status === 'Signed', xe = it.end ? X(e) : xs + 8; const fill = past ? 'var(--hb-ruby)' : hue;
       const ttl = hbRef(it.c) + ' · ' + String(it.c.name || '') + (it.c.counterparty ? ' · ' + it.c.counterparty : '') + (money ? ': ' + _hbM(hbValueOfOne(it.c)) : '') + ' · ' + (it.end ? i18t('hb_tl_ends', { d: hbMonthLabel(it.end.slice(0, 7), false) }) : i18t('hb_c_no_end'));
       if (past) anyPast = true;
@@ -1482,7 +1513,7 @@ function hbTimelineSvg(D, cs, money){
   if (anyPast) out += `<rect x="12" y="${H - 24}" width="10" height="10" rx="2" class="hb-sv-ruby"/><text x="27" y="${H - 15}" font-size="11" class="hb-sv-ink2">${_hbE(i18t('hb_tl_past'))}</text>`;
   out += `<line x1="${tx.toFixed(1)}" y1="${axisY - 2}" x2="${tx.toFixed(1)}" y2="${H - 30}" class="hb-sv-today" stroke-width="1.5" stroke-dasharray="4 3"/><rect x="${(tx - 22).toFixed(1)}" y="${H - 28}" width="44" height="16" rx="8" class="hb-sv-today-pill"/><text x="${tx.toFixed(1)}" y="${H - 16}" text-anchor="middle" font-size="10.5" font-weight="700" fill="${HB_TILE_INK}">${_hbE(i18t('hb_tl_today'))}</text>`;
   return { body: `<svg class="hb-svg hb-tl" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(i18t('hb_by_timeline'))}"><line x1="${L}" y1="${axisY}" x2="${W - Rm}" y2="${axisY}" class="hb-sv-axis"/>${out}${lanesOut}</svg>`,
-    by: i18t('hb_by_timeline'), note: left ? i18t('hb_chart_more', { n: _hbN(left) }) : '' };
+    by: i18t('hb_by_timeline'), note: !left ? '' : fitted ? i18t(_hbFit.step === 'full' ? 'hb_more_rows_full' : 'hb_more_rows', { n: _hbN(left), all: _hbN(items.length) }) : i18t('hb_chart_more', { n: _hbN(left) }) };
 }
 function hbBubblesSvg(D, cs){
   const W = hbFW(), H = hbFH(360), L = 70, R = 30, T = 28, B = 46, xmin = -90, xmax = 450;

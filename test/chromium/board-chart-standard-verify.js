@@ -10,7 +10,10 @@
      3. Full screen is the window less 230; Esc steps back one step at a time
         (full → opened → the board);
      4. the series colours are the checked set, the first following the brand;
-     5. photographed; no page errors.
+     5. photographed; no page errors;
+     6. the ring, the timeline and the blocks on the board (8 Oct 2026): each
+        196px tall at widths 560 and 1180, the card never taller than the
+        window, and no words in a series colour.
    Waits ask for the state, bounded.
    Screenshots: test/chromium/shots/board-chart-standard/ (or HATI_SHOT_DIR).
    Run: node test/chromium/board-chart-standard-verify.js */
@@ -126,6 +129,36 @@ const check = (name, pass, detail) => {
     const light = ['#2F5FC4', '#1A9C8A', '#B87A0F', '#9A5CC8'];
     const four = hues.set.slice(0, 4);
     check('4. the light board wears the checked four, the first following the brand', light.every(x => four.includes(x)) && four[0] === (hues.b === 'navy' ? '#2F5FC4' : '#1A9C8A'), hues.b + ' ' + four.join(' '));
+    /* 6. the ring, the timeline and the blocks keep the step too */
+    const OTHERS = [
+      { id: 'pring', pic: 'ring', cls: 'hb-ring', R: { which: 'all', pic: 'ring', split: { by: 'status' }, measure: 'count' } },
+      { id: 'pgantt', pic: 'gantt', cls: 'hb-tl', R: { which: 'all', pic: 'gantt', split: { by: 'status' }, measure: 'count' } },
+      { id: 'pblocks', pic: 'blocks', cls: 'hb-blocks', R: { which: 'all', pic: 'blocks', split: { by: 'status' }, measure: 'value' } }
+    ];
+    for (const o of OTHERS){
+      await page.evaluate(({ o, k }) => { const s = hbS(); s.face = 'board'; s.path = []; s.digBig = false;
+        const key = 'q:contracts by status ' + o.id;
+        s.panels = [{ id: o.id, kind: 'view', key, title: o.pic, recipe: JSON.parse(JSON.stringify(o.R)), split: false, big: false }];
+        hbSave(); hbCardSet(key, JSON.parse(JSON.stringify(o.R)), { seed: true }); hbPaintBoard(); }, { o, k: KEY });
+      const osel = `[data-hb-pid="${o.id}"] svg.hb-svg`;
+      const drawnAs = await until(({ s, cls }) => { const svg = document.querySelector(s); return svg && svg.classList.contains(cls) ? svg.getAttribute('class') : null; }, { s: osel, cls: o.cls });
+      check(`6. ${o.pic}: drawn on the board as that picture`, !!drawnAs, drawnAs);
+      if (!drawnAs) continue;
+      for (const W of [560, 1180]){
+        for (let k = 0; k < 2; k++){
+          await page.evaluate(({ s, W }) => { const c = document.querySelector(s).closest('.hb-card'); c.style.width = W + 'px'; c.style.maxWidth = W + 'px'; c.style.gridColumn = '1 / -1'; hbFitMeasure(); }, { s: osel, W });
+          await until(({ s }) => { const svg = document.querySelector(s); return svg && Math.abs(Number(svg.getAttribute('data-hb-w')) - svg.getBoundingClientRect().width) <= 8; }, { s: osel });
+        }
+        const m = await svgOf(osel);
+        check(`6a. ${o.pic} at ${W}: 196px tall`, m && Math.abs(m.h - 196) <= 2, m && Math.round(m.h));
+        check(`6b. ${o.pic} at ${W}: the card is not taller than the window`, m && m.cardH <= m.vh, m && Math.round(m.cardH));
+        const hued = await page.evaluate(s => [...document.querySelectorAll(s + ' text')].filter(t => /fill\s*:/.test(t.getAttribute('style') || '')).length, osel);
+        check(`6c. ${o.pic} at ${W}: no words in a series colour`, hued === 0, hued);
+        const over = await page.evaluate(s => { const svg = document.querySelector(s), r = svg.getBoundingClientRect(); return [...svg.querySelectorAll('text')].filter(t => { const b = t.getBoundingClientRect(); return b.height && (b.bottom > r.bottom + 2 || b.top < r.top - 2); }).length; }, osel);
+        check(`6d. ${o.pic} at ${W}: no words fall outside the chart`, over === 0, over);
+        await page.screenshot({ path: path.join(OUT, `6-${o.pic}-${W}.png`) });
+      }
+    }
     check('5. no page errors', errors.length === 0, errors.join(' | '));
   } catch (e) {
     check('run', false, e.message);

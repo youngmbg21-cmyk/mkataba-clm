@@ -68,4 +68,33 @@ function px(input) {
 /* The same question for a weight, which carries no unit. */
 const weight = input => px(input);
 
-module.exports = { px, weight, RAW, ROOT };
+/* THE BOARD CHART'S TYPE LADDER (work order O-26): the three steps' sizes
+   live on `.hb-svg[data-hb-step="…"]` rather than :root, so they are read
+   here, out of index.html, the same way — a test asks for the relation
+   (board < opened < full) and never types the numbers.
+   chartStepType() -> { board: { ax, cat, val }, open: {…}, full: {…} } */
+function chartStepType() {
+  const out = {};
+  for (const step of ['board', 'open', 'full']) {
+    const m = new RegExp('\\.hb-svg\\[data-hb-step="' + step + '"\\]\\{([^}]*)\\}').exec(INDEX);
+    const body = m ? m[1] : '';
+    const one = k => { const v = new RegExp('--hb-fs-' + k + '\\s*:\\s*([0-9.]+)px').exec(body); return v ? Number(v[1]) : NaN; };
+    out[step] = { ax: one('ax'), cat: one('cat'), val: one('val') };
+  }
+  return out;
+}
+
+/* Which role each text class plays, and its weight, off the same rules. */
+function chartStepRoles() {
+  const roles = {};
+  const re = /\.hb-svg\[data-hb-step\] text\.(hb-sv-[a-z0-9]+)\{([^}]*)\}/g;
+  let m;
+  while ((m = re.exec(INDEX))) {
+    const size = /font-size:var\(--hb-fs-([a-z]+)\)/.exec(m[2]);
+    const w = /font-weight:([0-9]+)/.exec(m[2]);
+    roles[m[1]] = { role: size ? size[1] : null, weight: w ? Number(w[1]) : null, rule: m[2] };
+  }
+  return roles;
+}
+
+module.exports = { px, weight, RAW, ROOT, chartStepType, chartStepRoles };
