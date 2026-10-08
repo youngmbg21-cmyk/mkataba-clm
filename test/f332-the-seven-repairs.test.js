@@ -371,7 +371,10 @@ describe('f332 (7) re-filing can be delegated, and is off by default', () => {
   });
 
   test('7c it is an admin\'s to give, never self-service, and refused on the two roles that answer for themselves', () => {
-    const i = SRV.indexOf('if (b.reFile !== undefined)');
+    /* Since 9 Oct 2026 the grant is written on its own (it was refused with
+       "Nothing to change" when it was the only box ticked): its block opens
+       on its own flag. */
+    const i = SRV.indexOf('if (hasReFile) {');
     assert.ok(i > 0);
     const body = SRV.slice(i, i + 700);
     assert.match(body, /role === 'admin' && !b\.reFile/, 'an admin may always re-file');

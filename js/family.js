@@ -1317,7 +1317,7 @@ async function unlinkContract(c, onDone){
   if(onDone) onDone(); else if(typeof setView==='function') setView(state.view||'workspace');
 }
 
-Object.assign(window,{amendSetsValue,effectiveExpiryFrom,familyOrder,familyCheck,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
+Object.assign(window,{familyOrder,familyCheck,amendSetsValue,effectiveExpiryFrom,asAmendedItems,asAmendedHtml,effectiveTerm,effectiveValueView,EFFECTIVE_TERMS,amendSuggestions,amendChangesHtml,amendmentItemHtml,amendParentClauses,amendParentText,amendParentHtml,FAMILY_TERMS,familyAgreement,familyAgreeLine,
   openLinkModal,unlinkContract,renderFamilySection,
   openCreateAmendmentModal,createAmendment,amendmentDefaultName,amendmentOrdinal,
   amendmentSkeletonBody,RELATION_DOC_WORD,FAMILY_BLANK_BODY,

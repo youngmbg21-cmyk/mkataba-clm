@@ -332,8 +332,8 @@ describe('f129 (9) the negotiate page wears the document’s design', () => {
   test('the paper wears the design; the furniture does not', () => {
     const css = rd('index.html');
     assert.match(css,
-      /\[data-doc-body\] \.rl-paper :is\(\.rl-cp-pill,\.rl-lock-mono,\.nego-fmt-bar,\.nego-reason,\.nego-edit-bar\):not\(\.rl-clause-h\)/,
-      'the clause pencil, the lock monogram and the editor’s bars keep the product’s face');
+      /\[data-doc-body\] \.rl-paper :is\(\.rl-cp-pill,\.rl-lock-mono,\.nego-fmt-bar,\.nego-reason,\.nego-edit-bar(?:,\.[\w-]+)*\):not\(\.rl-clause-h\)/,
+      'the clause pencil, the lock monogram and the editor’s bars keep the product’s face (and so does Discard · Save on the paper, 9 Oct 2026)');
     assert.match(css,
       /\[data-doc-body\] \.rl-paper :is\([^)]*\) \*:not\(\.rl-clause-h\)\{\s*\n?\s*font-family:var\(--font-body\)!important;\}/,
       'and so does everything inside them — the pencil’s own icon included');
