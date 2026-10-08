@@ -15,6 +15,8 @@
    READING MUST NOT WRITE: nothing here initialises a negotiation or saves.
    ============================================================ */
 const PD_TABS = ['facts', 'oblig', 'sign', 'hist', 'deal'];
+/* each tab's symbol — the one the left menu draws for the same thing */
+const PD_TAB_ICON = { facts: 'file', oblig: 'flag', sign: 'check', hist: 'clock', deal: 'nego' };
 const PD_HIST_MAX = 40;          // trail rows drawn; the rest are counted and one press away
 const PD_OPEN_MIN_W = 1000;      // the paper area under which the desk starts folded
 let _pdTab = 'facts';
@@ -184,7 +186,11 @@ function pdDealHtml(c){
 const PD_BODY = { facts: pdFactsHtml, oblig: pdObligHtml, sign: pdSignHtml, hist: pdHistHtml, deal: pdDealHtml };
 function pdHtml(c){
   _pdActs.clear();
-  const tabs = PD_TABS.map(t => `<button type="button" role="tab" class="pd-tab${t === _pdTab ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${t === _pdTab}">${_pdE(_pdT('pd_tab_' + t))}</button>`).join('');
+  /* SYMBOLS, NOT WORDS (Young, 8 Oct 2026: "switch the tabs to symbols"), so
+     the five fit beside "‹ Copilot" on a laptop: the left menu's own symbols
+     for the same things; the name is the hover and what a screen reader says. */
+  const tabs = PD_TABS.map(t => { const name = _pdE(_pdT('pd_tab_' + t));
+    return `<button type="button" role="tab" class="pd-tab${t === _pdTab ? ' on' : ''}" data-pd-tab="${t}" aria-selected="${t === _pdTab}" aria-label="${name}" title="${name}"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-${PD_TAB_ICON[t]}"/></svg></button>`; }).join('');
   let body = '';
   try { body = PD_BODY[_pdTab](c); } catch (e){ body = pdNote(_pdT('pd_failed')); }
   const back = pdNarrow() ? `<button type="button" class="pd-back" data-pd-fold="1" title="${_pdE(_pdT('pd_back_copilot_title'))}">${_pdE(_pdT('pd_back_copilot'))}</button>` : '';
@@ -231,5 +237,5 @@ if (typeof window !== 'undefined' && !window._pdResize){
   window.addEventListener('resize', () => { const h = document.getElementById('ig-desk'); if (h && !h.hidden && !h.classList.contains('is-folded')) pdPlaceOver(h); });
 }
 
-Object.assign(window, { pdNarrow, pdPlaceOver, PD_TABS, PD_HIST_MAX, PD_OPEN_MIN_W, pdSetTab, pdTab, pdIsOpen, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
+Object.assign(window, { PD_TAB_ICON, pdNarrow, pdPlaceOver, PD_TABS, PD_HIST_MAX, PD_OPEN_MIN_W, pdSetTab, pdTab, pdIsOpen, pdContract, pdBtn, pdRoom, pdFactsHtml, pdObligHtml,
   pdSignDoor, pdSignHtml, pdHistHtml, pdDealHtml, PD_BODY, pdHtml, pdPaint });

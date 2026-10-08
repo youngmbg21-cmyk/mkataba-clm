@@ -97,6 +97,8 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
       tabs[t] = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
     }
     ok('3a five tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
+    const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-desk .pd-tab')].map(b => ({ txt: b.textContent.trim(), icon: !!b.querySelector('svg use'), name: b.getAttribute('title') })));
+    ok('3a2 the tabs are symbols, each named on hover', sym.length === 5 && sym.every(s => !s.txt && s.icon && s.name), JSON.stringify(sym));
     ok('3b Facts carries the parties', /Kabras Logistics/.test(tabs.facts), tabs.facts.slice(0, 120));
     await page.click('#ig-desk [data-pd-tab="sign"]');
     const sign = await page.evaluate(() => { const b = [...document.querySelectorAll('#pd-body button')].find(x => /Send for signing/.test(x.textContent));

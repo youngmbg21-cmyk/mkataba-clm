@@ -7970,8 +7970,9 @@
   .ig-desk.is-folded{width:auto;background:transparent;border-left:0;padding:10px 10px 0 0}
   .pd-unfold{border:1px solid var(--color-neutral-300);background:var(--color-surface,#fff);border-radius:var(--radius);padding:6px 10px;font-size:12.5px;cursor:pointer;writing-mode:vertical-rl;color:var(--color-text)}
   .pd-tabs{display:flex;align-items:center;gap:2px;padding:6px 8px 0;border-bottom:1px solid var(--color-neutral-200);flex:none}
-  .pd-tab{border:0;background:none;padding:7px 8px;font-size:12.5px;color:var(--color-neutral-600);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}
-  .pd-tab.on{color:var(--color-text);font-weight:var(--w-title);border-bottom-color:var(--nav-bg)}
+  .pd-tab{border:0;background:none;padding:8px 10px 7px;color:var(--color-neutral-600);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;display:inline-grid;place-items:center;border-radius:var(--radius) var(--radius) 0 0}
+  .pd-tab:hover{color:var(--color-text);background:var(--color-accent-50)}
+  .pd-tab.on{color:var(--accent-ink);border-bottom-color:var(--nav-bg)}
   .pd-sp{flex:1}
   .ig-desk.is-over{border-left:1px solid var(--color-neutral-300);box-shadow:-8px 0 24px rgba(0,0,0,.08)}
   .pd-back{border:0;background:none;color:var(--accent-ink);font-size:12.5px;font-weight:var(--w-strong);padding:7px 8px 7px 2px;cursor:pointer;white-space:nowrap}
