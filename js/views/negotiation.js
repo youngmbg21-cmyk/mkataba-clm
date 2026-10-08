@@ -7206,6 +7206,18 @@ function rlBaselineHtml(c, cl, side, opts = {}){
     ? _ne(i18t('ng_base_eq_rung', { who: i18t(b.below.who === 'you' ? 'ng_base_your' : 'ng_base_their'), n: b.below.n }))
       + figOf(b.below.fig) + _ne(i18t('ng_base_not_agreed'))
     : _ne(i18t('ng_base_eq_agreed'));
+  /* THEIR SEAT READS NO LADDER JARGON (8 Oct 2026): "Plain text on clause 2
+     = the agreed wording · Agreed wording = R0 (30 days)" said nothing a
+     reader outside could use. Where the unmarked words ARE the agreed wording
+     there is nothing to say; otherwise it is said in words, with the agreed
+     figure and no rung number. */
+  if (side === 'counterparty' || (typeof rlOnTheirPage === 'function' && rlOnTheirPage())){
+    if (!b.below) return '';
+    return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}">
+    <span><b>${_ne(i18t('ng_base_plain_theirs', { n: num }))}</b> ${plain}</span>${
+      b.baseFig != null && u ? `
+    <span><b>${_ne(i18t('ng_base_agreed'))}:</b> ${_ne(String(b.baseFig))} ${_ne(u)}</span>` : ''}</div>`;
+  }
   return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}">
     <span><b>${_ne(i18t('ng_base_plain', { n: num }))}</b> = ${plain}</span>
     <span><b>${_ne(i18t('ng_base_agreed'))}</b> = R0${figOf(b.baseFig)}</span></div>`;
