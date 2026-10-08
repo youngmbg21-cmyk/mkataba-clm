@@ -20579,6 +20579,13 @@ function tplListView(t) {
     publishedVersionId: pub ? pub.id : null,
     latestVersion: latest,
     contractsCreated: tplUsage(t.id),
+    /* THE TEMPLATE'S OWN QUESTIONS (9 Oct 2026): the New agreement card said
+       "8 questions" for a company standard — those were the essentials asked
+       first; the template's own fields follow on the Document tab. Counted
+       here so the card can say both, honestly. Signatures are not questions:
+       the signing flow captures them. */
+    questionCount: pub ? (db.prepare(`SELECT COUNT(*) n FROM template_fields WHERE template_version_id=?
+      AND COALESCE(field_type,'') <> 'signature_name_title'`).get(pub.id).n || 0) : 0,
     lastUsedAt: t.last_used_at || null,
     /* What this template was converted from. NULL on everything built before
        the PDF route existed, and NULL reads as "not a scan" — only an explicit

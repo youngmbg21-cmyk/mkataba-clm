@@ -113,7 +113,7 @@ const READ = () => {
       !m.err && m.lib === 2 && m.goLines.some(x => /^v1 · used 0× · Procurement/.test(x)) && m.goLines.every(x => /^v1 · used 0×/.test(x)),
       m.err || `${m.lib} rows · ${JSON.stringify(m.goLines)}`);
     check('1d HaTi\'s paper is in the same rail, not a wall of chips', !m.err && m.tid >= 10 && m.picks === m.lib + m.tid, m.err || `${m.tid} of ${m.picks}`);
-    check('1e the first row is lit and its questions are in the card', !m.err && m.on && m.name && m.boxes >= 6 && /questions/.test(m.sub), m.err || `${m.name} · ${m.sub} · ${m.boxes} boxes`);
+    check('1e the first row is lit and its questions are in the card', !m.err && m.on && m.name && m.boxes >= 6 && /questions|details/.test(m.sub), m.err || `${m.name} · ${m.sub} · ${m.boxes} boxes`);
     check('1e2 a lit row is FILLED, the product\'s own rail treatment', !m.err && m.onFilled
       && m.onFilled.bg !== 'rgba(0, 0, 0, 0)' && /255, 255, 255/.test(m.onFilled.ink), m.err || JSON.stringify(m.onFilled));
     check('1e3 the questions get more room than the 380px they had', !m.err && m.cardW >= 430, m.err || m.cardW + 'px');
