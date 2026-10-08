@@ -4875,6 +4875,15 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       });
     }
   }
+  /* ---------- AND A SIGNED CONTRACT DOES NOT GO BACK TO DRAFT (B4) ----------
+     Asked as a DIFFERENCE against the STORED record: while a signature stands
+     (the save does not clear it — restarting the signing does), the status
+     may not move back to Draft. */
+  if (prev && !isExecutedRow(prev) && anySignatureRow(prev) && anySignatureRow(c)
+      && c.status === 'Draft' && prev.status !== 'Draft')
+    return res.status(409).json({ immutable: ['status'], signedFreeze: true,
+      error: `${contractRef(prev)} has been signed by at least one person, so it cannot go back to Draft. `
+        + 'Restart the signing on the Signing tab first if the wording has to be worked on again.' });
   /* ---------- WHO RUNS THE SIGNING MOVES ONLY BEFORE ANYBODY SIGNS ----------
      (26 Sep 2026.) Once one person has signed in HaTi, the signing HaTi runs
      has begun, and handing the words over to be signed somewhere else would
@@ -5787,6 +5796,14 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
     return res.status(409).json({
       error: `${req.params.id} is executed and cannot be deleted. An executed agreement is a record; archive it or record a termination instead.`,
     });
+  }
+  /* A SIGNATURE IS EVIDENCE (B4, 8 Oct 2026): a contract somebody has signed
+     — ours on the route, or theirs arrived on a link — is not a draft to
+     throw away. The way forward is the one the Signing tab already offers. */
+  if (c && (anySignatureRow(c) || srvSignResponsesWaiting(req.params.id).length)) {
+    return res.status(409).json({ signed: true,
+      error: `${contractRef(c)} has been signed by at least one person, so it cannot be deleted — a signature is evidence. `
+        + 'If the signing has to start again, an admin restarts it on the Signing tab, which clears the signatures; it can be deleted after that.' });
   }
   const fileIds = [];
   if (c && c.upload && c.upload.fileId) fileIds.push(c.upload.fileId);

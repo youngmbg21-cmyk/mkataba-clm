@@ -1599,7 +1599,7 @@ const REG_ROW_ACTIONS=[
   {k:'release', ic:'history', get label(){ return i18t('hd_release'); },
    when:c=>!!contractOnHold(c)&&(typeof mayHoldContract!=='function'||mayHoldContract())},
   // permanent delete — only offered while a contract is still a draft or in review
-  {k:'delete', ic:'trash',     get label(){ return i18t('reg_delete_permanently'); }, ruby:true, when:c=>c.status==='Draft'||c.status==='Under Review'},
+  {k:'delete', ic:'trash',     get label(){ return i18t('reg_delete_permanently'); }, ruby:true, when:c=>(window.contractDeletable?contractDeletable(c):(c.status==='Draft'||c.status==='Under Review'))},
 ];
 /* WHAT EACH OF THE THREE ACTUALLY PRESSES. One place, so the chooser and the
    rows that survive cannot drift about what an act means. Decline still

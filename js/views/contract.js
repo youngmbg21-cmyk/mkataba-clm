@@ -10231,7 +10231,7 @@ function roomHeadHtml(c,opts={}){
           ${(()=>{ if(typeof mayHoldContract==='function'&&!mayHoldContract()) return '';
             const held=!!(window.contractOnHold&&contractOnHold(c));
             return `<button type="button" id="ws-hold" title="${esc(held?i18t('hd_release_title'):((typeof endStateSays==='function'&&endStateSays('hold'))||i18t('hd_hold_title')))}">${icon(held?'history':'shield','w-3.5 h-3.5')}${held?i18t('hd_release'):i18t('hd_hold')}</button>`; })()}`:''}
-          ${(may&&(c.status==='Draft'||c.status==='Under Review'))?`<hr>
+          ${(may&&(window.contractDeletable?contractDeletable(c):(c.status==='Draft'||c.status==='Under Review')))?`<hr>
           <button type="button" id="ws-delete" class="danger" title="${i18t('ct_delete_draft')}">${icon('trash','w-3.5 h-3.5')}${i18t('ct_delete_this_draft')}</button>`:''}
           ${''/* ws-new keeps its id and its data-page-new: it is a real button
                  on the Document tab now, so it is not repeated here. */}
