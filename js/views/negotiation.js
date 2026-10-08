@@ -20478,7 +20478,13 @@ function redlinePanesHtml(c, opts = {}){
            written FIRST because it is read first, and because the edge door
            that opens it has to exist before the reader looks for it. See
            rlQueueHtml, which builds the scrim, the door and the panel. -->
-      ${rlQueueHtml(c, opts)}
+      ${''/* ---- "THIS ROUND'S QUEUE" IS RETIRED (Young, 9 Oct 2026, the Paper
+             and Counter review, change 4) ---- The vertical tab on the paper's
+             left edge and the panel it slid over the contract are gone, on our
+             page and theirs: the Redlines column's piles and "Progress · k of n
+             decided" already say it. rlQueueRows stays a reading; rlQueueHtml,
+             rlWireQueueMin and rlSetQueueShown have no caller here and are
+             STALE, with .rl-q-tab / #rl-queue / #rl-q-scrim. */}
       <!-- keeps the nego-pane working classes: the engine's clause tools
            (Change, Delete, the fingerprint margin) are styled through them, and
            without them they render as unlabelled empty boxes -->

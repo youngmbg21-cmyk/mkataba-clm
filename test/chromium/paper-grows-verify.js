@@ -621,8 +621,9 @@ const SHEET = () => {
       const g = grid.getBoundingClientRect(), t = tab.getBoundingClientRect();
       return { dx: Math.round(t.left - g.left), w: Math.round(t.width) };
     });
-    check('6 the queue rail still hangs on the working area\'s own left border',
-      !!rail && Math.abs(rail.dx) <= 2, rail && `${rail.dx}px from the grid edge`);
+    /* RETIRED (Young, 9 Oct 2026, change 4): the queue's rail is not drawn. */
+    check('6 the round\'s queue rail is retired — nothing hangs on the paper\'s edge',
+      rail === null, rail && `${rail.dx}px from the grid edge`);
 
     /* RE-POINTED 16 Aug 2026: the card pop-out is retired — the row's Open
        raises the clause panel, which lives in the grid's second track and is

@@ -265,85 +265,18 @@ describe('F95 — the round’s queue slides over the page', () => {
     assert.match(wire.slice(0, 2000), /_rlAvail\(grid\)/);
   });
 
-  test('it arrives SHUT, over a scrim, with a door that says what is behind it', () => {
-    const b = bench();
-    assert.ok(b.queue(), 'the panel is mounted');
-    assert.ok(!b.queue().classList.contains('is-open'),
-      'an overlay that opened itself would be the complaint this change answers');
-    assert.equal(b.queue().getAttribute('aria-hidden'), 'true');
-    assert.ok(b.scrim(), 'and it has the Activity panel\'s scrim, not a second mechanism');
-    assert.ok(!b.scrim().classList.contains('is-open'));
-    const tab = b.tab();
-    assert.ok(tab, 'the way back in is on screen');
-    assert.equal(tab.getAttribute('aria-expanded'), 'false');
-    assert.equal(tab.getAttribute('aria-controls'), 'rl-queue');
-  });
-
-  test('THE SCORE SURVIVES THE CLOSE — the door carries it', () => {
-    /* The folded rail\'s justification was that "2 of 7" stayed legible at 34px,
-       so reopening was never a guess. An overlay that simply shut would have
-       taken that away. */
-    const b = bench();
-    const n = b.tab().querySelector('.rl-q-tab-n');
-    assert.ok(n, 'the door reads out the round');
-    assert.match(n.textContent.replace(/\s+/g, ''), /^\d+\/\d+$/);
-    /* One source: the panel\'s own foot says the same two numbers. */
-    const foot = b.host.querySelector('.rl-q-foot b').textContent.replace(/\s+/g, '');
-    assert.equal(foot, n.textContent.replace(/\s+/g, '').replace('/', 'of'));
-  });
-
-  test('pressing the door opens it; the close, the scrim and Escape shut it', () => {
-    const b = bench();
-    b.press(b.tab());
-    assert.ok(b.queue().classList.contains('is-open'));
-    assert.ok(b.scrim().classList.contains('is-open'));
-    assert.equal(b.win.rlQueueOpen(), true);
-    b.press(b.close());
-    assert.ok(!b.queue().classList.contains('is-open'), 'the close shuts it');
-    b.press(b.tab());
-    b.press(b.scrim());
-    assert.ok(!b.queue().classList.contains('is-open'), 'so does the scrim');
-    b.press(b.tab());
-    b.win.document.dispatchEvent(new b.win.KeyboardEvent('keydown', { key: 'Escape' }));
-    assert.ok(!b.queue().classList.contains('is-open'), 'and so does Escape');
-  });
-
-  test('OPENING IT REPAINTS NOTHING', () => {
-    /* The property the fold already had and the one worth keeping: rebuilding
-       the workbench to show one panel throws away the reader\'s place in the
-       contract, which is the one thing they were holding on to. */
-    const b = bench();
-    const doc = b.host.querySelector('#rl-doc');
-    b.press(b.tab());
-    assert.equal(b.host.querySelector('#rl-doc'), doc, 'the same node, not a rebuilt one');
-    const src2 = (src('js/views/negotiation.js') + src('js/views/negotiation-css.js'));
-    const fn = src2.slice(src2.indexOf('function rlSetQueueShown'));
-    const body = fn.slice(0, fn.indexOf('\n}'));
-    assert.ok(!/again\(\)|renderRedline|redlineEmbed/.test(body), 'no repaint in the flip');
-    /* And the resizer is NOT re-run: the split behind it has not moved. */
-    assert.ok(!/rlLayoutResizer/.test(body));
-  });
-
-  test('A QUEUE ROW CLOSES IT — a door must not open onto a wall', () => {
-    /* Pressing a row jumps the contract to that clause. With the panel standing
-       over the contract, that lands the reader on a passage they cannot see. */
-    const b = bench();
-    b.press(b.tab());
-    const row = b.host.querySelector('[data-rl-queue]');
-    assert.ok(row, 'there is a row to press');
-    b.press(row);
-    assert.equal(b.win.rlQueueOpen(), false);
-  });
-
-  test('THE COUNTERPARTY GETS THE OVERLAY TOO', () => {
-    /* One builder draws the owner\'s bench, the contract tab\'s embed and their
-       page — and the complaint (the queue eating the contract\'s width) is the
-       same on their screen. The door is built inside the panes rather than on
-       the workbench toolbar precisely so it reaches a page that has no toolbar. */
-    const b = bench('counterparty');
-    assert.ok(b.queue());
-    assert.ok(b.tab(), 'their page gets the door as well');
-    assert.ok(b.scrim());
+  test('RETIRED (Young, 9 Oct 2026, change 4): no door, no panel, no scrim — on our seat or theirs', () => {
+    /* The owner removed "This round's queue" from the page: the Redlines
+       column's piles and "Progress · k of n decided" already say it. The tests
+       that drove the door (it arrived shut, carried the score, opened without a
+       repaint, a row closed it, their page had it too) went with it. */
+    for (const side of ['owner', 'counterparty']){
+      const b = bench(side);
+      assert.ok(b.grid(), 'the grid is there');
+      assert.equal(b.queue(), null, side + ': no panel');
+      assert.equal(b.tab(), null, side + ': no door on the paper\'s edge');
+      assert.equal(b.scrim(), null, side + ': no scrim');
+    }
   });
 
   test('THE DOOR IS ON THE PAGE\'S BORDER WALL, NOT THE WINDOW\'S EDGE', () => {

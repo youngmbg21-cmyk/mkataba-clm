@@ -1508,15 +1508,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     return { lines: lines(k), ws: getComputedStyle(k).whiteSpace,
       tab: h(tab), label: h(k), count: h(n), content };
   });
-  check('16 the queue label paints on one line, never two',
-    rail && rail.lines === 1, rail && `${rail.lines} line(s)`);
-  check('16 and it cannot wrap at any window size',
-    rail && rail.ws === 'nowrap', rail && rail.ws);
-  /* SHORTER, AS A RELATION: the strip is its contents plus padding, and the
-     padding is what was trimmed — so it must not exceed them by much. */
-  check('16 the strip is no taller than what it carries',
-    rail && rail.tab - rail.content <= 34,
-    rail && `${rail.tab}px for ${rail.content}px of content`);
+  /* RETIRED (Young, 9 Oct 2026, the Paper and Counter review, change 4):
+     "This round's queue" — its vertical door and its panel — is gone from the
+     page, so the claim is now that nothing of it is drawn. */
+  check('16 the round\'s queue is retired: no door on the paper\'s edge, no panel', rail === null
+    && await page.evaluate(() => !document.querySelector('#rl-queue, #rl-q-scrim')), rail && JSON.stringify(rail));
 
   /* ---- 17. A READING IS NOT A WORKING POSTURE (owner-asked 24 Aug 2026) ----
      "Remove the strip from the top of the contract in both as agreed and with
