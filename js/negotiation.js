@@ -743,7 +743,10 @@ function negoTimeline(c, f = {}){
     if (ch.status === 'accepted' || ch.status === 'rejected')
       ev.push({ ...base, kind: 'decided', at: ch.resolvedAt || ch.createdAt || '',
         actor: ch.resolvedBy || '', side: otherSide(ch.authorSide), outcome: ch.status,
-        text: `${ch.status === 'accepted' ? 'Accepted' : 'Rejected'} by ${ch.resolvedBy || 'the other side'}`
+        /* ON THEIR SEAT the decider's name is walled, and a decision THEY made
+           read "by the other side" (8 Oct 2026): it is theirs, so "you". */
+        text: `${ch.status === 'accepted' ? 'Accepted' : 'Rejected'} by ${ch.resolvedBy
+          || (ch.authorSide === 'owner' && typeof window !== 'undefined' && window.PORTAL_MODE === true ? 'you' : 'the other side')}`
           + `${ch.status === 'accepted' ? ' — merged into the wording' : ch.reply ? ` — “${ch.reply}”` : ''}`,
         reply: ch.reply || null, ch });
     if (ch.withdrawn)

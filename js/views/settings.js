@@ -5464,13 +5464,22 @@ function renderLinkCodePanel(){
   const host=document.getElementById('lc-rule-panel'); if(!host) return;
   const admin=isAdmin();
   const cfg=(window.linkCodeCfg?linkCodeCfg():{on:false});
+  /* NO EMAIL, NO CODE (8 Oct 2026): a guest asked for a code nobody can mail
+     them is locked out, so the switch does not go ON while email is not set
+     up — greyed with its reason and the way to the mail settings. A rule
+     already on may still be switched off. The server refuses it too. */
+  const noMail=!!(window.emailOff&&emailOff());
+  const blocked=noMail&&!cfg.on;
   host.innerHTML=`
-    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin?'pointer':'not-allowed'}">
-      <input id="lc-rule-on" type="checkbox"${cfg.on?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin&&!blocked?'pointer':'not-allowed'}">
+      <input id="lc-rule-on" type="checkbox"${cfg.on?' checked':''}${admin&&!blocked?'':' disabled'} style="margin-top:2px"/>
       <span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_link_code')}</span>
-    </label>`;
+    </label>${noMail?`<p id="lc-rule-why" class="st-note" style="margin:6px 0 0 24px">${esc(i18t(cfg.on?'set_link_code_no_mail_on':'set_link_code_no_mail'))}${
+      admin&&window.openSettingsAt?` <button type="button" class="ui-link" id="lc-rule-mail">${esc(i18t('set_link_code_set_mail'))}</button>`:''}</p>`:''}`;
   if(!admin) return;
+  host.querySelector('#lc-rule-mail')?.addEventListener('click',()=>{ try{ openSettingsAt('build','mail'); }catch(_){} });
   host.querySelector('#lc-rule-on')?.addEventListener('change',e=>{
+    if(e.target.checked && window.emailOff && emailOff()){ e.target.checked=false; toast(i18t('set_link_code_no_mail'),'err'); return; }
     if(window.saveLinkCodeCfg) saveLinkCodeCfg({ on:!!e.target.checked });
     stRepaintRow('linkcode');
     if(window.toast) toast(i18t(e.target.checked?'set_link_code_on':'set_link_code_off'),'ok');

@@ -5880,6 +5880,12 @@ app.put('/api/settings', auth, admin, (req, res) => {
   /* WHO SAVED A LANE, AND WHO IT NAMES, ARE THE SERVER'S WORD — see
      srvLanesStamp. */
   if (Array.isArray(incoming.intakeLanes)) incoming.intakeLanes = srvLanesStamp(incoming.intakeLanes, stored.intakeLanes, req.user);
+  /* ---- A CODE NOBODY CAN MAIL LOCKS THE GUEST OUT (8 Oct 2026) ----
+     Switching the link code ON while email is not set up is refused — as a
+     DIFFERENCE against the stored rule, so a rule already on (or a save that
+     leaves it alone) never blocks an unrelated setting. */
+  if (((incoming.linkCode || {}).on) && !((stored.linkCode || {}).on) && !EMAIL_ON())
+    return res.status(409).json({ error: 'Email is not set up, so a guest could never receive the code. Set up email first, then switch this on.', linkCodeNeedsEmail: true });
   setSetting('appSettings', incoming);
   res.json({ ok: true, ...(Array.isArray(incoming.intakeLanes) ? { intakeLanes: incoming.intakeLanes } : {}) });
 });
@@ -10009,7 +10015,7 @@ function dealPageHtml(D, org) {
     <div style="font-size:15px;font-weight:600;color:#1B2A28">${e(v)}</div></td>`;
   const clauseOf = p => (p && p.clause) || 'a clause';
   const li = (mark, a, b) => `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #F1F4F3;font-size:14px">
-    <span style="flex:none;color:${mark === 'o' ? '#E8B84B' : '#0C5D55'};line-height:1.5">${mark === 'o' ? '○' : '✓'}</span>
+    <span style="flex:none;color:${mark === 'o' ? '#E8B84B' : mark === 'x' ? '#9B2C2C' : '#0C5D55'};line-height:1.5">${mark === 'o' ? '○' : mark === 'x' ? '✕' : '✓'}</span>
     <span><b style="font-weight:600">${e(a)}</b>${b ? `<i style="font-style:normal;display:block;color:#5F6D6B;font-size:12.5px;margin-top:1px">${e(b)}</i>` : ''}</span></div>`;
   /* THE SHARED SHEET (4 Oct 2026): one row of facts — the round, how much is
      settled, what waits on each party — in place of "Whose move — X for 0 days". */
@@ -10035,8 +10041,8 @@ function dealPageHtml(D, org) {
       <table style="width:100%;border-collapse:collapse;margin:16px 0 18px"><tr>${D.steps.map(step).join('')}</tr></table>
       <table style="width:100%;border-collapse:collapse"><tr style="vertical-align:top">
         <td style="width:50%;padding-right:12px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Agreed &middot; ${D.settled}</div>
-          ${D.settledPoints.length ? D.settledPoints.map(p => li('t', clauseOf(p), '')).join('')
+          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Settled &middot; ${D.settled}</div>
+          ${D.settledPoints.length ? D.settledPoints.map(p => p.settled ? li('t', clauseOf(p), '') : li('x', clauseOf(p), 'not taken')).join('')
             + (D.settled > D.settledPoints.length ? `<div style="font-size:13px;color:#8A9693;padding:5px 0">and ${D.settled - D.settledPoints.length} more</div>` : '')
             : '<div style="font-size:14px;color:#8A9693;padding:5px 0">Nothing has been settled yet</div>'}</td>
         <td style="width:50%;padding-left:12px">
@@ -14442,6 +14448,26 @@ function srvPartyOfShare(c, shareRow) {
   if (want) { const p = list.find(x => x.id === want); if (p) return p; }
   return list.length ? list[0] : null;
 }
+/* ---- EVERY OUTSIDE PARTY'S PAGE NAMES ITSELF (owner's D2, 8 Oct 2026) ----
+   On a contract with more than one outside party the copy a link serves
+   carries the party list — names, roles and involvement, never an address —
+   and WHICH party this link is, read off the stored ROW and the STORED record
+   (the browser's payload is not this route's to trust). A two-party contract
+   is left exactly as stored, so every ordinary link answers byte-identically. */
+function srvPartiesOnPayload(p, s) {
+  try {
+    if (!p || !p.contract || !s || !s.contract_id) return p;
+    const c = srvStoredContract(s.contract_id);
+    const all = srvContractParties(c);
+    const theirs = all.filter(x => x.side !== 'ours');
+    if (theirs.length < 2) return p;
+    const mine = srvPartyOfShare(c, s);
+    p.contract.parties = all.map(x => ({ id: x.id, name: x.name, role: x.role, side: x.side, involvement: x.involvement }));
+    p.party = { id: mine ? mine.id : theirs[0].id, role: (mine && mine.role) || (p.party && p.party.role) || '',
+      others: theirs.length - 1 };
+    return p;
+  } catch (_) { return p; }
+}
 
 /* ============================================================
    WHERE THE DEAL STANDS — the server's own copy of the reading
@@ -14493,7 +14519,7 @@ function srvDealStands(c) {
   const parties = all.filter(p => p && p.name).map(p => ({
     name: String(p.name), ours: p.side === 'ours',
     negotiates: p.side === 'ours' || p.involvement === 'negotiate' || p.involvement === 'both',
-    signs: p.side === 'ours' || p.involvement === 'sign' || p.involvement === 'both' || !p.involvement,
+    signs: p.side === 'ours' || p.involvement !== 'none',
   }));
   const us = parties.find(p => p.ours) || null, them = parties.find(p => !p.ours) || null;
   const live = srvDsLive(c), open = live.filter(x => x.status === 'pending');
@@ -15830,6 +15856,18 @@ function shareDoorOtpOk(token, t) {
     && crypto.timingSafeEqual(Buffer.from(want), Buffer.from(got));
 }
 
+/* ---- A DEAD LINK STILL SAYS WHOSE IT WAS (8 Oct 2026) ----
+   The withdrawn / expired page named nobody: "Ask the sender to reshare". The
+   410 now carries the contract's title and the sender's name off the stored
+   copy — the two facts the holder needs to ask for a new link, and nothing
+   else about the deal. */
+function shareGoneWho(s) {
+  try {
+    const p = JSON.parse((s && s.payload) || 'null') || {};
+    return { contractName: String((p.contract && p.contract.name) || '').slice(0, 200),
+      sender: String(p.sharedBy || '').slice(0, 120), org: String(p.org || '').slice(0, 160) };
+  } catch (_) { return {}; }
+}
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
@@ -15842,8 +15880,8 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
      other kind. The wall is here, where the payload is, not in the browser. */
   if (shareIsStatus(s)) return res.status(403).json({
     error: 'This is a status link. It opens a read-only page at /deal/' + req.params.token + ' and carries no copy of the contract.' });
-  if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked' });
-  if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired' });
+  if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked', ...shareGoneWho(s) });
+  if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired', ...shareGoneWho(s) });
   /* ---- AND A NAMED GUEST'S LINK ASKS WHO IS OPENING IT (idea 8, 4 Oct 2026)
      ---- The wall is HERE, on the route that hands over the contract, and not
      in the browser: a page can be skipped, a payload cannot. It answers with
@@ -15856,7 +15894,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
      asks for a key to a room that is not there. Dead first, then who. */
   if (shareNeedsCode(s) && !shareDoorOtpOk(s.token, req.query && req.query.t))
     return res.status(401).json({ error: 'Check it is you before this opens.', needsCode: true,
-      to: shareCodeMask(s.recipient_email) });
+      to: shareCodeMask(s.recipient_email),
+      /* With email off the code waits in the sender's outbox, so the page
+         says who to ask (8 Oct 2026): whether mail goes, and the sender's
+         name — nothing else about the deal. */
+      emailConfigured: EMAIL_ON(), sharedBy: (() => { try { return String((JSON.parse(s.payload) || {}).sharedBy || '').slice(0, 120); } catch (_) { return ''; } })() });
   /* WP-1.6: a derived view link dies with its parent — checked live, on every
      open, because a cascade WRITE at revoke time would miss a parent that
      merely expired. A derived ticket is strictly weaker than its source, and
@@ -15864,13 +15906,13 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   if (s.parent_token){
     const p = db.prepare('SELECT revoked_at, expires_at FROM shares WHERE token=?').get(s.parent_token);
     if (!p || p.revoked_at || shareExpired(p))
-      return res.status(410).json({ error: 'The link this reading copy was created from is no longer active, so this copy has closed with it.', gone: 'revoked' });
+      return res.status(410).json({ error: 'The link this reading copy was created from is no longer active, so this copy has closed with it.', gone: 'revoked', ...shareGoneWho(s) });
   }
   // The payload carries its own copy of the contract, so a link outlives the
   // record unless this is checked: without it, a deleted contract keeps being
   // served here — still offering "Approve & sign" — to anyone holding the link.
   if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
-    return res.status(410).json({ error: 'This contract is no longer available. Ask the sender for an up-to-date copy.', gone: 'revoked' });
+    return res.status(410).json({ error: 'This contract is no longer available. Ask the sender for an up-to-date copy.', gone: 'revoked', ...shareGoneWho(s) });
   /* ---- W7: A BOUND LINK OPENS IN ITS TURN, AND NOT BEFORE ----
      Signer n+1 holds a real link — created up front so the whole route exists
      the moment it is issued — but until signer n has signed, it answers with a
@@ -15884,9 +15926,9 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   if (s.signer_id && !s.response) {
     const turn = signerTurn(s.contract_id, s.signer_id);
     if (turn.reason === 'unknown')
-      return res.status(410).json({ error: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.', gone: 'revoked' });
+      return res.status(410).json({ error: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.', gone: 'revoked', ...shareGoneWho(s) });
     if (turn.reason === 'already-signed')
-      return res.status(410).json({ error: 'This signing step has already been completed — nothing on this link is left to do.', gone: 'revoked' });
+      return res.status(410).json({ error: 'This signing step has already been completed — nothing on this link is left to do.', gone: 'revoked', ...shareGoneWho(s) });
     if (turn.reason === 'awaiting') {
       let p = null; try { p = JSON.parse(s.payload); } catch (_) {}
       const w = turn.waitingOn;
@@ -15908,7 +15950,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
          held with its reason ("X signs first"). The same facts a sign link
          serves once its turn comes, minus nothing the reader could act on —
          the respond route still refuses a signature out of turn. */
-      payload: p, purpose: s.purpose || null, signingOrder: shareSigningOrder(s),
+      payload: srvPartiesOnPayload(p, s), purpose: s.purpose || null, signingOrder: shareSigningOrder(s),
       signatures: shareLiveSignatures(s, null), emailConfigured: EMAIL_ON(),
       share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
         expiresAt: s.expires_at || null, channel: s.channel || 'link' } });
@@ -16008,7 +16050,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
       verified: r.action === 'sign' ? !!(r.verify || r.verified === true) : null,
       applied: lastR.applied == null ? null : lastR.applied === 1 }; } catch (_) {} }
   res.json({
-    payload: JSON.parse(s.payload),
+    payload: srvPartiesOnPayload(JSON.parse(s.payload), s),
     // whether this server can send a verification code at all — the portal
     // needs it BEFORE the signer presses sign, not as a failure afterwards
     emailConfigured: EMAIL_ON(),

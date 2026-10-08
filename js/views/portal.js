@@ -486,7 +486,7 @@ function portalExportPdf(c){
 }
 function portalExportWord(c){
   if(window.exportWordTracked)
-    exportWordTracked(c,{ side:'counterparty', author:portalResponderName()||(c&&c.counterparty)||'Counterparty' });
+    exportWordTracked(c,{ side:'counterparty', author:portalResponderName()||portalMyPartyName(PORTAL_OPTS&&PORTAL_OPTS.payload)||(c&&c.counterparty)||'Counterparty' });
   else if(window.toast) toast(i18t('po_export_unavailable'),'err');
 }
 /* THE PAGE'S DOCUMENT-LEVEL KEYS AND PRESSES, armed once whether or not a
@@ -809,16 +809,19 @@ function portalSignedRecord(opts){
 function portalReceiptHtml(p, rec){
   const row=(k,v)=>v?`<div style="display:contents"><dt style="color:var(--color-neutral-600)">${esc(k)}</dt><dd style="margin:0;min-width:0;overflow-wrap:anywhere">${v}</dd></div>`:'';
   const who=esc(rec.name||'')+(rec.title?', '+esc(rec.title):'');
-  const party=esc((p&&p.contract&&p.contract.counterparty)||'');
+  const party=esc(portalMyPartyName(p));
   const when=rec.at?esc(window.fmtDT?fmtDT(rec.at):String(rec.at)):'';
   const mail=(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail)||'';
   const check=rec.verified?esc(i18t('po_rc_checked',{email:mail||i18t('po_rc_your_address')})):esc(i18t('po_rc_unchecked'));
   const done=!!portalExecuted();
   /* What happens next, said from the order the page already holds. */
-  let next=i18t('po_rc_next_told',{who:(p&&p.sharedBy)||i18t('po_the_sender')});
+  /* NO EMAIL, NO PROMISE OF ONE (8 Oct 2026): with email off the copy is on
+     this link, so that is what is said. */
+  const mailOn=PORTAL_OPTS.emailConfigured!==false;
+  let next=i18t(mailOn?'po_rc_next_told':'po_rc_next_told_nomail',{who:(p&&p.sharedBy)||i18t('po_the_sender')});
   const order=Array.isArray(PORTAL_OPTS.signingOrder)?PORTAL_OPTS.signingOrder:[];
   const waiting=[]; order.forEach(st=>(st.rows||[]).forEach(r=>{ if(!r.signed&&!r.you) waiting.push(r.name||r.party); }));
-  if(!done&&waiting.length) next=i18t('po_rc_next_waiting',{who:waiting.filter(Boolean).slice(0,2).join(', ')});
+  if(!done&&waiting.length) next=i18t(mailOn?'po_rc_next_waiting':'po_rc_next_waiting_nomail',{who:waiting.filter(Boolean).slice(0,2).join(', ')});
   return `<div class="ps-receipt" role="status" aria-live="polite">
     <div style="display:flex;align-items:center;gap:8px;font-size:var(--t-card);font-weight:var(--w-title);color:var(--st-green-fg);margin-bottom:10px">${icon('check2','w-4 h-4')} ${esc(i18t('po_rc_you_signed'))}</div>
     <dl style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 14px;margin:0 0 12px;font-size:var(--t-label);line-height:1.45">
@@ -1385,7 +1388,20 @@ function portalResponderName(){
      the remembered name above it, which the reader's own typing sets. */
   return fval('nego-cp-name') || fval('pt-name')
     || (window.negoRememberedName ? negoRememberedName() : '')
-    || (PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientName) || '';
+    || portalRecipientPerson();
+}
+/* ---- A COMPANY IS NOT A PERSON (8 Oct 2026) ----
+   The recipient field often holds the counterparty COMPANY, and the trail then
+   read "accepted by Juno Limited". Where it names a party (or our own org)
+   rather than a person, it is no answer: portalEnsureResponderName asks the
+   reader's name once, at their first Send, and remembers it. */
+function portalRecipientPerson(){
+  const n=String((PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientName)||'').trim();
+  if(!n) return '';
+  const fold=s=>String(s||'').replace(/\s+/g,' ').trim().toLowerCase();
+  const p=PORTAL_OPTS.payload||{}, ct=p.contract||{};
+  const firms=[ct.counterparty, p.org, ct.party].concat(Array.isArray(ct.parties)?ct.parties.map(x=>x&&x.name):[]).map(fold).filter(Boolean);
+  return firms.includes(fold(n)) ? '' : n;
 }
 /* ---- ASKED ONCE, WHEN IT MATTERS ----
    The box that used to stand in the header for the whole sitting collected one
@@ -1425,7 +1441,7 @@ async function portalEnsureResponderName(){
 /* The same name, for showing on the screen, where an organisation is a better
    answer than a blank. Never used to attribute a response. */
 const portalResponderLabel = c =>
-  portalResponderName() || (c&&c.counterparty) || 'The counterparty';
+  portalResponderName() || portalMyPartyName(PORTAL_OPTS&&PORTAL_OPTS.payload) || (c&&c.counterparty) || 'The counterparty';
 /* What changed, on the landing page.
    The sender approved this list on step 1 of Share and it travelled with the
    link — so someone opening the link a week later still sees what they were
@@ -1695,6 +1711,14 @@ function portalNegoContract(p){
     // and so is an ask of their own they have taken off the table
     if(PORTAL_NEGO_WITHDRAWN[ch.id]||PORTAL_NEGO_WITHDRAWN_SENT[ch.id])
       ch.withdrawn={ by:portalResponderLabel(c), side:'counterparty', at:nowISO() };
+  }
+  /* A COUNTER HELD ON THIS PAGE NAMES ITS COUNTER (8 Oct 2026). The held
+     decision carries the status alone, so the parked ask read "Under #" with
+     no number: the counter that parks it is the one whose bundle names it. */
+  for(const ch of c.changes){
+    if(!ch || ch.status!=='countered' || ch.counteredBy) continue;
+    const top=c.changes.find(x=>x&&x!==ch&&Array.isArray(x.bundle)&&x.bundle.some(b=>b&&b.id===ch.id));
+    if(top) ch.counteredBy=top.id;
   }
   return c;
 }
@@ -2170,7 +2194,7 @@ const portalNegoComment = p => async (_c, ch, msg) => {
     toast(`Comment sent to ${(p&&p.org)||'the sender'} — the contract is unchanged`);
     portalNotesAfterPost();
     return { ok:true };
-  }catch(e){ toast(e.message||'Could not send your comment','err'); return { ok:false }; }
+  }catch(e){ toast(portalErrText(e,'Could not send your comment'),'err'); return { ok:false }; }
 };
 /* Done, from their seat, on the same link. */
 const portalNoteDone = () => async (_c, m, on) => {
@@ -2227,6 +2251,10 @@ function portalOpenNotes(o){
   _ptNotesKey=key;
   portalNotesPaint();
   panel.classList.add('open'); panel.setAttribute('aria-hidden','false');
+  /* Reading the notes is what marks them seen: the bell row and the door's
+     count go with it. */
+  portalNotesMarkSeen();
+  try{ if(_ptNotes&&_ptNotes.c) portalPaintAlerts(_ptNotes.c, _ptNotes.p); }catch(_){}
   /* NO SCRIM (4 Oct 2026): our drawer leaves the contract lit and pressable
      (notes-two-rooms-verify: "the scrim does not come up"); theirs now does
      the same. Escape, the × and the door shut it. */
@@ -2427,7 +2455,7 @@ function portalTurnWait(){
 function portalSignHold(p){
   if(portalExecuted()||portalSignedHere()) return null;
   const wait=portalTurnWait();
-  if(wait) return { kind:'wait', names:wait, why:i18t('po_hold_wait',{who:wait.slice(0,2).join(', ')}) };
+  if(wait) return { kind:'wait', names:wait, why:i18t(PORTAL_OPTS.emailConfigured===false?'po_hold_wait_nomail':'po_hold_wait',{who:wait.slice(0,2).join(', ')}) };
   const asks=portalOpenAsks(p);
   if(asks.length) return { kind:'points', asks, why:i18t('po_hold_points') };
   return null;
@@ -2453,6 +2481,32 @@ function portalStatusWordHtml(c){
   const meta = (window.STATUS_META && c && STATUS_META[c.status]) || null;
   if(!meta) return '';
   return `<span class="pw-id-stat room-stat" style="color:${meta.tx}">${esc(meta.label)}</span>`;
+}
+/* ---- WHICH OUTSIDE PARTY THIS PAGE IS (owner's D2, 8 Oct 2026) ----
+   On a multi-party contract the payload carries the parties and the link's
+   own party id (the server stamps both off the link's row); this reader is
+   that party, not the first one. Everywhere else: the counterparty, as ever. */
+function portalMyPartyName(p){
+  try{
+    const ct=(p&&p.contract)||{}, id=p&&p.party&&p.party.id;
+    const hit=id&&Array.isArray(ct.parties)?ct.parties.find(x=>x&&String(x.id)===String(id)&&x.side!=='ours'):null;
+    return (hit&&hit.name)||ct.counterparty||'';
+  }catch(_){ return (p&&p.contract&&p.contract.counterparty)||''; }
+}
+/* Does this reader's party sign? Only a party recorded as `none` does not;
+   absent a party list, the counterparty signs, as ever. */
+function portalMySigns(p){
+  try{
+    const ct=(p&&p.contract)||{}, id=p&&p.party&&p.party.id;
+    const hit=id&&Array.isArray(ct.parties)?ct.parties.find(x=>x&&String(x.id)===String(id)):null;
+    return !hit || hit.involvement!=='none';
+  }catch(_){ return true; }
+}
+/* Who the deal is with, said from outside: every outside party where there is
+   more than one, else the counterparty. */
+function portalWithNames(c){
+  const ps=Array.isArray(c&&c.parties)?c.parties.filter(x=>x&&x.side!=='ours'&&x.name):[];
+  return ps.length>1?ps.map(x=>x.name).join(', '):((c&&c.counterparty)||'');
 }
 function portalPartyLine(){
   try{
@@ -2986,7 +3040,7 @@ async function portalRefreshNow(reason){
     const { status, ok, d }=await portalFetchShare(_ptPollToken);
     /* The link died while they held it open — withdrawn by the sender, or
        expired. That is a whole-page answer and it is shown immediately. */
-    if(status===410){ portalStopPolling(); renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return 'gone'; }
+    if(status===410){ portalStopPolling(); renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error, goneWho:d }); return 'gone'; }
     if(!ok || !d) return 'error';
     /* Still waiting for an earlier signer. Painted once — a waiting page that
        repainted on every tick would flicker for nobody's benefit — and the
@@ -3043,7 +3097,7 @@ async function portalEntry(encoded){
     const token=encoded.slice(2);
     try{
       const { status, ok, d }=await portalFetchShare(token);
-      if(status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error }); return; }
+      if(status===410){ renderSharePortal(null,{ gone:(d&&d.gone)||'expired', goneMsg:d&&d.error, goneWho:d }); return; }
       /* ---- A NAMED GUEST'S LINK ASKS WHO IS OPENING IT (idea 8, 4 Oct 2026)
          ---- The server refused the payload, so there is nothing of the deal
          on this screen to be skipped past: the page cannot show the contract
@@ -3196,7 +3250,7 @@ function renderShareViewer(p, opts={}){
   <div class="pv-wrap">
     <header class="pv-banner" role="status">
       <b>Read-only copy shared by ${esc(org)}${to?` with ${esc(to)}`:''}</b>
-      <span class="pv-sub">${esc(c.name||'Contract')}${c.counterparty?` · with ${esc(c.counterparty)}`:''}
+      <span class="pv-sub">${esc(c.name||'Contract')}${portalWithNames(c)?` · with ${esc(portalWithNames(c))}`:''}
         &middot; Round ${esc(String(round))}${asOf?` &middot; as it stood on ${esc(asOf)}`:''}.
         You can read and print this copy. You cannot edit it, respond to it or sign it —
         send any comments to ${esc(org)} directly.</span>
@@ -3362,6 +3416,12 @@ function portalAlerts(c, p){
     if (replied.length) push('reply', 'gray', i18tn('pa_reply', replied.length, { n:replied.length }),
       () => portalGoToChange(replied[0].id));
   }
+  /* 4b. A NOTE FROM THE SENDER they have not read — the press opens the
+         drawer, and opening it is what clears the row. */
+  const notes = portalNotesUnread();
+  if (notes.length) push('note', 'gray', i18tn('pa_note', notes.length,
+    { n:notes.length, who:(PORTAL_OPTS.payload && PORTAL_OPTS.payload.org) || i18t('pt_the_sender') }),
+    () => portalOpenNotes({}));
   /* 5. YOU CAN TELL THEM YOU ARE READY TO SIGN — only where this page actually
         offers the act, read off the button's own gate rather than recomputed. A
         second copy of negoAlignment here would be free to disagree with the
@@ -3374,7 +3434,7 @@ function portalAlerts(c, p){
         sentence, and the two cannot drift. pa_ready_to_sign is INERT in both
         books. */
   const ready = document.getElementById('pt-nego-ready');
-  if (ready && !ready.disabled && !waiting.length && !held)
+  if (ready && !ready.disabled && !waiting.length && !held && portalMySigns(PORTAL_OPTS.payload))
     push('sign', 'green', i18t('po_ready_tell_title'), () => ready.click());
   /* 6. WHEN THE LINK DIES. A fact, stated once, and only when it is close —
         no door, because there is nothing on this page that changes it. */
@@ -3504,6 +3564,8 @@ function portalPaintAlerts(c, p){
      wear a number. */
   const n=rows.filter(r=>r.kind!=='closed').length;
   if(dot){ dot.textContent=n>9?'9+':String(n); dot.hidden=!n; }
+  const nn=document.getElementById('pt-notes-n'), un=portalNotesUnread().length;
+  if(nn){ nn.textContent=un>9?'9+':String(un); nn.hidden=!un; }
   /* AND THE BELL ITSELF STANDS DOWN WHEN THERE IS NOTHING AT ALL, which is
      what stops it being furniture on a finished contract. */
   /* A NOTICE IS NOT A COUNT, but it is still something to read — so it keeps
@@ -3554,6 +3616,10 @@ function portalAlertsStyle(){
   const el=document.createElement('style'); el.id='pt-alerts-style';
   el.textContent=`
     .pt-bell{position:relative;}
+    .pt-notes-n{display:inline-block;min-width:16px;height:16px;margin-left:5px;padding:0 var(--s-1);border-radius:var(--radius);
+      background:var(--st-amber-fg);color:var(--color-surface);font-family:var(--font-mono);font-size:var(--t-label);
+      font-weight:var(--w-title);line-height:16px;text-align:center;}
+    .pt-notes-n[hidden]{display:none;}
     .pt-bell-dot{position:absolute;top:-5px;right:-5px;min-width:16px;height:16px;padding:0 var(--s-1);
       border-radius:var(--radius);background:var(--st-amber-fg);color:var(--color-surface);
       font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-title);line-height:16px;text-align:center;}
@@ -3816,7 +3882,30 @@ function portalTabsHtml(){
    handler (wirePortalNotes), same drawer. */
 function portalNotesDoorHtml(){
   return `<button type="button" id="pt-notes-door" class="ui-btn pw-id-verb" title="${esc(i18t('po_notes_title'))}">${
-    icon('msg','w-3.5 h-3.5')}${esc(i18t('po_notes'))}</button>`;
+    icon('msg','w-3.5 h-3.5')}${esc(i18t('po_notes'))}<span id="pt-notes-n" class="pt-notes-n" hidden>0</span></button>`;
+}
+/* ---- A NOTE FROM THE SENDER RINGS THEIR BELL (8 Oct 2026) ----
+   Their notes from our side that this reader has not seen: our side's
+   messages on the contract's own thread (a reply on a change is the bell's
+   'reply' row already). Seen = the newest such note's server time when they
+   last opened the drawer, kept in THIS browser for THIS link — they have no
+   account, so the per-viewer store is the only one there is. Internal notes
+   never reach this list: the server scopes the channel, and our own thread
+   never travels. */
+const PT_NOTES_SEEN = 'hati.ptNotesSeen.';
+function portalNotesSeenAt(){
+  try{ return (PORTAL_OPTS.token && localStorage.getItem(PT_NOTES_SEEN+PORTAL_OPTS.token)) || ''; }catch(_){ return ''; }
+}
+function portalNotesUnread(){
+  if(!PORTAL_OPTS.token) return [];
+  const seen=portalNotesSeenAt();
+  return (Array.isArray(PORTAL_OPTS.messages)?PORTAL_OPTS.messages:[]).filter(m=>m&&m.side==='owner'
+    &&!/^change:/.test(String(m.topic||''))&&m.at&&(!seen||String(m.at)>seen));
+}
+function portalNotesMarkSeen(){
+  const at=(Array.isArray(PORTAL_OPTS.messages)?PORTAL_OPTS.messages:[]).map(m=>String((m&&m.at)||'')).sort().pop();
+  if(!at||!PORTAL_OPTS.token) return;
+  try{ if(at>portalNotesSeenAt()) localStorage.setItem(PT_NOTES_SEEN+PORTAL_OPTS.token, at); }catch(_){}
 }
 /* Focus, beside the text size (it was a row in More). Pressed through the
    delegated listener in wirePortalMore. */
@@ -3963,8 +4052,11 @@ function portalWhereMineHtml(c, p, D){
 function portalWhereHtml(c, p){
   if(typeof standsHtml!=='function'||typeof dealStands!=='function')
     return `<div class="pw-where">${portalWhereMineHtml(c, p, null)}</div>`;
-  const D=dealStands(c);
-  const you=D&&(D.parties.find(x=>!x.ours)||{}).name||'';
+  /* THE READER'S OWN PARTY on a multi-party contract (owner's D2, 8 Oct
+     2026): the link's party id, which the server stamps off the link's row. */
+  const seat=(p&&p.party&&p.party.id)||'';
+  const D=dealStands(c, seat?{ seat }:undefined);
+  const you=D&&(D.parties.find(x=>x.seat)||D.parties.find(x=>!x.ours)||{}).name||'';
   const started=portalSigningStarted(), executed=portalExecuted();
   const stepSub=(started&&!executed)?{ signed:i18t('po_step_signing_under_way') }:{};
   return `<div class="pw-where">${standsHtml(c,{ data:D, you, lately:false, stepSub, mine:portalWhereMineHtml(c, p, D) })}</div>`;
@@ -4436,7 +4528,7 @@ function renderShareHistory(p, opts={}){
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name||'Contract')}</span>
               <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono);
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.refHtml?refHtml(c):esc(c.id||'')}${
-                c.counterparty?` &middot; with ${esc(c.counterparty)}`:''} &middot; shared by ${esc(p.sharedBy||org)}${expires}</span>
+                portalWithNames(c)?` &middot; with ${esc(portalWithNames(c))}`:''} &middot; shared by ${esc(p.sharedBy||org)}${expires}</span>
             </span>
           </section>
           ${''/* Says what this link is BEFORE the reader starts looking for the
@@ -4485,10 +4577,14 @@ function renderShareHistory(p, opts={}){
 function portalCodeScreen(token, d){
   const root=document.getElementById('share-root')||document.body;
   const to=(d&&d.to)||'';
+  /* NO EMAIL, SO THE CODE WAITS WITH THE SENDER (8 Oct 2026): the page says
+     who to ask rather than claiming it was sent. */
+  const noMail=!!(d&&d.emailConfigured===false);
+  const asker=(d&&d.sharedBy)||i18t('pt_the_sender');
   root.innerHTML=`<div class="pt-code-wrap"><div class="pt-code">
     <p class="pt-code-brand">HaTi</p>
     <h1>${esc(i18t('po_code_title'))}</h1>
-    <p class="pt-code-sub" id="pt-code-sub">${esc(to?i18t('po_code_sub',{to}):i18t('po_code_sub_plain'))}</p>
+    <p class="pt-code-sub" id="pt-code-sub">${esc(noMail?i18t('po_code_sub_ask',{who:asker}):to?i18t('po_code_sub',{to}):i18t('po_code_sub_plain'))}</p>
     <div class="pt-code-row">
       <input id="pt-code-in" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
         aria-label="${esc(i18t('po_code_title'))}" placeholder="000000">
@@ -4536,12 +4632,12 @@ function portalCodeScreen(token, d){
       markSent();
       const sub=document.getElementById('pt-code-sub');
       const to=(j&&j.sentTo)?portalMaskAddress(j.sentTo):'';
-      if(sub&&to) sub.textContent=i18t('po_code_sub',{to});
+      if(sub&&to&&!noMail&&!(j&&j.emailConfigured===false)) sub.textContent=i18t('po_code_sub',{to});
       /* "SENT" MUST MEAN SENT: mailReportPublic's own four states, and the
          outbox is honest delivery rather than a failure. */
       const queued=!!(j&&!j.emailSent&&!j.emailConfigured);
       say(j&&j.emailSent?i18t('po_code_sent',{n:PT_CODE_MINUTES})
-        :queued?i18t('po_code_outbox')
+        :queued?i18t('po_code_outbox_ask',{who:asker})
         :((j&&j.emailError)||i18t('po_code_send_failed')),
         !!(j&&(j.emailSent||queued)));
       if(box) box.focus();
@@ -4568,7 +4664,7 @@ function portalCodeScreen(token, d){
      just opened a link they were emailed has already asked for it by opening
      it. A refresh does not ask again — it says the code is already out and
      waits for the press. */
-  if(sentAlready()) say(i18t('po_code_already'), true); else send();
+  if(sentAlready()) say(noMail?i18t('po_code_outbox_ask',{who:asker}):i18t('po_code_already'), true); else send();
 }
 
 function renderSharePortal(p, opts={}){
@@ -4628,7 +4724,11 @@ function renderSharePortal(p, opts={}){
     root.innerHTML=`<div style="min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:0 var(--s-4);">
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:var(--s-8);text-align:center;max-width:24rem;">
         <div style="color:${gone?'var(--st-amber-dot)':'var(--st-ruby-dot)'};margin-bottom:var(--s-3);display:flex;justify-content:center;">${icon(gone?'clock':'ban','w-8 h-8')}</div>
-        <h1 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:20px;color:var(--color-text);margin:0;">${gone==='revoked'?'Link withdrawn':gone==='expired'?'Link expired':'Invalid share link'}</h1>
+        <h1 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:20px;color:var(--color-text);margin:0;">${gone==='revoked'?'Link withdrawn':gone==='expired'?'Link expired':'Invalid share link'}</h1>${
+          ''/* WHOSE IT WAS (8 Oct 2026): the contract and who sent it, off the 410. */}${
+          gone&&opts.goneWho&&(opts.goneWho.contractName||opts.goneWho.sender)?`<p id="pt-gone-who" style="font-size:var(--t-body);color:var(--color-text);margin:8px 0 0;line-height:1.5;">${
+            opts.goneWho.contractName?`<b>${esc(opts.goneWho.contractName)}</b>`:''}${opts.goneWho.contractName&&opts.goneWho.sender?' · ':''}${
+            opts.goneWho.sender?esc(i18t('po_gone_from',{ who:opts.goneWho.sender+(opts.goneWho.org?', '+opts.goneWho.org:'') })):''}</p>`:''}
         <p style="font-size:var(--t-body);color:var(--color-neutral-700);margin-top:6px;line-height:1.5;">${opts.goneMsg||(gone?'This share link is no longer active. Ask the sender to reshare the contract.':'This link is malformed or truncated. Ask the sender to generate a fresh one.')}</p>
       </div></div>`;
     return;
@@ -4773,7 +4873,7 @@ function renderSharePortal(p, opts={}){
         ${(opts.share&&opts.share.recipientEmail)
           ? `<div style="margin-bottom:var(--s-3)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-heading);letter-spacing:.02em;">${i18t('po_work_email')}</span>
               <span style="display:block;font-size:var(--t-body);color:var(--color-text);overflow-wrap:anywhere">${esc(opts.share.recipientEmail)}</span>
-              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${i18t('po_code_goes_here')}</span>
+              <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px">${i18t(opts.emailConfigured===false?'po_code_goes_here_nomail':'po_code_goes_here')}</span>
               <input type="hidden" id="pt-email" value="${esc(opts.share.recipientEmail)}"/></div>`
           : input('pt-email','Work email','you@company.co.ke')}
         ${''/* ---- "PROPOSE A DIFFERENT VALUE" IS GONE (removed 2026-08-11, on
@@ -5067,6 +5167,19 @@ async function portalSendCheck(p, action){
     cancelLabel: i18t('po_send_check_back'),
   }));
 }
+/* ---- HATI COULD NOT BE REACHED (8 Oct 2026) ----
+   The browser's own words for a dropped connection ("Failed to fetch",
+   "NetworkError…", "Load failed") reached their screen raw. Said as what it
+   is, and what it cost them: on a Send their answers stay held on this page
+   (`kept`), anywhere else nothing was sent. Any other refusal is the
+   server's own sentence, unchanged. */
+const PT_NET_FAIL = /failed to fetch|networkerror|load failed|network request failed|network error/i;
+function portalErrText(e, fallback, kept){
+  const m=String((e&&e.message)||'');
+  if((e&&e.name==='TypeError'&&!m) || PT_NET_FAIL.test(m)
+    || (e&&[502,503,504].includes(e.status)&&!(e.data&&e.data.error))) return i18t(kept?'po_unreachable_kept':'po_unreachable');
+  return m || fallback || i18t('po_something_went_wrong');
+}
 async function portalRespond(p, action, extra){
   /* THE SAME REFUSAL THE SERVER MAKES, one layer earlier — the wall is on the
      server (POST /api/shares/:token/respond), and this is here so a reader who
@@ -5235,7 +5348,7 @@ async function portalRespond(p, action, extra){
       if(window.portalPaintAlerts) try{ portalPaintAlerts(fresh, p); }catch(_){}
     }catch(e){
       portalSetIdle();
-      toast(e.message||(action==='ready'?'Could not send':'Could not send your decisions'),'err');
+      toast(portalErrText(e,(action==='ready'?'Could not send':'Could not send your decisions'),true),'err');
     }
     return;
   }
@@ -5327,9 +5440,9 @@ async function portalRespond(p, action, extra){
       // Nothing was recorded, so the controls come back — a spent-looking
       // button on a failed send is worse than no feedback at all.
       portalSetIdle();
-      toast(e.message,'err');
+      toast(portalErrText(e),'err');
       const box=document.getElementById('portal-result');
-      if(box) box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_not_sent')}</b> ${esc(e.message||i18t('po_something_went_wrong'))}</div>`;
+      if(box) box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_not_sent')}</b> ${esc(portalErrText(e))}</div>`;
     }
     return;
   }
@@ -5631,7 +5744,7 @@ async function portalSignUnverified(p, info){
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:var(--s-1);">${icon('check2','w-4 h-4')} Signed</div>
           <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0;">Your signature has been delivered to ${esc(p.sharedBy)} at ${esc(p.org)}. It is recorded as not independently verified, because this server cannot send verification codes.</p>
         </div>`;
-    }catch(e){ portalSetIdle(); toast(e.message,'err'); box.innerHTML=''; }
+    }catch(e){ portalSetIdle(); toast(portalErrText(e),'err'); box.innerHTML=''; }
   });
 }
 
@@ -5665,7 +5778,7 @@ async function portalStartOtp(p, info){
     /* The one refusal with no way forward on this page: the link records no
        address to verify against. Said in full, with the way out, rather than
        as a toast that scrolls away. */
-    box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_cannot_send_code')}</b> ${esc(e.message||'')}</div>`;
+    box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_cannot_send_code')}</b> ${esc(portalErrText(e,' '))}</div>`;
     portalSetIdle();
     return;
   }
@@ -5714,7 +5827,7 @@ async function portalVerifyAndSign(p, info){
   // no email in the body: the server verified the address IT chose (W8), and
   // possession of the code is the whole proof
   try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ code:codeVal }); verify=v.verify; }
-  catch(e){ portalSetIdle(); toast(e.message,'err'); return; }
+  catch(e){ portalSetIdle(); toast(portalErrText(e),'err'); return; }
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
     name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO(),
     templateValues:portalTemplateValues(p),
@@ -5745,11 +5858,11 @@ async function portalVerifyAndSign(p, info){
         out.innerHTML=`
           <div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:14px;">
             <div style="display:flex;align-items:center;gap:6px;color:var(--st-ruby-fg);font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:var(--s-1);">${icon('alert','w-4 h-4')} ${i18t('po_signature_failed')}</div>
-            <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5;">${esc(e.message||'The connection dropped before your signature was recorded.')} You’re already verified — you can try again without a new code.</p>
+            <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5;">${esc(portalErrText(e,'The connection dropped before your signature was recorded.'))} You’re already verified — you can try again without a new code.</p>
             <button id="pt-sign-retry" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} Try signing again</button>
           </div>`;
         document.getElementById('pt-sign-retry')?.addEventListener('click',submitSigned);
-      } else toast(e.message,'err');
+      } else toast(portalErrText(e),'err');
     }
   };
   await submitSigned();
@@ -6092,6 +6205,6 @@ async function refreshStats(){
     if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
-Object.assign(window,{portalOpenAsks,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});

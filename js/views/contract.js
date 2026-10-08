@@ -2243,8 +2243,15 @@ function docBodyCarriesTop(html, c){
    amendment-journey-verify caught it, which is what that file is for. */
 function redlineDocBody(c){
   const body=docBodyHtml(c,{size:'13.5px', lh:'1.85'});
+  /* THE COPY BOTH SIDES SIGN IS NOT "WORKING TEXT" (8 Oct 2026): the note is
+     the working copy's only — never on our Signing tab, a sealed copy, or a
+     signing link on their page. */
+  let signingCopy=false;
+  try{ signingCopy = window.PORTAL_MODE===true
+    ? !!(window.PORTAL_OPTS && (PORTAL_OPTS.purpose==='sign' || Array.isArray(PORTAL_OPTS.signingOrder)))
+    : (typeof docCopyOf==='function' && docCopyOf(c)==='sign'); }catch(_){ signingCopy=false; }
   return `
-    ${docBodyCarriesTop(body,c)?'':docPaperHeadHtml(c,{note:i18t('ct_working_text_short')})}
+    ${docBodyCarriesTop(body,c)?'':docPaperHeadHtml(c,signingCopy?{}:{note:i18t('ct_working_text_short')})}
     <div style="color:var(--color-doc-text)" data-anchor="redline">${body}</div>
     ${signatureBlock(c)}`;
 }

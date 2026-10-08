@@ -7206,6 +7206,18 @@ function rlBaselineHtml(c, cl, side, opts = {}){
     ? _ne(i18t('ng_base_eq_rung', { who: i18t(b.below.who === 'you' ? 'ng_base_your' : 'ng_base_their'), n: b.below.n }))
       + figOf(b.below.fig) + _ne(i18t('ng_base_not_agreed'))
     : _ne(i18t('ng_base_eq_agreed'));
+  /* THEIR SEAT READS NO LADDER JARGON (8 Oct 2026): "Plain text on clause 2
+     = the agreed wording · Agreed wording = R0 (30 days)" said nothing a
+     reader outside could use. Where the unmarked words ARE the agreed wording
+     there is nothing to say; otherwise it is said in words, with the agreed
+     figure and no rung number. */
+  if (side === 'counterparty' || (typeof rlOnTheirPage === 'function' && rlOnTheirPage())){
+    if (!b.below) return '';
+    return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}">
+    <span><b>${_ne(i18t('ng_base_plain_theirs', { n: num }))}</b> ${plain}</span>${
+      b.baseFig != null && u ? `
+    <span><b>${_ne(i18t('ng_base_agreed'))}:</b> ${_ne(String(b.baseFig))} ${_ne(u)}</span>` : ''}</div>`;
+  }
   return `<div class="rl-baseline" data-rl-baseline="${_ne(id)}">
     <span><b>${_ne(i18t('ng_base_plain', { n: num }))}</b> = ${plain}</span>
     <span><b>${_ne(i18t('ng_base_agreed'))}</b> = R0${figOf(b.baseFig)}</span></div>`;
@@ -18336,8 +18348,11 @@ function redlineChangeCardsHtml(c, opts = {}){
        sentence — "R3 · yours on their R2 · 24 → 18 months" — the artifact's
        row (Young, 21 Sep 2026); the chip track (rlLadderTrackHtml) is the
        ladder panel's own now. */
-    if (track && Array.isArray(track.rows) && track.rows.length >= 2){
-      const [a, b] = track.rows.slice(-2);
+    /* A FIGURE THAT DID NOT MOVE is not a move (8 Oct 2026): "45 -> 45 days"
+       said nothing; the words moved, so the change's own summary says it. */
+    const last2 = (track && Array.isArray(track.rows) && track.rows.length >= 2) ? track.rows.slice(-2) : null;
+    if (last2 && String(last2[0].n) !== String(last2[1].n)){
+      const [a, b] = last2;
       const figs = `${_ne(String(a.n))} → ${_ne(String(b.n))}${track.unit ? ' ' + _ne(track.unit) : ''}`;
       return `<div class="rl-card-sum" title="${_nea(sum)}">${_ne(lead)} · ${figs}${fromRisk ? ` · ${_ne(i18t('rk_from_scan'))}` : ''}</div>`;
     }
@@ -18445,8 +18460,10 @@ function redlineChangeCardsHtml(c, opts = {}){
        two states that share a word: ⏹ for a hold and ⌛ for out with somebody.
 
        [tone, word, hover] — the third slot is new. */
+    /* No counter id carried -> "Countered", never "Under #" (8 Oct 2026). */
     const badge = ch.status === 'countered'
-        ? ['draft', i18t('ng_badge_countered', { id: ch.counteredBy || '' }), i18t('ng_badge_countered_title', { id: ch.counteredBy || '' })]
+        ? (ch.counteredBy ? ['draft', i18t('ng_badge_countered', { id: ch.counteredBy }), i18t('ng_badge_countered_title', { id: ch.counteredBy })]
+          : ['draft', i18t('ng_badge_countered_bare'), i18t('ng_badge_countered_bare_title')])
       : heldHere ? (ch.status === 'accepted'
         ? ['ok', i18t('ng_badge_accepted_held'), i18t('ng_badge_held_title')]
         : ['no', i18t('ng_badge_rejected_held'), i18t('ng_badge_held_title')])
