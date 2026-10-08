@@ -2178,7 +2178,7 @@ const portalNegoComment = p => async (_c, ch, msg) => {
     toast(`Comment sent to ${(p&&p.org)||'the sender'} — the contract is unchanged`);
     portalNotesAfterPost();
     return { ok:true };
-  }catch(e){ toast(e.message||'Could not send your comment','err'); return { ok:false }; }
+  }catch(e){ toast(portalErrText(e,'Could not send your comment'),'err'); return { ok:false }; }
 };
 /* Done, from their seat, on the same link. */
 const portalNoteDone = () => async (_c, m, on) => {
@@ -5143,6 +5143,19 @@ async function portalSendCheck(p, action){
     cancelLabel: i18t('po_send_check_back'),
   }));
 }
+/* ---- HATI COULD NOT BE REACHED (8 Oct 2026) ----
+   The browser's own words for a dropped connection ("Failed to fetch",
+   "NetworkError…", "Load failed") reached their screen raw. Said as what it
+   is, and what it cost them: on a Send their answers stay held on this page
+   (`kept`), anywhere else nothing was sent. Any other refusal is the
+   server's own sentence, unchanged. */
+const PT_NET_FAIL = /failed to fetch|networkerror|load failed|network request failed|network error/i;
+function portalErrText(e, fallback, kept){
+  const m=String((e&&e.message)||'');
+  if((e&&e.name==='TypeError'&&!m) || PT_NET_FAIL.test(m)
+    || (e&&[502,503,504].includes(e.status)&&!(e.data&&e.data.error))) return i18t(kept?'po_unreachable_kept':'po_unreachable');
+  return m || fallback || i18t('po_something_went_wrong');
+}
 async function portalRespond(p, action, extra){
   /* THE SAME REFUSAL THE SERVER MAKES, one layer earlier — the wall is on the
      server (POST /api/shares/:token/respond), and this is here so a reader who
@@ -5311,7 +5324,7 @@ async function portalRespond(p, action, extra){
       if(window.portalPaintAlerts) try{ portalPaintAlerts(fresh, p); }catch(_){}
     }catch(e){
       portalSetIdle();
-      toast(e.message||(action==='ready'?'Could not send':'Could not send your decisions'),'err');
+      toast(portalErrText(e,(action==='ready'?'Could not send':'Could not send your decisions'),true),'err');
     }
     return;
   }
@@ -5403,9 +5416,9 @@ async function portalRespond(p, action, extra){
       // Nothing was recorded, so the controls come back — a spent-looking
       // button on a failed send is worse than no feedback at all.
       portalSetIdle();
-      toast(e.message,'err');
+      toast(portalErrText(e),'err');
       const box=document.getElementById('portal-result');
-      if(box) box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_not_sent')}</b> ${esc(e.message||i18t('po_something_went_wrong'))}</div>`;
+      if(box) box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_not_sent')}</b> ${esc(portalErrText(e))}</div>`;
     }
     return;
   }
@@ -5707,7 +5720,7 @@ async function portalSignUnverified(p, info){
           <div style="display:flex;align-items:center;justify-content:center;gap:6px;color:var(--st-green-fg);font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:var(--s-1);">${icon('check2','w-4 h-4')} Signed</div>
           <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0;">Your signature has been delivered to ${esc(p.sharedBy)} at ${esc(p.org)}. It is recorded as not independently verified, because this server cannot send verification codes.</p>
         </div>`;
-    }catch(e){ portalSetIdle(); toast(e.message,'err'); box.innerHTML=''; }
+    }catch(e){ portalSetIdle(); toast(portalErrText(e),'err'); box.innerHTML=''; }
   });
 }
 
@@ -5741,7 +5754,7 @@ async function portalStartOtp(p, info){
     /* The one refusal with no way forward on this page: the link records no
        address to verify against. Said in full, with the way out, rather than
        as a toast that scrolls away. */
-    box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_cannot_send_code')}</b> ${esc(e.message||'')}</div>`;
+    box.innerHTML=`<div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:var(--s-3) 14px;font-size:var(--t-meta);line-height:1.55;color:var(--st-ruby-fg)"><b>${i18t('po_cannot_send_code')}</b> ${esc(portalErrText(e,' '))}</div>`;
     portalSetIdle();
     return;
   }
@@ -5790,7 +5803,7 @@ async function portalVerifyAndSign(p, info){
   // no email in the body: the server verified the address IT chose (W8), and
   // possession of the code is the whole proof
   try{ const v=await api('shares/'+PORTAL_OPTS.token+'/verify-otp','POST',{ code:codeVal }); verify=v.verify; }
-  catch(e){ portalSetIdle(); toast(e.message,'err'); return; }
+  catch(e){ portalSetIdle(); toast(portalErrText(e),'err'); return; }
   const response={ v:1, kind:'hati-response', id:p.contract.id, docHash:p.docHash, action:'sign',
     name:info.name, title:info.title, email:info.email, comment:info.comment, verify, at:nowISO(),
     templateValues:portalTemplateValues(p),
@@ -5821,11 +5834,11 @@ async function portalVerifyAndSign(p, info){
         out.innerHTML=`
           <div style="border:1px solid var(--st-ruby-line);background:var(--st-ruby-bg);border-radius:var(--radius);padding:14px;">
             <div style="display:flex;align-items:center;gap:6px;color:var(--st-ruby-fg);font-size:var(--t-body);font-weight:var(--w-strong);margin-bottom:var(--s-1);">${icon('alert','w-4 h-4')} ${i18t('po_signature_failed')}</div>
-            <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5;">${esc(e.message||'The connection dropped before your signature was recorded.')} You’re already verified — you can try again without a new code.</p>
+            <p style="font-size:var(--t-label);color:var(--color-neutral-700);margin:0 0 10px;line-height:1.5;">${esc(portalErrText(e,'The connection dropped before your signature was recorded.'))} You’re already verified — you can try again without a new code.</p>
             <button id="pt-sign-retry" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} Try signing again</button>
           </div>`;
         document.getElementById('pt-sign-retry')?.addEventListener('click',submitSigned);
-      } else toast(e.message,'err');
+      } else toast(portalErrText(e),'err');
     }
   };
   await submitSigned();
