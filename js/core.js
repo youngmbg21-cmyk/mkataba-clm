@@ -5239,8 +5239,10 @@ function buildSharePayload(c, docHash, who, opts){
         if(typeof partiesMulti!=='function' || !partiesMulti(c)) return undefined;
         const me=(opts&&opts.partyId&&typeof partyById==='function')?partyById(c,opts.partyId):null;
         const them=partiesTheirs(c);
-        const p=me||them[0]; if(!p||!p.role) return undefined;
-        return { role:p.role, others:Math.max(0, them.length-1) };
+        const p=me||them[0]; if(!p) return undefined;
+        /* AND WHICH PARTY IT IS (owner's D2, 8 Oct 2026): their sheet names
+           itself by this id. The server re-reads it off the link's row. */
+        return { id:p.id, role:p.role||'', others:Math.max(0, them.length-1) };
       }catch(_){ return undefined; }
     })(),
     purpose:purpose, purposeChosen:purposeChosen,
@@ -5260,6 +5262,10 @@ function buildSharePayload(c, docHash, who, opts){
       /* THE REFERENCE THEY READ (26 Sep 2026): a working file's contract
          number, once it has one. The id stays the key the response names. */
       contractNo:c.contractNo||undefined,
+      /* EVERY PARTY ON THE PAPER, multi-party only (owner's D2, 8 Oct 2026):
+         names, roles and involvement — never an address. */
+      parties:(typeof partiesMulti==='function'&&partiesMulti(c))
+        ? contractParties(c).map(p=>({ id:p.id, name:p.name, role:p.role, side:p.side, involvement:p.involvement })) : undefined,
       /* THE MARKS ALREADY TAKEN travel with the copy. The owner signing first
          is a fact of the document — a counterparty reading a copy with no
          record of it saw a bare "pending execution" placeholder and could not
@@ -8349,7 +8355,7 @@ async function refreshLiveShareQuietly(c){
          model exists to keep home, leaked by a background sync. The explicit
          SEND path never sets this, because there everything pending is
          precisely what is being sent. */
-      const payload=buildSharePayload(c, docHash, null, { purpose:s.purpose||undefined, holdUnsent:true });
+      const payload=buildSharePayload(c, docHash, null, { purpose:s.purpose||undefined, holdUnsent:true, partyId:s.partyId||undefined });
       try{ await api('shares/'+s.token+'/payload','PUT',{ payload, silent:true }); }catch(e){}
     }
   }catch(e){ /* the record is right either way; the link catches up next time */ }

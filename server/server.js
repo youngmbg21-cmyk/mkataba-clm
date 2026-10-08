@@ -14388,6 +14388,26 @@ function srvPartyOfShare(c, shareRow) {
   if (want) { const p = list.find(x => x.id === want); if (p) return p; }
   return list.length ? list[0] : null;
 }
+/* ---- EVERY OUTSIDE PARTY'S PAGE NAMES ITSELF (owner's D2, 8 Oct 2026) ----
+   On a contract with more than one outside party the copy a link serves
+   carries the party list — names, roles and involvement, never an address —
+   and WHICH party this link is, read off the stored ROW and the STORED record
+   (the browser's payload is not this route's to trust). A two-party contract
+   is left exactly as stored, so every ordinary link answers byte-identically. */
+function srvPartiesOnPayload(p, s) {
+  try {
+    if (!p || !p.contract || !s || !s.contract_id) return p;
+    const c = srvStoredContract(s.contract_id);
+    const all = srvContractParties(c);
+    const theirs = all.filter(x => x.side !== 'ours');
+    if (theirs.length < 2) return p;
+    const mine = srvPartyOfShare(c, s);
+    p.contract.parties = all.map(x => ({ id: x.id, name: x.name, role: x.role, side: x.side, involvement: x.involvement }));
+    p.party = { id: mine ? mine.id : theirs[0].id, role: (mine && mine.role) || (p.party && p.party.role) || '',
+      others: theirs.length - 1 };
+    return p;
+  } catch (_) { return p; }
+}
 
 /* ============================================================
    WHERE THE DEAL STANDS — the server's own copy of the reading
@@ -14439,7 +14459,7 @@ function srvDealStands(c) {
   const parties = all.filter(p => p && p.name).map(p => ({
     name: String(p.name), ours: p.side === 'ours',
     negotiates: p.side === 'ours' || p.involvement === 'negotiate' || p.involvement === 'both',
-    signs: p.side === 'ours' || p.involvement === 'sign' || p.involvement === 'both' || !p.involvement,
+    signs: p.side === 'ours' || p.involvement !== 'none',
   }));
   const us = parties.find(p => p.ours) || null, them = parties.find(p => !p.ours) || null;
   const live = srvDsLive(c), open = live.filter(x => x.status === 'pending');
@@ -15854,7 +15874,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
          held with its reason ("X signs first"). The same facts a sign link
          serves once its turn comes, minus nothing the reader could act on —
          the respond route still refuses a signature out of turn. */
-      payload: p, purpose: s.purpose || null, signingOrder: shareSigningOrder(s),
+      payload: srvPartiesOnPayload(p, s), purpose: s.purpose || null, signingOrder: shareSigningOrder(s),
       signatures: shareLiveSignatures(s, null), emailConfigured: EMAIL_ON(),
       share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
         expiresAt: s.expires_at || null, channel: s.channel || 'link' } });
@@ -15954,7 +15974,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
       verified: r.action === 'sign' ? !!(r.verify || r.verified === true) : null,
       applied: lastR.applied == null ? null : lastR.applied === 1 }; } catch (_) {} }
   res.json({
-    payload: JSON.parse(s.payload),
+    payload: srvPartiesOnPayload(JSON.parse(s.payload), s),
     // whether this server can send a verification code at all — the portal
     // needs it BEFORE the signer presses sign, not as a failure afterwards
     emailConfigured: EMAIL_ON(),

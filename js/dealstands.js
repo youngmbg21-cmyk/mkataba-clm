@@ -85,15 +85,22 @@ function dsOpen(c){ return dsLive(c).filter(x => x.status === 'pending'); }
    negWhoseMove answers 'you' or 'them', which are words only a seat can read.
    This page has no seat, so the answer is a NAME — and the name comes from
    the parties list, which is the same list the page's own header prints. */
-function dsPartyNames(c){
+function dsPartyNames(c, seat){
   let ps = [];
   try { ps = (typeof window !== 'undefined' && window.contractParties) ? contractParties(c) : []; } catch (_){ ps = []; }
   if (!ps.length) ps = [{ name: (c && c.party) || '', side: 'ours', involvement: 'negotiate' },
     { name: (c && c.counterparty) || '', side: 'theirs', involvement: 'negotiate' }];
+  /* `seat` (their page only, owner's D2 8 Oct 2026): the outside party this
+     link belongs to, so a multi-party sheet names the READER as "them". */
+  const seatId = seat ? String(seat) : '';
   return ps.filter(p => p && p.name).map(p => ({
     name: String(p.name), ours: p.side === 'ours',
+    ...(seatId && p.id != null && String(p.id) === seatId && p.side !== 'ours' ? { seat: true } : {}),
     negotiates: p.side === 'ours' || p.involvement === 'negotiate' || p.involvement === 'both',
-    signs: p.side === 'ours' || p.involvement === 'sign' || p.involvement === 'both' || !p.involvement }));
+    /* A NEGOTIATING PARTY SIGNS TOO (js/parties.js: "both involvements sign;
+       only none does not") — the sheet said "Juno · negotiates" and the line
+       under it asked Juno to say it was ready to sign (8 Oct 2026). */
+    signs: p.side === 'ours' || p.involvement !== 'none' }));
 }
 /* The day the last thing happened on a side, so "since Tuesday" is a fact
    rather than a feeling. Null where nothing has happened yet, and an absence
@@ -107,12 +114,15 @@ function dsSinceDays(c, side){
   return Math.max(0, Math.floor((Date.now() - t) / 864e5));
 }
 
+/* THE OTHER SIDE OF A CHANGE: the reader's own party on their seat, else the
+   first outside party — what every two-party contract has always read. */
+function dsThem(parties){ return parties.find(p => p.seat) || parties.find(p => !p.ours) || null; }
 /* ---- THE ONE READING ---- */
-function dealStands(c){
+function dealStands(c, o){
   if (!c) return null;
-  const parties = dsPartyNames(c);
+  const parties = dsPartyNames(c, o && o.seat);
   const us = parties.find(p => p.ours) || null;
-  const them = parties.find(p => !p.ours) || null;
+  const them = dsThem(parties);
   const live = dsLive(c), open = dsOpen(c);
   const settled = live.length - open.length;
   const executed = dsExecuted(c);
@@ -162,7 +172,7 @@ function dealStands(c){
    who is not inside the negotiation, and a reference the reader cannot look
    up is furniture. */
 function dsPoints(c, open, parties){
-  const us = parties.find(p => p.ours), them = parties.find(p => !p.ours);
+  const us = parties.find(p => p.ours), them = dsThem(parties);
   const seen = new Set();
   const out = [];
   for (const ch of open){
@@ -183,7 +193,7 @@ function dsPoints(c, open, parties){
    CLAUSE as the list names them, never capped. It replaces "Whose move — X
    for 0 days", which named one side and said a number nobody could act on. */
 function dsWaiting(open, parties){
-  const us = parties.find(p => p.ours), them = parties.find(p => !p.ours);
+  const us = parties.find(p => p.ours), them = dsThem(parties);
   const byName = new Map(parties.filter(p => p.negotiates).map(p => [p.name, 0]));
   const seen = new Set();
   for (const ch of open){
@@ -230,7 +240,7 @@ function dsSettled(c, parties){
    signs has never been told who argues on our side, and this page is read by
    all of them at one address. */
 function dsLately(c, parties){
-  const us = parties.find(p => p.ours), them = parties.find(p => !p.ours);
+  const us = parties.find(p => p.ours), them = dsThem(parties);
   const nameOf = side => ((side === 'owner' ? us : them) || {}).name || '';
   const ev = [];
   for (const ch of dsChanges(c)){
@@ -259,7 +269,7 @@ function dsUpdatedAt(c){
 if (typeof window !== 'undefined') Object.assign(window, {
   dealStands, DEAL_STEPS, DEAL_LATELY_MAX, DEAL_POINTS_MAX,
   dsChanges, dsRounds, dsRound, dsLive, dsOpen, dsPartyNames, dsPoints, dsSettled, dsLately, dsUpdatedAt, dsSinceDays,
-  dsWaiting, dsClauseOf, DS_INSIDE_ID,
+  dsWaiting, dsClauseOf, DS_INSIDE_ID, dsThem,
 });
 
 /* ============================================================

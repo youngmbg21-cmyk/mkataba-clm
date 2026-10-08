@@ -486,7 +486,7 @@ function portalExportPdf(c){
 }
 function portalExportWord(c){
   if(window.exportWordTracked)
-    exportWordTracked(c,{ side:'counterparty', author:portalResponderName()||(c&&c.counterparty)||'Counterparty' });
+    exportWordTracked(c,{ side:'counterparty', author:portalResponderName()||portalMyPartyName(PORTAL_OPTS&&PORTAL_OPTS.payload)||(c&&c.counterparty)||'Counterparty' });
   else if(window.toast) toast(i18t('po_export_unavailable'),'err');
 }
 /* THE PAGE'S DOCUMENT-LEVEL KEYS AND PRESSES, armed once whether or not a
@@ -809,7 +809,7 @@ function portalSignedRecord(opts){
 function portalReceiptHtml(p, rec){
   const row=(k,v)=>v?`<div style="display:contents"><dt style="color:var(--color-neutral-600)">${esc(k)}</dt><dd style="margin:0;min-width:0;overflow-wrap:anywhere">${v}</dd></div>`:'';
   const who=esc(rec.name||'')+(rec.title?', '+esc(rec.title):'');
-  const party=esc((p&&p.contract&&p.contract.counterparty)||'');
+  const party=esc(portalMyPartyName(p));
   const when=rec.at?esc(window.fmtDT?fmtDT(rec.at):String(rec.at)):'';
   const mail=(PORTAL_OPTS.share&&PORTAL_OPTS.share.recipientEmail)||'';
   const check=rec.verified?esc(i18t('po_rc_checked',{email:mail||i18t('po_rc_your_address')})):esc(i18t('po_rc_unchecked'));
@@ -1425,7 +1425,7 @@ async function portalEnsureResponderName(){
 /* The same name, for showing on the screen, where an organisation is a better
    answer than a blank. Never used to attribute a response. */
 const portalResponderLabel = c =>
-  portalResponderName() || (c&&c.counterparty) || 'The counterparty';
+  portalResponderName() || portalMyPartyName(PORTAL_OPTS&&PORTAL_OPTS.payload) || (c&&c.counterparty) || 'The counterparty';
 /* What changed, on the landing page.
    The sender approved this list on step 1 of Share and it travelled with the
    link — so someone opening the link a week later still sees what they were
@@ -2454,6 +2454,32 @@ function portalStatusWordHtml(c){
   if(!meta) return '';
   return `<span class="pw-id-stat room-stat" style="color:${meta.tx}">${esc(meta.label)}</span>`;
 }
+/* ---- WHICH OUTSIDE PARTY THIS PAGE IS (owner's D2, 8 Oct 2026) ----
+   On a multi-party contract the payload carries the parties and the link's
+   own party id (the server stamps both off the link's row); this reader is
+   that party, not the first one. Everywhere else: the counterparty, as ever. */
+function portalMyPartyName(p){
+  try{
+    const ct=(p&&p.contract)||{}, id=p&&p.party&&p.party.id;
+    const hit=id&&Array.isArray(ct.parties)?ct.parties.find(x=>x&&String(x.id)===String(id)&&x.side!=='ours'):null;
+    return (hit&&hit.name)||ct.counterparty||'';
+  }catch(_){ return (p&&p.contract&&p.contract.counterparty)||''; }
+}
+/* Does this reader's party sign? Only a party recorded as `none` does not;
+   absent a party list, the counterparty signs, as ever. */
+function portalMySigns(p){
+  try{
+    const ct=(p&&p.contract)||{}, id=p&&p.party&&p.party.id;
+    const hit=id&&Array.isArray(ct.parties)?ct.parties.find(x=>x&&String(x.id)===String(id)):null;
+    return !hit || hit.involvement!=='none';
+  }catch(_){ return true; }
+}
+/* Who the deal is with, said from outside: every outside party where there is
+   more than one, else the counterparty. */
+function portalWithNames(c){
+  const ps=Array.isArray(c&&c.parties)?c.parties.filter(x=>x&&x.side!=='ours'&&x.name):[];
+  return ps.length>1?ps.map(x=>x.name).join(', '):((c&&c.counterparty)||'');
+}
 function portalPartyLine(){
   try{
     /* Read off the payload the link served, which is where it is written, and
@@ -3196,7 +3222,7 @@ function renderShareViewer(p, opts={}){
   <div class="pv-wrap">
     <header class="pv-banner" role="status">
       <b>Read-only copy shared by ${esc(org)}${to?` with ${esc(to)}`:''}</b>
-      <span class="pv-sub">${esc(c.name||'Contract')}${c.counterparty?` · with ${esc(c.counterparty)}`:''}
+      <span class="pv-sub">${esc(c.name||'Contract')}${portalWithNames(c)?` · with ${esc(portalWithNames(c))}`:''}
         &middot; Round ${esc(String(round))}${asOf?` &middot; as it stood on ${esc(asOf)}`:''}.
         You can read and print this copy. You cannot edit it, respond to it or sign it —
         send any comments to ${esc(org)} directly.</span>
@@ -3374,7 +3400,7 @@ function portalAlerts(c, p){
         sentence, and the two cannot drift. pa_ready_to_sign is INERT in both
         books. */
   const ready = document.getElementById('pt-nego-ready');
-  if (ready && !ready.disabled && !waiting.length && !held)
+  if (ready && !ready.disabled && !waiting.length && !held && portalMySigns(PORTAL_OPTS.payload))
     push('sign', 'green', i18t('po_ready_tell_title'), () => ready.click());
   /* 6. WHEN THE LINK DIES. A fact, stated once, and only when it is close —
         no door, because there is nothing on this page that changes it. */
@@ -3963,8 +3989,11 @@ function portalWhereMineHtml(c, p, D){
 function portalWhereHtml(c, p){
   if(typeof standsHtml!=='function'||typeof dealStands!=='function')
     return `<div class="pw-where">${portalWhereMineHtml(c, p, null)}</div>`;
-  const D=dealStands(c);
-  const you=D&&(D.parties.find(x=>!x.ours)||{}).name||'';
+  /* THE READER'S OWN PARTY on a multi-party contract (owner's D2, 8 Oct
+     2026): the link's party id, which the server stamps off the link's row. */
+  const seat=(p&&p.party&&p.party.id)||'';
+  const D=dealStands(c, seat?{ seat }:undefined);
+  const you=D&&(D.parties.find(x=>x.seat)||D.parties.find(x=>!x.ours)||{}).name||'';
   const started=portalSigningStarted(), executed=portalExecuted();
   const stepSub=(started&&!executed)?{ signed:i18t('po_step_signing_under_way') }:{};
   return `<div class="pw-where">${standsHtml(c,{ data:D, you, lately:false, stepSub, mine:portalWhereMineHtml(c, p, D) })}</div>`;
@@ -4436,7 +4465,7 @@ function renderShareHistory(p, opts={}){
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(c.name||'Contract')}</span>
               <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono);
                 white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${window.refHtml?refHtml(c):esc(c.id||'')}${
-                c.counterparty?` &middot; with ${esc(c.counterparty)}`:''} &middot; shared by ${esc(p.sharedBy||org)}${expires}</span>
+                portalWithNames(c)?` &middot; with ${esc(portalWithNames(c))}`:''} &middot; shared by ${esc(p.sharedBy||org)}${expires}</span>
             </span>
           </section>
           ${''/* Says what this link is BEFORE the reader starts looking for the
@@ -6092,6 +6121,6 @@ async function refreshStats(){
     if(window.updateSidebarCounts) updateSidebarCounts(); }catch(e){}
 }
 
-Object.assign(window,{portalOpenAsks,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
+Object.assign(window,{portalOpenAsks,portalMyPartyName,portalWithNames,portalTurnWait,portalSignHold,portalSignedHere,portalSignedRecord,portalReceiptHtml,portalLiveSignatures,portalPaintSignMarks,portalCodeScreen,portalTicket,portalTicketPut,portalMaskAddress,portalSigningStarted,portalSigningOrderHtml,portalSendLines,portalSendCheck,portalTurn,portalSignPaneHtml,portalExportPdf,portalExportWord,portalAskReason,portalSetTab,portalTabsHtml,portalWhereHtml,portalHistoryScreen,portalDayWords,portalNewsSig,portalLandingTab,portalHandedOver,portalDeliveryState,portalReadySpent,portalAlerts,portalOpenNotes,portalNotesClose,portalNotesPaint,portalNotesShellHtml,portalNegoComment,portalNoteDone,portalSeatNoticesHtml,portalBellHtml,portalAlertsShellHtml,portalAlertsBodyHtml,
   portalAlertsOpen,portalAlertsClose,portalPaintAlerts,wirePortalAlerts,portalAlertsStyle,
   portalGoToChange,portalPressSend,PT_READ_KEY,ptReadMap,ptRevisionKey,ptRevisionRead,ptSetRevisionRead,portalHideRevisedBanner,portalShowRevisedBanner,portalWireRevisedBanner,portalRevisedBanner,portalChangedText,openPortalCompare,PORTAL_POLL_MS,portalRenderOpts,portalSignature,portalBusy,portalPollDecide,portalUpdatedNoticeHtml,portalShowUpdatedNotice,portalRefreshNow,portalStartPolling,portalStopPolling,portalExecuted,portalReadOnly,printExecutionBlock,printIsHatiExecuted,portalChangeSummaryHtml,portalNegoHtml,portalNegoContract,portalNegoFootHtml,wirePortalNego,wirePortalNegoFoot,PORTAL_OPTS,portalSignUnverified,portalDiscussHtml,wirePortalDiscuss,portalDiscussTopics,portalClauseNotes,portalClauseUnits,portalClauseText,portalClauseEditorHtml,wirePortalClauseEditor,portalProposedText,portalThreadHtml,portalOpenPointsHtml,exportPDF,exportSignPagesHtml,metrics,uploadedTextForPrint,portalEntry,portalRespond,portalStartOtp,portalVerifyAndSign,refreshStats,renderSharePortal,renderShareDormant,renderShareViewer,renderShareHistory,portalViewerRedlineHtml,renderShareWorkbench,portalIssuedForSigning,portalCanDerive,portalDeriveView,openDerivedLinkDialog,portalReadingBtnsHtml,portalEnsureResponderName,portalEditHtml,portalOpenEditor});
