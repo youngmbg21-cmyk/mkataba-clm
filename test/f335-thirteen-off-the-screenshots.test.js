@@ -386,11 +386,13 @@ describe('f335 (10) — the tab is Overview, and the sentences say so', () => {
       assert.ok(!/Key terms/.test(m[1]), key + ' no longer names a tab that is gone');
     });
   }
-  test('THE PHONE IS DELIBERATELY UNTOUCHED — it draws its own tab', () => {
-    assert.match(I18N, /tab_key_terms: 'Key terms'/,
-      'the phone\'s own word stays, as the 16 Sep ruling says');
-    assert.match(read('js/mobile-contract.js'), /i18t\('tab_key_terms'\)/,
-      'and the phone is still what draws it');
+  /* REVERSED 9 Oct 2026 (overnight run, stream G): the phone's tab says the
+     desktop's word, Overview — two words for one tab across two shells was
+     the review's finding. The key tab_key_terms is left in both books. */
+  test('THE PHONE SAYS OVERVIEW TOO — one word for one tab', () => {
+    assert.match(I18N, /tab_key_terms: 'Key terms'/, 'the old key is left in the books');
+    assert.match(read('js/mobile-contract.js'), /i18t\('tab_overview'\)/);
+    assert.ok(!/i18t\('tab_key_terms'\)/.test(read('js/mobile-contract.js')));
   });
   test('both books moved together', () => {
     const en = (I18N.match(/is blank on Overview/g) || []).length;

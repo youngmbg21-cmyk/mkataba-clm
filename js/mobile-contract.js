@@ -60,7 +60,7 @@ function mContractHeadHtml(c){
       </div>
       <div style="display:flex">
         ${tab('doc')}${i18t('tab_document')}</button>
-        ${tab('terms')}${i18t('tab_key_terms')}</button>
+        ${tab('terms')}${i18t('tab_overview')}</button>
         ${tab('oblig')}${i18t('tab_obligations')}${mObligCountHtml(c)}</button>
         ${tab('hist')}${i18t('tab_history')}</button>
       </div>
@@ -150,7 +150,7 @@ function mObligRowHtml(o, c, i){
   const row = acts.length
     ? `<div class="m-ob-acts" style="display:flex;gap:10px;margin-top:6px">${acts.join('')}</div>` : '';
   return `<div class="m-ob-row" style="padding:10px 0;border-top:1px solid var(--color-divider)">
-    <div style="font-size:var(--t-card);line-height:1.45">${esc(String((o&&o.text)||(o&&o.description)||'').trim()||i18t('ob_no_wording'))}</div>
+    <div style="font-size:var(--t-card);line-height:1.45">${esc(String((o&&o.desc)||'').trim()||i18t('ob_no_wording'))}</div>
     <div style="display:flex;align-items:baseline;gap:8px;margin-top:3px;font-size:var(--t-meta);color:${tone}">
       <span>${esc(when)}</span>
       <span style="color:var(--color-neutral-500)">${theirs?esc(i18t('ob_side_theirs')):esc(i18t('ob_side_ours'))}${who?' \u00b7 '+esc(who):''}</span>
@@ -334,13 +334,40 @@ function mNoticeStackHtml(c){
     ${cards}
   </div>`;
 }
+/* ---- THE PAPER IS READ HERE, NEVER TYPED INTO (owner, 9 Oct 2026) ----
+   The Document tab is never edited: blanks are filled from the side panel's
+   form on a computer, and the paper shows the answers. docBody draws a Draft's
+   blanks as boxes for the desktop's listeners, and the phone wires none — so a
+   box here took the typing and lost it without a word. Every box becomes the
+   answer (or a dash) through the desktop's own readOnlyDocHtml, the paper's
+   own fill buttons and editable runs stand down, and where a Draft still has
+   empty terms the line under the paper says where they are filled. */
+function mDocReadOnly(body){
+  let html = String(body||''), open = 0;
+  try{
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    open = Array.from(d.querySelectorAll('input,textarea')).filter(el=>!String(el.value||'').trim()).length;
+    if(typeof window.readOnlyDocHtml==='function') d.innerHTML = readOnlyDocHtml(d.innerHTML);
+    d.querySelectorAll('input,textarea,select').forEach(el=>{
+      const sp = document.createElement('span'); sp.className='field-frozen';
+      sp.textContent = String(el.value||'').trim() || '\u2014'; el.replaceWith(sp);
+    });
+    d.querySelectorAll('.hati-fill-btn,[data-tplf-fill]').forEach(el=>el.remove());
+    d.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+    html = d.innerHTML;
+  }catch(_){ /* a stage without a document keeps the paper as drawn */ }
+  return { html, open };
+}
 function mDocHtml(c){
-  let body = '';
-  try{ body = (typeof docBody==='function') ? docBody(c) : ''; }
+  let body = '', open = 0;
+  try{ body = (typeof docBody==='function') ? docBody(c) : ''; ({ html:body, open } = mDocReadOnly(body)); }
   catch(e){ body = `<div class="m-note">${i18t('mc_could_not_draw')}</div>`; }
+  const owed = open && c && c.status==='Draft' && (typeof canEdit!=='function' || canEdit());
   return `
     <div class="m-scroll" style="padding:var(--s-3)">
       <div class="m-paper">${body}</div>
+      ${owed?`<div class="m-note" data-m-doc-owed="${open}" style="margin:var(--s-2) var(--s-1) 0">${mEsc(i18t('mc_fill_on_computer'))}</div>`:''}
       <div style="height:8px"></div>
     </div>
     ${mNoticeStackHtml(c)}`;
@@ -366,11 +393,11 @@ function mTermsHtml(c){
     { get label(){ return i18t('tf_our_party'); },
       value:(typeof contractParty==='function'?contractParty(c):(c.party||'')) },
     { get label(){ return i18t('m_counterparty'); }, value:(typeof cParty==='function'?cParty(c):c.counterparty)||'', miss:true },
-    money ? { get label(){ return i18t('mc_contract_value'); }, value:(typeof isMonetary==='function'&&!isMonetary(c))?'Non-monetary':(c.value?mMoney(c):''), miss:true } : null,
-    { get label(){ return i18t('mc_start_date'); }, value:dateOf(md.effectiveDate||c.startDate) },
+    money ? { get label(){ return i18t('mc_contract_value'); }, value:(typeof isMonetary==='function'&&!isMonetary(c))?i18t('ct_non_monetary'):(c.value?mMoney(c):''), miss:true } : null,
+    { get label(){ return i18t('mc_start_date'); }, value:dateOf(md.effectiveDate||(c.fields&&c.fields.effDate)) },
     { get label(){ return i18t('mc_expiry'); }, value:dateOf((typeof effectiveExpiry==='function'?effectiveExpiry(c):null)||c.expiry) },
     { get label(){ return i18t('mc_payment_terms'); }, value:md.paymentTerms },
-    { get label(){ return i18t('mc_notice_period'); }, value:md.noticePeriodDays?md.noticePeriodDays+' days':'' },
+    { get label(){ return i18t('mc_notice_period'); }, value:md.noticePeriodDays?i18tn('ct_notice_n_days',Number(md.noticePeriodDays)||0,{n:md.noticePeriodDays}):'' },
     { get label(){ return i18t('mc_renewal'); }, value:(typeof metaOptLabel==='function'&&md.renewalType)?metaOptLabel(md.renewalType):md.renewalType },
     { get label(){ return i18t('me_category'); }, value:(typeof metaOptLabel==='function'&&md.category)?metaOptLabel(md.category):md.category },
     /* The label already carries the unit ("Retention held (%)", "Warranty
@@ -413,11 +440,11 @@ function mTermsHtml(c){
           const empty = !String(r.value||'').trim();
           return `<div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:13px 14px">
             <span style="font-size:var(--t-card);color:var(--color-neutral-600);flex:none">${mEsc(r.label)}</span>
-            <span style="font-size:16px;font-weight:var(--w-body);text-align:right;min-width:0;color:${empty&&r.miss?'var(--danger)':'var(--color-text)'}">${mEsc(empty?(r.miss?'Not set':'—'):r.value)}</span>
+            <span style="font-size:16px;font-weight:var(--w-body);text-align:right;min-width:0;color:${empty&&r.miss?'var(--danger)':'var(--color-text)'}">${mEsc(empty?(r.miss?i18t('ct_not_set'):'—'):r.value)}</span>
           </div>`;
         }).join('')}
       </div>
-      ${missing?`<div class="m-note" style="margin:0 var(--s-4) var(--s-6)">${missing===1?'One key term is':'Two key terms are'} still empty. Fill ${missing===1?'it':'them'} to move this contract forward — on a computer, where the fields are edited.</div>`:''}
+      ${missing?`<div class="m-note" style="margin:0 var(--s-4) var(--s-6)">${mEsc(i18tn('mc_terms_missing',missing,{n:missing}))}</div>`:''}
     </div>`;
 }
 
@@ -435,31 +462,49 @@ const M_HIST_DOT = {
   change:'var(--st-steel-dot)', decision:'var(--st-amber-dot)', signing:'var(--st-green-dot)',
   numbering:'var(--tile-ruby-fg)', sharing:'var(--color-neutral-500)', other:'var(--color-neutral-400)',
 };
-const M_HIST_CHIPS = [['all','All'],['change','Changes'],['decision','Decisions'],
-  ['signing','Signing'],['numbering','Numbering'],['sharing','Sharing']];
+const M_HIST_CHIPS = [['all','mc_hist_all'],['change','mc_hist_change'],['decision','mc_hist_decision'],
+  ['signing','mc_hist_signing'],['numbering','mc_hist_numbering'],['sharing','mc_hist_sharing']];
+/* A trail entry carries no kind, so its group is read off the verb the trail
+   recorded — the same English verbs logAudit writes (a record keeps English). */
+function mHistGroupOf(e){
+  if(e && e.kind && M_HIST_GROUP[e.kind]) return M_HIST_GROUP[e.kind];
+  const t = String((e && e._k==='system' && e.text) || '');
+  if(!t) return 'other';
+  if(/\b(sign|signed|signature|seal|sealed|executed)\b/i.test(t)) return 'signing';
+  if(/\b(approv\w*|reject\w*|declin\w*)\b/i.test(t)) return 'decision';
+  if(/\b(shar\w*|link|sent)\b/i.test(t)) return 'sharing';
+  if(/\brenumber\w*\b/i.test(t)) return 'numbering';
+  return 'other';
+}
 
 function mHistHtml(c){
   const s = mS();
   let ev = [];
-  try{ ev = (typeof negoTimeline==='function') ? negoTimeline(c) : []; }catch(_){ ev=[]; }
+  /* ONE TRAIL (9 Oct 2026): the room's History tab reads roomHistoryEvents —
+     the negotiation's beats AND the record's own trail (created, sent,
+     approved, signed…). The phone read negoTimeline alone, so a contract that
+     had never been redlined said "nothing has happened" over a full trail. The
+     trail arrives with the whole record (mHydrate), which repaints this tab. */
+  try{ ev = (typeof window.roomHistoryEvents==='function') ? roomHistoryEvents(c)
+    : (typeof negoTimeline==='function') ? negoTimeline(c) : []; }catch(_){ ev=[]; }
   ev = ev.slice().reverse();   // newest first: the point of a phone glance is what just happened
-  const shown = ev.filter(e => s.hist==='all' || (M_HIST_GROUP[e.kind]||'other')===s.hist);
+  const shown = ev.filter(e => s.hist==='all' || mHistGroupOf(e)===s.hist);
 
-  const chips = M_HIST_CHIPS.map(([k,label])=>
-    `<button class="m-chip${s.hist===k?' on':''}" data-m-hist="${k}">${label}</button>`).join('');
+  const chips = M_HIST_CHIPS.map(([k,key])=>
+    `<button class="m-chip${s.hist===k?' on':''}" data-m-hist="${k}">${mEsc(i18t(key))}</button>`).join('');
 
   const when = at => { const t=Date.parse(at||''); return isNaN(t)?'' :
     new Date(t).toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'}); };
 
   const list = shown.length ? shown.map(e=>{
-    const g = M_HIST_GROUP[e.kind]||'other';
+    const g = mHistGroupOf(e);
     const reason = e.note || e.reply || null;
     return `<div style="display:flex;gap:11px;padding:13px 0;border-bottom:1px solid var(--color-divider)">
       <span style="width:9px;height:9px;border-radius:50%;background:${M_HIST_DOT[g]};flex:none;margin-top:7px"></span>
       <span style="min-width:0;flex:1">
         <span style="display:flex;align-items:baseline;gap:var(--s-2)">
           <span style="flex:1;min-width:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:1.35">${mEsc(e.text)}</span>
-          ${e.round?`<span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600)">Round ${mEsc(e.round)}</span>`:''}
+          ${e.round?`<span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600)">${mEsc(i18t('mc_round_n',{n:e.round}))}</span>`:''}
         </span>
         ${e.clauseLabel?`<span style="display:block;font-size:var(--t-card);color:var(--color-neutral-600);margin-top:2px">${mEsc(e.clauseLabel)}</span>`:''}
         ${reason?`<span style="display:block;font-size:var(--t-card);color:var(--color-neutral-700);margin-top:5px;padding-left:9px;border-left:2px solid var(--color-neutral-300);line-height:1.5">“${mEsc(reason)}”</span>`:''}
@@ -467,9 +512,7 @@ function mHistHtml(c){
       </span>
     </div>`;
   }).join('') : `<div style="padding:22px 2px;text-align:center;font-size:var(--t-card);color:var(--color-neutral-600)">${
-    s.hist==='all'
-      ? 'Nothing has happened on this contract yet — its story starts with the first change or the first share.'
-      : "Nothing of that kind in this contract's story yet."}</div>`;
+    mEsc(i18t(s.hist==='all' ? 'mc_hist_none' : 'mc_hist_none_kind'))}</div>`;
 
   const v = s.verify;
   return `
@@ -510,10 +553,28 @@ function mActionBarHtml(c){
      (10 Aug 2026). Honoured here for the same reason the phone reads
      wsNextAction at all: one authority, or the two shells drift. */
   const btn = na && !na.noButton;
+  /* ---- A SIGN THAT CANNOT SIGN IS GREY, AND SAYS WHAT STANDS (9 Oct 2026) ----
+     It was a filled button that always refused, naming tabs the phone does not
+     have. signBlockers(c) is the one list the desktop's button and
+     signDocument read; where it holds anything the button is greyed and the
+     items are listed here, in the bar, with where they are settled. Empty, the
+     press signs exactly as before. */
+  let bl = [];
+  if(btn && (na.kind==='sign'||na.kind==='sign-scroll') && typeof window.signBlockers==='function'){
+    try{ bl = signBlockers(c)||[]; }catch(_){ bl = []; }
+  }
+  const M_BL_SHOWN = 4;
+  const blHtml = bl.length ? `<ul class="m-sign-holds" style="margin:0 0 6px;padding-left:18px;font-size:var(--t-card);line-height:1.45;color:var(--color-neutral-700)">${
+      bl.slice(0, M_BL_SHOWN).map(x=>`<li>${mEsc(String(x.short||x.label||''))}</li>`).join('')}${
+      bl.length>M_BL_SHOWN?`<li>${mEsc(i18tn('ins_more_asks', bl.length-M_BL_SHOWN, { n: bl.length-M_BL_SHOWN }))}</li>`:''}</ul>
+      <div class="m-note" style="margin-bottom:8px">${mEsc(i18t('mc_settle_on_computer'))}</div>` : '';
   return `
     <div class="m-actionbar">
       <div class="m-note" style="margin-bottom:${btn?'8px':'0'}">${guide}</div>
-      ${btn?`<button class="m-btn m-btn-primary" data-m-na="${mEsc(na.kind)}">${mEsc(na.label)}</button>`:''}
+      ${blHtml}
+      ${btn?(bl.length
+        ? `<button class="m-btn" data-m-na="${mEsc(na.kind)}" disabled aria-disabled="true">${mEsc(na.label)}</button>`
+        : `<button class="m-btn m-btn-primary" data-m-na="${mEsc(na.kind)}">${mEsc(na.label)}</button>`):''}
     </div>`;
 }
 
@@ -539,7 +600,14 @@ function mOverflowSheetHtml(){
   const c = mContract();
   if(!c) return '';
   const locked = mLocked(c);
+  /* A colleague's "look at this" is answered here, by the desktop's own
+     lookDone — the one ask writer; whoever sent it is told. Drawn only while
+     one waits on this reader. */
+  let looks = [];
+  try{ const me = (typeof currentUser==='function') ? currentUser() : null;
+    looks = (me && typeof window.asksLookFor==='function' && typeof window.lookDone==='function') ? (asksLookFor(c, me)||[]) : []; }catch(_){ looks = []; }
   const items = [
+    looks.length ? { k:'look-done', get label(){ return i18t('mc_look_done'); } } : null,
     locked ? { k:'edit-locked', get label(){ return i18t('mc_edit_document'); }, muted:true }
            : { k:'edit', get label(){ return i18t('mc_edit_document'); }, desk:true },
     { k:'share', get label(){ return i18t('mc_share_link'); } },
@@ -551,7 +619,7 @@ function mOverflowSheetHtml(){
     { k:'copilot', get label(){ return i18t('mc_ask_copilot'); } },
     { k:'compare', get label(){ return i18t('mc_compare_versions'); }, desk:true },
     { k:'template', get label(){ return i18t('mc_save_as_template'); }, desk:true },
-  ];
+  ].filter(Boolean);
   return `
     <div class="m-grab"></div>
     ${items.map(i=>`
@@ -567,13 +635,14 @@ function mOverflowSheetHtml(){
    the note under each says what that link CANNOT do — which is the half people
    get wrong. The picking happens here; the enforcing happens there. */
 const M_SHARE_KINDS = [
-  ['negotiate','Negotiation link','They can redline and answer changes. It cannot sign, and it never shows our risk scoring.'],
-  ['sign','Signing link','Bound to one seat on the signing route. It cannot redline, and the code goes only to that address.'],
-  ['view','Read-only link','A frozen snapshot for an adviser or counsel. It can do nothing at all — the server refuses.'],
+  ['negotiate','mc_share_k_negotiate','mc_share_k_negotiate_note'],
+  ['sign','mc_share_k_sign','mc_share_k_sign_note'],
+  ['view','mc_share_k_view','mc_share_k_view_note'],
 ];
 function mShareSheetHtml(){
   const s = mS();
-  const kinds = M_SHARE_KINDS.map(([k,label,note])=>{
+  const kinds = M_SHARE_KINDS.map(([k,labelKey,noteKey])=>{
+    const label = mEsc(i18t(labelKey)), note = mEsc(i18t(noteKey));
     const on = s.share===k;
     return `<button class="m-share-kind${on?' on':''}" data-m-share="${k}">
       <span class="m-radio"><span class="m-radio-dot" style="background:${on?'var(--accent-solid)':'transparent'}"></span></span>
@@ -584,8 +653,8 @@ function mShareSheetHtml(){
     </button>`;
   }).join('');
   const expiry = s.share==='view' ? 30 : 14;
-  const cta = s.share==='negotiate' ? 'Create negotiation link'
-    : s.share==='sign' ? 'Create signing link' : 'Create read-only link';
+  const cta = mEsc(i18t(s.share==='negotiate' ? 'mc_share_cta_negotiate'
+    : s.share==='sign' ? 'mc_share_cta_sign' : 'mc_share_cta_view'));
   /* THE PROTOTYPE HAD A SWITCH HERE AND IT DOES NOT EXIST.
      "Require email verification" was drawn as a toggle, and there is nothing
      on the server for it to set: a counterparty signature is ALWAYS verified by
@@ -593,11 +662,17 @@ function mShareSheetHtml(){
      all. A switch that changes nothing is worse than no switch — it tells the
      reader they have made a security decision they have not made. So the fact
      is stated instead, and it says which of the three links it applies to. */
-  const verifyNote = s.share==='sign'
-    ? 'A one-time code goes to the invited address before a signature is recorded. It cannot be sent anywhere else, and it is not optional.'
-    : s.share==='negotiate'
-      ? 'No code is needed to read or answer on a negotiation link — every reply is recorded against the address it was sent to.'
-      : 'No code, no reply channel. A read-only link can be opened and printed and nothing else.';
+  /* AND IT SAYS WHAT IS TRUE (9 Oct 2026). It claimed the code "is not
+     optional" on every link. The server asks a signing code where email can
+     carry one (else the signature is recorded as unverified), and a code
+     before a named link OPENS only where an admin turned that on — off by
+     default (linkCodeCfg, the one setting). */
+  const codeOn = (typeof window.linkCodeCfg==='function') ? !!linkCodeCfg().on : false;
+  const mailOff = (typeof window.emailOff==='function') ? !!emailOff() : false;
+  const verifyNote = mEsc([
+    i18t(s.share==='sign' ? (mailOff ? 'mc_share_code_sign_nomail' : 'mc_share_code_sign')
+      : s.share==='negotiate' ? 'mc_share_code_neg' : 'mc_share_code_view'),
+    codeOn ? i18t('mc_share_code_open') : ''].filter(Boolean).join(' '));
   /* ---- WHAT IS WORTH CHECKING, BEFORE IT LEAVES (the owner's list, 27 Sep
      2026) ----
      The desktop's send screen lists what the record is missing before the
@@ -614,13 +689,13 @@ function mShareSheetHtml(){
   return `
     <div class="m-grab"></div>
     <div class="m-sheet-title">${i18t('mc_share_link')}</div>
-    <div class="m-sheet-note">One link, one purpose. A negotiation link can't sign, a signing link can't redline, a read-only link can do nothing at all.</div>
+    <div class="m-sheet-note">${mEsc(i18t('mc_share_one_purpose'))}</div>
     ${ready}
     <div style="display:flex;flex-direction:column;gap:var(--s-2)">${kinds}</div>
     <div class="m-card m-list" style="margin-top:var(--s-3);background:var(--color-bg)">
       <div style="display:flex;align-items:center;gap:var(--s-3);padding:13px 14px">
         <span style="flex:1;font-size:16px">${i18t('mc_expires')}</span>
-        <span style="font-size:16px;font-weight:var(--w-strong)">${expiry} days</span>
+        <span style="font-size:16px;font-weight:var(--w-strong)">${mEsc(i18tn('ct_notice_n_days',expiry,{n:expiry}))}</span>
       </div>
       <div style="padding:13px 14px">
         <div style="font-size:16px">${i18t('mc_email_verification')}</div>
@@ -799,7 +874,6 @@ function mRenumberSheetHtml(){
 }
 
 /* ------------------------------------------------------------- BEHAVIOUR ---*/
-const M_DESK_MSG = 'Open HaTi on a computer to do this.';
 
 /* THE PHONE ASKS THE SAME QUESTION THE DESKTOP DIALOG ASKS, and it must get the
    same answer: shareModalPrefill holds the order — signing route, then the last
@@ -832,6 +906,7 @@ function mContractAct(k, btn){
   if(k==='share'){ mOpenShareSheet(); return; }
   if(k==='history'){ mCloseSheet(); s.tab='hist'; mRender(); return; }
   if(k==='copilot'){ mCloseSheet(); if(window.openAI) openAI(); return; }
+  if(k==='look-done'){ mCloseSheet(); if(c && window.lookDone) lookDone(c); mRender(); return; }
   /* ---- ON A PHONE A GREY ROW CANNOT EXPLAIN ITSELF, SO IT TALKS ----
      These three rows are already drawn dimmed, and each explained itself with
      a BARE toast — which prints nothing. So the reader tapped a grey row and
@@ -839,7 +914,7 @@ function mContractAct(k, btn){
      hover, so the desktop's answer (a title attribute) is not available here
      and the message IS the explanation. 'warn' rather than 'err': nothing
      failed and nothing was refused unexpectedly — this is a rule, stated. */
-  if(k==='edit'||k==='compare'||k==='template'){ mCloseSheet(); if(window.toast) toast(M_DESK_MSG,'warn'); return; }
+  if(k==='edit'||k==='compare'||k==='template'){ mCloseSheet(); if(window.toast) toast(i18t('mc_desk_msg'),'warn'); return; }
   if(k==='edit-locked'){ mCloseSheet(); if(window.toast) toast(i18t('mc_sealed_no_edit'),'warn'); return; }
   if(k==='renumber-locked'){ mCloseSheet(); if(window.toast) toast(i18t('mc_never_renumber'),'warn'); return; }
 
@@ -860,7 +935,7 @@ function mContractAct(k, btn){
     negoIntegrityReport(c).then(r=>{
       const html = (typeof negoHistoryExportHtml==='function') ? negoHistoryExportHtml(c, r) : '';
       if(html && window.downloadFile) downloadFile(`${(window.contractRef?contractRef(c):c.id)}-negotiation-history.html`, html, 'text/html');
-      if(window.toast) toast(`History exported — the report carries its own verification result (${r.ok?'verified':'FAILED'})`);
+      if(window.toast) toast(i18t(r.ok?'mc_history_exported_ok':'mc_history_exported_bad'), r.ok?'ok':'warn');
     }).catch(()=>{ if(window.toast) toast(i18t('mc_export_failed'),'err'); });
     return;
   }
@@ -884,7 +959,7 @@ function mContractAct(k, btn){
       const n = applied ? (Array.isArray(applied.headings) ? applied.headings.length : Number(applied.headings)||0) : 0;
       if(window.toast) toast(applied
         ? `${n} heading${n===1?'':'s'} renumbered — recorded in History`
-        : 'Renumbering was refused — the record says why');
+        : 'Renumbering was refused — the record says why', applied?'ok':'warn');
     }catch(e){ if(window.toast) toast(e.message||'Renumbering was refused','err'); }
     mRender();
     return;
@@ -903,7 +978,7 @@ function mDoNextAction(kind){
      desktop. The phone reaches the same function through window — one path. */
   if(kind==='issue-signing'){
     if(window.issueSigningAct) return issueSigningAct(c);
-    if(window.toast) toast(i18t('mc_nego_on_computer'));
+    if(window.toast) toast(i18t('mc_nego_on_computer'),'warn');
     return;
   }
   if(kind==='review-changes'){
@@ -924,18 +999,14 @@ function mDoNextAction(kind){
      work. Said, never a dead press. */
   if(kind==='ho-hand'||kind==='ho-file'){ if(window.toast) toast(i18t('ho_on_computer'),'warn'); return; }
   if(kind==='share'){ mOpenShareSheet(); return; }
-  if(kind==='terms'){ mS().tab='terms'; mRender(); if(window.toast) toast(i18t('mc_fill_on_computer')); return; }
+  if(kind==='terms'){ mS().tab='terms'; mRender(); if(window.toast) toast(i18t('mc_fill_on_computer'),'warn'); return; }
   if(kind==='review'){
-    if(c.status==='Draft'){
-      c.status='Under Review';
-      if(typeof todayStr==='function') c.lastAction=todayStr();
-      if(window.logAudit) logAudit(c,'Status changed','Draft → Under Review (sent for review)');
-      if(window.persist) persist(c);
-      /* THE PHONE IS NOT A FORK: the same moment as the desktop's own "send for
-         review", so the same reading. Through window because js/views/contract.js
-         is not guaranteed beside this file. */
-      try{ if(window.triageAndPaint) triageAndPaint(c); }catch(_){}
-      if(window.toast) toast(i18t('mc_moved_to_review'));
+    /* A STAGE IS A CLAIM, AND IT HAS ONE ACT (9 Oct 2026): contractLeavesDrafting
+       moves it, writes the trail line and asks Copilot's reading — the phone
+       set the status by hand. */
+    if(c.status==='Draft' && window.contractLeavesDrafting){
+      if(contractLeavesDrafting(c, 'sent for review') && window.persist) persist(c);
+      if(window.toast) toast(i18t('mc_moved_to_review'),'ok');
       mRender();
     }
     return;
@@ -945,7 +1016,7 @@ function mDoNextAction(kind){
        nothing else on screen: it needs the intent box, the mark and the seal,
        and those live on the signing surface. */
     if(window.signDocument && kind==='sign'){ signDocument(c); return; }
-    if(window.toast) toast(i18t('mc_confirm_intent'));
+    if(window.toast) toast(i18t('mc_confirm_intent'),'warn');
     return;
   }
 }
@@ -957,7 +1028,7 @@ async function mShareCreate(){
   const c = mContract();
   if(!c) return;
   const email = String(s.shareEmail||'').trim();
-  if(!email){ s.shareErr='Enter the address this link should go to.'; mRender(); return; }
+  if(!email){ s.shareErr=i18t('mc_share_need_email'); mRender(); return; }
   if(typeof API_MODE==='function' && !API_MODE()){
     s.shareErr=''; mCloseSheet();
     if(window.toast) toast(i18t('mc_sharing_needs_server'),'err');
@@ -1003,11 +1074,11 @@ async function mShareCreate(){
     if(left && window.persist) persist(c);
     mCloseSheet();
     if(window.toast) toast(r && r.emailSent
-      ? `${s.share==='view'?'Read-only':s.share==='sign'?'Signing':'Negotiation'} link sent to ${email}`
-      : `Link created for ${email} — it was not emailed from here`);
+      ? i18t(s.share==='view'?'mc_share_sent_view':s.share==='sign'?'mc_share_sent_sign':'mc_share_sent_negotiate',{ email })
+      : i18t('mc_share_not_mailed',{ email }), (r && r.emailSent)?'ok':'warn');
     if(window.refreshShareOverview) refreshShareOverview();
   }catch(e){
-    s.shareErr = (e && e.message) || 'The link could not be created.';
+    s.shareErr = (e && e.message) || i18t('mc_share_failed');
     mRender();
   }
 }

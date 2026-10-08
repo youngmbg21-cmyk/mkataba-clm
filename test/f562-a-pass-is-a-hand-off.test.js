@@ -135,7 +135,10 @@ describe('f562 (5) — the browser reads the one list and writes no trail', () =
   test('5b the checklist, the bell and the phone read asksLookFor; Done answers through askAnswer', () => {
     assert.match(HOME, /kind:'look'/); assert.match(HOME, /asksLookFor\(c, me\)/);
     assert.match(HOME, /function lookDone[\s\S]*askAnswer\(c, a\.id, \{ state:'yes'/);
-    assert.match(APP, /push\('look'/); assert.match(MOB, /asksLookFor\(c, me\)/);
+    /* RE-POINTED 9 Oct 2026: the phone's list is built from needsYouOf (the
+       checklist's reading, kind look among them) and Done is on its sheet. */
+    assert.match(APP, /push\('look'/); assert.match(MOB, /needsYouOf\(c\)/);
+    assert.match(code(R('js/mobile-contract.js')), /asksLookFor\(c, me\)/);
   });
   test('5c the reading: a look waits on the person it names, and on nobody else', () => {
     const c = { id: 'X', asks: [] };

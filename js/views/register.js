@@ -661,7 +661,27 @@ function regInspecting(){ return regMode()!=='board' && typeof insFits==='functi
    under the wrong heading whichever shape the page is in. */
 function regColKeys(){
   const neg=regScope()==='negotiations', ins=regInspecting();
+  if(!ins && regNarrowTable()) return neg ? REG_COL_KEYS_NEGO_NARROW : REG_COL_KEYS_NARROW;
   return neg ? (ins?REG_COL_KEYS_NEGO_INS:REG_COL_KEYS_NEGO) : (ins?REG_COL_KEYS_INS:REG_COL_KEYS);
+}
+/* ---- A TABLET'S TABLE FITS ITS PAGE (9 Oct 2026) ----
+   At an 820px tablet the full table kept its 760px floor inside a 722px
+   page, so it panned sideways and its last heads were cut. Where the page is
+   narrower than REG_NARROW_W (MEASURED, the page's own width) the full table
+   gives up its two quietest columns — signed and owner (type on
+   Negotiations) — rather than a floor; both stay in the filters, the sort and
+   the contract itself. Widths still sum to 100, and a drag here is kept apart
+   from the wide table's (regColStoreKey). */
+const REG_COL_KEYS_NARROW      = ['mk','counterparty','stage','move','value','expiry','acts'];
+const REG_COL_KEYS_NEGO_NARROW = ['mk','counterparty','value','expiry','stage','move'];
+const REG_COL_W_NARROW         = [7,43,13,8,11,14,4];
+const REG_COL_W_NEGO_NARROW    = [7,45,11,14,13,10];
+const REG_NARROW_W = 800;
+function regNarrowTable(){
+  if(regMode()==='board') return false;
+  const el=document.getElementById('content-scroll');
+  const w=el ? el.clientWidth : 0;
+  return w>0 && w<REG_NARROW_W;
 }
 /* A column may not be dragged to nothing. A PIXEL floor rather than a percent
    one, because 4% is 51px on a laptop and 77px on a wide monitor — the same
@@ -669,7 +689,10 @@ function regColKeys(){
    table's live width at the moment of the drag. */
 const REG_COL_MIN_PX = 54;
 const REG_COL_KEY = 'hati.v1.regCols';
-const regColDefaults = () => (regScope()==='negotiations' ? REG_COL_W_NEGO : REG_COL_W).slice();
+const regColDefaults = () => (regScope()==='negotiations'
+  ? (regNarrowTable() && !regInspecting() ? REG_COL_W_NEGO_NARROW : REG_COL_W_NEGO)
+  : (regNarrowTable() && !regInspecting() ? REG_COL_W_NARROW : REG_COL_W)).slice();
+const regColStoreKey = () => REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : '') + (regNarrowTable() && !regInspecting() ? '.narrow' : '');
 /* THE STORED ARRAY IS READ, NEVER TRUSTED. A length that does not match the
    seat's own column count is IGNORED rather than applied — which is the whole
    migration story for the Signed column: a browser that stored eight widths
@@ -679,7 +702,7 @@ const regColDefaults = () => (regScope()==='negotiations' ? REG_COL_W_NEGO : REG
 function regColWidths(){
   const def = regColDefaults();
   try{
-    const raw = localStorage.getItem(REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : ''));
+    const raw = localStorage.getItem(regColStoreKey());
     if(!raw) return def;
     const w = JSON.parse(raw);
     if(!Array.isArray(w) || w.length !== def.length) return def;
@@ -689,10 +712,10 @@ function regColWidths(){
   }catch(_){ return def; }
 }
 function regColSetWidths(w){
-  try{ localStorage.setItem(REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : ''), JSON.stringify(w)); }catch(_){}
+  try{ localStorage.setItem(regColStoreKey(), JSON.stringify(w)); }catch(_){}
 }
 function regColReset(){
-  try{ localStorage.removeItem(REG_COL_KEY + (regScope()==='negotiations' ? '.nego' : '')); }catch(_){}
+  try{ localStorage.removeItem(regColStoreKey()); }catch(_){}
 }
 
 /* ---- THE DRAG ITSELF ----
@@ -3052,7 +3075,7 @@ function renderRegister(opts){
         <div id="reg-scroll" style="flex:1;min-height:0;overflow:auto">
           <!-- The whole density mode rides on ONE element as three custom
                properties, so nothing below has to know which mode is on. -->
-          <table class="reg-table${INS?' is-ins':''}" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
+          <table class="reg-table${INS?' is-ins':''}${!INS&&regNarrowTable()?' is-narrow':''}" data-reg-density="${regDensity()}" style="${regDensityVars(regDensity())}">
             <thead>
               <!-- THE PROTOTYPE'S SEVEN, with the tracking number added in front.
                    Sorting is kept on the four columns that carried it before —
@@ -3376,7 +3399,7 @@ function ftsSearch(q){
   },220);
 }
 Object.assign(window,{regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYears,regSignedCell,
-  REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_MIN_PX,
+  REG_COL_KEYS,REG_COL_KEYS_NEGO,REG_COL_W,REG_COL_W_NEGO,REG_COL_KEYS_NARROW,REG_COL_KEYS_NEGO_NARROW,REG_COL_W_NARROW,REG_COL_W_NEGO_NARROW,REG_NARROW_W,regNarrowTable,REG_COL_MIN_PX,
   /* the list inspector (26 Sep 2026) */
   REG_COL_KEYS_INS,REG_COL_KEYS_NEGO_INS,REG_INS_COL_PX,regInspecting,regColKeys,regInsSeat,regInsActs,regInsPaint,
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
