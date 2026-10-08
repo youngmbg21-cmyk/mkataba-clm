@@ -5067,6 +5067,9 @@ function hbSetFace(f){
      the legend comes in closed (renderIntel's own rule for an arrival) */
   if (f === 'explorer' && window.intel){ intel.legendFolded = true; hbLensOnMap(); }
   hbMount();
+  /* the ask box says what it asks about: the paper's contract on Paper, the
+     portfolio elsewhere — read after the side has set the paper's mode */
+  if (typeof window.renderIntelDock === 'function' && document.getElementById('igd-input')) try { renderIntelDock(); } catch (_){}
   /* the whole page is drawn again: the pressed half keeps the keyboard */
   if (kb){ const b = document.querySelector(`[data-hb-face="${f}"]`); if (b) try { b.focus({ preventScroll: true }); } catch (_){} }
 }

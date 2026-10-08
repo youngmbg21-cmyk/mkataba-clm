@@ -7179,7 +7179,8 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape') return;
     const p=intel.paper; if(!p||!p.focus) return;
-    if(!igMapUp()) return;
+    /* the paper is up on the map's page, or on Home's own Paper side */
+    if(!igMapUp()&&igHomePaperFace()!==true) return;
     if(document.querySelector('[data-top-overlay]')) return;
     const mr=document.getElementById('modal-root'); if(mr&&mr.children.length) return;
     p.focus=false; igPaintPaper();

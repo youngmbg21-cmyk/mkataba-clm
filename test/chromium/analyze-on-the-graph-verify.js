@@ -150,7 +150,12 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
       up.covered && !up.hidden && up.canvas && up.words > 150, `covered ${up.covered} · ${up.words} words`);
     check('1c the nodes are covered, not rebuilt: the graph and every node are still there underneath',
       up.svgThere && up.same, `${up.nodes} nodes, was ${card.nodes}`);
-    check('1d the strip is drawn with the switch on Paper and the contract named', up.strip && up.sw === 'paper' && /MK-A2/.test(up.stripText), up.stripText);
+    /* PAPER IS HOME'S OWN SIDE (Young, 7 Oct 2026: "Drop Paper from Explorer,
+       keep it only on Home"): Analyze turns Home to Paper; the strip names the
+       contract and offers another, with no second Graph | Paper switch. */
+    const face = await page.evaluate(() => (typeof hbFace === 'function') ? hbFace() : null);
+    check('1d the strip is drawn on Home\'s Paper side with the contract named, and no second switch', up.strip && !up.sw && face === 'paper'
+      && /MK-A2/.test(up.stripText) && /Another contract/.test(up.stripText), face + ' · ' + up.stripText);
     check('1e the ask box says which contract it asks about, and its hover says what a question costs',
       /MK-A2/.test(up.placeholder) && /MK-A2/.test(up.title) && /\d/.test(up.title), `${up.placeholder} · ${up.title}`);
     check('1f the paper is the working copy — the same sheet the Document tab draws', up.sheet, `first ink ${up.ink}px from the top of the window`);
@@ -302,23 +307,22 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     check('3a a quote that is not in the wording lands nowhere: the server\'s notice says so ONCE (no second line), no chip is drawn, no pin is minted',
       dropped.notice && !dropped.nothing && dropped.chips === 0 && dropped.pins === 1, JSON.stringify(dropped));
 
-    /* ================= 4. GRAPH | PAPER ==================================== */
-    await page.click('#ig-strip [data-ig-mode="graph"]');
-    await page.waitForTimeout(500);
+    /* ================= 4. EXPLORER | PAPER (Home's own sides) ============= */
+    await page.click('[data-hb-face="explorer"]');
+    await page.waitForTimeout(800);
     const g = await page.evaluate(() => {
       const paper = document.getElementById('ig-paper'), svg = document.getElementById('ig-svg'), strip = document.getElementById('ig-strip');
       const r = svg.getBoundingClientRect(); const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-      return { hidden: paper.hidden, graphShows: !!(at && !paper.contains(at)), canvasKept: !!document.getElementById('ig-canvas'),
-        marksKept: document.querySelectorAll('#ig-canvas span.ig-mark').length, strip: !strip.hidden,
-        sw: strip.querySelector('.ig-sw [aria-pressed="true"]').getAttribute('data-ig-mode'),
-        placeholder: document.getElementById('igd-input').placeholder, pinsCtl: !!strip.querySelector('[data-ig-pins-clear]'), focusCtl: !!strip.querySelector('[data-ig-focus]') };
+      return { hidden: !paper || paper.hidden, graphShows: !!(at && !(paper && paper.contains(at))), strip: !!strip && !strip.hidden,
+        kept: !!(intel.paper && intel.paper.id === 'MK-A2' && intel.paper.pins.length),
+        placeholder: document.getElementById('igd-input').placeholder };
     });
-    check('4a Graph puts the nodes back and keeps the strip, with the switch on Graph', g.graphShows && g.hidden && g.strip && g.sw === 'graph', JSON.stringify(g));
-    check('4b nothing is thrown away: the paper and its lit words are kept underneath', g.canvasKept && g.marksKept >= 1, `${g.marksKept} marks kept`);
-    check('4c the box asks about the portfolio again, and the paper\'s own controls stand down', !/MK-A2/.test(g.placeholder) && !g.pinsCtl && !g.focusCtl, g.placeholder);
+    check('4a Explorer puts the nodes back; the paper and its strip stand down', g.graphShows && g.hidden && !g.strip, JSON.stringify(g));
+    check('4b nothing is thrown away: the paper and its pins are kept for when you come back', g.kept, JSON.stringify(g));
+    check('4c the box asks about the portfolio again', !/MK-A2/.test(g.placeholder), g.placeholder);
     await page.screenshot({ path: path.join(OUT, '04-graph.png') });
-    await page.click('#ig-strip [data-ig-mode="paper"]');
-    await page.waitForTimeout(500);
+    await page.click('[data-hb-face="paper"]');
+    await page.waitForTimeout(900);
     const back = await page.evaluate(() => ({ hidden: document.getElementById('ig-paper').hidden,
       marks: document.querySelectorAll('#ig-canvas span.ig-mark').length, pins: document.querySelectorAll('#ig-canvas button.ig-pin').length,
       placeholder: document.getElementById('igd-input').placeholder }));
@@ -345,7 +349,10 @@ const deliver = (id, answer, citations) => ({ content: [{ type: 'tool_use', id, 
     await page.click('#igd-history-clear');
     await page.waitForTimeout(500);
     const gone = await page.evaluate(() => ({ paper: intel.paper, strip: document.getElementById('ig-strip').hidden, canvas: !!document.getElementById('ig-canvas'), host: document.getElementById('ig-paper').hidden }));
-    check('6a the panel\'s bin ends the analysis with the conversation: no strip, no paper, nothing kept', gone.paper === null && gone.strip && !gone.canvas && gone.host, JSON.stringify(gone));
+    /* on Home's Paper side the place the paper stood asks which contract to read next */
+    const picker = await page.evaluate(() => !!document.querySelector('#ig-paper .ig-pick'));
+    check('6a the panel\'s bin ends the analysis with the conversation: no strip, no paper, nothing kept — the Paper side asks which contract next',
+      gone.paper === null && gone.strip && !gone.canvas && !gone.host && picker, JSON.stringify({ ...gone, picker }));
 
     check('7 no page errors', errors.length === 0, errors.join(' | '));
   } catch (e) {
