@@ -392,7 +392,10 @@ function stWireDrawerOnce(){
     const tab=t.closest('[data-st-tab]');
     if(tab){ settingsGoTab(tab.getAttribute('data-st-tab')); return; }
   });
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && _stOpen) stDrawerClose(); });
+  /* A dialog opened from inside the drawer owns Escape while it is up: one
+     key closes the top layer only, never the drawer underneath as well. */
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && _stOpen
+    && !document.querySelector('#modal-root [role="dialog"],[data-top-overlay]')) stDrawerClose(); });
 }
 /* The keyboard's way out of the drawer, held so the close can hand it back.
    One value, because only one drawer is ever open. */
@@ -1464,10 +1467,10 @@ async function settingsSavePerson(existing){
   } else folderAnswered=(role==='admin');
 
   if(isNew){
-    let newId=null;
+    let newId=null, mailed=null;
     if(API_MODE()){
       try{ const r=await api('users','POST',{ name, email, role, title, password:pass });
-        REMOTE.users=[...REMOTE.users, r.user]; newId=r.user&&r.user.id;
+        REMOTE.users=[...REMOTE.users, r.user]; newId=r.user&&r.user.id; mailed=r;
       }catch(e){ stDrawerRefuse(e.message); return; }
     } else {
       const salt=newSalt();
@@ -1498,30 +1501,37 @@ async function settingsSavePerson(existing){
       } else if(u2){ Object.assign(u2,after); saveUsers(getUsers()); }
     }
     settingsMirrorDirectory(name,email,title);
-    toast(i18t('set_t_added_as',{name,role:roleName(role)})+(API_MODE()?i18t('set_t_invite_queued'):i18t('set_t_share_password')));
+    /* "SENT" MUST MEAN SENT (9 Oct 2026): this said "an invite email was
+       queued" whatever the server did. It reads the server's mailReport now —
+       sent, the outbox (no email set up) or refused — and where nothing went,
+       says the one thing the admin has to do: hand over the temporary
+       password they just typed themselves. */
+    const inviteSaid = !API_MODE() ? 'set_t_share_password'
+      : (mailed && mailed.emailSent) ? 'set_t_invite_sent'
+      : (mailed && mailed.outbox) ? 'set_t_invite_outbox' : 'set_t_invite_failed';
+    toast(i18t('set_t_added_as',{name,role:roleName(role)})+i18t(inviteSaid), inviteSaid==='set_t_invite_sent'?'ok':'warn');
     stDrawerClose(); renderTeam(); return;
   }
 
   /* ---- EDITING ----
-     A RENAME CAN ORPHAN AN APPROVAL RULE, because a named approver is bound by
-     NAME and not by id. Said out loud before it happens, with the rules
-     repointed for them rather than left pointing at nobody. */
+     A RENAME CARRIES THE APPROVAL RULES WITH IT (9 Oct 2026). A rule names
+     its approver by id now; an older rule that names them by their old name is
+     repointed — by the server in a workspace (PATCH /api/users/:id does it in
+     the same write), here on a single machine — so nothing is left pointing at
+     nobody and there is nothing to ask. */
   const us=getUsers(); const target=us.find(x=>x.id===existing.id); if(!target) return;
   const me=currentUser()||{};
   const renamed = name && name!==target.name;
-  if(renamed){
-    const bound=(typeof approvalRules==='function'?approvalRules():[]).filter(r=>r.approver&&r.approver.kind==='member'&&r.approver.name===target.name);
-    if(bound.length){
-      const ok=await confirmDialog({
-        title:i18tn('st_rename_breaks_rule',bound.length,{n:bound.length,old:target.name}),
-        message:i18t('st_rename_fix'),
-        confirmLabel:i18t('st_rename_fix') });
-      if(!ok) return;
-      const all=approvalRules().slice();
-      all.forEach(r=>{ if(r.approver&&r.approver.kind==='member'&&r.approver.name===target.name) r.approver={kind:'member',name}; });
-      saveApprovalRules(all);
-    }
-  }
+  const oldName = target.name;
+  const repointRules = (save) => {
+    if(!renamed || typeof approvalRules!=='function') return;
+    const all=approvalRules().slice(); let moved=false;
+    all.forEach(r=>{ const a=r&&r.approver;
+      if(a&&a.kind==='member'&&(String(a.id||'')===String(target.id)||(!a.id&&a.name===oldName))){ r.approver={kind:'member',name,id:target.id}; moved=true; } });
+    if(!moved) return;
+    if(save) saveApprovalRules(all);
+    else { state.settings=state.settings||{}; state.settings.approvalRules=all; }
+  };
   const roleChanged = role!==target.role && existing.id!==me.id;
   const valuesBox=document.getElementById('tm-values');
   const valuesTo = valuesBox ? !!valuesBox.checked : null;
@@ -1557,11 +1567,11 @@ async function settingsSavePerson(existing){
     if(rv&&rv.reviewChecked!==undefined && rv.reviewChecked!==reviewChecked(target)) patch.reviewChecked=rv.reviewChecked;
     if(rv&&rv.reviewerId!==undefined && String(rv.reviewerId||'')!==String(target.reviewerId||'')) patch.reviewerId=rv.reviewerId;
     Object.assign(patch, ovPatch.patch||{});
-    /* The server takes title (self or admin), role and canViewValues. It does
-       NOT take a name today, so a rename is applied to the record we hold and
-       the directory that feeds signer fields — said here rather than pretended
-       about. */
+    /* The server takes the name (an admin's act), the title, role and the
+       grants; a rename the server refuses (another member has that name) is
+       said in the drawer and nothing here moves. */
     const body={};
+    if(renamed) body.name=name;
     if(patch.title!==undefined) body.title=patch.title;
     if(patch.role!==undefined) body.role=patch.role;
     if(patch.canViewValues!==undefined) body.canViewValues=patch.canViewValues;
@@ -1577,6 +1587,7 @@ async function settingsSavePerson(existing){
       try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); }
       catch(e){ stDrawerRefuse(e.message); return; }
     }
+    repointRules(false);
     if(name) target.name=name; target.title=title;
     if(roleChanged) target.role=role;
     if(valuesChanged) target.canViewValues=valuesTo;
@@ -1589,6 +1600,7 @@ async function settingsSavePerson(existing){
     for(const k of ['overseerId','overseerOn','overseerBackupId','overseerWhen'])
       if(patch[k]!==undefined) target[k]=patch[k];
   } else {
+    repointRules(true);
     target.name=name||target.name; target.title=title; if(roleChanged) target.role=role;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
     const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
@@ -1607,7 +1619,7 @@ async function settingsSavePerson(existing){
     catch(e){ stDrawerRefuse(e.message); return; }
   }
   settingsMirrorDirectory(target.name,email||target.email,title);
-  toast(i18t('st_person_saved',{who:target.name}));
+  toast(i18t('st_person_saved',{who:target.name}),'ok');
   stDrawerClose(); renderTeam();
 }
 /* Mirror a member into the people directory (with their title) so signer fields
@@ -5144,8 +5156,10 @@ function openApprovalRuleEditor(idx){
      The name is kept and shown for what it is, and the save refuses until a
      person actually chooses. Naming the departed member is the point: an admin
      who can see WHO it used to be can pick the right replacement. */
+  const isAp = m => r.approver && r.approver.kind==='member'
+    && (r.approver.id ? String(m.id)===String(r.approver.id) : m.name===r.approver.name);
   const orphan = r.approver && r.approver.kind==='member'
-    && !members.some(m=>m.name===r.approver.name) ? r.approver.name : null;
+    && !members.some(isAp) ? r.approver.name : null;
   openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?i18t('set_edit_rule'):i18t('set_add_rule')}</h3>
     <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_order_lower_first')}</span>
@@ -5158,7 +5172,7 @@ function openApprovalRuleEditor(idx){
         <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>${i18t('set_any_admin')}</option>
         <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>${i18t('set_any_legal')}</option>
         ${orphan?`<option value="orphan" selected>${esc(orphan)} — ${i18t('set_approver_gone')}</option>`:''}
-        ${members.map(m=>`<option value="member:${m.name}" ${r.approver.kind==='member'&&r.approver.name===m.name?'selected':''}>${m.name} (${roleName(m.role)})</option>`).join('')}
+        ${members.map(m=>`<option value="member:${esc(m.id)}" ${isAp(m)?'selected':''}>${esc(m.name)} (${roleName(m.role)})</option>`).join('')}
       </select>
       ${orphan?`<span style="display:block;margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
     <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
@@ -5179,7 +5193,8 @@ function openApprovalRuleEditor(idx){
     if(apRaw==='orphan'){ toast(i18t('set_pick_approver'),'err'); return; }
     const ap=apRaw.split(':');
     r.order=Math.max(1,Number(document.getElementById('ar-order').value||1)); r.cond=cond;
-    r.approver = ap[0]==='member'?{kind:'member',name:ap.slice(1).join(':')}:{kind:'role',role:ap[1]};
+    const apM = ap[0]==='member' ? members.find(m=>String(m.id)===ap.slice(1).join(':')) : null;
+    r.approver = apM?{kind:'member',name:apM.name,id:apM.id}:{kind:'role',role:ap[1]};
     r.name = condLabel(cond);
     if(idx>=0) rules[idx]=r; else rules.push(r);
     saveApprovalRules(rules); closeModal(); renderApprovalRules(); toast(i18t('set_rule_saved'));

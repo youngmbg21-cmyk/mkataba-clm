@@ -48,11 +48,17 @@ function ruleMatches(rule, c){
     default: return false;
   }
 }
-function approverLabelOf(a){ return a.kind==='member' ? a.name
+/* A NAMED APPROVER IS BOUND BY ID WHERE THE RULE HAS ONE (9 Oct 2026): a
+   rename used to orphan the rule. Name only for a rule written before ids. */
+function approverMemberOf(a){
+  if(!a||a.kind!=='member'||a.id==null||a.id==='') return null;
+  return ((typeof getUsers==='function'?getUsers():null)||[]).find(u=>u&&String(u.id)===String(a.id))||null;
+}
+function approverLabelOf(a){ return a.kind==='member' ? ((approverMemberOf(a)||{}).name||a.name)
   : (a.role==='legal'?i18t('ap_a_legal_approver'):a.role==='admin'?i18t('ap_an_admin'):i18t('ap_a_role',{role:a.role})); }
 function userCanApprove(a, u){
   if(!u) return false;
-  if(a.kind==='member') return a.name===u.name;
+  if(a.kind==='member') return (a.id!=null&&a.id!=='') ? String(a.id)===String(u.id) : a.name===u.name;
   if(a.role==='admin') return u.role==='admin';
   if(a.role==='legal') return u.role==='legal'||u.role==='admin';   // admin can act for legal
   return u.role===a.role;
