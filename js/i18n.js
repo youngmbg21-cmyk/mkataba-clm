@@ -9169,6 +9169,7 @@ const STRINGS = {
        reserves for what was FOUND. */
     tri_go_brief: 'Read the contract brief',
     tri_go_oblig: 'Open the obligations',
+    tri_go_retry: 'Run this reading again',
     tri_stale: 'The wording moved since this was read',
     tri_reread: 'Read again',
     tri_reread_title: 'Read this again against the wording as it stands now. Copilot reads it on this press, and it is spent only then.',
@@ -21969,6 +21970,7 @@ const STRINGS = {
     tri_fill_theirs: 'De sköter underskriften, så de tomma fälten fylls i på deras egen kopia.',
     tri_go_brief: 'Läs avtalssammanfattningen',
     tri_go_oblig: 'Öppna åtagandena',
+    tri_go_retry: 'Kör den här läsningen igen',
     tri_stale: 'Formuleringen har ändrats sedan detta lästes',
     tri_reread: 'Läs igen',
     tri_reread_title: 'Läs detta igen mot formuleringen som den står nu. Copilot läser det när du trycker, och först då kostar det något.',

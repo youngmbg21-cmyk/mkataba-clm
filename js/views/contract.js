@@ -5865,7 +5865,7 @@ function ktTriageStripHtml(c){
     if(door) return `<button type="button" class="kt-tri-tile is-door${door==='reread'?' is-stale':''}" data-kt-tri-go="${door}"${
       door==='reread'?` data-kt-tri-key="${esc(x.key)}"`:''}
       title="${esc(door==='reread'?i18t('tri_reread_title')
-        :i18t(door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':door==='risk'?'tri_go_risk':'tri_go_oblig'))}">
+        :i18t(door==='retry'?'tri_go_retry':door==='brief'?'tri_go_brief':door==='playbook'?'tri_go_playbook':door==='risk'?'tri_go_risk':'tri_go_oblig'))}">
       ${head}${body}
     </button>`;
     return `<div class="kt-tri-tile${x.working?' is-busy':''}"${x.working?' aria-busy="true"':''}>
