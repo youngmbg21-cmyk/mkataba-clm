@@ -1696,6 +1696,14 @@ function portalNegoContract(p){
     if(PORTAL_NEGO_WITHDRAWN[ch.id]||PORTAL_NEGO_WITHDRAWN_SENT[ch.id])
       ch.withdrawn={ by:portalResponderLabel(c), side:'counterparty', at:nowISO() };
   }
+  /* A COUNTER HELD ON THIS PAGE NAMES ITS COUNTER (8 Oct 2026). The held
+     decision carries the status alone, so the parked ask read "Under #" with
+     no number: the counter that parks it is the one whose bundle names it. */
+  for(const ch of c.changes){
+    if(!ch || ch.status!=='countered' || ch.counteredBy) continue;
+    const top=c.changes.find(x=>x&&x!==ch&&Array.isArray(x.bundle)&&x.bundle.some(b=>b&&b.id===ch.id));
+    if(top) ch.counteredBy=top.id;
+  }
   return c;
 }
 /* WHICH SCREEN IS THIS LINK?
