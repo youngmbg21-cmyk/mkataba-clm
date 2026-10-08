@@ -110,7 +110,6 @@ const DEAL = {
       await me.click('#toast-root [data-toast-act]');
       const dlg = await until(me, () => !!document.querySelector('.modal-in, [role="dialog"]'), null, 5000);
       const picked = dlg ? await me.evaluate(() => {
-        const box = document.querySelector('.modal-in, [role="dialog"]');
         return [...document.querySelectorAll('.rv-pickch')].filter(x => x.checked).map(x => x.getAttribute('data-rv-ch')).join(',');
       }) : '';
       ok('3 the door opens the review dialog on that change, and only that one ticked', dlg && picked === b.id, picked);
