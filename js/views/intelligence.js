@@ -2247,8 +2247,13 @@ function intelGraphApply(q, res, opts){
   /* asked on the Board, the map is not the screen: "Nothing changed on the
      map" is not said over an answer about the board */
   else if(!line) line=didHere?(ownHtml||igEsc(res.note||'Done.')):(ownHtml&&onBoard?ownHtml:igEsc(i18t('int_did_nothing'))+(ownHtml?(rich?'':'<br>')+ownHtml:''));
-  else if(graphSaysMore(own,res.note,parts[0])) line+=(rich?'':'<br>')+ownHtml;
-  intel.history.push({ role:'assistant', text:line, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
+  /* THE ANSWER FIRST (Young, 8 Oct 2026, "Home first"): where Copilot wrote a
+     sentence that says more than the counts, the sentence IS the answer and
+     what the map did ("Grouped 2 contracts into 2 groups…") rides the hover
+     of a small "How this was drawn" under it. Counts alone stay the answer. */
+  let how='';
+  if(line&&ownHtml&&graphSaysMore(own,res.note,parts[0])){ how=parts.join(' · '); line=ownHtml; }
+  intel.history.push({ role:'assistant', text:line, how, cardIds:(ids||[]).slice(0,5), listIds:(ids&&ids.length)?ids.slice():null, listTitle:igBoardTitle(q,res)||(res.note?String(res.note):null), listHonest:!!igBoardTitle(q,res), listChart:(res&&res.chart&&typeof res.chart==='object')?res.chart:null, choices:choices&&choices.length?choices:null });
   return { refused:false, groupBy, ids };
 }
 
@@ -6352,10 +6357,68 @@ function igMsgHTML(m,i){
       ${(Number.isInteger(i)&&m.undo&&typeof window.hbUndoHtml==='function')?hbUndoHtml(m.undo):''}
       ${(Number.isInteger(i)&&m.boardReply&&typeof window.hbMarksHtml==='function')?hbMarksHtml(i,m):''}
       ${(Number.isInteger(i)&&m.deeper&&!m.err&&typeof window.hbDeeperHtml==='function')?hbDeeperHtml(m.deeper):''}
-      ${(Number.isInteger(i)&&Array.isArray(m.listIds)&&m.listIds.length)?`<div class="igd-list" style="display:flex;gap:12px;flex-wrap:wrap;padding-left:2px"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:''}
+      ${(Number.isInteger(i)&&m.how)?`<div class="igd-how" title="${igEsc(m.how)}">${igEsc(i18t('int_how_drawn'))}</div>`:''}
+      ${Number.isInteger(i)?igDoorsHtml(m,i):''}
       ${body}
     </div>
   </div>`;
+}
+/* ---- HOME FIRST: AN ANSWER OFFERS HOME BEFORE ANY OTHER PAGE (Young, 8 Oct
+   2026, "Yes to all decisions") ----
+   On Home an answer that names contracts leads with Open on Paper (one) or
+   Read them on Paper (several, walked with Previous / Next), then Show on the
+   Board; the Contracts page and Export become small links last. Off Home the
+   answer keeps the Contracts page door it always had. */
+function igAnswerIds(m){
+  const L=Array.isArray(m.listIds)&&m.listIds.length?m.listIds:(Array.isArray(m.cardIds)?m.cardIds:[]);
+  return L.filter(id=>getContract(id));
+}
+function igDoorsHtml(m,i){
+  if(!m||m.role!=='assistant'||m.err) return '';
+  const ids=igAnswerIds(m); if(!ids.length) return '';
+  const list=Array.isArray(m.listIds)&&m.listIds.length;
+  const small=list?`<div class="igd-small"><button type="button" class="ui-link" data-ig-list="${i}">${i18t('int_open_list',{ n:m.listIds.length })}</button><button type="button" class="ui-link" data-ig-export="${i}">${i18t('int_export_list')}</button></div>`:'';
+  if(!(window.state&&state.view==='dashboard')) return list?small.replace('igd-small','igd-list'):'';
+  const one=ids.length===1, c=one?getContract(ids[0]):null;
+  const lead=one?i18t('int_open_on_paper',{ ref:(window.contractRef?contractRef(c):c.id) }):i18tn('int_read_on_paper',ids.length,{ n:ids.length });
+  return `<div class="igd-doors"><button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-ig-paper-go="${i}">${igEsc(lead)}</button><button type="button" class="ui-btn ui-btn-sm" data-ig-board-go="${i}">${igEsc(i18t('int_show_on_board'))}</button></div>${small}`;
+}
+/* WALK A SET ON THE PAPER: one contract at a time, Previous / k of n / Next
+   in the strip; the set is the answer's own (or a Board card's). Picking a
+   contract outside the set ends the walk. */
+function igWalk(ids,at,opts){
+  const L=(ids||[]).filter(id=>getContract(id)); if(!L.length) return;
+  const k=Math.max(0,Math.min(L.length-1,Number(at)||0));
+  intel.walk=L.length>1?{ ids:L, at:k, title:(opts&&opts.title)||'' }:null;
+  if(opts&&opts.tab&&typeof window.pdSetTab==='function') pdSetTab(opts.tab);
+  igAnalyze(L[k]);
+}
+function igWalkStep(d){
+  const w=intel.walk; if(!w) return;
+  const k=w.at+d; if(k<0||k>=w.ids.length) return;
+  igWalk(w.ids,k,{ title:w.title });
+}
+function igWalkHtml(){
+  const w=intel.walk, p=intel.paper; if(!w||!p||!w.ids.includes(p.id)) return '';
+  const k=w.ids.indexOf(p.id);
+  return `<span class="ig-walk" role="group" aria-label="${igEsc(w.title||i18t('int_walk_label'))}"${w.title?` title="${igEsc(w.title)}"`:''}><button type="button" class="ui-btn ui-btn-sm" data-ig-walk="-1"${k<=0?' disabled aria-disabled="true"':''}>${igEsc(i18t('int_walk_prev'))}</button><b>${igEsc(i18t('int_walk_at',{ k:k+1, n:w.ids.length }))}</b><button type="button" class="ui-btn ui-btn-sm" data-ig-walk="1"${k>=w.ids.length-1?' disabled aria-disabled="true"':''}>${igEsc(i18t('int_walk_next'))}</button></span>`;
+}
+/* A CONTRACT'S REFERENCE IN AN ANSWER IS A DOOR ONTO ITS PAPER (Home only):
+   after each paint, a reference the book knows becomes a press. */
+const IG_REF_RE=/\b[A-Z]{2,4}-[A-Z0-9]{1,8}\b/g;
+function igRefsMark(dock){
+  if(!(window.state&&state.view==='dashboard')) return;
+  const byRef=new Map(); (state.contracts||[]).forEach(c=>{ const r=window.contractRef?contractRef(c):c.id; if(r) byRef.set(String(r),c.id); byRef.set(String(c.id),c.id); });
+  dock.querySelectorAll('#igd-feed .ai-bub').forEach(bub=>{
+    const w=document.createTreeWalker(bub,NodeFilter.SHOW_TEXT); const hits=[]; let n;
+    while((n=w.nextNode())){ if(n.parentElement&&n.parentElement.closest('button,a,.ig-cites,[data-ig-open]')) continue; if(IG_REF_RE.test(n.nodeValue)) hits.push(n); IG_REF_RE.lastIndex=0; }
+    hits.forEach(t=>{ const parts=String(t.nodeValue).split(/(\b[A-Z]{2,4}-[A-Z0-9]{1,8}\b)/); if(parts.length<2) return;
+      const frag=document.createDocumentFragment();
+      parts.forEach((x,j)=>{ const id=j%2?byRef.get(x):null;
+        if(id){ const b=document.createElement('button'); b.type='button'; b.className='ig-ref-go hati-ref'; b.setAttribute('data-ig-open',id); b.title=i18t('int_ref_open'); b.textContent=x; frag.appendChild(b); }
+        else frag.appendChild(document.createTextNode(x)); });
+      t.parentNode.replaceChild(frag,t); });
+  });
 }
 /* the line over the ask box, on Home's board only (Part 10) */
 const IG_PRE_MS = 250;
@@ -6530,6 +6593,16 @@ function renderIntelDock(){
   dock.querySelectorAll('[data-ig-export]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const m=intel.history[Number(b.getAttribute('data-ig-export'))]; if(m&&m.listIds) igExportList(m.listIds); }));
   igCiteRowsMark(dock);
+  igRefsMark(dock);
+  dock.querySelectorAll('[data-ig-paper-go]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const m=intel.history[Number(b.getAttribute('data-ig-paper-go'))]; if(!m) return;
+    igWalk(igAnswerIds(m),0,{ title:m.listTitle||'' }); }));
+  dock.querySelectorAll('[data-ig-board-go]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
+    const m=intel.history[Number(b.getAttribute('data-ig-board-go'))]; if(!m) return;
+    const ids=igAnswerIds(m);
+    if(typeof window.hbFace==='function'&&hbFace()!=='board'&&typeof window.hbSetFace==='function') hbSetFace('board');
+    if(typeof window.hbShowFound==='function') try{ hbShowFound(ids, m.listTitle||'', m.listChart||null); }catch(_){ } }));
+  dock.querySelectorAll('[data-ig-open]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation(); intel.walk=null; igAnalyze(b.getAttribute('data-ig-open')); }));
   dock.querySelectorAll('[data-ig-cite]').forEach(b=>b.addEventListener('click',e=>{
     if(e.target.closest&&e.target.closest('a,button:not([data-ig-cite]),input,textarea,select')) return;
     e.stopPropagation();
@@ -6774,6 +6847,7 @@ async function igAnalyze(id){
     if(host&&host.dataset.for===c.id) delete host.dataset.for;
     if(intel.paper&&intel.paper.id===id) Object.assign(intel.paper,igPaperCost(c));
   }
+  if(intel.walk&&!intel.walk.ids.includes(id)) intel.walk=null;
   if(!intel.paper||intel.paper.id!==id) intel.paper={ id, mode:'paper', focus:false, pins:[], seq:0, on:null, ...igPaperCost(c) };
   else intel.paper.mode='paper';
   if(!intel.dockOpen){ intel.dockOpen=true; igSyncDockWidth(); }
@@ -6913,6 +6987,20 @@ function igCiteRowsMark(dock){
       if(body){ body.setAttribute('data-ig-cite',i+':0'); body.classList.add('ig-cite-row'); body.setAttribute('title',i18t('int_cite_show')); } }
   });
 }
+/* A PASSAGE NAMED BY THE DESK (an obligation's words): pinned and lit like an
+   answer's, under turn -1, so the pins the answers made stay as they are. */
+function igQuoteGo(text,ob){
+  const p=intel.paper; const t=String(text||'').trim(); if(!p||t.length<6) return;
+  let pin=p.pins.find(x=>x.turn===-1&&x.text===t);
+  if(!pin){ pin={ n:++p.seq, turn:-1, k:p.pins.filter(x=>x.turn===-1).length, text:t, ob:!!ob, lost:false }; p.pins.push(pin); }
+  p.on={ turn:-1, k:pin.k };
+  igPaintPaper();
+  const canvas=document.getElementById('ig-canvas'), sc=document.getElementById('ig-paper-scroll');
+  const first=canvas?canvas.querySelector(`span.ig-mark[data-ig-pin="${pin.n}"]`):null;
+  if(first&&sc){ const r=first.getBoundingClientRect(), sr=sc.getBoundingClientRect();
+    sc.scrollTo({ top:Math.max(0,sc.scrollTop+(r.top-sr.top)-sc.clientHeight*0.35), behavior:'smooth' }); }
+  else if(typeof toast==='function') toast(i18t('int_cite_lost'),'warn');
+}
 /* ---- the strip ---- */
 function igStripHtml(c,p){
   const up=p.mode==='paper';
@@ -6923,7 +7011,7 @@ function igStripHtml(c,p){
   /* ON HOME THE SWITCH IS GONE (7 Oct 2026): Paper is Home's own side, so the
      strip offers another contract instead of a second way onto the map. */
   const onHome=igHomePaperFace()!==null;
-  return `${onHome?'':`<div class="ig-sw" role="group" aria-label="${igEsc(i18t('int_paper_switch'))}">
+  return `${onHome?igWalkHtml():''}${onHome?'':`<div class="ig-sw" role="group" aria-label="${igEsc(i18t('int_paper_switch'))}">
       <button type="button" data-ig-mode="graph" aria-pressed="${up?'false':'true'}">${igEsc(i18t('int_paper_graph'))}</button>
       <button type="button" data-ig-mode="paper" aria-pressed="${up?'true':'false'}">${igEsc(i18t('int_paper_paper'))}</button>
     </div>`}
@@ -6978,7 +7066,8 @@ function igStripWire(){
     const mode=e.target.closest('[data-ig-mode]');
     if(mode){ p.mode=mode.getAttribute('data-ig-mode')==='paper'?'paper':'graph'; if(p.mode!=='paper') p.focus=false; igPaintPaper(); renderIntelDock(); return; }
     if(e.target.closest('[data-ig-pins-clear]')){ p.pins=[]; p.on=null; igPaintPaper(); renderIntelDock(); return; }
-    if(e.target.closest('[data-ig-pick-again]')){ intel.paper=null; igPaintPaper(); renderIntelDock(); igPaintIds(null); return; }
+    if(e.target.closest('[data-ig-pick-again]')){ intel.paper=null; intel.walk=null; igPaintPaper(); renderIntelDock(); igPaintIds(null); return; }
+    const wk=e.target.closest('[data-ig-walk]'); if(wk){ igWalkStep(Number(wk.getAttribute('data-ig-walk'))); return; }
     if(e.target.closest('[data-ig-focus]')){ p.focus=!p.focus; igPaintPaper(); return; }
     const ws=e.target.closest('[data-ig-ws]'); if(ws){ openWorkspace(ws.getAttribute('data-ig-ws')); }
   });
@@ -6994,6 +7083,7 @@ function igPaperHtml(c){
   return `<div class="ig-paper-wrap">
     <div id="ig-spine" class="doc-xr-spine ig-spine" role="group" aria-label="${igEsc(i18t('xr_spine_label'))}" hidden></div>
     <div id="ig-paper-scroll" class="ig-paper-scroll scroll-thin">${sheet}</div>
+    ${igHomePaperFace()===true?`<aside id="ig-desk" class="ig-desk" aria-label="${igEsc(i18t('pd_label'))}"></aside>`:''}
   </div>`;
 }
 function igPaperPaginate(c){
@@ -7035,6 +7125,7 @@ function igPaintPaper(){
   if(!up){ host.hidden=true; return; }
   if(host.dataset.for!==c.id){ host.innerHTML=igPaperHtml(c); host.dataset.for=c.id; igPaperWire(host); }
   host.hidden=false;
+  if(typeof window.pdPaint==='function') try{ pdPaint(c); }catch(_){ }
   igPaperPaginate(c);
   igPinsPaint();
   igStrandPaint(c);
@@ -7264,7 +7355,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igAnswerIds,igDoorsHtml,igWalk,igWalkStep,igWalkHtml,IG_REF_RE,igRefsMark,igQuoteGo,igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
