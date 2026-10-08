@@ -386,18 +386,66 @@ function caDraftPress(i, act, btn){
    - STD: "draft redlines from our standards" — rlPrepareRedlines(c) on the
      negotiation page, which asks first and sends nothing.
    The contract is a chosen #, a typed reference, or the paper that is up. */
-const CA_JOBS = ['ready', 'oblig', 'std'];
+const CA_JOBS = ['ready', 'oblig', 'std', 'obls', 'risks'];
 const CA_JOB_RE = {
   ready: /\b(?:ready to sign|ready for signing|ready for signature|what(?:'s| is)? (?:left|stopping|blocking)\b.*\bsign)/i,
   oblig: /\b(?:find|read|pull out|extract)\s+(?:its|the|all|this contract'?s)?\s*obligations\b/i,
   std: /\b(?:draft|prepare|propose|make)\b.*\b(?:redlines?|changes)\b.*\b(?:standards?|playbook)\b|\bdraft from our standards\b/i,
+  /* THE PAPER'S OWN LISTS, each row a door onto its words (Young, 8 Oct 2026) */
+  obls: /^\s*(?:what|which|show|list|any)\b[^?]*\b(?:obligations?|duties)\b/i,
+  risks: /^\s*(?:what|which|show|list|any|are there)\b[^?]*\b(?:risks?|watch[- ]?outs?|red flags?)\b/i,
 };
+/* A contract named in the ask (# or a reference), or the paper that is UP —
+   not one left behind on the map (the lists answer about the paper in view). */
+function caNamedOrUp(q){
+  for (const [label, v] of _caChosen) if (v.kind === 'contract' && q.includes(label)) return caFindContract(q);
+  if (/\b[A-Z]{2,4}-[A-Z0-9]+\b/.test(String(q))) return caFindContract(q);
+  return (typeof igPaperUp === 'function' && igPaperUp()) ? caOpenContract() : null;
+}
 function caReadJob(q){
   const kind = CA_JOBS.find(k => CA_JOB_RE[k].test(q)); if (!kind) return null;
+  if (kind === 'obls' || kind === 'risks'){
+    const c = caNamedOrUp(q); if (!c) return null;
+    return kind === 'risks' ? caRiskList(c) : caObligList(c);
+  }
   /* NO CONTRACT, NO CARD: "find obligations due next week" on the Board is
      a question for the board, not a job — it goes on as before. */
   const c = caFindContract(q); if (!c) return null;
   return { kind, cid: c.id, state: 'ready' };
+}
+/* The rows of a list card and the passages they open: a row with words on
+   the paper carries its passage's place in `quotes` (one per distinct passage). */
+function caRowsWithQuotes(rows){
+  const quotes = [], at = new Map();
+  rows.forEach(r => { const t = String(r.quote || '').trim(); if (t.length < 6) { r.qk = -1; return; }
+    if (!at.has(t)){ at.set(t, quotes.length); quotes.push({ text: t, ob: !!r.ob }); }
+    r.qk = at.get(t); });
+  return quotes;
+}
+/* RISKS: the ONE list (riskItemsOf), open ones first. Nothing recorded yet →
+   null, and the question goes to Copilot, whose answer quotes the paper. */
+function caRiskList(c){
+  const all = (typeof riskItemsOf === 'function') ? riskItemsOf(c) : [];
+  if (!all.length) return null;
+  const open = all.filter(it => !it.dismissed && !it.drafted && !it.covered);
+  const rows = (open.length ? open : all).map(it => ({
+    title: (typeof riskTitleOf === 'function') ? riskTitleOf(it) : (it.title || ''),
+    why: (typeof riskWhyOf === 'function') ? riskWhyOf(it) : (it.why || ''),
+    sev: it.sev || 'med', quote: it.quote || '' }));
+  return { kind: 'risks', cid: c.id, state: 'ready', rows, open: open.length, total: all.length, quotes: caRowsWithQuotes(rows) };
+}
+/* OBLIGATIONS: what is recorded on the contract. Nothing recorded → the find
+   card (the existing reading, offered not paid for twice). */
+function caObligList(c){
+  const obs = Array.isArray(c.obligations) ? c.obligations.filter(Boolean) : [];
+  if (!obs.length) return { kind: 'oblig', cid: c.id, state: 'ready' };
+  const rows = obs.map(o => ({
+    title: String(o.desc || o.title || ''),
+    due: (() => { try { const d = (typeof obligationDueSay === 'function') ? obligationDueSay(o, c) : null;
+      return d && typeof d === 'object' ? [d.day, d.sub].filter(Boolean).join(' · ') : String(o.due || ''); } catch (_){ return String(o.due || ''); } })(),
+    theirs: o.party === 'theirs', done: (typeof obState === 'function' ? obState(o) : o.status) === 'done',
+    quote: o.quote || '', ob: true }));
+  return { kind: 'obls', cid: c.id, state: 'ready', rows, quotes: caRowsWithQuotes(rows) };
 }
 /* Where each gap is settled — the room's own tabs and pages, nothing new. */
 function caReadyDoor(key){
@@ -411,6 +459,7 @@ function caJobCardHtml(a, i){
   const B = (act, label, lead) => `<button type="button" class="ui-btn ui-btn-sm${lead ? ' ui-btn-primary' : ''}" data-ca-act="${act}" data-ca-turn="${i}">${_caE(label)}</button>`;
   if (!c) return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(_caT('ca_job_' + a.kind))}</div><p class="ca-why">${_caE(_caT('ca_send_which'))}</p></div>`;
   const head = `<dl class="ca-dl"><dt>${_caE(_caT('ca_l_contract'))}</dt><dd>${_caE(caRef(c) + ' · ' + (c.name || ''))}</dd></dl>`;
+  if (a.kind === 'risks' || a.kind === 'obls') return caListCardHtml(a, i, c, head);
   if (a.kind === 'ready'){
     const done = /^(Signed|Executed|Active|Expired|Terminated)$/.test(String(c.status || ''));
     const bl = done ? [] : ((typeof signBlockers === 'function') ? signBlockers(c) : []);
@@ -427,6 +476,23 @@ function caJobCardHtml(a, i){
     <p class="ca-foot" style="margin-top:0">${_caE(_caT(frozen ? 'ca_std_frozen' : 'ca_' + a.kind + '_says'))}</p>
     ${frozen || a.state === 'done' ? '' : `<div class="ca-acts">${B('run', _caT(lead), true)}</div>`}
     ${a.state === 'done' ? `<p class="ca-said is-ok">${_caE(_caT('ca_job_opened'))}</p>` : ''}</div>`;
+}
+/* A list whose rows are doors: a row with its words on the paper takes the
+   reader there (data-ig-cite, the answer chips' own door); a row without says
+   so on its hover. */
+function caListCardHtml(a, i, c, head){
+  const risks = a.kind === 'risks';
+  const rows = (a.rows || []).map(r => {
+    const door = r.qk >= 0 ? ` data-ig-cite="${i}:${r.qk}" tabindex="0" role="button" title="${_caE(_caT('ca_row_go'))}"` : ` title="${_caE(_caT('ca_row_no_words'))}"`;
+    const tag = risks ? `<span class="ca-sev is-${_caE(r.sev)}">${_caE(_caT('ca_sev_' + (r.sev === 'high' ? 'high' : r.sev === 'low' ? 'low' : 'med')))}</span>`
+      : `<span class="ca-sev ${r.theirs ? 'is-low' : 'is-med'}">${_caE(_caT(r.theirs ? 'ca_ob_theirs' : 'ca_ob_ours'))}</span>`;
+    const sub = risks ? r.why : r.due;
+    return `<li class="ca-row${r.qk >= 0 ? ' is-door' : ''}"${door}>${tag}<span class="ca-row-b"><b>${_caE(r.title)}</b>${sub ? `<small>${_caE(sub)}</small>` : ''}</span>${r.qk >= 0 ? '<span class="ca-row-go" aria-hidden="true">›</span>' : ''}</li>`;
+  }).join('');
+  const n = (a.rows || []).length;
+  const title = risks ? _caT(n === 1 ? 'ca_risks_n_one' : 'ca_risks_n_other', { n }) : _caT(n === 1 ? 'ca_obls_n_one' : 'ca_obls_n_other', { n });
+  const foot = risks && a.open === 0 ? _caT('ca_risks_all_handled') : _caT('ca_list_foot');
+  return `<div class="ca-card" data-ca-card="${i}"><div class="ca-ct">${_caE(title)}</div>${head}<ul class="ca-rows">${rows}</ul><p class="ca-foot">${_caE(foot)}</p></div>`;
 }
 async function caJobPress(i, act, btn){
   const m = caTurn(i); const a = m && m.act; if (!a) return;
@@ -474,6 +540,11 @@ function caChipsHtml(){
     ? `<button type="button" data-ca-fill="${_caE(x.fill)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.label)}</button>`
     : `<button type="button" data-igsug="${_caE(x.ask)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${_caE(x.ask)}</button>`).join('');
 }
+if (typeof document !== 'undefined') document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const r = e.target && e.target.closest ? e.target.closest('.ca-row[data-ig-cite]') : null; if (!r) return;
+  e.preventDefault(); r.click();
+});
 if (typeof document !== 'undefined') document.addEventListener('click', e => {
   const b = e.target && e.target.closest ? e.target.closest('[data-ca-fill]') : null; if (!b) return;
   const inp = document.getElementById('igd-input'); if (!inp) return;
@@ -593,5 +664,5 @@ if (typeof document !== 'undefined' && !document._caSelArmed){
 Object.assign(window, { CA_PICK_MAX, CA_NOTE_MAX, CA_SEND_RE, caPeople, caContracts, caOpenContract, caTokenAt, caMatches, caPopHtml, caPopClose, caPopRead, caChoose,
   caFindContract, caFindPerson, caNoteOf, caReadSend, caActOf, caSendBlock, caCardHtml, caCardPress,
   CA_DRAFT_RE, CA_DRAFT_NOUN, CA_DRAFT_OPTS, caReadDraft, caDraftScore, caDraftRank, caDraftRun, caDraftCardHtml, caDraftPress,
-  CA_JOBS, CA_JOB_RE, caReadJob, caReadyDoor, caJobCardHtml, caJobPress, caPaperChips, caChipsHtml,
+  CA_JOBS, CA_JOB_RE, caReadJob, caNamedOrUp, caRowsWithQuotes, caRiskList, caObligList, caListCardHtml, caReadyDoor, caJobCardHtml, caJobPress, caPaperChips, caChipsHtml,
   CA_SEL_ACTIONS, caSelKill, caSelClauseId, caSelOpen, caSelPick, CA_RISK_MAX, caRiskMark });

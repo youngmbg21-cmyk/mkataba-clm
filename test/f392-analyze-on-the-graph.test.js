@@ -84,7 +84,9 @@ describe('f392 (1) the card carries three doors', () => {
   test('the dock wires the door to igAnalyze, and every passage chip to igLight', () => {
     const d = code(region(IG, 'renderIntelDock'));
     assert.match(d, /\[data-ig-analyze\][\s\S]*?igAnalyze\(/);
-    assert.match(d, /\[data-ig-cite\][\s\S]*?igLight\(/);
+    /* 8 Oct 2026: through igCiteGo, which first puts the passage's own paper up, then calls igLight */
+    assert.match(d, /\[data-ig-cite\][\s\S]*?igCiteGo\(/);
+    assert.match(code(region(IG, 'igCiteGo')), /igLight\(turn,k\)/);
   });
   test('the words are in both books, and the fill is one filled button per card', () => {
     ['int_analyze', 'int_analyze_title', 'int_paper_graph', 'int_paper_paper', 'int_pins_one', 'int_pins_other', 'int_pins_clear', 'int_focus', 'int_focus_exit',

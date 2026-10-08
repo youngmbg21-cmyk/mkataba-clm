@@ -1889,7 +1889,11 @@ async function intelAsk(qRaw){
     let act=null; try{ act=caActOf(q); }catch(_){ act=null; }
     if(act){
       intel.history.push({role:'user', text:q});
-      intel.history.push({role:'assistant', text:i18t(act.kind==='draft'?'ca_intro_draft':act.kind==='send'?'ca_intro_send':'ca_intro_job'), act});
+      const m={role:'assistant', text:i18t(act.kind==='draft'?'ca_intro_draft':act.kind==='send'?'ca_intro_send':'ca_intro_job'), act};
+      /* a card that lists passages (risks, obligations) carries them as the
+         message's own quotes, so each row is a door onto the paper */
+      if(Array.isArray(act.quotes)&&act.quotes.length&&act.cid){ m.paperId=act.cid; m.quotes=act.quotes; m.citesInline=true; }
+      intel.history.push(m);
       renderIntelDock();
       return;
     }
@@ -1901,7 +1905,12 @@ async function intelAsk(qRaw){
      that drew or changed the open chart carries how it was read */
   const rdSnap=(state.view==='dashboard'&&typeof window.hbReadingSnap==='function')?hbReadingSnap():null;
   const rdOf=()=>{ try{ const r=rdSnap?hbReadingAfter(rdSnap):null; return r?{ reading:r }:{}; }catch(_){ return {}; } };
-  if(state.view==='dashboard' && typeof window.hbAsk==='function'){
+  /* ON HOME'S PAPER SIDE THE QUESTION IS ABOUT THE PAPER (Young, 8 Oct 2026:
+     "when the copilot output appears, I can click on the output and it take
+     me to that location on the paper"): the board's own reader is skipped, so
+     the question reaches igPaperAsk and its answer carries its passages. */
+  const onPaperSide=igHomePaperFace()===true&&igPaperUp();
+  if(state.view==='dashboard' && !onPaperSide && typeof window.hbAsk==='function'){
     let said=null; try{ said=hbAsk(q); }catch(e){ said=null; }
     if(said){ intel.history.push({role:'user', text:q}); intel.history.push(Object.assign({role:'assistant', text:said}, typeof window.hbTakeMeta==='function'?hbTakeMeta():{}, rdOf(), typeof window.hbBoardReplyMeta==='function'?hbBoardReplyMeta():{})); renderIntelDock(); return; }
   }
@@ -6321,7 +6330,7 @@ function igMsgHTML(m,i){
      one chip per verbatim quote the server kept, numbered by its pin on the
      paper; an answer that rests on no passage says so under its text, so a
      silence is never mistaken for a jump that did not happen. */
-  const cites=(m.paperId&&Array.isArray(m.quotes))?igCitesHtml(m,i):'';
+  const cites=(m.paperId&&Array.isArray(m.quotes)&&!m.citesInline)?igCitesHtml(m,i):'';
   return `<div class="ai-msg flex gap-2"${Number.isInteger(i)?` data-ig-turn="${i}"`:''}>
     <div class="h-6 w-6 shrink-0 grid place-items-center rounded-lg bg-gold-500/15 text-gold-600 mt-0.5">${icon('sparkle','w-3 h-3')}</div>
     <div class="min-w-0 flex-1 space-y-1.5">
@@ -6500,8 +6509,11 @@ function renderIntelDock(){
     regShowOnly(m.listIds.filter(id=>getContract(id)), m.listTitle||i18t(IG_TAB_LABEL.map)); }));
   dock.querySelectorAll('[data-ig-export]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
     const m=intel.history[Number(b.getAttribute('data-ig-export'))]; if(m&&m.listIds) igExportList(m.listIds); }));
-  dock.querySelectorAll('[data-ig-cite]').forEach(b=>b.addEventListener('click',e=>{ e.stopPropagation();
-    const [t,k]=String(b.getAttribute('data-ig-cite')||'').split(':').map(Number); igLight(t,k); }));
+  igCiteRowsMark(dock);
+  dock.querySelectorAll('[data-ig-cite]').forEach(b=>b.addEventListener('click',e=>{
+    if(e.target.closest&&e.target.closest('a,button:not([data-ig-cite]),input,textarea,select')) return;
+    e.stopPropagation();
+    const [t,k]=String(b.getAttribute('data-ig-cite')||'').split(':').map(Number); igCiteGo(t,k); }));
   /* "See the list" — the register's ONE door onto a named set, carrying the
      chip that says what the list is and the way back. Never a second list
      drawn in the dock. */
@@ -6618,7 +6630,7 @@ function openPartyModal(name){
    NO ROUTE, NO STORE, NO FIELD, NO WRITE: intel.paper lives for the sitting,
    the record is never touched (f392 greps this block for the funnel's names),
    and the wording travels only as the question's own message. */
-const IG_PAPER_RULE='Answer from THE WORDING below (and THE NEGOTIATION RECORD after it, where one is sent) and from nothing else about this contract. In deliver_answer, cite this contract once per passage your answer rests on, with "quote" carrying that ONE continuous passage copied character for character from the wording — never joined, never paraphrased, at least a full clause or sentence. Where the answer rests on a duty (a payment, a notice, a delivery), quote the sentence that creates it. Name the article or clause each point comes from. If the wording says nothing on the point, say so and quote nothing.';
+const IG_PAPER_RULE='Answer from THE WORDING below (and THE NEGOTIATION RECORD after it, where one is sent) and from nothing else about this contract. In deliver_answer, cite this contract once per passage your answer rests on, with "quote" carrying that ONE continuous passage copied character for character from the wording — never joined, never paraphrased, at least a full clause or sentence. Where the answer rests on a duty (a payment, a notice, a delivery), quote the sentence that creates it. Name the article or clause each point comes from, and in the answer text give each point a few of its passage\'s exact words in double quotes, so the reader can be taken to them. If the wording says nothing on the point, say so and quote nothing.';
 const IG_QUOTE_LABEL_WORDS=7;
 function igPaperUp(){ return !!(intel.paper&&intel.paper.mode==='paper'&&getContract(intel.paper.id)); }
 function igPaperText(c){ return (typeof contractPlainText==='function')?contractPlainText(c):''; }
@@ -6835,6 +6847,51 @@ function igLight(turn,k,o){
   const first=canvas&&pin?canvas.querySelector(`span.ig-mark[data-ig-pin="${pin.n}"]`):null;
   if(first&&sc){ const r=first.getBoundingClientRect(), sr=sc.getBoundingClientRect();
     sc.scrollTo({ top:Math.max(0,sc.scrollTop+(r.top-sr.top)-sc.clientHeight*0.35), behavior:'smooth' }); }
+}
+/* ---- EVERY POINT IS A DOOR ONTO THE PAPER (Young, 8 Oct 2026) ----
+   A press on a passage's door puts that contract's paper up if another one is
+   up (Home's Paper side, or the map's page), then lights the words. */
+async function igCiteGo(turn,k){
+  const m=intel.history[turn]; if(!m||!Array.isArray(m.quotes)||!m.quotes[k]) return;
+  if(m.paperId&&(!intel.paper||intel.paper.id!==m.paperId)){
+    await igAnalyze(m.paperId);
+    /* the paper is drawn on the next frames; the words are lit once it is */
+    await new Promise(r=>setTimeout(r,IG_CITE_SETTLE_MS));
+  }
+  igLight(turn,k);
+}
+const IG_CITE_SETTLE_MS=350;
+/* The words two passages share, read the same way as the pins read them. */
+function igCiteNorm(s){ return String(s||'').toLowerCase().replace(/[“”"'‘’]/g,'').replace(/[^\p{L}\p{N}%]+/gu,' ').trim(); }
+const IG_CITE_RUN=4;   // a run of this many of the passage's words, found in a point, ties the point to it
+/* Which of this answer's passages a point rests on: the passage whose words it
+   carries (a run of IG_CITE_RUN, or the whole passage when shorter), or -1. */
+function igCiteOfText(text,quotes){
+  const t=' '+igCiteNorm(text)+' ';
+  for(let k=0;k<quotes.length;k++){
+    const w=igCiteNorm(quotes[k]&&quotes[k].text).split(' ').filter(Boolean); if(!w.length) continue;
+    if(w.length<=IG_CITE_RUN){ if(t.includes(' '+w.join(' ')+' ')) return k; continue; }
+    for(let a=0;a+IG_CITE_RUN<=w.length;a++) if(t.includes(' '+w.slice(a,a+IG_CITE_RUN).join(' ')+' ')) return k;
+  }
+  return -1;
+}
+/* After each paint: in an answer that rests on passages, every point (a list
+   row or a paragraph) that carries a passage's words becomes that passage's
+   door — the whole point is pressable, the chips under it stay. An answer of
+   one passage and one point is a door as a whole. Nothing is drawn where
+   nothing ties a point to a passage. */
+function igCiteRowsMark(dock){
+  dock.querySelectorAll('#igd-feed [data-ig-turn]').forEach(turnEl=>{
+    const i=Number(turnEl.getAttribute('data-ig-turn')); const m=intel.history[i];
+    if(!m||m.role!=='assistant'||!m.paperId||!Array.isArray(m.quotes)||!m.quotes.length||m.citesInline) return;
+    const bub=turnEl.querySelector('.ai-bub'); if(!bub) return;
+    const blocks=[...bub.querySelectorAll('li, p')].filter(b=>!b.closest('.ig-cites')&&!b.querySelector('li, p'));
+    let any=false;
+    blocks.forEach(b=>{ const k=igCiteOfText(b.textContent,m.quotes); if(k<0) return;
+      b.setAttribute('data-ig-cite',i+':'+k); b.classList.add('ig-cite-row'); b.setAttribute('title',i18t('int_cite_show')); any=true; });
+    if(!any&&m.quotes.length===1&&blocks.length<=1){ const body=blocks[0]||null;
+      if(body){ body.setAttribute('data-ig-cite',i+':0'); body.classList.add('ig-cite-row'); body.setAttribute('title',i18t('int_cite_show')); } }
+  });
 }
 /* ---- the strip ---- */
 function igStripHtml(c,p){
@@ -7187,7 +7244,7 @@ if(typeof document!=='undefined'&&!document._igPaperKeys){
   });
 }
 
-Object.assign(window,{igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
+Object.assign(window,{igCiteGo,IG_CITE_SETTLE_MS,igCiteNorm,IG_CITE_RUN,igCiteOfText,igCiteRowsMark,igHomePaperFace,IG_PICK_MAX,igPickRows,igPickListHtml,igPickHtml,igPickWire,IG_DOCK_W0,IG_DOCK_MIN,IG_LEFT_MIN,IG_DOCK_FOLDED,IG_SPLIT_KEY,igDockClamp,igFitSplit,igWireSplit,igSplitSettle,IG_PAPER_RULE,IG_PAPER_CHANGES_RULE,IG_CHANGE_SAYS,igPaperChanges,igPaperCost,igQuoteOnPaper,igPaperUp,igPaperText,igPaperWords,igAskPlaceholder,igAskCost,igAnalyze,igQuoteLabel,igQuoteIsObligation,igPinAdd,igPinsMint,igCitesHtml,igLight,igStripHtml,igStripWire,igPaperHtml,igPaperPaginate,igPaintPaper,igPaperWire,igPinsPaint,igStrandPaint,igStrandFollow,igStrandQuestion,igStrandPress,igStrandTip,igStrandTopMark,igPaperAsk});
 Object.assign(window,{IG,IG_SUGGESTIONS,IG_TEMPLATE_RE,INTEL_CAP,KIND_TAG,REL_SEEDS,GRAPH_EDGE_KINDS,buildGraphEdges,graphDependents,graphDependentsAll,graphLiveContract,igDependentsHtml,graphNodeFacts,graphNodeFactLine,GRAPH_NODE_FACTS_MAX,graphPartyStats,graphPartyStatsAll,graphPartyLines,GRAPH_ONTIME_MIN,graphDecisionOf,graphDecisionOrder,graphCliffCrowded,graphCliffAt,igApplyCliff,GRAPH_CLIFF_QUARTERS,GRAPH_CLIFF_MAX_DAYS,graphStreamFlow,graphStreamLines,graphLinkWidth,GRAPH_GROUPINGS,GRAPH_GROUP_KEYS,graphGroupingOf,graphGroupingWord,GRAPH_GROUP_CUES,graphGroupCue,GRAPH_ASK_CAP,graphCopilotCard,graphNextDue,GRAPH_WHERE_KEYS,graphWhereIds,graphCrowdedQuarters,graphLensesNow,graphAskScreen,intelGraphApply,graphSaysMore,GRAPH_CTX_FACTS_MAX,graphCliffQuarters,graphCopilotContext,igPaintGroupSelect,GRAPH_LINK_W_MIN,GRAPH_LINK_W_MAX,igFactRowsHtml,igHoverShow,igHoverHide,SEV_WEIGHT,STATUS_BAR,STATUS_DOT,addLens,applyTemplateResult,buildGraph,buildGraphModel,closePartyModal,contractPlainText,daysUntil,graphInterpret,groupLabelOf,igApplyView,igDockWidth,igFitView,igClamp,igEsc,igExplain,igExplainCard,igMiniCard,igMsgHTML,igPaint,igPaintIds,igRankCard,igRender,igSyncDockWidth,igTick,igToWorld,intel,intelActive,intelAsk,intelAskReady,intelChatAsk,intelChatMessages,intelPushChatResult,intelAIExplain,intelToggleCompare,intelRunCompare,intelGraphAsk,intelRAF,intelTemplateAsk,intelUI,layoutGraph,makeIntelGraph,openPartyModal,parseHorizonDays,IG_TABS,IG_TAB_LABEL,obMonthLabel,intelFrictionStats,intelFrictionHtml,EXPOSURE_KINDS,EXPOSURE_NOTICE_DAYS,exposureLive,exposureData,exposureHtml,exposureWire,intelObligationsData,intelObligationsHtml,intelPayTermsHtml,intelGoTab,ptRepaint,ptWire,rebuildIntelGraph,renderIntel,renderIntelDock,renderIntelLegend,riskScore,scanPortfolio,templateShortlist,updateIntelNote,valueBand});
 Object.assign(window,{igSafeHtml,IG_UNSAFE_TAGS});
 Object.assign(window,{IGB_VIEWS,IGB_STATUS_COL,IGB_PALETTE,IGB_FOLD_SMALL,IGB_FOLD_MANY,IGB_ZOOM_MIN,IGB_ZOOM_MAX,IGB_SIZE_KEYS,igbCam,igbLayout,igbColours,igbSizes,igbProjector,igbMix,igbHeart,igbFloorOf,igbCortex,igbTissue,igbMoneyOf,igbShade,igbPlace,igFoldHub,igFoldAll,igPaintFoldAll,igSetView,igSetZoom,igFaceAgain,igTurnBy,igShowEverything,GRAPH_OUTLIER_MIN,GRAPH_OUTLIER_X,GRAPH_OUTLIER_PAY_GAP,GRAPH_WALK_MAX,graphOutliers,graphWalkIds,igColourKeyOf,igSizeKeyOf,intelMapLocal,igExportCsv,igExportList,IGB_FACT_TONE,igbCardTone});
