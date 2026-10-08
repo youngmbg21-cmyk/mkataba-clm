@@ -6181,55 +6181,57 @@ const OV_ESS_FIELDS = ['contractType','governingLaw','disputes','effDate','expir
 function ovDay(iso){ try{ return (window.regDotDate?regDotDate(iso):String(iso||'')); }catch(_){ return String(iso||''); } }
 function ovIsoDay(v){ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(v||'')); return m?Date.UTC(+m[1],+m[2]-1,+m[3]):null; }
 const OV_DAY_MS=86400000;
-/* ---- THE CONSTELLATION (Young picked it, 8 Oct 2026: "implement constellation
-   for the overview page and it should be exactly as designed in the mock up") ----
-   The deal as a map: every party a circle, its people around it, and what
-   passes between the parties as a line you can press. Beside it a panel reads
-   whatever was pressed — the agreement, a party, a line, a person — and holds
-   the map card's height, scrolling inside (Young: "Never gets bigger or
-   small"). It REPLACES the Time Machine (ovTmHtml and its helpers, STALE).
-   EVERY LINE IS A STORED FACT, because the record keeps no "flows":
-     · MONEY — only where money passes (isMonetary) and a value is on file:
-       the value and the payment terms. WHO PAYS is read from a dated duty to
-       pay, then from the parties' roles (a customer pays a supplier…); where
-       neither says, the line is drawn still, with no moving dots, and says
-       "who pays is not recorded". Never guessed.
-     · DUTIES — each side's recorded obligations (`party` ours | theirs), the
-       count, and the next one still open.
-   A third or later party has no line of its own: obligations name only our
-   side and theirs, which is the first outside party. Nothing here asks a model,
-   spends, or writes. */
-const OV_MAP_PAYERS=['customer','client','buyer','licensee','lessee'];
-const OV_MAP_PAYEES=['supplier','provider','seller','licensor','lessor','contractor','consultant'];
+/* ---- THE DUTIES MAP (Young, 8 Oct 2026, the Overview redesign handoff:
+   "The relationship map is replaced by the Duties map: two party nodes, the
+   contract in the middle, and arcs for 'duties we owe' and 'duties they
+   owe'") ----
+   It REPLACES the Constellation's picture (money lines, people around each
+   party, every party a circle — STALE: OV_MAP_PAYERS, OV_MAP_PAYEES,
+   ovMapRoleKey, ovMapTwoLines, ovMapEdge, ovMapRingSegs, the `flows` and
+   `people` of ovMapData). Our side on the left wearing a RING OF ITS DUTIES,
+   one piece per duty in its state, a red badge counting the late ones; the
+   first outside party on the right; the contract in the middle. Above, the
+   duties we owe; below, dashed, the duties they owe. Beside it a panel reads
+   what was pressed — the renewal (the default), our duties or theirs — and
+   holds the map card's height, scrolling inside. EVERY MARK IS A STORED FACT:
+   the obligations' own `party`, `due` and `status`, the dates, the notice
+   period and the wording HaTi read the renewal from (`sourceSpans`). Nothing
+   here asks a model, spends, or writes. */
 const OV_MAP_TONES=[['var(--accent-fill)','var(--color-accent-100)','var(--accent-ink)','var(--color-accent-50)'],
   ['var(--alt)','var(--alt-soft)','var(--alt-ink)','var(--alt-soft)'],
   ['var(--st-steel-dot)','var(--st-steel-bg)','var(--st-steel-fg)','var(--st-steel-bg)'],
   ['var(--st-gray-dot)','var(--st-gray-bg)','var(--st-gray-fg)','var(--st-gray-bg)']];
-const OV_MAP_KINDS={ money:'var(--accent-fill)', duty:'var(--alt)' };
-const OV_MAP_PEOPLE_MAX=4;
-/* A role is stored as the word the picker offered, which is translated; it is
-   matched against the English key and the reader's own word for it. */
-function ovMapRoleKey(role){
-  const r=String(role||'').trim().toLowerCase(); if(!r) return '';
-  const words=(typeof PARTY_ROLE_WORDS!=='undefined')?PARTY_ROLE_WORDS:[];
-  return words.find(k=>r===k||r===String(i18t('py_rw_'+k)).toLowerCase())||'';
-}
-/* A DUTY'S STATE ON TODAY: done, late, due within 14 days, or later. */
+/* DUE SOON is the same 21 days Overview 2 counts (ov2OccState), so the two
+   pages never disagree about the same duty on the same day. */
+const OV_MAP_SOON_DAYS=21;
+/* A DUTY'S STATE ON TODAY: done, late, due within 21 days, or later. */
 function ovMapDutyState(o,today){
   if(o.status==='done') return 'g';
   const due=ovIsoDay(o.due); if(due==null||today==null) return 's';
   if(due<today) return 'r';
-  return (due-today)<=14*OV_DAY_MS?'a':'s';
+  return (due-today)<=OV_MAP_SOON_DAYS*OV_DAY_MS?'a':'s';
 }
 function ovMapWorst(list){ return list.some(x=>x.st==='r')?'r':list.some(x=>x.st==='a')?'a':list.some(x=>x.st==='s')?'s':'g'; }
-/* A name on two lines inside a circle: split at a word near the middle, each
-   line held to what the circle can carry. */
-function ovMapTwoLines(name){
-  const w=String(name||'').trim().split(/\s+/).filter(Boolean), cap=s=>s.length>16?s.slice(0,15)+'…':s;
-  if(w.length<2) return [cap(w[0]||''),''];
-  let best=1, gap=1e9;
-  for(let i=1;i<w.length;i++){ const a=w.slice(0,i).join(' ').length, b=w.slice(i).join(' ').length, d=Math.abs(a-b); if(d<gap){ gap=d; best=i; } }
-  return [cap(w.slice(0,best).join(' ')), cap(w.slice(best).join(' '))];
+/* THE RENEWAL, READ OFF THE RECORD: when it ends (as amended), whether it
+   renews itself, the notice period and the day notice must be given by, and
+   the wording HaTi read it from where that wording was kept. */
+function ovMapRenewal(c){
+  const m=(c&&c.metadata)||{};
+  const end=String((typeof effectiveExpiry==='function'?effectiveExpiry(c):null)||m.expiryDate||c.expiry||'').slice(0,10);
+  const notice=Number(m.noticePeriodDays)||0;
+  const type=String(m.renewalType||'').trim();
+  let by='', rw=null;
+  try{ rw=(typeof renewalWindow==='function')?renewalWindow(c):null; if(rw&&rw.decideBy) by=String(rw.decideBy).slice(0,10); }catch(_){}
+  const e=ovIsoDay(end);
+  if(!by&&e!=null&&notice>0) by=new Date(e-notice*OV_DAY_MS).toISOString().slice(0,10);
+  const next=(e!=null)?new Date(e+OV_DAY_MS).toISOString().slice(0,10):'';
+  const sp=m.sourceSpans||{};
+  const quote=['renewalType','noticePeriodDays','expiryDate'].map(k=>String(sp[k]||'').replace(/\s+/g,' ').trim()).find(Boolean)||'';
+  const today=ovIsoDay(typeof todayISO==='function'?todayISO():''), b=ovIsoDay(by);
+  return { end, next, notice, type, auto:type==='auto-renew', by, quote,
+    /* the notice day's colour is the renewal's own reading: missed ruby,
+       inside the renewal window amber (renewalWindow), otherwise steel */
+    byTone:rw?(rw.missed?'r':rw.inWindow?'a':'s'):((b!=null&&today!=null&&b<today)?'r':'s') };
 }
 function ovMapData(c){
   if(!c||typeof contractParties!=='function') return null;
@@ -6240,152 +6242,103 @@ function ovMapData(c){
   const duties={ ours:[], theirs:[] };
   (Array.isArray(c.obligations)?c.obligations:[]).forEach(o=>{ if(!o) return;
     const side=o.party==='theirs'?'theirs':'ours';
-    duties[side].push({ id:o.id, t:String(o.desc||'').trim()||i18t('ov_tm_duty'), due:o.due||'', st:ovMapDutyState(o,today) }); });
+    duties[side].push({ id:o.id, t:String(o.desc||'').trim()||i18t('ov_tm_duty'), due:o.due||'', st:ovMapDutyState(o,today),
+      cl:String(o.clause||'').trim() }); });
   const ord={r:0,a:1,s:2,g:3};
   ['ours','theirs'].forEach(k=>duties[k].sort((a,b)=>ord[a.st]-ord[b.st]||String(a.due).localeCompare(String(b.due))));
   const sideOf=p=>p===us?'ours':(p===them?'theirs':null);
-  const people=(typeof participantsBySide==='function')?{ ours:participantsBySide(c,'ours'), theirs:participantsBySide(c,'theirs') }:{ ours:[], theirs:[] };
   const plan=(typeof signerPlan==='function')?signerPlan(c):(c.signerPlan||[]);
   const parties=P.map((p,i)=>{
-    const side=sideOf(p), [l1,l2]=ovMapTwoLines(p.name);
+    const side=sideOf(p);
     const addr=String(p.address||'').split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
     const signs=(plan||[]).filter(r=>r&&(i===0?r.party!=='counterparty'
       :(r.party==='counterparty'&&(r.partyId?String(r.partyId)===String(p.id):i===1))))
       .map(r=>({ n:String(r.name||'').trim(), signed:!!r.signed, at:r.at||'' })).filter(r=>r.n);
-    const ppl=side?(people[side]||[]).filter(q=>q&&String(q.name||q.email||'').trim()).map((q,j)=>({
-      i:'pp'+i+'_'+j, ini:(typeof deskInitials==='function'?deskInitials(q.name||q.email):String(q.name||'?').slice(0,2).toUpperCase()),
-      n:String(q.name||q.email||'').trim(), r:(typeof participantRoleLabel==='function'?participantRoleLabel(q.role):String(q.role||'')) })):[];
     const d=side?duties[side]:[];
-    return { k:'p'+i, id:p.id, name:p.name||'—', l1, l2, role:p.role||'', us:i===0, side, where:addr.length?addr[addr.length-1]:'',
-      email:p.email||'', tone:OV_MAP_TONES[Math.min(i,OV_MAP_TONES.length-1)], people:ppl, signs, duties:d, worst:d.length?ovMapWorst(d):'' };
+    return { k:'p'+i, id:p.id, name:p.name||'—', role:p.role||'', us:i===0, side, where:addr.length?addr[addr.length-1]:'',
+      email:p.email||'', tone:OV_MAP_TONES[Math.min(i,OV_MAP_TONES.length-1)], signs, duties:d, worst:d.length?ovMapWorst(d):'' };
   });
-  const flows=[];
-  const money=(typeof isMonetary==='function'?isMonetary(c):true)&&Number(c.value)>0;
-  if(money){
-    let payer=null;
-    const payDuty=['ours','theirs'].find(s=>duties[s].some(x=>/\bpay(s|ment|ing)?\b/i.test(x.t)));
-    if(payDuty) payer=payDuty==='ours'?0:1;
-    else { const a=ovMapRoleKey(us.role), b=ovMapRoleKey(them.role);
-      if(OV_MAP_PAYERS.includes(a)||OV_MAP_PAYEES.includes(b)) payer=0;
-      else if(OV_MAP_PAYERS.includes(b)||OV_MAP_PAYEES.includes(a)) payer=1; }
-    const terms=String(((c.metadata||{}).paymentTerms)||'').trim();
-    const amt=(typeof fmtMoneyOf==='function')?fmtMoneyOf(c,c.value):String(c.value);
-    flows.push({ kind:'money', a:payer===1?'p1':'p0', b:payer===1?'p0':'p1', dir:payer!=null, l1:amt,
-      l2:payer==null?i18t('ov_map_who_pays_unknown'):(terms?(terms.length>30?terms.slice(0,29)+'…':terms):i18t('ov_map_terms_unknown')) });
-  }
-  [['ours','p0','p1'],['theirs','p1','p0']].forEach(([s,a,b])=>{ const d=duties[s]; if(!d.length) return;
-    const next=d.find(x=>x.st!=='g');
-    flows.push({ kind:'duty', side:s, a, b, dir:true, l1:i18tn(s==='ours'?'ov_map_owe_ours':'ov_map_owe_theirs',d.length,{ n:d.length }),
-      l2:next?(next.t.length>30?next.t.slice(0,29)+'…':next.t):i18t('ov_map_all_done') }); });
-  const m=(c.metadata||{});
-  return { ref:(typeof contractRef==='function'?contractRef(c):c.id), kind:String(m.contractType||'').trim(),
-    law:String(m.governingLaw||'').trim(), disputes:String(m.disputes||'').trim(), parties, flows, duties };
+  /* THE NEXT OPEN DUTY is the earliest one not done — its words ride the
+     arc's pill. */
+  const nextOf=list=>list.filter(x=>x.st!=='g').slice().sort((a,b)=>String(a.due||'9999').localeCompare(String(b.due||'9999')))[0]||null;
+  return { ref:(typeof contractRef==='function'?contractRef(c):c.id), parties, duties,
+    next:{ ours:nextOf(duties.ours), theirs:nextOf(duties.theirs) }, renewal:ovMapRenewal(c) };
 }
-function ovMapEdge(A,T,r){ const dx=T[0]-A[0], dy=T[1]-A[1], l=Math.hypot(dx,dy)||1; return [A[0]+dx/l*r, A[1]+dy/l*r]; }
-/* THE PICTURE: PROGRESS RINGS (Young picked it by name, 8 Oct 2026, off the
-   map artifact). It FITS A LAPTOP: drawn into a fixed 880x380 stage (the
-   stage is 380px tall, index.html .ov-map-stage), so the whole map and its
-   movement are on screen at once with the tabs above it. Each party is a
-   circle in its own tint wearing a RING OF ITS DUTIES — one piece per duty in
-   its state (green done, amber due soon, ruby late, steel later), grouped by
-   state once there are too many to count — drawn in on arrival. The pair the
-   lines run between sits side by side; any further party sits below the
-   middle with no line of its own; with a party below, every line bows ABOVE
-   the pair, one lane each. Nothing recorded between the parties is drawn as
-   a dashed line saying so. A narrow stage stands the picture tall and lists
-   the lines underneath. */
-const OV_MAP_RING_EACH=12;
-function ovMapRingSegs(duties){
-  const ord=['r','a','s','g'];
-  if(duties.length<=OV_MAP_RING_EACH) return duties.map(d=>({ st:d.st, n:1 })).sort((a,b)=>ord.indexOf(a.st)-ord.indexOf(b.st));
-  return ord.map(st=>({ st, n:duties.filter(d=>d.st===st).length })).filter(s=>s.n);
-}
-function ovMapSvg(D,tall){
-  const N=D.parties.length, W=tall?400:880, H=tall?600:380, R=tall?40:(N>2?36:50), f1=v=>(+v).toFixed(1);
-  let P;
-  if(tall) P=[[200,120],[200,390]].concat(D.parties.slice(2).map((_,k,a)=>[200+(k-(a.length-1)/2)*130,530]));
-  else if(N===2) P=[[W*.26,H*.5],[W*.74,H*.5]];
-  else P=[[W*.24,H*.5],[W*.76,H*.5]].concat(D.parties.slice(2).map((_,k,a)=>[W*(.5+(k-(a.length-1)/2)*.22),H*.79]));
-  const PK={}; D.parties.forEach((p,i)=>{ PK[p.k]=P[i]; });
-  const cx=(P[0][0]+P[1][0])/2, cy=(P[0][1]+P[1][1])/2;
-  let s=`<svg class="ov-map-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(i18t('ov_map_aria'))}">`;
-  if(!D.flows.length){
-    const a=ovMapEdge(P[0],P[1],R+14), b=ovMapEdge(P[1],P[0],R+14), lx=(a[0]+b[0])/2, ly=tall?cy:cy-62;
-    s+=`<line class="ov-map-dash" x1="${f1(a[0])}" y1="${f1(a[1])}" x2="${f1(b[0])}" y2="${f1(b[1])}"/>
-      <rect x="${f1(lx-120)}" y="${f1(ly-13)}" width="240" height="26" rx="13" class="ov-map-chip"/><text x="${f1(lx)}" y="${f1(ly+4)}" text-anchor="middle" class="ov-map-sm">${esc(i18t('ov_map_nothing'))}</text>`;
-  }
-  const seen={};
-  D.flows.forEach((f,i)=>{ const A=PK[f.a], B=PK[f.b]; if(!A||!B) return;
-    const above=!tall&&N>2, pk=above?'pair':f.a+'>'+f.b, nth=seen[pk]=(seen[pk]||0)+1;
-    const mx=(A[0]+B[0])/2, my=(A[1]+B[1])/2;
-    let C;
-    if(above){ const bw=[40,82,124][Math.min(nth,3)-1]; C=[mx,my-bw*2]; }
-    else { const bw=(tall?60:70)*(nth>1?1.7:1), dx=B[0]-A[0], dy=B[1]-A[1], L=Math.hypot(dx,dy)||1; C=[mx+dy/L*bw*2, my-dx/L*bw*2]; }
-    const a=ovMapEdge(A,C,R+12), b=ovMapEdge(B,C,R+12);
-    const d=`M${f1(a[0])},${f1(a[1])} Q${f1(C[0])},${f1(C[1])} ${f1(b[0])},${f1(b[1])}`;
-    const lx=.25*a[0]+.5*C[0]+.25*b[0], ly=.25*a[1]+.5*C[1]+.25*b[1], col=OV_MAP_KINDS[f.kind], cw=tall?150:168;
-    s+=`<g class="ov-map-nd ov-map-ed" data-ov-map="f${i}" data-l="${f.kind}" tabindex="0" role="button" aria-label="${esc(f.l1)}"><path id="ov-mf${i}" d="${d}" style="fill:none;stroke:${col};stroke-width:10;stroke-linecap:round;opacity:.1"/><path d="${d}" style="fill:none;stroke:${col};stroke-width:2.2;stroke-linecap:round"/>`;
-    if(f.dir) for(let j=0;j<4;j++){ const m=`<animateMotion dur="4s" repeatCount="indefinite" begin="${(-j).toFixed(1)}s"><mpath href="#ov-mf${i}"/></animateMotion>`;
-      s+=f.kind==='duty'?`<rect x="-5" y="-4" width="10" height="8" rx="2" style="fill:${col}">${m}</rect>`:`<circle r="4.5" style="fill:${col};stroke:var(--color-surface);stroke-width:1.5">${m}</circle>`; }
-    s+=`<rect x="${f1(lx-cw/2)}" y="${f1(ly-18)}" width="${cw}" height="36" rx="18" class="ov-map-chip"/><text x="${f1(lx)}" y="${f1(ly-2)}" text-anchor="middle" class="ov-map-big">${esc(f.l1)}</text><text x="${f1(lx)}" y="${f1(ly+12)}" text-anchor="middle" class="ov-map-sm">${esc(f.l2)}</text></g>`; });
-  s+=`<g class="ov-map-nd" data-ov-map="deal" tabindex="0" role="button" aria-label="${esc(i18t('ov_map_this'))}"><rect x="${f1(cx-19)}" y="${f1(cy-24)}" width="38" height="48" rx="3" class="ov-map-doc"/><path d="M${f1(cx-11)},${f1(cy-11)}h22M${f1(cx-11)},${f1(cy-4)}h22M${f1(cx-11)},${f1(cy+3)}h16M${f1(cx-11)},${f1(cy+10)}h19" class="ov-map-lines"/><text x="${f1(cx)}" y="${f1(cy+40)}" text-anchor="middle" class="ov-map-ref">${esc(D.ref)}</text></g>`;
-  D.parties.forEach((p,i)=>{ const [x,y]=PK[p.k], t=p.tone, n=p.duties.length, wt=p.worst, rr=R+9, C=2*Math.PI*rr;
-    const ini=(typeof deskInitials==='function')?deskInitials(p.name):String(p.name||'?').slice(0,2).toUpperCase();
-    let ring=`<circle cx="${f1(x)}" cy="${f1(y)}" r="${rr}" class="ov-map-track${n?'':' is-empty'}"/>`;
-    if(n){ const segs=ovMapRingSegs(p.duties), gap=segs.length>1?5:0, per=(C-gap*segs.length)/n; let at=0;
-      segs.forEach(sg=>{ const len=Math.max(per*sg.n,1);
-        ring+=`<circle cx="${f1(x)}" cy="${f1(y)}" r="${rr}" class="ov-map-seg is-${sg.st}" style="--len:${f1(len)};stroke-dasharray:${f1(len)} ${f1(C-len)};stroke-dashoffset:${f1(len)}" transform="rotate(${f1(-90+at/C*360)} ${f1(x)} ${f1(y)})"/>`;
-        at+=len+gap; }); }
-    const fl=i%2?'ov-map-fl is-b':'ov-map-fl';
-    const ly=y+R+(tall?24:28), sub=[p.role, p.us?i18t('ov_map_us'):'', p.where].filter(Boolean).join(' · ');
-    s+=`<g class="ov-map-nd ${fl}" data-ov-map="${p.k}" tabindex="0" role="button" aria-label="${esc(p.name)}"><circle cx="${f1(x)}" cy="${f1(y)}" r="${R}" style="fill:${t[1]};stroke:${t[0]};stroke-width:2.5"/>
-      <text x="${f1(x)}" y="${f1(y+R*.16)}" text-anchor="middle" class="ov-map-ini" style="font-size:${f1(R*.42)}px;fill:${t[2]}">${esc(ini)}</text>${ring}
-      ${n?`${wt==='r'?`<circle class="ov-map-ringp" cx="${f1(x+R*.74)}" cy="${f1(y-R*.74)}" r="10" style="fill:var(--st-ruby-dot)"/>`:''}<circle cx="${f1(x+R*.74)}" cy="${f1(y-R*.74)}" r="10" class="ov-map-badge is-${wt}"/><text x="${f1(x+R*.74)}" y="${f1(y-R*.74+4)}" text-anchor="middle" class="ov-map-bn">${n}</text>`:''}
-      <text x="${f1(x)}" y="${f1(ly)}" text-anchor="middle" class="ov-map-nm">${esc(p.name.length>28?p.name.slice(0,27)+'…':p.name)}</text>
-      ${sub?`<text x="${f1(x)}" y="${f1(ly+14)}" text-anchor="middle" class="ov-map-cap">${esc(sub.toUpperCase())}</text>`:''}</g>`;
-    const ox=x<cx-1?-1:x>cx+1?1:1, ppl=p.people.slice(0,OV_MAP_PEOPLE_MAX);
-    ppl.forEach((q,j)=>{ const off=(j-(ppl.length-1)/2)*30, px=x+ox*(R+46), py=y+off;
-      s+=`<g class="ov-map-nd ov-map-ppl" data-ov-map="${q.i}" data-l="ppl" tabindex="0" role="button" aria-label="${esc(q.n)}"><circle cx="${f1(px)}" cy="${f1(py)}" r="13" style="fill:${t[1]};stroke:var(--color-surface);stroke-width:2"/><text x="${f1(px)}" y="${f1(py+3.5)}" text-anchor="middle" class="ov-map-av" style="fill:${t[2]}">${esc(q.ini)}</text></g>`; }); });
+/* THE PICTURE (the handoff's own geometry: a 900x310 stage, our node at
+   250,160, theirs at 650,160, the contract between them). It scales to the
+   card's width; nothing in it is measured, so a repaint draws it alike. */
+function ovMapIni(name){ return (typeof deskInitials==='function')?deskInitials(name):String(name||'?').slice(0,2).toUpperCase(); }
+function ovMapShort(t,n){ t=String(t||''); return t.length>n?t.slice(0,n-1).trim()+' …':t; }
+function ovMapSvg(D){
+  const f1=v=>(+v).toFixed(1), us=D.parties[0], th=D.parties[1];
+  const ours=D.duties.ours, theirs=D.duties.theirs, late=ours.filter(x=>x.st==='r').length;
+  let s=`<svg class="ov-map-svg" viewBox="0 0 900 310" preserveAspectRatio="xMidYMid meet" role="group" aria-label="${esc(i18t('ov_map_aria_duties',{ us:us.name, them:th.name, ours:ours.length, theirs:theirs.length, late }))}">`;
+  /* WE OWE: the arc above, a halo and a line, two squares on it */
+  const nx=D.next.ours;
+  s+=`<g class="ov-map-nd ov-map-arc" data-ov-map="ours" tabindex="0" role="button" aria-label="${esc(i18tn('ov_map_owe_ours',ours.length,{ n:ours.length }))}">
+    <path d="M318 112 Q450 20 582 112" class="ov-map-halo-ln"/><path d="M318 112 Q450 20 582 112" class="ov-map-ln"/>
+    <rect x="364.8" y="76.6" width="12" height="12" rx="2" class="ov-map-sq"/><rect x="523.2" y="76.6" width="12" height="12" rx="2" class="ov-map-sq"/>
+    <rect x="338" y="42" width="224" height="48" rx="24" class="ov-map-chip"/>
+    <text x="450" y="63" text-anchor="middle" class="ov-map-big">${esc(i18tn('ov_map_owe_ours',ours.length,{ n:ours.length }))}</text>
+    <text x="450" y="80" text-anchor="middle" class="ov-map-sm">${esc(nx?ovMapShort(nx.t,34):(ours.length?i18t('ov_map_all_done'):i18t('ov_map_none_recorded')))}</text></g>`;
+  /* THEY OWE: the arc below, dashed, a small pill */
+  s+=`<g class="ov-map-nd ov-map-arc" data-ov-map="theirs" tabindex="0" role="button" aria-label="${esc(i18tn('ov_map_owe_theirs',theirs.length,{ n:theirs.length }))}">
+    <path d="M318 208 Q450 300 582 208" class="ov-map-hit"/><path d="M318 208 Q450 300 582 208" class="ov-map-dash"/>
+    <rect x="384" y="241" width="132" height="26" rx="13" class="ov-map-chip"/>
+    <text x="450" y="258" text-anchor="middle" class="ov-map-sm">${esc(i18tn('ov_map_owe_theirs',theirs.length,{ n:theirs.length }))}</text></g>`;
+  /* THE CONTRACT */
+  s+=`<g class="ov-map-nd" data-ov-map="renewal" tabindex="0" role="button" aria-label="${esc(i18t('ov_map_renewal'))}">
+    <rect x="428" y="128" width="44" height="56" rx="4" class="ov-map-doc"/><path d="M437 142h26M437 151h26M437 160h26M437 169h16" class="ov-map-lines"/>
+    <text x="450" y="206" text-anchor="middle" class="ov-map-ref">${esc(D.ref)}</text></g>`;
+  /* OUR NODE: a ring of our duties, one piece each, from twelve o'clock */
+  const R=78, C=2*Math.PI*R, n=ours.length, gap=n>1?5:0, per=n?(C-gap*n)/n:0;
+  let ring=`<circle r="${R}" class="ov-map-track${n?'':' is-empty'}"/>`;
+  /* each piece is turned to its place and GROWS IN from a full offset
+     (ov-map-grow in index.html runs the offset to 0) */
+  ours.forEach((x,i)=>{ ring+=`<circle r="${R}" class="ov-map-seg is-${x.st}" transform="rotate(${f1(-90+(per+gap)*i/C*360)})" style="--len:${f1(per)};stroke-dasharray:${f1(per)} ${f1(C-per)};stroke-dashoffset:${f1(per)}"/>`; });
+  s+=`<g class="ov-map-nd ov-map-us" data-ov-map="ours" tabindex="0" role="button" aria-label="${esc(us.name)}" transform="translate(250 160)">
+    ${ring}<circle r="64" class="ov-map-us-c"/><text y="9" text-anchor="middle" class="ov-map-ini is-us">${esc(ovMapIni(us.name))}</text>
+    <text y="104" text-anchor="middle" class="ov-map-nm">${esc(ovMapShort(us.name,26))}</text><text y="122" text-anchor="middle" class="ov-map-cap">${esc(i18t('ov_map_us').toUpperCase())}</text>
+    ${late?`<circle cx="56" cy="-56" r="24" class="ov-map-late-halo"/><circle cx="56" cy="-56" r="12" class="ov-map-badge is-r"/><text x="56" y="-52" text-anchor="middle" class="ov-map-bn">${late}</text>`:''}</g>`;
+  /* THEIR NODE: 48 ticks round it, their tint */
+  let ticks=''; for(let i=0;i<48;i++){ const a=i/48*2*Math.PI, cs=Math.cos(a), sn=Math.sin(a);
+    ticks+=`<line x1="${f1(80*cs)}" y1="${f1(80*sn)}" x2="${f1(88*cs)}" y2="${f1(88*sn)}"/>`; }
+  s+=`<g class="ov-map-nd ov-map-them" data-ov-map="theirs" tabindex="0" role="button" aria-label="${esc(th.name)}" transform="translate(650 160)">
+    <g class="ov-map-ticks">${ticks}</g><circle r="66" class="ov-map-them-c"/><text y="9" text-anchor="middle" class="ov-map-ini is-them">${esc(ovMapIni(th.name))}</text>
+    <text y="110" text-anchor="middle" class="ov-map-nm">${esc(ovMapShort(th.name,26))}</text></g>`;
   return s+'</svg>';
 }
-const OV_MAP_TONE_WORD={ g:'ov_map_t_g', a:'ov_map_t_a', r:'ov_map_t_r', s:'ov_map_t_s' };
 const OV_MAP_PILL={ g:'green', a:'amber', r:'ruby', s:'steel' };
-function ovMapPill(t){ return `<span class="ov-map-pill is-${OV_MAP_PILL[t]||'gray'}"><i></i>${esc(i18t(OV_MAP_TONE_WORD[t]||'ov_map_t_s'))}</span>`; }
 function ovMapDutyRow(x){
   const when=x.due?(x.st==='g'?i18t('ov_tm_done_undated'):x.st==='r'?i18t('ov_tm_was_due',{ date:ovDay(x.due) }):i18t('ov_tm_due',{ date:ovDay(x.due) })):(x.st==='g'?i18t('ov_tm_done_undated'):i18t('ob_no_date'));
-  return `<div class="ov-map-ob"><span class="ov-map-dot is-${x.st}"></span><div><b>${esc(x.t)}</b><small>${esc(when)}</small></div></div>`;
+  return `<div class="ov-map-ob"><span class="ov-map-dot is-${x.st}"></span><div><b>${esc(x.t)}</b><small>${esc(when)}${
+    x.cl?` · <span class="ov-map-cl">${esc(x.cl)}</span>`:''}</small></div></div>`;
 }
-/* WHAT THE PANEL SAYS FOR WHAT WAS PRESSED. The agreement carries the renewal
-   question at its top, only while a decision is due (the one #renewal-host,
-   renderRenewalSection's own card — no new band). */
+/* WHAT THE PANEL SAYS FOR WHAT WAS PRESSED: the renewal (the contract), our
+   duties (our node or the upper arc), theirs (their node or the lower arc).
+   The renewal carries renderRenewalSection's own card at its top, only while
+   a decision is due (the one #renewal-host — no new band, no second door). */
 function ovMapPane(c,D,k){
-  const pOf=key=>D.parties.find(p=>p.k===key);
-  const flowRow=(f,i)=>`<button type="button" class="ov-map-ob ov-map-go" data-ov-map-go="f${i}"><span class="ov-map-dot" style="background:${OV_MAP_KINDS[f.kind]}"></span><div><b>${esc(f.l1)}</b><small>${esc(pOf(f.a).name+' → '+pOf(f.b).name+' · '+f.l2)}</small></div></button>`;
-  if(k==='deal'){
-    const sub=[D.law?i18t('ov_map_law',{ law:D.law }):'', D.disputes].filter(Boolean).join(' · ');
-    return `<div id="renewal-host" class="empty:hidden" data-bare="1"></div><span class="ov-map-pcap">${esc(i18t('ov_map_this'))} · ${esc(D.ref)}</span>
-      <h3>${esc(i18t('ov_map_between',{ kind:D.kind||i18t('ov_map_agreement'), n:D.parties.length }))}</h3>${sub?`<p class="ov-map-lede">${esc(sub)}</p>`:''}
-      <h4>${esc(i18t('ov_map_flows_h'))}</h4>${D.flows.length?D.flows.map(flowRow).join(''):`<p class="ov-map-none">${esc(i18t('ov_map_no_flows'))}</p>`}
-      <h4>${esc(i18t('ov_map_duties_h'))}</h4>${D.parties.filter(p=>p.side).map(p=>`<div class="ov-map-kr"><span>${esc(p.name)}</span><b>${p.duties.length} ${p.duties.length?ovMapPill(p.worst):''}</b></div>`).join('')}`;
+  const cap=`<span class="ov-map-pcap">${esc(i18t('ov_map_selected'))}</span>`;
+  if(k==='renewal'){
+    const R=D.renewal;
+    const lede=!R.end?i18t('ov_map_rn_none')
+      :R.auto?(R.notice?i18t('ov_map_rn_auto',{ date:ovDay(R.next), n:R.notice }):i18t('ov_map_rn_auto_nonotice',{ date:ovDay(R.next) }))
+      :i18t('ov_map_rn_ends',{ date:ovDay(R.end) });
+    const typeWord=R.type?((typeof metaOptLabel==='function'?metaOptLabel(R.type):R.type)||R.type):'';
+    const rows=[R.end?`<div class="ov-map-kr"><span>${esc(i18t('ov_map_rn_ends_k'))}</span><b>${esc(ovDay(R.end))}</b></div>`:'',
+      R.by?`<div class="ov-map-kr"><span>${esc(i18t('ov_map_rn_notice_k'))}</span><b><span class="ov-map-pill is-${OV_MAP_PILL[R.byTone]}">${esc(ovDay(R.by))}</span></b></div>`:'',
+      typeWord?`<div class="ov-map-kr"><span>${esc(i18t('ov_map_rn_type_k'))}</span><b>${esc(typeWord)}</b></div>`:''].join('');
+    return `<div id="renewal-host" class="empty:hidden" data-bare="1"></div>${cap}<h3>${esc(i18t('ov_map_renewal'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${rows}${
+      R.quote?`<h4>${esc(i18t('ov_map_wording'))}</h4><p class="ov-map-quote">“${esc(R.quote)}”</p>`:''}`;
   }
-  const p=pOf(k);
-  if(p){
-    const who=p.us?i18t('ov_map_we'):p.name;
-    const lede=[p.where, p.email].filter(Boolean).join(' · ');
-    const signs=p.signs.map(r=>`<div class="ov-map-sg${r.signed?' is-done':''}">${esc(r.signed?(r.at?i18t('ov_map_signed_by',{ name:r.n, date:ovDay(r.at) }):i18t('ov_map_signed_by_nodate',{ name:r.n })):i18t('ov_map_signs',{ name:r.n }))}</div>`).join('');
-    const mayPlan=(typeof canEdit==='function'?canEdit():true)&&!PORTAL_MODE&&p.signs.length;
-    return `<span class="ov-map-pcap">${esc([p.role,p.us?i18t('ov_map_us_word'):''].filter(Boolean).join(' · '))}</span><h3>${esc(p.name)}</h3>${lede?`<p class="ov-map-lede">${esc(lede)}</p>`:''}${signs}
-      ${p.side?`<h4>${esc(i18t('ov_map_promised',{ who }))}</h4>${p.duties.length?p.duties.map(ovMapDutyRow).join(''):`<p class="ov-map-none">${esc(i18t('ov_map_no_duties'))}</p>`}`:`<p class="ov-map-none">${esc(i18t('ov_map_no_side'))}</p>`}
-      <h4>${esc(i18t('ov_map_people_h'))}</h4>${p.people.length?p.people.map(q=>`<div class="ov-map-kr"><span>${esc(q.n)}</span><b>${esc(q.r)}</b></div>`).join(''):`<p class="ov-map-none">${esc(i18t('ov_map_no_people'))}</p>`}
-      ${mayPlan?`<div class="ov-map-acts"><button type="button" class="ui-btn ui-btn-sm" data-ov-signers="1">${esc(i18t('ppl_open_signers'))}</button></div>`:''}`;
+  if(k==='ours'||k==='theirs'){
+    const list=D.duties[k], open=list.filter(x=>x.st!=='g'), done=list.filter(x=>x.st==='g'), late=list.filter(x=>x.st==='r').length;
+    const who=(k==='ours'?D.parties[0]:D.parties[1]).name;
+    const lede=list.length?i18t('ov_map_side_lede',{ who, n:list.length, open:open.length, late }):i18t('ov_map_no_duties');
+    return `${cap}<h3>${esc(i18t(k==='ours'?'ov_map_ours_h':'ov_map_theirs_h'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${
+      open.map(ovMapDutyRow).join('')}${done.length?`<h4>${esc(i18t('ov_map_done_h'))}</h4>${done.map(ovMapDutyRow).join('')}`:''}`;
   }
-  if(/^f\d+$/.test(k)){ const f=D.flows[+k.slice(1)]; if(!f) return '';
-    const head=`<span class="ov-map-pcap">${esc(i18t(f.kind==='money'?'ov_map_k_money':'ov_map_k_duty'))} · ${esc(pOf(f.a).name)} → ${esc(pOf(f.b).name)}</span><h3>${esc(f.l1)}</h3><p class="ov-map-lede">${esc(f.l2)}</p>`;
-    if(f.kind==='duty') return head+(D.duties[f.side]||[]).map(ovMapDutyRow).join('');
-    const terms=String(((c.metadata||{}).paymentTerms)||'').trim();
-    return head+(terms?`<p class="ov-map-quote">${esc(terms)}</p>`:'');
-  }
-  for(const q of D.parties){ const x=q.people.find(y=>y.i===k); if(x) return `<span class="ov-map-pcap">${esc(q.name)}</span><h3>${esc(x.n)}</h3><p class="ov-map-lede">${esc(x.r)}</p>`; }
   return '';
 }
 /* THE CARD AND ITS PANEL. The panel is a sibling of the map card on one grid
@@ -6393,59 +6346,32 @@ function ovMapPane(c,D,k){
    alone decides it and the panel scrolls (index.html, .ov-map-pane). */
 function ovMapHtml(c){
   const D=ovMapData(c); if(!D) return '';
-  const kinds=[...new Set(D.flows.map(f=>f.kind))];
-  const anyPpl=D.parties.some(p=>p.people.length);
-  return `<div class="ov-map-grid" id="ov-map"><div class="ov-map-card"><div class="ov-map-top">${kinds.map(k=>
-      `<button type="button" class="ov-map-chipt" data-ov-map-l="${k}" aria-pressed="true"><i style="background:${OV_MAP_KINDS[k]}"></i><span>${esc(i18t(k==='money'?'ov_map_k_money':'ov_map_k_duty'))}</span></button>`).join('')}${
-      anyPpl?`<button type="button" class="ov-map-chipt" data-ov-map-l="ppl" aria-pressed="true"><i style="background:var(--st-steel-dot)"></i><span>${esc(i18t('ov_map_k_people'))}</span></button>`:''}${
-      /* THE RING'S KEY: what each colour on a party's ring means. A key, not
-         a filter, so it is words beside a dot rather than a button. */
-      D.parties.some(p=>p.duties.length)?`<span class="ov-map-key">${[['g','ov_map_l_done'],['a','ov_map_l_soon'],['r','ov_map_l_late'],['s','ov_map_l_later']].map(([t,k])=>
-        `<span><i class="ov-map-dot is-${t}"></i>${esc(i18t(k))}</span>`).join('')}</span>`:''}</div>
-    <div class="ov-map-stage" data-ov-map-stage></div><div class="ov-map-list" data-ov-map-list></div></div>
+  return `<div class="ov-map-grid" id="ov-map"><div class="ov-map-card"><div class="ov-map-top"><span class="ov-map-chipt"><i></i><span>${esc(i18t('ov_map_k_duty'))}</span></span><span class="ov-map-key">${
+      [['g','ov_map_l_done'],['a','ov_map_l_soon'],['r','ov_map_l_late'],['s','ov_map_l_later']].map(([t,k])=>
+        `<span><i class="ov-map-dot is-${t}"></i>${esc(i18t(k))}</span>`).join('')}</span></div>
+    <div class="ov-map-stage" data-ov-map-stage>${ovMapSvg(D)}</div></div>
     <aside class="ov-map-pane" data-ov-map-pane aria-live="polite"></aside></div>`;
 }
 /* WIRED WHERE IT IS PAINTED (renderKeyTerms). What is pressed is kept per
    contract for the sitting, so a repaint after an edit lands on the same
-   reading; the picture is redrawn at the stage's own width. */
-const _ovMapSel={ id:null, k:'deal' };
-let _ovMapWatch=null;
+   reading. The picture is drawn with the page (it scales; nothing measures). */
+const _ovMapSel={ id:null, k:'renewal' };
+const OV_MAP_PICKS=['renewal','ours','theirs'];
 function ovMapWire(host,c){
-  if(_ovMapWatch){ try{ _ovMapWatch.disconnect(); }catch(_){} _ovMapWatch=null; }
   const root=host&&host.querySelector('#ov-map'); if(!root) return;
   const D=ovMapData(c); if(!D) return;
-  if(_ovMapSel.id!==c.id){ _ovMapSel.id=c.id; _ovMapSel.k='deal'; }
-  const st=root.querySelector('[data-ov-map-stage]'), pane=root.querySelector('[data-ov-map-pane]'), list=root.querySelector('[data-ov-map-list]');
-  const off=new Set(); let svg=null, lastTall=null, lastW=0;
-  const reduce=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const near=k=>{ const L=new Set([k]); if(k==='deal') D.parties.forEach(p=>L.add(p.k));
-    D.flows.forEach((f,i)=>{ if(f.a===k||f.b===k) L.add('f'+i); if('f'+i===k){ L.add(f.a); L.add(f.b); } });
-    D.parties.forEach(p=>p.people.forEach(q=>{ if(p.k===k) L.add(q.i); if(q.i===k) L.add(p.k); })); return L; };
-  const light=k=>{ if(!svg) return; const L=near(k); svg.classList.add('is-dim'); svg.querySelectorAll('[data-ov-map]').forEach(n=>n.classList.toggle('is-lit',L.has(n.getAttribute('data-ov-map')))); };
-  const unlight=()=>{ if(svg) svg.classList.remove('is-dim'); };
-  const pick=k=>{ if(!ovMapPane(c,D,k)) k='deal'; _ovMapSel.k=k;
+  if(_ovMapSel.id!==c.id||!OV_MAP_PICKS.includes(_ovMapSel.k)){ _ovMapSel.id=c.id; _ovMapSel.k='renewal'; }
+  const svg=root.querySelector('svg'), pane=root.querySelector('[data-ov-map-pane]');
+  const pick=k=>{ if(!OV_MAP_PICKS.includes(k)) k='renewal'; _ovMapSel.k=k;
     pane.innerHTML=`<div class="ov-map-rise">${ovMapPane(c,D,k)}</div>`; pane.scrollTop=0;
-    if(svg) svg.querySelectorAll('[data-ov-map]').forEach(n=>n.classList.toggle('is-sel',n.getAttribute('data-ov-map')===k));
-    if(k==='deal'){ try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(_){} }
-    pane.querySelector('[data-ov-signers]')?.addEventListener('click',()=>{
-      if(window.openSignerPlanEditor) openSignerPlanEditor(c,{ onDone:()=>renderKeyTerms(c) }); });
-  };
-  const applyOff=()=>{ if(!svg) return; svg.querySelectorAll('[data-l]').forEach(n=>n.classList.toggle('is-off',off.has(n.getAttribute('data-l')))); };
-  const draw=()=>{ const w=Math.round(st.clientWidth||0); if(!w) return; const tall=w<640;
-    if(w===lastW&&tall===lastTall) return; lastW=w; lastTall=tall;
-    st.classList.toggle('is-tall',tall); st.innerHTML=ovMapSvg(D,tall); svg=st.querySelector('svg'); applyOff();
-    list.innerHTML=tall?D.flows.map((f,i)=>`<button type="button" data-ov-map-go="f${i}"><span style="background:${OV_MAP_KINDS[f.kind]}"></span>${esc(D.parties.find(p=>p.k===f.a).name+' → '+D.parties.find(p=>p.k===f.b).name+': '+f.l1)}</button>`).join(''):'';
-    if(reduce&&svg&&svg.pauseAnimations) svg.pauseAnimations();
-    if(svg) svg.querySelectorAll('[data-ov-map]').forEach(n=>n.classList.toggle('is-sel',n.getAttribute('data-ov-map')===_ovMapSel.k)); };
-  st.addEventListener('pointerover',e=>{ const n=e.target.closest('[data-ov-map]'); if(n) light(n.getAttribute('data-ov-map')); });
-  st.addEventListener('pointerleave',unlight);
-  st.addEventListener('click',e=>{ const n=e.target.closest('[data-ov-map]'); if(n) pick(n.getAttribute('data-ov-map')); });
-  st.addEventListener('keydown',e=>{ const n=e.target.closest('[data-ov-map]'); if(n&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); pick(n.getAttribute('data-ov-map')); } });
-  root.addEventListener('click',e=>{ const g=e.target.closest('[data-ov-map-go]'); if(g){ pick(g.getAttribute('data-ov-map-go')); return; }
-    const ch=e.target.closest('[data-ov-map-l]'); if(ch){ const on=ch.getAttribute('aria-pressed')!=='true'; ch.setAttribute('aria-pressed',String(on));
-      const l=ch.getAttribute('data-ov-map-l'); if(on) off.delete(l); else off.add(l); applyOff(); } });
-  draw(); pick(_ovMapSel.k);
-  if(typeof ResizeObserver==='function'){ _ovMapWatch=new ResizeObserver(draw); _ovMapWatch.observe(st); }
+    if(svg) svg.querySelectorAll('[data-ov-map]').forEach(n=>{ const on=n.getAttribute('data-ov-map')===k;
+      n.classList.toggle('is-sel',on); n.setAttribute('aria-pressed',String(on)); });
+    if(k==='renewal'){ try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(_){} } };
+  if(svg){
+    svg.addEventListener('click',e=>{ const n=e.target.closest('[data-ov-map]'); if(n) pick(n.getAttribute('data-ov-map')); });
+    svg.addEventListener('keydown',e=>{ const n=e.target.closest('[data-ov-map]'); if(n&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); pick(n.getAttribute('data-ov-map')); } });
+  }
+  pick(_ovMapSel.k);
 }
 /* "READ THE BRIEF" STARTS THE SHEET (owner-asked 1 Oct 2026: "add the Read
    Brief button somewhere at the start of the card so that someone can click
@@ -6643,6 +6569,42 @@ function ktDealFactsHtml(c,opts={}){
     .map(k=>ktFieldCell(c,k,edit&&!OV_DERIVED_FIELDS.has(k),marks))
     .concat(Array.isArray(opts.also)?ktAlsoCells(c,edit,opts.also):[])
     .filter(Boolean));
+}
+/* ---- THE EIGHT TERMS AT REST (the Overview redesign, 8 Oct 2026; Young:
+   "the terms should be exactly like the highlighted area and nothing more")
+   ---- Contract type, governing law, disputes, value, term, renewal, payment
+   terms, liability capped — in that order, four to a row. TWO CELLS CARRY A
+   COMPANION'S FACT: the term is the start and end dates, and the renewal says
+   the notice period and the day notice is due by; a check holding either
+   companion (effDate, expiry, notice) marks the cell that now carries it, so
+   no hold is hidden by the fold of three fields into two.
+   A FIELD THE SIGNING CHECK HOLDS IS NEVER HIDDEN: any other fixed term a
+   check is holding follows the eight, amber with its way forward — it is work
+   owed, and its door (focusKeyTerms) must have a cell to land on. */
+const OV_ESS_REST=['contractType','governingLaw','disputes','value','term','renewalType','paymentTerms','liabilityCapped'];
+const OV_ESS_REST_PEERS={ term:['effDate','expiry'], renewalType:['notice'] };
+function ovEssRenewalRead(c){
+  const R=ovMapRenewal(c), m=(c&&c.metadata)||{};
+  const type=R.type?((typeof metaOptLabel==='function'?metaOptLabel(R.type):R.type)||R.type):'';
+  const tail=R.notice?(R.by?i18t('ov_rn_notice_by',{ n:R.notice, date:ovDay(R.by) }):i18t('ov_rn_notice',{ n:R.notice })):'';
+  return esc([type, tail].filter(Boolean).join(' · ')||String(m.renewalType||'').trim());
+}
+function ovEssRestHtml(c,marks){
+  const cells=OV_ESS_REST.map(k=>{
+    const cell=ktFieldCell(c,k,false,marks); if(!cell) return null;
+    if(k==='renewalType'){ cell[0]=i18t('ov_f_renewal'); cell[1]=ovEssRenewalRead(c); }
+    /* the redesign's own short labels; the edit posture keeps the long ones */
+    if(k==='value') cell[0]=i18t('ov_f_value_short');
+    if(k==='liabilityCapped') cell[0]=i18t('ov_f_liab_capped');
+    const own=marks?ovFieldMarkOf(marks,k):null;
+    if(!(own&&own.holds)&&marks) for(const q of (OV_ESS_REST_PEERS[k]||[])){
+      const mk=ovFieldMarkOf(marks,q);
+      if(mk&&mk.holds){ cell[3]='amber'; cell[4]=ovFieldNoteHtml(mk,q); break; } }
+    return cell;
+  });
+  const shown=new Set(OV_ESS_REST.concat(...Object.values(OV_ESS_REST_PEERS)));
+  const held=marks?OV_ESS_FIELDS.filter(k=>!shown.has(k)&&(ovFieldMarkOf(marks,k)||{}).holds):[];
+  return sectionFieldsHtml(cells.concat(held.map(k=>ktFieldCell(c,k,false,marks))).filter(Boolean));
 }
 /* The marks for this contract, or null where nothing is waiting. js/signcheck.js
    is not on every stage, so it is asked through window with a guard. */
@@ -7286,8 +7248,11 @@ function ktOverviewTermsHtml(c,opts={}){
      map with its panel, and Related agreements (#kt-side). Everything else
      the Overview used to carry has a home of its own (MAP-HISTORY,
      "THE OVERVIEW IS THE CONSTELLATION"). */
-  const top=`<div class="ov-top"><span id="kt-ov-brief" class="ov-top-brief"></span>
-    <span class="ov-top-note">${esc(i18t('ov_map_note'))}</span></div>`;
+  /* EDIT AND FILL RIDE THE TOP ROW (the Overview redesign, 8 Oct 2026): the
+     Terms column holds its caption, the hold chip and the terms, nothing
+     else. Same buttons, same handlers — only where they are drawn moved. */
+  const top=acts=>`<div class="ov-top"><span id="kt-ov-brief" class="ov-top-brief"></span>
+    <span class="ov-top-note">${esc(i18t('ov_top_note'))}</span><span class="ov-top-acts">${acts}</span></div>`;
   /* ---- THE ESSENTIALS CARD (Young, 8 Oct 2026: "Bring this back") ----
      Who it is between on the left, the terms on the right, as the mock-up
      draws it. Edit these details and Fill sit on it, because it holds what
@@ -7325,15 +7290,18 @@ function ktOverviewTermsHtml(c,opts={}){
     +(signersBtn?`<div class="ov-ess-more">${signersBtn}</div>`:'');
   const pyN=D?D.parties.length:0;
   const parties=`<div class="ov-ess-p" id="ov-parties"><div class="ov-ess-h"><span class="ov-ess-cap">${esc(i18t('py_parties'))} · ${pyN}</span>${
-      pyLocked?`<span class="ov-ess-lock">${esc(i18t('py_locked'))}</span>`:''}${pyAdd}</div>${dealEd?pyEdit:pyRows}</div>`;
+      pyLocked?`<span class="ov-ess-lock">${esc(i18t('py_locked'))}</span>`:''}${pyAdd}</div>${dealEd?pyEdit:`<div class="ov-pty-list" tabindex="-1">${pyRows}</div>`}</div>`;
   const hold=holdsIn(OV_ESS_FIELDS);
   const essActs=`${ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="all">${
       esc(dealEd?i18t('ov_edit_done'):i18t('ov_edit_details'))}</button>`:''}${fill}`;
   const map=ovMapHtml(c);
   const renewalHost='<div id="renewal-host" class="empty:hidden" data-bare="1"></div>';
+  /* AT REST THE TERMS ARE THE EIGHT (the redesign's rule: "render the terms
+     and nothing else"); in Edit every field, fixed and occasional, is a box,
+     exactly as before — so no term lost the one place it can be typed. */
   const facts=`<div class="ov-ess-g" id="ov-facts"><div class="ov-ess-h"><span class="ov-ess-cap">${esc(i18t('ov_ess_terms'))}</span>${
-      hold?`<span class="ov-ess-hold">${esc(i18tn('ov_hold_n',hold,{n:hold}))}</span>`:''}<span class="ov-ess-acts">${essActs}</span></div>
-    <div id="kt-rows"></div>${ktDealFactsHtml(c,{edit:dealEd,marks,keys:OV_ESS_FIELDS,also:OV_ALSO_FIELDS})}${map?'':renewalHost}</div>`;
+      hold?`<span class="ov-ess-hold">${esc(i18tn('ov_hold_n',hold,{n:hold}))}</span>`:''}</div>
+    <div id="kt-rows"></div>${dealEd?ktDealFactsHtml(c,{edit:true,marks,keys:OV_ESS_FIELDS,also:OV_ALSO_FIELDS}):ovEssRestHtml(c,marks)}${map?'':renewalHost}</div>`;
   /* MOVE TO ANOTHER STREAM IS NOT A SECOND DOOR. The stream picker is
      ktStreamRowHtml's, with its admin guard, its 'Re-filed' audit line and its
      own repaint; this button opens the rows that hold it and puts the reader
@@ -7356,7 +7324,7 @@ function ktOverviewTermsHtml(c,opts={}){
         : '<div id="kt-rows-record"></div>')
       + `<div id="kt-record-facts">${ktRecordFactsHtml(c,{rowsAbove:recEd,marks,mayEdit:ed})}</div>`,
     acts: moveBtn+`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="${esc(recK)}">${esc(i18t('ov_filing_close'))}</button>` }):'';
-  return top+`<div class="ov-card ov-ess" id="ov-ess"><div class="ov-ess-body">${parties}${facts}</div>${record}</div>`+map;
+  return top(essActs)+`<div class="ov-card ov-ess" id="ov-ess"><div class="ov-ess-body">${parties}${facts}</div>${record}</div>`+map;
 }
 
 /* ---- RISK: A READ OF THE CHECKS YOU HAVE RUN, NOT A NEW NUMBER ----
@@ -16475,7 +16443,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
      Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
      with it: the same guard-and-miss is waiting for both. */
   wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
-  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_ESS_FIELDS,ovOpenFiling,ktReadingsRowsHtml,ktBriefCardHtml,ovMapData,ovMapSvg,ovMapRingSegs,ovMapPane,ovMapHtml,ovMapWire,ovMapRoleKey,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
+  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_ESS_FIELDS,ovOpenFiling,ktReadingsRowsHtml,ktBriefCardHtml,ovMapData,ovMapSvg,ovMapPane,ovMapHtml,ovMapWire,ovMapRenewal,ovEssRestHtml,OV_ESS_REST,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
   OV_DEAL_FIELDS,OV_ALSO_FIELDS,OV_KT_FIELDS,OV_DERIVED_FIELDS,ovMetaBoxHtml,ovMetaField,ovMetaLabel,
   OV_MARK_ALIAS,ovFieldMarkOf,ovFieldNoteHtml,ovSignMarks,
   /* THE PARTIES BLOCK. f232's net: every `window.foo` read must be a

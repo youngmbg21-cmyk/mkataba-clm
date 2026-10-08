@@ -2908,14 +2908,22 @@ function hbChartRun(D, cs0, P){
 /* THE SAME NUMBERS AS A TABLE (O-25): read off the chart's own doors — each
    piece's hover note is "label: what it counts" — so the table can never say
    what the chart does not; every row is the same door. */
+/* EVERY CHART THE BOARD DRAWS (work order "Home speed", Part 6, 8 Oct 2026:
+   "fix this highlighted button so that when you click, it turn the chart to a
+   table"): the SVG charts name a piece in a <title> ELEMENT, the bars and the
+   month columns (hbChartBarsHtml, hbChartColsHtml) in a title ATTRIBUTE on the
+   button. It read only the first, so a bar chart gave no rows and stayed a
+   chart while its button said "Show as chart". ONE reader for both; a piece
+   with nothing behind it (disabled, no door) is not a row. */
 function hbChartTableHtml(svgHtml){
   if (typeof document === 'undefined') return '';
   const box = document.createElement('div'); box.innerHTML = svgHtml;
   const seen = new Set(), rows = [];
   box.querySelectorAll('[data-hb-dig]').forEach(el => {
-    const t = el.querySelector('title'); const txt = t ? t.textContent : ''; const dig = el.getAttribute('data-hb-dig');
+    if (el.disabled) return;
+    const t = el.querySelector('title'); const txt = t ? t.textContent : (el.getAttribute('title') || ''); const dig = el.getAttribute('data-hb-dig');
     if (!txt || seen.has(dig + txt)) return; seen.add(dig + txt);
-    const at = txt.indexOf(': ');
+    const at = txt.lastIndexOf(': ');
     rows.push({ label: at > 0 ? txt.slice(0, at) : txt, val: at > 0 ? txt.slice(at + 2) : '', dig });
   });
   if (!rows.length) return '';
@@ -2941,9 +2949,12 @@ function hbChartHtml(D, cs0, big){
     R.body = String(R.body || '').replace(/<svg class="hb-svg/g, `<svg data-hb-fit="${_hbE(at.key + '|' + at.step)}" data-hb-w="${w}" data-hb-step="${at.step}" class="hb-svg`);
     /* OPENED, DETAIL IS EARNED (O-25): the same numbers as a table, and full screen */
     if (at.step !== 'board' && /data-hb-dig=/.test(R.body)){
-      const tab = _hbTableOn.has(at.key);
-      if (tab){ const t = hbChartTableHtml(R.body); if (t) R.body = t; }
-      R.body = `<div class="hb-open-tools"><button type="button" class="hb-link" data-hb-table="${_hbE(at.key)}" aria-pressed="${tab}">${_hbE(i18t(tab ? 'hb_show_chart' : 'hb_show_table'))}</button>`
+      /* THE BUTTON NEVER LIES (Part 6): it is drawn only where the chart has
+         rows to show, and says "Show as chart" only while a table IS showing */
+      const t = hbChartTableHtml(R.body);
+      const tab = !!t && _hbTableOn.has(at.key);
+      if (tab) R.body = t;
+      R.body = `<div class="hb-open-tools">${t ? `<button type="button" class="hb-link" data-hb-table="${_hbE(at.key)}" aria-pressed="${tab}">${_hbE(i18t(tab ? 'hb_show_chart' : 'hb_show_table'))}</button>` : ''}`
         + `<button type="button" class="hb-link" data-hb-full aria-pressed="${_hbFull}">${_hbE(i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen'))}</button></div>` + R.body;
     }
   }
