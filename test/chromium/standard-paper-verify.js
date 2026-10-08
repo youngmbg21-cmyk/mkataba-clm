@@ -115,12 +115,15 @@ const FREIGHT = [
     const els = [...document.querySelectorAll('#rl-doc .rl-clause[data-clause]')];
     return { clauses: els.length,
       pill: els.filter(el => el.querySelector('.rl-cp-pill')).length,
+      /* RE-POINTED 9 Oct 2026 (change 5, no pen on the paper): each clause's
+         own way in is its own wording — a section the click lands in. */
+      own: els.filter(el => el.hasAttribute('data-nego-working')).length,
       /* The retired row must be gone, not merely unused: a stale selector in a
          guard is a mention, and mentions of retired things get flagged. */
       stale: els.filter(el => el.querySelector('[data-nego-edit],[data-nego-ai-clause]')).length };
   });
-  check('2 every clause carries its own Edit pill', verbs.pill === verbs.clauses,
-    `${verbs.pill} of ${verbs.clauses}`);
+  check('2 every clause carries its own way in — its own wording, no pen', verbs.own === verbs.clauses && verbs.pill === 0,
+    `${verbs.own} of ${verbs.clauses}, ${verbs.pill} pens`);
   check('2 and the retired tool row is gone from the paper', verbs.stale === 0,
     verbs.stale ? `${verbs.stale} clauses still carry it` : '');
 
@@ -160,7 +163,7 @@ const FREIGHT = [
          changed under them. Two faults, one red mark. */
       .find(x => /^8\.2\(a\)\s*Termination/.test((x.textContent || '').trim()));
     if (!el) return null;
-    el.querySelector('.rl-cp-pill').click();
+    /* RE-POINTED 9 Oct 2026 (change 5): no pen on the paper — the panel is opened on the clause itself. */ window.rlCpSetShown(document, el.getAttribute('data-clause'));
     await new Promise(r => setTimeout(r, 400));
     const body = document.querySelector('#rl-cp .rl-cp-src.is-on');
     const stands = body ? (body.querySelector('.rl-cp-wd, .rl-cp-sec') || {}).textContent || '' : '';
@@ -200,7 +203,7 @@ const FREIGHT = [
     const el = [...document.querySelectorAll('#rl-doc .rl-clause[data-clause]')]
       .find(x => /^14\.\s*Confidentiality/.test((x.textContent || '').trim()));
     if (!el) return null;
-    el.querySelector('.rl-cp-pill').click();
+    /* RE-POINTED 9 Oct 2026 (change 5): no pen on the paper — the panel is opened on the clause itself. */ window.rlCpSetShown(document, el.getAttribute('data-clause'));
     await new Promise(r => setTimeout(r, 400));
     const btn = document.querySelector('#rl-cp .rl-cp-src.is-on .rl-cp-act-ai');
     if (!btn) return { there: false };

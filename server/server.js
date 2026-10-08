@@ -4199,7 +4199,14 @@ app.get('/api/contracts/:id/state', auth, (req, res) => {
      not returned at all — the browser's own reading discards them too, and
      two readings that disagreed about whether a lock is alive would be a page
      drawing a lock somebody can walk straight through. */
-  res.json({ version: r.version, updatedAt: r.updated_at || null, locks: srvLocksLive(r.json) });
+  /* COPILOT'S ANSWERS TO THEIR ROUND RIDE THE PROBE TOO (Young, 9 Oct 2026,
+     the Paper and Counter review, change 1): they live in their own table
+     (round_prep) and a redo moves no version, so a page watching the version
+     never learned of one. `prepAt` is the newest answer's time — a stamp, not
+     the answers; the page fetches the record only when it moves. */
+  let prepAt = null;
+  try { prepAt = (db.prepare("SELECT MAX(COALESCE(json_extract(json,'$.at'), created_at)) AS t FROM round_prep WHERE contract_id=?").get(String(req.params.id)) || {}).t || null; } catch (_) { prepAt = null; }
+  res.json({ version: r.version, updatedAt: r.updated_at || null, locks: srvLocksLive(r.json), prepAt });
 });
 
 /* ---------- ONE CLAUSE, ONE PAIR OF HANDS: the presence write ----------

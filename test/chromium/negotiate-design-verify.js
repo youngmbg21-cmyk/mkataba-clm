@@ -48,7 +48,9 @@ const READ = `(() => {
   const body = Array.from(paper.querySelectorAll('p'))
     .find(p => (p.textContent || '').trim().length > 40) || null;
   const head = paper.querySelector('h2,h3,h4') || null;
-  const pencil = paper.querySelector('.rl-cp-pill') || null;
+  /* No pen on the paper since 9 Oct 2026 (change 5): the furniture standing
+     on the sheet is Discard · Save, drawn on a clause's first keystroke. */
+  const pencil = paper.querySelector('.rl-cp-pill') || paper.querySelector('.rl-inline-acts button') || null;
   const mark = pencil ? pencil.querySelector('svg') : null;
   const tok = n => getComputedStyle(document.documentElement).getPropertyValue(n).split(',')[0].replace(/['"]/g, '').trim();
   return { paper: face(paper), hook, bodyTok: tok('--font-body'), docTok: tok('--font-doc'),
@@ -142,11 +144,22 @@ const openNego = async (page, id) => {
        The clause pencil sits INSIDE the sheet, so the design's `*` rule
        reaches it. A Save button set in the contract's typeface is the page's
        own chrome pretending to be the agreement. */
-    check('2a the negotiate page still draws its clause pencil',
-      neg.has.pencil, neg.has.pencil ? 'present' : 'absent');
+    /* RE-POINTED 9 Oct 2026 (Young, change 5: "No pen on any paper"): the
+       paper draws no pen; the furniture that does stand on it is Discard ·
+       Save, once a clause is typed in — so a clause is typed in to measure. */
+    check('2a the negotiate page draws no pen on its paper',
+      !neg.has.pencil, neg.has.pencil ? 'present' : 'absent');
+    const at2 = await page.evaluate(() => { const sec = document.querySelector('.redline-page .rl-paper section.rl-clause');
+      const t = sec && [...sec.querySelectorAll('p, li, div')].map(e => [...e.childNodes].find(n => n.nodeType === 3 && n.data.trim().length > 8)).find(Boolean);
+      if (!t) return null; const r = document.createRange(); r.setStart(t, 2); r.setEnd(t, 3); const b = r.getBoundingClientRect();
+      return { x: b.left + 1, y: b.top + b.height / 2 }; });
+    if (at2){ await page.mouse.click(at2.x, at2.y); await page.waitForTimeout(200); await page.keyboard.type('x'); await page.waitForTimeout(400); }
+    const negTyped = await page.evaluate(READ);
+    neg.pencil = negTyped.pencil; neg.pencilMark = negTyped.pencilMark;
+    check('2a′ and once a clause is typed in, Discard · Save stand on it', negTyped.has.pencil, negTyped.has.pencil ? 'present' : 'absent');
     /* RE-POINTED IN PLACE 24 Sep 2026: the relation, not the name Plex —
        the pencil wears the platform's body token, whatever it names. */
-    check('2b the pencil keeps the product’s own face',
+    check('2b that furniture keeps the product’s own face',
       !!neg.pencil && neg.pencil === neg.bodyTok, `${neg.pencil} · token ${neg.bodyTok}`);
     check('2c and so does the mark inside it',
       !neg.pencilMark || neg.pencilMark === neg.bodyTok, neg.pencilMark);

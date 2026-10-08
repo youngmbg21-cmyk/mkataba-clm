@@ -478,6 +478,10 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       } catch (e){ dbg = 'threw: ' + e.message; }
       return { pressed: false, dbg }; }
       b.click();
+      /* SEND ALL NAMES WHAT TRAVELS AND ASKS ONCE (9 Oct 2026): the yes is
+         pressed, and the route below is still the direct one. */
+      for (let i = 0; i < 30 && !document.getElementById('cf-ok'); i++) await new Promise(r => setTimeout(r, 50));
+      const yes = document.getElementById('cf-ok'); if (yes) yes.click();
       /* POLLED, NOT SLEPT. An 'ok' toast dwells 2600ms and clears itself, so a
          fixed wait long enough for the send to finish is also long enough to
          miss the box entirely — which is how this check first reported "no

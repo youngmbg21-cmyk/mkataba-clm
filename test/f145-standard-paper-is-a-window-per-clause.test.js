@@ -156,9 +156,11 @@ describe('f145 — the workbench draws a window per clause', () => {
     const boxes = p.clauses();
     assert.ok(boxes.length > 1,
       `the page drew ${boxes.length} clause box — the screenshot's single window`);
-    const pills = p.doc.querySelectorAll('#rl-doc .rl-cp-pill');
-    assert.equal(pills.length, boxes.length,
-      'one door per clause, not one for the whole document');
+    /* RE-POINTED 9 Oct 2026 (no pen on the paper): each clause's door is its
+       own wording — one box per clause is what makes one door per clause. */
+    assert.equal(p.doc.querySelectorAll('#rl-doc .rl-cp-pill').length, 0, 'no pen on the paper');
+    assert.equal(p.doc.querySelectorAll('#rl-doc section.rl-clause[data-nego-working]').length, boxes.length,
+      'one door per clause — its own wording — not one for the whole document');
     assert.equal(p.doc.querySelectorAll('#rl-doc [data-nego-edit]').length, 0,
       'and no Direct Edit anywhere on the paper — writing happens in the panel');
   });

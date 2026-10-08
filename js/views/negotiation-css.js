@@ -2190,6 +2190,19 @@ function redlineLayoutCss(){
   .rl-card-prep .rl-prep-v.is-counter{color:var(--st-amber-fg)}
   .rl-card-prep .rl-prep-v.is-escalate{color:var(--st-ruby-fg)}
   .rl-card-prep .rl-prep-why{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* COPILOT'S COUNTER ON THE PAPER, AND THE COUNTER THAT TAKES IT (change 2,
+     9 Oct 2026): a dashed box under their wording, and Counter lit. */
+  .rl-prep-box{margin:var(--s-2) 0 var(--s-1);padding:2px var(--s-2);border:1px dashed var(--accent-solid);
+    background:var(--color-accent-50);color:var(--accent-ink)}
+  .rl-prep-box .rl-clause-p{margin:0;color:inherit}
+  .rl-prep-box .rl-prep-ins{font-weight:var(--w-strong);text-decoration:underline dashed;text-underline-offset:3px}
+  /* CLICK, TYPE, SAVE (change 5): the box is the clause; the dashed outline and
+     Discard · Save arrive with the first keystroke. */
+  .rl-inline-box{outline:none;cursor:text}
+  .rl-clause.rl-inline-typing{outline:1px dashed var(--accent-solid);outline-offset:6px;border-radius:var(--radius)}
+  .rl-clause-top .rl-inline-acts{display:inline-flex;gap:var(--s-1);margin-left:auto;flex:none}
+  .rl-inline-acts .ui-btn{height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);font-size:var(--t-meta)}
+  [data-rl-glow]{box-shadow:0 0 0 2px var(--accent-solid),0 0 8px 1px var(--color-accent-100);border-radius:var(--radius)}
   .rl-paper-foot.rl-foot-many{flex-wrap:wrap;gap:var(--s-6) var(--s-8)}
   .rl-paper-foot.rl-foot-many .rl-sigline{flex:1 1 200px}
   @media (max-width:560px){ .rl-paper-foot{flex-direction:column;gap:22px} }
@@ -6139,6 +6152,13 @@ function redlineLayoutCss(){
          .nego-grid draws no frame — the paper sits on the page ground and
          the column's own left hairline is the only line. */}
   .redline-page #rl-grid.nego-work{border:0;border-radius:0}
+  ${''/* NO GREY SHEET UNDER THE PAPER (Young, 9 Oct 2026, the Paper and
+         Counter review, change 3): the column took the canvas's own grey
+         (--n-canvas), which read as a second sheet under the white one. On
+         this page the column takes no colour of its own — the paper lies on
+         the page ground with its soft shadow; width, gap and type unchanged.
+         Home's Paper is not this page and keeps its ground. */}
+  .redline-page #nego-root,.redline-page #rl-grid.nego-work{background:transparent}
   .redline-page .rl-side{padding:0}
   .redline-page .rl-idx{padding:12px var(--s-4);border-bottom:2px solid var(--accent-solid)}
   .redline-page .rl-idx-top{align-items:center;gap:8px;border-bottom:0;margin-bottom:0}

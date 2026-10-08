@@ -3406,6 +3406,11 @@ async function copilotPropose(opts){
   const ask = (typeof window !== 'undefined' && window.copilotAsk) || copilotAsk;
   const res = await ask([{ role: 'user', content: lines.filter(x => x !== '').join('\n') }],
     o.context || (typeof buildAssistantContext === 'function' ? buildAssistantContext() : null));
+  /* A NON-ANSWER IS NOT AN ANSWER (9 Oct 2026, the review): the chat route
+     marks a run that never finished, or came back empty, and its sentence is
+     the PORTFOLIO chat's ("name a specific contract") — wrong words beside one
+     clause. The caller is told, and says its own. */
+  if (res && typeof res === 'object' && (res.unfinished || res.empty)) return { unfinished: true, advice: '', proposedText: '' };
   const raw = typeof res === 'string' ? res
     : (res && (res.answer || res.text || res.content || res.reply || res.message)) || '';
   const parsed = aiParseProposal(raw);

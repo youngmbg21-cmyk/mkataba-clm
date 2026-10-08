@@ -176,7 +176,9 @@ const INSTRUMENT = () => {
   });
   check('0 the retired clause toolbar is not drawn at all', cascade.toolCount === 0,
     `${cascade.toolCount} tool elements`);
-  check('0 and the clause\'s Edit pill computes to user-select:none', cascade.asktag === 'none', cascade.asktag);
+  /* RE-POINTED 9 Oct 2026 (Young, change 5: no pen on the paper): there is no
+     pen on the clause head to cut from a selection at all. */
+  check('0 and no pen rides the clause head to be cut from a selection', cascade.asktag === 'missing', cascade.asktag);
 
   /* ---- 1. ::marker is genuinely absent from a real selection ----
      Measured before anything is asserted about matching, because it is the

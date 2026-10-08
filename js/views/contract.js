@@ -3075,7 +3075,11 @@ function docSheetHtml(c, o){
   const up=isUpload(c);
   const b=(!up&&window.resolveDocBranding)?resolveDocBranding(c):null;
   if(mode==='work'){
-    const body=(!o.readOnly&&docFillable(c))?docBody(c):readOnlyDocHtml(docBody(c));
+    /* THE DOCUMENT TAB IS NEVER EDITED (Young, 9 Oct 2026, the Paper and
+       Counter review, change 5): a Draft's blanks are filled from the side
+       panel's form, which lists them; the paper shows the answers
+       (docPaperAnswersHtml) and a press on one goes to its box in the panel. */
+    const body=(!o.readOnly&&docFillable(c))?docPaperAnswersHtml(docBody(c)):readOnlyDocHtml(docBody(c));
     const accent=(b&&window.docDesignPaperStyle)?((docDesignPaperStyle(b).match(/--doc-design-accent:[^;]*;/)||[''])[0]):'';
     /* The design's TYPEFACE comes (docDesignBodyAttr); its structure and its
        page decorations do not — the working copy looks the same whatever the
@@ -13568,6 +13572,35 @@ function wireDocCanvas(c){
      fire on them, and on the phone and the counterparty's page there is no
      Negotiate page to send anybody to. */
   try{ docReadOnlyHint(c); }catch(_){ }
+  try{ docAnswersWire(c); }catch(_){ }
+}
+/* ---- THE PAPER SHOWS THE ANSWERS (change 5, 9 Oct 2026) ----
+   A Draft's blanks stay on the paper as the boxes they are — so a `sync` blank
+   still writes the record through its own input handler when the panel puts a
+   value in it — but nobody types in them here: readonly, out of the tab order,
+   and a press goes to the same box in the side panel's form. */
+function docPaperAnswersHtml(html){
+  if(typeof document === 'undefined') return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = String(html || '');
+  tmp.querySelectorAll('input,textarea').forEach(inp => {
+    inp.setAttribute('readonly', ''); inp.setAttribute('tabindex', '-1'); inp.setAttribute('data-doc-answer', '1');
+    inp.setAttribute('title', i18t('ct_answer_in_panel'));
+  });
+  return tmp.innerHTML;
+}
+function docAnswersWire(c){
+  const cv = document.getElementById('doc-canvas');
+  if(!cv || cv.dataset.answersBound) return;
+  cv.dataset.answersBound = '1';
+  cv.addEventListener('click', e => {
+    const box = e.target && e.target.closest ? e.target.closest('[data-doc-answer]') : null;
+    if(!box) return;
+    e.preventDefault();
+    const key = box.getAttribute('data-field') || box.getAttribute('data-sync') || box.getAttribute('data-field-key') || '';
+    const peer = (key && typeof contractFieldPeer === 'function') ? contractFieldPeer(key, 'panel') : null;
+    if(peer){ try{ peer.scrollIntoView({ block: 'center' }); peer.focus(); }catch(_){ } }
+  });
 }
 /* Bound once per canvas element. `docFillable` is the product's own reading of
    "may wording be typed here", so this cannot disagree with what the page
@@ -16564,7 +16597,7 @@ Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFro
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read
      through window that is not published is silence. */
-  docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,
+  docSealedCopy,docCopyOf,docSignBodyHtml,docSignPaperParts,docSheetHtml,docRepaintSheet,docPaginate,docPaperAnswersHtml,docAnswersWire,
   signCopySheetHtml,signCopyWatch,signCopyFit,signCopyTheirs,signCopyRunning,SC_ZOOMS,SC_ZOOM_KEY,scZoomPref,scZoomSet,scZoomFit,scZoomNow,
   scApplyZoom,scZoomStep,scPaintPage,scPageGo,scSourceLine,scControlsHtml,scWireControls,
   wordHistoryFile,wordTrackedFile,bytesToBase64,signCheckCardHtml,signLandOn,signCheckAccept,signCheckOpenClause,signCheckKeep,runSignCheck,signCheckStamp,ktTriageStripHtml,obTileOpensReview,paintKtTriage,ktTriageReread,triageRepaintSurfaces,triageAndPaint,roomChecksHtml,wireRoomChecks,applyDocZoom,exportWordTracked,renderDiscussSection,discussPointsSectionHtml,loadDiscussion,attachPaperSignature,openPaperSignatureModal,WORD_REFUSAL,WORD_REFUSAL_SHORT,detectWordBytes,detectWordFile,extractWordText,trackedNote,bytesToLatin,actionBarHtml,applyMetadata,captureSignature,dataUrlBytes,signSpots,signSpotsPaint,signSpotsCardHtml,signSpotHtml,signWalkHtml,signWalkGo,signWalkNext,SIGN_SPOT_CUE,signSpotClauses,signSpotProposals,signSpotSeat,signSpotsLive,signSpotsStale,signSpotsMine,signSpotsLeft,signSpotIsMine,signSpotAdd,signSpotRemove,signSpotFill,signSpotClear,signSpotBlocker,distributeExecuted,distributionPanelHtml,docBody,docBodyStructured,templateClauseTitles,docBodyHtml,docPaperFrontHtml,docPlainToRich,docFileUrl,docTermSpan,docTermLength,DOC_TERM_IN_CLAUSE,DOC_SHARED_CLAUSES,DOC_SHARED_SKIP,docSharedSkip,docLibWording,documentTextHtml,externalExecutionBlock,templateProvenanceHtml,extractDocText,extractPdfText,fillKeyTermsFromDocument,finalizeExecution,findingsFromText,focusKeyTerms,KT_FIELD_HOME,KT_FOCUS_TRIES,frozenDocBody,inflateBytes,docxHasStructure,keyTermsProgress,notifyNextSigner,signBlockers,signBlockMessage,READINESS_FIELD_KEYS,openDocReader,openEditDocModal,openUploadModal,_docReadHeadNum,DOC_READ_HEAD_NUM,docReadMark,DOC_DUTY_HEAD,DOC_DUTY_VERB,DOC_DUTY_STATE,DOC_DUTY_RE,DOC_DUTY_KEY,docDutyOn,docDutySet,docDutyMark,docDutyCount,DOC_DUTY_PAPER_MAX,DOC_DUTY_PAPER_CLASS,DOC_DUTY_PAPER_SKIP,docDutyPaperClear,docDutyPaperPaint,pdfRunsToText,pdfRunsToLines,pdfLinesToText,pdfLineGapMedian,pdfParaBreak,docPdfStructure,pdfReadPages,pdfPagesText,readPdfStructured,PDF_NUM_LINE,PDF_HEAD_MAX,pdfNumCapsHead,pdfStringsFrom,pdfTextRuns,pdfLatin,pdfStreamIsCompressed,looksLikeText,pdfIndexObjects,pdfExpandObjStreams,pdfPageObjects,pdfPageFonts,pdfStreamBytes,pdfRef,pdfDictVal,pdfFontWidths,base14Widths,pdfRunWidth,pdfArray,pdfNum,pdfKeyIndex,pdfFontStyle,redlineDocBody,renderActionBar,issueSigningAct,rereadUploadText,syncKeyTermsUI,wireActionBar,wireKeyTerms,

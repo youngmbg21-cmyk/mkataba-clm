@@ -1571,13 +1571,52 @@ async function agSendBackPress(key, box){
     return;
   }
   /* The new answer, where the route handed it back, is taken at once; the rest
-     comes with the page's own quiet refresh. */
+     comes with the page's own quiet refresh.
+     COPILOT'S REDO REACHES THE PAPER AT ONCE (Young, 9 Oct 2026, the Paper and
+     Counter review, change 1): a redone answer to their ask came back IN the
+     reply and was thrown away, so the negotiation page kept the old answer
+     until the contract was opened from scratch. It is taken here, every open
+     paper is redrawn, and "Copilot has redone it" is said only once the
+     answer is really what the page reads. */
   const c = (typeof getContract === 'function' && getContract(it.cid)) || it.c;
   if (c && r && r.advice) c._renewalAdvice = r.advice;
+  const sbKey = box.getAttribute('data-ag-sb-key') || '';
+  if (c && agent === 'round' && sbKey) agRoundPrepTake(c, sbKey, r && r.answer);
   if (typeof agentsBeat === 'function') try { await agentsBeat(true); } catch (_){}
-  if (typeof toast === 'function') toast(_agT('ag_sendback_done'), 'ok');
+  const landed = agent !== 'round' || !(r && r.answer) || agRoundPrepLanded(c, sbKey, r.answer);
   agRepaint();
   agPanelRefresh(key);
+  if (c && agent === 'round') agPrepRedraw(c.id);
+  if (typeof toast === 'function') toast(_agT(landed ? 'ag_sendback_done' : 'ag_sendback_pending'), landed ? 'ok' : 'warn');
+}
+/* ONE ANSWER TAKEN INTO THE BOOK: the route's own record of the redone
+   answer, under the key the two hosts share (js/roundprep.js). A missing
+   answer takes nothing. */
+function agRoundPrepTake(c, key, answer){
+  if (!c || !key || !answer || typeof answer !== 'object') return false;
+  c._roundPrep = Object.assign({}, (c._roundPrep && typeof c._roundPrep === 'object') ? c._roundPrep : {}, { [key]: answer });
+  return true;
+}
+/* Is the answer the route wrote the one the page now reads? */
+function agRoundPrepLanded(c, key, answer){
+  const m = c && c._roundPrep;
+  const a = m && key ? m[key] : null;
+  return !!(a && answer && a.at === answer.at && a.verdict === answer.verdict);
+}
+/* EVERY OPEN PAPER OF THIS CONTRACT IS REDRAWN — the negotiation page, and
+   Home's Paper, whose sheet is kept while its key holds (igPaperKey). Never
+   while somebody is typing into a clause. */
+function agPrepRedraw(cid){
+  if (!cid || typeof state === 'undefined' || !state) return;
+  try {
+    const typing = typeof rlEditorOpen === 'function' && rlEditorOpen();
+    if (state.view === 'redline' && typeof redlineHeldId === 'function' && redlineHeldId() === cid && !typing && typeof renderRedline === 'function') renderRedline();
+  } catch (_){}
+  try {
+    const host = document.getElementById('ig-paper');
+    const p = (typeof intel !== 'undefined' && intel) ? intel.paper : null;
+    if (host && p && p.id === cid && typeof igPaintPaper === 'function'){ delete host.dataset.for; igPaintPaper(); }
+  } catch (_){}
 }
 
 /* ---- A NOTICE: the facts, why, and THE LETTER itself — noticeDraft's own
@@ -2241,7 +2280,7 @@ Object.assign(window, { AG_REPLY_WAIT_MS, agReplyPrompt, agDraftReply, agUseRepl
   agImportBatches, agImportItems, agImportDone, agImportWorking, agFind, agCardParts, agCardHtml, agPageHtml, agListHtml,
   agStepsHtml, agFactsHtml, agPanelBody, agPanelActs, agOpenItem, agDrawPanel, agWarmUp, AG_NEEDS_WHOLE, AG_OPEN_WAIT_MS, agRunAct, agPaintHead, agRepaint, renderAgentsPage,
   agForName, agWhen, agFootHtml, agPanelTitle, agPanelHeadHtml, agLoadWhole, agChaseMail, agHowWentHtml, agMemoHtml,
-  agBriefInner, agStandardsInner, agHeldInner, agPanelRefresh,
+  agBriefInner, agStandardsInner, agHeldInner, agPanelRefresh, agRoundPrepTake, agRoundPrepLanded, agPrepRedraw,
   agLinkItems, agLinkDone, agLinkHow, agLinkBody, agFreshLink, agSignTurnWords, agSentTo,
   agRowInner, agPaintList, agShowAgent, agOnDay,
   agStatusOf, agMoneyShown, agNextWords, agRunResultWords, agRunsHtml, agRunNowPress, AG_SPENDS, AG_SIGN_STUCK,

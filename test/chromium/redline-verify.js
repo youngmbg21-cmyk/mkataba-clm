@@ -362,9 +362,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     const s = getComputedStyle(p);
     return { op: s.opacity, color: s.color };
   });
-  check('2b the Edit pill is out of the way until the clause is hovered',
-    !!pillAtRest && pillAtRest.op === '0',
-    pillAtRest ? `opacity ${pillAtRest.op}` : 'no pill');
+  /* REVERSED IN PLACE, 9 Oct 2026 (Young, the Paper and Counter review,
+     change 5: "No pen on any paper"): at this width the wording itself is the
+     door — a click puts the caret in it — so the pen is not drawn at all. */
+  check('2b no pen on the paper — the wording is the door', pillAtRest === null,
+    pillAtRest ? `opacity ${pillAtRest.op}` : 'no pen');
   await page.hover('#rl-doc .rl-clause');
   await pause(200);
   const pillHovered = await page.evaluate(() => {
@@ -384,15 +386,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     return { op: s.opacity, color: s.color, pe: s.pointerEvents,
       ratio: Math.round(((Math.max(a, b2) + .05) / (Math.min(a, b2) + .05)) * 100) / 100 };
   });
-  check('2b and a real hover brings it out, pressable',
-    !!pillHovered && pillHovered.op === '1' && pillHovered.pe !== 'none',
-    pillHovered ? `opacity ${pillHovered.op}, pointer-events ${pillHovered.pe}` : 'no pill');
+  check('2b and a real hover brings none out either', pillHovered === null,
+    pillHovered ? `opacity ${pillHovered.op}, pointer-events ${pillHovered.pe}` : 'no pen');
   /* "A VISIBLE GREY" IS A CONTRAST CLAIM, not a colour name — the owner's own
      word was "visible", and grey that cannot be read is the fault, not the
      hue. AA wants 4.5:1 for text this size. */
-  check('2b the grey is a visible one, measured on the paper it sits on',
-    !!pillHovered && pillHovered.ratio >= 4.5,
-    pillHovered && `${pillHovered.color} at ${pillHovered.ratio}:1`);
+
 
   /* ---- 6. the uploaded document survives ---- */
   const struct = await page.evaluate(() => {
@@ -1134,7 +1133,9 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     await new Promise(r => setTimeout(r, 600));
     return { wasHidden, inView: seen(),
       lit: clause.classList.contains('is-linked') || clause.classList.contains('rl-arrived'),
-      editing: !!clause.querySelector('[data-nego-editor]'),
+      /* a click-to-type box a press in the wording left open is the paper's
+         own (change 5, 9 Oct 2026); what must not open is anything else */
+      editing: !!clause.querySelector('[data-nego-editor]:not(.rl-inline-box)'),
       modals: document.querySelectorAll('#modal-root *').length };
   });
   check('12 Edit puts the clause on screen', jump.inView,
@@ -1508,15 +1509,11 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     return { lines: lines(k), ws: getComputedStyle(k).whiteSpace,
       tab: h(tab), label: h(k), count: h(n), content };
   });
-  check('16 the queue label paints on one line, never two',
-    rail && rail.lines === 1, rail && `${rail.lines} line(s)`);
-  check('16 and it cannot wrap at any window size',
-    rail && rail.ws === 'nowrap', rail && rail.ws);
-  /* SHORTER, AS A RELATION: the strip is its contents plus padding, and the
-     padding is what was trimmed — so it must not exceed them by much. */
-  check('16 the strip is no taller than what it carries',
-    rail && rail.tab - rail.content <= 34,
-    rail && `${rail.tab}px for ${rail.content}px of content`);
+  /* RETIRED (Young, 9 Oct 2026, the Paper and Counter review, change 4):
+     "This round's queue" — its vertical door and its panel — is gone from the
+     page, so the claim is now that nothing of it is drawn. */
+  check('16 the round\'s queue is retired: no door on the paper\'s edge, no panel', rail === null
+    && await page.evaluate(() => !document.querySelector('#rl-queue, #rl-q-scrim')), rail && JSON.stringify(rail));
 
   /* ---- 17. A READING IS NOT A WORKING POSTURE (owner-asked 24 Aug 2026) ----
      "Remove the strip from the top of the contract in both as agreed and with
@@ -2446,17 +2443,20 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       pageUp: !!document.getElementById('clause-editor'),
       /* AND YOUR OWN CLAUSE IS UNTOUCHED. */
       mineHasPencil: !!(mine && document.querySelector('[data-clause="' + mine + '"] .rl-cp-pill')),
+      mineHasSign: !!(mine && document.querySelector('[data-clause="' + mine + '"] .rl-cp-lock')),
     };
     delete c.locks;
     return out;
   });
-  check('25 THE CONTROL: with nothing held the paper draws pencils and no lock',
-    lock.before.pencils.length > 1 && lock.before.locks === 0,
+  /* RE-POINTED 9 Oct 2026 (no pen on the paper, change 5): the paper draws no
+     pencils at this width; what is measured is the sign alone. */
+  check('25 THE CONTROL: with nothing held the paper draws no lock (and no pens)',
+    lock.before.pencils.length === 0 && lock.before.locks === 0,
     `pencils ${lock.before.pencils.length} · locks ${lock.before.locks}`);
   check('25a a clause a colleague holds draws the sign, in the pencil\'s own clause',
     lock.onHeld === true, JSON.stringify({ onHeld: lock.onHeld, box: lock.box }));
   check('25b and that clause draws no pencil — one control in one corner',
-    lock.pencilOnHeld === false && lock.after.pencils.length === lock.before.pencils.length - 1,
+    lock.pencilOnHeld === false && lock.after.pencils.length === 0,
     `before ${lock.before.pencils.length} · after ${lock.after.pencils.length}`);
   check('25c the monogram is VISIBLE PIXELS and reads as the initials Young asked for',
     lock.mono === 'RC' && !!lock.box && lock.box.w > 0 && lock.box.h > 0,
@@ -2477,8 +2477,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
   check('25i THE WALL: the editor\'s own door refuses a clause a colleague holds',
     lock.opened === false && lock.pageUp === false,
     `opened ${JSON.stringify(lock.opened)} · page ${lock.pageUp}`);
-  check('25j and your own clauses are untouched',
-    lock.mineHasPencil === true, `pencil on your own clause: ${lock.mineHasPencil}`);
+  check('25j and your own clauses are untouched — no sign on them',
+    lock.mineHasSign === false, `sign on your own clause: ${lock.mineHasSign}`);
   await page.screenshot({ path: path.join(OUT, '25-one-pair-of-hands.png') });
   /* ---- AND THE OTHER DOORS INTO THE EDITOR (Young, 10 Sep 2026) ----
      *"put the initials on those too."* Four controls open that page and only

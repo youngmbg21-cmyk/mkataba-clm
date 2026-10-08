@@ -622,7 +622,10 @@ describe('F89 (2b) — the page sets the contract, it does not float it', () => 
       'no Direct Edit on any clause');
     assert.equal(p.$('#rl-doc [data-nego-ai-clause]'), null,
       'no clause-level Copilot button');
-    assert.ok(p.$('#rl-doc .rl-cp-pill'), 'the Edit pill is the one door left');
+    /* RE-POINTED 9 Oct 2026 (no pen on the paper, change 5): the one door
+       left is the clause's own wording — a click puts the caret in it. */
+    assert.equal(p.$('#rl-doc .rl-cp-pill'), null, 'no pen on the paper');
+    assert.ok(p.$('#rl-doc section.rl-clause[data-nego-working]'), 'the wording is the one door left');
   });
 });
 
@@ -1287,7 +1290,13 @@ describe('F89 (15) — a clause and its card are one thing shown twice', () => {
     const card = p.$(`#rl-changes [data-nego-card="${ch.id}"]`);
     let scrolled = false;
     card.scrollIntoView = () => { scrolled = true; };
-    p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"] .rl-cp-pill`).click();
+    /* RE-POINTED 9 Oct 2026 (no pen on the paper, change 5): the controls a
+       clause carries now are Discard · Save once somebody types, and their
+       press stops where it lands. */
+    assert.equal(p.$(`#rl-doc [data-nego-card-anchor="${ch.id}"] .rl-cp-pill`), null, 'no pen to press');
+    const NEGO = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js/views/negotiation.js'), 'utf8');
+    assert.match(NEGO, /function rlInlineAct\(ev, t\)\{[\s\S]*?ev\.preventDefault\(\); ev\.stopPropagation\(\);/,
+      'Discard · Save stop their own press');
     assert.equal(scrolled, false, 'operating a clause is not asking about it');
   });
 
