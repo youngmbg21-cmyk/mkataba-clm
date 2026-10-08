@@ -1819,9 +1819,10 @@ function agChaseMail(c, o, firm){
   const vars = { desc: (o && o.desc) || '', name: c.name || ref, id: ref, due: (o && o.due) || '' };
   /* THE FIRMER ONE is the route's own `firm` keys, with the day the first went. */
   if (firm) vars.first = String((o && o.chasedAt) || '').slice(0, 10);
+  const soon = (o && o.due && String(o.due).slice(0, 10) > new Date().toISOString().slice(0, 10)) ? '_soon' : '';   // the route's own rule (B11)
   const line = firm
-    ? T((o && o.due) ? 'mail_ob_chase_firm_line' : 'mail_ob_chase_firm_line_nodate', vars)
-    : T((o && o.due) ? 'mail_ob_chase_line' : 'mail_ob_chase_line_nodate', vars);
+    ? T((o && o.due) ? 'mail_ob_chase_firm_line' + soon : 'mail_ob_chase_firm_line_nodate', vars)
+    : T((o && o.due) ? 'mail_ob_chase_line' + soon : 'mail_ob_chase_line_nodate', vars);
   return { to, subject: T(firm ? 'mail_ob_chase_firm_subject' : 'mail_ob_chase_subject', vars), body: `${T('mail_hello')},\n\n${line}\n\n${T('mail_automated_notice')}` };
 }
 function agChaseMailHtml(c, o, firm){

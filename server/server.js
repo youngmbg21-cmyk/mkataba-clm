@@ -13334,9 +13334,12 @@ async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
      draws Chase on a dated obligation and an undated one alike, and both are
      legitimate things to ask about. */
   if (firm) vars.first = dayWords(String(o.chasedAt || '').slice(0, 10));
+  /* NOT YET DUE IS "IS DUE ON", NEVER "WAS DUE ON" (B11, 8 Oct 2026): chasing
+     early is allowed, and the sentence says what is true on the day it goes. */
+  const soon = o.due && String(o.due).slice(0, 10) > now().slice(0, 10) ? '_soon' : '';
   const line = firm
-    ? tFor(L, o.due ? 'mail_ob_chase_firm_line' : 'mail_ob_chase_firm_line_nodate', vars)
-    : tFor(L, o.due ? 'mail_ob_chase_line' : 'mail_ob_chase_line_nodate', vars);
+    ? tFor(L, o.due ? 'mail_ob_chase_firm_line' + soon : 'mail_ob_chase_firm_line_nodate', vars)
+    : tFor(L, o.due ? 'mail_ob_chase_line' + soon : 'mail_ob_chase_line_nodate', vars);
   /* ---- THE LINK IS ONE THIS READER CAN OPEN, OR THERE IS NO LINK ----
      This sent `#contract=<id>`, which openFromHash resolves against the
      signed-in reader's own scoped bootstrap — on the far side of the sign-in

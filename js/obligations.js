@@ -3538,7 +3538,10 @@ async function obligationChase(cid, obId, opts){
   /* THE FIRMER, SECOND CHASE (27 Sep 2026, Late promises): the same act, the
      route's own `firm` words, and a stamp of its own — the first chase's day
      stays what it was, because the firmer message quotes it. */
-  const firm = !!_o.firm && !!o.chasedAt;
+  /* …AND A SECOND CHASE IS THE FIRMER ONE wherever it is pressed (B11, 8 Oct
+     2026): the tab's Chase on an obligation already chased sent the first
+     message again, word for word. */
+  const firm = !!o.chasedAt;
   const ok = (_o.confirm === false) ? true : await confirmDialog({
     title: i18t(firm ? 'ob_chase_firm_title' : 'ob_chase_title'),
     message: i18t(firm ? 'ob_chase_firm_body' : 'ob_chase_body', { who: c.counterparty || i18t('ob_side_theirs'), desc: o.desc || '' }),

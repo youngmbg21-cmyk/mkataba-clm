@@ -4511,6 +4511,7 @@ const STRINGS = {
        names the agreement and the date and asks rather than instructs. */
     mail_ob_chase_subject: "A reminder about {desc}",
     mail_ob_chase_line: "This is a reminder about \"{desc}\" under our agreement \"{name}\" ({id}), which was due on {due}. Could you let us know where it stands?",
+    mail_ob_chase_line_soon: "This is a reminder about \"{desc}\" under our agreement \"{name}\" ({id}), which is due on {due}. Could you let us know where it stands?",
     mail_ob_open: "Open the contract:",
     /* ---- THE RENEWAL MAIL, NOW THAT IT GOES TO A NAMED PERSON ----
        (16 Sep 2026.) These two were hardcoded English inside runReminders,
@@ -5170,6 +5171,7 @@ const STRINGS = {
     mail_lw_how_none: "no link reached them",
     mail_ob_chase_firm_subject: "Second reminder: {desc}",
     mail_ob_chase_firm_line: "We wrote to you on {first} about \"{desc}\" under our agreement \"{name}\" ({id}), which was due on {due}, and have not heard back yet. Please tell us by return when it will be done, or what is holding it up.",
+    mail_ob_chase_firm_line_soon: "We wrote to you on {first} about \"{desc}\" under our agreement \"{name}\" ({id}), which is due on {due}, and have not heard back yet. Please tell us by return when it will be done, or what is holding it up.",
     mail_ob_chase_firm_line_nodate: "We wrote to you on {first} about \"{desc}\" under our agreement \"{name}\" ({id}) and have not heard back yet. Please tell us by return when it will be done, or what is holding it up.",
     mail_lc_subject: "{n} chase(s) ready for you",
     mail_lc_lead: "The other side is late on these promises. HaTi has the chase ready — read it and press Send:",
@@ -17632,6 +17634,7 @@ const STRINGS = {
     mail_ob_esc_line: "Åtagandet \"{desc}\" i \"{name}\" ({id}) skulle ha utförts {due} och är fortfarande öppet {days} dagar senare. {assignee} påmindes före datumet, på dagen och dagen efter.",
     mail_ob_chase_subject: "En påminnelse om {desc}",
     mail_ob_chase_line: "Detta är en påminnelse om \"{desc}\" enligt vårt avtal \"{name}\" ({id}), som skulle vara klart den {due}. Kan ni återkomma med hur det ligger till?",
+    mail_ob_chase_line_soon: "Detta är en påminnelse om \"{desc}\" enligt vårt avtal \"{name}\" ({id}), som ska vara klart den {due}. Kan ni återkomma med hur det ligger till?",
     mail_ob_open: "Öppna avtalet:",
     mail_ren_subject: "Förnyelse om {n} dagar: {name}",
     mail_ren_line: "\"{name}\" ({id}) med {cp} löper ut {expiry} — om {n} dagar. Öppna det i HaTi för att förnya, omförhandla eller låta det löpa ut.",
@@ -18222,6 +18225,7 @@ const STRINGS = {
     mail_lw_how_none: "ingen länk nådde dem",
     mail_ob_chase_firm_subject: "Andra påminnelsen: {desc}",
     mail_ob_chase_firm_line: "Vi skrev till er den {first} om \"{desc}\" enligt vårt avtal \"{name}\" ({id}), som skulle vara klart den {due}, och har ännu inte fått svar. Meddela oss gärna omgående när det blir klart, eller vad som håller det tillbaka.",
+    mail_ob_chase_firm_line_soon: "Vi skrev till er den {first} om \"{desc}\" enligt vårt avtal \"{name}\" ({id}), som ska vara klart den {due}, och har ännu inte fått svar. Meddela oss gärna omgående när det blir klart, eller vad som håller det tillbaka.",
     mail_ob_chase_firm_line_nodate: "Vi skrev till er den {first} om \"{desc}\" enligt vårt avtal \"{name}\" ({id}) och har ännu inte fått svar. Meddela oss gärna omgående när det blir klart, eller vad som håller det tillbaka.",
     mail_lc_subject: "{n} påminnelse(r) klara för dig",
     mail_lc_lead: "Motparten är sen med dessa åtaganden. HaTi har påminnelsen klar — läs den och tryck på Skicka:",
