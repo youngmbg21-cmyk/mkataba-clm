@@ -75,6 +75,15 @@ test('f550 (4) the height comes from the step, never from the width', () => {
     assert.match(r, /\bH = hbFH\(/, `${f} takes its height from the step`);
     assert.doesNotMatch(r, /\bH = [^,;]*\bW\b/, `${f} never makes the height a share of the width`);
   }
+  /* the ring and the timeline once grew with their rows; on a card they
+     take the step's height and fit their rows inside it (8 Oct 2026) */
+  for (const f of ['hbRingSvg', 'hbTimelineSvg']){
+    const r = region(f);
+    assert.match(r, /const fitted = !!_hbFit/, `${f} knows when it is on a card`);
+    assert.match(r, /\bH = (?:fitted \? )?hbFH\(0\)/, `${f} takes its height from the step on a card`);
+  }
+  assert.match(region('hbTimelineSvg'), /while \(cap > 1 && laneTall\(\) > room\)/, 'the timeline packs only as many rows as the step holds');
+  assert.match(region('hbRingSvg'), /hb_more_rows/, 'a ring legend past the step is cut and the cut said');
   /* the heat table grows by rows, so it is held to the step by cutting rows */
   assert.match(region('hbHeatSvg'), /hbStepH\(_hbFit\.step\)/, 'the heat table cuts its rows to the step');
 });

@@ -1,8 +1,7 @@
 /* f552 — THE BOARD CHART STANDARD, THE DRAWING RULES f549 DOES NOT PIN (work order O-23/O-25, 8 Oct 2026)
    (1) text never wears a series colour: on a fitted chart the coloured
        "glow" words are put back to ink, and no card drawer paints its words
-       with a series hue (hbBlocksSvg is the one known exception — BUGLOG,
-       8 Oct 2026 — and is named here so it cannot hide).
+       with a series hue (the blocks chart was the last, mended 8 Oct 2026).
    (2) a fitted chart is drawn ONCE per width: the measure redraws only when
        the card's width really moved (more than a few pixels), never inside
        its own repaint, and a window resize only on the board's page.
@@ -32,14 +31,11 @@ function region(name){
 /* a <text …> whose own fill is a series hue (a ${…} expression, not a class) */
 const HUED_TEXT = /<text\b[^>]*(?:style="fill:\$\{|\bfill="\$\{(?!HB_TILE_INK))/;
 const DRAWERS = ['hbRingSvg', 'hbBlocksSvg', 'hbTimelineSvg', 'hbBubblesSvg', 'hbColsSvg', 'hbLiveSvg', 'hbStackSvg', 'hbHeatSvg', 'hbCompareSvg'];
-const KNOWN_HUED = ['hbBlocksSvg'];
 
 test('f552 (1) text never wears a series colour', () => {
   assert.match(INDEX, /\.hb-svg\[data-hb-step\] text\.hb-sv-glow\{fill:var\(--hb-ink\)\}/, 'fitted glow words are drawn in ink');
   for (const f of DRAWERS){
-    const hued = HUED_TEXT.test(region(f));
-    if (KNOWN_HUED.includes(f)) assert.ok(hued, `${f} is listed as a known exception — take it off the list once fixed`);
-    else assert.ok(!hued, `${f} writes words in a series colour`);
+    assert.ok(!HUED_TEXT.test(region(f)), `${f} writes words in a series colour`);
   }
 });
 
