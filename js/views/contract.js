@@ -8443,12 +8443,21 @@ function checkVerdict(c,kind){
    NAME them had to write the filter a second time — and a second copy of a
    filter is two readings that drift. `tplFormOpenCount` keeps its name and
    every caller it had. */
-function tplFormOpenFields(c){
+/* opts.all (9 Oct 2026): every field still OPEN, required or not — empty, or
+   still reading as its own label on the paper ("between Our company (the
+   Client)" went to the other side because only required fields were ever
+   asked). The default stays the required list every existing caller reads. */
+function tplFormOpenFields(c, opts){
   const form=c&&c.templateForm;
   if(!form||!Array.isArray(form.fields)) return [];
   const values=form.values||{};
-  return form.fields.filter(f=>f&&f.required&&f.fieldType!=='signature_name_title'
-    && String(values[f.fieldKey]||'').trim()==='');
+  const all=!!(opts&&opts.all);
+  return form.fields.filter(f=>{
+    if(!f||f.fieldType==='signature_name_title') return false;
+    if(!all && !f.required) return false;
+    const v=String(values[f.fieldKey]||'').trim();
+    return v==='' || (all && !!f.label && v===String(f.label).trim());
+  });
 }
 function tplFormOpenCount(c){ return tplFormOpenFields(c).length; }
 /* ============================================================

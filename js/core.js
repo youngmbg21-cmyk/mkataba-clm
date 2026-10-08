@@ -4078,6 +4078,28 @@ function contractReadiness(c){
         : i18t('ng_blanks_these',{names:names.join(', ')})),
       { fields: boxes.map(b=>b.key) });
   }
+  /* ---- AND A COMPANY STANDARD'S OWN FORM (9 Oct 2026) ----
+     Its blanks are a declared field list, not boxes in the paper, so the
+     reading above never saw them — and an optional "Our company" left empty
+     went to the other side reading as its own label. Required and still open
+     holds like an empty box (the tick to send anyway); optional and still open
+     is worth checking, never a hold. Named, like the boxes. */
+  let formOpen=[];
+  try{ formOpen=(typeof window!=='undefined'&&window.tplFormOpenFields)?(tplFormOpenFields(c,{ all:true })||[]):[]; }catch(_){ formOpen=[]; }
+  const formNames=list=>{
+    const NAMED=3;
+    const names=list.slice(0,NAMED).map(f=>String(f.label||f.fieldKey||'').trim()).filter(Boolean);
+    const more=list.length-names.length;
+    return more>0 ? i18tn('ng_blanks_these_more',more,{names:names.join(', '),more})
+      : i18t('ng_blanks_these',{names:names.join(', ')});
+  };
+  const formReq=formOpen.filter(f=>f.required), formOpt=formOpen.filter(f=>!f.required);
+  if(formReq.length) add('block','form-blanks',
+    i18tn('rd_boxes_empty',formReq.length,{n:formReq.length})+' '+formNames(formReq),
+    { fields: formReq.map(f=>f.fieldKey) });
+  if(formOpt.length) add('warn','form-optional',
+    i18tn('rd_form_optional_open',formOpt.length,{n:formOpt.length})+' '+formNames(formOpt),
+    { fields: formOpt.map(f=>f.fieldKey) });
   /* INTERNAL APPROVAL IS PART OF BEING READY TO SEND, and it was not on this
      list. Signing checks it — signDocument refuses outright — but sharing
      never did, and sharing is how a contract actually reaches the other side:

@@ -21147,6 +21147,15 @@ function tplOrgValues() {
   const base = { company_name: b.company_name, registration_number: b.registration_number, address: b.address };
   for (const r of db.prepare('SELECT field_key, value FROM org_profile_values WHERE org_id=?').all(WORKSPACE_ID))
     base[r.field_key] = r.value;
+  /* "OUR COMPANY" IS NEVER BLANK WHILE THE WORKSPACE HAS A NAME (9 Oct 2026).
+     With branding never filled in, {{org.company_name}} resolved to nothing
+     and a template's "Our company" blank went to the other side as its own
+     label ("between Our company (the Client)"). The workspace's name is the
+     same fact the app already prints as us everywhere else (FIRST_PARTY). */
+  if (!String(base.company_name || '').trim()) {
+    let ws = ''; try { ws = String(((getSetting('org') || {}).name) || '').trim(); } catch (_) { ws = ''; }
+    if (ws) base.company_name = ws;
+  }
   return base;
 }
 const TPL_CATEGORY_FOLDER = { procurement: 'proc', sales: 'sales', employment: 'corp', nda: 'corp', other: 'corp' };

@@ -3968,6 +3968,8 @@ const STRINGS = {
        the Sign button and the negotiate question name boxes in one voice. */
     rd_boxes_empty_one: '1 field in the wording is still empty:',
     rd_boxes_empty_other: '{n} fields in the wording are still empty:',
+    rd_form_optional_open_one: '1 optional field still reads as its label — worth checking:',
+    rd_form_optional_open_other: '{n} optional fields still read as their labels — worth checking:',
     /* The rung's whole clause, beside the ladder. */
     ng_peek_esc: 'Esc to close',
     ng_peek_none: 'This move records no wording.',
@@ -17135,6 +17137,8 @@ const STRINGS = {
     ng_blanks_go: 'Öppna förhandlingen ändå',
     rd_boxes_empty_one: '1 fält i avtalstexten är fortfarande tomt:',
     rd_boxes_empty_other: '{n} fält i avtalstexten är fortfarande tomma:',
+    rd_form_optional_open_one: '1 valfritt fält visar fortfarande sin etikett — värt att kontrollera:',
+    rd_form_optional_open_other: '{n} valfria fält visar fortfarande sina etiketter — värt att kontrollera:',
     ng_peek_esc: 'Esc för att stänga',
     ng_peek_none: 'Det här steget har ingen text registrerad.',
     sc_run_n_one: 'Kör 1 genomläsning',
