@@ -9141,7 +9141,8 @@ async function issueSigningAct(c){
       const first=out.links.find(x=>!x.heldForTurn);
       toast(first
         ? `${first.signer.name} ${first.emailSent?'has been emailed their own signing link':'gets their own signing link (nothing was emailed — check the outbox)'}${held?`; ${held} more release${held===1?'s':''} automatically as each signer signs`:''}`
-        : 'Signing links created and held — they go out in order once internal signing is complete');
+        : 'Signing links created and held — they go out in order once internal signing is complete',
+        first&&!first.emailSent?'warn':'ok');
       return;
     }
     if(out && out.missingEmails){
@@ -14099,7 +14100,7 @@ async function fillKeyTermsFromDocument(c){
     c.lastAction=todayStr();
     logAudit(c,'Edited',`Filled ${filled.join(', ')} from the document (${meta._source==='ai'?'Copilot':'pattern match'})`);
     persist(c);
-    toast(`Filled ${filled.join(', ')} — check it before signing`);
+    toast(`Filled ${filled.join(', ')} — check it before signing`,'ok');
     renderWorkspace();
   }catch(e){
     toast(i18t('ct_could_not_read_doc')+(e.message||'try again'),'err');
@@ -16254,7 +16255,7 @@ async function attachPaperSignature(c, file, opts={}){
   logAudit(c,'Executed outside HaTi',
     `Signed on paper and filed by ${u?.name||'System'} — “${file.name}” (${Math.round(file.size/1024)} KB), SHA-256 ${fileHash.slice(0,16)}…${opts.signedOn?`, signed on ${opts.signedOn}`:''}. No electronic signature was taken in HaTi; the signatures are on the scanned document, which is retained here. The negotiation history above is the record of how this wording was reached.`);
   persist(c); renderWorkspace();
-  toast(i18t('ct_filed_on_paper'));
+  toast(i18t('ct_filed_on_paper'),'ok');
   return c.execution;
 }
 /* The dialog: a date, an optional note, and the scan itself. */

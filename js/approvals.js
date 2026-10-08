@@ -2340,7 +2340,8 @@ function wireApprovalPanel(c){
         ? `${first.signer.name} has been emailed their signing link`
         : first
         ? `Signing link ready for ${first.signer.name}${first.emailConfigured===false?' — email is not configured, copy it from the Shares panel':''}`
-        : 'Signing links issued — each is released when its turn arrives');
+        : 'Signing links issued — each is released when its turn arrives',
+        first&&!first.emailSent?'warn':'ok');
     } else if(out&&out.missingEmails){
       toast(`The signing route has no email address for ${out.missingEmails.map(s=>s.name).join(', ')} — add it via edit route`,'err');
     } else {
