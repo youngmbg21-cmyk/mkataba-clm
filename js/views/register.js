@@ -1379,7 +1379,11 @@ function regFooterText(cs, opts){
      visible text, inert in both books. */
   const flatBtn='';
   const pageNote=(neg||board)?'':` · ${i18t('reg_page_of',{p,n})}`;
-  return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${neg?'':famNote}${pageNote}${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${i18t('reg_aggregate')} ${B(fmtMoneyShort(regAggregate(cs)))}`}${flatBtn}`;
+  /* NO MONEY TOTAL IN THE FOOT (owner-approved SAP benchmark, 9 Oct 2026): the
+     page head already carries the book's value (regHeadFactsHtml), and a second
+     total at the foot said the same fact twice. `reg_aggregate` is inert in both
+     books; regAggregate stays, the head still reads it. */
+  return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${neg?'':famNote}${pageNote}${flatBtn}`;
 }
 // pinned-footer pager wiring — jump page + scroll the table body back to top
 function wireRegPager(){
@@ -2035,6 +2039,15 @@ function regRowsHtml(cs){
     + bandsAfter();
 }
 // W2-1: converted to the workspace currency, so one column total is one currency
+/* THE LIST'S TITLE WITH ITS COUNT (owner-approved SAP benchmark, 9 Oct 2026):
+   SAP's table toolbar names the list and counts what it shows — "Contracts
+   (14)". The count is the list as filtered, the same rows the table draws; the
+   foot keeps the paging. One builder, repainted with the rows. */
+function regListTitle(cs){
+  const name=i18t(regScope()==='negotiations'?'nav_negotiations':'nav_contracts');
+  const n=(Array.isArray(cs)?cs.length:0).toLocaleString(jxLocale());
+  return `${esc(name)} <span class="reg-tt-n">(${n})</span>`;
+}
 function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&!c.archived&&isMonetary(c)).reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0); }
 /* ---- THE COUNTERPARTY'S INITIALS (Young, 7 Oct 2026, off the HaTi Platform
    mockup) ---- a small soft square beside the name, so a scanned column has a
@@ -2062,6 +2075,7 @@ function renderRegisterBody(){
   /* The fold's control is in the Display menu, which a body repaint does not
      rebuild — so it is wired once, by the full render, never here. */
   const sh=document.getElementById('reg-showing'); if(sh){ sh.innerHTML=regFooterText(cs); }
+  const tt=document.getElementById('reg-tt'); if(tt){ tt.innerHTML=regListTitle(cs); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
   /* The search narrows from the shell bar, which repaints only this body — so
      the way back has to follow it here rather than waiting for a full render. */
@@ -2892,6 +2906,10 @@ function renderRegister(opts){
       .reg-body.is-ins{display:grid;grid-template-columns:minmax(0,1fr) var(--ins-panel-w,380px);gap:14px}
       .reg-card{background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
       .reg-card > .reg-filterbar{flex:none;padding:10px 12px;border-bottom:1px solid var(--color-divider)}
+      .reg-filterbar .reg-tt{margin:0 var(--s-1) 0 0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);white-space:nowrap;flex:none}
+      .reg-filterbar .reg-tt-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
+  /* Below 1200px the filter row would wrap; the page's own heading above already names the list, so the small title steps aside (inspector-verify 1q). */
+  @media (max-width:1199px){ .reg-filterbar .reg-tt{display:none} }
       ${''/* ONE LINE BESIDE THE PANEL, TOO (the owner's standing ruling for this
              bar). The list's card is narrower there, so the one chip with a
              long value — Sort, which always says what it sorts by — gives way
@@ -2992,6 +3010,7 @@ function renderRegister(opts){
       <!-- THE ONE FILTER BAR: the chosen filters, More filters, Clear, then
            Sort and Display — one row on the list's own card. -->
       <div class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:var(--s-2);align-items:center">
+        <h2 id="reg-tt" class="reg-tt">${regListTitle(cs)}</h2>
         ${lockChip}
         ${onlyChip}
         ${ftsBlock}
@@ -3420,5 +3439,5 @@ Object.assign(window,{regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYe
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,regDeclineAsk,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regAvatarHtml,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,regDeclineAsk,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});

@@ -2648,6 +2648,26 @@
      !important. */
   .ngl-head-table .ngl-live{ font-family:inherit; font-size:var(--t-body); font-weight:var(--w-body);
     color:var(--color-neutral-600); background:none; border:0; border-radius:0; padding:0; }
+  /* ---- START A NEGOTIATION (SAP benchmark, owner-approved 9 Oct 2026) ----
+     The page's own door sits at the right of its head; the picker lists the
+     contracts that may start one. Tokens only. */
+  .ngl-head-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--s-3); flex-wrap:wrap; }
+  .ngs-n{ margin:var(--s-1) 0 var(--s-2); font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .ngs-list{ max-height:min(52vh,420px); overflow:auto; border:1px solid var(--color-divider); border-radius:var(--radius); }
+  .ngs-row{ display:flex; align-items:center; gap:var(--s-2); width:100%; padding:var(--s-2) var(--s-3);
+    background:none; border:0; border-bottom:1px solid var(--color-divider); text-align:left; cursor:pointer;
+    font:inherit; color:var(--color-text); }
+  .ngs-row:last-child{ border-bottom:0; }
+  .ngs-row:hover{ background:var(--color-neutral-100); }
+  .ngs-row[aria-pressed="true"]{ background:var(--color-accent-50); box-shadow:inset 3px 0 0 var(--color-accent-600); }
+  .ngs-txt{ display:flex; flex-direction:column; min-width:0; flex:1; }
+  .ngs-cp{ font-weight:var(--w-label); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ngs-nm{ font-size:var(--t-meta); color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ngs-ref{ flex:none; }
+  .ngs-st{ flex:none; font-size:var(--t-meta); font-weight:var(--w-label); border-radius:var(--radius); padding:1px var(--s-2); border:1px solid; }
+  .ngs-st.is-draft{ color:var(--st-gray-fg); background:var(--st-gray-bg); border-color:var(--st-gray-line); }
+  .ngs-st.is-review{ color:var(--st-amber-fg); background:var(--st-amber-bg); border-color:var(--st-amber-line); }
+  .ngs-none{ margin:var(--s-3) 0; color:var(--color-neutral-600); }
   .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:var(--w-title); }
   .ngl-empty p{ margin:0 0 var(--s-4); font-size:var(--t-body); color:var(--color-neutral-600);
     max-width:46ch; margin-inline:auto; line-height:1.6; }
@@ -10821,6 +10841,19 @@
   .ins-cp{margin:4px 0 0;font-size:var(--t-section);font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.25;color:var(--color-text);
     display:flex;align-items:center;gap:4px;min-width:0;}
   .ins-cp-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* SAP benchmark head (owner-approved 9 Oct 2026): initials beside the name,
+     the stage at the row's end where a page asks for it, one act on the sub line. */
+  .ins-cp.has-av{gap:var(--s-2);}
+  .ins-st-side{margin-left:auto;flex:none;display:inline-flex;font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;line-height:var(--lh-tight);}
+  .ins-sub .ins-sub-act{font-size:inherit;}
+  /* ONE LINE SAYS WHAT IS ASKED (the Approvals page): the checklist's own
+     colours, no buttons — the panel's acts right under it act on it. */
+  .ins-need-line{--nd-bg:var(--st-amber-bg);--nd-fg:var(--st-amber-fg);--nd-line:var(--st-amber-line);display:flex;align-items:flex-start;gap:var(--s-2);margin-top:14px;padding:var(--s-2) var(--s-3);
+    border:1px solid var(--nd-line);border-radius:var(--radius-lg);background:var(--nd-bg);color:var(--color-text);line-height:var(--lh-snug,1.45);}
+  .ins-need-line svg{flex:none;margin-top:2px;color:var(--nd-fg);}
+  .ins-need-line b{font-weight:var(--w-strong);}
+  .ins-need-line.is-ruby{--nd-bg:var(--st-ruby-bg);--nd-fg:var(--st-ruby-fg);--nd-line:var(--st-ruby-line);}
+  .ins-need-line.is-green{--nd-bg:var(--st-green-bg);--nd-fg:var(--st-green-fg);--nd-line:var(--st-green-line);}
   .ins-sub{color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* EVERY PARTY BUT OURS, ONE LINE EACH (Young ruled it 26 Sep 2026). A
      multi-party contract's panel lists the parties rather than the first name
@@ -11006,6 +11039,10 @@
   .ins-ok{color:var(--st-green-fg);font-weight:var(--w-label);}
   .ins-quiet{color:var(--color-neutral-500);}
   .ins-nobody{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  /* Unassigned is a state, not an alarm (SAP benchmark, owner-approved 9 Oct 2026). */
+  .ins-unassigned{color:var(--color-neutral-600);}
+  .ob-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
+  .ob-id > .ins-c2{min-width:0;flex:1;}
   .ins-who{display:inline-flex;align-items:center;gap:7px;color:var(--color-neutral-600);min-width:0;max-width:100%;}
   .ins-who > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ins-av{width:20px;height:20px;border-radius:50%;background:var(--surface-2);color:var(--color-neutral-600);font-size:10px;font-weight:var(--w-title);
@@ -11313,6 +11350,15 @@
   /* Approve · Refuse · Open on a row this reader may decide (4 Oct 2026):
      side by side at the right wall, never wrapping. */
   .ap-acts{display:inline-flex;gap:var(--s-1);white-space:nowrap;}
+  /* SAP benchmark (owner-approved 9 Oct 2026): the table's title and count,
+     initials beside the counterparty, a decision just made in green. */
+  .ap-card-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);}
+  .ap-card-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);}
+  .ap-card-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
+  .ap-card-m{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}
+  .ap-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
+  .ap-id > div{min-width:0;}
+  .ap-table td.done,.ap-table .ap-sub.done{color:var(--st-green-fg);font-weight:var(--w-label);}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════

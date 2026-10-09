@@ -287,7 +287,8 @@ function insLatestHtml(c, st){
    hover (`disabled` + `title`): a verb that cannot work today still says why,
    the product's own rule for what it can know before the press. */
 function insActsHtml(list, menuHtml, moreAria){
-  const acts = (list || []).map(a => {
+  /* An act marked `inSub` is drawn in the head's sub line instead (insHeadHtml). */
+  const acts = (list || []).filter(a => a && !a.inSub).map(a => {
     /* THE PANEL'S LEAD ACT IS FILLED (Young, 7 Oct 2026, off the HaTi Platform
        mockup: "Open contract" solid, the other doors outlined) — on every
        page this panel is drawn, because the builder is one. `iconEnd` draws
@@ -458,6 +459,24 @@ function insNeedsHtml(c, skip){
   return `<section class="ins-need is-${tone}" aria-label="${esc(i18t('ins_need_label'))}"><div class="ins-need-h"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-flag"/></svg><span>${
     esc(head)}</span></div>${rows}</section>`;
 }
+/* ---- ONE LINE SAYS WHAT IS ASKED (SAP benchmark, owner-approved 9 Oct 2026) ----
+   The Approvals page's head: the same reading as the checklist (needsYouOf,
+   insNeedWords), said as one sentence with no buttons of its own — the
+   panel's acts right under it act on the first thing named. */
+function insNeedsLineHtml(c, skip){
+  if (!c) return '';
+  let items = [];
+  try { items = (typeof needsYouOf === 'function') ? (needsYouOf(c) || []) : []; } catch (_) { items = []; }
+  const leave = new Set(skip || []);
+  items = items.filter(x => x && INS_NEED_VERB[x.kind] && !leave.has(x.kind));
+  if (!items.length) return '';
+  const words = items.map(it => insNeedWords(c, it));
+  const stop = t => /[.?!]$/.test(t) ? t : t + '.';
+  const rest = words.slice(1).map(w => w.plain ? `${w.title} (${w.plain})` : w.title).filter(Boolean);
+  const tone = items.some(x => x.urgent) ? 'ruby' : 'amber';
+  return `<p class="ins-need-line is-${tone}" data-ins-need-line aria-label="${esc(i18t('ins_need_label'))}"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-flag"/></svg><span><b>${
+    esc(stop(words[0].title))}</b>${rest.length ? ' ' + esc(i18t('ins_need_also', { list: rest.join(' · ') })) : ''}</span></p>`;
+}
 /* The head: which contract, where it stands, and the page's own verbs. */
 function insHeadHtml(c, o){
   let kind = ''; try { kind = (typeof cKind === 'function') ? cKind(c) : ''; } catch (_) { kind = ''; }
@@ -469,14 +488,25 @@ function insHeadHtml(c, o){
   const mv = o.moveSuffix ? (() => { const m = insMove(c);
     if (!m || m.k === 'clear') return '';
     return ` <span class="ins-mv is-${m.k}">· ${esc(i18t(m.k === 'you' ? 'ins_your_move' : 'ins_their_move'))}</span>`; })() : '';
+  /* THE SAP BENCHMARK'S HEAD (owner-approved 9 Oct 2026): the counterparty's
+     initials beside its name, as on every list row (regAvatarHtml, the one
+     builder); a page may draw the stage BESIDE the name (`statusBeside`), hand
+     in its own stage (`statusHtml`) or its own "needs you" (`needsHtml`), and
+     put one act as a link on the sub line (an act with `inSub`). */
+  const av = (!many.length && typeof window.regAvatarHtml === 'function') ? window.regAvatarHtml(cp) : '';
+  const st = o.statusHtml != null ? o.statusHtml : status;
+  const beside = !!o.statusBeside;
+  const subAct = (o.acts || []).find(a => a && a.inSub);
+  const subLink = subAct ? `<button type="button" class="ui-link ins-sub-act" data-ins-act="${esc(subAct.k)}"${subAct.title ? ` title="${esc(subAct.title)}"` : ''}>${esc(subAct.label)}</button>` : '';
   return `<div class="ins-h">
     <div class="ins-eb"><span class="ins-ref">${esc(window.contractRef ? contractRef(c) : c.id)}</span>${kind ? ` · ${esc(kind)}` : ''}</div>
     ${many.length
       ? `<h2 class="ins-cp is-many">${insPartiesHtml(many)}</h2>`
-      : `<h2 class="ins-cp" title="${esc(cp)}"><span class="ins-cp-n">${esc(cp)}</span></h2>`}
-    ${title ? `<div class="ins-sub" title="${esc(title)}">${esc(title)}</div>` : ''}
-    ${insNeedsHtml(c, o.needsSkip)}
-    <div class="ins-st">${status}${mv}</div>
+      : `<h2 class="ins-cp${av ? ' has-av' : ''}" title="${esc(cp)}">${av}<span class="ins-cp-n">${esc(cp)}</span>${beside ? `<span class="ins-st-side">${st}</span>` : ''}</h2>`}
+    ${many.length && beside ? `<div class="ins-st">${st}</div>` : ''}
+    ${(title || subLink) ? `<div class="ins-sub"${title ? ` title="${esc(title)}"` : ''}>${esc(title)}${title && subLink ? ' · ' : ''}${subLink}</div>` : ''}
+    ${o.needsHtml != null ? o.needsHtml : insNeedsHtml(c, o.needsSkip)}
+    ${beside ? '' : `<div class="ins-st">${st}${mv}</div>`}
     ${insActsHtml(o.acts, o.menuHtml, i18t('ins_more', { id: (window.contractRef ? contractRef(c) : c.id) }))}
   </div>`;
 }
@@ -784,6 +814,6 @@ function insWatchWidth(){
 Object.assign(window, { INS_MIN_W, INS_ASKS_MAX, INS_LATEST, INS_READ_TONE,
   insForce, insFits, insSelected, insSelect, insPick, insFacts, insMove, insMoveCellHtml,
   insTable, insReads, insLatest, insSecHtml, insFactsHtml, insTableHtml, insReadsHtml, insLatestHtml,
-  insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
+  insHeadHtml, insParties, insPartiesHtml, insNeedsHtml, insNeedsLineHtml, insNeedWords, INS_NEED_VERB, INS_NEED_GO, insPanelHtml, insPanelEmptyHtml, insPaintPanel, insCloseMenu, insMarkRow, insListWire,
   insListOff, insWatchWidth, insActsHtml, insMenuItemHtml, insItemHeadHtml, INS_TONE, insKvHtml, insChipHtml, insViewTabsHtml,
   INS_PAGE_REPAINT });

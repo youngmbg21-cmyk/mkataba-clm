@@ -322,6 +322,43 @@ async function approveContract(c, comment){
   if(!st.next){ toast(i18t('ap_chain_complete'),'ok'); return; }
   toast(i18t('ap_step_needs',{who:approverLabelOf(st.next.approver)}),'err');
 }
+/* ---- UNDO AFTER APPROVE (SAP benchmark, owner-approved 9 Oct 2026) ----
+   A rule step the reader approved a moment ago goes back to waiting — the
+   reset a sent-back step gets: askRuleFor without keepStep lapses the yes
+   (it stays on its own row of c.asks) and opens a new question, whose
+   mirror puts the step back to pending. Only the person who said yes, only
+   inside AP_UNDO_MS, only while no later step has been approved and nobody
+   has signed. A named person's yes is not undone here: its mail has already
+   gone to the person who asked. */
+const AP_UNDO_MS=10*60*1000;
+function approvalUndoable(c, ruleId){
+  if(!c||ruleId==null) return false;
+  const me=(typeof currentUser==='function')?currentUser():null; if(!me) return false;
+  const chain=(approvalState(c).chain||[]).filter(s=>s&&!s.sa);
+  const i=chain.findIndex(s=>String(s.ruleId)===String(ruleId));
+  if(i<0) return false;
+  const s=chain[i];
+  if(s.status!=='approved'||String(s.by||'')!==String(me.name||'')) return false;
+  const at=Date.parse(s.at||'');
+  if(!Number.isFinite(at)||Date.now()-at>AP_UNDO_MS) return false;
+  if(chain.slice(i+1).some(x=>x.status==='approved')) return false;
+  try{ if(typeof negoAnySignature==='function'&&negoAnySignature(c)) return false; }catch(_){}
+  return true;
+}
+async function approvalUndo(c, ruleId){
+  try{ if(typeof decisionFreshen==='function') await decisionFreshen(c); }catch(_){}
+  if(!approvalUndoable(c, ruleId)){ toast(i18t('ap_undo_gone'),'warn'); return false; }
+  const u=currentUser();
+  const step=(approvalState(c).chain||[]).find(q=>q&&!q.sa&&String(q.ruleId)===String(ruleId));
+  c.approvalChain=approvalState(c).chain.filter(q=>!q.sa).map(q=>({ ...q }));
+  askRuleFor(c, ruleId, { approver:step&&step.approver });
+  logAudit(c,'Approval undone',`Step "${(step&&step.name)||''}" — ${u.name} took back their approval; it is waiting again`);
+  const out=(typeof saveDecision==='function')?await saveDecision(c):(persist(c),{ ok:true });
+  try{ renderSignButton(c); renderAuditSection(c); }catch(_){}
+  if(!out.ok){ toast(i18t('ap_undo_gone'),'warn'); return false; }
+  toast(i18t('ap_undo_done'),'ok');
+  return true;
+}
 async function rejectApprovalStep(c, comment){
   try{ if(typeof decisionFreshen==='function') await decisionFreshen(c); }catch(_){}
   const st=approvalState(c); if(!st.required) return;
@@ -2415,7 +2452,7 @@ function wireApprovalPanel(c){
    "have they seen it" — it reads shares.first_opened_at, which is stamped once
    on the first real open and never re-counted. */
 
-Object.assign(window,{approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
+Object.assign(window,{AP_UNDO_MS,approvalUndoable,approvalUndo,approvalRulesCleared,approvalDecidableNow,approvalRefuseWhy,approvalDecideAsk,signStepOf,signSteps,signStepIndex,signStepDone,signStepOpen,signRowOpen,signStepNow,signOpenRows,overseerCfg,saveOverseerCfg,overseerEnforced,overseerFor,OVERSEER_STEP_ID,approvalStamp,approvalDrift,resubmitApproval,approvalRules,saveApprovalRules,contractForeignLaw,contractHasDeviation,ruleMatches,approverLabelOf,userCanApprove,buildApprovalChain,approvalState,approveContract,rejectApprovalStep,signerPlan,signingRouteOpen,signingRouteMissing,signingLocked,signingRestart,openSigningLockedNotice,nextSigner,allSigned,internalAllSigned,signersRemaining,signerLinkState,signerNotices,signerNoticeState,distributionRecipients,executionParties,bothPartiesSigned,openSignerPlanEditor,saveSignerPlan,signerRouteWindow,signerPlanWhy,signerPlanRefusal,signerIsCompany,signerHasEmail,approvalPanelHtml,approvalChainHtml,APPROVAL_CLEAR_SAYS,approvalClearRows,approvalClearHtml,signerRouteHtml,wireApprovalPanel,
   signApprovalLegacyOn,signApprovalNeeds,signApprovalStateOf,saStepName,saMoney,saDriftWords,SA_CHAIN_STATUS,saChainStep,
   signApprovalDecidable,signApprovalWaitsOn,SA_PAPER_KEYS,signApprovalPaperHolds,signApprovalRequestable,signApprovalRound,
   saFmtDay,saWhen,saShowsLine,signApprovalNotify,saNoticeOf,saDeliveryWords,signApprovalRequest,signApprovalDecide,

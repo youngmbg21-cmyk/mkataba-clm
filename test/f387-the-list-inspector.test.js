@@ -421,7 +421,9 @@ describe('f387 (5) the Approvals & signing page', () => {
     const c = code(AP);
     assert.match(c, /run:c=>apOpenSigning\(c\.id\)/, 'the Signing tab, where the gate and the Sign button are');
     assert.match(c, /onOpen:pid=>apOpenSigning\(pid\)/);
-    assert.match(c, /\{ k:'open', label:i18t\('ins_open_contract'\), run:c=>selectContract\(c\.id\) \}/);
+    /* Re-pointed 9 Oct 2026 (SAP benchmark, owner-approved): "Open contract"
+       is a link on the head's sub line — the same act, the same open. */
+    assert.match(c, /const open=\{ k:'open', inSub:true, label:i18t\('ins_open_contract'\), run:c=>selectContract\(c\.id\) \};/);
   });
   test('5c [wall] the page still decides nothing', () => {
     const c = code(AP);

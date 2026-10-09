@@ -879,6 +879,43 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         `asked once: ${dlg10.up} · asked again: ${again10.up}`);
     }
 
+    /* ---- 12. START A NEGOTIATION FROM THE LIST (SAP benchmark, owner-approved
+       9 Oct 2026) ----
+       The page's own door: one filled button in the head (or on the empty
+       page), a picker of the contracts that may start one, and the pick goes
+       through the ONE funnel onto Negotiate. Guarded: a missing door reports. */
+    {
+      await page.evaluate(() => { setView('redline'); if (window.openNegotiations) openNegotiations(); });
+      await pause(600);
+      const door11 = await page.evaluate(seen => eval(seen)('[data-ngl-start]'), SEEN);
+      check('12a the Negotiations page carries a Start a negotiation door', !!door11 && door11.on,
+        door11 ? `${door11.w}x${door11.h}` : 'missing');
+      if (door11 && door11.on) {
+        await page.click('[data-ngl-start]'); await pause(400);
+        const pick11 = await page.evaluate(() => {
+          const rows = [...document.querySelectorAll('.ngs-row')];
+          const ids = rows.map(r => r.getAttribute('data-ngs-id'));
+          const bad = ids.filter(id => { const c = state.contracts.find(x => x.id === id);
+            return !c || !['Draft', 'Under Review'].includes(c.status) || negoIsLive(c); });
+          const go = document.getElementById('ngs-go');
+          return { n: rows.length, bad: bad.length, goOff: !!(go && go.disabled), first: ids[0] || null };
+        });
+        check('12b the picker lists only Drafting / In Review contracts not already negotiating',
+          pick11.n > 0 && pick11.bad === 0, `${pick11.n} rows, ${pick11.bad} wrong`);
+        check('12c Open stays grey until a contract is picked', pick11.goOff, String(pick11.goOff));
+        await page.screenshot({ path: path.join(OUT, '12-start-picker.png') });
+        if (pick11.first) {
+          await page.click(`.ngs-row[data-ngs-id="${pick11.first}"]`);
+          await page.click('#ngs-go'); await pause(700);
+          await passBlanks(page);
+          const at11 = await page.evaluate(() => ({ view: state.view,
+            modal: !!document.querySelector('#ngs-list') }));
+          check('12d the pick opens Negotiate through the one funnel', at11.view === 'redline' && !at11.modal,
+            `view ${at11.view}`);
+        }
+      }
+    }
+
     check('no page errors on the whole journey', errors.length === 0, errors.join(' | ') || 'clean');
   } catch (e) {
     check('the run completed', false, e.message);
