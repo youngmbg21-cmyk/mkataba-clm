@@ -2572,7 +2572,11 @@ const TPL_SHELF_SUB = { company:'lib_shelf_sub_company', builtin:'lib_shelf_sub_
 function tplBookHtml(d){
   const cut = _tplBookCut === 'stream' ? 'stream' : 'library';
   /* the four shelves (the "All templates" roll-up is the head's own figure) */
+  /* the drawing's order: our own paper, HaTi's, the samples, then theirs */
+  const SHELF_ORDER = ['company', 'builtin', 'sample', 'cp'];
+  const rank = b => { const i = SHELF_ORDER.indexOf(b.key); return i < 0 ? SHELF_ORDER.length : i; };
   const rows = d.buckets.filter(b => b.sec === cut && b.key !== 'all');
+  if (cut === 'library') rows.sort((a, b) => rank(a) - rank(b));
   const dash = '<span class="tpl-bk-none">—</span>';
   const tr = b => `<tr data-tpl-ov-bucket="${_tplEsc(b.key)}" tabindex="0" title="${_tplEsc(i18t('lib_ov_open_in_list'))}">
       <td><span class="tpl-bk-name">${_tplEsc(tplOvBucketLabel(b))}</span>${

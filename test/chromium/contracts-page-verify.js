@@ -472,7 +472,9 @@ const check = (name, ok, detail) => {
         .filter(b => b.getBoundingClientRect().width > 0)
         .find(b => !b.classList.contains('ui-btn-primary'));
       const root = getComputedStyle(document.documentElement);
-      return { stage: g(document.getElementById('reg-stage-sel')),
+      /* RE-POINTED 9 Oct 2026 (owner: stage tabs like Negotiations): the stage is
+         the tab row now, so the resting box asked is the quick-filters box. */
+      return { stage: g(document.getElementById('reg-view-sel')),
         type: g(document.getElementById('reg-type-sel')),
         search: g(document.getElementById('reg-search')),
         button: btn ? g(btn) : null,
@@ -527,7 +529,9 @@ const check = (name, ok, detail) => {
     /* THE ACTIVE ONE IS THE POINT OF THE CONTROL, and with the resting edge
        neutral it is the only thing saying the list is narrowed. Three carriers,
        so colour is never the only one. */
-    await page.evaluate(() => { const R = regState(); R.stage = 'Draft'; regRepaint(); });
+    /* RE-POINTED 9 Oct 2026: the box asked is the quick filters, so it is that
+       box that is put in force (the stage is a tab row now). */
+    await page.evaluate(() => { const R = regState(); R.view = 'expiring90'; regRepaint(); });
     await page.waitForTimeout(900);
     const act = await page.evaluate(READ_EDGES);
     check('12d an active filter takes the accent border, a heavier weight and accent ink',
@@ -557,7 +561,7 @@ const check = (name, ok, detail) => {
       dark.type && dark.type.bc === await page.evaluate(RESOLVE, '--rule-strong'),
       dark.type && dark.type.bc);
     await page.evaluate(() => setTheme('light'));
-    await page.evaluate(() => { const R = regState(); R.stage = 'all'; regRepaint(); });
+    await page.evaluate(() => { const R = regState(); R.stage = 'all'; R.view = null; regRepaint(); });
     await page.waitForTimeout(1000);
 
     /* ---- 13 · ALL SIX FILTERS ARE ONE SHAPE (owner-asked 25 Aug 2026: "stack
@@ -581,7 +585,9 @@ const check = (name, ok, detail) => {
          tab row above the bar (.reg-views), not a labelled select on it. */
       /* RE-POINTED 9 Oct 2026 (SAP benchmark): the three in the band share one
          shape; Sort became an icon on the list's head and is asked below. */
-      const ids = ['reg-stage-sel', 'reg-type-sel', 'reg-category'];
+      /* RE-POINTED 9 Oct 2026 (owner's pick): the stages are the tab row and
+         the quick filters a box in the band. */
+      const ids = ['reg-view-sel', 'reg-type-sel', 'reg-category'];
       return ids.map(id => {
         const e = document.getElementById(id);
         if (!e) return { id, absent: true };
@@ -594,8 +600,8 @@ const check = (name, ok, detail) => {
           size: g ? g.fontSize : null, color: g ? g.color : null };
       });
     });
-    check('13a all three filters are present, and the quick filters are a tab row',
-      six.every(f => !f.absent) && (await page.evaluate(() => document.querySelectorAll('.reg-views [data-reg-view]').length >= 2)),
+    check('13a all three filters are present, and the stages are a tab row',
+      six.every(f => !f.absent) && (await page.evaluate(() => document.querySelectorAll('.reg-stage-tabs [data-reg-stage]').length >= 2)),
       six.filter(f => f.absent).map(f => f.id).join(',') || 'all three + tabs');
     check('13a2 and the search box is not among them any more',
       !six.some(f => f.id === 'reg-search')

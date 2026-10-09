@@ -91,6 +91,8 @@ function book(){
       const R = window.regState ? regState() : {};
       return { view: state.view,
         rows: [...document.querySelectorAll('tr[data-row]')].map(r => r.getAttribute('data-row')).sort(),
+        /* RE-POINTED 9 Oct 2026: on Contracts the stage is a lit TAB, not a lit box. */
+        tab: ((document.querySelector('.reg-stage-tabs .reg-vtab.on') || {}).getAttribute || (() => null)).call(document.querySelector('.reg-stage-tabs .reg-vtab.on'), 'data-reg-stage'),
         lit: [...document.querySelectorAll('.reg-chip.on')].map(c => ((c.querySelector('.reg-f-l') || c).textContent || '').replace(/\s+/g, ' ').trim()),
         only: (document.getElementById('reg-only-chip') || {}).textContent || '',
         stage: R.stage, type: R.type, query: R.query, onlyIds: R.only ? R.only.ids.slice().sort() : null,
@@ -164,8 +166,8 @@ function book(){
       b1.view === 'register' && b1.stage === 'Signed' && b1.rows.length === signedN,
       `bar said ${signedN} · list shows ${b1.rows.length} (${b1.rows.join(', ') || 'nothing'})`);
     check('B2 and the stream, the search and the named set left behind are gone',
-      b1.type === 'all' && b1.query === '' && b1.onlyIds === null && b1.lit.length === 1,
-      `stream ${b1.type} · query "${b1.query}" · named set ${JSON.stringify(b1.onlyIds)} · lit ${JSON.stringify(b1.lit)}`);
+      b1.type === 'all' && b1.query === '' && b1.onlyIds === null && b1.lit.length === 0 && b1.tab === 'Signed',
+      `stream ${b1.type} · query "${b1.query}" · named set ${JSON.stringify(b1.onlyIds)} · lit ${JSON.stringify(b1.lit)} · tab ${b1.tab}`);
     check('B3 the shell bar\'s box no longer says "Raw" over a list it does not narrow',
       b1.box === '', `box "${b1.box}"`);
 
@@ -179,8 +181,7 @@ function book(){
       c1.view === 'register' && c1.stage === 'all' && c1.query === 'Naivas' && c1.rows.join(',') === 'MK-R2,MK-S3',
       `stage ${c1.stage} · query "${c1.query}" · ${c1.rows.join(', ') || 'nothing'}`);
 
-    await page.evaluate(() => { const s = document.getElementById('reg-stage-sel');
-      if (s){ s.value = 'Signed'; s.dispatchEvent(new Event('change', { bubbles: true })); } });
+    await page.evaluate(() => { const b = document.querySelector('.reg-stage-tabs [data-reg-stage="Signed"]'); if (b) b.click(); });
     await page.waitForTimeout(600);
     await page.fill('#cmd-search', 'Naiv');
     await page.waitForTimeout(700);
