@@ -4222,6 +4222,13 @@
      (edit-keeps-the-card): the larger sentence-case label sits in the same 15px. */
   :root #ov-ess .sec-f-l:not(#_){ text-transform:none; letter-spacing:0; font-size:var(--t-label); line-height:15px; color:var(--color-neutral-600); }
   #ov-ess .ov-ess-t{ line-height:16px; }
+  /* THE TERMS CARD NEVER GROWS (owner, 9 Oct 2026: "the card should never get
+     bigger than its original state. If the sentence is long then it should go
+     to a scroll"): an answer is at most two lines; a longer one scrolls
+     inside its own cell, so one long clause cannot stretch the card. */
+  #ov-ess .ov-ess-g .sec-f-v{ display:block; line-height:20px; max-height:40px; overflow-y:auto;
+    overscroll-behavior:contain; scrollbar-width:thin; }
+  #ov-ess .ov-ess-g .sec-f-v > .sec-f-c{ margin-left:6px; }
   :root #ov-map .ov-map-pcap, :root #ov-map .ov-map-pane h4{ text-transform:none; letter-spacing:0; }
   .ov-ess-cap{ font-size:var(--t-micro); text-transform:uppercase; letter-spacing:var(--cap-ls); color:var(--cap-ink); }
   .ov-ess-acts{ display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
@@ -4510,6 +4517,26 @@
   .ov-map-ob.is-lit{ animation:ov-map-lit 1.6s ease-out; }
   @keyframes ov-map-lit{ from{ background:var(--color-accent-100); } to{ background:transparent; } }
   @media (prefers-reduced-motion:reduce){ .ov-map-ob.is-lit{ animation:none; background:var(--color-accent-50); } }
+  /* THE DUTIES PANE IN THE SETTLED CARD'S SHAPE (owner, 9 Oct 2026): the
+     header's line runs across the whole pane (the pane's own padding taken
+     back), stays put while the list scrolls; each duty one line + a quiet
+     line, its mark first and its date at the right — .ds-li's measures. */
+  .ov-map-pane:has(> .ov-map-rise > .ov-map-ch){ scrollbar-gutter:auto; }
+  .ov-map-pane .ov-map-ch{ position:sticky; top:-14px; z-index:1; display:flex; align-items:center; gap:10px;
+    margin:-14px -18px 0; padding:10px 18px; background:var(--color-surface); border-bottom:1px solid var(--color-divider); }
+  .ov-map-pane .ov-map-ch h3{ margin:0; font-size:var(--t-card); font-weight:var(--w-strong); }
+  .ov-map-ch-r{ margin-left:auto; font-size:var(--t-meta); color:var(--color-neutral-600); white-space:nowrap; }
+  .ov-map-list .ov-map-ob{ gap:10px; padding:10px 0; border-top:0; border-bottom:1px solid var(--color-divider); }
+  .ov-map-list .ov-map-ob:last-child{ border-bottom:0; }
+  .ov-map-list .ov-map-obt{ font-size:var(--t-body); font-weight:var(--w-strong); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ov-map-list .ov-map-ob small{ font-size:var(--t-meta); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ov-map-list small .ov-map-amt{ margin:0; font-size:inherit; font-weight:var(--w-label); color:var(--color-text); }
+  .ov-map-obd{ flex:none; font-size:var(--t-meta); color:var(--color-neutral-600); white-space:nowrap; }
+  .ov-map-tick{ flex:none; width:12px; font-size:var(--t-meta); line-height:1.6; color:var(--color-neutral-500); }
+  .ov-map-ob.is-g .ov-map-tick{ color:var(--st-green-fg); }
+  .ov-map-ob.is-r .ov-map-tick{ color:var(--st-ruby-fg); }
+  .ov-map-ob.is-a .ov-map-tick{ color:var(--st-amber-fg); }
+  .ov-map-none{ margin-top:12px; }
   /* A HEAD THAT CANNOT BE OPENED HAS NOWHERE ELSE TO PUT ITS SENTENCE, so it
      wraps rather than elides. The ellipsis is right on a foldable head — the
      rest is one press away — and wrong here, where the press does not exist:
@@ -11487,6 +11514,11 @@
   .sap-page.ngl-page[data-ins-page="register"] .sap-band{padding-top:var(--page-pad-t);}
   .sap-page .sap-band .reg-views,.sap-page .sap-band.st-tabs{border-bottom:0;margin-bottom:0;}
   .sap-page .sap-band .reg-vtab{height:40px;}
+  /* OBLIGATIONS' BAND IS APPROVALS & SIGNING'S HEIGHT (owner, 9 Oct 2026:
+     "needs to be the same height as" it): the tab row sits flush and each
+     tab is Approvals' 38px. */
+  .sap-page.obw-ins > .sap-band .reg-views{margin-top:0;}
+  .sap-page.obw-ins > .sap-band .reg-vtab{height:38px;}
   .view-enter.sap-page{--ins-panel-w:clamp(340px,36vw,520px);}
   /* the filters as labelled boxes in the band */
   .sap-page .reg-fb{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s-3) var(--s-4);padding:0;border:0;}
