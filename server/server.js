@@ -32,6 +32,7 @@ const { saNeeds, saState, saStamp, saShows, saDrift, saStarted, saMayDecide, saW
    each gate, and whether OUR signer has read the brief that stands for this
    wording. ONE reading for both hosts — js/signcheck.js asks the same file. */
 const { sgDepartures, sgBriefReadOwed } = require('../js/signgate.js');
+const { SEAL_HASH_PLAIN, sealPlainText } = require('../js/sealtext.js');
 /* ONE ASK RECORD (4 Oct 2026): who was asked, the answer, when and for what,
    across the four kinds of "a colleague must say yes" — the rule steps, a
    named person's yes, the internal review and a contributor's suggestion.
@@ -4788,6 +4789,9 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   if (prev && prev.handover) c.handover = prev.handover; else delete c.handover;
   /* A RENEWAL THE SERVER RECORDED (B15) is the server's, like the handover. */
   if (prev && prev.autoRenewed) c.autoRenewed = prev.autoRenewed; else delete c.autoRenewed;
+  /* …and a renewal term typed since it was said gives it its new end date,
+     in this save (srvAutoRenewFill); the line and the dates ride back. */
+  const renewedLine = c.autoRenewed ? srvAutoRenewFill(c) : null;
   if (prev && prev.handoverHistory) c.handoverHistory = prev.handoverHistory; else delete c.handoverHistory;
   if (prev && prev.contractNo) c.contractNo = prev.contractNo; else delete c.contractNo;
   /* A new record may not take an id that is already somebody's number. */
@@ -4904,9 +4908,27 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     const migReview = prev.hash === 'MIGRATED' && prev.migration && prev.migration.needsReview === true
       && c.migration && c.migration.needsReview === false;
     const MIG_REVIEW_MAY = new Set(['metadata', 'counterparty', 'value', 'valueType', 'expiry', 'fields']);
+    /* ---- AN EMPTY RENEWAL TERM MAY BE FILLED ONCE (9 Oct 2026, Young: "fix
+       issue b") ----
+       An auto-renewing contract is a signed one, and its renewal term is a
+       reading of the signed words that nobody recorded — so the ONE metadata
+       move let through on an executed record is that empty term getting a
+       number. Any other key of the metadata, or a term that already had one,
+       is refused as before. */
+    const renewTermFill = (() => {
+      const a = prev.metadata && typeof prev.metadata === 'object' ? prev.metadata : {};
+      const b = c.metadata && typeof c.metadata === 'object' ? c.metadata : {};
+      if (Number(a.renewalTermMonths) > 0 || !(Number(b.renewalTermMonths) > 0) || Number(b.renewalTermMonths) > 600) return false;
+      const strip = m => { const o = { ...m }; delete o.renewalTermMonths;
+        if (o.confidence && typeof o.confidence === 'object') { o.confidence = { ...o.confidence }; delete o.confidence.renewalTermMonths; }
+        if (o.sourceSpans && typeof o.sourceSpans === 'object') { o.sourceSpans = { ...o.sourceSpans }; delete o.sourceSpans.renewalTermMonths; }
+        return o; };
+      return stable(strip(a)) === stable(strip(b));
+    })();
     const changed = EXECUTED_IMMUTABLE.filter(k => stable(prev[k]) !== stable(c[k])
       && !(SEAL_ACQUIRABLE.has(k) && isEmptyish(prev[k]))
       && !(migReview && MIG_REVIEW_MAY.has(k))
+      && !(k === 'metadata' && renewTermFill)
       /* NOTHING AND AN EMPTY BOX ARE THE SAME THING (the owner's list, 27 Sep
          2026): a signed record stored without a field the page adds on load
          (`fields: {}`, `signatures: []`) refused every later save, because
@@ -5711,7 +5733,12 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
       c.sealPrep = { html: c.execution.html, format: c.execution.format, hashMode: c.execution.hashMode, textHash: c.execution.textHash,
         firstParty: c.execution.firstParty, esignature: c.execution.esignature, tzOffsetMin: c.execution.tzOffsetMin,
         tzLabel: c.execution.tzLabel, basis: srvWordingBasis(c) };
-    if (srvSealPrepOk(c)) { delete c.execution; delete c.hash; delete c.sealVersion; srvSealNow(c, now()); sealedNow = true; }
+    /* The server draws its own copy only where a copy was looked for: a page
+       sent one that has gone stale, or a signing route has just completed.
+       A save carrying our mark with no route and no copy seals as before —
+       not at all; the single-signer page always sends its copy. */
+    const drawOk = !!c.sealPrep || (Array.isArray(c.signerPlan) && c.signerPlan.filter(Boolean).length > 0);
+    if (srvSealPrepOk(c) || (drawOk && srvSealPrepReady(c))) { delete c.execution; delete c.hash; delete c.sealVersion; srvSealNow(c, now()); sealedNow = true; }
   }
   if (existing) { const r = db.prepare('SELECT seq FROM contracts WHERE id=?').get(req.params.id); c._seq = r.seq; }
   else c._seq = nextSeq();
@@ -5829,6 +5856,7 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     ...(Array.isArray(c.asks) ? { asks: canViewValues(req.user) ? c.asks : asksMasked(c.asks) } : {}),
     ...(c.contractNo ? { contractNo: c.contractNo } : {}),
     ...(numberedLine ? { numberedLine } : {}),
+    ...(renewedLine ? { renewedLine, autoRenewed: c.autoRenewed } : {}),
     uid: Number(getSetting('uid')) || 100, rlUid: Number(getSetting('rlUid')) || 0,
     ...(canViewValues(req.user) ? {} : { signState: srvSignStateTransport(c, signNeeds) }) });
 });
@@ -7795,6 +7823,7 @@ async function aiExtractCall(key, { text, thorough, part, parts }, meter) {
            retentionReleaseDays states one: without it, "six months' notice"
            can come back as 180, 182 or 6. */
         noticePeriodDays: { type: 'number', description: 'How much notice must be given to stop the agreement continuing — to prevent an automatic renewal, or to end it at the end of its term. If the contract states BOTH this and a separate notice to terminate early (for convenience or for breach), return THIS one: it is used to compute the date by which a renewal decision must be made. Only where there is no renewal or non-renewal notice at all, return the notice to terminate early. Beware that a renewal clause usually states the length of the RENEWAL TERM before it states the notice ("successive one-year terms unless sixty (60) days notice") — the notice is 60 days there, not a year. Convert to days: a week is 7, a month 30, a year 365. 0 if none is stated or it is unclear.' },
+        renewalTermMonths: { type: 'number', description: 'Where the agreement renews itself, how long EACH renewal runs, in MONTHS: "successive twelve (12) month periods" is 12, "further one-year terms" is 12, "a further period of two years" is 24. Not the initial term, and not the notice period. 0 if it does not renew itself or the length is not stated.' },
         governingLaw: { type: 'string', description: 'e.g. Kenya, Sweden, England & Wales. Empty if unclear.' },
         paymentTerms: { type: 'string', description: 'Short phrase, e.g. "30 days from invoice". Empty if none.' },
         // What the agreement leaves behind once the work is done, and what it
@@ -7836,7 +7865,7 @@ async function aiExtractCall(key, { text, thorough, part, parts }, meter) {
           description: 'May a party end the agreement without cause (for convenience, on notice)? "yes" or "no"; "unclear" if the document does not settle it.' },
         confidence: { type: 'object', properties: {
           counterparty: conf, contractType: conf, category: conf, effectiveDate: conf, expiryDate: conf, value: conf,
-          renewalType: conf, noticePeriodDays: conf, governingLaw: conf, paymentTerms: conf,
+          renewalType: conf, renewalTermMonths: conf, noticePeriodDays: conf, governingLaw: conf, paymentTerms: conf,
           retentionPct: conf, retentionReleaseDays: conf, warrantyMonths: conf, liabilityCapped: conf, priceReview: conf,
           confidentiality: conf, disputes: conf, assignment: conf,
           volumeRebate: conf, rebateTiers: conf, rejectionWindowDays: conf, exclusivity: conf, indemnityCapped: conf, terminateForConvenience: conf,
@@ -7846,7 +7875,7 @@ async function aiExtractCall(key, { text, thorough, part, parts }, meter) {
         // reusing the verbatim-quoting pattern already in the clause review.
         sourceSpans: { type: 'object', properties: {
           counterparty: span, contractType: span, category: span, effectiveDate: span, expiryDate: span, value: span,
-          currency: span, renewalType: span, noticePeriodDays: span, governingLaw: span, paymentTerms: span,
+          currency: span, renewalType: span, renewalTermMonths: span, noticePeriodDays: span, governingLaw: span, paymentTerms: span,
           retentionPct: span, retentionReleaseDays: span, warrantyMonths: span, liabilityCapped: span, priceReview: span,
           confidentiality: span, disputes: span, assignment: span,
           volumeRebate: span, rebateTiers: span, rejectionWindowDays: span, exclusivity: span, indemnityCapped: span, terminateForConvenience: span,
@@ -12817,6 +12846,55 @@ function srvSealWanted(c) {
 }
 const srvSealPrepOk = c => !!c && (c.source === 'upload'
   || !!(c.sealPrep && c.sealPrep.html && c.sealPrep.textHash && c.sealPrep.basis && c.sealPrep.basis === srvWordingBasis(c)));
+/* ---- THE SERVER DRAWS THE FROZEN COPY ITSELF (Young, 9 Oct 2026: "teach
+   the server to build the final copy of the sealed contract itself, without
+   needing a browser") ----
+   Where the wording is STORED AS WORDS (redlineText — every negotiated,
+   edited, uploaded-with-structure or company-standard paper), the frozen copy
+   is that wording, wrapped as the browser wraps it (freezeContractHtml), so
+   the seal never waits for anybody to open HaTi. It is fingerprinted with
+   hashMode 'plain' — sealPlainText, one pure reading on both hosts
+   (js/sealtext.js) — so the browser's Verify reads it exactly as this server
+   did. Anything that executes or fetches is taken out first (srvFreezeSafe):
+   the copy is mailed. The 'Signed & sealed' version is the last one where it
+   holds this wording, else a new one off it.
+   A paper DRAWN FROM THE RECORD (a built-in template never edited) has no
+   wording stored to freeze — its paper is built by the page — so it keeps the
+   copy the page prepares at every signature of ours (sealPrepStamp). Returns
+   true where a prep now stands. */
+const SRV_FREEZE_DROP = /<(script|style|iframe|object|embed|noscript|template|svg|math|form|link|meta|base|frame|frameset|applet)\b[\s\S]*?(?:<\/\1\s*>|$)/gi;
+function srvFreezeSafe(html) {
+  return String(html == null ? '' : html)
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(SRV_FREEZE_DROP, '')
+    .replace(/<(?:input|img|link|meta|base)\b[^>]*>/gi, '')
+    .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/\s+(?:href|src|xlink:href|action|formaction)\s*=\s*(?:"\s*(?:javascript|data|vbscript):[^"]*"|'\s*(?:javascript|data|vbscript):[^']*'|(?:javascript|data|vbscript):[^\s>]+)/gi, '')
+    .replace(/\s+style\s*=\s*(?:"[^"]*(?:expression|url\s*\()[^"]*"|'[^']*(?:expression|url\s*\()[^']*')/gi, '');
+}
+function srvDrawSealPrep(c) {
+  if (!c || c.source === 'upload' || !c.redlineText || !String(c.redlineText).trim()) return false;
+  const rich = String(c.format || '') === 'rich';
+  const body = String(c.redlineText);
+  const html = rich
+    ? `<div class="hati-doc" data-anchor="redline">${srvFreezeSafe(body)}</div>`
+    : `<div class="text-brand-800/85 whitespace-pre-wrap" style="line-height:var(--lh-doc)" data-anchor="redline">${body.replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]))}</div>`;
+  const text = sealPlainText(html);
+  if (!text) return false;
+  const vs = Array.isArray(c.versions) ? c.versions : [];
+  const lastV = vs[vs.length - 1];
+  const round = c.negotiation && typeof c.negotiation.round === 'number' && c.negotiation.round > 0 ? c.negotiation.round : null;
+  const ver = (lastV && lastV.body === c.redlineText && lastV.text)
+    ? { text: lastV.text, canon: lastV.canon, roundN: lastV.roundN, format: lastV.format, body: lastV.body }
+    : { text: sealPlainText(rich ? srvFreezeSafe(body) : body), canon: null, roundN: round, format: rich ? 'rich' : 'text', body: c.redlineText };
+  if (!ver.canon) ver.canon = ver.text;
+  c.sealPrep = { html, format: rich ? 'rich' : 'text', hashMode: SEAL_HASH_PLAIN, textHash: srvSha256(text),
+    firstParty: String(c.party || ((getSetting('org') || {}).name) || ''), esignature: orgJx().esignatureShort || '',
+    tzOffsetMin: 0, tzLabel: '', ver, drawnBy: 'server', basis: srvWordingBasis(c) };
+  return true;
+}
+/* A prep that stands, or one this server has just drawn. */
+const srvSealPrepReady = c => srvSealPrepOk(c) || (srvDrawSealPrep(c) && srvSealPrepOk(c));
 /* THE ACT. Writes onto `c` (the caller stores it): the execution record, the
    seal, the status, the 'Signed & sealed' version and the trail line — by
    HaTi. The signatory is OUR last signer, never a bystander. */
@@ -12976,6 +13054,28 @@ function srvFileSignature(c, r) {
       + `${r.verified === false ? ' — NOT independently verified: this workspace cannot send verification codes' : ''}${routeNote}` }]);
   return true;
 }
+/* THE SEALS ALREADY WAITING (9 Oct 2026): a contract every signature reached
+   before this server could draw its own copy said "Seal waiting" and sat until
+   somebody opened it. The reminder round seals each one it can now draw —
+   as HaTi, the copies sent — and leaves the rest as they were. */
+function runSealCatchUp(appUrl) {
+  let rows = [];
+  try { rows = db.prepare(`SELECT id, json, version, seq FROM contracts WHERE status!='Signed' AND status!='Declined' AND json LIKE '%Seal waiting%'`).all(); } catch (_) { rows = []; }
+  let sealed = 0;
+  for (const row of rows) {
+    let c; try { c = JSON.parse(row.json); } catch (_) { continue; }
+    if (!c || isExecutedRow(c) || (c.hold && c.hold.at) || !srvSealWanted(c)) continue;
+    if (!srvSealPrepReady(c)) continue;
+    srvSealNow(c, now());
+    c._seq = row.seq;
+    try { withWriteRetry(() => upsertContract(c, (row.version || 0) + 1)); } catch (e) { console.warn('[hati] seal catch-up failed for ' + row.id + ': ' + (e && e.message)); continue; }
+    sealed++;
+    logActivation('signed', c.id, 'HaTi');
+    webhookQueue('contract.signed', () => ({ contractId: c.id, status: 'Signed' }));
+    srvSendExecutedCopies(c.id, appUrl || srvAppUrl(null));
+  }
+  return { checked: rows.length, sealed };
+}
 function srvSealAfterTheirSignature(req, contractId) {
   const row = db.prepare('SELECT json, version, seq FROM contracts WHERE id=?').get(String(contractId));
   if (!row) return null;
@@ -12989,9 +13089,9 @@ function srvSealAfterTheirSignature(req, contractId) {
   for (const w of waiting) if (!srvFileSignature(c, w.resp)) return null;
   let sealed = false;
   if (srvSealWanted(c)) {
-    if (srvSealPrepOk(c)) { srvSealNow(c, now()); sealed = true; }
+    if (srvSealPrepReady(c)) { srvSealNow(c, now()); sealed = true; }
     else c.audit = c.audit.concat([{ at: now(), user: 'HaTi', action: 'Seal waiting',
-      detail: 'Every signature is in. The sealed copy has to be drawn again before HaTi can seal it — that happens the next time anyone on our side opens HaTi.' }]);
+      detail: 'Every signature is in. This paper is drawn from the template by the page, so the sealed copy is drawn the next time anyone on our side opens HaTi — and sealed the same moment.' }]);
   }
   c._seq = row.seq;
   withWriteRetry(() => {
@@ -15413,9 +15513,9 @@ async function releaseOneSignerLink(req, contractId, rt, next) {
    are asked of a sealed record as this route always asked them; on one there
    is nothing unsent for them to find. */
 const SRV_LINK_ASKS = Object.freeze({
-  sign:      ['hold', 'desk', 'reviewer', 'reviewgate', 'asks', 'signapproval', 'approval', 'signcheck', 'address'],
-  negotiate: ['hold', 'desk', 'reviewer', 'reviewgate'],
-  view:      ['hold', 'desk', 'reviewer', 'reviewgate'],
+  sign:      ['hold', 'desk', 'reviewer', 'reviewgate', 'asks', 'signapproval', 'approval', 'signcheck', 'address', 'ours'],
+  negotiate: ['hold', 'desk', 'reviewer', 'reviewgate', 'ours'],
+  view:      ['hold', 'desk', 'reviewer', 'reviewgate', 'ours'],
   history:   ['hold', 'desk', 'reviewer', 'reviewgate'],
   status:    ['hold', 'desk', 'reviewer'],
   advise:    ['hold'],
@@ -15464,6 +15564,16 @@ function srvLinkRefusal(req, rvStored, purpose, opts) {
         reviewing: holding.map(r => r.id) } };
     }
   }
+  /* THEIR LINK GOES TO THEM, NOT TO US (Young, 9 Oct 2026). A link that
+     seats its reader as the other side, addressed to one of OUR people, would
+     have our own colleague answer or sign for them. Refused, named by whose
+     address it is — ourSideAddressOf's twin (js/core.js). */
+  if (asks.has('ours') && !sealed && o.email) {
+    const who = srvOurSideAddressOf(rvStored, o.email);
+    if (who) return { status: 409, body: { addressIsOurs: true, error:
+      `${String(o.email).trim()} belongs to ${who}, on our own side. A link for ${rvStored.counterparty || 'the other side'}`
+      + ` has to go to someone at ${rvStored.counterparty || 'the other side'} — change their email and send again.` } };
+  }
   /* A POINT STILL OPEN WITH THEM (B2, 8 Oct 2026): a signing link over one
      of our asks leaves them a page that cannot answer it and a negotiation
      link that has closed. Refused at the mint, named by clause, with the way
@@ -15493,6 +15603,18 @@ function srvLinkRefusal(req, rvStored, purpose, opts) {
     }
   }
   return null;
+}
+/* WHOSE ON OUR SIDE IS THIS ADDRESS: a member of this workspace, or a
+   signer for our side on the stored route — by name, or null. */
+function srvOurSideAddressOf(stored, email) {
+  const e = String(email || '').trim().toLowerCase();
+  if (!/.+@.+\..+/.test(e)) return null;
+  let u = null;
+  try { u = db.prepare('SELECT name, email FROM users WHERE LOWER(TRIM(email))=?').get(e); } catch (_) { u = null; }
+  if (u) return String(u.name || u.email || e);
+  const plan = Array.isArray(stored && stored.signerPlan) ? stored.signerPlan : [];
+  const s = plan.find(x => x && x.party !== 'counterparty' && String(x.email || '').trim().toLowerCase() === e);
+  return s ? String(s.name || e) : null;
 }
 /* 3. THE HELD AND THE STILL-BEING-READ, taken out of the envelope — and what
    a colleague only suggested. STRIPPED rather than refused, because the
@@ -15571,7 +15693,14 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
        the sender's own review posture and the review gate, each asked of the
        kinds it guards (SRV_LINK_ASKS). A signing link's own rows follow in the
        sign block below. */
-    const no = srvLinkRefusal(req, rvStored, purp, { payload, contractId: shareId });
+    /* A link bound to one of OUR signers is refused below in better words
+       ("internal signers sign in the app"), so its address is not asked here. */
+    const boundOurs = (() => { const sid = (req.body || {}).signerId;
+      if (sid == null || !String(sid).trim()) return false;
+      const row = (Array.isArray(rvStored.signerPlan) ? rvStored.signerPlan : []).find(x => x && String(x.id) === String(sid));
+      return !!(row && row.party !== 'counterparty'); })();
+    const no = srvLinkRefusal(req, rvStored, purp, { payload, contractId: shareId,
+      email: boundOurs ? '' : String(((req.body || {}).recipient || {}).email || '').trim().toLowerCase() });
     if (no) return res.status(no.status).json(no.body);
     /* 3. THE HELD, THE STILL-BEING-READ AND THE ONLY-SUGGESTED, taken out of
        the envelope rather than refused — see srvLinkStrip. */
@@ -18445,6 +18574,36 @@ function obligationRecipient(assignee, folder) {
    rewritten); where it is not, nothing is guessed — the owner is told it has
    probably renewed and the new end date is not recorded. A trail line either
    way, by HaTi; "sent" only where the mail went (mailReport). */
+/* THE NEW END DATE: the old one rolled on by the renewal term until it is
+   no longer behind today. */
+function srvAutoRenewTo(end, months, today) {
+  if (!(months > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(String(end || ''))) return null;
+  const d = new Date(end + 'T00:00:00Z');
+  for (let i = 0; i < 600 && d.toISOString().slice(0, 10) < today; i++) d.setUTCMonth(d.getUTCMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+/* A RENEWAL SAID AS "PROBABLY RENEWED" GETS ITS DATE once the renewal term is
+   recorded (Young, 9 Oct 2026: "fix issue b"): every entry with no new end
+   date is filled from metadata.renewalTermMonths, and one trail line says so.
+   Writes onto `c`; returns the line, or null where nothing moved. */
+function srvAutoRenewFill(c, today) {
+  const months = Number(((c && c.metadata) || {}).renewalTermMonths) || 0;
+  const hist = Array.isArray(c && c.autoRenewed) ? c.autoRenewed : [];
+  if (!(months > 0) || !hist.some(x => x && !x.to)) return null;
+  const day = today || new Date().toISOString().slice(0, 10);
+  let to = null;
+  c.autoRenewed = hist.map(x => {
+    if (!x || x.to) return x;
+    const t = srvAutoRenewTo(String(x.from || ''), months, day);
+    if (t) to = t;
+    return t ? { ...x, to: t, months } : x;
+  });
+  if (!to) return null;
+  const line = { at: now(), user: 'HaTi', action: 'Renewed',
+    detail: `The renewal term is now recorded (${months} month${months === 1 ? '' : 's'}), so the end date is now ${to}.` };
+  c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([line]);
+  return line;
+}
 function runAutoRenewals(nowMs) {
   const today = new Date(Number.isFinite(nowMs) ? nowMs : Date.now()).toISOString().slice(0, 10);
   const rows = db.prepare(`SELECT id, json, folder, parent_id FROM contracts WHERE status='Signed' AND parent_id IS NULL AND json LIKE '%auto-renew%'`).all();
@@ -18464,14 +18623,13 @@ function runAutoRenewals(nowMs) {
     const dec = srvRenewalDecision(c, end);
     if (dec && dec.answer === 'lapse') continue;                       // they decided to let it lapse
     const hist = Array.isArray(c.autoRenewed) ? c.autoRenewed : [];
-    if (hist.some(x => x && String(x.from) === String(end))) continue; // already said, once
-    const months = Number(m.renewalTermMonths) || 0;
-    let to = null;
-    if (months > 0) {
-      const d = new Date(end + 'T00:00:00Z');
-      for (let i = 0; i < 600 && d.toISOString().slice(0, 10) < today; i++) d.setUTCMonth(d.getUTCMonth() + months);
-      to = d.toISOString().slice(0, 10);
+    if (hist.some(x => x && String(x.from) === String(end))) {      // already said, once —
+      if (srvAutoRenewFill(c, today))                                  // but a term recorded since gives it its date
+        db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c), row.id);
+      continue;
     }
+    const months = Number(m.renewalTermMonths) || 0;
+    const to = months > 0 ? srvAutoRenewTo(end, months, today) : null;
     c.autoRenewed = hist.concat([{ from: end, to, at: now(), months: months || null }]);
     c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Renewed',
       detail: to ? `Renewed itself on ${end} — no notice was served. The end date is now ${to} (a renewal term of ${months} month${months === 1 ? '' : 's'}).`
@@ -18569,6 +18727,7 @@ function runReminders() {
   // Share nudges go to counterparties, so they run regardless of admin setup.
   const nudged = runShareNudges();
   try { runAutoRenewals(); } catch (e) { console.warn('[hati] auto-renewal sweep failed: ' + (e && e.message)); }
+  try { runSealCatchUp(); } catch (e) { console.warn('[hati] seal catch-up failed: ' + (e && e.message)); }
   // Pull full JSON so we can also see E1 metadata (notice period) and E3
   // obligations, not just the indexed expiry column.
   /* `folder` joins the row because the renewal mail is addressed to the

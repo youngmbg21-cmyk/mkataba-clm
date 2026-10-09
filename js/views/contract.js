@@ -6243,7 +6243,7 @@ function ovSetEditing(key, on){ if(key) _ovEdit[key] = !!on; return !!on; }
    THE ORDER IS THE ARTIFACT'S: what it is, what it is worth, when it runs,
    how it ends, and what it exposes. */
 const OV_DEAL_FIELDS = ['contractType','value','paymentTerms','effDate','expiry','term',
-  'renewalType','notice','terminateForConvenience','governingLaw','disputes',
+  'renewalType','renewalTermMonths','notice','terminateForConvenience','governingLaw','disputes',
   'liabilityCapped','indemnityCapped','confidentiality','assignment','category'];
 const OV_ALSO_FIELDS = ['volumeRebate','rebateTiers','priceReview','rejectionWindowDays',
   'exclusivity','retentionPct','retentionReleaseDays','warrantyMonths'];
@@ -6262,7 +6262,7 @@ const OV_ALSO_FIELDS = ['volumeRebate','rebateTiers','priceReview','rejectionWin
    ends, what it is worth, and what it exposes. Every fixed term is in it once
    (f442 counts them); the occasional ones follow where answered. */
 const OV_ESS_FIELDS = ['contractType','governingLaw','disputes','effDate','expiry','term',
-  'renewalType','notice','value','paymentTerms','liabilityCapped','indemnityCapped',
+  'renewalType','renewalTermMonths','notice','value','paymentTerms','liabilityCapped','indemnityCapped',
   'terminateForConvenience','confidentiality','assignment','category'];
 function ovDay(iso){ try{ return (window.regDotDate?regDotDate(iso):String(iso||'')); }catch(_){ return String(iso||''); } }
 function ovIsoDay(v){ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(v||'')); return m?Date.UTC(+m[1],+m[2]-1,+m[3]):null; }
@@ -6726,17 +6726,54 @@ function ktDealFactsHtml(c,opts={}){
    check is holding follows the eight, amber with its way forward — it is work
    owed, and its door (focusKeyTerms) must have a cell to land on. */
 const OV_ESS_REST=['contractType','governingLaw','disputes','value','term','renewalType','paymentTerms','liabilityCapped'];
-const OV_ESS_REST_PEERS={ term:['effDate','expiry'], renewalType:['notice'] };
+const OV_ESS_REST_PEERS={ term:['effDate','expiry'], renewalType:['renewalTermMonths','notice'] };
 function ovEssRenewalRead(c){
   const R=ovMapRenewal(c), m=(c&&c.metadata)||{};
   const type=R.type?((typeof metaOptLabel==='function'?metaOptLabel(R.type):R.type)||R.type):'';
   const tail=R.notice?(R.by?i18t('ov_rn_notice_by',{ n:R.notice, date:ovDay(R.by) }):i18t('ov_rn_notice',{ n:R.notice })):'';
-  return esc([type, tail].filter(Boolean).join(' · ')||String(m.renewalType||'').trim());
+  /* how long each renewal runs, where it renews itself (9 Oct 2026) */
+  const term=(R.auto&&window.renewalTermText)?renewalTermText(c):'';
+  return esc([type, term, tail].filter(Boolean).join(' · ')||String(m.renewalType||'').trim());
 }
+/* ---- THE ONE DOOR ONTO THE RENEWAL TERM OF A SIGNED CONTRACT (9 Oct 2026,
+   Young: "fix issue b") ----
+   A signed contract's Overview has no Edit, and an auto-renewing contract is
+   a signed one by definition — so where it renews itself and nobody recorded
+   for how long, the renewal cell carries the door to say so: a link in the
+   cell, not a band. Recorded ONCE (the server lets an empty term be filled on
+   a signed record and nothing else move — srvExecutedFillOk); the server then
+   gives a "probably renewed" its new end date in the same save. */
+function ovRenewTermDoorHtml(c,R){
+  const m=(c&&c.metadata)||{};
+  if(!c||c.status!=='Signed'||!R.auto||Number(m.renewalTermMonths)>0) return '';
+  if(PORTAL_MODE||!canEdit()) return '';
+  return `<button type="button" class="ui-link" data-ov-renew-term="${esc(c.id)}">${esc(i18t('ov_rn_term_add'))}</button>`;
+}
+async function ovRenewTermAsk(id){
+  const c=window.getContract?getContract(id):null; if(!c||c.status!=="Signed") return;
+  const raw=await promptDialog({ title:i18t('ov_rn_term_title'), message:i18t('ov_rn_term_msg',{ name:c.name||(window.contractRef?contractRef(c):c.id) }),
+    label:i18t('me_renewal_term'), placeholder:'12', confirmLabel:i18t('act_save') });
+  if(raw==null) return;
+  const n=Math.round(Number(String(raw).replace(/[^\d.]/g,'')));
+  if(!(n>0&&n<=600)){ toast(i18t('ov_rn_term_bad'),'warn'); return; }
+  const now=window.getContract?getContract(id):null; if(!now||Number((now.metadata||{}).renewalTermMonths)>0) return;
+  now.metadata={ ...(now.metadata||{}), renewalTermMonths:n };
+  logAudit(now,'Renewal term',`Recorded that each automatic renewal runs ${n} month${n===1?'':'s'}`);
+  persist(now);
+  try{ await flushSaves(); }catch(_){}
+  toast(i18t('ov_rn_term_saved',{ n }),'ok');
+  try{ if(window.contractOnScreen&&contractOnScreen(now)) renderKeyTerms(now); }catch(_){}
+}
+if(typeof document!=='undefined') document.addEventListener('click',e=>{
+  const b=e.target&&e.target.closest&&e.target.closest('[data-ov-renew-term]'); if(!b) return;
+  e.preventDefault(); ovRenewTermAsk(b.getAttribute('data-ov-renew-term'));
+});
 function ovEssRestHtml(c,marks){
   const cells=OV_ESS_REST.map(k=>{
     const cell=ktFieldCell(c,k,false,marks); if(!cell) return null;
-    if(k==='renewalType'){ cell[0]=i18t('ov_f_renewal'); cell[1]=ovEssRenewalRead(c); }
+    if(k==='renewalType'){ cell[0]=i18t('ov_f_renewal'); cell[1]=ovEssRenewalRead(c);
+      /* the renewal term's door rides the cell's own line under it (a hold, below, wins it) */
+      const door=ovRenewTermDoorHtml(c,ovMapRenewal(c)); if(door&&!cell[4]) cell[4]=`<span class="sec-f-n">${door}</span>`; }
     /* the redesign's own short labels; the edit posture keeps the long ones */
     if(k==='value') cell[0]=i18t('ov_f_value_short');
     if(k==='liabilityCapped') cell[0]=i18t('ov_f_liab_capped');
@@ -16740,7 +16777,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read

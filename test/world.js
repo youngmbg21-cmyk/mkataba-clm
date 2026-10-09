@@ -69,6 +69,7 @@ const MODULES = [
   /* THE ONE ASK RECORD (4 Oct 2026): the review and the desk below write
      their questions through it, and its lapse rule FAILS CLOSED where it is
      missing — so it is on every stage, before them, as js/app.js loads it. */
+  'js/sealtext.js',   // the frozen copy's text, one reading on both hosts (9 Oct 2026)
   'js/asks.js',
   'js/negotiation.js',
   /* The internal review sits directly on top of the change model and is read by

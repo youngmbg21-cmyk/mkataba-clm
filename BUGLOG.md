@@ -20562,3 +20562,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - WebKit is not installed in the cloud test box, so the Safari duties-map fault (an animated CSS transform replacing an SVG transform attribute) is pinned only by a source rule in f442 (9), never by a real Safari run.
 - theme-tokens-verify fails 16 of 40 ("every colour unchanged") at main e18f309 as well — the colour census is stale; re-recording it belongs to a palette owner.
 - type-and-symbols-verify fails 9 of 47 at main e18f309 as well — it still looks for the old Map stages and "View full register" on Home.
+
+## Noticed, not fixed — 9 Oct 2026 (their link, renewal term, the server's copy)
+- test/chromium/signers-and-party-verify.js: "the picker offers a read-only link, not only Sign and Negotiate" fails on unmodified main too (offers sign,negotiate,view,advise — the check expects something else). Left red; not part of this change.
+- Calling roomGoTab right after openWorkspace on a light record (before ensureFull lands) threw "Cannot read properties of undefined (reading 'effDate')" in docBody's template path (c.fields missing). Seen only from a scripted press; a person's press waits for the room. Not fixed.

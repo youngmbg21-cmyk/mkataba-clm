@@ -29,6 +29,7 @@ const MODULES = [
   'js/i18n.js',         // first, as js/app.js loads it: every label reads through i18t()
   'js/jurisdiction.js', // then this: money and law read from it
   'js/outside.js',     // contractRef and the handover's readings (26 Sep 2026)
+  'js/sealtext.js',    // the frozen copy's text (9 Oct 2026)
   'js/asks.js',        // the one ask record: never on their page, but core.js and versioning.js read it (4 Oct 2026)
   'js/richdoc.js',
   'js/clausemodel.js',
