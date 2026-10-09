@@ -11422,6 +11422,7 @@ const STRINGS = {
     dir_note: 'This list is for reading. Roles, job titles and what each person may do are set by an admin on Settings.',
     pg_workspace: 'Contract Workspace',
     ct_lockline: 'Executed and locked · fields are read-only',
+    ct_lead_nobody: 'nobody yet',
     ct_lockline_file: 'Executed and locked · the sealed file is bound by its SHA-256 fingerprint',
     pg_open_from_register: 'open a contract from the register',
     pg_negotiate: 'Negotiations',   /* the LIST's name in the bar — the rail's door and the page's own heading say it (26 Sep 2026, it said "Negotiate" under a page called Negotiations) */
@@ -24642,6 +24643,7 @@ const STRINGS = {
     dir_note: 'Den här listan är till för att läsas. Roller, befattningar och vad varje person får göra ställs in av en administratör under Inställningar.',
     pg_workspace: 'Avtalsarbetsyta',
     ct_lockline: 'Undertecknat och låst · fälten kan bara läsas',
+    ct_lead_nobody: 'ingen än',
     ct_lockline_file: 'Undertecknat och låst · den förseglade filen är bunden av sitt SHA-256-fingeravtryck',
     pg_open_from_register: 'öppna ett avtal från avtalslistan',
     pg_negotiate: 'Förhandlingar',

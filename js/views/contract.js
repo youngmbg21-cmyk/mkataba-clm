@@ -10126,6 +10126,13 @@ function roomHeadSubHtml(c, opts = {}){
      rewritten; one that names no year is simply not printed here. */
   if (c && c.lastAction && /\b(19|20)\d{2}\b/.test(String(c.lastAction)))
     bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
+  /* THE LEAD ON NEGOTIATE'S LINE (SAP benchmark, batch 4, as drawn): who
+     speaks for us in this negotiation, or "nobody yet". Negotiate's head is
+     the one that draws no round-needs slot (opts.needs === false). */
+  if (c && opts.needs === false) {
+    let lead = null; try { lead = (typeof window.deskLead === 'function') ? deskLead(c) : null; } catch (_) { lead = null; }
+    bits.push(`${esc(i18t('dk_lead_label'))}: <b class="room-sub-lead">${esc((lead && lead.name) || i18t('ct_lead_nobody'))}</b>`);
+  }
   const needs = opts.needs ? `<span id="ws-round-needs-slot">${negoRoundNeedsHtml(c)}</span>` : '';
   /* ---- WHO ELSE HAS THIS OPEN (idea 5, 4 Oct 2026) ----
      A SLOT, painted by the beat rather than built here, because this is the

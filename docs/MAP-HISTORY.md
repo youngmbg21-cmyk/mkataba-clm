@@ -28127,3 +28127,17 @@ Owner: "trim the rules file then start with batch 3" → comparison page (six ta
 - WHERE WE ARE: the one 4 Oct sheet became the drawing's cards — the top card (title, "Seen by every party", last moved, our acts: Open Negotiate · See History · Share a status link), figures with party chips beside them, the four steps; Still open as a table (Clause · What is proposed · Proposed by); Settled and Lately as cards. "What is proposed" is the change's own summary (`dsWhat`), shown on our tab and their link but NOT on the status link, whose page "carries no wording" by its own wall. The heading stays "Settled" (8 Oct: a refused point is settled, not agreed) where the drawing wrote "Agreed". The map draws no payment mark, so the drawing's "Payment" key was not added.
 - A LESSON: the caps list `:root :is(...)` includes `#ai-feed .ai-target-head`, so the whole list carries an id's specificity — any later class rule loses to it silently (the batch 1 sentence-case rule for `.ins-kv dt` never won). `:not(#_)` lifts a scoped rule past it.
 - Tests: room-tabs-as-drawn-verify (20 here, 17 red at main).
+
+## THE SAP BENCHMARK, BATCH 4 — NEGOTIATE (9 Oct 2026)
+
+The owner saw the batch 4 comparison (Negotiate, HaTi today beside the SAP drawing) and said: *"Keep the Name Redline otherwise, build"*. The drawing renamed the reading tab; the owner kept "Redline" and took the rest.
+
+What was built:
+- The bar names the place, "Negotiate" (`shellTitleFor('redline')` with one contract held → `tab_negotiate`; this reverses the 12 Sep 2026 ruling that the bar says "Contract Workspace" there). `paintShellTitle` keeps the bar's `.crumb-here` word as it kept the adopted button, so the two pages' bar words sit at the same height (pages-read-alike 1 measured a 2px drop before).
+- The way back, still ONE `#ws-back` with its id, data-back and handler, moves into the head's `.room-name`, left of the title, reading "‹ Back to Document" as a quiet link (`.in-head`). The bar no longer carries it.
+- The quiet line under the title names the Lead (`deskLead`, "nobody yet" = `ct_lead_nobody`), on Negotiate only (`roomHeadSubHtml` with `needs:false`).
+- The facts strip steps aside, as on the Document tab.
+- The parties' colour key leaves the control row for a thin white row of its own (`.rl-keyrow`) under it; the control row keeps its one 44px line and the key no longer folds away on a laptop.
+- Kept, since the owner did not answer: the "Nobody assigned yet" chip in the head.
+
+Re-pointed: f184 (bar word), pages-read-alike 1 (head compared with the Document tab's; back button read in the head), nego-redesign 1c (the arrow beside the title). New: negotiate-as-drawn-verify (6 of its 9 fail at unmodified main; the 44px row and the tab name are guards that pass on both).
