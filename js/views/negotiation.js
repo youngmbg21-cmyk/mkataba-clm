@@ -10636,6 +10636,7 @@ function renderRedline(){
     el.addEventListener('click', () => {
       const c = (typeof redlineHeldId === 'function' && window.getContract) ? getContract(redlineHeldId()) : null;
       if (!c) return;
+      rlResetFocus();   /* leaving Negotiate leaves Focus behind, as every other way out does */
       if (window.roomGoTab) roomGoTab(c, 'docs'); else if (window.openWorkspace) openWorkspace(c.id);
     }));
   /* The tab row's wiring went with the tab row (12 Aug 2026). This page draws

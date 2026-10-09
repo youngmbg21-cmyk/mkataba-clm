@@ -282,7 +282,7 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
 
   test('and it is ONE route — the room\'s own tab door', () => {
     const s = read('js/views/negotiation.js');
-    assert.match(s, /data-rl-open-doc\]'\)\.forEach\([\s\S]{0,300}roomGoTab\(c, 'docs'\)/,
+    assert.match(s, /data-rl-open-doc\]'\)\.forEach\([\s\S]{0,600}roomGoTab\(c, 'docs'\)/,
       'the button goes through roomGoTab, the room\'s one way to a tab');
     const fn = s.slice(s.indexOf('function openNegotiations'), s.indexOf('let _rlDoorAsked'));
     assert.match(fn, /opts && opts\.list/, 'and the sidebar\'s list door is untouched');

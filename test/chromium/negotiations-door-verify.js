@@ -417,10 +417,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
 
        This is a browser file for the reason the header gives: the loop is four
        real navigations, and the count has to survive the repaints on the way. */
+    /* RE-POINTED 10 Oct 2026 (owner: "replace the all negotiation button with
+       Open document button"). The row's last door goes to THIS contract's
+       Document tab; the way to the LIST is the sidebar's Negotiations door,
+       which opens the list every time (24 Aug 2026). */
     const backDoor = await page.evaluate(seen => {
-      const b = document.querySelector('.redline-page [data-rl-live-list]');
+      const b = document.querySelector('.redline-page [data-rl-open-doc]');
       const row = document.querySelector('.redline-page .rl-tabrow');
-      return { box: eval(seen)('.redline-page [data-rl-live-list]'),
+      return { box: eval(seen)('.redline-page [data-rl-open-doc]'), side: eval(seen)('#side-nav [data-view="redline"]'),
         first: !!b && !!row && row.children[0] === b,
         last: (() => { const acts = document.querySelector('.rl-actions');
           return !!b && !!acts && acts.children[acts.children.length - 1] === b; })(),
@@ -428,15 +432,15 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
           - row.getBoundingClientRect().left),
         n: ((document.querySelector('.rl-livelist-n') || {}).textContent || '').trim() };
     }, SEEN);
-    check('the negotiation page carries a way back to the list',
-      !!backDoor.box && backDoor.box.on, backDoor.box ? `${backDoor.box.text} ${backDoor.box.w}x${backDoor.box.h}` : 'MISSING');
+    check('the negotiation page carries a way back to its document, and the sidebar a way to the list',
+      !!backDoor.box && backDoor.box.on && !!backDoor.side && backDoor.side.on,
+      backDoor.box ? `${backDoor.box.text} · sidebar ${!!(backDoor.side && backDoor.side.on)}` : 'MISSING');
     /* "All negotiations" since 22 Aug 2026 (owner-approved render). It named
        the POPULATION the count is of; the render names the DESTINATION, which
        is what a reader leaving is looking for. The count beside it is unchanged
        and is still the live list's own. */
-    check('it reads All negotiations and carries the count',
-      /All negotiations/.test(backDoor.box.text || '') && /^\d+$/.test(backDoor.n),
-      `${backDoor.box.text} · count "${backDoor.n}"`);
+    check('it reads Open document',
+      /Open document/.test((backDoor.box || {}).text || ''), (backDoor.box || {}).text);
     /* ---- CLAIM REVERSED IN PLACE 22 Aug 2026 ----
        It read "the FIRST thing on the control row, at its far left", which was
        right on 12 Aug when this row began with the acts. The design mock-up
@@ -451,7 +455,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       backDoor.last, `last=${backDoor.last}, ${backDoor.flush}px from the row's left`)
 
     /* Press it: the LIST, not the negotiation it was pressed from. */
-    await page.click('[data-rl-live-list]');
+    await page.click('#side-nav [data-view="redline"]');
     await page.waitForTimeout(1500);
     const landed = await page.evaluate(seen => ({
       table: eval(seen)('.reg-table'),
@@ -460,8 +464,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     }), SEEN);
     check('pressing it lands on the list, not back on the negotiation',
       !!landed.table && landed.table.on, landed.table ? 'the table is drawn' : 'MISSING');
-    check('and the count on the button was the count in the heading',
-      landed.live.indexOf(backDoor.n) === 0, `button "${backDoor.n}" · heading "${landed.live}"`);
+    check('and the heading counts the live negotiations', /^1\b/.test(landed.live), `heading "${landed.live}"`);
     await page.screenshot({ path: path.join(OUT, '07-live-list-door.png') });
 
     /* A SECOND live negotiation, deliberately started, so the loop has
@@ -486,17 +489,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await page.evaluate(id => openRedlineWorkbench(id), cid);
     await pause(400); await passBlanks(page);
     await page.waitForTimeout(1600);
-    const two = await page.evaluate(() =>
-      ((document.querySelector('.rl-livelist-n') || {}).textContent || '').trim());
-    check('the door\'s count follows the book — two live now', two === '2', two);
-    await page.click('[data-rl-live-list]');
+    await page.click('#side-nav [data-view="redline"]');
     await page.waitForTimeout(1500);
     const both = await page.evaluate(() => ({
       live: ((document.querySelector('.ngl-live') || {}).textContent || '').trim(),
       rows: [...document.querySelectorAll('#reg-tbody tr[data-row]')].map(r => r.getAttribute('data-row')),
     }));
-    check('and the heading still agrees with it', both.live.indexOf('2') === 0,
-      `button "2" · heading "${both.live}"`);
+    check('the heading follows the book — two live now', both.live.indexOf('2') === 0,
+      `heading "${both.live}"`);
     check('both live negotiations are on the list',
       both.rows.length === 2 && both.rows.includes(cid) && both.rows.includes(cid2),
       both.rows.join(', '));
@@ -507,7 +507,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await passBlanks(page);
     check('a row opens the other negotiation',
       await page.evaluate(() => redlineHeldId()) === cid2);
-    await page.click('[data-rl-live-list]');
+    await page.click('#side-nav [data-view="redline"]');
     await page.waitForTimeout(1500);
     check('and the door works from that one as well',
       await page.evaluate(() => !!document.querySelector('.reg-table')));
