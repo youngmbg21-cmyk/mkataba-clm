@@ -10,6 +10,8 @@
      those 13 already reads env() with an explicit 0px fallback, so they simply
      start returning a real number on the handsets that have one. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<!-- iPhone/iPad Safari must not turn names, addresses and emails into underlined links (owner, 9 Oct 2026) -->
+<meta name="format-detection" content="telephone=no,email=no,address=no,date=no" />
 <title>HaTi — Contract Lifecycle Management</title>
 <!-- THE TAB CARRIES THE PRODUCT'S OWN MARK (26 Sep 2026, the overnight
      clean-up). With no icon named, every page load asked the server for
@@ -2242,6 +2244,26 @@
        25 Aug 2026 (see "ONE HEADER TOP"). */
     margin:calc(-1 * var(--page-pad-t)) calc(-1 * var(--page-pad-x)) 0;
     padding:var(--page-pad-t) var(--page-pad-x) 0; }
+  /* ---- BACK ON A WHITE BAND (SAP benchmark, batch 3, owner 9 Oct 2026:
+     "Build exactly the drawings of SAP way") ---- the contract's name, its
+     facts and the tab row are ONE white strip edge to edge, as the list pages
+     draw theirs; the tabs' own rule is the band's foot. Reverses 7 Oct's page
+     ground. The shell's page head above it wears the same white. */
+  .room-band{ background:var(--color-surface); }
+  body:has(#content .room-band) #page-head{ background:var(--color-surface); }
+  /* The paper's tool bar (batch 3): a thin white row under the tabs on
+     Document and Signing, folded wherever its slot is empty; the facts strip
+     steps aside on those two tabs so the paper starts higher. */
+  .room-band > .room-toolrow{ display:flex; align-items:center; gap:14px; min-height:calc(var(--ctl-h) + 2 * var(--s-2));
+    margin-top:calc(-1 * var(--s-2)); border-bottom:1px solid var(--color-divider); }
+  .room-band > .room-toolrow:has(#ws-tabrow-end:empty){ display:none; }
+  .room-lockline{ display:inline-flex; align-items:center; gap:var(--s-2); font-size:var(--t-body); color:var(--st-green-fg); min-width:0; }
+  .room-lockline:empty{ display:none; }
+  .room-band:has(#ws-tabs [data-ws-tab="docs"].on) #ws-facts,
+  .room-band:has(#ws-tabs [data-ws-tab="sign"].on) #ws-facts{ display:none; }
+  .room-cp{ display:inline-flex; align-items:center; gap:var(--s-2); min-width:0; }
+  .room-cp{ max-width:100%; }
+  .room-cp > span:last-child{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
   .room-head{ display:flex; align-items:flex-start; gap:6px; flex:none; flex-wrap:wrap;
     padding:0 2px; }
@@ -2675,6 +2697,26 @@
      !important. */
   .ngl-head-table .ngl-live{ font-family:inherit; font-size:var(--t-body); font-weight:var(--w-body);
     color:var(--color-neutral-600); background:none; border:0; border-radius:0; padding:0; }
+  /* ---- START A NEGOTIATION (SAP benchmark, owner-approved 9 Oct 2026) ----
+     The page's own door sits at the right of its head; the picker lists the
+     contracts that may start one. Tokens only. */
+  .ngl-head-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--s-3); flex-wrap:wrap; }
+  .ngs-n{ margin:var(--s-1) 0 var(--s-2); font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .ngs-list{ max-height:min(52vh,420px); overflow:auto; border:1px solid var(--color-divider); border-radius:var(--radius); }
+  .ngs-row{ display:flex; align-items:center; gap:var(--s-2); width:100%; padding:var(--s-2) var(--s-3);
+    background:none; border:0; border-bottom:1px solid var(--color-divider); text-align:left; cursor:pointer;
+    font:inherit; color:var(--color-text); }
+  .ngs-row:last-child{ border-bottom:0; }
+  .ngs-row:hover{ background:var(--color-neutral-100); }
+  .ngs-row[aria-pressed="true"]{ background:var(--color-accent-50); box-shadow:inset 3px 0 0 var(--color-accent-600); }
+  .ngs-txt{ display:flex; flex-direction:column; min-width:0; flex:1; }
+  .ngs-cp{ font-weight:var(--w-label); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ngs-nm{ font-size:var(--t-meta); color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ngs-ref{ flex:none; }
+  .ngs-st{ flex:none; font-size:var(--t-meta); font-weight:var(--w-label); border-radius:var(--radius); padding:1px var(--s-2); border:1px solid; }
+  .ngs-st.is-draft{ color:var(--st-gray-fg); background:var(--st-gray-bg); border-color:var(--st-gray-line); }
+  .ngs-st.is-review{ color:var(--st-amber-fg); background:var(--st-amber-bg); border-color:var(--st-amber-line); }
+  .ngs-none{ margin:var(--s-3) 0; color:var(--color-neutral-600); }
   .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:var(--w-title); }
   .ngl-empty p{ margin:0 0 var(--s-4); font-size:var(--t-body); color:var(--color-neutral-600);
     max-width:46ch; margin-inline:auto; line-height:1.6; }
@@ -2725,6 +2767,18 @@
      controls are genuinely disabled in the renderer — this only says so. The
      cards keep their own surface and border: they are still the record, and
      greying the whole column would make it read as broken rather than closed. */
+  /* THE SIGNING COLUMN IS ONE PANEL (SAP batch 3): one card, sections ruled
+     off; the sealed record's two acts on top, its state one quiet line at the
+     foot. The check card and the closed note sit inside without frames. */
+  .sign-one{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); overflow:hidden; flex:none; }
+  .sign-one > #sign-side > * + *, .sign-one > .sign-one-foot{ border-top:1px solid var(--color-divider); }
+  .sign-one .sign-seal-acts:empty{ display:none; }
+  .sign-seal-acts{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--s-2); padding:13px 15px; }
+  .sign-one > .sign-seal-acts{ border-bottom:1px solid var(--color-divider); }
+  .sign-seal-acts .ui-btn{ justify-content:center; }
+  .sign-one #sign-check.kt-tri{ border:0; border-radius:0; margin:0; padding:13px 15px; background:transparent; }
+  .sign-one > #sign-side > .sign-closed-note{ margin:13px 15px; }
+  .sign-sealed-line{ display:flex; align-items:center; gap:var(--s-2); font-size:var(--t-body); color:var(--st-green-fg); }
   .sign-closed-note{ margin:0; padding:9px var(--s-3); font-size:var(--t-meta); line-height:1.55;
     border:1px solid var(--st-green-line); background:var(--st-green-bg);
     color:var(--st-green-fg); border-radius:var(--radius); }
@@ -4187,7 +4241,25 @@
   .ov-ess-g{ min-width:0; }
   .ov-ess-g > .ov-ess-h{ padding:12px 16px 0; }
   .ov-ess-h{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-height:28px; margin-bottom:4px; }
-  .ov-ess-cap{ font-size:var(--t-micro);   color:var(--cap-ink); }
+  /* THE CARDS' OWN TITLES (SAP batch 3): "Parties (2)", "The terms", "Duties (3)"
+     in the card-title face, the count quiet beside it; the terms' labels in
+     sentence case, as the drawing writes them. */
+  .ov-ess-t, .ov-map-title{ margin:0; font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-text); letter-spacing:0; }
+  .ov-ess-tn, .ov-map-tn{ font-weight:var(--w-body); color:var(--color-neutral-600); }
+  #ov-ess, #ov-map{ --cap-ls:0; }
+  /* Line heights pinned to the old caps' so Edit never grows the card
+     (edit-keeps-the-card): the larger sentence-case label sits in the same 15px. */
+  :root #ov-ess .sec-f-l:not(#_){ text-transform:none; letter-spacing:0; font-size:var(--t-label); line-height:15px; color:var(--color-neutral-600); }
+  #ov-ess .ov-ess-t{ line-height:16px; }
+  /* THE TERMS CARD NEVER GROWS (owner, 9 Oct 2026: "the card should never get
+     bigger than its original state. If the sentence is long then it should go
+     to a scroll"): an answer is at most two lines; a longer one scrolls
+     inside its own cell, so one long clause cannot stretch the card. */
+  #ov-ess .ov-ess-g .sec-f-v{ display:block; line-height:20px; max-height:40px; overflow-y:auto;
+    overscroll-behavior:contain; scrollbar-width:thin; }
+  #ov-ess .ov-ess-g .sec-f-v > .sec-f-c{ margin-left:6px; }
+  :root #ov-map .ov-map-pcap, :root #ov-map .ov-map-pane h4{ text-transform:none; letter-spacing:0; }
+  .ov-ess-cap{ font-size:var(--t-micro); letter-spacing:var(--cap-ls); color:var(--cap-ink); }
   .ov-ess-acts{ display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
   .ov-ess-p .ov-ess-h > [data-py-add]{ margin-left:auto; }
   .ov-ess-lock, .ov-ess-hold{ display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:999px;
@@ -4251,10 +4323,22 @@
   .pt-dir-form .pt-lab{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); margin-bottom:2px; }
   .pt-dir-form .pt-row :is(input,select){ height:28px; }
   .pt-dir-done{ display:flex; justify-content:flex-end; margin-top:10px; }
-  .ov-pty-av{ flex:none; width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
-    font-size:var(--t-micro); font-weight:var(--w-title); }
-  .ov-pty > div{ min-width:0; }
+  .ov-pty-av{ flex:none; width:32px; height:32px; border-radius:50%; display:grid; place-items:center;
+    font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.02em; }
+  .ov-pty > div{ min-width:0; flex:1; }
   .ov-pty b{ display:block; font-weight:var(--w-strong); color:var(--color-text); overflow-wrap:anywhere; }
+  /* A PARTY ROW, DRAWN AS A LIST ROW (owner, 9 Oct 2026: "does not look like it
+     is professionally designed"): the avatar sits on the two lines' middle, the
+     name carries our side as a quiet tag (not "us ·" run into the email), and
+     the email is one quiet line, cut with an ellipsis. */
+  .ov-pty{ align-items:center; padding:10px 0; }
+  .ov-pty-nm{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .ov-pty-nm > b{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; overflow-wrap:normal; }
+  .ov-pty-us{ flex:none; height:18px; padding:0 6px; border-radius:var(--radius); display:inline-flex; align-items:center;
+    font-size:var(--t-micro); font-weight:var(--w-label); color:var(--color-neutral-600); background:var(--st-gray-bg); }
+  .ov-pty small.ov-pty-sub{ margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; overflow-wrap:normal; }
+  /* belt and braces for the Safari data detectors the meta above turns off */
+  .ov-pty a[x-apple-data-detectors]{ color:inherit; text-decoration:none; }
   .ov-pty small{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); overflow-wrap:anywhere; }
   .ov-pty small.ov-pty-sg.is-done{ color:var(--st-green-fg); }
   .ov-pty small.ov-pty-route{ color:var(--st-amber-fg); }
@@ -4474,6 +4558,26 @@
   .ov-map-ob.is-lit{ animation:ov-map-lit 1.6s ease-out; }
   @keyframes ov-map-lit{ from{ background:var(--color-accent-100); } to{ background:transparent; } }
   @media (prefers-reduced-motion:reduce){ .ov-map-ob.is-lit{ animation:none; background:var(--color-accent-50); } }
+  /* THE DUTIES PANE IN THE SETTLED CARD'S SHAPE (owner, 9 Oct 2026): the
+     header's line runs across the whole pane (the pane's own padding taken
+     back), stays put while the list scrolls; each duty one line + a quiet
+     line, its mark first and its date at the right — .ds-li's measures. */
+  .ov-map-pane:has(> .ov-map-rise > .ov-map-ch){ scrollbar-gutter:auto; }
+  .ov-map-pane .ov-map-ch{ position:sticky; top:-14px; z-index:1; display:flex; align-items:center; gap:10px;
+    margin:-14px -18px 0; padding:10px 18px; background:var(--color-surface); border-bottom:1px solid var(--color-divider); }
+  .ov-map-pane .ov-map-ch h3{ margin:0; font-size:var(--t-card); font-weight:var(--w-strong); }
+  .ov-map-ch-r{ margin-left:auto; font-size:var(--t-meta); color:var(--color-neutral-600); white-space:nowrap; }
+  .ov-map-list .ov-map-ob{ gap:10px; padding:10px 0; border-top:0; border-bottom:1px solid var(--color-divider); }
+  .ov-map-list .ov-map-ob:last-child{ border-bottom:0; }
+  .ov-map-list .ov-map-obt{ font-size:var(--t-body); font-weight:var(--w-strong); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ov-map-list .ov-map-ob small{ font-size:var(--t-meta); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ov-map-list small .ov-map-amt{ margin:0; font-size:inherit; font-weight:var(--w-label); color:var(--color-text); }
+  .ov-map-obd{ flex:none; font-size:var(--t-meta); color:var(--color-neutral-600); white-space:nowrap; }
+  .ov-map-tick{ flex:none; width:12px; font-size:var(--t-meta); line-height:1.6; color:var(--color-neutral-500); }
+  .ov-map-ob.is-g .ov-map-tick{ color:var(--st-green-fg); }
+  .ov-map-ob.is-r .ov-map-tick{ color:var(--st-ruby-fg); }
+  .ov-map-ob.is-a .ov-map-tick{ color:var(--st-amber-fg); }
+  .ov-map-none{ margin-top:12px; }
   /* A HEAD THAT CANNOT BE OPENED HAS NOWHERE ELSE TO PUT ITS SENTENCE, so it
      wraps rather than elides. The ellipsis is right on a foldable head — the
      rest is one press away — and wrong here, where the press does not exist:
@@ -4714,6 +4818,40 @@
      own 13px hollow disc, whose middle is the page's surface so the line passes
      behind it. The numbers are the canvas's (110 · 14 · 16 · 13 · 44); the side
      inset stays the head's own --s-4 so the day lines up under "History". */
+  /* ═══ THE HISTORY TAB, AS DRAWN (SAP batch 3, owner 9 Oct 2026) ═══
+     A search and one Filter button on the head (the five filters fold under
+     it), entries grouped under a grey day heading with its count, each row
+     time · dot · event (round and clause on its line) · person · outcome tag.
+     The line joining the rings and the right-hand round column are STALE. */
+  .hist-q{ display:inline-flex; align-items:center; gap:6px; height:var(--ctl-h); padding:0 8px; width:220px; max-width:100%;
+    border:1px solid var(--btn-edge); border-radius:var(--radius); background:var(--color-surface); color:var(--color-neutral-500); }
+  .hist-q input{ border:0; outline:0; background:transparent; font:inherit; font-size:var(--t-body); color:var(--color-text); min-width:0; flex:1; }
+  .hist-q:focus-within{ outline:2px solid var(--focus-color,var(--color-accent-600)); outline-offset:-1px; }
+  #hist-filter-btn{ display:inline-flex; align-items:center; gap:6px; }
+  .hist-fn{ display:inline-flex; align-items:center; justify-content:center; min-width:16px; height:16px; padding:0 4px; border-radius:999px;
+    background:var(--color-accent-100); color:var(--accent-ink); font-size:var(--t-micro); }
+  #ws-history-pane #hist-filters{ padding:10px var(--s-4) 0; }
+  .hist-day-h{ padding:7px var(--s-4); background:var(--surface-2); border-top:1px solid var(--color-divider); border-bottom:1px solid var(--color-divider);
+    font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .hist-day-h:first-child{ border-top:0; }
+  .hist-day-h b{ color:var(--color-text); font-weight:var(--w-strong); }
+  .hist-trail .hist-ev{ grid-template-columns:56px 14px minmax(0,1fr) minmax(0,260px) minmax(84px,auto); align-items:center;
+    padding:9px var(--s-4); border-bottom:1px solid var(--color-divider); }
+  .hist-trail .hist-ev::before{ display:none; }
+  .hist-trail .hist-ev .hist-dot{ margin-top:0; }
+  .hist-trail{ padding:0; }
+  .hist-rchip{ display:inline-flex; align-items:center; height:17px; padding:0 6px; margin-left:8px; border-radius:var(--radius);
+    background:var(--color-accent-50); color:var(--accent-ink); font-size:var(--t-micro); font-weight:var(--w-strong); vertical-align:1px; }
+  .hist-cl{ margin-left:8px; color:var(--accent-ink); font-size:var(--t-meta); }
+  .hist-who{ display:inline-flex; align-items:center; gap:8px; min-width:0; font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .hist-who > span:last-child{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .hist-oc{ text-align:right; }
+  .hist-pill{ display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:999px; font-size:var(--t-label); font-weight:var(--w-label);
+    background:var(--st-gray-bg); color:var(--st-gray-fg); white-space:nowrap; }
+  .hist-pill.is-g{ background:var(--st-green-bg); color:var(--st-green-fg); }
+  .hist-pill.is-r{ background:var(--st-ruby-bg); color:var(--st-ruby-fg); }
+  .hist-pill.is-a{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  @media (max-width:900px){ .hist-trail .hist-ev{ grid-template-columns:56px 14px minmax(0,1fr) auto; } .hist-who{ display:none; } }
   .hist-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap;
     padding:10px var(--s-4); border-bottom:1px solid var(--color-divider); }
   .hist-cap{ font-size:var(--t-label); color:var(--color-neutral-600); }
@@ -6292,6 +6430,17 @@
   .doc-th-chip.is-ruby[aria-pressed="true"]{ background:var(--st-ruby-bg); border-color:var(--st-ruby-dot); color:var(--st-ruby-fg); }
   .doc-th-chip.is-amber[aria-pressed="true"]{ background:var(--st-amber-bg); border-color:var(--st-amber-dot); color:var(--st-amber-fg); }
   .doc-th-chip.is-steel[aria-pressed="true"]{ background:var(--st-steel-bg); border-color:var(--st-steel-dot); color:var(--st-steel-fg); }
+  /* THE HEAD IS ONE LINE (SAP batch 3): the filter is a segmented control on
+     the right of "Clauses (n)", the pressed segment the accent tint. */
+  .doc-th-hd{ flex-wrap:wrap; padding-bottom:8px; border-bottom:1px solid var(--color-divider); }
+  .doc-th-tn{ font-weight:var(--w-body); color:var(--color-neutral-600); }
+  .doc-th-hd .doc-th-chips{ margin-left:auto; padding:0; gap:0; flex-wrap:nowrap; }
+  .doc-th-hd .doc-th-x{ margin-left:0; }
+  .doc-th-hd .doc-th-chip{ border-radius:0; margin-left:-1px; height:var(--ctl-h); }
+  .doc-th-hd .doc-th-chip:first-child{ margin-left:0; border-radius:var(--radius) 0 0 var(--radius); }
+  .doc-th-hd .doc-th-chip:last-child{ border-radius:0 var(--radius) var(--radius) 0; }
+  .doc-th-hd .doc-th-chip i{ display:none; }
+  :root .doc-th-hd .doc-th-chip[aria-pressed="true"]{ background:var(--color-accent-50); border-color:var(--btn-edge,var(--color-neutral-300)); color:var(--accent-ink); position:relative; z-index:1; }
   /* NO PALE PATCH IN THE DARK (Young, 6 Oct 2026): the pressed "All" chip
      inverts to the ink colour, which in dark is a near-white block. In dark it
      takes the accent's own wash and ink instead; the coloured chips keep
@@ -10849,6 +10998,19 @@
   .ins-cp{margin:4px 0 0;font-size:var(--t-section);font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.25;color:var(--color-text);
     display:flex;align-items:center;gap:4px;min-width:0;}
   .ins-cp-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* SAP benchmark head (owner-approved 9 Oct 2026): initials beside the name,
+     the stage at the row's end where a page asks for it, one act on the sub line. */
+  .ins-cp.has-av{gap:var(--s-2);}
+  .ins-st-side{margin-left:auto;flex:none;display:inline-flex;font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;line-height:var(--lh-tight);}
+  .ins-sub .ins-sub-act{font-size:inherit;}
+  /* ONE LINE SAYS WHAT IS ASKED (the Approvals page): the checklist's own
+     colours, no buttons — the panel's acts right under it act on it. */
+  .ins-need-line{--nd-bg:var(--st-amber-bg);--nd-fg:var(--st-amber-fg);--nd-line:var(--st-amber-line);display:flex;align-items:flex-start;gap:var(--s-2);margin-top:14px;padding:var(--s-2) var(--s-3);
+    border:1px solid var(--nd-line);border-radius:var(--radius-lg);background:var(--nd-bg);color:var(--color-text);line-height:var(--lh-snug,1.45);}
+  .ins-need-line svg{flex:none;width:16px;height:16px;margin-top:2px;color:var(--nd-fg);}
+  .ins-need-line b{font-weight:var(--w-strong);}
+  .ins-need-line.is-ruby{--nd-bg:var(--st-ruby-bg);--nd-fg:var(--st-ruby-fg);--nd-line:var(--st-ruby-line);}
+  .ins-need-line.is-green{--nd-bg:var(--st-green-bg);--nd-fg:var(--st-green-fg);--nd-line:var(--st-green-line);}
   .ins-sub{color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* EVERY PARTY BUT OURS, ONE LINE EACH (Young ruled it 26 Sep 2026). A
      multi-party contract's panel lists the parties rather than the first name
@@ -11034,6 +11196,16 @@
   .ins-ok{color:var(--st-green-fg);font-weight:var(--w-label);}
   .ins-quiet{color:var(--color-neutral-500);}
   .ins-nobody{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  /* Unassigned is a state, not an alarm (SAP benchmark, owner-approved 9 Oct 2026). */
+  .ins-unassigned{color:var(--color-neutral-600);}
+  .ins-cardhead{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}
+  .ins-cardhead-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);}
+  .ins-cardhead-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
+  .obw-filter-btn{color:var(--accent-ink);}
+  .obw-filter-n{font-variant-numeric:tabular-nums;}
+  .ins-bar[hidden]{display:none;}
+  .ob-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
+  .ob-id > .ins-c2{min-width:0;flex:1;}
   .ins-who{display:inline-flex;align-items:center;gap:7px;color:var(--color-neutral-600);min-width:0;max-width:100%;}
   .ins-who > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ins-av{width:20px;height:20px;border-radius:50%;background:var(--surface-2);color:var(--color-neutral-600);font-size:10px;font-weight:var(--w-title);
@@ -11108,6 +11280,16 @@
   .ins-dvh .ok{margin-left:auto;font-size:var(--t-label);font-weight:var(--w-label);color:var(--st-green-fg);}
   /* THE TAB'S OWN LINE on the contract's Obligations tab: the switch, the
      facts in one sentence, and the two verbs at the right. */
+  /* THE TAB'S VIEWS ON THE CARD (SAP batch 3): underline tabs on the left of
+     the list card's head, Add and Find on its right; Overdue counts in ruby;
+     "Nobody" in amber; the party's initials on each row; the panel's labels in
+     sentence case. .obt-line is STALE. */
+  .obt-head{display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-3) 0 var(--s-2);border-bottom:1px solid var(--color-divider);flex:none;flex-wrap:wrap;}
+  .obt-head .sp{flex:1;}
+  .obt-head .obt-tabs{border-bottom:0;}
+  .obt-tabs .reg-vtab.is-late .n{color:var(--st-ruby-fg);}
+  .ob-nobody{color:var(--st-amber-fg);}
+  :root #obt-panel .ins-facts dt:not(#_), :root .obt-head ~ .ins-scroll .ob-lt th:not(#_){text-transform:none;letter-spacing:0;font-size:var(--t-meta);color:var(--color-neutral-600);}
   .obt-line{display:flex;align-items:center;gap:14px;flex:none;flex-wrap:wrap;}
   .obt-line .facts{color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
   .obt-line .facts b{color:var(--color-text);font-weight:var(--w-label);}
@@ -11248,41 +11430,43 @@
      the product's own tokens; out there every value is a literal, because a
      document served on its own carries no :root. The two DRAW alike and the
      reading behind them is the same function. */
-  .ds-sheet{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
-    box-shadow:var(--shadow-sm);padding:var(--s-4);}
-  /* THE WORDS START WHERE THE OVERVIEW'S DO (Young, 4 Oct 2026: "the sentences
-     start very close to the edge"). This asked for --s-5, a token :root never
-     had — so the WHOLE padding was dropped and every line sat on the sheet's
-     border. --s-4 is the Overview's own inset (.sec-head 16px): same sheet
-     edge, same first letter. */
-  /* THE SHARED SHEET (Young picked it by name, 4 Oct 2026): one title, the
-     parties, the reader's own line, ONE row of facts, ONE progress line. The
-     eyebrow and the second title are gone (.ds-eyebrow, .ds-upd and .ds-move
-     are stale). */
-  .ds-top{display:flex;flex-direction:column;gap:10px;}
-  .ds-h1{font-family:var(--font-heading);font-size:var(--t-page);font-weight:var(--w-strong);line-height:1.25;margin:0;}
+  /* ═══ WHERE THE DEAL STANDS, AS DRAWN (SAP benchmark, batch 3, owner 9 Oct
+     2026) ═══ The sheet is a stack of cards: the top card (title row, the
+     figures with the parties beside them, the four steps), then Still open as
+     a table beside a column of Settled and Lately. Scoped under .ds-sheet:
+     the design step page owns a .ds-cols of its own (above). The 4 Oct one
+     sheet, the eyebrow, the foot sentence (.ds-foot, ds_foot_*) are STALE. */
+  .ds-sheet{display:flex;flex-direction:column;gap:var(--s-4);}
+  .ds-sheet .ds-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);min-width:0;}
+  .ds-sheet .ds-top{display:flex;flex-direction:column;gap:12px;padding:var(--s-3) var(--s-4) 0;}
+  .ds-hrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:var(--ctl-h);}
+  .ds-h1{font-family:var(--font-heading);font-size:var(--t-card);font-weight:var(--w-strong);line-height:1.25;margin:0;}
+  .ds-tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:var(--surface-2);
+    font-size:var(--t-label);color:var(--color-neutral-600);}
+  .ds-moved{font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .ds-hsp{flex:1;}
+  .ds-acts{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .ds-acts .sep, .ds-own .sep{color:var(--color-neutral-400);}
+  .ds-own{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .ds-own b{color:var(--accent-ink);font-weight:var(--w-strong);}
+  .ds-own[data-ds-own="off"] .ui-btn{margin-left:6px;}
   .ds-mine{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--color-divider);font-size:var(--t-body);}
   .ds-mine .ds-mine-t{flex:1 1 0;min-width:180px;color:var(--color-neutral-700);}
   .ds-mine .ds-mine-t b{color:var(--color-text);font-weight:var(--w-strong);}
   .ds-mine .ds-mine-k{color:var(--st-amber-fg);font-weight:var(--w-strong);}
   .ds-mine .ds-mine-dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--color-neutral-300);}
   .ds-mine.is-owed .ds-mine-dot{background:var(--st-amber-fg);}
-  .ds-facts{display:flex;flex-wrap:wrap;gap:8px 28px;margin:14px calc(-1 * var(--s-4)) 0;padding:12px var(--s-4) 0;border-top:1px solid var(--color-divider);}
+  .ds-figrow{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap;margin:0 calc(-1 * var(--s-4));padding:12px var(--s-4) 0;border-top:1px solid var(--color-divider);}
+  .ds-sheet .ds-facts{display:flex;flex-wrap:wrap;gap:8px 28px;flex:1 1 auto;min-width:0;}
   .ds-facts > div{display:flex;flex-direction:column;min-width:0;}
   .ds-facts span{font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);}
-  .ds-facts b{font-size:var(--t-card);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;}
+  .ds-facts b{font-size:var(--t-page);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;}
   .ds-facts .ds-warn{color:var(--st-amber-fg);}
-  .ds-o.is-mine{background:var(--st-amber-fg);}
-  .ds-parties{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:5px;}
-  .ds-pch{font-size:var(--t-meta);border:1px solid var(--color-divider);border-radius:999px;padding:1px 10px;color:var(--color-neutral-700);}
+  .ds-parties{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;}
+  .ds-pch{display:inline-flex;align-items:center;gap:8px;font-size:var(--t-meta);border:1px solid var(--color-divider);border-radius:999px;
+    padding:3px 12px 3px 4px;color:var(--color-neutral-600);}
+  .ds-pch b{color:var(--color-text);font-weight:var(--w-strong);}
   .ds-pch.is-ours{border-color:var(--color-accent-300);background:var(--color-accent-50);}
-  .ds-upd{font-size:var(--t-meta);color:var(--color-neutral-500);margin:0;}
-  /* THE OWNER'S OWN LINE, and the reason it is a LINE and not a strip: a new
-     band needs the owner's word first, and the head says the same thing for
-     less (Young's own rule, 26 Aug 2026). */
-  .ds-own{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:6px;}
-  .ds-own b{color:var(--accent-ink-700);font-weight:var(--w-strong);}
-  .ds-own .sep{color:var(--color-neutral-400);}
   .ds-j{list-style:none;display:flex;margin:16px 0 18px;padding:0;}
   .ds-j li{flex:1;position:relative;padding-right:12px;min-width:0;}
   .ds-j li::after{content:"";position:absolute;left:13px;right:12px;top:5px;height:2px;background:var(--color-divider);}
@@ -11295,26 +11479,40 @@
   .ds-j b{display:block;font-size:var(--t-body);font-weight:var(--w-strong);margin-top:8px;}
   .ds-j li.is-now b{color:var(--st-amber-fg);}
   .ds-j span{display:block;font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:1px;}
-  .ds-move{display:flex;flex-wrap:wrap;gap:26px;background:var(--surface-2);border:1px solid var(--color-divider);
-    border-radius:var(--radius);padding:11px 15px;margin:16px 0;}
-  .ds-move b{display:block;font-size:var(--t-micro);color:var(--color-neutral-500);font-weight:var(--w-title);margin-bottom:2px;}
-  .ds-move > span > span{font-size:var(--t-card);font-weight:var(--w-label);}
-  .ds-move .ds-warn{color:var(--st-amber-fg);}
-  .ds-cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
-  @media (max-width:760px){ .ds-cols{grid-template-columns:1fr;} .ds-j{flex-direction:column;gap:10px;} .ds-j li::after{display:none;} }
-  .ds-h{font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin:0 0 6px;}
-  .ds-h-late{margin-top:18px;}
-  .ds-said{margin:0;font-size:var(--t-body);}
-  .ds-li{display:flex;gap:8px;font-size:var(--t-body);padding:5px 0;align-items:flex-start;border-bottom:1px solid var(--color-divider);}
+  .ds-sheet .ds-cols{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:var(--s-4);align-items:start;}
+  .ds-side{display:flex;flex-direction:column;gap:var(--s-4);min-width:0;}
+  @media (max-width:900px){ .ds-sheet .ds-cols{grid-template-columns:minmax(0,1fr);} }
+  @media (max-width:760px){ .ds-j{flex-direction:column;gap:10px;} .ds-j li::after{display:none;} .ds-parties{justify-content:flex-start;} }
+  .ds-ch{display:flex;align-items:center;gap:10px;padding:10px var(--s-4);border-bottom:1px solid var(--color-divider);}
+  .ds-ch-r{margin-left:auto;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  /* :not(#_) lifts this past the caps list, whose :is() carries an id */
+  :root .ds-sheet .ds-h:not(#_){font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text);margin:0;text-transform:none;letter-spacing:0;}
+  .ds-pt-table{width:100%;border-collapse:collapse;font-size:var(--t-body);}
+  .ds-pt-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-label);color:var(--color-neutral-600);
+    padding:8px var(--s-4);border-bottom:1px solid var(--color-divider);background:var(--surface-2);}
+  .ds-pt-table td{padding:10px var(--s-4);border-bottom:1px solid var(--color-divider);vertical-align:middle;}
+  .ds-pt-table tr:last-child td{border-bottom:0;}
+  .ds-pt-cl{color:var(--accent-ink);}
+  .ds-pt.is-mine .ds-pt-cl{font-weight:var(--w-strong);}
+  .ds-pt-you{display:block;font-style:normal;font-size:var(--t-meta);color:var(--st-amber-fg);font-weight:var(--w-body);}
+  .ds-by{display:inline-flex;align-items:center;gap:8px;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .ds-list{padding:0 var(--s-4);}
+  .ds-li{display:flex;gap:10px;font-size:var(--t-body);padding:10px 0;align-items:flex-start;border-bottom:1px solid var(--color-divider);}
   .ds-li:last-child{border-bottom:none;}
+  .ds-li-b{flex:1;min-width:0;}
   .ds-li i{font-style:normal;display:block;color:var(--color-neutral-600);font-size:var(--t-meta);margin-top:2px;}
-  .ds-o{width:9px;height:9px;border-radius:50%;border:2px solid var(--st-amber-fg);flex:none;margin-top:5px;box-sizing:border-box;}
-  .ds-tick{flex:none;color:var(--color-accent-600);font-size:var(--t-meta);line-height:1.6;}
+  .ds-li-at{flex:none;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .ds-tick{flex:none;color:var(--st-green-fg);font-size:var(--t-meta);line-height:1.6;}
   .ds-li.is-refused .ds-tick{color:var(--st-ruby-fg);}
+  .ds-open > .ds-li{padding-inline:var(--s-4);}
   .ds-quiet{color:var(--color-neutral-500);}
-  .ds-late{display:flex;gap:12px;font-size:var(--t-meta);padding:4px 0;}
-  .ds-late > span{color:var(--color-neutral-500);flex:none;width:92px;}
-  .ds-foot{margin-top:18px;border-top:1px solid var(--color-divider);padding-top:11px;font-size:var(--t-micro);color:var(--color-neutral-500);line-height:1.6;}
+  .ds-late{display:flex;align-items:center;gap:12px;font-size:var(--t-meta);padding:8px 0;border-bottom:1px solid var(--color-divider);}
+  .ds-late:last-child{border-bottom:0;}
+  .ds-late > span{color:var(--color-neutral-500);flex:none;min-width:84px;white-space:nowrap;}
+  .ds-late > div{flex:1;min-width:0;}
+  .ds-late-none{padding:10px 0;font-size:var(--t-body);}
+  .ds-r{font-style:normal;flex:none;font-family:var(--font-code);font-size:var(--t-micro);padding:1px 6px;border-radius:var(--radius);
+    background:var(--color-accent-50);color:var(--accent-ink);}
 
   /* ═══ APPROVALS & SIGNING (20 Sep 2026, step 10) — the reference's table:
      mono refs, name over counterparty, a micro uppercase head, the late
@@ -11341,6 +11539,226 @@
   /* Approve · Refuse · Open on a row this reader may decide (4 Oct 2026):
      side by side at the right wall, never wrapping. */
   .ap-acts{display:inline-flex;gap:var(--s-1);white-space:nowrap;}
+
+  /* ═══ THE SAP BENCHMARK'S PAGE SHAPE (owner-approved 9 Oct 2026; the
+     drawings in the SAP benchmark artifact are the target) ═══════════════
+     A list page marked .sap-page draws: the page's name, its filters and its
+     tabs on ONE white band edge to edge (#page-head and the page's own
+     .sap-band), the list and its panel on the grey ground below, column
+     heads and fact labels in sentence case, and a wider side panel whose
+     head carries the initials, the name and the stage on one row. Scoped by
+     the class, so pages not yet redrawn keep their look. */
+  body:has(#content .sap-page) #page-head{background:var(--color-surface);}
+  .sap-page .sap-band{background:var(--color-surface);margin-inline:calc(-1 * var(--page-pad-x));padding-inline:var(--page-pad-x);
+    border-bottom:1px solid var(--color-divider);}
+  .sap-page[data-ins-page="register"] .sap-band{margin-top:calc(-1 * var(--page-pad-t));padding-top:var(--s-3);gap:var(--s-3);}
+  /* Negotiations draws its own name INSIDE the band, so its first glyph keeps the page's one top (pages-read-alike 8). */
+  .sap-page.ngl-page[data-ins-page="register"] .sap-band{padding-top:var(--page-pad-t);}
+  .sap-page .sap-band .reg-views,.sap-page .sap-band.st-tabs{border-bottom:0;margin-bottom:0;}
+  .sap-page .sap-band .reg-vtab{height:40px;}
+  /* OBLIGATIONS' BAND IS APPROVALS & SIGNING'S HEIGHT (owner, 9 Oct 2026:
+     "needs to be the same height as" it): the tab row sits flush and each
+     tab is Approvals' 38px. */
+  .sap-page.obw-ins > .sap-band .reg-views{margin-top:0;}
+  .sap-page.obw-ins > .sap-band .reg-vtab{height:38px;}
+  .view-enter.sap-page{--ins-panel-w:clamp(340px,36vw,520px);}
+  /* the filters as labelled boxes in the band */
+  .sap-page .reg-fb{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s-3) var(--s-4);padding:0;border:0;}
+  .reg-f-v{display:none;}
+  .sap-page .reg-fb .reg-chip{flex-direction:column;align-items:stretch;gap:4px;height:auto;padding:0;border:0;
+    background:none;min-width:150px;font-weight:var(--w-body);}
+  .sap-page .reg-fb .reg-chip:hover,.sap-page .reg-fb .reg-chip:not(.on):hover,.sap-page .reg-fb .reg-chip.on,
+  .sap-page .reg-fb .reg-chip:focus-within{border:0;background:none;box-shadow:none;}
+  .sap-page .reg-fb .reg-chip:not(.reg-chip-btn)::after{position:absolute;right:10px;bottom:12px;margin:0;}
+  .sap-page .reg-fb .reg-chip .reg-f-l{font-size:var(--t-meta);color:var(--color-neutral-600);font-weight:var(--w-body);max-width:none;}
+  .sap-page .reg-fb .reg-chip .reg-f-l b{display:none;}
+  .sap-page .reg-fb .reg-chip .reg-f-v{display:flex;align-items:center;height:var(--ctl-h);padding:0 28px 0 var(--s-2);
+    border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);
+    font-size:var(--t-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
+  .sap-page .reg-fb .reg-chip:hover .reg-f-v{border-color:var(--color-neutral-400);}
+  .sap-page .reg-fb .reg-chip:focus-within .reg-f-v{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
+  .sap-page .reg-fb .reg-chip.on .reg-f-v{border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong);}
+  .sap-page .reg-fb .reg-chip.reg-chip-add,.sap-page .reg-fb .reg-chip.reg-chip-add:hover{flex-direction:row;align-items:center;height:var(--ctl-h);
+    min-width:0;padding:0 var(--s-1);border:0;background:none;color:var(--accent-ink);font-weight:var(--w-label);}
+  .sap-page .reg-fb .reg-chip.reg-chip-add > svg{display:none;}
+  .sap-page .reg-fb .reg-chip.reg-chip-add:hover{text-decoration:underline;}
+  /* the list's own head: its name and count, then two small icons */
+  .sap-page .reg-cardhead{display:flex;align-items:center;gap:var(--s-1);padding:var(--s-3) var(--s-4) var(--s-3) var(--s-4);}
+  .sap-page .reg-cardhead .reg-tt{font-size:var(--t-card);font-weight:var(--w-strong);}
+  .sap-page .reg-cardhead .reg-chip.reg-ico{width:var(--ctl-h);min-width:var(--ctl-h);height:var(--ctl-h);padding:0;justify-content:center;
+    border:0;background:none;color:var(--accent-ink);}
+  .sap-page .reg-cardhead .reg-chip.reg-ico::after{display:none;}
+  .sap-page .reg-cardhead .reg-chip.reg-ico:hover{background:var(--surface-2);}
+  .sap-page .reg-cardhead .reg-chip.reg-ico .reg-f-l{display:inline-flex;}
+  /* sentence-case column heads and fact labels */
+  :root .sap-page :is(.ins-lt th,.reg-table th,.ap-table th){text-transform:none;letter-spacing:0;font-size:var(--t-label);
+    font-weight:var(--w-label);color:var(--color-neutral-600);}
+  :root .sap-page :is(.ins-facts dt,.ins-kv dt){text-transform:none;letter-spacing:0;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .view-enter.sap-page{--cap-ls:0;}
+  /* the panel head: initials, the name at its own size, the stage at the row's end */
+  .sap-page .ins-panel .ins-cp{font-size:18px;margin-top:6px;}
+  .ins-item-row{display:flex;align-items:flex-start;gap:var(--s-2);}
+  .ins-item-row .ins-cp{flex:1;min-width:0;}
+  .ins-item-row .ins-st-side{margin-top:8px;}
+  .ins-pill{color:var(--st-gray-fg);background:var(--st-gray-bg);font-size:var(--t-meta);}
+  .ins-pill i{background:var(--st-gray-dot);}
+  .ins-pill.is-ruby{color:var(--st-ruby-fg);background:var(--st-ruby-bg);} .ins-pill.is-ruby i{background:var(--st-ruby-dot);}
+  .ins-pill.is-amber{color:var(--st-amber-fg);background:var(--st-amber-bg);} .ins-pill.is-amber i{background:var(--st-amber-dot);}
+  .ins-pill.is-green{color:var(--st-green-fg);background:var(--st-green-bg);} .ins-pill.is-green i{background:var(--st-green-dot);}
+  .ins-pill.is-steel{color:var(--st-steel-fg);background:var(--st-steel-bg);} .ins-pill.is-steel i{background:var(--st-steel-dot);}
+  .ins-pill .ins-late,.ins-pill .ins-soon,.ins-pill .ins-wait{color:inherit;}
+  .sap-page .ins-panel .ins-cp .reg-av{width:28px;height:28px;}
+  /* "needs you" as one callout: a warning mark, the words, the door at the end */
+  .sap-page .ins-need{background:var(--nd-bg);}
+  .sap-page .ins-need-h{display:none;}
+  .sap-page .ins-need-r{grid-template-columns:16px minmax(0,1fr) auto;align-items:start;}
+  .sap-page .ins-need-r + .ins-need-r{border-top-color:var(--nd-line);}
+  .sap-page .ins-need-dot{display:none;}
+  .ins-need-ic{display:none;}
+  .sap-page .ins-need-ic{display:block;width:16px;height:16px;margin-top:2px;color:var(--nd-fg);}
+  .sap-page .ins-need-t,.sap-page .ins-need-s{display:inline;white-space:normal;font-size:var(--t-body);color:var(--color-text);}
+  .sap-page .ins-need-t::after{content:" ";}
+  .sap-page .ins-need-b{white-space:normal;line-height:1.45;}
+  .sap-page .ins-need .ui-btn.ins-need-go{background:var(--color-surface);color:var(--accent-ink);}
+  /* SAP benchmark (owner-approved 9 Oct 2026): the table's title and count,
+     initials beside the counterparty, a decision just made in green. */
+  .ap-card-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);}
+  .ap-card-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);}
+  .ap-card-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
+  .ap-card-m{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}
+  .ap-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
+  .ap-id > div{min-width:0;}
+  .ap-table td.done,.ap-table .ap-sub.done{color:var(--st-green-fg);font-weight:var(--w-label);}
+  /* SAP benchmark, batch 2 — Requests (owner said "go", 9 Oct 2026): the card
+     head's search box, the panel's promise pill, its wide lead button, the
+     counterparty's initials beside the name. */
+  .ik-search{display:flex;align-items:center;gap:6px;width:min(220px,40%);height:var(--ctl-h);padding:0 var(--s-2);
+    border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-600);}
+  .ik-search:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
+  .ik-search input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:var(--t-meta);color:var(--color-text);outline:0;}
+  .ik-lt td.ik-pr{white-space:nowrap;text-align:right;}
+  .ik-lt th:last-child{text-align:right;}
+  .ins-pill-row{margin-top:var(--s-2);}
+  .ik-ins .ins-panel .ins-acts .ins-lead{flex:1 1 auto;justify-content:center;}
+  .ik-cp{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
+  .ik-file-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
+  .ik-file-list .ui-link{display:inline-flex;align-items:center;gap:6px;}
+  /* People (SAP benchmark, batch 2): an empty band under the page's name
+     closes the white head with its rule (no tabs under it); the list is a
+     table on a card. */
+  #dir-page{padding:0 var(--page-pad-x) var(--s-4);height:var(--view-h);box-sizing:border-box;overflow-y:auto;}
+  #dir-page .dir-band{height:var(--s-4);margin-bottom:var(--s-4);}
+  .sap-page > .sap-band.sap-band-close{height:var(--s-4);margin-bottom:var(--s-4);}
+  .dir-table .dir-rows{display:table-row-group;}
+  .dir-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  .dir-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);
+    padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);}
+  :root .sap-page .dir-table th{text-transform:none;letter-spacing:0;}
+  .dir-table td{padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);font-size:var(--t-body);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+  .dir-table tr:last-child td{border-bottom:0;}
+  .dir-table .dir-row{display:table-row;padding:0;}
+  .dir-card .dir-head.ins-cardhead{background:var(--color-surface);}
+  .dir-who{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
+  .dir-table .dir-av{width:28px;height:28px;border-radius:var(--radius);font-size:var(--t-label);}
+  .dir-table .dir-name{font-weight:var(--w-body);}
+  .dir-table .dir-role{letter-spacing:0;text-transform:none;}
+  .dir-table .dir-mail{width:auto;max-width:none;text-align:left;}
+  /* Settings → People (SAP benchmark, batch 2): one table on a card, the
+     tab's count amber, each row the door to its drawer. */
+  .st-tab .st-tab-n.is-warn{color:var(--st-amber-fg);background:none;font-family:inherit;font-weight:var(--w-strong);padding:0;}
+  .st-page.sap-page > .sap-band{margin-bottom:var(--s-4);}
+  .st-people-table tbody.st-people{display:table-row-group;border:0;border-radius:0;box-shadow:none;}
+  .st-people-table tr.st-person{display:table-row;width:auto;padding:0;border:0;background:none;}
+  .st-people-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;}
+  .st-people-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  .st-people-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);
+    padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);}
+  :root .sap-page .st-people-table th{text-transform:none;letter-spacing:0;}
+  .st-people-table td{padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);font-size:var(--t-body);
+    color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+  .st-people-table tr:last-child td{border-bottom:0;}
+  .st-people-table tr.st-person{cursor:pointer;}
+  .st-people-table tr.st-person:hover{background:var(--surface-2);}
+  .st-person-open{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;max-width:100%;border:0;background:none;padding:0;
+    font:inherit;color:inherit;text-align:left;cursor:pointer;}
+  .st-person-open:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px;border-radius:var(--radius);}
+  .st-person-av{width:28px;height:28px;border-radius:var(--radius);flex:none;display:inline-grid;place-items:center;
+    font-size:var(--t-label);font-weight:var(--w-title);font-family:var(--font-mono);background:var(--st-steel-bg);color:var(--st-steel-fg);}
+  .st-people-table .st-person-name{overflow:hidden;text-overflow:ellipsis;font-weight:var(--w-body);}
+  .st-person-you{color:var(--color-neutral-600);font-size:var(--t-label);}
+  .st-person-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;}
+  .st-setup{display:inline-flex;align-items:center;gap:6px;font-weight:var(--w-label);}
+  .st-setup i{width:7px;height:7px;border-radius:50%;flex:none;}
+  .st-setup.is-warn{color:var(--st-amber-fg);} .st-setup.is-warn i{background:var(--st-amber-dot);}
+  .st-setup.is-ok{color:var(--st-green-fg);} .st-setup.is-ok i{background:var(--st-green-dot);}
+  .st-people-table .st-person-go{text-align:right;color:var(--color-neutral-500);}
+  /* Our paper (SAP benchmark, batch 2): one white band carries the name, the
+     book's three figures (or the list's filters) and the tabs; the book is a
+     shelves table on a card with two small cards beside it. */
+  .tpl-page > .sap-band.tpl-band{margin-top:calc(-1 * var(--page-pad-t));padding-top:var(--page-pad-t);margin-bottom:var(--s-4);}
+  .tpl-band .st-tabs{border-bottom:0;}
+  .tpl-band .tpl-glance{grid-template-columns:repeat(3,max-content);gap:var(--s-2) 40px;padding:0 0 var(--s-3);}
+  :root .sap-page .tpl-band .tpl-gl-l{font-size:var(--t-label);font-weight:var(--w-body);letter-spacing:0;text-transform:none;margin:0 0 2px;}
+  .tpl-band .tpl-gl-v{font-family:var(--font-body);font-size:var(--t-body);font-weight:var(--w-strong);line-height:1.4;}
+  .tpl-bk{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,36%);gap:var(--s-4);align-items:start;}
+  .tpl-bk-col{display:flex;flex-direction:column;gap:var(--s-4);min-width:0;}
+  .tpl-bk-card,.tpl-bk-side{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;min-width:0;}
+  .tpl-bk-side{padding:var(--s-3) var(--s-4);}
+  .tpl-bk-side-h{margin:0 0 var(--s-2);font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text);}
+  .tpl-bk-table{width:100%;border-collapse:collapse;}
+  .tpl-bk-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);}
+  :root .sap-page .tpl-bk-table th{text-transform:none;letter-spacing:0;}
+  .tpl-bk-table td{padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);font-size:var(--t-body);vertical-align:middle;}
+  .tpl-bk-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .tpl-bk-table tbody tr{cursor:pointer;}
+  .tpl-bk-table tbody tr:hover{background:var(--surface-2);}
+  .tpl-bk-table tbody tr:focus-visible{outline:2px solid var(--focus-color);outline-offset:-2px;}
+  .tpl-bk-name{display:block;color:var(--color-text);}
+  .tpl-bk-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;}
+  .tpl-bk-none{color:var(--color-neutral-600);}
+  .tpl-bk-seg{display:inline-flex;border:1px solid var(--btn-edge);border-radius:var(--radius);overflow:hidden;height:var(--ctl-h);}
+  .tpl-bk-seg button{border:0;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-600);padding:0 var(--pad-ctl-x);cursor:pointer;}
+  .tpl-bk-seg button + button{border-left:1px solid var(--btn-edge);}
+  .tpl-bk-seg button.on{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong);}
+  @media (max-width:1023px){ .tpl-bk{grid-template-columns:minmax(0,1fr);} }
+  /* THE DRAWING'S BOOK (SAP benchmark, owner 9 Oct 2026): the shelves card runs
+     to the foot of the page, the small cards stay their own height, a touch
+     more air between the figures and the tabs, Most used at reading size. */
+  @media (min-width:1024px){ .tpl-bk{min-height:100%;} .tpl-bk > .tpl-bk-card{align-self:stretch;} }
+  .tpl-band [data-tpl-head="book"] .tpl-glance{padding-bottom:20px;}
+  .tpl-bk-side .tpl-bar-r{font-size:var(--t-body);}
+  /* The page owns its height (on VIEW_OWNS_HEIGHT): the white band stays put,
+     each tab's body scrolls inside itself, the list and its panel fill the
+     room under the band as every inspector page does. */
+  .view-enter.tpl-page{height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;min-height:0;padding-bottom:var(--s-4);}
+  .tpl-page > .sap-band.tpl-band{flex:none;}
+  .tpl-page > section[data-tpl-sec]{flex:1 1 auto;min-height:0;overflow:auto;}
+  .tpl-page > section[data-tpl-sec]:not([hidden]):has(> .tpl-ins){overflow:hidden;display:flex;flex-direction:column;}
+  .tpl-ins{flex:1;min-height:0;}
+  .tpl-ins .ins-panel{min-height:0;overflow:auto;}
+  .tpl-piles{padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}
+  .tpl-ins-head{flex:none;}
+  .tpl-ins-note{font-size:var(--t-meta);color:var(--color-neutral-600);margin-left:var(--s-2);}
+  .tpl-lt .tpl-code{font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600);}
+  .tpl-lt .num,.tpl-lt th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .tpl-draft-tag{font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 6px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg);margin-left:4px;}
+  .tpl-fb{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s-3) var(--s-4);padding:0 0 var(--s-3);}
+  .tpl-fb .tpl-fb-q{display:flex;flex-direction:column;gap:0;}
+  .tpl-band [data-tpl-head="list"]{margin-bottom:var(--s-2);}
+  .tpl-fb .tpl-fb-q .reg-f-l{font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .tpl-fb .tpl-fb-q .ik-search{width:240px;}
+  /* Our standards (SAP benchmark, batch 2): the same white band as the book,
+     this page's three tabs on each card's top, the offer an info strip. */
+  .sd-ins.sap-page > .sap-band.sd-band{flex:none;margin-top:0;padding-top:var(--page-pad-t);}
+  .sd-band .paper-tabs{border-bottom:0;}
+  .sd-subtabs{flex:none;padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);}
+  .sd-ins .ins-offer.sd-info{margin:var(--s-3) var(--s-4) 0;border:1px solid color-mix(in srgb,var(--color-accent) 30%,transparent);
+    background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface));border-radius:var(--radius);display:flex;align-items:center;gap:var(--s-2);flex-wrap:nowrap;}
+  .sd-ins .ins-offer.sd-info > span:not(.sp){flex:1 1 auto;min-width:0;}
+  .sd-ins .ins-offer.sd-info > .sp{display:none;}
+  .sd-ins .ins-offer.sd-info > svg{flex:none;color:var(--accent-ink);}
+  .sd-ins .ins-card > .ins-cardhead{border-bottom:1px solid var(--color-divider);}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════
@@ -12171,7 +12589,7 @@
           <button data-view="team" class="nav-item" title="Team" data-i18n-title="nav_team_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cog"/></svg>
-            <span style="flex:1;" data-i18n="nav_settings_rules">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
+            <span style="flex:1;" data-i18n="nav_settings_rules">Settings</span><span class="nav-count" data-count="team"></span>
           </button>
           <!-- THE BRAIN (Young ruled 27 Sep 2026: "Put it as a page before
                home"; MOVED 29 Sep 2026: "move the Brain tab in the nav panel

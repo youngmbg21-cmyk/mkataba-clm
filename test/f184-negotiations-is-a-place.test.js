@@ -630,8 +630,11 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.ok(b.$('.ngl-empty'), 'an empty state, not an empty page');
     assert.ok(!b.$('#reg-tbody'), 'and no table under a filter bar');
     assert.ok(!b.$('#reg-lock-chip'));
-    assert.match(b.$('.ngl-empty').textContent, /Start negotiating/,
+    /* Re-pointed 9 Oct 2026 (SAP benchmark, owner-approved): the door is on
+       the page itself now — Start a negotiation, which opens the picker. */
+    assert.match(b.$('.ngl-empty').textContent, /Start a negotiation/,
       'and it names the door it wants pressed');
+    assert.ok(b.$('.ngl-empty [data-ngl-start]'), 'and the door is there to press');
   });
 
   test('the sidebar door is its own view, not one borrowing Contracts', () => {
@@ -1054,10 +1057,12 @@ describe('f184 — the negotiation card is the contract workspace\'s', () => {
   test('the dark bar says which place this is, and the LIST is still Negotiations', () => {
     const m = APP.slice(APP.indexOf("case 'redline': {"), APP.indexOf("default: return ['HaTi'"));
     assert.match(m, /redlineHeldId\(\)/, 'it asks the page which of the two is on screen');
-    assert.match(m, /i18t\(one \? 'pg_workspace' : 'pg_negotiate'\)/,
-      'one contract is the workspace; the list is still Negotiations');
+    /* SAP benchmark, batch 4 (owner 9 Oct 2026): with one contract open the
+       bar names the place, "Negotiate", as the drawing does. */
+    assert.match(m, /i18t\(one \? 'tab_negotiate' : 'pg_negotiate'\)/,
+      'one contract says Negotiate; the list is still Negotiations');
     assert.match(m, /try\{/, 'and it is guarded — this runs on stages that never load that page');
-    for (const k of ['pg_workspace', 'pg_negotiate'])
+    for (const k of ['tab_negotiate', 'pg_negotiate'])
       assert.equal((I18N.match(new RegExp('^\\s*' + k + ':', 'mg')) || []).length, 2, k + ' in both books');
   });
 });

@@ -147,7 +147,9 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
       await page.evaluate(() => { const r = [...document.querySelectorAll('.ob-lt tbody tr')]; let w = '';
         for (const t of r) { if (t.classList.contains('ins-grp')) w = t.getAttribute('data-ob-win'); else if (/Pay on delivery to site/.test(t.textContent)) return w === 'waiting'; }
         return false; }));
-    ok('1d the head says what is on the page', /\d/.test(ob.head), ob.head);
+    /* RE-POINTED 9 Oct 2026 (owner: "remove the we owe xxx place" so the head
+       is as tall as Approvals & signing's) — the money reads on the groups. */
+    ok('1d the head carries no facts line', !ob.head, ob.head);
     const rows = await page.$$('.ob-lt tbody [data-ins-row]');
     if (rows.length > 2) {
       await rows[2].click(); await page.waitForTimeout(300);
@@ -196,26 +198,29 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '3-standards.png') });
     const sd = await page.evaluate(() => ({ ins: !!document.querySelector('.sd-ins'),
-      tabs: [...document.querySelectorAll('[data-pb-tab]')].map(b => ({ k: b.getAttribute('data-pb-tab'), n: (b.querySelector('.st-tab-n') || {}).textContent || null })),
+      /* RE-POINTED 9 Oct 2026 (SAP benchmark, batch 2): the three tabs are each
+         card's own top row (one copy per card, the visible card's read) and the
+         count is the row's `.n` */
+      tabs: [...document.querySelectorAll('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab]')].map(b => ({ k: b.getAttribute('data-pb-tab'), n: (b.querySelector('.n, .st-tab-n') || {}).textContent || null })),
       rows: document.querySelectorAll('[data-pb-sec="clauses"] tbody [data-ins-row]').length, lib: clauseLibrary().length,
       title: (document.querySelector('#sd-panel-clauses h2') || {}).textContent || '' }));
     ok('3a three tabs, each carrying its count, and every standard is a row', sd.ins && sd.tabs.length === 3
       && sd.tabs.every(t => t.n != null) && sd.rows === sd.lib && !!sd.title, sd);
     await page.evaluate(() => { const r = document.querySelector('.sd-ins'); if (r) r._probe = 1; });
-    await page.click('[data-pb-tab="playbook"]'); await page.waitForTimeout(400);
+    await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="playbook"]'); await page.waitForTimeout(400);
     ok('3b a tab press flips the tab — the page is not rebuilt under the reader',
       await page.evaluate(() => { const r = document.querySelector('.sd-ins'); return !!(r && r._probe === 1)
         && !document.querySelector('[data-pb-sec="playbook"]').hidden && document.querySelector('[data-pb-sec="clauses"]').hidden; }));
     await page.click('[data-sd-book="supply"]').catch(() => {}); await page.waitForTimeout(300);
     const caps = await page.evaluate(() => [...document.querySelectorAll('#sd-panel-books .ins-stdl li b')].filter(b => /^Liability cap/.test(b.textContent)).length);
     ok('3c a book lists each standard once — Liability cap is one line on the supply book', caps === 1, caps);
-    await page.click('[data-pb-tab="clauses"]'); await page.waitForTimeout(300);
+    await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
     await page.click('[data-sd-row="cl-pay"]').catch(() => {}); await page.waitForTimeout(300);
     await page.click('#sd-panel-clauses [data-ins-act="pos"]').catch(() => {}); await page.waitForTimeout(400);
     const pos = await page.evaluate(() => ({ tab: (document.querySelector('[data-pb-tab].on') || {}).getAttribute ? document.querySelector('[data-pb-tab].on').getAttribute('data-pb-tab') : null,
       book: (document.querySelector('#sd-panel-books h2') || {}).textContent || '' }));
     ok('3d "Change the position" lands on the book that holds it', pos.tab === 'playbook' && /baseline/i.test(pos.book), pos);
-    await page.click('[data-pb-tab="clauses"]'); await page.waitForTimeout(300);
+    await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
     const godev = await page.$('#sd-panel-clauses [data-sd-godev]');
     let gd = null;
     if (godev) {
@@ -247,16 +252,26 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     /* ================= 4 · REQUESTS ================= */
     await page.evaluate(() => setView('intake')); await page.waitForTimeout(2200);
     await page.screenshot({ path: path.join(OUT, '4-requests.png') });
+    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is
+       the target): one flat list, no heading row per pile, still in the
+       piles' order — read off each row's own pile. */
     const ik = await page.evaluate(() => ({ ins: !!document.querySelector('.ik-ins'),
-      groups: [...document.querySelectorAll('.ik-lt tr.ins-grp')].map(g => g.getAttribute('data-ik-grp')),
+      /* RE-POINTED AGAIN 9 Oct 2026 (the owner: build it the SAP way): one
+         flat list, NEWEST FIRST as drawn — read off each row's own date */
+      groups: (() => { const at = [...document.querySelectorAll('.ik-lt tbody [data-ik-row]')].map(r => ((_intakeState.list || []).find(x => x.id === r.getAttribute('data-ik-row')) || {}).createdAt || '');
+        return at.length > 1 && at.every((v, i) => !i || at[i - 1] >= v) ? ['newest-first'] : at; })(),
       head: (document.getElementById('page-head-facts') || {}).textContent || '',
       ask: !!document.querySelector('#page-head-acts #ik-new') }));
-    ok('4a the queue is a list and a panel, grouped past its promise → nobody → being worked on',
-      ik.ins && ik.groups.join(',').startsWith('over,nobody,held') && ik.ask, ik);
+    ok('4a the queue is a list and a panel, newest request first',
+      ik.ins && ik.groups.join(',') === 'newest-first' && ik.ask, ik);
     await page.click('[data-ik-row="REQ-HELD01"]').catch(() => {}); await page.waitForTimeout(300);
-    const heldSays = await page.evaluate(() => (document.querySelector('#ins-panel .ins-st') || {}).textContent || '');
-    ok('4b a request a colleague holds reads as being worked on', /working on it/i.test(heldSays), heldSays);
-    await page.click('#ins-panel [data-ins-act="pick"]').catch(() => {}); await page.waitForTimeout(500);
+    /* re-pointed 9 Oct 2026: the drawing's panel names the holder as a fact
+       and the promise as the head's pill; take-over lives under ⋯ */
+    const heldSays = await page.evaluate(() => ({ holder: (document.querySelector('#ins-panel [data-ins-fact="with"] dd') || {}).textContent || '',
+      pill: (document.querySelector('#ins-panel .ins-pill-row') || {}).textContent || '' }));
+    ok('4b a request a colleague holds names its holder, and its promise', /Amina Otieno/.test(heldSays.holder) && /Promised by/.test(heldSays.pill), heldSays);
+    await page.click('#ins-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
+    await page.click('#ins-panel [data-ins-menu] [data-act="pick"]').catch(() => {}); await page.waitForTimeout(500);
     const takeAsk = await page.evaluate(() => { const d = [...document.querySelectorAll('[data-top-overlay], [role="alertdialog"], [role="dialog"]')].pop();
       return d ? d.textContent.replace(/\s+/g, ' ').slice(0, 200) : ''; });
     await page.keyboard.press('Escape'); await page.waitForTimeout(500);

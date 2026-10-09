@@ -94,9 +94,11 @@ const DEAL = {
       const sheet = document.querySelector('#pt-where-pane .ds-sheet');
       const txt = el => el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
       return { chips: [...sheet.querySelectorAll('.ds-pch')].map(txt),
-        open: [...sheet.querySelectorAll('.ds-cols > div:nth-child(2) .ds-li')].map(txt),
-        settledHead: txt(sheet.querySelector('.ds-cols > div:nth-child(1) .ds-h')),
-        settled: [...sheet.querySelectorAll('.ds-cols > div:nth-child(1) .ds-li')].map(li => ({ t: txt(li), refused: li.classList.contains('is-refused'),
+        /* RE-POINTED 9 Oct 2026 (SAP batch 3): Still open is a table on the
+           left card, Settled the first card of the right-hand column. */
+        open: [...sheet.querySelectorAll('.ds-open .ds-pt')].map(txt),
+        settledHead: txt(sheet.querySelector('.ds-side > .ds-card:first-child .ds-h')),
+        settled: [...sheet.querySelectorAll('.ds-side > .ds-card:first-child .ds-li')].map(li => ({ t: txt(li), refused: li.classList.contains('is-refused'),
           mark: txt(li.querySelector('.ds-tick')) })),
         facts: txt(sheet.querySelector('.ds-facts')),
         party: (window.PORTAL_OPTS && PORTAL_OPTS.payload && PORTAL_OPTS.payload.party) || null,
@@ -130,7 +132,7 @@ const DEAL = {
     j.on('pageerror', e => errs.push('juno: ' + e.message));
     await j.goto(h.base + '/#share=t:' + tokA, { waitUntil: 'networkidle' });
     await until(j, () => !!document.querySelector('#pt-where-pane .ds-sheet'), null, 15000);
-    const jo = await j.evaluate(() => ({ open: [...document.querySelectorAll('#pt-where-pane .ds-cols > div:nth-child(2) .ds-li')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
+    const jo = await j.evaluate(() => ({ open: [...document.querySelectorAll('#pt-where-pane .ds-open .ds-pt')].map(x => x.textContent.replace(/\s+/g, ' ').trim()),
       party: PORTAL_OPTS.payload && PORTAL_OPTS.payload.party,
       notes: (document.getElementById('pt-notes-n') || {}).hidden }));
     ok('1g Juno\'s link is Juno\'s — the open point waits on "you" there too', jo.party && jo.party.id === 'py_a' && jo.open.some(t => /with you/.test(t)), JSON.stringify(jo));

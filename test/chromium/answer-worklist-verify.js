@@ -88,7 +88,9 @@ const answerNaming = ids => [{ type: 'tool_use', id: 'tu_wl', name: 'deliver_ans
     const sel = tabs;
     return { labels, first: sel ? ((sel.querySelector('[data-reg-view]') || {}).textContent || '').trim() : null,
       tip: sel ? (sel.getAttribute('title') || '') : '',
-      rows: new Set(Array.from(document.querySelectorAll('.reg-f'))
+      /* RE-POINTED 9 Oct 2026 (SAP benchmark): the filters are the band's
+         labelled boxes; Sort is an icon on the list's own head. */
+      rows: new Set(Array.from(document.querySelectorAll('.reg-fb .reg-f'))
         .map(l => Math.round(l.getBoundingClientRect().top))).size };
   });
   check(bar.labels.some(t => /quick filters/i.test(t)),

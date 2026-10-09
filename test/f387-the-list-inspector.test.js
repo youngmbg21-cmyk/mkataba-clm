@@ -205,13 +205,18 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
     assert.equal(b.$('#ins-panel [data-ins-fact="value"]'), null);
   });
 
-  test('2g Latest is the trail, newest first, three lines', () => {
+  /* RE-POINTED 9 Oct 2026 (SAP benchmark; the owner: "hati has more
+     information which makes it seem to have clutter"): the list's panel draws
+     the drawing's four facts and What Copilot read — the trail is the History
+     tab's. The builder still reads the trail newest first where it is asked. */
+  test('2g the panel draws the drawing\'s four facts and no Latest; the trail is still read newest first', () => {
     const b = world(list(), { ins: true });
     b.win.renderRegister();
-    const lines = b.$$('#ins-panel .ins-log li .t').map(x => x.textContent);
-    assert.equal(lines.length, 3);
-    assert.match(lines[0], /^Playbook/, 'newest first');
-    assert.ok(!lines.some(l => /^Created/.test(l)), 'the fourth-newest is left to the History tab');
+    const facts = b.$$('#ins-panel .ins-facts [data-ins-fact]').map(x => x.getAttribute('data-ins-fact'));
+    assert.deepEqual(facts, ['value', 'owner', 'stream', 'ends']);
+    assert.equal(b.$('#ins-panel .ins-latest'), null, 'no Latest on the list\'s panel');
+    const lines = b.win.insLatest(b.win.getContract('MK-1')) || [];
+    assert.match(String((lines[0] || {}).t || (lines[0] || {}).text || lines[0] || ''), /Playbook/, 'newest first');
   });
 
   test('2h the panel’s ⋯ is the row menu, and a verb in it runs the row’s own act', () => {
@@ -280,37 +285,41 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     const b = world(nw(), { ins: true, nego: true });
     b.win.openNegotiations({ list: true });
     const heads = b.$$('.reg-table thead th').map(t => t.textContent.replace(/[▲▼]/g, '').trim());
-    assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Whose move', 'Value']);
-    const moves = b.$$('#reg-tbody tr[data-row] .ngl-w').map(x => x.textContent.trim());
-    assert.ok(moves.length === 2 && moves.every(m => /^Yours · 1 change$/.test(m)), moves.join('|'));
+    /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the drawing's
+       columns, and whose move as tabs over the bands. */
+    assert.deepEqual(heads, ['Ref', 'Counterparty and agreement', 'Round', 'Changes', 'Waiting']);
+    const moves = b.$$('#reg-tbody tr[data-row] .reg-ch').map(x => x.textContent.trim());
+    assert.ok(moves.length === 2 && moves.every(m => /^1 to answer$/.test(m)), moves.join('|'));
     const bands = b.$$('#reg-tbody tr.ngl-band .ngl-band-k').map(x => x.textContent.trim());
     assert.deepEqual(bands, ['Waiting on you'], 'an empty group is not drawn');
-    assert.equal(b.$('.reg-views'), null, 'the Contracts views are not drawn on this page');
+    assert.equal(b.$('[data-reg-view]'), null, 'the Contracts views are not drawn on this page');
+    assert.ok(b.$('.reg-views [data-reg-band="you"]'), 'whose move is a tab row');
   });
 
-  test('3b the panel leads with what is on the table: the round, the ask, how long, the standard', () => {
+  /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the Negotiations
+     panel draws the drawing's four facts — Value, Lead, their changes, last
+     sent — and the round's detail stays on Negotiate itself. */
+  test('3b the panel draws the drawing\'s four facts: value, lead, their changes, last sent', () => {
     const b = world(nw(), { ins: true, nego: true });
     b.win.openNegotiations({ list: true });
-    const t = b.$('#ins-panel .ins-table');
-    assert.ok(t, 'on the table is drawn');
-    assert.match(t.querySelector('h3').textContent, /Round 2 · 1/);
-    assert.match(t.textContent, /from Aleph Group · 20 days/);
-    assert.match(t.textContent, /past your 5-working-day standard/, 'twenty days is past the desk’s own five');
-    const order = [...b.$('#ins-panel').children].map(x => x.className);
-    assert.ok(order.indexOf('ins-sec ins-table') < order.findIndex(k => k === 'ins-facts'), 'the table leads, the facts follow');
-    b.$('#reg-tbody tr[data-row="MK-8"]').dispatchEvent(evt(b.win, 'click'));
-    assert.ok(!/past your/.test(b.$('#ins-panel .ins-table').textContent), 'a day-old ask is not past it');
+    assert.equal(b.$('#ins-panel .ins-table'), null, 'no table section on the list\'s panel');
+    const facts = b.$$('#ins-panel .ins-facts [data-ins-fact]').map(x => x.getAttribute('data-ins-fact'));
+    assert.deepEqual(facts.filter(k => k !== 'value'), ['lead', 'theirs', 'sent']);
+    assert.match(b.$('#ins-panel [data-ins-fact="theirs"] dd').textContent, /^1 open · 0 agreed$/);
   });
 
   /* RE-POINTED 7 Oct 2026 (Young, the HaTi Platform mockup's panel): "Open
      contract" leads, FILLED, on both seats, with "Open negotiation" beside it;
      the row still opens the negotiation. */
-  test('3c the contract is the lead act (filled), the negotiation the second; the row opens the negotiation', () => {
+  /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): on this seat the
+     negotiation leads, filled; the contract is a link under the name. */
+  test('3c the negotiation is the lead act (filled), the contract a link; the row opens the negotiation', () => {
     const b = world(nw(), { ins: true, nego: true });
     b.win.openNegotiations({ list: true });
     const acts = b.$$('#ins-panel [data-ins-act]').map(x => x.getAttribute('data-ins-act'));
-    assert.deepEqual(acts, ['open', 'nego']);
-    assert.ok(b.$('#ins-panel [data-ins-act="open"]').classList.contains('ui-btn-primary'), 'the lead act is the filled one');
+    assert.deepEqual(acts.sort(), ['nego', 'open']);
+    assert.ok(b.$('#ins-panel [data-ins-act="nego"]').classList.contains('ui-btn-primary'), 'the lead act is the filled one');
+    assert.ok(b.$('#ins-panel .ins-sub [data-ins-act="open"]'), 'Open contract is a link under the name');
     b.$('#reg-tbody tr[data-row="MK-7"]').dispatchEvent(evt(b.win, 'dblclick'));
     assert.deepEqual(b.calls.pop(), ['nego', 'MK-7']);
   });
@@ -395,16 +404,17 @@ describe('f387 (4) the floor under all three options, on the full table', () => 
     b.$('#reg-display').dispatchEvent(evt(b.win, 'click'));
     assert.equal(b.$('#reg-display-pop').hidden, false, 'the button opens it');
   });
-  test('4h the filters sit on the list’s own card; the name and the views on the page', () => {
+  /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved; reverses 26 Sep):
+     the filters sit in the page's white band with its name and its views;
+     the list's own head (name, count, Sort, Display) is the card's first row. */
+  test('4h the filters sit in the white band; the list\'s head is the card\'s first row', () => {
     const b = world(book(), { ins: false });
     b.win.renderRegister();
-    assert.ok(b.$('.reg-card > .reg-filterbar'), 'the bar is the card’s first row');
-    assert.equal(b.$('.reg-band .reg-filterbar'), null, 'and not in the band');
-    const band = REG.match(/\.reg-band\{[^}]*\}/)[0];
-    assert.ok(!/background/.test(band), 'the band paints no ground');
-    assert.ok(!/#page-head\{background:var\(--color-surface\)\}/.test(REG), 'nor the page head');
-    assert.match(I18N, /\n    reg_adapt: 'More filters',/);
-    assert.match(I18N, /\n    reg_adapt: 'Fler filter',/);
+    assert.ok(b.$('.reg-card > .reg-cardhead'), 'the list\'s head is the card\'s first row');
+    assert.ok(b.$('.reg-band.sap-band .reg-fb'), 'the filters are in the band');
+    assert.ok(b.$('.sap-page'), 'and the page is drawn in the SAP shape');
+    assert.match(I18N, /\n    reg_adapt: 'Adapt filters',/);
+    assert.match(I18N, /\n    reg_adapt: 'Anpassa filter',/);
   });
 });
 
@@ -421,7 +431,9 @@ describe('f387 (5) the Approvals & signing page', () => {
     const c = code(AP);
     assert.match(c, /run:c=>apOpenSigning\(c\.id\)/, 'the Signing tab, where the gate and the Sign button are');
     assert.match(c, /onOpen:pid=>apOpenSigning\(pid\)/);
-    assert.match(c, /\{ k:'open', label:i18t\('ins_open_contract'\), run:c=>selectContract\(c\.id\) \}/);
+    /* Re-pointed 9 Oct 2026 (SAP benchmark, owner-approved): "Open contract"
+       is a link on the head's sub line — the same act, the same open. */
+    assert.match(c, /const open=\{ k:'open', inSub:true, label:i18t\('ins_open_contract'\), run:c=>selectContract\(c\.id\) \};/);
   });
   test('5c [wall] the page still decides nothing', () => {
     const c = code(AP);

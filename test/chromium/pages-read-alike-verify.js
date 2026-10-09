@@ -113,6 +113,11 @@ const SEED = async () => {
     /* ---- THE ROOM, then THE NEGOTIATION PAGE, on the SAME contract ---- */
     await page.evaluate(id => openWorkspace(id), cid);
     await pause(2000);
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3): the Document and Signing tabs hide
+       the facts strip, as drawn, so the card is measured on the Overview — the
+       tab that draws the room's whole head. */
+    await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
+    await pause(900);
     await page.screenshot({ path: path.join(OUT, '01-room.png') });
     const room = await page.evaluate(() => {
       const g = e => e ? getComputedStyle(e) : null;
@@ -129,7 +134,7 @@ const SEED = async () => {
       /* THE CRUMB LIVES IN THE BAR (second pass, 21 Sep 2026): #ws-back is
          adopted into #shell-title on both pages; the head's own crumb row
          is empty and hidden. */
-      const cr = document.querySelector('#shell-title.is-crumb') || document.querySelector('#ws-head .room-crumb');
+      const cr = document.getElementById('shell-title');
       /* A <use> at a missing symbol paints an EMPTY BOX in silence, so the
          sign is measured by its own painted getBBox, never by its markup. */
       const bk = cr && cr.querySelector('#ws-back');
@@ -147,6 +152,17 @@ const SEED = async () => {
         tabs: tabs.length };
     });
 
+    /* SAP batch 4 (9 Oct 2026): Negotiate hides the facts strip, as the
+       Document tab does, so the two heads are compared there — the title's
+       top and the quiet line's bottom. */
+    await page.evaluate(id => roomGoTab(getContract(id), 'docs'), cid);
+    await pause(900);
+    const roomDoc = await page.evaluate(() => {
+      const h1 = document.querySelector('#ws-head .room-name h1');
+      const sub = document.querySelector('#ws-head .room-sub');
+      return { top: h1 ? Math.round(h1.getBoundingClientRect().top * 10) / 10 : null,
+        sub: sub ? Math.round(sub.getBoundingClientRect().bottom * 10) / 10 : null };
+    });
     await page.evaluate(id => openRedlineWorkbench(id), cid);
     await pause(2200);
     await page.screenshot({ path: path.join(OUT, '02-negotiation.png') });
@@ -160,10 +176,15 @@ const SEED = async () => {
       const acts = document.querySelector('#view-redline #ws-head .room-acts');
       const hr = head && head.getBoundingClientRect(), ar = acts && acts.getBoundingClientRect();
       const fb = document.querySelector('#view-redline #ws-head .room-facts');
-      const cr = document.querySelector('#shell-title.is-crumb') || document.querySelector('#view-redline #ws-head .room-crumb');
+      /* SAP batch 4 (9 Oct 2026): the bar names the page and the way back
+         stands on the title's line, as drawn. */
+      const cr = document.getElementById('shell-title');
       /* A <use> at a missing symbol paints an EMPTY BOX in silence, so the
          sign is measured by its own painted getBBox, never by its markup. */
-      const bk = cr && cr.querySelector('#ws-back');
+      const bk = document.querySelector('#view-redline #ws-head .room-name #ws-back');
+      const h1t = h1 ? Math.round(h1.getBoundingClientRect().top * 10) / 10 : null;
+      const subEl = document.querySelector('#view-redline #ws-head .room-sub');
+      const subB = subEl ? Math.round(subEl.getBoundingClientRect().bottom * 10) / 10 : null;
       const bword = bk && bk.querySelector('.crumb-word');
       let bbox = null;
       try { const sv = bk && bk.querySelector('svg'); bbox = sv && sv.getBBox ? sv.getBBox() : null; } catch (_){}
@@ -174,6 +195,7 @@ const SEED = async () => {
         on: on && { fs: g(on).fontSize, fw: g(on).fontWeight, c: g(on).color },
         wrap: head && g(head).flexWrap, headH: hr && Math.round(hr.height),
         card: fb ? Math.round((fb.getBoundingClientRect().bottom - 44) * 10) / 10 : null,
+        top: h1t, sub: subB,
         crumbTop: cr ? Math.round(cr.getBoundingClientRect().top * 10) / 10 : null,
         crumb: cr ? cr.textContent.trim().replace(/\s+/g, ' ') : null,
         backLabel: bk && bk.getAttribute('aria-label'),
@@ -201,9 +223,13 @@ const SEED = async () => {
        WHAT SURVIVES UNCHANGED is the half these checks were really about: the
        acts sit at the RIGHT, on the TITLE's line rather than a row of their
        own, and a long name does not grow the card. */
-    check('1 the negotiation card measures the contract workspace\'s, to the pixel',
-      nego.card !== null && room.card !== null && Math.abs(nego.card - room.card) < 1,
-      `negotiate ${nego.card} vs room ${room.card}`);
+    /* RE-POINTED 9 Oct 2026 (SAP batch 4): Negotiate hides the facts as the
+       Document tab does, so the relation is now with THAT head — the title
+       starts at the same height and the quiet line ends at the same height. */
+    check('1 the negotiation card measures the Document tab\'s head, to the pixel',
+      nego.top !== null && roomDoc.top !== null && Math.abs(nego.top - roomDoc.top) < 1
+        && nego.sub !== null && roomDoc.sub !== null && Math.abs(nego.sub - roomDoc.sub) < 1,
+      `title ${nego.top} vs ${roomDoc.top} · sub ${nego.sub} vs ${roomDoc.sub}`);
     check('1 and its crumb starts where the room\'s does',
       nego.crumbTop !== null && room.crumbTop !== null && Math.abs(nego.crumbTop - room.crumbTop) < 1,
       `negotiate ${nego.crumbTop} vs room ${room.crumbTop}`);

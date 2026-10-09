@@ -228,11 +228,13 @@ const BOX = sel => {
           w: Math.round(r.width), h: Math.round(r.height), txt: e.textContent.replace(/\s+/g, ' ').trim() };
       });
       const wr = wall ? wall.getBoundingClientRect() : null;
+      /* RE-POINTED 9 Oct 2026 (SAP benchmark, batch 2): the rail is the narrow
+         shape's only; the list's own count of each kind is read off the rows
+         the list draws, which is the number the rail printed. */
       const rail = {};
-      document.querySelectorAll('[data-tpl-group]').forEach(b => {
-        const sp = b.querySelectorAll('span');
-        rail[b.getAttribute('data-tpl-group')] = sp[1] ? sp[1].textContent.trim() : '';
-      });
+      const rows = tplOverviewData().cards;   /* one per row the list draws (tplPageRows, read through the published reading) */
+      for (const k of ['company', 'cp', 'builtin', 'sample']) rail[k] = String(rows.filter(r => r.kind === k).length);
+      rail.all = String(rows.length);
       return { n: cs.length, cards: cs, rail,
         wall: wr ? { x: Math.round(wr.x), w: Math.round(wr.width) } : null,
         cols: wall ? getComputedStyle(wall).gridTemplateColumns.split(' ').length : 0 };
@@ -263,7 +265,7 @@ const BOX = sel => {
     check('2f · every value stream has a card too',
       cards.cards.filter(c => /^stream:/.test(c.key)).length >= 3,
       cards.cards.filter(c => /^stream:/.test(c.key)).map(c => c.name));
-    check('2g · and each library card prints the count the rail prints',
+    check('2g · and each library card prints the count the list holds of that kind',
       ['all', 'company', 'cp', 'builtin', 'sample'].every(k => {
         const c = cards.cards.find(x => x.key === k);
         return c && String(c.n).trim() === String(cards.rail[k]).trim(); }),
@@ -595,73 +597,49 @@ const BOX = sel => {
     const hasBook = await page.$('[data-tpl-tab="book"]');
     check('9 · there is a book tab to press', !!hasBook);
     if (hasBook) { await page.click('[data-tpl-tab="book"]'); await pause(700); }
+    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the owner's
+       "go"; the drawing is the target): the book is a shelves table with a
+       Shelves | Value streams switch and two small cards beside it; its three
+       figures are in the page's white band. The section grammar (and its
+       fold) left this tab. What is driven: it draws, it is cut two ways by a
+       real press, the press repaints the book and not the page, and each row
+       is a door onto the list. */
     const bk = !hasBook ? null : await page.evaluate(() => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
       if (!sec) return null;
-      const r = sec.getBoundingClientRect();
-      const secs = [...sec.querySelectorAll('.sec-box')].map(x => {
-        const head = x.querySelector('.sec-head');
-        const sum = x.querySelector('.sec-sum');
-        return {
-          title: (x.querySelector('.sec-t') || {}).textContent || '',
-          open: head ? head.getAttribute('aria-expanded') : null,
-          sum: (sum ? sum.textContent : '').trim(),
-          cards: x.querySelectorAll('[data-tpl-ov-bucket]').length,
-          h: Math.round(x.getBoundingClientRect().height),
-        };
-      });
-      const gl = [...sec.querySelectorAll('.tpl-gl')].map(g => ({
-        label: (g.querySelector('.tpl-gl-l') || {}).textContent || '',
-        note: (g.querySelector('.tpl-gl-n') || {}).textContent || '',
-        w: Math.round(g.getBoundingClientRect().width),
-      }));
-      return { h: Math.round(r.height), hidden: sec.hidden, secs, gl,
-        /* 21 Sep 2026: the book's panels are the two named columns, not inner cards */
-        panels: sec.querySelectorAll('#tpl-ov-attention, #tpl-ov-mostused').length };
+      const rows = [...sec.querySelectorAll('.tpl-bk-table tbody tr[data-tpl-ov-bucket]')];
+      const gl = [...document.querySelectorAll('[data-tpl-head="book"] .tpl-gl')].map(g => ({
+        label: (g.querySelector('.tpl-gl-l') || {}).textContent || '', title: g.getAttribute('title') || '' }));
+      return { h: Math.round(sec.scrollHeight), hidden: sec.hidden,
+        rows: rows.map(r => r.getAttribute('data-tpl-ov-bucket')),
+        rowH: rows.length ? Math.round(rows[0].getBoundingClientRect().height) : 0,
+        gl, panels: sec.querySelectorAll('#tpl-ov-attention, #tpl-ov-mostused').length };
     });
-    check('9a · the book is a real tab and it draws', !!bk && !bk.hidden && bk.h > 300,
-      bk && { h: bk.h, hidden: bk.hidden });
-    check('9b · three named sections, in the artifact’s order',
-      !!bk && bk.secs.length === 3, bk && bk.secs.map(x => x.title));
-    check('9c · the library rests OPEN and carries its cards',
-      !!bk && bk.secs[0].open === 'true' && bk.secs[0].cards >= 4,
-      bk && bk.secs[0]);
-    check('9d · the streams rest SHUT, and the shut head still answers',
-      !!bk && bk.secs[1].open === 'false' && bk.secs[1].cards === 0 && bk.secs[1].sum.length > 6,
-      bk && bk.secs[1]);
-    check('9e · the glance is three figures and the caveat rides the rate alone',
-      !!bk && bk.gl.length === 3 && bk.gl.filter(g => g.note.trim()).length === 1,
-      bk && bk.gl.map(g => g.label.trim() + (g.note.trim() ? ' [note]' : '')));
-    /* NO NEW BANDS: a footnote is bounded to a reading width, a band is not. */
-    check('9f · and the caveat is a footnote, not a strip across the page',
-      !!bk && (bk.gl.find(g => g.note.trim()) || { w: 9999 }).w < 520,
-      bk && (bk.gl.find(g => g.note.trim()) || {}).w);
-    check('9g · both panels are drawn', !!bk && bk.panels === 2, bk && bk.panels);
+    check('9a · the book is a real tab and it draws', !!bk && !bk.hidden && bk.h > 250 && bk.rowH > 30,
+      bk && { h: bk.h, hidden: bk.hidden, rowH: bk.rowH });
+    check('9b · one row per shelf, in the library\u2019s order',
+      !!bk && JSON.stringify(bk.rows) === JSON.stringify(['company', 'cp', 'builtin', 'sample']), bk && bk.rows);
+    check('9e · the glance is three figures in the band, and the caveat rides the rate alone',
+      !!bk && bk.gl.length === 3 && bk.gl.filter(g => g.title.trim()).length === 1,
+      bk && bk.gl.map(g => g.label.trim() + (g.title.trim() ? ' [hover]' : '')));
+    check('9g · both small cards are drawn', !!bk && bk.panels === 2, bk && bk.panels);
 
-    /* THE FOLD IS A PRESS, and it must repaint the book rather than the page */
-    const folded = !hasBook ? null : await page.evaluate(async () => {
+    const cut = !hasBook ? null : await page.evaluate(async () => {
       const sec = document.querySelector('[data-tpl-sec="book"]');
-      const node = sec;
-      const h = [...sec.querySelectorAll('[data-sec-toggle]')]
-        .find(x => x.getAttribute('aria-expanded') === 'false');
-      if (!h) return null;
       const list = document.querySelector('[data-tpl-sec="list"]');
-      h.click();
+      const btn = sec.querySelector('[data-tpl-book-cut="stream"]');
+      if (!btn) return null;
+      btn.click();
       await new Promise(r => setTimeout(r, 320));
       const again = document.querySelector('[data-tpl-sec="book"]');
-      const now = [...again.querySelectorAll('.sec-box')].map(x => {
-        const head = x.querySelector('.sec-head');
-        return { open: head ? head.getAttribute('aria-expanded') : null,
-          cards: x.querySelectorAll('[data-tpl-ov-bucket]').length };
-      });
-      return { now, sameSection: node === again,
-        sameList: list === document.querySelector('[data-tpl-sec="list"]') };
+      return { rows: again.querySelectorAll('tr[data-tpl-ov-bucket^="stream:"]').length,
+        sameSection: sec === again, sameList: list === document.querySelector('[data-tpl-sec="list"]') };
     });
-    check('9h · pressing the shut head opens it and its cards arrive',
-      !!folded && folded.now[1].open === 'true' && folded.now[1].cards >= 4,
-      folded && folded.now);
-    check('9i · and the fold repaints the book, not the page',
-      !!folded && folded.sameSection && folded.sameList, folded);
+    check('9h · pressing Value streams cuts the same table by stream',
+      !!cut && cut.rows >= 3, cut);
+    check('9i · and the switch repaints the book, not the page',
+      !!cut && cut.sameSection && cut.sameList, cut);
+    if (cut) await page.evaluate(() => { const b = document.querySelector('[data-tpl-book-cut="library"]'); if (b) b.click(); });
 
     /* REVERSED IN PLACE, the same day it was written. This read *"THE OVERVIEW
        WAS LEFT ALONE. The day-before ruling stands."* and hours later the

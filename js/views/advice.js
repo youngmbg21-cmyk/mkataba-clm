@@ -84,8 +84,9 @@ function renderAdviceDesk(){
      (insFits) and is repainted when a resize crosses it (INS_PAGE_REPAINT). */
   const fits=(typeof window.insFits==='function')&&!!insFits();
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" data-ins-page="advice" data-ins="${fits?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:${fits?'0':'var(--page-pad-t)'} var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)">
-    ${typeof window.rqKindTabsHtml==='function'?rqKindTabsHtml('advice'):''}
+  <div class="view-enter sap-page" data-ins-page="advice" data-ins="${fits?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:${fits?'0':'var(--page-pad-t)'} var(--page-pad-x) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)">
+    ${''/* the Requests page's one tab row, on the same white band (SAP benchmark, batch 2) */}
+    <div class="sap-band">${typeof window.rqKindTabsHtml==='function'?rqKindTabsHtml('advice'):''}</div>
     <style>
       .q-card{transition:border-color var(--dur-1) ease,box-shadow var(--dur-1) ease}
       .q-card:hover{border-color:var(--color-accent)!important;box-shadow:var(--shadow-md)!important}
@@ -127,7 +128,10 @@ function adviceHeadPaint(){
   if(typeof document==='undefined') return;
   const f=document.getElementById('page-head-facts'); if(!f) return;
   f.textContent='';
-  f.classList.toggle('is-held', (typeof window.insFits==='function') && !!insFits());
+  /* NO HELD LINE since 9 Oct 2026 (SAP benchmark, batch 2): the Requests
+     page prints no facts under its name any more, so the Advice tab holds no
+     empty line for one either — the one tab row stays where it is. */
+  f.classList.remove('is-held');
 }
 // Pull the latest list from the server (API mode) and repaint once, without
 // looping: only re-render when something actually changed.

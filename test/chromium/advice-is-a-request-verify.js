@@ -41,16 +41,21 @@ const READ = () => {
   const door = document.querySelector('#side-nav .nav-item[data-view="intake"]');
   const n = el => (el && !el.hidden && el.textContent.trim()) ? Number(el.textContent.trim().replace(/\D/g, '')) : 0;
   const row = document.querySelector('#content .rq-kinds');
-  const tab = k => document.querySelector(`#content [data-rq-kind="${k}"]`);
   return {
     view: state.view,
     lit: [...document.querySelectorAll('#side-nav .nav-item[aria-current="page"]')].map(b => b.getAttribute('data-view')),
     adviceDoor: !!document.querySelector('#side-nav [data-view="advice"]'),
     doorN: door ? n(door.querySelector('[data-count="intake"]')) : null,
     tabs: [...document.querySelectorAll('#content [data-rq-kind]')].map(b => b.getAttribute('data-rq-kind')),
-    on: (document.querySelector('#content [data-rq-kind].on') || {}).getAttribute ? document.querySelector('#content [data-rq-kind].on').getAttribute('data-rq-kind') : null,
-    nContracts: n(tab('contracts') && tab('contracts').querySelector('[data-rq-n]')),
-    nAdvice: n(tab('advice') && tab('advice').querySelector('[data-rq-n]')),
+    /* the lit tab, named by the view it opens (one row of views since 9 Oct
+       2026: Open · Mine · Advice · Finished · All) */
+    on: (() => { const b = document.querySelector('#content .rq-kinds .on'); return b ? (b.getAttribute('data-ik-view') || b.getAttribute('data-rq-kind')) : null; })(),
+    advRows: document.querySelectorAll('#content [data-ik-row^="adv:"]').length,
+    ikRows: document.querySelectorAll('#content [data-ik-row]:not([data-ik-row^="adv:"])').length,
+    /* ONE ROW since 9 Oct 2026 (SAP benchmark, batch 2): the contracts half is
+       the Open tab's count — the queue the door opens on */
+    nContracts: n(document.querySelector('#content [data-ik-view="open"] .n')),
+    nAdvice: n(document.querySelector('#content [data-rq-n="advice"]')),
     title: ((document.querySelector('#page-head h1') || {}).textContent || '').trim(),
     rowTop: row ? Math.round(row.getBoundingClientRect().top) : null,
     rowLeft: row ? Math.round(row.getBoundingClientRect().left) : null,
@@ -111,26 +116,38 @@ const READ = () => {
     await page.click('#side-nav .nav-item[data-view="intake"]');
     await until(page, () => state.view === 'intake' && !!document.querySelector('#content .rq-kinds'));
     s = await page.evaluate(READ);
-    ok('2a Requests draws the kind tabs, Contracts then Advice', s.tabs.join(',') === 'contracts,advice', s.tabs);
-    ok('2b it opens on Contracts, with the queue under it', s.on === 'contracts' && s.ikPage, { on: s.on, ikPage: s.ikPage });
-    ok('2c each tab carries its own half', s.nContracts === s.intakeN && s.nAdvice === s.adviceN,
-      { contracts: s.nContracts, advice: s.nAdvice });
-    ok('2d the door is the sum of the tabs it opens', s.doorN === s.nContracts + s.nAdvice,
-      { door: s.doorN, tabs: s.nContracts + s.nAdvice });
+    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is
+       the target): ONE row, Open · Mine · Advice · Finished this month · All;
+       Advice is still its own view, the other four the contracts queue. */
+    /* RE-POINTED 9 Oct 2026 (the owner: build it the SAP way): advice
+       requests are listed in the same table, and Advice is a cut of it. */
+    ok('2a Requests draws one tab row of views, Advice third', s.tabs.length === 5 && s.tabs.every(k => k === 'contracts'), s.tabs);
+    ok('2b it opens on Open, with both kinds in the one list', s.on === 'open' && s.ikPage && s.advRows === s.adviceN && s.ikRows === s.intakeN,
+      { on: s.on, ikPage: s.ikPage, advice: s.advRows, contract: s.ikRows });
+    ok('2c Open counts both kinds, and Advice counts the open advice', s.nContracts === s.intakeN + s.adviceN && s.nAdvice === s.adviceN,
+      { open: s.nContracts, advice: s.nAdvice });
+    ok('2d the door is the Open list it opens', s.doorN === s.nContracts,
+      { door: s.doorN, open: s.nContracts });
     const wideContracts = s.rowTop, wideLeft = s.rowLeft;
     await page.screenshot({ path: path.join(OUT, '2-contracts.png') });
 
     /* ---- 3 · THE ADVICE TAB ---- */
-    const adv = await page.$('#content [data-rq-kind="advice"]');
+    const adv = await page.$('#content [data-ik-view="advice"]');
     if (adv) await adv.click();
+    await until(page, () => !!document.querySelector('#content [data-ik-view="advice"].on'));
+    s = await page.evaluate(READ);
+    ok('3 the Advice tab is a cut of the list: advice rows only, on Requests', s.view === 'intake' && s.on === 'advice'
+      && s.advRows === s.adviceN && s.ikRows === 0, { view: s.view, on: s.on, advice: s.advRows, contract: s.ikRows });
+    /* the board is still a door away: the advice row's panel carries it */
+    await page.click('#ins-panel [data-ins-act="board"]').catch(() => {});
     await until(page, () => state.view === 'advice' && document.querySelectorAll('#content [data-adv-drop]').length > 0);
     s = await page.evaluate(READ);
-    ok('3a a press on Advice draws the Advice desk board — all five stages, every request',
+    ok('3a the panel\'s Advice board door draws the board — all five stages, every request',
       s.view === 'advice' && s.board === 5 && s.cards === 3, { view: s.view, columns: s.board, cards: s.cards });
     ok('3b the Advice tab is lit', s.on === 'advice', s.on);
     ok('3c the rail lights Requests, and only Requests', s.lit.join(',') === 'intake', s.lit);
     ok('3d the head carries the page\'s name', s.title === 'Requests', s.title);
-    ok('3e the door still says the same total on this tab', s.doorN === s.nContracts + s.nAdvice, { door: s.doorN });
+    ok('3e the door still says the same total on this tab', s.doorN === s.intakeN + s.nAdvice, { door: s.doorN });
     await page.screenshot({ path: path.join(OUT, '3-advice.png') });
 
     /* ---- 4 · THE ROW HOLDS STILL, WIDE AND NARROW ---- */
@@ -168,7 +185,7 @@ const READ = () => {
     if (back) await back.click();
     await until(page, () => state.view === 'intake' && !!document.querySelector('#content [data-ins-page="intake"]'));
     s = await page.evaluate(READ);
-    ok('6b Contracts goes back to the contract requests', s.view === 'intake' && s.on === 'contracts' && s.lit.join(',') === 'intake',
+    ok('6b Open goes back to the Requests list', s.view === 'intake' && s.on === 'open' && s.lit.join(',') === 'intake',
       { view: s.view, on: s.on, lit: s.lit });
 
     /* ---- 7 · THE NUMBERS MOVE TOGETHER ---- */
@@ -180,7 +197,7 @@ const READ = () => {
     await page.waitForTimeout(500);
     const after = await page.evaluate(READ);
     ok('7 a new advice request moves the door and the Advice tab by one, together',
-      after.nAdvice === before.nAdvice + 1 && after.doorN === before.doorN + 1 && after.doorN === after.nContracts + after.nAdvice,
+      after.nAdvice === before.nAdvice + 1 && after.doorN === before.doorN + 1 && after.doorN === after.intakeN + after.nAdvice,
       { before: [before.doorN, before.nAdvice], after: [after.doorN, after.nAdvice] });
 
     /* ---- 8 · THE PUBLIC PORTAL IS UNTOUCHED ---- */

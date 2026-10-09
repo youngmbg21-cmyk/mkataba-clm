@@ -369,11 +369,21 @@ describe('f193 — the People tab', () => {
     assert.deepEqual(Array.from(sb.stPersonMissing(other)), [S.st_f_title], 'and one without a job title is short exactly one thing');
   });
 
-  test('the banner names the unfinished people rather than counting them at you', () => {
+  /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the owner's
+     "go"; the drawing is the target): the yellow banner naming the
+     unfinished went. The People tab counts them, and the short person's own
+     row says WHAT is missing — named where it can be acted on, never a count
+     at you with nobody's name on it. */
+  test('the unfinished are counted on the tab, and each one\'s row says what is missing', () => {
     const { pageHtml } = stage();
     const html = pageHtml();
-    assert.ok(html.includes('Asha Kimani'), 'the person who is short is named');
-    assert.ok(html.includes(S.st_unfinished_why), 'and the banner says what to do about it');
+    assert.ok(!html.includes('st-people-banner'), 'no banner');
+    const d = new (require('jsdom').JSDOM)(html).window.document;
+    const n = d.querySelector('[data-st-tab="people"] .st-tab-n');
+    assert.ok(n && n.textContent.trim() === '1', 'the tab counts the one unfinished person');
+    const row = [...d.querySelectorAll('tr.st-person')].find(r => r.textContent.includes('Asha Kimani'));
+    assert.ok(row, 'the person who is short is on the list');
+    assert.ok(row.querySelector('.st-setup.is-warn') && row.textContent.includes(S.st_f_title), 'and their row says what is missing');
   });
 
   test('"Add member" and editing open the SAME drawer', () => {
@@ -652,13 +662,15 @@ describe('f193 — the tab row does not scroll away', () => {
     assert.ok(RULE, 'the pin is its own rule, keyed on the row');
     const LIB = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'library.js'), 'utf8');
     const SET = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'settings.js'), 'utf8');
-    assert.match(SET, /class="st-tabs st-tabs-pin"/, 'Team & Settings opts in');
+    assert.match(SET, /class="st-tabs st-tabs-pin( sap-band)?"/, 'Settings opts in (on the white band since 9 Oct 2026)');
     /* Our standards is now a tab of "Our paper" (4 Oct 2026): the page's tab
        row and the standards row are pinned together as ONE opted-in block. */
     assert.match(LIB, /class="st-tabs-pin"[^>]*>\$\{paperTabsHtml\('standards'(?:, true)?\)\}/, 'and so does Our standards');
     /* THE TEMPLATES ROW WAS NOT ASKED FOR AND IS NOT OPTED IN. It also carries
        an inline margin-bottom the bleed's shorthand would fight. */
-    const tplRow = /<div class="st-tabs" role="tablist" style="margin-bottom:14px">/.exec(LIB);
+    /* re-pointed 9 Oct 2026 (SAP benchmark, batch 2): the row now sits in the
+       page's white band and lost its inline margin; still not opted in. */
+    const tplRow = /<div class="st-tabs" role="tablist">/.exec(LIB);
     assert.ok(tplRow, 'the Templates row still draws without the opt-in');
   });
   test('the row is sticky at the top of the scroller, above the rows, opaque', () => {

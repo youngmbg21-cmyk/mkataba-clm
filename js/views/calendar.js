@@ -426,7 +426,8 @@ function calMonthGridHtml(y, m, byDay, opts){
            lands. */
         const t=cids.length===1?` title="${_esc(ev.label+': '+(e.note||e.cname))}"`:'';
         /* the chip's reference wears the reference face (calChipText stays the text) */
-        const chip=e.type==='obligation'?_esc(calChipText(e)):_esc(CAL_EVENT[e.type].short)+' · '+(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid));
+        /* the drawing's chip names the contract after its reference ("Ends · MK-A6 Flour…") */
+        const chip=e.type==='obligation'?_esc(calChipText(e)):_esc(CAL_EVENT[e.type].short)+' · '+(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid))+(e.cname?' '+_esc(e.cname):'');
         return `<span class="cal-chip${e.done?' is-done':''}"${t} style="border-left-color:${ev.dot};background:${ev.bg};color:${ev.fg}">${chip}</span>`;
       }).join('')+(more>0?`<span class="cal-more">${i18t('cal_n_more',{n:more})}</span>`:'')+`</span>`;
     }
@@ -441,9 +442,19 @@ function calMonthGridHtml(y, m, byDay, opts){
   return `<div class="cal-dow">${calDowCells(compact)}</div><div class="cal-weeks"${gid}>${cells.join('')}</div>`;
 }
 
-function calLegendHtml(){
-  return `<div class="cal-legend">`+CAL_PRIORITY.map(k=>
-    `<span><i style="background:${CAL_EVENT[k].dot}"></i>${_esc(CAL_EVENT[k].label)}</span>`).join('')+`</div>`;
+/* ---- THE KEY NAMES ONLY WHAT IS ON THE MONTH (SAP benchmark, batch 2) ----
+   The drawing's key is "● Contract ends ● Obligation due" — the two kinds that
+   month carries, each word in its own kind's ink. A key entry for a colour
+   that is nowhere on the page explains nothing. `evs` is the events of the
+   period on screen; with none, no key is drawn. */
+function calLegendHtml(evs){
+  const has=new Set((evs||[]).map(e=>e.type));
+  const kinds=CAL_PRIORITY.filter(k=>has.has(k));
+  /* An empty key still keeps its line (.cal-legend's min-height): a month
+     with nothing on it must not be a few pixels taller than one with
+     something — THE MONTH NEVER CHANGES HEIGHT (owner, 4 Oct 2026). */
+  return `<div class="cal-legend">`+kinds.map(k=>
+    `<span style="color:${CAL_EVENT[k].fg}"><i style="background:${CAL_EVENT[k].dot}"></i>${_esc(i18t('cal_lg_'+k))}</span>`).join('')+`</div>`;
 }
 /* ---- THE CARD HEADS ITSELF (owner-asked 24 Aug 2026, "like for like") ----
    The design puts the period stepper, the period's name and the four-tone key
@@ -647,26 +658,29 @@ function calPanelHtml(evs){
   const up=calUpcoming(evs,win);
   const rows=up.slice(0,CAL_AGENDA_ROWS).map(e=>{
     const ev=CAL_EVENT[e.type], d=daysUntil(e.date);
-    const when=d===0?i18t('cal_today'):i18t('cal_in_days',{n:d});
+    const when=d===0?i18t('cal_today'):i18t('cal_in_days_long',{n:d});
+    /* ---- THE DRAWING'S ROW (SAP benchmark, batch 2) ----
+       Three columns: the date over how far away it is, the thing over whose
+       it is, and the act. The kind is said by the words ("Contract ends") —
+       no coloured edge, because the month beside it already carries the
+       colours. "Mark done" is the verb spelled out. */
     const done=(e.type==='obligation'&&e.obId&&window.toggleObligationById&&(!window.canEdit||canEdit()))
-      ? `<button class="cal-upn-done" data-ob-done="${_esc(e.obId)}" data-ob-cid="${_esc(e.cid)}" title="${_esc(i18t('cal_mark_complete'))}">${_esc(i18t('cal_done'))}</button>`
+      ? `<button class="ui-btn cal-upn-done" data-ob-done="${_esc(e.obId)}" data-ob-cid="${_esc(e.cid)}" title="${_esc(i18t('cal_mark_complete'))}">${_esc(i18t('cal_mark_done'))}</button>`
       : '';
     const theirs=(e.type==='obligation'&&e.theirs)
       ? `<span class="cal-theirs" title="${_esc(i18t('cal_cp_owes'))}">${_esc(i18t('cal_k_theirs'))}</span>` : '';
-    /* THE DATE IS A STACK, the design's own 44px cell: the day over the month,
-       so a column of dates reads down rather than across. The row carries the
-       kind's colour on its left edge, which is what lets the eye group a run of
-       expiries without reading a word of them. */
     const dt=new Date(e.date+'T00:00:00');
-    const dd=String(dt.getDate()).padStart(2,'0');
-    const mo=dt.toLocaleDateString(langLocale(),{month:'short'});
-    return `<div class="cal-upn" style="border-left-color:${ev.dot}">
-      <span class="dt"><b>${_esc(dd)}</b><i>${_esc(mo)}</i></span>
+    const day=dt.toLocaleDateString(langLocale(),{day:'numeric',month:'short'});
+    const title=e.type==='obligation'?(e.note||ev.label):i18t('cal_lg_'+e.type);
+    const sub=e.type==='obligation'
+      ? _esc(e.cname+' · '+(e.owner||i18t('cal_unassigned')))
+      : _esc(e.cname)+' · '+(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid));
+    return `<div class="cal-upn">
+      <span class="dt"><b>${_esc(day)}</b><i>${_esc(when)}</i></span>
       <button class="g" data-sel="${_esc(e.cid)}">
-        <span class="n2">${_esc(ev.label)} — ${_esc(e.cname)}</span>
-        <span class="m3">${e.type==='obligation'?_esc((e.note||'')+' · '+(e.owner||i18t('cal_unassigned'))):(e.note?_esc(e.note):(window.refHtml?refHtml(e.cref||e.cid):_esc(e.cref||e.cid)))}</span>
+        <span class="n2">${_esc(title)}</span>
+        <span class="m3">${sub}</span>
       </button>${theirs}${done}
-      <span class="lft" style="color:${ev.fg}">${_esc(when)}</span>
     </div>`;
   }).join('');
   return `<section class="cal-card cal-panel">
@@ -712,7 +726,6 @@ function calPanelHtml(evs){
       ? window.emptyStateHtml({ title:i18t('cal_nothing_due',{n:win}), sub:i18t('cal_nothing_due_sub') })
       : `<div class="cal-empty-t">${_esc(i18t('cal_nothing_due',{n:win}))}</div>`
         + `<div class="cal-empty-s">${_esc(i18t('cal_nothing_due_sub'))}</div>`}</div>`}</div>
-    <div class="cal-panel-foot"><button class="cal-link" id="cal-open-reg">${_esc(i18t('cal_open_register'))}${icon('chevR','w-3.5 h-3.5')}</button></div>
   </section>`;
 }
 
@@ -721,8 +734,6 @@ function renderCalendar(){
   const all=calendarEvents();
   const evs=calVisible(all);
   const byDay={}; evs.forEach(e=>{ (byDay[e.date]=byDay[e.date]||[]).push(e); });
-  const decisions=calDecisionsThisWeek(evs);
-  const inPeriod=evs.filter(e=>calInPeriod(e,p)).length;
 
   const seg=(k,label,count)=>`<a class="${view===k?'on':''}" data-cal-view="${k}" role="button" tabindex="0">${_esc(label)}${count!=null?`<span class="c">${count}</span>`:''}</a>`;
   const scopeSeg=(k,label)=>`<span class="${calScope()===k?'on':''}" data-cal-scope="${k}" role="button" tabindex="0">${_esc(label)}</span>`;
@@ -737,8 +748,8 @@ function renderCalendar(){
        month's own cells were the narrowest thing on the page. The key leaves
        the card's own bar with it: a legend inside a card head is furniture
        about the card, and under the grid it is furniture about the month. */
-    main=`<section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section>
-      ${calLegendHtml()}`;
+    main=`<div class="cal-month"><section class="cal-card cal-grid">${calMonthGridHtml(y,m,byDay,{id:'cal-grid'})}</section>
+      ${calLegendHtml(evs.filter(e=>calInPeriod(e,p)))}</div>`;
   } else {
     main=calHorizonHtml();
   }
@@ -757,34 +768,27 @@ function renderCalendar(){
              facts are unchanged and in the same order; they were beside the
              title on one row, which made the head read as a sentence rather
              than a heading. */}
+      ${''/* ---- THE SAP BENCHMARK, BATCH 2 (owner said "go", 9 Oct 2026) ----
+             The drawing's head is ONE row: the name, the month stepper beside
+             it, and on the right the two switches and a ⋯ that holds Export,
+             Share, Print and Open register. The "N decisions this week" line
+             is not in the drawing and goes — the decisions are on the month
+             and in Next 14 days, so the line said a fact twice. The ids of
+             Export and Share are kept on the menu rows, so every handler and
+             every test reaches the same act. */}
       <span class="cal-head-l">
         <span class="ttl">${_esc(i18t('nav_calendar'))}</span>
         <span class="cal-head-sub">${view==='month'?calMonthStepHtml(y,m)
-          :_esc(i18t('cal_three_months',{from:calMonthName(y,m),to:calMonthName(p.months[2].y,p.months[2].m)}))}${
-          decisions?` · <span class="cal-stat crit">${_esc(i18tn('cal_decisions_week',decisions,{n:decisions}))}</span>`
-            :` · <span class="cal-stat neu">${_esc(i18t('cal_no_decisions_week'))}</span>`}</span>
+          :_esc(i18t('cal_three_months',{from:calMonthName(y,m),to:calMonthName(p.months[2].y,p.months[2].m)}))}</span>
       </span>
       <span class="g"></span>
       <div class="cal-acts">
-        ${''/* THE VIEW SWITCH IS A SEGMENT IN THE ACTS ROW (21 Sep 2026) —
-               the reference's own place for it. It was a tab row of its own
-               under the head, which made the page carry two control rows
-               before the month began. Same ids, same attributes, same
-               handler; only the shape and the place moved. */}
-        <span class="cal-seg cal-seg-view">${seg('month',i18t('cal_v_month'),view==='month'?inPeriod:null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
+        <span class="cal-seg cal-seg-view">${seg('month',i18t('cal_v_month'),null)}${seg('horizon',i18t('cal_v_horizon'),null)}</span>
         <span class="cal-seg">${scopeSeg('all',i18t('cal_all_dates'))}${scopeSeg('mine',i18t('cal_mine'))}</span>
-        <button class="ui-btn" id="cal-export" title="${_esc(i18t('cal_export_title'))}">${icon('download','w-3.5 h-3.5')} ${_esc(i18t('cal_export'))}</button>
-        <button class="ui-btn" id="cal-share" title="${_esc(i18t('cal_share_title'))}">${icon('share','w-3.5 h-3.5')} ${_esc(i18t('cal_share'))}</button>
-        ${''/* ---- IT WEARS THE ROW'S OWN OUTLINE (owner-reported 4 Oct 2026:
-               "More button in the calendar page does not have an outline") ----
-               The SAME fault the contract room's More button was reported for on
-               23 Aug 2026, in the one place that fix did not reach:
-               .ui-btn-plain declares a transparent border, so in a row of
-               outlined buttons this was the one with no edge. The class comes
-               off and it inherits .ui-btn like Export and New beside it;
-               .ws-more-btn is the shared dress every other More wears. */}
-        <button class="ui-btn ws-more-btn" id="cal-more" aria-haspopup="true" aria-expanded="false">${_esc(i18t('ct_more'))}${icon('chevD','w-3.5 h-3.5')}</button>
+        <button class="ui-btn ws-more-btn cal-more-ic" id="cal-more" aria-haspopup="true" aria-expanded="false" title="${_esc(i18t('ct_more'))}" aria-label="${_esc(i18t('ct_more'))}">${icon('more','w-4 h-4')}</button>
         <div id="cal-more-menu" class="cal-menu" hidden>
+          <button id="cal-export" title="${_esc(i18t('cal_export_title'))}">${_esc(i18t('cal_export'))}</button>
+          <button id="cal-share" title="${_esc(i18t('cal_share_title'))}">${_esc(i18t('cal_share'))}</button>
           <button data-cal-act="print">${_esc(i18t('cal_print'))}</button>
           <button data-cal-act="register">${_esc(i18t('cal_open_register'))}</button>
         </div>
@@ -795,7 +799,7 @@ function renderCalendar(){
              The design pairs "Next 14 days" with the month grid alone (its
              Month tab is the only one drawn as 1fr 304px), and Horizon wants
              every pixel it can get for its twelve months. */}
-      <div class="cal-stack${view==='month'?'':' is-wide'}">${main}${view==='month'?calPanelHtml(evs):''}</div>
+      <div class="cal-stack${view==='month'?'':' is-wide'}">${main}${view==='month'?`<div class="cal-side">${calPanelHtml(evs)}</div>`:''}</div>
     </div>
   </div>`;
 
@@ -809,7 +813,7 @@ function renderCalendar(){
    ------------------------------------------------------------------------- */
 function calStyleCss(){ return `
   .cal-page{height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;min-height:0;
-    --cal-panel-h:300px}
+    --cal-side-w:clamp(360px,32vw,460px);--cal-day-h:76px}
   ${''/* ---- THE HEAD IS ONE WHITE BAND, AND THE TAB ROW IS PART OF IT ----
          (owner-reported 24 Aug 2026, off a screenshot with the strip between
          the two ringed: "remove the line in the highlighted area")
@@ -953,7 +957,17 @@ function calStyleCss(){ return `
          words is worse than a page that scrolls, and the body already
          scrolls (.cal-body is overflow:auto), which is what the stacked
          layout below 1024 does for the same reason. */}
-  .cal-stack > .cal-panel{flex:0 0 var(--cal-panel-h);min-height:0}
+  ${''/* ---- RE-RULED 9 Oct 2026 (SAP benchmark, batch 2) ---- the agenda is
+         now a column BESIDE the month, one width written once (--cal-side-w),
+         as tall as its rows and capped at the month's height; its list
+         scrolls inside. The month is sized by the page alone, so the agenda
+         can no longer move it — the owner's 4 Oct rule, kept by the layout
+         rather than by a fixed agenda height. */}
+  ${''/* THE SIDE COLUMN IS AS TALL AS THE MONTH AND NO TALLER: it adds no
+         height of its own to the row (contain:size), the row is the month's
+         height, and the card inside is as tall as its rows up to that. */}
+  .cal-side{flex:0 0 var(--cal-side-w);contain:size;min-height:0;display:flex;flex-direction:column}
+  .cal-side > .cal-panel{flex:0 1 auto;min-height:0;max-height:100%}
   .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);
     display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
   /* ---- THE MONTH ----
@@ -1178,8 +1192,10 @@ function calStyleCss(){ return `
   .cal-upn .m3{display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cal-upn .lft{margin-left:auto;font-size:var(--t-label);font-weight:var(--w-title);white-space:nowrap;flex:none}
-  .cal-upn-done{flex:none;border:1px solid var(--color-divider);background:var(--color-surface);
-    padding:2px 7px;font:inherit;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink-700);cursor:pointer}
+  ${''/* "Mark done" is the platform's own button now (.ui-btn), so it wears
+         the one light edge, the one height and the one ink every other
+         button does — nothing of its own to keep in step. */}
+  .cal-upn-done{flex:none}
   .cal-theirs{flex:none;font-size:var(--t-figure);font-weight:var(--w-title);
     padding:1px var(--s-1);background:var(--st-amber-bg);color:var(--st-amber-fg)}
   .cal-panel-foot{flex:none;padding:11px 14px}
@@ -1187,10 +1203,61 @@ function calStyleCss(){ return `
     color:var(--accent-ink);cursor:pointer;padding:0 4px;min-height:var(--tap-min);display:inline-flex;align-items:center;gap:4px;border-radius:var(--radius)}
   .cal-link:hover{background:color-mix(in srgb,var(--accent-solid) 10%,transparent)}
   .cal-link > svg{width:var(--btn-ic);height:var(--btn-ic);flex:none}
-  html.dark .cal-link,html.dark .cal-upn-done,html.dark .cal-more{color:var(--color-accent-300)}
+  html.dark .cal-link,html.dark .cal-more{color:var(--color-accent-300)}
   .cal-empty{padding:22px 14px;text-align:center}
   .cal-empty-t{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)}
   .cal-empty-s{font-size:var(--t-label);color:var(--color-neutral-600);margin-top:3px;line-height:1.5}
+  ${''/* ---- THE SAP BENCHMARK, BATCH 2 (owner said "go", 9 Oct 2026) ----
+         The drawing: one head row on white with a rule under it; the month on
+         the grey ground with no card round it, weekday names in sentence
+         case; the key under the month; "Next 14 days" a card BESIDE the
+         month, as tall as its rows and no taller.
+         THE MONTH STILL NEVER CHANGES HEIGHT (owner, 4 Oct 2026): it is
+         sized by the page, and the agenda beside it is its own column whose
+         list scrolls inside a card capped at the month's height — the
+         agenda's length cannot reach the month any more. This REVERSES the
+         21 Sep stack (agenda under the month) at the owner's word that the
+         drawing is the target. */}
+  ${''/* The title keeps ONE HEADER TOP (pages-read-alike 8): the row stays
+         top-aligned, and the stepper sits in a box exactly the title's line
+         tall, its taller buttons overflowing it evenly, so the stepper is
+         centred on the title without pushing it down. */}
+  .cal-head{padding-bottom:var(--s-3);box-shadow:inset 0 -1px var(--color-divider)}
+  .cal-head-l{flex-direction:row;align-items:flex-start;gap:var(--s-4)}
+  .cal-head-sub{margin-top:0;height:calc(20px * var(--lh-tight));display:flex;align-items:center;overflow:visible}
+  .cal-seg span.on,.cal-seg a.on,.cal-seg button.on{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong)}
+  .cal-seg a.on .c,.cal-seg span.on .c,.cal-seg button.on .c{color:var(--accent-ink)}
+  .cal-more-ic{width:var(--ctl-h);min-width:var(--ctl-h);padding:0;justify-content:center}
+  .cal-stack:not(.is-wide){flex-direction:row;align-items:stretch;align-self:flex-start;gap:var(--s-4)}
+  .cal-month{flex:1 1 auto;min-width:0;align-self:stretch;display:flex;flex-direction:column;gap:var(--s-3)}
+  ${''/* THE DRAWING'S DAY BOX (owner, 9 Oct 2026: "they all need to be built
+         the SAP way") — a fixed height, so the month is as tall as six weeks of
+         it and no taller; it no longer stretches to fill the page. REVERSES the
+         22 Aug "the month fills the page" for this page; on a short window the
+         page body scrolls (.cal-body is overflow:auto). It still never changes
+         height: six rows of one fixed size whatever the agenda holds. */}
+  .cal-month > .cal-grid{flex:none;min-height:0;background:none;border:0;border-radius:0;overflow:visible}
+  .cal-month{align-self:flex-start}
+  .cal-month .cal-weeks{flex:none;grid-template-rows:repeat(6,var(--cal-day-h))}
+  .cal-month .cal-dow{background:none;box-shadow:none;padding:0 0 var(--s-1)}
+  .cal-month .cal-dow span{text-transform:none;letter-spacing:0;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)}
+  .cal-month .cal-weeks{padding:0}
+  .cal-month .cal-legend{box-shadow:none;padding:0 2px;min-height:20px;align-items:center}
+  .cal-month .cal-legend span{font-weight:var(--w-label)}
+  .cal-month .cal-legend i{width:8px;height:8px;border-radius:50%}
+  .cal-side > .cal-panel{border-radius:var(--radius-lg)}
+  .cal-panel-head{padding:var(--s-3) var(--s-4)}
+  .cal-panel-head .cal-cnt{font-family:inherit;font-size:inherit;font-weight:var(--w-body);color:var(--color-neutral-600)}
+  ${''/* the drawing's "Next 14 days (3)": the brackets are dress, so the count's
+         own text stays the bare number every reader of it already compares */}
+  .cal-panel-head .cal-cnt::before{content:"("}
+  .cal-panel-head .cal-cnt::after{content:")"}
+  .cal-panel-head h5 + .cal-cnt{margin-left:-4px;font-size:var(--t-body)}
+  .cal-upn{gap:var(--s-4);padding:var(--s-3) var(--s-4);border-left:0}
+  .cal-upn .dt{width:84px}
+  .cal-upn .dt b{font-size:var(--t-meta)}
+  .cal-upn .dt i{color:var(--color-neutral-600);margin-top:2px}
+  .cal-upn .n2{font-size:var(--t-body);font-weight:var(--w-label)}
   /* ---- NARROW ----
      Below the width where a 360px panel and a readable month can share a row,
      the two stack and the PAGE scrolls — two independently scrolling boxes on
@@ -1212,13 +1279,15 @@ function calStyleCss(){ return `
     .cal-body{padding:var(--s-3) var(--s-4) 18px}
     .cal-head{padding-left:var(--s-4);padding-right:var(--s-4)}
     .cal-stack > .cal-grid{min-height:340px}
+    .cal-stack:not(.is-wide){flex-direction:column;align-items:stretch}
     ${''/* AND THE PANEL GOES BACK TO ITS CONTENT'S HEIGHT DOWN HERE. The one
            height above is what stops the month resizing on a page that cannot
            scroll; stacked, the page DOES scroll, and a fixed panel would put
            a second scroller inside it — the trap this block's own note names.
            The month is not being resized by it either, because down here the
            page grows instead. */}
-    .cal-stack > .cal-panel{flex:none}
+    .cal-side{contain:none;flex:none}
+    .cal-side > .cal-panel{flex:none;max-height:none}
     .cal-card{min-height:380px}
   }
   @media print{
@@ -1291,7 +1360,6 @@ function wireCalendar(evs, byDay, p){
     const o=toggleObligationById(b.getAttribute('data-ob-cid'), b.getAttribute('data-ob-done'), { from:'calendar' });
     if(o) toast(i18t('cal_marked_complete',{what:o.desc}),'ok');
   }));
-  $('cal-open-reg')?.addEventListener('click',()=>setView('register'));
 
   /* ---- EXPORT: THE PERIOD ON SCREEN, AND IT SAYS SO ----
      Exactly what the grid is drawing — same period, same scope — because a
@@ -1333,6 +1401,7 @@ function wireCalendar(evs, byDay, p){
       });
       document.addEventListener('keydown',e=>{ if(e.key==='Escape') liveShut(); });
     }
+    mm.querySelectorAll('#cal-export,#cal-share').forEach(b=>b.addEventListener('click',shut));
     mm.querySelectorAll('[data-cal-act]').forEach(b=>b.addEventListener('click',()=>{
       shut();
       const a=b.getAttribute('data-cal-act');
@@ -1404,7 +1473,7 @@ function openCalendarShare(evs){
 }
 
 Object.assign(window,{calState,calPlace,calPlacePut,calMonth,calView,calScope,CAL_VIEWS,CAL_EVENT,CAL_PRIORITY,
-  calendarEvents,calEventMine,calPeriod,calVisible,calDecisionsThisWeek,calWeekBounds,
+  calendarEvents,calEventMine,calPeriod,calInPeriod,calLegendHtml,calVisible,calDecisionsThisWeek,calWeekBounds,
   calToday,calChipText,calIcsFor,calUpcoming,calSummaryLines,calMonthGridHtml,calPanelHtml,
   CAL_AGENDA_DAYS,CAL_AGENDA_WINDOWS,CAL_AGENDA_ROWS,calAgendaDays,calSetAgendaDays,
   calSetView,calSetScope,calStep,openCalendarShare,renderCalendar});

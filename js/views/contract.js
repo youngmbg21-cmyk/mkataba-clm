@@ -5043,10 +5043,17 @@ function wsPaintRoundNeeds(c){
     if(window.openRedlineWorkbench) openRedlineWorkbench(c.id);
   });
 }
+/* The paper's lock state, said once on the tool bar's left (SAP batch 3).
+   Only a sealed agreement has one to say. */
+function wsLockLineHtml(c){
+  if(!c||c.status!=='Signed') return '';
+  return `${icon('lock','w-3.5 h-3.5')}<span>${esc(i18t(isUpload(c)?'ct_lockline_file':'ct_lockline'))}</span>`;
+}
 function wsPaintTabRowEnd(c){
   const end=document.getElementById('ws-tabrow-end');
   if(!end) return;
   end.innerHTML=wsTabRowEndHtml(c);
+  const ll=document.getElementById('ws-lockline'); if(ll) ll.innerHTML=wsLockLineHtml(c);
   if(window.rlWireTypeStep) rlWireTypeStep(end);
   if(end.querySelector('[data-sc-zoom]')) scWireControls(end);
   end.querySelector('#ws-to-nego')?.addEventListener('click',()=>{
@@ -5996,6 +6003,9 @@ function renderKeyTerms(c){
   try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(_){}
   paintOvBriefBtn(c);
   ovMapWire(host,c);
+  /* A TERM LONG ENOUGH TO SCROLL IN ITS CELL (the terms card never grows) is
+     reachable by keyboard too, so its hidden lines can be read. */
+  host.querySelectorAll('#ov-ess .ov-ess-g .sec-f-v').forEach(v=>{ if(v.scrollHeight>v.clientHeight+1) v.tabIndex=0; });
   /* ---- PRESSING A MARKED FIELD IS THE SAME ACT AS `Fix on Overview` ----
      focusKeyTerms is the one door: it opens the right section, turns its rows
      on and lands the caret in the box. TWO PLACES, ONE ACT — the signing list
@@ -6453,10 +6463,18 @@ function ovMapSvg(D){
   return s+'</svg>';
 }
 const OV_MAP_PILL={ g:'green', a:'amber', r:'ruby', s:'steel' };
+/* ONE ROW PER DUTY, DRAWN AS WHERE WE ARE'S SETTLED CARD (owner, 9 Oct 2026:
+   "should look similar to [Settled] … the line across the page plus header,
+   the single sentence plus checkmark on each obligation"): a mark, the duty
+   as one sentence (cut with an ellipsis, whole on hover), its date at the
+   right, a quiet line under it. The mark is a tick once done; an open duty
+   wears a ring in its state's colour — a tick there would say "done". */
+const OV_MAP_ST_WORD={ r:'ov_map_l_late', a:'ov_map_l_soon', s:'ov_map_l_later', g:'ov_map_done_h' };
 function ovMapDutyRow(x,D){
-  const when=x.due?(x.st==='g'?i18t('ov_tm_done_undated'):x.st==='r'?i18t('ov_tm_was_due',{ date:ovDay(x.due) }):i18t('ov_tm_due',{ date:ovDay(x.due) })):(x.st==='g'?i18t('ov_tm_done_undated'):i18t('ob_no_date'));
-  return `<div class="ov-map-ob" data-ov-duty="${esc(String(x.id||''))}"><div><span class="ov-map-obt">${esc(x.t)}</span><small>${esc(when)}${
-    x.cl?` · <span class="ov-map-cl">${esc(x.cl)}</span>`:''}</small></div>${x.amt&&D&&D.money?`<span class="ov-map-amt">${esc(ovMapMoney(D,x.amt))}</span>`:''}</div>`;
+  const day=x.due?ovDay(x.due):i18t('ob_no_date');
+  const sub=[esc(i18t(OV_MAP_ST_WORD[x.st]||'ov_map_l_later')), x.cl?esc(x.cl):'',
+    x.amt&&D&&D.money?`<span class="ov-map-amt">${esc(ovMapMoney(D,x.amt))}</span>`:''].filter(Boolean).join(' · ');
+  return `<div class="ov-map-ob is-${x.st}" data-ov-duty="${esc(String(x.id||''))}"><span class="ov-map-tick" aria-hidden="true">${x.st==='g'?'✓':'○'}</span><div><span class="ov-map-obt" title="${esc(x.t)}">${esc(x.t)}</span><small>${sub}</small></div><span class="ov-map-obd">${esc(day)}</span></div>`;
 }
 /* WHERE THE AGREEMENT STANDS IN ITS TERM: start → today → notice by → end,
    one bar, drawn only where a start and an end are both recorded. */
@@ -6497,14 +6515,16 @@ function ovMapPane(c,D,k){
       R.quote?`<h4>${esc(i18t('ov_map_wording'))}</h4><blockquote class="ov-map-quote">“${esc(R.quote)}”</blockquote>`:''}<div id="renewal-host" class="empty:hidden ov-map-decide" data-bare="1" data-compact="1"></div>`;
   }
   if(k==='ours'||k==='theirs'){
-    const list=D.duties[k], open=list.filter(x=>x.st!=='g'), late=list.filter(x=>x.st==='r').length;
-    const who=(k==='ours'?D.parties[0]:D.parties[1]).name;
-    const lede=(list.length?i18t('ov_map_side_lede',{ who, n:list.length, open:open.length, late }):i18t('ov_map_no_duties'))
-      +(D.pay[k]>0?' '+i18t('ov_map_side_pay',{ money:ovMapMoney(D,D.pay[k]) }):'');
-    const groups=[['r','ov_map_l_late'],['a','ov_map_l_soon'],['s','ov_map_l_later'],['g','ov_map_done_h']].map(([st,w])=>{
-      const xs=list.filter(x=>x.st===st); if(!xs.length) return '';
-      return `<div class="ov-map-grp"><h4><span class="ov-map-dot is-${st}"></span>${esc(i18t(w))} · ${xs.length}</h4><div class="ov-map-rows">${xs.map(x=>ovMapDutyRow(x,D)).join('')}</div></div>`; }).join('');
-    return `<h3>${esc(i18t(k==='ours'?'ov_map_ours_h':'ov_map_theirs_h'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${groups}`;
+    /* THE SETTLED CARD'S SHAPE (owner, 9 Oct 2026): a header with its count
+       and a line across, then one flat list — late first, done last. What
+       the old sentence said is on the rows (each mark is its state); only
+       money still to pay rides the header's right. */
+    const list=D.duties[k];
+    const order=['r','a','s','g'], rows=order.flatMap(st=>list.filter(x=>x.st===st));
+    const pay=D.pay[k]>0?i18t('ov_map_side_pay',{ money:ovMapMoney(D,D.pay[k]) }):'';
+    return `<div class="ov-map-ch"><h3>${esc(i18t(k==='ours'?'ov_map_ours_h':'ov_map_theirs_h'))} <span class="ov-map-tn">(${list.length})</span></h3>${
+      pay?`<span class="ov-map-ch-r">${esc(pay)}</span>`:''}</div>${
+      rows.length?`<div class="ov-map-list">${rows.map(x=>ovMapDutyRow(x,D)).join('')}</div>`:`<p class="ov-map-lede ov-map-none">${esc(i18t('ov_map_no_duties'))}</p>`}`;
   }
   return '';
 }
@@ -6516,7 +6536,7 @@ function ovMapPane(c,D,k){
 function ovMapHtml(c){
   const D=ovMapData(c); if(!D) return '';
   const tab=(k,w,n)=>`<button type="button" class="ov-map-tab" role="tab" data-ov-map-tab="${k}" aria-selected="false">${esc(i18t(w))}${n!=null?`<span class="ov-map-n">${n}</span>`:''}</button>`;
-  return `<div class="ov-map-grid" id="ov-map"><div class="ov-map-card"><div class="ov-map-top"><span class="ov-map-chipt"><i></i><span>${esc(i18t('ov_map_k_duty'))}</span></span><span class="ov-map-key">${
+  return `<div class="ov-map-grid" id="ov-map"><div class="ov-map-card"><div class="ov-map-top"><h3 class="ov-map-title">${esc(i18t('ov_map_k_duty'))} <span class="ov-map-tn">(${D.duties.ours.length+D.duties.theirs.length})</span></h3><span class="ov-map-key">${
       [['g','ov_map_l_done'],['a','ov_map_l_soon'],['r','ov_map_l_late'],['s','ov_map_l_later']].map(([t,k])=>
         `<span><i class="ov-map-dot is-${t}"></i>${esc(i18t(k))}</span>`).join('')}</span></div>
     <div class="ov-map-stage" data-ov-map-stage>${ovMapSvg(D)}${
@@ -7543,8 +7563,9 @@ function ktOverviewTermsHtml(c,opts={}){
   const rtLine=rtSay?`<small class="ov-pty-route" data-ov-route="1"><span style="font-weight:var(--w-strong)">${esc(i18t('ct_signing_route_email'))}:</span> ${esc(rtSay.email)}${
       rtSay.who?' \u00b7 '+esc(rtSay.who):''} \u00b7 ${esc(i18t('ct_signing_route_email_note'))}</small>`:'';
   const pyRows=(D?D.parties:[]).map(p=>`<div class="ov-pty"><span class="ov-pty-av" style="background:${p.tone[1]};color:${p.tone[2]}">${
-      esc(typeof deskInitials==='function'?deskInitials(p.name):String(p.name).slice(0,2))}</span><div><b>${esc(p.name)}</b><small>${
-      esc([p.role, p.us?i18t('ov_map_us_word'):'', p.where, p.email].filter(Boolean).join(' · '))}</small>${
+      esc(typeof deskInitials==='function'?deskInitials(p.name):String(p.name).slice(0,2))}</span><div><span class="ov-pty-nm"><b title="${esc(p.name)}">${esc(p.name)}</b>${p.us?`<span class="ov-pty-us">${esc(i18t('ov_pty_our_side'))}</span>`:''}</span>${(()=>{
+      const sub=[p.role, p.where, p.email].filter(Boolean).join(' · ');
+      return sub?`<small class="ov-pty-sub" title="${esc(sub)}">${esc(sub)}</small>`:''; })()}${
       (p===rtParty?rtLine:'')+p.signs.map(r=>`<small class="ov-pty-sg${r.signed?' is-done':''}">${esc(r.signed?(r.at?i18t('ov_map_signed_by',{ name:r.n, date:ovDay(r.at) }):i18t('ov_map_signed_by_nodate',{ name:r.n })):i18t('ov_map_signs',{ name:r.n }))}</small>`).join('')}</div></div>`).join('');
   /* IN THE EDIT POSTURE THE PARTIES ARE THEIR EDITORS — the block every party
      act already lives on (drawn bare, the name said once), the people on the
@@ -7565,7 +7586,7 @@ function ktOverviewTermsHtml(c,opts={}){
   const pyEdit=`<div class="ov-pty-list ov-dir" tabindex="-1"><div id="kt-parties-host"><div id="kt-people">${dir}</div></div>${
       ovAddressBookHtml(addrs)}${signersBtn?`<div class="ov-ess-more">${signersBtn}</div>`:''}</div>`;
   const pyN=D?D.parties.length:0;
-  const parties=`<div class="ov-ess-p" id="ov-parties"><div class="ov-ess-h"><span class="ov-ess-cap">${esc(i18t('py_parties'))} · ${pyN}</span>${
+  const parties=`<div class="ov-ess-p" id="ov-parties"><div class="ov-ess-h"><span class="ov-ess-t">${esc(i18t('py_parties'))} <span class="ov-ess-tn">(${pyN})</span></span>${
       pyLocked?`<span class="ov-ess-lock">${esc(i18t('py_locked'))}</span>`:''}${pyAdd}</div>${dealEd?pyEdit:`<div class="ov-pty-list" tabindex="-1">${pyRows}</div>`}</div>`;
   const hold=holdsIn(OV_ESS_FIELDS);
   const essActs=`${ed?`<button type="button" class="ui-btn ui-btn-sm" data-ov-edit="all">${
@@ -7575,7 +7596,7 @@ function ktOverviewTermsHtml(c,opts={}){
   /* AT REST THE TERMS ARE THE EIGHT (the redesign's rule: "render the terms
      and nothing else"); in Edit every field, fixed and occasional, is a box,
      exactly as before — so no term lost the one place it can be typed. */
-  const facts=`<div class="ov-ess-g" id="ov-facts"><div class="ov-ess-h"><span class="ov-ess-cap">${esc(i18t('ov_ess_terms'))}</span>${
+  const facts=`<div class="ov-ess-g" id="ov-facts"><div class="ov-ess-h"><span class="ov-ess-t">${esc(i18t('ov_ess_terms'))}</span>${
       hold?`<span class="ov-ess-hold">${esc(i18tn('ov_hold_n',hold,{n:hold}))}</span>`:''}</div>
     <div id="kt-rows"></div>${dealEd?ovEssEditHtml(c):ovEssRestHtml(c,marks)}${map?'':renewalHost}</div>`;
   /* MOVE TO ANOTHER STREAM IS NOT A SECOND DOOR. The stream picker is
@@ -7966,6 +7987,26 @@ const histTone=e=>{ const m=HIST_KIND[e&&e._k]||HIST_KIND.system;
    session but not stored on the contract: it is how somebody is reading, not
    something true about the agreement. */
 let _histDetail=false;
+/* THE HISTORY TAB, AS DRAWN (SAP batch 3): a search over the trail and the
+   five filters folded behind one Filter button — per sitting, in memory. A
+   filter in force keeps the fold open, so nothing narrows the list unseen. */
+let _histQ='', _histFiltersOpen=false;
+/* An entry's outcome as one word in a tag at the row's end: a decision's own
+   answer, else the trail's action word (a RECORD word, kept as written). */
+function histOutcome(e){
+  if(!e) return null;
+  if(e._k==='decided'&&e.outcome==='accepted') return { w:i18t('ct_hf_accepted'), t:'g' };
+  if(e._k==='decided'&&e.outcome==='rejected') return { w:i18t('ct_hf_rejected'), t:'r' };
+  if(e._k==='withdrawn') return { w:i18t('ct_hf_withdrawn'), t:'n' };
+  if(e._k==='proposed') return { w:i18t(e.outcome==='pending'?'ct_hf_pending':'ct_hist_proposed'), t:e.outcome==='pending'?'a':'n' };
+  if(e._k==='round-closed'||e._k==='link'||e._k==='copies') return { w:i18t('ct_hist_sent'), t:'n' };
+  if(e._k==='signature') return { w:i18t('ct_hist_signed'), t:'g' };
+  if(e._k==='sealed') return { w:i18t('ct_hist_sealed'), t:'g' };
+  const a=String((e._audit&&e._audit.action)||'').trim();
+  if(!a) return null;
+  const t=/^(signed|sealed|approved|accepted|executed)/i.test(a)?'g':/^(reject|declin|refus)/i.test(a)?'r':/^counter/i.test(a)?'a':'n';
+  return { w:a, t };
+}
 function _histKey(at,txt){
   return String(at||'').slice(0,10)+'|'+String(txt||'').toLowerCase()
     .replace(/[^a-z0-9]+/g,' ').trim().slice(0,48);
@@ -8075,12 +8116,15 @@ function roomHistoryHtml(c,f={}){
      for every caller that reads it, and the count below still counts it. A
      stable sort reversed puts two entries stamped at one instant in the order
      they were written, latest first, which is what newest first means. */
-  const evs=roomHistoryEvents(c,f).slice().reverse();
+  const q=String(_histQ||'').trim().toLowerCase();
+  const evs=roomHistoryEvents(c,f).slice().reverse()
+    .filter(e=>!q||[e.text,e.actor,e.clauseLabel].some(x=>String(x||'').toLowerCase().includes(q)));
   /* The total is the UNFILTERED list, counted the same way — merged twins are
      one event in both, so "7 of 11" can never appear over a page that is
      hiding nothing. */
   const all=roomHistoryEvents(c,{}).length;
-  const on=Object.values(f||{}).filter(Boolean).length;
+  const onF=Object.values(f||{}).filter(Boolean).length;
+  const on=onF+(q?1:0);
   const row=e=>{
     const m=HIST_KIND[e._k]||HIST_KIND.system;
     /* ---- THE TIME LEADS THE ROW (owner-approved render, 24 Aug 2026) ----
@@ -8097,7 +8141,6 @@ function roomHistoryHtml(c,f={}){
     /* WHO, on its own line under WHAT — the design's shape, and it is what the
        full width bought. The ROUND leaves this run for a marker at the right
        edge, so the eye can find where one round ends without reading. */
-    const meta=[e.actor||'',e.clauseLabel||''].filter(Boolean).map(esc).join(' · ');
     /* ---- THE ROUND IS "R1", AND AN ENTRY IN NO ROUND SAYS SO (24 Sep 2026) ----
        The canvas's own marker. "Round 1" beside every one of a round's rows
        was the same word repeated down the right wall; the short form is the
@@ -8105,9 +8148,6 @@ function roomHistoryHtml(c,f={}){
        rather than a code. A row with no round — created, sent, signed — draws
        the canvas's dash rather than nothing, so the column holds its width and
        an empty cell cannot be read as a round nobody printed. */
-    const rd=(e.round!=null&&e.round!=='')
-      ?`<span class="hist-round" title="${esc(i18t('ct_round_n',{n:e.round}))}">${esc(i18t('ct_round_short',{n:e.round}))}</span>`
-      :`<span class="hist-round is-none" aria-hidden="true">—</span>`;
     /* ---- THE WORDING THAT CHANGED, UNDER THE EVENT THAT CHANGED IT ----
        The exported report prints each proposal's redline and the page did not,
        which is why the export read as the fuller record. Same builder, same
@@ -8135,13 +8175,29 @@ function roomHistoryHtml(c,f={}){
        page's own surface, because the line that joins the entries runs behind
        it (the stylesheet). Still HIST_KIND and HIST_OUTCOME_TONE, still read
        through histTone — a refusal is still ruby. */
+    /* THE DRAWING'S ROW (SAP batch 3): the time, the dot, the event with its
+       round and clause on one line and the sentence under it, the person with
+       their initials, and the outcome as a tag at the row's end. */
+    const oc=histOutcome(e);
+    const av=(e.actor&&typeof window.regAvatarHtml==='function')?regAvatarHtml(e.actor):'';
+    const rchip=(e.round!=null&&e.round!=='')?`<span class="hist-rchip" title="${esc(i18t('ct_round_n',{n:e.round}))}">${esc(i18t('ct_round_short',{n:e.round}))}</span>`:'';
+    const cl=e.clauseLabel?`<span class="hist-cl">${esc(e.clauseLabel)}</span>`:'';
     return `<div class="hist-ev" data-hist-at="${esc(e.at||'')}">
-      <span class="hist-when"><span class="hist-day">${esc(w.day)}</span>${w.time?`<span class="hist-time">${esc(w.time)}</span>`:''}</span>
+      <span class="hist-when">${w.time?`<span class="hist-time">${esc(w.time)}</span>`:`<span class="hist-day">${esc(w.day)}</span>`}</span>
       <span class="hist-dot" style="border-color:${histTone(e)}" title="${esc(m.mark)}" aria-hidden="true"></span>
-      <div class="hist-body"><div class="hist-text">${esc(e.text||'')}</div>
-      <div class="hist-meta">${meta}${also?(meta?' · ':'')+also:''}</div>${body}${why}${reply}</div>
-      ${rd}</div>`;
+      <div class="hist-body"><div class="hist-text">${esc(e.text||'')}${rchip}${cl}</div>
+      ${also?`<div class="hist-meta">${also}</div>`:''}${body}${why}${reply}</div>
+      <span class="hist-who">${e.actor?`${av}<span>${esc(e.actor)}</span>`:''}</span>
+      <span class="hist-oc">${oc?`<span class="hist-pill is-${oc.t}">${esc(oc.w)}</span>`:''}</span></div>`;
   };
+  /* THE DAY IS A HEADING OVER ITS ENTRIES, with its count (as drawn). */
+  const dayKey=e=>String(e.at||'').slice(0,10);
+  const dayLabel=e=>{ const d=new Date(e.at); if(isNaN(d)) return dayKey(e)||'\u2014';
+    try{ return d.toLocaleDateString((typeof langLocale==='function')?langLocale():undefined,{day:'numeric',month:'short',year:'numeric'}); }catch(_){ return dayKey(e); } };
+  const grouped=()=>{ let out='', k=null, buf=[];
+    const flush=()=>{ if(!buf.length) return;
+      out+=`<div class="hist-day-h"><b>${esc(dayLabel(buf[0]))}</b> · ${esc(i18tn('ct_hist_events',buf.length,{n:buf.length}))}</div>${buf.map(row).join('')}`; buf=[]; };
+    evs.forEach(e=>{ const kk=dayKey(e); if(kk!==k){ flush(); k=kk; } buf.push(e); }); flush(); return out; };
   /* ---- ONE SWITCH, ONE HANDLE, AND NO LID OVER IT ----
      "Whose asks am I looking at" used to be answered TWICE on this head: a
      joined Everyone / Ours / Theirs pill up here, and the Side dropdown in the
@@ -8178,6 +8234,8 @@ function roomHistoryHtml(c,f={}){
       <span class="hist-cap">${esc(i18t('ct_hist_reading'))} · ${on?esc(i18t('ct_hist_n_of',{n:evs.length,all}))
         :esc(i18tn('ct_hist_events',all,{n:all}))}</span>
       <span style="flex:1;min-width:4px"></span>
+      <label class="hist-q"><span class="sr-only">${esc(i18t('ct_hist_search'))}</span>${icon('search','w-3.5 h-3.5')}<input id="hist-q" type="search" value="${esc(_histQ)}" placeholder="${esc(i18t('ct_hist_search'))}" autocomplete="off"></label>
+      <button id="hist-filter-btn" class="ui-btn" aria-expanded="${(_histFiltersOpen||onF)?'true':'false'}" aria-controls="hist-filters">${icon('filter','w-3.5 h-3.5')}${esc(i18t('ct_hist_filter'))}${onF?` <span class="hist-fn">${onF}</span>`:''}${icon('chevD')}</button>
       ${''/* The long reading. Named for what pressing it does, not for the mode
              it is in — "Detailed" tells you nothing about which way you are
              about to go. */}
@@ -8195,14 +8253,14 @@ function roomHistoryHtml(c,f={}){
         </div>
       </div>
     </div>
-    <div id="hist-filters" style="margin-bottom:10px">${roomHistoryFiltersHtml(c,f)}</div>
+    <div id="hist-filters" style="margin-bottom:10px"${(_histFiltersOpen||onF)?'':' hidden'}>${roomHistoryFiltersHtml(c,f)}</div>
     <div id="ht-verify-result"></div>
     ${''/* THE TRAIL IS ONE ELEMENT (24 Sep 2026) so the line joining the rings
            knows where it starts and stops: it begins at the first entry's ring
            and ends at the last's, and a filter that leaves one entry draws no
            line at all. The empty sentence stays outside it — there is nothing
            to join. */}
-    ${evs.length?`<div class="hist-trail">${evs.map(row).join('')}</div>`
+    ${evs.length?`<div class="hist-trail">${grouped()}</div>`
       :`<p class="hist-empty">${on?esc(i18t('ct_hist_none_match')):esc(i18t('ct_hist_none_yet'))}</p>`}`;
 }
 function roomHistoryFiltersHtml(c,f){
@@ -8254,6 +8312,10 @@ function roomPaintHistory(c,f={}){
   /* Clear puts every filter back, side among them — one way back rather than
      two, now that side is one of the five rather than a control of its own. */
   host.querySelector('#ht-clear')?.addEventListener('click',()=>roomPaintHistory(c,{}));
+  host.querySelector('#hist-filter-btn')?.addEventListener('click',()=>{ _histFiltersOpen=!_histFiltersOpen; roomPaintHistory(c,read()); });
+  const qi=host.querySelector('#hist-q');
+  if(qi) qi.addEventListener('input',()=>{ _histQ=qi.value; const at=qi.selectionStart; roomPaintHistory(c,read());
+    const again=document.getElementById('hist-q'); if(again){ again.focus(); try{ again.setSelectionRange(at,at); }catch(_){} } });
   host.querySelector('#hist-detail')?.addEventListener('click',()=>{
     _histDetail=!_histDetail; roomPaintHistory(c,read());
   });
@@ -9977,9 +10039,12 @@ function roomFactsHtml(c,opts={}){
       let more=0, all='';
       try{ if(typeof partiesLead==='function'){ const L=partiesLead(c);
         more=L.more||0; all=L.all.join(' \u00b7 '); } }catch(_){}
-      return more
+      /* THE INITIALS LEAD THE NAME (SAP benchmark, batch 3): the list rows'
+         own badge, so the room says who it is with in the same face. */
+      const av=(typeof window.regAvatarHtml==='function')?window.regAvatarHtml(c.counterparty):'';
+      return `<span class="room-cp">${av}${more
         ? `<span title="${esc(all)}">${esc(c.counterparty)}<i class="room-py-n">+${more}</i></span>`
-        : esc(c.counterparty);
+        : `<span>${esc(c.counterparty)}</span>`}</span>`;
     })()],
     [i18t('reg_col_value'), money],
     [i18t('ct_term_label'), termCell],
@@ -10075,6 +10140,13 @@ function roomHeadSubHtml(c, opts = {}){
      rewritten; one that names no year is simply not printed here. */
   if (c && c.lastAction && /\b(19|20)\d{2}\b/.test(String(c.lastAction)))
     bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
+  /* THE LEAD ON NEGOTIATE'S LINE (SAP benchmark, batch 4, as drawn): who
+     speaks for us in this negotiation, or "nobody yet". Negotiate's head is
+     the one that draws no round-needs slot (opts.needs === false). */
+  if (c && opts.needs === false) {
+    let lead = null; try { lead = (typeof window.deskLead === 'function') ? deskLead(c) : null; } catch (_) { lead = null; }
+    bits.push(`${esc(i18t('dk_lead_label'))}: <b class="room-sub-lead">${esc((lead && lead.name) || i18t('ct_lead_nobody'))}</b>`);
+  }
   const needs = opts.needs ? `<span id="ws-round-needs-slot">${negoRoundNeedsHtml(c)}</span>` : '';
   /* ---- WHO ELSE HAS THIS OPEN (idea 5, 4 Oct 2026) ----
      A SLOT, painted by the beat rather than built here, because this is the
@@ -10883,7 +10955,6 @@ function renderWorkspace(){
       .catch(e=>{ if(state.activeId===c.id) content.innerHTML=`<div class="grid place-items-center min-h-screen text-sm text-rose-600">${i18t('ct_could_not_load',{err:e.message})}</div>`; });
     return;
   }
-  const locked=c.status==='Signed';
   /* The sheet's own rules — the front matter, the parties' lines at the foot —
      live with the workbench because both tabs draw them from one builder. The
      call is idempotent and it is made BEFORE the paint, so the first render of
@@ -10978,6 +11049,17 @@ function renderWorkspace(){
              contract had shown both a minute earlier. That is the exact fault
              this file already records for the action bar one function above;
              the lesson was applied there and not here. */}
+    </div>
+    ${''/* ---- THE PAPER'S TOOLS HAVE THEIR OWN BAR (SAP benchmark, batch 3,
+           owner 9 Oct 2026: "Build exactly the drawings of SAP way") ----
+           On Document and Signing the drawing puts the copy, page, zoom and
+           Focus controls on a thin row under the tabs, with the paper's lock
+           state said on its left — which replaces the dark banner that sat
+           over the paper. The slot keeps its id and its painter
+           (wsPaintTabRowEnd); the row folds away wherever the slot is empty. */}
+    <div class="room-toolrow">
+      <span id="ws-lockline" class="room-lockline">${wsLockLineHtml(c)}</span>
+      <span style="flex:1"></span>
       <div id="ws-tabrow-end" style="display:flex;align-items:center;gap:14px;flex:none">${wsTabRowEndHtml(c)}</div>
     </div>
 
@@ -11051,8 +11133,8 @@ function renderWorkspace(){
                  The two states that are NOT about the reading rule — an
                  executed document, and a received one — still say so here,
                  because those are facts about the paper itself. */}
-          ${locked?`<div class="mb-5 flex items-center gap-2 rounded-[4px] bg-brand-900 text-brand-100 px-3 py-2 text-[11px]" style="max-width:660px;margin:0 auto 14px">${icon('lock','w-3.5 h-3.5')}<span>This document is executed and locked.${isUpload(c)?' The sealed file is bound by its SHA-256 fingerprint.':' Fields are read-only.'}</span></div>`
-            :''}
+          ${''/* The executed-and-locked banner LEFT the paper (SAP batch 3):
+                 the same fact is the tool bar's lock line (wsLockLineHtml). */}
           ${''/* ---- AND THE RECEIVED-DOCUMENT STRIP IS GONE (owner-asked
                  26 Aug 2026, ringing it: delete it and put nothing in its
                  place) ----
@@ -11099,9 +11181,15 @@ function renderWorkspace(){
                renderSignSide, signBlockHtml, renderSignButton and
                wireCompliance all fill exactly where they filled before. What
                changed is which column it sits in. */}
-        <div data-doc-col="sign" style="display:none;flex-direction:column;gap:var(--s-3)">
-          <div id="sign-side" style="display:flex;flex-direction:column;gap:var(--s-3)"></div>
-          <div style="${CARD};padding:var(--s-4) 18px;display:flex;flex-direction:column;gap:var(--s-3)">
+        ${''/* ONE PANEL WITH DIVIDERS (SAP benchmark, batch 3, owner 9 Oct 2026):
+               the drawing draws the signing column as one card, the sealed
+               record's two acts on top (#sign-seal-acts, filled by
+               renderSignButton once signed), then the sections, each ruled off
+               from the one above. */}
+        <div data-doc-col="sign" class="sign-one" style="display:none;flex-direction:column">
+          <div id="sign-seal-acts" class="sign-seal-acts"></div>
+          <div id="sign-side" style="display:flex;flex-direction:column"></div>
+          <div class="sign-one-foot" style="padding:var(--s-4) 18px;display:flex;flex-direction:column;gap:var(--s-3)">
             <div id="sign-block"></div>
             ${''/* THE INTENT TICK-BOX IS GONE FROM HERE (13 Sep 2026): it is
                    the signature pad's first line now — see captureSignature.
@@ -11298,7 +11386,7 @@ function renderWorkspace(){
              The pane carries no padding of its own now: the head, the filters
              and each row are ruled edge to edge, which is the design's own
              shape and cannot be done from a padded box. */}
-      <div id="ws-history-pane" style="${CARD};align-self:start;max-width:var(--room-measure);width:100%;margin:0 auto"></div>
+      <div id="ws-history-pane" style="${CARD};align-self:start;width:100%"></div>
       ${''/* The audit-trail CARD has gone: its entries are on the one timeline
              now, marked as system events. The element stays, empty and hidden,
              because renderAuditSection is called from a dozen places and a
@@ -13289,8 +13377,10 @@ function docThreadTopHtml(c, rows, has){
       return `<button type="button" class="doc-th-chip is-${g}" data-th-tone="${g}" aria-pressed="${on?'true':'false'}"${dead?' aria-disabled="true"':''}
         title="${esc(tip)}"><i aria-hidden="true"></i>${esc(name)} <b>${n}</b></button>`;
     })).join('');
-  return `<div class="doc-th-hd"><span class="doc-th-title">${esc(i18t('th_clauses'))}</span>${docThreadSumHtml(rows,'doc-th-sum')}${close}</div>
-    <div class="doc-th-chips" role="group" aria-label="${esc(i18t('th_filter_label'))}">${chips}</div>`;
+  /* ONE LINE, AS DRAWN (SAP batch 3): "Clauses (n)" and the colour filter as
+     one segmented control on the head's right. */
+  return `<div class="doc-th-hd"><span class="doc-th-title">${esc(i18t('th_clauses'))} <span class="doc-th-tn">(${clauses.length})</span></span>${docThreadSumHtml(rows,'doc-th-sum')}
+    <div class="doc-th-chips" role="group" aria-label="${esc(i18t('th_filter_label'))}">${chips}</div>${close}</div>`;
 }
 /* THE DOOR on the tab row: drawn only while there is a panel for the drawer
    to cover and a clause to show, pressed while the drawer is open, carrying
@@ -13887,7 +13977,7 @@ async function docAiRead(c,action,text){
   const quote=`<div style="font-size:var(--t-label);margin-top:var(--s-1);opacity:.85;font-style:italic;max-height:76px;overflow-y:auto">“${esc(text)}”</div>`;
   if(window.aiPush) aiPush('user',{text:`${esc(action.label)}${quote}`});
   if(!window.copilotAvailable||!copilotAvailable()){
-    if(window.aiPush) aiPush('assistant',{text:'The Copilot is not connected yet. Connect it under Settings &amp; Rules &rarr; Copilot engine, then try again.'});
+    if(window.aiPush) aiPush('assistant',{text:'The Copilot is not connected yet. Connect it under Settings &rarr; Copilot engine, then try again.'});
     if(window.renderAIFeed) renderAIFeed();
     return;
   }
@@ -14524,13 +14614,17 @@ function signBlockHtml(c){
 }
 function renderSignButton(c){
   const wrap=document.getElementById('sign-wrap'); if(!wrap) return;
+  { const sa=document.getElementById('sign-seal-acts'); if(sa&&c.status!=='Signed') sa.innerHTML=''; }
   if(c.status==='Signed'){
+    /* THE SEALED RECORD'S TWO ACTS LEAD THE PANEL (SAP batch 3): Verify seal
+       is the filled one; the foot says the state in one quiet line. */
+    const acts=document.getElementById('sign-seal-acts');
+    const actsHtml=`<button id="verify-seal" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} ${esc(i18t('ct_verify_seal'))}</button>
+        <button id="evidence-dl" class="ui-btn">${icon('download','w-3.5 h-3.5')} ${esc(i18t('ct_evidence_pack'))}</button>`;
+    if(acts) acts.innerHTML=actsHtml;
     wrap.innerHTML=`
-      <div class="flex items-center justify-center gap-2 rounded-xl bg-brand-50 border border-brand-200 text-brand-700 py-3 text-sm font-medium">${icon('check2')} Executed &amp; sealed</div>
-      <div class="mt-2 grid grid-cols-2 gap-2">
-        <button id="verify-seal" class="ui-btn">${icon('shield','w-3.5 h-3.5')} Verify seal</button>
-        <button id="evidence-dl" class="ui-btn">${icon('download','w-3.5 h-3.5')} Evidence pack</button>
-      </div>
+      <div class="sign-sealed-line">${icon('check2','w-3.5 h-3.5')} ${esc(i18t('ct_sealed_line'))}</div>
+      ${acts?'':`<div class="sign-seal-acts">${actsHtml}</div>`}
       ${distributionPanelHtml(c)}`;
     document.getElementById('verify-seal').addEventListener('click',()=>verifySeal(c));
     document.getElementById('evidence-dl').addEventListener('click',()=>downloadEvidence(c));
@@ -15391,7 +15485,9 @@ function renderSignSide(c){
      the node tests without the negotiation module on the floor. */
   const closed=c.status==='Signed'||!!(window.negoExecuted&&negoExecuted(c));
   const may=canEdit()&&!closed;
-  const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-sm);border-radius:var(--radius-lg);padding:13px 15px';
+  /* A SECTION OF THE ONE PANEL, NOT A CARD OF ITS OWN (SAP batch 3): the
+     panel (.sign-one) draws the card; each section is ruled off by the sheet. */
+  const CARD='padding:13px 15px';
   const H='margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)';
   /* `clear` asks for the card's other state — "nothing is in the way" — and
      only while the contract is still open. See approvalChainHtml. */

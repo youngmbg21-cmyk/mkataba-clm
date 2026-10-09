@@ -125,7 +125,7 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     const shape = await page.evaluate(() => {
       const seen = s => { const e = document.querySelector(s); if (!e) return null;
         const r = e.getBoundingClientRect(); const cs = getComputedStyle(e);
-        return { w: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.y),
+        return { w: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.y), x: Math.round(r.x),
           on: r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' }; };
       return { head: seen('.cal-head'), bar: seen('.cal-bar'),
         grid: seen('.cal-grid'), panel: seen('.cal-panel'),
@@ -136,6 +136,7 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
         scope: [...document.querySelectorAll('[data-cal-scope]')].map(a => a.textContent.trim()),
         acts: [...document.querySelectorAll('.cal-acts > button')].map(b => b.textContent.replace(/\s+/g, ' ').trim()),
         legend: [...document.querySelectorAll('.cal-legend span')].map(s => s.textContent.trim()),
+        kindsOnMonth: new Set(calVisible(calendarEvents()).filter(e => calInPeriod(e, calPeriod())).map(e => e.type)).size,
         dow: [...document.querySelectorAll('.cal-grid .cal-dow span')].map(s => s.textContent.trim()) };
     });
     /* ---- RE-POINTED IN PLACE 21 Sep 2026 (Young: the calendar must look
@@ -152,9 +153,14 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
       shape.pageHead.trim() === '', shape.pageHead.slice(0, 60));
     check('1 the title is the nav\'s own word, not a second name for the page',
       shape.title.trim() === 'Calendar', shape.title);
-    check('1 it says how many decisions fall this week', /decision|Nothing to decide/i.test(shape.stat), shape.stat);
-    check('1 two views, and the live one carries a count',
-      shape.tabs.length === 2 && /Month\s*\d+/.test(shape.tabs[0]), shape.tabs);
+    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the owner's
+       "go"; the drawing is the target): the drawing's head is the name, the
+       month stepper and the controls on one row. The "decisions this week"
+       line and the count on Month are not in it — the month and Next 14 days
+       already say both. Asked as their absence, so they cannot creep back. */
+    check('1 the head prints no decisions line (the drawing has none)', shape.stat === '', shape.stat);
+    check('1 two views, plain words, no count on the live one',
+      shape.tabs.length === 2 && shape.tabs[0] === 'Month', shape.tabs);
     /* ---- ONE WHITE BAND, NOT TWO (owner-reported 24 Aug 2026: "remove the
            line in the highlighted area") ----
        The head and the control bar are two elements, both white and touching,
@@ -191,13 +197,20 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
        that. The panel was a 304px column beside the grid, which made the
        month's own cells the narrowest thing on the page. Both still draw, and
        now they measure the SAME width, which is the stack. */
-    check('1 the month grid runs the page, with the panel stacked under it',
-      shape.grid && shape.panel && shape.panel.w === shape.grid.w
-        && shape.panel.y > shape.grid.y,
+    /* RE-POINTED AGAIN 9 Oct 2026 (SAP benchmark, batch 2): the drawing puts
+       Next 14 days BESIDE the month, a narrower card on the right whose top
+       sits level with the month's. */
+    check('1 the month runs the page, with Next 14 days beside it on the right',
+      shape.grid && shape.panel && shape.panel.w < shape.grid.w
+        && shape.panel.x > shape.grid.x + shape.grid.w - 1 && Math.abs(shape.panel.y - shape.grid.y) < 40,
       { grid: shape.grid && shape.grid.w, panel: shape.panel && shape.panel.w,
         gridY: shape.grid && shape.grid.y, panelY: shape.panel && shape.panel.y });
     check('1 the week starts on Monday', shape.dow[0] && /^M/i.test(shape.dow[0]), shape.dow);
-    check('1 four tones in the legend', shape.legend.length === 4, shape.legend);
+    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2): the drawing's
+       key names only the kinds that month carries. A relation, so it holds on
+       whatever day this runs: one key entry per kind on the month, no more. */
+    check('1 the key names exactly the kinds on the month', shape.legend.length === shape.kindsOnMonth,
+      { legend: shape.legend, kinds: shape.kindsOnMonth });
 
     /* ---- 2. THE OWNER'S ONE CONSTRAINT ---- */
     for (const [w, hh, name] of [[1500, 900, 'a desk'], [1440, 900, 'MacBook'],
@@ -357,7 +370,10 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
       !noAdd.text && !noAdd.btn, noAdd);
 
     /* ---- 7. EXPORT REALLY PRODUCES A CALENDAR FILE ---- */
+    /* Export and Share live in the ⋯ menu now (SAP benchmark, batch 2), so
+       the reader opens it first, as a reader would. */
     const dl = page.waitForEvent('download', { timeout: 9000 });
+    await page.click('#cal-more');
     await page.click('#cal-export');
     const file = await dl.catch(() => null);
     check('7 Export downloads a file', !!file, file && file.suggestedFilename());
@@ -377,6 +393,7 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     }
 
     /* ---- 8. SHARE REALLY REACHES A COLLEAGUE ---- */
+    await page.click('#cal-more');
     await page.click('#cal-share');
     await pause(700);
     await page.screenshot({ path: path.join(OUT, '04-share.png') });

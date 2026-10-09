@@ -130,7 +130,8 @@ const DEAL = {
         parties: txt('.ds-pch'), steps: txt('.ds-j li'),
         now: (el.querySelector('.ds-j li.is-now b') || {}).textContent || '',
         done: el.querySelectorAll('.ds-j li.is-done').length,
-        facts: txt('.ds-facts > div'), points: txt('.ds-li'), lately: txt('.ds-late'),
+        /* RE-POINTED 9 Oct 2026 (SAP batch 3): the open points are table rows. */
+        facts: txt('.ds-facts > div'), points: txt('.ds-pt'), lately: txt('.ds-late'),
         data: typeof dealStands === 'function' ? dealStands(getContract('MK-D1')) : null };
     });
     ok('2b it names every party, with what each one does',
@@ -153,8 +154,11 @@ const DEAL = {
       JSON.stringify((S && S.all || '').match(/\b(you|your|them|their|us|our)\b/i) || null));
 
     /* 4. AN OPEN POINT IS A CLAUSE */
-    ok('4a the open point is named by its clause, and by who holds it',
-      !!S && S.points.some(p => /Liability/i.test(p) && /Nordbygg/.test(p)), JSON.stringify(S && S.points));
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3): the row names the PARTY that
+       proposed it ("Proposed by", as drawn) — still a party, never a person. */
+    const liab = S && S.data && S.data.points.find(p => /Liability/i.test(p.clause));
+    ok('4a the open point is named by its clause, and by the party that proposed it',
+      !!S && !!liab && !!liab.by && S.points.some(p => /Liability/i.test(p) && p.includes(liab.by)), JSON.stringify(S && S.points));
     ok('4b and no change id is printed — CHG-3 means nothing to anyone outside',
       !!S && !/CHG-/.test(S.all));
 
@@ -165,8 +169,9 @@ const DEAL = {
       leaks.length === 0, leaks.join(', ') || 'none');
     ok('5b and nothing from the internal review or the notes is on it',
       !!S && !/review/i.test(S.all) && !S.all.includes('Zanzibarium'));
-    ok('5c it says it is the same page every party sees (the disclaimer went, 4 Oct 2026)',
-      !!S && /same page every party sees/i.test(S.all) && !/never shows/i.test(S.all));
+    /* RE-POINTED 9 Oct 2026: the drawing says it as a tag beside the title. */
+    ok('5c it says every party sees it (the disclaimer went, 4 Oct 2026)',
+      !!S && /Seen by every party/i.test(S.all) && !/never shows/i.test(S.all));
 
     /* 6. IT SPENDS NOTHING */
     ok('6a drawing it called no generative route', ai.length === 0, ai.join(', ') || 'none');

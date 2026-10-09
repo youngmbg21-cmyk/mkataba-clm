@@ -6360,7 +6360,28 @@ function redlineLayoutCss(){
          rather than a dark fill; "needs you" and "All negotiations" are the
          outlined everyday buttons the Document tab's row uses. The id lifts
          each rule over the scoped ones above without !important. */}
-  #view-redline .rl-tabrow{background:transparent}
+  ${''/* …AND BOTH ARE WHITE AGAIN (SAP benchmark, batch 3, 9 Oct 2026): the
+         contract's head went back to a white band, as drawn, so the row that
+         reads like the Document tab's is white with it — Focus still mimics
+         the Document tab (focus-mimics-document 5b), and the head reads the
+         same on both pages (Young, 12 Sep). */}
+  #view-redline .rl-tabrow{background:var(--color-surface)}
+  ${''/* ---- NEGOTIATE AS DRAWN (SAP benchmark, batch 4, owner 9 Oct 2026:
+         "Keep the Name Redline otherwise, build") ---- the facts strip steps
+         aside as on the Document tab, so the paper starts higher; the two
+         parties' colour keys leave the tab row for a thin row of their own
+         under it; the way back stands left of the name ("in-head", see
+         shellCrumbAdopt) and reads as a quiet link. */}
+  #view-redline .room-facts{display:none}
+  #view-redline .rl-keyrow{flex:none;display:flex;align-items:center;background:var(--color-surface);
+    padding:7px var(--s-6);box-shadow:inset 0 -1px var(--color-divider)}
+  #view-redline .rl-keyrow .rl-ctl-legend{margin:0;font-size:var(--t-meta)}
+  #view-redline .room-name > .room-crumb-back.in-head{appearance:none;-webkit-appearance:none;display:inline-flex;align-items:center;gap:4px;flex:none;
+    background:none;border:0;padding:0 10px 0 0;margin:0;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+  #view-redline .room-name > .room-crumb-back.in-head .crumb-ring{display:inline-grid;place-items:center;border:0;width:auto;height:auto;background:none}
+  #view-redline .room-name > .room-crumb-back.in-head svg{width:12px;height:12px}
+  #view-redline .room-name > .room-crumb-back.in-head:hover .crumb-back-word{text-decoration:underline}
+  #view-redline .room-name > .room-crumb-back.in-head:focus-visible{outline:2px solid var(--focus-color,var(--color-accent-600));outline-offset:2px;border-radius:var(--radius)}
   #view-redline .rl-boardseg{height:auto;align-self:stretch;padding:0 14px;color:var(--color-neutral-600);
     font-weight:var(--w-label);background:none;border-radius:0;box-shadow:none}
   #view-redline .rl-boardseg:hover{color:var(--color-text);background:none}

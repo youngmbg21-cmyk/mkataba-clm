@@ -653,8 +653,13 @@ const REG_COL_W_NEGO    = [6,39,14,9,13,11,8];
    ("balance is key": a reader moving between the pages sees the same
    edges). Whose move is shorter than a stage and simply has more air. */
 const REG_COL_KEYS_INS      = ['mk','counterparty','stage','value'];
-const REG_COL_KEYS_NEGO_INS = ['mk','counterparty','move','value'];
-const REG_INS_COL_PX = { mk:84, stage:216, move:216, value:124 };
+/* THE DRAWING'S COLUMNS ON NEGOTIATIONS (SAP benchmark, owner-approved 9 Oct
+   2026): the round, what the changes ask of whom, and how long it has waited
+   — whose move is the band and the panel's pill, so it is not a column too. */
+const REG_COL_KEYS_NEGO_INS = ['mk','counterparty','round','changes','waiting'];
+/* round + changes + waiting = stage + value (340), so the reference and the
+   counterparty stay cut identically on both seats (inspector-verify 2e). */
+const REG_INS_COL_PX = { mk:84, stage:216, move:216, value:124, round:72, changes:172, waiting:96 };
 function regInspecting(){ return regMode()!=='board' && typeof insFits==='function' && insFits(); }
 /* THE ONE READING OF WHICH COLUMNS THIS PAINT DRAWS — the head, the rows, an
    empty row's span and a band's span all ask it, so a column can never sit
@@ -1272,6 +1277,69 @@ function regApplySaved(name){
   const R=regState(); REG_SAVED_FIELDS.forEach(k=>{ R[k]=v.set[k]==null?(k==='view'?null:(k==='dir'?R.dir:(k==='sort'?R.sort:'all'))):v.set[k]; });
   R.page=1; return true;
 }
+/* ---- THE NEGOTIATIONS TABS: ALL · YOUR MOVE · THEIR MOVE · NEITHER (SAP
+   benchmark, owner-approved 9 Oct 2026) ----
+   The bands the list already groups by, as tabs in the band's own dress
+   (.reg-views/.reg-vtab); "With them to sign" draws only while it holds one.
+   Counts are the whole live book's, so a tab's number is the list behind it. */
+function regNegoBase(){
+  const R=regState(), keep=R.band; R.band=null;
+  try{ return regFiltered(); } finally { R.band=keep; }
+}
+function negoBandTabsHtml(R, book){
+  const n=negoBandCounts(book||[]);
+  const tabs=[['',i18t('reg_tab_all'),(book||[]).length],['you',i18t('reg_pill_your_move'),n.you],['them',i18t('reg_pill_their_move'),n.them],
+    ...(n.out?[['out',i18t('ngl_band_out'),n.out]]:[]),['clear',i18t('ngl_tab_neither'),n.clear]];
+  return `<div class="reg-views" role="tablist" aria-label="${esc(i18t('ngl_tabs_label'))}">${tabs.map(([k,label,c])=>{
+    const on=(R.band||'')===k;
+    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${!c&&!on?' is-zero':''}" data-reg-band="${k}" aria-selected="${on?'true':'false'}">${esc(label)}${c?`<span class="n">${c}</span>`:''}</button>`;
+  }).join('')}</div>`;
+}
+/* ---- THE CONTRACTS TABS ARE THE STAGES (owner-asked 9 Oct 2026: "contracts
+   page needs to resemble the negotiations page so add tabs in contracts that
+   navigate through the stages") ----
+   The Negotiations seat's tab row, in the same dress, writing the one fact the
+   Stage box used to write (R.stage) — so the Stage box is not drawn on this
+   seat: one door per fact. Counts are the list with every OTHER filter
+   applied, so a tab's number is the list behind it. A stage with nothing in it
+   stays quiet, as the Negotiations tabs do. */
+function regStageBase(){
+  const R=regState(), keep=R.stage; R.stage='all';
+  try{ return regFiltered(); } finally { R.stage=keep; }
+}
+const REG_STAGE_TABS=['all','Draft','Under Review','awaiting','Signed','Declined'];
+function regStageTabsHtml(R){
+  let base=[]; try{ base=regStageBase(); }catch(_){ base=[]; }
+  const shares=state.shareByContract||{};
+  /* a part of the book is never counted as the whole: regViewCount's own rule */
+  const whole=!(typeof API_MODE==='function'&&API_MODE()) || !(state.serverStats&&state.serverStats.total!=null)
+    || Number(state.serverStats.total)<=state.contracts.length;
+  const count=k=>!whole?0:k==='all'?base.length
+    : k==='awaiting'?base.filter(c=>{ const s=shares[c.id]; return !!s&&(s.state==='sent'||s.state==='opened'); }).length
+    : base.filter(c=>c.status===k).length;
+  const label=k=>{ const st=REG_STAGES.find(x=>x.k===k); return k==='all'?i18t('reg_tab_all'):(st?st.label:k); };
+  return `<div class="reg-views reg-stage-tabs" role="tablist" aria-label="${esc(i18t('reg_chip_stage'))}">${REG_STAGE_TABS.map(k=>{
+    const on=(R.stage||'all')===k, n=count(k);
+    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${whole&&!n&&!on?' is-zero':''}" data-reg-stage="${esc(k)}" aria-selected="${on?'true':'false'}">${esc(label(k))}${n?`<span class="n">${n}</span>`:''}</button>`;
+  }).join('')}</div>`;
+}
+/* ---- THE QUICK FILTERS ARE A BOX NOW (owner's pick, 9 Oct 2026) ----
+   The stage tabs took the tab row, so the shortcuts and the reader's saved
+   views became one labelled box on the bar — SAP's own variant box: the
+   shortcuts, then "Saved views", then the two acts (save the bar as a view;
+   forget the one in force). The fact is still R.view; a saved view still
+   lights when the bar matches it. regViewTabsHtml stays built for the record
+   and has no caller. */
+function regViewOptsHtml(R){
+  const cur=(()=>{ const m=regSavedViews().find(v=>regSavedMatches(v,R)); return m?('saved:'+m.name):(R.view||''); })();
+  const opt=(v,l)=>`<option value="${esc(v)}"${cur===v?' selected':''}>${esc(l)}</option>`;
+  const cnt=k=>{ const n=regViewCount(k); return n?` (${n})`:''; };
+  const saved=regSavedViews();
+  const lit=saved.find(v=>regSavedMatches(v,R));
+  return opt('',i18t('reg_tab_all'))+REG_VIEWS.map(v=>opt(v.k,v.label+cnt(v.k))).join('')
+    +(saved.length?`<optgroup label="${esc(i18t('reg_qf_saved'))}">${saved.map(v=>opt('saved:'+v.name,v.name)).join('')}</optgroup>`:'')
+    +`<optgroup label="${esc(i18t('reg_qf_acts'))}">${opt('act:save',i18t('reg_qf_save'))}${lit?opt('act:forget:'+lit.name,i18t('reg_qf_forget',{name:lit.name})):''}</optgroup>`;
+}
 function regViewTabsHtml(R){
   const neg=regScope()==='negotiations';
   /* A VIEW WITH NOTHING IN IT STAYS QUIET (26 Sep 2026, the list options'
@@ -1319,8 +1387,29 @@ function regPaintHeadFacts(){
    and left "All 30" over a list of 29 (measured). The tabs are wired where the
    page is built, so their buttons stay and only the count inside each moves;
    the count is the press's own reading (regViewCount), as when it was drawn. */
+function regStageTabsWire(){
+  document.querySelectorAll('button[data-reg-stage]').forEach(b=>{
+    if(b.dataset.wired) return; b.dataset.wired='1';
+    b.addEventListener('click',()=>{ const R=regState(); R.stage=b.getAttribute('data-reg-stage')||'all'; R.page=1; regRepaint(); });
+  });
+}
+/* The two acts on saved views, shared by the box and the retired tabs. */
+async function regSaveViewAsk(){
+  const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view_ask'),message:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
+  if(name==null||!String(name).trim()) return false;
+  if(regSaveView(name)){ if(window.toast) toast(i18t('reg_view_saved',{name:String(name).trim()}),'ok'); return true; }
+  if(window.toast) toast(i18t('reg_view_not_saved'),'warn');
+  return false;
+}
+async function regForgetViewAsk(name){
+  const ok=window.confirmDialog?await confirmDialog({title:i18t('reg_forget_view_title'),message:i18t('reg_forget_view',{name}),confirmLabel:i18t('reg_forget_view_go')}):confirm(i18t('reg_forget_view',{name}));
+  if(!ok) return false; regForgetView(name); return true;
+}
 function regPaintViewCounts(){
   const R=regState();
+  const st=document.querySelector('.reg-stage-tabs');
+  if(st){ const w=document.createElement('div'); w.innerHTML=regStageTabsHtml(R); const nu=w.firstElementChild;
+    if(nu&&nu.innerHTML!==st.innerHTML){ st.replaceWith(nu); regStageTabsWire(); } }
   document.querySelectorAll('.reg-views button[data-reg-view]').forEach(b=>{
     const k=b.getAttribute('data-reg-view')||'';
     const n=regViewCount(k), on=(R.view||'')===k;
@@ -1379,7 +1468,11 @@ function regFooterText(cs, opts){
      visible text, inert in both books. */
   const flatBtn='';
   const pageNote=(neg||board)?'':` · ${i18t('reg_page_of',{p,n})}`;
-  return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${neg?'':famNote}${pageNote}${(typeof canViewValues==='function'&&!canViewValues())?'':` · ${i18t('reg_aggregate')} ${B(fmtMoneyShort(regAggregate(cs)))}`}${flatBtn}`;
+  /* NO MONEY TOTAL IN THE FOOT (owner-approved SAP benchmark, 9 Oct 2026): the
+     page head already carries the book's value (regHeadFactsHtml), and a second
+     total at the foot said the same fact twice. `reg_aggregate` is inert in both
+     books; regAggregate stays, the head still reads it. */
+  return `${i18t('reg_showing',{start:B(start.toLocaleString(jxLocale())),end:B(end.toLocaleString(jxLocale())),n:B(cs.length.toLocaleString(jxLocale()))})}${totalNote}${neg?'':famNote}${pageNote}${flatBtn}`;
 }
 // pinned-footer pager wiring — jump page + scroll the table body back to top
 function wireRegPager(){
@@ -1536,7 +1629,11 @@ function regFiltered(){
      negotiation, so nesting one under its parent here would put two separate
      arguments on one row; and the group order is the whole design of this page.
      The register's sort survives — it decides the order INSIDE each band. */
-  if(regScope()==='negotiations') return negoGroupByMove(cs);
+  if(regScope()==='negotiations'){
+    const g=negoGroupByMove(cs);
+    /* THE WHOSE-MOVE TAB (SAP benchmark, 9 Oct 2026) keeps one band. */
+    return R.band ? g.filter(c=>c._ngBand===R.band) : g;
+  }
   // FAMILY GROUPING (default). Amendments sit under their parent instead of
   // floating as separate rows — a master agreement plus six addenda reads as
   // one agreement with six documents, which is what it is. `flat` shows every
@@ -1999,6 +2096,10 @@ function regRowsHtml(cs){
           is what that page is about. On Contracts the same words are on the
           cell's hover above. */
     CELL.kind=neg?`<td class="reg-typecell">${esc(kindRound)}</td>`:'';
+    if(neg&&insOn){ const nc=regNegoCols(c);
+      CELL.round=`<td class="reg-num">${esc(nc.round)}</td>`;
+      CELL.changes=`<td class="reg-ch" title="${esc(nc.say)}">${esc(nc.changes)}</td>`;
+      CELL.waiting=`<td style="text-align:right;white-space:nowrap">${esc(nc.waiting)}</td>`; }
     /* ---- THE `stream` CELL IS GONE FROM BOTH SEATS (24 Sep 2026) ----
           Owner-ruled with the filter kept. DELETED RATHER THAN STUBBED, for
           the `name` column's reason below. regStreamName stays: the sort by
@@ -2035,6 +2136,15 @@ function regRowsHtml(cs){
     + bandsAfter();
 }
 // W2-1: converted to the workspace currency, so one column total is one currency
+/* THE LIST'S TITLE WITH ITS COUNT (owner-approved SAP benchmark, 9 Oct 2026):
+   SAP's table toolbar names the list and counts what it shows — "Contracts
+   (14)". The count is the list as filtered, the same rows the table draws; the
+   foot keeps the paging. One builder, repainted with the rows. */
+function regListTitle(cs){
+  const name=i18t(regScope()==='negotiations'?'nav_negotiations':'nav_contracts');
+  const n=(Array.isArray(cs)?cs.length:0).toLocaleString(jxLocale());
+  return `${esc(name)} <span class="reg-tt-n">(${n})</span>`;
+}
 function regAggregate(cs){ return cs.filter(c=>c.status!=='Declined'&&!c.archived&&isMonetary(c)).reduce((s,c)=>s+(window.fxHomeValue?fxHomeValue(c):Number(c.value||0)),0); }
 /* ---- THE COUNTERPARTY'S INITIALS (Young, 7 Oct 2026, off the HaTi Platform
    mockup) ---- a small soft square beside the name, so a scanned column has a
@@ -2062,6 +2172,7 @@ function renderRegisterBody(){
   /* The fold's control is in the Display menu, which a body repaint does not
      rebuild — so it is wired once, by the full render, never here. */
   const sh=document.getElementById('reg-showing'); if(sh){ sh.innerHTML=regFooterText(cs); }
+  const tt=document.getElementById('reg-tt'); if(tt){ tt.innerHTML=regListTitle(cs); }
   const pgr=document.getElementById('reg-pager'); if(pgr){ pgr.innerHTML=regPager(cs); wireRegPager(); }
   /* The search narrows from the shell bar, which repaints only this body — so
      the way back has to follow it here rather than waiting for a full render. */
@@ -2078,6 +2189,52 @@ function renderRegisterBody(){
    One filled button per page — Draft new agreement, in the head — so the
    panel's lead act wears the accent INK on the white face, the ladder's own
    answer for a main act that is not the page's one. */
+/* Whose move as the panel's pill, in the stage pill's own dress (.reg-stg):
+   amber when it is ours, grey when it is theirs, the stage where neither. */
+function regMovePillHtml(c){
+  const m=(typeof insMove==='function')?insMove(c):null;
+  if(!m||m.k==='clear') return null;
+  const tone=m.k==='you'?'amber':'gray';
+  const word=i18t(m.k==='you'?'reg_pill_your_move':'reg_pill_their_move');
+  return `<span class="reg-stg" style="color:var(--st-${tone}-fg);background:var(--st-${tone}-bg)" title="${esc(m.word||'')}"><i style="background:var(--st-${tone}-dot)"></i>${esc(word)}</span>`;
+}
+/* The drawing's three Negotiations columns, read off the record RAW (no
+   negoInit): the round number, what the changes on the table ask of whom,
+   and the days since the move came to whoever holds it. */
+function regNegoCols(c){
+  const m=(typeof negoMoveSay==='function')?negoMoveSay(c):{k:'clear',n:0,say:''};
+  const n=(c&&c.negotiation)||{};
+  const round=String(Number(n.round)||1);
+  const ch=Array.isArray(c&&c.changes)?c.changes:[];
+  const ours=ch.filter(x=>x&&x.authorSide!=='counterparty'&&(x.status==='pending'||!x.status)).length;
+  let changes;
+  if(m.k==='you'&&!m.why) changes=i18tn('ngl_ch_to_answer',m.n||0,{n:m.n||0});
+  else if(m.k==='them'&&m.why!=='handover') changes=i18tn('ngl_ch_sent',ours,{n:ours});
+  else if(m.k==='clear') changes=ch.length?i18t('ngl_ch_settled'):i18t('ngl_ch_none');
+  else changes=m.say||'';
+  const at=Date.parse(n.turnAt||c.lastAction||'');
+  const d=Number.isFinite(at)?Math.max(0,Math.floor((Date.now()-at)/86400000)):null;
+  const waiting=m.k==='clear'||d==null?'—':(d===0?i18t('home_today'):i18tn('ap_pg_days',d,{n:d}));
+  return { round, changes, waiting, say:m.say||'' };
+}
+/* The Negotiations panel's four facts, as the drawing names them: Value,
+   Lead, their changes (open · agreed) and when we last sent a round. */
+function regNegoFacts(c){
+  const f=(typeof insFacts==='function')?insFacts(c):[];
+  const val=f.find(x=>x.k==='value');
+  let lead=''; try{ const l=(typeof deskLead==='function')?deskLead(c):null; lead=(l&&l.name)||((typeof contractOwnerName==='function')?contractOwnerName(c):'')||''; }catch(_){ lead=''; }
+  const theirs=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.authorSide==='counterparty');
+  const open=theirs.filter(x=>x.status==='pending'||!x.status).length, agreed=theirs.filter(x=>x.status==='accepted').length;
+  const rounds=(c.negotiation&&Array.isArray(c.negotiation.rounds))?c.negotiation.rounds:[];
+  const last=rounds.length?rounds[rounds.length-1].at:'';
+  const day=last?(typeof regDotDate==='function'?regDotDate(last):String(last).slice(0,10)):'';
+  return [
+    ...(val?[{ k:'value', label:val.label, v:val.v?esc(val.v):'' }]:[]),
+    { k:'lead', label:i18t('ins_f_lead'), v:esc(lead) },
+    { k:'theirs', label:i18t('ins_f_their_changes'), v:theirs.length?esc(i18t('ins_f_open_agreed',{open,agreed})):'' },
+    { k:'sent', label:i18t('ins_f_last_sent'), v:esc(day) },
+  ];
+}
 function regInsSeat(){ return regScope()==='negotiations' ? 'negotiations' : 'contracts'; }
 function regInsActs(c){
   if(!c) return [];
@@ -2094,7 +2251,10 @@ function regInsActs(c){
   /* BOTH SEATS LEAD WITH THE CONTRACT, FILLED, AND OFFER THE NEGOTIATION
      BESIDE IT (Young, 7 Oct 2026, the mockup's own panel). A press on the row
      itself still opens the negotiation on that seat (regOpenRow). */
-  if(neg) return mayNego ? [Object.assign({kind:'accent'},openC), openN] : [Object.assign({kind:'accent'},openC)];
+  /* THE NEGOTIATIONS SEAT LEADS WITH THE NEGOTIATION (SAP benchmark, owner-
+     approved 9 Oct 2026, reverses 7 Oct's contract-first panel there): Open
+     negotiation filled, Open contract a link under the name. */
+  if(neg) return mayNego ? [Object.assign({kind:'accent'},openN), Object.assign({inSub:true},openC)] : [Object.assign({kind:'accent'},openC)];
   return (started&&mayNego&&typeof openRedlineWorkbench==='function')
     ? [Object.assign({kind:'accent'},openC), openN] : [Object.assign({kind:'accent'},openC)];
 }
@@ -2125,9 +2285,17 @@ function regInsPaint(){
     insPaintPanel({ seat, c, acts:regInsActs(c), menuHtml:menu,
       onMenu:(act,cid)=>regRunRowAct(act,cid),
       moveSuffix:true,
+      /* The stage — on Negotiations, whose move — beside the name (SAP benchmark). */
+      statusBeside:true,
+      statusHtml:(seat==='negotiations'&&c)?regMovePillHtml(c):null,
       /* On Negotiations what is on the table leads — it is what that page is
          for; on Contracts the facts lead. The drawing's own order. */
-      order:seat==='negotiations'?['table','facts','reads','latest']:['facts','table','reads','latest'],
+      /* THE DRAWING'S PANEL (SAP benchmark, owner: "hati has more information
+         which makes it seem to have clutter"): four facts, then What Copilot
+         read — the round's detail and the trail stay on the contract. */
+      order:['facts','reads'],
+      factKeys:['value','owner','stream','ends'],
+      facts:(seat==='negotiations'&&c)?regNegoFacts(c):null,
       empty:i18t('ins_none_rows') });
   };
   paint(id);
@@ -2144,6 +2312,13 @@ function regInsPaint(){
    repaint. The button opens and closes it; Escape and a press outside close
    it. Table · Board and the fold are never drawn on the Negotiations seat, for
    the reasons regMode and the foot give. */
+/* SORT AS A SMALL ICON ON THE LIST'S HEAD (SAP benchmark, 9 Oct 2026): the
+   same select, the same id and listener; only its face is the ⇅ mark, with
+   its name on the hover and for a screen reader. */
+function regSortIconHtml(opts){
+  const t=i18t('reg_sort');
+  return `<label class="reg-f reg-chip reg-ico" title="${esc(t)}"><span class="reg-f-l">${typeof icon==='function'?icon('sort','w-4 h-4'):''}<span class="sr-only">${esc(t)}</span></span><select id="reg-sort" class="reg-chip-sel" title="${esc(t)}" aria-label="${esc(t)}">${opts}</select></label>`;
+}
 function regDisplayHtml(neg){
   const R=regState();
   const board=regMode()==='board';
@@ -2158,8 +2333,8 @@ function regDisplayHtml(neg){
       on&&typeof icon==='function'?icon('check2','',2.4):''}</span><span>${esc(i18t('reg_nest_amendments'))}</span></button>`);
   }
   return `<span class="reg-display">
-    <button type="button" id="reg-display" class="reg-chip reg-chip-btn" aria-haspopup="true" aria-expanded="false" aria-controls="reg-display-pop" title="${esc(i18t('reg_display_title'))}">${
-      typeof icon==='function'?icon('columns','w-3.5 h-3.5'):''}${esc(i18t('reg_display'))}</button>
+    <button type="button" id="reg-display" class="reg-chip reg-chip-btn reg-ico" aria-haspopup="true" aria-expanded="false" aria-controls="reg-display-pop" title="${esc(i18t('reg_display_title'))}">${
+      typeof icon==='function'?icon('cog','w-4 h-4'):''}<span class="sr-only">${esc(i18t('reg_display'))}</span></button>
     <div id="reg-display-pop" class="reg-display-pop" role="group" aria-label="${esc(i18t('reg_display'))}" hidden>${parts.join('')}</div>
   </span>`;
 }
@@ -2289,7 +2464,9 @@ function renderRegister(opts){
      asked ONCE and recorded on the page (data-ins), so a width that crosses
      the line repaints it (insWatchWidth) and nothing in one paint disagrees. */
   const INS=regInspecting();
-  const headHtml=typeof o.head==='function' ? o.head(cs) : (o.head||'');
+  /* The head counts the whole live book, never the one tab on screen. */
+  const csBook=(neg&&R.band)?regNegoBase():cs;
+  const headHtml=typeof o.head==='function' ? o.head(csBook) : (o.head||'');
   /* A select left on `appearance:auto` is drawn by the platform, and the
      platform draws it with a hard dark edge and a square corner whatever the
      border says. Turning the appearance off hands the closed control back to
@@ -2371,7 +2548,7 @@ function renderRegister(opts){
        "Stage ⌄"). The bar sits on the list's own card now, beside the panel,
        and the funnel on every chip cost the row the width it no longer has;
        the caret (drawn by the sheet) already says the chip opens. */
-    return `<label class="reg-f reg-chip${active?' on':''}${show?' reg-chip-show':''}" title="${esc(title)}"><span class="reg-f-l">${face}</span><select id="${id}" class="reg-chip-sel" title="${esc(title)}">${opts}</select></label>`;
+    return `<label class="reg-f reg-chip${active?' on':''}${show?' reg-chip-show':''}" title="${esc(title)}"><span class="reg-f-l">${face}</span><span class="reg-f-v">${pick||word}</span><select id="${id}" class="reg-chip-sel" title="${esc(title)}">${opts}</select></label>`;
   };
   const stageOpts=REG_STAGES.map(s=>`<option value="${s.k}" ${R.stage===s.k?'selected':''}>${s.label}</option>`).join('');
   const typeOpts=regTypes().map(t=>`<option value="${t.k}" ${R.type===t.k?'selected':''}>${t.label}</option>`).join('');
@@ -2594,7 +2771,7 @@ function renderRegister(opts){
          a 4px grey band the full width of the page.
          The bottom stays a typed 14 — it is the gap above the table, not a
          join with anything. */}
-  <div class="view-enter${neg?' ngl-page':''}" data-ins-page="register" data-ins="${INS?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) 14px;display:flex;flex-direction:column">
+  <div class="view-enter sap-page${neg?' ngl-page':''}" data-ins-page="register" data-ins="${INS?'1':'0'}" style="height:var(--view-h);box-sizing:border-box;padding:var(--page-pad-t) var(--page-pad-x) 14px;display:flex;flex-direction:column">
     <style>
       /* ---- THE PROTOTYPE'S TABLE ----
          The reference is a rounded card with an uppercase 10px header band, p-4
@@ -2892,6 +3069,8 @@ function renderRegister(opts){
       .reg-body.is-ins{display:grid;grid-template-columns:minmax(0,1fr) var(--ins-panel-w,380px);gap:14px}
       .reg-card{background:var(--color-surface);box-shadow:var(--shadow-sm);flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
       .reg-card > .reg-filterbar{flex:none;padding:10px 12px;border-bottom:1px solid var(--color-divider)}
+      .reg-filterbar .reg-tt{margin:0 var(--s-1) 0 0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);white-space:nowrap;flex:none}
+      .reg-filterbar .reg-tt-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums}
       ${''/* ONE LINE BESIDE THE PANEL, TOO (the owner's standing ruling for this
              bar). The list's card is narrower there, so the one chip with a
              long value — Sort, which always says what it sorts by — gives way
@@ -2983,15 +3162,12 @@ function renderRegister(opts){
              for the two things still in it. THE VIEWS ARE NEVER DRAWN ON THE
              NEGOTIATIONS SEAT: "Ending in 90 days" and "Archived" are
              questions about the book, not about a live negotiation. */}
-      <div class="reg-band">
+      <div class="reg-band sap-band">
       ${headHtml}
-      ${(!neg&&BAR.includes('view'))?regViewTabsHtml(R):''}
-      </div>
-      <div class="reg-body${INS?' is-ins':''}">
-      <section class="blueprint bp-round reg-card${regMode()==='board'?' reg-board-wrap':''}">
-      <!-- THE ONE FILTER BAR: the chosen filters, More filters, Clear, then
-           Sort and Display — one row on the list's own card. -->
-      <div class="reg-filterbar" style="display:flex;flex-wrap:wrap;gap:var(--s-2);align-items:center">
+      <!-- THE FILTERS SIT IN THE PAGE'S WHITE BAND, each a labelled box
+           (SAP benchmark, owner-approved 9 Oct 2026; reverses the 26 Sep
+           Inspector drawing that put them on the list's card). -->
+      <div class="reg-filterbar reg-fb">
         ${lockChip}
         ${onlyChip}
         ${ftsBlock}
@@ -3001,10 +3177,11 @@ function renderRegister(opts){
                not. The second half is the safety property — a hidden control
                quietly shortening the book is the exact fault WO-15's removal
                note was guarding against. */}
-        ${BAR.includes('stage')?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'),i18t('reg_chip_stage')):''}
+        ${(neg&&BAR.includes('stage'))?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'),i18t('reg_chip_stage')):''}
         ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'),i18t('reg_chip_stream')):''}
         ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
                     ran to 460px and pushed the whole bar off the row. */}
+        ${(!neg&&BAR.includes('view'))?selFilter('reg-view-sel',regViewOptsHtml(R),!!R.view||regSavedViews().some(v=>regSavedMatches(v,R)),i18t('reg_quick_filters_title'),i18t('reg_quick_filters')):''}
         ${BAR.includes('category')?categorySel:''}
         ${BAR.includes('renewal')?selFilter('reg-renewal',renewalOpts,renewalActive,i18t('reg_renewal')):''}
         ${''/* NEVER ON THE NEGOTIATIONS SEAT: that page holds live negotiations,
@@ -3019,57 +3196,20 @@ function renderRegister(opts){
                weight Fiori gives it. */}
         <button id="reg-adapt" type="button" class="reg-chip reg-chip-btn reg-chip-add" title="${esc(i18t('reg_adapt_title'))}">${icon('plus','w-3.5 h-3.5')}${esc(i18t('reg_adapt'))}</button>
         <span id="reg-clear-slot">${regClearHtml()}</span>
+      </div>
+      ${!neg?regStageTabsHtml(R):''}
+      ${neg?negoBandTabsHtml(R,csBook):''}
+      </div>
+      <div class="reg-body${INS?' is-ins':''}">
+      <section class="blueprint bp-round reg-card${regMode()==='board'?' reg-board-wrap':''}">
+      <!-- THE LIST'S OWN HEAD (SAP benchmark, owner-approved 9 Oct 2026): its
+           name and count, then Sort and Display as two small icons. The
+           filters went up into the white band with the page's name. -->
+      <div class="reg-cardhead reg-filterbar">
+        <h2 id="reg-tt" class="reg-tt">${regListTitle(cs)}</h2>
         <span style="flex:1;min-width:8px"></span>
-        ${''/* ---- SORT IS STACKED LIKE THE OTHER FIVE (owner-asked 25 Aug 2026:
-               "stack Sort's label like the other five") ----
-               It carried its word BESIDE the box while the other five carry
-               theirs ABOVE it, which is a wider shape for the same control —
-               MEASURED, it was the widest item on the row and therefore the
-               first to drop to a second line when Swedish's longer words or an
-               active filter's 600 weight pushed the row over.
-               IT GOES THROUGH selFilter, THE SAME BUILDER, rather than being
-               restyled to match: one builder for all six is what stops them
-               drifting apart again, and it is what let this one drift in the
-               first place.
-               `active` IS ALWAYS FALSE, deliberately. On the other five that
-               flag means "this is narrowing your list", and sorting narrows
-               nothing — a sort control wearing the accent would claim the list
-               was filtered when it is not. */}
-        ${''/* ---- DENSITY SITS BESIDE SORT, AFTER THE SPACER, AND FOR THE SAME
-               REASON (25 Aug 2026) ----
-               Everything LEFT of the spacer narrows the list; these two change
-               how it is DRAWN. `active` is false for the same reason it is
-               false on Sort: on the five filters that flag means "this is
-               narrowing your list", and a density wearing the accent would
-               claim the book had been filtered when it has not.
-               It goes through selFilter — the same builder as the other six —
-               because one builder is what stops them drifting apart. */}
-        ${selFilter('reg-sort',sortOpts,false,i18t('reg_sort'),undefined,true)}
-        ${''/* ---- TABLE · BOARD, THEN THE THREE DENSITIES, AS SEGMENTS (20 Sep
-               2026, the redesign order) ----
-               The density was a labelled dropdown through selFilter; the
-               reference draws both of these as segmented controls at the
-               row's right, and a segment says every option at once where a
-               dropdown says one. Same three densities (regSetDensity), same
-               store, same repaint. Table · Board is never drawn on the
-               Negotiations seat — see regMode. */}
-        ${''/* ---- TABLE · BOARD, COZY · COMPACT AND THE AMENDMENT FOLD ARE ONE
-               DISPLAY MENU (26 Sep 2026, the Inspector drawing) ----
-               They change how the list is DRAWN, never what is in it, and as
-               two segments they no longer fit on the list's own card beside
-               the filters — the bar is one row by the owner's standing ruling.
-               Same segments (regSegHtml), same stores, same repaints; one more
-               press away, which the drawing named. */}
+        ${regSortIconHtml(sortOpts)}
         ${regDisplayHtml(neg)}
-        ${''/* ---- AND NO NOTE UNDER THE SORT (M-5) ----
-               Owner-reported in the same breath: *"remove the 'sorts within
-               each group' writing."* It said that sorting on this page runs
-               inside a band rather than over the whole list — true, and a
-               sentence the page can carry only once the reader has already
-               seen the bands it is about. `ngl_sort_note` and `#reg-sort-note`
-               are STALE; the key is left inert in both dictionaries, because a
-               key removed from one and not the other is how a screen ends up
-               half-English. */}
       </div>
 
       ${regMode()==='board'?`
@@ -3162,6 +3302,7 @@ function renderRegister(opts){
                   if(k==='move') return neg ? (()=>{ const i=_colN; return `<th style="${INS?'':'text-align:right;'}${colAt('',k)}">${i18t('ngl_col_move')}${gripFor(i)}</th>`; })()
                     : sortableTh('move',i18t('ngl_col_move'),'',k);
                   if(k==='owner') return sortableTh('owner',i18t('reg_col_owner_word'),'',k);
+                  if(k==='round'||k==='changes'||k==='waiting'){ const i=_colN; return `<th style="${k==='waiting'?'text-align:right;':''}${colAt('',k)}">${esc(i18t('ngl_col_'+k))}${gripFor(i)}</th>`; }
                   return (()=>{ const i=_colN; return `<th style="text-align:right;${colAt('',k)}">${gripFor(i)}</th>`; })();
                 }).join('')}
               </tr>
@@ -3245,7 +3386,8 @@ function renderRegister(opts){
      that, and this file's own rule is one builder per job. */
   document.getElementById('reg-adapt')?.addEventListener('click',()=>{
     const chosen=regBarChosen();
-    const rows=REG_BAR_FILTERS.map(f=>{
+    /* On Contracts the stage is the tab row, not a box, so it is not offered here. */
+    const rows=REG_BAR_FILTERS.filter(f=>!(f.k==='stage'&&regScope()!=='negotiations')).map(f=>{
       const on=chosen.includes(f.k);
       /* A FIXED FILTER IS SHOWN TICKED AND DISABLED rather than hidden: a
          chooser that silently omits two of the six leaves the reader counting
@@ -3315,17 +3457,18 @@ function renderRegister(opts){
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
   document.querySelectorAll('button[data-reg-view]').forEach(b=>b.addEventListener('click',()=>{ R.view=b.getAttribute('data-reg-view')||null; R.page=1; regRepaint(); }));
+  regStageTabsWire();
+  document.getElementById('reg-view-sel')?.addEventListener('change',async e=>{
+    const v=e.target.value||'';
+    if(v==='act:save'){ await regSaveViewAsk(); regRepaint(); return; }
+    if(v.startsWith('act:forget:')){ await regForgetViewAsk(v.slice(11)); regRepaint(); return; }
+    if(v.startsWith('saved:')){ if(regApplySaved(v.slice(6))) regRepaint(); return; }
+    R.view=v||null; R.page=1; regRepaint(); });
+  document.querySelectorAll('button[data-reg-band]').forEach(b=>b.addEventListener('click',()=>{ R.band=b.getAttribute('data-reg-band')||null; R.page=1; regRepaint(); }));
   document.querySelectorAll('button[data-reg-saved]').forEach(b=>b.addEventListener('click',()=>{ if(regApplySaved(b.getAttribute('data-reg-saved'))) regRepaint(); }));
   document.querySelectorAll('button[data-reg-saved-x]').forEach(b=>b.addEventListener('click',async e=>{ e.stopPropagation();
-    const name=b.getAttribute('data-reg-saved-x');
-    const ok=window.confirmDialog?await confirmDialog({title:i18t('reg_forget_view_title'),message:i18t('reg_forget_view',{name}),confirmLabel:i18t('reg_forget_view_go')}):confirm(i18t('reg_forget_view',{name}));
-    if(!ok) return; regForgetView(name); regRepaint(); }));
-  document.getElementById('reg-save-view')?.addEventListener('click',async()=>{
-    const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view_ask'),message:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
-    if(name==null||!String(name).trim()) return;
-    if(regSaveView(name)){ if(window.toast) toast(i18t('reg_view_saved',{name:String(name).trim()}),'ok'); regRepaint(); }
-    else if(window.toast) toast(i18t('reg_view_not_saved'),'warn');
-  });
+    if(await regForgetViewAsk(b.getAttribute('data-reg-saved-x'))) regRepaint(); }));
+  document.getElementById('reg-save-view')?.addEventListener('click',async()=>{ if(await regSaveViewAsk()) regRepaint(); });
   regPaintHeadFacts();
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
   wireRegClear();
@@ -3420,5 +3563,5 @@ Object.assign(window,{regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYe
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,regDeclineAsk,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,negoBandTabsHtml,regAvatarHtml,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regStageTabsHtml,regStageBase,regStageTabsWire,REG_STAGE_TABS,regViewOptsHtml,regSaveViewAsk,regForgetViewAsk,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,regDeclineAsk,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});
