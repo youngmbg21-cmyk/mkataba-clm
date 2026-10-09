@@ -253,7 +253,7 @@ describe('f442 (4) the map is drawn as the redesign draws it', () => {
     const svg = win.ovMapSvg(win.ovMapData(c));
     assert.ok(svg.includes('viewBox="0 0 900 310"'));
     assert.ok(/translate\(250 160\)/.test(svg) && /translate\(650 160\)/.test(svg), 'the two nodes where the handoff puts them');
-    assert.ok(svg.includes('M318 112 Q450 20 582 112') && svg.includes('M318 208 Q450 300 582 208'), 'the two arcs');
+    assert.ok(svg.includes('M330 104 Q450 20 570 104') && svg.includes('M330 216 Q450 300 570 216'), 'the two arcs, ending clear of the rings');
     assert.equal((svg.match(/data-ov-map="ours"/g) || []).length, 2, 'our node and the upper arc both read our duties');
     assert.equal((svg.match(/data-ov-map="theirs"/g) || []).length, 2, 'their node and the lower arc read theirs');
     assert.equal((svg.match(/data-ov-map="renewal"/g) || []).length, 1, 'the contract reads the renewal');
@@ -272,9 +272,14 @@ describe('f442 (4) the map is drawn as the redesign draws it', () => {
     assert.equal((svg.match(/class="ov-map-seg is-/g) || []).length, 2);
     assert.ok(/ov-map-seg is-r/.test(svg) && /ov-map-seg is-g/.test(svg));
     assert.ok(/ov-map-badge is-r/.test(svg), 'a late duty raises the badge');
+    /* RE-POINTED IN PLACE 9 Oct 2026 (work order Part 9): with no duties
+       recorded no curve, ring or "0 duties" is drawn; the map's own line
+       says so, with a door to the Obligations tab. */
     c.obligations = [];
     svg = win.ovMapSvg(win.ovMapData(c));
-    assert.ok(/ov-map-track is-empty/.test(svg) && !/ov-map-badge/.test(svg), 'no duties: an empty track and no badge');
+    assert.ok(!/ov-map-track|ov-map-badge|ov-map-ln|0 duties/.test(svg), 'no duties: no ring, no badge, no curves, no "0 duties"');
+    const html = win.ovMapHtml(c);
+    assert.ok(html.includes(win.i18t('ov_map_empty')) && /data-ov-map-oblig/.test(html), 'and one quiet line with the door to Obligations');
   });
 
   test('the panel beside the map holds the map card\'s height and scrolls', () => {
@@ -290,7 +295,10 @@ describe('f442 (4) the map is drawn as the redesign draws it', () => {
     const c = withParties(supply(), { name: 'A' }, { name: 'B' });
     const D = win.ovMapData(c);
     const pane = win.ovMapPane(c, D, 'renewal');
-    assert.ok(/id="renewal-host" class="empty:hidden" data-bare="1"/.test(pane));
+    /* RE-POINTED IN PLACE 9 Oct 2026 (Part 9): ONE renewal section — the
+       facts first, then the decision card drawn compact, after them */
+    assert.ok(/id="renewal-host" class="empty:hidden ov-map-decide" data-bare="1" data-compact="1"/.test(pane));
+    assert.ok(pane.indexOf(win.i18t('ov_map_rn_ends_k')) < pane.indexOf('id="renewal-host"'), 'the facts come before the decision');
     assert.ok(pane.includes(win.i18t('ov_map_rn_ends_k')), 'when it ends');
     assert.ok(win.ovMapPane(c, D, 'ours').includes(win.i18t('ov_map_ours_h')));
     assert.ok(win.ovMapPane(c, D, 'theirs').includes(win.i18t('ov_map_theirs_h')));
@@ -408,5 +416,35 @@ describe('f442 (7) the brief button is coloured, and a second press shuts the br
     doc.getElementById('modal-root').innerHTML =
       '<aside id="side-panel" data-cid="MK-OTHER"><div id="brief-section"></div></aside>';
     assert.equal(win.briefPanelOpenFor(supply()), false, 'another contract\'s brief is not this one');
+  });
+});
+
+/* work order Part 9 (the owner's screenshot, 8 Oct 2026): in Safari the pop-in
+   animation's CSS transform replaced a node's SVG transform, and both
+   companies' circles fell into the top-left corner. */
+describe('f442 (9) the duties map stands in every browser, and says what is to be paid', () => {
+  test('no element carries both a place (an SVG transform) and the pop-in class', () => {
+    const { win } = mapWorld();
+    const c = withParties(supply(), { name: 'A' }, { name: 'B' });
+    c.obligations = [{ id: 'o1', desc: 'Pay', due: '2020-01-01', party: 'ours', status: 'open' }];
+    const svg = win.ovMapSvg(win.ovMapData(c));
+    const bad = (svg.match(/<[a-z]+[^>]*>/g) || []).filter(t => /\btransform="translate/.test(t) && /class="[^"]*\bov-map-nd\b/.test(t));
+    assert.deepEqual(bad, [], 'the place is on the outer group, the animation on the inner');
+    assert.ok((svg.match(/class="ov-map-hitg[^"]*"[^>]*transform="translate\((250|650) 160\)"/g) || []).length === 2, 'both nodes placed on their outer group');
+  });
+
+  test('the amounts still to pay ride the curve labels and the panel (option A)', () => {
+    const { win } = mapWorld();
+    win.obligationAmount = o => Number(o.amount) || null;
+    win.fmtMoneyShortIn = (v, cur) => (cur || 'KES') + ' ' + v;
+    const c = withParties(supply(), { name: 'A' }, { name: 'B' });
+    c.obligations = [{ id: 'o1', desc: 'Pay the invoice', due: '2026-02-01', party: 'ours', status: 'open', amount: 300 },
+      { id: 'o2', desc: 'Paid already', due: '2025-02-01', party: 'ours', status: 'done', amount: 900 }];
+    const D = win.ovMapData(c);
+    assert.equal(D.pay.ours, 300, 'only open duties count');
+    assert.ok(/300/.test(win.ovMapSvg(D)), 'the curve label says what is to be paid');
+    assert.ok(/ov-map-amt/.test(win.ovMapPane(c, D, 'ours')), 'and the panel lists the amount');
+    c.valueType = 'none';
+    assert.equal(win.ovMapData(c).pay.ours, 0, 'no money passes, nothing to pay is said');
   });
 });

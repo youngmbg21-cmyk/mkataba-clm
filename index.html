@@ -4246,6 +4246,15 @@
   .ov-map-svg .is-sel .ov-map-us-c, .ov-map-svg .is-sel .ov-map-them-c{ stroke:var(--accent-fill); stroke-width:4; }
   .ov-map-svg [tabindex]:focus-visible .ov-map-us-c, .ov-map-svg [tabindex]:focus-visible .ov-map-them-c{ stroke:var(--accent-fill); stroke-width:4; stroke-dasharray:6 4; }
   .ov-map-cl{ font-family:var(--font-code); color:var(--accent-ink); }
+  /* (work order Part 9) the node's place is on .ov-map-hitg, its pop-in on the
+     inner .ov-map-nd; "they owe" in their colour; the empty map's one line;
+     a payment's amount at the row's right; the compact renewal decision. */
+  .ov-map-svg .ov-map-hitg{ cursor:pointer; outline:none; }
+  .ov-map-svg .ov-map-dash-them{ fill:none; stroke:var(--alt); stroke-width:2; stroke-dasharray:5 5; stroke-linecap:round; }
+  .ov-map-stage{ position:relative; }
+  .ov-map-empty{ position:absolute; left:0; right:0; top:calc(50% + 68px); margin:0; text-align:center; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .ov-map-ob .ov-map-amt{ flex:none; margin-left:auto; font-size:var(--t-label); font-weight:var(--w-strong); color:var(--color-text); font-variant-numeric:tabular-nums; }
+  .ov-map-decide:not(:empty){ margin-top:12px; padding-top:10px; border-top:1px solid var(--color-divider); }
   .ov-map-key{ display:inline-flex; flex-wrap:wrap; gap:4px 12px; margin-left:auto; font-size:var(--t-label); color:var(--color-neutral-600); }
   .ov-map-key > span{ display:inline-flex; align-items:center; gap:5px; }
   .ov-map-key .ov-map-dot{ margin-top:0; }
