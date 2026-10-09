@@ -10443,7 +10443,6 @@ function renderRedline(){
         ${(rowSide !== 'counterparty' && !preview)
           ? `<button type="button" class="rl-seg rl-boardseg${_rlBoardOpen ? ' on' : ''}" data-rl-board aria-pressed="${_rlBoardOpen ? 'true' : 'false'}"
               title="${_nea(i18t('ng_board_title'))}">${_ne(i18t('ng_board'))}</button>` : ''}
-        ${rlCtlLegendHtml(c, rowSide)}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
           <div class="rl-head-id">
@@ -10568,6 +10567,12 @@ function renderRedline(){
           </div>
         </section>
       </div>
+      ${''/* ---- THE PARTIES' COLOUR KEY HAS A ROW OF ITS OWN (SAP benchmark,
+             batch 4, owner 9 Oct 2026: "Keep the Name Redline otherwise,
+             build") ---- the drawing puts the key on a thin line under the
+             controls, so the control row keeps its one 44px line and the key
+             no longer folds away on a laptop. Same builder, same classes. */}
+      <div class="rl-keyrow">${rlCtlLegendHtml(c, rowSide)}</div>
       ${''/* ---- THE WORKING AREA IS ONE SCREENFUL; THE PANELS ARE A SCROLL
              AWAY (owner-approved render, 22 Aug 2026) ----
              #redline-host keeps height:100% of this scroller, so the contract

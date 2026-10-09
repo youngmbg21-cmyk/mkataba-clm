@@ -254,7 +254,10 @@ function commandMeta(view){
       let held = null;
       try{ held = (typeof window !== 'undefined' && window.redlineHeldId) ? redlineHeldId() : null; }catch(_){ held = null; }
       const one = !!(c && held && String(held) === String(c.id));
-      return [i18t(one ? 'pg_workspace' : 'pg_negotiate'),
+      /* …AND SINCE THE SAP BENCHMARK, BATCH 4 (owner 9 Oct 2026, "build"),
+         the bar names the PLACE, "Negotiate", as the drawing does; the way
+         back stands on the title's line (shellCrumbAdopt). */
+      return [i18t(one ? 'tab_negotiate' : 'pg_negotiate'),
         c?`${(window.contractRef?contractRef(c):c.id)} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
     }
     default: return ['HaTi', ''];
@@ -438,7 +441,9 @@ function paintShellTitle(view){
      last contract's crumb in the bar — a live button that opened that
      contract's Document tab from a page about all of them (measured). */
   const held=view!=='redline' || (typeof window.redlineHeldId==='function' && !!window.redlineHeldId());
-  if(held&&(view==='redline'||view==='workspace')&&el.classList.contains('is-crumb')&&el.querySelector('#ws-back')) return;
+  /* SAP batch 4 (9 Oct 2026): on Negotiate the button stands in the head and
+     the bar holds its page word (.crumb-here) — kept the same way. */
+  if(held&&(view==='redline'||view==='workspace')&&el.classList.contains('is-crumb')&&el.querySelector('#ws-back,.crumb-here')) return;
   el.classList.remove('is-crumb');
   el.textContent=shellTitleFor(view);
 }
@@ -501,8 +506,22 @@ function shellCrumbAdopt(c, backBtn){
     }
     const word=document.createElement('span'); word.className='crumb-back-word'; word.textContent=i18t('ct_back_to_document');
     backBtn.appendChild(word);
-    backBtn.classList.add('in-crumb');
-    el.appendChild(backBtn);
+    /* ---- …AND IT STANDS IN THE PAGE, LEFT OF THE NAME (SAP benchmark, batch
+       4, owner 9 Oct 2026: "build") ---- the drawing puts "‹ Back to Document"
+       on the title's own line and the bar names the page, "Negotiate". Still
+       ONE button, its id, data-back and handler untouched — it moves into the
+       head's name row instead of into the bar. */
+    const nameRow = backBtn.closest('.room-head') && backBtn.closest('.room-head').querySelector('.room-name');
+    if(nameRow){
+      backBtn.classList.remove('in-crumb'); backBtn.classList.add('in-head');
+      nameRow.prepend(backBtn);
+      const s=document.createElement('span'); s.className='crumb-here';
+      s.textContent=i18t('tab_negotiate'); s.title=s.textContent;
+      el.appendChild(s);
+    } else {
+      backBtn.classList.add('in-crumb');
+      el.appendChild(backBtn);
+    }
   } else {
     const s=document.createElement('span'); s.className='crumb-here';
     s.textContent=i18t('nav_contracts'); s.title=s.textContent;

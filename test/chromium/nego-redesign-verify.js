@@ -185,7 +185,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        goes. The one thing that has never changed through four re-dressings is
        that a reader must be able to leave this page and be told where to. */
     const door = await page.evaluate(() => {
-      const b = document.querySelector('#shell-title #ws-back');
+      /* SAP batch 4 (9 Oct 2026): the way back stands on the title's line, as drawn. */
+      const b = document.querySelector('#view-redline #ws-head .room-name #ws-back');
       if (!b) return { none: true };
       const word = b.querySelector('.crumb-word');
       const arrow = b.querySelector('svg');
@@ -202,7 +203,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         inside: !!(ar && br && ar.left >= br.left - 1 && ar.right <= br.right + 1),
         btnLine: getComputedStyle(b).textDecorationLine };
     });
-    check('1c the arrow is PAINTED in the bar, not switched off there',
+    check('1c the arrow is PAINTED beside the title, not switched off there',
       !door.none && door.hidden !== 'none' && door.painted && door.wide,
       door.none ? 'no door' : `display ${door.hidden} · painted ${door.painted} · wide ${door.wide}`);
     check('1c and it stands alone — no word beside the sign',
