@@ -10,6 +10,8 @@
      those 13 already reads env() with an explicit 0px fallback, so they simply
      start returning a real number on the handsets that have one. -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<!-- iPhone/iPad Safari must not turn names, addresses and emails into underlined links (owner, 9 Oct 2026) -->
+<meta name="format-detection" content="telephone=no,email=no,address=no,date=no" />
 <title>HaTi — Contract Lifecycle Management</title>
 <!-- THE TAB CARRIES THE PRODUCT'S OWN MARK (26 Sep 2026, the overnight
      clean-up). With no icon named, every page load asked the server for
@@ -4294,10 +4296,22 @@
   .pt-dir-form .pt-lab{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); margin-bottom:2px; }
   .pt-dir-form .pt-row :is(input,select){ height:28px; }
   .pt-dir-done{ display:flex; justify-content:flex-end; margin-top:10px; }
-  .ov-pty-av{ flex:none; width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
-    font-size:var(--t-micro); font-weight:var(--w-title); }
-  .ov-pty > div{ min-width:0; }
+  .ov-pty-av{ flex:none; width:32px; height:32px; border-radius:50%; display:grid; place-items:center;
+    font-size:var(--t-micro); font-weight:var(--w-title); letter-spacing:.02em; }
+  .ov-pty > div{ min-width:0; flex:1; }
   .ov-pty b{ display:block; font-weight:var(--w-strong); color:var(--color-text); overflow-wrap:anywhere; }
+  /* A PARTY ROW, DRAWN AS A LIST ROW (owner, 9 Oct 2026: "does not look like it
+     is professionally designed"): the avatar sits on the two lines' middle, the
+     name carries our side as a quiet tag (not "us ·" run into the email), and
+     the email is one quiet line, cut with an ellipsis. */
+  .ov-pty{ align-items:center; padding:10px 0; }
+  .ov-pty-nm{ display:flex; align-items:center; gap:8px; min-width:0; }
+  .ov-pty-nm > b{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; overflow-wrap:normal; }
+  .ov-pty-us{ flex:none; height:18px; padding:0 6px; border-radius:var(--radius); display:inline-flex; align-items:center;
+    font-size:var(--t-micro); font-weight:var(--w-label); color:var(--color-neutral-600); background:var(--st-gray-bg); }
+  .ov-pty small.ov-pty-sub{ margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; overflow-wrap:normal; }
+  /* belt and braces for the Safari data detectors the meta above turns off */
+  .ov-pty a[x-apple-data-detectors]{ color:inherit; text-decoration:none; }
   .ov-pty small{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); overflow-wrap:anywhere; }
   .ov-pty small.ov-pty-sg.is-done{ color:var(--st-green-fg); }
   .ov-pty small.ov-pty-route{ color:var(--st-amber-fg); }

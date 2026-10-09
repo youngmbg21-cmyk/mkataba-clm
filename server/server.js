@@ -10173,6 +10173,7 @@ function trackPageHtml(r) {
   const row = (k, v) => v ? `<tr><td style="padding:5px 18px 5px 0;color:#5F6D6B;white-space:nowrap">${e(k)}</td><td style="padding:5px 0;color:#1B2A28">${e(v)}</td></tr>` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="format-detection" content="telephone=no,email=no,address=no,date=no">
   <meta name="robots" content="noindex,nofollow">
   <title>Where is my contract?</title></head>
   <body style="margin:0;background:#f4f6f5;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">
@@ -10274,6 +10275,7 @@ function dealPageHtml(D, org) {
   const waitOn = (!D.executed && D.move && D.move.party) ? `waiting on ${e(D.move.party)}` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="format-detection" content="telephone=no,email=no,address=no,date=no">
   <meta name="robots" content="noindex,nofollow">
   <title>Where the deal stands</title></head>
   <body style="margin:0;background:#EDF1F2;font:15px 'Geist','IBM Plex Sans',-apple-system,Segoe UI,Arial,sans-serif;color:#1B2A28">

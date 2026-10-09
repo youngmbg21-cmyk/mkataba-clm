@@ -28152,3 +28152,7 @@ The owner sent five screenshots after batch 4 merged: *"Image 2, should look sim
 - All is the first tab on the Obligations page and the contract's Obligations tab. Both still open on Outstanding.
 
 Re-pointed: f390 5a (obligations reserves no head slot), four-inspectors 1d (no facts line). New: overview-and-obligations-polish-verify (11 of 13 red at unmodified main).
+
+## THE PARTIES CARD, PROFESSIONALLY DRAWN (9 Oct 2026)
+
+The owner circled the Overview's party rows on an iPad/iPhone screenshot: *"Fix this as well as it does not look like it is Professionaly designed"*. The names and emails were underlined — not by HaTi: Safari's data detectors turn emails, names and addresses into links when a page does not say `format-detection`. Now index.html and the server's two standalone pages (the status link, the request tracker) carry `<meta name="format-detection" content="telephone=no,email=no,address=no,date=no">`, with an `a[x-apple-data-detectors]` rule on the row as a fallback. The row itself: the avatar 32px on the two lines' middle, our party's lowercase "us ·" run into its email became a quiet "Our side" tag by the name (`ov_pty_our_side`; `ov_map_us_word` left inert in both books), the email one line cut with an ellipsis. overview-as-drawn 12d re-pointed; overview-and-obligations-polish 1f, 1g new (red at main).

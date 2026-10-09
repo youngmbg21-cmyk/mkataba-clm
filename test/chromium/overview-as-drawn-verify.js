@@ -606,7 +606,8 @@ const SEC = (suffix) => {
     check('12b and nothing about them is folded away', py.open === 'true', 'open ' + py.open);
     check('12c one row per party, ours included', py.rows === 2, py.rows + ' rows');
     check('12d each names its party, and ours says it is us',
-      py.text.includes(c.counterparty) && /\bus\b/.test(py.text), py.text.slice(0, 160));
+      /* re-pointed 9 Oct 2026: ours wears an "Our side" tag by its name (owner: "professionally designed") */
+      py.text.includes(c.counterparty) && /Our side/.test(py.text), py.text.slice(0, 160));
     check('12e the one door onto naming another party is on it',
       py.add, py.add ? 'on the Parties column' : 'no + Add a party');
     check('12f the name is said ONCE — the column carries it, not a block head',

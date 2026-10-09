@@ -7563,8 +7563,9 @@ function ktOverviewTermsHtml(c,opts={}){
   const rtLine=rtSay?`<small class="ov-pty-route" data-ov-route="1"><span style="font-weight:var(--w-strong)">${esc(i18t('ct_signing_route_email'))}:</span> ${esc(rtSay.email)}${
       rtSay.who?' \u00b7 '+esc(rtSay.who):''} \u00b7 ${esc(i18t('ct_signing_route_email_note'))}</small>`:'';
   const pyRows=(D?D.parties:[]).map(p=>`<div class="ov-pty"><span class="ov-pty-av" style="background:${p.tone[1]};color:${p.tone[2]}">${
-      esc(typeof deskInitials==='function'?deskInitials(p.name):String(p.name).slice(0,2))}</span><div><b>${esc(p.name)}</b><small>${
-      esc([p.role, p.us?i18t('ov_map_us_word'):'', p.where, p.email].filter(Boolean).join(' · '))}</small>${
+      esc(typeof deskInitials==='function'?deskInitials(p.name):String(p.name).slice(0,2))}</span><div><span class="ov-pty-nm"><b title="${esc(p.name)}">${esc(p.name)}</b>${p.us?`<span class="ov-pty-us">${esc(i18t('ov_pty_our_side'))}</span>`:''}</span>${(()=>{
+      const sub=[p.role, p.where, p.email].filter(Boolean).join(' · ');
+      return sub?`<small class="ov-pty-sub" title="${esc(sub)}">${esc(sub)}</small>`:''; })()}${
       (p===rtParty?rtLine:'')+p.signs.map(r=>`<small class="ov-pty-sg${r.signed?' is-done':''}">${esc(r.signed?(r.at?i18t('ov_map_signed_by',{ name:r.n, date:ovDay(r.at) }):i18t('ov_map_signed_by_nodate',{ name:r.n })):i18t('ov_map_signs',{ name:r.n }))}</small>`).join('')}</div></div>`).join('');
   /* IN THE EDIT POSTURE THE PARTIES ARE THEIR EDITORS — the block every party
      act already lives on (drawn bare, the name said once), the people on the

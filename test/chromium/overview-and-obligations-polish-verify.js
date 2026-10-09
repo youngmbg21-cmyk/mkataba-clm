@@ -73,6 +73,14 @@ const SIGNED = { ...H.fixtureContract('MK-P1', 'Warehousing Services', 'Apex Log
     ok('1d every duty carries its mark first and its date at the right', du.marks.every(m => m.trim()) && du.dated);
     ok('1e the duty is one sentence on one line', du.oneLine);
 
+    console.log('\n1p · the parties read as a designed list');
+    const py = await page.evaluate(() => ({
+      meta: ((document.querySelector('meta[name="format-detection"]') || {}).content || ''),
+      tag: [...document.querySelectorAll('#ov-ess .ov-pty .ov-pty-us')].map(x => x.textContent.trim()),
+      runOn: [...document.querySelectorAll('#ov-ess .ov-pty small')].some(x => /^us\b/.test(x.textContent.trim())) }));
+    ok('1f Safari is told not to underline names and emails', /email=no/.test(py.meta) && /address=no/.test(py.meta), py.meta);
+    ok('1g our party wears one "Our side" tag, not "us ·" run into its email', py.tag.length === 1 && py.tag[0] === 'Our side' && !py.runOn, JSON.stringify(py));
+
     console.log('\n2 · The terms card never grows');
     const before = await page.evaluate(() => Math.round(document.querySelector('#ov-ess').getBoundingClientRect().height));
     await page.evaluate(long => { const c = getContract('MK-P1'); c.metadata = c.metadata || {}; c.metadata.disputes = long; roomGoTab(c, 'terms'); }, LONG);
