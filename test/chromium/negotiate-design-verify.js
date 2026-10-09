@@ -163,6 +163,16 @@ const openNego = async (page, id) => {
       !!neg.pencil && neg.pencil === neg.bodyTok, `${neg.pencil} · token ${neg.bodyTok}`);
     check('2c and so does the mark inside it',
       !neg.pencilMark || neg.pencilMark === neg.bodyTok, neg.pencilMark);
+    /* The typed letter was only to stand the furniture up. Words typed on
+       the paper and not saved are a draft the page asks about on the way off
+       (Young, 9 Oct 2026, change 5) — so it is discarded the way a person
+       discards it before the next stage leaves the page. */
+    {
+      const discard = await page.$('.redline-page .rl-inline-acts [data-rl-inline="discard"]');
+      if (discard){ await discard.click(); await page.waitForTimeout(400); }
+      check('2d Discard puts the clause back, so leaving asks nothing',
+        await page.evaluate(() => !(window.rlInlineDirty && rlInlineDirty())));
+    }
 
     /* ---- 3. A SECOND DESIGN, SO 1c CANNOT PASS BY COINCIDENCE ----
        Ceremonial is a different family AND uppercases its headings, so this
