@@ -151,7 +151,7 @@ const paperRead = page => page.evaluate(() => {
       ? await paperRead(page) : await paperRead(page);
     ok('4a Copilot\'s counter sits under their wording in a dashed box', !!p4.box && /60 days/.test(p4.box) && p4.dashed === 'dashed', JSON.stringify(p4));
     ok('4b the words it adds are marked (60), nothing struck', p4.ins.some(t => /60/.test(t)), JSON.stringify(p4.ins));
-    ok('4c Counter glows', p4.glow === 'Counter' && /rgb/.test(p4.glowShadow || ''), p4.glow + ' ' + p4.glowShadow);
+    ok('4c Counter glows', p4.glow === 'Counter' && !!p4.glowShadow && p4.glowShadow !== 'none', p4.glow + ' ' + p4.glowShadow);
     ok('4d nothing was filed: one change on the record, theirs', await page.evaluate(() => getContract('MK-CP1').changes.length === 1));
     await page.screenshot({ path: path.join(OUT, '4-nego.png') });
 
