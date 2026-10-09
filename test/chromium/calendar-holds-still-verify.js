@@ -90,8 +90,10 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
 
     const measure = () => page.evaluate(() => {
       const r = el => el ? +el.getBoundingClientRect().height.toFixed(2) : null;
-      const grid = document.querySelector('.cal-stack > .cal-grid');
-      const panel = document.querySelector('.cal-stack > .cal-panel');
+      /* the month sits in its own column beside the agenda since 9 Oct 2026
+         (SAP benchmark, batch 2), so it is found inside the stack, not on it */
+      const grid = document.querySelector('.cal-stack .cal-grid');
+      const panel = document.querySelector('.cal-stack .cal-panel');   /* inside .cal-side since 9 Oct 2026 */
       const pg = document.querySelector('.cal-page');
       const body = document.querySelector('.cal-body');
       return { grid: r(grid), panel: r(panel), day: r(document.querySelector('.cal-day')),
@@ -134,9 +136,15 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
     const days = [...new Set(seen.map(s => s.day))];
     ok('1c and so is a single day box',
       days.length === 1, seen.map(s => `${s.at}=${s.day}`).join('  '));
-    const panels = [...new Set(seen.map(s => s.panel))];
-    ok('1d because the agenda card declares one height',
-      panels.length === 1, panels.join(', '));
+    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing
+       is the target): Next 14 days now stands BESIDE the month, as tall as
+       its rows (the drawing's card ends under its last row). What keeps the
+       month still is no longer the agenda's one height but that the agenda
+       is its own column: it may grow, up to the month's own height, and never
+       past it. 1b and 1c above are the owner's rule itself and are unchanged. */
+    const tallest = seen.filter(s => s.panel != null && s.grid != null && s.panel > s.grid + 60);
+    ok('1d because the agenda card is its own column, never taller than the month beside it',
+      tallest.length === 0, seen.map(s => `${s.at}=${s.panel}/${s.grid}`).join('  '));
 
     /* ===== 2. AND NOTHING SPILLS ===== */
     const spill = seen.filter(s => s.over > 1);
@@ -178,9 +186,12 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
       const b = document.getElementById('cal-more');
       if (!b) return null;
       const cs = getComputedStyle(b);
-      const peers = [...document.querySelectorAll('#cal-export, #cal-share')].map(p => {
+      /* Export and Share went INTO the ⋯ menu on 9 Oct 2026 (SAP benchmark,
+         batch 2), so the neighbours ⋯ must match are now the two switches
+         beside it on the same row. */
+      const peers = [...document.querySelectorAll('.cal-acts > .cal-seg')].map(p => {
         const c = getComputedStyle(p);
-        return { id: p.id, edge: c.borderTopColor, w: c.borderTopWidth, st: c.borderTopStyle,
+        return { id: p.id || p.className, edge: c.borderTopColor, w: c.borderTopWidth, st: c.borderTopStyle,
           h: Math.round(p.getBoundingClientRect().height) };
       });
       return { more: { edge: cs.borderTopColor, w: cs.borderTopWidth, st: cs.borderTopStyle,

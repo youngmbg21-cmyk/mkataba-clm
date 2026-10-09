@@ -96,14 +96,16 @@ const check = (name, ok, detail) => {
        drawn by the same builder with a shorter word. */
     const holdChip = await page.evaluate(() => {
       const e = document.getElementById('reg-hold'); const c = e && e.closest('.reg-chip');
-      const s = document.getElementById('reg-stage-sel'); const sc = s && s.closest('.reg-chip');
+      /* RE-POINTED 9 Oct 2026: the stage is a tab row on Contracts now, so the
+         neighbour asked is the Stream chip, drawn by the same builder. */
+      const s = document.getElementById('reg-type-sel'); const sc = s && s.closest('.reg-chip');
       const words = c && c.querySelector('.reg-f-l');
       return { w: c ? +c.getBoundingClientRect().width.toFixed(1) : (e ? +e.getBoundingClientRect().width.toFixed(1) : 0),
         stage: sc ? +sc.getBoundingClientRect().width.toFixed(1) : 0,
         whole: !!words && words.scrollWidth <= words.clientWidth + 0.5 }; });
-    check('1c and it has a real width — its words whole, no narrower than the Stage chip beside it',
+    check('1c and it has a real width — its words whole, no narrower than the Stream chip beside it',
       holdChip.w > 0 && holdChip.stage > 0 && holdChip.whole && holdChip.w >= holdChip.stage,
-      `${holdChip.w}px against Stage ${holdChip.stage}px · words whole ${holdChip.whole} (select ${hold.w}px)`);
+      `${holdChip.w}px against Stream ${holdChip.stage}px · words whole ${holdChip.whole} (select ${hold.w}px)`);
     await page.screenshot({ path: path.join(OUT, '01-hold-filter.png') });
 
     /* IT NARROWS. A control that draws and does nothing is the same fault in

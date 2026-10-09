@@ -55,6 +55,7 @@ const ICONS = {
   hash:'<path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>',
   x:'<path d="M18 6 6 18M6 6l12 12"/>',
   alert:'<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r="0.6" fill="currentColor"/>',
   /* ---- ONE MARK, ONE MEANING (Young ruled it 19 Sep 2026) ----------------
      "Focus mode button and Copilot risk scan symbols look almost exactly the
      same. Change the Copilot risk scan into a different symbol across the

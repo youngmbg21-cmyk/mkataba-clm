@@ -20574,3 +20574,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed — 9 Oct 2026 (SAP benchmark, batch 1: the lists)
 - The server lets any signed-in editor put an APPROVED rule step back to waiting in a save (srvApprovalDecisionRefusal skips a step whose new status is pending). It only makes a contract stricter, and Undo after Approve relies on it, but the server does not check that it is the approver taking back their own yes within the Undo window. Left as is.
 - Every page carries one unnamed button in the shell (axe button-name: 1 on Contracts, Negotiations, Approvals, Obligations). Planned for the accessibility batch.
+
+### Noticed, not fixed (SAP batch 2, 9 Oct 2026)
+- calendar-redesign-verify sections 5, 7 and 8 fail on main and on the branch alike: its SEED pins every event to August 2026, so once the real month moves on the grid shows none of them (a test whose answer depends on the day it runs). Section 3's colour check passes vacuously for the same reason.
+- axe reports one unnamed button on every page photographed (the same count on main) — left for the accessibility batch.
+- A faint grey strip shows at the right edge of pages that do not own their height (the scroller's reserved gutter beside the white head) — Calendar, Requests, People and Our paper now own theirs; others still show it.
+- CLAUDE.md is about 95 KB, over its own 80 KB line — a trim is owner-asked, not done here.

@@ -665,6 +665,14 @@ addColumnIfMissing('intake_requests', 'track_token', 'TEXT');
    cleaned by intakeAnswersClean (js/intakelanes.js) on the way in, so nothing
    outside that list is ever stored. Counterparty and stream stay columns. */
 addColumnIfMissing('intake_requests', 'answers', 'TEXT');
+/* A REQUEST'S FILES (SAP benchmark, batch 2): what the asker attached — a
+   brief, a quote, the other side's draft. Its own table so the list route
+   never carries the bytes; the list says name and size, the bytes come back
+   one file at a time through GET /api/intake/:id/files/:fid. */
+db.exec(`CREATE TABLE IF NOT EXISTS intake_files (
+  id TEXT PRIMARY KEY, request_id TEXT NOT NULL, name TEXT, mime TEXT, size INTEGER,
+  data BLOB, created_at TEXT)`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_intake_files_req ON intake_files(request_id)');
 db.exec('CREATE INDEX IF NOT EXISTS idx_intake_track ON intake_requests(track_token)');
 addColumnIfMissing('users', 'org_id', `TEXT NOT NULL DEFAULT '${WORKSPACE_ID}'`);
 // Contract sharing (email/WhatsApp delivery + traffic-light tracking): each
@@ -9551,7 +9559,29 @@ const intakeRow = r => ({ id: r.id, title: r.title, need: r.need, counterparty: 
      where the honest answer is "nobody has said". */
   assignee: r.assignee_id ? { id: r.assignee_id, name: r.assignee_name || '' } : null,
   promisedAt: r.promised_at || null, lane: r.lane || null,
-  trackToken: r.track_token || null, answers: intakeAnswersOf(r) });
+  trackToken: r.track_token || null, answers: intakeAnswersOf(r), files: intakeFilesOf(r.id) });
+/* Names and sizes only — never the bytes (see intake_files). */
+function intakeFilesOf(id) {
+  try { return db.prepare('SELECT id, name, mime, size FROM intake_files WHERE request_id=? ORDER BY created_at').all(id); }
+  catch (_) { return []; }
+}
+const IK_FILES_MAX = 3, IK_FILE_MAX_MB = 5;
+/* The attachments a POST carried, checked before anything is written: at most
+   IK_FILES_MAX, each a data URL of at most IK_FILE_MAX_MB. A refusal says
+   which rule it broke; nothing is half-stored. */
+function intakeFilesRead(list) {
+  const L = Array.isArray(list) ? list : [];
+  if (L.length > IK_FILES_MAX) return { error: `Attach at most ${IK_FILES_MAX} files` };
+  const out = [];
+  for (const f of L) {
+    const m = /^data:([^;,]*)(;base64)?,(.*)$/s.exec(String((f && f.dataUrl) || ''));
+    if (!m || !m[2]) return { error: 'A file could not be read' };
+    const buf = Buffer.from(m[3], 'base64');
+    if (buf.length > IK_FILE_MAX_MB * 1024 * 1024) return { error: `Each file must be at most ${IK_FILE_MAX_MB} MB` };
+    out.push({ name: clean(f.name).slice(0, 200) || 'file', mime: clean(f.mime || m[1]).slice(0, 100) || 'application/octet-stream', buf });
+  }
+  return { files: out };
+}
 function intakeAnswersOf(r) {
   let a = null; try { a = r && r.answers ? JSON.parse(r.answers) : null; } catch (_) { a = null; }
   return intakeAnswersClean(a);
@@ -9567,6 +9597,8 @@ app.post('/api/intake', auth, rlIntake, (req, res) => {   // a trigger path, so 
      record appear somewhere invisible to the person who raised it. */
   if (folder && !inScope(folderScopeFor(req.user), folder))
     return res.status(403).json({ error: 'You do not have access to that value stream' });
+  const attached = intakeFilesRead(b.files);
+  if (attached.error) return res.status(400).json({ error: attached.error });
   const id = 'REQ-' + rid(5).toUpperCase().slice(0, 6);
   /* THE TRACKER TOKEN IS MINTED HERE AND NOWHERE ELSE, so there is one per
      request for its whole life and no route can hand out a second. 24 bytes
@@ -9577,6 +9609,9 @@ app.post('/api/intake', auth, rlIntake, (req, res) => {   // a trigger path, so 
     VALUES (?,?,?,?,?,'open',?,?,?,?,?)`)
     .run(id, title, need, clean(b.counterparty).slice(0, 200), folder, req.user.id, req.user.name || '', now(), track,
       Object.keys(answers).length ? JSON.stringify(answers) : null);
+  for (const f of attached.files)
+    db.prepare('INSERT INTO intake_files (id,request_id,name,mime,size,data,created_at) VALUES (?,?,?,?,?,?,?)')
+      .run('IKF-' + rid(8), id, f.name, f.mime, f.buf.length, f.buf, now());
   /* The TITLE is arbitrary text any signed-in person — a Viewer included —
      can type, so carrying it would be a small data-egress primitive handed to
      the least-privileged role. The id is enough to go and look. */
@@ -9649,6 +9684,21 @@ function notifyIntakeDecision(row, actor, req) {
 /* An editor moves a request along; the requester may only WITHDRAW their own.
    Every other transition is an act by somebody who could have drafted it
    themselves, which is what makes it an approval rather than a formality. */
+/* ONE FILE BACK, to somebody who may see the request: its asker, or an
+   editor within its stream — the list route's own rule, asked of the stored
+   row. Sent as an attachment so the browser saves rather than renders it. */
+app.get('/api/intake/:id/files/:fid', auth, (req, res) => {
+  const r = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id);
+  const mayRead = r && (r.by_id === req.user.id
+    || (req.user.role !== 'viewer' && (!r.folder || inScope(folderScopeFor(req.user), r.folder))));
+  if (!mayRead) return res.status(404).json({ error: 'Request not found' });
+  const f = db.prepare('SELECT * FROM intake_files WHERE id=? AND request_id=?').get(req.params.fid, r.id);
+  if (!f) return res.status(404).json({ error: 'File not found' });
+  res.setHeader('Content-Type', f.mime || 'application/octet-stream');
+  res.setHeader('Content-Disposition', 'attachment; filename="' + String(f.name || 'file').replace(/[^\w.\- ]/g, '_') + '"');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.end(f.data);
+});
 app.patch('/api/intake/:id', auth, (req, res) => {
   const r = db.prepare('SELECT * FROM intake_requests WHERE id=?').get(req.params.id);
   if (!r) return res.status(404).json({ error: 'Request not found' });

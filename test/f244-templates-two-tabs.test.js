@@ -520,8 +520,10 @@ describe('f244 (7) — the two tabs work together', () => {
     const bk = html.slice(html.indexOf('data-tpl-sec="book"'),
       html.indexOf('data-tpl-sec="list"'));
     assert.ok(bk.length > 200, 'the book section was really found');
-    assert.ok((bk.match(/data-tpl-ov-bucket=/g) || []).length >= 5,
-      'a card per library, and it is the category door');
+    /* re-pointed 9 Oct 2026 (SAP benchmark, batch 2): the book draws the four
+       shelves as table rows (the whole book is the band's figure) */
+    assert.ok((bk.match(/data-tpl-ov-bucket=/g) || []).length >= 4,
+      'a row per shelf, and it is the category door');
     assert.ok((bk.match(/data-tpl-ov-card=/g) || []).length >= 1,
       'a panel row is a door, and it is the name door');
     assert.ok((wall(s).match(/data-tpl-ov-bucket=/g) || []).length >= 5,

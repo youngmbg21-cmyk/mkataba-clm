@@ -534,6 +534,7 @@ function insItemHeadHtml(o){
       ? `<div class="ins-item-row"><h2 class="ins-cp is-item" title="${esc(opt.title || '')}">${esc(opt.title || '—')}</h2><span class="ins-st-side"><span class="reg-stg ins-pill${tone ? ' is-' + tone : ''}"><i aria-hidden="true"></i>${opt.statusShort || opt.status}</span></span></div>`
       : `<h2 class="ins-cp is-item" title="${esc(opt.title || '')}">${esc(opt.title || '—')}</h2>`}
     ${opt.sub ? `<div class="ins-sub is-item">${opt.sub}</div>` : ''}
+    ${opt.pill ? `<div class="ins-pill-row"><span class="reg-stg ins-pill${INS_TONE.includes(opt.pillTone) ? ' is-' + opt.pillTone : ''}"><i aria-hidden="true"></i>${opt.pill}</span></div>` : ''}
     ${opt.status && !opt.statusBeside ? `<div class="ins-st">${tone ? `<i class="ins-dot2 is-${tone}" aria-hidden="true"></i>` : ''}<span class="ins-st-t">${opt.status}</span></div>` : ''}
     ${insActsHtml(opt.acts, opt.menuHtml, opt.moreAria)}
   </div>`;
@@ -791,6 +792,8 @@ const INS_PAGE_REPAINT = {
      line so its tab row sits where the Contracts tab's does (gap F). */
   advice: 'renderAdviceDesk',
   playbook: 'renderPlaybookPage',
+  /* the Templates list takes the inspector where it fits (SAP benchmark, batch 2) */
+  templates: 'renderTemplatesPage',
   oblig: () => { const c = (typeof getContract === 'function' && typeof state !== 'undefined') ? getContract(state.activeId) : null;
     if (c && typeof roomPaintObligations === 'function') roomPaintObligations(c); },
 };

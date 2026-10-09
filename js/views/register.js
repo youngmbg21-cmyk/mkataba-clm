@@ -1295,6 +1295,51 @@ function negoBandTabsHtml(R, book){
     return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${!c&&!on?' is-zero':''}" data-reg-band="${k}" aria-selected="${on?'true':'false'}">${esc(label)}${c?`<span class="n">${c}</span>`:''}</button>`;
   }).join('')}</div>`;
 }
+/* ---- THE CONTRACTS TABS ARE THE STAGES (owner-asked 9 Oct 2026: "contracts
+   page needs to resemble the negotiations page so add tabs in contracts that
+   navigate through the stages") ----
+   The Negotiations seat's tab row, in the same dress, writing the one fact the
+   Stage box used to write (R.stage) — so the Stage box is not drawn on this
+   seat: one door per fact. Counts are the list with every OTHER filter
+   applied, so a tab's number is the list behind it. A stage with nothing in it
+   stays quiet, as the Negotiations tabs do. */
+function regStageBase(){
+  const R=regState(), keep=R.stage; R.stage='all';
+  try{ return regFiltered(); } finally { R.stage=keep; }
+}
+const REG_STAGE_TABS=['all','Draft','Under Review','awaiting','Signed','Declined'];
+function regStageTabsHtml(R){
+  let base=[]; try{ base=regStageBase(); }catch(_){ base=[]; }
+  const shares=state.shareByContract||{};
+  /* a part of the book is never counted as the whole: regViewCount's own rule */
+  const whole=!(typeof API_MODE==='function'&&API_MODE()) || !(state.serverStats&&state.serverStats.total!=null)
+    || Number(state.serverStats.total)<=state.contracts.length;
+  const count=k=>!whole?0:k==='all'?base.length
+    : k==='awaiting'?base.filter(c=>{ const s=shares[c.id]; return !!s&&(s.state==='sent'||s.state==='opened'); }).length
+    : base.filter(c=>c.status===k).length;
+  const label=k=>{ const st=REG_STAGES.find(x=>x.k===k); return k==='all'?i18t('reg_tab_all'):(st?st.label:k); };
+  return `<div class="reg-views reg-stage-tabs" role="tablist" aria-label="${esc(i18t('reg_chip_stage'))}">${REG_STAGE_TABS.map(k=>{
+    const on=(R.stage||'all')===k, n=count(k);
+    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${whole&&!n&&!on?' is-zero':''}" data-reg-stage="${esc(k)}" aria-selected="${on?'true':'false'}">${esc(label(k))}${n?`<span class="n">${n}</span>`:''}</button>`;
+  }).join('')}</div>`;
+}
+/* ---- THE QUICK FILTERS ARE A BOX NOW (owner's pick, 9 Oct 2026) ----
+   The stage tabs took the tab row, so the shortcuts and the reader's saved
+   views became one labelled box on the bar — SAP's own variant box: the
+   shortcuts, then "Saved views", then the two acts (save the bar as a view;
+   forget the one in force). The fact is still R.view; a saved view still
+   lights when the bar matches it. regViewTabsHtml stays built for the record
+   and has no caller. */
+function regViewOptsHtml(R){
+  const cur=(()=>{ const m=regSavedViews().find(v=>regSavedMatches(v,R)); return m?('saved:'+m.name):(R.view||''); })();
+  const opt=(v,l)=>`<option value="${esc(v)}"${cur===v?' selected':''}>${esc(l)}</option>`;
+  const cnt=k=>{ const n=regViewCount(k); return n?` (${n})`:''; };
+  const saved=regSavedViews();
+  const lit=saved.find(v=>regSavedMatches(v,R));
+  return opt('',i18t('reg_tab_all'))+REG_VIEWS.map(v=>opt(v.k,v.label+cnt(v.k))).join('')
+    +(saved.length?`<optgroup label="${esc(i18t('reg_qf_saved'))}">${saved.map(v=>opt('saved:'+v.name,v.name)).join('')}</optgroup>`:'')
+    +`<optgroup label="${esc(i18t('reg_qf_acts'))}">${opt('act:save',i18t('reg_qf_save'))}${lit?opt('act:forget:'+lit.name,i18t('reg_qf_forget',{name:lit.name})):''}</optgroup>`;
+}
 function regViewTabsHtml(R){
   const neg=regScope()==='negotiations';
   /* A VIEW WITH NOTHING IN IT STAYS QUIET (26 Sep 2026, the list options'
@@ -1342,8 +1387,29 @@ function regPaintHeadFacts(){
    and left "All 30" over a list of 29 (measured). The tabs are wired where the
    page is built, so their buttons stay and only the count inside each moves;
    the count is the press's own reading (regViewCount), as when it was drawn. */
+function regStageTabsWire(){
+  document.querySelectorAll('button[data-reg-stage]').forEach(b=>{
+    if(b.dataset.wired) return; b.dataset.wired='1';
+    b.addEventListener('click',()=>{ const R=regState(); R.stage=b.getAttribute('data-reg-stage')||'all'; R.page=1; regRepaint(); });
+  });
+}
+/* The two acts on saved views, shared by the box and the retired tabs. */
+async function regSaveViewAsk(){
+  const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view_ask'),message:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
+  if(name==null||!String(name).trim()) return false;
+  if(regSaveView(name)){ if(window.toast) toast(i18t('reg_view_saved',{name:String(name).trim()}),'ok'); return true; }
+  if(window.toast) toast(i18t('reg_view_not_saved'),'warn');
+  return false;
+}
+async function regForgetViewAsk(name){
+  const ok=window.confirmDialog?await confirmDialog({title:i18t('reg_forget_view_title'),message:i18t('reg_forget_view',{name}),confirmLabel:i18t('reg_forget_view_go')}):confirm(i18t('reg_forget_view',{name}));
+  if(!ok) return false; regForgetView(name); return true;
+}
 function regPaintViewCounts(){
   const R=regState();
+  const st=document.querySelector('.reg-stage-tabs');
+  if(st){ const w=document.createElement('div'); w.innerHTML=regStageTabsHtml(R); const nu=w.firstElementChild;
+    if(nu&&nu.innerHTML!==st.innerHTML){ st.replaceWith(nu); regStageTabsWire(); } }
   document.querySelectorAll('.reg-views button[data-reg-view]').forEach(b=>{
     const k=b.getAttribute('data-reg-view')||'';
     const n=regViewCount(k), on=(R.view||'')===k;
@@ -3111,10 +3177,11 @@ function renderRegister(opts){
                not. The second half is the safety property — a hidden control
                quietly shortening the book is the exact fault WO-15's removal
                note was guarding against. */}
-        ${BAR.includes('stage')?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'),i18t('reg_chip_stage')):''}
+        ${(neg&&BAR.includes('stage'))?selFilter('reg-stage-sel',stageOpts,R.stage!=='all',i18t('reg_lifecycle_stage'),i18t('reg_chip_stage')):''}
         ${BAR.includes('type')?selFilter('reg-type-sel',typeOpts,R.type!=='all',i18t('reg_value_stream'),i18t('reg_chip_stream')):''}
         ${''/* The long sentence is the TOOLTIP, not the label — used as a label it
                     ran to 460px and pushed the whole bar off the row. */}
+        ${(!neg&&BAR.includes('view'))?selFilter('reg-view-sel',regViewOptsHtml(R),!!R.view||regSavedViews().some(v=>regSavedMatches(v,R)),i18t('reg_quick_filters_title'),i18t('reg_quick_filters')):''}
         ${BAR.includes('category')?categorySel:''}
         ${BAR.includes('renewal')?selFilter('reg-renewal',renewalOpts,renewalActive,i18t('reg_renewal')):''}
         ${''/* NEVER ON THE NEGOTIATIONS SEAT: that page holds live negotiations,
@@ -3130,7 +3197,7 @@ function renderRegister(opts){
         <button id="reg-adapt" type="button" class="reg-chip reg-chip-btn reg-chip-add" title="${esc(i18t('reg_adapt_title'))}">${icon('plus','w-3.5 h-3.5')}${esc(i18t('reg_adapt'))}</button>
         <span id="reg-clear-slot">${regClearHtml()}</span>
       </div>
-      ${(!neg&&BAR.includes('view'))?regViewTabsHtml(R):''}
+      ${!neg?regStageTabsHtml(R):''}
       ${neg?negoBandTabsHtml(R,csBook):''}
       </div>
       <div class="reg-body${INS?' is-ins':''}">
@@ -3319,7 +3386,8 @@ function renderRegister(opts){
      that, and this file's own rule is one builder per job. */
   document.getElementById('reg-adapt')?.addEventListener('click',()=>{
     const chosen=regBarChosen();
-    const rows=REG_BAR_FILTERS.map(f=>{
+    /* On Contracts the stage is the tab row, not a box, so it is not offered here. */
+    const rows=REG_BAR_FILTERS.filter(f=>!(f.k==='stage'&&regScope()!=='negotiations')).map(f=>{
       const on=chosen.includes(f.k);
       /* A FIXED FILTER IS SHOWN TICKED AND DISABLED rather than hidden: a
          chooser that silently omits two of the six leaves the reader counting
@@ -3389,18 +3457,18 @@ function renderRegister(opts){
   document.getElementById('reg-stage-sel')?.addEventListener('change',e=>{ R.stage=e.target.value; R.page=1; regRepaint(); });
   document.getElementById('reg-type-sel')?.addEventListener('change',e=>{ R.type=e.target.value; R.page=1; regRepaint(); });
   document.querySelectorAll('button[data-reg-view]').forEach(b=>b.addEventListener('click',()=>{ R.view=b.getAttribute('data-reg-view')||null; R.page=1; regRepaint(); }));
+  regStageTabsWire();
+  document.getElementById('reg-view-sel')?.addEventListener('change',async e=>{
+    const v=e.target.value||'';
+    if(v==='act:save'){ await regSaveViewAsk(); regRepaint(); return; }
+    if(v.startsWith('act:forget:')){ await regForgetViewAsk(v.slice(11)); regRepaint(); return; }
+    if(v.startsWith('saved:')){ if(regApplySaved(v.slice(6))) regRepaint(); return; }
+    R.view=v||null; R.page=1; regRepaint(); });
   document.querySelectorAll('button[data-reg-band]').forEach(b=>b.addEventListener('click',()=>{ R.band=b.getAttribute('data-reg-band')||null; R.page=1; regRepaint(); }));
   document.querySelectorAll('button[data-reg-saved]').forEach(b=>b.addEventListener('click',()=>{ if(regApplySaved(b.getAttribute('data-reg-saved'))) regRepaint(); }));
   document.querySelectorAll('button[data-reg-saved-x]').forEach(b=>b.addEventListener('click',async e=>{ e.stopPropagation();
-    const name=b.getAttribute('data-reg-saved-x');
-    const ok=window.confirmDialog?await confirmDialog({title:i18t('reg_forget_view_title'),message:i18t('reg_forget_view',{name}),confirmLabel:i18t('reg_forget_view_go')}):confirm(i18t('reg_forget_view',{name}));
-    if(!ok) return; regForgetView(name); regRepaint(); }));
-  document.getElementById('reg-save-view')?.addEventListener('click',async()=>{
-    const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view_ask'),message:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
-    if(name==null||!String(name).trim()) return;
-    if(regSaveView(name)){ if(window.toast) toast(i18t('reg_view_saved',{name:String(name).trim()}),'ok'); regRepaint(); }
-    else if(window.toast) toast(i18t('reg_view_not_saved'),'warn');
-  });
+    if(await regForgetViewAsk(b.getAttribute('data-reg-saved-x'))) regRepaint(); }));
+  document.getElementById('reg-save-view')?.addEventListener('click',async()=>{ if(await regSaveViewAsk()) regRepaint(); });
   regPaintHeadFacts();
   document.getElementById('reg-only-clear')?.addEventListener('click',()=>{ R.only=null; R.page=1; regRepaint(); });
   wireRegClear();
@@ -3495,5 +3563,5 @@ Object.assign(window,{regPlace,regPlacePut,regSignedOn,regSignedYear,regSignedYe
   regRowActsHtml,regRunRowAct,regOpenRow,regDisplayHtml,regCloseDisplay,REG_SOON_DAYS,regEndsSay,
   regColWidths,regColSetWidths,regColReset,regColDefaults,regColTrade,regColApply,regWireColResize,
   REG_CMP,REG_SORT_DEFDIR,regBlanksLast,regStreamName,regRefParts,regNarrowed,regClearHtml,regPaintClear,
-  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,negoBandTabsHtml,regAvatarHtml,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,regDeclineAsk,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
+  REG_BAR_FILTERS,REG_BAR_DEFAULT,regListTitle,regSortIconHtml,regMovePillHtml,regNegoCols,regNegoBase,negoBandTabsHtml,regAvatarHtml,regBarChosen,regBarSetChosen,regBarShown,regFilterActive,regViewCount,REG_SAVED_KEY,REG_SAVED_FIELDS,regSavedViews,regSaveView,regForgetView,regApplySaved,regSavedMatches,regHeadFactsHtml,regPaintHeadFacts,regPaintViewCounts,regMoveWord,regOwnerCell,REG_DENSITY,regDensity,regSetDensity,regDensityVars,regMode,regSetMode,regViewTabsHtml,regStageTabsHtml,regStageBase,regStageTabsWire,REG_STAGE_TABS,regViewOptsHtml,regSaveViewAsk,regForgetViewAsk,regSegHtml,regDotDate,REG_PAGE,REG_SORTS,REG_STAGES,regTypes,REG_VIEWS,REG_ROW_ACTIONS,regEndAct,regDeclineAsk,ftsSearch,regAggregate,regCloseMenus,regExportCsv,regFiltered,regCategories,regCatMatch,regCatLabel,regOwnerInitials,regPrimaryAction,regTitleOf,regRowsHtml,regState,negoMoveSay,regShowOnly,REG_FILTER_REST,regFiltersAtRest,regSearchBoxClear,regGoFiltered,regPaintCohort,renderRegister,renderRegisterBody,wireRegRows,
   regScope,regSetScope,regRepaint,regPageSize,regFitBandOffset,NEGO_BANDS,NEGO_BAND_DOT,negoGroupByMove,negoBandCounts,negoMovePillHtml,negoBandRowHtml});
