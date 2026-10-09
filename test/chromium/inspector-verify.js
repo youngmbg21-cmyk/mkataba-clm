@@ -240,8 +240,11 @@ const ok = (name, good, detail) => {
       && ng.waits.some(w => /^(\d+ days?|today)$/.test(w)), `${ng.moves.join(' | ')} · ${ng.waits.join(' | ')}`);
     ok('2c only the groups that have rows are drawn, whose move is a tab row, and no Contracts views', !ng.bands.includes('Nothing outstanding') && !ng.views
       && ng.bandTabs.includes('Your move') && ng.bandTabs.includes('Their move'), `${ng.bands.join(' | ')} · tabs ${ng.bandTabs.join(' | ')}`);
-    ok('2d the panel leads with what is on the table', ng.first === 'ins-sec ins-table' && /Round \d+ · \d+/.test(ng.table) && /from .+ · \d+ days?/.test(ng.table),
-      `${ng.first} · ${ng.table.replace(/\s+/g, ' ').slice(0, 120)}`);
+    /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner: less clutter): the panel
+       draws the drawing's four facts first; the round's detail is Negotiate's. */
+    const ngFacts = await page.evaluate(() => [...document.querySelectorAll('#ins-panel .ins-facts [data-ins-fact]')].map(x => x.getAttribute('data-ins-fact')));
+    ok('2d the panel leads with the drawing\'s four facts — value, lead, their changes, last sent', ng.first === 'ins-facts' && ngFacts.join(',') === 'value,lead,theirs,sent' && !ng.table,
+      `${ng.first} · ${ngFacts.join(',')}`);
     /* BALANCE ACROSS THE TWO PAGES, as the full tables have kept it since 21
        Sep: the reference, the counterparty and the value are cut identically
        in pixels, so a reader moving between the pages sees the same edges.

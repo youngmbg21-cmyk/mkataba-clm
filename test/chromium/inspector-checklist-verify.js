@@ -140,7 +140,12 @@ const ok = (name, good, detail) => {
           hover: (r.querySelector('.ins-need-s') || { title: '' }).title,
           oneLine: [r.querySelector('.ins-need-t'), r.querySelector('.ins-need-s')].filter(Boolean).every(el => el.getBoundingClientRect().height <= lh(el) * 1.4),
           verb: r.querySelector('[data-ins-need]').innerText.trim() })) : [],
-        table: (p && p.querySelector('.ins-table')) ? p.querySelector('.ins-table').innerText : '',
+        /* RE-POINTED 9 Oct 2026 (SAP benchmark): the list's panel no longer
+           draws the asks table, so its number is asked of the same reading the
+           table drew from (insTable), oldest ask first. */
+        table: (() => { const id = p && p.getAttribute('data-ins-id'); const t = id && window.insTable ? insTable(getContract(id)) : null;
+          const th = t ? t.items.filter(x => x.who === 'theirs' && x.days != null).map(x => x.days) : [];
+          return th.length ? `from them · ${Math.max(...th)} days` : ''; })(),
         over: p ? p.scrollWidth - p.clientWidth : 0,
       };
     });

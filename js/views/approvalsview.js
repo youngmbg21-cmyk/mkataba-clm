@@ -256,7 +256,8 @@ function apInsPaint(tab, rows){
       statusHtml:done?apApprovedPillHtml():null,
       needsHtml:!r?null:done?apDoneLineHtml():(typeof insNeedsLineHtml==='function'?insNeedsLineHtml(r.c, tab==='signatures'?['sign']:[]):null),
       needsSkip:tab==='signatures'?['sign']:[],
-      order:['lead','facts','reads','latest'],
+      order:['lead','facts','reads'],
+      factKeys:['value','owner','stream','ends'],
       empty:tab==='approvals'?i18t('ap_pg_none_approvals'):i18t('ap_pg_none_sign') });
   };
   paint(id);

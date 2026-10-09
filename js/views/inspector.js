@@ -226,8 +226,11 @@ const INS_READ_TONE = { yes: 'green', no: '', stale: 'amber', look: 'amber', bad
 function insSecHtml(title, n, body, cls){
   return `<section class="ins-sec${cls ? ' ' + cls : ''}"><h3>${esc(title)}${n != null && n !== '' ? `<span class="n">${esc(String(n))}</span>` : ''}</h3>${body}</section>`;
 }
-function insFactsHtml(c){
-  return `<dl class="ins-facts">${insFacts(c).map(f => {
+/* `keys` draws only the named facts, in the reading's own order — a page
+   showing the drawing's four (SAP benchmark, 9 Oct 2026) asks for those. */
+function insFactsHtml(c, keys){
+  const list = Array.isArray(keys) ? insFacts(c).filter(f => keys.includes(f.k)) : insFacts(c);
+  return `<dl class="ins-facts">${list.map(f => {
     const none = !f.v;
     return `<div data-ins-fact="${f.k}"><dt>${esc(f.label)}</dt><dd${none ? ' class="none"' : ''}${f.v ? ` title="${esc(f.v + (f.sub ? ' · ' + f.sub : ''))}"` : ''}>${
       none ? '—' : esc(f.v)}${f.sub ? ` <span class="sub${f.tone ? ' is-' + f.tone : ''}">· ${esc(f.sub)}</span>` : ''}</dd></div>`;
@@ -472,10 +475,13 @@ function insNeedsLineHtml(c, skip){
   if (!items.length) return '';
   const words = items.map(it => insNeedWords(c, it));
   const stop = t => /[.?!]$/.test(t) ? t : t + '.';
-  const rest = words.slice(1).map(w => w.plain ? `${w.title} (${w.plain})` : w.title).filter(Boolean);
+  /* THE DRAWING'S SENTENCE (SAP benchmark, 9 Oct 2026): "Renew or exit is also
+     due by 17 Nov 2026." — the date where the item has one, else just its name. */
+  const rest = items.slice(1).map((it, i) => { const w = words[i + 1]; const day = it.dd ? _insDay(it.dd) : '';
+    return day ? i18t('ins_need_also_due', { what: w.title, day }) : i18t('ins_need_also_one', { what: w.title }); }).filter(Boolean);
   const tone = items.some(x => x.urgent) ? 'ruby' : 'amber';
   return `<p class="ins-need-line is-${tone}" data-ins-need-line aria-label="${esc(i18t('ins_need_label'))}">${typeof icon === 'function' ? icon('alert', 'ins-need-line-ic') : ''}<span><b>${
-    esc(stop(words[0].title))}</b>${rest.length ? ' ' + esc(i18t('ins_need_also', { list: rest.join(' · ') })) : ''}</span></p>`;
+    esc(stop(words[0].title))}</b>${rest.length ? ' ' + esc(rest.join(' ')) : ''}</span></p>`;
 }
 /* The head: which contract, where it stands, and the page's own verbs. */
 function insHeadHtml(c, o){
@@ -573,7 +579,7 @@ function insPanelHtml(c, o){
   const part = {
     lead: () => opt.lead || '',
     table: () => insTableHtml(c),
-    facts: () => insFactsHtml(c),
+    facts: () => (Array.isArray(opt.facts) ? insKvHtml(opt.facts) : insFactsHtml(c, opt.factKeys)),
     reads: () => insReadsHtml(c),
     latest: () => insLatestHtml(c, opt.latestState),
   };

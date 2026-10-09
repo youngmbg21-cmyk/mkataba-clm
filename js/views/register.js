@@ -2140,7 +2140,7 @@ function regNegoCols(c){
   const n=(c&&c.negotiation)||{};
   const round=String(Number(n.round)||1);
   const ch=Array.isArray(c&&c.changes)?c.changes:[];
-  const ours=ch.filter(x=>x&&x.side!=='them'&&x.side!=='counterparty'&&(x.status==='pending'||!x.status)).length;
+  const ours=ch.filter(x=>x&&x.authorSide!=='counterparty'&&(x.status==='pending'||!x.status)).length;
   let changes;
   if(m.k==='you'&&!m.why) changes=i18tn('ngl_ch_to_answer',m.n||0,{n:m.n||0});
   else if(m.k==='them'&&m.why!=='handover') changes=i18tn('ngl_ch_sent',ours,{n:ours});
@@ -2150,6 +2150,24 @@ function regNegoCols(c){
   const d=Number.isFinite(at)?Math.max(0,Math.floor((Date.now()-at)/86400000)):null;
   const waiting=m.k==='clear'||d==null?'—':(d===0?i18t('home_today'):i18tn('ap_pg_days',d,{n:d}));
   return { round, changes, waiting, say:m.say||'' };
+}
+/* The Negotiations panel's four facts, as the drawing names them: Value,
+   Lead, their changes (open · agreed) and when we last sent a round. */
+function regNegoFacts(c){
+  const f=(typeof insFacts==='function')?insFacts(c):[];
+  const val=f.find(x=>x.k==='value');
+  let lead=''; try{ const l=(typeof deskLead==='function')?deskLead(c):null; lead=(l&&l.name)||((typeof contractOwnerName==='function')?contractOwnerName(c):'')||''; }catch(_){ lead=''; }
+  const theirs=(Array.isArray(c.changes)?c.changes:[]).filter(x=>x&&x.authorSide==='counterparty');
+  const open=theirs.filter(x=>x.status==='pending'||!x.status).length, agreed=theirs.filter(x=>x.status==='accepted').length;
+  const rounds=(c.negotiation&&Array.isArray(c.negotiation.rounds))?c.negotiation.rounds:[];
+  const last=rounds.length?rounds[rounds.length-1].at:'';
+  const day=last?(typeof regDotDate==='function'?regDotDate(last):String(last).slice(0,10)):'';
+  return [
+    ...(val?[{ k:'value', label:val.label, v:val.v?esc(val.v):'' }]:[]),
+    { k:'lead', label:i18t('ins_f_lead'), v:esc(lead) },
+    { k:'theirs', label:i18t('ins_f_their_changes'), v:theirs.length?esc(i18t('ins_f_open_agreed',{open,agreed})):'' },
+    { k:'sent', label:i18t('ins_f_last_sent'), v:esc(day) },
+  ];
 }
 function regInsSeat(){ return regScope()==='negotiations' ? 'negotiations' : 'contracts'; }
 function regInsActs(c){
@@ -2206,7 +2224,12 @@ function regInsPaint(){
       statusHtml:(seat==='negotiations'&&c)?regMovePillHtml(c):null,
       /* On Negotiations what is on the table leads — it is what that page is
          for; on Contracts the facts lead. The drawing's own order. */
-      order:seat==='negotiations'?['table','facts','reads','latest']:['facts','table','reads','latest'],
+      /* THE DRAWING'S PANEL (SAP benchmark, owner: "hati has more information
+         which makes it seem to have clutter"): four facts, then What Copilot
+         read — the round's detail and the trail stay on the contract. */
+      order:['facts','reads'],
+      factKeys:['value','owner','stream','ends'],
+      facts:(seat==='negotiations'&&c)?regNegoFacts(c):null,
       empty:i18t('ins_none_rows') });
   };
   paint(id);

@@ -3247,6 +3247,8 @@ function obPanelOpts(o, c, i, ctx){
     ? _obEsc(ctx === 'page' ? i18t('ob_whose_theirs_cp', { cp: o.counterparty || c.counterparty || '' }) : i18t('ob_side_theirs'))
     : (m ? _obEsc(i18t('ob_whose_ours', { who: m.name || typed })) : `<span class="ins-unassigned">${_obEsc(i18t(typed ? 'ob_whose_ours_unknown' : 'ob_whose_ours_nobody', { who: typed }))}</span>`);
   const due = obligationDue(o);
+  /* THE PAGE PANEL DRAWS THE DRAWING'S FOUR FACTS (SAP benchmark, owner: less
+     clutter): Due, Repeats, Contract, Owner. The contract's own tab keeps all. */
   const facts = [
     { k:'due', label: i18t('ob_fact_due'), v: due ? _obEsc(obDay(due, true)) : '' },
     /* No money, no Amount (SAP benchmark, 9 Oct 2026): an empty box is not a fact. */
@@ -3256,10 +3258,10 @@ function obPanelOpts(o, c, i, ctx){
   ];
   if(ctx === 'page'){
     let owner = ''; try{ owner = (typeof window.contractOwnerName === 'function' && contractOwnerName(c)) || ''; }catch(_){ owner = ''; }
-    let stream = ''; try{ stream = (typeof window.regStreamName === 'function') ? regStreamName(c) : ((window.FOLDERS && FOLDERS[c.folder] && FOLDERS[c.folder].name) || ''); }catch(_){ stream = ''; }
-    facts.push({ k:'contract', label: i18t('ob_f_contract'), v: _obEsc(c.name || ''), wide: true },
-      { k:'stream', label: i18t('ins_f_stream'), v: _obEsc(stream) },
-      { k:'owner', label: i18t('ob_f_owner'), v: _obEsc(owner) });
+    const keep = facts.filter(x => x && (x.k === 'due' || x.k === 'repeats' || (x.k === 'amount')));
+    facts.length = 0; keep.forEach(x => facts.push(x));
+    facts.push({ k:'contract', label: i18t('ob_f_contract'), v: _obEsc(c.name || '') },
+      { k:'owner', label: i18t('ins_f_owner'), v: _obEsc(owner) });
   }
   let kind = ''; try{ kind = (typeof window.cKind === 'function') ? cKind(c) : ''; }catch(_){ kind = ''; }
   const ref = _obEsc(window.contractRef ? contractRef(c) : c.id);
@@ -3276,9 +3278,10 @@ function obPanelOpts(o, c, i, ctx){
     head: { eyebrow, title: o.desc || '', sub, tone: st.tone, status: st.html, statusBeside: ctx === 'page',
       acts, menuHtml, moreAria: i18t('reg_more_actions') },
     acts,
-    body: insKvHtml(facts) + obDocSectionHtml(o) + obChainSectionHtml(o, c) + obWordingSectionHtml(o)
+    body: insKvHtml(facts) + obDocSectionHtml(o) + obChainSectionHtml(o, c)
+      + (ctx === 'page' ? '' : obWordingSectionHtml(o))
       + insSecHtml(i18t('ob_sec_reminders'), '', `<p class="ins-p">${obligationReminderLine(o, c)} <button type="button" class="ui-link" data-ob-rem-more aria-expanded="false">${_obEsc(i18t('ob_rem_how'))}</button></p><p class="ins-p ob-rem-full" data-ob-rem-full hidden>${obligationReminderSay(o, c)}</p>`, 'ins-rem')
-      + obHistoryHtml(o, c),
+      + (ctx === 'page' ? obWordingSectionHtml(o) : obHistoryHtml(o, c)),
     onMenu: act => { if(act === 'remove'){ const h = obLocate(obKeyOf(c.id, o, i)); if(h) obligationRemove(h.c, h.i); } },
   };
 }

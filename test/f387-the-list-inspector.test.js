@@ -205,13 +205,18 @@ describe('f387 (2) the Contracts list in the inspector’s shape', () => {
     assert.equal(b.$('#ins-panel [data-ins-fact="value"]'), null);
   });
 
-  test('2g Latest is the trail, newest first, three lines', () => {
+  /* RE-POINTED 9 Oct 2026 (SAP benchmark; the owner: "hati has more
+     information which makes it seem to have clutter"): the list's panel draws
+     the drawing's four facts and What Copilot read — the trail is the History
+     tab's. The builder still reads the trail newest first where it is asked. */
+  test('2g the panel draws the drawing\'s four facts and no Latest; the trail is still read newest first', () => {
     const b = world(list(), { ins: true });
     b.win.renderRegister();
-    const lines = b.$$('#ins-panel .ins-log li .t').map(x => x.textContent);
-    assert.equal(lines.length, 3);
-    assert.match(lines[0], /^Playbook/, 'newest first');
-    assert.ok(!lines.some(l => /^Created/.test(l)), 'the fourth-newest is left to the History tab');
+    const facts = b.$$('#ins-panel .ins-facts [data-ins-fact]').map(x => x.getAttribute('data-ins-fact'));
+    assert.deepEqual(facts, ['value', 'owner', 'stream', 'ends']);
+    assert.equal(b.$('#ins-panel .ins-latest'), null, 'no Latest on the list\'s panel');
+    const lines = b.win.insLatest(b.win.getContract('MK-1')) || [];
+    assert.match(String((lines[0] || {}).t || (lines[0] || {}).text || lines[0] || ''), /Playbook/, 'newest first');
   });
 
   test('2h the panel’s ⋯ is the row menu, and a verb in it runs the row’s own act', () => {
@@ -291,18 +296,16 @@ describe('f387 (3) the Negotiations list in the inspector’s shape', () => {
     assert.ok(b.$('.reg-views [data-reg-band="you"]'), 'whose move is a tab row');
   });
 
-  test('3b the panel leads with what is on the table: the round, the ask, how long, the standard', () => {
+  /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the Negotiations
+     panel draws the drawing's four facts — Value, Lead, their changes, last
+     sent — and the round's detail stays on Negotiate itself. */
+  test('3b the panel draws the drawing\'s four facts: value, lead, their changes, last sent', () => {
     const b = world(nw(), { ins: true, nego: true });
     b.win.openNegotiations({ list: true });
-    const t = b.$('#ins-panel .ins-table');
-    assert.ok(t, 'on the table is drawn');
-    assert.match(t.querySelector('h3').textContent, /Round 2 · 1/);
-    assert.match(t.textContent, /from Aleph Group · 20 days/);
-    assert.match(t.textContent, /past your 5-working-day standard/, 'twenty days is past the desk’s own five');
-    const order = [...b.$('#ins-panel').children].map(x => x.className);
-    assert.ok(order.indexOf('ins-sec ins-table') < order.findIndex(k => k === 'ins-facts'), 'the table leads, the facts follow');
-    b.$('#reg-tbody tr[data-row="MK-8"]').dispatchEvent(evt(b.win, 'click'));
-    assert.ok(!/past your/.test(b.$('#ins-panel .ins-table').textContent), 'a day-old ask is not past it');
+    assert.equal(b.$('#ins-panel .ins-table'), null, 'no table section on the list\'s panel');
+    const facts = b.$$('#ins-panel .ins-facts [data-ins-fact]').map(x => x.getAttribute('data-ins-fact'));
+    assert.deepEqual(facts.filter(k => k !== 'value'), ['lead', 'theirs', 'sent']);
+    assert.match(b.$('#ins-panel [data-ins-fact="theirs"] dd').textContent, /^1 open · 0 agreed$/);
   });
 
   /* RE-POINTED 7 Oct 2026 (Young, the HaTi Platform mockup's panel): "Open

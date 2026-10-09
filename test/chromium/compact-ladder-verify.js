@@ -154,7 +154,10 @@ const HELPERS = `(() => {
     const c1 = await page.evaluate(() => {
       const m = window.__m;
       const head = [...document.querySelectorAll('#page-head button, .page-head button')].filter(m.vis).map(m.box);
-      const bar = [...document.querySelectorAll('.reg-chip, .reg-seg')].filter(m.vis).map(m.box);
+      /* RE-POINTED 9 Oct 2026 (SAP benchmark): a band filter is a label over a
+         BOX — the box is the control, so the box is what sits on the rung. */
+      const bar = [...document.querySelectorAll('.reg-chip, .reg-seg')].filter(m.vis)
+        .map(e => { const v = e.querySelector('.reg-f-v'); return v && m.vis(v) ? Object.assign(m.box(v), { t: m.box(e).t }) : m.box(e); });
       const more = [...document.querySelectorAll('.reg-row-more')].find(m.vis);
       let edge = null;
       if (more) { const r = more.getBoundingClientRect(), x = r.left + r.width / 2;
