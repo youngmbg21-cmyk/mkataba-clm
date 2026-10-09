@@ -1344,7 +1344,7 @@ function redlineLayoutCss(){
      purple buttons: it folds for the same reason and is not the same control,
      and it folds one rung EARLIER now — a door with a count on it survives
      losing its word better than a verb survives losing its. */
-  .redline-page .rl-tabrow.rl-tabrow-half .rl-livelist .rl-word{display:none}
+  ${''/* "Open document" keeps its word at every width (10 Oct 2026): it is the way back now, and a word-less button would say nothing. */}
   .redline-page .rl-tabrow.rl-tabrow-half .rl-livelist{padding:6px var(--s-2);gap:5px}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn .rl-word{display:none}
   .redline-page .rl-tabrow.rl-tabrow-tight .rl-pb-btn .rl-glyph{display:inline}
@@ -6366,6 +6366,10 @@ function redlineLayoutCss(){
          the Document tab (focus-mimics-document 5b), and the head reads the
          same on both pages (Young, 12 Sep). */}
   #view-redline .rl-tabrow{background:var(--color-surface)}
+  ${''/* THE WHOLE TOP IS WHITE (owner, 10 Oct 2026: "the entire top bar is
+         supposed to be White like in the documents tab") — the title row sat
+         on the page ground above the white tab row. */}
+  #view-redline .room-head{background:var(--color-surface)}
   ${''/* ---- NEGOTIATE AS DRAWN (SAP benchmark, batch 4, owner 9 Oct 2026:
          "Keep the Name Redline otherwise, build") ---- the facts strip steps
          aside as on the Document tab, so the paper starts higher; the two

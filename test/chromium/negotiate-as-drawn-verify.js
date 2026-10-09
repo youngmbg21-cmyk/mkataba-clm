@@ -59,6 +59,11 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
       return {
         bar: ((document.getElementById('shell-title') || {}).textContent || '').trim(),
         back: back ? back.textContent.replace(/\s+/g, ' ').trim() : null,
+        anyBack: !!document.querySelector('#view-redline #ws-back, #shell-title #ws-back'),
+        openDoc: (() => { const d = document.querySelector('#view-redline .rl-actions [data-rl-open-doc]');
+          const acts = document.querySelector('#view-redline .rl-actions');
+          return d ? { txt: d.textContent.replace(/\s+/g, ' ').trim(), last: acts.lastElementChild === d } : null; })(),
+        headBg: (() => { const h = document.querySelector('#view-redline #ws-head'); return h ? getComputedStyle(h).backgroundColor : null; })(),
         backBeforeTitle: !!(back && back.nextElementSibling && back.parentElement.querySelector('h1')
           && back.getBoundingClientRect().right <= back.parentElement.querySelector('h1').getBoundingClientRect().left + 1),
         sub: ((document.querySelector('#view-redline #ws-head .room-sub') || {}).textContent || '').replace(/\s+/g, ' '),
@@ -73,8 +78,13 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
     console.log('\n1 · the bar');
     ok('1 the bar names the place, Negotiate', r.bar === 'Negotiate', r.bar);
     console.log('\n2 · the way back');
-    ok('2a it stands on the title\'s line, left of the name', r.backBeforeTitle, String(r.back));
-    ok('2b and says Back to Document', /Back to Document/.test(r.back || ''), String(r.back));
+    /* REVERSED 10 Oct 2026 (owner: "delete the back to document writing and
+       the arrow but replace the all negotiation button with Open document
+       button"; "the entire top bar is supposed to be White"). */
+    ok('2a no back arrow and no "Back to Document" on the page', !r.anyBack, String(r.back));
+    ok('2b the way back is "Open document", ending the control row',
+      !!r.openDoc && r.openDoc.txt === 'Open document' && r.openDoc.last, JSON.stringify(r.openDoc));
+    ok('2c the title row is white, like the Document tab\'s band', r.headBg === 'rgb(255, 255, 255)', r.headBg);
     console.log('\n3 · the quiet line');
     ok('3 it names the Lead', /Lead: /.test(r.sub), r.sub);
     console.log('\n4 · the facts');

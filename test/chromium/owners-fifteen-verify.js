@@ -255,18 +255,18 @@ const check = (name, pass, detail) => {
 
     /* ================= 14. BACK TO DOCUMENT, IN A RING ===================== */
     await page.evaluate(() => { const c = state.contracts.find(x => x.id === 'MK-A2'); if (c && typeof negoInit === 'function') negoInit(c); openRedlineWorkbench('MK-A2', { blanksAsked: true }); });
-    const back = await until(() => { const b = document.querySelector('#shell-title [data-back="contract"]'); if (!b) return null;
-      const ring = b.querySelector('.crumb-ring'), word = b.querySelector('.crumb-back-word'); if (!ring || !word) return null;
-      const cs = getComputedStyle(ring), r = ring.getBoundingClientRect(), svg = ring.querySelector('svg');
-      return { style: cs.borderTopStyle, width: parseFloat(cs.borderTopWidth), radius: cs.borderTopLeftRadius, w: Math.round(r.width), h: Math.round(r.height),
-        arrowInside: !!svg, word: word.textContent.trim(), wordRight: word.getBoundingClientRect().left >= r.right, label: b.getAttribute('aria-label') }; });
-    check('14a the way back is a ring round the arrow (style AND width, never width alone)', !!back && back.style === 'solid' && back.width >= 1
-      && back.radius === '50%' && back.w === back.h && back.arrowInside, JSON.stringify(back));
-    check('14b "Back to Document" stands beside it, and the label says the same', !!back && back.word === 'Back to Document' && back.wordRight && back.label === 'Back to Document', JSON.stringify(back));
+    /* REVERSED 10 Oct 2026 (owner: "delete the back to document writing and the
+       arrow but replace the all negotiation button with Open document button").
+       14a/14b asked for the ring and the words; now they ask that both are gone
+       and that "Open document" ends the control row. 14c presses it. */
+    const back = await until(() => { const d = document.querySelector('#view-redline .rl-actions [data-rl-open-doc]'); if (!d) return null;
+      return { arrow: !!document.querySelector('#ws-back'), word: !!document.querySelector('.crumb-back-word'), text: d.textContent.trim() }; });
+    check('14a no back arrow and no ring on the page', !!back && !back.arrow, JSON.stringify(back));
+    check('14b no "Back to Document" words; "Open document" instead', !!back && !back.word && back.text === 'Open document', JSON.stringify(back));
     await page.screenshot({ path: path.join(OUT, '14-back-to-document.png'), clip: { x: 0, y: 0, width: 1180, height: 120 } });
-    await page.click('#shell-title [data-back="contract"]').catch(() => {});
+    await page.click('#view-redline [data-rl-open-doc]').catch(() => {});
     const docs = await until(() => state.view === 'workspace' && !!document.querySelector('#ws-tabs [data-room-tab="docs"][aria-selected="true"]'));
-    check('14c pressed, it lands on the contract\'s Document tab', !!docs,
+    check('14c pressed, Open document lands on the contract\'s Document tab', !!docs,
       await page.evaluate(() => state.view + ' · ' + ((document.querySelector('#ws-tabs [aria-selected="true"]') || {}).textContent || '')));
 
     check('9a no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
