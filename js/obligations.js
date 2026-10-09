@@ -294,8 +294,14 @@ function renewalDecisionOf(c){
      nothing is changed on the reader's behalf. */
   if(served){
     const own = renewalRecordedOf(c);
-    const out = { answer:'lapse', at:served.at || '', by:served.by || '',
-      expiry:(c && c.expiry) || '', decideBy:served.servedOn, served:true };
+    /* THE SAME SHAPE AS A RECORDED ANSWER (B10, 8 Oct 2026): `by` is a person
+       ({ name }), and `decideBy` is the decide-by date — the day it was served
+       is `servedOn`. It read back "Decided by a colleague … Decide-by was
+       <the day it was served>". */
+    let dd = ''; try{ dd = renewalDecisionDate(c) || ''; }catch(_){ dd = ''; }
+    const who = (served.by && typeof served.by === 'object') ? served.by : { name:String(served.by || '') };
+    const out = { answer:'lapse', at:served.at || '', by:who,
+      expiry:(c && c.expiry) || '', decideBy:dd || served.servedOn, servedOn:served.servedOn, served:true };
     if(own && own.answer !== 'lapse') out.recorded = own;
     return out;
   }
@@ -3532,7 +3538,10 @@ async function obligationChase(cid, obId, opts){
   /* THE FIRMER, SECOND CHASE (27 Sep 2026, Late promises): the same act, the
      route's own `firm` words, and a stamp of its own — the first chase's day
      stays what it was, because the firmer message quotes it. */
-  const firm = !!_o.firm && !!o.chasedAt;
+  /* …AND A SECOND CHASE IS THE FIRMER ONE wherever it is pressed (B11, 8 Oct
+     2026): the tab's Chase on an obligation already chased sent the first
+     message again, word for word. */
+  const firm = !!o.chasedAt;
   const ok = (_o.confirm === false) ? true : await confirmDialog({
     title: i18t(firm ? 'ob_chase_firm_title' : 'ob_chase_title'),
     message: i18t(firm ? 'ob_chase_firm_body' : 'ob_chase_body', { who: c.counterparty || i18t('ob_side_theirs'), desc: o.desc || '' }),

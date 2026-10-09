@@ -1542,7 +1542,7 @@ function hmDecisionItems(S, deskRows){
    owns is theirs to decide. The drawing is inspector.js's (insNeedsHtml).
    READING MUST NOT WRITE: every source reads, and a source a stage does not
    load says nothing rather than throwing. */
-const NEEDS_YOU_ORDER = ['quiet','review','look','approval','note','suggest','join','sign','renewal'];
+const NEEDS_YOU_ORDER = ['quiet','review','look','approval','refused','note','suggest','join','sign','renewal'];
 function needsYouOf(c){
   if(!c || c.archived) return [];
   const me=(typeof currentUser==='function')?currentUser():null;
@@ -1584,6 +1584,15 @@ function needsYouOf(c){
      the bell and on the phone — no longer on the Board. The approvals' own
      reading; it opens on Home's Paper with the pack. */
   take(()=>{ if(window.approvalDecidableNow && approvalDecidableNow(c)) out.push({ kind:'approval', urgent:false }); });
+  /* A REFUSED APPROVAL, BACK WITH THE PERSON WHO REVISES (B5, 8 Oct 2026): a
+     rule step to the contract's owner, a named person's yes to whoever asked
+     for it. Urgent: nothing moves until it is revised and sent back. */
+  take(()=>{ if(c.status==='Signed'||c.status==='Declined') return;
+    const st=window.approvalState?approvalState(c):null;
+    const bad=((st&&st.chain)||[]).find(s=>s&&s.status==='rejected'
+      && (s.sa ? !!(s.req&&s.req.askedBy&&String(s.req.askedBy.id)===String(me.id))
+               : (typeof contractOwnedBy==='function'&&contractOwnedBy(c, me))));
+    if(bad) out.push({ kind:'refused', urgent:true, who:bad.by||'', why:bad.comment||'' }); });
   take(()=>hmMySignings(one).forEach(x=>out.push({ kind:'sign', urgent:false, n:x.n||0 })));
   take(()=>{ const r=hmRenewalDue(c);
     if(r && typeof contractOwnedBy==='function' && contractOwnedBy(c, me))
@@ -1626,6 +1635,7 @@ function needsYouGo(kind, id){
   if(!c) return false;
   if(kind==='look') return lookDone(c);
   if(kind==='approval'){ if(window.pdOpenOnHome&&pdOpenOnHome(c.id,'sign')) return true; openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
+  if(kind==='refused'){ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} return true; }
   /* AND A SUGGESTION IS ADOPTED WHERE IT IS DRAWN — the negotiate page, where
      the strip and its two verbs are. On this branch rather than below, with
      the two rows that already land there, so the reader is not taken through

@@ -925,6 +925,21 @@ function viewLayersClosed(view){
       return false;
     }
   }
+  /* TYPING ON THE PAPER IS A DRAFT TOO (no pen, click · type · save, Young
+     9 Oct 2026): words typed straight into a clause on Negotiate and not yet
+     saved are asked about on the way off the page, in the editor's own words,
+     exactly as the clause editor's unfiled draft is. Nothing typed, no ask. */
+  if(!_leavingCe && window.rlInlineDirty && rlInlineDirty() && window.confirmDialog){
+    confirmDialog({ title:i18t('ce_leave_title'), message:i18t('ce_leave_body'),
+      confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('act_cancel'), danger:true })
+      .then(ok=>{
+        if(!ok) return;
+        if(window.rlInlineEnd) rlInlineEnd(true);
+        _leavingCe = true;
+        try{ setView(view); } finally { _leavingCe = false; }
+      }).catch(()=>{});
+    return false;
+  }
   if(!(typeof window!=='undefined' && window.clauseEditorOpen && clauseEditorOpen())) return true;
   if(_leavingCe) return true;
   if(!(window.clauseEditorDirty && clauseEditorDirty())){
@@ -1288,6 +1303,9 @@ if(typeof window!=='undefined'&&!window._placeWired&&typeof window.addEventListe
   window._placeWired=true;
   window.addEventListener('pagehide',placeSave);
   window.addEventListener('beforeunload',placeSave);
+  /* Closing the tab or reloading with words typed on the paper and not saved:
+     the browser's own question, the only one a closing tab may ask. */
+  window.addEventListener('beforeunload',e=>{ try{ if(window.rlInlineDirty && rlInlineDirty()){ e.preventDefault(); e.returnValue=''; } }catch(_){} });
   document.addEventListener('visibilitychange',()=>{ if(document.hidden) placeSave(); });
   let _placeT=0;
   document.addEventListener('scroll',()=>{ clearTimeout(_placeT); _placeT=setTimeout(placeSave,PLACE_SAVE_WAIT); },{ capture:true, passive:true });
@@ -1808,6 +1826,11 @@ const ALERT_KINDS = [
      that NAME you and remembers per browser; this counts notes somebody
      handed you, reads the record, and clears when the note is done. */
   { k:'note-mine',   tone:'amber', ic:'&#128221;' },
+  /* ---- A NOTE FROM THE OTHER SIDE (8 Oct 2026) ----
+     The conversations their side spoke last in (GET /api/messages/waiting),
+     newer than the last time this reader had the notes drawer open
+     (c.notesRead). Amber: a question waits on us. */
+  { k:'note-theirs', tone:'amber', ic:'&#128172;' },
   /* ---- WHAT A COLLEAGUE HANDED BACK, AND WHAT WAITS ON THE LEAD (4 Oct 2026) ----
      Three more colleagues waiting on this reader by name, so they rank with
      the others, after the note (the join stays pinned beside review-mine):
@@ -1824,6 +1847,11 @@ const ALERT_KINDS = [
      reader marks it done. The press opens the contract; Done is on its
      checklist, so a bell press never answers for them. */
   { k:'look',        tone:'amber', ic:'&#128064;' },
+  /* ---- A REFUSED APPROVAL RULE STEP COMES BACK TO THE OWNER (B5, 8 Oct
+     2026) ---- The refusal was said on the Signing tab alone. Just above the
+     approvals it answers (approval, ap-cleared and request stay one run — f461); amber: work owed — revise and send it back. The
+     server mails the same moment (ruleStepRefusedTell). */
+  { k:'ap-refused',  tone:'amber', ic:'&#8617;'  },
   { k:'approval',    tone:'amber', ic:'&#9989;'  },
   /* ---- EVERY APPROVAL RULE STEP IS GIVEN (4 Oct 2026, the process review) ----
      To the contract's OWNER, beside the approvals it ends: the last rule step
@@ -2104,6 +2132,17 @@ function buildAlerts(){
         ()=>{ if(window.openNotesPanel) openNotesPanel(c.id,null,{force:true}); });
     });
   }
+  /* 3c. A note from the other side nobody here has read: their side spoke
+         last, after this reader last opened the drawer. Reading the notes is
+         what clears it (negoMarkNotesRead stamps c.notesRead). */
+  { const wq=(state.waitingQuestions&&Array.isArray(state.waitingQuestions.items))?state.waitingQuestions.items:[];
+    wq.forEach(x=>{
+      const c=x&&cs.find(y=>y.id===x.contractId); if(!c) return;
+      const at=String((x.latest&&x.latest.at)||''), seen=window.negoNotesReadAt?negoNotesReadAt(c, me):null;
+      if(seen && at && at<=seen) return;
+      push('note-theirs',c,i18tn('al_note_theirs',x.count||1,{ n:x.count||1, who:(x.latest&&x.latest.author)||c.counterparty||'' }),
+        ()=>{ if(window.openNotesPanel) openNotesPanel(c.id,null,{force:true}); });
+    }); }
   /* 4. Approvals sitting with this person — the dashboard's own queue, so the
         bell and the Home card cannot disagree. And 4/5 ride on the same read. */
   let D=null; try{ D=(window.hmDashSlices?hmDashSlices():null); }catch(_){ D=null; }
@@ -2120,6 +2159,16 @@ function buildAlerts(){
         &&meNow&&String(s.req.askedBy.id)===String(meNow.id));
       if(bad) push('approval',x.c,i18t('al_sa_refused',{who:bad.by||''}),
         ()=>{ openWorkspace(x.c.id); if(window.roomGoTab) try{ roomGoTab(x.c,'sign'); }catch(_){} });
+    });
+    /* ---- AND A REFUSED RULE STEP IS THE OWNER'S TO REVISE (B5) ---- */
+    if(meNow) cs.forEach(c=>{
+      if(c.status==='Signed'||c.status==='Declined') return;
+      if(!(typeof contractOwnedBy==='function'&&contractOwnedBy(c, meNow))) return;
+      const bad=(Array.isArray(c.approvalChain)?c.approvalChain:[]).find(s=>s&&s.status==='rejected');
+      if(!bad) return;
+      push('ap-refused',c,i18t('al_ap_refused',{ step:bad.name||'', who:bad.by||'' }),
+        ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
+        bad.comment?{ sub:'“'+String(bad.comment).slice(0,140)+'”' }:undefined);
     });
     /* ---- AND WHEN THE LAST RULE STEP IS GIVEN, THE OWNER IS TOLD ----
        Read off approvalRulesCleared (js/approvals.js); only rule chains (a named
@@ -2236,7 +2285,14 @@ function buildAlerts(){
          the record is a register row, so the two hash-based rows are never
          guessed off stripped wording. */
       let n=0; try{ n=window.signReadinessFor?signReadinessFor(c).n:(window.signReadiness?signReadiness(c,{ light:!!(c._light&&!c._loaded) }).n:0); }catch(_){ n=0; }
-      push('signature',c,i18t('al_signature'),
+      /* NOT "YOUR TURN" WHILE SOMETHING HOLDS IT (B5, 8 Oct 2026): the one
+         list the Sign button reads (signBlockers) is asked first. A refused
+         approval is said on its own row above, so it does not ring twice. */
+      let held=[]; try{ held=window.signBlockers?(signBlockers(c)||[]):[]; }catch(_){ held=[]; }
+      if(held.some(b=>b&&b.key==='approval') && (c.approvalChain||[]).some(s=>s&&s.status==='rejected')
+        && typeof contractOwnedBy==='function' && contractOwnedBy(c, me)) return;
+      if(held.length && !n) n=held.length;
+      push('signature',c,held.length?i18tn('ins_need_sign',n,{n}):i18t('al_signature'),
         ()=>{ openWorkspace(c.id); if(window.roomGoTab) try{ roomGoTab(c,'sign'); }catch(_){} },
         n?{ sub:i18tn('al_sign_sub',n,{n}) }:undefined);
     });

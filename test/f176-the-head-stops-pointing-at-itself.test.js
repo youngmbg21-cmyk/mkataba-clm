@@ -159,8 +159,11 @@ describe('F176 — the intent-to-sign step speaks without a button', () => {
       path.join(__dirname, '..', 'js', 'mobile-contract.js'), 'utf8');
     assert.match(mob, /const btn = na && !na\.noButton;/,
       'mActionBarHtml suppresses the button too');
-    assert.match(mob, /\$\{btn\?`<button class="m-btn m-btn-primary"/,
+    /* RE-POINTED 9 Oct 2026: the flag still keys the markup; a Sign that
+       signBlockers holds is drawn greyed rather than filled. */
+    assert.match(mob, /\$\{btn\?\(bl\.length/,
       'and it is that flag the markup keys off');
+    assert.match(mob, /`<button class="m-btn m-btn-primary" data-m-na=/);
   });
 });
 

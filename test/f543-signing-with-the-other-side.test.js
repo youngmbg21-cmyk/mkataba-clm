@@ -81,7 +81,16 @@ describe('f543 (1)(2) — the server', () => {
   });
 
   test('(2) a counterparty cannot sign over an ask we sent them', async () => {
+    /* B2 (8 Oct 2026): a signing link is no longer MINTED over an open ask, so
+       the respond route's own wall — the one a link issued before that rule
+       still meets — is reached the way such a link reaches it: minted while
+       nothing was open, the asks on file afterwards. */
+    const stored = async st => { const x = await W.admin.json('/api/contracts/MK-SG2'); const v = x._v; delete x._v;
+      x.changes = x.changes.map(ch => ({ ...ch, status: st }));
+      await W.admin.json('/api/contracts/MK-SG2', { method: 'PUT', body: { contract: x, baseVersion: v } }); };
+    await stored('accepted');
     const s = await mint('MK-SG2', [{ id: 'CHG-1', clauseId: 'c2', status: 'pending', authorSide: 'owner' }]);
+    await stored('pending');
     const them = h.client('them-sg2');
     const r = await them.raw('/api/shares/' + s.token + '/respond', { method: 'POST', body: {
       v: 1, kind: 'hati-response', action: 'sign', name: 'Grace Njeri', email: 'grace@client.co.ke', at: new Date().toISOString() } });

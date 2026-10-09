@@ -175,7 +175,9 @@ window.READY = (async () => {
   const c = { id:'MK-191', name:'WH — YOUNG MBAGAYA',
     counterparty:'Nordfrakt Logistik AB', template:'WH', status:'Under Review',
     folder:'dist', fields:{}, metadata:{}, audit:[], rounds:[], versions:[],
-    signatures:[], comments:[], redlineText: RICH, format:'rich' };
+    signatures:[], comments:[], redlineText: RICH, format:'rich',
+    /* the person signed in owns it — who may discard a draft asks (D3, 9 Oct 2026) */
+    owner:{ id:'u_w', name:'Wanjiru Kamau' } };
   negoInit(c);
   const byNum = n => negoClauseList(c).find(x => (x.headingText || '').indexOf(n) === 0);
 

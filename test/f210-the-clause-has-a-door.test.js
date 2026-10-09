@@ -66,6 +66,8 @@ async function bench(opts = {}){
    the panel is mounted by redlinePanesHtml and the pill only draws where the
    panel exists. */
 function page(p, opts = {}){
+  /* NO PEN ON THE PAPER (Young, 9 Oct 2026, change 5): where the clause editor takes the clause the wording itself is the door (rlInlineClick); the pencil stays only where it opens the panel — a window too narrow for the editor. */
+  if (opts.narrow){ p.win.clauseEditorFits = () => false; delete opts.narrow; }
   const box = p.doc.createElement('div');
   box.className = 'redline-page';
   box.innerHTML = p.win.redlinePanesHtml(p.c, { side: 'owner', hiddenIds: [], ...opts });
@@ -88,7 +90,8 @@ const bodies = box => [...box.querySelectorAll('#rl-cp-body .rl-cp-src')];
 describe('f210 (1) — the pill', () => {
   test('every clause carries one — the pencil icon, with the word kept for a screen reader', async () => {
     const p = await bench();
-    const box = page(p);
+    assert.equal(pills(page(p)).length, 0, 'at a usable width there is no pen — the wording is the door (9 Oct 2026)');
+    const box = page(p, { narrow: true });
     /* section.rl-clause, not .rl-clause: the paper also puts that class on the
        numbered LINES inside a clause body (see .rl-line.rl-clause.rl-hang), and
        a line is not a clause. */
@@ -205,11 +208,13 @@ describe('f210 (1) — the pill', () => {
    1024px, which clauseEditorFits refuses because two columns need room to be
    two columns.  */
 describe('f210 (2a) — the pencil\'s door, and the two cases that keep the panel', () => {
-  test('our seat, at a usable width, opens the editor', async () => {
+  test('our seat, at a usable width, draws no pen — a click in the wording types (9 Oct 2026)', async () => {
     const p = await bench();
-    const pill = pills(page(p))[0];
-    assert.equal(pill.getAttribute('data-rl-cp-editor'), clauseIdAt(page(p)));
-    assert.ok(!pill.hasAttribute('data-rl-cp-open'), 'and not the panel as well — one door');
+    assert.equal(pills(page(p)).length, 0, 'no pen on the paper');
+    assert.match(SRC, /host\.addEventListener\('click', ev => rlInlineClick\(ev, host\)\)/, 'the wording is wired to take the caret');
+    const narrow = pills(page(p, { narrow: true }))[0];
+    assert.ok(narrow && narrow.hasAttribute('data-rl-cp-open') && !narrow.hasAttribute('data-rl-cp-editor'),
+      'and a window too narrow for the editor keeps the panel\'s pencil — one door');
   });
 
   /* ---- REVERSED IN PLACE 28 Sep 2026 (Young picked Mirror: "the redline page
@@ -222,7 +227,7 @@ describe('f210 (2a) — the pencil\'s door, and the two cases that keep the pane
   test('THEIR seat opens the editor too, and our preview of it keeps the panel', async () => {
     const p = await bench();
     const html = p.win.redlineDocHtml(p.c, { side: 'counterparty', cpSink: [], cpPanel: true });
-    assert.match(html, /data-rl-cp-editor="/, 'their pencil opens the editor, as ours does');
+    assert.ok(!/data-rl-cp-editor="|rl-cp-pill/.test(html), 'their paper draws no pen either — their wording takes the caret, as ours does (9 Oct 2026)');
     const prev = p.win.redlineDocHtml(p.c, { side: 'counterparty', cpSink: [], cpPanel: true, preview: true });
     assert.ok(!/data-rl-cp-editor="/.test(prev), 'our preview of their seat never opens it');
   });
@@ -247,7 +252,7 @@ describe('f210 (2a) — the pencil\'s door, and the two cases that keep the pane
 describe('f210 (2) — it is a door, not a verb', () => {
   test('pressing it files nothing and decides nothing', async () => {
     const p = await bench();
-    const box = page(p);
+    const box = page(p, { narrow: true });
     const before = JSON.stringify(p.c.changes);
     const pill = pills(box)[0];
     assert.equal(pill.getAttribute('data-nego-edit'), null, 'it is not the editor');
@@ -257,8 +262,8 @@ describe('f210 (2) — it is a door, not a verb', () => {
        it is that the pill is a DOOR and files nothing. On our seat that door is
        the clause editor now (two presses became one); the panel's own door is
        still what their seat and a narrow window get. */
-    assert.ok(pill.hasAttribute('data-rl-cp-editor'),
-      'on our seat it opens the editor, and nothing else');
+    assert.ok(pill.hasAttribute('data-rl-cp-open'),
+      'where it is still drawn (a narrow window) it opens the panel, and nothing else');
     assert.ok(!pill.hasAttribute('data-nego-edit'), 'never the editor-in-place');
     p.win.rlCpSetShown(box, clauseIdAt(box));
     assert.equal(JSON.stringify(p.c.changes), before, 'the record did not move');
@@ -1560,13 +1565,11 @@ describe('f210 (13) — a clause you proposed is editable too', () => {
     const box = page(p);
     const proposed = box.querySelector('#rl-doc section.rl-clause-new');
     assert.ok(proposed, 'the proposed clause is on the paper');
-    assert.ok(proposed.querySelector('.rl-cp-pill'),
-      'and it carries the same door every other clause carries');
-    /* RE-POINTED 29 Aug 2026 with the claim intact: the door is the editor on
-       our seat now, and what this test is about is that a clause WE proposed
-       carries the same one every other clause does, pointed at itself. */
-    assert.equal(proposed.querySelector('.rl-cp-pill').getAttribute('data-rl-cp-editor'),
-      p.ask.clauseId, 'pointed at its own clause');
+    /* RE-POINTED 9 Oct 2026 (no pen on the paper): the door every clause
+       carries is its wording; a clause WE proposed is typed in through the
+       editor's own revise path, so a click in it opens the editor on it. */
+    assert.ok(!proposed.querySelector('.rl-cp-pill'), 'no pen on it either');
+    assert.match(SRC, /seed\.proposed\)\{[^}]*_rlOpenEditor\(clauseId\)/, 'a click in it opens the editor on its own clause');
   });
 
   test('and the panel behind it says AS PROPOSED, because nothing stands yet', async () => {

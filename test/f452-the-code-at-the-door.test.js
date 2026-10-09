@@ -259,7 +259,7 @@ describe('f452 (7) — the browser carries the ticket; it never decides', () => 
   });
 
   test('a refresh does not spend the mail again', () => {
-    assert.match(SCREEN, /sentAlready\(\)\) say\(i18t\('po_code_already'\)/,
+    assert.match(SCREEN, /sentAlready\(\)\) say\(noMail\?i18t\('po_code_outbox_ask',\{who:asker\}\):i18t\('po_code_already'\)/,  // 8 Oct 2026: with email off it says who to ask
       'the first arrival sends because opening the link IS the ask; every later '
       + 'one waits for the press');
   });
@@ -301,7 +301,7 @@ describe('f452 (8) — the switch is an admin\'s, and it is one switch', () => {
     const fn = SETTINGS.slice(SETTINGS.indexOf('function renderLinkCodePanel'),
       SETTINGS.indexOf('function renderDeskRulePanel'));
     assert.match(fn, /const admin=isAdmin\(\)/);
-    assert.match(fn, /admin\?'':' disabled'/);
+    assert.match(fn, /admin&&!blocked\?'':' disabled'/);  // 8 Oct 2026: also greyed while email is off
     assert.match(fn, /if\(!admin\) return;/,
       'greyed AND unwired: a dead button wearing a live one\'s clothes is a fault');
   });

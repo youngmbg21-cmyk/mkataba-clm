@@ -15,7 +15,6 @@
   "js/dedupe.js",
   "js/discuss.js",
   "js/draft.js",
-  "js/family.js",
   "js/fieldlib.js",
   "js/graphwhere.js",
   "js/i18n.js",
@@ -28,7 +27,6 @@
   "js/mobile-portal.js",
   "js/mobile-screens.js",
   "js/mobile.js",
-  "js/notice.js",
   "js/ocr.js",
   "js/outside.js",
   "js/pages.js",
@@ -44,7 +42,6 @@
   "js/section.js",
   "js/spell.js",
   "js/standards.js",
-  "js/templatefields.js",
   "js/templateform.js",
   "js/templates.js",
   "js/uploadblanks.js",
@@ -66,7 +63,6 @@
   "js/views/queue.js",
   "js/views/reports.js",
   "js/views/templatebuilder.js",
-  "js/views/templatelib.js",
   "js/views/weekly.js",
   "js/workshape.js",
   "server/boardjudge.js"
@@ -83,7 +79,6 @@
   "js/core.js",
   "js/dedupe.js",
   "js/discuss.js",
-  "js/family.js",
   "js/fieldlib.js",
   "js/graphwhere.js",
   "js/i18n.js",
@@ -280,12 +275,5 @@
   "PUT /api/shares/:token/payload",
   "PUT /api/templates/:id/versions/:vid"
  ],
- "partsWithoutFlow": [
-  "intake",
-  "mailroom",
-  "newagr",
-  "pdf",
-  "theirsign",
-  "wordfile"
- ]
+ "partsWithoutFlow": []
 }

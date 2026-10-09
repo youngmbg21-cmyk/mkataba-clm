@@ -263,14 +263,17 @@ const contract = () => ({
       document.getElementById('share-send').click();
       await new Promise(r => setTimeout(r, 900));
       const after = (await api('contracts/MK-SP1/shares')).shares.length;
+      const b = document.getElementById('share-send');
       return { said: document.body.innerText, before, after,
-        lit: (document.getElementById('share-signers-box') || {}).style
-          ? document.getElementById('share-signers-box').style.outline : '' };
+        greyed: !!(b && b.disabled), why: (b && b.title) || '' };
     });
-    check('pressing Send refuses, in words',
+    /* RE-POINTED 9 Oct 2026 (functional review C7): the refusal used to come
+       only AFTER the press. Send is greyed BEFORE it now, with the reason on
+       its hover, and the amber block above says it in words with its door. */
+    check('Send is greyed before the press, with the reason on it',
+      refused.greyed && /signers/i.test(refused.why), `${refused.greyed} · ${refused.why}`);
+    check('and the block that fixes it says it in words',
       /name who signs/i.test(refused.said), refused.said.slice(0, 60).replace(/\s+/g, ' '));
-    check('and it points at the block that fixes it',
-      /solid/.test(refused.lit || ''), refused.lit || 'no outline');
     check('and no link is created — the dead link is never made',
       refused.after === refused.before, `${refused.before} → ${refused.after}`);
 

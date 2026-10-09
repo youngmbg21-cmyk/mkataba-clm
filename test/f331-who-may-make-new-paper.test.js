@@ -131,9 +131,9 @@ describe('f331 (3) — only an admin grants it', () => {
   test('PATCH takes newPaper, and a non-admin may not send it', () => {
     const b = strip(SRV).match(/app\.patch\('\/api\/users\/:id'[\s\S]{0,3000}/)[0];
     assert.match(b, /const hasPaper = b\.newPaper !== undefined/, 'the route reads it');
-    assert.match(b, /!hasClear2 && !hasPaper\)\s*\n\s*return res\.status\(400\)/,
+    assert.match(b, /!hasClear2 && !hasPaper[^)]*\)\s*\n\s*return res\.status\(400\)/,
       '"nothing to change" counts it');
-    assert.match(b, /!hasClear2 && !hasPaper\)\)\s*\n\s*return res\.status\(403\)/,
+    assert.match(b, /!hasClear2 && !hasPaper[^)]*\)\)\s*\n\s*return res\.status\(403\)/,
       'and the self-service door refuses it — somebody who could tick their own box is not governed');
   });
 

@@ -75,15 +75,17 @@ describe('f487 (2) every flow writes through the one writer', () => {
   const DK = strip(R('js/desk.js'));
   const SRV = strip(R('server/server.js'));
   test('the rule steps: answered and sent back through it, never by hand', () => {
-    assert.match(AP, /askRuleFor\(c, st\.next\.ruleId, \{ approver:st\.next\.approver, keepStep:true \}\);\s*askAnswer\(c, ask\.id, \{ state:'yes'/);
-    assert.match(AP, /askAnswer\(c, ask\.id, \{ state:'no', by:u, why:comment\|\|null \}\)/);
+    /* B3 (8 Oct 2026): the decision is written by a `write(x)` the stale-tab
+       retry can apply to the newer record — still through the one writer. */
+    assert.match(AP, /askRuleFor\(x, step\.ruleId, \{ approver:step\.approver, keepStep:true \}\);\s*askAnswer\(x, ask\.id, \{ state:'yes'/);
+    assert.match(AP, /askAnswer\(x, ask\.id, \{ state:'no', by:u, why:comment\|\|null \}\)/);
     assert.match(AP, /back\.forEach\(s=>askRuleFor\(c, s\.ruleId, \{ approver:s\.approver \}\)\)/);
     assert.ok(!/status:'approved', by:u\.name|status:'rejected', by:u\.name|status:'pending', by:null, at:null/.test(AP),
       'no step is decided or reset by hand any more');
   });
   test('the named yes: asked, decided and withdrawn through it', () => {
     assert.match(AP, /askOpen\(c, \{ kind:'named'/);
-    assert.match(AP, /askAnswer\(c, reqId, \{ state:verdict==='approved'\?'yes':'no'/);
+    assert.match(AP, /askAnswer\(x, reqId, \{ state:verdict==='approved'\?'yes':'no'/);
     assert.match(AP, /askAnswer\(c, reqId, \{ state:'withdrawn', by:me \}\)/);
     assert.ok(!/live\.status=|live\.decidedBy=|list\.push\(req\)/.test(AP));
   });

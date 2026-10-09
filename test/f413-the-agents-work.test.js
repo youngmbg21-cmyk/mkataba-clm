@@ -206,7 +206,9 @@ describe('f413 (2) — no link to sign: the blind spots, the warning and the mai
     assert.equal(r.parties[0].partyId, 'py_b'); assert.equal(r.parties[0].how, 'revoked');
   });
   test('2c a signing link USED UP without a signature leaves the signer unable to sign', async () => {
-    await put(inRound('MK-LS-1'));
+    /* B2 (8 Oct 2026): no signing link goes out over an ask still open with
+       them, so the round's ask has been answered before this one is minted. */
+    await put(inRound('MK-LS-1', { changes: [{ id: 'CHG-1', clauseId: 'cl_pay', status: 'accepted', authorSide: 'owner', summary: 'x', createdAt: iso(-9) }] }));
     const signer = await nameASigner(W.admin, 'MK-LS-1');
     const s = await mint('MK-LS-1', { purpose: 'sign', signerId: signer.id, recipient: { name: signer.name, email: signer.email } });
     sql('UPDATE shares SET response=?, responded_at=? WHERE token=?', JSON.stringify({ kind: 'hati-response', action: 'comment' }), iso(-1), s.token);

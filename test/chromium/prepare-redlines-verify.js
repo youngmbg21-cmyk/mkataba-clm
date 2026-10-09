@@ -277,10 +277,14 @@ const VERDICTS = [
          AND a paragraph describing the door is the fault printed twice. */
       blurb: /Press the .{0,3} Edit/i.test(box ? box.textContent : '') };
   });
-  check(emptyDoors.box && emptyDoors.acts && emptyDoors.n === 2,
-    '6a the empty column draws two buttons', JSON.stringify({ n: emptyDoors.n, labels: emptyDoors.labels }));
+  /* RE-POINTED 9 Oct 2026 (the owner's review, A8: "no plain Add a clause
+     door on Negotiate"): the empty column carries Add a clause as its third
+     door. The two the owner asked for on 12 Sep are still there (6c). */
+  check(emptyDoors.box && emptyDoors.acts && emptyDoors.n === 3
+      && /add a clause/i.test(emptyDoors.labels.join(' ')),
+    '6a the empty column draws three buttons — the two asked for, and Add a clause', JSON.stringify({ n: emptyDoors.n, labels: emptyDoors.labels }));
   check(emptyDoors.onScreen.every(Boolean) && !emptyDoors.dead.some(Boolean),
-    '6b both are VISIBLE PIXELS and neither is dead on a readable draft', JSON.stringify(emptyDoors));
+    '6b all are VISIBLE PIXELS and none is dead on a readable draft', JSON.stringify(emptyDoors));
   check(/draft from our standards/i.test(emptyDoors.labels.join(' ')) && /edit a clause/i.test(emptyDoors.labels.join(' ')),
     '6c and they are the two acts the owner asked for', emptyDoors.labels.join(' · '));
   check(!emptyDoors.blurb && /nothing is sent until you press Send/i.test(emptyDoors.lead),

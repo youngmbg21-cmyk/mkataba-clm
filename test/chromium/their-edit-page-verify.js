@@ -268,7 +268,10 @@ const symbol = page => page.evaluate(() => {
   /* ---- 4 · a column press with unfiled typing asks ---- */
   await clickInto(page, /Late payments/);
   await page.keyboard.type(' Always.');
-  await pause(200);
+  /* A WAIT ASKS FOR THE STATE, BOUNDED: on a slow runner the press could land
+     before the typing counted as unfiled, and then there is rightly nothing
+     to ask about. Wait until the typed words are in the box. */
+  await until(page, () => /Always\./.test((document.getElementById('ce-doc') || {}).textContent || ''), null, 4000);
   const pressed = await page.evaluate(() => { const b = [...document.querySelectorAll('#rl-changes-col button')]
     .find(x => x.textContent.trim() === 'Accept'); if (!b) return false; b.click(); return true; });
   const asked = await until(page, () => !!document.getElementById('confirm-overlay'), null, 2000);

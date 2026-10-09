@@ -513,6 +513,20 @@ const M_CSS = `
   .m-share-kind.on .m-radio{ border-color:var(--accent-solid); }
   .m-radio-dot{ width:8px; height:8px; border-radius:50%; }
 
+  /* ---- NOTHING UNDER 14px INSIDE THE PHONE SHELL (9 Oct 2026) ----
+     The rule is labels floored at 14px on the phone. The Obligations tab's
+     dates and captions, the account sheet's sessions and the band heads drew
+     at --t-meta / --t-label / --t-body (12–13px), tokens sized for a desk.
+     Re-said by SCOPE, not per element: inside the phone's root the three
+     small steps are the card's size, so whatever the shell borrows — the
+     desktop's own sessions list among it — reads at 14px too. */
+  body.m-on #m-root,
+  body.m-on.m-redline #view-redline{ --t-meta:var(--t-card); --t-label:var(--t-card); --t-body:var(--t-card);
+    --t-micro:var(--t-card); --t-figure:var(--t-card); }
+  body.m-on #m-root #sessions-list .ui-link{ min-height:44px; font-size:var(--t-card); }
+  body.m-on #m-root .m-ob-act{ min-height:44px; }
+  body.m-on #m-root .m-input{ min-height:44px; }
+
   /* ---- THE NEGOTIATION WORKBENCH, ON A PHONE ----
      The one screen the phone does NOT redraw. The workbench is where wording is
      argued over, and it already collapses to a single column with its index as
@@ -589,6 +603,25 @@ const M_CSS = `
   body.m-on.m-redline .nego-pane.index .nego-index-scroll{ overflow-y:auto!important; }
   body.m-on.m-redline .nego-doc{ font-size:var(--t-card)!important; line-height:1.7; }
   body.m-on.m-redline .nego-pane.working .nego-doc{ padding-left:14px!important; }
+  /* ---- THE HEAD AND THE CONTROL ROW FIT THE PHONE (9 Oct 2026) ----
+     The workbench's head is the room's, built for a desk: its acts held
+     nowrap, so More, Share and the checks sat at x 394–566 on a 390px
+     screen, and the facts strip cut every value to "N…". The same pass
+     M_PORTAL_CSS gives the counterparty's page: the acts and the control row
+     wrap, the facts strip steps out (the phone's own contract screen carries
+     those facts), and every control is a finger's 44px. Layout only — what
+     each control does is the workbench's. */
+  body.m-on.m-redline #ws-head .room-acts,
+  body.m-on.m-redline .redline-page .rl-actions{
+    flex:1 1 100%!important; flex-wrap:wrap!important; min-width:0!important; max-width:100%!important; row-gap:var(--s-2);
+  }
+  body.m-on.m-redline .redline-page .rl-head{ flex-wrap:wrap!important; min-width:0!important; max-width:100%!important; }
+  body.m-on.m-redline #ws-facts{ display:none!important; }
+  body.m-on.m-redline #ws-head .room-sub{ font-size:var(--t-card)!important; white-space:normal!important; overflow-wrap:anywhere; }
+  body.m-on.m-redline #view-redline :is(.ui-btn,.rl-seg,.room-check,.rl-pb-btn,.rl-focus-door,.room-title-back,.rl-livelist){ min-height:44px!important; }
+  body.m-on.m-redline #view-redline .room-check{ min-width:44px!important; }
+  body.m-on.m-redline #view-redline .rl-type-step button{ min-height:44px!important; min-width:44px!important; }
+  body.m-on.m-redline #view-redline .rl-segwrap{ height:auto!important; }
 
   .m-backbar{
     flex:none; display:flex; align-items:center; gap:6px; height:44px; padding:0 var(--s-1);
@@ -1308,7 +1341,7 @@ function mWire(){
             if(r&&r.user) Object.assign(u,r.user); else u.title=title.trim();
           } else { u.title=title.trim(); if(window.saveUsers) saveUsers(getUsers()); }
           if(window.settingsMirrorDirectory) settingsMirrorDirectory(u.name,u.email,title.trim());
-          if(window.toast) toast(i18t('st_acct_saved'));
+          if(window.toast) toast(i18t('st_acct_saved'),'ok');
         }catch(err){ if(window.toast) toast(err.message,'err'); }
       })();
       return;
@@ -1316,7 +1349,7 @@ function mWire(){
     if(k==='acct-nav-all'){
       if(typeof navSetShowEverything==='function' && typeof navShowEverything==='function'){
         const on=!navShowEverything(); navSetShowEverything(on);
-        if(window.toast) toast(on?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'));
+        if(window.toast) toast(on?i18t('set_sidebar_all_on'):i18t('set_sidebar_all_off'),'ok');
       }
       mRender(); return;
     }
@@ -1358,6 +1391,7 @@ function mBack(){
    Called on load, on every resize across the breakpoint, and after every
    setView. It is the only thing that turns the phone on or off. */
 function mSync(){
+  mHookRoomTab();
   const root = document.getElementById('m-root');
   const body = document.body;
   if(!root || !body || !body.classList) return;
@@ -1414,12 +1448,49 @@ function mHookSetView(){
            on yet. Sync turns it on and paints; a bare paint would draw into a
            root that is still hidden. */
         mSync();
+        /* A contract reached through setView (an email link, a search) is
+           fetched whole too, as mGo's door does — else its History and its
+           upload stay the light row's. */
+        if(mapped==='contract') mHydrate(state.activeId);
       }
     }catch(e){ try{ console.error('[hati] phone repaint failed', e); }catch(_){} }
     return r;
   };
   wrapped._mHooked = true;
   window.setView = wrapped;
+  mHookRoomTab();
+}
+
+/* ---- A LINK LANDS ON WHAT IT CAME FOR, ON THE PHONE TOO (9 Oct 2026) ----
+   An email's #contract=ID&tab=… link is read by openFromHash, which opens the
+   room and then asks the room's own router, roomGoTab, for the tab. The phone
+   drew the Document tab whatever was asked. Wrapped like setView, and only on
+   the phone: Overview and History are the phone's own tabs; Signing is the
+   phone's Approvals card for that contract where this reader has an approval
+   waiting there (the approval email's link), else the Document tab with its
+   Sign bar; the negotiation ('redline') goes through as it always did. */
+const M_TAB_FOR_ROOM = { terms:'terms', ov2:'terms', stands:'terms', history:'hist', docs:'doc', oblig:'oblig' };
+function mHookRoomTab(){
+  if(typeof window==='undefined' || typeof window.roomGoTab!=='function' || window.roomGoTab._mHooked) return;
+  const inner = window.roomGoTab;
+  const wrapped = function(c, k){
+    if(!mPhone() || !c || k==='redline') return inner.apply(this, arguments);
+    try{
+      const s = mS();
+      if(k==='sign'){
+        const mine = (typeof window.mApprovalItems==='function') ? mApprovalItems() : [];
+        if(mine.some(x=>x && x.c && x.c.id===c.id)){
+          mGo('approvals',{ apprOpen:c.id, apprReject:null, apprWhy:'', apprErr:false, apprNote:'' });
+          return;
+        }
+        s.tab = 'doc';
+      } else if(M_TAB_FOR_ROOM[k]) s.tab = M_TAB_FOR_ROOM[k];
+      else return inner.apply(this, arguments);
+      if(s.screen==='contract') mRender(); else mGo('contract');
+    }catch(e){ try{ console.error('[hati] phone tab landing failed', e); }catch(_){} }
+  };
+  wrapped._mHooked = true;
+  window.roomGoTab = wrapped;
 }
 
 function mBoot(){

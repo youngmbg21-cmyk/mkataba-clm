@@ -180,9 +180,26 @@ describe('F77 — and then sending is just sending', () => {
     await r.propose('5');
     const p = r.paint();
     assert.match(p.send.className, /nego-pulse/, 'the same flashing button as theirs');
+    /* RE-POINTED 9 Oct 2026 (the functional review): Send all asks once,
+       naming what travels — no share dialog, no address to collect. */
+    let asked = null;
+    r.win.confirmDialog = async o => { asked = o; return true; };
     r.press(p.send);
-    assert.equal(r.calls.direct, 1, 'no dialog — we already know where it goes');
+    await new Promise(res => setTimeout(res, 10));
+    assert.ok(asked && /^Send \d+ changes? to /.test(asked.title), 'it names how many go, and to whom: ' + (asked && asked.title));
+    assert.ok(asked && asked.message.split('\n').every(l => /^• /.test(l)), 'one line per change');
+    assert.equal(r.calls.direct, 1, 'and on yes it goes straight out — we already know where it goes');
     assert.equal(r.calls.dialog, 0);
+  });
+
+  test('Send all: a no sends nothing', async () => {
+    const r = await room({ contact: { name: 'Erik Lindqvist', email: 'erik@nordfrakt.se' } });
+    await r.propose('4');
+    const p = r.paint();
+    r.win.confirmDialog = async () => false;
+    r.press(p.send);
+    await new Promise(res => setTimeout(res, 10));
+    assert.equal(r.calls.direct, 0, 'nothing left');
   });
 
   test('without one, it asks instead of failing', async () => {

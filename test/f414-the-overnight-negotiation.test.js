@@ -41,7 +41,9 @@ test('f414 (n3) a Copilot filing speaks, both ways', () => {
 test('f414 (n4 n5 n6) the clause editor keeps lines, handles struck words, refuses chat', () => {
   assert.match(CE, /negoRichFromLines\(t\.replace\(\/\\n\(\?!\\n\)\/g, '\\n\\n'\)\)/);
   assert.match(CE, /function ceSpanOverAtoms\(box, sel, ev\)\{/);
-  assert.match(CE, /!sel\.isCollapsed && ceSpanOverAtoms\(box, sel, ev\)\) return;/);
+  /* The wall moved into one shared function (ceAtomWall, 9 Oct 2026) so the
+     Negotiate paper's click-to-type box obeys it too; it still asks first. */
+  assert.match(CE, /!sel\.isCollapsed && ceSpanOverAtoms\(box, sel, ev\)\) return(?: false)?;/);
   assert.match(CE, /window\.aiLooksConversational\(String\(card\.text \|\| ''\)\)/);
 });
 

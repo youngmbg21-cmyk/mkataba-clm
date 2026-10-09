@@ -444,8 +444,12 @@ const SHEET = () => {
       return page.evaluate(FURNITURE);
     };
     const f8 = await furnitureAt(8), f15 = await furnitureAt(15), f20 = await furnitureAt(20);
-    check('5c the sheet carries the Edit pill to measure',
-      !!f15.tag, f15.tag ? `pill ${f15.tag.w}x${f15.tag.h}` : 'no pill on the sheet');
+    /* RE-POINTED 9 Oct 2026 (Young, change 5: no pen on the paper): at this
+       width the clause head carries no pen, so there is no clause furniture
+       left on the sheet to scale — the claim is that none is drawn. The
+       proportion checks below run only where a pen still is (a narrow window). */
+    check('5c the sheet carries no pen — the wording is the door',
+      !f15.tag, f15.tag ? `pill ${f15.tag.w}x${f15.tag.h}` : 'no pen on the sheet');
     if (f15.tag){
       /* The reported symptom, stated as the thing that must no longer be true:
          three different settings, three identical boxes. */
@@ -625,8 +629,9 @@ const SHEET = () => {
       const g = grid.getBoundingClientRect(), t = tab.getBoundingClientRect();
       return { dx: Math.round(t.left - g.left), w: Math.round(t.width) };
     });
-    check('6 the queue rail still hangs on the working area\'s own left border',
-      !!rail && Math.abs(rail.dx) <= 2, rail && `${rail.dx}px from the grid edge`);
+    /* RETIRED (Young, 9 Oct 2026, change 4): the queue's rail is not drawn. */
+    check('6 the round\'s queue rail is retired — nothing hangs on the paper\'s edge',
+      rail === null, rail && `${rail.dx}px from the grid edge`);
 
     /* RE-POINTED 16 Aug 2026: the card pop-out is retired — the row's Open
        raises the clause panel, which lives in the grid's second track and is

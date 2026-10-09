@@ -191,7 +191,8 @@ describe('f494 (2) — the browser keeps its asks while hidden, and withdraws th
   let dom, W, calls, answer, hidden, C;
   const ME = { id: 'u_ask', name: 'Asha Kibet' };
   const stage = (cid, mineAsk = true) => {
-    C[cid] = { id: cid, locks: { cl1: { by: { id: 'u_hold', name: 'Holder' }, at: new Date().toISOString(),
+    /* `_v`: a record the server has sent — presenceSay waits for one (f613). */
+    C[cid] = { id: cid, _v: 1, locks: { cl1: { by: { id: 'u_hold', name: 'Holder' }, at: new Date().toISOString(),
       asked: mineAsk ? [{ id: ME.id, name: ME.name, at: new Date().toISOString() }] : [] } } };
   };
   const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(r => setImmediate(r)); };

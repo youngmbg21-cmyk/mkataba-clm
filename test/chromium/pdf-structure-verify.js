@@ -361,12 +361,19 @@ const INK = `(() => {
       const ff = await page.evaluate(() => {
         const strip = document.getElementById('doc-canvas');
         return { frame: !!document.getElementById('uploaded-doc-frame'),
-          says: /Structure read from the wording|struktur/i.test((strip || {}).textContent || '') };
+          /* RE-POINTED 9 Oct 2026 (the owner's review, E8 — one sentence for
+             a flat file): where neither the file nor its wording carries a
+             heading or a number, the strip says the thread's own sentence,
+             "No headings or numbering found — read as plain paragraphs",
+             rather than "Structure read from the wording". What this always
+             pinned is kept: the flat file says how it was read. */
+          says: /No headings or numbering found|Inga rubriker eller numrering/i.test((strip || {}).textContent || ''),
+          label: ((document.querySelector('[data-up-struct]') || {}).textContent || '').trim() };
       });
       check('5c and it still draws its file frame', ff.frame === true,
         ff.frame ? 'frame present' : 'the frame went with it');
-      check('5d and still says its structure was read from the wording',
-        ff.says === true, String(ff.says));
+      check('5d and still says how it was read — as plain paragraphs, no headings or numbering found',
+        ff.says === true, ff.label || String(ff.says));
     }
 
     /* ---- and the READ one must NOT wear that sentence ---- */

@@ -3137,6 +3137,12 @@
     border-left:1px solid var(--color-divider); box-shadow:-18px 0 40px -22px rgba(15,23,42,.45);
     transform:translateX(100%); transition:transform var(--dur-2) ease; z-index:71; }
   .st-drawer.open{ transform:translateX(0); }
+  /* A DIALOG OPENED FROM INSIDE THE DRAWER SITS ABOVE IT (9 Oct 2026). Every
+     openModal / openSidePanel frame carries z-index 70 inline, one under the
+     drawer, so "Add rule" painted behind it with Save covered. Scoped to the
+     drawer being open: #modal-root becomes one layer over the drawer only
+     then, and everywhere else the ladder is untouched. */
+  body:has(> #st-drawer.open) #modal-root{ position:relative; z-index:72; }
   .st-dhead{ position:relative; flex:none; }
   .st-dhead .rvd-head{ padding-right:44px; }
   .st-dx{ position:absolute; top:12px; right:12px; width:var(--ctl-h); height:var(--ctl-h); border-radius:var(--radius);
@@ -3418,6 +3424,14 @@
      stretch inside it and pull their own underline down onto that rule. */
   .room-tabrow{ display:flex; align-items:stretch; gap:14px; flex:none;
     border-bottom:1px solid var(--color-divider); }
+  /* A TABLET'S ROW WRAPS (9 Oct 2026): at 820px the slot on the right — Focus,
+     Start negotiating, the signing copy's page and zoom steps — held nowrap and
+     ran off the window, so the whole page scrolled sideways. Below 1024 the
+     slot may take a second line under the tabs; nothing in it changes. */
+  @media (max-width:1023px){
+    .room-tabrow{ flex-wrap:wrap; row-gap:var(--s-2); }
+    #ws-tabrow-end{ flex:1 1 auto!important; flex-wrap:wrap!important; justify-content:flex-end; min-width:0; row-gap:var(--s-2); padding-bottom:6px; }
+  }
   .room-tabs{ display:flex; align-items:stretch; align-self:stretch; gap:22px; flex:none; }
   /* WEIGHT IS HALF THE ACTIVE STATE (20 Aug 2026, measured against the SAP
      render, which sets every tab `active ? 700 : 400`). Every tab here used to
@@ -7837,6 +7851,9 @@
      fit beside the panel, drawn only where they do (INS_MIN_W). A floor meant
      for the nine-column table pushed its value column out of sight. */
   #reg-scroll>table.reg-table.is-ins{min-width:0;}
+  /* NOR DOES A TABLET'S (9 Oct 2026): below REG_NARROW_W of page the table
+     draws its narrow column set (regNarrowTable), sized to fit, not floored. */
+  #reg-scroll>table.reg-table.is-narrow{min-width:0;}
 
   /* ---- ANCHORED POPOVERS STAY ON SCREEN ----
      Row menus and the export menu are position:absolute with a fixed width, so
@@ -8066,7 +8083,11 @@
      clause rhythm). The wording and every control on the Document tab are its
      own; only the clothes match. A contract that wears a design keeps it
      ([data-doc-body]). Sizes run on --doc-scale, so A⁻/A⁺ still scale. */
-  #doc-paper-col:has(.pg-sheet.pg-work){background:var(--desk-ground);--doc-scroll-pad:29px 2px var(--s-6)}
+  /* NO GREY SHEET UNDER THE PAPER (Young, 9 Oct 2026, the Paper and Counter
+     review, change 3): the column takes no colour of its own — the white sheet
+     lies on the page ground with its soft shadow. Home's Paper keeps its ground
+     (#ig-paper); the gap, width, type and shadow below are unchanged. */
+  #doc-paper-col:has(.pg-sheet.pg-work){--doc-scroll-pad:29px 2px var(--s-6)}
   :is(#doc-paper-col,#ig-paper){--doc-sheet-max:720px;--doc-sheet-pad:34px calc(38px + var(--s-3)) 44px}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work:not([data-doc-body]){box-shadow:var(--n-shadow-card,0 1px 2px rgba(38,55,74,.06),0 4px 14px rgba(38,55,74,.07))}
   :is(#doc-paper-col,#ig-paper) .pg-sheet.pg-work .pg-corner{display:none}
@@ -10244,8 +10265,8 @@
      the clause heading shares .rl-clause-top with the pencil and is the
      drafter's own words, so it must never be read as furniture. Do not remove
      it to tidy the selector. */
-  [data-doc-body] .rl-paper :is(.rl-cp-pill,.rl-lock-mono,.nego-fmt-bar,.nego-reason,.nego-edit-bar):not(.rl-clause-h),
-  [data-doc-body] .rl-paper :is(.rl-cp-pill,.rl-lock-mono,.nego-fmt-bar,.nego-reason,.nego-edit-bar) *:not(.rl-clause-h){
+  [data-doc-body] .rl-paper :is(.rl-cp-pill,.rl-lock-mono,.nego-fmt-bar,.nego-reason,.nego-edit-bar,.rl-inline-acts):not(.rl-clause-h),
+  [data-doc-body] .rl-paper :is(.rl-cp-pill,.rl-lock-mono,.nego-fmt-bar,.nego-reason,.nego-edit-bar,.rl-inline-acts) *:not(.rl-clause-h){
     font-family:var(--font-body)!important;}
 
   /* ============ document structures — page architecture ============
@@ -11132,6 +11153,7 @@
   .ds-li i{font-style:normal;display:block;color:var(--color-neutral-600);font-size:var(--t-meta);margin-top:2px;}
   .ds-o{width:9px;height:9px;border-radius:50%;border:2px solid var(--st-amber-fg);flex:none;margin-top:5px;box-sizing:border-box;}
   .ds-tick{flex:none;color:var(--color-accent-600);font-size:var(--t-meta);line-height:1.6;}
+  .ds-li.is-refused .ds-tick{color:var(--st-ruby-fg);}
   .ds-quiet{color:var(--color-neutral-500);}
   .ds-late{display:flex;gap:12px;font-size:var(--t-meta);padding:4px 0;}
   .ds-late > span{color:var(--color-neutral-500);flex:none;width:92px;}

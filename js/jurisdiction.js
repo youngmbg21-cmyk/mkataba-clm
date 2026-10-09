@@ -199,6 +199,14 @@ const jx = () => JURISDICTIONS[jxId()] || JURISDICTIONS[JX_DEFAULT];
 const jxIs = id => jxId() === id;
 function jxSet(id){
   if (!JURISDICTIONS[id]) return false;
+  /* THE MARKET IS THE COMPANY'S, THE LANGUAGE IS THE PERSON'S (9 Oct 2026).
+     A reader who never picked a language reads the one that goes with the
+     market, so moving the market to Sweden turned their whole screen Swedish.
+     The language they are reading NOW is kept as theirs before the market
+     moves; the market changes money, numbers and the legal defaults only. A
+     colleague who joins later still opens in the market's language. */
+  let langWas = null;
+  try{ if (typeof window !== 'undefined' && typeof window.langId === 'function') langWas = window.langId(); }catch(e){}
   try{ if (typeof lsSet === 'function') lsSet(JX_LS, id); }catch(e){}
   /* Kept on the org too, where there is one, so every member of a workspace
      sees the same market rather than whichever they last set on their laptop. */
@@ -214,10 +222,22 @@ function jxSet(id){
      default while the screens said otherwise. Fire-and-forget: the local
      setting above already took effect, and bootstrap serves the stored value
      back to every browser from now on. */
+  /* NOT BEFORE ANYBODY IS SIGNED IN (9 Oct 2026): the setup form's market
+     picker fired this before a session existed, and the server answered 401
+     in the console. The choice is in the local store above, and the first
+     admin's start teaches it to the server once (the heal in core.js). */
+  let signedIn = false;
+  try{ signedIn = typeof window !== 'undefined' && typeof window.currentUser === 'function' && !!window.currentUser(); }catch(e){}
   try{
-    if (typeof window !== 'undefined' && typeof window.API_MODE === 'function' && window.API_MODE()
+    if (signedIn && typeof window.API_MODE === 'function' && window.API_MODE()
         && typeof window.api === 'function')
       window.api('org/jurisdiction', 'PUT', { jurisdiction: id }).catch(() => {});
+  }catch(e){}
+  try{
+    if (langWas && typeof window.langId === 'function' && window.langId() !== langWas){
+      if (signedIn && typeof window.langSet === 'function') window.langSet(langWas, { repaint: false });
+      else if (typeof lsSet === 'function') lsSet(window.I18N_LS || 'hati.v1.lang', langWas);
+    }
   }catch(e){}
   return true;
 }
