@@ -153,7 +153,19 @@ async function run(mode) {
     }
     check(tag('Send all is on the page'), !!sendBtn);
     if (sendBtn) {
-      await page.evaluate(() => document.getElementById('nego-send').click());
+      /* Earlier stages' toasts are cleared, so the sentence read below is
+         this press's own. */
+      await page.evaluate(() => { const r = document.getElementById('toast-root'); if (r) r.innerHTML = '';
+        document.getElementById('nego-send').click(); });
+      /* SEND ALL SAYS WHAT TRAVELS (the owner's 9 Oct review, A7): a batch
+         send to an address on file asks once, naming the changes, before
+         anything goes. A person answers it; so does this check. */
+      const asked = await waitFor(page, () => {
+        const ok = document.querySelector('#confirm-overlay #cf-ok');
+        return ok ? (document.getElementById('confirm-overlay').textContent || '').replace(/\s+/g, ' ').trim() : null;
+      }, null, 5000);
+      check(tag('Send all: asks once, naming what travels'), !!asked && /Send 1 change/i.test(asked) && /Each party shall keep/.test(asked), (asked || '').slice(0, 140));
+      if (asked) await page.click('#confirm-overlay #cf-ok');
       await pause(400);
       const toastText = await waitFor(page, () => {
         const t = document.getElementById('toast-root'); const s = t && t.textContent.trim();
