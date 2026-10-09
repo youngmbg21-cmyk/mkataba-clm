@@ -222,7 +222,7 @@ function commandMeta(view){
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
     case 'intel':     return [i18t('nav_insights'), i18t('pg_insights_sub')];
-    case 'calendar':  return [i18t('pg_calendar'), i18t('pg_calendar_sub')];
+    case 'calendar':  return [i18t('nav_calendar'), ''];   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
     case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
@@ -364,7 +364,8 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    'agents' joined the same day (Young: the list of agents must not move when
    an agent is pressed): Copilot's work is --view-h tall above 900px, its right
    side scrolls inside itself and the list beside it stays put. */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'approvals', 'obligations', 'agents'];
+/* 'intake' and 'advice' joined 9 Oct 2026 (SAP benchmark, batch 2): Requests and its Advice tab draw the white band to the screen's edge, as Approvals and Obligations do; 'directory' (People) the same day, scrolling inside its own page (#dir-page). */
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'agents'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
@@ -624,7 +625,12 @@ function renderPageHeader(view){
         ${view==='register'?'<div id="reg-head-facts" class="page-facts"></div>':''}
         ${PAGE_HEAD_PAINT[view]?'<div id="page-head-facts" class="page-facts"></div>':''}
       </div>
-      ${acts?`<div style="display:flex;align-items:center;gap:var(--s-2);flex:none">${acts}</div>`:''}
+      ${''/* THE ACTS ROW HOLDS ONE CONTROL'S HEIGHT even while a page has
+             painted nothing into it (9 Oct 2026, SAP benchmark batch 2): the
+             Advice tab has no head act where Requests has "Ask for a
+             contract", and the one tab row under the head jumped 4px between
+             them. */}
+      ${acts?`<div style="display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h)">${acts}</div>`:''}
     </div>`;
   /* The header is painted AFTER the view, so the register's first paint found
      no slot; ask the register to fill it now that the slot exists. */

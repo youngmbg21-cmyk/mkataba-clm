@@ -11441,6 +11441,38 @@
   .ap-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
   .ap-id > div{min-width:0;}
   .ap-table td.done,.ap-table .ap-sub.done{color:var(--st-green-fg);font-weight:var(--w-label);}
+  /* SAP benchmark, batch 2 — Requests (owner said "go", 9 Oct 2026): the card
+     head's search box, the panel's promise pill, its wide lead button, the
+     counterparty's initials beside the name. */
+  .ik-search{display:flex;align-items:center;gap:6px;width:min(220px,40%);height:var(--ctl-h);padding:0 var(--s-2);
+    border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);color:var(--color-neutral-600);}
+  .ik-search:focus-within{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
+  .ik-search input{flex:1;min-width:0;border:0;background:none;font:inherit;font-size:var(--t-meta);color:var(--color-text);outline:0;}
+  .ik-lt td.ik-pr{white-space:nowrap;text-align:right;}
+  .ik-lt th:last-child{text-align:right;}
+  .ins-pill-row{margin-top:var(--s-2);}
+  .ik-ins .ins-panel .ins-acts .ins-lead{flex:1 1 auto;justify-content:center;}
+  .ik-cp{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
+  /* People (SAP benchmark, batch 2): an empty band under the page's name
+     closes the white head with its rule (no tabs under it); the list is a
+     table on a card. */
+  #dir-page{padding:0 var(--page-pad-x) var(--s-4);height:var(--view-h);box-sizing:border-box;overflow-y:auto;}
+  #dir-page .dir-band{height:var(--s-4);margin-bottom:var(--s-4);}
+  .dir-table .dir-rows{display:table-row-group;}
+  .dir-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  .dir-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);
+    padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);}
+  :root .sap-page .dir-table th{text-transform:none;letter-spacing:0;}
+  .dir-table td{padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);font-size:var(--t-body);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+  .dir-table tr:last-child td{border-bottom:0;}
+  .dir-table .dir-row{display:table-row;padding:0;}
+  .dir-card .dir-head.ins-cardhead{background:var(--color-surface);}
+  .dir-who{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;}
+  .dir-table .dir-av{width:28px;height:28px;border-radius:var(--radius);font-size:var(--t-label);}
+  .dir-table .dir-name{font-weight:var(--w-body);}
+  .dir-table .dir-role{letter-spacing:0;text-transform:none;}
+  .dir-table .dir-mail{width:auto;max-width:none;text-align:left;}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════

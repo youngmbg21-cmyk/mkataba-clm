@@ -87,24 +87,34 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
     assert.equal(win.RQ_KIND_VIEW.contracts, 'intake');
     assert.equal(win.RQ_KIND_VIEW.advice, 'advice');
   });
-  test('2b the row is the settings-style tab row, lit where asked', () => {
+  /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the owner's
+     "go"; the drawing is the target): the kind row and the views row under
+     it became ONE row — Open · Mine · Advice · Finished this month · All.
+     Advice is still its own view (a door merge, not a data merge); the other
+     four are views of the contracts queue. */
+  test('2b ONE row, the views and Advice third, lit where asked', () => {
     const win = rqWorld();
     const host = win.document.createElement('div');
     host.innerHTML = win.rqKindTabsHtml('advice');
-    const row = host.querySelector('.st-tabs.rq-kinds[role="tablist"]');
-    assert.ok(row, 'the house tab row');
-    const tabs = [...row.querySelectorAll('.st-tab[data-rq-kind]')];
-    assert.deepEqual(tabs.map(b => b.getAttribute('data-rq-kind')), ['contracts', 'advice']);
-    assert.deepEqual(tabs.map(b => b.classList.contains('on')), [false, true]);
-    assert.deepEqual(tabs.map(b => b.getAttribute('aria-selected')), ['false', 'true']);
-    assert.match(tabs[0].textContent, /^Contracts/);
-    assert.match(tabs[1].textContent, /^Advice/);
+    const row = host.querySelector('.rq-kinds[role="tablist"]');
+    assert.ok(row, 'the one tab row');
+    const tabs = [...row.querySelectorAll('[role="tab"][data-rq-kind]')];
+    assert.deepEqual(tabs.map(b => b.getAttribute('data-rq-kind')), ['contracts', 'contracts', 'advice', 'contracts', 'contracts']);
+    assert.deepEqual(tabs.map(b => b.getAttribute('data-ik-view')), ['open', 'mine', null, 'fin', 'all']);
+    assert.deepEqual(tabs.map(b => b.classList.contains('on')), [false, false, true, false, false]);
+    assert.deepEqual(tabs.map(b => b.getAttribute('aria-selected')), ['false', 'false', 'true', 'false', 'false']);
+    assert.match(tabs[0].textContent, /^Open/);
+    assert.match(tabs[1].textContent, /^Mine/);
+    assert.match(tabs[2].textContent, /^Advice/);
+    const lit = win.document.createElement('div');
+    lit.innerHTML = win.rqKindTabsHtml('contracts');
+    assert.equal(lit.querySelector('.on').getAttribute('data-ik-view'), 'open', 'on Requests, the view the reader is on');
   });
   test('2c both shapes of the Requests page draw it lit on Contracts, first, and wire it', () => {
     for (const name of ['renderIntake', 'renderIntakeInspector']){
       const fn = strip(fnBody(IK, name));
       assert.ok(fn, name + ' was found');
-      assert.match(fn, /data-ins-page="intake" data-ins="[01]">\s*\$\{rqKindTabsHtml\('contracts'\)\}/, name + ' draws the row first');
+      assert.match(fn, /data-ins-page="intake" data-ins="[01]">\s*(<div class="sap-band">)?\$\{rqKindTabsHtml\('contracts'\)\}/, name + ' draws the row first (the wide page on its white band)');
       assert.match(fn, /rqKindTabsWire\(host\)/, name + ' wires it');
     }
   });
@@ -123,7 +133,7 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
     win.state.view = 'intake';
     win.rqKindTabsWire(host);
     host.querySelector('[data-rq-kind="contracts"]').click();
-    assert.deepEqual(went, [], 'the lit tab is where the reader already is');
+    assert.deepEqual(went, [], 'a queue tab on the queue\'s own page is the page\'s own business');
     host.querySelector('[data-rq-kind="advice"]').click();
     assert.deepEqual(went, ['advice'], 'Advice is the Advice desk view');
   });
@@ -164,19 +174,24 @@ describe('f495 (4) the door is the sum of the tabs it opens', () => {
     const win = rqWorld([], advice);
     const host = win.document.createElement('div');
     host.innerHTML = win.rqKindTabsHtml('contracts');
-    const c = host.querySelector('[data-rq-n="contracts"]'), a = host.querySelector('[data-rq-n="advice"]');
+    /* each queue tab counts the list it opens (re-pointed 9 Oct 2026: one row) */
+    const c = host.querySelector('[data-ik-view="open"] .n'), a = host.querySelector('[data-rq-n="advice"]');
     assert.equal(c.hidden, true, 'no queue, no number');
     assert.equal(a.hidden, false);
     assert.equal(a.textContent, '3');
   });
   test('4c the tabs move on the door\'s own beat, in place', () => {
     const win = rqWorld([REQ('R1')], []);
-    win.document.body.insertAdjacentHTML('beforeend', win.rqKindTabsHtml('advice'));
-    const c = () => win.document.querySelector('[data-rq-n="contracts"]');
-    assert.equal(c().textContent, '1');
-    win._intakeState.list.push(REQ('R2'));
+    /* Re-pointed 9 Oct 2026 (one row): the advice count is the one that moves
+       on the door's beat with no page paint (the advice list lands after the
+       first paint); the queue's counts are repainted with the queue. */
+    win.document.body.insertAdjacentHTML('beforeend', win.rqKindTabsHtml('contracts'));
+    const a = () => win.document.querySelector('[data-rq-n="advice"]');
+    assert.equal(a().hidden, true);
+    win.adviceActiveCount = () => 2;
     win.rqPaintKindCounts();
-    assert.equal(c().textContent, '2', 'repainted without a page paint');
+    assert.equal(a().textContent, '2', 'repainted without a page paint');
+    assert.equal(a().hidden, false);
     const fn = strip(fnBody(APP, 'updateSidebarCounts'));
     assert.match(fn, /intake: \(typeof requestsDoorCount==='function'\)\?requestsDoorCount\(\)/, 'the door asks the one sum');
     assert.match(fn, /rqPaintKindCounts\(\)/, 'and the same paint writes the tabs');
@@ -192,11 +207,13 @@ describe('f495 (5) the tab row holds still between the tabs', () => {
     assert.match(fn, /padding:\$\{fits\?'0':'var\(--page-pad-t\)'\}/, 'flush where the inspector page is, padded where the plain page is');
     assert.match(INS, /advice: 'renderAdviceDesk'/, 'and a resize across the line repaints it');
   });
-  test('5b the head keeps the facts line\'s room where the Contracts tab draws one', () => {
+  test('5b the head holds no facts line, as the Requests tab draws none', () => {
     assert.match(APP, /PAGE_HEAD_PAINT = \{[^}]*advice:'adviceHeadPaint'/);
     const fn = strip(fnBody(ADV, 'adviceHeadPaint'));
     assert.match(fn, /textContent=''/, 'it says nothing there');
-    assert.match(fn, /classList\.toggle\('is-held', \(typeof window\.insFits==='function'\) && !!insFits\(\)\)/);
+    /* re-pointed 9 Oct 2026 (SAP benchmark, batch 2): Requests prints no
+       facts line under its name now, so Advice holds none either */
+    assert.match(fn, /classList\.remove\('is-held'\)/);
     assert.match(HTML, /\.page-facts\.is-held:empty\{display:block;min-height:1\.4em;\}/);
   });
 });

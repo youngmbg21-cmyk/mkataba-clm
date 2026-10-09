@@ -247,16 +247,23 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     /* ================= 4 · REQUESTS ================= */
     await page.evaluate(() => setView('intake')); await page.waitForTimeout(2200);
     await page.screenshot({ path: path.join(OUT, '4-requests.png') });
+    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is
+       the target): one flat list, no heading row per pile, still in the
+       piles' order — read off each row's own pile. */
     const ik = await page.evaluate(() => ({ ins: !!document.querySelector('.ik-ins'),
-      groups: [...document.querySelectorAll('.ik-lt tr.ins-grp')].map(g => g.getAttribute('data-ik-grp')),
+      groups: [...new Set([...document.querySelectorAll('.ik-lt tbody [data-ik-row]')].map(r => intakeStage((_intakeState.list || []).find(x => x.id === r.getAttribute('data-ik-row')))))],
       head: (document.getElementById('page-head-facts') || {}).textContent || '',
       ask: !!document.querySelector('#page-head-acts #ik-new') }));
     ok('4a the queue is a list and a panel, grouped past its promise → nobody → being worked on',
       ik.ins && ik.groups.join(',').startsWith('over,nobody,held') && ik.ask, ik);
     await page.click('[data-ik-row="REQ-HELD01"]').catch(() => {}); await page.waitForTimeout(300);
-    const heldSays = await page.evaluate(() => (document.querySelector('#ins-panel .ins-st') || {}).textContent || '');
-    ok('4b a request a colleague holds reads as being worked on', /working on it/i.test(heldSays), heldSays);
-    await page.click('#ins-panel [data-ins-act="pick"]').catch(() => {}); await page.waitForTimeout(500);
+    /* re-pointed 9 Oct 2026: the drawing's panel names the holder as a fact
+       and the promise as the head's pill; take-over lives under ⋯ */
+    const heldSays = await page.evaluate(() => ({ holder: (document.querySelector('#ins-panel [data-ins-fact="with"] dd') || {}).textContent || '',
+      pill: (document.querySelector('#ins-panel .ins-pill-row') || {}).textContent || '' }));
+    ok('4b a request a colleague holds names its holder, and its promise', /Amina Otieno/.test(heldSays.holder) && /Promised by/.test(heldSays.pill), heldSays);
+    await page.click('#ins-panel [data-ins-more]').catch(() => {}); await page.waitForTimeout(200);
+    await page.click('#ins-panel [data-ins-menu] [data-act="pick"]').catch(() => {}); await page.waitForTimeout(500);
     const takeAsk = await page.evaluate(() => { const d = [...document.querySelectorAll('[data-top-overlay], [role="alertdialog"], [role="dialog"]')].pop();
       return d ? d.textContent.replace(/\s+/g, ' ').slice(0, 200) : ''; });
     await page.keyboard.press('Escape'); await page.waitForTimeout(500);

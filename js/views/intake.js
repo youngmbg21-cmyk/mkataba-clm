@@ -865,11 +865,30 @@ function rqKindCounts(){
   return { contracts: Number(ik) || 0, advice: Number(ad) || 0 };
 }
 function requestsDoorCount(){ const n = rqKindCounts(); return n.contracts + n.advice; }
+/* ---- ONE TAB ROW (SAP benchmark, batch 2 — the owner's "go", 9 Oct 2026) ----
+   The drawing's Requests page has ONE row: Open · Mine · Advice · Finished
+   this month · All. The kind row (Contracts · Advice) and the views row under
+   it were two rows saying where you are. Advice is still its own view (a door
+   merge, not a data merge — f495), so its tab is a page change; every other
+   tab is a view of the contracts queue and, from the Advice page, lands back
+   on Requests at that view. `lit` is 'advice' or a view key; 'contracts'
+   means "the view the reader is on". Counts are the list each tab opens. */
 function rqKindTabsHtml(lit){
   const n = rqKindCounts();
-  const lbl = { contracts: i18t('rq_kind_contracts'), advice: i18t('rq_kind_advice') };
-  return `<div class="st-tabs rq-kinds" role="tablist" aria-label="${esc(i18t('rq_kinds_label'))}" style="flex:none">${RQ_KINDS.map(k=>
-    `<button type="button" class="st-tab${k===lit?' on':''}" data-rq-kind="${k}" role="tab" aria-selected="${k===lit?'true':'false'}">${esc(lbl[k])}<span class="st-tab-n" data-rq-n="${k}"${n[k]?'':' hidden'}>${n[k]}</span></button>`).join('')}</div>`;
+  const may = (typeof canEdit==='function'&&canEdit());
+  const asker = !may;
+  const f = ikFilters();
+  const V = asker?IK_V_ASKER:IK_V_TEAM;
+  const cur = lit==='advice' ? 'advice' : (lit && lit!=='contracts' ? lit : f.view);
+  const all = asker?intakeMine():((_intake&&_intake.list)||[]);
+  const base = asker?all:all.filter(r=>ikPassChips(r,f));
+  const tabs = V.map(([k,key])=>({ k, kind:'contracts', label:i18t(key), n:base.filter(r=>ikPassView(r,k,asker)).length }));
+  tabs.splice(asker?1:2, 0, { k:'advice', kind:'advice', label:i18t('rq_kind_advice'), n:n.advice });
+  return `<div class="reg-views rq-kinds" role="tablist" aria-label="${esc(i18t('rq_kinds_label'))}">${tabs.map(t=>{
+    const on = t.k===cur;
+    return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${!t.n&&!on?' is-zero':''}" data-rq-kind="${t.kind}"${
+      t.kind==='contracts'?` data-ik-view="${esc(t.k)}"`:''} aria-selected="${on?'true':'false'}">${esc(t.label)}<span class="n"${
+      t.kind==='advice'?' data-rq-n="advice"':''}${t.n?'':' hidden'}>${t.n}</span></button>`; }).join('')}</div>`;
 }
 /* The numbers move on a load or a save with no repaint of the page (the
    advice list lands after the first paint; the intake beat re-reads the
@@ -888,6 +907,8 @@ function rqKindTabsWire(root){
   host.querySelectorAll('[data-rq-kind]').forEach(b=>b.addEventListener('click',()=>{
     const v = RQ_KIND_VIEW[b.getAttribute('data-rq-kind')];
     if(!v || (typeof state !== 'undefined' && state.view === v)) return;
+    /* from the Advice page, a queue tab lands on Requests at that view */
+    const iv = b.getAttribute('data-ik-view'); if(iv) ikFilters().view = iv;
     if(typeof setView === 'function') setView(v);
   }));
 }
@@ -909,11 +930,12 @@ function rqKindTabsWire(root){
    CALLS A MODEL: looking at a request costs nothing. */
 const IK_V_TEAM = [['open','ik_v_open'],['mine','ik_v_mine'],['fin','ik_v_fin'],['all','ik_v_all']];
 const IK_V_ASKER = [['open','ik_v_open'],['fin','ik_v_fin_asker'],['all','ik_v_all']];
-const IK_DEF = { view:'open', who:'all', road:'all', folder:'all' };
+const IK_DEF = { view:'open', who:'all', road:'all', folder:'all', q:'' };
 const IK_CHIPS = ['who', 'road', 'folder'];
 let _ikF = null;
 function ikFilters(){ if(!_ikF) _ikF={ ...IK_DEF }; return _ikF; }
 let _ikHead = { facts:'', acts:'' };
+let _ikFiltersOpen = false;
 function ikPaintHead(){
   if(typeof document==='undefined') return;
   const f=document.getElementById('page-head-facts'); if(f) f.innerHTML=_ikHead.facts;
@@ -1064,27 +1086,18 @@ function ikActs(r, asker){
     if(track) acts.push({ k:'track', label:i18t('ik_act_copy_track'), icon:'link', title:i18t('ik_track_title'), run:()=>intakeTrackCopy(r.id) });
     return { acts, menu:'' };
   }
-  if(may&&r.status==='open') acts.push({ k:'draft', kind:'accent', label:i18t('ik_act_draft'), icon:'pencil', attrs:`data-ik-draft="${esc(r.id)}"`, run:()=>intakeDraft(r.id) });
-  if(may&&live) acts.push({ k:'pick', label:intakePickLabel(r), run:()=>intakePick(r.id) });
-  if(may&&live) acts.push({ k:'promise', label:r.promisedAt?i18t('ik_act_repromise'):i18t('ik_act_promise'), title:i18t('ik_promise_msg'), run:()=>intakePromiseAsk(r.id) });
+  /* THE DRAWING'S ROW (SAP benchmark, batch 2): "Start the draft" filled,
+     "Hand back" beside it (the decline, with its reason — the asker is told
+     why), and the rest — pick up, promise a date, withdraw, the tracker
+     link — under ⋯. Every verb is the one it always was. */
+  if(may&&r.status==='open') acts.push({ k:'draft', kind:'accent', label:i18t('ik_act_draft'), attrs:`data-ik-draft="${esc(r.id)}"`, run:()=>intakeDraft(r.id) });
+  if(may&&r.status==='open') acts.push({ k:'decline', label:i18t('ik_act_hand_back'), title:i18t('ik_decline_msg'), run:()=>intakeSetStatus(r.id,'declined') });
   if(openAct&&(r.status==='done'||r.status==='drafted')) acts.unshift(openAct);
-  if(may&&r.status==='open') menu.push(insMenuItemHtml({ k:'decline', label:i18t('ik_act_decline'), ruby:true, says:i18t('ik_decline_msg') }));
+  if(may&&live) menu.push(insMenuItemHtml({ k:'pick', label:intakePickLabel(r) }));
+  if(may&&live) menu.push(insMenuItemHtml({ k:'promise', label:r.promisedAt?i18t('ik_act_repromise'):i18t('ik_act_promise'), says:i18t('ik_promise_msg') }));
   if(live&&(ikIsMine(r)||(typeof isAdmin==='function'&&isAdmin()))) menu.push(insMenuItemHtml({ k:'withdraw', label:i18t('ik_act_withdraw'), says:i18t('ik_withdraw_msg') }));
   if(track) menu.push(insMenuItemHtml({ k:'track', label:i18t('ik_act_copy_track'), icon:'link', says:i18t('ik_track_title') }));
   return { acts, menu:menu.join('') };
-}
-function ikBookHtml(r){
-  const cp=String(r.counterparty||'').trim();
-  if(!cp) return '';
-  const n=cp.toLowerCase();
-  const cs=((window.state&&state.contracts)||[]).filter(c=>c&&String(c.counterparty||'').trim().toLowerCase()===n);
-  if(!cs.length) return insSecHtml(cp, '', `<p class="ins-p">${esc(i18t('ik_new_cp',{cp}))}</p>`, 'ik-book');
-  const shown=cs.slice(0,6);
-  const kind=c=>{ try{ return (typeof cKind==='function')?cKind(c):''; }catch(_){ return ''; } };
-  const st=c=>{ try{ return (typeof contractStatusMeta==='function'&&contractStatusMeta(c)&&contractStatusMeta(c).label)||c.status||''; }catch(_){ return c.status||''; } };
-  return insSecHtml(i18t('ik_sec_book',{cp}), cs.length, `<ul class="ins-gl">${shown.map(c=>`<li><button type="button" class="ins-gi" data-ik-cgo="${esc(c.id)}"><b>${
-    (window.refHtml?refHtml(c):esc(c.id))+' · '+esc(c.name||'')}</b><span>${esc(kind(c))}</span><span class="r">${esc(st(c))}</span></button></li>`).join('')}</ul>${
-    cs.length>shown.length?`<p class="ins-note" style="margin-top:6px">${esc(i18tn('ik_book_more',cs.length-shown.length,{n:cs.length-shown.length}))}</p>`:''}`, 'ik-book');
 }
 function ikHistoryHtml(r, asker){
   const h=[];
@@ -1131,20 +1144,24 @@ function ikPanelOpts(r, asker){
                 : { k:'asked', label:i18t('ik_f_asked'), v:esc(ikAgeWords(r)) },
         { k:'cp', label:i18t('ik_f_cp'), v:esc(r.counterparty||'') },
         { k:'stream', label:i18t('ins_f_stream'), v:esc(stream) } ];
-  let body=insKvHtml(facts);
+  /* THE TEAM'S PANEL IS THE DRAWING'S (SAP benchmark, batch 2): six facts in
+     two columns, then what they asked. How it is handled is a fact here, not
+     a section; the counterparty's book, the "keep them informed" note and the
+     history are not in the drawing and are not drawn — the tracker link is
+     on ⋯, the contracts with this counterparty are one search away. */
+  const val=r.answers&&r.answers.value!=null&&String(r.answers.value).trim()!==''?String(r.answers.value):'';
+  const teamFacts=[
+    { k:'cp', label:i18t('ik_f_cp'), v:r.counterparty?`<span class="ik-cp">${typeof window.regAvatarHtml==='function'?regAvatarHtml(r.counterparty):''}${esc(r.counterparty)}</span>`:'' },
+    { k:'stream', label:i18t('ins_f_stream'), v:esc(stream) },
+    { k:'value', label:i18t('ik_f_value'), v:esc(val) },
+    { k:'road', label:i18t('ik_f_road'), v:`<span class="ins-road-${road.k}">${esc(rd.label)}</span>` },
+    { k:'with', label:i18t('ik_f_holder'), v:withV },
+    stopped ? { k:'took', label:i18t('ik_f_took'), v:(pr&&pr.sub)?esc(ikTookWords(intakeMinutes(r)||0)):'' }
+            : { k:'asked', label:i18t('ik_f_asked_on'), v:esc(ikDay(r.createdAt,{long:true})) } ];
+  let body=insKvHtml(asker?facts:teamFacts);
   body+=insSecHtml((asker||mine)?i18t('ik_sec_need_you'):i18t('ik_sec_need',{first}), '', `<p class="ins-p" style="white-space:pre-wrap">${esc(r.need||'')}</p>`, 'ik-need');
   if(r.status==='declined') body+=insSecHtml(i18t('ik_sec_declined'), '', r.note?`<blockquote class="ins-q">${esc(r.note)}</blockquote>`:`<p class="ins-note">${esc(i18t('ik_no_reason'))}</p>`, 'ik-why');
-  if(!asker){
-    const says=road.k==='lane'?(road.why?road.why+'.':''):i18t('ik_road_'+road.k+'_says');
-    body+=insSecHtml(i18t('ik_sec_road'), '', `<p class="ins-p"><span class="ins-road-${road.k}">${esc(rd.label)}.</span> ${esc(says)}</p>${
-      road.k!=='lane'&&road.why?`<p class="ins-note" style="margin-top:6px">${esc(i18t('ik_road_read',{why:road.why}))}</p>`:''}`, 'ik-road');
-    body+=ikBookHtml(r);
-    if(!mine&&!stopped){
-      const url=intakeTrackUrl(r);
-      body+=insSecHtml(i18t('ik_sec_inform',{first}), '', `<p class="ins-p">${esc(ikMails()?i18t('ik_inform',{first}):i18t('ik_inform_nomail',{first}))}</p>${
-        url?`<button type="button" class="ui-link" data-ik-track-sec style="margin-top:6px">${typeof icon==='function'?icon('link','w-3.5 h-3.5'):''}${esc(i18t('ik_act_copy_track'))}</button>`:''}`, 'ik-inform');
-    }
-  } else if(!stopped){
+  if(asker && !stopped){
     const holder=String((r.assignee&&r.assignee.name)||'').trim(), hf=holder.split(/\s+/)[0]||holder;
     const p=intakePromise(r);
     const day=r.promisedAt?ikDay(String(r.promisedAt).slice(0,10),{weekday:true}):'';
@@ -1156,8 +1173,34 @@ function ikPanelOpts(r, asker){
       : i18t('ik_next_promised',{first:hf,day});
     body+=insSecHtml(i18t('ik_sec_next'), '', `<p class="ins-p">${esc(lead)}${ikMails()?' '+esc(i18t('ik_next_mail')):''}</p>`, 'ik-next');
   }
-  body+=ikHistoryHtml(r, asker);
+  if(asker) body+=ikHistoryHtml(r, asker);
   const { acts, menu }=ikActs(r, asker);
+  if(!asker){
+    /* THE DRAWING'S HEAD: "RQ-114 · Contract · from Wanjiru Kamau", the title,
+       and one pill — the promise where there is one (red once late, amber
+       inside three days), else the pile the request sits in. */
+    const g=intakeStage(r);
+    const gl=(IK_GROUPS.find(x=>x[0]===g)||[])[1];
+    const dd=(r.promisedAt&&!stopped&&typeof daysUntil==='function')?daysUntil(String(r.promisedAt).slice(0,10)):null;
+    const pill=(r.promisedAt&&!stopped)
+      ? { tone: dd!=null&&dd<0?'ruby':dd!=null&&dd<=3?'amber':'steel',
+          text: i18t('ik_pill_promised',{day:ikDay(String(r.promisedAt).slice(0,10),{weekday:true})}) }
+      : { tone: st.tone, text: gl?i18t(gl):'' };
+    const from=mine?i18t('ik_eb_from_you'):i18t('ik_eb_from',{name:(r.by&&r.by.name)||''});
+    return {
+      item:{ id:r.id },
+      head:{ eyebrow:`<span class="ins-ref">${esc(r.id)}</span> · ${esc(i18t('ik_eb_kind'))} · ${esc(from)}`, title:r.title||'',
+        pillTone:pill.tone, pill:pill.text?esc(pill.text):'', acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
+      acts, body,
+      onMenu:act=>{
+        if(act==='pick') intakePick(r.id);
+        else if(act==='promise') intakePromiseAsk(r.id);
+        else if(act==='decline') intakeSetStatus(r.id,'declined');
+        else if(act==='withdraw') intakeSetStatus(r.id,'withdrawn');
+        else if(act==='track') intakeTrackCopy(r.id);
+      },
+    };
+  }
   const eyebrow=`<span class="ins-ref">${esc(r.id)}</span>${stream?' · '+esc(stream):''}`;
   const sub=(asker||mine)?esc(i18t('ik_sub_you',{date:ikDay(r.createdAt)})):esc(i18t('ik_sub_by',{name:(r.by&&r.by.name)||'',date:ikDay(r.createdAt)}));
   return {
@@ -1165,7 +1208,9 @@ function ikPanelOpts(r, asker){
     head:{ eyebrow, title:r.title||'', sub, tone:st.tone, status:st.html, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
     acts, body,
     onMenu:act=>{
-      if(act==='decline') intakeSetStatus(r.id,'declined');
+      if(act==='pick') intakePick(r.id);
+      else if(act==='promise') intakePromiseAsk(r.id);
+      else if(act==='decline') intakeSetStatus(r.id,'declined');
       else if(act==='withdraw') intakeSetStatus(r.id,'withdrawn');
       else if(act==='track') intakeTrackCopy(r.id);
     },
@@ -1179,24 +1224,19 @@ function renderIntakeInspector(host){
   if(!V.some(v=>v[0]===f.view)) f.view='open';
   const all=asker?intakeMine():((_intake&&_intake.list)||[]);
   const base=asker?all:all.filter(r=>ikPassChips(r,f));
-  const rows=base.filter(r=>ikPassView(r,f.view,asker)).sort(ikSort);
+  /* THE DRAWING'S SEARCH BOX: the words a reader would use for a request —
+     its title, what was asked, who asked, the counterparty, its reference. */
+  const q=String(f.q||'').trim().toLowerCase();
+  const hit=r=>!q||[r.id,r.title,r.need,r.counterparty,r.by&&r.by.name].some(x=>String(x||'').toLowerCase().includes(q));
+  const IK_RANK=IK_GROUPS.map(g=>g[0]);
+  const rows=base.filter(r=>ikPassView(r,f.view,asker)&&hit(r))
+    .sort((a,b)=>(IK_RANK.indexOf(intakeStage(a,asker))-IK_RANK.indexOf(intakeStage(b,asker)))||ikSort(a,b));
   const narrowing=asker?[]:IK_CHIPS.filter(k=>String(f[k])!==String(IK_DEF[k]));
-  /* THE HEAD: what the queue looks like right now, and the one filled act. */
-  const live=all.filter(r=>!IK_STOPPED.includes(r.status));
-  if(asker){
-    const n=live.length;
-    _ikHead.facts=esc(n?i18tn('ik_head_asker',n,{n}):i18t('ik_head_asker_none'))+(ikMails()?' · '+esc(i18t('ik_head_asker_mail')):'');
-  } else {
-    const nob=live.filter(r=>intakeStage(r)==='nobody').length, over=live.filter(r=>intakeStage(r)==='over').length;
-    const med=intakeMedianDays(all);
-    _ikHead.facts=[ esc(i18tn('ik_head_open',live.length,{n:live.length})),
-      nob?esc(i18tn('ik_head_nobody',nob,{n:nob})):'',
-      over?`<span class="ins-late">${esc(i18tn('ik_head_over',over,{n:over}))}</span>`:'',
-      med!=null?esc(i18t('ik_median',{n:med})):'' ].filter(Boolean).join(' · ');
-  }
+  /* THE HEAD is the page's name and the one filled act (SAP benchmark,
+     batch 2): the drawing prints no counts under the name — the tabs carry
+     them, and a request past its promise is red in its own row. */
+  _ikHead.facts='';
   _ikHead.acts=`<button type="button" id="ik-new" class="ui-btn ui-btn-primary">${typeof icon==='function'?icon('plus','w-3.5 h-3.5'):''}${esc(i18t('ik_ask_btn'))}</button>`;
-  const views=insViewTabsHtml({ attr:'data-ik-view', cur:f.view, label:i18t('ik_views_label'),
-    views:V.map(([k,key])=>({ k, label:i18t(key), n:base.filter(r=>ikPassView(r,k,asker)).length })) });
   const folders=(typeof visibleFolders==='function')?visibleFolders():Object.values(window.FOLDERS||{});
   const chips=asker?'':[
     insChipHtml({ attr:'data-ik-f', key:'who', label:i18t('ik_c_who'), cur:f.who, def:IK_DEF.who,
@@ -1206,42 +1246,53 @@ function renderIntakeInspector(host){
     insChipHtml({ attr:'data-ik-f', key:'folder', label:i18t('ins_f_stream'), cur:f.folder, def:IK_DEF.folder,
       opts:[['all',i18t('ob_f_folder_all')],...folders.map(x=>[x.id,x.name])] }),
   ].join('')+(narrowing.length?`<button type="button" class="ui-link" data-ik-clear>${esc(i18tn('ob_clear_n',narrowing.length,{n:narrowing.length}))}</button>`:'');
+  /* THE DRAWING'S COLUMNS: Ref, Request, How it is handled, Promised by. Who
+     holds it is in the panel (Holder) for the team; the asker keeps it in
+     the list, because "who has my request" is the asker's whole question. */
   const cols=asker
-    ? [{ t:i18t('ik_col_request') }, { t:i18t('ik_f_with'), w:170 }, { t:i18t('ik_f_promised'), w:140 }]
-    : [{ t:i18t('ik_col_request') }, { t:i18t('ik_f_road'), w:120 }, { t:i18t('ik_f_with'), w:156 }, { t:i18t('ik_f_promised'), w:132 }];
+    ? [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_f_with'), w:170 }, { t:i18t('ik_f_promised'), w:130 }]
+    : [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_f_road'), w:170 }, { t:i18t('ik_f_promised'), w:130 }];
   const tr=r=>{
+    const stream=(r.folder&&window.FOLDERS&&FOLDERS[r.folder])?FOLDERS[r.folder].name:'';
     const sub=asker
       ? [r.counterparty||'', i18t('ik_row_asked',{date:ikDay(r.createdAt)})].filter(Boolean).join(' · ')
-      : [ikIsMine(r)?i18t('ik_with_you'):((r.by&&r.by.name)||''), r.counterparty||'', ikAgeWords(r)].filter(Boolean).join(' · ');
+      : [ikIsMine(r)?i18t('ik_with_you'):((r.by&&r.by.name)||''), stream].filter(Boolean).join(' · ');
+    /* ONE LINE, the drawing's: the day, in red once it is today or past;
+       a finished request says the day it finished. */
     const pr=intakePromiseSay(r);
-    const prHtml=pr?`<span class="ins-c2"><b>${esc(pr.day)}</b><span class="${pr.cls}">${esc(pr.sub)}</span></span>`:`<span class="ins-quiet">—</span>`;
+    const d=(pr&&r.promisedAt&&!IK_STOPPED.includes(r.status)&&typeof daysUntil==='function')?daysUntil(String(r.promisedAt).slice(0,10)):null;
+    const prHtml=!pr?`<span class="ins-quiet">—</span>`
+      : d===0?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`
+      : `<span class="${d!=null&&d<0?'ins-late':pr.cls==='ins-soon'?'ins-soon':''}"${pr.sub?` title="${esc(pr.sub)}"`:''}>${esc(pr.day)}</span>`;
     return `<tr data-ins-row data-ik-row="${esc(r.id)}" tabindex="-1">
+      <td><span class="ins-ref">${esc(r.id)}</span></td>
       <td><span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span>${esc(sub)}</span></span></td>
-      ${asker?'':`<td>${ikRoadHtml(r)}</td>`}
-      <td>${ikWithCellHtml(r, asker)}</td>
-      <td>${prHtml}</td>
+      <td>${asker?ikWithCellHtml(r, asker):ikRoadHtml(r)}</td>
+      <td class="ik-pr">${prHtml}</td>
     </tr>`;
   };
-  let body='';
-  IK_GROUPS.forEach(([k,team,ask,tone])=>{
-    const g=rows.filter(r=>intakeStage(r,asker)===k);
-    if(!g.length) return;
-    body+=`<tr class="ins-grp" data-ik-grp="${k}"><td colspan="${cols.length}"><span class="ins-g"><i class="ins-dot2 is-${tone}" aria-hidden="true"></i>${esc(i18t(asker?ask:team))}<span class="n">${g.length}</span></span></td></tr>`+g.map(tr).join('');
-  });
+  /* ONE LIST, in the piles' order (past its promise, nobody holds it, being
+     worked on, …) but without a heading row per pile — the drawing's flat
+     list; a late one says so in red in its own Promised by cell. */
+  let body=rows.map(tr).join('');
   if(!rows.length){
-    const msg=asker?i18t('ik_mine_empty'):narrowing.length?i18t('ik_none_match'):(f.view==='open'?i18t('ik_queue_empty'):i18t('ob_none_here'));
+    const msg=asker?i18t('ik_mine_empty'):(narrowing.length||q)?i18t('ik_none_match'):(f.view==='open'?i18t('ik_queue_empty'):i18t('ob_none_here'));
     body=`<tr class="ins-empty"><td colspan="${cols.length}">${esc(msg)}${narrowing.length?`<br><button type="button" class="ui-link" data-ik-clear style="margin-top:8px">${esc(i18t('ob_clear_filters'))}</button>`:''}</td></tr>`;
   }
   const table=`<table class="ins-lt ik-lt"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
     cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
-  host.innerHTML=`<div class="view-enter ins-page ik-ins" data-ins-page="intake" data-ins="1">
-    ${rqKindTabsHtml('contracts')}
-    ${views}
+  const cardT={ open:'ik_card_open', mine:'ik_card_mine', fin:'ik_card_fin', all:'ik_card_all' }[f.view]||'ik_card_all';
+  const filtersShown=_ikFiltersOpen||narrowing.length>0;
+  host.innerHTML=`<div class="view-enter sap-page ins-page ik-ins" data-ins-page="intake" data-ins="1">
+    <div class="sap-band">${rqKindTabsHtml('contracts')}</div>
     <div class="ins-body">
       <section class="ins-card" aria-label="${esc(i18t('nav_intake'))}">
-        ${chips?`<div class="ins-bar reg-filterbar">${chips}</div>`:''}
+        <div class="ins-cardhead"><h2 class="ins-cardhead-t">${esc(i18t(cardT))} <span class="ins-cardhead-n">(${rows.length})</span></h2><span style="flex:1"></span>
+          <label class="ik-search">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input type="search" data-ik-q value="${esc(f.q||'')}" placeholder="${esc(i18t('ik_search_ph'))}" aria-label="${esc(i18t('ik_search_ph'))}"></label>
+          ${chips?`<button type="button" class="ui-btn ui-btn-plain obw-filter-btn${narrowing.length?' on':''}" data-ik-filters aria-expanded="${filtersShown?'true':'false'}">${typeof icon==='function'?icon('filter','w-3.5 h-3.5'):''}${esc(i18t('ob_filter_btn'))}${narrowing.length?` <span class="obw-filter-n">${narrowing.length}</span>`:''}</button>`:''}</div>
+        ${chips?`<div class="ins-bar reg-filterbar"${filtersShown?'':' hidden'}>${chips}</div>`:''}
         <div class="ins-scroll" id="ik-scroll">${table}</div>
-        <div class="ins-foot"><span>${esc(asker?i18t('ik_foot_asker'):i18t('ik_showing',{n:rows.length,of:all.length}))}</span></div>
+        ${asker?`<div class="ins-foot"><span>${esc(i18t('ik_foot_asker'))}</span></div>`:''}
       </section>
       <aside id="ins-panel" class="ins-panel" aria-label="${esc(i18t('ik_panel_label'))}"></aside>
     </div>
@@ -1250,7 +1301,13 @@ function renderIntakeInspector(host){
   const again=()=>{ if(typeof keepScroll==='function') keepScroll(()=>renderIntake()); else renderIntake(); };
   host.querySelectorAll('[data-ik-view]').forEach(b=>b.addEventListener('click',()=>{ f.view=b.getAttribute('data-ik-view'); again(); }));
   host.querySelectorAll('[data-ik-f]').forEach(s=>s.addEventListener('change',()=>{ f[s.getAttribute('data-ik-f')]=s.value; again(); }));
-  host.querySelectorAll('[data-ik-clear]').forEach(b=>b.addEventListener('click',()=>{ IK_CHIPS.forEach(k=>{ f[k]=IK_DEF[k]; }); again(); }));
+  host.querySelectorAll('[data-ik-clear]').forEach(b=>b.addEventListener('click',()=>{ IK_CHIPS.forEach(k=>{ f[k]=IK_DEF[k]; }); f.q=''; again(); }));
+  host.querySelector('[data-ik-filters]')?.addEventListener('click',()=>{ _ikFiltersOpen=!_ikFiltersOpen; again(); });
+  /* The box is repainted with the list, so the caret is put back where the
+     reader was typing. */
+  host.querySelector('[data-ik-q]')?.addEventListener('input',e=>{
+    const at=e.target.selectionStart; f.q=e.target.value; again();
+    const box=document.querySelector('[data-ik-q]'); if(box){ box.focus({ preventScroll:true }); try{ box.setSelectionRange(at,at); }catch(_){} } });
   rqKindTabsWire(host);
   const seat=asker?'intake:asker':'intake:team';
   const tb=host.querySelector('.ik-lt tbody');
@@ -1263,8 +1320,6 @@ function renderIntakeInspector(host){
     if(!r){ insPaintPanel({ empty:asker?i18t('ik_panel_none_asker'):i18t('ik_panel_none') }); return; }
     insPaintPanel(ikPanelOpts(r, asker));
     const pan=document.getElementById('ins-panel'); if(!pan) return;
-    pan.querySelector('[data-ik-track-sec]')?.addEventListener('click',()=>intakeTrackCopy(r.id));
-    pan.querySelectorAll('[data-ik-cgo]').forEach(b=>b.addEventListener('click',()=>openWorkspace(b.getAttribute('data-ik-cgo'))));
   };
   paint(id);
   /* A SECOND PRESS OPENS THE CONTRACT THE REQUEST BECAME, where it became

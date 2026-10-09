@@ -49,7 +49,9 @@ const READ = () => {
     doorN: door ? n(door.querySelector('[data-count="intake"]')) : null,
     tabs: [...document.querySelectorAll('#content [data-rq-kind]')].map(b => b.getAttribute('data-rq-kind')),
     on: (document.querySelector('#content [data-rq-kind].on') || {}).getAttribute ? document.querySelector('#content [data-rq-kind].on').getAttribute('data-rq-kind') : null,
-    nContracts: n(tab('contracts') && tab('contracts').querySelector('[data-rq-n]')),
+    /* ONE ROW since 9 Oct 2026 (SAP benchmark, batch 2): the contracts half is
+       the Open tab's count — the queue the door opens on */
+    nContracts: n(document.querySelector('#content [data-ik-view="open"] .n')),
     nAdvice: n(tab('advice') && tab('advice').querySelector('[data-rq-n]')),
     title: ((document.querySelector('#page-head h1') || {}).textContent || '').trim(),
     rowTop: row ? Math.round(row.getBoundingClientRect().top) : null,
@@ -111,7 +113,10 @@ const READ = () => {
     await page.click('#side-nav .nav-item[data-view="intake"]');
     await until(page, () => state.view === 'intake' && !!document.querySelector('#content .rq-kinds'));
     s = await page.evaluate(READ);
-    ok('2a Requests draws the kind tabs, Contracts then Advice', s.tabs.join(',') === 'contracts,advice', s.tabs);
+    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is
+       the target): ONE row, Open · Mine · Advice · Finished this month · All;
+       Advice is still its own view, the other four the contracts queue. */
+    ok('2a Requests draws one tab row, the queue\'s views with Advice third', s.tabs.join(',') === 'contracts,contracts,advice,contracts,contracts', s.tabs);
     ok('2b it opens on Contracts, with the queue under it', s.on === 'contracts' && s.ikPage, { on: s.on, ikPage: s.ikPage });
     ok('2c each tab carries its own half', s.nContracts === s.intakeN && s.nAdvice === s.adviceN,
       { contracts: s.nContracts, advice: s.nAdvice });
