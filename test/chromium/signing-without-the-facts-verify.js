@@ -130,7 +130,10 @@ const readRow = page => page.evaluate(() => {
     await page.waitForTimeout(900);
     const ov = await page.evaluate(() => {
       const cells = [...document.querySelectorAll('.sec-fields .sec-f')];
-      const eff = cells.find(f => /effective/i.test((f.querySelector('.sec-f-l') || {}).textContent || ''));
+      /* The eight-terms Overview (8 Oct 2026) carries the start date in the
+         Term cell; an Effective cell is read where a page still draws one. */
+      const eff = cells.find(f => /effective/i.test((f.querySelector('.sec-f-l') || {}).textContent || ''))
+        || cells.find(f => /^term$/i.test(((f.querySelector('.sec-f-l') || {}).textContent || '').trim()));
       const note = eff && eff.querySelector('.sec-f-n');
       return { eff: !!eff, note: note ? note.textContent.trim() : '', hold: !!(note && note.classList.contains('is-hold')),
         door: note ? note.getAttribute('data-ov-fix') : '', title: note ? note.getAttribute('title') || '' : '' };
@@ -262,7 +265,9 @@ const readRow = page => page.evaluate(() => {
     await page.evaluate(() => { roomGoTab(getContract(state.contracts[0].id), 'terms'); });
     await page.waitForTimeout(900);
     const effCell = await page.evaluate(() => {
-      const f = [...document.querySelectorAll('.sec-fields .sec-f')].find(x => /effective/i.test((x.querySelector('.sec-f-l') || {}).textContent || ''));
+      const all = [...document.querySelectorAll('.sec-fields .sec-f')];
+      const f = all.find(x => /effective/i.test((x.querySelector('.sec-f-l') || {}).textContent || ''))
+        || all.find(x => /^term$/i.test(((x.querySelector('.sec-f-l') || {}).textContent || '').trim()));
       return f ? ((f.querySelector('.sec-f-v') || {}).textContent || '').trim() : '(no cell)';
     });
     await page.screenshot({ path: path.join(OUT, '4-upload-overview.png') });

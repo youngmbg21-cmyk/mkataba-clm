@@ -6625,6 +6625,8 @@ function ktFieldCell(c,k,edit,marks){
       /* No start date on record: the end date alone (the room head's own
          fallback), so a known expiry is never a dash at rest. */
       if(!t&&R.expiry) t=R.expiry;
+      /* No end date yet: the start alone, never a dash over a date we hold. */
+      if(!t&&R.effDate&&R.effDate!=='—') t=R.effDate;
       return [i18t('ct_term_label'), t, (!edit&&t&&R.expiryFrom)?i18t('ct_as_amended_by',{ref:R.expiryFrom}):undefined];
     }
     case 'contractType': return [i18t('ov_f_type'), edit?box():(R.contractType||txt(m.contractType))];
@@ -6641,9 +6643,14 @@ function ktFieldCell(c,k,edit,marks){
   if(!cell) return null;
   if(frozenTerm) cell[1]=paperTermFrozenRead(c,k,cell[1]);
   if(!marks) return cell;
-  const mark=ovFieldMarkOf(marks,k);
+  /* THE TERM CELL HOLDS BOTH DATES since the eight-terms Overview (8 Oct
+     2026), so a mark on the start or the end lands on it — the start's first,
+     the one the paper most often leaves empty — and its door is that date's
+     own box. Without this the "needed to sign" line had no cell to sit in. */
+  const markKey=k==='term'?(ovFieldMarkOf(marks,'effDate')?'effDate':(ovFieldMarkOf(marks,'expiry')?'expiry':k)):k;
+  const mark=ovFieldMarkOf(marks,markKey);
   return [cell[0], cell[1], cell[2]||'', (mark&&mark.holds)?'amber':(cell[3]||''),
-    ovFieldNoteHtml(mark,k)];
+    ovFieldNoteHtml(mark,markKey)];
 }
 function ktDealFactsHtml(c,opts={}){
   const edit=!!opts.edit;
