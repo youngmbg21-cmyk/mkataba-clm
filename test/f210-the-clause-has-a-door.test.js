@@ -208,10 +208,14 @@ describe('f210 (1) — the pill', () => {
    1024px, which clauseEditorFits refuses because two columns need room to be
    two columns.  */
 describe('f210 (2a) — the pencil\'s door, and the two cases that keep the panel', () => {
-  test('our seat, at a usable width, draws no pen — a click in the wording types (9 Oct 2026)', async () => {
+  /* RE-POINTED 9 Oct 2026 (Young: "you should not have the ability to edit a
+     paper unless you are in the edit room"): the paper reads; the door is
+     Edit clause in the control row. */
+  test('our seat, at a usable width, draws no pen — the paper reads, Edit clause is the door', async () => {
     const p = await bench();
     assert.equal(pills(page(p)).length, 0, 'no pen on the paper');
-    assert.match(SRC, /host\.addEventListener\('click', ev => rlInlineClick\(ev, host\)\)/, 'the wording is wired to take the caret');
+    assert.doesNotMatch(SRC, /addEventListener\('click', ev => rlInlineClick\(ev, host\)\)/, 'a click in the wording types nothing');
+    assert.match(SRC, /data-rl-edit-clause="\$\{to\}"/, 'Edit clause is drawn');
     const narrow = pills(page(p, { narrow: true }))[0];
     assert.ok(narrow && narrow.hasAttribute('data-rl-cp-open') && !narrow.hasAttribute('data-rl-cp-editor'),
       'and a window too narrow for the editor keeps the panel\'s pencil — one door');

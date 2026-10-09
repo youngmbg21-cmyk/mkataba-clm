@@ -20566,3 +20566,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed — 9 Oct 2026 (their link, renewal term, the server's copy)
 - test/chromium/signers-and-party-verify.js: "the picker offers a read-only link, not only Sign and Negotiate" fails on unmodified main too (offers sign,negotiate,view,advise — the check expects something else). Left red; not part of this change.
 - Calling roomGoTab right after openWorkspace on a light record (before ensureFull lands) threw "Cannot read properties of undefined (reading 'effDate')" in docBody's template path (c.fields missing). Seen only from a scripted press; a person's press waits for the room. Not fixed.
+
+## Noticed, not fixed — 9 Oct 2026 (Edit clause; Overview 2 tab removed)
+- On Negotiate, a colleague's lock sign on the paper (.rl-cp-lock) wears the contract design's typeface (Times New Roman under Formal legal) instead of the product's own face. Seen while re-pointing negotiate-design-verify; already so before this change.
+- js/mobile.js still maps a room tab key 'ov2' to the phone's Key terms tab (M_TAB_FOR_ROOM); harmless now the tab is gone, left as is.

@@ -185,13 +185,14 @@ describe('f451 (4) — it spends nothing, and it is one reading', () => {
 
 describe('f451 (5) — the tab, and what it did not disturb', () => {
   /* RE-POINTED 7 Oct 2026: Overview 2 (owner-instructed, work order O-36)
-     sits right after the Overview, so Where we are is third. */
-  test('Where we are is in ROOM_TABS, right after the two Overviews', () => {
+     sat right after the Overview; it went on 9 Oct 2026 (owner-asked), so
+     Where we are is second again. */
+  test('Where we are is in ROOM_TABS, right after the Overview', () => {
     const win = world();
     const keys = win.ROOM_TABS.map(t => t[0]);
     assert.equal(keys[0], 'terms', 'the Overview still leads, and roomOpenOnTerms with it');
-    assert.equal(keys[1], 'ov2');
-    assert.equal(keys[2], 'stands');
+    assert.equal(keys[1], 'stands');
+    assert.ok(!keys.includes('ov2'), 'Overview 2 is gone');
   });
 
   test('its pane is a SLOT, painted on arrival rather than built with the room', () => {

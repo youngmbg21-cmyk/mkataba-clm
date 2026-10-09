@@ -1,33 +1,31 @@
-/* Chromium verification: NO PEN ON THE PAPER — CLICK, TYPE, SAVE (Young said
-   "go", 9 Oct 2026 — the Paper and Counter review, changes 3 and 5).
+/* Chromium verification: THE PAPER READS — EDIT CLAUSE OPENS THE EDIT ROOM
+   (Young, 9 Oct 2026: "you should not have the ability to edit a paper unless
+   you are in the edit room … there should be a button or door available to
+   bring you there"; he named it "Edit Clause"). Replaces click · type · save.
    ====================================================================
    On a real server, our seat and theirs:
-     1  Negotiate draws no pen on the paper, and its paper column takes no
-        colour of its own (change 3);
-     2  a click in a clause's wording puts the caret there and nothing else
-        changes — no outline, no Discard · Save, no lock;
-     3  the first keystroke: the dashed outline, Discard · Save at the clause's
-        top right, the clause lock taken; the words typed are marked as added;
-     4  Save files through the funnel: our draft on the record, NOT sent, the
-        lock let go, the box gone;
-     5  a clause a colleague holds does not open: its sign and "Ask for it"
-        stand where Save would be;
-     6  a highlight still offers Edit with Copilot (the full editor);
-     7  the Document tab is never edited: a Draft's blanks on the paper take no
-        typing, and a press on one goes to its box in the side panel's form;
-     8  THEIR page: click, type, Save — which asks "Why this change?";
+     1  Negotiate draws no pen on the paper, its column takes no colour of its
+        own; "Add a clause" still opens the editor on a new clause;
+     2  a click in a clause's wording opens nothing to type in, takes no lock;
+     3  "Edit clause" stands right of Focus, a press really reaches it, and it
+        opens the clause editor on the clause being read (the first, at rest);
+     4  scrolled down the paper, it opens the clause then at the top instead;
+     5  a highlight still offers Edit with Copilot (the full editor);
+     6  the Document tab is never edited: a Draft's blanks take no typing;
+     7  at 820px Edit clause opens the clause panel instead;
+     8  THEIR page: no pen, a click in their wording opens nothing, their
+        Edit at the top is the door;
      9  no page errors.
-   Gated on what each claim measures; waits ask for the state, bounded.
-   AT THE PARENT (6a709b6) 1 (the pen is drawn; the column is grey), 2, 3, 4,
-   7 and 8 fail: a press in the wording did nothing.
+   AT THE PARENT 2 and 8c fail (a click typed in place) and 3, 4 and 7 fail
+   (no Edit clause button).
 
-   Run: node test/chromium/click-type-save-verify.js */
+   Run: node test/chromium/edit-clause-door-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
 const { startHati, seedWorkspace, fixtureContract, FOLDER_A } = require('../helpers');
 
-const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'click-type-save');
+const OUT = process.env.HATI_SHOT_DIR || path.join(__dirname, 'shots', 'edit-clause-door');
 const EXEC = process.env.CHROMIUM_BIN
   || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
 
@@ -37,7 +35,12 @@ const ok = (name, good, detail) => {
   console.log(`${good ? 'PASS' : 'FAIL'}  ${name}${detail != null ? ' — ' + detail : ''}`);
 };
 const iso = n => new Date(Date.now() + n * 864e5).toISOString();
-const DOC = '1. Supply\nThe Supplier shall supply 5000 metric tonnes of raw milk.\n2. Price\nInvoices fall due within 45 days of receipt.\n3. Term\nThis Agreement runs for two years.';
+const FILL = ' Each party shall act in good faith, keep proper records and give the other reasonable notice of anything that may affect performance under this clause.';
+const DOC = '1. Supply\nThe Supplier shall supply 5000 metric tonnes of raw milk.' + FILL.repeat(4)
+  + '\n2. Price\nInvoices fall due within 45 days of receipt.' + FILL.repeat(4)
+  + '\n3. Term\nThis Agreement runs for two years.' + FILL.repeat(4)
+  + '\n4. Notices\nNotices go to the registered office.' + FILL.repeat(4)
+  + '\n5. Law\nThe laws of Kenya govern this Agreement.' + FILL.repeat(4);
 const until = async (page, fn, arg, ms = 8000) => { let v; const t0 = Date.now();
   while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(150); }
   return v; };
@@ -103,61 +106,56 @@ const endOf = (page, sel) => page.evaluate(sel => {
       await page.waitForTimeout(400);
     } else ok('1d it opens the clause editor on a new clause', false, 'no door');
 
-    /* ===== 2. A CLICK PUTS THE CARET THERE, NOTHING ELSE ===== */
+    /* ===== 2. A CLICK IN THE WORDING OPENS NOTHING ===== */
     const at = await endOf(page, sec(ids[1]));
     if (at) await page.mouse.click(at.x, at.y);
-    const s2 = await until(page, id => { const box = document.querySelector('.redline-page .rl-inline-box'); if (!box) return null;
-      const c = getContract('MK-CT1');
-      return { focus: document.activeElement === box, inClause: !!box.closest(`[data-nego-working="${id}"]`),
-        outline: box.closest('.rl-clause').classList.contains('rl-inline-typing'), acts: !!document.querySelector('.rl-inline-acts'),
-        lock: !!(c.locks && c.locks[id]) }; }, ids[1], 4000);
-    ok('2a a click in the wording puts the caret in that clause', !!s2 && s2.focus && s2.inClause, JSON.stringify(s2));
-    ok('2b before a keystroke: no outline, no Discard · Save, no lock', !!s2 && !s2.outline && !s2.acts && !s2.lock, JSON.stringify(s2));
-    await page.screenshot({ path: path.join(OUT, '2-caret.png') });
+    await page.waitForTimeout(500);
+    const s2 = await page.evaluate(id => { const c = getContract('MK-CT1');
+      return { box: !!document.querySelector('.redline-page .rl-inline-box, .redline-page .rl-paper [contenteditable="true"]'),
+        acts: !!document.querySelector('.rl-inline-acts'), lock: !!(c.locks && c.locks[id]),
+        editor: !!document.querySelector('#clause-editor') }; }, ids[1]);
+    ok('2 a click in the wording opens nothing to type in, takes no lock', !!at && !s2.box && !s2.acts && !s2.lock && !s2.editor, JSON.stringify(s2));
 
-    /* ===== 3. THE FIRST KEYSTROKE ===== */
-    if (s2) await page.keyboard.type(' Late payments carry interest');
-    const s3 = await until(page, id => { const box = document.querySelector('.redline-page .rl-inline-box'); if (!box) return null;
-      const sec = box.closest('.rl-clause'); const acts = sec.querySelector('.rl-clause-top .rl-inline-acts');
-      const ins = [...box.querySelectorAll('ins')].map(x => x.textContent).join('|');
-      if (!/Late payments/.test(ins)) return null;
-      const c = getContract('MK-CT1'); const me = currentUser();
-      return { outline: getComputedStyle(sec).outlineStyle, acts: acts ? acts.textContent.replace(/\s+/g, ' ').trim() : null, ins,
-        lock: !!(c.locks && c.locks[id] && String(c.locks[id].by.id) === String(me.id)) }; }, ids[1], 5000);
-    ok('3a the outline is dashed once you type', !!s3 && s3.outline === 'dashed', s3 && s3.outline);
-    ok('3b Discard · Save at the clause\'s top right', !!s3 && /Discard/.test(s3.acts || '') && /Save/.test(s3.acts || ''), s3 && s3.acts);
-    ok('3c the words typed are marked as added', !!s3 && /Late payments carry interest/.test(s3.ins), s3 && s3.ins);
-    ok('3d the clause lock is taken on the first keystroke', !!s3 && s3.lock);
-    await page.screenshot({ path: path.join(OUT, '3-typing.png') });
+    /* ===== 3. EDIT CLAUSE, RIGHT OF FOCUS ===== */
+    const s3 = await page.evaluate(() => {
+      const b = document.querySelector('.redline-page .rl-head [data-rl-edit-clause]');
+      const f = document.querySelector('.redline-page .rl-head .rl-focus-door');
+      if (!b || !f) return { b: !!b, f: !!f };
+      const r = b.getBoundingClientRect(), rf = f.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return { b: true, f: true, text: b.textContent.trim(), to: b.getAttribute('data-rl-edit-clause'), disabled: b.disabled,
+        right: r.left >= rf.right - 1 && Math.abs((r.top + r.height / 2) - (rf.top + rf.height / 2)) < 4,
+        painted: !!hit && (hit === b || b.contains(hit)) };
+    });
+    ok('3a "Edit clause" stands right of Focus, live, and a press reaches it',
+      !!s3.b && s3.text === 'Edit clause' && s3.to === 'editor' && !s3.disabled && s3.right && s3.painted, JSON.stringify(s3));
+    await page.screenshot({ path: path.join(OUT, '3-edit-clause.png') });
+    const want3 = await page.evaluate(() => rlClauseInView(document.querySelector('.redline-page')));
+    if (s3.b) await page.click('.redline-page .rl-head [data-rl-edit-clause]');
+    const got3 = await until(page, () => { const sel = document.querySelector('#clause-editor #ce-pick-sel'); return sel ? String(sel.value) : null; }, null, 5000);
+    ok('3b it opens the clause editor on the clause being read', !!want3 && got3 === want3, `${got3} vs ${want3}`);
+    await page.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
+    await until(page, () => !document.querySelector('#clause-editor'), null, 4000);
+    await until(page, () => !!document.querySelector('.redline-page .rl-paper [data-nego-working]'), null, 6000);
 
-    /* ===== 4. SAVE FILES THROUGH THE FUNNEL, NOTHING SENT ===== */
-    if (s3) await page.click('.rl-inline-acts [data-rl-inline="save"]');
-    const s4 = await until(page, id => { const c = getContract('MK-CT1');
-      const ch = (c.changes || []).find(x => x.authorSide === 'owner' && x.clauseId === id && x.status === 'pending');
-      if (!ch) return null;
-      return { newText: ch.newText, sent: !!ch.sentAt, box: !!document.querySelector('.redline-page .rl-inline-box'),
-        lock: !!(c.locks && c.locks[id]) }; }, ids[1], 6000);
-    ok('4a Save files our draft through the funnel', !!s4 && /Late payments carry interest/.test(s4.newText || ''), s4 && s4.newText);
-    ok('4b it is not sent', !!s4 && !s4.sent);
-    ok('4c the box is gone and the lock let go', !!s4 && !s4.box && !s4.lock, JSON.stringify(s4));
+    /* ===== 4. SCROLLED DOWN, IT OPENS THE CLAUSE AT THE TOP ===== */
+    const s4 = await page.evaluate(id => {
+      const sc = document.getElementById('nego-scroll-work'); const el = document.querySelector(`.redline-page .rl-paper [data-nego-working="${id}"]`);
+      if (!sc || !el) return null;
+      sc.scrollTo({ top: sc.scrollTop + el.getBoundingClientRect().top - sc.getBoundingClientRect().top + 4, behavior: 'instant' });
+      return true;
+    }, ids[ids.length - 2]) && await until(page, id => { const v = rlClauseInView(document.querySelector('.redline-page')); return v === id ? v : null; }, ids[ids.length - 2], 3000)
+      || await page.evaluate(() => rlClauseInView(document.querySelector('.redline-page')));
+    ok('4a scrolled down, the clause being read is that clause', s4 === ids[ids.length - 2], `${s4} vs ${ids[ids.length - 2]}`);
+    await page.click('.redline-page .rl-head [data-rl-edit-clause]');
+    const got4 = await until(page, () => { const sel = document.querySelector('#clause-editor #ce-pick-sel'); return sel ? String(sel.value) : null; }, null, 5000);
+    ok('4b and Edit clause opens it there', got4 === ids[ids.length - 2], `${got4}`);
+    await page.evaluate(() => { if (window.rlCloseClauseEditor) rlCloseClauseEditor(); });
+    await until(page, () => !document.querySelector('#clause-editor'), null, 4000);
     await page.keyboard.press('Escape').catch(() => {});
-    await page.evaluate(() => { if (window.closeContextPanel) try { closeContextPanel(); } catch (_) {} });
     await page.waitForTimeout(400);
 
-    /* ===== 5. A COLLEAGUE HOLDS THE CLAUSE ===== */
-    await page.evaluate(id => { const c = getContract('MK-CT1'); c.locks = c.locks || {};
-      c.locks[id] = { by: { id: 'u-rose', name: 'Rose Chebet' }, at: new Date().toISOString() }; renderRedline(); }, ids[2]);
-    await until(page, id => !!document.querySelector(`[data-nego-working="${id}"] .rl-cp-lock`), ids[2], 4000);
-    const at5 = await endOf(page, sec(ids[2]));
-    if (at5) await page.mouse.click(at5.x, at5.y);
-    await page.waitForTimeout(500);
-    const s5 = await page.evaluate(id => { const s = document.querySelector(`.redline-page .rl-paper [data-nego-working="${id}"]`);
-      return { box: !!s.querySelector('.rl-inline-box'), sign: (s.querySelector('.rl-clause-top .rl-cp-lock') || {}).textContent || '',
-        ask: !!s.querySelector('.rl-clause-top [data-rl-lock-ask]') }; }, ids[2]);
-    ok('5 a held clause does not open; its sign and "Ask for it" stand where Save would be', !s5.box && /Rose|RC/.test(s5.sign) && s5.ask, JSON.stringify(s5));
-    await page.evaluate(id => { const c = getContract('MK-CT1'); delete c.locks[id]; renderRedline(); }, ids[2]);
-
-    /* ===== 6. A HIGHLIGHT STILL OFFERS EDIT WITH COPILOT ===== */
+    /* ===== 5. A HIGHLIGHT STILL OFFERS EDIT WITH COPILOT ===== */
     const s6 = await page.evaluate(async id => {
       const s = document.querySelector(`.redline-page .rl-paper [data-nego-working="${id}"]`);
       const t = [...s.querySelectorAll('p, div')].map(e => e.firstChild).find(n => n && n.nodeType === 3 && n.data.length > 12);
@@ -169,11 +167,11 @@ const endOf = (page, sel) => page.evaluate(sel => {
       const m = document.querySelector('.nego-selmenu');
       return m ? m.textContent.replace(/\s+/g, ' ').trim() : null;
     }, ids[0]);
-    ok('6 a highlight still offers Edit with Copilot', /Edit with Copilot/i.test(s6 || ''), s6);
+    ok('5 a highlight still offers Edit with Copilot', /Edit with Copilot/i.test(s6 || ''), s6);
     await page.keyboard.press('Escape').catch(() => {});
     await page.evaluate(() => getSelection().removeAllRanges());
 
-    /* ===== 7. THE DOCUMENT TAB IS NEVER EDITED ===== */
+    /* ===== 6. THE DOCUMENT TAB IS NEVER EDITED ===== */
     await page.evaluate(() => { openWorkspace('MK-CT2'); });
     await page.waitForTimeout(1200);
     await page.evaluate(() => roomGoTab(getContract('MK-CT2'), 'document'));
@@ -181,28 +179,33 @@ const endOf = (page, sel) => page.evaluate(sel => {
       const boxes = [...cv.querySelectorAll('input, textarea')]; if (!boxes.length) return null;
       const bg = getComputedStyle(cv.closest('.pg-sheet').parentElement).backgroundColor;
       return { n: boxes.length, ro: boxes.every(b => b.readOnly), key: boxes[0].getAttribute('data-field') || boxes[0].getAttribute('data-sync'), bg }; }, null, 8000);
-    ok('7a a Draft\'s blanks on the Document tab paper take no typing', !!s7 && s7.ro, JSON.stringify(s7));
+    ok('6a a Draft\'s blanks on the Document tab paper take no typing', !!s7 && s7.ro, JSON.stringify(s7));
     if (s7) {
       await page.evaluate(() => { const b = document.querySelector('#doc-canvas input'); b.scrollIntoView({ block: 'center' }); });
       const r = await page.evaluate(() => { const b = document.querySelector('#doc-canvas input').getBoundingClientRect(); return { x: b.left + 4, y: b.top + b.height / 2 }; });
       await page.mouse.click(r.x, r.y);
       const s7b = await until(page, () => { const a = document.activeElement; return a && a.closest && a.closest('#tplform-section') ? (a.getAttribute('data-blankf') || a.getAttribute('data-tplf') || a.tagName) : null; }, null, 3000);
-      ok('7b a press on one goes to its box in the side panel\'s form', !!s7b, s7b);
-    } else ok('7b a press on one goes to its box in the side panel\'s form', false, 'no blanks');
+      ok('6b a press on one goes to its box in the side panel\'s form', !!s7b, s7b);
+    } else ok('6b a press on one goes to its box in the side panel\'s form', false, 'no blanks');
     await page.screenshot({ path: path.join(OUT, '7-document.png') });
 
-    /* ===== 7c. A TABLET (820px): THE PANEL'S "EDIT WITH COPILOT" IS GREYED WITH ITS REASON (review item) ===== */
+    /* ===== 7. A TABLET (820px) ===== */
     await page.setViewportSize({ width: 820, height: 1000 });
     await page.evaluate(() => openRedlineWorkbench('MK-CT1'));
     await until(page, () => !!document.querySelector('.redline-page .rl-paper [data-nego-working]'), null, 8000);
     const s7c = await until(page, id => { if (window.rlCpSetShown) rlCpSetShown(document.querySelector('.redline-page') || document, id);
       const b = document.querySelector(`.rl-cp-src[data-rl-cp-for="${id}"] .rl-cp-act-ai`);
       return b ? { disabled: b.disabled, title: b.getAttribute('title') || '', door: b.hasAttribute('data-nego-ai-clause') } : null; }, ids[0], 5000);
-    ok('7c at 820px the clause panel\'s Edit with Copilot is greyed with the reason, not offered then refused',
+    ok('7a at 820px the clause panel\'s Edit with Copilot is greyed with the reason, not offered then refused',
       !!s7c && s7c.disabled && /too narrow/i.test(s7c.title) && !s7c.door, JSON.stringify(s7c));
+    await page.evaluate(() => { if (window.rlCpSetShown) rlCpSetShown(document.querySelector('.redline-page') || document, null); });
+    const to7 = await page.evaluate(() => { const b = document.querySelector('.redline-page [data-rl-edit-clause]'); return b ? b.getAttribute('data-rl-edit-clause') : null; });
+    if (to7) await page.evaluate(() => document.querySelector('.redline-page [data-rl-edit-clause]').click());
+    const panel7 = await until(page, () => !!(window.rlCpOpenId && rlCpOpenId()) && !document.querySelector('#clause-editor'), null, 4000);
+    ok('7b at 820px Edit clause opens the clause panel instead', to7 === 'panel' && !!panel7, `${to7} ${panel7}`);
     await page.setViewportSize({ width: 1440, height: 900 });
 
-    /* ===== 8. THEIR PAGE: CLICK, TYPE, SAVE — "WHY THIS CHANGE?" ===== */
+    /* ===== 8. THEIR PAGE: THE PAPER READS; EDIT AT THE TOP IS THE DOOR ===== */
     const tok = await page.evaluate(async () => {
       const full = await api('contracts/MK-CT1');
       const payload = buildSharePayload(full, await sha256(canonicalDoc(full)), null, { purpose: 'negotiate' });
@@ -224,19 +227,12 @@ const endOf = (page, sel) => page.evaluate(sel => {
       await cp.evaluate(s => document.querySelector(s).scrollIntoView({ block: 'center' }), sel3);
       const at8 = await endOf(cp, sel3);
       if (at8) await cp.mouse.click(at8.x, at8.y);
-      const box8 = await until(cp, () => document.activeElement && document.activeElement.classList.contains('rl-inline-box'), null, 4000);
-      ok('8c a click in their wording puts the caret there', !!box8);
-      if (box8) {
-        await cp.keyboard.type(', renewable by agreement');
-        await until(cp, () => !!document.querySelector('.rl-inline-acts [data-rl-inline="save"]'), null, 3000);
-        await cp.click('.rl-inline-acts [data-rl-inline="save"]');
-        const ask = await until(cp, () => { const m = (document.body.innerText || '').match(/Why this change[^\n]*/); return m ? m[0] : null; }, null, 5000);
-        ok('8d their Save asks "Why this change?"', !!ask, ask);
-        const held = await cp.evaluate(() => { const side = document.querySelector('.redline-page #rl-side'); const send = document.querySelector('.redline-page .rl-unsent-go');
-          return (side ? side.innerText.replace(/\s+/g, ' ') : '') + ' || ' + (send ? send.textContent.trim() : ''); });
-        ok('8e their change is held on their page until they send', /renewable by agreement/.test(held) && /not sent/i.test(held), held.slice(0, 200));
-        await cp.screenshot({ path: path.join(OUT, '8-their-save.png') });
-      }
+      await cp.waitForTimeout(500);
+      const box8 = await cp.evaluate(() => !!document.querySelector('.redline-page .rl-inline-box, .redline-page .rl-paper [contenteditable="true"]'));
+      ok('8c a click in their wording opens nothing to type in', !!at8 && !box8);
+      const edit8 = await cp.evaluate(() => { const b = document.getElementById('pt-edit'); return b ? b.textContent.trim() : null; });
+      ok('8d their Edit at the top is the door', /Edit/.test(edit8 || ''), edit8);
+      await cp.screenshot({ path: path.join(OUT, '8-their-page.png') });
     }
     ok('9 no page errors', errs.length === 0, errs.join(' | '));
   } catch (e) {

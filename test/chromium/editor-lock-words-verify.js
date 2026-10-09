@@ -50,19 +50,18 @@ function serve(){ return new Promise(res => { const s = http.createServer((q, re
     });
     ck('the stage has an ask on a clause', !!staged.id, staged.id);
     const sel = `.redline-page .nego-clause[data-clause="${staged.clauseId}"]`;
-    /* RE-POINTED 9 Oct 2026 (Young, change 5: no pen on the paper — click,
-       type, save): one press in the marked clause's wording puts the caret
-       there, the marks painted into the box by the editor's own painter; the
-       row's Edit is the door onto the full editor. */
+    /* RE-POINTED 9 Oct 2026, TWICE (Young: no pen on the paper, then "you
+       should not have the ability to edit a paper unless you are in the edit
+       room"): a press in the marked clause's wording opens nothing; the row's
+       Edit is the door onto the editor. */
     const pt = await p.evaluate(s => { const sec = document.querySelector(s);
       const t = [...sec.querySelectorAll('p, li, div')].map(e => [...e.childNodes].find(n => n.nodeType === 3 && n.data.trim().length > 8)).find(Boolean);
       if (!t) return null; const r = document.createRange(); r.setStart(t, 2); r.setEnd(t, 3); const b = r.getBoundingClientRect();
       return { x: b.left + 1, y: b.top + b.height / 2 }; }, sel);
     if (pt) await p.mouse.click(pt.x, pt.y);
-    const inline = await until(s => { const b = document.querySelector(s + ' .rl-inline-box');
-      return !!(b && document.activeElement === b && b.querySelector('[data-ce-mark]')); }, sel, 4000);
-    ck('1a one press in the marked clause types in place, with the marks painted', inline);
-    await p.keyboard.press('Escape');
+    await p.waitForTimeout(400);
+    const inline = await p.evaluate(s => !document.querySelector(s + ' .rl-inline-box'), sel);
+    ck('1a a press in the marked clause\'s wording opens nothing to type in', !!pt && inline);
     const pencil = await until(id => !!document.querySelector(`.redline-page [data-rl-cp-editor-row="${id}"]`), staged.clauseId);
     if (pencil){
       await p.click(`.redline-page [data-rl-cp-editor-row="${staged.clauseId}"]`, { force: true });

@@ -42,11 +42,13 @@ function load(){
 const base = over => Object.assign({ id: 'MK-1', name: 'Supply', counterparty: 'Juno', status: 'Signed', signedAt: dayIn(-210),
   fields: { effDate: dayIn(-200) }, expiry: dayIn(500), metadata: { renewalType: 'auto-renew', noticePeriodDays: 90 }, obligations: [] }, over || {});
 
-test('f558 (1) the tab sits right after the Overview and is painted on arrival', () => {
-  const at = CT.indexOf("['terms','tab_overview'],"), ov2 = CT.indexOf("['ov2','tab_overview_2'],"), st = CT.indexOf("['stands','tab_where_we_are'],");
-  assert.ok(at > -1 && ov2 > at && st > ov2, 'terms, then ov2, then stands');
-  assert.match(CT, /if\(_wsTab==='ov2'\)\{ if\(window\.paintOverview2\) try\{ paintOverview2\(c\); \}/);
-  assert.match(CT, /<div data-ws-pane="ov2"/);
+/* RE-POINTED 9 Oct 2026: the owner asked for the Overview 2 TAB to go and the
+   Overview to stay. The module stays loaded for its readings. */
+test('f558 (1) the tab is gone, the Overview stays, the module still loads', () => {
+  assert.ok(CT.indexOf("['terms','tab_overview'],") > -1, 'the Overview stays');
+  assert.equal(CT.indexOf("['ov2','tab_overview_2'],"), -1, 'no Overview 2 tab');
+  assert.doesNotMatch(CT, /_wsTab==='ov2'/);
+  assert.doesNotMatch(CT, /<div data-ws-pane="ov2"/);
   assert.match(read('js/app.js'), /import '\.\/views\/overview2\.js';/);
 });
 

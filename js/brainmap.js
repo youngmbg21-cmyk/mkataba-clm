@@ -181,8 +181,10 @@ const BRAIN_PARTS = [
   ['asks', 'askOpen', 'sign', 1],
   /* the work order of 7 Oct 2026: the Time Machine on Overview 2, the
      obligations review desk, and the board charts drawn at their real size */
-  ['timemachine', 'paintOverview2', 'see', 1],
   ['obdesk', 'obReviewTally', 'time', 1],
+  /* Overview 2's TAB went on 9 Oct 2026 (owner-asked); its file stays for the
+     dated windows Copilot reads on arrival. `timemachine` is retired. */
+  ['datedwin', 'runDatedWindows', 'ai', 1],
   ['chartsize', 'hbFitMeasure', 'see', 1],
   /* Copilot prepares, you press (8 Oct 2026): the ask box reads @ people and
      # contracts with no model and answers with a card; one press runs the
@@ -226,7 +228,7 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'papermark'], ['model'], ['blanks'], ['overview', 'constellation', 'timemachine', 'bell']] },
+  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'datedwin', 'papermark'], ['model'], ['blanks'], ['overview', 'constellation', 'bell']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
@@ -261,13 +263,13 @@ const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
   req: ['request', 'kinds', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
-  own: ['upload', 'book', 'draftcard', 'overview', 'constellation', 'timemachine', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'here', 'follow',
+  own: ['upload', 'book', 'draftcard', 'overview', 'constellation', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'cellfold',
     'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'outbyhand', 'amend', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
-  hati: ['docx', 'clauses', 'putguard', 'db', 'triage', 'arrivalowed', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
+  hati: ['docx', 'clauses', 'putguard', 'db', 'triage', 'arrivalowed', 'datedwin', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
     'mailkey', 'respond', 'audit', 'apply', 'wordback', 'paperdrop', 'stale', 'webhook', 'answeronpaper', 'readiness', 'signgate', 'approvals', 'paperjobs', 'rulestep', 'seal',
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
