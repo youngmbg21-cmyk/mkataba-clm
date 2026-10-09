@@ -11551,6 +11551,17 @@
   .tpl-band [data-tpl-head="list"]{margin-bottom:var(--s-2);}
   .tpl-fb .tpl-fb-q .reg-f-l{font-size:var(--t-meta);color:var(--color-neutral-600);}
   .tpl-fb .tpl-fb-q .ik-search{width:240px;}
+  /* Our standards (SAP benchmark, batch 2): the same white band as the book,
+     this page's three tabs on each card's top, the offer an info strip. */
+  .sd-ins.sap-page > .sap-band.sd-band{flex:none;margin-top:0;padding-top:var(--page-pad-t);}
+  .sd-band .paper-tabs{border-bottom:0;}
+  .sd-subtabs{flex:none;padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);}
+  .sd-ins .ins-offer.sd-info{margin:var(--s-3) var(--s-4) 0;border:1px solid color-mix(in srgb,var(--color-accent) 30%,transparent);
+    background:color-mix(in srgb,var(--color-accent) 7%,var(--color-surface));border-radius:var(--radius);display:flex;align-items:center;gap:var(--s-2);flex-wrap:nowrap;}
+  .sd-ins .ins-offer.sd-info > span:not(.sp){flex:1 1 auto;min-width:0;}
+  .sd-ins .ins-offer.sd-info > .sp{display:none;}
+  .sd-ins .ins-offer.sd-info > svg{flex:none;color:var(--accent-ink);}
+  .sd-ins .ins-card > .ins-cardhead{border-bottom:1px solid var(--color-divider);}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════

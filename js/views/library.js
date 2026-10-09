@@ -3053,6 +3053,9 @@ function renderPlaybookPage(){
 
   if(INS){
     _pbHead=sdHeads(sd, canEditLib);
+    /* THE FIGURES MOVE INTO THE PAGE'S WHITE BAND (SAP benchmark, batch 2),
+       over the tabs, as the book's do — the shared head keeps only the act. */
+    _pbHead.facts={};
     document.getElementById('content').innerHTML=sdPageHtml(tabRow, tab, sd);
     sdWire(sd, canEditLib);
   } else {
@@ -3468,24 +3471,17 @@ function sdVerdictWord(v){
   return { cls:'ins-soon', word:i18t(v.status==='missing'?'sd_missing':'sd_departs') };
 }
 function sdClausePanelOpts(cl, d, mayEdit){
-  const f=sdFirm(cl), fbs=sdFbShort(cl);
+  const f=sdFirm(cl);
   const fb=(typeof stdFallbackOf==='function')?stdFallbackOf(cl):null;
   const off=stdDepartsFrom(cl.category, d.book);
-  const legal=off.filter(x=>stdNeedsLegal(x.v)).length;
-  const tone=!d.book.length?'gray':!off.length?'green':legal?'ruby':'amber';
-  const status=!d.book.length?esc(i18t('sd_st_unchecked'))
-    :off.length?esc(i18tn('sd_st_depart',off.length,{n:off.length}))+(legal?` <span class="x">·</span> <span class="ins-legal">${esc(i18tn('sd_st_legal',legal,{n:legal}))}</span>`:'')
-    :esc(i18t('sd_st_meets'));
-  const lim=sdBaseLimit(cl.category);
-  let body=insKvHtml([
-    { k:'firm', label:i18t('sd_col_firm'), v:esc(f.word) },
-    { k:'limit', label:i18t('sd_f_limit'), v:lim?esc(sdLimitWords(lim)):'' },
-    { k:'fallback', label:i18t('sd_col_fallback'), v:esc(fbs.text) },
-    { k:'departing', label:i18t('sd_col_departing'), v:d.book.length?esc(i18t('sd_f_departing',{n:off.length,of:d.book.length})):'' } ]);
+  /* THE DRAWING'S PANEL (SAP benchmark, batch 2): how firm is the pill
+     beside the name; the four-fact grid and the Guidance section went — the
+     list beside it already prints how firm, the fallback and who departs,
+     and the limit is in the sentence under the name. */
+  let body='';
   const pref=String(cl.preferred||'').trim();
   body+=insSecHtml(i18t('std_ask_for'),'',pref?`<blockquote class="ins-q">${esc(pref)}</blockquote>`:`<p class="ins-note">${esc(i18t('sd_no_wording'))}</p>`,'sd-ask');
   body+=insSecHtml(i18t('std_go_down_to'),'',fb?`<blockquote class="ins-q">${esc(fb.text)}</blockquote>`:`<p class="ins-p">${esc(i18t('std_no_fallback_note'))}</p>`,'sd-fb');
-  if(String(cl.guidance||'').trim()) body+=insSecHtml(i18t('sd_sec_guidance'),'',`<p class="ins-p">${esc(cl.guidance)}</p>`,'sd-guide');
   const listed=off.slice().sort((a,b)=>(stdNeedsLegal(b.v)-stdNeedsLegal(a.v))||(stdOpenToChange(b.c)-stdOpenToChange(a.c))||sdIdCmp(b.c,a.c));
   const shown=listed.slice(0,SD_WHERE_MAX);
   const where=!d.book.length?`<p class="ins-note">${esc(i18t('sd_where_unchecked'))}</p>`
@@ -3500,7 +3496,7 @@ function sdClausePanelOpts(cl, d, mayEdit){
   if(Array.isArray(cl.learnTrail)&&cl.learnTrail.length)
     body+=insSecHtml(i18t('sd_sec_changes'),'',`<ul class="sd-trail">${cl.learnTrail.map(t=>`<li><span class="when">${esc(window.fmtDocDate?fmtDocDate(String(t.at).slice(0,10)):String(t.at))}</span><span>${esc(t.text)}</span></li>`).join('')}</ul>`,'sd-changes');
   const acts=[];
-  if(mayEdit) acts.push({ k:'edit', kind:'accent', label:i18t('std_edit_wording'), icon:'pencil',
+  if(mayEdit) acts.push({ k:'edit', kind:'accent', label:i18t('std_edit_wording'),
     run:()=>{ const i=clauseLibrary().findIndex(x=>String(x.id)===String(cl.id)); if(i>=0) openClauseEditor(i); } });
   /* A PROXY ONTO THE TAB THAT ALREADY EXISTS, never a second door: the
      position lives on the Negotiation playbook tab — this lands there with the
@@ -3511,7 +3507,7 @@ function sdClausePanelOpts(cl, d, mayEdit){
   return {
     item:{ id:String(cl.id) }, host:'sd-panel-clauses',
     head:{ eyebrow:`${esc(cl.category||'')} · ${esc(i18t('lib_clause_library'))}`, title:cl.name||cl.category||'',
-      sub:esc([f.sentence, sdLegalLine(cl.category)].filter(Boolean).join(' ')), tone, status, acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
+      sub:esc([f.sentence, sdLegalLine(cl.category)].filter(Boolean).join(' ')), statusBeside:true, status:esc(f.word), statusShort:esc(f.word), tone:'gray', acts, menuHtml:menu, moreAria:i18t('reg_more_actions') },
     acts, body,
     onMenu:act=>{ if(act==='remove'){ const i=clauseLibrary().findIndex(x=>String(x.id)===String(cl.id)); if(i>=0) stdRemoveClause(i); } },
   };
@@ -3723,31 +3719,48 @@ function sdGoDev(o){
 function sdPageHtml(tabRow, tab, d){
   const offer=(!_sdOfferGone&&typeof stdDraftWorthOffering==='function'&&stdDraftWorthOffering())
     ? (()=>{ const n=(typeof stdSignedBook==='function')?stdSignedBook().length:0;
-        return `<div class="ins-offer" data-sd-offer><span><b>${esc(i18t('std_draft_still_default'))}.</b> ${esc(i18tn('sd_offer_sub',n,{n}))}</span><span class="sp"></span>
-          <button type="button" class="ui-btn ui-btn-sm" data-sd-draft-go title="${esc(i18tn('std_draft_go',n,{n}))}">${esc(i18t('sd_offer_go'))}</button>
-          <button type="button" class="ui-link" data-sd-draft-no>${esc(i18t('std_draft_by_hand'))}</button></div>`; })()
+        return `<div class="ins-offer sd-info" data-sd-offer>${typeof icon==='function'?icon('info','w-4 h-4'):''}<span><b>${esc(i18t('std_draft_still_default'))}.</b> ${esc(i18tn('sd_offer_sub',n,{n}))}</span><span class="sp"></span>
+          <button type="button" class="ui-link" data-sd-draft-go title="${esc(i18tn('std_draft_go',n,{n}))}">${esc(i18t('sd_offer_go'))}</button>
+          <button type="button" class="ui-btn ui-btn-plain ui-btn-icon" data-sd-draft-no title="${esc(i18t('std_draft_by_hand'))}" aria-label="${esc(i18t('std_draft_by_hand'))}">${typeof icon==='function'?icon('x','w-3.5 h-3.5'):'×'}</button></div>`; })()
     : '';
   const f=sdDevFilters();
   const rows=sdDevRows(d, f);
-  return `<div class="view-enter ins-page sd-ins" data-ins-page="playbook" data-ins="1">
-    ${tabRow}
+  /* ---- THE SAP WAY (SAP benchmark, batch 2 — the owner's "go", 9 Oct 2026;
+     the drawing is the target) ---- One white band: the three figures and
+     Our paper's own tab row. This page's three tabs are the CARD's own row,
+     drawn in each tab's card with that tab lit (the one handler flips them
+     all). The offer is an info strip whose way forward is a link; the
+     sentences under the lists went. */
+  const subTabs=`<div class="reg-views sd-subtabs" role="tablist">${PB_PAGE_TABS.map(k=>
+    `<button type="button" class="reg-vtab${k===tab?' on':''}${!d.n[k]&&k!==tab?' is-zero':''}" data-pb-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t(PB_TAB_LABEL[k]))}<span class="n">${d.n[k]}</span></button>`).join('')}</div>`;
+  const fig=(label, value, quiet)=>`<div class="tpl-gl"><p class="tpl-gl-l">${esc(label)}</p><p class="tpl-gl-v"${quiet?' style="color:var(--color-neutral-600);font-weight:var(--w-body)"':''}>${esc(value)}</p></div>`;
+  const band=`<div class="sap-band tpl-band sd-band"><div class="tpl-glance">
+      ${fig(i18t('sd_g_standards'), String(d.lib.length))}
+      ${fig(i18t('sd_g_required'), String(d.required))}
+      ${fig(i18t('sd_g_checked'), d.book.length?String(d.book.length):i18t('sd_g_none_yet'), !d.book.length)}
+    </div>${paperTabsHtml('standards', true)}</div>`;
+  return `<div class="view-enter ins-page sd-ins sap-page" data-ins-page="playbook" data-ins="1">
+    ${band}
     <div class="ins-body" data-pb-sec="clauses"${tab==='clauses'?'':' hidden'}>
       <section class="ins-card" aria-label="${esc(i18t('lib_clause_library'))}">
+        ${subTabs}
         ${offer}
+        <div class="ins-cardhead"><h2 class="ins-cardhead-t">${esc(i18t('lib_clause_library'))} <span class="ins-cardhead-n">(${d.lib.length})</span></h2><span style="flex:1"></span>
+          <label class="ik-search">${typeof icon==='function'?icon('search','w-3.5 h-3.5'):''}<input type="search" data-sd-q placeholder="${esc(i18t('sd_search_ph'))}" aria-label="${esc(i18t('sd_search_ph'))}"></label></div>
         <div class="ins-scroll" id="sd-scroll-clauses">${sdClauseListHtml(d)}</div>
-        <div class="ins-foot"><span>${esc(i18t('lib_clause_library_sub'))}</span></div>
       </section>
       <aside id="sd-panel-clauses" class="ins-panel" aria-label="${esc(i18t('sd_panel_clause'))}"></aside>
     </div>
     <div class="ins-body" data-pb-sec="playbook"${tab==='playbook'?'':' hidden'}>
       <section class="ins-card" aria-label="${esc(i18t('lib_negotiation_playbook'))}">
+        ${subTabs}
         <div class="ins-scroll" id="sd-scroll-books">${sdBookListHtml(d)}</div>
-        <div class="ins-foot"><span>${esc(i18t('sd_foot_books'))}</span></div>
       </section>
       <aside id="sd-panel-books" class="ins-panel" aria-label="${esc(i18t('sd_panel_book'))}"></aside>
     </div>
     <div class="ins-body" data-pb-sec="deviations"${tab==='deviations'?'':' hidden'}>
       <section class="ins-card" aria-label="${esc(i18t('lib_portfolio_deviations'))}">
+        ${subTabs}
         ${d.off.length?`<div class="ins-bar reg-filterbar" data-sd-bar>${sdDevChipsHtml(d, f)}</div>`:''}
         <div class="ins-scroll" id="sd-scroll-dev">${sdDevListHtml(d, rows)}</div>
         <div class="ins-foot"><span data-sd-foot>${esc(i18t('sd_showing',{n:rows.length,of:d.off.length}))}</span></div>
@@ -3782,8 +3795,22 @@ function sdWireDevControls(sec){
 /* The list's hands and its panel, per tab: the ids a tab lists, how one row
    is named, what its panel says and what "open" means for it — the editor
    for a standard or a book, the contract for a departure. */
+/* THE CARD HEAD'S SEARCH (SAP benchmark, batch 2): rows hidden in place by
+   the standard's name and topic, never redrawn — the panel and the reader's
+   place stay. Bound once per element. */
+function sdWireSearch(){
+  const box=document.querySelector('.sd-ins [data-sd-q]');
+  if(!box||box.dataset.sdQBound) return;
+  box.dataset.sdQBound='1';
+  box.addEventListener('input',()=>{
+    const q=String(box.value||'').trim().toLowerCase();
+    document.querySelectorAll('.sd-ins tr[data-sd-row]').forEach(tr=>{
+      tr.hidden=!!q && !tr.textContent.toLowerCase().includes(q); });
+  });
+}
 function sdWireList(tab){
   const d=_sdData; if(!d) return;
+  if(tab==='clauses') sdWireSearch();
   const mayEdit=_sdMayEdit;
   const spec={
     clauses:{ seat:'std:clauses', attr:'data-sd-row', ids:()=>d.lib.map(cl=>String(cl.id)),
