@@ -99,8 +99,10 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
     const row = host.querySelector('.rq-kinds[role="tablist"]');
     assert.ok(row, 'the one tab row');
     const tabs = [...row.querySelectorAll('[role="tab"][data-rq-kind]')];
-    assert.deepEqual(tabs.map(b => b.getAttribute('data-rq-kind')), ['contracts', 'contracts', 'advice', 'contracts', 'contracts']);
-    assert.deepEqual(tabs.map(b => b.getAttribute('data-ik-view')), ['open', 'mine', null, 'fin', 'all']);
+    /* the team's Advice tab is a cut of the one list since the owner's "build
+       them the SAP way" (9 Oct 2026): every tab is a view of the list */
+    assert.deepEqual(tabs.map(b => b.getAttribute('data-rq-kind')), ['contracts', 'contracts', 'contracts', 'contracts', 'contracts']);
+    assert.deepEqual(tabs.map(b => b.getAttribute('data-ik-view')), ['open', 'mine', 'advice', 'fin', 'all']);
     assert.deepEqual(tabs.map(b => b.classList.contains('on')), [false, false, true, false, false]);
     assert.deepEqual(tabs.map(b => b.getAttribute('aria-selected')), ['false', 'false', 'true', 'false', 'false']);
     assert.match(tabs[0].textContent, /^Open/);
@@ -124,7 +126,11 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
     assert.ok(fn.indexOf("rqKindTabsHtml('advice')") < fn.indexOf('board-cols'), 'above the board');
     assert.match(fn, /rqKindTabsWire\(/);
   });
-  test('2e a press on the other kind is a page change; on the lit one, nothing', () => {
+  /* RE-POINTED 9 Oct 2026 (the owner: build it the SAP way): for the team the
+     Advice tab is a cut of the Requests list, so from the advice board it
+     lands on Requests with the Advice cut chosen; on Requests itself every
+     tab is the page's own business. */
+  test('2e on Requests a tab is the page\'s own; from the advice board, Advice lands on the Advice cut', () => {
     const win = rqWorld();
     const went = [];
     win.setView = v => went.push(v);
@@ -134,8 +140,12 @@ describe('f495 (2) the kind is the page\'s first tab row', () => {
     win.rqKindTabsWire(host);
     host.querySelector('[data-rq-kind="contracts"]').click();
     assert.deepEqual(went, [], 'a queue tab on the queue\'s own page is the page\'s own business');
-    host.querySelector('[data-rq-kind="advice"]').click();
-    assert.deepEqual(went, ['advice'], 'Advice is the Advice desk view');
+    host.querySelector('[data-ik-view="advice"]').click();
+    assert.deepEqual(went, [], 'and so is Advice');
+    win.state.view = 'advice';
+    host.querySelector('[data-ik-view="advice"]').click();
+    assert.deepEqual(went, ['intake'], 'from the board, it goes to Requests');
+    assert.equal(win.ikFilters().view, 'advice', 'with the Advice cut chosen');
   });
 });
 

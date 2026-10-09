@@ -182,20 +182,25 @@ describe('f458 (7) — the calendar keeps its height', () => {
      the month. The rule this pins is unchanged: the agenda cannot move the
      month. calendar-holds-still-verify measures it in a browser. */
   test('the agenda is a column of ONE width beside the month, capped at its height', () => {
-    assert.match(CAL, /\.cal-stack > \.cal-panel\{flex:0 0 var\(--cal-side-w\);min-height:0;max-height:100%\}/,
-      'a fixed width that does not shrink, and never taller than the month beside it');
+    assert.match(CAL, /\.cal-side\{flex:0 0 var\(--cal-side-w\);contain:size;/,
+      'a fixed width that adds no height of its own to the row');
+    assert.match(CAL, /\.cal-side > \.cal-panel\{flex:0 1 auto;min-height:0;max-height:100%\}/,
+      'and the card is never taller than the month beside it');
     assert.match(CAL, /--cal-side-w:clamp\(360px,32vw,460px\)/, 'and the number is written once');
-    assert.match(CAL, /\.cal-stack:not\(\.is-wide\)\{flex-direction:row;align-items:flex-start/,
-      'side by side, the agenda as tall as its rows');
+    assert.match(CAL, /\.cal-stack:not\(\.is-wide\)\{flex-direction:row;align-items:stretch/,
+      'side by side, the row the month\'s height');
   });
 
   test('the agenda still scrolls inside it, so nothing is hidden by the cap', () => {
     assert.match(CAL, /\.cal-upn-list\{flex:1;min-height:0;overflow-y:auto\}/);
   });
 
-  test('the month keeps its floor, so a short screen squeezes the panel first', () => {
-    /* the month sits in its own column (.cal-month) since 9 Oct 2026 */
-    assert.match(CAL, /\.cal-month > \.cal-grid\{flex:1 1 auto;min-height:440px/);
+  /* RE-POINTED 9 Oct 2026 (the owner: build it the SAP way): the month is six
+     rows of ONE fixed day height, as drawn — it no longer stretches to the
+     page, and it still never changes height. */
+  test('the month is six rows of one fixed day height', () => {
+    assert.match(CAL, /\.cal-month \.cal-weeks\{flex:none;grid-template-rows:repeat\(6,var\(--cal-day-h\)\)\}/);
+    assert.match(CAL, /--cal-day-h:76px/, 'and the number is written once');
   });
 
   test('and below 1024 the panel takes its content back, because the PAGE scrolls', () => {
@@ -203,7 +208,7 @@ describe('f458 (7) — the calendar keeps its height', () => {
        scroll. Stacked, the page does scroll, and a fixed panel would put a
        second scroller inside it — the trap that block's own note names. */
     const narrow = CAL.slice(CAL.indexOf('@media (max-width:1023px)'), CAL.indexOf('@media print'));
-    assert.match(narrow, /\.cal-stack > \.cal-panel\{flex:none;max-height:none\}/);
+    assert.match(narrow, /\.cal-side > \.cal-panel\{flex:none;max-height:none\}/);
     assert.match(narrow, /\.cal-stack:not\(\.is-wide\)\{flex-direction:column/, 'and stacks under the month again');
   });
 });

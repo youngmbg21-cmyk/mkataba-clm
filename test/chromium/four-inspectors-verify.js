@@ -254,11 +254,14 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
        the target): one flat list, no heading row per pile, still in the
        piles' order — read off each row's own pile. */
     const ik = await page.evaluate(() => ({ ins: !!document.querySelector('.ik-ins'),
-      groups: [...new Set([...document.querySelectorAll('.ik-lt tbody [data-ik-row]')].map(r => intakeStage((_intakeState.list || []).find(x => x.id === r.getAttribute('data-ik-row')))))],
+      /* RE-POINTED AGAIN 9 Oct 2026 (the owner: build it the SAP way): one
+         flat list, NEWEST FIRST as drawn — read off each row's own date */
+      groups: (() => { const at = [...document.querySelectorAll('.ik-lt tbody [data-ik-row]')].map(r => ((_intakeState.list || []).find(x => x.id === r.getAttribute('data-ik-row')) || {}).createdAt || '');
+        return at.length > 1 && at.every((v, i) => !i || at[i - 1] >= v) ? ['newest-first'] : at; })(),
       head: (document.getElementById('page-head-facts') || {}).textContent || '',
       ask: !!document.querySelector('#page-head-acts #ik-new') }));
-    ok('4a the queue is a list and a panel, grouped past its promise → nobody → being worked on',
-      ik.ins && ik.groups.join(',').startsWith('over,nobody,held') && ik.ask, ik);
+    ok('4a the queue is a list and a panel, newest request first',
+      ik.ins && ik.groups.join(',') === 'newest-first' && ik.ask, ik);
     await page.click('[data-ik-row="REQ-HELD01"]').catch(() => {}); await page.waitForTimeout(300);
     /* re-pointed 9 Oct 2026: the drawing's panel names the holder as a fact
        and the promise as the head's pill; take-over lives under ⋯ */

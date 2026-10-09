@@ -130,7 +130,7 @@ describe('f461 (4) the form asks what Create asks, and Draft it opens the drafti
     assert.equal(win.ikFieldId('counterparty'), 'ik-cp');
     assert.equal(win.ikFieldId('folder'), 'ik-folder');
     const form = IK.slice(IK.indexOf('function openIntakeForm'), IK.indexOf('function openIntakeTracker'));
-    assert.match(form, /answers \}\);/, 'what they gave rides the request');
+    assert.match(form, /answers(, files)? \}\);/, 'what they gave rides the request (and, since 9 Oct 2026, its attachments)');
     assert.match(form, /if\(!g\('ik-title'\)\|\|!g\('ik-need'\)\)/, 'only the title and the need are required');
   });
   test('4b Draft it opens openNewAgreement with the request\'s answers and the suggestion lit', () => {

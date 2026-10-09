@@ -93,7 +93,7 @@ const OFFSETS = [3, 6, 9, 12, 20, 26, 35, 44, 52, 61, 70, 78, 85, 88];
       /* the month sits in its own column beside the agenda since 9 Oct 2026
          (SAP benchmark, batch 2), so it is found inside the stack, not on it */
       const grid = document.querySelector('.cal-stack .cal-grid');
-      const panel = document.querySelector('.cal-stack > .cal-panel');
+      const panel = document.querySelector('.cal-stack .cal-panel');   /* inside .cal-side since 9 Oct 2026 */
       const pg = document.querySelector('.cal-page');
       const body = document.querySelector('.cal-body');
       return { grid: r(grid), panel: r(panel), day: r(document.querySelector('.cal-day')),

@@ -799,7 +799,7 @@ function renderCalendar(){
              The design pairs "Next 14 days" with the month grid alone (its
              Month tab is the only one drawn as 1fr 304px), and Horizon wants
              every pixel it can get for its twelve months. */}
-      <div class="cal-stack${view==='month'?'':' is-wide'}">${main}${view==='month'?calPanelHtml(evs):''}</div>
+      <div class="cal-stack${view==='month'?'':' is-wide'}">${main}${view==='month'?`<div class="cal-side">${calPanelHtml(evs)}</div>`:''}</div>
     </div>
   </div>`;
 
@@ -813,7 +813,7 @@ function renderCalendar(){
    ------------------------------------------------------------------------- */
 function calStyleCss(){ return `
   .cal-page{height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;min-height:0;
-    --cal-side-w:clamp(360px,32vw,460px)}
+    --cal-side-w:clamp(360px,32vw,460px);--cal-day-h:76px}
   ${''/* ---- THE HEAD IS ONE WHITE BAND, AND THE TAB ROW IS PART OF IT ----
          (owner-reported 24 Aug 2026, off a screenshot with the strip between
          the two ringed: "remove the line in the highlighted area")
@@ -963,7 +963,11 @@ function calStyleCss(){ return `
          scrolls inside. The month is sized by the page alone, so the agenda
          can no longer move it — the owner's 4 Oct rule, kept by the layout
          rather than by a fixed agenda height. */}
-  .cal-stack > .cal-panel{flex:0 0 var(--cal-side-w);min-height:0;max-height:100%}
+  ${''/* THE SIDE COLUMN IS AS TALL AS THE MONTH AND NO TALLER: it adds no
+         height of its own to the row (contain:size), the row is the month's
+         height, and the card inside is as tall as its rows up to that. */}
+  .cal-side{flex:0 0 var(--cal-side-w);contain:size;min-height:0;display:flex;flex-direction:column}
+  .cal-side > .cal-panel{flex:0 1 auto;min-height:0;max-height:100%}
   .cal-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);
     display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
   /* ---- THE MONTH ----
@@ -1224,16 +1228,24 @@ function calStyleCss(){ return `
   .cal-seg span.on,.cal-seg a.on,.cal-seg button.on{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong)}
   .cal-seg a.on .c,.cal-seg span.on .c,.cal-seg button.on .c{color:var(--accent-ink)}
   .cal-more-ic{width:var(--ctl-h);min-width:var(--ctl-h);padding:0;justify-content:center}
-  .cal-stack:not(.is-wide){flex-direction:row;align-items:flex-start;gap:var(--s-4)}
+  .cal-stack:not(.is-wide){flex-direction:row;align-items:stretch;align-self:flex-start;gap:var(--s-4)}
   .cal-month{flex:1 1 auto;min-width:0;align-self:stretch;display:flex;flex-direction:column;gap:var(--s-3)}
-  .cal-month > .cal-grid{flex:1 1 auto;min-height:440px;background:none;border:0;border-radius:0;overflow:visible}
+  ${''/* THE DRAWING'S DAY BOX (owner, 9 Oct 2026: "they all need to be built
+         the SAP way") — a fixed height, so the month is as tall as six weeks of
+         it and no taller; it no longer stretches to fill the page. REVERSES the
+         22 Aug "the month fills the page" for this page; on a short window the
+         page body scrolls (.cal-body is overflow:auto). It still never changes
+         height: six rows of one fixed size whatever the agenda holds. */}
+  .cal-month > .cal-grid{flex:none;min-height:0;background:none;border:0;border-radius:0;overflow:visible}
+  .cal-month{align-self:flex-start}
+  .cal-month .cal-weeks{flex:none;grid-template-rows:repeat(6,var(--cal-day-h))}
   .cal-month .cal-dow{background:none;box-shadow:none;padding:0 0 var(--s-1)}
   .cal-month .cal-dow span{text-transform:none;letter-spacing:0;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)}
   .cal-month .cal-weeks{padding:0}
   .cal-month .cal-legend{box-shadow:none;padding:0 2px;min-height:20px;align-items:center}
   .cal-month .cal-legend span{font-weight:var(--w-label)}
   .cal-month .cal-legend i{width:8px;height:8px;border-radius:50%}
-  .cal-stack > .cal-panel{border-radius:var(--radius-lg)}
+  .cal-side > .cal-panel{border-radius:var(--radius-lg)}
   .cal-panel-head{padding:var(--s-3) var(--s-4)}
   .cal-panel-head .cal-cnt{font-family:inherit;font-size:inherit;font-weight:var(--w-body);color:var(--color-neutral-600)}
   ${''/* the drawing's "Next 14 days (3)": the brackets are dress, so the count's
@@ -1266,7 +1278,7 @@ function calStyleCss(){ return `
     #content-scroll.view-fixed{scrollbar-gutter:stable}
     .cal-body{padding:var(--s-3) var(--s-4) 18px}
     .cal-head{padding-left:var(--s-4);padding-right:var(--s-4)}
-    .cal-stack > .cal-grid,.cal-month > .cal-grid{min-height:340px}
+    .cal-stack > .cal-grid{min-height:340px}
     .cal-stack:not(.is-wide){flex-direction:column;align-items:stretch}
     ${''/* AND THE PANEL GOES BACK TO ITS CONTENT'S HEIGHT DOWN HERE. The one
            height above is what stops the month resizing on a page that cannot
@@ -1274,7 +1286,8 @@ function calStyleCss(){ return `
            a second scroller inside it — the trap this block's own note names.
            The month is not being resized by it either, because down here the
            page grows instead. */}
-    .cal-stack > .cal-panel{flex:none;max-height:none}
+    .cal-side{contain:none;flex:none}
+    .cal-side > .cal-panel{flex:none;max-height:none}
     .cal-card{min-height:380px}
   }
   @media print{

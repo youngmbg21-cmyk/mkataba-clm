@@ -1098,7 +1098,11 @@ function renderMigration(){
   const selStyle='font:inherit;font-size:var(--field-size);height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);color:inherit;cursor:pointer';
 
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:var(--page-pad)">
+  <div class="view-enter sap-page mig-page" style="padding:0 var(--page-pad-x) var(--s-4)">
+    ${''/* THE WHITE BAR, FOR CONTINUITY (owner, 9 Oct 2026, SAP benchmark batch
+           2): the page's name sits on the same white band as every other page,
+           closed by its rule; nothing below it changes. */}
+    <div class="sap-band sap-band-close" aria-hidden="true"></div>
     <style>
       .mig-table{width:100%;border-collapse:collapse;font-size:var(--t-body)}
       .mig-table th{text-align:left;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
@@ -1108,7 +1112,9 @@ function renderMigration(){
          whatever their number happens to be. */
       .mig-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s-3)}
       @media (min-width:640px){ .mig-kpis{grid-template-columns:repeat(4,minmax(0,1fr))} }
-      @media (min-width:1024px){ .mig-kpis{grid-template-columns:repeat(5,minmax(0,1fr))} }
+      ${''/* EVERY CARD TAKES AN EQUAL SHARE OF THE ROW (owner, 9 Oct 2026): five
+             fixed columns left an empty fifth slot whenever four cards drew. */}
+      @media (min-width:1024px){ .mig-kpis{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)} }
       .mig-table tbody tr:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
       #mig-drop{border:2px dashed var(--color-divider);border-radius:var(--radius);padding:var(--s-8) var(--s-4);
         text-align:center;cursor:pointer;transition:border-color var(--dur-1),background var(--dur-1)}

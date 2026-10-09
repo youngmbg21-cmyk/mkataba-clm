@@ -426,6 +426,13 @@ function openIntakeForm(pre){
     <div class="field-grid" style="${(typeof window.FIELD_GRID_CSS==='string')?window.FIELD_GRID_CSS:'display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px'}">
       ${intakeFormFields(pre).map(f=>ikFieldHtml(f, streams, FLD, LBL)).join('')}
     </div>
+    ${''/* ATTACHMENTS (SAP benchmark, batch 2): the drawing's panel lists the
+          files a request came with, so the asker can attach them here — a
+          brief, a quote, a draft from the other side. Stored with the request
+          on the server (IK_FILES_MAX of up to IK_FILE_MAX_MB each). */}
+    <label style="display:block;margin-top:10px"><span style="${LBL}">${esc(i18t('ik_f_files'))}</span>
+      <input id="ik-files" type="file" multiple accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg,.xlsx,.csv" style="font:inherit;font-size:var(--t-meta)"/>
+      <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:4px">${esc(i18t('ik_f_files_note',{ n:IK_FILES_MAX, mb:IK_FILE_MAX_MB }))}</span></label>
     <p id="ik-err" style="font-size:var(--t-meta);color:var(--st-ruby-fg);min-height:16px;margin:var(--s-2) 0 0"></p>
     <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:10px">
       <button id="ik-cancel" class="ui-btn">${i18t('act_cancel')}</button>
@@ -442,10 +449,16 @@ function openIntakeForm(pre){
       const v=g(ikFieldId(f.key)); if(v) answers[f.key]=v; }
     if(answers.cpemail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.cpemail)){ if(err) err.textContent=i18t('ik_bad_email'); return; }
     if(answers.effDate && answers.expiry && answers.expiry<answers.effDate){ if(err) err.textContent=i18t('ik_bad_term'); return; }
+    const picked=[...((document.getElementById('ik-files')||{}).files||[])];
+    if(picked.length>IK_FILES_MAX){ if(err) err.textContent=i18t('ik_files_too_many',{ n:IK_FILES_MAX }); return; }
+    if(picked.some(fl=>fl.size>IK_FILE_MAX_MB*1024*1024)){ if(err) err.textContent=i18t('ik_file_too_big',{ mb:IK_FILE_MAX_MB }); return; }
     const btn=document.getElementById('ik-send'); if(btn) btn.disabled=true;
     try{
+      const files=await Promise.all(picked.map(fl=>new Promise((res,rej)=>{ const rd=new FileReader();
+        rd.onload=()=>res({ name:fl.name, mime:fl.type||'application/octet-stream', dataUrl:String(rd.result||'') });
+        rd.onerror=()=>rej(new Error(i18t('ik_file_unread',{ name:fl.name }))); rd.readAsDataURL(fl); })));
       const made=await api('intake','POST',{ title:g('ik-title'), need:g('ik-need'),
-        counterparty:g('ik-cp'), folder:g('ik-folder'), answers });
+        counterparty:g('ik-cp'), folder:g('ik-folder'), answers, files });
       closeModal();
       await loadIntake();
       /* A lane may have drafted it in the same breath — read it as it lands. */
@@ -881,14 +894,18 @@ function rqKindTabsHtml(lit){
   const V = asker?IK_V_ASKER:IK_V_TEAM;
   const cur = lit==='advice' ? 'advice' : (lit && lit!=='contracts' ? lit : f.view);
   const all = asker?intakeMine():((_intake&&_intake.list)||[]);
-  const base = asker?all:all.filter(r=>ikPassChips(r,f));
-  const tabs = V.map(([k,key])=>({ k, kind:'contracts', label:i18t(key), n:base.filter(r=>ikPassView(r,k,asker)).length }));
-  tabs.splice(asker?1:2, 0, { k:'advice', kind:'advice', label:i18t('rq_kind_advice'), n:n.advice });
+  const base = asker?all:all.filter(r=>ikPassChips(r,f)).concat(ikAdviceRows());
+  /* For the team the Advice tab is a cut of this list (IK_V_TEAM carries it,
+     SAP batch 2); its count is the open advice requests, the door's half. For
+     somebody who only asks it stays the door onto the advice desk. */
+  const tabs = V.map(([k,key])=>({ k, kind:'contracts', label:i18t(key),
+    n:k==='advice'?n.advice:base.filter(r=>ikPassView(r,k,asker)).length }));
+  if(asker) tabs.splice(1, 0, { k:'advice', kind:'advice', label:i18t('rq_kind_advice'), n:n.advice });
   return `<div class="reg-views rq-kinds" role="tablist" aria-label="${esc(i18t('rq_kinds_label'))}">${tabs.map(t=>{
     const on = t.k===cur;
     return `<button type="button" role="tab" class="reg-vtab${on?' on':''}${!t.n&&!on?' is-zero':''}" data-rq-kind="${t.kind}"${
       t.kind==='contracts'?` data-ik-view="${esc(t.k)}"`:''} aria-selected="${on?'true':'false'}">${esc(t.label)}<span class="n"${
-      t.kind==='advice'?' data-rq-n="advice"':''}${t.n?'':' hidden'}>${t.n}</span></button>`; }).join('')}</div>`;
+      t.k==='advice'?' data-rq-n="advice"':''}${t.n?'':' hidden'}>${t.n}</span></button>`; }).join('')}</div>`;
 }
 /* The numbers move on a load or a save with no repaint of the page (the
    advice list lands after the first paint; the intake beat re-reads the
@@ -928,7 +945,7 @@ function rqKindTabsWire(root){
    (intakePick), Promise a date (intakePromiseAsk), Decline and Withdraw
    (intakeSetStatus), Copy the tracker link (intakeTrackCopy). NOTHING HERE
    CALLS A MODEL: looking at a request costs nothing. */
-const IK_V_TEAM = [['open','ik_v_open'],['mine','ik_v_mine'],['fin','ik_v_fin'],['all','ik_v_all']];
+const IK_V_TEAM = [['open','ik_v_open'],['mine','ik_v_mine'],['advice','rq_kind_advice'],['fin','ik_v_fin'],['all','ik_v_all']];
 const IK_V_ASKER = [['open','ik_v_open'],['fin','ik_v_fin_asker'],['all','ik_v_all']];
 const IK_DEF = { view:'open', who:'all', road:'all', folder:'all', q:'' };
 const IK_CHIPS = ['who', 'road', 'folder'];
@@ -995,7 +1012,36 @@ const IK_GROUPS = [
   ['fin',   'ik_g_fin',    'ik_g_fin_asker',     'green'],
   ['old',   'ik_g_old',    'ik_g_old',           'gray'],
 ];
+/* ---- ADVICE REQUESTS SIT IN THE SAME LIST (SAP benchmark, batch 2 — the
+   owner: "they all need to be built the SAP way") ----
+   The drawing lists both kinds in one table with a Kind column, and the
+   Advice tab is a cut of that list. THE RECORDS ARE NOT MERGED: an advice
+   request is still js/advice.js's own record and every act on it is that
+   page's (openAdviceModal, the board); this is a reading of it in the
+   Requests list's shape, team only (an asker never saw the advice desk). */
+const IK_ADV_DONE = ['Delivered','Closed'];
+function ikAdviceRows(){
+  const L=(typeof window!=='undefined'&&window.state&&Array.isArray(state.advice))?state.advice:[];
+  const svc=k=>(window.ADVICE_SERVICES&&ADVICE_SERVICES[k]&&ADVICE_SERVICES[k].name)||String(k||'');
+  return L.map(a=>({ _adv:true, id:a.id, title:svc(a.service), need:a.description==='Seeded as sample data'?'':(a.description||''),
+    by:{ name:a.name||'' }, company:a.company||'', status:a.status, createdAt:a.submittedAt||'', eta:a.eta||'', raw:a }));
+}
+function ikAdviceFinishedThisMonth(r){
+  if(!IK_ADV_DONE.includes(r.status)) return false;
+  const h=((r.raw&&r.raw.history)||[]).filter(x=>IK_ADV_DONE.includes(x.to)).pop();
+  const d=new Date(h&&h.at||''); if(isNaN(d.getTime())) return false;
+  const n=new Date(); return d.getFullYear()===n.getFullYear()&&d.getMonth()===n.getMonth();
+}
 function ikPassView(r, v, asker){
+  if(r&&r._adv){
+    if(v==='open') return !IK_ADV_DONE.includes(r.status);
+    /* the cut's count is the open advice (the door's half), so the cut holds
+       exactly those; a finished one is under Finished and All */
+    if(v==='advice') return !IK_ADV_DONE.includes(r.status);
+    if(v==='fin') return ikAdviceFinishedThisMonth(r);
+    return v==='all';
+  }
+  if(v==='advice') return false;
   if(v==='open') return !IK_STOPPED.includes(r.status);
   if(v==='mine') return ikIsMine(r);
   if(v==='fin') return IK_STOPPED.includes(r.status)&&(asker||intakeFinishedThisMonth(r));
@@ -1114,6 +1160,26 @@ function ikHistoryHtml(r, asker){
   h.sort((a,b)=>String(b.at||'').localeCompare(String(a.at||'')));
   return insSecHtml(i18t('ik_sec_history'), '', `<ul class="ins-log">${h.map(l=>`<li><span class="t">${esc(l.t)}</span><span class="w">${esc(ikDay(l.at))}</span></li>`).join('')}</ul>`, 'ik-hist');
 }
+/* A REQUEST'S FILES — the same caps the server holds (IK_FILES_MAX,
+   IK_FILE_MAX_MB in server/server.js); the server is the wall. */
+const IK_FILES_MAX = 3, IK_FILE_MAX_MB = 5;
+function ikFileSize(n){ const b=Number(n)||0; return b>=1048576?(Math.round(b/104857.6)/10)+' MB':Math.max(1,Math.round(b/1024))+' KB'; }
+function ikFilesHtml(r){
+  const L=Array.isArray(r&&r.files)?r.files:[];
+  return insSecHtml(i18t('ik_sec_files'), L.length||'', L.length?`<ul class="ik-file-list">${L.map(fl=>`<li><button type="button" class="ui-link" data-ik-file="${esc(fl.id)}" data-ik-fname="${esc(fl.name)}">${typeof icon==='function'?icon('file','w-3.5 h-3.5'):''}${esc(fl.name)}</button><span class="ins-quiet"> · ${esc(ikFileSize(fl.size))}</span></li>`).join('')}</ul>`
+    :`<p class="ins-note">${esc(i18t('ik_files_none'))}</p>`, 'ik-files');
+}
+/* The file comes back through the signed-in session and is handed to the
+   browser's own save. */
+async function intakeFileGet(id, fid, name){
+  try{
+    const res=await fetch('api/intake/'+encodeURIComponent(id)+'/files/'+encodeURIComponent(fid),{ credentials:'same-origin' });
+    if(!res.ok) throw new Error(i18t('ik_file_get_failed'));
+    const blob=await res.blob();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name||'file';
+    document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }catch(e){ toast((e&&e.message)||i18t('ik_file_get_failed'),'err'); }
+}
 /* "Sent" must mean sent: the page promises an email only where one can go. */
 function ikMails(){
   return !!(typeof API_MODE==='function'&&API_MODE()
@@ -1160,6 +1226,7 @@ function ikPanelOpts(r, asker){
             : { k:'asked', label:i18t('ik_f_asked_on'), v:esc(ikDay(r.createdAt,{long:true})) } ];
   let body=insKvHtml(asker?facts:teamFacts);
   body+=insSecHtml((asker||mine)?i18t('ik_sec_need_you'):i18t('ik_sec_need',{first}), '', `<p class="ins-p" style="white-space:pre-wrap">${esc(r.need||'')}</p>`, 'ik-need');
+  body+=ikFilesHtml(r);
   if(r.status==='declined') body+=insSecHtml(i18t('ik_sec_declined'), '', r.note?`<blockquote class="ins-q">${esc(r.note)}</blockquote>`:`<p class="ins-note">${esc(i18t('ik_no_reason'))}</p>`, 'ik-why');
   if(asker && !stopped){
     const holder=String((r.assignee&&r.assignee.name)||'').trim(), hf=holder.split(/\s+/)[0]||holder;
@@ -1216,6 +1283,35 @@ function ikPanelOpts(r, asker){
     },
   };
 }
+/* AN ADVICE REQUEST'S PANEL, in the contract request's shape: the drawing's
+   head, the advice record's own facts, what they asked, and the two doors the
+   advice desk already has — its detail (openAdviceModal, where every act on
+   it lives) and its board. Nothing here writes. */
+function ikAdvicePanelOpts(r){
+  const a=r.raw||{};
+  const st=(window.adviceStage?adviceStage(r.status):null)||{ label:r.status };
+  const q=a.quote||{};
+  const fee=q.rate&&typeof fmtMoneyShort==='function'?`${fmtMoneyShort(q.rate*q.hoursMin)}–${fmtMoneyShort(q.rate*q.hoursMax)}`:'';
+  const left=(window.adviceDaysLeft&&r.eta)?adviceDaysLeft(r.eta):null;
+  const done=IK_ADV_DONE.includes(r.status);
+  const tone=done?'green':left!=null&&left<0?'ruby':left!=null&&left<=1?'amber':'steel';
+  const facts=[
+    { k:'cp', label:i18t('ik_f_customer'), v:r.by.name?`<span class="ik-cp">${typeof window.regAvatarHtml==='function'?regAvatarHtml(r.by.name):''}${esc(r.by.name)}</span>`:'' },
+    { k:'company', label:i18t('ik_f_company'), v:esc(r.company) },
+    { k:'contract', label:i18t('ik_f_contract'), v:esc(a.contractName||'') },
+    { k:'fee', label:i18t('ik_f_fee'), v:esc(fee) },
+    { k:'holder', label:i18t('ik_f_holder'), v:a.assignee?esc(a.assignee):`<span class="ins-nobody">${esc(i18t('ik_with_nobody'))}</span>` },
+    { k:'asked', label:i18t('ik_f_asked_on'), v:esc(ikDay(r.createdAt,{ long:true })) } ];
+  let body=insKvHtml(facts);
+  body+=insSecHtml(i18t('ik_sec_they_asked'), '', r.need?`<p class="ins-p" style="white-space:pre-wrap">${esc(r.need)}</p>`:`<p class="ins-note">${esc(i18t('ik_asked_nothing'))}</p>`, 'ik-need');
+  const acts=[
+    { k:'open', kind:'accent', label:i18t('ik_act_open_advice'), run:()=>{ if(window.openAdviceModal) openAdviceModal(r.id); } },
+    { k:'board', label:i18t('ik_act_advice_board'), run:()=>setView('advice') } ];
+  return { item:{ id:'adv:'+r.id },
+    head:{ eyebrow:`<span class="ins-ref">${esc(r.id)}</span> · ${esc(i18t('ik_kind_advice'))} · ${esc(i18t('ik_eb_from',{ name:r.by.name||'' }))}`, title:r.title,
+      pillTone:tone, pill:r.eta&&!done?esc(i18t('ik_pill_promised',{ day:ikDay(r.eta,{ weekday:true }) })):esc(st.label||r.status), acts },
+    acts, body };
+}
 function renderIntakeInspector(host){
   const may=(typeof canEdit==='function'&&canEdit());
   const asker=!may;
@@ -1223,15 +1319,19 @@ function renderIntakeInspector(host){
   const V=asker?IK_V_ASKER:IK_V_TEAM;
   if(!V.some(v=>v[0]===f.view)) f.view='open';
   const all=asker?intakeMine():((_intake&&_intake.list)||[]);
-  const base=asker?all:all.filter(r=>ikPassChips(r,f));
+  const narrowing=asker?[]:IK_CHIPS.filter(k=>String(f[k])!==String(IK_DEF[k]));
+  /* advice rows ride along only while nothing narrows by a contract-request
+     fact (who holds it, how it is handled, its stream) */
+  const adv=(asker||narrowing.length)?[]:ikAdviceRows();
+  const base=asker?all:all.filter(r=>ikPassChips(r,f)).concat(adv);
   /* THE DRAWING'S SEARCH BOX: the words a reader would use for a request —
      its title, what was asked, who asked, the counterparty, its reference. */
   const q=String(f.q||'').trim().toLowerCase();
-  const hit=r=>!q||[r.id,r.title,r.need,r.counterparty,r.by&&r.by.name].some(x=>String(x||'').toLowerCase().includes(q));
-  const IK_RANK=IK_GROUPS.map(g=>g[0]);
+  const hit=r=>!q||[r.id,r.title,r.need,r.counterparty,r.company,r.by&&r.by.name].some(x=>String(x||'').toLowerCase().includes(q));
+  /* NEWEST FIRST, as drawn: a late request still says so in red in its own
+     Promised by cell. */
   const rows=base.filter(r=>ikPassView(r,f.view,asker)&&hit(r))
-    .sort((a,b)=>(IK_RANK.indexOf(intakeStage(a,asker))-IK_RANK.indexOf(intakeStage(b,asker)))||ikSort(a,b));
-  const narrowing=asker?[]:IK_CHIPS.filter(k=>String(f[k])!==String(IK_DEF[k]));
+    .sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
   /* THE HEAD is the page's name and the one filled act (SAP benchmark,
      batch 2): the drawing prints no counts under the name — the tabs carry
      them, and a request past its promise is red in its own row. */
@@ -1251,8 +1351,22 @@ function renderIntakeInspector(host){
      the list, because "who has my request" is the asker's whole question. */
   const cols=asker
     ? [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_f_with'), w:170 }, { t:i18t('ik_f_promised'), w:130 }]
-    : [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_f_road'), w:170 }, { t:i18t('ik_f_promised'), w:130 }];
+    : [{ t:i18t('ik_col_ref'), w:96 }, { t:i18t('ik_col_request') }, { t:i18t('ik_col_kind'), w:110 }, { t:i18t('ik_f_road'), w:150 }, { t:i18t('ik_f_promised'), w:120 }];
+  const kindPill=k=>`<span class="reg-stg ins-pill"><i aria-hidden="true"></i>${esc(i18t(k==='advice'?'ik_kind_advice':'ik_kind_contract'))}</span>`;
+  const advTr=r=>{
+    const st=(window.adviceStage?adviceStage(r.status):null)||{ label:r.status };
+    const left=(window.adviceDaysLeft&&r.eta)?adviceDaysLeft(r.eta):null;
+    const late=!IK_ADV_DONE.includes(r.status)&&left!=null&&left<=0;
+    return `<tr data-ins-row data-ik-row="${esc('adv:'+r.id)}" tabindex="-1">
+      <td><span class="ins-ref">${esc(r.id)}</span></td>
+      <td><span class="ins-c2"><b title="${esc(r.title)}">${esc(r.title)}</b><span>${esc([r.by.name, r.company].filter(Boolean).join(' · '))}</span></span></td>
+      <td>${kindPill('advice')}</td>
+      <td>${esc(st.label||r.status)}</td>
+      <td class="ik-pr">${r.eta?(left===0&&late?`<span class="ins-late">${esc(i18t('ik_pr_today_word'))}</span>`:`<span class="${late?'ins-late':''}">${esc(ikDay(r.eta,{ weekday:true }))}</span>`):`<span class="ins-quiet">—</span>`}</td>
+    </tr>`;
+  };
   const tr=r=>{
+    if(r._adv) return advTr(r);
     const stream=(r.folder&&window.FOLDERS&&FOLDERS[r.folder])?FOLDERS[r.folder].name:'';
     const sub=asker
       ? [r.counterparty||'', i18t('ik_row_asked',{date:ikDay(r.createdAt)})].filter(Boolean).join(' · ')
@@ -1267,6 +1381,7 @@ function renderIntakeInspector(host){
     return `<tr data-ins-row data-ik-row="${esc(r.id)}" tabindex="-1">
       <td><span class="ins-ref">${esc(r.id)}</span></td>
       <td><span class="ins-c2"><b title="${esc(r.title||'')}">${esc(r.title||'')}</b><span>${esc(sub)}</span></span></td>
+      ${asker?'':`<td>${kindPill('contract')}</td>`}
       <td>${asker?ikWithCellHtml(r, asker):ikRoadHtml(r)}</td>
       <td class="ik-pr">${prHtml}</td>
     </tr>`;
@@ -1281,7 +1396,7 @@ function renderIntakeInspector(host){
   }
   const table=`<table class="ins-lt ik-lt"><colgroup>${cols.map(c=>`<col${c.w?` style="width:${c.w}px"`:''}>`).join('')}</colgroup><thead><tr>${
     cols.map(c=>`<th>${esc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
-  const cardT={ open:'ik_card_open', mine:'ik_card_mine', fin:'ik_card_fin', all:'ik_card_all' }[f.view]||'ik_card_all';
+  const cardT={ open:'ik_card_open', mine:'ik_card_mine', advice:'ik_card_advice', fin:'ik_card_fin', all:'ik_card_all' }[f.view]||'ik_card_all';
   const filtersShown=_ikFiltersOpen||narrowing.length>0;
   host.innerHTML=`<div class="view-enter sap-page ins-page ik-ins" data-ins-page="intake" data-ins="1">
     <div class="sap-band">${rqKindTabsHtml('contracts')}</div>
@@ -1312,21 +1427,23 @@ function renderIntakeInspector(host){
   const seat=asker?'intake:asker':'intake:team';
   const tb=host.querySelector('.ik-lt tbody');
   const idOf=t=>t.getAttribute('data-ik-row');
-  const byId=new Map(rows.map(r=>[r.id,r]));
-  const id=insPick(seat, rows.map(r=>r.id));
+  const keyOf=r=>r._adv?'adv:'+r.id:r.id;
+  const byId=new Map(rows.map(r=>[keyOf(r),r]));
+  const id=insPick(seat, rows.map(keyOf));
   if(tb) insMarkRow(tb,'[data-ins-row]',idOf,id);
   const paint=k=>{
     const r=byId.get(k);
     if(!r){ insPaintPanel({ empty:asker?i18t('ik_panel_none_asker'):i18t('ik_panel_none') }); return; }
-    insPaintPanel(ikPanelOpts(r, asker));
+    insPaintPanel(r._adv?ikAdvicePanelOpts(r):ikPanelOpts(r, asker));
     const pan=document.getElementById('ins-panel'); if(!pan) return;
+    pan.querySelectorAll('[data-ik-file]').forEach(b=>b.addEventListener('click',()=>intakeFileGet(r.id, b.getAttribute('data-ik-file'), b.getAttribute('data-ik-fname'))));
   };
   paint(id);
   /* A SECOND PRESS OPENS THE CONTRACT THE REQUEST BECAME, where it became
      one; on anything else the verbs in the panel are the way on. */
   if(tb) insListWire(tb,{ rowSel:'[data-ins-row]', idOf,
     onSelect:k=>{ insSelect(seat,k); insMarkRow(tb,'[data-ins-row]',idOf,k); paint(k); },
-    onOpen:k=>{ const r=byId.get(k); if(r&&r.contractId) openWorkspace(r.contractId); } });
+    onOpen:k=>{ const r=byId.get(k); if(r&&r._adv){ if(window.openAdviceModal) openAdviceModal(r.id); } else if(r&&r.contractId) openWorkspace(r.contractId); } });
   if(typeof insWatchWidth==='function') insWatchWidth();
 }
 
@@ -1408,7 +1525,7 @@ Object.assign(window,{INTAKE_STATUS,IK_LIVE,IK_ROADS,IK_TONE,IK_MEDIAN_MIN,IK_ST
   intakeRefresh,intakeSweepStart,IK_SWEEP_MS,intakeFormFields,ikFieldHtml,ikFieldId,intakeTitleFrom,intakeHoldDraft,intakeHeldDraft,intakeClaimDraft,intakeContractSent,intakeGoTo,intakeAlertRows,intakeLaneDraftRows,intakeLaneArrivals,ikShelfOf,IK_HOLD_AFTER_CREATE_MS,ikClockHtml,ikFactHtml,intakePick,intakePromiseAsk,intakeTrackCopy,intakePatch,
   intakeMine,intakeQueue,intakeCount,loadIntake,
   intakeStatusKey,intakePickLabel,intakeTakeOver,intakeStage,intakeFinishedThisMonth,intakePromiseSay,
-  ikPaintHead,ikAfterRender,renderIntakeInspector,ikPanelOpts,ikActs,ikStatusSay,ikFilters,
+  ikPaintHead,ikAfterRender,renderIntakeInspector,ikPanelOpts,ikAdvicePanelOpts,ikAdviceRows,ikFilesHtml,intakeFileGet,IK_FILES_MAX,IK_FILE_MAX_MB,ikActs,ikStatusSay,ikFilters,
   IK_V_TEAM,IK_V_ASKER,IK_DEF,IK_CHIPS,IK_GROUPS,ikPassView,ikPassChips,ikSort,ikAgeWords,ikTookWords,ikDay,
   openIntakeForm,intakeAnswerLine,openIntakeTracker,intakeDraft,intakeSetStatus,renderIntake,ikRowHtml,intakeSuggestTemplate,
   RQ_KINDS,RQ_KIND_VIEW,rqKindCounts,requestsDoorCount,rqKindTabsHtml,rqPaintKindCounts,rqKindTabsWire,
