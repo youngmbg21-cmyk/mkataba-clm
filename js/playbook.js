@@ -1059,7 +1059,7 @@ function renderPlaybookSection(c){
      "Copilot review" over checks a regular expression made is a lie the reader
      has no way to catch. */
   const head = (r && r.source==='ai') ? 'Copilot review &middot; vs Our standards' : 'Playbook review &middot; vs Our standards';
-  const HEAD='font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin:0';
+  const HEAD='font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin:0';
   const rowsHtml = r ? r.verdicts.map((v,i)=>{
     const m=PB_MARK[v.status]||PB_MARK.missing;
     const id=pbFoldKey(c,v,i);
@@ -1073,7 +1073,7 @@ function renderPlaybookSection(c){
           <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);line-height:1.35">${_pbEsc(v.category)}</span>
           <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45;margin-top:1px">${pbVerdictLine(v)}</span>
         </span>
-        ${v.escalate&&pbVerdictOpen(v)?`<span title="${i18t('pb_needs_legal')}" style="flex:none;font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;color:var(--st-ruby-fg)">escalate</span>`:''}
+        ${v.escalate&&pbVerdictOpen(v)?`<span title="${i18t('pb_needs_legal')}" style="flex:none;font-size:var(--t-figure);font-weight:var(--w-title);color:var(--st-ruby-fg)">escalate</span>`:''}
       </button>
       ${open&&detail?`<div style="padding:0 2px 10px 28px;display:flex;flex-direction:column;gap:6px">
         ${v.quote?`<div style="font-size:var(--t-label);line-height:1.6;color:var(--color-neutral-700);border-left:2px solid var(--color-divider);padding-left:9px;font-style:italic">&ldquo;${_pbEsc(String(v.quote).slice(0,220))}${String(v.quote).length>220?'&hellip;':''}&rdquo;</div>`:''}
@@ -1129,7 +1129,7 @@ function renderPlaybookSection(c){
                which by design does not contain a pending proposal. It could
                never find it, and reported that the clause "may have been
                edited or removed", which was untrue twice over. */}
-        <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:6px">${i18t('pb_clauses_proposed')}</div>
+        <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:6px">${i18t('pb_clauses_proposed')}</div>
         ${ins.map((x,i)=>`<div style="display:flex;align-items:center;gap:var(--s-2);padding:3px 0">
           <span style="flex:none;color:var(--color-accent)">${icon('plus','w-3 h-3')}</span>
           <span style="flex:1;min-width:0">
@@ -1476,7 +1476,7 @@ function openClausePicker(c, opts){
              a scroll box inside a scroll box is two bars for one list. */}
       <div class="space-y-2">
         ${lib.map(cl=>{ const stop=stopFor(cl); return `<div class="rounded-lg border border-line bg-white p-3">
-          <div class="flex items-center gap-2"><span class="text-[10px] font-mono uppercase tracking-wide text-ink/45">${cl.category}</span>
+          <div class="flex items-center gap-2"><span class="text-[10px] font-mono text-ink/45">${cl.category}</span>
             <span class="text-[12.5px] font-600 text-ink">${cl.name}</span>
             ${stop
               ? `<span class="ml-auto text-[11px] font-600 text-ink/55" title="${_pbEsc(stop.message)}">${i18t('ng_dup_clause_here')}</span>`

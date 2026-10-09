@@ -20571,6 +20571,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - On Negotiate, a colleague's lock sign on the paper (.rl-cp-lock) wears the contract design's typeface (Times New Roman under Formal legal) instead of the product's own face. Seen while re-pointing negotiate-design-verify; already so before this change.
 - js/mobile.js still maps a room tab key 'ov2' to the phone's Key terms tab (M_TAB_FOR_ROOM); harmless now the tab is gone, left as is.
 
+## Noticed, not fixed — 9 Oct 2026 (Ink Wash and sentence case)
+- test/chromium/theme-tokens-verify.js (the colour census) is red on unmodified main too: 16 screens report "every colour unchanged" failures before this change, so its baseline is already stale. Not re-recorded here, because a re-record would also bless drift unrelated to Ink Wash. With Ink Wash, calendar and templates (light) join the list; every dark screen stays as it was. ink-wash-verify carries this change's own census.
+- test/chromium/negotiation-memo, panel-alerts-and-head (7 FAIL) and templates-tabs (3 FAIL) fail identically on unmodified main. Left red.
 ## Noticed, not fixed — 9 Oct 2026 (SAP benchmark, batch 1: the lists)
 - The server lets any signed-in editor put an APPROVED rule step back to waiting in a save (srvApprovalDecisionRefusal skips a step whose new status is pending). It only makes a contract stricter, and Undo after Approve relies on it, but the server does not check that it is the approver taking back their own yes within the Undo window. Left as is.
 - Every page carries one unnamed button in the shell (axe button-name: 1 on Contracts, Negotiations, Approvals, Obligations). Planned for the accessibility batch.

@@ -970,7 +970,7 @@ function rkEnsureStyle(){
     font-family:var(--font-body);font-size:var(--t-meta);color:var(--color-text)}
   .rk-h{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px}
   .rk-h b{font-family:var(--font-heading);font-size:var(--t-label);font-weight:var(--w-strong);
-    letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)}
+    color:var(--color-neutral-600)}
   .rk-when{font-size:var(--t-micro);color:var(--color-neutral-500)}
   /* THE CARD TAKES THE COLUMN'S WIDTH, NEVER ITS TITLE'S (Young, 5 Oct 2026,
      "Risk Card Titles"): an automatic grid column let the one-line title set
@@ -984,13 +984,13 @@ function rkEnsureStyle(){
   .rk-row.is-gone .rk-t{color:var(--color-neutral-500)}
   .rk-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
   .rk-t{font-weight:var(--w-strong);min-width:0}
-  .rk-sev{flex:none;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase}
+  .rk-sev{flex:none;font-size:var(--t-micro);font-weight:var(--w-strong);}
   .rk-sev.is-high{color:var(--st-ruby-fg)} .rk-sev.is-med{color:var(--st-amber-fg)} .rk-sev.is-low{color:var(--st-steel-fg)}
-  .rk-m{font-size:var(--t-micro);color:var(--color-neutral-500);letter-spacing:.04em;text-transform:uppercase}
+  .rk-m{font-size:var(--t-micro);color:var(--color-neutral-500);}
   .rk-p{margin:0;color:var(--color-neutral-700);line-height:1.5}
   .rk-quiet{color:var(--color-neutral-500)}
   .rk-k{display:block;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.06em;
-    text-transform:uppercase;color:var(--color-neutral-500);margin-top:4px}
+    color:var(--color-neutral-500);margin-top:4px}
   .rk-acts{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px}
   .rk-row .rk-acts .ui-link{margin-right:auto}
   .rk-head{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;min-width:0;border-radius:var(--radius)}
@@ -1013,7 +1013,7 @@ function rkEnsureStyle(){
   @media (prefers-reduced-motion:reduce){ .rk-why-i{transition:none} }
   .rk-why{display:grid;gap:2px;margin-top:2px;padding:7px 9px;border-radius:var(--radius);
     background:var(--color-neutral-100);font-size:var(--t-meta);line-height:1.5;color:var(--color-text)}
-  .rk-why b{font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-600)}
+  .rk-why b{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600)}
   .rk-why-full{font-weight:var(--w-label);margin-bottom:3px}
   .rk-verb{display:inline-flex;align-items:center;gap:4px;height:var(--ctl-h-sm);padding:0 var(--pad-ctl-x-sm);
     border:0;border-radius:var(--radius);background:transparent;font:inherit;font-size:var(--t-meta);
@@ -1049,7 +1049,7 @@ function rkEnsureStyle(){
   .rk-ce-card{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:10px 12px;background:var(--color-bg)}
   .rk-ce-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;min-width:0}
   .rk-ce-head .rk-t{min-width:0;font-size:var(--t-body);font-weight:var(--w-strong);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rk-ce-why b{display:block;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:2px}
+  .rk-ce-why b{display:block;font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600);margin-bottom:2px}
   .rk-ce-end{border:1px solid var(--st-green-fg);border-radius:var(--radius-lg);padding:12px}
   .doc-xr-rk{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin-top:6px}
   .doc-xr-rk .rk-done{font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--st-green-fg)}

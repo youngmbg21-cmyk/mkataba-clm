@@ -1149,7 +1149,7 @@ function renderTemplateFormSection(c) {
     <div style="padding:10px 14px;display:flex;flex-direction:column;gap:10px">
       ${locked ? `<div style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('tl_executed_sealed')}</div>` : ''}
       ${bySection.map(g => `
-        ${g.name ? `<div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>` : ''}
+        ${g.name ? `<div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>` : ''}
         ${g.fields.map(f => {
           const idx = form.fields.indexOf(f);
           const problem = String(values[f.fieldKey] || '').trim() !== '' ? problemOf(f.fieldKey) : null;

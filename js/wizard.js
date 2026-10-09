@@ -155,7 +155,7 @@ function openWizard(preTid, prefill){
             <span style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);font-family:var(--font-mono);">${t.kind}</span></span>
             <span style="display:block;margin-top:5px;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4;">${t.blurb||''}</span></button>`;
       const GRID='display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--s-2);';
-      const EYE='display:block;font-family:var(--font-mono);font-size:var(--t-micro);letter-spacing:.09em;color:var(--color-neutral-500);text-transform:uppercase;margin:0 0 6px;';
+      const EYE='display:block;font-family:var(--font-mono);font-size:var(--t-micro);color:var(--color-neutral-500);margin:0 0 6px;';
       const fy=forYouPick(tmpls);
       const forYou=fy.list;
       const curated=forYou.length>0;

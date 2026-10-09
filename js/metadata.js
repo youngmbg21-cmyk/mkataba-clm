@@ -701,8 +701,8 @@ async function extractMetadata(text, seed, opts={}){
 /* ---- review-and-confirm panel: the human always confirms before save ---- */
 function openMetaReview(meta, onConfirm, opts={}){
   const c = meta.confidence||{};
-  const badge = lvl => lvl==='low' ? `<span class="ml-1.5 text-[9px] font-mono uppercase tracking-wide text-amber bg-gold-500/12 rounded px-1 py-0.5">low</span>`
-    : lvl==='medium' ? `<span class="ml-1.5 text-[9px] font-mono uppercase tracking-wide text-brand-600 bg-brand-50 rounded px-1 py-0.5">med</span>` : '';
+  const badge = lvl => lvl==='low' ? `<span class="ml-1.5 text-[9px] font-mono text-amber bg-gold-500/12 rounded px-1 py-0.5">low</span>`
+    : lvl==='medium' ? `<span class="ml-1.5 text-[9px] font-mono text-brand-600 bg-brand-50 rounded px-1 py-0.5">med</span>` : '';
   const p = meta._payload;
   // Say how much of the document was actually read — "Copilot-extracted" over the
   // first eight pages is a materially different claim from over all of it.

@@ -192,14 +192,14 @@ function openNoticeServedDialog(c, after){
     <h3 style="margin:0 0 var(--s-1);font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section)">${e(i18t('nt_served_title'))}</h3>
     <p style="margin:0 0 var(--s-3);font-size:var(--t-meta);color:var(--color-neutral-700);line-height:1.55">${e(i18t('nt_served_sub'))}</p>
     <div class="field-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:var(--s-3)">
-      <label style="display:block"><span style="display:block;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
+      <label style="display:block"><span style="display:block;font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
         e(i18t('nt_served_on'))}</span>
         <input id="nts-on" type="date" class="field" max="${e(today)}" value="${e((had&&had.servedOn)||today)}" style="width:100%"></label>
-      <label style="display:block"><span style="display:block;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
+      <label style="display:block"><span style="display:block;font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
         e(i18t('nt_served_way'))}</span>
         <select id="nts-way" class="field" style="width:100%">${ways}</select></label>
     </div>
-    <label style="display:block;margin-top:var(--s-3)"><span style="display:block;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
+    <label style="display:block;margin-top:var(--s-3)"><span style="display:block;font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:4px">${
       e(i18t('nt_served_ref'))}</span>
       <input id="nts-ref" class="field" maxlength="120" value="${e((had&&had.ref)||'')}" placeholder="${e(i18t('nt_served_ref_ph'))}" style="width:100%"></label>
     <p id="nts-say" style="margin:var(--s-2) 0 0;font-size:var(--t-label);color:var(--danger);min-height:1.4em"></p>

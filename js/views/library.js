@@ -1694,7 +1694,7 @@ function tplPagePaintRows(){
      `tabular-nums`; the heads did not, so the column read ragged even when
      every number under it was right. `num` is passed by the two count
      columns and by nothing else — a label over words stays a label. */
-  const th=(t,num)=>`<th style="font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.06em;text-transform:uppercase;color:var(--color-neutral-500);text-align:left;padding:0 12px;height:34px;border-bottom:1px solid var(--color-divider);white-space:nowrap${num?';font-variant-numeric:tabular-nums':''}">${t}</th>`;
+  const th=(t,num)=>`<th style="font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-500);text-align:left;padding:0 12px;height:34px;border-bottom:1px solid var(--color-divider);white-space:nowrap${num?';font-variant-numeric:tabular-nums':''}">${t}</th>`;
   const hiddenKinds=hidden>0?Object.entries(rows.slice(CAP).reduce((m,r)=>{m[r.kind]=(m[r.kind]||0)+1;return m;},{}))
     /* Keyed on the KIND, not on the label's words — comparing the label to
        "Samples" stops being true the moment the label can be translated. */
@@ -2383,7 +2383,7 @@ function tplHealthHtml(d){
    figures are — THE CLOTHES FOLLOW THE BUILDER. Lifted whole, not rewritten:
    every declaration and every note below is the wall's own. */
 const TPL_OV_CARD='background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg,var(--radius));box-shadow:var(--shadow-sm)';
-const TPL_OV_HEAD='font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)';
+const TPL_OV_HEAD='font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)';
 const TPL_OV_LBL='font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);line-height:1.45';
 const TPL_OV_FIG='font-size:var(--t-card);font-weight:var(--w-title);font-variant-numeric:tabular-nums;line-height:1.3;margin-top:1px';
 
@@ -3074,7 +3074,7 @@ function renderPlaybookPage(){
       .std-row{border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-surface);padding:8px 10px}
       .std-row.is-open{border-color:color-mix(in srgb,var(--accent-solid) 34%,transparent)}
       .std-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-      .std-cat{font-size:var(--t-micro);font-weight:var(--w-title);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);flex:none}
+      .std-cat{font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);flex:none}
       .std-name{font-size:var(--t-meta);font-weight:var(--w-title);color:var(--color-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .std-chip{font-size:var(--t-micro);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);white-space:nowrap;flex:none}
       .std-chip-none{color:var(--color-neutral-600);border:1px solid var(--color-divider)}
@@ -3086,7 +3086,7 @@ function renderPlaybookPage(){
             as a sentence that continues. */}
       .std-clip{margin:4px 0 0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
       .std-body{margin:9px 0 2px;display:flex;flex-direction:column;gap:9px}
-      .std-lab{margin:0 0 3px;font-size:var(--t-micro);font-weight:var(--w-title);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600)}
+      .std-lab{margin:0 0 3px;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)}
       .std-quote{font-size:var(--t-label);line-height:1.6;color:var(--color-text);border-left:2px solid var(--color-divider);padding:2px 0 2px 10px;white-space:pre-wrap}
       .std-none{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.6}
       .std-hist{margin:0;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.6}

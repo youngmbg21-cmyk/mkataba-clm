@@ -2375,7 +2375,7 @@ const SET_PANELS={
                    element rule that exempts it lives in index.html, because an
                    inline style cannot reach a ::placeholder. */}
             <input id="st-fx-code" type="text" list="st-fx-codes" autocomplete="off"
-              placeholder="${esc(i18t('st_fx_code_ph'))}" style="${window.RV_FLD||ST_INPUT}text-transform:uppercase"/></label>
+              placeholder="${esc(i18t('st_fx_code_ph'))}" style="${window.RV_FLD||ST_INPUT}"/></label>
           <datalist id="st-fx-codes"></datalist>
           <label style="flex:1;min-width:150px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
             <input id="st-fx-rate" type="number" step="any" min="0" placeholder="129.50" style="${window.RV_FLD||ST_INPUT}"/></label>
@@ -3868,7 +3868,7 @@ function stAcceptanceHtml(){
       ${tile(sh.notTaken + '%', i18t('ai_tr_not_taken'))}
     </div>
     <div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
-      <div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">
+      <div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">
         <span style="flex:1;min-width:0">${esc(i18t('ai_tr_th_feature'))}</span>
         <span style="flex:none;width:72px;text-align:right;white-space:nowrap">${esc(i18t('ai_tr_th_proposals'))}</span>
         <span style="flex:none;width:72px;text-align:right;white-space:nowrap">${esc(i18t('ai_tr_th_as_is'))}</span>
@@ -4176,7 +4176,7 @@ function stWireEngine(){
         const people=Array.isArray(spend.byPerson)?spend.byPerson:[];
         const un=Number(spend.unattributed||0);
         pHost.innerHTML=`
-          <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin:0 0 var(--s-1)">${
+          <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin:0 0 var(--s-1)">${
             esc(i18t('set_spend_people'))}</div>
           ${people.length?`<div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
             ${people.map(p=>`<div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:var(--t-label)">
@@ -4322,7 +4322,7 @@ function stLoadOutbox(){
         (failing&&hp.lastError?`<div class="mb-2 text-[10.5px] text-gold-700 bg-gold-500/10 rounded px-2 py-1.5 leading-relaxed">${i18t('set_why_failed',{why:esc(hp.lastError)})}</div>`:'')+
         (r.items.length?`<div class="space-y-1.5 max-h-56 overflow-y-auto scroll-thin">${r.items.map(it=>`
           <div class="rounded-lg border border-brand-100 bg-white p-2.5">
-            <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] uppercase tracking-wider ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?i18t('set_sent_lower'):it.provider}</span></div>
+            <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?i18t('set_sent_lower'):it.provider}</span></div>
             <div class="text-[10px] font-mono text-brand-800/65 truncate">→ ${it.to_addr} · ${fmtDT(it.created_at)}</div>
             ${it.detail?`<div class="mt-1 text-[10px] text-gold-700 bg-gold-500/10 rounded px-1.5 py-1 leading-relaxed">${i18t('set_why_failed',{why:esc(it.detail)})}</div>`:''}
             ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
@@ -4657,7 +4657,7 @@ function renderPrecedentPanel(){
           </div>`:''}
         </div>`).join('')}
       ${learned.holding.length?`<div style="border-top:1px solid var(--color-divider);padding:9px 0 0;margin-top:3px">
-        <div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.09em;margin-bottom:4px">${esc(i18t('std_learn_holding'))}</div>
+        <div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:4px">${esc(i18t('std_learn_holding'))}</div>
         ${learned.holding.map(h=>`<div style="font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.55">${esc(h.category)} — ${esc(i18t('std_learn_hold_line',{figure:h.figure,unit:h.unit,seen:h.seen,settled:h.settled}))}</div>`).join('')}
       </div>`:''}
     </div>`;
@@ -5053,7 +5053,7 @@ function renderPlaybookView(){
     <div style="margin-bottom:${baseline?'12px':'8px'};border:1px solid ${baseline?'var(--color-accent-300)':'var(--color-divider)'};border-left:3px solid ${baseline?'var(--color-accent)':'var(--color-divider)'};border-radius:var(--radius);background:${baseline?'var(--color-accent-100)':'var(--color-surface)'};padding:${baseline?'11px 13px':'10px 12px'}">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:${baseline?'2px':'6px'}">
         <span style="font-size:var(--t-meta);font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
-        ${baseline?`<span style="font-size:var(--t-figure);font-family:var(--font-heading);letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-title);color:#fff;background:var(--color-accent);border-radius:var(--radius);padding:2px var(--s-2)">${i18t('set_applies_all')}</span>`:''}
+        ${baseline?`<span style="font-size:var(--t-figure);font-family:var(--font-heading);font-weight:var(--w-title);color:#fff;background:var(--color-accent);border-radius:var(--radius);padding:2px var(--s-2)">${i18t('set_applies_all')}</span>`:''}
         ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:var(--t-label);font-weight:var(--w-strong)">
           <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button>
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button>`:''}

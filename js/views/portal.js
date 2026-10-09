@@ -159,7 +159,7 @@ function openPortalCompare(p){
         <div style="${COL}">
           <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
             <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">What ${esc(p.org||'the sender')} changed</h3>
-            <span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:3px 9px">${i18t('po_since_your_copy',{when:fmtDT(ch.openedAt||ch.at)})}</span>
+            <span style="font-size:var(--t-micro);font-weight:var(--w-title);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:3px 9px">${i18t('po_since_your_copy',{when:fmtDT(ch.openedAt||ch.at)})}</span>
           </div>
           <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:7px 0 0">+${st.add} added · −${st.del} removed ·
             <span style="background:var(--st-green-bg);color:var(--st-green-fg);padding:0 var(--s-1);border-radius:var(--radius)">added</span>
@@ -1030,7 +1030,7 @@ function portalThreadHtml(c, p){
       <div style="display:flex;flex-direction:column;gap:var(--s-3)">
         ${said.map(r=>`
           <div style="display:flex;flex-direction:column;gap:6px;border-left:2px solid var(--color-divider);padding-left:11px">
-            <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_round_n',{n:esc(String(r.n))})}</div>
+            <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">${i18t('po_round_n',{n:esc(String(r.n))})}</div>
             ${r.comment?bubble(r.by||'You', r.at, r.comment, true):''}
             ${r.resolution&&r.resolution.comment?bubble(org, r.resolution.at, r.resolution.comment, false):''}
             ${clauseExchanges(r, org)}
@@ -1078,9 +1078,9 @@ function portalOpenPointsHtml(c, p){
       <div style="display:flex;flex-direction:column;gap:var(--s-2)">
         ${pts.map((pt,i)=>`
           <div style="border:1px solid var(--st-amber-line);background:var(--color-surface);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.6">
-            ${pt.before?`<div><span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_contract_says')}</span>
+            ${pt.before?`<div><span style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">${i18t('po_contract_says')}</span>
               <div style="color:var(--color-neutral-800)">${esc(pt.before)}</div></div>`:''}
-            ${pt.after?`<div style="margin-top:5px"><span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('po_you_asked_for')}</span>
+            ${pt.after?`<div style="margin-top:5px"><span style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">${i18t('po_you_asked_for')}</span>
               <div style="color:var(--st-ruby-fg)">${esc(pt.after)}</div></div>`:''}
             ${pt.ask?`<div style="margin-top:5px;font-size:var(--t-meta);color:var(--color-neutral-700)"><b>${i18t('po_you_said')}</b> ${esc(pt.ask)}</div>`:''}
             ${pt.reason?`<div style="margin-top:var(--s-1);font-size:var(--t-meta);color:var(--color-neutral-700)"><b>${i18t('po_their_reply')}</b> ${esc(pt.reason)}</div>`:''}
@@ -3633,7 +3633,7 @@ function portalAlertsStyle(){
     .pt-alerts-head{flex:none;display:flex;align-items:center;gap:var(--s-2);
       padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);}
     .pt-alerts-title{flex:1;font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.12em;
-      text-transform:uppercase;color:var(--color-neutral-600);}
+      color:var(--color-neutral-600);}
     .pt-alerts-x{border:0;background:none;font:inherit;line-height:1;cursor:pointer;display:inline-grid;place-items:center;
       width:var(--ctl-h);height:var(--ctl-h);border-radius:var(--radius);color:var(--color-neutral-600);padding:0;}
     .pt-alerts-x:hover{background:var(--surface-2);color:var(--color-text);}
@@ -3649,7 +3649,7 @@ function portalAlertsStyle(){
        they need nothing but room to be a block. */
     .pt-alerts-notices{display:grid;gap:var(--s-2);margin-bottom:10px;}
     .pt-alerts-notices>*{max-width:100%;position:static;}
-    .pt-alerts-scope{font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;
+    .pt-alerts-scope{font-size:var(--t-micro);
       color:var(--color-neutral-600);margin-bottom:var(--s-2);}
     .pt-alert{display:flex;gap:9px;width:100%;padding:9px 2px;border:0;
       border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);
@@ -4598,7 +4598,7 @@ function portalCodeScreen(token, d){
     .pt-code-wrap{min-height:100vh;display:grid;place-items:center;background:var(--color-bg);padding:24px;}
     .pt-code{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);
       box-shadow:var(--shadow-sm);padding:28px 30px;max-width:420px;width:100%;}
-    .pt-code-brand{margin:0 0 18px;font-size:var(--t-micro);letter-spacing:.11em;text-transform:uppercase;color:var(--color-neutral-500);}
+    .pt-code-brand{margin:0 0 18px;font-size:var(--t-micro);color:var(--color-neutral-500);}
     .pt-code h1{margin:0 0 6px;font-family:var(--font-heading);font-size:var(--t-page);font-weight:var(--w-strong);}
     .pt-code-sub{margin:0 0 18px;font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.6;}
     .pt-code-row{display:flex;gap:8px;}
@@ -5582,7 +5582,7 @@ function portalTemplateFormHtml(c,p){
     </div>
     <div style="padding:var(--s-3) var(--s-4);display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
       ${groups.map(g=>`
-        ${g.name?`<div style="grid-column:1/-1;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${esc(g.name)}</div>`:''}
+        ${g.name?`<div style="grid-column:1/-1;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">${esc(g.name)}</div>`:''}
         ${g.fields.map(f=>{
           const idx=form.fields.indexOf(f);
           return `<label style="display:block;min-width:0">
