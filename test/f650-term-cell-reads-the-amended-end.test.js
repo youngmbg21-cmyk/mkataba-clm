@@ -45,3 +45,15 @@ test('an unamended contract reads its own dates, with no note', () => {
   assert.ok(/2027/.test(cell[1]), cell[1]);
   assert.ok(!cell[2], 'no as-amended note');
 });
+
+/* The room head's Term fact is on the same screen as the Overview's Term
+   cell: it reads the amended end too (9 Oct 2026), so one screen never shows
+   two end dates. */
+test('f650 (room head) the room head\'s Term fact reads the amended end, named', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'views', 'contract.js'), 'utf8');
+  const i = src.indexOf('function roomFactsHtml(');
+  const body = src.slice(i, i + 6000);
+  require('node:assert/strict').match(body, /effectiveExpiryFrom\(c\)/, 'it asks the amended reading');
+  require('node:assert/strict').match(body, /ct_as_amended_by/, 'and names the amendment');
+});

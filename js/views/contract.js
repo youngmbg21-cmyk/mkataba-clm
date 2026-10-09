@@ -9736,8 +9736,15 @@ function roomFactsHtml(c,opts={}){
      wording's own metadata.expiryDate where the record carries no expiry,
      so the length was right and the end date was formatted off an EMPTY
      record field. One reading of the end date, the span's own. */
-  const expIso=String((c&&c.expiry)||(c&&c.metadata&&c.metadata.expiryDate)||'').trim();
+  /* AS AMENDED (9 Oct 2026, the overnight review): a signed amendment that
+     moved the end date is the deal's end — the Overview's Term cell and
+     Overview 2 already say so, and this row printing the record's own date
+     put two end dates on one screen. The amended end, named, wins here too;
+     the span's length is the record's own and is not re-derived. */
+  const amended=(window.effectiveExpiryFrom&&effectiveExpiryFrom(c))||null;
+  const expIso=amended?String(amended.date):String((c&&c.expiry)||(c&&c.metadata&&c.metadata.expiryDate)||'').trim();
   const term=(()=>{ try{
+      if(amended) return `${esc(dot(expIso))} <span class="kt-from" style="font-family:var(--font-body);font-size:var(--t-label);color:var(--accent-ink)">${esc(i18t('ct_as_amended_by',{ref:window.contractRef?contractRef(amended.from):amended.from.id}))}</span>`;
       const t=window.docTermSpan?docTermSpan(c):null;
       if(t&&t.len&&t.to&&expIso) return esc(i18t('ct_term_span',{len:t.len,to:dot(expIso)}));
       if(t&&t.to&&expIso) return esc(dot(expIso));
