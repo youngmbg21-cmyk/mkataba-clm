@@ -454,20 +454,10 @@ describe('what the column renders', () => {
      change card now, which cannot reproduce the fault because there is no
      flex:1 scroller for it to be a sibling of. */
 
-  test('the panel is written ahead of the contract, and takes no track from it', async () => {
-    /* It WAS the grid's third column, and that is what changed on 12 Aug 2026:
-       the width it took came off the contract, which is the thing being judged.
-       It is an overlay now — see rlQueueHtml — so the grid is two tracks and
-       nothing behind it moves when it opens. It is still written FIRST, because
-       it is read first and because the door that opens it has to exist before
-       the reader looks for it.
-
-       THE CLAIM WAS REWRITTEN LATER THE SAME DAY. It said the overlay hung off
-       the WINDOW's left edge; it hangs off the PAGE's now — inside .rl-grid,
-       which is the positioned ancestor, so the panel and its rail sit against
-       the working area's own left border on every mount rather than behind the
-       sidebar on one of them. What did not change is the thing this test is
-       named for: the queue is still written first and still takes no track. */
+  test('the queue is RETIRED from the page — no door, no panel (Young, 9 Oct 2026, change 4)', async () => {
+    /* It was an overlay with a vertical door on the paper's left edge. The
+       owner removed it on our page and theirs: the Redlines column's piles and
+       its Progress line already say what it said. The grid stays two tracks. */
     const { win } = buildWorld({ negotiationView: true });
     const c = contract();
     win.negoInit(c);
@@ -476,17 +466,10 @@ describe('what the column renders', () => {
     const html = win.redlinePanesHtml(c, { side: 'owner' });
     assert.match(html, /class="rl-grid nego-work"/, 'two tracks, not three');
     assert.ok(!/has-queue/.test(html), 'the grid reserves nothing for the queue');
-    assert.ok(html.indexOf('id="rl-queue"') < html.indexOf('id="rl-doc"'),
-      'the queue is read before the contract, so it comes first');
-    assert.ok(html.indexOf('id="rl-q-tab"') < html.indexOf('id="rl-doc"'),
-      'and so does the door that opens it');
-    /* AND BOTH ARE INSIDE THE GRID, which is what makes the page's own border
-       the wall they hang on. Written outside it they would fall back to
-       .redline-page, and on the counterparty's embed to whatever the host has
-       positioned — a rail on somebody else's edge. */
-    const grid = html.slice(html.indexOf('class="rl-grid nego-work"'));
-    assert.ok(grid.indexOf('id="rl-queue"') > -1 && grid.indexOf('id="rl-q-tab"') > -1,
-      'the panel and its rail hang inside the working area, on its left border');
+    assert.ok(!/id="rl-queue"|id="rl-q-tab"|id="rl-q-scrim"/.test(html), 'no panel, no door, no scrim');
+    assert.ok(!/This round(’|')s queue/.test(html), 'and nothing says "This round\'s queue"');
+    const theirs = win.redlinePanesHtml(c, { side: 'counterparty' });
+    assert.ok(!/id="rl-queue"|id="rl-q-tab"/.test(theirs), 'their page has none either');
   });
 
   test('every row carries the hooks the click handler binds to', async () => {

@@ -392,7 +392,10 @@ function stWireDrawerOnce(){
     const tab=t.closest('[data-st-tab]');
     if(tab){ settingsGoTab(tab.getAttribute('data-st-tab')); return; }
   });
-  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && _stOpen) stDrawerClose(); });
+  /* A dialog opened from inside the drawer owns Escape while it is up: one
+     key closes the top layer only, never the drawer underneath as well. */
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape' && _stOpen
+    && !document.querySelector('#modal-root [role="dialog"],[data-top-overlay]')) stDrawerClose(); });
 }
 /* The keyboard's way out of the drawer, held so the close can hand it back.
    One value, because only one drawer is ever open. */
@@ -1464,10 +1467,10 @@ async function settingsSavePerson(existing){
   } else folderAnswered=(role==='admin');
 
   if(isNew){
-    let newId=null;
+    let newId=null, mailed=null;
     if(API_MODE()){
       try{ const r=await api('users','POST',{ name, email, role, title, password:pass });
-        REMOTE.users=[...REMOTE.users, r.user]; newId=r.user&&r.user.id;
+        REMOTE.users=[...REMOTE.users, r.user]; newId=r.user&&r.user.id; mailed=r;
       }catch(e){ stDrawerRefuse(e.message); return; }
     } else {
       const salt=newSalt();
@@ -1498,30 +1501,37 @@ async function settingsSavePerson(existing){
       } else if(u2){ Object.assign(u2,after); saveUsers(getUsers()); }
     }
     settingsMirrorDirectory(name,email,title);
-    toast(i18t('set_t_added_as',{name,role:roleName(role)})+(API_MODE()?i18t('set_t_invite_queued'):i18t('set_t_share_password')));
+    /* "SENT" MUST MEAN SENT (9 Oct 2026): this said "an invite email was
+       queued" whatever the server did. It reads the server's mailReport now —
+       sent, the outbox (no email set up) or refused — and where nothing went,
+       says the one thing the admin has to do: hand over the temporary
+       password they just typed themselves. */
+    const inviteSaid = !API_MODE() ? 'set_t_share_password'
+      : (mailed && mailed.emailSent) ? 'set_t_invite_sent'
+      : (mailed && mailed.outbox) ? 'set_t_invite_outbox' : 'set_t_invite_failed';
+    toast(i18t('set_t_added_as',{name,role:roleName(role)})+i18t(inviteSaid), inviteSaid==='set_t_invite_sent'?'ok':'warn');
     stDrawerClose(); renderTeam(); return;
   }
 
   /* ---- EDITING ----
-     A RENAME CAN ORPHAN AN APPROVAL RULE, because a named approver is bound by
-     NAME and not by id. Said out loud before it happens, with the rules
-     repointed for them rather than left pointing at nobody. */
+     A RENAME CARRIES THE APPROVAL RULES WITH IT (9 Oct 2026). A rule names
+     its approver by id now; an older rule that names them by their old name is
+     repointed — by the server in a workspace (PATCH /api/users/:id does it in
+     the same write), here on a single machine — so nothing is left pointing at
+     nobody and there is nothing to ask. */
   const us=getUsers(); const target=us.find(x=>x.id===existing.id); if(!target) return;
   const me=currentUser()||{};
   const renamed = name && name!==target.name;
-  if(renamed){
-    const bound=(typeof approvalRules==='function'?approvalRules():[]).filter(r=>r.approver&&r.approver.kind==='member'&&r.approver.name===target.name);
-    if(bound.length){
-      const ok=await confirmDialog({
-        title:i18tn('st_rename_breaks_rule',bound.length,{n:bound.length,old:target.name}),
-        message:i18t('st_rename_fix'),
-        confirmLabel:i18t('st_rename_fix') });
-      if(!ok) return;
-      const all=approvalRules().slice();
-      all.forEach(r=>{ if(r.approver&&r.approver.kind==='member'&&r.approver.name===target.name) r.approver={kind:'member',name}; });
-      saveApprovalRules(all);
-    }
-  }
+  const oldName = target.name;
+  const repointRules = (save) => {
+    if(!renamed || typeof approvalRules!=='function') return;
+    const all=approvalRules().slice(); let moved=false;
+    all.forEach(r=>{ const a=r&&r.approver;
+      if(a&&a.kind==='member'&&(String(a.id||'')===String(target.id)||(!a.id&&a.name===oldName))){ r.approver={kind:'member',name,id:target.id}; moved=true; } });
+    if(!moved) return;
+    if(save) saveApprovalRules(all);
+    else { state.settings=state.settings||{}; state.settings.approvalRules=all; }
+  };
   const roleChanged = role!==target.role && existing.id!==me.id;
   const valuesBox=document.getElementById('tm-values');
   const valuesTo = valuesBox ? !!valuesBox.checked : null;
@@ -1557,11 +1567,11 @@ async function settingsSavePerson(existing){
     if(rv&&rv.reviewChecked!==undefined && rv.reviewChecked!==reviewChecked(target)) patch.reviewChecked=rv.reviewChecked;
     if(rv&&rv.reviewerId!==undefined && String(rv.reviewerId||'')!==String(target.reviewerId||'')) patch.reviewerId=rv.reviewerId;
     Object.assign(patch, ovPatch.patch||{});
-    /* The server takes title (self or admin), role and canViewValues. It does
-       NOT take a name today, so a rename is applied to the record we hold and
-       the directory that feeds signer fields — said here rather than pretended
-       about. */
+    /* The server takes the name (an admin's act), the title, role and the
+       grants; a rename the server refuses (another member has that name) is
+       said in the drawer and nothing here moves. */
     const body={};
+    if(renamed) body.name=name;
     if(patch.title!==undefined) body.title=patch.title;
     if(patch.role!==undefined) body.role=patch.role;
     if(patch.canViewValues!==undefined) body.canViewValues=patch.canViewValues;
@@ -1577,6 +1587,7 @@ async function settingsSavePerson(existing){
       try{ const r=await api('users/'+target.id,'PATCH',body); if(r&&r.user) Object.assign(target,r.user); }
       catch(e){ stDrawerRefuse(e.message); return; }
     }
+    repointRules(false);
     if(name) target.name=name; target.title=title;
     if(roleChanged) target.role=role;
     if(valuesChanged) target.canViewValues=valuesTo;
@@ -1589,6 +1600,7 @@ async function settingsSavePerson(existing){
     for(const k of ['overseerId','overseerOn','overseerBackupId','overseerWhen'])
       if(patch[k]!==undefined) target[k]=patch[k];
   } else {
+    repointRules(true);
     target.name=name||target.name; target.title=title; if(roleChanged) target.role=role;
     const capNow=(typeof signCapOf==='function')?signCapOf(target):{answered:false,limit:null};
     const capWas=capNow.answered?(capNow.limit==null?'none':capNow.limit):null;
@@ -1607,7 +1619,7 @@ async function settingsSavePerson(existing){
     catch(e){ stDrawerRefuse(e.message); return; }
   }
   settingsMirrorDirectory(target.name,email||target.email,title);
-  toast(i18t('st_person_saved',{who:target.name}));
+  toast(i18t('st_person_saved',{who:target.name}),'ok');
   stDrawerClose(); renderTeam();
 }
 /* Mirror a member into the people directory (with their title) so signer fields
@@ -2372,11 +2384,11 @@ const SET_PANELS={
         const langWas=(typeof langId==='function'?langId():null);
         if(!window.jxSet || !jxSet(e.target.value)) return;
         if(window.setRegion && window.regionCodeFor) setRegion(regionCodeFor(jxId()),{silent:true});
-        /* THE ONE CASE THAT IS NOT A PATCH. A reader who has never chosen a
-           language reads the one that goes with the market, so moving the
-           market moves every word on the screen — patching three lines would
-           leave a half-translated one. The page redraws (holding its panel
-           heights) and the drawer is rebuilt in the new language on top of it. */
+        /* THE ONE CASE THAT IS NOT A PATCH. Since 9 Oct 2026 jxSet keeps the
+           reader's own language when the market moves (the market is the
+           company's, the language the person's), so this redraw is only for a
+           language that moved some other way — patching three lines would
+           leave a half-translated screen. */
         if((typeof langId==='function'?langId():null)!==langWas){
           toast(i18t('set_market_saved')); renderTeam(); stDrawerOpen('company'); return;
         }
@@ -2445,7 +2457,7 @@ const SET_PANELS={
     title:()=>i18t('st_p_folders'),
     sub:()=>i18t('st_p_folders_sub'),
     state(){ const n=Object.keys(FOLDERS).length;
-      return { dot:'ok', text:i18tn('st_p_folders_count',n,{n})+' · '+Object.values(FOLDERS).slice(0,3).map(f=>esc(f.name)).join(', ')+(n>3?'…':'') }; },
+      return { dot:'ok', text:i18tn('st_p_folders_n',n,{n})+' · '+Object.values(FOLDERS).slice(0,3).map(f=>esc(f.name)).join(', ')+(n>3?'…':'') }; },
     body(){ return `<div id="st-folder-list"></div>
       <div style="display:flex;gap:var(--s-2);margin-top:10px;align-items:flex-end">
         <label style="flex:1;min-width:0"><span style="${window.RV_LBL||''}">${esc(i18t('st_p_folders_add'))}</span>
@@ -2629,7 +2641,7 @@ const SET_PANELS={
     sub:()=>i18t('rv_set_sub'),
     state(){ const c=(window.reviewGateCfg?reviewGateCfg():{on:false});
       return { dot:c.on?'ok':'off', text:`${i18t('rv_set_on')} — ${c.on?stOn():stOff()}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('rv_set_sub')}</p><div id="rv-gate-panel"></div>`; },
+    body(){ return `<div id="rv-gate-panel"></div>`; },
     wire(){ renderReviewGatePanel(); },
   },
 
@@ -2654,7 +2666,7 @@ const SET_PANELS={
        contract gets to signed — and a row of its own made this group five long,
        where the page's own rule is that no group is a wall (settings-groups 1c).
        `find` puts its words in the search, so it is found by what it says. */
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('sc_set_sub')}</p><div id="sc-gate-panel"></div>`; },
+    body(){ return `<div id="sc-gate-panel"></div>`; },
     wire(){ renderSignCheckGatePanel(); },
   },
 
@@ -2667,8 +2679,7 @@ const SET_PANELS={
     sub:()=>i18t('sc_rule_sub'),
     state(){ const on=(typeof signCapEnforced==='function')&&signCapEnforced();
       return { dot:on?'ok':'off', text:`${esc(i18t('sc_rule_on'))} — ${on?stOn():stOff()}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('sc_rule_sub'))}</p>
-      <label class="st-toggle" style="margin-bottom:var(--s-2)">
+    body(){ return `<label class="st-toggle" style="margin-bottom:var(--s-2)">
         <input id="sc-rule-on" type="checkbox"${((typeof signCapEnforced==='function')&&signCapEnforced())?' checked':''}/>
         <span><span class="st-role-name">${esc(i18t('sc_rule_on'))}</span></span></label>
       <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-text);margin:10px 0 6px">${esc(i18t('sc_ladder'))}</div>
@@ -2696,8 +2707,7 @@ const SET_PANELS={
     sub:()=>i18t('sf_rule_sub'),
     state(){ const on=(typeof signFolderEnforced==='function')&&signFolderEnforced();
       return { dot:on?'ok':'off', text:`${esc(i18t('sf_rule_on'))} — ${on?stOn():stOff()}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${esc(i18t('sf_rule_sub'))}</p>
-      <label class="st-toggle" style="margin-bottom:var(--s-2)">
+    body(){ return `<label class="st-toggle" style="margin-bottom:var(--s-2)">
         <input id="sf-rule-on" type="checkbox"${((typeof signFolderEnforced==='function')&&signFolderEnforced())?' checked':''}/>
         <span><span class="st-role-name">${esc(i18t('sf_rule_on'))}</span></span></label>
       <div id="sf-people"></div>`; },
@@ -2724,7 +2734,7 @@ const SET_PANELS={
     sub:()=>i18t('ho_set_sub'),
     state(){ const out=(state.settings&&state.settings.signRouteDefault)==='outside';
       return { dot:'ok', text:esc(i18t(out?'ho_route_out':'ho_route_in')) }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('ho_set_sub')}</p><div id="ho-route-panel"></div>`; },
+    body(){ return `<div id="ho-route-panel"></div>`; },
     wire(){ renderSignRouteDefaultPanel(); },
   },
 
@@ -2752,7 +2762,7 @@ const SET_PANELS={
     sub:()=>i18t('dk_set_sub'),
     state(){ const c=(window.deskCfg?deskCfg():{on:false});
       return { dot:c.on?'ok':'off', text:`${i18t('dk_set_on')} — ${c.on?stOn():stOff()}` }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('dk_set_sub')}</p><div id="dk-rule-panel"></div>`; },
+    body(){ return `<div id="dk-rule-panel"></div>`; },
     wire(){ renderDeskRulePanel(); },
   },
 
@@ -2784,8 +2794,7 @@ const SET_PANELS={
       const m=(state.settings&&state.settings.mailroom)||{};
       const streams=(typeof visibleFolders==='function')?visibleFolders():[];
       const url=(()=>{ try{ return location.origin+'/api/mailroom'; }catch(_){ return '/api/mailroom'; } })();
-      return `<p class="st-note" style="margin-bottom:var(--s-3)">${i18t('set_mailroom_sub')}</p>
-      <label style="display:block;margin-bottom:var(--s-3)"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_url'))}</span>
+      return `<label style="display:block;margin-bottom:var(--s-3)"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_url'))}</span>
         <input id="st-mr-url" type="text" readonly value="${esc(url)}" style="${window.RV_FLD||ST_INPUT}width:100%;font-family:var(--font-mono)"/></label>
       <label style="display:block;margin-bottom:var(--s-3)"><span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600)">${esc(i18t('set_mailroom_key'))}</span>
         <input id="st-mr-key" type="text" value="${esc(m.key||'')}" placeholder="${esc(i18t('set_mailroom_key_ph'))}" style="${window.RV_FLD||ST_INPUT}width:100%;font-family:var(--font-mono)"/></label>
@@ -2903,8 +2912,7 @@ const SET_PANELS={
             <span>${esc(i18t('set_lane_known'))}</span></label>
         </div>
       </div>`;
-      return `<p class="st-note" style="margin-bottom:var(--s-3)">${i18t('set_lanes_sub')}</p>
-        <div id="st-lanes" style="display:flex;flex-direction:column;gap:var(--s-3)">${L.map(row).join('')}</div>
+      return `<div id="st-lanes" style="display:flex;flex-direction:column;gap:var(--s-3)">${L.map(row).join('')}</div>
         <div style="display:flex;gap:var(--s-2);margin-top:var(--s-3)">
           <button id="st-lane-add" style="${ST_BTN_SM}">${esc(i18t('set_lane_add'))}</button>
           <button id="st-lane-save" style="${ST_BTN_SM}">${i18t('act_save')}</button>
@@ -2973,8 +2981,7 @@ const SET_PANELS={
     title:()=>i18t('st_p_renewals'),
     sub:()=>i18t('set_renewal_sub'),
     state(){ return { dot:'ok', text:[90,60,30].map(d=>i18t('set_days_out',{n:d})).join(' · ') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_renewal_sub')}</p>
-      <div style="display:flex;gap:6px">${[90,60,30].map(d=>`<span style="${ST_TAG}">${i18t('set_days_out',{n:d})}</span>`).join('')}</div>
+    body(){ return `<div style="display:flex;gap:6px">${[90,60,30].map(d=>`<span style="${ST_TAG}">${i18t('set_days_out',{n:d})}</span>`).join('')}</div>
       <p class="st-note" style="margin-top:var(--s-2)">${i18t('set_delivered_resend')}</p>`; },
     wire(){},
   },
@@ -3014,8 +3021,7 @@ const SET_PANELS={
         <input id="${id}" type="number" min="1" max="365" step="1" inputmode="numeric" value="${val==null?'':val}" placeholder="—"
           style="${window.RV_FLD||ST_INPUT}width:92px;font-family:var(--font-mono);text-align:right"/>
         <span style="font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600)">${esc(i18t('set_pay_days'))}</span></label>`;
-      return `<p class="st-note" style="margin-bottom:var(--s-3)">${i18t('set_paydays_sub')}</p>
-      <div style="display:flex;flex-direction:column;gap:var(--s-3)">
+      return `<div style="display:flex;flex-direction:column;gap:var(--s-3)">
         ${box('st-pay-in',i18t('set_pay_in'),t.customer)}
         ${box('st-pay-out',i18t('set_pay_out'),t.supplier)}
       </div>
@@ -3068,8 +3074,7 @@ const SET_PANELS={
         <input type="checkbox" data-ws-shape="${k}" ${cfg.shapes.includes(k)?'checked':''} style="margin-top:2px;flex:none"/>
         <span style="min-width:0"><span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong)">${title}</span>
         <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.5;margin-top:2px">${sub}</span></span></label>`;
-      return `<p class="st-note" style="margin-bottom:10px">${i18t('set_workshape_sub')}</p>
-      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:var(--s-3)">
+      return `<div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:var(--s-3)">
         ${box('standing',i18t('set_shape_standing'),i18t('set_shape_standing_sub'))}
         ${box('project',i18t('set_shape_project'),i18t('set_shape_project_sub'))}
       </div>
@@ -3144,8 +3149,7 @@ const SET_PANELS={
     body(){
       const ob=(typeof window!=='undefined'&&window.ORG_BRANDING)||null;
       const d=ob&&ob.designId&&window.docDesignById?docDesignById(ob.designId):null;
-      return `<p class="st-note" style="margin-bottom:10px">${i18t('set_design_sub')}</p>
-      <div style="display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap">
+      return `<div style="display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap">
         <div style="width:74px;height:42px;border:1px dashed var(--color-divider);border-radius:var(--radius);display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
           ${ob&&ob.logoUrl?`<img src="${ob.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">`:`<span style="font-size:var(--t-figure);color:var(--color-neutral-500)">${i18t('set_no_logo')}</span>`}
         </div>
@@ -3166,8 +3170,7 @@ const SET_PANELS={
     title:()=>i18t('st_p_report'),
     sub:()=>i18t('set_monthly_report_sub'),
     state(){ return { dot:'off', text:i18t('set_monthly_report_sub') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_monthly_report_sub')}</p>
-      <div id="mr-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+    body(){ return `<div id="mr-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
       <label class="st-toggle" style="margin-bottom:var(--s-2)">
         <input id="mr-enabled" type="checkbox"/><span><span class="st-role-name">${i18t('set_monthly_report_on')}</span></span></label>
       <div style="display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap">
@@ -3196,8 +3199,7 @@ const SET_PANELS={
       return { dot: n?(bad?'warn':'ok'):'off',
         text: n? i18tn('st_hooks_count',n,{n})+(bad?` · ${i18t('st_hooks_failing',{n:bad})}`:'') : i18t('st_hooks_none') };
     },
-    body(){ return `<p class="st-note" style="margin-bottom:9px">${i18t('st_hooks_sub')}</p>
-      <div id="wh-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
+    body(){ return `<div id="wh-list" style="display:flex;flex-direction:column;gap:7px;margin-bottom:10px"></div>
       <label style="display:block;margin-bottom:var(--s-2)"><span style="${window.RV_LBL||''}">${esc(i18t('st_hooks_url'))}</span>
         <input id="wh-url" type="url" placeholder="https://example.com/hooks/hati" style="${window.RV_FLD||ST_INPUT}"/></label>
       ${''/* AN ENDPOINT IS TOLD WHAT IT SUBSCRIBED TO. The server treats an
@@ -3222,8 +3224,7 @@ const SET_PANELS={
     title:()=>i18t('st_p_backup'),
     sub:()=>API_MODE()?i18t('set_backup_server'):i18t('set_backup_local'),
     state(){ const at=stLastBackup(); return { dot:at?'ok':'off', text:at?`${i18t('set_export_backup')} · ${fmtDT(at)}`:i18t('st_not_set') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${API_MODE()?i18t('set_backup_server'):i18t('set_backup_local')}</p>
-      <div style="display:flex;flex-wrap:wrap;gap:var(--s-2)">
+    body(){ return `<div style="display:flex;flex-wrap:wrap;gap:var(--s-2)">
         <button id="bk-export" style="${ST_BTN2}">${icon('download','w-3.5 h-3.5')} ${i18t('set_export_backup')}</button>
         ${API_MODE()?`<a id="bk-zip" href="api/export/workspace.zip" style="${ST_BTN2};text-decoration:none">${icon('download','w-3.5 h-3.5')} ${i18t('set_full_workspace_zip')}</a>`:`
         <label style="${ST_BTN2};cursor:pointer">${icon('upload','w-3.5 h-3.5')} ${i18t('set_restore_backup')}<input id="bk-import" type="file" accept=".json,application/json" style="display:none"/></label>`}
@@ -3244,8 +3245,7 @@ const SET_PANELS={
         text: done===l.length ? i18t('st_b_golive_done',{n:done,n2:l.length})
           : i18tn('st_b_golive_left', l.length-done, {n:done,n2:l.length,left:l.length-done}) }; },
     chip(){ const l=stGoLive(); return `${l.filter(r=>r.ok).length}/${l.length}`; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('st_b_golive_sub')}</p>
-      <div class="st-rows" id="st-golive">${stGoLive().map(r=>`
+    body(){ return `<div class="st-rows" id="st-golive">${stGoLive().map(r=>`
         <button class="st-row" ${r.go?`data-st-go="${r.go}"`:''}${r.go?'':' disabled'}>
           <span class="st-dot" style="background:${r.ok?ST_DOT.ok:ST_DOT.warn}"></span>
           <span class="st-row-main"><span class="st-row-name">${esc(r.label)}</span>
@@ -3287,6 +3287,7 @@ const SET_PANELS={
         return { dot:'warn', text:i18tn('set_email_failing', emailFailedCount(), { n:emailFailedCount() }) };
       return { dot:'ok', text:i18t('set_email_configured') }; },
     body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_email_sub')}</p>
+      ${stMailKeyHtml()}
       <div style="display:flex;flex-wrap:wrap;gap:var(--s-2);margin-bottom:10px">
         <button id="rem-run" style="${ST_BTN2}">${icon('clock','w-3.5 h-3.5')} ${i18t('set_check_renewals')}</button>
         <button id="ob-refresh" style="${ST_BTN2}">${icon('history','w-3.5 h-3.5')} ${i18t('set_refresh_outbox')}</button>
@@ -3300,8 +3301,7 @@ const SET_PANELS={
     title:()=>i18t('st_b_pilot'),
     sub:()=>i18t('set_activation_sub'),
     state(){ return { dot:'off', text:i18t('set_activation_sub') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:10px">${i18t('set_activation_sub')}</p>
-      <div id="activation-funnel" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('set_loading')}</div>`; },
+    body(){ return `<div id="activation-funnel" style="font-size:var(--t-meta);color:var(--color-neutral-700)">${i18t('set_loading')}</div>`; },
     wire(){ stLoadActivation(); },
   },
 
@@ -3320,8 +3320,7 @@ const SET_PANELS={
       return { dot:n?'warn':'ok', text:n?i18tn('set_demo_still_here',n,{n}):i18t('set_demo_cleared') }; },
     chip(){ const n=stSampleContracts().length; return n?String(n):''; },
     body(){ const s=stSampleContracts();
-      return `<p class="st-note" style="margin-bottom:10px">${i18t('set_demo_samples_sub')}</p>
-      ${s.length?`<div class="st-quiet"><b>${i18tn('set_demo_still_here',s.length,{n:s.length})}</b><br>
+      return `${s.length?`<div class="st-quiet"><b>${i18tn('set_demo_still_here',s.length,{n:s.length})}</b><br>
         ${s.slice(0,8).map(c=>esc(c.name)).join('<br>')}${s.length>8?`<br>+${s.length-8}`:''}</div>
         <div class="st-danger"><button id="st-samples-clear" style="${ST_BTN_DANGER}">${icon('ban','w-3.5 h-3.5')} ${i18t('set_demo_clear')}</button></div>`
         :`<div class="st-quiet">${i18t('set_demo_cleared')}</div>`}`; },
@@ -3343,8 +3342,7 @@ const SET_PANELS={
     state(){ const r=_stIntegrity;
       return { dot: r? (r.faults? 'warn':'ok') : 'off',
         text: r? i18t('set_integrity_result',{checked:r.checked,clean:r.clean,faults:r.faults}) : i18t('set_integrity_never') }; },
-    body(){ return `<p class="st-note" style="margin-bottom:var(--s-2)">${i18t('set_integrity_sub')}</p>
-      ${(typeof sha256IsReal==='function'&&!sha256IsReal())?`<div class="st-refusal" style="display:block">${i18t('set_integrity_weak')}</div>`:''}
+    body(){ return `${(typeof sha256IsReal==='function'&&!sha256IsReal())?`<div class="st-refusal" style="display:block">${i18t('set_integrity_weak')}</div>`:''}
       <div id="st-integrity-out" class="st-quiet">${_stIntegrity?stIntegrityHtml(_stIntegrity):i18t('set_integrity_never')}</div>
       <button id="st-integrity-run" style="margin-top:10px;${ST_BTN_SM}">${i18t('set_integrity_run')}</button>`; },
     wire(){ document.getElementById('st-integrity-run')?.addEventListener('click',()=>stRunIntegrity()); },
@@ -4132,6 +4130,9 @@ function stWireEngine(){
       fill('ai-model-fast',c.tiers?.fast?.override); fill('ai-model-deep',c.tiers?.deep?.override); fill('ai-model-global',c.globalOverride);
       const lim=c.limits||{}, spend=c.spend||{};
       state.aiCfg=c;   // migration's pre-flight estimate reads rates from here
+      /* The engine row and the go-live ceiling read this reading — repainted
+         where they stand after every save or removal (9 Oct 2026). */
+      stRepaintRow('engine'); stRepaintRow('golive');
       const money=n=>'$'+Number(n||0).toFixed(2);
       const budget=Number(lim.dailySpendLimit||0);
       const spent=Number(spend.cost||0);
@@ -4297,6 +4298,7 @@ function stLoadOutbox(){
          the route's own health reading rather than a second copy of it — and
          it NAMES the provider's reason, which is the thing an admin can act on
          ("the domain is not verified" tells them exactly what to go and do). */
+      stPaintMailCfg(r.mail);
       const hp=r.health||{}, failing=!!(r.emailConfigured&&hp.failing);
       host.innerHTML=`<div class="mb-2 text-[11px] ${r.emailConfigured&&!failing?'text-brand-600':'text-gold-600'}">${
           !r.emailConfigured ? i18t('set_email_not_configured')
@@ -4334,8 +4336,75 @@ function stLoadOutbox(){
    So each one now: goes busy while it works, and answers with 'ok' when it is
    done. The refusal path is unchanged and still lands in the drawer's foot,
    which is where this page puts a refusal. */
+/* ---- THE MAIL KEY, SAVED FROM THE SCREEN (9 Oct 2026) ----
+   "Email delivery — REQUIRED" offered no way forward inside the product. The
+   box works the way the Copilot key's does: the key goes to the server
+   (PUT /api/mail/config), is never read back — only its last four characters
+   — and a key set in the server's own environment cannot be removed from
+   here (stKeyRemovable says so on the button). */
+function stMailKeyHtml(){
+  return `<div id="mail-cfg-status" style="font-size:var(--t-label);color:var(--color-neutral-700);margin-bottom:var(--s-2)">${i18t('set_checking')}</div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:var(--s-2);align-items:flex-end">
+      <label style="min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_mail_key')}</span>
+        <input id="mail-key" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" spellcheck="false" placeholder="re_…" style="${window.RV_FLD||ST_INPUT}"/></label>
+      <label style="min-width:0"><span style="${window.RV_LBL||''}">${i18t('set_mail_from')}</span>
+        <input id="mail-from" type="text" autocomplete="off" spellcheck="false" placeholder="${esc(i18t('set_mail_from_ph'))}" style="${window.RV_FLD||ST_INPUT}"/></label>
+      <button id="mail-key-save" style="${ST_BTN}">${i18t('set_mail_save')}</button>
+    </div>
+    <p class="st-note" style="margin:6px 0 0">${esc(i18t('set_mail_get_key'))}</p>
+    <button id="mail-key-clear" type="button" disabled aria-disabled="true" class="ui-link ui-link-danger" style="margin:6px 0 12px;cursor:default;opacity:.5">${i18t('set_remove_key')}</button>`;
+}
+let _stMailCfg=null;
+function stPaintMailCfg(m){
+  if(!m) return;
+  _stMailCfg=m;
+  const el=document.getElementById('mail-cfg-status');
+  if(el) el.innerHTML=m.configured
+    ? `<span class="text-brand-600">${i18t('set_configured')}</span> · ${i18t('set_key')} ${esc(m.hint||'')}${m.source==='env'?i18t('set_key_from_env'):''}`
+    : `<span class="text-gold-600">${i18t('set_not_configured')}</span>`;
+  const f=document.getElementById('mail-from');
+  if(f && document.activeElement!==f) f.value=m.fromSource==='default'?'':(m.from||'');
+  if(f) f.disabled=m.fromSource==='env';
+  const b=document.getElementById('mail-key-clear'); if(!b) return;
+  const r=stKeyRemovable(m.source);
+  b.disabled=!r.can; b.style.opacity=r.can?'':'.5'; b.style.cursor=r.can?'pointer':'default';
+  b.title=r.why; b.setAttribute('aria-disabled', r.can?'false':'true');
+}
+/* After a save or a removal the whole page answers at once: the row, the
+   go-live checklist and every "email is not set up" reading take the server's
+   word (state.emailConfigured is what emailOff() reads). */
+function stMailCfgSaved(m){
+  if(m) state.emailConfigured=!!m.configured;
+  stPaintMailCfg(m);
+  stRepaintRow('mail'); stRepaintRow('golive');
+  stLoadOutbox();
+}
+function stWireMailKey(){
+  document.getElementById('mail-key-save')?.addEventListener('click',async()=>{
+    const key=(document.getElementById('mail-key')?.value||'').trim();
+    const fromEl=document.getElementById('mail-from');
+    const from=fromEl&&!fromEl.disabled?fromEl.value.trim():undefined;
+    const fromWas=_stMailCfg&&_stMailCfg.fromSource!=='default'?(_stMailCfg.from||''):'';
+    const fromMoved=from!==undefined && from!==fromWas;
+    if(!key && !fromMoved){ stDrawerRefuse(i18t('set_enter_key')); return; }
+    if(key && !/^re_[A-Za-z0-9_-]{8,}$/.test(key)){ stDrawerRefuse(i18t('set_mail_not_a_key')); return; }
+    const body={}; if(key) body.key=key; if(fromMoved) body.from=from;
+    try{ const r=await api('mail/config','PUT',body);
+      const k=document.getElementById('mail-key'); if(k) k.value='';
+      stDrawerClearRefusal(); toast(i18t(key?'set_mail_saved':'set_mail_from_saved'),'ok'); stMailCfgSaved(r&&r.mail); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+  document.getElementById('mail-key-clear')?.addEventListener('click',async()=>{
+    if(!await confirmDialog({title:i18t('set_mail_remove_q'),
+        message:(_stMailCfg&&_stMailCfg.envKey)?i18t('set_mail_remove_to_env'):i18t('set_mail_remove_msg'),
+        confirmLabel:i18t('st_key_remove_go'), danger:true})) return;
+    try{ const r=await api('mail/config','PUT',{ clear:true }); toast(i18t('set_mail_removed'),'ok'); stMailCfgSaved(r&&r.mail); }
+    catch(e){ stDrawerRefuse(e.message); }
+  });
+}
 function stWireOutbox(){
   stLoadOutbox();
+  stWireMailKey();
   const busy=(btn,word,fn)=>async()=>{
     const held=btn.innerHTML;
     btn.disabled=true; btn.innerHTML=esc(i18t(word));
@@ -4455,11 +4524,26 @@ function renderTeam(){
      that list panels; stWireList is a no-op on the other two and binds once
      per element, never once per render. */
   stWireList();
+  stLoadAiCfgOnce();
   if(tab==='you') stAccountWire();
   /* A door may have asked for one panel. Consumed on arrival, exactly once, so
      a later repaint does not re-open something the reader closed. */
   if(_stWantPanel){ const want=_stWantPanel; _stWantPanel=null; stDrawerOpen(want); }
   setActiveNav('team');
+}
+/* THE ENGINE ROW AND THE GO-LIVE CEILING READ state.aiCfg, which only the
+   engine drawer used to fill — so both read "not set" until that drawer had
+   been opened once (9 Oct 2026). Read once when the page opens, in a
+   workspace, for an admin; the rows are repainted where they stand. */
+let _stAiCfgAsking=false;
+async function stLoadAiCfgOnce(){
+  if(state.aiCfg || _stAiCfgAsking || !(typeof API_MODE==='function' && API_MODE())) return;
+  _stAiCfgAsking=true;
+  try{ const c=await api('ai/config');
+    if(c && typeof c==='object'){ state.aiCfg=c; state.aiConfigured=!!c.configured;
+      stRepaintRow('engine'); stRepaintRow('golive'); } }
+  catch(_){ /* the drawer's own read says why when it is opened */ }
+  finally{ _stAiCfgAsking=false; }
 }
 /* A non-admin's whole settings page: their own account, drawn in the page
    rather than in the drawer, because arriving at a view and being handed a
@@ -5144,8 +5228,10 @@ function openApprovalRuleEditor(idx){
      The name is kept and shown for what it is, and the save refuses until a
      person actually chooses. Naming the departed member is the point: an admin
      who can see WHO it used to be can pick the right replacement. */
+  const isAp = m => r.approver && r.approver.kind==='member'
+    && (r.approver.id ? String(m.id)===String(r.approver.id) : m.name===r.approver.name);
   const orphan = r.approver && r.approver.kind==='member'
-    && !members.some(m=>m.name===r.approver.name) ? r.approver.name : null;
+    && !members.some(isAp) ? r.approver.name : null;
   openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?i18t('set_edit_rule'):i18t('set_add_rule')}</h3>
     <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_order_lower_first')}</span>
@@ -5158,7 +5244,7 @@ function openApprovalRuleEditor(idx){
         <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>${i18t('set_any_admin')}</option>
         <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>${i18t('set_any_legal')}</option>
         ${orphan?`<option value="orphan" selected>${esc(orphan)} — ${i18t('set_approver_gone')}</option>`:''}
-        ${members.map(m=>`<option value="member:${m.name}" ${r.approver.kind==='member'&&r.approver.name===m.name?'selected':''}>${m.name} (${roleName(m.role)})</option>`).join('')}
+        ${members.map(m=>`<option value="member:${esc(m.id)}" ${isAp(m)?'selected':''}>${esc(m.name)} (${roleName(m.role)})</option>`).join('')}
       </select>
       ${orphan?`<span style="display:block;margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
     <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
@@ -5179,7 +5265,8 @@ function openApprovalRuleEditor(idx){
     if(apRaw==='orphan'){ toast(i18t('set_pick_approver'),'err'); return; }
     const ap=apRaw.split(':');
     r.order=Math.max(1,Number(document.getElementById('ar-order').value||1)); r.cond=cond;
-    r.approver = ap[0]==='member'?{kind:'member',name:ap.slice(1).join(':')}:{kind:'role',role:ap[1]};
+    const apM = ap[0]==='member' ? members.find(m=>String(m.id)===ap.slice(1).join(':')) : null;
+    r.approver = apM?{kind:'member',name:apM.name,id:apM.id}:{kind:'role',role:ap[1]};
     r.name = condLabel(cond);
     if(idx>=0) rules[idx]=r; else rules.push(r);
     saveApprovalRules(rules); closeModal(); renderApprovalRules(); toast(i18t('set_rule_saved'));
@@ -5377,13 +5464,22 @@ function renderLinkCodePanel(){
   const host=document.getElementById('lc-rule-panel'); if(!host) return;
   const admin=isAdmin();
   const cfg=(window.linkCodeCfg?linkCodeCfg():{on:false});
+  /* NO EMAIL, NO CODE (8 Oct 2026): a guest asked for a code nobody can mail
+     them is locked out, so the switch does not go ON while email is not set
+     up — greyed with its reason and the way to the mail settings. A rule
+     already on may still be switched off. The server refuses it too. */
+  const noMail=!!(window.emailOff&&emailOff());
+  const blocked=noMail&&!cfg.on;
   host.innerHTML=`
-    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin?'pointer':'not-allowed'}">
-      <input id="lc-rule-on" type="checkbox"${cfg.on?' checked':''}${admin?'':' disabled'} style="margin-top:2px"/>
+    <label style="display:flex;gap:9px;align-items:flex-start;font-size:var(--t-meta);line-height:1.5;cursor:${admin&&!blocked?'pointer':'not-allowed'}">
+      <input id="lc-rule-on" type="checkbox"${cfg.on?' checked':''}${admin&&!blocked?'':' disabled'} style="margin-top:2px"/>
       <span style="font-weight:var(--w-strong);color:var(--color-text)">${i18t('set_link_code')}</span>
-    </label>`;
+    </label>${noMail?`<p id="lc-rule-why" class="st-note" style="margin:6px 0 0 24px">${esc(i18t(cfg.on?'set_link_code_no_mail_on':'set_link_code_no_mail'))}${
+      admin&&window.openSettingsAt?` <button type="button" class="ui-link" id="lc-rule-mail">${esc(i18t('set_link_code_set_mail'))}</button>`:''}</p>`:''}`;
   if(!admin) return;
+  host.querySelector('#lc-rule-mail')?.addEventListener('click',()=>{ try{ openSettingsAt('build','mail'); }catch(_){} });
   host.querySelector('#lc-rule-on')?.addEventListener('change',e=>{
+    if(e.target.checked && window.emailOff && emailOff()){ e.target.checked=false; toast(i18t('set_link_code_no_mail'),'err'); return; }
     if(window.saveLinkCodeCfg) saveLinkCodeCfg({ on:!!e.target.checked });
     stRepaintRow('linkcode');
     if(window.toast) toast(i18t(e.target.checked?'set_link_code_on':'set_link_code_off'),'ok');
@@ -5453,7 +5549,7 @@ Object.assign(window,{renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST
   stRulesRows,stPaintRules,stPaintSignFolders,
   openMyAccount,openSettingsAt,settingsGoTab,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
-  settingsWriteFolderAccess,settingsExportBackup,stGoLive,stSampleContracts,stClearSamples,stRunIntegrity,
+  settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,
   stSigningSectionHtml,stSigningRead,stPaintLadder,stReviewSectionHtml,stReviewRead,stSignFolderHtml,stSignFolderRead,
   stOverseerSectionHtml,stOverseerRead,

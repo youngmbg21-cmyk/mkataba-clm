@@ -413,6 +413,10 @@ describe('f167 · the desk gates redlining and sending, never signing', () => {
     /* The route path records its OWN signature before this runs, so the stub
        only seals — pushing a second one here would count the same mark twice. */
     w.win.finalizeExecution = async c => { c.status = 'Signed'; };
+    /* D4 (8 Oct 2026): in server mode the seal is the server's — the stand-in
+       moves with it, and the frozen copy the page prepares is not this file's. */
+    w.win.sealPrepStamp = async () => {};
+    w.win.sealOnServer = async c => { c.status = 'Signed'; };
     return w;
   }
 

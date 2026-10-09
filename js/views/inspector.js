@@ -362,9 +362,9 @@ function insPartiesHtml(list){
    The row's colour is its urgency (ruby late, amber owed), the frame takes the
    worst row's, and a button wears the platform's one light edge (26 Sep 2026)
    with the row's colour on its word. */
-const INS_NEED_VERB = { quiet: 'home_verb_answer', review: 'home_verb_review', look: 'ins_need_v_look', approval: 'ins_need_v_approval', join: 'home_verb_answer',
+const INS_NEED_VERB = { quiet: 'home_verb_answer', review: 'home_verb_review', look: 'ins_need_v_look', approval: 'ins_need_v_approval', refused: 'ins_need_v_refused', join: 'home_verb_answer',
   note: 'home_verb_answer', suggest: 'home_verb_answer', sign: 'home_verb_sign', renewal: 'home_verb_decide' };
-const INS_NEED_GO = { quiet: 'ins_need_go_nego', review: 'ins_need_go_nego', look: 'ins_need_go_look', approval: 'ins_need_go_approval', join: 'ins_need_go_desk',
+const INS_NEED_GO = { quiet: 'ins_need_go_nego', review: 'ins_need_go_nego', look: 'ins_need_go_look', approval: 'ins_need_go_approval', refused: 'ins_need_go_refused', join: 'ins_need_go_desk',
   note: 'ins_need_go_notes', suggest: 'ins_need_go_nego', sign: 'ins_need_go_sign', renewal: 'ins_need_go_terms' };
 /* One row's words: a title, and a line under it as HTML (`sub`) with the same
    words plain on its hover (`plain`) — the line is cut to one line, never the
@@ -388,6 +388,8 @@ function insNeedWords(c, it){
         d == null ? null : bit(i18t('ins_need_waiting', { days: _insDaysWord(d) }), !!it.urgent)]));
   }
   if (it.kind === 'approval') return Object.assign({ title: i18t('ins_need_approval') }, lineOf([bit(i18t('ins_need_approval_sub'))]));
+  if (it.kind === 'refused') return Object.assign({ title: i18t('ins_need_refused', { who: it.who || '' }) },
+    lineOf([it.why ? bit('\u201c' + it.why + '\u201d', true) : null]));
   if (it.kind === 'quiet'){
     const d = _insDaysSince(it.since);
     let std = 0; try { std = (typeof deskCfg === 'function') ? Number(deskCfg().staleDays || 0) : 0; } catch (_) { std = 0; }

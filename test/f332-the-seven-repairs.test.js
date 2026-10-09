@@ -310,8 +310,11 @@ describe('f332 (6) which side of the money we are on is asked at creation', () =
       'the same field the upload path fills — one reading, not two');
   });
 
-  test('6b "neither" writes nothing at all', () => {
-    assert.match(read('js/templatefields.js'), /v:'', l:i18t\('tf_side_none'\)/);
+  test('6b "not recorded" writes nothing at all', () => {
+    /* RE-POINTED 9 Oct 2026 (functional review C12): the empty answer used to
+       read "Neither — no one pays", a claim; it reads "not recorded" now and
+       still writes nothing. */
+    assert.match(read('js/templatefields.js'), /v:'', l:i18t\('tf_side_unset'\)/);
     assert.match(read('js/templatefields.js'), /if\(v==='' \|\| v==null\) continue;/,
       'applyTemplateValues skips an empty answer, so no category is claimed');
   });
@@ -368,7 +371,10 @@ describe('f332 (7) re-filing can be delegated, and is off by default', () => {
   });
 
   test('7c it is an admin\'s to give, never self-service, and refused on the two roles that answer for themselves', () => {
-    const i = SRV.indexOf('if (b.reFile !== undefined)');
+    /* Since 9 Oct 2026 the grant is written on its own (it was refused with
+       "Nothing to change" when it was the only box ticked): its block opens
+       on its own flag. */
+    const i = SRV.indexOf('if (hasReFile) {');
     assert.ok(i > 0);
     const body = SRV.slice(i, i + 700);
     assert.match(body, /role === 'admin' && !b\.reFile/, 'an admin may always re-file');

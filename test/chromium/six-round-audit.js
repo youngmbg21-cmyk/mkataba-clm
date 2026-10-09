@@ -309,6 +309,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
     check(3, 'and asks for shorter notice', r3 === 'ok', r3);
     await pause(400);
     await owner.evaluate(() => { const b = document.getElementById('nego-send'); if (b) b.click(); });
+    /* Send all names what travels and asks once (9 Oct 2026). */
+    await pause(400); await owner.evaluate(() => { const ok = document.getElementById('cf-ok'); if (ok) ok.click(); });
     await pause(1500); await ownerFlush(); await pause(300);
 
     const shares = (await admin.json(`/api/contracts/${CID}/shares`)).shares || [];
@@ -451,6 +453,8 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       persist(c); renderRedline();
     });
     await owner.evaluate(() => { const b = document.getElementById('nego-send'); if (b) b.click(); });
+    /* Send all names what travels and asks once (9 Oct 2026). */
+    await pause(400); await owner.evaluate(() => { const ok = document.getElementById('cf-ok'); if (ok) ok.click(); });
     await pause(1200); await ownerFlush();
 
     await cpOpen(token);

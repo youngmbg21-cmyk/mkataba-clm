@@ -414,6 +414,7 @@ const HEAVY = c => { // strip the big fields for list/index responses
   const x = { ...c };
   dropSittingKeys(x);
   if (x.execution) x.execution = { ...x.execution, html: undefined };
+  x.sealPrep = undefined;   // the frozen copy waiting for the seal: the record's, never the list's
   if (x.upload) x.upload = { ...x.upload, dataUrl: undefined, extractedText: undefined };
   /* THE STORED OWNER WINS. `_raisedBy` was the stop-gap that made the
      dashboard true before a contract had an owner field; it stays for every
@@ -1201,6 +1202,46 @@ function dkSuggestionRefusal(prev, next, user) {
   }
   return null;
 }
+/* ---- WHO MAY DISCARD OUR UNSENT DRAFT — THE SERVER'S OWN READING ----
+   (Owner decision D3, 9 Oct 2026.) js/negotiation.js's negoMayDiscard, repeated
+   here for the reason deskRuleOn gives above. The draft's author (the
+   suggestion stamp's id where there is one, else the name), unless a colleague
+   has revised it since; the desk's lead; an admin; and where the desk rule
+   is off (or nobody leads a desk), the contract's owner too. Asked of the STORED record. */
+function srvMayDiscard(c, ch, user) {
+  if (!ch || !user) return false;
+  if (user.role === 'admin') return true;
+  const g = dkSuggestion(ch);
+  const mine = (g && g.byId) ? String(g.byId) === String(user.id)
+    : !!user.name && String(ch.author || '') === String(user.name);
+  if (mine && !(ch.revisedBy && String(ch.revisedBy) !== String(user.name || ''))) return true;
+  if (deskIsClaimed(c) && deskSeatOf(c, user) === 'lead') return true;
+  if (deskIsClaimed(c) && deskRuleOn()) return false;
+  const o = c && c.owner;
+  return !!(o && (o.id ? String(o.id) === String(user.id) : (o.name && o.name === user.name)));
+}
+/* The refusal, or null — asked as a DIFFERENCE: one of our pending changes on
+   the stored record that is gone from this save (neither live nor in a closed
+   round), or whose unsent revisions were cut back. */
+function srvDiscardRefusal(prev, next, user) {
+  if (!prev || !user || user.role === 'admin') return null;
+  const nowById = new Map((Array.isArray(next && next.changes) ? next.changes : [])
+    .filter(x => x && x.id).map(x => [String(x.id), x]));
+  const inRounds = new Set();
+  for (const r of ((next && next.negotiation && Array.isArray(next.negotiation.rounds)) ? next.negotiation.rounds : []))
+    for (const x of (Array.isArray(r && r.changes) ? r.changes : [])) if (x && x.id) inRounds.add(String(x.id));
+  for (const ch of (Array.isArray(prev.changes) ? prev.changes : [])) {
+    if (!ch || !ch.id || ch.authorSide === 'counterparty' || String(ch.status || '') !== 'pending') continue;
+    const now = nowById.get(String(ch.id));
+    const gone = !now && !inRounds.has(String(ch.id));
+    const cut = now && (Array.isArray(now.revisions) ? now.revisions.length : 0)
+      < (Array.isArray(ch.revisions) ? ch.revisions.length : 0);
+    if (!gone && !cut) continue;
+    if (!srvMayDiscard(prev, ch, user))
+      return `#${ch.id} — you can discard only your own drafts. The person leading this negotiation, or an admin, can discard a colleague's.`;
+  }
+  return null;
+}
 /* Did this save add, remove or reword one of OUR changes? Their proposals are
    not this rule's business — those arrive through the share routes, which have
    their own wall — so only owner-side records are compared. The hash is the
@@ -1954,12 +1995,26 @@ function srvRuleMatches(rule, c) {
     default: return false;
   }
 }
-/* approvalStamp's twin: the amount, and a cheap hash of the words. */
+/* approvalStamp's twin (js/approvals.js, v2 since 8 Oct 2026 — B6): the
+   amount, a cheap hash of the WORDS, the terms that were filled in, the
+   parties — and `legacy`, the v1 hash a stamp from before is compared with. */
+const srvApHash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h.toString(16); };
 function srvApprovalStamp(c) {
-  const doc = String((c && c.redlineText) || '') + '\u0000' + JSON.stringify((c && c.fields) || {})
-    + '\u0000' + String((c && c.upload && c.upload.fileHash) || '');
-  let h = 0; for (let i = 0; i < doc.length; i++) h = (h * 31 + doc.charCodeAt(i)) >>> 0;
-  return { value: Number((c && c.value) || 0), doc: h.toString(16) };
+  const f = (c && c.fields) || {}, fields = {};
+  Object.keys(f).sort().forEach(k => { const v = f[k]; if (v != null && String(v).trim() !== '') fields[k] = String(v); });
+  return { v: 2, value: Number((c && c.value) || 0),
+    doc: srvApHash(String((c && c.redlineText) || '') + '\u0000' + String((c && c.upload && c.upload.fileHash) || '')),
+    fields, parties: srvApHash([c && c.party, c && c.counterparty].map(x => String(x || '').trim().toLowerCase()).join('|')),
+    legacy: srvApHash(String((c && c.redlineText) || '') + '\u0000' + JSON.stringify((c && c.fields) || {})
+      + '\u0000' + String((c && c.upload && c.upload.fileHash) || '')) };
+}
+/* A filled blank is not a change; a filled term that moved is (approvalDrift). */
+function srvApprovalStampMoved(st, n) {
+  if (!st || !n) return false;
+  if (Number(st.value || 0) !== n.value) return true;
+  if (Number(st.v || 0) < 2) return String(st.doc || '') !== n.legacy;
+  if (String(st.doc || '') !== n.doc || String(st.parties || '') !== n.parties) return true;
+  return Object.keys(st.fields || {}).some(k => String((n.fields || {})[k] == null ? '' : n.fields[k]) !== String(st.fields[k]));
 }
 /* Every matched rule whose step is not a live approval: pending, refused, or
    approved over a contract that has moved since. */
@@ -1982,8 +2037,7 @@ function srvApprovalChainOpen(c) {
 function srvRuleYesLapsed(step, now) {
   const st = step && step.stamp;
   const n = now || null;
-  return askLapsed({ state: 'yes' }, { drift: () => (st && n && (Number(st.value || 0) !== n.value
-    || String(st.doc || '') !== n.doc)) ? ['stamp'] : [] }).lapsed;
+  return askLapsed({ state: 'yes' }, { drift: () => srvApprovalStampMoved(st, n) ? ['stamp'] : [] }).lapsed;
 }
 /* ---- THE APPROVAL RULES ARE A WALL, NOT ONLY A SCREEN (the owner's list,
    27 Sep 2026) ----
@@ -2028,7 +2082,7 @@ function srvApprovalChainRefusal(c, prev) {
    role. */
 function srvUserCanApprove(a, u) {
   if (!u || !a) return false;
-  if (a.kind === 'member') return String(a.name || '') === String(u.name || '');
+  if (a.kind === 'member') return a.id ? String(a.id) === String(u.id || '') : String(a.name || '') === String(u.name || '');
   if (a.role === 'admin') return u.role === 'admin';
   if (a.role === 'legal') return u.role === 'legal' || u.role === 'admin';
   return u.role === a.role;
@@ -3105,7 +3159,27 @@ const code6 = () => String(crypto.randomInt(0, 1000000)).padStart(6, '0');
    Without it, mail is queued to the outbox table so the flow still works and
    an admin can read what would have been sent (including dev codes) — the
    single place a key turns this from demo into production email. */
-const EMAIL_ON = () => !!process.env.RESEND_API_KEY;
+/* THE KEY AN ADMIN SAVES FROM THE SCREEN (9 Oct 2026). "Email delivery —
+   REQUIRED" had no way forward inside the product: it asked for an
+   environment variable on the server. An admin can now save the mail key in
+   Settings → Email delivery, stored here exactly as the Copilot key is — on
+   the server, never sent back to a browser (only its last four characters).
+   THE SERVER'S OWN ENVIRONMENT STILL WINS where it is set, so a deployment
+   configured the old way behaves exactly as it did. The From address follows
+   the same order. */
+const MAIL_FROM_DEFAULT = 'HaTi <onboarding@resend.dev>';
+const mailKey = () => process.env.RESEND_API_KEY || getSetting('mailKey') || '';
+const mailFrom = () => process.env.EMAIL_FROM || getSetting('mailFrom') || MAIL_FROM_DEFAULT;
+const EMAIL_ON = () => !!mailKey();
+/* What the Email delivery drawer may know: where the key lives and its last
+   four characters, never the key. */
+function mailCfgOf() {
+  const env = !!process.env.RESEND_API_KEY, stored = getSetting('mailKey') || '';
+  const k = mailKey();
+  return { configured: !!k, source: env ? 'env' : stored ? 'settings' : null, envKey: env,
+    hint: k ? '…' + k.slice(-4) : '', from: mailFrom(),
+    fromSource: process.env.EMAIL_FROM ? 'env' : getSetting('mailFrom') ? 'settings' : 'default' };
+}
 /* When Resend refuses a message it says why, in a plain sentence — the address
    is suppressed, the domain is unverified, the key is restricted, the plan's
    daily quota is spent. Keeping only the status code threw that sentence away
@@ -3189,13 +3263,13 @@ async function sendEmail(to, subject, body, devHint, opts = {}) {
         .map(a => ({ filename: String(a.filename).slice(0, 120), content: String(a.content) }))
     : [];
   if (EMAIL_ON()) {
-    const from = process.env.EMAIL_FROM || 'HaTi <onboarding@resend.dev>';
+    const from = mailFrom();
     try {
       // Base URL overridable exactly as ANTHROPIC_BASE_URL is, so the refusal
       // paths can be exercised against a stub instead of live-firing at Resend.
       const r = await fetch((process.env.RESEND_BASE_URL || 'https://api.resend.com') + '/emails', {
         method: 'POST',
-        headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
+        headers: { Authorization: 'Bearer ' + mailKey(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ from, to: [to], subject, text: body,
           ...(opts.html ? { html: String(opts.html) } : {}),
           ...(attachments.length ? { attachments } : {}) }),
@@ -3210,10 +3284,18 @@ async function sendEmail(to, subject, body, devHint, opts = {}) {
     // visible anywhere in the product.
     if (detail) detail += ` · sent from ${from}`;
   }
-  if (attachments.length) detail = [detail, 'attachments: ' + attachments.map(a => a.filename).join(', ')].filter(Boolean).join(' · ');
+  /* THE ATTACHMENT NAMES ARE THE OUTBOX ROW'S NOTE, NOT AN ERROR (9 Oct 2026).
+     They used to be folded into the returned `detail`, which every caller
+     reads as "why it did not go" — so a Word-file share stored
+     "attachments: x.docx" as its send_error and the signing card read a
+     delivered file as failed. The row keeps the names; the caller gets the
+     refusal alone (null when there was none) and the names on their own. */
+  const rowDetail = attachments.length
+    ? [detail, 'attachments: ' + attachments.map(a => a.filename).join(', ')].filter(Boolean).join(' · ')
+    : detail;
   db.prepare('INSERT INTO outbox (id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at) VALUES (?,?,?,?,?,?,?,?,?)')
-    .run(id, to || '', subject, body, sent, provider, EMAIL_ON() ? null : (devHint || null), detail, at);
-  return { id, sent, provider, detail };
+    .run(id, to || '', subject, body, sent, provider, EMAIL_ON() ? null : (devHint || null), rowDetail, at);
+  return { id, sent, provider, detail, attached: attachments.map(a => a.filename) };
 }
 
 /* WHAT A ROUTE SAYS ABOUT A MESSAGE IT JUST TRIED TO SEND — one shape, named
@@ -4131,7 +4213,14 @@ app.get('/api/contracts/:id/state', auth, (req, res) => {
      not returned at all — the browser's own reading discards them too, and
      two readings that disagreed about whether a lock is alive would be a page
      drawing a lock somebody can walk straight through. */
-  res.json({ version: r.version, updatedAt: r.updated_at || null, locks: srvLocksLive(r.json) });
+  /* COPILOT'S ANSWERS TO THEIR ROUND RIDE THE PROBE TOO (Young, 9 Oct 2026,
+     the Paper and Counter review, change 1): they live in their own table
+     (round_prep) and a redo moves no version, so a page watching the version
+     never learned of one. `prepAt` is the newest answer's time — a stamp, not
+     the answers; the page fetches the record only when it moves. */
+  let prepAt = null;
+  try { prepAt = (db.prepare("SELECT MAX(COALESCE(json_extract(json,'$.at'), created_at)) AS t FROM round_prep WHERE contract_id=?").get(String(req.params.id)) || {}).t || null; } catch (_) { prepAt = null; }
+  res.json({ version: r.version, updatedAt: r.updated_at || null, locks: srvLocksLive(r.json), prepAt });
 });
 
 /* ---------- ONE CLAUSE, ONE PAIR OF HANDS: the presence write ----------
@@ -4653,6 +4742,25 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      `here`: a browser holding the record from before the claim would echo the
      flag back and owe the reading twice, and no save may invent one. */
   if (prev && prev.arrivalOwed) c.arrivalOwed = prev.arrivalOwed; else delete c.arrivalOwed;
+  /* ---- THE FROZEN COPY THE SERVER SEALS FROM (D4, 8 Oct 2026) ----
+     A save may bring a NEW prep (sealPrepStamp, at a signature of ours); this
+     server stamps it with the fingerprint of the wording it was drawn from.
+     A save without one (a list row, an older page) keeps the stored one. A
+     sealed record carries none. */
+  {
+    const bare = x => { if (!x || typeof x !== 'object') return null; const y = { ...x }; delete y.basis; return y; };
+    if (prev && isExecutedRow(prev)) delete c.sealPrep;
+    else if (c.sealPrep && typeof c.sealPrep === 'object') {
+      if (prev && prev.sealPrep && stable(bare(prev.sealPrep)) === stable(bare(c.sealPrep))) c.sealPrep = prev.sealPrep;
+      else c.sealPrep = { ...bare(c.sealPrep), basis: srvWordingBasis(c) };
+    } else if (prev && prev.sealPrep) c.sealPrep = prev.sealPrep;
+    else delete c.sealPrep;
+  }
+  /* The copies the SERVER sent are filed on the stored record without moving
+     its version (srvSendExecutedCopies); a page holding the record from
+     before that does not unfile them. A newer send (Send again) wins. */
+  if (prev && prev.distribution && (!c.distribution || String(c.distribution.at || '') < String(prev.distribution.at || '')))
+    c.distribution = prev.distribution;
   /* What a send kept back stays kept back through a save — see rvKeptCarry. */
   rvKeptCarry(prev, c);
   /* ---- A CHASE ALREADY SENT IS NOT UNDONE BY A SAVE (27 Sep 2026) ----
@@ -4678,6 +4786,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      older copy cannot lift a handover, and no client can give itself a
      number. A brand-new record starts with neither. */
   if (prev && prev.handover) c.handover = prev.handover; else delete c.handover;
+  /* A RENEWAL THE SERVER RECORDED (B15) is the server's, like the handover. */
+  if (prev && prev.autoRenewed) c.autoRenewed = prev.autoRenewed; else delete c.autoRenewed;
   if (prev && prev.handoverHistory) c.handoverHistory = prev.handoverHistory; else delete c.handoverHistory;
   if (prev && prev.contractNo) c.contractNo = prev.contractNo; else delete c.contractNo;
   /* A new record may not take an id that is already somebody's number. */
@@ -4854,6 +4964,32 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
         immutable: changed, signedFreeze: true,
       });
     }
+  }
+  /* ---------- AND A SIGNED CONTRACT DOES NOT GO BACK TO DRAFT (B4) ----------
+     Asked as a DIFFERENCE against the STORED record: while a signature stands
+     (the save does not clear it — restarting the signing does), the status
+     may not move back to Draft. */
+  if (prev && !isExecutedRow(prev) && anySignatureRow(prev) && anySignatureRow(c)
+      && c.status === 'Draft' && prev.status !== 'Draft')
+    return res.status(409).json({ immutable: ['status'], signedFreeze: true,
+      error: `${contractRef(prev)} has been signed by at least one person, so it cannot go back to Draft. `
+        + 'Restart the signing on the Signing tab first if the wording has to be worked on again.' });
+  /* ---------- A CLOSED DEAL IS REOPENED BY ITS OWNER OR AN ADMIN (B14) ----------
+     Declining stamps the stage it was declined from (`declinedFrom`, the
+     server's to write); reopening must come from the contract's owner or an
+     admin, name them, carry a reason, and go back to Draft or Under Review. */
+  if (prev && prev.status !== 'Declined' && c.status === 'Declined') c.declinedFrom = prev.status;
+  else if (prev && prev.status === 'Declined' && c.status === 'Declined') { if (prev.declinedFrom) c.declinedFrom = prev.declinedFrom; else delete c.declinedFrom; }
+  if (prev && prev.status === 'Declined' && c.status !== 'Declined') {
+    const owns = !!(prev.owner && prev.owner.id && String(prev.owner.id) === String(req.user.id));
+    if (req.user.role !== 'admin' && !owns)
+      return res.status(403).json({ error: `Only the contract's owner or an admin can reopen ${contractRef(prev)}.`, reopen: true });
+    const ro = c.reopened || {};
+    if (!String(ro.why || '').trim() || !ro.by || String(ro.by.id) !== String(req.user.id))
+      return res.status(400).json({ error: 'Reopening a closed contract needs a reason, in your own name.', reopen: true });
+    if (!['Draft', 'Under Review'].includes(c.status))
+      return res.status(409).json({ error: 'A closed contract reopens to Draft or Under Review.', reopen: true });
+    delete c.declinedFrom;
   }
   /* ---------- WHO RUNS THE SIGNING MOVES ONLY BEFORE ANYBODY SIGNS ----------
      (26 Sep 2026.) Once one person has signed in HaTi, the signing HaTi runs
@@ -5079,6 +5215,9 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      the whole feature is one request wide — delete the stamp, then send. */
   const sgWhy = dkSuggestionRefusal(prev, c, req.user);
   if (sgWhy) return res.status(403).json({ error: sgWhy, desk: 'suggestion' });
+  /* ---- AND A COLLEAGUE'S UNSENT DRAFT IS NOT YOURS TO DISCARD (D3, 9 Oct 2026) ---- */
+  const dcWhy = srvDiscardRefusal(prev, c, req.user);
+  if (dcWhy) return res.status(403).json({ error: dcWhy, discard: 'not-yours' });
 
   /* ---- AND A CLAUSE A COLLEAGUE IS TYPING IN IS NOT YOURS TO FILE AGAINST ----
      (Young asked 10 Sep 2026.) The browser refuses at the editor's door and
@@ -5561,6 +5700,19 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
     at: now(), user: req.user.name || 'System', action: 'Looked at it',
     detail: `${req.user.name || ''} marked done what ${(a.by && a.by.name) || 'a colleague'} sent${a.stamp && a.stamp.review ? ' for review' : ''}` })));
 
+  /* ---- D4: THE SAVE THAT CARRIES THE LAST SIGNATURE IS SEALED HERE ----
+     By HaTi, from the prepared frozen copy (srvSealNow) — a browser no longer
+     seals, and whatever seal an older page computed for itself is replaced by
+     the server's. A page that sends its own frozen copy (older pages did, on
+     c.execution) is taken as the prep. */
+  let sealedNow = false;
+  if (prev && !isExecutedRow(prev) && srvSealWanted(c)) {
+    if (!c.sealPrep && c.execution && c.execution.html && c.execution.textHash)
+      c.sealPrep = { html: c.execution.html, format: c.execution.format, hashMode: c.execution.hashMode, textHash: c.execution.textHash,
+        firstParty: c.execution.firstParty, esignature: c.execution.esignature, tzOffsetMin: c.execution.tzOffsetMin,
+        tzLabel: c.execution.tzLabel, basis: srvWordingBasis(c) };
+    if (srvSealPrepOk(c)) { delete c.execution; delete c.hash; delete c.sealVersion; srvSealNow(c, now()); sealedNow = true; }
+  }
   if (existing) { const r = db.prepare('SELECT seq FROM contracts WHERE id=?').get(req.params.id); c._seq = r.seq; }
   else c._seq = nextSeq();
   /* ---- WO N7: the four activation moments, observed where they land ----
@@ -5641,6 +5793,14 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
        contract's owner. Before this nobody was told at all. */
     else if (chainCleared) notifyInternalSignerTurn(req, c.id);
     if (chainCleared) ruleChainClearedTell(req, c, req.params.id);
+    /* A REFUSED RULE STEP REACHES THE OWNER (B5, 8 Oct 2026): only the
+       Signing tab said so before — no mail, no bell, no checklist. Asked as a
+       difference: a step this save moved to rejected. */
+    if (prev) {
+      const was = new Map((Array.isArray(prev.approvalChain) ? prev.approvalChain : []).filter(Boolean).map(s => [String(s.ruleId), s.status]));
+      for (const s of (Array.isArray(c.approvalChain) ? c.approvalChain : []))
+        if (s && s.status === 'rejected' && was.get(String(s.ruleId)) !== 'rejected') ruleStepRefusedTell(req, c, s);
+    }
     /* A RULE STEP THAT HAS BECOME SOMEBODY'S TO DECIDE is mailed to them —
        the named-yes rule, now the rule steps' too. See ruleStepDue. */
     const due = prev ? ruleStepDue(prev, c) : null;
@@ -5662,7 +5822,8 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
   } catch (_) {}
   /* A REQUEST DRAFTED AS THIS CONTRACT IS DONE once the contract leaves Drafting. */
   try { srvIntakeCloseOn(prev, c, req); } catch (_) {}
-  res.json({ ok: true, version: next, signNeeds,
+  if (sealedNow) srvSendExecutedCopies(c.id, srvAppUrl(req));
+  res.json({ ok: true, version: next, signNeeds, ...(sealedNow ? { sealed: true } : {}),
     /* The one ask record as stored — the browser takes it as given
        (asksTakeServer); money in a stamp masked for whoever may not see it. */
     ...(Array.isArray(c.asks) ? { asks: canViewValues(req.user) ? c.asks : asksMasked(c.asks) } : {}),
@@ -5753,6 +5914,14 @@ app.delete('/api/contracts/:id', auth, editor, (req, res) => {
     return res.status(409).json({
       error: `${req.params.id} is executed and cannot be deleted. An executed agreement is a record; archive it or record a termination instead.`,
     });
+  }
+  /* A SIGNATURE IS EVIDENCE (B4, 8 Oct 2026): a contract somebody has signed
+     — ours on the route, or theirs arrived on a link — is not a draft to
+     throw away. The way forward is the one the Signing tab already offers. */
+  if (c && (anySignatureRow(c) || srvSignResponsesWaiting(req.params.id).length)) {
+    return res.status(409).json({ signed: true,
+      error: `${contractRef(c)} has been signed by at least one person, so it cannot be deleted — a signature is evidence. `
+        + 'If the signing has to start again, an admin restarts it on the Signing tab, which clears the signatures; it can be deleted after that.' });
   }
   const fileIds = [];
   if (c && c.upload && c.upload.fileId) fileIds.push(c.upload.fileId);
@@ -5860,6 +6029,12 @@ app.put('/api/settings', auth, admin, (req, res) => {
   /* WHO SAVED A LANE, AND WHO IT NAMES, ARE THE SERVER'S WORD — see
      srvLanesStamp. */
   if (Array.isArray(incoming.intakeLanes)) incoming.intakeLanes = srvLanesStamp(incoming.intakeLanes, stored.intakeLanes, req.user);
+  /* ---- A CODE NOBODY CAN MAIL LOCKS THE GUEST OUT (8 Oct 2026) ----
+     Switching the link code ON while email is not set up is refused — as a
+     DIFFERENCE against the stored rule, so a rule already on (or a save that
+     leaves it alone) never blocks an unrelated setting. */
+  if (((incoming.linkCode || {}).on) && !((stored.linkCode || {}).on) && !EMAIL_ON())
+    return res.status(409).json({ error: 'Email is not set up, so a guest could never receive the code. Set up email first, then switch this on.', linkCodeNeedsEmail: true });
   setSetting('appSettings', incoming);
   res.json({ ok: true, ...(Array.isArray(incoming.intakeLanes) ? { intakeLanes: incoming.intakeLanes } : {}) });
 });
@@ -9989,7 +10164,7 @@ function dealPageHtml(D, org) {
     <div style="font-size:15px;font-weight:600;color:#1B2A28">${e(v)}</div></td>`;
   const clauseOf = p => (p && p.clause) || 'a clause';
   const li = (mark, a, b) => `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #F1F4F3;font-size:14px">
-    <span style="flex:none;color:${mark === 'o' ? '#E8B84B' : '#0C5D55'};line-height:1.5">${mark === 'o' ? '○' : '✓'}</span>
+    <span style="flex:none;color:${mark === 'o' ? '#E8B84B' : mark === 'x' ? '#9B2C2C' : '#0C5D55'};line-height:1.5">${mark === 'o' ? '○' : mark === 'x' ? '✕' : '✓'}</span>
     <span><b style="font-weight:600">${e(a)}</b>${b ? `<i style="font-style:normal;display:block;color:#5F6D6B;font-size:12.5px;margin-top:1px">${e(b)}</i>` : ''}</span></div>`;
   /* THE SHARED SHEET (4 Oct 2026): one row of facts — the round, how much is
      settled, what waits on each party — in place of "Whose move — X for 0 days". */
@@ -10015,8 +10190,8 @@ function dealPageHtml(D, org) {
       <table style="width:100%;border-collapse:collapse;margin:16px 0 18px"><tr>${D.steps.map(step).join('')}</tr></table>
       <table style="width:100%;border-collapse:collapse"><tr style="vertical-align:top">
         <td style="width:50%;padding-right:12px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Agreed &middot; ${D.settled}</div>
-          ${D.settledPoints.length ? D.settledPoints.map(p => li('t', clauseOf(p), '')).join('')
+          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Settled &middot; ${D.settled}</div>
+          ${D.settledPoints.length ? D.settledPoints.map(p => p.settled ? li('t', clauseOf(p), '') : li('x', clauseOf(p), 'not taken')).join('')
             + (D.settled > D.settledPoints.length ? `<div style="font-size:13px;color:#8A9693;padding:5px 0">and ${D.settled - D.settledPoints.length} more</div>` : '')
             : '<div style="font-size:14px;color:#8A9693;padding:5px 0">Nothing has been settled yet</div>'}</td>
         <td style="width:50%;padding-left:12px">
@@ -12513,6 +12688,12 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
   if (c.status !== 'Signed') return res.status(400).json({ error: 'Contract is not executed yet' });
   const recipients = Array.isArray(req.body && req.body.recipients) ? req.body.recipients : [];
   const appUrl = (req.body && req.body.appUrl) || `${req.protocol}://${req.get('host')}/`;
+  res.json(await srvDistributeTo(c, recipients, appUrl));
+});
+/* THE SEND ITSELF, shared by the route above (the owner's "Send again") and by
+   the server's own seal (srvSealAndSend), which sends the copies the moment the
+   last signature lands — whether or not anybody on our side is online. */
+async function srvDistributeTo(c, recipients, appUrl) {
   const seal = c.hash && c.hash !== 'PRE-SEEDED' ? c.hash : '(sealed)';
   const st = signedParties(c);
   const who = st.ours && !st.theirs ? st.ourName : st.theirs && !st.ours ? st.theirName : '';
@@ -12580,8 +12761,254 @@ app.post('/api/contracts/:id/distribute', auth, editor, async (req, res) => {
     out.push({ name: r.name || email, email, role: r.role || '', party: r.party || '',
       status, ...(why ? { detail: why } : {}), attached: !!attachment, via: sent.provider, at: now() });
   }
-  res.json({ at: now(), fullyExecuted: st.fully, attached: !!attachment, recipients: out });
-});
+  return { at: now(), fullyExecuted: st.fully, attached: !!attachment, recipients: out };
+}
+
+/* ============================================================
+   THE SEAL IS THE SERVER'S (D4, the owner's decision, 8 Oct 2026)
+   ============================================================
+   "Seal on the server, recorded as HaTi (System), not whoever opened the
+   app." The seal, the trail lines and the executed copies used to wait for
+   whichever colleague's browser next polled — and named THAT person as the
+   signatory. Now the moment the last signature lands (the counterparty's on
+   POST /api/shares/:token/respond, or ours on the save that carries it) THIS
+   file seals the record, writes the lines and sends the copies.
+
+   WHAT THE SERVER CANNOT DRAW IT IS GIVEN, AHEAD OF TIME. The frozen copy is
+   the paper as the browser draws it (freezeContractHtml), so the browser
+   prepares it at every signature of ours (sealPrepStamp) and the save stores
+   it as `sealPrep`; this server stamps it with a fingerprint of the wording it
+   was drawn from (`basis`) and seals from it only while that still matches.
+   The wording cannot move after the first signature (SIGNED_WORDING_FROZEN),
+   so a prep made at a signature stands until the seal. The seal string is
+   sealString's, byte for byte (js/core.js), so verifySeal agrees. */
+const srvSha256 = s => crypto.createHash('sha256').update(String(s), 'utf8').digest('hex');
+function srvSealString(c) {
+  const content = c.source === 'upload' ? 'file:' + ((c.upload && c.upload.fileHash) || '')
+    : 'text:' + ((c.execution && c.execution.textHash) || '');
+  const base = { id: c.id, firstParty: (c.execution && c.execution.firstParty) || '', counterparty: c.counterparty,
+    value: c.value, valueType: c.valueType, content, signedAt: (c.execution && c.execution.at) || '' };
+  if (Number(c.sealVersion || 0) >= 2)
+    base.sigs = (c.signatures || []).map(s => ({ name: s.name || '', at: s.at || '', form: s.form || s.method || '', imageHash: s.imageHash || '' }));
+  return JSON.stringify(base);
+}
+/* What the frozen copy was drawn from: the stored wording, or — where the
+   paper is built from the record — the terms that paper prints. */
+function srvWordingBasis(c) {
+  if (!c) return '';
+  const pick = c.source === 'upload' ? { file: (c.upload && c.upload.fileHash) || '' }
+    : c.redlineText ? { t: c.redlineText, f: c.format || '' }
+    : { body: c.body || null, form: c.templateForm || null,
+      ...Object.fromEntries(PAPER_TERMS_FROZEN.map(k => [k, paperTerm(c, k) === undefined ? null : paperTerm(c, k)])) };
+  return srvSha256(JSON.stringify(pick));
+}
+/* Is this record one the last signature has just completed? The route's
+   answer where there is a route (every named signer has signed); with no
+   route, ours — the single-signer path, which has always sealed on our mark.
+   Never a record signed somewhere else: those are sealed by their own door. */
+function srvSealWanted(c) {
+  if (!c) return false;
+  const ex = c.execution || {};
+  if (ex.offPlatform || ex.method === 'outside' || ex.method === 'paper') return false;
+  if (c.hash === 'MIGRATED' || c.hash === 'PRE-SEEDED' || (c.migration && c.migration.executedOutside)) return false;
+  const plan = (Array.isArray(c.signerPlan) ? c.signerPlan : []).filter(Boolean);
+  if (plan.length) return plan.every(s => s.signed);
+  return (Array.isArray(c.signatures) ? c.signatures : []).some(s => s && s.party !== 'counterparty' && s.party !== 'external');
+}
+const srvSealPrepOk = c => !!c && (c.source === 'upload'
+  || !!(c.sealPrep && c.sealPrep.html && c.sealPrep.textHash && c.sealPrep.basis && c.sealPrep.basis === srvWordingBasis(c)));
+/* THE ACT. Writes onto `c` (the caller stores it): the execution record, the
+   seal, the status, the 'Signed & sealed' version and the trail line — by
+   HaTi. The signatory is OUR last signer, never a bystander. */
+function srvSealNow(c, at) {
+  const p = c.sealPrep || {};
+  const J = orgJx();
+  const exec = { at, method: 'session-authenticated', consent: true, ua: '', ip: null, by: 'HaTi', sealedBy: 'server',
+    firstParty: String(p.firstParty || c.party || ((getSetting('org') || {}).name) || 'this workspace'),
+    esignature: p.esignature || J.esignatureShort || '',
+    tzOffsetMin: Number(p.tzOffsetMin) || 0, tzLabel: p.tzLabel || '' };
+  if (c.source !== 'upload') {
+    exec.html = p.html; exec.format = p.format || 'text'; exec.hashMode = p.hashMode || 'text'; exec.textHash = p.textHash;
+  }
+  if (p.branding && p.branding.designId && !(c.branding && c.branding.designId)) c.branding = { ...p.branding };
+  c.execution = exec;
+  c.signedAt = at;
+  c.lastAction = String(at).slice(0, 10);
+  const isTheirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
+  const ours = (Array.isArray(c.signatures) ? c.signatures : []).filter(s => s && !isTheirs(s));
+  const last = ours[ours.length - 1];
+  if (last && last.name) c.signatory = last.title ? `${last.name} (${last.title})` : last.name;
+  c.signatures = Array.isArray(c.signatures) ? c.signatures : [];
+  c.sealVersion = 2;
+  c.hash = srvSha256(srvSealString(c));
+  c.status = 'Signed';
+  /* The wording as it was sealed, kept as a version — prepared in the browser
+     by the same captureVersion every other version comes from. */
+  if (c.source !== 'upload' && p.ver && p.ver.text) {
+    const vs = Array.isArray(c.versions) ? c.versions : (c.versions = []);
+    const lastV = vs[vs.length - 1];
+    if (lastV && lastV.text === p.ver.text) { lastV.listed = true; lastV.kind = 'auto'; lastV.label = 'Signed & sealed'; }
+    else vs.push({ ...p.ver, n: vs.length + 1, at, by: 'HaTi', label: 'Signed & sealed', kind: 'auto', listed: true });
+  }
+  delete c.sealPrep;
+  c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at, user: 'HaTi', action: 'Signed',
+    detail: `Executed & sealed by HaTi the moment the last signature landed — ${c.signatures.length} signature(s) · `
+      + `${c.source === 'upload' ? 'file' : 'text'} hash ${String(exec.textHash || (c.upload && c.upload.fileHash) || '').slice(0, 16)}…` }]);
+  return c;
+}
+/* Everyone who gets the executed copy — distributionRecipients' twin
+   (js/approvals.js): the route, the recorded signatures, and the records
+   mailbox an admin set. */
+function srvDistRecipients(c) {
+  const seen = new Set(), out = [];
+  const add = (name, email, role, party) => { const e = String(email || '').trim().toLowerCase();
+    if (!/.+@.+\..+/.test(e) || seen.has(e)) return; seen.add(e); out.push({ name: name || e, email: e, role: role || '', party: party || '' }); };
+  (Array.isArray(c.signerPlan) ? c.signerPlan : []).forEach(s => s && add(s.name, s.email, s.role, s.party));
+  (Array.isArray(c.signatures) ? c.signatures : []).forEach(s => s && add(s.name, s.email, s.title || s.role, s.party));
+  const cc = String(((getSetting('appSettings') || {}).recordsMailbox) || '');
+  if (cc) add('Records archive', cc, '', 'cc');
+  return out;
+}
+/* THE TRAIL SAYS WHAT HAPPENED TO EACH MESSAGE (B16): sent, waiting in the
+   outbox because email is not set up, or failed — never "emailed" for a
+   message that did not go. */
+function srvDistributionLine(fully, recs) {
+  const n = k => recs.filter(r => r && r.status === k).length;
+  const sent = n('delivered') + n('sent') + n('queued'), outbox = n('outbox'), failed = n('failed') + n('bounced');
+  const what = fully ? 'Executed copy' : 'Part-signed progress notice';
+  const parts = [];
+  if (sent) parts.push(`sent to ${sent} recipient(s)`);
+  if (outbox) parts.push(`waiting in the outbox for ${outbox} recipient(s) — email is not set up on this server`);
+  if (failed) parts.push(`could not be sent to ${failed} recipient(s)`);
+  return `${what} ${parts.join('; ') || 'not sent — nobody on the record has an email address'}`;
+}
+/* Sends the copies for a contract this server has just sealed, then files
+   what happened on the record — the stored record, re-read after the mail,
+   written without moving its version (a browser holding it is not made to
+   resolve a conflict over a delivery receipt; the PUT keeps the stored one). */
+async function srvSendExecutedCopies(contractId, appUrl) {
+  try {
+    const row0 = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(contractId));
+    if (!row0) return;
+    const c0 = JSON.parse(row0.json);
+    if (c0.status !== 'Signed' || !signedParties(c0).fully) return;
+    if (c0.distribution && c0.distribution.fully === true) return;
+    const recipients = srvDistRecipients(c0);
+    if (!recipients.length) return;
+    const res = await srvDistributeTo(c0, recipients, appUrl);
+    const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(contractId));
+    if (!row) return;
+    const c = JSON.parse(row.json);
+    c.distribution = { at: res.at, triggeredBy: 'auto', by: 'HaTi', fully: !!res.fullyExecuted, recipients: res.recipients };
+    c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Distributed',
+      detail: srvDistributionLine(!!res.fullyExecuted, res.recipients) }]);
+    db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c), String(contractId));
+  } catch (e) { console.warn('[hati] executed-copy distribution failed: ' + (e && e.message)); }
+}
+const srvAppUrl = req => (APP_URL() || (req ? `${req.protocol}://${req.get('host')}` : `http://localhost:${PORT}`)) + '/';
+/* THE COUNTERPARTY'S SIGNATURE, WRITTEN BY THE SERVER. applyResponse's sign
+   branch (js/core.js), on the stored record: every signature that has arrived
+   and not yet been filed, oldest first, each on its own bound row (or, unbound,
+   on the next counterparty step only where the address agrees). Each answer is
+   marked applied=2 — filed by the server, not yet seen by a browser — so the
+   poller repaints instead of filing it twice (responseFiledOnServer). An
+   answer carrying something only a browser can file (a template form typed
+   into on their side) leaves the whole lot to applyResponse, as before. */
+function srvSignResponsesWaiting(contractId) {
+  const out = [];
+  for (const r of db.prepare(`SELECT token, response, responded_at AS at FROM shares
+      WHERE contract_id=? AND durable=0 AND response IS NOT NULL AND applied=0 AND revoked_at IS NULL`).all(String(contractId))) {
+    let resp = null; try { resp = JSON.parse(r.response); } catch (_) { continue; }
+    if (resp && resp.action === 'sign') out.push({ token: r.token, id: null, at: r.at, resp });
+  }
+  for (const r of db.prepare(`SELECT sr.id, sr.token, sr.response, sr.at FROM share_responses sr JOIN shares s ON s.token=sr.token
+      WHERE s.contract_id=? AND sr.applied=0`).all(String(contractId))) {
+    let resp = null; try { resp = JSON.parse(r.response); } catch (_) { continue; }
+    if (resp && resp.action === 'sign') out.push({ token: r.token, id: r.id, at: r.at, resp });
+  }
+  return out.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+}
+function srvFileSignature(c, r) {
+  const plan = Array.isArray(c.signerPlan) ? c.signerPlan : [];
+  const form = c.templateForm;
+  if (r.templateValues && form) {
+    const had = form.values || {};
+    for (const [k, v] of Object.entries(r.templateValues)) {
+      const s = v == null ? '' : String(v).trim();
+      if (s && String(had[k] == null ? '' : had[k]).trim() !== s) return false;   // a browser's to file
+    }
+  }
+  let boundRow = null, routeNote = '';
+  if (r.signerId && plan.length) {
+    boundRow = plan.find(x => x && String(x.id) === String(r.signerId)) || null;
+    if (boundRow && boundRow.signed) return true;   // already on its row: nothing to file
+    if (!boundRow) routeNote = ' — NOTE: the signing-route step this link was bound to no longer exists on the route; the signature is recorded, and no step was marked signed';
+  }
+  const sig = { form: r.signatureForm || null, image: r.signatureImage || null, imageHash: r.signatureImageHash || null,
+    typedName: r.signatureTypedName || null, font: r.signatureFont || null };
+  const isTheirs = s => !!s && (s.party === 'counterparty' || s.party === 'external');
+  const oursBefore = (Array.isArray(c.signatures) ? c.signatures : []).some(s => s && !isTheirs(s))
+    || plan.some(s => s && s.party !== 'counterparty' && s.signed);
+  c.signatures = Array.isArray(c.signatures) ? c.signatures : [];
+  c.signatures.push({ party: 'counterparty', name: r.name, title: r.title || '', email: r.email || '', at: r.at,
+    method: r.method || 'share-link', verified: r.verified !== false, ip: r.ip || null, ua: r.ua || null, docHash: r.docHash,
+    assurance: (r.verify || (r.verified !== false && r.verifyToken)) ? 'email-code' : 'typed',
+    form: sig.form, image: sig.image, imageHash: sig.imageHash, typedName: sig.typedName, font: sig.font });
+  if (boundRow) { boundRow.signed = true; boundRow.at = r.at; boundRow.by = r.name; boundRow.signature = sig; }
+  else if (!r.signerId) {
+    const ns = plan.filter(x => x && !x.signed).sort((a, b) => (a.order || 0) - (b.order || 0))[0] || null;
+    const nsMail = String((ns && ns.email) || '').trim().toLowerCase(), rMail = String(r.email || '').trim().toLowerCase();
+    if (ns && ns.party === 'counterparty') {
+      if (!nsMail || !rMail || nsMail === rMail) { ns.signed = true; ns.at = r.at; ns.by = r.name; ns.signature = sig; }
+      else routeNote = ` — NOTE: this signature came from ${r.email}, which is not the address on the next signing step (${ns.name || 'the next signer'}); the signature is recorded, and no step was marked signed`;
+    }
+  }
+  c.comments = Array.isArray(c.comments) ? c.comments : [];
+  c.comments.push({ author: r.name, role: 'Counterparty — Signed', side: 'external', text: r.comment || 'Approved and signed via secure share link.', at: r.at, ts: r.at });
+  const who = r.name + (r.title ? ', ' + r.title : '');
+  const forCo = (() => { if (!boundRow) return c.counterparty || '';
+    const ps = Array.isArray(c.parties) ? c.parties : []; const p = ps.find(x => x && String(x.id) === String(boundRow.partyId || ''));
+    return (p && p.name) || c.counterparty || ''; })();
+  /* B17: "Countersigned" only when somebody on our side signed first. */
+  c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: r.at || now(), user: 'HaTi', action: oursBefore ? 'Countersigned' : 'Signature',
+    detail: `${who}${forCo ? ` for ${forCo}` : ''} signed via share link${r.verify ? ' — checked by email code' : ''} (${r.method || 'share-link'}${sig.form ? ', ' + sig.form + ' signature' : ''})`
+      + `${boundRow ? ` — step ${boundRow.order} of the signing route, on their own bound link` : ''}`
+      + `${r.verified === false ? ' — NOT independently verified: this workspace cannot send verification codes' : ''}${routeNote}` }]);
+  return true;
+}
+function srvSealAfterTheirSignature(req, contractId) {
+  const row = db.prepare('SELECT json, version, seq FROM contracts WHERE id=?').get(String(contractId));
+  if (!row) return null;
+  let c; try { c = JSON.parse(row.json); } catch (_) { return null; }
+  if (isExecutedRow(c) || (c.hold && c.hold.at)) return null;
+  const waiting = srvSignResponsesWaiting(contractId);
+  if (!waiting.length) return null;
+  const turnOf = s => (Array.isArray(s.signerPlan) ? s.signerPlan : []).filter(x => x && x.id != null)
+    .slice().sort((a, b) => (a.order || 0) - (b.order || 0)).find(x => !x.signed) || null;
+  const before = turnOf(c);
+  for (const w of waiting) if (!srvFileSignature(c, w.resp)) return null;
+  let sealed = false;
+  if (srvSealWanted(c)) {
+    if (srvSealPrepOk(c)) { srvSealNow(c, now()); sealed = true; }
+    else c.audit = c.audit.concat([{ at: now(), user: 'HaTi', action: 'Seal waiting',
+      detail: 'Every signature is in. The sealed copy has to be drawn again before HaTi can seal it — that happens the next time anyone on our side opens HaTi.' }]);
+  }
+  c._seq = row.seq;
+  withWriteRetry(() => {
+    upsertContract(c, (row.version || 0) + 1);
+    for (const w of waiting) {
+      if (w.id) db.prepare('UPDATE share_responses SET applied=2 WHERE id=? AND applied=0').run(w.id);
+      else db.prepare('UPDATE shares SET applied=2 WHERE token=? AND applied=0').run(w.token);
+    }
+  });
+  if (sealed) {
+    logActivation('signed', c.id, 'HaTi');
+    webhookQueue('contract.signed', () => ({ contractId: c.id, status: 'Signed' }));
+    srvSendExecutedCopies(c.id, srvAppUrl(req));
+  }
+  const after = sealed ? null : turnOf(c);
+  return { sealed, ourTurn: !!(after && after.party !== 'counterparty' && (!before || String(before.id) !== String(after.id))) };
+}
 
 /* "It's your turn to sign" — the internal signer's nudge, and the RESEND door.
    See notifyInternalSignerTurn, which is the one place this is composed, sent
@@ -13010,9 +13437,12 @@ async function srvChaseSend(req, c, o, to, { firm = false } = {}) {
      draws Chase on a dated obligation and an undated one alike, and both are
      legitimate things to ask about. */
   if (firm) vars.first = dayWords(String(o.chasedAt || '').slice(0, 10));
+  /* NOT YET DUE IS "IS DUE ON", NEVER "WAS DUE ON" (B11, 8 Oct 2026): chasing
+     early is allowed, and the sentence says what is true on the day it goes. */
+  const soon = o.due && String(o.due).slice(0, 10) > now().slice(0, 10) ? '_soon' : '';
   const line = firm
-    ? tFor(L, o.due ? 'mail_ob_chase_firm_line' : 'mail_ob_chase_firm_line_nodate', vars)
-    : tFor(L, o.due ? 'mail_ob_chase_line' : 'mail_ob_chase_line_nodate', vars);
+    ? tFor(L, o.due ? 'mail_ob_chase_firm_line' + soon : 'mail_ob_chase_firm_line_nodate', vars)
+    : tFor(L, o.due ? 'mail_ob_chase_line' + soon : 'mail_ob_chase_line_nodate', vars);
   /* ---- THE LINK IS ONE THIS READER CAN OPEN, OR THERE IS NO LINK ----
      This sent `#contract=<id>`, which openFromHash resolves against the
      signed-in reader's own scoped bootstrap — on the far side of the sign-in
@@ -13470,7 +13900,7 @@ function ruleStepDue(prev, c) {
    decides who is TOLD. */
 function ruleStepPeople(rule, users) {
   const a = (rule && rule.approver) || {};
-  if (a.kind === 'member') return users.filter(u => String(u.name || '') === String(a.name || ''));
+  if (a.kind === 'member') return users.filter(u => a.id ? String(u.id) === String(a.id) : String(u.name || '') === String(a.name || ''));
   if (a.role === 'admin') return users.filter(u => u.role === 'admin');
   if (a.role === 'legal') {
     const legal = users.filter(u => u.role === 'legal');
@@ -13529,6 +13959,23 @@ async function ruleChainClearedTell(req, c, id) {
     return { n: sent && sent.sent ? 1 : 0, ...mailReport(sent) };
   } catch (_) { return { n: 0 }; }
 }
+/* A rule step refused: the owner hears it, with the reason, and what to do —
+   revise and send it back (B5). Never the person who refused it; "sent"
+   only where it went (mailReport). */
+async function ruleStepRefusedTell(req, c, step) {
+  try {
+    const own = contractOwnerRecipient(c, c.folder);
+    if (!own || !own.row || (req && req.user && String(own.row.id) === String(req.user.id))) return { n: 0 };
+    const L = langForEmail(own.email, own.lang);
+    const cName = c.name || c.id;
+    const v = { name: cName, step: step.name || '', who: step.by || '', why: String(step.comment || '').slice(0, 500) };
+    const body = `${tFor(L, 'mail_hello')} ${own.name || ''},\n\n`
+      + [tFor(L, 'mail_ar_refused_line', v), v.why ? `\n“${v.why}”` : '', '', `${cName} (${contractRef(c)})`, '', tFor(L, 'mail_at_open'), contractUrl(req, c.id, 'sign')].join('\n')
+      + `\n\n${tFor(L, 'mail_automated_notice')}`;
+    const sent = await sendEmail(own.email, tFor(L, 'mail_ar_refused_subject', v), body, `approval step refused: ${c.id} -> ${own.email}`);
+    return { n: sent && sent.sent ? 1 : 0, ...mailReport(sent) };
+  } catch (_) { return { n: 0 }; }
+}
 /* ---- A COLLEAGUE ASKED TO LOOK (8 Oct 2026, the nine flow rules) ----
    The `look` questions the pass route opens. A save that moved one from open
    to yes is found by difference (srvLooksDone); the asker is told once
@@ -13579,9 +14026,12 @@ async function runLookReminders() {
 }
 /* THE NAMED YES'S CADENCE, FOR A RULE STEP: reminded after
    SA_REMIND_WORKDAYS working days, the admins told after
-   SA_ESCALATE_WORKDAYS, each once per time the step fell due. A step that
-   fell due before this shipped has no clock and is not chased — a deploy
-   must not mail every approver in the workspace at once. */
+   SA_ESCALATE_WORKDAYS, each once per time the step fell due.
+   A STEP WITH NO CLOCK IS ONE NOBODY WAS EVER TOLD ABOUT (B5, 8 Oct 2026): a
+   rule saved after the contract was already Under Review is due without any
+   save having made it so, and the approver was never mailed. The sweep opens
+   its question on the record and tells the approver ONCE (ruleStepTell 'due'
+   writes the clock it is then reminded from). */
 async function runRuleStepReminders() {
   if (!srvApprovalRules().length) return { checked: 0, sent: 0 };
   const rows = db.prepare("SELECT id, json FROM contracts WHERE status NOT IN ('Draft','Signed','Declined')").all();
@@ -13607,7 +14057,20 @@ async function runRuleStepReminders() {
     const clock = ask ? { rkey: `ask:${c.id}:${ask.id}`, created_at: ask.at }
       : db.prepare('SELECT rkey, created_at FROM reminders WHERE rkey LIKE ? ORDER BY created_at DESC LIMIT 1')
         .get(`ar:${c.id}:${step.ruleId}:due:%`);
-    if (!clock) continue;
+    if (!clock) {
+      if (!once(`ar:${c.id}:${step.ruleId}:first`)) continue;
+      try {
+        const rule = srvApprovalRules().find(r => r && r.id === step.ruleId);
+        const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(String(c.id));
+        const cj = fresh ? JSON.parse(fresh.json) : null;
+        if (rule && cj && !asksDerive(cj).some(a => a.kind === 'rule' && a.state === 'open' && String(a.of && a.of[0]) === String(step.ruleId))) {
+          askRuleFor(cj, step.ruleId, { approver: rule.approver, keepStep: true, at: now() });
+          db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), String(c.id));
+        }
+      } catch (_) { /* the mail is the thing that matters */ }
+      sent += (await ruleStepTell(null, c, step, 'due')).n || 0;
+      continue;
+    }
     const waited = saWorkdays(clock.created_at);
     if (waited >= SA_REMIND_WORKDAYS && once(`${clock.rkey}:remind`)) sent += (await ruleStepTell(null, c, step, 'remind')).n || 0;
     if (waited >= SA_ESCALATE_WORKDAYS && once(`${clock.rkey}:escalate`)) sent += (await ruleStepTell(null, c, step, 'escalate', { days: waited })).n || 0;
@@ -13969,12 +14432,19 @@ app.patch('/api/users/:id', auth, (req, res) => {
   /* WHO MAY MAKE NEW PAPER is an admin's grant for the plainest reason of all:
      somebody who could tick their own box is not governed by the rule. */
   const hasPaper = b.newPaper !== undefined;
-  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper)
+  /* RE-FILE AND HOLD ARE GRANTS OF THEIR OWN (9 Oct 2026). They were written
+     only inside the new-paper block and this check never counted them, so a
+     tick on either alone was refused "Nothing to change". */
+  const hasReFile = b.reFile !== undefined, hasHold = b.holdContracts !== undefined;
+  /* A NAME IS AN ADMIN'S TO CHANGE (9 Oct 2026): the browser said "Saved" and
+     kept it in its own memory only, so a refresh brought the old name back. */
+  const hasName = b.name !== undefined;
+  if (!hasRole && !hasValues && !hasTitle && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasName)
     return res.status(400).json({ error: 'Nothing to change' });
   const self = req.params.id === req.user.id;
   // Only a title may be set by a non-admin, and only on their own account.
   if (req.user.role !== 'admin'
-    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper))
+    && !(self && hasTitle && !hasRole && !hasValues && !hasCap && !hasChecked && !hasReviewer && !hasOverseer && !hasSa && !hasClear2 && !hasPaper && !hasReFile && !hasHold && !hasName))
     return res.status(403).json({ error: 'Admin access required' });
   if (userPrefs(req.user).mustChangePassword)
     return res.status(403).json({ error: 'Set your own password before making changes', mustChangePassword: true });
@@ -13989,6 +14459,30 @@ app.patch('/api/users/:id', auth, (req, res) => {
   }
   const target = db.prepare('SELECT * FROM users WHERE id=?').get(req.params.id);
   if (!target) return res.status(404).json({ error: 'User not found' });
+  if (hasName) {
+    const nm = clean(b.name).slice(0, 120);
+    if (!nm) return res.status(400).json({ error: 'Name is required' });
+    /* A named approver is matched by name where a rule has no id, so two
+       members sharing one name could answer each other's approvals. */
+    const clash = db.prepare('SELECT id FROM users WHERE lower(name)=lower(?) AND id<>?').get(nm, req.params.id);
+    if (clash) return res.status(409).json({ error: 'Another member already has that name.' });
+    if (nm !== target.name) {
+      db.prepare('UPDATE users SET name=? WHERE id=?').run(nm, req.params.id);
+      /* The approval rules follow the person: a rule that names them by their
+         old name is repointed, and from now on carries their id too. */
+      const st = getSetting('appSettings');
+      if (st && Array.isArray(st.approvalRules)) {
+        let moved = false;
+        st.approvalRules.forEach(r => {
+          const a = r && r.approver;
+          if (a && a.kind === 'member' && (String(a.id || '') === req.params.id || (!a.id && String(a.name || '') === String(target.name || '')))) {
+            r.approver = { kind: 'member', name: nm, id: req.params.id }; moved = true;
+          }
+        });
+        if (moved) setSetting('appSettings', st);
+      }
+    }
+  }
   if (hasTitle) db.prepare('UPDATE users SET title=? WHERE id=?').run(clean(b.title).slice(0, 120), req.params.id);
   if (hasRole) db.prepare('UPDATE users SET role=? WHERE id=?').run(b.role, req.params.id);
   if (hasClear2) db.prepare('UPDATE users SET totp_secret=NULL, totp_pending=NULL, totp_recovery=NULL WHERE id=?').run(req.params.id);
@@ -14072,29 +14566,32 @@ app.patch('/api/users/:id', auth, (req, res) => {
       return res.status(400).json({ error: 'Admins always see contract values. Change the role first if this member should not.' });
     db.prepare('UPDATE users SET can_view_values=? WHERE id=?').run(b.canViewValues ? 1 : 0, req.params.id);
   }
-  if (hasPaper) {
-    /* The same refusal shape the values grant uses, and for the same reason:
-       an admin holds this by rank, so a stored "no" on an admin row would be a
-       fact the product then ignores — two places saying different things about
-       one person. Change the role first if that is what was meant. */
+  if (hasHold || hasReFile) {
     const role = hasRole ? b.role : target.role;
     /* The re-filing grant, on the same terms as the one above it: an admin's
        to give, never self-service, and meaningless on the two roles that
        already answer for themselves. */
-    if (b.holdContracts !== undefined) {
+    if (hasHold) {
       if (role === 'admin' && !b.holdContracts)
         return res.status(400).json({ error: 'An admin can always put a contract on hold — the tick cannot be removed from them.' });
       if (role === 'viewer' && b.holdContracts)
         return res.status(400).json({ error: 'A viewer cannot change a contract at all, so they cannot put one on hold.' });
       db.prepare('UPDATE users SET hold_contracts=? WHERE id=?').run(b.holdContracts ? 1 : 0, req.params.id);
     }
-    if (b.reFile !== undefined) {
+    if (hasReFile) {
       if (role === 'admin' && !b.reFile)
         return res.status(400).json({ error: 'An admin may always re-file a contract.' });
       if (role === 'viewer' && b.reFile)
         return res.status(400).json({ error: 'A viewer may not edit a contract, so it cannot be re-filed by them.' });
       db.prepare('UPDATE users SET re_file=? WHERE id=?').run(b.reFile ? 1 : 0, req.params.id);
     }
+  }
+  if (hasPaper) {
+    /* The same refusal shape the values grant uses, and for the same reason:
+       an admin holds this by rank, so a stored "no" on an admin row would be a
+       fact the product then ignores — two places saying different things about
+       one person. Change the role first if that is what was meant. */
+    const role = hasRole ? b.role : target.role;
     if (role === 'admin' && !b.newPaper)
       return res.status(400).json({ error: 'Admins may always write new paper. Change the role first if this member should not.' });
     if (role === 'viewer' && b.newPaper)
@@ -14388,6 +14885,26 @@ function srvPartyOfShare(c, shareRow) {
   if (want) { const p = list.find(x => x.id === want); if (p) return p; }
   return list.length ? list[0] : null;
 }
+/* ---- EVERY OUTSIDE PARTY'S PAGE NAMES ITSELF (owner's D2, 8 Oct 2026) ----
+   On a contract with more than one outside party the copy a link serves
+   carries the party list — names, roles and involvement, never an address —
+   and WHICH party this link is, read off the stored ROW and the STORED record
+   (the browser's payload is not this route's to trust). A two-party contract
+   is left exactly as stored, so every ordinary link answers byte-identically. */
+function srvPartiesOnPayload(p, s) {
+  try {
+    if (!p || !p.contract || !s || !s.contract_id) return p;
+    const c = srvStoredContract(s.contract_id);
+    const all = srvContractParties(c);
+    const theirs = all.filter(x => x.side !== 'ours');
+    if (theirs.length < 2) return p;
+    const mine = srvPartyOfShare(c, s);
+    p.contract.parties = all.map(x => ({ id: x.id, name: x.name, role: x.role, side: x.side, involvement: x.involvement }));
+    p.party = { id: mine ? mine.id : theirs[0].id, role: (mine && mine.role) || (p.party && p.party.role) || '',
+      others: theirs.length - 1 };
+    return p;
+  } catch (_) { return p; }
+}
 
 /* ============================================================
    WHERE THE DEAL STANDS — the server's own copy of the reading
@@ -14439,7 +14956,7 @@ function srvDealStands(c) {
   const parties = all.filter(p => p && p.name).map(p => ({
     name: String(p.name), ours: p.side === 'ours',
     negotiates: p.side === 'ours' || p.involvement === 'negotiate' || p.involvement === 'both',
-    signs: p.side === 'ours' || p.involvement === 'sign' || p.involvement === 'both' || !p.involvement,
+    signs: p.side === 'ours' || p.involvement !== 'none',
   }));
   const us = parties.find(p => p.ours) || null, them = parties.find(p => !p.ours) || null;
   const live = srvDsLive(c), open = live.filter(x => x.status === 'pending');
@@ -14625,7 +15142,9 @@ function signerTurnEmail({ signer, plan, payload, link, expiresAt, senderLang })
       + tFor(L, 'mail_turn_body', { name: cName, org, pos: posText })
       + orderLine
       + `\n\n${tFor(L, 'mail_open_link')}\n${link}\n\n`
-      + tFor(L, 'mail_code_note')
+      /* ONLY WHAT IS TRUE (B9, 8 Oct 2026): the code is sent only where this
+         server can send mail (the respond route asks for it exactly then). */
+      + tFor(L, EMAIL_ON() ? 'mail_code_note' : 'mail_link_personal')
       + (expiresAt ? `\n\n${tFor(L, 'mail_link_expires', { date: String(expiresAt).slice(0, 10) })}` : '')
       + `\n\n${tFor(L, 'mail_automated_notice')}`,
   };
@@ -14894,7 +15413,7 @@ async function releaseOneSignerLink(req, contractId, rt, next) {
    are asked of a sealed record as this route always asked them; on one there
    is nothing unsent for them to find. */
 const SRV_LINK_ASKS = Object.freeze({
-  sign:      ['hold', 'desk', 'reviewer', 'reviewgate', 'signapproval', 'approval', 'signcheck', 'address'],
+  sign:      ['hold', 'desk', 'reviewer', 'reviewgate', 'asks', 'signapproval', 'approval', 'signcheck', 'address'],
   negotiate: ['hold', 'desk', 'reviewer', 'reviewgate'],
   view:      ['hold', 'desk', 'reviewer', 'reviewgate'],
   history:   ['hold', 'desk', 'reviewer', 'reviewgate'],
@@ -14943,6 +15462,20 @@ function srvLinkRefusal(req, rvStored, purpose, opts) {
       return { status: 403, body: { error: `You are reviewing ${n} change${n === 1 ? '' : 's'} on this contract`
         + ` for ${holding[0].by || 'a colleague'}. Hand the review back before sending anything to the counterparty.`,
         reviewing: holding.map(r => r.id) } };
+    }
+  }
+  /* A POINT STILL OPEN WITH THEM (B2, 8 Oct 2026): a signing link over one
+     of our asks leaves them a page that cannot answer it and a negotiation
+     link that has closed. Refused at the mint, named by clause, with the way
+     forward — the asks srvSignOpenAsks refuses their signature over. */
+  if (asks.has('asks') && !sealed) {
+    const open = srvLinkOpenAsks(rvStored);
+    if (open.length) {
+      const names = [...new Set(open.map(srvDsClause).filter(Boolean))].slice(0, 3).join(', ');
+      return { status: 409, body: { openAsks: open.map(x => x.id), error: (open.length === 1
+        ? `One of our changes${names ? ` (${names})` : ''} is still waiting for their answer.`
+        : `${open.length} of our changes${names ? ` (${names})` : ''} are still waiting for their answer.`)
+        + ' Get their answer on the negotiation link, or withdraw the change, before a signing link goes out — a signing page cannot answer it.' } };
     }
   }
   /* 2. THE GATE, where an admin has turned it on. A change nobody has looked
@@ -15273,26 +15806,9 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
      for a Shared entry already describing this send and adds one only where
      there is none. The append-only audit guard on the save route is what
      protects both from being rewritten afterwards. */
-  if (shareId) {
-    try {
-      const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId);
-      if (row) {
-        const cj = JSON.parse(row.json);
-        const trail = Array.isArray(cj.audit) ? cj.audit : [];
-        const recent = Date.now() - 120000;
-        const already = trail.some(a => a && /^Shared$/i.test(String(a.action || ''))
-          && Date.parse(a.at || '') >= recent);
-        if (!already) {
-          const who = String(rec.name || email || phone || 'a recipient');
-          cj.audit = trail.concat([{
-            at: now(), user: (req.user && req.user.name) || 'System', action: 'Shared',
-            detail: `${purp === 'sign' ? 'Signing' : purp === 'view' ? 'Read-only' : 'Negotiation'} link sent to ${who} by ${ch}`,
-          }]);
-          db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), shareId);
-        }
-      }
-    } catch (_) { /* the share is made; a missing line must never fail the send */ }
-  }
+  /* D1 (9 Oct 2026): the line is written AFTER delivery was tried (below),
+     so it says what happened — never "sent by email" ahead of an email that
+     then waits in the outbox. */
   const link = shareUrl(req, token);
   let emailSent = false, emailError = null;
   /* A bound link whose turn has not come yet is created but NOT delivered —
@@ -15355,7 +15871,10 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
         `${req.user.name} at ${payload.org || 'HaTi'} has sent you "${cName}"${rec.name ? `, ${rec.name}` : ''} as a Word file.`,
         message ? `\nMessage from ${req.user.name}:\n${String(message).slice(0, 1000)}` : '',
         `\nThe attached document carries their proposed changes as Word tracked changes, and their notes as Word comments.`,
-        `\nMark it up in Word and reply to this email with the file — ${req.user.name} will read your changes straight back into HaTi.`,
+        /* D5 (owner, 9 Oct 2026): nothing reads a reply automatically, so the
+           mail promises only what happens — the file goes back to the sender,
+           who brings it into HaTi. This channel carries no link to send it on. */
+        `\nMark it up in Word and send the file back to ${req.user.name} — they will bring your changes into HaTi.`,
         `\nReplies to this email reach ${req.user.name} directly.`,
       ].filter(Boolean).join('\n');
       const r = await sendEmail(email,
@@ -15398,6 +15917,31 @@ app.post('/api/shares', auth, editor, rlShareSend, async (req, res) => {
     else db.prepare('UPDATE shares SET send_error=? WHERE token=?')
       .run(String(emailError || (EMAIL_ON() ? 'The email provider refused the message.' : 'Email is not configured on this server — the message is in the outbox.')).slice(0, 300), token);
   }
+  if (shareId) {
+    try {
+      const row = db.prepare('SELECT json FROM contracts WHERE id=?').get(shareId);
+      if (row) {
+        const cj = JSON.parse(row.json);
+        const trail = Array.isArray(cj.audit) ? cj.audit : [];
+        const recent = Date.now() - 120000;
+        const already = trail.some(a => a && /^Shared$/i.test(String(a.action || ''))
+          && Date.parse(a.at || '') >= recent);
+        if (!already) {
+          const who = String(rec.name || email || phone || 'a recipient');
+          cj.audit = trail.concat([{
+            at: now(), user: (req.user && req.user.name) || 'System', action: 'Shared',
+            detail: `${purp === 'sign' ? 'Signing' : purp === 'view' ? 'Read-only' : 'Negotiation'} ${({ word: 'Word file' })[ch] || 'link'}${
+              heldForTurn ? ` for ${who} made — held until their turn to sign`
+              : ['email', 'word'].includes(ch)
+                ? (emailSent ? ` sent to ${who} by email`
+                  : ` for ${who} NOT sent by email — ${emailError || (EMAIL_ON() ? 'the email provider refused the message' : 'email is not set up on this server; the message is in the outbox')}`)
+                : ` made for ${who} to send by ${ch === 'whatsapp' ? 'WhatsApp' : 'link'}`}`,
+          }]);
+          db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), shareId);
+        }
+      }
+    } catch (_) { /* the share is made; a missing line must never fail the send */ }
+  }
   res.json({ ok: true, token, link, expiresAt: expires, channel: ch, durable: !!isDurable,
     signerId: signerId || undefined, heldForTurn: signerId ? heldForTurn : undefined,
     heldFor: heldFor || undefined,
@@ -15417,24 +15961,31 @@ app.get('/api/shares/pending', auth, (req, res) => {         // owner side: resp
   const fs = scopeFrag(scope, 'c.folder');
   // Left join so a share whose contract row is gone still surfaces for an
   // unrestricted caller, exactly as it did before.
-  const rows = db.prepare(`SELECT s.token, s.response FROM shares s LEFT JOIN contracts c ON c.id = s.contract_id
-    ${whereOf('s.durable=0', 's.response IS NOT NULL', 's.applied=0', fs.sql)}`).all(...fs.args);
+  /* applied=2 is an answer the SERVER has already filed (a signature —
+     srvSealAfterTheirSignature). It is listed for three days, so every page
+     holding the contract catches up and says so (responseFiledOnServer), and
+     no page acknowledges it — one tab's acknowledgement must not leave another
+     tab drawing a contract that has since been signed and sealed. */
+  const filedSince = new Date(Date.now() - 3 * 86400000).toISOString();
+  const rows = db.prepare(`SELECT s.token, s.response, s.applied FROM shares s LEFT JOIN contracts c ON c.id = s.contract_id
+    ${whereOf('s.durable=0', 's.response IS NOT NULL', `(s.applied=0 OR (s.applied=2 AND s.responded_at > '${filedSince}'))`, fs.sql)}`).all(...fs.args);
   /* A durable link's answers live in their own table — one row per round — so
      that a second round is not mistaken for the first one being re-delivered.
      Each is applied to the contract independently and marked off by id. */
-  const durableRows = db.prepare(`SELECT r.id, r.token, r.response FROM share_responses r
+  const durableRows = db.prepare(`SELECT r.id, r.token, r.response, r.applied FROM share_responses r
     JOIN shares s ON s.token = r.token
     LEFT JOIN contracts c ON c.id = s.contract_id
-    ${whereOf('r.applied=0', fs.sql)} ORDER BY r.id`).all(...fs.args);
-  const shape = (token, raw, responseId) => {
+    ${whereOf(`(r.applied=0 OR (r.applied=2 AND r.at > '${filedSince}'))`, fs.sql)} ORDER BY r.id`).all(...fs.args);
+  const shape = (token, raw, responseId, applied) => {
     const response = JSON.parse(raw);
     // a counter-proposed amount is a monetary figure like any other
     if (!money && response && response.proposedValue != null) response.proposedValue = null;
-    return responseId ? { token, responseId, response } : { token, response };
+    const filed = Number(applied) === 2 ? { serverFiled: true } : {};
+    return responseId ? { token, responseId, response, ...filed } : { token, response, ...filed };
   };
   res.json([
-    ...rows.map(r => shape(r.token, r.response)),
-    ...durableRows.map(r => shape(r.token, r.response, r.id)),
+    ...rows.map(r => shape(r.token, r.response, null, r.applied)),
+    ...durableRows.map(r => shape(r.token, r.response, r.id, r.applied)),
   ]);
 });
 
@@ -15632,6 +16183,15 @@ function shareSigningOrder(s) {
    signature on the paper at once and after any refresh. */
 /* The asks still waiting on THIS link's reader: pending on the stored
    contract, written by our side, and in the copy they were sent. */
+/* Our asks still waiting on their answer, off the STORED record: pending,
+   ours, not withdrawn, and not what never travels (a held change, a
+   colleague's unadopted suggestion). linkOpenAsks is the browser's twin. */
+function srvLinkOpenAsks(c) {
+  if (!c) return [];
+  const keep = new Set([...dkSuggestedIds(c)].map(String));
+  return srvDsLive(c).filter(x => x && x.status === 'pending' && x.authorSide !== 'counterparty'
+    && !rvHeld(x) && !keep.has(String(x.id)));
+}
 function srvSignOpenAsks(s) {
   if (!s || !s.contract_id) return [];
   let p = null; try { p = JSON.parse(s.payload); } catch (_) { p = null; }
@@ -15776,6 +16336,18 @@ function shareDoorOtpOk(token, t) {
     && crypto.timingSafeEqual(Buffer.from(want), Buffer.from(got));
 }
 
+/* ---- A DEAD LINK STILL SAYS WHOSE IT WAS (8 Oct 2026) ----
+   The withdrawn / expired page named nobody: "Ask the sender to reshare". The
+   410 now carries the contract's title and the sender's name off the stored
+   copy — the two facts the holder needs to ask for a new link, and nothing
+   else about the deal. */
+function shareGoneWho(s) {
+  try {
+    const p = JSON.parse((s && s.payload) || 'null') || {};
+    return { contractName: String((p.contract && p.contract.name) || '').slice(0, 200),
+      sender: String(p.sharedBy || '').slice(0, 120), org: String(p.org || '').slice(0, 160) };
+  } catch (_) { return {}; }
+}
 app.get('/api/shares/:token', (req, res) => {                // public: counterparty portal
   const s = db.prepare('SELECT * FROM shares WHERE token=?').get(req.params.token);
   if (!s) return res.status(404).json({ error: 'Share link not found or expired' });
@@ -15788,8 +16360,8 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
      other kind. The wall is here, where the payload is, not in the browser. */
   if (shareIsStatus(s)) return res.status(403).json({
     error: 'This is a status link. It opens a read-only page at /deal/' + req.params.token + ' and carries no copy of the contract.' });
-  if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked' });
-  if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired' });
+  if (s.revoked_at) return res.status(410).json({ error: 'This share link was withdrawn by the sender. Ask them to reshare if you still need access.', gone: 'revoked', ...shareGoneWho(s) });
+  if (shareExpired(s)) return res.status(410).json({ error: 'This share link has expired. Ask the sender to reshare the contract.', gone: 'expired', ...shareGoneWho(s) });
   /* ---- AND A NAMED GUEST'S LINK ASKS WHO IS OPENING IT (idea 8, 4 Oct 2026)
      ---- The wall is HERE, on the route that hands over the contract, and not
      in the browser: a page can be skipped, a payload cannot. It answers with
@@ -15802,7 +16374,11 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
      asks for a key to a room that is not there. Dead first, then who. */
   if (shareNeedsCode(s) && !shareDoorOtpOk(s.token, req.query && req.query.t))
     return res.status(401).json({ error: 'Check it is you before this opens.', needsCode: true,
-      to: shareCodeMask(s.recipient_email) });
+      to: shareCodeMask(s.recipient_email),
+      /* With email off the code waits in the sender's outbox, so the page
+         says who to ask (8 Oct 2026): whether mail goes, and the sender's
+         name — nothing else about the deal. */
+      emailConfigured: EMAIL_ON(), sharedBy: (() => { try { return String((JSON.parse(s.payload) || {}).sharedBy || '').slice(0, 120); } catch (_) { return ''; } })() });
   /* WP-1.6: a derived view link dies with its parent — checked live, on every
      open, because a cascade WRITE at revoke time would miss a parent that
      merely expired. A derived ticket is strictly weaker than its source, and
@@ -15810,13 +16386,13 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   if (s.parent_token){
     const p = db.prepare('SELECT revoked_at, expires_at FROM shares WHERE token=?').get(s.parent_token);
     if (!p || p.revoked_at || shareExpired(p))
-      return res.status(410).json({ error: 'The link this reading copy was created from is no longer active, so this copy has closed with it.', gone: 'revoked' });
+      return res.status(410).json({ error: 'The link this reading copy was created from is no longer active, so this copy has closed with it.', gone: 'revoked', ...shareGoneWho(s) });
   }
   // The payload carries its own copy of the contract, so a link outlives the
   // record unless this is checked: without it, a deleted contract keeps being
   // served here — still offering "Approve & sign" — to anyone holding the link.
   if (s.contract_id && !db.prepare('SELECT 1 FROM contracts WHERE id=?').get(s.contract_id))
-    return res.status(410).json({ error: 'This contract is no longer available. Ask the sender for an up-to-date copy.', gone: 'revoked' });
+    return res.status(410).json({ error: 'This contract is no longer available. Ask the sender for an up-to-date copy.', gone: 'revoked', ...shareGoneWho(s) });
   /* ---- W7: A BOUND LINK OPENS IN ITS TURN, AND NOT BEFORE ----
      Signer n+1 holds a real link — created up front so the whole route exists
      the moment it is issued — but until signer n has signed, it answers with a
@@ -15830,9 +16406,9 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
   if (s.signer_id && !s.response) {
     const turn = signerTurn(s.contract_id, s.signer_id);
     if (turn.reason === 'unknown')
-      return res.status(410).json({ error: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.', gone: 'revoked' });
+      return res.status(410).json({ error: 'The signing route on this contract was changed and this link no longer belongs to it. Ask the sender for a fresh signing link.', gone: 'revoked', ...shareGoneWho(s) });
     if (turn.reason === 'already-signed')
-      return res.status(410).json({ error: 'This signing step has already been completed — nothing on this link is left to do.', gone: 'revoked' });
+      return res.status(410).json({ error: 'This signing step has already been completed — nothing on this link is left to do.', gone: 'revoked', ...shareGoneWho(s) });
     if (turn.reason === 'awaiting') {
       let p = null; try { p = JSON.parse(s.payload); } catch (_) {}
       const w = turn.waitingOn;
@@ -15854,7 +16430,7 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
          held with its reason ("X signs first"). The same facts a sign link
          serves once its turn comes, minus nothing the reader could act on —
          the respond route still refuses a signature out of turn. */
-      payload: p, purpose: s.purpose || null, signingOrder: shareSigningOrder(s),
+      payload: srvPartiesOnPayload(p, s), purpose: s.purpose || null, signingOrder: shareSigningOrder(s),
       signatures: shareLiveSignatures(s, null), emailConfigured: EMAIL_ON(),
       share: { recipientName: s.recipient_name || '', recipientEmail: s.recipient_email || '',
         expiresAt: s.expires_at || null, channel: s.channel || 'link' } });
@@ -15952,9 +16528,9 @@ app.get('/api/shares/:token', (req, res) => {                // public: counterp
     lastResponse = { action: r.action, at: lastR.at, name: r.name,
       title: r.title ? String(r.title).slice(0, 120) : null,
       verified: r.action === 'sign' ? !!(r.verify || r.verified === true) : null,
-      applied: lastR.applied == null ? null : lastR.applied === 1 }; } catch (_) {} }
+      applied: lastR.applied == null ? null : (lastR.applied === 1 || lastR.applied === 2) }; } catch (_) {} }   // 2: filed by the server (D4)
   res.json({
-    payload: JSON.parse(s.payload),
+    payload: srvPartiesOnPayload(JSON.parse(s.payload), s),
     // whether this server can send a verification code at all — the portal
     // needs it BEFORE the signer presses sign, not as a failure afterwards
     emailConfigured: EMAIL_ON(),
@@ -16104,7 +16680,7 @@ const REACH_RECENT_DAYS = 14;   // "Link sent" looks back this far — the agent
    contract and is fetched only where a wording comparison needs it. */
 const REACH_COLS = `token, contract_id, created_at, created_by, channel, durable, purpose, signer_id,
   party_id, recipient_name, recipient_email, sent_at, expires_at, revoked_at, responded_at, send_error,
-  (response IS NOT NULL) AS answered`;
+  (response IS NOT NULL) AS answered, (response LIKE '%"action":"sign"%') AS signed_on`;
 /* ---- A LINK WHOSE EMAIL WAS REFUSED NEVER REACHED THEM (Young ruled 27 Sep
    2026: "yes" — a bounced email counts as stuck) ----
    The provider refused the message and it was never sent again: `send_error`
@@ -16123,6 +16699,11 @@ function shareFate(s) {
   if (!s) return null;
   if (s.revoked_at) return { how: 'revoked', at: s.revoked_at };
   const answered = ('response' in s) ? !!s.response : !!s.answered;
+  /* A ONE-TIME LINK USED FOR ITS SIGNATURE DID ITS JOB (B17, 8 Oct 2026): it
+     is not a link that "stopped working" — after they signed, the owner's
+     bell said they could no longer answer. */
+  const signedOn = ('response' in s) ? /"action"\s*:\s*"sign"/.test(String(s.response || '')) : !!s.signed_on;
+  if (!s.durable && signedOn) return { how: 'signed', at: s.responded_at || null };
   if (shareBounced(s) && !(!s.durable && answered)) return { how: 'bounced', at: s.created_at || null };
   if ((s.channel || 'link') === 'word') {
     if (!s.sent_at) return { how: 'undelivered', at: s.created_at || null };
@@ -16157,6 +16738,11 @@ function srvReachWanted(c) {
   if (!c || c.archived || c.status === 'Declined' || reachExecuted(c)) return false;
   const pending = Array.isArray(c.changes) && c.changes.some(x => x && x.status === 'pending' && !x.withdrawn);
   if (pending) return true;
+  /* HANDED TO THEM WITH NOTHING PENDING — their first look (9 Oct 2026). After
+     a first send nothing is proposed yet, and without this the room, the bell
+     and their page gave three answers to "whose move": whether they hold a
+     live copy is exactly what says it is theirs (negWhoseMove). */
+  if (c.negotiation && c.negotiation.turn === 'counterparty') return true;
   return Array.isArray(c.signerPlan) && c.signerPlan.some(s => s && s.party === 'counterparty' && !s.signed);
 }
 /* THE ONE READING. `rows` may be handed in (the list reads every contract's
@@ -16209,6 +16795,13 @@ function srvReach(c, opts = {}) {
     if (other) out.last = { how: 'readonly', at: other.created_at || null, ...reachWho(other),
       sentAt: other.sent_at || other.created_at || null, word: false };
   }
+  /* ---- ONCE SOMEBODY HAS SIGNED, THE CLOSED NEGOTIATION LINK IS NOT A STUCK
+     WAY BACK (B17, 8 Oct 2026) ---- A signing link retires the negotiation
+     copies on purpose, so after a signature "they cannot answer your
+     changes — their link stopped working" was a false alarm on the owner's
+     bell. Said as a fact beside `reply`; the bell's reader stands down on it. */
+  if (anySignatureRow(c) || rows.some(s => sharePurposeOf(s) === 'sign'
+    && (s.signed_on || /"action"\s*:\s*"sign"/.test(String(s.response || ''))))) out.signing = true;
   /* ---- EVERY PARTY THAT NEGOTIATES (27 Sep 2026, the blind spot closed) ----
      `reply` stays ONE answer per contract — any party's live copy makes it
      live, so the Negotiations list's bands are unchanged — but on a deal with
@@ -17333,6 +17926,18 @@ app.post('/api/shares/:token/respond', rlShare, (req, res) => {   // public: cou
     }
   });
   notifyShareResponse(s, r);   // fire-and-forget: owner alert + counterparty receipt
+  /* D4: THE SIGNATURE IS FILED, AND THE LAST ONE SEALS, HERE — not when some
+     colleague's browser next polls (srvSealAfterTheirSignature). */
+  if (r.action === 'sign' && s.contract_id) {
+    try {
+      const out = srvSealAfterTheirSignature(req, s.contract_id);
+      /* A bound link's next turn is announced by releaseNextSignerLink below;
+         an unbound one's was announced by the owner's save, which no longer
+         carries it — so it is announced here. */
+      if (out && out.ourTurn && !s.signer_id) notifyInternalSignerTurn(req, s.contract_id);
+    }
+    catch (e) { console.warn('[hati] filing a signature on the server failed: ' + (e && e.message)); }
+  }
   /* THEIR ROUND CAME BACK — Copilot starts preparing our answers now, from
      the answer as it arrived, whether or not anybody on our side is online. */
   if (s.contract_id && r && Array.isArray(r.negoProposed) && r.negoProposed.length) roundPrepKick(s.contract_id);
@@ -17717,7 +18322,23 @@ app.get('/api/outbox', auth, admin, (req, res) => {
      HaTi" and handing them the platform's front door. What cannot be read
      back cannot be checked. */
   const rows = db.prepare('SELECT id,to_addr,subject,body,sent,provider,dev_hint,detail,created_at FROM outbox ORDER BY created_at DESC LIMIT 40').all();
-  res.json({ emailConfigured: EMAIL_ON(), items: rows, health: emailHealth() });
+  res.json({ emailConfigured: EMAIL_ON(), items: rows, health: emailHealth(), mail: mailCfgOf() });
+});
+/* SAVE OR REMOVE THE MAIL KEY (and the From address) from the screen — the
+   PUT /api/ai/config pattern: admin only, stored server-side, never returned.
+   A key is one word starting "re_" (a browser-filled password must never be
+   stored as one); a From is an address, optionally with a name before it. */
+const MAIL_FROM_RE = /^(?:[^<>\r\n@]{1,80}<[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>|[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+)$/;
+app.put('/api/mail/config', auth, admin, (req, res) => {
+  const { key, from, clear } = req.body || {};
+  if (clear) { setSetting('mailKey', ''); return res.json({ ok: true, mail: mailCfgOf() }); }
+  if (typeof key === 'string' && key.trim() && !/^re_[A-Za-z0-9_-]{8,}$/.test(key.trim()))
+    return res.status(400).json({ error: 'That does not look like a mail key. A Resend key starts with “re_”.' });
+  if (typeof from === 'string' && from.trim() && !MAIL_FROM_RE.test(from.trim()))
+    return res.status(400).json({ error: 'The From address should look like hello@yourcompany.com or Your Company <hello@yourcompany.com>.' });
+  if (typeof key === 'string' && key.trim()) setSetting('mailKey', key.trim());
+  if (typeof from === 'string') setSetting('mailFrom', from.trim());
+  res.json({ ok: true, mail: mailCfgOf() });
 });
 
 /* IS THE MAIL ACTUALLY GETTING OUT? — a different question from "is a provider
@@ -17814,6 +18435,73 @@ function obligationRecipient(assignee, folder) {
     return { email: u.email, name: u.name || assignee, lang: u.lang || null };
   return null;
 }
+/* ---- AN AUTO-RENEWING CONTRACT NOBODY DECIDED ON RENEWED ITSELF (B15,
+   8 Oct 2026) ----
+   After its end date passes with no notice served and no "let it lapse" on
+   file, an auto-renewing contract has renewed — it did not expire, and it
+   read "Expired" with nobody told. Once per end date: where the renewal term
+   is recorded (metadata.renewalTermMonths) the end date rolls on by it, as a
+   reading (`autoRenewed`, server-owned; the signed `expiry` is never
+   rewritten); where it is not, nothing is guessed — the owner is told it has
+   probably renewed and the new end date is not recorded. A trail line either
+   way, by HaTi; "sent" only where the mail went (mailReport). */
+function runAutoRenewals(nowMs) {
+  const today = new Date(Number.isFinite(nowMs) ? nowMs : Date.now()).toISOString().slice(0, 10);
+  const rows = db.prepare(`SELECT id, json, folder, parent_id FROM contracts WHERE status='Signed' AND parent_id IS NULL AND json LIKE '%auto-renew%'`).all();
+  if (!rows.length) return { checked: 0, renewed: 0 };
+  const all = db.prepare("SELECT id, name, counterparty, expiry, status, parent_id, folder, json FROM contracts WHERE status!='Declined'").all();
+  const parsed = new Map();
+  for (const r of all) { let f = {}; try { f = JSON.parse(r.json) || {}; } catch (_) {} parsed.set(r.id, f); }
+  const { eff } = effExpiryReader(all, parsed);
+  let renewed = 0;
+  for (const row of rows) {
+    const c = parsed.get(row.id); if (!c || c.archived) continue;
+    const m = c.metadata || {};
+    if (m.renewalType !== 'auto-renew') continue;
+    const end = eff(all.find(r => r.id === row.id) || { id: row.id });
+    if (!end || end >= today) continue;
+    if (c.notice && c.notice.servedOn) continue;                       // a notice was served: it ends
+    const dec = srvRenewalDecision(c, end);
+    if (dec && dec.answer === 'lapse') continue;                       // they decided to let it lapse
+    const hist = Array.isArray(c.autoRenewed) ? c.autoRenewed : [];
+    if (hist.some(x => x && String(x.from) === String(end))) continue; // already said, once
+    const months = Number(m.renewalTermMonths) || 0;
+    let to = null;
+    if (months > 0) {
+      const d = new Date(end + 'T00:00:00Z');
+      for (let i = 0; i < 600 && d.toISOString().slice(0, 10) < today; i++) d.setUTCMonth(d.getUTCMonth() + months);
+      to = d.toISOString().slice(0, 10);
+    }
+    c.autoRenewed = hist.concat([{ from: end, to, at: now(), months: months || null }]);
+    c.audit = (Array.isArray(c.audit) ? c.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Renewed',
+      detail: to ? `Renewed itself on ${end} — no notice was served. The end date is now ${to} (a renewal term of ${months} month${months === 1 ? '' : 's'}).`
+        : `The end date ${end} passed with no notice served, so it has probably renewed itself. The renewal term is not recorded, so the new end date is not known — record it on the Overview.` }]);
+    db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(c), row.id);
+    renewed++;
+    const own = contractOwnerRecipient(c, row.folder);
+    const to2 = own ? [own] : [];
+    if (!to2.length) continue;
+    (async () => {
+      for (const u of to2) {
+        const L = langForEmail(u.email, u.lang);
+        const v = { name: c.name || contractRef(c), ref: contractRef(c), end, to: to || '' };
+        const body = `${tFor(L, 'mail_hello')} ${u.name || ''},\n\n${tFor(L, to ? 'mail_autorenew_line' : 'mail_autorenew_unknown_line', v)}\n\n${tFor(L, 'mail_at_open')}\n${contractUrl(null, c.id, 'terms')}\n\n${tFor(L, 'mail_automated_notice')}`;
+        try {
+          const r = await sendEmail(u.email, tFor(L, to ? 'mail_autorenew_subject' : 'mail_autorenew_unknown_subject', v), body, `auto-renewed: ${c.id} -> ${u.email}`);
+          const rep = mailReport(r);
+          const fresh = db.prepare('SELECT json FROM contracts WHERE id=?').get(row.id);
+          if (fresh) { const cj = JSON.parse(fresh.json);
+            cj.audit = (Array.isArray(cj.audit) ? cj.audit : []).concat([{ at: now(), user: 'HaTi', action: 'Renewed',
+              detail: rep.emailSent ? `${u.name || 'The owner'} was emailed about it.` : rep.outbox
+                ? `The email to ${u.name || 'the owner'} is waiting in the outbox — email is not set up on this server.`
+                : `The email to ${u.name || 'the owner'} could not be sent${rep.emailError ? ` — ${rep.emailError}` : ''}.` }]);
+            db.prepare('UPDATE contracts SET json=? WHERE id=?').run(JSON.stringify(cj), row.id); }
+        } catch (_) { /* the trail already says it renewed */ }
+      }
+    })();
+  }
+  return { checked: rows.length, renewed };
+}
 /* Family-aware term resolution over one query's rows — mirrored from
    js/family.js, and since WO-3 shared by BOTH sweeps (renewal reminders and
    the daily brief). ONE implementation on purpose: a third copy is how the
@@ -17839,13 +18527,18 @@ function effExpiryReader(rows, parsed) {
   for (const r of rows) { if (!r.parent_id) continue; if (!kidsOf.has(r.parent_id)) kidsOf.set(r.parent_id, []); kidsOf.get(r.parent_id).push(r); }
   const executedKid = (k) => { const f = parsed.get(k.id) || {};
     return !!(k.status === 'Signed' || f.hash || (f.execution && f.execution.at)); };
+  /* AN AUTOMATIC RENEWAL THIS SERVER RECORDED (B15) carries the end date on
+     when it knew the renewal term — never earlier than the date it rolled. */
+  const rolled = (r, base) => { const f = parsed.get(r.id) || {};
+    const ar = (Array.isArray(f.autoRenewed) ? f.autoRenewed : []).filter(x => x && x.to).map(x => dateOnly(x.to)).filter(Boolean).sort().pop();
+    return (ar && (!base || ar > base)) ? ar : base; };
   const eff = (r) => {
     if (r.parent_id) return ownExp(r);
     const kids = (kidsOf.get(r.id) || []).filter(k => TERM_CHANGING.has((parsed.get(k.id) || {}).relation)
       && ownExp(k) && executedKid(k));
-    if (!kids.length) return ownExp(r);
+    if (!kids.length) return rolled(r, ownExp(r));
     kids.sort((a, b) => String(amendDate(a)).localeCompare(String(amendDate(b))) || String(ownExp(a)).localeCompare(String(ownExp(b))));
-    return ownExp(kids[kids.length - 1]);
+    return rolled(r, ownExp(kids[kids.length - 1]));
   };
   return { eff, ownExp, kidsOf };
 }
@@ -17875,6 +18568,7 @@ function contractOwnerRecipient(full, folder) {
 function runReminders() {
   // Share nudges go to counterparties, so they run regardless of admin setup.
   const nudged = runShareNudges();
+  try { runAutoRenewals(); } catch (e) { console.warn('[hati] auto-renewal sweep failed: ' + (e && e.message)); }
   // Pull full JSON so we can also see E1 metadata (notice period) and E3
   // obligations, not just the indexed expiry column.
   /* `folder` joins the row because the renewal mail is addressed to the
@@ -20560,6 +21254,13 @@ function tplListView(t) {
     publishedVersionId: pub ? pub.id : null,
     latestVersion: latest,
     contractsCreated: tplUsage(t.id),
+    /* THE TEMPLATE'S OWN QUESTIONS (9 Oct 2026): the New agreement card said
+       "8 questions" for a company standard — those were the essentials asked
+       first; the template's own fields follow on the Document tab. Counted
+       here so the card can say both, honestly. Signatures are not questions:
+       the signing flow captures them. */
+    questionCount: pub ? (db.prepare(`SELECT COUNT(*) n FROM template_fields WHERE template_version_id=?
+      AND COALESCE(field_type,'') <> 'signature_name_title'`).get(pub.id).n || 0) : 0,
     lastUsedAt: t.last_used_at || null,
     /* What this template was converted from. NULL on everything built before
        the PDF route existed, and NULL reads as "not a scan" — only an explicit
@@ -21128,6 +21829,15 @@ function tplOrgValues() {
   const base = { company_name: b.company_name, registration_number: b.registration_number, address: b.address };
   for (const r of db.prepare('SELECT field_key, value FROM org_profile_values WHERE org_id=?').all(WORKSPACE_ID))
     base[r.field_key] = r.value;
+  /* "OUR COMPANY" IS NEVER BLANK WHILE THE WORKSPACE HAS A NAME (9 Oct 2026).
+     With branding never filled in, {{org.company_name}} resolved to nothing
+     and a template's "Our company" blank went to the other side as its own
+     label ("between Our company (the Client)"). The workspace's name is the
+     same fact the app already prints as us everywhere else (FIRST_PARTY). */
+  if (!String(base.company_name || '').trim()) {
+    let ws = ''; try { ws = String(((getSetting('org') || {}).name) || '').trim(); } catch (_) { ws = ''; }
+    if (ws) base.company_name = ws;
+  }
   return base;
 }
 const TPL_CATEGORY_FOLDER = { procurement: 'proc', sales: 'sales', employment: 'corp', nda: 'corp', other: 'corp' };
@@ -21166,7 +21876,12 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
   const uid = (Number(getSetting('uid')) || 100) + 1;
   const c = {
     id: 'MK-' + uid,
-    name: clean(b.name).slice(0, 200) || t.name,
+    /* ONE NAME, WHICHEVER DOOR (9 Oct 2026): HaTi's own templates name a
+       draft "<Template> — <Counterparty>" (createFromWizard); this door named
+       it the template alone, so two contracts with two counterparties read
+       alike on every list. Stored names are never rewritten. */
+    name: clean(b.name).slice(0, 200)
+      || (clean(b.counterparty).slice(0, 120) ? `${t.name} — ${clean(b.counterparty).slice(0, 120)}` : t.name),
     /* ASKED AT CREATION, NOT LEFT BLANK. These five were hardcoded empty, so a
        contract born from a company standard template arrived with no
        counterparty for the register to filter on, no value for the reports to
@@ -21208,7 +21923,10 @@ app.post('/api/templates/:id/contracts', auth, editor, (req, res) => {
     ...(Number(b.value) > 0 ? { valueType: 'estimated' }
       : String(t.category || '') === 'nda' ? { valueType: 'none' } : {}),
     status: 'Draft', template: null, folder, source: null,
-    lastAction: 'Created from template',
+    /* A DAY, like every other creation door writes (9 Oct 2026): this was the
+       words "Created from template", which the room head printed as
+       "updated Created from template". The trail says how it was made. */
+    lastAction: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
     expiry: /^\d{4}-\d{2}-\d{2}$/.test(String(b.expiry || '')) ? String(b.expiry) : null,
     hash: null, signedAt: null,
     format: 'rich', redlineText: templateFormDocHtml(form),

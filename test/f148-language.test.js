@@ -155,6 +155,8 @@ const SAME_IN_BOTH = new Set([ 'pd_tab_copilot', 'pd_doc_pdf',
      rule. ce_provenance is written onto the change as its note and is read by
      whoever opens the trail, in whatever language they work in. */
   'ce_provenance',
+  // ng_inline_note is written onto a change typed on the paper as its note — a record, kept English (9 Oct 2026).
+  'ng_inline_note',
   'ct_risk',              // 'Risk' is the same word in Swedish
   'hr_col_risk',          // ditto — the health report's risk column
   'kind_risk',            // ditto

@@ -121,6 +121,31 @@ const BRAIN_PARTS = [
   ['renewal', 'renewalWindow', 'time', 1],
   ['desknight', 'deskShown', 'time', 1],
   ['email', 'mailReport', 'out', 3],
+  /* the mail key an admin saves from the screen (9 Oct 2026): the server's environment no longer the only way email goes out */
+  ['mailkey', 'PUT /api/mail/config', 'out', 3],
+  /* THE OVERNIGHT REVIEW'S PARTS (9 Oct 2026, owner: "fix all the issues"): the
+     map told only the happy path. These name drafting from a template, the other
+     side's signature and the server's seal, an amendment, the end of a contract,
+     and what happens when something goes wrong, so each has a flow. */
+  ['tplform', 'tplFormApply', 'in', 1],
+  ['essentials', 'openContractEssentials', 'in', 0],
+  ['outbyhand', 'roundReachedByHand', 'out', 1],
+  ['issuelinks', 'issueSigningRouteLinks', 'sign', 1],
+  ['filesig', 'srvFileSignature', 'wall', 2],
+  ['srvseal', 'srvSealNow', 'wall', 2],
+  ['copies', 'srvSendExecutedCopies', 'out', 2],
+  ['amend', 'openCreateAmendmentModal', 'in', 0],
+  ['decline', 'contractDecline', 'time', 1],
+  ['reopen', 'contractReopen', 'time', 1],
+  ['archive', 'contractSetArchived', 'time', 1],
+  ['hold', 'contractSetHold', 'time', 1],
+  ['served', 'noticeMarkServed', 'time', 1],
+  ['obdone', 'obligationMarkDone', 'time', 1],
+  ['autorenew', 'runAutoRenewals', 'time', 2],
+  ['leaveguard', 'ceLeaveGuard', 'nego', 1],
+  ['discard', 'negoMayDiscard', 'nego', 1],
+  ['freshen', 'decisionFreshen', 'sign', 1],
+  ['inline', 'rlInlineSave', 'nego', 0],
   ['cplink', 'renderShareViewer', 'out', 3],
   ['webhook', 'WEBHOOK_EVENTS', 'out', 3],
   ['wordfile', 'docxExportTracked', 'out', 3],
@@ -199,16 +224,25 @@ const BRAIN_PARTS = [
    brn_step_<flow>_<n> in the dictionary. A flow is a STORY a person wrote;
    the reading only checks that every part it names is still in the code. */
 const BRAIN_FLOWS = [
-  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'papermark'], ['model'], ['blanks'], ['overview', 'constellation', 'timemachine', 'bell', 'request', 'kinds', 'laneowner']] },
+  { id: 'upload', steps: [['upload', 'book', 'draftcard'], ['docx', 'pdf'], ['clauses'], ['putguard', 'db'], ['triage', 'arrivalowed'], ['brief', 'playbook', 'oblscan', 'obdesk', 'risk', 'papermark'], ['model'], ['blanks'], ['overview', 'constellation', 'timemachine', 'bell']] },
   /* The new parts join STEPS THAT ALREADY EXIST rather than adding steps of
      their own: a step inserted in the middle renumbers every sentence after
      it in both books, and these are not new stages of the story — they are
      who else is on the page while you do it, and who may rule on it. */
-  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
+  { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'mailkey', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'negpage', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
-  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['brief', 'playbook', 'blanks'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks', 'approvalpaper'], ['pad'], ['putguard'], ['seal', 'frozen'], ['obligations', 'renewal', 'calendar'], ['email']] },
+  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks', 'approvalpaper', 'freshen'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar'], ['email', 'copies']] },
   { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell'], ['desknight', 'home', 'insights', 'readings', 'chasemany', 'draftreply']] },
-  { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] }
+  { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
+  /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
+     the other side's signature, an amendment, the end of a contract, and the
+     ways a step can go wrong — none of which the six flows above walked. */
+  { id: 'draft', steps: [['newagr', 'essentials'], ['putguard', 'db'], ['tplform', 'blanks'], ['triage'], ['shares', 'linkcheck'], ['email', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
+  { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom'], ['bell'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
+  { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode'], ['respond', 'filesig'], ['srvseal', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
+  { id: 'amend', steps: [['amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
+  { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['decline', 'reopen'], ['archive', 'hold']] },
+  { id: 'mistake', steps: [['leaveguard', 'inline'], ['discard'], ['freshen'], ['outbyhand', 'mailkey'], ['linkkeep', 'whosemove']] }
 ];
 
 /* THE LANES (Young picked "Swimlane", 8 Oct 2026, and approved its rule): the
@@ -223,22 +257,23 @@ const BRAIN_LANES = ['req', 'own', 'hati', 'them'];
 const BRAIN_STAGES = ['ask', 'create', 'prepare', 'nego', 'approve', 'sign', 'keep'];
 const BRAIN_LANE_OF = {
   /* a colleague: the requester, the reviewer, the contributor, the approver */
-  req: ['request', 'kinds', 'review', 'suggest', 'approvals', 'namedyes', 'decide', 'approvalpaper', 'lookask'],
+  req: ['request', 'kinds', 'review', 'suggest', 'rules', 'namedyes', 'decide', 'approvalpaper', 'lookask'],
   /* the person working the contract: what they see and press */
   own: ['upload', 'book', 'draftcard', 'overview', 'constellation', 'timemachine', 'papermark', 'obdesk', 'bell', 'home', 'negpage', 'here', 'follow',
     'editor', 'baton', 'askkeep', 'risklist', 'riskwalk', 'stands', 'dealpaper', 'onepaper', 'decidedsend', 'signtab', 'pad', 'calendar', 'desknight', 'insights', 'readings',
     'chasemany', 'copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs',
     'phrasebook', 'boardtools', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'citedoor', 'walkset', 'paperdesk', 'contracts', 'cellfold',
-    'readchips', 'nextq'],
+    'readchips', 'nextq', 'newagr', 'essentials', 'tplform', 'outbyhand', 'amend', 'decline', 'reopen', 'archive', 'hold', 'served', 'obdone', 'inline'],
   /* HaTi itself: the readings, Copilot, the agents, the server's checks, the mail it sends */
   hati: ['docx', 'clauses', 'putguard', 'db', 'triage', 'arrivalowed', 'brief', 'playbook', 'oblscan', 'risk', 'model', 'blanks', 'laneowner',
     'funnel', 'desk', 'ladder', 'kept', 'asks', 'payload', 'shares', 'linkcheck', 'email', 'turnmail', 'wordmark', 'whosemove', 'roundauto',
-    'respond', 'audit', 'apply', 'wordback', 'paperdrop', 'stale', 'webhook', 'answeronpaper', 'readiness', 'signgate', 'rules', 'paperjobs', 'rulestep', 'seal',
+    'mailkey', 'respond', 'audit', 'apply', 'wordback', 'paperdrop', 'stale', 'webhook', 'answeronpaper', 'readiness', 'signgate', 'approvals', 'paperjobs', 'rulestep', 'seal',
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
     'boardmoved', 'looktell', 'draftreply', 'dataguide', 'analyst', 'story', 'quote', 'passroute', 'copilotdoors', 'factsheet', 'dealfacts',
-    'boardmarks'],
+    'boardmarks', 'pdf', 'intake', 'mailroom', 'wordfile', 'issuelinks', 'filesig', 'srvseal', 'copies', 'autorenew', 'leaveguard', 'discard',
+    'freshen'],
   /* the counterparty: their link, the code that proves it is them */
-  them: ['cplink', 'guestcode']
+  them: ['cplink', 'guestcode', 'theirsign']
 };
 const BRAIN_FLOW_STAGES = {
   upload: ['create', 'create', 'create', 'create', 'prepare', 'prepare', 'prepare', 'prepare', 'prepare'],
@@ -246,7 +281,13 @@ const BRAIN_FLOW_STAGES = {
   round: ['nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego', 'nego'],
   sign: ['sign', 'sign', 'approve', 'approve', 'sign', 'sign', 'sign', 'keep', 'keep'],
   night: ['keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep', 'keep'],
-  ask: ['ask', 'ask', 'ask', 'ask', 'ask', 'ask']
+  ask: ['ask', 'ask', 'ask', 'ask', 'ask', 'ask'],
+  draft: ['create', 'create', 'prepare', 'prepare', 'nego', 'nego', 'nego'],
+  request: ['ask', 'ask', 'create', 'prepare', 'create'],
+  theysign: ['sign', 'sign', 'sign', 'sign', 'keep', 'keep'],
+  amend: ['create', 'prepare', 'approve', 'sign', 'keep'],
+  end: ['keep', 'keep', 'keep', 'keep', 'keep'],
+  mistake: ['nego', 'nego', 'approve', 'nego', 'nego']
 };
 /* KNOWN PROBLEMS: a step that does not yet do what the process needs. Each is
    a numbered line here on the part it sits on, its words brn_pb_<n> (the short
@@ -256,7 +297,10 @@ const BRAIN_FLOW_STAGES = {
 const BRAIN_PROBLEMS = [
   /* Home first, step 7 ("answering HaTi from an email reply") was agreed as
      later on 8 Oct 2026 and is not built */
-  { n: 1, part: 'email' }
+  { n: 1, part: 'email' },
+  /* the overnight run (9 Oct 2026): what it could not close, said where it sits */
+  { n: 2, part: 'autorenew' },
+  { n: 3, part: 'srvseal' }
 ];
 function brainLaneOf(id){ return BRAIN_LANES.find(k => BRAIN_LANE_OF[k].includes(id)) || null; }
 
@@ -276,7 +320,7 @@ const BRAIN_FILE_REGION = [
   [/^js\/(docx|pdf|pdfrich|ocr|clausemodel|blanks|uploadblanks|richdoc|redline|templateform)\.js$/, 'read'],
   [/^js\/(signcheck|signapproval|approvals|signature|assurance|outside)\.js$|^js\/views\/(handover|approvalsview)\.js$/, 'sign'],
   [/^js\/(obligations|desknight|notice|payterms|runway)\.js$|^js\/views\/calendar\.js$/, 'time'],
-  [/^js\/(wizard|intake|cohort)\.js$|^js\/views\/(intake|newstandard|templatebuilder|templatelib|migration|library)\.js$/, 'in'],
+  [/^js\/(wizard|intake|cohort|family)\.js$|^js\/views\/(intake|newstandard|templatebuilder|templatelib|migration|library)\.js$/, 'in'],
   [/^js\/(adviserlink)\.js$|^js\/views\/(portal|adviceportal)\.js$/, 'out']
 ];
 function brainRegionOfFile(file){

@@ -299,7 +299,12 @@ describe('f385 (9) walls', () => {
   test('[wall] the phone\'s own shell is untouched by the ladder', () => {
     for (const f of fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.startsWith('mobile') && f.endsWith('.js'))) {
       const s = read('js/' + f);
-      assert.ok(!/ui-link|ui-btn-accent|plusLed|--ctl-h-sm/.test(s), f + ' carries none of this change');
+      assert.ok(!/ui-btn-accent|plusLed|--ctl-h-sm/.test(s), f + ' carries none of this change');
+      /* The phone may NAME a desktop link (9 Oct 2026) only to make it bigger
+         under a finger — a 44px floor or a wider press area — never to take
+         the compact ladder's sizes. */
+      for (const line of s.split('\n').filter(l => /ui-link/.test(l)))
+        assert.ok(/min-height:44px|::after\{|position:relative/.test(line), f + ': .ui-link only for a touch floor — ' + line.trim());
     }
   });
   test('[wall] the contract keeps its square corners: no button rule reaches the paper', () => {

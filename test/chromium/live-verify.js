@@ -106,6 +106,17 @@ const READ = () => {
   const errors = [];
 
   for (const purpose of ['negotiate', 'sign']){
+    /* A SIGNING LINK IS NOT MINTED OVER AN OPEN ASK (B2, the owner's 9 Oct
+       review): a signing page cannot answer our change, so the server refuses
+       the link until they have. Here they answered it on the negotiation link
+       before the signing link went out — the order a real deal takes. */
+    if (purpose === 'sign'){
+      const cur = await W.admin.json('/api/contracts/MK-LIVE');
+      const v = cur._v; delete cur._v;
+      for (const ch of cur.changes || []) if (ch.id === 'CHG-001'){ ch.status = 'accepted'; ch.resolvedAt = new Date().toISOString(); }
+      await W.admin.json('/api/contracts/MK-LIVE', { method: 'PUT', body: { contract: cur, baseVersion: v } });
+      c.changes = cur.changes;
+    }
     const token = await mk(purpose);
     /* A fresh context each time: no storage, no cache carried between runs —
        the state a counterparty opening a link for the first time is in. */

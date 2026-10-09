@@ -500,7 +500,12 @@ describe('f208 · the press clears the store the card is drawn from', () => {
       unsentIds: [ch.id],
       onRetract: (_c, id) => { forgot = id; },
       rerender: () => { repainted++; } });
+    /* Discard asks first (owner decision D3, 9 Oct 2026) — answered yes. */
+    let asked = null;
+    w.win.confirmDialog = async o => { asked = o; return true; };
     btn.dispatchEvent(new w.win.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 0));
+    assert.ok(asked && asked.danger && /Discard/.test(asked.title), 'the press asked "Discard …?" first');
 
     assert.equal(c.changes.length, 0, 'the draft is off the table');
     assert.equal(forgot, ch.id,
@@ -525,7 +530,13 @@ describe('f208 · the press clears the store the card is drawn from', () => {
     const btn = host.querySelector('[data-rl-retract]');
     assert.ok(btn, 'our own unsent draft carries it too');
     w.win.rlWireClauseTools(c, host, { side: 'owner', by: ME.name, rerender: () => {} });
+    w.win.confirmDialog = async () => false;
     btn.dispatchEvent(new w.win.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 0));
+    assert.equal(c.changes.length, 1, 'a "no" to "Discard …?" keeps the draft');
+    w.win.confirmDialog = async () => true;
+    btn.dispatchEvent(new w.win.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 0));
     assert.equal(c.changes.length, 0, 'retracted, with no hook in sight');
   });
 });

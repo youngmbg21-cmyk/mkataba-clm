@@ -213,13 +213,18 @@ const CONTRACT = (id, over) => Object.assign({
       p.count + ' → ' + counted);
 
     /* ============ 4. AND PAPER TO PANEL ============ */
-    await typeInto(page, '#doc-canvas [data-field="payDays"]', '45', 'input');
-    const toPanel = await page.evaluate(() => ({
-      box: (document.querySelector('#tplform-section [data-blankf="payDays"]') || {}).value,
-      record: (state.contracts.find(x => x.id === 'MK-BF1') || { fields: {} }).fields.payDays,
-    }));
-    check('4a typing on the paper moves the panel', toPanel.box === '45', 'panel reads ' + toPanel.box);
-    check('4b and neither door wrote twice', toPanel.record === '45', 'record reads ' + toPanel.record);
+    /* REVERSED 9 Oct 2026 (Young, the Paper and Counter review, change 5:
+       "the Document tab is never edited"): the paper shows the answers and
+       takes no typing; a press on a blank goes to its box in this panel. */
+    await typeInto(page, '#tplform-section [data-blankf="payDays"]', '45', 'change');
+    const toPanel = await page.evaluate(() => {
+      const paper = document.querySelector('#doc-canvas [data-field="payDays"]');
+      return { paper: paper ? paper.value : null, readOnly: !!(paper && paper.readOnly),
+        record: (state.contracts.find(x => x.id === 'MK-BF1') || { fields: {} }).fields.payDays };
+    });
+    check('4a the paper shows the panel\'s answer, and takes no typing of its own', toPanel.paper === '45' && toPanel.readOnly,
+      JSON.stringify(toPanel));
+    check('4b and the record holds it once', toPanel.record === '45', 'record reads ' + toPanel.record);
 
     /* A RECORD FIELD GOES THROUGH THE PAGE'S OWN HANDLER, so the value the
        register reads really moves — the panel writes no record field itself. */
@@ -384,10 +389,13 @@ const CONTRACT = (id, over) => Object.assign({
           const a = document.activeElement;
           return { inPanel: all.filter(e => e.closest('#tplform-section')).length,
             onPaper: all.filter(e => e.closest('#doc-canvas')).length,
-            caretOnPaper: !!(a && a.closest && a.closest('#doc-canvas')) };
+            caretOnPaper: !!(a && a.closest && a.closest('#doc-canvas')),
+            caretInPanel: !!(a && a.closest && a.closest('#tplform-section')) };
         });
-        check('9e a cursor on the paper lights the box, and does not steal the caret',
-          back.inPanel === 1 && back.caretOnPaper === true, JSON.stringify(back));
+        /* REVERSED 9 Oct 2026 (change 5, "the Document tab is never edited"): a
+           press on the paper's blank takes the caret to ITS box in the panel. */
+        check('9e a press on a blank on the paper takes the caret to its box in the panel',
+          back.caretInPanel === true && back.caretOnPaper === false, JSON.stringify(back));
       }
     }
 

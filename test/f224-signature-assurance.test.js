@@ -129,7 +129,12 @@ describe('F224 — where it is written down', () => {
   test('the rung is stamped at every signing site', () => {
     const ct = read('js/views/contract.js');
     const stamps = (ct.match(/assurance:\(typeof assuranceAtSigning==='function'\)/g) || []).length;
-    assert.equal(stamps, 2, 'both internal signing sites stamp it');
+    /* PIN THE RELATION, NOT THE NUMBER: every internal signature this file
+       writes carries the rung (two sites until 9 Oct 2026; the seal's move to
+       the server split one into the server-mode and static-mode paths). */
+    const sites = (ct.match(/c\.signatures\.push\(\{ party:'(?:first|internal-planned)'/g) || []).length;
+    assert.ok(sites >= 2, 'the internal signing sites are found');
+    assert.equal(stamps, sites, 'every internal signing site stamps it');
     assert.match(ct, /twoStep:!!\(u&&u\.twoStep\)/, 'with what is true at that moment');
     const core = read('js/core.js');
     assert.match(core, /assurance:\(typeof assuranceAtSigning==='function'\)/,

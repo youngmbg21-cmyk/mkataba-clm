@@ -168,7 +168,10 @@ describe('the sign — the window renders no verbs', () => {
        everywhere (no edits on the paper; all writing through the clause
        panel). The verb that must come back with the owner's chair is the way
        into writing that exists now: the Edit pill and the panel's ＋. */
-    assert.ok(t.$('.rl-cp-pill'), 'the Edit pill is back');
+    /* RE-POINTED 9 Oct 2026 (no pen on the paper): the way into writing on
+       our chair is the wording itself, so what comes back is a clause that
+       takes the caret — no preview, no read-only. */
+    assert.ok(t.$('#rl-doc section.rl-clause[data-nego-working]'), 'the clauses are back as our own');
     assert.ok(t.$('[data-rl-cp-edit]'), 'and the panel\'s ＋ with it');
     /* The bulk verbs never come back on OUR seat — they are gone from it
        (10 Aug 2026) and live only on the counterparty's own page. What the

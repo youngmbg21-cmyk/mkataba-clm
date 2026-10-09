@@ -614,7 +614,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        is where the dead-in-preview treatment sits; what this checks is that the
        row itself still says what it said. */
     check('9 the row keeps its words and reads from our chair',
-      /Redlined/i.test(preview.rowText) && /All negotiations/i.test(preview.rowText),
+      /Redline/i.test(preview.rowText) && /All negotiations/i.test(preview.rowText),
       preview.rowText.slice(0, 80));
     await page.screenshot({ path: path.join(OUT, '04-preview.png') });
     await page.click('#view-redline [data-redline-side="owner"]');

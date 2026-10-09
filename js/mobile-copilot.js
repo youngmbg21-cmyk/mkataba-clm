@@ -69,10 +69,16 @@ const M_AI_CSS = `
   #ai-feed .ai-target-head{ font-size:var(--t-meta); }
   #ai-panel #ai-input{ font-size:16px!important; padding:13px!important; }
   #ai-panel #ai-send{ height:48px!important; width:48px!important; }
-  #ai-panel #ai-style button{ min-height:36px; font-size:var(--t-card)!important; padding:0 13px!important; }
+  /* !important, because the toggle carries its own min-height inline (the
+     shared 22px control) — the 36px here never won, and the toggle and the
+     prepared questions measured 22px tall at 12px on a phone (9 Oct 2026).
+     A finger's 44px and the card's type, like every other phone control. */
+  #ai-panel > header .font-display{ font-size:var(--t-card)!important; }
+  #ai-panel #ai-style button{ min-height:44px!important; font-size:var(--t-card)!important; padding:0 13px!important; }
+  #ai-panel .ai-chip{ min-height:44px!important; font-size:var(--t-card)!important; padding:var(--s-2) 12px!important; line-height:1.35!important; text-align:left; }
   /* The "Answers" caption above the register toggle. */
   #ai-panel #ai-style, #ai-panel #ai-style ~ *{ font-size:var(--t-card); }
-  #ai-panel .text-\\[10px\\]{ font-size:var(--t-meta)!important; }
+  #ai-panel .text-\\[10px\\], #ai-panel .text-\\[11px\\]{ font-size:var(--t-card)!important; }
   #ai-panel .px-5{ padding-left:14px!important; padding-right:14px!important; }
 
   /* THE PROPOSAL CARD, at phone size.

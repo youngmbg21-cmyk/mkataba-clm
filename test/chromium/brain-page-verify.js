@@ -73,7 +73,10 @@ const ok = (name, good, detail) => {
 
       /* ---- 3. a flow ---- */
       const flows = await page.$$eval('[data-br-flow]', b => b.map(x => x.getAttribute('data-br-flow')));
-      ok('3a six process flows are offered', flows.length === 6, flows.join(','));
+      /* PIN THE RELATION, NOT THE NUMBER: every flow in the catalogue is offered
+         (six until 9 Oct 2026, when the overnight review's six joined them). */
+      const nFlows = await page.evaluate(() => BRAIN_FLOWS.length);
+      ok('3a every process flow in the catalogue is offered', flows.length === nFlows && nFlows >= 12, flows.join(','));
       await page.click('[data-br-flow="sign"]');
       await page.waitForTimeout(400);
       const s1 = await page.$eval('#br-fl-title', e => e.textContent);

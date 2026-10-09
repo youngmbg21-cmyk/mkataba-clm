@@ -207,7 +207,11 @@ describe('f307 (3) — the server attaches the file and writes no link', () => {
     assert.ok(mail, 'the counterparty was written to');
     assert.match(String(mail.subject), /to mark up/i);
     assert.match(String(mail.body), /tracked changes/i, 'it says what is attached');
-    assert.match(String(mail.body), /reply to this email with the file/i, 'and how to answer');
+    /* D5 (owner, 9 Oct 2026): nothing reads a reply automatically, so the
+       mail no longer promises it — the file goes back to the sender. */
+    assert.match(String(mail.body), /send the file back to/i, 'and how to answer');
+    assert.doesNotMatch(String(mail.body), /straight back into HaTi|reply to this email with the file/i,
+      'and it promises no automatic read-back');
     /* THE WALL: no link goes with a file. */
     assert.doesNotMatch(String(mail.body), /\/s\/|share\?t=|http/i,
       'the URL is not put in the email');

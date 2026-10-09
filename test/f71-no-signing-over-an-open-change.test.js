@@ -61,6 +61,10 @@ function clearTheOtherGates(w) {
     c.signatures.push({ party: 'first', name: 'Wanjiru Kamau', at: w.win.nowISO() });
     c.status = 'Signed';
   };
+  /* D4 (8 Oct 2026): in server mode the page records the mark and the SERVER
+     seals — so the stand-in for the seal moves there too. */
+  w.win.sealPrepStamp = async () => {};
+  w.win.sealOnServer = async c => { c.status = 'Signed'; };
 }
 
 /* A contract sitting on the signing panel with everything else in order, so the

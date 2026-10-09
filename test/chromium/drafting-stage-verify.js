@@ -25,7 +25,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { chromium } = require('playwright-core');
-const { startHati, seedWorkspace, fixtureContract } = require('../helpers');
+const { startHatiWithMail, seedWorkspace, fixtureContract } = require('../helpers');
 
 /* THE REPORTED SCALE, seeded rather than assumed. The standard world holds two
    live contracts; the fault was about a book of eighteen, where clicking
@@ -56,7 +56,12 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  const h = await startHati();
+  /* EMAIL ON (re-pointed 9 Oct 2026, owner's decision D1: with no email set
+     up a send is QUEUED — the contract does not leave Drafting and the turn is
+     not handed over until it really goes). This file asks what a send that
+     REACHES them does to the stage, so the mail stub stands in for the
+     provider; the email-off half is sent-means-sent-verify's. */
+  const h = await startHatiWithMail();
   await seedWorkspace(h, { contracts: BOOK });
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1500, height: 1000 } });
@@ -131,6 +136,15 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       b.click(); return true;
     });
     check('1c the batch send is in the column head and was pressed', pressed);
+    /* SEND ALL SAYS WHAT TRAVELS (the owner's 9 Oct review, A7): a batch send
+       to an address on file asks once, naming the changes. A person answers
+       it; so does this check. */
+    {
+      let ok = null;
+      for (let i = 0; i < 20 && !ok; i++){ ok = await page.$('#confirm-overlay #cf-ok'); if (!ok) await pause(150); }
+      check('1c2 Send all asks once, naming what travels, and is answered', !!ok);
+      if (ok) await ok.click();
+    }
     await pause(4000);
     await page.screenshot({ path: path.join(OUT, '02-after.png') });
 

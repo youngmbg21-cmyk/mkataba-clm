@@ -254,10 +254,11 @@ describe('F180 — the visible send closes the loop the bug report was about', (
       return w.win.document.getElementById('view-redline');
     };
     let page = owner();
-    assert.match(page.querySelector('.rl-q-foot').textContent, /0 of 1/,
+    /* The round's queue tab is retired (Paper and Counter Review, change 4,
+       9 Oct 2026); the Redlines column's progress line is the same count. */
+    assert.match(page.querySelector('.rl-prog-b').textContent, /0 of 1/,
       'nothing has been decided this round');
-    assert.match(page.querySelector('.rl-q-row').textContent, /now/,
-      'the clause is still waiting on them');
+    assert.ok(page.querySelector(`[data-nego-card="${id}"]`), 'the change is still listed, waiting on them');
 
     /* Erik answers — through the CARD's own door, exactly as a person would:
        accept on the card, name in the box, press the Send sitting right
@@ -283,10 +284,10 @@ describe('F180 — the visible send closes the loop the bug report was about', (
 
     /* The owner's screen AFTER — the surface the report screenshotted. */
     page = owner();
-    assert.match(page.querySelector('.rl-q-foot').textContent, /1 of 1/,
-      'the queue counts the acceptance');
-    const row = page.querySelector('.rl-q-row');
-    assert.ok(row.className.includes('is-done'), 'the row is ticked');
-    assert.match(row.textContent, /accepted/, 'and says accepted');
+    assert.match(page.querySelector('.rl-prog-b').textContent, /1 of 1/,
+      'the column counts the acceptance');
+    const row = page.querySelector(`[data-nego-card="${id}"]`);
+    assert.ok(row, 'the change is still listed');
+    assert.ok(row.className.includes('rl-card-done'), 'the card is settled (it steps back with the done pile)');
   });
 });
