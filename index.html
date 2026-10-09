@@ -5204,11 +5204,6 @@
   #top-header .hdr-icon-btn:hover{background:rgba(255,255,255,.12);color:#fff;}
   #top-header .sh-div{flex:none;width:1px;height:18px;background:rgba(255,255,255,.24);margin:0 var(--s-1);}
 
-  #top-header .cmd-search{flex:0 1 360px;min-width:120px;height:26px;padding:0 9px;gap:7px;
-    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);color:#fff;}
-  #top-header .cmd-search:focus-within{border-color:rgba(255,255,255,.55);box-shadow:none;}
-  #top-header .cmd-search input{font-size:var(--t-meta);color:#fff;}
-  #top-header .cmd-search input::placeholder{color:rgba(255,255,255,.8);}
   #top-header #cmd-k-hint{flex:none;font-size:var(--t-micro);font-family:var(--font-code);
     border:1px solid rgba(255,255,255,.28);background:none;color:rgba(255,255,255,.8);
     padding:1px 5px;border-radius:var(--radius);cursor:pointer;}
@@ -8357,14 +8352,14 @@
     --hb-ink:#E6F2EF;--hb-ink-2:#A9C7C0;--hb-mute:#8FB5AD;--hb-glow:#38CDB8;
     --hb-amber:#F2B24C;--hb-ruby:#F0726A;--hb-green:#62D291;
     --hb-ln:160,220,210;--hb-gw:56,205,184;
-    --hb-card:rgba(4,25,26,.82);--hb-fig:rgba(4,25,26,.9);--hb-blur:6px;
+    --hb-card:rgba(4,25,26,.82);--hb-fig:rgba(4,25,26,.9);--hb-menu:#0A2422;--hb-blur:6px;
     --hb-shadow:0 14px 34px -20px rgba(0,0,0,.8);--hb-on-glow:#021011}
   #ig-page.hb-light,#hb-page.hb-light{
     --hb-stage:radial-gradient(circle,rgba(14,95,88,.11) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#EAF4F1 48%,#D3E7E2 100%);
     --hb-ink:#141F1D;--hb-ink-2:#5A6866;--hb-mute:#5A6866;--hb-glow:#0E5F58;
     --hb-amber:#A24E07;--hb-ruby:#B3261E;--hb-green:#1A6F45;
     --hb-ln:14,95,88;--hb-gw:19,140,128;
-    --hb-card:rgba(255,255,255,.62);--hb-fig:rgba(255,255,255,.74);--hb-blur:10px;
+    --hb-card:rgba(255,255,255,.62);--hb-fig:rgba(255,255,255,.74);--hb-menu:#FFFFFF;--hb-blur:10px;
     --hb-shadow:0 16px 34px -24px rgba(14,95,88,.55);--hb-on-glow:#FFFFFF}
   /* ---- THE BOARD WEARS THE BRAND (Young, 7 Oct 2026: "when changing colors
      the theme ... the under tones in terms of colors should change in the board
@@ -8376,7 +8371,7 @@
     --hb-stage:radial-gradient(circle,rgba(143,165,215,.10) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 52% 44%,#102748 0%,#0A1A33 45%,#050C1A 100%);
     --hb-ink:#E6EDF8;--hb-ink-2:#A9BBDA;--hb-mute:#8FA5CC;--hb-glow:#6F9BEA;
     --hb-ln:160,190,235;--hb-gw:111,155,234;
-    --hb-card:rgba(5,14,32,.82);--hb-fig:rgba(5,14,32,.9);--hb-on-glow:#050C1A}
+    --hb-card:rgba(5,14,32,.82);--hb-fig:rgba(5,14,32,.9);--hb-menu:#0B1730;--hb-on-glow:#050C1A}
   :root[data-brand="navy"] #ig-page.hb-light,:root[data-brand="navy"] #hb-page.hb-light{
     --hb-stage:radial-gradient(circle,rgba(38,76,158,.11) 1px,transparent 1.2px) 0 0/26px 26px,radial-gradient(ellipse at 50% 30%,#FFFFFF 0%,#EDF1F9 48%,#D8E1F1 100%);
     --hb-glow:#264C9E;--hb-ln:38,76,158;--hb-gw:58,100,196;
@@ -8791,11 +8786,14 @@
   .hb-card:has(.hb-rmenu,.hb-pmenu){z-index:6}
   .hb-rc{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-h);padding:0 8px 0 9px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:var(--hb-fig);color:var(--hb-ink);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);white-space:nowrap;cursor:pointer}
   .hb-rc i{font-style:normal;font-size:var(--t-micro);letter-spacing:.07em;text-transform:uppercase;color:var(--hb-mute)}
-  .hb-rc.is-open{border-color:var(--hb-glow);box-shadow:0 0 0 1px var(--hb-glow) inset}
+  .hb-rc.is-open{background:linear-gradient(rgba(var(--hb-gw),.12),rgba(var(--hb-gw),.12)),var(--hb-fig);border-color:rgba(var(--hb-gw),.45)}
   .hb-rc.is-still{cursor:default}
   .hb-rc-more{border-style:dashed;color:var(--hb-ink-2)} .hb-rc-more[aria-expanded="true"]{border-style:solid}
-  .hb-rc:focus-visible,.hb-tg:focus-visible,.hb-rmenu button:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px}
-  .hb-rmenu{position:absolute;top:calc(100% + 4px);left:0;z-index:20;min-width:260px;max-height:360px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid rgba(var(--hb-ln),.35);background:var(--hb-card);backdrop-filter:blur(var(--hb-blur));box-shadow:0 18px 40px -12px rgba(0,0,0,.6)}
+  /* A LIGHT SELECTION (work order "Home speed", Part 11): the open choice
+     wears a light wash of the brand colour on its ordinary 1px edge; the
+     keyboard ring is the brand blue, keyboard only. */
+  .hb-rc:focus-visible,.hb-tg:focus-visible,.hb-rmenu button:focus-visible{outline:2px solid rgba(var(--hb-gw),.85);outline-offset:2px}
+  .hb-rmenu{position:absolute;top:calc(100% + 4px);left:0;z-index:20;min-width:260px;max-height:360px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid rgba(var(--hb-ln),.35);background:var(--hb-menu);box-shadow:0 18px 40px -12px rgba(0,0,0,.6)}
   .hb-rmenu.is-up{top:auto;bottom:calc(100% + 4px)}
   .hb-rmenu button{display:flex;align-items:center;gap:10px;width:100%;padding:7px 9px;border:0;border-radius:var(--radius);background:none;color:var(--hb-ink);font:inherit;font-size:var(--t-body);text-align:left;cursor:pointer}
   .hb-rmenu button:hover:not(:disabled){background:rgba(var(--hb-ln),.1)}
@@ -8902,7 +8900,7 @@
   .hb-rd-chip i{font-style:normal;font-weight:400;color:var(--color-neutral-600)}
   .hb-rd-chip svg{width:10px;height:10px;opacity:.7}
   .hb-rd-chip:hover:not(.is-still),.hb-rd-chip.is-open{border-color:var(--accent-fill,var(--color-accent-600))}
-  .hb-rd-chip.is-open{box-shadow:inset 0 0 0 1px var(--accent-fill,var(--color-accent-600))}
+  .hb-rd-chip.is-open{background:var(--color-accent-50)}
   .hb-rd-chip.is-still{cursor:default;opacity:.75}
   .hb-rd-chip:focus-visible{outline:2px solid var(--accent-fill,var(--color-accent-600));outline-offset:2px}
   .hb-rd-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;max-height:300px;overflow:auto;padding:4px;border-radius:var(--radius-lg);border:1px solid var(--color-divider);background:var(--color-surface);box-shadow:0 14px 34px -10px rgba(0,0,0,.35)}
@@ -8944,7 +8942,7 @@
   .hb-ch .hb-vb{margin-left:var(--s-2);background:var(--hb-glow);color:var(--hb-on-glow)}
   .hb-ver-by{font-size:var(--t-micro);color:var(--color-neutral-600)}
   .hb-more-w{position:relative;flex:none}
-  .hb-pmenu{position:absolute;right:0;top:calc(100% + 4px);z-index:5;min-width:180px;display:flex;flex-direction:column;padding:4px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:linear-gradient(var(--hb-fig),var(--hb-fig)),linear-gradient(var(--hb-fig),var(--hb-fig)),linear-gradient(var(--hb-fig),var(--hb-fig));backdrop-filter:blur(var(--hb-blur));box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .hb-pmenu{position:absolute;right:0;top:calc(100% + 4px);z-index:5;min-width:180px;display:flex;flex-direction:column;padding:4px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:var(--hb-menu);box-shadow:0 8px 24px rgba(0,0,0,.25)}
   .hb-pmenu button{all:unset;cursor:pointer;padding:6px 10px;border-radius:var(--radius);font-size:var(--t-meta);color:var(--hb-ink);white-space:nowrap}
   .hb-pmenu button:hover,.hb-pmenu button:focus-visible{background:rgba(var(--hb-ln),.14)}
   .hb-verf label{display:flex;flex-direction:column;gap:4px}
@@ -10414,7 +10412,6 @@
   }
   :root:not(.dark) #top-header .sh-grp button[aria-pressed="true"],
   :root:not(.dark) #top-header .lang-btn[aria-pressed="true"]{background:#fff;color:var(--color-text);}
-  :root:not(.dark) #top-header .cmd-search:focus-within{background:rgba(0,0,0,.16);}
   #top-header .hdr-icon-btn{width:var(--ctl-h);height:var(--ctl-h);color:var(--bar-ink-2);border-radius:var(--radius);}
   #top-header .hdr-icon-btn:hover{background:var(--bar-hover);color:var(--bar-ink);}
   /* ---- THE MENU BUTTON AND THE ONE COPILOT DOOR (Young, 7 Oct 2026, work
@@ -10438,14 +10435,22 @@
   #top-header #brand-block,#top-header #brand-wordmark{color:var(--bar-ink);}
   #top-header #brand-block{display:none;}
   @media (max-width:899px){ #top-header #brand-block{display:flex;} }
-  #top-header .cmd-search{height:var(--ctl-h);background:var(--bar-well);border:1px solid var(--bar-line);color:var(--bar-ink-2);border-radius:var(--radius);}
-  #top-header .cmd-search:hover{border-color:rgba(255,255,255,.4);}
-  /* The focus ring is WHITE here, not the accent: the accent ramp is the
-     ground this bar is painted in, so an accent ring on it is a ring nobody
-     can see — the one rule this reversal could not simply re-token. */
-  #top-header .cmd-search:focus-within{border-color:rgba(255,255,255,.6);box-shadow:0 0 0 2px rgba(255,255,255,.22);background:rgba(255,255,255,.16);}
-  #top-header .cmd-search input{color:var(--bar-ink);}
+  /* THE SEARCH FIELD, ONE RULE SET (work order "Home speed", Part 12, 9 Oct
+     2026; four rules used to fight here). At rest a filled well with no edge
+     (the bar's own --bar-well: deeper by day, paler by night). Pressed, the
+     shell-bar standard: a solid field with one 1px edge and no glow — white
+     with the page's ink by day, the page's dark surface with light ink by
+     night. The ⌘K hint and the placeholder follow the field. */
+  #top-header .cmd-search{flex:0 1 360px;min-width:120px;height:var(--ctl-h);padding:0 9px;gap:7px;background:var(--bar-well);border:1px solid transparent;color:var(--bar-ink-2);border-radius:var(--radius);box-shadow:none;}
+  #top-header .cmd-search:hover{background:var(--bar-hover);}
+  #top-header .cmd-search input{font-size:var(--t-meta);color:var(--bar-ink);}
   #top-header .cmd-search input::placeholder{color:var(--bar-ink-2);}
+  #top-header .cmd-search:focus-within{background:#fff;border-color:var(--color-accent-600);box-shadow:none;color:var(--color-neutral-600);}
+  #top-header .cmd-search:focus-within input{color:var(--color-text);}
+  #top-header .cmd-search input:focus-visible{box-shadow:none;outline:0;}
+  #top-header .cmd-search:focus-within input::placeholder{color:var(--color-neutral-500);}
+  #top-header .cmd-search:focus-within #cmd-k-hint{background:none;border-color:var(--color-divider);color:var(--color-neutral-600);}
+  :root.dark #top-header .cmd-search:focus-within{background:var(--color-surface);border-color:var(--color-accent-400);}
   #top-header #cmd-k-hint{border-color:var(--bar-line);color:var(--bar-ink-2);background:var(--bar-well);}
   #top-header #cmd-k-hint:hover{background:var(--bar-hover);color:var(--bar-ink);}
   #top-header .sh-grp{border-color:var(--bar-line);border-radius:var(--radius);overflow:hidden;height:30px;}

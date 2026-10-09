@@ -1,12 +1,12 @@
 # WORK ORDER — Home is quick, a board dropdown is never behind a card, and the Board balances its cards
 
-**Status: WRITTEN 8 Oct 2026. NOT BUILT.** Owner: *"yes fix all three and this
+**Status: WRITTEN 8 Oct 2026. Parts 1–7 BUILT 8 Oct (#180); Parts 8–12 BUILT 9 Oct 2026.** Owner: *"yes fix all three and this
 issue where the drop down goes behind the cards. Do not fix yet but add all to
 a work order"*. Build only when the owner says so.
 Part 5 (the Board balances its cards) was added the same day, owner-asked: *"add this to the work order"*.
 Part 6 (Show as table turns the chart into a table) was added the same day, owner-asked: *"one more thing to add to the work order. fix this highlighted button so that when you click, it turn the chart to a table."*
-Part 8 (the language switch goes back beside the theme switch) was added after Parts 1–7 were built and merged (#180), owner-asked: *"You also moved the language toggle. Move it back to where it was. No coding yet but add to the work order"* — **Part 8 is NOT BUILT.**
-Parts 9–12 (the Overview's duties map is broken; the board's list is see-through; a light selection, not a dark ring; the search field) were added the same evening, owner-asked after a review: *"Review these and advise on the fixes. No coding."* then, with a screenshot of the map: *"I also do not think you appreciate how this graphic is broken. Image 1 is what i see. Add this to list of fixes"* — **Parts 9–12 are NOT BUILT.**
+Part 8 (the language switch goes back beside the theme switch) was added after Parts 1–7 were built and merged (#180), owner-asked: *"You also moved the language toggle. Move it back to where it was. No coding yet but add to the work order"* — **Part 8 BUILT 9 Oct 2026.**
+Parts 9–12 (the Overview's duties map is broken; the board's list is see-through; a light selection, not a dark ring; the search field) were added the same evening, owner-asked after a review: *"Review these and advise on the fixes. No coding."* then, with a screenshot of the map: *"I also do not think you appreciate how this graphic is broken. Image 1 is what i see. Add this to list of fixes"* — **Parts 9–12 BUILT 9 Oct 2026** (Parts 10–12's checks are one file, board-lists-and-search-verify).
 Part 7 (the clause strip on the Paper becomes the TRACK) was added the same day, owner-asked: *"I want to add the implementation of track for the paper page from this artifact"* (artifact "Clause Strip Options", https://claude.ai/artifact/Jpi4zqQH8fzQ2Be8B7u4Xf, option 3 "Track", picked by name).
 
 **What the owner asked for, in their words, before this:**
@@ -426,7 +426,7 @@ dark, on a long contract with marks spread through it:
 - at a window narrower than the Track needs, today's strip is drawn and
   the paper still does not move.
 
-## Part 8 — The language switch goes back beside the theme switch (owner-asked 8 Oct 2026; NOT BUILT)
+## Part 8 — The language switch goes back beside the theme switch (owner-asked 8 Oct 2026; BUILT 9 Oct)
 
 **What the owner sees.** The English · Svenska switch sits at the top left of
 the blue bar, next to the HaTi logo. It used to sit next to the switch for the
@@ -466,7 +466,7 @@ neighbour; shrink to 800 → it is in the side menu; widen to 1440 → it is the
 theme switch's neighbour again (same previous and next element as on load),
 and pressing Svenska still switches the language.
 
-## Part 9 — The Overview's duties map is broken (owner's screenshot, 8 Oct 2026; NOT BUILT)
+## Part 9 — The Overview's duties map is broken (owner's screenshot, 8 Oct 2026; BUILT 9 Oct)
 
 **What the owner sees (screenshot, MK-449, a Mac):** both companies' circles
 are drawn on top of each other in the map's TOP-LEFT corner, cut off by the
@@ -524,7 +524,7 @@ length outside its label is more than half of it, the panel's "Renewal"
 heading is visible without scrolling, and a contract with no duties draws no
 "0 duties".
 
-## Part 10 — The board's dropdown is solid (NOT BUILT)
+## Part 10 — The board's dropdown is solid (BUILT 9 Oct)
 
 **Found:** `.hb-rmenu` (and the card's ⋯ `.hb-pmenu`) paint `--hb-card`,
 which is 62% white in light and 82% navy in dark, with a blur — so words and
@@ -535,7 +535,7 @@ in dark), no blur, the soft shadow and radius kept. Both menus.
 list's own solid colour (no pixel of the card below shows through), light and
 dark.
 
-## Part 11 — A light selection, not a dark ring (NOT BUILT)
+## Part 11 — A light selection, not a dark ring (BUILT 9 Oct)
 
 **Found:** an OPEN choice button (`.hb-rc.is-open`) gets a 1 px border plus a
 1 px inset ring in `--hb-glow`, the board's darkest blue — on the light board
@@ -548,7 +548,7 @@ only, never on a mouse press).
 **Accept:** no dark outline after a mouse press, light and dark; a keyboard
 Tab still shows a visible ring.
 
-## Part 12 — The search field in the top bar (NOT BUILT)
+## Part 12 — The search field in the top bar (BUILT 9 Oct)
 
 **Found:** four rules fight over `#top-header .cmd-search` (grep it): at rest
 a 1 px border on a see-through well; when pressed a 1 px border PLUS a 2 px
