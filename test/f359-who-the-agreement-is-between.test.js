@@ -600,8 +600,11 @@ describe('f359 (10) the parties are a section of their own', () => {
 
   test('the block is drawn BARE, so the name is said once', () => {
     const b = stack();
-    assert.ok(/ktPartiesBlockHtml\(c,\{mayEdit:ed,bare:true\}\)/.test(b),
-      'the section carries the head');
+    /* RE-POINTED 9 Oct 2026 (the Directory): the Overview draws each party's
+       own row (ktPartyRowHtml) under the column's one head, so the name is
+       still said once; ktPartiesBlockHtml's bare mode is kept below. */
+    assert.ok(/ktPartyRowHtml\(c,p,\{mayEdit:/.test(b) && !/ktPartiesBlockHtml\(/.test(b),
+      'the column carries the head; the rows are the parties\' own');
     /* and bare really drops it */
     const f = CONTRACT.slice(CONTRACT.indexOf('function ktPartiesBlockHtml'),
       CONTRACT.indexOf('function ktPartiesBlockHtml') + 2200);

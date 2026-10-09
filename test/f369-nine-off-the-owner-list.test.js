@@ -145,7 +145,8 @@ describe('f369 (3) "Who else" fills itself with who edited and approved', () => 
   test('the Overview asks for them', () => {
     /* `book:true` (4 Oct 2026, f479): the Overview also draws the address
        book's rows only a mirror still names. */
-    assert.ok(/participantsPanelHtml\(c,\{\s*editable:ed, reached:true, auto:true(, book:true)? \}\)/.test(CONTRACT));
+    /* re-pointed 9 Oct 2026: the Overview draws them as the Directory */
+    assert.ok(/participantsDirHtml\(c,\{\s*editable:ed, reached:true, auto:true, book:true,/.test(CONTRACT));
   });
 });
 

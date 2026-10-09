@@ -5985,8 +5985,12 @@ function renderKeyTerms(c){
       const dk=OV_KEY(c,'deal'), rk=OV_KEY(c,'record');
       /* The button names the TERMS' posture: the filing opened alone (the ⋯
          row) leaves it reading Edit, and its press puts both on. */
+      /* EDIT NO LONGER OPENS THE FILING ROWS UNDER THE CARD (Young, 9 Oct
+         2026: "the card should not expand when you click edit") — they stay
+         one press away on the ⋯ row "Filing and stream" (ovOpenFiling).
+         Done closes both. */
       const on=!ovEditing(dk);
-      ovSetEditing(dk,on); ovSetEditing(rk,on);
+      ovSetEditing(dk,on); if(!on) ovSetEditing(rk,false);
     } else ovSetEditing(k, !ovEditing(k));
     renderKeyTerms(c);
   }));
@@ -6008,12 +6012,17 @@ function renderKeyTerms(c){
      pane alone — a role changes the sentence under its own row. */
   const peopleHost=host.querySelector('#kt-people');
   if(peopleHost && window.participantsWire) participantsWire(peopleHost,c,{
+    onPick:k=>{ _ovDirSel.id=c.id; _ovDirSel.k=k||''; },
     onChange:()=>{ c.lastAction=todayStr(); persist(c); },
     onRemove:(row)=>{ logAudit(c,'Record',`Took ${row.name||row.email||'somebody'} off the contract`); },
     repaint:()=>renderKeyTerms(c) });
   /* ONE DOOR ONTO NAMING SIGNERS, AND IT IS THE EDITOR THAT ALREADY OWNS IT.
      saveSignerPlan stays the one authority; this opens its editor, which now
      opens on the rows this list can fill where the plan is still empty. */
+  /* THE TERM'S TWO DATES share one cell and draw no calendar mark, so a
+     press on either box opens the browser's own calendar. */
+  host.querySelectorAll('.ov-term-edit input[type="date"]').forEach(d=>d.addEventListener('click',()=>{
+    try{ if(typeof d.showPicker==='function') d.showPicker(); }catch(_){} }));
   host.querySelector('[data-ov-signers]')?.addEventListener('click',()=>{
     if(window.openSignerPlanEditor) openSignerPlanEditor(c,{ onDone:()=>renderKeyTerms(c) });
   });
@@ -6600,7 +6609,10 @@ const OV_DERIVED_FIELDS = new Set(['term']);
    from the paper, and the trail says who changed it. */
 function ovMetaField(k){ return (window.META_FIELDS||[]).find(x=>x.k===k)||null; }
 function ovMetaLabel(k){ const f=ovMetaField(k); return (f&&f.label)||k; }
-const OV_IN='min-width:0;width:100%;box-sizing:border-box;border:1px solid var(--color-accent);background:var(--color-bg);border-radius:var(--radius);padding:3px 6px;font:inherit;font-size:var(--t-meta);outline:none';
+/* SOFT FILL (Young picked it, 9 Oct 2026): the edge and the fill are the
+   sheet's (index.html, `[data-kt]`/`[data-ktm]`), so hover and focus can
+   answer; this string keeps the box's shape only. */
+const OV_IN='min-width:0;width:100%;box-sizing:border-box;border-radius:var(--radius);padding:3px 6px;font:inherit;font-size:var(--t-meta)';
 function ovMetaBoxHtml(c,k){
   const f=ovMetaField(k); if(!f) return '';
   const m=(c&&c.metadata)||{};
@@ -6688,10 +6700,10 @@ function ktFieldCell(c,k,edit,marks){
       const read=R.monetary?(R.money?mono(R.money):''):esc(i18t('ct_non_monetary'));
       if(!edit) return [i18t('ov_f_value'), read];
       return [i18t('ov_f_value'),
-        `<span style="display:flex;flex-direction:column;gap:3px">
+        `<span class="ov-val-edit" style="display:flex;align-items:center;gap:8px">
            <input data-kt="value" type="text" inputmode="numeric" value="${isMonetary(c)&&c.value?Number(c.value).toLocaleString(jxLocale()):''}" placeholder="0" ${isMonetary(c)?'':'disabled'} style="${OV_IN};font-family:var(--font-mono)"/>
            <label style="display:flex;align-items:center;gap:5px;font-size:var(--t-label);color:var(--color-neutral-600)">
-             <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:13px;height:13px;accent-color:var(--color-accent)"/>${esc(i18t('ct_non_monetary'))}</label>
+             <input data-kt="nonmonetary" type="checkbox" ${!isMonetary(c)?'checked':''} style="width:13px;height:13px;accent-color:var(--color-accent)"/><span style="white-space:nowrap">${esc(i18t('ct_non_monetary'))}</span></label>
          </span>`];
     }
     case 'effDate': return [i18t('ov_f_effective'), edit
@@ -6834,6 +6846,33 @@ function ovEssRestHtml(c,marks){
   const shown=new Set(OV_ESS_REST.concat(...Object.values(OV_ESS_REST_PEERS)));
   const held=marks?OV_ESS_FIELDS.filter(k=>!shown.has(k)&&(ovFieldMarkOf(marks,k)||{}).holds):[];
   return sectionFieldsHtml(cells.concat(held.map(k=>ktFieldCell(c,k,false,marks))).filter(Boolean));
+}
+/* ---- THE EIGHT IN EDIT TOO (Young, 9 Oct 2026: "for the terms field,
+   there should be no more fields than what is in image 1. Delete all else")
+   ---- Edit draws the same eight terms as the resting card, as boxes; the
+   other terms keep what they store (Young: "Wipe nothing for now") but have
+   no box here. The term carries its two dates side by side and the value its
+   non-monetary tick on its own line, so the card keeps its resting height. A
+   field the signing check holds is never hidden: it follows the eight, as it
+   does at rest, so its door (focusKeyTerms) has a box to land on. */
+const OV_ESS_EDIT_LABEL={ value:'ov_f_value_short', renewalType:'ov_f_renewal', liabilityCapped:'ov_f_liab_capped' };
+const _ovDirSel={ id:null, k:'' };
+function ovEssEditHtml(c){
+  const lab=(html,key)=>String(html||'').replace(/^(\s*<input )/,`$1aria-label="${esc(i18t(key))}" `);
+  const cells=OV_ESS_REST.map(k=>{
+    if(k==='term'){
+      const eff=ktFieldCell(c,'effDate',true,null), exp=ktFieldCell(c,'expiry',true,null);
+      if(!eff||!exp) return ktFieldCell(c,'term',false,null);
+      return [i18t('ct_term_label'), `<span class="ov-term-edit">${lab(eff[1],'ov_f_effective')}<span class="ov-term-to" aria-hidden="true">→</span>${lab(exp[1],'ov_f_expiry')}</span>`];
+    }
+    const cell=ktFieldCell(c,k,!OV_DERIVED_FIELDS.has(k),null); if(!cell) return null;
+    if(OV_ESS_EDIT_LABEL[k]) cell[0]=i18t(OV_ESS_EDIT_LABEL[k]);
+    return cell;
+  });
+  const marks=ovSignMarks(c);
+  const shown=new Set(OV_ESS_REST.concat('effDate','expiry'));
+  const held=marks?OV_ESS_FIELDS.filter(k=>!shown.has(k)&&(ovFieldMarkOf(marks,k)||{}).holds):[];
+  return sectionFieldsHtml(cells.concat(held.map(k=>ktFieldCell(c,k,true,null))).filter(Boolean));
 }
 /* The marks for this contract, or null where nothing is waiting. js/signcheck.js
    is not on every stage, so it is asked through window with a guard. */
@@ -7480,8 +7519,10 @@ function ktOverviewTermsHtml(c,opts={}){
   /* EDIT AND FILL RIDE THE TOP ROW (the Overview redesign, 8 Oct 2026): the
      Terms column holds its caption, the hold chip and the terms, nothing
      else. Same buttons, same handlers — only where they are drawn moved. */
+  /* THE SENTENCE BESIDE THE BUTTONS IS GONE (Young, 9 Oct 2026: "Delete the
+     writing related to the terms on record"); `ov_top_note` stays inert. */
   const top=acts=>`<div class="ov-top"><span id="kt-ov-brief" class="ov-top-brief"></span>
-    <span class="ov-top-note">${esc(i18t('ov_top_note'))}</span><span class="ov-top-acts">${acts}</span></div>`;
+    <span class="ov-top-acts">${acts}</span></div>`;
   /* ---- THE ESSENTIALS CARD (Young, 8 Oct 2026: "Bring this back") ----
      Who it is between on the left, the terms on the right, as the mock-up
      draws it. Edit these details and Fill sit on it, because it holds what
@@ -7490,8 +7531,6 @@ function ktOverviewTermsHtml(c,opts={}){
   const pyLocked=(typeof signingLocked==='function')?!!signingLocked(c):false;
   const pyAdd=(ed&&!pyLocked&&!PORTAL_MODE)
     ?`<button type="button" class="ui-btn ui-btn-sm" data-py-add="1">${esc(i18t('py_add'))}</button>`:'';
-  const people=(typeof participantsPanelHtml==='function')?participantsPanelHtml(c,{
-    editable:ed, reached:true, auto:true, book:true }):'';
   const addrs=(typeof contractAddressBook==='function')?contractAddressBook(c, c&&c._shareFetch):null;
   const anySigner=(typeof participantSignerRows==='function')&&participantSignerRows(c).length>0;
   const signersBtn=(ed&&anySigner)?`<button type="button" class="ui-btn ui-btn-sm" data-ov-signers="1">${
@@ -7514,9 +7553,21 @@ function ktOverviewTermsHtml(c,opts={}){
   /* IN THE EDIT POSTURE THE PARTIES ARE THEIR EDITORS — the block every party
      act already lives on (drawn bare, the name said once), the people on the
      contract, every address a round uses, and the signing order's door. */
-  const pyEdit=`<div id="kt-parties-host">${ktPartiesBlockHtml(c,{mayEdit:ed,bare:true})}</div>`
-    +(people?`<div class="sec-body ov-people-in"><div id="kt-people">${people}</div>${ovAddressBookHtml(addrs)}</div>`:'')
-    +(signersBtn?`<div class="ov-ess-more">${signersBtn}</div>`:'');
+  /* ---- THE DIRECTORY (Young picked it, 9 Oct 2026) ----
+     In Edit the parties are a quiet list by side: each party's own row (its
+     press is openPartyEditor, as before) with its people under it, and a
+     person's press opens their own row as a form under the list
+     (participantsDirHtml — the people list's one builder and its one wire).
+     It sits in the SAME scroller as at rest, so Edit never grows the card
+     (Young: "the card should not expand when you click edit"). */
+  const pyAll=(typeof contractParties==='function')?(contractParties(c)||[]):[];
+  const pyHead=p=>`<div id="kt-party-${esc(p.id)}" class="ov-dir-party">${ktPartyRowHtml(c,p,{mayEdit:ed&&!pyLocked&&!PORTAL_MODE})}</div>`;
+  const dir=(typeof participantsDirHtml==='function')?participantsDirHtml(c,{
+    editable:ed, reached:true, auto:true, book:true, sel:_ovDirSel.id===c.id?_ovDirSel.k:'',
+    sideHeads:()=>({ ours:pyAll.filter(p=>p.side===PARTY_SIDE_OURS).map(p=>({ id:p.id, html:pyHead(p) })),
+      theirs:pyAll.filter(p=>p.side!==PARTY_SIDE_OURS).map((p,i)=>({ id:p.id, first:i===0, html:pyHead(p) })) }) }):'';
+  const pyEdit=`<div class="ov-pty-list ov-dir" tabindex="-1"><div id="kt-parties-host"><div id="kt-people">${dir}</div></div>${
+      ovAddressBookHtml(addrs)}${signersBtn?`<div class="ov-ess-more">${signersBtn}</div>`:''}</div>`;
   const pyN=D?D.parties.length:0;
   const parties=`<div class="ov-ess-p" id="ov-parties"><div class="ov-ess-h"><span class="ov-ess-cap">${esc(i18t('py_parties'))} · ${pyN}</span>${
       pyLocked?`<span class="ov-ess-lock">${esc(i18t('py_locked'))}</span>`:''}${pyAdd}</div>${dealEd?pyEdit:`<div class="ov-pty-list" tabindex="-1">${pyRows}</div>`}</div>`;
@@ -7530,7 +7581,7 @@ function ktOverviewTermsHtml(c,opts={}){
      exactly as before — so no term lost the one place it can be typed. */
   const facts=`<div class="ov-ess-g" id="ov-facts"><div class="ov-ess-h"><span class="ov-ess-cap">${esc(i18t('ov_ess_terms'))}</span>${
       hold?`<span class="ov-ess-hold">${esc(i18tn('ov_hold_n',hold,{n:hold}))}</span>`:''}</div>
-    <div id="kt-rows"></div>${dealEd?ktDealFactsHtml(c,{edit:true,marks,keys:OV_ESS_FIELDS,also:OV_ALSO_FIELDS}):ovEssRestHtml(c,marks)}${map?'':renewalHost}</div>`;
+    <div id="kt-rows"></div>${dealEd?ovEssEditHtml(c):ovEssRestHtml(c,marks)}${map?'':renewalHost}</div>`;
   /* MOVE TO ANOTHER STREAM IS NOT A SECOND DOOR. The stream picker is
      ktStreamRowHtml's, with its admin guard, its 'Re-filed' audit line and its
      own repaint; this button opens the rows that hold it and puts the reader
@@ -16845,7 +16896,7 @@ Object.assign(window,{ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheir
      Caught by driving the real page. ktTermsRowsHtml and renderKeyTerms go
      with it: the same guard-and-miss is waiting for both. */
   wireKtRows,ktTermsRowsHtml,ktReadValue,ktIsEmptyRead,renderKeyTerms,
-  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_ESS_FIELDS,ovOpenFiling,ktReadingsRowsHtml,ktBriefCardHtml,ovMapData,ovMapSvg,ovMapPane,ovMapHtml,ovMapWire,ovMapRenewal,ovEssRestHtml,OV_ESS_REST,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
+  ktDealFactsHtml,ktAlsoFactsHtml,ktAlsoCells,ktAlsoRecorded,OV_ESS_FIELDS,ovOpenFiling,ktReadingsRowsHtml,ktBriefCardHtml,ovMapData,ovMapSvg,ovMapPane,ovMapHtml,ovMapWire,ovMapRenewal,ovEssRestHtml,ovEssEditHtml,OV_ESS_REST,paintOvBriefBtn,briefPanelOpenFor,briefPanelToggle,ktFieldCell,ktOverviewTermsHtml,
   OV_DEAL_FIELDS,OV_ALSO_FIELDS,OV_KT_FIELDS,OV_DERIVED_FIELDS,ovMetaBoxHtml,ovMetaField,ovMetaLabel,
   OV_MARK_ALIAS,ovFieldMarkOf,ovFieldNoteHtml,ovSignMarks,
   /* THE PARTIES BLOCK. f232's net: every `window.foo` read must be a

@@ -4170,6 +4170,60 @@
   .ov-ess-more{ margin-top:10px; }
   .ov-pty{ display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-top:1px solid var(--color-divider); }
   .ov-ess-h + .ov-pty{ border-top:0; }
+  /* SOFT FILL (Young picked it, 9 Oct 2026: "the dark outline is
+     distracting"): the Overview's term boxes are a pale well with no edge;
+     hover deepens it, typing turns it white with the accent ring. OV_IN
+     keeps only the box's shape, so these rules are the look. */
+  :is(input,select,textarea):is([data-kt],[data-ktm]){ border:1px solid transparent; background-color:var(--color-bg);
+    color:var(--color-text); outline:none; height:24px; padding-block:0; transition:background-color .12s, border-color .12s, box-shadow .12s; }
+  :is(input,select,textarea):is([data-kt],[data-ktm]):hover:not(:disabled){ background-color:var(--color-accent-50); }
+  :is(input,select,textarea):is([data-kt],[data-ktm]):focus{ background-color:var(--color-surface); border-color:var(--accent-fill);
+    box-shadow:0 0 0 3px var(--color-accent-100); }
+  :is(input,select):is([data-kt],[data-ktm]):disabled{ opacity:.55; }
+  input[type="checkbox"][data-kt]{ height:13px; }
+  select:is([data-kt],[data-ktm]):has(option:checked[value=""]){ color:var(--color-neutral-500); }
+  /* EDIT KEEPS THE RESTING HEIGHT: a box row is 5px taller than a value
+     line, so the gap between rows gives those 5px back. */
+  #ov-facts .sec-fields:has(:is(input,select)[data-kt], :is(input,select)[data-ktm]){ row-gap:7px; }
+  .ov-term-edit{ display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:4px; align-items:center; }
+  .ov-term-edit :is([data-kt="effDate"],[data-kt="expiry"]){ padding-inline:3px; font-size:var(--t-label); letter-spacing:-.01em; }
+  /* the two dates share one cell: the calendar mark gives its room back to
+     the date, and a press on the box opens the calendar (ovMapWire's sibling
+     wire in renderKeyTerms, showPicker) */
+  .ov-term-edit :is([data-kt="effDate"],[data-kt="expiry"])::-webkit-calendar-picker-indicator{ display:none; }
+  .ov-term-edit :is([data-kt="effDate"],[data-kt="expiry"]){ cursor:pointer; }
+  .ov-term-to{ color:var(--color-neutral-500); }
+  .ov-val-edit label{ flex:none; }
+  /* THE DIRECTORY (Young picked it, 9 Oct 2026): sides, each party's own row
+     with its people under it; a person's press opens their row as a form. */
+  .ov-dir #kt-people{ display:flex; flex-direction:column; gap:10px; }
+  .pt-dir{ display:flex; flex-direction:column; gap:12px; }
+  .pt-dir-cap{ font-size:var(--t-micro); text-transform:uppercase; letter-spacing:var(--cap-ls); color:var(--cap-ink); margin-bottom:4px; }
+  .pt-dir-list{ border:1px solid var(--color-divider); border-radius:var(--radius-lg); overflow:hidden; }
+  .pt-dir-list > * + *{ border-top:1px solid var(--color-divider); }
+  .pt-dir-list .ov-dir-party .py-row{ width:100%; margin:0; border:0; border-radius:0; background:var(--color-bg); padding:8px 12px; }
+  .pt-dir-row{ display:flex; align-items:center; gap:10px; width:100%; padding:8px 12px; border:0; background:var(--color-surface);
+    font:inherit; color:inherit; text-align:left; cursor:pointer; min-width:0; }
+  .pt-dir-row:hover{ background:var(--color-accent-50); }
+  .pt-dir-row.is-sel{ box-shadow:inset 3px 0 0 var(--accent-fill); background:var(--color-accent-50); }
+  .pt-dir-row:focus-visible{ outline:2px solid var(--accent-fill); outline-offset:-2px; }
+  .pt-dir-av{ flex:none; width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    font-size:10.5px; font-weight:var(--w-strong); background:var(--color-accent-50); color:var(--accent-ink); }
+  .pt-dir-av.is-them{ background:var(--alt-soft); color:var(--alt-ink); }
+  .pt-dir-t{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .pt-dir-n{ font-size:var(--t-card); font-weight:var(--w-label); color:var(--color-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pt-dir-w{ font-size:var(--t-label); color:var(--color-neutral-600); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pt-dir-tag{ flex:none; font-size:var(--t-label); color:var(--color-neutral-600); background:var(--color-bg); border-radius:999px; padding:1px 8px; white-space:nowrap; }
+  .pt-dir-chev{ flex:none; color:var(--color-neutral-500); }
+  .pt-dir-form{ border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:12px; }
+  .pt-dir-form .pt-list.has-labels .pt-row{ grid-template-columns:minmax(0,1fr) minmax(0,1fr) 26px; align-items:end; }
+  .pt-dir-form .pt-row .pt-c:nth-child(1){ grid-column:1; } .pt-dir-form .pt-row .pt-c:nth-child(2){ grid-column:2; }
+  .pt-dir-form .pt-row .pt-c:nth-child(3){ grid-column:1; } .pt-dir-form .pt-row .pt-c:nth-child(4){ grid-column:2; }
+  .pt-dir-form .pt-row .pt-reached{ grid-column:1 / 3; }
+  .pt-dir-form .pt-row .pt-x{ grid-column:3; grid-row:1; }
+  .pt-dir-form .pt-lab{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); margin-bottom:2px; }
+  .pt-dir-form .pt-row :is(input,select){ height:28px; }
+  .pt-dir-done{ display:flex; justify-content:flex-end; margin-top:10px; }
   .ov-pty-av{ flex:none; width:30px; height:30px; border-radius:50%; display:grid; place-items:center;
     font-size:var(--t-micro); font-weight:var(--w-title); }
   .ov-pty > div{ min-width:0; }
