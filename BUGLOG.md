@@ -20557,3 +20557,8 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed (9 Oct 2026, overnight run): signing-without-the-facts-verify 2a/2b/4c are red on main as well — the Overview's eight-terms redesign has no Effective cell at rest, so "needed to sign" on the start date has nowhere to show.
 - Noticed, not fixed: toastsClear (core.js) is not published on window, so other modules and checks cannot call it.
 - Noticed, not fixed: sent-means-sent-verify's fixture edits the Governing Law clause with confidentiality wording, so its Send all question reads oddly (the check's own data, not the app).
+
+## 9 Oct 2026 — Noticed, not fixed (work order Home speed, Parts 8–12)
+- WebKit is not installed in the cloud test box, so the Safari duties-map fault (an animated CSS transform replacing an SVG transform attribute) is pinned only by a source rule in f442 (9), never by a real Safari run.
+- theme-tokens-verify fails 16 of 40 ("every colour unchanged") at main e18f309 as well — the colour census is stale; re-recording it belongs to a palette owner.
+- type-and-symbols-verify fails 9 of 47 at main e18f309 as well — it still looks for the old Map stages and "View full register" on Home.

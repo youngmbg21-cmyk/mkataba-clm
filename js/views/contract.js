@@ -6328,8 +6328,9 @@ function ovMapData(c){
   const duties={ ours:[], theirs:[] };
   (Array.isArray(c.obligations)?c.obligations:[]).forEach(o=>{ if(!o) return;
     const side=o.party==='theirs'?'theirs':'ours';
+    const amt=(typeof obligationAmount==='function')?obligationAmount(o):null;
     duties[side].push({ id:o.id, t:String(o.desc||'').trim()||i18t('ov_tm_duty'), due:o.due||'', st:ovMapDutyState(o,today),
-      cl:String(o.clause||'').trim() }); });
+      cl:String(o.clause||'').trim(), amt:(amt!=null&&amt>0)?amt:0 }); });
   const ord={r:0,a:1,s:2,g:3};
   ['ours','theirs'].forEach(k=>duties[k].sort((a,b)=>ord[a.st]-ord[b.st]||String(a.due).localeCompare(String(b.due))));
   const sideOf=p=>p===us?'ours':(p===them?'theirs':null);
@@ -6347,58 +6348,92 @@ function ovMapData(c){
   /* THE NEXT OPEN DUTY is the earliest one not done — its words ride the
      arc's pill. */
   const nextOf=list=>list.filter(x=>x.st!=='g').slice().sort((a,b)=>String(a.due||'9999').localeCompare(String(b.due||'9999')))[0]||null;
-  return { ref:(typeof contractRef==='function'?contractRef(c):c.id), parties, duties,
+  /* WHAT IS STILL TO BE PAID (work order Part 9, option A, 8 Oct 2026): the
+     amounts on each side's open duties, in the contract's own currency —
+     only where money passes; a duty with no amount adds nothing. */
+  const money=(typeof isMonetary==='function')?isMonetary(c):true;
+  const toPay=k=>money?duties[k].filter(x=>x.st!=='g').reduce((a,x)=>a+(x.amt||0),0):0;
+  return { ref:(typeof contractRef==='function'?contractRef(c):c.id), parties, duties, money,
+    pay:{ ours:toPay('ours'), theirs:toPay('theirs') }, cur:(typeof contractCurrency==='function')?contractCurrency(c):'',
     next:{ ours:nextOf(duties.ours), theirs:nextOf(duties.theirs) }, renewal:ovMapRenewal(c) };
 }
 /* THE PICTURE (the handoff's own geometry: a 900x310 stage, our node at
    250,160, theirs at 650,160, the contract between them). It scales to the
-   card's width; nothing in it is measured, so a repaint draws it alike. */
+   card's width; nothing in it is measured, so a repaint draws it alike.
+   ---- TWO LAYERS: WHERE A NODE STANDS, AND HOW IT ARRIVES (work order Part
+   9, the owner's screenshot, 8 Oct 2026) ----
+   A node's place is a `transform` on an OUTER group; the pop-in animation
+   (`.ov-map-nd`, a CSS transform) is on an INNER group with none of its own.
+   On one element, Safari let the animation's transform replace the place, and
+   both companies' circles fell into the map's top-left corner.
+   ---- AND IT READS WHOLE ----
+   The "we owe" label sits ABOVE its curve, so the line is never cut in two;
+   both curves end clear of the rings; the late badge sits outside the ring, on the side no curve leaves from;
+   "they owe" is a dashed line in their colour with its label on it. With no
+   duties recorded the curves are not drawn at all (ovMapHtml says so). */
 function ovMapIni(name){ return (typeof deskInitials==='function')?deskInitials(name):String(name||'?').slice(0,2).toUpperCase(); }
 function ovMapShort(t,n){ t=String(t||''); return t.length>n?t.slice(0,n-1).trim()+' …':t; }
+function ovMapMoney(D,v){
+  try{ if(typeof fmtMoneyShortIn==='function') return fmtMoneyShortIn(v,D.cur); }catch(_){}
+  return (D.cur?D.cur+' ':'')+Math.round(v).toLocaleString();
+}
+/* the arc's headline: the count, and what is still to be paid on it */
+function ovMapOweLine(D,k){
+  const n=D.duties[k].length, base=i18tn(k==='ours'?'ov_map_owe_ours':'ov_map_owe_theirs',n,{ n });
+  return D.pay[k]>0?i18t('ov_map_owe_pay',{ base, money:ovMapMoney(D,D.pay[k]) }):base;
+}
 function ovMapSvg(D){
   const f1=v=>(+v).toFixed(1), us=D.parties[0], th=D.parties[1];
   const ours=D.duties.ours, theirs=D.duties.theirs, late=ours.filter(x=>x.st==='r').length;
+  const any=ours.length+theirs.length>0;
   let s=`<svg class="ov-map-svg" viewBox="0 0 900 310" preserveAspectRatio="xMidYMid meet" role="group" aria-label="${esc(i18t('ov_map_aria_duties',{ us:us.name, them:th.name, ours:ours.length, theirs:theirs.length, late }))}">`;
-  /* WE OWE: the arc above, a halo and a line, two squares on it */
-  const nx=D.next.ours;
-  s+=`<g class="ov-map-nd ov-map-arc" data-ov-map="ours" tabindex="0" role="button" aria-label="${esc(i18tn('ov_map_owe_ours',ours.length,{ n:ours.length }))}">
-    <path d="M318 112 Q450 20 582 112" class="ov-map-halo-ln"/><path d="M318 112 Q450 20 582 112" class="ov-map-ln"/>
-    <rect x="364.8" y="76.6" width="12" height="12" rx="2" class="ov-map-sq"/><rect x="523.2" y="76.6" width="12" height="12" rx="2" class="ov-map-sq"/>
-    <rect x="338" y="42" width="224" height="48" rx="24" class="ov-map-chip"/>
-    <text x="450" y="63" text-anchor="middle" class="ov-map-big">${esc(i18tn('ov_map_owe_ours',ours.length,{ n:ours.length }))}</text>
-    <text x="450" y="80" text-anchor="middle" class="ov-map-sm">${esc(nx?ovMapShort(nx.t,34):(ours.length?i18t('ov_map_all_done'):i18t('ov_map_none_recorded')))}</text></g>`;
-  /* THEY OWE: the arc below, dashed, a small pill */
-  s+=`<g class="ov-map-nd ov-map-arc" data-ov-map="theirs" tabindex="0" role="button" aria-label="${esc(i18tn('ov_map_owe_theirs',theirs.length,{ n:theirs.length }))}">
-    <path d="M318 208 Q450 300 582 208" class="ov-map-hit"/><path d="M318 208 Q450 300 582 208" class="ov-map-dash"/>
-    <rect x="384" y="241" width="132" height="26" rx="13" class="ov-map-chip"/>
-    <text x="450" y="258" text-anchor="middle" class="ov-map-sm">${esc(i18tn('ov_map_owe_theirs',theirs.length,{ n:theirs.length }))}</text></g>`;
+  if(any){
+    /* WE OWE: the curve above, its label lifted over it */
+    const nx=D.next.ours, l1=ovMapOweLine(D,'ours'), l2=nx?ovMapShort(nx.t,40):(ours.length?i18t('ov_map_all_done'):i18t('ov_map_none_recorded'));
+    const pw=Math.max(224,Math.min(420,Math.round(Math.max(l1.length*8.6,l2.length*6.6)+44)));
+    s+=`<g class="ov-map-hitg ov-map-arc" data-ov-map="ours" tabindex="0" role="button" aria-label="${esc(l1)}"><g class="ov-map-nd">
+      <path d="M330 104 Q450 20 570 104" class="ov-map-halo-ln"/><path d="M330 104 Q450 20 570 104" class="ov-map-ln"/>
+      <rect x="372" y="71.1" width="12" height="12" rx="2" class="ov-map-sq"/><rect x="516" y="71.1" width="12" height="12" rx="2" class="ov-map-sq"/>
+      <rect x="${f1(450-pw/2)}" y="6" width="${pw}" height="42" rx="21" class="ov-map-chip"/>
+      <text x="450" y="24" text-anchor="middle" class="ov-map-big">${esc(l1)}</text>
+      <text x="450" y="40" text-anchor="middle" class="ov-map-sm">${esc(l2)}</text></g></g>`;
+    /* THEY OWE: a dashed curve in their colour, its label on it */
+    /* two short lines, so the label stays narrower than the gap between the
+       two companies' names below the circles */
+    const t1=i18tn('ov_map_owe_theirs',theirs.length,{ n:theirs.length }), t2=D.pay.theirs>0?i18t('ov_map_to_pay',{ money:ovMapMoney(D,D.pay.theirs) }):'';
+    const tw=Math.max(132,Math.min(200,Math.round(Math.max(t1.length,t2.length)*6.8+30))), th2=t2?36:26;
+    s+=`<g class="ov-map-hitg ov-map-arc" data-ov-map="theirs" tabindex="0" role="button" aria-label="${esc(t2?t1+' · '+t2:t1)}"><g class="ov-map-nd">
+      <path d="M330 216 Q450 300 570 216" class="ov-map-hit"/><path d="M330 216 Q450 300 570 216" class="ov-map-dash-them"/>
+      <rect x="${f1(450-tw/2)}" y="${t2?240:245}" width="${tw}" height="${th2}" rx="${th2/2}" class="ov-map-chip"/>
+      <text x="450" y="${t2?255:262}" text-anchor="middle" class="ov-map-sm">${esc(t1)}</text>${t2?`<text x="450" y="270" text-anchor="middle" class="ov-map-sm">${esc(t2)}</text>`:''}</g></g>`;
+  }
   /* THE CONTRACT */
-  s+=`<g class="ov-map-nd" data-ov-map="renewal" tabindex="0" role="button" aria-label="${esc(i18t('ov_map_renewal'))}">
+  s+=`<g class="ov-map-hitg" data-ov-map="renewal" tabindex="0" role="button" aria-label="${esc(i18t('ov_map_renewal'))}"><g class="ov-map-nd">
     <rect x="428" y="128" width="44" height="56" rx="4" class="ov-map-doc"/><path d="M437 142h26M437 151h26M437 160h26M437 169h16" class="ov-map-lines"/>
-    <text x="450" y="206" text-anchor="middle" class="ov-map-ref">${esc(D.ref)}</text></g>`;
+    <text x="450" y="206" text-anchor="middle" class="ov-map-ref">${esc(D.ref)}</text></g></g>`;
   /* OUR NODE: a ring of our duties, one piece each, from twelve o'clock */
   const R=78, C=2*Math.PI*R, n=ours.length, gap=n>1?5:0, per=n?(C-gap*n)/n:0;
-  let ring=`<circle r="${R}" class="ov-map-track${n?'':' is-empty'}"/>`;
+  let ring=n?`<circle r="${R}" class="ov-map-track"/>`:'';
   /* each piece is turned to its place and GROWS IN from a full offset
      (ov-map-grow in index.html runs the offset to 0) */
   ours.forEach((x,i)=>{ ring+=`<circle r="${R}" class="ov-map-seg is-${x.st}" transform="rotate(${f1(-90+(per+gap)*i/C*360)})" style="--len:${f1(per)};stroke-dasharray:${f1(per)} ${f1(C-per)};stroke-dashoffset:${f1(per)}"/>`; });
-  s+=`<g class="ov-map-nd ov-map-us" data-ov-map="ours" tabindex="0" role="button" aria-label="${esc(us.name)}" transform="translate(250 160)">
+  s+=`<g class="ov-map-hitg ov-map-us" data-ov-map="ours" tabindex="0" role="button" aria-label="${esc(us.name)}" transform="translate(250 160)"><g class="ov-map-nd">
     ${ring}<circle r="64" class="ov-map-us-c"/><text y="9" text-anchor="middle" class="ov-map-ini is-us">${esc(ovMapIni(us.name))}</text>
     <text y="104" text-anchor="middle" class="ov-map-nm">${esc(ovMapShort(us.name,26))}</text><text y="122" text-anchor="middle" class="ov-map-cap">${esc(i18t('ov_map_us').toUpperCase())}</text>
-    ${late?`<circle cx="56" cy="-56" r="24" class="ov-map-late-halo"/><circle cx="56" cy="-56" r="12" class="ov-map-badge is-r"/><text x="56" y="-52" text-anchor="middle" class="ov-map-bn">${late}</text>`:''}</g>`;
+    ${late?`<circle cx="-72" cy="-72" r="16" class="ov-map-late-halo"/><circle cx="-72" cy="-72" r="12" class="ov-map-badge is-r"/><text x="-72" y="-68" text-anchor="middle" class="ov-map-bn">${late}</text>`:''}</g></g>`;
   /* THEIR NODE: 48 ticks round it, their tint */
   let ticks=''; for(let i=0;i<48;i++){ const a=i/48*2*Math.PI, cs=Math.cos(a), sn=Math.sin(a);
     ticks+=`<line x1="${f1(80*cs)}" y1="${f1(80*sn)}" x2="${f1(88*cs)}" y2="${f1(88*sn)}"/>`; }
-  s+=`<g class="ov-map-nd ov-map-them" data-ov-map="theirs" tabindex="0" role="button" aria-label="${esc(th.name)}" transform="translate(650 160)">
+  s+=`<g class="ov-map-hitg ov-map-them" data-ov-map="theirs" tabindex="0" role="button" aria-label="${esc(th.name)}" transform="translate(650 160)"><g class="ov-map-nd">
     <g class="ov-map-ticks">${ticks}</g><circle r="66" class="ov-map-them-c"/><text y="9" text-anchor="middle" class="ov-map-ini is-them">${esc(ovMapIni(th.name))}</text>
-    <text y="110" text-anchor="middle" class="ov-map-nm">${esc(ovMapShort(th.name,26))}</text></g>`;
+    <text y="110" text-anchor="middle" class="ov-map-nm">${esc(ovMapShort(th.name,26))}</text></g></g>`;
   return s+'</svg>';
 }
 const OV_MAP_PILL={ g:'green', a:'amber', r:'ruby', s:'steel' };
-function ovMapDutyRow(x){
+function ovMapDutyRow(x,D){
   const when=x.due?(x.st==='g'?i18t('ov_tm_done_undated'):x.st==='r'?i18t('ov_tm_was_due',{ date:ovDay(x.due) }):i18t('ov_tm_due',{ date:ovDay(x.due) })):(x.st==='g'?i18t('ov_tm_done_undated'):i18t('ob_no_date'));
   return `<div class="ov-map-ob"><span class="ov-map-dot is-${x.st}"></span><div><b>${esc(x.t)}</b><small>${esc(when)}${
-    x.cl?` · <span class="ov-map-cl">${esc(x.cl)}</span>`:''}</small></div></div>`;
+    x.cl?` · <span class="ov-map-cl">${esc(x.cl)}</span>`:''}</small></div>${x.amt&&D&&D.money?`<b class="ov-map-amt">${esc(ovMapMoney(D,x.amt))}</b>`:''}</div>`;
 }
 /* WHAT THE PANEL SAYS FOR WHAT WAS PRESSED: the renewal (the contract), our
    duties (our node or the upper arc), theirs (their node or the lower arc).
@@ -6415,15 +6450,20 @@ function ovMapPane(c,D,k){
     const rows=[R.end?`<div class="ov-map-kr"><span>${esc(i18t('ov_map_rn_ends_k'))}</span><b>${esc(ovDay(R.end))}</b></div>`:'',
       R.by?`<div class="ov-map-kr"><span>${esc(i18t('ov_map_rn_notice_k'))}</span><b><span class="ov-map-pill is-${OV_MAP_PILL[R.byTone]}">${esc(ovDay(R.by))}</span></b></div>`:'',
       typeWord?`<div class="ov-map-kr"><span>${esc(i18t('ov_map_rn_type_k'))}</span><b>${esc(typeWord)}</b></div>`:''].join('');
-    return `<div id="renewal-host" class="empty:hidden" data-bare="1"></div>${cap}<h3>${esc(i18t('ov_map_renewal'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${rows}${
-      R.quote?`<h4>${esc(i18t('ov_map_wording'))}</h4><p class="ov-map-quote">“${esc(R.quote)}”</p>`:''}`;
+    /* ONE RENEWAL SECTION (work order Part 9): the facts first, then the
+       decision — renderRenewalSection's own card, drawn COMPACT (no second
+       heading, no second date line), so the one door to the decision stays
+       and the panel no longer says "Renewal" twice. */
+    return `${cap}<h3>${esc(i18t('ov_map_renewal'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${rows}${
+      R.quote?`<h4>${esc(i18t('ov_map_wording'))}</h4><p class="ov-map-quote">“${esc(R.quote)}”</p>`:''}<div id="renewal-host" class="empty:hidden ov-map-decide" data-bare="1" data-compact="1"></div>`;
   }
   if(k==='ours'||k==='theirs'){
     const list=D.duties[k], open=list.filter(x=>x.st!=='g'), done=list.filter(x=>x.st==='g'), late=list.filter(x=>x.st==='r').length;
     const who=(k==='ours'?D.parties[0]:D.parties[1]).name;
-    const lede=list.length?i18t('ov_map_side_lede',{ who, n:list.length, open:open.length, late }):i18t('ov_map_no_duties');
+    const lede=(list.length?i18t('ov_map_side_lede',{ who, n:list.length, open:open.length, late }):i18t('ov_map_no_duties'))
+      +(D.pay[k]>0?' '+i18t('ov_map_side_pay',{ money:ovMapMoney(D,D.pay[k]) }):'');
     return `${cap}<h3>${esc(i18t(k==='ours'?'ov_map_ours_h':'ov_map_theirs_h'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${
-      open.map(ovMapDutyRow).join('')}${done.length?`<h4>${esc(i18t('ov_map_done_h'))}</h4>${done.map(ovMapDutyRow).join('')}`:''}`;
+      open.map(x=>ovMapDutyRow(x,D)).join('')}${done.length?`<h4>${esc(i18t('ov_map_done_h'))}</h4>${done.map(x=>ovMapDutyRow(x,D)).join('')}`:''}`;
   }
   return '';
 }
@@ -6435,7 +6475,9 @@ function ovMapHtml(c){
   return `<div class="ov-map-grid" id="ov-map"><div class="ov-map-card"><div class="ov-map-top"><span class="ov-map-chipt"><i></i><span>${esc(i18t('ov_map_k_duty'))}</span></span><span class="ov-map-key">${
       [['g','ov_map_l_done'],['a','ov_map_l_soon'],['r','ov_map_l_late'],['s','ov_map_l_later']].map(([t,k])=>
         `<span><i class="ov-map-dot is-${t}"></i>${esc(i18t(k))}</span>`).join('')}</span></div>
-    <div class="ov-map-stage" data-ov-map-stage>${ovMapSvg(D)}</div></div>
+    <div class="ov-map-stage" data-ov-map-stage>${ovMapSvg(D)}${
+      /* NO DUTIES: the map's own resting state, in place (not a band) */
+      (D.duties.ours.length+D.duties.theirs.length)?'':`<p class="ov-map-empty">${esc(i18t('ov_map_empty'))} · <button type="button" class="ui-link" data-ov-map-oblig="1">${esc(i18t('ov_map_empty_add'))}</button></p>`}</div></div>
     <aside class="ov-map-pane" data-ov-map-pane aria-live="polite"></aside></div>`;
 }
 /* WIRED WHERE IT IS PAINTED (renderKeyTerms). What is pressed is kept per
@@ -6453,6 +6495,7 @@ function ovMapWire(host,c){
     if(svg) svg.querySelectorAll('[data-ov-map]').forEach(n=>{ const on=n.getAttribute('data-ov-map')===k;
       n.classList.toggle('is-sel',on); n.setAttribute('aria-pressed',String(on)); });
     if(k==='renewal'){ try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(_){} } };
+  root.querySelector('[data-ov-map-oblig]')?.addEventListener('click',()=>{ try{ roomGoTab(getContract(c.id)||c,'oblig'); }catch(_){} });
   if(svg){
     svg.addEventListener('click',e=>{ const n=e.target.closest('[data-ov-map]'); if(n) pick(n.getAttribute('data-ov-map')); });
     svg.addEventListener('keydown',e=>{ const n=e.target.closest('[data-ov-map]'); if(n&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); pick(n.getAttribute('data-ov-map')); } });

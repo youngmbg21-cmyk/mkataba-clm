@@ -1,10 +1,12 @@
 # WORK ORDER — Home is quick, a board dropdown is never behind a card, and the Board balances its cards
 
-**Status: WRITTEN 8 Oct 2026. NOT BUILT.** Owner: *"yes fix all three and this
+**Status: WRITTEN 8 Oct 2026. Parts 1–7 BUILT 8 Oct (#180); Parts 8–12 BUILT 9 Oct 2026.** Owner: *"yes fix all three and this
 issue where the drop down goes behind the cards. Do not fix yet but add all to
 a work order"*. Build only when the owner says so.
 Part 5 (the Board balances its cards) was added the same day, owner-asked: *"add this to the work order"*.
 Part 6 (Show as table turns the chart into a table) was added the same day, owner-asked: *"one more thing to add to the work order. fix this highlighted button so that when you click, it turn the chart to a table."*
+Part 8 (the language switch goes back beside the theme switch) was added after Parts 1–7 were built and merged (#180), owner-asked: *"You also moved the language toggle. Move it back to where it was. No coding yet but add to the work order"* — **Part 8 BUILT 9 Oct 2026.**
+Parts 9–12 (the Overview's duties map is broken; the board's list is see-through; a light selection, not a dark ring; the search field) were added the same evening, owner-asked after a review: *"Review these and advise on the fixes. No coding."* then, with a screenshot of the map: *"I also do not think you appreciate how this graphic is broken. Image 1 is what i see. Add this to list of fixes"* — **Parts 9–12 BUILT 9 Oct 2026** (Parts 10–12's checks are one file, board-lists-and-search-verify).
 Part 7 (the clause strip on the Paper becomes the TRACK) was added the same day, owner-asked: *"I want to add the implementation of track for the paper page from this artifact"* (artifact "Clause Strip Options", https://claude.ai/artifact/Jpi4zqQH8fzQ2Be8B7u4Xf, option 3 "Track", picked by name).
 
 **What the owner asked for, in their words, before this:**
@@ -424,6 +426,142 @@ dark, on a long contract with marks spread through it:
 - at a window narrower than the Track needs, today's strip is drawn and
   the paper still does not move.
 
+## Part 8 — The language switch goes back beside the theme switch (owner-asked 8 Oct 2026; BUILT 9 Oct)
+
+**What the owner sees.** The English · Svenska switch sits at the top left of
+the blue bar, next to the HaTi logo. It used to sit next to the switch for the
+page's colour theme (Light / Dark), on the right of the search box.
+
+**What was found (read only; grep, never trust a line number).** Parts 1–7
+did not touch it: the top bar's markup still places `#lang-switch` between
+`.cmd-search` and the theme switch, and the page LOADS with it there. The
+fault is `placeLanguageSwitch` in js/app.js (added 5 Oct 2026, the narrow
+shell work): below `NAV_HEADER_TIGHT_W` (900 px) it moves the switch into the
+side menu, above `.nav-foot`; when the window widens again it puts it back
+with `headerHome.parentElement.insertBefore(sw, headerHome.nextSibling)`,
+where `headerHome` is `#brand-block` — the logo. So once a window has been
+narrower than 900 px (a half-screen window, a small laptop, the browser's
+own side tools opening), the switch lands top left and stays there.
+Measured in Chromium: 1440 on load → beside the theme switch; 800 → in the
+side menu; back to 1440 → after `#brand-block`, x = 118 px.
+
+**The build:**
+1. Put the switch back WHERE IT CAME FROM, not after the logo: remember its
+   own place in the bar (the node it sat before, read once before the first
+   move) and return it there, so it lands between the search box and the theme
+   switch whatever the bar holds.
+2. Nothing else about it changes: the words shorten to EN · SV between 900
+   and 1180 px as today; below 900 px it still moves into the side menu where
+   the full words fit; the click listener is kept (the node is moved, never
+   rebuilt).
+3. **Every place:** the switch is drawn once (the top bar) and moved by this
+   one function; check the phone shell (below 768 px, js/mobile*.js) and the
+   rail-collapsed menu (`#app-shell.rail`) still show it as today.
+
+**Rules that bite:** no new band; a refresh lands at the same spot; the bar's
+order on every width is pinned by a test, not by a pixel count.
+
+Accept, in a real browser: load at 1440 → the switch is the theme switch's
+neighbour; shrink to 800 → it is in the side menu; widen to 1440 → it is the
+theme switch's neighbour again (same previous and next element as on load),
+and pressing Svenska still switches the language.
+
+## Part 9 — The Overview's duties map is broken (owner's screenshot, 8 Oct 2026; BUILT 9 Oct)
+
+**What the owner sees (screenshot, MK-449, a Mac):** both companies' circles
+are drawn on top of each other in the map's TOP-LEFT corner, cut off by the
+card's edge; the two names overlap ("…ng" over "Saw Sawa LLC"); nothing stands
+on the right; the "we owe" curve shows as two loose stubs under its label; the
+"they owe" dashed curve floats with its label alone. In Chromium at 1440,
+1280 and 1100 the same contract draws correctly — so the fault is in the
+browser the owner uses.
+
+**The likely cause (read, not yet proved in WebKit):** `ovMapSvg` puts each
+company's circle in a `<g class="ov-map-nd" transform="translate(250 160)">`,
+and index.html animates `.ov-map-svg .ov-map-nd` with `ov-map-pop`, whose
+keyframe sets a CSS `transform: scale(.86)`. In Safari a CSS transform on an
+SVG element REPLACES its `transform` attribute, so every circle falls back to
+(0,0) — the top-left corner — exactly as the screenshot shows. Chromium
+combines them, which is why every Chromium check passed.
+
+**The build:**
+1. **Position and motion on two layers, everywhere on the map:** the
+   translate stays on an outer `<g>`; the class that animates (pop, grow) is
+   on an inner `<g>` with no transform of its own. Sweep EVERY SVG HaTi
+   animates the same way (grep `transform-box:fill-box` and `animation:` on
+   SVG classes: the board's charts, Overview 2's track, the Brain, Explorer)
+   and fix each, or name it to the owner.
+2. **Prove it in WebKit, not only Chromium:** add WebKit to the browser checks
+   for this map (Playwright's `webkit`), or, where WebKit cannot run here,
+   pin the rule in a unit test: no element carrying an SVG `transform`
+   attribute also carries a class that animates `transform`.
+3. **The faults seen in Chromium too (the review, same evening):**
+   - The side panel: the renewal decision card (`#renewal-host`) sits ON TOP
+     and pushes the panel's own "Renewal" heading and facts out of view — two
+     renewal sections. One section: the facts first (ends, notice by, type,
+     the wording), the decision as one compact row of the SAME buttons under
+     them (one door kept).
+   - The "we owe" curve: its label covers it, leaving two stubs, and the late
+     badge's halo sits on the curve and the ring. Lift the label just above
+     the curve so the line is whole; end the curve clear of both rings; move
+     the late badge outside the ring.
+   - The "they owe" curve: a visible dashed line in the other company's
+     colour, its label on it.
+   - NO DUTIES: today it draws "0 duties we owe", "0 duties they owe", empty
+     curves and a dashed ring that reads as a fault. Draw the two companies
+     and the contract only, with one quiet line in the map ("No duties
+     recorded yet · Add obligations", a door to the Obligations tab) — the
+     map's own resting state, not a band.
+   - PAYMENTS (the owner calls it "the flow of obligations and payments"):
+     **owner to pick** — (A, recommended) the amount rides the curve labels
+     ("6 duties we owe · KES 1.0M to pay") and the panel lists the payment
+     duties with amounts; or (B) money returns as its own thinner line.
+
+Accept: in Chromium AND WebKit, at 1440, 1280 and 1100, light and dark, with
+0, 1 and 9 duties: our circle's centre is in the left third and theirs in the
+right third (measured), no two names overlap, the upper curve's painted
+length outside its label is more than half of it, the panel's "Renewal"
+heading is visible without scrolling, and a contract with no duties draws no
+"0 duties".
+
+## Part 10 — The board's dropdown is solid (BUILT 9 Oct)
+
+**Found:** `.hb-rmenu` (and the card's ⋯ `.hb-pmenu`) paint `--hb-card`,
+which is 62% white in light and 82% navy in dark, with a blur — so words and
+bars of the card underneath show through the list.
+**Build:** a solid ground for the list (white in light, the board's own navy
+in dark), no blur, the soft shadow and radius kept. Both menus.
+**Accept:** at the middle of every choice, the colour under the text is the
+list's own solid colour (no pixel of the card below shows through), light and
+dark.
+
+## Part 11 — A light selection, not a dark ring (BUILT 9 Oct)
+
+**Found:** an OPEN choice button (`.hb-rc.is-open`) gets a 1 px border plus a
+1 px inset ring in `--hb-glow`, the board's darkest blue — on the light board
+it reads as a heavy black outline; the keyboard ring (`:focus-visible`) is the
+same dark colour at 2 px.
+**Build:** the open button wears a light tint of the brand colour and keeps
+its ordinary 1 px border; the chosen item in the list keeps its soft wash and
+tick; the keyboard ring is the brand blue at 2 px with a small gap (keyboard
+only, never on a mouse press).
+**Accept:** no dark outline after a mouse press, light and dark; a keyboard
+Tab still shows a visible ring.
+
+## Part 12 — The search field in the top bar (BUILT 9 Oct)
+
+**Found:** four rules fight over `#top-header .cmd-search` (grep it): at rest
+a 1 px border on a see-through well; when pressed a 1 px border PLUS a 2 px
+white glow (it looks thick); in dark mode a light, see-through grey that turns
+LIGHTER when pressed — it never looks dark.
+**Build (the shell-bar standard):** ONE rule set. At rest: a filled field one
+step lighter than the bar, no border. Pressed: a solid field with a thin
+1 px accent edge — white with dark text in light mode, a dark field with
+light text in dark mode. Placeholder and the ⌘K hint follow.
+**Accept:** measured in a browser, light and dark: no border at rest; pressed
+= one 1 px edge and no glow; in dark mode the pressed field is darker than
+the bar's text colour and its text is light.
+
 ---
 
 ## Tests to add (each run at unmodified main first: it must FAIL there)
@@ -445,6 +583,11 @@ dark, on a long contract with marks spread through it:
   be red at unmodified main on the bars and columns cases.
 - **track-on-the-paper-verify** (new, Chromium): Part 7's acceptance.
   Red at unmodified main (no rail, numbers cut off).
+- **duties-map-verify** (new, Chromium AND WebKit): Part 9's acceptance.
+- **board-list-solid-verify**, **board-light-selection-verify**,
+  **search-field-verify** (new, Chromium): Parts 10–12's acceptance.
+- **language-switch-stays-verify** (new, Chromium): Part 8's acceptance.
+  Red at main f31da55 (after a narrow window it lands after the logo).
 - A unit test of the Track's label spacing: given mark positions that
   crowd together, the labels come out in order, at least 20 px apart, all
   inside the column, and each leader joins its own mark.

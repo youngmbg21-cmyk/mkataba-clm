@@ -2995,6 +2995,14 @@ function closeNavDrawer(){ setNavDrawer(false); }
    Copilot launcher, where its full words fit again. The node is relocated,
    not rebuilt, so the click listener bound in wireLanguagePicker keeps
    working exactly as it did. */
+/* ---- AND IT GOES BACK WHERE IT CAME FROM (work order "Home speed", Part
+   8, owner-asked 8 Oct 2026: "Move it back to where it was") ----
+   Coming back from the drawer it was put after the logo (#brand-block), so
+   once a window had been narrower than 900px the switch sat at the bar's top
+   left for the rest of the sitting. Its own place in the bar — the node it
+   stood before, beside the theme switch — is read once, before the first
+   move, and it returns there. */
+let _langHome=null;
 function placeLanguageSwitch(){
   const sw=document.getElementById('lang-switch');
   const drawerHome=document.querySelector('#side-nav .nav-foot');
@@ -3002,8 +3010,13 @@ function placeLanguageSwitch(){
   if(!sw||!drawerHome||!headerHome||!headerHome.parentElement) return;
   const wantDrawer=navHeaderTight();
   const inDrawer=sw.parentElement===drawerHome.parentElement;
+  if(!inDrawer&&!_langHome) _langHome={ parent:sw.parentElement, next:sw.nextSibling };
   if(wantDrawer&&!inDrawer) drawerHome.parentElement.insertBefore(sw,drawerHome);
-  else if(!wantDrawer&&inDrawer) headerHome.parentElement.insertBefore(sw,headerHome.nextSibling);
+  else if(!wantDrawer&&inDrawer){
+    const h=_langHome;
+    if(h&&h.parent&&h.parent.isConnected&&(!h.next||h.next.parentNode===h.parent)) h.parent.insertBefore(sw,h.next);
+    else headerHome.parentElement.insertBefore(sw,headerHome.nextSibling);
+  }
 }
 /* WHICH OF THE TWO THE PANEL IS SHOWING — 'activity' or 'alerts'. One panel,
    two contents; the heading says which, and pressing the other icon swaps it

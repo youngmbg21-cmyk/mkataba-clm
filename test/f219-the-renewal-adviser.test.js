@@ -197,7 +197,7 @@ describe('F219 — the window, and the card it draws', () => {
     assert.match(run, /c\._renewalAdvice=r\.advice; c\._renewalAdviceError='';/,
       'arriving advice clears it');
     const rs = ai.slice(ai.indexOf('function renderRenewalSection'), ai.indexOf('function renderRenewalSection') + 1800);
-    assert.match(rs, /try\{ host\.innerHTML=renewalCardHtml\(c,\{bare\}\); \}/,
+    assert.match(rs, /try\{ host\.innerHTML=renewalCardHtml\(c,\{bare(?:,compact)?\}\); \}/,
       'a draw failure never escapes this card');
     assert.match(rs, /rn_card_broken/, 'it says so, with a way forward');
     const ct = read('js/views/contract.js');

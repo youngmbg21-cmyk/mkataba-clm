@@ -4696,16 +4696,17 @@ function renewalCardHtml(c,opts){
   /* Start the renewal stands down once renewal paper is already in flight:
      a second draft is not the next act, opening the one there is. */
   const startShown=may&&!(next&&next.child);
-  return `<section id="renewal-section" class="kt-side-card" style="${BOX}">
-    <div style="display:flex;flex-direction:row;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none">
+  const compact=!!(opts&&opts.compact);
+  return `<section id="renewal-section" class="kt-side-card${compact?' is-compact':''}" style="${compact?'padding:0':BOX}">
+    ${compact?'':`<div style="display:flex;flex-direction:row;align-items:center;gap:var(--s-2);margin-bottom:6px;flex:none">
       <h6 style="margin:0;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading);flex:1">${i18t('rn_title')}</h6>
       ${settled
         ? `<span class="pill-x" style="background:var(--st-green-bg);color:var(--st-green-fg)">${i18t('rn_badge_decided')}</span>`
         : (w.auto?`<span class="pill-x" style="background:var(--st-amber-bg);color:var(--st-amber-fg)">${i18t('rn_auto')}</span>`:'')}
-    </div>
+    </div>`}
     ${settled?decidedBlock+(conflictLine?`<p data-rn-conflict style="margin:0 0 7px;font-size:var(--t-label);line-height:1.55;color:var(--st-amber-fg)">${_aiEsc(conflictLine)}</p>`:'')
       +(nextLine?`<p data-rn-next="${_aiEsc(next.step)}" style="margin:0 0 4px;font-size:var(--t-label);line-height:1.55;color:var(--color-text);font-weight:var(--w-label)">${_aiEsc(nextLine)}</p>`:''):`
-      <p style="margin:0 0 6px;font-size:var(--t-meta);line-height:1.55;color:${w.missed?'var(--st-ruby-fg)':'var(--color-neutral-700)'}">${_aiEsc(line)}</p>
+      ${compact&&!w.missed?'':`<p style="margin:0 0 6px;font-size:var(--t-meta);line-height:1.55;color:${w.missed?'var(--st-ruby-fg)':'var(--color-neutral-700)'}">${_aiEsc(line)}</p>`}
       ${srcLine?`<p title="${_aiEsc(srcWhy)}" style="margin:0 0 6px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${srcLine}</p>`:''}
       ${fixLine?`<p style="margin:0 0 9px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${fixLine}</p>`:''}
       ${staleLine?`<p style="margin:0 0 9px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${staleLine}</p>`:''}
@@ -4794,7 +4795,11 @@ function renderRenewalSection(c){
      only the drawing of arrived advice realistically can. So a failure to draw
      says so, in the card, with the way forward on it — and never escapes. */
   const bare=host.hasAttribute('data-bare');
-  try{ host.innerHTML=renewalCardHtml(c,{bare}); }
+  /* COMPACT (the Overview's duties-map panel, work order Part 9): the panel
+     has already said the heading and the dates, so the card draws the
+     decision alone — never a second "Renewal". */
+  const compact=host.hasAttribute('data-compact');
+  try{ host.innerHTML=renewalCardHtml(c,{bare,compact}); }
   catch(e){
     host.innerHTML=`<section id="renewal-section" class="kt-side-card" style="${bare?RN_BARE:RN_BOX}">
       <h6 style="margin:0 0 6px;font-size:var(--t-body);font-weight:var(--w-title);font-family:var(--font-heading)">${_aiEsc(i18t('rn_title'))}</h6>
