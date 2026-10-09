@@ -92,25 +92,43 @@ describe('f570 (2) Copilot\'s counter, on the paper and in the editor', () => {
     const ch = await win.negoFileChange(c, { clauseId: cl.clauseId, changeType: 'modify', side: 'counterparty', author: 'Erik',
       oldText: cl.text, newText: cl.text.replace('thirty (30) days', 'ninety (90) days'), summary: 'x' });
     const before = c.changes.length;
-    assert.equal(win.redlineDocHtml(c, { side: 'owner' }).includes('rl-prep-box'), false, 'no answer, no box');
-    c._roundPrep = { [RP.roundPrepKey(ch.clauseId, ch.newText)]: { verdict: 'counter', why: 'Half way.', standard: 'Payment terms',
-      wording: ch.newText.replace('ninety (90) days', 'sixty (60) days'), at: 't' } };
-    const box = win.document.createElement('div'); box.innerHTML = win.redlineDocHtml(c, { side: 'owner' });
-    const pb = box.querySelector('.rl-prep-box');
+    /* ONE PAINTER (the overnight reconciliation, 9 Oct 2026): Copilot's answer
+       is painted AFTER the render by rlPaintCopilotAnswers — never written into
+       the paper's HTML, so no fingerprint moves — and only for an answer the
+       reader asked Copilot to redo (`sentBack`). */
+    const paint = (prep, side) => {
+      c._roundPrep = prep ? { [RP.roundPrepKey(ch.clauseId, ch.newText)]: prep } : undefined;
+      const box = win.document.createElement('div'); box.innerHTML = win.redlineDocHtml(c, { side });
+      win.document.body.appendChild(box);
+      win.rlPaintCopilotAnswers(box, c, { side, verbsIn: box });
+      box.remove();
+      return box;
+    };
+    const counter = { verdict: 'counter', why: 'Half way.', standard: 'Payment terms',
+      wording: ch.newText.replace('ninety (90) days', 'sixty (60) days'), at: 't', sentBack: { note: 'Counter at 60', by: 'Amina' } };
+    assert.equal(paint(null, 'owner').querySelector('.rl-sug-box'), null, 'no answer, no box');
+    assert.ok(!win.redlineDocHtml(c, { side: 'owner' }).includes('rl-sug'), 'the render itself never carries it');
+    const pb = paint(counter, 'owner').querySelector('.rl-sug-box');
     assert.ok(pb, 'the dashed box is on the paper');
     assert.match(pb.textContent, /sixty \(60\) days/);
-    assert.ok([...pb.querySelectorAll('.rl-prep-ins')].some(x => /sixty/.test(x.textContent)), 'the words it adds are marked');
+    assert.ok([...pb.querySelectorAll('.rl-sug-new')].some(x => /sixty/.test(x.textContent)), 'the words it adds are marked');
     assert.equal(pb.querySelectorAll('del').length, 0, 'nothing is struck in it');
-    assert.equal(win.redlineDocHtml(c, { side: 'counterparty' }).includes('rl-prep-box'), false, 'never on their seat');
+    assert.equal(paint(counter, 'counterparty').querySelector('.rl-sug-box'), null, 'never on their seat');
+    assert.equal(paint(Object.assign({}, counter, { sentBack: undefined }), 'owner').querySelector('.rl-sug-box'), null,
+      'an answer nobody asked Copilot to redo stays a line on the row');
     assert.equal(c.changes.length, before, 'nothing filed');
-    assert.ok(win.rlPrepCounterOf(c, ch, 'owner'), 'the row reads the same answer — Counter glows off it');
-    assert.match(R('js/views/negotiation.js'), /rlPrepCounterOf\(c, ch, side\)\s*\n\s*\? rlRowFaceVerbs\(verbs, ch, theirs, rvCancel\)\.replace\([^\n]*data-rl-glow="1"/);
+    const neg = R('js/views/negotiation.js');
+    assert.ok(!/rlPrepBoxHtml|rlPrepCounterOf|rl-prep-box|data-rl-glow="/.test(neg), 'the second box and the second glow are gone');
+    assert.match(region(neg, 'rlPaintCopilotAnswers'), /v\.classList\.add\('rl-glow'\)/, 'the one glow');
   });
   test('the editor: one card, in the box, "Rests on:" once, a note that travels as the reason, Save counter', () => {
     const ce = R('js/views/clauseeditor.js');
     assert.match(ce, /rests: String\(prep\.standard \|\| ''\)/, 'the card is handed the standard alone — its own line says "Rests on:"');
     assert.ok(!/rests: prep\.standard \? _cet\('ag_prep_rests'/.test(ce), 'never "Rests on: Rests on:"');
     assert.match(ce, /lane\.innerHTML = \(_cePrep \? '' : ceLadderCardHtml\(\)\)/, 'no second card that disagrees');
+    assert.match(ce, /if \(_cePrep && _cePrep\.sentBack\) cePrepPut\(\{ quiet: true \}\);/,
+      'the answer the paper drew dashed (sentBack) arrives in the box; one Copilot prepared alone keeps its Apply');
+    assert.ok(!/cd\.prepared && cd\.sentBack\); \}\);\s*\n\s*if \(btn\) btn\.click\(\)/.test(ce), 'no second arrival door pressing Apply');
     assert.match(region(ce, 'ceFile'), /if \(!why && prepFiling && String\(_cePrep\.note \|\| ''\)\.trim\(\)\) why = String\(_cePrep\.note\)\.trim\(\);/,
       'the note to them rides the counter as its reason — the field they read');
     const { STRINGS } = require('../js/i18n.js');

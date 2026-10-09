@@ -68,9 +68,9 @@ const openNego = async page => {
   return until(page, () => !!document.querySelector('.redline-page .rl-clause') && state.view === 'redline', null, 10000);
 };
 const paperRead = page => page.evaluate(() => {
-  const box = document.querySelector('.redline-page .rl-prep-box');
-  const glow = document.querySelector('.redline-page [data-rl-glow]');
-  return { box: box ? box.textContent.replace(/\s+/g, ' ').trim() : null, ins: box ? [...box.querySelectorAll('.rl-prep-ins')].map(x => x.textContent.trim()) : [],
+  const box = document.querySelector('.redline-page .rl-sug-box');
+  const glow = document.querySelector('.redline-page .rl-glow');
+  return { box: box ? box.textContent.replace(/\s+/g, ' ').trim() : null, ins: box ? [...box.querySelectorAll('.rl-sug-new')].map(x => x.textContent.trim()) : [],
     dashed: box ? getComputedStyle(box).borderTopStyle : null, glow: glow ? glow.textContent.trim() : null,
     glowShadow: glow ? getComputedStyle(glow).boxShadow : null };
 });
@@ -121,7 +121,7 @@ const paperRead = page => page.evaluate(() => {
     await page.reload({ waitUntil: 'networkidle' });
     await login(page, h.base);
     ok('1 the first answer: Negotiate shows no dashed box and no lit Counter', !!(await openNego(page))
-      && await page.evaluate(() => !document.querySelector('.rl-prep-box') && !document.querySelector('[data-rl-glow]')));
+      && await page.evaluate(() => !document.querySelector('.rl-sug-box') && !document.querySelector('.rl-glow')));
     await page.screenshot({ path: path.join(OUT, '1-before.png') });
 
     /* ===== 2. HOME'S ROUND CARD: ASK COPILOT TO REDO THIS ===== */
@@ -147,22 +147,22 @@ const paperRead = page => page.evaluate(() => {
 
     /* ===== 4. NEGOTIATE HERE: THE DASHED BOX AND THE LIT COUNTER ===== */
     await openNego(page);
-    const p4 = await until(page, () => { const b = document.querySelector('.redline-page .rl-prep-box'); return b ? true : null; }, null, 6000)
+    const p4 = await until(page, () => { const b = document.querySelector('.redline-page .rl-sug-box'); return b ? true : null; }, null, 6000)
       ? await paperRead(page) : await paperRead(page);
     ok('4a Copilot\'s counter sits under their wording in a dashed box', !!p4.box && /60 days/.test(p4.box) && p4.dashed === 'dashed', JSON.stringify(p4));
     ok('4b the words it adds are marked (60), nothing struck', p4.ins.some(t => /60/.test(t)), JSON.stringify(p4.ins));
-    ok('4c Counter glows', p4.glow === 'Counter' && /rgb/.test(p4.glowShadow || ''), p4.glow + ' ' + p4.glowShadow);
+    ok('4c Counter glows', p4.glow === 'Counter' && !!p4.glowShadow && p4.glowShadow !== 'none', p4.glow + ' ' + p4.glowShadow);
     ok('4d nothing was filed: one change on the record, theirs', await page.evaluate(() => getContract('MK-CP1').changes.length === 1));
     await page.screenshot({ path: path.join(OUT, '4-nego.png') });
 
     /* ===== 3. THE COLLEAGUE'S TAB CATCHES UP ON ITS OWN BEAT ===== */
-    const caught = await until(other, () => !!document.querySelector('.redline-page .rl-prep-box'), null, 30000);
+    const caught = await until(other, () => !!document.querySelector('.redline-page .rl-sug-box'), null, 30000);
     ok('3 a tab already on Negotiate draws the redone answer without reopening', !!caught);
     await other.screenshot({ path: path.join(OUT, '3-other-tab.png') });
     await ctx2.close();
 
     /* ===== 5. COUNTER OPENS THE EDITOR WITH THE COUNTER IN THE BOX ===== */
-    if (p4.glow) await page.click('.redline-page [data-rl-glow]');
+    if (p4.glow) await page.click('.redline-page .rl-glow');
     const ed = await until(page, () => !!document.querySelector('#clause-editor #ce-lane .ce-card'), null, 8000);
     const e5 = ed ? await page.evaluate(() => {
       const lane = document.querySelector('#ce-lane');
