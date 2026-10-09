@@ -173,13 +173,16 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       tabs: document.querySelectorAll('#view-redline #ws-tabs .room-tab').length,
       /* THE CRUMB LIVES IN THE BAR (21 Sep 2026): #ws-back is adopted into #shell-title. */
       back: eval(seen)('#shell-title #ws-back') || eval(seen)('#view-redline #ws-back'),
+      openDoc: eval(seen)('#view-redline .rl-actions [data-rl-open-doc]'),
       title: eval(seen)('#view-redline #ws-back-title'),
       navOn: [...document.querySelectorAll('#nav .nav-item.active')].map(b => b.getAttribute('data-view')),
     }), SEEN);
     check('pressing it lands on the negotiation screen', inside.view === 'redline', inside.view);
     check('which draws no room tabs at all', inside.tabs === 0, inside.tabs + ' tabs');
-    check('the back arrow is on screen — the only way off the page',
-      !!inside.back && inside.back.on, inside.back ? `${inside.back.w}x${inside.back.h}` : 'MISSING');
+    /* REVERSED 10 Oct 2026 (owner): the arrow is gone; "Open document" ends the row. */
+    check('no back arrow — "Open document" is the way off the page',
+      !(inside.back && inside.back.on) && !!inside.openDoc && inside.openDoc.on,
+      `arrow ${!!(inside.back && inside.back.on)} · open document ${inside.openDoc ? inside.openDoc.text : 'MISSING'}`);
     check('and the contract name beside it is a door too',
       !!inside.title && inside.title.on, inside.title ? inside.title.text : 'MISSING');
     check('the sidebar lights Negotiations, not Contracts',
@@ -195,11 +198,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       count.text === '1' && count.tone === 'amber', `${count.text} / ${count.tone}`);
 
     /* ---- 7. OUT, AND IT LANDS ON DOCUMENT ---- */
-    await page.click('#ws-back');
+    await page.click('#view-redline [data-rl-open-doc]');
     await page.waitForTimeout(1500);
     const out = await page.evaluate(() => ({ view: state.view, tab: roomCurrentTab(),
       tabs: [...document.querySelectorAll('#ws-tabs .room-tab')].map(b => b.textContent.trim()) }));
-    check('the arrow returns to the agreement', out.view === 'workspace', out.view);
+    check('Open document returns to the agreement', out.view === 'workspace', out.view);
     check('on its Document tab, where the door in lives', out.tab === 'docs', out.tab);
     check('and the whole tab row is back with it',
       out.tabs.length === (await page.evaluate(() => (window.ROOM_TABS || []).length)),

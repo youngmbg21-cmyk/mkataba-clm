@@ -249,8 +249,11 @@ const SEED = async () => {
        would break silently: the negotiate page still has a painted sign that
        names where it goes (the 15 Sep ruling, which the bar quietly undid by
        hiding the arrow), and the room has a word and no door. */
-    check('1 the negotiate page carries a painted sign that names its destination',
-      !!(nego.backLabel || '').trim() && nego.backPainted === true,
+    /* REVERSED 10 Oct 2026 (owner: the back arrow and its words go; the way
+       back is "Open document" on the control row). Both pages now carry no way
+       back in the bar. */
+    check('1 the negotiate page carries no back sign either — "Open document" is on its row',
+      !(nego.backLabel || '').trim() && nego.backPainted === false,
       `label "${nego.backLabel}" · painted ${nego.backPainted}`);
     check('1 and the room carries no way back in the bar at all',
       room.backLabel === null && room.backPainted === false,
