@@ -6314,7 +6314,12 @@ function ovMapRenewal(c){
   const sp=m.sourceSpans||{};
   const quote=['renewalType','noticePeriodDays','expiryDate'].map(k=>String(sp[k]||'').replace(/\s+/g,' ').trim()).find(Boolean)||'';
   const today=ovIsoDay(typeof todayISO==='function'?todayISO():''), b=ovIsoDay(by);
-  return { end, next, notice, type, auto:type==='auto-renew', by, quote,
+  /* where the term starts, for the panel's timeline: the recorded date the
+     agreement takes effect, else the day it was signed; never guessed */
+  let start=String((c.fields&&c.fields.effDate)||m.effectiveDate||'').slice(0,10);
+  if(!start){ try{ start=String((window.contractSignedAt?contractSignedAt(c):'')||'').slice(0,10); }catch(_){ start=''; } }
+  if(ovIsoDay(start)==null) start='';
+  return { start, end, next, notice, type, auto:type==='auto-renew', by, quote,
     /* the notice day's colour is the renewal's own reading: missed ruby,
        inside the renewal window amber (renewalWindow), otherwise steel */
     byTone:rw?(rw.missed?'r':rw.inWindow?'a':'s'):((b!=null&&today!=null&&b<today)?'r':'s') };
@@ -6383,106 +6388,143 @@ function ovMapOweLine(D,k){
   return D.pay[k]>0?i18t('ov_map_owe_pay',{ base, money:ovMapMoney(D,D.pay[k]) }):base;
 }
 function ovMapSvg(D){
+  /* SMALLER PICTURE, LIVE LINES (Young, 9 Oct 2026: "the space for the graphic
+     is 1 third smaller, the highlighted circles are half as small and the
+     direction of movement with the lines are live and interactive"). A 600x310
+     stage at the old scale: the circles half their size; on each curve one
+     dot per duty, in its state's colour, travels the way the duty runs (we
+     owe: us → them above; they owe: them → us below). The motion is the
+     browser's own (animateMotion, CSS dash offsets): no loop of ours runs. */
   const f1=v=>(+v).toFixed(1), us=D.parties[0], th=D.parties[1];
   const ours=D.duties.ours, theirs=D.duties.theirs, late=ours.filter(x=>x.st==='r').length;
   const any=ours.length+theirs.length>0;
-  let s=`<svg class="ov-map-svg" viewBox="0 0 900 310" preserveAspectRatio="xMidYMid meet" role="group" aria-label="${esc(i18t('ov_map_aria_duties',{ us:us.name, them:th.name, ours:ours.length, theirs:theirs.length, late }))}">`;
+  const ST_WORD={ g:'ov_map_t_g', a:'ov_map_t_a', r:'ov_map_t_r', s:'ov_map_t_s' };
+  const motes=(list,pid,dur)=>list.map((x,i)=>{ const b=f1(-dur*i/list.length);
+    return `<circle r="5" class="ov-map-mote is-${x.st}" data-ov-duty="${esc(String(x.id||''))}"><title>${esc(x.t+' · '+i18t(ST_WORD[x.st]))}</title>`
+      +`<animateMotion dur="${dur}s" begin="${b}s" repeatCount="indefinite" calcMode="linear"><mpath href="#${pid}"/></animateMotion>`
+      +`<animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.12;.88;1" dur="${dur}s" begin="${b}s" repeatCount="indefinite"/></circle>`; }).join('');
+  let s=`<svg class="ov-map-svg" viewBox="0 0 600 310" preserveAspectRatio="xMidYMid meet" role="group" aria-label="${esc(i18t('ov_map_aria_duties',{ us:us.name, them:th.name, ours:ours.length, theirs:theirs.length, late }))}">`;
   if(any){
-    /* WE OWE: the curve above, its label lifted over it */
+    /* WE OWE: the curve above, us → them, its label lifted over it */
     const nx=D.next.ours, l1=ovMapOweLine(D,'ours'), l2=nx?ovMapShort(nx.t,40):(ours.length?i18t('ov_map_all_done'):i18t('ov_map_none_recorded'));
-    const pw=Math.max(224,Math.min(420,Math.round(Math.max(l1.length*8.6,l2.length*6.6)+44)));
+    const pw=Math.max(200,Math.min(380,Math.round(Math.max(l1.length*7.6,l2.length*6.2)+40)));
+    const up='M196 128 Q300 52 404 128';
     s+=`<g class="ov-map-hitg ov-map-arc" data-ov-map="ours" tabindex="0" role="button" aria-label="${esc(l1)}"><g class="ov-map-nd">
-      <path d="M330 104 Q450 20 570 104" class="ov-map-halo-ln"/><path d="M330 104 Q450 20 570 104" class="ov-map-ln"/>
-      <rect x="372" y="71.1" width="12" height="12" rx="2" class="ov-map-sq"/><rect x="516" y="71.1" width="12" height="12" rx="2" class="ov-map-sq"/>
-      <rect x="${f1(450-pw/2)}" y="6" width="${pw}" height="42" rx="21" class="ov-map-chip"/>
-      <text x="450" y="24" text-anchor="middle" class="ov-map-big">${esc(l1)}</text>
-      <text x="450" y="40" text-anchor="middle" class="ov-map-sm">${esc(l2)}</text></g></g>`;
-    /* THEY OWE: a dashed curve in their colour, its label on it */
-    /* two short lines, so the label stays narrower than the gap between the
-       two companies' names below the circles */
+      <path d="${up}" class="ov-map-hit"/><path d="${up}" class="ov-map-halo-ln"/><path id="ov-map-p-ours" d="${up}" class="ov-map-ln"/><path d="${up}" class="ov-map-flow"/>
+      ${motes(ours,'ov-map-p-ours',6)}
+      <rect x="${f1(300-pw/2)}" y="6" width="${pw}" height="42" rx="21" class="ov-map-chip"/>
+      <text x="300" y="24" text-anchor="middle" class="ov-map-big">${esc(l1)}</text>
+      <text x="300" y="40" text-anchor="middle" class="ov-map-sm">${esc(l2)}</text></g></g>`;
+    /* THEY OWE: a dashed curve in their colour, them → us, its label on it */
     const t1=i18tn('ov_map_owe_theirs',theirs.length,{ n:theirs.length }), t2=D.pay.theirs>0?i18t('ov_map_to_pay',{ money:ovMapMoney(D,D.pay.theirs) }):'';
     const tw=Math.max(132,Math.min(200,Math.round(Math.max(t1.length,t2.length)*6.8+30))), th2=t2?36:26;
+    const dn='M404 192 Q300 268 196 192';
     s+=`<g class="ov-map-hitg ov-map-arc" data-ov-map="theirs" tabindex="0" role="button" aria-label="${esc(t2?t1+' · '+t2:t1)}"><g class="ov-map-nd">
-      <path d="M330 216 Q450 300 570 216" class="ov-map-hit"/><path d="M330 216 Q450 300 570 216" class="ov-map-dash-them"/>
-      <rect x="${f1(450-tw/2)}" y="${t2?240:245}" width="${tw}" height="${th2}" rx="${th2/2}" class="ov-map-chip"/>
-      <text x="450" y="${t2?255:262}" text-anchor="middle" class="ov-map-sm">${esc(t1)}</text>${t2?`<text x="450" y="270" text-anchor="middle" class="ov-map-sm">${esc(t2)}</text>`:''}</g></g>`;
+      <path d="${dn}" class="ov-map-hit"/><path id="ov-map-p-theirs" d="${dn}" class="ov-map-dash-them"/>
+      ${motes(theirs,'ov-map-p-theirs',6)}
+      <rect x="${f1(300-tw/2)}" y="${t2?240:245}" width="${tw}" height="${th2}" rx="${th2/2}" class="ov-map-chip"/>
+      <text x="300" y="${t2?255:262}" text-anchor="middle" class="ov-map-sm">${esc(t1)}</text>${t2?`<text x="300" y="270" text-anchor="middle" class="ov-map-sm">${esc(t2)}</text>`:''}</g></g>`;
   }
   /* THE CONTRACT */
   s+=`<g class="ov-map-hitg" data-ov-map="renewal" tabindex="0" role="button" aria-label="${esc(i18t('ov_map_renewal'))}"><g class="ov-map-nd">
-    <rect x="428" y="128" width="44" height="56" rx="4" class="ov-map-doc"/><path d="M437 142h26M437 151h26M437 160h26M437 169h16" class="ov-map-lines"/>
-    <text x="450" y="206" text-anchor="middle" class="ov-map-ref">${esc(D.ref)}</text></g></g>`;
+    <rect x="281" y="134" width="38" height="48" rx="4" class="ov-map-doc"/><path d="M289 146h22M289 154h22M289 162h22M289 170h13" class="ov-map-lines"/>
+    <text x="300" y="200" text-anchor="middle" class="ov-map-ref">${esc(D.ref)}</text></g></g>`;
   /* OUR NODE: a ring of our duties, one piece each, from twelve o'clock */
-  const R=78, C=2*Math.PI*R, n=ours.length, gap=n>1?5:0, per=n?(C-gap*n)/n:0;
+  const R=39, C=2*Math.PI*R, n=ours.length, gap=n>1?3:0, per=n?(C-gap*n)/n:0;
   let ring=n?`<circle r="${R}" class="ov-map-track"/>`:'';
   /* each piece is turned to its place and GROWS IN from a full offset
      (ov-map-grow in index.html runs the offset to 0) */
   ours.forEach((x,i)=>{ ring+=`<circle r="${R}" class="ov-map-seg is-${x.st}" transform="rotate(${f1(-90+(per+gap)*i/C*360)})" style="--len:${f1(per)};stroke-dasharray:${f1(per)} ${f1(C-per)};stroke-dashoffset:${f1(per)}"/>`; });
-  s+=`<g class="ov-map-hitg ov-map-us" data-ov-map="ours" tabindex="0" role="button" aria-label="${esc(us.name)}" transform="translate(250 160)"><g class="ov-map-nd">
-    ${ring}<circle r="64" class="ov-map-us-c"/><text y="9" text-anchor="middle" class="ov-map-ini is-us">${esc(ovMapIni(us.name))}</text>
-    <text y="104" text-anchor="middle" class="ov-map-nm">${esc(ovMapShort(us.name,26))}</text><text y="122" text-anchor="middle" class="ov-map-cap">${esc(i18t('ov_map_us').toUpperCase())}</text>
-    ${late?`<circle cx="-72" cy="-72" r="16" class="ov-map-late-halo"/><circle cx="-72" cy="-72" r="12" class="ov-map-badge is-r"/><text x="-72" y="-68" text-anchor="middle" class="ov-map-bn">${late}</text>`:''}</g></g>`;
+  s+=`<g class="ov-map-hitg ov-map-us" data-ov-map="ours" tabindex="0" role="button" aria-label="${esc(us.name)}" transform="translate(150 160)"><g class="ov-map-nd">
+    ${ring}<circle r="32" class="ov-map-us-c"/><text y="5" text-anchor="middle" class="ov-map-ini is-us">${esc(ovMapIni(us.name))}</text>
+    <text y="62" text-anchor="middle" class="ov-map-nm">${esc(ovMapShort(us.name,26))}</text><text y="78" text-anchor="middle" class="ov-map-cap">${esc(i18t('ov_map_us').toUpperCase())}</text>
+    ${late?`<circle cx="-36" cy="-36" r="12" class="ov-map-late-halo"/><circle cx="-36" cy="-36" r="9" class="ov-map-badge is-r"/><text x="-36" y="-32.5" text-anchor="middle" class="ov-map-bn">${late}</text>`:''}</g></g>`;
   /* THEIR NODE: 48 ticks round it, their tint */
   let ticks=''; for(let i=0;i<48;i++){ const a=i/48*2*Math.PI, cs=Math.cos(a), sn=Math.sin(a);
-    ticks+=`<line x1="${f1(80*cs)}" y1="${f1(80*sn)}" x2="${f1(88*cs)}" y2="${f1(88*sn)}"/>`; }
-  s+=`<g class="ov-map-hitg ov-map-them" data-ov-map="theirs" tabindex="0" role="button" aria-label="${esc(th.name)}" transform="translate(650 160)"><g class="ov-map-nd">
-    <g class="ov-map-ticks">${ticks}</g><circle r="66" class="ov-map-them-c"/><text y="9" text-anchor="middle" class="ov-map-ini is-them">${esc(ovMapIni(th.name))}</text>
-    <text y="110" text-anchor="middle" class="ov-map-nm">${esc(ovMapShort(th.name,26))}</text></g></g>`;
+    ticks+=`<line x1="${f1(40*cs)}" y1="${f1(40*sn)}" x2="${f1(44*cs)}" y2="${f1(44*sn)}"/>`; }
+  s+=`<g class="ov-map-hitg ov-map-them" data-ov-map="theirs" tabindex="0" role="button" aria-label="${esc(th.name)}" transform="translate(450 160)"><g class="ov-map-nd">
+    <g class="ov-map-ticks">${ticks}</g><circle r="33" class="ov-map-them-c"/><text y="5" text-anchor="middle" class="ov-map-ini is-them">${esc(ovMapIni(th.name))}</text>
+    <text y="62" text-anchor="middle" class="ov-map-nm">${esc(ovMapShort(th.name,26))}</text></g></g>`;
   return s+'</svg>';
 }
 const OV_MAP_PILL={ g:'green', a:'amber', r:'ruby', s:'steel' };
 function ovMapDutyRow(x,D){
   const when=x.due?(x.st==='g'?i18t('ov_tm_done_undated'):x.st==='r'?i18t('ov_tm_was_due',{ date:ovDay(x.due) }):i18t('ov_tm_due',{ date:ovDay(x.due) })):(x.st==='g'?i18t('ov_tm_done_undated'):i18t('ob_no_date'));
-  return `<div class="ov-map-ob"><span class="ov-map-dot is-${x.st}"></span><div><b>${esc(x.t)}</b><small>${esc(when)}${
-    x.cl?` · <span class="ov-map-cl">${esc(x.cl)}</span>`:''}</small></div>${x.amt&&D&&D.money?`<b class="ov-map-amt">${esc(ovMapMoney(D,x.amt))}</b>`:''}</div>`;
+  return `<div class="ov-map-ob" data-ov-duty="${esc(String(x.id||''))}"><div><span class="ov-map-obt">${esc(x.t)}</span><small>${esc(when)}${
+    x.cl?` · <span class="ov-map-cl">${esc(x.cl)}</span>`:''}</small></div>${x.amt&&D&&D.money?`<span class="ov-map-amt">${esc(ovMapMoney(D,x.amt))}</span>`:''}</div>`;
+}
+/* WHERE THE AGREEMENT STANDS IN ITS TERM: start → today → notice by → end,
+   one bar, drawn only where a start and an end are both recorded. */
+function ovMapTimelineHtml(R){
+  const s=ovIsoDay(R.start), e=ovIsoDay(R.end); if(s==null||e==null||e<=s) return '';
+  const pc=v=>Math.max(0,Math.min(100,(v-s)/(e-s)*100)).toFixed(1);
+  const t=ovIsoDay(typeof todayISO==='function'?todayISO():''), b=ovIsoDay(R.by);
+  return `<div class="ov-map-tl" role="img" aria-label="${esc(i18t('ov_map_tl_aria'))}"><div class="ov-map-tl-bar">${
+    t!=null?`<span class="ov-map-tl-fill" style="width:${pc(t)}%"></span>`:''}${
+    b!=null?`<span class="ov-map-tl-pt is-${R.byTone}" style="left:${pc(b)}%"></span>`:''}<span class="ov-map-tl-pt is-end" style="left:100%"></span>${
+    t!=null?`<span class="ov-map-tl-pt is-now" style="left:${pc(t)}%"></span><span class="ov-map-tl-now" style="left:clamp(20px,${pc(t)}%,calc(100% - 20px))">${esc(i18t('ov_map_tl_today'))}</span>`:''}</div></div>`;
 }
 /* WHAT THE PANEL SAYS FOR WHAT WAS PRESSED: the renewal (the contract), our
    duties (our node or the upper arc), theirs (their node or the lower arc).
-   The renewal carries renderRenewalSection's own card at its top, only while
-   a decision is due (the one #renewal-host — no new band, no second door). */
+   The renewal carries renderRenewalSection's own card at its end, only while
+   a decision is due (the one #renewal-host — no new band, no second door).
+   Structured, not shouted (Young, 9 Oct 2026: "the notes to not all be in
+   bold letters"): the heading is the one strong line; facts are boxes, a
+   value at the label weight; duties are grouped by state. */
 function ovMapPane(c,D,k){
-  const cap=`<span class="ov-map-pcap">${esc(i18t('ov_map_selected'))}</span>`;
   if(k==='renewal'){
     const R=D.renewal;
     const lede=!R.end?i18t('ov_map_rn_none')
       :R.auto?(R.notice?i18t('ov_map_rn_auto',{ date:ovDay(R.next), n:R.notice }):i18t('ov_map_rn_auto_nonotice',{ date:ovDay(R.next) }))
       :i18t('ov_map_rn_ends',{ date:ovDay(R.end) });
     const typeWord=R.type?((typeof metaOptLabel==='function'?metaOptLabel(R.type):R.type)||R.type):'';
-    const rows=[R.end?`<div class="ov-map-kr"><span>${esc(i18t('ov_map_rn_ends_k'))}</span><b>${esc(ovDay(R.end))}</b></div>`:'',
-      R.by?`<div class="ov-map-kr"><span>${esc(i18t('ov_map_rn_notice_k'))}</span><b><span class="ov-map-pill is-${OV_MAP_PILL[R.byTone]}">${esc(ovDay(R.by))}</span></b></div>`:'',
-      typeWord?`<div class="ov-map-kr"><span>${esc(i18t('ov_map_rn_type_k'))}</span><b>${esc(typeWord)}</b></div>`:''].join('');
+    const cell=(k2,v)=>`<div><span>${esc(i18t(k2))}</span><span class="ov-map-kv-v">${v}</span></div>`;
+    const cells=[R.start?cell('ov_map_rn_start_k',esc(ovDay(R.start))):'',
+      R.by?cell('ov_map_rn_notice_k',`<span class="ov-map-pill is-${OV_MAP_PILL[R.byTone]}">${esc(ovDay(R.by))}</span>`):'',
+      R.end?cell('ov_map_rn_ends_k',esc(ovDay(R.end))):'',
+      typeWord?cell('ov_map_rn_type_k',esc(typeWord)):''].join('');
     /* ONE RENEWAL SECTION (work order Part 9): the facts first, then the
        decision — renderRenewalSection's own card, drawn COMPACT (no second
        heading, no second date line), so the one door to the decision stays
        and the panel no longer says "Renewal" twice. */
-    return `${cap}<h3>${esc(i18t('ov_map_renewal'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${rows}${
-      R.quote?`<h4>${esc(i18t('ov_map_wording'))}</h4><p class="ov-map-quote">“${esc(R.quote)}”</p>`:''}<div id="renewal-host" class="empty:hidden ov-map-decide" data-bare="1" data-compact="1"></div>`;
+    return `<h3>${esc(i18t('ov_map_renewal'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${ovMapTimelineHtml(R)}${
+      cells?`<div class="ov-map-kv">${cells}</div>`:''}${
+      R.quote?`<h4>${esc(i18t('ov_map_wording'))}</h4><blockquote class="ov-map-quote">“${esc(R.quote)}”</blockquote>`:''}<div id="renewal-host" class="empty:hidden ov-map-decide" data-bare="1" data-compact="1"></div>`;
   }
   if(k==='ours'||k==='theirs'){
-    const list=D.duties[k], open=list.filter(x=>x.st!=='g'), done=list.filter(x=>x.st==='g'), late=list.filter(x=>x.st==='r').length;
+    const list=D.duties[k], open=list.filter(x=>x.st!=='g'), late=list.filter(x=>x.st==='r').length;
     const who=(k==='ours'?D.parties[0]:D.parties[1]).name;
     const lede=(list.length?i18t('ov_map_side_lede',{ who, n:list.length, open:open.length, late }):i18t('ov_map_no_duties'))
       +(D.pay[k]>0?' '+i18t('ov_map_side_pay',{ money:ovMapMoney(D,D.pay[k]) }):'');
-    return `${cap}<h3>${esc(i18t(k==='ours'?'ov_map_ours_h':'ov_map_theirs_h'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${
-      open.map(x=>ovMapDutyRow(x,D)).join('')}${done.length?`<h4>${esc(i18t('ov_map_done_h'))}</h4>${done.map(x=>ovMapDutyRow(x,D)).join('')}`:''}`;
+    const groups=[['r','ov_map_l_late'],['a','ov_map_l_soon'],['s','ov_map_l_later'],['g','ov_map_done_h']].map(([st,w])=>{
+      const xs=list.filter(x=>x.st===st); if(!xs.length) return '';
+      return `<div class="ov-map-grp"><h4><span class="ov-map-dot is-${st}"></span>${esc(i18t(w))} · ${xs.length}</h4><div class="ov-map-rows">${xs.map(x=>ovMapDutyRow(x,D)).join('')}</div></div>`; }).join('');
+    return `<h3>${esc(i18t(k==='ours'?'ov_map_ours_h':'ov_map_theirs_h'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${groups}`;
   }
   return '';
 }
 /* THE CARD AND ITS PANEL. The panel is a sibling of the map card on one grid
-   row; `contain:size` keeps its words out of the row's height, so the map
-   alone decides it and the panel scrolls (index.html, .ov-map-pane). */
+   row; `contain:size` keeps its words out of the row's height, and the map's
+   stage has the height the old full-width picture had (index.html,
+   .ov-map-stage) — so the card is as tall as before and the panel scrolls.
+   Its tabs are the same three readings the picture's nodes open. */
 function ovMapHtml(c){
   const D=ovMapData(c); if(!D) return '';
+  const tab=(k,w,n)=>`<button type="button" class="ov-map-tab" role="tab" data-ov-map-tab="${k}" aria-selected="false">${esc(i18t(w))}${n!=null?`<span class="ov-map-n">${n}</span>`:''}</button>`;
   return `<div class="ov-map-grid" id="ov-map"><div class="ov-map-card"><div class="ov-map-top"><span class="ov-map-chipt"><i></i><span>${esc(i18t('ov_map_k_duty'))}</span></span><span class="ov-map-key">${
       [['g','ov_map_l_done'],['a','ov_map_l_soon'],['r','ov_map_l_late'],['s','ov_map_l_later']].map(([t,k])=>
         `<span><i class="ov-map-dot is-${t}"></i>${esc(i18t(k))}</span>`).join('')}</span></div>
     <div class="ov-map-stage" data-ov-map-stage>${ovMapSvg(D)}${
       /* NO DUTIES: the map's own resting state, in place (not a band) */
       (D.duties.ours.length+D.duties.theirs.length)?'':`<p class="ov-map-empty">${esc(i18t('ov_map_empty'))} · <button type="button" class="ui-link" data-ov-map-oblig="1">${esc(i18t('ov_map_empty_add'))}</button></p>`}</div></div>
-    <aside class="ov-map-pane" data-ov-map-pane aria-live="polite"></aside></div>`;
+    <aside class="ov-map-side"><div class="ov-map-tabs" role="tablist">${tab('renewal','ov_map_renewal',null)}${
+      tab('ours','ov_map_tab_ours',D.duties.ours.length)}${tab('theirs','ov_map_tab_theirs',D.duties.theirs.length)}</div>
+    <div class="ov-map-pane" data-ov-map-pane aria-live="polite"></div></aside></div>`;
 }
 /* WIRED WHERE IT IS PAINTED (renderKeyTerms). What is pressed is kept per
    contract for the sitting, so a repaint after an edit lands on the same
-   reading. The picture is drawn with the page (it scales; nothing measures). */
+   reading. A dot on a curve opens its side and lights its duty's row. Motion
+   stands still for a reader who asked the system for less of it. */
 const _ovMapSel={ id:null, k:'renewal' };
 const OV_MAP_PICKS=['renewal','ours','theirs'];
 function ovMapWire(host,c){
@@ -6490,15 +6532,21 @@ function ovMapWire(host,c){
   const D=ovMapData(c); if(!D) return;
   if(_ovMapSel.id!==c.id||!OV_MAP_PICKS.includes(_ovMapSel.k)){ _ovMapSel.id=c.id; _ovMapSel.k='renewal'; }
   const svg=root.querySelector('svg'), pane=root.querySelector('[data-ov-map-pane]');
-  const pick=k=>{ if(!OV_MAP_PICKS.includes(k)) k='renewal'; _ovMapSel.k=k;
+  const pick=(k,duty)=>{ if(!OV_MAP_PICKS.includes(k)) k='renewal'; _ovMapSel.k=k;
     pane.innerHTML=`<div class="ov-map-rise">${ovMapPane(c,D,k)}</div>`; pane.scrollTop=0;
     if(svg) svg.querySelectorAll('[data-ov-map]').forEach(n=>{ const on=n.getAttribute('data-ov-map')===k;
       n.classList.toggle('is-sel',on); n.setAttribute('aria-pressed',String(on)); });
+    root.querySelectorAll('[data-ov-map-tab]').forEach(t=>t.setAttribute('aria-selected',String(t.getAttribute('data-ov-map-tab')===k)));
+    if(duty){ const row=[...pane.querySelectorAll('[data-ov-duty]')].find(r=>r.getAttribute('data-ov-duty')===duty);
+      if(row){ row.classList.add('is-lit'); pane.scrollTop=Math.max(0,row.offsetTop-pane.clientHeight/3); } }
     if(k==='renewal'){ try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(_){} } };
   root.querySelector('[data-ov-map-oblig]')?.addEventListener('click',()=>{ try{ roomGoTab(getContract(c.id)||c,'oblig'); }catch(_){} });
+  root.querySelectorAll('[data-ov-map-tab]').forEach(t=>t.addEventListener('click',()=>pick(t.getAttribute('data-ov-map-tab'))));
   if(svg){
-    svg.addEventListener('click',e=>{ const n=e.target.closest('[data-ov-map]'); if(n) pick(n.getAttribute('data-ov-map')); });
+    svg.addEventListener('click',e=>{ const n=e.target.closest('[data-ov-map]'); if(!n) return;
+      const m=e.target.closest('.ov-map-mote'); pick(n.getAttribute('data-ov-map'),m?m.getAttribute('data-ov-duty'):null); });
     svg.addEventListener('keydown',e=>{ const n=e.target.closest('[data-ov-map]'); if(n&&(e.key==='Enter'||e.key===' ')){ e.preventDefault(); pick(n.getAttribute('data-ov-map')); } });
+    try{ if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches&&svg.pauseAnimations) svg.pauseAnimations(); }catch(_){}
   }
   pick(_ovMapSel.k);
 }
