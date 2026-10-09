@@ -196,26 +196,29 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
     await page.evaluate(() => setView('playbook')); await page.waitForTimeout(1200);
     await page.screenshot({ path: path.join(OUT, '3-standards.png') });
     const sd = await page.evaluate(() => ({ ins: !!document.querySelector('.sd-ins'),
-      tabs: [...document.querySelectorAll('[data-pb-tab]')].map(b => ({ k: b.getAttribute('data-pb-tab'), n: (b.querySelector('.st-tab-n') || {}).textContent || null })),
+      /* RE-POINTED 9 Oct 2026 (SAP benchmark, batch 2): the three tabs are each
+         card's own top row (one copy per card, the visible card's read) and the
+         count is the row's `.n` */
+      tabs: [...document.querySelectorAll('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab]')].map(b => ({ k: b.getAttribute('data-pb-tab'), n: (b.querySelector('.n, .st-tab-n') || {}).textContent || null })),
       rows: document.querySelectorAll('[data-pb-sec="clauses"] tbody [data-ins-row]').length, lib: clauseLibrary().length,
       title: (document.querySelector('#sd-panel-clauses h2') || {}).textContent || '' }));
     ok('3a three tabs, each carrying its count, and every standard is a row', sd.ins && sd.tabs.length === 3
       && sd.tabs.every(t => t.n != null) && sd.rows === sd.lib && !!sd.title, sd);
     await page.evaluate(() => { const r = document.querySelector('.sd-ins'); if (r) r._probe = 1; });
-    await page.click('[data-pb-tab="playbook"]'); await page.waitForTimeout(400);
+    await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="playbook"]'); await page.waitForTimeout(400);
     ok('3b a tab press flips the tab — the page is not rebuilt under the reader',
       await page.evaluate(() => { const r = document.querySelector('.sd-ins'); return !!(r && r._probe === 1)
         && !document.querySelector('[data-pb-sec="playbook"]').hidden && document.querySelector('[data-pb-sec="clauses"]').hidden; }));
     await page.click('[data-sd-book="supply"]').catch(() => {}); await page.waitForTimeout(300);
     const caps = await page.evaluate(() => [...document.querySelectorAll('#sd-panel-books .ins-stdl li b')].filter(b => /^Liability cap/.test(b.textContent)).length);
     ok('3c a book lists each standard once — Liability cap is one line on the supply book', caps === 1, caps);
-    await page.click('[data-pb-tab="clauses"]'); await page.waitForTimeout(300);
+    await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
     await page.click('[data-sd-row="cl-pay"]').catch(() => {}); await page.waitForTimeout(300);
     await page.click('#sd-panel-clauses [data-ins-act="pos"]').catch(() => {}); await page.waitForTimeout(400);
     const pos = await page.evaluate(() => ({ tab: (document.querySelector('[data-pb-tab].on') || {}).getAttribute ? document.querySelector('[data-pb-tab].on').getAttribute('data-pb-tab') : null,
       book: (document.querySelector('#sd-panel-books h2') || {}).textContent || '' }));
     ok('3d "Change the position" lands on the book that holds it', pos.tab === 'playbook' && /baseline/i.test(pos.book), pos);
-    await page.click('[data-pb-tab="clauses"]'); await page.waitForTimeout(300);
+    await page.click('.sd-ins [data-pb-sec]:not([hidden]) [data-pb-tab="clauses"]'); await page.waitForTimeout(300);
     const godev = await page.$('#sd-panel-clauses [data-sd-godev]');
     let gd = null;
     if (godev) {

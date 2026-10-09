@@ -11537,7 +11537,7 @@
   .view-enter.tpl-page{height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;min-height:0;padding-bottom:var(--s-4);}
   .tpl-page > .sap-band.tpl-band{flex:none;}
   .tpl-page > section[data-tpl-sec]{flex:1 1 auto;min-height:0;overflow:auto;}
-  .tpl-page > section[data-tpl-sec]:has(> .tpl-ins){overflow:hidden;display:flex;flex-direction:column;}
+  .tpl-page > section[data-tpl-sec]:not([hidden]):has(> .tpl-ins){overflow:hidden;display:flex;flex-direction:column;}
   .tpl-ins{flex:1;min-height:0;}
   .tpl-ins .ins-panel{min-height:0;overflow:auto;}
   .tpl-piles{padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}

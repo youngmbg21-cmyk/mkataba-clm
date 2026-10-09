@@ -1682,7 +1682,7 @@ function tplPageRefilter(){
 }
 function tplPagePaintRows(){
   const host=document.getElementById('tpl-rows'); if(!host) return;
-  if(host.closest('.tpl-ins')) return tplInsPaint(host);
+  if(typeof host.closest==='function' && host.closest('.tpl-ins')) return tplInsPaint(host);
   const all=tplPageRows();
   const rows=tplPageFiltered(all);
   const searching=!!_tplPage.q.trim()||_tplPage.group!=='all'||!!_tplPage.stream;

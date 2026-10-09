@@ -668,7 +668,9 @@ describe('f193 — the tab row does not scroll away', () => {
     assert.match(LIB, /class="st-tabs-pin"[^>]*>\$\{paperTabsHtml\('standards'(?:, true)?\)\}/, 'and so does Our standards');
     /* THE TEMPLATES ROW WAS NOT ASKED FOR AND IS NOT OPTED IN. It also carries
        an inline margin-bottom the bleed's shorthand would fight. */
-    const tplRow = /<div class="st-tabs" role="tablist" style="margin-bottom:14px">/.exec(LIB);
+    /* re-pointed 9 Oct 2026 (SAP benchmark, batch 2): the row now sits in the
+       page's white band and lost its inline margin; still not opted in. */
+    const tplRow = /<div class="st-tabs" role="tablist">/.exec(LIB);
     assert.ok(tplRow, 'the Templates row still draws without the opt-in');
   });
   test('the row is sticky at the top of the scroller, above the rows, opaque', () => {

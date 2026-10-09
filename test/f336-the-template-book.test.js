@@ -168,20 +168,23 @@ describe('f336 (2) — the clothes follow the builder', () => {
       'the closure it was lifted from is gone, not left beside it');
   });
 
-  test('and both screens call it rather than each drawing their own', () => {
+  /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the owner's
+     "go"; the drawing is the target): the book draws the SAME buckets as the
+     rows of one table instead of a wall of cards, and its two small cards
+     are its own. What these pinned survives: one population, one name per
+     panel, one hook per door. */
+  test('the wall still calls the card, and the book draws the same buckets as rows', () => {
     assert.match(fnBody('tplOverviewHtml'), /tplOvCardHtml/);
-    assert.match(fnBody('tplBookHtml'), /tplOvCardHtml/);
-    /* the markup itself lives in one place: nobody else emits the card's
-       own hook */
-    assert.equal((SRC.match(/data-tpl-ov-bucket="\$\{/g) || []).length, 1);
+    assert.match(fnBody('tplBookHtml'), /d\.buckets\.filter\(b => b\.sec === cut/);
+    /* the card's hook, and the book row's — two drawings of one door */
+    assert.equal((SRC.match(/data-tpl-ov-bucket="\$\{/g) || []).length, 2);
   });
 
-  test('the two panels are one builder too', () => {
+  test('the two panels keep ONE name each, whichever shape draws them', () => {
     assert.equal((SRC.match(/function tplOvPanelsHtml\(/g) || []).length, 1);
     assert.match(fnBody('tplOverviewHtml'), /tplOvPanelsHtml\(d\)/);
-    /* The book asks the same builder for its BARE shape (21 Sep 2026). */
-    assert.match(fnBody('tplBookHtml'), /tplOvPanelsHtml\(d, \{ bare: true \}\)/);
-    /* The two shapes share ONE name each (TPL_OV_IDS), stated once. */
+    assert.match(fnBody('tplBookHtml'), /TPL_OV_IDS\.used/);
+    assert.match(fnBody('tplBookHtml'), /TPL_OV_IDS\.att/);
     assert.equal((SRC.match(/'tpl-ov-attention'/g) || []).length, 1);
     assert.equal((SRC.match(/'tpl-ov-mostused'/g) || []).length, 1);
     assert.equal((SRC.match(/id="tpl-ov-attention"/g) || []).length, 0);
@@ -204,106 +207,77 @@ describe('f336 (2) — the clothes follow the builder', () => {
 });
 
 /* ═══════════ 3 · THE GLANCE ══════════════════════════════════════════ */
-describe('f336 (3) — the glance, and the caveat under what it qualifies', () => {
+/* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is
+   the target): the three figures are the PAGE's facts and sit in its white
+   band over the tabs (tplBookGlanceHtml); the caveat rides on the rate's own
+   figure, on its hover, and nowhere else; nothing checked reads "Not checked
+   yet", never a rate. */
+const glance = s => s.tplBookGlanceHtml(s.tplOverviewData());
+describe('f336 (3) — the glance, and the caveat on what it qualifies', () => {
   test('three figures, each a label over a value', () => {
-    const html = book(stage());
+    const html = glance(stage());
     assert.equal((html.match(/class="tpl-gl"/g) || []).length, 3);
     for (const k of ['lib_bk_have', 'lib_bk_drafted', 'lib_bk_changed'])
-      assert.match(fnBody('tplBookHtml'), new RegExp(k));
+      assert.match(fnBody('tplBookGlanceHtml'), new RegExp(k));
+    assert.match(fnBody('renderTemplatesPage'), /tplBookGlanceHtml\(ov\)/, 'drawn once, in the page band');
   });
 
-  test('the caveat sits under the RATE, and nowhere else', () => {
-    const html = book(stage());
-    const at = html.indexOf('Counted over the');
-    assert.ok(at > 0, 'the caveat is drawn');
-    const rateAt = html.indexOf('Came back changed');
-    assert.ok(rateAt > 0 && rateAt < at, 'and it comes after the figure it qualifies');
+  test('the caveat sits on the RATE, and nowhere else', () => {
+    const html = glance(stage());
     assert.equal((html.match(/Counted over the/g) || []).length, 1, 'said once');
+    const fig = html.slice(html.lastIndexOf('<div class="tpl-gl"', html.indexOf('Counted over the')));
+    assert.match(fig, /Came back changed/, 'on the rate\'s own figure');
   });
 
-  test('IT IS NOT A BAND, and the sheet cannot make it one', () => {
-    /* NO NEW BANDS ON THE PAGE. A strip across the page is an alarm; this is
-       a footnote, so it takes no fill, no edge and no full width. */
-    const rule = HTML.slice(HTML.indexOf('.tpl-gl-n{'), HTML.indexOf('.tpl-gl-n{') + 200);
-    assert.ok(!/background:/.test(rule), 'no fill');
-    assert.ok(!/border:/.test(rule), 'no edge');
-    assert.match(rule, /max-width:/, 'and it is bounded to a reading width');
+  test('IT IS NOT A BAND: no sentence is printed under the figures', () => {
+    assert.ok(!/class="tpl-gl-n"/.test(glance(stage())));
   });
 
   test('nothing checked is NO rate, never a good one', () => {
     const s = stage({ state: { contracts: [], settings: { customTemplates: [] }, view: 'templates' } });
-    const html = s.tplBookHtml(s.tplOverviewData());
-    assert.match(html, /—/, 'an em-dash for silence, this product’s own');
-    assert.match(html, /no rate to report/);
-    assert.ok(!/Counted over the/.test(html), 'and no sample sentence over an empty sample');
+    const html = s.tplBookGlanceHtml(s.tplOverviewData());
+    assert.match(html, /Not checked yet/);
+    assert.match(html, /no rate to report/, 'its hover says why');
+    assert.ok(!/\d+%/.test(html), 'and no percentage over an empty sample');
   });
 });
 
-/* ═══════════ 4 · THE SECTION GRAMMAR, BORROWED NOT REBUILT ═══════════ */
-describe('f336 (4) — HaTi’s own section grammar, on the owner’s word', () => {
-  test('the book composes itself out of sectionHtml', () => {
-    const body = fnBody('tplBookHtml');
-    assert.equal((body.match(/sectionHtml\(\{/g) || []).length, 3,
-      'three named sections, each built by the grammar');
-    assert.ok(!/class="sec-box/.test(body),
-      'and none of them hand-writes the grammar’s own markup');
-  });
-
-  test('every section is NAMED and every one carries a key', () => {
-    const body = fnBody('tplBookHtml');
-    for (const k of ['tpl.book.library', 'tpl.book.stream', 'tpl.book.wants'])
-      assert.ok(body.includes(k), k + ' must be a section key');
-    assert.deepEqual(stage().TPL_BOOK_SECS, ['library', 'stream', 'wants']);
-  });
-
-  test('RULE 3 — open what is acted on, reference opens shut', () => {
-    const body = fnBody('tplBookHtml');
-    const streams = body.slice(body.indexOf("tpl.book.stream"));
-    assert.match(streams.slice(0, 400), /open: false/,
-      'the streams are the same templates cut a second way, so they rest closed');
-    const lib = body.slice(body.indexOf('tpl.book.library'), body.indexOf('tpl.book.stream'));
-    assert.ok(!/open: false/.test(lib), 'the library is what a reader came for');
-  });
-
-  test('RULE 2 — A SHUT GROUP STILL ANSWERS', () => {
+/* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2): the section
+   grammar left this tab (the 19 Sep owner word put it here; the drawing takes
+   it out — js/section.js is untouched and still the Overview's). The book is
+   ONE table of shelves with a Shelves | Value streams switch, each row a door
+   onto the list, and the switch repaints the book, never the page. */
+describe('f336 (4) — the shelves are a table, each row a door', () => {
+  test('the book is one table, cut two ways by a switch', () => {
     const s = stage();
-    const html = s.tplBookHtml(s.tplOverviewData());
-    /* the grammar prints a summary only while a foldable section is SHUT, so
-       the streams' head is where this has to show */
-    assert.match(html, /class="sec-sum">[^<]*stream/i,
-      'the shut section names what it holds without being opened');
+    const html = book(s);
+    assert.match(html, /class="tpl-bk-table"/);
+    assert.match(html, /data-tpl-book-cut="library"/);
+    assert.match(html, /data-tpl-book-cut="stream"/);
+    assert.deepEqual(s.TPL_BOOK_SECS, ['library', 'stream', 'wants']);
   });
 
-  test('a worst is only named where the sample earns it', () => {
-    /* TPL_DEV_MIN is the attention list's own floor. Without it a stream with
-       ONE contract checked and that one changed is announced on the head as
-       the worst in the book at 100% — a headline over a sample of one. */
-    const body = fnBody('tplBookHtml');
-    assert.match(body, /b\.scanned >= TPL_DEV_MIN/);
+  test('every shelf is a row and a door; an empty one says "none yet"', () => {
     const s = stage();
-    const d = s.tplOverviewData();
-    const thin = d.buckets.filter(b => b.sec === 'stream' && b.rate != null && b.scanned < 3);
-    const html = s.tplBookHtml(d);
-    for (const t of thin)
-      assert.ok(!html.includes('sec-sum">' + s.bucketStreamName(t)),
-        s.bucketStreamName(t) + ' has too thin a sample to head the section');
+    const html = book(s);
+    for (const k of ['company', 'cp', 'builtin', 'sample'])
+      assert.ok(html.includes(`data-tpl-ov-bucket="${k}"`), k + ' is a row');
+    assert.ok(!html.includes('data-tpl-ov-bucket="all"'), 'the whole book is the band\'s figure, not a shelf');
+    const bare = stage({ tplLibAll: () => ({ canManage: true, loaded: true, list: [] }) });
+    assert.match(book(bare), /none yet/, 'a shelf with nothing on it says so');
   });
 
-  test('the fold is wired to the grammar’s one listener, with this page’s own painter', () => {
-    assert.match(fnBody('renderTemplatesPage'),
-      /sectionWire\(document\.querySelector\('\[data-tpl-sec="book"\]'\), tplBookRepaint\)/);
-    assert.match(SEC, /function sectionWire\(root, repaint\)/,
-      'the grammar does not guess at a painter; the caller hands it one');
+  test('the switch and the rows are wired by the book\'s own wiring', () => {
+    assert.match(fnBody('renderTemplatesPage'), /tplBookWire\(document\.querySelector\('\[data-tpl-sec="book"\]'\)\)/);
+    assert.match(fnBody('tplBookWire'), /tplGoBucket/);
+    assert.match(fnBody('tplBookWire'), /_tplBookCut=/);
   });
 
-  test('AND A FOLD REPAINTS THE BOOK, NEVER THE PAGE', () => {
-    /* 19 Sep's own lesson in a second costume: a press that FOLDS may not
-       rebuild what the reader is looking at. */
+  test('AND A SWITCH REPAINTS THE BOOK, NEVER THE PAGE', () => {
     const body = fnBody('tplBookRepaint');
     assert.match(body, /host\.innerHTML=tplBookHtml/);
     assert.ok(!/renderTemplatesPage/.test(body));
-    assert.match(body, /\[data-tpl-sec="book"\]/,
-      'the section element itself survives, or sectionWire’s listener goes with it');
+    assert.match(body, /\[data-tpl-sec="book"\]/);
   });
 });
 
