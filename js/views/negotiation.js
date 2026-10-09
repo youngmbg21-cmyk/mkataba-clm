@@ -7947,7 +7947,12 @@ function rlBoardPaintTitle(){
   else if (typeof window.shellCrumbAdopt === 'function' && window.getContract && typeof redlineHeldId === 'function' && redlineHeldId()
     && (document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))
     && shellCrumbAdopt(getContract(redlineHeldId()), document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))) { /* crumb painted */ }
-  else if (typeof window.shellTitleFor === 'function'){ el.classList.remove('is-crumb'); el.textContent = shellTitleFor('redline'); }
+  /* The back button left the page (10 Oct 2026), so with a contract on the
+     bench the bar keeps the page's name, as shellCrumbAdopt writes it. */
+  else if (typeof redlineHeldId === 'function' && redlineHeldId() && !el.querySelector('.crumb-here')){
+    el.innerHTML = ''; const s = document.createElement('span'); s.className = 'crumb-here';
+    s.textContent = i18t('tab_negotiate'); s.title = s.textContent; el.appendChild(s); }
+  else if (!el.querySelector('.crumb-here') && typeof window.shellTitleFor === 'function'){ el.classList.remove('is-crumb'); el.textContent = shellTitleFor('redline'); }
 }
 function rlBoardPageHtml(c){
   return `<div class="rl-boardpage" id="rl-boardpage">${dealBoardHtml(c, 'owner')}</div>`;
@@ -9053,8 +9058,18 @@ function negoLiveList(){
 }
 /* How many changes are waiting on this reader across every live negotiation.
    The sidebar door's number. */
+/* ---- IT COUNTS NEGOTIATIONS, NOT CHANGES (owner, 10 Oct 2026: "review the
+   number of contracts in the nav panel for the negotiation page as the number
+   is wrong") ---- it summed the changes owed across every negotiation, so one
+   contract with six asks read 6 on a door whose list holds one row. Now it is
+   the "Your move" tab's own number: live negotiations whose move is yours
+   (negWhoseMove, the reading the Negotiations page bands by; a handover is
+   "with them for signature", never yours). */
 function negoNeedsYouTotal(){
-  return negoLiveList().reduce((n, c) => n + negoNeedsYouIds(c).length, 0);
+  return negoLiveList().filter(c => {
+    if (typeof window.negWhoseMove === 'function'){ const m = window.negWhoseMove(c); return m.k === 'you' && m.why !== 'handover'; }
+    return negoNeedsYouIds(c).length > 0;
+  }).length;
 }
 /* ---- WHICH ONE THE DOOR REOPENS ----
    Per person, per browser, and it survives closing the window — the same shape
@@ -10553,17 +10568,11 @@ function renderRedline(){
                sentence: a door reading "3" still says what is behind it, which
                is why it can afford to lose its word before a verb can.
                textContent never changes, which is what the suite reads. */
-        }${(() => {
-          const liveN = (typeof negoLiveList === 'function') ? negoLiveList().length : 0;
-          const tip = i18tn('ng_live_list_title', liveN, { n: liveN });
-          return `<button type="button" data-rl-live-list class="rl-livelist"
-            title="${_nea(tip)}" aria-label="${_nea(tip)}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
-            ><path d="m15 18-6-6 6-6"/></svg
-            ><span class="rl-word">${i18t('ng_live_list')}</span
-            ><span class="rl-livelist-n">${liveN}</span></button>`;
-        })()}
+        }${''/* ---- "OPEN DOCUMENT" TAKES THE PLACE OF "ALL NEGOTIATIONS" (owner,
+               10 Oct 2026) ---- the way back to this contract's Document tab,
+               now that the arrow left the name row. The list of negotiations
+               is still the sidebar's door. */}<button type="button" data-rl-open-doc class="rl-livelist"
+            title="${_nea(i18t('ct_open_document'))}"><span class="rl-word">${i18t('ct_open_document')}</span></button>
           </div>
         </section>
       </div>
@@ -10623,8 +10632,12 @@ function renderRedline(){
   /* THE WAY BACK TO THE OTHER NEGOTIATIONS — the sidebar's own door, told to
      land on the list rather than to reopen what is remembered (which is this
      page). One route, one argument; see openNegotiations. */
-  host.querySelectorAll('[data-rl-live-list]').forEach(el =>
-    el.addEventListener('click', () => openNegotiations({ list: true })));
+  host.querySelectorAll('[data-rl-open-doc]').forEach(el =>
+    el.addEventListener('click', () => {
+      const c = (typeof redlineHeldId === 'function' && window.getContract) ? getContract(redlineHeldId()) : null;
+      if (!c) return;
+      if (window.roomGoTab) roomGoTab(c, 'docs'); else if (window.openWorkspace) openWorkspace(c.id);
+    }));
   /* The tab row's wiring went with the tab row (12 Aug 2026). This page draws
      no room tabs, so a querySelector for them would have matched nothing
      forever — dead wiring that reads like a live route and outlives everyone

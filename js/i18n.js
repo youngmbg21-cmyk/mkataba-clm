@@ -2426,6 +2426,7 @@ const STRINGS = {
     ce_new_needs_heading: 'Give the new clause a heading first.',
     ct_round_n_of_neg: 'Round {n} of negotiation',
     ct_open_negotiate: 'Open Negotiate',
+    ct_open_document: 'Open document',
     /* The same door, said three ways, because its state is worth knowing before
        the press: nothing filed yet, filed and quiet, filed and owing you. */
     ct_start_negotiating: 'Start negotiating',
@@ -16345,6 +16346,7 @@ const STRINGS = {
     ce_new_needs_heading: 'Ge den nya klausulen en rubrik först.',
     ct_round_n_of_neg: 'Runda {n} av förhandling',
     ct_open_negotiate: 'Öppna Förhandla',
+    ct_open_document: 'Öppna dokumentet',
     ct_start_negotiating: 'Börja förhandla',
     ct_open_negotiate_n: 'Öppna Förhandla &middot; {n} väntar',
     ct_open_negotiate_title: 'Förhandla avtalets formuleringar — på en egen skärm',

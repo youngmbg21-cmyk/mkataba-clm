@@ -514,10 +514,15 @@ function shellCrumbAdopt(c, backBtn){
        on the title's own line and the bar names the page, "Negotiate". Still
        ONE button, its id, data-back and handler untouched — it moves into the
        head's name row instead of into the bar. */
+    /* …AND NOW IT IS GONE FROM THE PAGE (owner, 10 Oct 2026: "delete the back
+       to document writing and the arrow but replace the all negotiation button
+       with Open document button"). The way back is "Open document" at the end
+       of the control row (data-rl-open-doc). The button leaves the page here,
+       where the head is laid out; the title's own click (#ws-back-title)
+       still reads its data-back and lands on the Document tab. */
     const nameRow = backBtn.closest('.room-head') && backBtn.closest('.room-head').querySelector('.room-name');
     if(nameRow){
-      backBtn.classList.remove('in-crumb'); backBtn.classList.add('in-head');
-      nameRow.prepend(backBtn);
+      backBtn.remove();
       const s=document.createElement('span'); s.className='crumb-here';
       s.textContent=i18t('tab_negotiate'); s.title=s.textContent;
       el.appendChild(s);

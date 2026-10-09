@@ -195,93 +195,37 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
      The sidebar reopens the negotiation you are standing in — that is what it
      is for and it has not been touched. Inside a negotiation that left no way
      to the list at all, so the control row grew one at its far left. */
-  test('the negotiation page carries an "All negotiations" door, at the end of its row', () => {
+  /* ---- REVERSED IN PLACE 10 Oct 2026 (owner: "delete the back to document
+     writing and the arrow but replace the all negotiation button with Open
+     document button") ---- the door at the end of the row goes BACK to this
+     contract's Document tab now; the list of negotiations is the sidebar's
+     door. What is still pinned: it is drawn, on the control row, and ends it. */
+  test('the negotiation page carries an "Open document" door, at the end of its row', () => {
     const b = world(['MK-1', 'MK-2']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     theirAsk(b.byId('MK-2'), 'CHG-2');
     b.win.openRedlineWorkbench('MK-1');
-    const door = b.$('.redline-page [data-rl-live-list]');
+    const door = b.$('.redline-page [data-rl-open-doc]');
     assert.ok(door, 'the door is drawn on the workbench');
-    /* ---- CLAIM REVERSED IN PLACE 22 Aug 2026 ----
-       It read "far left of its row — a way out reads at the start of a line",
-       which was right on 12 Aug, when this row BEGAN with the acts. The design
-       mock-up puts the three reading tabs at the start (they name what the
-       paper below is showing) and the way out at the END, so a door at the far
-       left would now sit ahead of the thing it is a way out of.
-
-       WHAT THE TEST STILL PINS is everything that made the door matter: it is
-       drawn on the workbench, it is on the control row, it says what it is, and
-       (below) its count is the list's own. Only its position moved. */
+    assert.ok(!b.$('[data-rl-live-list]'), 'and "All negotiations" is gone');
     const row = b.$('.redline-page .rl-tabrow');
     assert.ok(row.contains(door), 'it is on the control row');
-    const kids = [...row.children];
-    assert.ok(kids.indexOf(b.$('.redline-page .rl-tabrow-gap')) > 0,
-      'the spacer still splits the row');
-    assert.ok(kids[kids.length - 1].classList.contains('rl-head'));
     const acts = [...b.$('.redline-page .rl-actions').children];
-    assert.equal(acts[acts.length - 1], door,
-      'and it ends the row — the last thing on the line is where else you could go');
-    /* ---- AND ITS WORD CHANGED, 22 Aug 2026 (owner-approved render) ----
-       "Live negotiations" named the POPULATION the count is of; the design
-       names the DESTINATION, which is the list. Both are true of the same door
-       and the second is what a reader is looking for when they want to leave.
-       The count beside it is unchanged and is still the live list's own — the
-       assertion below still proves that, which is the half that matters. */
-    assert.match(door.textContent, /All negotiations/);
+    assert.equal(acts[acts.length - 1], door, 'and it ends the row');
+    assert.match(door.textContent, /Open document/);
   });
 
-  test('THE COUNT ON THE DOOR IS THE COUNT IN THE LIST\'S HEADING', () => {
-    /* One count, many surfaces — the standing rule. The button reads
-       negoLiveList, which is what negoListHeadHtml prints, so a door saying 2
-       can never sit over a heading saying 3. */
-    const b = world(['MK-1', 'MK-2', 'MK-3']);
-    theirAsk(b.byId('MK-1'), 'CHG-1');
-    theirAsk(b.byId('MK-2'), 'CHG-2');           // MK-3 has nothing on the table
-    b.win.openRedlineWorkbench('MK-1');
-    assert.equal(b.$('.redline-page .rl-livelist-n').textContent.trim(), '2');
-    b.$('[data-rl-live-list]').dispatchEvent(new b.win.Event('click'));
-    /* RE-POINTED IN PLACE 21 Sep 2026 (Young: the four pages must look exactly
-       like the artifact) ---- the head's count is a SUB-LINE now, the shape
-       every other HaTi page head uses, so it can carry a second fact beside
-       the live count. The claim is unchanged and is about the NUMBER: the
-       heading says this page's own 2, never the book's 145. It LEADS with it,
-       which is the relation that was being pinned by matching the whole
-       string. */
-    assert.match(b.$('.ngl-live').textContent.trim(), /^2 live\b/);
-  });
-
-  test('pressing it lands on the LIST, not back on the negotiation it was pressed from', () => {
-    /* The trap the argument exists for: openNegotiations with no argument
-       reopens what is remembered, and what is remembered is this page. */
+  test('pressing it lands on THIS contract\'s Document tab', () => {
     const b = world(['MK-1', 'MK-2']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
-    theirAsk(b.byId('MK-2'), 'CHG-2');
+    let went = null;
+    b.win.openWorkspace = id => { went = id; b.win.state.view = 'workspace'; };
     b.win.openRedlineWorkbench('MK-1');
-    assert.equal(b.win.redlineHeldId(), 'MK-1');
-    b.$('[data-rl-live-list]').dispatchEvent(new b.win.Event('click'));
-    assert.ok(b.$('#reg-tbody'), 'the list is drawn');
-    assert.equal(b.$$('#reg-tbody [data-row]').length, 2);
-    /* And the sidebar is untouched: it still reopens the last one. */
-    b.win.openNegotiations();
-    assert.equal(b.win.redlineHeldId(), 'MK-1',
-      'the sidebar door still reopens the negotiation you were last in');
+    b.$('[data-rl-open-doc]').dispatchEvent(new b.win.Event('click'));
+    assert.equal(went, 'MK-1', 'it returns to the agreement on the bench');
+    assert.equal(b.win.roomCurrentTab(), 'docs', 'on its Document tab');
   });
 
-  /* ---- A REPAINT IS NOT A NAVIGATION (owner-reported, 13 Aug 2026) ----
-     "When I am in the negotiation screen and I change the theme from one
-     colour to another, the platform kicks me out and takes me to [a
-     contract's workbench]."
-
-     setTheme repaints the current view — it has to, because inline-styled
-     chips and render-time SVG colours do not answer a class flip — and that
-     repaint reached this page carrying no door. The old code then fell through
-     to state.activeId, which is EXACTLY what the 'named' door does, so a bare
-     repaint was indistinguishable from "open this contract". state.activeId
-     outlives this page and still holds whichever agreement the reader last
-     opened anywhere, so a reader standing on the LIST was thrown into it.
-
-     The market switch repaints the same way, and so does every self-repaint on
-     this page — the theme is simply the one a reader notices. */
   test('a bare repaint of the LIST redraws the list, whatever activeId holds', () => {
     const b = world(['MK-1', 'MK-2']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
@@ -336,66 +280,37 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.match(fn, /setView\('redline'\)/, 'and it still routes through the one view');
   });
 
-  test('and it is ONE route — the sidebar\'s own door with an argument', () => {
-    const s = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
-    assert.match(s, /data-rl-live-list\]'\)\.forEach\([\s\S]{0,120}openNegotiations\(\{ list: true \}\)/,
-      'the button presses openNegotiations, never a second way to the list');
-    assert.ok(!/renderNegotiationsList\(host\);\s*\}\);/.test(
-      s.slice(s.indexOf('data-rl-live-list]'), s.indexOf('data-rl-live-list]') + 400)),
-      'and does not draw the list itself');
+  test('and it is ONE route — the room\'s own tab door', () => {
+    const s = read('js/views/negotiation.js');
+    assert.match(s, /data-rl-open-doc\]'\)\.forEach\([\s\S]{0,300}roomGoTab\(c, 'docs'\)/,
+      'the button goes through roomGoTab, the room\'s one way to a tab');
     const fn = s.slice(s.indexOf('function openNegotiations'), s.indexOf('let _rlDoorAsked'));
-    assert.match(fn, /opts && opts\.list/);
+    assert.match(fn, /opts && opts\.list/, 'and the sidebar\'s list door is untouched');
   });
 
-  test('THE DOOR STARTS NO NEGOTIATIONS — it reads c.changes raw', () => {
-    /* The standing trap on every count in this feature. negoChanges() runs
-       negoInit(), so a count asked about 145 contracts starts 145
-       negotiations. The button borrows negoLiveList, which asks negoIsLive,
-       which reads the record. */
+  test('THE PAGE STARTS NO NEGOTIATIONS on the agreements around it', () => {
     const b = world(['MK-1', 'MK-2', 'MK-3'], { init: false });
     b.win.negoInit(b.byId('MK-1'));
     theirAsk(b.byId('MK-1'), 'CHG-1');
     b.win.openRedlineWorkbench('MK-1');
-    assert.ok(b.$('[data-rl-live-list]'), 'the door drew');
-    assert.equal(b.byId('MK-2').negotiation, undefined,
-      'looking at the count did not start a negotiation on MK-2');
+    assert.ok(b.$('[data-rl-open-doc]'), 'the door drew');
+    assert.equal(b.byId('MK-2').negotiation, undefined, 'no negotiation started on MK-2');
     assert.equal(b.byId('MK-3').negotiation, undefined, 'nor on MK-3');
   });
 
-  test('its word folds with the coloured buttons, and its text does not change', () => {
-    /* The fit ladder tightens before it wraps. A new control that could not
-       fold would push the row to a second line on a ThinkPad, which comes
-       straight out of the contract's height. */
+  test('its word never folds — it is the way back', () => {
     const s = (read('js/views/negotiation.js') + read('js/views/negotiation-css.js'));
-    /* ---- CLAIM MOVED A RUNG, 13 Aug 2026 (owner-reported) ----
-       This used to read "on the tight step", when tight was the only middle
-       step there was. The ladder is graded now — trim, lite, half, tight — and
-       this word folds on HALF, one rung before the purple buttons'. The reason
-       is the claim below it: the count stays, so a door that has lost its word
-       still says what is behind it, and a control that keeps meaning something
-       can afford to fold before a verb that would not. */
-    assert.match(s, /rl-tabrow-half \.rl-livelist \.rl-word\{display:none\}/,
-      'the word stands down on the half step');
-    assert.ok(!/rl-tabrow-(half|tight) \.rl-livelist \.rl-livelist-n\{display:none\}/.test(s),
-      'the count does not — a bare arrow says nothing about what is behind it');
-    assert.ok(s.indexOf('.rl-tabrow-half .rl-livelist .rl-word')
-      < s.indexOf('.rl-tabrow-tight .rl-pb-btn .rl-word'),
-      'and it folds before them, not with them');
-    const b = world(['MK-1']);
-    theirAsk(b.byId('MK-1'), 'CHG-1');
-    b.win.openRedlineWorkbench('MK-1');
-    const door = b.$('[data-rl-live-list]');
-    assert.ok(door.querySelector('.rl-word'), 'the word is in the foldable span');
-    assert.ok((door.getAttribute('title') || '').length > 20, 'and the sentence is in the tooltip');
-    /* Folding is CSS on a span, so the readable text is the same either way —
-       which is what the rest of the suite reads labels with. */
-    assert.match(door.textContent.replace(/\s+/g, ' ').trim(), /^All negotiations ?1$/);
+    assert.ok(!/rl-tabrow-(half|tight) \.rl-livelist \.rl-word\{display:none\}/.test(s),
+      'no rung of the fit ladder hides its word');
   });
 
   test('the door is worded in both languages', () => {
     const { STRINGS } = require('../js/i18n.js');
     assert.equal(STRINGS.en.ng_live_list, 'All negotiations');
     assert.equal(STRINGS.sv.ng_live_list, 'Alla förhandlingar');
+    /* the door is "Open document" now (10 Oct 2026); the list's words stay inert */
+    assert.equal(STRINGS.en.ct_open_document, 'Open document');
+    assert.equal(STRINGS.sv.ct_open_document, 'Öppna dokumentet');
     ['en', 'sv'].forEach(l => {
       assert.ok(STRINGS[l].ng_live_list_title_one, `${l} has the singular sentence`);
       assert.ok(/\{n\}/.test(STRINGS[l].ng_live_list_title_other), `${l} counts in the plural`);
@@ -667,12 +582,17 @@ describe('F184 (3) — one count, four surfaces, and it never writes', () => {
     const b = world(['MK-1', 'MK-2', 'MK-3']);
     theirAsk(b.byId('MK-1'), 'CHG-1');
     theirAsk(b.byId('MK-1'), 'CHG-2');
+    theirAsk(b.byId('MK-1'), 'CHG-5');
     theirAsk(b.byId('MK-2'), 'CHG-3');
     b.byId('MK-3').changes.push({ id: 'CHG-4', status: 'pending', authorSide: 'owner',
       clauseId: 'c1', kind: 'edit', author: 'Us', seq: 1 });
-    assert.equal(b.win.negoNeedsYouIds(b.byId('MK-1')).length, 2);
+    assert.equal(b.win.negoNeedsYouIds(b.byId('MK-1')).length, 3);
     assert.equal(b.win.negoNeedsYouIds(b.byId('MK-3')).length, 0, 'our own ask is not owed to us');
-    assert.equal(b.win.negoNeedsYouTotal(), 3, 'the door counts the whole book');
+    /* RE-POINTED 10 Oct 2026 (owner: the number was wrong): the door counts
+       NEGOTIATIONS whose move is yours — the "Your move" tab's number — not
+       the changes inside them. MK-1's three asks are one row; MK-3's unsent
+       draft is ours to send, so it is our move too. Four changes, three rows. */
+    assert.equal(b.win.negoNeedsYouTotal(), 3, 'the door counts negotiations, not changes');
   });
 
   test('a withdrawn or settled ask is owed to nobody', () => {
