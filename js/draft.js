@@ -332,7 +332,7 @@ function draftOffer(pick, prefill, why, all){
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   const filled=draftFilledLabels(pick.fields, prefill);
   out.innerHTML=`<div id="dr-found" style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:12px 14px;background:var(--color-surface)">
-    <span style="display:block;font-family:var(--font-mono);font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('dr_suggests')}</span>
+    <span style="display:block;font-family:var(--font-mono);font-size:var(--t-micro);color:var(--color-neutral-500);margin-bottom:5px">${i18t('dr_suggests')}</span>
     <span id="dr-name" style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${esc(pick.name)}</span>
     ${''/* WHICH SHELF IT CAME OFF. A fact read off the record, not the model's
            word for it, and it belongs beside the name because the whole point

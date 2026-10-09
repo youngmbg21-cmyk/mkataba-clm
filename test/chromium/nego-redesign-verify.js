@@ -121,7 +121,9 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
           .map(e => (e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 22)) };
     }, SEEN);
     /* RE-POINTED 7 Oct 2026 (Young, the HaTi Platform mockup): the head sits on the page ground, as the room's does. */
-    check('1 the head sits on the page ground, as the room\'s does', head.bg === 'rgba(0, 0, 0, 0)', head.bg);
+    /* REVERSED 10 Oct 2026 (owner: "the entire top bar is supposed to be White
+       like in the documents tab"). */
+    check('1 the head is white, as the Document tab\'s band is', head.bg === 'rgb(255, 255, 255)', head.bg);
     /* REVERSED IN PLACE 25 Aug 2026 — this pinned the literal `9px 24px`, and
        the vertical half of that is not a claim about anything: it is whatever
        lands this head's title on the same vertical as every other page's, and
@@ -155,10 +157,14 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        its own title, and the bar was printing it again a few pixels higher. So
        the control is asked for as a control; that it is a painted sign rather
        than a word is 1c's, right below. */
-    check('1 and the way back survived it — the sign IS the button',
-      !!head.back && head.back.on,
-      head.back ? `${head.back.text || '(no word, as ruled)'} ${head.back.w}x${head.back.h}`
-        : 'MISSING — the page has no exit');
+    /* REVERSED 10 Oct 2026 (owner: "delete the back to document writing and
+       the arrow but replace the all negotiation button with Open document
+       button"). The page still has an exit — it is the row's last button. */
+    const exitDoor = await page.evaluate(() => { const d = document.querySelector('#view-redline .rl-actions [data-rl-open-doc]');
+      const r = d && d.getBoundingClientRect(); return d ? { txt: d.textContent.trim(), on: !!(r && r.width > 0) } : null; });
+    check('1 the back arrow is gone, and the way back is "Open document"',
+      !head.back && !!exitDoor && exitDoor.on && exitDoor.txt === 'Open document',
+      `arrow ${!!head.back} · ${JSON.stringify(exitDoor)}`);
     check('1 the title is a second door to the same place',
       !!head.title && head.title.on, head.title && head.title.text);
 
@@ -185,7 +191,8 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        goes. The one thing that has never changed through four re-dressings is
        that a reader must be able to leave this page and be told where to. */
     const door = await page.evaluate(() => {
-      const b = document.querySelector('#shell-title #ws-back');
+      /* SAP batch 4 (9 Oct 2026): the way back stands on the title's line, as drawn. */
+      const b = document.querySelector('#view-redline #ws-head .room-name #ws-back');
       if (!b) return { none: true };
       const word = b.querySelector('.crumb-word');
       const arrow = b.querySelector('svg');
@@ -202,16 +209,10 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         inside: !!(ar && br && ar.left >= br.left - 1 && ar.right <= br.right + 1),
         btnLine: getComputedStyle(b).textDecorationLine };
     });
-    check('1c the arrow is PAINTED in the bar, not switched off there',
-      !door.none && door.hidden !== 'none' && door.painted && door.wide,
-      door.none ? 'no door' : `display ${door.hidden} · painted ${door.painted} · wide ${door.wide}`);
-    check('1c and it stands alone — no word beside the sign',
-      !door.none && door.word === null, door.none ? 'no door' : `word ${JSON.stringify(door.word)}`);
-    /* A SIGN A READER CANNOT NAME IS A GUESS. The word is not lost; it stops
-       being ink and becomes the label a screen reader and the hover read. */
-    check('1c and it still says where it goes, to the keyboard and the reader',
-      !door.none && door.label.length > 0 && !/underline/.test(door.btnLine || 'none'),
-      door.none ? 'no door' : `"${door.label}" · ${door.btnLine}`);
+    /* 1c RETIRED 10 Oct 2026: the arrow beside the title is gone (owner). What
+       it guarded — a reader can always leave this page and is told where to —
+       is the "Open document" check in 1. */
+    check('1c no arrow is drawn beside the title', door.none, door.none ? 'none' : 'an arrow is still drawn');
 
     /* ---- 1b. FOUR ACTS, ONE FILLED, PLAYBOOK IN THE MENU ---- */
     const acts = await page.evaluate(() => {
@@ -289,8 +290,12 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         allCount: (() => { const f = document.querySelector('.rl-idx-title');
           return f ? ((f.textContent.match(/(\d+)\s*$/) || [])[1] || null) : null; })() }; /* a plain count since 21 Sep 2026 */
     });
-    check('2 the control bar sits on the page ground, 44px tall, like the Document tab\'s row',
-      tabs.bg === 'rgba(0, 0, 0, 0)' && tabs.h === 44, `${tabs.bg} ${tabs.h}px`);
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3): the Document tab's head is a white
+       band again, as drawn, and this row follows it. */
+    const surf = await page.evaluate(() => { const d = document.createElement('div'); d.style.background = 'var(--color-surface)';
+      document.body.appendChild(d); const v = getComputedStyle(d).backgroundColor; d.remove(); return v; });
+    check('2 the control bar is white like the Document tab\'s band, 44px tall',
+      tabs.bg === surf && tabs.h === 44, `${tabs.bg} ${tabs.h}px`);
     /* THE SIZE IS THE BODY RUNG, resolved from the token rather than typed
        (re-pointed 20 Sep 2026, when the redesign order moved --t-body to
        13px and this line went red for the wrong reason). */
@@ -614,7 +619,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        is where the dead-in-preview treatment sits; what this checks is that the
        row itself still says what it said. */
     check('9 the row keeps its words and reads from our chair',
-      /Redline/i.test(preview.rowText) && /All negotiations/i.test(preview.rowText),
+      /Redline/i.test(preview.rowText) && /Open document/i.test(preview.rowText),
       preview.rowText.slice(0, 80));
     await page.screenshot({ path: path.join(OUT, '04-preview.png') });
     await page.click('#view-redline [data-redline-side="owner"]');

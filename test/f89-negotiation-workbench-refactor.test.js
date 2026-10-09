@@ -234,7 +234,8 @@ describe('F89 (1) — the head is not a band at all: it rides on the tab row', (
     assert.ok(acts.length, 'the actions group is drawn');
     assert.ok(!head.querySelector('[data-redline-proxy]'),
       'the round is published from the head now, not from this row');
-    assert.ok(acts[acts.length - 1].matches('[data-rl-live-list]'),
+    /* RE-POINTED 10 Oct 2026: the way out is "Open document" (owner). */
+    assert.ok(acts[acts.length - 1].matches('[data-rl-open-doc]'),
       'and the way out of this negotiation ends the row');
 
     /* AND IT DROPS TO ITS OWN LINE ONLY WHEN IT REALLY DOES NOT FIT. This was

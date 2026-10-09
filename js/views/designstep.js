@@ -249,7 +249,7 @@ function dsPaint(opts) {
   const contentsChoice = `
     <div style="margin:0 0 13px;padding:0 0 13px;border-bottom:1px solid var(--color-divider)">
       <div style="font-family:var(--font-heading);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;
-        text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:7px">Contents page</div>
+        color:var(--color-neutral-500);margin-bottom:7px">Contents page</div>
       <div style="display:flex;gap:7px;align-items:stretch">
         ${contentsBtn(false, 'Not included', 'Opens on the first clause.')}
         ${contentsBtn(true, 'At the front', 'Built from the clause headings.')}
@@ -323,7 +323,7 @@ function dsPaint(opts) {
         <input type="color" id="ds-accent" value="${accentNow}" aria-label="${i18t('ds_choose_colour')}"
           style="width:30px;height:28px;border:1px solid var(--color-divider);border-radius:var(--radius);padding:2px;background:var(--color-surface);cursor:pointer">
         <input id="ds-accent-hex" value="${esc((rawPick || accentNow).toUpperCase())}" maxlength="7" spellcheck="false" aria-label="${i18t('ds_brand_hex')}"
-          style="width:92px;font-family:var(--font-code);text-transform:uppercase;border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-text);border-radius:var(--radius);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
+          style="width:92px;font-family:var(--font-code);border:1px solid var(--color-divider);background:var(--color-surface);color:var(--color-text);border-radius:var(--radius);outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
       </div>
       ${!design.usesAccent ? `<div style="font-size:var(--t-label);line-height:1.5;margin-top:var(--s-2);padding:6px var(--s-2);border-radius:var(--radius);
         background:var(--st-amber-bg,#fef3c7);border:1px solid var(--st-amber-line,#fcd34d);color:var(--st-amber-fg,#b45309)">
@@ -417,7 +417,7 @@ function dsPaint(opts) {
       <section class="ds-rail-pane" style="${PANE}">
         <div style="flex:none;padding:13px 14px 11px;border-bottom:1px solid var(--color-divider)">
           <div data-ds-step="${rh.n}" style="display:flex;align-items:center;gap:7px;font-family:var(--font-heading);font-size:var(--t-label);
-            font-weight:var(--w-title);text-transform:uppercase;letter-spacing:.07em;color:var(--accent-ink-700)">
+            font-weight:var(--w-title);color:var(--accent-ink-700)">
             <span style="width:17px;height:17px;border-radius:50%;background:var(--accent-fill);color:#fff;
               display:grid;place-items:center;font-size:var(--t-label);font-weight:var(--w-title)">${rh.n}</span> ${i18t('ds_step_n_of_2',{n:rh.n})}</div>
           <h4 data-ds-step-title style="font-family:var(--font-heading);font-size:var(--t-card);margin:6px 0 3px;letter-spacing:-.015em">${rh.title}</h4>
@@ -458,7 +458,7 @@ function dsPaint(opts) {
       ${_ds.focus ? '' : `
       <section class="ds-rail-pane" style="${PANE}">
        <div class="scroll-thin" style="flex:1;min-height:0;overflow-y:auto;padding:14px var(--s-4)">
-        <h4 style="font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-meta);margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--color-neutral-600)">${i18t('ds_company_branding')}</h4>
+        <h4 style="font-family:var(--font-heading);font-weight:var(--w-title);font-size:var(--t-meta);margin:0 0 10px;color:var(--color-neutral-600)">${i18t('ds_company_branding')}</h4>
         <div style="display:flex;gap:10px;align-items:center">
           <div style="width:86px;height:48px;border:1px dashed var(--color-divider);border-radius:var(--radius);display:grid;place-items:center;overflow:hidden;background:var(--color-bg);flex:none">
             ${b.logoUrl ? `<img src="${b.logoUrl}" alt="logo" style="max-width:100%;max-height:100%">` : `<span style="font-size:var(--t-label);color:var(--color-neutral-500)">${i18t('tb_no_logo')}</span>`}

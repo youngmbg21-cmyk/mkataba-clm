@@ -877,7 +877,7 @@ function fillPreviewLeft(values){
 }
 function fillPreviewPaneHtml(n){
   return `<div style="display:flex;flex-direction:column;gap:6px;min-width:0">
-    <span style="font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${
+    <span style="font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600)">${
       esc(i18t('tf_preview_cap'))}<span id="tf-preview-left">${n ? ' \u00b7 ' + esc(i18tn('tf_preview_left', n, { n })) : ''}</span></span>
     ${''/* IT SCROLLS, AND NOTHING IN IT IS TYPEABLE. Those were one problem.
            docBody draws a draft's blanks as REAL inputs, so this column was

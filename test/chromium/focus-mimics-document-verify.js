@@ -178,8 +178,13 @@ const SHOT = (rowSel) => {
        catch exactly that build. `standing` is the gate. */
     const standing = !foc.err && !!foc.row && foc.row.h > 0;
     /* RE-POINTED 7 Oct 2026 (Young, the mockup): both rows sit on the PAGE GROUND now — the Document tab's band went transparent and Negotiate's row follows it. */
-    check('3a the row paints no band of its own — the page ground shows through',
-      standing && foc.bg === 'rgba(0, 0, 0, 0)',
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3): the Document tab's head is a white
+       band again, as drawn, and Negotiate's row follows it — white, as the
+       Negotiate drawing paints its head too. */
+    const white = await page.evaluate(() => { const d = document.createElement('div'); d.style.background = 'var(--color-surface)';
+      document.body.appendChild(d); const v = getComputedStyle(d).backgroundColor; d.remove(); return v; });
+    check('3a the row is white, as the Document tab\'s band is',
+      standing && foc.bg === white,
       foc.err || (standing ? String(foc.bg) : 'the row is not standing'));
     check('3b its white starts directly under the dark bar',
       standing && !!foc.bar && foc.bar.h > 0 && Math.abs(foc.row.top - foc.bar.bottom) <= 1,
@@ -200,8 +205,9 @@ const SHOT = (rowSel) => {
        New the day the row survived: that door is ON the row, and it paints the
        list without going through setView, where the reset lives. */
     const list = await drive(page, async () => {
-      const d = document.querySelector('#view-redline [data-rl-live-list]');
-      if (!d) return { err: 'no All negotiations door on the row' };
+      /* RE-POINTED 10 Oct 2026: the row's door is "Open document" now (owner). */
+      const d = document.querySelector('#view-redline [data-rl-open-doc]');
+      if (!d) return { err: 'no Open document door on the row' };
       const wasOn = !!(window.rlFocusOn && rlFocusOn());
       d.click();
       await new Promise(r => setTimeout(r, 700));
@@ -209,7 +215,7 @@ const SHOT = (rowSel) => {
         body: document.body.classList.contains('rl-focused'),
         rail: !!document.querySelector('#side-nav') };
     }, undefined, { err: 'blocked' });
-    check('3f pressing All negotiations from focus leaves the mode behind',
+    check('3f pressing Open document from focus leaves the mode behind',
       !list.err && list.wasOn === true && list.nowOn === false && list.body === false,
       list.err || `was ${list.wasOn} / now ${list.nowOn} / body ${list.body}`);
 

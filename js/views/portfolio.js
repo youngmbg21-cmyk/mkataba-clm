@@ -1056,7 +1056,7 @@ function pfMoneyHeld(){
         <td style="${td};text-align:right;font-weight:var(--w-title);font-variant-numeric:tabular-nums;white-space:nowrap">${pfEsc(pfMoney(r.held))}</td>
         <td style="${td};width:1%"><span style="font-size:var(--t-label);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:${pal.bg};color:${pal.fg};white-space:nowrap">${st.t}</span></td></tr>`;
     }).join('')}</tbody></table></div>`;
-  const head=`<div style="display:flex;align-items:baseline;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">
+  const head=`<div style="display:flex;align-items:baseline;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:6px">
     <span>${i18t('pf_on_n_jobs',{n:_wsCount(rows.length)})}</span>
     <span style="margin-left:auto;font-size:var(--t-meta);font-weight:var(--w-title);letter-spacing:0;text-transform:none;color:var(--color-text);font-variant-numeric:tabular-nums">${pfEsc(pfMoney(d.totals.held))}</span></div>`;
   return pfCard(i18t('pf_money_held'), i18t('pf_money_held_hint'), head+body,
@@ -1120,7 +1120,7 @@ function pfPromisesLive(){
           <span style="position:absolute;left:${at(0)}%;top:-2px;height:14px;border-left:1px dashed var(--color-neutral-400)"></span></span></span>
       <span style="text-align:right;font-size:var(--t-label);color:var(--color-neutral-600);font-variant-numeric:tabular-nums">${i18t('pf_yours_to')} ${pfEsc(pfMonthLabel(b))}</span></button>`;
   }).join('')}</div>`;
-  const head=`<div style="display:flex;align-items:baseline;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">
+  const head=`<div style="display:flex;align-items:baseline;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:6px">
     <span>${i18t('pf_finished_carried')}</span>
     <span style="margin-left:auto;font-size:var(--t-meta);font-weight:var(--w-title);letter-spacing:0;text-transform:none;color:var(--color-text)">${_wsCount(rows.length)}</span></div>`;
   return pfCard(i18t('pf_promises_live'), i18t('pf_promises_hint'), head+body,
@@ -1172,7 +1172,7 @@ function pfWonLost(){
   const byCount=d.winRate.byCount, byValue=d.winRate.byValue;
   const seg=(v,col)=>`<span style="display:block;height:100%;width:${v/tot*100}%;background:${col}"></span>`;
   const stat=(k,v,d,col)=>`<div style="background:var(--color-neutral-100);border-left:3px solid ${col};border-radius:var(--radius);padding:7px 10px">
-    <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${k}</div>
+    <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)">${k}</div>
     <div style="font-family:var(--font-heading);font-size:var(--t-card);font-weight:var(--w-title);letter-spacing:-.02em;font-variant-numeric:tabular-nums">${v}</div>
     <div style="font-size:var(--t-label);color:var(--color-neutral-600)">${d}</div></div>`;
   const body=`<div style="display:flex;height:22px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--color-divider);margin-bottom:9px">

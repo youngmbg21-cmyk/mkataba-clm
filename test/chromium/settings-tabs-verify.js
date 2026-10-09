@@ -239,17 +239,21 @@ const signIn = async (page, base, email, pass) => {
     /* ---- the People tab ---- */
     await page.evaluate(() => settingsGoTab('people'));
     await page.waitForTimeout(400);
+    /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing is
+       the target): the yellow banner went; each person's row carries a Setup
+       cell saying what is missing, and the People tab counts the unfinished. */
     const people = await page.evaluate(() => ({
       rows: document.querySelectorAll('.st-person').length,
-      chips: [...document.querySelectorAll('.st-person .st-chip')].map(c => c.textContent.trim()),
+      chips: [...document.querySelectorAll('.st-person .st-setup')].map(c => c.textContent.trim()),
       banner: !!document.getElementById('st-people-banner'),
-      bannerNames: (document.getElementById('st-people-banner') || {}).textContent || '',
+      tabN: ((document.querySelector('[data-st-tab="people"] .st-tab-n') || {}).textContent || '').trim(),
+      warnRows: [...document.querySelectorAll('.st-person')].filter(r => r.querySelector('.st-setup.is-warn')).map(r => r.textContent.replace(/\s+/g, ' ').trim().slice(0, 40)),
     }));
-    check('every member is a row with a completeness chip',
+    check('every member is a row with a Setup cell',
       people.rows >= 4 && people.chips.length === people.rows, `${people.rows} rows · ${people.chips.join(', ')}`);
-    check('and the unfinished ones are NAMED in the banner, not just counted',
-      people.banner && /Restricted Legal|No Values Legal|Unrestricted Legal/.test(people.bannerNames),
-      people.bannerNames.replace(/\s+/g, ' ').trim().slice(0, 110));
+    check('and the unfinished are counted on the tab and named on their own rows, with no banner',
+      !people.banner && people.tabN === String(people.warnRows.length) && people.warnRows.some(t => /Restricted Legal|No Values Legal|Unrestricted Legal/.test(t)),
+      { tab: people.tabN, rows: people.warnRows });
 
     await page.click('#st-add-person'); await page.waitForTimeout(500);
     const addV = await page.evaluate(VISIBLE, '#tm-pass');

@@ -24,9 +24,11 @@ describe('f622 — the sheet marks each settled point for what it is', () => {
   test('the in-app sheet: Settled heading, a tick for taken, a cross and "not taken" for refused', () => {
     const w = buildWorld({});
     const html = w.win.standsHtml(deal(), {});
-    assert.match(html, /Settled · 2/);
-    assert.ok(!/Agreed · /.test(html), 'the column is not headed Agreed');
-    const rows = [...html.matchAll(/<div class="ds-li( is-refused)?"><span class="ds-tick"[^>]*>([^<]*)<\/span><span><b>([^<]*)<\/b>(<i>([^<]*)<\/i>)?/g)]
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3): the card is titled "Settled (2)" and
+       each row's words sit in their own span beside the mark. */
+    assert.match(html, /Settled \(2\)/);
+    assert.ok(!/Agreed /.test(html), 'the card is not headed Agreed');
+    const rows = [...html.matchAll(/<div class="ds-li( is-refused)?"><span class="ds-tick"[^>]*>([^<]*)<\/span><span class="ds-li-b"><b>([^<]*)<\/b>(<i>([^<]*)<\/i>)?/g)]
       .map(m => ({ refused: !!m[1], mark: m[2], clause: m[3], sub: m[5] || '' }));
     const pay = rows.find(r => /Payment/.test(r.clause)), cap = rows.find(r => /Liability/.test(r.clause));
     assert.ok(pay && !pay.refused && pay.mark === '✓', JSON.stringify(rows));
@@ -34,8 +36,9 @@ describe('f622 — the sheet marks each settled point for what it is', () => {
   });
   test('the public status page draws the same marks', () => {
     const src = fs.readFileSync(path.join(__dirname, '..', 'server/server.js'), 'utf8');
-    assert.match(src, /Settled &middot; \$\{D\.settled\}/);
-    assert.match(src, /p\.settled \? li\('t', clauseOf\(p\), ''\) : li\('x', clauseOf\(p\), 'not taken'\)/);
-    assert.ok(!/>Agreed &middot; \$\{D\.settled\}</.test(src));
+    assert.match(src, /ch\(`Settled \(\$\{D\.settled\}\)`/);
+    assert.match(src, /p\.settled \? '✓' : '✕'/);
+    assert.match(src, /p\.settled \? '' : '<i[^']*>not taken<\/i>'/);
+    assert.ok(!/Agreed \(\$\{D\.settled\}\)/.test(src));
   });
 });

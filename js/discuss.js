@@ -179,7 +179,7 @@ function discussPanelHtml(opts){
     <div style="display:flex;flex-direction:column;gap:13px;margin-bottom:14px">
       ${groups.map(g => `
         <div data-discuss-topic="${e(g.topic)}" style="border-left:2px solid var(--color-divider);padding-left:11px;display:flex;flex-direction:column;gap:6px">
-          <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${e(g.label || discussTopicLabel(topics, g.topic))}</div>
+          <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">${e(g.label || discussTopicLabel(topics, g.topic))}</div>
           ${g.messages.map(m => discussBubbleHtml(m, mine)).join('')}
         </div>`).join('')}
     </div>` : `
@@ -190,7 +190,7 @@ function discussPanelHtml(opts){
     <div style="border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${e(disabledNote || 'This conversation is closed.')}</div>` : `
     <div style="border-top:1px solid var(--color-divider);padding-top:var(--s-3)">
       <label style="display:block;margin-bottom:7px">
-        <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:var(--s-1)">${i18t('di_what_about')}</span>
+        <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:var(--s-1)">${i18t('di_what_about')}</span>
         <select id="${idp}-topic" style="width:100%;font:inherit;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${options}</select>
       </label>
       <textarea id="${idp}-body" rows="2" placeholder="${e(i18t('di_ph_would_you'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);outline:none;resize:vertical"></textarea>
@@ -205,7 +205,7 @@ function discussPanelHtml(opts){
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:11px;flex-wrap:wrap">
         <span style="flex:none;color:var(--color-accent);display:inline-flex">${window.icon ? icon('msg', 'w-4 h-4') : ''}</span>
         <span style="font-size:var(--t-body);font-weight:var(--w-strong)">${e(title || 'Open points — talk it through')}</span>
-        ${waiting ? `<span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:2px 9px">${waiting} awaiting your reply</span>` : ''}
+        ${waiting ? `<span style="font-size:var(--t-micro);font-weight:var(--w-title);background:var(--st-amber-bg);color:var(--st-amber-fg);border-radius:var(--radius);padding:2px 9px">${waiting} awaiting your reply</span>` : ''}
         <span style="margin-left:auto;font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)">${(messages || []).length} message${(messages || []).length === 1 ? '' : 's'}</span>
       </div>
       ${blurb ? `<p style="margin:0 0 11px;font-size:var(--t-meta);line-height:1.55;color:var(--color-neutral-600)">${e(blurb)}</p>` : ''}

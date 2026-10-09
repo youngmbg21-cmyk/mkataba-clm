@@ -417,7 +417,7 @@ function negoTimelineScreenHtml(c, f = {}, opts = {}){
       .ht h3{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 2px}
       .ht .ht-sub{font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3)}
       .ht .ht-filters{display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:14px;padding-bottom:var(--s-3);border-bottom:1px solid var(--color-divider)}
-      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)}
+      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)}
       .ht .ht-f select{font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-1) 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
       .ht .ht-ev{display:flex;gap:10px;padding:var(--s-2) 0;border-bottom:1px solid color-mix(in srgb,var(--color-divider) 55%,transparent)}
       .ht .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--color-bg);border:1px solid var(--color-divider);font-size:var(--t-label)}
@@ -1637,7 +1637,7 @@ function negoLiveCardsHtml(c, opts){
           title="${_ne(i18t('ng_revised_title'))} — ${_ne(String(ch.revisedBy))} / ${_ne(String(ch.author))}"><span aria-hidden="true">&#9998;</span> ${
           i18t('ng_revised_by_after',{who:_ne(_liveShort(ch.revisedBy)),author:_ne(_liveShort(ch.author))})}</div>` : ''}
         ${negoReasonOf(ch) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
-          <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
+          <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
           <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(negoReasonOf(ch))}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
         ${(() => { if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
@@ -1809,7 +1809,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${_ne(_neClause(ch.clauseLabel || ch.clauseId))}</div>
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:var(--w-strong)">${_ne(ch.author)}</b></div>
     ${negoReasonOf(ch) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
-      <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
+      <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
       <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(negoReasonOf(ch))}</span></div>` : ''}
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
     <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
@@ -3498,7 +3498,7 @@ async function negoAiPropose(c, ctx){
     place();
   };
   if (!window.copilotAvailable || !copilotAvailable()){
-    fail('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Settings & Rules, then try again — the wording you selected is untouched.');
+    fail('The Copilot is not connected on this workspace yet, so there is nothing to ask. Connect it under Settings, then try again — the wording you selected is untouched.');
     return;
   }
 
@@ -3552,7 +3552,7 @@ async function negoAiPropose(c, ctx){
     if (raw && typeof raw !== 'string') raw = String(raw);
   }catch(err){
     fail(err && err.needsKey
-      ? 'The Copilot needs an API key. Add one under Settings & Rules, then try again.'
+      ? 'The Copilot needs an API key. Add one under Settings, then try again.'
       : `The Copilot couldn't answer: ${(err && err.message) || err}. Try again.`);
     return;
   }
@@ -7947,7 +7947,12 @@ function rlBoardPaintTitle(){
   else if (typeof window.shellCrumbAdopt === 'function' && window.getContract && typeof redlineHeldId === 'function' && redlineHeldId()
     && (document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))
     && shellCrumbAdopt(getContract(redlineHeldId()), document.querySelector('.room-head #ws-back') || document.getElementById('ws-back'))) { /* crumb painted */ }
-  else if (typeof window.shellTitleFor === 'function'){ el.classList.remove('is-crumb'); el.textContent = shellTitleFor('redline'); }
+  /* The back button left the page (10 Oct 2026), so with a contract on the
+     bench the bar keeps the page's name, as shellCrumbAdopt writes it. */
+  else if (typeof redlineHeldId === 'function' && redlineHeldId() && !el.querySelector('.crumb-here')){
+    el.innerHTML = ''; const s = document.createElement('span'); s.className = 'crumb-here';
+    s.textContent = i18t('tab_negotiate'); s.title = s.textContent; el.appendChild(s); }
+  else if (!el.querySelector('.crumb-here') && typeof window.shellTitleFor === 'function'){ el.classList.remove('is-crumb'); el.textContent = shellTitleFor('redline'); }
 }
 function rlBoardPageHtml(c){
   return `<div class="rl-boardpage" id="rl-boardpage">${dealBoardHtml(c, 'owner')}</div>`;
@@ -9053,8 +9058,18 @@ function negoLiveList(){
 }
 /* How many changes are waiting on this reader across every live negotiation.
    The sidebar door's number. */
+/* ---- IT COUNTS NEGOTIATIONS, NOT CHANGES (owner, 10 Oct 2026: "review the
+   number of contracts in the nav panel for the negotiation page as the number
+   is wrong") ---- it summed the changes owed across every negotiation, so one
+   contract with six asks read 6 on a door whose list holds one row. Now it is
+   the "Your move" tab's own number: live negotiations whose move is yours
+   (negWhoseMove, the reading the Negotiations page bands by; a handover is
+   "with them for signature", never yours). */
 function negoNeedsYouTotal(){
-  return negoLiveList().reduce((n, c) => n + negoNeedsYouIds(c).length, 0);
+  return negoLiveList().filter(c => {
+    if (typeof window.negWhoseMove === 'function'){ const m = window.negWhoseMove(c); return m.k === 'you' && m.why !== 'handover'; }
+    return negoNeedsYouIds(c).length > 0;
+  }).length;
 }
 /* ---- WHICH ONE THE DOOR REOPENS ----
    Per person, per browser, and it survives closing the window — the same shape
@@ -9397,7 +9412,7 @@ function negoMemoHtml(m, opts = {}){
   };
   const section = sec => {
     const rows = m[sec.k] || [];
-    return `<div style="display:flex;align-items:baseline;margin:12px 0 2px;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">
+    return `<div style="display:flex;align-items:baseline;margin:12px 0 2px;font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600)">
         <span>${_ne(sec.label)}</span><b style="margin-left:auto;color:var(--color-text)">${m.counts[sec.k]}</b></div>`
       + (rows.length ? rows.map(row).join('')
         : `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:5px 0;border-top:1px solid var(--color-divider)">${_ne(i18t('ng_memo_nil'))}</div>`);
@@ -10443,7 +10458,6 @@ function renderRedline(){
         ${(rowSide !== 'counterparty' && !preview)
           ? `<button type="button" class="rl-seg rl-boardseg${_rlBoardOpen ? ' on' : ''}" data-rl-board aria-pressed="${_rlBoardOpen ? 'true' : 'false'}"
               title="${_nea(i18t('ng_board_title'))}">${_ne(i18t('ng_board'))}</button>` : ''}
-        ${rlCtlLegendHtml(c, rowSide)}
         <span class="rl-tabrow-gap"></span>
         <section class="rl-head">
           <div class="rl-head-id">
@@ -10554,20 +10568,20 @@ function renderRedline(){
                sentence: a door reading "3" still says what is behind it, which
                is why it can afford to lose its word before a verb can.
                textContent never changes, which is what the suite reads. */
-        }${(() => {
-          const liveN = (typeof negoLiveList === 'function') ? negoLiveList().length : 0;
-          const tip = i18tn('ng_live_list_title', liveN, { n: liveN });
-          return `<button type="button" data-rl-live-list class="rl-livelist"
-            title="${_nea(tip)}" aria-label="${_nea(tip)}">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
-            ><path d="m15 18-6-6 6-6"/></svg
-            ><span class="rl-word">${i18t('ng_live_list')}</span
-            ><span class="rl-livelist-n">${liveN}</span></button>`;
-        })()}
+        }${''/* ---- "OPEN DOCUMENT" TAKES THE PLACE OF "ALL NEGOTIATIONS" (owner,
+               10 Oct 2026) ---- the way back to this contract's Document tab,
+               now that the arrow left the name row. The list of negotiations
+               is still the sidebar's door. */}<button type="button" data-rl-open-doc class="rl-livelist"
+            title="${_nea(i18t('ct_open_document'))}"><span class="rl-word">${i18t('ct_open_document')}</span></button>
           </div>
         </section>
       </div>
+      ${''/* ---- THE PARTIES' COLOUR KEY HAS A ROW OF ITS OWN (SAP benchmark,
+             batch 4, owner 9 Oct 2026: "Keep the Name Redline otherwise,
+             build") ---- the drawing puts the key on a thin line under the
+             controls, so the control row keeps its one 44px line and the key
+             no longer folds away on a laptop. Same builder, same classes. */}
+      <div class="rl-keyrow">${rlCtlLegendHtml(c, rowSide)}</div>
       ${''/* ---- THE WORKING AREA IS ONE SCREENFUL; THE PANELS ARE A SCROLL
              AWAY (owner-approved render, 22 Aug 2026) ----
              #redline-host keeps height:100% of this scroller, so the contract
@@ -10618,8 +10632,13 @@ function renderRedline(){
   /* THE WAY BACK TO THE OTHER NEGOTIATIONS — the sidebar's own door, told to
      land on the list rather than to reopen what is remembered (which is this
      page). One route, one argument; see openNegotiations. */
-  host.querySelectorAll('[data-rl-live-list]').forEach(el =>
-    el.addEventListener('click', () => openNegotiations({ list: true })));
+  host.querySelectorAll('[data-rl-open-doc]').forEach(el =>
+    el.addEventListener('click', () => {
+      const c = (typeof redlineHeldId === 'function' && window.getContract) ? getContract(redlineHeldId()) : null;
+      if (!c) return;
+      rlResetFocus();   /* leaving Negotiate leaves Focus behind, as every other way out does */
+      if (window.roomGoTab) roomGoTab(c, 'docs'); else if (window.openWorkspace) openWorkspace(c.id);
+    }));
   /* The tab row's wiring went with the tab row (12 Aug 2026). This page draws
      no room tabs, so a querySelector for them would have matched nothing
      forever — dead wiring that reads like a live route and outlives everyone
@@ -11486,7 +11505,7 @@ async function rlAiPropose(ctx){
   if (window.renderAIFeed) renderAIFeed(!action.converse);
 
   if (!window.copilotAvailable || !copilotAvailable() || !window.copilotPropose){
-    rlSayInPanel('The Copilot is not connected yet. Connect it under Settings & Rules, then try again.');
+    rlSayInPanel('The Copilot is not connected yet. Connect it under Settings, then try again.');
     return;
   }
   const cl = window.negoClauseById ? negoClauseById(c, clauseId) : null;
@@ -15133,7 +15152,7 @@ async function rlOpenPlaybookReview(c, again){
            named presses below, each of which asks. */}
     ${!it.lead
       ? `<div style="margin-top:9px;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600)">${i18t('ng_pb_nofit')}</div>`
-      : `<div style="margin-top:var(--s-2);font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_ne(rlPbWordingLabel(it.leadKind))}</div>
+      : `<div style="margin-top:var(--s-2);font-size:var(--t-figure);font-weight:var(--w-title);color:var(--color-neutral-600)">${_ne(rlPbWordingLabel(it.leadKind))}</div>
     ${it.oldText && window.redlineStructuredHtml
       ? `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.7;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.lead)}</div>`
       : `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.6;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${_ne(it.lead)}</div>`}`}

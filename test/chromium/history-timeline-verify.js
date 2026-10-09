@@ -66,17 +66,21 @@ const PROBE = `(() => {
     const dr = dot ? dot.getBoundingClientRect() : null;
     const dcs = dot ? getComputedStyle(dot) : null;
     const b = getComputedStyle(r, '::before');
-    const drawn = b.content && b.content !== 'none' && b.position === 'absolute';
+    const drawn = b.content && b.content !== 'none' && b.position === 'absolute' && b.display !== 'none';
     const lineX = drawn ? rr.left + px(b.left) + px(b.width) / 2 : null;
     const lineTop = drawn ? rr.top + px(b.top) : null;
     const lineBot = drawn ? rr.bottom - px(b.bottom) : null;
     const day = r.querySelector('.hist-day'), time = r.querySelector('.hist-time');
-    const text = r.querySelector('.hist-text'), rnd = r.querySelector('.hist-round');
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3): the round is a chip on the
+       event's line, and the day is a heading over its entries. */
+    const text = r.querySelector('.hist-text'), rnd = r.querySelector('.hist-rchip');
+    let hd = r.previousElementSibling; while (hd && !hd.classList.contains('hist-day-h')) hd = hd.previousElementSibling;
     const tcs = text ? getComputedStyle(text) : null;
     return {
       text: text ? text.textContent.trim() : '',
       at: r.getAttribute('data-hist-at'),
       when: (r.querySelector('.hist-when') || {}).textContent || '',
+      head: hd ? hd.textContent.replace(/\s+/g, ' ').trim() : null,
       day: day ? day.textContent.trim() : null,
       time: time ? time.textContent.trim() : null,
       stacked: day && time ? time.getBoundingClientRect().top >= day.getBoundingClientRect().bottom - 1 : null,
@@ -199,17 +203,21 @@ const PROBE = `(() => {
         earlierOtherYear: new Date(by('three days ago').at).getFullYear() !== now.getFullYear() };
     }, id);
     const rT = rows[iToday] || {}, rE = rows[iEarlier] || {}, rY = rows[iYear] || {};
-    ok('2a today reads "Today", not a date', rT.day === expect.today.day && /today/i.test(rT.day || ''),
-      `${JSON.stringify(rT.day)} · expected ${JSON.stringify(expect.today.day)}`);
-    ok('2b and its time sits UNDER the day, in the product\'s one clock', rT.time === expect.today.time
-      && /\d{1,2}[:.]\d{2}/.test(rT.time || '') && rT.stacked === true,
-      `${JSON.stringify(rT.time)} · expected ${JSON.stringify(expect.today.time)} · stacked ${rT.stacked}`);
-    ok('2c an earlier day this year reads as a day and a month', rE.day === expect.earlier.day && rE.time === expect.earlier.time,
-      `${JSON.stringify(rE.day)} ${JSON.stringify(rE.time)} · expected ${JSON.stringify(expect.earlier.day)} ${JSON.stringify(expect.earlier.time)}`);
-    ok('2d a day from another year carries its year', rY.day === expect.year.day && (rY.day || '').includes(expect.yearNo),
-      `${JSON.stringify(rY.day)} · expected ${JSON.stringify(expect.year.day)}`);
-    ok('2e this year\'s days do not repeat the year', !!rE.day && (expect.earlierOtherYear || !rE.day.includes(expect.thisYear)),
-      JSON.stringify(rE.day));
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3, "build exactly the drawings"): the
+       DAY is a heading over its entries — the whole date, as drawn, with its
+       count — and each row carries its time. Reverses 24 Sep's day-over-time. */
+    const full = await page.evaluate(i => { const c = getContract(i);
+      const loc = typeof langLocale === 'function' ? langLocale() : undefined;
+      const f = s => new Date((c.audit || []).find(a => a.detail === s).at).toLocaleDateString(loc, { day: 'numeric', month: 'short', year: 'numeric' });
+      return { today: f('today'), earlier: f('three days ago'), year: f('a year ago') }; }, id);
+    ok('2a today\'s entry sits under a heading naming its whole date', !!rT.head && rT.head.startsWith(full.today),
+      `${JSON.stringify(rT.head)} · expected ${JSON.stringify(full.today)}`);
+    ok('2b and the row carries its time, in the product\'s one clock', rT.time === expect.today.time
+      && /\d{1,2}[:.]\d{2}/.test(rT.time || ''), `${JSON.stringify(rT.time)} · expected ${JSON.stringify(expect.today.time)}`);
+    ok('2c an earlier day has its own heading', !!rE.head && rE.head.startsWith(full.earlier) && rE.time === expect.earlier.time,
+      `${JSON.stringify(rE.head)} ${JSON.stringify(rE.time)}`);
+    ok('2d a day from another year carries its year', !!rY.head && rY.head.includes(expect.yearNo), JSON.stringify(rY.head));
+    ok('2e the heading counts its entries', !!rT.head && /event/i.test(rT.head), JSON.stringify(rT.head));
     ok('2f no row prints the raw record date', rows.every(r => !/\d{4}-\d{2}-\d{2}/.test(r.when)),
       rows.map(r => r.when.replace(/\s+/g, ' ').trim()).slice(0, 4).join(' | '));
 
@@ -227,28 +235,11 @@ const PROBE = `(() => {
       !!(refused && refused.dot && m.tones && refused.dot.ring === m.tones['--st-ruby-dot']),
       refused && refused.dot ? `${refused.dot.ring} · ruby ${m.tones && m.tones['--st-ruby-dot']}` : 'none');
 
-    /* ================= 4. ONE LINE JOINS THEM ================= */
-    const lined = rows.filter(r => r.line && r.dot);
-    ok('4a every entry draws its piece of the line, 1px wide',
-      lined.length === rows.length && lined.every(r => Math.abs(r.line.w - 1) < 0.01),
-      `${lined.length} of ${rows.length}`);
-    ok('4b the line runs through the middle of every ring',
-      lined.length > 0 && lined.every(r => Math.abs(r.line.x - r.dot.cx) <= 1),
-      lined.slice(0, 3).map(r => `line ${r.line.x.toFixed(1)} · ring ${r.dot.cx.toFixed(1)}`).join(' | '));
-    const first = lined[0], last = lined[lined.length - 1];
-    ok('4c it starts at the first ring, not above it',
-      !!first && Math.abs(first.line.top - first.dot.cy) <= 1.5,
-      first ? `line from ${first.line.top.toFixed(1)} · ring centre ${first.dot.cy.toFixed(1)}` : 'no line');
-    ok('4d and ends at the last ring, not below it',
-      !!last && Math.abs(last.line.bot - last.dot.cy) <= 1.5,
-      last ? `line to ${last.line.bot.toFixed(1)} · ring centre ${last.dot.cy.toFixed(1)}` : 'no line');
-    const gaps = lined.slice(0, -1).map((r, k) => Math.abs(r.line.bot - lined[k + 1].line.top));
-    ok('4e with no break between one entry and the next', gaps.length > 0 && gaps.every(g => g <= 1),
-      gaps.map(g => g.toFixed(1)).join(', '));
-    ok('4f in the page\'s own rule colour', lined.length > 0 && lined.every(r => r.line.color === m.rule),
-      lined.length ? `${lined[0].line.color} · rule ${m.rule}` : 'no line');
-    ok('4g and no rule runs across the page between entries', rows.length > 0 && rows.every(r => r.rule === 0),
-      rows.map(r => r.rule).join(','));
+    /* ================= 4. ROWS, NOT A LINE (RE-POINTED 9 Oct 2026) =================
+       The drawing rules each entry off from the next and draws no line down the
+       rings; the line of 24 Sep is STALE. */
+    ok('4a no line is drawn down the rings', rows.length > 0 && rows.every(r => !r.line), rows.filter(r => r.line).length + ' lines');
+    ok('4b each entry is ruled off from the next', rows.length > 0 && rows.every(r => r.rule >= 1), rows.map(r => r.rule).join(','));
 
     /* ================= 5. THE ROUND AT THE RIGHT WALL ================= */
     const r1 = rows.find(r => r.round && /^R1$/.test(r.round.text));
@@ -257,8 +248,7 @@ const PROBE = `(() => {
       r1 ? JSON.stringify(r1.round.hover) : 'no R1');
     ok('5c at the product\'s strong weight', !!r1 && r1.round.weight === m.strong,
       r1 ? `${r1.round.weight} · strong ${m.strong}` : 'no R1');
-    ok('5d an entry that belongs to no round says so with a dash', !!(rT.round && rT.round.text === '—'),
-      JSON.stringify(rT.round));
+    ok('5d an entry that belongs to no round carries no chip', rT.round === null, JSON.stringify(rT.round));
 
     /* ================= 6. THE SENTENCE IN BLACK ================= */
     const titles = rows.map(r => r.title).filter(Boolean);
@@ -272,16 +262,21 @@ const PROBE = `(() => {
       titles.length ? `${titles[0].weight} · label ${m.label}` : 'none');
 
     /* ================= 7. CONTROLS ================= */
-    ok('7a CONTROL the five filters are still in the open', m.filters === 5, m.filters + ' filters');
+    /* RE-POINTED 9 Oct 2026: the five fold behind one Filter button, as drawn. */
+    ok('7a the five filters fold behind Filter', m.filters === 0, m.filters + ' filters showing');
+    await page.click('#hist-filter-btn');
+    await page.waitForTimeout(300);
+    const f5 = await page.evaluate(() => [...document.querySelectorAll('#ws-history-pane .hist-f select')].filter(s => s.getBoundingClientRect().width > 0).length);
+    ok('7a2 and Filter opens all five', f5 === 5, f5 + ' filters');
+    await page.click('#hist-filter-btn');
+    await page.waitForTimeout(300);
     await page.click('#hist-detail');
     await page.waitForTimeout(500);
     const wording = await page.evaluate(() => document.querySelectorAll('#ws-history-pane .hist-redline').length);
     ok('7b CONTROL "Show the wording" still prints a proposal\'s redline', wording > 0, wording + ' redlines');
     const w2 = await page.evaluate(PROBE);
-    const lined2 = (w2.rows || []).filter(r => r.line);
-    const gaps2 = lined2.slice(0, -1).map((r, k) => Math.abs(r.line.bot - lined2[k + 1].line.top));
-    ok('7c and with the wording open the line still joins every entry', gaps2.length > 0 && gaps2.every(g => g <= 1),
-      gaps2.map(g => g.toFixed(1)).join(', '));
+    ok('7c and with the wording open every entry is still on the page', (w2.rows || []).length === rows.length,
+      `${(w2.rows || []).length} of ${rows.length}`);
     await shot('02-history-wording.png');
     await page.click('#hist-detail');
     await page.waitForTimeout(300);
@@ -293,7 +288,7 @@ const PROBE = `(() => {
     const dRows = d.rows || [];
     ok('8a CONTROL at night the sentence takes the night ink', dRows.length > 0 && dRows.every(r => r.title && r.title.color === d.ink),
       dRows.length && dRows[0].title ? `${dRows[0].title.color} · ink ${d.ink}` : 'none');
-    ok('8b and the ring is filled with the night surface, so the line still passes behind it',
+    ok('8b and the ring is filled with the night surface',
       dRows.length > 0 && dRows.every(r => r.dot && r.dot.fill === d.surface),
       dRows.length && dRows[0].dot ? `${dRows[0].dot.fill} · surface ${d.surface}` : 'none');
     await shot('03-history-dark.png');

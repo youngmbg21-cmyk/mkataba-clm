@@ -68,7 +68,10 @@ const PROBE = () => {
   const lab = el => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')
     + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/)[0] : '');
   const EXEMPT = /hm-hero|rl-turnwrap|nego-turn|live-dot/;
-  const SCROLLERS = /content-scroll|doc-scroll|nego-scroll|cal-grid|reg-scroll/;
+  /* cal-body JOINED 9 Oct 2026: the owner gave the month fixed day boxes
+     ("the page may scroll on a short laptop"), so the calendar's body is now
+     a page scroller, meant to scroll. */
+  const SCROLLERS = /content-scroll|doc-scroll|nego-scroll|cal-grid|cal-body|reg-scroll/;
   const seen = new Set();
   document.querySelectorAll('#app-shell *').forEach(el => {
     const r = el.getBoundingClientRect();
@@ -82,7 +85,10 @@ const PROBE = () => {
     }
     // STARVED: a scrolling list with less room than one of its own rows
     if (['auto', 'scroll'].includes(cs.overflowY) && el.scrollHeight > el.clientHeight + 2 && !SCROLLERS.test(k)) {
-      const first = el.firstElementChild;
+      /* A list drawn as ONE table is one child: its row is the table's first
+         body row, not the whole table (9 Oct 2026, Our standards' clause list). */
+      const kid = el.firstElementChild;
+      const first = kid && kid.tagName === 'TABLE' ? (kid.querySelector('tbody tr') || kid) : kid;
       const rowH = first ? first.getBoundingClientRect().height : 0;
       if (rowH > 8 && el.clientHeight < rowH) {
         if (!seen.has('s' + k)) { seen.add('s' + k); out.starved.push({ el: k, got: Math.round(el.clientHeight), row: Math.round(rowH) }); }

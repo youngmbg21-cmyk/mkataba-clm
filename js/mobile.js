@@ -194,7 +194,7 @@ const M_CSS = `
   .m-note{ font-size:var(--t-card); color:var(--color-neutral-600); line-height:1.55; }
   .m-lbl{ font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-neutral-600); }
   .m-capline{ font-size:var(--t-card); font-weight:var(--w-strong); color:var(--color-neutral-600);
-    letter-spacing:.04em; text-transform:uppercase; }
+      }
 
   /* ---- buttons ---- */
   .m-btn{
@@ -367,7 +367,7 @@ const M_CSS = `
      pressable — a heading between two stacks of cards. */
   .m-ngband{ display:flex; align-items:center; gap:9px; padding:0 var(--s-4) 7px; }
   .m-ngband-dot{ width:9px; height:9px; border-radius:50%; flex:none; }
-  .m-ngband-k{ font-size:var(--t-meta); font-weight:var(--w-title); letter-spacing:.08em; text-transform:uppercase;
+  .m-ngband-k{ font-size:var(--t-meta); font-weight:var(--w-title);  
     color:var(--color-neutral-600); }
   .m-ngband-n{ font-family:var(--font-mono); font-size:var(--t-meta); font-weight:var(--w-title);
     color:var(--color-neutral-600); background:var(--color-surface);

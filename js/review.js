@@ -1309,7 +1309,7 @@ function reviewVerbsHtml(c, ch, opts = {}){
        btn('advise-discuss', 'rv-adv', i18t('rv_v_adv_discuss'), i18t('rv_advice_title'))];
   return `<div class="rv-verbs" data-rv-for="${_rvE(ch.id)}"
     style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:7px;padding-top:7px;border-top:1px dashed var(--color-divider)">
-    <span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_rvE(i18t('rv_your_verdict'))}</span>
+    <span style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)">${_rvE(i18t('rv_your_verdict'))}</span>
     ${verbs.join('')}
     <button type="button" class="rv-btn rv-note" data-rv-note="${_rvE(ch.id)}"
       title="${_rvE(i18t('rv_note_title'))}"
@@ -1683,7 +1683,7 @@ function reviewAskModalHtml(c, opts = {}){
 
     <div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:11px 13px;background:var(--color-bg);margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px">
-        <span style="flex:1;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_rvE(i18t('rv_in_scope'))}</span>
+        <span style="flex:1;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)">${_rvE(i18t('rv_in_scope'))}</span>
         ${scope.all.length > 1 ? `<button type="button" id="rv-pick-all" class="ui-link">${_rvE(i18t('rv_pick_none'))}</button>` : ''}
       </div>
       ${scope.ours.length ? `<div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-text);margin:var(--s-1) 0 2px">${_rvE(i18tn('rv_scope_ours', scope.ours.length, { n: scope.ours.length }))}</div>

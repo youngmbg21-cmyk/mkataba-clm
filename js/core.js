@@ -738,7 +738,7 @@ function shareLegendHtml(opts={}){
   const item = st => { const m=SHARE_META[st];
     return `<span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="width:9px;height:9px;border-radius:50%;${shareDotStyle(st)};display:inline-block;flex:none"></span>${m.label}</span>`; };
   return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px var(--s-3);font-size:var(--t-label);color:var(--color-neutral-700);${opts.style||''}">
-    <span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('co_link')}</span>
+    <span style="font-size:var(--t-micro);color:var(--color-neutral-500)">${i18t('co_link')}</span>
     ${SHARE_LEGEND.map(item).join('')}
     <span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap"><span style="color:var(--color-neutral-400)">&mdash;</span>${i18t('reg_not_sent')}</span>
   </div>`;
@@ -2120,7 +2120,7 @@ function renderAuth(mode){
         <div style="width:36px;height:36px;background:var(--color-accent-800);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);letter-spacing:.02em;border-radius:var(--radius);">HT</div>
         <div style="line-height:1.15;">
           <div style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:20px;letter-spacing:.01em;color:var(--color-text);">HaTi</div>
-          <div style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);">${i18t('co_clm')}</div>
+          <div style="font-size:var(--t-micro);color:var(--color-neutral-600);">${i18t('co_clm')}</div>
         </div>
       </div>
       <div style="background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius);padding:26px;">${inner}</div>
@@ -4680,7 +4680,7 @@ function shareSummaryStepHtml(c, opts={}){
         <span style="display:block;font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text);line-height:1.45">${esc(x.summary||x.kind)}</span>
         <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:1px">${esc(x.clause)} · ${esc(x.kind)} · ${esc(x.mine?'yours':x.author)}</span>
       </span>
-      <span style="flex:none;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;border-radius:var(--radius);padding:2px 6px;margin-top:1px;
+      <span style="flex:none;font-size:var(--t-micro);font-weight:var(--w-title);border-radius:var(--radius);padding:2px 6px;margin-top:1px;
         background:${x.status==='accepted'?'var(--st-green-bg)':x.status==='rejected'?'var(--st-ruby-bg)':'var(--st-amber-bg)'};
         color:${x.status==='accepted'?'var(--st-green-fg)':x.status==='rejected'?'var(--st-ruby-dot)':'var(--st-amber-fg)'}">${esc(x.status)}</span>
     </li>`).join('') : '';
@@ -4878,7 +4878,7 @@ function shareSignerRowsHtml(c, sel){
           s.role?`<span style="font-weight:var(--w-body);color:var(--color-neutral-600)"> · ${esc(s.role)}</span>`:''}</span>
         <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.45">${note}</span>
       </span>
-      ${on?`<span style="flex:none;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--accent-ink)">${i18t('co_signer_this_link')}</span>`:''}
+      ${on?`<span style="flex:none;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--accent-ink)">${i18t('co_signer_this_link')}</span>`:''}
     </${pickable?'button':'div'}>`;
   }).join('');
   return { plan, html };
@@ -4903,7 +4903,7 @@ function shareSignerPickHtml(c, sel){
   return `<div id="share-signers-box" data-need-signers="${need?'1':'0'}" style="margin:0 0 14px;${box};border-radius:var(--radius);padding:11px var(--s-3)">
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-2)">
       ${need?`<span style="flex:none;display:inline-flex;color:var(--st-amber-fg)">${icon('alert','w-3.5 h-3.5')}</span>`:''}
-      <span style="flex:1;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:${need?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${i18t('co_who_signs')}</span>
+      <span style="flex:1;font-size:var(--t-micro);font-weight:var(--w-title);color:${need?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${i18t('co_who_signs')}</span>
       ${plan.length?`<span style="flex:none;font-size:var(--t-label);color:var(--color-neutral-600)">${plan.filter(s=>s.signed).length} of ${plan.length} signed</span>`:''}
     </div>
     <div id="share-signer-rows">${html}</div>
@@ -4958,7 +4958,7 @@ function readinessPanelHtml(c, o={}){
     <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:${tone.fg};margin-bottom:6px;">${icon('alert','w-3.5 h-3.5')} ${tone.head}</div>
     ${blocks.length?list(blocks,tone.fg):''}
     ${notes.length?`<div style="${blocks.length?'margin-top:9px;padding-top:var(--s-2);border-top:1px solid '+tone.line+';':''}">
-      ${blocks.length?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:var(--s-1)">${i18t('co_also_worth_knowing')}</div>`:''}
+      ${blocks.length?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:var(--s-1)">${i18t('co_also_worth_knowing')}</div>`:''}
       ${list(notes,blocks.length?'var(--color-neutral-700)':tone.fg)}
     </div>`:''}
     ${blocks.length?`<label style="display:flex;align-items:flex-start;gap:7px;margin-top:9px;font-size:var(--t-meta);color:${tone.fg};cursor:pointer;">
@@ -7532,7 +7532,7 @@ async function openShareModal(c, opts={}){
              non-attempt stops being reported as a refusal. */
           resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:0;padding:var(--s-3);font-size:var(--t-meta);color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_not_delivered')}</strong> The link was created and is safe to send another way, but ${esc(email)} has not received anything.${r.emailError?`<br><span style="display:inline-block;margin-top:6px;font-family:var(--font-mono);font-size:var(--t-label);line-height:1.5">${esc(r.emailError)}</span>`:''}${link}</span></div>`);
         } else {
-          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:var(--radius);padding:var(--s-3);font-size:var(--t-meta);color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_queued_not_sent')}</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Settings &amp; Rules.${link}</span></div>`);
+          resultBox(`<div style="border:1px solid color-mix(in srgb,var(--st-amber-dot) 45%,transparent);background:color-mix(in srgb,var(--st-amber-dot) 10%,transparent);border-radius:var(--radius);padding:var(--s-3);font-size:var(--t-meta);color:var(--st-amber-fg);display:flex;align-items:flex-start;gap:var(--s-2);">${icon('alert','w-4 h-4')}<span><strong>${i18t('co_queued_not_sent')}</strong> This server has no mail provider set up, so nothing left HaTi. An admin can read the message and the link in the outbox under Settings.${link}</span></div>`);
         }
       } else if(ch==='word'){
         /* THE SAME THREE OUTCOMES THE EMAIL CHANNEL REPORTS, because they are

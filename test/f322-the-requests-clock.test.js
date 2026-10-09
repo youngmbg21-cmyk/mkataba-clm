@@ -296,7 +296,8 @@ describe('f322 (7) every name this page grew is reachable', () => {
   test('7b the three facts are drawn with a label above a value', () => {
     const w = world([]);
     const h = w.ikClockHtml(REQ({ assignee:{ id:'u1', name:'Tomás' }, promisedAt: day(4) }));
-    assert.match(h, /Road/); assert.match(h, /With/); assert.match(h, /Promised/);
+    /* "Road" is "How it is handled" since 9 Oct 2026 (SAP benchmark, batch 2) */
+    assert.match(h, /How it is handled/); assert.match(h, /With/); assert.match(h, /Promised/);
     assert.match(h, /Tomás/);
   });
 });

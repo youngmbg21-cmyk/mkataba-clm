@@ -2564,8 +2564,13 @@ const pause = ms => new Promise(r => setTimeout(r, ms));
       amber: (() => { const i = document.createElement('i');
         i.style.color = 'var(--st-amber-fg, #b45309)'; document.body.appendChild(i);
         const v = getComputedStyle(i).color; i.remove(); return v; })(),
+      /* RE-POINTED 9 Oct 2026: the redline cards' buttons keep today's
+         colours under Ink Wash (owner: "do not change the colors of the
+         redline cards Buttons"), so the label shade is read WHERE THE BUTTON
+         READS IT — inside a card's button — not off the page. */
       label: (() => { const i = document.createElement('i');
-        i.style.color = 'var(--color-neutral-600)'; document.body.appendChild(i);
+        i.style.color = 'var(--color-neutral-600)';
+        (document.querySelector('.rl-card button') || document.body).appendChild(i);
         const v = getComputedStyle(i).color; i.remove(); return v; })(),
     };
   }, stage);

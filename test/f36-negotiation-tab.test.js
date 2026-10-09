@@ -715,7 +715,9 @@ describe('the room wears the prototype\'s visual language, and keeps it to itsel
     const m = await mounted();
     const css = m.doc.getElementById('nego-style').textContent;
     assert.match(css, /--n-slate:#33475c/, 'the prototype\'s slate');
-    assert.match(css, /--n-canvas:#f2f4f7/, 'the prototype\'s cool canvas');
+    // RE-POINTED 9 Oct 2026 (Ink Wash, owner: no grey in light mode): the
+    // canvas, lines and inks read the ramp — still the room's own handles.
+    assert.match(css, /--n-canvas:var\(--color-neutral-100\)/, 'the room\'s canvas reads the ramp');
     // The document face resolves from the design's global token since the
     // redesign unified typography — the room still declares its OWN --n-font-*
     // handles, so its sheet never names a family directly.

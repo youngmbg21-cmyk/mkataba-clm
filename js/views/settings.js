@@ -263,10 +263,6 @@ const ST_BTN_SM='font-family:var(--font-mono);font-weight:var(--w-strong);font-s
 const ST_BTN2='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-meta);padding:5px 11px;background:var(--color-surface);color:var(--accent-ink);border:1px solid var(--color-divider);border-radius:var(--radius);cursor:pointer';
 const ST_BTN_DANGER='display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-weight:var(--w-strong);font-size:var(--t-meta);padding:5px 11px;background:var(--color-surface);color:var(--st-ruby-dot);border:1px solid var(--st-ruby-line);border-radius:var(--radius);cursor:pointer';
 const ST_TAG='display:inline-flex;align-items:center;font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.04em;padding:3px 10px;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)';
-const ST_AV='width:24px;height:24px;border-radius:50%;background:var(--st-steel-bg);color:var(--st-steel-fg);display:inline-grid;place-items:center;font-size:var(--t-figure);font-weight:var(--w-title);flex:none;font-family:var(--font-mono)';
-const stRoleTag=r=>{ const map={admin:['var(--st-steel-bg)','var(--st-steel-fg)'],legal:['var(--st-amber-bg)','var(--st-amber-fg)'],viewer:['var(--st-gray-bg)','var(--st-gray-fg)']};
-  const [bg,fg]=map[r]||map.viewer;
-  return `display:inline-flex;align-items:center;font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.04em;padding:3px 10px;border-radius:var(--radius);background:${bg};color:${fg}`; };
 const stLimitField=(id,label,sub,min)=>`<label style="display:block">
     <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.4">${label}<br><span style="color:var(--color-neutral-400)">${sub}</span></span>
     <input id="${id}" type="number" min="${min}" style="margin-top:3px;${ST_MONO}"/></label>`;
@@ -912,48 +908,67 @@ function stPersonMissing(u){
      && typeof signCapOf==='function' && !signCapOf(u).answered) out.push(i18t('sc_section'));
   return out;
 }
+/* ---- THE DRAWING'S TABLE (SAP benchmark, batch 2 — the owner's "go", 9 Oct
+   2026) ---- Name, Role, Streams, Signing limit, Setup, one row per person,
+   each row the door to that person's drawer. The yellow strip naming the
+   unfinished went: the People TAB carries how many are unfinished, and each
+   row's Setup cell says what is missing, in amber — the same list the drawer
+   refuses with (stPersonMissing). Add member is the table's own act. */
+function stUnfinishedCount(){
+  try{ return (getUsers()||[]).filter(u=>stPersonMissing(u).length).length; }catch(_){ return 0; }
+}
+function stSetupHtml(miss){
+  if(!miss.length) return `<span class="st-setup is-ok"><i aria-hidden="true"></i>${esc(i18t('st_complete'))}</span>`;
+  const t=miss.length===1?i18t('st_setup_missing',{what:miss[0]}):i18tn('st_n_missing',miss.length,{n:miss.length});
+  return `<span class="st-setup is-warn" title="${esc(miss.join(', '))}"><i aria-hidden="true"></i>${esc(t)}</span>`;
+}
 function stPeopleHtml(){
   const me=currentUser()||{};
   const users=getUsers()||[];
-  const unfinished=users.filter(u=>stPersonMissing(u).length);
-  const banner=unfinished.length?`
-    <div class="st-banner" id="st-people-banner">
-      <span class="st-banner-ic">${icon('alert','w-4 h-4')}</span>
-      <span><b>${i18tn('st_unfinished',unfinished.length,{n:unfinished.length,who:esc(unfinished.map(u=>u.name||u.email).join(', '))})}</b>
-      <span style="display:block;margin-top:2px">${i18t('st_unfinished_why')}</span></span>
-    </div>`:'';
+  const ic=n=>(typeof icon==='function')?icon(n,'w-3.5 h-3.5'):'';
   const rows=users.map(u=>{
     const ini=(u.name||u.email||'?').split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
     const miss=stPersonMissing(u);
     const acc=stAccessOf(u);
-    return `<button class="st-person" data-st-panel="person:${PB_ATTR(u.id)}">
-      <span style="${ST_AV};width:30px;height:30px;font-size:var(--t-label)">${esc(ini)}</span>
-      <span class="st-person-main">
-        <span class="st-person-name">${esc(u.name||u.email)}${u.id===me.id?` <span style="font-weight:var(--w-body);color:var(--color-neutral-500);font-size:var(--t-label)">${i18t('set_you')}</span>`:''}</span>
-        <span class="st-person-sub">
-          <span style="${stRoleTag(u.role)}">${esc(roleName(u.role))}</span>
-          <span>${u.title?esc(u.title):`<span style="color:var(--st-amber-fg)">${i18t('set_no_job_title')}</span>`}</span>
-          <span style="color:${acc.all?'var(--color-neutral-600)':'var(--st-amber-fg)'}">${esc(acc.text)}</span>
-          ${''/* HOW MUCH THEY MAY SIGN FOR, on the row, because it is the fact
-                 an admin comes to this list to check and it was invisible until
-                 you opened somebody. signCapText is the ONE reading. */}
-          <span data-st-cap="${PB_ATTR(u.id)}" style="color:${(typeof signCapOf==='function'&&!signCapOf(u).answered&&u.role!=='viewer'&&u.role!=='admin')?'var(--st-amber-fg)':'var(--color-neutral-600)'}">${esc((typeof signCapText==='function')?signCapText(u):'')}</span>
-          ${''/* WHO APPROVES BEFORE THEY SIGN (23 Sep 2026), on the row, for
-                 the signing limit's own reason: it is the fact an admin comes
-                 to this list to check. Drawn only where the rule is on. */}
-          ${stApprovalRowText(u)?`<span data-st-sa="${PB_ATTR(u.id)}" style="color:var(--color-neutral-600)">${esc(stApprovalRowText(u))}</span>`:''}
-        </span>
-      </span>
-      <span class="st-chip" data-tone="${miss.length?'warn':'ok'}">${miss.length?i18tn('st_n_missing',miss.length,{n:miss.length}):i18t('st_complete')}</span>
-      <span class="st-row-go" aria-hidden="true">›</span>
-    </button>`;
+    const role=roleName(u.role);
+    const hay=[u.name,u.email,u.title,role].filter(Boolean).join(' ').toLocaleLowerCase();
+    const sa=stApprovalRowText(u);
+    return `<tr class="st-person" data-st-panel="person:${PB_ATTR(u.id)}" data-st-hay="${esc(hay)}">
+      <td><button type="button" class="st-person-open" data-st-panel="person:${PB_ATTR(u.id)}"><span class="st-person-av">${esc(ini)}</span><span class="st-person-name">${esc(u.name||u.email)}${u.id===me.id?` <span class="st-person-you">${i18t('set_you')}</span>`:''}</span></button></td>
+      <td><span class="reg-stg ins-pill"><i aria-hidden="true"></i>${esc(role)}</span></td>
+      <td>${esc(acc.text)}</td>
+      ${''/* HOW MUCH THEY MAY SIGN FOR, on the row: the fact an admin comes to
+             this list to check. signCapText is the ONE reading; who approves
+             before they sign rides under it where that rule is on. */}
+      <td><span data-st-cap="${PB_ATTR(u.id)}">${esc((typeof signCapText==='function')?signCapText(u):'')}</span>${
+        sa?`<span class="st-person-sub" data-st-sa="${PB_ATTR(u.id)}">${esc(sa)}</span>`:''}</td>
+      <td>${stSetupHtml(miss)}</td>
+      <td class="st-person-go" aria-hidden="true">${ic('chevR')}</td>
+    </tr>`;
   }).join('');
-  return `${banner}
-    <div class="st-people-head">
-      <span class="st-people-count">${i18tn('st_people_count',users.length,{n:users.length})}</span>
-      <button id="st-add-person" class="ui-btn ui-btn-primary" data-st-panel="person:new">${i18t('st_add_person')}</button>
+  return `<section class="st-people-card">
+    <div class="ins-cardhead st-people-head">
+      <h2 class="ins-cardhead-t">${esc(i18t('st_tab_people'))} <span class="ins-cardhead-n">(${users.length})</span></h2>
+      <span style="flex:1"></span>
+      <label class="ik-search">${ic('search')}<input type="search" id="st-people-q" placeholder="${esc(i18t('st_people_search'))}" aria-label="${esc(i18t('st_people_search'))}"></label>
+      <button id="st-add-person" class="ui-btn ui-btn-primary" data-st-panel="person:new">${ic('plus')}${esc(i18t('st_add_person'))}</button>
     </div>
-    <div class="st-people">${rows}</div>`;
+    <table class="st-people-table"><colgroup><col><col style="width:14%"><col style="width:16%"><col style="width:17%"><col style="width:20%"><col style="width:44px"></colgroup>
+      <thead><tr><th>${esc(i18t('dir_col_name'))}</th><th>${esc(i18t('dir_col_role'))}</th><th>${esc(i18t('st_col_streams'))}</th><th>${esc(i18t('st_col_cap'))}</th><th>${esc(i18t('st_col_setup'))}</th><th><span class="sr-only">${esc(i18t('reg_more_actions'))}</span></th></tr></thead>
+      <tbody class="st-people">${rows}</tbody></table>
+  </section>`;
+}
+/* THE SEARCH NARROWS IN PLACE (rows hidden, never redrawn — THE SETTINGS PAGE
+   HOLDS STILL), bound once per element. */
+function stPeopleWire(){
+  const box=document.getElementById('st-people-q');
+  if(!box || box.dataset.stQBound) return;
+  box.dataset.stQBound='1';
+  box.addEventListener('input',()=>{
+    const q=String(box.value||'').trim().toLocaleLowerCase();
+    document.querySelectorAll('#set-page tr.st-person').forEach(tr=>{
+      tr.hidden=!!q && !String(tr.getAttribute('data-st-hay')||'').includes(q); });
+  });
 }
 
 /* ---- SECTION 4 — SIGNING ----
@@ -2360,7 +2375,7 @@ const SET_PANELS={
                    element rule that exempts it lives in index.html, because an
                    inline style cannot reach a ::placeholder. */}
             <input id="st-fx-code" type="text" list="st-fx-codes" autocomplete="off"
-              placeholder="${esc(i18t('st_fx_code_ph'))}" style="${window.RV_FLD||ST_INPUT}text-transform:uppercase"/></label>
+              placeholder="${esc(i18t('st_fx_code_ph'))}" style="${window.RV_FLD||ST_INPUT}"/></label>
           <datalist id="st-fx-codes"></datalist>
           <label style="flex:1;min-width:150px"><span style="${window.RV_LBL||''}">${esc(i18t('st_fx_rate',{cur:jxCurrency()}))}</span>
             <input id="st-fx-rate" type="number" step="any" min="0" placeholder="129.50" style="${window.RV_FLD||ST_INPUT}"/></label>
@@ -3853,7 +3868,7 @@ function stAcceptanceHtml(){
       ${tile(sh.notTaken + '%', i18t('ai_tr_not_taken'))}
     </div>
     <div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
-      <div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">
+      <div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid var(--color-divider);font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">
         <span style="flex:1;min-width:0">${esc(i18t('ai_tr_th_feature'))}</span>
         <span style="flex:none;width:72px;text-align:right;white-space:nowrap">${esc(i18t('ai_tr_th_proposals'))}</span>
         <span style="flex:none;width:72px;text-align:right;white-space:nowrap">${esc(i18t('ai_tr_th_as_is'))}</span>
@@ -4161,7 +4176,7 @@ function stWireEngine(){
         const people=Array.isArray(spend.byPerson)?spend.byPerson:[];
         const un=Number(spend.unattributed||0);
         pHost.innerHTML=`
-          <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin:0 0 var(--s-1)">${
+          <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin:0 0 var(--s-1)">${
             esc(i18t('set_spend_people'))}</div>
           ${people.length?`<div style="border:1px solid var(--color-divider);border-radius:var(--radius);overflow:hidden">
             ${people.map(p=>`<div style="display:flex;align-items:center;gap:var(--s-2);padding:var(--s-1) var(--s-2);border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);font-size:var(--t-label)">
@@ -4307,7 +4322,7 @@ function stLoadOutbox(){
         (failing&&hp.lastError?`<div class="mb-2 text-[10.5px] text-gold-700 bg-gold-500/10 rounded px-2 py-1.5 leading-relaxed">${i18t('set_why_failed',{why:esc(hp.lastError)})}</div>`:'')+
         (r.items.length?`<div class="space-y-1.5 max-h-56 overflow-y-auto scroll-thin">${r.items.map(it=>`
           <div class="rounded-lg border border-brand-100 bg-white p-2.5">
-            <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] uppercase tracking-wider ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?i18t('set_sent_lower'):it.provider}</span></div>
+            <div class="flex items-center gap-2"><span class="text-[11px] font-medium text-brand-900 truncate flex-1">${it.subject}</span><span class="text-[9px] ${it.sent?'text-brand-600':'text-gold-600'}">${it.sent?i18t('set_sent_lower'):it.provider}</span></div>
             <div class="text-[10px] font-mono text-brand-800/65 truncate">→ ${it.to_addr} · ${fmtDT(it.created_at)}</div>
             ${it.detail?`<div class="mt-1 text-[10px] text-gold-700 bg-gold-500/10 rounded px-1.5 py-1 leading-relaxed">${i18t('set_why_failed',{why:esc(it.detail)})}</div>`:''}
             ${it.dev_hint?`<div class="mt-1 text-[10px] font-mono text-gold-700 bg-gold-500/10 rounded px-1.5 py-0.5 inline-block">${it.dev_hint}</div>`:''}
@@ -4506,16 +4521,20 @@ function renderTeam(){
      while the body passes behind it (index.html). The class is on the ROW
      rather than on the page because .st-tabs is one control on three pages and
      only the page that draws it knows whether it wants it pinned. */
-  const tabRow=`<div class="st-tabs st-tabs-pin" role="tablist">${ST_TABS.map(k=>
-    `<button class="st-tab${k===tab?' on':''}" data-st-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t('st_tab_'+k))}</button>`).join('')}</div>`;
+  /* THE PEOPLE TAB COUNTS THE UNFINISHED (SAP benchmark, batch 2): it
+     replaced the yellow strip that named them; amber, because it is work. */
+  const unf=stUnfinishedCount();
+  const tabRow=`<div class="st-tabs st-tabs-pin sap-band" role="tablist">${ST_TABS.map(k=>
+    `<button class="st-tab${k===tab?' on':''}" data-st-tab="${k}" role="tab" aria-selected="${k===tab?'true':'false'}">${esc(i18t('st_tab_'+k))}${
+      k==='people'&&unf?`<span class="st-tab-n is-warn" title="${esc(i18tn('st_unfinished_n',unf,{n:unf}))}">${unf}</span>`:''}</button>`).join('')}</div>`;
   const body =
       tab==='people'   ? stPeopleHtml()
     : tab==='you'      ? `<div class="st-you">${stAccountBodyHtml()}<p class="st-note">${esc(i18t('st_you_elsewhere'))}</p></div>`
     : stRowsHtml(tab);
   document.getElementById('content').innerHTML=`
-  <div id="set-page" class="view-enter st-page">
+  <div id="set-page" class="view-enter st-page sap-page">
     ${tabRow}
-    <p class="st-tabsub">${esc(i18t('st_tab_'+tab+'_sub'))}</p>
+    ${tab==='people'?'':`<p class="st-tabsub">${esc(i18t('st_tab_'+tab+'_sub'))}</p>`}
     <div id="st-tabbody">${body}</div>
   </div>`;
   settingsHoldHeights(_heldHeights);
@@ -4525,6 +4544,7 @@ function renderTeam(){
      per element, never once per render. */
   stWireList();
   stLoadAiCfgOnce();
+  if(tab==='people') stPeopleWire();
   if(tab==='you') stAccountWire();
   /* A door may have asked for one panel. Consumed on arrival, exactly once, so
      a later repaint does not re-open something the reader closed. */
@@ -4637,7 +4657,7 @@ function renderPrecedentPanel(){
           </div>`:''}
         </div>`).join('')}
       ${learned.holding.length?`<div style="border-top:1px solid var(--color-divider);padding:9px 0 0;margin-top:3px">
-        <div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.09em;margin-bottom:4px">${esc(i18t('std_learn_holding'))}</div>
+        <div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:4px">${esc(i18t('std_learn_holding'))}</div>
         ${learned.holding.map(h=>`<div style="font-size:var(--t-label);color:var(--color-neutral-600);line-height:1.55">${esc(h.category)} — ${esc(i18t('std_learn_hold_line',{figure:h.figure,unit:h.unit,seen:h.seen,settled:h.settled}))}</div>`).join('')}
       </div>`:''}
     </div>`;
@@ -5033,7 +5053,7 @@ function renderPlaybookView(){
     <div style="margin-bottom:${baseline?'12px':'8px'};border:1px solid ${baseline?'var(--color-accent-300)':'var(--color-divider)'};border-left:3px solid ${baseline?'var(--color-accent)':'var(--color-divider)'};border-radius:var(--radius);background:${baseline?'var(--color-accent-100)':'var(--color-surface)'};padding:${baseline?'11px 13px':'10px 12px'}">
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:${baseline?'2px':'6px'}">
         <span style="font-size:var(--t-meta);font-weight:${baseline?700:600};color:${baseline?'var(--color-accent-900)':'var(--color-text)'}">${PB_ESC(label)}</span>
-        ${baseline?`<span style="font-size:var(--t-figure);font-family:var(--font-heading);letter-spacing:.06em;text-transform:uppercase;font-weight:var(--w-title);color:#fff;background:var(--color-accent);border-radius:var(--radius);padding:2px var(--s-2)">${i18t('set_applies_all')}</span>`:''}
+        ${baseline?`<span style="font-size:var(--t-figure);font-family:var(--font-heading);font-weight:var(--w-title);color:#fff;background:var(--color-accent);border-radius:var(--radius);padding:2px var(--s-2)">${i18t('set_applies_all')}</span>`:''}
         ${canEditPb?`<span style="margin-left:auto;display:flex;gap:10px;font-size:var(--t-label);font-weight:var(--w-strong)">
           <button data-pb-edit="${key}" style="background:none;border:0;cursor:pointer;color:var(--accent-ink-700)">${i18t('set_edit_lower')}</button>
           ${removable?`<button data-pb-del="${key}" style="background:none;border:0;cursor:pointer;color:var(--st-ruby-dot)">${i18t('set_remove_lower')}</button>`:''}
@@ -5547,7 +5567,7 @@ Object.assign(window,{renderTeam,settingsPlace,settingsPlacePut,stAgentsPaint,ST
   renderPlaybookView,openPlaybookEditor,pbRemoveType,pbResetPlaybook,stdRemoveClause,stdDraftSetOpen,
   renderApprovalRules,openApprovalRuleEditor,renderReviewGatePanel,renderDeskRulePanel,condLabel,loadSessions,
   stRulesRows,stPaintRules,stPaintSignFolders,
-  openMyAccount,openSettingsAt,settingsGoTab,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
+  openMyAccount,openSettingsAt,settingsGoTab,stUnfinishedCount,stPeopleWire,settingsTab,stLandTop,SET_PANELS,ST_TABS,SET_CLOSURES,ST_GROUPS,ST_ATTENTION_MAX,
   stDrawerOpen,stDrawerClose,stDrawerRefuse,settingsPersonDrawer,settingsSavePerson,settingsRemoveMember,
   settingsWriteFolderAccess,settingsExportBackup,stGoLive,stLoadAiCfgOnce,stSampleContracts,stClearSamples,stRunIntegrity,
   stPersonMissing,stPersonSays,stPersonSumHtml,stAccountBodyHtml,parseDirectoryCsv,openFolderAccessEditor,settingsMirrorDirectory,

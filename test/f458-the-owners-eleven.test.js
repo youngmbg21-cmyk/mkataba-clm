@@ -176,19 +176,31 @@ describe('f458 (6) — the money shortener steps up to billions', () => {
 
 /* ------------------------------------------------------------- 7 8 10 --- */
 describe('f458 (7) — the calendar keeps its height', () => {
-  test('the agenda panel declares ONE height instead of taking its content\'s', () => {
-    assert.match(CAL, /\.cal-stack > \.cal-panel\{flex:0 0 var\(--cal-panel-h\);min-height:0\}/,
-      'flex:none means "as tall as what is in it", and what is in it is four rows or fourteen; '
-      + 'and it must not SHRINK either, or a short laptop starves the agenda instead');
-    assert.match(CAL, /--cal-panel-h:300px/, 'and the number is written once');
+  /* RE-POINTED IN PLACE 9 Oct 2026 (SAP benchmark, batch 2 — the drawing
+     is the target): the agenda moved BESIDE the month. The month is sized by
+     the page alone; the agenda is a column of one width, never taller than
+     the month. The rule this pins is unchanged: the agenda cannot move the
+     month. calendar-holds-still-verify measures it in a browser. */
+  test('the agenda is a column of ONE width beside the month, capped at its height', () => {
+    assert.match(CAL, /\.cal-side\{flex:0 0 var\(--cal-side-w\);contain:size;/,
+      'a fixed width that adds no height of its own to the row');
+    assert.match(CAL, /\.cal-side > \.cal-panel\{flex:0 1 auto;min-height:0;max-height:100%\}/,
+      'and the card is never taller than the month beside it');
+    assert.match(CAL, /--cal-side-w:clamp\(360px,32vw,460px\)/, 'and the number is written once');
+    assert.match(CAL, /\.cal-stack:not\(\.is-wide\)\{flex-direction:row;align-items:stretch/,
+      'side by side, the row the month\'s height');
   });
 
   test('the agenda still scrolls inside it, so nothing is hidden by the cap', () => {
     assert.match(CAL, /\.cal-upn-list\{flex:1;min-height:0;overflow-y:auto\}/);
   });
 
-  test('the month keeps its floor, so a short screen squeezes the panel first', () => {
-    assert.match(CAL, /\.cal-stack > \.cal-grid\{flex:1 1 auto;min-height:440px\}/);
+  /* RE-POINTED 9 Oct 2026 (the owner: build it the SAP way): the month is six
+     rows of ONE fixed day height, as drawn — it no longer stretches to the
+     page, and it still never changes height. */
+  test('the month is six rows of one fixed day height', () => {
+    assert.match(CAL, /\.cal-month \.cal-weeks\{flex:none;grid-template-rows:repeat\(6,var\(--cal-day-h\)\)\}/);
+    assert.match(CAL, /--cal-day-h:76px/, 'and the number is written once');
   });
 
   test('and below 1024 the panel takes its content back, because the PAGE scrolls', () => {
@@ -196,7 +208,8 @@ describe('f458 (7) — the calendar keeps its height', () => {
        scroll. Stacked, the page does scroll, and a fixed panel would put a
        second scroller inside it — the trap that block's own note names. */
     const narrow = CAL.slice(CAL.indexOf('@media (max-width:1023px)'), CAL.indexOf('@media print'));
-    assert.match(narrow, /\.cal-stack > \.cal-panel\{flex:none\}/);
+    assert.match(narrow, /\.cal-side > \.cal-panel\{flex:none;max-height:none\}/);
+    assert.match(narrow, /\.cal-stack:not\(\.is-wide\)\{flex-direction:column/, 'and stacks under the month again');
   });
 });
 
@@ -225,7 +238,9 @@ describe('f458 (10) — the calendar\'s More button wears the row\'s outline', (
   test('it is an ordinary button, dressed like every other More', () => {
     const btn = CAL.slice(CAL.indexOf('id="cal-more"') - 160, CAL.indexOf('id="cal-more"') + 40);
     assert.ok(!/ui-btn-plain/.test(btn), '.ui-btn-plain declares a transparent border');
-    assert.match(btn, /class="ui-btn ws-more-btn"/, 'the shared dress every other More wears');
+    /* + cal-more-ic since 9 Oct 2026 (SAP benchmark, batch 2): the drawing's
+       ⋯ is a square icon button; the shared dress is unchanged under it */
+    assert.match(btn, /class="ui-btn ws-more-btn( cal-more-ic)?"/, 'the shared dress every other More wears');
   });
 
   test('and that dress still exists to be worn', () => {

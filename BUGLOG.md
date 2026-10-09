@@ -20571,6 +20571,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - On Negotiate, a colleague's lock sign on the paper (.rl-cp-lock) wears the contract design's typeface (Times New Roman under Formal legal) instead of the product's own face. Seen while re-pointing negotiate-design-verify; already so before this change.
 - js/mobile.js still maps a room tab key 'ov2' to the phone's Key terms tab (M_TAB_FOR_ROOM); harmless now the tab is gone, left as is.
 
+## Noticed, not fixed — 9 Oct 2026 (Ink Wash and sentence case)
+- test/chromium/theme-tokens-verify.js (the colour census) is red on unmodified main too: 16 screens report "every colour unchanged" failures before this change, so its baseline is already stale. Not re-recorded here, because a re-record would also bless drift unrelated to Ink Wash. With Ink Wash, calendar and templates (light) join the list; every dark screen stays as it was. ink-wash-verify carries this change's own census.
+- test/chromium/negotiation-memo, panel-alerts-and-head (7 FAIL) and templates-tabs (3 FAIL) fail identically on unmodified main. Left red.
 ## Noticed, not fixed — 9 Oct 2026 (SAP benchmark, batch 1: the lists)
 - The server lets any signed-in editor put an APPROVED rule step back to waiting in a save (srvApprovalDecisionRefusal skips a step whose new status is pending). It only makes a contract stricter, and Undo after Approve relies on it, but the server does not check that it is the approver taking back their own yes within the Undo window. Left as is.
 - Every page carries one unnamed button in the shell (axe button-name: 1 on Contracts, Negotiations, Approvals, Obligations). Planned for the accessibility batch.
@@ -20578,3 +20581,10 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed — 9 Oct 2026 (SAP benchmark of the pop-ups)
 - The "Fill a template" pop-up's "Which side are we on?" dropdown lists "[object Object]" three times instead of its choices (seen opening openTemplateFillModal on the first built-in template with the 30 Kenyan samples).
 - Deleting a draft ends in a red error toast ("… deleted", kind 'err' in deleteContract), so a success reads as a failure.
+### Noticed, not fixed (SAP batch 2, 9 Oct 2026)
+- calendar-redesign-verify sections 5, 7 and 8 fail on main and on the branch alike: its SEED pins every event to August 2026, so once the real month moves on the grid shows none of them (a test whose answer depends on the day it runs). Section 3's colour check passes vacuously for the same reason.
+- axe reports one unnamed button on every page photographed (the same count on main) — left for the accessibility batch.
+- A faint grey strip shows at the right edge of pages that do not own their height (the scroller's reserved gutter beside the white head) — Calendar, Requests, People and Our paper now own theirs; others still show it.
+- CLAUDE.md is about 95 KB, over its own 80 KB line — a trim is owner-asked, not done here.
+- refile-a-contract-verify, nine-jobs-verify and paper-terms-frozen-verify fail identically on unmodified main (3cf24bb, 9 Oct 2026): main's own tests run has been red on its last three merges. Not fixed in the SAP batch 2 PR.
+- signing-on-paper-verify 1c, 4a and its journey fail identically on unmodified main (3cf24bb, 9 Oct 2026): the two copies start at different pixels and the mark never lands. Not fixed in SAP batch 3.

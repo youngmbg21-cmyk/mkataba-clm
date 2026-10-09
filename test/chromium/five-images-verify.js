@@ -51,7 +51,9 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.waitForTimeout(1400);
     await page.screenshot({ path: path.join(OUT, '01-contracts.png') });
 
-    const tabs = await page.$$eval('[data-reg-view]', els => els.map(e => e.textContent.trim()));
+    /* RE-POINTED 9 Oct 2026 (owner's pick): the quick filters are a box now, so
+       its options are what is asked. */
+    const tabs = await page.$$eval('#reg-view-sel option', els => els.map(e => e.textContent.trim()));
     ok('2a the 60-day tab is gone', !tabs.some(t => /≤ 60/.test(t)), tabs.join(' | '));
     ok('2a2 the 30-day tab is gone', !tabs.some(t => /≤ 30/.test(t)));
     ok('2a3 and 90 is still there', tabs.some(t => /≤ 90/.test(t)));
@@ -86,19 +88,21 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     /* ---- AND IT NARROWS. A control that opens and does nothing is the
        same report in a second costume. ---- */
     const before = await page.$$eval('tr[data-row]', r => r.length);
-    await page.selectOption('#reg-stage-sel', 'Executed');
+    /* RE-POINTED 9 Oct 2026: the stage is the tab row on this page now, so the
+       box picked is the stream — the claim (a box narrows and says so) is one. */
+    const pick = await page.$eval('#reg-type-sel', s => { const o = s.options[1]; return o ? { v: o.value, t: o.textContent.trim() } : null; });
+    await page.selectOption('#reg-type-sel', pick ? pick.v : 'all');
     await page.waitForTimeout(800);
-    const after = await page.evaluate(() => ({
+    const after = await page.evaluate(() => { const c = document.getElementById('reg-type-sel').closest('.reg-chip'); return {
       rows: document.querySelectorAll('tr[data-row]').length,
-      face: (document.querySelector('.reg-filterbar .reg-chip .reg-f-l') || {}).textContent,
-      lit: document.querySelector('.reg-filterbar .reg-chip').classList.contains('on')
-    }));
-    ok('2c3 picking a stage narrows the table', after.rows > 0 && after.rows < before,
+      face: (c.querySelector('.reg-f-l') || {}).textContent,
+      lit: c.classList.contains('on') }; });
+    ok('2c3 picking a stream narrows the table', after.rows > 0 && after.rows < before,
       `${before} → ${after.rows}`);
-    ok('2c4 and the chip says what is in force', after.lit && /Executed/.test(after.face || ''),
+    ok('2c4 and the chip says what is in force', after.lit && !!pick && (after.face || '').includes(pick.t),
       after.face);
     await page.screenshot({ path: path.join(OUT, '02-chip-picked.png') });
-    await page.selectOption('#reg-stage-sel', 'all');
+    await page.selectOption('#reg-type-sel', 'all');
     await page.waitForTimeout(600);
 
     /* ════════ 1. HOME'S PREPARED BY COPILOT ROW ════════

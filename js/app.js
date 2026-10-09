@@ -222,7 +222,7 @@ function commandMeta(view){
     // Named to match the nav item exactly. One feature answering to two names
     // is one name too many for a reader trying to describe where they were.
     case 'intel':     return [i18t('nav_insights'), i18t('pg_insights_sub')];
-    case 'calendar':  return [i18t('pg_calendar'), i18t('pg_calendar_sub')];
+    case 'calendar':  return [i18t('nav_calendar'), ''];   // the drawing's bar says "Calendar", the rail's word (SAP batch 2)
     case 'migration': return [i18t('nav_import'), i18t('pg_import_sub')];
     case 'reports':   return [i18t('pg_reports'), i18t('pg_reports_sub')];
     case 'team':      return [i18t('pg_team'), i18t('pg_team_sub')];
@@ -254,7 +254,10 @@ function commandMeta(view){
       let held = null;
       try{ held = (typeof window !== 'undefined' && window.redlineHeldId) ? redlineHeldId() : null; }catch(_){ held = null; }
       const one = !!(c && held && String(held) === String(c.id));
-      return [i18t(one ? 'pg_workspace' : 'pg_negotiate'),
+      /* …AND SINCE THE SAP BENCHMARK, BATCH 4 (owner 9 Oct 2026, "build"),
+         the bar names the PLACE, "Negotiate", as the drawing does; the way
+         back stands on the title's line (shellCrumbAdopt). */
+      return [i18t(one ? 'tab_negotiate' : 'pg_negotiate'),
         c?`${(window.contractRef?contractRef(c):c.id)} · ${c.name}${c.counterparty?' — '+c.counterparty:''}`:i18t('pg_open_from_register')];
     }
     default: return ['HaTi', ''];
@@ -301,7 +304,10 @@ const PAGE_ACTIONS = {
    every stage. */
 /* `advice` paints an empty line whose room is held (adviceHeadPaint), so
    the Requests page's tab row sits at one height on both its tabs (gap F). */
-const PAGE_HEAD_PAINT = { obligations:'obwPaintHead', intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead' };
+/* Obligations left this table 9 Oct 2026 (owner: its head "needs to be the
+   same height as" Approvals & signing's, "so remove the we owe xxx place") —
+   it paints nothing into the head now, so it reserves no slot for it. */
+const PAGE_HEAD_PAINT = { intake:'ikPaintHead', advice:'adviceHeadPaint', playbook:'pbPaintHead', agents:'agPaintHead' };
 function pageActionHtml(kind){
   if(kind==='export') return `<button data-page-export class="ui-btn" title="${i18t('ap_export_working_set')}">`+
     `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>${i18t('ap_export')}</button>`;
@@ -364,7 +370,8 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    'agents' joined the same day (Young: the list of agents must not move when
    an agent is pressed): Copilot's work is --view-h tall above 900px, its right
    side scrolls inside itself and the list beside it stays put. */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'approvals', 'obligations', 'agents'];
+/* 'intake' and 'advice' joined 9 Oct 2026 (SAP benchmark, batch 2): Requests and its Advice tab draw the white band to the screen's edge, as Approvals and Obligations do; 'directory' (People) and 'templates' (Our paper) the same day, each scrolling inside its own page. */
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'agents'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
@@ -417,6 +424,10 @@ function paintScrollGutter(view){
    languages. Every other view falls through to its own title. */
 function shellTitleFor(view){
   if(view==='dashboard') return i18t('home_clm_title');
+  /* A CONTRACT'S PAGE IS UNDER CONTRACTS on every tab (SAP benchmark, batch 3,
+     9 Oct 2026): the bar read "Contract Workspace" on some tabs and the adopted
+     crumb's "Contracts" on others. */
+  if(view==='workspace') return i18t('nav_contracts');
   const [t]=commandMeta(view);
   return t||'';
 }
@@ -433,7 +444,9 @@ function paintShellTitle(view){
      last contract's crumb in the bar — a live button that opened that
      contract's Document tab from a page about all of them (measured). */
   const held=view!=='redline' || (typeof window.redlineHeldId==='function' && !!window.redlineHeldId());
-  if(held&&(view==='redline'||view==='workspace')&&el.classList.contains('is-crumb')&&el.querySelector('#ws-back')) return;
+  /* SAP batch 4 (9 Oct 2026): on Negotiate the button stands in the head and
+     the bar holds its page word (.crumb-here) — kept the same way. */
+  if(held&&(view==='redline'||view==='workspace')&&el.classList.contains('is-crumb')&&el.querySelector('#ws-back,.crumb-here')) return;
   el.classList.remove('is-crumb');
   el.textContent=shellTitleFor(view);
 }
@@ -496,8 +509,27 @@ function shellCrumbAdopt(c, backBtn){
     }
     const word=document.createElement('span'); word.className='crumb-back-word'; word.textContent=i18t('ct_back_to_document');
     backBtn.appendChild(word);
-    backBtn.classList.add('in-crumb');
-    el.appendChild(backBtn);
+    /* ---- …AND IT STANDS IN THE PAGE, LEFT OF THE NAME (SAP benchmark, batch
+       4, owner 9 Oct 2026: "build") ---- the drawing puts "‹ Back to Document"
+       on the title's own line and the bar names the page, "Negotiate". Still
+       ONE button, its id, data-back and handler untouched — it moves into the
+       head's name row instead of into the bar. */
+    /* …AND NOW IT IS GONE FROM THE PAGE (owner, 10 Oct 2026: "delete the back
+       to document writing and the arrow but replace the all negotiation button
+       with Open document button"). The way back is "Open document" at the end
+       of the control row (data-rl-open-doc). The button leaves the page here,
+       where the head is laid out; the title's own click (#ws-back-title)
+       still reads its data-back and lands on the Document tab. */
+    const nameRow = backBtn.closest('.room-head') && backBtn.closest('.room-head').querySelector('.room-name');
+    if(nameRow){
+      backBtn.remove();
+      const s=document.createElement('span'); s.className='crumb-here';
+      s.textContent=i18t('tab_negotiate'); s.title=s.textContent;
+      el.appendChild(s);
+    } else {
+      backBtn.classList.add('in-crumb');
+      el.appendChild(backBtn);
+    }
   } else {
     const s=document.createElement('span'); s.className='crumb-here';
     s.textContent=i18t('nav_contracts'); s.title=s.textContent;
@@ -624,7 +656,12 @@ function renderPageHeader(view){
         ${view==='register'?'<div id="reg-head-facts" class="page-facts"></div>':''}
         ${PAGE_HEAD_PAINT[view]?'<div id="page-head-facts" class="page-facts"></div>':''}
       </div>
-      ${acts?`<div style="display:flex;align-items:center;gap:var(--s-2);flex:none">${acts}</div>`:''}
+      ${''/* THE ACTS ROW HOLDS ONE CONTROL'S HEIGHT even while a page has
+             painted nothing into it (9 Oct 2026, SAP benchmark batch 2): the
+             Advice tab has no head act where Requests has "Ask for a
+             contract", and the one tab row under the head jumped 4px between
+             them. */}
+      ${acts?`<div style="display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h)">${acts}</div>`:''}
     </div>`;
   /* The header is painted AFTER the view, so the register's first paint found
      no slot; ask the register to fill it now that the slot exists. */
@@ -1640,7 +1677,7 @@ function openCommandPalette(){
           <span style="display:block;font-size:var(--t-body);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
           <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.ref?(window.refHtml?refHtml(r.ref):String(r.ref).replace(/</g,'&lt;')):''}${(r.sub||'').replace(/</g,'&lt;')}</span>
         </span>
-        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:var(--t-micro);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
+        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:var(--t-micro);font-family:var(--font-mono);color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
       </button>`).join('');
     list.querySelectorAll('[data-cp-i]').forEach(b=>{
       const i=+b.getAttribute('data-cp-i');
@@ -3199,7 +3236,7 @@ function activityPanelHtml(){
   const feed=buildActivityFeed();
   return `
       <div style="padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:var(--s-2);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
           <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
         </div>
         ${feed.length?feed.map(a=>`
@@ -3235,7 +3272,7 @@ function alertsPanelHtml(){
   const rows=buildAlerts();
   return `
       <div style="padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:var(--s-2);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
           <span style="width:6px;height:6px;border-radius:50%;background:${rows.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
         </div>
         ${rows.length?rows.map((a,i)=>`

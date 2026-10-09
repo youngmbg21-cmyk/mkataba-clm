@@ -548,8 +548,10 @@ const SEC = (suffix) => {
       ty ? JSON.stringify(ty) : 'no section');
     check('8b the field NAME is not bold', !!ty && Number(ty.label) <= 400,
       ty ? 'label weight ' + ty.label : 'not measured');
-    check('8c CONTROL — and it keeps the product\'s own label treatment otherwise',
-      !!ty && ty.labelCase === 'uppercase', ty ? String(ty.labelCase) : 'not measured');
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3, "build exactly the drawings"): the
+       drawing writes the terms' labels in sentence case, not capitals. */
+    check('8c CONTROL — and the label is in sentence case, as drawn',
+      !!ty && ty.labelCase === 'none', ty ? String(ty.labelCase) : 'not measured');
     check('8d CONTROL — an ANSWERED field stays bold', !!ty && Number(ty.answered) >= 600,
       ty ? 'value weight ' + ty.answered : 'not measured');
     check('8e CONTROL — and stays in the page\'s own ink, not the label\'s grey',
@@ -604,7 +606,8 @@ const SEC = (suffix) => {
     check('12b and nothing about them is folded away', py.open === 'true', 'open ' + py.open);
     check('12c one row per party, ours included', py.rows === 2, py.rows + ' rows');
     check('12d each names its party, and ours says it is us',
-      py.text.includes(c.counterparty) && /\bus\b/.test(py.text), py.text.slice(0, 160));
+      /* re-pointed 9 Oct 2026: ours wears an "Our side" tag by its name (owner: "professionally designed") */
+      py.text.includes(c.counterparty) && /Our side/.test(py.text), py.text.slice(0, 160));
     check('12e the one door onto naming another party is on it',
       py.add, py.add ? 'on the Parties column' : 'no + Add a party');
     check('12f the name is said ONCE — the column carries it, not a block head',

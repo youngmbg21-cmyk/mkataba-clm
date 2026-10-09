@@ -140,7 +140,11 @@ const SEED = () => {
        needs the Insights door drawn because it is EARNED, never because it is
        the view the reader is standing on (the nav's own escape). */
     await page.evaluate(SEED);
-    await page.evaluate(() => setView('templates'));
+    /* RE-POINTED 9 Oct 2026 (SAP benchmark, batch 2): the rail with its lit row
+       is the Templates page's NARROW shape now (where the inspector fits, the
+       piles are the card's own tabs); section 1 holds that shape with the
+       stage override and measures the rail there, then lets go. */
+    await page.evaluate(() => { insForce(false); setView('templates'); });
     await pause(1400);
 
     const rail = await page.evaluate(() => {
@@ -176,6 +180,7 @@ const SEED = () => {
     check('1e · the COUNT goes white with its label — one row, one state',
       lum(rail.count) != null && lum(rail.count) > cOff + 100,
       { count: rail.count, resting: rail.off && rail.off.color });
+    await page.evaluate(() => { insForce(null); });
     check('1f · a resting row is still transparent — nothing else on the rail moved',
       lOff === null, { off: rail.off });
     await page.screenshot({ path: path.join(OUT, '01-rail.png'), fullPage: false });

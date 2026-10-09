@@ -97,6 +97,12 @@ const SEED = () => {
        Playwright's mouse persists between actions, and a hover left sitting
        on row one would show exactly what this is here to catch. */
     await page.mouse.move(2, 2);
+    /* RE-POINTED 9 Oct 2026 (SAP benchmark, batch 2): where the inspector fits
+       the list carries NO buttons (the panel does); the table with a verb on
+       every row is the narrow shape now, so sections 1 and 5 hold the page in
+       that shape (insForce, the stage override) and measure it there. */
+    await page.evaluate(() => { insForce(false); renderTemplatesPage(); });
+    await pause(500);
     await page.evaluate(() => { tplGoBucket('all'); });
     await pause(700);
     await page.evaluate(() => { const b = document.getElementById('tpl-showall'); if (b) b.click(); });
@@ -288,9 +294,11 @@ const SEED = () => {
        after the wiring ran. */
     await page.evaluate(() => tplPageSetTab('book'));
     await pause(700);
+    /* the page owns its height since 9 Oct 2026 and the tab scrolls inside
+       itself, so on this deliberately short stage its CONTENT is measured */
     const bk = await page.evaluate(() => ({
       doors: document.querySelectorAll('[data-tpl-sec="book"] [data-tpl-ov-card]').length,
-      h: Math.round(document.querySelector('[data-tpl-sec="book"]').getBoundingClientRect().height),
+      h: Math.round(document.querySelector('[data-tpl-sec="book"]').scrollHeight),
     }));
     check('4f · the book draws the name door, and it is drawn in real pixels',
       bk.doors >= 1 && bk.h > 200, bk);
@@ -313,7 +321,8 @@ const SEED = () => {
     await page.evaluate(() => { const b = document.getElementById('tpl-showall'); if (b) b.click(); });
     await pause(600);
     const kept = await page.evaluate(async () => {
-      const el = () => document.getElementById('content-scroll') || document.scrollingElement;
+      /* the list's own section is the scroller since 9 Oct 2026 (the page owns its height) */
+      const el = () => document.querySelector('[data-tpl-sec="list"]') || document.getElementById('content-scroll');
       el().scrollTop = 420;
       await new Promise(r => setTimeout(r, 200));
       const before = el().scrollTop;
@@ -350,6 +359,8 @@ const SEED = () => {
       kept.sameTable, { sameTable: kept.sameTable });
     check('5d · and so are the rail and the search box — nothing was rebuilt',
       kept.sameSearch && kept.lit.length === 1 && kept.lit[0] === 'ready', kept.lit);
+    await page.evaluate(() => { insForce(null); renderTemplatesPage(); });
+    await pause(400);
 
     /* ============ 6 · THE WORDING SITS ON PAPER ========================== */
     /* RE-POINTED IN PLACE, 24 Sep 2026 (one door to standards): "Make it

@@ -336,8 +336,11 @@ describe('f390 (5) — the shared frame', () => {
   test('5a the header\'s two slots are painted by each page\'s own painter', () => {
     const m = /const PAGE_HEAD_PAINT = \{([^}]*)\}/.exec(APP);
     assert.ok(m, 'one table');
-    for (const [v, fn] of [['obligations', 'obwPaintHead'], ['intake', 'ikPaintHead'], ['playbook', 'pbPaintHead']])
+    for (const [v, fn] of [['intake', 'ikPaintHead'], ['playbook', 'pbPaintHead']])
       assert.match(m[1], new RegExp(v + "\\s*:\\s*'" + fn + "'"), v);
+    /* RE-POINTED 9 Oct 2026 (owner: the Obligations head is as tall as
+       Approvals & signing's, no "we owe" line) — it paints no head slot. */
+    assert.ok(!/\bobligations\s*:/.test(m[1]), 'obligations reserves no head slot');
   });
   test('5b a width that crosses the line repaints each page in its other shape', () => {
     const m = /const INS_PAGE_REPAINT = \{([\s\S]*?)\n\};/.exec(INS);
