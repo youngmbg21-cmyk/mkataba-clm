@@ -630,8 +630,11 @@ describe('F184 (2) — the door: reopen the last one, else the list', () => {
     assert.ok(b.$('.ngl-empty'), 'an empty state, not an empty page');
     assert.ok(!b.$('#reg-tbody'), 'and no table under a filter bar');
     assert.ok(!b.$('#reg-lock-chip'));
-    assert.match(b.$('.ngl-empty').textContent, /Start negotiating/,
+    /* Re-pointed 9 Oct 2026 (SAP benchmark, owner-approved): the door is on
+       the page itself now — Start a negotiation, which opens the picker. */
+    assert.match(b.$('.ngl-empty').textContent, /Start a negotiation/,
       'and it names the door it wants pressed');
+    assert.ok(b.$('.ngl-empty [data-ngl-start]'), 'and the door is there to press');
   });
 
   test('the sidebar door is its own view, not one borrowing Contracts', () => {
