@@ -3273,7 +3273,7 @@ function obPanelOpts(o, c, i, ctx){
   const acts = obPanelActs(o, c, i, ctx);
   return {
     item: { id: obKeyOf(c.id, o, i) },
-    head: { eyebrow, title: o.desc || '', sub, tone: st.tone, status: st.html,
+    head: { eyebrow, title: o.desc || '', sub, tone: st.tone, status: st.html, statusBeside: ctx === 'page',
       acts, menuHtml, moreAria: i18t('reg_more_actions') },
     acts,
     body: insKvHtml(facts) + obDocSectionHtml(o) + obChainSectionHtml(o, c) + obWordingSectionHtml(o)
@@ -3377,6 +3377,7 @@ const OBW_CHIPS = ['whose', 'side', 'folder', 'due'];
    there is. Painted into the shared header's slot, because it changes on a
    repaint with no view change (the register's own reason). */
 let _obwHeadFacts = '';
+let _obwFiltersOpen = false;
 function obwPaintHead(){
   const el = (typeof document !== 'undefined') ? document.getElementById('page-head-facts') : null;
   if(el) el.innerHTML = _obwHeadFacts;
@@ -3408,11 +3409,13 @@ function renderObligationsInspector(host){
     ? (mw.text ? _obEsc(_obCap(mw.text)) + obMoneyLeftHtml(mw) : _obEsc(i18t('ob_no_money_here')) + obMoneyLeftHtml(mw))
     : [ i18tn('ob_head_open', rows.filter(r => r.st !== 'done').length, { n: rows.filter(r => r.st !== 'done').length }),
         late ? i18tn('ob_head_overdue', late, { n: late }) : '', held ? i18tn('ob_head_waiting', held, { n: held }) : '' ].filter(Boolean).map(_obEsc).join(' · ');
-  host.innerHTML = `<div class="view-enter ins-page obw-ins" data-ins-page="obligations" data-ins="1">
-    ${views}
+  host.innerHTML = `<div class="view-enter sap-page ins-page obw-ins" data-ins-page="obligations" data-ins="1">
+    <div class="sap-band">${views}</div>
     <div class="ins-body">
       <section class="ins-card" aria-label="${_obEsc(i18t('nav_obligations'))}">
-        <div class="ins-bar reg-filterbar">${chips}</div>
+        <div class="ins-cardhead"><h2 class="ins-cardhead-t">${_obEsc(i18t((OBW_VIEWS.find(v => v[0] === f.state) || OBW_VIEWS[0])[1]))} <span class="ins-cardhead-n">(${rows.length})</span></h2><span style="flex:1"></span>
+          <button type="button" class="ui-btn ui-btn-plain obw-filter-btn${narrowing.length ? ' on' : ''}" data-obw-filters aria-expanded="${_obwFiltersOpen || narrowing.length ? 'true' : 'false'}">${typeof icon === 'function' ? icon('filter', 'w-3.5 h-3.5') : ''}${_obEsc(i18t('ob_filter_btn'))}${narrowing.length ? ` <span class="obw-filter-n">${narrowing.length}</span>` : ''}</button></div>
+        <div class="ins-bar reg-filterbar"${_obwFiltersOpen || narrowing.length ? '' : ' hidden'}>${chips}</div>
         <div class="ins-scroll" id="obw-scroll">${obTableHtml(cols, rows.length ? body : empty)}</div>
         <div class="ins-foot"><span>${_obEsc(i18t('ob_showing', { n: rows.length, of: book.length }))}</span></div>
       </section>
@@ -3421,6 +3424,9 @@ function renderObligationsInspector(host){
   </div>`;
   obwPaintHead();
   host.querySelectorAll('[data-obw-view]').forEach(b => b.addEventListener('click', () => { f.state = b.getAttribute('data-obw-view'); obwRepaint(); }));
+  /* THE FILTERS FOLD BEHIND ONE BUTTON (SAP benchmark, 9 Oct 2026): open while
+     anything narrows the list, or once the reader opens them this sitting. */
+  host.querySelector('[data-obw-filters]')?.addEventListener('click', () => { _obwFiltersOpen = !_obwFiltersOpen; obwRepaint(); });
   host.querySelectorAll('[data-obw-f]').forEach(sel => sel.addEventListener('change', () => { f[sel.getAttribute('data-obw-f')] = sel.value; obwRepaint(); }));
   host.querySelectorAll('[data-obw-clear]').forEach(b => b.addEventListener('click', () => { OBW_CHIPS.forEach(k => { f[k] = OBW_DEF[k]; }); f.only = null; obwRepaint(); }));
   host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });

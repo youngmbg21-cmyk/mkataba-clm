@@ -452,7 +452,7 @@ function insNeedsHtml(c, skip){
   const head = i18tn('ins_need_head', items.length, { n: items.length });
   const rows = items.map(it => {
     const w = insNeedWords(c, it);
-    return `<div class="ins-need-r is-${it.urgent ? 'ruby' : 'amber'}" data-ins-need-row="${esc(it.kind)}"><i class="ins-need-dot" aria-hidden="true"></i><div class="ins-need-b"><div class="ins-need-t" title="${esc(w.title)}">${esc(w.title)}</div>${
+    return `<div class="ins-need-r is-${it.urgent ? 'ruby' : 'amber'}" data-ins-need-row="${esc(it.kind)}"><i class="ins-need-dot" aria-hidden="true"></i>${typeof icon === 'function' ? icon('alert', 'ins-need-ic') : ''}<div class="ins-need-b"><div class="ins-need-t" title="${esc(w.title)}">${esc(w.title)}</div>${
       w.sub ? `<div class="ins-need-s" title="${esc(w.plain)}">${w.sub}</div>` : ''}</div><button type="button" class="ui-btn ui-btn-sm ins-need-go" data-ins-need="${esc(it.kind)}" title="${esc(i18t(INS_NEED_GO[it.kind]))}">${
       esc(i18t(INS_NEED_VERB[it.kind]))}</button></div>`;
   }).join('');
@@ -474,7 +474,7 @@ function insNeedsLineHtml(c, skip){
   const stop = t => /[.?!]$/.test(t) ? t : t + '.';
   const rest = words.slice(1).map(w => w.plain ? `${w.title} (${w.plain})` : w.title).filter(Boolean);
   const tone = items.some(x => x.urgent) ? 'ruby' : 'amber';
-  return `<p class="ins-need-line is-${tone}" data-ins-need-line aria-label="${esc(i18t('ins_need_label'))}"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><use href="#i-flag"/></svg><span><b>${
+  return `<p class="ins-need-line is-${tone}" data-ins-need-line aria-label="${esc(i18t('ins_need_label'))}">${typeof icon === 'function' ? icon('alert', 'ins-need-line-ic') : ''}<span><b>${
     esc(stop(words[0].title))}</b>${rest.length ? ' ' + esc(i18t('ins_need_also', { list: rest.join(' · ') })) : ''}</span></p>`;
 }
 /* The head: which contract, where it stands, and the page's own verbs. */
@@ -524,9 +524,11 @@ function insItemHeadHtml(o){
   const tone = INS_TONE.includes(opt.tone) ? opt.tone : '';
   return `<div class="ins-h">
     ${opt.eyebrow ? `<div class="ins-eb">${opt.eyebrow}</div>` : ''}
-    <h2 class="ins-cp is-item" title="${esc(opt.title || '')}">${esc(opt.title || '—')}</h2>
+    ${opt.statusBeside && opt.status
+      ? `<div class="ins-item-row"><h2 class="ins-cp is-item" title="${esc(opt.title || '')}">${esc(opt.title || '—')}</h2><span class="ins-st-side"><span class="reg-stg ins-pill${tone ? ' is-' + tone : ''}"><i aria-hidden="true"></i>${opt.statusShort || opt.status}</span></span></div>`
+      : `<h2 class="ins-cp is-item" title="${esc(opt.title || '')}">${esc(opt.title || '—')}</h2>`}
     ${opt.sub ? `<div class="ins-sub is-item">${opt.sub}</div>` : ''}
-    ${opt.status ? `<div class="ins-st">${tone ? `<i class="ins-dot2 is-${tone}" aria-hidden="true"></i>` : ''}<span class="ins-st-t">${opt.status}</span></div>` : ''}
+    ${opt.status && !opt.statusBeside ? `<div class="ins-st">${tone ? `<i class="ins-dot2 is-${tone}" aria-hidden="true"></i>` : ''}<span class="ins-st-t">${opt.status}</span></div>` : ''}
     ${insActsHtml(opt.acts, opt.menuHtml, opt.moreAria)}
   </div>`;
 }

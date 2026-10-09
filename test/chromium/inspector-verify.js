@@ -156,7 +156,8 @@ const ok = (name, good, detail) => {
         mkInk: mk ? getComputedStyle(mk).color : null, selInk: selMk ? getComputedStyle(selMk).color : null,
         accent: tok('--accent-ink'),
         filled: filled.map(b => b.innerText.trim()),
-        barInCard: !!document.querySelector('.reg-card > .reg-filterbar'),
+        barInCard: !!document.querySelector('.reg-card > .reg-cardhead'),
+        filtersInBand: !!document.querySelector('.reg-band .reg-fb .reg-f'),
         bandBg: document.querySelector('.reg-band') ? bgOf(document.querySelector('.reg-band')) : null,
       };
     });
@@ -171,8 +172,11 @@ const ok = (name, good, detail) => {
        AREA — the page head's Draft new agreement and the panel's lead act. */
     ok('1o one filled button in each area: the page head and the panel', floor.filled.length === 2
       && floor.filled.some(t => /draft/i.test(t)) && floor.filled.some(t => /open/i.test(t)), floor.filled.join(' | '));
-    ok('1p the filters are the list’s own card’s top row; the band paints no ground', floor.barInCard && /rgba\(0, 0, 0, 0\)|transparent/.test(String(floor.bandBg)),
-      `bar in card ${floor.barInCard} · band ${floor.bandBg}`);
+    /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the filters sit in
+       the page's white band; the list's own head (name, count, Sort, Display)
+       is its card's top row. */
+    ok('1p the filters sit in the white band; the list\'s head is its card\'s top row', floor.barInCard && floor.filtersInBand && !/rgba\(0, 0, 0, 0\)|transparent/.test(String(floor.bandBg)),
+      `head in card ${floor.barInCard} · filters in band ${floor.filtersInBand} · band ${floor.bandBg}`);
 
     /* the one line, at every laptop width, in both languages */
     const lineRep = [];
@@ -220,16 +224,22 @@ const ok = (name, good, detail) => {
       ins: document.querySelector('[data-ins-page]')?.getAttribute('data-ins'),
       heads: [...document.querySelectorAll('.reg-table thead th')].map(t => t.textContent.replace(/[▲▼↕]/g, '').trim()),
       widths: [...document.querySelectorAll('.reg-table thead th')].map(t => +t.getBoundingClientRect().width.toFixed(1)),
-      moves: [...document.querySelectorAll('#reg-tbody tr[data-row] .ngl-w')].map(x => x.textContent.trim()),
+      moves: [...document.querySelectorAll('#reg-tbody tr[data-row] .reg-ch')].map(x => x.textContent.trim()),
+      waits: [...document.querySelectorAll('#reg-tbody tr[data-row] td:last-child')].map(x => x.textContent.trim()),
+      bandTabs: [...document.querySelectorAll('.reg-views [data-reg-band]')].map(x => x.textContent.replace(/\d+/g, '').trim()),
       bands: [...document.querySelectorAll('#reg-tbody .ngl-band-k')].map(x => x.textContent.trim()),
-      views: !!document.querySelector('.reg-views'),
+      views: !!document.querySelector('[data-reg-view]'),
       first: document.getElementById('ins-panel') ? [...document.getElementById('ins-panel').children].map(x => x.className)[1] : null,
       table: document.querySelector('#ins-panel .ins-table') ? document.querySelector('#ins-panel .ins-table').innerText : '',
     }));
-    ok('2a Negotiations draws the list and the panel, with whose move as the third column', ng.ins === '1'
-      && ng.heads.join('|') === 'Ref|Counterparty and agreement|Whose move|Value', ng.heads.join(' | '));
-    ok('2b whose move carries the fact behind it', ng.moves.some(m => /^Yours · \d+ changes?$/.test(m)) && ng.moves.some(m => /^Theirs · (\d+ days?|today)$/.test(m)), ng.moves.join(' | '));
-    ok('2c only the groups that have rows are drawn, and no Contracts views', !ng.bands.includes('Nothing outstanding') && !ng.views, ng.bands.join(' | '));
+    /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the drawing's
+       columns — Round, Changes, Waiting — and whose move as tabs and bands. */
+    ok('2a Negotiations draws the list and the panel, with the round, the changes and the wait', ng.ins === '1'
+      && ng.heads.join('|') === 'Ref|Counterparty and agreement|Round|Changes|Waiting', ng.heads.join(' | '));
+    ok('2b the changes say what they ask of whom, and the wait says how long', ng.moves.some(m => /^\d+ to answer$/.test(m)) && ng.moves.some(m => /^sent \d+ changes?$/.test(m))
+      && ng.waits.some(w => /^(\d+ days?|today)$/.test(w)), `${ng.moves.join(' | ')} · ${ng.waits.join(' | ')}`);
+    ok('2c only the groups that have rows are drawn, whose move is a tab row, and no Contracts views', !ng.bands.includes('Nothing outstanding') && !ng.views
+      && ng.bandTabs.includes('Your move') && ng.bandTabs.includes('Their move'), `${ng.bands.join(' | ')} · tabs ${ng.bandTabs.join(' | ')}`);
     ok('2d the panel leads with what is on the table', ng.first === 'ins-sec ins-table' && /Round \d+ · \d+/.test(ng.table) && /from .+ · \d+ days?/.test(ng.table),
       `${ng.first} · ${ng.table.replace(/\s+/g, ' ').slice(0, 120)}`);
     /* BALANCE ACROSS THE TWO PAGES, as the full tables have kept it since 21
@@ -237,8 +247,10 @@ const ok = (name, good, detail) => {
        in pixels, so a reader moving between the pages sees the same edges.
        Red at 3cc28b1, where whose move was narrower than a stage and the
        counterparty 32px wider on this seat. */
-    const shared = [0, 1, 3].map(i => [shape.widths && shape.widths[i], ng.widths && ng.widths[i]]);
-    ok('2e the columns both pages share are cut identically, in pixels — reference, counterparty, value',
+    /* RE-POINTED 9 Oct 2026: Value is not a Negotiations column in the drawing,
+       so the two columns both pages still share are the ones held equal. */
+    const shared = [0, 1].map(i => [shape.widths && shape.widths[i], ng.widths && ng.widths[i]]);
+    ok('2e the columns both pages share are cut identically, in pixels — reference, counterparty',
       shared.every(([a, b]) => a > 0 && b > 0 && Math.abs(a - b) <= 0.5), shared.map(([a, b]) => `${a}/${b}`).join(' · '));
     await page.screenshot({ path: path.join(OUT, '2-negotiations-1440.png') });
 

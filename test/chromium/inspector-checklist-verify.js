@@ -149,8 +149,10 @@ const ok = (name, good, detail) => {
     await toContracts();
     const on149 = await pick('MK-149');
     const a = on149 ? await read() : { head: [], rows: [] };
-    ok('1a the checklist sits under the name block and above the status line — the party names and the agreement stay together',
-      a.drawn && a.head.join(' > ') === 'ins-eb > ins-cp > ins-sub > ins-need > ins-st > ins-acts', a.head.join(' > '));
+    /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the stage sits
+       beside the name, so the head has no status row of its own. */
+    ok('1a the checklist sits under the name block and above the acts — the party names and the agreement stay together',
+      a.drawn && a.head.join(' > ') === 'ins-eb > ins-cp > ins-sub > ins-need > ins-acts', a.head.join(' > '));
     ok('1b the head counts what is owed', a.drawn && /^2 things need you$/i.test(a.count || ''), a.count);
     ok('1c the late item leads and is ruby; the frame takes the worst row\'s colour',
       a.drawn && a.rows.map(r => r.kind + ':' + r.tone).join(',') === 'quiet:ruby,review:amber' && /is-ruby/.test(a.frame || ''),
@@ -173,10 +175,12 @@ const ok = (name, good, detail) => {
       if (!b) return null;
       const tok = (prop, v) => { const e = document.createElement('i'); e.style.cssText = 'position:absolute;' + prop + ':var(' + v + ')'; document.body.appendChild(e); const c = getComputedStyle(e)[prop === 'color' ? 'color' : 'borderTopColor']; e.remove(); return c; };
       const cs = getComputedStyle(b);
-      return { edge: cs.borderTopColor, btnEdge: tok('border-top:1px solid;border-top-color', '--btn-edge'), ink: cs.color, ruby: tok('color', '--st-ruby-fg'), h: b.getBoundingClientRect().height, sm: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ctl-h-sm')) };
+      return { edge: cs.borderTopColor, btnEdge: tok('border-top:1px solid;border-top-color', '--btn-edge'), ink: cs.color, accent: tok('color', '--accent-ink'), h: b.getBoundingClientRect().height, sm: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ctl-h-sm')) };
     });
-    ok('1i a row\'s button wears the platform\'s one light edge, the row\'s colour on its word, and the row rung\'s height',
-      !!edge && edge.edge === edge.btnEdge && edge.ink === edge.ruby && Math.abs(edge.h - edge.sm) <= 1, JSON.stringify(edge));
+    /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the callout's door
+       is a white button in the accent's ink, as the drawing draws "Decide". */
+    ok('1i a row\'s button wears the platform\'s one light edge, the accent ink on its word, and the row rung\'s height',
+      !!edge && edge.edge === edge.btnEdge && edge.ink === edge.accent && Math.abs(edge.h - edge.sm) <= 1, JSON.stringify(edge));
     await page.screenshot({ path: path.join(OUT, '1-contracts-carrefour.png') });
 
     /* ================= 2 · THE SIGNATURE AND THE RENEWAL ================= */
@@ -260,7 +264,7 @@ const ok = (name, good, detail) => {
     await toContracts();
     const k = (await pick('MK-131')) ? await read() : { head: [] };
     ok('6a [control] nothing owed on this contract — no checklist', !k.drawn, JSON.stringify({ drawn: k.drawn }));
-    ok('6b [control] and the head is its five rows, exactly as before', k.head.join(' > ') === 'ins-eb > ins-cp > ins-sub > ins-st > ins-acts', k.head.join(' > '));
+    ok('6b [control] and the head is its rows, the stage beside the name', k.head.join(' > ') === 'ins-eb > ins-cp > ins-sub > ins-acts', k.head.join(' > '));
 
     /* ================= 7 · THE NIGHT THEME READS THE SAME TOKENS ================= */
     await page.evaluate(() => { if (typeof setDark === 'function') setDark(true); });

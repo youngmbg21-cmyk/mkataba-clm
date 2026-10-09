@@ -297,12 +297,17 @@ function renderApprovalsPage(){
      The row's Open button moves to the panel — it is the panel's lead act —
      and nothing a person could press is lost. */
   const ident=c=>`<td><div class="ap-id">${apAvHtml(c.counterparty)}<div><span class="ap-name">${esc(c.counterparty||'—')}</span><span class="ap-sub">${esc(c.name||'')}</span></div></div></td>`;
-  const insHead=[{t:i18t('reg_col_ref'),w:84},{t:i18t('reg_col_party')},{t:tab==='approvals'?i18t('ins_col_approval'):i18t('ap_pg_what_waits'),w:250},...(money?[{t:i18t('reg_col_value'),right:true,w:124}]:[])];
+  /* THE DRAWING'S COLUMNS (SAP benchmark, 9 Oct 2026): the rule and the wait
+     each have their own column on the approvals tab. */
+  const insHead=tab==='approvals'
+    ? [{t:i18t('reg_col_ref'),w:84},{t:i18t('reg_col_party')},{t:i18t('ap_pg_rule'),w:200},{t:i18t('ap_pg_waiting'),w:110},...(money?[{t:i18t('reg_col_value'),right:true,w:124}]:[])]
+    : [{t:i18t('reg_col_ref'),w:84},{t:i18t('reg_col_party')},{t:i18t('ap_pg_what_waits'),w:250},...(money?[{t:i18t('reg_col_value'),right:true,w:124}]:[])];
   const insAp=ap.map(r=>{
     const waits=r.mine?(r.ruleSub||''):(r.notAsked?i18t('sa_pg_not_asked'):i18t('ap_pg_waiting_on',{who:r.waitsOn||'—'}));
     return `<tr data-ap-row="${esc(r.c.id)}" tabindex="-1">
       <td class="mono">${window.refHtml?refHtml(r.c):esc(r.c.id)}</td>${ident(r.c)}
-      <td><span class="ap-name">${esc(r.rule)}</span>${r.done?`<span class="ap-sub done">${esc(i18t('ap_pg_approved'))}</span>`:`<span class="ap-sub${apLate(r)?' late':''}">${esc([waits,apWaitingText(r.idle)].filter(Boolean).join(' · '))}</span>`}</td>
+      <td><span class="ap-name">${esc(r.rule)}</span>${waits?`<span class="ap-sub">${esc(waits)}</span>`:''}</td>
+      <td class="${r.done?'done':apLate(r)?'late':''}">${esc(r.done?i18t('ap_pg_approved'):apWaitingText(r.idle))}</td>
       ${money?`<td class="r mono">${apValueCell(r.c)}</td>`:''}
     </tr>`; });
   const insSg=sg.map(r=>`<tr data-ap-row="${esc(r.c.id)}" tabindex="-1">
@@ -330,8 +335,8 @@ function renderApprovalsPage(){
       ${(typeof isAdmin==='function'&&isAdmin()&&typeof openSettingsAt==='function')?`<div class="ap-foot"><button type="button" class="ui-btn ui-btn-plain" data-ap-rules>${esc(i18t('ap_pg_rules'))}${(typeof icon==='function')?icon('chevR','w-3.5 h-3.5'):''}</button></div>`:''}
     </section>`;
   document.getElementById('content').innerHTML=`
-  <div class="view-enter ap-page${INS?' is-ins':''}" data-ins-page="approvals" data-ins="${INS?'1':'0'}">
-    <div class="st-tabs" role="tablist">
+  <div class="view-enter sap-page ap-page${INS?' is-ins':''}" data-ins-page="approvals" data-ins="${INS?'1':'0'}">
+    <div class="st-tabs sap-band" role="tablist">
       ${tabBtn('approvals',i18t('ap_pg_tab_approvals'),live.length)}
       ${tabBtn('signatures',i18t('ap_pg_tab_signatures'),sg.length)}
     </div>
