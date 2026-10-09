@@ -4189,13 +4189,23 @@
      8 Oct 2026: "Never gets bigger or small"): `contain:size` keeps its
      words out of the row, so the map alone sets the height and the panel
      scrolls. Stacked under a narrow map it keeps one height and scrolls. */
-  .ov-map-grid{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:12px; align-items:stretch; }
-  .ov-map-card, .ov-map-pane{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
+  /* SMALLER MAP, WIDER PANEL, SAME HEIGHT (Young, 9 Oct 2026: the map's
+     space a third smaller, the panel takes what it gave up, "the card height
+     should stay the same as currently in the platform"). The old map card was
+     (row - 340 - 12) wide and its 900x310 picture set the height; the map now
+     takes two thirds of that width and its stage keeps that height, measured
+     off the same row (100cqw of #kt-overview), so the card is as tall as before
+     at every width. The panel beside it holds that height and scrolls. */
+  .ov-map-grid{ display:grid; grid-template-columns:calc((100% - 352px) * 2 / 3) minmax(0,1fr); gap:12px; align-items:stretch; }
+  .ov-map-card, .ov-map-side{ background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); }
   .ov-map-card{ overflow:hidden; min-width:0; }
-  .ov-map-pane{ padding:16px 18px; min-width:0; contain:size; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
+  .ov-map-side{ min-width:0; contain:size; display:flex; flex-direction:column; overflow:hidden; }
+  .ov-map-pane{ flex:1; min-height:0; padding:14px 18px 16px; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
+  #ov-map .ov-map-stage{ flex:none; height:calc((100cqw - 354px) * 310 / 900); }
   @container ovpane (max-width:1100px){
     .ov-map-grid{ grid-template-columns:minmax(0,1fr); }
-    .ov-map-pane{ contain:none; height:420px; }
+    .ov-map-side{ contain:none; height:420px; }
+    #ov-map .ov-map-stage{ height:calc((100cqw - 2px) * 310 / 900); }
   }
   .ov-map-top{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:10px 12px; border-bottom:1px solid var(--color-divider); }
   .ov-map-chipt{ height:26px; padding:0 10px; border-radius:13px; border:1px solid var(--color-divider); background:var(--color-surface);
@@ -4220,7 +4230,7 @@
      the dotted ground fills the card under it. */
   .ov-map-card{ display:flex; flex-direction:column; }
   .ov-map-stage{ flex:1; display:flex; align-items:center; background:radial-gradient(circle,var(--color-divider) 1px,transparent 1.3px) 0 0/22px 22px,var(--color-surface); }
-  .ov-map-stage > svg{ width:100%; height:auto; }
+  .ov-map-stage > svg{ width:100%; height:100%; }
   .ov-map-top .ov-map-chipt{ cursor:default; font-weight:var(--w-strong); }
   .ov-map-top .ov-map-chipt i{ background:var(--accent-fill); }
   .ov-map-svg .ov-map-halo-ln{ fill:none; stroke:var(--color-accent-100); stroke-width:12; stroke-linecap:round; }
@@ -4313,14 +4323,10 @@
   button.ov-map-ob{ border-left:0; border-right:0; border-bottom:0; background:none; font:inherit; color:inherit; text-align:left; cursor:pointer; }
   button.ov-map-ob:hover b{ text-decoration:underline; }
   .ov-map-ob > div{ flex:1; min-width:0; }
-  .ov-map-ob b{ display:block; font-weight:var(--w-strong); font-size:var(--t-card); color:var(--color-text); }
   .ov-map-ob small{ display:block; color:var(--color-neutral-600); font-size:var(--t-label); }
   .ov-map-dot{ flex:none; width:8px; height:8px; border-radius:50%; margin-top:6px; background:var(--st-gray-dot); }
   .ov-map-dot.is-r{ background:var(--st-ruby-dot); } .ov-map-dot.is-a{ background:var(--st-amber-dot); }
   .ov-map-dot.is-s{ background:var(--st-steel-dot); } .ov-map-dot.is-g{ background:var(--st-green-dot); }
-  .ov-map-kr{ display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-top:1px solid var(--color-divider); font-size:var(--t-card); }
-  .ov-map-kr span{ color:var(--color-neutral-600); min-width:0; }
-  .ov-map-kr b{ font-weight:var(--w-strong); text-align:right; display:inline-flex; align-items:center; gap:6px; }
   .ov-map-pill{ display:inline-flex; align-items:center; gap:6px; height:22px; padding:0 9px; border-radius:11px; font-size:var(--t-label); font-weight:var(--w-strong); white-space:nowrap; }
   .ov-map-pill i{ width:6px; height:6px; border-radius:50%; }
   .ov-map-pill.is-green{ background:var(--st-green-bg); color:var(--st-green-fg); } .ov-map-pill.is-green i{ background:var(--st-green-dot); }
@@ -4332,6 +4338,61 @@
   .ov-map-quote{ margin:8px 0 0; padding:8px 10px; border-left:2px solid var(--color-accent-200); background:var(--color-accent-50); font-size:var(--t-card); color:var(--color-text); }
   .ov-map-acts{ margin-top:12px; }
   .ov-map-pane #renewal-host:not(:empty){ margin:0 0 12px; }
+  /* THE LIVE LINES AND THE STRUCTURED PANEL (Young, 9 Oct 2026). Dots travel
+     the curves the way each duty runs; the curves march the same way; a
+     hovered curve or node lifts. The panel: tabs, one strong heading, facts
+     as boxes at the label weight, duties grouped by state. */
+  .ov-map-svg .ov-map-flow{ fill:none; stroke:var(--color-surface); stroke-width:1.5; stroke-dasharray:2 10; stroke-linecap:round; animation:ov-map-march 1.4s linear infinite; pointer-events:none; }
+  .ov-map-svg .ov-map-dash-them{ stroke-dasharray:6 6; animation:ov-map-march 1.4s linear infinite; }
+  .ov-map-svg .ov-map-mote{ stroke:var(--color-surface); stroke-width:1.5; cursor:pointer; }
+  .ov-map-svg .ov-map-mote.is-g{ fill:var(--st-green-dot); } .ov-map-svg .ov-map-mote.is-a{ fill:var(--st-amber-dot); }
+  .ov-map-svg .ov-map-mote.is-r{ fill:var(--st-ruby-dot); } .ov-map-svg .ov-map-mote.is-s{ fill:var(--st-steel-dot); }
+  .ov-map-svg .ov-map-mote:hover{ stroke:var(--color-text); }
+  .ov-map-svg .ov-map-arc:hover .ov-map-ln, .ov-map-svg .ov-map-arc.is-sel .ov-map-ln{ stroke-width:3.5; }
+  .ov-map-svg .ov-map-arc:hover .ov-map-dash-them, .ov-map-svg .ov-map-arc.is-sel .ov-map-dash-them{ stroke-width:3; }
+  .ov-map-svg .ov-map-us:hover .ov-map-us-c, .ov-map-svg .ov-map-them:hover .ov-map-them-c{ stroke-width:3; }
+  .ov-map-svg .ov-map-ini{ font-size:14px; }
+  .ov-map-svg .ov-map-us .ov-map-track, .ov-map-svg .ov-map-us .ov-map-seg{ stroke-width:5; }
+  .ov-map-svg .ov-map-us-c, .ov-map-svg .ov-map-them-c{ stroke-width:2; }
+  .ov-map-svg .is-sel .ov-map-us-c, .ov-map-svg .is-sel .ov-map-them-c{ stroke-width:3; }
+  .ov-map-svg .ov-map-bn{ font-size:10px; }
+  @keyframes ov-map-march{ to{ stroke-dashoffset:-24; } }
+  @media (prefers-reduced-motion:reduce){ .ov-map-svg .ov-map-flow, .ov-map-svg .ov-map-dash-them{ animation:none; } }
+  #ov-map .ov-map-empty{ top:auto; bottom:14px; }
+  .ov-map-tabs{ flex:none; display:flex; gap:2px; padding:6px; border-bottom:1px solid var(--color-divider); overflow-x:auto; }
+  .ov-map-tab{ display:inline-flex; align-items:center; gap:6px; height:var(--ctl-h); padding:0 10px; border:0; border-radius:var(--radius);
+    background:none; font:inherit; font-size:var(--t-label); font-weight:var(--w-label); color:var(--color-neutral-600); white-space:nowrap; cursor:pointer; }
+  .ov-map-tab:hover{ color:var(--color-text); }
+  .ov-map-tab[aria-selected="true"]{ background:var(--color-accent-50); color:var(--accent-ink); }
+  .ov-map-tab:focus-visible{ outline:2px solid var(--accent-fill); outline-offset:1px; }
+  .ov-map-n{ min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--color-accent-50); color:var(--accent-ink);
+    font-size:var(--t-micro); display:inline-flex; align-items:center; justify-content:center; font-variant-numeric:tabular-nums; }
+  .ov-map-tab[aria-selected="true"] .ov-map-n{ background:var(--color-surface); }
+  .ov-map-pane h3{ font-weight:var(--w-strong); }
+  .ov-map-pane h4{ display:flex; align-items:center; gap:6px; }
+  .ov-map-pane h4 .ov-map-dot{ margin-top:0; }
+  .ov-map-tl{ margin:28px 2px 14px; }
+  .ov-map-tl-bar{ position:relative; height:4px; border-radius:2px; background:var(--color-divider); }
+  .ov-map-tl-fill{ position:absolute; left:0; top:0; bottom:0; border-radius:2px; background:var(--accent-fill); }
+  .ov-map-tl-pt{ position:absolute; top:50%; width:12px; height:12px; border-radius:50%; transform:translate(-50%,-50%); border:2px solid var(--color-surface); background:var(--st-steel-dot); }
+  .ov-map-tl-pt.is-a{ background:var(--st-amber-dot); } .ov-map-tl-pt.is-r{ background:var(--st-ruby-dot); }
+  .ov-map-tl-pt.is-end{ background:var(--color-text); } .ov-map-tl-pt.is-now{ background:var(--accent-fill); }
+  .ov-map-tl-now{ position:absolute; bottom:12px; transform:translateX(-50%); font-size:var(--t-micro); color:var(--color-neutral-600); white-space:nowrap; }
+  .ov-map-kv{ display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden; }
+  .ov-map-kv > div{ min-width:0; padding:8px 12px; box-shadow:-1px 0 0 var(--color-divider), 0 -1px 0 var(--color-divider); }
+  .ov-map-kv > div > span:first-child{ display:block; font-size:var(--t-label); color:var(--color-neutral-600); }
+  .ov-map-kv-v{ display:block; margin-top:2px; font-size:var(--t-card); font-weight:var(--w-label); color:var(--color-text); font-variant-numeric:tabular-nums; }
+  .ov-map-kv-v .ov-map-pill{ font-weight:var(--w-label); }
+  .ov-map-pane blockquote.ov-map-quote{ margin:0; padding:10px 12px; border-left:0; border-radius:var(--radius); background:var(--color-accent-50); line-height:1.55; }
+  .ov-map-grp + .ov-map-grp{ margin-top:2px; }
+  .ov-map-rows{ border:1px solid var(--color-divider); border-radius:var(--radius); }
+  .ov-map-rows .ov-map-ob{ padding:8px 12px; border-top:0; }
+  .ov-map-rows .ov-map-ob + .ov-map-ob{ border-top:1px solid var(--color-divider); }
+  .ov-map-obt{ display:block; font-size:var(--t-card); font-weight:var(--w-label); color:var(--color-text); }
+  .ov-map-ob .ov-map-amt{ font-weight:var(--w-label); }
+  .ov-map-ob.is-lit{ animation:ov-map-lit 1.6s ease-out; }
+  @keyframes ov-map-lit{ from{ background:var(--color-accent-100); } to{ background:transparent; } }
+  @media (prefers-reduced-motion:reduce){ .ov-map-ob.is-lit{ animation:none; background:var(--color-accent-50); } }
   /* A HEAD THAT CANNOT BE OPENED HAS NOWHERE ELSE TO PUT ITS SENTENCE, so it
      wraps rather than elides. The ellipsis is right on a foldable head — the
      rest is one press away — and wrong here, where the press does not exist:

@@ -246,14 +246,19 @@ describe('f442 (3) the map is drawn from stored facts', () => {
 });
 
 describe('f442 (4) the map is drawn as the redesign draws it', () => {
-  test('one 900x310 picture: our node, theirs, the contract, an arc above and a dashed arc below', () => {
+  /* RE-POINTED IN PLACE 9 Oct 2026 (Young: the map a third smaller, the circles
+     half as small, the lines live): a 600x310 stage at the old scale. */
+  test('one 600x310 picture: our node, theirs, the contract, an arc above and a dashed arc below', () => {
     const { win } = mapWorld();
     const c = withParties(supply(), { name: 'Highland Corporate Ltd' }, { name: 'Juno Limited' });
     c.obligations = [{ id: 'o1', desc: 'Pay', due: '2026-02-15', party: 'ours', status: 'open' }];
     const svg = win.ovMapSvg(win.ovMapData(c));
-    assert.ok(svg.includes('viewBox="0 0 900 310"'));
-    assert.ok(/translate\(250 160\)/.test(svg) && /translate\(650 160\)/.test(svg), 'the two nodes where the handoff puts them');
-    assert.ok(svg.includes('M330 104 Q450 20 570 104') && svg.includes('M330 216 Q450 300 570 216'), 'the two arcs, ending clear of the rings');
+    assert.ok(svg.includes('viewBox="0 0 600 310"'));
+    assert.ok(/translate\(150 160\)/.test(svg) && /translate\(450 160\)/.test(svg), 'the two nodes, a third closer');
+    assert.ok(/<circle r="32" class="ov-map-us-c"/.test(svg) && /<circle r="33" class="ov-map-them-c"/.test(svg), 'the circles half their old size (64, 66)');
+    assert.ok(svg.includes('M196 128 Q300 52 404 128') && svg.includes('M404 192 Q300 268 196 192'), 'the two arcs, ending clear of the rings: we owe runs us → them, they owe them → us');
+    assert.equal((svg.match(/class="ov-map-mote is-/g) || []).length, 1, 'one moving dot per duty');
+    assert.ok(/<animateMotion[^>]*><mpath href="#ov-map-p-ours"\/>/.test(svg) && /id="ov-map-p-ours"/.test(svg), 'it travels our curve');
     assert.equal((svg.match(/data-ov-map="ours"/g) || []).length, 2, 'our node and the upper arc both read our duties');
     assert.equal((svg.match(/data-ov-map="theirs"/g) || []).length, 2, 'their node and the lower arc read theirs');
     assert.equal((svg.match(/data-ov-map="renewal"/g) || []).length, 1, 'the contract reads the renewal');
@@ -282,11 +287,16 @@ describe('f442 (4) the map is drawn as the redesign draws it', () => {
     assert.ok(html.includes(win.i18t('ov_map_empty')) && /data-ov-map-oblig/.test(html), 'and one quiet line with the door to Obligations');
   });
 
+  /* RE-POINTED IN PLACE 9 Oct 2026: the map takes two thirds of its old width,
+     the panel the rest; the stage keeps the old picture's height (Young: "the
+     card height should stay the same") — measured in duties-map-verify (7). */
   test('the panel beside the map holds the map card\'s height and scrolls', () => {
     const html = read('index.html');
-    assert.match(html, /\.ov-map-grid\{ display:grid; grid-template-columns:minmax\(0,1fr\) 340px; gap:12px; align-items:stretch; \}/);
-    assert.match(html, /\.ov-map-pane\{[^}]*contain:size; overflow-y:auto;/, 'its words never stretch the row');
-    assert.match(html, /\.ov-map-pane\{ contain:none; height:420px; \}/, 'stacked, it keeps one height');
+    assert.match(html, /\.ov-map-grid\{ display:grid; grid-template-columns:calc\(\(100% - 352px\) \* 2 \/ 3\) minmax\(0,1fr\); gap:12px; align-items:stretch; \}/);
+    assert.match(html, /#ov-map \.ov-map-stage\{ flex:none; height:calc\(\(100cqw - 354px\) \* 310 \/ 900\); \}/, 'the old full-width picture\'s height');
+    assert.match(html, /\.ov-map-side\{[^}]*contain:size;/, 'its words never stretch the row');
+    assert.match(html, /\.ov-map-pane\{[^}]*overflow-y:auto;/, 'it scrolls');
+    assert.match(html, /\.ov-map-side\{ contain:none; height:420px; \}/, 'stacked, it keeps one height');
     assert.ok(/pane\.scrollTop=0/.test(strip(fnBody(CONTRACT, 'ovMapWire'))), 'each new reading starts at its top');
   });
 
@@ -430,7 +440,7 @@ describe('f442 (9) the duties map stands in every browser, and says what is to b
     const svg = win.ovMapSvg(win.ovMapData(c));
     const bad = (svg.match(/<[a-z]+[^>]*>/g) || []).filter(t => /\btransform="translate/.test(t) && /class="[^"]*\bov-map-nd\b/.test(t));
     assert.deepEqual(bad, [], 'the place is on the outer group, the animation on the inner');
-    assert.ok((svg.match(/class="ov-map-hitg[^"]*"[^>]*transform="translate\((250|650) 160\)"/g) || []).length === 2, 'both nodes placed on their outer group');
+    assert.ok((svg.match(/class="ov-map-hitg[^"]*"[^>]*transform="translate\((150|450) 160\)"/g) || []).length === 2, 'both nodes placed on their outer group');
   });
 
   test('the amounts still to pay ride the curve labels and the panel (option A)', () => {

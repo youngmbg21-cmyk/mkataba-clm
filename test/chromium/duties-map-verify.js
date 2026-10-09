@@ -6,13 +6,15 @@
    replacing a node's SVG transform) is pinned in f442 (9); WebKit is not
    installed here. In Chromium, at 1440, 1280 and 1100, light and dark, with
    0, 1 and 9 duties:
-     1. our circle's centre is in the map's left third, theirs in its right
-        third
+     1. our circle's centre is left of 0.4 of the map, theirs right of 0.6
      2. no two labels in the map overlap (names, curve labels)
      3. the upper curve is mostly visible: its label sits above it
      4. the panel's "Renewal" heading is in view without scrolling the panel
      5. with no duties, no "0 duties" is drawn, and the empty line is
      6. no page errors
+     7. the card is as tall as before the map shrank (Young, 9 Oct 2026)
+     8. a duty's dot travels its curve
+     9. a tab, and a dot, open their reading; the dot lights its duty's row
    Waits ask for the state, bounded. Red at main e18f309 (4, 5).
    Run: node test/chromium/duties-map-verify.js */
 const fs = require('node:fs');
@@ -66,7 +68,7 @@ const BOOK = [['MK-D0', 0], ['MK-D1', 1], ['MK-D9', 9]];
         await page.waitForTimeout(800);
         const m = await page.evaluate(() => {
           const svg = document.querySelector('#ov-map svg'), sr = svg.getBoundingClientRect();
-          const cen = sel => { const g = svg.querySelector(sel + ' circle[r="64"], ' + sel + ' circle[r="66"]'); if (!g) return null; const r = g.getBoundingClientRect(); return (r.left + r.width / 2 - sr.left) / sr.width; };
+          const cen = sel => { const g = svg.querySelector(sel + ' circle.ov-map-us-c, ' + sel + ' circle.ov-map-them-c'); if (!g) return null; const r = g.getBoundingClientRect(); return (r.left + r.width / 2 - sr.left) / sr.width; };
           const texts = [...svg.querySelectorAll('text.ov-map-nm, text.ov-map-big, text.ov-map-sm')].map(t => { const r = t.getBoundingClientRect(); return { t: t.textContent, l: r.left, r: r.right, top: r.top, b: r.bottom }; }).filter(x => x.r - x.l > 1);
           const clash = []; texts.forEach((a, i) => texts.forEach((b, j) => { if (j > i && a.l < b.r - 1 && b.l < a.r - 1 && a.top < b.b - 1 && b.top < a.b - 1) clash.push(a.t + ' × ' + b.t); }));
           /* the upper curve: share of points along it not under its label */
@@ -77,11 +79,38 @@ const BOOK = [['MK-D0', 0], ['MK-D1', 1], ['MK-D9', 9]];
           return { us: cen('[data-ov-map="ours"].ov-map-us'), them: cen('.ov-map-them'), clash, seen,
             head: !!hr && hr.top >= pr.top && hr.bottom <= pr.bottom, zero: /\b0 duties/.test(svg.textContent), empty: !!document.querySelector('#ov-map .ov-map-empty') };
         });
-        check(`1. ${tag}: our circle left, theirs right`, m.us != null && m.us < 1 / 3 && m.them != null && m.them > 2 / 3, `${m.us && m.us.toFixed(2)} / ${m.them && m.them.toFixed(2)}`);
+        /* re-pointed 9 Oct 2026: stacked, the 600-wide picture sits centred in a
+           wider stage, so its nodes stand at about a third and two thirds */
+        check(`1. ${tag}: our circle left, theirs right`, m.us != null && m.us < 0.4 && m.them != null && m.them > 0.6, `${m.us && m.us.toFixed(2)} / ${m.them && m.them.toFixed(2)}`);
         check(`2. ${tag}: no two labels overlap`, m.clash.length === 0, m.clash.join(' | ') || 'none');
         if (n) check(`3. ${tag}: the upper curve is mostly visible`, m.seen != null && m.seen > 0.5, String(m.seen && m.seen.toFixed(2)));
         check(`4. ${tag}: the panel's Renewal heading is in view`, m.head);
         if (!n) check(`5. ${tag}: no "0 duties", the empty line instead`, !m.zero && m.empty, JSON.stringify({ zero: m.zero, empty: m.empty }));
+        /* 7. THE CARD KEEPS ITS HEIGHT (Young, 9 Oct 2026): the old card was its
+           top row plus a 900x310 picture as wide as (row - 352 - 2) — or the
+           whole row, stacked; the new card is exactly as tall */
+        const hgt = await page.evaluate(() => { const g = document.getElementById('ov-map'), card = g.querySelector('.ov-map-card');
+          const stacked = getComputedStyle(g).gridTemplateColumns.trim().split(/\s+/).length === 1, W = g.getBoundingClientRect().width;
+          const want = card.querySelector('.ov-map-top').getBoundingClientRect().height + 2 + (stacked ? W - 2 : W - 354) * 310 / 900;
+          return { got: card.getBoundingClientRect().height, want, side: g.querySelector('.ov-map-side').getBoundingClientRect().height }; });
+        check(`7. ${tag}: the card is as tall as before`, Math.abs(hgt.got - hgt.want) < 1.5, `${hgt.got.toFixed(1)} vs ${hgt.want.toFixed(1)}`);
+        if (n) {
+          /* 8. THE LINES ARE LIVE: a dot on the curve moves */
+          const at = () => page.evaluate(() => { const d = document.querySelector('#ov-map .ov-map-mote'); const r = d.getBoundingClientRect(); return [r.left, r.top]; });
+          const a0 = await at(); await page.waitForTimeout(400); const a1 = await at();
+          check(`8. ${tag}: a duty's dot travels its curve`, Math.hypot(a1[0] - a0[0], a1[1] - a0[1]) > 2, JSON.stringify([a0, a1]));
+          /* 9. A TAB AND A DOT OPEN THEIR READING; a dot lights its duty's row */
+          await page.click('#ov-map [data-ov-map-tab="theirs"]');
+          const tabbed = await until(() => document.querySelector('[data-ov-map-tab="theirs"]').getAttribute('aria-selected') === 'true'
+            && document.querySelector('[data-ov-map-pane] h3').textContent === i18t('ov_map_theirs_h'));
+          check(`9a. ${tag}: the They owe tab opens their duties`, !!tabbed);
+          const lit = await page.evaluate(() => { const d = document.querySelector('#ov-map [data-ov-map="ours"] .ov-map-mote');
+            d.dispatchEvent(new MouseEvent('click', { bubbles: true })); const id = d.getAttribute('data-ov-duty');
+            const row = [...document.querySelectorAll('[data-ov-map-pane] [data-ov-duty]')].find(r => r.getAttribute('data-ov-duty') === id);
+            return !!row && row.classList.contains('is-lit') && document.querySelector('[data-ov-map-tab="ours"]').getAttribute('aria-selected') === 'true'; });
+          check(`9b. ${tag}: a dot opens our duties and lights its row`, lit);
+          await page.click('#ov-map [data-ov-map-tab="renewal"]');
+        }
       }
       await page.close();
     }
