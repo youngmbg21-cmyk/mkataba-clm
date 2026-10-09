@@ -6616,9 +6616,16 @@ function ktFieldCell(c,k,edit,marks){
        the two dates beside it — so it stays a reading in both postures rather
        than becoming a third place the same fact can be typed. */
     case 'term': {
-      let t=''; try{ const sp=window.docTermSpan?docTermSpan(c):null;
+      /* THE END AS AMENDED (B13, kept through the 8 Oct redesign): the term
+         cell carries the expiry now, so a signed amendment that moved the
+         end date moves it here too, and the cell names the document. */
+      let t='', am=null; try{ am=window.effectiveExpiryFrom?effectiveExpiryFrom(c):null; }catch(_){ am=null; }
+      try{ const sp=window.docTermSpan?docTermSpan(am?Object.assign({},c,{expiry:am.date}):c):null;
         if(sp&&sp.from&&sp.to) t=esc(`${sp.from} – ${sp.to}`); }catch(_){}
-      return [i18t('ct_term_label'), t];
+      /* No start date on record: the end date alone (the room head's own
+         fallback), so a known expiry is never a dash at rest. */
+      if(!t&&R.expiry) t=R.expiry;
+      return [i18t('ct_term_label'), t, (!edit&&t&&R.expiryFrom)?i18t('ct_as_amended_by',{ref:R.expiryFrom}):undefined];
     }
     case 'contractType': return [i18t('ov_f_type'), edit?box():(R.contractType||txt(m.contractType))];
     case 'liabilityCapped': return [ovMetaLabel(k), edit?box():opt(m.liabilityCapped), '',
