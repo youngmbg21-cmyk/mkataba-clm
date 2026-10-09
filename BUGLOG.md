@@ -20554,3 +20554,6 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - Noticed, not fixed: an open click-to-type box on Negotiate, even untouched, holds back the page's live repaint and may show the "held for editor" toast.
 - Noticed, not fixed: theme-tokens-verify's dashboard and register screens differ from the census on main as well (Home board chart tones; an amber on the Contracts page); left for whoever owns those palettes.
 - Noticed, not fixed: CLAUDE.md is about 85 KB before tonight's MAP lines (house limit about 80 KB); a trim needs the owner's word.
+- Noticed, not fixed (9 Oct 2026, overnight run): signing-without-the-facts-verify 2a/2b/4c are red on main as well — the Overview's eight-terms redesign has no Effective cell at rest, so "needed to sign" on the start date has nowhere to show.
+- Noticed, not fixed: toastsClear (core.js) is not published on window, so other modules and checks cannot call it.
+- Noticed, not fixed: sent-means-sent-verify's fixture edits the Governing Law clause with confidentiality wording, so its Send all question reads oddly (the check's own data, not the app).
