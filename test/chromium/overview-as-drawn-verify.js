@@ -548,8 +548,10 @@ const SEC = (suffix) => {
       ty ? JSON.stringify(ty) : 'no section');
     check('8b the field NAME is not bold', !!ty && Number(ty.label) <= 400,
       ty ? 'label weight ' + ty.label : 'not measured');
-    check('8c CONTROL — and it keeps the product\'s own label treatment otherwise',
-      !!ty && ty.labelCase === 'uppercase', ty ? String(ty.labelCase) : 'not measured');
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3, "build exactly the drawings"): the
+       drawing writes the terms' labels in sentence case, not capitals. */
+    check('8c CONTROL — and the label is in sentence case, as drawn',
+      !!ty && ty.labelCase === 'none', ty ? String(ty.labelCase) : 'not measured');
     check('8d CONTROL — an ANSWERED field stays bold', !!ty && Number(ty.answered) >= 600,
       ty ? 'value weight ' + ty.answered : 'not measured');
     check('8e CONTROL — and stays in the page\'s own ink, not the label\'s grey',

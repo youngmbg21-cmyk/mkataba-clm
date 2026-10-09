@@ -418,6 +418,10 @@ function paintScrollGutter(view){
    languages. Every other view falls through to its own title. */
 function shellTitleFor(view){
   if(view==='dashboard') return i18t('home_clm_title');
+  /* A CONTRACT'S PAGE IS UNDER CONTRACTS on every tab (SAP benchmark, batch 3,
+     9 Oct 2026): the bar read "Contract Workspace" on some tabs and the adopted
+     crumb's "Contracts" on others. */
+  if(view==='workspace') return i18t('nav_contracts');
   const [t]=commandMeta(view);
   return t||'';
 }

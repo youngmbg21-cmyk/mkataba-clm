@@ -143,6 +143,10 @@ describe('f225 (2) — the wording is the page, not a box on it', () => {
     const grid = SRC.slice(SRC.indexOf('id="doc-grid"'), SRC.indexOf('id="doc-sheet-host"'));
     assert.ok(!/i18t\('ct_received_read_below'\)/.test(grid),
       'the received strip is not drawn above the paper');
-    assert.match(grid, /executed and locked/, 'and the locked band is untouched');
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3, "build exactly the drawings"): the
+       sealed paper's fact moved off the paper onto the tool bar's lock line,
+       as drawn — it is still said, once, on the Document and Signing tabs. */
+    assert.ok(!/executed and locked/.test(grid), 'no band over the paper');
+    assert.match(SRC, /function wsLockLineHtml\(c\)\{[\s\S]*?ct_lockline/, 'the lock is said on the tool bar instead');
   });
 });

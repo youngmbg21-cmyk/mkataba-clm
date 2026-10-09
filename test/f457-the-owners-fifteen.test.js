@@ -31,8 +31,10 @@ describe('F457 (1) — a spacing token that is asked for exists', () => {
   });
   test('the deal-stands sheet is inset like the Overview (16px, the .sec-head inset)', () => {
     const html = read('index.html');
-    const rule = (html.match(/\.ds-sheet\{[^}]*\}/) || [''])[0];
-    assert.match(rule, /padding:var\(--s-4\)/, rule);
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3): the sheet is a stack of cards now;
+       the top card carries the Overview's 16px inset. */
+    const rule = (html.match(/\.ds-sheet \.ds-top\{[^}]*\}/) || [''])[0];
+    assert.match(rule, /padding:var\(--s-3\) var\(--s-4\)/, rule);
     assert.match(html, /#kt-overview \.sec-head\{ padding:16px 16px 2px; \}/, 'the Overview moved its inset; move this with it');
   });
 });

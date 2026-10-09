@@ -289,8 +289,12 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
         allCount: (() => { const f = document.querySelector('.rl-idx-title');
           return f ? ((f.textContent.match(/(\d+)\s*$/) || [])[1] || null) : null; })() }; /* a plain count since 21 Sep 2026 */
     });
-    check('2 the control bar sits on the page ground, 44px tall, like the Document tab\'s row',
-      tabs.bg === 'rgba(0, 0, 0, 0)' && tabs.h === 44, `${tabs.bg} ${tabs.h}px`);
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3): the Document tab's head is a white
+       band again, as drawn, and this row follows it. */
+    const surf = await page.evaluate(() => { const d = document.createElement('div'); d.style.background = 'var(--color-surface)';
+      document.body.appendChild(d); const v = getComputedStyle(d).backgroundColor; d.remove(); return v; });
+    check('2 the control bar is white like the Document tab\'s band, 44px tall',
+      tabs.bg === surf && tabs.h === 44, `${tabs.bg} ${tabs.h}px`);
     /* THE SIZE IS THE BODY RUNG, resolved from the token rather than typed
        (re-pointed 20 Sep 2026, when the redesign order moved --t-body to
        13px and this line went red for the wrong reason). */

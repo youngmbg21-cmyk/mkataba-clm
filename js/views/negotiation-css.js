@@ -6360,7 +6360,12 @@ function redlineLayoutCss(){
          rather than a dark fill; "needs you" and "All negotiations" are the
          outlined everyday buttons the Document tab's row uses. The id lifts
          each rule over the scoped ones above without !important. */}
-  #view-redline .rl-tabrow{background:transparent}
+  ${''/* …AND BOTH ARE WHITE AGAIN (SAP benchmark, batch 3, 9 Oct 2026): the
+         contract's head went back to a white band, as drawn, so the row that
+         reads like the Document tab's is white with it — Focus still mimics
+         the Document tab (focus-mimics-document 5b), and the head reads the
+         same on both pages (Young, 12 Sep). */}
+  #view-redline .rl-tabrow{background:var(--color-surface)}
   #view-redline .rl-boardseg{height:auto;align-self:stretch;padding:0 14px;color:var(--color-neutral-600);
     font-weight:var(--w-label);background:none;border-radius:0;box-shadow:none}
   #view-redline .rl-boardseg:hover{color:var(--color-text);background:none}
