@@ -28141,3 +28141,14 @@ What was built:
 - Kept, since the owner did not answer: the "Nobody assigned yet" chip in the head.
 
 Re-pointed: f184 (bar word), pages-read-alike 1 (head compared with the Document tab's; back button read in the head), nego-redesign 1c (the arrow beside the title). New: negotiate-as-drawn-verify (6 of its 9 fail at unmodified main; the 44px row and the tab name are guards that pass on both).
+
+## THE OVERVIEW'S DUTIES AND TERMS, AND THE OBLIGATIONS HEAD (9 Oct 2026)
+
+The owner sent five screenshots after batch 4 merged: *"Image 2, should look similar to image 1 from the overview page as far as esthetics (the line across the page plus header, the single sentence plus checkmark on each obligation. Image 3, the card should never get bigger that its original state. If the sentence is long then it should go to a scroll. Image 5's top bar needs to be the same height as image 4 so remove the we owe xxx place. Also, "All" filter always needs to be first."*
+
+- Duties panel (We owe / They owe): drawn as Where we are's Settled card — a header "Duties we owe (n)" with a line across the whole panel (the pane's scrollbar gutter is dropped on these sides so the line reaches the edge), then one flat list, late first and done last. Each row: a mark (a green tick once done; an open duty wears a ring in its state's colour, because a tick there would say "done"), the duty as one line cut with an ellipsis (whole on hover), the date at the right, a grey line under it (state · clause · amount). The old sentence ("n recorded, n open, n late") and the group boxes went; money still to pay rides the header's right.
+- The terms card: each answer is at most two lines (40px); a longer one scrolls inside its own cell and is keyboard-focusable when it does. Measured: a 180-character Disputes answer grew the card 194 → 248px before, 194 → 194 after.
+- Obligations page: the head's facts line ("We owe SEK 900K") is gone and the page left `PAGE_HEAD_PAINT`, so no empty acts slot reserves 28px; its tab row sits flush and its tabs are Approvals' 38px. The band ended 26px lower than Approvals' before; within 1px after.
+- All is the first tab on the Obligations page and the contract's Obligations tab. Both still open on Outstanding.
+
+Re-pointed: f390 5a (obligations reserves no head slot), four-inspectors 1d (no facts line). New: overview-and-obligations-polish-verify (11 of 13 red at unmodified main).

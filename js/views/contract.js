@@ -6003,6 +6003,9 @@ function renderKeyTerms(c){
   try{ if(window.renderRenewalSection) renderRenewalSection(c); }catch(_){}
   paintOvBriefBtn(c);
   ovMapWire(host,c);
+  /* A TERM LONG ENOUGH TO SCROLL IN ITS CELL (the terms card never grows) is
+     reachable by keyboard too, so its hidden lines can be read. */
+  host.querySelectorAll('#ov-ess .ov-ess-g .sec-f-v').forEach(v=>{ if(v.scrollHeight>v.clientHeight+1) v.tabIndex=0; });
   /* ---- PRESSING A MARKED FIELD IS THE SAME ACT AS `Fix on Overview` ----
      focusKeyTerms is the one door: it opens the right section, turns its rows
      on and lands the caret in the box. TWO PLACES, ONE ACT — the signing list
@@ -6460,10 +6463,18 @@ function ovMapSvg(D){
   return s+'</svg>';
 }
 const OV_MAP_PILL={ g:'green', a:'amber', r:'ruby', s:'steel' };
+/* ONE ROW PER DUTY, DRAWN AS WHERE WE ARE'S SETTLED CARD (owner, 9 Oct 2026:
+   "should look similar to [Settled] … the line across the page plus header,
+   the single sentence plus checkmark on each obligation"): a mark, the duty
+   as one sentence (cut with an ellipsis, whole on hover), its date at the
+   right, a quiet line under it. The mark is a tick once done; an open duty
+   wears a ring in its state's colour — a tick there would say "done". */
+const OV_MAP_ST_WORD={ r:'ov_map_l_late', a:'ov_map_l_soon', s:'ov_map_l_later', g:'ov_map_done_h' };
 function ovMapDutyRow(x,D){
-  const when=x.due?(x.st==='g'?i18t('ov_tm_done_undated'):x.st==='r'?i18t('ov_tm_was_due',{ date:ovDay(x.due) }):i18t('ov_tm_due',{ date:ovDay(x.due) })):(x.st==='g'?i18t('ov_tm_done_undated'):i18t('ob_no_date'));
-  return `<div class="ov-map-ob" data-ov-duty="${esc(String(x.id||''))}"><div><span class="ov-map-obt">${esc(x.t)}</span><small>${esc(when)}${
-    x.cl?` · <span class="ov-map-cl">${esc(x.cl)}</span>`:''}</small></div>${x.amt&&D&&D.money?`<span class="ov-map-amt">${esc(ovMapMoney(D,x.amt))}</span>`:''}</div>`;
+  const day=x.due?ovDay(x.due):i18t('ob_no_date');
+  const sub=[esc(i18t(OV_MAP_ST_WORD[x.st]||'ov_map_l_later')), x.cl?esc(x.cl):'',
+    x.amt&&D&&D.money?`<span class="ov-map-amt">${esc(ovMapMoney(D,x.amt))}</span>`:''].filter(Boolean).join(' · ');
+  return `<div class="ov-map-ob is-${x.st}" data-ov-duty="${esc(String(x.id||''))}"><span class="ov-map-tick" aria-hidden="true">${x.st==='g'?'✓':'○'}</span><div><span class="ov-map-obt" title="${esc(x.t)}">${esc(x.t)}</span><small>${sub}</small></div><span class="ov-map-obd">${esc(day)}</span></div>`;
 }
 /* WHERE THE AGREEMENT STANDS IN ITS TERM: start → today → notice by → end,
    one bar, drawn only where a start and an end are both recorded. */
@@ -6504,14 +6515,16 @@ function ovMapPane(c,D,k){
       R.quote?`<h4>${esc(i18t('ov_map_wording'))}</h4><blockquote class="ov-map-quote">“${esc(R.quote)}”</blockquote>`:''}<div id="renewal-host" class="empty:hidden ov-map-decide" data-bare="1" data-compact="1"></div>`;
   }
   if(k==='ours'||k==='theirs'){
-    const list=D.duties[k], open=list.filter(x=>x.st!=='g'), late=list.filter(x=>x.st==='r').length;
-    const who=(k==='ours'?D.parties[0]:D.parties[1]).name;
-    const lede=(list.length?i18t('ov_map_side_lede',{ who, n:list.length, open:open.length, late }):i18t('ov_map_no_duties'))
-      +(D.pay[k]>0?' '+i18t('ov_map_side_pay',{ money:ovMapMoney(D,D.pay[k]) }):'');
-    const groups=[['r','ov_map_l_late'],['a','ov_map_l_soon'],['s','ov_map_l_later'],['g','ov_map_done_h']].map(([st,w])=>{
-      const xs=list.filter(x=>x.st===st); if(!xs.length) return '';
-      return `<div class="ov-map-grp"><h4><span class="ov-map-dot is-${st}"></span>${esc(i18t(w))} · ${xs.length}</h4><div class="ov-map-rows">${xs.map(x=>ovMapDutyRow(x,D)).join('')}</div></div>`; }).join('');
-    return `<h3>${esc(i18t(k==='ours'?'ov_map_ours_h':'ov_map_theirs_h'))}</h3><p class="ov-map-lede">${esc(lede)}</p>${groups}`;
+    /* THE SETTLED CARD'S SHAPE (owner, 9 Oct 2026): a header with its count
+       and a line across, then one flat list — late first, done last. What
+       the old sentence said is on the rows (each mark is its state); only
+       money still to pay rides the header's right. */
+    const list=D.duties[k];
+    const order=['r','a','s','g'], rows=order.flatMap(st=>list.filter(x=>x.st===st));
+    const pay=D.pay[k]>0?i18t('ov_map_side_pay',{ money:ovMapMoney(D,D.pay[k]) }):'';
+    return `<div class="ov-map-ch"><h3>${esc(i18t(k==='ours'?'ov_map_ours_h':'ov_map_theirs_h'))} <span class="ov-map-tn">(${list.length})</span></h3>${
+      pay?`<span class="ov-map-ch-r">${esc(pay)}</span>`:''}</div>${
+      rows.length?`<div class="ov-map-list">${rows.map(x=>ovMapDutyRow(x,D)).join('')}</div>`:`<p class="ov-map-lede ov-map-none">${esc(i18t('ov_map_no_duties'))}</p>`}`;
   }
   return '';
 }

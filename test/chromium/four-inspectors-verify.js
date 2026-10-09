@@ -147,7 +147,9 @@ const ago = days => new Date(Date.now() - days * 864e5).toISOString();
       await page.evaluate(() => { const r = [...document.querySelectorAll('.ob-lt tbody tr')]; let w = '';
         for (const t of r) { if (t.classList.contains('ins-grp')) w = t.getAttribute('data-ob-win'); else if (/Pay on delivery to site/.test(t.textContent)) return w === 'waiting'; }
         return false; }));
-    ok('1d the head says what is on the page', /\d/.test(ob.head), ob.head);
+    /* RE-POINTED 9 Oct 2026 (owner: "remove the we owe xxx place" so the head
+       is as tall as Approvals & signing's) — the money reads on the groups. */
+    ok('1d the head carries no facts line', !ob.head, ob.head);
     const rows = await page.$$('.ob-lt tbody [data-ins-row]');
     if (rows.length > 2) {
       await rows[2].click(); await page.waitForTimeout(300);

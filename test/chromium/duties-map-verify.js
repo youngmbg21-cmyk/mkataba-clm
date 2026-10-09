@@ -102,7 +102,8 @@ const BOOK = [['MK-D0', 0], ['MK-D1', 1], ['MK-D9', 9]];
           /* 9. A TAB AND A DOT OPEN THEIR READING; a dot lights its duty's row */
           await page.click('#ov-map [data-ov-map-tab="theirs"]');
           const tabbed = await until(() => document.querySelector('[data-ov-map-tab="theirs"]').getAttribute('aria-selected') === 'true'
-            && document.querySelector('[data-ov-map-pane] h3').textContent === i18t('ov_map_theirs_h'));
+            /* the heading carries its count since 9 Oct 2026 (the Settled card's shape) */
+            && document.querySelector('[data-ov-map-pane] h3').textContent.startsWith(i18t('ov_map_theirs_h')));
           check(`9a. ${tag}: the They owe tab opens their duties`, !!tabbed);
           const lit = await page.evaluate(() => { const d = document.querySelector('#ov-map [data-ov-map="ours"] .ov-map-mote');
             d.dispatchEvent(new MouseEvent('click', { bubbles: true })); const id = d.getAttribute('data-ov-duty');

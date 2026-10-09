@@ -3388,7 +3388,9 @@ const obByWhen = (a, b) => {
    The same five cuts the State dropdown offered (OBW_STATE), drawn where the
    owner's drawing draws them; `f.state` is still the one value, so every door
    that lands here narrowed (obwGoFiltered) lands on the matching tab. */
-const OBW_VIEWS = [['open','ob_v_out'],['overdue','ob_v_over'],['waiting','ob_v_wait'],['done','ob_v_done'],['all','ob_v_all']];
+/* ALL LEADS THE ROW (owner, 9 Oct 2026: '"All" filter always needs to be
+   first'); the page still opens on Outstanding. */
+const OBW_VIEWS = [['all','ob_v_all'],['open','ob_v_out'],['overdue','ob_v_over'],['waiting','ob_v_wait'],['done','ob_v_done']];
 const OBW_CHIPS = ['whose', 'side', 'folder', 'due'];
 /* THE HEAD'S FACTS LINE: what the list on screen adds up to — never one sum of
    both directions — or, where the reader may not see money, how much of it
@@ -3421,12 +3423,11 @@ function renderObligationsInspector(host){
   const { cols, body } = obListHtml(rows, 'page');
   const empty = `<tr class="ins-empty"><td colspan="${cols.length}">${_obEsc(i18t(narrowing.length ? 'ob_none_match_short' : 'ob_none_here'))}${
     narrowing.length ? `<br><button type="button" class="ui-link" data-obw-clear style="margin-top:8px">${_obEsc(i18t('ob_clear_filters'))}</button>` : ''}</td></tr>`;
-  const mw = obMoneyWords(rows);
-  const late = rows.filter(r => r.win === 'overdue').length, held = rows.filter(r => r.win === 'waiting').length;
-  _obwHeadFacts = obligationMoneyVisible()
-    ? (mw.text ? _obEsc(_obCap(mw.text)) + obMoneyLeftHtml(mw) : _obEsc(i18t('ob_no_money_here')) + obMoneyLeftHtml(mw))
-    : [ i18tn('ob_head_open', rows.filter(r => r.st !== 'done').length, { n: rows.filter(r => r.st !== 'done').length }),
-        late ? i18tn('ob_head_overdue', late, { n: late }) : '', held ? i18tn('ob_head_waiting', held, { n: held }) : '' ].filter(Boolean).map(_obEsc).join(' · ');
+  /* NO FACTS LINE UNDER THE TITLE (owner, 9 Oct 2026: the top bar "needs to
+     be the same height as" Approvals & signing's, "so remove the we owe xxx
+     place"). The money still reads where the rows are: each group's own
+     heading in the list. */
+  _obwHeadFacts = '';
   host.innerHTML = `<div class="view-enter sap-page ins-page obw-ins" data-ins-page="obligations" data-ins="1">
     <div class="sap-band">${views}</div>
     <div class="ins-body">
@@ -3468,7 +3469,7 @@ function renderObligationsInspector(host){
    with its count), the tab's facts in one sentence, and Add and Find at the
    right — the tab's own two verbs, unchanged, under their own ids. The view
    is per contract, per sitting, in memory. */
-const OBT_VIEWS = [['open','ob_v_out'],['overdue','ob_v_over'],['done','ob_v_done'],['all','ob_v_all']];
+const OBT_VIEWS = [['all','ob_v_all'],['open','ob_v_out'],['overdue','ob_v_over'],['done','ob_v_done']];   /* All first (owner, 9 Oct 2026) */
 const _obtView = {};
 function obtView(cid){ const v = _obtView[cid]; return OBT_VIEWS.some(x => x[0] === v) ? v : 'open'; }
 function roomObligationsInspector(c, host){
