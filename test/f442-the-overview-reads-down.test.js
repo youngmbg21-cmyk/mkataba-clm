@@ -122,18 +122,25 @@ describe('f442 (1) the essentials card holds every term, once', () => {
     assert.match(read('index.html'), /\.ov-pty-list\{ flex:1 1 0; min-height:136px; contain:size; overflow-y:auto;/, 'the list is kept out of the row\'s height and scrolls');
   });
 
-  test('the edit posture still makes every field a box', () => {
+  /* RE-POINTED 9 Oct 2026 (Young: "for the terms field, there should be no
+     more fields than what is in image 1. Delete all else" — and "Wipe nothing
+     for now"): Edit draws the resting eight as boxes, the term as its two
+     dates, and no other term; what the others store is left alone. */
+  test('the edit posture draws the eight as boxes, and nothing else', () => {
     const { win } = ovWorld();
     const c = supply();
+    c.metadata = Object.assign({}, c.metadata, { noticePeriodDays: 90, volumeRebate: '2%' });
     win.ovSetEditing(`kt.${c.id}.deal`, true);
     const html = win.ktOverviewTermsHtml(c, { editable: true });
     win.ovSetEditing(`kt.${c.id}.deal`, false);
     const names = new Set((html.match(/data-kt="[a-zA-Z]+"|data-ktm="[a-zA-Z]+"/g) || [])
       .map(b => b.split('"')[1]));
-    for (const k of win.OV_DEAL_FIELDS.concat(win.OV_ALSO_FIELDS)) {
-      if (win.OV_DERIVED_FIELDS.has(k)) continue;
-      assert.ok(names.has(k), k + ' can be typed on the card');
-    }
+    const want = ['contractType', 'governingLaw', 'disputes', 'value', 'effDate', 'expiry', 'renewalType', 'paymentTerms', 'liabilityCapped'];
+    for (const k of want) assert.ok(names.has(k), k + ' can be typed on the card');
+    for (const k of ['notice', 'renewalTermMonths', 'indemnityCapped', 'terminateForConvenience', 'confidentiality', 'assignment', 'category', 'volumeRebate', 'warrantyMonths'])
+      assert.ok(!names.has(k), k + ' has no box any more');
+    assert.equal(c.metadata.noticePeriodDays, 90, 'and nothing stored was touched');
+    assert.equal(c.metadata.volumeRebate, '2%');
   });
 
   test('the filing rows open only when asked (the ⋯ row, Edit, or a field the signing list points at)', () => {
@@ -343,10 +350,13 @@ describe('f442 (5) Read the brief, and one Edit', () => {
     assert.ok(/paintOvBriefBtn\(c\)/.test(strip(fnBody(CONTRACT, 'renderKeyTermsSide'))));
   });
 
-  test('one Edit turns both postures together', () => {
+  /* RE-POINTED 9 Oct 2026 (Young: "the card should not expand when you
+     click edit"): Edit turns the terms on; the filing rows stay on the ⋯
+     row; Done closes both. */
+  test('one Edit turns the terms on, and Done closes both', () => {
     const r = strip(fnBody(CONTRACT, 'renderKeyTerms'));
     assert.ok(/k==='all'/.test(r), 'the sheet\'s Edit is handled');
-    assert.ok(/ovSetEditing\(dk,on\); ovSetEditing\(rk,on\)/.test(r), 'and moves both');
+    assert.ok(/ovSetEditing\(dk,on\); if\(!on\) ovSetEditing\(rk,false\)/.test(r), 'Edit opens the terms only; Done closes both');
     const terms = strip(fnBody(CONTRACT, 'ktOverviewTermsHtml'));
     assert.equal((terms.match(/data-ov-edit="all"/g) || []).length, 1, 'one Edit on the page');
   });

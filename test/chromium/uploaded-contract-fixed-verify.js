@@ -246,9 +246,11 @@ const BODY =
       const col = document.getElementById('ov-parties');
       const inset = (b, sel) => { const e = b && b.querySelector(sel); return e ? Math.round(e.getBoundingClientRect().left - b.getBoundingClientRect().left) : null; };
       const ppl = document.querySelector('#kt-people');
-      const host = ppl && ppl.closest('.ov-people-in');
-      out.whoBtn = inset(host, '#kt-people button.ui-btn');
-      out.whoText = inset(host, '#kt-people .pt-none, #kt-people .pt-row');
+      /* re-pointed 9 Oct 2026 (the Directory): the people sit in the parties'
+         own scroller; the list and its Add button share one left edge */
+      const host = ppl && ppl.closest('.ov-dir');
+      out.whoBtn = inset(host, '#kt-people [data-pt-add]');
+      out.whoText = inset(host, '#kt-people .pt-dir-list, #kt-people .pt-none');
       out.tables = document.querySelectorAll('#kt-overview .ov-reads').length;
       out.colPad = col ? Math.round(parseFloat(getComputedStyle(col).paddingLeft)) : null;
       return out;

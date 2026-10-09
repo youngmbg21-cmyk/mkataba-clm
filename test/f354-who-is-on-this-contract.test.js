@@ -323,7 +323,12 @@ describe('f354 (6) the answer already in the box, never a second writer', () => 
 describe('f354 (7) the drafting screen and the Overview draw one list', () => {
   test('both call the same builder', () => {
     assert.ok(/participantsPanelHtml\(/.test(WIZARD), 'the drafting screen');
-    assert.ok(/participantsPanelHtml\(c,\{/.test(CONTRACT), 'and the Overview');
+    /* RE-POINTED 9 Oct 2026 (Young picked the Directory): the Overview draws
+       the people as a list by side, and a person's form is the SAME row
+       builder the drafting screen's panel draws, with the same wire. */
+    assert.ok(/participantsDirHtml\(c,\{/.test(CONTRACT), 'and the Overview, as the Directory');
+    const dir = fnBody(PARTICIPANTS, 'participantsDirItems');
+    assert.ok(/participantRowHtml\(carrier/.test(dir) && /participantAutoRowHtml\(carrier/.test(dir), 'whose form is the one row builder');
   });
 
   test('the Overview carries what has reached each person; the drafting screen does not', () => {
