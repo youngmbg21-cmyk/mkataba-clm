@@ -478,7 +478,7 @@ function insNeedsLineHtml(c, skip){
   /* THE DRAWING'S SENTENCE (SAP benchmark, 9 Oct 2026): "Renew or exit is also
      due by 17 Nov 2026." — the date where the item has one, else just its name. */
   const rest = items.slice(1).map((it, i) => { const w = words[i + 1]; const day = it.dd ? _insDay(it.dd) : '';
-    return day ? i18t('ins_need_also_due', { what: w.title, day }) : i18t('ins_need_also_one', { what: w.title }); }).filter(Boolean);
+    return day ? i18t('ins_need_also_due', { what: w.title, day }) : i18t('ins_need_also_wait', { what: w.title }); }).filter(Boolean);
   const tone = items.some(x => x.urgent) ? 'ruby' : 'amber';
   return `<p class="ins-need-line is-${tone}" data-ins-need-line aria-label="${esc(i18t('ins_need_label'))}">${typeof icon === 'function' ? icon('alert', 'ins-need-line-ic') : ''}<span><b>${
     esc(stop(words[0].title))}</b>${rest.length ? ' ' + esc(rest.join(' ')) : ''}</span></p>`;

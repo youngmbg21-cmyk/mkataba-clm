@@ -12347,7 +12347,7 @@ const STRINGS = {
     /* The side panel's checklist (27 Sep 2026): what this contract needs from you. */
     ins_need_label: 'What this contract needs from you',
     ins_need_also_due: '{what} is also due by {day}.',
-    ins_need_also_one: '{what} is also waiting.',
+    ins_need_also_wait: '{what} is also waiting.',
     ins_f_lead: 'Lead',
     ins_f_their_changes: 'Their changes',
     ins_f_open_agreed: '{open} open · {agreed} agreed',
@@ -25369,7 +25369,7 @@ const STRINGS = {
     /* Sidopanelens checklista (27 sep 2026): vad avtalet behöver av dig. */
     ins_need_label: 'Vad det här avtalet behöver av dig',
     ins_need_also_due: '{what} ska också vara klart senast {day}.',
-    ins_need_also_one: '{what} väntar också.',
+    ins_need_also_wait: '{what} väntar också.',
     ins_f_lead: 'Ansvarig',
     ins_f_their_changes: 'Deras ändringar',
     ins_f_open_agreed: '{open} öppna · {agreed} överenskomna',
