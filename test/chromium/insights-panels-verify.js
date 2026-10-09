@@ -362,7 +362,9 @@ const QUESTION = 'why do I have a big workload runway today?';
        otherwise one page would quietly repaint every other page's header. */
     await page.evaluate(() => setView('register'));
     await page.waitForTimeout(900);
-    await page.evaluate(() => setView('templates'));
+    /* RE-POINTED 9 Oct 2026: Our paper became an SAP page with a white head of
+       its own (batch 2), so the page asked is one that draws no white head. */
+    await page.evaluate(() => setView('brain'));
     await page.waitForTimeout(900);
     const elsewhere = await page.evaluate(() => {
       const head = document.getElementById('page-head');
