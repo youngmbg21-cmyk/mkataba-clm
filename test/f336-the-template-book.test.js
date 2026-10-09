@@ -30,8 +30,6 @@ const path = require('node:path');
 const { loadViews, STUB_FOLDERS } = require('./dom');
 
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'js/views/library.js'), 'utf8');
-const SEC = fs.readFileSync(path.join(__dirname, '..', 'js/section.js'), 'utf8');
-const HTML = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const I18N = fs.readFileSync(path.join(__dirname, '..', 'js/i18n.js'), 'utf8');
 const ago = d => new Date(Date.now() - d * 86400000).toISOString();
 const raised = d => [{ action: 'Created', at: ago(d) }];
