@@ -331,7 +331,7 @@ async function migConfirmEstimate(files){
       + `, up to ${migMoney(est.worstCase)} if every one turns out to be a scan needing OCR.`
       + (est.thorough?' Thorough extraction is on, which multiplies the cost.':'')
       + (a&&a.open?` This draws on the onboarding allowance (${migMoney(a.spent)} of ${a.budget>0?migMoney(a.budget):'no cap'} used).`:' This draws on the daily Copilot budget.')
-      + ' These are estimates from file sizes, not charges — the real figure lands in Settings & Rules as the batch runs.',
+      + ' These are estimates from file sizes, not charges — the real figure lands in Settings as the batch runs.',
     confirmLabel:'Run the batch' });
 }
 
@@ -930,7 +930,7 @@ function migAllowanceHtml(){
     </div>
     <div style="height:5px;background:color-mix(in srgb,var(--color-text) 10%,transparent);border-radius:var(--radius);overflow:hidden;margin-top:6px">
       <div style="width:${pct}%;height:100%;background:${done?'var(--st-ruby-fg)':pct>=80?'var(--st-amber-dot)':'var(--st-green-dot)'};transition:width var(--dur-3)"></div></div>
-    ${done?`<div style="margin-top:6px;line-height:1.5">The import carries on with the built-in pattern matcher — nothing fails and nothing is lost, but extracted details will need more review. An admin can top the allowance up in Settings &amp; Rules.</div>`:''}
+    ${done?`<div style="margin-top:6px;line-height:1.5">The import carries on with the built-in pattern matcher — nothing fails and nothing is lost, but extracted details will need more review. An admin can top the allowance up in Settings.</div>`:''}
   </div>`;
 }
 function migKpis(){

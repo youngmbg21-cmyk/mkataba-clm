@@ -2404,76 +2404,73 @@ function tplOvPanelsHtml(d, o){
    COUNTING IS NOT DRAWING: every figure here is tplOverviewData's, read and
    never recomputed. */
 const TPL_BOOK_SECS = ['library', 'stream', 'wants'];
-function tplBookHtml(d){
-  /* THE GLANCE — three figures, no card and no band.
-     These are facts about the page the reader is already on, so the cheapest
-     channel that carries them is the page itself: a label over a value, HaTi's
-     own shape, with an em-dash where there is nothing to say.
-
-     AND THE CAVEAT SITS UNDER THE FIGURE IT QUALIFIES. The old wall printed it
-     as a line at the foot of the whole page, where it explained a number the
-     reader had stopped looking at. It is not a band and must not become one:
-     a strip across the page is an alarm, and this is a footnote. */
-  const pct = v => v == null ? '—' : Math.round(v * 100) + '%';
-  const rate = d.checked ? (d.cards.reduce((n, c) => n + c.off, 0) / d.checked) : null;
-  const ink = rate == null ? 'var(--color-neutral-400)'
+/* ════ THE BOOK, THE SAP WAY (SAP benchmark, batch 2 — the owner's "go",
+   9 Oct 2026; the drawing is the target) ════
+   The three figures are the PAGE's facts and move into its white head, over
+   the tabs. The shelves are a TABLE on one card — Shelf, Templates, Used,
+   Came back changed — with a two-way switch Shelves | Value streams; a shelf
+   with nothing on it says "none yet". Most used and Needs attention are two
+   small cards beside it. This REPLACES the section grammar on this tab (the
+   owner's 19 Sep word put it here; the drawing takes it out) — sectionHtml is
+   untouched and still the Overview's. Every figure is tplOverviewData's, read
+   and never recomputed. */
+let _tplBookCut = 'library';
+function tplBookRate(d){
+  return d.checked ? (d.cards.reduce((n, c) => n + c.off, 0) / d.checked) : null;
+}
+function tplBookGlanceHtml(d){
+  const rate = tplBookRate(d);
+  const ink = rate == null ? 'var(--color-neutral-600)'
     : (d.checked >= TPL_DEV_MIN && rate >= 0.5) ? 'var(--st-ruby-fg)'
     : rate >= 0.25 ? 'var(--st-amber-fg)' : 'var(--st-green-fg)';
-  const fig = (label, value, unit, tone, note) => `<div class="tpl-gl">
-    <p class="tpl-gl-l">${label}</p>
-    <p class="tpl-gl-v"${tone ? ` style="color:${tone}"` : ''}>${value}${
-      unit ? `<small>${unit}</small>` : ''}</p>${
-      note ? `<p class="tpl-gl-n">${note}</p>` : ''}</div>`;
-  const glance = `<div class="tpl-glance">
-    ${fig(i18t('lib_bk_have'), d.total, i18tn('lib_bk_u_tpl', d.total), null, '')}
-    ${fig(i18t('lib_bk_drafted'), d.cards.reduce((n, c) => n + (c.used || 0), 0),
-       i18t('lib_bk_u_contracts'), null, '')}
-    ${fig(i18t('lib_bk_changed'), pct(rate), rate == null ? '' : '', ink,
-       d.checked ? i18t('lib_bk_over', { checked: d.checked, open: d.unchecked })
-                 : i18t('lib_bk_over_none'))}
+  const drafted = d.cards.reduce((n, c) => n + (c.used || 0), 0);
+  const fig = (label, value, tone, title) => `<div class="tpl-gl"${title ? ` title="${_tplEsc(title)}"` : ''}>
+    <p class="tpl-gl-l">${label}</p><p class="tpl-gl-v"${tone ? ` style="color:${tone};font-weight:var(--w-body)"` : ''}>${value}</p></div>`;
+  return `<div class="tpl-glance">
+    ${fig(i18t('lib_bk_have'), _tplEsc(d.total + ' ' + i18tn('lib_bk_u_tpl', d.total)), null, '')}
+    ${fig(i18t('lib_bk_drafted'), _tplEsc(drafted + ' ' + i18t('lib_bk_u_contracts')), null, '')}
+    ${fig(i18t('lib_bk_changed'), rate == null ? _tplEsc(i18t('lib_bk_not_checked')) : Math.round(rate * 100) + '%', ink,
+       d.checked ? i18t('lib_bk_over', { checked: d.checked, open: d.unchecked }) : i18t('lib_bk_over_none'))}
   </div>`;
-
-  /* The wall's own cards, cut by section. One builder, two callers — the
-     buckets already carry which section they belong to. */
-  /* Inside the grammar's own body inset (.sec-body) — the builder leaves
-     the wrapping to its caller, as the Overview's callers do. */
-  const wall = sec => `<div class="sec-body"><div class="tpl-ov-cards tpl-ov-cards-${sec}" style="display:grid;gap:var(--s-3)">${
-    d.buckets.filter(b => b.sec === sec).map(tplOvCardHtml).join('')}</div></div>`;
-
-  const secs = [];
-  /* RULE 1 · NAME THE GROUP. RULE 3 · OPEN WHAT IS ACTED ON, reference opens
-     shut — the library is what a reader came for and the streams are the
-     same templates cut a second way, so the second one rests closed. */
-  secs.push(sectionHtml({
-    key: 'tpl.book.library', title: i18t('lib_bk_library'),
-    summary: i18t('lib_bk_library_sum', { n: TPL_OV_LIBS.length, t: d.total }),
-    body: wall('library'),
-  }));
-  /* RULE 2 · A SHUT GROUP STILL ANSWERS. The head names the worst stream and
-     its figure, so a reader who never opens it has still been told. */
-  /* A SHUT SECTION'S SUMMARY MAY ONLY NAME A WORST WHERE THE SAMPLE EARNS IT.
-     `TPL_DEV_MIN` is the attention list's own floor, and without it a stream
-     with ONE contract checked and that one changed is announced on the head
-     as the worst in the book at 100% — a headline over a sample of one.
-     Below the floor the head counts the streams and says nothing else. */
-  const streams = d.buckets.filter(b =>
-    b.sec === 'stream' && b.rate != null && b.scanned >= TPL_DEV_MIN);
-  const worst = streams.slice().sort((a, b) => b.rate - a.rate)[0];
-  secs.push(sectionHtml({
-    key: 'tpl.book.stream', title: i18t('lib_bk_streams'), open: false,
-    summary: worst
-      ? i18t('lib_bk_streams_sum', { n: d.buckets.filter(b => b.sec === 'stream').length,
-          name: bucketStreamName(worst), pct: Math.round(worst.rate * 100) })
-      : i18tn('lib_bk_streams_plain', d.buckets.filter(b => b.sec === 'stream').length,
-          { n: d.buckets.filter(b => b.sec === 'stream').length }),
-    body: wall('stream'),
-  }));
-  secs.push(sectionHtml({
-    key: 'tpl.book.wants', title: i18t('lib_bk_wants'),
-    summary: i18tn('lib_bk_wants_sum', d.attention.length, { n: d.attention.length }),
-    body: `<div class="sec-body">${tplOvPanelsHtml(d, { bare: true })}</div>`,
-  }));
-  return `<div class="tpl-book">${glance}${secs.join('')}</div>`;
+}
+const TPL_SHELF_SUB = { company:'lib_shelf_sub_company', builtin:'lib_shelf_sub_builtin', sample:'lib_shelf_sub_sample', cp:'lib_shelf_sub_cp' };
+function tplBookHtml(d){
+  const cut = _tplBookCut === 'stream' ? 'stream' : 'library';
+  /* the four shelves (the "All templates" roll-up is the head's own figure) */
+  const rows = d.buckets.filter(b => b.sec === cut && b.key !== 'all');
+  const dash = '<span class="tpl-bk-none">—</span>';
+  const tr = b => `<tr data-tpl-ov-bucket="${_tplEsc(b.key)}" tabindex="0" title="${_tplEsc(i18t('lib_ov_open_in_list'))}">
+      <td><span class="tpl-bk-name">${_tplEsc(tplOvBucketLabel(b))}</span>${
+        TPL_SHELF_SUB[b.key] ? `<span class="tpl-bk-sub">${_tplEsc(i18t(TPL_SHELF_SUB[b.key]))}</span>` : ''}</td>
+      <td class="num">${b.templates ? b.templates : `<span class="tpl-bk-none">${_tplEsc(i18t('lib_bk_none_yet'))}</span>`}</td>
+      <td class="num">${b.used ? b.used : dash}</td>
+      <td class="num" title="${_tplEsc(tplOvBucketNote(b))}">${b.rate == null ? dash : `<span style="color:${tplOvRateInk(b)}">${Math.round(b.rate * 100)}%</span>`}</td>
+    </tr>`;
+  const seg = (k, label) => `<button type="button" class="${cut === k ? 'on' : ''}" data-tpl-book-cut="${k}" aria-pressed="${cut === k ? 'true' : 'false'}">${_tplEsc(label)}</button>`;
+  const card = `<section class="tpl-bk-card" id="tpl-bk-library">
+      <div class="ins-cardhead"><h2 class="ins-cardhead-t">${_tplEsc(cut === 'library' ? i18t('lib_bk_library_t') : i18t('lib_value_stream'))} <span class="ins-cardhead-n">(${_tplEsc(i18tn(cut === 'library' ? 'lib_bk_n_shelves' : 'lib_bk_n_streams', rows.length, { n: rows.length }))})</span></h2>
+        <span style="flex:1"></span>
+        <span class="tpl-bk-seg" role="group">${seg('library', i18t('lib_bk_shelves'))}${seg('stream', i18t('lib_bk_streams_t'))}</span></div>
+      <table class="tpl-bk-table"><thead><tr><th>${_tplEsc(i18t(cut === 'library' ? 'lib_bk_col_shelf' : 'lib_value_stream'))}</th><th class="num">${_tplEsc(i18t('nav_templates'))}</th><th class="num">${_tplEsc(i18t('lib_bk_col_used'))}</th><th class="num">${_tplEsc(i18t('lib_bk_changed'))}</th></tr></thead>
+        <tbody>${rows.map(tr).join('')}</tbody></table>
+    </section>`;
+  const used = `<section class="tpl-bk-side" id="${TPL_OV_IDS.used}">
+      <h3 class="tpl-bk-side-h">${_tplEsc(i18t('lib_ov_most_used', { n: d.days }))}</h3>
+      ${d.mostUsed.length ? d.mostUsed.map(c => `<button class="tpl-bar" data-tpl-ov-card="${_tplEsc(c.id)}" data-tpl-ov-name="${_tplEsc(c.name)}">
+        <span class="tpl-bar-r"><span>${_tplEsc(c.name)}</span><span class="tpl-bar-n">${c.recent}</span></span>
+        <span class="tpl-bar-t"><span style="width:${d.peak ? Math.max(6, Math.round(c.recent / d.peak * 100)) : 0}%"></span></span>
+      </button>`).join('') : `<p class="tpl-empty">${i18t('lib_ov_most_used_none', { n: d.days })}</p>`}
+    </section>`;
+  const att = `<section class="tpl-bk-side" id="${TPL_OV_IDS.att}">
+      <h3 class="tpl-bk-side-h">${_tplEsc(i18t('lib_ov_attention'))} <span class="ins-cardhead-n">(${d.attention.length})</span></h3>
+      ${d.attentionShown.length ? `<div class="tpl-list">${d.attentionShown.map(a => `<div class="tpl-li">
+        <span class="tpl-dot${a.rank === 0 ? ' is-amber' : ''}"></span>
+        <span style="min-width:0"><span class="tpl-li-t">${_tplEsc(a.name)}</span><span class="tpl-li-s">${_tplEsc(a.why)}</span></span>
+        <button class="ui-btn ui-btn-sm tpl-btn-xs" data-tpl-ov-card="${_tplEsc(a.id)}" data-tpl-ov-name="${_tplEsc(a.name)}">${i18t('act_open')}</button>
+      </div>`).join('')}</div>` : `<p class="tpl-empty">${i18t('lib_ov_attention_none')}</p>`}
+      ${d.attentionMore > 0 ? `<p class="tpl-empty" style="margin-top:var(--s-2)">${i18tn('lib_ov_more', d.attentionMore, { n: d.attentionMore })}</p>` : ''}
+    </section>`;
+  return `<div class="tpl-book tpl-bk">${card}<div class="tpl-bk-col">${used}${att}</div></div>`;
 }
 
 /* A SECTION PRESS REPAINTS THE BOOK AND NOTHING ELSE — yesterday's lesson in
@@ -2484,6 +2481,20 @@ function tplBookRepaint(){
   const host=document.querySelector('[data-tpl-sec="book"]');
   if(!host) return;
   host.innerHTML=tplBookHtml(tplOverviewData());
+  tplBookWire(host);
+}
+/* The book's own doors, bound on its host each paint (the rows are rebuilt):
+   a shelf row lands on the Templates list narrowed to it; the switch flips
+   Shelves | Value streams and repaints the book alone. */
+function tplBookWire(host){
+  if(!host) return;
+  host.querySelectorAll('[data-tpl-book-cut]').forEach(b=>b.addEventListener('click',()=>{
+    _tplBookCut=b.getAttribute('data-tpl-book-cut'); tplBookRepaint(); }));
+  host.querySelectorAll('tr[data-tpl-ov-bucket]').forEach(tr=>{
+    tr.addEventListener('click',()=>tplGoBucket(tr.getAttribute('data-tpl-ov-bucket')));
+    tr.addEventListener('keydown',e=>{ if(e.key==='Enter') tplGoBucket(tr.getAttribute('data-tpl-ov-bucket')); });
+  });
+  host.querySelectorAll('[data-tpl-ov-card]').forEach(b=>b.addEventListener('click',()=>tplGoList(b.getAttribute('data-tpl-ov-name'))));
 }
 
 function tplOverviewHtml(d){
@@ -2577,6 +2588,7 @@ function tplPageSetTab(k){
     t.classList.toggle('on',on); t.setAttribute('aria-selected',on?'true':'false');
   });
   document.querySelectorAll('[data-tpl-sec]').forEach(s=>{ s.hidden=s.getAttribute('data-tpl-sec')!==k; });
+  document.querySelectorAll('[data-tpl-head]').forEach(s=>{ s.hidden=s.getAttribute('data-tpl-head')!==k; });
 }
 /* THE TWO TABS WORK TOGETHER HERE. A card, an attention row and a bar all
    land on the same door: switch to the table, narrowed to that template.
@@ -2667,7 +2679,8 @@ function renderTemplatesPage(){
      emptied the shell's subtitle never reached it; a tab row with a .st-tabsub
      under it would put the same sentence back one line lower. */
   document.getElementById('content').innerHTML=`
-  <div class="view-enter" style="padding:var(--page-pad)">
+  <div class="view-enter sap-page tpl-page" style="padding:var(--page-pad)">
+    <div class="sap-band tpl-band">
     <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">
       ${''/* THE TITLE'S INK SITS WHERE EVERY OTHER PAGE'S DOES. The row is
             centre-aligned for the acts beside it, and a 20px title centred
@@ -2679,7 +2692,9 @@ function renderTemplatesPage(){
       ${''/* THE ARTIFACT'S OWN LINE under the title (Young, 21 Sep 2026: "exactly
              what is in the artifact") — this REVERSES the 25 Aug "no sentence
              under the title" for this page on the owner's later word. */}
-      <p class="page-facts" style="margin-top:3px">${i18t('lib_templates_sub')}</p></div>
+      ${''/* NO LINE UNDER THE TITLE (SAP benchmark, batch 2): the drawing puts
+             the book's three figures there instead — they are the page's
+             facts. lib_templates_sub is inert. */}</div>
       <span style="flex:1"></span>
       ${''/* ONE BUTTON (Young's go on "One Door to Standards", 24 Sep 2026).
              "Convert a document" is gone from beside it again — reversing the
@@ -2693,7 +2708,8 @@ function renderTemplatesPage(){
         ((typeof newPaperBlocked==='function'&&newPaperBlocked())?` disabled title="${esc(i18t('np_refused'))+' '+esc(i18t('np_refused_ask'))}"`:'')
       }>${(typeof window!=='undefined'&&window.plusLed?window.plusLed(i18t('lib_new_template')):i18t('lib_new_template'))}</button>`:''}
     </div>
-    <div class="st-tabs" role="tablist" style="margin-bottom:14px">
+    <div data-tpl-head="book" ${tab==='book'?'':'hidden'}>${tplBookGlanceHtml(ov)}</div>
+    <div class="st-tabs" role="tablist">
       ${''/* "Templates overview" was HERE and is gone (19 Sep 2026). See the
              note on tplHealthData: the card it drew is kept, unreferenced. */}
       <button class="st-tab${tab==='book'?' on':''}" data-tpl-tab="book" role="tab" aria-selected="${tab==='book'?'true':'false'}">${i18t('lib_tab_book')}</button>
@@ -2704,6 +2720,7 @@ function renderTemplatesPage(){
              paperTabsHtml — so every one of its own tabs, its inspector and
              its links are exactly what they were. */}
       <button class="st-tab" data-paper-tab="standards" role="tab" aria-selected="false">${i18t('nav_our_standards')}</button>
+    </div>
     </div>
 
     ${''/* TWO SECTIONS, NOT THREE. The health card (tplHealthHtml) and the
@@ -2751,18 +2768,15 @@ function renderTemplatesPage(){
   /* THE SECTION GRAMMAR'S ONE LISTENER, bound to the book's own host so a
      press on a section head repaints THIS page and nothing else. The grammar
      does not guess at a painter; the caller hands it one. */
-  sectionWire(document.querySelector('[data-tpl-sec="book"]'), tplBookRepaint);
+  tplBookWire(document.querySelector('[data-tpl-sec="book"]'));
   document.querySelectorAll('[data-tpl-tab]').forEach(b=>b.addEventListener('click',()=>tplPageSetTab(b.getAttribute('data-tpl-tab'))));
   paperTabsWire();
   /* Every door on the overview lands on the same one: the table, narrowed to
      the template that was pressed. A card, an attention row and a bar are
      three drawings of one act, so they share one handler and one selector. */
-  document.querySelectorAll('[data-tpl-ov-card]').forEach(b=>b.addEventListener('click',()=>tplGoList(b.getAttribute('data-tpl-ov-name'))));
-  /* THE WALL'S CARDS ARE CATEGORIES and narrow by the table's own rails; the
-     two panels beside them still name single templates and still narrow by
-     name. Two doors because they are two acts, not because they drifted. */
-  document.querySelectorAll('[data-tpl-ov-bucket]').forEach(b=>b.addEventListener('click',
-    ()=>tplGoBucket(b.getAttribute('data-tpl-ov-bucket'))));
+  /* (the book's shelf rows and its two cards are wired by tplBookWire above;
+     a shelf narrows by the list's own rails, a template by name — two doors
+     because they are two acts) */
   document.getElementById('tpl-ov-all')?.addEventListener('click',()=>{
     _tplPage.q=''; _tplPage.group='all'; _tplPage.stream=null; _tplPage.showAll=true;
     tplPageSetTab('list');
@@ -3716,4 +3730,4 @@ function sdWire(d, mayEdit){
 Object.assign(window,{sdSettledHtml,sdLearnApply,sdLearnProposal,sdLearnChartHtml,sdLearnNewText,sdPanelClauseId,tplPlace,tplPlacePut,pbInsMounted,pbPaintHead,sdData,sdHeads,sdFirm,sdLimitWords,sdLegalLine,sdClausePanelOpts,sdBookPanelOpts,sdDevPanelOpts,sdDevRows,sdDevFilters,SD_DEV_DEF,SD_DEV_CHIPS,SD_WHERE_MAX,sdPaintSection,sdGoTab,sdGoBook,sdGoClause,sdGoDev,sdCheckAgain,sdOpenDraftCompare,
   tplOvFit,HATI_SAMPLES,openBlanksEditor,_tplPreviewHtml,_tplSourceLabel,_richSelection,_richReplaceRange,
   templateVersionNo,templateVersions,templateUsage,templateUsageLabel,saveTemplateVersion,
-  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});
+  PAPER_TABS,paperTabsHtml,paperTabsWire,openTemplateEditor,openTemplateVersions,deleteTemplateGuarded,tplMakeItOurs,tplBuiltinDraftBody,tplBuiltinKey,openBulkCreateModal,openTemplateFillModal,buildFromCustomTemplate,updateTemplateRecord,createFromCustomTemplate,customTemplates,importHatiSample,openTemplatePreview,openCreateTemplateModal,openUploadTemplateModal,renderPlaybookPage,renderTemplatesPage,tplOverviewData,tplOverviewHtml,tplHealthData,tplHealthHtml,TPL_HEALTH_ROWS,tplPageRefilter,tplRowContracts,tplBookHtml,tplBookRepaint,tplBookWire,tplBookGlanceHtml,TPL_BOOK_SECS,tplOvCardHtml,tplOvPanelsHtml,tplOvRateInk,bucketStreamName,tplPageTab,tplPageSetTab,tplGoList,tplGoBucket,tplOvRoll,TPL_PAGE_TABS,tplRowPile,tplRowWants,TPL_PILES,tplRowMoreMenu,tplPageRowHtml,tplPageFiltered,saveContractAsTemplate,saveCustomTemplates,saveTemplateRecord});

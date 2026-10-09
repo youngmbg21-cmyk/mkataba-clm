@@ -11473,6 +11473,64 @@
   .dir-table .dir-name{font-weight:var(--w-body);}
   .dir-table .dir-role{letter-spacing:0;text-transform:none;}
   .dir-table .dir-mail{width:auto;max-width:none;text-align:left;}
+  /* Settings → People (SAP benchmark, batch 2): one table on a card, the
+     tab's count amber, each row the door to its drawer. */
+  .st-tab .st-tab-n.is-warn{color:var(--st-amber-fg);background:none;font-family:inherit;font-weight:var(--w-strong);padding:0;}
+  .st-page.sap-page > .sap-band{margin-bottom:var(--s-4);}
+  .st-people-table tbody.st-people{display:table-row-group;border:0;border-radius:0;box-shadow:none;}
+  .st-people-table tr.st-person{display:table-row;width:auto;padding:0;border:0;background:none;}
+  .st-people-card{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;}
+  .st-people-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  .st-people-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);
+    padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);}
+  :root .sap-page .st-people-table th{text-transform:none;letter-spacing:0;}
+  .st-people-table td{padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);font-size:var(--t-body);
+    color:var(--color-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+  .st-people-table tr:last-child td{border-bottom:0;}
+  .st-people-table tr.st-person{cursor:pointer;}
+  .st-people-table tr.st-person:hover{background:var(--surface-2);}
+  .st-person-open{display:inline-flex;align-items:center;gap:var(--s-2);min-width:0;max-width:100%;border:0;background:none;padding:0;
+    font:inherit;color:inherit;text-align:left;cursor:pointer;}
+  .st-person-open:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px;border-radius:var(--radius);}
+  .st-person-av{width:28px;height:28px;border-radius:var(--radius);flex:none;display:inline-grid;place-items:center;
+    font-size:var(--t-label);font-weight:var(--w-title);font-family:var(--font-mono);background:var(--st-steel-bg);color:var(--st-steel-fg);}
+  .st-people-table .st-person-name{overflow:hidden;text-overflow:ellipsis;font-weight:var(--w-body);}
+  .st-person-you{color:var(--color-neutral-600);font-size:var(--t-label);}
+  .st-person-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;}
+  .st-setup{display:inline-flex;align-items:center;gap:6px;font-weight:var(--w-label);}
+  .st-setup i{width:7px;height:7px;border-radius:50%;flex:none;}
+  .st-setup.is-warn{color:var(--st-amber-fg);} .st-setup.is-warn i{background:var(--st-amber-dot);}
+  .st-setup.is-ok{color:var(--st-green-fg);} .st-setup.is-ok i{background:var(--st-green-dot);}
+  .st-people-table .st-person-go{text-align:right;color:var(--color-neutral-500);}
+  /* Our paper (SAP benchmark, batch 2): one white band carries the name, the
+     book's three figures (or the list's filters) and the tabs; the book is a
+     shelves table on a card with two small cards beside it. */
+  .tpl-page > .sap-band.tpl-band{margin-top:calc(-1 * var(--page-pad-t));padding-top:var(--page-pad-t);margin-bottom:var(--s-4);}
+  .tpl-band .st-tabs{border-bottom:0;}
+  .tpl-band .tpl-glance{grid-template-columns:repeat(3,max-content);gap:var(--s-2) 40px;padding:0 0 var(--s-3);}
+  :root .sap-page .tpl-band .tpl-gl-l{font-size:var(--t-label);font-weight:var(--w-body);letter-spacing:0;text-transform:none;margin:0 0 2px;}
+  .tpl-band .tpl-gl-v{font-family:var(--font-body);font-size:var(--t-body);font-weight:var(--w-strong);line-height:1.4;}
+  .tpl-bk{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,36%);gap:var(--s-4);align-items:start;}
+  .tpl-bk-col{display:flex;flex-direction:column;gap:var(--s-4);min-width:0;}
+  .tpl-bk-card,.tpl-bk-side{background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);overflow:hidden;min-width:0;}
+  .tpl-bk-side{padding:var(--s-3) var(--s-4);}
+  .tpl-bk-side-h{margin:0 0 var(--s-2);font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text);}
+  .tpl-bk-table{width:100%;border-collapse:collapse;}
+  .tpl-bk-table th{text-align:left;font-size:var(--t-label);font-weight:var(--w-body);color:var(--color-neutral-600);padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);}
+  :root .sap-page .tpl-bk-table th{text-transform:none;letter-spacing:0;}
+  .tpl-bk-table td{padding:var(--s-2) var(--s-4);border-bottom:1px solid var(--color-divider);font-size:var(--t-body);vertical-align:middle;}
+  .tpl-bk-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .tpl-bk-table tbody tr{cursor:pointer;}
+  .tpl-bk-table tbody tr:hover{background:var(--surface-2);}
+  .tpl-bk-table tbody tr:focus-visible{outline:2px solid var(--focus-color);outline-offset:-2px;}
+  .tpl-bk-name{display:block;color:var(--color-text);}
+  .tpl-bk-sub{display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;}
+  .tpl-bk-none{color:var(--color-neutral-600);}
+  .tpl-bk-seg{display:inline-flex;border:1px solid var(--btn-edge);border-radius:var(--radius);overflow:hidden;height:var(--ctl-h);}
+  .tpl-bk-seg button{border:0;background:none;font:inherit;font-size:var(--t-body);font-weight:var(--w-label);color:var(--color-neutral-600);padding:0 var(--pad-ctl-x);cursor:pointer;}
+  .tpl-bk-seg button + button{border-left:1px solid var(--btn-edge);}
+  .tpl-bk-seg button.on{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong);}
+  @media (max-width:1023px){ .tpl-bk{grid-template-columns:minmax(0,1fr);} }
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════
@@ -12303,7 +12361,7 @@
           <button data-view="team" class="nav-item" title="Team" data-i18n-title="nav_team_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-cog"/></svg>
-            <span style="flex:1;" data-i18n="nav_settings_rules">Settings &amp; Rules</span><span class="nav-count" data-count="team"></span>
+            <span style="flex:1;" data-i18n="nav_settings_rules">Settings</span><span class="nav-count" data-count="team"></span>
           </button>
           <!-- THE BRAIN (Young ruled 27 Sep 2026: "Put it as a page before
                home"; MOVED 29 Sep 2026: "move the Brain tab in the nav panel
