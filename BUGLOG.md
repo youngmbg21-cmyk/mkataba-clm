@@ -20574,3 +20574,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed — 9 Oct 2026 (SAP benchmark, batch 1: the lists)
 - The server lets any signed-in editor put an APPROVED rule step back to waiting in a save (srvApprovalDecisionRefusal skips a step whose new status is pending). It only makes a contract stricter, and Undo after Approve relies on it, but the server does not check that it is the approver taking back their own yes within the Undo window. Left as is.
 - Every page carries one unnamed button in the shell (axe button-name: 1 on Contracts, Negotiations, Approvals, Obligations). Planned for the accessibility batch.
+
+## Noticed, not fixed — 9 Oct 2026 (SAP benchmark of the pop-ups)
+- The "Fill a template" pop-up's "Which side are we on?" dropdown lists "[object Object]" three times instead of its choices (seen opening openTemplateFillModal on the first built-in template with the 30 Kenyan samples).
+- Deleting a draft ends in a red error toast ("… deleted", kind 'err' in deleteContract), so a success reads as a failure.
