@@ -20580,3 +20580,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - axe reports one unnamed button on every page photographed (the same count on main) — left for the accessibility batch.
 - A faint grey strip shows at the right edge of pages that do not own their height (the scroller's reserved gutter beside the white head) — Calendar, Requests, People and Our paper now own theirs; others still show it.
 - CLAUDE.md is about 95 KB, over its own 80 KB line — a trim is owner-asked, not done here.
+- refile-a-contract-verify, nine-jobs-verify and paper-terms-frozen-verify fail identically on unmodified main (3cf24bb, 9 Oct 2026): main's own tests run has been red on its last three merges. Not fixed in the SAP batch 2 PR.
