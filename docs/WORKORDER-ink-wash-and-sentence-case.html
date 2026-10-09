@@ -1,0 +1,611 @@
+<title>HaTi Without Grey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a proposal sheet — intro, one live HaTi screen with a switcher, then the comparison and the pick.
+   The page itself practises what it proposes: no grey, only HaTi green-tinted inks. */
+:root{
+  --pg-bg:#F3F8F6; --pg-surface:#FFFFFF; --pg-ink:#0B2421; --pg-ink-2:#2F5A54; --pg-line:#D3E6E1;
+  --pg-accent:#12796D; --pg-accent-ink:#FFFFFF; --pg-tint:#E3F3EF;
+  --f-ui:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"Geist Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --pg-bg:#08110F; --pg-surface:#0F1C1A; --pg-ink:#E7F4F1; --pg-ink-2:#9CCFC6; --pg-line:#1E3532;
+  --pg-accent:#5EC2B3; --pg-accent-ink:#062825; --pg-tint:#12302C; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --pg-bg:#08110F; --pg-surface:#0F1C1A; --pg-ink:#E7F4F1; --pg-ink-2:#9CCFC6; --pg-line:#1E3532;
+  --pg-accent:#5EC2B3; --pg-accent-ink:#062825; --pg-tint:#12302C; color-scheme:dark; }
+
+*{box-sizing:border-box}
+body{background:var(--pg-bg);color:var(--pg-ink);font:15px/1.6 var(--f-ui);}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:36px 64px;display:grid;gap:28px}
+h1{font-size:30px;line-height:1.15;margin:0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:19px;margin:0 0 10px;font-weight:600;text-wrap:balance}
+p{margin:0;max-width:68ch}
+.lead{color:var(--pg-ink-2);font-size:16px}
+.eyebrow{font-size:13px;color:var(--pg-accent);font-weight:600}
+.intro{display:grid;gap:10px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.fact{background:var(--pg-surface);border:1px solid var(--pg-line);border-radius:8px;padding:12px 14px;display:grid;gap:2px;min-width:0}
+.fact b{font-size:22px;font-variant-numeric:tabular-nums}
+.fact span{color:var(--pg-ink-2);font-size:13.5px;line-height:1.45}
+
+/* controls */
+.controls{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:center;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--pg-bg);padding-block:10px;border-bottom:1px solid var(--pg-line)}
+.seg{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.seg > span{font-size:12px;color:var(--pg-ink-2);margin-right:4px}
+.seg button{font:500 13.5px var(--f-ui);border:1px solid var(--pg-line);background:var(--pg-surface);color:var(--pg-ink);padding:6px 12px;border-radius:4px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--pg-accent);color:var(--pg-accent-ink);border-color:var(--pg-accent)}
+.seg button:focus-visible{outline:2px solid var(--pg-accent);outline-offset:2px}
+.seg button kbd{font:400 11px var(--f-mono);opacity:.7;margin-left:6px}
+.hint{font-size:12px;color:var(--pg-ink-2)}
+
+.opt-head{display:grid;gap:6px}
+.opt-head h2{font-size:22px;margin:0}
+.opt-head p{color:var(--pg-ink-2)}
+
+/* ============ THE MOCK HaTi SCREEN ============ */
+.mock{
+  --a50:#F1F9F7;--a100:#E3F3EF;--a200:#BCE2D9;--a300:#9CCFC6;--a400:#5EC2B3;--a500:#2E8C82;--a600:#12796D;--a700:#0E5F58;--a800:#093733;--a900:#062825;
+  border-radius:8px;overflow:hidden;border:1px solid var(--pg-line);
+  background:var(--bg);color:var(--ink);font:var(--fs-card)/1.45 var(--f-ui);
+  display:grid;grid-template-columns:200px minmax(0,1fr);grid-template-rows:48px auto;min-height:540px;
+  transition:background .25s,color .25s;
+}
+.mock[data-brand="blue"]{--a50:#f0f4fb;--a100:#e1e9f7;--a200:#b6c8eb;--a300:#8aa8e2;--a400:#5b82cf;--a500:#3560b4;--a600:#264c9e;--a700:#1c3872;--a800:#16295a;--a900:#111f45;}
+
+/* status grammar never moves: amber, green, red stay as they are */
+.mock{--am-bg:#FBEEDB;--am-fg:#A24E07;--gr-bg:#DFF2E7;--gr-fg:#1A6F45;--ru-bg:#FBE5E3;--ru-fg:#B3261E;--surface:#fff;--btn:var(--a600);--btn-ink:#fff;--bar:var(--a600)}
+.mock[data-mode="dark"]{--am-bg:#3A2A0F;--am-fg:#EBAD46;--gr-bg:#153224;--gr-fg:#5CC48E;--ru-bg:#3F1C19;--ru-fg:#F0857B;--btn:var(--a400);--btn-ink:var(--a900);color-scheme:dark}
+
+/* ---- TODAY ---- */
+.mock[data-opt="today"]{--ink:#141F1D;--ink2:#5A6866;--ink3:#6B7876;--stray:#98A2B3;--disabled:#A9B3B1;--line:#E2E7E5;--fill:#EEF2F0;--bg:#F4F6F5;--pill-bg:#EEF2F0;--pill-fg:#5A6866}
+.mock[data-opt="today"][data-brand="blue"]{--bg:#F4F6FA}
+/* DARK MODE STAYS AS TODAY in every option (owner, 9 Oct 2026) */
+.mock[data-opt][data-mode="dark"]{--ink:#E6ECEA;--ink2:#A0ACA9;--ink3:#8B9895;--stray:#94a3b8;--disabled:#6D7A77;--line:#26302E;--fill:#1B2221;--bg:#0E1312;--surface:#151B1A;--pill-bg:rgba(160,172,169,.14);--pill-fg:#A0ACA9;--bar:#0B1514}
+.mock[data-opt][data-mode="dark"][data-brand="blue"]{--bar:#0B1220}
+
+
+/* ---- 1. INK WASH: one ink (black + theme), thinned with the paper ---- */
+.mock[data-opt="wash"]{
+  --base:color-mix(in oklab,var(--a700) 62%,#000);
+  --wash:color-mix(in oklab,var(--a500) 45%,var(--surface));
+  --ink:var(--base);
+  --ink2:color-mix(in oklab,var(--base) 66%,var(--wash));
+  --ink3:color-mix(in oklab,var(--base) 46%,var(--wash));
+  --stray:var(--ink3);
+  --disabled:color-mix(in oklab,var(--base) 20%,var(--wash));
+  --line:color-mix(in oklab,var(--a600) 16%,var(--surface));
+  --fill:color-mix(in oklab,var(--a600) 7%,var(--surface));
+  --bg:color-mix(in oklab,var(--a600) 5%,#fff);
+  --pill-bg:var(--fill);--pill-fg:var(--ink2);
+}
+
+/* ---- 2. TWO INKS: near-black for reading, the theme colour for every label ---- */
+.mock[data-opt="two"]{
+  --ink:color-mix(in oklab,var(--a900) 35%,#000);
+  --ink2:var(--a700);
+  --ink3:var(--a600);
+  --stray:var(--ink3);
+  --disabled:color-mix(in oklab,var(--a400) 60%,var(--surface));
+  --line:color-mix(in oklab,var(--a200) 60%,var(--surface));
+  --fill:var(--a50);
+  --bg:color-mix(in oklab,var(--a50) 75%,#fff);
+  --pill-bg:var(--a100);--pill-fg:var(--a700);
+}
+
+/* ---- 3. BRAND SLATE: today's three steps, re-coloured per theme ---- */
+.mock[data-opt="slate"]{
+  --ink:color-mix(in oklab,var(--a900) 30%,#111);
+  --ink2:color-mix(in oklab,var(--a700) 28%,#585858);
+  --ink3:color-mix(in oklab,var(--a600) 24%,#727272);
+  --stray:var(--ink3);
+  --disabled:color-mix(in oklab,var(--a600) 30%,#aaa);
+  --line:color-mix(in oklab,var(--a600) 12%,#e2e2e2);
+  --fill:color-mix(in oklab,var(--a600) 8%,#eeeeee);
+  --bg:color-mix(in oklab,var(--a600) 6%,#f4f4f4);
+  --pill-bg:var(--fill);--pill-fg:var(--ink2);
+}
+
+/* mock parts */
+.m-bar{grid-column:1/-1;background:var(--bar);display:flex;align-items:center;gap:14px;padding:0 16px;color:#fff;transition:background .25s}
+.m-logo{font-weight:700;letter-spacing:.02em}
+.m-search{flex:1;max-width:420px;height:30px;border-radius:4px;background:rgba(255,255,255,.14);display:flex;align-items:center;padding:0 10px;font-size:var(--fs-body);color:rgba(255,255,255,.78)}
+.m-bar .m-me{margin-left:auto;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center;font-size:var(--fs-meta);font-weight:600}
+.m-rail{background:var(--surface);border-right:1px solid var(--line);padding:14px 10px;display:grid;align-content:start;gap:2px}
+.m-grp{font-size:var(--fs-cap);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);padding:12px 8px 4px}
+.m-door{display:flex;justify-content:space-between;align-items:center;height:34px;padding:0 10px;border-radius:4px;color:var(--ink);font-weight:500;font-size:var(--fs-body)}
+.m-door.on{background:var(--a100);color:var(--a700)}
+.mock[data-mode="dark"] .m-door.on{background:color-mix(in oklab,var(--a400) 18%,var(--surface));color:var(--a300)}
+.m-door small{font-size:var(--fs-meta);color:var(--stray);font-variant-numeric:tabular-nums}
+.m-main{padding:20px 22px;display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px;align-content:start;min-width:0}
+.m-head{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:end;justify-content:space-between}
+.m-crumb{font-size:var(--fs-meta);color:var(--ink2)}
+.m-title{font-size:var(--fs-page);font-weight:700;margin:2px 0 0}
+.m-sub{font-size:var(--fs-body);color:var(--ink2)}
+.m-btn{height:30px;padding:0 14px;border-radius:4px;border:0;background:var(--btn);color:var(--btn-ink);font:500 var(--fs-body) var(--f-ui)}
+.m-chips{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px}
+.m-chip{height:28px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:4px;background:var(--surface);border:1px solid var(--line);font-size:var(--fs-body);color:var(--ink)}
+.m-chip b{font-weight:500;color:var(--ink2)}
+.m-chip .ct{font-size:var(--fs-meta-s);background:var(--fill);color:var(--stray);padding:0 6px;border-radius:9px;font-variant-numeric:tabular-nums}
+.m-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;min-width:0}
+.m-table{width:100%;border-collapse:collapse;font-size:var(--fs-body)}
+.m-table th{text-align:left;font-weight:400;font-size:var(--fs-cap);letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.m-table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.m-table tr:last-child td{border-bottom:0}
+.m-table tr.sel td{background:var(--fill)}
+.m-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.m-cp{font-weight:600;display:block}
+.m-nm{font-size:var(--fs-meta);color:var(--ink2);display:block}
+.m-ref{font:500 var(--fs-meta-s) var(--f-mono);color:var(--ink2);letter-spacing:.02em;white-space:nowrap}
+.m-none{color:var(--ink3)}
+.m-date{font-size:var(--fs-meta);color:var(--ink2);white-space:nowrap}
+.pill{display:inline-block;font-size:var(--fs-meta);font-weight:500;padding:2px 8px;border-radius:4px;white-space:nowrap}
+.p-am{background:var(--am-bg);color:var(--am-fg)} .p-gr{background:var(--gr-bg);color:var(--gr-fg)} .p-ru{background:var(--ru-bg);color:var(--ru-fg)}
+.p-ne{background:var(--pill-bg);color:var(--pill-fg)}
+.m-side{padding:16px;display:grid;gap:12px;align-content:start}
+.m-side h4{margin:0;font-size:var(--fs-card-l)}
+.m-cap{font-size:var(--fs-cap);letter-spacing:.07em;text-transform:uppercase;color:var(--ink2)}
+.m-kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin:0}
+.m-kv div{display:grid;gap:1px;min-width:0}
+.m-kv dt{font-size:var(--fs-meta-s);color:var(--ink2)}
+.m-kv dd{margin:0;font-size:var(--fs-body);font-weight:500}
+.m-hr{height:1px;background:var(--line)}
+.m-clause{font-size:var(--fs-meta);color:var(--ink2)}
+.m-quote{font-size:var(--fs-body);line-height:1.55;margin:0}
+.m-ph{height:32px;border:1px solid var(--line);border-radius:4px;display:flex;align-items:center;padding:0 10px;font-size:var(--fs-body);color:var(--stray);background:var(--surface)}
+.m-dis{height:30px;border-radius:4px;border:1px solid var(--line);background:var(--fill);color:var(--disabled);font:500 var(--fs-body) var(--f-ui);display:grid;place-items:center}
+.m-foot{font-size:var(--fs-meta);color:var(--ink3)}
+
+@media (max-width:900px){
+  .mock{grid-template-columns:minmax(0,1fr)}
+  .m-rail{display:none}
+  .m-main{grid-template-columns:minmax(0,1fr);padding:16px}
+}
+.m-scroll{overflow-x:auto}
+
+/* ---- room pages ---- */
+.mock{--desk:var(--bg)}
+.mock[data-opt="today"]{--desk:#E9EDEB}
+.mock[data-opt][data-mode="dark"]{--desk:#0A0E0D}
+.mock:not([data-opt="today"]){--desk:color-mix(in oklab,var(--a600) 9%,#e9e9e9)}
+/* THE PAPER IS FIXED: the same values in every option, so the contract never changes */
+.mock{--pp-bg:#FFFFFF;--pp-ink:#141F1D;--pp-ink2:#5A6866;--pp-line:#DCE2E0;--ins:#1A6F45;--ins-bg:#DFF2E7;--del:#B3261E}
+.mock[data-mode="dark"]{--pp-bg:#1B1F1D;--pp-ink:#E6ECEA;--pp-ink2:#A0ACA9;--pp-line:#2C3230;--ins:#5CC48E;--ins-bg:#153224;--del:#F0857B}
+.m-page{grid-column:2;min-width:0}
+.m-page[hidden]{display:none!important}
+.m-room{padding:18px 22px 22px;display:grid;gap:14px;align-content:start;min-width:0}
+.m-rhead{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;justify-content:space-between}
+.m-rhead .m-title{font-size:var(--fs-page)}
+.m-rsub{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:var(--fs-body);color:var(--ink2)}
+.m-acts{display:flex;gap:8px;flex-wrap:wrap}
+.m-ghost{height:30px;padding:0 12px;border-radius:4px;border:1px solid color-mix(in oklab,var(--btn) 55%,var(--surface));background:var(--surface);color:var(--btn);font:500 var(--fs-body) var(--f-ui)}
+.m-tabs{display:flex;gap:20px;border-bottom:1px solid var(--line);overflow-x:auto}
+.m-tab{padding:8px 0 9px;font-size:var(--fs-body);font-weight:500;color:var(--ink2);white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-1px}
+.m-tab.on{color:var(--ink);border-color:var(--btn);font-weight:600}
+.m-tab small{font-size:var(--fs-meta-s);color:var(--stray);margin-left:4px}
+.m-two{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
+.m-pad{padding:16px;display:grid;gap:12px;align-content:start}
+.m-cardh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.m-cardh h5{margin:0;font-size:var(--fs-card);font-weight:600}
+.m-link{font-size:var(--fs-meta);color:var(--btn);font-weight:500}
+.m-pty{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.m-av{width:30px;height:30px;border-radius:50%;background:var(--fill);color:var(--ink2);display:grid;place-items:center;font-size:var(--fs-meta-s);font-weight:600;grid-row:span 2}
+.m-pty .m-av{grid-column:1;grid-row:1/3}
+.m-pty b{font-weight:600;font-size:var(--fs-body);grid-column:2;grid-row:1}
+.m-pty span:not(.m-av){font-size:var(--fs-meta);color:var(--ink2);grid-column:2;grid-row:2}
+.m-pty em{font-style:normal;font-size:var(--fs-meta);color:var(--ink3);grid-row:1/3;grid-column:3}
+.m-kv4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.m-duty{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.m-dot{width:8px;height:8px;border-radius:50%;background:var(--ink3);grid-row:span 2}
+.m-dot.am{background:#E8A317}.m-dot.ru{background:#D9453B}.m-dot.gr{background:#2E9E63}
+.m-duty b{font-weight:500;font-size:var(--fs-body)}
+.m-duty span{font-size:var(--fs-meta);color:var(--ink2);grid-column:2}
+.m-duty em{font-style:normal;font-size:var(--fs-meta);color:var(--ink2);grid-row:1/3;grid-column:3;white-space:nowrap}
+.m-fam{display:flex;justify-content:space-between;gap:10px;font-size:var(--fs-body);padding:8px 0;border-top:1px solid var(--line)}
+.m-fam span{color:var(--ink2)}
+/* document + negotiate */
+.m-work{display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:470px}
+.m-desk{background:var(--desk);padding:22px 18px;min-width:0;display:grid;justify-items:center;align-content:start;position:relative;transition:background .25s}
+.m-paper{background:var(--pp-bg);color:var(--pp-ink);width:100%;max-width:520px;padding:30px 34px;box-shadow:0 1px 2px rgba(0,0,0,.08),0 14px 34px -18px rgba(0,0,0,.35);font:13.5px/1.65 var(--f-ui)}
+.m-paper h6{margin:0;font-size:15px;font-weight:700;color:var(--pp-ink);text-align:center}
+.m-paper .pp-sub{font-size:11.5px;color:var(--pp-ink2);text-align:center;padding-bottom:10px;border-bottom:1px solid var(--pp-line);margin-bottom:14px}
+.m-paper .pp-h{font-weight:600;margin:12px 0 4px;color:var(--pp-ink)}
+.m-paper p{margin:0 0 6px;color:var(--pp-ink);max-width:none}
+.m-paper .pp-n{color:var(--pp-ink2);margin-right:6px}
+.m-paper ins{color:var(--ins);background:var(--ins-bg);text-decoration:underline}
+.m-paper del{color:var(--del);text-decoration:line-through}
+.m-paper .pp-foot{margin-top:16px;padding-top:8px;border-top:1px solid var(--pp-line);font-size:11px;color:var(--pp-ink2);display:flex;justify-content:space-between}
+.m-papertag{position:absolute;top:6px;right:10px;font-size:var(--fs-cap);letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.m-panel{background:var(--surface);border-left:1px solid var(--line);padding:14px;display:grid;gap:12px;align-content:start;min-width:0}
+.m-field{display:grid;gap:3px}
+.m-field label{font-size:var(--fs-meta-s);color:var(--ink2)}
+.m-box{height:30px;border:1px solid var(--line);border-radius:4px;padding:0 9px;display:flex;align-items:center;font-size:var(--fs-body);background:var(--surface)}
+.m-box.ph{color:var(--stray)}
+.m-rlh{display:flex;justify-content:space-between;align-items:center;padding-bottom:8px;border-bottom:2px solid var(--btn)}
+.m-rlh b{font-size:var(--fs-card)}
+.m-send{height:26px;padding:0 10px;border-radius:4px;border:0;background:var(--rlb-send);color:var(--rlb-send-ink);font:500 var(--fs-meta) var(--f-ui)}
+.m-rl{display:grid;gap:4px;padding:10px 0;border-bottom:1px solid var(--line)}
+.m-rl b{font-size:var(--fs-body);font-weight:600}
+.m-rl span{font-size:var(--fs-meta);color:var(--ink2)}
+.m-rl.quiet b,.m-rl.quiet span{color:var(--ink3)}
+.m-verbs{display:flex;gap:12px;font-size:var(--fs-meta);font-weight:500}
+/* THE REDLINE CARDS' BUTTONS ARE FIXED: today's colours in both views (owner, 9 Oct 2026) */
+.mock{--rlb-acc:var(--a600);--rlb-ruby:#B3261E;--rlb-send:var(--a600);--rlb-send-ink:#fff}
+.mock[data-mode="dark"]{--rlb-acc:var(--a400);--rlb-ruby:#F0857B;--rlb-send:var(--a400);--rlb-send-ink:var(--a900)}
+.m-verbs a{color:var(--rlb-acc)}
+.m-verbs a.ruby{color:var(--rlb-ruby)}
+.m-band{font-size:var(--fs-cap);letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);padding-top:6px}
+/* obligations */
+.m-grph td{background:var(--fill);font-size:var(--fs-cap);letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);padding:6px 12px}
+.m-seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.m-seg span{padding:4px 10px;font-size:var(--fs-meta);color:var(--ink2);border-left:1px solid var(--line)}
+.m-seg span:first-child{border-left:0}
+.m-seg span.on{background:var(--a100);color:var(--a700);font-weight:500}
+.mock[data-mode="dark"] .m-seg span.on{background:color-mix(in oklab,var(--a400) 18%,var(--surface));color:var(--a300)}
+@media (max-width:900px){
+  .m-page{grid-column:1}
+  .m-two,.m-work{grid-template-columns:minmax(0,1fr)}
+  .m-kv4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .m-panel{border-left:0;border-top:1px solid var(--line)}
+  .m-room{padding:14px}
+}
+
+/* TYPE: today's HaTi sizes, unchanged in both views (owner, 9 Oct 2026: the type scale is out of this work) */
+.mock{--fs-cap:11px;--fs-meta-s:11px;--fs-meta:12px;--fs-body:13px;--fs-card:14px;--fs-card-l:16px;--fs-page:20px}
+/* the rows above the paper keep one height in both views, so the contract never moves down */
+.m-room .m-crumb{line-height:17px}.m-room .m-rhead .m-title{line-height:28px}.m-rsub{line-height:20px;min-height:22px}.m-tab{line-height:19px}
+/* headers in sentence case, not capitals */
+.mock[data-type="new"] :is(.m-grp,.m-cap,.m-table th,.m-band,.m-grph td,.m-papertag){text-transform:none;letter-spacing:0;font-weight:600}
+/* readouts */
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.sw{background:var(--pg-surface);border:1px solid var(--pg-line);border-radius:8px;padding:10px 12px;display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 10px;align-items:center}
+.sw i{width:28px;height:28px;border-radius:4px;grid-row:span 2;border:1px solid var(--pg-line)}
+.sw b{font-size:13px;font-weight:600}
+.sw span{font:400 12px var(--f-mono);color:var(--pg-ink-2);overflow-wrap:anywhere}
+.ok{color:var(--pg-accent)} .low{color:#B3261E}
+:root[data-theme="dark"] .low{color:#F0857B}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .low{color:#F0857B} }
+
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.note{background:var(--pg-surface);border:1px solid var(--pg-line);border-radius:8px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.note h3{margin:0;font-size:15px}
+.note p,.note li{font-size:14px;color:var(--pg-ink-2)}
+.note ul{margin:0;padding-left:18px;display:grid;gap:4px}
+
+.tbl-wrap{overflow-x:auto;background:var(--pg-surface);border:1px solid var(--pg-line);border-radius:8px}
+table.cmp{border-collapse:collapse;width:100%;min-width:680px;font-size:14px}
+.cmp th,.cmp td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--pg-line);vertical-align:top}
+.cmp th{font-size:13px;color:var(--pg-ink-2);font-weight:500}
+.cmp tr:last-child td{border-bottom:0}
+.cmp td:first-child{font-weight:600;white-space:nowrap}
+.cmp tr.pick td{background:var(--pg-tint)}
+.tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;background:var(--pg-accent);color:var(--pg-accent-ink);padding:1px 7px;border-radius:4px;margin-left:6px;vertical-align:2px}
+.rec{border-left:3px solid var(--pg-accent);padding:4px 0 4px 16px;display:grid;gap:8px}
+@media (prefers-reduced-motion: reduce){ .mock,.m-bar{transition:none} }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <div class="eyebrow">HaTi · look and feel · decided 9 Oct 2026</div>
+    <h1>HaTi without grey</h1>
+    <p class="lead">Decided: <b>Ink Wash</b> colours and <b>headers in sentence case</b> instead of capitals, on every page and every pop-up. Text sizes stay as they are today. This page shows the result on five HaTi screens next to how they look today, and sets out the plan. Nothing in HaTi has been changed yet.</p>
+  </header>
+
+  <section class="facts" aria-label="The three decisions">
+    <div class="fact"><b>Ink Wash</b><span>Every grey in light mode becomes one ink: black mixed with the theme colour, softened with a pale wash of Green or Blue.</span></div>
+    <div class="fact"><b>Pop-ups too</b><span>Dialogs, side drawers, dropdown lists and menus, small "Saved" messages and hover hints all follow the same two changes.</span></div>
+    <div class="fact"><b>Sentence case</b><span>"ESSENTIALS" becomes "Essentials", a little bolder so it holds its place at today's size. About 260 places in HaTi set labels in capitals today.</span></div>
+    <div class="fact"><b>Not touched</b><span>Dark mode stays exactly as it is today. The contract paper keeps its colours and its own text size. The redline cards' buttons and red danger buttons keep their colours. Every text size stays the same.</span></div>
+  </section>
+
+  <div class="controls" role="toolbar" aria-label="Preview controls">
+    <div class="seg" id="seg-opt"><span>View</span>
+      <button type="button" id="o-today" data-opt="today">Today<kbd>0</kbd></button>
+      <button type="button" id="o-wash" data-opt="wash">Chosen<kbd>1</kbd></button>
+    </div>
+    <div class="seg" id="seg-brand"><span>Theme</span>
+      <button type="button" id="b-green" data-brand="green">Green</button>
+      <button type="button" id="b-blue" data-brand="blue">Blue</button>
+    </div>
+    <div class="seg" id="seg-mode"><span>Mode</span>
+      <button type="button" id="m-light" data-mode="light">Light</button>
+      <button type="button" id="m-dark" data-mode="dark">Dark</button>
+    </div>
+    <div class="seg" id="seg-page"><span>Page</span>
+      <button type="button" id="p-contracts" data-page="contracts">Contracts</button>
+      <button type="button" id="p-overview" data-page="overview">Overview</button>
+      <button type="button" id="p-document" data-page="document">Document</button>
+      <button type="button" id="p-negotiate" data-page="negotiate">Negotiate</button>
+      <button type="button" id="p-obligations" data-page="obligations">Obligations</button>
+    </div>
+    <span class="hint">Keys 0, 1 or ← → switch view</span>
+  </div>
+
+  <section class="opt-head" aria-live="polite">
+    <h2 id="opt-name">Ink Wash</h2>
+    <p id="opt-say"></p>
+  </section>
+
+  <!-- THE SCREEN -->
+  <div class="mock" id="mock" data-opt="wash" data-brand="green" data-mode="light">
+    <div class="m-bar"><span class="m-logo">HaTi</span><span class="m-search">Search contracts, parties, clauses…</span><span class="m-me">AW</span></div>
+    <nav class="m-rail" aria-label="Sample menu">
+      <div class="m-grp">Work</div>
+      <div class="m-door">Home</div>
+      <div class="m-door" data-door="contracts">Contracts <small>142</small></div>
+      <div class="m-door" data-door="negotiate">Negotiations <small>9</small></div>
+      <div class="m-door">Approvals &amp; signing <small>3</small></div>
+      <div class="m-door" data-door="obligations">Obligations <small>27</small></div>
+      <div class="m-grp">Library</div>
+      <div class="m-door">Our paper</div>
+      <div class="m-door">Calendar</div>
+      <div class="m-grp">Company</div>
+      <div class="m-door">Settings &amp; Rules</div>
+    </nav>
+    <main class="m-main m-page" data-pg="contracts">
+      <div class="m-head">
+        <div><div class="m-crumb">Contracts</div><div class="m-title">All contracts</div><div class="m-sub">142 agreements · 9 waiting on you · updated 2 min ago</div></div>
+        <button class="m-btn" type="button" tabindex="-1">+ Draft new agreement</button>
+      </div>
+      <div class="m-chips">
+        <span class="m-chip"><b>Stage</b> Any</span>
+        <span class="m-chip"><b>Stream</b> Commercial</span>
+        <span class="m-chip"><b>Owner</b> Me <span class="ct">38</span></span>
+        <span class="m-chip"><b>Renews</b> Next 90 days <span class="ct">6</span></span>
+      </div>
+      <div class="m-card m-scroll">
+        <table class="m-table">
+          <thead><tr><th>Counterparty</th><th>Reference</th><th>Stage</th><th class="num">Value</th><th>Key date</th></tr></thead>
+          <tbody>
+            <tr class="sel"><td><span class="m-cp">Safaricom PLC</span><span class="m-nm">Master Services Agreement</span></td><td><span class="m-ref">HT-2026-0142</span></td><td><span class="pill p-am">Your move</span></td><td class="num">KES 48.2M</td><td class="m-date">14 Oct 2026</td></tr>
+            <tr><td><span class="m-cp">Equity Bank Kenya</span><span class="m-nm">Data Processing Addendum</span></td><td><span class="m-ref">HT-2026-0139</span></td><td><span class="pill p-ne">Under review</span></td><td class="num m-none">No money</td><td class="m-date">21 Oct 2026</td></tr>
+            <tr><td><span class="m-cp">Kenya Power</span><span class="m-nm">Supply Agreement</span></td><td><span class="m-ref">HT-2026-0131</span></td><td><span class="pill p-gr">Signed</span></td><td class="num">KES 12.6M</td><td class="m-date">Renews 3 Jan 2027</td></tr>
+            <tr><td><span class="m-cp">Twiga Foods</span><span class="m-nm">Mutual NDA</span></td><td><span class="m-ref">HT-2026-0127</span></td><td><span class="pill p-ne">Draft</span></td><td class="num m-none">—</td><td class="m-date m-none">Not set</td></tr>
+            <tr><td><span class="m-cp">Bolloré Logistics</span><span class="m-nm">Warehousing Agreement</span></td><td><span class="m-ref">HT-2026-0118</span></td><td><span class="pill p-ru">Promise late</span></td><td class="num">USD 310K</td><td class="m-date">2 Oct 2026</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <aside class="m-card m-side" aria-label="Sample side panel">
+        <div class="m-cap">Essentials</div>
+        <h4>Safaricom PLC</h4>
+        <dl class="m-kv">
+          <div><dt>Our party</dt><dd>Mkataba Holdings Ltd</dd></div>
+          <div><dt>Value</dt><dd>KES 48,200,000</dd></div>
+          <div><dt>Term</dt><dd>36 months</dd></div>
+          <div><dt>Renewal</dt><dd>Auto · 90 days' notice</dd></div>
+          <div><dt>Governing law</dt><dd>Laws of Kenya</dd></div>
+          <div><dt>Owner</dt><dd>A. Wanjiru</dd></div>
+        </dl>
+        <div class="m-hr"></div>
+        <div class="m-clause">Clause 14.2 · Termination for convenience</div>
+        <p class="m-quote">Either party may end this Agreement on ninety (90) days' written notice to the other.</p>
+        <div class="m-ph">Ask Copilot about this contract…</div>
+        <div class="m-dis">Sign — 3 to settle</div>
+        <div class="m-foot">Last change by Safaricom · 2 hours ago</div>
+      </aside>
+    </main>
+
+    <section class="m-page m-room" data-pg="overview" hidden>
+        <div class="m-rhead">
+          <div><div class="m-crumb">Contracts</div><div class="m-title">Safaricom PLC — Master Services Agreement</div>
+          <div class="m-rsub"><span class="m-ref">HT-2026-0142</span><span>·</span><span>Owner A. Wanjiru</span><span>·</span><span class="pill p-am">Your move</span></div></div>
+          <div class="m-acts"><button class="m-ghost" type="button" tabindex="-1">More</button><button class="m-btn" type="button" tabindex="-1">Read the brief</button></div>
+        </div>
+        <div class="m-tabs"><span class="m-tab on">Overview</span><span class="m-tab">Document</span><span class="m-tab">Signing</span><span class="m-tab">Obligations<small>4</small></span><span class="m-tab">History<small>31</small></span></div>
+        <div class="m-two">
+          <div class="m-card m-pad">
+            <div class="m-cardh"><h5>Essentials</h5><span class="m-link">Edit</span></div>
+            <div class="m-cap">Parties</div>
+            <div>
+              <div class="m-pty"><span class="m-av">MH</span><b>Mkataba Holdings Ltd</b><span>Us · signs by A. Wanjiru</span><em>Signer set</em></div>
+              <div class="m-pty"><span class="m-av">SP</span><b>Safaricom PLC</b><span>Counterparty · legal@safaricom.co.ke</span><em>No signer yet</em></div>
+            </div>
+            <div class="m-cap">Terms</div>
+            <dl class="m-kv m-kv4">
+              <div><dt>Value</dt><dd>KES 48.2M</dd></div>
+              <div><dt>Start</dt><dd>1 Nov 2026</dd></div>
+              <div><dt>Term</dt><dd>36 months</dd></div>
+              <div><dt>Renewal</dt><dd>Auto · 90 days</dd></div>
+              <div><dt>Payment</dt><dd>Net 30</dd></div>
+              <div><dt>Governing law</dt><dd>Kenya</dd></div>
+              <div><dt>Stream</dt><dd>Commercial</dd></div>
+              <div><dt>Signed</dt><dd class="m-none">Not yet</dd></div>
+            </dl>
+          </div>
+          <div style="display:grid;gap:14px;min-width:0">
+            <div class="m-card m-pad">
+              <div class="m-cardh"><h5>Duties</h5><span class="m-link">All 4</span></div>
+              <div>
+                <div class="m-duty"><i class="m-dot am"></i><b>Send monthly service report</b><span>We owe · clause 7.3</span><em>in 12 days</em></div>
+                <div class="m-duty"><i class="m-dot"></i><b>Pay first invoice</b><span>They owe · KES 4.0M</span><em>1 Dec 2026</em></div>
+                <div class="m-duty"><i class="m-dot gr"></i><b>Insurance certificate</b><span>They owe · received</span><em>Done</em></div>
+              </div>
+            </div>
+            <div class="m-card m-pad">
+              <div class="m-cardh"><h5>Related agreements</h5></div>
+              <div><div class="m-fam"><b>Mutual NDA</b><span>Signed · 2 Jun 2026</span></div><div class="m-fam"><b>Data Processing Addendum</b><span class="m-none">Not started</span></div></div>
+            </div>
+          </div>
+        </div>
+    </section>
+
+    <section class="m-page m-room" data-pg="document" hidden>
+        <div class="m-rhead">
+          <div><div class="m-crumb">Contracts</div><div class="m-title">Safaricom PLC — Master Services Agreement</div>
+          <div class="m-rsub"><span class="m-ref">HT-2026-0142</span><span>·</span><span>Owner A. Wanjiru</span><span>·</span><span class="pill p-am">Your move</span></div></div>
+          <div class="m-acts"><button class="m-ghost" type="button" tabindex="-1">More</button><button class="m-btn" type="button" tabindex="-1">Send for signing</button></div>
+        </div>
+        <div class="m-tabs"><span class="m-tab">Overview</span><span class="m-tab on">Document</span><span class="m-tab">Signing</span><span class="m-tab">Obligations<small>4</small></span><span class="m-tab">History<small>31</small></span></div>
+        <div class="m-card m-work" style="overflow:hidden">
+          <div class="m-desk"><span class="m-papertag">Contract paper · unchanged</span>
+            <article class="m-paper">
+              <h6>Master Services Agreement</h6>
+              <div class="pp-sub">Between Mkataba Holdings Ltd and Safaricom PLC · Version 3</div>
+              <div class="pp-h"><span class="pp-n">14.</span>Termination</div>
+              <p><span class="pp-n">14.1</span>Either party may terminate this Agreement with immediate effect if the other commits a material breach and fails to remedy it within thirty (30) days of written notice.</p>
+              <p><span class="pp-n">14.2</span>Either party may end this Agreement on ninety (90) days' written notice to the other.</p>
+              <div class="pp-h"><span class="pp-n">15.</span>Governing law</div>
+              <p><span class="pp-n">15.1</span>This Agreement is governed by the laws of Kenya.</p>
+              <div class="pp-foot"><span>HT-2026-0142</span><span>Page 7 of 12</span></div>
+            </article>
+          </div>
+          <aside class="m-panel">
+            <div class="m-cardh"><h5 style="margin:0;font-size:14px">Form &amp; links</h5><span class="m-link">Clauses 18</span></div>
+            <div class="m-field"><label>Customer's registered address</label><div class="m-box">Safaricom House, Waiyaki Way, Nairobi</div></div>
+            <div class="m-field"><label>Service start date</label><div class="m-box">1 Nov 2026</div></div>
+            <div class="m-field"><label>Customer's notice contact</label><div class="m-box ph">Name and email</div></div>
+            <div class="m-dis">Fill the document — 1 left</div>
+            <div class="m-foot">Answers fill the paper only when you press Fill.</div>
+          </aside>
+        </div>
+    </section>
+
+    <section class="m-page m-room" data-pg="negotiate" hidden>
+        <div class="m-rhead">
+          <div><div class="m-crumb">Negotiations</div><div class="m-title">Safaricom PLC — Master Services Agreement</div>
+          <div class="m-rsub"><span>Round 2</span><span>·</span><span>Their changes came in 2 hours ago</span></div></div>
+          <div class="m-acts"><span class="m-seg"><span class="on">Redlined</span><span>Clean</span></span><button class="m-ghost" type="button" tabindex="-1">Edit clause</button></div>
+        </div>
+        <div class="m-card m-work" style="overflow:hidden">
+          <div class="m-desk"><span class="m-papertag">Contract paper · unchanged</span>
+            <article class="m-paper">
+              <div class="pp-h"><span class="pp-n">9.</span>Liability</div>
+              <p><span class="pp-n">9.1</span>Each party's total liability under this Agreement is limited to <del>the fees paid in the twelve (12) months</del> <ins>one hundred and fifty percent (150%) of the fees paid in the twelve (12) months</ins> before the claim.</p>
+              <p><span class="pp-n">9.2</span>Neither party is liable for indirect or consequential loss<ins>, except for breach of clause 11 (Confidentiality)</ins>.</p>
+              <div class="pp-h"><span class="pp-n">10.</span>Payment</div>
+              <p><span class="pp-n">10.1</span>The Customer shall pay each undisputed invoice within <del>thirty (30)</del> <ins>forty-five (45)</ins> days of receipt.</p>
+            </article>
+          </div>
+          <aside class="m-panel">
+            <div class="m-rlh"><b>Redlines 4</b><button class="m-send" type="button" tabindex="-1">Send all · 2 not sent</button></div>
+            <div class="m-band">Needs you</div>
+            <div class="m-rl"><b>9.1 Liability cap</b><span>Safaricom · raise the cap to 150%</span><div class="m-verbs"><a>Accept</a><a>Reject</a><a>Counter</a></div></div>
+            <div class="m-rl"><b>10.1 Payment</b><span>Safaricom · 30 → 45 days</span><div class="m-verbs"><a>Accept</a><a>Reject</a><a>Counter</a></div></div>
+            <div class="m-band">Ours, not sent</div>
+            <div class="m-rl"><b>14.2 Termination</b><span>Us · notice from 90 to 60 days</span><div class="m-verbs"><a>Edit</a><a>Send</a><a class="ruby">Discard</a></div></div>
+            <div class="m-band">Settled</div>
+            <div class="m-rl quiet"><b>9.2 Indirect loss</b><span>Accepted · yesterday</span></div>
+          </aside>
+        </div>
+    </section>
+
+    <section class="m-page m-room" data-pg="obligations" hidden>
+        <div class="m-rhead">
+          <div><div class="m-crumb">Work</div><div class="m-title">Obligations</div><div class="m-sub">27 open · 3 late · 6 due in 30 days</div></div>
+          <div class="m-acts"><span class="m-seg"><span class="on">Ours</span><span>Theirs</span><span>All</span></span></div>
+        </div>
+        <div class="m-card m-scroll">
+          <table class="m-table">
+            <thead><tr><th>Duty</th><th>Contract</th><th>Who</th><th class="num">Amount</th><th>Due</th></tr></thead>
+            <tbody>
+              <tr class="m-grph"><td colspan="5">Late · 3</td></tr>
+              <tr><td><span class="m-cp">Quarterly safety audit</span><span class="m-nm">Clause 12.4</span></td><td><span class="m-ref">HT-2026-0118</span><span class="m-nm">Bolloré Logistics</span></td><td>J. Otieno</td><td class="num m-none">—</td><td><span class="pill p-ru">5 days late</span></td></tr>
+              <tr><td><span class="m-cp">Renewal notice</span><span class="m-nm">Clause 3.2 · 60 days before end</span></td><td><span class="m-ref">HT-2025-0904</span><span class="m-nm">Jumia Kenya</span></td><td>A. Wanjiru</td><td class="num m-none">—</td><td><span class="pill p-ru">2 days late</span></td></tr>
+              <tr class="m-grph"><td colspan="5">Due in 30 days · 6</td></tr>
+              <tr class="sel"><td><span class="m-cp">Monthly service report</span><span class="m-nm">Clause 7.3 · repeats monthly</span></td><td><span class="m-ref">HT-2026-0142</span><span class="m-nm">Safaricom PLC</span></td><td>A. Wanjiru</td><td class="num m-none">—</td><td class="m-date">21 Oct 2026</td></tr>
+              <tr><td><span class="m-cp">Licence fee instalment</span><span class="m-nm">Clause 5.1</span></td><td><span class="m-ref">HT-2026-0131</span><span class="m-nm">Kenya Power</span></td><td>Finance</td><td class="num">KES 1.05M</td><td class="m-date">31 Oct 2026</td></tr>
+              <tr><td><span class="m-cp">Insurance certificate</span><span class="m-nm">Required document</span></td><td><span class="m-ref">HT-2026-0127</span><span class="m-nm">Twiga Foods</span></td><td class="m-none">Nobody yet</td><td class="num m-none">—</td><td class="m-date">4 Nov 2026</td></tr>
+            </tbody>
+          </table>
+        </div>
+    </section>
+  </div>
+
+  <section aria-label="The colours in this view">
+    <h2>The quiet colours in this view</h2>
+    <div class="readout" id="readout"></div>
+    <p class="hint" style="margin-top:8px">Each number is how strongly the colour stands out from the card behind it. 4.5 or more is the accessibility pass mark for normal text; placeholders and greyed-out buttons may sit lower. In Dark mode both views show today's colours, because dark mode is not changing.</p>
+  </section>
+
+  <section class="rec">
+    <h2>The plan, for when you say go</h2>
+    <ol style="margin:0;padding-left:20px;display:grid;gap:6px;max-width:72ch">
+      <li><b>Colours.</b> On pages and in pop-ups, redefine HaTi's light-mode grey shades as Ink Wash, once for Green and once for Blue. Replace the ~70 stray grey codes with those shades. Grey status pills (Draft, Under review) become a pale theme tint. The redline cards' buttons are left out of this on purpose.</li>
+      
+      <li><b>Sentence case.</b> Switch off capitals in the one shared label rule, then the remaining ~260 places one by one, so every label reads like "Essentials", one step bolder than today. This includes pop-up titles and dropdown group names.</li>
+      <li><b>Check every place it shows.</b> Desktop and phone, the other side's page, Home's board and charts, every kind of pop-up, both themes, light and dark. Then run the tests. Some tests deliberately pin today's colours and capital letters, so those get updated as part of this change.</li>
+    </ol>
+  </section>
+
+  <section class="notes">
+    <div class="note"><h3>One thing to agree before building</h3><ul><li><b>Emails, PDF exports and printed reports</b> carry their own fixed colours. I suggest leaving them as they are in this first pass.</li></ul></div>
+    <div class="note"><h3>What does not change</h3><ul><li>Every text size.</li><li>Dark mode, exactly as today.</li><li>The contract paper: the sheet, every word, clause numbers, the footer and the red and green redline marks.</li><li>The signing copy, PDF and Word files.</li><li>The buttons on the redline cards: Accept, Reject, Counter, Edit, Send, Discard, and "Send all". They keep exactly today's colours. Open Negotiate to check.</li><li>Red danger buttons such as Delete and Discard, in pages and pop-ups.</li><li>Contract wording shown inside a pop-up.</li><li>Amber, green and red status colours.</li><li>Contract references such as HT-2026-0142 stay in their code style.</li><li>No new banners or notices.</li></ul></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var SAY = {
+    today: "What HaTi looks like now. Labels and captions use a grey with a faint green tint, in both Green and Blue. A few places (counts, the search box hint) use a colder blue-grey typed straight into the code.",
+    wash: "Ink Wash colours and sentence-case headers together, at today's text sizes. Every quiet colour is one ink (black mixed with the theme colour), thinned with a pale wash of the same theme colour instead of white. Labels keep today's strength, but they now read as soft green in Green and soft blue in Blue.",
+    two: "Just two inks: near-black for anything you read, and the theme colour itself for every label, caption, date and count. Boldest, most branded look.",
+    slate: "Today's three shades kept at the same strength, each given a light tint of the theme: green slates in Green, blue slates in Blue. Closest to today, and still reads a little grey."
+  };
+  var NAMES = {today:"Today",wash:"Chosen: Ink Wash, sentence case"};
+  var ORDER = ["today","wash"];
+  var mock = document.getElementById('mock');
+  var st = {opt:'wash',brand:'green',mode:'light',page:'contracts'};
+  var PAGES = ['contracts','overview','document','negotiate','obligations'];
+  var DOOR = {contracts:'contracts',overview:'contracts',document:'contracts',negotiate:'negotiate',obligations:'obligations'};
+  try{
+    var saved = JSON.parse(localStorage.getItem('hati-nogrey')||'null');
+    if(saved && NAMES[saved.opt]){ st = saved; if(PAGES.indexOf(st.page)<0) st.page='contracts'; }
+    else st.mode = (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light');
+  }catch(e){}
+  var cv = document.createElement('canvas'); cv.width = cv.height = 1;
+  var cx = cv.getContext('2d', {willReadFrequently:true});
+  function rgbOf(css){ cx.clearRect(0,0,1,1); cx.fillStyle = '#000'; cx.fillStyle = css; cx.fillRect(0,0,1,1); var d = cx.getImageData(0,0,1,1).data; return [d[0],d[1],d[2]]; }
+  function lum(c){ return c.map(function(v){ v/=255; return v<=0.03928? v/12.92 : Math.pow((v+0.055)/1.055,2.4); }).reduce(function(a,v,i){ return a + v*[0.2126,0.7152,0.0722][i]; },0); }
+  function ratio(a,b){ var x=lum(a), y=lum(b); return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05); }
+  function hex(c){ return '#'+c.map(function(v){ return v.toString(16).padStart(2,'0'); }).join('').toUpperCase(); }
+  var ROWS = [["--ink","Reading text","text"],["--ink2","Labels, captions, dates","text"],["--ink3","Empty values, placeholders","text"],["--stray","Counts, search hint","text"],["--disabled","Greyed-out button","dis"],["--line","Lines and card edges","line"],["--fill","Hover and chip fill","line"],["--pp-ink","Contract paper ink (fixed)","paper"]];
+  function readout(){
+    var cs = getComputedStyle(mock), surf = rgbOf(cs.getPropertyValue('--surface').trim());
+    var out = document.getElementById('readout'); out.textContent = '';
+    ROWS.forEach(function(r){
+      var c = rgbOf(cs.getPropertyValue(r[0]).trim());
+      var el = document.createElement('div'); el.className = 'sw';
+      var i = document.createElement('i'); i.style.background = hex(c);
+      var b = document.createElement('b'); b.textContent = r[1];
+      var s = document.createElement('span');
+      if(r[2]==='line'){ s.textContent = hex(c); } else if(r[2]==='paper'){ s.textContent = hex(c)+' · same in every option'; }
+      else { var k = ratio(c,surf); s.innerHTML = hex(c) + ' · <em class="'+(r[2]==='dis'||k>=4.5?'ok':'low')+'" style="font-style:normal">'+k.toFixed(1)+':1</em>'; }
+      el.append(i,b,s); out.append(el);
+    });
+  }
+  function paint(){
+    mock.dataset.opt = st.opt; mock.dataset.type = st.opt==='today' ? 'today' : 'new'; mock.dataset.brand = st.brand; mock.dataset.mode = st.mode;
+    document.querySelectorAll('[data-opt]').forEach(function(b){ if(b.tagName==='BUTTON') b.setAttribute('aria-pressed', b.dataset.opt===st.opt); });
+    document.querySelectorAll('button[data-brand]').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.brand===st.brand); });
+    document.querySelectorAll('button[data-page]').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.page===st.page); });
+    document.querySelectorAll('.m-page').forEach(function(p){ p.hidden = p.dataset.pg!==st.page; });
+    document.querySelectorAll('.m-door').forEach(function(d){ d.classList.toggle('on', d.dataset.door===DOOR[st.page]); });
+    document.querySelectorAll('button[data-mode]').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.mode===st.mode); });
+    document.getElementById('opt-name').textContent = NAMES[st.opt] + ' · ' + (st.brand==='green'?'Green':'Blue') + ' · ' + (st.mode==='light'?'Light':'Dark') + ' · ' + document.getElementById('p-'+st.page).textContent;
+    document.getElementById('opt-say').textContent = SAY[st.opt];
+    try{ localStorage.setItem('hati-nogrey', JSON.stringify(st)); }catch(e){}
+    readout();
+  }
+  document.querySelector('.controls').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    if(b.dataset.opt) st.opt = b.dataset.opt;
+    if(b.dataset.brand) st.brand = b.dataset.brand;
+    if(b.dataset.mode) st.mode = b.dataset.mode;
+    if(b.dataset.page) st.page = b.dataset.page;
+    paint();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.target.closest && e.target.closest('input,textarea')) return;
+    var i = ORDER.indexOf(st.opt);
+    if(/^[01]$/.test(e.key)) st.opt = ORDER[+e.key];
+    else if(e.key==='ArrowRight') st.opt = ORDER[(i+1)%2];
+    else if(e.key==='ArrowLeft') st.opt = ORDER[(i+1)%2];
+    else return;
+    paint();
+  });
+  paint();
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(readout);
+})();
+</script>
