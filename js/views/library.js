@@ -265,7 +265,7 @@ function openTemplateFillModal(t, prefill, ho){
     </div>
     ${errHtml}
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
-      <button id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="tf-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
       <button id="tf-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('lib_skip_for_now')}</button>
       <button id="tf-create" class="ui-btn ui-btn-primary">${i18t('lib_create_draft')}</button>
@@ -320,7 +320,7 @@ function saveContractAsTemplate(c){
       <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('lib_value_stream')}</span>
         <select id="tpl-folder" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">${opts}</select></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button id="tpl-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="tpl-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="tpl-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
       </div>
     </div>`);
@@ -404,7 +404,7 @@ function openCreateTemplateModal(mode){
 
       <div id="ct-status" style="font-size:var(--t-label);color:var(--color-neutral-600);min-height:16px;margin:10px 0"></div>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button id="ct-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="ct-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="ct-save" class="ui-btn ui-btn-primary">${i18t('lib_save_template')}</button>
       </div>
     </div>`, {maxWidth:'820px'});
@@ -722,7 +722,7 @@ function openBlanksEditor(tid){
         : `<textarea id="be-body" class="scroll-thin" style="width:100%;height:210px;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:9px 11px;font:inherit;font-size:var(--t-meta);line-height:1.6;font-family:var(--font-mono);outline:none;resize:vertical"></textarea>`}</label>
     <div id="be-status" style="font-size:var(--t-label);color:var(--color-neutral-600);min-height:15px;margin-bottom:var(--s-2)"></div>
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="be-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="be-save" class="ui-btn ui-btn-primary">${i18t('lib_save_blanks')}</button>
     </div></div>`, {maxWidth:'760px',
     /* Escape and the scrim ask the SAME question Cancel does. Without this they
@@ -942,7 +942,7 @@ function openTemplateEditor(tid){
     <div style="display:flex;justify-content:space-between;gap:var(--s-2)">
       <button id="te-delete" class="ui-btn" style="border-color:var(--st-ruby-line);color:var(--st-ruby-fg)">${i18t('lib_delete_template')}</button>
       <span style="display:flex;gap:var(--s-2)">
-        <button id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="te-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="te-save" class="ui-btn ui-btn-primary" style="white-space:nowrap">${icon('check2','w-3.5 h-3.5')} Save as v${templateVersionNo(rec)+1}</button>
       </span>
     </div></div>`, {maxWidth:'880px',
@@ -3416,7 +3416,7 @@ function sdSettledHtml(cl, mayAdopt){
         : next==null?i18t('sd_learn_no_figure'):i18t(pick==='preferred'?'sd_learn_confirm_pref':'sd_learn_confirm_fb');
       confirm=`<div class="sd-learn-confirm"><p class="ins-p">${esc(msg)}</p>${prev}<div class="sd-learn-row">
         <button type="button" class="ui-btn ui-btn-sm ui-btn-primary" data-sd-move-go>${esc(i18t(pick==='keep'?'sd_learn_keep_go':next==null?'std_edit_wording':'sd_learn_change'))}</button>
-        <button type="button" class="ui-link" data-sd-move-cancel>${esc(i18t('act_cancel'))}</button></div></div>`;
+        <button data-dlg-cancel type="button" class="ui-link" data-sd-move-cancel>${esc(i18t('act_cancel'))}</button></div></div>`;
     }
     return `<span class="sd-proposed">${esc(i18t('sd_learn_proposed'))}</span>
       <p class="ins-p sd-learn-lead">${esc(i18t('std_learn_line',{category:p.category,figure:p.figure,unit:p.unit,seen:p.seen,settled:p.settled}))}${says?' '+esc(says):''}</p>

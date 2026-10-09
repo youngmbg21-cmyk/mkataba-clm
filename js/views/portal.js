@@ -1215,7 +1215,7 @@ function wirePortalClauseEditor(c, p){
           <textarea data-cl-note="${i}" class="chat-field" rows="1" placeholder="e.g. Net-60 is our standard payment term." style="width:100%;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-meta);background:var(--color-surface);outline:none">${esc(PORTAL_CLAUSE_NOTES[i]||'')}</textarea>
         </label>
         <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:7px">
-          <button data-cl-cancel="${i}" class="ui-btn ui-btn-sm">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel data-cl-cancel="${i}" class="ui-btn ui-btn-sm">${i18t('act_cancel')}</button>
           <button data-cl-save="${i}" class="ui-btn ui-btn-sm ui-btn-primary">${i18t('po_keep_this_change')}</button>
         </div>`;
       const ta=row.querySelector(`[data-cl-input="${i}"]`); if(ta){ ta.focus(); }
@@ -4831,7 +4831,7 @@ function renderSharePortal(p, opts={}){
               <span style="display:block;font-family:var(--font-heading);font-weight:var(--w-strong);font-size:16px;">${i18t('po_propose_your_edits')}</span>
               <span style="display:block;font-size:var(--t-meta);color:var(--color-neutral-600);line-height:1.5;margin-top:3px;">Change the clauses you want to change. ${esc(p.org)} sees your edits as a tracked redline — additions and deletions highlighted — and can accept or reject each one on its own. The document's headings, numbering and layout are kept; you are editing the words, not the formatting.</span>
             </span>
-            <button id="pt-redline-cancel" class="ui-btn" style="flex:none">${i18t('act_cancel')}</button>
+            <button data-dlg-cancel id="pt-redline-cancel" class="ui-btn" style="flex:none">${i18t('act_cancel')}</button>
           </div>
           <div id="pt-clause-editor" class="scroll-thin" style="padding:18px 22px;max-height:min(62vh,620px);overflow-y:auto;background:var(--color-doc-surface)"></div>
           <div id="portal-plain" class="hidden">
@@ -5724,7 +5724,7 @@ async function portalSignUnverified(p, info){
       <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-amber-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} Signing without an email check</div>
       <p style="font-size:var(--t-meta);color:var(--st-amber-fg);margin:0 0 10px;line-height:1.55;">${i18t('po_cannot_verify',{email:esc(info.email),how:i18t('po_not_independently_verified')})}</p>
       <button id="pt-unver-go" class="ui-btn ui-btn-lg ui-btn-primary" style="width:100%">${icon('finger','w-4 h-4')} ${i18t('po_sign_anyway')}</button>
-      <button id="pt-unver-cancel" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:6px 0 0">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="pt-unver-cancel" type="button" class="ui-link" style="display:flex;width:100%;justify-content:center;margin:6px 0 0">${i18t('act_cancel')}</button>
     </div>`;
   document.getElementById('pt-unver-cancel').addEventListener('click',()=>{ box.innerHTML=''; portalSetIdle(); });
   document.getElementById('pt-unver-go').addEventListener('click',async()=>{

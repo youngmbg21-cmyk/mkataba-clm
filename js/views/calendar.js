@@ -1445,7 +1445,7 @@ function openCalendarShare(evs){
       <div id="cal-share-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:var(--s-2)"></div>
     </div>
     <div class="rvd-foot">
-      <button class="ui-btn" data-close>${_esc(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel class="ui-btn" data-close>${_esc(i18t('act_cancel'))}</button>
       <button class="ui-btn ui-btn-primary" id="cal-share-go">${_esc(i18t('cal_share_send'))}</button>
     </div>`, { maxWidth:'520px' });
   document.querySelectorAll('#modal-root [data-close]').forEach(b=>b.addEventListener('click',closeModal));

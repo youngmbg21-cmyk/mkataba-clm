@@ -559,7 +559,7 @@ function openLinkModal(c, onDone, opts={}){
       <div id="lk-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-bottom:var(--s-2)"></div>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         ${(mode==='child'&&suggested.length)?`<button id="lk-standalone" class="ui-btn">${i18t('fa_standalone')}</button>`:''}
-        <button id="lk-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="lk-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="lk-save" class="ui-btn ui-btn-primary">${mode==='child'?'Link':'Attach'}</button>
       </div>
     </div>`, {maxWidth:'560px'});
@@ -1137,7 +1137,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
           <input id="am-name" value="${_famAttr(S.name)}" style="${FLD};padding:3px 6px;font-size:var(--t-label)"/></label>
         <span>${i18t('fa_same_parties',{ref:_famEsc(ref)})}</span></div>
       ${foot(`<button id="am-blank" type="button" class="ui-link" style="margin-right:auto">${i18t('fa_start_blank')}</button>
-        <button id="am-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="am-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         ${aiOn?`<span style="font-size:var(--t-label);color:var(--color-neutral-600)">✦ ${i18t('fa_ai_reads',{ref:_famEsc(ref)})}</span>`:''}
         <button id="am-ai" class="ui-btn ui-btn-primary"${aiOn?'':' disabled'} title="${_famAttr(aiOn?'':i18t('fa_ai_off'))}">${i18t('fa_draft_with_copilot')}</button>`)}
       ${aiOn?'':`<p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;text-align:right">${i18t('fa_ai_off')}</p>`}`;

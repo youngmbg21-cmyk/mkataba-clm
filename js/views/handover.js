@@ -355,7 +355,7 @@ async function openHandoverWindow(c){
     <p class="ho-lock">${_hoEsc(i18t('ho_win_lock'))}</p>
     <div id="ho-err" class="ho-err" hidden></div>
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-      <button id="ho-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="ho-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
       <button id="ho-go" type="button" class="ui-btn ui-btn-primary">${_hoEsc(i18t('ho_go'))}</button>
     </div>
   </div>`, { maxWidth: (window.DLG_W && DLG_W.l) || '640px', label: i18t('ho_win_title') });
@@ -586,7 +586,7 @@ function openOutsideSendAgain(c){
     </div>
     <div id="ho-sa-err" class="ho-err" hidden></div>
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-      <button id="ho-sa-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="ho-sa-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
       <button id="ho-sa-go" type="button" class="ui-btn ui-btn-primary">${_hoEsc(i18t('ho_send_again'))}</button>
     </div></div>`, { maxWidth: (window.DLG_W && DLG_W.m) || '520px', label: i18t('ho_send_again_title') });
   document.getElementById('ho-sa-cancel')?.addEventListener('click', closeModal);
@@ -899,7 +899,7 @@ function _hoFilingScreen(c, read){
       ${_hoParentPicker(c)}
       <div id="ho-f-err" class="ho-err" hidden></div>
       <div class="ho-file-foot">
-        <button id="ho-f-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
+        <button data-dlg-cancel id="ho-f-cancel" type="button" class="ui-btn">${_hoEsc(i18t('act_cancel'))}</button>
         <span style="flex:1"></span>
         <span id="ho-f-acts"></span>
       </div>

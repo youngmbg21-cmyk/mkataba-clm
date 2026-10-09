@@ -1138,7 +1138,10 @@ async function deleteContract(id){
      caller repaints next is drawn from the figures after the delete, not before
      it (measured: the list said 29 rows "of 30 total"). */
   if(API_MODE() && window.refreshStats){ try{ await refreshStats(); }catch(_){} }
-  toast(`${label} deleted`,'err');
+  /* A DONE DELETE IS NEWS, NOT A FAILURE (SAP pop-ups, owner's go 10 Oct
+     2026): it was a red error toast, so a delete that worked read as one that
+     had not. The calm kind; red stays for the refusals above. */
+  toast(`${label} deleted`,'ok');
   return true;
 }
 /* ---- THE ARCHIVE SHELF (WO-5, WORKORDER-gap-map.md) ----
@@ -3379,6 +3382,158 @@ function selectMenuStandsDown(){
   } catch (_) {}
   return false;
 }
+/* ---- A POP-UP'S DROPDOWNS AND DATES WEAR HaTi'S CLOTHES (SAP pop-ups,
+   owner's go 10 Oct 2026) ----
+   SAP uses one control for one job everywhere. Inside a pop-up HaTi still
+   drew the browser's own closed select (its chevron, its padding) and the
+   browser's date box ("mm/dd/yyyy" in Chrome, a wheel in Safari), so the
+   same form looked different from the page behind it and from one browser
+   to the next. Opened, a select already draws HaTi's list (selectMenuWire);
+   this dresses the CLOSED box to match, and gives a date its own face and a
+   HaTi calendar. Both run from the dialog frame's one observer (dlgPinFoot)
+   and the Settings drawer, so every pop-up is dressed where it is painted.
+
+   NOTHING ABOUT A VALUE CHANGES. The real <input type="date"> stays in the
+   form, hidden, and keeps holding the ISO day every caller reads and writes;
+   a value written by code repaints the face (an instance setter), and a day
+   picked on the calendar fires 'input' and 'change' as typing would. The
+   phone keeps the system wheel, as selectMenuStandsDown says for lists. */
+function selectFaceDress(root){
+  if(!root || !root.querySelectorAll || selectMenuStandsDown()) return;
+  root.querySelectorAll(SELECT_MENU_SEL).forEach(sel=>{
+    if(sel.dataset.selFace==='1') return;
+    /* An invisible chip select (the register's filter chips) is a hit area,
+       not a box; it has no face to dress. */
+    if(getComputedStyle(sel).opacity==='0') return;
+    sel.dataset.selFace='1';
+    const st=sel.style;
+    st.appearance='none'; st.webkitAppearance='none';
+    /* THE CHEVRON IS DRAWN IN THE TEXT'S OWN INK — two gradients make the
+       small "v", so no new colour enters the census and dark mode is free. */
+    st.backgroundImage='linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)';
+    st.backgroundPosition='calc(100% - 15px) 52%,calc(100% - 10px) 52%';
+    st.backgroundSize='5px 5px,5px 5px';
+    st.backgroundRepeat='no-repeat';
+    st.paddingRight='30px';
+  });
+}
+const DATE_PICK_SEL='input[type="date"]:not([data-native])';
+function datePickWords(iso){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso||''))) return '';
+  const d=new Date(iso+'T00:00:00'); if(isNaN(d)) return '';
+  try{ return d.toLocaleDateString((typeof langLocale==='function')?langLocale():'en-GB',{ day:'numeric', month:'short', year:'numeric' }); }
+  catch(_){ return iso; }
+}
+const _dpValue=(typeof HTMLInputElement!=='undefined')?Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value'):null;
+function datePickDress(root){
+  if(!root || !root.querySelectorAll || !_dpValue || selectMenuStandsDown()) return;
+  root.querySelectorAll(DATE_PICK_SEL).forEach(inp=>{
+    if(inp.dataset.dp==='1') return;
+    inp.dataset.dp='1';
+    const face=document.createElement('button');
+    face.type='button';
+    face.className='dp-face'+(inp.className?(' '+inp.className):'');
+    face.setAttribute('style',inp.getAttribute('style')||'');
+    face.setAttribute('aria-haspopup','dialog');
+    const lab=inp.id && root.querySelector(`label[for="${CSS.escape(inp.id)}"]`);
+    if(lab){ if(!lab.id) lab.id='dpl-'+inp.id; face.setAttribute('aria-labelledby',lab.id+' '+(face.id='dpf-'+inp.id));
+      lab.addEventListener('click',ev=>{ ev.preventDefault(); face.focus(); }); }
+    const paint=()=>{
+      const w=datePickWords(_dpValue.get.call(inp));
+      face.innerHTML=`<span class="dp-v${w?'':' dp-ph'}">${(w||i18t('dp_pick')).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span>${typeof icon==='function'?icon('calendar','dp-ic'):''}`;
+      face.disabled=!!inp.disabled;
+    };
+    Object.defineProperty(inp,'value',{ configurable:true,
+      get(){ return _dpValue.get.call(this); },
+      set(v){ _dpValue.set.call(this,v); paint(); } });
+    /* A caller that focuses the box after a refusal ("Due date is required")
+       lands on the face the reader can see. */
+    inp.focus=()=>face.focus();
+    inp.addEventListener('input',paint); inp.addEventListener('change',paint);
+    try{ new MutationObserver(paint).observe(inp,{ attributes:true, attributeFilter:['disabled'] }); }catch(_){}
+    /* Out of sight IN ITS OWN INLINE STYLE: the box was built with the
+       field's inline clothes (width, height), which no sheet rule outranks. */
+    inp.classList.add('dp-native'); inp.tabIndex=-1; inp.setAttribute('aria-hidden','true');
+    Object.assign(inp.style,{ position:'absolute', width:'1px', height:'1px', minWidth:'0', padding:'0', border:'0', opacity:'0', pointerEvents:'none' });
+    inp.after(face);
+    face.addEventListener('click',()=>datePickOpen(inp,face));
+    face.addEventListener('keydown',ev=>{ if(ev.key==='ArrowDown'&&(ev.altKey||!ev.shiftKey)){ ev.preventDefault(); datePickOpen(inp,face); } });
+    paint();
+  });
+}
+let _dpPop=null;
+function datePickClose(back){
+  if(!_dpPop) return;
+  const p=_dpPop; _dpPop=null;
+  try{ p._off&&p._off(); }catch(_){}
+  p.remove();
+  if(back && p._face && p._face.isConnected) p._face.focus();
+}
+function datePickOpen(inp,face){
+  datePickClose(false);
+  const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const cur=_dpValue.get.call(inp);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const min=inp.min||'', max=inp.max||'';
+  let focusDay=/^\d{4}-\d{2}-\d{2}$/.test(cur)?new Date(cur+'T00:00:00'):new Date(today);
+  const loc=(typeof langLocale==='function')?langLocale():'en-GB';
+  const pop=document.createElement('div');
+  pop.className='dp-pop'; pop.setAttribute('role','dialog'); pop.setAttribute('aria-label',i18t('dp_pick'));
+  pop.setAttribute('data-top-overlay','1');
+  pop._face=face;
+  const out=d=>{ const k=iso(d); return (min && k<min) || (max && k>max); };
+  const draw=()=>{
+    const y=focusDay.getFullYear(), m=focusDay.getMonth();
+    const first=new Date(y,m,1), start=new Date(first); start.setDate(1-((first.getDay()+6)%7));
+    let head=''; for(let i=0;i<7;i++){ const d=new Date(2024,0,1+i); head+=`<span class="dp-dow">${d.toLocaleDateString(loc,{weekday:'narrow'})}</span>`; }
+    let days='';
+    for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); const k=iso(d);
+      const cls=['dp-day']; if(d.getMonth()!==m) cls.push('dp-other'); if(k===cur) cls.push('is-on'); if(k===iso(today)) cls.push('is-today');
+      days+=`<button type="button" class="${cls.join(' ')}" data-dp-day="${k}" tabindex="${k===iso(focusDay)?0:-1}"${out(d)?' disabled':''}>${d.getDate()}</button>`; }
+    pop.innerHTML=`<div class="dp-head"><button type="button" class="dp-nav" data-dp-m="-1" aria-label="${i18t('dp_prev')}">‹</button>
+      <span class="dp-title">${first.toLocaleDateString(loc,{month:'long',year:'numeric'})}</span>
+      <button type="button" class="dp-nav" data-dp-m="1" aria-label="${i18t('dp_next')}">›</button></div>
+      <div class="dp-grid">${head}${days}</div>
+      <div class="dp-foot"><button type="button" class="ui-link" data-dp-today${out(today)?' disabled':''}>${i18t('cal_today')}</button>${inp.required?'':`<button type="button" class="ui-link" data-dp-clear>${i18t('dp_clear')}</button>`}</div>`;
+  };
+  const pick=k=>{ inp.value=k; inp.dispatchEvent(new Event('input',{bubbles:true})); inp.dispatchEvent(new Event('change',{bubbles:true})); datePickClose(true); };
+  const focusNow=()=>{ const b=pop.querySelector(`[data-dp-day="${iso(focusDay)}"]`); if(b) b.focus(); };
+  draw();
+  document.body.appendChild(pop);
+  const place=()=>{ const r=face.getBoundingClientRect(), h=pop.offsetHeight, w=pop.offsetWidth;
+    const below=window.innerHeight-r.bottom>=h+8;
+    pop.style.top=Math.max(8,below?r.bottom+4:r.top-h-4)+'px';
+    pop.style.left=Math.max(8,Math.min(r.left,window.innerWidth-w-8))+'px'; };
+  place(); focusNow();
+  pop.addEventListener('click',ev=>{
+    const d=ev.target.closest('[data-dp-day]'); if(d && !d.disabled){ pick(d.dataset.dpDay); return; }
+    const n=ev.target.closest('[data-dp-m]'); if(n){ focusDay.setDate(1); focusDay.setMonth(focusDay.getMonth()+Number(n.dataset.dpM)); draw(); place(); focusNow(); return; }
+    if(ev.target.closest('[data-dp-today]')){ pick(iso(today)); return; }
+    if(ev.target.closest('[data-dp-clear]')){ pick(''); }
+  });
+  pop.addEventListener('keydown',ev=>{
+    const step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[ev.key];
+    if(ev.key==='Escape'){ ev.preventDefault(); ev.stopPropagation(); datePickClose(true); return; }
+    if(step && ev.target.closest('[data-dp-day]')){ ev.preventDefault(); focusDay.setDate(focusDay.getDate()+step); draw(); focusNow(); return; }
+    if(ev.key==='PageUp'||ev.key==='PageDown'){ ev.preventDefault(); focusDay.setMonth(focusDay.getMonth()+(ev.key==='PageUp'?-1:1)); draw(); focusNow(); }
+    if(ev.key==='Tab'){ /* the calendar is a small trap: Tab walks its own buttons */
+      const all=[...pop.querySelectorAll('button:not([disabled])')].filter(b=>b.tabIndex!==-1||b===document.activeElement);
+      const i=all.indexOf(document.activeElement); if(i<0) return; ev.preventDefault();
+      all[(i+(ev.shiftKey?-1:1)+all.length)%all.length].focus(); }
+  });
+  const away=ev=>{ if(!pop.contains(ev.target) && ev.target!==face && !face.contains(ev.target)) datePickClose(false); };
+  const esc=ev=>{ if(ev.key==='Escape' && _dpPop===pop){ ev.preventDefault(); ev.stopImmediatePropagation(); datePickClose(true); } };
+  document.addEventListener('pointerdown',away,true);
+  document.addEventListener('keydown',esc,true);
+  window.addEventListener('resize',place);
+  pop._off=()=>{ document.removeEventListener('pointerdown',away,true); document.removeEventListener('keydown',esc,true); window.removeEventListener('resize',place); };
+  _dpPop=pop;
+}
+/* ONE CALL DRESSES A POP-UP: its closed dropdowns and its dates. */
+function popupControlsDress(root){
+  try{ selectFaceDress(root); }catch(_){}
+  try{ datePickDress(root); }catch(_){}
+}
 const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' });
   /* ---- A BIT OF COLOUR ON THE FRAME (Young ruled 21 Sep 2026: "add a bit of
      color on pop ups that are completely bland") ----
@@ -3536,6 +3691,15 @@ function dlgPinFoot(panel){
   let queued=false;
   const paint=()=>{ queued=false;
     if(!panel.isConnected) return;
+    /* CANCEL LAST, IN THE DOM TOO (SAP pop-ups, 10 Oct 2026): the sheet
+       draws a marked Cancel last; moving it keeps Tab order the same as the
+       picture. Idempotent — a Cancel already last is left where it is, so the
+       observer's own mutation settles at once. */
+    popupControlsDress(panel);
+    panel.querySelectorAll('[data-dlg-cancel]').forEach(b=>{
+      const row=b.parentElement; if(!row) return;
+      if(row.lastElementChild!==b) row.appendChild(b);
+    });
     if(!panel.querySelector('.dlg-foot')){
       const was=panel.querySelector('[data-dlg-foot]'), foot=dlgFootOf(panel);
       if(was && was!==foot) was.removeAttribute('data-dlg-foot');
@@ -3659,8 +3823,8 @@ function confirmDialog(opts={}){
         </div>
         ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-4);padding-left:46px${opts.multiline?';white-space:pre-line':''}">${esc(message)}</p>`:''}
         <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-          ${cancelLabel?`<button id="cf-cancel" class="ui-btn">${esc(cancelLabel)}</button>`:''}
           <button id="cf-ok" class="ui-btn" style="background:${btnBg};border-color:${btnBg};color:${btnFg}">${esc(confirmLabel)}</button>
+          ${cancelLabel?`<button id="cf-cancel" class="ui-btn" data-dlg-cancel>${esc(cancelLabel)}</button>`:''}
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -3748,8 +3912,8 @@ function promptDialog(opts={}){
             : `<input id="pd-input" type="text" value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
                  style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>`}
           <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
-            <button id="pd-cancel" class="ui-btn">${esc(cancelLabel)}</button>
             <button id="pd-ok" class="ui-btn ui-btn-primary">${esc(confirmLabel)}</button>
+            <button id="pd-cancel" class="ui-btn" data-dlg-cancel>${esc(cancelLabel)}</button>
           </div>
         </div>
       </div>`;
@@ -4456,7 +4620,7 @@ function shareKindStepHtml(c, sel, o={}){
       <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">${i18t('co_one_question')}</p>
       ${shareKindOptionsHtml(c, sel)}
       <div class="dlg-foot">
-        <button id="share-close-kind" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="share-close-kind" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="share-kind-next" class="ui-btn ui-btn-primary">${i18t('act_next')}${icon('chevR','w-3.5 h-3.5')}</button>
       </div>
     </div>`;
@@ -4810,7 +4974,7 @@ function shareSummaryStepHtml(c, opts={}){
       ${opts.oneScreen ? `<div style="margin:-6px 0 14px"><button type="button" id="share-other" class="ui-link">${i18t('co_send_something_else')}</button></div>${purposeBlock}`
       : `<div class="dlg-foot">
         <button id="share-back-kind" class="ui-btn">${icon('arrowLeft','w-3.5 h-3.5')}Back</button>
-        <button id="share-close-1" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="share-close-1" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="share-next" class="ui-btn ui-btn-primary">${i18t('act_next')}${icon('chevR','w-3.5 h-3.5')}</button>
       </div>`}
     </div>`;
@@ -5001,7 +5165,7 @@ function quickSendStepHtml(c, pre, purpose, warns){
     <div style="margin-top:10px;display:flex;align-items:center;gap:var(--s-2);">
       <button id="qs-details" class="ui-btn" title="${i18t('co_full_form')}">${i18t('co_change_details')}${(typeof icon==='function')?icon('chevD','w-3.5 h-3.5'):''}</button>
       <span style="flex:1"></span>
-      <button id="qs-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="qs-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="qs-send" class="ui-btn ui-btn-primary">${icon('send','w-3.5 h-3.5')} ${i18t('co_send_it')}</button>
     </div>
   </div>`;
@@ -6789,7 +6953,7 @@ async function openShareModal(c, opts={}){
              once a result is on the screen (resultBox). */}
       <div class="dlg-foot">
         <button id="share-back" class="ui-btn hidden">${icon('arrowLeft','w-3.5 h-3.5')}Back</button>
-        <button id="share-close" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="share-close" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="share-send" class="ui-btn ui-btn-primary"${o.opening?' disabled':''}>${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">${i18t('co_send_by_email')}</span></button>
       </div>
       </div>
@@ -8082,7 +8246,7 @@ function openImportModal(c){
       <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">${i18t('co_paste_response_code')}</p>
       <textarea id="imp-code" rows="5" placeholder="${i18t('co_paste_response')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:11px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
       <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
-        <button id="imp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="imp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
       </div>
       <div style="margin-top:var(--s-4);padding-top:14px;border-top:1px solid var(--color-divider);">
@@ -9133,4 +9297,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

@@ -1557,6 +1557,39 @@
      room above and below are drawn only while the panel really scrolls, so a
      dialog that fits looks exactly as it did. */
   .modal-in [data-dlg-foot]{position:sticky;bottom:0;z-index:2;background:var(--color-surface);}
+  /* THE ACT FIRST, CANCEL LAST (SAP pop-ups, owner's go 10 Oct 2026). SAP's
+     dialogs put the act that moves the work first and Cancel at the far right;
+     HaTi wrote Cancel first in every foot. Each Cancel is marked
+     data-dlg-cancel where it is built, and the flex row draws it last. Inside
+     a dialog dlgPinFoot also MOVES it last in the DOM, so Tab meets the act
+     first, as the eye does. */
+  [data-dlg-cancel]{order:99;}
+  /* A DATE ON HaTi'S OWN CALENDAR (SAP pop-ups, 10 Oct 2026): the real date
+     box stays in the form, out of sight; the face beside it wears the field's
+     own inline clothes, and the calendar is drawn from the product's tokens
+     only. See datePickDress in js/core.js. */
+  .dp-face{ display:flex; align-items:center; gap:var(--s-2); text-align:left; cursor:pointer; }
+  .dp-face .dp-v{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dp-face .dp-ph{ color:var(--color-neutral-500); }
+  .dp-face .dp-ic{ width:14px; height:14px; flex:none; color:var(--color-neutral-600); }
+  .dp-face:disabled{ cursor:not-allowed; opacity:.6; }
+  .dp-pop{ position:fixed; z-index:96; width:252px; padding:var(--s-2); background:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); font-family:var(--font-body); }
+  .dp-head{ display:flex; align-items:center; gap:var(--s-1); padding:2px 2px 6px; }
+  .dp-title{ flex:1; text-align:center; font-weight:var(--w-strong); font-size:var(--t-body); color:var(--color-text); }
+  .dp-nav{ width:28px; height:28px; border-radius:var(--radius); border:0; background:transparent; color:var(--color-text); font-size:18px; line-height:1; cursor:pointer; }
+  .dp-nav:hover{ background:var(--color-neutral-100); }
+  .dp-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .dp-dow{ text-align:center; font-size:var(--t-label); color:var(--color-neutral-600); padding:2px 0; }
+  .dp-day{ height:30px; border:0; border-radius:var(--radius); background:transparent; color:var(--color-text);
+    font:inherit; font-size:var(--t-body); font-variant-numeric:tabular-nums; cursor:pointer; }
+  .dp-day:hover{ background:var(--color-accent-50); }
+  .dp-day.dp-other{ color:var(--color-neutral-500); }
+  .dp-day.is-today{ box-shadow:inset 0 0 0 1px var(--accent-fill); }
+  .dp-day.is-on{ background:var(--accent-fill); color:#fff; }
+  .dp-day:disabled{ opacity:.35; cursor:not-allowed; }
+  .dp-day:focus-visible,.dp-nav:focus-visible{ outline:2px solid var(--accent-fill); outline-offset:1px; }
+  .dp-foot{ display:flex; justify-content:space-between; padding:8px 4px 2px; border-top:1px solid var(--color-divider); margin-top:6px; }
   .modal-in[data-scrolls] [data-dlg-foot]{box-shadow:0 -1px 0 var(--color-divider);padding-top:10px;padding-bottom:10px;}
   /* ═══ THE SIGNING ROUTE IS A TIMELINE (Young ruled it 27 Sep 2026) ═══════════
      The route drawn as it will run: numbered steps down a line, the people who

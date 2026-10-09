@@ -900,7 +900,7 @@ function openSignApprovalDialog(c){
     <textarea id="sa-ask-note" class="sa-inp" maxlength="${SA_NOTE_MAX}" rows="3"></textarea>
     <div class="sa-foot">
       <span class="sa-foot-note">${e(cp?i18t('sa_dlg_foot_cp',{who:cp.name}):i18t('sa_dlg_foot'))}</span>
-      <button type="button" class="ui-btn" id="sa-ask-cancel">${e(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel type="button" class="ui-btn" id="sa-ask-cancel">${e(i18t('act_cancel'))}</button>
       <button type="button" class="ui-btn ui-btn-primary" id="sa-ask-go">${e(i18t('sa_dlg_go'))}</button>
     </div>
   </div>`, { maxWidth: DLG_W.m });
@@ -1764,7 +1764,7 @@ function signerRouteWindow(c, plan, back){
     ${dirList}
     <div class="sr-steps" id="sr-steps">${bodyHtml()}</div>
     <div class="dlg-foot sr-foot"><span class="sr-say" id="sr-say" role="alert"></span>
-      <button id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="sp-save" type="button" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button></div>
   </div>`, { maxWidth: DLG_W.l, label: i18t('ap_signing_route') });
   const win=document.getElementById('sr-win'); if(!win) return;

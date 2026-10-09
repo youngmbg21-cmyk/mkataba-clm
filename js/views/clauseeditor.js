@@ -2725,7 +2725,7 @@ function ceLeaveGuard(go){
   if (!dirty || typeof window === 'undefined' || !window.confirmDialog){ go(); return; }
   const ask = clauseEditorLeaveAsk();
   confirmDialog({ title: ask.title, message: ask.message,
-    confirmLabel: _cet('ce_leave_go'), cancelLabel: _cet('act_cancel'), danger: true })
+    confirmLabel: _cet('ce_leave_go'), cancelLabel: _cet('na_leave_stay'), danger: true })
     .then(ok => { if (ok) go(); }).catch(() => {});
 }
 /* ---- MOVING TO ANOTHER CLAUSE ASKS BEFORE IT THROWS A DRAFT AWAY ----

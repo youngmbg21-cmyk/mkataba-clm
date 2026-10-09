@@ -904,7 +904,7 @@ function openObligationForm(c, seed, opts){
         <datalist id="of-members">${members.map(m=>`<option value="${m}">`).join('')}</datalist></label>
       <p id="of-theirs-note" class="mb-4 text-[11px] text-ink/55 leading-relaxed ${seed.party==='theirs'?'':'hidden'}">This is something ${(c.counterparty||'the counterparty').replace(/</g,'&lt;')} owes. It appears on your calendar and dashboard as something to chase rather than something to do.</p>
       <div class="flex justify-end gap-2">
-        <button id="of-cancel" class="ui-btn">${_obEsc(opts.cancelLabel||i18t('act_cancel'))}</button>
+        <button data-dlg-cancel id="of-cancel" class="ui-btn">${_obEsc(opts.cancelLabel||i18t('act_cancel'))}</button>
         <button id="of-save" class="ui-btn ui-btn-primary">${_obEsc(opts.saveLabel||i18t('act_save'))}</button>
       </div>
     </div>`);
@@ -2254,7 +2254,7 @@ function openObligationDone(c, i){
       ${next ? `<p id="od-next" class="mb-4 rounded-lg border border-line bg-slate-50 px-3 py-2 text-[12px] text-ink/70">${
         _obEsc(i18t('ob_done_next', { date: next.due }))}</p>` : ''}
       <div class="flex justify-end gap-2">
-        <button id="od-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="od-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="od-go" class="ui-btn ui-btn-primary">${i18t('ob_done_go')}</button>
       </div>
     </div>`);

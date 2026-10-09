@@ -773,7 +773,7 @@ function openMetaReview(meta, onConfirm, opts={}){
       <div class="grid grid-cols-2 gap-3" style="max-height:min(52vh,460px);overflow-y:auto;padding-right:var(--s-1)">${META_FIELDS.map(field).join('')}</div>
       <div class="flex justify-end gap-2 mt-5">
         ${queued?`<button id="mr-stop" class="ui-btn" style="margin-right:auto">${i18t('me_stop')}</button>`:''}
-        <button id="mr-cancel" class="ui-btn">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="mr-cancel" class="ui-btn">${queued?i18t('me_skip_this'):i18t('act_cancel')}</button>
         <button id="mr-save" class="ui-btn ui-btn-primary">${opts.saveLabel||'Confirm & save'}</button>
       </div>
     </div>`);

@@ -324,7 +324,7 @@ function tplLibUploadModal() {
              has filed yet says so, which is the picker's own empty row. */}
       ${tplLibCatStreamRowHtml('tpllib-up-cat', 'tpllib-up-stream', 'other', '')}
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="tpllib-up-go" class="ui-btn ui-btn-primary">${i18t('tl_upload_convert')}</button>
       </div>
     </div>`);
@@ -866,7 +866,7 @@ function tplLibCreateModal() {
       <label style="display:block;margin-bottom:var(--s-4)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_description')} <span style="font-weight:var(--w-body);color:var(--color-neutral-500)">(optional)</span></span>
         <textarea id="tpllib-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none;min-height:60px" maxlength="2000" placeholder="${i18t('tl_what_for')}"></textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="tpllib-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
       </div>
     </div>`);
@@ -1043,7 +1043,7 @@ function tplLibMetaModal(t, opts = {}) {
       <label style="display:block;margin-bottom:var(--s-4)"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('tl_description')}</span>
         <textarea id="tpllib-m-desc" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:7px 10px;font:inherit;font-size:var(--t-body);outline:none;min-height:60px" maxlength="2000">${esc(t.description)}</textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="tpllib-m-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
       </div>
     </div>`);

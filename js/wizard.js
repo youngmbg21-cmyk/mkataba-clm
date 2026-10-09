@@ -288,7 +288,7 @@ function openWizard(preTid, prefill){
                this exact place, so this is the shape they all share rather
                than a new control. */}
         <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-4)">
-          <button id="wz-pick-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="wz-pick-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <span style="flex:1"></span>
         </div></div>`);
       document.getElementById('wz-pick-cancel')?.addEventListener('click', closeModal);
@@ -363,7 +363,7 @@ function openWizard(preTid, prefill){
       </div>
       ${WZ_ERR_HTML}
       <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:20px;">
-        <button id="wz-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="wz-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <span style="flex:1"></span>
         <button id="wz-skip" class="ui-btn" title="${i18t('wz_create_and_fill')}">${i18t('wz_skip_for_now')}</button>
         <button id="wz-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
@@ -751,7 +751,7 @@ function openNewDoors(){
         ${door('upload','upload',i18t('na_door_upload'),i18t('na_door_upload_sub'))}
       </div>
       <div style="display:flex;justify-content:flex-end;margin-top:16px">
-        <button type="button" class="ui-btn" data-nd-door="cancel">${esc(i18t('act_cancel'))}</button></div>
+        <button data-dlg-cancel type="button" class="ui-btn" data-nd-door="cancel">${esc(i18t('act_cancel'))}</button></div>
     </div>`, { maxWidth: (typeof DLG_W!=='undefined'&&DLG_W.m)||520 });
   document.querySelectorAll('[data-nd-door]').forEach(b=>b.addEventListener('click',()=>{
     const k=b.getAttribute('data-nd-door');
@@ -902,7 +902,7 @@ function openNewAgreement(o){
            a bare word alone at the far left. */}
     <div class="na-foot">
       <span class="na-grow"></span>
-      <button type="button" id="wz-pick-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel type="button" id="wz-pick-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button type="button" id="na-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('na_skip')}</button>
       <button type="button" id="na-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
     </div></div>`, { maxWidth: NA_FRAME_NARROW_W+'px', label: i18t('na_title'),

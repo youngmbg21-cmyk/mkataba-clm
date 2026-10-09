@@ -969,7 +969,7 @@ function viewLayersClosed(view){
      exactly as the clause editor's unfiled draft is. Nothing typed, no ask. */
   if(!_leavingCe && window.rlInlineDirty && rlInlineDirty() && window.confirmDialog){
     confirmDialog({ title:i18t('ce_leave_title'), message:i18t('ce_leave_body'),
-      confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('act_cancel'), danger:true })
+      confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true })
       .then(ok=>{
         if(!ok) return;
         if(window.rlInlineEnd) rlInlineEnd(true);
@@ -995,7 +995,7 @@ function viewLayersClosed(view){
   const ask = (window.clauseEditorLeaveAsk && clauseEditorLeaveAsk())
     || { title:i18t('ce_leave_title'), message:i18t('ce_leave_body') };
   confirmDialog({ title:ask.title, message:ask.message,
-    confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('act_cancel'), danger:true })
+    confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true })
     .then(ok=>{
       if(!ok) return;
       if(window.rlCloseClauseEditor) rlCloseClauseEditor();

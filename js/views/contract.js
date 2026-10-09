@@ -1566,7 +1566,7 @@ function openUploadModal(){
             (()=>{ const n=(typeof navCounts==='function')?Number((navCounts()||{}).migration)||0:0;
               return n>0?` <span id="up-bulk-waiting" style="margin-left:4px;color:var(--st-amber-fg)">· ${esc(i18tn('ct_import_waiting',n,{n}))}</span>`:''; })()}</button>
           <span style="flex:1"></span>
-          <button id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         </div>
       </div>
       <div id="up-step-2" class="hidden">${uploadConfirmHtml(null,null)}</div>
@@ -1690,7 +1690,7 @@ function uploadConfirmHtml(ext, meta){
       <div class="flex items-center gap-2">
         <button id="up-back" class="ui-btn">${icon('arrowLeft')}Another file</button>
         <span style="flex:1"></span>
-        <button id="up-cancel-2" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="up-cancel-2" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="up-go" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} <span id="up-go-word">${i18t(ext&&uploadRouteDefault()==='outside'?'ho_start_redlining':'ct_file_contract')}</span></button>
       </div>`;
 }
@@ -2348,7 +2348,7 @@ function openEditDocModal(c){
       <div style="${COL};padding:0 26px;display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <span id="ed-count" style="font-size:var(--t-label);color:var(--color-neutral-500)"></span>
         <span style="display:flex;gap:var(--s-2)">
-          <button id="ed-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="ed-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="ed-save" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Save changes</button>
         </span>
       </div>
@@ -7112,7 +7112,7 @@ function openPartyEditor(c, id){
       ${(!adding&&p.side!==PARTY_SIDE_OURS)?`<button type="button" class="ui-btn" id="py-del" style="color:var(--st-ruby-fg)">${
         esc(i18t('py_remove'))}</button>`:''}
       <span style="flex:1"></span>
-      <button type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
       <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t('act_save'))}</button>
     </div>`, { maxWidth: DLG_W.m });
 
@@ -8597,7 +8597,7 @@ function openNegoProposeModal(c){
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-          <button id="nego-prop-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="nego-prop-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="nego-prop-go" class="ui-btn ui-btn-primary">${i18t('ct_propose_changes')}</button>
         </div>
       </div>
@@ -15398,7 +15398,7 @@ async function signCheckEscalate(c,i,after){
       <label style="display:block"><span style="${lbl}">${esc(i18t('sc_esc_note'))}</span>
         <textarea id="sc-esc-note" rows="3" style="${fld}resize:vertical" placeholder="${esc(i18t('sc_esc_note_ph'))}"></textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-        <button id="sc-esc-cancel" class="ui-btn">${esc(i18t('act_cancel'))}</button>
+        <button data-dlg-cancel id="sc-esc-cancel" class="ui-btn">${esc(i18t('act_cancel'))}</button>
         <button id="sc-esc-go" class="ui-btn ui-btn-primary">${esc(i18t('sc_esc_go'))}</button>
       </div></div>`);
     document.getElementById('sc-esc-cancel').addEventListener('click',()=>{ closeModal(); resolve(false); });
@@ -16686,7 +16686,7 @@ function openPaperSignatureModal(c){
       <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_the_signed_copy')}</span>
         <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:var(--t-body)"/></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-        <button id="ps-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="ps-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="ps-go" class="ui-btn ui-btn-primary">${i18t('ct_file_as_executed')}</button>
       </div>
     </div>`);

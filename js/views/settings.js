@@ -87,7 +87,7 @@ function openFolderAccessEditor(userId){
       <input type="checkbox" id="fa-all" ${isAll?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"/> ${i18t('set_all_streams')}</label>
     <div id="fa-list" style="display:${isAll?'none':'grid'};grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto;margin-bottom:14px">${folders.map(fRow).join('')}</div>
     <div class="flex justify-end gap-2">
-      <button id="fa-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="fa-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="fa-save" class="ui-btn ui-btn-primary">${i18t('set_save_access')}</button></div>
   </div>`);
   const allBox=document.getElementById('fa-all'), list=document.getElementById('fa-list');
@@ -460,8 +460,8 @@ function stDrawerPaint(d){
   document.getElementById('st-dfoot').innerHTML =
     `<div id="st-drawer-refusal" class="st-refusal" hidden></div>
      <div class="st-dfoot-acts">${nextBtn}${d.foot==='save'
-      ? `<button class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>
-         <button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('st_save_close')}</button>`
+      ? `<button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('st_save_close')}</button>
+         <button data-dlg-cancel class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>`
       : `<button class="ui-btn ui-btn-primary" data-st-dclose>${i18t('st_done')}</button>`}</div>`;
   el.removeAttribute('hidden'); if(scrim) scrim.removeAttribute('hidden');
   /* The class flip is what animates; it has to land on a frame after the
@@ -478,6 +478,7 @@ function stDrawerPaint(d){
   if(_stTrap){ try{ _stTrap(); }catch(e){} _stTrap=null; }
   if(typeof window.trapFocus==='function') _stTrap=window.trapFocus(el);
   if(typeof d.wire==='function') d.wire();
+  if(typeof window.popupControlsDress==='function') popupControlsDress(el);   /* SAP pop-ups: HaTi's dropdowns and dates */
   if(d.foot==='save' && typeof d.save==='function')
     document.getElementById('st-dsave')?.addEventListener('click',()=>d.save());
   try{ el.focus&&el.focus(); }catch(_){}
@@ -2162,7 +2163,7 @@ async function stTwoStepToggle(){
     <input id="ts-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="${window.RV_FLD||ST_INPUT}"/>
     <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
     <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
-      <button id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
       <button id="ts-confirm" class="ui-btn ui-btn-primary">${i18t('ts_confirm')}</button>
     </div>
   </div>`,{ maxWidth: DLG_W.m });
@@ -5136,7 +5137,7 @@ function openPlaybookEditor(key){
     <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s-4)"></div>
 
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button id="pb-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="pb-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="pb-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
     </div>
   </div>`, {maxWidth:'34rem'});
@@ -5197,7 +5198,7 @@ function openClauseEditor(idx){
   openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?'Edit':'Add'} clause</h3>
     ${fld('category','Category')}${fld('name','Name')}${fld('preferred','Preferred wording',true)}${fld('fallback','Fallback wording',true)}${fld('guidance','Guidance',true)}
-    <div class="flex justify-end gap-2 mt-2"><button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+    <div class="flex justify-end gap-2 mt-2"><button data-dlg-cancel id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="ce-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button></div>
   </div>`);
   document.getElementById('ce-cancel').addEventListener('click',closeModal);
@@ -5267,7 +5268,7 @@ function openApprovalRuleEditor(idx){
         ${members.map(m=>`<option value="member:${esc(m.id)}" ${isAp(m)?'selected':''}>${esc(m.name)} (${roleName(m.role)})</option>`).join('')}
       </select>
       ${orphan?`<span style="display:block;margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
-    <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+    <div class="flex justify-end gap-2 mt-2"><button data-dlg-cancel id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="ar-save" class="ui-btn ui-btn-primary">${i18t('set_save_rule')}</button></div>
   </div>`);
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');

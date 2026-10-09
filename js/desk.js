@@ -1353,7 +1353,7 @@ function openDeskHandover(c, opts = {}){
       </label>
     </div>
     <div class="rvd-foot">
-      <button id="dk-hocancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="dk-hocancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
       <button id="dk-hook" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_ho_btn'))}</button>
     </div>`, { maxWidth: '29rem' });
   const picker = window.reviewWirePicker
@@ -1391,7 +1391,7 @@ function openDeskJoinAsk(c, opts = {}){
         placeholder="${_dkE(i18t('dk_join_why_ph'))}"></textarea>
     </div>
     <div class="rvd-foot">
-      <button id="dk-jcancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="dk-jcancel" class="ui-btn">${_dkE(i18t('act_cancel'))}</button>
       <button id="dk-jok" class="ui-btn ui-btn-primary">${_dkE(i18t('dk_join_btn'))}</button>
     </div>`, { maxWidth: '28rem' });
   document.getElementById('dk-jcancel')?.addEventListener('click', () => window.closeModal());
