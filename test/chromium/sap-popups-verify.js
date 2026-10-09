@@ -9,6 +9,14 @@
        calendar that writes the ISO day into the real box, 'change' fired
      3 a pop-up's closed dropdown wears HaTi's face, not the browser's
      4 a delete that worked says so calmly, never as a red error
+     5 a pop-up that would only say "no" does not open: Compare with one
+       version greys in the ⋯ menu with its reason
+     6 "Draft new agreement" drops its two doors as a menu under the button
+     7 the counterparty's response comes in on two tabs, the buttons last
+     8 a removed obligation comes back from its toast's Undo
+     9 an approval rule is read back as a sentence
+    10 Alerts that say the same thing are one group with a count
+    11 a question that ends something (Decline) is red, with a warning sign
 
    Every half is guarded: a missing feature REPORTS, never times out.
    Run: node test/chromium/sap-popups-verify.js */
@@ -126,6 +134,103 @@ const CONTRACTS = [
         : null;
       ok('4 "deleted" is a calm toast, not a red error', kind === 'ok', String(kind));
     } else ok('4 the delete question opened', false);
+
+    /* ---- 5. COMPARE, ONE VERSION: GREY WITH ITS REASON ---- */
+    console.log('\n5 · no pop-up to say no');
+    await page.evaluate(() => { const c = getContract('MK-P1'); state.activeId = c.id; setView('workspace'); });
+    await page.waitForTimeout(1000);
+    const cmp = await page.evaluate(() => { const b = document.getElementById('ws-compare');
+      return b ? { dis: b.disabled, why: b.title, note: (b.querySelector('.mnote') || {}).textContent || '' } : null; });
+    ok('5 Compare with one version is greyed, with its reason on the row', cmp && cmp.dis && /one/i.test(cmp.note) && /nothing to compare/.test(cmp.why), JSON.stringify(cmp));
+
+    /* ---- 6. THE TWO DOORS ARE A MENU ---- */
+    console.log('\n6 · the two doors');
+    await page.evaluate(() => setView('register'));
+    await page.waitForTimeout(900);
+    const newBtn = await page.evaluateHandle(() => [...document.querySelectorAll('button')].find(b => b.getClientRects().length && /Draft new agreement/.test(b.textContent)));
+    if (newBtn && await newBtn.evaluate(b => !!b)) {
+      await newBtn.click();
+      const m = await wait(page, () => !!document.querySelector('#nd-menu [data-nd-door="draft"]'));
+      const md = m ? await page.evaluate(() => ({ dlg: !!document.querySelector('#modal-root [role="dialog"]'),
+        n: document.querySelectorAll('#nd-menu [data-nd-door]').length })) : null;
+      ok('6 the doors drop as a menu, with no dialog behind them', md && !md.dlg && md.n === 2, JSON.stringify(md));
+      await page.keyboard.press('Escape');
+      ok('6b Escape folds the menu away', await wait(page, () => !document.getElementById('nd-menu')));
+    } else ok('6 the Draft new agreement button is on the page', false);
+
+    /* ---- 7. THEIR RESPONSE ON TWO TABS ---- */
+    console.log('\n7 · their response');
+    await page.evaluate(() => openImportModal(getContract('MK-P1')));
+    await wait(page, () => !!document.querySelector('[data-imp-tab]'));
+    const imp = await page.evaluate(() => {
+      const d = document.querySelector('#modal-root [role="dialog"]');
+      const btns = [...d.querySelectorAll('button')].filter(b => b.getClientRects().length);
+      const last = btns[btns.length - 1];
+      return { tabs: d.querySelectorAll('[data-imp-tab]').length, last: last && last.id,
+        wordHidden: d.querySelector('[data-imp-pane="word"]').hidden };
+    });
+    ok('7a two tabs, the Word pane folded', imp.tabs === 2 && imp.wordHidden, JSON.stringify(imp));
+    ok('7b Cancel is the last thing in the dialog', imp.last === 'imp-cancel', imp.last);
+    await page.click('[data-imp-tab="word"]');
+    const imp2 = await page.evaluate(() => ({ word: !document.querySelector('[data-imp-pane="word"]').hidden, go: document.getElementById('imp-go').hidden }));
+    ok('7c the Word tab shows the file box and stands Import down', imp2.word && imp2.go, JSON.stringify(imp2));
+    await page.evaluate(() => closeModal());
+
+    /* ---- 8. UNDO, NOT A QUESTION ---- */
+    console.log('\n8 · undo');
+    const u = await page.evaluate(async () => {
+      const c = getContract('MK-P1');
+      c.obligations = [{ id: 'ob-u1', desc: 'Deliver the monthly report', due: '2030-01-01', party: 'ours', status: 'open' }];
+      const p = obligationRemove(c, 0);
+      await new Promise(r => setTimeout(r, 250));
+      const asked = !!document.getElementById('cf-ok');
+      await p;
+      const gone = c.obligations.length === 0;
+      const t = [...document.querySelectorAll('#toast-root [data-toast-act]')].pop();
+      if (t) t.click();
+      await new Promise(r => setTimeout(r, 100));
+      const back = getContract('MK-P1').obligations.map(o => o.id);
+      return { asked, gone, undo: !!t, back };
+    });
+    ok('8 removed at once, no question, and Undo puts it back', !u.asked && u.gone && u.undo && u.back.join() === 'ob-u1', JSON.stringify(u));
+
+    /* ---- 9. THE RULE READ BACK ---- */
+    console.log('\n9 · the rule read back');
+    await page.evaluate(() => { setView('team'); });
+    await page.waitForTimeout(800);
+    await page.evaluate(() => openApprovalRuleEditor(-1));
+    const says = await wait(page, () => /Reads as:/.test((document.getElementById('ar-says') || {}).textContent || ''))
+      ? await page.evaluate(() => document.getElementById('ar-says').textContent) : null;
+    ok('9a the rule reads back as a sentence', says && /approves at step 1 when/.test(says), says);
+    if (says) {
+      await page.fill('#ar-order', '3');
+      const s2 = await page.evaluate(() => document.getElementById('ar-says').textContent);
+      ok('9b and follows every change', /step 3/.test(s2), s2);
+    }
+    await page.evaluate(() => closeModal());
+
+    /* ---- 10. ALERTS: ONE GROUP, ONE COUNT ---- */
+    console.log('\n10 · alerts');
+    const al = await page.evaluate(() => {
+      const rows = Array.from({ length: 5 }, (_, i) => ({ kind: 'approval', tone: 'amber', text: 'Waiting for your approval', name: 'Contract ' + i, id: 'MK-X' + i, go: () => {} }));
+      {
+        const d = document.createElement('div'); d.innerHTML = alertsPanelHtml(rows);
+        return { groups: d.querySelectorAll('[data-al-grp]').length, count: (d.querySelector('.al-n') || {}).textContent,
+          shown: [...d.querySelectorAll('[data-al-grp] > .al-row')].length, folded: d.querySelectorAll('[data-al-folded] .al-row').length,
+          more: !!d.querySelector('[data-al-more]'), rows: d.querySelectorAll('[data-alert-i]').length };
+      }
+    });
+    ok('10 five alike are one group: count 5, three shown, two behind "Show 2 more", every row still pressable',
+      al.groups === 1 && al.count === '5' && al.shown === 3 && al.folded === 2 && al.more && al.rows === 5, JSON.stringify(al));
+
+    /* ---- 11. A QUESTION THAT ENDS SOMETHING ---- */
+    console.log('\n11 · decline');
+    await page.evaluate(() => { regDeclineAsk(getContract('MK-P1')); });
+    await wait(page, () => !!document.getElementById('pd-ok'));
+    const dc = await page.evaluate(() => { const b = document.getElementById('pd-ok');
+      return { bg: getComputedStyle(b).backgroundColor, sign: !!document.querySelector('#prompt-overlay [role="dialog"] svg') }; });
+    ok('11 Decline is a red act with a warning sign', /^rgb\((1[6-9]\d|2\d\d), /.test(dc.bg) && dc.sign, JSON.stringify(dc));
+    await page.click('#pd-cancel').catch(() => {});
   } catch (e) {
     fail++; console.log('  FAIL harness — ' + e.message);
   }

@@ -734,7 +734,7 @@ async function intakeSetStatus(id,status,opts={}){
       && !(typeof emailFailing==='function' && emailFailing());
     const said=await promptDialog({ title:i18t('ik_decline_title'),
       message:i18t('ik_decline_msg')+(mails?' '+i18t('ik_decline_emails'):''),
-      confirmLabel:i18t('ik_act_decline'), cancelLabel:i18t('act_cancel') });
+      confirmLabel:i18t('ik_act_decline'), cancelLabel:i18t('act_cancel'), danger:true });
     if(said==null) return;
     note=String(said||'').trim();
   } else if(status==='withdrawn'){

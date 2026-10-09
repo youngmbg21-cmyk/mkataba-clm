@@ -739,6 +739,50 @@ function openNewDoors(){
   if(typeof canEdit==='function' && !canEdit()){ toast(i18t('wz_viewers_no_create'),'err'); return; }
   const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
   const ic=(n)=>(typeof icon==='function')?icon(n,'w-4 h-4'):'';
+  const go=k=>{
+    if(k==='draft') openNewAgreement({ door:true });
+    else if(k==='upload'){ if(typeof openUploadModal==='function') openUploadModal(); }
+  };
+  /* ---- TWO DOORS ARE A MENU, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct
+     2026) ----
+     SAP's menu button: a choice of doors drops down under the button that
+     was pressed, so the reader's eye stays where it was and nothing dims the
+     page. The doors, their words and what each one opens are unchanged.
+     The button pressed is the anchor; with none on screen (a call from code,
+     the phone) the doors fall back to the dialog they always were. */
+  const anchor=document.activeElement;
+  const ar=anchor && anchor!==document.body && anchor.tagName==='BUTTON' && anchor.getClientRects().length
+    ? anchor.getBoundingClientRect() : null;
+  if(ar && !(typeof selectMenuStandsDown==='function' && selectMenuStandsDown())){
+    document.getElementById('nd-menu')?.remove();
+    const m=document.createElement('div');
+    m.id='nd-menu'; m.className='nd-menu'; m.setAttribute('role','menu'); m.setAttribute('aria-label',i18t('na_doors_title'));
+    m.setAttribute('data-top-overlay','1');
+    const item=(k,ico,t,d)=>`<button type="button" role="menuitem" class="nd-item" data-nd-door="${k}">
+        <span class="nd-ic">${ic(ico)}</span><span class="nd-tx"><span class="nd-t">${esc(t)}</span><span class="nd-d">${esc(d)}</span></span></button>`;
+    m.innerHTML=item('draft','file',i18t('na_door_draft'),i18t('na_door_draft_sub'))+item('upload','upload',i18t('na_door_upload'),i18t('na_door_upload_sub'));
+    document.body.appendChild(m);
+    const w=m.offsetWidth;
+    m.style.top=Math.round(ar.bottom+4)+'px';
+    m.style.left=Math.round(Math.max(8,Math.min(ar.right-w,window.innerWidth-w-8)))+'px';
+    anchor.setAttribute('aria-expanded','true');
+    const items=[...m.querySelectorAll('[data-nd-door]')];
+    const close=back=>{ m.remove(); anchor.setAttribute('aria-expanded','false');
+      document.removeEventListener('pointerdown',away,true); document.removeEventListener('keydown',key,true);
+      if(back && anchor.isConnected) anchor.focus(); };
+    const away=ev=>{ if(!m.contains(ev.target) && ev.target!==anchor && !anchor.contains(ev.target)) close(false); };
+    const key=ev=>{
+      if(ev.key==='Escape'){ ev.preventDefault(); ev.stopImmediatePropagation(); close(true); return; }
+      if(ev.key==='ArrowDown'||ev.key==='ArrowUp'){ ev.preventDefault();
+        const i=items.indexOf(document.activeElement); items[(i+(ev.key==='ArrowDown'?1:items.length-1))%items.length].focus(); }
+      if(ev.key==='Tab'){ close(false); }
+    };
+    items.forEach(b=>b.addEventListener('click',()=>{ const k=b.getAttribute('data-nd-door'); close(false); go(k); }));
+    document.addEventListener('pointerdown',away,true);
+    document.addEventListener('keydown',key,true);
+    items[0].focus();
+    return;
+  }
   const door=(k,ico,t,d)=>`<button type="button" class="tn-tile" data-nd-door="${k}"
       style="display:flex;flex-direction:column;gap:10px;width:100%;text-align:left;padding:16px;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:var(--color-text);cursor:pointer">
       <span style="width:32px;height:32px;border-radius:var(--radius);display:grid;place-items:center;background:var(--st-steel-bg);color:var(--st-steel-fg)">${ic(ico)}</span>

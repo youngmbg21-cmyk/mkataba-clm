@@ -155,8 +155,14 @@ describe('f390 (1) — the Obligations page: seven windows, one population, one 
       'seven days before, the day, the day after — runOurPromises\' own milestones');
     assert.ok(!/\[4, admins\]/.test(src), 'the day-four admin mail is gone from our side');
   });
-  test('1h Remove asks first, and a person\'s trail is read RAW, never initialised', () => {
-    assert.match(fnOf(OB, 'obligationRemove'), /confirmDialog[\s\S]*splice/, 'the question comes before the cut');
+  test('1h Remove is undone from its toast, and a person\'s trail is read RAW, never initialised', () => {
+    /* REVERSED 10 Oct 2026 (SAP pop-ups, owner's go): SAP asks before what
+       cannot be undone; a removed obligation can be, so it goes at once and
+       the toast's Undo puts it back where it stood, with both trail lines. */
+    const rm = fnOf(OB, 'obligationRemove');
+    assert.ok(!/confirmDialog/.test(rm), 'no question before a cut that can be undone');
+    assert.match(rm, /splice\(at, 1\)[\s\S]*act_undo[\s\S]*splice\(Math\.min\(at, live\.obligations\.length\), 0, o\)/, 'Undo puts the same row back in its place');
+    assert.match(rm, /Restored: /, 'the trail keeps the putting back');
     /* RE-POINTED IN PLACE (26 Sep 2026, the overnight clean-up): the guard
        pinned here answered "is it an array" — and migrateContract gives every
        row an empty `audit` to stand on, so a LIGHT row read as a trail with

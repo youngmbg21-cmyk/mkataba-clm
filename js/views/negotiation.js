@@ -10234,8 +10234,16 @@ function renderRedline(){
         ${(typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
           const st = reviewState(c);
           const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
+          /* NOBODY TO ASK, NO POP-UP (SAP pop-ups, owner's go 10 Oct 2026):
+             with no colleague in the workspace the door used to open a dialog
+             whose whole message was "there is nobody to ask". The door greys
+             with that reason instead; a hand-back ('yours') is never greyed. */
+          const me = (typeof currentUser === 'function' && currentUser()) || {};
+          const nobody = st.phase !== 'yours' && typeof getUsers === 'function'
+            && !(getUsers() || []).some(u => u && u.id !== me.id);
+          const nobodyAttrs = nobody ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('rv_no_colleagues'))}"` : '';
           return `<button type="button" data-rl-review class="rl-pb-btn"
-            data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(label)}</span></button>`;
+            data-rv-phase="${_nea(st.phase)}"${deadAttrs || nobodyAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(label)}</span></button>`;
         })() : ''}
   `;
   const mayMenu = !_rvPosture && (typeof canEdit !== 'function' || canEdit());

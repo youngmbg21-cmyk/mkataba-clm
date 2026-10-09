@@ -5268,15 +5268,30 @@ function openApprovalRuleEditor(idx){
         ${members.map(m=>`<option value="member:${esc(m.id)}" ${isAp(m)?'selected':''}>${esc(m.name)} (${roleName(m.role)})</option>`).join('')}
       </select>
       ${orphan?`<span style="display:block;margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
+    ${''/* THE RULE READ BACK AS A SENTENCE (SAP pop-ups, owner's yes 10 Oct
+           2026): four boxes are hard to check; one line saying what they add
+           up to is not. Painted on every change by arSays below. */}
+    <div id="ar-says" role="status" style="margin:2px 0 var(--s-3);padding:8px 11px;border-radius:var(--radius);background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-body);line-height:1.45"></div>
     <div class="flex justify-end gap-2 mt-2"><button data-dlg-cancel id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="ar-save" class="ui-btn ui-btn-primary">${i18t('set_save_rule')}</button></div>
+      <button id="ar-save" class="ui-btn ui-btn-primary">${i18t(idx>=0?'set_save_rule':'ar_add_go')}</button></div>
   </div>`);
+  const arSays=()=>{
+    const host=document.getElementById('ar-says'); if(!host) return;
+    const t=document.getElementById('ar-cond').value, cv=document.getElementById('ar-cv');
+    const cond={ type:t, op:'>=', value: t==='value' ? Number((cv&&cv.value)||0) : (cv&&cv.value) };
+    const apSel=document.getElementById('ar-approver');
+    const who=(apSel && apSel.selectedOptions[0]) ? apSel.selectedOptions[0].textContent.trim() : '';
+    host.textContent=i18t('ar_reads',{ who, n:Math.max(1,Number(document.getElementById('ar-order').value||1)), cond:condLabel(cond) });
+  };
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
     if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_threshold',{cur:jxCurrency()})}</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>`;
     else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_value_stream')}</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select></label>`;
     else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_type_contains')}</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>`;
     else h.innerHTML=`<p class="text-[11px] text-ink/55">${i18t('set_no_extra_value')}</p>`; };
-  document.getElementById('ar-cond').addEventListener('change',renderCondVal); renderCondVal();
+  document.getElementById('ar-cond').addEventListener('change',()=>{ renderCondVal(); arSays(); }); renderCondVal();
+  document.querySelector('#modal-root [role="dialog"]').addEventListener('input',arSays);
+  document.querySelector('#modal-root [role="dialog"]').addEventListener('change',arSays);
+  arSays();
   document.getElementById('ar-cancel').addEventListener('click',closeModal);
   document.getElementById('ar-save').addEventListener('click',()=>{
     const t=document.getElementById('ar-cond').value; const cv=document.getElementById('ar-cv');

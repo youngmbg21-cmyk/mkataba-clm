@@ -1546,8 +1546,11 @@ function openUploadModal(){
   openModal(`
     <div class="p-6">
       <div id="up-step-1">
-        <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
-          <h2 class="font-display font-700 text-brand-900">${i18t('ct_add_received')}</h2></div>
+        ${''/* ONE TITLE, AT EVERY DIALOG'S SIZE (SAP pop-ups, 10 Oct 2026): this
+               head was a smaller display face with an upload sign beside it,
+               the only dialog dressed that way; the drop area below already
+               says what the dialog is for. */}
+        <h2 class="font-serif font-600 text-lg text-ink mb-3">${i18t('ct_add_received')}</h2>
         <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:2px dashed var(--color-accent);border-radius:var(--radius);background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
           <div style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)">${i18t('ct_drop_here')}</div>
           <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint',{max:uploadMaxLabel()})}</div>
@@ -7113,7 +7116,7 @@ function openPartyEditor(c, id){
         esc(i18t('py_remove'))}</button>`:''}
       <span style="flex:1"></span>
       <button data-dlg-cancel type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
-      <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t('act_save'))}</button>
+      <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t(adding?'py_add_go':'act_save'))}</button>
     </div>`, { maxWidth: DLG_W.m });
 
   const say=m=>{ const el=document.getElementById('py-say'); if(!el) return;
@@ -10537,7 +10540,9 @@ function roomHeadHtml(c,opts={}){
                  FIRST thing inside the box, under its own instruction line, so
                  nobody holding a code can miss it. */}
           ${may?`<button type="button" id="ws-import" title="${i18t('ct_read_word_back')}">${icon('download','w-3.5 h-3.5')}${i18t('ct_import_word_file')}</button>`:''}
-          <button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>
+          ${(window.compareHasTwo && !compareHasTwo(c))
+            ? `<button type="button" id="ws-compare" disabled aria-disabled="true" title="${i18t('ve_only_one_title')}">${icon('columns','w-3.5 h-3.5')}Compare versions<span class="mnote">${i18t('ve_one_so_far')}</span></button>`
+            : `<button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>`}
           ${''/* "Save as template" LEFT THIS MENU (Young's go on "One Door to
                  Standards", 24 Sep 2026): the same start lives behind the
                  Templates page's one button — "From one of our contracts" —

@@ -1124,9 +1124,12 @@ async function deleteContract(id){
   /* A SIGNATURE IS EVIDENCE (B4): the server refuses it too. */
   if(!contractDeletable(c)){ toast(i18t('co_signed_no_delete'),'err'); return false; }
   const label=(c.name||c.id).split(' —')[0];
-  if(!await confirmDialog({ title:`Delete “${c.name}”?`,
-      message:`This permanently removes ${(window.contractRef?contractRef(c):c.id)} and its history from the workspace. This cannot be undone.`,
-      confirmLabel:'Delete permanently', danger:true })) return false;
+  /* SAP's message box (10 Oct 2026): a short question for a title, the name
+     inside the sentence (a long name no longer squeezes the title), and one
+     verb on the button — the sentence already says it is for good. */
+  if(!await confirmDialog({ title:i18t('co_del_q'),
+      message:i18t('co_del_msg',{ name:c.name||c.id, ref:(window.contractRef?contractRef(c):c.id) }),
+      confirmLabel:i18t('co_del_go'), danger:true })) return false;
   if(API_MODE()){ try{ await api('contracts/'+id,'DELETE'); }catch(e){ toast(i18t('co_delete_failed')+e.message,'err'); return false; } }
   const idx=state.contracts.findIndex(x=>x.id===id);
   if(idx>=0) state.contracts.splice(idx,1);
@@ -1141,7 +1144,7 @@ async function deleteContract(id){
   /* A DONE DELETE IS NEWS, NOT A FAILURE (SAP pop-ups, owner's go 10 Oct
      2026): it was a red error toast, so a delete that worked read as one that
      had not. The calm kind; red stays for the refusals above. */
-  toast(`${label} deleted`,'ok');
+  toast(i18t('co_deleted',{ name:label }),'ok');
   return true;
 }
 /* ---- THE ARCHIVE SHELF (WO-5, WORKORDER-gap-map.md) ----
@@ -3880,6 +3883,8 @@ function promptDialog(opts={}){
   const placeholder=opts.placeholder||'';
   const confirmLabel=opts.confirmLabel||i18t('act_ok');   /* see confirmDialog above */
   const cancelLabel=opts.cancelLabel||i18t('act_cancel');
+  const danger=!!opts.danger;
+  const inset=danger?'46px':'0';
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
     /* Replaced, the earlier question is answered "cancelled" — see
@@ -3892,13 +3897,18 @@ function promptDialog(opts={}){
     ov.style.cssText='position:fixed;inset:0;z-index:92;display:grid;place-items:center;padding:var(--s-4)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent)"></div>
-      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;${DLG_TOPBAR('var(--accent-fill)')}border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
+      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;${DLG_TOPBAR(danger?'var(--danger)':'var(--accent-fill)')}border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
+        ${''/* SAP: A PLAIN DIALOG CARRIES NO SIGN (10 Oct 2026). The pencil said
+               nothing a text box does not; a question that ENDS something
+               (opts.danger — decline, refuse) wears the warning sign and a red
+               act, as the "are you sure?" box does. Without a sign the text
+               starts at the dialog's own edge. */}
         <div style="display:flex;align-items:flex-start;gap:var(--s-3);margin-bottom:${message?'6px':'12px'}">
-          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon('pencil','w-4 h-4')}</span>
-          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
+          ${danger?`<span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--red-tint,rgba(176,69,60,.1));color:var(--danger)">${icon('alert','w-4 h-4')}</span>`:''}
+          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;${danger?'padding-top:5px':''}">${esc(title)}</h3>
         </div>
-        ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-3);padding-left:46px">${esc(message)}</p>`:''}
-        <div style="padding-left:46px">
+        ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-3);padding-left:${inset}">${esc(message)}</p>`:''}
+        <div style="padding-left:${inset}">
           ${label?`<label for="pd-input" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(label)}</label>`:''}
           ${opts.multiline
             ? /* A REASON IS NOT A ONE-LINE ANSWER. box-sizing so the padding
@@ -3912,7 +3922,7 @@ function promptDialog(opts={}){
             : `<input id="pd-input" type="text" value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
                  style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>`}
           <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
-            <button id="pd-ok" class="ui-btn ui-btn-primary">${esc(confirmLabel)}</button>
+            <button id="pd-ok" class="ui-btn${danger?'':' ui-btn-primary'}"${danger?' style="background:var(--danger);border-color:var(--danger);color:#fff"':''}>${esc(confirmLabel)}</button>
             <button id="pd-cancel" class="ui-btn" data-dlg-cancel>${esc(cancelLabel)}</button>
           </div>
         </div>
@@ -5121,7 +5131,14 @@ function readinessPanelHtml(c, o={}){
   return `<div id="share-readiness" style="margin:0 0 var(--s-3);border:1px solid ${tone.line};background:${tone.bg};border-radius:var(--radius);padding:10px var(--s-3);">
     <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:${tone.fg};margin-bottom:6px;">${icon('alert','w-3.5 h-3.5')} ${tone.head}</div>
     ${blocks.length?list(blocks,tone.fg):''}
-    ${notes.length?`<div style="${blocks.length?'margin-top:9px;padding-top:var(--s-2);border-top:1px solid '+tone.line+';':''}">
+    ${''/* SAYS IT ONCE (SAP pop-ups, owner's go 10 Oct 2026): on the Send
+           screen (o.fold) the strip says the BLOCKER; the notes beside it wait
+           behind one counted line, opened on a press, instead of a second list
+           read in the same red box. Elsewhere the list reads as it did. */}
+    ${notes.length && blocks.length && o.fold?`<details id="share-readiness-more" style="margin-top:9px;padding-top:var(--s-2);border-top:1px solid ${tone.line}">
+      <summary style="cursor:pointer;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700)">${i18tn('co_worth_checking_n', notes.length, { n:notes.length })}</summary>
+      <div style="margin-top:var(--s-1)">${list(notes,'var(--color-neutral-700)')}</div></details>`
+    : notes.length?`<div style="${blocks.length?'margin-top:9px;padding-top:var(--s-2);border-top:1px solid '+tone.line+';':''}">
       ${blocks.length?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:var(--s-1)">${i18t('co_also_worth_knowing')}</div>`:''}
       ${list(notes,blocks.length?'var(--color-neutral-700)':tone.fg)}
     </div>`:''}
@@ -8239,27 +8256,43 @@ async function refreshWaitingQuestions(){
 }
 
 function openImportModal(c){
+  /* ---- TWO WAYS IN, TWO TABS, THE BUTTONS LAST (SAP pop-ups, owner's go
+     10 Oct 2026) ----
+     The pasted code and the marked-up Word file were one above the other with
+     the dialog's buttons BETWEEN them, so "Or upload the marked-up Word file"
+     sat below Cancel and Import. They are two tabs now (SAP's segmented
+     button), the foot is the last thing in the dialog, and Import shows on
+     the code's tab only — a Word file is read the moment it is chosen. */
+  const tabBtn=(k,t,on)=>`<button type="button" data-imp-tab="${k}" role="tab" aria-selected="${on}" class="imp-tab${on?' on':''}">${t}</button>`;
   openModal(`
     <div style="padding:22px var(--s-6);">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="display:inline-flex;color:var(--color-accent);">${icon('upload')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0;">${i18t('co_import_cp_response')}</h2></div>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">${i18t('co_paste_response_code')}</p>
-      <textarea id="imp-code" rows="5" placeholder="${i18t('co_paste_response')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:11px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
-      <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
-        <button data-dlg-cancel id="imp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
+      <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 var(--s-3);">${i18t('co_import_cp_response')}</h2>
+      <div class="imp-tabs" role="tablist">${tabBtn('code',i18t('imp_tab_code'),true)}${tabBtn('word',i18t('imp_tab_word'),false)}</div>
+      <div data-imp-pane="code">
+        <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:var(--s-3) 0 var(--s-2);line-height:1.55;">${i18t('co_paste_response_code')}</p>
+        <textarea id="imp-code" rows="5" placeholder="${i18t('co_paste_response')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:11px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
       </div>
-      <div style="margin-top:var(--s-4);padding-top:14px;border-top:1px solid var(--color-divider);">
+      <div data-imp-pane="word" hidden>
         ${''/* HALF A SENTENCE IN EACH LANGUAGE, until 13 Aug 2026: the opening
                was translated and everything after it was hardcoded English, so
                a Swedish reader read "Eller ladda upp den markerade Word-filen
                they sent back. Their tracked changes are…". The tail is
                co_upload_word_tail now and reads on from the bold opening. */}
-        <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55;"><b>${i18t('co_or_upload_word')}</b> ${i18t('co_upload_word_tail')}</p>
+        <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:var(--s-3) 0 var(--s-2);line-height:1.55;"><b>${i18t('co_or_upload_word')}</b> ${i18t('co_upload_word_tail')}</p>
         <input id="imp-docx" type="file" accept=".docx" style="width:100%;font-size:var(--t-meta);color:var(--color-text);"/>
         <div id="imp-docx-note" style="margin-top:7px;font-size:var(--t-label);color:var(--color-neutral-600);"></div>
       </div>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
+        <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
+        <button data-dlg-cancel id="imp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      </div>
     </div>`);
+  document.querySelectorAll('[data-imp-tab]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-imp-tab');
+    document.querySelectorAll('[data-imp-tab]').forEach(x=>{ const on=x===b; x.classList.toggle('on',on); x.setAttribute('aria-selected',String(on)); });
+    document.querySelectorAll('[data-imp-pane]').forEach(p=>{ p.hidden=p.getAttribute('data-imp-pane')!==k; });
+    const go=document.getElementById('imp-go'); if(go) go.hidden=k!=='code';
+  }));
   document.getElementById('imp-cancel').addEventListener('click',closeModal);
   document.getElementById('imp-go').addEventListener('click',async()=>{
     const ok=await applyResponse(c, b64d(fval('imp-code')));
