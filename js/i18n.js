@@ -1921,6 +1921,7 @@ const STRINGS = {
     ppl_remove: 'Remove',
     ppl_side_ours: 'On our side',
     ppl_side_theirs: 'On their side',
+    ppl_dir_done: 'Done',
     /* ---- WHO THE AGREEMENT IS BETWEEN (22 Sep 2026) ----
        PARTIES are legal entities on the paper; PEOPLE (ppl_*) are the humans.
        Two different builds, two namespaces, and the words have to keep them
@@ -15674,6 +15675,7 @@ const STRINGS = {
     ppl_remove: 'Ta bort',
     ppl_side_ours: 'På vår sida',
     ppl_side_theirs: 'På deras sida',
+    ppl_dir_done: 'Klar',
     py_parties: 'Parter',
     py_add: '+ Lägg till part',
     py_ours: 'Vår',

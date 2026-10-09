@@ -640,7 +640,10 @@ function participantRowHtml(carrier, p, opts){
   const ed = o.editable !== false;
   const reach = o.reach === false ? { ok: true } : participantReach(carrier, p);
   const say = reach.ok ? '' : i18t(reach.why === 'nostream' ? 'ppl_no_stream' : 'ppl_no_member');
-  const cell = (inner) => `<div class="pt-c">${inner}</div>`;
+  /* IN THE DIRECTORY'S FORM (o.labels) each box carries its own label,
+     because the form has no column heads above it. */
+  const cell = (inner, lab) => (o.labels && lab)
+    ? `<label class="pt-c"><span class="pt-lab">${_ptEsc(lab)}</span>${inner}</label>` : `<div class="pt-c">${inner}</div>`;
   /* A PERSON ONLY A MIRROR STILL NAMES (a record on file, a route saved
      before the book) is drawn like any other row and becomes a stored one the
      moment somebody types in it — see participantsWire. */
@@ -649,13 +652,13 @@ function participantRowHtml(carrier, p, opts){
   const mayRemove = ed && !(o.derived && !p.main);
   return `<div class="pt-row${reach.ok ? '' : ' is-blocked'}" data-pt-row="${_ptEsc(p.id)}"${d}>
     ${cell(ed ? `<input data-pt-f="name" type="text" value="${_ptEsc(p.name)}" placeholder="${
-      _ptEsc(i18t('ppl_name'))}" style="${PT_IN}"/>` : `<b>${_ptEsc(p.name)}</b>`)}
+      _ptEsc(i18t('ppl_name'))}" style="${PT_IN}"/>` : `<b>${_ptEsc(p.name)}</b>`, i18t('ppl_name'))}
     ${cell(ed ? `<input data-pt-f="email" type="email" value="${_ptEsc(p.email)}" placeholder="${
-      _ptEsc(i18t('ppl_email'))}" style="${PT_IN}"/>` : _ptEsc(p.email))}
+      _ptEsc(i18t('ppl_email'))}" style="${PT_IN}"/>` : _ptEsc(p.email), i18t('ppl_email'))}
     ${cell(ed ? `<select data-pt-f="role" style="${PT_IN}">${participantRoleOptions(p.role)}</select>`
-      : _ptEsc(participantRoleLabel(p.role)))}
+      : _ptEsc(participantRoleLabel(p.role)), i18t('ppl_role'))}
     ${cell(ed ? `<select data-pt-f="access" style="${PT_IN}">${participantAccessOptions(p.access)}</select>`
-      : _ptEsc(participantAccessLabel(p.access)))}
+      : _ptEsc(participantAccessLabel(p.access)), i18t('ppl_access'))}
     ${o.reached ? `<div class="pt-c pt-reached">${_ptEsc(participantReachedWord(carrier, p))}</div>` : ''}
     <div class="pt-c pt-x">${mayRemove ? `<button type="button" data-pt-remove="${_ptEsc(p.id)}"
       title="${_ptEsc(i18t('ppl_remove'))}" aria-label="${_ptEsc(i18t('ppl_remove'))}">&#215;</button>` : ''}</div>
@@ -692,6 +695,66 @@ function participantsPanelHtml(carrier, opts){
       (typeof window!=='undefined'&&window.plusLed) ? window.plusLed(_ptEsc(i18t('ppl_add'))) : _ptEsc(i18t('ppl_add'))}</button></div>` : ''}
   </div>`;
 }
+/* ---- THE DIRECTORY (Young picked it, 9 Oct 2026: "for parties lets go
+   with Directory") ----
+   The Overview's Edit draws the SAME people as participantsPanelHtml, as a
+   quiet list grouped by side: one line per person (who, then role · access),
+   and pressing a line opens THAT person's own row — participantRowHtml, the
+   one builder, with labels — in a form under the list. Every write still goes
+   through participantsWire on the host, so nothing here is a second writer.
+   `o.sideHead(side, partyId)` lets the caller put each party's own row above
+   its people; `o.sel` is the key of the person whose form is open. */
+function participantsDirItems(carrier, o){
+  const items = [];
+  const reach = p => (o.reached ? participantReachedWord(carrier, p) : '');
+  participantsOf(carrier).forEach(p => {
+    const side = participantSideOf(p.role);
+    items.push({ key: 'p:' + p.id, side, partyId: side === 'theirs' ? contactPartyOf(carrier, p) : '',
+      name: _ptStr(p.name), email: _ptStr(p.email),
+      words: [participantRoleLabel(p.role), participantAccessLabel(p.access)].filter(Boolean).join(' · '),
+      tag: reach(p), form: () => participantRowHtml(carrier, p, Object.assign({}, o, { labels: true })) });
+  });
+  if (o.book) contactsOf(carrier).filter(r => r.derived).forEach(r => {
+    items.push({ key: 'd:' + _ptFold(r.email) + ':' + _ptStr(r.role), side: 'theirs', partyId: contactPartyOf(carrier, r),
+      name: _ptStr(r.name), email: _ptStr(r.email),
+      words: [participantRoleLabel(r.role), participantAccessLabel(r.access)].filter(Boolean).join(' · '),
+      tag: reach(r), form: () => participantRowHtml(carrier, r, Object.assign({}, o, { derived: true, labels: true })) });
+  });
+  if (o.auto) participantsAuto(carrier).forEach(a => {
+    items.push({ key: 'a:' + a.key, side: 'ours', partyId: '', name: a.name, email: a.email,
+      words: a.roles.map(r => participantRoleLabel(r)).join(' · '), auto: true,
+      form: () => participantAutoRowHtml(carrier, a, o) });
+  });
+  return items;
+}
+function participantsDirHtml(carrier, opts){
+  const o = opts || {};
+  const ed = o.editable !== false;
+  const items = participantsDirItems(carrier, o);
+  const ini = n => (_ptCall('deskInitials', n) || _ptStr(n).slice(0, 2).toUpperCase() || '·');
+  const row = it => `<button type="button" class="pt-dir-row${it.key === o.sel ? ' is-sel' : ''}" data-pt-pick="${_ptEsc(it.key)}" aria-expanded="${it.key === o.sel}">
+      <span class="pt-dir-av${it.side === 'theirs' ? ' is-them' : ''}">${_ptEsc(ini(it.name || it.email))}</span>
+      <span class="pt-dir-t"><span class="pt-dir-n">${_ptEsc(it.name || it.email || i18t('ppl_name'))}${
+        it.auto ? ` <span class="pt-auto" title="${_ptEsc(i18t('ppl_auto_title'))}">${_ptEsc(i18t('ppl_auto'))}</span>` : ''}</span>
+        <span class="pt-dir-w">${_ptEsc(it.words)}</span></span>${
+      it.tag ? `<span class="pt-dir-tag">${_ptEsc(it.tag)}</span>` : ''}<span class="pt-dir-chev" aria-hidden="true">›</span></button>`;
+  const group = (side, heads) => {
+    const mine = items.filter(it => it.side === side);
+    const parts = heads.map(h => {
+      const ppl = side === 'theirs' ? mine.filter(it => (it.partyId || '') === (h.id || '') || (!it.partyId && h.first)) : mine;
+      return (h.html || '') + ppl.map(row).join('');
+    }).join('');
+    const loose = side === 'theirs' ? mine.filter(it => !heads.some(h => (it.partyId || '') === (h.id || '') || (!it.partyId && h.first))) : [];
+    const body = parts + loose.map(row).join('');
+    return body ? `<div class="pt-dir-side"><div class="pt-dir-cap">${_ptEsc(i18t(side === 'ours' ? 'ppl_side_ours' : 'ppl_side_theirs'))}</div><div class="pt-dir-list">${body}</div></div>` : '';
+  };
+  const heads = typeof o.sideHeads === 'function' ? o.sideHeads() : { ours: [{}], theirs: [{ first: true }] };
+  const open = items.find(it => it.key === o.sel);
+  return `<div class="pt-dir">${group('ours', heads.ours)}${group('theirs', heads.theirs)}${
+    open ? `<div class="pt-dir-form" data-pt-form="${_ptEsc(open.key)}"><div class="pt-list has-labels">${open.form()}</div>
+      <div class="pt-dir-done"><button type="button" class="ui-btn ui-btn-sm" data-pt-pick="">${_ptEsc(i18t('ppl_dir_done'))}</button></div></div>` : ''}${
+    ed ? `<div class="pt-acts"><button type="button" class="ui-btn ui-btn-sm" data-pt-add="1">${_ptEsc(i18t('ppl_add'))}</button></div>` : ''}</div>`;
+}
 /* ONE LISTENER PER MOUNT, bound once per element — the section grammar's own
    idiom, and needed for the same reason: both hosts repaint themselves. The
    caller passes the repaint, because only it knows what to redraw. */
@@ -705,9 +768,16 @@ function participantsWire(root, carrier, opts){
   host.addEventListener('click', ev => {
     const add = ev.target.closest && ev.target.closest('[data-pt-add]');
     if (add && host.contains(add)){
-      participantAdd(carrier, { name: '', email: '', role: o.role || 'read',
+      const made = participantAdd(carrier, { name: '', email: '', role: o.role || 'read',
         access: PARTY_ACCESS_DEFAULT });
+      /* the Directory opens the new person's form at once */
+      if (made && typeof o.onPick === 'function') o.onPick('p:' + made.id);
       changed(); again(); return;
+    }
+    const pick = ev.target.closest && ev.target.closest('[data-pt-pick]');
+    if (pick && host.contains(pick) && typeof o.onPick === 'function'){
+      const k = pick.getAttribute('data-pt-pick') || '';
+      o.onPick(pick.classList.contains('is-sel') ? '' : k); again(); return;
     }
     const off = ev.target.closest && ev.target.closest('[data-pt-auto-remove]');
     if (off && host.contains(off)){
@@ -814,7 +884,7 @@ function shareMoreChosen(){
 
 if (typeof window !== 'undefined') Object.assign(window, {
   shareMoreRowsHtml, shareMoreChosen,
-  participantsPanelHtml, participantRowHtml, participantsWire, participantsAuto, participantAutoOff,
+  participantsPanelHtml, participantsDirHtml, participantsDirItems, participantRowHtml, participantsWire, participantsAuto, participantAutoOff,
   participantAutoRowHtml, PT_AUTO_EDIT_ACTIONS, participantRoleOptions,
   participantAccessOptions, participantReachedWord, PT_IN,
   PARTY_SIDES, PARTY_ROLES, PARTY_ROLE_OF, PARTY_ACCESS, PARTY_ACCESS_OF, PARTY_ACCESS_DEFAULT,
