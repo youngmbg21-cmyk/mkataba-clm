@@ -4928,17 +4928,11 @@ function wireNegotiationTab(c, opts = {}){
        never a stale copy. */
     host._rlOpenEditor = openEditor;
     if (side !== 'counterparty' && !(opts && opts.preview)) _rlEditorDoor = { id: c.id, open: openEditor };
-    /* CLICK, TYPE, SAVE ON THE PAPER (change 5): one listener per host, reading
-       this wiring's contract and options at the press. */
-    host._rlInlineCtx = { c, opts, side, again };
-    if (!host._rlInlineBound){
-      host._rlInlineBound = true;
-      /* A DRAG IS NOT A CLICK: the press's own start point is kept, so a
-         highlight released elsewhere never opens the box (some browsers fire
-         click after a drag with the selection already folded). */
-      host.addEventListener('mousedown', ev => { host._rlInlineDown = [ev.clientX, ev.clientY]; }, true);
-      host.addEventListener('click', ev => rlInlineClick(ev, host));
-    }
+    /* CLICK, TYPE, SAVE ON THE PAPER IS RETIRED (Young, 9 Oct 2026: "you
+       should not have the ability to edit a paper unless you are in the edit
+       room"). The paper reads on both seats; our seat's door is Edit clause
+       (rlEditClauseBtnHtml), theirs is Edit at the top (#pt-edit). rlInlineClick
+       and the box it opened have no caller — STALE, flag any revival. */
 
     /* ---- THE COPILOT BUTTON ON A CLAUSE ----
        Everything the selection path works out from a drag, worked out from the
@@ -10408,6 +10402,12 @@ function renderRedline(){
                    state; the head's square is gone on both heads. */}
             <button type="button" class="ui-btn rl-focus-door" data-ws-focus aria-pressed="false"
               title="${_nea(i18t('ct_focus_mode'))}" aria-label="${_nea(i18t('ct_focus_mode'))}">${window.icon ? icon('scan','w-3.5 h-3.5') : ''}${_ne(i18t('ct_focus_word'))}</button>
+            ${''/* EDIT CLAUSE, RIGHT OF FOCUS (Young, 9 Oct 2026: "you should not
+                   have the ability to edit a paper unless you are in the edit
+                   room … there should be a button or door available to bring
+                   you there"). The paper reads; this opens the edit room on
+                   the clause being read. See rlEditClauseBtnHtml. */}
+            ${mayMenu && !(window.negoExecuted && negoExecuted(c)) ? rlEditClauseBtnHtml(c, { preview }, 'owner') : ''}
             ${''/* A PREVIEW OF WHAT THE OTHER SIDE WILL SEE is a question about
                    the round, and the round is not the reviewer's job. It also
                    mounts a whole second surface for somebody whose task is one
@@ -12026,6 +12026,10 @@ function rlWireClauseTools(c, host, opts){
     ev.preventDefault(); ev.stopPropagation();
     if (b.disabled) return;
     rlAddClause(c);
+  }));
+  host.querySelectorAll('[data-rl-edit-clause]').forEach(b => b.addEventListener('click', ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    rlEditClausePress(c, b);
   }));
   /* "Edit a clause", the empty column's other door, is wired in
      wireNegotiationTab beside the paper's pencil — NOT here. It has to reach
@@ -14615,6 +14619,45 @@ function rlAddClauseBtnHtml(c, opts = {}, side = 'owner', cls = ''){
     : !rlEditorTakesIt(side, opts) ? i18t('ce_too_narrow') : '';
   return `<button type="button"${cls ? ` class="${cls}"` : ''} data-rl-add-clause${why ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
       title="${_nea(why || i18t('ng_add_clause_title'))}">${icon('plus', 'w-3.5 h-3.5')}${i18t('ng_add_clause')}</button>`;
+}
+/* ---- "EDIT CLAUSE" — THE PAGE'S DOOR INTO THE EDIT ROOM (Young, 9 Oct 2026) ----
+   Replaces click · type · save on the paper: the Redline tab only READS, and
+   wording is changed in the clause editor. Right of Focus in the control row,
+   our seat only. It opens the clause being read (rlClauseInView — the first
+   whose foot is below the top of the paper's scroller), else the first; the
+   editor's own clause list reaches every other clause, one with no card too.
+   The destination is decided at the draw, as the empty column's "Edit a
+   clause" does: the editor, or the clause panel where the window is too narrow.
+   Greyed with the reason in our preview of their seat or once the wording is
+   frozen by a signature. */
+function rlEditClauseBtnHtml(c, opts = {}, side = 'owner'){
+  if (side === 'counterparty' || rlOnTheirPage()) return '';
+  const why = opts.preview ? i18t('ng_preview_dead')
+    : (window.negoWordingFrozen && negoWordingFrozen(c)) ? i18t('ce_wording_frozen') : '';
+  const to = rlEditorTakesIt(side, opts) ? 'editor' : 'panel';
+  return `<button type="button" class="ui-btn rl-edit-clause-door" data-rl-edit-clause="${to}"${why ? ' disabled aria-disabled="true" data-rl-dead="1"' : ''}
+      title="${_nea(why || i18t('ng_edit_clause_door_title'))}">${icon('pencil', 'w-3.5 h-3.5')}${_ne(i18t('ng_edit_clause'))}</button>`;
+}
+function rlClauseInView(scope){
+  const root = (scope && scope.querySelectorAll) ? scope : document;
+  const secs = [...root.querySelectorAll('.rl-paper [data-nego-working]')];
+  if (!secs.length) return '';
+  const sc = root.querySelector('#nego-scroll-work') || document.getElementById('nego-scroll-work');
+  const top = sc ? sc.getBoundingClientRect().top : 0;
+  const hit = secs.find(el => el.getBoundingClientRect().bottom > top + 24) || secs[0];
+  return String(hit.getAttribute('data-nego-working') || '');
+}
+function rlEditClausePress(c, btn){
+  if (!c || !btn || btn.disabled) return false;
+  const scope = btn.closest('.redline-page') || document;
+  const id = rlClauseInView(scope) || rlFirstClauseId(c);
+  if (!id){ if (window.toast) toast(i18t('ng_empty_none'), 'warn'); return false; }
+  if (btn.getAttribute('data-rl-edit-clause') === 'editor'){
+    if (!_rlEditorDoor || _rlEditorDoor.id !== c.id || typeof _rlEditorDoor.open !== 'function') return false;
+    return _rlEditorDoor.open(id);
+  }
+  if (window.rlCpSetShown) rlCpSetShown(scope, id);
+  return true;
 }
 /* THROUGH THE MOUNT'S OWN DOOR (openEditor) — the one place a press onto the
    editor is decided (f245) — the latest wiring of this contract's page. */
@@ -21326,7 +21369,7 @@ function redlineSyncProxies(host){
   });
 }
 
-if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause,
+if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, rlUnsentList, rlAddClauseBtnHtml, rlAddClause, rlEditClauseBtnHtml, rlClauseInView, rlEditClausePress,
   rlInlineClick, rlInlineSave, rlInlineDirty, rlInlineOn, rlInlineEnd,
   renderRedline, redlineRoundLabel, redlineSyncProxies,
   rlToggleDiscussion, rlSideMode, rlSetSideMode, rlLayoutResizer, rlWireResizer, rlWireClauseTools,

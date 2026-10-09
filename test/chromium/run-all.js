@@ -66,7 +66,7 @@ const KNOWN_RED = {
     'Paper and Counter review, change 5) — at an editor-taking width the clause carries no ' +
     'pencil and a click in the wording types in place. This file measures that pencil ' +
     '(sections 1, 2, 15–17) and opens the clause panel through it, so it stops at section 1. ' +
-    'The new door is measured by click-type-save-verify; the panel still lives under 1024px. ' +
+    'The new door is measured by edit-clause-door-verify (Edit clause, 9 Oct 2026); the panel still lives under 1024px. ' +
     'Take it off when its panel sections are re-staged at a narrow width.',
   'white-band-and-tabs-verify.js':
     '36 of 38 PASS. The two that do not are 5d/5e. WIDENED 24 Aug 2026 (WO-16): ' +

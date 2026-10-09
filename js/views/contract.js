@@ -4762,11 +4762,10 @@ const ROOM_TABS=[
      one-column Key terms tab: it was left alone on purpose, and this is a
      desktop RENDERER, so nothing here reaches it. */
   ['terms','tab_overview'],
-  /* ---- OVERVIEW 2, THE TIME MACHINE (work order O-36, 7 Oct 2026) ----
-     Owner-instructed, right after the Overview, which is untouched. Painted
-     on arrival by paintOverview2 (js/views/overview2.js); it writes nothing
-     and spends nothing. Desktop only: the phone keeps its own screens. */
-  ['ov2','tab_overview_2'],
+  /* OVERVIEW 2 (the Time Machine) WAS A TAB HERE, 7 to 9 Oct 2026 — the owner
+     asked for it to go (9 Oct: "delete the overview 2 tab … but keep
+     overview"). js/views/overview2.js stays loaded for its readings (dated
+     windows); paintOverview2 has no caller. */
   /* ---- WHERE WE ARE, SECOND (idea 15, built 4 Oct 2026) ----
      The shared page the other parties read, drawn here too — one reading on
      three surfaces, never three readings that happen to agree. It sits SECOND
@@ -5109,9 +5108,6 @@ function applyWsTabs(c){
   /* THE SHARED PAGE IS PAINTED ON ARRIVAL, never built with the room: what it
      says moves every time a change is filed or answered. */
   if(_wsTab==='stands') try{ paintStandsPane(c); }catch(_){}
-  /* OVERVIEW 2 is painted on arrival too, and its clock stops on the way out */
-  if(_wsTab==='ov2'){ if(window.paintOverview2) try{ paintOverview2(c); }catch(e){ console.error(e); } }
-  else if(window.ov2Stop) try{ ov2Stop(); }catch(_){}
   /* ---- THE DOCUMENT AND SIGNING TABS SHOW TWO COPIES OF ONE CONTRACT (Young
      ruled 25 Sep 2026) ---- one sheet pane, two builders: arriving on the
      other tab swaps the working copy for the signing copy, or back. A signed
@@ -11232,12 +11228,6 @@ function renderWorkspace(){
            markup: the reading moves whenever a change is filed or answered, so
            it is painted by applyWsTabs on arrival rather than built once per
            render (wire where you PAINT). */}
-    ${''/* OVERVIEW 2 — the Time Machine. A SLOT, painted by applyWsTabs on
-           arrival (paintOverview2), never built with the room. */}
-    <div data-ws-pane="ov2" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
-      <div id="ws-ov2-pane" style="align-self:start;width:100%;margin:0 auto"></div>
-    </div>
-
     <div data-ws-pane="stands" class="scroll-thin" style="display:none;flex:1;min-height:0;overflow-y:auto;flex-direction:column;padding:2px">
       <div id="ws-stands-pane" style="align-self:start;max-width:var(--room-measure);width:100%;margin:0 auto"></div>
     </div>

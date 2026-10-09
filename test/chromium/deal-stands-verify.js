@@ -114,9 +114,9 @@ const DEAL = {
     ok('1a2 and the Overview still leads the row, which is where a new draft lands',
       landing.first === 'terms', JSON.stringify(landing));
     /* RE-POINTED 7 Oct 2026: Overview 2 (owner-instructed, work order O-36)
-       sits right after the Overview, so Where we are follows both. */
-    ok('1b Where we are sits right after the two Overviews',
-      tabs.keys[0] === 'terms' && tabs.keys[1] === 'ov2' && tabs.keys[2] === 'stands', tabs.keys.join(','));
+       sat right after the Overview; it went on 9 Oct 2026 (owner-asked). */
+    ok('1b Where we are sits right after the Overview',
+      tabs.keys[0] === 'terms' && tabs.keys[1] === 'stands' && !tabs.keys.includes('ov2'), tabs.keys.join(','));
 
     /* ===== 2-5. THE SHEET ===== */
     await page.click('#ws-tabs [data-ws-tab="stands"]').catch(() => {});

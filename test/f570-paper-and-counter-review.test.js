@@ -2,7 +2,7 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    f570 — THE PAPER AND COUNTER REVIEW (Young said "go", 9 Oct 2026), and the
    functional review's Negotiate items, as far as node can see them. The
-   browser halves: counter-with-copilot-verify, click-type-save-verify.
+   browser halves: counter-with-copilot-verify, edit-clause-door-verify (was click-type-save-verify; click · type · save retired 9 Oct 2026).
 
    (1) Copilot's redo reaches the paper at once: the probe the negotiation page
        already asks carries `prepAt`, which moves when an answer is written to
