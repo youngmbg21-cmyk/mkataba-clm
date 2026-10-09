@@ -624,7 +624,7 @@ function igDependentsHtml(id){
   if(money && d.value>0) lines.push(`<div class="text-[11.5px] text-ink/70">${i18t('int_dep_value',{v:fmtMoneyShort(d.value)})}${miss.length?` <span class="text-ink/45">· ${i18t('int_dep_missing',{n:miss.map(k=>`${d.missing[k]} × ${k}`).join(', ')})}</span>`:''}</div>`);
   if(d.held) lines.push(`<div class="text-[11.5px]" style="color:var(--st-amber-fg)">${i18tn('int_dep_held',d.held)}</div>`);
   return `<div class="mt-2 pt-2" style="border-top:1px solid var(--color-divider)" data-ig-deps-block="${igEsc(id)}">
-    <div class="text-[10px] uppercase tracking-wider text-ink/45 mb-1">${i18t('int_if_ends')}</div>
+    <div class="text-[10px] text-ink/45 mb-1">${i18t('int_if_ends')}</div>
     ${lines.join('')}
     <button data-ig-deps="${igEsc(id)}" class="ui-link" style="margin-top:6px">${i18t('int_dep_see_list')}${icon('chevR','w-3.5 h-3.5')}</button>
   </div>`;
@@ -2429,7 +2429,7 @@ async function intelComplianceScan(q){
   }
   const sevPill=s=>{ const lbl=((typeof SEV_META==='object'&&SEV_META&&SEV_META[s]&&SEV_META[s].label)||s);
     const col=s==='high'?['var(--st-ruby-bg)','var(--st-ruby-fg)']:s==='med'?['var(--st-amber-bg)','var(--st-amber-fg)']:['var(--st-gray-bg)','var(--st-gray-fg)'];
-    return `<span style="display:inline-flex;align-items:center;font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.04em;text-transform:uppercase;padding:1px 7px;border-radius:var(--radius);background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
+    return `<span style="display:inline-flex;align-items:center;font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 7px;border-radius:var(--radius);background:${col[0]};color:${col[1]}">${igEsc(lbl)}</span>`; };
   const top=rows.slice(0,8);
   const totalFindings=rows.reduce((n,r)=>n+r.findings.length,0);
   let html=`<b>${i18t('int_compliance_review')}</b> ${rows.length} of ${cs.length} live contracts carry clauses worth a closer look — ${totalFindings} potential issue${totalFindings===1?'':'s'} in all (risks, missing protections or ambiguous terms), ranked by severity. This is a first-pass review to raise with counsel, not legal advice.`;
@@ -3981,7 +3981,7 @@ function renderIntel(){
              with it. */}
       <span style="flex:1"></span>
       ${intel.tab==='friction'?frictionControls:''}
-      ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">Group by
+      ${intel.tab==='map'?`<label style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);flex:none">Group by
         ${groupSel}
       </label>`:''}
     </header>`;
@@ -4790,7 +4790,7 @@ function intelFrictionCopilotHtml(st){
   const head=`<div style="display:flex;align-items:center;gap:var(--s-2)">
     <span style="width:22px;height:22px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon('sparkle','w-3 h-3',2)}</span>
     <span style="font-size:var(--t-body);font-weight:var(--w-title)">${i18t('int_copilots_read')}</span>
-    <span style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${i18t('int_optional_ai')}</span>
+    <span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:2px 7px;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${i18t('int_optional_ai')}</span>
   </div>`;
   let body;
   if(ai&&ai.busy&&ai.key===key){
@@ -5698,7 +5698,7 @@ const obCard=(title,hint,body,foot)=>`<section style="${OB_CARD}">
   ${foot?`<div style="margin-top:auto;padding-top:10px;font-size:var(--t-label);line-height:1.55;color:var(--color-neutral-600)">${foot}</div>`:''}</section>`;
 /* A flag on a card head says what KIND of thing the card is, in a word:
    a gap in the record, a commitment that has stopped, a field we do not keep. */
-const obFlag=(txt,bg,fg)=>`<span style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:var(--radius);background:${bg};color:${fg};margin-left:auto;flex:none">${txt}</span>`;
+const obFlag=(txt,bg,fg)=>`<span style="font-size:var(--t-figure);font-weight:var(--w-title);padding:2px 7px;border-radius:var(--radius);background:${bg};color:${fg};margin-left:auto;flex:none">${txt}</span>`;
 
 /* ---- COLOUR DOES ONE JOB PER CHART, AND NEVER ON ITS OWN ----
    OURS is the workspace's own accent — our team's workload — and THEIRS is
@@ -6274,7 +6274,7 @@ function intelPayTermsHtml(){
     ['pt_col_ref', ''], ['pt_col_party', ''], ['pt_col_stream', ''],
     ['pt_col_side', ''], ['pt_col_terms', 'text-align:right'],
     ['pt_col_gap', 'text-align:right'], ['pt_col_value', 'text-align:right'],
-  ].map(([k, x]) => `<span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-title);color:var(--color-neutral-600);${x}">${i18t(k)}</span>`).join('');
+  ].map(([k, x]) => `<span style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);${x}">${i18t(k)}</span>`).join('');
 
   /* THE NARROWING SAYS SO AND CARRIES THE WAY BACK ON THE SAME LINE — the
      standing rule for every control on this product that can hide a row. */
@@ -6292,7 +6292,7 @@ function intelPayTermsHtml(){
     ${cell(E(r.counterparty || r.name), 'font-size:var(--t-meta);color:var(--color-text)')}
     ${cell(E(streamOf(r)), 'font-size:var(--t-label);color:var(--color-neutral-600)')}
     ${cell(i18t(r.side === 'customer' ? 'pt_side_cust' : 'pt_side_supp'), `font-size:var(--t-label);color:${r.side === 'customer' ? OB_OURS : OB_THEIRS}`)}
-    <span style="${NUMCELL};color:var(--color-neutral-600)">${i18t('pt_drive_terms', { d:n(r.days), t:n(r.standard) })}${r.over ? ` <b style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--st-ruby-fg)">${i18t('pt_over_tag')}</b>` : ''}</span>
+    <span style="${NUMCELL};color:var(--color-neutral-600)">${i18t('pt_drive_terms', { d:n(r.days), t:n(r.standard) })}${r.over ? ` <b style="font-size:var(--t-micro);color:var(--st-ruby-fg)">${i18t('pt_over_tag')}</b>` : ''}</span>
     <span style="${NUMCELL};font-weight:var(--w-title);color:${r.gapDays > 0 ? 'var(--st-ruby-fg)' : 'var(--color-neutral-500)'}">${r.gapDays > 0 ? n(r.gapDays) + ' ' + i18t('pt_days') : '—'}</span>
     <span style="${NUMCELL};color:var(--color-neutral-600)">${money(r.value) || '—'}</span>
   </button>`;
@@ -6608,7 +6608,7 @@ function renderIntelDock(){
     </div>`}
     ${''/* SAVED VIEWS — the reader's own recipes, one press each (the view
            recipe, 28 Sep 2026). Drawn only when there is one. */}
-    ${(()=>{ const v=(window.pdShowsDesk&&pdShowsDesk())?[]:igViewsRead(); return v.length?`<div class="px-3.5 pb-1.5 shrink-0 flex flex-wrap items-center gap-1.5" data-ig-views><span class="text-[10.5px] uppercase tracking-wider text-ink/40">${i18t('int_saved_views')}</span>${v.slice(-4).reverse().map(x=>`<button type="button" data-ig-saved="${igEsc(x.name)}" title="${igEsc(x.name)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 px-2.5 py-1 text-brand-700 transition text-left" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.name)}</button>`).join('')}</div>`:''; })()}
+    ${(()=>{ const v=(window.pdShowsDesk&&pdShowsDesk())?[]:igViewsRead(); return v.length?`<div class="px-3.5 pb-1.5 shrink-0 flex flex-wrap items-center gap-1.5" data-ig-views><span class="text-[10.5px] text-ink/40">${i18t('int_saved_views')}</span>${v.slice(-4).reverse().map(x=>`<button type="button" data-ig-saved="${igEsc(x.name)}" title="${igEsc(x.name)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 px-2.5 py-1 text-brand-700 transition text-left" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${igEsc(x.name)}</button>`).join('')}</div>`:''; })()}
     ${!intel.history.length&&!(window.pdShowsDesk&&pdShowsDesk())?`
     <div class="px-3.5 pb-2 shrink-0 flex flex-wrap gap-1.5">
       ${(typeof window.caChipsHtml==='function'&&caChipsHtml())||((state.view==='dashboard'&&typeof hbSuggestions==='function'&&hbSuggestions())||IG_SUGGESTIONS.slice(0,3)).map(s=>`<button data-igsug="${igEsc(s)}" class="text-[10.5px] rounded-full border border-brand-100 bg-canvas hover:bg-brand-50 hover:border-brand-300 px-2.5 py-1 text-brand-700 transition text-left">${igEsc(s)}</button>`).join('')}

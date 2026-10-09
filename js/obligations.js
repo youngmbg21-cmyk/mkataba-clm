@@ -740,7 +740,7 @@ function renderObligationsSection(c){
       ${obs.length?`<div class="ob-list scroll-thin space-y-1.5 mb-2">${obs.map((o,i)=>{ const st=obState(o); return `
         <div class="rounded-lg border border-line bg-white px-3 py-2">
           <div class="flex items-center gap-2 text-[12px]">
-            <span class="inline-block rounded-full border ${chip(st)} px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wide">${st}</span>
+            <span class="inline-block rounded-full border ${chip(st)} px-1.5 py-0.5 text-[9px] font-mono ">${st}</span>
             <span class="text-ink font-600 truncate">${(o.desc||'').replace(/</g,'&lt;')}</span>
             <span class="ob-due ml-auto shrink-0 font-mono">${o.due||'no date'}</span>
           </div>
@@ -749,7 +749,7 @@ function renderObligationsSection(c){
             ${''/* Ours or theirs, said on the row rather than inferred from a
                    name. "Wanjiku Kamau" reads as a job; "Kabras Sugar" beside
                    it would read as one too unless the row says which it is. */}
-            <span class="inline-block rounded border px-1 py-px text-[9px] font-mono uppercase tracking-wide ${obligationIsTheirs(o)?'border-gold-500/30 bg-gold-500/10 text-gold-700':'border-brand-200 bg-brand-50 text-brand-600'}">${obligationIsTheirs(o)?'theirs':'ours'}</span>
+            <span class="inline-block rounded border px-1 py-px text-[9px] font-mono ${obligationIsTheirs(o)?'border-gold-500/30 bg-gold-500/10 text-gold-700':'border-brand-200 bg-brand-50 text-brand-600'}">${obligationIsTheirs(o)?'theirs':'ours'}</span>
             <span>${String(obligationOwner(o,c)).replace(/</g,'&lt;')}</span>
             ${editable?`<span class="ob-acts ml-auto flex gap-2">
               <button data-ob-toggle="${i}">${o.status==='done'?'reopen':'done'}</button>

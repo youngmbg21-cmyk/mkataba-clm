@@ -177,7 +177,7 @@ function reportDropdown(variant, kind, idx, catalog, selKey){
   // 11px uppercase is a label, so it takes the label ink, which is what every
   // other micro-cap in this product wears.
   const trig=hero
-    ? 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-strong)'
+    ? 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:var(--t-micro);font-weight:var(--w-strong)'
     : 'background:var(--color-bg);border:1px solid var(--color-divider);color:var(--color-text);font-size:var(--t-card);font-weight:var(--w-strong)';
   const chev='var(--color-neutral-500)';
   const opts=catalog.map(x=>`<button type="button" data-rd-opt="${kind}:${idx}:${x.k}" class="rd-opt${x.k===cur.k?' rd-opt-on':''}" style="display:block;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:var(--t-body);padding:7px 11px;border-radius:var(--radius);cursor:pointer;white-space:nowrap">${_esc(x.label)}</button>`).join('');

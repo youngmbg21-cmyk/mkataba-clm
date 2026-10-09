@@ -2415,9 +2415,9 @@ function discussPointsSectionHtml(c){
       <div style="display:flex;flex-direction:column;gap:var(--s-2)">
         ${pts.map((pt,i)=>`
           <div style="border:1px solid #e8d5ad;background:var(--color-surface);border-radius:var(--radius);padding:9px var(--s-3);font-size:var(--t-meta);line-height:1.6">
-            ${pt.before?`<div><span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_contract_says')}</span>
+            ${pt.before?`<div><span style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">${i18t('ct_contract_says')}</span>
               <div style="color:var(--color-neutral-800)">${e(pt.before)}</div></div>`:''}
-            ${pt.after?`<div style="margin-top:5px"><span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('ct_they_asked_for')}</span>
+            ${pt.after?`<div style="margin-top:5px"><span style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500)">${i18t('ct_they_asked_for')}</span>
               <div style="color:var(--st-ruby-fg)">${e(pt.after)}</div></div>`:''}
             ${pt.ask?`<div style="margin-top:5px;font-size:var(--t-meta);color:var(--color-neutral-700)"><b>${i18t('ct_they_said')}</b> ${e(pt.ask)}</div>`:''}
             ${pt.reason?`<div style="margin-top:var(--s-1);font-size:var(--t-meta);color:var(--color-neutral-700)"><b>${i18t('ct_you_replied')}</b> ${e(pt.reason)}</div>`:''}
@@ -2494,7 +2494,7 @@ function uploadDocBody(c){
   const fileUrl = docFileUrl(c);
   const previewHead = canPreview ? `
     <div class="flex items-center justify-between gap-2 mb-2">
-      <div class="text-[11px] font-600 uppercase tracking-[0.14em] text-brand-800/60">${i18t('ct_document_preview')}</div>
+      <div class="text-[11px] font-600 text-brand-800/60">${i18t('ct_document_preview')}</div>
       <button type="button" data-expand-doc class="ui-btn ui-btn-sm">${icon('expand','w-3.5 h-3.5')} Expand</button>
     </div>` : '';
   const preview = previewHead + (((isPdf&&!pdfLaidOut)||isText)
@@ -3592,7 +3592,7 @@ function docBody(c){
     const a=key||('c'+n);
     const p=flags[a]?FLAGPAL[flags[a].sev]:null;
     const wrap=p?` style="background:${p.box};outline:1px solid ${p.line};border-radius:var(--radius);padding:6px 10px;margin-bottom:14px"`:'';
-    const tag=p?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase;background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
+    const tag=p?`<span style="font-size:var(--t-figure);font-weight:var(--w-title);background:${p.bg};color:${p.fg};padding:1px 6px;border-radius:var(--radius);flex:none">${p.tag}</span>`:'';
     /* NO FIXED-SIZE UTILITY ON THE PAPER. These carried `text-[13.5px]` and
        `text-[13px]`, and both LIE: the 22 Aug size sweep moved the compiled
        values to 15px and 14px and left the class NAMES saying 13.5 and 13.
@@ -3839,7 +3839,7 @@ function externalExecutionBlock(c){
   const filedBy=m.importedBy||((c.audit||[]).find(a=>a.action==='Migrated')||{}).user||'—';
   const filedAt=m.importedAt?fmtDT(m.importedAt):(((c.audit||[]).find(a=>a.action==='Migrated')||{}).at?fmtDT((c.audit||[]).find(a=>a.action==='Migrated').at):'—');
   const cell=(k,v,sub)=>`<div class="rounded-lg bg-white border border-brand-100 p-2.5">
-    <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${k}</div>
+    <div class="text-brand-800/65 text-[10px] mb-1">${k}</div>
     <div class="font-medium text-brand-700">${v}</div>${sub?`<div class="text-[10px] text-brand-800/65 leading-snug">${sub}</div>`:''}</div>`;
   return `
     <div class="seal-in mt-8 rounded-2xl elev-3 bg-gradient-to-br from-brand-50 to-white p-6">
@@ -3900,7 +3900,7 @@ function signatureBlock(c){
        markup of this file's own and is the one part left as it is. */
     const sub=s=>`<div class="text-[10px] text-brand-800/65 font-normal leading-snug">${[esc(s.email||''),s.form?esc(s.form)+' signature':esc(s.method||''),asWord(s),s.at?esc(fmtDT(s.at)):''].filter(Boolean).join(' · ')}</div>`;
     const card=s=>{ const img=(window.sigImageSrc?sigImageSrc(s.image):''); return `<div class="rounded-lg bg-white border border-brand-100 p-2.5">
-      <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
+      <div class="text-brand-800/65 text-[10px] mb-1 flex items-center gap-1">${icon(s.party==='counterparty'?'users':'finger','w-3 h-3')} ${partyLabel(s)}</div>
       ${img?`<img src="${img}" alt="signature of ${esc(s.name||'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
       <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${signatureCapacity(s)?', '+signatureCapacity(s).replace(/</g,'&lt;'):''}</div>${sub(s)}</div>`; };
     const sigList = sigs.length ? sigs.map(card).join('')
@@ -3919,7 +3919,7 @@ function signatureBlock(c){
           <div class="flex items-center gap-2 warm-flip"><span class="font-display font-700 text-[17px] text-ink">${i18t('ct_executed_sealed_caps')}</span>${statusChip('Signed')}</div>
           <div class="mt-1 text-xs text-brand-800/60">${(c.execution&&c.execution.esignature)||jxEsignatureShort()}</div>
           <div class="mt-3 grid sm:grid-cols-2 gap-3 text-xs">${sigList}</div>
-          ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${i18t('ct_sealed_fingerprint')}</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
+          ${!isUpload(c)?`<div class="mt-3 rounded-lg bg-white border border-brand-100 p-2.5"><div class="text-brand-800/65 text-[10px] mb-1">${i18t('ct_sealed_fingerprint')}</div><div class="font-mono text-[10px] break-all text-brand-700">${c.execution?.textHash||'—'}</div></div>`:''}
           <div class="mt-3 rounded-lg bg-brand-900 p-3 font-mono text-[11px] leading-relaxed">
             <div class="flex items-center gap-1.5 text-gold-400 mb-1">${icon('hash','w-3 h-3')} ${i18t('ct_document_seal')}</div>
             <div class="text-brand-100 break-all">${hashDisplay}</div>
@@ -3943,7 +3943,7 @@ function signatureBlock(c){
     /* Escaped, and the image drawn only where it is one — see the executed
        card above. */
     const card=s=>{ const img=(window.sigImageSrc?sigImageSrc(s.image):''); return `<div class="rounded-lg bg-white border border-brand-100 p-2.5">
-      <div class="text-brand-800/65 uppercase tracking-wider text-[10px] mb-1">${partyLabel(s)}</div>
+      <div class="text-brand-800/65 text-[10px] mb-1">${partyLabel(s)}</div>
       ${img?`<img src="${img}" alt="signature of ${esc(s.name||'')}" style="height:40px;max-width:190px;object-fit:contain;margin:2px 0 5px"/>`:''}
       <div class="font-medium text-brand-700">${(s.name||'').replace(/</g,'&lt;')}${cap(s)?', '+cap(s).replace(/</g,'&lt;'):''}</div>
       <div class="text-[10px] text-brand-800/65 font-normal leading-snug">${esc([s.email,s.form?s.form+' signature':s.method,s.at?fmtDT(s.at):''].filter(Boolean).join(' · '))}</div></div>`; };
@@ -5429,7 +5429,7 @@ function ovAddressBookHtml(book){
         esc(typeof addressWhereWords==='function' ? addressWhereWords(r.where) : '')}</span>
     </div>`).join('');
   return `<div style="margin-top:12px">
-    <div style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:2px">${
+    <div style="font-size:var(--t-micro);font-weight:var(--w-label);color:var(--color-neutral-600);margin-bottom:2px">${
       esc(i18tn('ppl_addr_head', book.rows.length, { n: book.rows.length }))}</div>${rows}</div>`;
 }
 function ktRouteEmailRowHtml(c){
@@ -8528,7 +8528,7 @@ function openNegoProposeModal(c){
         <div style="${COL}">
           <textarea id="nego-prop-text" spellcheck="false" style="width:100%;min-height:52vh;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:14px var(--s-4);font:inherit;font-family:var(--font-mono);font-size:var(--t-body);line-height:1.8;outline:none;resize:vertical">${esc(base)}</textarea>
           <label style="display:block;margin-top:var(--s-3)">
-            <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
+            <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-bottom:5px">${i18t('ct_why_asking')}</span>
             <input id="nego-prop-why" type="text" placeholder="${esc(i18t('ct_ph_reason'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
           </label>
         </div>
@@ -8811,7 +8811,7 @@ function renderBlankFormSection(c){
              ruling, and its own reason. */}
       ${blankFormFilledLineHtml(c)}
       ${(() => { let n = 0; return groups.map(g => `
-        ${g.name?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>`:''}
+        ${g.name?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-top:2px">${esc(g.name)}</div>`:''}
         ${g.blanks.map(b => { n++; return `<label style="display:block">
           ${''/* A RULED LINE WITH NO WORDS IN FRONT OF IT HAS NO NAME, so it is
                  numbered rather than left blank — a box with no label is a box
@@ -10894,7 +10894,7 @@ function renderWorkspace(){
      Negotiate tab: the two tabs are one room and their objects should be the
      same objects (Young, 10 Aug 2026). */
   const CARD='background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:0 1px 2px rgba(15,23,42,.05);border-radius:var(--radius-lg)';
-  const H6='margin:0;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);text-transform:uppercase;letter-spacing:.09em';
+  const H6='margin:0;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);';
   const KROW='display:flex;justify-content:space-between;gap:var(--s-2);padding:var(--s-1) 0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);font-size:var(--t-meta)';
   const KKEY='color:var(--color-neutral-600);flex:none';
   const kv=(k,v)=>`<div style="${KROW}"><span style="${KKEY}">${k}</span><span style="font-weight:var(--w-body);text-align:right;min-width:0">${v}</span></div>`;

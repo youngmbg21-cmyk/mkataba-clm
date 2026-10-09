@@ -417,7 +417,7 @@ function negoTimelineScreenHtml(c, f = {}, opts = {}){
       .ht h3{font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 2px}
       .ht .ht-sub{font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3)}
       .ht .ht-filters{display:flex;gap:var(--s-2);flex-wrap:wrap;margin-bottom:14px;padding-bottom:var(--s-3);border-bottom:1px solid var(--color-divider)}
-      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)}
+      .ht .ht-f{display:flex;flex-direction:column;gap:2px;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)}
       .ht .ht-f select{font:inherit;font-size:var(--t-meta);font-weight:var(--w-body);text-transform:none;letter-spacing:0;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-1) 6px;background:var(--color-surface);color:var(--color-text);max-width:180px}
       .ht .ht-ev{display:flex;gap:10px;padding:var(--s-2) 0;border-bottom:1px solid color-mix(in srgb,var(--color-divider) 55%,transparent)}
       .ht .ht-mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--color-bg);border:1px solid var(--color-divider);font-size:var(--t-label)}
@@ -1637,7 +1637,7 @@ function negoLiveCardsHtml(c, opts){
           title="${_ne(i18t('ng_revised_title'))} — ${_ne(String(ch.revisedBy))} / ${_ne(String(ch.author))}"><span aria-hidden="true">&#9998;</span> ${
           i18t('ng_revised_by_after',{who:_ne(_liveShort(ch.revisedBy)),author:_ne(_liveShort(ch.author))})}</div>` : ''}
         ${negoReasonOf(ch) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
-          <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
+          <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
           <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(negoReasonOf(ch))}</span></div>` : ''}
         ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
         ${(() => { if (!window.reviewSeatShowsReview || !reviewSeatShowsReview(opts)) return '';
@@ -1809,7 +1809,7 @@ function negoHistoryCardHtml(c, ch, r, opts){
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${_ne(_neClause(ch.clauseLabel || ch.clauseId))}</div>
     <div style="font-size:var(--t-label);color:var(--n-ink-soft);margin-bottom:7px">${i18t('ng_author')} <b style="color:var(--n-ink);font-weight:var(--w-strong)">${_ne(ch.author)}</b></div>
     ${negoReasonOf(ch) ? `<div style="border-left:2px solid var(--n-slate-soft);background:var(--n-badge-bg);border-radius:var(--radius);padding:6px 9px;margin-bottom:var(--s-2)">
-      <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
+      <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--n-slate)">${i18t('ng_why_they_asked')}</span>
       <span class="nego-why-clamp" style="font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)">${_ne(negoReasonOf(ch))}</span></div>` : ''}
     ${ch.reply ? `<div style="border-left:2px solid var(--n-line);padding:6px 9px;margin-bottom:var(--s-2);font-size:var(--t-meta);line-height:1.5;color:var(--n-ink)"><b>${i18t('ng_reply')}</b> ${_ne(ch.reply)}</div>` : ''}
     <div class="nego-hash" title="${_ne(ch.hash || '')}"><span aria-hidden="true">🔒</span> SHA-256: ${_ne(negoShortHash(ch.hash))}</div>
@@ -9397,7 +9397,7 @@ function negoMemoHtml(m, opts = {}){
   };
   const section = sec => {
     const rows = m[sec.k] || [];
-    return `<div style="display:flex;align-items:baseline;margin:12px 0 2px;font-size:var(--t-micro);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">
+    return `<div style="display:flex;align-items:baseline;margin:12px 0 2px;font-size:var(--t-micro);font-weight:var(--w-strong);color:var(--color-neutral-600)">
         <span>${_ne(sec.label)}</span><b style="margin-left:auto;color:var(--color-text)">${m.counts[sec.k]}</b></div>`
       + (rows.length ? rows.map(row).join('')
         : `<div style="font-size:var(--t-meta);color:var(--color-neutral-600);padding:5px 0;border-top:1px solid var(--color-divider)">${_ne(i18t('ng_memo_nil'))}</div>`);
@@ -15038,7 +15038,7 @@ async function rlOpenPlaybookReview(c, again){
            named presses below, each of which asks. */}
     ${!it.lead
       ? `<div style="margin-top:9px;font-size:var(--t-meta);line-height:1.5;color:var(--color-neutral-600)">${i18t('ng_pb_nofit')}</div>`
-      : `<div style="margin-top:var(--s-2);font-size:var(--t-figure);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${_ne(rlPbWordingLabel(it.leadKind))}</div>
+      : `<div style="margin-top:var(--s-2);font-size:var(--t-figure);font-weight:var(--w-title);color:var(--color-neutral-600)">${_ne(rlPbWordingLabel(it.leadKind))}</div>
     ${it.oldText && window.redlineStructuredHtml
       ? `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.7;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${redlineStructuredHtml(it.oldText, it.lead)}</div>`
       : `<div style="margin-top:4px;font-size:var(--t-meta);line-height:1.6;border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 10px;max-height:150px;overflow:auto">${_ne(it.lead)}</div>`}`}

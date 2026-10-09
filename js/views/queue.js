@@ -71,7 +71,7 @@ function pipeBoardHtml(cs, opts){
     <div style="min-width:0;display:flex;flex-direction:column;min-height:0">
       <div style="display:flex;align-items:center;gap:6px;padding:0 2px var(--s-2);min-width:0;flex:none">
         <span style="width:9px;height:9px;border-radius:50%;background:${g.col.color};flex:none;display:inline-block"></span>
-        <span style="font-family:var(--font-mono);font-weight:var(--w-title);font-size:var(--t-body);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
+        <span style="font-family:var(--font-mono);font-weight:var(--w-title);font-size:var(--t-body);white-space:nowrap">${g.col.label}</span>
         <span style="font-size:var(--t-label);background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px var(--s-2);border-radius:var(--radius);color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
         <span style="flex:1;min-width:4px"></span>
         <span style="font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;flex:none;font-variant-numeric:tabular-nums">${fmtMoneyShort(g.val)}</span>

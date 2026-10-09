@@ -440,15 +440,15 @@ function renderScanSection(c){
         <button data-scan-toggle="${x.id}" class="w-full text-left px-3 py-2.5 flex items-center gap-2 hover:bg-brand-50/50 transition">
           <span class="h-1.5 w-1.5 rounded-full ${sm.dot} shrink-0"></span>
           <span class="text-xs font-medium text-brand-900 flex-1 min-w-0 truncate">${x.title}</span>
-          ${x.confidence?`<span class="hidden sm:inline text-[8px] uppercase tracking-wider text-brand-800/35" title="Heuristic confidence">${x.confidence}</span>`:''}
-          <span class="text-[9px] uppercase tracking-wider font-semibold ${sm.text}">${sm.label}</span>
+          ${x.confidence?`<span class="hidden sm:inline text-[8px] text-brand-800/35" title="Heuristic confidence">${x.confidence}</span>`:''}
+          <span class="text-[9px] font-semibold ${sm.text}">${sm.label}</span>
           <span class="text-brand-300 transition ${exp?'rotate-180':''}">${icon('chevD','w-3.5 h-3.5')}</span>
         </button>
         ${exp?`
         <div class="px-3 pb-3 space-y-2 border-t border-brand-100/60 pt-2.5">
-          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">What it says${x.confidence?` · <span class="text-brand-800/35">${x.confidence} confidence</span>`:''}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.what}</p></div>
-          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">${i18t('ai_why_matters')}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
-          <div><div class="text-[9px] font-semibold uppercase tracking-wider text-brand-800/65 mb-0.5">${i18t('ai_suggested_fix')}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
+          <div><div class="text-[9px] font-semibold text-brand-800/65 mb-0.5">What it says${x.confidence?` · <span class="text-brand-800/35">${x.confidence} confidence</span>`:''}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.what}</p></div>
+          <div><div class="text-[9px] font-semibold text-brand-800/65 mb-0.5">${i18t('ai_why_matters')}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.why}</p></div>
+          <div><div class="text-[9px] font-semibold text-brand-800/65 mb-0.5">${i18t('ai_suggested_fix')}</div><p class="text-[11px] leading-relaxed text-brand-800/80">${x.fix}</p></div>
           <div class="flex items-center gap-2 pt-1">
             ${(findingQuote(x)||(x.anchor&&x.anchor!=='doc'&&document.querySelector(`#doc-canvas [data-anchor="${x.anchor}"]`)))
               ? `<button data-scan-goto="${x.anchor}" data-scan-id="${x.id}" type="button" class="ui-link">${icon('target','w-3.5 h-3.5')}${i18t('ai_go_to_wording')}</button>`
@@ -479,7 +479,7 @@ function renderScanSection(c){
       <div class="flex items-center gap-2 mb-3">
         <span class="text-gold-500">${icon('readpaper')}</span>
         <h3 class="text-sm font-display font-600 text-brand-900">${aiOn?'Copilot Contract Scan':'Contract Scan'}</h3>
-        <span title="${aiOn?'A Claude key is configured — checks run with Copilot-assisted interpretation.':'No Copilot key — checks run on built-in rules. Add a key in Team & Settings for Copilot-assisted review.'}" class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider ${aiOn?'bg-emerald-50 text-emerald-700 border-emerald-200':'bg-brand-50 text-brand-800/60 border-brand-200'}">${aiOn?'✦ Claude':'Rule-based'}</span>
+        <span title="${aiOn?'A Claude key is configured — checks run with Copilot-assisted interpretation.':'No Copilot key — checks run on built-in rules. Add a key in Team & Settings for Copilot-assisted review.'}" class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-semibold ${aiOn?'bg-emerald-50 text-emerald-700 border-emerald-200':'bg-brand-50 text-brand-800/60 border-brand-200'}">${aiOn?'✦ Claude':'Rule-based'}</span>
         ${(!scanUI.running && c.scan) ? `<span class="ml-auto inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-medium ${open.length?SEV_META[worst].chip:'bg-brand-50 text-brand-700 border-brand-200'}">${open.length?i18tn('scan_open',open.length,{n:open.length}):i18t('scan_all_clear')}</span>` : ''}
       </div>
       ${body}
@@ -3510,7 +3510,7 @@ function aiProposalPlacementHtml(p){
   const e = _aiEsc;
   const current = aiNormalizePlacement(p.placement);
   return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-    <span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;
+    <span style="font-size:var(--t-micro);font-weight:var(--w-title);
       color:var(--color-neutral-500)">${i18t('ai_where')}</span>
     ${AI_PLACEMENTS.map(x => {
       const on = x === current;
@@ -3537,7 +3537,7 @@ function aiProposalCardHtml(p){
     style="border:1px solid ${done ? 'var(--color-divider)' : 'rgba(99,102,241,.35)'};background:${done ? 'var(--color-bg)' : 'var(--color-surface)'};
       border-radius:var(--radius);padding:var(--s-3) 14px;display:flex;flex-direction:column;gap:9px;${done ? 'opacity:.72' : ''}">
     <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
-      <span style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;
+      <span style="font-size:var(--t-micro);font-weight:var(--w-title);
         background:rgba(99,102,241,.18);color:color-mix(in srgb,#6366f1 55%,var(--color-text));border-radius:var(--radius);padding:2px var(--s-2)">${i18t('ai_proposed_wording')}</span>
       ${p.clauseLabel ? `<span style="font-size:var(--t-label);color:var(--color-neutral-600);font-family:var(--font-mono)">${e(_aiClauseName(p.clauseLabel))}</span>` : ''}
       ${p.strict === false ? `<span title="The Copilot did not return the structured shape, so this is its whole reply treated as wording."
@@ -3563,7 +3563,7 @@ function aiProposalCardHtml(p){
               with the theme, so this stays a whisper in dark mode too — and
               the field itself keeps the surface colour: the WRAPPER warns,
               the box invites. */}
-        <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:3px">${i18t('ai_why_change_optional')}</span>
+        <span style="display:block;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:3px">${i18t('ai_why_change_optional')}</span>
         <textarea data-ai-prop-why="${e(p.id)}" rows="2" wrap="soft" spellcheck="true"
           placeholder="${_aiEsc(i18t('ng_ph_reason_example'))}"
           style="box-sizing:border-box;width:100%;max-width:100%;min-height:44px;resize:vertical;border:1px solid var(--color-divider);border-radius:var(--radius);padding:7px 9px;font:inherit;font-size:var(--t-meta);line-height:1.6;background:var(--color-surface);color:var(--color-text);outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${e(p.why || '')}</textarea>
@@ -4332,7 +4332,7 @@ function renderBriefSection(c){
         border-radius:var(--radius);padding:0 3px}
       #brief-section .br-lead{font-size:var(--t-card);line-height:1.7;color:var(--color-text)}
       #brief-section .br-head{display:flex;align-items:center;gap:7px;margin:var(--s-4) 0 7px;
-        font-size:var(--t-label);font-weight:var(--w-title);letter-spacing:.06em;text-transform:uppercase}
+        font-size:var(--t-label);font-weight:var(--w-title);}
       #brief-section .br-dot{width:7px;height:7px;border-radius:50%;flex:none}
       #brief-section .br-head-watch{color:var(--st-amber-fg)}
       #brief-section .br-head-watch .br-dot{background:var(--st-amber-dot)}
@@ -4354,7 +4354,7 @@ function renderBriefSection(c){
         margin:var(--s-3) 0;padding:11px 13px;background:var(--color-bg);border-radius:var(--radius);
         border:1px solid var(--color-divider)}
       #brief-section .br-facts dt{font-family:var(--font-mono);font-size:var(--t-micro);letter-spacing:.09em;
-        text-transform:uppercase;color:var(--color-neutral-600);padding-top:2px}
+        color:var(--color-neutral-600);padding-top:2px}
       #brief-section .br-facts dd{margin:0;font-size:var(--t-body);line-height:1.6;color:var(--color-text)}
       /* ---- AND A PARTIAL BRIEF SAYS SO WHERE IT IS READ ---- (10 Sep 2026)
          A cut-short brief is kept now, so the one place that could never carry
@@ -4644,7 +4644,7 @@ function renewalCardHtml(c,opts){
      one ambiguity this card cannot afford. `decideRow` is now just the
      buttons; the acts row below places them. */
   const decideRow=asking?`
-    <span style="font-size:var(--t-label);font-weight:var(--w-strong);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);flex:none">${i18t('rn_what_decided')}</span>
+    <span style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-600);flex:none">${i18t('rn_what_decided')}</span>
     ${ANS.map(a=>`<button class="ui-btn ui-btn-sm" data-rn-decide="${a}">${_aiEsc(i18t('rn_ans_'+a))}</button>`).join('')}`:'';
   /* THE DECIDED READING. The deadline is not taken off the screen — it moves
      into the quiet line underneath, where it says what stopped and the one

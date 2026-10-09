@@ -1,6 +1,6 @@
 # WORK ORDER — Ink Wash and sentence case (HaTi without grey)
 
-**Status: WRITTEN 9 Oct 2026. NOT BUILT.** Build only when the owner says so.
+**Status: WRITTEN 9 Oct 2026. BUILT 9 Oct 2026** (owner: *"Build it"*). Labels kept at weight 400 — the 20 Sep ruling stands; no other weight was picked.
 
 **The picture the owner chose:** artifact "HaTi Without Grey",
 https://claude.ai/artifact/JNp1yDuDXqKX4BR1ktDS4Y. A copy of the page is

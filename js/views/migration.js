@@ -1094,14 +1094,14 @@ function renderMigration(){
     .map(([v,l])=>`<option value="${v}" ${M.defaults.status===v?'selected':''}>${l}</option>`).join('');
   const kpi=(n,label,color)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow-sm)">
       <div style="font-family:var(--font-mono);font-size:24px;font-weight:var(--w-title);color:${color||'var(--color-text)'};line-height:1;font-variant-numeric:tabular-nums">${n}</div>
-      <div style="font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:6px">${label}</div></div>`;
+      <div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);margin-top:6px">${label}</div></div>`;
   const selStyle='font:inherit;font-size:var(--field-size);height:var(--field-h);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x);color:inherit;cursor:pointer';
 
   document.getElementById('content').innerHTML=`
   <div class="view-enter" style="padding:var(--page-pad)">
     <style>
       .mig-table{width:100%;border-collapse:collapse;font-size:var(--t-body)}
-      .mig-table th{text-align:left;font-size:var(--t-micro);font-weight:var(--w-title);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
+      .mig-table th{text-align:left;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-500);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);white-space:nowrap;background:var(--color-neutral-100)}
       .mig-table td{padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);vertical-align:middle}
       /* The reference's KPI strip: two up on a phone, four on a tablet, five on
          a desktop — a real grid, so the tiles line up instead of flexing to

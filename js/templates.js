@@ -165,7 +165,7 @@ function folderLegendHtml(opts={}){
   const short = f => (typeof STREAM_SHORT!=='undefined' && STREAM_SHORT[f.id]) || f.name;
   const items = visibleFolders().map(f=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:var(--t-label);color:var(--color-neutral-700);white-space:nowrap"><span style="width:4px;height:12px;border-radius:var(--radius);background:${f.color};flex:none"></span>${short(f)}</span>`).join('');
   return `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2) 14px;${opts.style||''}">
-    <span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${i18t('fo_value_streams')}</span>
+    <span style="font-size:var(--t-micro);color:var(--color-neutral-500)">${i18t('fo_value_streams')}</span>
     ${items}
   </div>`;
 }

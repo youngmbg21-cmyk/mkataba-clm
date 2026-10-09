@@ -1640,7 +1640,7 @@ function openCommandPalette(){
           <span style="display:block;font-size:var(--t-body);font-weight:var(--w-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(r.title||'').replace(/</g,'&lt;')}</span>
           <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.ref?(window.refHtml?refHtml(r.ref):String(r.ref).replace(/</g,'&lt;')):''}${(r.sub||'').replace(/</g,'&lt;')}</span>
         </span>
-        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:var(--t-micro);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
+        ${r.kind==='contract'&&window.statusChip?`<span style="flex:none">${statusChip(r.status)}</span>`:`<span style="flex:none;font-size:var(--t-micro);font-family:var(--font-mono);color:var(--color-neutral-500)">${r.tag||r.kind}</span>`}
       </button>`).join('');
     list.querySelectorAll('[data-cp-i]').forEach(b=>{
       const i=+b.getAttribute('data-cp-i');
@@ -3199,7 +3199,7 @@ function activityPanelHtml(){
   const feed=buildActivityFeed();
   return `
       <div style="padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:var(--s-2);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
           <span class="live-ping" style="width:6px;height:6px;border-radius:50%;background:var(--st-green-dot);"></span>${i18t('ap_scope_workspace')}
         </div>
         ${feed.length?feed.map(a=>`
@@ -3235,7 +3235,7 @@ function alertsPanelHtml(){
   const rows=buildAlerts();
   return `
       <div style="padding:10px var(--s-3);">
-        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:var(--s-2);">
+        <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-micro);color:var(--color-neutral-600);margin-bottom:var(--s-2);">
           <span style="width:6px;height:6px;border-radius:50%;background:${rows.length?'var(--st-amber-dot)':'var(--st-green-dot)'};"></span>${i18t('ap_scope_you')}
         </div>
         ${rows.length?rows.map((a,i)=>`

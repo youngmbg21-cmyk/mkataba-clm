@@ -56,7 +56,7 @@ function renderAdviceDesk(){
   const delivered30=rs.filter(r=>r.status==='Delivered'&&(Date.now()-Date.parse((r.history||[]).find(h=>h.to==='Delivered')?.at||r.submittedAt))<30*86400000).length;
   const projected=active.reduce((s,r)=>s+((r.quote?.rate||0)*(((r.quote?.hoursMin||0)+(r.quote?.hoursMax||0))/2)),0);
   const kpi=(label,val,col)=>`<div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2) 14px;min-width:0">
-      <div style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-600)">${label}</div>
+      <div style="font-size:var(--t-micro);color:var(--color-neutral-600)">${label}</div>
       <div style="font-size:var(--t-section);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;color:${col||'var(--color-text)'}">${val}</div></div>`;
 
   const groups=ADVICE_STAGES.map(col=>({col, list:rs.filter(r=>r.status===col.k)}));
@@ -64,7 +64,7 @@ function renderAdviceDesk(){
     <div style="min-width:0;display:flex;flex-direction:column;min-height:0">
       <div style="display:flex;align-items:center;gap:6px;padding:0 2px var(--s-2);min-width:0;flex:none">
         <span style="width:9px;height:9px;border-radius:50%;background:${g.col.color};flex:none;display:inline-block"></span>
-        <span style="font-family:var(--font-mono);font-weight:var(--w-title);font-size:var(--t-meta);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap">${g.col.label}</span>
+        <span style="font-family:var(--font-mono);font-weight:var(--w-title);font-size:var(--t-meta);white-space:nowrap">${g.col.label}</span>
         <span style="font-size:var(--t-label);background:color-mix(in srgb,var(--color-accent) 11%,transparent);padding:1px var(--s-2);border-radius:var(--radius);color:var(--color-neutral-700);flex:none;font-variant-numeric:tabular-nums">${g.list.length}</span>
       </div>
       <div data-adv-drop="${g.col.k}" class="pipe-col scroll-thin" style="background:color-mix(in srgb,var(--color-accent) 6%,transparent);border:1px solid var(--color-divider);border-radius:var(--radius);padding:var(--s-2);display:flex;flex-direction:column;gap:var(--s-2);flex:1;min-height:0;overflow-y:auto">
@@ -218,11 +218,11 @@ function openAdviceModal(id){
       ${r.description&&r.description!=='Seeded as sample data'?`<div style="margin-top:10px;border:1px solid var(--color-divider);border-radius:var(--radius);background:var(--color-bg);padding:9px 11px;font-size:var(--t-meta);line-height:1.55;white-space:pre-wrap">${esc(r.description)}</div>`:''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
         <div>
-          <h6 style="margin:0 0 6px;font-size:var(--t-micro);color:var(--color-neutral-600);letter-spacing:.09em;text-transform:uppercase">${i18t('adv_pipeline_history')}</h6>
+          <h6 style="margin:0 0 6px;font-size:var(--t-micro);color:var(--color-neutral-600);">${i18t('adv_pipeline_history')}</h6>
           <div class="scroll-thin" style="max-height:150px;overflow-y:auto">${hist}</div>
         </div>
         <div>
-          <h6 style="margin:0 0 6px;font-size:var(--t-micro);color:var(--color-neutral-600);letter-spacing:.09em;text-transform:uppercase">${i18t('adv_internal_notes')}</h6>
+          <h6 style="margin:0 0 6px;font-size:var(--t-micro);color:var(--color-neutral-600);">${i18t('adv_internal_notes')}</h6>
           <div class="scroll-thin" style="max-height:150px;overflow-y:auto">${notes}</div>
         </div>
       </div>
@@ -282,7 +282,7 @@ function openRateCardModal(){
         <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;margin:0">${i18t('adv_published_rates')}</h2></div>
       <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55">These hourly rates and turnaround targets are shown to customers on the public intake page. ${editable?'Changes publish immediately.':'Only an admin can change them.'}</p>
       <div class="table-scroll"><table style="width:100%;border-collapse:collapse">
-        <thead><tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase">
+        <thead><tr style="text-align:left;border-bottom:1px solid var(--color-divider);color:var(--color-neutral-600);font-size:var(--t-micro);">
           <th style="padding:6px 10px 6px 0;font-weight:var(--w-strong)">${i18t('adv_service')}</th><th style="padding:6px;font-weight:var(--w-strong)">${jxCurrency()} / hr</th><th style="padding:6px;font-weight:var(--w-strong)">${i18t('adv_hrs_min')}</th><th style="padding:6px;font-weight:var(--w-strong)">${i18t('adv_hrs_max')}</th><th style="padding:6px 0 6px 6px;font-weight:var(--w-strong)">${i18t('adv_days')}</th>
         </tr></thead>
         <tbody>${rows}</tbody>

@@ -2917,7 +2917,7 @@ function renderRegister(opts){
         box-shadow:0 10px 28px color-mix(in srgb,var(--color-text) 16%,transparent);
         padding:10px 12px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
       .reg-display-pop[hidden]{display:none}
-      .reg-dp-h{font-size:var(--t-micro);text-transform:uppercase;letter-spacing:.09em;color:var(--color-neutral-600);margin-top:2px}
+      .reg-dp-h{font-size:var(--t-micro);color:var(--color-neutral-600);margin-top:2px}
       .reg-display-pop .reg-seg{align-self:flex-start}
       .reg-dp-row{display:flex;align-items:center;gap:8px;border:0;background:none;font:inherit;font-size:var(--t-body);
         color:var(--color-text);padding:6px 0 2px;cursor:pointer;text-align:left;min-height:var(--tap-min);white-space:nowrap}
@@ -3253,7 +3253,7 @@ function renderRegister(opts){
       return `<label style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--color-divider);${f.fixed?'opacity:.6':'cursor:pointer'}">
         <input type="checkbox" data-adapt="${f.k}" ${on?'checked':''} ${f.fixed?'disabled':''} style="width:15px;height:15px;flex:none;accent-color:var(--accent-solid)"/>
         <span style="flex:1;font-size:var(--t-body)">${esc(f.label)}</span>
-        ${f.fixed?`<span style="font-size:var(--t-micro);letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">${esc(i18t('reg_adapt_always'))}</span>`:''}
+        ${f.fixed?`<span style="font-size:var(--t-micro);color:var(--color-neutral-500)">${esc(i18t('reg_adapt_always'))}</span>`:''}
       </label>`;
     }).join('');
     openModal(`
