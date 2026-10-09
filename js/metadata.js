@@ -56,6 +56,27 @@ function metaPickOptions(words, current){
   return out;
 }
 
+/* THE RENEWAL TERM READ OFF THE WORDING, in months, or 0. Only a period
+   that sits in a renewal sentence: the agreement's own initial term is not
+   it. A number in figures wins over its spelt-out twin ("twelve (12)"). */
+const META_NUM_WORDS={ one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, eleven:11, twelve:12,
+  eighteen:18, 'twenty-four':24, thirty:30, 'thirty-six':36 };
+function metaRenewalTermRead(text){
+  const t=String(text||'').replace(/\s+/g,' ');
+  const re=/renew(?:s|ed|al)?\b[^.;]{0,120}?\b(?:for|by)\s+(?:a\s+|an\s+)?(?:further|successive|additional|consecutive|subsequent|like)?\s*(?:periods?|terms?)?\s*(?:of\s+)?(?:([a-z]+)[\s-]+)?\(?(\d{1,3})?\)?[\s-]*(year|month)s?\b/i;
+  const m=re.exec(t);
+  if(!m) return /renew(?:s|ed|al)?\b[^.;]{0,60}?\b(?:annually|yearly|(?:on\s+)?an\s+annual\s+basis|year\s+to\s+year)\b/i.test(t)?12:0;
+  let n=m[2]?Number(m[2]):(META_NUM_WORDS[String(m[1]||'').toLowerCase()]||(/^(?:a|an|one)$/i.test(String(m[1]||''))?1:0));
+  if(!n && !m[1] && !m[2]) n=1;
+  if(!n) return 0;
+  const months=/year/i.test(m[3])?n*12:n;
+  return months>0&&months<=600?months:0;
+}
+/* "renews for 12 months", or '' — the ONE reading every surface prints. */
+function renewalTermText(c){
+  const n=Number(((c&&c.metadata)||{}).renewalTermMonths)||0;
+  return n>0?i18tn('me_renews_for',n,{ n }):'';
+}
 const META_FIELDS = [
   { k:'counterparty',     get label(){ return i18t('me_counterparty'); },   type:'text' },
   /* `picks` is "free text, and here are words to offer". The TYPE is still
@@ -74,6 +95,10 @@ const META_FIELDS = [
   { k:'value',            get label(){ return i18t('me_value'); },          type:'num'  },
   { k:'currency',         get label(){ return i18t('me_currency'); },       type:'text' },
   { k:'renewalType',      get label(){ return i18t('fa_renewal'); },        type:'select', opts:['auto-renew','fixed','evergreen','unknown'] },
+  /* HOW LONG EACH AUTOMATIC RENEWAL RUNS (Young, 9 Oct 2026: "fix issue b").
+     Without it a renewal past its end date could only be said as "probably
+     renewed" — the server rolls the end date on by it (runAutoRenewals). */
+  { k:'renewalTermMonths', get label(){ return i18t('me_renewal_term'); },  type:'num'  },
   { k:'noticePeriodDays', get label(){ return i18t('me_notice_days'); },  type:'num'  },
   { k:'governingLaw',     get label(){ return i18t('me_governing_law'); },  type:'text' },
   { k:'paymentTerms',     get label(){ return i18t('me_payment_terms'); },  type:'text' },
@@ -311,6 +336,9 @@ function heuristicExtract(text){
   if(/automatically\s+renew|auto-?renew/i.test(t)) set(m,'renewalType','auto-renew','low');
   else if(/evergreen|continue\s+(?:indefinitely|until\s+terminated)/i.test(t)) set(m,'renewalType','evergreen','low');
   else if(/fixed\s+term|expires?\s+on|term\s+of\s+\d/i.test(t)) set(m,'renewalType','fixed','low');
+  /* the renewal term: "renew for successive periods of twelve (12) months",
+     "further one-year terms" — months, a year being twelve */
+  { const rt=metaRenewalTermRead(t); if(rt) set(m,'renewalTermMonths',rt,'low'); }
 
   /* ---- category: first match wins, most specific first ----
      Deliberately ordered. "Employment" beats "services" because a contract of
@@ -854,4 +882,4 @@ function contractGoverningLaw(c){
   return String((c&&c.metadata&&c.metadata.governingLaw)||'').replace(/\s+/g,' ').trim();
 }
 
-Object.assign(window,{contractGoverningLaw,META_FIELDS,metaMergeReviewed,metaIsBlankAnswer,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,metaEffDateOnto,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});
+Object.assign(window,{contractGoverningLaw,META_FIELDS,metaRenewalTermRead,renewalTermText,META_NUM_WORDS,metaMergeReviewed,metaIsBlankAnswer,CONTRACT_TYPE_FALLBACK,contractTypeKinds,META_PICK_OTHER,metaPickOptions,RENEWAL_LABEL,metaEnName,metaEffDateOnto,termAdd,metaReadTerm,metaCheckTerm,TERM_TOLERANCE_DAYS,META_OPT_LABEL,metaOptLabel,unitDays,heuristicExtract,buildExtractionPayload,thoroughChunks,mergeThorough,THOROUGH_CHUNK,EXTRACT_TERMS,aiExtractMetadata,extractMetadata,openMetaReview,runMetaBackfill});

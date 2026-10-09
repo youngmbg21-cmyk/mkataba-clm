@@ -133,6 +133,8 @@ const BRAIN_PARTS = [
   ['issuelinks', 'issueSigningRouteLinks', 'sign', 1],
   ['filesig', 'srvFileSignature', 'wall', 2],
   ['srvseal', 'srvSealNow', 'wall', 2],
+  /* the copy the server draws itself (9 Oct 2026): one reading of its text on both hosts */
+  ['sealtext', 'sealPlainText', 'sign', 3],
   ['copies', 'srvSendExecutedCopies', 'out', 2],
   ['amend', 'openCreateAmendmentModal', 'in', 0],
   ['decline', 'contractDecline', 'time', 1],
@@ -231,7 +233,7 @@ const BRAIN_FLOWS = [
      who else is on the page while you do it, and who may rule on it. */
   { id: 'redline', steps: [['negpage', 'here', 'follow'], ['editor', 'baton', 'askkeep', 'risklist', 'riskwalk'], ['funnel'], ['desk', 'suggest'], ['ladder'], ['review', 'kept', 'asks'], ['payload'], ['shares', 'linkcheck'], ['email', 'mailkey', 'cplink', 'turnmail', 'wordmark'], ['whosemove', 'bell', 'roundauto']] },
   { id: 'round', steps: [['cplink', 'guestcode'], ['respond'], ['audit'], ['apply', 'wordback', 'paperdrop'], ['ladder'], ['whosemove', 'decidedsend'], ['bell', 'home', 'negpage', 'stands', 'stale', 'dealpaper', 'onepaper', 'answeronpaper'], ['webhook']] },
-  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks', 'approvalpaper', 'freshen'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar'], ['email', 'copies']] },
+  { id: 'sign', steps: [['signtab', 'linkcheck'], ['readiness', 'signgate', 'rules', 'paperjobs'], ['approvals', 'namedyes', 'decide', 'rulestep', 'asks', 'approvalpaper', 'freshen'], ['brief', 'playbook', 'blanks'], ['pad'], ['putguard', 'srvseal', 'sealtext'], ['seal', 'frozen', 'issuelinks'], ['obligations', 'renewal', 'calendar'], ['email', 'copies']] },
   { id: 'night', steps: [['reminders', 'lanes', 'agentlevel', 'linkkeep'], ['renewal', 'renewact'], ['renewprep'], ['model', 'boardjudge', 'bookread'], ['db'], ['obligations'], ['email', 'boardmoved', 'looktell'], ['desknight', 'home', 'insights', 'readings', 'chasemany', 'draftreply']] },
   { id: 'ask', steps: [['copilotask', 'homepaper', 'explorer', 'chartread', 'chartsize', 'recipe', 'askpreview', 'verified', 'boardwords', 'packs', 'phrasebook'], ['db', 'dealfacts'], ['model', 'boardtools', 'dataguide', 'cardcheck', 'boardundo', 'honest', 'askchoice', 'factsheet', 'analyst', 'story'], ['quote', 'citedoor', 'walkset', 'paperdesk'], ['contracts', 'passroute', 'lookask', 'copilotdoors'], ['explorer', 'cellfold', 'readchips', 'nextq', 'boardmarks']] },
   /* THE OVERNIGHT REVIEW'S FLOWS (9 Oct 2026): the commonest start, a request,
@@ -239,7 +241,7 @@ const BRAIN_FLOWS = [
      ways a step can go wrong — none of which the six flows above walked. */
   { id: 'draft', steps: [['newagr', 'essentials'], ['putguard', 'db'], ['tplform', 'blanks'], ['triage'], ['shares', 'linkcheck'], ['email', 'outbyhand', 'wordfile'], ['whosemove', 'bell']] },
   { id: 'request', steps: [['request', 'kinds', 'intake', 'mailroom'], ['bell'], ['lanes', 'laneowner'], ['arrivalowed', 'triage'], ['newagr']] },
-  { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode'], ['respond', 'filesig'], ['srvseal', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
+  { id: 'theysign', steps: [['theirsign', 'issuelinks'], ['cplink', 'guestcode'], ['respond', 'filesig'], ['srvseal', 'sealtext', 'frozen'], ['copies', 'email'], ['obligations', 'renewal', 'calendar']] },
   { id: 'amend', steps: [['amend'], ['blanks'], ['readiness', 'approvals'], ['srvseal'], ['renewal', 'overview']] },
   { id: 'end', steps: [['served', 'renewact'], ['autorenew'], ['obdone'], ['decline', 'reopen'], ['archive', 'hold']] },
   { id: 'mistake', steps: [['leaveguard', 'inline'], ['discard'], ['freshen'], ['outbyhand', 'mailkey'], ['linkkeep', 'whosemove']] }
@@ -271,7 +273,7 @@ const BRAIN_LANE_OF = {
     'frozen', 'obligations', 'renewal', 'reminders', 'lanes', 'agentlevel', 'linkkeep', 'renewact', 'renewprep', 'boardjudge', 'bookread',
     'boardmoved', 'looktell', 'draftreply', 'dataguide', 'analyst', 'story', 'quote', 'passroute', 'copilotdoors', 'factsheet', 'dealfacts',
     'boardmarks', 'pdf', 'intake', 'mailroom', 'wordfile', 'issuelinks', 'filesig', 'srvseal', 'copies', 'autorenew', 'leaveguard', 'discard',
-    'freshen'],
+    'freshen', 'sealtext'],
   /* the counterparty: their link, the code that proves it is them */
   them: ['cplink', 'guestcode', 'theirsign']
 };
@@ -298,8 +300,8 @@ const BRAIN_PROBLEMS = [
   /* Home first, step 7 ("answering HaTi from an email reply") was agreed as
      later on 8 Oct 2026 and is not built */
   { n: 1, part: 'email' },
-  /* the overnight run (9 Oct 2026): what it could not close, said where it sits */
-  { n: 2, part: 'autorenew' },
+  /* the overnight run (9 Oct 2026): what it could not close, said where it sits.
+     No. 2 (the renewal term) closed the same day: the box is on the Overview. */
   { n: 3, part: 'srvseal' }
 ];
 function brainLaneOf(id){ return BRAIN_LANES.find(k => BRAIN_LANE_OF[k].includes(id)) || null; }
@@ -314,7 +316,7 @@ const BRAIN_FILE_REGION = [
      nothing and touches no route does not belong. */
   [/^js\/(dealstands|paperdesk)\.js$/, 'see'],
   /* the process review's two new files (4 Oct 2026) and the address book */
-  [/^js\/(signgate|asks)\.js$/, 'sign'],
+  [/^js\/(signgate|asks|sealtext)\.js$/, 'sign'],
   [/^js\/(intakelanes|participants)\.js$/, 'in'],
   [/^js\/(ai|aimd|aitrace|triage|playbook|metadata|metaclean|precedent|standards|draft|copilotacts)\.js$/, 'ai'],
   [/^js\/(docx|pdf|pdfrich|ocr|clausemodel|blanks|uploadblanks|richdoc|redline|templateform)\.js$/, 'read'],

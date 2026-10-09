@@ -1498,6 +1498,12 @@ async function saveContract(c){
       c.contractNo=r.contractNo;
       if(r.numberedLine){ c.audit=Array.isArray(c.audit)?c.audit:[]; c.audit.push(r.numberedLine); }
     }
+    /* A RENEWAL'S NEW END DATE, given by the server once its term is known
+       (srvAutoRenewFill) — taken as given, its line added as written. */
+    if(r && Array.isArray(r.autoRenewed)){
+      c.autoRenewed=r.autoRenewed;
+      if(r.renewedLine){ c.audit=Array.isArray(c.audit)?c.audit:[]; c.audit.push(r.renewedLine); }
+    }
     if(r && Number(r.uid)>Number(uid||0)) uid=Number(r.uid);
     if(r && Number(r.rlUid)>Number(rlUid||0)) rlUid=Number(r.rlUid);
     /* The save may have moved who is on the route, so the server's reading
@@ -3865,6 +3871,10 @@ const normText = html => { const d=document.createElement('div'); d.innerHTML=ht
    pre-existing seal moves. (See DESIGN-rich-documents.md.) */
 function execHashInput(exec){
   const html=(exec&&exec.html)||'';
+  /* 'plain' — a copy the SERVER drew and sealed (9 Oct 2026): the one pure
+     reading both hosts share (js/sealtext.js), so Verify reads it as the
+     server did. */
+  if(exec && exec.hashMode==='plain' && window.sealPlainText) return sealPlainText(html);
   if(exec && exec.hashMode==='rich' && window.canonicalRich) return canonicalRich(html);
   return normText(html);
 }
@@ -6318,9 +6328,9 @@ function signLinkRefusal(c, opts={}){
    `keep` asks only the keeping rows (hold, desk): more time on a link, or a
    reminder, sends nothing new. Returns null, or { kind, why }. */
 const LINK_ASKS=Object.freeze({
-  sign:      ['hold','desk','reviewer','reviewgate','asks','signapproval','approval','signcheck','address'],
-  negotiate: ['hold','desk','reviewer','reviewgate'],
-  view:      ['hold','desk','reviewer','reviewgate'],
+  sign:      ['hold','desk','reviewer','reviewgate','asks','signapproval','approval','signcheck','address','ours'],
+  negotiate: ['hold','desk','reviewer','reviewgate','ours'],
+  view:      ['hold','desk','reviewer','reviewgate','ours'],
   history:   ['hold','desk','reviewer','reviewgate'],
   status:    ['hold','desk','reviewer'],
   advise:    ['hold'],
@@ -6355,6 +6365,20 @@ function linkRefusal(c, opts={}){
   if(asks.has('reviewgate')){
     const gate=ask(()=>window.reviewGateMessage&&reviewGateMessage(c));
     if(gate) return { kind:'review', why:gate };
+  }
+  /* ---- THEIR LINK GOES TO THEM, NOT TO US (Young, 9 Oct 2026: "you can
+     have the same email for both parties and it still sends without a
+     warning") ----
+     A link for the other side addressed to one of OUR people puts our own
+     colleague in their seat: they would answer, or sign, for the other party.
+     Refused, named by whose address it is, with the way forward. Asked only
+     where an address is being sent to (`email`), and only of the kinds that
+     seat the reader as the other side — the record, the status page and an
+     adviser's question may go to a colleague. The server asks the same row. */
+  if(asks.has('ours') && opts.email){
+    const who=ourSideAddressOf(c, opts.email);
+    if(who) return { kind:'ours', why:i18t('sl_address_is_ours',{ email:String(opts.email).trim(), who,
+      them:c.counterparty||i18t('ct_a_counterparty') }) };
   }
   /* A POINT STILL OPEN WITH THEM (B2, 8 Oct 2026). Their signing page cannot
      answer an ask — it has no Accept or Reject — and their negotiation link
@@ -6404,6 +6428,22 @@ function linkRefusal(c, opts={}){
   return null;
 }
 const WORDING_PURPOSES=['sign','negotiate','view','history'];
+/* WHOSE ON OUR SIDE IS THIS ADDRESS — a member of this workspace, or a
+   signer for our side on this contract's route — by name, or null. The
+   server's twin is srvOurSideAddressOf; both fold case and spaces. */
+function ourSideAddressOf(c, email){
+  const e=String(email||'').trim().toLowerCase();
+  if(!/.+@.+\..+/.test(e)) return null;
+  let users=[]; try{ users=(typeof getUsers==='function'?getUsers():[])||[]; }catch(_){ users=[]; }
+  const u=users.find(x=>x && String(x.email||'').trim().toLowerCase()===e);
+  if(u) return String(u.name||u.email||e);
+  const plan=Array.isArray(c&&c.signerPlan)?c.signerPlan:[];
+  const s=plan.find(x=>x && x.party!=='counterparty' && String(x.email||'').trim().toLowerCase()===e);
+  if(s) return String(s.name||e);
+  let mine=''; try{ mine=(typeof partyOurEmail==='function'?partyOurEmail(c):'')||''; }catch(_){ mine=''; }
+  if(mine && mine.trim().toLowerCase()===e) return (c.owner&&c.owner.name)||e;
+  return null;
+}
 /* Our asks still waiting on the other side's answer — read RAW (reading must
    not write), leaving out what does not travel: a held change and a
    colleague's unadopted suggestion. The server's twin is srvLinkOpenAsks. */
@@ -7269,7 +7309,7 @@ async function openShareModal(c, opts={}){
       const no=signLinkRefusal(c,{ signerId:signerSel, email });
       if(no){ toast(no.why,'err'); return false; }
     }else{
-      const no=linkRefusal(c,{ purpose:purposeSel });
+      const no=linkRefusal(c,{ purpose:purposeSel, email });
       if(no){ toast(no.why,'err'); return false; }
     }
     // A share cannot be recalled, so an incomplete contract needs an explicit
@@ -9093,4 +9133,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

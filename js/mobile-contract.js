@@ -398,7 +398,8 @@ function mTermsHtml(c){
     { get label(){ return i18t('mc_expiry'); }, value:dateOf((typeof effectiveExpiry==='function'?effectiveExpiry(c):null)||c.expiry) },
     { get label(){ return i18t('mc_payment_terms'); }, value:md.paymentTerms },
     { get label(){ return i18t('mc_notice_period'); }, value:md.noticePeriodDays?i18tn('ct_notice_n_days',Number(md.noticePeriodDays)||0,{n:md.noticePeriodDays}):'' },
-    { get label(){ return i18t('mc_renewal'); }, value:(typeof metaOptLabel==='function'&&md.renewalType)?metaOptLabel(md.renewalType):md.renewalType },
+    { get label(){ return i18t('mc_renewal'); }, value:[(typeof metaOptLabel==='function'&&md.renewalType)?metaOptLabel(md.renewalType):md.renewalType,
+      (md.renewalType==='auto-renew'&&typeof renewalTermText==='function')?renewalTermText(c):''].filter(Boolean).join(' · ') },
     { get label(){ return i18t('me_category'); }, value:(typeof metaOptLabel==='function'&&md.category)?metaOptLabel(md.category):md.category },
     /* The label already carries the unit ("Retention held (%)", "Warranty
        period (months)"), so the value is the bare number. Appending " months"
@@ -1045,7 +1046,7 @@ async function mShareCreate(){
     let no=null; try{ no=signLinkRefusal(c,{ email }); }catch(_){ no=null; }
     if(no){ s.shareErr=no.why; mRender(); return; }
   }else if(window.linkRefusal){
-    let no=null; try{ no=linkRefusal(c,{ purpose:s.share }); }catch(_){ no=null; }
+    let no=null; try{ no=linkRefusal(c,{ purpose:s.share, email }); }catch(_){ no=null; }
     if(no){ s.shareErr=no.why; mRender(); return; }
   }
   s.shareErr=''; mRender();

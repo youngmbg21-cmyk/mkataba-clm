@@ -64,8 +64,10 @@ describe('f490 (1) one table, both hosts', () => {
     for (const k of ['sign', 'negotiate', 'view', 'history', 'status']) assert.ok(T[k].includes('desk'), `${k} asks the desk`);
     assert.deepEqual(T.advise, ['hold'], 'an adviser link asks the hold alone');
     assert.ok(!T.status.includes('reviewgate'), 'a status page carries no wording for the gate to hold');
-    assert.deepEqual(T.sign, ['hold', 'desk', 'reviewer', 'reviewgate', 'asks', 'signapproval', 'approval', 'signcheck', 'address'],
-      'the sign row is the list signLinkRefusal always asked, in its order — and, since 8 Oct 2026 (B2), our asks still open with them');
+    assert.deepEqual(T.sign, ['hold', 'desk', 'reviewer', 'reviewgate', 'asks', 'signapproval', 'approval', 'signcheck', 'address', 'ours'],
+      'the sign row is the list signLinkRefusal always asked, in its order — and, since 8 Oct 2026 (B2), our asks still open with them; since 9 Oct, an address of ours');
+    for (const k of ['sign', 'negotiate', 'view']) assert.ok(T[k].includes('ours'), `${k}: their link never goes to one of us`);
+    for (const k of ['history', 'status', 'advise']) assert.ok(!T[k].includes('ours'), `${k} may go to a colleague`);
   });
 });
 
@@ -142,7 +144,7 @@ describe('f490 (2) each kind asks its own rows', () => {
 describe('f490 (3) every door asks it', () => {
   test('3a the send screen: the sign row by name, every other kind its own row — no second question', () => {
     const fn = /const doSend=async\(\)=>\{[\s\S]*?const wantDurable=/.exec(CORE)[0];
-    assert.match(fn, /if\(purposeSel==='sign'\)\{\s*const no=signLinkRefusal\(c,\{ signerId:signerSel, email \}\);\s*if\(no\)\{ toast\(no\.why,'err'\); return false; \}\s*\}else\{\s*const no=linkRefusal\(c,\{ purpose:purposeSel \}\);/);
+    assert.match(fn, /if\(purposeSel==='sign'\)\{\s*const no=signLinkRefusal\(c,\{ signerId:signerSel, email \}\);\s*if\(no\)\{ toast\(no\.why,'err'\); return false; \}\s*\}else\{\s*const no=linkRefusal\(c,\{ purpose:purposeSel, email \}\);/);
     assert.doesNotMatch(fn, /reviewSendBlock\(c\)/, 'the desk-and-review check that asked every kind the same is gone from this door');
     assert.match(fn, /const ack=purposeSel==='advise' \? null : document\.getElementById\('sh-ack'\);/,
       'and an adviser link is not asked a tick behind a fold its own purpose hides');
@@ -164,7 +166,7 @@ describe('f490 (3) every door asks it', () => {
   });
   test('3d the phone asks every kind, the sign row still by name', () => {
     const M = strip(read('js/mobile-contract.js'));
-    assert.match(M, /s\.share==='sign' && window\.signLinkRefusal[\s\S]{0,200}\}else if\(window\.linkRefusal\)\{\s*let no=null; try\{ no=linkRefusal\(c,\{ purpose:s\.share \}\); \}catch\(_\)\{ no=null; \}\s*if\(no\)\{ s\.shareErr=no\.why;/);
+    assert.match(M, /s\.share==='sign' && window\.signLinkRefusal[\s\S]{0,200}\}else if\(window\.linkRefusal\)\{\s*let no=null; try\{ no=linkRefusal\(c,\{ purpose:s\.share, email \}\); \}catch\(_\)\{ no=null; \}\s*if\(no\)\{ s\.shareErr=no\.why;/);
   });
   test('3e the status page\'s owner line greys Share with the check\'s sentence', () => {
     const D = strip(read('js/dealstands.js'));
@@ -179,7 +181,7 @@ describe('f490 (3) every door asks it', () => {
   });
   test('3g the wall is asked at every route that mints, re-points or keeps a link', () => {
     const route = re => { const m = re.exec(SERVER); assert.ok(m, String(re)); return m[0]; };
-    assert.match(route(/app\.post\('\/api\/shares', auth[\s\S]*?\n\}\);/), /srvLinkRefusal\(req, rvStored, purp, \{ payload, contractId: shareId \}\)/);
+    assert.match(route(/app\.post\('\/api\/shares', auth[\s\S]*?\n\}\);/), /srvLinkRefusal\(req, rvStored, purp, \{ payload, contractId: shareId,\s*email: /);
     assert.match(route(/app\.put\('\/api\/shares\/:token\/payload'[\s\S]*?\n\}\);/), /srvLinkRefusal\(req, linkStored, sharePurposeOf\(s\), \{ payload, contractId: s\.contract_id \}\)/);
     assert.match(route(/app\.post\('\/api\/shares\/:token\/extend'[\s\S]*?\n\}\);/), /srvLinkRefusal\(req, srvStoredContract\(s\.contract_id\), sharePurposeOf\(s\), \{ keep: true/);
     assert.match(route(/app\.post\('\/api\/shares\/:token\/resend'[\s\S]*?\n\}\);/), /srvLinkRefusal\(req, srvStoredContract\(s\.contract_id\), sharePurposeOf\(s\), \{ keep: true/);

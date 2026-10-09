@@ -1451,6 +1451,14 @@ function signerPlanRefusal(c, rows){
   }
   const noMail=theirs.find(s=>!signerHasEmail(s));
   if(noMail) return { why:i18t('ap_need_their_email',{ name:String(noMail.name).trim() }), rowId:noMail.id, field:'email' };
+  /* THEIR SIGNER SIGNS FOR THEM (Young, 9 Oct 2026): an address that is one
+     of ours would put our colleague on their row — ourSideAddressOf. */
+  for(const s of theirs){
+    const who=(typeof ourSideAddressOf==='function')?ourSideAddressOf(c, s.email):null;
+    if(who){ const q=srPartyOf(c, s);
+      return { why:i18t('ap_their_email_ours',{ email:String(s.email).trim(), who, name:String(s.name).trim(),
+        them:(q&&q.name)||c.counterparty||i18t('ct_a_counterparty') }), rowId:s.id, field:'email' }; }
+  }
   return null;
 }
 /* WHY THIS ROUTE CANNOT BE SAVED, in the words Save uses, or null. The side

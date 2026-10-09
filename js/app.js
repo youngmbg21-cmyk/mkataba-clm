@@ -8,6 +8,7 @@ import './outside.js';     // redline here, sign there: the working reference, t
 import './graphwhere.js';   // the graph's structured filter, one predicate for both hosts (Copilot audit phase 4)
 import './roundprep.js';    // Their round came back: one key for an ask of theirs, both hosts (27 Sep 2026)
 import './migread.js';      // Archive import: what an imported contract's reading decides, both hosts (27 Sep 2026)
+import './sealtext.js';     // the frozen copy's text, one reading: the server seals with it, Verify reads it (9 Oct 2026)
 import './asks.js';         // one ask record: who was asked, the answer, when and for what — both hosts (4 Oct 2026)
 import './section.js';      // the section grammar: one way of grouping a screen (16 Sep 2026)
 import './core.js';

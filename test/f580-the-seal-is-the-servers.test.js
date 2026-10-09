@@ -120,7 +120,12 @@ describe('f580 — the seal is the server\'s', () => {
     assert.equal(back.hash, x.hash);
   });
 
-  test('(3) a frozen copy drawn from wording that has since moved is not sealed from', async () => {
+  /* RE-POINTED IN PLACE 9 Oct 2026 (Young: "teach the server to build the
+     final copy of the sealed contract itself, without needing a browser").
+     The stale copy is still never sealed from — but where the wording is
+     stored as words the server now draws a fresh copy of THOSE words itself
+     and seals at once, instead of waiting for somebody to open HaTi. */
+  test('(3) a frozen copy drawn from wording that has since moved is not sealed from — the server draws the words as they stand', async () => {
     const c = contract('MK-SL2', [
       { id: 'sg-us', party: 'internal', order: 1, name: 'Amina Otieno', role: 'Director', email: 'admin@example.co.ke', signed: false },
       { id: 'sg-cp', party: 'counterparty', order: 2, name: 'Grace Njeri', email: 'grace@client.co.ke', signed: false }],
@@ -135,15 +140,37 @@ describe('f580 — the seal is the server\'s', () => {
     const s = await mint('MK-SL2', 'sg-cp');
     assert.equal((await theySign(s.token)).status, 200);
     const x = await get('MK-SL2');
-    assert.notEqual(x.status, 'Signed', 'never sealed over a copy of other words');
-    assert.ok(x.signatures.length === 2 && x.signerPlan.every(p => p.signed), 'their signature is filed all the same');
-    assert.ok(x.audit.some(a => a.action === 'Seal waiting'), 'and the trail says the seal is waiting');
+    assert.equal(x.status, 'Signed', 'sealed the moment their signature landed, with nobody opening HaTi');
+    assert.equal(x.execution.by, 'HaTi');
+    assert.ok(!/>old</.test(x.execution.html), 'never sealed over the copy of other words');
+    assert.ok(/NOTICES/.test(x.execution.html) && /In writing\./.test(x.execution.html), 'the copy is the words as they stand');
+    assert.equal(x.execution.hashMode, 'plain', 'fingerprinted with the reading both hosts share');
+    const { sealPlainText } = require('../js/sealtext.js');
+    assert.equal(x.execution.textHash, sha(sealPlainText(x.execution.html)), 'and the fingerprint is that reading of that copy');
+    assert.equal(x.hash, sha(sealString(x)), 'the seal is sealString\'s');
+    assert.ok(!x.audit.some(a => a.action === 'Seal waiting'), 'nothing waited');
+    assert.ok(x.versions.some(v => v.label === 'Signed & sealed'), 'the sealed wording is kept as a version');
+  });
+
+  test('(3b) a paper drawn from the record by the page still waits for the page — and the reminder round seals what it can', async () => {
+    const tpl = { ...contract('MK-SL2B', [
+      { id: 'sg-us', party: 'internal', order: 1, name: 'Amina Otieno', role: 'Director', email: 'admin@example.co.ke', signed: false },
+      { id: 'sg-cp', party: 'counterparty', order: 2, name: 'Grace Njeri', email: 'grace@client.co.ke', signed: false }],
+      { sealPrep: prep('<p>old</p>') }), redlineText: '', format: 'text', template: 'NDA' };
+    await put(tpl, 0);
+    const v1 = (await get('MK-SL2B'))._v;
+    const moved = { ...tpl, value: 520000 };
+    await put(moved, v1);
+    const at = new Date().toISOString();
+    await put({ ...moved, signerPlan: moved.signerPlan.map(p => p.id === 'sg-us' ? { ...p, signed: true, at } : p), signatures: [ourSig(at)] }, v1 + 1);
+    const s = await mint('MK-SL2B', 'sg-cp');
+    assert.equal((await theySign(s.token)).status, 200);
+    const x = await get('MK-SL2B');
+    assert.notEqual(x.status, 'Signed', 'no words stored, so nothing the server can draw — never sealed over the old copy');
+    assert.ok(x.audit.some(a => a.action === 'Seal waiting'), 'and the trail says it waits');
     const v = x._v; delete x._v;
-    const r = await put({ ...x, sealPrep: prep('<p>' + x.redlineText + '</p>') }, v);
-    assert.equal(r.sealed, true, 'the save carrying a fresh copy is sealed — by the server');
-    const y = await get('MK-SL2');
-    assert.equal(y.status, 'Signed'); assert.equal(y.execution.by, 'HaTi');
-    assert.equal(y.hash, sha(sealString(y)));
+    const r = await put({ ...x, sealPrep: prep('<p>the template paper</p>') }, v);
+    assert.equal(r.sealed, true, 'the save carrying the page\'s copy is sealed — by the server');
   });
 
   test('(4) they sign first: filed as a Signature (B17); our last signature seals on its save', async () => {

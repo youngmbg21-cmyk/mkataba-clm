@@ -211,7 +211,8 @@ function ov2Facts(c, M){
     + (amEnd && M.end ? ' · ' + i18t('ct_as_amended_by', { ref: (typeof contractRef === 'function') ? contractRef(amEnd.from) : amEnd.from.id }) : '')]);
   if (meta.renewalType && meta.renewalType !== 'unknown'){
     const word = (typeof metaOptLabel === 'function') ? metaOptLabel(meta.renewalType) : meta.renewalType;
-    f.push([i18t('ov2_f_renewal'), word + (M.noticeBy && M.auto ? ' · ' + i18t('ov2_f_notice_by', { n: M.notice, d: ov2Day(M.noticeBy) }) : '')]);
+    const term = (M.auto && typeof renewalTermText === 'function') ? renewalTermText(c) : '';
+    f.push([i18t('ov2_f_renewal'), word + (term ? ' · ' + term : '') + (M.noticeBy && M.auto ? ' · ' + i18t('ov2_f_notice_by', { n: M.notice, d: ov2Day(M.noticeBy) }) : '')]);
   }
   let v = null; try { v = (typeof effectiveTerm === 'function') ? effectiveTerm(c, 'value').v : null; } catch (_){ v = null; }
   if (R.monetary && (v || c.value)) f.push([i18t('ov2_f_value'), _ov2Money(c, v || c.value)]);
