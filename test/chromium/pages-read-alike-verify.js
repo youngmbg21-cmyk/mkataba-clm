@@ -113,6 +113,11 @@ const SEED = async () => {
     /* ---- THE ROOM, then THE NEGOTIATION PAGE, on the SAME contract ---- */
     await page.evaluate(id => openWorkspace(id), cid);
     await pause(2000);
+    /* RE-POINTED 9 Oct 2026 (SAP batch 3): the Document and Signing tabs hide
+       the facts strip, as drawn, so the card is measured on the Overview — the
+       tab that draws the room's whole head. */
+    await page.evaluate(id => roomGoTab(getContract(id), 'terms'), cid);
+    await pause(900);
     await page.screenshot({ path: path.join(OUT, '01-room.png') });
     const room = await page.evaluate(() => {
       const g = e => e ? getComputedStyle(e) : null;

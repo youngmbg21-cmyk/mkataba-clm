@@ -135,14 +135,17 @@ describe('F380 — the history reads as a line of time', () => {
     assert.equal(w.time, '');
     assert.ok(!/NaN|Invalid/.test(JSON.stringify(win.histWhen(''))));
   });
-  test('(2g) the tab prints the day over the time, and no raw record date', async () => {
+  /* RE-POINTED 9 Oct 2026 (SAP batch 3, "build exactly the drawings"): the day
+     is a HEADING over its entries (the whole date and a count) and each row
+     carries its time — reverses 24 Sep's day over the time on every row. */
+  test('(2g) the day heads its entries, each row carries its time, no raw record date', async () => {
     const { win, c } = await storyWorld();
-    const { rows } = rowsOf(win, win.roomHistoryHtml(c));
+    const { box, rows } = rowsOf(win, win.roomHistoryHtml(c));
+    const heads = box.querySelectorAll('.hist-day-h');
+    assert.ok(heads.length >= 1, 'a day heading');
+    assert.match(heads[0].textContent, new RegExp(String(new Date().getFullYear())), 'the whole date, year and all');
     for (const r of rows){
-      const day = r.querySelector('.hist-when > .hist-day');
-      assert.ok(day, 'every row has its day');
-      assert.equal(day.textContent, win.i18t('ct_hist_today'), 'filed a moment ago, so it reads Today');
-      assert.ok(r.querySelector('.hist-when > .hist-time').textContent, 'and its time under it');
+      assert.ok(r.querySelector('.hist-when > .hist-time').textContent, 'every row has its time');
       assert.ok(!/\d{4}-\d{2}-\d{2}/.test(r.querySelector('.hist-when').textContent));
     }
   });
@@ -180,47 +183,35 @@ describe('F380 — the history reads as a line of time', () => {
     assert.equal(none.querySelectorAll('.hist-trail').length, 0, 'a filter that matches nothing joins nothing');
     assert.ok(none.querySelector('.hist-empty'), 'and still says so');
   });
-  test('(4b) the line is drawn from the same numbers as the grid and the ring', () => {
-    const before = rule('.hist-ev::before');
-    assert.match(before, /background:var\(--rule\)/);
-    assert.match(before, /left:calc\(var\(--s-4\) \+ var\(--hist-when-w\) \+ var\(--hist-gap\) \+ var\(--hist-dot\) \/ 2 - \.5px\)/);
-    assert.match(rule('.hist-ev'), /grid-template-columns:var\(--hist-when-w\) /);
-    assert.match(rule('.hist-ev'), /padding:var\(--hist-pad-y\) var\(--s-4\)/);
-    assert.match(rule('.hist-dot'), /width:var\(--hist-dot\); height:var\(--hist-dot\); margin-top:var\(--hist-dot-top\)/);
-    assert.match(rule('.hist-trail'),
-      /--hist-dot-mid:calc\(var\(--hist-pad-y\) \+ var\(--hist-dot-top\) \+ var\(--hist-dot\) \/ 2\)/);
-    assert.match(CSS, /\.hist-trail > \.hist-ev:first-child::before\{ top:var\(--hist-dot-mid\); \}/);
-    assert.match(CSS, /\.hist-trail > \.hist-ev:last-child::before\{ bottom:calc\(100% - var\(--hist-dot-mid\)\); \}/);
-  });
-  test('(4c) and no rule runs across the page between entries', () => {
-    assert.ok(!/border-bottom/.test(rule('.hist-ev')), rule('.hist-ev'));
-    assert.ok(!CSS.includes('.hist-ev:last-child{ border-bottom:0; }'), 'the rule\'s own exception went with it');
+  /* RE-POINTED 9 Oct 2026: the drawing rules each entry off and draws no line
+     down the rings; the 24 Sep line is STALE. */
+  test('(4b) no line runs down the rings; each entry is ruled off', () => {
+    assert.match(CSS, /\.hist-trail \.hist-ev::before\{ display:none; \}/);
+    assert.match(CSS, /\.hist-trail \.hist-ev\{[^}]*border-bottom:1px solid var\(--color-divider\)/);
   });
 
   /* ═══════ 5. THE ROUND AT THE RIGHT WALL ═══════ */
-  test('(5) a round reads "R1", with its whole name on the hover', async () => {
+  /* RE-POINTED 9 Oct 2026: the round is a chip on the event's own line (as
+     drawn), not a column at the right wall; an entry in no round has none. */
+  test('(5) a round reads "R1" as a chip on the event\'s line, its whole name on the hover', async () => {
     const { win, c } = await storyWorld();
     const { rows } = rowsOf(win, win.roomHistoryHtml(c));
-    const inRound = rows.filter(r => r.querySelector('.hist-round:not(.is-none)'));
+    const inRound = rows.filter(r => r.querySelector('.hist-text .hist-rchip'));
     assert.ok(inRound.length >= 2, 'the proposal and the refusal');
     for (const r of inRound){
-      const el = r.querySelector('.hist-round');
+      const el = r.querySelector('.hist-rchip');
       assert.equal(el.textContent, win.i18t('ct_round_short', { n: 1 }));
       assert.equal(el.getAttribute('title'), win.i18t('ct_round_n', { n: 1 }));
     }
     assert.equal(win.i18t('ct_round_short', { n: 1 }), 'R1');
-    assert.match(rule('.hist-round'), /font-weight:var\(--w-strong\)/);
+    assert.match(rule('.hist-rchip'), /font-weight:var\(--w-strong\)/);
   });
-  test('(5b) an entry in no round says so with a dash, and the column always holds', async () => {
+  test('(5b) an entry in no round carries no chip', async () => {
     const { win, c } = await storyWorld();
     const { rows } = rowsOf(win, win.roomHistoryHtml(c));
-    assert.ok(rows.every(r => r.querySelector('.hist-round')), 'every row draws the column');
     const sys = rows.find(r => /Scanned — Risk scan run/.test(r.querySelector('.hist-text').textContent));
     assert.ok(sys, 'the system entry is on the page');
-    const dash = sys.querySelector('.hist-round');
-    assert.ok(dash.classList.contains('is-none'));
-    assert.equal(dash.textContent, '—');
-    assert.equal(dash.getAttribute('aria-hidden'), 'true', 'a screen reader is not read a dash');
+    assert.equal(sys.querySelector('.hist-rchip'), null);
   });
 
   /* ═══════ 6. THE SENTENCE IN BLACK ═══════ */

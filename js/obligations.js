@@ -2857,11 +2857,18 @@ function obligationDueSay(o, c){
    can remind nobody the row says UNASSIGNED in the quiet grey (SAP benchmark,
    owner-approved 9 Oct 2026, was "Nobody" in amber): a state, not an alarm —
    the hover still says what it costs. */
-function obWhoCellHtml(o){
+/* The party a duty belongs to, for its initials: theirs is the counterparty,
+   ours is the entity on this agreement. */
+function obPartyOf(o, c){
+  if(obligationIsTheirs(o)) return (o && o.counterparty) || (c && c.counterparty) || '';
+  try{ return (typeof window.contractParty === 'function' && contractParty(c)) || ''; }catch(_){ return ''; }
+}
+function obWhoCellHtml(o, drawn){
   if(obligationIsTheirs(o)) return `<span class="ins-quiet">${_obEsc(i18t('ob_side_theirs'))}</span>`;
   const m = obligationReminderTo(o);
   if(!m){
     const typed = String((o && o.assignee) || '').trim();
+    if(drawn) return `<span class="ob-nobody" title="${_obEsc(typed ? i18t('ob_no_owner_title') : i18t('ob_no_owner_none'))}">${_obEsc(i18t('ob_nobody'))}</span>`;
     return `<span class="ins-unassigned" title="${_obEsc(typed ? i18t('ob_no_owner_title') : i18t('ob_no_owner_none'))}">${_obEsc(i18t('ob_unassigned'))}</span>`;
   }
   return `<span class="ins-who"><i class="ins-av" aria-hidden="true">${_obEsc(obInitials(m.name))}</i><span title="${_obEsc(m.name || '')}">${_obEsc(obShortName(m.name))}</span></span>`;
@@ -3252,7 +3259,8 @@ function obPanelOpts(o, c, i, ctx){
   const facts = [
     { k:'due', label: i18t('ob_fact_due'), v: due ? _obEsc(obDay(due, true)) : '' },
     /* No money, no Amount (SAP benchmark, 9 Oct 2026): an empty box is not a fact. */
-    money && obligationHasAmount(o) ? { k:'amount', label: i18t('ob_amount'), v: _obEsc(obligationMoneyText(obligationAmount(o), c)) } : null,
+    money && obligationHasAmount(o) ? { k:'amount', label: i18t('ob_amount'), v: _obEsc(obligationMoneyText(obligationAmount(o), c)) }
+      : (money && ctx === 'tab') ? { k:'amount', label: i18t('ob_amount'), v: '\u2014' } : null,
     { k:'whose', label: i18t('ob_f_whose'), v: whose },
     { k:'repeats', label: i18t('ob_f_repeats'), v: _obEsc(obRepeatsWord(o)) },
   ];
@@ -3268,8 +3276,10 @@ function obPanelOpts(o, c, i, ctx){
   const eyebrow = ctx === 'page'
     ? `<span class="ins-ref hati-ref">${ref}</span>${kind ? ' · ' + _obEsc(kind) : ''}`
     : `${_obEsc(theirs ? i18t('ob_side_theirs') : i18t('ob_side_ours'))} · ${_obEsc(obRepeatsWord(o))}`;
-  const sub = theirs ? _obEsc(i18t('ob_sub_theirs', { cp: o.counterparty || c.counterparty || i18t('ob_side_theirs') }))
+  const sub0 = theirs ? _obEsc(i18t('ob_sub_theirs', { cp: o.counterparty || c.counterparty || i18t('ob_side_theirs') }))
     : _obEsc(i18t('ob_sub_ours', { cp: c.counterparty || i18t('ob_side_theirs') }));
+  /* the party's initials lead the line on the contract's tab, as drawn */
+  const sub = ctx === 'tab' ? `<span class="ob-id">${obAvHtml(obPartyOf(o, c))}<span>${sub0}</span></span>` : sub0;
   const may = (typeof canEdit !== 'function') || canEdit();
   const menuHtml = (ctx === 'tab' && may) ? insMenuItemHtml({ k:'remove', label: i18t('ob_remove_cap'), icon:'trash', ruby:true, says: i18t('ob_remove_says') }) : '';
   const acts = obPanelActs(o, c, i, ctx);
@@ -3326,7 +3336,12 @@ function obPaintPanel(hostId, o, c, i, ctx, emptyMsg){
    row's own facts, because the contract is the page it sits on. */
 function obListHtml(rows, ctx, c1){
   /* No money on any row, no Amount column (SAP benchmark, 9 Oct 2026). */
-  const money = obligationMoneyVisible() && (rows || []).some(r => obligationHasAmount(r));
+  /* THE CONTRACT'S TAB DRAWS THE DRAWING EXACTLY (owner, 9 Oct 2026, batch 3):
+     an Amount column always, the party's initials on each row, and an
+     unassigned duty of ours says "Nobody" in amber. The Obligations PAGE keeps
+     batch 1's rulings (Amount only with money, "Unassigned" in grey). */
+  const tabDrawn = ctx === 'tab';
+  const money = obligationMoneyVisible() && (tabDrawn || (rows || []).some(r => obligationHasAmount(r)));
   const cols = [
     { t: i18t('ob_col_when'), w: 132 },
     { t: i18t('ob_col_what') },
@@ -3339,8 +3354,8 @@ function obListHtml(rows, ctx, c1){
     const line2 = ctx === 'page' ? obPageLine2(r, c) : obligationFactsLine(r, c, false);
     return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1">
       <td><span class="ins-c2"><b>${_obEsc(due.day)}</b><span class="${due.cls}">${_obEsc(due.sub)}</span></span></td>
-      <td>${ctx === 'page' ? `<span class="ob-id">${obAvHtml(r.counterparty || (c && c.counterparty) || '')}` : ''}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}</b><span>${line2}</span></span>${ctx === 'page' ? '</span>' : ''}</td>
-      <td>${obWhoCellHtml(r)}</td>
+      <td>${ctx === 'page' || tabDrawn ? `<span class="ob-id">${obAvHtml(tabDrawn ? obPartyOf(r, c) : (r.counterparty || (c && c.counterparty) || ''))}` : ''}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}</b><span>${line2}</span></span>${ctx === 'page' || tabDrawn ? '</span>' : ''}</td>
+      <td>${obWhoCellHtml(r, tabDrawn)}</td>
       ${money ? `<td class="r">${obAmountCellHtml(r, c)}</td>` : ''}
     </tr>`;
   };
@@ -3453,7 +3468,7 @@ function renderObligationsInspector(host){
    with its count), the tab's facts in one sentence, and Add and Find at the
    right — the tab's own two verbs, unchanged, under their own ids. The view
    is per contract, per sitting, in memory. */
-const OBT_VIEWS = [['open','ob_v_out'],['done','ob_v_done'],['all','ob_v_all']];
+const OBT_VIEWS = [['open','ob_v_out'],['overdue','ob_v_over'],['done','ob_v_done'],['all','ob_v_all']];
 const _obtView = {};
 function obtView(cid){ const v = _obtView[cid]; return OBT_VIEWS.some(x => x[0] === v) ? v : 'open'; }
 function roomObligationsInspector(c, host){
@@ -3462,34 +3477,22 @@ function roomObligationsInspector(c, host){
   const view = obtView(c.id);
   const all = obs.map((o, i) => ({ ...o, cid: c.id, counterparty: c.counterparty || '', st: obState(o),
     win: obligationWindow(o, c), days: obligationDue(o) ? daysUntil(obligationDue(o)) : null, _c: c, _i: i, _key: obKeyOf(c.id, o, i) }));
-  const pass = (r, v) => v === 'all' ? true : v === 'done' ? r.st === 'done' : r.st !== 'done';
+  const pass = (r, v) => v === 'all' ? true : v === 'done' ? r.st === 'done'
+    : v === 'overdue' ? (r.st !== 'done' && r.win === 'overdue') : r.st !== 'done';
   const rows = all.filter(r => pass(r, view)).sort(obByWhen);
-  const open = all.filter(r => r.st !== 'done');
-  const over = open.filter(r => r.win === 'overdue').length, wait = open.filter(r => r.win === 'waiting').length;
-  const money = obligationMoneyVisible();
-  const owe = money ? obligationBandTotal(open.filter(r => !obligationIsTheirs(r))) : 0;
-  const paid = money ? obligationBandTotal(all.filter(r => r.st === 'done' && !obligationIsTheirs(r))) : 0;
-  const facts = [
-    over ? `<span class="ins-late">${_obEsc(i18tn('ob_head_overdue', over, { n: over }))}</span>` : '',
-    wait ? _obEsc(i18tn('ob_tf_waiting', wait, { n: wait })) : '',
-    owe ? _obEsc(i18t('ob_tf_owe', { amt: '\u0000' })).replace('\u0000', `<b>${_obEsc(obligationMoneyText(owe, c))}</b>`) : '',
-    paid ? _obEsc(i18t('ob_tf_paid', { amt: '\u0000' })).replace('\u0000', `<b>${_obEsc(obligationMoneyText(paid, c))}</b>`) : '',
-  ].filter(Boolean).join(' · ');
-  const seg = `<span class="reg-seg" role="group" aria-label="${_obEsc(i18t('ob_views_label'))}">${OBT_VIEWS.map(([k, key]) =>
-    `<button type="button" class="${view === k ? 'on' : ''}" data-obt-view="${k}" aria-pressed="${view === k ? 'true' : 'false'}">${_obEsc(i18t(key))}<span class="n">${all.filter(r => pass(r, k)).length}</span></button>`).join('')}</span>`;
+  /* THE VIEWS ARE TABS ON THE LIST'S OWN CARD (SAP batch 3, as drawn):
+     Outstanding · Overdue · Completed · All, Add and Find on the card's head.
+     The facts sentence left with the button group (the tabs say the counts). */
+  const seg = `<span class="reg-views obt-tabs" role="tablist" aria-label="${_obEsc(i18t('ob_views_label'))}">${OBT_VIEWS.map(([k, key]) => { const n = all.filter(r => pass(r, k)).length;
+    return `<button type="button" role="tab" class="reg-vtab${view === k ? ' on' : ''}${!n && view !== k ? ' is-zero' : ''}${k === 'overdue' && n ? ' is-late' : ''}" data-obt-view="${k}" aria-selected="${view === k ? 'true' : 'false'}">${_obEsc(i18t(key))}<span class="n">${n}</span></button>`; }).join('')}</span>`;
   const plus = typeof icon === 'function' ? icon('plus', 'w-3.5 h-3.5') : '';
   const find = typeof icon === 'function' ? icon('search', 'w-3.5 h-3.5') : '';
   const { cols, body } = obListHtml(rows, 'tab', c);
   const empty = `<tr class="ins-empty"><td colspan="${cols.length}">${_obEsc(i18t(obs.length ? 'ob_none_here' : 'ob_none_tracked'))}</td></tr>`;
-  host.innerHTML = `<div class="obt-line">
-      ${seg}
-      <span class="facts">${facts}</span>
-      <span class="sp"></span>
-      ${editable ? `<button type="button" id="obt-add" class="ui-btn">${plus}${_obEsc(i18t('ob_add'))}</button>
-      ${obFindDoorHtml(c, (obReviewWaiting(c).length ? '' : find) + obFindWord(c))}` : ''}
-    </div>
-    <div class="ins-body">
+  host.innerHTML = `<div class="ins-body">
       <section class="ins-card" aria-label="${_obEsc(i18t('tab_obligations'))}">
+        <div class="obt-head">${seg}<span class="sp"></span>${editable ? `<button type="button" id="obt-add" class="ui-btn">${plus}${_obEsc(i18t('ob_add'))}</button>
+          ${obFindDoorHtml(c, (obReviewWaiting(c).length ? '' : find) + obFindWord(c))}` : ''}</div>
         <div class="ins-scroll" id="obt-scroll">${obTableHtml(cols, rows.length ? body : empty)}</div>
       </section>
       <aside id="obt-panel" class="ins-panel" aria-label="${_obEsc(i18t('ob_panel_label'))}"></aside>

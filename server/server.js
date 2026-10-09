@@ -10242,13 +10242,36 @@ function dealPageHtml(D, org) {
     <div style="font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8A9693;margin-bottom:2px">${e(k)}</div>
     <div style="font-size:15px;font-weight:600;color:#1B2A28">${e(v)}</div></td>`;
   const clauseOf = p => (p && p.clause) || 'a clause';
-  const li = (mark, a, b) => `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid #F1F4F3;font-size:14px">
-    <span style="flex:none;color:${mark === 'o' ? '#E8B84B' : mark === 'x' ? '#9B2C2C' : '#0C5D55'};line-height:1.5">${mark === 'o' ? '○' : mark === 'x' ? '✕' : '✓'}</span>
-    <span><b style="font-weight:600">${e(a)}</b>${b ? `<i style="font-style:normal;display:block;color:#5F6D6B;font-size:12.5px;margin-top:1px">${e(b)}</i>` : ''}</span></div>`;
   /* THE SHARED SHEET (4 Oct 2026): one row of facts — the round, how much is
      settled, what waits on each party — in place of "Whose move — X for 0 days". */
   const facts = [fact('Round', String(D.round)), fact('Settled', `${D.settled} of ${D.total}`)]
     .concat(D.executed ? [] : (D.waiting || []).map(w => fact(`Waiting on ${w.party}`, String(w.n))));
+  /* ---- THE DRAWING'S SHEET (SAP benchmark, batch 3, owner 9 Oct 2026: "same
+     look for them") ---- the in-app sheet's shape in literal values: a top
+     card, Still open as a table (clause and who proposed it — this page
+     carries no wording, so there is no "what is proposed" column), Settled
+     and Lately as two cards beside it. */
+  const card = 'background:#fff;border:1px solid #E2E7E5;border-radius:8px';
+  const ch = (t, r) => `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #E7EBE9"><b style="font-size:14px;font-weight:600">${t}</b>${r ? `<span style="margin-left:auto;font-size:12.5px;color:#5F6D6B">${r}</span>` : ''}</div>`;
+  const initials = n => String(n || '').split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+  const av = n => `<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:4px;background:#EEF2F8;color:#2A4A86;font-size:10.5px;font-weight:600;flex:none">${e(initials(n))}</span>`;
+  const quiet = t => `<div style="font-size:14px;color:#8A9693;padding:10px 16px">${t}</div>`;
+  const openTable = D.points.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:14px"><thead><tr>${['Clause', 'Proposed by'].map(h => `<th style="text-align:left;font-size:12px;font-weight:500;color:#5F6D6B;padding:8px 16px;border-bottom:1px solid #E7EBE9;background:#F7F9F8">${h}</th>`).join('')}</tr></thead><tbody>${
+        D.points.map(p => `<tr><td style="padding:10px 16px;border-bottom:1px solid #F1F4F3;color:#264C9E">${e(clauseOf(p))}</td><td style="padding:10px 16px;border-bottom:1px solid #F1F4F3">${p.by ? `<span style="display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#5F6D6B">${av(p.by)}${e(p.by)}</span>` : ''}</td></tr>`).join('')}</tbody></table>`
+      + (D.open > D.points.length ? quiet(`and ${D.open - D.points.length} more`) : '')
+    : quiet('Nothing is open');
+  const settledList = D.settledPoints.length
+    ? D.settledPoints.map(p => `<div style="display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid #F1F4F3;font-size:14px">
+        <span style="flex:none;color:${p.settled ? '#0C5D55' : '#9B2C2C'}">${p.settled ? '✓' : '✕'}</span>
+        <span style="flex:1"><b style="font-weight:600">${e(clauseOf(p))}</b>${p.settled ? '' : '<i style="font-style:normal;display:block;color:#5F6D6B;font-size:12.5px">not taken</i>'}</span>
+        ${p.at ? `<span style="flex:none;font-size:12.5px;color:#5F6D6B">${e(day(p.at))}</span>` : ''}</div>`).join('')
+      + (D.settled > D.settledPoints.length ? quiet(`and ${D.settled - D.settledPoints.length} more`) : '')
+    : quiet('Nothing has been settled yet');
+  const latelyList = D.lately.length
+    ? D.lately.map(x => `<div style="display:flex;align-items:center;gap:12px;font-size:12.5px;padding:8px 16px;border-bottom:1px solid #F1F4F3"><span style="color:#9AA6A3;flex:none;width:80px">${e(day(x.at))}</span><div style="flex:1">${e(evText(x))}</div>${x.round ? `<span style="flex:none;font:11px monospace;background:#EEF2F8;color:#2A4A86;border-radius:4px;padding:1px 6px">R${e(x.round)}</span>` : ''}</div>`).join('')
+    : quiet('Nothing has happened yet');
+  const waitOn = (!D.executed && D.move && D.move.party) ? `waiting on ${e(D.move.party)}` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
@@ -10258,32 +10281,25 @@ function dealPageHtml(D, org) {
       <b style="font-size:15px">HaTi</b>
       <span style="border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:1px 9px;font-size:10px;letter-spacing:.06em;text-transform:uppercase">Read only</span>
       <span style="flex:1"></span>
-      <span>${D.updatedAt ? 'Last moved ' + e(day(D.updatedAt)) : ''}</span></div>
-    <div style="padding:22px 20px 40px">
-    <div style="background:#fff;border:1px solid #E2E7E5;max-width:880px;margin:0 auto;padding:22px 30px 20px;box-shadow:0 1px 3px rgba(27,42,40,.06)">
-      <h1 style="font-size:20px;font-weight:700;line-height:1.25;margin:0 0 4px">Where the deal stands</h1>
-      <div style="font-size:13px;color:#5F6D6B;margin:0 0 10px">${e(D.name)} &middot; ${e(D.ref)}</div>
-      <div style="margin-bottom:5px">${D.parties.map(p => `<span style="display:inline-block;font-size:12px;border:1px solid ${p.ours ? '#B6D3CE' : '#D9E0DE'};background:${p.ours ? '#F1F7F6' : 'transparent'};border-radius:999px;padding:1px 10px;margin:0 6px 5px 0;color:#42504D"><b style="font-weight:700">${e(p.name)}</b>${role(p) ? ' · ' + e(role(p)) : ''}</span>`).join('')}</div>
-      <table style="border-collapse:collapse;border-top:1px solid #E7EBE9;margin:12px 0 0;width:100%"><tr style="vertical-align:top">
-        <td style="padding:12px 0 0"><table style="border-collapse:collapse"><tr style="vertical-align:top">${facts.join('')}</tr></table></td></tr></table>
+      <span>${e(D.name)} &middot; ${e(D.ref)}</span></div>
+    <div style="padding:22px 20px 40px;max-width:1120px;margin:0 auto">
+    <div style="${card};padding:12px 16px 0">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <h1 style="font-size:16px;font-weight:600;line-height:1.25;margin:0">Where the deal stands</h1>
+        <span style="font-size:12px;color:#5F6D6B;background:#F1F4F3;border-radius:999px;padding:1px 8px">Seen by every party</span>
+        ${D.updatedAt ? `<span style="font-size:12.5px;color:#5F6D6B">&middot; last moved ${e(day(D.updatedAt))}</span>` : ''}</div>
+      <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;margin:12px -16px 0;padding:12px 16px 0;border-top:1px solid #E7EBE9">
+        <table style="border-collapse:collapse;flex:1"><tr style="vertical-align:top">${facts.join('')}</tr></table>
+        <div>${D.parties.map(p => `<span style="display:inline-flex;align-items:center;gap:8px;font-size:12px;border:1px solid ${p.ours ? '#B6D3CE' : '#D9E0DE'};background:${p.ours ? '#F1F7F6' : 'transparent'};border-radius:999px;padding:3px 12px 3px 4px;margin:0 0 6px 6px;color:#5F6D6B">${av(p.name)}<b style="font-weight:600;color:#1B2A28">${e(p.name)}</b>${role(p) ? e(role(p)) : ''}</span>`).join('')}</div></div>
       <table style="width:100%;border-collapse:collapse;margin:16px 0 18px"><tr>${D.steps.map(step).join('')}</tr></table>
-      <table style="width:100%;border-collapse:collapse"><tr style="vertical-align:top">
-        <td style="width:50%;padding-right:12px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Settled &middot; ${D.settled}</div>
-          ${D.settledPoints.length ? D.settledPoints.map(p => p.settled ? li('t', clauseOf(p), '') : li('x', clauseOf(p), 'not taken')).join('')
-            + (D.settled > D.settledPoints.length ? `<div style="font-size:13px;color:#8A9693;padding:5px 0">and ${D.settled - D.settledPoints.length} more</div>` : '')
-            : '<div style="font-size:14px;color:#8A9693;padding:5px 0">Nothing has been settled yet</div>'}</td>
-        <td style="width:50%;padding-left:12px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin-bottom:6px">Still open &middot; ${D.open}</div>
-          ${D.points.length ? D.points.map(p => li('o', clauseOf(p), p.with ? 'with ' + p.with : '')).join('')
-            + (D.open > D.points.length ? `<div style="font-size:13px;color:#8A9693;padding:5px 0">and ${D.open - D.points.length} more</div>` : '')
-            : '<div style="font-size:14px;color:#8A9693;padding:5px 0">Nothing is open</div>'}</td>
-      </tr></table>
-      <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5F6D6B;margin:18px 0 6px">Lately</div>
-      ${D.lately.length ? D.lately.map(x => `<div style="display:flex;gap:12px;font-size:12.5px;padding:4px 0"><span style="color:#9AA6A3;flex:none;width:92px">${e(day(x.at))}</span><div>${e(evText(x))}</div></div>`).join('')
-        : '<div style="font-size:14px;color:#8A9693">Nothing has happened yet</div>'}
-      <p style="margin:18px 0 0;border-top:1px solid #EDF1F0;padding-top:11px;font-size:12px;color:#8A9693;line-height:1.6">The same page every party sees${org ? ' &middot; shared by ' + e(org) : ''} &middot; read-only; whoever switched it on can switch it off.</p>
-    </div></div>
+    </div>
+    <table style="width:100%;border-collapse:separate;border-spacing:0;margin-top:16px"><tr style="vertical-align:top">
+      <td style="width:58%;padding-right:16px"><div style="${card}">${ch(`Still open (${D.open})`, waitOn)}${openTable}</div></td>
+      <td style="width:42%"><div style="${card}">${ch(`Settled (${D.settled})`, '')}${settledList}</div>
+        <div style="${card};margin-top:16px">${ch('Lately', '')}${latelyList}</div></td>
+    </tr></table>
+    <p style="margin:16px 0 0;font-size:12px;color:#8A9693;line-height:1.6">${org ? 'Shared by ' + e(org) + ' &middot; ' : ''}read-only; whoever switched it on can switch it off.</p>
+    </div>
   </body></html>`;
 }
 /* ---- THE ADDRESS ---- */
@@ -15131,7 +15147,8 @@ function srvDealStands(c) {
     if (seenO.has(key)) continue;
     seenO.add(key);
     const holder = ch.authorSide === 'owner' ? them : us;
-    points.push({ clause: srvDsClause(ch), with: (holder && holder.name) || '', kind: ch.changeType || ch.kind || '' });
+    const author = ch.authorSide === 'owner' ? us : them;
+    points.push({ clause: srvDsClause(ch), with: (holder && holder.name) || '', by: (author && author.name) || '', kind: ch.changeType || ch.kind || '' });
     if (points.length >= DEAL_POINTS_MAX) break;
   }
   const seenS = new Set(), settledPoints = [];
@@ -15140,7 +15157,7 @@ function srvDealStands(c) {
     const key = String(ch.clauseId || ch.id || '');
     if (seenS.has(key)) continue;
     seenS.add(key);
-    settledPoints.push({ clause: srvDsClause(ch), settled: ch.status === 'accepted' });
+    settledPoints.push({ clause: srvDsClause(ch), settled: ch.status === 'accepted', at: ch.resolvedAt || '' });
     if (settledPoints.length >= DEAL_POINTS_MAX) break;
   }
   /* what waits on each party that negotiates — the browser's dsWaiting */
@@ -15159,10 +15176,11 @@ function srvDealStands(c) {
   for (const ch of srvDsChanges(c)) {
     if (ch.status === 'superseded') continue;
     const at = ch.createdAt || ch.at || '';
-    if (at) ev.push({ at, kind: 'asked', party: nameOf(ch.authorSide), clause: srvDsClause(ch) });
+    const round = Number(ch.roundN) || 0;
+    if (at) ev.push({ at, kind: 'asked', party: nameOf(ch.authorSide), clause: srvDsClause(ch), round });
     if ((ch.status === 'accepted' || ch.status === 'rejected') && (ch.resolvedAt || at))
       ev.push({ at: ch.resolvedAt || at, kind: ch.status === 'accepted' ? 'settled' : 'declined',
-        party: nameOf(ch.authorSide === 'owner' ? 'counterparty' : 'owner'), clause: srvDsClause(ch) });
+        party: nameOf(ch.authorSide === 'owner' ? 'counterparty' : 'owner'), clause: srvDsClause(ch), round });
   }
   for (const r of srvDsRounds(c)) if (r && r.at) ev.push({ at: r.at, kind: 'round', party: '', round: r.n });
   for (const s of (Array.isArray(c.signatures) ? c.signatures : [])) if (s && s.at)

@@ -129,7 +129,7 @@ describe('F459 (B) — the shared sheet', () => {
     assert.match(html, /Waiting on Highland Ltd<\/span><b>1<\/b>/);
     assert.match(html, /Waiting on you<\/span><b class="ds-warn">1<\/b>/, 'the reader\'s own figure, where the surface knows the reader');
     assert.ok(!/never shows|Built from the record|ds-move|ds-eyebrow/.test(html), 'the disclaimer and the old rows are gone');
-    assert.match(html, /The same page every party sees/);
+    assert.match(html, /Seen by every party/, 'said as the drawing\'s tag beside the title (9 Oct 2026)');
     assert.ok(html.indexOf('ds-mine') < html.indexOf('ds-facts'), 'the reader\'s line sits in the head, above the facts');
   });
   test('a clause is named by its label; an inside id is said as "a clause"', () => {
