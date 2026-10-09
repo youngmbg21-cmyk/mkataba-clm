@@ -9436,6 +9436,11 @@
     transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1);
   }
   #context-panel.open{transform:none;}
+  /* A CLOSED PANEL CASTS NO SHADOW (owner, 10 Oct 2026: "the top bar … should be
+     White … There should be no grey"). Parked at translateX(105%) just past
+     the right edge, its 64px shadow still spilled back across the head as a
+     grey fade on every page. (1,1,0) beats the base rule by weight. */
+  #context-panel:not(.open){box-shadow:none;}
   /* The notes face alone takes the wider token. (1,1,0) against the base
      rule's (1,0,0), so it wins by WEIGHT and not by order or !important —
      and a face with no rule of its own simply keeps --shell-panel-w. */
@@ -9913,6 +9918,7 @@
      came out about a hundred pixels wide. */
   #ai-panel{display:flex;flex-direction:column;width:100%;box-shadow:var(--shadow-lg);}
   #ai-panel > *{flex:none;}
+  #ai-panel:not(.open){box-shadow:none;}   /* see #context-panel:not(.open) */
   #ai-panel > header{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-4) 20px;}
   /* The title block must be allowed to give way. Without min-width:0 it holds
      its content's width, so on a phone the four header verbs — expand, delete,

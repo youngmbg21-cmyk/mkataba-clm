@@ -10132,7 +10132,12 @@ function roomHeadSubHtml(c, opts = {}){
   if (kind) bits.push(esc(kind));
   if (c && F[c.folder]) bits.push(`<span class="room-sub-stream"><i style="background:${esc(F[c.folder].color||'var(--color-neutral-400)')}"></i>${esc(F[c.folder].name)}</span>`);
   if (c && c.archived) bits.push(esc(i18t('ct_archived_tag')));
-  const owner = (typeof contractOwnerName === 'function') ? contractOwnerName(c) : '';
+  /* NEGOTIATE'S LINE NAMES NO PERSON (owner, 10 Oct 2026: "remove the lead
+     and name from the second line below the title in negotiation"). Its head
+     is the one built with opts.needs === false; the room's tabs keep the
+     owner. The lead is still one press away on the head's own pill. */
+  const negoHead = !!(c && opts.needs === false);
+  const owner = (!negoHead && typeof contractOwnerName === 'function') ? contractOwnerName(c) : '';
   if (owner) bits.push(`${esc(i18t('ov_f_owner'))} <b class="room-sub-owner">${esc(owner)}</b>`);
   /* "updated" ONLY BEFORE A DATE (9 Oct 2026): a company standard's contract
      was born with lastAction "Created from template" — words, not a day — and
@@ -10140,13 +10145,6 @@ function roomHeadSubHtml(c, opts = {}){
      rewritten; one that names no year is simply not printed here. */
   if (c && c.lastAction && /\b(19|20)\d{2}\b/.test(String(c.lastAction)))
     bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
-  /* THE LEAD ON NEGOTIATE'S LINE (SAP benchmark, batch 4, as drawn): who
-     speaks for us in this negotiation, or "nobody yet". Negotiate's head is
-     the one that draws no round-needs slot (opts.needs === false). */
-  if (c && opts.needs === false) {
-    let lead = null; try { lead = (typeof window.deskLead === 'function') ? deskLead(c) : null; } catch (_) { lead = null; }
-    bits.push(`${esc(i18t('dk_lead_label'))}: <b class="room-sub-lead">${esc((lead && lead.name) || i18t('ct_lead_nobody'))}</b>`);
-  }
   const needs = opts.needs ? `<span id="ws-round-needs-slot">${negoRoundNeedsHtml(c)}</span>` : '';
   /* ---- WHO ELSE HAS THIS OPEN (idea 5, 4 Oct 2026) ----
      A SLOT, painted by the beat rather than built here, because this is the
