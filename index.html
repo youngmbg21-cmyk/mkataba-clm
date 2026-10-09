@@ -11531,6 +11531,26 @@
   .tpl-bk-seg button + button{border-left:1px solid var(--btn-edge);}
   .tpl-bk-seg button.on{background:var(--color-accent-50);color:var(--accent-ink);font-weight:var(--w-strong);}
   @media (max-width:1023px){ .tpl-bk{grid-template-columns:minmax(0,1fr);} }
+  /* The page owns its height (on VIEW_OWNS_HEIGHT): the white band stays put,
+     each tab's body scrolls inside itself, the list and its panel fill the
+     room under the band as every inspector page does. */
+  .view-enter.tpl-page{height:var(--view-h);box-sizing:border-box;display:flex;flex-direction:column;min-height:0;padding-bottom:var(--s-4);}
+  .tpl-page > .sap-band.tpl-band{flex:none;}
+  .tpl-page > section[data-tpl-sec]{flex:1 1 auto;min-height:0;overflow:auto;}
+  .tpl-page > section[data-tpl-sec]:has(> .tpl-ins){overflow:hidden;display:flex;flex-direction:column;}
+  .tpl-ins{flex:1;min-height:0;}
+  .tpl-ins .ins-panel{min-height:0;overflow:auto;}
+  .tpl-piles{padding:0 var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}
+  .tpl-ins-head{flex:none;}
+  .tpl-ins-note{font-size:var(--t-meta);color:var(--color-neutral-600);margin-left:var(--s-2);}
+  .tpl-lt .tpl-code{font-family:var(--font-mono);font-size:var(--t-label);color:var(--color-neutral-600);}
+  .tpl-lt .num,.tpl-lt th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .tpl-draft-tag{font-size:var(--t-figure);font-weight:var(--w-title);padding:1px 6px;border-radius:var(--radius);background:var(--st-amber-bg);color:var(--st-amber-fg);margin-left:4px;}
+  .tpl-fb{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s-3) var(--s-4);padding:0 0 var(--s-3);}
+  .tpl-fb .tpl-fb-q{display:flex;flex-direction:column;gap:0;}
+  .tpl-band [data-tpl-head="list"]{margin-bottom:var(--s-2);}
+  .tpl-fb .tpl-fb-q .reg-f-l{font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .tpl-fb .tpl-fb-q .ik-search{width:240px;}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════

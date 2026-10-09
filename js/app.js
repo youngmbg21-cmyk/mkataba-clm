@@ -364,8 +364,8 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    'agents' joined the same day (Young: the list of agents must not move when
    an agent is pressed): Copilot's work is --view-h tall above 900px, its right
    side scrolls inside itself and the list beside it stays put. */
-/* 'intake' and 'advice' joined 9 Oct 2026 (SAP benchmark, batch 2): Requests and its Advice tab draw the white band to the screen's edge, as Approvals and Obligations do; 'directory' (People) the same day, scrolling inside its own page (#dir-page). */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'agents'];
+/* 'intake' and 'advice' joined 9 Oct 2026 (SAP benchmark, batch 2): Requests and its Advice tab draw the white band to the screen's edge, as Approvals and Obligations do; 'directory' (People) and 'templates' (Our paper) the same day, each scrolling inside its own page. */
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'agents'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */

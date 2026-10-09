@@ -792,6 +792,8 @@ const INS_PAGE_REPAINT = {
      line so its tab row sits where the Contracts tab's does (gap F). */
   advice: 'renderAdviceDesk',
   playbook: 'renderPlaybookPage',
+  /* the Templates list takes the inspector where it fits (SAP benchmark, batch 2) */
+  templates: 'renderTemplatesPage',
   oblig: () => { const c = (typeof getContract === 'function' && typeof state !== 'undefined') ? getContract(state.activeId) : null;
     if (c && typeof roomPaintObligations === 'function') roomPaintObligations(c); },
 };
