@@ -9773,11 +9773,111 @@ function negoListHeadHtml(shown){
   } catch (_) { waiting = null; }
   const facts = [_ne(i18tn('ngl_n_live', live, { n: live }))];
   if (waiting) facts.push(_ne(i18tn('ngl_n_waiting', waiting, { n: waiting })));
-  return `<header class="ngl-head ngl-head-table">
+  /* THE DOOR SITS AT THE TOP RIGHT OF THE HEAD (owner-approved SAP benchmark,
+     9 Oct 2026: "doors stay at the top"), where every other page keeps its
+     one filled act. */
+  return `<header class="ngl-head ngl-head-table"><div class="ngl-head-row"><div style="min-width:0">
     <h2>${i18t('ng_door_title')}</h2>
     <div class="ngl-live page-facts">${facts.join(' · ')}</div>
     ${filtered ? `<p>${_ne(i18t('ngl_sub_filtered', { n, live }))}</p>` : ''}
+    </div>${ngStartDoorHtml(true)}</div>
   </header>`;
+}
+/* ---- START A NEGOTIATION FROM THE NEGOTIATIONS PAGE (owner-approved SAP
+   benchmark, 9 Oct 2026) ----
+   The empty page used to send the reader to "Open the register" — a page the
+   menu calls Contracts — to find the contract, then its Document tab, then
+   Start negotiating. The page now offers the act itself: a short list of the
+   contracts that can start one, and a press opens the redline page.
+   ONE DOOR (rule 2): the picker only CHOOSES; the opening is the existing
+   door, openRedlineWorkbench, the funnel every way onto that page already goes
+   through (its sealed-record wall and its blanks ask included). Which contracts
+   it offers is negoMayStart's answer, the reading the Document tab's own
+   Start negotiating asks, on the stages a negotiation starts from (Drafting
+   and In Review), less those already being negotiated. A viewer is not shown
+   the door (canEdit), the nav's own rule for doors a page would refuse. */
+const NG_START_STATUSES = ['Draft', 'Under Review'];
+function ngStartCandidates(){
+  const cs = (window.state && Array.isArray(state.contracts)) ? state.contracts : [];
+  return cs.filter(c => c && !c.archived && NG_START_STATUSES.includes(c.status) && !negoIsLive(c)
+      && (typeof window.negoMayStart !== 'function' || negoMayStart(c).ok))
+    .sort((a, b) => String(b.lastAction || '').localeCompare(String(a.lastAction || '')));
+}
+function ngStartDoorHtml(primary, large){
+  try { if (typeof canEdit === 'function' && !canEdit()) return ''; } catch (_) { /* the door draws */ }
+  const ic = (typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5') : '';
+  return `<button type="button" data-ngl-start class="ui-btn${large ? ' ui-btn-lg' : ''}${primary ? ' ui-btn-primary' : ''}" style="flex:none">${ic}${_ne(i18t('ng_start_new'))}</button>`;
+}
+function ngStartRowHtml(c){
+  const cp = c.counterparty || '—';
+  const av = (typeof window.regAvatarHtml === 'function') ? window.regAvatarHtml(cp) : '';
+  const ref = (typeof window.refHtml === 'function') ? window.refHtml(c) : _ne(c.contractNo || c.id);
+  const draft = c.status === 'Draft';
+  return `<button type="button" class="ngs-row" data-ngs-id="${_ne(c.id)}" aria-pressed="false">
+    <span class="ngs-ref">${ref}</span>${av}
+    <span class="ngs-txt"><span class="ngs-cp">${_ne(cp)}</span><span class="ngs-nm">${_ne(c.name || '')}</span></span>
+    <span class="ngs-st ${draft ? 'is-draft' : 'is-review'}">${_ne(i18t(draft ? 'status_drafting' : 'status_in_review'))}</span>
+  </button>`;
+}
+function ngStartPickerOpen(){
+  if (typeof openModal !== 'function') return;
+  const all = ngStartCandidates();
+  const W = (typeof DLG_W === 'object' && DLG_W) ? DLG_W.l : '640px';
+  const count = n => _ne(i18tn('ng_start_pick_n', n, { n }));
+  openModal(`
+    <div style="padding:var(--s-4) 18px var(--s-3);border-bottom:1px solid var(--color-divider)">
+      <h3 style="margin:0;font-size:var(--t-section);font-weight:var(--w-title)">${_ne(i18t('ng_start_new'))}</h3>
+    </div>
+    <div style="padding:var(--s-3) 18px var(--s-2)">
+      ${all.length ? `<input id="ngs-q" type="search" class="w-full rounded-lg border border-inputln bg-white ui-fld" autocomplete="off" placeholder="${_ne(i18t('ng_start_pick_search'))}" aria-label="${_ne(i18t('ng_start_pick_search'))}" style="width:100%">
+      <div id="ngs-n" class="ngs-n">${count(all.length)}</div>
+      <div id="ngs-list" class="ngs-list" role="group" aria-label="${_ne(i18t('ng_start_new'))}">${all.map(ngStartRowHtml).join('')}</div>`
+      : `<p class="ngs-none">${_ne(i18t('ng_start_pick_none'))}</p>`}
+    </div>
+    <div style="padding:var(--s-3) 18px var(--s-4);display:flex;gap:var(--s-2);justify-content:flex-end;border-top:1px solid var(--color-divider)">
+      <button id="ngs-cancel" type="button" class="ui-btn">${_ne(i18t('act_cancel'))}</button>
+      ${all.length ? `<button id="ngs-go" type="button" class="ui-btn ui-btn-primary" disabled>${_ne(i18t('ng_start_pick_go'))}</button>` : ''}
+    </div>`, { label: i18t('ng_start_new'), maxWidth: W });
+  let picked = null;
+  const go = document.getElementById('ngs-go');
+  const open = id => {
+    if (!id) return;
+    if (typeof closeModal === 'function') closeModal();
+    if (typeof window.openRedlineWorkbench === 'function') window.openRedlineWorkbench(id);
+  };
+  const pick = row => {
+    picked = row ? row.getAttribute('data-ngs-id') : null;
+    document.querySelectorAll('.ngs-row').forEach(r => r.setAttribute('aria-pressed', r === row ? 'true' : 'false'));
+    if (go) go.disabled = !picked;
+  };
+  document.querySelectorAll('.ngs-row').forEach(r => {
+    r.addEventListener('click', () => pick(r));
+    r.addEventListener('dblclick', () => open(r.getAttribute('data-ngs-id')));
+    r.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); open(r.getAttribute('data-ngs-id')); } });
+  });
+  go?.addEventListener('click', () => open(picked));
+  document.getElementById('ngs-cancel')?.addEventListener('click', () => { if (typeof closeModal === 'function') closeModal(); });
+  const q = document.getElementById('ngs-q');
+  q?.addEventListener('input', () => {
+    const t = q.value.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll('.ngs-row').forEach(r => {
+      const hit = !t || r.textContent.toLowerCase().includes(t);
+      r.hidden = !hit; if (hit) shown++;
+      if (!hit && r.getAttribute('aria-pressed') === 'true') pick(null);
+    });
+    const n = document.getElementById('ngs-n'); if (n) n.innerHTML = count(shown);
+  });
+  setTimeout(() => q?.focus(), 0);
+}
+/* Delegated once, at module load: the door is painted by the head on every
+   repaint of the list, and by the empty page. */
+if (typeof document !== 'undefined' && !window._ngStartWired) {
+  window._ngStartWired = true;
+  document.addEventListener('click', e => {
+    const b = e.target && e.target.closest ? e.target.closest('[data-ngl-start]') : null;
+    if (b) { e.preventDefault(); ngStartPickerOpen(); }
+  });
 }
 function renderNegotiationsList(host){
   const el = host || document.getElementById('content');
@@ -9817,15 +9917,10 @@ function renderNegotiationsList(host){
       </header>
       <section class="ngl-empty">
         <h3>${i18t('ng_door_none')}</h3>
-        <p>${i18t('ng_door_none_how')}</p>
-        <button type="button" data-ngl-register class="ui-btn ui-btn-lg ui-btn-primary">${i18t('ng_open_register')}</button>
+        <p>${_ne(i18t('ng_door_none_pick'))}</p>
+        ${ngStartDoorHtml(true, true)}
       </section>
     </div>`;
-    el.querySelectorAll('[data-ngl-register]').forEach(b => b.addEventListener('click', () => {
-      if (window.regSetScope) regSetScope(null);
-      if (window.regState){ const R = regState(); R.stage = 'all'; R.sel = {}; }
-      setView('register');
-    }));
     if (typeof setActiveNav === 'function') setActiveNav('redline');
     return;
   }
@@ -21480,4 +21575,5 @@ if (typeof window !== 'undefined') Object.assign(window, { rlRoundPrepLineHtml, 
   negoCleanView, negoSetCleanView, negoCleanDocHtml, negoCleanBarHtml,
   negoRichBody, negoFlatBody,
   negoSeenKey, negoSeenScope, negoThreadSeenAt, negoMarkThreadSeen,
-  NEGO_F0, NEGO_C0, NEGO_LAYOUT_KEY });
+  NEGO_F0, NEGO_C0, NEGO_LAYOUT_KEY,
+  NG_START_STATUSES, ngStartCandidates, ngStartDoorHtml, ngStartPickerOpen });

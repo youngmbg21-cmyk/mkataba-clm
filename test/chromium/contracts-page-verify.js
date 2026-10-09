@@ -197,7 +197,9 @@ const check = (name, ok, detail) => {
           return t ? t.textContent.trim().length : 0; })),
         texts: ls.map(l => (l.querySelector('.reg-f-l') || {}).textContent),
         /* the bar must not have been pushed onto a second row by a long label */
-        oneRow: new Set(ls.map(l => Math.round(l.getBoundingClientRect().top))).size,
+        /* RE-POINTED 9 Oct 2026 (SAP benchmark): the filters are the band's
+           labelled boxes; Sort is an icon on the list's own head. */
+        oneRow: new Set(ls.filter(l => l.closest('.reg-fb')).map(l => Math.round(l.getBoundingClientRect().top))).size,
       };
     });
     /* FOUR labelled controls since 20 Sep 2026 (the redesign order): the quick
@@ -281,16 +283,18 @@ const check = (name, ok, detail) => {
         surface: paint('--color-surface'), ground: paint('--color-bg'),
         titleLeft: range ? Math.round(range.left) : null,
         first: f.length ? (f[0].querySelector('.reg-f-l') || {}).textContent : null,
-        tops: f.map(x => Math.round(x.getBoundingClientRect().top)),
+        tops: f.filter(x => x.closest('.reg-fb')).map(x => Math.round(x.getBoundingClientRect().top)),
         search: !!document.querySelector('.reg-f #reg-search') };
     });
     check('8a the filter bar is the top row of the list\'s own white card',
       !!band.bar && !!band.card && Math.abs(band.bar.top - band.card.top) <= 1 && band.card.bg === band.surface,
       band.card ? `card ${band.card.bg} (surface ${band.surface}) · bar at ${band.bar && band.bar.top}, card at ${band.card.top}` : 'no card');
     const clear = c => c === 'rgba(0, 0, 0, 0)' || c === 'transparent' || c === band.ground;
-    check('8b the page name and its views sit on the page ground, not on a band',
-      !!band.head && !!band.band && clear(band.head.bg) && clear(band.band.bg),
-      `head ${band.head && band.head.bg} · band ${band.band && band.band.bg} · ground ${band.ground}`);
+    /* RE-POINTED 9 Oct 2026 (SAP benchmark, owner-approved): the page's name,
+       its filters and its views are ONE white band again, edge to edge. */
+    check('8b the page name, its filters and its views sit on one white band',
+      !!band.head && !!band.band && band.head.bg === band.surface && band.band.bg === band.surface,
+      `head ${band.head && band.head.bg} · band ${band.band && band.band.bg} · surface ${band.surface}`);
     /* NO SEAM BETWEEN THE FILTERS AND THE ROWS THEY NARROW — the old band's
        point, asked of the one card that now carries both. */
     check('8c and there is no seam between the filters and the rows they narrow',
@@ -453,9 +457,15 @@ const check = (name, ok, detail) => {
          for its colour now answers rgba(0,0,0,0) — true, and about a box
          nobody can see. The claim was always "the active filter says so in
          ink", and the face is where that ink is. */
+      /* RE-POINTED 9 Oct 2026 (SAP benchmark): in the band a filter is a label
+         over a BOX (.reg-f-v); the box carries the edge, the corner, the ink
+         and the weight. The claims are the same ones, asked of the box. */
       const g = e => { if (!e) return null;
-        const chip = e.closest && e.closest('.reg-chip'); const cs = getComputedStyle(chip || e);
-        const face = chip && chip.querySelector('.reg-f-l');
+        const chip = e.closest && e.closest('.reg-chip');
+        const vbox = chip && chip.querySelector('.reg-f-v');
+        const shown = vbox && getComputedStyle(vbox).display !== 'none' ? vbox : null;
+        const cs = getComputedStyle(shown || chip || e);
+        const face = shown || (chip && chip.querySelector('.reg-f-l'));
         const fs = getComputedStyle(face || chip || e);
         return { bc: cs.borderTopColor, fg: fs.color, fw: cs.fontWeight, r: cs.borderTopLeftRadius }; };
       const btn = [...document.querySelectorAll('.ui-btn')]
@@ -569,7 +579,9 @@ const check = (name, ok, detail) => {
     const six = await page.evaluate(() => {
       /* FOUR SINCE 20 Sep 2026 (the redesign order): the quick filters are a
          tab row above the bar (.reg-views), not a labelled select on it. */
-      const ids = ['reg-stage-sel', 'reg-type-sel', 'reg-category', 'reg-sort'];
+      /* RE-POINTED 9 Oct 2026 (SAP benchmark): the three in the band share one
+         shape; Sort became an icon on the list's head and is asked below. */
+      const ids = ['reg-stage-sel', 'reg-type-sel', 'reg-category'];
       return ids.map(id => {
         const e = document.getElementById(id);
         if (!e) return { id, absent: true };
@@ -582,9 +594,9 @@ const check = (name, ok, detail) => {
           size: g ? g.fontSize : null, color: g ? g.color : null };
       });
     });
-    check('13a all four controls are present, and the quick filters are a tab row',
+    check('13a all three filters are present, and the quick filters are a tab row',
       six.every(f => !f.absent) && (await page.evaluate(() => document.querySelectorAll('.reg-views [data-reg-view]').length >= 2)),
-      six.filter(f => f.absent).map(f => f.id).join(',') || 'all four + tabs');
+      six.filter(f => f.absent).map(f => f.id).join(',') || 'all three + tabs');
     check('13a2 and the search box is not among them any more',
       !six.some(f => f.id === 'reg-search')
         && !(await page.evaluate(() => !!document.getElementById('reg-search'))),
@@ -618,14 +630,14 @@ const check = (name, ok, detail) => {
       `${sortWorks.before} -> ${sortWorks.after}`);
     /* SORT NEVER WEARS THE ACTIVE ACCENT, deliberately: on the other five that
        marks "this is narrowing your list", and sorting narrows nothing. */
+    /* RE-POINTED 9 Oct 2026 (SAP benchmark): Sort is an icon on the list's
+       own head, never a box among the filters — so it cannot be dressed as one. */
     const sortInk = await page.evaluate(() => {
-      const s = getComputedStyle(document.getElementById('reg-sort'));
-      const t = getComputedStyle(document.getElementById('reg-type-sel'));
-      return { sort: s.borderTopColor + '|' + s.fontWeight,
-        resting: t.borderTopColor + '|' + t.fontWeight };
+      const s = document.getElementById('reg-sort');
+      return { inBand: !!(s && s.closest('.reg-fb')), onHead: !!(s && s.closest('.reg-cardhead')) };
     });
-    check('13g and a sorted list is not dressed as a filtered one',
-      sortInk.sort === sortInk.resting, JSON.stringify(sortInk));
+    check('13g and Sort sits on the list\'s head, not among the filters',
+      !sortInk.inBand && sortInk.onHead, JSON.stringify(sortInk));
     await page.evaluate(() => { const R = regState(); R.sort = 'updated'; regRepaint(); });
     await page.waitForTimeout(700);
 
@@ -810,8 +822,10 @@ const check = (name, ok, detail) => {
       const e = await page.evaluate(EDGE);
       check(`15 ${name}: the list is one card, drawn inside the page (its filters and its rows)`,
         !!e && e.card && e.cardRight < e.win, e ? `card ends ${e.cardRight} of ${e.win}` : 'no band');
-      check(`15 ${name}: and the page's name is not on a card of its own — it sits on the page ground`,
-        !!e && !!e.headPaint && e.headPaint === e.ground && e.headPaint !== e.surface,
+      /* RE-POINTED 9 Oct 2026 (SAP benchmark): the name sits on the page's
+         white band, not on the grey ground and not on the list's card. */
+      check(`15 ${name}: and the page's name sits on the page's white band`,
+        !!e && !!e.headPaint && e.headPaint === e.surface && e.headPaint !== e.ground,
         e ? `behind the name ${e.headPaint} · ground ${e.ground} · card ${e.surface}` : '-');
       check(`15 ${name}: nothing but the card's own surface down its edge, from the filters to the column heads`,
         !!e && e.samples > 6 && e.colours.length === 1 && e.colours[0] === e.surface

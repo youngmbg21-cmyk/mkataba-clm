@@ -92,7 +92,10 @@ describe('f391 (2) — the head lists them, one line each', () => {
   test('2a [control] the two-party head is byte for byte what it drew', () => {
     const win = world();
     const h = head(win, plain()).querySelector('h2');
-    assert.equal(h.outerHTML, '<h2 class="ins-cp" title="Nordkust Logistics AS"><span class="ins-cp-n">Nordkust Logistics AS</span></h2>');
+    /* Re-pointed 9 Oct 2026 (SAP benchmark, owner-approved): the counterparty's
+       initials sit beside its name, as on every list row; nothing else moved. */
+    const av = typeof win.regAvatarHtml === 'function' ? win.regAvatarHtml('Nordkust Logistics AS') : '';
+    assert.equal(h.outerHTML, `<h2 class="ins-cp${av ? ' has-av' : ''}" title="Nordkust Logistics AS">${av}<span class="ins-cp-n">Nordkust Logistics AS</span></h2>`);
   });
   test('2b a multi-party head names every other party, each on a line of its own', () => {
     const win = world();

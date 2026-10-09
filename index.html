@@ -2648,6 +2648,26 @@
      !important. */
   .ngl-head-table .ngl-live{ font-family:inherit; font-size:var(--t-body); font-weight:var(--w-body);
     color:var(--color-neutral-600); background:none; border:0; border-radius:0; padding:0; }
+  /* ---- START A NEGOTIATION (SAP benchmark, owner-approved 9 Oct 2026) ----
+     The page's own door sits at the right of its head; the picker lists the
+     contracts that may start one. Tokens only. */
+  .ngl-head-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--s-3); flex-wrap:wrap; }
+  .ngs-n{ margin:var(--s-1) 0 var(--s-2); font-size:var(--t-meta); color:var(--color-neutral-600); }
+  .ngs-list{ max-height:min(52vh,420px); overflow:auto; border:1px solid var(--color-divider); border-radius:var(--radius); }
+  .ngs-row{ display:flex; align-items:center; gap:var(--s-2); width:100%; padding:var(--s-2) var(--s-3);
+    background:none; border:0; border-bottom:1px solid var(--color-divider); text-align:left; cursor:pointer;
+    font:inherit; color:var(--color-text); }
+  .ngs-row:last-child{ border-bottom:0; }
+  .ngs-row:hover{ background:var(--color-neutral-100); }
+  .ngs-row[aria-pressed="true"]{ background:var(--color-accent-50); box-shadow:inset 3px 0 0 var(--color-accent-600); }
+  .ngs-txt{ display:flex; flex-direction:column; min-width:0; flex:1; }
+  .ngs-cp{ font-weight:var(--w-label); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ngs-nm{ font-size:var(--t-meta); color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ngs-ref{ flex:none; }
+  .ngs-st{ flex:none; font-size:var(--t-meta); font-weight:var(--w-label); border-radius:var(--radius); padding:1px var(--s-2); border:1px solid; }
+  .ngs-st.is-draft{ color:var(--st-gray-fg); background:var(--st-gray-bg); border-color:var(--st-gray-line); }
+  .ngs-st.is-review{ color:var(--st-amber-fg); background:var(--st-amber-bg); border-color:var(--st-amber-line); }
+  .ngs-none{ margin:var(--s-3) 0; color:var(--color-neutral-600); }
   .ngl-empty h3{ margin:0 0 6px; font-size:16px; font-weight:var(--w-title); }
   .ngl-empty p{ margin:0 0 var(--s-4); font-size:var(--t-body); color:var(--color-neutral-600);
     max-width:46ch; margin-inline:auto; line-height:1.6; }
@@ -10821,6 +10841,19 @@
   .ins-cp{margin:4px 0 0;font-size:var(--t-section);font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.25;color:var(--color-text);
     display:flex;align-items:center;gap:4px;min-width:0;}
   .ins-cp-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* SAP benchmark head (owner-approved 9 Oct 2026): initials beside the name,
+     the stage at the row's end where a page asks for it, one act on the sub line. */
+  .ins-cp.has-av{gap:var(--s-2);}
+  .ins-st-side{margin-left:auto;flex:none;display:inline-flex;font-size:var(--t-meta);font-weight:var(--w-label);letter-spacing:0;line-height:var(--lh-tight);}
+  .ins-sub .ins-sub-act{font-size:inherit;}
+  /* ONE LINE SAYS WHAT IS ASKED (the Approvals page): the checklist's own
+     colours, no buttons — the panel's acts right under it act on it. */
+  .ins-need-line{--nd-bg:var(--st-amber-bg);--nd-fg:var(--st-amber-fg);--nd-line:var(--st-amber-line);display:flex;align-items:flex-start;gap:var(--s-2);margin-top:14px;padding:var(--s-2) var(--s-3);
+    border:1px solid var(--nd-line);border-radius:var(--radius-lg);background:var(--nd-bg);color:var(--color-text);line-height:var(--lh-snug,1.45);}
+  .ins-need-line svg{flex:none;width:16px;height:16px;margin-top:2px;color:var(--nd-fg);}
+  .ins-need-line b{font-weight:var(--w-strong);}
+  .ins-need-line.is-ruby{--nd-bg:var(--st-ruby-bg);--nd-fg:var(--st-ruby-fg);--nd-line:var(--st-ruby-line);}
+  .ins-need-line.is-green{--nd-bg:var(--st-green-bg);--nd-fg:var(--st-green-fg);--nd-line:var(--st-green-line);}
   .ins-sub{color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   /* EVERY PARTY BUT OURS, ONE LINE EACH (Young ruled it 26 Sep 2026). A
      multi-party contract's panel lists the parties rather than the first name
@@ -11006,6 +11039,16 @@
   .ins-ok{color:var(--st-green-fg);font-weight:var(--w-label);}
   .ins-quiet{color:var(--color-neutral-500);}
   .ins-nobody{color:var(--st-amber-fg);font-weight:var(--w-label);}
+  /* Unassigned is a state, not an alarm (SAP benchmark, owner-approved 9 Oct 2026). */
+  .ins-unassigned{color:var(--color-neutral-600);}
+  .ins-cardhead{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--color-divider);flex:none;}
+  .ins-cardhead-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);}
+  .ins-cardhead-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
+  .obw-filter-btn{color:var(--accent-ink);}
+  .obw-filter-n{font-variant-numeric:tabular-nums;}
+  .ins-bar[hidden]{display:none;}
+  .ob-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
+  .ob-id > .ins-c2{min-width:0;flex:1;}
   .ins-who{display:inline-flex;align-items:center;gap:7px;color:var(--color-neutral-600);min-width:0;max-width:100%;}
   .ins-who > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ins-av{width:20px;height:20px;border-radius:50%;background:var(--surface-2);color:var(--color-neutral-600);font-size:10px;font-weight:var(--w-title);
@@ -11313,6 +11356,91 @@
   /* Approve · Refuse · Open on a row this reader may decide (4 Oct 2026):
      side by side at the right wall, never wrapping. */
   .ap-acts{display:inline-flex;gap:var(--s-1);white-space:nowrap;}
+
+  /* ═══ THE SAP BENCHMARK'S PAGE SHAPE (owner-approved 9 Oct 2026; the
+     drawings in the SAP benchmark artifact are the target) ═══════════════
+     A list page marked .sap-page draws: the page's name, its filters and its
+     tabs on ONE white band edge to edge (#page-head and the page's own
+     .sap-band), the list and its panel on the grey ground below, column
+     heads and fact labels in sentence case, and a wider side panel whose
+     head carries the initials, the name and the stage on one row. Scoped by
+     the class, so pages not yet redrawn keep their look. */
+  body:has(#content .sap-page) #page-head{background:var(--color-surface);}
+  .sap-page .sap-band{background:var(--color-surface);margin-inline:calc(-1 * var(--page-pad-x));padding-inline:var(--page-pad-x);
+    border-bottom:1px solid var(--color-divider);}
+  .sap-page[data-ins-page="register"] .sap-band{margin-top:calc(-1 * var(--page-pad-t));padding-top:var(--s-3);gap:var(--s-3);}
+  /* Negotiations draws its own name INSIDE the band, so its first glyph keeps the page's one top (pages-read-alike 8). */
+  .sap-page.ngl-page[data-ins-page="register"] .sap-band{padding-top:var(--page-pad-t);}
+  .sap-page .sap-band .reg-views,.sap-page .sap-band.st-tabs{border-bottom:0;margin-bottom:0;}
+  .sap-page .sap-band .reg-vtab{height:40px;}
+  .view-enter.sap-page{--ins-panel-w:clamp(340px,36vw,520px);}
+  /* the filters as labelled boxes in the band */
+  .sap-page .reg-fb{display:flex;flex-wrap:wrap;align-items:flex-end;gap:var(--s-3) var(--s-4);padding:0;border:0;}
+  .reg-f-v{display:none;}
+  .sap-page .reg-fb .reg-chip{flex-direction:column;align-items:stretch;gap:4px;height:auto;padding:0;border:0;
+    background:none;min-width:150px;font-weight:var(--w-body);}
+  .sap-page .reg-fb .reg-chip:hover,.sap-page .reg-fb .reg-chip:not(.on):hover,.sap-page .reg-fb .reg-chip.on,
+  .sap-page .reg-fb .reg-chip:focus-within{border:0;background:none;box-shadow:none;}
+  .sap-page .reg-fb .reg-chip:not(.reg-chip-btn)::after{position:absolute;right:10px;bottom:12px;margin:0;}
+  .sap-page .reg-fb .reg-chip .reg-f-l{font-size:var(--t-meta);color:var(--color-neutral-600);font-weight:var(--w-body);max-width:none;}
+  .sap-page .reg-fb .reg-chip .reg-f-l b{display:none;}
+  .sap-page .reg-fb .reg-chip .reg-f-v{display:flex;align-items:center;height:var(--ctl-h);padding:0 28px 0 var(--s-2);
+    border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);color:var(--color-text);
+    font-size:var(--t-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
+  .sap-page .reg-fb .reg-chip:hover .reg-f-v{border-color:var(--color-neutral-400);}
+  .sap-page .reg-fb .reg-chip:focus-within .reg-f-v{border-color:var(--color-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
+  .sap-page .reg-fb .reg-chip.on .reg-f-v{border-color:var(--color-accent);color:var(--accent-ink);font-weight:var(--w-strong);}
+  .sap-page .reg-fb .reg-chip.reg-chip-add,.sap-page .reg-fb .reg-chip.reg-chip-add:hover{flex-direction:row;align-items:center;height:var(--ctl-h);
+    min-width:0;padding:0 var(--s-1);border:0;background:none;color:var(--accent-ink);font-weight:var(--w-label);}
+  .sap-page .reg-fb .reg-chip.reg-chip-add > svg{display:none;}
+  .sap-page .reg-fb .reg-chip.reg-chip-add:hover{text-decoration:underline;}
+  /* the list's own head: its name and count, then two small icons */
+  .sap-page .reg-cardhead{display:flex;align-items:center;gap:var(--s-1);padding:var(--s-3) var(--s-4) var(--s-3) var(--s-4);}
+  .sap-page .reg-cardhead .reg-tt{font-size:var(--t-card);font-weight:var(--w-strong);}
+  .sap-page .reg-cardhead .reg-chip.reg-ico{width:var(--ctl-h);min-width:var(--ctl-h);height:var(--ctl-h);padding:0;justify-content:center;
+    border:0;background:none;color:var(--accent-ink);}
+  .sap-page .reg-cardhead .reg-chip.reg-ico::after{display:none;}
+  .sap-page .reg-cardhead .reg-chip.reg-ico:hover{background:var(--surface-2);}
+  .sap-page .reg-cardhead .reg-chip.reg-ico .reg-f-l{display:inline-flex;}
+  /* sentence-case column heads and fact labels */
+  :root .sap-page :is(.ins-lt th,.reg-table th,.ap-table th){text-transform:none;letter-spacing:0;font-size:var(--t-label);
+    font-weight:var(--w-label);color:var(--color-neutral-600);}
+  :root .sap-page :is(.ins-facts dt,.ins-kv dt){text-transform:none;letter-spacing:0;font-size:var(--t-meta);color:var(--color-neutral-600);}
+  .view-enter.sap-page{--cap-ls:0;}
+  /* the panel head: initials, the name at its own size, the stage at the row's end */
+  .sap-page .ins-panel .ins-cp{font-size:18px;margin-top:6px;}
+  .ins-item-row{display:flex;align-items:flex-start;gap:var(--s-2);}
+  .ins-item-row .ins-cp{flex:1;min-width:0;}
+  .ins-item-row .ins-st-side{margin-top:8px;}
+  .ins-pill{color:var(--st-gray-fg);background:var(--st-gray-bg);font-size:var(--t-meta);}
+  .ins-pill i{background:var(--st-gray-dot);}
+  .ins-pill.is-ruby{color:var(--st-ruby-fg);background:var(--st-ruby-bg);} .ins-pill.is-ruby i{background:var(--st-ruby-dot);}
+  .ins-pill.is-amber{color:var(--st-amber-fg);background:var(--st-amber-bg);} .ins-pill.is-amber i{background:var(--st-amber-dot);}
+  .ins-pill.is-green{color:var(--st-green-fg);background:var(--st-green-bg);} .ins-pill.is-green i{background:var(--st-green-dot);}
+  .ins-pill.is-steel{color:var(--st-steel-fg);background:var(--st-steel-bg);} .ins-pill.is-steel i{background:var(--st-steel-dot);}
+  .ins-pill .ins-late,.ins-pill .ins-soon,.ins-pill .ins-wait{color:inherit;}
+  .sap-page .ins-panel .ins-cp .reg-av{width:28px;height:28px;}
+  /* "needs you" as one callout: a warning mark, the words, the door at the end */
+  .sap-page .ins-need{background:var(--nd-bg);}
+  .sap-page .ins-need-h{display:none;}
+  .sap-page .ins-need-r{grid-template-columns:16px minmax(0,1fr) auto;align-items:start;}
+  .sap-page .ins-need-r + .ins-need-r{border-top-color:var(--nd-line);}
+  .sap-page .ins-need-dot{display:none;}
+  .ins-need-ic{display:none;}
+  .sap-page .ins-need-ic{display:block;width:16px;height:16px;margin-top:2px;color:var(--nd-fg);}
+  .sap-page .ins-need-t,.sap-page .ins-need-s{display:inline;white-space:normal;font-size:var(--t-body);color:var(--color-text);}
+  .sap-page .ins-need-t::after{content:" ";}
+  .sap-page .ins-need-b{white-space:normal;line-height:1.45;}
+  .sap-page .ins-need .ui-btn.ins-need-go{background:var(--color-surface);color:var(--accent-ink);}
+  /* SAP benchmark (owner-approved 9 Oct 2026): the table's title and count,
+     initials beside the counterparty, a decision just made in green. */
+  .ap-card-h{display:flex;align-items:center;justify-content:space-between;gap:var(--s-3);padding:var(--s-3) 14px;border-bottom:1px solid var(--color-divider);}
+  .ap-card-t{margin:0;font-size:var(--t-card);font-weight:var(--w-strong);line-height:var(--lh-tight);color:var(--color-text);}
+  .ap-card-n{font-weight:var(--w-body);color:var(--color-neutral-600);font-variant-numeric:tabular-nums;}
+  .ap-card-m{font-size:var(--t-meta);color:var(--color-neutral-600);white-space:nowrap;}
+  .ap-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
+  .ap-id > div{min-width:0;}
+  .ap-table td.done,.ap-table .ap-sub.done{color:var(--st-green-fg);font-weight:var(--w-label);}
 
   /* ═══ COPILOT'S WORK — THE AGENTS (Young ruled 27 Sep 2026: "Build the
      agents idea", the "Work Board Options" artifact, option 2) ═════════════

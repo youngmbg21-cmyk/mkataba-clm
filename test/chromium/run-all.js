@@ -118,8 +118,6 @@ const KNOWN_RED = {
     'Red on main before 28 Sep 2026 (a837d09), the same way: 1 with a hairline under it and the band measure inside it.',
   'negotiation-memo-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: — 7f and it says where the message goes before it goes.',
-  'negotiations-door-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: the room shows four tabs · and the four tabs are back with it.',
   'notes-two-rooms-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: and it sits between Copilot and the bell, where the owner ringed it · the run completed.',
   'paper-beside-questions-verify.js':

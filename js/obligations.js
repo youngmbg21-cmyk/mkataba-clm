@@ -2854,14 +2854,15 @@ function obligationDueSay(o, c){
 }
 /* ---- THE WHOSE COLUMN ----
    Theirs is theirs; ours names the colleague HaTi will remind, and where it
-   can remind nobody the row says NOBODY in amber — the one fact on this page
-   a reader has to act on before anything goes wrong. */
+   can remind nobody the row says UNASSIGNED in the quiet grey (SAP benchmark,
+   owner-approved 9 Oct 2026, was "Nobody" in amber): a state, not an alarm —
+   the hover still says what it costs. */
 function obWhoCellHtml(o){
   if(obligationIsTheirs(o)) return `<span class="ins-quiet">${_obEsc(i18t('ob_side_theirs'))}</span>`;
   const m = obligationReminderTo(o);
   if(!m){
     const typed = String((o && o.assignee) || '').trim();
-    return `<span class="ins-nobody" title="${_obEsc(typed ? i18t('ob_no_owner_title') : i18t('ob_no_owner_none'))}">${_obEsc(i18t('ob_nobody'))}</span>`;
+    return `<span class="ins-unassigned" title="${_obEsc(typed ? i18t('ob_no_owner_title') : i18t('ob_no_owner_none'))}">${_obEsc(i18t('ob_unassigned'))}</span>`;
   }
   return `<span class="ins-who"><i class="ins-av" aria-hidden="true">${_obEsc(obInitials(m.name))}</i><span title="${_obEsc(m.name || '')}">${_obEsc(obShortName(m.name))}</span></span>`;
 }
@@ -2931,7 +2932,7 @@ function obligationFactsLine(o, c, withWho){
   const done = obState(o) === 'done';
   if(withWho && !obligationIsTheirs(o)){
     const m = obligationReminderTo(o);
-    bits.push(m ? _obEsc(obShortName(m.name)) : `<span class="ins-nobody">${_obEsc(i18t('ob_nobody_low'))}</span>`);
+    bits.push(m ? _obEsc(obShortName(m.name)) : `<span class="ins-unassigned">${_obEsc(i18t('ob_unassigned_low'))}</span>`);
   }
   const s = obligationStepNo(o, c);
   if(s) bits.push(_obEsc(i18t('ob_step_low', { n: s.n, of: s.of })));
@@ -3015,6 +3016,28 @@ function obligationReminderSay(o, c){
   const who = m || ow;
   const first = String(who.name || '').trim().split(/\s+/)[0] || who.name || '';
   return _obEsc(i18t(m ? 'ob_rem_ours' : 'ob_rem_ours_owner', { who: who.name || first })) + next([[-7, first], [0, first], [1, first]]);
+}
+/* ---- THE REMINDERS IN ONE LINE (SAP benchmark, owner-approved 9 Oct 2026) ----
+   The panel says what happens next in one line; "How reminders work" opens
+   the whole sentence above (obligationReminderSay), which stays the one
+   account of the rules. Same readings, fewer words. */
+function obligationReminderLine(o, c){
+  if(obState(o) === 'done') return _obEsc(i18t('ob_rem_none_left'));
+  const due = obligationDue(o);
+  if(c && obligationBlocked(o, c)){
+    const s = obligationStepNo(o, c);
+    return _obEsc(i18t('ob_rem_l_held', { n: s ? s.n - 1 : '' }));
+  }
+  if(!due) return _obEsc(i18t('ob_rem_l_nodate'));
+  if(obligationIsTheirs(o)) return _obEsc(i18t('ob_rem_l_theirs', { cp: o.counterparty || (c && c.counterparty) || i18t('ob_side_theirs') }));
+  const m = obligationReminderTo(o);
+  const ow = m ? null : obligationOwnerTo(c);
+  if(!m && !ow) return _obEsc(i18t('ob_rem_l_nobody'));
+  const who = m || ow;
+  const first = String(who.name || '').trim().split(/\s+/)[0] || who.name || '';
+  const d = daysUntil(due);
+  const hit = [[-7], [0], [1]].find(([k]) => d + k >= 0);
+  return hit ? _obEsc(i18t('ob_rem_next', { date: obDay(_obPlusDays(due, hit[0])), who: first })) : _obEsc(i18t('ob_rem_none_left'));
 }
 /* The contract's owner as a member HaTi can write to — the server's
    contractOwnerRecipient: the stored id first, the name second. */
@@ -3222,20 +3245,23 @@ function obPanelOpts(o, c, i, ctx){
   const typed = String((o && o.assignee) || '').trim();
   const whose = theirs
     ? _obEsc(ctx === 'page' ? i18t('ob_whose_theirs_cp', { cp: o.counterparty || c.counterparty || '' }) : i18t('ob_side_theirs'))
-    : (m ? _obEsc(i18t('ob_whose_ours', { who: m.name || typed })) : `<span class="ins-nobody">${_obEsc(i18t(typed ? 'ob_whose_ours_unknown' : 'ob_whose_ours_nobody', { who: typed }))}</span>`);
+    : (m ? _obEsc(i18t('ob_whose_ours', { who: m.name || typed })) : `<span class="ins-unassigned">${_obEsc(i18t(typed ? 'ob_whose_ours_unknown' : 'ob_whose_ours_nobody', { who: typed }))}</span>`);
   const due = obligationDue(o);
+  /* THE PAGE PANEL DRAWS THE DRAWING'S FOUR FACTS (SAP benchmark, owner: less
+     clutter): Due, Repeats, Contract, Owner. The contract's own tab keeps all. */
   const facts = [
     { k:'due', label: i18t('ob_fact_due'), v: due ? _obEsc(obDay(due, true)) : '' },
-    money ? { k:'amount', label: i18t('ob_amount'), v: obligationHasAmount(o) ? _obEsc(obligationMoneyText(obligationAmount(o), c)) : '' } : null,
+    /* No money, no Amount (SAP benchmark, 9 Oct 2026): an empty box is not a fact. */
+    money && obligationHasAmount(o) ? { k:'amount', label: i18t('ob_amount'), v: _obEsc(obligationMoneyText(obligationAmount(o), c)) } : null,
     { k:'whose', label: i18t('ob_f_whose'), v: whose },
     { k:'repeats', label: i18t('ob_f_repeats'), v: _obEsc(obRepeatsWord(o)) },
   ];
   if(ctx === 'page'){
     let owner = ''; try{ owner = (typeof window.contractOwnerName === 'function' && contractOwnerName(c)) || ''; }catch(_){ owner = ''; }
-    let stream = ''; try{ stream = (typeof window.regStreamName === 'function') ? regStreamName(c) : ((window.FOLDERS && FOLDERS[c.folder] && FOLDERS[c.folder].name) || ''); }catch(_){ stream = ''; }
-    facts.push({ k:'contract', label: i18t('ob_f_contract'), v: _obEsc(c.name || ''), wide: true },
-      { k:'stream', label: i18t('ins_f_stream'), v: _obEsc(stream) },
-      { k:'owner', label: i18t('ob_f_owner'), v: _obEsc(owner) });
+    const keep = facts.filter(x => x && (x.k === 'due' || x.k === 'repeats' || (x.k === 'amount')));
+    facts.length = 0; keep.forEach(x => facts.push(x));
+    facts.push({ k:'contract', label: i18t('ob_f_contract'), v: _obEsc(c.name || '') },
+      { k:'owner', label: i18t('ins_f_owner'), v: _obEsc(owner) });
   }
   let kind = ''; try{ kind = (typeof window.cKind === 'function') ? cKind(c) : ''; }catch(_){ kind = ''; }
   const ref = _obEsc(window.contractRef ? contractRef(c) : c.id);
@@ -3249,12 +3275,13 @@ function obPanelOpts(o, c, i, ctx){
   const acts = obPanelActs(o, c, i, ctx);
   return {
     item: { id: obKeyOf(c.id, o, i) },
-    head: { eyebrow, title: o.desc || '', sub, tone: st.tone, status: st.html,
+    head: { eyebrow, title: o.desc || '', sub, tone: st.tone, status: st.html, statusBeside: ctx === 'page',
       acts, menuHtml, moreAria: i18t('reg_more_actions') },
     acts,
-    body: insKvHtml(facts) + obDocSectionHtml(o) + obChainSectionHtml(o, c) + obWordingSectionHtml(o)
-      + insSecHtml(i18t('ob_sec_reminders'), '', `<p class="ins-p">${obligationReminderSay(o, c)}</p>`, 'ins-rem')
-      + obHistoryHtml(o, c),
+    body: insKvHtml(facts) + obDocSectionHtml(o) + obChainSectionHtml(o, c)
+      + (ctx === 'page' ? '' : obWordingSectionHtml(o))
+      + insSecHtml(i18t('ob_sec_reminders'), '', `<p class="ins-p">${obligationReminderLine(o, c)} <button type="button" class="ui-link" data-ob-rem-more aria-expanded="false">${_obEsc(i18t('ob_rem_how'))}</button></p><p class="ins-p ob-rem-full" data-ob-rem-full hidden>${obligationReminderSay(o, c)}</p>`, 'ins-rem')
+      + (ctx === 'page' ? obWordingSectionHtml(o) : obHistoryHtml(o, c)),
     onMenu: act => { if(act === 'remove'){ const h = obLocate(obKeyOf(c.id, o, i)); if(h) obligationRemove(h.c, h.i); } },
   };
 }
@@ -3270,6 +3297,11 @@ function obPaintPanel(hostId, o, c, i, ctx, emptyMsg){
   const host = document.getElementById(hostId);
   if(!host) return;
   host.querySelector('[data-ob-show]')?.addEventListener('click', () => obligationShowInContract(c.id, o.quote || ''));
+  host.querySelector('[data-ob-rem-more]')?.addEventListener('click', e => {
+    const full = host.querySelector('[data-ob-rem-full]'); if(!full) return;
+    full.hidden = !full.hidden;
+    e.currentTarget.setAttribute('aria-expanded', full.hidden ? 'false' : 'true');
+  });
   if(obligationHistory(o, c) !== null) return;
   const api = (typeof API_MODE === 'function') && API_MODE();
   const key = opts.item.id;
@@ -3293,7 +3325,8 @@ function obPaintPanel(hostId, o, c, i, ctx, emptyMsg){
    `ctx` 'page' names the contract on each row's second line; 'tab' says the
    row's own facts, because the contract is the page it sits on. */
 function obListHtml(rows, ctx, c1){
-  const money = obligationMoneyVisible();
+  /* No money on any row, no Amount column (SAP benchmark, 9 Oct 2026). */
+  const money = obligationMoneyVisible() && (rows || []).some(r => obligationHasAmount(r));
   const cols = [
     { t: i18t('ob_col_when'), w: 132 },
     { t: i18t('ob_col_what') },
@@ -3306,7 +3339,7 @@ function obListHtml(rows, ctx, c1){
     const line2 = ctx === 'page' ? obPageLine2(r, c) : obligationFactsLine(r, c, false);
     return `<tr data-ins-row data-ob-key="${_obEsc(r._key)}" tabindex="-1">
       <td><span class="ins-c2"><b>${_obEsc(due.day)}</b><span class="${due.cls}">${_obEsc(due.sub)}</span></span></td>
-      <td><span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}</b><span>${line2}</span></span></td>
+      <td>${ctx === 'page' ? `<span class="ob-id">${obAvHtml(r.counterparty || (c && c.counterparty) || '')}` : ''}<span class="ins-c2"><b title="${_obEsc(r.desc || '')}">${_obEsc(r.desc || '')}</b><span>${line2}</span></span>${ctx === 'page' ? '</span>' : ''}</td>
       <td>${obWhoCellHtml(r)}</td>
       ${money ? `<td class="r">${obAmountCellHtml(r, c)}</td>` : ''}
     </tr>`;
@@ -3321,6 +3354,8 @@ function obListHtml(rows, ctx, c1){
   }
   return { cols, body };
 }
+/* The counterparty's initials, as on every list (regAvatarHtml, the one builder). */
+function obAvHtml(name){ return (typeof window.regAvatarHtml === 'function') ? window.regAvatarHtml(name || '—') : ''; }
 function obTableHtml(cols, body){
   return `<table class="ins-lt ob-lt"><colgroup>${cols.map(c => `<col${c.w ? ` style="width:${c.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
     cols.map(c => `<th${c.r ? ' class="r"' : ''}>${_obEsc(c.t)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
@@ -3345,6 +3380,7 @@ const OBW_CHIPS = ['whose', 'side', 'folder', 'due'];
    there is. Painted into the shared header's slot, because it changes on a
    repaint with no view change (the register's own reason). */
 let _obwHeadFacts = '';
+let _obwFiltersOpen = false;
 function obwPaintHead(){
   const el = (typeof document !== 'undefined') ? document.getElementById('page-head-facts') : null;
   if(el) el.innerHTML = _obwHeadFacts;
@@ -3376,11 +3412,13 @@ function renderObligationsInspector(host){
     ? (mw.text ? _obEsc(_obCap(mw.text)) + obMoneyLeftHtml(mw) : _obEsc(i18t('ob_no_money_here')) + obMoneyLeftHtml(mw))
     : [ i18tn('ob_head_open', rows.filter(r => r.st !== 'done').length, { n: rows.filter(r => r.st !== 'done').length }),
         late ? i18tn('ob_head_overdue', late, { n: late }) : '', held ? i18tn('ob_head_waiting', held, { n: held }) : '' ].filter(Boolean).map(_obEsc).join(' · ');
-  host.innerHTML = `<div class="view-enter ins-page obw-ins" data-ins-page="obligations" data-ins="1">
-    ${views}
+  host.innerHTML = `<div class="view-enter sap-page ins-page obw-ins" data-ins-page="obligations" data-ins="1">
+    <div class="sap-band">${views}</div>
     <div class="ins-body">
       <section class="ins-card" aria-label="${_obEsc(i18t('nav_obligations'))}">
-        <div class="ins-bar reg-filterbar">${chips}</div>
+        <div class="ins-cardhead"><h2 class="ins-cardhead-t">${_obEsc(i18t((OBW_VIEWS.find(v => v[0] === f.state) || OBW_VIEWS[0])[1]))} <span class="ins-cardhead-n">(${rows.length})</span></h2><span style="flex:1"></span>
+          <button type="button" class="ui-btn ui-btn-plain obw-filter-btn${narrowing.length ? ' on' : ''}" data-obw-filters aria-expanded="${_obwFiltersOpen || narrowing.length ? 'true' : 'false'}">${typeof icon === 'function' ? icon('filter', 'w-3.5 h-3.5') : ''}${_obEsc(i18t('ob_filter_btn'))}${narrowing.length ? ` <span class="obw-filter-n">${narrowing.length}</span>` : ''}</button></div>
+        <div class="ins-bar reg-filterbar"${_obwFiltersOpen || narrowing.length ? '' : ' hidden'}>${chips}</div>
         <div class="ins-scroll" id="obw-scroll">${obTableHtml(cols, rows.length ? body : empty)}</div>
         <div class="ins-foot"><span>${_obEsc(i18t('ob_showing', { n: rows.length, of: book.length }))}</span></div>
       </section>
@@ -3389,6 +3427,9 @@ function renderObligationsInspector(host){
   </div>`;
   obwPaintHead();
   host.querySelectorAll('[data-obw-view]').forEach(b => b.addEventListener('click', () => { f.state = b.getAttribute('data-obw-view'); obwRepaint(); }));
+  /* THE FILTERS FOLD BEHIND ONE BUTTON (SAP benchmark, 9 Oct 2026): open while
+     anything narrows the list, or once the reader opens them this sitting. */
+  host.querySelector('[data-obw-filters]')?.addEventListener('click', () => { _obwFiltersOpen = !_obwFiltersOpen; obwRepaint(); });
   host.querySelectorAll('[data-obw-f]').forEach(sel => sel.addEventListener('change', () => { f[sel.getAttribute('data-obw-f')] = sel.value; obwRepaint(); }));
   host.querySelectorAll('[data-obw-clear]').forEach(b => b.addEventListener('click', () => { OBW_CHIPS.forEach(k => { f[k] = OBW_DEF[k]; }); f.only = null; obwRepaint(); }));
   host.querySelector('[data-obw-only-clear]')?.addEventListener('click', () => { f.only = null; obwRepaint(); });
@@ -3582,7 +3623,7 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationAfter,obligationPrev,obligationBlocked,obligationChain,obligationChains,obligationStepNo,obligationRoll,
   obligationAlreadyOn,obligationRequireDoc,obFindBusy,obFinding,OB_FIND_DOORS,obligationAmount,obligationHasAmount,obligationBandTotal,obligationMoneyVisible,obligationMoneyText,
   OB_WINDOWS,OB_WIN_ORDER,obligationWindow,obWinTone,obDay,obligationRelWords,obInitials,obShortName,obRepeatsWord,obDocSay,
-  obligationDueSay,obWhoCellHtml,obAmountCellHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
+  obligationDueSay,obWhoCellHtml,obAmountCellHtml,obligationReminderLine,obAvHtml,obwHomeSum,obMoneyWords,obPageLine2,obligationFactsLine,obligationStatusSay,
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
   OBW_VIEWS,OBW_CHIPS,obwPlace,obwPlacePut,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
