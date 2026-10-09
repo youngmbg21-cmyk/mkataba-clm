@@ -4933,6 +4933,10 @@ function wireNegotiationTab(c, opts = {}){
     host._rlInlineCtx = { c, opts, side, again };
     if (!host._rlInlineBound){
       host._rlInlineBound = true;
+      /* A DRAG IS NOT A CLICK: the press's own start point is kept, so a
+         highlight released elsewhere never opens the box (some browsers fire
+         click after a drag with the selection already folded). */
+      host.addEventListener('mousedown', ev => { host._rlInlineDown = [ev.clientX, ev.clientY]; }, true);
       host.addEventListener('click', ev => rlInlineClick(ev, host));
     }
 
@@ -17895,6 +17899,11 @@ function rlInlineClick(ev, host){
   if (!t || !t.closest) return;
   if (t.closest('.rl-inline-acts')){ rlInlineAct(ev, t); return; }
   if (_rlInline && _rlInline.box.contains(t)) return;           /* typing: the browser places the caret */
+  /* NOT INSIDE THE CLAUSE EDITOR: it is its own typing surface, drawn over
+     this page; a press there is the editor's, never this box's. */
+  if (t.closest('#clause-editor') || (typeof window.clauseEditorOpen === 'function' && clauseEditorOpen())) return;
+  const down = host._rlInlineDown; host._rlInlineDown = null;
+  if (down && Math.hypot(ev.clientX - down[0], ev.clientY - down[1]) > 4) return;   /* a drag, not a click */
   if (t.closest('button, a, input, textarea, select, .rl-clause-top, .rl-sug-box, [data-nego-editor]')) return;
   const sel = window.getSelection && window.getSelection();
   if (sel && !sel.isCollapsed) return;                          /* a highlight is its own gesture */
