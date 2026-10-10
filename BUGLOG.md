@@ -20610,3 +20610,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed — 10 Oct 2026 (clauses on Home's Paper)
 - js/paperdesk.js `PD_ROOM_TAB` maps doc→'contract' and oblig→'obligations', but the room's tab keys are 'docs' and 'oblig' (ROOM_TABS): the phone fallback of `pdOpenOnHome` for those two tabs lands on no tab. Left as found.
 - test/chromium/history-head-verify.js is red on main (bf49fe3): it expects the History tab's five filters on screen with nothing pressed, but SAP batch 3 put them behind the Filter fold (`_histFiltersOpen`). The check needs re-pointing to the fold; left as found (10 Oct 2026, seen on PR #199's browser shard 1).
+
+## Noticed, not fixed (10 Oct 2026, long-contract speed)
+- phone-verify: 2 FAIL on unmodified main as well ("iPhone 14 (390): … the selection menu still opens"; "obligations: the bands are the desktop's four … Overdue · 2 | Later · 1") — not this change's.
+- The "live" pulsing status dot (livePing / status-pulse) animates on every page; on a 50-page Document tab each frame repaints more (~20% of one core while sitting still). No freeze; left as it is.

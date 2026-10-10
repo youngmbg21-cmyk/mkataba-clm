@@ -495,7 +495,8 @@ function mHistHtml(c){
     `<button class="m-chip${s.hist===k?' on':''}" data-m-hist="${k}">${mEsc(i18t(key))}</button>`).join('');
 
   const when = at => { const t=Date.parse(at||''); return isNaN(t)?'' :
-    new Date(t).toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'}); };
+    (window.dateFmtOf ? dateFmtOf(langLocale(),{dateStyle:'medium',timeStyle:'short'}).format(new Date(t))
+      : new Date(t).toLocaleString(langLocale(),{dateStyle:'medium',timeStyle:'short'})); };
 
   const list = shown.length ? shown.map(e=>{
     const g = mHistGroupOf(e);

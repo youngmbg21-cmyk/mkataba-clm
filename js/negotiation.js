@@ -101,9 +101,11 @@ function negoFrontClause(c){
   if (!window.clauseFrontClause) return null;
   try{ return clauseFrontClause(c.negotiation.baselineBody || ''); }catch(_){ return null; }
 }
-const negoClauseById = (c, id) => (negoIsFrontId(id)
-  ? negoFrontClause(c)
-  : negoClauseList(c).find(cl => cl.clauseId === id) || null);
+const negoClauseById = (c, id) => {
+  if (negoIsFrontId(id)) return negoFrontClause(c);
+  if (id && window.clauseSegmentFind){ negoInit(c); return clauseSegmentFind(c.negotiation.baselineBody || '', id); }
+  return negoClauseList(c).find(cl => cl.clauseId === id) || null;
+};
 
 /* ---------- THE CLAUSE AS THE PERSON TYPING IS SHOWN IT ----------
    negoClauseList above is the ROUND BASELINE, and it is the right reading for

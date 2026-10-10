@@ -617,7 +617,40 @@ function _clBanners(blocks, headings){
    THE DOCUMENT TITLE IS NOT A CLAUSE — see _clTitleIndex. Where every heading
    sits at the same rank there is no title to detect and they are all clauses:
    the honest reading, since nothing in the markup distinguishes them. */
+/* ---- ONE SPLIT PER WORDING (9 Oct 2026, the owner's 50-page contract) ----
+   The split is PURE — the same wording always splits the same way — and it is
+   asked for constantly: Negotiate drew each clause by asking for the whole
+   list again, so a 250-clause contract was split 250 times on one press (about
+   seven seconds). The last few splits are remembered, keyed by the wording;
+   each caller is handed its OWN copy of the list and of every clause (all
+   plain strings and numbers), so a caller that writes on what it was given
+   can never change what the next caller reads. */
+const CLAUSE_SPLIT_KEEP = 8;
+const _clSplitKept = { st: new Map(), other: new Map() };
+function _clSplitOf(html){
+  /* the readers it borrows choose the shelf: a stage loaded without them
+     splits differently, and must never be handed the other answer */
+  const shelf = (window.sanitizeRich && window.richToText) ? _clSplitKept.st : _clSplitKept.other;
+  const key = String(html == null ? '' : html);
+  let got = shelf.get(key);
+  if (got){ shelf.delete(key); shelf.set(key, got); return got; }
+  got = _clauseSegmentRead(key);
+  got.byId = new Map();
+  for (const cl of got) if (cl.clauseId && !got.byId.has(cl.clauseId)) got.byId.set(cl.clauseId, cl);
+  shelf.set(key, got);
+  if (shelf.size > CLAUSE_SPLIT_KEEP) shelf.delete(shelf.keys().next().value);
+  return got;
+}
 function clauseSegment(html){
+  return _clSplitOf(html).map(cl => ({ ...cl }));
+}
+/* One clause by its id, as clauseSegment(html).find(…) would give it — a copy,
+   without copying the other two hundred to find it. */
+function clauseSegmentFind(html, clauseId){
+  const cl = _clSplitOf(html).byId.get(clauseId);
+  return cl ? { ...cl } : null;
+}
+function _clauseSegmentRead(html){
   const root = _clParse(window.sanitizeRich ? sanitizeRich(html) : html);
   const blocks = Array.from(root.children);
   const headings = blocks.filter(el => CLAUSE_HEADINGS.has(el.tagName));
@@ -1452,7 +1485,7 @@ function clauseRenumberPlan(clauses){
     map: Object.fromEntries(map), changed: headings.length > 0 };
 }
 
-if (typeof window !== 'undefined') Object.assign(window, {
+if (typeof window !== 'undefined') Object.assign(window, { clauseSegmentFind,
   CLAUSE_HEADINGS, clauseNewId, clauseParseHeading, clauseLabel, clauseNumberGap,
   CLAUSE_KINDS, clauseKindByKey, clauseKind, ruleKind,
   clauseTitleCase, clauseSentenceCase, clauseCaseTo, clauseHeadingCase, clauseHeadingFor,

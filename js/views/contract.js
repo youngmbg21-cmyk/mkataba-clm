@@ -8109,8 +8109,8 @@ function histWhen(at, now){
   if(thisYear&&d.getMonth()===n.getMonth()&&d.getDate()===n.getDate()) day=i18t('ct_hist_today');
   else {
     const loc=(typeof langLocale==='function')?langLocale():undefined;
-    try{ day=d.toLocaleDateString(loc,thisYear?{day:'numeric',month:'short'}
-      :{day:'numeric',month:'short',year:'numeric'}); }catch(_){ day=s.slice(0,10); }
+    const o=thisYear?{day:'numeric',month:'short'}:{day:'numeric',month:'short',year:'numeric'};
+    try{ day=window.dateFmtOf?dateFmtOf(loc,o).format(d):d.toLocaleDateString(loc,o); }catch(_){ day=s.slice(0,10); }
   }
   let time='';
   if(!dayOnly){
@@ -11845,6 +11845,87 @@ const _docReadItemNum = el => {
 /* `root` (26 Sep 2026, the graph's Analyze contract) is ADDITIVE: the walk
    reads the canvas it is handed, and #doc-canvas where it is handed none —
    every older caller passes none. */
+/* ---- A PART TOO LONG TO BE ONE CLAUSE IS CUT AT ITS OWN NUMBERS (Young
+   chose it, 10 Oct 2026, off a 50-page certificate whose "PREFERRED STOCK"
+   heading came out as one 9,562-word part — 94% of the paper — that Plain
+   could never read) ----
+   The rules above start a part only at a heading or at a dotted number
+   ("1.1"), and they stay exactly as they are: a bare "1." in a paragraph is as
+   likely a list item or a sentence opening with a figure. But a span between
+   two anchors longer than DOC_READ_LONG_WORDS is not a clause anybody reads as
+   one, and on US-style paper its sections are numbered "1.", "2.", "Section
+   3." or by Word's own list numbering. So inside such a span ONLY, a RUN of
+   paragraphs numbered in order — 1, 2, 3 …, at least DOC_READ_RUN_MIN of them
+   — becomes parts. In order is the guard: a stray "5 days" or one numbered
+   list item cannot make a run. A paper with no span that long walks exactly as
+   it did, so no contract that reads right today moves by a row. */
+const DOC_READ_LONG_WORDS=1500;
+const DOC_READ_RUN_MIN=3;
+const DOC_READ_RUN_NUM=/^\s*(?:section\s+)?(\d{1,3})[.)]\s+\S/i;
+const _docReadWordsIn=t=>{ const s=String(t||'').trim(); return s?s.split(/\s+/).length:0; };
+const _docReadBefore=(a,b)=>a!==b&&!a.contains(b)&&!!(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING);
+function docReadLongSplit(canvas, rows){
+  if(!rows.length||_docReadWordsIn(canvas.textContent)<=DOC_READ_LONG_WORDS) return rows;
+  /* the paper's leaf blocks, in document order, outside the furniture */
+  const leaves=Array.from(canvas.querySelectorAll('p,li,div'))
+    .filter(el=>!el.closest(DOC_READ_FURNITURE)&&!el.querySelector('p,li,div,h1,h2,h3,h4'));
+  const spans=rows.map(()=>[]);
+  let k=-1;
+  leaves.forEach(el=>{
+    while(k+1<rows.length&&(rows[k+1].el===el||rows[k+1].el.contains(el)||_docReadBefore(rows[k+1].el,el))) k++;
+    if(k<0||rows[k].el===el||rows[k].el.contains(el)) return;
+    spans[k].push(el);
+  });
+  const added=[];
+  spans.forEach(span=>{
+    if(span.length<DOC_READ_RUN_MIN) return;
+    if(span.reduce((n,el)=>n+_docReadWordsIn(el.textContent),0)<=DOC_READ_LONG_WORDS) return;
+    /* the drafter's own numbers, written in the text: 1. 2. 3. or Section 1 …
+       A RUN KEEPS ONE SHAPE: the same tag, "Section" or not, the number set
+       bold or not — so a sentence inside section 4 that happens to open "5."
+       is not taken for section 5. Every "1." is tried as a start and the
+       longest run wins. */
+    const nums=[];
+    span.forEach(el=>{
+      const t=String(el.textContent||''), m=DOC_READ_RUN_NUM.exec(t);
+      if(!m) return;
+      const b=el.querySelector('strong,b');
+      const bold=!!(b&&String(b.textContent||'').trim()&&t.trim().indexOf(String(b.textContent).trim())===0);
+      nums.push({el,n:Number(m[1]),shape:el.tagName+'|'+(/^\s*section/i.test(t)?'s':'')+'|'+(bold?'b':'')});
+    });
+    let run=[];
+    nums.forEach((first,at)=>{
+      if(first.n!==1) return;
+      const r=[first];
+      for(let j=at+1;j<nums.length;j++) if(nums[j].shape===first.shape&&nums[j].n===r.length+1) r.push(nums[j]);
+      if(r.length>run.length) run=r;
+    });
+    if(run.length>=DOC_READ_RUN_MIN){
+      run.forEach(x=>added.push({el:x.el,isHead:false,isMark:false,num:String(x.n),
+        sep:_docReadSepOf(String(x.el.textContent||''),String(x.n))}));
+      return;
+    }
+    /* …or Word's own list numbering, which is drawn and not written: the
+       longest numbered list in the span, one part per item */
+    const lists=new Map();
+    span.forEach(el=>{
+      const li=el.tagName==='LI'?el:el.closest('li');
+      const ol=li&&li.parentElement;
+      if(!ol||ol.tagName!=='OL'||!canvas.contains(ol)) return;
+      if(!lists.has(ol)) lists.set(ol,new Set());
+      lists.get(ol).add(li);
+    });
+    let best=null;
+    lists.forEach((items,ol)=>{ if(items.size>=DOC_READ_RUN_MIN&&(!best||items.size>best.items.size)) best={ol,items}; });
+    if(!best) return;
+    const start=Number(best.ol.getAttribute('start'))||1;
+    Array.from(best.ol.children).filter(li=>li.tagName==='LI').forEach((li,i)=>{
+      if(best.items.has(li)) added.push({el:li,isHead:false,isMark:false,num:String(start+i),sep:''});
+    });
+  });
+  if(!added.length) return rows;
+  return rows.concat(added).sort((a,b)=>a.el===b.el?0:(_docReadBefore(a.el,b.el)||a.el.contains(b.el)?-1:1));
+}
 function docReadSheet(c, root){
   /* with no root named, the paper the thread is showing: the Document tab's,
      or Home's while the clause list is drawn there (10 Oct 2026) */
@@ -11898,6 +11979,8 @@ function docReadSheet(c, root){
      element comes straight after it — so a row holds another row exactly when
      it holds the row NEXT to it. Asking every row about every other row was
      ~800,000 checks per walk on a 300-clause contract. */
+  rows=rows.filter((r,i)=>!(rows[i+1]&&r.el.contains(rows[i+1].el)));
+  rows=docReadLongSplit(canvas,rows);
   rows=rows.filter((r,i)=>!(rows[i+1]&&r.el.contains(rows[i+1].el)));
   const out=[];
   rows.forEach((row,i)=>{
@@ -12384,6 +12467,10 @@ async function docReadRun(c,opts){
           ||Number(r.readings.over)>0||r.readings.truncated)){
         c._readings=r.readings;
         c._readSig=sig;
+        /* TOO LONG IS ITS OWN REASON (10 Oct 2026): the route says which
+           clauses it could not fit in an answer even in pieces, and the row
+           says so rather than "answered without a reading". */
+        if(out&&Array.isArray(r.readings.tooLong)&&only.some(i=>r.readings.tooLong.includes(i))) out.why='long';
         return true;
       }
       /* Nothing arrived: whatever the column held before the press is put back. */
@@ -13368,7 +13455,7 @@ function docThreadCannotOf(c){
   const rec=_docThreadCannot.get(String(c&&c.id));
   return (rec&&card&&rec.sig===card.getAttribute('data-th-sig')) ? rec.set : new Map();
 }
-const DOC_THREAD_WHY = { empty:'th_cannot_empty', noai:'th_cannot_noai', limit:'th_cannot_limit', failed:'th_cannot_failed' };
+const DOC_THREAD_WHY = { empty:'th_cannot_empty', noai:'th_cannot_noai', limit:'th_cannot_limit', failed:'th_cannot_failed', long:'th_cannot_long' };
 function docThreadCannotWhy(c, i){
   return DOC_THREAD_WHY[docThreadCannotOf(c).get(i)] || DOC_THREAD_WHY.empty;
 }
@@ -13463,6 +13550,15 @@ function docThreadRowHtml(x,i){
    mark's tone), whether a reading exists, is on its way, or could not be
    made — and WHICH ROWS THE FILTER SHOWS. A section title steps aside while
    the filter is on: it heads clauses the filter may have hidden. */
+/* EVERY ROW OF THE LIST, FOUND ONCE (10 Oct 2026, the owner's 50-page
+   contract): asking the list for row k by its attribute walks the whole list,
+   and the two loops below asked once per row — on 250 clauses that was most
+   of the time it took to open the Document tab. One walk, then a lookup. */
+function docThreadRowsBy(box){
+  const by=new Map();
+  box.querySelectorAll('[data-th-row]').forEach(el=>{ const k=el.getAttribute('data-th-row'); if(!by.has(k)) by.set(k,el); });
+  return by;
+}
 function docThreadStates(c,rows,plain){
   const thc=thEl('card'), box=thc&&thc.querySelector('.doc-th-rows'); if(!box) return;
   const running=docReadRunning(c);
@@ -13472,8 +13568,9 @@ function docThreadStates(c,rows,plain){
   const first=vis[0], last=vis[vis.length-1];
   /* the hairline starts at the first bead unless a title above it is drawn */
   const titled=i=>!filtering&&rows.slice(0,i).some(docThreadIsSec);
+  const byRow=docThreadRowsBy(box);
   rows.forEach((x,i)=>{
-    const row=box.querySelector(`[data-th-row="${i}"]`); if(!row) return;
+    const row=byRow.get(String(i)); if(!row) return;
     if(docThreadIsSec(x)){ row.hidden=filtering; return; }
     row.hidden=!docThreadShown(x);
     /* THE BEAD FOLLOWS THE RECORD, not the first paint: the rows are rebuilt
@@ -13605,9 +13702,10 @@ function docThreadFill(c,rows,i,opts){
   const card=thEl('card'); if(!card) return;
   const box=card.querySelector('.doc-th-rows'); if(!box) return;
   const plain=o.plain||docThreadPlain(c,o.sheet);
+  const byRow=docThreadRowsBy(box);
   rows.forEach((x,k)=>{
     if(docThreadIsSec(x)) return;
-    const r=box.querySelector(`[data-th-row="${k}"]`); if(!r) return;
+    const r=byRow.get(String(k)); if(!r) return;
     const open=k===i;
     const body=r.querySelector('.doc-th-in');
     if(body) body.innerHTML=open?docThreadBodyHtml(c,rows,k,plain,o.sheet):'';
@@ -17030,7 +17128,7 @@ function distributionPanelHtml(c){
 
 
 
-Object.assign(window,{docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
+Object.assign(window,{docReadLongSplit,DOC_READ_LONG_WORDS,DOC_READ_RUN_MIN,docThreadHomeMarks,TH_HOSTS,thHomeLive,ovRenewTermDoorHtml,ovRenewTermAsk,ctTheirEmail,ctSetTheirEmail,PAPER_TERM_KEYS,paperTermsFrozen,paperTermFrozenRead,paintOverviewDocs,ktDocsRowsHtml,ktDocsSummary,roomHeadRefresh,
   /* TWO COPIES OF ONE CONTRACT (25 Sep 2026): the sheet's builders and the
      signing copy's controls. The other side's signing link draws the signing
      copy through signCopySheetHtml, so it must be on this list — a name read
