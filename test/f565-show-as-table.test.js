@@ -38,7 +38,7 @@ function stage(){
     _hbE: s => String(s == null ? '' : s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])),
     _hbN: n => String(n), _hbM: v => 'KES ' + v, i18t: k => k };
   vm.createContext(ctx);
-  vm.runInContext(['hbChartBarsHtml', 'hbChartColsHtml', 'hbChartTableHtml'].map(region).join('\n')
+  vm.runInContext(['_hbYAttr', 'hbChartBarsHtml', 'hbChartColsHtml', 'hbChartTableHtml'].map(region).join('\n')
     + '\nthis.bars = hbChartBarsHtml; this.cols = hbChartColsHtml; this.table = hbChartTableHtml;', ctx);
   return { ctx, dom };
 }
