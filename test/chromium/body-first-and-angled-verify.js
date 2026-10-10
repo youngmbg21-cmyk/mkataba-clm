@@ -177,7 +177,8 @@ const LONG = ['Procurement & Raw Materials Ltd', 'Manufacturing & Operations Gro
       return { n: angled.length, words: angled.map(t => t.textContent), cut: angled.filter(t => /…$/.test(t.textContent)).length,
         fs: angled.length ? getComputedStyle(angled[0]).fontSize : '', outside: rs.filter(r => r.left < box.left - 1 || r.right > box.right + 1 || r.top < box.top - 1 || r.bottom > box.bottom + 1).length,
         overlap, gridTop, gridBot, labTop: rs.length ? Math.min(...rs.map(r => r.top)) : null, labBot: rs.length ? Math.max(...rs.map(r => r.bottom)) : null,
-        flat: [...svg.querySelectorAll('text.hb-sv-ink2:not(.hb-sv-angled)')].length, label: svg.getAttribute('aria-label') };
+        flat: [...svg.querySelectorAll('text.hb-sv-ink2:not(.hb-sv-angled)')].length,
+        flatFs: (() => { const t = document.querySelector('#hb-board svg text.hb-sv-ink2:not(.hb-sv-angled)'); return t ? getComputedStyle(t).fontSize : ''; })(), label: svg.getAttribute('aria-label') };
     }, { cls, first });
     await addCard('Party and stage', { pic: 'heat', split: { by: 'counterparty' }, split2: { by: 'status' } });
     await until(() => !!document.querySelector('#hb-board svg.hb-heat'), null, 10000);
@@ -186,7 +187,7 @@ const LONG = ['Procurement & Raw Materials Ltd', 'Manufacturing & Operations Gro
     check('4a the heat grid slants its long column names', !!heat && heat.n >= 5, heat ? heat.n + ' slanted' : 'no heat grid');
     if (heat && heat.n){
       check('4b each name is whole, no "…"', heat.cut === 0, heat.words.join(' | '));
-      check('4c a little smaller than the flat ones', heat.fs === '11px', heat.fs);
+      check('4c no larger than the flat ones, never under the 12px floor', parseFloat(heat.fs) >= 12 && parseFloat(heat.fs) <= parseFloat(heat.flatFs || heat.fs), heat.fs + ' · flat ' + heat.flatFs);
       check('4d every name inside the chart', heat.outside === 0, heat.outside + ' outside');
       check('4e in order, none starting on another', heat.overlap === 0, heat.overlap + '');
       check('4f none over the grid', heat.labBot <= heat.gridTop + 1, `names end ${Math.round(heat.labBot)} · grid starts ${Math.round(heat.gridTop)}`);

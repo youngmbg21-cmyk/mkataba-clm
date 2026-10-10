@@ -1406,11 +1406,12 @@ function _hbEvery(labels, step, fs, min){
    "Track and Chart Labels" proposals: "where the words are big and you cant
    fit them, try making them smaller and at an angle") ----
    Where a chart's column names would be cut lying flat, every name in that
-   row is drawn a little smaller (HB_ANGLE_FS) and slanted HB_ANGLE degrees,
+   row is drawn a step smaller, never under 12px (HB_ANGLE_FS; the CSS sets
+   the step's size) and slanted HB_ANGLE degrees,
    so it reads whole past its narrow column; the chart gives them the height
    (and the side room) they need. Names that fit flat stay flat. A name past
    HB_ANGLE_MAX is still cut, and is whole on the hover card as before. */
-const HB_ANGLE = 40, HB_ANGLE_FS = 11, HB_ANGLE_MAX = 210, HB_ANGLE_SIDE = 0.45;
+const HB_ANGLE = 40, HB_ANGLE_FS = 12, HB_ANGLE_MAX = 220, HB_ANGLE_SIDE = 0.45;
 /* `drawn`: the words a slanted name prints (a column's whole name), where
    they differ from the flat ones */
 function hbAngleOf(labels, step, fs, drawn){
