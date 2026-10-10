@@ -84,7 +84,7 @@ const ok = (name, good, detail) => {
     });
     await page.evaluate(() => setView('dashboard'));
     await page.waitForTimeout(600);
-    await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="redline"]');
+    await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="redline"]');
     await page.waitForTimeout(1500);
     const n1 = await heads();
     ok('1c the Negotiations table draws no value stream column either',
@@ -182,7 +182,8 @@ const ok = (name, good, detail) => {
       chip: !!document.getElementById('ws-focus-out'),
       headHidden: (() => { const h = document.getElementById('ws-head'); return !!h && getComputedStyle(h).display === 'none'; })() }));
     ok('6a CONTROL focus mode is on, with its chip', on.chip && on.headHidden, JSON.stringify(on));
-    await page.click('.nav-item[data-view="register"]');
+    /* Contracts lives in the menu's fly-out (owner, 10 Oct 2026): rest on the opener, then press */
+    await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="register"]');
     await page.waitForTimeout(1200);
     const away = await page.evaluate(() => ({
       view: state.view,

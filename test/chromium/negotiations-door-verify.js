@@ -90,7 +90,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     /* ---- 1. THE DOOR IS IN THE SIDEBAR, SECOND ----
        RE-POINTED 10 Oct 2026: it is folded under Contracts and shown on
        hover (owner), so the pointer rests on Contracts first */
-    await page.hover('.nav-item[data-view="register"]');
+    await page.hover('[data-nav-fold-open="register"]');
     const door = await page.evaluate(seen => {
       const b = document.querySelector('.nav-item[data-view="redline"]');
       const items = [...document.querySelectorAll('#nav .nav-item[data-view]')]
@@ -254,7 +254,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        negoLastOpened still answers, so this is one argument to put back. */
     await page.evaluate(() => setView('calendar'));
     await page.waitForTimeout(900);
-    await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="redline"]');
+    await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="redline"]');
     await page.waitForTimeout(1600);
     const back = await page.evaluate(() => ({ view: state.view, held: redlineHeldId(),
       /* The list is the CONTRACTS TABLE under its own head — `.ngl-wrap` is
@@ -277,7 +277,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       'hati.v1.lastNegotiation.' + (currentUser().id || currentUser().email)); }catch(e){} });
     await page.evaluate(() => setView('dashboard'));
     await page.waitForTimeout(800);
-    await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="redline"]');
+    await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="redline"]');
     await page.waitForTimeout(1400);
     const list = await page.evaluate(seen => ({
       head: eval(seen)('.ngl-head-table'),
@@ -427,7 +427,11 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     const backDoor = await page.evaluate(seen => {
       const b = document.querySelector('.redline-page [data-rl-open-doc]');
       const row = document.querySelector('.redline-page .rl-tabrow');
-      return { box: eval(seen)('.redline-page [data-rl-open-doc]'), side: eval(seen)('#side-nav [data-view="redline"]'),
+      /* RE-POINTED 10 Oct 2026: the list's door lives in the Contracts
+         fly-out; on this page its opener is shown and says "you are here" */
+      return { box: eval(seen)('.redline-page [data-rl-open-doc]'), side: (() => { const o = eval(seen)('#side-nav [data-nav-fold-open="register"]');
+          const cur = !!document.querySelector('#side-nav [data-nav-fold-open="register"].is-current');
+          return o && cur && document.querySelector('#side-nav .nav-sub [data-view="redline"]') ? o : null; })(),
         first: !!b && !!row && row.children[0] === b,
         last: (() => { const acts = document.querySelector('.rl-actions');
           return !!b && !!acts && acts.children[acts.children.length - 1] === b; })(),
@@ -458,7 +462,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
       backDoor.last, `last=${backDoor.last}, ${backDoor.flush}px from the row's left`)
 
     /* Press it: the LIST, not the negotiation it was pressed from. */
-    await page.hover('.nav-item[data-view="register"]'); await page.click('#side-nav [data-view="redline"]');
+    await page.hover('[data-nav-fold-open="register"]'); await page.click('#side-nav [data-view="redline"]');
     await page.waitForTimeout(1500);
     const landed = await page.evaluate(seen => ({
       table: eval(seen)('.reg-table'),
@@ -492,7 +496,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await page.evaluate(id => openRedlineWorkbench(id), cid);
     await pause(400); await passBlanks(page);
     await page.waitForTimeout(1600);
-    await page.hover('.nav-item[data-view="register"]'); await page.click('#side-nav [data-view="redline"]');
+    await page.hover('[data-nav-fold-open="register"]'); await page.click('#side-nav [data-view="redline"]');
     await page.waitForTimeout(1500);
     const both = await page.evaluate(() => ({
       live: ((document.querySelector('.ngl-live') || {}).textContent || '').trim(),
@@ -510,7 +514,7 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
     await passBlanks(page);
     check('a row opens the other negotiation',
       await page.evaluate(() => redlineHeldId()) === cid2);
-    await page.hover('.nav-item[data-view="register"]'); await page.click('#side-nav [data-view="redline"]');
+    await page.hover('[data-nav-fold-open="register"]'); await page.click('#side-nav [data-view="redline"]');
     await page.waitForTimeout(1500);
     check('and the door works from that one as well',
       await page.evaluate(() => !!document.querySelector('.reg-table')));

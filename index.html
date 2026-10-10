@@ -1986,14 +1986,28 @@
      hover, KEYBOARD focus (:focus-visible — a mouse press leaves focus on the
      door it pressed, which must not hold the group open), or while on either
      page; always where there is no hover. Indented under Contracts; the rail of icons keeps them flush. */
-  .nav-fold > .nav-sub{display:none}
-  .nav-fold:hover > .nav-sub,.nav-fold:has(:focus-visible) > .nav-sub,.nav-fold.is-open > .nav-sub{display:block}
-  .nav-sub > .nav-item{padding-left:calc(var(--s-3) + 18px)}
-  #app-shell.rail aside .nav-sub > .nav-item{padding-left:0}
+  /* THE FLY-OUT (owner, 10 Oct 2026): beside the menu, never below it, so
+     nothing under Contracts moves. Fixed and placed by navFoldPlace — the menu
+     scrolls and would clip it. Open on hover (.is-hover, with a short grace so
+     the pointer can cross the gap), on a press (.is-open) and on the keyboard. */
+  .nav-fold > .nav-sub{display:none;position:fixed;z-index:70;width:228px;flex-direction:column;gap:2px;padding:6px;
+    background:var(--color-surface);border:1px solid var(--color-divider);border-radius:var(--radius-lg,8px);box-shadow:var(--shadow-lg)}
+  .nav-fold.is-hover > .nav-sub,.nav-fold.is-open > .nav-sub,.nav-fold:has(.nav-sub :focus-visible) > .nav-sub{display:flex}
+  .nav-fold > .nav-sub::before{content:"";position:absolute;top:0;bottom:0;left:-18px;width:18px}
+  .nav-fold > .nav-sub > .nav-item{width:100%}
+  .nav-fold-head .nav-fold-chev{display:inline-flex;flex:none;color:var(--color-neutral-600);opacity:.8}
+  .nav-fold.is-hover > .nav-fold-head,.nav-fold.is-open > .nav-fold-head{background:var(--nav-well,var(--color-neutral-100))}
+  .nav-fold-head.is-current{background:var(--nav-well,var(--color-neutral-100));font-weight:var(--w-title)}
   .nav-fold-dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
-  .nav-fold-dot[hidden],.nav-fold:hover .nav-fold-dot,.nav-fold:has(:focus-visible) .nav-fold-dot,.nav-fold.is-open .nav-fold-dot{display:none}
+  .nav-fold-dot[hidden],.nav-fold.is-hover .nav-fold-dot,.nav-fold.is-open .nav-fold-dot{display:none}
   #app-shell.rail aside .nav-fold-dot{position:absolute;top:6px;right:8px}
-  @media (hover:none){ .nav-fold > .nav-sub{display:block} .nav-fold-dot{display:none} }
+  #app-shell.rail aside .nav-fold-chev{display:none}
+  /* the rail of icons hides every label and count in the column; the fly-out is
+     not the column, so its items keep theirs */
+  #app-shell.rail #side-nav .nav-sub > .nav-item{width:100%;justify-content:flex-start;padding:9px var(--s-3);gap:11px;margin:0}
+  #app-shell.rail #side-nav .nav-sub > .nav-item .nav-rail{left:0}
+  #app-shell.rail #side-nav .nav-sub > .nav-item>span:not(.nav-rail){display:inline!important}
+  #app-shell.rail #side-nav .nav-sub .nav-count:not(:empty){display:inline-block!important}
   .nav-item .nav-rail{position:absolute;left:0;top:4px;bottom:4px;width:2px;background:transparent;border-radius:var(--radius);}
   .nav-item svg,.nav-item i{flex:none;opacity:.85;}
   .nav-item:hover{background:var(--color-neutral-100);color:var(--color-text);}
@@ -8950,6 +8964,8 @@
   .hb-card{position:relative;background:var(--hb-card);border:1px solid rgba(var(--hb-ln),.18);border-radius:var(--radius-lg);box-shadow:var(--hb-shadow);
     backdrop-filter:blur(var(--hb-blur));-webkit-backdrop-filter:blur(var(--hb-blur));min-width:0}
   .hb-card.is-new{animation:hbArrive .6s cubic-bezier(.22,.61,.36,1) both}
+  /* a card that changed is lit softly where it stands (hbShowCard; owner, 10 Oct 2026) */
+  .hb-card.is-lit::before{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;box-shadow:0 0 0 1px rgba(var(--hb-gw),.7),0 0 26px rgba(var(--hb-gw),.35);animation:hbGlow 1.8s ease-out forwards}
   .hb-card.is-new::before{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;box-shadow:0 0 0 1px rgba(var(--hb-gw),.7),0 0 26px rgba(var(--hb-gw),.35);animation:hbGlow 2.2s ease-out forwards}
   @keyframes hbArrive{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
   @keyframes hbGlow{to{opacity:0}}
@@ -9611,7 +9627,7 @@
   /* the page's host is what goes full screen (it survives Board ⇄ Explorer) */
   #content:fullscreen{background:var(--color-bg);overflow:hidden}
   @media (max-width:1180px){ .hb-figs{grid-template-columns:repeat(3,minmax(0,1fr))} .hb-rows,.hb-grid,.hb-cgrid{grid-template-columns:minmax(0,1fr)} }
-  @media (prefers-reduced-motion:reduce){ .hb-card.is-new,.hb-card.is-new::before,.hb-bar-f,.hb-cbar-f,.hb-ccol-f,.hb-in,.hb-live i{animation:none} }
+  @media (prefers-reduced-motion:reduce){ .hb-card.is-lit::before,.hb-card.is-new,.hb-card.is-new::before,.hb-bar-f,.hb-cbar-f,.hb-ccol-f,.hb-in,.hb-live i{animation:none} }
 
   /* ---- Insights → Exposure: THE PATTERN GRID (owner-picked, 28 Sep 2026) ----
      Every colour is a token, so the teal and navy workspaces and the night
@@ -12792,22 +12808,29 @@
                Below the card"): the agents' work is done on the Board, under
                Prepared by Copilot. Every old way in (a refresh, the bell, a
                link) lands there through hbOpenAgent. -->
-          <!-- CONTRACTS FOLDS NEGOTIATIONS AND PARTIES UNDER IT (owner, 10 Oct 2026:
-               "when you hover over the contract tab in the nav panel, 2 sub-folders
-               will appear the 1st one being the negotiation folder and the second
-               would be the customers folder but rename customers to Parties"). The
-               two doors keep their data-view, count and handlers; they show while
-               the pointer is on Contracts or its group, while the keyboard is in it,
-               while the reader is on either page (.is-open, setActiveNav), and
-               always on a screen with no hover. Folded, an amber dot on Contracts
-               says a negotiation waits on the reader (owner's yes, same day). -->
+          <!-- CONTRACTS OPENS TO THE RIGHT (owner, 10 Oct 2026: "the subfolders are
+               supposed to protrude outward on the right not below", like the Windows
+               menu, and "add one folder ... that says Contracts also which is where
+               the contracts page will be"). The row in the menu is the OPENER: it
+               opens the fly-out on hover, on a press or tap, and on the keyboard
+               (navFoldOpen); it goes to no page itself. The fly-out floats beside the
+               menu (position:fixed, placed by navFoldPlace, because the menu scrolls
+               and would clip it) and holds Contracts · Negotiations · Parties, each
+               with its own data-view, count and handler. Shut, an amber dot on the
+               opener says a negotiation waits on the reader; on any of the three
+               pages the opener wears the "you are here" well. -->
           <div class="nav-fold" data-nav-fold="register">
-            <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
+            <button type="button" class="nav-item nav-fold-head" data-nav-fold-open="register" aria-haspopup="menu" aria-expanded="false" title="Contracts — every contract, negotiation and party" data-i18n-title="nav_contracts_group_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-folder"/></svg>
-            <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><i class="nav-fold-dot" data-fold-dot aria-hidden="true" hidden></i><span class="nav-count" data-count="register"></span>
+            <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><i class="nav-fold-dot" data-fold-dot aria-hidden="true" hidden></i><i class="nav-fold-chev" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4.5 2.5 3.5 3.5-3.5 3.5"/></svg></i>
           </button>
-            <div class="nav-sub" role="group" aria-label="Contracts" data-i18n-aria="nav_contracts">
+            <div class="nav-sub" role="menu" aria-label="Contracts" data-i18n-aria="nav_contracts">
+            <button data-view="register" class="nav-item" role="menuitem" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
+              <span class="nav-rail"></span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-folder"/></svg>
+              <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><span class="nav-count" data-count="register"></span>
+            </button>
             <!-- Negotiations — a PLACE, second in the list, on the owner's call
                  (12 Aug 2026). It used to be a tab inside one agreement, which
                  made the work discoverable only by opening the contract it
@@ -12817,12 +12840,12 @@
                  counting the wrong book. The word is a noun because everything
                  else in this list is (the button on the Document tab keeps the
                  verb: a place and an act must not share a word). -->
-            <button data-view="redline" class="nav-item" title="Negotiations — every agreement being argued over right now" data-i18n-title="nav_negotiations_title">
+            <button data-view="redline" class="nav-item" role="menuitem" title="Negotiations — every agreement being argued over right now" data-i18n-title="nav_negotiations_title">
               <span class="nav-rail"></span>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-nego"/></svg>
               <span style="flex:1;" data-i18n="nav_negotiations">Negotiations</span><span class="nav-count" data-count="negotiations"></span>
             </button>
-            <button data-view="customers" class="nav-item" title="Parties — every party's contracts in one place, active and expired" data-i18n-title="nav_customers_title">
+            <button data-view="customers" class="nav-item" role="menuitem" title="Parties — every party's contracts in one place, active and expired" data-i18n-title="nav_customers_title">
               <span class="nav-rail"></span>
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shelf"/></svg>
               <span style="flex:1;" data-i18n="nav_customers">Parties</span><span class="nav-count" data-count="customers"></span>

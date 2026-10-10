@@ -1,22 +1,26 @@
-/* Chromium verification: NEGOTIATIONS AND PARTIES FOLD UNDER CONTRACTS
+/* Chromium verification: CONTRACTS OPENS TO THE RIGHT
    ============================================================
-   Owner, 10 Oct 2026: "when you hover over the contract tab in the nav panel,
-   2 sub-folders will appear the 1st one being the negotiation folder and the
-   second would be the customers folder but rename customers to "Parties".
-   That means the two folders will then not be seen in the nav panel without
-   hovering over the contracts folder" — and yes to an amber dot on Contracts
-   while a negotiation waits on the reader.
-   At 1440 x 900:
-     1. at rest the two doors are not shown; Contracts is
-     2. the pointer on Contracts shows Negotiations then Parties under it
-     3. Customers reads Parties, on the door and on its page
-     4. folded, the amber dot on Contracts says what the Negotiations count
-        says; open, the dot steps aside
-     5. on the Negotiations page the group stays open with the pointer away
-     6. the keyboard on Contracts opens the group
-     7. a screen with no hover shows the two doors always
+   Owner, 10 Oct 2026: "the subfolders are supposed to protrude outward on the
+   right not below just like in the image attached" (the Windows menu), and
+   "add one folder to hover like the other 2 that says Contracts also which is
+   where the contracts page will be". Earlier the same day: Customers is named
+   Parties, and an amber dot on Contracts while a negotiation waits on you.
+   At 1440 x 900, and the wide menu at 1680:
+     1. at rest the Contracts row is shown; Contracts, Negotiations and
+        Parties are not
+     2. the pointer on the row opens a fly-out to the RIGHT of the menu with
+        Contracts, Negotiations, Parties in that order, and nothing below the
+        row moves
+     3. Parties reads Parties, on the door and on its page; the fly-out's
+        Contracts opens the Contracts page
+     4. shut, the amber dot says what the Negotiations count says; open, it
+        steps aside
+     5. on any of the three pages the row wears "you are here" and the
+        fly-out stays shut once the pointer leaves
+     6. the keyboard opens it (Enter), moves in it, and Esc shuts it
+     7. a screen with no hover opens it with a tap on the row
      8. no page errors
-   Waits ask for the state, bounded. Red at unmodified main (1, 2, 3, 4).
+   Waits ask for the state, bounded. Red at unmodified main (2, 3b, 5, 6, 7).
    Run: node test/chromium/nav-fold-verify.js */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -55,55 +59,72 @@ const VIS = `el => !!el && el.getClientRects().length > 0 && getComputedStyle(el
   };
   const read = page => page.evaluate(VIS => { const vis = eval(VIS);
     const q = v => document.querySelector(`#side-nav .nav-item[data-view="${v}"]`);
+    const head = document.querySelector('#side-nav [data-nav-fold-open="register"]');
     const dot = document.querySelector('#side-nav [data-fold-dot]');
     const n = document.querySelector('#side-nav [data-count="negotiations"]');
-    return { contracts: vis(q('register')), nego: vis(q('redline')), parties: vis(q('customers')),
-      order: vis(q('redline')) && vis(q('customers')) ? (q('register').getBoundingClientRect().top < q('redline').getBoundingClientRect().top && q('redline').getBoundingClientRect().top < q('customers').getBoundingClientRect().top) : null,
+    const side = document.getElementById('side-nav'), ap = q('approvals');
+    const tops = ['register', 'redline', 'customers'].map(v => vis(q(v)) ? q(v).getBoundingClientRect().top : null);
+    return { head: vis(head), contracts: vis(q('register')), nego: vis(q('redline')), parties: vis(q('customers')),
+      order: tops.every(t => t != null) ? tops[0] < tops[1] && tops[1] < tops[2] : null,
+      right: vis(q('register')) && side ? q('register').getBoundingClientRect().left >= side.getBoundingClientRect().right - 1 : null,
+      apTop: ap ? Math.round(ap.getBoundingClientRect().top) : null,
+      current: !!(head && head.classList.contains('is-current')),
       word: ((q('customers') || {}).textContent || '').trim(), dot: vis(dot), owed: !!n && n.getAttribute('data-tone') === 'amber', n: n ? n.textContent : '' };
   }, VIS);
   try {
     const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
     await login(page);
-    await page.mouse.move(900, 500);
-    await page.evaluate(() => { if (document.activeElement) document.activeElement.blur(); });
+    const until = async (fn, arg, ms = 6000) => { let v; const t0 = Date.now();
+      while (Date.now() - t0 < ms) { try { v = await page.evaluate(fn, arg); } catch (_) { v = null; } if (v) return v; await page.waitForTimeout(100); }
+      return v; };
+    const away = async () => { await page.mouse.move(900, 500); await page.evaluate(() => { if (document.activeElement) document.activeElement.blur(); }); await page.waitForTimeout(450); };
+    await away();
     const rest = await read(page);
-    check('1. at rest Contracts is shown, Negotiations and Parties are not', rest.contracts && !rest.nego && !rest.parties, JSON.stringify(rest));
-    check('4a. folded, the amber dot says a negotiation waits on you, as the count does', rest.owed && rest.dot, JSON.stringify({ dot: rest.dot, owed: rest.owed, n: rest.n }));
-    await page.screenshot({ path: path.join(OUT, '1-rest.png'), clip: { x: 0, y: 0, width: 340, height: 600 } });
-    await page.hover('#side-nav .nav-item[data-view="register"]');
-    const hov = await read(page);
-    check('2. the pointer on Contracts shows Negotiations, then Parties, under it', hov.nego && hov.parties && hov.order === true, JSON.stringify(hov));
+    check('1. at rest the Contracts row is shown; Contracts, Negotiations and Parties are not', rest.head && !rest.contracts && !rest.nego && !rest.parties, JSON.stringify(rest));
+    check('4a. shut, the amber dot says a negotiation waits on you, as the count does', rest.owed && rest.dot, JSON.stringify({ dot: rest.dot, owed: rest.owed, n: rest.n }));
+    await page.screenshot({ path: path.join(OUT, '1-rest.png'), clip: { x: 0, y: 0, width: 420, height: 600 } });
+    await page.hover('[data-nav-fold-open="register"]');
+    const hov = await until(() => document.querySelector('.nav-fold.is-hover') ? true : null).then(() => read(page));
+    check('2a. the pointer on Contracts opens Contracts, Negotiations, Parties in that order', hov.contracts && hov.nego && hov.parties && hov.order === true, JSON.stringify(hov));
+    check('2b. …to the RIGHT of the menu, not below it', hov.right === true, JSON.stringify(hov));
+    check('2c. nothing below the row moves', hov.apTop === rest.apTop, `${rest.apTop} → ${hov.apTop}`);
     check('3a. the door reads Parties', /^Parties/.test(hov.word), hov.word);
     check('4b. open, the dot steps aside', !hov.dot);
-    await page.screenshot({ path: path.join(OUT, '2-hover.png'), clip: { x: 0, y: 0, width: 340, height: 600 } });
-    /* the pointer can travel down onto the doors and press one */
+    await page.screenshot({ path: path.join(OUT, '2-hover.png'), clip: { x: 0, y: 0, width: 420, height: 600 } });
+    /* the pointer travels across the gap onto the fly-out and presses */
     await page.click('#side-nav .nav-item[data-view="customers"]');
     const title = await page.waitForFunction(() => state.view === 'customers' && ((document.getElementById('shell-title') || {}).textContent || '').trim(), null, { timeout: 8000 }).then(x => x.jsonValue()).catch(() => '');
     check('3b. the page is named Parties', /Parties/.test(title), title);
-    await page.mouse.move(900, 500);
-    await page.waitForTimeout(200);
+    await away();
     const onPage = await read(page);
-    check('5a. on the Parties page the group stays open with the pointer away', onPage.nego && onPage.parties, JSON.stringify(onPage));
-    await page.evaluate(() => setView('redline'));
-    await page.waitForTimeout(500);
-    const onNego = await read(page);
-    check('5b. on the Negotiations page too', onNego.nego && onNego.parties, JSON.stringify(onNego));
-    await page.evaluate(() => setView('register'));
-    await page.waitForTimeout(500);
-    await page.mouse.move(900, 500);
-    const back = await read(page);
-    check('5c. on Contracts itself the group folds again', !back.nego && !back.parties, JSON.stringify(back));
-    /* the keyboard, not the mouse: Tab onto Contracts from the item above */
-    await page.focus('#side-nav .nav-item[data-view="dashboard"]');
-    await page.keyboard.press('Tab');
-    const kb = await read(page);
-    check('6. the keyboard on Contracts opens the group', kb.nego && kb.parties, JSON.stringify(kb));
+    check('5a. on the Parties page the row wears "you are here", and the fly-out is shut', onPage.current && !onPage.parties && !onPage.nego, JSON.stringify(onPage));
+    await page.hover('[data-nav-fold-open="register"]');
+    await until(() => document.querySelector('.nav-fold.is-hover') ? true : null);
+    await page.click('#side-nav .nav-item[data-view="register"]');
+    const reg = await until(() => state.view === 'register' ? true : null);
+    check('3c. the fly-out\'s Contracts opens the Contracts page', !!reg);
+    await away();
+    const onReg = await read(page);
+    check('5b. on Contracts too: "you are here" on the row, fly-out shut', onReg.current && !onReg.contracts, JSON.stringify(onReg));
+    /* the keyboard */
+    await page.focus('#side-nav [data-nav-fold-open="register"]');
+    await page.keyboard.press('Enter');
+    const kb = await until(() => document.querySelector('.nav-fold.is-open') && (document.activeElement || {}).getAttribute && document.activeElement.getAttribute('data-view') ? document.activeElement.getAttribute('data-view') : null);
+    check('6a. Enter opens it and puts the keyboard on Contracts', kb === 'register', String(kb));
+    await page.keyboard.press('ArrowDown');
+    const kb2 = await page.evaluate(() => (document.activeElement || {}).getAttribute ? document.activeElement.getAttribute('data-view') : null);
+    check('6b. ↓ moves to Negotiations', kb2 === 'redline', String(kb2));
+    await page.keyboard.press('Escape');
+    const kb3 = await until(() => !document.querySelector('.nav-fold.is-open') ? true : null);
+    check('6c. Esc shuts it', !!kb3);
 
     const touch = await (await browser.newContext({ viewport: { width: 1280, height: 900 }, hasTouch: true, isMobile: true })).newPage();
     await login(touch);
-    const noHover = await touch.evaluate(() => matchMedia('(hover: none)').matches);
-    const t = await read(touch);
-    check('7. a screen with no hover shows both doors', !noHover || (t.nego && t.parties), JSON.stringify({ noHover, ...t }));
+    const t0 = await read(touch);
+    await touch.tap('#side-nav [data-nav-fold-open="register"]').catch(() => touch.click('#side-nav [data-nav-fold-open="register"]'));
+    await touch.waitForTimeout(400);
+    const t1 = await read(touch);
+    check('7. a screen with no hover: a tap on the row opens the fly-out', !t0.nego && t1.contracts && t1.nego && t1.parties, JSON.stringify({ before: t0.nego, after: t1 }));
   } catch (e) {
     console.log('ERROR', e && e.stack || e); failures++;
   } finally {

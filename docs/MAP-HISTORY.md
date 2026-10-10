@@ -28371,3 +28371,30 @@ Six items agreed one at a time in the chat, nothing coded until "go".
    Obligations List" artifact (Ruled · Table, the SAP way · Cards) and asked
    for "building the SAP way". `.obd-tb`, bands, amber Not sure, two-line
    names with the whole on the hover.
+
+## CONTRACTS OPENS TO THE RIGHT, AND THE BOARD KEEPS YOUR PLACE (10 OCT 2026, evening)
+
+The owner, on the fold shipped that afternoon (Negotiations and Parties shown
+BELOW Contracts on hover): "the subfolders are supposed to protrude outward on
+the right not below just like in the image attached" (the Windows Start menu's
+cascading folders). Drawn first as an artifact ("Contracts Fly-out Menu"),
+then: "add one folder to hover like the other 2 that says Contracts also which
+is where the contracts page will be". Asked whether one press on Contracts
+should still open the list: "yes, go". So the menu row became an OPENER with
+no page of its own — which also answered the tablet question (a tap opens it).
+The fly-out is position:fixed and placed by measuring, because #nav scrolls
+(overflow-y:auto) and clipped an absolutely placed panel; a 280 ms grace on
+mouseleave plus an invisible bridge lets the pointer cross the gap. Measured
+in the icon rail: `#app-shell.rail #side-nav .nav-item` (two ids) squeezed the
+fly-out's items to 40px and beat `#app-shell.rail aside .nav-sub > .nav-item`;
+fixed by scope (`#app-shell.rail #side-nav .nav-sub`), not !important.
+
+The Board: "when you click to get a new chart or any new changes on the board,
+the board pushes you to the top. I need for the new charts or changes to be on
+screen not pushed out and have scroll and find it." Measured at unmodified
+main (board-keeps-your-place-verify): a chart added while scrolled to the
+bottom set scrollTop to 0 and the new card stood at 565–1007 in an 797px
+window — half off the screen; a reading-chip repaint while 200px down the
+open chart moved the pressed row from 208 to 89. hbPaintBoard now holds the
+pressed card (pointerdown remembered 4 s) and shows the target by the least
+scroll (hbShowCard), lit.

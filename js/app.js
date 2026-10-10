@@ -177,12 +177,68 @@ function setActiveNav(view){
     // keep the active tab visible: open its collapsible section (never closes others)
     if(on){ const sec=b.closest('.nav-section'); if(sec && !sec.classList.contains('open')) openNavSection(sec,true); }
   });
-  /* a folded group stays open while the reader is on one of its pages, so
-     the menu always shows where they are (Contracts' Negotiations and
-     Parties, owner 10 Oct 2026) */
+  /* on any page behind a fly-out, its opener wears the "you are here" well
+     (the fly-out itself stays shut — it would sit over the page) */
   document.querySelectorAll('.nav-fold').forEach(f=>{
-    f.classList.toggle('is-open', !!f.querySelector(`.nav-sub .nav-item[data-view="${navFor}"]`));
+    const head=f.querySelector('.nav-fold-head');
+    if(head) head.classList.toggle('is-current', !!f.querySelector(`.nav-sub .nav-item[data-view="${navFor}"]`));
   });
+}
+/* ---- THE FLY-OUT BESIDE CONTRACTS (owner, 10 Oct 2026) ----
+   Opened by hover (with NAV_FOLD_GRACE_MS so the pointer can cross the gap to
+   it), by a press or a tap on the opener (the one way on a touch screen), and
+   by the keyboard (Enter, Space or →, then ↑ ↓ inside it, Esc or ← back).
+   Placed beside the menu's own right edge, level with the opener, kept on the
+   screen; fixed, because the menu column scrolls and would clip it. */
+const NAV_FOLD_GRACE_MS=280;
+function navFoldPlace(f){
+  const sub=f&&f.querySelector('.nav-sub'), head=f&&f.querySelector('.nav-fold-head');
+  if(!sub||!head) return;
+  const side=f.closest('aside')||f.closest('#side-nav')||document.getElementById('nav');
+  const hr=head.getBoundingClientRect(), sr=side?side.getBoundingClientRect():hr;
+  sub.style.left=Math.round(sr.right+6)+'px';
+  sub.style.top=Math.round(hr.top-6)+'px';
+  const h=sub.offsetHeight||0, room=window.innerHeight-8;
+  if(h&&hr.top-6+h>room) sub.style.top=Math.max(8,Math.round(room-h))+'px';
+}
+function navFoldSet(f, how, on){
+  if(!f) return;
+  clearTimeout(f._navFoldT);
+  f.classList.toggle(how, !!on);
+  const open=f.classList.contains('is-hover')||f.classList.contains('is-open');
+  const head=f.querySelector('.nav-fold-head'); if(head) head.setAttribute('aria-expanded', open?'true':'false');
+  if(open) navFoldPlace(f);
+}
+function navFoldCloseAll(except){
+  document.querySelectorAll('.nav-fold').forEach(f=>{ if(f!==except){ navFoldSet(f,'is-open',false); navFoldSet(f,'is-hover',false); } });
+}
+function navFoldOpen(f, focusFirst){
+  navFoldCloseAll(f); navFoldSet(f,'is-open',true);
+  if(focusFirst){ const first=f.querySelector('.nav-sub .nav-item:not([hidden])'); if(first) try{ first.focus(); }catch(_){} }
+}
+function wireNavFolds(){
+  document.querySelectorAll('.nav-fold').forEach(f=>{
+    if(f.dataset.foldWired) return; f.dataset.foldWired='1';
+    if(typeof f.addEventListener!=='function') return;
+    f.addEventListener('mouseenter',()=>{ if(typeof matchMedia!=='function'||matchMedia('(hover:hover)').matches){ clearTimeout(f._navFoldT); navFoldSet(f,'is-hover',true); } });
+    f.addEventListener('mouseleave',()=>{ clearTimeout(f._navFoldT); f._navFoldT=setTimeout(()=>navFoldSet(f,'is-hover',false),NAV_FOLD_GRACE_MS); });
+    f.addEventListener('focusin',()=>navFoldPlace(f));
+    f.addEventListener('keydown',e=>{
+      const items=[...f.querySelectorAll('.nav-sub .nav-item')].filter(b=>!b.hidden&&b.getClientRects().length);
+      const i=items.indexOf(document.activeElement), head=f.querySelector('.nav-fold-head');
+      if(e.target===head&&(e.key==='ArrowRight'||e.key==='ArrowDown')){ e.preventDefault(); navFoldOpen(f,true); return; }
+      if(i<0) return;
+      if(e.key==='ArrowDown'){ e.preventDefault(); items[(i+1)%items.length].focus(); }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); items[(i-1+items.length)%items.length].focus(); }
+      else if(e.key==='Escape'||e.key==='ArrowLeft'){ e.preventDefault(); navFoldCloseAll(); if(head) head.focus(); }
+    });
+  });
+  if(!document._navFoldOutside&&typeof document.addEventListener==='function'&&typeof window.addEventListener==='function'){ document._navFoldOutside=true;
+    document.addEventListener('pointerdown',e=>{ if(!e.target.closest||!e.target.closest('.nav-fold')) navFoldCloseAll(); },true);
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&document.querySelector('.nav-fold.is-open')) navFoldCloseAll(); });
+    window.addEventListener('resize',()=>document.querySelectorAll('.nav-fold.is-open,.nav-fold.is-hover').forEach(navFoldPlace));
+    const nav=document.getElementById('nav'); if(nav) nav.addEventListener('scroll',()=>navFoldCloseAll(),{passive:true});
+  }
 }
 function openNavSection(sec, open){
   sec.classList.toggle('open',open);
@@ -830,6 +886,8 @@ function updateSidebarCounts(){
      count the door carries (owner, 10 Oct 2026) */
   document.querySelectorAll('[data-fold-dot]').forEach(dot=>{
     const sub=dot.closest('.nav-fold');
+    /* the Contracts count is teal (a size), never work owed: only an amber
+       count behind the fly-out lights the dot */
     const owed=!!(sub&&[...sub.querySelectorAll('.nav-sub [data-count]')].some(el=>el.getAttribute('data-tone')==='amber'&&el.closest('.nav-item')&&!el.closest('.nav-item').hidden));
     dot.hidden=!owed;
   });
@@ -3643,12 +3701,16 @@ function setRegion(code,opts){
 function wireShell(){
   // nav
   const nav=document.getElementById('nav');
+  wireNavFolds();
   nav&&nav.addEventListener('click',e=>{
     // a section header (+/-) toggles its tabs; a tab navigates
     const head=e.target.closest('[data-section-toggle]');
     if(head){ const sec=head.closest('.nav-section'); openNavSection(sec,!sec.classList.contains('open')); return; }
+    /* the fly-out's opener goes to no page: a press opens it, or shuts it */
+    const opener=e.target.closest('[data-nav-fold-open]');
+    if(opener){ const f=opener.closest('.nav-fold'); if(f){ if(f.classList.contains('is-open')) navFoldCloseAll(); else navFoldOpen(f, e.detail===0); } return; }
     const btn=e.target.closest('[data-view]');
-    if(btn){
+    if(btn){ navFoldCloseAll();
       const v=btn.getAttribute('data-view');
       /* ---- THE NEGOTIATIONS DOOR ASKS A DIFFERENT QUESTION ----
          Every other item in this list names a view and setView draws it. This
@@ -4067,6 +4129,6 @@ if (typeof window !== 'undefined' && window.addEventListener){
   window.addEventListener('afterprint', clearPrintRoot);
 }
 
-Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
+Object.assign(window,{printSurface,fillPrintRoot,clearPrintRoot,POLL_ON_ARRIVAL,createFromTemplate,regionCodeFor,keepScroll,PLACE_PARTS,placeNow,placeSave,placeResume,placeScrollBack,rowsThatFit,openFolder,openNavSection,openWorkspace,setActiveNav,navFoldPlace,navFoldOpen,navFoldCloseAll,NAV_FOLD_GRACE_MS,setView,updateCommandBar,updateSidebarCounts,navCounts,navCountsClear,renderContextPanel,selectContract,applyPanelLayout,closeContextPanel,notesPanelShowing,notesPanelFollow,
   buildAlerts,alertCount,updateAlertBadge,paintShellDoors,panelSuppressed,openPanel,openNotesPanel,chatContractId,paintChatDoor,PANEL_FACES,panelFace,setPanelFace,alertsPanelHtml,activityPanelHtml,ALERT_KINDS,ALERT_TONE,alertRank,railCollapsed,applyRail,toggleRail,navHidden,toggleNavHidden,paintNavToggle,NAV_HIDE_KEY,railLabelsShowing,paintRailToggle,RAIL_KEY,setNavDrawer,closeNavDrawer,navDrawerActive,navHeaderTight,NAV_DRAWER_W,placeLanguageSwitch,exportWorkingSetCsv,renderNewMenu,renderPageHeader,syncViewHeight,wireShell,openCommandPalette,commandPaletteResults,applyTheme,toggleTheme,setTheme,themeNow,THEMES,renderThemeMenu,wireThemeMenu,brandNow,darkNow,setBrand,setDark,toggleDark,applyAppearance,paintAppearance,brandPickerVisible,BRANDS,shellTitleFor,shellCrumbAdopt,shellCrumbLayer,setRegion,REGIONS,buildActivityFeed,refreshActivityFeed,relTime});
 Object.assign(window,{BP});

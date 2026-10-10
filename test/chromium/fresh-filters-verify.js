@@ -138,7 +138,7 @@ function book(){
     await goHome();
     const noSeeAll = await page.evaluate(() => !document.querySelector('[data-hm-go="needsyou"]'));
     check('A2 Home has no See all onto a named set any more', noSeeAll);
-    await page.click('#side-nav [data-view="register"]').catch(() => {});
+    await page.hover('[data-nav-fold-open="register"]').catch(() => {}); await page.click('#side-nav [data-view="register"]').catch(() => {});
     await page.waitForTimeout(900);
 
     /* ================ B. STALE PAGE FILTERS UNDER THE STAGE BAR ============ */
