@@ -279,7 +279,15 @@ const symbol = page => page.evaluate(() => {
      wait below asks for the STATE it needs, bounded; none is a fixed pause. */
   await until(page, () => !document.getElementById('pd-input') && !document.getElementById('confirm-overlay')
     && !document.querySelector('#clause-editor .ce-saved-tick'), null, 10000);
-  await clickInto(page, /Late payments/);
+  /* …and the caret is really in the clause's box before a key is pressed:
+     on the slow runner the stage's 10 Oct run typed while the box was not
+     yet taking keys ("the typed words never reached the box"), so the click
+     is made again until the box holds the caret — at most three presses. */
+  for (let i = 0; i < 3; i++){
+    await clickInto(page, /Late payments/);
+    if (await until(page, () => { const a = document.activeElement;
+      return !!(a && a.closest && a.closest('#ce-clausebody')); }, null, 4000)) break;
+  }
   await page.keyboard.type(' Always.');
   /* A WAIT ASKS FOR THE STATE, BOUNDED: on a slow runner the press could land
      before the typing counted as unfiled, and then there is rightly nothing
@@ -291,7 +299,11 @@ const symbol = page => page.evaluate(() => {
   /* the press is made only on unfiled typing that is really in the clause's
      box — otherwise the stage, not the product, is what failed, and it says so */
   check('4 · stage: the typing is in the clause\u2019s box before the press', typedIn,
-    typedIn ? null : 'the typed words never reached the box (a question still open?): ' + await page.evaluate(() => !!document.getElementById('pd-input')));
+    typedIn ? null : 'the typed words never reached the box: ' + JSON.stringify(await page.evaluate(() => ({
+      question: !!document.getElementById('pd-input'),
+      inBox: /Always\./.test((document.getElementById('ce-doc') || {}).textContent || ''),
+      dirty: !!(window.clauseEditorDirty && clauseEditorDirty()),
+      focus: (document.activeElement && (document.activeElement.id || document.activeElement.className || document.activeElement.tagName)) || '' }))));
   const pressed = await page.evaluate(() => { const b = [...document.querySelectorAll('#rl-changes-col button')]
     .find(x => x.textContent.trim() === 'Accept'); if (!b) return false; b.click(); return true; });
   const asked = await until(page, () => !!document.getElementById('confirm-overlay'), null, 8000);

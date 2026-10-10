@@ -104,7 +104,12 @@ const CERT = '<h1>CERTIFICATE OF DESIGNATION</h1><h2>SANERGY, INC.</h2><p>A Dela
     const rowOf = name => page.evaluate(n => { const rows = docReadSheet(getContract('MK-LM-CERT')); return rows.findIndex(r => (r.ownHead || r.heading || '').startsWith(n)); }, name);
     const press = async i => {
       await page.evaluate(k => { const b = document.querySelector(`#doc-thread [data-th-go="${k}"]`); if (b) b.click(); }, i);
-      await page.waitForTimeout(1200);
+      /* SLOW-RUNNER WAIT (10 Oct 2026, "get main to green"): a fixed 1.2 s
+         pause here was not always enough on GitHub's runner — the pressed row
+         had not opened yet, so its Plain was never pressed. Ask for the state:
+         the pressed row is the open one and carries its Plain, bounded. */
+      await page.waitForFunction(k => { const r = document.querySelector('#doc-thread .doc-th-row.is-open');
+        return !!(r && r.querySelector(`[data-th-go="${k}"]`) && r.querySelector('[data-th-explain]')); }, i, { timeout: 10000 }).catch(() => {});
       const btn = await page.$('#doc-thread .doc-th-row.is-open [data-th-explain]');
       if (!btn) return false;
       await btn.click(); return true;

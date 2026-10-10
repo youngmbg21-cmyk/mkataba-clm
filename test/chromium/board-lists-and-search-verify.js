@@ -51,16 +51,24 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
       await page.click('#li-go');
       await page.waitForFunction(() => window.state && state.contracts && state.contracts.length > 3 && typeof hbS === 'function', null, { timeout: 20000 });
       if (screen === 'dark') await page.evaluate(() => setDark(true));
-      const stood = await until(({ P, R, screen }) => {
+      const standFn = ({ P, R, screen }) => {
         if (P.every(([id]) => document.querySelector(`[data-hb-pid="${id}"] [data-hb-rc]`))) return true;
         const s = hbS(); s.face = 'board'; s.prep = 'closed'; s.path = []; s.screen = screen; s.scrPick = 1;
         s.panels = P.map(([id, key]) => ({ id, kind: 'view', key, title: id, recipe: JSON.parse(JSON.stringify(R)), split: false, big: false }));
-        hbSave(); if (state.view !== 'dashboard') setView('dashboard'); else hbPaintBoard(); return false; }, { P: PANELS, R, screen }, 15000);
+        hbSave(); if (state.view !== 'dashboard') setView('dashboard'); else hbPaintBoard(); return false; };
+      /* SLOW-RUNNER WAIT (10 Oct 2026, "get main to green"): on GitHub's runner
+         the dark pass once found the cards standing, then lost card "pa" to a
+         later repaint before the press — the list never opened and step 3 read
+         a card that was gone. So each press first asks that the cards STILL
+         stand (re-staging them if a repaint took them), bounded. */
+      const stand = () => until(standFn, { P: PANELS, R, screen }, 15000);
+      const stood = await stand();
       check(`0. ${screen}: the board's cards stand`, !!stood);
       if (!stood) { await page.close(); continue; }
       const rgba = s => { const m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 }; };
       const lum = c => c ? (0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b) / 255 : null;
       /* 1 + 2: a mouse press on the Split choice */
+      await stand();
       const btn = await page.evaluate(() => { const b = document.querySelector('[data-hb-pid="pa"] [data-hb-rc="split"]') || document.querySelector('[data-hb-pid="pa"] [data-hb-rc]');
         b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
       await page.mouse.click(btn.x, btn.y);
@@ -84,6 +92,7 @@ const PANELS = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterp
         check(`1. ${screen}: the ⋯ menu's ground is solid, no blur`, !!pbg && pbg.a === 1 && (!pm.blur || pm.blur === 'none'), pm && `${pm.bg} · blur ${pm.blur}`);
         await page.keyboard.press('Escape'); await page.mouse.click(4, 400); }
       /* 3: the keyboard still gets a ring */
+      await stand();
       await page.evaluate(() => document.querySelector('[data-hb-pid="pa"] [data-hb-rc]').setAttribute('data-kb', '1'));
       await page.focus('[data-hb-pid="pa"] [data-hb-rc][data-kb]'); await page.keyboard.press('Shift+Tab'); await page.keyboard.press('Tab');
       const ring = await page.evaluate(() => { const a = document.activeElement; const cs = getComputedStyle(a); return { on: a.matches('[data-hb-rc]'), style: cs.outlineStyle, w: parseFloat(cs.outlineWidth) }; });
