@@ -68,7 +68,10 @@ const login = async (page, base, email, pass) => {
     await page.waitForTimeout(700);
     await page.fill('#am-note', 'extends the term and re-prices haulage');
     await page.click('#am-blank');   // the manual way (O-10, 7 Oct 2026)
-    await page.fill('#am-expiry', '2029-12-31');
+    /* A POP-UP'S DATE WEARS HaTi'S FACE (SAP pop-ups, 10 Oct 2026): the real
+       box is kept, not drawn, as the value — written as the calendar writes it. */
+    await page.evaluate(v => { const i = document.getElementById('am-expiry'); i.value = v;
+      i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); }, '2029-12-31');
     await page.click('#am-go');
     await page.waitForTimeout(1800);
 
