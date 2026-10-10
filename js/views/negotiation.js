@@ -21471,7 +21471,8 @@ function negoWhen(at){
   const t = Date.parse(at || '');
   if (isNaN(t)) return '';
   const d = new Date(t);
-  return d.toLocaleTimeString(jxLocale(), { hour: '2-digit', minute: '2-digit' });
+  const o = { hour: '2-digit', minute: '2-digit' };
+  return window.dateFmtOf ? dateFmtOf(jxLocale(), o).format(d) : d.toLocaleTimeString(jxLocale(), o);
 }
 /* Mirror the engine's own enablement onto the header buttons, so the header
    never offers an action the workbench itself is refusing. */

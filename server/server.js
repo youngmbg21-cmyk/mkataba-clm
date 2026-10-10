@@ -8630,6 +8630,38 @@ const READ_PAGE_CHARS = 14000;
 const READ_MAX_PAGES = 40;
 const READ_AT_ONCE = 3;
 const READ_MAX_CLAUSES = READ_PAGE * READ_MAX_PAGES;
+/* ---- ONE CLAUSE LONGER THAN A PAGE IS READ IN PIECES (Young chose it,
+   10 Oct 2026, off a 9,562-word part that said "Copilot answered without a
+   reading" on every press) ----
+   A single row past READ_PAGE_CHARS was sent alone and its translation ran
+   past the answer's 8,000 tokens every time: cut short, refused (rightly — it
+   may stop mid-sentence), asked again the same way, cut short again — two deep
+   calls paid per press for nothing. Such a clause is now cut at sentence ends
+   into pieces of at most READ_PIECE_CHARS, each piece read on its own, and the
+   pieces' readings joined in order as the clause's ONE reading. Every piece
+   must come back whole, or none of it is landed. Past READ_PIECES_MAX pieces,
+   or where a piece is still cut short, the clause is TOO LONG — said as that
+   (`tooLong`), and never re-asked the same way. A clause shorter than a page
+   that comes back cut short keeps the one second ask it always had (f367);
+   cut short again, it too is said as too long. */
+const READ_PIECE_CHARS = 12000;
+const READ_PIECES_MAX = 8;
+function readPiecesOf(text, max = READ_PIECE_CHARS) {
+  const out = [];
+  let rest = String(text || '').trim();
+  while (rest.length > max) {
+    const win = rest.slice(0, max);
+    let cut = -1;
+    const re = /[.;:](?=\s+["“(]?[A-Z(0-9])/g;
+    for (let m; (m = re.exec(win)); ) cut = m.index + 1;
+    if (cut < max * 0.5) cut = win.lastIndexOf(' ');
+    if (cut <= 0) cut = max;
+    out.push(rest.slice(0, cut).trim());
+    rest = rest.slice(cut).trim();
+  }
+  if (rest) out.push(rest);
+  return out;
+}
 /* ---- PLAIN ENGLISH READS IN THE BACKGROUND, A CLAUSE AT A TIME (fix 6,
    Young's go on the preview, 23 Sep 2026) ----
    "On a long contract, one press tries to translate everything in one go, and
@@ -9217,6 +9249,10 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
     /* A PAGE CUT SHORT (more than one row) waits for its halves rather than
        being landed: its last entry may stop mid-sentence. */
     const halvesOf = [];
+    /* Clauses read in pieces, and clauses too long to read at all — see
+       READ_PIECE_CHARS. Neither is asked again the same way below. */
+    const longSet = new Set(pending.filter(i => list[i].kind !== 'section' && pageText([list[i]]).length > READ_PAGE_CHARS));
+    const tooLong = new Set();
     const onFirst = (g, pg) => {
       if (!g || g.err || !g.block){
         if (g && g.err && !firstErr) firstErr = g.err;
@@ -9226,11 +9262,42 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
       if (g.resp && g.resp.truncated && pg.rows.length > 1) { halvesOf.push(pg); return; }
       readPage(g, pg);
     };
+    const readInPieces = async i => {
+      const row = list[i];
+      const pieces = readPiecesOf(row.text);
+      answered.add(i);
+      if (pieces.length > READ_PIECES_MAX) { tooLong.add(i); return; }
+      const pgs = pieces.map((t, k) => {
+        const r = { ...row, heading: `${row.heading} (part ${k + 1} of ${pieces.length})`, text: t };
+        return { base: -1, idx: [i], rows: [r], body: pageText([r]) };
+      });
+      const got = await askAll(pgs);
+      const parts = [];
+      for (const g of got) {
+        if (!g || g.err || !g.block) { if (g && g.err && !firstErr) firstErr = g.err; answered.delete(i); errored.push(i); return; }
+        if (g.resp && g.resp.fellBack && !fell) fell = g.resp;
+        if (g.resp && g.resp.truncated) { tooLong.add(i); return; }
+        const e = (g.block.input && Array.isArray(g.block.input.readings) ? g.block.input.readings : [])
+          .map(r => String((r && r.plain) || '').trim()).filter(Boolean).join('\n\n');
+        if (!e) { refuse(null, readEchoOf(row), i, true); return; }
+        parts.push(e);
+      }
+      const plain = parts.join('\n\n');
+      land(i, plain, '');
+      readRowsKeep(id, [{ hash: hashes[i], plain, head: '' }]);
+    };
     const onLater = (g, pg) => {
       if (!g || g.err || !g.block){ if (g && g.err && !firstErr) firstErr = g.err; return; }
       readPage(g, pg);
+      /* ONE CLAUSE ALONE, CUT SHORT ON THE SECOND ASK TOO, is too long rather
+         than unlucky — said as that, not as "answered without a reading". */
+      if (g.resp && g.resp.truncated && pg.rows.length === 1) {
+        const i = pg.idx ? pg.idx[0] : pg.base;
+        if (!paired.has(i)) tooLong.add(i);
+      }
     };
-    await askAll(pagesOf(pending), onFirst);
+    await askAll(pagesOf(pending.filter(i => !longSet.has(i))), onFirst);
+    for (const i of longSet) await readInPieces(i);
     /* ---- A PAGE CUT SHORT IS ASKED AGAIN IN TWO HALVES, ONCE (23 Sep 2026) ----
        A page whose answer ran out of room lost the clauses at its end. Rather
        than keep the half and count the rest as unread, the page is split and
@@ -9269,7 +9336,7 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        A page that never answered — a provider error, a dropped connection —
        used to be counted as unread for good. Its clauses join the same second
        ask, after a short pause so a busy provider has a moment. */
-    const again = pending.filter(i => !paired.has(i));
+    const again = pending.filter(i => !paired.has(i) && !longSet.has(i) && !tooLong.has(i));
     if (again.length){
       if (errored.length) await new Promise(r => setTimeout(r, AI_RETRY_PAUSE_MS));
       /* The first pass's refusals are what the reader is shown for a clause
@@ -9317,7 +9384,8 @@ app.post('/api/ai/readings', auth, editor, rlAiDeep, aiFeature('readings'), aiBu
        cached: the next press asks for the pages that are missing rather than
        serving a document with a hole in it for the life of the wording. */
     const readings = { v: 1, at: now(), by: (req.user && req.user.name) || '', inputHash,
-      truncated, over, unmatched, partial, failed, skipped, items };
+      truncated, over, unmatched, partial, failed, skipped, items,
+      ...(tooLong.size ? { tooLong: Array.from(tooLong).filter(i => !paired.has(i)).sort((a, b) => a - b) } : {}) };
     if (!truncated && !unread && !partial && items.length)
       db.prepare('INSERT INTO clause_readings (contract_id,json,created_at) VALUES (?,?,?) ON CONFLICT(contract_id) DO UPDATE SET json=excluded.json, created_at=excluded.created_at')
         .run(String(id), JSON.stringify(readings), now());

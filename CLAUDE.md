@@ -283,6 +283,7 @@ Tests: f106, f225, f238, f277, f316, f377, f383, f458 (3), two-copies, paper-gro
 - OPEN row = the shown clause at `DOC_THREAD_LINE` (`docThreadAtLine`); scroll follows; a press GLIDES (`docThreadGoTo`) and the open row rises to the list's top (`docThreadFill`). FILTER All·Red·Amber·Blue by WORST mark (`docThreadShown`, "k of n shown"). The thread speaks the PANEL's voice (`.doc-th-plain` `--font-body`); A⁻/A⁺ grow the paper only.
 - PLAIN = ONE clause only (`docReadRun(c,{only:[i],out})`, route `oneClause`); an empty reading is never landed, kept or served (`readEmptyClauseDrop`); after a real ask with none → "Could not read" + WHY (`docReadWhyOf`). Body: WORTH A LOOK (`docXrayMarks`), WHO DOES WHAT. `riskViewOpen` opens on the worst grade.
 - TWO HOMES (10 Oct 2026): the Document tab and Home's Paper Document tab (`TH_HOSTS`, `thHostFor`, `thEl`, `thOnHome`); on Home the list IS the panel (no door, no ×). The × sits on the head's first line, right (`.doc-th-hd:has(> .doc-th-x)`). A row the SCROLL opens opens in one step (`docThreadOpen(c,i,{follow})`, `.th-still`); a press still animates. Counts say "N to review" (`th_look_n`).
+- A PART PAST `DOC_READ_LONG_WORDS` (1500) IS CUT AT AN IN-ORDER RUN OF ITS OWN NUMBERS ("1." "2." / "Section N" / Word list items, one shape, ≥ `DOC_READ_RUN_MIN`) — `docReadLongSplit` in `docReadSheet`; shorter paper walks as before. Plain reads a clause longer than a page IN PIECES (`readPiecesOf`, `READ_PIECE_CHARS`, `READ_PIECES_MAX`) and lands ONE reading; past that, or cut short on both asks, `tooLong` → `th_cannot_long`. Tests: f656.
 - STALE names: MAP-HISTORY "CLAUDE.MD TRIM, 7 OCT 2026".
 Tests: f507, f536, home-paper-clauses-verify, f277, f300, f315, f364, f373, f384, thread-verify, thread-drawer-verify, runway-and-xray-verify, reading-in-the-background-verify, xray-who-does-what-verify.
 
@@ -436,6 +437,7 @@ Tests: f274, f322–f324, f344, f358, f390, f399, f400, f412, f413, f560, f564, 
 ## PERFORMANCE — THE BOOK IS WALKED ONCE
 
 `familyChildren` a map built once (`familyIndexDirty()` raised by every parentId writer); `navCounts` one count per paint, refuses re-entry; list routes decorate from their own ids. Home at 430 contracts (8 Oct 2026, longest freeze, main → now): Board⇄Paper 0.1–0.16 s → none; Explorer first 1.44 → 0.87 s, again 2.26 → 0.31 s; a still map 100% busy → idle. Instrument: test/chromium/_audit/perf*.js at 3,000 contracts. Tests: f356, f357, home-speed-verify.
+- A LONG CONTRACT IS READ ONCE (10 Oct 2026, a 50-page certificate): `sanitizeRich`/`richToText` remember their last answers by the wording (`richReadMemo`); `clauseSegment` splits once and hands each caller its OWN copy, `clauseSegmentFind` one clause by id (Negotiate on 250 clauses ~7 s → ~0.5 s); one date printer per shape `dateFmtOf` (History, its time, the phone's History); the drawer finds its rows once (`docThreadRowsBy`). Tests: f656, long-contract-moves-verify.
 
 ## THE OVERNIGHT CLEAN-UP RULES, THE OVERNIGHT RUN, THE OWNER'S OPEN ITEMS (26–28 Sep 2026)
 

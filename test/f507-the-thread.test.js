@@ -193,7 +193,8 @@ describe('f507 (4) — the route reads ONE clause and keeps the keys global', ()
     assert.match(SERVER, /const onlyAsk = Array\.isArray\(req\.body && req\.body\.only\)/);
     assert.match(SERVER, /const pending = onlyAsk \? wanted\.filter\(i => onlyAsk\.has\(i\)\) : wanted;/);
     assert.match(SERVER, /const skipped = wanted\.length - pending\.length;/);
-    assert.match(SERVER, /truncated, over, unmatched, partial, failed, skipped, items \};/, 'skipped travels with the edition');
+    /* f656 (10 Oct 2026) added `tooLong` after `items`; the claim is unchanged */
+    assert.match(SERVER, /truncated, over, unmatched, partial, failed, skipped, items[,\s]/, 'skipped travels with the edition');
     assert.match(SERVER, /!\(Number\(r\.skipped\) > 0\)/, 'an edition with skipped rows is never served as whole');
   });
   test('the browser sends `only` and remembers which rows it asked for', () => {
@@ -339,7 +340,8 @@ describe('f507 (8) — Plain always turns the clause into plain English, and nev
     assert.match(region(CONTRACT, 'docThreadStates'), /i18t\('th_cannot_state'\)/);
     assert.match(region(CONTRACT, 'docThreadBodyHtml'), /if\(docThreadCannotOf\(c\)\.has\(i\)\)\n\s*parts\.push\(`<p class="doc-th-cannot"><b>\$\{esc\(i18t\('th_cannot_head'\)\)\}<\/b> \$\{esc\(i18t\(docThreadCannotWhy\(c,i\)\)\)\}<\/p>`\);/, 'the reason, in words');
     assert.match(region(CONTRACT, 'docThreadCannotMark'), /if\(cache\.plain\.has\(x\.el\)\) rec\.set\.delete\(i\); else rec\.set\.set\(i, why\|\|'empty'\);/);
-    assert.match(CONTRACT, /const DOC_THREAD_WHY = \{ empty:'th_cannot_empty', noai:'th_cannot_noai', limit:'th_cannot_limit', failed:'th_cannot_failed' \};/);
+    /* f656 (10 Oct 2026) added `long` for a clause too long to read */
+    assert.match(CONTRACT, /const DOC_THREAD_WHY = \{ empty:'th_cannot_empty', noai:'th_cannot_noai', limit:'th_cannot_limit', failed:'th_cannot_failed'[^}]*\};/);
     const why = region(CONTRACT, 'docReadWhyOf');
     assert.match(why, /if\(!err\) return 'empty';/);
     assert.match(why, /return 'limit';/);

@@ -226,12 +226,33 @@ function _parseInert(html){
    strips every attribute not explicitly permitted, and removes every comment.
    Returns a restricted HTML string. Safe to call on anything, including output
    it produced itself (it is idempotent). */
-function sanitizeRich(html){
+/* ---- THE SAME WORDING IS READ ONCE (9 Oct 2026, the owner's 50-page
+   contract) ----
+   The cleaner and the text projection below are PURE: the same string in
+   gives the same string out, always (nothing they read moves at run time).
+   A long contract was cleaned again by every tab, every count and every
+   clause asked about — on Negotiate once per clause, about 250 times in a
+   row. So each remembers its last few answers, keyed by the wording itself.
+   A string cannot be changed in place, so a remembered answer can never go
+   stale; an edit is a different string and is read afresh. */
+const RICH_READ_KEEP = 12;
+function richReadMemo(fn){
+  const kept = new Map();
+  return function(html){
+    const key = String(html == null ? '' : html);
+    if (kept.has(key)){ const v = kept.get(key); kept.delete(key); kept.set(key, v); return v; }
+    const v = fn(key);
+    kept.set(key, v);
+    if (kept.size > RICH_READ_KEEP) kept.delete(kept.keys().next().value);
+    return v;
+  };
+}
+const sanitizeRich = richReadMemo(function sanitizeRichRead(html){
   const root=_parseInert(html);
   _sanitizeNode(root);
   _normaliseStructure(root);
   return root.innerHTML;
-}
+});
 function _sanitizeNode(node){
   // A LIVE cursor, not a snapshot. Unwrapping hoists an element's children into
   // this very child list, and those children have not been checked yet — a
@@ -556,7 +577,7 @@ function _listMark(list, index, path, ulDepth){
    Published under a name of its own for js/docx.js, which asks it at call
    time through `window`: one reading, three walks. */
 const richListMark = _listMark;
-function richToText(html){
+const richToText = richReadMemo(function richToTextRead(html){
   const root=_parseInert(sanitizeRich(html));
   const lines=[];
   let buf='';
@@ -593,7 +614,7 @@ function richToText(html){
   })(root, [], 0);
   flush();
   return lines.join('\n').replace(/\n{3,}/g,'\n\n').replace(/[ \t]+\n/g,'\n').trim();
-}
+});
 /* ---------- putting edited text BACK into a formatted document ----------
    A counterparty edits in a plain-text box (and a Word round trip returns
    plain text too), so what comes back is text. Adopting it used to overwrite
