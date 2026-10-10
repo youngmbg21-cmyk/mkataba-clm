@@ -87,7 +87,12 @@ const check = (name, pass, detail) => {
       const p = g.querySelector('path'), r = p.getBoundingClientRect(); return { dig: g.getAttribute('data-hb-dig'), x: r.left + r.width / 2, y: r.top + r.height / 2 + 2 }; }, colSel);
     await page.mouse.move(pick.x, pick.y);
     await until(() => { const t = document.getElementById('hb-tip'); return t && !t.hidden; });
-    await page.waitForTimeout(400);   /* the fade is .16s */
+    /* the fade is .16s — SLOW-RUNNER WAIT (10 Oct 2026, "get main to green"):
+       a fixed 400 ms once read the other columns still at full strength on
+       GitHub's runner, so the wait asks for the stepped-back state, bounded */
+    await until(() => { const svg = document.querySelector('svg.hb-svg.hb-dim'); if (!svg) return false;
+      const o = [...svg.querySelectorAll('[data-hb-part]')].find(x => !x.classList.contains('is-lit'));
+      const p = o && o.querySelector('path'); return !!p && Number(getComputedStyle(p).opacity) < 0.6; });
     const hov = await page.evaluate(({ dig }) => {
       const svg = document.querySelector('svg.hb-svg.hb-dim'); const g = [...document.querySelectorAll('[data-hb-dig]')].find(x => x.getAttribute('data-hb-dig') === dig && x.closest('.hb-svg'));
       const p = g && g.querySelector('path'), cs = p ? getComputedStyle(p) : null;

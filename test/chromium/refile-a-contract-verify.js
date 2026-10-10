@@ -96,8 +96,11 @@ const openKeyTerms = async (page, id) => {
        8 Oct 2026: where Edit is not drawn (an executed contract) the way to
        the filing is the ⋯ menu's "Filing and stream" row, which opens the
        same rows with the admin's stream picker live. */
-    const b = document.querySelector('[data-ov-edit="all"]')
-      || document.getElementById('ws-filing');
+    /* RE-POINTED 10 Oct 2026 — follows "Overview Edit keeps the card"
+       (469bc5a, 9 Oct 2026): the page's Edit now draws the EIGHT terms only,
+       and the filing (stream included) lives on the ⋯ row "Filing and stream"
+       on every contract, signed or not. So that row is the one door here. */
+    const b = document.getElementById('ws-filing');
     if (b) b.click();
   });
   await page.waitForTimeout(900);

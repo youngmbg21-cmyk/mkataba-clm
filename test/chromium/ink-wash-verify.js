@@ -19,6 +19,16 @@
    theme-tokens-verify uses, for the same reason.
 
      node test/chromium/ink-wash-verify.js --save   (record, on the code BEFORE)
+
+   RE-RECORDED 10 Oct 2026, OWNER-ASKED ("yes, update the record"): the
+   page redesigns after 9 Oct (SAP batches, pop-ups as drawn, the obligations
+   table, the History fold) moved the headcounts and a few dark-mode colours.
+   Audited first as a set difference against the 9 Oct record: one new 15px
+   text on Home; in dark mode a drawn pop-up's danger ground, the dialog foot,
+   the table edges on Obligations and Settings, and the accent rule and strokes
+   the History and Document redesigns removed. Every Ink Wash claim (ramp, no
+   grey, no capitals, status, paper, redline and danger buttons) passed before
+   and after. From here the record is today's pages.
      node test/chromium/ink-wash-verify.js          (check)
    ============================================================ */
 const fs = require('node:fs');

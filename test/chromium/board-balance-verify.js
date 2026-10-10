@@ -62,13 +62,21 @@ const ALL = [['pa', 'q:contracts by status'], ['pb', 'q:contracts by counterpart
         s.panels = P.map(([id, key]) => ({ id, kind: 'view', key, title: id, recipe: JSON.parse(JSON.stringify(R)), split: false, big: false }));
         hbSave(); hbPaintBoard(); return false; }, { P, R: recipe, want }, 15000);
     };
-    const boxes = () => page.evaluate(() => {
+    /* SLOW-RUNNER WAIT (10 Oct 2026, "get main to green"): on GitHub's runner
+       the cards once stood in the markup while the grid was not yet laid out,
+       and every box read 0 (".. tops 0/0", "0 of 0"). So a measure first asks,
+       bounded, that the grid and each card have a real width, then reads. */
+    const boxes = async () => { await until(() => { const g = document.querySelector('.hb-grid');
+      if (!g || g.getBoundingClientRect().width < 1) return false;
+      const cs = [...g.querySelectorAll(':scope > [data-hb-pid]')];
+      return cs.length > 0 && cs.every(c => c.getBoundingClientRect().width > 0); }, null, 10000);
+      return page.evaluate(() => {
       const g = document.querySelector('.hb-grid'); if (!g) return null;
       const gr = g.getBoundingClientRect();
       return { gw: Math.round(gr.width), cards: [...g.querySelectorAll(':scope > [data-hb-pid]')].map(c => { const r = c.getBoundingClientRect();
         const svg = c.querySelector('svg.hb-svg'); const first = c.firstElementChild ? c.firstElementChild.getBoundingClientRect() : r;
         return { id: c.getAttribute('data-hb-pid'), l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), b: Math.round(r.bottom),
-          headAt: Math.round(first.top - r.top), svgW: svg ? Math.round(svg.getBoundingClientRect().width) : null, drawnW: svg ? Number(svg.getAttribute('data-hb-w')) : null }; }) }; });
+          headAt: Math.round(first.top - r.top), svgW: svg ? Math.round(svg.getBoundingClientRect().width) : null, drawnW: svg ? Number(svg.getAttribute('data-hb-w')) : null }; }) }; }); };
     const byId = (B, id) => B.cards.find(c => c.id === id);
 
     /* 1. one card */
