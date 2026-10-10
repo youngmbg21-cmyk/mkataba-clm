@@ -254,9 +254,14 @@ const symbol = page => page.evaluate(() => {
   await page.keyboard.press('Control+s');
   const tick = await until(page, () => !!document.querySelector('#clause-editor .ce-saved-tick'), null, 3000);
   /* A SAVE ASKS WHY (Young, 29 Sep 2026); skipped here — see where-we-are-verify. */
-  if (await until(page, () => !!document.getElementById('pd-input'), null, 3000)){
+  /* RE-POINTED 10 Oct 2026 (the sixteen red after the pop-ups, item 16): on
+     GitHub's slower runner this question arrived after the 3 s the wait gave
+     it, so section 4's typing went into ITS box, never the clause's — and with
+     nothing unfiled there is rightly nothing to ask. A save on their seat
+     always asks why, so the wait asks for that state, bounded and longer. */
+  if (await until(page, () => !!document.getElementById('pd-input'), null, 10000)){
     await press(page, '#pd-cancel');
-    await until(page, () => !document.getElementById('pd-input'), null, 2000);
+    await until(page, () => !document.getElementById('pd-input'), null, 4000);
   }
   await page.screenshot({ path: path.join(OUT, '04-saved-tick.png') });
   const saved = await page.evaluate(() => ({ dirty: clauseEditorDirty(),
@@ -271,7 +276,11 @@ const symbol = page => page.evaluate(() => {
   /* A WAIT ASKS FOR THE STATE, BOUNDED: on a slow runner the press could land
      before the typing counted as unfiled, and then there is rightly nothing
      to ask about. Wait until the typed words are in the box. */
-  await until(page, () => /Always\./.test((document.getElementById('ce-doc') || {}).textContent || ''), null, 4000);
+  const typedIn = await until(page, () => /Always\./.test((document.getElementById('ce-doc') || {}).textContent || ''), null, 8000);
+  /* the press is made only on unfiled typing that is really in the clause's
+     box — otherwise the stage, not the product, is what failed, and it says so */
+  check('4 · stage: the typing is in the clause\u2019s box before the press', typedIn,
+    typedIn ? null : 'the typed words never reached the box (a question still open?): ' + await page.evaluate(() => !!document.getElementById('pd-input')));
   const pressed = await page.evaluate(() => { const b = [...document.querySelectorAll('#rl-changes-col button')]
     .find(x => x.textContent.trim() === 'Accept'); if (!b) return false; b.click(); return true; });
   const asked = await until(page, () => !!document.getElementById('confirm-overlay'), null, 2000);

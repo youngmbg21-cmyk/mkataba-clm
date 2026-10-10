@@ -76,7 +76,12 @@ async function readWin(page){
     return {
       lead: ((w.querySelector('p') || {}).textContent || '').trim(),
       steps,
-      misses: [...w.querySelectorAll('.sr-miss')].map(m => (m.querySelector('span') || {}).textContent || ''),
+      /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): an empty row now leads
+         with the PARTY's initials badge (.sr-av, drawn); the place is empty of
+         a PERSON, so its words are read past the badge: the party's name over
+         "Nobody named yet" (the drawn row's own two lines) */
+      misses: [...w.querySelectorAll('.sr-miss')].map(m => { const t = m.querySelector('.sr-mt'); return t ? [...t.children].map(x => x.textContent.trim()).join(' · ') : ''; }),
+      missBadges: [...w.querySelectorAll('.sr-miss .sr-av')].map(a => a.textContent.trim()),
       hints: [...w.querySelectorAll('.sr-hint')].filter(h => !h.hidden && vis(h)).map(h => h.textContent),
       say: ((w.querySelector('#sr-say') || {}).textContent || '').trim(),
       numberBoxes: w.querySelectorAll('input[type="number"]').length,
@@ -257,7 +262,7 @@ async function readWin(page){
     if (graceId) { await menuOf(graceId); const rm = await page.$('#sr-win .sr-menu .sr-mi[data-sp-do="remove"]'); if (rm) { await rm.click(); await pause(300); } }
     const r3j = await readWin(page);
     ok('3j a side with nobody is an empty place that carries the act',
-      !!r3j && r3j.misses.join('|') === 'Nobody signs for Juno Logistics Ltd yet'
+      !!r3j && r3j.misses.join('|') === 'Juno Logistics Ltd · Nobody named yet'
         && await page.$('#sr-win [data-sp-miss] [data-sp-addfor]') !== null, r3j && r3j.misses);
     await page.click('#sp-save').catch(() => {}); await pause(400);
     const r3k = await readWin(page);
@@ -273,7 +278,7 @@ async function readWin(page){
     const gw = await page.evaluate(() => { const c = [...document.querySelectorAll('#sr-win .sr-card')].find(x => /Grace Wambui/.test(x.textContent)); return c && c.getAttribute('data-sp-row'); });
     if (gw) { await menuOf(gw); const rm = await page.$('#sr-win .sr-menu .sr-mi[data-sp-do="remove"]'); if (rm) { await rm.click(); await pause(300); } }
     const r4 = await readWin(page);
-    ok('4a the guarantor with nobody is an empty place', !!r4 && r4.misses.join('|') === 'Nobody signs for Muranga Holdings Ltd yet', r4 && r4.misses);
+    ok('4a the guarantor with nobody is an empty place', !!r4 && r4.misses.join('|') === 'Muranga Holdings Ltd · Nobody named yet', r4 && r4.misses);
     await page.click('#sp-save').catch(() => {}); await pause(400);
     const r4b = await readWin(page);
     ok('4b Save REFUSES a party that signs with nobody named, a guarantor included',

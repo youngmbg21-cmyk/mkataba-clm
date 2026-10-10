@@ -3819,6 +3819,17 @@ function dlgSapFrame(panel){
   if(foot && foot.getClientRects().length){
     foot.classList.add('dlg-f');
     foot.style.marginLeft=foot.style.marginRight=foot.style.marginBottom='0px';
+    /* A FOOT THAT LIVES IN ONE COLUMN STAYS IN ITS COLUMN (10 Oct 2026, found
+       by signed-copy-differs 6c): a two-column dialog — the signed-copy filing
+       window, its paper on the left and its checks and acts on the right —
+       keeps its foot in the right column; stretched to the panel's edges it
+       slid under the paper, which painted over Hold and Send back, so a press
+       there did nothing. Only a foot as wide as the body reaches the edges. */
+    const rr=root.getBoundingClientRect(), rcs=getComputedStyle(root);
+    const bodyW=rr.width-(parseFloat(rcs.paddingLeft)||0)-(parseFloat(rcs.paddingRight)||0);
+    for(let e=foot.parentElement; e && e!==root && e!==panel; e=e.parentElement){
+      if(e.getBoundingClientRect().width < bodyW-4) return;
+    }
     const pr=panel.getBoundingClientRect(), fr=foot.getBoundingClientRect();
     const bl=parseFloat(getComputedStyle(panel).borderLeftWidth)||0, br=parseFloat(getComputedStyle(panel).borderRightWidth)||0;
     const offL=Math.max(0, Math.round(fr.left-pr.left-bl)), offR=Math.max(0, Math.round(pr.right-br-fr.right));

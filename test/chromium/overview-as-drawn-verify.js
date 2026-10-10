@@ -631,7 +631,10 @@ const SEC = (suffix) => {
     const pe = await page.evaluate(() => {
       const sel = document.getElementById('py-role');
       if (!sel) return { none: true };
-      const lab = sel.closest('label') && sel.closest('label').querySelector('span');
+      /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the drawn form labels a
+         box with <label for> beside it, not a <label> wrapped round it — the
+         box's own label is asked for through the DOM's own link (sel.labels) */
+      const lab = (sel.labels && sel.labels[0]) || (sel.closest('label') && sel.closest('label').querySelector('span'));
       /* A BUILD WITH NO DROPDOWN MUST REPORT, NOT THROW — a probe that throws
          proves nothing. At the parent this control is an <input>, which has
          no .options at all. */

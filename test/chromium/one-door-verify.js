@@ -89,10 +89,15 @@ const DOC = styledPara('Title', null, 0, 'SERVICES AGREEMENT')
     return { name: ((h.querySelector('[data-tb-meta="name"] .v') || {}).textContent || '').trim(), category: chip('category'), stream: chip('stream') };
   });
   const toTemplates = async () => { await page.evaluate(() => { try { closeModal(); } catch (_) {} setView('templates'); }); await pause(900); };
+  /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): a start is a row in ONE
+     list (a radio, `data-ns-start` kept), and Continue (`#ns-continue`, the
+     one filled button) opens it — so the walk checks the row, then presses
+     Continue. Every later step is the same walk as before. */
   const openStart = async k => {
     await page.click('#tpl-new').catch(() => {});
-    await pause(450);
-    await page.click(`[data-ns-start="${k}"]`).catch(() => {});
+    await waitFor(() => !!document.getElementById('ns-continue'));
+    await page.check(`[data-ns-start="${k}"]`).catch(() => {});
+    await page.click('#ns-continue').catch(() => {});
     await pause(500);
   };
   const intoBuilder = () => waitFor(() => !!document.getElementById('tb-page') && !!document.getElementById('tb-head'));
