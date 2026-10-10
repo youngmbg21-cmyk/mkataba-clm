@@ -263,8 +263,11 @@ describe('f376 (2) one button, one question, three starts', () => {
     const root = win.document.getElementById('modal-root');
     assert.deepEqual([...root.querySelectorAll('[data-ns-start]')].map(b => b.getAttribute('data-ns-start')), ['scratch', 'template', 'contract']);
     assert.equal(root.querySelector('h3').textContent.trim(), win.i18t('ns_title'));
-    assert.equal(root.querySelectorAll('.ui-btn-primary').length, 0, 'a question carries no filled verb');
-    assert.ok(root.querySelector('#ns-cp'), 'the other side’s paper keeps a quiet link at the foot, not a fourth tile');
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn, owner's go): the drawing
+       asks the question as ONE list with the first answer chosen and Continue
+       as the foot's one filled verb; their paper is the list's last row. */
+    assert.deepEqual([...root.querySelectorAll('.ui-btn-primary')].map(b => b.id), ['ns-continue'], 'Continue is the one filled verb');
+    assert.ok(root.querySelector('#ns-cp'), 'the other side’s paper is on the same list');
     assert.ok(root.querySelector('#ns-close'), 'and Cancel');
   });
 

@@ -135,22 +135,23 @@ describe('f312 (3) — the source sheet fills its frame, and asks one question',
     w.tplNewMenu();
     return cap;
   };
-  test('three starts, one shape each, and no width on the box', () => {
+  /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn, owner's go): the three
+     starts and their paper are one list of radio rows with Continue; the
+     frame (dlgSapFrame) gives the drawn 16/18 padding. */
+  test('three starts, one shape each', () => {
     const cap = stage();
     assert.ok(cap.html, 'the dialog opened');
     assert.equal((cap.html.match(/data-ns-start="/g) || []).length, 3, 'three answers to one question');
-    assert.ok(!/max-width/.test(cap.html), 'the frame states the width; the box states none');
-    assert.match(cap.html, /^<div style="padding:24px">/, '24 on every side');
+    assert.equal((cap.html.match(/class="sap-li"/g) || []).length, 4, 'one row shape each, their paper the fourth');
+    assert.match(cap.html, /^<div style="padding:16px 18px">/, 'the drawn padding');
   });
-  test('each start carries a mark, its name and its one line; Cancel is the foot’s only button', () => {
+  test('each start carries its name and its one line; Continue and Cancel on the foot', () => {
     const cap = stage();
-    /* A MARK PER START, pinned as the mark and not as the mechanism: the
-       product's own icon() helper, which the stage stubs to a bare <svg>. */
-    assert.equal((cap.html.match(/<svg/g) || []).length, 3, 'a mark per start');
     assert.match(cap.html, /From scratch/); assert.match(cap.html, /From a template you have/); assert.match(cap.html, /From one of our contracts/);
-    assert.equal((cap.html.match(/class="ui-btn"/g) || []).length, 1, 'Cancel alone in the foot');
-    assert.ok(!/ui-btn-primary/.test(cap.html), 'a question has no filled verb');
-    assert.match(cap.html, /id="ns-cp" class="ns-link"/, 'the other side’s paper is a quiet link, not a fourth start');
+    assert.equal((cap.html.match(/class="sap-m"/g) || []).length, 4, 'a line under every name');
+    assert.match(cap.html, /id="ns-continue" class="ui-btn ui-btn-primary"/);
+    assert.match(cap.html, /data-dlg-cancel type="button" id="ns-close" class="ui-btn"/);
+    assert.match(cap.html, /id="ns-cp"/, 'the other side’s paper is on the list');
   });
   test('the dialog says its name to a screen reader', () => {
     const cap = stage();

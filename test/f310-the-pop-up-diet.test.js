@@ -164,7 +164,9 @@ describe('f310 (1) — the send pop-up is laid out as the owner drew it', () => 
     const { win } = buildWorld();
     const m = await openShare(await negotiated(win));
     const lab = m.$('#sh-durable').closest('label');
-    assert.equal(lab.textContent.replace(/\s+/g, ' ').trim(), 'Keep this link open for the whole negotiation.');
+    /* RE-POINTED, SAP pop-ups 10 Oct 2026: the tick sits under the drawn
+       label "Link stays open", so its face is the short answer. */
+    assert.equal(lab.textContent.replace(/\s+/g, ' ').trim(), 'For the whole negotiation');
     assert.match(lab.querySelector('[title]').getAttribute('title'), /single-answer link/);
   });
 });

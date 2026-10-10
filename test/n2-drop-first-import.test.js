@@ -85,7 +85,8 @@ describe('N2 (1) — the dialog opens on a drop zone', () => {
   test('the back-catalogue case keeps its own door to the bulk importer', () => {
     const { sb, modals } = stage();
     sb.openUploadModal();
-    assert.match(modals[0], /Upload several \(import a portfolio\)/);
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): same door, the drawing's words. */
+    assert.match(modals[0], /Several files\?[\s\S]*id="up-bulk"[^>]*>Import contracts/);
   });
 });
 

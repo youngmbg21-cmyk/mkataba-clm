@@ -103,9 +103,9 @@ function openNewStandard(opts = {}) {
   const rows = NS_STARTS.map(sc => ({ k: sc.k, t: sc.t, d: sc.d, dead: off && NS_GATED.includes(sc.k) }))
     .concat([{ k: 'cp', t: i18t('ns_cp_t'), d: i18t('ns_cp_d'), dead: false }]);
   const first = (rows.find(r => !r.dead) || rows[0]).k;
-  const row = r => `<label class="sap-li" style="align-items:flex-start${r.dead ? ';opacity:.55;cursor:not-allowed' : ''}">
-      <input type="radio" name="ns-start" value="${r.k}"${r.k === first ? ' checked' : ''}${r.dead ? ' disabled' : ''} style="margin-top:3px;accent-color:var(--accent-fill)"/>
-      <span><span style="display:block;font-weight:var(--w-label)">${nsEsc(r.t)}</span><span class="sap-m">${nsEsc(r.dead ? why : r.d)}</span></span></label>`;
+  const row = ({ k, t, d, dead }) => `<label class="sap-li" style="align-items:flex-start${dead ? ';opacity:.55;cursor:not-allowed' : ''}">
+      <input type="radio" name="ns-start" ${k === 'cp' ? 'id="ns-cp"' : `data-ns-start="${k}"`} value="${k}"${k === first ? ' checked' : ''}${dead ? ` disabled title="${nsEsc(why)}"` : ''} style="margin-top:3px;accent-color:var(--accent-fill)"/>
+      <span><span style="display:block;font-weight:var(--w-label)">${nsEsc(t)}</span><span class="sap-m">${nsEsc(dead ? why : d)}</span></span></label>`;
   openModal(`<div style="padding:16px 18px">
     <h3>${nsEsc(i18t('ns_title'))}</h3>
     <div class="sap-body">

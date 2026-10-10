@@ -181,24 +181,19 @@ test('F346 — five off five images', async t => {
   });
 
   /* ═══════ 5. A BIT OF COLOUR ON THE FRAME ═══════ */
-  await t.test('(5) all three dialog frames carry one rule, said once', () => {
-    assert.match(CORE, /const DLG_TOPBAR = t =>/, 'ONE declaration');
-    const uses = CORE.match(/\$\{DLG_TOPBAR\(/g) || [];
-    assert.equal(uses.length, 3, 'openModal, confirmDialog and promptDialog');
-    assert.match(CORE, /DLG_TOPBAR\(danger\?'var\(--danger\)':'var\(--accent-fill\)'\)/,
-      'and a dangerous question wears the danger tone');
+  /* REVERSED 10 Oct 2026 (the pop-ups as drawn, owner: "You have not built
+     the pop ups"): the drawings' dialogs are plain white with a ruled title
+     bar, so the 3px colour line along the top is gone. What stays true: one
+     frame for every dialog, said once (dlgSapFrame), and a dangerous question
+     still wears the danger tone (its sign). */
+  await t.test('(5) every dialog frame is one rule, said once', () => {
+    assert.ok(!/DLG_TOPBAR/.test(CORE), 'the colour line is retired everywhere');
+    assert.match(CORE, /function dlgSapFrame\(panel\)\{/, 'ONE frame');
+    assert.match(CORE, /try\{ dlgSapFrame\(panel\); \}catch\(_\)\{\}/, 'run on every dialog');
+    assert.match(CORE, /class="dlg-mb-ic" data-tone="\$\{\(danger&&!opts\.leave\)\?'danger':'warn'\}"/, 'and a dangerous question wears the danger tone');
   });
 
-  await t.test('(5b) it is a background, not an element — no dialog moves by a pixel', () => {
-    const fn = /const DLG_TOPBAR = t =>[^\n]*/.exec(CORE)[0];
-    assert.match(fn, /linear-gradient/);
-    assert.match(fn, /100% 3px no-repeat/);
-    assert.match(fn, /var\(--color-surface\)/, 'the surface is still under it');
-    assert.ok(!/::before|<span|<div/.test(fn), 'no markup is added');
-    /* IT IS WRITTEN INTO THE INLINE STYLE because that is the only place that
-       beats it: the frame states its own `background` shorthand there, and a
-       stylesheet rule would lose to it while looking correct. */
-    assert.ok(!/background:var\(--color-surface\);border:1px solid var\(--color-divider\);box-shadow:var\(--shadow-lg\);border-radius:var\(--radius-lg\)/
-      .test(CORE), 'no frame still states a bare surface background');
+  await t.test('(5b) the title bar is a rule under the title, not a colour', () => {
+    assert.match(CSS, /\.modal-in\[data-dlg-sap\] \.dlg-h\{[^}]*border-bottom:1px solid var\(--color-divider\)/);
   });
 });

@@ -1295,12 +1295,13 @@ function settingsPersonDrawer(idOrNew){
         </div>`:''))}
 
     ${sec(2,i18t('st_sec_may'),`
-      ${''/* AS DRAWN (SAP pop-ups, 10 Oct 2026): the role is a three-way switch;
-             what each key costs is on its hover. */}
-      <div class="st-seg" role="radiogroup">${ROLES.map(([k,label,desc])=>`
-        <label class="st-seg-o"${(isMe&&!isNew)?' data-locked="1"':''} title="${PB_ATTR(desc)}">
+      ${''/* KEPT AS A LIST, not the drawing's three-way switch (SAP pop-ups,
+             10 Oct 2026): f149's ruling — each role is explained where it is
+             chosen — outranks the drawing. */}
+      <div class="st-roles">${ROLES.map(([k,label,desc])=>`
+        <label class="st-role"${(isMe&&!isNew)?' data-locked="1"':''}>
           <input type="radio" name="tm-role-r" value="${k}" ${u.role===k?'checked':''}${(isMe&&!isNew)?' disabled':''}/>
-          <span>${esc(String(label).split(/\s+[—-]\s+/)[0])}</span>
+          <span><span class="st-role-name">${esc(label)}</span><span class="st-note">${esc(desc)}</span></span>
         </label>`).join('')}</div>
       ${''/* THE ROLE IS ONE VALUE WITH TWO FACES. The radios are what a person
              reads — three keys with a line each saying what the key costs. The
@@ -5288,7 +5289,7 @@ function openApprovalRuleEditor(idx){
       ${orphan?`<span style="display:block;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px;border-radius:var(--radius)">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}
       ${''/* THE RULE READ BACK AS A SENTENCE (SAP pop-ups, owner's yes 10 Oct
              2026): painted on every change by arSays below. */}
-      <div id="ar-says" role="status" style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:var(--radius);border:1px solid color-mix(in srgb, var(--accent-fill) 25%, transparent);background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-body);line-height:1.45"></div>
+      <div id="ar-says" role="status" style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:var(--radius);border:1px solid color-mix(in srgb, var(--accent-fill) 25%, transparent);background:color-mix(in srgb, var(--accent-fill) 8%, var(--color-surface));color:var(--accent-ink);font-size:var(--t-body);line-height:1.45"></div>
     </div>
     <div class="flex justify-end gap-2"><button data-dlg-cancel id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="ar-save" class="ui-btn ui-btn-primary">${i18t(idx>=0?'set_save_rule':'ar_add_go')}</button></div>

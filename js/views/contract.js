@@ -1551,7 +1551,7 @@ function openUploadModal(){
              way to several files on the foot's left. */}
       <h2 id="up-title">${i18t('ct_add_received')}</h2>
       <div id="up-step-1">
-        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:1px dashed var(--accent-fill);border-radius:var(--radius);background:color-mix(in srgb, var(--color-accent-50) 60%, var(--color-surface));padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
+        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:1px dashed var(--accent-fill);border-radius:var(--radius);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
           <div style="color:var(--accent-ink);display:flex;justify-content:center;margin-bottom:10px">${icon('upload','w-5 h-5')}</div>
           <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${i18t('ct_drop_or')} <span style="color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px">${i18t('ct_choose_file')}</span></div>
           <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint2',{max:uploadMaxLabel()})}</div>
