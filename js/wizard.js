@@ -842,7 +842,7 @@ function openNewAgreement(o){
   const naAskLeave=async()=>{
     if(!naTyped()) return true;
     return !!(await confirmDialog({ title:i18t('na_leave_q'), message:i18t('na_leave_body'),
-      confirmLabel:i18t('na_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true }));
+      confirmLabel:i18t('na_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true, leave:true }));
   };
   /* ---- THE PAPER IS A LIST, NOT A WALL OF CARDS (Young chose proposal C,
      22 Sep 2026) ----

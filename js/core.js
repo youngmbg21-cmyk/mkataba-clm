@@ -3551,21 +3551,8 @@ function popupControlsDress(root){
   try{ selectFaceDress(root); }catch(_){}
   try{ datePickDress(root); }catch(_){}
 }
-  /* ---- A BIT OF COLOUR ON THE FRAME (Young ruled 21 Sep 2026: "add a bit of
-     color on pop ups that are completely bland") ----
-     A 3px accent rule across the top of the dialog, and NOTHING ELSE. It is
-     this product's own idiom for exactly this — the redlines column head, the
-     KPI tile's tone edge, the arrival strip's leading row and the template
-     menu's head all carry one — so the pop-up now reads as part of the same
-     product rather than as a white box the page happened to grow.
-
-     IT IS A BACKGROUND, NOT AN ELEMENT: no markup, no layout, nothing inside
-     any of the fifty-odd dialogs moves by a pixel, and it clips to the card
-     corner by itself. It is written INTO the inline style because that is the
-     only place that beats it — the frame states its own `background` shorthand
-     here, and a stylesheet rule would lose to it while looking correct.
-     `--dlg-topbar` is the one declaration, so all three frames say it once. */
-  const DLG_TOPBAR = t => `background:linear-gradient(${t},${t}) top left/100% 3px no-repeat, var(--color-surface);`;
+  /* The coloured strip on top of every dialog (21 Sep 2026) went with the
+     SAP dialog frame (10 Oct 2026): the drawings carry none. */
 /* ---- BIG WORK GETS A PAGE, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct
    2026: "build them anyway") ----
    SAP keeps dialogs small; work with a whole document or many questions has
@@ -3635,7 +3622,7 @@ function openModal(html, opts={}){
            frame changes — every dialog still builds its own head, body and
            foot, and DLG_W is still the width ladder. */}
     <div id="modal-scrim" style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent);"></div>
-    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}${DLG_TOPBAR('var(--accent-fill)')}border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
+    <div class="modal-in scroll-thin" role="dialog" aria-modal="true"${opts.label?` aria-label="${String(opts.label).replace(/"/g,'&quot;')}"`:''} tabindex="-1" style="position:relative;width:100%;max-width:${maxw};${sized}background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);">${html}</div>
   </div>`;
   /* ---- THE TWO QUIET WAYS OUT ASK THE SAME QUESTION THE ✕ DOES ----
      Both of these called closeModal() straight, so a modal that had put its own
@@ -3668,7 +3655,8 @@ function openModal(html, opts={}){
   if(panel){ _modalOpener = opener; _modalRelease = trapFocus(panel, { opener });
     _modalDrag = (typeof dragDialog==='function') ? dragDialog(panel) : null;
     /* A panel given a height runs its own layout and its own scroller. */
-    if(!opts.height) _modalPin = dlgPinFoot(panel); }
+    if(!opts.height) _modalPin = dlgPinFoot(panel);
+    else if(!opts.page){ try{ dlgSapFrame(panel); }catch(_){} } }
   // Esc closes, exactly like the scrim click — some modals (Compare, share)
   // otherwise strand keyboard users with no visible way out
   rootEscSet(function(e){
@@ -3730,10 +3718,13 @@ function dlgFootOf(panel){
   const isBtn = k => k.tagName==='BUTTON' || (k.tagName==='A' && k.classList.contains('ui-btn'));
   const quiet = k => (k.tagName==='SPAN' || k.tagName==='DIV') && !k.textContent.trim()
     && !k.querySelector('button,input,select,textarea,a');
+  /* A foot may open with a short line of its own (SAP pop-ups, 10 Oct 2026:
+     "Copilot reads MK-148…", "Several files?") — a SPAN of words, no control. */
+  const said = k => k.tagName==='SPAN' && !k.querySelector('button,input,select,textarea,a') && k.textContent.trim().length<=140;
   const rows=[...panel.querySelectorAll('div')].filter(d=>{
     const kids=[...d.children];
     return kids.length && kids.some(k=>isBtn(k) && k.classList.contains('ui-btn'))
-      && kids.every(k=>isBtn(k)||quiet(k));
+      && kids.every(k=>isBtn(k)||quiet(k)||said(k));
   });
   for(let i=rows.length-1;i>=0;i--){
     const row=rows[i];
@@ -3744,6 +3735,80 @@ function dlgFootOf(panel){
     return row;
   }
   return null;
+}
+/* ---- THE SAP DIALOG FRAME (owner, 10 Oct 2026: "You have not built the
+   pop ups") ----
+   The drawings in the SAP-way artifact all share one frame, and the first
+   pass built only the words in it. The frame: a TITLE BAR (title 16px, the
+   subtitle under it, padding 14/18/12, a rule beneath), the BODY at 16/18,
+   and a FOOT BAR (padding 10/18, a rule above, a faint ground) — edge to
+   edge, no coloured strip on top. Ninety dialogs build their own markup, so
+   the frame is FOUND, the way dlgPinFoot finds the foot:
+   · the padded wrapper the dialog wrote (its one child with padding) takes
+     the body's padding;
+   · the block holding the first heading, and the short line right under it,
+     move into a .dlg-h bar at the top (a head is never repainted, so moving
+     it keeps every id and listener);
+   · the foot is NOT moved — a stepping dialog repaints its foot — it is
+     pulled to the panel's edges by measured margins (.dlg-f), re-measured on
+     every change and resize by dlgPinFoot's own observer.
+   A dialog that already draws a page (data-dlg-page) or opts out
+   (data-dlg-own-frame) is left alone. Idempotent. */
+function dlgSapRoot(panel){
+  let el=panel;
+  for(let i=0;i<3;i++){
+    const kids=[...el.children].filter(k=>k.tagName!=='STYLE' && k.tagName!=='SCRIPT');
+    const pad=parseFloat(getComputedStyle(el).paddingTop)||parseFloat(getComputedStyle(el).paddingLeft)||0;
+    if(el!==panel && pad>0) return el;
+    if(kids.length!==1 || kids[0].tagName!=='DIV') return el;
+    el=kids[0];
+  }
+  return el;
+}
+function dlgSapFrame(panel){
+  if(!panel || !panel.isConnected || panel.hasAttribute('data-dlg-page') || panel.hasAttribute('data-dlg-own-frame')) return;
+  panel.setAttribute('data-dlg-sap','');
+  const root=dlgSapRoot(panel);
+  if(!root.hasAttribute('data-dlg-body')){
+    root.setAttribute('data-dlg-body','');
+    if(root!==panel){ root.style.padding='16px 18px'; }
+  }
+  /* THE TITLE BAR — once. */
+  if(!panel.querySelector(':scope .dlg-h, :scope .rvd-head')){
+    const hd=[...root.querySelectorAll('h1,h2,h3')].find(h=>h.getClientRects().length && !h.closest('[data-dlg-foot],.dlg-foot'));
+    if(hd){
+      let top=hd; while(top.parentElement && top.parentElement!==root) top=top.parentElement;
+      const ctl=top.querySelectorAll('input,select,textarea').length;
+      if(top.parentElement===root && !ctl){
+        const bar=document.createElement('div'); bar.className='dlg-h';
+        root.insertBefore(bar, top); bar.appendChild(top);
+        const nx=bar.nextElementSibling;
+        if(nx && nx.tagName==='P' && !nx.querySelector('input,select,textarea,button') && nx.textContent.trim().length<=260) bar.appendChild(nx);
+        /* The bar's own type: the dialog's inline sizes on its title and
+           line step aside (an inline size would beat the sheet). */
+        hd.style.fontSize=''; hd.style.margin=''; hd.style.lineHeight='';
+        const sub=bar.querySelector(':scope > p'); if(sub){ sub.style.margin=''; sub.style.fontSize=''; }
+      }
+    }
+  }
+  const bar=root.querySelector(':scope > .dlg-h');
+  if(bar){
+    const cs=getComputedStyle(root);
+    const pl=parseFloat(cs.paddingLeft)||0, pr=parseFloat(cs.paddingRight)||0, pt=parseFloat(cs.paddingTop)||0;
+    bar.style.margin=`${-pt}px ${-pr}px 16px ${-pl}px`;
+  }
+  /* THE FOOT BAR — measured to the panel's edges. */
+  const foot=panel.querySelector('.dlg-foot') || panel.querySelector('[data-dlg-foot]') || dlgFootOf(panel);
+  panel.querySelectorAll('.dlg-f').forEach(f=>{ if(f!==foot){ f.classList.remove('dlg-f'); f.style.marginLeft=f.style.marginRight=f.style.marginBottom=f.style.paddingLeft=f.style.paddingRight=''; } });
+  if(foot && foot.getClientRects().length){
+    foot.classList.add('dlg-f');
+    foot.style.marginLeft=foot.style.marginRight=foot.style.marginBottom='0px';
+    const pr=panel.getBoundingClientRect(), fr=foot.getBoundingClientRect();
+    const bl=parseFloat(getComputedStyle(panel).borderLeftWidth)||0, br=parseFloat(getComputedStyle(panel).borderRightWidth)||0;
+    const offL=Math.max(0, Math.round(fr.left-pr.left-bl)), offR=Math.max(0, Math.round(pr.right-br-fr.right));
+    const below=Math.max(0, Math.round(panel.scrollHeight-(fr.bottom-pr.top+panel.scrollTop)));
+    foot.style.marginLeft=`${-offL}px`; foot.style.marginRight=`${-offR}px`; foot.style.marginBottom=`${-below}px`;
+  }
 }
 function dlgPinFoot(panel){
   if(typeof window==='undefined' || typeof MutationObserver!=='function') return null;
@@ -3756,6 +3821,7 @@ function dlgPinFoot(panel){
        picture. Idempotent — a Cancel already last is left where it is, so the
        observer's own mutation settles at once. */
     popupControlsDress(panel);
+    try{ dlgSapFrame(panel); }catch(_){}
     panel.querySelectorAll('[data-dlg-cancel]').forEach(b=>{
       const row=b.parentElement; if(!row) return;
       if(row.lastElementChild!==b) row.appendChild(b);
@@ -3876,15 +3942,21 @@ function confirmDialog(opts={}){
     const btnBg=danger?'var(--danger)':'var(--accent-fill)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent)"></div>
-      <div class="modal-in" role="alertdialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;${DLG_TOPBAR(danger?'var(--danger)':'var(--accent-fill)')}border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
-        <div style="display:flex;align-items:flex-start;gap:var(--s-3);margin-bottom:${message?'6px':'14px'}">
-          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:${danger?'var(--red-tint,rgba(176,69,60,.1))':'var(--st-steel-bg)'};color:${danger?'var(--danger)':'var(--accent-ink-700)'}">${icon(danger?'alert':'shield','w-4 h-4')}</span>
-          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
+      <div class="modal-in" role="alertdialog" aria-modal="true" data-dlg-sap data-dlg-own-frame style="position:relative;width:100%;max-width:440px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);overflow:hidden">
+        ${''/* THE SAP MESSAGE BOX (the drawings, 10 Oct 2026): a title bar
+               with a round sign, the message in the body, the buttons in a
+               foot bar — each bar edge to edge, a rule between. */}
+        <div class="dlg-h" style="display:flex;align-items:center;gap:10px">
+          ${(danger||opts.warn)?`<span class="dlg-mb-ic" data-tone="${(danger&&!opts.leave)?'danger':'warn'}">${icon('alert','w-4 h-4')}</span>`:''}
+          <h3>${esc(title)}</h3>
         </div>
-        ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-4);padding-left:46px${opts.multiline?';white-space:pre-line':''}">${esc(message)}</p>`:''}
-        <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-          <button id="cf-ok" class="ui-btn" style="background:${btnBg};border-color:${btnBg};color:${btnFg}">${esc(confirmLabel)}</button>
-          ${cancelLabel?`<button id="cf-cancel" class="ui-btn" data-dlg-cancel>${esc(cancelLabel)}</button>`:''}
+        ${message?`<div class="dlg-b"><p style="font-size:var(--t-body);color:var(--color-text);line-height:1.55;margin:0${opts.multiline?';white-space:pre-line':''}">${esc(message)}</p></div>`:''}
+        <div class="dlg-f" style="display:flex;justify-content:flex-end;gap:var(--s-2)">
+          ${''/* A LEAVE GUARD (opts.leave, the drawing): staying is the main act,
+                 so "Keep editing" is the filled button and leaving is drawn in
+                 a red outline — the eye goes to the safe answer. */}
+          <button id="cf-ok" class="ui-btn" style="${opts.leave?'background:var(--color-surface);border-color:color-mix(in srgb, var(--danger) 35%, transparent);color:var(--danger)':`background:${btnBg};border-color:${btnBg};color:${btnFg}`}">${esc(confirmLabel)}</button>
+          ${cancelLabel?`<button id="cf-cancel" class="ui-btn${opts.leave?' ui-btn-primary':''}" data-dlg-cancel>${esc(cancelLabel)}</button>`:''}
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -3922,7 +3994,7 @@ function confirmDialog(opts={}){
     ov.querySelector('#cf-cancel')?.addEventListener('click',()=>done(false));
     ov.querySelector('#cf-ok').addEventListener('click',()=>done(true));
     ov.addEventListener('click',e=>{ if(e.target===ov||e.target===ov.firstElementChild) done(false); });
-    ov.querySelector('#cf-ok').focus();
+    (opts.leave && ov.querySelector('#cf-cancel') || ov.querySelector('#cf-ok')).focus();
   });
 }
 
@@ -3941,7 +4013,6 @@ function promptDialog(opts={}){
   const confirmLabel=opts.confirmLabel||i18t('act_ok');   /* see confirmDialog above */
   const cancelLabel=opts.cancelLabel||i18t('act_cancel');
   const danger=!!opts.danger;
-  const inset=danger?'46px':'0';
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
     /* Replaced, the earlier question is answered "cancelled" — see
@@ -3954,34 +4025,32 @@ function promptDialog(opts={}){
     ov.style.cssText='position:fixed;inset:0;z-index:92;display:grid;place-items:center;padding:var(--s-4)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent)"></div>
-      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;${DLG_TOPBAR(danger?'var(--danger)':'var(--accent-fill)')}border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
-        ${''/* SAP: A PLAIN DIALOG CARRIES NO SIGN (10 Oct 2026). The pencil said
-               nothing a text box does not; a question that ENDS something
-               (opts.danger — decline, refuse) wears the warning sign and a red
-               act, as the "are you sure?" box does. Without a sign the text
-               starts at the dialog's own edge. */}
-        <div style="display:flex;align-items:flex-start;gap:var(--s-3);margin-bottom:${message?'6px':'12px'}">
-          ${danger?`<span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--red-tint,rgba(176,69,60,.1));color:var(--danger)">${icon('alert','w-4 h-4')}</span>`:''}
-          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;${danger?'padding-top:5px':''}">${esc(title)}</h3>
+      <div class="modal-in" role="dialog" aria-modal="true" data-dlg-sap data-dlg-own-frame style="position:relative;width:100%;max-width:440px;background:var(--color-surface);border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);overflow:hidden">
+        ${''/* SAP: the same three bars as the message box. A plain question
+               carries no sign; one that ENDS something (opts.danger —
+               decline, refuse) wears the warning sign and a red act. */}
+        <div class="dlg-h" style="display:flex;align-items:center;gap:10px">
+          ${danger?`<span class="dlg-mb-ic" data-tone="warn">${icon('alert','w-4 h-4')}</span>`:''}
+          <h3>${esc(title)}</h3>
         </div>
-        ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-3);padding-left:${inset}">${esc(message)}</p>`:''}
-        <div style="padding-left:${inset}">
-          ${label?`<label for="pd-input" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(label)}</label>`:''}
+        <div class="dlg-b">
+          ${message?`<p style="font-size:var(--t-body);color:var(--color-text);line-height:1.55;margin:0 0 12px">${esc(message)}</p>`:''}
+          ${label?`<label for="pd-input" style="display:block;font-size:var(--field-label-size);font-weight:var(--w-label);color:var(--color-neutral-700);margin-bottom:5px">${esc(label)}${opts.required===false?'':' <span style="color:var(--danger)">*</span>'}</label>`:''}
           ${opts.multiline
             ? /* A REASON IS NOT A ONE-LINE ANSWER. box-sizing so the padding
                  counts inside, width:100% so it tracks the dialog rather than
                  its own cols attribute, and overflow-wrap so a pasted
                  reference with no spaces in it wraps instead of scrolling the
-                 field sideways. Same three declarations as the clause
-                 editor's reason box, and for the same reason. */
+                 field sideways. */
               `<textarea id="pd-input" rows="3" wrap="soft" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
-                 style="box-sizing:border-box;width:100%;max-width:100%;min-height:70px;resize:vertical;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:var(--s-2) 11px;font:inherit;font-size:var(--t-body);line-height:1.6;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
+                 style="box-sizing:border-box;width:100%;max-width:100%;min-height:64px;resize:vertical;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font:inherit;font-size:var(--t-body);line-height:1.5;outline:none;white-space:pre-wrap;overflow-wrap:anywhere">${esc(opts.value)}</textarea>`
             : `<input id="pd-input" type="text" value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
-                 style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>`}
-          <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
-            <button id="pd-ok" class="ui-btn${danger?'':' ui-btn-primary'}"${danger?' style="background:var(--danger);border-color:var(--danger);color:#fff"':''}>${esc(confirmLabel)}</button>
-            <button id="pd-cancel" class="ui-btn" data-dlg-cancel>${esc(cancelLabel)}</button>
-          </div>
+                 style="box-sizing:border-box;width:100%;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);font:inherit;outline:none;height:32px;padding:0 10px;font-size:var(--field-size)"/>`}
+          ${opts.help?`<p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:10px 0 0;line-height:1.45">${esc(opts.help)}</p>`:''}
+        </div>
+        <div class="dlg-f" style="display:flex;justify-content:flex-end;gap:var(--s-2)">
+          <button id="pd-ok" class="ui-btn${danger?'':' ui-btn-primary'}"${danger?' style="background:var(--danger);border-color:var(--danger);color:#fff"':''}>${esc(confirmLabel)}</button>
+          <button id="pd-cancel" class="ui-btn" data-dlg-cancel>${esc(cancelLabel)}</button>
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -8322,22 +8391,27 @@ function openImportModal(c){
      the code's tab only — a Word file is read the moment it is chosen. */
   const tabBtn=(k,t,on)=>`<button type="button" data-imp-tab="${k}" role="tab" aria-selected="${on}" class="imp-tab${on?' on':''}">${t}</button>`;
   openModal(`
-    <div style="padding:22px var(--s-6);">
-      <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 var(--s-3);">${i18t('co_import_cp_response')}</h2>
+    <div style="padding:16px 18px;">
+      ${''/* AS DRAWN (SAP pop-ups, 10 Oct 2026): the record under the title, the
+             two ways in as one switch, then the one box each way needs with
+             its label — the code, or HaTi's own file button. */}
+      <h2>${i18t('imp_title')}</h2>
+      ${c?`<p>${esc(((typeof contractRef==='function')?contractRef(c):c.id)+' \u00b7 '+(c.counterparty||c.name||''))}</p>`:''}
+      <div class="sap-body">
       <div class="imp-tabs" role="tablist">${tabBtn('code',i18t('imp_tab_code'),true)}${tabBtn('word',i18t('imp_tab_word'),false)}</div>
-      <div data-imp-pane="code">
-        <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:var(--s-3) 0 var(--s-2);line-height:1.55;">${i18t('co_paste_response_code')}</p>
-        <textarea id="imp-code" rows="5" placeholder="${i18t('co_paste_response')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:11px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
+      <div data-imp-pane="code" class="sap-f">
+        <label for="imp-code">${i18t('imp_tab_code')}</label>
+        <textarea id="imp-code" rows="3" placeholder="${i18t('imp_code_ph')}" style="width:100%;min-height:64px;border:1px solid var(--field-line);background:var(--color-surface);border-radius:var(--radius);padding:8px 10px;font-size:var(--t-body);font-family:var(--font-body);color:var(--color-text);resize:vertical;"></textarea>
       </div>
-      <div data-imp-pane="word" hidden>
-        ${''/* HALF A SENTENCE IN EACH LANGUAGE, until 13 Aug 2026: the opening
-               was translated and everything after it was hardcoded English, so
-               a Swedish reader read "Eller ladda upp den markerade Word-filen
-               they sent back. Their tracked changes are…". The tail is
-               co_upload_word_tail now and reads on from the bold opening. */}
-        <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:var(--s-3) 0 var(--s-2);line-height:1.55;"><b>${i18t('co_or_upload_word')}</b> ${i18t('co_upload_word_tail')}</p>
-        <input id="imp-docx" type="file" accept=".docx" style="width:100%;font-size:var(--t-meta);color:var(--color-text);"/>
-        <div id="imp-docx-note" style="margin-top:7px;font-size:var(--t-label);color:var(--color-neutral-600);"></div>
+      <div data-imp-pane="word" class="sap-f" hidden>
+        <span class="sap-lbl">${i18t('imp_tab_word')}</span>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button type="button" class="ui-btn" id="imp-docx-go">${icon('upload','w-4 h-4')}${i18t('imp_word_pick')}</button>
+          <span class="sap-help">${i18t('imp_word_hint')}</span>
+          <input id="imp-docx" type="file" accept=".docx" hidden/>
+        </div>
+        <div id="imp-docx-note" style="font-size:var(--t-label);color:var(--color-neutral-600);"></div>
+      </div>
       </div>
       <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
         <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
@@ -8351,6 +8425,7 @@ function openImportModal(c){
     const go=document.getElementById('imp-go'); if(go) go.hidden=k!=='code';
   }));
   document.getElementById('imp-cancel').addEventListener('click',closeModal);
+  document.getElementById('imp-docx-go')?.addEventListener('click',()=>document.getElementById('imp-docx')?.click());
   document.getElementById('imp-go').addEventListener('click',async()=>{
     const ok=await applyResponse(c, b64d(fval('imp-code')));
     if(ok) closeModal();

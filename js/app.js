@@ -969,7 +969,7 @@ function viewLayersClosed(view){
      exactly as the clause editor's unfiled draft is. Nothing typed, no ask. */
   if(!_leavingCe && window.rlInlineDirty && rlInlineDirty() && window.confirmDialog){
     confirmDialog({ title:i18t('ce_leave_title'), message:i18t('ce_leave_body'),
-      confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true })
+      confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true, leave:true })
       .then(ok=>{
         if(!ok) return;
         if(window.rlInlineEnd) rlInlineEnd(true);
@@ -995,7 +995,7 @@ function viewLayersClosed(view){
   const ask = (window.clauseEditorLeaveAsk && clauseEditorLeaveAsk())
     || { title:i18t('ce_leave_title'), message:i18t('ce_leave_body') };
   confirmDialog({ title:ask.title, message:ask.message,
-    confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true })
+    confirmLabel:i18t('ce_leave_go'), cancelLabel:i18t('na_leave_stay'), danger:true, leave:true })
     .then(ok=>{
       if(!ok) return;
       if(window.rlCloseClauseEditor) rlCloseClauseEditor();
@@ -3288,13 +3288,30 @@ function alertGroupsOf(rows){
 /* ONE ROW. In a group the shared words are on the group's line, so the row
    leads with the contract's name and keeps its own sub-line and reference. */
 function alertRowHtml(a, i, inGroup){
+  /* A ROW IN A GROUP, AS DRAWN (SAP pop-ups, 10 Oct 2026): the other side's
+     initials, the agreement, "ref · counterparty", and Open at the right —
+     the whole row is still the one button it always was. */
+  if(inGroup){
+    const c=(typeof getContract==='function' && a.id)?getContract(a.id):null;
+    const cp=(c&&c.counterparty)||'';
+    const ini=String(cp||a.name||'').trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()||'·';
+    return `
+          <button data-alert-i="${i}" data-alert-kind="${a.kind}"${a.hint?` title="${esc(a.hint)}"`:''} class="al-row al-grow${a.tone==='green'?' al-good':''}${a.news?' al-news':''}">
+            <span class="al-av" aria-hidden="true">${esc(ini)}</span>
+            <span style="flex:1;min-width:0;">
+              <span class="al-t">${esc(a.name||a.ref||a.id)}</span>
+              <span class="al-sub2"><span class="hati-ref">${esc(a.ref||a.id)}</span>${cp?' \u00b7 '+esc(cp):''}</span>
+            </span>
+            <span class="al-open" aria-hidden="true">${esc(i18t('act_open'))}</span>
+          </button>`;
+  }
   return `
-          <button data-alert-i="${i}" data-alert-kind="${a.kind}"${a.hint?` title="${esc(a.hint)}"`:''} class="al-row${a.tone==='green'?' al-good':''}${a.news?' al-news':''}" style="display:flex;gap:9px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 7%,transparent);background:none;cursor:pointer;font:inherit;text-align:left;color:inherit;" onmouseover="this.style.background='color-mix(in srgb,var(--color-text) 5%,transparent)'" onmouseout="this.style.background='none'">
+          <button data-alert-i="${i}" data-alert-kind="${a.kind}"${a.hint?` title="${esc(a.hint)}"`:''} class="al-row${a.tone==='green'?' al-good':''}${a.news?' al-news':''}" style="display:flex;gap:9px;width:100%;padding:9px 2px;border:0;border-bottom:1px solid var(--color-divider);background:transparent;text-align:left;cursor:pointer;color:var(--color-text);font:inherit;">
             <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a.tone]};flex:none;margin-top:5px;"></span>
             <span style="flex:1;min-width:0;">
-              <span class="al-t" style="display:block;font-size:var(--t-meta);line-height:1.4;font-weight:var(--w-strong);">${esc(inGroup?(a.name||a.ref||a.id):a.text)}</span>
+              <span class="al-t" style="display:block;font-size:var(--t-meta);line-height:1.4;font-weight:var(--w-strong);">${esc(a.text)}</span>
               ${a.sub?`<span class="al-sub" style="display:block;font-size:var(--t-label);line-height:1.45;color:var(--color-neutral-600);margin-top:2px;">${esc(a.sub)}</span>`:''}
-              ${a.name&&!inGroup?`<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>`:''}
+              ${a.name?`<span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(a.name)}</span>`:''}
               <span class="hati-ref" style="display:block;font-size:var(--t-label);color:var(--color-neutral-500);">${esc(a.ref||a.id)}</span>
             </span>
           </button>`;
@@ -3318,14 +3335,14 @@ function alertsPanelHtml(given){
           if(g.rows.length===1) return alertRowHtml(g.rows[0].a, g.rows[0].i, false);
           const a0=g.rows[0].a, more=g.rows.length-ALERT_GROUP_SHOW;
           return `<div class="al-grp" data-al-grp>
-            <div style="display:flex;align-items:center;gap:9px;padding:9px 2px 4px;">
-              <span style="width:8px;height:8px;border-radius:50%;background:${ALERT_TONE[a0.tone]};flex:none;"></span>
-              <span class="al-t" style="flex:1;min-width:0;font-size:var(--t-meta);font-weight:var(--w-strong);">${esc(a0.text)}</span>
+            <div style="display:flex;align-items:center;gap:9px;padding:12px 2px 6px;">
+              <span class="al-t" style="font-size:12px;font-weight:var(--w-label);color:var(--color-neutral-600);">${esc(a0.text)}</span>
               <span class="al-n" style="flex:none;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);background:var(--color-accent-50);border-radius:999px;padding:1px 8px;font-variant-numeric:tabular-nums">${g.rows.length}</span>
+              <span style="flex:1"></span>
             </div>
             ${g.rows.slice(0,ALERT_GROUP_SHOW).map(r=>alertRowHtml(r.a, r.i, true)).join('')}
             ${more>0?`<div data-al-folded hidden>${g.rows.slice(ALERT_GROUP_SHOW).map(r=>alertRowHtml(r.a, r.i, true)).join('')}</div>`:''}
-            ${more>0?`<button type="button" class="ui-link" data-al-more style="margin:2px 0 6px 17px;font-size:var(--t-label)">${esc(i18tn('al_show_more',more,{n:more}))}</button>`:''}
+            ${more>0?`<button type="button" class="ui-link" data-al-more style="margin:6px 0 8px 2px;font-size:var(--t-label)">${esc(i18tn('al_show_more',more,{n:more}))}</button>`:''}
           </div>`; }).join(''):`
           <div style="padding:26px 6px;text-align:center;">
             <div style="width:38px;height:38px;margin:0 auto 10px;display:grid;place-items:center;border-radius:50%;background:var(--st-green-bg);color:var(--st-green-fg);">&#10003;</div>

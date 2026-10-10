@@ -416,7 +416,11 @@ function stDrawerPaint(d){
   stWireDrawerOnce();
   const el=stDrawerHost(), scrim=document.getElementById('st-scrim');
   const glyph=d.glyph||'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>';
-  const head=(typeof reviewDialogHeadHtml==='function')
+  /* A PERSON'S DRAWER WEARS THEIR INITIALS (SAP pop-ups, 10 Oct 2026, the
+     drawing): the same badge the People table draws, beside the name. */
+  const head=d.avatar
+    ? `<div class="rvd-head"><span class="st-dav" aria-hidden="true">${esc(d.avatar)}</span><span class="rvd-htxt"><h2 class="rvd-title">${esc(d.title)}</h2>${d.sub?`<p class="rvd-sub">${esc(d.sub)}</p>`:''}</span></div>`
+    : (typeof reviewDialogHeadHtml==='function')
     ? reviewDialogHeadHtml(glyph, d.title, d.sub||'')
     : `<h2 class="rvd-title" id="st-drawer-title">${esc(d.title)}</h2>${d.sub?`<p class="rvd-sub">${esc(d.sub)}</p>`:''}`;
   /* ---- THE DRAWER SAYS WHERE YOU ARE ---- (owner-approved 18 Sep 2026)
@@ -460,7 +464,7 @@ function stDrawerPaint(d){
   document.getElementById('st-dfoot').innerHTML =
     `<div id="st-drawer-refusal" class="st-refusal" hidden></div>
      <div class="st-dfoot-acts">${nextBtn}${d.foot==='save'
-      ? `<button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('st_save_close')}</button>
+      ? `<button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('act_save')}</button>
          <button data-dlg-cancel class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>`
       : `<button class="ui-btn ui-btn-primary" data-st-dclose>${i18t('st_done')}</button>`}</div>`;
   el.removeAttribute('hidden'); if(scrim) scrim.removeAttribute('hidden');
@@ -892,8 +896,9 @@ function stPersonSays(u){
 function stPersonSumHtml(u){
   const lines = stPersonSays(u);
   if(!lines.length) return '';
-  return `<section class="st-sec st-sum"><h3 class="st-sec-h">${esc(i18t('st_sum_head'))}</h3>
-    <p class="st-sum-p">${lines.map(l=>esc(l)).join(' ')}</p></section>`;
+  /* AS DRAWN (SAP pop-ups, 10 Oct 2026): one information line, not a box
+     with its own heading. */
+  return `<div class="st-sum" role="note">${icon('info','w-4 h-4')}<p class="st-sum-p">${lines.map(l=>esc(l)).join(' ')}</p></div>`;
 }
 function stPersonMissing(u){
   const out=[];
@@ -1267,9 +1272,8 @@ function settingsPersonDrawer(idOrNew){
   const body=`
     ${isNew?'':stPersonSumHtml(u)}
     ${sec(1,i18t('st_sec_who'),
-      fld('tm-name',i18t('st_f_name'),'','text',u.name)
+      `<div class="st-row2">${fld('tm-name',i18t('st_f_name'),'','text',u.name)}${fld('tm-title',i18t('st_f_title'),'','text',u.title).replace('<input ','<input title="'+PB_ATTR(i18t('st_f_title_note'))+'" ')}</div>`
       +fld('tm-email',i18t('st_f_email'),'','email',u.email)
-      +fld('tm-title',i18t('st_f_title'),i18t('st_f_title_note'),'text',u.title)
       +(isNew?`<label style="display:block;margin-bottom:var(--s-1)">
           <span style="${window.RV_LBL||''}">${esc(i18t('st_f_temp_pass'))}</span>
           <input id="tm-pass" type="password" style="${window.RV_FLD||ST_INPUT}"/>
@@ -1291,10 +1295,12 @@ function settingsPersonDrawer(idOrNew){
         </div>`:''))}
 
     ${sec(2,i18t('st_sec_may'),`
-      <div class="st-roles">${ROLES.map(([k,label,desc])=>`
-        <label class="st-role"${(isMe&&!isNew)?' data-locked="1"':''}>
+      ${''/* AS DRAWN (SAP pop-ups, 10 Oct 2026): the role is a three-way switch;
+             what each key costs is on its hover. */}
+      <div class="st-seg" role="radiogroup">${ROLES.map(([k,label,desc])=>`
+        <label class="st-seg-o"${(isMe&&!isNew)?' data-locked="1"':''} title="${PB_ATTR(desc)}">
           <input type="radio" name="tm-role-r" value="${k}" ${u.role===k?'checked':''}${(isMe&&!isNew)?' disabled':''}/>
-          <span><span class="st-role-name">${esc(label)}</span><span class="st-note">${esc(desc)}</span></span>
+          <span>${esc(String(label).split(/\s+[—-]\s+/)[0])}</span>
         </label>`).join('')}</div>
       ${''/* THE ROLE IS ONE VALUE WITH TWO FACES. The radios are what a person
              reads — three keys with a line each saying what the key costs. The
@@ -1388,7 +1394,8 @@ function settingsPersonDrawer(idOrNew){
 
   stDrawerPaint({
     title: isNew?i18t('st_add_person'):(u.name||u.email),
-    sub: isNew?i18t('st_tab_people_sub'):roleName(u.role),
+    sub: isNew?i18t('st_tab_people_sub'):[roleName(u.role), u.title].filter(Boolean).join(' \u00b7 '),
+    avatar: isNew?'':(typeof deskInitials==='function'?deskInitials(u.name||u.email||''):String(u.name||u.email||'?').split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase()),
     glyph:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>',
     foot:'save', body,
     wire(){
@@ -5253,41 +5260,52 @@ function openApprovalRuleEditor(idx){
     && (r.approver.id ? String(m.id)===String(r.approver.id) : m.name===r.approver.name);
   const orphan = r.approver && r.approver.kind==='member'
     && !members.some(isAp) ? r.approver.name : null;
+  /* AS DRAWN (SAP pop-ups, 10 Oct 2026): the rule in the order it is said —
+     WHEN (the condition and its value side by side), WHO approves and in
+     WHICH STEP (a list of steps, not a number box), then the rule read back
+     in one line. Every id is kept: ar-order is now the step list. */
+  const steps=Math.max(rules.length+(idx>=0?0:1), Number(r.order)||1, 1);
+  const selCls='style="'+HATI_FLD+'"';
   openModal(`<div class="p-6">
-    <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?i18t('set_edit_rule'):i18t('set_add_rule')}</h3>
-    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_order_lower_first')}</span>
-      <input id="ar-order" type="number" min="1" value="${r.order||1}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>
-    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_condition')}</span>
-      <select id="ar-cond" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld">${AR_CONDS().map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${l}</option>`).join('')}</select></label>
-    <div id="ar-condval" class="mb-2.5"></div>
-    <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('set_approver')}</span>
-      <select id="ar-approver" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld">
-        <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>${i18t('set_any_admin')}</option>
-        <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>${i18t('set_any_legal')}</option>
-        ${orphan?`<option value="orphan" selected>${esc(orphan)} — ${i18t('set_approver_gone')}</option>`:''}
-        ${members.map(m=>`<option value="member:${esc(m.id)}" ${isAp(m)?'selected':''}>${esc(m.name)} (${roleName(m.role)})</option>`).join('')}
-      </select>
-      ${orphan?`<span style="display:block;margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
-    ${''/* THE RULE READ BACK AS A SENTENCE (SAP pop-ups, owner's yes 10 Oct
-           2026): four boxes are hard to check; one line saying what they add
-           up to is not. Painted on every change by arSays below. */}
-    <div id="ar-says" role="status" style="margin:2px 0 var(--s-3);padding:8px 11px;border-radius:var(--radius);background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-body);line-height:1.45"></div>
-    <div class="flex justify-end gap-2 mt-2"><button data-dlg-cancel id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+    <h3>${idx>=0?i18t('set_edit_rule'):i18t('set_add_rule')}</h3>
+    <div class="sap-body">
+      <div class="sap-f"><span class="sap-lbl">${esc(i18t('ar_when'))}</span>
+        <div class="sap-row">
+          <select id="ar-cond" ${selCls} aria-label="${esc(i18t('set_condition'))}">${AR_CONDS().map(([k,l])=>`<option value="${k}" ${r.cond.type===k?'selected':''}>${l}</option>`).join('')}</select>
+          <div id="ar-condval"></div>
+        </div></div>
+      <div class="sap-row">
+        <div class="sap-f"><label for="ar-approver">${esc(i18t('ar_who'))}</label>
+          <select id="ar-approver" ${selCls}>
+            <option value="role:admin" ${r.approver.kind==='role'&&r.approver.role==='admin'?'selected':''}>${i18t('set_any_admin')}</option>
+            <option value="role:legal" ${r.approver.kind==='role'&&r.approver.role==='legal'?'selected':''}>${i18t('set_any_legal')}</option>
+            ${orphan?`<option value="orphan" selected>${esc(orphan)} — ${i18t('set_approver_gone')}</option>`:''}
+            ${members.map(m=>`<option value="member:${esc(m.id)}" ${isAp(m)?'selected':''}>${esc(m.name)} (${roleName(m.role)})</option>`).join('')}
+          </select></div>
+        <div class="sap-f"><label for="ar-order">${esc(i18t('ar_step'))}</label>
+          <select id="ar-order" ${selCls}>${Array.from({length:steps},(_,i)=>`<option value="${i+1}"${Number(r.order||1)===i+1?' selected':''}>${esc(i18t('ar_step_n',{n:i+1}))}</option>`).join('')}</select></div>
+      </div>
+      ${orphan?`<span style="display:block;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px;border-radius:var(--radius)">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}
+      ${''/* THE RULE READ BACK AS A SENTENCE (SAP pop-ups, owner's yes 10 Oct
+             2026): painted on every change by arSays below. */}
+      <div id="ar-says" role="status" style="display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border-radius:var(--radius);border:1px solid color-mix(in srgb, var(--accent-fill) 25%, transparent);background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-body);line-height:1.45"></div>
+    </div>
+    <div class="flex justify-end gap-2"><button data-dlg-cancel id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="ar-save" class="ui-btn ui-btn-primary">${i18t(idx>=0?'set_save_rule':'ar_add_go')}</button></div>
-  </div>`);
+  </div>`,{maxWidth:'560px'});
   const arSays=()=>{
     const host=document.getElementById('ar-says'); if(!host) return;
     const t=document.getElementById('ar-cond').value, cv=document.getElementById('ar-cv');
     const cond={ type:t, op:'>=', value: t==='value' ? Number((cv&&cv.value)||0) : (cv&&cv.value) };
     const apSel=document.getElementById('ar-approver');
     const who=(apSel && apSel.selectedOptions[0]) ? apSel.selectedOptions[0].textContent.trim() : '';
-    host.textContent=i18t('ar_reads',{ who, n:Math.max(1,Number(document.getElementById('ar-order').value||1)), cond:condLabel(cond) });
+    host.innerHTML=`${icon('info','w-4 h-4')}<span>${esc(i18t('ar_reads_k'))} <b>${esc(i18t('ar_reads_s',{ who, n:Math.max(1,Number(document.getElementById('ar-order').value||1)), cond:condLabel(cond) }))}</b></span>`;
   };
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
-    if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_threshold',{cur:jxCurrency()})}</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>`;
-    else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_value_stream')}</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select></label>`;
-    else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_type_contains')}</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>`;
-    else h.innerHTML=`<p class="text-[11px] text-ink/55">${i18t('set_no_extra_value')}</p>`; };
+    if(t==='value') h.innerHTML=`<span class="of-amt"><i>${esc(jxCurrency())}</i><input id="ar-cv" type="number" aria-label="${esc(i18t('set_threshold',{cur:jxCurrency()}))}" value="${r.cond.type==='value'?r.cond.value:5000000}"/></span>`;
+    else if(t==='folder') h.innerHTML=`<select id="ar-cv" ${selCls} aria-label="${esc(i18t('set_value_stream'))}">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select>`;
+    else if(t==='kind') h.innerHTML=`<input id="ar-cv" ${selCls} aria-label="${esc(i18t('set_type_contains'))}" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}"/>`;
+    else h.innerHTML=`<p class="sap-help" style="padding-top:7px">${i18t('set_no_extra_value')}</p>`; };
   document.getElementById('ar-cond').addEventListener('change',()=>{ renderCondVal(); arSays(); }); renderCondVal();
   document.querySelector('#modal-root [role="dialog"]').addEventListener('input',arSays);
   document.querySelector('#modal-root [role="dialog"]').addEventListener('change',arSays);

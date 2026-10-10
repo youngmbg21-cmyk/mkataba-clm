@@ -1745,8 +1745,18 @@ function signerRouteWindow(c, plan, back){
   };
   /* A party with no row at all is an empty place carrying the act that fills
      it. A row somebody started is its own card, asking its own question. */
-  const missHtml=()=>choices.filter(ch=>!rows.some(r=>keyOf(r)===ch.key)).map(ch=>
-    `<div class="sr-miss" data-sp-miss="${esc1(ch.key)}"><span>${esc1(i18t('ap_sr_nobody_for',{ party:ch.name }))}</span><button type="button" class="ui-btn ui-btn-sm" data-sp-addfor="${esc1(ch.key)}">${ic('plus')}${esc1(i18t('ap_sr_add_who'))}</button></div>`).join('');
+  /* AS DRAWN (SAP pop-ups, 10 Oct 2026): a party nobody signs for yet is a
+     ROW in the step box — its initials, its name, "Nobody named yet" and the
+     act that fills it — under the box's own small heading. */
+  const missHtml=()=>{
+    const miss=choices.filter(ch=>!rows.some(r=>keyOf(r)===ch.key));
+    if(!miss.length) return '';
+    const n=stepsOf().length;
+    return `<div class="sr-sh"><span class="sr-sn">${esc1(n?i18t('ap_sr_still_to_name'):i18t('py_step_n',{ n:1 }))}</span></div>`
+      + miss.map(ch=>`<div class="sr-miss" data-sp-miss="${esc1(ch.key)}"><span class="sr-av${ch.us?' us':''}" aria-hidden="true">${esc1(ini(ch.name))}</span>
+        <span class="sr-mt"><b>${esc1(ch.name)}</b><span>${esc1(i18t('ap_sr_nobody_yet'))}</span></span>
+        <button type="button" class="ui-btn ui-btn-sm" data-sp-addfor="${esc1(ch.key)}">${ic('plus')}${esc1(i18t('ap_sr_add_signer'))}</button></div>`).join('');
+  };
   const bodyHtml=()=>{
     norm();
     return stepsOf().map(g=>`<section class="sr-step" data-sr-step="${g.n}">
@@ -1759,8 +1769,8 @@ function signerRouteWindow(c, plan, back){
   };
 
   openModal(`<div class="p-6 sr-win" id="sr-win">
-    <h3 class="font-serif font-600 text-lg text-ink mb-1">${i18t('ap_signing_route')}</h3>
-    <p class="text-xs text-ink/60 mb-3">${i18t('ap_route_line')}</p>
+    <h3>${i18t('ap_signing_route')}</h3>
+    <p>${i18t('ap_route_line')}</p>
     ${dirList}
     <div class="sr-steps" id="sr-steps">${bodyHtml()}</div>
     <div class="dlg-foot sr-foot"><span class="sr-say" id="sr-say" role="alert"></span>

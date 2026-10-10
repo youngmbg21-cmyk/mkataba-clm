@@ -1626,22 +1626,18 @@ function reviewAskModalHtml(c, opts = {}){
      matters is that unticking is possible at all: you are uneasy about the
      indemnity, not about all five redlines, and a review that dragged the other
      four along stops the rest of the round for no reason. */
-  const row = ch => `<li style="display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--color-divider)">
+  const row = ch => `<label class="sap-li">
     <input type="checkbox" class="rv-pickch" data-rv-ch="${_rvE(ch.id)}"${on(ch) ? ' checked' : ''}
-      aria-label="${_rvE(i18t('rv_include_aria', { id: ch.id }))}" style="margin-top:3px;flex:none"/>
-    <span style="flex:none;font-family:var(--font-mono);font-size:var(--t-label);font-weight:var(--w-title);border:1.5px solid var(--color-accent);
-      color:var(--color-accent);border-radius:var(--radius);padding:1px 6px;margin-top:1px">#${_rvE(ch.id)}</span>
-    <span style="flex:1;min-width:0">
-      <span style="display:block;font-size:var(--t-meta);font-weight:var(--w-strong);line-height:1.4">${_rvE(ch.summary || '')}</span>
-      <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600)">${_rvE(_rvClauseName(ch.clauseLabel || ch.clauseId || ''))}</span>
-    </span></li>`;
+      aria-label="${_rvE(i18t('rv_include_aria', { id: ch.id }))}" style="flex:none;accent-color:var(--accent-fill)"/>
+    <span style="flex:1;min-width:0;font-size:var(--t-body)">${_rvE(_rvClauseName(ch.clauseLabel || ch.clauseId || ''))}${ch.summary ? ' \u00b7 ' + _rvE(ch.summary) : ''}</span>
+    <span class="sap-m" style="font-family:var(--font-mono)">#${_rvE(ch.id)}</span></label>`;
   return `
-  ${reviewDialogHeadHtml('&#128100;', i18t('rv_modal_title'), i18t('rv_modal_sub'))}
-  <div class="rvd-body">
+  ${reviewDialogHeadHtml('', i18t('rv_modal_title'), i18t('rv_modal_sub2', { ref: (typeof window!=='undefined'&&window.contractRef)?window.contractRef(c):c.id, cp: c.counterparty || i18t('rv_the_other_side') }))}
+  <div class="rvd-body sap-body">
 
     ${people.length ? `
-    <div style="margin-bottom:var(--s-3)">
-      <label for="rv-who" style="${RV_LBL}">${_rvE(i18t('rv_who'))}</label>
+    <div class="sap-f">
+      <label for="rv-who">${_rvE(i18t('rv_who'))} <span class="sap-req">*</span></label>
       <div style="position:relative">
         ${''/* PREFILLED FROM THE ASKER'S OWN STANDING REVIEWER, where an admin
                has named one. It is a convenience and not a binding: the box is
@@ -1670,27 +1666,25 @@ function reviewAskModalHtml(c, opts = {}){
     </div>` : `<div style="font-size:var(--t-meta);color:var(--st-amber-fg);background:var(--st-amber-bg);
       border:1px solid var(--st-amber-line);border-radius:var(--radius);padding:9px 11px;margin-bottom:var(--s-3);line-height:1.5">${_rvE(i18t('rv_no_colleagues'))}</div>`}
 
-    <label for="rv-note" style="${RV_LBL}">${_rvE(i18t('rv_note_label'))}</label>
-    <textarea id="rv-note" rows="3" style="${RV_FLD}height:auto;margin-bottom:var(--s-3);resize:vertical"
-      placeholder="${_rvE(i18t('rv_note_ph'))}"></textarea>
+    <div class="sap-f"><label for="rv-note">${_rvE(i18t('rv_note_label'))}</label>
+    <textarea id="rv-note" rows="3" style="${RV_FLD}height:auto;min-height:64px;resize:vertical"
+      placeholder="${_rvE(i18t('rv_note_ph'))}"></textarea></div>
 
-    <label for="rv-due" style="${RV_LBL}">${_rvE(i18t('rv_due_label'))}</label>
-    <input id="rv-due" type="date" value="${_rvE(due)}" style="${RV_FLD}margin-bottom:var(--s-3)"/>
+    <div class="sap-f"><label for="rv-due">${_rvE(i18t('rv_due_label'))}</label>
+      <div class="sap-row" style="align-items:center">
+        <input id="rv-due" type="date" value="${_rvE(due)}" style="${RV_FLD}"/>
+        ${(window.API_MODE && window.API_MODE()) ? `<label style="display:flex;gap:var(--s-2);align-items:center;font-size:var(--t-body);color:var(--color-text);cursor:pointer">
+          <input id="rv-email" type="checkbox" checked style="accent-color:var(--accent-fill)"/>
+          <span>${_rvE(i18t('rv_email_short'))}</span></label>` : '<span></span>'}
+      </div></div>
 
-    ${(window.API_MODE && window.API_MODE()) ? `<label style="display:flex;gap:var(--s-2);align-items:flex-start;font-size:var(--t-meta);color:var(--color-neutral-700);margin-bottom:14px;cursor:pointer">
-      <input id="rv-email" type="checkbox" checked style="margin-top:2px"/>
-      <span>${_rvE(i18t('rv_email_them'))}</span></label>` : ''}
-
-    <div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:11px 13px;background:var(--color-bg);margin-bottom:14px">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px">
-        <span style="flex:1;font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600)">${_rvE(i18t('rv_in_scope'))}</span>
+    <div class="sap-f">
+      <div style="display:flex;align-items:center;gap:var(--s-2)">
+        <span class="sap-lbl" style="flex:1">${_rvE(i18tn('rv_in_this', scope.all.length, { n: scope.all.length }))}</span>
         ${scope.all.length > 1 ? `<button type="button" id="rv-pick-all" class="ui-link">${_rvE(i18t('rv_pick_none'))}</button>` : ''}
       </div>
-      ${scope.ours.length ? `<div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-text);margin:var(--s-1) 0 2px">${_rvE(i18tn('rv_scope_ours', scope.ours.length, { n: scope.ours.length }))}</div>
-        <ul style="list-style:none;margin:0;padding:0">${scope.ours.map(row).join('')}</ul>` : ''}
-      ${scope.theirs.length ? `<div style="font-size:var(--t-label);font-weight:var(--w-title);color:var(--color-text);margin:9px 0 2px">${_rvE(i18tn('rv_scope_theirs', scope.theirs.length, { n: scope.theirs.length }))}</div>
-        <ul style="list-style:none;margin:0;padding:0">${scope.theirs.map(row).join('')}</ul>` : ''}
-      ${!scope.all.length ? `<div style="font-size:var(--t-meta);color:var(--color-neutral-700)">${_rvE(i18t('rv_nothing_to_review'))}</div>` : ''}
+      ${scope.all.length ? `<div class="sap-list">${scope.ours.concat(scope.theirs).map(row).join('')}</div>`
+        : `<div class="sap-help">${_rvE(i18t('rv_nothing_to_review'))}</div>`}
     </div>
   </div>
   <div class="rvd-foot">
