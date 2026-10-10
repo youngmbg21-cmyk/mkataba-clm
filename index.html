@@ -4458,6 +4458,13 @@
   #ov-ess .ov-ess-g .sec-f-v{ display:block; line-height:20px; max-height:40px; overflow-y:auto;
     overscroll-behavior:contain; scrollbar-width:thin; }
   #ov-ess .ov-ess-g .sec-f-v > .sec-f-c{ margin-left:6px; }
+  /* THE TERMS CARD: THE LABEL IS BOLD, THE ANSWER IS NOT (owner picked "Headed"
+     by name, 10 Oct 2026, over real pictures of the card). This card only: the
+     20 Sep "a field's name is not bold" rule stands everywhere else. Weight
+     only; sizes, colours and sentence case are untouched. An em-dash stays
+     light (.is-none is already body weight). */
+  :root #ov-ess .ov-ess-g .sec-f-l:not(#_){ font-weight:var(--w-strong); }
+  :root #ov-ess .ov-ess-g .sec-f-v:not(#_){ font-weight:var(--w-body); }
   :root #ov-map .ov-map-pcap, :root #ov-map .ov-map-pane h4{ text-transform:none; letter-spacing:0; }
   .ov-ess-cap{ font-size:var(--t-micro); letter-spacing:var(--cap-ls); color:var(--cap-ink); }
   .ov-ess-acts{ display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }
@@ -6663,6 +6670,11 @@
      their dark status washes. */
   html.dark .doc-th-chip:not(.is-ruby,.is-amber,.is-steel)[aria-pressed="true"]{ background:var(--color-accent-50); border-color:var(--accent-ink); color:var(--accent-ink); }
   .doc-th-chip[aria-disabled="true"]{ opacity:.5; cursor:default; }
+  /* HOME'S PAPER: the filter at the far left of its own row, "Go to document"
+     at the far right (owner, 10 Oct 2026). */
+  .doc-th-hd.is-home .doc-th-bar{ display:flex; align-items:center; gap:12px; flex:1 0 100%; min-width:0; }
+  .doc-th-hd.is-home .doc-th-bar .doc-th-chips{ margin-left:0; }
+  .doc-th-hd.is-home .doc-th-open{ margin-left:auto; margin-right:0; font-size:var(--t-label); min-height:var(--ctl-h); }
   .doc-th-chip[aria-disabled="true"]:hover{ background:var(--color-surface); }
   .doc-th-rows{ position:relative; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding:6px 12px 18px; }
   .doc-th-row{ position:relative; padding-left:24px; }

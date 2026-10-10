@@ -13489,10 +13489,19 @@ function docThreadTopHtml(c, rows, has){
       return `<button type="button" class="doc-th-chip is-${g}" data-th-tone="${g}" aria-pressed="${on?'true':'false'}"${dead?' aria-disabled="true"':''}
         title="${esc(tip)}"><i aria-hidden="true"></i>${esc(name)} <b>${n}</b></button>`;
     })).join('');
+  const filter=`<div class="doc-th-chips" role="group" aria-label="${esc(i18t('th_filter_label'))}">${chips}</div>`;
+  /* ON HOME'S PAPER THE FILTER STANDS AT THE LEFT AND THE WAY TO THE ROOM AT
+     THE RIGHT (owner, 10 Oct 2026: "move the highlighted buttons to the far
+     left and then add a door to the document tab on the far right", drawn as
+     "→ Go to document"): one row under the title, the filter first, the door a
+     text link ending it. The room's own drawer is already on the Document tab,
+     so it keeps the one-line head below. */
+  if(thOnHome()) return `<div class="doc-th-hd is-home"><span class="doc-th-title">${esc(i18t('th_clauses'))} <span class="doc-th-tn">(${clauses.length})</span></span>${docThreadSumHtml(rows,'doc-th-sum')}
+    <div class="doc-th-bar">${filter}<button type="button" class="ui-link doc-th-open" data-th-open-doc>${icon('arrowRight','w-3.5 h-3.5')}${esc(i18t('th_go_document'))}</button></div></div>`;
   /* ONE LINE, AS DRAWN (SAP batch 3): "Clauses (n)" and the colour filter as
      one segmented control on the head's right. */
   return `<div class="doc-th-hd"><span class="doc-th-title">${esc(i18t('th_clauses'))} <span class="doc-th-tn">(${clauses.length})</span></span>${docThreadSumHtml(rows,'doc-th-sum')}
-    <div class="doc-th-chips" role="group" aria-label="${esc(i18t('th_filter_label'))}">${chips}</div>${close}</div>`;
+    ${filter}${close}</div>`;
 }
 /* THE DOOR on the tab row: drawn only while there is a panel for the drawer
    to cover and a clause to show, pressed while the drawer is open, carrying
@@ -13974,6 +13983,13 @@ function docThreadWire(c){
         return;
       }
       if(t.closest('[data-th-close]')){ docThreadDrawerSet(cur,false); return; }
+      /* Home's "Go to document": the contract on the panel, looked up live,
+         opened on its own Document tab. */
+      if(t.closest('[data-th-open-doc]')){
+        const lc=thLiveContract()||cur; if(!lc) return;
+        _wsTabWant='docs'; if(typeof openWorkspace==='function') openWorkspace(lc.id);
+        return;
+      }
       const tn=t.closest('[data-th-tone]');
       if(tn){ if(tn.getAttribute('aria-disabled')!=='true') docThreadFilterSet(cur,tn.getAttribute('data-th-tone')||''); return; }
       const ex=t.closest('[data-th-explain]');

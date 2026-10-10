@@ -28406,3 +28406,30 @@ Owner, with four screenshots: *"the highlighted trackers in image one is broken.
 THE TRACK WAS NOT MEASURING WRONG. It put each flag where its clause really sits. On MK-437 every flag is in the main body, the first ~40 of 105 pages; the rest are schedules, so true to the page the flags crowded the top. BODY FIRST keeps the track honest inside the body and folds the schedules: `igTrackBodyEnd` finds the first heading that is a schedule, annex, appendix, exhibit, attachment or bilaga (anchored at the start of the row's text, so "2. Schedule of payments" in the body is not one), else a heading whose numbering starts again at 1 after the body ran past `IG_TRACK_RESTART_MIN`. `igTrackFold` gives the body 84% of the rail and the schedules the rest, but ONLY when the schedules are longer than that piece; shorter schedules are drawn true to the page as before. `igTrackAt` maps a place on the paper to the rail for the marks AND the reading window (both edges, so a window crossing the cut is drawn across it). The name "Schedules" takes a slot in the label column (laid out with the labels, so none ever sits on it); slim and hairline draw the piece without the name. Same code on Home's Paper and the Document tab (`h.data` carries the rows).
 
 ANGLED NAMES: `hbAngleOf` decides on the flat words (a time axis keeps its short month labels flat), measures the WHOLE names (`col.full`), and returns the room they need. The stacked columns add that height UNDER the chart (the plot keeps its height); the heat grid adds it over the grid, narrows its row-name column to its longest name and takes at most `HB_ANGLE_SIDE` of the width on the right; past that a name is cut and whole on the hover card. Font one step under the flat names, never under 12px — the floor story-chapters-verify 2b/2c pins for every chart's writing (Young, 6 Oct): `max(12px, calc(var(--hb-fs-cat) - 1px))` (CSS `.hb-svg[data-hb-step] text.hb-sv-angled`, after the category rule), so on the board step it is the flat names' own 12px. A first build at 11px turned story-chapters 2c red on CI and was raised. Red at the parent: body-first-and-angled-verify 1a, 2a, 3, 4a, 5a. Not done: the Insights pages' own charts (no report of cut names there).
+
+## THE OVERVIEW — THE TERMS CARD'S LABELS ARE BOLD (10 OCT 2026)
+The owner asked to see the terms card with its small headers bold and the
+answers not, keeping today's sizes. Two proposals were shown as real pictures
+of the latest main (an earlier round was taken from a copy 108 commits behind
+and showed the old capital-letter labels; the owner caught it): "Quiet" (both
+normal) and "Headed" (labels 600, answers 400). Measured: labels 12px
+blue-grey sentence case, answers 13px page ink, identical in all three; only
+the weight moved. The owner picked Headed by name ("build header only"). It
+is scoped to `#ov-ess .ov-ess-g` — the 20 Sep 2026 ruling that a field's name
+is never bold stands on every other card (the top facts row, the Renewal
+boxes, the inspectors). overview-as-drawn 8b/8d re-pointed; red at main on
+both (label 400, answer 600). The phone draws its own overview and was left
+alone.
+
+## THE THREAD — HOME'S HEAD: FILTER LEFT, "GO TO DOCUMENT" RIGHT (10 OCT 2026)
+Owner, over a screenshot of Home's Paper Document tab with the All · Red ·
+Amber · Blue filter ringed: "move the highlighted buttons to the far left and
+then add a door to the document tab on the far right. Make it look classy and
+aligned with the platform", then a picture of the door: "→ Go to document".
+On Home the head is now the title line, then one row: the filter from the left
+edge, the link (`.ui-link`, a drawn `arrowRight` icon, `th_go_document` both
+books) at the right; the press opens the contract on panel on its own
+Document tab (`_wsTabWant='docs'` + `openWorkspace`). The room's drawer is
+already on the Document tab, so its one-line head (filter right, × pinned)
+is unchanged. Red at main: home-paper-clauses 8b (filter at 1124 against the
+title's 991), 8c and 8d (no door).

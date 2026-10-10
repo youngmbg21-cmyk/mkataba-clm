@@ -139,6 +139,32 @@ const until = async (page, fn, arg, ms = 8000) => page.waitForFunction(fn, arg, 
     }
     ok('6c while the paper scrolls, a row opens in one step — no animation', still.some(v => v === '0s') && !still.some(v => v !== '0s' && v !== 'idle' && v !== 'none'), still.join(' '));
 
+    /* ===== 8. HOME'S HEAD: THE FILTER AT THE LEFT, "GO TO DOCUMENT" AT THE RIGHT =====
+       (owner, 10 Oct 2026: "move the highlighted buttons to the far left and
+       then add a door to the document tab on the far right", drawn as
+       "→ Go to document"). Measured as painted boxes against the head. */
+    await page.evaluate(() => setView('dashboard'));
+    await until(page, () => typeof pdOpenOnHome === 'function' && !!document.querySelector('[data-hb-face="board"]'));
+    await page.evaluate(() => pdOpenOnHome('MK-HP1', 'doc'));
+    const headUp = await until(page, () => !!document.querySelector('#pd-thread .doc-th-hd .doc-th-chips'));
+    ok('8a GATE — Home\'s clause list head is drawn', headUp);
+    const hd = await page.evaluate(() => {
+      const t = document.getElementById('pd-thread'); if (!t) return null;
+      const r = sel => { const e = t.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom) }; };
+      const door = t.querySelector('[data-th-open-doc]');
+      const hit = door ? (() => { const b = door.getBoundingClientRect(); const e = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !!(e && door.contains(e)); })() : false;
+      return { head: r('.doc-th-hd'), title: r('.doc-th-title'), chips: r('.doc-th-chips'), door: r('[data-th-open-doc]'), hit,
+        word: door ? door.textContent.replace(/\s+/g, ' ').trim() : '', arrow: !!(door && door.querySelector('svg')), x: !!t.querySelector('[data-th-close]') };
+    });
+    ok('8b the filter starts at the left, under the title', !!(hd && hd.chips && hd.title && Math.abs(hd.chips.l - hd.title.l) <= 2), JSON.stringify(hd && { chips: hd.chips, title: hd.title }));
+    ok('8c "→ Go to document" ends the same row, at the far right', !!(hd && hd.door && hd.hit && hd.word === 'Go to document' && hd.arrow
+      && Math.abs((hd.door.t + hd.door.b) - (hd.chips.t + hd.chips.b)) <= 4 && hd.head.r - hd.door.r <= 16 && hd.door.l > hd.chips.r), JSON.stringify(hd));
+    await page.screenshot({ path: path.join(OUT, '8-home-head.png') });
+    await page.click('#pd-thread [data-th-open-doc]');
+    const landed = await until(page, () => state.view === 'workspace' && String(state.activeId) === 'MK-HP1'
+      && !!document.querySelector('#ws-tabs [data-ws-tab="docs"][aria-selected="true"]'));
+    ok('8d pressing it opens this contract on its Document tab', landed);
+
     ok('7 no page errors', !errs.length, errs.join(' | '));
   } catch (e) {
     ok('the stage ran', false, String(e && e.stack || e).slice(0, 400));
