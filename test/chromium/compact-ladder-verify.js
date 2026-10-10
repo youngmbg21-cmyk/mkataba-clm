@@ -300,8 +300,10 @@ const HELPERS = `(() => {
     const d1 = await foot();
     ok('6a in a short window the dialog scrolls, and its foot is found and pinned', !!d1 && d1.scrolls && d1.found, JSON.stringify(d1));
     ok('6b its buttons are inside the panel without scrolling', !!d1 && d1.inView, JSON.stringify(d1 && d1.order));
-    ok('6c Cancel first, the main act last and filled, one height',
-      !!d1 && d1.order.length >= 2 && /\*$/.test(d1.order[d1.order.length - 1]) && d1.xs[0] < d1.xs[d1.xs.length - 1] && d1.hs.every(x => near(x, 28)),
+    /* REVERSED 10 Oct 2026 (SAP pop-ups, owner's go): the act first and
+       filled, Cancel LAST — SAP's order, and the same in the DOM. */
+    ok('6c the main act first and filled, Cancel last, one height',
+      !!d1 && d1.order.length >= 2 && /\*$/.test(d1.order[0]) && /^Cancel$/.test(d1.order[d1.order.length - 1]) && d1.xs[0] < d1.xs[d1.xs.length - 1] && d1.hs.every(x => near(x, 28)),
       JSON.stringify(d1 && { order: d1.order, hs: d1.hs }));
     await page.evaluate(() => closeModal());
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -322,13 +324,14 @@ const HELPERS = `(() => {
     const c7 = await page.evaluate(() => {
       const m = window.__m, root = document.getElementById('modal-root');
       const fields = [...root.querySelectorAll('input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=file]), select')].filter(m.vis).map(m.box);
-      const foot = [...root.querySelectorAll('.na-foot button, [data-dlg-foot] button, .dlg-foot button')].filter(m.vis).map(m.box);
+      /* A PAGE NOW (SAP pop-ups, 10 Oct 2026): the acts stand in its head. */
+      const foot = [...root.querySelectorAll(root.querySelector('.dlg-pg-acts') ? '.dlg-pg-acts button' : '.na-foot button, [data-dlg-foot] button, .dlg-foot button')].filter(m.vis).map(m.box);
       return { fields, foot };
     });
     ok('7a every one-line box in the pop-up is the everyday height (28)',
       c7.fields.length > 0 && c7.fields.every(b => near(b.h, 28)), JSON.stringify(c7.fields.map(b => b.h)));
-    ok('7b its foot is Cancel … the main act last, one height',
-      c7.foot.length >= 2 && c7.foot[c7.foot.length - 1].primary && c7.foot.every(b => near(b.h, 28)),
+    ok('7b its acts are the main act first … Cancel last, one height',
+      c7.foot.length >= 2 && c7.foot[0].primary && /^Cancel$/.test(c7.foot[c7.foot.length - 1].t) && c7.foot.every(b => near(b.h, 28)),
       JSON.stringify(c7.foot.map(b => b.t + (b.primary ? '*' : '') + ':' + b.h)));
     await sweep('new-agreement');
     await page.evaluate(() => closeModal());
