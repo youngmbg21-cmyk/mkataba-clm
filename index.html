@@ -1647,6 +1647,22 @@
   .modal-in[data-dlg-sap] :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea):focus-visible{
     outline:none; border-color:var(--accent-fill); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent-fill) 22%, transparent); }
   .modal-in[data-dlg-sap] .am-chip[aria-pressed="true"]{ background:var(--color-accent-50); border-color:var(--accent-fill); color:var(--accent-ink); }
+  /* THE SEND DIALOG, AS DRAWN (SAP pop-ups, 10 Oct 2026): its title bar
+     sits inside the first step, so it is pulled to the edges here; the two
+     choices are joined segments side by side; the link's two settings are
+     one row. */
+  [data-share-sap] .sh-hd{ margin:-16px -18px 16px; }
+  [data-share-sap] .sh-pick-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; margin:0 0 14px; }
+  [data-share-sap] .sh-pick-row .sap-lbl{ display:block; margin-bottom:5px; }
+  [data-share-sap] .sh-segs{ display:flex; }
+  [data-share-sap] .sh-seg{ position:relative; flex:1; min-width:0; height:30px; padding:0 6px; margin-left:-1px; border:1px solid var(--btn-edge); border-radius:0;
+    font:inherit; font-size:var(--t-body); font-weight:var(--w-label); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  [data-share-sap] .sh-seg:first-child{ margin-left:0; border-radius:var(--radius) 0 0 var(--radius); }
+  [data-share-sap] .sh-seg:last-child{ border-radius:0 var(--radius) var(--radius) 0; }
+  [data-share-sap] .sh-seg[aria-pressed="true"]{ font-weight:var(--w-strong); box-shadow:inset 0 -2px 0 var(--accent-fill); }
+  [data-share-sap] #sh-link-opts{ margin:0 0 14px; }
+  [data-share-sap] .sh-durable-box{ display:flex; align-items:center; gap:8px; height:var(--field-h); padding:0 10px; border:1px solid var(--field-line, var(--color-divider));
+    border-radius:var(--radius); font-size:var(--t-body); color:var(--color-text); cursor:pointer; }
   /* ALERTS, AS DRAWN (SAP pop-ups, 10 Oct 2026): a contract under its group. */
   .al-grow{ display:flex; gap:10px; align-items:center; width:100%; padding:8px 2px; border:0; border-bottom:1px solid var(--color-divider);
     background:transparent; text-align:left; cursor:pointer; color:var(--color-text); font:inherit; }

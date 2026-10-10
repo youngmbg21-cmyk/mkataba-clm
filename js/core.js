@@ -3798,7 +3798,10 @@ function dlgSapFrame(panel){
     bar.style.margin=`${-pt}px ${-pr}px 16px ${-pl}px`;
   }
   /* THE FOOT BAR — measured to the panel's edges. */
-  const foot=panel.querySelector('.dlg-foot') || panel.querySelector('[data-dlg-foot]') || dlgFootOf(panel);
+  /* The SHOWN foot: a dialog of steps draws one foot per step and hides all
+     but one (the Send dialog's kind step). */
+  const shown=sel=>[...panel.querySelectorAll(sel)].find(f=>f.getClientRects().length);
+  const foot=shown('.dlg-foot') || shown('[data-dlg-foot]') || dlgFootOf(panel);
   panel.querySelectorAll('.dlg-f').forEach(f=>{ if(f!==foot){ f.classList.remove('dlg-f'); f.style.marginLeft=f.style.marginRight=f.style.marginBottom=f.style.paddingLeft=f.style.paddingRight=''; } });
   if(foot && foot.getClientRects().length){
     foot.classList.add('dlg-f');
@@ -4798,6 +4801,20 @@ function shareAdviseBlockHtml(c, purposeSel){
       esc(i18t('asl_no_seat'))}</span></p>
   </div>`;
 }
+/* ONE SEGMENT LOOK FOR BOTH SHARE ROWS (SAP pop-ups, 10 Oct 2026): the
+   chosen segment is a tint with an accent edge, as drawn, not a filled
+   button — one filled button per dialog, and it is Send. The style still
+   names var(--color-accent) only on the chosen one (tests find it so). */
+function shareSegStyle(on){
+  return `border-color:${on?'var(--color-accent)':'var(--btn-edge)'};background:${on?'color-mix(in srgb, var(--color-accent) 10%, var(--color-surface))':'var(--color-surface)'};color:${on?'var(--accent-ink)':'var(--color-text)'};z-index:${on?1:0}`;
+}
+function shareSegPaint(b, on){
+  b.style.borderColor=on?'var(--color-accent)':'var(--btn-edge)';
+  b.style.background=on?'color-mix(in srgb, var(--color-accent) 10%, var(--color-surface))':'var(--color-surface)';
+  b.style.color=on?'var(--accent-ink)':'var(--color-text)';
+  b.style.zIndex=on?'1':'0';
+  b.setAttribute('aria-pressed', on?'true':'false');
+}
 function sharePurposePickerHtml(c, sel, o={}){
   /* ---- ON ONE SCREEN THE PICKER IS A ROW ---- (owner-approved 13 Sep 2026)
      The three cards were right when this was a screen of its own: each carries
@@ -4822,20 +4839,18 @@ function sharePurposePickerHtml(c, sel, o={}){
     ? ` disabled aria-disabled="true" title="${esc(i18t(k==='sign'?'ho_share_no_sign':'ho_share_no_round'))}"` : '';
   if(o.compact){
     const seg=(k)=>{ const on=sel===k, m=SHARE_PURPOSE_COPY[k];
-      return `<button type="button" data-share-purpose="${k}" data-share-purpose-seg="1" aria-pressed="${on?'true':'false'}"${shut(k)}
-        style="flex:1;height:var(--ctl-h);padding:0 var(--s-1);font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;${shut(k)?'opacity:.5;cursor:default;':''}
-        border:1px solid ${on?'var(--color-accent)':'var(--btn-edge)'};background:${on?'var(--color-accent)':'var(--color-surface)'};
-        color:${on?'#fff':'var(--color-neutral-700)'};border-radius:var(--radius)">${m.label}</button>`; };
+      return `<button type="button" class="sh-seg" data-share-purpose="${k}" data-share-purpose-seg="1" aria-pressed="${on?'true':'false'}"${shut(k)}
+        style="${shut(k)?'opacity:.5;cursor:default;':''}${shareSegStyle(on)}">${m.label}</button>`; };
     const m=SHARE_PURPOSE_COPY[sel]||SHARE_PURPOSE_COPY.negotiate;
-    return `<div id="share-purpose" style="margin:0 0 14px">
-      <span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:6px;font-family:var(--font-heading);letter-spacing:.02em">${i18t('co_what_round_for')}</span>
+    return `<div id="share-purpose">
+      <span class="sap-lbl">${i18t('co_what_round_for')}</span>
       ${''/* ---- THE FIFTH PURPOSE SITS BESIDE THE OTHER FOUR (upgrade 9) ----
            18 Sep 2026, built to the drawing. A first pass gave the adviser link
            its own door on the More menu, reasoning that every answer on this
            row goes to the COUNTERPARTY. That was a second door onto one act —
            "make a link for somebody" — and two doors drift. It is a segment
            here, and the More-menu row is a PROXY that presses this one. */}
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${seg('sign')}${seg('negotiate')}${seg('view')}${seg('advise')}</div>
+      <div class="sh-segs">${seg('sign')}${seg('negotiate')}${seg('view')}${seg('advise')}</div>
       <div id="share-purpose-say" data-compact="1" style="margin-top:5px;font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600)">${esc(m.line)}</div>
     </div>`;
   }
@@ -5009,9 +5024,11 @@ function shareSummaryStepHtml(c, opts={}){
       ${''/* THE TITLE SAYS WHO IT IS GOING TO AND WHICH ROUND, because on one
              screen this is the page's only heading and "What you are sending"
              is a question the screen below answers by itself. */}
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
+      ${one ? `<div class="dlg-h sh-hd"><h2 id="share-lead-title">${shareLeadTitle(c, s, opts.purposeSel)}</h2><p>${
+          esc([typeof contractRef==='function'?contractRef(c):c.id, c.name].filter(Boolean).join(' · '))}</p></div>`
+      : `<div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="display:inline-flex;color:var(--color-accent);">${icon('share')}</span>
         <h2 id="share-lead-title" style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0;">${
-          opts.oneScreen ? shareLeadTitle(c, s, opts.purposeSel) : i18t('co_what_you_sending')}</h2></div>
+          i18t('co_what_you_sending')}</h2></div>`}
       ${''/* THE PURPOSE QUESTION DOES NOT APPLY TO A RECORD. Sign, Negotiate
              and View only are things somebody does to a contract; a history
              link opens read-only on the timeline and there is nothing on it to
@@ -5107,7 +5124,7 @@ function shareSummaryStepHtml(c, opts={}){
              the contract, or the record of the negotiation — as a quiet way
              out rather than a screen everybody must pass. Both markups are
              kept and one is drawn: an option, not a fork in the builder. */}
-      ${opts.oneScreen ? `<div style="margin:-6px 0 14px"><button type="button" id="share-other" class="ui-link">${i18t('co_send_something_else')}</button></div>${purposeBlock}`
+      ${opts.oneScreen ? `<div style="margin:-6px 0 14px"><button type="button" id="share-other" class="ui-link">${i18t('co_send_something_else')}</button></div>${opts.purposeInForm?'':purposeBlock}`
       : `<div class="dlg-foot">
         <button id="share-back-kind" class="ui-btn">${icon('arrowLeft','w-3.5 h-3.5')}Back</button>
         <button data-dlg-cancel id="share-close-1" class="ui-btn">${i18t('act_cancel')}</button>
@@ -6962,12 +6979,10 @@ async function openShareModal(c, opts={}){
   const FLD=HATI_FLD;
   const LBL=HATI_LBL;
   const server=API_MODE();
-  /* THE CHANNEL CHOICE IS ONE ROW AT THE EVERYDAY RUNG (the Compact ladder,
-     26 Sep 2026): the button's height, the button's label, and a DRAWN mark
-     per channel where a typed ✉ and an emoji 📄 used to print in colour at
-     text size beside the product's own hairline icons. */
-  const CH_IC={email:'msg',whatsapp:'chat',word:'file',link:'link'};
-  const tab=(k,label,active)=>`<button data-share-ch="${k}" style="flex:1;min-width:0;height:var(--ctl-h);padding:0 var(--s-1);display:inline-flex;align-items:center;justify-content:center;gap:var(--btn-gap);font:inherit;font-family:var(--font-heading);font-size:var(--t-body);font-weight:var(--w-label);white-space:nowrap;cursor:pointer;border:1px solid ${active?'var(--color-accent)':'var(--color-divider)'};background:${active?'var(--color-accent)':'var(--color-surface)'};color:${active?'#fff':'var(--color-neutral-700)'};border-radius:var(--radius)">${icon(CH_IC[k]||'msg','w-3.5 h-3.5')}${label}</button>`;
+  /* THE CHANNEL CHOICE IS ONE ROW OF SEGMENTS (the Compact ladder, 26 Sep
+     2026; words only since the SAP pop-ups, 10 Oct 2026 — the drawing's
+     segments carry no marks, and four marks in a half-width row crowd it). */
+  const tab=(k,label,active)=>`<button type="button" class="sh-seg" data-share-ch="${k}" aria-pressed="${active?'true':'false'}" style="${shareSegStyle(active)}">${label}</button>`;
   const attr=s=>String(s==null?'':s).replace(/"/g,'&quot;');
   /* ---- ONE BUILDER, TWO PAINTS ---- (13 Sep 2026). The send form is built
      here, before anything is fetched, so the frame that opens at once and the
@@ -7013,11 +7028,19 @@ async function openShareModal(c, opts={}){
              writes is written whichever way the round travels.
              Offered only where it can actually work: a server to post the file
              to, and the .docx writer loaded. */}
-      <div id="share-tabs" style="display:flex;gap:6px;margin-bottom:6px;">${tab('email','Email',true)}${tab('whatsapp','WhatsApp',false)}${
+      ${''/* WHAT IT IS FOR AND HOW IT GOES, SIDE BY SIDE (SAP pop-ups, 10 Oct
+             2026): two short choices of four segments each sit on one row as
+             drawn; a narrow window stacks them. */}
+      <div class="sh-pick-row">
+      <div id="share-purpose-wrap"${purposeSel==='history'?' class="hidden"':''}>${sharePurposePickerHtml(c, purposeSel, { compact:true })}</div>
+      <div class="sh-by"><span class="sap-lbl">${i18t('co_send_by')}</span>
+      <div id="share-tabs" class="sh-segs">${tab('email','Email',true)}${tab('whatsapp','WhatsApp',false)}${
         (server&&window.docxExportTracked)?tab('word',i18t('co_ch_word'),false):''}${tab('link',i18t('co_copy_link'),false)}</div>
       ${''/* Spoken only where the channel costs something (a file has no page,
              a copied link mails nothing); empty for email and WhatsApp. */}
-      <div id="sh-ch-note" style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:0 0 var(--s-3)"></div>
+      <div id="sh-ch-note" style="font-size:var(--t-label);line-height:1.5;color:var(--color-neutral-600);margin:5px 0 0"></div>
+      </div></div>
+      ${shareAdviseBlockHtml(c, purposeSel)}
       <div id="share-fields">
         ${''/* ---- WHICH PARTY THIS ROUND IS GOING TO (22 Sep 2026) ----
                Each outside party gets its own link and its own copy of the
@@ -7073,19 +7096,19 @@ async function openShareModal(c, opts={}){
         <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--st-ruby-fg);margin-bottom:5px;">${icon('alert','w-3.5 h-3.5')} ${i18t('co_demo_sharing')}</div>
         <p style="margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--st-ruby-fg);">${i18t('co_without_server')} <strong>${i18t('co_inside_link')}</strong>. That link <strong>${i18t('co_never_expires')}</strong> — anyone who is forwarded it, now or in a year, can read this contract, and you will have no record that they did. Do not send a real contract this way. Run the HaTi server for tracked links that expire, can be withdrawn, and report back when they are opened.</p>
       </div>`}
-      ${server?`<div id="sh-link-opts"><div style="border:1px solid var(--color-divider);border-radius:var(--radius);padding:9px 11px">
-          <label style="display:flex;align-items:flex-start;gap:var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-800);cursor:pointer">
+      ${server?`<div id="sh-link-opts" class="sap-row">
+          <div class="sap-f"><span class="sap-lbl">${i18t('co_link_stays_open')}</span>
+          <label class="sh-durable-box">
             ${''/* A SIGNING LINK OPENS ONE-SHOT: a signature has to bind exactly
                    one copy of exactly one text, so the standing-channel default
                    is wrong for it. Still theirs to change. The sentence that
                    explained the tick is on its hover now (co_keep_link_open_tip). */}
-            <input type="checkbox" id="sh-durable"${purposeSel==='sign'?'':' checked'} style="margin-top:2px;flex:none"/>
-            <span title="${attr(i18t('co_keep_link_open_tip'))}"><b>${i18t('co_keep_link_open')}</b></span>
-          </label>
-        </div>
-        <label style="display:flex;align-items:center;gap:var(--s-2);margin-top:10px;font-size:var(--t-meta);color:var(--color-neutral-700)">Link expires in
-          <select id="sh-exp" style="border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);font:inherit;color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)">
-            ${[7,14,30,60].map(d=>`<option value="${d}" ${d===14?'selected':''}>${d} days</option>`).join('')}
+            <input type="checkbox" id="sh-durable"${purposeSel==='sign'?'':' checked'} style="flex:none"/>
+            <span title="${attr(i18t('co_keep_link_open_tip'))}">${i18t('co_keep_link_open_short')}</span>
+          </label></div>
+          <label class="sap-f"><span class="sap-lbl">${i18t('co_link_expires')}</span>
+          <select id="sh-exp" style="${FLD}">
+            ${[7,14,30,60].map(d=>`<option value="${d}" ${d===14?'selected':''}>${i18t('co_in_n_days',{n:d})}</option>`).join('')}
           </select></label></div>`:''}
       <div id="sh-result" style="margin-top:var(--s-3);"></div>
       ${''/* THE FOOT STAYS IN VIEW AND SAYS CANCEL (the Compact ladder, 26 Sep
@@ -7102,10 +7125,10 @@ async function openShareModal(c, opts={}){
       </div>
 `;
   const oneScreenHtml=(pre, o={})=>`
-    <div style="padding:22px var(--s-6);">
+    <div data-share-sap style="padding:16px 18px;">
       ${quickOk?quickSendStepHtml(c, pre, purposeSel, qsWarns):''}
       ${shareKindStepHtml(c, purposeSel, { hidden:true })}
-      ${shareSummaryStepHtml(c, { ...opts, purposeSel, oneScreen:true,
+      ${shareSummaryStepHtml(c, { ...opts, purposeSel, oneScreen:true, purposeInForm:true,
         signerSel:(pre.source==='route'?pre.signerId:null) })}
       ${sendFormHtml(pre, o)}
     </div>`;
@@ -7324,9 +7347,7 @@ async function openShareModal(c, opts={}){
          a second painter for the second shape is how one of them comes to show
          a selection the other does not. */
       if(b.hasAttribute('data-share-purpose-seg')){
-        b.style.border=`1px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;
-        b.style.background=on?'var(--color-accent)':'var(--color-surface)';
-        b.style.color=on?'#fff':'var(--color-neutral-700)';
+        shareSegPaint(b, on);
         return;
       }
       b.style.border=`1.5px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;
@@ -7469,9 +7490,7 @@ async function openShareModal(c, opts={}){
   const setCh=k=>{ ch=k;
     const word=k==='word';
     document.querySelectorAll('[data-share-ch]').forEach(b=>{ const on=b.getAttribute('data-share-ch')===k;
-      b.style.border=`1px solid ${on?'var(--color-accent)':'var(--color-divider)'}`;
-      b.style.background=on?'var(--color-accent)':'var(--color-surface)';
-      b.style.color=on?'#fff':'var(--color-neutral-700)'; });
+      shareSegPaint(b, on); });
     /* A WORD FILE TRAVELS BY EMAIL, so the address stays; only WhatsApp swaps
        the box for a number. */
     document.getElementById('sh-email-wrap').classList.toggle('hidden',k==='whatsapp');
