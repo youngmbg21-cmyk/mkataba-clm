@@ -9205,12 +9205,18 @@
   .hb-chart-lead b{font-size:var(--t-page);color:var(--hb-ink);font-weight:var(--w-strong);font-variant-numeric:tabular-nums}
   .hb-chart-by{margin-left:auto;font-size:var(--t-meta);color:var(--hb-mute)}
   .hb-chart-bars{display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s-3)}
-  .hb-cbar{all:unset;display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr) minmax(90px,auto);gap:var(--s-3);align-items:center;height:36px;cursor:pointer;border-radius:var(--radius)}
+  .hb-cbar{all:unset;display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr) minmax(90px,auto);gap:var(--s-3);align-items:center;min-height:36px;padding:2px 0;cursor:pointer;border-radius:var(--radius)}
   .hb-cbar:disabled{cursor:default}
-  .hb-cbar:hover:not(:disabled) .hb-cbar-f{filter:brightness(1.2)}
-  .hb-cbar:focus-visible,.hb-ccol:focus-visible{outline:2px solid var(--hb-glow);outline-offset:2px}
+  .hb-cbar,.hb-ccol{transition:opacity .16s ease}
+  .hb-chart:has(.hb-cbar:hover:not(:disabled)) .hb-cbar:not(:hover),.hb-chart:has(.hb-ccol:hover:not(:disabled)) .hb-ccol:not(:hover){opacity:.5}
+  .hb-cbar:hover:not(:disabled) .hb-cbar-f{filter:brightness(1.08)}
+  .hb-cbar:hover:not(:disabled) .hb-cbar-tr{background:rgba(var(--hb-gw),.14)}
+  .hb-cbar:hover:not(:disabled) .hb-cbar-t,.hb-cbar:hover:not(:disabled) .hb-cbar-n{color:var(--hb-ink);font-weight:var(--w-strong)}
+  .hb-cbar:active:not(:disabled) .hb-cbar-f,.hb-ccol:active:not(:disabled) .hb-ccol-f{filter:brightness(1.16)}
+  .hb-cbar:focus-visible,.hb-ccol:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(var(--hb-gw),.35)}
   .hb-cbar-l{display:flex;flex-direction:column;min-width:0;line-height:1.2}
-  .hb-cbar-t{font-size:var(--t-body);color:var(--hb-ink);font-weight:var(--w-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* A LONG NAME WRAPS ONTO A SECOND LINE, never cut to "…" on the first (G3) */
+  .hb-cbar-t{font-size:var(--t-body);color:var(--hb-ink);font-weight:var(--w-label);line-height:1.25;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
   .hb-cbar-s{font-size:var(--t-micro);color:var(--hb-mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hb-cbar-tr{height:18px;border-radius:3px;background:rgba(var(--hb-ln),.08);position:relative;overflow:hidden}
   .hb-cbar-f{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--hb-glow);animation:hbGrow .7s cubic-bezier(.22,.61,.36,1) both}
@@ -9218,7 +9224,8 @@
   .hb-chart-cols{display:flex;align-items:stretch;gap:6px;height:220px;margin-bottom:var(--s-3)}
   .hb-ccol{all:unset;flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;cursor:pointer;border-radius:var(--radius)}
   .hb-ccol:disabled{cursor:default}
-  .hb-ccol:hover:not(:disabled) .hb-ccol-f{filter:brightness(1.2)}
+  .hb-ccol:hover:not(:disabled) .hb-ccol-f{filter:brightness(1.08);box-shadow:0 0 10px rgba(var(--hb-gw),.45)}
+  .hb-ccol:hover:not(:disabled) .hb-ccol-n,.hb-ccol:hover:not(:disabled) .hb-ccol-l{color:var(--hb-ink);font-weight:var(--w-strong)}
   .hb-ccol-n{font-size:var(--t-body);font-weight:var(--w-strong);color:var(--hb-ink);height:20px;line-height:20px;font-variant-numeric:tabular-nums}
   .hb-ccol-tr{flex:1 1 0;width:100%;display:flex;align-items:flex-end;padding:0 12%;min-height:0}
   .hb-ccol-f{width:100%;background:var(--hb-glow);border-radius:3px 3px 0 0;transform-origin:bottom;animation:hbGrowUp .7s cubic-bezier(.22,.61,.36,1) both}
@@ -9232,13 +9239,83 @@
   .hb-svg{display:block;width:100%;height:auto;margin-bottom:var(--s-3);font-family:inherit;overflow:visible}
   .hb-svg text{user-select:none;pointer-events:none}
   .hb-svg [data-hb-dig]{cursor:pointer;outline:none}
-  .hb-svg [data-hb-dig]:hover>path,.hb-svg [data-hb-dig]:hover>rect,.hb-svg [data-hb-dig]:hover>circle,.hb-svg [data-hb-dig]:focus-visible>path,.hb-svg [data-hb-dig]:focus-visible>rect,.hb-svg [data-hb-dig]:focus-visible>circle{stroke:var(--hb-ink);stroke-width:1.5;stroke-opacity:1}
+  /* A SOFT HIGHLIGHT, NEVER AN OUTLINE (owner, 10 Oct 2026: "when I press on
+     the chart there should not be a black line outline during the press. It
+     should be a soft highlight without an outline"). The piece under the
+     pointer glows a little and every other piece steps back (hbLitSet marks
+     the pieces of one door, wherever they are drawn: a slice and its legend
+     row light together); a press brightens it and sinks it one pixel. The
+     keyboard's place is the same glow, a little stronger — never a line. */
+  .hb-svg [data-hb-dig]>*{transition:opacity .16s ease,filter .16s ease}
+  .hb-svg.hb-dim [data-hb-dig]:not(.is-lit)>*{opacity:.42}
+  .hb-svg [data-hb-dig].is-lit>:is(path,rect,circle):not([fill="transparent"]){filter:drop-shadow(0 0 5px rgba(var(--hb-gw),.5)) brightness(1.06)}
+  .hb-svg [data-hb-dig]:focus-visible>:is(path,rect,circle):not([fill="transparent"]){filter:drop-shadow(0 0 7px rgba(var(--hb-gw),.85)) brightness(1.08)}
+  .hb-svg [data-hb-dig]:active>:is(path,rect,circle):not([fill="transparent"]){filter:drop-shadow(0 1px 3px rgba(var(--hb-gw),.6)) brightness(1.14);translate:0 1px}
+  .hb-svg [data-hb-dig].is-lit>text{font-weight:var(--w-strong)}
+  @media (prefers-reduced-motion:reduce){.hb-svg [data-hb-dig]>*{transition:none}}
   .hb-svg .hb-sv-month:hover>text,.hb-svg .hb-sv-month:focus-visible>text,.hb-svg .hb-sv-lane:hover>text,.hb-svg .hb-sv-lane:focus-visible>text,.hb-svg .hb-sv-row:hover>text,.hb-svg .hb-sv-row:focus-visible>text{fill:var(--hb-glow)}
   .hb-svg .hb-sv-month:hover>rect,.hb-svg .hb-sv-lane:hover>rect:first-child,.hb-svg .hb-sv-month:focus-visible>rect,.hb-svg .hb-sv-lane:focus-visible>rect:first-child{fill:rgba(var(--hb-ln),.08);stroke:none}
   .hb-sv-slice path{transition:transform .15s;transform-origin:150px 50%}
   .hb-sv-slice:hover path,.hb-sv-slice:focus-visible path{transform:scale(1.04)}
   .hb-sv-ink{fill:var(--hb-ink)} .hb-sv-ink2{fill:var(--hb-ink-2)} .hb-sv-mute{fill:var(--hb-mute)} .hb-sv-glow{fill:var(--hb-glow)} .hb-sv-ruby{fill:var(--hb-ruby)} .hb-sv-amber{fill:var(--hb-amber)}
   .hb-sv-track{fill:rgba(var(--hb-ln),.1)} .hb-sv-qtr{fill:rgba(var(--hb-ln),.035)} .hb-sv-grid{stroke:rgba(var(--hb-ln),.14)} .hb-sv-axis{stroke:rgba(var(--hb-ln),.3)}
+  /* SHARP AT EVERY SIZE (G2, 10 Oct 2026): a grid line is one crisp pixel at
+     any width (drawn on the half pixel, never stretched), and digits line up */
+  .hb-svg :is(.hb-sv-grid,.hb-sv-axis){stroke-width:1;shape-rendering:crispEdges;vector-effect:non-scaling-stroke}
+  .hb-svg text{font-variant-numeric:tabular-nums}
+  .hb-svg .hb-sv-bub-edge{stroke:var(--hb-fig);stroke-width:1.5}
+  /* THE POINT IN COLOUR (G7): the piece the headline is about keeps the
+     colour, the rest of a one-colour chart steps back to a tint of it.
+     Status colours are never touched (they mean something). */
+  .hb-svg.hb-calm .hb-sv-cbox:not([data-hb-lead])>path.hb-sv-col{fill-opacity:.38}
+  .hb-chart-bars.hb-calm .hb-cbar:not([data-hb-lead]) .hb-cbar-f{opacity:.42}
+  /* REFERENCE LINES (G5): last year faint behind, the average dashed, the target amber */
+  .hb-sv-ghost{fill:rgba(var(--hb-ln),.16);stroke:rgba(var(--hb-ln),.34);stroke-width:1;stroke-dasharray:2 2}
+  .hb-sv-ref-avg{stroke:var(--hb-ink-2);stroke-width:1;stroke-dasharray:4 3;shape-rendering:crispEdges}
+  .hb-sv-ref-tgt{stroke:var(--hb-amber);stroke-width:1.25;stroke-dasharray:7 3}
+  .hb-svg .hb-sv-ref-t{paint-order:stroke;stroke:var(--hb-fig);stroke-width:3px;stroke-linejoin:round}
+  .hb-lines-menu{min-width:280px}
+  .hb-ref-tgt{display:flex;align-items:center;gap:8px;padding:8px 9px 6px;border-top:1px solid rgba(var(--hb-ln),.14);margin-top:4px;font-size:var(--t-meta);color:var(--hb-ink-2)}
+  .hb-ref-tgt input{width:110px;height:var(--ctl-h);padding:0 8px;border:1px solid rgba(var(--hb-ln),.3);border-radius:var(--radius);background:var(--hb-fig);color:var(--hb-ink);font:inherit;font-size:var(--t-meta)}
+  .hb-ref-tgt input:focus-visible{outline:2px solid rgba(var(--hb-gw),.85);outline-offset:1px}
+  .hb-open-tools{flex-wrap:wrap}
+  /* THE FOUR NEW PICTURES (G8) */
+  .hb-sv-wf-total{fill:rgba(var(--hb-ln),.42)} .hb-sv-wf-down{fill:var(--hb-ruby)}
+  .hb-sv-wf-link{stroke:rgba(var(--hb-ln),.45);stroke-width:1;stroke-dasharray:3 3;shape-rendering:crispEdges}
+  .hb-sv-fn-step{fill:var(--hb-glow);fill-opacity:.42}
+  .hb-sv-sp-whisk{stroke:var(--hb-ink-2);stroke-width:1.25}
+  .hb-sv-sp-box{fill:var(--hb-glow);fill-opacity:.3;stroke:var(--hb-glow);stroke-width:1}
+  .hb-sv-sp-med{fill:var(--hb-glow)}
+  .hb-sv-sp-dot{fill:var(--hb-glow);fill-opacity:.75}
+  .hb-sv-panel{fill:rgba(var(--hb-ln),.04);stroke:rgba(var(--hb-ln),.16);stroke-width:1}
+  /* ONE VALUE, SAID PLAINLY (G10) */
+  .hb-small{display:flex;flex-direction:column;gap:10px;padding:14px 4px 6px;margin-bottom:var(--s-3)}
+  .hb-small-figs{all:unset;display:flex;flex-wrap:wrap;gap:6px 28px;cursor:pointer;border-radius:var(--radius)}
+  .hb-small-figs:focus-visible{box-shadow:0 0 0 3px rgba(var(--hb-gw),.35)}
+  .hb-small-fig{font-size:30px;line-height:1.1;font-weight:var(--w-title);color:var(--hb-ink);font-variant-numeric:tabular-nums}
+  .hb-small-figs:hover .hb-small-fig{color:var(--hb-glow)}
+  .hb-small-in{font-size:var(--t-meta);color:var(--hb-ink-2)}
+  .hb-small-chips{display:flex;flex-wrap:wrap;gap:6px}
+  .hb-small-chip{height:var(--ctl-h);padding:0 11px;border:1px solid rgba(var(--hb-gw),.55);border-radius:999px;background:none;color:var(--hb-glow);font:inherit;font-size:var(--t-meta);font-weight:var(--w-label);cursor:pointer}
+  .hb-small-chip:hover{background:rgba(var(--hb-gw),.1)}
+  .hb-small-chip:focus-visible{outline:2px solid rgba(var(--hb-gw),.85);outline-offset:2px}
+  /* THE HOVER CARD (G4, 10 Oct 2026): a piece's name, number, share, change
+     and the contracts behind it, beside the piece; its doors are the piece's */
+  .hb-tip{position:fixed;z-index:120;width:280px;max-width:calc(100vw - 16px);padding:12px 14px 10px;border-radius:var(--radius-lg);border:1px solid rgba(var(--hb-ln),.28);background:var(--hb-menu);color:var(--hb-ink);box-shadow:0 18px 40px -14px rgba(0,0,0,.45);font-size:var(--t-meta);line-height:1.4}
+  .hb-tip[hidden]{display:none}
+  .hb-tip-h{font-size:var(--t-meta);color:var(--hb-ink-2);overflow-wrap:anywhere}
+  .hb-tip-v{font-size:var(--t-section);font-weight:var(--w-title);color:var(--hb-ink);font-variant-numeric:tabular-nums;margin-top:2px;overflow-wrap:anywhere}
+  .hb-tip-m{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;color:var(--hb-ink-2);font-variant-numeric:tabular-nums}
+  .hb-tip-ch.is-up,.hb-tip-ch.is-down{color:var(--hb-glow);font-weight:var(--w-strong)}
+  .hb-tip-sub{margin-top:10px;padding-top:8px;border-top:1px solid rgba(var(--hb-ln),.18);font-size:var(--t-micro);color:var(--hb-mute)}
+  .hb-tip-list{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:3px}
+  .hb-tip-list li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:baseline}
+  .hb-tip-ref{color:var(--hb-ink);font-weight:var(--w-label);white-space:nowrap}
+  .hb-tip-who{color:var(--hb-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb-tip-list b{font-weight:var(--w-strong);font-variant-numeric:tabular-nums;color:var(--hb-ink)}
+  .hb-tip-acts{display:flex;justify-content:space-between;gap:12px;margin-top:10px}
+  .hb-tip .hb-link{font-size:var(--t-meta)}
+  .hb-tip-go{font-weight:var(--w-strong)}
   .hb-sv-today{stroke:var(--hb-amber)} .hb-sv-today-pill{fill:var(--hb-amber)}
   .hb-in{animation:hbIn .5s cubic-bezier(.22,.61,.36,1) both}
   @keyframes hbIn{from{opacity:0}}
@@ -9305,18 +9382,16 @@
   /* the recipe's other pictures: the period before, a heat grid's cells */
   .hb-sv-colprev{fill:rgba(var(--hb-ln),.4)}
   .hb-sv-heat{fill:var(--hb-glow)} .hb-sv-heat-ink{fill:var(--hb-on-glow)}
-  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-heat,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-heat{stroke:var(--hb-ink);stroke-width:1.5;fill:var(--hb-glow)}
-  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-col,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-col{stroke:var(--hb-ink);stroke-width:1.5;fill:var(--hb-glow)}
-  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-colprev,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-colprev{stroke:var(--hb-ink);stroke-width:1.5;fill:rgba(var(--hb-ln),.4)}
-  .hb-svg .hb-sv-cbox:hover>rect[style],.hb-svg .hb-sv-cbox:focus-visible>rect[style]{stroke:var(--hb-ink);stroke-width:1.5}
+  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-heat,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-heat{fill:var(--hb-glow)}
+  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-col,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-col{fill:var(--hb-glow)}
+  .hb-svg .hb-sv-cbox:hover>rect.hb-sv-colprev,.hb-svg .hb-sv-cbox:focus-visible>rect.hb-sv-colprev{fill:rgba(var(--hb-ln),.4)}
   /* a column's press area lights softly; the box itself is never outlined */
   .hb-svg .hb-sv-cbox:hover>rect,.hb-svg .hb-sv-cbox:focus-visible>rect{stroke:none;fill:rgba(var(--hb-ln),.06)}
-  .hb-svg .hb-sv-cbox:hover>path,.hb-svg .hb-sv-cbox:focus-visible>path{stroke:var(--hb-ink);stroke-width:1.5}
   .hb-sv-trend{stroke:var(--hb-glow);fill:none} .hb-sv-trend-dot{fill:var(--hb-glow);stroke:var(--hb-fig);stroke-width:2}
   .hb-snap-empty{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:18px;color:var(--hb-ink-2);font-size:var(--t-body);max-width:60ch}
   .hb-snap-empty p{margin:0}
   .hb-snap-instead{margin:-4px 0 var(--s-3)}
-  .hb-dig.is-big .hb-cbar{height:52px;grid-template-columns:minmax(0,340px) minmax(0,1fr) minmax(120px,auto)}
+  .hb-dig.is-big .hb-cbar{min-height:52px;grid-template-columns:minmax(0,340px) minmax(0,1fr) minmax(120px,auto)}
   .hb-dig.is-big .hb-cbar-t,.hb-dig.is-big .hb-cbar-n,.hb-dig.is-big .hb-ccol-n,.hb-dig.is-big .hb-ccol-l{font-size:var(--t-section)}
   .hb-dig.is-big .hb-cbar-s,.hb-dig.is-big .hb-ccol-v{font-size:var(--t-meta)}
   .hb-dig.is-big .hb-cbar-tr{height:28px}
