@@ -28420,3 +28420,16 @@ is never bold stands on every other card (the top facts row, the Renewal
 boxes, the inspectors). overview-as-drawn 8b/8d re-pointed; red at main on
 both (label 400, answer 600). The phone draws its own overview and was left
 alone.
+
+## THE THREAD — HOME'S HEAD: FILTER LEFT, "GO TO DOCUMENT" RIGHT (10 OCT 2026)
+Owner, over a screenshot of Home's Paper Document tab with the All · Red ·
+Amber · Blue filter ringed: "move the highlighted buttons to the far left and
+then add a door to the document tab on the far right. Make it look classy and
+aligned with the platform", then a picture of the door: "→ Go to document".
+On Home the head is now the title line, then one row: the filter from the left
+edge, the link (`.ui-link`, a drawn `arrowRight` icon, `th_go_document` both
+books) at the right; the press opens the contract on panel on its own
+Document tab (`_wsTabWant='docs'` + `openWorkspace`). The room's drawer is
+already on the Document tab, so its one-line head (filter right, × pinned)
+is unchanged. Red at main: home-paper-clauses 8b (filter at 1124 against the
+title's 991), 8c and 8d (no door).

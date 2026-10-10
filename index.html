@@ -6670,6 +6670,11 @@
      their dark status washes. */
   html.dark .doc-th-chip:not(.is-ruby,.is-amber,.is-steel)[aria-pressed="true"]{ background:var(--color-accent-50); border-color:var(--accent-ink); color:var(--accent-ink); }
   .doc-th-chip[aria-disabled="true"]{ opacity:.5; cursor:default; }
+  /* HOME'S PAPER: the filter at the far left of its own row, "Go to document"
+     at the far right (owner, 10 Oct 2026). */
+  .doc-th-hd.is-home .doc-th-bar{ display:flex; align-items:center; gap:12px; flex:1 0 100%; min-width:0; }
+  .doc-th-hd.is-home .doc-th-bar .doc-th-chips{ margin-left:0; }
+  .doc-th-hd.is-home .doc-th-open{ margin-left:auto; margin-right:0; font-size:var(--t-label); min-height:var(--ctl-h); }
   .doc-th-chip[aria-disabled="true"]:hover{ background:var(--color-surface); }
   .doc-th-rows{ position:relative; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding:6px 12px 18px; }
   .doc-th-row{ position:relative; padding-left:24px; }
