@@ -369,7 +369,10 @@ const CONTRACTS = [
     const menu = await page.evaluate(() => { const m = document.querySelector('#hb-focus .hb-rmenu'); if (!m) return null; const r = m.getBoundingClientRect(); const top = document.elementFromPoint(r.left + 30, r.top + 14);
       return { h: Math.round(r.height), onTop: !!(top && top.closest('.hb-rmenu')), dead: [...m.querySelectorAll('button:disabled')].map(b => b.title).filter(Boolean).length, opts: m.querySelectorAll('button').length }; });
     const nPics = await page.evaluate(() => HB_PICS.length);
-    ok('15b the Picture dropdown is painted on top, every picture listed, a dead one says why', !!menu && menu.onTop && menu.opts === nPics && menu.dead >= 1 && menu.h > 100, JSON.stringify(menu));
+    /* RE-POINTED 10 Oct 2026 (owner: "If a choice in the filter can not be
+       clicked on and provide results then it should not be a choice in the
+       filter at all"): only the pictures that draw are listed, none greyed */
+    ok('15b the Picture dropdown is painted on top, only pictures that draw are listed, none greyed', !!menu && menu.onTop && menu.opts >= 3 && menu.opts < nPics && menu.dead === 0 && menu.h > 100, JSON.stringify(menu));
     await page.keyboard.press('Escape');
     ok('15c Escape closes it and gives the keyboard back to the dropdown', await until(page, () => !document.querySelector('#hb-focus .hb-rmenu') && (document.activeElement || {}).getAttribute && document.activeElement.getAttribute('data-hb-rc') === 'pic'));
     await pick('pic', 'gantt');

@@ -2399,14 +2399,9 @@
      ground. The shell's page head above it wears the same white. */
   .room-band{ background:var(--color-surface); }
   body:has(#content .room-band) #page-head{ background:var(--color-surface); }
-  /* The paper's tool bar (batch 3): a thin white row under the tabs on
-     Document and Signing, folded wherever its slot is empty; the facts strip
-     steps aside on those two tabs so the paper starts higher. */
-  .room-band > .room-toolrow{ display:flex; align-items:center; gap:14px; min-height:calc(var(--ctl-h) + 2 * var(--s-2));
-    margin-top:calc(-1 * var(--s-2)); border-bottom:1px solid var(--color-divider); }
-  .room-band > .room-toolrow:has(#ws-tabrow-end:empty){ display:none; }
-  .room-lockline{ display:inline-flex; align-items:center; gap:var(--s-2); font-size:var(--t-body); color:var(--st-green-fg); min-width:0; }
-  .room-lockline:empty{ display:none; }
+  /* The paper's buttons stand on the tab line (owner, 10 Oct 2026); batch 3's
+     own tool bar under the tabs is gone, and the facts strip still steps
+     aside on Document and Signing so the paper starts higher. */
   .room-band:has(#ws-tabs [data-ws-tab="docs"].on) #ws-facts,
   .room-band:has(#ws-tabs [data-ws-tab="sign"].on) #ws-facts{ display:none; }
   .room-cp{ display:inline-flex; align-items:center; gap:var(--s-2); min-width:0; }
@@ -3683,7 +3678,12 @@
      runs the full width and the group is only as wide as five words. The tabs
      stretch inside it and pull their own underline down onto that rule. */
   .room-tabrow{ display:flex; align-items:stretch; gap:14px; flex:none;
-    border-bottom:1px solid var(--color-divider); }
+    border-bottom:1px solid var(--color-divider); flex-wrap:wrap; }
+  /* the buttons keep the row's right end; where the tabs and the buttons do not
+     fit on one line the buttons take their own line under the tabs, still on
+     the right — the row wraps, nothing overlaps (owner, 10 Oct 2026) */
+  .room-tabrow > #ws-tabrow-end{ display:flex; align-items:center; gap:14px; flex:none; margin-left:auto; min-width:0; }
+  .room-tabrow > #ws-tabrow-end:empty{ display:none; }
   /* A TABLET'S ROW WRAPS (9 Oct 2026): at 820px the slot on the right — Focus,
      Start negotiating, the signing copy's page and zoom steps — held nowrap and
      ran off the window, so the whole page scrolled sideways. Below 1024 the
@@ -3788,14 +3788,9 @@
   #ws-tabrow-end .ws-th-door[data-tone="ruby"] .ws-th-door-sum{ background:var(--st-ruby-fg); }
   #ws-tabrow-end .ws-th-door[data-tone="steel"] .ws-th-door-sum{ background:var(--st-steel-fg); }
   /* ---- THE SIGNING COPY'S CONTROLS (25 Sep 2026) ----
-     Which copy this is and where its words came from, then the page it is on
-     and the zoom — the design's own control row. One rung with the rest of the
-     slot; the two steppers wear the type stepper's box so the row reads as
-     one family. */
-  #ws-tabrow-end .sc-label{ display:inline-flex; align-items:center; gap:6px; min-width:0; flex:0 1 auto;
-    font-size:var(--t-body); color:var(--color-neutral-700); white-space:nowrap; overflow:hidden; }
-  #ws-tabrow-end .sc-label b{ font-weight:var(--w-strong); color:var(--color-text); }
-  #ws-tabrow-end .sc-label .sc-src{ color:var(--color-neutral-600); overflow:hidden; text-overflow:ellipsis; }
+     The page it is on and the zoom — buttons only since 10 Oct 2026 (the
+     "which copy, from where" label left with the tool bar). The two steppers
+     wear the type stepper's box so the row reads as one family. */
   #ws-tabrow-end .sc-step{ display:inline-flex; align-items:center; gap:2px; flex:none; height:var(--ctl-h);
     box-sizing:border-box; padding:0 3px; border:1px solid var(--btn-edge); border-radius:var(--radius);
     background:var(--color-surface); }
@@ -8673,6 +8668,9 @@
   .ig-paper[hidden]{display:none}
   .ig-paper-wrap{position:relative;height:100%;display:flex;min-height:0}
   .ig-paper-wrap .ig-spine[hidden]{display:none}
+  /* the Track on the Document tab (owner, 10 Oct 2026): Home's rail in the
+     paper column's own grey margin, floating, never in the flow */
+  #doc-paper-col > #doc-track[hidden]{display:none}
   .ig-paper-scroll{flex:1;min-width:0;overflow:auto;padding:20px 24px 60px 44px;position:relative}
   .ig-paper-scroll .pg-sheet{margin:0 auto}
   /* The held mark: the scan's flash colours, but STILL — the reader is reading it. */

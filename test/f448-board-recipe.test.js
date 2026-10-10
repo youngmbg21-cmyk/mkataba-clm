@@ -179,7 +179,8 @@ describe('F448 (2) — the dropdowns: a press is kept per card, a dead option sa
     const { D, P } = planOf(w, 'contracts by stage');
     const row = w.hbRecipeRowHtml(D, P);
     assert.match(row, /data-hb-rc="split"/); assert.match(row, /data-hb-rc="pic"/); assert.match(row, /data-hb-rc="measure"/);
-    assert.match(row, /data-hb-rtrend[^>]*disabled/, 'no trend without time');
+    /* RE-POINTED 10 Oct 2026 (owner: a switch that cannot be used is hidden) */
+    assert.ok(!/data-hb-rtrend/.test(row), 'no trend switch without time');
     const ms = w.hbRcOptions('measure', P, D);
     assert.ok(ms.filter(x => x.v !== 'count').every(x => !x.on && x.why), 'a ring has its own measure, said');
     w.canViewValues = () => false;
@@ -187,6 +188,27 @@ describe('F448 (2) — the dropdowns: a press is kept per card, a dead option sa
     assert.ok(pics.find(x => x.v === 'blocks' && !x.on && x.why), 'blocks need values');
     assert.equal(w.hbPlan({ key: 'q:z', chart: { pic: 'blocks', split: { by: 'folder' }, measure: 'value' } }).pic, 'ring', 'a reader without values never sees money');
     delete w.canViewValues;
+  });
+  test('the menus draw only the choices that work, keep the one in use, and bring one back when it works (owner, 10 Oct 2026)', () => {
+    const w = world();
+    const { D, P } = planOf(w, 'contracts by stage');
+    const all = w.hbRcOptions('measure', P, D), shown = w.hbRcShown('measure', P, D);
+    assert.ok(all.some(x => !x.on), 'the reading still knows the dead ones');
+    assert.ok(shown.length && shown.every(x => x.on), 'the menu lists none of them');
+    assert.equal(shown.length, all.filter(x => x.on).length);
+    const P2 = Object.assign({}, P, { pic: 'list', split2: { by: 'folder' } });
+    const one = w.hbRcShown('pic', P2, D).map(x => x.v);
+    assert.ok(!one.includes('ring') && !one.includes('bars'), 'a one-split picture is not offered under Then by');
+    assert.ok(one.includes('list'), 'the one in use stays');
+    const P3 = Object.assign({}, P2, { split2: null });
+    assert.ok(w.hbRcShown('pic', P3, D).map(x => x.v).includes('bars'), 'and comes back when Then by is cleared');
+    const stuck = Object.assign({}, P, { pic: 'blocks' });
+    w.canViewValues = () => false;
+    const kept = w.hbRcShown('pic', stuck, D).find(x => x.v === 'blocks');
+    delete w.canViewValues;
+    assert.ok(kept && kept.on && !kept.why, 'the choice in use is kept, pressable, without a reason');
+    const row = w.hbRecipeRowHtml(D, P);
+    assert.ok(!/<small>/.test(row), 'no grey reason anywhere on the row');
   });
 });
 

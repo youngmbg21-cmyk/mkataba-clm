@@ -367,7 +367,11 @@ describe('F383 (5) their paper is signed as THEY designed it (6A)', () => {
     const c = theirs('application/pdf');
     w.win.uploadWordingEdited = () => true;
     assert.equal(w.win.signCopyTheirs(c).kind, 'plain');
-    assert.match(region(ROOM, 'scSourceLine'), /uploadWordingEdited[\s\S]*sc_src_rebuilt/);
+    /* RE-POINTED 10 Oct 2026 (owner: "remove any banner words ... the space
+       should only be there for the buttons"): the row no longer says where
+       the words came from — the copy is plain, and the row holds buttons. */
+    assert.ok(!/function scSourceLine\(/.test(ROOM), 'the source line is gone');
+    assert.ok(!/sc-label|sc_src_rebuilt/.test(region(ROOM, 'scControlsHtml')), 'the row says no words');
   });
   test('THEIR PAPER NEVER WEARS OUR LETTERHEAD — not faded on the working copy, not whole on the signing copy', () => {
     const w = stage();

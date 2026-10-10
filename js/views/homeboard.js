@@ -2470,6 +2470,28 @@ function hbRcOptions(part, P, D){
   }
   return [];
 }
+/* ---- A CHOICE THAT CANNOT BE PRESSED IS NOT ON THE LIST (owner, 10 Oct
+   2026: "If a choice in the filter can not be clicked on and provide results
+   then it should not be a choice in the filter at all") ----
+   Reverses the grey-with-its-reason rule for these menus only: hbRcOptions
+   still answers every option with its reason (the readings and their tests
+   ask it), and the two menus that DRAW it ask this. The choice in use is
+   always kept, ticked, so a menu never opens empty; a group's heading moves
+   to the first shown choice of its group. The list is asked again at every
+   open, so a choice comes back the moment another part makes it work. */
+function hbRcShown(part, P, D){
+  const out = []; let head = '';
+  (hbRcOptions(part, P, D) || []).forEach(x => {
+    if (x.head) head = x.head;                       /* a group starts here */
+    const keep = x.on || (part !== 'which' && hbRcCurHas(part, P, x.v));
+    if (!keep) return;
+    const y = Object.assign({}, x, { on: true, why: x.on ? x.why : '' });
+    delete y.head;
+    if (head) { y.head = head; head = ''; }          /* on its first shown choice */
+    out.push(y);
+  });
+  return out;
+}
 function hbRcCur(part, P){
   if (part === 'pic') return P.pic; if (part === 'measure') return P.measure;
   const sp = S => !S ? 'none' : S.by === 'date' ? 'd:' + S.unit + ':' + S.date : 'g:' + S.by;
@@ -2495,7 +2517,7 @@ function hbRecipeRowHtml(D, P){
   const canWhich = /^(q|ls):?/.test(D.key) && D.kind === 'list';
   const chip = (part, label, value) => {
     const open = _hbRcOpen === D.key + '|' + part;
-    const menu = open ? `<div class="hb-rmenu" role="menu" aria-label="${_hbE(label)}">${hbRcOptions(part, P, D).map(x => {
+    const menu = open ? `<div class="hb-rmenu" role="menu" aria-label="${_hbE(label)}">${hbRcShown(part, P, D).map(x => {
       const cur = part === 'which' ? ((o.which || 'set') === x.v) : hbRcCurHas(part, P, x.v);
       return (x.head ? `<div class="hb-rmenu-h" role="presentation">${_hbE(x.head)}</div>` : '') + `<button type="button" role="menuitemradio" aria-checked="${cur}" data-hb-rset="${_hbE(part + ':' + x.v)}"${x.on ? '' : ' disabled'}${x.why ? ` title="${_hbE(x.why)}"` : ''}><span>${_hbE(x.word)}</span>${x.why ? `<small>${_hbE(x.why)}</small>` : cur ? `<b aria-hidden="true">${_hbTick}</b>` : ''}</button>`; }).join('')}<div class="hb-rmenu-foot" role="presentation">${_hbE(i18t('hb_rc_free'))}</div></div>` : '';
     return `<span class="hb-rwrap"><button type="button" class="hb-rc${open ? ' is-open' : ''}" data-hb-rc="${part}" aria-haspopup="menu" aria-expanded="${open}"><i>${_hbE(label)}</i><span>${_hbE(value)}</span>${_hbCaret}</button>${menu}</span>`;
@@ -2504,7 +2526,9 @@ function hbRecipeRowHtml(D, P){
   const whichChip = canWhich ? chip('which', i18t('hb_rc_which'), which)
     : `<span class="hb-rwrap"><span class="hb-rc is-still" title="${_hbE(i18t('hb_rc_which_still'))}"><i>${_hbE(i18t('hb_rc_which'))}</i><span>${_hbE(which)}</span></span></span>`;
   const canTrend = P.pic === 'cols' && P.measure !== 'live' && !P.compare;
-  const trend = `<button type="button" class="hb-tg${P.trend ? ' is-on' : ''}" data-hb-rtrend aria-pressed="${!!P.trend}"${canTrend ? '' : ` disabled title="${_hbE(i18t('hb_why_trend'))}"`}><span class="hb-tg-sl" aria-hidden="true"></span>${_hbE(i18t('hb_rc_trend'))}</button>`;
+  /* the Trend switch is drawn only where a trend can be drawn (owner, 10 Oct
+     2026: "hide it too"); hb_why_trend stays in both books, inert */
+  const trend = canTrend ? `<button type="button" class="hb-tg${P.trend ? ' is-on' : ''}" data-hb-rtrend aria-pressed="${!!P.trend}"><span class="hb-tg-sl" aria-hidden="true"></span>${_hbE(i18t('hb_rc_trend'))}</button>` : '';
   const order = P.sort || P.top ? [P.sort ? hbOrderWord(P.sort) : '', P.top ? i18t('hb_top_n', { n: P.top }) : ''].filter(Boolean).join(' · ') : i18t('hb_order_default');
   /* THE ROW HOLDS WHAT THE CARD USES: the four first parts always; the
      newer four (then by, order, period, compare) when the card uses them,
@@ -7154,7 +7178,7 @@ function hbReadingHtml(rd, live){
   if (!P) return `<div class="hb-rd is-still" aria-label="${_hbE(i18t('hb_rd_label'))}">${HB_RD_PARTS.filter(p => words[p]).map(p => `<span class="hb-rd-chip is-still"><i>${_hbE(label(p))}</i>${_hbE(words[p])}</span>`).join('')}</div>`;
   const chip = p => {
     const open = _hbRdOpen === rd.key + '|' + p;
-    const menu = open ? `<div class="hb-rd-menu" role="menu" aria-label="${_hbE(label(p))}">${hbRcOptions(p, P, D).map(x => {
+    const menu = open ? `<div class="hb-rd-menu" role="menu" aria-label="${_hbE(label(p))}">${hbRcShown(p, P, D).map(x => {
       const cur = hbRcCurHas(p, P, x.v);
       return (x.head ? `<div class="hb-rd-menu-h" role="presentation">${_hbE(x.head)}</div>` : '') + `<button type="button" role="menuitemradio" aria-checked="${cur}" data-hb-rdset="${_hbE(p + ':' + x.v)}"${x.on ? '' : ' disabled'}${x.why ? ` title="${_hbE(x.why)}"` : ''}><span>${_hbE(x.word)}</span>${x.why ? `<small>${_hbE(x.why)}</small>` : cur ? `<b aria-hidden="true">${_hbTick}</b>` : ''}</button>`; }).join('')}</div>` : '';
     return `<span class="hb-rd-wrap"><button type="button" class="hb-rd-chip${open ? ' is-open' : ''}" data-hb-rd="${p}" aria-haspopup="menu" aria-expanded="${open}"><i>${_hbE(label(p))}</i>${_hbE(words[p])}${_hbCaret}</button>${menu}</span>`;
@@ -8822,7 +8846,7 @@ Object.assign(window, { hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRu
   HB_ATTENTION_RE, HB_HUES, HB_HUES_LIGHT, HB_HUES_DARK, hbHues, hbHueOf, hbFitMeasure, hbStepH, hbChartTableHtml, hbFocusBodyHtml, hbStartOf, hbObOpen, hbGroupsOf, hbRingSvg, hbBlocksSvg, hbTimelineSvg, hbBubblesSvg, hbBarsFamily,
   HB_PICS, HB_MEASURES, HB_UNITS, HB_DATES, HB_SPLIT_GROUPS, HB_TREND_MIN_N, HB_TREND_MIN_PTS, HB_COLS_MAX, HB_RC, hbRecipeRead, hbPlan, hbPlanBase, hbPlanFix,
   hbDateOf, hbMeasure, hbMeasureOne, hbMeasureFmt, hbBucketOf, hbBucketLabel, hbInBucket, hbTrendOf, hbColsSvg, hbLiveSvg, hbSnapsLoad, hbSnapsSet, hbGroupBars, hbSplitWord, hbPicWord,
-  hbRcOptions, hbRecipeRowHtml, hbRecipeSet, hbRecipeClean, hbFoundChart,
+  hbRcOptions, hbRcShown, hbRecipeRowHtml, hbRecipeSet, hbRecipeClean, hbFoundChart,
   hbRootKey, hbCountKey, hbCountIds, hbCounted, hbCountLabel, hbCountChipHtml, hbAskInPanel,
   HB_INS, HB_INS_SHAPES, HB_INS_MEASURED, HB_INS_V, HB_INS_MAX, HB_INS_REST_DAYS, HB_INS_NORM_PTS, HB_INS_MINE_MIN, hbInsKey, hbInsId, hbInsOf, hbInsViewWord, hbInsChart, hbInsCandidate, hbInsCandidateMemo,
   hbInsScope, hbInsNormal, hbInsRenNormal, hbInsFinding, hbInsFindingMemo, hbInsightsToday, hbInsUsual, hbInsUsualOpen, hbInsWhy, hbInsResting, hbInsBookSig,
