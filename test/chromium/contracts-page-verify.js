@@ -233,7 +233,7 @@ const check = (name, ok, detail) => {
        which still holds the contract step 6 just opened, so it would land on
        THAT contract's bench rather than the list. The nav press is the door
        this page documents, and it is what a reader actually does. */
-    await page.click('.nav-item[data-view="redline"]');
+    await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="redline"]');
     await page.waitForTimeout(1800);
     await page.screenshot({ path: path.join(OUT, '02-negotiations.png') });
     const neg = await page.evaluate(() => {

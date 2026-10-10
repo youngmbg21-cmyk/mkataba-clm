@@ -1982,6 +1982,18 @@
      SHELL — top header / sidebar / command bar / context panel
      ============================================================ */
   .nav-item{position:relative;display:flex;align-items:center;gap:11px;width:100%;border:1px solid transparent;background:none;color:var(--color-neutral-600);font:inherit;font-family:var(--font-body);font-size:var(--t-body);font-weight:var(--w-body);padding:9px var(--s-3);cursor:pointer;text-align:left;border-radius:var(--radius);}
+  /* CONTRACTS FOLDS NEGOTIATIONS AND PARTIES (owner, 10 Oct 2026): shown on
+     hover, KEYBOARD focus (:focus-visible — a mouse press leaves focus on the
+     door it pressed, which must not hold the group open), or while on either
+     page; always where there is no hover. Indented under Contracts; the rail of icons keeps them flush. */
+  .nav-fold > .nav-sub{display:none}
+  .nav-fold:hover > .nav-sub,.nav-fold:has(:focus-visible) > .nav-sub,.nav-fold.is-open > .nav-sub{display:block}
+  .nav-sub > .nav-item{padding-left:calc(var(--s-3) + 18px)}
+  #app-shell.rail aside .nav-sub > .nav-item{padding-left:0}
+  .nav-fold-dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--st-amber-dot)}
+  .nav-fold-dot[hidden],.nav-fold:hover .nav-fold-dot,.nav-fold:has(:focus-visible) .nav-fold-dot,.nav-fold.is-open .nav-fold-dot{display:none}
+  #app-shell.rail aside .nav-fold-dot{position:absolute;top:6px;right:8px}
+  @media (hover:none){ .nav-fold > .nav-sub{display:block} .nav-fold-dot{display:none} }
   .nav-item .nav-rail{position:absolute;left:0;top:4px;bottom:4px;width:2px;background:transparent;border-radius:var(--radius);}
   .nav-item svg,.nav-item i{flex:none;opacity:.85;}
   .nav-item:hover{background:var(--color-neutral-100);color:var(--color-text);}
@@ -12771,37 +12783,43 @@
                Below the card"): the agents' work is done on the Board, under
                Prepared by Copilot. Every old way in (a refresh, the bell, a
                link) lands there through hbOpenAgent. -->
-          <!-- CUSTOMERS (owner, 10 Oct 2026: "implement ... the custom folders SAP
-               way"). SECOND, RIGHT AFTER HOME (owner moved it, 10 Oct 2026: "move
-               the customer folder in the nav panel to be right after home");
-               Negotiations stays directly under Contracts (the owner's 12 Aug
-               call). One shelf per customer, drawn from the counterparty on each
-               contract — a reading, never a folder anybody files into. Its count
-               is how many customers the page lists (cuDoorCount). -->
-          <button data-view="customers" class="nav-item" title="Customers — every customer's contracts in one place, active and expired" data-i18n-title="nav_customers_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shelf"/></svg>
-            <span style="flex:1;" data-i18n="nav_customers">Customers</span><span class="nav-count" data-count="customers"></span>
-          </button>
-          <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
+          <!-- CONTRACTS FOLDS NEGOTIATIONS AND PARTIES UNDER IT (owner, 10 Oct 2026:
+               "when you hover over the contract tab in the nav panel, 2 sub-folders
+               will appear the 1st one being the negotiation folder and the second
+               would be the customers folder but rename customers to Parties"). The
+               two doors keep their data-view, count and handlers; they show while
+               the pointer is on Contracts or its group, while the keyboard is in it,
+               while the reader is on either page (.is-open, setActiveNav), and
+               always on a screen with no hover. Folded, an amber dot on Contracts
+               says a negotiation waits on the reader (owner's yes, same day). -->
+          <div class="nav-fold" data-nav-fold="register">
+            <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-folder"/></svg>
-            <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><span class="nav-count" data-count="register"></span>
+            <span style="flex:1;" data-i18n="nav_contracts">Contracts</span><i class="nav-fold-dot" data-fold-dot aria-hidden="true" hidden></i><span class="nav-count" data-count="register"></span>
           </button>
-          <!-- Negotiations — a PLACE, second in the list, on the owner's call
-               (12 Aug 2026). It used to be a tab inside one agreement, which
-               made the work discoverable only by opening the contract it
-               belonged to. The count is what is waiting on THIS reader across
-               every live negotiation — see negoNeedsYouTotal; a per-contract
-               number over a door that sits above every contract would be
-               counting the wrong book. The word is a noun because everything
-               else in this list is (the button on the Document tab keeps the
-               verb: a place and an act must not share a word). -->
-          <button data-view="redline" class="nav-item" title="Negotiations — every agreement being argued over right now" data-i18n-title="nav_negotiations_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-nego"/></svg>
-            <span style="flex:1;" data-i18n="nav_negotiations">Negotiations</span><span class="nav-count" data-count="negotiations"></span>
-          </button>
+            <div class="nav-sub" role="group" aria-label="Contracts" data-i18n-aria="nav_contracts">
+            <!-- Negotiations — a PLACE, second in the list, on the owner's call
+                 (12 Aug 2026). It used to be a tab inside one agreement, which
+                 made the work discoverable only by opening the contract it
+                 belonged to. The count is what is waiting on THIS reader across
+                 every live negotiation — see negoNeedsYouTotal; a per-contract
+                 number over a door that sits above every contract would be
+                 counting the wrong book. The word is a noun because everything
+                 else in this list is (the button on the Document tab keeps the
+                 verb: a place and an act must not share a word). -->
+            <button data-view="redline" class="nav-item" title="Negotiations — every agreement being argued over right now" data-i18n-title="nav_negotiations_title">
+              <span class="nav-rail"></span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-nego"/></svg>
+              <span style="flex:1;" data-i18n="nav_negotiations">Negotiations</span><span class="nav-count" data-count="negotiations"></span>
+            </button>
+            <button data-view="customers" class="nav-item" title="Parties — every party's contracts in one place, active and expired" data-i18n-title="nav_customers_title">
+              <span class="nav-rail"></span>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shelf"/></svg>
+              <span style="flex:1;" data-i18n="nav_customers">Parties</span><span class="nav-count" data-count="customers"></span>
+            </button>
+            </div>
+          </div>
           <!-- APPROVALS & SIGNING (the redesign order's step 10, 20 Sep 2026):
                a door onto what waits on this reader's yes and on their
                signature — two readings Home already makes, drawn as a page.

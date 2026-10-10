@@ -52,7 +52,7 @@ const check = (name, pass, detail) => {
     await page.click('#li-go');
     await page.waitForFunction(() => window.state && state.contracts && state.contracts.some(c => c.id === 'MK-A2') && typeof openWorkspace === 'function', null, { timeout: 20000 });
     const tab = async k => {
-      await page.evaluate(k => { const c = getContract('MK-A2'); if (state.activeId !== 'MK-A2' || state.view !== 'workspace') openWorkspace('MK-A2'); setTimeout(() => roomGoTab(getContract('MK-A2'), k), 250); }, k);
+      await page.evaluate(k => { if (state.activeId !== 'MK-A2' || state.view !== 'workspace') openWorkspace('MK-A2'); setTimeout(() => roomGoTab(getContract('MK-A2'), k), 250); }, k);
       return until(k => !!document.querySelector(`#ws-tabs [data-ws-tab="${k}"].on`) && !!document.getElementById('doc-canvas'), k, 10000);
     };
     check('0. the contract is open on the Document tab', !!(await tab('docs')));
