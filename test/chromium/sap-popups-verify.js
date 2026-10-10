@@ -85,7 +85,7 @@ const CONTRACTS = [
     const dp = await page.evaluate(() => {
       const inp = document.querySelector('#modal-root input[type="date"]');
       const face = inp && inp.nextElementSibling;
-      return inp ? { id: inp.id, hidden: getComputedStyle(inp).opacity === '0', face: !!(face && face.classList.contains('dp-face')),
+      return inp ? { id: inp.id, hidden: getComputedStyle(inp).display === 'none', face: !!(face && face.classList.contains('dp-face')),
         faceText: face ? face.textContent.trim() : null } : null;
     });
     ok('2a the date box is hidden behind HaTi\'s own face', dp && dp.hidden && dp.face, JSON.stringify(dp));

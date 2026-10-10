@@ -326,7 +326,8 @@ const check = (name, pass, detail) => {
           const vis = el => el && el.dataset && el.dataset.dp === '1' && el.nextElementSibling ? el.nextElementSibling : el;
           const A = vis(document.getElementById(a)), B = vis(document.getElementById(b));
           if (!A || !B) return { pair: a + '/' + b, missing: true };
-          const la = A.previousElementSibling, lb = B.previousElementSibling;
+          const lab = (el, id) => { const real = document.getElementById(id); return (real && real.dataset.dp === '1' ? real : el).previousElementSibling; };
+          const la = lab(A, a), lb = lab(B, b);
           return { pair: a.replace('up-', '') + '/' + b.replace('up-', ''),
             off: Math.round(A.getBoundingClientRect().top - B.getBoundingClientRect().top),
             labels: [Math.round(la.getBoundingClientRect().height),

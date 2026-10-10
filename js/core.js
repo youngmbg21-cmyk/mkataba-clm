@@ -3464,12 +3464,12 @@ function datePickDress(root){
     /* Out of sight IN ITS OWN INLINE STYLE: the box was built with the
        field's inline clothes (width, height), which no sheet rule outranks. */
     inp.classList.add('dp-native'); inp.tabIndex=-1; inp.setAttribute('aria-hidden','true');
-    /* IN FLOW AT NO SIZE, not lifted out: an absolutely placed box is drawn
-       against some far ancestor and measured past its own form
-       (form-and-picker 1b caught it). Zero by zero where it stands is inside
-       the form and paints nothing. */
-    Object.assign(inp.style,{ position:'static', display:'inline-block', width:'0', height:'0', minWidth:'0', minHeight:'0',
-      padding:'0', margin:'0', border:'0', opacity:'0', overflow:'hidden', pointerEvents:'none' });
+    /* NOT DRAWN AT ALL. Lifted out (absolute) it was measured against a far
+       ancestor, past its own form (form-and-picker 1b); kept in flow at no
+       size it still broke the line and pushed the face down a row
+       (upload-party). display:none takes no room, and the box still holds
+       the value, takes code's writes and fires its events. */
+    inp.style.display='none';
     inp.after(face);
     face.addEventListener('click',()=>datePickOpen(inp,face));
     face.addEventListener('keydown',ev=>{ if(ev.key==='ArrowDown'&&(ev.altKey||!ev.shiftKey)){ ev.preventDefault(); datePickOpen(inp,face); } });
