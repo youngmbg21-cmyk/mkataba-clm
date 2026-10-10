@@ -83,7 +83,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     ok('1b its number is the customers the page lists (3: one name in two cases is one customer)', rail.n.trim() === '3', JSON.stringify(rail));
 
     console.log('\n2 · the Customers page');
-    await page.hover('.nav-item[data-view="register"]');
+    await page.hover('[data-nav-fold-open="register"]');
     const opened = await page.click('.nav-item[data-view="customers"]').then(() => true, () => false);
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 }).catch(() => {});
     const readList = () => page.evaluate(() => [...document.querySelectorAll('tr[data-cu-cust]')].map(tr => ({
@@ -131,7 +131,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
 
     console.log('\n4 · Open on Explorer: that customer, Active | Expired');
     const toExplorer = async key => {
-      await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="customers"]');
+      await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="customers"]');
       await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 });
       await page.evaluate(() => { const s = document.querySelector('select[data-cu-f="owner"]'); if (s && s.value !== 'all'){ s.value = 'all'; s.dispatchEvent(new Event('change', { bubbles: true })); } });
       await page.waitForFunction(k => !!document.querySelector(`tr[data-cu-cust="${k}"]`), key, { timeout: 4000 });
@@ -157,7 +157,7 @@ Object.assign(CONTRACTS[1], { negotiation: { round: 1, rounds: [] },
     ok('4e an all-active customer shows one group', ck.groupBy === 'custom' && Object.keys(ck.counts).join() === 'Active' && ck.counts.Active === 2, JSON.stringify(ck.counts));
 
     console.log('\n5 · a refresh keeps the Customers page\'s filters');
-    await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="customers"]');
+    await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="customers"]');
     await page.waitForFunction(() => !!document.querySelector('[data-cu-screen="list"]'), null, { timeout: 8000 });
     await page.evaluate(id => { const s = document.querySelector('select[data-cu-f="stream"]'); s.value = id; s.dispatchEvent(new Event('change', { bubbles: true })); }, H.FOLDER_A);
     await page.waitForTimeout(400);

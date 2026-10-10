@@ -5842,11 +5842,58 @@ function hbGlidePlay(host, was){
       try { f.animate([{ width: w0 }, { width: f.style.width }], { duration: HB_GLIDE_MS, easing: ease }); } catch (_){} });
   });
 }
+/* ---- THE BOARD KEEPS YOUR PLACE (owner, 10 Oct 2026: "when you click to
+   get a new chart or any new changes on the board, the board pushes you to
+   the top. I need for the new charts or changes to be on screen not pushed
+   out and have scroll and find it") ----
+   A repaint no longer jumps to the board's top or to the open card's top.
+   It holds the card the reader pressed exactly where it was on the screen
+   (hbAnchorOf, the press remembered for HB_ANCHOR_MS), then brings the card
+   that changed or arrived into view by the LEAST scroll that shows it
+   (hbShowCard) and lights it softly (.is-lit; a new card wears .is-new). */
+const HB_ANCHOR_MS = 4000;
+let _hbPress = null;
+const _hbPidSel = id => `[data-hb-pid="${(window.CSS && CSS.escape) ? CSS.escape(String(id)) : String(id)}"]`;
+function hbCardOf(el){ return el && el.closest ? el.closest('#hb-focus, [data-hb-pid]') : null; }
+function hbCardSel(card){ return !card ? '' : card.id === 'hb-focus' ? '#hb-focus' : _hbPidSel(card.getAttribute('data-hb-pid')); }
+if (typeof document !== 'undefined' && !document._hbPressWatch){
+  document._hbPressWatch = true;
+  document.addEventListener('pointerdown', e => {
+    const host = hbHost(); if (!host || !host.contains(e.target)) return;
+    const card = hbCardOf(e.target); _hbPress = card ? { sel: hbCardSel(card), at: Date.now() } : null;
+  }, true);
+}
+function hbAnchorOf(host){
+  const fresh = _hbPress && Date.now() - _hbPress.at < HB_ANCHOR_MS ? _hbPress.sel : '';
+  const act = document.activeElement;
+  const sel = fresh || ((act && host.contains(act)) ? hbCardSel(hbCardOf(act)) : '');
+  const el = sel && host.querySelector(sel);
+  return el ? { sel, y: el.getBoundingClientRect().top - host.getBoundingClientRect().top } : null;
+}
+function hbShowCard(host, el, opts){
+  if (!host || !el) return;
+  const o = opts || {}, pad = 12, H = host.clientHeight;
+  const hr = host.getBoundingClientRect(), r = el.getBoundingClientRect();
+  const t = r.top - hr.top, b = r.bottom - hr.top;
+  const seen = b > pad && t < H - pad;
+  let d = 0;
+  if (!(o.ifHidden && seen)){
+    if (t < pad) d = t - pad;
+    else if (b > H - pad) d = Math.min(b - (H - pad), t - pad);
+  }
+  if (d) host.scrollTop += d;
+  const card = el.classList.contains('hb-card') ? el : el.querySelector('.hb-card');
+  if (o.lit && card && !card.classList.contains('is-new')){
+    card.classList.remove('is-lit'); void card.offsetWidth; card.classList.add('is-lit');
+    clearTimeout(card._hbLitT); card._hbLitT = setTimeout(() => card.classList.remove('is-lit'), 1800);
+  }
+}
 function hbPaintBoard(opts){
   const host = hbHost(); if (!host) return;
   _hbTipMemo.clear(); if (_hbTipFor) hbTipHide(true);
   _hbBoardPaintedAt = Date.now(); _hbBoardMissed = false;
   const top = host.scrollTop;
+  const anchor = hbAnchorOf(host);
   const act = document.activeElement;
   const had = (act && host.contains(act)) ? hbFocusKey(act) : null;
   const glide = hbGlideTake(host);
@@ -5865,9 +5912,17 @@ function hbPaintBoard(opts){
     if (back && back.focus) try { back.focus({ preventScroll: true }); } catch (_){}
   }
   const jump = opts && opts.jump;
-  if (jump === 'focus'){ const f = document.getElementById('hb-focus'); if (f) host.scrollTop = Math.max(0, f.offsetTop - 12); }
-  else if (jump === 'top') host.scrollTop = 0;
-  else host.scrollTop = top;
+  /* the reader's place first: the pressed card stays where it was */
+  host.scrollTop = top;
+  const held = anchor && host.querySelector(anchor.sel);
+  if (held){ const y = held.getBoundingClientRect().top - host.getBoundingClientRect().top; if (Math.abs(y - anchor.y) > 0.5) host.scrollTop += y - anchor.y; }
+  /* then the card that changed or arrived is brought on screen, by the least
+     scroll; one the reader is working in is left where it is */
+  let target = null;
+  if (jump === 'focus') target = document.getElementById('hb-focus');
+  else if (jump === 'top') target = ((opts && opts.pids) || []).map(id => host.querySelector(_hbPidSel(id))).find(Boolean)
+    || host.querySelector('.hb-card.is-new') || null;
+  if (target) hbShowCard(host, target, { lit: true, ifHidden: !!(held && (held === target || target.contains(held))) });
   _hbFocusNew = false; _hbNewPanel = null;
   hbPaintHead();
   hbRcMenuPlace(host);
@@ -7129,7 +7184,7 @@ function hbBoardApply(actions, q){
      (the board otherwise puts the newest first) */
   const still = added.filter(id => s.panels.some(p => p.id === id));
   if (still.length > 1 && !list.some(x => x && x.do === 'arrange')) hbArrange(still, {});
-  if (did.length) hbPaintBoard(jump ? { jump } : still.length ? { jump: 'top' } : undefined);
+  if (did.length) hbPaintBoard(jump ? { jump } : still.length ? { jump: 'top', pids: still } : undefined);
   const html = did.concat(refused).map(l => _hbE(l)).join('<br>');
   return { did, refused, html };
 }
@@ -7957,7 +8012,7 @@ function hbAsk(q){
     const { p, left } = hbAddPanel(r.kind);
     hbSave();
     if (flip && typeof renderDashboard === 'function') renderDashboard(); else hbPaintBoard();
-    const host = hbHost(); const el = host && host.querySelector(`[data-hb-pid="${p.id}"]`); if (el && host) host.scrollTop = Math.max(0, el.offsetTop - 12);
+    const host = hbHost(); const el = host && host.querySelector(_hbPidSel(p.id)); if (el && host) hbShowCard(host, el, { lit: true });
     return say(_hbE(hbPanelSay(r.kind, s.lens)) + (left ? ' ' + _hbE(i18t('hb_panel_left', { what: hbPanelWord(left) })) : ''), { noPaint: true });
   }
   if (r.act === 'remove'){
@@ -8846,7 +8901,7 @@ Object.assign(window, { hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRu
   HB_ATTENTION_RE, HB_HUES, HB_HUES_LIGHT, HB_HUES_DARK, hbHues, hbHueOf, hbFitMeasure, hbStepH, hbChartTableHtml, hbFocusBodyHtml, hbStartOf, hbObOpen, hbGroupsOf, hbRingSvg, hbBlocksSvg, hbTimelineSvg, hbBubblesSvg, hbBarsFamily,
   HB_PICS, HB_MEASURES, HB_UNITS, HB_DATES, HB_SPLIT_GROUPS, HB_TREND_MIN_N, HB_TREND_MIN_PTS, HB_COLS_MAX, HB_RC, hbRecipeRead, hbPlan, hbPlanBase, hbPlanFix,
   hbDateOf, hbMeasure, hbMeasureOne, hbMeasureFmt, hbBucketOf, hbBucketLabel, hbInBucket, hbTrendOf, hbColsSvg, hbLiveSvg, hbSnapsLoad, hbSnapsSet, hbGroupBars, hbSplitWord, hbPicWord,
-  hbRcOptions, hbRcShown, hbRecipeRowHtml, hbRecipeSet, hbRecipeClean, hbFoundChart,
+  hbRcOptions, hbRcShown, hbShowCard, hbAnchorOf, HB_ANCHOR_MS, hbRecipeRowHtml, hbRecipeSet, hbRecipeClean, hbFoundChart,
   hbRootKey, hbCountKey, hbCountIds, hbCounted, hbCountLabel, hbCountChipHtml, hbAskInPanel,
   HB_INS, HB_INS_SHAPES, HB_INS_MEASURED, HB_INS_V, HB_INS_MAX, HB_INS_REST_DAYS, HB_INS_NORM_PTS, HB_INS_MINE_MIN, hbInsKey, hbInsId, hbInsOf, hbInsViewWord, hbInsChart, hbInsCandidate, hbInsCandidateMemo,
   hbInsScope, hbInsNormal, hbInsRenNormal, hbInsFinding, hbInsFindingMemo, hbInsightsToday, hbInsUsual, hbInsUsualOpen, hbInsWhy, hbInsResting, hbInsBookSig,

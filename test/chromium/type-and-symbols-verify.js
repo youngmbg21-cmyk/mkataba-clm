@@ -59,7 +59,7 @@ const SHELL_ICONS = [
   ['#cmd-panel',                 'i-clock'],   /* DECIDE 2, 20 Sep 2026: Recent activity is behind the clock */
   ['#side-logout',               'i-out'],
   ['[data-view="dashboard"]',    'i-home'],
-  ['[data-view="register"]',     'i-folder'],
+  ['[data-nav-fold-open="register"]', 'i-folder'],   /* the menu's Contracts row opens the fly-out (10 Oct 2026) */
   ['[data-view="redline"]',      'i-nego'],
   ['[data-view="calendar"]',     'i-cal'],
   ['[data-view="intel"]',        'i-insight'],
@@ -215,7 +215,7 @@ const SHELL_ICONS = [
     for (const [sel, sym] of SHELL_ICONS) {
       /* Negotiations is folded under Contracts and shown on hover (owner,
          10 Oct 2026): the pointer rests on Contracts so its icon is painted */
-      if (sel === '[data-view="redline"]') await page.hover('.nav-item[data-view="register"]').catch(() => {});
+      if (sel === '[data-view="redline"]') await page.hover('[data-nav-fold-open="register"]').catch(() => {});
       const r = await page.evaluate(([sel, sym]) => {
         const host = document.querySelector(sel);
         if (!host) return { err: 'no such element' };

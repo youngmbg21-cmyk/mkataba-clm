@@ -140,7 +140,7 @@ const ok = (n, c, d) => { c ? pass++ : fail++; console.log((c ? '  ok   ' : '  F
     return !!t && t.getAttribute('data-reg-density') === 'compact'
         && t.style.getPropertyValue('--reg-row-h') === '36px';
   }));
-  await page.hover('.nav-item[data-view="register"]'); await page.click('.nav-item[data-view="redline"]');
+  await page.hover('[data-nav-fold-open="register"]'); await page.click('.nav-item[data-view="redline"]');
   await page.waitForTimeout(1000);
   const neg = await page.evaluate(() => {
     const t = document.querySelector('.reg-table');
