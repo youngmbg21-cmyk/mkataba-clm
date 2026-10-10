@@ -3055,6 +3055,7 @@ function dragDialog(panel, opts = {}){
   };
   const grabbable = e => {
     if (!dialogMayDrag()) return false;
+    if (panel.hasAttribute('data-dlg-page')) return false;   /* a page stays where pages are */
     const r = panel.getBoundingClientRect();
     if (!r.height) return false;
     if ((e.clientY - r.top) > DLG_GRAB_H || e.clientY < r.top) return false;
@@ -3432,6 +3433,11 @@ function datePickDress(root){
   if(!root || !root.querySelectorAll || !_dpValue || selectMenuStandsDown()) return;
   root.querySelectorAll(DATE_PICK_SEL).forEach(inp=>{
     if(inp.dataset.dp==='1') return;
+    /* THE PAPER IS NOT FURNITURE: a blank drawn IN the contract (a field on
+       the sheet, the fill preview beside a form) keeps its own control — its
+       size is the paper's business, and the paper never grows for a face. */
+    if(inp.hasAttribute('data-field') || inp.classList.contains('field-date')
+      || (inp.closest && inp.closest('#tf-preview-left,[data-doc-body],.doc-sheet,.pg-sheet,.hati-field'))) return;
     inp.dataset.dp='1';
     const face=document.createElement('button');
     face.type='button';
@@ -3553,6 +3559,49 @@ const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' })
      here, and a stylesheet rule would lose to it while looking correct.
      `--dlg-topbar` is the one declaration, so all three frames say it once. */
   const DLG_TOPBAR = t => `background:linear-gradient(${t},${t}) top left/100% 3px no-repeat, var(--color-surface);`;
+/* ---- BIG WORK GETS A PAGE, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct
+   2026: "build them anyway") ----
+   SAP keeps dialogs small; work with a whole document or many questions has
+   a page of its own. openModal(html, { page:{ acts:[ids], crumb } }) draws
+   the SAME markup as a page: it fills the work area under the top bar and
+   beside the menu (measured off #content-scroll), no scrim, no card, the
+   page ground behind it; the dialog's title and the buttons named in `acts`
+   move into a white head band at the TOP (the owner's rule: doors at the top,
+   as on the Contracts page), and the rest scrolls under it.
+   NOTHING ELSE CHANGES: the caller's ids, listeners, Escape and its "Discard
+   these changes?" guard are the dialog's own, so every caller keeps working
+   and a page that cannot be measured (a stage with no shell) is simply the
+   full window. */
+function dlgPageAdopt(root, panel, page){
+  const frame=panel.parentElement, scrim=root.querySelector('#modal-scrim');
+  if(scrim) scrim.style.display='none';
+  const place=()=>{
+    if(!frame.isConnected){ window.removeEventListener('resize',place); return; }
+    /* Under the top bar, beside the menu: the bar's bottom edge and the work
+       column's left edge (a page head above the work column is covered). */
+    const cs=document.getElementById('content-scroll'), bar=document.getElementById('top-header');
+    const r=cs&&cs.getClientRects().length ? cs.getBoundingClientRect() : { left:0, top:0 };
+    const top=bar&&bar.getClientRects().length ? bar.getBoundingClientRect().bottom : r.top;
+    frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:0;bottom:0;z-index:70;display:flex;`;
+  };
+  place(); window.addEventListener('resize',place);
+  panel.setAttribute('data-dlg-page','');
+  Object.assign(panel.style,{ width:'100%', maxWidth:'none', height:'100%', maxHeight:'none', borderRadius:'0',
+    boxShadow:'none', border:'0', background:'var(--color-bg)', overflow:'hidden', display:'flex', flexDirection:'column' });
+  const body=document.createElement('div');
+  body.className='dlg-pg-body scroll-thin';
+  while(panel.firstChild) body.appendChild(panel.firstChild);
+  const head=document.createElement('div');
+  head.className='dlg-pg-head';
+  head.innerHTML=`${page.crumb?`<div class="dlg-pg-crumb"></div>`:''}<div class="dlg-pg-row"><div class="dlg-pg-title"></div><div class="dlg-pg-acts"></div></div>${page.under?'<div class="dlg-pg-under"></div>':''}`;
+  if(page.crumb) head.querySelector('.dlg-pg-crumb').textContent=page.crumb;
+  const h=body.querySelector('h1,h2,h3');
+  if(h){ const t=head.querySelector('.dlg-pg-title'); h.style.margin='0'; t.appendChild(h); }
+  const acts=head.querySelector('.dlg-pg-acts');
+  (page.acts||[]).forEach(id=>{ const b=body.querySelector('#'+CSS.escape(id)); if(b) acts.appendChild(b); });
+  if(page.under){ const u=body.querySelector(page.under); if(u) head.querySelector('.dlg-pg-under').appendChild(u); }
+  panel.appendChild(head); panel.appendChild(body);
+}
 function openModal(html, opts={}){
   const root=document.getElementById('modal-root');
   /* ONE DIALOG REPLACING ANOTHER KEEPS THE FIRST ONE'S OPENER (26 Sep 2026,
@@ -3608,6 +3657,7 @@ function openModal(html, opts={}){
      behind. See dragDialog above for the rules it keeps. */
   if(_modalDrag){ try{ _modalDrag(); }catch(e){} _modalDrag=null; }
   if(_modalPin){ try{ _modalPin(); }catch(e){} _modalPin=null; }
+  if(panel && opts.page) dlgPageAdopt(root, panel, opts.page);
   if(panel){ _modalOpener = opener; _modalRelease = trapFocus(panel, { opener });
     _modalDrag = (typeof dragDialog==='function') ? dragDialog(panel) : null;
     /* A panel given a height runs its own layout and its own scroller. */
@@ -9330,4 +9380,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

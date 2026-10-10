@@ -950,6 +950,10 @@ function openNewAgreement(o){
       <button type="button" id="na-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('na_skip')}</button>
       <button type="button" id="na-create" class="ui-btn ui-btn-primary">${i18t('tl_create_draft')}</button>
     </div></div>`, { maxWidth: NA_FRAME_NARROW_W+'px', label: i18t('na_title'),
+      /* A PAGE, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct 2026): the
+         picker, the ask and the template's questions fill the work area,
+         Create draft, Skip and Cancel at the top. See dlgPageAdopt. */
+      page:{ acts:['na-create','na-skip','wz-pick-cancel'], crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` },
       /* ESCAPE AND THE SCRIM ASK TOO (9 Oct 2026) — see naAskLeave below. */
       onBeforeClose: ()=>naAskLeave() });
   /* A STAGE WITHOUT REAL ELEMENTS (a sandbox that only records the markup)

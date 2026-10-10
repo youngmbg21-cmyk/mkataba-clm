@@ -2331,8 +2331,7 @@ function openEditDocModal(c){
   openModal(`
     <div style="padding:var(--s-6) 26px 20px;height:100%;display:flex;flex-direction:column;min-height:0">
       <div style="${COL};padding:0 26px">
-        <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
-          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('ct_edit_document',{id:(window.contractRef?contractRef(c):c.id)})}</h3></div>
+        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 var(--s-1)">${i18t('ct_edit_document',{id:(window.contractRef?contractRef(c):c.id)})}</h3>
         ${''/* ONE LINE, AND ONLY WHERE SAVE COSTS SOMETHING (the pop-up diet,
                13 Sep 2026): the formatting is lost and cannot be got back, so
                that stays on the face; how versions and Compare work does not. */}
@@ -2355,7 +2354,11 @@ function openEditDocModal(c){
           <button id="ed-save" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Save changes</button>
         </span>
       </div>
-    </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
+    </div>`, {
+      /* A PAGE, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct 2026): the whole
+         document is edited in the work area under the top bar, Save and
+         Cancel at the top. See dlgPageAdopt in js/core.js. */
+      page:{ acts:['ed-save','ed-cancel'], crumb:`${i18t('nav_contracts')} › ${(window.contractRef?contractRef(c):c.id)} ${c.name||''}` } });
   const ta=document.getElementById('ed-text');
   ta.addEventListener('input',()=>{ const el=document.getElementById('ed-count'); if(el) el.textContent=''; });
   document.getElementById('ed-cancel').addEventListener('click',closeModal);

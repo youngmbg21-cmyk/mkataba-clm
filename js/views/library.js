@@ -169,7 +169,10 @@ function openTemplateFillModal(t, prefill, ho){
     const _mapTitle=(_map && _map.trim().toLowerCase()!==String(f.label||'').trim().toLowerCase()) ? ` title="${_tplEsc(_map).replace(/"/g,'&quot;')}"` : '';
     const lbl=`<span${_mapTitle} style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${_tplEsc(f.label)}${f.required?' <span style="color:var(--st-ruby-fg)">*</span>':''}${_mapNote}</span>`;
     const st='width:100%;height:var(--field-h,28px);border:1px solid var(--color-divider);background:var(--color-surface);border-radius:var(--radius);padding:0 var(--field-pad-x,10px);font:inherit;font-size:var(--t-body);outline:none';
-    if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>`<option value="${_tplEsc(o).replace(/"/g,'&quot;')}" ${f.def===o?'selected':''}>${_tplEsc(o)}</option>`).join('')}</select></label>`;
+    /* AN OPTION MAY BE A {v,l} PAIR (the side question is), so it is read
+       through fieldOpt, the one reading — printed whole it said "[object
+       Object]" three times (seen 9 Oct 2026, the SAP pop-up photographs). */
+    if(f.type==='select') return `<label style="display:block">${lbl}<select id="${id}" style="${st}">${(f.opts||[]).map(o=>(typeof window.fieldOpt==='function')?window.fieldOpt(o):{v:String(o),l:String(o)}).map(o=>`<option value="${_tplEsc(o.v).replace(/"/g,'&quot;')}" ${String(f.def==null?'':f.def)===o.v?'selected':''}>${_tplEsc(o.l)}</option>`).join('')}</select></label>`;
     const it=f.type==='date'?'date':(f.type==='num'?'number':'text');
     return `<label style="display:block">${lbl}<input id="${id}" type="${it}" value="${String(f.def||'').replace(/"/g,'&quot;')}" placeholder="${_tplEsc(f.ph||'')}" style="${st}"/></label>`; };
   /* ---- THE PAPER BESIDE THE QUESTIONS (upgrade 2, 18 Sep 2026) ----
@@ -269,7 +272,12 @@ function openTemplateFillModal(t, prefill, ho){
       <span style="flex:1"></span>
       <button id="tf-skip" class="ui-btn" title="${esc(i18t('lib_create_now_fill_later'))}">${i18t('lib_skip_for_now')}</button>
       <button id="tf-create" class="ui-btn ui-btn-primary">${i18t('lib_create_draft')}</button>
-    </div></div>`, {maxWidth:_pv?'1040px':'620px'});
+    </div></div>`, _pv
+      /* WITH THE PAPER BESIDE IT, A PAGE (SAP pop-ups, owner's go 10 Oct
+         2026): the form and the paper fill the work area, Create draft,
+         Skip and Cancel at the top. The short form stays a dialog. */
+      ? { page:{ acts:['tf-create','tf-skip','tf-cancel'], crumb:`${i18t('nav_contracts')} › ${i18t('na_title')}` } }
+      : {maxWidth:'620px'});
   if(typeof bindFolderSelect==='function') bindFolderSelect(document.getElementById('tf-folder'));
   /* THE ANSWERS AS THEY STAND, read exactly as the Create press reads them, so
      the preview cannot draw a contract the press would not make. */

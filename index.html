@@ -1564,6 +1564,18 @@
      a dialog dlgPinFoot also MOVES it last in the DOM, so Tab meets the act
      first, as the eye does. */
   [data-dlg-cancel]{order:99;}
+  /* A pop-up drawn as a page (dlgPageAdopt, SAP pop-ups 10 Oct 2026): the
+     white head band of every page, doors at the top, the work scrolling under. */
+  [data-dlg-page] .dlg-pg-head{ flex:none; background:var(--color-surface); border-bottom:1px solid var(--rule-strong);
+    padding:var(--page-pad-t,16px) var(--band-pad-x,24px) 14px; display:flex; flex-direction:column; gap:6px; }
+  [data-dlg-page] .dlg-pg-crumb{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  [data-dlg-page] .dlg-pg-row{ display:flex; align-items:center; gap:var(--s-3); min-width:0; }
+  [data-dlg-page] .dlg-pg-title{ flex:1; min-width:0; }
+  [data-dlg-page] .dlg-pg-title > *{ font-family:var(--font-heading); font-size:var(--t-page); font-weight:var(--w-strong); color:var(--color-text); }
+  [data-dlg-page] .dlg-pg-acts{ flex:none; display:flex; align-items:center; gap:var(--s-2); }
+  [data-dlg-page] .dlg-pg-body{ flex:1; min-height:0; overflow:auto; }
+  [data-dlg-page] .na-foot{ display:none; }   /* its buttons moved to the head */
+  [data-dlg-page] .na-x{ display:none; }      /* a page leaves by Cancel at its top, not a corner cross */
   /* Two ways in, one segmented row (openImportModal, SAP pop-ups 10 Oct 2026). */
   .imp-tabs{ display:flex; border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden; }
   .imp-tab{ flex:1; height:var(--ctl-h); border:0; border-right:1px solid var(--color-divider); background:var(--color-surface);

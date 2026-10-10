@@ -30,7 +30,10 @@ const READ = () => {
   const q = s => document.querySelector(s);
   const seen = el => { const b = el.getBoundingClientRect(); return b.width > 0 && b.height > 0; };
   const panel = q('.modal-in').getBoundingClientRect();
-  return { panelW: Math.round(panel.width), cols: getComputedStyle(q('#na-body')).gridTemplateColumns.split(' ').length,
+  return { panelW: Math.round(panel.width),
+    /* A PAGE NOW (SAP pop-ups, 10 Oct 2026): the frame is the work area — the window right of the menu. */
+    work: Math.round(window.innerWidth - ((document.getElementById('content-scroll') || document.body).getBoundingClientRect().left)),
+    cols: getComputedStyle(q('#na-body')).gridTemplateColumns.split(' ').length,
     menuOpen: !(document.getElementById('new-menu') || { classList: { contains: () => true } }).classList.contains('hidden'),
     /* RE-POINTED 22 Sep 2026 — proposal C. The doors and the chips became one
        rail of rows, so what used to be two counts is one. */
@@ -54,7 +57,9 @@ const READ = () => {
     boxes: r.querySelectorAll('#na-form input,#na-form select').length,
     paper: !!q('#tf-preview'), paperText: ((q('#tf-preview') || {}).textContent || '').length,
     say: !!q('#dr-say'), find: !!q('#dr-read'), upload: !!q('#na-upload'), imp: !!q('#na-import'),
-    foot: [...r.querySelectorAll('.na-foot button')].map(b => b.textContent.trim()),
+    /* A PAGE NOW (SAP pop-ups, owner's go 10 Oct 2026): the acts stand in the
+       page's head, the act first and Cancel last. */
+    foot: [...document.querySelectorAll('#modal-root .dlg-pg-acts button, #modal-root .na-foot button')].filter(b => b.getClientRects().length).map(b => b.textContent.trim()),
     labelWeight: getComputedStyle(r.querySelector('#na-form label > span') || r).fontWeight,
     /* WHERE THE ASK SITS (23 Sep 2026): in the body above the rail, or in it. */
     ask: (() => { const f = q('.na-field'), b = q('#na-body'), t = q('#dr-say'), fd = q('#dr-read'), rl = q('#wz-pick');
@@ -108,7 +113,9 @@ const READ = () => {
        REVERSED IN PLACE 23 Sep 2026 — no paper on this screen, on any device:
        the rail and the questions, in one 900 frame. At the parent this
        reported 3 columns and 1180px. */
-    check('1b two columns at 1440 in a 900 frame — the rail and the questions', !m.err && m.cols === 2 && m.panelW === 900, m.err || `${m.cols} cols, ${m.panelW}px`);
+    /* RE-POINTED 10 Oct 2026 (SAP pop-ups, owner's go: New agreement is a
+       page): the frame was a 900px card; it is the whole work area now. */
+    check('1b two columns at 1440 on a page as wide as the work area — the rail and the questions', !m.err && m.cols === 2 && m.panelW === m.work, m.err || `${m.cols} cols, ${m.panelW}px of ${m.work}`);
     check('1c the company standards are rows, with version, use and stream on one line',
       !m.err && m.lib === 2 && m.goLines.some(x => /^v1 · used 0× · Procurement/.test(x)) && m.goLines.every(x => /^v1 · used 0×/.test(x)),
       m.err || `${m.lib} rows · ${JSON.stringify(m.goLines)}`);
@@ -119,7 +126,7 @@ const READ = () => {
     check('1e3 the questions get more room than the 380px they had', !m.err && m.cardW >= 430, m.err || m.cardW + 'px');
     /* REVERSED 23 Sep 2026 (Young: "remove the Upload it link") — upload is a door in front of this screen (openNewDoors): the screen carries the sentence box, Find and Import, and NO upload link. */
     check('1f the sentence box, Find and Import are on it, and no second Upload', !m.err && m.say && m.find && !m.upload && m.imp);
-    check('1g the foot is Cancel · Skip the questions · Create draft', !m.err && m.foot.join('|') === 'Cancel|Skip the questions|Create draft', m.err || m.foot.join('|'));
+    check('1g the acts are Create draft · Skip the questions · Cancel, at the page\'s top', !m.err && m.foot.join('|') === 'Create draft|Skip the questions|Cancel', m.err || m.foot.join('|'));
     /* REVERSED IN PLACE: the agreement is drawn at 1440 now, which is the
        whole of what proposal C was chosen for.
        REVERSED AGAIN 23 Sep 2026 — the owner took it off this screen. At the
@@ -155,7 +162,11 @@ const READ = () => {
     const grow0 = await page.evaluate(() => document.getElementById('dr-say').getBoundingClientRect().height);
     await page.fill('#dr-say', 'a two-year packaging supply agreement with Kenafric Industries where we are the supplier, '
       + 'payment is forty five days from invoice, ninety days notice to terminate, prices reviewed every six months '
-      + 'against the published index, delivery to our Nairobi and Mombasa warehouses, and a cap on liability at the fees paid');
+      + 'against the published index, delivery to our Nairobi and Mombasa warehouses, and a cap on liability at the fees paid; '
+      /* RE-STAGED 10 Oct 2026: the box is a page's width now, so the request
+         runs longer to still need more lines than the box starts with. */
+      + 'the supplier carries product liability insurance of fifty million shillings, quality is inspected at our gate within two working days, '
+      + 'rejected stock is collected at their cost within a week, and either side may end the agreement on a material breach not put right in thirty days');
     await pause(400);
     const grew = await page.evaluate(() => { const t = document.getElementById('dr-say');
       return { h: Math.round(t.getBoundingClientRect().height), inner: t.scrollHeight > t.clientHeight + 1, sideways: t.scrollWidth > t.clientWidth + 1 }; });
@@ -201,7 +212,7 @@ const READ = () => {
     await page.evaluate(() => openNewAgreement({})); await pause(900);
     m = await page.evaluate(READ);
     await page.screenshot({ path: path.join(OUT, '02-popup-1700.png') });
-    check('7a at 1700 the frame is the same 900 with two columns', !m.err && m.cols === 2 && m.panelW === 900, m.err || `${m.cols} cols, ${m.panelW}px`);
+    check('7a at 1700 the page fills the work area with two columns', !m.err && m.cols === 2 && m.panelW === m.work, m.err || `${m.cols} cols, ${m.panelW}px of ${m.work}`);
     check('7b and no paper is drawn', !m.err && !m.paper, m.err || `paper ${m.paper}, ${m.paperText} chars`);
     await page.evaluate(() => closeModal());
 
@@ -272,10 +283,11 @@ const READ = () => {
       return { stack: body.classList.contains('na-stack'), right: !!q('#na-right'),
         cols: getComputedStyle(body).gridTemplateColumns.split(' ').length,
         frameW: Math.round(q('.modal-in').getBoundingClientRect().width),
+        work: Math.round(window.innerWidth - ((document.getElementById('content-scroll') || document.body).getBoundingClientRect().left)),
         paper: !!q('#na-paper') || !!q('#tf-preview'),
         moreOnScreen: inView(q('.na-more'), body),
         peopleOnScreen: inView(q('#na-people > summary'), body),
-        footOnScreen: (() => { const f = q('.na-foot'); if (!f) return false; const r = f.getBoundingClientRect();
+        footOnScreen: (() => { const f = q('.dlg-pg-acts') || q('.na-foot'); if (!f) return false; const r = f.getBoundingClientRect();
           return r.height > 0 && r.top >= 0 && r.bottom <= window.innerHeight + 1; })(),
         bodyScroll: body.scrollTop,
         note: ((q('.na-note') || {}).textContent || '').trim() };
@@ -286,9 +298,9 @@ const READ = () => {
       await page.evaluate(() => openNewAgreement({})); await pause(900);
       d = await page.evaluate(D);
       await page.screenshot({ path: path.join(OUT, `03-ipad-${w}.png`) });
-      check(`9a ${label} at ${w}: two columns in a 900 frame, nothing stacked`,
-        !d.err && !d.stack && !d.right && d.cols === 2 && d.frameW === 900,
-        d.err || `stack ${d.stack} · #na-right ${d.right} · ${d.cols} cols · ${d.frameW}px`);
+      check(`9a ${label} at ${w}: two columns on a page as wide as the work area, nothing stacked`,
+        !d.err && !d.stack && !d.right && d.cols === 2 && d.frameW === d.work,
+        d.err || `stack ${d.stack} · #na-right ${d.right} · ${d.cols} cols · ${d.frameW}px of ${d.work}`);
       check(`9b ${label} at ${w}: no agreement is drawn`, !d.err && !d.paper, d.err || `paper ${d.paper}`);
       /* A GUARD: it held at the parent too. It is here because the list's
          cap was RE-DERIVED when the ask left the rail, and this is the whole
