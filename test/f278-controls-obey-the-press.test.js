@@ -57,9 +57,15 @@ test('f278 (1) the fact row has no second opinion about folding', () => {
      follow became ONE listener, the Thread's follow (docThreadFollowArm),
      which opens the row at the line and folds nothing. Two are named, so a
      third — the snap coming back — still fails here. */
+  /* RE-POINTED 10 Oct 2026 (owner: Home's Track on the Document tab): the
+     Track's window follows the paper (docTrackWire) — a third listener that
+     folds nothing; it moves the rail's window and lights a label. Named
+     below, so a fourth still fails here. */
   const scrollers = CODE.match(/addEventListener\('scroll'/g) || [];
-  assert.equal(scrollers.length, 2,
-    'two scroll listeners in this file: the Thread\'s follow and the signing copy\'s page number');
+  assert.equal(scrollers.length, 3,
+    'three scroll listeners in this file: the Thread\'s follow, the signing copy\'s page number and the Track\'s window');
+  assert.ok(/sc\.addEventListener\('scroll',\(\)=>\{ if\(!_docTrack\.c\) return; igStrandTip\(null, docTrackHost\(\)\);/.test(CODE),
+    'the Track\'s window, by name');
   assert.ok(/sc\.addEventListener\('scroll',\(\)=>\{\s*if\(_docThreadGlide>=0\)/.test(CODE),
     'the Thread\'s follow, by name');
   /* RE-POINTED 5 Oct 2026 (the Drawer): it asks whether the clauses are on
