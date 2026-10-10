@@ -266,7 +266,9 @@ describe('f331 (5) — every door refuses the same way', () => {
     assert.deepEqual(gated.slice().sort(), ['scratch', 'template'],
       'only the two starts that mint a company standard from new wording');
     assert.ok(!gated.includes('contract'), 'save-as-template carries templateManager, not paperMaker');
-    const cp = /getElementById\('ns-cp'\)[^\n]*/.exec(NS);
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): their paper is the
+       list's fourth row, and Continue presses the same door for it. */
+    const cp = /if \(k === 'cp'\)[^\n]*/.exec(NS);
     assert.ok(cp && /openCreateTemplateModal\('paste'\)/.test(cp[0]) && !/newPaperBlock/.test(cp[0]),
       'their paper is imported through its own door, and nothing refuses it');
   });

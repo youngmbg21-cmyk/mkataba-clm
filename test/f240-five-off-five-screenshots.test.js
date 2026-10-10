@@ -73,9 +73,11 @@ describe('f240 (1) — an alert names its contract once', () => {
   });
 
   test('the row draws the name line only when there is a name', () => {
-    const rows = strip(APP).match(/data-alert-i="\$\{i\}"[\s\S]{0,1600}/)[0];
+    const rows = strip(APP).match(/data-alert-i="\$\{i\}"[\s\S]{0,3200}/)[0];
     /* RE-POINTED 10 Oct 2026 (SAP pop-ups: Alerts grouped): in a group the name leads the row, so the separate name line is drawn only outside a group — still never an empty one. */
-    assert.match(rows, /\$\{a\.name&&!inGroup\?`<span[^`]*\$\{esc\(a\.name\)\}<\/span>`:''\}/,
+    /* RE-POINTED AGAIN 10 Oct 2026 (the pop-ups as drawn): a grouped row is its own
+       builder that leads with the name; the ungrouped row keeps the guarded line. */
+    assert.match(rows, /\$\{a\.name\?`<span[^`]*\$\{esc\(a\.name\)\}<\/span>`:''\}/,
       'an empty name must draw no line at all, never an empty one');
     /* RE-POINTED 26 Sep 2026 — a contract signed outside takes its number when it is
        filed, so what a row PRINTS is `contractRef` (carried on the row as `ref`); the id
@@ -223,7 +225,7 @@ describe('f240 (4) — your own signature is at the top', () => {
   });
 
   test('IT IS AN ORDER, NOT A SPECIAL CASE — no kind is named at the draw', () => {
-    const rows = strip(APP).match(/data-alert-i="\$\{i\}"[\s\S]{0,1600}/)[0];
+    const rows = strip(APP).match(/data-alert-i="\$\{i\}"[\s\S]{0,3200}/)[0];
     for (const k of kinds)
       assert.ok(!new RegExp("'" + k + "'").test(rows),
         `the row markup names '${k}'; ranking belongs in ALERT_KINDS`);

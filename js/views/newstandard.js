@@ -96,29 +96,35 @@ function openNewStandard(opts = {}) {
   nsStyle();
   const off = nsNewPaperOff();
   const why = off ? i18t('np_refused_ask') : '';
-  const tile = sc => {
-    const dead = off && NS_GATED.includes(sc.k);
-    return `<button type="button" class="ns-tile" data-ns-start="${sc.k}"${dead ? ` disabled title="${nsEsc(why)}"` : ''}>
-      <span class="ic">${typeof icon === 'function' ? icon(sc.ic, 'w-4 h-4') : ''}</span>
-      <span style="flex:1;min-width:0"><span class="t">${nsEsc(sc.t)}</span><span class="d">${nsEsc(dead ? why : sc.d)}</span></span></button>`;
-  };
-  openModal(`<div style="padding:24px">
-    <h3 style="${NS_TITLE}">${nsEsc(i18t('ns_title'))}</h3>
-    <p style="${NS_LEAD}">${nsEsc(i18t('ns_lead'))}</p>
-    ${NS_STARTS.map(tile).join('')}
-    ${''/* THE OTHER SIDE'S PAPER IS A DIFFERENT ACT — it is not a standard of
-           ours — so it keeps a quiet link at the foot rather than a fourth
-           tile. It presses the door that has always filed their paper. */}
-    <div class="ns-foot"><span class="q">${nsEsc(i18t('ns_cp_q'))}</span>
-      <button type="button" id="ns-cp" class="ns-link">${nsEsc(i18t('ns_cp_add'))}</button>
-      <span class="sp"></span><button data-dlg-cancel type="button" id="ns-close" class="ui-btn">${nsEsc(i18t('act_cancel'))}</button></div>
+  /* AS DRAWN (SAP pop-ups, 10 Oct 2026): "How do you want to start?" over
+     ONE list of choices — the three starts and the other side's paper as
+     the fourth — the first chosen, and Continue on the foot. A start this
+     person may not use is greyed with the reason in its line. */
+  const rows = NS_STARTS.map(sc => ({ k: sc.k, t: sc.t, d: sc.d, dead: off && NS_GATED.includes(sc.k) }))
+    .concat([{ k: 'cp', t: i18t('ns_cp_t'), d: i18t('ns_cp_d'), dead: false }]);
+  const first = (rows.find(r => !r.dead) || rows[0]).k;
+  const row = ({ k, t, d, dead }) => `<label class="sap-li" style="align-items:flex-start${dead ? ';opacity:.55;cursor:not-allowed' : ''}">
+      <input type="radio" name="ns-start" ${k === 'cp' ? 'id="ns-cp"' : `data-ns-start="${k}"`} value="${k}"${k === first ? ' checked' : ''}${dead ? ` disabled title="${nsEsc(why)}"` : ''} style="margin-top:3px;accent-color:var(--accent-fill)"/>
+      <span><span style="display:block;font-weight:var(--w-label)">${nsEsc(t)}</span><span class="sap-m">${nsEsc(dead ? why : d)}</span></span></label>`;
+  openModal(`<div style="padding:16px 18px">
+    <h3>${nsEsc(i18t('ns_title'))}</h3>
+    <div class="sap-body">
+      <div class="sap-f"><span class="sap-lbl">${nsEsc(i18t('ns_lead'))}</span>
+        <div class="sap-list">${rows.map(row).join('')}</div></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
+      <button type="button" id="ns-continue" class="ui-btn ui-btn-primary">${nsEsc(i18t('act_continue'))}</button>
+      <button data-dlg-cancel type="button" id="ns-close" class="ui-btn">${nsEsc(i18t('act_cancel'))}</button></div>
   </div>`, { maxWidth: nsW('m'), label: i18t('ns_title') });
   document.getElementById('ns-close')?.addEventListener('click', () => closeModal());
-  document.getElementById('ns-cp')?.addEventListener('click', () => { closeModal(); if (typeof openCreateTemplateModal === 'function') openCreateTemplateModal('paste'); });
-  document.querySelectorAll('[data-ns-start]').forEach(b => b.addEventListener('click', () => {
-    if (b.disabled) return;
-    closeModal(); nsGo(b.getAttribute('data-ns-start'), opts);
-  }));
+  document.getElementById('ns-continue')?.addEventListener('click', () => {
+    const k = (document.querySelector('input[name="ns-start"]:checked') || {}).value;
+    if (!k) return;
+    closeModal();
+    /* THE OTHER SIDE'S PAPER presses the door that has always filed it. */
+    if (k === 'cp') { if (typeof openCreateTemplateModal === 'function') openCreateTemplateModal('paste'); return; }
+    nsGo(k, opts);
+  });
 }
 function nsGo(k, opts = {}) {
   /* WHERE THERE IS NO SERVER there is no company library, so each start

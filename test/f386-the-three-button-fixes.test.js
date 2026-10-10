@@ -146,7 +146,8 @@ describe('f386 (3) one light grey edge on every outlined control', () => {
       [NCSS, /\.redline-page #ws-head \.rl-pb-btn\{[^}]*border:1px solid var\(--btn-edge\)/, 'and its head-row dress'],
       [CAL, /\.cal-seg\{[^}]*border:1px solid var\(--btn-edge\)/, 'the calendar\'s switches'],
       [CAL, /\.cal-seg > :is\(span,a,button\) \+ :is\(span,a,button\)\{border-left:1px solid var\(--btn-edge\)\}/, 'and their seams'],
-      [CORE, /border:1px solid \$\{on\?'var\(--color-accent\)':'var\(--btn-edge\)'\}/, 'the Send dialog\'s purpose buttons'],
+      /* RE-POINTED 10 Oct 2026: both Send dialog rows share one segment look. */
+      [CORE, /border-color:\$\{on\?'var\(--color-accent\)':'var\(--btn-edge\)'\}/, 'the Send dialog\'s purpose buttons'],
       [PF, /data-pf-fixcats style="[^"]*border:1px solid var\(--btn-edge\)/, 'Insights\' Read them now'],
     ];
     for (const [src, re, what] of want) assert.match(src, re, what);

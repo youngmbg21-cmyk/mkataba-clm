@@ -109,8 +109,9 @@ describe('f259 (4) — the dialog draws everything it drew before', () => {
        the "Whose obligation is this?" toggle outright. */
     /* RE-POINTED 10 Oct 2026 (SAP pop-ups, owner's go): "Whose obligation is
        this?" comes FIRST, because it decides what follows; every other field
-       keeps its label and its order. */
-    const order = ['ob_whose', 'ob_description', 'ob_due_date', 'ob_recurring', 'ob_amount', 'ob_assign_to'];
+       keeps its label and its order. The description is asked as the
+       drawing words it, "What has to be done?" (ob_what_done). */
+    const order = ['ob_whose', 'ob_what_done', 'ob_due_date', 'ob_recurring', 'ob_amount', 'ob_assign_to'];
     let at = -1;
     for (const k of order) {
       const i = dlg.indexOf(`i18t('${k}')`);

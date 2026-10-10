@@ -1609,6 +1609,75 @@
   .dp-day:focus-visible,.dp-nav:focus-visible{ outline:2px solid var(--accent-fill); outline-offset:1px; }
   .dp-foot{ display:flex; justify-content:space-between; padding:8px 4px 2px; border-top:1px solid var(--color-divider); margin-top:6px; }
   .modal-in[data-scrolls] [data-dlg-foot]{box-shadow:0 -1px 0 var(--color-divider);padding-top:10px;padding-bottom:10px;}
+  /* THE SAP DIALOG FRAME (dlgSapFrame in js/core.js; owner, 10 Oct 2026):
+     the drawings' title bar, body and foot bar, edge to edge. Boxes inside a
+     dialog are the drawings' 32px. */
+  .modal-in[data-dlg-sap]{ --field-h:32px; }
+  .modal-in[data-dlg-sap] .dlg-h{ padding:14px 18px 12px; border-bottom:1px solid var(--color-divider); }
+  .modal-in[data-dlg-sap] .dlg-h :is(h1,h2,h3){ font-family:var(--font-heading); font-size:16px; font-weight:var(--w-strong); line-height:1.3; margin:0; }
+  .modal-in[data-dlg-sap] .dlg-h > p{ font-size:12.5px; line-height:1.45; color:var(--color-neutral-600); margin:2px 0 0; }
+  [data-dlg-own-frame] .dlg-b{ padding:16px 18px; }
+  .modal-in[data-dlg-own-frame] .dlg-f[class]{ margin-top:0; }
+  .modal-in[data-dlg-sap] .rvd-foot.dlg-f[class]{ margin-top:0; }
+  [data-dlg-own-frame] .dlg-f{ padding:10px 18px; border-top:1px solid var(--color-divider);
+    background:color-mix(in srgb, var(--color-bg) 55%, var(--color-surface)); }
+  /* The drawings' parts, for a dialog laid out as drawn (SAP pop-ups,
+     10 Oct 2026): field + label, two and three across, a group heading with
+     its rule, the two-way switch, a bordered list of choices, the focus. */
+  .modal-in[data-dlg-sap] [hidden][hidden]{ display:none; }
+  .modal-in[data-dlg-sap] .sap-f{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+  .modal-in[data-dlg-sap] .sap-f > label, .modal-in[data-dlg-sap] .sap-lbl{ font-size:12px; font-weight:var(--w-label); color:var(--color-neutral-700); margin:0; }
+  .modal-in[data-dlg-sap] .sap-req{ color:var(--danger); }
+  .modal-in[data-dlg-sap] .sap-body{ display:flex; flex-direction:column; gap:14px; }
+  .modal-in[data-dlg-sap] .sap-row{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+  .modal-in[data-dlg-sap] .sap-row3{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+  .modal-in[data-dlg-sap] .sap-grp{ font-size:12px; color:var(--color-neutral-600); font-weight:var(--w-label);
+    border-top:1px solid var(--color-divider); padding-top:14px; margin:0; }
+  .modal-in[data-dlg-sap] .sap-help{ font-size:12.5px; color:var(--color-neutral-600); line-height:1.45; margin:0; }
+  .modal-in[data-dlg-sap] .sap-seg{ display:flex; border:1px solid var(--btn-edge, var(--field-line)); border-radius:var(--radius); overflow:hidden; height:30px; }
+  .modal-in[data-dlg-sap] .sap-seg > button{ flex:1; border:0; border-right:1px solid var(--btn-edge, var(--field-line)); background:var(--color-surface); font:inherit;
+    font-size:var(--t-body); font-weight:var(--w-label); color:var(--color-neutral-700); cursor:pointer; padding:0 10px; }
+  .modal-in[data-dlg-sap] .sap-seg > button:last-child{ border-right:0; }
+  .modal-in[data-dlg-sap] .sap-seg > button[aria-pressed="true"]{ background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-strong); box-shadow:inset 0 -2px 0 var(--accent-fill); }
+  .modal-in[data-dlg-sap] .sap-list{ border:1px solid var(--color-divider); border-radius:6px; overflow:hidden; }
+  .modal-in[data-dlg-sap] .sap-li{ display:flex; gap:10px; align-items:center; padding:9px 12px; border-bottom:1px solid var(--color-divider); cursor:pointer; }
+  .modal-in[data-dlg-sap] .sap-li:last-child{ border-bottom:0; }
+  .modal-in[data-dlg-sap] .sap-li:has(input:checked){ background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface)); }
+  .modal-in[data-dlg-sap] .sap-li .sap-m{ color:var(--color-neutral-600); font-size:12px; }
+  .modal-in[data-dlg-sap] :is(input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea):focus-visible{
+    outline:none; border-color:var(--accent-fill); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent-fill) 22%, transparent); }
+  .modal-in[data-dlg-sap] .am-chip[aria-pressed="true"]{ background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface)); border-color:var(--accent-fill); color:var(--accent-ink); }
+  /* THE SEND DIALOG, AS DRAWN (SAP pop-ups, 10 Oct 2026): its title bar
+     sits inside the first step, so it is pulled to the edges here; the two
+     choices are joined segments side by side; the link's two settings are
+     one row. */
+  [data-share-sap] .sh-hd{ margin:-16px -18px 16px; }
+  [data-share-sap] .sh-pick-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; margin:0 0 14px; }
+  [data-share-sap] .sh-pick-row .sap-lbl{ display:block; margin-bottom:5px; }
+  [data-share-sap] .sh-segs{ display:flex; }
+  [data-share-sap] .sh-seg{ position:relative; flex:1; min-width:0; height:30px; padding:0 6px; margin-left:-1px; border:1px solid var(--btn-edge); border-radius:0;
+    font:inherit; font-size:var(--t-body); font-weight:var(--w-label); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  [data-share-sap] .sh-seg:first-child{ margin-left:0; border-radius:var(--radius) 0 0 var(--radius); }
+  [data-share-sap] .sh-seg:last-child{ border-radius:0 var(--radius) var(--radius) 0; }
+  [data-share-sap] .sh-seg[aria-pressed="true"]{ font-weight:var(--w-strong); box-shadow:inset 0 -2px 0 var(--accent-fill); }
+  [data-share-sap] #sh-link-opts{ margin:0 0 14px; }
+  [data-share-sap] .sh-durable-box{ display:flex; align-items:center; gap:8px; height:var(--field-h); padding:0 10px; border:1px solid var(--field-line, var(--color-divider));
+    border-radius:var(--radius); font-size:var(--t-body); color:var(--color-text); cursor:pointer; }
+  /* ALERTS, AS DRAWN (SAP pop-ups, 10 Oct 2026): a contract under its group. */
+  .al-grow{ display:flex; gap:10px; align-items:center; width:100%; padding:8px 2px; border:0; border-bottom:1px solid var(--color-divider);
+    background:transparent; text-align:left; cursor:pointer; color:var(--color-text); font:inherit; }
+  .al-grow .al-av{ flex:none; width:24px; height:24px; border-radius:4px; display:grid; place-items:center; font-size:10px;
+    font-weight:var(--w-strong); background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface)); color:var(--accent-ink); }
+  .al-grow .al-t{ display:block; font-size:var(--t-body); font-weight:var(--w-label); line-height:1.35; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .al-grow .al-sub2{ display:block; font-size:12px; color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .al-grow .al-open{ flex:none; height:var(--ctl-h); padding:0 10px; display:inline-flex; align-items:center; border:1px solid var(--btn-edge, var(--field-line));
+    border-radius:var(--radius); font-size:var(--t-body); font-weight:var(--w-label); background:var(--color-surface); }
+  .al-grow:hover .al-open{ border-color:var(--accent-fill); color:var(--accent-ink); }
+  .dlg-mb-ic{ width:28px; height:28px; border-radius:50%; display:grid; place-items:center; flex:none; }
+  .dlg-mb-ic[data-tone="danger"]{ background:var(--st-ruby-bg); color:var(--danger); }
+  .dlg-mb-ic[data-tone="warn"]{ background:var(--st-amber-bg); color:var(--st-amber-fg); }
+  .modal-in[data-dlg-sap] .dlg-f[class]{ padding:10px 18px; margin-top:16px; border-top:1px solid var(--color-divider); box-shadow:none;
+    background:color-mix(in srgb, var(--color-bg) 55%, var(--color-surface)); }
   /* ═══ THE SIGNING ROUTE IS A TIMELINE (Young ruled it 27 Sep 2026) ═══════════
      The route drawn as it will run: numbered steps down a line, the people who
      sign at each step inside it — the Signing order card's own shape, made
@@ -1661,6 +1730,33 @@
   .sr-end{position:relative;padding-left:36px;min-height:28px;display:flex;align-items:center;}
   .sr-end .sr-node{top:2px;background:var(--color-surface);border-style:dashed;border-color:var(--rule-strong);color:var(--color-neutral-500);}
   .sr-end .sr-addwrap{margin-top:0;}
+  /* THE STEP BOX (SAP pop-ups, owner 10 Oct 2026 — the drawing replaces the
+     27 Sep timeline's look; the window's workings are unchanged): each step a
+     bordered box with its small heading on a faint band, the people in it as
+     rows, a party nobody signs for yet a row in the same box; no line, no
+     numbered discs. */
+  .sr-win .sr-step, .sr-win .sr-misses:not(:empty){ border:1px solid var(--color-divider); border-radius:6px; overflow:hidden;
+    padding:0; margin:0 0 12px; background:var(--color-surface); }
+  .sr-win .sr-step::before, .sr-win .sr-misses::before{ display:none; }
+  .sr-win .sr-node{ display:none; }
+  .sr-win .sr-sh{ margin:0; min-height:0; padding:8px 12px; border-bottom:1px solid var(--color-divider);
+    background:color-mix(in srgb, var(--color-bg) 55%, var(--color-surface)); }
+  .sr-win .sr-sn{ font-size:12px; font-weight:var(--w-label); color:var(--color-neutral-600); }
+  .sr-win .sr-cards{ gap:0; }
+  .sr-win .sr-card{ border:0; border-bottom:1px solid var(--color-divider); border-radius:0; }
+  .sr-win .sr-card:last-child{ border-bottom:0; }
+  .sr-win .sr-step .sr-addwrap{ display:flex; margin:0; padding:6px 12px 8px; border-top:1px solid var(--color-divider); }
+  .sr-win .sr-miss{ margin:0; padding:9px 12px; border:0; border-bottom:1px solid var(--color-divider); border-radius:0; background:transparent; }
+  .sr-win .sr-miss:last-child{ border-bottom:0; }
+  .sr-win .sr-mt{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .sr-win .sr-mt b{ font-size:var(--t-body); font-weight:var(--w-label); color:var(--color-text); }
+  .sr-win .sr-mt span{ font-size:12px; color:var(--color-neutral-600); }
+  .sr-win .sr-end{ padding-left:0; }
+  .sr-win .sr-miss > .sr-av, .sr-win .sr-card .sr-av{ flex:none; width:24px; height:24px; border-radius:4px; font-size:10px; }
+  .sr-win .sr-miss > .sr-av{ background:color-mix(in srgb, var(--st-amber-fg) 12%, var(--color-surface)); color:var(--st-amber-fg); }
+  .sr-win .sr-miss > .sr-av.us{ background:color-mix(in srgb,var(--accent-fill) 16%,var(--color-surface)); color:var(--accent-ink); }
+  .sr-win .sr-end .ui-btn{ border-color:transparent; background:transparent; color:var(--accent-ink); padding-left:12px; }
+  .sr-win .sr-end .ui-btn:hover{ text-decoration:underline; text-underline-offset:2px; }
   /* ONE SMALL MENU: the Inspector's own card (.ins-menu), wider for its words,
      and opened to the left or upward where the window has no room. */
   .sr-win .sr-menu{width:252px;}
@@ -2951,22 +3047,19 @@
      the duplication this codebase's own map opens with, and it is how six of
      them end up updated and two do not. js/review.js builds the head
      (reviewDialogHeadHtml) and js/desk.js calls it. */
-  .rvd-head{ display:flex; align-items:flex-start; gap:11px; padding:15px 20px 13px;
-    background:var(--st-steel-bg); border-bottom:1px solid var(--color-accent-300); }
-  .rvd-ico{ flex:none; width:30px; height:30px; border-radius:var(--radius); display:grid;
-    place-items:center; font-size:var(--t-card); line-height:1; background:var(--color-surface);
-    border:1px solid var(--color-accent-300); box-shadow:0 1px 2px rgba(15,23,42,.06); }
+  /* THE SAP FRAME (10 Oct 2026): the drawings' title bar — no tint, no
+     sign — the body at 16/18 and the foot bar on its faint ground. */
+  .rvd-head{ display:flex; align-items:flex-start; gap:11px; padding:14px 18px 12px;
+    background:var(--color-surface); border-bottom:1px solid var(--color-divider); }
+  .rvd-ico{ display:none; }
   .rvd-htxt{ flex:1; min-width:0; }
-  .rvd-title{ font-family:var(--font-heading); font-weight:var(--w-strong); font-size:var(--t-section); margin:0;
-    line-height:1.3; color:var(--accent-ink); }
-  .rvd-sub{ font-size:var(--t-meta); line-height:1.55; margin:3px 0 0; color:var(--accent-ink);
-    opacity:.82; }
-  .rvd-body{ padding:15px 20px 2px; }
-  /* The actions sit on the quiet ground with a rule above them, so a dialog
-     ends on a shelf rather than trailing off. */
+  .rvd-title{ font-family:var(--font-heading); font-weight:var(--w-strong); font-size:16px; margin:0;
+    line-height:1.3; color:var(--color-text); }
+  .rvd-sub{ font-size:12.5px; line-height:1.45; margin:2px 0 0; color:var(--color-neutral-600); }
+  .rvd-body{ padding:16px 18px; }
   .rvd-foot{ display:flex; gap:var(--s-2); justify-content:flex-end; align-items:center;
-    padding:var(--s-3) 20px 14px; margin-top:14px; border-top:1px solid var(--color-divider);
-    background:var(--color-bg); }
+    padding:10px 18px; margin-top:0; border-top:1px solid var(--color-divider);
+    background:color-mix(in srgb, var(--color-bg) 55%, var(--color-surface)); }
   /* The one line a dialog ends on that is a FACT rather than a control — what
      the counterparty is told, what the reviewer will be looking at. */
   .rvd-note{ border:1px solid var(--st-steel-line); background:var(--st-steel-bg);
@@ -3261,10 +3354,10 @@
     color:var(--st-amber-fg); }
   .st-banner-ic{ flex:none; color:var(--st-amber-dot); display:inline-flex; margin-top:1px; }
   /* ---- the drawer ---- */
-  .st-scrim{ position:fixed; inset:0; background:rgba(15,23,42,.34);
+  .st-scrim{ position:fixed; inset:48px 0 0 0; background:rgba(15,23,42,.34);
     opacity:0; transition:opacity var(--dur-2); z-index:70; }
   .st-scrim.open{ opacity:1; }
-  .st-drawer{ position:fixed; top:0; right:0; bottom:0; width:min(560px,100vw);
+  .st-drawer{ position:fixed; top:48px; right:0; bottom:0; width:min(560px,100vw); --field-h:32px;
     display:flex; flex-direction:column; background:var(--surface-3);
     border-left:1px solid var(--color-divider); box-shadow:-18px 0 40px -22px rgba(15,23,42,.45);
     transform:translateX(100%); transition:transform var(--dur-2) ease; z-index:71; }
@@ -3278,12 +3371,27 @@
   .st-dhead{ position:relative; flex:none; }
   .st-dhead .rvd-head{ padding-right:44px; }
   .st-dx{ position:absolute; top:12px; right:12px; width:var(--ctl-h); height:var(--ctl-h); border-radius:var(--radius);
-    border:1px solid var(--color-accent-300); background:var(--color-surface); cursor:pointer;
-    display:grid; place-items:center; padding:0; line-height:1; color:var(--accent-ink); }
+    border:1px solid transparent; background:transparent; cursor:pointer;
+    display:grid; place-items:center; padding:0; line-height:1; color:var(--color-neutral-600); }
+  .st-dx:hover{ background:var(--color-neutral-100); color:var(--color-text); }
+  /* THE SAP DRAWER (10 Oct 2026, the person drawing): initials beside the
+     name, one info line, quiet section labels, no rules between sections,
+     two boxes side by side, the role as a switch. */
+  .st-dav{ flex:none; width:30px; height:30px; border-radius:var(--radius); display:grid; place-items:center;
+    background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface)); color:var(--accent-ink); font-size:11px; font-weight:var(--w-strong); }
+  .st-row2{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; }
+  .st-seg{ display:flex; border:1px solid var(--field-line); border-radius:var(--radius); overflow:hidden; height:30px; }
+  .st-seg-o{ flex:1; position:relative; display:grid; place-items:center; border-right:1px solid var(--field-line);
+    font-size:var(--t-body); font-weight:var(--w-label); color:var(--color-neutral-700); cursor:pointer; background:var(--color-surface); }
+  .st-seg-o:last-child{ border-right:0; }
+  .st-seg-o input{ position:absolute; opacity:0; pointer-events:none; }
+  .st-seg-o:has(input:checked){ background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface)); color:var(--accent-ink); font-weight:var(--w-strong); box-shadow:inset 0 -2px 0 var(--accent-fill); }
+  .st-seg-o:has(input:focus-visible){ outline:2px solid var(--accent-fill); outline-offset:-2px; }
+  .st-seg-o[data-locked]{ cursor:default; }
   .st-dx svg{ width:var(--btn-ic); height:var(--btn-ic); }
-  .st-dbody{ flex:1; min-height:0; overflow-y:auto; padding:15px 20px; }
+  .st-dbody{ flex:1; min-height:0; overflow-y:auto; padding:16px 18px; }
   .st-dfoot{ flex:none; display:flex; flex-direction:column; gap:9px;
-    padding:var(--s-3) 20px; border-top:1px solid var(--color-divider); background:var(--color-bg); }
+    padding:10px 18px; border-top:1px solid var(--color-divider); background:color-mix(in srgb, var(--color-bg) 55%, var(--color-surface)); }
   .st-dfoot-acts{ display:flex; gap:var(--s-2); justify-content:flex-end; align-items:center; }
   /* A REFUSAL IS SHOWN IN THE DRAWER, in words, never as a toast over the page
      behind it and never silently — and it sits in the FOOT beside the button it
@@ -3293,11 +3401,12 @@
   .st-refusal{ border:1px solid var(--st-ruby-line); background:var(--st-ruby-bg);
     color:var(--st-ruby-fg); border-radius:var(--radius); padding:9px var(--s-3);
     font-size:var(--t-meta); line-height:1.55; font-weight:var(--w-strong); }
-  .st-sum{background:var(--surface-2,var(--color-bg));border-radius:var(--radius)}
-.st-sum .st-sec-h{margin-bottom:6px}
-.st-sum-p{margin:0;font-size:var(--t-meta);line-height:1.6;color:var(--color-text)}
+  .st-sum{ display:flex; gap:10px; align-items:flex-start; padding:9px 12px; margin-bottom:16px; border-radius:var(--radius);
+    border:1px solid color-mix(in srgb, var(--accent-fill) 25%, transparent); background:color-mix(in srgb,var(--accent-fill) 10%,var(--color-surface)); color:var(--accent-ink); }
+  .st-sum svg{ flex:none; margin-top:2px; }
+.st-sum-p{margin:0;font-size:var(--t-body);line-height:1.5;color:inherit}
 .st-sec{ margin-bottom:18px; padding-bottom:2px; }
-  .st-sec + .st-sec{ border-top:1px solid var(--color-divider); padding-top:15px; }
+  .st-sec + .st-sec{ padding-top:2px; }
   /* ONE DISCLOSURE HOLDS EVERYTHING THIS PANEL CONFIGURES (owner-asked 9 Sep
      2026). Not a section — a door — so it takes the rule ABOVE it and none of
      .st-sec's own spacing, and the first section inside it must not draw a
@@ -3315,8 +3424,8 @@
     transition:transform var(--dur-1) var(--ease); }
   .st-adv[open] > .st-adv-sum::before{ transform:rotate(90deg); }
   .st-adv > .st-sec:first-of-type{ border-top:0; padding-top:0; margin-top:15px; }
-  .st-sec-h{ display:flex; align-items:center; gap:var(--s-2); font-family:var(--font-mono);
-    font-weight:var(--w-strong); font-size:var(--t-body); color:var(--color-text); margin:0 0 var(--s-2); }
+  .st-sec-h{ display:flex; align-items:center; gap:var(--s-2); font-family:var(--font-body);
+    font-weight:var(--w-label); font-size:12px; color:var(--color-neutral-600); margin:0 0 10px; }
   /* THE DRAWER'S SECTIONS ARE NOT STEPS (SAP pop-ups, owner's go 10 Oct 2026):
      the numbered circles read as a sequence to work through, which they are
      not; the plain heading says what the section is. Markup kept, not drawn. */

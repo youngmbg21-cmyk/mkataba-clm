@@ -202,7 +202,9 @@ describe('Share is two steps, and the summary travels', () => {
        three that were here are still here, in their order. */
     assert.deepEqual(picks.slice(0, 3), ['sign', 'negotiate', 'view']);
     assert.ok(picks.includes('advise'), 'and the adviser purpose is on the same row, not a door of its own');
-    assert.ok(m.$('#share-step-1').contains(m.$('#share-purpose')),
+    /* RE-POINTED, SAP pop-ups 10 Oct 2026: the row stands beside "Send by"
+       in the send form, still above the recipient and on the one screen. */
+    assert.ok(m.$('#share-purpose').compareDocumentPosition(m.$('#sh-email')) & 4,
       'and it is above the recipient, not behind a press');
   });
 

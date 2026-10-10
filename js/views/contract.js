@@ -1545,15 +1545,16 @@ function openUploadModal(){
   _up=null;
   openModal(`
     <div class="p-6">
+      ${''/* AS DRAWN (SAP pop-ups, 10 Oct 2026): the title in the dialog's
+             bar (it names the second step when the file has been read), the
+             drop area with its sign and the words "or choose a file", and the
+             way to several files on the foot's left. */}
+      <h2 id="up-title">${i18t('ct_add_received')}</h2>
       <div id="up-step-1">
-        ${''/* ONE TITLE, AT EVERY DIALOG'S SIZE (SAP pop-ups, 10 Oct 2026): this
-               head was a smaller display face with an upload sign beside it,
-               the only dialog dressed that way; the drop area below already
-               says what the dialog is for. */}
-        <h2 class="font-serif font-600 text-lg text-ink mb-3">${i18t('ct_add_received')}</h2>
-        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:2px dashed var(--color-accent);border-radius:var(--radius);background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
-          <div style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)">${i18t('ct_drop_here')}</div>
-          <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint',{max:uploadMaxLabel()})}</div>
+        <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:1px dashed var(--accent-fill);border-radius:var(--radius);background:color-mix(in srgb, var(--accent-fill) 6%, var(--color-surface));padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
+          <div style="color:var(--accent-ink);display:flex;justify-content:center;margin-bottom:10px">${icon('upload','w-5 h-5')}</div>
+          <div style="font-size:var(--t-body);font-weight:var(--w-strong);color:var(--color-text)">${i18t('ct_drop_or')} <span style="color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px">${i18t('ct_choose_file')}</span></div>
+          <div style="font-size:var(--t-label);color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint2',{max:uploadMaxLabel()})}</div>
         </div>
         <input id="up-file" type="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" class="hidden"/>
         <div id="up-steps" class="hidden" style="margin-top:var(--s-3)"></div>
@@ -1565,7 +1566,8 @@ function openUploadModal(){
                  one door, said plainly, and it carries the count the rail
                  door used to carry — imported contracts still waiting for a
                  person — only where there is one. */}
-          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_upload_several')}${
+          <span style="font-size:var(--t-label);color:var(--color-neutral-600)">${i18t('ct_several_q')}</span>
+          <button id="up-bulk" type="button" class="ui-link" title="${i18t('ct_bulk_importer')}">${i18t('ct_import_contracts_link')}${
             (()=>{ const n=(typeof navCounts==='function')?Number((navCounts()||{}).migration)||0:0;
               return n>0?` <span id="up-bulk-waiting" style="margin-left:4px;color:var(--st-amber-fg)">· ${esc(i18tn('ct_import_waiting',n,{n}))}</span>`:''; })()}</button>
           <span style="flex:1"></span>
@@ -1910,6 +1912,10 @@ async function runUploadPipeline(file){
     dataUrl:upload.dataUrl, fileHash:upload.fileHash, text:extractedText, textSource, word });
   s1.classList.add('hidden');
   s2.classList.remove('hidden');
+  /* The dialog's bar names the step now on screen; the step's own heading
+     steps aside so there is one title. */
+  { const t=document.getElementById('up-title'), h=s2.querySelector('h2');
+    if(t&&h){ t.textContent=h.textContent; (h.parentElement||h).hidden=true; } }
   bindFolderSelect(document.getElementById('up-folder'));
   wireUploadRoute();
   document.getElementById('up-go').addEventListener('click',submitUpload);
@@ -7071,10 +7077,12 @@ function openPartyEditor(c, id){
     ? { id:(typeof partyNewId==='function'?partyNewId():'py_'+Date.now()), name:'', role:'',
         address:'', email:'', side:PARTY_SIDE_THEIRS, involvement:PARTY_INVOLVEMENT_DEFAULT }
     : list[at];
-  const fld=(k,label,ph,val)=>`<label style="display:block;margin-bottom:var(--s-3)">
-      <span style="${HATI_LBL}">${esc(label)}</span>
-      <input id="py-${k}" type="text" style="${HATI_FLD}" value="${esc(val||'')}" placeholder="${esc(ph)}"/>
-    </label>`;
+  /* AS DRAWN (SAP pop-ups, 10 Oct 2026): the record under the title; the
+     registered name and the paper's word side by side; the address; what
+     they do as one bordered list of three; Remove (when editing) at the left
+     of the foot. Every id is kept. */
+  const fld=(k,label,ph,val,req)=>`<div class="sap-f"><label for="py-${k}">${esc(label)}${req?' <span class="sap-req">*</span>':''}</label>
+      <input id="py-${k}" type="text" style="${HATI_FLD}" value="${esc(val||'')}" placeholder="${esc(ph)}"/></div>`;
   /* ---- THE WORD THE PAPER USES IS PICKED, NOT TYPED FROM NOTHING (Young,
      22 Sep 2026) ----
      THE SAME SHAPE AS EVERY OTHER PICKER IN THE PRODUCT, and it is the value
@@ -7091,36 +7099,36 @@ function openPartyEditor(c, id){
   const roleSel=val=>{
     const opts=(typeof partyRoleOptions==='function')?partyRoleOptions(val):[];
     const cur=String(val||'').trim();
-    return `<label style="display:block;margin-bottom:var(--s-3)">
-      <span style="${HATI_LBL}">${esc(i18t('py_role'))}</span>
+    return `<div class="sap-f"><label for="py-role">${esc(i18t('py_role'))}</label>
       <select id="py-role" style="${HATI_FLD}">
         <option value="">${esc(i18t('wz_not_set'))}</option>
         ${opts.map(o=>`<option value="${esc(o.v)}"${o.v.toLowerCase()===cur.toLowerCase()?' selected':''}>${esc(o.l)}</option>`).join('')}
         <option value="${esc(PARTY_ROLE_OTHER)}">${esc(i18t('py_role_another'))}</option>
-      </select>
-    </label>`;
+      </select></div>`;
   };
-  const inv=PARTY_INVOLVEMENT.map(k=>`<label class="py-inv-row">
-      <input type="radio" name="py-inv" value="${esc(k)}"${k===p.involvement?' checked':''}/>
-      <span><b>${esc(i18t('py_inv_'+k))}</b><i>${esc(i18t('py_inv_'+k+'_s'))}</i></span>
+  const inv=PARTY_INVOLVEMENT.map(k=>`<label class="sap-li" style="align-items:flex-start">
+      <input type="radio" name="py-inv" value="${esc(k)}"${k===p.involvement?' checked':''} style="margin-top:3px;accent-color:var(--accent-fill)"/>
+      <span><span style="display:block;font-weight:var(--w-label)">${esc(i18t('py_inv_'+k))}</span><span class="sap-m">${esc(i18t('py_inv_'+k+'_s'))}</span></span>
     </label>`).join('');
   openModal(`
-    <div style="padding:var(--s-4) var(--s-4) var(--s-3)">
-      <h3 style="margin:0 0 var(--s-3);font-size:var(--t-section);font-weight:var(--w-title)">${
-        esc(adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'))}</h3>
-      ${fld('name',i18t('reg_col_counterparty'),i18t('py_name_ph'),p.name)}
-      ${roleSel(p.role)}
-      ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),(!adding&&p.side!==PARTY_SIDE_OURS)?ctTheirEmail(c,p.id):p.email)}
-      <div class="py-inv">${inv}</div>
-      <div id="py-say" class="py-say" hidden></div>
-    </div>
-    <div style="display:flex;gap:var(--s-2);align-items:center;padding:0 var(--s-4) var(--s-4)">
-      ${(!adding&&p.side!==PARTY_SIDE_OURS)?`<button type="button" class="ui-btn" id="py-del" style="color:var(--st-ruby-fg)">${
-        esc(i18t('py_remove'))}</button>`:''}
-      <span style="flex:1"></span>
-      <button data-dlg-cancel type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
-      <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t(adding?'py_add_go':'act_save'))}</button>
-    </div>`, { maxWidth: DLG_W.m });
+    <div style="padding:16px 18px">
+      <h3>${esc(adding?i18t('py_add').replace(/^\+\s*/,''):i18t('py_edit'))}</h3>
+      <p>${esc(((typeof contractRef==='function')?contractRef(c):c.id)+' \u00b7 '+(c.name||''))}</p>
+      <div class="sap-body">
+        <div class="sap-row">${fld('name',i18t('py_reg_name'),i18t('py_name_ph'),p.name,true)}${roleSel(p.role)}</div>
+        ${fld('email',i18t('ov_f_email'),i18t('py_email_ph'),(!adding&&p.side!==PARTY_SIDE_OURS)?ctTheirEmail(c,p.id):p.email)}
+        <div class="sap-f"><span class="sap-lbl">${esc(i18t('py_inv_q'))}</span>
+          <div class="sap-list py-inv">${inv}</div></div>
+        <div id="py-say" class="py-say" hidden></div>
+      </div>
+      <div style="display:flex;gap:var(--s-2);align-items:center">
+        ${(!adding&&p.side!==PARTY_SIDE_OURS)?`<button type="button" class="ui-btn" id="py-del" style="color:var(--st-ruby-fg)">${
+          esc(i18t('py_remove'))}</button>`:''}
+        <span style="flex:1"></span>
+        <button data-dlg-cancel type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
+        <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t(adding?'py_add_go':'act_save'))}</button>
+      </div>
+    </div>`, { maxWidth: '540px' });
 
   const say=m=>{ const el=document.getElementById('py-say'); if(!el) return;
     el.textContent=m||''; el.hidden=!m; };

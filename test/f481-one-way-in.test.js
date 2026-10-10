@@ -54,7 +54,9 @@ describe('f481 (1) importing is reached from the upload door', () => {
   });
   test('the upload door says it plainly, opens the importer and carries the waiting count', () => {
     const up = strip(fnBody(CT, 'openUploadModal'));
-    assert.match(up, /id="up-bulk"[^>]*>\$\{i18t\('ct_upload_several'\)\}/);
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the foot asks "Several
+       files?" and the door is named for the page it opens. */
+    assert.match(up, /id="up-bulk"[^>]*>\$\{i18t\('ct_import_contracts_link'\)\}/);
     assert.match(up, /navCounts\(\)\|\|\{\}\)\.migration/);
     assert.match(up, /getElementById\('up-bulk'\)\.addEventListener\('click',\(\)=>\{ closeModal\(\); setView\('migration'\); \}\)/);
   });

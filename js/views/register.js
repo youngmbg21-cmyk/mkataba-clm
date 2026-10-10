@@ -1395,7 +1395,7 @@ function regStageTabsWire(){
 }
 /* The two acts on saved views, shared by the box and the retired tabs. */
 async function regSaveViewAsk(){
-  const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view'),label:i18t('reg_save_view_label'),message:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
+  const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view'),label:i18t('reg_save_view_label'),help:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
   if(name==null||!String(name).trim()) return false;
   if(regSaveView(name)){ if(window.toast) toast(i18t('reg_view_saved',{name:String(name).trim()}),'ok'); return true; }
   if(window.toast) toast(i18t('reg_view_not_saved'),'warn');

@@ -538,29 +538,34 @@ function openLinkModal(c, onDone, opts={}){
   const candidates = state.contracts.filter(x=>x.id!==c.id && (mode==='child' ? !x.parentId : (!x.parentId||x.parentId===c.id)));
   openModal(`
     <div style="padding:20px 22px">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:6px"><span style="color:var(--color-accent)">${icon('link','w-4 h-4')}</span>
-        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${mode==='child'?i18t('fa_link_parent'):i18t('fa_link_existing')}</h3></div>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${mode==='child'
-        ? i18t('fa_link_parent_sub')
-        : `Attach an existing document to <b>${_famEsc(window.contractRef?contractRef(c):c.id)}</b> as an amendment. Families are one level deep: an amendment cannot itself have amendments.`}</p>
-      ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--st-steel-bg);border-radius:var(--radius);padding:9px 11px;margin-bottom:var(--s-3)">
+      ${''/* AS DRAWN (SAP pop-ups, 10 Oct 2026): the record under the title, a
+             search box with its sign over a list of choices, then how it
+             relates and the note side by side. */}
+      <h3>${mode==='child'?i18t('fa_link_parent'):i18t('fa_link_existing')}</h3>
+      <p>${_famEsc((window.contractRef?contractRef(c):c.id)+' \u00b7 '+(c.name||''))}</p>
+      <div class="sap-body">
+      ${suggested.length?`<div style="border:1px solid var(--color-divider);background:var(--color-accent-50);border-radius:var(--radius);padding:9px 11px">
         <div style="font-size:var(--t-label);font-weight:var(--w-strong);color:var(--accent-ink);margin-bottom:5px">${i18t('fa_hati_suggests')}</div>
         ${suggested.map(x=>`<label style="display:flex;align-items:flex-start;gap:var(--s-2);font-size:var(--t-meta);padding:3px 0;cursor:pointer">
           <input type="radio" name="lk-sug" value="${_famAttr(x.id)}" style="margin-top:3px;accent-color:var(--color-accent)"/>
           <span><b class="hati-ref">${_famEsc(window.contractRef?contractRef(x.c):x.id)}</b> ${_famEsc(x.c.name)}
           <span style="display:block;color:var(--color-neutral-600)">${_famEsc(x.why||'')}</span></span></label>`).join('')}
       </div>`:''}
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${mode==='child'?'Parent agreement':'Document to attach'}</span>
-        <input id="lk-search" placeholder="${i18t('fa_search_register')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>
-        <div id="lk-results" class="scroll-thin" style="max-height:180px;overflow-y:auto;border:1px solid var(--color-divider);border-top:0;border-radius:var(--radius)"></div></label>
-      <label style="display:block;margin-bottom:10px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('fa_relationship')}</span>${relSel}</label>
-      <label style="display:block;margin-bottom:14px"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);margin-bottom:var(--s-1)">${i18t('fa_note_optional')}</span>
-        <input id="lk-note" placeholder="${_famEsc(i18t('fa_ph_link_note'))}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
-      <div id="lk-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin-bottom:var(--s-2)"></div>
+      <div class="sap-f">
+        <div style="position:relative"><span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--color-neutral-600);display:flex">${icon('search','w-4 h-4')}</span>
+          <input id="lk-search" aria-label="${_famAttr(mode==='child'?i18t('fa_parent_agreement'):i18t('fa_doc_to_attach'))}" placeholder="${_famAttr(i18t('fa_search_register2'))}" style="${window.HATI_FLD||''};padding-left:32px"/></div>
+        <div id="lk-results" class="scroll-thin sap-list" style="max-height:240px;overflow-y:auto"></div></div>
+      <div class="sap-row">
+        <div class="sap-f"><label for="lk-rel">${i18t('fa_how_relates')}</label>${relSel}</div>
+        <div class="sap-f"><label for="lk-note">${i18t('fa_note_word')}</label>
+          <input id="lk-note" placeholder="${_famAttr(i18t('fa_optional'))}" style="${window.HATI_FLD||''}"/></div>
+      </div>
+      </div>
+      <div id="lk-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);margin:var(--s-2) 0 0"></div>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
         ${(mode==='child'&&suggested.length)?`<button id="lk-standalone" class="ui-btn">${i18t('fa_standalone')}</button>`:''}
         <button data-dlg-cancel id="lk-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="lk-save" class="ui-btn ui-btn-primary">${mode==='child'?'Link':'Attach'}</button>
+        <button id="lk-save" class="ui-btn ui-btn-primary">${mode==='child'?i18t('fa_link_go'):i18t('fa_attach_go')}</button>
       </div>
     </div>`, {maxWidth:'560px'});
 
@@ -569,10 +574,11 @@ function openLinkModal(c, onDone, opts={}){
   const draw=(q)=>{
     const t=String(q||'').toLowerCase();
     const list=candidates.filter(x=>!t || (x.name+' '+(x.counterparty||'')+' '+x.id+' '+(x.contractNo||'')).toLowerCase().includes(t)).slice(0,40);
-    results.innerHTML=list.length?list.map(x=>`<button type="button" data-lk-pick="${_famAttr(x.id)}" style="display:flex;width:100%;gap:var(--s-2);align-items:baseline;text-align:left;border:0;border-bottom:1px solid color-mix(in srgb,var(--color-text) 6%,transparent);background:${picked===x.id?'var(--color-accent-100)':'none'};padding:6px 9px;cursor:pointer;font:inherit;font-size:var(--t-meta)">
-        <b class="hati-ref" style="flex:none">${_famEsc(window.contractRef?contractRef(x):x.id)}</b>
-        <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${_famEsc(x.name)}</span>
-        <span style="flex:none;color:var(--color-neutral-600)">${_famEsc(x.counterparty||'')}</span></button>`).join('')
+    results.innerHTML=list.length?list.map(x=>`<label class="sap-li" data-lk-pick="${_famAttr(x.id)}" style="margin:0">
+        <input type="radio" name="lk-pick" value="${_famAttr(x.id)}"${picked===x.id?' checked':''} style="flex:none;accent-color:var(--accent-fill)"/>
+        <span class="hati-ref" style="flex:none;width:64px">${_famEsc(window.contractRef?contractRef(x):x.id)}</span>
+        <span style="flex:1;min-width:0"><span style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:var(--w-label)">${_famEsc(x.name)}</span>
+          <span class="sap-m" style="display:block">${_famEsc(x.counterparty||'')}</span></span></label>`).join('')
       :`<div style="padding:var(--s-2) 9px;font-size:var(--t-meta);color:var(--color-neutral-600)">${i18t('fa_no_matching')}</div>`;
     results.querySelectorAll('[data-lk-pick]').forEach(b=>b.addEventListener('click',()=>{ picked=b.getAttribute('data-lk-pick'); draw(document.getElementById('lk-search').value); }));
   };
@@ -1119,33 +1125,33 @@ function openCreateAmendmentModal(parent, onDone, opts){
   const relSel = () => `<select id="am-rel" style="${FLD}">${
     CONTRACT_RELATIONS.map(r=>`<option value="${r.k}" ${r.k===S.rel?'selected':''} title="${_famAttr(r.blurb)}">${_famEsc(r.label)}</option>`).join('')}</select>`;
   /* SAP's dialog (10 Oct 2026): a plain title, no sign beside it. */
-  const head = (t, sub) => `<div style="margin-bottom:6px">
-      <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${t}</h3></div>
-    ${sub?`<p style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:0 0 var(--s-3);line-height:1.55">${sub}</p>`:''}`;
+  const head = (t, sub) => `<h3>${t}</h3>${sub?`<p>${sub}</p>`:''}`;
   const endField = () => `<label style="display:block;margin:var(--s-3) 0 0"><span style="${LBL}">${i18t('fa_end_q')}</span>
       <input id="am-expiry" type="date" value="${_famAttr(S.expiry)}" style="${FLD};max-width:220px"/>
       <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:var(--s-1)">${i18t(TERM_CHANGING.has(S.rel)?'fa_end_hint':'fa_end_hint_kept')}</span></label>`;
-  const foot = inner => `<div id="am-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);min-height:15px;margin:var(--s-2) 0"></div>
+  const foot = inner => `<div id="am-err" style="font-size:var(--t-label);color:var(--st-ruby-fg);margin:var(--s-2) 0 0"></div>
     <div style="display:flex;align-items:center;justify-content:flex-end;gap:var(--s-2);flex-wrap:wrap">${inner}</div>`;
   function askPane(){
-    return `${head(i18t('fa_amend_title',{ref:`${_famEsc(ref)} ${_famEsc(parent.name||'')}`}), i18t(aiOn?'fa_amend_sub_ai':'fa_amend_sub'))}
-      <div class="am-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:var(--s-2)">${CHIPS.map(k=>
-        `<button type="button" data-am-chip="${k}" class="ui-btn ui-btn-sm" style="border-radius:999px">${_famEsc(i18t(k))}</button>`).join('')}</div>
-      <textarea id="am-note" rows="4" placeholder="${_famAttr(i18t('fa_amend_ph'))}" style="${FLD};width:100%;resize:vertical;line-height:1.5">${_famEsc(S.note)}</textarea>
-      ${''/* EACH FIELD ITS LABEL ABOVE IT, AND ROOM (SAP pop-ups, 10 Oct 2026):
-             Type and Name were squeezed into one small-print line and the name
-             was cut off. Two boxes side by side at the field's own size; the
-             foot carries Copilot's cost on its left, then the acts. */}
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:var(--s-3);margin-top:var(--s-3)">
-        <label style="display:block;min-width:0"><span style="${LBL}">${i18t('fa_type')}</span>${relSel()}</label>
-        <label style="display:block;min-width:0"><span style="${LBL}">${i18t('fa_name')}</span>
-          <input id="am-name" value="${_famAttr(S.name)}" style="${FLD}"/></label></div>
-      <p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:var(--s-2) 0 0">${i18t('fa_same_parties',{ref:_famEsc(ref)})}</p>
-      ${foot(`${aiOn?`<span style="font-size:var(--t-label);color:var(--color-neutral-600);margin-right:auto">✦ ${i18t('fa_ai_reads',{ref:_famEsc(ref)})}</span>`:'<span style="margin-right:auto"></span>'}
+    /* AS DRAWN (SAP pop-ups, 10 Oct 2026): the record and "same parties and
+       letterhead" under the title; WHAT SHOULD CHANGE as a row of choices;
+       the change in their own words; Type and Name side by side; Copilot's
+       read on the foot's left, then the acts. */
+    return `${head(i18t('fa_amend_title2',{ref:_famEsc(ref)}), i18t('fa_amend_sub2',{name:_famEsc(parent.name||'')}))}
+      <div class="sap-body">
+      <div class="sap-f"><span class="sap-lbl">${i18t('fa_what_change')}</span>
+        <div class="am-chips" style="display:flex;flex-wrap:wrap;gap:6px">${CHIPS.map(k=>
+        `<button type="button" data-am-chip="${k}" class="ui-btn am-chip" aria-pressed="false">${_famEsc(i18t(k))}</button>`).join('')}</div></div>
+      <div class="sap-f"><label for="am-note">${i18t('fa_own_words')}</label>
+        <textarea id="am-note" rows="3" placeholder="${_famAttr(i18t('fa_amend_ph'))}" style="${FLD};height:auto;min-height:64px;width:100%;resize:vertical;line-height:1.5">${_famEsc(S.note)}</textarea></div>
+      <div class="sap-row">
+        <div class="sap-f"><label for="am-rel">${i18t('fa_type')}</label>${relSel()}</div>
+        <div class="sap-f"><label for="am-name">${i18t('fa_name')}</label>
+          <input id="am-name" value="${_famAttr(S.name)}" style="${FLD}"/></div></div>
+      </div>
+      ${foot(`${aiOn?`<span style="font-size:var(--t-label);color:var(--color-neutral-600);margin-right:auto">✦ ${i18t('fa_ai_reads_finds',{ref:_famEsc(ref)})}</span>`:`<span style="font-size:var(--t-label);color:var(--color-neutral-600);margin-right:auto">${i18t('fa_ai_off')}</span>`}
         <button id="am-ai" class="ui-btn ui-btn-primary"${aiOn?'':' disabled'} title="${_famAttr(aiOn?'':i18t('fa_ai_off'))}">${i18t('fa_draft_with_copilot')}</button>
         <button id="am-blank" type="button" class="ui-btn">${i18t('fa_start_blank')}</button>
-        <button data-dlg-cancel id="am-cancel" class="ui-btn">${i18t('act_cancel')}</button>`)}
-      ${aiOn?'':`<p style="font-size:var(--t-label);color:var(--color-neutral-600);margin:6px 0 0;text-align:right">${i18t('fa_ai_off')}</p>`}`;
+        <button data-dlg-cancel id="am-cancel" class="ui-btn">${i18t('act_cancel')}</button>`)}`;
   }
   function itemRowHtml(it, i){
     const del = it.op === 'insert' ? '' : _famEsc(it.signed || '');
@@ -1222,6 +1228,7 @@ function openCreateAmendmentModal(parent, onDone, opts){
     $('am-rel')?.addEventListener('change',()=>{ S.rel=$('am-rel').value; if(!S.nameTouched){ S.name=amendmentDefaultName(parent,S.rel); const nm=$('am-name'); if(nm) nm.value=S.name; } });
     document.querySelectorAll('[data-am-chip]').forEach(b=>b.addEventListener('click',()=>{
       const t=$('am-note'); if(!t) return;
+      b.setAttribute('aria-pressed','true');
       const add=i18t(b.getAttribute('data-am-chip')+'_say');
       t.value=(t.value.trim()?t.value.trim()+' ':'')+add; t.focus();
       /* "Extend the term" makes this a renewal unless the reader chose otherwise. */

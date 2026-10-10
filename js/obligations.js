@@ -822,15 +822,15 @@ function openObligationForm(c, seed, opts){
       ${''/* SAP's dialog (10 Oct 2026): the record it is about, under the title;
               and WHOSE OBLIGATION first, because it decides what follows (the
               Assign-to box below only means anything for one of ours). */}
-      <div class="text-[12.5px] text-ink/60 mb-3">${_obEsc((window.contractRef?contractRef(c):c.id)+' · '+(c.name||''))}</div>
+      <p>${_obEsc((window.contractRef?contractRef(c):c.id)+' · '+(c.name||''))}</p>
       ${''/* WHOSE JOB, ASKED BEFORE WHO ON OUR SIDE. The two questions are not
               independent — "assign to" only means anything for an obligation
               that is ours — so the field that decides it comes first, and the
               one it governs is hidden when it does not apply. */}
-      <div class="mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_whose')}</span>
-        <div id="of-party" class="mt-1 grid grid-cols-2 gap-2">
+      <div class="mb-2.5"><span class="sap-lbl" style="display:block">${i18t('ob_whose')}</span>
+        <div id="of-party" class="sap-seg" style="margin-top:5px">
           ${OBLIG_PARTY.map(([k,l])=>{ const on=(seed.party==='theirs'?'theirs':'ours')===k;
-            return `<button type="button" data-of-party="${k}" class="rounded-lg border px-3 py-2 text-[12.5px] font-600 transition ${on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/70 hover:bg-slate-50'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
+            return `<button type="button" data-of-party="${k}" aria-pressed="${on?'true':'false'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
         </div></div>
 
       ${''/* ---- THE DESCRIPTION WRAPS ----
@@ -850,7 +850,7 @@ function openObligationForm(c, seed, opts){
               88vh ceiling keeps the dialog inside the size it is now, the
               condition the report attached to the fix. Past the cap the
               textarea scrolls, so a very long clause is still all reachable. */}
-      <label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_description')}</span>
+      <label class="block mb-2.5"><span class="sap-lbl" style="display:block">${i18t('ob_what_done')} <span class="sap-req">*</span></span>
         ${''/* Ampersand FIRST, then the angle bracket — the other order turns
                 the &lt; it just wrote into &amp;lt; and a clause about "Fees &
                 Charges" comes back reading its own source code. Escaped as
@@ -858,9 +858,9 @@ function openObligationForm(c, seed, opts){
                 moving from <input value=""> to <textarea> changes. */}
         <textarea id="of-desc" rows="3" class="of-desc mt-1 w-full rounded-lg border border-inputln bg-white px-3 py-2 text-sm outline-none focus:border-brand-500">${(seed.desc||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea></label>
       <div class="grid grid-cols-2 gap-3 mb-2.5">
-        <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_due_date')}</span>
+        <label class="block"><span class="sap-lbl" style="display:block">${i18t('ob_due_date')} <span class="sap-req">*</span></span>
           <input id="of-due" type="date" value="${seed.due||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
-        <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_recurring')}</span>
+        <label class="block"><span class="sap-lbl" style="display:block">${i18t('ob_recurring')}</span>
           <select id="of-recur" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500">${OBLIG_RECUR.map(([k])=>`<option value="${k}" ${seed.recurring===k?'selected':''}>${_obEsc(obRecurLabel(k))}</option>`).join('')}</select></label>
       </div>
       ${''/* ---- COMES AFTER: THE ONE DOOR ONTO THE ORDER (L-5) ----
@@ -878,7 +878,7 @@ function openObligationForm(c, seed, opts){
       ${(() => {
         const sibs = ((c && c.obligations) || []).filter(o => o && o.id && (seed._i == null || o !== (c.obligations || [])[seed._i]));
         if(!sibs.length) return '';
-        return `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_after')}</span>
+        return `<label class="block mb-2.5"><span class="sap-lbl" style="display:block">${i18t('ob_after')}</span>
           <select id="of-after" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500">
             <option value="">${_obEsc(i18t('ob_after_none'))}</option>
             ${sibs.map(o => `<option value="${_obEsc(o.id)}"${String(seed.after || '') === String(o.id) ? ' selected' : ''}>${_obEsc(o.desc || o.id)}</option>`).join('')}
@@ -896,6 +896,13 @@ function openObligationForm(c, seed, opts){
               DRAWN ON BOTH SIDES OF THAT TOGGLE: money they owe us matters as
               much as money we owe them, so it is not hidden with Assign to.
               NOT DRAWN AT ALL for a reader without the money permission. */}
+      <div class="sap-row" style="margin-bottom:10px">
+        ${obligationMoneyVisible() ? `<label class="block"><span class="sap-lbl" style="display:block">${i18t('ob_amount')}</span>
+        <span class="of-amt mt-1"><i>${_obEsc(typeof window.contractCurrency==='function'?contractCurrency(c):'')}</i><input id="of-amount" type="number" min="0" step="any" inputmode="decimal" value="${seed.amount!=null&&seed.amount!==''?String(seed.amount).replace(/"/g,'&quot;'):''}" placeholder="${_obEsc(i18t('ob_amount_ph'))}"/></span></label>` : ''}
+        <label id="of-assignee-wrap" class="block ${seed.party==='theirs'?'hidden':''}"><span class="sap-lbl" style="display:block">${i18t('ob_assign_to')}</span>
+        <input id="of-assignee" list="of-members" value="${(seed.assignee||'').replace(/"/g,'&quot;')}" placeholder="Team member" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/>
+        <datalist id="of-members">${members.map(m=>`<option value="${m}">`).join('')}</datalist></label>
+      </div>
       ${''/* ---- IS THIS A DOCUMENT THEY MUST HOLD? (S8) ----
               ONE DOOR, and it is this one: the dialog that already owns every
               other fact about an obligation. A second editor on the Overview
@@ -905,19 +912,13 @@ function openObligationForm(c, seed, opts){
               is a question with no answer. */}
       <label class="block mb-2.5" style="display:flex;align-items:center;gap:8px">
         <input id="of-isdoc" type="checkbox" ${obligationIsDoc(seed)?'checked':''} style="width:14px;height:14px;accent-color:var(--color-accent)"/>
-        <span class="text-[11px] font-600 text-ink/70">${_obEsc(i18t('ob_is_doc'))}</span></label>
+        <span class="sap-lbl" style="display:block">${_obEsc(i18t('ob_is_doc'))}</span></label>
       <div id="of-doc-wrap" class="grid grid-cols-2 gap-3 mb-2.5 ${obligationIsDoc(seed)?'':'hidden'}">
-        <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_doc_file')}</span>
+        <label class="block"><span class="sap-lbl" style="display:block">${i18t('ob_doc_file')}</span>
           <input id="of-doc-file" type="text" value="${((seed.doc&&seed.doc.file)||'').replace(/"/g,'&quot;')}" placeholder="${_obEsc(i18t('ob_doc_file_ph'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
-        <label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_doc_until')}</span>
+        <label class="block"><span class="sap-lbl" style="display:block">${i18t('ob_doc_until')}</span>
           <input id="of-doc-until" type="date" value="${(seed.doc&&seed.doc.until)||''}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
       </div>
-      ${obligationMoneyVisible() ? `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_amount')}</span>
-        <span class="of-amt mt-1"><i>${_obEsc(typeof window.contractCurrency==='function'?contractCurrency(c):'')}</i><input id="of-amount" type="number" min="0" step="any" inputmode="decimal" value="${seed.amount!=null&&seed.amount!==''?String(seed.amount).replace(/"/g,'&quot;'):''}" placeholder="${_obEsc(i18t('ob_amount_ph'))}"/></span>
-        <span class="block text-[11px] text-ink/55 mt-1">${_obEsc(i18t('ob_amount_hint'))}</span></label>` : ''}
-      <label id="of-assignee-wrap" class="block mb-4 ${seed.party==='theirs'?'hidden':''}"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_assign_to')}</span>
-        <input id="of-assignee" list="of-members" value="${(seed.assignee||'').replace(/"/g,'&quot;')}" placeholder="Team member" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/>
-        <datalist id="of-members">${members.map(m=>`<option value="${m}">`).join('')}</datalist></label>
       <p id="of-theirs-note" class="mb-4 text-[11px] text-ink/55 leading-relaxed ${seed.party==='theirs'?'':'hidden'}">This is something ${(c.counterparty||'the counterparty').replace(/</g,'&lt;')} owes. It appears on your calendar and dashboard as something to chase rather than something to do.</p>
       <div class="flex justify-end gap-2">
         <button data-dlg-cancel id="of-cancel" class="ui-btn">${_obEsc(opts.cancelLabel||i18t('act_cancel'))}</button>
@@ -928,7 +929,7 @@ function openObligationForm(c, seed, opts){
   const paintParty=()=>{
     document.querySelectorAll('[data-of-party]').forEach(b=>{
       const on=b.getAttribute('data-of-party')===party;
-      b.className=`rounded-lg border px-3 py-2 text-[12.5px] font-600 transition ${on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/70 hover:bg-slate-50'}`;
+      b.setAttribute('aria-pressed', on?'true':'false');
     });
     document.getElementById('of-assignee-wrap')?.classList.toggle('hidden', party==='theirs');
     document.getElementById('of-theirs-note')?.classList.toggle('hidden', party!=='theirs');

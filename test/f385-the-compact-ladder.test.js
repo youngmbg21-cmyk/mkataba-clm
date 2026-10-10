@@ -272,7 +272,9 @@ describe('f385 (7) a dialog\'s buttons stay in view while its body scrolls', () 
   test('the foot is found by what it is, and a dialog that names its own is left alone', () => {
     const fn = CORE.slice(CORE.indexOf('function dlgFootOf(panel){'), CORE.indexOf('function dlgPinFoot(panel){'));
     assert.match(fn, /classList\.contains\('ui-btn'\)/, 'a row that holds a button of the ladder');
-    assert.match(fn, /kids\.every\(k=>isBtn\(k\)\|\|quiet\(k\)\)/, 'and nothing but buttons');
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): a foot may open with one
+       short line of text (the amendment's, the upload's), still no field. */
+    assert.match(fn, /kids\.every\(k=>isBtn\(k\)\|\|quiet\(k\)\|\|said\(k\)\)/, 'and nothing but buttons and a short line');
     assert.match(fn, /textContent\.trim\(\)\) return null/, 'with nothing readable after it');
     const pin = CORE.slice(CORE.indexOf('function dlgPinFoot(panel){'), CORE.indexOf('function dlgPinFoot(panel){') + 1400);
     assert.match(pin, /if\(!panel\.querySelector\('\.dlg-foot'\)\)/);
