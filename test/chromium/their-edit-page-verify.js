@@ -279,23 +279,27 @@ const symbol = page => page.evaluate(() => {
      wait below asks for the STATE it needs, bounded; none is a fixed pause. */
   await until(page, () => !document.getElementById('pd-input') && !document.getElementById('confirm-overlay')
     && !document.querySelector('#clause-editor .ce-saved-tick'), null, 10000);
-  /* …and the caret is really in the clause's box before a key is pressed:
-     on the slow runner the stage's 10 Oct run typed while the box was not
-     yet taking keys ("the typed words never reached the box"), so the click
-     is made again until the box holds the caret — at most three presses. */
-  for (let i = 0; i < 3; i++){
+  /* …and the typed words really STAY in the clause's box, counted as unfiled.
+     MEASURED on GitHub's runner, 10 Oct 2026: the caret was in the box
+     (focus "ce-clausebody") yet the words were gone and nothing was unfiled —
+     a late repaint after the 3d save replaced the box after the keys landed.
+     So the stage clicks in and types again until the words hold, bounded at
+     three tries; a retry is SAID, because a repaint that wipes typing is
+     worth a person's eye (BUGLOG, "noticed, not fixed", 10 Oct 2026). */
+  let typedIn = false, tries = 0;
+  while (!typedIn && tries < 3){
+    tries++;
     await clickInto(page, /Late payments/);
-    if (await until(page, () => { const a = document.activeElement;
-      return !!(a && a.closest && a.closest('#ce-clausebody')); }, null, 4000)) break;
+    await until(page, () => { const a = document.activeElement;
+      return !!(a && a.closest && a.closest('#ce-clausebody')); }, null, 4000);
+    await page.keyboard.type(' Always.');
+    /* A WAIT ASKS FOR THE STATE, BOUNDED: the typed words are in the box and
+       the editor itself counts them as unfiled — the very reading the
+       column's guard asks before it raises the question. */
+    typedIn = await until(page, () => /Always\./.test((document.getElementById('ce-doc') || {}).textContent || '')
+      && ((window.ceBoxDirty && ceBoxDirty()) || (window.clauseEditorDirty && clauseEditorDirty())), null, 4000);
   }
-  await page.keyboard.type(' Always.');
-  /* A WAIT ASKS FOR THE STATE, BOUNDED: on a slow runner the press could land
-     before the typing counted as unfiled, and then there is rightly nothing
-     to ask about. Wait until the typed words are in the box. */
-  const typedIn = await until(page, () => /Always\./.test((document.getElementById('ce-doc') || {}).textContent || '')
-    /* …and the editor itself counts it as unfiled — the very reading the
-       column's guard asks before it raises the question */
-    && ((window.ceBoxDirty && ceBoxDirty()) || (window.clauseEditorDirty && clauseEditorDirty())), null, 10000);
+  if (tries > 1) console.log(`   note: the typing had to be made ${tries} times before it held in the box`);
   /* the press is made only on unfiled typing that is really in the clause's
      box — otherwise the stage, not the product, is what failed, and it says so */
   check('4 · stage: the typing is in the clause\u2019s box before the press', typedIn,
