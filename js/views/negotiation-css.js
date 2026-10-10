@@ -5148,7 +5148,14 @@ function redlineLayoutCss(){
          MEASUREMENT against the room's card, not derived: this box pads where
          the room's band does not. Pinned as a RELATION — the browser file
          measures the two heads against each other and fails if either moves. */}
-  .redline-page #ws-head{background:transparent;padding:var(--page-pad-t) 24px 0;margin:0;
+  ${''/* THE TITLE DOES NOT MOVE (owner, 10 Oct 2026: going Document ⇄
+         Negotiate "you should see no movement"). The room's title sits at the
+         band's 16px plus the head's own 2px; this head was 24px, so the title
+         and its quiet line jumped 6px sideways. The LEFT is the room's 18px;
+         the right keeps the band measure the working area lines up with
+         (nego-redesign 4). Pinned in negotiate-as-drawn-verify 3b (title and
+         line, x and y, against the Document tab). */}
+  .redline-page #ws-head{background:transparent;padding:var(--page-pad-t) var(--band-pad-x) 0 18px;margin:0;
     ${''/* THE ROW GAP IS THE ROOM'S OWN 6px. It was 0 while this head was one
            line and had no rows to space; with the crumb and the quiet line it
            has three, and zero here left the card 14px shorter than the room's

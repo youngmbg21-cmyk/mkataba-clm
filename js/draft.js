@@ -186,7 +186,7 @@ function openDraftFromSentence(){
     ${ready?'':`<p id="dr-nokey" style="font-size:var(--t-meta);color:var(--color-neutral-600);margin:10px 0 0;line-height:1.55">${i18t('dr_no_ai')}</p>`}
     <div id="dr-out" style="margin-top:12px"></div>
     <div style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-4)">
-      <button id="dr-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="dr-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <span style="flex:1"></span>
       <button id="dr-pick" class="ui-btn">${i18t('dr_pick_myself')}</button>
       ${ready?`<button id="dr-read" class="ui-btn ui-btn-primary">${i18t('dr_read_it')}</button>`:''}

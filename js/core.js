@@ -1124,9 +1124,12 @@ async function deleteContract(id){
   /* A SIGNATURE IS EVIDENCE (B4): the server refuses it too. */
   if(!contractDeletable(c)){ toast(i18t('co_signed_no_delete'),'err'); return false; }
   const label=(c.name||c.id).split(' —')[0];
-  if(!await confirmDialog({ title:`Delete “${c.name}”?`,
-      message:`This permanently removes ${(window.contractRef?contractRef(c):c.id)} and its history from the workspace. This cannot be undone.`,
-      confirmLabel:'Delete permanently', danger:true })) return false;
+  /* SAP's message box (10 Oct 2026): a short question for a title, the name
+     inside the sentence (a long name no longer squeezes the title), and one
+     verb on the button — the sentence already says it is for good. */
+  if(!await confirmDialog({ title:i18t('co_del_q'),
+      message:i18t('co_del_msg',{ name:c.name||c.id, ref:(window.contractRef?contractRef(c):c.id) }),
+      confirmLabel:i18t('co_del_go'), danger:true })) return false;
   if(API_MODE()){ try{ await api('contracts/'+id,'DELETE'); }catch(e){ toast(i18t('co_delete_failed')+e.message,'err'); return false; } }
   const idx=state.contracts.findIndex(x=>x.id===id);
   if(idx>=0) state.contracts.splice(idx,1);
@@ -1138,7 +1141,10 @@ async function deleteContract(id){
      caller repaints next is drawn from the figures after the delete, not before
      it (measured: the list said 29 rows "of 30 total"). */
   if(API_MODE() && window.refreshStats){ try{ await refreshStats(); }catch(_){} }
-  toast(`${label} deleted`,'err');
+  /* A DONE DELETE IS NEWS, NOT A FAILURE (SAP pop-ups, owner's go 10 Oct
+     2026): it was a red error toast, so a delete that worked read as one that
+     had not. The calm kind; red stays for the refusals above. */
+  toast(i18t('co_deleted',{ name:label }),'ok');
   return true;
 }
 /* ---- THE ARCHIVE SHELF (WO-5, WORKORDER-gap-map.md) ----
@@ -3049,6 +3055,7 @@ function dragDialog(panel, opts = {}){
   };
   const grabbable = e => {
     if (!dialogMayDrag()) return false;
+    if (panel.hasAttribute('data-dlg-page')) return false;   /* a page stays where pages are */
     const r = panel.getBoundingClientRect();
     if (!r.height) return false;
     if ((e.clientY - r.top) > DLG_GRAB_H || e.clientY < r.top) return false;
@@ -3380,6 +3387,168 @@ function selectMenuStandsDown(){
   return false;
 }
 const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' });
+/* ---- A POP-UP'S DROPDOWNS AND DATES WEAR HaTi'S CLOTHES (SAP pop-ups,
+   owner's go 10 Oct 2026) ----
+   SAP uses one control for one job everywhere. Inside a pop-up HaTi still
+   drew the browser's own closed select (its chevron, its padding) and the
+   browser's date box ("mm/dd/yyyy" in Chrome, a wheel in Safari), so the
+   same form looked different from the page behind it and from one browser
+   to the next. Opened, a select already draws HaTi's list (selectMenuWire);
+   this dresses the CLOSED box to match, and gives a date its own face and a
+   HaTi calendar. Both run from the dialog frame's one observer (dlgPinFoot)
+   and the Settings drawer, so every pop-up is dressed where it is painted.
+
+   NOTHING ABOUT A VALUE CHANGES. The real <input type="date"> stays in the
+   form, hidden, and keeps holding the ISO day every caller reads and writes;
+   a value written by code repaints the face (an instance setter), and a day
+   picked on the calendar fires 'input' and 'change' as typing would. The
+   phone keeps the system wheel, as selectMenuStandsDown says for lists. */
+function selectFaceDress(root){
+  if(!root || !root.querySelectorAll || selectMenuStandsDown()) return;
+  root.querySelectorAll(SELECT_MENU_SEL).forEach(sel=>{
+    if(sel.dataset.selFace==='1') return;
+    /* An invisible chip select (the register's filter chips) is a hit area,
+       not a box; it has no face to dress. */
+    if(getComputedStyle(sel).opacity==='0') return;
+    sel.dataset.selFace='1';
+    const st=sel.style;
+    st.appearance='none'; st.webkitAppearance='none';
+    /* THE CHEVRON IS DRAWN IN THE TEXT'S OWN INK — two gradients make the
+       small "v", so no new colour enters the census and dark mode is free. */
+    st.backgroundImage='linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%)';
+    st.backgroundPosition='calc(100% - 15px) 52%,calc(100% - 10px) 52%';
+    st.backgroundSize='5px 5px,5px 5px';
+    st.backgroundRepeat='no-repeat';
+    st.paddingRight='30px';
+  });
+}
+const DATE_PICK_SEL='input[type="date"]:not([data-native])';
+function datePickWords(iso){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso||''))) return '';
+  const d=new Date(iso+'T00:00:00'); if(isNaN(d)) return '';
+  try{ return d.toLocaleDateString((typeof langLocale==='function')?langLocale():'en-GB',{ day:'numeric', month:'short', year:'numeric' }); }
+  catch(_){ return iso; }
+}
+const _dpValue=(typeof HTMLInputElement!=='undefined')?Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value'):null;
+function datePickDress(root){
+  if(!root || !root.querySelectorAll || !_dpValue || selectMenuStandsDown()) return;
+  root.querySelectorAll(DATE_PICK_SEL).forEach(inp=>{
+    if(inp.dataset.dp==='1') return;
+    /* THE PAPER IS NOT FURNITURE: a blank drawn IN the contract (a field on
+       the sheet, the fill preview beside a form) keeps its own control — its
+       size is the paper's business, and the paper never grows for a face. */
+    if(inp.hasAttribute('data-field') || inp.classList.contains('field-date')
+      || (inp.closest && inp.closest('#tf-preview-left,[data-doc-body],.doc-sheet,.pg-sheet,.hati-field'))) return;
+    inp.dataset.dp='1';
+    const face=document.createElement('button');
+    face.type='button';
+    face.className='dp-face'+(inp.className?(' '+inp.className):'');
+    face.setAttribute('style',inp.getAttribute('style')||'');
+    face.setAttribute('aria-haspopup','dialog');
+    const lab=inp.id && root.querySelector(`label[for="${CSS.escape(inp.id)}"]`);
+    if(lab){ if(!lab.id) lab.id='dpl-'+inp.id; face.setAttribute('aria-labelledby',lab.id+' '+(face.id='dpf-'+inp.id));
+      lab.addEventListener('click',ev=>{ ev.preventDefault(); face.focus(); }); }
+    const paint=()=>{
+      const w=datePickWords(_dpValue.get.call(inp));
+      face.innerHTML=`<span class="dp-v${w?'':' dp-ph'}">${(w||i18t('dp_pick')).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]))}</span>${typeof icon==='function'?icon('calendar','dp-ic'):''}`;
+      face.disabled=!!inp.disabled;
+    };
+    Object.defineProperty(inp,'value',{ configurable:true,
+      get(){ return _dpValue.get.call(this); },
+      set(v){ _dpValue.set.call(this,v); paint(); } });
+    /* A caller that focuses the box after a refusal ("Due date is required")
+       lands on the face the reader can see. */
+    inp.focus=()=>face.focus();
+    inp.addEventListener('input',paint); inp.addEventListener('change',paint);
+    try{ new MutationObserver(paint).observe(inp,{ attributes:true, attributeFilter:['disabled'] }); }catch(_){}
+    /* Out of sight IN ITS OWN INLINE STYLE: the box was built with the
+       field's inline clothes (width, height), which no sheet rule outranks. */
+    inp.classList.add('dp-native'); inp.tabIndex=-1; inp.setAttribute('aria-hidden','true');
+    /* NOT DRAWN AT ALL. Lifted out (absolute) it was measured against a far
+       ancestor, past its own form (form-and-picker 1b); kept in flow at no
+       size it still broke the line and pushed the face down a row
+       (upload-party). display:none takes no room, and the box still holds
+       the value, takes code's writes and fires its events. */
+    inp.style.display='none';
+    inp.after(face);
+    face.addEventListener('click',()=>datePickOpen(inp,face));
+    face.addEventListener('keydown',ev=>{ if(ev.key==='ArrowDown'&&(ev.altKey||!ev.shiftKey)){ ev.preventDefault(); datePickOpen(inp,face); } });
+    paint();
+  });
+}
+let _dpPop=null;
+function datePickClose(back){
+  if(!_dpPop) return;
+  const p=_dpPop; _dpPop=null;
+  try{ p._off&&p._off(); }catch(_){}
+  p.remove();
+  if(back && p._face && p._face.isConnected) p._face.focus();
+}
+function datePickOpen(inp,face){
+  datePickClose(false);
+  const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const cur=_dpValue.get.call(inp);
+  const today=new Date(); today.setHours(0,0,0,0);
+  const min=inp.min||'', max=inp.max||'';
+  let focusDay=/^\d{4}-\d{2}-\d{2}$/.test(cur)?new Date(cur+'T00:00:00'):new Date(today);
+  const loc=(typeof langLocale==='function')?langLocale():'en-GB';
+  const pop=document.createElement('div');
+  pop.className='dp-pop'; pop.setAttribute('role','dialog'); pop.setAttribute('aria-label',i18t('dp_pick'));
+  pop.setAttribute('data-top-overlay','1');
+  pop._face=face;
+  const out=d=>{ const k=iso(d); return (min && k<min) || (max && k>max); };
+  const draw=()=>{
+    const y=focusDay.getFullYear(), m=focusDay.getMonth();
+    const first=new Date(y,m,1), start=new Date(first); start.setDate(1-((first.getDay()+6)%7));
+    let head=''; for(let i=0;i<7;i++){ const d=new Date(2024,0,1+i); head+=`<span class="dp-dow">${d.toLocaleDateString(loc,{weekday:'narrow'})}</span>`; }
+    let days='';
+    for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); const k=iso(d);
+      const cls=['dp-day']; if(d.getMonth()!==m) cls.push('dp-other'); if(k===cur) cls.push('is-on'); if(k===iso(today)) cls.push('is-today');
+      days+=`<button type="button" class="${cls.join(' ')}" data-dp-day="${k}" tabindex="${k===iso(focusDay)?0:-1}"${out(d)?' disabled':''}>${d.getDate()}</button>`; }
+    pop.innerHTML=`<div class="dp-head"><button type="button" class="dp-nav" data-dp-m="-1" aria-label="${i18t('dp_prev')}">‹</button>
+      <span class="dp-title">${first.toLocaleDateString(loc,{month:'long',year:'numeric'})}</span>
+      <button type="button" class="dp-nav" data-dp-m="1" aria-label="${i18t('dp_next')}">›</button></div>
+      <div class="dp-grid">${head}${days}</div>
+      <div class="dp-foot"><button type="button" class="ui-link" data-dp-today${out(today)?' disabled':''}>${i18t('cal_today')}</button>${inp.required?'':`<button type="button" class="ui-link" data-dp-clear>${i18t('dp_clear')}</button>`}</div>`;
+  };
+  const pick=k=>{ inp.value=k; inp.dispatchEvent(new Event('input',{bubbles:true})); inp.dispatchEvent(new Event('change',{bubbles:true})); datePickClose(true); };
+  const focusNow=()=>{ const b=pop.querySelector(`[data-dp-day="${iso(focusDay)}"]`); if(b) b.focus(); };
+  draw();
+  document.body.appendChild(pop);
+  const place=()=>{ const r=face.getBoundingClientRect(), h=pop.offsetHeight, w=pop.offsetWidth;
+    const below=window.innerHeight-r.bottom>=h+8;
+    pop.style.top=Math.max(8,below?r.bottom+4:r.top-h-4)+'px';
+    pop.style.left=Math.max(8,Math.min(r.left,window.innerWidth-w-8))+'px'; };
+  place(); focusNow();
+  pop.addEventListener('click',ev=>{
+    const d=ev.target.closest('[data-dp-day]'); if(d && !d.disabled){ pick(d.dataset.dpDay); return; }
+    const n=ev.target.closest('[data-dp-m]'); if(n){ focusDay.setDate(1); focusDay.setMonth(focusDay.getMonth()+Number(n.dataset.dpM)); draw(); place(); focusNow(); return; }
+    if(ev.target.closest('[data-dp-today]')){ pick(iso(today)); return; }
+    if(ev.target.closest('[data-dp-clear]')){ pick(''); }
+  });
+  pop.addEventListener('keydown',ev=>{
+    const step={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[ev.key];
+    if(ev.key==='Escape'){ ev.preventDefault(); ev.stopPropagation(); datePickClose(true); return; }
+    if(step && ev.target.closest('[data-dp-day]')){ ev.preventDefault(); focusDay.setDate(focusDay.getDate()+step); draw(); focusNow(); return; }
+    if(ev.key==='PageUp'||ev.key==='PageDown'){ ev.preventDefault(); focusDay.setMonth(focusDay.getMonth()+(ev.key==='PageUp'?-1:1)); draw(); focusNow(); }
+    if(ev.key==='Tab'){ /* the calendar is a small trap: Tab walks its own buttons */
+      const all=[...pop.querySelectorAll('button:not([disabled])')].filter(b=>b.tabIndex!==-1||b===document.activeElement);
+      const i=all.indexOf(document.activeElement); if(i<0) return; ev.preventDefault();
+      all[(i+(ev.shiftKey?-1:1)+all.length)%all.length].focus(); }
+  });
+  const away=ev=>{ if(!pop.contains(ev.target) && ev.target!==face && !face.contains(ev.target)) datePickClose(false); };
+  const esc=ev=>{ if(ev.key==='Escape' && _dpPop===pop){ ev.preventDefault(); ev.stopImmediatePropagation(); datePickClose(true); } };
+  document.addEventListener('pointerdown',away,true);
+  document.addEventListener('keydown',esc,true);
+  window.addEventListener('resize',place);
+  pop._off=()=>{ document.removeEventListener('pointerdown',away,true); document.removeEventListener('keydown',esc,true); window.removeEventListener('resize',place); };
+  _dpPop=pop;
+}
+/* ONE CALL DRESSES A POP-UP: its closed dropdowns and its dates. */
+function popupControlsDress(root){
+  try{ selectFaceDress(root); }catch(_){}
+  try{ datePickDress(root); }catch(_){}
+}
   /* ---- A BIT OF COLOUR ON THE FRAME (Young ruled 21 Sep 2026: "add a bit of
      color on pop ups that are completely bland") ----
      A 3px accent rule across the top of the dialog, and NOTHING ELSE. It is
@@ -3395,6 +3564,49 @@ const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' })
      here, and a stylesheet rule would lose to it while looking correct.
      `--dlg-topbar` is the one declaration, so all three frames say it once. */
   const DLG_TOPBAR = t => `background:linear-gradient(${t},${t}) top left/100% 3px no-repeat, var(--color-surface);`;
+/* ---- BIG WORK GETS A PAGE, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct
+   2026: "build them anyway") ----
+   SAP keeps dialogs small; work with a whole document or many questions has
+   a page of its own. openModal(html, { page:{ acts:[ids], crumb } }) draws
+   the SAME markup as a page: it fills the work area under the top bar and
+   beside the menu (measured off #content-scroll), no scrim, no card, the
+   page ground behind it; the dialog's title and the buttons named in `acts`
+   move into a white head band at the TOP (the owner's rule: doors at the top,
+   as on the Contracts page), and the rest scrolls under it.
+   NOTHING ELSE CHANGES: the caller's ids, listeners, Escape and its "Discard
+   these changes?" guard are the dialog's own, so every caller keeps working
+   and a page that cannot be measured (a stage with no shell) is simply the
+   full window. */
+function dlgPageAdopt(root, panel, page){
+  const frame=panel.parentElement, scrim=root.querySelector('#modal-scrim');
+  if(scrim) scrim.style.display='none';
+  const place=()=>{
+    if(!frame.isConnected){ window.removeEventListener('resize',place); return; }
+    /* Under the top bar, beside the menu: the bar's bottom edge and the work
+       column's left edge (a page head above the work column is covered). */
+    const cs=document.getElementById('content-scroll'), bar=document.getElementById('top-header');
+    const r=cs&&cs.getClientRects().length ? cs.getBoundingClientRect() : { left:0, top:0 };
+    const top=bar&&bar.getClientRects().length ? bar.getBoundingClientRect().bottom : r.top;
+    frame.style.cssText=`position:fixed;top:${Math.round(top)}px;left:${Math.round(r.left)}px;right:0;bottom:0;z-index:70;display:flex;`;
+  };
+  place(); window.addEventListener('resize',place);
+  panel.setAttribute('data-dlg-page','');
+  Object.assign(panel.style,{ width:'100%', maxWidth:'none', height:'100%', maxHeight:'none', borderRadius:'0',
+    boxShadow:'none', border:'0', background:'var(--color-bg)', overflow:'hidden', display:'flex', flexDirection:'column' });
+  const body=document.createElement('div');
+  body.className='dlg-pg-body scroll-thin';
+  while(panel.firstChild) body.appendChild(panel.firstChild);
+  const head=document.createElement('div');
+  head.className='dlg-pg-head';
+  head.innerHTML=`${page.crumb?`<div class="dlg-pg-crumb"></div>`:''}<div class="dlg-pg-row"><div class="dlg-pg-title"></div><div class="dlg-pg-acts"></div></div>${page.under?'<div class="dlg-pg-under"></div>':''}`;
+  if(page.crumb) head.querySelector('.dlg-pg-crumb').textContent=page.crumb;
+  const h=body.querySelector('h1,h2,h3');
+  if(h){ const t=head.querySelector('.dlg-pg-title'); h.style.margin='0'; t.appendChild(h); }
+  const acts=head.querySelector('.dlg-pg-acts');
+  (page.acts||[]).forEach(id=>{ const b=body.querySelector('#'+CSS.escape(id)); if(b) acts.appendChild(b); });
+  if(page.under){ const u=body.querySelector(page.under); if(u) head.querySelector('.dlg-pg-under').appendChild(u); }
+  panel.appendChild(head); panel.appendChild(body);
+}
 function openModal(html, opts={}){
   const root=document.getElementById('modal-root');
   /* ONE DIALOG REPLACING ANOTHER KEEPS THE FIRST ONE'S OPENER (26 Sep 2026,
@@ -3450,6 +3662,7 @@ function openModal(html, opts={}){
      behind. See dragDialog above for the rules it keeps. */
   if(_modalDrag){ try{ _modalDrag(); }catch(e){} _modalDrag=null; }
   if(_modalPin){ try{ _modalPin(); }catch(e){} _modalPin=null; }
+  if(panel && opts.page) dlgPageAdopt(root, panel, opts.page);
   if(panel){ _modalOpener = opener; _modalRelease = trapFocus(panel, { opener });
     _modalDrag = (typeof dragDialog==='function') ? dragDialog(panel) : null;
     /* A panel given a height runs its own layout and its own scroller. */
@@ -3536,6 +3749,15 @@ function dlgPinFoot(panel){
   let queued=false;
   const paint=()=>{ queued=false;
     if(!panel.isConnected) return;
+    /* CANCEL LAST, IN THE DOM TOO (SAP pop-ups, 10 Oct 2026): the sheet
+       draws a marked Cancel last; moving it keeps Tab order the same as the
+       picture. Idempotent — a Cancel already last is left where it is, so the
+       observer's own mutation settles at once. */
+    popupControlsDress(panel);
+    panel.querySelectorAll('[data-dlg-cancel]').forEach(b=>{
+      const row=b.parentElement; if(!row) return;
+      if(row.lastElementChild!==b) row.appendChild(b);
+    });
     if(!panel.querySelector('.dlg-foot')){
       const was=panel.querySelector('[data-dlg-foot]'), foot=dlgFootOf(panel);
       if(was && was!==foot) was.removeAttribute('data-dlg-foot');
@@ -3659,8 +3881,8 @@ function confirmDialog(opts={}){
         </div>
         ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-4);padding-left:46px${opts.multiline?';white-space:pre-line':''}">${esc(message)}</p>`:''}
         <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-          ${cancelLabel?`<button id="cf-cancel" class="ui-btn">${esc(cancelLabel)}</button>`:''}
           <button id="cf-ok" class="ui-btn" style="background:${btnBg};border-color:${btnBg};color:${btnFg}">${esc(confirmLabel)}</button>
+          ${cancelLabel?`<button id="cf-cancel" class="ui-btn" data-dlg-cancel>${esc(cancelLabel)}</button>`:''}
         </div>
       </div>`;
     document.body.appendChild(ov);
@@ -3716,6 +3938,8 @@ function promptDialog(opts={}){
   const placeholder=opts.placeholder||'';
   const confirmLabel=opts.confirmLabel||i18t('act_ok');   /* see confirmDialog above */
   const cancelLabel=opts.cancelLabel||i18t('act_cancel');
+  const danger=!!opts.danger;
+  const inset=danger?'46px':'0';
   const esc=s=>String(s==null?'':s).replace(/[&<>]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[ch]));
   return new Promise(resolve=>{
     /* Replaced, the earlier question is answered "cancelled" — see
@@ -3728,13 +3952,18 @@ function promptDialog(opts={}){
     ov.style.cssText='position:fixed;inset:0;z-index:92;display:grid;place-items:center;padding:var(--s-4)';
     ov.innerHTML=`
       <div style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 35%,transparent)"></div>
-      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;${DLG_TOPBAR('var(--accent-fill)')}border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
+      <div class="modal-in" role="dialog" aria-modal="true" style="position:relative;width:100%;max-width:30rem;${DLG_TOPBAR(danger?'var(--danger)':'var(--accent-fill)')}border:1px solid var(--color-divider);box-shadow:var(--shadow-lg);border-radius:var(--radius-lg);padding:22px var(--s-6)">
+        ${''/* SAP: A PLAIN DIALOG CARRIES NO SIGN (10 Oct 2026). The pencil said
+               nothing a text box does not; a question that ENDS something
+               (opts.danger — decline, refuse) wears the warning sign and a red
+               act, as the "are you sure?" box does. Without a sign the text
+               starts at the dialog's own edge. */}
         <div style="display:flex;align-items:flex-start;gap:var(--s-3);margin-bottom:${message?'6px':'12px'}">
-          <span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--st-steel-bg);color:var(--st-steel-fg)">${icon('pencil','w-4 h-4')}</span>
-          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;padding-top:5px">${esc(title)}</h3>
+          ${danger?`<span style="width:34px;height:34px;flex:none;display:grid;place-items:center;border-radius:var(--radius);background:var(--red-tint,rgba(176,69,60,.1));color:var(--danger)">${icon('alert','w-4 h-4')}</span>`:''}
+          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-section);margin:0;line-height:1.3;${danger?'padding-top:5px':''}">${esc(title)}</h3>
         </div>
-        ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-3);padding-left:46px">${esc(message)}</p>`:''}
-        <div style="padding-left:46px">
+        ${message?`<p style="font-size:var(--t-body);color:var(--color-neutral-700);line-height:1.55;margin:0 0 var(--s-3);padding-left:${inset}">${esc(message)}</p>`:''}
+        <div style="padding-left:${inset}">
           ${label?`<label for="pd-input" style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1)">${esc(label)}</label>`:''}
           ${opts.multiline
             ? /* A REASON IS NOT A ONE-LINE ANSWER. box-sizing so the padding
@@ -3748,8 +3977,8 @@ function promptDialog(opts={}){
             : `<input id="pd-input" type="text" value="${esc(opts.value).replace(/"/g,'&quot;')}" placeholder="${esc(placeholder).replace(/"/g,'&quot;')}"
                  style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);font:inherit;outline:none;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/>`}
           <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:14px">
-            <button id="pd-cancel" class="ui-btn">${esc(cancelLabel)}</button>
-            <button id="pd-ok" class="ui-btn ui-btn-primary">${esc(confirmLabel)}</button>
+            <button id="pd-ok" class="ui-btn${danger?'':' ui-btn-primary'}"${danger?' style="background:var(--danger);border-color:var(--danger);color:#fff"':''}>${esc(confirmLabel)}</button>
+            <button id="pd-cancel" class="ui-btn" data-dlg-cancel>${esc(cancelLabel)}</button>
           </div>
         </div>
       </div>`;
@@ -4456,7 +4685,7 @@ function shareKindStepHtml(c, sel, o={}){
       <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">${i18t('co_one_question')}</p>
       ${shareKindOptionsHtml(c, sel)}
       <div class="dlg-foot">
-        <button id="share-close-kind" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="share-close-kind" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="share-kind-next" class="ui-btn ui-btn-primary">${i18t('act_next')}${icon('chevR','w-3.5 h-3.5')}</button>
       </div>
     </div>`;
@@ -4810,7 +5039,7 @@ function shareSummaryStepHtml(c, opts={}){
       ${opts.oneScreen ? `<div style="margin:-6px 0 14px"><button type="button" id="share-other" class="ui-link">${i18t('co_send_something_else')}</button></div>${purposeBlock}`
       : `<div class="dlg-foot">
         <button id="share-back-kind" class="ui-btn">${icon('arrowLeft','w-3.5 h-3.5')}Back</button>
-        <button id="share-close-1" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="share-close-1" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="share-next" class="ui-btn ui-btn-primary">${i18t('act_next')}${icon('chevR','w-3.5 h-3.5')}</button>
       </div>`}
     </div>`;
@@ -4957,7 +5186,14 @@ function readinessPanelHtml(c, o={}){
   return `<div id="share-readiness" style="margin:0 0 var(--s-3);border:1px solid ${tone.line};background:${tone.bg};border-radius:var(--radius);padding:10px var(--s-3);">
     <div style="display:flex;align-items:center;gap:6px;font-size:var(--t-meta);font-weight:var(--w-strong);color:${tone.fg};margin-bottom:6px;">${icon('alert','w-3.5 h-3.5')} ${tone.head}</div>
     ${blocks.length?list(blocks,tone.fg):''}
-    ${notes.length?`<div style="${blocks.length?'margin-top:9px;padding-top:var(--s-2);border-top:1px solid '+tone.line+';':''}">
+    ${''/* SAYS IT ONCE (SAP pop-ups, owner's go 10 Oct 2026): on the Send
+           screen (o.fold) the strip says the BLOCKER; the notes beside it wait
+           behind one counted line, opened on a press, instead of a second list
+           read in the same red box. Elsewhere the list reads as it did. */}
+    ${notes.length && blocks.length && o.fold?`<details id="share-readiness-more" style="margin-top:9px;padding-top:var(--s-2);border-top:1px solid ${tone.line}">
+      <summary style="cursor:pointer;font-size:var(--t-meta);font-weight:var(--w-strong);color:var(--color-neutral-700)">${i18tn('co_worth_checking_n', notes.length, { n:notes.length })}</summary>
+      <div style="margin-top:var(--s-1)">${list(notes,'var(--color-neutral-700)')}</div></details>`
+    : notes.length?`<div style="${blocks.length?'margin-top:9px;padding-top:var(--s-2);border-top:1px solid '+tone.line+';':''}">
       ${blocks.length?`<div style="font-size:var(--t-micro);font-weight:var(--w-title);color:var(--color-neutral-600);margin-bottom:var(--s-1)">${i18t('co_also_worth_knowing')}</div>`:''}
       ${list(notes,blocks.length?'var(--color-neutral-700)':tone.fg)}
     </div>`:''}
@@ -5001,7 +5237,7 @@ function quickSendStepHtml(c, pre, purpose, warns){
     <div style="margin-top:10px;display:flex;align-items:center;gap:var(--s-2);">
       <button id="qs-details" class="ui-btn" title="${i18t('co_full_form')}">${i18t('co_change_details')}${(typeof icon==='function')?icon('chevD','w-3.5 h-3.5'):''}</button>
       <span style="flex:1"></span>
-      <button id="qs-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="qs-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="qs-send" class="ui-btn ui-btn-primary">${icon('send','w-3.5 h-3.5')} ${i18t('co_send_it')}</button>
     </div>
   </div>`;
@@ -6789,7 +7025,7 @@ async function openShareModal(c, opts={}){
              once a result is on the screen (resultBox). */}
       <div class="dlg-foot">
         <button id="share-back" class="ui-btn hidden">${icon('arrowLeft','w-3.5 h-3.5')}Back</button>
-        <button id="share-close" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="share-close" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="share-send" class="ui-btn ui-btn-primary"${o.opening?' disabled':''}>${icon('send','w-3.5 h-3.5')} <span id="sh-send-lbl">${i18t('co_send_by_email')}</span></button>
       </div>
       </div>
@@ -8075,27 +8311,43 @@ async function refreshWaitingQuestions(){
 }
 
 function openImportModal(c){
+  /* ---- TWO WAYS IN, TWO TABS, THE BUTTONS LAST (SAP pop-ups, owner's go
+     10 Oct 2026) ----
+     The pasted code and the marked-up Word file were one above the other with
+     the dialog's buttons BETWEEN them, so "Or upload the marked-up Word file"
+     sat below Cancel and Import. They are two tabs now (SAP's segmented
+     button), the foot is the last thing in the dialog, and Import shows on
+     the code's tab only — a Word file is read the moment it is chosen. */
+  const tabBtn=(k,t,on)=>`<button type="button" data-imp-tab="${k}" role="tab" aria-selected="${on}" class="imp-tab${on?' on':''}">${t}</button>`;
   openModal(`
     <div style="padding:22px var(--s-6);">
-      <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1);"><span style="display:inline-flex;color:var(--color-accent);">${icon('upload')}</span>
-        <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0;">${i18t('co_import_cp_response')}</h2></div>
-      <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-3);line-height:1.55;">${i18t('co_paste_response_code')}</p>
-      <textarea id="imp-code" rows="5" placeholder="${i18t('co_paste_response')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:11px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
-      <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
-        <button id="imp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-        <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
+      <h2 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:18px;color:var(--color-text);margin:0 0 var(--s-3);">${i18t('co_import_cp_response')}</h2>
+      <div class="imp-tabs" role="tablist">${tabBtn('code',i18t('imp_tab_code'),true)}${tabBtn('word',i18t('imp_tab_word'),false)}</div>
+      <div data-imp-pane="code">
+        <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:var(--s-3) 0 var(--s-2);line-height:1.55;">${i18t('co_paste_response_code')}</p>
+        <textarea id="imp-code" rows="5" placeholder="${i18t('co_paste_response')}" style="width:100%;border:1px solid var(--color-divider);background:var(--color-bg);border-radius:var(--radius);padding:11px;font-size:var(--t-label);font-family:var(--font-mono);color:var(--color-text);outline:none;"></textarea>
       </div>
-      <div style="margin-top:var(--s-4);padding-top:14px;border-top:1px solid var(--color-divider);">
+      <div data-imp-pane="word" hidden>
         ${''/* HALF A SENTENCE IN EACH LANGUAGE, until 13 Aug 2026: the opening
                was translated and everything after it was hardcoded English, so
                a Swedish reader read "Eller ladda upp den markerade Word-filen
                they sent back. Their tracked changes are…". The tail is
                co_upload_word_tail now and reads on from the bold opening. */}
-        <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:0 0 var(--s-2);line-height:1.55;"><b>${i18t('co_or_upload_word')}</b> ${i18t('co_upload_word_tail')}</p>
+        <p style="font-size:var(--t-meta);color:var(--color-neutral-700);margin:var(--s-3) 0 var(--s-2);line-height:1.55;"><b>${i18t('co_or_upload_word')}</b> ${i18t('co_upload_word_tail')}</p>
         <input id="imp-docx" type="file" accept=".docx" style="width:100%;font-size:var(--t-meta);color:var(--color-text);"/>
         <div id="imp-docx-note" style="margin-top:7px;font-size:var(--t-label);color:var(--color-neutral-600);"></div>
       </div>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:var(--s-2);justify-content:flex-end;">
+        <button id="imp-go" class="ui-btn ui-btn-primary">${i18t('co_import')}</button>
+        <button data-dlg-cancel id="imp-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      </div>
     </div>`);
+  document.querySelectorAll('[data-imp-tab]').forEach(b=>b.addEventListener('click',()=>{
+    const k=b.getAttribute('data-imp-tab');
+    document.querySelectorAll('[data-imp-tab]').forEach(x=>{ const on=x===b; x.classList.toggle('on',on); x.setAttribute('aria-selected',String(on)); });
+    document.querySelectorAll('[data-imp-pane]').forEach(p=>{ p.hidden=p.getAttribute('data-imp-pane')!==k; });
+    const go=document.getElementById('imp-go'); if(go) go.hidden=k!=='code';
+  }));
   document.getElementById('imp-cancel').addEventListener('click',closeModal);
   document.getElementById('imp-go').addEventListener('click',async()=>{
     const ok=await applyResponse(c, b64d(fval('imp-code')));
@@ -9133,4 +9385,4 @@ const END_STATES = [
 const endStateSays = k => { const x = END_STATES.find(e => e.k === k); return x ? x.says : ''; };
 Object.assign(window,{END_STATES,endStateSays});
 
-Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});
+Object.assign(window,{respPartyId,sharePartyBoxHtml,sharePartyPick,cpReadyToSign,cpAcceptedWording,READY_META,READY_META_SHORT,nextWorkingId,HANDOVER_META,HANDOVER_META_SHORT,HANDOVER_SIGNED_META,HANDOVER_SIGNED_META_SHORT,handoverWaitWords,contractOwnerStamp,contractOwnerName,contractOwnedBy,_repairOwner,_repairMetadata,contractExpired,contractStage,contractStatusChip,contractStatusTextHtml,contractStatusMeta,contractStatusDotHtml,contractPartiallySigned,EXPIRED_META,PARTIAL_META,cachedShares,sharesKnown,ensureSharesCached,cachedSignerNotices,counterpartyContact,shareIsStanding,standingShares,shareKindOf,standingNegotiation,answerableNegotiation,reachTake,roundHandedOver,resendRoundFresh,roundTurnMail,standingShareFor,reshareStrandedLine,DEFAULT_APPROVAL,SHARE_PURPOSE,defaultSharePurpose,SHARE_PURPOSE_COPY,sharePurposePickerHtml,linkCodeCfg,saveLinkCodeCfg,LINK_CODE_DEFAULT,shareAdviseBlockHtml,ADVISE_LINK_DAYS,shareSummaryStepHtml,shareSendExtras,shareNoteBoxHtml,shareSignerPickHtml,shareSignerRowsHtml,shareNeedsSigners,applyNegoDecisions,applyNegoProposals,applyNegoWithdrawals,negoTurnBack,refreshWaitingQuestions,questionCount,questionDot,emailOff,emailHealth,emailFailing,emailFailedCount,EMAIL_SETUP_LINE,emailSetupBannerHtml,wireEmailSetupBanner,fmtDocDate,fmtDocAmount,fieldDisplayValue,buildSharePayload,shareAdviceBody,shareAdviceNarrow,SHARE_ADVICE_KEEP,counterpartySeenState,counterpartySeenHtml,shareJourneyState,shareJourneyHtml,quickSendPhrase,quickSendStepHtml,reshareNotSentModal,lastShareRecipient,shareRememberRecipient,shareModalPrefill,shareRouteRecipient,sharePrefillNote,contractShares,contractLeavesDrafting,reshareToLastRecipient,reviewSendBlock,deskSendBlockToast,issueSigningRouteLinks,refreshLiveShareQuietly,resolvedRounds,ROLE_LABEL,roleName,applyResponse,deviceFromUa,signerProvenance,approvalState,approveContract,b64d,b64e,canEdit,mayMakeNewPaper,mayReFile,mayHoldContract,contractTypeRead,CKIND_SAYS_NOTHING,canonicalDoc,validEmail,closeModal,confirmDialog,promptDialog,trapFocus,FOCUSABLE,dragDialog,dialogMayDrag,dialogClampXY,DLG_GRAB_H,DLG_KEEP,DLG_MIN_W,DLG_NO_DRAG,selectMenuWire,selectMenuOpen,selectMenuClose,selectMenuShowing,selectMenuSweep,selectMenuStandsDown,SELECT_MENU_SEL,selectFaceDress,datePickDress,datePickOpen,dlgPageAdopt,datePickClose,datePickWords,popupControlsDress,DATE_PICK_SEL,HATI_FLD,HATI_LBL,emptyStateHtml,currentUser,deleteContract,isArchived,contractSetArchived,contractOnHold,contractSetHold,HOLD_WHY_MAX,HOLD_META,HOLD_WHY_ROW,holdWhyShort,contractSetRenewalDecision,RN_WHY_MAX,dirty,doLogin,doSetup,downloadEvidence,downloadFile,ensureFull,restoreHeavyFields,flushSaves,fmtDT,freezeContractHtml,readOnlyDocHtml,execHashInput,fval,getApprovalCfg,getOrg,getSession,getUsers,hashPassword,hydrate,isAdmin,isExternallyExecuted,logAudit,logout,migrateContract,negoRecoverMisfiledReasons,repairMigratedSignatories,newSalt,normText,nowISO,openImportModal,DLG_W, openModal,openSidePanel,openShareModal,contractReadiness,readinessBlocks,contractPlaceholders,readinessPanelHtml,persist,pollPendingResponses,pollStuckAnswers,pollThreadMessages,pollNow,schedulePolling,pollWaitingOnThem,refreshShareOverview,renderAuditSection,renderAuth,renderMustChangePassword,renderNegotiationSection,renderSharesSection,refreshAiUsage,renderSideFolders,renderSideUser,saveContract,saveSettings,saveTimer,saveUsers,sealString,shareMessageText,startApp,openFromHash,todayStr,todayISO,sigImageSrc,contractOnScreen,userById,verifySeal,waShareLink,signLinkRefusal,linkRefusal,linkAsks,LINK_ASKS,contractDecline,roundReachedByHand,sharesRefresh,responseFiledOnServer,saveDecision,decisionFreshen,contractDeletable,linkOpenAsks,contractReopen,contractMayReopen,ourSideAddressOf});

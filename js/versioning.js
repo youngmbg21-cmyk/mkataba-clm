@@ -154,6 +154,25 @@ function listedVersions(c){
     .filter(v => v && v.listed !== false);
 }
 
+/* ---- IS THERE A SECOND THING TO COMPARE? (SAP pop-ups, owner's go 10 Oct
+   2026) ----
+   Compare used to open a dialog whose whole message was "there's only one
+   version". The ⋯ row asks this first and greys with that reason instead.
+   It answers the SAME question openCompareModal builds its list from —
+   captured versions, the live wording where it differs, and the proposed
+   wording while a change is pending — reading c.changes RAW, never through
+   negoChanges (which would initialise a negotiation: reading must not write). */
+function compareHasTwo(c){
+  if(!c) return false;
+  const vs=listedVersions(c);
+  if(vs.length>=2) return true;
+  let live=false;
+  if(!vs.length) live=true;
+  else { try{ live=docPlainText(c)!==vs[0].text || docCanonical(c)!==(vs[0].canon||vs[0].text); }catch(_){ live=true; } }
+  const pend=!!(c.negotiation && (c.changes||[]).some(x=>x && x.status==='pending' && !x.withdrawn));
+  return (vs.length + (live?1:0) + (pend?1:0)) >= 2;
+}
+
 /* The round a snapshot is taken in. The caller may name it — negoAdvanceRound
    does, because by the time it saves "Round 1 closed" the counter has already
    moved to 2 and the snapshot belongs to the round that just ended, not the one
@@ -1109,4 +1128,4 @@ function fileCounterpartyEdit(c, text, opts={}){
 /* Guard used by signDocument: any open round carrying proposed edits? */
 function unresolvedRedlines(c){ return (c.rounds||[]).filter(r=>r.status==='open' && r.proposedText).length; }
 
-Object.assign(window,{uploadWordingEdited,applyOwnerEdit,listedVersions,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,restoreNoOpWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,diffCompareText,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});
+Object.assign(window,{uploadWordingEdited,applyOwnerEdit,listedVersions,compareHasTwo,takeNamedSnapshot,restoreVersion,restoreBlockedWhy,restoreNoOpWhy,fileCounterpartyEdit,resolveRound,noteForBlock,diffBlocks,applyBlockDecisions,openPointsFor,docPlainText,docCanonical,htmlToStructuredText,reflowWorkingText,captureVersion,wordDiff,diffHtml,diffStats,diffCompareText,tokenize,openDiffModal,openCompareModal,reviewProposedRound,acceptProposedRound,unresolvedRedlines});

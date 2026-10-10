@@ -335,7 +335,7 @@ function openAdviceIntakeModal(){
         <textarea id="ai-desc" rows="3" style="${inputStyle}"></textarea></label>
       <label style="display:flex;align-items:center;gap:var(--s-2);font-size:var(--t-meta);color:var(--color-neutral-700);margin-bottom:var(--s-1)"><input id="ai-priority" type="checkbox" style="width:15px;height:15px;accent-color:var(--color-accent)"/> ${i18t('adv_priority_option')}</label>
       <div style="margin-top:var(--s-3);display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
         <button id="ai-go" class="ui-btn ui-btn-primary">${i18t('adv_create_request')}</button>
       </div>
     </div>`,{maxWidth:'34rem'});

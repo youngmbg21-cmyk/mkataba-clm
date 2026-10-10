@@ -5,7 +5,10 @@
      1 the bar names the place, "Negotiate"
      2 the way back stands on the title's line, says "Back to Document", and
        lands on the Document tab
-     3 the quiet line under the title names the Lead
+     3 the quiet line under the title names no person (owner, 10 Oct 2026:
+       no lead, no owner), and the title and that line stand on exactly the
+       pixels they hold on the Document tab — no movement going between them
+     7 no grey on the head: a closed side panel casts no shadow over its edge
      4 the facts strip steps aside, as on the Document tab
      5 the parties' colour key has a thin row of its own under the controls,
        and the control row keeps its one 44px line
@@ -46,10 +49,21 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
     await page.evaluate(() => openWorkspace('MK-N1'));
     await page.waitForFunction(() => !!document.querySelector('#ws-tabs'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1200);
+    const spot = () => page.evaluate(() => {
+      const vis = el => !!el && el.getClientRects().length > 0;
+      const t = [...document.querySelectorAll('.room-head .room-name h1')].filter(vis)[0];
+      const l = [...document.querySelectorAll('.room-head .room-headsub')].filter(vis)[0];
+      const R = e => { if (!e) return null; const b = e.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top)]; };
+      return { t: R(t), l: R(l) };
+    });
+    await page.evaluate(() => { const c = getContract('MK-N1'); roomGoTab(c, 'docs'); });
+    await page.waitForTimeout(900);
+    const docSpot = await spot();
     await page.evaluate(() => openRedlineWorkbench('MK-N1'));
     await page.waitForFunction(() => !!document.querySelector('#view-redline #ws-head .room-name h1'), null, { timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1200);
 
+    const negSpot = await spot();
     const r = await page.evaluate(() => {
       const vis = el => !!el && el.getClientRects().length > 0 && getComputedStyle(el).display !== 'none';
       const back = document.querySelector('#view-redline #ws-head .room-name #ws-back');
@@ -72,7 +86,9 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
         keyInRow: !!(row && row.querySelector('.rl-ctl-legend')),
         keyUnder: !!(kr && rr && vis(key) && kr.top >= rr.bottom - 1),
         keyText: key ? key.textContent.replace(/\s+/g, ' ').trim() : '',
-        tab: ((document.querySelector('#view-redline .rl-readwrap .rl-seg.on') || {}).textContent || '').replace(/\s+/g, ' ').trim() };
+        tab: ((document.querySelector('#view-redline .rl-readwrap .rl-seg.on') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
+        shadows: ['context-panel', 'ai-panel'].map(id => { const e = document.getElementById(id);
+          return e && !e.classList.contains('open') ? getComputedStyle(e).boxShadow : 'none'; }) };
     });
 
     console.log('\n1 · the bar');
@@ -86,7 +102,10 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
       !!r.openDoc && r.openDoc.txt === 'Open document' && r.openDoc.last, JSON.stringify(r.openDoc));
     ok('2c the title row is white, like the Document tab\'s band', r.headBg === 'rgb(255, 255, 255)', r.headBg);
     console.log('\n3 · the quiet line');
-    ok('3 it names the Lead', /Lead: /.test(r.sub), r.sub);
+    ok('3a it names no person — no Lead, no Owner', !/Lead|Owner/.test(r.sub) && /MK-N1/.test(r.sub), r.sub);
+    ok('3b the title and its line hold the Document tab\'s pixels',
+      !!docSpot.t && !!docSpot.l && JSON.stringify(docSpot) === JSON.stringify(negSpot),
+      JSON.stringify({ docSpot, negSpot }));
     console.log('\n4 · the facts');
     ok('4 the facts strip steps aside', !r.facts);
     console.log('\n5 · the colour key');
@@ -94,6 +113,8 @@ const LIVE = { ...H.fixtureContract('MK-N1', 'Raw Milk Collection', 'Nandi Dairy
     ok('5b the control row keeps its one 44px line', r.rowH === 44, String(r.rowH));
     console.log('\n6 · the name');
     ok('6 the reading tab is still called Redline', /^Redline/.test(r.tab), r.tab);
+    console.log('\n7 · no grey');
+    ok('7 a closed side panel casts no shadow over the head', r.shadows.every(x => x === 'none'), JSON.stringify(r.shadows));
 
     if (r.backBeforeTitle) {
       await page.click('#view-redline #ws-head .room-name #ws-back');

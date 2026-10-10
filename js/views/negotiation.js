@@ -721,7 +721,7 @@ function negoRenumberPreviewHtml(c, plan){
       : `<div class="text-[11.5px] text-ink/50">${i18t('ng_none_cite')}</div>`}
     ${leftAlone}
     <div class="flex justify-end gap-2 mt-4">
-      <button id="renum-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="renum-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="renum-apply" class="ui-btn ui-btn-primary">${i18tn('ng_renumber',plan.headings.length,{n:plan.headings.length})}</button>
     </div>
   </div>`;
@@ -3614,7 +3614,7 @@ async function negoAiPropose(c, ctx){
   const foot = document.createElement('footer');
   foot.innerHTML = `
     ${canApply ? `<button type="button" data-ai-apply class="ui-btn ui-btn-primary">${i18t('ng_apply_redline')}</button>` : ''}
-    <button type="button" data-ai-cancel class="ui-btn">${i18t('act_cancel')}</button>
+    <button data-dlg-cancel type="button" data-ai-cancel class="ui-btn">${i18t('act_cancel')}</button>
     <span style="flex:1"></span>
     <span style="font-family:var(--n-font-ui);font-size:var(--t-label);color:var(--n-ink-soft);align-self:center">${i18t('ng_nothing_changed_yet')}</span>`;
   pop.appendChild(foot);
@@ -4533,7 +4533,7 @@ function wireNegotiationTab(c, opts = {}){
     const bar = document.createElement('div');
     bar.className = 'nego-edit-bar';
     const step1 = `<button class="b-save" data-nego-next="${_ne(clauseId)}">${i18t('ng_save_change')}</button>`
-      + `<button class="b-cancel" data-nego-cancel="${_ne(clauseId)}">${i18t('act_cancel')}</button>`;
+      + `<button data-dlg-cancel class="b-cancel" data-nego-cancel="${_ne(clauseId)}">${i18t('act_cancel')}</button>`;
     bar.innerHTML = step1;
     holder.after(bar);
     if (holder.focus) holder.focus();
@@ -9680,7 +9680,7 @@ function openNegoMemoShare(c, m){
       <div id="ng-memo-err" class="rvd-note" hidden style="color:var(--danger-hover);margin-top:var(--s-2)"></div>
     </div>
     <div class="rvd-foot">
-      <button class="ui-btn" data-close>${_ne(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel class="ui-btn" data-close>${_ne(i18t('act_cancel'))}</button>
       <button class="ui-btn ui-btn-primary" id="ng-memo-go">${_ne(i18t('ng_memo_send_go'))}</button>
     </div>`, { maxWidth: '520px' });
   document.querySelectorAll('#modal-root [data-close]').forEach(b => b.addEventListener('click', closeModal));
@@ -9850,7 +9850,7 @@ function ngStartPickerOpen(){
       : `<p class="ngs-none">${_ne(i18t('ng_start_pick_none'))}</p>`}
     </div>
     <div style="padding:var(--s-3) 18px var(--s-4);display:flex;gap:var(--s-2);justify-content:flex-end;border-top:1px solid var(--color-divider)">
-      <button id="ngs-cancel" type="button" class="ui-btn">${_ne(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="ngs-cancel" type="button" class="ui-btn">${_ne(i18t('act_cancel'))}</button>
       ${all.length ? `<button id="ngs-go" type="button" class="ui-btn ui-btn-primary" disabled>${_ne(i18t('ng_start_pick_go'))}</button>` : ''}
     </div>`, { label: i18t('ng_start_new'), maxWidth: W });
   let picked = null;
@@ -10234,8 +10234,16 @@ function renderRedline(){
         ${(typeof canEdit !== 'function' || canEdit()) && window.reviewState ? (() => {
           const st = reviewState(c);
           const label = st.phase === 'yours' ? i18t('rv_head_return') : i18t('rv_head_ask');
+          /* NOBODY TO ASK, NO POP-UP (SAP pop-ups, owner's go 10 Oct 2026):
+             with no colleague in the workspace the door used to open a dialog
+             whose whole message was "there is nobody to ask". The door greys
+             with that reason instead; a hand-back ('yours') is never greyed. */
+          const me = (typeof currentUser === 'function' && currentUser()) || {};
+          const nobody = st.phase !== 'yours' && typeof getUsers === 'function'
+            && !(getUsers() || []).some(u => u && u.id !== me.id);
+          const nobodyAttrs = nobody ? ` disabled aria-disabled="true" data-rl-dead="1" title="${_nea(i18t('rv_no_colleagues'))}"` : '';
           return `<button type="button" data-rl-review class="rl-pb-btn"
-            data-rv-phase="${_nea(st.phase)}"${deadAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(label)}</span></button>`;
+            data-rv-phase="${_nea(st.phase)}"${deadAttrs || nobodyAttrs || ` title="${_nea(i18t('rv_head_title'))}"`}>${icon('users','w-3.5 h-3.5')}<span class="rl-word">${_ne(label)}</span></button>`;
         })() : ''}
   `;
   const mayMenu = !_rvPosture && (typeof canEdit !== 'function' || canEdit());
@@ -16705,7 +16713,7 @@ function rlNpReplyBoxHtml(root, ctx){
     <textarea class="chat-field rl-np-rin" rows="2" data-rl-np-rin="${_nea(key)}"
       placeholder="${_nea(ph)}" aria-label="${_nea(ph)}"></textarea>
     <div class="rl-np-act">
-      <button type="button" class="rl-np-act-b g" data-rl-np-reply-cancel="${_nea(key)}">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel type="button" class="rl-np-act-b g" data-rl-np-reply-cancel="${_nea(key)}">${i18t('act_cancel')}</button>
       <button type="button" class="rl-np-send" data-rl-np-reply-send="${_nea(key)}">${i18t('ng_np_reply_send')}</button>
     </div>
   </div>`;
@@ -17742,7 +17750,7 @@ function rlNpGivePick(c, home, key, opts = {}, side = 'owner', again){
           class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/></label>
       <div class="flex justify-end gap-2">
         ${now ? `<button id="npg-off" class="ui-btn">${i18t('ng_np_give_off')}</button>` : ''}
-        <button id="npg-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="npg-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="npg-go" class="ui-btn ui-btn-primary">${i18t('ng_np_give_go')}</button>
       </div>
     </div>`, { maxWidth: DLG_W.s });

@@ -371,7 +371,8 @@ describe('f396 (4) — a renewal\'s Decide reads the contract again', () => {
     const bell = code(fnOf(APP, 'buildAlerts'));
     assert.match(bell, /const renewHint=\{ hint:i18t\('ins_need_go_terms'\) \}/, 'one hint for the bell');
     assert.equal((bell.match(/bellGo\('renewal',x\.c\), renewHint\)/g) || []).length, 2, 'both renewal rows carry it');
-    assert.match(code(fnOf(APP, 'alertsPanelHtml')), /a\.hint\?` title="\$\{esc\(a\.hint\)\}"`:''/, 'and the bell prints a row\'s hint as its hover');
+    /* RE-POINTED 10 Oct 2026: every bell row is drawn by alertRowHtml now (Alerts grouped, SAP pop-ups). */
+    assert.match(code(fnOf(APP, 'alertRowHtml')), /a\.hint\?` title="\$\{esc\(a\.hint\)\}"`:''/, 'and the bell prints a row\'s hint as its hover');
   });
 });
 

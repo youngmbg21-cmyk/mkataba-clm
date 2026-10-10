@@ -1694,7 +1694,7 @@ function reviewAskModalHtml(c, opts = {}){
     </div>
   </div>
   <div class="rvd-foot">
-    <button id="rv-cancel-modal" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+    <button data-dlg-cancel id="rv-cancel-modal" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
     <button id="rv-send" class="ui-btn ui-btn-primary"${(!people.length || !scope.all.length) ? ' disabled' : ''}>${_rvE(i18t('rv_send_btn'))}</button>
   </div>`;
 }
@@ -1944,7 +1944,7 @@ function openReviewEntryChooser(c, opts = {}){
       ${opt('ask', '&#128172;', i18t('rv_entry_ask'), i18t('rv_entry_ask_sub'))}
     </div>
     <div class="rvd-foot">
-      <button id="rv-entry-cancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="rv-entry-cancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
     </div>`, { maxWidth: '26rem' });
   document.getElementById('rv-entry-cancel')?.addEventListener('click', () => window.closeModal());
   document.querySelectorAll('[data-rv-entry]').forEach(b => b.addEventListener('click', () => {
@@ -2000,7 +2000,7 @@ function openReviewReturnPicker(c, opts = {}){
       ${mine.map(row).join('')}
     </div>
     <div class="rvd-foot">
-      <button id="rv-pcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="rv-pcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
     </div>`, { maxWidth: '30rem' });
   document.getElementById('rv-pcancel')?.addEventListener('click', () => window.closeModal());
   document.querySelectorAll('[data-rv-pick-return]').forEach(b =>
@@ -2041,7 +2041,7 @@ function openReviewReturnModal(c, opts = {}){
       <textarea id="rv-rnote" rows="3" style="${RV_FLD}height:auto;resize:vertical" placeholder="${_rvE(i18t('rv_return_note_ph'))}"></textarea>
     </div>
     <div class="rvd-foot">
-      <button id="rv-rcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="rv-rcancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
       <button id="rv-rok" class="ui-btn ui-btn-primary"${unmarked ? ' disabled' : ''}>${_rvE(i18t('rv_return_btn'))}</button>
     </div>`, { maxWidth: '30rem' });
   document.getElementById('rv-rcancel')?.addEventListener('click', () => window.closeModal());
@@ -2066,7 +2066,7 @@ function openReviewNoteModal(c, changeId, opts = {}){
       <textarea id="rv-cnote" rows="4" style="${RV_FLD}height:auto;resize:vertical">${_rvE((cur && cur.note) || '')}</textarea>
     </div>
     <div class="rvd-foot">
-      <button id="rv-ccancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="rv-ccancel" class="ui-btn">${_rvE(i18t('act_cancel'))}</button>
       <button id="rv-cok" class="ui-btn ui-btn-primary">${_rvE(i18t('act_save'))}</button>
     </div>`, { maxWidth: '28rem' });
   document.getElementById('rv-ccancel')?.addEventListener('click', () => window.closeModal());

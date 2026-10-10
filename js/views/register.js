@@ -1395,15 +1395,27 @@ function regStageTabsWire(){
 }
 /* The two acts on saved views, shared by the box and the retired tabs. */
 async function regSaveViewAsk(){
-  const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view_ask'),message:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
+  const name=window.promptDialog?await promptDialog({title:i18t('reg_save_view'),label:i18t('reg_save_view_label'),message:i18t('reg_save_view_msg'),placeholder:i18t('reg_save_view_ph'),confirmLabel:i18t('reg_save_view')}):prompt(i18t('reg_save_view_ask'));
   if(name==null||!String(name).trim()) return false;
   if(regSaveView(name)){ if(window.toast) toast(i18t('reg_view_saved',{name:String(name).trim()}),'ok'); return true; }
   if(window.toast) toast(i18t('reg_view_not_saved'),'warn');
   return false;
 }
+/* ---- FORGET IS DONE AT ONCE, WITH UNDO (SAP pop-ups, owner's go 10 Oct
+   2026) ----
+   SAP asks "are you sure?" only before what cannot be undone. A saved view is
+   a reader's own shortcut in this browser, so forgetting it asked a question
+   it did not need: it goes at once, and the toast carries Undo, which puts the
+   view back exactly where it stood in the list. */
 async function regForgetViewAsk(name){
-  const ok=window.confirmDialog?await confirmDialog({title:i18t('reg_forget_view_title'),message:i18t('reg_forget_view',{name}),confirmLabel:i18t('reg_forget_view_go')}):confirm(i18t('reg_forget_view',{name}));
-  if(!ok) return false; regForgetView(name); return true;
+  const before=regSavedViews();
+  if(!before.some(v=>v.name===name)) return false;
+  regForgetView(name);
+  if(window.toast) toast(i18t('reg_view_forgotten',{name}),'ok',{ action:{ label:i18t('act_undo'), onClick:()=>{
+    try{ localStorage.setItem(REG_SAVED_KEY, JSON.stringify(before)); }catch(_){}
+    if(typeof regRepaint==='function') regRepaint();
+  } } });
+  return true;
 }
 function regPaintViewCounts(){
   const R=regState();
@@ -1750,7 +1762,7 @@ function regEndAct(c, k){
 function regDeclineAsk(c){
   if(!c || !window.contractDecline || !window.promptDialog) return;
   Promise.resolve(promptDialog({ title:i18t('end_decline_q'), message:i18t('end_decline_says'),
-    label:i18t('end_decline_why'), placeholder:i18t('end_decline_ph'), confirmLabel:i18t('reg_decline_close'), multiline:true }))
+    label:i18t('end_decline_why'), placeholder:i18t('end_decline_ph'), confirmLabel:i18t('reg_decline_close'), multiline:true, danger:true }))
     .then(why=>{ if(why==null) return;
       contractDecline(c, why).then(ok=>{ if(ok) regRepaint(); }); });
 }

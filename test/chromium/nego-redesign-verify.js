@@ -132,8 +132,12 @@ const SEEN = `(sel => { const el = document.querySelector(sel); if (!el) return 
        to the measure costs no edit here. */
     /* no line across it (Young ruled 21 Sep 2026: "remove the line going across the card"); the band measure stays */
     check('1 with the band measure inside it and no line across it',
+      /* RE-POINTED 10 Oct 2026 (owner: no movement going Document ⇄
+         Negotiate): the LEFT is the room's title inset, which
+         negotiate-as-drawn-verify 3b pins against the Document tab's pixels;
+         the right keeps the band measure. */
       !/inset/.test(head.rule || '')
-        && head.padX === head.bandX && head.padXR === head.bandX,
+        && head.padXR === head.bandX,
       `${head.pad} · x ${head.padX}/${head.padXR} vs --band-pad-x ${head.bandX} · ${head.rule}`);
     /* ---- REVERSED IN PLACE 24 Aug 2026 (owner-approved render) ----
        The head was one line because the render it was built from drew one. The

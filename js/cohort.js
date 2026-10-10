@@ -234,7 +234,7 @@ function cohortAmendAsk(list){
         <textarea id="co-h-says" rows="4" placeholder="${_coEsc(i18t('co_h_amend_ph'))}"
           style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;font-size:var(--t-body);border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);color:inherit;padding:9px 11px;resize:vertical"></textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button id="co-h-cancel" class="ui-btn">${_coEsc(i18t('act_cancel'))}</button>
+        <button data-dlg-cancel id="co-h-cancel" class="ui-btn">${_coEsc(i18t('act_cancel'))}</button>
         <button id="co-h-go" class="ui-btn ui-btn-primary">${_coEsc(i18tn('co_h_amend_go',n,{n}))}</button>
       </div>
     </div>`, { label:i18tn('co_h_amend',n,{n}), maxWidth:DLG_W.l });
@@ -280,7 +280,7 @@ function cohortAskDocAsk(list){
         <input id="co-h-due" type="date"
           style="margin-top:5px;width:100%;box-sizing:border-box;font:inherit;border:1px solid var(--field-line);border-radius:var(--radius);background:var(--color-surface);color:inherit;height:var(--field-h);padding:0 var(--field-pad-x);font-size:var(--field-size)"/></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-        <button id="co-h-cancel" class="ui-btn">${_coEsc(i18t('act_cancel'))}</button>
+        <button data-dlg-cancel id="co-h-cancel" class="ui-btn">${_coEsc(i18t('act_cancel'))}</button>
         <button id="co-h-go" class="ui-btn ui-btn-primary">${_coEsc(i18tn('co_h_askdoc_go',n,{n}))}</button>
       </div>
     </div>`, { label:i18tn('co_h_askdoc',n,{n}), maxWidth:DLG_W.l });

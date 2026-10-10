@@ -111,7 +111,7 @@ function openNewStandard(opts = {}) {
            tile. It presses the door that has always filed their paper. */}
     <div class="ns-foot"><span class="q">${nsEsc(i18t('ns_cp_q'))}</span>
       <button type="button" id="ns-cp" class="ns-link">${nsEsc(i18t('ns_cp_add'))}</button>
-      <span class="sp"></span><button type="button" id="ns-close" class="ui-btn">${nsEsc(i18t('act_cancel'))}</button></div>
+      <span class="sp"></span><button data-dlg-cancel type="button" id="ns-close" class="ui-btn">${nsEsc(i18t('act_cancel'))}</button></div>
   </div>`, { maxWidth: nsW('m'), label: i18t('ns_title') });
   document.getElementById('ns-close')?.addEventListener('click', () => closeModal());
   document.getElementById('ns-cp')?.addEventListener('click', () => { closeModal(); if (typeof openCreateTemplateModal === 'function') openCreateTemplateModal('paste'); });

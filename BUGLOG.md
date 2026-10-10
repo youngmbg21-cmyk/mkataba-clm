@@ -20578,6 +20578,9 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - The server lets any signed-in editor put an APPROVED rule step back to waiting in a save (srvApprovalDecisionRefusal skips a step whose new status is pending). It only makes a contract stricter, and Undo after Approve relies on it, but the server does not check that it is the approver taking back their own yes within the Undo window. Left as is.
 - Every page carries one unnamed button in the shell (axe button-name: 1 on Contracts, Negotiations, Approvals, Obligations). Planned for the accessibility batch.
 
+## Noticed, not fixed — 9 Oct 2026 (SAP benchmark of the pop-ups)
+- The "Fill a template" pop-up's "Which side are we on?" dropdown lists "[object Object]" three times instead of its choices (seen opening openTemplateFillModal on the first built-in template with the 30 Kenyan samples).
+- Deleting a draft ends in a red error toast ("… deleted", kind 'err' in deleteContract), so a success reads as a failure.
 ### Noticed, not fixed (SAP batch 2, 9 Oct 2026)
 - calendar-redesign-verify sections 5, 7 and 8 fail on main and on the branch alike: its SEED pins every event to August 2026, so once the real month moves on the grid shows none of them (a test whose answer depends on the day it runs). Section 3's colour check passes vacuously for the same reason.
 - axe reports one unnamed button on every page photographed (the same count on main) — left for the accessibility batch.

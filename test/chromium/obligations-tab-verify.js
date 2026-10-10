@@ -197,7 +197,10 @@ const SEEN = `(el => { if (!el) return null; const r = el.getBoundingClientRect(
     const dlg = await page.evaluate(`(() => {
       const seen = ${SEEN};
       const at = document.getElementById('od-at');
-      return { on: !!(at && seen(at) && seen(at).on),
+      /* A pop-up's date wears HaTi's face (SAP pop-ups, 10 Oct 2026): the box
+         seen is the face beside the real one, which holds the value. */
+      const face = at && at.dataset.dp === '1' ? at.nextElementSibling : at;
+      return { on: !!(face && seen(face) && seen(face).on),
         value: at ? at.value : null, max: at ? at.getAttribute('max') : null,
         note: !!document.getElementById('od-note'),
         next: (document.getElementById('od-next') || {}).textContent || '' };
