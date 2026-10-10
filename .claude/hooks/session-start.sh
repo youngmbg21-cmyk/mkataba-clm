@@ -37,5 +37,7 @@ cd "${CLAUDE_PROJECT_DIR:-$(dirname "$0")/../..}"
 echo "session-start: installing npm dependencies…"
 npm install --no-audit --no-fund
 
-echo "session-start: ready — 'npm test' will run (~3m20s); for one file use"
+echo "session-start: ready. Do NOT run the full suite (npm test) unless the owner"
+echo "  asks in the chat. Run npm run lint and only the changed test files:"
 echo "  node --test --test-reporter=dot test/<file>.test.js"
+echo "  GitHub's automatic check runs everything after a push."
