@@ -104,8 +104,6 @@ const KNOWN_RED = {
      written and needs re-pointing by someone who owns that screen. Listed so
      the run is an alarm again rather than a list. Take a file off the day it
      goes green. */
-  'calendar-redesign-verify.js':
-    'Red on main before 28 Sep 2026 (a837d09), the same way: 7 and it carries the period on screen and nothing else · 8 the dialog names colleagues, with the address it will write to · 8 and never offers the sender themselves.',
   'competing-redlines-verify.js':
     'Red on main before 28 Sep 2026 (a837d09), the same way: a legacy clause names BOTH asks in its panel.',
   'counterparty-reading-and-more-verify.js':

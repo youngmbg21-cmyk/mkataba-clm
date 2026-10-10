@@ -145,3 +145,13 @@ describe('f440 (4) — their page follows the signing', () => {
     assert.ok(v.$('#pt-where-pane .ds-mine button[data-pt-where-row]'), 'and the door onto the Signing tab is on their own line');
   });
 });
+
+/* BUG LOG: the state word beside the title came from the payload's snapshot,
+   so a negotiation link retired by signing still read "In Review". */
+test('f440 (bug log) a retired negotiation link says signing started beside the title', () => {
+  const { $ } = theirPage();
+  const pill = $('.pw-id-stat');
+  assert.ok(pill, 'the state word is drawn');
+  assert.match(pill.textContent, /Signing started/);
+  assert.doesNotMatch(pill.textContent, /Review/);
+});
