@@ -3176,9 +3176,16 @@ function renderRegister(opts){
              questions about the book, not about a live negotiation. */}
       <div class="reg-band sap-band">
       ${headHtml}
-      <!-- THE FILTERS SIT IN THE PAGE'S WHITE BAND, each a labelled box
-           (SAP benchmark, owner-approved 9 Oct 2026; reverses the 26 Sep
-           Inspector drawing that put them on the list's card). -->
+      <!-- THE FILTERS SIT BESIDE THE TABS (owner, 10 Oct 2026: "move the
+           highlighted filters to the empty side on the right ... to optimize
+           space for the cards at the bottom"; reverses 9 Oct's own row of
+           labelled boxes). One row: the tabs on the left, the filters at its
+           right end, each box saying its label inside ("Stream: All
+           streams"). When they do not fit, the row wraps and the filters
+           take one short line under the tabs. -->
+      <div class="reg-tabbar">
+      ${!neg?regStageTabsHtml(R):''}
+      ${neg?negoBandTabsHtml(R,csBook):''}
       <div class="reg-filterbar reg-fb">
         ${lockChip}
         ${onlyChip}
@@ -3209,8 +3216,7 @@ function renderRegister(opts){
         <button id="reg-adapt" type="button" class="reg-chip reg-chip-btn reg-chip-add" title="${esc(i18t('reg_adapt_title'))}">${icon('plus','w-3.5 h-3.5')}${esc(i18t('reg_adapt'))}</button>
         <span id="reg-clear-slot">${regClearHtml()}</span>
       </div>
-      ${!neg?regStageTabsHtml(R):''}
-      ${neg?negoBandTabsHtml(R,csBook):''}
+      </div>
       </div>
       <div class="reg-body${INS?' is-ins':''}">
       <section class="blueprint bp-round reg-card${regMode()==='board'?' reg-board-wrap':''}">

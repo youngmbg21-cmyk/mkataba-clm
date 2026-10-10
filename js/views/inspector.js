@@ -786,6 +786,7 @@ function insListOff(tbody){ if (tbody) tbody.setAttribute('data-ins-on', '0'); }
 const INS_PAGE_REPAINT = {
   register: 'regRepaint',
   approvals: 'renderApprovalsPage',
+  customers: 'renderCustomers',
   obligations: 'obwRepaint',
   intake: 'renderIntake',
   /* Not an inspector: the Advice tab of Requests, whose frame follows this
