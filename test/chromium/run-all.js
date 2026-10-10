@@ -185,6 +185,14 @@ const KNOWN_RED = {
     'endgame issues a NEGOTIATE link where it wants a signing one, so the ' +
     'share dialog opened by the readiness hand-off needs the same treatment. ' +
     'Naming a signer was necessary and not sufficient.',
+  'ink-wash-verify.js':
+    'WAITING ON THE OWNER, 10 Oct 2026: every Ink Wash claim passes (the ramp, no grey, ' +
+    'no capitals, status colours, the paper, the redline and danger buttons). What is red ' +
+    'is the HEADCOUNT half — how many elements wear each text size, and each dark-mode ' +
+    'colour — which moved with the page redesigns since the baseline was recorded on 9 Oct ' +
+    '(audited as a set difference: no new dark colour; one new 15px text on Home, two more ' +
+    '10px in the alerts/toast pop-ups). That is not the palette, so the owner\'s rule says ' +
+    'ask before re-recording. Take it off when the owner answers (re-record or fix).',
   /* NOT LISTED, deliberately: analytics-verify.js. It was two faults wearing
      one symptom and ONE OF THEM IS NOW CLOSED BY CONSTRUCTION.
      Its check is `canvases > 0 || bars > 0`. The canvas half used to fail in a

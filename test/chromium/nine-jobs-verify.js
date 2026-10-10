@@ -80,11 +80,17 @@ const BODY = '<h1>SOFTWARE AS A SERVICE AGREEMENT</h1>'
       [...document.querySelectorAll('#ov-parties .ov-pty')].map(r => (r.querySelector('small') || {}).textContent || ''));
     check('2 our party row prints an email', /@/.test(parties[0] || ''), JSON.stringify(parties));
     await page.evaluate(() => { const b = document.querySelector('[data-ov-edit="all"]'); if (b) b.click(); });
-    await page.waitForFunction(() => document.querySelectorAll('[data-pt-auto]').length > 0, null, { timeout: 8000 }).catch(() => {});
-    const people = await page.evaluate(() => [...document.querySelectorAll('[data-pt-auto]')].map(r => r.textContent.replace(/\s+/g, ' ').trim()));
+    /* RE-POINTED 10 Oct 2026 — follows THE DIRECTORY (Young picked it,
+       9 Oct 2026: "for parties lets go with Directory"): Edit draws the people
+       as one quiet line each (`participantsDirHtml`); a person HaTi added is a
+       `[data-pt-pick="a:…"]` line carrying the "added by HaTi" tag. The old
+       `[data-pt-auto]` row is now only the form behind a pressed line. */
+    const AUTO = '[data-pt-pick^="a:"]';
+    await page.waitForFunction(sel => document.querySelectorAll(sel).length > 0, AUTO, { timeout: 8000 }).catch(() => {});
+    const people = await page.evaluate(sel => [...document.querySelectorAll(sel)].map(r => r.textContent.replace(/\s+/g, ' ').trim()), AUTO);
     check('3 "Who else" names the colleague who filed a change', people.some(t => /Unrestricted Legal/.test(t) && /added by HaTi/i.test(t)), JSON.stringify(people));
     check('3b and the one who approved', people.some(t => /Amina Otieno/.test(t)), '');
-    await page.evaluate(() => { const r = document.querySelector('[data-pt-auto]'); if (r) r.scrollIntoView({ block: 'center' }); });
+    await page.evaluate(sel => { const r = document.querySelector(sel); if (r) r.scrollIntoView({ block: 'center' }); }, AUTO);
     await page.screenshot({ path: path.join(OUT, '01-overview.png'), fullPage: false });
 
     /* ===== 1 and 2. THE PARTY POP-UP ===== */

@@ -99,13 +99,24 @@ const check = (name, ok, detail) => {
       /* RE-POINTED 9 Oct 2026: the stage is a tab row on Contracts now, so the
          neighbour asked is the Stream chip, drawn by the same builder. */
       const s = document.getElementById('reg-type-sel'); const sc = s && s.closest('.reg-chip');
+      /* RE-POINTED AGAIN 10 Oct 2026 ("get main to green"): the 9 Oct swap to
+         the Stream chip broke the relation itself — since SAP batch 1 a chip
+         is a labelled box (label line `.reg-f-l` over value line `.reg-f-v`),
+         and Stream's value reads "All streams" where On hold's reads "Any",
+         so Stream is wider BY ITS WORDS, not because On hold collapsed. The
+         report was a box collapsed under its words (under 30px). So the claim
+         is pinned to the chip's OWN words: both lines whole, and the chip at
+         least as wide as the wider of them. Stream is still printed. */
       const words = c && c.querySelector('.reg-f-l');
+      const val = c && c.querySelector('.reg-f-v');
+      const need = Math.max(words ? words.scrollWidth : 0, val ? val.scrollWidth : 0);
       return { w: c ? +c.getBoundingClientRect().width.toFixed(1) : (e ? +e.getBoundingClientRect().width.toFixed(1) : 0),
-        stage: sc ? +sc.getBoundingClientRect().width.toFixed(1) : 0,
-        whole: !!words && words.scrollWidth <= words.clientWidth + 0.5 }; });
-    check('1c and it has a real width — its words whole, no narrower than the Stream chip beside it',
-      holdChip.w > 0 && holdChip.stage > 0 && holdChip.whole && holdChip.w >= holdChip.stage,
-      `${holdChip.w}px against Stream ${holdChip.stage}px · words whole ${holdChip.whole} (select ${hold.w}px)`);
+        stage: sc ? +sc.getBoundingClientRect().width.toFixed(1) : 0, need,
+        whole: !!words && words.scrollWidth <= words.clientWidth + 0.5
+          && (!val || val.scrollWidth <= val.clientWidth + 0.5) }; });
+    check('1c and it has a real width — its words whole, the chip as wide as they need',
+      holdChip.w > 0 && holdChip.need > 0 && holdChip.whole && holdChip.w >= holdChip.need,
+      `${holdChip.w}px, its words need ${holdChip.need}px · words whole ${holdChip.whole} (Stream ${holdChip.stage}px, select ${hold.w}px)`);
     await page.screenshot({ path: path.join(OUT, '01-hold-filter.png') });
 
     /* IT NARROWS. A control that draws and does nothing is the same fault in

@@ -75,11 +75,26 @@ const contract = (id, signed) => ({
       await page.waitForTimeout(500);
       const b = page.locator('[data-ov-edit="all"]').first();
       if (await b.count()){ await b.click(); await page.waitForTimeout(700); }
+      /* RE-POINTED 10 Oct 2026 — follows "Overview Edit keeps the card"
+         (469bc5a, 9 Oct 2026): Edit draws the EIGHT terms only (value and the
+         two days among them), and who they are / who we are moved to the ⋯
+         row "Filing and stream" (`ws-filing` → ovOpenFiling, Young's yes,
+         8 Oct 2026). So BOTH acts a person presses are pressed — Edit, then
+         the filing row — and the printed terms are read across the Overview.
+         The notice period is no longer drawn as a box in Edit (it is said on
+         the renewal term's line), so the CONTROL is another recorded term
+         this paper does not freeze: the governing law (`data-ktm`). */
+      await page.evaluate(() => { const f = document.getElementById('ws-filing'); if (f) f.click(); });
+      await page.waitForFunction(() => {
+        const r = document.getElementById('ov-record');
+        return r && r.getBoundingClientRect().height > 0;
+      }, null, { timeout: 5000 }).catch(() => {});
       return page.evaluate(printed => {
-        const has = k => !!document.querySelector(`#kt-ov-terms [data-kt="${k}"]`);
-        const why = [...document.querySelectorAll('#kt-ov-terms span[title]')].map(x => x.getAttribute('title'))
+        const host = document.getElementById('kt-ov-terms') || document;
+        const has = k => !!host.querySelector(`[data-kt="${k}"]`);
+        const why = [...host.querySelectorAll('span[title]')].map(x => x.getAttribute('title'))
           .filter(t => /Signing has started/.test(t)).length;
-        return { boxes: printed.filter(has), notice: has('notice'), why };
+        return { boxes: printed.filter(has), notice: !!host.querySelector('[data-ktm="governingLaw"]'), why };
       }, PRINTED);
     };
     const signed = await boxesOn('MK-PF1');
@@ -89,7 +104,7 @@ const contract = (id, signed) => ({
     check('2 once one party has signed, NONE of the printed terms is a box',
       signed.boxes.length === 0, 'still boxes: ' + (signed.boxes.join(', ') || 'none'));
     check('3 and the read-outs say why on their hover', signed.why >= PRINTED.length, signed.why + ' read-outs carry the reason');
-    check('4 CONTROL — a term the paper does not print (the notice period) is still a box', signed.notice);
+    check('4 CONTROL — a term the paper does not freeze (the governing law) is still a box', signed.notice);
     check('5 CONTROL — unsigned, nothing says it is frozen', open.why === 0);
     const refused = await page.evaluate(async () => {
       const r = await fetch('/api/contracts/MK-PF1', { credentials: 'same-origin' });

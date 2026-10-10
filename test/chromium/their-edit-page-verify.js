@@ -271,19 +271,30 @@ const symbol = page => page.evaluate(() => {
     JSON.stringify({ tick, ...saved }));
 
   /* ---- 4 · a column press with unfiled typing asks ---- */
+  /* SLOW-RUNNER WAITS (10 Oct 2026, "get main to green"): on GitHub's runner
+     this section's press went through WITHOUT the question while 4b found the
+     typed words gone — the shape of the 3d save still settling (its tick, its
+     "Why this change?", its repaint) after the typing began, so the repaint
+     took the words and there was rightly nothing unfiled to ask about. Each
+     wait below asks for the STATE it needs, bounded; none is a fixed pause. */
+  await until(page, () => !document.getElementById('pd-input') && !document.getElementById('confirm-overlay')
+    && !document.querySelector('#clause-editor .ce-saved-tick'), null, 10000);
   await clickInto(page, /Late payments/);
   await page.keyboard.type(' Always.');
   /* A WAIT ASKS FOR THE STATE, BOUNDED: on a slow runner the press could land
      before the typing counted as unfiled, and then there is rightly nothing
      to ask about. Wait until the typed words are in the box. */
-  const typedIn = await until(page, () => /Always\./.test((document.getElementById('ce-doc') || {}).textContent || ''), null, 8000);
+  const typedIn = await until(page, () => /Always\./.test((document.getElementById('ce-doc') || {}).textContent || '')
+    /* …and the editor itself counts it as unfiled — the very reading the
+       column's guard asks before it raises the question */
+    && ((window.ceBoxDirty && ceBoxDirty()) || (window.clauseEditorDirty && clauseEditorDirty())), null, 10000);
   /* the press is made only on unfiled typing that is really in the clause's
      box — otherwise the stage, not the product, is what failed, and it says so */
   check('4 · stage: the typing is in the clause\u2019s box before the press', typedIn,
     typedIn ? null : 'the typed words never reached the box (a question still open?): ' + await page.evaluate(() => !!document.getElementById('pd-input')));
   const pressed = await page.evaluate(() => { const b = [...document.querySelectorAll('#rl-changes-col button')]
     .find(x => x.textContent.trim() === 'Accept'); if (!b) return false; b.click(); return true; });
-  const asked = await until(page, () => !!document.getElementById('confirm-overlay'), null, 2000);
+  const asked = await until(page, () => !!document.getElementById('confirm-overlay'), null, 8000);
   const askWords = await page.evaluate(() => (document.getElementById('confirm-overlay') || {}).textContent || '');
   await page.screenshot({ path: path.join(OUT, '05-leave-ask.png') });
   check('4a a press on their column with unfiled typing asks "Leave this clause?"',

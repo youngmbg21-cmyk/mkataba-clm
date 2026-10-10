@@ -156,8 +156,15 @@ const HELPERS = `(() => {
       const head = [...document.querySelectorAll('#page-head button, .page-head button')].filter(m.vis).map(m.box);
       /* RE-POINTED 9 Oct 2026 (SAP benchmark): a band filter is a label over a
          BOX — the box is the control, so the box is what sits on the rung. */
+      /* RE-POINTED 10 Oct 2026 — follows "filters BESIDE the tabs, label
+         inside the box" (owner, 10 Oct 2026, `.reg-tabbar`; reverses 9 Oct's
+         own row there): in the tab bar the CHIP is the box (label and value
+         on one line inside it), so the chip is what sits on the rung there;
+         elsewhere a band filter is still a label over its `.reg-f-v` box. */
       const bar = [...document.querySelectorAll('.reg-chip, .reg-seg')].filter(m.vis)
-        .map(e => { const v = e.querySelector('.reg-f-v'); return v && m.vis(v) ? Object.assign(m.box(v), { t: m.box(e).t }) : m.box(e); });
+        .map(e => { const v = e.querySelector('.reg-f-v');
+          if (e.closest('.reg-tabbar')) return m.box(e);
+          return v && m.vis(v) ? Object.assign(m.box(v), { t: m.box(e).t }) : m.box(e); });
       const more = [...document.querySelectorAll('.reg-row-more')].find(m.vis);
       let edge = null;
       if (more) { const r = more.getBoundingClientRect(), x = r.left + r.width / 2;

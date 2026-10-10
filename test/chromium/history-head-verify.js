@@ -109,6 +109,9 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
         mounted: true,
         chips: host.querySelectorAll('.hist-seg, [data-ht-side]').length,
         lid: !!host.querySelector('#hist-filter'),
+        btn: seen(host.querySelector('#hist-filter-btn')),
+        btnExp: (host.querySelector('#hist-filter-btn') || {}).getAttribute
+          ? host.querySelector('#hist-filter-btn').getAttribute('aria-expanded') : null,
         row: seen(host.querySelector('.hist-filters')),
         selects: [...host.querySelectorAll('.hist-f select')].map(s =>
           ({ k: s.getAttribute('data-ht-filter'), ...seen(s) })),
@@ -126,15 +129,38 @@ const OPTS = `(sel => sel ? [...sel.options].map(o => o.value + '=' + o.textCont
     check('the History tab mounts with its record on it', head.mounted && head.rows > 0, `${head.rows} events`);
     check('the Everyone / Ours / Theirs chips are gone from the head',
       head.chips === 0, `${head.chips} found`);
-    check('the Filter button that hid the row is gone too', !head.lid, head.lid ? 'still there' : 'none');
-    /* THE WHOLE POINT: no press was made between arriving and reading this. */
-    check('the filter row is visible pixels on arrival, with nothing pressed',
-      !!(head.row && head.row.on), head.row ? `${head.row.w}x${head.row.h}` : 'absent');
+    check('the old Filter lid (#hist-filter) is gone', !head.lid, head.lid ? 'still there' : 'none');
+    /* RE-POINTED 10 Oct 2026 — follows SAP batch 3 (e0e3035, 9 Oct 2026, owner:
+       "Build exactly the drawings of SAP way"): the History tab draws a search
+       box and a FILTER FOLD (#hist-filter-btn, `_histFiltersOpen`, open while a
+       filter is on). The 13 Aug "filters in the open" ruling was reversed by
+       that drawing, so at rest the row is folded and ONE named press opens it.
+       What still holds: the five filters, Clear, and Side reading Ours/Theirs. */
+    check('at rest the filter row is folded behind a named Filter button',
+      !(head.row && head.row.on) && !!(head.btn && head.btn.on) && head.btnExp === 'false',
+      `row ${head.row ? head.row.w + 'x' + head.row.h : 'absent'} · button ${head.btn ? head.btn.w + 'x' + head.btn.h : 'absent'} · expanded ${head.btnExp}`);
+    await page.click('#ws-history-pane #hist-filter-btn');
+    await page.waitForFunction(() => {
+      const r = document.querySelector('#ws-history-pane .hist-filters');
+      return r && r.getBoundingClientRect().height > 0;
+    }, null, { timeout: 5000 }).catch(() => {});
+    const opened1 = await page.evaluate(`(() => {
+      const seen = ${SEEN};
+      const host = document.getElementById('ws-history-pane');
+      return { row: seen(host.querySelector('.hist-filters')),
+        selects: [...host.querySelectorAll('.hist-f select')].map(s =>
+          ({ k: s.getAttribute('data-ht-filter'), ...seen(s) })),
+        clear: seen(host.querySelector('#ht-clear')),
+        exp: host.querySelector('#hist-filter-btn') && host.querySelector('#hist-filter-btn').getAttribute('aria-expanded') };
+    })()`);
+    check('one press on Filter opens the row into visible pixels, and the button says so',
+      !!(opened1.row && opened1.row.on) && opened1.exp === 'true',
+      opened1.row ? `${opened1.row.w}x${opened1.row.h} · expanded ${opened1.exp}` : 'absent');
     check('all five filters are on screen, side among them',
-      head.selects.length === 5 && head.selects.every(s => s.on),
-      head.selects.map(s => `${s.k}:${s.w}x${s.h}`).join(' · '));
-    check('and its Clear is on screen with them', !!(head.clear && head.clear.on),
-      head.clear ? `${head.clear.w}x${head.clear.h}` : 'absent');
+      opened1.selects.length === 5 && opened1.selects.every(s => s.on),
+      opened1.selects.map(s => `${s.k}:${s.w}x${s.h}`).join(' · '));
+    check('and its Clear is on screen with them', !!(opened1.clear && opened1.clear.on),
+      opened1.clear ? `${opened1.clear.w}x${opened1.clear.h}` : 'absent');
     check('the row still names each filter', head.labels.length === 5, head.labels.join(' | '));
 
     /* ---- the Side control says Ours / Theirs, in the owner's chair ---- */
