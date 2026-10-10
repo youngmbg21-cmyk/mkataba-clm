@@ -807,7 +807,21 @@ function openObligationForm(c, seed, opts){
   const members=(getUsers()||[]).map(u=>u.name);
   openModal(`
     <div class="p-6">
-      <h3 class="font-serif font-600 text-lg text-ink mb-3">${seed._i!=null?'Edit':'Add'} obligation</h3>
+      <h3 class="font-serif font-600 text-lg text-ink">${seed._i!=null?'Edit':'Add'} obligation</h3>
+      ${''/* SAP's dialog (10 Oct 2026): the record it is about, under the title;
+              and WHOSE OBLIGATION first, because it decides what follows (the
+              Assign-to box below only means anything for one of ours). */}
+      <div class="text-[12.5px] text-ink/60 mb-3">${_obEsc((window.contractRef?contractRef(c):c.id)+' · '+(c.name||''))}</div>
+      ${''/* WHOSE JOB, ASKED BEFORE WHO ON OUR SIDE. The two questions are not
+              independent — "assign to" only means anything for an obligation
+              that is ours — so the field that decides it comes first, and the
+              one it governs is hidden when it does not apply. */}
+      <div class="mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_whose')}</span>
+        <div id="of-party" class="mt-1 grid grid-cols-2 gap-2">
+          ${OBLIG_PARTY.map(([k,l])=>{ const on=(seed.party==='theirs'?'theirs':'ours')===k;
+            return `<button type="button" data-of-party="${k}" class="rounded-lg border px-3 py-2 text-[12.5px] font-600 transition ${on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/70 hover:bg-slate-50'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
+        </div></div>
+
       ${''/* ---- THE DESCRIPTION WRAPS ----
               Reported (Young, 10 Aug 2026): an obligation read out of a clause
               is a sentence, and a single-line <input> showed about a third of
@@ -890,22 +904,13 @@ function openObligationForm(c, seed, opts){
       ${obligationMoneyVisible() ? `<label class="block mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_amount')}</span>
         <span class="of-amt mt-1"><i>${_obEsc(typeof window.contractCurrency==='function'?contractCurrency(c):'')}</i><input id="of-amount" type="number" min="0" step="any" inputmode="decimal" value="${seed.amount!=null&&seed.amount!==''?String(seed.amount).replace(/"/g,'&quot;'):''}" placeholder="${_obEsc(i18t('ob_amount_ph'))}"/></span>
         <span class="block text-[11px] text-ink/55 mt-1">${_obEsc(i18t('ob_amount_hint'))}</span></label>` : ''}
-      ${''/* WHOSE JOB, ASKED BEFORE WHO ON OUR SIDE. The two questions are not
-              independent — "assign to" only means anything for an obligation
-              that is ours — so the field that decides it comes first, and the
-              one it governs is hidden when it does not apply. */}
-      <div class="mb-2.5"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_whose')}</span>
-        <div id="of-party" class="mt-1 grid grid-cols-2 gap-2">
-          ${OBLIG_PARTY.map(([k,l])=>{ const on=(seed.party==='theirs'?'theirs':'ours')===k;
-            return `<button type="button" data-of-party="${k}" class="rounded-lg border px-3 py-2 text-[12.5px] font-600 transition ${on?'border-brand-500 bg-brand-50 text-brand-700':'border-line bg-white text-ink/70 hover:bg-slate-50'}">${k==='theirs'?((c.counterparty||'').replace(/</g,'&lt;')||l):l}</button>`; }).join('')}
-        </div></div>
       <label id="of-assignee-wrap" class="block mb-4 ${seed.party==='theirs'?'hidden':''}"><span class="text-[11px] font-600 text-ink/70">${i18t('ob_assign_to')}</span>
         <input id="of-assignee" list="of-members" value="${(seed.assignee||'').replace(/"/g,'&quot;')}" placeholder="Team member" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld outline-none focus:border-brand-500"/>
         <datalist id="of-members">${members.map(m=>`<option value="${m}">`).join('')}</datalist></label>
       <p id="of-theirs-note" class="mb-4 text-[11px] text-ink/55 leading-relaxed ${seed.party==='theirs'?'':'hidden'}">This is something ${(c.counterparty||'the counterparty').replace(/</g,'&lt;')} owes. It appears on your calendar and dashboard as something to chase rather than something to do.</p>
       <div class="flex justify-end gap-2">
-        <button id="of-cancel" class="ui-btn">${_obEsc(opts.cancelLabel||i18t('act_cancel'))}</button>
-        <button id="of-save" class="ui-btn ui-btn-primary">${_obEsc(opts.saveLabel||i18t('act_save'))}</button>
+        <button data-dlg-cancel id="of-cancel" class="ui-btn">${_obEsc(opts.cancelLabel||i18t('act_cancel'))}</button>
+        <button id="of-save" class="ui-btn ui-btn-primary">${_obEsc(opts.saveLabel||i18t(seed._i!=null?'act_save':'ob_add_go'))}</button>
       </div>
     </div>`);
   let party=(seed.party==='theirs')?'theirs':'ours';
@@ -2254,7 +2259,7 @@ function openObligationDone(c, i){
       ${next ? `<p id="od-next" class="mb-4 rounded-lg border border-line bg-slate-50 px-3 py-2 text-[12px] text-ink/70">${
         _obEsc(i18t('ob_done_next', { date: next.due }))}</p>` : ''}
       <div class="flex justify-end gap-2">
-        <button id="od-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="od-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="od-go" class="ui-btn ui-btn-primary">${i18t('ob_done_go')}</button>
       </div>
     </div>`);
@@ -3217,9 +3222,10 @@ async function obligationRemove(c, i){
   const o = (c && c.obligations || [])[i];
   if(!o) return false;
   if(typeof canEdit === 'function' && !canEdit()){ toast(i18t('ob_viewers_no_change'), 'err'); return false; }
-  const ok = (typeof confirmDialog !== 'function') ? true : await confirmDialog({ title: i18t('ob_remove_title'),
-    message: i18t('ob_remove_msg', { desc: o.desc || '' }), confirmLabel: i18t('ob_remove_go'), danger: true });
-  if(!ok) return false;
+  /* REMOVED AT ONCE, WITH UNDO (SAP pop-ups, owner's go 10 Oct 2026): SAP
+     asks before what cannot be undone, and this can — the toast's Undo puts
+     the same obligation back in the same place, and the trail keeps both
+     lines, so the record still shows it was taken off and put back. */
   const at = (c.obligations || []).indexOf(o);
   if(at < 0) return false;
   c.obligations.splice(at, 1);
@@ -3227,6 +3233,16 @@ async function obligationRemove(c, i){
   persist(c);
   if(window.renderObligationsSection) renderObligationsSection(c);
   obligationSurfacesChanged();
+  toast(i18t('ob_removed_t'), 'ok', { action: { label: i18t('act_undo'), onClick: () => {
+    const live = (window.getContract && getContract(c.id)) || c;
+    live.obligations = live.obligations || [];
+    if(live.obligations.includes(o)) return;
+    live.obligations.splice(Math.min(at, live.obligations.length), 0, o);
+    logAudit(live, 'Obligation', `Restored: ${o.desc}`);
+    persist(live);
+    if(window.renderObligationsSection) renderObligationsSection(live);
+    obligationSurfacesChanged();
+  } } });
   return true;
 }
 /* WITH A KEY IT OPENS THE OBLIGATION'S OWN PLACE (28 Sep 2026, the Insights

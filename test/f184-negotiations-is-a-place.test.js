@@ -954,7 +954,10 @@ describe('f184 — the negotiation card is the contract workspace\'s', () => {
        never writing a comment terminator inside a comment applies here too —
        the first draft of THIS note broke the test file itself. */
     /* the head sits on the page ground since 7 Oct 2026, as the room's does (the mockup) */
-    assert.match(NCSS, /\.redline-page #ws-head\{background:transparent;padding:var\(--page-pad-t\) 24px 0/,
+    /* RE-POINTED 10 Oct 2026 (owner: no movement going Document ⇄ Negotiate):
+       the top is still the room's own; the LEFT is the room's 18px title
+       inset, the right the band measure (negotiate-as-drawn 3b pins the pixels). */
+    assert.match(NCSS, /\.redline-page #ws-head\{background:transparent;padding:var\(--page-pad-t\) var\(--band-pad-x\) 0 18px/,
       'the top is the room\'s own — the calc() that used to compensate for a one-line head put the first glyph 4px high');
     /* REVERSED IN HALF, 21 Sep 2026 (Young: "first remove the line going
        across the card"). This pinned the row gap and the head's own inset rule

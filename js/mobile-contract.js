@@ -628,7 +628,7 @@ function mOverflowSheetHtml(){
         <span style="flex:1;font-size:16px;font-weight:var(--w-body);color:${i.muted?'var(--color-neutral-400)':'var(--color-text)'}">${mEsc(i.label)}</span>
         ${i.desk?`<span style="flex:none;font-size:var(--t-card);color:var(--color-neutral-600)">${i18t('m_computer')}</span>`:''}
       </button>`).join('')}
-    <button class="m-btn m-btn-quiet" style="margin-top:6px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button data-dlg-cancel class="m-btn m-btn-quiet" style="margin-top:6px" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------ SHARE SHEET --
@@ -709,7 +709,7 @@ function mShareSheetHtml(){
     </label>
     ${s.shareErr?`<div class="m-err">${mEsc(s.shareErr)}</div>`:''}
     <button class="m-btn m-btn-primary" style="margin-top:var(--s-3)" data-m-act="share-create">${cta}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button data-dlg-cancel class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* --------------------------------------------------- THE SIGNER PICKER ------
@@ -806,7 +806,7 @@ function mSignersSheetHtml(){
             : `<div class="m-note" style="margin-top:10px">${i18t('mc_signers_reorder_on_computer')}</div>`}
     ${mS().signersErr ? `<div class="m-err">${mEsc(mS().signersErr)}</div>` : ''}
     <button class="m-btn m-btn-primary" style="margin-top:var(--s-3)" data-m-act="signers-save">${i18t('mc_signers_save')}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button data-dlg-cancel class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 /* THE SAVE IS THE DESKTOP'S. This builds two rows and hands them over; every
    rule about what a route IS — the shape, the refusal, the audit line, the
@@ -871,7 +871,7 @@ function mRenumberSheetHtml(){
     </div>
     ${refs.length?`<div class="m-note" style="margin-top:10px">${refs.length} cross-reference${refs.length===1?'':'s'} ${refs.length===1?'is':'are'} repointed in the same plan.</div>`:''}
     <button class="m-btn m-btn-primary" style="margin-top:var(--s-3)" data-m-act="renumber-apply">Renumber ${moves.length} heading${moves.length===1?'':'s'}</button>
-    <button class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
+    <button data-dlg-cancel class="m-btn m-btn-quiet" style="margin-top:var(--s-2)" data-m-act="close-sheet">${i18t('act_cancel')}</button>`;
 }
 
 /* ------------------------------------------------------------- BEHAVIOUR ---*/

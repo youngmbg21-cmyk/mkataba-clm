@@ -1557,6 +1557,57 @@
      room above and below are drawn only while the panel really scrolls, so a
      dialog that fits looks exactly as it did. */
   .modal-in [data-dlg-foot]{position:sticky;bottom:0;z-index:2;background:var(--color-surface);}
+  /* THE ACT FIRST, CANCEL LAST (SAP pop-ups, owner's go 10 Oct 2026). SAP's
+     dialogs put the act that moves the work first and Cancel at the far right;
+     HaTi wrote Cancel first in every foot. Each Cancel is marked
+     data-dlg-cancel where it is built, and the flex row draws it last. Inside
+     a dialog dlgPinFoot also MOVES it last in the DOM, so Tab meets the act
+     first, as the eye does. */
+  [data-dlg-cancel]{order:99;}
+  /* A pop-up drawn as a page (dlgPageAdopt, SAP pop-ups 10 Oct 2026): the
+     white head band of every page, doors at the top, the work scrolling under. */
+  [data-dlg-page] .dlg-pg-head{ flex:none; background:var(--color-surface); border-bottom:1px solid var(--rule-strong);
+    padding:var(--page-pad-t,16px) var(--band-pad-x,24px) 14px; display:flex; flex-direction:column; gap:6px; }
+  [data-dlg-page] .dlg-pg-crumb{ font-size:var(--t-label); color:var(--color-neutral-600); }
+  [data-dlg-page] .dlg-pg-row{ display:flex; align-items:center; gap:var(--s-3); min-width:0; }
+  [data-dlg-page] .dlg-pg-title{ flex:1; min-width:0; }
+  [data-dlg-page] .dlg-pg-title > *{ font-family:var(--font-heading); font-size:var(--t-page); font-weight:var(--w-strong); color:var(--color-text); }
+  [data-dlg-page] .dlg-pg-acts{ flex:none; display:flex; align-items:center; gap:var(--s-2); }
+  [data-dlg-page] .dlg-pg-body{ flex:1; min-height:0; overflow:auto; }
+  [data-dlg-page] .na-foot{ display:none; }   /* its buttons moved to the head */
+  [data-dlg-page] .na-x{ display:none; }      /* a page leaves by Cancel at its top, not a corner cross */
+  /* Two ways in, one segmented row (openImportModal, SAP pop-ups 10 Oct 2026). */
+  .imp-tabs{ display:flex; border:1px solid var(--color-divider); border-radius:var(--radius); overflow:hidden; }
+  .imp-tab{ flex:1; height:var(--ctl-h); border:0; border-right:1px solid var(--color-divider); background:var(--color-surface);
+    font:inherit; font-size:var(--t-body); font-weight:var(--w-label); color:var(--color-neutral-700); cursor:pointer; }
+  .imp-tab:last-child{ border-right:0; }
+  .imp-tab.on{ background:var(--color-accent-50); color:var(--accent-ink); font-weight:var(--w-strong); box-shadow:inset 0 -2px 0 var(--accent-fill); }
+  /* A DATE ON HaTi'S OWN CALENDAR (SAP pop-ups, 10 Oct 2026): the real date
+     box stays in the form, out of sight; the face beside it wears the field's
+     own inline clothes, and the calendar is drawn from the product's tokens
+     only. See datePickDress in js/core.js. */
+  .dp-face{ display:flex; align-items:center; gap:var(--s-2); text-align:left; cursor:pointer; }
+  .dp-face .dp-v{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dp-face .dp-ph{ color:var(--color-neutral-500); }
+  .dp-face .dp-ic{ width:14px; height:14px; flex:none; color:var(--color-neutral-600); }
+  .dp-face:disabled{ cursor:not-allowed; opacity:.6; }
+  .dp-pop{ position:fixed; z-index:96; width:252px; padding:var(--s-2); background:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); font-family:var(--font-body); }
+  .dp-head{ display:flex; align-items:center; gap:var(--s-1); padding:2px 2px 6px; }
+  .dp-title{ flex:1; text-align:center; font-weight:var(--w-strong); font-size:var(--t-body); color:var(--color-text); }
+  .dp-nav{ width:28px; height:28px; border-radius:var(--radius); border:0; background:transparent; color:var(--color-text); font-size:18px; line-height:1; cursor:pointer; }
+  .dp-nav:hover{ background:var(--color-neutral-100); }
+  .dp-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .dp-dow{ text-align:center; font-size:var(--t-label); color:var(--color-neutral-600); padding:2px 0; }
+  .dp-day{ height:30px; border:0; border-radius:var(--radius); background:transparent; color:var(--color-text);
+    font:inherit; font-size:var(--t-body); font-variant-numeric:tabular-nums; cursor:pointer; }
+  .dp-day:hover{ background:var(--color-accent-50); }
+  .dp-day.dp-other{ color:var(--color-neutral-500); }
+  .dp-day.is-today{ box-shadow:inset 0 0 0 1px var(--accent-fill); }
+  .dp-day.is-on{ background:var(--accent-fill); color:#fff; }
+  .dp-day:disabled{ opacity:.35; cursor:not-allowed; }
+  .dp-day:focus-visible,.dp-nav:focus-visible{ outline:2px solid var(--accent-fill); outline-offset:1px; }
+  .dp-foot{ display:flex; justify-content:space-between; padding:8px 4px 2px; border-top:1px solid var(--color-divider); margin-top:6px; }
   .modal-in[data-scrolls] [data-dlg-foot]{box-shadow:0 -1px 0 var(--color-divider);padding-top:10px;padding-bottom:10px;}
   /* ═══ THE SIGNING ROUTE IS A TIMELINE (Young ruled it 27 Sep 2026) ═══════════
      The route drawn as it will run: numbered steps down a line, the people who
@@ -3266,9 +3317,10 @@
   .st-adv > .st-sec:first-of-type{ border-top:0; padding-top:0; margin-top:15px; }
   .st-sec-h{ display:flex; align-items:center; gap:var(--s-2); font-family:var(--font-mono);
     font-weight:var(--w-strong); font-size:var(--t-body); color:var(--color-text); margin:0 0 var(--s-2); }
-  .st-sec-n{ flex:none; width:19px; height:19px; border-radius:50%; display:inline-grid;
-    place-items:center; font-size:var(--t-label); font-weight:var(--w-title); background:var(--st-steel-bg);
-    color:var(--st-steel-fg); }
+  /* THE DRAWER'S SECTIONS ARE NOT STEPS (SAP pop-ups, owner's go 10 Oct 2026):
+     the numbered circles read as a sequence to work through, which they are
+     not; the plain heading says what the section is. Markup kept, not drawn. */
+  .st-sec-n{ display:none; }
   .st-note{ display:block; font-size:var(--t-label); line-height:1.5; color:var(--color-neutral-600);
     margin-top:var(--s-1); }
   .st-quiet{ border:1px solid var(--color-divider); background:var(--color-bg);
@@ -3443,6 +3495,23 @@
     border:0; background:none; cursor:pointer; font:inherit; font-size:var(--t-body); font-weight:var(--w-body);
     color:var(--color-text); border-radius:var(--radius); padding:var(--s-2) 10px; }
   .room-menu button:hover{ background:var(--color-neutral-100); }
+  /* "Draft new agreement" drops its two doors as a menu (SAP's menu button,
+     10 Oct 2026; openNewDoors in js/wizard.js). */
+  .nd-menu{ position:fixed; z-index:72; width:320px; padding:4px; background:var(--color-surface);
+    border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); }
+  .nd-item{ display:flex; gap:10px; width:100%; align-items:flex-start; text-align:left; padding:9px 10px;
+    border:0; border-radius:var(--radius); background:none; font:inherit; color:var(--color-text); cursor:pointer; }
+  .nd-item:hover,.nd-item:focus-visible{ background:var(--color-neutral-100); outline:none; }
+  .nd-item:focus-visible{ box-shadow:inset 0 0 0 2px var(--accent-fill); }
+  .nd-ic{ flex:none; margin-top:1px; color:var(--accent-ink); }
+  .nd-tx{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .nd-t{ font-weight:var(--w-strong); font-size:var(--t-body); }
+  .nd-d{ font-size:var(--t-label); color:var(--color-neutral-600); line-height:1.45; }
+  /* A row that cannot act right now greys and says why on its own line's end
+     (SAP pop-ups, 10 Oct 2026 — Compare versions with one version). */
+  .room-menu button:disabled{ color:var(--color-neutral-500); cursor:default; }
+  .room-menu button:disabled:hover{ background:none; }
+  .room-menu button:disabled svg{ color:var(--color-neutral-400); }
   .room-menu button .mnote{ margin-left:auto; font-size:var(--t-label); color:var(--color-neutral-500);
     font-weight:var(--w-body); }
   /* ---- THE SYMBOLS CARRY THE COLOUR, THE WORDS STAY BLACK ----
@@ -9436,6 +9505,11 @@
     transition:transform var(--dur-3) cubic-bezier(.22,.61,.36,1);
   }
   #context-panel.open{transform:none;}
+  /* A CLOSED PANEL CASTS NO SHADOW (owner, 10 Oct 2026: "the top bar … should be
+     White … There should be no grey"). Parked at translateX(105%) just past
+     the right edge, its 64px shadow still spilled back across the head as a
+     grey fade on every page. (1,1,0) beats the base rule by weight. */
+  #context-panel:not(.open){box-shadow:none;}
   /* The notes face alone takes the wider token. (1,1,0) against the base
      rule's (1,0,0), so it wins by WEIGHT and not by order or !important —
      and a face with no rule of its own simply keeps --shell-panel-w. */
@@ -9913,6 +9987,7 @@
      came out about a hundred pixels wide. */
   #ai-panel{display:flex;flex-direction:column;width:100%;box-shadow:var(--shadow-lg);}
   #ai-panel > *{flex:none;}
+  #ai-panel:not(.open){box-shadow:none;}   /* see #context-panel:not(.open) */
   #ai-panel > header{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-4) 20px;}
   /* The title block must be allowed to give way. Without min-width:0 it holds
      its content's width, so on a phone the four header verbs — expand, delete,

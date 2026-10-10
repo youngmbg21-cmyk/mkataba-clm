@@ -2583,7 +2583,7 @@ function tbFieldModal(index, presetKey) {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--s-4)">
         <span style="font-size:var(--t-label);color:var(--color-neutral-500);font-family:var(--font-mono)" id="tbf-keyprev">${f.fieldKey ? `{{${esc(f.fieldKey)}}}` : ''}</span>
         <div style="display:flex;gap:var(--s-2)">
-          <button class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel class="ui-btn" onclick="closeModal()">${i18t('act_cancel')}</button>
           <button id="tbf-save" class="ui-btn ui-btn-primary">${i18t(index != null ? 'tb_field_save' : 'tb_field_add')}</button>
         </div>
       </div>

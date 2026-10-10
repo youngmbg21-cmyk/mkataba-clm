@@ -205,7 +205,7 @@ function openNoticeServedDialog(c, after){
     <p id="nts-say" style="margin:var(--s-2) 0 0;font-size:var(--t-label);color:var(--danger);min-height:1.4em"></p>
     <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-4)">
       ${had?`<button id="nts-clear" class="ui-btn" type="button" style="margin-right:auto">${e(i18t('nt_served_clear'))}</button>`:''}
-      <button id="nts-cancel" class="ui-btn" type="button">${e(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel id="nts-cancel" class="ui-btn" type="button">${e(i18t('act_cancel'))}</button>
       <button id="nts-ok" class="ui-btn ui-btn-primary" type="button">${e(i18t('nt_served_ok'))}</button>
     </div></div>`, { label:i18t('nt_served_title'), maxWidth:DLG_W.m });
   const done = () => { closeModal(); try{ if(typeof persist === 'function') persist(c); }catch(_){}

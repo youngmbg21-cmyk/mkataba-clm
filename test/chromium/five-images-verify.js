@@ -261,7 +261,10 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.evaluate(() => { const b = document.querySelector('.hm-primary'); if (b) b.click(); });
     /* 23 Sep 2026: the button opens two doors first; this presses Draft from HaTi. */
     await page.waitForTimeout(400);
-    await page.evaluate(() => { const d = document.querySelector('[data-nd-door="draft"]'); if (d) d.click(); });
+    /* RE-POINTED 10 Oct 2026 (SAP pop-ups): New agreement is a PAGE now, with
+       the white head of every page; the frame's rule is asked of a dialog that
+       is still a dialog — Add a received contract, behind the other door. */
+    await page.evaluate(() => { const d = document.querySelector('[data-nd-door="upload"]'); if (d) d.click(); });
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '05-popup.png') });
     const pop = await page.evaluate(() => {

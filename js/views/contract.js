@@ -1546,8 +1546,11 @@ function openUploadModal(){
   openModal(`
     <div class="p-6">
       <div id="up-step-1">
-        <div class="flex items-center gap-2 mb-1"><span class="text-gold-600">${icon('upload')}</span>
-          <h2 class="font-display font-700 text-brand-900">${i18t('ct_add_received')}</h2></div>
+        ${''/* ONE TITLE, AT EVERY DIALOG'S SIZE (SAP pop-ups, 10 Oct 2026): this
+               head was a smaller display face with an upload sign beside it,
+               the only dialog dressed that way; the drop area below already
+               says what the dialog is for. */}
+        <h2 class="font-serif font-600 text-lg text-ink mb-3">${i18t('ct_add_received')}</h2>
         <div id="up-drop" role="button" tabindex="0" aria-label="${i18t('ct_drop_file_here')}" style="border:2px dashed var(--color-accent);border-radius:var(--radius);background:var(--color-bg);padding:34px 20px;text-align:center;cursor:pointer;transition:background var(--dur-1)">
           <div style="font-size:var(--t-card);font-weight:var(--w-strong);color:var(--color-text)">${i18t('ct_drop_here')}</div>
           <div style="font-size:var(--t-meta);color:var(--color-neutral-600);margin-top:5px">${i18t('ct_upload_hint',{max:uploadMaxLabel()})}</div>
@@ -1566,7 +1569,7 @@ function openUploadModal(){
             (()=>{ const n=(typeof navCounts==='function')?Number((navCounts()||{}).migration)||0:0;
               return n>0?` <span id="up-bulk-waiting" style="margin-left:4px;color:var(--st-amber-fg)">· ${esc(i18tn('ct_import_waiting',n,{n}))}</span>`:''; })()}</button>
           <span style="flex:1"></span>
-          <button id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="up-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         </div>
       </div>
       <div id="up-step-2" class="hidden">${uploadConfirmHtml(null,null)}</div>
@@ -1690,7 +1693,7 @@ function uploadConfirmHtml(ext, meta){
       <div class="flex items-center gap-2">
         <button id="up-back" class="ui-btn">${icon('arrowLeft')}Another file</button>
         <span style="flex:1"></span>
-        <button id="up-cancel-2" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="up-cancel-2" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="up-go" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} <span id="up-go-word">${i18t(ext&&uploadRouteDefault()==='outside'?'ho_start_redlining':'ct_file_contract')}</span></button>
       </div>`;
 }
@@ -2328,8 +2331,7 @@ function openEditDocModal(c){
   openModal(`
     <div style="padding:var(--s-6) 26px 20px;height:100%;display:flex;flex-direction:column;min-height:0">
       <div style="${COL};padding:0 26px">
-        <div style="display:flex;align-items:center;gap:var(--s-2);margin-bottom:var(--s-1)"><span style="color:var(--color-accent)">${icon('pencil','w-4 h-4')}</span>
-          <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0">${i18t('ct_edit_document',{id:(window.contractRef?contractRef(c):c.id)})}</h3></div>
+        <h3 style="font-family:var(--font-heading);font-weight:var(--w-strong);font-size:var(--t-page);margin:0 0 var(--s-1)">${i18t('ct_edit_document',{id:(window.contractRef?contractRef(c):c.id)})}</h3>
         ${''/* ONE LINE, AND ONLY WHERE SAVE COSTS SOMETHING (the pop-up diet,
                13 Sep 2026): the formatting is lost and cannot be got back, so
                that stays on the face; how versions and Compare work does not. */}
@@ -2348,11 +2350,15 @@ function openEditDocModal(c){
       <div style="${COL};padding:0 26px;display:flex;justify-content:space-between;align-items:center;margin-top:10px">
         <span id="ed-count" style="font-size:var(--t-label);color:var(--color-neutral-500)"></span>
         <span style="display:flex;gap:var(--s-2)">
-          <button id="ed-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="ed-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="ed-save" class="ui-btn ui-btn-primary">${icon('check2','w-3.5 h-3.5')} Save changes</button>
         </span>
       </div>
-    </div>`, {maxWidth:'min(1180px, 96vw)', height:'calc(100vh - 40px)'});
+    </div>`, {
+      /* A PAGE, NOT A POP-UP (SAP pop-ups, owner's go 10 Oct 2026): the whole
+         document is edited in the work area under the top bar, Save and
+         Cancel at the top. See dlgPageAdopt in js/core.js. */
+      page:{ acts:['ed-save','ed-cancel'], crumb:`${i18t('nav_contracts')} › ${(window.contractRef?contractRef(c):c.id)} ${c.name||''}` } });
   const ta=document.getElementById('ed-text');
   ta.addEventListener('input',()=>{ const el=document.getElementById('ed-count'); if(el) el.textContent=''; });
   document.getElementById('ed-cancel').addEventListener('click',closeModal);
@@ -7117,8 +7123,8 @@ function openPartyEditor(c, id){
       ${(!adding&&p.side!==PARTY_SIDE_OURS)?`<button type="button" class="ui-btn" id="py-del" style="color:var(--st-ruby-fg)">${
         esc(i18t('py_remove'))}</button>`:''}
       <span style="flex:1"></span>
-      <button type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
-      <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t('act_save'))}</button>
+      <button data-dlg-cancel type="button" class="ui-btn" id="py-cancel">${esc(i18t('act_cancel'))}</button>
+      <button type="button" class="ui-btn ui-btn-primary" id="py-ok">${esc(i18t(adding?'py_add_go':'act_save'))}</button>
     </div>`, { maxWidth: DLG_W.m });
 
   const say=m=>{ const el=document.getElementById('py-say'); if(!el) return;
@@ -8602,7 +8608,7 @@ function openNegoProposeModal(c){
       </div>
       <div style="flex:none;padding:14px 26px;border-top:1px solid var(--color-divider)">
         <div style="${COL};display:flex;align-items:center;gap:9px;flex-wrap:wrap">
-          <button id="nego-prop-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+          <button data-dlg-cancel id="nego-prop-cancel" class="ui-btn">${i18t('act_cancel')}</button>
           <button id="nego-prop-go" class="ui-btn ui-btn-primary">${i18t('ct_propose_changes')}</button>
         </div>
       </div>
@@ -10137,7 +10143,12 @@ function roomHeadSubHtml(c, opts = {}){
   if (kind) bits.push(esc(kind));
   if (c && F[c.folder]) bits.push(`<span class="room-sub-stream"><i style="background:${esc(F[c.folder].color||'var(--color-neutral-400)')}"></i>${esc(F[c.folder].name)}</span>`);
   if (c && c.archived) bits.push(esc(i18t('ct_archived_tag')));
-  const owner = (typeof contractOwnerName === 'function') ? contractOwnerName(c) : '';
+  /* NEGOTIATE'S LINE NAMES NO PERSON (owner, 10 Oct 2026: "remove the lead
+     and name from the second line below the title in negotiation"). Its head
+     is the one built with opts.needs === false; the room's tabs keep the
+     owner. The lead is still one press away on the head's own pill. */
+  const negoHead = !!(c && opts.needs === false);
+  const owner = (!negoHead && typeof contractOwnerName === 'function') ? contractOwnerName(c) : '';
   if (owner) bits.push(`${esc(i18t('ov_f_owner'))} <b class="room-sub-owner">${esc(owner)}</b>`);
   /* "updated" ONLY BEFORE A DATE (9 Oct 2026): a company standard's contract
      was born with lastAction "Created from template" — words, not a day — and
@@ -10145,13 +10156,6 @@ function roomHeadSubHtml(c, opts = {}){
      rewritten; one that names no year is simply not printed here. */
   if (c && c.lastAction && /\b(19|20)\d{2}\b/.test(String(c.lastAction)))
     bits.push(esc(i18t('ct_updated_on', { when: c.lastAction })));
-  /* THE LEAD ON NEGOTIATE'S LINE (SAP benchmark, batch 4, as drawn): who
-     speaks for us in this negotiation, or "nobody yet". Negotiate's head is
-     the one that draws no round-needs slot (opts.needs === false). */
-  if (c && opts.needs === false) {
-    let lead = null; try { lead = (typeof window.deskLead === 'function') ? deskLead(c) : null; } catch (_) { lead = null; }
-    bits.push(`${esc(i18t('dk_lead_label'))}: <b class="room-sub-lead">${esc((lead && lead.name) || i18t('ct_lead_nobody'))}</b>`);
-  }
   const needs = opts.needs ? `<span id="ws-round-needs-slot">${negoRoundNeedsHtml(c)}</span>` : '';
   /* ---- WHO ELSE HAS THIS OPEN (idea 5, 4 Oct 2026) ----
      A SLOT, painted by the beat rather than built here, because this is the
@@ -10544,7 +10548,9 @@ function roomHeadHtml(c,opts={}){
                  FIRST thing inside the box, under its own instruction line, so
                  nobody holding a code can miss it. */}
           ${may?`<button type="button" id="ws-import" title="${i18t('ct_read_word_back')}">${icon('download','w-3.5 h-3.5')}${i18t('ct_import_word_file')}</button>`:''}
-          <button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>
+          ${(window.compareHasTwo && !compareHasTwo(c))
+            ? `<button type="button" id="ws-compare" disabled aria-disabled="true" title="${i18t('ve_only_one_title')}">${icon('columns','w-3.5 h-3.5')}Compare versions<span class="mnote">${i18t('ve_one_so_far')}</span></button>`
+            : `<button type="button" id="ws-compare" title="${i18t('ct_compare_review')}">${icon('columns','w-3.5 h-3.5')}Compare versions</button>`}
           ${''/* "Save as template" LEFT THIS MENU (Young's go on "One Door to
                  Standards", 24 Sep 2026): the same start lives behind the
                  Templates page's one button — "From one of our contracts" —
@@ -15405,7 +15411,7 @@ async function signCheckEscalate(c,i,after){
       <label style="display:block"><span style="${lbl}">${esc(i18t('sc_esc_note'))}</span>
         <textarea id="sc-esc-note" rows="3" style="${fld}resize:vertical" placeholder="${esc(i18t('sc_esc_note_ph'))}"></textarea></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-        <button id="sc-esc-cancel" class="ui-btn">${esc(i18t('act_cancel'))}</button>
+        <button data-dlg-cancel id="sc-esc-cancel" class="ui-btn">${esc(i18t('act_cancel'))}</button>
         <button id="sc-esc-go" class="ui-btn ui-btn-primary">${esc(i18t('sc_esc_go'))}</button>
       </div></div>`);
     document.getElementById('sc-esc-cancel').addEventListener('click',()=>{ closeModal(); resolve(false); });
@@ -16693,7 +16699,7 @@ function openPaperSignatureModal(c){
       <label style="display:block"><span style="display:block;font-size:var(--t-label);font-weight:var(--w-strong);color:var(--color-neutral-700);margin-bottom:var(--s-1);font-family:var(--font-mono)">${i18t('ct_the_signed_copy')}</span>
         <input id="ps-file" type="file" accept=".pdf,image/*" style="width:100%;font-size:var(--t-body)"/></label>
       <div style="display:flex;justify-content:flex-end;gap:var(--s-2);margin-top:var(--s-4)">
-        <button id="ps-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+        <button data-dlg-cancel id="ps-cancel" class="ui-btn">${i18t('act_cancel')}</button>
         <button id="ps-go" class="ui-btn ui-btn-primary">${i18t('ct_file_as_executed')}</button>
       </div>
     </div>`);

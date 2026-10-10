@@ -435,7 +435,7 @@ function openIntakeForm(pre){
       <span style="display:block;font-size:var(--t-label);color:var(--color-neutral-600);margin-top:4px">${esc(i18t('ik_f_files_note',{ n:IK_FILES_MAX, mb:IK_FILE_MAX_MB }))}</span></label>
     <p id="ik-err" style="font-size:var(--t-meta);color:var(--st-ruby-fg);min-height:16px;margin:var(--s-2) 0 0"></p>
     <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:10px">
-      <button id="ik-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="ik-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="ik-send" class="ui-btn ui-btn-primary">${i18t('ik_send')}</button>
     </div>
   </div>`,{maxWidth:'560px'});
@@ -734,7 +734,7 @@ async function intakeSetStatus(id,status,opts={}){
       && !(typeof emailFailing==='function' && emailFailing());
     const said=await promptDialog({ title:i18t('ik_decline_title'),
       message:i18t('ik_decline_msg')+(mails?' '+i18t('ik_decline_emails'):''),
-      confirmLabel:i18t('ik_act_decline'), cancelLabel:i18t('act_cancel') });
+      confirmLabel:i18t('ik_act_decline'), cancelLabel:i18t('act_cancel'), danger:true });
     if(said==null) return;
     note=String(said||'').trim();
   } else if(status==='withdrawn'){

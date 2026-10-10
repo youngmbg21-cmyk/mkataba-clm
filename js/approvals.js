@@ -412,7 +412,7 @@ function approvalDecidableNow(c, u){
 async function approvalRefuseWhy(){
   if(typeof window.promptDialog!=='function') return null;
   const why=await window.promptDialog({ title:i18t('ap_reject_step_q'), message:i18t('ap_refuse_msg'),
-    label:i18t('ap_why_refusing'), placeholder:i18t('ap_refuse_ph'), confirmLabel:i18t('ap_refuse_go'), multiline:true });
+    label:i18t('ap_why_refusing'), placeholder:i18t('ap_refuse_ph'), confirmLabel:i18t('ap_refuse_go'), multiline:true, danger:true });
   if(why==null) return null;
   const text=String(why).trim();
   if(!text){ toast(i18t('ap_refuse_needs_why'),'warn'); return null; }
@@ -900,7 +900,7 @@ function openSignApprovalDialog(c){
     <textarea id="sa-ask-note" class="sa-inp" maxlength="${SA_NOTE_MAX}" rows="3"></textarea>
     <div class="sa-foot">
       <span class="sa-foot-note">${e(cp?i18t('sa_dlg_foot_cp',{who:cp.name}):i18t('sa_dlg_foot'))}</span>
-      <button type="button" class="ui-btn" id="sa-ask-cancel">${e(i18t('act_cancel'))}</button>
+      <button data-dlg-cancel type="button" class="ui-btn" id="sa-ask-cancel">${e(i18t('act_cancel'))}</button>
       <button type="button" class="ui-btn ui-btn-primary" id="sa-ask-go">${e(i18t('sa_dlg_go'))}</button>
     </div>
   </div>`, { maxWidth: DLG_W.m });
@@ -922,7 +922,7 @@ async function openSignApprovalRefuse(c, reqId){
   if(typeof window.promptDialog!=='function') return false;
   const why=await window.promptDialog({ title:i18t('sa_refuse_title',{who:asker}),
     message:i18t('sa_refuse_note',{who:asker}), label:i18t('sa_refuse_label'),
-    confirmLabel:i18t('sa_refuse_go'), multiline:true });
+    confirmLabel:i18t('sa_refuse_go'), multiline:true, danger:true });
   if(why==null) return false;
   if(!String(why).trim()){ toast(i18t('sa_refuse_needs_why',{who:asker}),'warn'); return false; }
   return signApprovalDecide(c, reqId, 'refused', why);
@@ -1764,7 +1764,7 @@ function signerRouteWindow(c, plan, back){
     ${dirList}
     <div class="sr-steps" id="sr-steps">${bodyHtml()}</div>
     <div class="dlg-foot sr-foot"><span class="sr-say" id="sr-say" role="alert"></span>
-      <button id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="sp-cancel" type="button" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="sp-save" type="button" class="ui-btn ui-btn-primary">${i18t('ap_save_route')}</button></div>
   </div>`, { maxWidth: DLG_W.l, label: i18t('ap_signing_route') });
   const win=document.getElementById('sr-win'); if(!win) return;

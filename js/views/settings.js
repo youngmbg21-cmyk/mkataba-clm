@@ -87,7 +87,7 @@ function openFolderAccessEditor(userId){
       <input type="checkbox" id="fa-all" ${isAll?'checked':''} style="width:16px;height:16px;accent-color:var(--color-accent)"/> ${i18t('set_all_streams')}</label>
     <div id="fa-list" style="display:${isAll?'none':'grid'};grid-template-columns:1fr;gap:6px;max-height:300px;overflow:auto;margin-bottom:14px">${folders.map(fRow).join('')}</div>
     <div class="flex justify-end gap-2">
-      <button id="fa-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="fa-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="fa-save" class="ui-btn ui-btn-primary">${i18t('set_save_access')}</button></div>
   </div>`);
   const allBox=document.getElementById('fa-all'), list=document.getElementById('fa-list');
@@ -460,8 +460,8 @@ function stDrawerPaint(d){
   document.getElementById('st-dfoot').innerHTML =
     `<div id="st-drawer-refusal" class="st-refusal" hidden></div>
      <div class="st-dfoot-acts">${nextBtn}${d.foot==='save'
-      ? `<button class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>
-         <button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('st_save_close')}</button>`
+      ? `<button class="ui-btn ui-btn-primary" id="st-dsave">${i18t('st_save_close')}</button>
+         <button data-dlg-cancel class="ui-btn" data-st-dclose>${i18t('act_cancel')}</button>`
       : `<button class="ui-btn ui-btn-primary" data-st-dclose>${i18t('st_done')}</button>`}</div>`;
   el.removeAttribute('hidden'); if(scrim) scrim.removeAttribute('hidden');
   /* The class flip is what animates; it has to land on a frame after the
@@ -478,6 +478,7 @@ function stDrawerPaint(d){
   if(_stTrap){ try{ _stTrap(); }catch(e){} _stTrap=null; }
   if(typeof window.trapFocus==='function') _stTrap=window.trapFocus(el);
   if(typeof d.wire==='function') d.wire();
+  if(typeof window.popupControlsDress==='function') popupControlsDress(el);   /* SAP pop-ups: HaTi's dropdowns and dates */
   if(d.foot==='save' && typeof d.save==='function')
     document.getElementById('st-dsave')?.addEventListener('click',()=>d.save());
   try{ el.focus&&el.focus(); }catch(_){}
@@ -2162,7 +2163,7 @@ async function stTwoStepToggle(){
     <input id="ts-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" style="${window.RV_FLD||ST_INPUT}"/>
     <p id="ts-err" class="st-note" style="color:var(--st-ruby-fg);min-height:16px;margin:6px 0 0"></p>
     <div style="display:flex;gap:var(--s-2);justify-content:flex-end;margin-top:var(--s-3)">
-      <button id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="ts-cancel" style="${ST_BTN2}">${i18t('act_cancel')}</button>
       <button id="ts-confirm" class="ui-btn ui-btn-primary">${i18t('ts_confirm')}</button>
     </div>
   </div>`,{ maxWidth: DLG_W.m });
@@ -5136,7 +5137,7 @@ function openPlaybookEditor(key){
     <div id="pb-rng-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:var(--s-4)"></div>
 
     <div style="display:flex;justify-content:flex-end;gap:var(--s-2)">
-      <button id="pb-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button data-dlg-cancel id="pb-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="pb-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button>
     </div>
   </div>`, {maxWidth:'34rem'});
@@ -5197,7 +5198,7 @@ function openClauseEditor(idx){
   openModal(`<div class="p-6">
     <h3 class="font-serif font-600 text-lg text-ink mb-3">${idx>=0?'Edit':'Add'} clause</h3>
     ${fld('category','Category')}${fld('name','Name')}${fld('preferred','Preferred wording',true)}${fld('fallback','Fallback wording',true)}${fld('guidance','Guidance',true)}
-    <div class="flex justify-end gap-2 mt-2"><button id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+    <div class="flex justify-end gap-2 mt-2"><button data-dlg-cancel id="ce-cancel" class="ui-btn">${i18t('act_cancel')}</button>
       <button id="ce-save" class="ui-btn ui-btn-primary">${i18t('act_save')}</button></div>
   </div>`);
   document.getElementById('ce-cancel').addEventListener('click',closeModal);
@@ -5267,15 +5268,30 @@ function openApprovalRuleEditor(idx){
         ${members.map(m=>`<option value="member:${esc(m.id)}" ${isAp(m)?'selected':''}>${esc(m.name)} (${roleName(m.role)})</option>`).join('')}
       </select>
       ${orphan?`<span style="display:block;margin-top:6px;font-size:var(--t-label);color:var(--st-amber-fg);background:var(--st-amber-bg);border:1px solid var(--st-amber-line);padding:6px 9px">${i18t('set_approver_gone_note',{name:esc(orphan)})}</span>`:''}</label>
-    <div class="flex justify-end gap-2 mt-2"><button id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
-      <button id="ar-save" class="ui-btn ui-btn-primary">${i18t('set_save_rule')}</button></div>
+    ${''/* THE RULE READ BACK AS A SENTENCE (SAP pop-ups, owner's yes 10 Oct
+           2026): four boxes are hard to check; one line saying what they add
+           up to is not. Painted on every change by arSays below. */}
+    <div id="ar-says" role="status" style="margin:2px 0 var(--s-3);padding:8px 11px;border-radius:var(--radius);background:var(--color-accent-50);color:var(--accent-ink);font-size:var(--t-body);line-height:1.45"></div>
+    <div class="flex justify-end gap-2 mt-2"><button data-dlg-cancel id="ar-cancel" class="ui-btn">${i18t('act_cancel')}</button>
+      <button id="ar-save" class="ui-btn ui-btn-primary">${i18t(idx>=0?'set_save_rule':'ar_add_go')}</button></div>
   </div>`);
+  const arSays=()=>{
+    const host=document.getElementById('ar-says'); if(!host) return;
+    const t=document.getElementById('ar-cond').value, cv=document.getElementById('ar-cv');
+    const cond={ type:t, op:'>=', value: t==='value' ? Number((cv&&cv.value)||0) : (cv&&cv.value) };
+    const apSel=document.getElementById('ar-approver');
+    const who=(apSel && apSel.selectedOptions[0]) ? apSel.selectedOptions[0].textContent.trim() : '';
+    host.textContent=i18t('ar_reads',{ who, n:Math.max(1,Number(document.getElementById('ar-order').value||1)), cond:condLabel(cond) });
+  };
   const renderCondVal=()=>{ const t=document.getElementById('ar-cond').value; const h=document.getElementById('ar-condval');
     if(t==='value') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_threshold',{cur:jxCurrency()})}</span><input id="ar-cv" type="number" value="${r.cond.type==='value'?r.cond.value:5000000}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>`;
     else if(t==='folder') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_value_stream')}</span><select id="ar-cv" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld">${Object.values(FOLDERS).map(f=>`<option value="${esc(f.id)}" ${r.cond.value===f.id?'selected':''}>${esc(f.name)}</option>`).join('')}</select></label>`;
     else if(t==='kind') h.innerHTML=`<label class="block"><span class="text-[11px] font-600 text-ink/70">${i18t('set_type_contains')}</span><input id="ar-cv" value="${r.cond.type==='kind'?(r.cond.value||''):''}" placeholder="${esc(i18t('set_ph_eg_lease'))}" class="mt-1 w-full rounded-lg border border-inputln bg-white ui-fld"/></label>`;
     else h.innerHTML=`<p class="text-[11px] text-ink/55">${i18t('set_no_extra_value')}</p>`; };
-  document.getElementById('ar-cond').addEventListener('change',renderCondVal); renderCondVal();
+  document.getElementById('ar-cond').addEventListener('change',()=>{ renderCondVal(); arSays(); }); renderCondVal();
+  document.querySelector('#modal-root [role="dialog"]').addEventListener('input',arSays);
+  document.querySelector('#modal-root [role="dialog"]').addEventListener('change',arSays);
+  arSays();
   document.getElementById('ar-cancel').addEventListener('click',closeModal);
   document.getElementById('ar-save').addEventListener('click',()=>{
     const t=document.getElementById('ar-cond').value; const cv=document.getElementById('ar-cv');
