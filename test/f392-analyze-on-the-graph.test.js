@@ -309,7 +309,8 @@ describe('f392 (6) the switch, Focus, the bin — and nothing is thrown away', (
 
 describe('f392 (7) the map is the X-ray\'s own walk over this canvas', () => {
   test('docReadSheet and docXrayRows take a root, and the default is the Document tab\'s canvas', () => {
-    assert.match(region(CT, 'docReadSheet'), /function docReadSheet\(c, root\)\{\s*const canvas=root\|\|document\.getElementById\('doc-canvas'\);/);
+    /* RE-POINTED 10 Oct 2026: with no root, the paper the thread shows — Home's while its list is drawn there */
+    assert.match(region(CT, 'docReadSheet'), /const canvas=root\|\|\(\(typeof thOnHome==='function'&&thOnHome\(\)&&thHomeLive\(\)\)\?document\.getElementById\('ig-canvas'\):document\.getElementById\('doc-canvas'\)\);/);
     assert.match(region(CT, 'docXrayRows'), /docReadSheet\(c, root\)/);
     assert.match(region(IG, 'igStrandPaint'), /docXrayRows\(c,canvas\)/);
   });
@@ -319,8 +320,9 @@ describe('f392 (7) the map is the X-ray\'s own walk over this canvas', () => {
     assert.match(s, /docXraySpineRows\(rows\)/);
     /* RE-POINTED 28 Sep 2026 (Young picked "Ask" for this strip): the same
        builder, now asked for the clause numbers on its blocks. */
-    assert.match(s, /docXraySpineHtml\(rows,\{ numbers:true \}\)/);
-    assert.match(s, /window\.DOC_XRAY_SPINE_W/);
+    /* RE-POINTED 10 Oct 2026 (owner): the Track, always — the strip is never drawn here again */
+    assert.doesNotMatch(s, /docXraySpineHtml\(rows/);
+    assert.match(s, /sp\.innerHTML=igTrackHtml\(rows\);/);
     assert.match(CT, /docXraySpineHtml,docXraySpineRows,/, 'the filter is published, so the graph file can ask it');
   });
 });

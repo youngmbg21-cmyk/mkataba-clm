@@ -37,7 +37,8 @@ test('f424 (1) numbers on the blocks are Explorer\'s, asked for; the Document ta
   assert.match(b, /doc-xr-num/);
   /* 5 Oct 2026 (the Thread): the Document tab draws no strand at all. */
   assert.doesNotMatch(code(region(CT, 'docThreadPaint')), /docXraySpineHtml/, 'the Document tab draws no strand');
-  assert.match(code(region(IG, 'igStrandPaint')), /docXraySpineHtml\(rows,\{ numbers:true \}\)/);
+  /* 10 Oct 2026 (owner): the paper draws the Track at every width — never the strip */
+  assert.doesNotMatch(code(region(IG, 'igStrandPaint')), /docXraySpineHtml\(rows/);
 });
 
 test('f424 (2) a press fills the box and asks nothing, and a typed question is kept', () => {

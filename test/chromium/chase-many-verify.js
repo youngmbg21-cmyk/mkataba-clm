@@ -84,10 +84,13 @@ const DOC = 'SUPPLY AGREEMENT\n\nArticle 1 Term\n\nThis Agreement runs for twelv
     const rows = await page.evaluate(() => { const s = hbS(); s.path = []; hbSave(); setView('dashboard'); return hbAgentsData(null).rows.map(r => r.k); });
     ok('3a approvals are kept off the Board\'s card', /const HB_OFF_BOARD = \['approve'\];/.test(src) && !rows.includes('approve'), JSON.stringify(rows));
     const app = fs.readFileSync(path.join(__dirname, '..', '..', 'js', 'app.js'), 'utf8');
-    ok('3b the bell\'s approval row opens the contract on Home\'s Paper at Signing', /push\('approval',x\.c,\s*i18t\('al_approval'\),\(\)=>\{ if\(window\.pdOpenOnHome&&pdOpenOnHome\(x\.c\.id,'sign'\)\) return;/.test(app));
+    ok('3b the bell\'s approval row opens the approval through pdOpenOnHome', /push\('approval',x\.c,\s*i18t\('al_approval'\),\(\)=>\{ if\(window\.pdOpenOnHome&&pdOpenOnHome\(x\.c\.id,'sign'\)\) return;/.test(app));
+    /* RE-POINTED 10 Oct 2026 (owner: "delete signing tab"): the Paper has no
+       Signing tab; an approval opens on the Approvals & signing page, its row chosen */
     await page.evaluate(() => pdOpenOnHome('MK-CM1', 'sign'));
-    const land = await page.waitForFunction(() => window.intel && intel.paper && intel.paper.id === 'MK-CM1' && hbFace() === 'paper' && pdTab() === 'sign' && !!document.getElementById('pd-body'), null, { timeout: 8000 }).then(() => true, () => false);
-    ok('3c pdOpenOnHome lands on Home\'s Paper, on the Signing tab', land, await page.evaluate(() => JSON.stringify({ id: window.intel && intel.paper && intel.paper.id, face: hbFace(), tab: pdTab() })));
+    /* the row is chosen where it is on the list; this stage's contract waits on no approval, so the list is empty and nothing is chosen */
+    const land = await page.waitForFunction(() => state.view === 'approvals' && apTab() === 'approvals' && (insSelected('approvals') === 'MK-CM1' || !apApprovalRows().some(r => r.c.id === 'MK-CM1')), null, { timeout: 8000 }).then(() => true, () => false);
+    ok('3c pdOpenOnHome lands on the Approvals & signing page with that row chosen', land, await page.evaluate(() => JSON.stringify({ view: state.view, tab: apTab(), sel: insSelected('approvals') })));
 
     ok('no page errors', !errs.length, errs.join(' | '));
   } catch (e) {

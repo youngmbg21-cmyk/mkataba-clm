@@ -163,14 +163,19 @@ const check = (name, pass, detail) => {
       const room = Math.round(sheet.getBoundingClientRect().left - sp.parentElement.getBoundingClientRect().left);
       const left = Math.round(sheet.getBoundingClientRect().left); sp.style.display = 'none';
       const left2 = Math.round(sheet.getBoundingClientRect().left); sp.style.display = '';
-      const out = { wide, room, track: sp.classList.contains('is-track'), blocks: sp.querySelectorAll('.doc-xr-seg').length, width: sp.style.width, left, left2 };
-      sheet.style.transform = ''; igStrandPaint(c); out.back = sp.classList.contains('is-track');
+      const out = { wide, room, track: sp.classList.contains('is-track'), size: sp.dataset.trackSize, labs: sp.querySelectorAll('.ig-trk-lab').length, strip: !!sp.querySelector('.doc-xr-seg:not(.ig-trk-lab)'), width: sp.style.width, left, left2 };
+      /* and with almost no room, the hairline */
+      sheet.style.transform = `translateX(${-shift - 24}px)`; igStrandPaint(c); out.hair = sp.dataset.trackSize; out.hairW = sp.style.width;
+      sheet.style.transform = ''; igStrandPaint(c); out.back = sp.classList.contains('is-track') && sp.dataset.trackSize === 'full';
       return out;
     });
     check('6a. with room, the Track', narrow.wide, JSON.stringify(narrow));
-    check('6b. a margin narrower than the Track draws today\'s strip, and the paper does not move',
-      !narrow.track && narrow.blocks > 0 && narrow.width === '28px' && narrow.left === narrow.left2, JSON.stringify(narrow));
-    check('6c. given room again, the Track comes back', narrow.back);
+    /* RE-POINTED 10 Oct 2026 (owner: "the DNA Strand appears again when we actually
+       agreed to delete it"): a tight margin keeps the Track, slimmer; never the strip */
+    check('6b. a margin narrower than the Track draws the SLIM Track — never the old strip — and the paper does not move',
+      narrow.track && narrow.size === 'slim' && narrow.labs > 0 && !narrow.strip && narrow.width === '34px' && narrow.left === narrow.left2, JSON.stringify(narrow));
+    check('6b2. with almost no room, a hairline of dots', narrow.hair === 'hair' && narrow.hairW === '14px', JSON.stringify(narrow));
+    check('6c. given room again, the full Track comes back', narrow.back);
     check('7. no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
     await browser.close(); await h.stop();

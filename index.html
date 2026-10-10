@@ -6505,6 +6505,13 @@
   .doc-th-tn{ font-weight:var(--w-body); color:var(--color-neutral-600); }
   .doc-th-hd .doc-th-chips{ margin-left:auto; padding:0; gap:0; flex-wrap:nowrap; }
   .doc-th-hd .doc-th-x{ margin-left:0; }
+  /* THE × IS ALWAYS ON THE FIRST LINE, AT THE RIGHT (owner, 10 Oct 2026: "some
+     times it is missing the x exit button"): on a narrow drawer the filter
+     wrapped and carried the × down to a line of its own at the left, under the
+     title. It is pinned to the head's top-right corner and the head keeps room
+     for it, so the filter wraps under the title and the × stays put. */
+  .doc-th-hd:has(> .doc-th-x){ position:relative; padding-right:44px; }
+  .doc-th-hd > .doc-th-x{ position:absolute; right:10px; top:11px; margin:0; }
   .doc-th-hd .doc-th-chip{ border-radius:0; margin-left:-1px; height:var(--ctl-h); }
   .doc-th-hd .doc-th-chip:first-child{ margin-left:0; border-radius:var(--radius) 0 0 var(--radius); }
   .doc-th-hd .doc-th-chip:last-child{ border-radius:0 var(--radius) var(--radius) 0; }
@@ -6558,6 +6565,8 @@
   .doc-th-row.is-open .doc-th-in{ padding:0 6px 10px 2px; }
   .doc-th-row.is-open{ padding-bottom:6px; margin-bottom:4px; border-bottom:1px solid var(--color-divider); }
   @media (prefers-reduced-motion:reduce){ .doc-th-body{ transition:none; } }
+  /* following the paper's scroll: a row opens in one step (docThreadOpen {follow}) */
+  .doc-th.th-still .doc-th-body{ transition:none; }
   .doc-th-meta{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; font-size:var(--t-label); color:var(--color-neutral-500); margin:-2px 0 8px; }
   /* THE READING, in the panel's own face and size — Panel Voice (Young, 6 Oct 2026); A-/A+ never reach it */
   .doc-th-plain{ font-family:var(--font-body); font-size:var(--t-body);
@@ -8401,24 +8410,28 @@
   .pd-tab-n{position:absolute;top:-6px;left:13px;min-width:16px;height:16px;padding:0 4px;border-radius:9px;font-size:10px;font-weight:700;line-height:16px;text-align:center;border:2px solid var(--color-surface)}
   .pd-tab-n.is-warn{background:var(--st-amber-dot);color:#fff}
   .pd-tab-n.is-quiet{background:var(--color-neutral-200);color:var(--color-neutral-700)}
-  /* LIFTED: on Home's Paper the panel is a card lifted off a soft ground, so it never
-     blends into the page. Its width is the panel's own; the paper keeps every pixel. */
+  /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026: "the panel should be in White" ·
+     "The panel should not touch the Blue bar, the White Cross bar should go end to end
+     then the copilot bar should then align with it"): on Board, Paper and Explorer the
+     panel is ONE plain white column below the greeting row, with its own left line —
+     no lifted card on a grey ground (reverses LIFTED, 8 Oct). The paper keeps its ground. */
   body:has(#ig-dock > .igd-head[data-pd-head="paper"]) .ig-paper{background:var(--desk-ground)}
-  #ig-dock:has(> .igd-head[data-pd-head="paper"]){background:var(--desk-ground);border-left:0;box-shadow:none;padding:10px 10px 10px 2px}
-  #ig-dock:has(> .igd-head[data-pd-head="paper"])::before{content:"";position:absolute;inset:10px 10px 10px 2px;background:var(--color-surface);border:1px solid var(--color-neutral-200);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);pointer-events:none}
-  #ig-dock:has(> .igd-head[data-pd-head="paper"]) > *{position:relative;z-index:1}
-  #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{padding:8px 4px 6px;gap:0}
+  #ig-dock{background:var(--color-surface)}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"]){box-shadow:none}
+  #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{gap:0}
+  /* THE ARTIFACT'S SYMBOLS (owner, 10 Oct 2026): typed marks at the artifact's size */
+  .pd-tab-g{font-size:15px;line-height:20px;font-variant-emoji:text;font-style:normal}
+  /* HOME'S DOCUMENT TAB IS THE CLAUSE LIST (10 Oct 2026): the Document tab's own
+     thread, filling the panel — the list is the panel, so it wears no card of its own */
+  .pd-body:has(> #pd-thread){padding:0;overflow:hidden;display:flex;flex-direction:column}
+  #pd-thread{flex:1 1 auto;min-height:0;border:0;border-radius:0;box-shadow:none;background:transparent}
   /* ONE BAR (Young, 8 Oct 2026: "this highlighted area should be merged into one bar"):
      on Home's Paper the contract's strip and the panel's symbols are ONE white bar of one
-     height under one line, the panel's card lifted below it. The bar's extra height is taken
+     height under one line, the white panel below it. The bar's extra height is taken
      from the ground above the sheet, so the wording does not move (Six Questions 3). */
   #ig-page{--ig-bar-h:47px}
   body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #ig-strip{height:var(--ig-bar-h)}
   body:has(#ig-dock > .igd-head[data-pd-head="paper"]) #ig-paper-scroll{padding-top:calc(56px - var(--ig-bar-h))}
-  #ig-dock:has(> .igd-head[data-pd-head="paper"]){padding:0 0 10px}
-  #ig-dock:has(> .igd-head[data-pd-head="paper"])::before{inset:calc(var(--ig-bar-h) + 10px) 10px 10px 2px}
-  #ig-dock:has(> .igd-head[data-pd-head="paper"]) > *:not(.igd-head){margin:0 10px 0 2px}
-  #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head + *{margin-top:10px}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) > .igd-head{height:var(--ig-bar-h);padding:0 6px 0 4px;background:var(--color-surface);border-bottom:1px solid var(--color-divider);flex:none}
   #ig-dock:has(> .igd-head[data-pd-head="paper"]) .pd-tab.on::after{bottom:-1px}
   /* CHASE MANY AT ONCE (8 Oct 2026): a ticked list over the late promises' work */
@@ -8585,6 +8598,15 @@
   .ig-spine.is-track .doc-xr-seg.ig-trk-lab.is-here::before{content:none}
   .ig-spine.is-track .doc-xr-seg .doc-xr-num{color:inherit;font-size:inherit;font-weight:inherit;overflow:visible}
   @media (prefers-reduced-motion:reduce){ .ig-trk-svg .ig-trk-win{transition:none} }
+  /* THE TRACK AT THE MARGIN'S WIDTH (owner, 10 Oct 2026: the old strip never comes back):
+     SLIM — small number tags beside a rail at 6px; HAIRLINE — a dot in the clause's grade
+     on the rail, its number on the hover card (igTrackSize) */
+  .ig-spine.is-track.is-slim .doc-xr-seg.ig-trk-lab{left:13px;height:15px;padding:0 3px;font-size:10px}
+  .ig-spine.is-track.is-hair .doc-xr-seg.ig-trk-lab{left:1px;width:11px;height:11px;padding:0;border-radius:50%;border:2px solid var(--color-surface);box-shadow:none}
+  .ig-spine.is-track.is-hair .doc-xr-seg.ig-trk-lab.is-amber{background:var(--st-amber-dot)}
+  .ig-spine.is-track.is-hair .doc-xr-seg.ig-trk-lab.is-ruby{background:var(--st-ruby-dot)}
+  .ig-spine.is-track.is-hair .doc-xr-seg.ig-trk-lab.is-steel{background:var(--st-steel-dot)}
+  .ig-spine.is-track.is-hair .doc-xr-seg.ig-trk-lab .doc-xr-num{display:none}
   .ig-spine-tip{position:absolute;z-index:6;width:260px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;padding:9px 11px;background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-divider);border-radius:var(--radius-md);box-shadow:var(--shadow-md);font-size:var(--t-meta);line-height:1.45;pointer-events:none}
   .ig-spine-tip[hidden]{display:none}
   .ig-tip-h{font-size:var(--t-body);font-weight:var(--w-strong)}

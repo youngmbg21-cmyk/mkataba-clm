@@ -92,32 +92,35 @@ const DOC = '1. TERM\nThis Agreement runs for twelve (12) months.\n2. PAYMENT\nI
     await page.waitForSelector('#ig-dock [data-pd-tab="facts"]', { timeout: 5000 }).catch(() => {});
     const head = await page.evaluate(() => ({ title: /Intelligence panel/.test((document.querySelector('#ig-dock .igd-head') || {}).textContent || ''), desk: !!document.getElementById('ig-desk'),
       tabs: [...document.querySelectorAll('#ig-dock .igd-head [data-pd-tab]')].map(b => b.getAttribute('data-pd-tab')) }));
-    ok('3a0 the title row is the tabs: Copilot then the room\'s six; no "Intelligence panel", no column beside the paper',
-      !head.title && !head.desk && head.tabs.join(',') === 'copilot,facts,doc,sign,oblig,hist,deal', JSON.stringify(head));
+    /* RE-POINTED 10 Oct 2026 (owner: "delete signing tab") */
+    ok('3a0 the title row is the tabs: Copilot then five; no Signing, no "Intelligence panel", no column beside the paper',
+      !head.title && !head.desk && head.tabs.join(',') === 'copilot,facts,doc,oblig,hist,deal', JSON.stringify(head));
     const tabs = {};
-    for (const t of ['facts', 'doc', 'oblig', 'sign', 'hist', 'deal']) {
+    for (const t of ['facts', 'doc', 'oblig', 'hist', 'deal']) {
       const b = await page.$(`#ig-dock [data-pd-tab="${t}"]`); if (b) await b.click();
       await page.waitForSelector(`#ig-dock [data-pd-tab="${t}"].on`, { timeout: 3000 }).catch(() => {});
       tabs[t] = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
     }
-    ok('3a six contract tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
+    ok('3a five contract tabs, each drawn', Object.values(tabs).every(x => x.trim().length > 5), JSON.stringify(Object.fromEntries(Object.entries(tabs).map(([k, v]) => [k, v.slice(0, 60)]))));
     /* LIFTED (Young, 8 Oct 2026: "yes to words under the symbols"): every symbol
        carries its word, whole — a word cut to "Docu…" is not a word */
     const sym = await page.evaluate(() => [...document.querySelectorAll('#ig-dock .igd-head .pd-tab')].map(b => { const w = b.querySelector('.pd-tab-w');
-      return { k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, icon: !!b.querySelector('svg use'), name: b.getAttribute('title') }; }));
-    ok('3a2 symbols, each with its word under it, whole; one lit', sym.length === 7 && sym.every(s => s.icon && s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.txt + (s.whole ? '' : ' (cut)'))));
-    const cnt = await page.evaluate(() => { const b = document.querySelector('#ig-dock .pd-tab[data-pd-tab="sign"] .pd-tab-n'); return { badge: b ? +b.textContent : 0, list: (signBlockers(getContract('MK-HF2')) || []).length }; });
-    ok('3a3 the count on Signing is the length of the Sign button\'s list', cnt.badge > 0 && cnt.badge === cnt.list, JSON.stringify(cnt));
-    const lifted = await page.evaluate(() => { const d = document.getElementById('ig-dock'), p = document.getElementById('ig-paper');
-      return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').backgroundColor, ground: p ? getComputedStyle(p).backgroundColor : '' }; });
-    ok('3a4 Lifted: the panel is a card of its own colour on the paper\'s ground', lifted.card !== lifted.dock && lifted.dock === lifted.ground, JSON.stringify(lifted));
+      return { k: b.getAttribute('data-pd-tab'), on: b.classList.contains('on'), txt: w ? w.textContent.trim() : '', whole: !!w && w.scrollWidth <= w.clientWidth + 1, glyph: (b.querySelector('.pd-tab-g') || {}).textContent || '', name: b.getAttribute('title') }; }));
+    /* the artifact's symbols, exactly (owner, 10 Oct 2026) */
+    ok('3a2 symbols — the artifact\'s marks — each with its word under it, whole; one lit', sym.length === 6 && sym.map(s => s.glyph.replace('\uFE0E', '')).join('') === '\u2726\u25A6\u25A2\u2691\u25F7\u21C4' && sym.every(s => s.name && s.txt.length > 2 && s.whole) && sym.filter(s => s.on).length === 1, JSON.stringify(sym.map(s => s.glyph + ' ' + s.txt + (s.whole ? '' : ' (cut)'))));
+    /* WHITE, UNDER THE GREETING ROW (owner, 10 Oct 2026; reverses Lifted) */
+    const white = await page.evaluate(() => { const d = document.getElementById('ig-dock');
+      return { dock: getComputedStyle(d).backgroundColor, card: getComputedStyle(d, '::before').content, top: Math.round(d.getBoundingClientRect().top), bar: Math.round(document.getElementById('ig-strip').getBoundingClientRect().top) }; });
+    ok('3a4 the panel is plain white, no lifted card, its top level with the contract strip', white.dock === 'rgb(255, 255, 255)' && (white.card === 'none' || white.card === 'normal') && white.top === white.bar, JSON.stringify(white));
     await page.click('#ig-dock [data-pd-tab="facts"]');
     const facts = await page.evaluate(() => (document.getElementById('pd-body') || {}).innerText || '');
     ok('3b Overview carries the parties', /Kabras Logistics/.test(facts), facts.slice(0, 120));
-    await page.click('#ig-dock [data-pd-tab="sign"]');
-    const sign = await page.evaluate(() => { const b = [...document.querySelectorAll('#pd-body button')].find(x => /Send for signing/.test(x.textContent));
-      return { n: (signBlockers(getContract('MK-HF2')) || []).length, send: !!b, grey: !!(b && b.disabled) }; });
-    ok('3c Signing is the Sign button\'s own list; Send stays grey while it holds anything', sign.n > 0 && sign.send && sign.grey, JSON.stringify(sign));
+    /* THE DOCUMENT TAB IS THE CLAUSE LIST (owner, 10 Oct 2026) */
+    await page.click('#ig-dock [data-pd-tab="doc"]');
+    await page.waitForSelector('#pd-thread .doc-th-row', { timeout: 4000 }).catch(() => {});
+    const doc = await page.evaluate(() => { const t = document.getElementById('pd-thread'); return { rows: t ? t.querySelectorAll('.doc-th-row').length : 0,
+      beads: t ? t.querySelectorAll('.doc-th-bead').length : 0, close: !!(t && t.querySelector('[data-th-close]')), blanks: /still blank|Copies/.test((document.getElementById('pd-body') || {}).innerText || '') }; });
+    ok('3c the Document tab is the clause list, its beads down the line; no ×, no blanks, no copies', doc.rows >= 2 && doc.beads === doc.rows && !doc.close && !doc.blanks, JSON.stringify(doc));
     const wide = await page.evaluate(() => ({ sheet: Math.round((document.querySelector('#ig-paper .pg-sheet') || { getBoundingClientRect: () => ({ width: 0 }) }).getBoundingClientRect().width),
       ws: !!document.querySelector('#ig-strip [data-ig-ws]'), ask: !!document.getElementById('igd-input') }));
     ok('3d the paper keeps its width (the Home paper\'s 720, owner 8 Oct 2026), "Open workspace" is gone from Home, the ask box stays under every tab', wide.sheet >= 700 && !wide.ws && wide.ask, JSON.stringify(wide));

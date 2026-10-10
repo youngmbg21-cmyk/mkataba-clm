@@ -1,6 +1,6 @@
 # WORK ORDER — Clauses on Home's Paper, the white panel, the Track, and two Document-tab bugs
 
-**Status: WRITTEN 10 Oct 2026. NOT BUILT** (owner: *"Do not code yet but add to the work order to fix"*).
+**Status: WRITTEN 10 Oct 2026. BUILT 10 Oct 2026** (owner: *"After it is completed and merged to main, build this work order we have discussed, run full suite and merge to main"*).
 
 **The picture the owner chose:** artifact "Home Paper Clauses",
 https://claude.ai/artifact/ERp29Tvnpfcm9fC5qq7Cxn. A copy is saved beside this
