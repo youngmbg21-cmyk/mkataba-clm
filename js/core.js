@@ -3464,7 +3464,12 @@ function datePickDress(root){
     /* Out of sight IN ITS OWN INLINE STYLE: the box was built with the
        field's inline clothes (width, height), which no sheet rule outranks. */
     inp.classList.add('dp-native'); inp.tabIndex=-1; inp.setAttribute('aria-hidden','true');
-    Object.assign(inp.style,{ position:'absolute', width:'1px', height:'1px', minWidth:'0', padding:'0', border:'0', opacity:'0', pointerEvents:'none' });
+    /* IN FLOW AT NO SIZE, not lifted out: an absolutely placed box is drawn
+       against some far ancestor and measured past its own form
+       (form-and-picker 1b caught it). Zero by zero where it stands is inside
+       the form and paints nothing. */
+    Object.assign(inp.style,{ position:'static', display:'inline-block', width:'0', height:'0', minWidth:'0', minHeight:'0',
+      padding:'0', margin:'0', border:'0', opacity:'0', overflow:'hidden', pointerEvents:'none' });
     inp.after(face);
     face.addEventListener('click',()=>datePickOpen(inp,face));
     face.addEventListener('keydown',ev=>{ if(ev.key==='ArrowDown'&&(ev.altKey||!ev.shiftKey)){ ev.preventDefault(); datePickOpen(inp,face); } });
