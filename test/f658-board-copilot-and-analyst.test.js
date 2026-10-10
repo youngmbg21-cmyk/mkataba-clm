@@ -233,7 +233,7 @@ describe('f658 the analyst', () => {
     assert.doesNotMatch(region('hbGalleryRun'), /copilot|intelAsk|api\(/i, 'no model is asked');
   });
   test('A8 the pack: offered when the board keeps a chart, a standalone page of pictures', () => {
-    assert.match(CODE, /s\.panels\.some\(p => p\.kind === 'view'\) \? `<button type="button" class="hb-btn is-sm" data-hb-pack>/);
+    assert.match(CODE, /s\.panels\.some\(p => p\.kind === 'view'\) \? `<button type="button" class="hb-btn is-sm" data-hb-pack-dl>/);
     const p = region('hbPackMake');
     assert.match(p, /hbChartPngOf\(chart/); assert.match(p, /_hbSaveFile\(new Blob\(\[html\]/); assert.match(p, /hb_pack_none/);
     assert.doesNotMatch(p, /var\(--/, 'a standalone page carries no tokens');
