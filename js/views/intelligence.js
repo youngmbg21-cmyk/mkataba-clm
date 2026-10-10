@@ -7533,6 +7533,45 @@ function igTrackHostHome(){
   return { sp:document.getElementById('ig-spine'), sc:document.getElementById('ig-paper-scroll'),
     rows:_igStrandRows, data:_igStrandData, wrap:document.querySelector('#ig-paper .ig-paper-wrap'), tipId:'ig-spine-tip' };
 }
+/* ---- BODY FIRST (owner picked it by name, 10 Oct 2026, off the "Track and
+   Chart Labels" proposals: "the trackers ... used to be a bit apart covering
+   the page") ----
+   A long agreement is mostly schedules: MK-437's flags all sit in its main
+   body, the first 40 of 105 pages, so true to the page they crowded the top
+   of the rail. The rail now spans the MAIN BODY true to the page, and the
+   schedules fold into one short labelled piece at the bottom (at most
+   IG_TRACK_TAIL of the rail; a flag inside a schedule sits in that piece, in
+   its order). The body ends at the first heading that IS a schedule, annex,
+   appendix, exhibit or attachment, or at a heading whose numbering starts
+   again at 1 after the body ran past IG_TRACK_RESTART_MIN. No such point, or
+   schedules shorter than the piece, and the rail is true to the page as
+   before. A pure reading of the painted paper; nothing writes. */
+const IG_TRACK_TAIL=0.16, IG_TRACK_TAIL_GAP=18, IG_TRACK_RESTART_MIN=5;
+const IG_TRACK_SCHED_RE=/^\s*(?:schedules?|annex(?:es|ure)?|appendi(?:x|ces)|exhibits?|attachments?|bilag(?:a|or))(?=\s*$|\s*[:.\u2013\u2014-]|\s+(?:[0-9]+|[ivxlc]+|[a-z])\b)/i;
+/* rows: { text, cite, headed } in the paper's order → the index of the first
+   row after the main body, or -1 */
+function igTrackBodyEnd(rows){
+  const list=rows||[];
+  for(let i=1;i<list.length;i++) if(IG_TRACK_SCHED_RE.test(String(list[i].text||'').slice(0,80))) return i;
+  let hi=0;
+  for(let i=0;i<list.length;i++){ const r=list[i]; if(!r.headed) continue;
+    const n=parseInt(String(r.cite||''),10); if(!Number.isFinite(n)) continue;
+    if(n===1&&hi>=IG_TRACK_RESTART_MIN) return i;
+    if(n>hi) hi=n; }
+  return -1;
+}
+/* b = the body's share of the paper; null where nothing folds */
+function igTrackFold(b, top, bot){
+  if(!(b>0&&b<1-IG_TRACK_TAIL)) return null;
+  const bodyBot=top+(bot-top)*(1-IG_TRACK_TAIL)-IG_TRACK_TAIL_GAP/2;
+  return { b, bodyBot, tailT:bodyBot+IG_TRACK_TAIL_GAP };
+}
+/* a place on the paper (0..1) → a place on the rail */
+function igTrackAt(f, fold, top, bot){
+  f=Math.max(0,Math.min(1,f));
+  if(!fold) return top+f*(bot-top);
+  return f<fold.b ? top+f/fold.b*(fold.bodyBot-top) : fold.tailT+(f-fold.b)/(1-fold.b)*(bot-fold.tailT);
+}
 function igTrackPlace(h){
   h=h||igTrackHostHome();
   const sp=h.sp, sc=h.sc, els=h.rows||[];
@@ -7540,18 +7579,41 @@ function igTrackPlace(h){
   const svg=sp.querySelector('.ig-trk-svg'); if(!svg) return;
   const H=sp.clientHeight, top=IG_TRACK_PAD, bot=H-IG_TRACK_PAD, span=Math.max(1,bot-top), total=Math.max(1,sc.scrollHeight);
   const scTop=sc.getBoundingClientRect().top-sc.scrollTop;
+  const frac=el=>{ try{ const r=el.getBoundingClientRect(); return { y:(r.top-scTop)/total, h:r.height/total }; }catch(_){ return { y:0, h:0 }; } };
+  /* where the main body ends, off the painted rows */
+  const data=h.data||[];
+  const end=igTrackBodyEnd(data.map(x=>({ text:x&&x.el?String(x.el.textContent||'').replace(/\s+/g,' ').trim():'',
+    cite:x&&x.cite, headed:!!(x&&x.row&&x.row.headed) })));
+  const fold=(end>0&&data[end]&&data[end].el)?igTrackFold(frac(data[end].el).y, top, bot):null;
+  sp._trkFold=fold;
   const labs=[...sp.querySelectorAll('.ig-trk-lab')];
   const marks=labs.map(b=>{ const i=Number(b.getAttribute('data-xr-seg')), el=els[i];
-    let y=0, h2=0; try{ const r=el.getBoundingClientRect(); y=(r.top-scTop)/total; h2=r.height/total; }catch(_){}
-    return { b, g:(b.className.match(/is-(ruby|amber|steel)/)||[])[1]||'steel', y:top+Math.max(0,Math.min(1,y))*span, h:Math.max(5,h2*span) }; });
+    const f=el?frac(el):{ y:0, h:0 }; const y=igTrackAt(f.y, fold, top, bot);
+    return { b, g:(b.className.match(/is-(ruby|amber|steel)/)||[])[1]||'steel', y, h:Math.max(5,igTrackAt(f.y+f.h, fold, top, bot)-y) }; });
   const geo=IG_TRACK_GEOM[sp.dataset.trackSize]||IG_TRACK_GEOM.full;
-  const ly=igTrackLayout(marks.map(m=>m.y), top+9, bot-9, geo.gap);
+  /* the schedules' name takes a place in the label column, so no number
+     ever sits on it */
+  const ys=marks.map(m=>m.y); let secAt=-1;
+  const full=sp.dataset.trackSize!=='slim'&&sp.dataset.trackSize!=='hair';
+  if(fold&&full){ secAt=ys.findIndex(y=>y>fold.tailT-IG_TRACK_TAIL_GAP/2); if(secAt<0) secAt=ys.length; ys.splice(secAt,0,fold.tailT-IG_TRACK_TAIL_GAP/2); }
+  const ly=igTrackLayout(ys, top+9, bot-9, geo.gap);
+  const secY=secAt>-1?ly.splice(secAt,1)[0]:null;
   const x=geo.x, col={ ruby:'var(--st-ruby-dot)', amber:'var(--st-amber-dot)', steel:'var(--st-steel-dot)' };
-  let g=`<rect class="ig-trk-rail" x="${x-3}" y="${top}" width="6" height="${span}" rx="3"/><rect class="ig-trk-win" x="${x-7}" y="${top}" width="14" height="0" rx="3"/>`;
+  let g=fold
+    ?`<rect class="ig-trk-rail" x="${x-3}" y="${top}" width="6" height="${(fold.bodyBot-top).toFixed(1)}" rx="3"/>`
+      +`<line class="ig-trk-cut" x1="${x-6}" x2="${x+6}" y1="${(fold.tailT-IG_TRACK_TAIL_GAP/2).toFixed(1)}" y2="${(fold.tailT-IG_TRACK_TAIL_GAP/2).toFixed(1)}"/>`
+      +`<rect class="ig-trk-rail ig-trk-tail" x="${x-3}" y="${fold.tailT.toFixed(1)}" width="6" height="${Math.max(1,bot-fold.tailT).toFixed(1)}" rx="3"/>`
+    :`<rect class="ig-trk-rail" x="${x-3}" y="${top}" width="6" height="${span}" rx="3"/>`;
+  g+=`<rect class="ig-trk-win" x="${x-7}" y="${top}" width="14" height="0" rx="3"/>`;
   marks.forEach((m,k)=>{ g+=`<rect x="${x-3}" y="${(m.y).toFixed(1)}" width="6" height="${m.h.toFixed(1)}" rx="1.5" style="fill:${col[m.g]}"/>`
     +(geo.lab>x+4?`<path class="ig-trk-lead" d="M${x+4} ${(m.y+Math.min(m.h,6)/2).toFixed(1)} C ${x+9} ${(m.y).toFixed(1)}, ${x+9} ${ly[k].toFixed(1)}, ${geo.lab} ${ly[k].toFixed(1)}"/>`:'');
     m.b.style.top=ly[k].toFixed(1)+'px'; });
   svg.innerHTML=g;
+  let nameEl=sp.querySelector('.ig-trk-sec');
+  if(secY!=null){
+    if(!nameEl){ nameEl=document.createElement('span'); nameEl.className='ig-trk-sec'; nameEl.setAttribute('aria-hidden','true'); sp.appendChild(nameEl); }
+    nameEl.textContent=i18t('trk_schedules'); nameEl.style.top=secY.toFixed(1)+'px';
+  } else if(nameEl) nameEl.remove();
   igTrackWindow(h);
 }
 /* The window over the part on screen, and the label of the clause being read. */
@@ -7560,9 +7622,10 @@ function igTrackWindow(h){
   const sp=h.sp, sc=h.sc;
   if(!sp||!sc) return;
   const win=sp.querySelector('.ig-trk-win'); if(!win) return;
-  const H=sp.clientHeight, top=IG_TRACK_PAD, span=Math.max(1,H-2*IG_TRACK_PAD), total=Math.max(1,sc.scrollHeight);
-  win.setAttribute('y',(top+sc.scrollTop/total*span).toFixed(1));
-  win.setAttribute('height',Math.max(6,sc.clientHeight/total*span).toFixed(1));
+  const H=sp.clientHeight, top=IG_TRACK_PAD, bot=H-IG_TRACK_PAD, total=Math.max(1,sc.scrollHeight), fold=sp._trkFold||null;
+  const y1=igTrackAt(sc.scrollTop/total, fold, top, bot), y2=igTrackAt((sc.scrollTop+sc.clientHeight)/total, fold, top, bot);
+  win.setAttribute('y',y1.toFixed(1));
+  win.setAttribute('height',Math.max(6,y2-y1).toFixed(1));
 }
 /* The window follows the scroll, and the label of the clause being read is lit. */
 function igTrackFollow(h){
@@ -7650,5 +7713,5 @@ Object.assign(window,{igCellFolded,igHubCellsOpen,igCellRadius,igCellsFolded,igC
    milestone, and the tab's press wiring. */
 Object.assign(window,{igDockStepAside});
 Object.assign(window,{igFramesDrawn,igKeptKey,igWake,igTurnFace,igLoopStart,IG_SETTLE_ROUNDS,IG_SETTLE_SLICE,IG_AWAKE_MS});
-Object.assign(window,{igTrackLayout,igTrackFits,igTrackSize,IG_TRACK_WIDTHS,IG_TRACK_GEOM,igTrackHtml,igTrackPlace,igTrackWindow,igTrackFollow,igTrackHostHome,IG_TRACK_W,igStrandPaint});
+Object.assign(window,{igTrackLayout,igTrackBodyEnd,igTrackFold,igTrackAt,IG_TRACK_TAIL,igTrackFits,igTrackSize,IG_TRACK_WIDTHS,IG_TRACK_GEOM,igTrackHtml,igTrackPlace,igTrackWindow,igTrackFollow,igTrackHostHome,IG_TRACK_W,igStrandPaint});
 Object.assign(window,{obReminderOf,OB_FIRST_DAYS,intelObligationsWire});
