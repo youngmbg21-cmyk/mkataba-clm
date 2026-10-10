@@ -4843,7 +4843,7 @@ function hbBoardHtml(){
      cannot know; "all contracts" is one they chose. */
   const cut = [hbCountLabel(s.lens), s.lens === 'all' ? '' : i18t('hb_lens_' + s.lens).toLowerCase()].filter(Boolean).join(' · ');
   const bs = hbBoardSumHtml();
-  return `<div class="hb-note"><span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span>${_hbE(cut ? i18t('hb_counted', { time, lens: cut }) : i18t('hb_counted_plain', { time }))}</span><span class="hb-grow"></span>${s.panels.some(p => p.kind === 'view') ? `<button type="button" class="hb-btn is-sm" data-hb-pack>${_hbE(i18t('hb_pack_btn'))}</button>` : ''}${bs.btn}</div>
+  return `<div class="hb-note"><span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span>${_hbE(cut ? i18t('hb_counted', { time, lens: cut }) : i18t('hb_counted_plain', { time }))}</span><span class="hb-grow"></span>${s.panels.some(p => p.kind === 'view') ? `<button type="button" class="hb-btn is-sm" data-hb-pack-dl>${_hbE(i18t('hb_pack_btn'))}</button>` : ''}${bs.btn}</div>
     ${bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
@@ -8288,7 +8288,7 @@ function hbOnClick(e){
     if (k){ if (v === 'tgt-off') hbRefsSet(k, 'tgt', null); else hbRefsSet(k, v); } hbPaintBoard(); return; }
   if ((el = on('[data-hb-copy-img]'))){ hbCopyChartImage(el); return; }
   if ((el = on('[data-hb-saveq]'))){ hbMyqSave(el.getAttribute('data-hb-saveq')); return; }
-  if (on('[data-hb-pack]')){ hbPackMake(); return; }
+  if (on('[data-hb-pack-dl]')){ hbPackMake(); return; }
   if ((el = on('[data-hb-whatif]'))){ hbWhatIfToggle(el.getAttribute('data-hb-whatif')); return; }
   if ((el = on('[data-hb-copy-tab]'))){ hbCopyChartTable(el); return; }
   /* a story's chapter opens as its own enlarged card; the trail leads back */
@@ -8395,7 +8395,8 @@ function hbOnKey(e){
   if (e.key === 'Escape' && _hbRdOpen){ _hbRdOpen = null; hbDockRepaint(); return; }
   if (e.key === 'Escape' && _hbLinesOpen){ const k = _hbLinesOpen; _hbLinesOpen = null; hbPaintBoard();
     const w = [...document.querySelectorAll('[data-hb-lines-key]')].find(x => x.getAttribute('data-hb-lines-key') === k), b = w && w.querySelector('[data-hb-lines]'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }
-  if (e.key === 'Escape' && _hbTipFor){ hbTipHide(true); return; }
+  /* the hover card is not a layer the reader opened: Esc takes it down and still steps back */
+  if (e.key === 'Escape' && _hbTipFor) hbTipHide(true);
   if (e.key === 'Escape' && _hbRcOpen){ const at = _hbRcOpen.lastIndexOf('|'), k = _hbRcOpen.slice(0, at), p = _hbRcOpen.slice(at + 1); _hbRcOpen = null; hbPaintBoard();
     const row = [...document.querySelectorAll('[data-hb-rkey]')].find(r => r.getAttribute('data-hb-rkey') === k);
     const b = row && row.querySelector(`[data-hb-rc="${p}"]`); if (b) try { b.focus({ preventScroll: true }); } catch (_){} return; }

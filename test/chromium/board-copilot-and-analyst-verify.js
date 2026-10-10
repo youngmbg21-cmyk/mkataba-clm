@@ -128,9 +128,9 @@ const check = (name, pass, detail) => {
 
     /* 9. the pack */
     await page.evaluate(({ key, R }) => { const s = hbS(); s.path = []; s.panels = [{ id: 'pk', kind: 'view', key, title: 'By month', recipe: R, split: false }]; hbSave(); hbCardSet(key, R, { seed: true }); hbPaintBoard(); }, { key: KEY, R: RECIPE });
-    await until(() => !!document.querySelector('[data-hb-pack]'));
+    await until(() => !!document.querySelector('[data-hb-pack-dl]'));
     const dlP = page.waitForEvent('download', { timeout: 15000 }).catch(() => null);
-    await page.click('button[data-hb-pack]');
+    await page.click('button[data-hb-pack-dl]');
     const dl = await dlP;
     let packOk = false;
     if (dl){ const f = path.join(OUT, 'pack.html'); await dl.saveAs(f); const t = fs.readFileSync(f, 'utf8'); packOk = /<img[^>]+src="data:image\/png/.test(t) && !/var\(--/.test(t); }
