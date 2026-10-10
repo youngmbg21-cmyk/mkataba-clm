@@ -12773,6 +12773,18 @@
                Below the card"): the agents' work is done on the Board, under
                Prepared by Copilot. Every old way in (a refresh, the bell, a
                link) lands there through hbOpenAgent. -->
+          <!-- CUSTOMERS (owner, 10 Oct 2026: "implement ... the custom folders SAP
+               way"). SECOND, RIGHT AFTER HOME (owner moved it, 10 Oct 2026: "move
+               the customer folder in the nav panel to be right after home");
+               Negotiations stays directly under Contracts (the owner's 12 Aug
+               call). One shelf per customer, drawn from the counterparty on each
+               contract — a reading, never a folder anybody files into. Its count
+               is how many customers the page lists (cuDoorCount). -->
+          <button data-view="customers" class="nav-item" title="Customers — every customer's contracts in one place, active and expired" data-i18n-title="nav_customers_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shelf"/></svg>
+            <span style="flex:1;" data-i18n="nav_customers">Customers</span><span class="nav-count" data-count="customers"></span>
+          </button>
           <button data-view="register" class="nav-item" title="Contracts — every contract lives here; open one for its document, negotiation and signing" data-i18n-title="nav_contracts_title">
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-folder"/></svg>
@@ -12791,16 +12803,6 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-nego"/></svg>
             <span style="flex:1;" data-i18n="nav_negotiations">Negotiations</span><span class="nav-count" data-count="negotiations"></span>
-          </button>
-          <!-- CUSTOMERS (owner, 10 Oct 2026: "implement ... the custom folders SAP
-               way"), third: Negotiations stays directly under Contracts (the owner's
-               12 Aug call): one shelf per customer, drawn from the counterparty on each
-               contract — a reading, never a folder anybody files into. Its count
-               is how many customers the page lists (cuDoorCount). -->
-          <button data-view="customers" class="nav-item" title="Customers — every customer's contracts in one place, active and expired, grouped by stream" data-i18n-title="nav_customers_title">
-            <span class="nav-rail"></span>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shelf"/></svg>
-            <span style="flex:1;" data-i18n="nav_customers">Customers</span><span class="nav-count" data-count="customers"></span>
           </button>
           <!-- APPROVALS & SIGNING (the redesign order's step 10, 20 Sep 2026):
                a door onto what waits on this reader's yes and on their

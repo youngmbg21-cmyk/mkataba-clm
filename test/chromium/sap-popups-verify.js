@@ -203,9 +203,23 @@ const CONTRACTS = [
       ? await page.evaluate(() => document.getElementById('ar-says').textContent) : null;
     ok('9a the rule reads back as a sentence', says && /approves at step 1 when/.test(says), says);
     if (says) {
-      await page.fill('#ar-order', '3');
-      const s2 = await page.evaluate(() => document.getElementById('ar-says').textContent);
-      ok('9b and follows every change', /step 3/.test(s2), s2);
+      /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): "Approves in step" is a
+         SELECT of the steps the rules have (drawn), not a number box, so the
+         check picks a step from the list — the last one, and when the list has
+         only one, it changes who approves — and asks the sentence to follow. */
+      const last = await page.evaluate(() => { const s = document.getElementById('ar-order'); return s ? s.options[s.options.length - 1].value : null; });
+      let s2 = '', want = null;
+      if (last && last !== '1'){
+        await page.selectOption('#ar-order', last);
+        await wait(page, n => new RegExp('step ' + n).test((document.getElementById('ar-says') || {}).textContent || ''), last);
+        s2 = await page.evaluate(() => document.getElementById('ar-says').textContent); want = new RegExp('step ' + last);
+      } else {
+        const other = await page.evaluate(() => { const s = document.getElementById('ar-approver'); const o = [...s.options].find(x => !x.selected); return o ? o.value : null; });
+        if (other) await page.selectOption('#ar-approver', other);
+        await wait(page, prev => (document.getElementById('ar-says') || {}).textContent !== prev, says);
+        s2 = await page.evaluate(() => document.getElementById('ar-says').textContent); want = { test: x => x !== says };
+      }
+      ok('9b and follows every change', !!want && want.test(s2), s2);
     }
     await page.evaluate(() => closeModal());
 

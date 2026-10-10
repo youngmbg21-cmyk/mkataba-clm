@@ -101,12 +101,19 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
     await page.waitForTimeout(600);
     await page.screenshot({ path: path.join(OUT, '02-dialog.png') });
     const dlg = await page.evaluate(() => {
-      const seen = id => { const e = document.getElementById(id); if (!e) return null;
-        const r = e.getBoundingClientRect(); return { top: Math.round(r.top), h: Math.round(r.height) }; };
+      /* a dressed date box keeps its real input hidden as the ISO value (the
+         pop-ups as drawn): where a field paints nothing, its visible face —
+         the nearest ancestor with a height — is what the reader sees */
+      const seen = id => { let e = document.getElementById(id); if (!e) return null;
+        let r = e.getBoundingClientRect(); while (!r.height && e.parentElement){ e = e.parentElement; r = e.getBoundingClientRect(); }
+        return { top: Math.round(r.top), h: Math.round(r.height) }; };
       return {
         desc: seen('of-desc'), due: seen('of-due'), recur: seen('of-recur'),
         amount: seen('of-amount'), assignee: seen('of-assignee'),
         party: document.querySelectorAll('[data-of-party]').length,
+        partyTop: (() => { const e = document.querySelector('[data-of-party]'); return e ? Math.round(e.getBoundingClientRect().top) : null; })(),
+        amountLeft: (() => { const e = document.getElementById('of-amount'); return e ? Math.round(e.getBoundingClientRect().left) : null; })(),
+        assigneeLeft: (() => { const e = document.getElementById('of-assignee'); return e ? Math.round(e.getBoundingClientRect().left) : null; })(),
         partyWords: [...document.querySelectorAll('[data-of-party]')].map(b => b.textContent.trim()),
         save: !!document.getElementById('of-save'),
         prefix: (document.querySelector('.of-amt i') || {}).textContent,
@@ -118,9 +125,15 @@ const day = off => { const d = new Date(); d.setDate(d.getDate() + off); return 
       dlg.party === 2, JSON.stringify(dlg.partyWords));
     check('Assign to is still there, and still called that', !!dlg.assignee);
     check('Save is still Save', dlg.save);
-    check('AMOUNT is drawn, under Recurring and above the toggle',
-      dlg.amount && dlg.amount.top > dlg.recur.top && dlg.amount.top < dlg.assignee.top,
-      JSON.stringify({ recur: dlg.recur.top, amount: dlg.amount && dlg.amount.top }));
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the drawn form asks
+       "Whose obligation is this?" FIRST, then what, due, recurring, and Amount
+       shares its row with Assign to (Amount left, Assign to right). The claim
+       that stands: Amount is drawn, after Recurring. */
+    check('AMOUNT is drawn in the drawn order: whose → what → due → recurring → amount | assign to',
+      dlg.amount && dlg.partyTop != null && dlg.partyTop < dlg.desc.top && dlg.desc.top < dlg.due.top && dlg.due.top <= dlg.recur.top
+        && dlg.amount.top > dlg.recur.top && Math.abs(dlg.amount.top - dlg.assignee.top) <= 4 && dlg.amountLeft < dlg.assigneeLeft,
+      JSON.stringify({ whose: dlg.partyTop, what: dlg.desc && dlg.desc.top, due: dlg.due && dlg.due.top, recur: dlg.recur && dlg.recur.top,
+        amount: dlg.amount && [dlg.amount.top, dlg.amountLeft], assign: dlg.assignee && [dlg.assignee.top, dlg.assigneeLeft] }));
     check('with the contract’s own currency as a fixed prefix',
       /^[A-Z]{3}$/.test(String(dlg.prefix || '').trim()), String(dlg.prefix));
 

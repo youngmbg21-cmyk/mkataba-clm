@@ -267,45 +267,46 @@ const iso = d => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
     await page.evaluate(() => { const d = document.querySelector('[data-nd-door="upload"]'); if (d) d.click(); });
     await page.waitForTimeout(1600);
     await page.screenshot({ path: path.join(OUT, '05-popup.png') });
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the 3px accent line at a
+       dialog's top was RETIRED on purpose — the drawings are plain white with a
+       ruled title bar (f346 was re-pointed the same way). The claims that
+       stand: the frame is a ruled title bar over an untouched surface, and a
+       dangerous question says so in the danger tone, never the accent — now
+       as its warning sign and its red confirm button. */
     const pop = await page.evaluate(() => {
       const m = document.querySelector('#modal-root [role="dialog"]');
       if (!m) return null;
-      const cs = getComputedStyle(m);
-      const accent = getComputedStyle(document.documentElement)
-        .getPropertyValue('--accent-fill').trim();
-      const probe = document.createElement('span');
-      probe.style.cssText = 'position:absolute;left:-9999px;background:' + accent;
-      document.body.appendChild(probe);
-      const want = getComputedStyle(probe).backgroundColor; probe.remove();
-      return { img: cs.backgroundImage, size: cs.backgroundSize, want,
-        surface: cs.backgroundColor, radius: cs.borderRadius };
+      const cs = getComputedStyle(m), bar = m.querySelector('.dlg-h'), bs = bar ? getComputedStyle(bar) : null;
+      return { img: cs.backgroundImage, surface: cs.backgroundColor, radius: cs.borderRadius,
+        bar: !!bar, rule: bs ? bs.borderBottomStyle + ' ' + bs.borderBottomWidth : '' };
     });
-    ok('5 the dialog frame carries a 3px rule at its top',
-      !!pop && /linear-gradient/.test(pop.img) && /100% 3px/.test(pop.size),
-      pop && pop.size);
-    /* THE COLOUR IS THE WORKSPACE'S, NEVER A LITERAL — so navy gets navy. */
-    ok('5b and it is the workspace’s own accent, read live',
-      !!pop && pop.img.includes(pop.want), pop && pop.want);
+    ok('5 the dialog frame is a ruled title bar, with no colour line at its top',
+      !!pop && pop.bar && /^solid [1-9]/.test(pop.rule) && !/linear-gradient/.test(pop.img),
+      pop && JSON.stringify({ bar: pop.bar, rule: pop.rule, img: pop.img.slice(0, 40) }));
+    ok('5b the title bar is the frame\u2019s own: it sits at the dialog\u2019s top edge',
+      await page.evaluate(() => { const m = document.querySelector('#modal-root [role="dialog"]'), b = m && m.querySelector('.dlg-h');
+        return !!b && Math.abs(b.getBoundingClientRect().top - m.getBoundingClientRect().top) <= 2; }));
     ok('5c the surface underneath is untouched',
       !!pop && pop.surface !== 'rgba(0, 0, 0, 0)', pop && pop.surface);
 
     await page.evaluate(() => { try { closeModal(); } catch (e) {} });
     await page.waitForTimeout(400);
     await page.evaluate(() => { confirmDialog({ title: 'Delete', message: 'Really?', danger: true }); });
-    await page.waitForTimeout(700);
+    await page.waitForFunction(() => !!document.querySelector('#confirm-overlay [role="alertdialog"]'), null, { timeout: 4000 }).catch(() => {});
     await page.screenshot({ path: path.join(OUT, '06-confirm.png') });
     const conf = await page.evaluate(() => {
       const m = document.querySelector('#confirm-overlay [role="alertdialog"]');
       if (!m) return null;
-      const cs = getComputedStyle(m);
       const probe = document.createElement('span');
       probe.style.cssText = 'position:absolute;left:-9999px;background:var(--danger)';
       document.body.appendChild(probe);
       const want = getComputedStyle(probe).backgroundColor; probe.remove();
-      return { img: cs.backgroundImage, want };
+      const ok = document.getElementById('cf-ok');
+      return { sign: !!m.querySelector('.dlg-mb-ic[data-tone="danger"]'), btn: ok ? getComputedStyle(ok).backgroundColor : '', want };
     });
-    ok('5d a dangerous question wears the danger tone, not the accent',
-      !!conf && conf.img.includes(conf.want), conf && conf.want);
+    ok('5d a dangerous question wears the danger tone, not the accent: its warning sign and a red confirm',
+      !!conf && conf.sign && conf.btn === conf.want, conf && JSON.stringify(conf));
+    await page.evaluate(() => { const c = document.getElementById('cf-cancel'); if (c) c.click(); });
 
     ok('no page errors', errors.length === 0, errors.slice(0, 2).join(' | '));
   } finally {

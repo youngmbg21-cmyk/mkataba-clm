@@ -212,7 +212,12 @@ function serve(){return new Promise(res=>{const s=http.createServer((q,rep)=>{
     const c = window.CONTRACT;
     const cl = negoClauseList(c).find(x => (x.headingText||'').indexOf('8.2') === 0);
     const sec = document.querySelector('.redline-page .rl-clause[data-clause="' + cl.clauseId + '"]');
-    sec.scrollIntoView({ block: 'center' });
+    /* RE-POINTED 10 Oct 2026 (the sixteen red after the pop-ups, item 6): the
+       page scrolls smoothly (html{scroll-behavior:smooth}), so on a slow
+       runner the points below were measured mid-glide and the drag began in
+       another clause — reproduced at 8x CPU throttling, green with the scroll
+       settled. The scroll is made instant, so what is measured is where it is. */
+    sec.scrollIntoView({ block: 'center', behavior: 'instant' });
     const lis = sec.querySelectorAll('li');
     const a = lis[0].getBoundingClientRect(), b = lis[lis.length-1].getBoundingClientRect();
     /* The NEXT clause's heading row — where a drag that overshoots the last

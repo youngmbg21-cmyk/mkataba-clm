@@ -6718,10 +6718,54 @@ function brainNow(){
   _brainNow = { map, builds };
   return _brainNow;
 }
+/* ---- THE STACK, READ FROM THE CODE (the Brain's fifth view, owner-approved
+   10 Oct 2026, work order "The Brain's fifth view: Stack") ----
+   The counts the Stack view states — tables, routes, tests, lines, the
+   running Node, the host's plan and disk — are READ here from the files, once
+   per boot like the brain map, so the page grows with the code and never
+   types a number in. A file this host does not have (render.yaml elsewhere)
+   answers null and the page says "not found on this server": nothing is
+   guessed. NO SECRET IS READ OUT: of the keys, only whether one is set. */
+let _brainStack = null;
+function brainStackRead(){
+  if (_brainStack) return _brainStack;
+  const root = path.join(__dirname, '..');
+  const txt = rel => { try { return fs.readFileSync(path.join(root, rel), 'utf8'); } catch (_) { return null; } };
+  const count = (rel, re) => { try { return fs.readdirSync(path.join(root, rel)).filter(n => re.test(n)).length; } catch (_) { return null; } };
+  const lineCount = rel => { const t = txt(rel); return t == null ? 0 : t.split('\n').length; };
+  const srv = txt('server/server.js') || '';
+  const tables = new Set([...srv.matchAll(/CREATE TABLE IF NOT EXISTS\s+([A-Za-z_][\w]*)/g)].map(m => m[1])).size;
+  const routes = (srv.match(/\bapp\.(get|post|put|patch|delete)\(/g) || []).length;
+  let pkg = null; try { pkg = JSON.parse(txt('package.json') || 'null'); } catch (_) { pkg = null; }
+  const ry = txt('render.yaml');
+  const yv = k => { const m = ry && ry.match(new RegExp('^\\s*' + k + ':\\s*([^\\s#]+)', 'm')); return m ? m[1].replace(/^["']|["']$/g, '') : null; };
+  let lines = 0;
+  const walk = rel => { let es = []; try { es = fs.readdirSync(path.join(root, rel), { withFileTypes: true }); } catch (_) { return; }
+    for (const e of es){ const r = rel + '/' + e.name; if (e.isDirectory()) walk(r); else if (e.name.endsWith('.js')) lines += lineCount(r); } };
+  walk('server'); walk('js'); lines += lineCount('index.html');
+  const i18 = txt('js/i18n.js') || '';
+  const langBlock = (i18.match(/const LANGUAGES = \[([\s\S]*?)\];/) || [])[1] || '';
+  _brainStack = {
+    tables: tables || null,
+    routes: routes || null,
+    serverMB: srv ? Math.round(Buffer.byteLength(srv) / 1e5) / 10 : null,
+    deps: pkg && pkg.dependencies ? { ...pkg.dependencies } : null,
+    node: { engines: (pkg && pkg.engines && pkg.engines.node) || null, running: process.version },
+    host: ry ? { runtime: yv('runtime'), plan: yv('plan'), diskGB: yv('sizeGB') == null ? null : Number(yv('sizeGB')),
+      mount: yv('mountPath'), health: yv('healthCheckPath') } : null,
+    tests: { node: count('test', /\.test\.js$/), browser: count('test/chromium', /\.js$/) },
+    lines: lines || null,
+    models: Object.keys(AI_RATE_DEFAULTS).filter(k => k !== 'default'),
+    languages: [...langBlock.matchAll(/name:\s*'([^']+)',\s*enName:\s*'([^']+)'/g)].map(m => ({ own: m[1], en: m[2] })),
+  };
+  return _brainStack;
+}
 app.get('/api/brain', auth, (req, res) => {
   try {
     const { map, builds } = brainNow();
-    res.json({ parts: map.parts, edges: map.edges, published: map.published.length, flowGaps: map.flowGaps, builds });
+    let stack = null;
+    try { stack = { ...brainStackRead(), keys: { mail: !!mailKey(), ai: !!aiKey() } }; } catch (e) { console.error('[brain] reading the stack failed:', e && e.message); }
+    res.json({ parts: map.parts, edges: map.edges, published: map.published.length, flowGaps: map.flowGaps, builds, stack });
   } catch (e) {
     console.error('[brain] reading the code failed:', e && e.message);
     res.status(500).json({ error: 'HaTi could not read its own code just now.' });

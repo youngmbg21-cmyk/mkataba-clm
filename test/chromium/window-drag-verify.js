@@ -79,7 +79,12 @@ const PANEL = `(() => {
       closeModal();
       openModal(`<div style="padding:20px 22px">
         <h3 id="wd-head" style="margin:0 0 8px;font-size:16px">A window you can move</h3>
-        <p id="wd-body" style="margin:0 0 14px">Some wording a reader might want to select.</p>
+        ${''/* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the frame lifts a
+               short line under the title INTO the title bar as its sub-line
+               (dlgSapFrame), so the wording a reader selects is a body
+               paragraph below the bar — what this check has always meant. */}
+        <p id="wd-sub">Its title bar is where you take hold of it.</p>
+        <div id="wd-body" style="margin:0 0 14px">Some wording a reader might want to select.</div>
         <button id="wd-x" onclick="closeModal()">Close</button></div>`, { maxWidth: '32rem' });
     });
     await openTest();

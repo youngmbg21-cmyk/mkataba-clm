@@ -43,6 +43,12 @@ const MEASURE = () => {
     frame: R(dlg), box: R(box), pad: [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft],
     vw: document.documentElement.clientWidth,
     tiles: [...dlg.querySelectorAll('.ns-tile')].map(R),
+    rows: [...dlg.querySelectorAll('.sap-li')].map(R),
+    rowWords: [...dlg.querySelectorAll('.sap-li')].map(l => { const t = l.querySelector('span > span'), m = l.querySelector('.sap-m'); return [t ? t.textContent.trim() : '', m ? m.textContent.trim() : '']; }),
+    starts: [...dlg.querySelectorAll('.sap-li input[type="radio"]')].map(i => i.getAttribute('data-ns-start') || i.id),
+    list: dlg.querySelector('.sap-list') ? R(dlg.querySelector('.sap-list')) : null,
+    cont: dlg.querySelector('#ns-continue') ? R(dlg.querySelector('#ns-continue')) : null,
+    lastBtn: (() => { const bs = [...dlg.querySelectorAll('button')].filter(b => b.offsetParent); const b = bs[bs.length - 1]; return b ? b.id : null; })(),
     /* An icon name the ICONS map does not carry draws an EMPTY svg (THE MAP:
        type-and-symbols-verify measures getBBox for this reason). */
     marks: [...dlg.querySelectorAll('.ns-tile .ic svg')].map(u => { try { const b = u.getBBox(); return Math.round(b.width * b.height); } catch (_) { return -1; } }),
@@ -90,18 +96,25 @@ const MEASURE = () => {
       !!k && Math.abs(k.frame.w - k.box.w) <= 2, k && { frame: k.frame.w, box: k.box.w });
     check('1c · the frame is centred on the screen',
       !!k && Math.abs((k.frame.x + k.frame.w / 2) - k.vw / 2) <= 2, k && { frameCentre: k.frame.x + k.frame.w / 2, screenCentre: k.vw / 2 });
-    check('1d · three starts, one under another, each the same width',
-      !!k && k.tiles.length === 3 && k.tiles.every(t => Math.abs(t.w - k.tiles[0].w) <= 1 && t.x === k.tiles[0].x)
-        && k.tiles[1].y > k.tiles[0].y && k.tiles[2].y > k.tiles[1].y,
-      k && k.tiles);
-    check('1e · the starts reach the frame’s padding on both sides, and Cancel sits on the right edge they reach',
-      !!k && k.tiles.length === 3 && Math.abs(k.tiles[0].x - (k.box.x + 24)) <= 1
-        && Math.abs(k.tiles[0].r - (k.box.r - 24)) <= 1 && !!k.cancel && Math.abs(k.cancel.r - k.tiles[0].r) <= 1,
-      k && { left: k.tiles[0] && k.tiles[0].x, boxLeft: k.box.x, right: k.tiles[0] && k.tiles[0].r, boxRight: k.box.r, cancel: k.cancel && k.cancel.r });
-    check('1g · each start’s mark is an icon the product really carries — it paints, not an empty box',
-      !!k && k.marks.length === 3 && k.marks.every(a => a > 0), k && k.marks);
-    check('1f · 24 on every side, and no filled verb on a question',
-      !!k && k.pad.every(p => p === '24px') && k.primaries === 0, k && { pad: k.pad, primaries: k.primaries });
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the chooser is ONE list of
+       radio rows (`.sap-li`; the three starts keep `data-ns-start`, the other
+       side's paper is `#ns-cp`) inside the drawn frame — 16/18 padding,
+       Continue (`#ns-continue`) the one filled button, Cancel last. The claims
+       that hold are kept: the rows are one under another and the same width,
+       they reach the frame's padding on both sides and Cancel sits on the
+       right edge they reach, each says what it is, nothing leaves the box. */
+    check('1d · the starts are one list, one row under another, each the same width',
+      !!k && k.starts.join(',') === 'scratch,template,contract,ns-cp' && k.rows.length === 4
+        && k.rows.every(t => Math.abs(t.w - k.rows[0].w) <= 1 && t.x === k.rows[0].x) && k.rows.every((t, i) => !i || t.y > k.rows[i - 1].y),
+      k && { starts: k.starts, rows: k.rows });
+    check('1e · the list reaches the frame’s padding on both sides, and Cancel sits on the right edge it reaches',
+      !!k && !!k.list && Math.abs(k.list.x - (k.box.x + 18)) <= 1 && Math.abs(k.list.r - (k.box.r - 18)) <= 1
+        && !!k.cancel && Math.abs(k.cancel.r - k.list.r) <= 1 && k.lastBtn === 'ns-close',
+      k && { left: k.list && k.list.x, boxLeft: k.box.x, right: k.list && k.list.r, boxRight: k.box.r, cancel: k.cancel && k.cancel.r, last: k.lastBtn });
+    check('1g · each start says what it is: a name and a line under it',
+      !!k && k.rowWords.length === 4 && k.rowWords.every(([t, m]) => t.length > 2 && m.length > 2), k && k.rowWords);
+    check('1f · 16/18 on the sides of the drawn frame, and Continue the one filled verb',
+      !!k && k.pad.join(' ') === '16px 18px 16px 18px' && k.primaries === 1 && !!k.cont, k && { pad: k.pad, primaries: k.primaries });
 
     /* ================= 2 · TEMPLATE DETAILS, FROM THE BUILDER'S HEAD ================ */
     await page.keyboard.press('Escape'); await pause(300);
@@ -125,8 +138,9 @@ const MEASURE = () => {
       f && { cat: f.cat && f.cat.w, stream: f.stream && f.stream.w });
     check('2e · “Other” is listed once, leads, and is what this template is filed as',
       !!f && f.others === 1 && f.firstOpt === 'other' && f.selected === 'other', f && { others: f.others, first: f.firstOpt, selected: f.selected });
-    check('2f · one filled verb in the foot, 24 on every side',
-      !!f && f.primaries === 1 && f.pad.every(p => p === '24px'), f && { primaries: f.primaries, pad: f.pad });
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the frame's padding is 16/18 now */
+    check('2f · one filled verb in the foot, 16/18 on the sides',
+      !!f && f.primaries === 1 && f.pad.join(' ') === '16px 18px 16px 18px', f && { primaries: f.primaries, pad: f.pad });
     check('2g · the frame is centred', !!f && Math.abs((f.frame.x + f.frame.w / 2) - f.vw / 2) <= 2);
 
     /* ================= 3 · NARROW: the starts stay inside the box ================ */
@@ -137,9 +151,10 @@ const MEASURE = () => {
     await pause(500);
     const n = await page.evaluate(MEASURE);
     await page.screenshot({ path: path.join(OUT, '03-how-to-start-narrow.png') });
-    check('3a · at 420px the three starts stay stacked and none leaves the box',
-      !!n && n.tiles.length === 3 && n.tiles[1].y > n.tiles[0].y + n.tiles[0].h - 1
-        && n.tiles.every(t => t.x >= n.box.x && t.r <= n.box.r + 1), n && { tiles: n.tiles, box: n.box });
+    /* RE-POINTED 10 Oct 2026 (the pop-ups as drawn): the starts are the list's rows */
+    check('3a · at 420px the starts stay stacked and none leaves the box',
+      !!n && n.rows.length === 4 && n.rows.every((t, i) => !i || t.y >= n.rows[i - 1].y + n.rows[i - 1].h - 1)
+        && n.rows.every(t => t.x >= n.box.x && t.r <= n.box.r + 1), n && { rows: n.rows, box: n.box });
     check('3b · and the box still fills the frame', !!n && Math.abs(n.frame.w - n.box.w) <= 2, n && { frame: n.frame.w, box: n.box.w });
 
     check('4 · the page threw nothing', errors.length === 0, errors.slice(0, 3));
