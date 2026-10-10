@@ -20618,3 +20618,5 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed (10 Oct 2026, customer folders and filters beside the tabs)
 - test/chromium/ink-wash-verify.js is red on unmodified main (1ac0947): 137 passed, 33 failed, and it is not on KNOWN_RED. The Customers rail door adds 9 more "green-light …: no text size moved" lines (one more 13px label on every page's rail); the census is re-recorded only with an owner-asked palette change, so it was left.
 - CLAUDE.md is 91 KB, over its ~80 KB ceiling, before and after this change (two MAP lines added here); a trim needs the owner's ask.
+
+- Noticed, not fixed (10 Oct 2026, customers doors): Explorer's head line and Group-by box call any custom grouping "Copilot grouping" (graphGroupingWord('custom')), even when it came from a press that asked no Copilot — the Customers page's Open on Explorer (Active | Expired) and the compare act. A name for the grouping carried with intel.groups would let it say "Active or expired".

@@ -3,9 +3,14 @@
    design he picked is "Customer folders" in the Customer Folders and Filters
    artifact) ══════════════════════════════════════════════════════════════
 
-   A Customers page in the rail, then one page per customer: a white head with
-   the customer's figures, Active | Expired | All as its tabs, and the list
-   grouped by value stream inside, each group folding.
+   A Customers page in the rail, right after Home: one row per customer, its
+   active and expired contracts counted. THE CUSTOMER'S OWN PAGE IS GONE (owner,
+   10 Oct 2026: "when you click on open customer, it takes you to the contracts
+   page and only contracts for that customer will be listed there. When you
+   click on explorer it will then take you to the explorer page with just those
+   customers but grouped by active vs expired"): Open customer is the Contracts
+   page's own "show only these" door (regShowOnly), Open on Explorer is
+   Explorer's own lens with a two-group grouping — no second door onto either.
 
    FOLDERS ARE A READING, NOT A FILING CABINET. Nothing is moved into a
    folder and nothing is stored: HaTi already knows the customer (the
@@ -24,18 +29,18 @@
    already filtered to the streams this reader may open (folderScopeFor) —
    a stream the reader cannot open is never named, not even as a count.
 
-   ONE DOOR ONTO A CONTRACT: a row selects, the side panel is the Contracts
-   panel (insPaintPanel, the same four facts and What Copilot read), a second
-   press opens the contract. Amendments stay under their agreement (only
-   agreements are rows, as the Contracts head counts them). Draft new
-   agreement is the existing form with the counterparty filled in.
+   ONE NUMBER EVERYWHERE: with a Stream or Owner filter on, the row, its
+   sub-line, the side panel and the Contracts page it opens all count the same
+   filtered contracts (cuView). Amendments ride with their agreement (only
+   agreements are counted, as the Contracts head counts them; the Contracts
+   page draws them under it). Draft new agreement is the existing form with
+   the counterparty filled in.
 
    NOTHING HERE WRITES. Read RAW — no reading here creates a negotiation. */
 
-const CU_TABS = ['active', 'expired', 'all'];
-/* Per sitting: which customer, which tab, the filters, the folded groups.
-   A refresh puts it back through PLACE_PARTS (cuPlace / cuPlacePut). */
-const _cu = { cust: null, tab: 'active', stream: 'all', owner: 'all', type: 'all', q: '', closed: {} };
+/* Per sitting: the list's own find and filters. A refresh puts them back
+   through PLACE_PARTS (cuPlace / cuPlacePut). */
+const _cu = { stream: 'all', owner: 'all', q: '' };
 
 function cuNameOf(c){ return String((c && c.counterparty) || '').trim(); }
 /* One shelf per name, whatever its case or spacing: "Naivas Ltd" and "naivas
@@ -67,7 +72,6 @@ function cuNextEnd(items){
   return days[0] || null;
 }
 function cuStreamName(id){ return (typeof FOLDERS !== 'undefined' && FOLDERS[id] && FOLDERS[id].name) || ''; }
-function cuTypeOf(c){ try { return (typeof cKind === 'function') ? String(cKind(c) || '') : ''; } catch (_) { return ''; } }
 function cuMoney(){ return !(typeof canViewValues === 'function' && !canViewValues()); }
 function cuSum(items){
   return (typeof regAggregate === 'function') ? regAggregate(items)
@@ -126,42 +130,71 @@ function cuDoorCount(){ return cuCustomers().length; }
 function cuFilterItems(items){
   return (items || []).filter(c =>
     (_cu.stream === 'all' || String(c.folder) === String(_cu.stream))
-    && (_cu.owner === 'all' || ((typeof contractOwnerName === 'function' && contractOwnerName(c)) || '') === _cu.owner)
-    && (_cu.type === 'all' || cuTypeOf(c) === _cu.type));
+    && (_cu.owner === 'all' || ((typeof contractOwnerName === 'function' && contractOwnerName(c)) || '') === _cu.owner));
 }
-function cuFiltersOn(){ return _cu.stream !== 'all' || _cu.owner !== 'all' || _cu.type !== 'all'; }
+function cuFiltersOn(){ return _cu.stream !== 'all' || _cu.owner !== 'all'; }
+/* ONE CUSTOMER AS THE PAGE SHOWS IT, filters applied — the row, its sub-line,
+   the side panel and the doors read this, so they never disagree (owner's
+   screenshot, 10 Oct 2026: Owner on, the row said 3 and its sub-line 21). */
+function cuView(r){
+  if (!r) return null;
+  const items = cuFiltersOn() ? cuFilterItems(r.items) : r.items;
+  const active = items.filter(c => cuBucket(c) === 'active'), expired = items.filter(c => cuBucket(c) === 'expired');
+  const streams = [...new Set(items.map(c => c.folder).filter(f => f && cuStreamName(f)))];
+  return { key: r.key, name: r.name, items, active, expired, streams, next: cuNextEnd(items), waiting: items.filter(cuWaitingOnYou).length };
+}
+/* The ids a door carries: the customer's agreements as counted, and every
+   amendment under them, so the Contracts page draws each under its agreement. */
+function cuIdsOf(v){
+  const ids = new Set((v && v.items || []).map(c => c.id));
+  const all = (typeof state !== 'undefined' && Array.isArray(state.contracts)) ? state.contracts : [];
+  all.forEach(c => { if (c && c.parentId && ids.has(c.parentId)) ids.add(c.id); });
+  return [...ids];
+}
 
-/* ---- THE PLACE A REFRESH PUTS BACK ---- */
-function cuPlace(){ return { cust: _cu.cust, tab: _cu.tab, stream: _cu.stream, owner: _cu.owner, type: _cu.type, q: _cu.q }; }
+/* ---- THE PLACE A REFRESH PUTS BACK ---- the list's own find and filters; a
+   customer kept by an older refresh ("cust") is ignored and lands on the list. */
+function cuPlace(){ return { stream: _cu.stream, owner: _cu.owner, q: _cu.q }; }
 function cuPlacePut(p){
   if (!p || typeof p !== 'object') return;
-  _cu.cust = p.cust ? String(p.cust) : null;
-  _cu.tab = CU_TABS.includes(p.tab) ? p.tab : 'active';
   _cu.stream = p.stream ? String(p.stream) : 'all';
   _cu.owner = p.owner ? String(p.owner) : 'all';
-  _cu.type = p.type ? String(p.type) : 'all';
   _cu.q = p.q ? String(p.q) : '';
 }
 
 /* ---- THE DOORS ---- */
-function cuOpenList(){ _cu.cust = null; cuRepaint(); if (typeof placeSave === 'function') placeSave(); }
+/* OPEN CUSTOMER = the Contracts page narrowed to this customer, through its
+   own "only" chip (regShowOnly). × on the chip widens it; the rail's
+   Customers door is the way back. */
 function cuOpenCustomer(key){
-  _cu.cust = key ? String(key) : null; _cu.tab = 'active'; _cu.closed = {};
-  if (typeof state !== 'undefined' && state.view !== 'customers' && typeof setView === 'function') setView('customers');
-  else cuRepaint();
-  if (typeof placeSave === 'function') placeSave();
+  const v = cuView(cuCustomerOf(key));
+  if (!v || !v.items.length) return;
+  if (typeof regShowOnly === 'function') regShowOnly(cuIdsOf(v), `${v.name} · ${v.items.length}`);
 }
 function cuDraftFor(name){
   if (typeof openNewAgreement === 'function') openNewAgreement({ prefill: { counterparty: name } });
   else if (typeof openNewDoors === 'function') openNewDoors();
 }
-/* "Open on Explorer" lands on Home's map grouped by customer — the map that
-   already folds by customer. No second map is drawn. */
-function cuOpenExplorer(){
-  try { if (window.intel){ intel.groupBy = 'counterparty'; intel.groups = null; } } catch (_) {}
+/* OPEN ON EXPLORER = Home's map narrowed to this customer (Explorer's own
+   lens) in two groups, Active and Expired (its own custom grouping, filled
+   from cuBucket — the one reading). The recipe before is kept, so the map's
+   Undo brings it back; a group with nothing in it is simply not drawn.
+   Nothing is asked of Copilot and nothing is written. */
+function cuOpenExplorer(key){
+  const v = cuView(cuCustomerOf(key));
+  if (!v || !v.items.length || !window.intel || typeof addLens !== 'function') return;
+  const ids = cuIdsOf(v), groups = {};
+  ids.forEach(id => {
+    const c = (typeof getContract === 'function') ? getContract(id) : null;
+    const lead = c && c.parentId && (typeof getContract === 'function') ? (getContract(c.parentId) || c) : c;
+    groups[id] = i18t(cuBucket(lead) === 'expired' ? 'cu_tab_expired' : 'cu_tab_active');
+  });
+  try { if (typeof igRecipePush === 'function') igRecipePush(); } catch (_) {}
+  intel.lenses = (intel.lenses || []).filter(l => l.action !== 'filter' || l.hb);
+  addLens({ label: v.name, ids, action: 'filter' });
+  intel.groupBy = 'custom'; intel.groups = groups;
   if (typeof hbOpenExplorer === 'function') hbOpenExplorer(); else if (typeof setView === 'function') setView('dashboard');
 }
-function cuOpenContract(id){ if (typeof selectContract === 'function') selectContract(id); }
 
 /* ---- PIECES ---- */
 const _cuE = s => (typeof esc === 'function') ? esc(s) : String(s == null ? '' : s);
@@ -179,17 +212,14 @@ function cuChip(o){
   return `<label class="reg-f reg-chip${on ? ' on' : ''}" title="${_cuE(o.title || o.label)}"><span class="reg-f-l">${_cuE(o.label)}</span><span class="reg-f-v">${_cuE(pick)}</span><select class="reg-chip-sel" ${o.attr}="${_cuE(o.key)}" title="${_cuE(o.title || o.label)}">${
     (o.opts || []).map(([v, l]) => `<option value="${_cuE(v)}"${String(v) === String(o.cur) ? ' selected' : ''}>${_cuE(l)}</option>`).join('')}</select></label>`;
 }
-function cuFilterBarHtml(items, withFind){
+function cuFilterBarHtml(items){
   const streams = [...new Set((items || []).map(c => c.folder).filter(f => f && cuStreamName(f)))]
     .sort((a, b) => cuStreamName(a).localeCompare(cuStreamName(b)));
   const owners = [...new Set((items || []).map(c => (typeof contractOwnerName === 'function' && contractOwnerName(c)) || '').filter(Boolean))].sort();
-  const types = [...new Set((items || []).map(cuTypeOf).filter(Boolean))].sort();
   return `<div class="reg-filterbar reg-fb">
-    ${withFind ? `<label class="cu-find"><span class="sr-only">${_cuE(i18t('cu_find'))}</span><input id="cu-q" type="search" autocomplete="off" placeholder="${_cuE(i18t('cu_find_ph'))}" value="${_cuE(_cu.q)}"></label>` : ''}
+    <label class="cu-find"><span class="sr-only">${_cuE(i18t('cu_find'))}</span><input id="cu-q" type="search" autocomplete="off" placeholder="${_cuE(i18t('cu_find_ph'))}" value="${_cuE(_cu.q)}"></label>
     ${cuChip({ label: i18t('reg_chip_stream'), title: i18t('reg_value_stream'), attr: 'data-cu-f', key: 'stream', cur: _cu.stream, def: 'all',
       opts: [['all', i18t('cu_all_streams')], ...streams.map(f => [f, cuStreamName(f)])] })}
-    ${withFind ? '' : cuChip({ label: i18t('cu_type'), attr: 'data-cu-f', key: 'type', cur: _cu.type, def: 'all',
-      opts: [['all', i18t('cu_all_types')], ...types.map(t => [t, t])] })}
     ${cuChip({ label: i18t('cu_owner'), attr: 'data-cu-f', key: 'owner', cur: _cu.owner, def: 'all',
       opts: [['all', i18t('cu_anyone')], ...owners.map(o => [o, o])] })}
   </div>`;
@@ -212,19 +242,9 @@ function cuPartFoot(){
 const CU_CSS = `
   .cu-page{height:var(--view-h);box-sizing:border-box;}
   .cu-page .sap-band{padding-top:var(--page-pad-t);display:flex;flex-direction:column;gap:var(--s-2);}
-  .cu-crumb{display:flex;align-items:center;gap:6px;font-size:var(--t-meta);color:var(--color-neutral-600);}
-  .cu-crumb button{background:none;border:0;padding:0;font:inherit;color:var(--accent-ink);cursor:pointer;}
-  .cu-crumb button:hover{text-decoration:underline;}
   .cu-head{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--s-3);flex-wrap:wrap;}
-  .cu-id{display:flex;align-items:center;gap:var(--s-2);min-width:0;}
-  .cu-id .reg-av{width:36px;height:36px;font-size:var(--t-label);}
   .cu-t{margin:0;font-family:var(--font-heading);font-size:20px;font-weight:var(--w-title);letter-spacing:-.01em;line-height:1.2;color:var(--color-text);}
   .cu-acts{display:flex;align-items:center;gap:var(--s-2);flex:none;min-height:var(--ctl-h);}
-  .cu-kpis{display:flex;flex-wrap:wrap;gap:var(--s-2) var(--s-6,28px);}
-  .cu-kpi dt{font-size:var(--t-meta);color:var(--color-neutral-600);}
-  .cu-kpi dd{margin:2px 0 0;font-size:var(--t-card);font-weight:var(--w-strong);font-variant-numeric:tabular-nums;color:var(--color-text);}
-  .cu-kpi dd small{font-size:var(--t-meta);font-weight:var(--w-body);color:var(--color-neutral-600);}
-  .cu-kpi dd.is-amber{color:var(--st-amber-fg);}
   .cu-page .reg-tabbar.cu-notabs > .reg-fb{margin-left:0;}
   .cu-find input{height:var(--ctl-h);min-width:200px;padding:0 var(--s-2);border:1px solid var(--btn-edge);border-radius:var(--radius);
     background:var(--color-surface);color:var(--color-text);font:inherit;font-size:var(--t-body);}
@@ -236,15 +256,10 @@ const CU_CSS = `
   .cu-table td.n,.cu-table th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .cu-table td.quiet{color:var(--color-neutral-500);}
   .cu-table td.amber{color:var(--st-amber-fg);font-weight:var(--w-strong);}
-  .cu-table tr.cu-grp td{background:var(--surface-2);font-weight:var(--w-strong);cursor:pointer;}
-  .cu-table tr.cu-grp:hover td{background:color-mix(in srgb,var(--color-accent) 6%,var(--surface-2));}
-  .cu-table tr.cu-grp .cu-car{display:inline-block;width:14px;color:var(--color-neutral-500);}
-  .cu-table tr.cu-grp .cu-cnt{margin-left:8px;font-weight:var(--w-body);color:var(--color-neutral-600);}
-  .cu-table tbody tr[data-cu-row]:focus,.cu-table tbody tr[data-cu-cust]:focus{outline:none;}
+  .cu-table tbody tr[data-cu-cust]:focus{outline:none;}
   .cu-table tbody tr.is-sel td{background:color-mix(in srgb,var(--color-accent) 8%,transparent);}
   .cu-table tbody tr.is-sel td:first-child{box-shadow:inset 2px 0 0 var(--accent-solid);}
   .cu-stripe{display:inline-block;width:4px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:7px;}
-  .cu-table td.cu-ind{padding-left:30px;}
   .cu-panel-streams{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;font-size:var(--t-body);}
   .cu-panel-streams .n{font-variant-numeric:tabular-nums;color:var(--color-neutral-600);}
 `;
@@ -263,13 +278,11 @@ function cuListHtml(INS){
   const head = [{ t: i18t('cu_col_customer') }, { t: i18t('cu_col_active'), r: 1, w: 80 }, { t: i18t('cu_col_expired'), r: 1, w: 84 },
     ...(money ? [{ t: i18t('cu_col_on_paper'), r: 1, w: 130 }] : []), { t: i18t('cu_col_next_end'), w: 120 }, { t: i18t('cu_col_waiting'), r: 1, w: 120 }];
   const body = rows.map(r => {
-    const items = cuFiltersOn() ? cuFilterItems(r.items) : r.items;
-    const act = items.filter(c => cuBucket(c) === 'active'), exp = items.filter(c => cuBucket(c) === 'expired');
-    const w = items.filter(cuWaitingOnYou).length, next = cuNextEnd(items);
+    const v = cuView(r), act = v.active, exp = v.expired, w = v.waiting, next = v.next;
     const ov = money ? cuMoneyWords(act) : '';
     return `<tr data-cu-cust="${_cuE(r.key)}" tabindex="-1">
       <td><div class="ap-id">${cuAvHtml(r.name)}<div><span class="ap-name">${_cuE(r.name)}</span><span class="ap-sub">${
-        _cuE(i18tn('cu_n_contracts', r.items.length, { n: r.items.length }))} · ${_cuE(i18tn('cu_n_streams', r.streams.length, { n: r.streams.length }))}</span></div></div></td>
+        _cuE(i18tn('cu_n_contracts', v.items.length, { n: v.items.length }))} · ${_cuE(i18tn('cu_n_streams', v.streams.length, { n: v.streams.length }))}</span></div></div></td>
       <td class="n">${act.length}</td>
       <td class="n${exp.length ? '' : ' quiet'}">${exp.length || '—'}</td>
       ${money ? `<td class="n${ov ? '' : ' quiet'}">${_cuE(ov || '—')}</td>` : ''}
@@ -287,112 +300,13 @@ function cuListHtml(INS){
         <div style="min-width:0"><h1 class="cu-t">${_cuE(i18t('nav_customers'))}</h1><div class="page-facts">${facts.map(_cuE).join(' · ')}</div></div>
         <div class="cu-acts"><button type="button" class="hm-primary" data-cu-draft="">${(typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5', 2) : ''} ${_cuE(i18t('home_draft_new'))}</button></div>
       </div>
-      <div class="reg-tabbar cu-notabs">${cuFilterBarHtml(book, true)}</div>
+      <div class="reg-tabbar cu-notabs">${cuFilterBarHtml(book)}</div>
     </div>
     ${INS ? `<div class="ap-body is-ins cu-body">${cuCardHtml(i18t('nav_customers'), rows.length, table, foot)}<aside id="ins-panel" class="ins-panel" aria-label="${_cuE(i18t('ins_panel_label'))}"></aside></div>`
       : `<div class="cu-body">${cuCardHtml(i18t('nav_customers'), rows.length, table, foot)}</div>`}`;
 }
 
-/* ---- ONE CUSTOMER'S PAGE ---- */
-function cuCustomerHtml(r, INS){
-  const items = r.items;
-  const act = items.filter(c => cuBucket(c) === 'active'), exp = items.filter(c => cuBucket(c) === 'expired');
-  const tabbed = _cu.tab === 'active' ? act : _cu.tab === 'expired' ? exp : items;
-  const list = cuFilterItems(tabbed);
-  const money = cuMoney();
-  const next = cuNextEnd(items), w = items.filter(cuWaitingOnYou).length;
-  const kpi = (label, v, sub, cls) => `<div class="cu-kpi"><dt>${_cuE(label)}</dt><dd${cls ? ` class="${cls}"` : ''}>${_cuE(v)}${sub ? ` <small>· ${_cuE(sub)}</small>` : ''}</dd></div>`;
-  /* The groups follow the stream's own order in the company's list. */
-  const order = Object.keys((typeof FOLDERS !== 'undefined' && FOLDERS) || {});
-  const ids = [...new Set(list.map(c => c.folder || ''))].sort((a, b) => {
-    const ia = order.indexOf(a), ib = order.indexOf(b);
-    return (ia < 0 ? 1e6 : ia) - (ib < 0 ? 1e6 : ib);
-  });
-  const head = [{ t: i18t('reg_col_ref'), w: 96 }, { t: i18t('cu_col_agreement') }, { t: i18t('reg_col_stage'), w: 210 },
-    ...(money ? [{ t: i18t('reg_col_value'), r: 1, w: 120 }] : []), { t: i18t('reg_col_ends'), w: 116 }];
-  const cols = head.length;
-  const row = c => {
-    const m = (typeof regMoveWord === 'function') ? regMoveWord(c) : null;
-    const mv = (m && m.k !== 'clear') ? ` <span class="ins-mv is-${m.k}">· ${_cuE(i18t(m.k === 'you' ? 'ins_your_move' : 'ins_their_move'))}</span>` : '';
-    const stage = (typeof contractStatusDotHtml === 'function') ? contractStatusDotHtml(c) : _cuE(c.status || '');
-    const priced = typeof isMonetary !== 'function' || isMonetary(c);
-    const val = !priced ? i18t('reg_non_monetary') : !c.value ? '—'
-      : (typeof fmtMoneyShortIn === 'function' && typeof contractCurrency === 'function') ? fmtMoneyShortIn(c.value, contractCurrency(c))
-      : (typeof fmtMoneyOf === 'function') ? fmtMoneyOf(c) : String(c.value);
-    const ends = cuEnds(c);
-    return `<tr data-cu-row="${_cuE(c.id)}" tabindex="-1">
-      <td class="mono cu-ind">${(typeof refHtml === 'function') ? refHtml(c) : _cuE(c.id)}</td>
-      <td><span class="ap-name" title="${_cuE(c.name || '')}">${_cuE(c.name || '—')}</span></td>
-      <td>${stage}${mv}</td>
-      ${money ? `<td class="n${priced ? '' : ' quiet'}">${_cuE(val)}</td>` : ''}
-      <td class="${ends ? '' : 'quiet'}">${_cuE(ends ? cuDay(ends) : '—')}</td>
-    </tr>`;
-  };
-  const body = ids.map(id => {
-    const g = list.filter(c => (c.folder || '') === id);
-    const shut = !!_cu.closed[id];
-    const gm = money ? cuMoneyWords(g) : '';
-    return `<tr class="cu-grp" data-cu-grp="${_cuE(id)}" aria-expanded="${shut ? 'false' : 'true'}"><td colspan="${cols}"><span class="cu-car" aria-hidden="true">${shut ? '▸' : '▾'}</span>${
-      id ? cuStripeHtml(id) : ''}${_cuE(cuStreamName(id) || i18t('cu_no_stream'))}<span class="cu-cnt">${g.length}${gm ? ' · ' + _cuE(gm) : ''}</span></td></tr>${shut ? '' : g.map(row).join('')}`;
-  }).join('');
-  const table = list.length
-    ? `<table class="ap-table ap-ins cu-table"><colgroup>${head.map(h => `<col${h.w ? ` style="width:${h.w}px"` : ''}>`).join('')}</colgroup><thead><tr>${
-      head.map(h => `<th${h.r ? ' class="n"' : ''}>${_cuE(h.t)}</th>`).join('')}</tr></thead><tbody id="cu-tbody">${body}</tbody></table>`
-    : `<div class="ap-empty">${_cuE(_cu.tab === 'expired' ? i18t('cu_none_expired') : i18t('cu_none_here'))}</div>`;
-  const title = i18t(_cu.tab === 'active' ? 'cu_title_active' : _cu.tab === 'expired' ? 'cu_title_expired' : 'cu_title_all');
-  const foot = [`<span>${_cuE(i18tn('cu_n_contracts', list.length, { n: list.length }))} · ${_cuE(i18tn('cu_n_streams', ids.filter(Boolean).length, { n: ids.filter(Boolean).length }))}</span>`,
-    cuPartFoot()].filter(Boolean).join('');
-  const tabs = (typeof insViewTabsHtml === 'function') ? insViewTabsHtml({ label: i18t('cu_tabs_label'), attr: 'data-cu-tab', cur: _cu.tab,
-    views: [{ k: 'active', label: i18t('cu_tab_active'), n: act.length }, { k: 'expired', label: i18t('cu_tab_expired'), n: exp.length }, { k: 'all', label: i18t('cu_tab_all'), n: items.length }] }) : '';
-  return `<div class="sap-band">
-      <nav class="cu-crumb" aria-label="${_cuE(i18t('cu_crumb_label'))}"><button type="button" data-cu-list>${_cuE(i18t('nav_customers'))}</button><span aria-hidden="true">›</span><span>${_cuE(r.name)}</span></nav>
-      <div class="cu-head">
-        <div class="cu-id">${cuAvHtml(r.name)}<div style="min-width:0"><h1 class="cu-t">${_cuE(r.name)}</h1><div class="page-facts">${
-          _cuE(i18tn('cu_n_contracts', items.length, { n: items.length }))} · ${_cuE(i18tn('cu_n_streams', r.streams.length, { n: r.streams.length }))}</div></div></div>
-        <div class="cu-acts">
-          <button type="button" class="ui-btn" data-cu-explorer>${_cuE(i18t('cu_open_explorer'))}</button>
-          <button type="button" class="hm-primary" data-cu-draft="${_cuE(r.name)}">${(typeof icon === 'function') ? icon('plus', 'w-3.5 h-3.5', 2) : ''} ${_cuE(i18t('home_draft_new'))}</button>
-        </div>
-      </div>
-      <dl class="cu-kpis" style="margin:0">
-        ${kpi(i18t('cu_tab_active'), String(act.length), money ? cuMoneyWords(act) : '')}
-        ${kpi(i18t('cu_tab_expired'), String(exp.length), money ? cuMoneyWords(exp) : '')}
-        ${kpi(i18t('cu_col_next_end'), next ? cuDay(next) : '—', '')}
-        ${kpi(i18t('cu_col_waiting'), String(w), '', w ? 'is-amber' : '')}
-      </dl>
-      <div class="reg-tabbar">${tabs}${cuFilterBarHtml(items, false)}</div>
-    </div>
-    ${INS ? `<div class="ap-body is-ins cu-body">${cuCardHtml(title, list.length, table, foot)}<aside id="ins-panel" class="ins-panel" aria-label="${_cuE(i18t('ins_panel_label'))}"></aside></div>`
-      : `<div class="cu-body">${cuCardHtml(title, list.length, table, foot)}</div>`}`;
-}
-
 /* ---- THE PANELS ---- */
-function cuContractActs(c){
-  if (!c) return [];
-  let mayNego = true; try { mayNego = !window.negoMayStart || negoMayStart(c).ok; } catch (_) { mayNego = true; }
-  const started = !!(c.negotiation && Array.isArray(c.changes) && c.changes.length);
-  const openC = { k: 'open', kind: 'accent', label: i18t('ins_open_contract'), iconEnd: 'chevR', run: x => cuOpenContract(x.id) };
-  const openN = { k: 'nego', label: i18t('ins_open_nego'), icon: 'msg', run: x => { if (typeof openRedlineWorkbench === 'function') openRedlineWorkbench(x.id); } };
-  return (started && mayNego && typeof openRedlineWorkbench === 'function') ? [openC, openN] : [openC];
-}
-function cuPaintContractPanel(tb){
-  const seat = 'customer';
-  const idOf = r => r.getAttribute('data-cu-row');
-  const id = insPick(seat, [...tb.querySelectorAll('[data-cu-row]')].map(idOf));
-  insMarkRow(tb, '[data-cu-row]', idOf, id);
-  const paint = pid => {
-    const c = pid && typeof getContract === 'function' ? getContract(pid) : null;
-    let menu = ''; if (c && typeof regRowActsHtml === 'function'){ try { menu = regRowActsHtml(c); } catch (_) { menu = ''; } }
-    insPaintPanel({ seat, c, acts: cuContractActs(c), menuHtml: menu,
-      onMenu: (act, cid) => { if (typeof regRunRowAct === 'function') regRunRowAct(act, cid); },
-      moveSuffix: true, statusBeside: true, order: ['facts', 'reads'], factKeys: ['value', 'owner', 'stream', 'ends'],
-      empty: i18t('ins_none_rows') });
-  };
-  paint(id);
-  insListWire(tb, { rowSel: '[data-cu-row]', idOf,
-    onSelect: pid => { insSelect(seat, pid); insMarkRow(tb, '[data-cu-row]', idOf, pid); paint(pid); },
-    onOpen: pid => cuOpenContract(pid) });
-}
 function cuPaintCustomerPanel(tb){
   const seat = 'customers';
   const idOf = r => r.getAttribute('data-cu-cust');
@@ -400,7 +314,7 @@ function cuPaintCustomerPanel(tb){
   insMarkRow(tb, '[data-cu-cust]', idOf, id);
   const money = cuMoney();
   const paint = key => {
-    const r = key ? cuCustomerOf(key) : null;
+    const r = key ? cuView(cuCustomerOf(key)) : null;
     if (!r){ insPaintPanel({ seat, c: null, item: null, empty: i18t('cu_panel_none') }); return; }
     const count = list => { const v = money ? cuMoneyWords(list) : ''; return list.length ? `${list.length}${v ? ' · ' + v : ''}` : '0'; };
     const facts = [
@@ -414,7 +328,7 @@ function cuPaintCustomerPanel(tb){
         eyebrow: _cuE(i18tn('cu_n_contracts', r.items.length, { n: r.items.length })) + ' · ' + _cuE(i18tn('cu_n_streams', r.streams.length, { n: r.streams.length })),
         title: r.name,
         acts: [{ k: 'open', kind: 'accent', label: i18t('cu_open_customer'), iconEnd: 'chevR', run: x => cuOpenCustomer(x.id) },
-          { k: 'explorer', label: i18t('cu_open_explorer'), run: () => cuOpenExplorer() }] },
+          { k: 'explorer', label: i18t('cu_open_explorer'), run: x => cuOpenExplorer(x.id) }] },
       body: (typeof insKvHtml === 'function' ? insKvHtml(facts) : '')
         + (streams && typeof insSecHtml === 'function' ? insSecHtml(i18t('cu_panel_streams'), r.streams.length, `<div class="cu-panel-streams">${streams}</div>`) : '') });
   };
@@ -427,54 +341,36 @@ function cuPaintCustomerPanel(tb){
 /* ---- THE PAGE ---- */
 function renderCustomers(){
   const host = document.getElementById('content'); if (!host) return;
-  /* A customer whose last contract went (deleted, re-named, out of reach)
-     has no page: the reader lands on the list, never on an empty shelf. */
-  const r = _cu.cust ? cuCustomerOf(_cu.cust) : null;
-  if (_cu.cust && !r) _cu.cust = null;
   const INS = (typeof insFits === 'function') && insFits() && typeof insPaintPanel === 'function';
   const keep = (() => { const sc = document.querySelector('.cu-scroll'); return sc ? sc.scrollTop : 0; })();
   const typing = document.activeElement && document.activeElement.id === 'cu-q';
   host.innerHTML = `<style>${CU_CSS}</style>
-  <div class="view-enter sap-page ap-page cu-page${INS ? ' is-ins' : ''}" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="${r ? 'customer' : 'list'}">
-    ${r ? cuCustomerHtml(r, INS) : cuListHtml(INS)}
+  <div class="view-enter sap-page ap-page cu-page${INS ? ' is-ins' : ''}" data-ins-page="customers" data-ins="${INS ? '1' : '0'}" data-cu-screen="list">
+    ${cuListHtml(INS)}
   </div>`;
   const sc = host.querySelector('.cu-scroll'); if (sc && keep) sc.scrollTop = keep;
-  cuWire(host, r, INS);
+  cuWire(host, INS);
   if (typing){ const q = document.getElementById('cu-q'); if (q){ q.focus(); const n = q.value.length; try { q.setSelectionRange(n, n); } catch (_) {} } }
   if (INS && typeof insWatchWidth === 'function') insWatchWidth();
   if (typeof setActiveNav === 'function') setActiveNav('customers');
 }
 function cuRepaint(){ if (typeof state !== 'undefined' && state.view === 'customers') renderCustomers(); }
-function cuWire(host, r, INS){
-  host.querySelector('[data-cu-list]')?.addEventListener('click', () => cuOpenList());
-  host.querySelector('[data-cu-explorer]')?.addEventListener('click', () => cuOpenExplorer());
+function cuWire(host, INS){
   host.querySelector('[data-cu-draft]')?.addEventListener('click', e => cuDraftFor(e.currentTarget.getAttribute('data-cu-draft') || ''));
-  host.querySelectorAll('[data-cu-tab]').forEach(b => b.addEventListener('click', () => {
-    _cu.tab = CU_TABS.includes(b.getAttribute('data-cu-tab')) ? b.getAttribute('data-cu-tab') : 'active';
-    renderCustomers(); if (typeof placeSave === 'function') placeSave(); }));
   host.querySelectorAll('select[data-cu-f]').forEach(s => s.addEventListener('change', () => {
-    const k = s.getAttribute('data-cu-f'); if (!['stream', 'owner', 'type'].includes(k)) return;
+    const k = s.getAttribute('data-cu-f'); if (!['stream', 'owner'].includes(k)) return;
     _cu[k] = s.value || 'all'; renderCustomers(); if (typeof placeSave === 'function') placeSave(); }));
   const q = host.querySelector('#cu-q');
   if (q) q.addEventListener('input', () => { _cu.q = q.value; renderCustomers(); });
   const tb = host.querySelector('#cu-tbody');
   if (!tb) return;
-  /* A stream's heading folds its group; it is not a row the inspector moves to. */
-  tb.addEventListener('click', e => {
-    const g = e.target.closest && e.target.closest('[data-cu-grp]');
-    if (!g) return;
-    const id = g.getAttribute('data-cu-grp');
-    _cu.closed[id] = !_cu.closed[id];
-    renderCustomers();
-  });
-  if (INS){ if (r) cuPaintContractPanel(tb); else cuPaintCustomerPanel(tb); return; }
+  if (INS){ cuPaintCustomerPanel(tb); return; }
   /* Narrow window: no panel, so a press opens. */
   tb.addEventListener('click', e => {
-    const row = e.target.closest && e.target.closest(r ? '[data-cu-row]' : '[data-cu-cust]');
-    if (!row) return;
-    if (r) cuOpenContract(row.getAttribute('data-cu-row')); else cuOpenCustomer(row.getAttribute('data-cu-cust'));
+    const row = e.target.closest && e.target.closest('[data-cu-cust]');
+    if (row) cuOpenCustomer(row.getAttribute('data-cu-cust'));
   });
 }
 
-Object.assign(window, { CU_TABS, cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems,
-  cuPlace, cuPlacePut, cuOpenList, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint });
+Object.assign(window, { cuNameOf, cuKeyOf, cuBook, cuBucket, cuCustomers, cuCustomerOf, cuDoorCount, cuNextEnd, cuFilterItems, cuView, cuIdsOf,
+  cuPlace, cuPlacePut, cuOpenCustomer, cuOpenExplorer, cuDraftFor, renderCustomers, cuRepaint });

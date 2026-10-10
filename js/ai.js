@@ -1711,14 +1711,14 @@ function aiPageContext(){
     }catch(_){}
   }
 
-  /* ---- CUSTOMERS: the list, or one customer's shelf, through its own readings ---- */
+  /* ---- CUSTOMERS: the list, through its own readings (one customer's
+     contracts open on the Contracts page since 10 Oct 2026) ---- */
   if (view === 'customers'){
     try{
-      if (typeof cuPlace === 'function' && typeof cuCustomerOf === 'function'){
-        const p = cuPlace(), r = p.cust ? cuCustomerOf(p.cust) : null;
-        if (r){ page.showing = 'one customer\'s contracts'; page.customer = r.name; page.tab = p.tab; page.matching = r.items.length; }
-        else page.showing = 'the list of customers';
-        const cuts = ['stream', 'owner', 'type'].filter(k => p[k] && p[k] !== 'all').map(k => `${k}=${p[k]}`);
+      if (typeof cuPlace === 'function'){
+        const p = cuPlace();
+        page.showing = 'the list of customers';
+        const cuts = ['stream', 'owner'].filter(k => p[k] && p[k] !== 'all').map(k => `${k}=${p[k]}`);
         if (cuts.length) page.filters = cuts;
       }
     }catch(_){}

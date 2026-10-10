@@ -647,7 +647,10 @@ function insPaintPanel(o){
       const act = e.target.closest && e.target.closest('[data-ins-act]');
       if (act && cc){
         const k = act.getAttribute('data-ins-act');
-        const a = (cur.acts || []).find(x => x.k === k);
+        /* an item panel draws its acts in its head (insItemHeadHtml): they are
+           its buttons too (owner's screenshot, 10 Oct 2026 — the Customers
+           panel's Open customer and Open on Explorer were drawn and dead) */
+        const a = (cur.acts || (cur.head && cur.head.acts) || []).find(x => x.k === k);
         if (a && typeof a.run === 'function') a.run(cc);
       }
     });

@@ -85,9 +85,12 @@ const STRINGS = {
     nav_templates: 'Templates',
     nav_people: 'People',
     nav_people_title: 'People — who is in this workspace, what they do and how to reach them',
-    /* CUSTOMER FOLDERS (owner, 10 Oct 2026): the Customers page and one page per customer. */
+    /* CUSTOMER FOLDERS (owner, 10 Oct 2026): the Customers page. The customer's own
+       page went the same day (Open customer → Contracts): cu_type, cu_all_types,
+       cu_col_agreement, cu_none_expired, cu_none_here, cu_no_stream, cu_tabs_label,
+       cu_tab_all, cu_title_*, cu_crumb_label are INERT, kept in both books. */
     nav_customers: 'Customers',
-    nav_customers_title: 'Customers — every customer\'s contracts in one place, active and expired, grouped by stream',
+    nav_customers_title: 'Customers — every customer\'s contracts in one place, active and expired',
     cu_find: 'Find a customer',
     cu_find_ph: 'Customer name',
     cu_all_streams: 'All streams',
@@ -14467,7 +14470,7 @@ const STRINGS = {
     nav_people: 'Personer',
     nav_people_title: 'Personer — vilka som finns i arbetsytan, vad de gör och hur du når dem',
     nav_customers: 'Kunder',
-    nav_customers_title: 'Kunder — varje kunds avtal på ett ställe, aktiva och utgångna, grupperade per affärsområde',
+    nav_customers_title: 'Kunder — varje kunds avtal på ett ställe, aktiva och utgångna',
     cu_find: 'Hitta en kund',
     cu_find_ph: 'Kundens namn',
     cu_all_streams: 'Alla affärsområden',
