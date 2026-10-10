@@ -87,7 +87,7 @@ let _hbS = null, _hbSUid = null;
 function hbFresh(){
   return { face: 'board', lens: 'all', panels: [], path: [], prep: 'open', screen: null, scrPick: 0,
     watches: [], seen: null, saved: [], seq: 0, found: null, recipe: {}, digBig: false,
-    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {}, refs: {} };
+    ins: null, insKept: {}, insOff: {}, keptSent: '', why: {}, undo: [], undoSeq: 0, an: {}, sy: {}, refs: {}, myq: [] };
 }
 /* The board as this person left it. Read once per sitting and per person; a
    value that does not parse, or a word this version does not know, falls
@@ -143,6 +143,9 @@ function hbS(){
     if (v.digView && typeof v.digView === 'object') Object.entries(v.digView).forEach(([k, m]) => { if (typeof k === 'string' && (m === 'list' || m === 'bars')) old[k] = { pic: m }; });
     s.recipe = hbRecipeClean(Object.assign(old, v.recipe && typeof v.recipe === 'object' ? v.recipe : {}));
     s.digBig = !!v.digBig;
+    /* MY QUESTIONS (A4): a name and a view key, or a name and a recipe */
+    if (Array.isArray(v.myq)) s.myq = v.myq.filter(q => q && typeof q.name === 'string' && (typeof q.key === 'string' || (q.recipe && typeof q.recipe === 'object'))).slice(-HB_MYQ_MAX)
+      .map(q => q.key ? { name: q.name.slice(0, 60), key: q.key.slice(0, 300) } : { name: q.name.slice(0, 60), which: hbCardClean({ which: q.which }).which || { all: true }, recipe: hbCardClean(q.recipe || {}) });
     /* a card's reference lines (G5): the reader's own switches, by card */
     if (v.refs && typeof v.refs === 'object') Object.entries(v.refs).slice(-HB_REFS_KEEP).forEach(([k, r]) => {
       if (typeof k !== 'string' || !r || typeof r !== 'object') return;
@@ -1642,7 +1645,7 @@ function hbBarsFamily(D, cs, mode, field, money){
    is one press, not a new question; a press is kept per card (s.recipe).
    HaTi does every count; a trend is a straight line through months that
    carry enough contracts, and with too few it says so instead of drawing. */
-const HB_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', 'stack', 'grouped', 'heat', 'waterfall', 'funnel', 'multi', 'spread'];
+const HB_PICS = ['cols', 'gantt', 'ring', 'bars', 'blocks', 'bubbles', 'list', 'stack', 'grouped', 'heat', 'waterfall', 'funnel', 'multi', 'spread', 'forecast'];
 const HB_MEASURES = ['count', 'value', 'daysToSign', 'payDays', 'rounds', 'live', 'exposure', 'avgValue', 'medianValue', 'medianDaysToSign'];
 /* the two signing-speed measures: the average and (the analyst's missing
    calculation, Young, 6 Oct 2026) the MEDIAN days from raised to signed */
@@ -1659,7 +1662,7 @@ const hbMoneyMeasure = m => HB_MONEY_MEASURES.includes(m);
    is left out, and said. */
 const HB_RISK_WEIGHT = { high: 1, med: 0.5, low: 0.25 };
 /* RUNNING TOTAL and SHARE OF TOTAL: how an additive measure is shown */
-const HB_SHOWS = ['running', 'share'];
+const HB_SHOWS = ['running', 'share', 'growth'];
 const HB_UNITS = ['m', 'q', 'y'];
 const HB_DATES = ['end', 'signed', 'start', 'created', 'decision'];
 const HB_SPLIT_GROUPS = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'decision', 'risks', 'standards', 'liabcap', 'autorenew', 'priceup'];
@@ -1674,7 +1677,7 @@ const HB_PICS2 = ['stack', 'grouped', 'heat', 'multi'];
    scale; two splits like a stack) and the SPREAD (days to sign by a group:
    fastest, typical, slowest). Each draws only what the record can carry, and
    says what it left out. */
-const HB_PICS_OWN_SPLIT = ['waterfall', 'funnel'];
+const HB_PICS_OWN_SPLIT = ['waterfall', 'funnel', 'forecast'];
 const HB_SORTS = ['value', 'count', 'name'];
 const HB_DIRS = ['down', 'up'];
 const HB_COMPARES = ['prev', 'year', 'range'];
@@ -1719,6 +1722,7 @@ const HB_RC = {
   pic: [['stack', /\b(?:as |in )?(?:a )?(?:stacked(?: bars?| columns?| chart| column chart| bar chart)?|staplade(?: staplar)?)\b/],
         ['grouped', /\b(?:as |in )?(?:grouped (?:bars?|columns?)|side[- ]by[- ]side (?:bars?|columns?)|clustered(?: bars?| columns?)?|grupperade staplar)\b/],
         ['heat', /\b(?:as |in )?(?:a )?(?:heat ?map|heat ?grid|heatmap|värmekarta)\b/],
+        ['forecast', /\b(?:as |in )?(?:a )?(?:(?:renewal )?forecast|projection|prognos(?:is)?|renewal outlook)\b/],
         ['waterfall', /\b(?:as |in )?(?:a )?(?:waterfall(?: chart)?|value bridge|bridge chart|vattenfall(?:sdiagram)?)\b/],
         ['funnel', /\b(?:as |in )?(?:a )?(?:(?:conversion |sales |signing )?funnel(?: chart)?|tratt(?:diagram)?)\b/],
         ['multi', /\b(?:as )?(?:small multiples|(?:a|one) (?:small )?(?:chart|graph) (?:per|for each)|små multiplar|ett (?:litet )?diagram per)\b/],
@@ -1757,6 +1761,9 @@ const HB_RC = {
      "value against time left" is what the bubbles picture draws */
   timeLeft: /\b(?:(?:against|versus|vs\.?|by|over|mot)\s+)?(?:the\s+)?(?:time left|time remaining|months left|time to expiry|time until expiry|time to end|tid kvar)\b/,
   running: /\b(?:running total|cumulative(?:ly)?|add(?:ed|ing)? up over time|ackumulerat|löpande summa)\b/,
+  /* GROWTH IN % (A3 of the Board Upgrade Proposals, 10 Oct 2026): each
+     column's change from the one before, said on the column */
+  growth: /(?<![\wåäö])(?:growth (?:rate|in %|in percent)|growth %|percent(?:age)? change|% change|change in %|change in percent|tillväxt i %|tillväxttakt|procentuell förändring)(?![\wåäö])/,
   share: /\b(?:share of (?:the )?total|percent(?:age)? of (?:the )?total|as (?:a )?(?:share|percentage)|andel av (?:det )?totala?)\b/,
   title: /\b(?:called|named|titled|kallad|med namnet|med rubriken)\s+["“']?([^"”']{2,80}?)["”']?\s*$/,
   date: [['signed', /\b(?:sign|signed|signing|signature|signatures|executed|signerade?|undertecknade?|signering)\b/],
@@ -1859,7 +1866,7 @@ function hbRecipeRead(qRaw){
   const chartWord = !!take(HB_RC.chart);
   let measure = exposure ? 'exposure' : null;
   if (!measure) for (const k of ['exposure', 'medianDaysToSign', 'medianValue', 'avgValue', 'daysToSign', 'rounds', 'payDays']){ if (take(HB_RC.m[k])){ measure = k; break; } }
-  const show = take(HB_RC.running) ? 'running' : take(HB_RC.share) ? 'share' : null;
+  const show = take(HB_RC.running) ? 'running' : take(HB_RC.growth) ? 'growth' : take(HB_RC.share) ? 'share' : null;
   /* "payment terms as a pie": a ring shows shares, and an average has none —
      the slices are the payment terms themselves, counted */
   if (measure === 'payDays' && !group && !unit && (pic === 'ring' || pic === 'blocks')){ group = 'payterms'; measure = null; }
@@ -2019,6 +2026,7 @@ function hbCardPlan(spec, D){
     P.split = null; drop('compare'); P.trend = false;
     P.measure = P.measure === 'value' && hbMoneyOk() ? 'value' : 'count';
     if (P.pic === 'waterfall' && !P.window){ P.window = { last: 12, unit: 'm' }; P.winSaid = true; }
+    if (P.pic === 'forecast') drop('window');
   } else if (P.pic === 'spread'){
     drop('compare'); P.trend = false;
     P.measure = 'medianDaysToSign';   /* the box's middle line is the median: the measure says so */
@@ -2042,7 +2050,7 @@ function hbCardPlan(spec, D){
      that adds up (an average has no running total and no share) */
   if (P.show){
     const adds = ['count', 'value', 'exposure'].includes(P.measure);
-    if (!adds || P.split2 || P.compare || (P.show === 'running' && P.pic !== 'cols') || (P.show === 'share' && !['bars', 'ring', 'blocks'].includes(P.pic))) drop('show');
+    if (!adds || P.split2 || P.compare || ((P.show === 'running' || P.show === 'growth') && P.pic !== 'cols') || (P.show === 'share' && !['bars', 'ring', 'blocks'].includes(P.pic))) drop('show');
   }
   if (P.title) P.title = String(P.title).slice(0, HB_TITLE_MAX);
   return P;
@@ -2214,6 +2222,10 @@ function hbColsSvg(D, cs, P){
       return list.length ? { b: pb, y: hbMeasure(list, m).y || 0, k: list.length } : null; });
   }
   const tgtY = RF.tgt != null && isFinite(RF.tgt) ? RF.tgt : null;
+  /* UNUSUAL COLUMNS (C5, 10 Oct 2026): asked for by the reader, found by
+     HaTi's own arithmetic — far from the typical column (the median, with a
+     robust spread), at least twice it or half it — and each says why */
+  const odd = hbOddCols(_hbOddOn.has(D.key) ? cols : null, unit);
   const ys = cols.map(c => c.M.y || 0).concat(none.length ? [hbMeasure(none, m).y || 0] : []).concat(T ? [T.y0, T.y1] : []).concat(band || [])
     .concat(avgY != null ? [avgY] : []).concat(tgtY != null ? [tgtY] : []).concat(ghost ? ghost.filter(Boolean).map(x => x.y) : []);
   const top = hbAxisTop(Math.max(...ys, 0) * 1.12, m !== 'value' && m !== 'rounds', hbGridN());
@@ -2230,7 +2242,10 @@ function hbColsSvg(D, cs, P){
   const lastI = realCols.length ? realCols[realCols.length - 1].i : -1;
   /* every value only where it has the room; else the biggest and the latest (G3) */
   const valRoom = step >= Math.max(...realCols.map(o => _hbTextW(hbMeasureShort(m, o.c.M.y), 12)), 0) + 6;
-  const valShown = i => !_hbFit || (_hbFit.step === 'full' && valRoom) || i === bigI || i === lastI;
+  const valShown = i => !_hbFit || (_hbFit.step === 'full' && valRoom) || i === bigI || i === lastI || (P.show === 'growth' && step >= 34);
+  /* growth in %: the change from the column before, on each column (A3) */
+  const gTxt = i => { const a = cols[i], b = cols[i - 1]; if (!b || a.edge || b.edge || !(b.M.y > 0)) return i ? '—' : '';
+    const p = Math.round(((a.M.y || 0) - b.M.y) / b.M.y * 100); return (p > 0 ? '+' : p < 0 ? '−' : '') + _hbN(Math.abs(p)) + '%'; };
   const colPath = (x, y) => { const x0 = _hbSnap(x - cw / 2), x1 = _hbSnap(x + cw / 2); y = _hbSnap(y); const h = base - y, r = Math.min(_hbFit ? 2 : 4, h, (x1 - x0) / 2); if (h <= 0.5) return ''; return `M${x0.toFixed(1)},${base} L${x0.toFixed(1)},${(y + r).toFixed(1)} Q${x0.toFixed(1)},${y.toFixed(1)} ${(x0 + r).toFixed(1)},${y.toFixed(1)} L${(x1 - r).toFixed(1)},${y.toFixed(1)} Q${x1.toFixed(1)},${y.toFixed(1)} ${x1.toFixed(1)},${(y + r).toFixed(1)} L${x1.toFixed(1)},${base} Z`; };
   const labelEvery = _hbEvery(cols.filter(c => !c.edge).map(c => hbBucketLabel(c.b, unit, true)), step, 12, n > 18 ? 2 : 1);
   /* the shelf's normal range, and the column it is about (hbInsFinding) */
@@ -2245,12 +2260,13 @@ function hbColsSvg(D, cs, P){
     const yearLine = !c.edge && unit !== 'y' && (i === 0 || (unit === 'm' ? c.b.slice(5) === '01' : c.b.slice(5) === 'Q1'));
     const nWord = _hbN(c.list.length) + ' ' + i18tn('hb_contracts_word', c.list.length, { n: c.list.length });
     const say = hbBucketLabel(c.b, unit, false) + ': ' + (c.list.length ? (m === 'count' ? nWord : hbMeasureFmt(m, c.M.y) + ' · ' + nWord) : i18t('hb_none_here'))
-      + (c.hollow ? ' · ' + i18t('hb_tr_hollow_col', { min: HB_TREND_MIN_N }) : '') + (c.sofar && P.trend ? ' · ' + i18t('hb_tr_sofar_col') : '');
+      + (c.hollow ? ' · ' + i18t('hb_tr_hollow_col', { min: HB_TREND_MIN_N }) : '') + (c.sofar && P.trend ? ' · ' + i18t('hb_tr_sofar_col') : '') + (odd.has(i) ? ' · ' + odd.get(i) : '');
     const pc = i > 0 && !c.edge && !cols[i - 1].edge && !c.sofar ? { y: cols[i - 1].M.y, l: hbBucketLabel(cols[i - 1].b, unit, false) } : null;
     g += `<g class="hb-sv-cbox hb-in" style="animation-delay:${Math.min(i, 18) * 25}ms" ${_hbSvgDoor(c.list.length ? c.dig : '', say, c.list.length && !c.edge ? _hbYAttr(c.M.y, pc) : '')}><rect x="${(x - step / 2).toFixed(1)}" y="${Tp}" width="${step.toFixed(1)}" height="${base - Tp + 40}" fill="transparent"/>`
       + (c.hollow || (c.sofar && T) ? `<path d="${colPath(x, y)}" class="hb-sv-colhollow"/>` : (c.sofar && _hbFit) ? `<path d="${colPath(x, y)}" class="hb-sv-colsofar" fill="url(#hb-hatch)"/>` : `<path d="${colPath(x, y)}" class="${cls}"/>`)
-      + (c.list.length && !T && (n <= 30) && valShown(i) ? `<text x="${x.toFixed(1)}" y="${(y - 7).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="600" class="hb-sv-ink">${_hbE(hbMeasureShort(m, c.M.y))}</text>` : '')
+      + (c.list.length && !T && (n <= 30) && valShown(i) ? `<text x="${x.toFixed(1)}" y="${(y - 7).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="600" class="hb-sv-ink">${_hbE(P.show === 'growth' ? gTxt(i) : hbMeasureShort(m, c.M.y))}</text>` : '')
       + (c.sofar && _hbFit && c.list.length ? `<text x="${x.toFixed(1)}" y="${(y - (valShown(i) ? 22 : 7)).toFixed(1)}" text-anchor="middle" font-size="11" class="hb-sv-mute">${_hbE(i18t('hb_so_far'))}</text>` : '')
+      + (odd.has(i) ? `<circle cx="${x.toFixed(1)}" cy="${(y - (valShown(i) ? 27 : 10)).toFixed(1)}" r="6" class="hb-sv-odd"/>` : '')
       + (i % labelEvery === 0 || c.edge ? `<text x="${x.toFixed(1)}" y="${base + 18}" text-anchor="middle" font-size="12" class="hb-sv-ink2">${_hbE(lbl)}</text>` : '')
       + (yearLine ? `<text x="${x.toFixed(1)}" y="${base + 34}" text-anchor="middle" font-size="11" class="hb-sv-mute">${_hbE(c.b.slice(0, 4))}</text>` : '') + `</g>`;
   });
@@ -2287,6 +2303,7 @@ function hbColsSvg(D, cs, P){
     note = avg ? i18t('hb_tr_few', { need: HB_TREND_MIN_PTS, units: i18tn('hb_tr_units_' + unit, HB_TREND_MIN_PTS, { n: HB_TREND_MIN_PTS }), min: HB_TREND_MIN_N, n: _hbN(pts.length) })
       : i18t('hb_tr_few_any', { need: HB_TREND_MIN_PTS, units: i18tn('hb_tr_units_' + unit, HB_TREND_MIN_PTS, { n: HB_TREND_MIN_PTS }), n: _hbN(filled || 0) });
   }
+  if (_hbOddOn.has(D.key)) note = [note, odd.size ? i18t('hb_odd_note', { list: [...odd.keys()].map(i => hbBucketLabel(cols[i].b, unit, false) + ' (' + odd.get(i) + ')').join('; ') }) : i18t('hb_odd_none', { units: i18tn('hb_tr_units_' + unit, 2, { n: 2 }) })].filter(Boolean).join(' ');
   const leftN = avg ? cs.length - cols.reduce((a, c) => a + c.M.n, 0) - (none.length ? hbMeasure(none, m).n : 0) : 0;
   if (leftN > 0) note = [note, i18t('hb_ms_left', { n: _hbN(leftN), what: i18t('hb_ms_' + m).toLowerCase() })].filter(Boolean).join(' ');
   /* what is left off is said with its money, so a small total is never
@@ -2480,7 +2497,7 @@ function hbRecipeRowHtml(D, P){
     const open = _hbRcOpen === D.key + '|' + part;
     const menu = open ? `<div class="hb-rmenu" role="menu" aria-label="${_hbE(label)}">${hbRcOptions(part, P, D).map(x => {
       const cur = part === 'which' ? ((o.which || 'set') === x.v) : hbRcCurHas(part, P, x.v);
-      return (x.head ? `<div class="hb-rmenu-h" role="presentation">${_hbE(x.head)}</div>` : '') + `<button type="button" role="menuitemradio" aria-checked="${cur}" data-hb-rset="${_hbE(part + ':' + x.v)}"${x.on ? '' : ' disabled'}${x.why ? ` title="${_hbE(x.why)}"` : ''}><span>${_hbE(x.word)}</span>${x.why ? `<small>${_hbE(x.why)}</small>` : cur ? `<b aria-hidden="true">${_hbTick}</b>` : ''}</button>`; }).join('')}</div>` : '';
+      return (x.head ? `<div class="hb-rmenu-h" role="presentation">${_hbE(x.head)}</div>` : '') + `<button type="button" role="menuitemradio" aria-checked="${cur}" data-hb-rset="${_hbE(part + ':' + x.v)}"${x.on ? '' : ' disabled'}${x.why ? ` title="${_hbE(x.why)}"` : ''}><span>${_hbE(x.word)}</span>${x.why ? `<small>${_hbE(x.why)}</small>` : cur ? `<b aria-hidden="true">${_hbTick}</b>` : ''}</button>`; }).join('')}<div class="hb-rmenu-foot" role="presentation">${_hbE(i18t('hb_rc_free'))}</div></div>` : '';
     return `<span class="hb-rwrap"><button type="button" class="hb-rc${open ? ' is-open' : ''}" data-hb-rc="${part}" aria-haspopup="menu" aria-expanded="${open}"><i>${_hbE(label)}</i><span>${_hbE(value)}</span>${_hbCaret}</button>${menu}</span>`;
   };
   const which = D.whole ? i18t('hb_rc_all') : (D.setLabel || D.crumb || '');
@@ -2500,7 +2517,11 @@ function hbRecipeRowHtml(D, P){
   const shown = extra.filter(([, used]) => used || more).map(([, , draw]) => draw()).join('');
   const left = extra.filter(([, used]) => !used).length;
   const moreBtn = left ? `<button type="button" class="hb-rc hb-rc-more" data-hb-rmore aria-expanded="${more}">${_hbE(more ? i18t('hb_rc_fewer') : i18t('hb_rc_more', { n: left }))}</button>` : '';
-  return `<div class="hb-recipe" role="group" data-hb-rkey="${_hbE(D.key)}" aria-label="${_hbE(i18t('hb_rc_menu'))}">${whichChip}${chip('split', i18t('hb_rc_split'), hbSplitWord(P.split))}${chip('pic', i18t('hb_rc_pic'), hbPicWord(P))}${chip('measure', i18t('hb_rc_measure'), i18t('hb_ms_' + P.measure))}${shown}${trend}${moreBtn}</div>`;
+  /* THE RECIPE READS AS ONE SENTENCE (C1, 10 Oct 2026): the same choices,
+     the part names kept for a screen reader, joined by plain words — "The
+     whole book · by month · as Month columns · counting Count" */
+  const join = w => `<span class="hb-rjoin" aria-hidden="true">${_hbE(i18t(w))}</span>`;
+  return `<div class="hb-recipe is-sentence" role="group" data-hb-rkey="${_hbE(D.key)}" aria-label="${_hbE(i18t('hb_rc_menu'))}">${whichChip}${chip('split', i18t('hb_rc_split'), hbSplitWord(P.split))}${join('hb_rc_as')}${chip('pic', i18t('hb_rc_pic'), hbPicWord(P))}${join('hb_rc_counting')}${chip('measure', i18t('hb_rc_measure'), i18t('hb_ms_' + P.measure))}${shown}${trend}${moreBtn}</div>`;
 }
 /* which cards show their whole row (per sitting: a reader's glance, never kept) */
 const _hbRcMore = new Set();
@@ -3033,6 +3054,25 @@ function hbExtraSets(pic, P, cs0){
     parts.forEach(x => { x.y = yOf(x.list); });
     return { parts, money, declined: cs.filter(c => c.status === 'Declined').length };
   }
+  if (pic === 'fc'){
+    /* THE FORECAST: what is up for renewal each of the next 12 months — low
+       (only what renews by itself), high (everything renews), likely (low plus
+       the rest at the past renewal rate; not drawn under HB_FC_MIN decisions) */
+    const m0 = hbBucketOf(hbToday(), 'm'), months = []; let b = m0;
+    for (let i = 0; i < 12; i++){ months.push(b); b = hbBucketNext(b, 'm'); }
+    const dec = cs0.map(c => c && c.renewalDecision && c.renewalDecision.answer).filter(a => RENEWAL_ANS_FC.includes(a));
+    const kept = dec.filter(a => a !== 'lapse').length, rate = dec.length >= HB_FC_MIN ? kept / dec.length : null;
+    const parts = months.map(mb => { const list = cs0.filter(c => c.status === 'Signed' && hbBucketOf(hbEndOf(c), 'm') === mb);
+      const auto = list.filter(c => _hbAuto(c));
+      const hi = yOf(list), lo = yOf(auto);
+      return { k: mb, list, word: hbBucketLabel(mb, 'm', false), y: hi, hi, lo, li: rate == null ? null : lo + (hi - lo) * rate }; });
+    return { parts, money, rate, decisions: dec.length };
+  }
+  if (pic === 'ms'){
+    const m = P.measure, kind = hbMissKind(m);
+    const list = !kind ? [] : kind === 'value' ? cs.filter(c => !(hbValueOfOne(c) > 0)) : cs.filter(c => hbMeasureOne(c, m) == null);
+    return { parts: [{ k: '0', list, word: i18t('hb_how_word_' + (kind || 'value')), y: list.length }] };
+  }
   if (pic === 'sp'){
     /* THE SPREAD: days from raised to signed, per group — fastest, the middle
        half, the typical (median) and the slowest */
@@ -3192,12 +3232,14 @@ let _hbRunAll = null;
 function hbChartRun(D, cs0, P){
   const money = hbMoneyOk();
   /* the waterfall reads the whole book against its period's two ends */
-  const W = P.window && P.pic !== 'waterfall' ? hbWindowCut(cs0, P) : null;
+  const W = P.window && P.pic !== 'waterfall' && P.pic !== 'forecast' ? hbWindowCut(cs0, P) : null;
   const cs = W ? W.cs : cs0;
   let R;
   _hbRunAll = cs0;
   try {
-  if (P.pic === 'waterfall') R = hbWaterfallSvg(D, cs0, P);
+  if (_hbWhatIf.has(D.key) && P.pic !== 'list') R = hbWhatIfSvg(D, cs, P);
+  else if (P.pic === 'waterfall') R = hbWaterfallSvg(D, cs0, P);
+  else if (P.pic === 'forecast') R = hbForecastSvg(D, cs0, P);
   else if (P.compare) R = hbCompareSvg(D, cs, P, W);
   else if (P.split2 && P.pic === 'heat') R = hbHeatSvg(D, cs, P);
   else if (P.split2 && P.pic === 'multi') R = hbMultiSvg(D, cs, P);
@@ -3221,6 +3263,52 @@ function hbChartRun(D, cs0, P){
   R.note = notes.filter(Boolean).join(' ');
   R.W = W;
   return { R, cs };
+}
+/* ============================================================
+   COPILOT WORKING WITH YOU, AND THE ANALYST'S BOARD (C1–C8, A1–A10 of the
+   Board Upgrade Proposals; the owner's "Build all C and A ideas", 10 Oct 2026)
+   ============================================================ */
+const _hbOddOn = new Set();
+const _hbMed = xs => { const a = xs.slice().sort((p, q) => p - q), k = a.length; return k ? (k % 2 ? a[(k - 1) / 2] : (a[k / 2 - 1] + a[k / 2]) / 2) : 0; };
+/* C5: which columns are far from the usual one, and why — HaTi's arithmetic */
+function hbOddCols(cols, unit){
+  const out = new Map(); if (!Array.isArray(cols)) return out;
+  const pool = cols.map((c, i) => ({ c, i })).filter(o => !o.c.edge && !o.c.sofar && o.c.M && o.c.M.y != null);
+  if (pool.length < 6) return out;
+  const ys = pool.map(o => o.c.M.y || 0), med = _hbMed(ys);
+  if (!(med > 0)) return out;
+  const mad = _hbMed(ys.map(y => Math.abs(y - med))), band = Math.max(2.5 * 1.4826 * mad, med * 0.5);
+  const word = i18tn('hb_tr_units_' + (unit || 'm'), 1, { n: 1 });
+  pool.forEach(o => {
+    const y = o.c.M.y || 0; if (Math.abs(y - med) <= band || (y < med * 2 && y > med / 2)) return;
+    const x = Math.round(y / med * 10) / 10;
+    let why = y > med ? i18t('hb_odd_up', { x: _hbN(x), unit: word }) : i18t('hb_odd_down', { unit: word });
+    const list = o.c.list || [];
+    if (list.length >= 3){ const by = new Map(); list.forEach(c => { const k = String(c.counterparty || ''); if (k) by.set(k, (by.get(k) || 0) + 1); });
+      const top = [...by.entries()].sort((a, b) => b[1] - a[1])[0];
+      if (top && top[1] / list.length >= 0.5) why += '; ' + i18t('hb_odd_who', { k: _hbN(top[1]), n: _hbN(list.length), who: top[0] }); }
+    out.set(o.i, why);
+  });
+  return out;
+}
+/* C6 + A9: HOW THIS WAS COUNTED, AND WHAT IT STANDS ON — one line under a
+   chart: the sum (or what an average is of), and the contracts the measure
+   could not use, with a door onto them so they can be fixed */
+const HB_HOW_PICS = ['cols', 'bars', 'ring', 'blocks', 'stack', 'grouped', 'heat'];
+function hbMissKind(m){ return hbSignM(m) ? 'dates' : m === 'payDays' ? 'terms' : m === 'rounds' ? 'rounds' : m === 'exposure' ? 'read' : hbMoneyMeasure(m) ? 'value' : null; }
+function hbHowHtml(D, P, R, cs){
+  if (!HB_HOW_PICS.includes(P.pic) || P.compare || P.measure === 'live' || !cs.length) return '';
+  const m = P.measure, kind = hbMissKind(m), n = cs.length;
+  const X = kind ? hbExtraSets('ms', P, cs) : null, miss = X ? X.parts[0].list.length : 0;
+  const used = n - miss;
+  let what;
+  if (m === 'count') what = i18tn('hb_how_count', n, { n: _hbN(n) });
+  else if (hbAvgMeasure(m)) what = i18t('hb_how_avg', { what: i18t('hb_ms_' + m), n: _hbN(used) });
+  else what = i18t('hb_how_sum', { v: hbMeasureFmt(m, hbMeasure(cs, m).y), n: _hbN(used) });
+  if (P.show === 'share') what += ' · ' + i18t('hb_how_share');
+  const door = miss ? ` <button type="button" class="hb-link hb-how-go" data-hb-dig="${_hbE('qx:' + D.key + HB_KEY_SEP + 'ms' + HB_KEY_SEP + '0')}">${_hbE(i18t('hb_how_show'))}</button>` : '';
+  const base = miss ? ' ' + _hbE(i18t('hb_how_based', { k: _hbN(used), n: _hbN(n) })) + ' ' + _hbE(i18tn('hb_how_miss_' + kind, miss, { n: _hbN(miss) })) + door : '';
+  return `<div class="hb-how"><b>${_hbE(i18t('hb_how_lead'))}</b> ${_hbE(what)}.${base}</div>`;
 }
 /* the money beside a chart's count: the value under contract, or — where the
    chart measures RISK EXPOSURE — the exposure it draws, from the same
@@ -3250,6 +3338,88 @@ function hbChartTableHtml(svgHtml){
   if (!rows.length) return '';
   return `<table class="hb-ctab"><thead><tr><th>${_hbE(i18t('hb_tab_what'))}</th><th>${_hbE(i18t('hb_tab_count'))}</th></tr></thead><tbody>`
     + rows.map(r => `<tr><td><button type="button" class="hb-link" data-hb-dig="${_hbE(r.dig)}">${_hbE(r.label)}</button></td><td>${_hbE(r.val)}</td></tr>`).join('') + '</tbody></table>';
+}
+/* A6: THE FORECAST, WITH AN HONEST RANGE — never one guessed number */
+const HB_FC_MIN = 5, RENEWAL_ANS_FC = ['renew', 'renegotiate', 'lapse'];
+function hbForecastSvg(D, cs0, P){
+  const X = hbExtraSets('fc', P, cs0), money = X.money, fmt = v => money ? _hbM(v) : _hbN(Math.round(v));
+  const W = hbFW(), H = hbFH(300), L = 64, R = 18, Tp = 30, B = 40, base = H - B, n = X.parts.length, step = (W - L - R) / n, bw = Math.min(_hbFit ? 48 : 40, step * 0.62);
+  const top = hbAxisTop(Math.max(1, ...X.parts.map(p => p.hi)) * 1.12, !money, hbGridN());
+  const Y = v => Tp + (base - Tp) * (1 - Math.max(0, v) / top), Xc = i => L + step * (i + 0.5);
+  let g = _hbAxisGrid(W, L, R, Y, top, fmt), line = [];
+  X.parts.forEach((p, i) => {
+    const x = _hbSnap(Xc(i) - bw / 2), say = p.word + ': ' + i18t('hb_fc_say', { lo: fmt(p.lo), hi: fmt(p.hi), n: _hbN(p.list.length) });
+    const dig = p.list.length ? 'qx:' + D.key + HB_KEY_SEP + 'fc' + HB_KEY_SEP + p.k : '';
+    g += `<g class="hb-sv-cbox hb-in" style="animation-delay:${i * 30}ms" ${_hbSvgDoor(dig, say, p.list.length ? _hbYAttr(p.hi) : '')}><rect x="${(Xc(i) - step / 2).toFixed(1)}" y="${Tp}" width="${step.toFixed(1)}" height="${base - Tp + 30}" fill="transparent"/>`
+      + (p.hi > 0 ? `<rect x="${x}" y="${_hbSnap(Y(p.hi))}" width="${_hbSnap(bw)}" height="${Math.max(1, _hbSnap(Y(p.lo)) - _hbSnap(Y(p.hi)))}" rx="2" class="hb-sv-fc-band"/>` : '')
+      + (p.lo > 0 ? `<rect x="${x}" y="${_hbSnap(Y(p.lo))}" width="${_hbSnap(bw)}" height="${Math.max(1, base - _hbSnap(Y(p.lo)))}" rx="2" class="hb-sv-fc-low"/>` : '')
+      + `<text x="${Xc(i).toFixed(1)}" y="${base + 18}" text-anchor="middle" font-size="12" class="hb-sv-ink2">${_hbE(hbBucketLabel(p.k, 'm', true))}</text></g>`;
+    if (p.li != null) line.push(`${Xc(i).toFixed(1)},${Y(p.li).toFixed(1)}`);
+  });
+  if (line.length) g += `<polyline points="${line.join(' ')}" class="hb-sv-trend" stroke-width="2.5" fill="none"/>`;
+  const sum = k => X.parts.reduce((a, p) => a + (p[k] || 0), 0), all = X.parts.reduce((a, p) => a + p.list.length, 0);
+  const lead = `<b>${_hbE(fmt(sum('hi')))}</b> ${_hbE(i18t('hb_fc_lead'))}`;
+  const note = [i18t('hb_fc_key'), X.rate == null ? i18t('hb_fc_no_rate', { n: _hbN(X.decisions), min: HB_FC_MIN }) : i18t('hb_fc_rate', { p: _hbN(Math.round(X.rate * 100)), n: _hbN(X.decisions) })].join(' ');
+  const readLines = [{ key: X.rate == null ? 'hb_read_fc2' : 'hb_read_fc', parts: { lo: fmt(sum('lo')), hi: fmt(sum('hi')), li: X.rate == null ? '' : fmt(sum('li')), n: _hbN(all) }, n: all }];
+  return { body: `<svg class="hb-svg hb-fc" data-hb-yk="value" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(i18t('hb_pic_forecast'))}">${g}</svg>`, by: i18t('hb_by_forecast'), note, lead, readLines, readCounts: [all].concat(X.parts.map(p => p.list.length)),
+    dataLines: ['Up for renewal by month (month: if everything renews, renews by itself, contracts):'].concat(X.parts.map(p => `- ${p.word}: ${Math.round(p.hi * 10) / 10}, ${Math.round(p.lo * 10) / 10}, ${p.list.length}`)) };
+}
+/* A5: WHAT IF THESE DO NOT RENEW — a SCENARIO, drawn dashed and said so,
+   never stored: the book's live value at each of the next 12 month-ends, as
+   on record with these contracts renewed, against these contracts ending at
+   their end dates. Nothing else in the book is touched. */
+const _hbWhatIf = new Set();
+function hbWhatIfToggle(key){
+  if (_hbWhatIf.has(key)){ _hbWhatIf.delete(key); hbPaintBoard(); return; }
+  const s = hbS(), D = hbDigData(key, s.lens); if (!D || D.kind !== 'list') return;
+  const cs = hbWinCs(hbListOf(D.ids, s.lens), D), lim = hbIsoShift(hbToday(), 366);
+  const ending = cs.filter(c => { const e = hbEndOf(c); return c.status === 'Signed' && e && e >= hbToday() && e <= lim; });
+  if (!ending.length){ if (typeof toast === 'function') toast(i18t('hb_wi_none'), 'warn'); return; }
+  _hbWhatIf.add(key); if (!s.digBig){ s.digBig = true; hbSave(); } hbPaintBoard({ jump: 'focus' });
+}
+function hbWhatIfSvg(D, cs, P){
+  const money = hbMoneyOk(), yOf = l => money ? l.reduce((a, c) => a + hbValueOfOne(c), 0) : l.length, fmt = v => money ? _hbM(v) : _hbN(Math.round(v));
+  const these = new Set(cs.map(c => c.id)), book = hbBook(hbS().lens).filter(c => c.status === 'Signed');
+  const ends = []; let b = hbBucketOf(hbToday(), 'm'); for (let i = 0; i < 12; i++){ ends.push(hbBucketEnd(b, 'm')); b = hbBucketNext(b, 'm'); }
+  const liveAt = (c, d, renew) => { const e = hbEndOf(c); return !e || e > d || (renew && (these.has(c.id) || _hbAuto(c))) || (!renew && !these.has(c.id) && _hbAuto(c)); };
+  const base = ends.map(d => yOf(book.filter(c => liveAt(c, d, true)))), scen = ends.map(d => yOf(book.filter(c => liveAt(c, d, false))));
+  const W = hbFW(), H = hbFH(300), L = 64, R = 18, Tp = 34, Bm = 40, bot = H - Bm, n = ends.length, step = (W - L - R) / n, bw = Math.min(_hbFit ? 44 : 36, step * 0.62);
+  const top = hbAxisTop(Math.max(1, ...base) * 1.1, !money, hbGridN());
+  const Y = v => Tp + (bot - Tp) * (1 - Math.max(0, v) / top), Xc = i => L + step * (i + 0.5);
+  let g = _hbAxisGrid(W, L, R, Y, top, fmt);
+  g += `<text x="${L}" y="14" font-size="11" font-weight="700" letter-spacing=".06em" class="hb-sv-amber">${_hbE(i18t('hb_wi_tag'))}</text>`;
+  ends.forEach((d, i) => { const x = _hbSnap(Xc(i) - bw / 2);
+    g += `<g><title>${_hbE(hbBucketLabel(d.slice(0, 7), 'm', false) + ': ' + i18t('hb_wi_say', { a: fmt(base[i]), b: fmt(scen[i]) }))}</title>`
+      + `<rect x="${x}" y="${_hbSnap(Y(base[i]))}" width="${_hbSnap(bw)}" height="${Math.max(1, bot - _hbSnap(Y(base[i])))}" rx="2" class="hb-sv-wi-base"/>`
+      + `<rect x="${x + 1}" y="${_hbSnap(Y(scen[i]))}" width="${Math.max(1, _hbSnap(bw) - 2)}" height="${Math.max(1, bot - _hbSnap(Y(scen[i])))}" rx="2" class="hb-sv-wi-scen"/>`
+      + `<text x="${Xc(i).toFixed(1)}" y="${bot + 18}" text-anchor="middle" font-size="12" class="hb-sv-ink2">${_hbE(hbBucketLabel(d.slice(0, 7), 'm', true))}</text></g>`; });
+  const gap = base[n - 1] - scen[n - 1];
+  const by = i18t('hb_wi_by', { n: _hbN(cs.length) });
+  return { body: `<svg class="hb-svg hb-wi" data-hb-yk="run" viewBox="0 0 ${W} ${H}" role="group" aria-label="${_hbE(by)}">${g}</svg>`, by,
+    lead: `<b>${_hbE(fmt(gap))}</b> ${_hbE(i18t('hb_wi_lead', { d: hbBucketLabel(ends[n - 1].slice(0, 7), 'm', false) }))}`,
+    note: i18t('hb_wi_note'), readLines: [{ key: 'hb_read_wi', parts: { a: fmt(base[n - 1]), b: fmt(scen[n - 1]), d: hbBucketLabel(ends[n - 1].slice(0, 7), 'm', false) }, n: cs.length }], readCounts: [cs.length],
+    dataLines: ['SCENARIO, not on record — live value at each month-end (month: if these renew, if these do not renew):'].concat(ends.map((d, i) => `- ${d.slice(0, 7)}: ${Math.round(base[i])}, ${Math.round(scen[i])}`)) };
+}
+/* A8: THE MONTHLY PACK — every chart kept on the board, drawn as a picture
+   with its name, its headline and the date of the data, in one page the
+   reader downloads (a standalone page: literal colours, nothing borrowed) */
+async function hbPackMake(){
+  const cards = [...document.querySelectorAll('#hb-board .hb-grid [data-hb-pid]')];
+  const said = (k, kind, v) => { if (typeof toast === 'function') toast(i18t(k, v), kind); };
+  const items = [];
+  for (const card of cards){
+    const chart = card.querySelector('svg.hb-svg, .hb-chart-bars'); if (!chart) continue;
+    const title = (card.querySelector('.hb-ct') || {}).textContent || '';
+    const head = (card.querySelector('.hb-head-line p') || {}).textContent || '';
+    try { const blob = await hbChartPngOf(chart, { title, sub: head, n: 0 }); items.push({ title, head, url: await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(blob); }) }); } catch (_){}
+  }
+  if (!items.length){ said('hb_pack_none', 'warn'); return; }
+  const day = _hbDayWord(hbToday());
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>${_hbE(i18t('hb_pack_title', { d: day }))}</title><style>body{font-family:Helvetica,Arial,sans-serif;color:#111;background:#fff;margin:32px auto;max-width:960px;padding:0 16px}h1{font-size:22px;margin:0 0 4px}p.m{color:#555;margin:0 0 28px}section{page-break-inside:avoid;margin:0 0 36px}h2{font-size:16px;margin:0 0 4px}section p{color:#333;margin:0 0 10px}img{max-width:100%;border:1px solid #ddd;border-radius:6px}</style></head><body>`
+    + `<h1>${_hbE(i18t('hb_pack_title', { d: day }))}</h1><p class="m">${_hbE(i18tn('hb_pack_sub', items.length, { n: _hbN(items.length) }))}</p>`
+    + items.map(x => `<section><h2>${_hbE(x.title)}</h2>${x.head ? `<p>${_hbE(x.head)}</p>` : ''}<img src="${x.url}" alt="${_hbE(x.title)}"></section>`).join('') + '</body></html>';
+  _hbSaveFile(new Blob([html], { type: 'text/html' }), 'hati-board-pack-' + hbToday() + '.html');
+  said('hb_pack_done', 'ok', { n: _hbN(items.length) });
 }
 /* ============================================================
    REFERENCE LINES, COPY, THE POINT IN COLOUR, AND ONE VALUE SAID PLAINLY
@@ -3359,6 +3529,9 @@ function _hbBarsAsSvg(box){
 function _hbToolsChart(tools){ const n = tools && tools.nextElementSibling; return n && (n.matches('svg.hb-svg, .hb-chart, .hb-small, .hb-ctab') ? n : null); }
 function hbChartPng(tools){
   const chart = _hbToolsChart(tools); if (!chart) return Promise.reject(new Error('no chart'));
+  return hbChartPngOf(chart, { title: tools.getAttribute('data-hb-copy-t') || '', sub: tools.getAttribute('data-hb-copy-s') || '', n: Number(tools.getAttribute('data-hb-copy-n')) || 0 });
+}
+function hbChartPngOf(chart, meta){
   hbLitClear(); hbTipHide(true);
   const svg0 = chart.matches('svg.hb-svg') ? chart : null, bars = chart.matches('.hb-chart-bars') ? chart : null;
   const inner = svg0 ? _hbSvgLiteral(svg0) : bars ? _hbBarsAsSvg(bars) : null;
@@ -3367,8 +3540,8 @@ function hbChartPng(tools){
   const pg = hbPage(), cs = pg ? getComputedStyle(pg) : null;
   const bg = (cs && cs.getPropertyValue('--hb-menu').trim()) || '#FFFFFF', ink = (cs && cs.getPropertyValue('--hb-ink').trim()) || '#111111', mute = (cs && cs.getPropertyValue('--hb-mute').trim()) || '#555555';
   const pad = 24, headH = 52, footH = 30, W = iw + pad * 2, H = ih + headH + footH + pad;
-  const title = tools.getAttribute('data-hb-copy-t') || '', sub = tools.getAttribute('data-hb-copy-s') || '', n = Number(tools.getAttribute('data-hb-copy-n')) || 0;
-  const foot = i18t('hb_copy_foot', { d: _hbDayWord(hbToday()), n: _hbN(n) });
+  const title = meta.title || '', sub = meta.sub || '', n = meta.n || 0;
+  const foot = n ? i18t('hb_copy_foot', { d: _hbDayWord(hbToday()), n: _hbN(n) }) : i18t('hb_copy_foot_day', { d: _hbDayWord(hbToday()) });
   inner.setAttribute('x', pad); inner.setAttribute('y', headH); inner.setAttribute('width', iw); inner.setAttribute('height', ih); inner.setAttribute('overflow', 'visible');
   const font = 'font-family:Helvetica,Arial,sans-serif';
   const outer = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" style="fill:${bg}"/>`
@@ -3452,7 +3625,9 @@ function hbChartHtml(D, cs0, big){
       if (tab) R.body = t;
       R.body = `<div class="hb-open-tools">${t ? `<button type="button" class="hb-link" data-hb-table="${_hbE(at.key)}" aria-pressed="${tab}">${_hbE(i18t(tab ? 'hb_show_chart' : 'hb_show_table'))}</button>` : ''}`
         + `<button type="button" class="hb-link" data-hb-full aria-pressed="${_hbFull}">${_hbE(i18t(_hbFull ? 'hb_full_back' : 'hb_full_screen'))}</button>`
-        + (P.pic === 'cols' && P.measure !== 'live' && !P.compare && !tab ? hbLinesMenuHtml(D, P) : '')
+        + (P.pic === 'cols' && P.measure !== 'live' && !P.compare && !tab ? hbLinesMenuHtml(D, P) + `<button type="button" class="hb-link" data-hb-odd="${_hbE(D.key)}" aria-pressed="${_hbOddOn.has(D.key)}">${_hbE(i18t(_hbOddOn.has(D.key) ? 'hb_odd_off' : 'hb_odd_btn'))}</button>` : '')
+        + `<button type="button" class="hb-link" data-hb-saveq="${_hbE(D.key)}">${_hbE(i18t('hb_myq_btn'))}</button>`
+        + `<button type="button" class="hb-link" data-hb-whatif="${_hbE(D.key)}" aria-pressed="${_hbWhatIf.has(D.key)}">${_hbE(i18t(_hbWhatIf.has(D.key) ? 'hb_wi_off' : 'hb_wi_btn'))}</button>`
         + (!tab ? `<button type="button" class="hb-link" data-hb-copy-img>${_hbE(i18t('hb_copy_img'))}</button>` : '')
         + (t ? `<button type="button" class="hb-link" data-hb-copy-tab>${_hbE(i18t('hb_copy_tab'))}</button>` : '') + '</div>' + R.body;
       R.body = R.body.replace('<div class="hb-open-tools">', `<div class="hb-open-tools" data-hb-copy-t="${_hbE(P.title || D.title || D.crumb || '')}" data-hb-copy-s="${_hbE(R.by || '')}" data-hb-copy-n="${cs.length}">`);
@@ -3465,7 +3640,8 @@ function hbChartHtml(D, cs0, big){
   const read = big ? hbReadHtml(D, cs, P, R) : '';
   /* small, the chart says its point in one line under the totals (HEADLINE) */
   const head = big ? '' : hbHeadlineHtml(D.key, hbReadingOf(D, cs, P, R), cs.length, hbWhySig(D, P, cs));
-  return `${read || (!head && R.say ? `<p class="hb-tr-say">${_hbE(R.say)}</p>` : '')}<div class="hb-chart-lead">${lead}<span class="hb-chart-by">${_hbE(R.by)}</span></div>${head}${R.body}${R.note ? `<div class="hb-quiet hb-chart-note">${_hbE(R.note)}</div>` : ''}`;
+  const how = at && !one ? hbHowHtml(D, P, R, cs) : '';
+  return `${read || (!head && R.say ? `<p class="hb-tr-say">${_hbE(R.say)}</p>` : '')}<div class="hb-chart-lead">${lead}<span class="hb-chart-by">${_hbE(R.by)}</span></div>${head}${R.body}${how}${R.note ? `<div class="hb-quiet hb-chart-note">${_hbE(R.note)}</div>` : ''}`;
 }
 /* ============================================================
    READ, THEN ASK (Young picked it by name, 4 Oct 2026: "the cards when
@@ -3998,6 +4174,9 @@ function hbBoardNow(){
     if (p.kind !== 'view') return `${p.id}: ${hbPanelWord(p)} (a ready-made panel; it can be moved, sized or removed, not changed)`;
     const Dp = hbDigData(p.key, s.lens); return `${p.id}: ${hbPanelWord(p)}${Dp ? ' — ' + Dp.n + ' contracts; ' + hbRecipeWords(hbPlan(Dp)) : ''}`; }).join(' | ') + (key ? ' The open chart is ref "open".' : ''));
   else if (key) out.push('No cards on the board yet. The open chart is ref "open".');
+  /* "Ask about this" (C2): the piece and the contracts behind it, so the
+     answer can name them — near the top, never cut by the cap */
+  const about = hbAskAboutLine(); if (about) out.splice(1, 0, about);
   const text = out.join('\n');
   return text.length > HB_BOARD_NOW_MAX ? text.slice(0, HB_BOARD_NOW_MAX) + ' …(cut)' : text;
 }
@@ -4162,6 +4341,21 @@ function hbSay(text){
 }
 /* the plain words, marks taken off (a share, a copy, a hover) */
 const hbSayPlain = t => String(t == null ? '' : t).replace(/\[\[\s*(?:good|bad)\s*:\s*/gi, '').replace(/\]\]/g, '').replace(/\*\*/g, '');
+/* EXPLAIN THIS CHART, IN THREE POINTS (C4, 10 Oct 2026): always the same
+   shape, so it can be read at a glance — what stands out, why, what you
+   might do; each on its own line, under its own label */
+const HB_WHY3 = ['hb_cx3_a', 'hb_cx3_b', 'hb_cx3_c'];
+function hbWhy3Ask(){
+  return `Say what this shows, why it matters, and what to do next — in exactly three lines, in ${i18t('hb_cx_lang')}, for a business owner. Start the lines with these labels, word for word: "${i18t(HB_WHY3[0])}:", "${i18t(HB_WHY3[1])}:" and "${i18t(HB_WHY3[2])}:". One or two short sentences each. Name the contracts or groups you mean.`;
+}
+/* the three points drawn as a list where the answer kept its labels; else as written */
+function hbWhy3Html(text){
+  const t = String(text || ''), labels = HB_WHY3.map(k => i18t(k));
+  const at = labels.map(l => { const m = new RegExp('(?:^|\\n|\\s)(?:\\d\\.\\s*)?\\**' + _hbReEsc(l) + '\\**\\s*:', 'i').exec(t); return m ? { i: m.index + m[0].length, s: m.index } : null; });
+  if (at.filter(Boolean).length < 2) return null;
+  const parts = labels.map((l, k) => { if (!at[k]) return null; const next = at.slice(k + 1).filter(Boolean).sort((a, b) => a.s - b.s)[0]; return { l, body: t.slice(at[k].i, next ? next.s : t.length).trim() }; }).filter(Boolean);
+  return `<ol class="hb-why3">${parts.map(p => `<li><b>${_hbE(p.l)}:</b> ${hbSay(p.body)}</li>`).join('')}</ol>`;
+}
 function hbSummaryPrompt(sheet, ask){
   return [sheet.text, '',
     ask || `Write three or four plain sentences, in ${i18t('hb_cx_lang')}, for a business owner: what this shows, why it matters, and what to do next.`,
@@ -4187,7 +4381,7 @@ async function hbWhyAsk(key){
   try {
     /* the safe summary: written from HaTi's fact sheet, every number checked */
     const sheet = hbFactSheet(src);
-    const res = await copilotAsk([{ role: 'user', content: hbSummaryPrompt(sheet, key === HB_BOARD_KEY ? i18t('hb_bs_ask', { lang: i18t('hb_cx_lang') }) : null) }], { view: 'intel' }, null, { quiet: true });
+    const res = await copilotAsk([{ role: 'user', content: hbSummaryPrompt(sheet, key === HB_BOARD_KEY ? i18t('hb_bs_ask', { lang: i18t('hb_cx_lang') }) : hbWhy3Ask()) }], { view: 'intel' }, null, { quiet: true });
     const cov = sheet.coverage, counts = new Set([...src.reading.counts, cov.n, cov.read, cov.checked, cov.n - cov.read, cov.n - cov.checked]);
     const c1 = hbWhyCheck(res && res.answer, counts), c2 = hbFactCheck(c1.text, sheet.nums);
     const chk = { text: c2.text, dropped: c1.dropped + c2.dropped };
@@ -4220,10 +4414,14 @@ function hbReadBlockHtml(key, reading, n, sig){
   const ask = kept && !err ? '' : `<div class="hb-why-ask"><button type="button" class="hb-btn" data-hb-why="${_hbE(key)}"${busy ? ' disabled' : ''}${live ? '' : ` disabled title="${_hbE(i18t('hb_cx_nokey'))}"`}>${_hbStar}${_hbE(i18t(err ? 'hb_cx_again' : 'hb_cx_btn'))}</button>
     <span class="hb-quiet">${_hbE(live ? i18tn('hb_cx_cost', n, { n: _hbN(n) }) : i18t('hb_cx_nokey'))}</span></div>`;
   let box = '';
-  if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_cx_title'))}</span></div><p class="hb-quiet">${_hbE(i18t('hb_cx_busy'))}</p></div>`;
-  else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_cx_title'))}</span></div><p>${_hbE(err)}</p></div>`;
+  /* C8: WHILE IT WORKS, THE STEPS; WHEN IT STOPS, WHY — and HaTi's own
+     reading above stands either way */
+  const steps = (stop) => `<ol class="hb-steps"><li class="is-ok">${_hbE(i18tn('hb_st_read', n, { n: _hbN(n) }))}</li><li class="is-ok">${_hbE(i18t('hb_st_count'))}</li>`
+    + (stop ? `<li class="is-stop">${_hbE(stop)}</li>` : `<li class="is-on">${_hbE(i18t('hb_st_ask'))}</li><li>${_hbE(i18t('hb_st_check'))}</li>`) + '</ol>';
+  if (busy) box = `<div class="hb-why" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_cx_title'))}</span></div><p class="hb-quiet">${_hbE(i18t('hb_cx_busy'))}</p>${steps('')}</div>`;
+  else if (err) box = `<div class="hb-why is-err" aria-live="polite"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_cx_title'))}</span></div>${steps(err)}<p class="hb-quiet">${_hbE(i18t('hb_st_stood'))}</p></div>`;
   else if (kept) box = `<div class="hb-why"><div class="hb-why-h">${_hbStar}<span>${_hbE(i18t('hb_cx_title'))}</span><span class="hb-grow"></span><span class="hb-read-src">${_hbE(i18t('hb_cx_when', { at: kept.at }))}</span></div>
-    <div class="hb-why-b">${hbSay(kept.text)}</div>
+    <div class="hb-why-b">${(key !== HB_BOARD_KEY && hbWhy3Html(kept.text)) || hbSay(kept.text)}</div>
     <div class="hb-why-f"><span class="${kept.dropped ? 'hb-why-cut' : 'hb-why-ok'}">${_hbE(kept.dropped ? i18tn('hb_cx_dropped', kept.dropped, { n: kept.dropped }) : i18t('hb_cx_ok'))}</span>${kept.notice ? `<span>${_hbE(kept.notice)}</span>` : ''}<span class="hb-grow"></span>
       <button type="button" class="hb-link" data-hb-why-follow="${_hbE(key)}">${_hbE(i18t('hb_cx_follow'))}</button></div></div>`;
   return read + ask + box;
@@ -4458,7 +4656,7 @@ function hbFocusHtml(){
   /* a chart and Value under contract can be made bigger (the bigger card opens with HaTi's reading) */
   const grows = D.kind === 'list' || D.kind === 'stages';
   const tools = grows ? `${hbBigBtnHtml(s.digBig, 'data-hb-digbig')}` : '';
-  return `<div class="hb-focus" id="hb-focus"><nav class="hb-trail" aria-label="${_hbE(i18t('hb_trail'))}"><button type="button" data-hb-crumb="-1">${_hbE(i18t('hb_face_board'))}</button><span aria-hidden="true">›</span>${crumbs}</nav>
+  return `<div class="hb-focus" id="hb-focus"><nav class="hb-trail" aria-label="${_hbE(i18t('hb_trail'))}"><button type="button" data-hb-crumb="-1">${_hbE(i18t('hb_face_board'))}</button><span aria-hidden="true">›</span>${crumbs}${hbFuStepsHtml(path[path.length - 1])}</nav>
     <section class="hb-card hb-dig${_hbFocusNew ? ' is-new' : ''}${s.digBig && grows ? ' is-big' : ''}${_hbFull && grows ? ' is-full' : ''}"><header class="hb-ch"><span class="hb-ct">${_hbE(title)}</span>${hbVerBadgeHtml((s.panels || []).find(x => x.key === path[path.length - 1]))}<span class="hb-grow"></span>${tools}${eye}
       ${path.length > 1 ? `<button type="button" class="hb-ib" data-hb-crumb="${path.length - 2}" title="${_hbE(i18t('hb_step_back'))}" aria-label="${_hbE(i18t('hb_step_back'))}">${_hbBack}</button>` : ''}
       <button type="button" class="hb-ib hb-x" data-hb-crumb="-1" title="${_hbE(i18t('hb_close_dig'))}" aria-label="${_hbE(i18t('hb_close_dig'))}">${_hbX}</button></header>
@@ -4645,7 +4843,7 @@ function hbBoardHtml(){
      cannot know; "all contracts" is one they chose. */
   const cut = [hbCountLabel(s.lens), s.lens === 'all' ? '' : i18t('hb_lens_' + s.lens).toLowerCase()].filter(Boolean).join(' · ');
   const bs = hbBoardSumHtml();
-  return `<div class="hb-note"><span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span>${_hbE(cut ? i18t('hb_counted', { time, lens: cut }) : i18t('hb_counted_plain', { time }))}</span><span class="hb-grow"></span>${bs.btn}</div>
+  return `<div class="hb-note"><span class="hb-live"><i></i>${_hbE(i18t('hb_live'))}</span><span>${_hbE(cut ? i18t('hb_counted', { time, lens: cut }) : i18t('hb_counted_plain', { time }))}</span><span class="hb-grow"></span>${s.panels.some(p => p.kind === 'view') ? `<button type="button" class="hb-btn is-sm" data-hb-pack>${_hbE(i18t('hb_pack_btn'))}</button>` : ''}${bs.btn}</div>
     ${bs.box}
     ${hbBookHtml(d, moved, base && base.at)}
     ${hbPrepHtml(A, base && base.at)}
@@ -6303,7 +6501,7 @@ const HB_FU = {
   /* "this year", "this quarter" name a period, not the open chart */
   refer: /\b(?:it|this(?!\s+(?:month|quarter|year|week|period))|these|them|the chart|this chart|the same|instead)\b|\b(?:det(?!\s+här\s+(?:året|kvartalet|månaden))|dessa|diagrammet)\b/,
   verb: /^\s*(?:make|change|switch|turn|use|put|redraw|draw it|show it|show this|show them|show (?:the )?(?:value|count|number|money|amount|average|days to sign|trend)|now|add|remove|hide|drop|gör|ändra|byt|visa det|lägg till|ta bort)\b/,
-  lead: /^\s*(?:by|per|as|in|with|without|monthly|quarterly|yearly|annually|over time|split by|grouped by|efter|per|som|med|utan|månadsvis|kvartalsvis)\b/,
+  lead: /^\s*(?:by|per|as|in|with|without|monthly|quarterly|yearly|annually|over time|split by|split it|grouped by|group by|break (?:it |them )?down|compare(?:d)? (?:with|to|against)|vs|versus|against last|efter|per|som|med|utan|månadsvis|kvartalsvis|jämför med|dela)\b/,
   narrow: /\b(?:only|just|of these|of those|among these|among them|filter (?:it )?to|narrow (?:it )?to|bara|endast)\b/,
   fresh: /\b(?:all contracts|every contract|all agreements|whole book|the book|everything|all of them|alla avtal|hela)\b/,
   noTrend: /\b(?:no trend|without (?:a |the )?trend|remove (?:the )?trend|hide (?:the )?trend|trend off|turn off (?:the )?trend|utan trend)\b/,
@@ -6385,6 +6583,13 @@ function hbFollowUpRead(qRaw){
   if (noTrend) chart.trend = false;
   return Object.keys(chart).length ? { key, chart } : null;
 }
+/* the follow-ups said over an open chart, per sitting (never stored): its trail */
+const _hbFuSteps = new Map();
+function hbFuStepsHtml(key){
+  const st = _hbFuSteps.get(key) || []; if (!st.length) return '';
+  return st.map((w, i) => `<span aria-hidden="true">›</span><span class="hb-trail-step${i === st.length - 1 ? ' is-last' : ''}">${_hbE(w)}</span>`).join('')
+    + `<button type="button" class="hb-trail-back" data-hb-fu-back="${_hbE(key)}">${_hbE(i18t('hb_fu_back'))}</button>`;
+}
 function hbFollowUp(qRaw, pre){
   const r = pre || hbFollowUpRead(qRaw); if (!r) return null;
   if (r.narrow){
@@ -6393,6 +6598,8 @@ function hbFollowUp(qRaw, pre){
     return _hbE(i18tn('hb_found_n', N.n, { n: _hbN(N.n), what: N.title || '' }));
   }
   const did = hbBoardEdit(r.chart); if (!did) return null;
+  /* the step is said in the trail, and Back one step undoes it (C3) */
+  const st = _hbFuSteps.get(r.key) || []; st.push(String(qRaw || did.said || '').trim().slice(0, 60)); _hbFuSteps.set(r.key, st.slice(-6));
   hbPaintBoard({ jump: 'focus' });
   return _hbE(did.said);
 }
@@ -7221,7 +7428,7 @@ const HB_ANALYST_WORDS = [
   [/\b(?:are|is)\s+(?:our\s+)?(?:contracts|deals|agreements)\s+(?:getting\s+)?(?:faster|slower|quicker|longer)\s+to\s+(?:sign|close)\b/, ' time to sign trend '],
   [/\bcompared?\b(?! (?:to|with))/, ' '],
   /* -- growth and direction: the trend, read off the signing date -- */
-  [/\b(?:growth rate|rate of growth|growth|growing|grown|grow|grows|trajectory|momentum|evolution|evolving|evolved|development|direction of travel|run rate|velocity of signing|pace of signing|pace|cadence)\b/, HB_AW_DATE + ' trend '],
+  [/\b(?!growth (?:in %|in percent|%))(?:growth rate|rate of growth|growth|growing|grown|grow|grows|trajectory|momentum|evolution|evolving|evolved|development|direction of travel|run rate|velocity of signing|pace of signing|pace|cadence)\b/, HB_AW_DATE + ' trend '],
   [/\b(?:going up or down|up or down|rising or falling|increasing or decreasing|more or fewer|more or less|higher or lower|than before|than last time|over the period|changed over time|change over time|changes over time|changed|changing|improv\w*|worsen\w*|deteriorat\w*|slowing down|speeding up|picking up|dropping off|declin\w*|accelerat\w*|decelerat\w*)\b/, HB_AW_DATE + ' trend '],
   [/\b(?:up|down)\s*$/, HB_AW_DATE + ' trend '],
   [/\b(?:are|is)\s+we\s+signing\s+more\b|\bsigning\s+more\b|\bsigning\s+fewer\b|\bsigning\s+less\b/, ' contracts signed trend '],
@@ -7779,8 +7986,34 @@ function hbPanelSay(kind, lens){
   return '';
 }
 /* The dock's suggestions on the board: what is not yet on it, in order. */
+/* SUGGESTIONS FROM WHAT THE CHART SHOWS (C7, 10 Oct 2026): over an open
+   chart, the first suggestions are read off it — the group that holds most
+   of it, the contracts in it ending soon, the same chart a year back — each
+   worded so the board's own reader answers it (no model) */
+const HB_SUG_SHARE = 0.35, HB_SUG_SOON = 90;
+function hbDataSuggestions(key){
+  const s = hbS(), out = [];
+  try {
+    const D = hbDigData(key, s.lens); if (!D || D.kind !== 'list') return out;
+    const P = hbPlan(D), cs = hbWinCs(hbListOf(D.ids, s.lens), D); if (cs.length < 2) return out;
+    if (P.split && P.split.by !== 'date' && P.split.by !== 'valueBand'){
+      const money = P.measure === 'value' && hbMoneyOk(), gs = hbGroupsOf(cs, P.split.by, money), tot = gs.reduce((a, g) => a + (money ? g.v : g.n), 0);
+      const top = gs[0]; if (top && gs.length > 1 && tot > 0 && (money ? top.v : top.n) / tot >= HB_SUG_SHARE)
+        out.push(i18t('hb_sug_only', { who: top.label, p: _hbN(Math.round((money ? top.v : top.n) / tot * 100)) }));
+    }
+    const soon = cs.filter(c => { const e = hbEndOf(c); if (!e || c.status !== 'Signed') return false; const d = hbDaysTo(e); return d >= 0 && d <= HB_SUG_SOON; }).length;
+    if (soon) out.push(i18tn('hb_sug_soon', soon, { n: _hbN(soon) }));
+    if (P.split && P.split.by === 'date' && !P.compare && P.measure !== 'live') out.push(i18t('hb_sug_cmp'));
+  } catch (_){}
+  return out.slice(0, 2);
+}
 function hbSuggestions(){
   const s = hbS(); if (s.face !== 'board') return null;
+  const open = hbOpenListKey(); const data = open ? hbDataSuggestions(open) : [];
+  if (data.length) return data.concat(hbSuggestions0(s)).slice(0, 3);
+  return hbSuggestions0(s);
+}
+function hbSuggestions0(s){
   const on = new Set(s.panels.map(p => p.kind));
   const out = HB_KIND_KEYS.filter(k => !on.has(k)).slice(0, 2).map(k => i18t('hb_sug_' + k));
   const first = (state.contracts || []).find(c => c && !c.archived && c.status !== 'Declined');
@@ -8046,11 +8279,17 @@ function hbOnClick(e){
   if (on('[data-hb-digbig]')){ const s = hbS(); s.digBig = !s.digBig; hbSave(); hbPaintBoard(); return; }
   if (on('[data-hb-table]')){ const k = on('[data-hb-table]').getAttribute('data-hb-table'); if (_hbTableOn.has(k)) _hbTableOn.delete(k); else _hbTableOn.add(k); hbPaintBoard(); return; }
   if (on('[data-hb-full]')){ _hbFull = !_hbFull; hbPaintBoard(); return; }
+  if ((el = on('[data-hb-fu-back]'))){ const k = el.getAttribute('data-hb-fu-back'), st = _hbFuSteps.get(k) || []; const ok = hbUndo(); if (ok){ st.pop(); _hbFuSteps.set(k, st); }
+    hbPaintBoard(); if (typeof toast === 'function') toast(i18t(ok ? 'hb_undo_done' : 'hb_undo_none'), ok ? 'ok' : 'warn'); return; }
+  if ((el = on('[data-hb-odd]'))){ const k = el.getAttribute('data-hb-odd'); if (_hbOddOn.has(k)) _hbOddOn.delete(k); else _hbOddOn.add(k); hbPaintBoard(); return; }
   if ((el = on('[data-hb-lines]'))){ const w = el.closest('[data-hb-lines-key]'), k = w && w.getAttribute('data-hb-lines-key'); _hbLinesOpen = _hbLinesOpen === k ? null : k; hbPaintBoard();
     if (_hbLinesOpen){ const f = document.getElementById('hb-ref-tgt-in'); if (f && f.closest('.hb-lines-menu')){ const b = f.closest('.hb-lines-menu').querySelector('button:not([disabled])'); if (b) try { b.focus({ preventScroll: true }); } catch (_){} } } return; }
   if ((el = on('[data-hb-line]'))){ if (el.disabled) return; const w = el.closest('[data-hb-lines-key]'), k = w && w.getAttribute('data-hb-lines-key'); const v = el.getAttribute('data-hb-line');
     if (k){ if (v === 'tgt-off') hbRefsSet(k, 'tgt', null); else hbRefsSet(k, v); } hbPaintBoard(); return; }
   if ((el = on('[data-hb-copy-img]'))){ hbCopyChartImage(el); return; }
+  if ((el = on('[data-hb-saveq]'))){ hbMyqSave(el.getAttribute('data-hb-saveq')); return; }
+  if (on('[data-hb-pack]')){ hbPackMake(); return; }
+  if ((el = on('[data-hb-whatif]'))){ hbWhatIfToggle(el.getAttribute('data-hb-whatif')); return; }
   if ((el = on('[data-hb-copy-tab]'))){ hbCopyChartTable(el); return; }
   /* a story's chapter opens as its own enlarged card; the trail leads back */
   if (on('[data-hb-sy-big]')){ const s = hbS(); s.digBig = true; hbDig(t.closest('[data-hb-sy-big]').getAttribute('data-hb-sy-big'), true); return; }
@@ -8146,6 +8385,7 @@ function hbOnPenDown(e){
 function hbOnPenUp(){ if (!_hbStroke) return; if (_hbStroke.length > 1) _hbInk.push(_hbStroke); _hbStroke = null; hbInkDraw(); }
 function hbOnKey(e){
   if (!window.state || state.view !== 'dashboard') return;
+  if (hbSlashKey(e)) return;
   /* Ctrl/⌘+Z on the board undoes the last board change (never inside a box being typed in) */
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'z' || e.key === 'Z') && hbS().face === 'board'){
     const t = e.target; if (t && (t.closest && t.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]'))) return;
@@ -8314,9 +8554,22 @@ function hbTipHide(now){
   const go = () => { const t = document.getElementById('hb-tip'); if (t) t.hidden = true; _hbTipGive(); _hbTipFor = null; hbLitClear(); };
   if (now) go(); else _hbTipHideT = setTimeout(go, HB_TIP_HIDE_MS);
 }
-/* "Ask about this": the question goes into the ask box, and waits there */
+/* "Ask about this": the question goes into the ask box, and waits there.
+   C2: the piece and its contracts are kept for the next question asked on
+   the board (ten minutes), so Copilot answers about THOSE contracts */
+let _hbAskAbout = null;
+const HB_ASK_ABOUT_MS = 10 * 60 * 1000, HB_ASK_ABOUT_IDS = 40;
+function hbAskAboutLine(){
+  const A = _hbAskAbout; if (!A || Date.now() - A.at > HB_ASK_ABOUT_MS) return '';
+  const money = hbMoneyOk();
+  const cs = A.one ? [A.one] : hbListOf(A.ids || [], hbS().lens);
+  const rows = cs.slice().sort((a, b) => hbValueOfOne(b) - hbValueOfOne(a)).slice(0, HB_ASK_ABOUT_IDS)
+    .map(c => `${hbRef(c)} (${String(c.counterparty || c.name || '')}${money ? ', ' + _hbM(hbValueOfOne(c)) : ''}${c.status ? ', ' + c.status : ''})`);
+  return `The reader pressed "Ask about this" on one piece of the open chart: "${A.label}"${A.say ? ' (' + A.say + ')' : ''}. The ${cs.length} contract${cs.length === 1 ? '' : 's'} behind it${cs.length > rows.length ? `, the ${rows.length} biggest listed` : ''}: ${rows.join('; ')}. Answer about these contracts and name the ones you mean by their reference.`;
+}
 function hbTipAsk(){
   const t = document.getElementById('hb-tip'), D = t && t._hbAsk; if (!D) return;
+  _hbAskAbout = { label: D.label, say: D.say, ids: D.ids ? D.ids.slice() : null, one: D.one || null, at: Date.now() };
   hbTipHide(true);
   const door = document.getElementById('igd-expand');
   if (door && door.offsetParent !== null) try { door.click(); } catch (_){}
@@ -8355,6 +8608,186 @@ if (typeof document !== 'undefined' && !document._hbTipWired){
   document.addEventListener('focusout', hbOnPieceBlur);
   document.addEventListener('scroll', () => { if (_hbTipFor) hbTipHide(true); }, { capture: true, passive: true });
 }
+/* ============================================================
+   THE ASK BOX, FOR SOMEONE WHO ASKS ALL DAY (A1, A2, A4, A7, A10 of the
+   Board Upgrade Proposals; the owner's "Build all C and A ideas", 10 Oct 2026)
+   ============================================================
+   On Home's Board side, one small list above the ask box:
+   - "/" lists the MOVES (A1); a move fills in a starter question to edit, or
+     does its act (explain the open chart, save it, what if…);
+   - after "by" it offers the groupings this book really has, after "in" the
+     periods (A2) — Tab or a press takes one; Enter still asks;
+   - an empty box, clicked, shows MY QUESTIONS (A4) and the GALLERY (A7): ready
+     analyst views, each drawn as a card by the board's own applier (no model);
+   - Ctrl/⌘+Enter asks, ↑ in an empty box brings back the last question, "/"
+     anywhere on the board opens the moves (A10).
+   Nothing here asks Copilot or spends anything by itself. */
+const HB_MYQ_MAX = 20, HB_ASKPOP_MAX = 8, HB_ASK_HIST = 20;
+const HB_SLASH = ['compare', 'trend', 'top', 'split', 'growth', 'explain', 'whatif', 'forecast', 'save'];
+const HB_SLASH_ACT = { explain: 1, whatif: 1, save: 1 };
+const HB_GALLERY = [
+  { k: 'conc', recipe: { pic: 'bars', split: { by: 'counterparty' }, measure: 'value', top: 10, show: 'share' } },
+  { k: 'speed', recipe: { pic: 'spread', split: { by: 'kind' } } },
+  { k: 'leak', which: { q: 'expired contracts' }, recipe: { pic: 'cols', split: { by: 'date', unit: 'm', date: 'end' }, window: { last: 12, unit: 'm' } } },
+  { k: 'prom', recipe: { pic: 'stack', split: { by: 'counterparty' }, split2: { by: 'overdue' }, top: 10 } },
+  { k: 'pay', recipe: { pic: 'heat', split: { by: 'folder' }, split2: { by: 'payterms' } } },
+  { k: 'pipe', recipe: { pic: 'funnel' } },
+  { k: 'move', recipe: { pic: 'waterfall', measure: 'value', window: { last: 12, unit: 'm' } } },
+  { k: 'fc', recipe: { pic: 'forecast', measure: 'value' } }];
+const HB_GW_SHOW = ['status', 'folder', 'counterparty', 'owner', 'kind', 'side', 'payterms', 'valueBand', 'move', 'rounds', 'overdue', 'risks', 'standards', 'autorenew'];
+const HB_IN_WORDS = ['hb_in_l12', 'hb_in_l3', 'hb_in_ty', 'hb_in_tq', 'hb_in_n6'];
+let _hbPop = null;            // { mode, rows, on, moved, start }
+const _hbAskHist = []; let _hbHistAt = -1;
+function hbAskBoxUp(){ try { return !!(window.state && state.view === 'dashboard' && hbS().face === 'board'); } catch (_){ return false; } }
+/* the groupings this book has (two groups or more), in the reader's words */
+let _hbGwMemo = null;
+function hbGroupingsHere(){
+  const n = (state.contracts || []).length;
+  if (_hbGwMemo && _hbGwMemo.n === n) return _hbGwMemo.ks;
+  const cs = hbBook('all').slice(0, 400);
+  const ks = HB_GW_SHOW.filter(k => { if (k === 'valueBand') return hbMoneyOk(); const g = new Set(); for (const c of cs){ g.add(hbGroupOf(c, k)); if (g.size > 1) return true; } return false; });
+  _hbGwMemo = { n, ks }; return ks;
+}
+function hbAskPopRows(v){
+  const t = String(v || '');
+  if (!t.trim()){
+    const myq = (hbS().myq || []).map((q, i) => ({ kind: 'myq', i, word: q.name, sub: i18t('hb_myq_sub') }));
+    return { mode: 'gallery', rows: myq.concat(HB_GALLERY.map(g => ({ kind: 'gal', k: g.k, word: i18t('hb_gal_' + g.k), sub: i18t('hb_gal_' + g.k + '_s') }))) };
+  }
+  let m = /^\s*\/(\w*)$/.exec(t);
+  if (m){ const w = m[1].toLowerCase(); return { mode: 'slash', rows: HB_SLASH.filter(k => k.startsWith(w)).map(k => ({ kind: 'slash', k, word: '/' + k, sub: i18t('hb_sl_' + k) })) }; }
+  m = /\b(?:by|per|efter)\s+([a-zåäö-]*)$/i.exec(t);
+  if (m){ const w = m[1].toLowerCase(), start = t.length - m[1].length;
+    const rows = hbGroupingsHere().map(k => ({ kind: 'word', word: i18t('hb_gw_' + k) })).filter(r => !w || r.word.toLowerCase().split(/\s+/).some(x => x.startsWith(w)) || r.word.toLowerCase().startsWith(w));
+    return rows.length && !(rows.length === 1 && rows[0].word.toLowerCase() === w) ? { mode: 'by', rows, start } : null; }
+  m = /\b(?:in|over|during|i|under)\s+((?:the\s+)?[a-zåäö0-9 ]{0,12})$/i.exec(t);
+  if (m && !/\d{4}/.test(m[1])){ const w = m[1].toLowerCase().trim(), start = t.length - m[1].length;
+    const rows = HB_IN_WORDS.map(k => ({ kind: 'word', word: i18t(k) })).filter(r => !w || r.word.toLowerCase().startsWith(w));
+    return rows.length ? { mode: 'in', rows, start } : null; }
+  return null;
+}
+function hbAskPopHtml(P){
+  const head = i18t('hb_pop_' + P.mode);
+  let lastKind = null;
+  const rows = P.rows.slice(0, P.mode === 'gallery' ? 30 : HB_ASKPOP_MAX).map((r, i) => {
+    const sec = P.mode === 'gallery' && r.kind !== lastKind ? `<h5>${_hbE(i18t(r.kind === 'myq' ? 'hb_myq_head' : 'hb_gal_head'))}</h5>` : ''; lastKind = r.kind;
+    return sec + `<div class="ca-opt hb-pop-opt${i === P.on ? ' on' : ''}" role="option" aria-selected="${i === P.on}" data-hb-pop="${i}"><span class="who"><b>${_hbE(r.word)}</b>${r.sub ? `<small>${_hbE(r.sub)}</small>` : ''}</span>${r.kind === 'myq' ? `<button type="button" class="hb-myq-x" data-hb-myq-del="${r.i}" title="${_hbE(i18t('hb_myq_del'))}" aria-label="${_hbE(i18t('hb_myq_del'))}">×</button>` : ''}</div>`; }).join('');
+  return `${P.mode === 'gallery' ? '' : `<h5>${_hbE(head)}</h5>`}<div role="listbox">${rows}</div><p class="ca-hint">${_hbE(i18t(P.mode === 'by' || P.mode === 'in' ? 'hb_pop_keys_tab' : 'hb_pop_keys'))}</p>`;
+}
+function hbAskPopClose(){ _hbPop = null; const el = document.getElementById('hb-askpop'); if (el) el.remove(); }
+function hbAskPopPaint(inp){
+  const dock = document.getElementById('ig-dock'); if (!dock || !_hbPop) return;
+  let el = document.getElementById('hb-askpop');
+  if (!el){ el = document.createElement('div'); el.id = 'hb-askpop'; el.className = 'ca-pop hb-askpop'; dock.appendChild(el); }
+  el.innerHTML = hbAskPopHtml(_hbPop);
+  const box = inp && inp.parentElement;
+  if (box){ const r = box.getBoundingClientRect(), d = dock.getBoundingClientRect(); el.style.bottom = Math.max(8, d.bottom - r.top + 6) + 'px'; }
+}
+function hbAskPopRead(inp){
+  if (!hbAskBoxUp() || document.getElementById('ca-pop') || /(^|\s)[@#][^\s]*$/.test(String(inp.value || '').slice(0, inp.selectionStart))){ hbAskPopClose(); return; }
+  const R = hbAskPopRows(String(inp.value || '').slice(0, inp.selectionStart == null ? undefined : inp.selectionStart));
+  if (!R || !R.rows.length){ hbAskPopClose(); return; }
+  _hbPop = Object.assign({ on: 0, moved: false }, R);
+  hbAskPopPaint(inp);
+}
+function _hbAskSet(inp, v){
+  inp.value = v; try { inp.setSelectionRange(v.length, v.length); inp.focus(); } catch (_){}
+  if (typeof chatFieldGrow === 'function') try { chatFieldGrow(inp); } catch (_){}
+  try { inp.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){}
+}
+/* a choice from the list: fill, do, or draw — never ask Copilot by itself */
+function hbAskPopChoose(inp, i){
+  const P = _hbPop; const r = P && P.rows[i]; if (!r) return;
+  hbAskPopClose();
+  if (r.kind === 'word'){ const v = String(inp.value || ''); _hbAskSet(inp, v.slice(0, P.start) + r.word + ' '); return; }
+  if (r.kind === 'slash'){
+    if (HB_SLASH_ACT[r.k]){ _hbAskSet(inp, ''); hbSlashAct(r.k); return; }
+    _hbAskSet(inp, i18t('hb_sl_' + r.k + '_q')); return;
+  }
+  if (r.kind === 'gal'){ _hbAskSet(inp, ''); hbGalleryRun(r.k); return; }
+  if (r.kind === 'myq'){ _hbAskSet(inp, ''); hbMyqRun(r.i); }
+}
+function hbGalleryRun(k){
+  const g = HB_GALLERY.find(x => x.k === k); if (!g) return;
+  const recipe = JSON.parse(JSON.stringify(g.recipe));
+  if (recipe.measure === 'value' && !hbMoneyOk()){ recipe.measure = 'count'; if (recipe.show === 'share') recipe.show = 'share'; }
+  hbAddCard(g.which || { all: true }, recipe, i18t('hb_gal_' + k + '_t'));
+  const s = hbS(); s.face = 'board'; s.path = []; hbSave(); hbPaintBoard({ jump: 'top' });
+  if (typeof toast === 'function') toast(i18t('hb_gal_added', { what: i18t('hb_gal_' + k + '_t') }), 'ok');
+}
+/* the open chart: what the moves that act need */
+function hbOpenCardKey(){ return hbOpenListKey(); }
+function hbSlashAct(k){
+  const key = hbOpenCardKey();
+  if (!key){ if (typeof toast === 'function') toast(i18t('hb_sl_need_open'), 'warn'); return; }
+  if (k === 'explain'){ const b = [...document.querySelectorAll('[data-hb-why]')].find(x => x.getAttribute('data-hb-why') === key);
+    if (b && !b.disabled){ b.click(); return; }
+    const s = hbS(); if (!s.digBig){ s.digBig = true; hbSave(); hbPaintBoard({ jump: 'focus' }); }
+    if (typeof toast === 'function') toast(i18t('hb_sl_explain_here'), 'warn'); return; }
+  if (k === 'save'){ hbMyqSave(key); return; }
+  if (k === 'whatif'){ hbWhatIfToggle(key); }
+}
+/* MY QUESTIONS (A4): a name the reader chose for a view; the view is its key
+   (a question is read again each time, so "the last 12 months" always means
+   the twelve before today) or, for a card Copilot built, its own recipe */
+function hbMyqSave(key){
+  const s = hbS(); const D = hbDigData(key, s.lens); if (!D || D.kind !== 'list') return;
+  const keep = name => {
+    const n = hbPlainText(name, 60); if (!n) return;
+    s.myq = (s.myq || []).filter(q => q.key !== key || /^cd:/.test(key));
+    const p = /^cd:/.test(key) ? (s.panels || []).find(x => x.key === key) : null;
+    s.myq.push(p ? { name: n, which: JSON.parse(JSON.stringify(p.which || { all: true })), recipe: JSON.parse(JSON.stringify(hbCardClean(Object.assign({}, p.recipe || {}, (s.recipe || {})[key] || {})))) } : { name: n, key });
+    s.myq = s.myq.slice(-HB_MYQ_MAX); hbSave();
+    if (typeof toast === 'function') toast(i18t('hb_myq_saved', { name: n }), 'ok');
+  };
+  const def = hbCrumbOf(key, s.lens);
+  if (typeof promptDialog === 'function') Promise.resolve(promptDialog({ title: i18t('hb_myq_title'), label: i18t('hb_myq_label'), value: def, confirmLabel: i18t('hb_myq_save'), required: true })).then(v => { if (v != null) keep(v); });
+  else keep(def);
+}
+function hbMyqRun(i){
+  const s = hbS(); const q = (s.myq || [])[i]; if (!q) return;
+  s.face = 'board';
+  if (q.key){ s.path = [q.key]; _hbFocusNew = true; hbSave(); hbPaintBoard({ jump: 'focus' }); return; }
+  hbAddCard(q.which || { all: true }, q.recipe || {}, q.name); s.path = []; hbSave(); hbPaintBoard({ jump: 'top' });
+}
+function hbMyqDel(i){ const s = hbS(); s.myq = (s.myq || []).filter((_, k) => k !== i); hbSave(); }
+if (typeof document !== 'undefined' && !document._hbAskWired){
+  document._hbAskWired = true;
+  document.addEventListener('input', e => { const t = e.target; if (t && t.id === 'igd-input'){ _hbHistAt = -1; hbAskPopRead(t); } });
+  document.addEventListener('focusin', e => { const t = e.target; if (t && t.id === 'igd-input' && !String(t.value || '').trim()) hbAskPopRead(t); });
+  document.addEventListener('keydown', e => {
+    const t = e.target; if (!t || t.id !== 'igd-input' || !hbAskBoxUp()) return;
+    /* A10: what was asked is kept for ↑ (the box's own handler asks after this) */
+    if (e.key === 'Enter' && !e.shiftKey && !_hbPop && String(t.value || '').trim()){ _hbAskHist.unshift(String(t.value).trim()); _hbAskHist.length = Math.min(_hbAskHist.length, HB_ASK_HIST); _hbHistAt = -1; return; }
+    if (_hbPop){
+      const n = Math.min(_hbPop.rows.length, _hbPop.mode === 'gallery' ? 30 : HB_ASKPOP_MAX);
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); e.stopPropagation(); _hbPop.on = (_hbPop.on + (e.key === 'ArrowDown' ? 1 : n - 1)) % n; _hbPop.moved = true; hbAskPopPaint(t); return; }
+      const takesEnter = _hbPop.mode === 'slash' || _hbPop.mode === 'gallery' || _hbPop.moved;
+      if ((e.key === 'Tab' || (e.key === 'Enter' && takesEnter && !e.ctrlKey && !e.metaKey)) && n){ e.preventDefault(); e.stopPropagation(); hbAskPopChoose(t, _hbPop.on); return; }
+      if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); hbAskPopClose(); return; }
+      if (e.key === 'Enter' && String(t.value || '').trim()){ hbAskPopClose(); _hbAskHist.unshift(String(t.value).trim()); _hbAskHist.length = Math.min(_hbAskHist.length, HB_ASK_HIST); return; }
+      return;
+    }
+    if (e.key === 'ArrowUp' && _hbAskHist.length && (!String(t.value || '').trim() || _hbHistAt >= 0)){
+      e.preventDefault(); _hbHistAt = Math.min(_hbHistAt + 1, _hbAskHist.length - 1); const v = _hbAskHist[_hbHistAt]; t.value = v; try { t.setSelectionRange(v.length, v.length); } catch (_){} return; }
+    if (e.key === 'ArrowDown' && _hbHistAt >= 0){ e.preventDefault(); _hbHistAt--; const v = _hbHistAt >= 0 ? _hbAskHist[_hbHistAt] : ''; t.value = v; return; }
+  }, true);
+  document.addEventListener('mousedown', e => {
+    const x = e.target && e.target.closest ? e.target.closest('[data-hb-myq-del]') : null;
+    if (x){ e.preventDefault(); e.stopPropagation(); hbMyqDel(Number(x.getAttribute('data-hb-myq-del'))); const inp = document.getElementById('igd-input'); if (inp) hbAskPopRead(inp); return; }
+    const o = e.target && e.target.closest ? e.target.closest('[data-hb-pop]') : null;
+    if (o){ e.preventDefault(); const inp = document.getElementById('igd-input'); if (inp) hbAskPopChoose(inp, Number(o.getAttribute('data-hb-pop'))); return; }
+    if (_hbPop && !(e.target && e.target.closest && e.target.closest('#hb-askpop, #igd-input'))) hbAskPopClose();
+  });
+}
+/* "/" anywhere on the board (not while typing) opens the moves (A10) */
+function hbSlashKey(e){
+  if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || !hbAskBoxUp()) return false;
+  const t = e.target; if (t && t.closest && t.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]')) return false;
+  const door = document.getElementById('igd-expand'); if (door && door.offsetParent !== null) try { door.click(); } catch (_){}
+  const inp = document.getElementById('igd-input'); if (!inp) return false;
+  e.preventDefault(); _hbAskSet(inp, '/'); hbAskPopRead(inp); return true;
+}
 if (typeof document !== 'undefined' && !document._hbWired){
   document._hbWired = true;
   document.addEventListener('click', hbOnClick);
@@ -8376,7 +8809,7 @@ if (typeof document !== 'undefined' && !document._hbWired){
   if (typeof window !== 'undefined') window.addEventListener('resize', () => { if (_hbInk.length || _hbStroke) hbInkDraw(); });
 }
 
-Object.assign(window, { hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, HB_PICS2, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
+Object.assign(window, { hbAskPopRows, hbAskPopChoose, hbAskPopClose, hbGalleryRun, HB_GALLERY, HB_SLASH, hbSlashAct, hbMyqSave, hbMyqRun, hbMyqDel, hbSlashKey, hbWhatIfToggle, hbWhatIfSvg, hbPackMake, hbOddCols, hbHowHtml, hbMissKind, hbWhy3Html, hbWhy3Ask, hbAskAboutLine, hbFuStepsHtml, hbDataSuggestions, hbForecastSvg, hbChartPngOf, hbTipAsk, hbTipShow, hbTipHide, hbTipData, hbTipHtml, hbLitSet, hbLitClear, hbRefsOf, hbRefsSet, hbNumIn, hbExtraSets, hbWaterfallSvg, hbFunnelSvg, hbSpreadSvg, hbMultiSvg, hbLeadMark, hbChartPng, hbCopyChartImage, hbCopyChartTable, hbGlideTake, hbGlidePlay, hbChaseItems, hbChaseManyHtml, hbChaseManyCount, hbChaseManyRun, HB_OFF_BOARD, HB_REVIEW_ON_PAPER, hbReviewOnPaper, HB_AG_WORK_MAX, hbAgentWorkHtml, hbAgentWorkPress, hbOpenAgent, hbScreenNow, hbSay, hbSayPlain, HB_SAY_RULE, HB_STORIES, HB_STORY_ARG, HB_STORY_ORDER, HB_STORY_STEPS, HB_STORY_RE, hbStoryId, hbStorySid, hbStoryValid, hbStoryTitle, hbStoryOfQ, hbStoryData, hbStoryCardD, hbStoryDeepD, hbStoryDig, hbStoryChapterRead, hbStorySheet, hbStorySig, hbStoryKept, hbStoryKeep, hbStoryPrompt, hbStoryParse, hbStoryWrite, hbStoryWords, hbStoryDeeper, hbStoryStop, hbStoryFinish, hbDdStepsHtml, hbStepInProgress, hbStoryHtml, hbStoryDeepHtml, hbStoryGiftHtml, HB_ANALYST_WORDS, hbAnalystWords, hbNumPieces, HB_KEY_TERMS, hbKeyTermsOf, hbKeyTermOf, hbVerdictsOf, HB_DD_STEPS, HB_DD_KEEP, hbDeeperHtml, hbDdCalc, hbDdPack, hbDdRun, hbDigDeeper, hbDdAddCards, hbDdCardHtml, hbReadOfList, HB_PACKS, HB_PACK_RE, hbPackOfQ, hbPackData, hbPackCardD, hbPackHtml, hbPackSrc, HB_BOARD_KEY, hbBoardSrc, hbBoardSumHtml, HB_FACT_MAX, hbFactSheet, hbNumsOf, hbFactCheck, hbSummaryPrompt, hbCoverageOf, hbAvgMeasure, hbSignM, HB_SHOWS, HB_MONEY_MEASURES, HB_RISK_WEIGHT, hbMoneyMeasure, hbStdStateOf, hbStdBreaches, hbRiskWeightOf, hbExposureOf, HB_HEAD_SKIP, hbHeadlineOf, hbHeadlineHtml, hbReadSrcHeadHtml, hbReadMoreToggle, HB_MOVED_MAX, hbMovedOf, hbMovedSync, hbOpenFromLink, hbAskReadingOf, hbAskPreviewText, hbVerBadgeHtml, hbPhraseNorm, hbVerifiedList, hbVerifiedHit, hbVerifiedOf, hbVerifiedByLine, hbVerifiedAnswer, hbVerifiedGuide, hbMayVerify, hbVerFormHtml, hbVerSave, HB_DEAL_GROUPS, HB_DEAL_ORDER, hbDealGroupOf, hbMarksHtml, hbMarkPress, hbMarksRepaint, hbBoardReplyMeta, HB_NEXT_MAX, HB_NEXT_TOP, hbNextCandidates, hbNextQuestions, hbNextHtml, hbFollowUpRead, HB_RD_PARTS, HB_FIX_WINDOW_MS, hbRdWords, hbReadingSnap, hbReadingAfter, hbReadingLive, hbReadingHtml, hbReadingSet, hbRdToggle, hbDockRepaint, HB_WORD_SPLIT, HB_WORD_MEASURE, HB_WORD_STAGE, HB_WORD_KINDS, hbWords, hbWordPhrase, hbWordsApply, hbWordClash, hbWordsBuiltIn, hbWordsGuide, hbNameAsked, HB_NAME_ASK_RE, hbAnswerCount, hbAnswerSay, hbFoundTitle, hbFoundSay, hbProseChecked, hbCopilotTail, hbFeedbackSend, HB_LS, HB_FACES, HB_LENSES, HB_SCREENS, HB_PREP, HB_FIGS, HB_FIG_KEYS, HB_KINDS, HB_KIND_KEYS,
   HB_PANELS_MAX, HB_PATH_MAX, HB_ROWS_MAX, HB_WATCH_MAX, hbS, hbSave, hbFresh, hbFace, hbSideOf, hbInLens, hbBook,
   hbBookData, hbFigNumber, hbSeenNow, hbSeenTick, hbMoved, hbAgentsData, hbPanelData, hbDigData, hbCardData,
   HB_RX, hbFindContract, hbParse, hbListOf, hbRef, hbDayWords, hbHeadHtml, hbBookHtml, hbPrepHtml, hbDeltaHtml, hbRowHtml, hbListHtml,

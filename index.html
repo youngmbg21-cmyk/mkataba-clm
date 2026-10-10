@@ -9264,6 +9264,44 @@
   .hb-svg :is(.hb-sv-grid,.hb-sv-axis){stroke-width:1;shape-rendering:crispEdges;vector-effect:non-scaling-stroke}
   .hb-svg text{font-variant-numeric:tabular-nums}
   .hb-svg .hb-sv-bub-edge{stroke:var(--hb-fig);stroke-width:1.5}
+  /* C1: THE RECIPE READS AS ONE SENTENCE — the part names stay for a
+     screen reader; the choices are underlined pills joined by plain words */
+  .hb-recipe.is-sentence{gap:4px 6px}
+  .hb-recipe.is-sentence .hb-rc i{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .hb-recipe.is-sentence .hb-rc:not(.hb-rc-more){border-radius:999px;border-color:rgba(var(--hb-gw),.45);color:var(--hb-glow);padding:0 9px 0 11px}
+  .hb-recipe.is-sentence .hb-rc:not(.hb-rc-more) span{text-decoration:underline;text-decoration-color:rgba(var(--hb-gw),.4);text-underline-offset:3px}
+  .hb-recipe.is-sentence .hb-rc.is-still{color:var(--hb-ink);border-color:rgba(var(--hb-ln),.25)}
+  .hb-recipe.is-sentence .hb-rc.is-still span{text-decoration:none}
+  .hb-rjoin{font-size:var(--t-meta);color:var(--hb-ink-2)}
+  .hb-rmenu-foot{padding:6px 9px 4px;margin-top:2px;border-top:1px solid rgba(var(--hb-ln),.14);font-size:var(--t-micro);color:var(--hb-mute)}
+  /* C3: the follow-ups said over the open chart, and the step back */
+  .hb-trail-step{color:var(--hb-ink-2);padding:2px 5px} .hb-trail-step.is-last{color:var(--hb-ink);font-weight:var(--w-strong)}
+  .hb-trail .hb-trail-back{margin-left:auto;text-decoration:underline;text-underline-offset:3px}
+  /* C5: an unusual column wears a ring, its reason in its words */
+  .hb-sv-odd{fill:none;stroke:var(--hb-amber);stroke-width:2}
+  /* C4: the explanation in three labelled points; C8: its steps */
+  .hb-why3{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+  .hb-why3 b{font-weight:var(--w-strong)}
+  .hb-steps{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;font-size:var(--t-meta);color:var(--hb-mute)}
+  .hb-steps li::before{content:"○";display:inline-block;width:18px}
+  .hb-steps li.is-ok{color:var(--hb-ink-2)} .hb-steps li.is-ok::before{content:"✓"}
+  .hb-steps li.is-on{color:var(--hb-glow);font-weight:var(--w-strong)} .hb-steps li.is-on::before{content:"●"}
+  .hb-steps li.is-stop{color:var(--hb-ruby);font-weight:var(--w-strong)} .hb-steps li.is-stop::before{content:"■"}
+  /* A6: the forecast's range; A5: the scenario, dashed and said so */
+  .hb-sv-fc-band{fill:var(--hb-glow);fill-opacity:.18;stroke:var(--hb-glow);stroke-opacity:.45;stroke-width:1;stroke-dasharray:3 2}
+  .hb-sv-fc-low{fill:var(--hb-glow)}
+  .hb-sv-wi-base{fill:rgba(var(--hb-ln),.3)}
+  .hb-sv-wi-scen{fill:var(--hb-amber);fill-opacity:.16;stroke:var(--hb-amber);stroke-width:1.5;stroke-dasharray:4 3}
+  /* A1/A2/A4/A7: the ask box's list (the @ and # list's own look) */
+  .hb-askpop{max-height:360px;overflow:auto}
+  .hb-askpop .hb-pop-opt{position:relative;padding-right:30px}
+  .hb-askpop h5{margin-top:6px}
+  .hb-myq-x{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:20px;height:20px;border:0;border-radius:4px;background:none;color:var(--color-neutral-600);cursor:pointer;font-size:15px;line-height:1}
+  .hb-myq-x:hover{background:rgba(0,0,0,.06)}
+  /* C6 + A9: how this was counted, and what it stands on */
+  .hb-how{font-size:var(--t-meta);color:var(--hb-ink-2);margin:-6px 0 var(--s-2);line-height:1.45}
+  .hb-how b{color:var(--hb-ink);font-weight:var(--w-strong)}
+  .hb-how .hb-how-go{padding:0 2px;text-decoration:underline;text-underline-offset:3px}
   /* THE POINT IN COLOUR (G7): the piece the headline is about keeps the
      colour, the rest of a one-colour chart steps back to a tint of it.
      Status colours are never touched (they mean something). */
