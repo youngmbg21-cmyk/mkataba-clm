@@ -7609,11 +7609,11 @@ function igTrackPlace(h){
     +(geo.lab>x+4?`<path class="ig-trk-lead" d="M${x+4} ${(m.y+Math.min(m.h,6)/2).toFixed(1)} C ${x+9} ${(m.y).toFixed(1)}, ${x+9} ${ly[k].toFixed(1)}, ${geo.lab} ${ly[k].toFixed(1)}"/>`:'');
     m.b.style.top=ly[k].toFixed(1)+'px'; });
   svg.innerHTML=g;
-  let sec=sp.querySelector('.ig-trk-sec');
+  let nameEl=sp.querySelector('.ig-trk-sec');
   if(secY!=null){
-    if(!sec){ sec=document.createElement('span'); sec.className='ig-trk-sec'; sec.setAttribute('aria-hidden','true'); sp.appendChild(sec); }
-    sec.textContent=i18t('trk_schedules'); sec.style.top=secY.toFixed(1)+'px';
-  } else if(sec) sec.remove();
+    if(!nameEl){ nameEl=document.createElement('span'); nameEl.className='ig-trk-sec'; nameEl.setAttribute('aria-hidden','true'); sp.appendChild(nameEl); }
+    nameEl.textContent=i18t('trk_schedules'); nameEl.style.top=secY.toFixed(1)+'px';
+  } else if(nameEl) nameEl.remove();
   igTrackWindow(h);
 }
 /* The window over the part on screen, and the label of the clause being read. */
