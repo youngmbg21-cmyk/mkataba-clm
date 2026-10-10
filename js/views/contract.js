@@ -3536,11 +3536,6 @@ function docBody(c){
   if(isUpload(c)) return uploadDocBody(c);
   if(c.status==='Signed' && c.execution && c.execution.html) return frozenDocBody(c);
   if(c.redlineText) return redlineDocBody(c);
-  /* A LIGHT LIST ROW HAS NO FIELDS until its whole record lands (bug log): a
-     tab opened in that moment threw on c.fields.effDate and took the Document
-     tab down. The paper is drawn off a copy with empty answers — reading must
-     not write, so the record itself is left exactly as the list sent it. */
-  if(!c.fields) c={ ...c, fields:{} };
   /* `|| TEMPLATES.ND` matches the `BUILD[c.template]||BUILD.ND` five lines from
      the end, which has always fallen back. This one did not, and read `t.kind`
      off it — so a contract with no template and no stored wording did not draw

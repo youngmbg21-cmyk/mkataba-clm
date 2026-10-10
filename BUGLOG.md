@@ -20599,3 +20599,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - FIXED: calendar-redesign-verify depended on the day it ran (August 2026 seed) — the browser's clock is set to the seed's day, its dark-mode check re-pointed to the segmented views; taken off KNOWN_RED (45/45).
 - FIXED: the one unnamed button on every page was Copilot's send arrow (#ai-send) — it now has a spoken name in both languages.
 - Not fixed (left on purpose): the faint grey strip at the right edge of pages that do not own their height — a layout trade-off (the reserved scrollbar gutter), not a quick fix.
+- CORRECTION (same day): the docBody light-row guard above was REVERTED before merge. A freshly filed upload is briefly a record with no fields; the throw it prevented is what made the Document tab redraw once the upload landed, and the guard drew a blank NDA instead (upload-party-verify went red). The original scripted-press throw stays open, not fixed.
