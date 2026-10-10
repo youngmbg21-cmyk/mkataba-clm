@@ -107,7 +107,10 @@ describe('f259 (4) — the dialog draws everything it drew before', () => {
     /* The first render of this dialog was drawn from intent rather than from
        the screen and got six things wrong — the worst being that it dropped
        the "Whose obligation is this?" toggle outright. */
-    const order = ['ob_description', 'ob_due_date', 'ob_recurring', 'ob_amount', 'ob_whose', 'ob_assign_to'];
+    /* RE-POINTED 10 Oct 2026 (SAP pop-ups, owner's go): "Whose obligation is
+       this?" comes FIRST, because it decides what follows; every other field
+       keeps its label and its order. */
+    const order = ['ob_whose', 'ob_description', 'ob_due_date', 'ob_recurring', 'ob_amount', 'ob_assign_to'];
     let at = -1;
     for (const k of order) {
       const i = dlg.indexOf(`i18t('${k}')`);
@@ -117,7 +120,7 @@ describe('f259 (4) — the dialog draws everything it drew before', () => {
     assert.match(dlg, /id="of-desc"/); assert.match(dlg, /id="of-due"/);
     assert.match(dlg, /id="of-recur"/); assert.match(dlg, /id="of-assignee"/);
     assert.match(dlg, /data-of-party=/, 'the Us / counterparty toggle is still there');
-    assert.match(dlg, /i18t\('act_save'\)/, 'and Save is still Save');
+    assert.match(dlg, /i18t\(seed\._i!=null\?'act_save':'ob_add_go'\)/, 'Save is still Save on an edit; a new one says Add obligation (SAP pop-ups, 10 Oct 2026)');
   });
 
   test('Assign to still disappears when the obligation is theirs', () => {
@@ -132,8 +135,11 @@ describe('f259 (4) — the dialog draws everything it drew before', () => {
     /* Money they owe us matters as much as money we owe them, so it is not
        hidden with Assign to. Its row is ABOVE the toggle and nothing in the
        party painter touches it. */
-    assert.ok(dlg.indexOf("id=\"of-amount\"") < dlg.indexOf('data-of-party='),
-      'the amount is drawn before the toggle, so no branch can hide it');
+    /* RE-POINTED 10 Oct 2026: the toggle moved to the top, so the amount is now
+       drawn AFTER it — and still outside the one wrapper the toggle hides. */
+    const wrapAt = dlg.indexOf('id="of-assignee-wrap"');
+    assert.ok(dlg.indexOf("id=\"of-amount\"") > 0 && dlg.indexOf("id=\"of-amount\"") < wrapAt,
+      'the amount is drawn outside Assign to, so no branch can hide it');
     const paint = OB_CODE.slice(OB_CODE.indexOf('const paintParty=()=>{'), OB_CODE.indexOf('document.querySelectorAll(\'[data-of-party]\')'));
     assert.ok(!/of-amount/.test(paint), 'and the toggle’s painter never touches it');
   });

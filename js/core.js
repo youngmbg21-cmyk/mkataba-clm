@@ -3386,6 +3386,7 @@ function selectMenuStandsDown(){
   } catch (_) {}
   return false;
 }
+const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' });
 /* ---- A POP-UP'S DROPDOWNS AND DATES WEAR HaTi'S CLOTHES (SAP pop-ups,
    owner's go 10 Oct 2026) ----
    SAP uses one control for one job everywhere. Inside a pop-up HaTi still
@@ -3543,7 +3544,6 @@ function popupControlsDress(root){
   try{ selectFaceDress(root); }catch(_){}
   try{ datePickDress(root); }catch(_){}
 }
-const DLG_W = Object.freeze({ s: '400px', m: '520px', l: '640px', xl: '760px' });
   /* ---- A BIT OF COLOUR ON THE FRAME (Young ruled 21 Sep 2026: "add a bit of
      color on pop ups that are completely bland") ----
      A 3px accent rule across the top of the dialog, and NOTHING ELSE. It is
