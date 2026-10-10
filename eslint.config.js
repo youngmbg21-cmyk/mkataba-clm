@@ -214,7 +214,7 @@ const BUG_RULES = {
 };
 
 module.exports = [
-  { ignores: ['node_modules/**', 'prototype/**', 'test/chromium/shots/**', 'js/aimd.js'] },
+  { ignores: ['node_modules/**', 'coverage/**', 'prototype/**', 'test/chromium/shots/**', 'js/aimd.js'] },
 
   /* The app: plain scripts in a browser, sharing one global namespace. */
   {

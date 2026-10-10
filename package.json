@@ -7,6 +7,7 @@
     "start": "node server/server.js",
     "lint": "eslint .",
     "test": "node --test test/*.test.js",
+    "coverage": "NODE_OPTIONS=\"--require ./test/coverage-paths.js\" c8 --merge-async --all --include \"js/**\" --include \"server/**\" --reporter=text-summary --reporter=html --reporter=json-summary --reports-dir=coverage node --test --test-reporter=dot test/*.test.js",
     "test:browser": "node test/chromium/redline-verify.js",
     "test:selection": "node test/chromium/selection-verify.js",
     "test:parity": "node test/chromium/parity-verify.js",
@@ -42,6 +43,7 @@
     "express": "^4.19.0"
   },
   "devDependencies": {
+    "c8": "^12.0.0",
     "eslint": "^9.39.5",
     "jsdom": "^29.1.1",
     "playwright-core": "^1.62.0"

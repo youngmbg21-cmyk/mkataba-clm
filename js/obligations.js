@@ -498,8 +498,19 @@ const OBLIG_TEXT_MIN = 120;
    heuristic below, which is a real reading — a quiet caller gets exactly what a
    loud one gets, because a caller that lost the fallback would be quieter AND
    worse. Every existing caller passes nothing and behaves exactly as it did. */
+/* THE WORDS THE DUTIES ARE READ OFF — one reading for every door (the
+   owner's go, 10 Oct 2026). A contract filed on a signed copy whose words
+   DIFFER from the agreed ones keeps that copy's text (outsideFile), and the
+   signed copy is the document of record: a copy saying sixty days must not be
+   reminded on the agreed thirty. Everywhere else, as always: an upload's text,
+   or the contract's own wording. */
+function obligationsText(c){
+  const sc = c && c.signedCopy;
+  if(sc && typeof sc.text === 'string' && sc.text.trim()) return sc.text;
+  return isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.contractPlainText?contractPlainText(c):'');
+}
 async function extractObligations(c,opts={}){
-  const text = isUpload(c) ? (c.upload&&c.upload.extractedText)||'' : (window.contractPlainText?contractPlainText(c):'');
+  const text = obligationsText(c);
   if(!text || text.length<OBLIG_TEXT_MIN){
     if(opts.quiet){ opts.error=i18t('ob_no_readable'); return []; }
     toast(i18t('ob_no_readable'),'err'); return []; }
@@ -1135,8 +1146,7 @@ async function runFindObligations(c, opts){
      under OBLIG_TEXT_MIN characters in words and returns an empty list, and a
      stamp there would record a reading of a document that could not be read.
      Asked through the same NAMED floor it asks, never a second copy of it. */
-  const _obText = isUpload(c) ? (c.upload&&c.upload.extractedText)||''
-    : (window.contractPlainText?contractPlainText(c):'');
+  const _obText = obligationsText(c);
   if(_obText && _obText.length>=OBLIG_TEXT_MIN){ obligationsReadStamp(c, _obText); persist(c); }
   /* A FRESH READING REPLACES WHAT THE ARRIVAL HELD, so the strip's tile and
      its held list describe the wording just read rather than the old one —
@@ -3647,4 +3657,4 @@ Object.assign(window,{obligationIsDoc,obligationDocUntil,obligationDocFile,oblig
   obligationReminderSay,obligationHistory,obligationStampHistory,obHistoryHtml,obChainSectionHtml,obDocSectionHtml,obWordingSectionHtml,
   obligationShowInContract,obKeyOf,obLocate,obPanelActs,obligationRemove,obOpenContract,obPanelOpts,obPaintPanel,obListHtml,obTableHtml,
   OBW_VIEWS,OBW_CHIPS,obwPlace,obwPlacePut,obwBook,obwPass,obwPaintHead,renderObligationsInspector,OBT_VIEWS,obtView,roomObligationsInspector,
-  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalRecordedOf,renewalDecisionStale,renewalDecided,RENEWAL_PAPER_KINDS,renewalNextStep,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview,OB_KINDS,OB_WHOSE,obKindOf,obWhoseOf,obReviewOf,obReviewMark,obReviewDecision,obReviewTally,obReviewWaiting,obKindSplitText,obFindWord});
+  OBLIG_RECUR,obRecurLabel,OBLIG_BANDS,OBLIG_TEXT_MIN,OB_NOTE_MAX,OBW_WHOSE,OBW_STATE,OBW_SIDE,OBW_DUE,obwFilters,obwNarrowing,obwOnly,obwOnlyChipHtml,obwRows,obwGoFiltered,obligationsDoorCount,renderObligationsList,obwRepaint,obligationSeriesOpenAt,obligationChase,obligationNextDue,obligationSeriesId,obligationNextInstance,obligationMarkDone,obligationClearDone,obligationOnTime,obligationsReadStamp,openObligationDone,obligationReminderTo,obligationOwnerTo,obligationIsMine,obligationRemindsMe,obligationBand,obligationTabState,roomObligationsHtml,roomPaintObligations,OBLIG_PARTY,obligationParty,obligationIsTheirs,obligationOwner,obligationsOurs,obligationsTheirs,findObligation,toggleObligation,toggleObligationById,openObligations,dateOnly,isoDay,renewalDecisionDate,RENEWAL_WINDOW_DAYS,renewalWindow,renewalInForce,obligationDue,obligationSurfacesChanged,obState,RENEWAL_ANSWERS,renewalQuestionOf,renewalDecisionOf,renewalRecordedOf,renewalDecisionStale,renewalDecided,RENEWAL_PAPER_KINDS,renewalNextStep,renewalNoticeTo,contractObligations,allObligations,overdueObligationCount,renewalDecisionsDue,heuristicObligations,obligationsText,extractObligations,renderObligationsSection,openObligationForm,runFindObligations,openObligationsReview,OB_KINDS,OB_WHOSE,obKindOf,obWhoseOf,obReviewOf,obReviewMark,obReviewDecision,obReviewTally,obReviewWaiting,obKindSplitText,obFindWord});

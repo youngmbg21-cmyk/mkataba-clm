@@ -417,6 +417,9 @@ const HEAVY = c => { // strip the big fields for list/index responses
   if (x.execution) x.execution = { ...x.execution, html: undefined };
   x.sealPrep = undefined;   // the frozen copy waiting for the seal: the record's, never the list's
   if (x.upload) x.upload = { ...x.upload, dataUrl: undefined, extractedText: undefined };
+  /* a signed copy whose words differ keeps its text (js/views/handover.js
+     outsideFile): the record's, like the upload's, never the list's */
+  if (x.signedCopy && x.signedCopy.text) x.signedCopy = { ...x.signedCopy, text: undefined };
   /* THE STORED OWNER WINS. `_raisedBy` was the stop-gap that made the
      dashboard true before a contract had an owner field; it stays for every
      record raised before that landed and never backfilled. One reading, two
@@ -4772,6 +4775,12 @@ app.put('/api/contracts/:id', auth, editor, (req, res) => {
      `here`: a browser holding the record from before the claim would echo the
      flag back and owe the reading twice, and no save may invent one. */
   if (prev && prev.arrivalOwed) c.arrivalOwed = prev.arrivalOwed; else delete c.arrivalOwed;
+  /* ---- THE SIGNED COPY'S OWN WORDS ARE NOT A LIST ROW'S TO DROP (10 Oct 2026) ----
+     HEAVY leaves `signedCopy.text` off the list, so a save from a list row
+     comes back without it. The stored text is kept — exactly as the stored
+     prep below — and the signed copy stays what was filed. */
+  if (prev && prev.signedCopy && prev.signedCopy.text && c.signedCopy && typeof c.signedCopy === 'object' && !c.signedCopy.text)
+    c.signedCopy = { ...c.signedCopy, text: prev.signedCopy.text };
   /* ---- THE FROZEN COPY THE SERVER SEALS FROM (D4, 8 Oct 2026) ----
      A save may bring a NEW prep (sealPrepStamp, at a signature of ours); this
      server stamps it with the fingerprint of the wording it was drawn from.
