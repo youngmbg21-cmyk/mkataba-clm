@@ -663,8 +663,10 @@ if (typeof document !== 'undefined') document.addEventListener('click', e => {
      its description and quote; Add is the reader's press (openObligationForm).
    - Mark a risk — a risk the READER names, kept in c.risks.marked (never
      travels, like the rest of c.risks) and counted by riskItemsOf like any other.
-   - Comment — an INTERNAL note on the contract, anchored to the clause the
-     words sit in where the paper says which (negoPostComment, the one writer).
+   - Comment — opens the Chat panel with the words pinned and Internal chosen
+     (rlNoteFromSelection, the Negotiate page's own door); the note is written
+     there (negoPostComment, the one writer). ca_note_on_* and ca_note_done
+     are inert in both books.
    Never on an executed contract's wording? Reading and noting still are. */
 const CA_SEL_ACTIONS = () => [
   { id: 'ask', label: _caT('ca_sel_ask') },
@@ -725,16 +727,20 @@ async function caSelPick(c, act, text, clauseId){
     return;
   }
   if (act.id === 'note'){
-    if (typeof promptDialog !== 'function' || typeof negoPostComment !== 'function') return;
-    const v = await promptDialog({ title: _caT('ca_note_on_title'), message: _caT('ca_note_on_msg'), value: '', multiline: true });
-    if (v == null || !String(v).trim()) return;
-    /* The paper the Paper side draws does not always say which clause a
-       passage sits in; where it does not, the note quotes the words itself. */
-    const body = clauseId ? String(v).trim() : `“${quote.length > 240 ? quote.slice(0, 240) + '…' : quote}” — ${String(v).trim()}`;
-    const msg = negoPostComment(c, null, body, { visibility: 'internal', anchor: clauseId ? { clauseId, quote } : null });
-    if (!msg){ if (typeof toast === 'function') toast(_caT('ca_failed'), 'err'); return; }
-    if (typeof persist === 'function') try { persist(c); } catch (_){}
-    if (typeof toast === 'function') toast(_caT('ca_note_done'), 'ok');
+    /* THE NOTE IS WRITTEN IN CHAT (Young, 10 Oct 2026, the "HaTi Proposals"
+       artifact, Part 2): no pop-up of its own. The Notes panel opens with the
+       words pinned whole under their clause and Internal chosen — the same one
+       door the Negotiate page's Comment uses (rlNoteFromSelection), so the
+       note anchors to its clause and wears its mark on the paper. Where the
+       Paper cannot say which clause the words sit in, the words are pinned to
+       the contract instead, never glued onto the note's text. */
+    if (clauseId && typeof rlNoteFromSelection === 'function' && rlNoteFromSelection(c, { clauseId, quote })) return;
+    if (typeof rlNotesPin === 'function' && typeof openNotesPanel === 'function'){
+      rlNotesPin({ contractId: c.id, room: 'internal', quote });
+      openNotesPanel(c.id, null, { force: true });
+      return;
+    }
+    if (typeof toast === 'function') toast(_caT('ca_failed'), 'err');
   }
 }
 /* THE ONE WRITER of a risk a person marks by hand. */
