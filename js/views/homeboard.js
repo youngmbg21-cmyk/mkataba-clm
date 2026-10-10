@@ -2054,7 +2054,11 @@ function hbTrendOf(pts){
   const mx = pts.reduce((a, p) => a + p.i, 0) / k, my = pts.reduce((a, p) => a + p.y, 0) / k;
   const den = pts.reduce((a, p) => a + (p.i - mx) ** 2, 0); const b = den ? pts.reduce((a, p) => a + (p.i - mx) * (p.y - my), 0) / den : 0;
   const a0 = my - b * mx, i0 = pts[0].i, i1 = pts[k - 1].i;
-  return { i0, i1, y0: a0 + b * i0, y1: a0 + b * i1, n: k };
+  /* A COUNT, AN AMOUNT OR A WAIT IS NEVER BELOW NOTHING (bug log, 10 Oct
+     2026): a steep fall drew the line under the axis and said "-3 contracts".
+     Where every point is at or above zero, so is the line. */
+  const floor = pts.every(p => p.y >= 0) ? (v => Math.max(0, v)) : (v => v);
+  return { i0, i1, y0: floor(a0 + b * i0), y1: floor(a0 + b * i1), n: k };
 }
 function hbTrendDir(m, T){
   const base = Math.max(Math.abs(T.y0), 1e-9), pct = (T.y1 - T.y0) / base;

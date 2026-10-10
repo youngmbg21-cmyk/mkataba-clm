@@ -154,4 +154,24 @@ describe('f409 — the approval rules, on the server', () => {
     const r = await save(W.admin, id, signOurs);
     assert.equal(r.status, 200, JSON.stringify(r.json));
   });
+  test('f409 (9) a standing yes is taken back only by the person who gave it (or an admin)', async () => {
+    const id = await make();
+    await save(W.admin, id, c => decide(c, 'r-fin', 'approved', 'Amina Otieno'));
+    const back = c => ({ ...c, approvalChain: (c.approvalChain || []).map(s => s.ruleId === 'r-fin' ? { ...s, status: 'pending', by: null, at: null, stamp: null } : s) });
+    let r = await save(W.unrestricted, id, back);
+    assert.equal(r.status, 403, 'another editor cannot put the step back to waiting: ' + JSON.stringify(r.json));
+    assert.match(r.json.error, /Amina Otieno/);
+    r = await save(W.unrestricted, id, c => ({ ...c, approvalChain: (c.approvalChain || []).filter(s => s.ruleId !== 'r-fin') }));
+    assert.equal(r.status, 403, 'nor drop it from the chain: ' + JSON.stringify(r.json));
+    const stored = await W.admin.json('/api/contracts/' + id);
+    assert.equal((stored.approvalChain.find(s => s.ruleId === 'r-fin') || {}).status, 'approved', 'the yes still stands');
+    /* CONTROLS: a save that moves the amount lapses the yes with it; the
+       approver may take back their own. */
+    r = await save(W.unrestricted, id, c => back({ ...c, value: 7000000 }));
+    assert.equal(r.status, 200, 'a changed amount lapses the yes: ' + JSON.stringify(r.json));
+    const id2 = await make();
+    await save(W.admin, id2, c => decide(c, 'r-fin', 'approved', 'Amina Otieno'));
+    r = await save(W.admin, id2, back);
+    assert.equal(r.status, 200, 'the approver takes back their own: ' + JSON.stringify(r.json));
+  });
 });

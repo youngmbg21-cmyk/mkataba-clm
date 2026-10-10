@@ -258,6 +258,12 @@ describe('F448 (4) — trends: a line through enough history, or the plain reaso
     const flat = w.hbTrendOf([0, 1, 2, 3, 4, 5].map(i => ({ i, y: 100 + (i % 2) })));
     assert.match(w.hbTrendDir('count', flat), /steady/);
   });
+  test('a count never trends below nothing (bug log, 10 Oct 2026)', () => {
+    const w = world();
+    const T = w.hbTrendOf([20, 12, 3, 0, 0, 0].map((y, i) => ({ i, y })));
+    assert.ok(T.y1 >= 0, 'the line ends at or above zero: ' + T.y1);
+    assert.match(w.hbTrendDir('count', T), /down|fall/i, 'and still says it fell');
+  });
 });
 
 describe('F448 (5) — live contracts each month read the monthly picture of the book', () => {

@@ -66,6 +66,9 @@ test('f414 (n9) "Why they asked" reads the reason, never the provenance', () => 
   assert.equal(negoReasonOf({ note: 'Copilot — Edit' }), '');
   assert.equal(negoReasonOf({ note: 'We need longer' }), 'We need longer');
   assert.equal(negoReasonOf({ why: 'Cash flow', note: 'Copilot — Edit' }), 'Cash flow');
+  /* the clause editor's own label is provenance too (bug log, 29 Sep 2026) */
+  assert.equal(negoReasonOf({ note: 'Written on the clause editor' }), '');
+  assert.match(R('server/server.js'), /SRV_NEGO_PROVENANCE_RE = \/\^\(\?:Copilot[^\n]*Written on the clause editor/, 'the server reads a reason the same way');
   assert.ok(!/\(ch\.why \|\| ch\.note\)/.test(NV), 'no card reads the raw pair');
   assert.match(NM, /note: negoReasonOf\(ch\) \|\| null, ch \}\);/);
 });

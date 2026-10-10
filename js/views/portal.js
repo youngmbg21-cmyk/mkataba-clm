@@ -2477,6 +2477,15 @@ function portalStatusWordHtml(c){
       if(h&&h.kind==='points') return pill(...A, i18tn('po_pill_points',h.asks.length,{n:h.asks.length}));
       return pill(...B, i18t('po_pill_turn'));
     }
+    /* A NEGOTIATION LINK RETIRED BY SIGNING (bug log): its payload is the
+       snapshot sent with it, so the pill still read "In Review" after the
+       signing had begun. The link's own news wins over the snapshot. */
+    if(PORTAL_OPTS && PORTAL_OPTS.payload){
+      const pill=(bg,fg,t)=>`<span class="pw-id-stat room-stat" style="display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:11px;font-weight:var(--w-strong);background:${bg};color:${fg}">${esc(t)}</span>`;
+      const ex=portalExecuted();
+      if(ex) return pill('var(--st-green-bg)','var(--st-green-fg)', i18t('po_pill_fully')+(ex.at?' · '+(window.portalDayWords?portalDayWords(ex.at):String(ex.at).slice(0,10)):''));
+      if(portalSigningStarted()) return pill('var(--st-amber-bg)','var(--st-amber-fg)', i18t('po_pill_signing_started'));
+    }
   }catch(_){}
   const meta = (window.STATUS_META && c && STATUS_META[c.status]) || null;
   if(!meta) return '';

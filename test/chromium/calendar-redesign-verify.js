@@ -106,6 +106,11 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
   const browser = await chromium.launch({ executablePath: EXEC, args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 1500, height: 900 }, acceptDownloads: true });
   const page = await ctx.newPage();
+  /* THE PAGE'S TODAY IS THE DAY THE SEED WAS WRITTEN (bug log: sections 5, 7
+     and 8 went red once the real month left August 2026 — a test whose
+     answer depends on the day it runs). The seed's dates are relative to 22
+     Aug 2026, so the browser is told that is today; timers still run. */
+  await page.clock.setFixedTime(new Date('2026-08-22T09:00:00'));
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
 
@@ -431,7 +436,9 @@ const dist = (a, b) => { const [x, y, z] = RGB(a), [p, q, r] = RGB(b);
     const dark = await page.evaluate(() => {
       const g = e => e ? getComputedStyle(e) : null;
       const seg = document.querySelector('.cal-seg span.on');
-      const tab = document.querySelector('.cal-bar .views a.on');
+      /* RE-POINTED 10 Oct 2026: the views moved into the segmented control
+         (.cal-seg-view) in SAP batch 2; .cal-bar .views is gone. */
+      const tab = document.querySelector('.cal-seg-view a.on');
       const chip = document.querySelector('.cal-chip');
       const legend = [...document.querySelectorAll('.cal-legend i')].map(i => g(i).backgroundColor);
       return { segBg: g(seg).backgroundColor, segFg: g(seg).color, tabFg: g(tab).color,
