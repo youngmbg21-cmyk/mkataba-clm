@@ -20582,3 +20582,4 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 - CLAUDE.md is about 95 KB, over its own 80 KB line — a trim is owner-asked, not done here.
 - refile-a-contract-verify, nine-jobs-verify and paper-terms-frozen-verify fail identically on unmodified main (3cf24bb, 9 Oct 2026): main's own tests run has been red on its last three merges. Not fixed in the SAP batch 2 PR.
 - signing-on-paper-verify 1c, 4a and its journey fail identically on unmodified main (3cf24bb, 9 Oct 2026): the two copies start at different pixels and the mark never lands. Not fixed in SAP batch 3.
+- outsideCompare (js/outside.js), found writing f654 (9 Oct 2026): a returned signed copy whose text has EVERY line break lost reads the next clause's number ("2.") as a word added to the clause before, so identical wording reports "1 difference". With line breaks kept it reports the same. Not fixed — noticed while adding tests.
