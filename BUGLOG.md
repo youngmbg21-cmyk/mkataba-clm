@@ -20614,3 +20614,7 @@ Built overnight on the owner's pick. Story in docs/MAP-HISTORY.md under "HEADLIN
 ## Noticed, not fixed (10 Oct 2026, long-contract speed)
 - phone-verify: 2 FAIL on unmodified main as well ("iPhone 14 (390): … the selection menu still opens"; "obligations: the bands are the desktop's four … Overdue · 2 | Later · 1") — not this change's.
 - The "live" pulsing status dot (livePing / status-pulse) animates on every page; on a 50-page Document tab each frame repaints more (~20% of one core while sitting still). No freeze; left as it is.
+
+## Noticed, not fixed (10 Oct 2026, customer folders and filters beside the tabs)
+- test/chromium/ink-wash-verify.js is red on unmodified main (1ac0947): 137 passed, 33 failed, and it is not on KNOWN_RED. The Customers rail door adds 9 more "green-light …: no text size moved" lines (one more 13px label on every page's rail); the census is re-recorded only with an owner-asked palette change, so it was left.
+- CLAUDE.md is 91 KB, over its ~80 KB ceiling, before and after this change (two MAP lines added here); a trim needs the owner's ask.

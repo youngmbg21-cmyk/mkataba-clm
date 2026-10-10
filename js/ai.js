@@ -1636,7 +1636,7 @@ function aiInsightsBrief(panels, tab){
 const AI_PAGE_NAMES = {
   dashboard: 'Home', register: 'Contracts', folder: 'Contracts',
   redline: 'Negotiations', workspace: 'a contract', intel: 'Insights',
-  obligations: 'Obligations', approvals: 'Approvals & signing', agents: "Copilot's work", brain: 'the Brain', calendar: 'Calendar', templates: 'Templates',
+  obligations: 'Obligations', approvals: 'Approvals & signing', customers: 'Customers', agents: "Copilot's work", brain: 'the Brain', calendar: 'Calendar', templates: 'Templates',
   playbook: 'Our standards', pipeline: 'Approvals', intake: 'Requests',
   directory: 'People', team: 'Settings & rules', reports: 'Reports',
   migration: 'Import contracts', advice: 'Advice desk',
@@ -1711,6 +1711,18 @@ function aiPageContext(){
     }catch(_){}
   }
 
+  /* ---- CUSTOMERS: the list, or one customer's shelf, through its own readings ---- */
+  if (view === 'customers'){
+    try{
+      if (typeof cuPlace === 'function' && typeof cuCustomerOf === 'function'){
+        const p = cuPlace(), r = p.cust ? cuCustomerOf(p.cust) : null;
+        if (r){ page.showing = 'one customer\'s contracts'; page.customer = r.name; page.tab = p.tab; page.matching = r.items.length; }
+        else page.showing = 'the list of customers';
+        const cuts = ['stream', 'owner', 'type'].filter(k => p[k] && p[k] !== 'all').map(k => `${k}=${p[k]}`);
+        if (cuts.length) page.filters = cuts;
+      }
+    }catch(_){}
+  }
   /* ---- A CONTRACT'S OWN ROOM: which contract, and which tab of it ---- */
   if (view === 'workspace'){
     try{ if (typeof roomCurrentTab === 'function'){

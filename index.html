@@ -214,6 +214,7 @@
   <symbol id="i-file" viewBox="0 0 16 16"><path d="M3.6 2.4h6l2.8 2.8v8.4H3.6V2.4Z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M9.4 2.6v2.8h2.8" fill="none" stroke="currentColor" stroke-width="1.3"/></symbol>
   <symbol id="i-brain" viewBox="0 0 16 16"><path d="M8 3.2c-.6-1-2.4-1.2-3.3-.2-.9-.1-1.9.7-1.8 1.8-1 .4-1.4 1.6-.9 2.5-.6.8-.4 2 .5 2.5 0 1.1 1 1.9 2 1.7.5 1 1.9 1.4 2.9.8.4-.2.6-.6.6-1V3.2Zm0 0c.6-1 2.4-1.2 3.3-.2.9-.1 1.9.7 1.8 1.8 1 .4 1.4 1.6.9 2.5.6.8.4 2-.5 2.5 0 1.1-1 1.9-2 1.7-.5 1-1.9 1.4-2.9.8" fill="none" stroke="currentColor" stroke-linejoin="round"/><path d="M5.2 6.2h1.4l.8 1.4M10.8 6.2H9.4l-.8 1.4M5.4 9.2 6.8 8.6M10.6 9.2 9.2 8.6" fill="none" stroke="currentColor" stroke-linecap="round"/></symbol>
   <symbol id="i-home" viewBox="0 0 16 16"><path d="M2.4 7.4 8 2.8l5.6 4.6v6H2.4v-6Z" fill="none" stroke="currentColor" stroke-linejoin="round"/></symbol>
+  <symbol id="i-shelf" viewBox="0 0 16 16"><path d="M2.4 4.4h4.2l1.2 1.4h5.8v7H2.4v-8.4Z" fill="none" stroke="currentColor" stroke-linejoin="round"/></symbol>
   <symbol id="i-folder" viewBox="0 0 16 16"><path d="M3.8 2.2h5.4l3 3v8.6H3.8V2.2Z" fill="none" stroke="currentColor" stroke-linejoin="round"/><path d="M9.2 2.4v3h3" fill="none" stroke="currentColor"/></symbol>
   <symbol id="i-nego" viewBox="0 0 16 16"><path d="M2.6 5.4h9.8M10 3.2l2.4 2.2L10 7.6M13.4 10.6H3.6M6 8.4 3.6 10.6 6 12.8" fill="none" stroke="currentColor" stroke-linejoin="round"/></symbol>
   <symbol id="i-cal" viewBox="0 0 16 16"><rect x="2.4" y="3.4" width="11.2" height="10.2" fill="none" stroke="currentColor"/><path d="M2.4 6.4h11.2M5.4 2.2v2.4M10.6 2.2v2.4" fill="none" stroke="currentColor"/></symbol>
@@ -11901,6 +11902,26 @@
     min-width:0;padding:0 var(--s-1);border:0;background:none;color:var(--accent-ink);font-weight:var(--w-label);}
   .sap-page .reg-fb .reg-chip.reg-chip-add > svg{display:none;}
   .sap-page .reg-fb .reg-chip.reg-chip-add:hover{text-decoration:underline;}
+  /* FILTERS BESIDE THE TABS (owner, 10 Oct 2026) on Contracts and
+     Negotiations: the tab row and the filters are one row; each filter is a
+     compact box with its label inside ("Stream: All streams"), as tall as a
+     control; the row wraps on a narrow window and the filters take one short
+     line under the tabs. Scoped by .reg-tabbar so the other pages' labelled
+     boxes keep their look. */
+  .sap-page .reg-tabbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 var(--s-4);}
+  .sap-page .reg-tabbar > .reg-views{flex:0 1 auto;min-width:0;margin-top:0;}
+  .sap-page .reg-tabbar > .reg-fb{flex:0 0 auto;margin-left:auto;flex-wrap:nowrap;align-items:center;gap:var(--s-2);padding:var(--s-1) 0;}
+  .sap-page .reg-tabbar .reg-fb .reg-chip:not(.reg-chip-btn){display:flex;flex-direction:row;align-items:center;gap:0;min-width:0;height:var(--ctl-h);
+    padding:0 28px 0 var(--s-2);border:1px solid var(--btn-edge);border-radius:var(--radius);background:var(--color-surface);}
+  .sap-page .reg-tabbar .reg-fb .reg-chip:not(.reg-chip-btn):hover{border-color:var(--color-neutral-400);background:var(--color-surface);}
+  .sap-page .reg-tabbar .reg-fb .reg-chip:not(.reg-chip-btn):focus-within{border-color:var(--color-accent);
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--color-accent) 25%,transparent);}
+  .sap-page .reg-tabbar .reg-fb .reg-chip.on:not(.reg-chip-btn){border-color:var(--color-accent);}
+  .sap-page .reg-tabbar .reg-fb .reg-chip:not(.reg-chip-btn)::after{bottom:auto;top:50%;margin-top:-2px;}
+  .sap-page .reg-tabbar .reg-fb .reg-chip .reg-f-l{font-size:var(--t-body);margin-right:5px;}
+  .sap-page .reg-tabbar .reg-fb .reg-chip .reg-f-l::after{content:":";}
+  .sap-page .reg-tabbar .reg-fb .reg-chip .reg-f-v{height:auto;padding:0;border:0;background:none;box-shadow:none;max-width:200px;}
+  .sap-page .reg-tabbar .reg-fb .reg-chip:hover .reg-f-v,.sap-page .reg-tabbar .reg-fb .reg-chip:focus-within .reg-f-v{border:0;box-shadow:none;}
   /* the list's own head: its name and count, then two small icons */
   .sap-page .reg-cardhead{display:flex;align-items:center;gap:var(--s-1);padding:var(--s-3) var(--s-4) var(--s-3) var(--s-4);}
   .sap-page .reg-cardhead .reg-tt{font-size:var(--t-card);font-weight:var(--w-strong);}
@@ -12770,6 +12791,16 @@
             <span class="nav-rail"></span>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-nego"/></svg>
             <span style="flex:1;" data-i18n="nav_negotiations">Negotiations</span><span class="nav-count" data-count="negotiations"></span>
+          </button>
+          <!-- CUSTOMERS (owner, 10 Oct 2026: "implement ... the custom folders SAP
+               way"), third: Negotiations stays directly under Contracts (the owner's
+               12 Aug call): one shelf per customer, drawn from the counterparty on each
+               contract — a reading, never a folder anybody files into. Its count
+               is how many customers the page lists (cuDoorCount). -->
+          <button data-view="customers" class="nav-item" title="Customers — every customer's contracts in one place, active and expired, grouped by stream" data-i18n-title="nav_customers_title">
+            <span class="nav-rail"></span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" aria-hidden="true"><use href="#i-shelf"/></svg>
+            <span style="flex:1;" data-i18n="nav_customers">Customers</span><span class="nav-count" data-count="customers"></span>
           </button>
           <!-- APPROVALS & SIGNING (the redesign order's step 10, 20 Sep 2026):
                a door onto what waits on this reader's yes and on their

@@ -73,6 +73,7 @@ import './views/home.js';
    pages that draw it; it publishes its names and asks theirs through window. */
 import './views/inspector.js';
 import './views/approvalsview.js'; // Approvals & signing: a door onto two readings Home already makes (20 Sep 2026)
+import './views/customers.js';     // Customer folders: a Customers page and one page per customer, Active | Expired, grouped by stream (10 Oct 2026)
 import './brainmap.js';           // the Brain's catalogue and its reader of the code, one for both hosts (27 Sep 2026)
 import './views/brain.js';         // the Brain: HaTi as a network of neurons, read from its own code (27 Sep 2026)
 import './agentruns.js';           // Copilot's agents' engine room: runs, settings, the page's quiet refresh (27 Sep 2026)
@@ -216,6 +217,7 @@ function commandMeta(view){
     case 'advice':    return [i18t('nav_intake'), i18t('pg_advice_sub')];
     case 'obligations': return [i18t('nav_obligations'), ''];
     case 'approvals': return [i18t('nav_approvals'), ''];
+    case 'customers': return [i18t('nav_customers'), ''];
     case 'brain':     return [i18t('nav_brain'), ''];
     case 'agents':    return [i18t('nav_agents'), ''];
     case 'intake':    return [i18t('nav_intake'), i18t('pg_intake_sub')];
@@ -339,7 +341,8 @@ function pageActionHtml(kind){
 /* 'brain' joined 27 Sep 2026 (Young: "Make the brain page fill the whole
    screen"): the shell bar already says Brain and the stage card names its own
    view, so the page title was the one row between the brain and the screen. */
-const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'brain'];
+/* 'customers' draws its own head in its white band (the trail, the name and the figures change with the customer on screen, 10 Oct 2026). */
+const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'calendar', 'brain', 'customers'];
 /* ---- WHOSE PAGE OWNS ITS OWN HEIGHT, AND THEREFORE NEEDS NO SCROLLBAR
    RESERVED (owner-reported 25 Aug 2026, off three screenshots of the top-right
    corner: "the top card on the right corner … is leaving space in the corner.
@@ -371,7 +374,7 @@ const PAGE_OWNS_HEADER = ['dashboard', 'redline', 'workspace', 'templates', 'cal
    an agent is pressed): Copilot's work is --view-h tall above 900px, its right
    side scrolls inside itself and the list beside it stays put. */
 /* 'intake' and 'advice' joined 9 Oct 2026 (SAP benchmark, batch 2): Requests and its Advice tab draw the white band to the screen's edge, as Approvals and Obligations do; 'directory' (People) and 'templates' (Our paper) the same day, each scrolling inside its own page. */
-const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'agents'];
+const VIEW_OWNS_HEIGHT = ['workspace', 'redline', 'calendar', 'intel', 'register', 'brain', 'approvals', 'obligations', 'intake', 'advice', 'directory', 'templates', 'customers', 'agents'];
 /* The class carries the fact; index.html carries the rule. Painted from
    renderPageHeader, which runs on EVERY view change — including onto a view
    that is not on the list, which is what takes the class back off again. */
@@ -769,6 +772,8 @@ function updateSidebarCounts(){
   const total=(state.serverStats&&state.serverStats.total!=null)?state.serverStats.total:cs.length;
   const counts={
     register: total,
+    /* HOW MANY CUSTOMERS — the list the Customers page draws (cuDoorCount), so the door and the page cannot disagree. A size, never amber. */
+    customers: (typeof cuDoorCount==='function')?cuDoorCount():0,
     pipeline: nc.pipeline,
     /* ONE DOOR FOR BOTH KINDS OF REQUEST (gap F, 4 Oct 2026): the Advice
        desk's door is gone and its open requests ride on this one, added to
@@ -866,7 +871,7 @@ function updateSidebarCounts(){
 /* ============================================================ SHELL VIEW SWITCH */
 const VIEW_LABEL = { dashboard:'Home', folder:'this value stream', intel:'Insights',
   calendar:'Calendar', reports:'Reports', register:'Contracts', migration:'Import contracts',
-  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', agents:"Copilot's work", brain:'the Brain', templates:'Templates', playbook:'Our standards',
+  pipeline:'Pipeline', advice:'Advice desk', intake:'Requests', obligations:'Obligations', approvals:'Approvals & signing', customers:'Customers', agents:"Copilot's work", brain:'the Brain', templates:'Templates', playbook:'Our standards',
   team:'Team & settings', directory:'People', workspace:'the contract workspace',
   redline:'Negotiations' };
 
@@ -1087,6 +1092,7 @@ function setView(view){
     else if(view==='advice') renderAdviceDesk();
     else if(view==='obligations') renderObligationsList();
     else if(view==='approvals') renderApprovalsPage();
+    else if(view==='customers') renderCustomers();
     else if(view==='brain') renderBrainPage();
     else if(view==='agents') renderAgentsPage();
     else if(view==='intake') renderIntake();
@@ -1280,6 +1286,7 @@ const PLACE_PARTS={
   calendar:['calPlace','calPlacePut'],
   obligations:['obwPlace','obwPlacePut'],
   redline:['rlPlace','rlPlacePut'],
+  customers:['cuPlace','cuPlacePut'],
 };
 const PLACE_ONE_CONTRACT=['workspace','doc','redline'];
 const PLACE_BACK_MS=6000, PLACE_BACK_EVERY=120, PLACE_SAVE_WAIT=250;

@@ -465,9 +465,13 @@ const check = (name, ok, detail) => {
         const vbox = chip && chip.querySelector('.reg-f-v');
         const shown = vbox && getComputedStyle(vbox).display !== 'none' ? vbox : null;
         const cs = getComputedStyle(shown || chip || e);
+        /* RE-POINTED 10 Oct 2026 (owner: filters beside the tabs): beside the
+           tabs the label sits INSIDE the box, so the chip itself carries the
+           edge and the corner; the value inside still carries ink and weight. */
+        const es = (chip && chip.closest('.reg-tabbar')) ? getComputedStyle(chip) : cs;
         const face = shown || (chip && chip.querySelector('.reg-f-l'));
         const fs = getComputedStyle(face || chip || e);
-        return { bc: cs.borderTopColor, fg: fs.color, fw: cs.fontWeight, r: cs.borderTopLeftRadius }; };
+        return { bc: es.borderTopColor, fg: fs.color, fw: cs.fontWeight, r: es.borderTopLeftRadius }; };
       const btn = [...document.querySelectorAll('.ui-btn')]
         .filter(b => b.getBoundingClientRect().width > 0)
         .find(b => !b.classList.contains('ui-btn-primary'));
