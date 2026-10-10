@@ -4458,6 +4458,13 @@
   #ov-ess .ov-ess-g .sec-f-v{ display:block; line-height:20px; max-height:40px; overflow-y:auto;
     overscroll-behavior:contain; scrollbar-width:thin; }
   #ov-ess .ov-ess-g .sec-f-v > .sec-f-c{ margin-left:6px; }
+  /* THE TERMS CARD: THE LABEL IS BOLD, THE ANSWER IS NOT (owner picked "Headed"
+     by name, 10 Oct 2026, over real pictures of the card). This card only: the
+     20 Sep "a field's name is not bold" rule stands everywhere else. Weight
+     only; sizes, colours and sentence case are untouched. An em-dash stays
+     light (.is-none is already body weight). */
+  :root #ov-ess .ov-ess-g .sec-f-l:not(#_){ font-weight:var(--w-strong); }
+  :root #ov-ess .ov-ess-g .sec-f-v:not(#_){ font-weight:var(--w-body); }
   :root #ov-map .ov-map-pcap, :root #ov-map .ov-map-pane h4{ text-transform:none; letter-spacing:0; }
   .ov-ess-cap{ font-size:var(--t-micro); letter-spacing:var(--cap-ls); color:var(--cap-ink); }
   .ov-ess-acts{ display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; }

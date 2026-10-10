@@ -28398,3 +28398,17 @@ window — half off the screen; a reading-chip repaint while 200px down the
 open chart moved the pressed row from 208 to 89. hbPaintBoard now holds the
 pressed card (pointerdown remembered 4 s) and shows the target by the least
 scroll (hbShowCard), lit.
+
+## THE OVERVIEW — THE TERMS CARD'S LABELS ARE BOLD (10 OCT 2026)
+The owner asked to see the terms card with its small headers bold and the
+answers not, keeping today's sizes. Two proposals were shown as real pictures
+of the latest main (an earlier round was taken from a copy 108 commits behind
+and showed the old capital-letter labels; the owner caught it): "Quiet" (both
+normal) and "Headed" (labels 600, answers 400). Measured: labels 12px
+blue-grey sentence case, answers 13px page ink, identical in all three; only
+the weight moved. The owner picked Headed by name ("build header only"). It
+is scoped to `#ov-ess .ov-ess-g` — the 20 Sep 2026 ruling that a field's name
+is never bold stands on every other card (the top facts row, the Renewal
+boxes, the inspectors). overview-as-drawn 8b/8d re-pointed; red at main on
+both (label 400, answer 600). The phone draws its own overview and was left
+alone.

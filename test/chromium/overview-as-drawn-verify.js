@@ -546,13 +546,16 @@ const SEC = (suffix) => {
     check('8a GATE — the deal grid is painted with a label and an answered value',
       !!(ty && ty.label && ty.answered && ty.answeredText && ty.answeredText !== '—'),
       ty ? JSON.stringify(ty) : 'no section');
-    check('8b the field NAME is not bold', !!ty && Number(ty.label) <= 400,
+    /* RE-POINTED 10 Oct 2026: the owner picked "Headed" by name for THE TERMS
+       CARD — its labels bold, its answers not. The 20 Sep rule (names not
+       bold) stands on every other card; this grid is the one exception. */
+    check('8b the field NAME on the terms card is bold', !!ty && Number(ty.label) >= 600,
       ty ? 'label weight ' + ty.label : 'not measured');
     /* RE-POINTED 9 Oct 2026 (SAP batch 3, "build exactly the drawings"): the
        drawing writes the terms' labels in sentence case, not capitals. */
     check('8c CONTROL — and the label is in sentence case, as drawn',
       !!ty && ty.labelCase === 'none', ty ? String(ty.labelCase) : 'not measured');
-    check('8d CONTROL — an ANSWERED field stays bold', !!ty && Number(ty.answered) >= 600,
+    check('8d an ANSWERED field on the terms card is not bold', !!ty && Number(ty.answered) <= 400,
       ty ? 'value weight ' + ty.answered : 'not measured');
     check('8e CONTROL — and stays in the page\'s own ink, not the label\'s grey',
       !!ty && ty.answeredInk === ty.bodyInk && ty.answeredInk !== ty.labelInk,
