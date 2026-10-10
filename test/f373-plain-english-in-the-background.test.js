@@ -298,7 +298,8 @@ describe('f373 (7) the column opens on the press and fills as it is read', () =>
     const p = region('docReadPoll');
     assert.match(p, /if\(!always&&!docReadWatching\(id\)\) return null;/);
     assert.match(p, /reading-progress\?run=/);
-    assert.match(ROOM, /const docReadWatching=id=>state\.view==='workspace'&&state\.activeId===id&&_wsTab==='docs'&&docReadOn\(\);/);
+    /* RE-POINTED 10 Oct 2026 (Home's Paper clauses work order): the thread has two homes (TH_HOSTS); a row the scroll opens opens in one step ({follow:true}). */
+    assert.match(ROOM, /const docReadWatching=id=>\(state\.view==='workspace'&&state\.activeId===id&&_wsTab==='docs'&&docReadOn\(\)\)\n  \|\|\(thOnHome\(\)&&thHomeLive\(\)&&/);
   });
   test('the open row says "Reading N of M" in its own line, never a band', () => {
     const p = region('docThreadProgress');
