@@ -241,7 +241,7 @@ describe('f657 (G8) the four new pictures', () => {
   test('one picture list on both hosts, and the words that ask for each', () => {
     const w = world();
     ['waterfall', 'funnel', 'multi', 'spread'].forEach(p => assert.ok(w.HB_PICS.includes(p), p));
-    assert.match(read('server/server.js'), /const GRAPH_CHART_PICS = \[[^\]]*'waterfall', 'funnel', 'multi', 'spread'\]/);
+    assert.match(read('server/server.js'), /const GRAPH_CHART_PICS = \[[^\]]*'waterfall', 'funnel', 'multi', 'spread'[^\]]*\]/);
     const pic = q => { const R = w.hbRecipeRead(q); return R && R.pic; };
     assert.equal(pic('contract value as a waterfall'), 'waterfall');
     assert.equal(pic('contracts as a funnel'), 'funnel');
@@ -320,7 +320,7 @@ describe('f657 (G9) copy as image, copy table', () => {
   test('a picture leaving HaTi carries literal colours, its title and the date of the data', () => {
     assert.match(region('_hbSvgLiteral'), /getComputedStyle\(el\)/);
     assert.match(region('_hbSvgLiteral'), /removeAttribute\('class'\)/, 'no class leans on a sheet the picture does not carry');
-    assert.match(region('hbChartPng'), /hb_copy_foot/);
+    assert.match(region('hbChartPngOf'), /hb_copy_foot/);
     assert.match(region('hbCopyChartImage'), /hb_copy_img_saved/, 'where copying a picture is refused, it is saved and said');
     assert.match(region('hbCopyChartTable'), /'text\/plain'[\s\S]*'text\/html'/);
   });
