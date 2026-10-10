@@ -136,6 +136,11 @@ const check = (name, pass, detail) => {
     await page.screenshot({ path: path.join(OUT, '2b-floors.png') });
     await page.evaluate(() => { intel.timeBy = 'expiry'; rebuildIntelGraph(); });
     await view(4);
+    /* measured while Turning, as it was before the map opened Still (10 Oct
+       2026): the Still jiggle moves each dot a few pixels, and this check is
+       about where the layout puts them, not the jiggle */
+    await page.evaluate(() => igSetSpin(true));
+    await until(() => (intel.cam.jig || 0) < 0.005 ? true : null);
     /* the quarter-end crowd: how many of its contracts have a spot of their own */
     const tl = await page.evaluate(() => {
       const crowd = IG.nodes.filter(n => n.kind === 'contract' && n.c && n.c.expiry === '2027-03-31');
@@ -170,19 +175,44 @@ const check = (name, pass, detail) => {
     const dotAt = () => page.evaluate(() => { const n = IG.nodes.find(x => x.kind === 'contract' && x.g.getBoundingClientRect().width); const r = n.g.querySelector('circle').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; });
     const moves = async (v, key) => { await view(v); const a = await page.evaluate(k => intel.cam[k] || 0, key), d0 = await dotAt(); await page.waitForTimeout(1500);
       const b = await page.evaluate(k => intel.cam[k] || 0, key), d1 = await dotAt(); return { moved: Math.abs(b - a) > 0.02, dot: Math.hypot(d1[0] - d0[0], d1[1] - d0[1]) >= 2, a: +a.toFixed(3), b: +b.toFixed(3), d0, d1 }; };
+    /* STILL UNTIL PRESSED (Young, 10 Oct 2026, reversing 28 Sep's "moving at
+       all times": "clicking play when on screen otherwise it is dormant and
+       the contracts are just flickering like in the Wiring screen", for all
+       four, "always open still"). The map opens Still: no view turns or
+       sways, each dot jiggles a little; Turning is the reader's press, and
+       then every frame is drawn (smooth, no stutter). */
+    await page.evaluate(() => renderIntel());
+    await until(() => !!document.getElementById('ig-spin') && window.IG);
+    await page.mouse.move(2, 2);
     const sp = await page.evaluate(() => { const b = document.getElementById('ig-spin'); return b ? { text: b.textContent.trim(), pressed: b.getAttribute('aria-pressed') } : null; });
-    check('4a the view bar carries the Brain page\'s button, and at rest it says Turning', !!sp && sp.text === 'Turning' && sp.pressed === 'true', JSON.stringify(sp));
+    check('4a the view bar carries the Brain page\'s button, and on arrival it says Still', !!sp && sp.text === 'Still' && sp.pressed === 'false', JSON.stringify(sp));
     await (await page.$('.ig-viewbar')).screenshot({ path: path.join(OUT, '4a-turning-button.png') });
-    const mB = await moves(0, 'rot'), mF = await moves(2, 'rotL'), mG = await moves(3, 'rotG'), mT = await moves(4, 'rotT');
-    check('4b the Brain still turns by itself', mB.moved && mB.dot, JSON.stringify(mB));
-    check('4c the Floors now turn by themselves, like the Brain', mF.moved && mF.dot, JSON.stringify(mF));
+    /* a jiggle is measured as the furthest a dot strays over 1.6 s, sampled */
+    const stray = async (v, key) => { await view(v); const a = await page.evaluate(k => intel.cam[k] || 0, key), d0 = await dotAt(); let far = 0;
+      for (let i = 0; i < 8; i++){ await page.waitForTimeout(200); const d = await dotAt(); far = Math.max(far, Math.hypot(d[0] - d0[0], d[1] - d0[1])); }
+      const b = await page.evaluate(k => intel.cam[k] || 0, key); return { moved: Math.abs(b - a) > 0.02, far: Math.round(far * 10) / 10, a: +a.toFixed(3), b: +b.toFixed(3) }; };
+    const jig = m => !m.moved && m.far >= 1 && m.far < 14;
+    const sw0 = await page.evaluate(() => intel.cam.sway || 0);
+    const qB = await stray(0, 'rot'), qF = await stray(2, 'rotL'), qG = await stray(3, 'rotG'), qT = await stray(4, 'rotT');
+    check('4a2 Still: Brain, Floors, Grid and Timeline do not turn or swing — their dots only jiggle a little', jig(qB) && jig(qF) && jig(qG) && jig(qT) && (await page.evaluate(() => intel.cam.sway || 0)) === sw0, JSON.stringify({ qB, qF, qG, qT, sw0 }));
+    const fps = () => page.evaluate(() => new Promise(r => { const f0 = igFramesDrawn(); setTimeout(() => r(igFramesDrawn() - f0), 1000); }));
+    await page.waitForTimeout(2600);
+    const fStill = await fps();
+    await page.evaluate(() => igSetSpin(true)); await page.mouse.move(2, 2);
+    await page.waitForTimeout(2600);
+    const fTurn = await fps();
+    check('4a3 Still draws only a few frames a second; Turning draws every frame (smooth)', fStill <= 10 && fTurn >= 30, JSON.stringify({ fStill, fTurn }));
+    const swayed = async (v, key) => { const sa = await page.evaluate(() => intel.cam.sway || 0); const m = await moves(v, key); return { ...m, sa: +sa.toFixed(4), sb: +(await page.evaluate(() => intel.cam.sway || 0)).toFixed(4) }; };
+    const mB = await moves(0, 'rot'), mF = await moves(2, 'rotL'), mG = await swayed(3, 'rotG'), mT = await swayed(4, 'rotT');
+    check('4b pressed Turning, the Brain turns', mB.moved && mB.dot, JSON.stringify(mB));
+    check('4c and the Floors turn, like the Brain', mF.moved && mF.dot, JSON.stringify(mF));
     /* REVERSED IN PLACE 4 Oct 2026 (Young: "the tables should not spin round,
        they should just slowly swing down to the left and not far at all and
        down to the right as well"; 29 Sep's "spin fully" is gone). Grid and
        Timeline SWAY: the angle the reader set does not move by itself, the
        dots do, and the swing stays inside a small arc. */
     const sw = await page.evaluate(() => ({ amp: window.IGB_SWAY, s: window.IGB_SWAY_S }));
-    const swings = m => !m.moved && m.dot;
+    const swings = m => !m.moved && (m.dot || Math.abs((m.sb || 0) - (m.sa || 0)) > 0.003);
     check('4d the Grid swings by itself without turning round — its set angle stays, its dots move', swings(mG), JSON.stringify(mG));
     check('4e the Timeline swings by itself without turning round', swings(mT), JSON.stringify(mT));
     const arc = await page.evaluate(async () => { let max = 0; for (let i = 0; i < 12; i++) { max = Math.max(max, Math.abs(intel.cam.sway || 0)); await new Promise(r => setTimeout(r, 120)); } return { max: +max.toFixed(3) }; });
@@ -193,11 +223,14 @@ const check = (name, pass, detail) => {
     await page.click('#ig-spin');
     const st = await page.evaluate(() => { const b = document.getElementById('ig-spin'); return { text: b.textContent.trim(), pressed: b.getAttribute('aria-pressed') }; });
     await page.mouse.move(2, 2);
-    const sT = await moves(4, 'rotT'), sF = await moves(2, 'rotL');
-    check('4f pressed, it says Still, and the Timeline and the Floors hold still', st.text === 'Still' && st.pressed === 'false' && !sT.moved && !sT.dot && !sF.moved && !sF.dot, JSON.stringify({ st, sT, sF }));
+    const sT = await stray(4, 'rotT'), sF = await stray(2, 'rotL');
+    check('4f pressed, it says Still, and the Timeline and the Floors hold still (their dots only jiggle)', st.text === 'Still' && st.pressed === 'false' && jig(sT) && jig(sF), JSON.stringify({ st, sT, sF }));
     await page.click('#ig-spin'); await page.mouse.move(2, 2);
     const again = await moves(2, 'rotL');
     check('4g pressed again, it says Turning and the Floors turn again', again.moved && (await page.evaluate(() => document.getElementById('ig-spin').textContent.trim())) === 'Turning', JSON.stringify(again));
+    await page.evaluate(() => renderIntel());
+    const back = await until(() => document.getElementById('ig-spin') ? { spin: igbSpinning(), text: document.getElementById('ig-spin').textContent.trim() } : null);
+    check('4h Turning is never remembered: the map opens Still again', !!back && back.spin === false && back.text === 'Still', JSON.stringify(back));
     }
 
     /* ================= 5. THE HEAD LINE RIDES THE STAGE =======================

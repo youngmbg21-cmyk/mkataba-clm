@@ -83,7 +83,10 @@ const check = (name, pass, detail) => {
     await page.evaluate(() => { if (typeof igSetSpin === 'function') igSetSpin(false); });
     await page.waitForTimeout(2500);
     const sit = await act(() => 0, quiet(4000));
-    check('3. a still, settled Explorer keeps the browser busy under 5% of the time', sit.busy < 200, `${sit.busy} ms busy of 4000`);
+    /* 10 Oct 2026: a Still map jiggles its dots (owner-asked, "the contracts
+       are just flickering"), drawn at IG_JIG_FPS — measured 283 ms of 4000 at
+       this book (7%), against 1 ms when it rested and ~100% before 8 Oct. */
+    check('3. a still, settled Explorer keeps the browser busy under 10% of the time', sit.busy < 400, `${sit.busy} ms busy of 4000`);
     const back = await act(() => hbSetFace('board'), onFace('board'));
     const onBoard = await act(() => 0, quiet(3000));
     check('4. no frame of the map is drawn while the Board shows', onBoard.frames === 0, `${onBoard.frames} frames (and ${back.frames} on the way out)`);

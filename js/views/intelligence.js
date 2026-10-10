@@ -1151,7 +1151,7 @@ function intelPlacePut(p){
   if(IG_TABS.includes(p.tab)) intel.tab=p.tab;
   if(p.recipe&&p.recipe.rv!==IG_RECIPE_V){ igLandingSet(); return; }
   if(p.recipe){ try{ igRecipeSet(p.recipe); }catch(_){} }
-  if(p.cam&&Array.isArray(p.cam.w)&&p.cam.w.length===IGB_NV) intel.cam={ ...p.cam, w:p.cam.w.slice() };
+  if(p.cam&&Array.isArray(p.cam.w)&&p.cam.w.length===IGB_NV) intel.cam={ ...p.cam, w:p.cam.w.slice(), spin:false };
 }
 function igRecipeSet(r){
   if(!r) return;
@@ -2620,6 +2620,15 @@ const IGB_SPIN_KEY=['rot',null,'rotL',null,null];   // which angle each view tur
    where it is when Still is pressed. A drag still turns them as far as the
    hand takes them. */
 const IGB_SWAY=.12, IGB_SWAY_S=36;
+/* STILL UNTIL PRESSED (Young, 10 Oct 2026: "clicking play when on screen
+   otherwise it is dormant and the contracts are just flickering like in the
+   Wiring screen" — for Brain, Floors, Grid and Timeline, "always open still").
+   The map opens Still on every arrival (igLoopStart) and is never remembered;
+   while Still each dot JIGGLES in place — IGB_JIG of the map's radius, about
+   once every IGB_JIG_S, its own phase — drawn at the resting rate
+   (IG_SPIN_FPS), where a jiggle reads as alive. Turning is the reader's
+   press, and only then does the loop draw every frame (smooth). */
+const IGB_JIG=.014, IGB_JIG_S=3.2;
 const IGB_STEP_S=2.4, IGB_PULSE_S=.9;          // a walk-through: one contract every 2.4 s
 const IGB_LABEL_W=150;
 const IGB_SIZE_KEYS=['value','obligations','same'];
@@ -2661,7 +2670,7 @@ function igbReduced(){ try{ return !!(window.matchMedia&&window.matchMedia('(pre
 /* THE CAMERA IS THE SITTING'S, in memory: a regroup or a new answer keeps the
    view the reader chose and the way they turned it. Nothing stores it. */
 function igbCam(){
-  if(!intel.cam||!Array.isArray(intel.cam.w)||intel.cam.w.length!==IGB_NV) intel.cam={ view:0, w:[1,0,0,0,0], spin:!igbReduced(), rot:-1.4, tiltOff:0, rotW:0, tiltW:0, rotL:0, tiltL:0, rotG:0, tiltG:0, rotT:0, tiltT:0, zoom:1 };
+  if(!intel.cam||!Array.isArray(intel.cam.w)||intel.cam.w.length!==IGB_NV) intel.cam={ view:0, w:[1,0,0,0,0], spin:false, rot:-1.4, tiltOff:0, rotW:0, tiltW:0, rotL:0, tiltL:0, rotG:0, tiltG:0, rotT:0, tiltT:0, zoom:1 };
   return intel.cam;
 }
 /* The brain's tissue: faint dots that make its shape and are never
@@ -3057,9 +3066,16 @@ function igBundleOf(id){ const S=igBundleSets(); for(let i=0;i<S.length;i++) if(
 const IG_EDGE_PARTY_KEYS=['counterparty'];
 function igEdgeNamesShow(key){ return !IG_EDGE_PARTY_KEYS.includes(key)||intel.edgeNames===true; }
 function igHubNamed(h,R){ if(!R) return true; if(R.none) return false; return (h.kids||[]).some(n=>igNameShows(n.id,R)); }
+function igbJig(n,w){
+  const j=(igbCam().jig||0)*(1-w[1]); if(j<=.001) return null;
+  if(!n._jp){ const h=igbHash(n.id); n._jp=[h%628/100,(h>>>10)%628/100,(h>>>20)%628/100,.75+(h%50)/100]; }
+  const t=(IG&&IG._jt||0)*2*Math.PI/IGB_JIG_S*n._jp[3], a=IGB_JIG*j;
+  return [a*Math.sin(t+n._jp[0]),a*Math.sin(t*1.3+n._jp[1]),a*Math.sin(t*.8+n._jp[2])];
+}
 function igbMix(n,w){
   const P=[n.A,n.W3,n.L,n.G||n.L,n.T||n.L];
   const p=[0,1,2].map(i=>P.reduce((s,v,k)=>s+v[i]*w[k],0));
+  const J=igbJig(n,w); if(J){ p[0]+=J[0]; p[1]+=J[1]; p[2]+=J[2]; }
   const h=n.hub; if(!h) return p;
   const f=h.fold*igbCardW(w); if(f<=0) return p;
   const H=igbHeart(h,w); return [p[0]+(H[0]-p[0])*f, p[1]+(H[1]-p[1])*f, p[2]+(H[2]-p[2])*f];
@@ -3092,7 +3108,9 @@ function igbStep(G,dt){
         for(let v=2;v<=4;v++) n.cf[v]+=((igCellFolded(n,v)?1:0)-n.cf[v])*fe; } } });
   /* Turning / Still (the bar's own button, `cam.spin`; a reader who asked for
      less motion starts Still). Holding or pointing at the map holds it. */
-  const spin=cam.spin==null?!rm:!!cam.spin;
+  const spin=!!cam.spin;
+  cam.jig=(cam.jig||0)+(((spin||rm)?0:1)-(cam.jig||0))*(rm?1:Math.min(1,dt*2));
+  G._jt=(G._jt||0)+dt;
   if(spin&&!G.turning&&!G.hover){ const k=IGB_SPIN_KEY[cam.view]; if(k) cam[k]+=dt*IGB_TURN_RATE; else if(cam.view>=3) cam.swayT=(cam.swayT||0)+dt; }
   /* Still holds the swing where it is (a pressed Still is still at once) */
   if(spin){ const swayTo=cam.view>=3?IGB_SWAY*Math.sin((cam.swayT||0)*2*Math.PI/IGB_SWAY_S):0;
@@ -3395,11 +3413,12 @@ function igSetZoom(z){
 /* TURNING / STILL — the Brain page's own button (its words and its mark),
    on the Explorer's bar: one press stops or starts the motion of every view. */
 const IG_IC_TURN='<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><ellipse cx="8" cy="8" rx="6" ry="2.6"/><path d="M11.5 4.2l2 1.2-1.6 1.6"/></svg>';
-function igbSpinning(){ const c=igbCam(); return c.spin==null?!igbReduced():!!c.spin; }
+function igbSpinning(){ return !!igbCam().spin; }
 function igSpinLabel(){ return IG_IC_TURN+igEsc(i18t(igbSpinning()?'int_turning':'int_still')); }
 function igSetSpin(on){
   igbCam().spin=!!on;
   const b=document.getElementById('ig-spin'); if(b){ b.innerHTML=igSpinLabel(); b.setAttribute('aria-pressed',String(!!on)); }
+  igWake();
 }
 function igFaceAgain(){
   const cam=igbCam();
@@ -3655,10 +3674,11 @@ function igPaintGroupSelect(){
    of IG_SETTLE_SLICE across the next frames. AT REST: the frame loop stops
    drawing once nothing moves — no settling, no pointer on the map, no walk,
    no glide since IG_AWAKE_MS — and any press, drag, wheel, hover, view
-   change, fold, lens or new answer wakes it (igWake). A map left turning
-   keeps turning at IG_SPIN_FPS. MEASURED ONCE: the stage's size is read on
+   change, fold, lens or new answer wakes it (igWake). A map left Still
+   jiggles at IG_JIG_FPS (Wiring drifts at IG_SPIN_FPS); one the reader set Turning draws every frame
+   while it shows (igbSpinning; STILL UNTIL PRESSED). MEASURED ONCE: the stage's size is read on
    a ResizeObserver, never inside a frame after the canvas was written. */
-const IG_SETTLE_ROUNDS=220, IG_SETTLE_SLICE=20, IG_SETTLE_MS=10, IG_AWAKE_MS=2000, IG_SPIN_FPS=12;
+const IG_SETTLE_ROUNDS=220, IG_SETTLE_SLICE=20, IG_SETTLE_MS=10, IG_AWAKE_MS=2000, IG_SPIN_FPS=12, IG_JIG_FPS=6;
 let _igKept={ key:'', nodes:null }, _igWokeAt=0, _igKick=null, _igTimer=0, _igSizeWatch=null;
 function igKeptKey(cs, groupBy, groups, lenses){
   const book=(cs||[]).map(c=>c&&(c.id+':'+(c.updatedAt||c.updated_at||c.version||''))).join('|');
@@ -3726,12 +3746,13 @@ function igLoopStart(myRAF){
       if(IG._settle<=0&&!IG._kept) igFitView(); }
     else if(wiring&&(f++%4===0)) igTick();
     igRender();
-    const awake=IG._settle>0||Date.now()-_igWokeAt<IG_AWAKE_MS||!!intel.walk;
+    const awake=IG._settle>0||Date.now()-_igWokeAt<IG_AWAKE_MS||!!intel.walk||igbSpinning();
     if(awake){ requestAnimationFrame(step); return; }
     _igKick=step;
-    if(igbSpinning()||wiring) _igTimer=setTimeout(()=>{ _igTimer=0; if(_igKick===step){ _igKick=null; requestAnimationFrame(step); } }, 1000/IG_SPIN_FPS);
+    if(!igbReduced()||wiring) _igTimer=setTimeout(()=>{ _igTimer=0; if(_igKick===step){ _igKick=null; requestAnimationFrame(step); } }, 1000/(wiring?IG_SPIN_FPS:IG_JIG_FPS));
   };
   if(_igTimer){ clearTimeout(_igTimer); _igTimer=0; }
+  igSetSpin(false);
   _igKick=null; _igWokeAt=Date.now(); step();
 }
 function updateIntelNote(){
